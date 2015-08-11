@@ -11,13 +11,17 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
+	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	u "github.com/ipfs/go-ipfs/util"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
+
+var log = u.Logger("cmds/mfs")
 
 type mfsMountListing struct {
 	Mounts []mfs.RootListing
@@ -29,6 +33,9 @@ var MfsCmd = &cmds.Command{
 		ShortDescription: `
 Mfs is an API for manipulating ipfs objects as if they were a unix filesystem.
 They can be seeded with an initial root hash, or by default are an empty directory.
+
+'Sessions' may be created with the create command. Once created, they show up in
+the output of the base mfs command.
 
 NOTICE:
 This API is currently experimental, likely to change, and may potentially be
@@ -58,7 +65,7 @@ on how this API could be improved is very welcome.
 		}
 
 		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
+			res.SetError(cmds.ErrNotOnline, cmds.ErrNormal)
 			return
 		}
 
@@ -141,7 +148,7 @@ publish actions and close actions for a given filesystem
 		}
 
 		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
+			res.SetError(cmds.ErrNotOnline, cmds.ErrNormal)
 			return
 		}
 
@@ -183,6 +190,10 @@ publish actions and close actions for a given filesystem
 	},
 }
 
+type Object struct {
+	Hash string
+}
+
 var MfsCloseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Close an open filesystem",
@@ -200,7 +211,7 @@ var MfsCloseCmd = &cmds.Command{
 		}
 
 		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
+			res.SetError(cmds.ErrNotOnline, cmds.ErrNormal)
 			return
 		}
 
@@ -223,18 +234,6 @@ var MfsCloseCmd = &cmds.Command{
 	Type: Object{},
 }
 
-func getSession(o *cmds.OptionValue) (string, error) {
-	s, found, err := o.String()
-	if err != nil {
-		return "", err
-	}
-	if !found {
-		s = "local"
-	}
-
-	return s, nil
-}
-
 type MfsLsOutput struct {
 	Entries []mfs.NodeListing
 }
@@ -251,38 +250,9 @@ var MfsLsCmd = &cmds.Command{
 		cmds.BoolOption("l", "use long listing format"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+		dir, err := getRootDir(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
-		}
-
-		s, found, err := req.Option("session").String()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		if !found {
-			s = "local"
-		}
-
-		root, err := node.Mfs.GetRoot(s)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		var dir *mfs.Directory
-		switch root := root.GetValue().(type) {
-		case *mfs.Directory:
-			dir = root
-		default:
-			res.SetError(errors.New("unrecognized node type"), cmds.ErrNormal)
 			return
 		}
 
@@ -361,8 +331,9 @@ given mfs filesystem.
 			return
 		}
 
-		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
+		rdir, err := getRootDirFromSession(node, req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
@@ -379,20 +350,8 @@ given mfs filesystem.
 			return
 		}
 
-		sess, err := getSession(req.Option("session"))
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		root, err := node.Mfs.GetRoot(sess)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
 		path := req.Arguments()[1]
-		err = mfs.PutNodeUnderRoot(root, path, nd)
+		err = mfs.PutNodeUnderDir(rdir, path, nd)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -417,30 +376,11 @@ read the entire file similar to unix cat.
 		cmds.IntOption("n", "count", "maximum number of bytes to read"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+		rdir, err := getRootDir(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
-		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
-		}
-
-		sess, err := getSession(req.Option("session"))
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		root, err := node.Mfs.GetRoot(sess)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		rdir := root.GetValue().(*mfs.Directory)
 
 		path := req.Arguments()[0]
 		fsn, err := mfs.DirLookup(rdir, path)
@@ -490,30 +430,11 @@ Example:
 		cmds.StringArg("dest", true, false, "target path for file to be moved to"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+		rdir, err := getRootDir(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
-		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
-		}
-
-		sess, err := getSession(req.Option("session"))
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		root, err := node.Mfs.GetRoot(sess)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		rdir := root.GetValue().(*mfs.Directory)
 
 		src := req.Arguments()[0]
 		dst := req.Arguments()[1]
@@ -550,24 +471,7 @@ Example:
 		cmds.BoolOption("c", "create", "create the file if it does not exist"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
-		}
-
-		sess, err := getSession(req.Option("session"))
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		root, err := node.Mfs.GetRoot(sess)
+		root, err := getRootDir(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -606,53 +510,6 @@ Example:
 	},
 }
 
-func getFileHandle(root *mfs.Root, path string, create bool) (*mfs.File, error) {
-	dir := root.GetValue().(*mfs.Directory)
-
-	target, err := mfs.DirLookup(dir, path)
-	switch err {
-	case nil:
-		fi, ok := target.(*mfs.File)
-		if !ok {
-			return nil, fmt.Errorf("%s was not a file", path)
-		}
-		return fi, nil
-
-	case os.ErrNotExist:
-		if !create {
-			return nil, err
-		}
-
-		// if create is specified and the file doesnt exist, we create the file
-		dirname, fname := gopath.Split(path)
-		pdiri, err := mfs.DirLookup(dir, dirname)
-		if err != nil {
-			return nil, err
-		}
-		pdir, ok := pdiri.(*mfs.Directory)
-		if !ok {
-			return nil, fmt.Errorf("%s was not a directory", dirname)
-		}
-
-		nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
-		err = pdir.AddChild(fname, nd)
-		if err != nil {
-			return nil, err
-		}
-
-		fsn, err := pdir.Child(fname)
-		if err != nil {
-			return nil, err
-		}
-
-		// can unsafely cast, if it fails, that means programmer error
-		return fsn.(*mfs.File), nil
-
-	default:
-		return nil, err
-	}
-}
-
 var MfsMkdirCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "make directories",
@@ -666,33 +523,13 @@ var MfsMkdirCmd = &cmds.Command{
 		cmds.BoolOption("p", "parents", "no error if existing, make parent directories as needed"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
-		}
-
-		sess, err := getSession(req.Option("session"))
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		root, err := node.Mfs.GetRoot(sess)
+		rootdir, err := getRootDir(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
 		dashp, _, _ := req.Option("parents").Bool()
-
-		rootdir := root.GetValue().(*mfs.Directory)
-
 		dirtomake := req.Arguments()[0]
 
 		err = mfs.Mkdir(rootdir, dirtomake, dashp)
@@ -716,30 +553,11 @@ var MfsRmCmd = &cmds.Command{
 		cmds.BoolOption("r", "recursive", "recursively remove directories"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+		rdir, err := getRootDir(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
-		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
-		}
-
-		sess, err := getSession(req.Option("session"))
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		r, err := node.Mfs.GetRoot(sess)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		rdir := r.GetValue().(*mfs.Directory)
 
 		path := req.Arguments()[0]
 		dir, name := gopath.Split(path)
@@ -785,35 +603,87 @@ var MfsRmCmd = &cmds.Command{
 	},
 }
 
-var MfsCmdTemplate = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline:          "Manipulate mutable filesystems",
-		ShortDescription: ``,
-	},
+func getSession(o *cmds.OptionValue) (string, error) {
+	s, found, err := o.String()
+	if err != nil {
+		return "", err
+	}
+	if !found {
+		s = "local"
+	}
 
-	Arguments: []cmds.Argument{},
-	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+	return s, nil
+}
+
+func getRootDirFromSession(node *core.IpfsNode, req cmds.Request) (*mfs.Directory, error) {
+	if node.Mfs == nil {
+		return nil, cmds.ErrNotOnline
+	}
+
+	sess, err := getSession(req.Option("session"))
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := node.Mfs.GetRoot(sess)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.GetValue().(*mfs.Directory), nil
+}
+
+func getRootDir(req cmds.Request) (*mfs.Directory, error) {
+	node, err := req.InvocContext().GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	return getRootDirFromSession(node, req)
+}
+
+func getFileHandle(dir *mfs.Directory, path string, create bool) (*mfs.File, error) {
+
+	target, err := mfs.DirLookup(dir, path)
+	switch err {
+	case nil:
+		fi, ok := target.(*mfs.File)
+		if !ok {
+			return nil, fmt.Errorf("%s was not a file", path)
+		}
+		return fi, nil
+
+	case os.ErrNotExist:
+		if !create {
+			return nil, err
+		}
+
+		// if create is specified and the file doesnt exist, we create the file
+		dirname, fname := gopath.Split(path)
+		pdiri, err := mfs.DirLookup(dir, dirname)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
+		}
+		pdir, ok := pdiri.(*mfs.Directory)
+		if !ok {
+			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
 
-		if node.Mfs == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
+		nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+		err = pdir.AddChild(fname, nd)
+		if err != nil {
+			return nil, err
 		}
 
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			out := res.Output().(*mfsMountListing)
-			buf := new(bytes.Buffer)
-			for _, o := range out.Mounts {
-				fmt.Fprintf(buf, "%s - %s\n", o.Name, o.Hash)
-			}
-			return buf, nil
-		},
-	},
-	Type: mfsMountListing{},
+		fsn, err := pdir.Child(fname)
+		if err != nil {
+			return nil, err
+		}
+
+		// can unsafely cast, if it fails, that means programmer error
+		return fsn.(*mfs.File), nil
+
+	default:
+		return nil, err
+	}
 }

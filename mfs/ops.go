@@ -1,7 +1,6 @@
 package mfs
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	gopath "path"
@@ -58,12 +57,8 @@ func Mv(rootd *Directory, src, dst string) error {
 	return nil
 }
 
-// PutNodeUnderRoot inserts 'nd' at 'ipath' under the given filesystem root
-func PutNodeUnderRoot(root *Root, ipath string, nd *dag.Node) error {
-	dir, ok := root.GetValue().(*Directory)
-	if !ok {
-		return errors.New("root did not point to directory")
-	}
+// PutNodeUnderRoot inserts 'nd' at 'ipath' under the given directory dir
+func PutNodeUnderDir(dir *Directory, ipath string, nd *dag.Node) error {
 	dirp, filename := gopath.Split(ipath)
 
 	parent, err := DirLookup(dir, dirp)

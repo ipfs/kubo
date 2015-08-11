@@ -20,6 +20,8 @@ import (
 
 var log = u.Logger("command")
 
+var ErrNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")
+
 // Function is the type of function that Commands use.
 // It reads from the Request, and writes results to the Response.
 type Function func(Request, Response)
