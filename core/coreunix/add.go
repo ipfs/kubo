@@ -50,7 +50,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 	}
 	defer f.Close()
 
-	ff, err := files.NewSerialFile(root, f)
+	ff, err := files.NewSerialFile(root, root, f)
 	if err != nil {
 		return "", err
 	}
@@ -79,8 +79,8 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 // Returns the path of the added file ("<dir hash>/filename"), the DAG node of
 // the directory, and and error if any.
 func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkledag.Node, error) {
-	file := files.NewReaderFile(filename, ioutil.NopCloser(r), nil)
-	dir := files.NewSliceFile("", []files.File{file})
+	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
+	dir := files.NewSliceFile("", "", []files.File{file})
 	dagnode, err := addDir(n, dir)
 	if err != nil {
 		return "", nil, err

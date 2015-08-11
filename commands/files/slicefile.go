@@ -10,12 +10,13 @@ import (
 // SliceFiles are always directories, and can't be read from or closed.
 type SliceFile struct {
 	filename string
+	path     string
 	files    []File
 	n        int
 }
 
-func NewSliceFile(filename string, files []File) *SliceFile {
-	return &SliceFile{filename, files, 0}
+func NewSliceFile(filename, path string, files []File) *SliceFile {
+	return &SliceFile{filename, path, files, 0}
 }
 
 func (f *SliceFile) IsDirectory() bool {
@@ -33,6 +34,10 @@ func (f *SliceFile) NextFile() (File, error) {
 
 func (f *SliceFile) FileName() string {
 	return f.filename
+}
+
+func (f *SliceFile) FullPath() string {
+	return f.path
 }
 
 func (f *SliceFile) Read(p []byte) (int, error) {

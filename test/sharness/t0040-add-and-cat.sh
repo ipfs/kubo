@@ -35,7 +35,7 @@ test_expect_success "ipfs add succeeds" '
 
 test_expect_success "ipfs add output looks good" '
 	HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
-	echo "added $HASH mountdir/hello.txt" >expected &&
+	echo "added $HASH hello.txt" >expected &&
 	test_cmp expected actual
 '
 
@@ -116,7 +116,7 @@ test_expect_success "'ipfs add' with stdin input succeeds" '
 
 test_expect_success "'ipfs add' output looks good" '
 	HASH="QmZDhWpi8NvKrekaYYhxKCdNVGWsFFe1CREnAjP1QbPaB3" &&
-	echo "added $HASH " >expected &&
+	echo "added $HASH $HASH" >expected &&
 	test_cmp expected actual
 '
 
@@ -140,9 +140,9 @@ test_expect_success "'ipfs add -r' output looks good" '
 	PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY" &&
 	MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
 	VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
-	echo "added $MARS mountdir/planets/mars.txt" >expected &&
-	echo "added $VENUS mountdir/planets/venus.txt" >>expected &&
-	echo "added $PLANETS mountdir/planets" >>expected &&
+	echo "added $MARS planets/mars.txt" >expected &&
+	echo "added $VENUS planets/venus.txt" >>expected &&
+	echo "added $PLANETS planets" >>expected &&
 	test_cmp expected actual
 '
 
@@ -201,7 +201,7 @@ test_expect_success "'ipfs add bigfile' succeeds" '
 
 test_expect_success "'ipfs add bigfile' output looks good" '
 	HASH="QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" &&
-	echo "added $HASH mountdir/bigfile" >expected &&
+	echo "added $HASH bigfile" >expected &&
 	test_cmp expected actual
 '
 test_expect_success "'ipfs cat' succeeds" '
@@ -236,7 +236,7 @@ test_expect_success EXPENSIVE "ipfs add bigfile succeeds" '
 
 test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
 	HASH="QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3" &&
-	echo "added $HASH mountdir/bigfile" >expected &&
+	echo "added $HASH bigfile" >expected &&
 	test_cmp expected actual
 '
 

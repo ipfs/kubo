@@ -100,6 +100,7 @@ test_expect_success "'ipfs add dir' succeeds" '
 	echo "some text 5" >dir1/dir3/file5 &&
 	ipfs add -q -r dir1 | tail -n1 >actual1 &&
 	echo "$HASH_DIR1" >expected1 &&
+	ipfs repo gc && # remove the patch chaff
 	test_cmp actual1 expected1
 '
 

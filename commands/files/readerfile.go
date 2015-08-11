@@ -10,12 +10,13 @@ import (
 // ReaderFiles are never directories, and can be read from and closed.
 type ReaderFile struct {
 	filename string
+	fullpath string
 	reader   io.ReadCloser
 	stat     os.FileInfo
 }
 
-func NewReaderFile(filename string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
-	return &ReaderFile{filename, reader, stat}
+func NewReaderFile(filename, path string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
+	return &ReaderFile{filename, path, reader, stat}
 }
 
 func (f *ReaderFile) IsDirectory() bool {
@@ -28,6 +29,10 @@ func (f *ReaderFile) NextFile() (File, error) {
 
 func (f *ReaderFile) FileName() string {
 	return f.filename
+}
+
+func (f *ReaderFile) FullPath() string {
+	return f.fullpath
 }
 
 func (f *ReaderFile) Read(p []byte) (int, error) {
