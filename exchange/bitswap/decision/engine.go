@@ -11,6 +11,8 @@ import (
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	//network "github.com/ipfs/go-ipfs/exchange/bitswap/network"
+	//pinger "github.com/ipfs/go-ipfs/p2p/protocol/ping"
 )
 
 // TODO consider taking responsibility for other types of requests. For
@@ -86,11 +88,12 @@ type Engine struct {
 	ledgerMap map[peer.ID]*ledger
 }
 
-func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
+func NewEngine(ctx context.Context, bs bstore.Blockstore, df Strategy) *Engine {
+	lm := make(map[peer.ID]*ledger)
 	e := &Engine{
-		ledgerMap:        make(map[peer.ID]*ledger),
+		ledgerMap:        lm,
 		bs:               bs,
-		peerRequestQueue: newPRQ(),
+		peerRequestQueue: newSmartPRQ(lm, df),
 		outbox:           make(chan (<-chan *Envelope), outboxChanBuffer),
 		workSignal:       make(chan struct{}, 1),
 	}
@@ -233,6 +236,9 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 			}
 		}
 	}
+
+	e.peerRequestQueue.UpdatePeer(p)
+
 	return nil
 }
 
@@ -252,6 +258,8 @@ func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 		l.wantList.Remove(block.Key())
 		e.peerRequestQueue.Remove(block.Key(), p)
 	}
+
+	e.peerRequestQueue.UpdatePeer(p)
 
 	return nil
 }

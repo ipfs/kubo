@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	message "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
@@ -28,7 +30,7 @@ func newEngine(ctx context.Context, idStr string) peerAndEngine {
 		Peer: peer.ID(idStr),
 		//Strategy: New(true),
 		Engine: NewEngine(ctx,
-			blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))),
+			blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore())), Nice),
 	}
 }
 
@@ -102,7 +104,8 @@ func peerIsPartner(p peer.ID, e *Engine) bool {
 
 func TestOutboxClosedWhenEngineClosed(t *testing.T) {
 	t.SkipNow() // TODO implement *Engine.Close
-	e := NewEngine(context.Background(), blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore())))
+	e := NewEngine(context.Background(), blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore())), Nice)
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -150,7 +153,7 @@ func TestPartnerWantsThenCancels(t *testing.T) {
 			cancels := testcase[1]
 			keeps := stringsComplement(set, cancels)
 
-			e := NewEngine(context.Background(), bs)
+			e := NewEngine(context.Background(), bs, Nice)
 			partner := testutil.RandPeerIDFatal(t)
 
 			partnerWants(e, set, partner)
@@ -160,6 +163,67 @@ func TestPartnerWantsThenCancels(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
+	}
+}
+
+func TestLedgerCompare(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	fastsend := newEngine(ctx, "SpeedySam")
+	slowsend := newEngine(ctx, "LethargicLarry")
+	other := newEngine(ctx, "IrrelevantIngrid")
+	receiver := newEngine(ctx, "Bert")
+
+	//  Populate requests
+	for i := 0; i < 5; i++ {
+		key := blocks.NewBlock([]byte(strconv.Itoa(i))).Key()
+		req := wantlist.Entry{Key: key, Priority: 0}
+		receiver.Engine.peerRequestQueue.Push(req, other.Peer)
+		receiver.Engine.peerRequestQueue.Push(req, fastsend.Peer)
+		receiver.Engine.peerRequestQueue.Push(req, slowsend.Peer)
+	}
+
+	//  create dummy message
+	m := message.New(false)
+	content := []string{"this", "is", "message", "i"}
+	m.AddBlock(blocks.NewBlock([]byte(strings.Join(content, " "))))
+
+	// Simulate getting more blocks from fast peer
+	for i := 0; i < 100; i++ {
+		fastsend.Engine.MessageSent(receiver.Peer, m)
+		receiver.Engine.MessageReceived(fastsend.Peer, m)
+	}
+
+	//  Ensure fastsend is at front of queue
+	next := receiver.Engine.peerRequestQueue.Pop()
+	if next.Target != fastsend.Peer {
+		t.Fatal("Fastsend was not top request :'(.")
+	}
+
+	//  larry starts sending messages, but still less than fastend
+	for i := 0; i < 50; i++ {
+		slowsend.Engine.MessageSent(receiver.Peer, m)
+		receiver.Engine.MessageReceived(slowsend.Peer, m)
+	}
+
+	//  fastsend should still be at the front
+	next = receiver.Engine.peerRequestQueue.Pop()
+	if next.Target != fastsend.Peer {
+		t.Fatal("Fastsend was not top request :'(.")
+	}
+
+	//  lethargic larry sends more than fastsend
+	for i := 0; i < 100; i++ {
+		slowsend.Engine.MessageSent(receiver.Peer, m)
+		receiver.Engine.MessageReceived(slowsend.Peer, m)
+	}
+
+	//  larry should be at the front
+	next = receiver.Engine.peerRequestQueue.Pop()
+	if next.Target != slowsend.Peer {
+		t.Log(slowsend.Peer, fastsend.Peer)
+		t.Log(next.Target)
+		t.Fatal("Slowsend was not top request :'(.")
 	}
 }
 

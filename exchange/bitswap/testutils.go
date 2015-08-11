@@ -7,6 +7,7 @@ import (
 	ds_sync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	p2ptestutil "github.com/ipfs/go-ipfs/p2p/test/util"
@@ -46,7 +47,7 @@ func (g *SessionGenerator) Next() Instance {
 	if err != nil {
 		panic("FIXME") // TODO change signature
 	}
-	return Session(g.ctx, g.net, p)
+	return Session(g.ctx, g.net, p, nil)
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
@@ -85,10 +86,9 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func Session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
+func Session(ctx context.Context, net tn.Network, p testutil.Identity, strategy decision.Strategy) Instance {
 	bsdelay := delay.Fixed(0)
 	const writeCacheElems = 100
-
 	adapter := net.Adapter(p)
 	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
 
@@ -97,9 +97,7 @@ func Session(ctx context.Context, net tn.Network, p testutil.Identity) Instance 
 		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}
 
-	const alwaysSendToPeer = true
-
-	bs := New(ctx, p.ID(), adapter, bstore, alwaysSendToPeer).(*Bitswap)
+	bs := New(ctx, p.ID(), adapter, bstore, strategy).(*Bitswap)
 
 	return Instance{
 		Peer:            p.ID(),

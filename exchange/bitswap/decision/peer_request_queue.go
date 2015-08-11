@@ -1,6 +1,7 @@
 package decision
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -10,20 +11,46 @@ import (
 	pq "github.com/ipfs/go-ipfs/thirdparty/pq"
 )
 
+var PEER_BLOCK_TIME time.Duration = time.Second * 5
+
+//  Type representing a decision function
+type Strategy func(*activePartner) bool
+
+//  Map of strategy names to their functions
+//  Needed some way of having access to these strategies from bssim but I'm
+//  not sure if this is the best way to do it
+var Strats = map[string]Strategy{
+	"Nice": Nice,
+	"Mean": Mean,
+}
+
 type peerRequestQueue interface {
 	// Pop returns the next peerRequestTask. Returns nil if the peerRequestQueue is empty.
 	Pop() *peerRequestTask
 	Push(entry wantlist.Entry, to peer.ID)
 	Remove(k key.Key, p peer.ID)
+	UpdatePeer(p peer.ID)
 	// NB: cannot expose simply expose taskQueue.Len because trashed elements
 	// may exist. These trashed elements should not contribute to the count.
 }
 
 func newPRQ() peerRequestQueue {
 	return &prq{
-		taskMap:  make(map[string]*peerRequestTask),
-		partners: make(map[peer.ID]*activePartner),
-		pQueue:   pq.New(partnerCompare),
+		taskMap:      make(map[string]*peerRequestTask),
+		partners:     make(map[peer.ID]*activePartner),
+		pQueue:       pq.New(partnerCompare),
+		decisionFunc: Nice,
+	}
+}
+
+//  still dumb atm
+func newSmartPRQ(l map[peer.ID]*ledger, df Strategy) peerRequestQueue {
+	return &prq{
+		taskMap:      make(map[string]*peerRequestTask),
+		partners:     make(map[peer.ID]*activePartner),
+		pQueue:       pq.New(ledgerCompare),
+		ledgerMap:    l,
+		decisionFunc: df,
 	}
 }
 
@@ -38,6 +65,10 @@ type prq struct {
 	pQueue   pq.PQ
 	taskMap  map[string]*peerRequestTask
 	partners map[peer.ID]*activePartner
+	//  ledger map updated by engine used to make informed decisions
+	ledgerMap map[peer.ID]*ledger
+	//  determines whether or not to fulfill requests to a partner
+	decisionFunc Strategy
 }
 
 // Push currently adds a new peerRequestTask to the end of the list
@@ -46,7 +77,7 @@ func (tl *prq) Push(entry wantlist.Entry, to peer.ID) {
 	defer tl.lock.Unlock()
 	partner, ok := tl.partners[to]
 	if !ok {
-		partner = newActivePartner()
+		partner = newActivePartner(tl.ledgerMap, to)
 		tl.pQueue.Push(partner)
 		tl.partners[to] = partner
 	}
@@ -89,7 +120,12 @@ func (tl *prq) Pop() *peerRequestTask {
 	if tl.pQueue.Len() == 0 {
 		return nil
 	}
+
 	partner := tl.pQueue.Pop().(*activePartner)
+	for !tl.decisionFunc(partner) {
+		go tl.block(partner)
+		partner = tl.pQueue.Pop().(*activePartner)
+	}
 
 	var out *peerRequestTask
 	for partner.taskQueue.Len() > 0 {
@@ -123,6 +159,38 @@ func (tl *prq) Remove(k key.Key, p peer.ID) {
 		tl.partners[p].requests--
 	}
 	tl.lock.Unlock()
+}
+
+//  Should be called when ledger information for peer with pid is updated.
+//  Updates peers position in the partner queue.
+func (tl *prq) UpdatePeer(pid peer.ID) {
+	tl.lock.Lock()
+	defer tl.lock.Unlock()
+	if p, ok := tl.partners[pid]; ok {
+		tl.pQueue.Update(p.Index())
+	}
+}
+
+func (tl *prq) block(partner *activePartner) {
+	time.AfterFunc(PEER_BLOCK_TIME, func() {
+		tl.pQueue.Push(partner)
+	})
+}
+
+var Mean = func(partner *activePartner) bool {
+	//  placeholder logic
+	l := partner.GetLedger()
+	if l != nil {
+		if l.Accounting.Value() < 0.01 && l.Accounting.BytesSent > 10000 {
+			fmt.Println("rekt")
+			return false
+		}
+	}
+	return true
+}
+
+var Nice = func(parnter *activePartner) bool {
+	return true
 }
 
 type peerRequestTask struct {
@@ -198,12 +266,20 @@ type activePartner struct {
 
 	// priority queue of tasks belonging to this peer
 	taskQueue pq.PQ
+
+	//  kinda dirty to give each active partner all the ledgers and it's pid
+	//  instead of just its own ledger, but i'm not sure how else to deal with
+	//  the lazily loaded ledgers
+	ledgerMap map[peer.ID]*ledger
+	pid       peer.ID
 }
 
-func newActivePartner() *activePartner {
+func newActivePartner(lm map[peer.ID]*ledger, peerid peer.ID) *activePartner {
 	return &activePartner{
 		taskQueue:    pq.New(wrapCmp(V1)),
 		activeBlocks: make(map[key.Key]struct{}),
+		ledgerMap:    lm,
+		pid:          peerid,
 	}
 }
 
@@ -227,6 +303,42 @@ func partnerCompare(a, b pq.Elem) bool {
 		return pa.taskQueue.Len() > pb.taskQueue.Len()
 	}
 	return pa.active < pb.active
+}
+
+func ledgerCompare(a, b pq.Elem) bool {
+	pa := a.(*activePartner)
+	pb := b.(*activePartner)
+
+	if pa.requests == 0 {
+		return false
+	}
+	if pb.requests == 0 {
+		return true
+	}
+
+	pal := pa.GetLedger()
+	pbl := pb.GetLedger()
+
+	//  Favor peer with existing ledger info?
+	if pal == nil && pbl == nil {
+		return partnerCompare(a, b)
+	} else if pal == nil {
+		return false
+	} else if pbl == nil {
+		return true
+	}
+
+	//  favor peers we've sent less to maybe?  not sure about this yet
+	if pal.Accounting.BytesRecv == pbl.Accounting.BytesRecv {
+		return pal.Accounting.BytesSent < pbl.Accounting.BytesSent
+	}
+
+	//  peers with a lower debt ratio should be higher priority
+	if pal.Accounting.Value() == pbl.Accounting.Value() {
+		return pal.Accounting.BytesRecv > pbl.Accounting.BytesRecv
+	}
+
+	return pal.Accounting.Value() > pbl.Accounting.Value()
 }
 
 // StartTask signals that a task was started for this partner
@@ -256,4 +368,8 @@ func (p *activePartner) Index() int {
 // SetIndex implements pq.Elem
 func (p *activePartner) SetIndex(i int) {
 	p.index = i
+}
+
+func (p *activePartner) GetLedger() *ledger {
+	return p.ledgerMap[p.pid]
 }
