@@ -14,20 +14,20 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-func getBalancedDag(t testing.TB, size int64, blksize int) (*dag.Node, dag.DAGService) {
+func getBalancedDag(t testing.TB, size int64, blksize int64) (*dag.Node, dag.DAGService) {
 	ds := mdtest.Mock(t)
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
-	nd, err := BuildDagFromReader(r, ds, &chunk.SizeSplitter{blksize}, nil)
+	nd, err := BuildDagFromReader(ds, chunk.NewSizeSplitter(r, blksize), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return nd, ds
 }
 
-func getTrickleDag(t testing.TB, size int64, blksize int) (*dag.Node, dag.DAGService) {
+func getTrickleDag(t testing.TB, size int64, blksize int64) (*dag.Node, dag.DAGService) {
 	ds := mdtest.Mock(t)
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
-	nd, err := BuildTrickleDagFromReader(r, ds, &chunk.SizeSplitter{blksize}, nil)
+	nd, err := BuildTrickleDagFromReader(ds, chunk.NewSizeSplitter(r, blksize), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestBalancedDag(t *testing.T) {
 	u.NewTimeSeededRand().Read(buf)
 	r := bytes.NewReader(buf)
 
-	nd, err := BuildDagFromReader(r, ds, chunk.DefaultSplitter, nil)
+	nd, err := BuildDagFromReader(ds, chunk.DefaultSplitter(r), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -279,6 +279,10 @@
 			"Rev": "dfd657628c58d3eeaa26391097853b2473c8b94e"
 		},
 		{
+			"ImportPath": "github.com/whyrusleeping/chunker",
+			"Rev": "537e901819164627ca4bb5ce4e3faa8ce7956564"
+		},
+		{
 			"ImportPath": "github.com/whyrusleeping/go-metrics",
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
 		},

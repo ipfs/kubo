@@ -19,6 +19,8 @@ type DagBuilderHelper struct {
 	dserv    dag.DAGService
 	mp       pin.ManualPinner
 	in       <-chan []byte
+	errs     <-chan error
+	recvdErr error
 	nextData []byte // the next item to return.
 	maxlinks int
 	ncb      NodeCB
@@ -39,7 +41,7 @@ type DagBuilderParams struct {
 
 // Generate a new DagBuilderHelper from the given params, using 'in' as a
 // data source
-func (dbp *DagBuilderParams) New(in <-chan []byte) *DagBuilderHelper {
+func (dbp *DagBuilderParams) New(in <-chan []byte, errs <-chan error) *DagBuilderHelper {
 	ncb := dbp.NodeCB
 	if ncb == nil {
 		ncb = nilFunc
@@ -48,6 +50,7 @@ func (dbp *DagBuilderParams) New(in <-chan []byte) *DagBuilderHelper {
 	return &DagBuilderHelper{
 		dserv:    dbp.Dagserv,
 		in:       in,
+		errs:     errs,
 		maxlinks: dbp.Maxlinks,
 		ncb:      ncb,
 		batch:    dbp.Dagserv.Batch(),

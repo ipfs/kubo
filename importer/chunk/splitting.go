@@ -9,39 +9,71 @@ import (
 
 var log = util.Logger("chunk")
 
-var DefaultBlockSize = 1024 * 256
-var DefaultSplitter = &SizeSplitter{Size: DefaultBlockSize}
+var DefaultBlockSize int64 = 1024 * 256
 
-type BlockSplitter interface {
-	Split(r io.Reader) chan []byte
+type Splitter interface {
+	NextBytes() ([]byte, error)
 }
 
-type SizeSplitter struct {
-	Size int
+type SplitterGen func(r io.Reader) Splitter
+
+func DefaultSplitter(r io.Reader) Splitter {
+	return NewSizeSplitter(r, DefaultBlockSize)
 }
 
-func (ss *SizeSplitter) Split(r io.Reader) chan []byte {
+func SizeSplitterGen(size int64) SplitterGen {
+	return func(r io.Reader) Splitter {
+		return NewSizeSplitter(r, size)
+	}
+}
+
+func Chan(s Splitter) (<-chan []byte, <-chan error) {
 	out := make(chan []byte)
+	errs := make(chan error, 1)
 	go func() {
 		defer close(out)
+		defer close(errs)
 
 		// all-chunks loop (keep creating chunks)
 		for {
-			// log.Infof("making chunk with size: %d", ss.Size)
-			chunk := make([]byte, ss.Size)
-			nread, err := io.ReadFull(r, chunk)
-			if nread > 0 {
-				// log.Infof("sending out chunk with size: %d", sofar)
-				out <- chunk[:nread]
-			}
-			if err == io.EOF || err == io.ErrUnexpectedEOF {
-				return
-			}
+			b, err := s.NextBytes()
 			if err != nil {
-				log.Debugf("Block split error: %s", err)
+				errs <- err
 				return
 			}
+
+			out <- b
 		}
 	}()
-	return out
+	return out, errs
+}
+
+type sizeSplitterv2 struct {
+	r    io.Reader
+	size int64
+	err  error
+}
+
+func NewSizeSplitter(r io.Reader, size int64) Splitter {
+	return &sizeSplitterv2{
+		r:    r,
+		size: size,
+	}
+}
+
+func (ss *sizeSplitterv2) NextBytes() ([]byte, error) {
+	if ss.err != nil {
+		return nil, ss.err
+	}
+	buf := make([]byte, ss.size)
+	n, err := io.ReadFull(ss.r, buf)
+	if err == io.ErrUnexpectedEOF {
+		ss.err = io.EOF
+		err = nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return buf[:n], nil
 }

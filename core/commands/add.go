@@ -31,6 +31,7 @@ const (
 	wrapOptionName     = "wrap-with-directory"
 	hiddenOptionName   = "hidden"
 	onlyHashOptionName = "only-hash"
+	chunkerOptionName  = "chunker"
 )
 
 type AddedObject struct {
@@ -61,6 +62,7 @@ remains to be implemented.
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk"),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
 		cmds.BoolOption(hiddenOptionName, "Include files that are hidden"),
+		cmds.StringOption(chunkerOptionName, "s", "chunking algorithm to use"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
@@ -97,6 +99,7 @@ remains to be implemented.
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
 		hash, _, _ := req.Option(onlyHashOptionName).Bool()
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
+		chunker, _, _ := req.Option(chunkerOptionName).String()
 
 		if hash {
 			nilnode, err := core.NewNodeBuilder().NilRepo().Build(n.Context())
@@ -118,6 +121,7 @@ remains to be implemented.
 				progress: progress,
 				hidden:   hidden,
 				trickle:  trickle,
+				chunker:  chunker,
 			}
 
 			rootnd, err := addParams.addFile(file)
@@ -265,24 +269,27 @@ type adder struct {
 	progress bool
 	hidden   bool
 	trickle  bool
+	chunker  string
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func add(n *core.IpfsNode, reader io.Reader, useTrickle bool) (*dag.Node, error) {
+func add(n *core.IpfsNode, reader io.Reader, useTrickle bool, chunker string) (*dag.Node, error) {
+	chnk, err := chunk.FromString(reader, chunker)
+	if err != nil {
+		return nil, err
+	}
+
 	var node *dag.Node
-	var err error
 	if useTrickle {
 		node, err = importer.BuildTrickleDagFromReader(
-			reader,
 			n.DAG,
-			chunk.DefaultSplitter,
+			chnk,
 			importer.PinIndirectCB(n.Pinning.GetManual()),
 		)
 	} else {
 		node, err = importer.BuildDagFromReader(
-			reader,
 			n.DAG,
-			chunk.DefaultSplitter,
+			chnk,
 			importer.PinIndirectCB(n.Pinning.GetManual()),
 		)
 	}
@@ -314,7 +321,7 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 		reader = &progressReader{file: file, out: params.out}
 	}
 
-	dagnode, err := add(params.node, reader, params.trickle)
+	dagnode, err := add(params.node, reader, params.trickle, params.chunker)
 	if err != nil {
 		return nil, err
 	}
