@@ -40,9 +40,12 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key key.Key) (<-chan pe
 		peerset.Add(p)
 	}
 
+	// since the query doesnt actually pass our context down
+	// we have to hack this here. whyrusleeping isnt a huge fan of goprocess
+	parent := ctx
 	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
 		// For DHT query command
-		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+		notif.PublishQueryEvent(parent, &notif.QueryEvent{
 			Type: notif.SendingQuery,
 			ID:   p,
 		})
@@ -66,7 +69,7 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key key.Key) (<-chan pe
 		}
 
 		// For DHT query command
-		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+		notif.PublishQueryEvent(parent, &notif.QueryEvent{
 			Type:      notif.PeerResponse,
 			ID:        p,
 			Responses: pointerizePeerInfos(filtered),
