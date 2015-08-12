@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path"
 	"runtime"
 	"strings"
 
@@ -47,7 +48,7 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	}
 	req.SetArguments(stringArgs)
 
-	file := files.NewSliceFile("", fileArgs)
+	file := files.NewSliceFile("", "", fileArgs)
 	req.SetFiles(file)
 
 	err = cmd.CheckArguments(req)
@@ -341,9 +342,17 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 }
 
 func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]files.File, []string, error) {
-	path := inputs[0]
+	fpath := inputs[0]
 
-	file, err := os.Open(path)
+	if fpath == "." {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, nil, err
+		}
+		fpath = cwd
+	}
+
+	file, err := os.Open(fpath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -356,26 +365,25 @@ func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recur
 	if stat.IsDir() {
 		if !argDef.Recursive {
 			err = fmt.Errorf("Invalid path '%s', argument '%s' does not support directories",
-				path, argDef.Name)
+				fpath, argDef.Name)
 			return nil, nil, err
 		}
 		if !recursive {
 			err = fmt.Errorf("'%s' is a directory, use the '-%s' flag to specify directories",
-				path, cmds.RecShort)
+				fpath, cmds.RecShort)
 			return nil, nil, err
 		}
 	}
 
-	arg, err := files.NewSerialFile(path, file)
+	arg, err := files.NewSerialFile(path.Base(fpath), fpath, file)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	return append(args, arg), inputs[1:], nil
 }
 
 func appendStdinAsFile(args []files.File, stdin *os.File) ([]files.File, *os.File) {
-	arg := files.NewReaderFile("", stdin, nil)
+	arg := files.NewReaderFile("", "", stdin, nil)
 	return append(args, arg), nil
 }
 

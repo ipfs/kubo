@@ -18,25 +18,26 @@ func (es sortFIByName) Less(i, j int) bool { return es[i].Name() < es[j].Name() 
 // No more than one file will be opened at a time (directories will advance
 // to the next file when NextFile() is called).
 type serialFile struct {
+	name    string
 	path    string
 	files   []os.FileInfo
 	stat    os.FileInfo
 	current *os.File
 }
 
-func NewSerialFile(path string, file *os.File) (File, error) {
+func NewSerialFile(name, path string, file *os.File) (File, error) {
 	stat, err := file.Stat()
 	if err != nil {
 		return nil, err
 	}
 
-	return newSerialFile(path, file, stat)
+	return newSerialFile(name, path, file, stat)
 }
 
-func newSerialFile(path string, file *os.File, stat os.FileInfo) (File, error) {
+func newSerialFile(name, path string, file *os.File, stat os.FileInfo) (File, error) {
 	// for non-directories, return a ReaderFile
 	if !stat.IsDir() {
-		return &ReaderFile{path, file, stat}, nil
+		return &ReaderFile{name, path, file, stat}, nil
 	}
 
 	// for directories, stat all of the contents first, so we know what files to
@@ -56,7 +57,7 @@ func newSerialFile(path string, file *os.File, stat os.FileInfo) (File, error) {
 	// make sure contents are sorted so -- repeatably -- we get the same inputs.
 	sort.Sort(sortFIByName(contents))
 
-	return &serialFile{path, contents, stat, nil}, nil
+	return &serialFile{name, path, contents, stat, nil}, nil
 }
 
 func (f *serialFile) IsDirectory() bool {
@@ -81,6 +82,7 @@ func (f *serialFile) NextFile() (File, error) {
 	f.files = f.files[1:]
 
 	// open the next file
+	fileName := fp.Join(f.name, stat.Name())
 	filePath := fp.Join(f.path, stat.Name())
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -91,10 +93,14 @@ func (f *serialFile) NextFile() (File, error) {
 	// recursively call the constructor on the next file
 	// if it's a regular file, we will open it as a ReaderFile
 	// if it's a directory, files in it will be opened serially
-	return newSerialFile(filePath, file, stat)
+	return newSerialFile(fileName, filePath, file, stat)
 }
 
 func (f *serialFile) FileName() string {
+	return f.name
+}
+
+func (f *serialFile) FullPath() string {
 	return f.path
 }
 

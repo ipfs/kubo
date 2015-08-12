@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
+	cxt "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
@@ -13,6 +14,7 @@ import (
 	importer "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
@@ -102,7 +104,7 @@ remains to be implemented.
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 
 		if hash {
-			nilnode, err := core.NewNodeBuilder().NilRepo().Build(n.Context())
+			nilnode, err := core.NewNodeBuilder().Build(n.Context())
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -113,22 +115,37 @@ remains to be implemented.
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
-		// addSingleFile is a function that adds a file given as a param.
-		addSingleFile := func(file files.File) error {
-			addParams := adder{
-				node:     n,
-				out:      outChan,
-				progress: progress,
-				hidden:   hidden,
-				trickle:  trickle,
-				chunker:  chunker,
-			}
+		fileAdder := adder{
+			ctx:      req.Context(),
+			node:     n,
+			editor:   dagutils.NewDagEditor(n.DAG, newDirNode()),
+			out:      outChan,
+			chunker:  chunker,
+			progress: progress,
+			hidden:   hidden,
+			trickle:  trickle,
+			wrap:     wrap,
+		}
 
-			rootnd, err := addParams.addFile(file)
-			if err != nil {
-				return err
-			}
+		// addAllFiles loops over a convenience slice file to
+		// add each file individually. e.g. 'ipfs add a b c'
+		addAllFiles := func(sliceFile files.File) error {
+			for {
+				file, err := sliceFile.NextFile()
+				if err != nil && err != io.EOF {
+					return err
+				}
+				if file == nil {
+					return nil // done
+				}
 
+				if _, err := fileAdder.addFile(file); err != nil {
+					return err
+				}
+			}
+		}
+
+		pinRoot := func(rootnd *dag.Node) error {
 			rnk, err := rootnd.Key()
 			if err != nil {
 				return err
@@ -140,37 +157,22 @@ remains to be implemented.
 			return n.Pinning.Flush()
 		}
 
-		// addFilesSeparately loops over a convenience slice file to
-		// add each file individually. e.g. 'ipfs add a b c'
-		addFilesSeparately := func(sliceFile files.File) error {
-			for {
-				file, err := sliceFile.NextFile()
-				if err != nil && err != io.EOF {
-					return err
-				}
-				if file == nil {
-					return nil // done
-				}
-
-				if err := addSingleFile(file); err != nil {
-					return err
-				}
+		addAllAndPin := func(f files.File) error {
+			if err := addAllFiles(f); err != nil {
+				return err
 			}
+
+			rootnd, err := fileAdder.RootNode()
+			if err != nil {
+				return err
+			}
+
+			return pinRoot(rootnd)
 		}
 
 		go func() {
 			defer close(outChan)
-
-			// really, we're unrapping, if !wrap, because
-			// req.Files() is already a SliceFile() with all of them,
-			// so can just use that slice as the wrapper.
-			var err error
-			if wrap {
-				err = addSingleFile(req.Files())
-			} else {
-				err = addFilesSeparately(req.Files())
-			}
-			if err != nil {
+			if err := addAllAndPin(req.Files()); err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
@@ -264,12 +266,17 @@ remains to be implemented.
 
 // Internal structure for holding the switches passed to the `add` call
 type adder struct {
+	ctx      cxt.Context
 	node     *core.IpfsNode
+	editor   *dagutils.Editor
 	out      chan interface{}
 	progress bool
 	hidden   bool
 	trickle  bool
+	wrap     bool
 	chunker  string
+
+	nextUntitled int
 }
 
 // Perform the actual add & pin locally, outputting results to reader
@@ -301,6 +308,40 @@ func add(n *core.IpfsNode, reader io.Reader, useTrickle bool, chunker string) (*
 	return node, nil
 }
 
+func (params *adder) RootNode() (*dag.Node, error) {
+	r := params.editor.GetNode()
+
+	// if not wrapping, AND one root file, use that hash as root.
+	if !params.wrap && len(r.Links) == 1 {
+		var err error
+		r, err = r.Links[0].GetNode(params.ctx, params.node.DAG)
+		// no need to output, as we've already done so.
+		return r, err
+	}
+
+	// otherwise need to output, as we have not.
+	err := outputDagnode(params.out, "", r)
+	return r, err
+}
+
+func (params *adder) addNode(node *dag.Node, path string) error {
+	// patch it into the root
+	key, err := node.Key()
+	if err != nil {
+		return err
+	}
+
+	if path == "" {
+		path = key.Pretty()
+	}
+
+	if err := params.editor.InsertNodeAtPath(params.ctx, path, key, newDirNode); err != nil {
+		return err
+	}
+
+	return outputDagnode(params.out, path, node)
+}
+
 // Add the given file while respecting the params.
 func (params *adder) addFile(file files.File) (*dag.Node, error) {
 	// Check if file is hidden
@@ -326,11 +367,10 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 		return nil, err
 	}
 
+	// patch it into the root
 	log.Infof("adding file: %s", file.FileName())
-	if err := outputDagnode(params.out, file.FileName(), dagnode); err != nil {
-		return nil, err
-	}
-	return dagnode, nil
+	err = params.addNode(dagnode, file.FileName())
+	return dagnode, err
 }
 
 func (params *adder) addDir(file files.File) (*dag.Node, error) {
@@ -364,8 +404,7 @@ func (params *adder) addDir(file files.File) (*dag.Node, error) {
 		}
 	}
 
-	err := outputDagnode(params.out, file.FileName(), tree)
-	if err != nil {
+	if err := params.addNode(tree, file.FileName()); err != nil {
 		return nil, err
 	}
 
@@ -430,4 +469,9 @@ func (i *progressReader) Read(p []byte) (int, error) {
 	}
 
 	return n, err
+}
+
+// TODO: generalize this to more than unix-fs nodes.
+func newDirNode() *dag.Node {
+	return &dag.Node{Data: ft.FolderPBData()}
 }

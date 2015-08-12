@@ -11,6 +11,15 @@ test_description="Test ipfs repo operations"
 test_init_ipfs
 test_launch_ipfs_daemon
 
+test_expect_success "'ipfs repo gc' succeeds" '
+	ipfs repo gc >gc_out_actual
+'
+
+test_expect_success "'ipfs repo gc' looks good (empty)" '
+	true >empty &&
+	test_cmp empty gc_out_actual
+'
+
 test_expect_success "'ipfs add afile' succeeds" '
 	echo "some text" >afile &&
 	HASH=`ipfs add -q afile`
@@ -25,9 +34,10 @@ test_expect_success "'ipfs repo gc' succeeds" '
 	ipfs repo gc >gc_out_actual
 '
 
-test_expect_success "'ipfs repo gc' looks good (empty)" '
-	true >empty &&
-	test_cmp empty gc_out_actual
+test_expect_success "'ipfs repo gc' looks good (patch root)" '
+	PATCH_ROOT=QmQXirSbubiySKnqaFyfs5YzziXRB5JEVQVjU6xsd7innr &&
+	echo "removed $PATCH_ROOT" >patch_root &&
+	test_cmp patch_root gc_out_actual
 '
 
 test_expect_success "'ipfs repo gc' doesnt remove file" '
@@ -60,7 +70,8 @@ test_expect_success "file no longer pinned" '
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
 	echo "$HASH_GATEWAY_ASSETS" >>expected2 &&
 	ipfs refs -r "$HASH_GATEWAY_ASSETS" >>expected2 &&
-	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >> expected2 &&
+	EMPTY_DIR=QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn &&
+	echo "$EMPTY_DIR" >>expected2 &&
 	ipfs pin ls --type=recursive --quiet >actual2 &&
 	test_sort_cmp expected2 actual2
 '
@@ -96,14 +107,16 @@ test_expect_success "remove direct pin" '
 '
 
 test_expect_success "'ipfs repo gc' removes file" '
-	echo "removed $HASH" >expected7 &&
+	echo "removed $PATCH_ROOT" >expected7 &&
+	echo "removed $HASH" >>expected7 &&
 	ipfs repo gc >actual7 &&
-	test_cmp expected7 actual7
+	test_sort_cmp expected7 actual7
 '
 
 # TODO: there seems to be a serious bug with leveldb not returning a key.
 test_expect_failure "'ipfs refs local' no longer shows file" '
-	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >expected8 &&
+	EMPTY_DIR=QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn &&
+	echo "$EMPTY_DIR" >expected8 &&
 	echo "$HASH_WELCOME_DOCS" >>expected8 &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected8 &&
 	ipfs refs local >actual8 &&
@@ -146,7 +159,7 @@ test_expect_success "'ipfs pin ls --type=recursive' is correct" '
 	echo "$MBLOCKHASH" >rp_expected &&
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
 	echo "$HASH_GATEWAY_ASSETS" >>rp_expected &&
-	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>rp_expected &&
+	echo "$EMPTY_DIR" >>rp_expected &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
 	ipfs refs -r "$HASH_GATEWAY_ASSETS" >>rp_expected &&
 	sed -i="" "s/\(.*\)/\1 recursive/g" rp_expected &&

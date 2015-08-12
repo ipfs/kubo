@@ -18,8 +18,11 @@ type File interface {
 	// Files implement ReadCloser, but can only be read from or closed if they are not directories
 	io.ReadCloser
 
-	// FileName returns a full filename path associated with this file
+	// FileName returns a filename path associated with this file
 	FileName() string
+
+	// FullPath returns the full path in the os associated with this file
+	FullPath() string
 
 	// IsDirectory returns true if the File is a directory (and therefore supports calling `NextFile`)
 	// and false if the File is a normal file (and therefor supports calling `Read` and `Close`)
