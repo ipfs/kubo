@@ -151,3 +151,32 @@ func rmLink(ctx context.Context, ds dag.DAGService, root *dag.Node, path []strin
 
 	return root, nil
 }
+
+func (e *Editor) WriteOutputTo(ds dag.DAGService) error {
+	return copyDag(e.GetNode(), e.ds, ds)
+}
+
+func copyDag(nd *dag.Node, from, to dag.DAGService) error {
+	_, err := to.Add(nd)
+	if err != nil {
+		return err
+	}
+
+	for _, lnk := range nd.Links {
+		child, err := lnk.GetNode(context.Background(), from)
+		if err != nil {
+			if err == dag.ErrNotFound {
+				// not found means we didnt modify it, and it should
+				// already be in the target datastore
+				continue
+			}
+			return err
+		}
+
+		err = copyDag(child, from, to)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
