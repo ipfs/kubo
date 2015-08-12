@@ -143,6 +143,7 @@ remains to be implemented.
 					return nil // done
 				}
 
+				log.Errorf("FILE: %#v", file)
 				if _, err := fileAdder.addFile(file); err != nil {
 					return err
 				}
@@ -357,6 +358,23 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 	// Check if "file" is actually a directory
 	if file.IsDirectory() {
 		return params.addDir(file)
+	}
+
+	if s, ok := file.(*files.Symlink); ok {
+		log.Error("SYMLINK: ", s)
+		log.Error(s.Target)
+		log.Error(s.FileName())
+		dagnode := &dag.Node{
+			Data: ft.SymlinkData(s.Target),
+		}
+
+		_, err := params.node.DAG.Add(dagnode)
+		if err != nil {
+			return nil, err
+		}
+
+		err = params.addNode(dagnode, s.FileName())
+		return dagnode, err
 	}
 
 	// if the progress flag was specified, wrap the file so that we can send

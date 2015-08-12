@@ -77,6 +77,20 @@ func WrapData(b []byte) []byte {
 	return out
 }
 
+func SymlinkData(path string) []byte {
+	pbdata := new(pb.Data)
+	typ := pb.Data_Symlink
+	pbdata.Data = []byte(path)
+	pbdata.Type = &typ
+
+	out, err := proto.Marshal(pbdata)
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
 func UnwrapData(data []byte) ([]byte, error) {
 	pbdata := new(pb.Data)
 	err := proto.Unmarshal(data, pbdata)

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"syscall"
+	"time"
 
 	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
@@ -58,6 +60,8 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
+	log.Error("RESOLVE: ", name)
+	ctx, _ = context.WithTimeout(ctx, time.Second/2)
 	nd, err := s.Ipfs.Resolver.ResolvePath(ctx, path.Path(name))
 	if err != nil {
 		// todo: make this error more versatile.
@@ -118,6 +122,13 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 			Uid:    uint32(os.Getuid()),
 			Gid:    uint32(os.Getgid()),
 		}
+	case ftpb.Data_Symlink:
+		*a = fuse.Attr{
+			Mode: 0777 | os.ModeSymlink,
+			Size: uint64(len(s.cached.GetData())),
+			Uid:  uint32(os.Getuid()),
+			Gid:  uint32(os.Getgid()),
+		}
 
 	default:
 		return fmt.Errorf("Invalid data type - %s", s.cached.GetType())
@@ -153,6 +164,13 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		return entries, nil
 	}
 	return nil, fuse.ENOENT
+}
+
+func (s *Node) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+	if s.cached.GetType() != ftpb.Data_Symlink {
+		return "", fuse.Errno(syscall.EINVAL)
+	}
+	return string(s.cached.GetData()), nil
 }
 
 func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
@@ -204,6 +222,7 @@ type roNode interface {
 	fs.HandleReader
 	fs.Node
 	fs.NodeStringLookuper
+	fs.NodeReadlinker
 }
 
 var _ roNode = (*Node)(nil)

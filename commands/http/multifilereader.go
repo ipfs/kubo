@@ -64,13 +64,23 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 
 		// handle starting a new file part
 		if !mfr.closed {
-			if file.IsDirectory() {
+
+			var contentType string
+			if s, ok := file.(*files.Symlink); ok {
+				mfr.currentFile = s
+
+				// TODO(why): this is a hack. pick a real contentType
+				contentType = "symlink"
+			} else if file.IsDirectory() {
 				// if file is a directory, create a multifilereader from it
 				// (using 'multipart/mixed')
-				mfr.currentFile = NewMultiFileReader(file, false)
+				nmfr := NewMultiFileReader(file, false)
+				mfr.currentFile = nmfr
+				contentType = fmt.Sprintf("multipart/mixed; boundary=%s", nmfr.Boundary())
 			} else {
 				// otherwise, use the file as a reader to read its contents
 				mfr.currentFile = file
+				contentType = "application/octet-stream"
 			}
 
 			// write the boundary and headers
@@ -83,12 +93,7 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 				header.Set("Content-Disposition", fmt.Sprintf("file; filename=\"%s\"", filename))
 			}
 
-			if file.IsDirectory() {
-				boundary := mfr.currentFile.(*MultiFileReader).Boundary()
-				header.Set("Content-Type", fmt.Sprintf("multipart/mixed; boundary=%s", boundary))
-			} else {
-				header.Set("Content-Type", "application/octet-stream")
-			}
+			header.Set("Content-Type", contentType)
 
 			_, err := mfr.mpWriter.CreatePart(header)
 			if err != nil {

@@ -17,6 +17,8 @@ import (
 
 var ErrIsDir = errors.New("this dag node is a directory")
 
+var ErrCantReadSymlinks = errors.New("cannot currently read symlinks")
+
 // DagReader provides a way to easily read the data contained in a dag.
 type DagReader struct {
 	serv mdag.DAGService
@@ -79,6 +81,8 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 			return nil, err
 		}
 		return NewDagReader(ctx, child, serv)
+	case ftpb.Data_Symlink:
+		return nil, ErrCantReadSymlinks
 	default:
 		return nil, ft.ErrUnrecognizedType
 	}
@@ -130,6 +134,8 @@ func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 		return nil
 	case ftpb.Data_Metadata:
 		return errors.New("Shouldnt have had metadata object inside file")
+	case ftpb.Data_Symlink:
+		return errors.New("shouldnt have had symlink inside file")
 	default:
 		return ft.ErrUnrecognizedType
 	}

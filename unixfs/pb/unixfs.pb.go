@@ -14,7 +14,7 @@ It has these top-level messages:
 */
 package unixfs_pb
 
-import proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
+import proto "github.com/gogo/protobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -28,6 +28,7 @@ const (
 	Data_Directory Data_DataType = 1
 	Data_File      Data_DataType = 2
 	Data_Metadata  Data_DataType = 3
+	Data_Symlink   Data_DataType = 4
 )
 
 var Data_DataType_name = map[int32]string{
@@ -35,12 +36,14 @@ var Data_DataType_name = map[int32]string{
 	1: "Directory",
 	2: "File",
 	3: "Metadata",
+	4: "Symlink",
 }
 var Data_DataType_value = map[string]int32{
 	"Raw":       0,
 	"Directory": 1,
 	"File":      2,
 	"Metadata":  3,
+	"Symlink":   4,
 }
 
 func (x Data_DataType) Enum() *Data_DataType {

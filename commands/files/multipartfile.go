@@ -1,6 +1,7 @@
 package files
 
 import (
+	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -30,6 +31,17 @@ func NewFileFromPart(part *multipart.Part) (File, error) {
 	}
 
 	contentType := part.Header.Get(contentTypeHeader)
+	if contentType == "symlink" {
+		out, err := ioutil.ReadAll(part)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Symlink{
+			Target: string(out),
+			name:   f.FileName(),
+		}, nil
+	}
 
 	var params map[string]string
 	var err error
