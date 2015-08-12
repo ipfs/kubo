@@ -157,7 +157,7 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 		return err
 	}
 
-	nd, err := core.NewIPFSNode(ctx, core.Offline(r))
+	nd, err := core.NewNodeBuilder().Offline().SetRepo(r).Build(ctx)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func initializeIpnsKeyspace(repoRoot string) error {
 		return err
 	}
 
-	nd, err := core.NewIPFSNode(ctx, core.Offline(r))
+	nd, err := core.NewNodeBuilder().Offline().SetRepo(r).Build(ctx)
 	if err != nil {
 		return err
 	}

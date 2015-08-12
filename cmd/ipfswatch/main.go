@@ -71,7 +71,8 @@ func run(ipfsPath, watchPath string) error {
 		// TODO handle case: repo doesn't exist or isn't initialized
 		return err
 	}
-	node, err := core.NewIPFSNode(context.Background(), core.Online(r))
+
+	node, err := core.NewNodeBuilder().Online().SetRepo(r).Build(context.Background())
 	if err != nil {
 		return err
 	}

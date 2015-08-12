@@ -47,7 +47,7 @@ func newNodeWithMockNamesys(t *testing.T, ns mockNamesys) *core.IpfsNode {
 		C: c,
 		D: testutil.ThreadSafeCloserMapDatastore(),
 	}
-	n, err := core.NewIPFSNode(context.Background(), core.Offline(r))
+	n, err := core.NewNodeBuilder().Offline().SetRepo(r).Build(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
