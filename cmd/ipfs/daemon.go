@@ -192,9 +192,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
-	// Start assembling corebuilder
-	nb := core.NewNodeBuilder().Online()
-	nb.SetRepo(repo)
+	// Start assembling node config
+	ncfg := &core.BuildCfg{
+		Online: true,
+		Repo:   repo,
+	}
 
 	routingOption, _, err := req.Option(routingOptionKwd).String()
 	if err != nil {
@@ -215,10 +217,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 				Addrs: []ma.Multiaddr{addr.Transport()},
 			})
 		}
-		nb.SetRouting(corerouting.SupernodeClient(infos...))
+
+		ncfg.Routing = corerouting.SupernodeClient(infos...)
 	}
 
-	node, err := nb.Build(req.Context())
+	node, err := core.NewNode(req.Context(), ncfg)
 	if err != nil {
 		log.Error("error from node construction: ", err)
 		res.SetError(err, cmds.ErrNormal)

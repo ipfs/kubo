@@ -2,15 +2,13 @@ package integrationtest
 
 import (
 	"bytes"
-	"errors"
 	"testing"
-	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/mock"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
-	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 func TestBitswapWithoutRouting(t *testing.T) {
@@ -19,28 +17,23 @@ func TestBitswapWithoutRouting(t *testing.T) {
 	const numPeers = 4
 
 	// create network
-	mn, err := mocknet.FullMeshLinked(ctx, numPeers)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	peers := mn.Peers()
-	if len(peers) < numPeers {
-		t.Fatal(errors.New("test initialization error"))
-	}
-
-	// set the routing latency to infinity.
-	conf := testutil.LatencyConfig{RoutingLatency: (525600 * time.Minute)}
+	mn := mocknet.New(ctx)
 
 	var nodes []*core.IpfsNode
-	for _, p := range peers {
-		n, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(p, mn.Host(p), conf, core.NilRouterOption)))
+	for i := 0; i < numPeers; i++ {
+		n, err := core.NewNode(ctx, &core.BuildCfg{
+			Online:  true,
+			Host:    coremock.MockHostOption(mn),
+			Routing: core.NilRouterOption, // no routing
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer n.Close()
 		nodes = append(nodes, n)
 	}
+
+	mn.LinkAll()
 
 	// connect them
 	for _, n1 := range nodes {

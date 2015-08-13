@@ -16,9 +16,9 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	"github.com/ipfs/go-ipfs/core/coreunix"
+	mock "github.com/ipfs/go-ipfs/core/mock"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
 	"github.com/ipfs/go-ipfs/p2p/peer"
-	"github.com/ipfs/go-ipfs/thirdparty/iter"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
@@ -82,28 +82,21 @@ func InitializeSupernodeNetwork(
 	conf testutil.LatencyConfig) ([]*core.IpfsNode, []*core.IpfsNode, error) {
 
 	// create network
-	mn, err := mocknet.FullMeshLinked(ctx, numServers+numClients)
-	if err != nil {
-		return nil, nil, err
-	}
+	mn := mocknet.New(ctx)
 
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency:   conf.NetworkLatency,
 		Bandwidth: math.MaxInt32,
 	})
 
-	peers := mn.Peers()
-	if len(peers) < numServers+numClients {
-		return nil, nil, errors.New("test initialization error")
-	}
-	clientPeers, serverPeers := peers[0:numClients], peers[numClients:]
-
 	routingDatastore := ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore()))
 	var servers []*core.IpfsNode
-	for i := range iter.N(numServers) {
-		p := serverPeers[i]
-		bootstrap, err := core.NewIPFSNode(ctx, MocknetTestRepo(p, mn.Host(p), conf,
-			corerouting.SupernodeServer(routingDatastore)))
+	for i := 0; i < numServers; i++ {
+		bootstrap, err := core.NewNode(ctx, &core.BuildCfg{
+			Online:  true,
+			Host:    mock.MockHostOption(mn),
+			Routing: corerouting.SupernodeServer(routingDatastore),
+		})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -117,15 +110,18 @@ func InitializeSupernodeNetwork(
 	}
 
 	var clients []*core.IpfsNode
-	for i := range iter.N(numClients) {
-		p := clientPeers[i]
-		n, err := core.NewIPFSNode(ctx, MocknetTestRepo(p, mn.Host(p), conf,
-			corerouting.SupernodeClient(bootstrapInfos...)))
+	for i := 0; i < numClients; i++ {
+		n, err := core.NewNode(ctx, &core.BuildCfg{
+			Online:  true,
+			Host:    mock.MockHostOption(mn),
+			Routing: corerouting.SupernodeClient(bootstrapInfos...),
+		})
 		if err != nil {
 			return nil, nil, err
 		}
 		clients = append(clients, n)
 	}
+	mn.LinkAll()
 
 	bcfg := core.BootstrapConfigWithPeers(bootstrapInfos)
 	for _, n := range clients {

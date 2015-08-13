@@ -64,13 +64,26 @@ func (mn *mocknet) GenPeer() (host.Host, error) {
 }
 
 func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (host.Host, error) {
-	n, err := newPeernet(mn.ctx, mn, k, a)
+	p, err := peer.IDFromPublicKey(k.GetPublic())
+	if err != nil {
+		return nil, err
+	}
+
+	ps := peer.NewPeerstore()
+	ps.AddAddr(p, a, peer.PermanentAddrTTL)
+	ps.AddPrivKey(p, k)
+	ps.AddPubKey(p, k.GetPublic())
+
+	return mn.AddPeerWithPeerstore(p, ps)
+}
+
+func (mn *mocknet) AddPeerWithPeerstore(p peer.ID, ps peer.Peerstore) (host.Host, error) {
+	n, err := newPeernet(mn.ctx, mn, p, ps)
 	if err != nil {
 		return nil, err
 	}
 
 	h := bhost.New(n)
-	log.Debugf("mocknet added listen addr for peer: %s -- %s", n.LocalPeer(), a)
 
 	mn.proc.AddChild(n.proc)
 
