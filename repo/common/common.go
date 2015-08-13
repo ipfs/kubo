@@ -7,12 +7,20 @@ import (
 
 func MapGetKV(v map[string]interface{}, key string) (interface{}, error) {
 	var ok bool
+	var mcursor map[string]interface{}
 	var cursor interface{} = v
+
 	parts := strings.Split(key, ".")
 	for i, part := range parts {
-		cursor, ok = cursor.(map[string]interface{})[part]
+		sofar := strings.Join(parts[:i], ".")
+
+		mcursor, ok = cursor.(map[string]interface{})
 		if !ok {
-			sofar := strings.Join(parts[:i], ".")
+			return nil, fmt.Errorf("%s key is not a map", sofar)
+		}
+
+		cursor, ok = mcursor[part]
+		if !ok {
 			return nil, fmt.Errorf("%s key has no attributes", sofar)
 		}
 	}
@@ -39,7 +47,7 @@ func MapSetKV(v map[string]interface{}, key string, value interface{}) error {
 		}
 
 		cursor, ok = mcursor[part]
-		if !ok { // create map if this is empty
+		if !ok || cursor == nil { // create map if this is empty or is null
 			mcursor[part] = map[string]interface{}{}
 			cursor = mcursor[part]
 		}
