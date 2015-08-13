@@ -68,6 +68,7 @@ test_expect_success "ipfs daemon output looks good" '
   cat local_addrs | sed "s/^/Swarm listening on /" >>expected_daemon &&
   echo "API server listening on /ip4/127.0.0.1/tcp/5001" >>expected_daemon &&
   echo "Gateway (readonly) server listening on /ip4/127.0.0.1/tcp/8080" >>expected_daemon &&
+  echo "Daemon is ready" >>expected_daemon &&
   test_cmp expected_daemon actual_daemon
 '
 
