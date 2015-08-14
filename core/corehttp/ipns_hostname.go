@@ -24,6 +24,7 @@ func IPNSHostnameOption() ServeOption {
 			if len(host) > 0 && isd.IsDomain(host) {
 				name := "/ipns/" + host
 				if _, err := n.Namesys.Resolve(ctx, name); err == nil {
+					r.Header["X-IPNS-Original-Path"] = []string{r.URL.Path}
 					r.URL.Path = name + r.URL.Path
 				}
 			}
