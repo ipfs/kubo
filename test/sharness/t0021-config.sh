@@ -57,6 +57,9 @@ test_config_cmd() {
   test_config_cmd_set "--json" "beep3" "true"
   test_config_cmd_set "--json" "beep3" "false"
   test_config_cmd_set "--json" "Discovery" "$CONFIG_SET_JSON_TEST"
+  test_config_cmd_set "--json" "deep-not-defined.prop" "true"
+  test_config_cmd_set "--json" "deep-null" "null"
+  test_config_cmd_set "--json" "deep-null.prop" "true"
 
 }
 
