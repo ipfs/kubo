@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	gopath "path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -89,6 +90,18 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	defer cancel()
 
 	urlPath := r.URL.Path
+
+	// try to resolve Host header if request is neither for /ipfs nor /ipns
+	// allows us to serve arbitrary static pages:
+	// 1. point example.net A/AAAA records to any gateway host
+	// 2. point example.net TXT record to dnslink=/ipfs/somehash
+	// 3. request http://example.net/some/page
+	// 4. gateway serves /ipns/example.net/some/page
+	host := r.Header["Host"]
+	m, _ := regexp.MatchString("\\A/ip(f|n)s/", urlPath)
+	if len(host) > 0 && m {
+		urlPath = fmt.Sprintf("/ipns/%s/%s", host, urlPath)
+	}
 
 	if i.config.BlockList != nil && i.config.BlockList.ShouldBlock(urlPath) {
 		w.WriteHeader(http.StatusForbidden)
