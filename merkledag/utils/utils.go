@@ -6,7 +6,6 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 )
 
@@ -26,21 +25,17 @@ func (e *Editor) GetNode() *dag.Node {
 	return e.root.Copy()
 }
 
-func (e *Editor) AddLink(ctx context.Context, childname string, childk key.Key) error {
-	nd, err := addLink(ctx, e.ds, e.root, childname, childk)
-	if err != nil {
-		return err
-	}
-	e.root = nd
-	return nil
+func (e *Editor) GetDagService() dag.DAGService {
+	return e.ds
 }
 
-func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
+func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childnd *dag.Node) (*dag.Node, error) {
 	if childname == "" {
 		return nil, errors.New("cannot create link with no name!")
 	}
 
-	childnd, err := ds.Get(ctx, childk)
+	// ensure that the node we are adding is in the dagservice
+	_, err := ds.Add(childnd)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +53,7 @@ func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname s
 	return root, nil
 }
 
-func (e *Editor) InsertNodeAtPath(ctx context.Context, path string, toinsert key.Key, create func() *dag.Node) error {
+func (e *Editor) InsertNodeAtPath(ctx context.Context, path string, toinsert *dag.Node, create func() *dag.Node) error {
 	splpath := strings.Split(path, "/")
 	nd, err := insertNodeAtPath(ctx, e.ds, e.root, splpath, toinsert, create)
 	if err != nil {
@@ -68,7 +63,7 @@ func (e *Editor) InsertNodeAtPath(ctx context.Context, path string, toinsert key
 	return nil
 }
 
-func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key, create func() *dag.Node) (*dag.Node, error) {
+func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert *dag.Node, create func() *dag.Node) (*dag.Node, error) {
 	if len(path) == 1 {
 		return addLink(ctx, ds, root, path[0], toinsert)
 	}

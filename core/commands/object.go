@@ -623,7 +623,12 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 
 	e := dagutils.NewDagEditor(nd.DAG, root)
 
-	err = e.InsertNodeAtPath(req.Context(), path, childk, createfunc)
+	childnd, err := nd.DAG.Get(req.Context(), childk)
+	if err != nil {
+		return "", err
+	}
+
+	err = e.InsertNodeAtPath(req.Context(), path, childnd, createfunc)
 	if err != nil {
 		return "", err
 	}
