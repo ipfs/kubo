@@ -135,7 +135,7 @@ Note: list all refs recursively with -r.
 					return nil, errors.New(obj.Err)
 				}
 
-				return strings.NewReader(obj.Ref), nil
+				return strings.NewReader(obj.Ref + "\n"), nil
 			}
 
 			return &cmds.ChannelMarshaler{
@@ -322,7 +322,6 @@ func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
 	default:
 		s += to.Pretty()
 	}
-	s += "\n"
 
 	rw.out <- &RefWrapper{Ref: s}
 	return nil
