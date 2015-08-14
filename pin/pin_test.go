@@ -29,10 +29,7 @@ func TestPinnerBasic(t *testing.T) {
 
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
-	bserv, err := bs.New(bstore, offline.Exchange(bstore))
-	if err != nil {
-		t.Fatal(err)
-	}
+	bserv := bs.New(bstore, offline.Exchange(bstore))
 
 	dserv := mdag.NewDAGService(bserv)
 
@@ -40,7 +37,7 @@ func TestPinnerBasic(t *testing.T) {
 	p := NewPinner(dstore, dserv)
 
 	a, ak := randNode()
-	_, err = dserv.Add(a)
+	_, err := dserv.Add(a)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,10 +160,7 @@ func TestDuplicateSemantics(t *testing.T) {
 	ctx := context.Background()
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
-	bserv, err := bs.New(bstore, offline.Exchange(bstore))
-	if err != nil {
-		t.Fatal(err)
-	}
+	bserv := bs.New(bstore, offline.Exchange(bstore))
 
 	dserv := mdag.NewDAGService(bserv)
 
@@ -174,7 +168,7 @@ func TestDuplicateSemantics(t *testing.T) {
 	p := NewPinner(dstore, dserv)
 
 	a, _ := randNode()
-	_, err = dserv.Add(a)
+	_, err := dserv.Add(a)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,10 +196,7 @@ func TestPinRecursiveFail(t *testing.T) {
 	ctx := context.Background()
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
-	bserv, err := bs.New(bstore, offline.Exchange(bstore))
-	if err != nil {
-		t.Fatal(err)
-	}
+	bserv := bs.New(bstore, offline.Exchange(bstore))
 
 	dserv := mdag.NewDAGService(bserv)
 
@@ -213,7 +204,7 @@ func TestPinRecursiveFail(t *testing.T) {
 
 	a, _ := randNode()
 	b, _ := randNode()
-	err = a.AddNodeLinkClean("child", b)
+	err := a.AddNodeLinkClean("child", b)
 	if err != nil {
 		t.Fatal(err)
 	}

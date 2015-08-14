@@ -4,15 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	sync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
-	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	path "github.com/ipfs/go-ipfs/path"
 	util "github.com/ipfs/go-ipfs/util"
 )
@@ -27,20 +23,13 @@ func randNode() (*merkledag.Node, key.Key) {
 
 func TestRecurivePathResolution(t *testing.T) {
 	ctx := context.Background()
-	dstore := sync.MutexWrap(datastore.NewMapDatastore())
-	bstore := blockstore.NewBlockstore(dstore)
-	bserv, err := blockservice.New(bstore, offline.Exchange(bstore))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dagService := merkledag.NewDAGService(bserv)
+	dagService := dagmock.Mock()
 
 	a, _ := randNode()
 	b, _ := randNode()
 	c, cKey := randNode()
 
-	err = b.AddNodeLink("grandchild", c)
+	err := b.AddNodeLink("grandchild", c)
 	if err != nil {
 		t.Fatal(err)
 	}

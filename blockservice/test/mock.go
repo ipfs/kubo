@@ -8,12 +8,8 @@ import (
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 )
 
-type fataler interface {
-	Fatal(args ...interface{})
-}
-
 // Mocks returns |n| connected mock Blockservices
-func Mocks(t fataler, n int) []*BlockService {
+func Mocks(n int) []*BlockService {
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
 	sg := bitswap.NewTestSessionGenerator(net)
 
@@ -21,11 +17,7 @@ func Mocks(t fataler, n int) []*BlockService {
 
 	var servs []*BlockService
 	for _, i := range instances {
-		bserv, err := New(i.Blockstore(), i.Exchange)
-		if err != nil {
-			t.Fatal(err)
-		}
-		servs = append(servs, bserv)
+		servs = append(servs, New(i.Blockstore(), i.Exchange))
 	}
 	return servs
 }

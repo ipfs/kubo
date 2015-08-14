@@ -68,10 +68,7 @@ func NewMockNode() (*core.IpfsNode, error) {
 
 	// Bitswap
 	bstore := blockstore.NewBlockstore(nd.Repo.Datastore())
-	bserv, err := blockservice.New(bstore, offline.Exchange(bstore))
-	if err != nil {
-		return nil, err
-	}
+	bserv := blockservice.New(bstore, offline.Exchange(bstore))
 
 	nd.DAG = mdag.NewDAGService(bserv)
 

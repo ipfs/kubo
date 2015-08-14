@@ -72,7 +72,7 @@ func testFileConsistency(t *testing.T, bs chunk.SplitterGen, nbytes int) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, bs(read))
 	if err != nil {
 		t.Fatal(err)
@@ -95,7 +95,7 @@ func testFileConsistency(t *testing.T, bs chunk.SplitterGen, nbytes int) {
 }
 
 func TestBuilderConsistency(t *testing.T) {
-	dagserv := mdtest.Mock(t)
+	dagserv := mdtest.Mock()
 	nd, should := getTestDag(t, dagserv, 100000, chunk.DefaultBlockSize)
 
 	r, err := uio.NewDagReader(context.Background(), nd, dagserv)
@@ -132,7 +132,7 @@ type dagservAndPinner struct {
 }
 
 func TestIndirectBlocks(t *testing.T) {
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	dag, buf := getTestDag(t, ds, 1024*1024, 512)
 
 	reader, err := uio.NewDagReader(context.Background(), dag, ds)
@@ -152,7 +152,7 @@ func TestIndirectBlocks(t *testing.T) {
 
 func TestSeekingBasic(t *testing.T) {
 	nbytes := int64(10 * 1024)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, should := getTestDag(t, ds, nbytes, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
@@ -181,7 +181,7 @@ func TestSeekingBasic(t *testing.T) {
 }
 
 func TestSeekToBegin(t *testing.T) {
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, should := getTestDag(t, ds, 10*1024, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
@@ -217,7 +217,7 @@ func TestSeekToBegin(t *testing.T) {
 }
 
 func TestSeekToAlmostBegin(t *testing.T) {
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, should := getTestDag(t, ds, 10*1024, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
@@ -254,7 +254,7 @@ func TestSeekToAlmostBegin(t *testing.T) {
 
 func TestSeekEnd(t *testing.T) {
 	nbytes := int64(50 * 1024)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, _ := getTestDag(t, ds, nbytes, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
@@ -273,7 +273,7 @@ func TestSeekEnd(t *testing.T) {
 
 func TestSeekEndSingleBlockFile(t *testing.T) {
 	nbytes := int64(100)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, _ := getTestDag(t, ds, nbytes, 5000)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
@@ -292,7 +292,7 @@ func TestSeekEndSingleBlockFile(t *testing.T) {
 
 func TestSeekingStress(t *testing.T) {
 	nbytes := int64(1024 * 1024)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, should := getTestDag(t, ds, nbytes, 1000)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
@@ -330,7 +330,7 @@ func TestSeekingStress(t *testing.T) {
 
 func TestSeekingConsistency(t *testing.T) {
 	nbytes := int64(128 * 1024)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, should := getTestDag(t, ds, nbytes, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)

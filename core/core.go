@@ -148,10 +148,8 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 	// to be initialized at this point, and 2) which variables will be
 	// initialized after this point.
 
-	node.Blocks, err = bserv.New(node.Blockstore, node.Exchange)
-	if err != nil {
-		return nil, err
-	}
+	node.Blocks = bserv.New(node.Blockstore, node.Exchange)
+
 	if node.Peerstore == nil {
 		node.Peerstore = peer.NewPeerstore()
 	}

@@ -33,10 +33,7 @@ type dagservAndPinner struct {
 func getDagservAndPinner(t *testing.T) dagservAndPinner {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
-	blockserv, err := bserv.New(bs, offline.Exchange(bs))
-	if err != nil {
-		t.Fatal(err)
-	}
+	blockserv := bserv.New(bs, offline.Exchange(bs))
 	dserv := NewDAGService(blockserv)
 	mpin := pin.NewPinner(db, dserv).GetManual()
 	return dagservAndPinner{
@@ -159,7 +156,7 @@ func TestBatchFetchDupBlock(t *testing.T) {
 
 func runBatchFetchTest(t *testing.T, read io.Reader) {
 	var dagservs []DAGService
-	for _, bsi := range bstest.Mocks(t, 5) {
+	for _, bsi := range bstest.Mocks(5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 

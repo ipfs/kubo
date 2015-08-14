@@ -12,7 +12,7 @@ import (
 )
 
 func TestAddLink(t *testing.T) {
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	fishnode := &dag.Node{
 		Data: []byte("fishcakes!"),
 	}
@@ -66,7 +66,7 @@ func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.Node, path stri
 }
 
 func TestInsertNode(t *testing.T) {
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	root := new(dag.Node)
 	e := NewDagEditor(ds, root)
 

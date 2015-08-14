@@ -25,10 +25,7 @@ import (
 func getDagserv(t *testing.T) merkledag.DAGService {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
-	blockserv, err := bserv.New(bs, offline.Exchange(bs))
-	if err != nil {
-		t.Fatal(err)
-	}
+	blockserv := bserv.New(bs, offline.Exchange(bs))
 	return merkledag.NewDAGService(blockserv)
 }
 

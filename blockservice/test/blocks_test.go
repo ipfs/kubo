@@ -19,11 +19,7 @@ import (
 
 func TestBlocks(t *testing.T) {
 	bstore := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
-	bs, err := New(bstore, offline.Exchange(bstore))
-	if err != nil {
-		t.Error("failed to construct block service", err)
-		return
-	}
+	bs := New(bstore, offline.Exchange(bstore))
 	defer bs.Close()
 
 	b := blocks.NewBlock([]byte("beep boop"))
@@ -63,7 +59,7 @@ func TestBlocks(t *testing.T) {
 }
 
 func TestGetBlocksSequential(t *testing.T) {
-	var servs = Mocks(t, 4)
+	var servs = Mocks(4)
 	for _, s := range servs {
 		defer s.Close()
 	}
