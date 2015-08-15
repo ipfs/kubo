@@ -99,7 +99,7 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	}
 }
 
-func CommandsOption(cctx commands.Context) ServeOption {
+func commandsOption(cctx commands.Context, command *commands.Command) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 
 		cfg := &cmdsHttp.ServerConfig{
@@ -113,8 +113,16 @@ func CommandsOption(cctx commands.Context) ServeOption {
 		addCORSDefaults(cfg)
 		patchCORSVars(cfg, l.Addr())
 
-		cmdHandler := cmdsHttp.NewHandler(cctx, corecommands.Root, cfg)
+		cmdHandler := cmdsHttp.NewHandler(cctx, command, cfg)
 		mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 		return mux, nil
 	}
+}
+
+func CommandsOption(cctx commands.Context) ServeOption {
+	return commandsOption(cctx, corecommands.Root)
+}
+
+func CommandsROOption(cctx commands.Context) ServeOption {
+	return commandsOption(cctx, corecommands.RootRO)
 }

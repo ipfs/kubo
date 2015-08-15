@@ -109,9 +109,39 @@ var rootSubcommands = map[string]*cmds.Command{
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
 }
+var rootROSubcommands = map[string]*cmds.Command{
+	"block": &cmds.Command{
+		Subcommands: map[string]*cmds.Command{
+			"stat": blockStatCmd,
+			"get":  blockGetCmd,
+		},
+	},
+	"cat":      CatCmd,
+	"commands": CommandsDaemonCmd,
+	"ls":       LsCmd,
+	"name": &cmds.Command{
+		Subcommands: map[string]*cmds.Command{
+			"resolve": IpnsCmd,
+		},
+	},
+	"object": &cmds.Command{
+		Subcommands: map[string]*cmds.Command{
+			"data":  objectDataCmd,
+			"links": objectLinksCmd,
+			"get":   objectGetCmd,
+			"stat":  objectStatCmd,
+		},
+	},
+	"refs": RefsCmd,
+	//"resolve": ResolveCmd,
+}
+
+var RootRO = &cmds.Command{}
 
 func init() {
+	*RootRO = *Root
 	Root.Subcommands = rootSubcommands
+	RootRO.Subcommands = rootROSubcommands
 }
 
 type MessageOutput struct {
