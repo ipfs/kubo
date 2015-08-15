@@ -91,6 +91,19 @@ test_expect_success "log output looks good" '
 	grep "log API client connected" log_out
 '
 
+# test ipfs readonly api
+test_expect_success "get IPFS directory file through readonly API succeeds" '
+  curl -sfo actual "http://127.0.0.1:$port/api/v0/cat?arg=$HASH2/test"
+'
+
+test_expect_success "get IPFS directory file through readonly API output looks good" '
+  test_cmp dir/test actual
+'
+
+test_expect_success "refs IPFS directory file through readonly API succeeds" '
+  curl -sfo actual "http://127.0.0.1:$port/api/v0/refs?arg=$HASH2/test"
+'
+
 test_kill_ipfs_daemon
 
 test_done

@@ -401,6 +401,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	}
 
 	var opts = []corehttp.ServeOption{
+		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
 		corehttp.GatewayOption(writable),
