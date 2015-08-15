@@ -63,7 +63,7 @@ func testFileConsistency(t *testing.T, bs chunk.SplitterGen, nbytes int) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, bs(read))
 	if err != nil {
 		t.Fatal(err)
@@ -90,7 +90,7 @@ func TestBuilderConsistency(t *testing.T) {
 	buf := new(bytes.Buffer)
 	io.CopyN(buf, u.NewTimeSeededRand(), int64(nbytes))
 	should := dup(buf.Bytes())
-	dagserv := mdtest.Mock(t)
+	dagserv := mdtest.Mock()
 	nd, err := buildTestDag(dagserv, chunk.DefaultSplitter(buf))
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +136,7 @@ func TestIndirectBlocks(t *testing.T) {
 
 	read := bytes.NewReader(buf)
 
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	dag, err := buildTestDag(ds, splitter(read))
 	if err != nil {
 		t.Fatal(err)
@@ -163,7 +163,7 @@ func TestSeekingBasic(t *testing.T) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 512))
 	if err != nil {
 		t.Fatal(err)
@@ -200,7 +200,7 @@ func TestSeekToBegin(t *testing.T) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
@@ -244,7 +244,7 @@ func TestSeekToAlmostBegin(t *testing.T) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
@@ -288,7 +288,7 @@ func TestSeekEnd(t *testing.T) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
@@ -314,7 +314,7 @@ func TestSeekEndSingleBlockFile(t *testing.T) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 5000))
 	if err != nil {
 		t.Fatal(err)
@@ -340,7 +340,7 @@ func TestSeekingStress(t *testing.T) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 1000))
 	if err != nil {
 		t.Fatal(err)
@@ -385,7 +385,7 @@ func TestSeekingConsistency(t *testing.T) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
@@ -429,7 +429,7 @@ func TestAppend(t *testing.T) {
 
 	// Reader for half the bytes
 	read := bytes.NewReader(should[:nbytes/2])
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
@@ -471,7 +471,7 @@ func TestAppend(t *testing.T) {
 
 // This test appends one byte at a time to an empty file
 func TestMultipleAppends(t *testing.T) {
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 
 	// TODO: fix small size appends and make this number bigger
 	nbytes := int64(1000)
@@ -522,7 +522,7 @@ func TestMultipleAppends(t *testing.T) {
 }
 
 func TestAppendSingleBytesToEmpty(t *testing.T) {
-	ds := mdtest.Mock(t)
+	ds := mdtest.Mock()
 
 	data := []byte("AB")
 
