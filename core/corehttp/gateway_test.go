@@ -37,7 +37,7 @@ func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Pa
 	return errors.New("not implemented for mockNamesys")
 }
 
-func newNodeWithMockNamesys(t *testing.T, ns mockNamesys) *core.IpfsNode {
+func newNodeWithMockNamesys(ns mockNamesys) (*core.IpfsNode, error) {
 	c := config.Config{
 		Identity: config.Identity{
 			PeerID: "Qmfoo", // required by offline node
@@ -49,10 +49,10 @@ func newNodeWithMockNamesys(t *testing.T, ns mockNamesys) *core.IpfsNode {
 	}
 	n, err := core.NewIPFSNode(context.Background(), core.Offline(r))
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 	n.Namesys = ns
-	return n
+	return n, nil
 }
 
 type delegatedHandler struct {
@@ -64,14 +64,19 @@ func (dh *delegatedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestGatewayGet(t *testing.T) {
-	t.Skip("not sure whats going on here")
+	// mock node and namesys
 	ns := mockNamesys{}
-	n := newNodeWithMockNamesys(t, ns)
+	n, err := newNodeWithMockNamesys(ns)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// mock ipfs object
 	k, err := coreunix.Add(n, strings.NewReader("fnord"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	ns["example.com"] = path.FromString("/ipfs/" + k)
+	ns["/ipns/example.com"] = path.FromString("/ipfs/" + k)
 
 	// need this variable here since we need to construct handler with
 	// listener, and server with handler. yay cycles.
