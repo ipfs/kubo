@@ -109,6 +109,12 @@ var rootSubcommands = map[string]*cmds.Command{
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
 }
+
+// RootRO is the readonly version of Root
+var RootRO = &cmds.Command{}
+
+var CommandsDaemonROCmd = CommandsCmd(RootRO)
+
 var rootROSubcommands = map[string]*cmds.Command{
 	"block": &cmds.Command{
 		Subcommands: map[string]*cmds.Command{
@@ -117,7 +123,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 		},
 	},
 	"cat":      CatCmd,
-	"commands": CommandsDaemonCmd,
+	"commands": CommandsDaemonROCmd,
 	"ls":       LsCmd,
 	"name": &cmds.Command{
 		Subcommands: map[string]*cmds.Command{
@@ -135,8 +141,6 @@ var rootROSubcommands = map[string]*cmds.Command{
 	"refs": RefsCmd,
 	//"resolve": ResolveCmd,
 }
-
-var RootRO = &cmds.Command{}
 
 func init() {
 	*RootRO = *Root
