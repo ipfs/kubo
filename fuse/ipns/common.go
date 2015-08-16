@@ -22,7 +22,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	ctx, cancel := context.WithTimeout(n.Context(), time.Minute)
 	defer cancel()
 
 	err = n.Pinning.Pin(ctx, emptyDir, false)

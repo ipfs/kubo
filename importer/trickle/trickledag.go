@@ -108,8 +108,7 @@ func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (out *dag.Node, err_o
 	}
 
 	// Last child in this node may not be a full tree, lets file it up
-	err = appendFillLastChild(ufsn, n-1, layerProgress, db)
-	if err != nil {
+	if err := appendFillLastChild(ufsn, n-1, layerProgress, db); err != nil {
 		return nil, err
 	}
 

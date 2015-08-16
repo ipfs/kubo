@@ -66,8 +66,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 	}
 
 	n.Pinning.GetManual().RemovePinWithMode(k, pin.Indirect)
-	err = n.Pinning.Flush()
-	if err != nil {
+	if err := n.Pinning.Flush(); err != nil {
 		return "", err
 	}
 
@@ -95,43 +94,28 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkle
 func add(n *core.IpfsNode, reader io.Reader) (*merkledag.Node, error) {
 	mp := n.Pinning.GetManual()
 
-	node, err := importer.BuildDagFromReader(
+	return importer.BuildDagFromReader(
 		n.DAG,
 		chunk.DefaultSplitter(reader),
 		importer.PinIndirectCB(mp),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return node, nil
 }
 
 func addNode(n *core.IpfsNode, node *merkledag.Node) error {
-	err := n.DAG.AddRecursive(node) // add the file to the graph + local storage
-	if err != nil {
+	if err := n.DAG.AddRecursive(node); err != nil { // add the file to the graph + local storage
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	ctx, cancel := context.WithTimeout(n.Context(), time.Minute)
 	defer cancel()
-	err = n.Pinning.Pin(ctx, node, true) // ensure we keep it
-	if err != nil {
-		return err
-	}
-	return nil
+	err := n.Pinning.Pin(ctx, node, true) // ensure we keep it
+	return err
 }
 
 func addFile(n *core.IpfsNode, file files.File) (*merkledag.Node, error) {
 	if file.IsDirectory() {
 		return addDir(n, file)
 	}
-
-	dagnode, err := add(n, file)
-	if err != nil {
-		return nil, err
-	}
-
-	return dagnode, nil
+	return add(n, file)
 }
 
 func addDir(n *core.IpfsNode, dir files.File) (*merkledag.Node, error) {
@@ -155,14 +139,12 @@ Loop:
 
 		_, name := gopath.Split(file.FileName())
 
-		err = tree.AddNodeLink(name, node)
-		if err != nil {
+		if err := tree.AddNodeLink(name, node); err != nil {
 			return nil, err
 		}
 	}
 
-	err := addNode(n, tree)
-	if err != nil {
+	if err := addNode(n, tree); err != nil {
 		return nil, err
 	}
 	return tree, nil

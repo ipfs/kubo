@@ -14,7 +14,7 @@ import (
 func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error) {
 	ukey := key.B58KeyDecode(skey)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	ctx, cancel := context.WithTimeout(n.Context(), time.Minute)
 	defer cancel()
 	nd, err := n.DAG.Get(ctx, ukey)
 	if err != nil {
@@ -44,7 +44,7 @@ func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error
 func Metadata(n *core.IpfsNode, skey string) (*ft.Metadata, error) {
 	ukey := key.B58KeyDecode(skey)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	ctx, cancel := context.WithTimeout(n.Context(), time.Minute)
 	defer cancel()
 	nd, err := n.DAG.Get(ctx, ukey)
 	if err != nil {

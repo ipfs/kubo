@@ -26,12 +26,14 @@ type Directory struct {
 
 	lock sync.Mutex
 	node *dag.Node
+	ctx  context.Context
 
 	name string
 }
 
-func NewDirectory(name string, node *dag.Node, parent childCloser, fs *Filesystem) *Directory {
+func NewDirectory(ctx context.Context, name string, node *dag.Node, parent childCloser, fs *Filesystem) *Directory {
 	return &Directory{
+		ctx:       ctx,
 		fs:        fs,
 		name:      name,
 		node:      node,
@@ -121,7 +123,7 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 
 	switch i.GetType() {
 	case ufspb.Data_Directory:
-		ndir := NewDirectory(name, nd, d, d.fs)
+		ndir := NewDirectory(d.ctx, name, nd, d, d.fs)
 		d.childDirs[name] = ndir
 		return ndir, nil
 	case ufspb.Data_File:
@@ -138,7 +140,7 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 func (d *Directory) childFromDag(name string) (*dag.Node, error) {
 	for _, lnk := range d.node.Links {
 		if lnk.Name == name {
-			ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+			ctx, cancel := context.WithTimeout(d.ctx, time.Minute)
 			defer cancel()
 
 			return lnk.GetNode(ctx, d.fs.dserv)
@@ -244,7 +246,7 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 
 	switch pbn.GetType() {
 	case ft.TDirectory:
-		d.childDirs[name] = NewDirectory(name, nd, d, d.fs)
+		d.childDirs[name] = NewDirectory(d.ctx, name, nd, d, d.fs)
 	case ft.TFile, ft.TMetadata, ft.TRaw:
 		nfi, err := NewFile(name, nd, d, d.fs)
 		if err != nil {

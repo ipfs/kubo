@@ -428,7 +428,7 @@ func (dm *DagModifier) Truncate(size int64) error {
 		return dm.expandSparse(int64(size) - realSize)
 	}
 
-	nnode, err := dagTruncate(dm.curNode, uint64(size), dm.dagserv)
+	nnode, err := dagTruncate(dm.ctx, dm.curNode, uint64(size), dm.dagserv)
 	if err != nil {
 		return err
 	}
@@ -443,7 +443,7 @@ func (dm *DagModifier) Truncate(size int64) error {
 }
 
 // dagTruncate truncates the given node to 'size' and returns the modified Node
-func dagTruncate(nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, error) {
+func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, error) {
 	if len(nd.Links) == 0 {
 		// TODO: this can likely be done without marshaling and remarshaling
 		pbn, err := ft.FromBytes(nd.Data)
@@ -460,7 +460,7 @@ func dagTruncate(nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, er
 	var modified *mdag.Node
 	ndata := new(ft.FSNode)
 	for i, lnk := range nd.Links {
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+		_ctx, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 
 		child, err := lnk.GetNode(ctx, ds)
@@ -475,7 +475,7 @@ func dagTruncate(nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, er
 
 		// found the child we want to cut
 		if size < cur+childsize {
-			nchild, err := dagTruncate(child, size-cur, ds)
+			nchild, err := dagTruncate(_ctx, child, size-cur, ds)
 			if err != nil {
 				return nil, err
 			}
