@@ -92,8 +92,13 @@ test_expect_success "log output looks good" '
 '
 
 # test ipfs readonly api
+
+test_curl_gateway_api() {
+    curl -sfo actual "http://127.0.0.1:$port/api/v0/$1"
+}
+
 test_expect_success "get IPFS directory file through readonly API succeeds" '
-  curl -sfo actual "http://127.0.0.1:$port/api/v0/cat?arg=$HASH2/test"
+  test_curl_gateway_api "cat?arg=$HASH2/test"
 '
 
 test_expect_success "get IPFS directory file through readonly API output looks good" '
@@ -101,7 +106,13 @@ test_expect_success "get IPFS directory file through readonly API output looks g
 '
 
 test_expect_success "refs IPFS directory file through readonly API succeeds" '
-  curl -sfo actual "http://127.0.0.1:$port/api/v0/refs?arg=$HASH2/test"
+  test_curl_gateway_api "refs?arg=$HASH2/test"
+'
+
+test_expect_success "test gateway api is sanitized" '
+for cmd in "add" "block/put" "bootstrap" "config" "dht" "diag" "dns" "get" "id" "mount" "name/publish" "object/put" "object/new" "object/patch" "pin" "ping" "refs/local" "repo" "resolve" "stats" "swarm" "tour" "file" "update" "version" "bitswap"; do
+    test_curl_resp_http_code "http://127.0.0.1:$port/api/v0/$cmd" "HTTP/1.1 404 Not Found"
+  done
 '
 
 test_kill_ipfs_daemon
