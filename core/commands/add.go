@@ -108,7 +108,7 @@ remains to be implemented.
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 
-		e := dagutils.NewDagEditor(n.DAG, newDirNode())
+		e := dagutils.NewDagEditor(NewMemoryDagService(), newDirNode())
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
 				//TODO: need this to be true or all files
@@ -120,16 +120,6 @@ remains to be implemented.
 				return
 			}
 			n = nilnode
-
-			// build mem-datastore for editor's intermediary nodes
-			bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-			bsrv, err := bserv.New(bs, offline.Exchange(bs))
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			memds := dag.NewDAGService(bsrv)
-			e = dagutils.NewDagEditor(memds, newDirNode())
 		}
 
 		outChan := make(chan interface{}, 8)
@@ -182,6 +172,15 @@ remains to be implemented.
 				return err
 			}
 
+			if !hash {
+				// copy intermediary nodes from editor to our actual dagservice
+				err := e.WriteOutputTo(n.DAG)
+				if err != nil {
+					log.Error("WRITE OUT: ", err)
+					return err
+				}
+			}
+
 			rootnd, err := fileAdder.RootNode()
 			if err != nil {
 				return err
@@ -196,6 +195,7 @@ remains to be implemented.
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
+
 		}()
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
@@ -284,6 +284,13 @@ remains to be implemented.
 	Type: AddedObject{},
 }
 
+func NewMemoryDagService() dag.DAGService {
+	// build mem-datastore for editor's intermediary nodes
+	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
+	bsrv := bserv.New(bs, offline.Exchange(bs))
+	return dag.NewDAGService(bsrv)
+}
+
 // Internal structure for holding the switches passed to the `add` call
 type adder struct {
 	ctx      cxt.Context
@@ -335,6 +342,7 @@ func (params *adder) RootNode() (*dag.Node, error) {
 	if !params.wrap && len(r.Links) == 1 {
 		var err error
 		r, err = r.Links[0].GetNode(params.ctx, params.editor.GetDagService())
+		log.Error("ERR: ", err)
 		// no need to output, as we've already done so.
 		return r, err
 	}

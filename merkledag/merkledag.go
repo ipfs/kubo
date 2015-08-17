@@ -98,6 +98,9 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 
 	b, err := n.Blocks.GetBlock(ctx, k)
 	if err != nil {
+		if err == bserv.ErrNotFound {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 
