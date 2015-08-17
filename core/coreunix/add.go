@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	gopath "path"
-	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -105,7 +104,7 @@ func addNode(n *core.IpfsNode, node *merkledag.Node) error {
 	if err := n.DAG.AddRecursive(node); err != nil { // add the file to the graph + local storage
 		return err
 	}
-	ctx, cancel := context.WithTimeout(n.Context(), time.Minute)
+	ctx, cancel := context.WithCancel(n.Context())
 	defer cancel()
 	err := n.Pinning.Pin(ctx, node, true) // ensure we keep it
 	return err

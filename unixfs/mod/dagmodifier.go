@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"time"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -460,7 +459,7 @@ func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGSer
 	var modified *mdag.Node
 	ndata := new(ft.FSNode)
 	for i, lnk := range nd.Links {
-		_ctx, cancel := context.WithTimeout(ctx, time.Minute)
+		_ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
 		child, err := lnk.GetNode(ctx, ds)
