@@ -97,8 +97,9 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 	}
 
 	// setup the Query
+	parent := ctx
 	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
-		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+		notif.PublishQueryEvent(parent, &notif.QueryEvent{
 			Type: notif.SendingQuery,
 			ID:   p,
 		})
@@ -113,7 +114,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 			res.success = true
 		}
 
-		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+		notif.PublishQueryEvent(parent, &notif.QueryEvent{
 			Type:      notif.PeerResponse,
 			ID:        p,
 			Responses: pointerizePeerInfos(peers),
@@ -209,8 +210,9 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, 
 	}
 
 	// setup the Query
+	parent := ctx
 	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
-		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+		notif.PublishQueryEvent(parent, &notif.QueryEvent{
 			Type: notif.SendingQuery,
 			ID:   p,
 		})
@@ -246,7 +248,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, 
 		clpeers := pb.PBPeersToPeerInfos(closer)
 		log.Debugf("got closer peers: %d %s", len(clpeers), clpeers)
 
-		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+		notif.PublishQueryEvent(parent, &notif.QueryEvent{
 			Type:      notif.PeerResponse,
 			ID:        p,
 			Responses: pointerizePeerInfos(clpeers),
@@ -288,8 +290,9 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 	}
 
 	// setup the Query
+	parent := ctx
 	query := dht.newQuery(key.Key(id), func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
-		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+		notif.PublishQueryEvent(parent, &notif.QueryEvent{
 			Type: notif.SendingQuery,
 			ID:   p,
 		})
@@ -312,7 +315,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 			}
 		}
 
-		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+		notif.PublishQueryEvent(parent, &notif.QueryEvent{
 			Type:      notif.PeerResponse,
 			Responses: pointerizePeerInfos(clpeerInfos),
 		})
