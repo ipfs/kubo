@@ -40,6 +40,7 @@ import (
 	dht "github.com/ipfs/go-ipfs/routing/dht"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
+	nilrouting "github.com/ipfs/go-ipfs/routing/none"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -613,3 +614,4 @@ type RoutingOption func(context.Context, p2phost.Host, ds.ThreadSafeDatastore) (
 type DiscoveryOption func(p2phost.Host) (discovery.Service, error)
 
 var DHTOption RoutingOption = constructDHTRouting
+var NilRouterOption RoutingOption = nilrouting.ConstructNilRouting
