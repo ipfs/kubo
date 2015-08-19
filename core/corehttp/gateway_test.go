@@ -37,7 +37,7 @@ func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Pa
 	return errors.New("not implemented for mockNamesys")
 }
 
-func newNodeWithMockNamesys(t *testing.T, ns mockNamesys) *core.IpfsNode {
+func newNodeWithMockNamesys(ns mockNamesys) (*core.IpfsNode, error) {
 	c := config.Config{
 		Identity: config.Identity{
 			PeerID: "Qmfoo", // required by offline node
@@ -49,10 +49,10 @@ func newNodeWithMockNamesys(t *testing.T, ns mockNamesys) *core.IpfsNode {
 	}
 	n, err := core.NewIPFSNode(context.Background(), core.Offline(r))
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 	n.Namesys = ns
-	return n
+	return n, nil
 }
 
 type delegatedHandler struct {
@@ -63,21 +63,30 @@ func (dh *delegatedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dh.Handler.ServeHTTP(w, r)
 }
 
-func TestGatewayGet(t *testing.T) {
-	t.Skip("not sure whats going on here")
-	ns := mockNamesys{}
-	n := newNodeWithMockNamesys(t, ns)
-	k, err := coreunix.Add(n, strings.NewReader("fnord"))
+func doWithoutRedirect(req *http.Request) (*http.Response, error) {
+	tag := "without-redirect"
+	c := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return errors.New(tag)
+		},
+	}
+	res, err := c.Do(req)
+	if err != nil && !strings.Contains(err.Error(), tag) {
+		return nil, err
+	}
+	return res, nil
+}
+
+func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, *core.IpfsNode) {
+	n, err := newNodeWithMockNamesys(ns)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ns["example.com"] = path.FromString("/ipfs/" + k)
 
 	// need this variable here since we need to construct handler with
 	// listener, and server with handler. yay cycles.
 	dh := &delegatedHandler{}
 	ts := httptest.NewServer(dh)
-	defer ts.Close()
 
 	dh.Handler, err = makeHandler(n,
 		ts.Listener,
@@ -87,6 +96,20 @@ func TestGatewayGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	return ts, n
+}
+
+func TestGatewayGet(t *testing.T) {
+	ns := mockNamesys{}
+	ts, n := newTestServerAndNode(t, ns)
+	defer ts.Close()
+
+	k, err := coreunix.Add(n, strings.NewReader("fnord"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ns["/ipns/example.com"] = path.FromString("/ipfs/" + k)
 
 	t.Log(ts.URL)
 	for _, test := range []struct {
@@ -128,5 +151,189 @@ func TestGatewayGet(t *testing.T) {
 			t.Errorf("unexpected response body from %s: expected %q; got %q", urlstr, test.text, body)
 			continue
 		}
+	}
+}
+
+func TestIPNSHostnameRedirect(t *testing.T) {
+	ns := mockNamesys{}
+	ts, n := newTestServerAndNode(t, ns)
+	t.Logf("test server url: %s", ts.URL)
+	defer ts.Close()
+
+	// create /ipns/example.net/foo/index.html
+	_, dagn1, err := coreunix.AddWrapped(n, strings.NewReader("_"), "_")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, dagn2, err := coreunix.AddWrapped(n, strings.NewReader("_"), "index.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dagn1.AddNodeLink("foo", dagn2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = n.DAG.AddRecursive(dagn1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k, err := dagn1.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("k: %s\n", k)
+	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
+
+	// make request to directory containing index.html
+	req, err := http.NewRequest("GET", ts.URL+"/foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+
+	res, err := doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// expect 302 redirect to same path, but with trailing slash
+	if res.StatusCode != 302 {
+		t.Errorf("status is %d, expected 302", res.StatusCode)
+	}
+	hdr := res.Header["Location"]
+	if len(hdr) < 1 {
+		t.Errorf("location header not present")
+	} else if hdr[0] != "/foo/" {
+		t.Errorf("location header is %v, expected /foo/", hdr[0])
+	}
+}
+
+func TestIPNSHostnameBacklinks(t *testing.T) {
+	ns := mockNamesys{}
+	ts, n := newTestServerAndNode(t, ns)
+	t.Logf("test server url: %s", ts.URL)
+	defer ts.Close()
+
+	// create /ipns/example.net/foo/
+	_, dagn1, err := coreunix.AddWrapped(n, strings.NewReader("1"), "file.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, dagn2, err := coreunix.AddWrapped(n, strings.NewReader("2"), "file.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, dagn3, err := coreunix.AddWrapped(n, strings.NewReader("3"), "file.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dagn2.AddNodeLink("bar", dagn3)
+	dagn1.AddNodeLink("foo", dagn2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = n.DAG.AddRecursive(dagn1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k, err := dagn1.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("k: %s\n", k)
+	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
+
+	// make request to directory listing
+	req, err := http.NewRequest("GET", ts.URL+"/foo/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+
+	res, err := doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// expect correct backlinks
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("error reading response: %s", err)
+	}
+	s := string(body)
+	t.Logf("body: %s\n", string(body))
+
+	if !strings.Contains(s, "Index of /foo/") {
+		t.Fatalf("expected a path in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/\">") {
+		t.Fatalf("expected backlink in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/foo/file.txt\">") {
+		t.Fatalf("expected file in directory listing")
+	}
+
+	// make request to directory listing
+	req, err = http.NewRequest("GET", ts.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+
+	res, err = doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// expect correct backlinks
+	body, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("error reading response: %s", err)
+	}
+	s = string(body)
+	t.Logf("body: %s\n", string(body))
+
+	if !strings.Contains(s, "Index of /") {
+		t.Fatalf("expected a path in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/\">") {
+		t.Fatalf("expected backlink in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/file.txt\">") {
+		t.Fatalf("expected file in directory listing")
+	}
+
+	// make request to directory listing
+	req, err = http.NewRequest("GET", ts.URL+"/foo/bar/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+
+	res, err = doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// expect correct backlinks
+	body, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("error reading response: %s", err)
+	}
+	s = string(body)
+	t.Logf("body: %s\n", string(body))
+
+	if !strings.Contains(s, "Index of /foo/bar/") {
+		t.Fatalf("expected a path in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/foo/\">") {
+		t.Fatalf("expected backlink in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/foo/bar/file.txt\">") {
+		t.Fatalf("expected file in directory listing")
 	}
 }

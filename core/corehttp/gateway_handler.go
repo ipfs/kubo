@@ -90,6 +90,19 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	urlPath := r.URL.Path
 
+	// IPNSHostnameOption might have constructed an IPNS path using the Host header.
+	// In this case, we need the original path for constructing redirects
+	// and links that match the requested URL.
+	// For example, http://example.net would become /ipns/example.net, and
+	// the redirects and links would end up as http://example.net/ipns/example.net
+	originalUrlPath := urlPath
+	ipnsHostname := false
+	hdr := r.Header["X-IPNS-Original-Path"]
+	if len(hdr) > 0 {
+		originalUrlPath = hdr[0]
+		ipnsHostname = true
+	}
+
 	if i.config.BlockList != nil && i.config.BlockList.ShouldBlock(urlPath) {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("403 - Forbidden"))
@@ -112,10 +125,17 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	w.Header().Set("X-IPFS-Path", urlPath)
 
 	// Suborigin header, sandboxes apps from each other in the browser (even
-	// though they are served from the same gateway domain). NOTE: This is not
-	// yet widely supported by browsers.
-	pathRoot := strings.SplitN(urlPath, "/", 4)[2]
-	w.Header().Set("Suborigin", pathRoot)
+	// though they are served from the same gateway domain).
+	//
+	// Omited if the path was treated by IPNSHostnameOption(), for example
+	// a request for http://example.net/ would be changed to /ipns/example.net/,
+	// which would turn into an incorrect Suborigin: example.net header.
+	//
+	// NOTE: This is not yet widely supported by browsers.
+	if !ipnsHostname {
+		pathRoot := strings.SplitN(urlPath, "/", 4)[2]
+		w.Header().Set("Suborigin", pathRoot)
+	}
 
 	dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
 	if err != nil && err != uio.ErrIsDir {
@@ -150,13 +170,16 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	foundIndex := false
 	for _, link := range nd.Links {
 		if link.Name == "index.html" {
+			log.Debugf("found index.html link for %s", urlPath)
+			foundIndex = true
+
 			if urlPath[len(urlPath)-1] != '/' {
-				http.Redirect(w, r, urlPath+"/", 302)
+				// See comment above where originalUrlPath is declared.
+				http.Redirect(w, r, originalUrlPath+"/", 302)
+				log.Debugf("redirect to %s", originalUrlPath+"/")
 				return
 			}
 
-			log.Debug("found index")
-			foundIndex = true
 			// return index page instead.
 			nd, err := core.Resolve(ctx, i.node, path.Path(urlPath+"/index.html"))
 			if err != nil {
@@ -177,7 +200,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			break
 		}
 
-		di := directoryItem{link.Size, link.Name, gopath.Join(urlPath, link.Name)}
+		// See comment above where originalUrlPath is declared.
+		di := directoryItem{link.Size, link.Name, gopath.Join(originalUrlPath, link.Name)}
 		dirListing = append(dirListing, di)
 	}
 
@@ -185,7 +209,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		if r.Method != "HEAD" {
 			// construct the correct back link
 			// https://github.com/ipfs/go-ipfs/issues/1365
-			var backLink string = r.URL.Path
+			var backLink string = urlPath
 
 			// don't go further up than /ipfs/$hash/
 			pathSplit := strings.Split(backLink, "/")
@@ -205,9 +229,20 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				}
 			}
 
+			// strip /ipfs/$hash from backlink if IPNSHostnameOption touched the path.
+			if ipnsHostname {
+				backLink = "/"
+				if len(pathSplit) > 5 {
+					// also strip the trailing segment, because it's a backlink
+					backLinkParts := pathSplit[3 : len(pathSplit)-2]
+					backLink += strings.Join(backLinkParts, "/") + "/"
+				}
+			}
+
+			// See comment above where originalUrlPath is declared.
 			tplData := listingTemplateData{
 				Listing:  dirListing,
-				Path:     urlPath,
+				Path:     originalUrlPath,
 				BackLink: backLink,
 			}
 			err := listingTemplate.Execute(w, tplData)
