@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"path"
 
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	context "golang.org/x/net/context"
 )
 
 const (
