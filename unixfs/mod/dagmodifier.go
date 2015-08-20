@@ -312,7 +312,7 @@ func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte, errs <-ch
 		NodeCB:   imp.BasicPinnerCB(dm.mp),
 	}
 
-	return trickle.TrickleAppend(node, dbp.New(blks, errs))
+	return trickle.TrickleAppend(dm.ctx, node, dbp.New(blks, errs))
 }
 
 // Read data from this dag starting at the current offset
