@@ -15,7 +15,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
 	tar "github.com/ipfs/go-ipfs/thirdparty/tar"
-	utar "github.com/ipfs/go-ipfs/unixfs/tar"
+	uarchive "github.com/ipfs/go-ipfs/unixfs/archive"
 )
 
 var ErrInvalidCompressionLevel = errors.New("Compression level must be between 1 and 9")
@@ -70,7 +70,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		}
 
 		archive, _, _ := req.Option("archive").Bool()
-		reader, err := utar.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
+		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
