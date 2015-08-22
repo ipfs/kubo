@@ -40,13 +40,13 @@ func (te *Extractor) Extract(reader io.Reader) error {
 		}
 
 		if header.Typeflag == tar.TypeDir {
-			if err := te.extractDir(header, i); err != nil {
+			if err := te.extractDir(header, i == 0); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if err := te.extractFile(header, tarReader, i, rootExists, rootIsDir); err != nil {
+		if err := te.extractFile(header, tarReader, i == 0, rootExists, rootIsDir); err != nil {
 			return err
 		}
 	}
@@ -63,10 +63,10 @@ func (te *Extractor) outputPath(tarPath string) string {
 	return path
 }
 
-func (te *Extractor) extractDir(h *tar.Header, depth int) error {
+func (te *Extractor) extractDir(h *tar.Header, isRoot bool) error {
 	path := te.outputPath(h.Name)
 
-	if depth == 0 {
+	if isRoot {
 		// if this is the root root directory, use it as the output path for remaining files
 		te.Path = path
 	}
@@ -79,10 +79,10 @@ func (te *Extractor) extractDir(h *tar.Header, depth int) error {
 	return nil
 }
 
-func (te *Extractor) extractFile(h *tar.Header, r *tar.Reader, depth int, rootExists bool, rootIsDir bool) error {
+func (te *Extractor) extractFile(h *tar.Header, r *tar.Reader, isRoot bool, rootExists bool, rootIsDir bool) error {
 	path := te.outputPath(h.Name)
 
-	if depth == 0 { // if depth is 0, this is the only file (we aren't 'ipfs get'ing a directory)
+	if isRoot { // if depth is 0, this is the only file (we aren't 'ipfs get'ing a directory)
 		if rootExists && rootIsDir {
 			// putting file inside of a root dir.
 			fnameo := gopath.Base(h.Name)

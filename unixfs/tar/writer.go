@@ -17,6 +17,8 @@ import (
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
+const tarBlockSize = 512
+
 // DefaultBufSize is the buffer size for gets. for now, 1MB, which is ~4 blocks.
 // TODO: does this need to be configurable?
 var DefaultBufSize = 1048576
@@ -55,6 +57,58 @@ func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService
 	return piper, nil
 }
 
+//func GetTarSize(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService) (uint64, error) {
+//	return _getTarSize(ctx, nd, dag, true)
+//}
+
+func GetTarSize(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService) (uint64, error) {
+	size := 2 * uint64(tarBlockSize) // tar root padding
+	getFilesize := func(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService, pb *upb.Data, err error) error {
+		unixSize := pb.GetFilesize()
+		size += tarBlockSize + unixSize + (tarBlockSize - unixSize%tarBlockSize)
+		return err
+	}
+	if err := nodeWalk(ctx, nd, dag, getFilesize); err != nil {
+		return 0, err
+	}
+	return size, nil
+}
+
+func _getTarSize(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService, isRoot bool) (uint64, error) {
+	size := uint64(0)
+	pb := new(upb.Data)
+	if err := proto.Unmarshal(nd.Data, pb); err != nil {
+		return 0, err
+	}
+
+	switch pb.GetType() {
+	case upb.Data_Directory:
+		for _, ng := range dag.GetDAG(ctx, nd) {
+			child, err := ng.Get(ctx)
+			if err != nil {
+				return 0, err
+			}
+			childSize, err := _getTarSize(ctx, child, dag, false)
+			if err != nil {
+				return 0, err
+			}
+			size += childSize
+		}
+	case upb.Data_File:
+		unixSize := pb.GetFilesize()
+		// tar header + file size + round up to nearest 512 bytes
+		size = tarBlockSize + unixSize + (tarBlockSize - unixSize%tarBlockSize)
+	default:
+		return 0, fmt.Errorf("unixfs type not supported: %s", pb.GetType())
+	}
+
+	if isRoot {
+		size += 2 * tarBlockSize // tar root padding
+	}
+
+	return size, nil
+}
+
 // Writer is a utility structure that helps to write
 // unixfs merkledag nodes as a tar archive format.
 // It wraps any io.Writer.
@@ -81,33 +135,52 @@ func NewWriter(w io.Writer, dag mdag.DAGService, compression int) (*Writer, erro
 	}, nil
 }
 
-func (w *Writer) WriteDir(ctx cxt.Context, nd *mdag.Node, fpath string) error {
-	if err := writeDirHeader(w.TarW, fpath); err != nil {
-		return err
-	}
+type walkFunc func(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService, pb *upb.Data, err error) error
 
-	for i, ng := range w.Dag.GetDAG(ctx, nd) {
-		child, err := ng.Get(ctx)
-		if err != nil {
-			return err
-		}
-
-		npath := path.Join(fpath, nd.Links[i].Name)
-		if err := w.WriteNode(ctx, child, npath); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (w *Writer) WriteFile(ctx cxt.Context, nd *mdag.Node, fpath string) error {
+func nodeWalk(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService, nwFunc walkFunc) error {
 	pb := new(upb.Data)
 	if err := proto.Unmarshal(nd.Data, pb); err != nil {
 		return err
 	}
 
-	return w.writeFile(ctx, nd, pb, fpath)
+	switch pb.GetType() {
+	case upb.Data_Directory:
+		// nwFunc does nothing on the directory itself, only it files
+		for _, ng := range dag.GetDAG(ctx, nd) {
+			child, err := ng.Get(ctx)
+			if err != nil {
+				return err
+			}
+			if err := nodeWalk(ctx, child, dag, nwFunc); err != nil {
+				return err
+			}
+		}
+		return nil
+	case upb.Data_File:
+		return nwFunc(ctx, nd, dag, pb, nil)
+	default:
+		return fmt.Errorf("unixfs type not supported: %s", pb.GetType())
+	}
+}
+
+func (w *Writer) WriteNode(ctx cxt.Context, nd *mdag.Node, fpath string) error {
+	pb := new(upb.Data)
+	if err := proto.Unmarshal(nd.Data, pb); err != nil {
+		return err
+	}
+
+	switch pb.GetType() {
+	case upb.Data_Directory:
+		return w.writeDir(ctx, nd, fpath)
+	case upb.Data_File:
+		return w.writeFile(ctx, nd, pb, fpath)
+	default:
+		return fmt.Errorf("unixfs type not supported: %s", pb.GetType())
+	}
+}
+
+func (w *Writer) Close() error {
+	return w.TarW.Close()
 }
 
 func (w *Writer) writeFile(ctx cxt.Context, nd *mdag.Node, pb *upb.Data, fpath string) error {
@@ -128,24 +201,24 @@ func (w *Writer) writeFile(ctx cxt.Context, nd *mdag.Node, pb *upb.Data, fpath s
 	return nil
 }
 
-func (w *Writer) WriteNode(ctx cxt.Context, nd *mdag.Node, fpath string) error {
-	pb := new(upb.Data)
-	if err := proto.Unmarshal(nd.Data, pb); err != nil {
+func (w *Writer) writeDir(ctx cxt.Context, nd *mdag.Node, fpath string) error {
+	if err := writeDirHeader(w.TarW, fpath); err != nil {
 		return err
 	}
 
-	switch pb.GetType() {
-	case upb.Data_Directory:
-		return w.WriteDir(ctx, nd, fpath)
-	case upb.Data_File:
-		return w.writeFile(ctx, nd, pb, fpath)
-	default:
-		return fmt.Errorf("unixfs type not supported: %s", pb.GetType())
-	}
-}
+	for i, ng := range w.Dag.GetDAG(ctx, nd) {
+		child, err := ng.Get(ctx)
+		if err != nil {
+			return err
+		}
 
-func (w *Writer) Close() error {
-	return w.TarW.Close()
+		npath := path.Join(fpath, nd.Links[i].Name)
+		if err := w.WriteNode(ctx, child, npath); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func writeDirHeader(w *tar.Writer, fpath string) error {
