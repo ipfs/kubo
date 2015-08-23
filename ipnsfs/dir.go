@@ -139,10 +139,7 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 func (d *Directory) childFromDag(name string) (*dag.Node, error) {
 	for _, lnk := range d.node.Links {
 		if lnk.Name == name {
-			ctx, cancel := context.WithCancel(d.ctx)
-			defer cancel()
-
-			return lnk.GetNode(ctx, d.fs.dserv)
+			return lnk.GetNode(d.ctx, d.fs.dserv)
 		}
 	}
 

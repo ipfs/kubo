@@ -459,9 +459,6 @@ func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGSer
 	var modified *mdag.Node
 	ndata := new(ft.FSNode)
 	for i, lnk := range nd.Links {
-		_ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
 		child, err := lnk.GetNode(ctx, ds)
 		if err != nil {
 			return nil, err
@@ -474,7 +471,7 @@ func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGSer
 
 		// found the child we want to cut
 		if size < cur+childsize {
-			nchild, err := dagTruncate(_ctx, child, size-cur, ds)
+			nchild, err := dagTruncate(ctx, child, size-cur, ds)
 			if err != nil {
 				return nil, err
 			}

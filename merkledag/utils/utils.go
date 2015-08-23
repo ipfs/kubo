@@ -52,8 +52,7 @@ func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname s
 		return nil, err
 	}
 
-	_, err = ds.Add(root)
-	if err != nil {
+	if _, err := ds.Add(root); err != nil {
 		return nil, err
 	}
 	return root, nil

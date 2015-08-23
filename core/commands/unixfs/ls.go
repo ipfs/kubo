@@ -7,8 +7,6 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
@@ -110,9 +108,7 @@ size is the IPFS link size.
 				links := make([]LsLink, len(merkleNode.Links))
 				output.Objects[hash].Links = links
 				for i, link := range merkleNode.Links {
-					getCtx, cancel := context.WithCancel(ctx)
-					defer cancel()
-					link.Node, err = link.GetNode(getCtx, node.DAG)
+					link.Node, err = link.GetNode(ctx, node.DAG)
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return

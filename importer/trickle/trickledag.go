@@ -2,7 +2,6 @@ package trickle
 
 import (
 	"errors"
-	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -268,9 +267,7 @@ func verifyTDagRec(nd *dag.Node, depth, direct, layerRepeat int, ds dag.DAGServi
 	}
 
 	for i := 0; i < len(nd.Links); i++ {
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
-		defer cancel()
-		child, err := nd.Links[i].GetNode(ctx, ds)
+		child, err := nd.Links[i].GetNode(context.TODO(), ds)
 		if err != nil {
 			return err
 		}

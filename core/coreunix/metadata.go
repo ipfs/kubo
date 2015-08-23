@@ -1,8 +1,6 @@
 package coreunix
 
 import (
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -12,9 +10,7 @@ import (
 func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error) {
 	ukey := key.B58KeyDecode(skey)
 
-	ctx, cancel := context.WithCancel(n.Context())
-	defer cancel()
-	nd, err := n.DAG.Get(ctx, ukey)
+	nd, err := n.DAG.Get(n.Context(), ukey)
 	if err != nil {
 		return "", err
 	}
@@ -26,8 +22,7 @@ func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error
 	}
 
 	mdnode.Data = mdata
-	err = mdnode.AddNodeLinkClean("file", nd)
-	if err != nil {
+	if err := mdnode.AddNodeLinkClean("file", nd); err != nil {
 		return "", err
 	}
 
@@ -42,9 +37,7 @@ func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error
 func Metadata(n *core.IpfsNode, skey string) (*ft.Metadata, error) {
 	ukey := key.B58KeyDecode(skey)
 
-	ctx, cancel := context.WithCancel(n.Context())
-	defer cancel()
-	nd, err := n.DAG.Get(ctx, ukey)
+	nd, err := n.DAG.Get(n.Context(), ukey)
 	if err != nil {
 		return nil, err
 	}

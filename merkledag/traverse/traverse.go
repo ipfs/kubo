@@ -3,7 +3,6 @@ package traverse
 
 import (
 	"errors"
-	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -67,10 +66,7 @@ func (t *traversal) callFunc(next State) error {
 func (t *traversal) getNode(link *mdag.Link) (*mdag.Node, error) {
 
 	getNode := func(l *mdag.Link) (*mdag.Node, error) {
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
-		defer cancel()
-
-		next, err := l.GetNode(ctx, t.opts.DAG)
+		next, err := l.GetNode(context.TODO(), t.opts.DAG)
 		if err != nil {
 			return nil, err
 		}

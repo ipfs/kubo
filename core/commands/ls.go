@@ -6,8 +6,6 @@ import (
 	"io"
 	"text/tabwriter"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
@@ -80,9 +78,7 @@ it contains, with the following format:
 				Links: make([]LsLink, len(dagnode.Links)),
 			}
 			for j, link := range dagnode.Links {
-				ctx, cancel := context.WithCancel(req.Context())
-				defer cancel()
-				link.Node, err = link.GetNode(ctx, node.DAG)
+				link.Node, err = link.GetNode(req.Context(), node.DAG)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return

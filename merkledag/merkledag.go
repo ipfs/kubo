@@ -93,6 +93,8 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 	if n == nil {
 		return nil, fmt.Errorf("dagService is nil")
 	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	b, err := n.Blocks.GetBlock(ctx, k)
 	if err != nil {
