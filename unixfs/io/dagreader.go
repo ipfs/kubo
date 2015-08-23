@@ -58,8 +58,7 @@ type ReadSeekCloser interface {
 // node, using the passed in DAGService for data retreival
 func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*DagReader, error) {
 	pb := new(ftpb.Data)
-	err := proto.Unmarshal(n.Data, pb)
-	if err != nil {
+	if err := proto.Unmarshal(n.Data, pb); err != nil {
 		return nil, err
 	}
 
@@ -70,7 +69,7 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 	case ftpb.Data_Raw:
 		fallthrough
 	case ftpb.Data_File:
-		return newDataFileReader(ctx, n, pb, serv), nil
+		return NewDataFileReader(ctx, n, pb, serv), nil
 	case ftpb.Data_Metadata:
 		if len(n.Links) == 0 {
 			return nil, errors.New("incorrectly formatted metadata object")
@@ -85,7 +84,7 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 	}
 }
 
-func newDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv mdag.DAGService) *DagReader {
+func NewDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv mdag.DAGService) *DagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	promises := serv.GetDAG(fctx, n)
 	return &DagReader{
@@ -124,7 +123,7 @@ func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 		// A directory should not exist within a file
 		return ft.ErrInvalidDirLocation
 	case ftpb.Data_File:
-		dr.buf = newDataFileReader(dr.ctx, nxt, pb, dr.serv)
+		dr.buf = NewDataFileReader(dr.ctx, nxt, pb, dr.serv)
 		return nil
 	case ftpb.Data_Raw:
 		dr.buf = NewRSNCFromBytes(pb.GetData())
@@ -137,8 +136,8 @@ func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 }
 
 // Size return the total length of the data from the DAG structured file.
-func (dr *DagReader) Size() int64 {
-	return int64(dr.pbdata.GetFilesize())
+func (dr *DagReader) Size() uint64 {
+	return dr.pbdata.GetFilesize()
 }
 
 // Read reads data from the DAG structured file
