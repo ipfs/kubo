@@ -186,7 +186,7 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 
 	switch pbn.GetType() {
 	case ft.TDirectory:
-		root.val = NewDirectory(pointsTo.String(), mnode, root, fs)
+		root.val = NewDirectory(ctx, pointsTo.String(), mnode, root, fs)
 	case ft.TFile, ft.TMetadata, ft.TRaw:
 		fi, err := NewFile(pointsTo.String(), mnode, root, fs)
 		if err != nil {

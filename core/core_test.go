@@ -10,7 +10,7 @@ import (
 )
 
 func TestInitialization(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	id := testIdentity
 
 	good := []*config.Config{

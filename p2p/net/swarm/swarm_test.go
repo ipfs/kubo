@@ -288,13 +288,13 @@ func TestAddrBlocking(t *testing.T) {
 	swarms[1].Filters.AddDialFilter(block)
 
 	swarms[1].peers.AddAddr(swarms[0].LocalPeer(), swarms[0].ListenAddresses()[0], peer.PermanentAddrTTL)
-	_, err = swarms[1].Dial(context.TODO(), swarms[0].LocalPeer())
+	_, err = swarms[1].Dial(ctx, swarms[0].LocalPeer())
 	if err == nil {
 		t.Fatal("dial should have failed")
 	}
 
 	swarms[0].peers.AddAddr(swarms[1].LocalPeer(), swarms[1].ListenAddresses()[0], peer.PermanentAddrTTL)
-	_, err = swarms[0].Dial(context.TODO(), swarms[1].LocalPeer())
+	_, err = swarms[0].Dial(ctx, swarms[1].LocalPeer())
 	if err == nil {
 		t.Fatal("dial should have failed")
 	}

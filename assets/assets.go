@@ -54,7 +54,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {
 
 		fname := filepath.Base(p)
 		k := key.B58KeyDecode(s)
-		if err := dirb.AddChild(fname, k); err != nil {
+		if err := dirb.AddChild(nd.Context(), fname, k); err != nil {
 			return nil, fmt.Errorf("assets: could not add '%s' as a child: %s", fname, err)
 		}
 	}
