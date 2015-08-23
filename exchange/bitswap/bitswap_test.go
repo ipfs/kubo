@@ -50,7 +50,8 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 	solo := g.Next()
 	defer solo.Exchange.Close()
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
 	_, err := solo.Exchange.GetBlock(ctx, block.Key())
 
 	if err != context.DeadlineExceeded {
@@ -76,7 +77,8 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	wantsBlock := peers[1]
 	defer wantsBlock.Exchange.Close()
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	received, err := wantsBlock.Exchange.GetBlock(ctx, block.Key())
 	if err != nil {
 		t.Log(err)
@@ -226,14 +228,16 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	alpha := bg.Next()
 	// peerA requests and waits for block alpha
-	ctx, _ := context.WithTimeout(context.TODO(), waitTime)
+	ctx, cancel := context.WithTimeout(context.TODO(), waitTime)
+	defer cancel()
 	alphaPromise, err := peerA.Exchange.GetBlocks(ctx, []key.Key{alpha.Key()})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// peerB announces to the network that he has block alpha
-	ctx, _ = context.WithTimeout(context.TODO(), timeout)
+	ctx, cancel = context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
 	err = peerB.Exchange.HasBlock(ctx, alpha)
 	if err != nil {
 		t.Fatal(err)
@@ -266,7 +270,8 @@ func TestBasicBitswap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+	defer cancel()
 	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Key())
 	if err != nil {
 		t.Fatal(err)

@@ -112,7 +112,8 @@ func TestSubscribeIsANoopWhenCalledWithNoKeys(t *testing.T) {
 func TestCarryOnWhenDeadlineExpires(t *testing.T) {
 
 	impossibleDeadline := time.Nanosecond
-	fastExpiringCtx, _ := context.WithTimeout(context.Background(), impossibleDeadline)
+	fastExpiringCtx, cancel := context.WithTimeout(context.Background(), impossibleDeadline)
+	defer cancel()
 
 	n := New()
 	defer n.Shutdown()

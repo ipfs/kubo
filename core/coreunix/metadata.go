@@ -1,8 +1,6 @@
 package coreunix
 
 import (
-	"time"
-
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -14,7 +12,7 @@ import (
 func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error) {
 	ukey := key.B58KeyDecode(skey)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	ctx, cancel := context.WithCancel(n.Context())
 	defer cancel()
 	nd, err := n.DAG.Get(ctx, ukey)
 	if err != nil {
@@ -44,7 +42,7 @@ func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error
 func Metadata(n *core.IpfsNode, skey string) (*ft.Metadata, error) {
 	ukey := key.B58KeyDecode(skey)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	ctx, cancel := context.WithCancel(n.Context())
 	defer cancel()
 	nd, err := n.DAG.Get(ctx, ukey)
 	if err != nil {
