@@ -104,7 +104,7 @@ func testInsert(t *testing.T, e *Editor, path, data string, create bool, experr 
 		}
 	}
 
-	err = e.InsertNodeAtPath(context.TODO(), path, ck, c)
+	err = e.InsertNodeAtPath(context.Background(), path, ck, c)
 	if experr != "" {
 		var got string
 		if err != nil {

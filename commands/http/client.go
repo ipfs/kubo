@@ -51,8 +51,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 
 	if req.Context() == nil {
 		log.Warningf("no context set in request")
-		err := req.SetRootContext(context.TODO())
-		if err != nil {
+		if err := req.SetRootContext(context.TODO()); err != nil {
 			return nil, err
 		}
 	}

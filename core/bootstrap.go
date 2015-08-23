@@ -110,7 +110,8 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 
 func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) error {
 
-	ctx, _ = context.WithTimeout(ctx, cfg.ConnectionTimeout)
+	ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionTimeout)
+	defer cancel()
 	id := host.ID()
 
 	// get bootstrap peers from config. retrieving them here makes

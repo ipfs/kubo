@@ -50,7 +50,8 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 	solo := g.Next()
 	defer solo.Exchange.Close()
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
 	_, err := solo.Exchange.GetBlock(ctx, block.Key())
 
 	if err != context.DeadlineExceeded {
@@ -76,7 +77,8 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	wantsBlock := peers[1]
 	defer wantsBlock.Exchange.Close()
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	received, err := wantsBlock.Exchange.GetBlock(ctx, block.Key())
 	if err != nil {
 		t.Log(err)
@@ -142,6 +144,7 @@ func TestLargeFileTwoPeers(t *testing.T) {
 }
 
 func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
+	ctx := context.Background()
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -159,7 +162,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	first := instances[0]
 	for _, b := range blocks {
 		blkeys = append(blkeys, b.Key())
-		first.Exchange.HasBlock(context.Background(), b)
+		first.Exchange.HasBlock(ctx, b)
 	}
 
 	t.Log("Distribute!")
@@ -169,7 +172,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 		wg.Add(1)
 		go func(inst Instance) {
 			defer wg.Done()
-			outch, err := inst.Exchange.GetBlocks(context.TODO(), blkeys)
+			outch, err := inst.Exchange.GetBlocks(ctx, blkeys)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -226,14 +229,16 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	alpha := bg.Next()
 	// peerA requests and waits for block alpha
-	ctx, _ := context.WithTimeout(context.TODO(), waitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
+	defer cancel()
 	alphaPromise, err := peerA.Exchange.GetBlocks(ctx, []key.Key{alpha.Key()})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// peerB announces to the network that he has block alpha
-	ctx, _ = context.WithTimeout(context.TODO(), timeout)
+	ctx, cancel = context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	err = peerB.Exchange.HasBlock(ctx, alpha)
 	if err != nil {
 		t.Fatal(err)
@@ -261,12 +266,13 @@ func TestBasicBitswap(t *testing.T) {
 
 	instances := sg.Instances(2)
 	blocks := bg.Blocks(1)
-	err := instances[0].Exchange.HasBlock(context.TODO(), blocks[0])
+	err := instances[0].Exchange.HasBlock(context.Background(), blocks[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Key())
 	if err != nil {
 		t.Fatal(err)

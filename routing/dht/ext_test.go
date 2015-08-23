@@ -202,7 +202,8 @@ func TestNotFound(t *testing.T) {
 	}
 
 	// long timeout to ensure timing is not at play.
-	ctx, _ = context.WithTimeout(ctx, time.Second*20)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
+	defer cancel()
 	v, err := d.GetValue(ctx, key.Key("hello"))
 	log.Debugf("get value got %v", v)
 	if err != nil {
@@ -274,7 +275,8 @@ func TestLessThanKResponses(t *testing.T) {
 		})
 	}
 
-	ctx, _ = context.WithTimeout(ctx, time.Second*30)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 	if _, err := d.GetValue(ctx, key.Key("hello")); err != nil {
 		switch err {
 		case routing.ErrNotFound:
