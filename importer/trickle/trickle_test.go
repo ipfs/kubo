@@ -443,7 +443,8 @@ func TestAppend(t *testing.T) {
 	r := bytes.NewReader(should[nbytes/2:])
 	blks, errs := chunk.Chan(chunk.NewSizeSplitter(r, 500))
 
-	nnode, err := TrickleAppend(nd, dbp.New(blks, errs))
+	ctx := context.Background()
+	nnode, err := TrickleAppend(ctx, nd, dbp.New(blks, errs))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -453,7 +454,7 @@ func TestAppend(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fread, err := uio.NewDagReader(context.TODO(), nnode, ds)
+	fread, err := uio.NewDagReader(ctx, nnode, ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -491,10 +492,11 @@ func TestMultipleAppends(t *testing.T) {
 
 	spl := chunk.SizeSplitterGen(500)
 
+	ctx := context.Background()
 	for i := 0; i < len(should); i++ {
 		blks, errs := chunk.Chan(spl(bytes.NewReader(should[i : i+1])))
 
-		nnode, err := TrickleAppend(nd, dbp.New(blks, errs))
+		nnode, err := TrickleAppend(ctx, nd, dbp.New(blks, errs))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -504,7 +506,7 @@ func TestMultipleAppends(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		fread, err := uio.NewDagReader(context.TODO(), nnode, ds)
+		fread, err := uio.NewDagReader(ctx, nnode, ds)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -538,19 +540,20 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 
 	blks, errs := chunk.Chan(spl(bytes.NewReader(data[:1])))
 
-	nnode, err := TrickleAppend(nd, dbp.New(blks, errs))
+	ctx := context.Background()
+	nnode, err := TrickleAppend(ctx, nd, dbp.New(blks, errs))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	blks, errs = chunk.Chan(spl(bytes.NewReader(data[1:])))
 
-	nnode, err = TrickleAppend(nnode, dbp.New(blks, errs))
+	nnode, err = TrickleAppend(ctx, nnode, dbp.New(blks, errs))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fread, err := uio.NewDagReader(context.TODO(), nnode, ds)
+	fread, err := uio.NewDagReader(ctx, nnode, ds)
 	if err != nil {
 		t.Fatal(err)
 	}

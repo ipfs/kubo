@@ -15,7 +15,6 @@ package corerepo
 
 import (
 	"fmt"
-	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -42,7 +41,7 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 			return nil, err
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, time.Minute)
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		err = n.Pinning.Pin(ctx, dagnode, recursive)
 		if err != nil {
@@ -74,7 +73,7 @@ func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool
 	for _, dagnode := range dagnodes {
 		k, _ := dagnode.Key()
 
-		ctx, cancel := context.WithTimeout(ctx, time.Minute)
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		err := n.Pinning.Unpin(ctx, k, recursive)
 		if err != nil {

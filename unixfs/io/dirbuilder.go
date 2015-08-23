@@ -1,8 +1,6 @@
 package io
 
 import (
-	"time"
-
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -29,22 +27,13 @@ func NewDirectory(dserv mdag.DAGService) *directoryBuilder {
 }
 
 // AddChild adds a (name, key)-pair to the root node.
-func (d *directoryBuilder) AddChild(name string, k key.Key) error {
-	// TODO(cryptix): consolidate context managment
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
-	defer cancel()
-
+func (d *directoryBuilder) AddChild(ctx context.Context, name string, k key.Key) error {
 	cnode, err := d.dserv.Get(ctx, k)
 	if err != nil {
 		return err
 	}
 
-	err = d.dirnode.AddNodeLinkClean(name, cnode)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return d.dirnode.AddNodeLinkClean(name, cnode)
 }
 
 // GetNode returns the root of this directoryBuilder
