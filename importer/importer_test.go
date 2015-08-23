@@ -45,7 +45,7 @@ func TestBalancedDag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dr, err := uio.NewDagReader(context.TODO(), nd, ds)
+	dr, err := uio.NewDagReader(context.Background(), nd, ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func BenchmarkTrickleReadFull(b *testing.B) {
 
 func runReadBench(b *testing.B, nd *dag.Node, ds dag.DAGService) {
 	for i := 0; i < b.N; i++ {
-		ctx, cancel := context.WithCancel(context.TODO())
+		ctx, cancel := context.WithCancel(context.Background())
 		read, err := uio.NewDagReader(ctx, nd, ds)
 		if err != nil {
 			b.Fatal(err)

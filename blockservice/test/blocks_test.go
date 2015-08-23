@@ -42,7 +42,7 @@ func TestBlocks(t *testing.T) {
 		t.Error("returned key is not equal to block key", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	b2, err := bs.GetBlock(ctx, b.Key())
 	if err != nil {
@@ -76,7 +76,7 @@ func TestGetBlocksSequential(t *testing.T) {
 	t.Log("one instance at a time, get blocks concurrently")
 
 	for i := 1; i < len(servs); i++ {
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*50)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
 		defer cancel()
 		out := servs[i].GetBlocks(ctx, keys)
 		gotten := make(map[key.Key]*blocks.Block)

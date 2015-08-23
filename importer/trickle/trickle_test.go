@@ -443,7 +443,7 @@ func TestAppend(t *testing.T) {
 	r := bytes.NewReader(should[nbytes/2:])
 	blks, errs := chunk.Chan(chunk.NewSizeSplitter(r, 500))
 
-	ctx := context.TODO()
+	ctx := context.Background()
 	nnode, err := TrickleAppend(ctx, nd, dbp.New(blks, errs))
 	if err != nil {
 		t.Fatal(err)
@@ -492,7 +492,7 @@ func TestMultipleAppends(t *testing.T) {
 
 	spl := chunk.SizeSplitterGen(500)
 
-	ctx := context.TODO()
+	ctx := context.Background()
 	for i := 0; i < len(should); i++ {
 		blks, errs := chunk.Chan(spl(bytes.NewReader(should[i : i+1])))
 
@@ -540,7 +540,7 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 
 	blks, errs := chunk.Chan(spl(bytes.NewReader(data[:1])))
 
-	ctx := context.TODO()
+	ctx := context.Background()
 	nnode, err := TrickleAppend(ctx, nd, dbp.New(blks, errs))
 	if err != nil {
 		t.Fatal(err)

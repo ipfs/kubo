@@ -103,7 +103,7 @@ func TestDuplicateSubscribe(t *testing.T) {
 func TestSubscribeIsANoopWhenCalledWithNoKeys(t *testing.T) {
 	n := New()
 	defer n.Shutdown()
-	ch := n.Subscribe(context.TODO()) // no keys provided
+	ch := n.Subscribe(context.Background()) // no keys provided
 	if _, ok := <-ch; ok {
 		t.Fatal("should be closed if no keys provided")
 	}
