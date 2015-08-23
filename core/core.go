@@ -39,8 +39,8 @@ import (
 	routing "github.com/ipfs/go-ipfs/routing"
 	dht "github.com/ipfs/go-ipfs/routing/dht"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
-	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	nilrouting "github.com/ipfs/go-ipfs/routing/none"
+	offroute "github.com/ipfs/go-ipfs/routing/offline"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -63,6 +63,7 @@ import (
 const IpnsValidatorTag = "ipns"
 const kSizeBlockstoreWriteCache = 100
 const kReprovideFrequency = time.Hour * 12
+const discoveryConnTimeout = time.Second * 30
 
 var log = eventlog.Logger("core")
 
@@ -320,7 +321,7 @@ func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
 
 func (n *IpfsNode) HandlePeerFound(p peer.PeerInfo) {
 	log.Warning("trying peer info: ", p)
-	ctx, cancel := context.WithTimeout(n.Context(), time.Second*10)
+	ctx, cancel := context.WithTimeout(n.Context(), discoveryConnTimeout)
 	defer cancel()
 	if err := n.PeerHost.Connect(ctx, p); err != nil {
 		log.Warning("Failed to connect to peer found by discovery: ", err)
