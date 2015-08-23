@@ -298,7 +298,8 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, s inet.Stream) error {
 	if timeout < HopTimeoutDecrement {
 		return fmt.Errorf("timeout too short: %s", timeout)
 	}
-	ctx, _ = context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 	pmes.SetTimeoutDuration(timeout - HopTimeoutDecrement)
 
 	dpeers, err := d.getDiagnosticFromPeers(ctx, d.getPeers(), pmes)
