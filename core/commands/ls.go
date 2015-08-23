@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"io"
 	"text/tabwriter"
-	"time"
-
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
@@ -81,9 +78,7 @@ it contains, with the following format:
 				Links: make([]LsLink, len(dagnode.Links)),
 			}
 			for j, link := range dagnode.Links {
-				ctx, cancel := context.WithTimeout(req.Context(), time.Minute)
-				defer cancel()
-				link.Node, err = link.GetNode(ctx, node.DAG)
+				link.Node, err = link.GetNode(req.Context(), node.DAG)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return

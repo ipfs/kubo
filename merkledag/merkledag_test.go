@@ -155,6 +155,7 @@ func TestBatchFetchDupBlock(t *testing.T) {
 }
 
 func runBatchFetchTest(t *testing.T, read io.Reader) {
+	ctx := context.Background()
 	var dagservs []DAGService
 	for _, bsi := range bstest.Mocks(5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
@@ -169,7 +170,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 
 	t.Log("finished setup.")
 
-	dagr, err := uio.NewDagReader(context.TODO(), root, dagservs[0])
+	dagr, err := uio.NewDagReader(ctx, root, dagservs[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,13 +197,13 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			first, err := dagservs[i].Get(context.Background(), k)
+			first, err := dagservs[i].Get(ctx, k)
 			if err != nil {
 				t.Fatal(err)
 			}
 			fmt.Println("Got first node back.")
 
-			read, err := uio.NewDagReader(context.TODO(), first, dagservs[i])
+			read, err := uio.NewDagReader(ctx, first, dagservs[i])
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -266,8 +267,7 @@ func assertCanGet(t *testing.T, ds DAGService, n *Node) {
 		t.Fatal(err)
 	}
 
-	_, err = ds.Get(context.TODO(), k)
-	if err != nil {
+	if _, err := ds.Get(context.Background(), k); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -281,7 +281,7 @@ func TestCantGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = dsp.ds.Get(context.TODO(), k)
+	_, err = dsp.ds.Get(context.Background(), k)
 	if !strings.Contains(err.Error(), "not found") {
 		t.Fatal("expected err not found, got: ", err)
 	}

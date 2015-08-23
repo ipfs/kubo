@@ -15,7 +15,6 @@ import (
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	mafilter "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 type stringList struct {
@@ -211,7 +210,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 		cmds.StringArg("address", true, true, "address of peer to connect to").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := context.TODO()
+		ctx := req.Context()
 
 		n, err := req.InvocContext().GetNode()
 		if err != nil {

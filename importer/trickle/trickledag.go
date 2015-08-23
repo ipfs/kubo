@@ -2,7 +2,6 @@ package trickle
 
 import (
 	"errors"
-	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -18,19 +17,16 @@ const layerRepeat = 4
 
 func TrickleLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
 	root := h.NewUnixfsNode()
-	err := db.FillNodeLayer(root)
-	if err != nil {
+	if err := db.FillNodeLayer(root); err != nil {
 		return nil, err
 	}
 	for level := 1; !db.Done(); level++ {
 		for i := 0; i < layerRepeat && !db.Done(); i++ {
 			next := h.NewUnixfsNode()
-			err := fillTrickleRec(db, next, level)
-			if err != nil {
+			if err := fillTrickleRec(db, next, level); err != nil {
 				return nil, err
 			}
-			err = root.AddChild(next, db)
-			if err != nil {
+			if err := root.AddChild(next, db); err != nil {
 				return nil, err
 			}
 		}
@@ -41,8 +37,7 @@ func TrickleLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
 		return nil, err
 	}
 
-	err = db.Close()
-	if err != nil {
+	if err := db.Close(); err != nil {
 		return nil, err
 	}
 
@@ -51,21 +46,18 @@ func TrickleLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
 
 func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error {
 	// Always do this, even in the base case
-	err := db.FillNodeLayer(node)
-	if err != nil {
+	if err := db.FillNodeLayer(node); err != nil {
 		return err
 	}
 
 	for i := 1; i < depth && !db.Done(); i++ {
 		for j := 0; j < layerRepeat && !db.Done(); j++ {
 			next := h.NewUnixfsNode()
-			err := fillTrickleRec(db, next, i)
-			if err != nil {
+			if err := fillTrickleRec(db, next, i); err != nil {
 				return err
 			}
 
-			err = node.AddChild(next, db)
-			if err != nil {
+			if err := node.AddChild(next, db); err != nil {
 				return err
 			}
 		}
@@ -74,11 +66,10 @@ func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error
 }
 
 // TrickleAppend appends the data in `db` to the dag, using the Trickledag format
-func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (out *dag.Node, err_out error) {
+func TrickleAppend(ctx context.Context, base *dag.Node, db *h.DagBuilderHelper) (out *dag.Node, err_out error) {
 	defer func() {
 		if err_out == nil {
-			err := db.Close()
-			if err != nil {
+			if err := db.Close(); err != nil {
 				err_out = err
 			}
 		}
@@ -94,8 +85,7 @@ func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (out *dag.Node, err_o
 	n, layerProgress := trickleDepthInfo(ufsn, db.Maxlinks())
 	if n == 0 {
 		// If direct blocks not filled...
-		err := db.FillNodeLayer(ufsn)
-		if err != nil {
+		if err := db.FillNodeLayer(ufsn); err != nil {
 			return nil, err
 		}
 
@@ -108,8 +98,7 @@ func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (out *dag.Node, err_o
 	}
 
 	// Last child in this node may not be a full tree, lets file it up
-	err = appendFillLastChild(ufsn, n-1, layerProgress, db)
-	if err != nil {
+	if err := appendFillLastChild(ctx, ufsn, n-1, layerProgress, db); err != nil {
 		return nil, err
 	}
 
@@ -139,19 +128,19 @@ func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (out *dag.Node, err_o
 
 // appendFillLastChild will take in an incomplete trickledag node (uncomplete meaning, not full) and
 // fill it out to the specified depth with blocks from the given DagBuilderHelper
-func appendFillLastChild(ufsn *h.UnixfsNode, depth int, layerFill int, db *h.DagBuilderHelper) error {
+func appendFillLastChild(ctx context.Context, ufsn *h.UnixfsNode, depth int, layerFill int, db *h.DagBuilderHelper) error {
 	if ufsn.NumChildren() <= db.Maxlinks() {
 		return nil
 	}
 	// Recursive step, grab last child
 	last := ufsn.NumChildren() - 1
-	lastChild, err := ufsn.GetChild(last, db.GetDagServ())
+	lastChild, err := ufsn.GetChild(ctx, last, db.GetDagServ())
 	if err != nil {
 		return err
 	}
 
 	// Fill out last child (may not be full tree)
-	nchild, err := trickleAppendRec(lastChild, db, depth-1)
+	nchild, err := trickleAppendRec(ctx, lastChild, db, depth-1)
 	if err != nil {
 		return err
 	}
@@ -183,7 +172,7 @@ func appendFillLastChild(ufsn *h.UnixfsNode, depth int, layerFill int, db *h.Dag
 }
 
 // recursive call for TrickleAppend
-func trickleAppendRec(ufsn *h.UnixfsNode, db *h.DagBuilderHelper, depth int) (*h.UnixfsNode, error) {
+func trickleAppendRec(ctx context.Context, ufsn *h.UnixfsNode, db *h.DagBuilderHelper, depth int) (*h.UnixfsNode, error) {
 	if depth == 0 || db.Done() {
 		return ufsn, nil
 	}
@@ -192,8 +181,7 @@ func trickleAppendRec(ufsn *h.UnixfsNode, db *h.DagBuilderHelper, depth int) (*h
 	n, layerProgress := trickleDepthInfo(ufsn, db.Maxlinks())
 	if n == 0 {
 		// If direct blocks not filled...
-		err := db.FillNodeLayer(ufsn)
-		if err != nil {
+		if err := db.FillNodeLayer(ufsn); err != nil {
 			return nil, err
 		}
 		n++
@@ -204,8 +192,7 @@ func trickleAppendRec(ufsn *h.UnixfsNode, db *h.DagBuilderHelper, depth int) (*h
 		return ufsn, nil
 	}
 
-	err := appendFillLastChild(ufsn, n, layerProgress, db)
-	if err != nil {
+	if err := appendFillLastChild(ctx, ufsn, n, layerProgress, db); err != nil {
 		return nil, err
 	}
 
@@ -218,13 +205,11 @@ func trickleAppendRec(ufsn *h.UnixfsNode, db *h.DagBuilderHelper, depth int) (*h
 	for i := n; i < depth && !db.Done(); i++ {
 		for j := 0; j < layerRepeat && !db.Done(); j++ {
 			next := h.NewUnixfsNode()
-			err := fillTrickleRec(db, next, i)
-			if err != nil {
+			if err := fillTrickleRec(db, next, i); err != nil {
 				return nil, err
 			}
 
-			err = ufsn.AddChild(next, db)
-			if err != nil {
+			if err := ufsn.AddChild(next, db); err != nil {
 				return nil, err
 			}
 		}
@@ -282,9 +267,7 @@ func verifyTDagRec(nd *dag.Node, depth, direct, layerRepeat int, ds dag.DAGServi
 	}
 
 	for i := 0; i < len(nd.Links); i++ {
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
-		defer cancel()
-		child, err := nd.Links[i].GetNode(ctx, ds)
+		child, err := nd.Links[i].GetNode(context.TODO(), ds)
 		if err != nil {
 			return err
 		}

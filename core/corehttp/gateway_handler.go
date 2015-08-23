@@ -367,8 +367,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = i.node.DAG.AddRecursive(newnode)
-	if err != nil {
+	if err := i.node.DAG.AddRecursive(newnode); err != nil {
 		webError(w, "Could not add recursively new node", err, http.StatusInternalServerError)
 		return
 	}
@@ -439,8 +438,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = i.node.DAG.AddRecursive(newnode)
-	if err != nil {
+	if err := i.node.DAG.AddRecursive(newnode); err != nil {
 		webError(w, "Could not add recursively new node", err, http.StatusInternalServerError)
 		return
 	}

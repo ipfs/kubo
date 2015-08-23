@@ -1,8 +1,6 @@
 package ipns
 
 import (
-	"time"
-
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -22,7 +20,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	ctx, cancel := context.WithCancel(n.Context())
 	defer cancel()
 
 	err = n.Pinning.Pin(ctx, emptyDir, false)
@@ -36,8 +34,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 	}
 
 	pub := nsys.NewRoutingPublisher(n.Routing)
-	err = pub.Publish(n.Context(), key, path.FromKey(nodek))
-	if err != nil {
+	if err := pub.Publish(ctx, key, path.FromKey(nodek)); err != nil {
 		return err
 	}
 
