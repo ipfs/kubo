@@ -77,8 +77,8 @@ func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
 
-func (n *UnixfsNode) GetChild(i int, ds dag.DAGService) (*UnixfsNode, error) {
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*UnixfsNode, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
 	nd, err := n.node.Links[i].GetNode(ctx, ds)

@@ -320,9 +320,9 @@ func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
 
 func (n *IpfsNode) HandlePeerFound(p peer.PeerInfo) {
 	log.Warning("trying peer info: ", p)
-	ctx, _ := context.WithTimeout(context.TODO(), time.Second*10)
-	err := n.PeerHost.Connect(ctx, p)
-	if err != nil {
+	ctx, cancel := context.WithTimeout(n.Context(), time.Second*10)
+	defer cancel()
+	if err := n.PeerHost.Connect(ctx, p); err != nil {
 		log.Warning("Failed to connect to peer found by discovery: ", err)
 	}
 }
@@ -367,6 +367,9 @@ func (n *IpfsNode) Close() error {
 
 // Context returns the IpfsNode context
 func (n *IpfsNode) Context() context.Context {
+	if n.ctx == nil {
+		n.ctx = context.TODO()
+	}
 	return n.ctx
 }
 
