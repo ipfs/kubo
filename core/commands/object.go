@@ -9,10 +9,8 @@ import (
 	"io/ioutil"
 	"strings"
 	"text/tabwriter"
-	"time"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -480,14 +478,11 @@ resulting object hash.
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(req.Context(), time.Second*30)
-		rnode, err := nd.DAG.Get(ctx, rhash)
+		rnode, err := nd.DAG.Get(req.Context(), rhash)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			cancel()
 			return
 		}
-		cancel()
 
 		action := req.Arguments()[1]
 

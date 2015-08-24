@@ -30,6 +30,7 @@ func getDagserv(t *testing.T) merkledag.DAGService {
 }
 
 func TestMetadata(t *testing.T) {
+	ctx := context.Background()
 	// Make some random node
 	ds := getDagserv(t)
 	data := make([]byte, 1000)
@@ -64,12 +65,12 @@ func TestMetadata(t *testing.T) {
 		t.Fatalf("something went wrong in conversion: '%s' != '%s'", rec.MimeType, m.MimeType)
 	}
 
-	retnode, err := ds.Get(context.Background(), key.B58KeyDecode(mdk))
+	retnode, err := ds.Get(ctx, key.B58KeyDecode(mdk))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ndr, err := uio.NewDagReader(context.TODO(), retnode, ds)
+	ndr, err := uio.NewDagReader(ctx, retnode, ds)
 	if err != nil {
 		t.Fatal(err)
 	}

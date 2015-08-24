@@ -106,8 +106,7 @@ func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
 
 		p.recursePin.AddBlock(k)
 	} else {
-		_, err := p.dserv.Get(ctx, k)
-		if err != nil {
+		if _, err := p.dserv.Get(ctx, k); err != nil {
 			return err
 		}
 

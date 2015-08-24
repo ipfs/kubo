@@ -48,13 +48,11 @@ func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname s
 	// ensure no link with that name already exists
 	_ = root.RemoveNodeLink(childname) // ignore error, only option is ErrNotFound
 
-	err = root.AddNodeLinkClean(childname, childnd)
-	if err != nil {
+	if err := root.AddNodeLinkClean(childname, childnd); err != nil {
 		return nil, err
 	}
 
-	_, err = ds.Add(root)
-	if err != nil {
+	if _, err := ds.Add(root); err != nil {
 		return nil, err
 	}
 	return root, nil
