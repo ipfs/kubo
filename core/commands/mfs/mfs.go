@@ -40,7 +40,8 @@ the output of the base mfs command.
 NOTICE:
 This API is currently experimental, likely to change, and may potentially be
 unstable. This notice will be removed when that is no longer the case. Feedback
-on how this API could be improved is very welcome.
+on how this API could be improved is very welcome on the following issue:
+https://github.com/ipfs/go-ipfs/issues/1607
 		`,
 	},
 	Options: []cmds.Option{
@@ -129,9 +130,7 @@ Creates a new mutable filesystem based on an optional root hash.
 
 Currently, it creates a filesystem with no special publish actions,
 all changes are merely propagated to the root, and are reflected in the hash
-displayed by 'ipfs mfs'. In the future, this command will allow you to specify
-publish actions and close actions for a given filesystem
-		`,
+displayed by 'ipfs mfs'.`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -460,6 +459,7 @@ exist. Nonexistant intermediate directories will not be created.
 Example:
 
 	echo "hello world" | ipfs mfs -s myfs --create /a/b/file
+	echo "hello world" | ipfs mfs -s myfs --truncate /a/b/file
 		`,
 	},
 	Arguments: []cmds.Argument{
@@ -469,6 +469,7 @@ Example:
 	Options: []cmds.Option{
 		cmds.IntOption("o", "offset", "offset to write to"),
 		cmds.BoolOption("c", "create", "create the file if it does not exist"),
+		cmds.BoolOption("t", "truncate", "truncate the file before writing"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		root, err := getRootDir(req)
@@ -479,11 +480,19 @@ Example:
 
 		path := req.Arguments()[0]
 		create, _, _ := req.Option("create").Bool()
+		trunc, _, _ := req.Option("truncate").Bool()
 
 		fi, err := getFileHandle(root, path, create)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+
+		if trunc {
+			if err := fi.Truncate(0); err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 
 		offset, _, _ := req.Option("offset").Int()
