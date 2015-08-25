@@ -59,7 +59,7 @@ test_object_cmd() {
 		echo "CumulativeSize: 18" >> expected_stat &&
 		test_cmp expected_stat actual_stat
 	'
-	
+
 	test_expect_success "'ipfs object put file.json' succeeds" '
 		ipfs object put  ../t0051-object-data/testPut.json > actual_putOut
 	'
@@ -109,6 +109,26 @@ test_object_cmd() {
 		printf "Error: no data or links in this node\n" > expected_putBrokenErr &&
 		test_cmp expected_putBroken actual_putBroken &&
 		test_cmp expected_putBrokenErr actual_putBrokenErr
+	'
+
+	test_expect_success "setup: add UTF-8 test file" '
+		HASH="QmNY5sQeH9ttVCg24sizH71dNbcZTpGd7Yb3YwsKZ4jiFP" &&
+		ipfs add ../t0051-object-data/UTF-8-test.txt >actual &&
+		echo "added $HASH UTF-8-test.txt" >expected &&
+		test_cmp expected actual
+	'
+
+	test_expect_success "'ipfs object get --enc=json' succeeds" '
+		ipfs object get --enc=json $HASH >utf8_json
+	'
+
+	test_expect_success "'ipfs object put --inputenc=json' succeeds" '
+		ipfs object put --inputenc=json <utf8_json >actual
+	'
+
+	test_expect_failure "'ipfs object put --inputenc=json' output looks good" '
+		echo "added $HASH" >expected &&
+		test_cmp expected actual
 	'
 
 	test_expect_success "'ipfs object patch' should work" '
