@@ -1,6 +1,7 @@
 package mfs
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	gopath "path"
@@ -10,10 +11,10 @@ import (
 )
 
 // Mv moves the file or directory at 'src' to 'dst'
-func Mv(rootd *Directory, src, dst string) error {
+func Mv(mfs *Filesystem, src, dst string) error {
 	srcDir, srcFname := gopath.Split(src)
 
-	srcObj, err := DirLookup(rootd, src)
+	srcObj, err := Lookup(mfs, src)
 	if err != nil {
 		return err
 	}
@@ -27,7 +28,7 @@ func Mv(rootd *Directory, src, dst string) error {
 		dstDirStr, filename = gopath.Split(dst)
 	}
 
-	dstDiri, err := DirLookup(rootd, dstDirStr)
+	dstDiri, err := Lookup(mfs, dstDirStr)
 	if err != nil {
 		return err
 	}
@@ -43,7 +44,7 @@ func Mv(rootd *Directory, src, dst string) error {
 		return err
 	}
 
-	srcDirObji, err := DirLookup(rootd, srcDir)
+	srcDirObji, err := Lookup(mfs, srcDir)
 	if err != nil {
 		return err
 	}
@@ -57,11 +58,11 @@ func Mv(rootd *Directory, src, dst string) error {
 	return nil
 }
 
-// PutNodeUnderRoot inserts 'nd' at 'ipath' under the given directory dir
-func PutNodeUnderDir(dir *Directory, ipath string, nd *dag.Node) error {
-	dirp, filename := gopath.Split(ipath)
+// PutNode inserts 'nd' at 'path' in the given mfs
+func PutNode(mfs *Filesystem, path string, nd *dag.Node) error {
+	dirp, filename := gopath.Split(path)
 
-	parent, err := DirLookup(dir, dirp)
+	parent, err := Lookup(mfs, dirp)
 	if err != nil {
 		return fmt.Errorf("lookup '%s' failed: %s", dirp, err)
 	}
@@ -76,13 +77,19 @@ func PutNodeUnderDir(dir *Directory, ipath string, nd *dag.Node) error {
 
 // Mkdir creates a directory at 'path' under the directory 'd', creating
 // intermediary directories as needed if 'parents' is set to true
-func Mkdir(rootd *Directory, path string, parents bool) error {
+func Mkdir(mfs *Filesystem, path string, parents bool) error {
 	parts := strings.Split(path, "/")
 	if parts[0] == "" {
 		parts = parts[1:]
 	}
 
-	cur := rootd
+	rootdi, err := mfs.GetRoot(parts[0])
+	if err != nil {
+		return err
+	}
+	parts = parts[1:]
+
+	cur := rootdi.GetValue().(*Directory)
 	for i, d := range parts[:len(parts)-1] {
 		fsn, err := cur.Child(d)
 		if err != nil {
@@ -102,7 +109,7 @@ func Mkdir(rootd *Directory, path string, parents bool) error {
 		cur = next
 	}
 
-	_, err := cur.Mkdir(parts[len(parts)-1])
+	_, err = cur.Mkdir(parts[len(parts)-1])
 	if err != nil {
 		if !parents || err != os.ErrExist {
 			return err
@@ -110,6 +117,25 @@ func Mkdir(rootd *Directory, path string, parents bool) error {
 	}
 
 	return nil
+}
+
+func Lookup(mfs *Filesystem, path string) (FSNode, error) {
+	if !strings.HasPrefix(path, "/") {
+		return nil, errors.New("Lookup requires rooted path")
+	}
+
+	parts := strings.Split(path, "/")
+	r, err := mfs.GetRoot(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	dir, ok := r.GetValue().(*Directory)
+	if !ok {
+		return nil, errors.New("root was not a directory")
+	}
+
+	return DirLookup(dir, strings.Join(parts[2:], "/"))
 }
 
 // DirLookup will look up a file or directory at the given path
