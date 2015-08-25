@@ -84,6 +84,36 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Error(errmsg) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
 }
 
+func (i *gatewayHandler) allowListBlocks(path string) bool {
+	if i.config.AllowList == nil {
+		return false
+	}
+
+	parts := strings.Split(path, "/")
+	if len(parts) < 3 {
+		return true
+	}
+
+	k := key.B58KeyDecode(parts[2])
+	if i.config.AllowList.Has(k) {
+		return false
+	}
+
+	return true
+}
+
+func (i *gatewayHandler) denyListBlocks(k key.Key) bool {
+	if i.config.DenyList == nil {
+		return false
+	}
+
+	if i.config.DenyList.Has(k) {
+		return true
+	}
+
+	return false
+}
+
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
@@ -116,15 +146,15 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if i.config.DenyList != nil && i.config.DenyList.Has(k) {
-		w.WriteHeader(451)
-		w.Write([]byte("451 - Unavailable For Legal Reasons"))
+	if i.denyListBlocks(k) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden (content on denylist)"))
 		return
 	}
 
-	if i.config.AllowList != nil && !i.config.AllowList.Has(k) {
+	if i.allowListBlocks(urlPath) {
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - Forbidden (content not on whitelist)"))
+		w.Write([]byte("403 - Forbidden (content not on allowlist)"))
 		return
 	}
 
