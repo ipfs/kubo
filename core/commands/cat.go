@@ -6,8 +6,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	path "github.com/ipfs/go-ipfs/path"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -68,12 +67,7 @@ func cat(ctx context.Context, node *core.IpfsNode, paths []string) ([]io.Reader,
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
 	for _, fpath := range paths {
-		dagnode, err := core.Resolve(ctx, node, path.Path(fpath))
-		if err != nil {
-			return nil, 0, err
-		}
-
-		read, err := uio.NewDagReader(ctx, dagnode, node.DAG)
+		read, err := coreunix.Cat(node, fpath)
 		if err != nil {
 			return nil, 0, err
 		}
