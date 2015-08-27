@@ -292,9 +292,16 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		return fmt.Errorf("serveHTTPApi: GetConfig() failed: %s", err), nil
 	}
 
-	apiMaddr, err := ma.NewMultiaddr(cfg.Addresses.API)
+	apiAddr, _, err := req.Option(commands.ApiOption).String()
 	if err != nil {
-		return fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", cfg.Addresses.API, err), nil
+		return fmt.Errorf("serveHTTPApi: %s", err), nil
+	}
+	if apiAddr == "" {
+		apiAddr = cfg.Addresses.API
+	}
+	apiMaddr, err := ma.NewMultiaddr(apiAddr)
+	if err != nil {
+		return fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", apiAddr, err), nil
 	}
 
 	apiLis, err := manet.Listen(apiMaddr)
@@ -344,7 +351,11 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 
 	node, err := req.InvocContext().ConstructNode()
 	if err != nil {
-		return fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err), nil
+		return fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err), nil
+	}
+
+	if err := node.Repo.SetAPIAddr(apiAddr); err != nil {
+		return fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %s", err), nil
 	}
 
 	errc := make(chan error)

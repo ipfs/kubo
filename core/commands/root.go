@@ -16,6 +16,10 @@ type TestOutput struct {
 	Bar int
 }
 
+const (
+	ApiOption = "api"
+)
+
 var Root = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "global p2p merkle-dag filesystem",
@@ -73,6 +77,7 @@ Use 'ipfs <command> --help' to learn more about each command.
 		cmds.BoolOption("help", "Show the full command help text"),
 		cmds.BoolOption("h", "Show a short version of the command help text"),
 		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon"),
+		cmds.StringOption(ApiOption, "Overrides the routing option (dht, supernode)"),
 	},
 }
 
