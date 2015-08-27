@@ -75,8 +75,9 @@ test_expect_success "ipfs daemon output looks good" '
 test_expect_success ".ipfs/ has been created" '
   test -d ".ipfs" &&
   test -f ".ipfs/config" &&
-  test -d ".ipfs/datastore" ||
-  test_fsh ls .ipfs
+  test -d ".ipfs/datastore" &&
+  test -d ".ipfs/blocks" ||
+  test_fsh ls -al .ipfs
 '
 
 # begin same as in t0010
@@ -102,7 +103,7 @@ test_expect_success "ipfs help output looks good" '
 
 # check transport is encrypted
 
-test_expect_success 'transport should be encrypted' '
+test_expect_success "transport should be encrypted" '
   nc -w 5 localhost 4001 >swarmnc &&
   grep -q "AES-256,AES-128" swarmnc &&
   test_must_fail grep -q "/ipfs/identify" swarmnc ||
