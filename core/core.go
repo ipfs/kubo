@@ -38,7 +38,6 @@ import (
 
 	routing "github.com/ipfs/go-ipfs/routing"
 	dht "github.com/ipfs/go-ipfs/routing/dht"
-	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	nilrouting "github.com/ipfs/go-ipfs/routing/none"
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 
@@ -161,15 +160,6 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 		node.Pinning = pin.NewPinner(node.Repo.Datastore(), node.DAG)
 	}
 	node.Resolver = &path.Resolver{DAG: node.DAG}
-
-	// Setup the mutable ipns filesystem structure
-	if node.OnlineMode() {
-		fs, err := ipnsfs.NewFilesystem(ctx, node.DAG, node.Namesys, node.Pinning, node.PrivateKey)
-		if err != nil && err != kb.ErrLookupFailure {
-			return nil, err
-		}
-		node.IpnsFs = fs
-	}
 
 	success = true
 	return node, nil
