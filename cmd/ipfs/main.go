@@ -204,7 +204,10 @@ func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.Ipf
 
 		// ok everything is good. set it on the invocation (for ownership)
 		// and return it.
-		n, err := core.NewIPFSNode(ctx, core.Standard(r, cmdctx.Online))
+		n, err := core.NewNode(ctx, &core.BuildCfg{
+			Online: cmdctx.Online,
+			Repo:   r,
+		})
 		if err != nil {
 			return nil, err
 		}

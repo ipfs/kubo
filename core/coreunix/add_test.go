@@ -25,7 +25,7 @@ func TestAddRecursive(t *testing.T) {
 		},
 		D: testutil.ThreadSafeCloserMapDatastore(),
 	}
-	node, err := core.NewIPFSNode(context.Background(), core.Offline(r))
+	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 	if err != nil {
 		t.Fatal(err)
 	}

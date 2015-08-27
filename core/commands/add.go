@@ -104,7 +104,11 @@ remains to be implemented.
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 
 		if hash {
-			nilnode, err := core.NewNodeBuilder().Build(n.Context())
+			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
+				//TODO: need this to be true or all files
+				// hashed will be stored in memory!
+				NilRepo: false,
+			})
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return

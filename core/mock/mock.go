@@ -1,86 +1,39 @@
 package coremock
 
 import (
+	"net"
+
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	"github.com/ipfs/go-ipfs/blocks/blockstore"
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	commands "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/exchange/offline"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
-	nsys "github.com/ipfs/go-ipfs/namesys"
+	metrics "github.com/ipfs/go-ipfs/metrics"
+	host "github.com/ipfs/go-ipfs/p2p/host"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	path "github.com/ipfs/go-ipfs/path"
-	pin "github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	offrt "github.com/ipfs/go-ipfs/routing/offline"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
-
-// TODO this is super sketch. Deprecate and initialize one that shares code
-// with the actual core constructor. Lots of fields aren't initialized.
-// "This is as good as broken." --- is it?
 
 // NewMockNode constructs an IpfsNode for use in tests.
 func NewMockNode() (*core.IpfsNode, error) {
 	ctx := context.Background()
 
-	// Generate Identity
-	ident, err := testutil.RandIdentity()
-	if err != nil {
-		return nil, err
+	// effectively offline, only peer in its network
+	return core.NewNode(ctx, &core.BuildCfg{
+		Online: true,
+		Host:   MockHostOption(mocknet.New(ctx)),
+	})
+}
+
+func MockHostOption(mn mocknet.Mocknet) core.HostOption {
+	return func(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (host.Host, error) {
+		return mn.AddPeerWithPeerstore(id, ps)
 	}
-	p := ident.ID()
-
-	c := config.Config{
-		Identity: config.Identity{
-			PeerID: p.String(),
-		},
-	}
-
-	nd, err := core.Offline(&repo.Mock{
-		C: c,
-		D: ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore())),
-	})(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	nd.PrivateKey = ident.PrivateKey()
-	nd.Peerstore = peer.NewPeerstore()
-	nd.Peerstore.AddPrivKey(p, ident.PrivateKey())
-	nd.Peerstore.AddPubKey(p, ident.PublicKey())
-	nd.Identity = p
-
-	nd.PeerHost, err = mocknet.New(nd.Context()).AddPeer(ident.PrivateKey(), ident.Address()) // effectively offline
-	if err != nil {
-		return nil, err
-	}
-
-	// Routing
-	nd.Routing = offrt.NewOfflineRouter(nd.Repo.Datastore(), nd.PrivateKey)
-
-	// Bitswap
-	bstore := blockstore.NewBlockstore(nd.Repo.Datastore())
-	bserv := blockservice.New(bstore, offline.Exchange(bstore))
-
-	nd.DAG = mdag.NewDAGService(bserv)
-
-	nd.Pinning = pin.NewPinner(nd.Repo.Datastore(), nd.DAG)
-
-	// Namespace resolver
-	nd.Namesys = nsys.NewNameSystem(nd.Routing)
-
-	// Path resolver
-	nd.Resolver = &path.Resolver{DAG: nd.DAG}
-
-	return nd, nil
 }
 
 func MockCmdsCtx() (commands.Context, error) {
@@ -97,10 +50,14 @@ func MockCmdsCtx() (commands.Context, error) {
 		},
 	}
 
-	node, err := core.NewIPFSNode(context.Background(), core.Offline(&repo.Mock{
+	r := &repo.Mock{
 		D: ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore())),
 		C: conf,
-	}))
+	}
+
+	node, err := core.NewNode(context.Background(), &core.BuildCfg{
+		Repo: r,
+	})
 
 	return commands.Context{
 		Online:     true,

@@ -10,6 +10,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	mock "github.com/ipfs/go-ipfs/core/mock"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
 	"github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
@@ -35,34 +36,37 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 	b.StopTimer()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	const numPeers = 2
 
 	// create network
-	mn, err := mocknet.FullMeshLinked(ctx, numPeers)
-	if err != nil {
-		return err
-	}
+	mn := mocknet.New(ctx)
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency: conf.NetworkLatency,
 		// TODO add to conf. This is tricky because we want 0 values to be functional.
 		Bandwidth: math.MaxInt32,
 	})
 
-	peers := mn.Peers()
-	if len(peers) < numPeers {
-		return errors.New("test initialization error")
-	}
-
-	adder, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[0], mn.Host(peers[0]), conf, core.DHTOption)))
+	adder, err := core.NewNode(ctx, &core.BuildCfg{
+		Online: true,
+		Host:   mock.MockHostOption(mn),
+	})
 	if err != nil {
 		return err
 	}
 	defer adder.Close()
-	catter, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[1], mn.Host(peers[1]), conf, core.DHTOption)))
+
+	catter, err := core.NewNode(ctx, &core.BuildCfg{
+		Online: true,
+		Host:   mock.MockHostOption(mn),
+	})
 	if err != nil {
 		return err
 	}
 	defer catter.Close()
+
+	err = mn.LinkAll()
+	if err != nil {
+		return err
+	}
 
 	bs1 := []peer.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)}
 	bs2 := []peer.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)}

@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"sync"
 
-	ic "github.com/ipfs/go-ipfs/p2p/crypto"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
@@ -40,19 +39,7 @@ type peernet struct {
 }
 
 // newPeernet constructs a new peernet
-func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
-	a ma.Multiaddr) (*peernet, error) {
-
-	p, err := peer.IDFromPublicKey(k.GetPublic())
-	if err != nil {
-		return nil, err
-	}
-
-	// create our own entirely, so that peers knowledge doesn't get shared
-	ps := peer.NewPeerstore()
-	ps.AddAddr(p, a, peer.PermanentAddrTTL)
-	ps.AddPrivKey(p, k)
-	ps.AddPubKey(p, k.GetPublic())
+func newPeernet(ctx context.Context, m *mocknet, p peer.ID, ps peer.Peerstore) (*peernet, error) {
 
 	n := &peernet{
 		mocknet: m,

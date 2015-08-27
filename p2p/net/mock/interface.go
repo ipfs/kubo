@@ -25,6 +25,7 @@ type Mocknet interface {
 	// AddPeer adds an existing peer. we need both a privkey and addr.
 	// ID is derived from PrivKey
 	AddPeer(ic.PrivKey, ma.Multiaddr) (host.Host, error)
+	AddPeerWithPeerstore(peer.ID, peer.Peerstore) (host.Host, error)
 
 	// retrieve things (with randomized iteration order)
 	Peers() []peer.ID
