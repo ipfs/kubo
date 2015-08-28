@@ -10,29 +10,12 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	worker "github.com/ipfs/go-ipfs/blockservice/worker"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var wc = worker.Config{
-	// When running on a single core, NumWorkers has a harsh negative effect on
-	// throughput. (-80% when < 25)
-	// Running a lot more workers appears to have very little effect on both
-	// single and multicore configurations.
-	NumWorkers: 25,
-
-	// These have no effect on when running on multiple cores, but harsh
-	// negative effect on throughput when running on a single core
-	// On multicore configurations these buffers have little effect on
-	// throughput.
-	// On single core configurations, larger buffers have severe adverse
-	// effects on throughput.
-	ClientBufferSize: 0,
-	WorkerBufferSize: 0,
-}
-
 var log = logging.Logger("blockservice")
+
 var ErrNotFound = errors.New("blockservice: key not found")
 
 // BlockService is a hybrid block datastore. It stores data in a local
@@ -42,8 +25,6 @@ type BlockService struct {
 	// TODO don't expose underlying impl details
 	Blockstore blockstore.Blockstore
 	Exchange   exchange.Interface
-
-	worker *worker.Worker
 }
 
 // NewBlockService creates a BlockService with given datastore instance.
@@ -55,7 +36,6 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 	return &BlockService{
 		Blockstore: bs,
 		Exchange:   rem,
-		worker:     worker.NewWorker(rem, wc),
 	}
 }
 
@@ -67,7 +47,7 @@ func (s *BlockService) AddBlock(b *blocks.Block) (key.Key, error) {
 	if err != nil {
 		return k, err
 	}
-	if err := s.worker.HasBlock(b); err != nil {
+	if err := s.Exchange.HasBlock(context.TODO(), b); err != nil {
 		return "", errors.New("blockservice is closed")
 	}
 	return k, nil
@@ -81,7 +61,7 @@ func (s *BlockService) AddBlocks(bs []*blocks.Block) ([]key.Key, error) {
 
 	var ks []key.Key
 	for _, b := range bs {
-		if err := s.worker.HasBlock(b); err != nil {
+		if err := s.Exchange.HasBlock(context.TODO(), b); err != nil {
 			return nil, errors.New("blockservice is closed")
 		}
 		ks = append(ks, b.Key())
@@ -166,5 +146,5 @@ func (s *BlockService) DeleteBlock(k key.Key) error {
 
 func (s *BlockService) Close() error {
 	log.Debug("blockservice is shutting down...")
-	return s.worker.Close()
+	return s.Exchange.Close()
 }
