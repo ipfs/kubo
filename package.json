@@ -1,0 +1,10 @@
+{
+  "name": "go-ipfs",
+  "version": "1.0.0",
+  "dependencies": [
+    {
+      "name": "dir-index-html",
+      "hash": "QmeNXKecZ7CQagtkQUJxG3yS7UcvU6puS777dQsx3amkS7"
+    }
+  ]
+}

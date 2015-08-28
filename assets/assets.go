@@ -28,6 +28,11 @@ func SeedInitDocs(nd *core.IpfsNode) (*key.Key, error) {
 	return addAssetList(nd, initDocPaths)
 }
 
+var initDirIndex = []string{
+	"../vendor/src/QmeNXKecZ7CQagtkQUJxG3yS7UcvU6puS777dQsx3amkS7/dir-index-html/knownIcons.txt",
+	"../vendor/src/QmeNXKecZ7CQagtkQUJxG3yS7UcvU6puS777dQsx3amkS7/dir-index-html/dir-index.html",
+}
+
 var initGwAssets = []string{
 	"gw-assets/icons.css",
 	"gw-assets/bootstrap.min.css",
@@ -70,7 +75,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {
 	}
 
 	if err := nd.Pinning.Flush(); err != nil {
-		return nil, fmt.Errorf("assets: Pinnig flush failed: %s", err)
+		return nil, fmt.Errorf("assets: Pinning flush failed: %s", err)
 	}
 
 	return &dkey, nil
