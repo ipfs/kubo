@@ -296,7 +296,7 @@ func (mn *mocknet) removeLink(l *link) {
 	delete(*mn.linksMapGet(n2.peer, n1.peer), l)
 }
 
-func (mn *mocknet) ConnectAll() error {
+func (mn *mocknet) ConnectAllButSelf() error {
 	nets := mn.Nets()
 	for _, n1 := range nets {
 		for _, n2 := range nets {

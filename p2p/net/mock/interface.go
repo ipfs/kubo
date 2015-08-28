@@ -60,6 +60,7 @@ type Mocknet interface {
 	DisconnectPeers(peer.ID, peer.ID) error
 	DisconnectNets(inet.Network, inet.Network) error
 	LinkAll() error
+	ConnectAllButSelf() error
 }
 
 // LinkOptions are used to change aspects of the links.
