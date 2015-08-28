@@ -27,6 +27,7 @@ var initCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", fmt.Sprintf("Number of bits to use in the generated RSA private key (defaults to %d)", nBitsForKeypairDefault)),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
+		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -59,6 +60,12 @@ var initCmd = &cmds.Command{
 			return
 		}
 
+		empty, _, err := req.Option("e").Bool() // if !empty, it's okay empty == false
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		nBitsForKeypair, bitsOptFound, err := req.Option("b").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -69,7 +76,7 @@ var initCmd = &cmds.Command{
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, force, nBitsForKeypair); err != nil {
+		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, force, empty, nBitsForKeypair); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -82,10 +89,10 @@ Reinitializing would overwrite your keys.
 `)
 
 func initWithDefaults(out io.Writer, repoRoot string) error {
-	return doInit(out, repoRoot, false, nBitsForKeypairDefault)
+	return doInit(out, repoRoot, false, false, nBitsForKeypairDefault)
 }
 
-func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) error {
+func doInit(out io.Writer, repoRoot string, force bool, empty bool, nBitsForKeypair int) error {
 	if _, err := fmt.Fprintf(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -113,8 +120,10 @@ func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) err
 		return err
 	}
 
-	if err := addDefaultAssets(out, repoRoot); err != nil {
-		return err
+	if !empty {
+		if err := addDefaultAssets(out, repoRoot); err != nil {
+			return err
+		}
 	}
 
 	return initializeIpnsKeyspace(repoRoot)

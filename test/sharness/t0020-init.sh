@@ -75,6 +75,37 @@ test_expect_success "ipfs init output looks good" '
 	test_cmp expected actual_init
 '
 
+test_expect_success "Welcome readme exists" '
+	ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme
+'
+
+test_expect_success "clean up ipfs dir" '
+	rm -rf "$IPFS_PATH"
+'
+
+test_expect_success "'ipfs init --empty-repo' succeeds" '
+	BITS="1024" &&
+	ipfs init --bits="$BITS" --empty-repo >actual_init
+'
+
+test_expect_success "ipfs peer id looks good" '
+	PEERID=$(ipfs config Identity.PeerID) &&
+	echo $PEERID | tr -dC "[:alnum:]" | wc -c | tr -d " " >actual_peerid &&
+	echo "46" >expected_peerid &&
+	test_cmp expected_peerid actual_peerid
+'
+
+test_expect_success "'ipfs init --empty-repo' output looks good" '
+	echo "initializing ipfs node at $IPFS_PATH" >expected &&
+	echo "generating $BITS-bit RSA keypair...done" >>expected &&
+	echo "peer identity: $PEERID" >>expected &&
+	test_cmp expected actual_init
+'
+
+test_expect_success "Welcome readme doesn't exists" '
+	test_must_fail ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme
+'
+
 test_expect_success "clean up ipfs dir" '
 	rm -rf "$IPFS_PATH"
 '
