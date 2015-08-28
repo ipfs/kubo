@@ -43,7 +43,7 @@ References:
 
 Get:
 
-  ipfs get <the-hash-here> foo2
+  ipfs get <the-hash-here> -o foo2
   diff foo foo2
 
 
