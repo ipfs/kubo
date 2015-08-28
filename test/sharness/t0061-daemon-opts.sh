@@ -11,7 +11,7 @@ test_description="Test daemon command"
 
 test_init_ipfs
 
-test_launch_ipfs_daemon '--unrestricted-api --disable-transport-encryption'
+test_launch_ipfs_daemon --unrestricted-api --disable-transport-encryption
 
 gwyport=$PORT_GWAY
 apiport=$PORT_API
