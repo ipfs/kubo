@@ -28,16 +28,9 @@ func TestNotifications(t *testing.T) {
 		notifiees[i] = n
 	}
 
-	// connect all
-	for _, n1 := range nets {
-		for _, n2 := range nets {
-			if n1 == n2 {
-				continue
-			}
-			if _, err := mn.ConnectNets(n1, n2); err != nil {
-				t.Fatal(err)
-			}
-		}
+	// connect all but self
+	if err := mn.ConnectAllButSelf(); err != nil {
+		t.Fatal(err)
 	}
 
 	// test everyone got the correct connection opened calls

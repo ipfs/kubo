@@ -28,14 +28,8 @@ func FullMeshLinked(ctx context.Context, n int) (Mocknet, error) {
 		return nil, err
 	}
 
-	nets := m.Nets()
-	for _, n1 := range nets {
-		for _, n2 := range nets {
-			// yes, even self.
-			if _, err := m.LinkNets(n1, n2); err != nil {
-				return nil, err
-			}
-		}
+	if err := m.LinkAll(); err != nil {
+		return nil, err
 	}
 
 	return m, nil
