@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -201,7 +202,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 
 		// See comment above where originalUrlPath is declared.
-		di := directoryItem{link.Size, link.Name, gopath.Join(originalUrlPath, link.Name)}
+		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalUrlPath, link.Name)}
 		dirListing = append(dirListing, di)
 	}
 
