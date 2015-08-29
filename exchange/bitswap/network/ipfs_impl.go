@@ -101,6 +101,10 @@ func (bsnet *impl) ConnectTo(ctx context.Context, p peer.ID) error {
 	return bsnet.host.Connect(ctx, peer.PeerInfo{ID: p})
 }
 
+func (bsnet *impl) Host() host.Host {
+	return bsnet.host
+}
+
 // FindProvidersAsync returns a channel of providers for the given key
 func (bsnet *impl) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.ID {
 

@@ -57,13 +57,21 @@ func (dr *debtRatio) Value() float64 {
 
 func (l *ledger) SentBytes(n int) {
 	l.exchangeCount++
-	l.lastExchange = time.Now()
+	now := time.Now()
+	if l.firstExchange.IsZero() {
+		l.firstExchange = now
+	}
+	l.lastExchange = now
 	l.Accounting.BytesSent += uint64(n)
 }
 
 func (l *ledger) ReceivedBytes(n int) {
 	l.exchangeCount++
-	l.lastExchange = time.Now()
+	now := time.Now()
+	if l.firstExchange.IsZero() {
+		l.firstExchange = now
+	}
+	l.lastExchange = now
 	l.Accounting.BytesRecv += uint64(n)
 }
 
