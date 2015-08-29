@@ -23,6 +23,8 @@ import (
 	cmdsCli "github.com/ipfs/go-ipfs/commands/cli"
 	cmdsHttp "github.com/ipfs/go-ipfs/commands/http"
 	core "github.com/ipfs/go-ipfs/core"
+	coreCmds "github.com/ipfs/go-ipfs/core/commands"
+	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
@@ -32,8 +34,10 @@ import (
 // log is the command logger
 var log = eventlog.Logger("cmd/ipfs")
 
-// signal to output help
-var errHelpRequested = errors.New("Help Requested")
+var (
+	errUnexpectedApiOutput = errors.New("api returned unexpected output")
+	errApiVersionMismatch  = errors.New("api version mismatch")
+)
 
 const (
 	EnvEnableProfiling = "IPFS_PROF"
@@ -295,8 +299,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		return nil, err
 	}
 
-	log.Debug("looking for running daemon...")
-	useDaemon, err := commandShouldRunOnDaemon(*details, req, root)
+	client, err := commandShouldRunOnDaemon(*details, req, root)
 	if err != nil {
 		return nil, err
 	}
@@ -313,28 +316,13 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		}
 	}
 
-	if useDaemon {
-
-		cfg, err := req.InvocContext().GetConfig()
-		if err != nil {
-			return nil, err
-		}
-
-		addr, err := ma.NewMultiaddr(cfg.Addresses.API)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Infof("Executing command on daemon running at %s", addr)
-		_, host, err := manet.DialArgs(addr)
-		if err != nil {
-			return nil, err
-		}
-
-		client := cmdsHttp.NewClient(host)
-
+	if client != nil {
+		log.Debug("Executing command via API")
 		res, err = client.Send(req)
 		if err != nil {
+			if isConnRefused(err) {
+				err = repo.ErrApiNotRunning
+			}
 			return nil, err
 		}
 
@@ -383,48 +371,67 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 // commandShouldRunOnDaemon determines, from commmand details, whether a
 // command ought to be executed on an IPFS daemon.
 //
-// It returns true if the command should be executed on a daemon and false if
+// It returns a client if the command should be executed on a daemon and nil if
 // it should be executed on a client. It returns an error if the command must
 // NOT be executed on either.
-func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.Command) (bool, error) {
+func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.Command) (cmdsHttp.Client, error) {
 	path := req.Path()
 	// root command.
 	if len(path) < 1 {
-		return false, nil
+		return nil, nil
 	}
 
 	if details.cannotRunOnClient && details.cannotRunOnDaemon {
-		return false, fmt.Errorf("command disabled: %s", path[0])
+		return nil, fmt.Errorf("command disabled: %s", path[0])
 	}
 
 	if details.doesNotUseRepo && details.canRunOnClient() {
-		return false, nil
+		return nil, nil
 	}
 
-	// at this point need to know whether daemon is running. we defer
-	// to this point so that some commands dont open files unnecessarily.
-	daemonLocked, err := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot)
+	// at this point need to know whether api is running. we defer
+	// to this point so that we dont check unnecessarily
+
+	// did user specify an api to use for this command?
+	apiAddrStr, _, err := req.Option(coreCmds.ApiOption).String()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	if daemonLocked {
-
-		log.Info("a daemon is running...")
-
-		if details.cannotRunOnDaemon {
-			e := "ipfs daemon is running. please stop it to run this command"
-			return false, cmds.ClientError(e)
+	client, err := getApiClient(req.InvocContext().ConfigRoot, apiAddrStr)
+	if err == repo.ErrApiNotRunning {
+		if apiAddrStr != "" && req.Command() != daemonCmd {
+			// if user SPECIFIED an api, and this cmd is not daemon
+			// we MUST use it. so error out.
+			return nil, err
 		}
 
-		return true, nil
+		// ok for api not to be running
+	} else if err != nil { // some other api error
+		return nil, err
+	}
+
+	if client != nil { // daemon is running
+		if details.cannotRunOnDaemon {
+			e := "cannot use API with this command."
+
+			// check if daemon locked. legacy error text, for now.
+			daemonLocked, _ := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot)
+			if daemonLocked {
+				e = "ipfs daemon is running. please stop it to run this command"
+			}
+
+			return nil, cmds.ClientError(e)
+		}
+
+		return client, nil
 	}
 
 	if details.cannotRunOnClient {
-		return false, cmds.ClientError("must run on the ipfs daemon")
+		return nil, cmds.ClientError("must run on the ipfs daemon")
 	}
 
-	return false, nil
+	return nil, nil
 }
 
 func isClientError(err error) bool {
@@ -573,4 +580,93 @@ func profileIfEnabled() (func(), error) {
 		return stopProfilingFunc, nil
 	}
 	return func() {}, nil
+}
+
+// getApiClient checks the repo, and the given options, checking for
+// a running API service. if there is one, it returns a client.
+// otherwise, it returns errApiNotRunning, or another error.
+func getApiClient(repoPath, apiAddrStr string) (cmdsHttp.Client, error) {
+
+	if apiAddrStr == "" {
+		var err error
+		if apiAddrStr, err = fsrepo.APIAddr(repoPath); err != nil {
+			return nil, err
+		}
+	}
+
+	addr, err := ma.NewMultiaddr(apiAddrStr)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := apiClientForAddr(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	// make sure the api is actually running.
+	// this is slow, as it might mean an RTT to a remote server.
+	// TODO: optimize some way
+	if err := apiVersionMatches(client); err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+// apiVersionMatches checks whether the api server is running the
+// same version of go-ipfs. for now, only the exact same version of
+// client + server work. In the future, we should use semver for
+// proper API versioning! \o/
+func apiVersionMatches(client cmdsHttp.Client) (err error) {
+	ver, err := doVersionRequest(client)
+	if err != nil {
+		return err
+	}
+
+	currv := config.CurrentVersionNumber
+	if ver.Version != currv {
+		return fmt.Errorf("%s (%s != %s)", errApiVersionMismatch, ver.Version, currv)
+	}
+	return nil
+}
+
+func doVersionRequest(client cmdsHttp.Client) (*coreCmds.VersionOutput, error) {
+	cmd := coreCmds.VersionCmd
+	optDefs, err := cmd.GetOptions([]string{})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := cmds.NewRequest([]string{"version"}, nil, nil, nil, cmd, optDefs)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := client.Send(req)
+	if err != nil {
+		if isConnRefused(err) {
+			err = repo.ErrApiNotRunning
+		}
+		return nil, err
+	}
+
+	ver, ok := res.Output().(*coreCmds.VersionOutput)
+	if !ok {
+		return nil, errUnexpectedApiOutput
+	}
+	return ver, nil
+}
+
+func apiClientForAddr(addr ma.Multiaddr) (cmdsHttp.Client, error) {
+	_, host, err := manet.DialArgs(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmdsHttp.NewClient(host), nil
+}
+
+func isConnRefused(err error) bool {
+	return strings.Contains(err.Error(), "connection refused")
 }

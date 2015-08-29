@@ -58,6 +58,7 @@ func (err NoRepoError) Error() string {
 const (
 	leveldbDirectory = "datastore"
 	flatfsDirectory  = "blocks"
+	apiFile          = "api"
 )
 
 var (
@@ -285,12 +286,51 @@ func Remove(repoPath string) error {
 // process. If true, then the repo cannot be opened by this process.
 func LockedByOtherProcess(repoPath string) (bool, error) {
 	repoPath = path.Clean(repoPath)
-
-	// TODO replace this with the "api" file
-	// https://github.com/ipfs/specs/tree/master/repo/fs-repo
-
 	// NB: the lock is only held when repos are Open
 	return lockfile.Locked(repoPath)
+}
+
+// APIAddr returns the registered API addr, according to the api file
+// in the fsrepo. This is a concurrent operation, meaning that any
+// process may read this file. modifying this file, therefore, should
+// use "mv" to replace the whole file and avoid interleaved read/writes.
+func APIAddr(repoPath string) (string, error) {
+	repoPath = path.Clean(repoPath)
+	apiFilePath := path.Join(repoPath, apiFile)
+
+	// if there is no file, assume there is no api addr.
+	f, err := os.Open(apiFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", repo.ErrApiNotRunning
+		}
+		return "", err
+	}
+	defer f.Close()
+
+	// read up to 2048 bytes. io.ReadAll is a vulnerability, as
+	// someone could hose the process by putting a massive file there.
+	buf := make([]byte, 2048)
+	n, err := f.Read(buf)
+	if err != nil && err != io.EOF {
+		return "", err
+	}
+
+	s := string(buf[:n])
+	s = strings.TrimSpace(s)
+	return s, nil
+}
+
+// SetAPIAddr writes the API Addr to the /api file.
+func (r *FSRepo) SetAPIAddr(addr string) error {
+	f, err := os.Create(path.Join(r.path, apiFile))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(addr)
+	return err
 }
 
 // openConfig returns an error if the config file is not present.

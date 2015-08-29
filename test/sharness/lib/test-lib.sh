@@ -193,7 +193,7 @@ test_config_ipfs_gateway_writable() {
 
 test_launch_ipfs_daemon() {
 
-	args=$1
+	args="$@"
 
 	test_expect_success "'ipfs daemon' succeeds" '
 		ipfs daemon $args >actual_daemon 2>daemon_err &

@@ -71,7 +71,8 @@ For example:
 test_expect_success ".ipfs/ has been created" '
   test -d ".ipfs" &&
   test -f ".ipfs/config" &&
-  test -d ".ipfs/datastore" ||
+  test -d ".ipfs/datastore" &&
+  test -d ".ipfs/blocks" ||
   test_fsh ls -al .ipfs
 '
 ```

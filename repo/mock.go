@@ -35,3 +35,5 @@ func (m *Mock) GetConfigKey(key string) (interface{}, error) {
 func (m *Mock) Datastore() ds.ThreadSafeDatastore { return m.D }
 
 func (m *Mock) Close() error { return errTODO }
+
+func (m *Mock) SetAPIAddr(addr string) error { return errTODO }
