@@ -29,20 +29,44 @@ test_client_must_fail() {
 	test_cmp expected_err actual_err
 }
 
+test_client_suite() {
+    state="$1"
+    cfg_success="$2"
+    diff_success="$3"
+    # must always work
+    test_expect_success "client should work $state" '
+        test_client
+    '
+
+    # must always err
+    test_expect_success "client --api unreachable should err $state" '
+	    test_client_must_fail --api "$api_unreachable"
+    '
+
+    if [ "$cfg_success" = true ]; then
+        test_expect_success "client --api fromcfg should work $state" '
+	        test_client --api "$api_fromcfg"
+        '
+    else
+        test_expect_success "client --api fromcfg should err $state" '
+            test_client_must_fail --api "$api_fromcfg"
+        '
+    fi
+
+    if [ "$diff_success" = true ]; then
+        test_expect_success "client --api different should work $state" '
+            test_client --api "$api_different"
+        '
+    else
+        test_expect_success "client --api different should err $state" '
+            test_client_must_fail --api "$api_different"
+        '
+    fi
+    }
 
 # first, test things without daemon, without /api file
+test_client_suite "(daemon off, no --api, no /api file)" false false
 
-test_expect_success "client should work (daemon off, no /api file, no --api)" '
-	test_client
-'
-
-test_expect_success "client --api fromcfg should err (daemon off, no /api file)" '
-	test_client_must_fail --api "$api_fromcfg"
-'
-
-test_expect_success "client --api unreachable should err (daemon off, no /api file)" '
-	test_client_must_fail --api "$api_unreachable"
-'
 
 # then, test things with daemon, with /api file
 
@@ -57,33 +81,13 @@ test_expect_success "api file looks good" '
 	test_cmp expected .ipfs/api
 '
 
-test_expect_success "client should work (daemon on, /api file, no --api)" '
-	test_client
-'
-
-test_expect_success "client --api fromcfg should work (daemon used cfg) (daemon, /api file)" '
-	test_client --api "$api_fromcfg"
-'
-
-test_expect_success "client --api unreachable should err (daemon, /api file)" '
-	test_client_must_fail --api "$api_unreachable"
-'
+test_client_suite "(daemon on, no --api, /api file from cfg)" true false
 
 # then, test things without daemon, with /api file
 
 test_kill_ipfs_daemon
 
-test_expect_success "client should work (daemon off, /api file, no --api)" '
-	test_client
-'
-
-test_expect_success "client --api fromcfg should err (daemon off, /api file)" '
-	test_client_must_fail --api "$api_fromcfg"
-'
-
-test_expect_success "client --api unreachable should err (daemon, /api file)" '
-	test_client_must_fail --api "$api_unreachable"
-'
+test_client_suite "(daemon off, no --api, /api file from cfg)" false false
 
 # then, test things with daemon --api $api_different, with /api file
 
@@ -97,40 +101,12 @@ test_expect_success "'ipfs daemon' --api option works" '
 	test_cmp expected .ipfs/api
 '
 
-test_expect_success "client should work (daemon on, /api file (different), no --api)" '
-	test_client
-'
-
-test_expect_success "client --api different should work (daemon on, /api file (different))" '
-	test_client --api "$api_different"
-'
-
-test_expect_success "client --api fromcfg should err (daemon on, /api file (different))" '
-	test_client_must_fail --api "$api_fromcfg"
-'
-
-test_expect_success "client --api unreachable should err (daemon, /api file)" '
-	test_client_must_fail --api "$api_unreachable"
-'
+test_client_suite "(daemon on, /api file different)" false true
 
 # then, test things with daemon off, with /api file, for good measure.
 
 test_kill_ipfs_daemon
 
-test_expect_success "client should work (daemon off, /api file (different), no --api)" '
-	test_client
-'
-
-test_expect_success "client --api different should work (daemon on, /api file (different))" '
-	test_client_must_fail --api "$api_different"
-'
-
-test_expect_success "client --api fromcfg should err (daemon on, /api file (different))" '
-	test_client_must_fail --api "$api_fromcfg"
-'
-
-test_expect_success "client --api unreachable should err (daemon, /api file)" '
-	test_client_must_fail --api "$api_unreachable"
-'
+test_client_suite "(daemon off, /api file different)" false false
 
 test_done
