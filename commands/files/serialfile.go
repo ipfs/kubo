@@ -25,8 +25,17 @@ type serialFile struct {
 	current *os.File
 }
 
-func NewSerialFile(name, path string, file *os.File) (File, error) {
-	stat, err := file.Stat()
+func NewSerialFile(name, path string, stat os.FileInfo) (File, error) {
+	if stat.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(path)
+		if err != nil {
+			return nil, err
+		}
+
+		return NewLinkFile("", path, target, stat), nil
+	}
+
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +58,7 @@ func newSerialFile(name, path string, file *os.File, stat os.FileInfo) (File, er
 
 	// we no longer need our root directory file (we already statted the contents),
 	// so close it
-	err = file.Close()
-	if err != nil {
+	if err := file.Close(); err != nil {
 		return nil, err
 	}
 
