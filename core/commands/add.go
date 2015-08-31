@@ -143,7 +143,6 @@ remains to be implemented.
 					return nil // done
 				}
 
-				log.Errorf("FILE: %#v", file)
 				if _, err := fileAdder.addFile(file); err != nil {
 					return err
 				}
@@ -361,9 +360,6 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 	}
 
 	if s, ok := file.(*files.Symlink); ok {
-		log.Error("SYMLINK: ", s)
-		log.Error(s.Target)
-		log.Error(s.FileName())
 		dagnode := &dag.Node{
 			Data: ft.SymlinkData(s.Target),
 		}

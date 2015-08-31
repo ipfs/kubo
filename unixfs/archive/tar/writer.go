@@ -79,6 +79,8 @@ func (w *Writer) WriteNode(nd *mdag.Node, fpath string) error {
 		fallthrough
 	case upb.Data_File:
 		return w.writeFile(nd, pb, fpath)
+	case upb.Data_Symlink:
+		return writeSymlinkHeader(w.TarW, string(pb.GetData()), fpath)
 	default:
 		return ft.ErrUnrecognizedType
 	}
@@ -106,5 +108,14 @@ func writeFileHeader(w *tar.Writer, fpath string, size uint64) error {
 		Mode:     0644,
 		ModTime:  time.Now(),
 		// TODO: set mode, dates, etc. when added to unixFS
+	})
+}
+
+func writeSymlinkHeader(w *tar.Writer, target, fpath string) error {
+	return w.WriteHeader(&tar.Header{
+		Name:     fpath,
+		Linkname: target,
+		Mode:     0777,
+		Typeflag: tar.TypeSymlink,
 	})
 }
