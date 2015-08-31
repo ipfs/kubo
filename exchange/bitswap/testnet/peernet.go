@@ -8,7 +8,6 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
-	//pinger "github.com/ipfs/go-ipfs/p2p/protocol/ping"
 )
 
 type peernet struct {
@@ -25,9 +24,6 @@ func (pn *peernet) Adapter(p testutil.Identity) bsnet.BitSwapNetwork {
 	if err != nil {
 		panic(err.Error())
 	}
-
-	//  Make host pingable
-	//client.SetStreamHandler(pinger.ID, pinger.PingHandler)
 
 	routing := pn.routingserver.ClientWithDatastore(context.TODO(), p, ds.NewMapDatastore())
 	return bsnet.NewFromIpfsHost(client, routing)

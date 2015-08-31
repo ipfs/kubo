@@ -52,6 +52,9 @@ const (
 	outboxChanBuffer = 0
 )
 
+type LedgerSet struct {
+}
+
 // Envelope contains a message for a Peer
 type Envelope struct {
 	// Peer is the intended recipient

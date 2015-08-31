@@ -1,7 +1,6 @@
 package decision
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 	pq "github.com/ipfs/go-ipfs/thirdparty/pq"
 )
 
-var PEER_BLOCK_TIME time.Duration = time.Second * 5
+var PeerBlockTime time.Duration = time.Second * 5
 
 //  Type representing a decision function
 type Strategy func(*activePartner) bool
@@ -177,19 +176,19 @@ func (tl *prq) block(partner *activePartner) {
 	})
 }
 
-var Mean = func(partner *activePartner) bool {
+func Mean(partner *activePartner) bool {
 	//  placeholder logic
 	l := partner.GetLedger()
 	if l != nil {
 		if l.Accounting.Value() < 0.01 && l.Accounting.BytesSent > 10000 {
-			fmt.Println("rekt")
+			log.Debug("rejected partner", l.Accounting.Value(), l.Accounting.BytesSent)
 			return false
 		}
 	}
 	return true
 }
 
-var Nice = func(parnter *activePartner) bool {
+func Nice(parnter *activePartner) bool {
 	return true
 }
 

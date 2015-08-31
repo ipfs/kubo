@@ -22,7 +22,6 @@ var log = eventlog.Logger("epictest")
 func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig, routing core.RoutingOption) core.ConfigOption {
 	return func(ctx context.Context) (*core.IpfsNode, error) {
 		const kWriteCacheElems = 100
-		const alwaysSendToPeer = true
 		dsDelay := delay.Fixed(conf.BlockstoreLatency)
 		r := &repo.Mock{
 			D: ds2.CloserWrap(syncds.MutexWrap(ds2.WithDelay(datastore.NewMapDatastore(), dsDelay))),
@@ -45,7 +44,7 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig, routin
 		if err != nil {
 			return nil, err
 		}
-		exch := bitswap.New(ctx, p, bsn, bstore, alwaysSendToPeer)
+		exch := bitswap.New(ctx, p, bsn, bstore, nil)
 		n.Blockstore = bstore
 		n.Exchange = exch
 		n.Routing = dhtt

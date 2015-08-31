@@ -39,8 +39,8 @@ import (
 	routing "github.com/ipfs/go-ipfs/routing"
 	dht "github.com/ipfs/go-ipfs/routing/dht"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
-	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	nilrouting "github.com/ipfs/go-ipfs/routing/none"
+	offroute "github.com/ipfs/go-ipfs/routing/offline"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -345,9 +345,8 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	n.PeerHost = rhost.Wrap(host, n.Routing)
 
 	// setup exchange service
-	const alwaysSendToPeer = true // use YesManStrategy
 	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
-	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
+	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, nil)
 
 	// setup name system
 	n.Namesys = namesys.NewNameSystem(n.Routing)
