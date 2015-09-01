@@ -209,6 +209,8 @@ func (kr *Root) GetValue() FSNode {
 	return kr.val
 }
 
+var _ FSNode = (*Root)(nil)
+
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
 func (kr *Root) closeChild(name string, nd *dag.Node) error {

@@ -21,6 +21,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
 type BuildCfg struct {
@@ -156,11 +157,17 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 	n.Resolver = &path.Resolver{DAG: n.DAG}
 
-	fs, err := mfs.NewFilesystem(ctx, n.DAG, n.Pinning)
-	if err != nil {
-		return err
+	if cfg.Online {
+		fs, err := mfs.NewFilesystem(ctx, n.DAG, n.Pinning)
+		if err != nil {
+			return err
+		}
+		n.Mfs = fs
+		_, err = n.Mfs.NewRoot("root", &dag.Node{Data: ft.FolderPBData()}, func(_ context.Context, k key.Key) error { return nil })
+		if err != nil {
+			return err
+		}
 	}
-	n.Mfs = fs
 
 	return nil
 }

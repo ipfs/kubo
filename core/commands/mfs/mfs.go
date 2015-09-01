@@ -9,15 +9,12 @@ import (
 	gopath "path"
 	"strings"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
-
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 var log = u.Logger("cmds/mfs")
@@ -37,8 +34,8 @@ Top level mounts may be created with the create command. Once created, they show
 the output of the base mfs command.
 
     $ ipfs mfs 
-    demo - QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
-	files - QmdRoEYhftbSfJuYNgoy1rj9C8fF7cGLxpUkQTDCMApF5B
+    demo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+	files QmdRoEYhftbSfJuYNgoy1rj9C8fF7cGLxpUkQTDCMApF5B
 
 NOTICE:
 This API is currently experimental, likely to change, and may potentially be
@@ -48,15 +45,14 @@ https://github.com/ipfs/go-ipfs/issues/1607
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"create": MfsCreateCmd,
-		"close":  MfsCloseCmd,
-		"put":    MfsPutCmd,
-		"read":   MfsReadCmd,
-		"write":  MfsWriteCmd,
-		"mv":     MfsMvCmd,
-		"ls":     MfsLsCmd,
-		"mkdir":  MfsMkdirCmd,
-		"rm":     MfsRmCmd,
+		"read":  MfsReadCmd,
+		"write": MfsWriteCmd,
+		"mv":    MfsMvCmd,
+		"cp":    MfsCpCmd,
+		"ls":    MfsLsCmd,
+		"mkdir": MfsMkdirCmd,
+		"stat":  MfsStatCmd,
+		"rm":    MfsRmCmd,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", false, false, "name of filesystem to show info for"),
@@ -113,7 +109,7 @@ https://github.com/ipfs/go-ipfs/issues/1607
 
 			buf := new(bytes.Buffer)
 			for _, o := range out.Mounts {
-				fmt.Fprintf(buf, "%s - %s\n", o.Name, o.Hash)
+				fmt.Fprintf(buf, "%s %s\n", o.Name, o.Hash)
 			}
 			return buf, nil
 		},
@@ -121,28 +117,13 @@ https://github.com/ipfs/go-ipfs/issues/1607
 	Type: mfsMountListing{},
 }
 
-var MfsCreateCmd = &cmds.Command{
+var MfsStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create a new mutable filesystem",
-		ShortDescription: `
-Creates a new mutable filesystem based on an optional root hash.
-
-Currently, it creates a filesystem with no special publish actions,
-all changes are merely propagated to the root, and are reflected in the hash
-displayed by 'ipfs mfs'.
-
-Examples:
-
-    $ ipfs mfs create files
-	$ ipfs mfs create welcome -r QmVtU7ths96fMgZ8YSZAbKghyieq7AjxNdcqyVzxTt3qVe
-`,
+		Tagline: "display file or file system status",
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("name", true, false, "name of filesystem to create"),
-	},
-	Options: []cmds.Option{
-		cmds.StringOption("r", "root", "root object to base new filesystem on"),
+		cmds.StringArg("path", true, false, "path to node to stat"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -156,37 +137,94 @@ Examples:
 			return
 		}
 
-		name := req.Arguments()[0]
-		if name == "" {
-			res.SetError(errors.New("cannot have unnamed filesystem"), cmds.ErrNormal)
+		path := req.Arguments()[0]
+		fsn, err := mfs.Lookup(node.Mfs, path)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		rtkey, found, err := req.Option("root").String()
+		nd, err := fsn.GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		var rootnode *dag.Node
-		if found {
-			k := key.B58KeyDecode(rtkey)
-			if k == "" {
-				res.SetError(fmt.Errorf("incorrectly formatted key: %s", rtkey), cmds.ErrNormal)
-				return
-			}
+		k, err := nd.Key()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
-			nd, err := node.DAG.Get(req.Context(), k)
+		res.SetOutput(&Object{
+			Hash: k.B58String(),
+		})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			out := res.Output().(*Object)
+			return strings.NewReader(out.Hash), nil
+		},
+	},
+	Type: Object{},
+}
+
+var MfsCpCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "copy files into mfs",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("src", true, false, "source object to copy"),
+		cmds.StringArg("dest", true, false, "destination to copy object to"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if node.Mfs == nil {
+			res.SetError(cmds.ErrNotOnline, cmds.ErrNormal)
+			return
+		}
+
+		src := req.Arguments()[0]
+		dst := req.Arguments()[1]
+
+		var nd *dag.Node
+		switch {
+		case strings.HasPrefix(src, "/ipfs/"):
+			p, err := path.ParsePath(src)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 
-			rootnode = nd
-		} else {
-			rootnode = &dag.Node{Data: ft.FolderPBData()}
+			obj, err := node.Resolver.ResolvePath(req.Context(), p)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			nd = obj
+		default:
+			fsn, err := mfs.Lookup(node.Mfs, src)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			obj, err := fsn.GetNode()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			nd = obj
 		}
 
-		_, err = node.Mfs.NewRoot(name, rootnode, func(_ context.Context, _ key.Key) error { return nil })
+		err = mfs.PutNode(node.Mfs, dst, nd)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -196,46 +234,6 @@ Examples:
 
 type Object struct {
 	Hash string
-}
-
-var MfsCloseCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline:          "Close an open filesystem",
-		ShortDescription: ``,
-	},
-
-	Arguments: []cmds.Argument{
-		cmds.StringArg("name", true, false, "name of filesystem to close"),
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if node.Mfs == nil {
-			res.SetError(cmds.ErrNotOnline, cmds.ErrNormal)
-			return
-		}
-
-		name := req.Arguments()[0]
-
-		final, err := node.Mfs.CloseRoot(name)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&Object{Hash: final.B58String()})
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			out := res.Output().(*Object)
-			return strings.NewReader(out.Hash), nil
-		},
-	},
-	Type: Object{},
 }
 
 type MfsLsOutput struct {
@@ -319,55 +317,6 @@ Examples:
 		},
 	},
 	Type: MfsLsOutput{},
-}
-
-var MfsPutCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "import a given file into a filesystem",
-		ShortDescription: `
-Mfs 'put' takes a file that already exists in ipfs and imports it into a
-given mfs filesystem.
-
-Examples:
-
-    $ ipfs mfs create test
-	$ echo "hello" | ipfs add -q
-    QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
-    $ ipfs mfs put QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN /test/hello
-		`,
-	},
-
-	Arguments: []cmds.Argument{
-		cmds.StringArg("object", true, false, "ipfspath of object to import"),
-		cmds.StringArg("path", true, false, "path within filesystem to import to"),
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		obj := req.Arguments()[0]
-		objpath, err := path.ParsePath(obj)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		nd, err := node.Resolver.ResolvePath(req.Context(), objpath)
-		if err != nil {
-			res.SetError(fmt.Errorf("resolve path failed: %s", err), cmds.ErrNormal)
-			return
-		}
-
-		path := req.Arguments()[1]
-		err = mfs.PutNode(node.Mfs, path, nd)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-	},
 }
 
 var MfsReadCmd = &cmds.Command{
@@ -485,7 +434,7 @@ Example:
 	},
 	Options: []cmds.Option{
 		cmds.IntOption("o", "offset", "offset to write to"),
-		cmds.BoolOption("c", "create", "create the file if it does not exist"),
+		cmds.BoolOption("n", "create", "create the file if it does not exist"),
 		cmds.BoolOption("t", "truncate", "truncate the file before writing"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {

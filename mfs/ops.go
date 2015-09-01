@@ -120,12 +120,12 @@ func Mkdir(mfs *Filesystem, path string, parents bool) error {
 }
 
 func Lookup(mfs *Filesystem, path string) (FSNode, error) {
+
 	if !strings.HasPrefix(path, "/") {
 		return nil, errors.New("Lookup requires rooted path")
 	}
 
-	parts := strings.Split(path, "/")
-	r, err := mfs.GetRoot(parts[1])
+	r, err := mfs.GetRoot("root")
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func Lookup(mfs *Filesystem, path string) (FSNode, error) {
 		return nil, errors.New("root was not a directory")
 	}
 
-	return DirLookup(dir, strings.Join(parts[2:], "/"))
+	return DirLookup(dir, path)
 }
 
 // DirLookup will look up a file or directory at the given path
@@ -144,6 +144,7 @@ func DirLookup(d *Directory, path string) (FSNode, error) {
 	path = strings.Trim(path, "/")
 	parts := strings.Split(path, "/")
 	if len(parts) == 1 && parts[0] == "" {
+		log.Error("return root: ", path)
 		return d, nil
 	}
 
