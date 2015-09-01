@@ -3,12 +3,14 @@ package filter
 import (
 	"net"
 	"strings"
+	"sync"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 )
 
 type Filters struct {
+	mu      sync.RWMutex
 	filters map[string]*net.IPNet
 }
 
@@ -19,6 +21,8 @@ func NewFilters() *Filters {
 }
 
 func (fs *Filters) AddDialFilter(f *net.IPNet) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
 	fs.filters[f.String()] = f
 }
 
@@ -31,6 +35,8 @@ func (f *Filters) AddrBlocked(a ma.Multiaddr) bool {
 
 	ipstr := strings.Split(addr, ":")[0]
 	ip := net.ParseIP(ipstr)
+	f.mu.RLock()
+	defer f.mu.RUnlock()
 	for _, ft := range f.filters {
 		if ft.Contains(ip) {
 			return true
@@ -41,6 +47,8 @@ func (f *Filters) AddrBlocked(a ma.Multiaddr) bool {
 
 func (f *Filters) Filters() []*net.IPNet {
 	var out []*net.IPNet
+	f.mu.RLock()
+	defer f.mu.RUnlock()
 	for _, ff := range f.filters {
 		out = append(out, ff)
 	}
@@ -48,5 +56,7 @@ func (f *Filters) Filters() []*net.IPNet {
 }
 
 func (f *Filters) Remove(ff *net.IPNet) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	delete(f.filters, ff.String())
 }
