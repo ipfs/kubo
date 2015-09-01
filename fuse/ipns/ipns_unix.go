@@ -109,7 +109,7 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath strin
 // Attr returns file attributes.
 func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Root Attr")
-	*a = fuse.Attr{Mode: os.ModeDir | 0111} // -rw+x
+	a.Mode = os.ModeDir | 0111 // -rw+x
 	return nil
 }
 
@@ -219,11 +219,9 @@ type File struct {
 // Attr returns the attributes of a given node.
 func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Directory Attr")
-	*a = fuse.Attr{
-		Mode: os.ModeDir | 0555,
-		Uid:  uint32(os.Getuid()),
-		Gid:  uint32(os.Getgid()),
-	}
+	a.Mode = os.ModeDir | 0555
+	a.Uid = uint32(os.Getuid())
+	a.Gid = uint32(os.Getgid())
 	return nil
 }
 
@@ -235,12 +233,10 @@ func (fi *File) Attr(ctx context.Context, a *fuse.Attr) error {
 		// In this case, the dag node in question may not be unixfs
 		return fmt.Errorf("fuse/ipns: failed to get file.Size(): %s", err)
 	}
-	*a = fuse.Attr{
-		Mode: os.FileMode(0666),
-		Size: uint64(size),
-		Uid:  uint32(os.Getuid()),
-		Gid:  uint32(os.Getgid()),
-	}
+	a.Mode = os.FileMode(0666)
+	a.Size = uint64(size)
+	a.Uid = uint32(os.Getuid())
+	a.Gid = uint32(os.Getgid())
 	return nil
 }
 
