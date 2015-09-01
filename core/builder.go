@@ -14,6 +14,7 @@ import (
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	mfs "github.com/ipfs/go-ipfs/mfs"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	path "github.com/ipfs/go-ipfs/path"
@@ -154,6 +155,12 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG)
 	}
 	n.Resolver = &path.Resolver{DAG: n.DAG}
+
+	fs, err := mfs.NewFilesystem(ctx, n.DAG, n.Pinning)
+	if err != nil {
+		return err
+	}
+	n.Mfs = fs
 
 	return nil
 }
