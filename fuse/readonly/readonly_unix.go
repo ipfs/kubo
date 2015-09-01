@@ -46,7 +46,7 @@ type Root struct {
 
 // Attr returns file attributes.
 func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
-	*a = fuse.Attr{Mode: os.ModeDir | 0111} // -rw+x
+	a.Mode = os.ModeDir | 0111 // -rw+x
 	return nil
 }
 
@@ -118,7 +118,6 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 		a.Size = uint64(len(s.cached.GetData()))
 		a.Uid = uint32(os.Getuid())
 		a.Gid = uint32(os.Getgid())
-
 	default:
 		return fmt.Errorf("Invalid data type - %s", s.cached.GetType())
 	}
