@@ -335,14 +335,16 @@ func (fi *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 }
 
 func (fi *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
-	cursize, err := fi.fi.Size()
-	if err != nil {
-		return err
-	}
-	if cursize != int64(req.Size) {
-		err := fi.fi.Truncate(int64(req.Size))
+	if req.Valid.Size() {
+		cursize, err := fi.fi.Size()
 		if err != nil {
 			return err
+		}
+		if cursize != int64(req.Size) {
+			err := fi.fi.Truncate(int64(req.Size))
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
