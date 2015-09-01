@@ -129,7 +129,13 @@ Creates a new mutable filesystem based on an optional root hash.
 
 Currently, it creates a filesystem with no special publish actions,
 all changes are merely propagated to the root, and are reflected in the hash
-displayed by 'ipfs mfs'.`,
+displayed by 'ipfs mfs'.
+
+Examples:
+
+    $ ipfs mfs create files
+	$ ipfs mfs create welcome -r QmVtU7ths96fMgZ8YSZAbKghyieq7AjxNdcqyVzxTt3qVe
+`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -238,8 +244,24 @@ type MfsLsOutput struct {
 
 var MfsLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "List directories inside a filesystem",
-		ShortDescription: ``,
+		Tagline: "List directories inside a filesystem",
+		ShortDescription: `
+List directories inside mfs.
+
+Examples:
+
+    $ mfs ls /welcome/docs/
+	about
+    contact
+    help
+    quick-start
+    readme
+    security-notes
+
+	$ mfs ls /myfiles/a/b/c/d
+	foo
+	bar
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", true, false, "path to show listing for"),
@@ -305,6 +327,13 @@ var MfsPutCmd = &cmds.Command{
 		ShortDescription: `
 Mfs 'put' takes a file that already exists in ipfs and imports it into a
 given mfs filesystem.
+
+Examples:
+
+    $ ipfs mfs create test
+	$ echo "hello" | ipfs add -q
+    QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+    $ ipfs mfs put QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN /test/hello
 		`,
 	},
 
@@ -347,6 +376,11 @@ var MfsReadCmd = &cmds.Command{
 		ShortDescription: `
 Read a specified number of bytes from a file at a given offset. By default, will
 read the entire file similar to unix cat.
+
+Examples:
+
+    $ ipfs mfs read /test/hello
+	hello
 		`,
 	},
 
@@ -402,7 +436,7 @@ Move files around. Just like traditional unix mv.
 
 Example:
 
-    ipfs mfs -s myfs mv /a/b/c /foo/newc
+    $ ipfs mfs mv /myfs/a/b/c /myfs/foo/newc
 
 		`,
 	},
@@ -441,8 +475,8 @@ exist. Nonexistant intermediate directories will not be created.
 
 Example:
 
-	echo "hello world" | ipfs mfs -s myfs --create /a/b/file
-	echo "hello world" | ipfs mfs -s myfs --truncate /a/b/file
+	echo "hello world" | ipfs mfs --create /myfs/a/b/file
+	echo "hello world" | ipfs mfs --truncate /myfs/a/b/file
 		`,
 	},
 	Arguments: []cmds.Argument{
@@ -504,8 +538,15 @@ Example:
 
 var MfsMkdirCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "make directories",
-		ShortDescription: `Create the directory if it does not already exist`,
+		Tagline: "make directories",
+		ShortDescription: `
+Create the directory if it does not already exist
+
+Examples:
+
+    $ ipfs mfs mkdir /test/newdir
+	$ ipfs mfs mkdir -p /test/does/not/exist/yet
+`,
 	},
 
 	Arguments: []cmds.Argument{
