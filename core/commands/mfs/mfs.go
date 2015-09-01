@@ -33,15 +33,19 @@ var MfsCmd = &cmds.Command{
 Mfs is an API for manipulating ipfs objects as if they were a unix filesystem.
 They can be seeded with an initial root hash, or by default are an empty directory.
 
-'Sessions' may be created with the create command. Once created, they show up in
+Top level mounts may be created with the create command. Once created, they show up in
 the output of the base mfs command.
+
+    $ ipfs mfs 
+    demo - QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+	files - QmdRoEYhftbSfJuYNgoy1rj9C8fF7cGLxpUkQTDCMApF5B
 
 NOTICE:
 This API is currently experimental, likely to change, and may potentially be
 unstable. This notice will be removed when that is no longer the case. Feedback
 on how this API could be improved is very welcome on the following issue:
 https://github.com/ipfs/go-ipfs/issues/1607
-		`,
+`,
 	},
 	Subcommands: map[string]*cmds.Command{
 		"create": MfsCreateCmd,
