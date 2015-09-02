@@ -359,6 +359,22 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 		return params.addDir(file)
 	}
 
+	if s, ok := file.(*files.Symlink); ok {
+		sdata, err := ft.SymlinkData(s.Target)
+		if err != nil {
+			return nil, err
+		}
+
+		dagnode := &dag.Node{Data: sdata}
+		_, err = params.node.DAG.Add(dagnode)
+		if err != nil {
+			return nil, err
+		}
+
+		err = params.addNode(dagnode, s.FileName())
+		return dagnode, err
+	}
+
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
 	var reader io.Reader = file

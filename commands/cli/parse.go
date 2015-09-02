@@ -351,13 +351,22 @@ func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recur
 		}
 		fpath = cwd
 	}
-
-	file, err := os.Open(fpath)
+	stat, err := os.Lstat(fpath)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	stat, err := file.Stat()
+	if stat.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(fpath)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		arg := files.NewLinkFile("", fpath, target, stat)
+		return append(args, arg), inputs[1:], nil
+	}
+
+	file, err := os.Open(fpath)
 	if err != nil {
 		return nil, nil, err
 	}

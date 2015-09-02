@@ -84,10 +84,25 @@ func (f *serialFile) NextFile() (File, error) {
 	// open the next file
 	fileName := fp.Join(f.name, stat.Name())
 	filePath := fp.Join(f.path, stat.Name())
+	st, err := os.Lstat(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	if st.Mode()&os.ModeSymlink != 0 {
+		f.current = nil
+		target, err := os.Readlink(filePath)
+		if err != nil {
+			return nil, err
+		}
+		return NewLinkFile(fileName, filePath, target, st), nil
+	}
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
+
 	f.current = file
 
 	// recursively call the constructor on the next file

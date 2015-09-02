@@ -99,9 +99,6 @@ size is the IPFS link size.
 			}
 
 			switch t {
-			default:
-				res.SetError(fmt.Errorf("unrecognized type: %s", t), cmds.ErrImplementation)
-				return
 			case unixfspb.Data_File:
 				break
 			case unixfspb.Data_Directory:
@@ -131,6 +128,12 @@ size is the IPFS link size.
 					}
 					links[i] = lsLink
 				}
+			case unixfspb.Data_Symlink:
+				res.SetError(fmt.Errorf("cannot list symlinks yet"), cmds.ErrNormal)
+				return
+			default:
+				res.SetError(fmt.Errorf("unrecognized type: %s", t), cmds.ErrImplementation)
+				return
 			}
 		}
 

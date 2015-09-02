@@ -2,6 +2,7 @@ package tar
 
 import (
 	"archive/tar"
+	"fmt"
 	"io"
 	"os"
 	gopath "path"
@@ -39,15 +40,21 @@ func (te *Extractor) Extract(reader io.Reader) error {
 			break
 		}
 
-		if header.Typeflag == tar.TypeDir {
+		switch header.Typeflag {
+		case tar.TypeDir:
 			if err := te.extractDir(header, i); err != nil {
 				return err
 			}
-			continue
-		}
-
-		if err := te.extractFile(header, tarReader, i, rootExists, rootIsDir); err != nil {
-			return err
+		case tar.TypeReg:
+			if err := te.extractFile(header, tarReader, i, rootExists, rootIsDir); err != nil {
+				return err
+			}
+		case tar.TypeSymlink:
+			if err := te.extractSymlink(header); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unrecognized tar header type: %d", header.Typeflag)
 		}
 	}
 	return nil
@@ -77,6 +84,10 @@ func (te *Extractor) extractDir(h *tar.Header, depth int) error {
 	}
 
 	return nil
+}
+
+func (te *Extractor) extractSymlink(h *tar.Header) error {
+	return os.Symlink(h.Linkname, te.outputPath(h.Name))
 }
 
 func (te *Extractor) extractFile(h *tar.Header, r *tar.Reader, depth int, rootExists bool, rootIsDir bool) error {

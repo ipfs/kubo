@@ -6,6 +6,7 @@ message Data {
 		Directory = 1;
 		File = 2;
 		Metadata = 3;
+		Symlink = 4;
 	}
 
 	required DataType Type = 1;

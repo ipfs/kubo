@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"syscall"
 
 	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
@@ -96,28 +97,27 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	}
 	switch s.cached.GetType() {
 	case ftpb.Data_Directory:
-		*a = fuse.Attr{
-			Mode: os.ModeDir | 0555,
-			Uid:  uint32(os.Getuid()),
-			Gid:  uint32(os.Getgid()),
-		}
+		a.Mode = os.ModeDir | 0555
+		a.Uid = uint32(os.Getuid())
+		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_File:
 		size := s.cached.GetFilesize()
-		*a = fuse.Attr{
-			Mode:   0444,
-			Size:   uint64(size),
-			Blocks: uint64(len(s.Nd.Links)),
-			Uid:    uint32(os.Getuid()),
-			Gid:    uint32(os.Getgid()),
-		}
+		a.Mode = 0444
+		a.Size = uint64(size)
+		a.Blocks = uint64(len(s.Nd.Links))
+		a.Uid = uint32(os.Getuid())
+		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_Raw:
-		*a = fuse.Attr{
-			Mode:   0444,
-			Size:   uint64(len(s.cached.GetData())),
-			Blocks: uint64(len(s.Nd.Links)),
-			Uid:    uint32(os.Getuid()),
-			Gid:    uint32(os.Getgid()),
-		}
+		a.Mode = 0444
+		a.Size = uint64(len(s.cached.GetData()))
+		a.Blocks = uint64(len(s.Nd.Links))
+		a.Uid = uint32(os.Getuid())
+		a.Gid = uint32(os.Getgid())
+	case ftpb.Data_Symlink:
+		a.Mode = 0777 | os.ModeSymlink
+		a.Size = uint64(len(s.cached.GetData()))
+		a.Uid = uint32(os.Getuid())
+		a.Gid = uint32(os.Getgid())
 
 	default:
 		return fmt.Errorf("Invalid data type - %s", s.cached.GetType())
@@ -153,6 +153,13 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		return entries, nil
 	}
 	return nil, fuse.ENOENT
+}
+
+func (s *Node) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+	if s.cached.GetType() != ftpb.Data_Symlink {
+		return "", fuse.Errno(syscall.EINVAL)
+	}
+	return string(s.cached.GetData()), nil
 }
 
 func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
@@ -204,6 +211,7 @@ type roNode interface {
 	fs.HandleReader
 	fs.Node
 	fs.NodeStringLookuper
+	fs.NodeReadlinker
 }
 
 var _ roNode = (*Node)(nil)
