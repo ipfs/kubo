@@ -146,7 +146,7 @@ Basic proof of 'ipfs working' locally:
 
 ### Docker usage
 
-An ipfs docker image is hosted at [hub.docker.com/u/jbenet/go-ipfs](http://hub.docker.com/u/jbenet/go-ipfs).
+An ipfs docker image is hosted at [hub.docker.com/r/jbenet/go-ipfs](http://hub.docker.com/r/jbenet/go-ipfs).
 To make files visible inside the container you need to mount a host directory
 with the `-v` option to docker. Choose a directory that you want to use to
 import/export files from ipfs. You should also choose a directory to store
