@@ -28,7 +28,7 @@ func (e *offlineExchange) GetBlock(_ context.Context, k key.Key) (*blocks.Block,
 }
 
 // HasBlock always returns nil.
-func (e *offlineExchange) HasBlock(_ context.Context, b *blocks.Block) error {
+func (e *offlineExchange) HasBlock(b *blocks.Block) error {
 	return e.bs.Put(b)
 }
 

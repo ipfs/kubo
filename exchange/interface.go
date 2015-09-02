@@ -19,7 +19,7 @@ type Interface interface {
 
 	// TODO Should callers be concerned with whether the block was made
 	// available on the network?
-	HasBlock(context.Context, *blocks.Block) error
+	HasBlock(*blocks.Block) error
 
 	io.Closer
 }

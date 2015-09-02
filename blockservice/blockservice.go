@@ -47,7 +47,7 @@ func (s *BlockService) AddBlock(b *blocks.Block) (key.Key, error) {
 	if err != nil {
 		return k, err
 	}
-	if err := s.Exchange.HasBlock(context.TODO(), b); err != nil {
+	if err := s.Exchange.HasBlock(b); err != nil {
 		return "", errors.New("blockservice is closed")
 	}
 	return k, nil
@@ -61,7 +61,7 @@ func (s *BlockService) AddBlocks(bs []*blocks.Block) ([]key.Key, error) {
 
 	var ks []key.Key
 	for _, b := range bs {
-		if err := s.Exchange.HasBlock(context.TODO(), b); err != nil {
+		if err := s.Exchange.HasBlock(b); err != nil {
 			return nil, errors.New("blockservice is closed")
 		}
 		ks = append(ks, b.Key())

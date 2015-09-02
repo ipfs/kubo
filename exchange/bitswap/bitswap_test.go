@@ -70,7 +70,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	hasBlock := peers[0]
 	defer hasBlock.Exchange.Close()
 
-	if err := hasBlock.Exchange.HasBlock(context.Background(), block); err != nil {
+	if err := hasBlock.Exchange.HasBlock(block); err != nil {
 		t.Fatal(err)
 	}
 
@@ -162,7 +162,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	first := instances[0]
 	for _, b := range blocks {
 		blkeys = append(blkeys, b.Key())
-		first.Exchange.HasBlock(ctx, b)
+		first.Exchange.HasBlock(b)
 	}
 
 	t.Log("Distribute!")
@@ -224,7 +224,6 @@ func TestSendToWantingPeer(t *testing.T) {
 	t.Logf("Session %v\n", peerA.Peer)
 	t.Logf("Session %v\n", peerB.Peer)
 
-	timeout := time.Second
 	waitTime := time.Second * 5
 
 	alpha := bg.Next()
@@ -237,9 +236,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	}
 
 	// peerB announces to the network that he has block alpha
-	ctx, cancel = context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	err = peerB.Exchange.HasBlock(ctx, alpha)
+	err = peerB.Exchange.HasBlock(alpha)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +263,7 @@ func TestBasicBitswap(t *testing.T) {
 
 	instances := sg.Instances(2)
 	blocks := bg.Blocks(1)
-	err := instances[0].Exchange.HasBlock(context.Background(), blocks[0])
+	err := instances[0].Exchange.HasBlock(blocks[0])
 	if err != nil {
 		t.Fatal(err)
 	}
