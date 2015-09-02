@@ -147,7 +147,6 @@ func DirLookup(d *Directory, path string) (FSNode, error) {
 	path = strings.Trim(path, "/")
 	parts := strings.Split(path, "/")
 	if len(parts) == 1 && parts[0] == "" {
-		log.Error("return root: ", path)
 		return d, nil
 	}
 

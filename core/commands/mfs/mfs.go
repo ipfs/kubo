@@ -250,16 +250,16 @@ List directories inside mfs.
 Examples:
 
     $ mfs ls /welcome/docs/
-	about
+    about
     contact
     help
     quick-start
     readme
     security-notes
 
-	$ mfs ls /myfiles/a/b/c/d
-	foo
-	bar
+    $ mfs ls /myfiles/a/b/c/d
+    foo
+    bar
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -330,7 +330,7 @@ read the entire file similar to unix cat.
 Examples:
 
     $ ipfs mfs read /test/hello
-	hello
+    hello
 		`,
 	},
 
