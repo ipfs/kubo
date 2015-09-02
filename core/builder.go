@@ -163,7 +163,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 			return err
 		}
 		n.Mfs = fs
-		_, err = n.Mfs.NewRoot("root", &dag.Node{Data: ft.FolderPBData()}, func(_ context.Context, k key.Key) error { return nil })
+		_, err = n.Mfs.NewRoot("root", "dag", &dag.Node{Data: ft.FolderPBData()}, func(_ context.Context, k key.Key) error { return nil })
 		if err != nil {
 			return err
 		}

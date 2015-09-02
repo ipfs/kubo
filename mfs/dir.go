@@ -29,6 +29,8 @@ type Directory struct {
 	ctx  context.Context
 
 	name string
+
+	mount *Root
 }
 
 func NewDirectory(ctx context.Context, name string, node *dag.Node, parent childCloser, fs *Filesystem) *Directory {
@@ -157,6 +159,10 @@ func (d *Directory) Child(name string) (FSNode, error) {
 // childUnsync returns the child under this directory by the given name
 // without locking, useful for operations which already hold a lock
 func (d *Directory) childUnsync(name string) (FSNode, error) {
+	if d.mount != nil {
+		return rootLookup(d.mount, name)
+	}
+
 	dir, err := d.childDir(name)
 	if err == nil {
 		return dir, nil
@@ -179,6 +185,10 @@ type NodeListing struct {
 func (d *Directory) List() ([]NodeListing, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
+
+	if d.mount != nil {
+		return d.mount.GetValue().(*Directory).List()
+	}
 
 	var out []NodeListing
 	for _, l := range d.node.Links {
@@ -219,6 +229,9 @@ func (d *Directory) List() ([]NodeListing, error) {
 func (d *Directory) Mkdir(name string) (*Directory, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
+	if d.mount != nil {
+		return d.mount.GetValue().(*Directory).Mkdir(name)
+	}
 
 	_, err := d.childDir(name)
 	if err == nil {
@@ -252,6 +265,9 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 func (d *Directory) Unlink(name string) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
+	if d.mount != nil {
+		return d.mount.GetValue().(*Directory).Unlink(name)
+	}
 
 	delete(d.childDirs, name)
 	delete(d.files, name)
@@ -268,6 +284,10 @@ func (d *Directory) Unlink(name string) error {
 func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	d.Lock()
 	defer d.Unlock()
+	if d.mount != nil {
+		return d.mount.GetValue().(*Directory).AddChild(name, nd)
+	}
+
 	pbn, err := ft.FromBytes(nd.Data)
 	if err != nil {
 		return err

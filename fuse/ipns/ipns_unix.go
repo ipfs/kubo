@@ -46,6 +46,7 @@ func NewFileSystem(ipfs *core.IpfsNode, sk ci.PrivKey, ipfspath, ipnspath string
 	if err != nil {
 		return nil, err
 	}
+
 	return &FileSystem{Ipfs: ipfs, RootNode: root}, nil
 }
 
@@ -83,32 +84,20 @@ func ipnsPubFunc(ipfs *core.IpfsNode, k ci.PrivKey) mfs.PubFunc {
 	}
 }
 
-func (r *Root) loadRoot(ctx context.Context, name string) (*mfs.Root, error) {
-
-	rt, ok := r.Roots[name]
-	if !ok {
-		return nil, fmt.Errorf("no key by name '%s'", name)
-	}
-
-	// already loaded
-	if rt.root != nil {
-		return rt.root, nil
-	}
-
+func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string) (fs.Node, error) {
 	p, err := path.ParsePath("/ipns/" + name)
 	if err != nil {
 		log.Errorf("mkpath %s: %s", name, err)
 		return nil, err
 	}
 
-	node, err := core.Resolve(ctx, r.Ipfs, p)
+	node, err := core.Resolve(ctx, ipfs, p)
 	if err != nil {
 		log.Errorf("looking up %s: %s", p, err)
 		return nil, err
 	}
 
-	// load it lazily
-	root, err := r.Ipfs.Mfs.NewRoot(rt.alias, node, ipnsPubFunc(r.Ipfs, rt.k))
+	root, err := ipfs.Mfs.NewRoot(rt.alias, "ipns", node, ipnsPubFunc(ipfs, rt.k))
 	if err != nil {
 		return nil, err
 	}
@@ -117,14 +106,14 @@ func (r *Root) loadRoot(ctx context.Context, name string) (*mfs.Root, error) {
 
 	switch val := root.GetValue().(type) {
 	case *mfs.Directory:
-		r.LocalDirs[name] = &Directory{dir: val}
+		return &Directory{dir: val}, nil
 	case *mfs.File:
-		r.LocalDirs[name] = &File{fi: val}
+		return &File{fi: val}, nil
 	default:
 		return nil, errors.New("unrecognized type")
 	}
 
-	return root, nil
+	panic("not reached")
 }
 
 type keyRoot struct {
@@ -144,15 +133,19 @@ func CreateRoot(ipfs *core.IpfsNode, keys map[string]ci.PrivKey, ipfspath, ipnsp
 		}
 		name := key.Key(pkh).B58String()
 
-		roots[name] = &keyRoot{
-			k:     k,
-			alias: alias,
+		kr := &keyRoot{k: k, alias: alias}
+		fsn, err := loadRoot(ipfs.Context(), kr, ipfs, name)
+		if err != nil {
+			return nil, err
 		}
 
+		roots[name] = kr
+		ldirs[name] = fsn
+
+		// set up alias symlink
 		links[alias] = &Link{
 			Target: name,
 		}
-
 	}
 
 	return &Root{
@@ -187,20 +180,6 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	nd, ok := s.LocalDirs[name]
-	if !ok {
-		// see if we have an unloaded root by this name
-		_, ok = s.Roots[name]
-		if ok {
-			_, err := s.loadRoot(ctx, name)
-			if err != nil {
-				log.Error("error loading key root: ", err)
-				return nil, err
-			}
-
-			nd = s.LocalDirs[name]
-		}
-		// fallthrough to logic after 'if ok { switch'
-	}
 	if ok {
 		switch nd := nd.(type) {
 		case *Directory:

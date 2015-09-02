@@ -33,7 +33,7 @@ They can be seeded with an initial root hash, or by default are an empty directo
 Top level mounts may be created with the create command. Once created, they show up in
 the output of the base mfs command.
 
-    $ ipfs mfs 
+    $ ipfs mfs
     demo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
 	files QmdRoEYhftbSfJuYNgoy1rj9C8fF7cGLxpUkQTDCMApF5B
 
@@ -51,6 +51,7 @@ https://github.com/ipfs/go-ipfs/issues/1607
 		"cp":    MfsCpCmd,
 		"ls":    MfsLsCmd,
 		"mkdir": MfsMkdirCmd,
+		"mount": MfsMountCmd,
 		"stat":  MfsStatCmd,
 		"rm":    MfsRmCmd,
 	},
@@ -485,11 +486,86 @@ Example:
 	},
 }
 
+var MfsUmountCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "unmount filesystems within mfs",
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("mountpoint", true, false, "directory to umount filesystem from"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		mountpoint := req.Arguments()[0]
+		if mountpoint[0] != '/' {
+			res.SetError(errors.New("paths must be absolute"), cmds.ErrNormal)
+			return
+		}
+
+		err = n.Mfs.Unmount(mountpoint)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+	},
+}
+var MfsMountCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "mount filesystems within mfs",
+		ShortDescription: `
+mounts filesystems within mfs.
+
+Examples:
+
+    # mount your 'local' ipns entry to the mountpoint '/local'
+    $ ipfs mfs mount --ipns=local /local
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("mount", true, false, "name of filesystem to mount"),
+		cmds.StringArg("mountpoint", true, false, "directory to mount filesystem on"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		mount := req.Arguments()[0]
+		mountpoint := req.Arguments()[1]
+		if mountpoint[0] != '/' {
+			res.SetError(errors.New("paths must be absolute"), cmds.ErrNormal)
+			return
+		}
+
+		fs, err := n.Mfs.GetRoot(mount)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		err = n.Mfs.MountRoot(fs, mountpoint)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+	},
+}
+
 var MfsMkdirCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "make directories",
 		ShortDescription: `
-Create the directory if it does not already exist
+Create the directory if it does not already exist.
+
+Note: all paths must be absolute.
 
 Examples:
 
@@ -513,6 +589,11 @@ Examples:
 
 		dashp, _, _ := req.Option("parents").Bool()
 		dirtomake := req.Arguments()[0]
+
+		if dirtomake[0] != '/' {
+			res.SetError(errors.New("paths must be absolute"), cmds.ErrNormal)
+			return
+		}
 
 		err = mfs.Mkdir(n.Mfs, dirtomake, dashp)
 		if err != nil {

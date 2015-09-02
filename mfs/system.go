@@ -11,6 +11,7 @@ package mfs
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -59,7 +60,7 @@ func NewFilesystem(ctx context.Context, ds dag.DAGService, pins pin.Pinner) (*Fi
 	return fs, nil
 }
 
-func (fs *Filesystem) NewRoot(name string, root *dag.Node, pf PubFunc) (*Root, error) {
+func (fs *Filesystem) NewRoot(name string, typ string, root *dag.Node, pf PubFunc) (*Root, error) {
 	fs.lk.Lock()
 	defer fs.lk.Unlock()
 	_, ok := fs.roots[name]
@@ -67,7 +68,7 @@ func (fs *Filesystem) NewRoot(name string, root *dag.Node, pf PubFunc) (*Root, e
 		return nil, errors.New("already exists")
 	}
 
-	kr, err := fs.newRoot(fs.ctx, root, pf)
+	kr, err := fs.newRoot(fs.ctx, root, typ, pf)
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +133,44 @@ func (fs *Filesystem) CloseRoot(name string) (key.Key, error) {
 	return r.repub.getVal(), r.Close()
 }
 
+func (fs *Filesystem) Unmount(path string) error {
+	fsn, err := Lookup(fs, path)
+	if err != nil {
+		return err
+	}
+
+	dir, ok := fsn.(*Directory)
+	if !ok {
+		return fmt.Errorf("%s is not a directory")
+	}
+
+	if dir.mount == nil {
+		return fmt.Errorf("nothing mounted at %s", path)
+	}
+
+	dir.mount = nil
+	return nil
+}
+
+func (fs *Filesystem) MountRoot(r *Root, path string) error {
+	fsn, err := Lookup(fs, path)
+	if err != nil {
+		return err
+	}
+
+	dir, ok := fsn.(*Directory)
+	if !ok {
+		return errors.New("cannot mount over non-directory")
+	}
+
+	if dir.mount != nil {
+		return fmt.Errorf("filesystem already mounted at %s", path)
+	}
+
+	dir.mount = r
+	return nil
+}
+
 type childCloser interface {
 	closeChild(string, *dag.Node) error
 }
@@ -163,24 +202,27 @@ type Root struct {
 	val FSNode
 
 	repub *Republisher
+
+	Type string
 }
 
 type PubFunc func(context.Context, key.Key) error
 
 // newRoot creates a new Root for the given key, and starts up a republisher routine
 // for it
-func (fs *Filesystem) newRoot(parent context.Context, node *dag.Node, pf PubFunc) (*Root, error) {
+func (fs *Filesystem) newRoot(parent context.Context, node *dag.Node, typ string, pf PubFunc) (*Root, error) {
 	ndk, err := node.Key()
 	if err != nil {
 		return nil, err
 	}
 
-	root := new(Root)
-	root.fs = fs
+	root := &Root{
+		fs:    fs,
+		node:  node,
+		Type:  typ,
+		repub: NewRepublisher(parent, pf, time.Millisecond*300, time.Second*3),
+	}
 
-	root.node = node
-
-	root.repub = NewRepublisher(parent, pf, time.Millisecond*300, time.Second*3)
 	root.repub.setVal(ndk)
 	go root.repub.Run()
 
@@ -208,8 +250,6 @@ func (fs *Filesystem) newRoot(parent context.Context, node *dag.Node, pf PubFunc
 func (kr *Root) GetValue() FSNode {
 	return kr.val
 }
-
-var _ FSNode = (*Root)(nil)
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published

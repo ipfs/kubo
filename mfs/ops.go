@@ -83,11 +83,10 @@ func Mkdir(mfs *Filesystem, path string, parents bool) error {
 		parts = parts[1:]
 	}
 
-	rootdi, err := mfs.GetRoot(parts[0])
+	rootdi, err := mfs.GetRoot("root")
 	if err != nil {
 		return err
 	}
-	parts = parts[1:]
 
 	cur := rootdi.GetValue().(*Directory)
 	for i, d := range parts[:len(parts)-1] {
@@ -130,6 +129,10 @@ func Lookup(mfs *Filesystem, path string) (FSNode, error) {
 		return nil, err
 	}
 
+	return rootLookup(r, path)
+}
+
+func rootLookup(r *Root, path string) (FSNode, error) {
 	dir, ok := r.GetValue().(*Directory)
 	if !ok {
 		return nil, errors.New("root was not a directory")
