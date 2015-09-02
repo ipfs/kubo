@@ -360,11 +360,13 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 	}
 
 	if s, ok := file.(*files.Symlink); ok {
-		dagnode := &dag.Node{
-			Data: ft.SymlinkData(s.Target),
+		sdata, err := ft.SymlinkData(s.Target)
+		if err != nil {
+			return nil, err
 		}
 
-		_, err := params.node.DAG.Add(dagnode)
+		dagnode := &dag.Node{Data: sdata}
+		_, err = params.node.DAG.Add(dagnode)
 		if err != nil {
 			return nil, err
 		}
