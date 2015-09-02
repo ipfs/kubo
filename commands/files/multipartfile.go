@@ -12,6 +12,8 @@ const (
 	multipartFormdataType = "multipart/form-data"
 	multipartMixedType    = "multipart/mixed"
 
+	applicationSymlink = "application/symlink"
+
 	contentTypeHeader = "Content-Type"
 )
 
@@ -31,7 +33,7 @@ func NewFileFromPart(part *multipart.Part) (File, error) {
 	}
 
 	contentType := part.Header.Get(contentTypeHeader)
-	if contentType == "symlink" {
+	if contentType == applicationSymlink {
 		out, err := ioutil.ReadAll(part)
 		if err != nil {
 			return nil, err

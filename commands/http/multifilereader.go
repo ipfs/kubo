@@ -69,8 +69,7 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 			if s, ok := file.(*files.Symlink); ok {
 				mfr.currentFile = s
 
-				// TODO(why): this is a hack. pick a real contentType
-				contentType = "symlink"
+				contentType = "application/symlink"
 			} else if file.IsDirectory() {
 				// if file is a directory, create a multifilereader from it
 				// (using 'multipart/mixed')

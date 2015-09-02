@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"syscall"
-	"time"
 
 	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
@@ -60,8 +59,6 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	log.Error("RESOLVE: ", name)
-	ctx, _ = context.WithTimeout(ctx, time.Second/2)
 	nd, err := s.Ipfs.Resolver.ResolvePath(ctx, path.Path(name))
 	if err != nil {
 		// todo: make this error more versatile.
@@ -100,35 +97,27 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	}
 	switch s.cached.GetType() {
 	case ftpb.Data_Directory:
-		*a = fuse.Attr{
-			Mode: os.ModeDir | 0555,
-			Uid:  uint32(os.Getuid()),
-			Gid:  uint32(os.Getgid()),
-		}
+		a.Mode = os.ModeDir | 0555
+		a.Uid = uint32(os.Getuid())
+		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_File:
 		size := s.cached.GetFilesize()
-		*a = fuse.Attr{
-			Mode:   0444,
-			Size:   uint64(size),
-			Blocks: uint64(len(s.Nd.Links)),
-			Uid:    uint32(os.Getuid()),
-			Gid:    uint32(os.Getgid()),
-		}
+		a.Mode = 0444
+		a.Size = uint64(size)
+		a.Blocks = uint64(len(s.Nd.Links))
+		a.Uid = uint32(os.Getuid())
+		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_Raw:
-		*a = fuse.Attr{
-			Mode:   0444,
-			Size:   uint64(len(s.cached.GetData())),
-			Blocks: uint64(len(s.Nd.Links)),
-			Uid:    uint32(os.Getuid()),
-			Gid:    uint32(os.Getgid()),
-		}
+		a.Mode = 0444
+		a.Size = uint64(len(s.cached.GetData()))
+		a.Blocks = uint64(len(s.Nd.Links))
+		a.Uid = uint32(os.Getuid())
+		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_Symlink:
-		*a = fuse.Attr{
-			Mode: 0777 | os.ModeSymlink,
-			Size: uint64(len(s.cached.GetData())),
-			Uid:  uint32(os.Getuid()),
-			Gid:  uint32(os.Getgid()),
-		}
+		a.Mode = 0777 | os.ModeSymlink
+		a.Size = uint64(len(s.cached.GetData()))
+		a.Uid = uint32(os.Getuid())
+		a.Gid = uint32(os.Getgid())
 
 	default:
 		return fmt.Errorf("Invalid data type - %s", s.cached.GetType())
