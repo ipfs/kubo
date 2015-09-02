@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -102,6 +104,16 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Incoming API request: ", r.URL)
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error(r)
+
+			buf := make([]byte, 4096)
+			n := runtime.Stack(buf, false)
+			fmt.Fprintln(os.Stderr, string(buf[:n]))
+		}
+	}()
 
 	if !allowOrigin(r, i.cfg) || !allowReferer(r, i.cfg) {
 		w.WriteHeader(http.StatusForbidden)
