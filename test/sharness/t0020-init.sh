@@ -58,11 +58,13 @@ test_expect_success "ipfs config succeeds" '
 	test_cmp expected_config actual_config
 '
 
+test_check_peerid() {
+	test $(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") = "46"
+}
+
 test_expect_success "ipfs peer id looks good" '
 	PEERID=$(ipfs config Identity.PeerID) &&
-	echo $PEERID | tr -dC "[:alnum:]" | wc -c | tr -d " " >actual_peerid &&
-	echo "46" >expected_peerid &&
-	test_cmp expected_peerid actual_peerid
+	test_check_peerid "$PEERID"
 '
 
 test_expect_success "ipfs init output looks good" '
@@ -90,9 +92,7 @@ test_expect_success "'ipfs init --empty-repo' succeeds" '
 
 test_expect_success "ipfs peer id looks good" '
 	PEERID=$(ipfs config Identity.PeerID) &&
-	echo $PEERID | tr -dC "[:alnum:]" | wc -c | tr -d " " >actual_peerid &&
-	echo "46" >expected_peerid &&
-	test_cmp expected_peerid actual_peerid
+	test_check_peerid "$PEERID"
 '
 
 test_expect_success "'ipfs init --empty-repo' output looks good" '
