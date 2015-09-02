@@ -12,20 +12,21 @@ test_init_ipfs
 differentport=$((PORT_API + 1))
 api_different="/ip4/127.0.0.1/tcp/$differentport"
 api_unreachable="/ip4/127.0.0.1/tcp/1"
-api_fromcfg=$(ipfs config Addresses.API)
-peerid=$(ipfs config Identity.PeerID)
+
+test_expect_success "config setup" '
+	api_fromcfg=$(ipfs config Addresses.API) &&
+	peerid=$(ipfs config Identity.PeerID)
+'
 
 test_client() {
-	args="$@"
-	printf $peerid >expected
-	ipfs $args id -f="<id>" >actual
+	printf "$peerid" >expected &&
+	ipfs "$@" id -f="<id>" >actual &&
 	test_cmp expected actual
 }
 
 test_client_must_fail() {
-	args="$@"
-	echo "Error: api not running" >expected_err
-	test_must_fail ipfs $args id -f="<id>" >actual 2>actual_err
+	echo "Error: api not running" >expected_err &&
+	test_must_fail ipfs "$@" id -f="<id>" >actual 2>actual_err &&
 	test_cmp expected_err actual_err
 }
 
