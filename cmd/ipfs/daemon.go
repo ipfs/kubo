@@ -204,7 +204,13 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 	if routingOption == routingOptionSupernodeKwd {
-		servers, err := repo.Config().SupernodeRouting.ServerIPFSAddrs()
+		rcfg, err := repo.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		servers, err := rcfg.SupernodeRouting.ServerIPFSAddrs()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			repo.Close() // because ownership hasn't been transferred to the node

@@ -136,7 +136,10 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	n.Reporter = metrics.NewBandwidthCounter()
 
 	// get undialable addrs from config
-	cfg := n.Repo.Config()
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
 	var addrfilter []*net.IPNet
 	for _, s := range cfg.Swarm.AddrFilters {
 		f, err := mamask.NewMask(s)
@@ -156,7 +159,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	// Ok, now we're ready to listen.
-	if err := startListening(ctx, n.PeerHost, n.Repo.Config()); err != nil {
+	if err := startListening(ctx, n.PeerHost, cfg); err != nil {
 		return err
 	}
 
@@ -325,7 +328,7 @@ func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 		cfg.BootstrapPeers = func() []peer.PeerInfo {
 			ps, err := n.loadBootstrapPeers()
 			if err != nil {
-				log.Warningf("failed to parse bootstrap peers from config: %s", n.Repo.Config().Bootstrap)
+				log.Warning("failed to parse bootstrap peers from config")
 				return nil
 			}
 			return ps
@@ -342,7 +345,12 @@ func (n *IpfsNode) loadID() error {
 		return errors.New("identity already loaded")
 	}
 
-	cid := n.Repo.Config().Identity.PeerID
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+
+	cid := cfg.Identity.PeerID
 	if cid == "" {
 		return errors.New("Identity was not set in config (was ipfs init run?)")
 	}
@@ -363,7 +371,12 @@ func (n *IpfsNode) LoadPrivateKey() error {
 		return errors.New("private key already loaded")
 	}
 
-	sk, err := loadPrivateKey(&n.Repo.Config().Identity, n.Identity)
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+
+	sk, err := loadPrivateKey(&cfg.Identity, n.Identity)
 	if err != nil {
 		return err
 	}
@@ -375,7 +388,12 @@ func (n *IpfsNode) LoadPrivateKey() error {
 }
 
 func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
-	parsed, err := n.Repo.Config().BootstrapPeers()
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	parsed, err := cfg.BootstrapPeers()
 	if err != nil {
 		return nil, err
 	}

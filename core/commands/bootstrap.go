@@ -72,7 +72,11 @@ in the bootstrap list).
 			return
 		}
 		defer r.Close()
-		cfg := r.Config()
+		cfg, err := r.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		deflt, _, err := req.Option("default").Bool()
 		if err != nil {
@@ -148,7 +152,11 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return
 		}
 		defer r.Close()
-		cfg := r.Config()
+		cfg, err := r.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		all, _, err := req.Option("all").Bool()
 		if err != nil {
@@ -197,7 +205,11 @@ var bootstrapListCmd = &cmds.Command{
 			return
 		}
 		defer r.Close()
-		cfg := r.Config()
+		cfg, err := r.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		peers, err := cfg.BootstrapPeers()
 		if err != nil {

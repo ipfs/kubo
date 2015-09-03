@@ -445,11 +445,8 @@ func (r *FSRepo) Close() error {
 	return nil
 }
 
-// Config returns the FSRepo's config. This method must not be called if the
-// repo is not open.
-//
 // Result when not Open is undefined. The method may panic if it pleases.
-func (r *FSRepo) Config() *config.Config {
+func (r *FSRepo) Config() (*config.Config, error) {
 
 	// It is not necessary to hold the package lock since the repo is in an
 	// opened state. The package lock is _not_ meant to ensure that the repo is
@@ -460,9 +457,9 @@ func (r *FSRepo) Config() *config.Config {
 	defer packageLock.Unlock()
 
 	if r.closed {
-		panic("repo is closed")
+		return nil, errors.New("cannot access config, repo not open")
 	}
-	return r.config
+	return r.config, nil
 }
 
 // setConfigUnsynced is for private use.

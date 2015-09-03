@@ -15,8 +15,8 @@ type Mock struct {
 	D ds.ThreadSafeDatastore
 }
 
-func (m *Mock) Config() *config.Config {
-	return &m.C // FIXME threadsafety
+func (m *Mock) Config() (*config.Config, error) {
+	return &m.C, nil // FIXME threadsafety
 }
 
 func (m *Mock) SetConfig(updated *config.Config) error {

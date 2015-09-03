@@ -70,7 +70,11 @@ func run() error {
 	if err != nil { // owned by node
 		return err
 	}
-	cfg := repo.Config()
+	cfg, err := repo.Config()
+	if err != nil {
+		return err
+	}
+
 	cfg.Bootstrap = servers
 	if err := repo.SetConfig(cfg); err != nil {
 		return err
@@ -236,7 +240,7 @@ func cmdCtx(node *core.IpfsNode, repoPath string) commands.Context {
 		Online:     true,
 		ConfigRoot: repoPath,
 		LoadConfig: func(path string) (*config.Config, error) {
-			return node.Repo.Config(), nil
+			return node.Repo.Config()
 		},
 		ConstructNode: func() (*core.IpfsNode, error) {
 			return node, nil

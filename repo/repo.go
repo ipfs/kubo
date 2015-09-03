@@ -14,7 +14,7 @@ var (
 )
 
 type Repo interface {
-	Config() *config.Config
+	Config() (*config.Config, error)
 	SetConfig(*config.Config) error
 
 	SetConfigKey(key string, value interface{}) error

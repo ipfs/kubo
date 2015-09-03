@@ -107,8 +107,12 @@ func commandsOption(cctx commands.Context, command *commands.Command) ServeOptio
 				AllowedMethods: []string{"GET", "POST", "PUT"},
 			},
 		}
+		rcfg, err := n.Repo.Config()
+		if err != nil {
+			return nil, err
+		}
 
-		addHeadersFromConfig(cfg, n.Repo.Config())
+		addHeadersFromConfig(cfg, rcfg)
 		addCORSFromEnv(cfg)
 		addCORSDefaults(cfg)
 		patchCORSVars(cfg, l.Addr())

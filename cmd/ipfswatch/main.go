@@ -192,7 +192,7 @@ func cmdCtx(node *core.IpfsNode, repoPath string) commands.Context {
 		Online:     true,
 		ConfigRoot: repoPath,
 		LoadConfig: func(path string) (*config.Config, error) {
-			return node.Repo.Config(), nil
+			return node.Repo.Config()
 		},
 		ConstructNode: func() (*core.IpfsNode, error) {
 			return node, nil
