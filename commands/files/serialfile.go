@@ -1,6 +1,7 @@
 package files
 
 import (
+	"fmt"
 	"io"
 	"os"
 	fp "path/filepath"
@@ -26,13 +27,18 @@ type serialFile struct {
 }
 
 func NewSerialFile(name, path string, stat os.FileInfo) (File, error) {
-	if stat.Mode()&os.ModeSymlink != 0 {
+	switch mode := stat.Mode(); {
+	case mode.IsDir() || mode.IsRegular():
+		break
+	case mode&os.ModeSymlink != 0:
 		target, err := os.Readlink(path)
 		if err != nil {
 			return nil, err
 		}
 
 		return NewLinkFile("", path, target, stat), nil
+	default:
+		return nil, fmt.Errorf("Unrecognized file type for %s: %s", stat.Name(), mode.String())
 	}
 
 	file, err := os.Open(path)
@@ -97,13 +103,18 @@ func (f *serialFile) NextFile() (File, error) {
 		return nil, err
 	}
 
-	if st.Mode()&os.ModeSymlink != 0 {
+	switch mode := st.Mode(); {
+	case mode.IsDir() || mode.IsRegular():
+		break
+	case mode&os.ModeSymlink != 0:
 		f.current = nil
 		target, err := os.Readlink(filePath)
 		if err != nil {
 			return nil, err
 		}
 		return NewLinkFile(fileName, filePath, target, st), nil
+	default:
+		return nil, fmt.Errorf("Unrecognized file type for %s: %s", st.Name(), mode.String())
 	}
 
 	file, err := os.Open(filePath)
