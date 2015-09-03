@@ -12,7 +12,6 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -87,7 +86,7 @@ Note: list all refs recursively with -r.
 			return
 		}
 
-		objs, err := objectsForPaths(ctx, n, req.Arguments())
+		objs, err := core.ResolveMany(ctx, n, req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -186,18 +185,6 @@ Displays the hashes of all local objects.
 
 		res.SetOutput(piper)
 	},
-}
-
-func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]*dag.Node, error) {
-	objects := make([]*dag.Node, len(paths))
-	for i, p := range paths {
-		o, err := core.Resolve(ctx, n, path.Path(p))
-		if err != nil {
-			return nil, err
-		}
-		objects[i] = o
-	}
-	return objects, nil
 }
 
 type RefWrapper struct {

@@ -55,3 +55,16 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, er
 	// ok, we have an ipfs path now (or what we'll treat as one)
 	return n.Resolver.ResolvePath(ctx, p)
 }
+
+// ResolveMany is Resolve for multiple paths
+func ResolveMany(ctx context.Context, n *IpfsNode, paths []string) ([]*merkledag.Node, error) {
+	objects := make([]*merkledag.Node, len(paths))
+	for i, p := range paths {
+		o, err := Resolve(ctx, n, path.Path(p))
+		if err != nil {
+			return nil, err
+		}
+		objects[i] = o
+	}
+	return objects, nil
+}
