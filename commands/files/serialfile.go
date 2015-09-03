@@ -149,31 +149,16 @@ func (f *serialFile) Stat() os.FileInfo {
 }
 
 func (f *serialFile) Size() (int64, error) {
-	return size(f.stat, f.FileName())
-}
-
-func size(stat os.FileInfo, filename string) (int64, error) {
-	if !stat.IsDir() {
-		return stat.Size(), nil
+	if !f.stat.IsDir() {
+		return f.stat.Size(), nil
 	}
 
-	file, err := os.Open(filename)
-	if err != nil {
-		return 0, err
-	}
-	files, err := file.Readdir(0)
-	if err != nil {
-		return 0, err
-	}
-	file.Close()
-
-	var output int64
-	for _, child := range files {
-		s, err := size(child, fp.Join(filename, child.Name()))
-		if err != nil {
-			return 0, err
+	var du int64
+	err := fp.Walk(f.FileName(), func(p string, fi os.FileInfo, err error) error {
+		if fi != nil && fi.Mode()&(os.ModeSymlink|os.ModeNamedPipe) == 0 {
+			du += fi.Size()
 		}
-		output += s
-	}
-	return output, nil
+		return nil
+	})
+	return du, err
 }
