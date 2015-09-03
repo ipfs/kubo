@@ -15,7 +15,7 @@ type listingTemplateData struct {
 }
 
 type directoryItem struct {
-	Size uint64
+	Size string
 	Name string
 	Path string
 }
@@ -23,7 +23,7 @@ type directoryItem struct {
 var listingTemplate *template.Template
 
 func init() {
-	assetPath := "../vendor/src/QmeNXKecZ7CQagtkQUJxG3yS7UcvU6puS777dQsx3amkS7/dir-index-html/"
+	assetPath := "../vendor/src/QmeMZwyPnHMkvgdUNtdNcTX425gTCi5DCMeHLwTXbKoUB8/dir-index-html/"
 	knownIconsBytes, err := assets.Asset(assetPath + "knownIcons.txt")
 	if err != nil {
 		panic(err)

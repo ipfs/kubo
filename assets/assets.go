@@ -29,8 +29,8 @@ func SeedInitDocs(nd *core.IpfsNode) (*key.Key, error) {
 }
 
 var initDirIndex = []string{
-	"../vendor/src/QmeNXKecZ7CQagtkQUJxG3yS7UcvU6puS777dQsx3amkS7/dir-index-html/knownIcons.txt",
-	"../vendor/src/QmeNXKecZ7CQagtkQUJxG3yS7UcvU6puS777dQsx3amkS7/dir-index-html/dir-index.html",
+	"../vendor/src/QmeMZwyPnHMkvgdUNtdNcTX425gTCi5DCMeHLwTXbKoUB8/dir-index-html/knownIcons.txt",
+	"../vendor/src/QmeMZwyPnHMkvgdUNtdNcTX425gTCi5DCMeHLwTXbKoUB8/dir-index-html/dir-index.html",
 }
 
 var initGwAssets = []string{
