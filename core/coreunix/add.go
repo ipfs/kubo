@@ -43,18 +43,18 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 
 // AddR recursively adds files in |path|.
 func AddR(n *core.IpfsNode, root string) (key string, err error) {
-	f, err := os.Open(root)
+	stat, err := os.Lstat(root)
+	if err != nil {
+		return "", err
+	}
+
+	f, err := files.NewSerialFile(root, root, stat)
 	if err != nil {
 		return "", err
 	}
 	defer f.Close()
 
-	ff, err := files.NewSerialFile(root, root, f)
-	if err != nil {
-		return "", err
-	}
-
-	dagnode, err := addFile(n, ff)
+	dagnode, err := addFile(n, f)
 	if err != nil {
 		return "", err
 	}

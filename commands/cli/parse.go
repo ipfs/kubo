@@ -356,21 +356,6 @@ func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recur
 		return nil, nil, err
 	}
 
-	if stat.Mode()&os.ModeSymlink != 0 {
-		target, err := os.Readlink(fpath)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		arg := files.NewLinkFile("", fpath, target, stat)
-		return append(args, arg), inputs[1:], nil
-	}
-
-	file, err := os.Open(fpath)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	if stat.IsDir() {
 		if !argDef.Recursive {
 			err = fmt.Errorf("Invalid path '%s', argument '%s' does not support directories",
@@ -384,7 +369,7 @@ func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recur
 		}
 	}
 
-	arg, err := files.NewSerialFile(path.Base(fpath), fpath, file)
+	arg, err := files.NewSerialFile(path.Base(fpath), fpath, stat)
 	if err != nil {
 		return nil, nil, err
 	}
