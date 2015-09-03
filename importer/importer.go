@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ipfs/go-ipfs/commands/files"
 	bal "github.com/ipfs/go-ipfs/importer/balanced"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
@@ -20,7 +21,7 @@ var log = u.Logger("importer")
 // Builds a DAG from the given file, writing created blocks to disk as they are
 // created
 func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*dag.Node, error) {
-	stat, err := os.Stat(fpath)
+	stat, err := os.Lstat(fpath)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +30,7 @@ func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*da
 		return nil, fmt.Errorf("`%s` is a directory", fpath)
 	}
 
-	f, err := os.Open(fpath)
+	f, err := files.NewSerialFile(fpath, fpath, stat)
 	if err != nil {
 		return nil, err
 	}
