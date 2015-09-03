@@ -17,7 +17,7 @@ func NewRabin(r io.Reader, avgBlkSize uint64) *Rabin {
 	min := avgBlkSize / 3
 	max := avgBlkSize + (avgBlkSize / 2)
 
-	return NewRabinMinMax(r, avgBlkSize, min, max)
+	return NewRabinMinMax(r, min, avgBlkSize, max)
 }
 
 func NewRabinMinMax(r io.Reader, min, avg, max uint64) *Rabin {
