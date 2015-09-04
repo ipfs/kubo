@@ -3,17 +3,11 @@ package files
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	fp "path/filepath"
-	"sort"
 	"syscall"
 )
-
-type sortFIByName []os.FileInfo
-
-func (es sortFIByName) Len() int           { return len(es) }
-func (es sortFIByName) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
-func (es sortFIByName) Less(i, j int) bool { return es[i].Name() < es[j].Name() }
 
 // serialFile implements File, and reads from a path on the OS filesystem.
 // No more than one file will be opened at a time (directories will advance
@@ -23,55 +17,34 @@ type serialFile struct {
 	path    string
 	files   []os.FileInfo
 	stat    os.FileInfo
-	current *os.File
+	current *File
 }
 
 func NewSerialFile(name, path string, stat os.FileInfo) (File, error) {
 	switch mode := stat.Mode(); {
-	case mode.IsDir() || mode.IsRegular():
-		break
+	case mode.IsRegular():
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		return NewReaderFile(name, path, file, stat), nil
+	case mode.IsDir():
+		// for directories, stat all of the contents first, so we know what files to
+		// open when NextFile() is called
+		contents, err := ioutil.ReadDir(path)
+		if err != nil {
+			return nil, err
+		}
+		return &serialFile{name, path, contents, stat, nil}, nil
 	case mode&os.ModeSymlink != 0:
 		target, err := os.Readlink(path)
 		if err != nil {
 			return nil, err
 		}
-
-		return NewLinkFile("", path, target, stat), nil
+		return NewLinkFile(name, path, target, stat), nil
 	default:
-		return nil, fmt.Errorf("Unrecognized file type for %s: %s", stat.Name(), mode.String())
+		return nil, fmt.Errorf("Unrecognized file type for %s: %s", name, mode.String())
 	}
-
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return newSerialFile(name, path, file, stat)
-}
-
-func newSerialFile(name, path string, file *os.File, stat os.FileInfo) (File, error) {
-	// for non-directories, return a ReaderFile
-	if !stat.IsDir() {
-		return &ReaderFile{name, path, file, stat}, nil
-	}
-
-	// for directories, stat all of the contents first, so we know what files to
-	// open when NextFile() is called
-	contents, err := file.Readdir(0)
-	if err != nil {
-		return nil, err
-	}
-
-	// we no longer need our root directory file (we already statted the contents),
-	// so close it
-	if err := file.Close(); err != nil {
-		return nil, err
-	}
-
-	// make sure contents are sorted so -- repeatably -- we get the same inputs.
-	sort.Sort(sortFIByName(contents))
-
-	return &serialFile{name, path, contents, stat, nil}, nil
 }
 
 func (f *serialFile) IsDirectory() bool {
@@ -98,36 +71,18 @@ func (f *serialFile) NextFile() (File, error) {
 	// open the next file
 	fileName := fp.Join(f.name, stat.Name())
 	filePath := fp.Join(f.path, stat.Name())
-	st, err := os.Lstat(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	switch mode := st.Mode(); {
-	case mode.IsDir() || mode.IsRegular():
-		break
-	case mode&os.ModeSymlink != 0:
-		f.current = nil
-		target, err := os.Readlink(filePath)
-		if err != nil {
-			return nil, err
-		}
-		return NewLinkFile(fileName, filePath, target, st), nil
-	default:
-		return nil, fmt.Errorf("Unrecognized file type for %s: %s", st.Name(), mode.String())
-	}
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	f.current = file
 
 	// recursively call the constructor on the next file
 	// if it's a regular file, we will open it as a ReaderFile
 	// if it's a directory, files in it will be opened serially
-	return newSerialFile(fileName, filePath, file, stat)
+	sf, err := NewSerialFile(fileName, filePath, stat)
+	if err != nil {
+		return nil, err
+	}
+
+	f.current = &sf
+
+	return sf, nil
 }
 
 func (f *serialFile) FileName() string {
@@ -145,7 +100,7 @@ func (f *serialFile) Read(p []byte) (int, error) {
 func (f *serialFile) Close() error {
 	// close the current file if there is one
 	if f.current != nil {
-		err := f.current.Close()
+		err := (*f.current).Close()
 		// ignore EINVAL error, the file might have already been closed
 		if err != nil && err != syscall.EINVAL {
 			return err
