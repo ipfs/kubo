@@ -96,19 +96,25 @@ func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (*blocks.Block, 
 	block, err := s.Blockstore.Get(k)
 	if err == nil {
 		return block, nil
+	}
+
+	if err == blockstore.ErrNotFound && s.Exchange != nil {
 		// TODO be careful checking ErrNotFound. If the underlying
 		// implementation changes, this will break.
-	} else if err == blockstore.ErrNotFound && s.Exchange != nil {
 		log.Debug("Blockservice: Searching bitswap.")
 		blk, err := s.Exchange.GetBlock(ctx, k)
 		if err != nil {
 			return nil, err
 		}
 		return blk, nil
-	} else {
-		log.Debug("Blockservice GetBlock: Not found.")
+	}
+
+	log.Debug("Blockservice GetBlock: Not found.")
+	if err == blockstore.ErrNotFound {
 		return nil, ErrNotFound
 	}
+
+	return nil, err
 }
 
 // GetBlocks gets a list of blocks asynchronously and returns through
