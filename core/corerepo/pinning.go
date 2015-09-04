@@ -41,10 +41,7 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 			return nil, err
 		}
 
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-		err = n.Pinning.Pin(ctx, dagnode, recursive)
-		if err != nil {
+		if err := n.Pinning.Pin(ctx, dagnode, recursive); err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
 		out = append(out, k)
