@@ -330,3 +330,17 @@ disk_usage() {
     esac
         $DU "$1" | awk "{print \$1}"
 }
+
+# output a file's permission in human readable format
+generic_stat() {
+    # normalize stat across systems
+    case $(uname -s) in
+        Linux)
+            _STAT="stat -c %A"
+            ;;
+        FreeBSD | Darwin | DragonFly)
+            _STAT="stat -f %Sp"
+            ;;
+    esac
+    $_STAT "$1"
+}

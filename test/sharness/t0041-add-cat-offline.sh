@@ -8,6 +8,10 @@ test_description="Test add and cat commands"
 
 . lib/test-lib.sh
 
+client_err() {
+    printf "$@\n\nUse 'ipfs add --help' for information about this command\n"
+}
+
 test_init_ipfs
 
 test_expect_success "ipfs add file succeeds" '
@@ -51,6 +55,21 @@ test_expect_success "ipfs add --only-hash succeeds" '
 
 test_expect_success "ipfs cat file fails" '
 	test_must_fail ipfs cat $(cat oh_hash)
+'
+
+test_expect_success "useful error message when adding a named pipe" '
+	mkfifo named-pipe &&
+	test_expect_code 1 ipfs add named-pipe 2>actual &&
+    client_err "Error: Unrecognized file type for named-pipe: $(generic_stat named-pipe)" >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "useful error message when recursively adding a named pipe" '
+	mkdir named-pipe-dir &&
+	mkfifo named-pipe-dir/named-pipe &&
+	test_expect_code 1 ipfs add -r named-pipe-dir 2>actual &&
+    printf "Error: Unrecognized file type for named-pipe-dir/named-pipe: $(generic_stat named-pipe-dir/named-pipe)\n" >expected &&
+	test_cmp expected actual
 '
 
 test_done
