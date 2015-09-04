@@ -1,4 +1,4 @@
-package http
+package files
 
 import (
 	"bytes"
@@ -8,8 +8,6 @@ import (
 	"net/textproto"
 	"net/url"
 	"sync"
-
-	files "github.com/ipfs/go-ipfs/commands/files"
 )
 
 // MultiFileReader reads from a `commands.File` (which can be a directory of files
@@ -17,7 +15,7 @@ import (
 type MultiFileReader struct {
 	io.Reader
 
-	files       files.File
+	files       File
 	currentFile io.Reader
 	buf         bytes.Buffer
 	mpWriter    *multipart.Writer
@@ -32,7 +30,7 @@ type MultiFileReader struct {
 // NewMultiFileReader constructs a MultiFileReader. `file` can be any `commands.File`.
 // If `form` is set to true, the multipart data will have a Content-Type of 'multipart/form-data',
 // if `form` is false, the Content-Type will be 'multipart/mixed'.
-func NewMultiFileReader(file files.File, form bool) *MultiFileReader {
+func NewMultiFileReader(file File, form bool) *MultiFileReader {
 	mfr := &MultiFileReader{
 		files: file,
 		form:  form,
@@ -66,7 +64,7 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 		if !mfr.closed {
 
 			var contentType string
-			if s, ok := file.(*files.Symlink); ok {
+			if s, ok := file.(*Symlink); ok {
 				mfr.currentFile = s
 
 				contentType = "application/symlink"
