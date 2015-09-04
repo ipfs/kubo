@@ -235,8 +235,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 		for i, pi := range pis {
 			output[i] = "connect " + pi.ID.Pretty()
 
-			err := n.PeerHost.Connect(ctx, pi)
-			if err != nil {
+			if err := n.PeerHost.Connect(ctx, pi); err != nil {
 				output[i] += " failure: " + err.Error()
 			} else {
 				output[i] += " success"

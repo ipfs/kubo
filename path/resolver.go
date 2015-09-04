@@ -4,7 +4,6 @@ package path
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -129,8 +128,6 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 
 		if nlink.Node == nil {
 			// fetch object for link and assign to nd
-			ctx, cancel := context.WithTimeout(ctx, time.Minute)
-			defer cancel()
 			var err error
 			nd, err = s.DAG.Get(ctx, next)
 			if err != nil {

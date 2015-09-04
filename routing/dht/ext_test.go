@@ -45,7 +45,8 @@ func TestGetFailures(t *testing.T) {
 	})
 
 	// This one should time out
-	ctx1, _ := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	ctx1, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
 	if _, err := d.GetValue(ctx1, key.Key("test")); err != nil {
 		if merr, ok := err.(u.MultiErr); ok && len(merr) > 0 {
 			err = merr[0]
@@ -85,9 +86,9 @@ func TestGetFailures(t *testing.T) {
 	// the dht should be exhausting its query and returning not found.
 	// (was 3 seconds before which should be _plenty_ of time, but maybe
 	// travis machines really have a hard time...)
-	ctx2, _ := context.WithTimeout(context.Background(), 20*time.Second)
-	_, err = d.GetValue(ctx2, key.Key("test"))
-	if err != nil {
+	ctx2, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if _, err := d.GetValue(ctx2, key.Key("test")); err != nil {
 		if merr, ok := err.(u.MultiErr); ok && len(merr) > 0 {
 			err = merr[0]
 		}
