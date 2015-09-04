@@ -80,6 +80,8 @@ func (ids *IDService) IdentifyConn(c inet.Conn) {
 	if err != nil {
 		log.Debugf("error opening initial stream for %s", ID)
 		log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer())
+		c.Close()
+		return
 	} else {
 		bwc := ids.Host.GetBandwidthReporter()
 		s = mstream.WrapStream(s, ID, bwc)
@@ -88,6 +90,9 @@ func (ids *IDService) IdentifyConn(c inet.Conn) {
 		if err := protocol.WriteHeader(s, ID); err != nil {
 			log.Debugf("error writing stream header for %s", ID)
 			log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer())
+			s.Close()
+			c.Close()
+			return
 		}
 		ids.ResponseHandler(s)
 	}

@@ -111,10 +111,8 @@ func TestNotifications(t *testing.T) {
 		}
 	}
 
-	streams := make(chan inet.Stream)
 	for _, s := range nets {
 		s.SetStreamHandler(func(s inet.Stream) {
-			streams <- s
 			s.Close()
 		})
 	}
@@ -123,10 +121,17 @@ func TestNotifications(t *testing.T) {
 	// unsure where these are coming from
 	for i := range nets {
 		n := notifiees[i]
-		testOCStream(n, nil)
-		testOCStream(n, nil)
-		testOCStream(n, nil)
-		testOCStream(n, nil)
+		for j := 0; j < len(nets)-1; j++ {
+			testOCStream(n, nil)
+		}
+	}
+
+	streams := make(chan inet.Stream)
+	for _, s := range nets {
+		s.SetStreamHandler(func(s inet.Stream) {
+			streams <- s
+			s.Close()
+		})
 	}
 
 	// open a streams in each conn
