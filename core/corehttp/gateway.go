@@ -30,7 +30,12 @@ func NewGateway(conf GatewayConfig) *Gateway {
 func (g *Gateway) ServeOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		// pass user's HTTP headers
-		g.Config.Headers = n.Repo.Config().Gateway.HTTPHeaders
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			return nil, err
+		}
+
+		g.Config.Headers = cfg.Gateway.HTTPHeaders
 
 		gateway, err := newGatewayHandler(n, g.Config)
 		if err != nil {
