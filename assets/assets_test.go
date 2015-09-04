@@ -12,10 +12,6 @@ func TestEmbeddedDocs(t *testing.T) {
 	testNFiles(initDocPaths, 6, t, "documents")
 }
 
-func TestGatewayAssets(t *testing.T) {
-	testNFiles(initGwAssets, 2, t, "assets")
-}
-
 func TestDirIndex(t *testing.T) {
 	testNFiles(initDirIndex, 2, t, "assets")
 }

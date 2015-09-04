@@ -1,10 +1,11 @@
 package corehttp
 
 import (
-	"github.com/ipfs/go-ipfs/assets"
 	"html/template"
 	"path"
 	"strings"
+
+	"github.com/ipfs/go-ipfs/assets"
 )
 
 // structs for directory listing
@@ -23,7 +24,7 @@ type directoryItem struct {
 var listingTemplate *template.Template
 
 func init() {
-	assetPath := "../vendor/src/QmeMZwyPnHMkvgdUNtdNcTX425gTCi5DCMeHLwTXbKoUB8/dir-index-html/"
+	assetPath := "../vendor/dir-index-html-v1.0.0/"
 	knownIconsBytes, err := assets.Asset(assetPath + "knownIcons.txt")
 	if err != nil {
 		panic(err)
