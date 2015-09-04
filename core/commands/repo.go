@@ -90,6 +90,7 @@ order to reclaim hard disk space.
 			return &cmds.ChannelMarshaler{
 				Channel:   outChan,
 				Marshaler: marshal,
+				Res:       res,
 			}, nil
 		},
 	},
