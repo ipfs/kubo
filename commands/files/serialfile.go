@@ -17,7 +17,10 @@ type serialFile struct {
 	path    string
 	files   []os.FileInfo
 	stat    os.FileInfo
-	current *File
+	current File
+
+	next    chan File
+	openErr chan error
 }
 
 func NewSerialFile(name, path string, stat os.FileInfo) (File, error) {
@@ -35,7 +38,17 @@ func NewSerialFile(name, path string, stat os.FileInfo) (File, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &serialFile{name, path, contents, stat, nil}, nil
+		sf := &serialFile{
+			name:    name,
+			path:    path,
+			files:   contents,
+			stat:    stat,
+			next:    make(chan File, 1),
+			openErr: make(chan error, 1),
+		}
+		go sf.asyncFileLoader()
+		return sf, nil
+
 	case mode&os.ModeSymlink != 0:
 		target, err := os.Readlink(path)
 		if err != nil {
@@ -44,6 +57,26 @@ func NewSerialFile(name, path string, stat os.FileInfo) (File, error) {
 		return NewLinkFile(name, path, target, stat), nil
 	default:
 		return nil, fmt.Errorf("Unrecognized file type for %s: %s", name, mode.String())
+	}
+}
+
+func (f *serialFile) asyncFileLoader() {
+	defer close(f.next)
+
+	for _, stat := range f.files {
+		fileName := fp.Join(f.name, stat.Name())
+		filePath := fp.Join(f.path, stat.Name())
+
+		// recursively call the constructor on the next file
+		// if it's a regular file, we will open it as a ReaderFile
+		// if it's a directory, files in it will be opened serially
+		sf, err := NewSerialFile(fileName, filePath, stat)
+		if err != nil {
+			f.openErr <- err
+			return
+		}
+
+		f.next <- sf
 	}
 }
 
@@ -60,29 +93,17 @@ func (f *serialFile) NextFile() (File, error) {
 		return nil, err
 	}
 
-	// if there aren't any files left in the root directory, we're done
-	if len(f.files) == 0 {
-		return nil, io.EOF
-	}
+	select {
+	case fi, ok := <-f.next:
+		if !ok {
+			return nil, io.EOF
+		}
+		f.current = fi
+		return fi, nil
 
-	stat := f.files[0]
-	f.files = f.files[1:]
-
-	// open the next file
-	fileName := fp.Join(f.name, stat.Name())
-	filePath := fp.Join(f.path, stat.Name())
-
-	// recursively call the constructor on the next file
-	// if it's a regular file, we will open it as a ReaderFile
-	// if it's a directory, files in it will be opened serially
-	sf, err := NewSerialFile(fileName, filePath, stat)
-	if err != nil {
+	case err := <-f.openErr:
 		return nil, err
 	}
-
-	f.current = &sf
-
-	return sf, nil
 }
 
 func (f *serialFile) FileName() string {
@@ -100,7 +121,7 @@ func (f *serialFile) Read(p []byte) (int, error) {
 func (f *serialFile) Close() error {
 	// close the current file if there is one
 	if f.current != nil {
-		err := (*f.current).Close()
+		err := f.current.Close()
 		// ignore EINVAL error, the file might have already been closed
 		if err != nil && err != syscall.EINVAL {
 			return err
