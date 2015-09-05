@@ -57,6 +57,7 @@ var marshallers = map[EncodingType]Marshaler{
 			return &ChannelMarshaler{
 				Channel:   ch,
 				Marshaler: marshalJson,
+				Res:       res,
 			}, nil
 		}
 

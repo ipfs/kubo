@@ -131,6 +131,7 @@ var queryDhtCmd = &cmds.Command{
 			return &cmds.ChannelMarshaler{
 				Channel:   outChan,
 				Marshaler: marshal,
+				Res:       res,
 			}, nil
 		},
 	},
@@ -249,6 +250,7 @@ FindProviders will return a list of peers who are able to provide the value requ
 			return &cmds.ChannelMarshaler{
 				Channel:   outChan,
 				Marshaler: marshal,
+				Res:       res,
 			}, nil
 		},
 	},
@@ -354,6 +356,7 @@ var findPeerDhtCmd = &cmds.Command{
 			return &cmds.ChannelMarshaler{
 				Channel:   outChan,
 				Marshaler: marshal,
+				Res:       res,
 			}, nil
 		},
 	},
@@ -461,6 +464,7 @@ GetValue will return the value stored in the dht at the given key.
 			return &cmds.ChannelMarshaler{
 				Channel:   outChan,
 				Marshaler: marshal,
+				Res:       res,
 			}, nil
 		},
 	},
@@ -571,6 +575,7 @@ PutValue will store the given key value pair in the dht.
 			return &cmds.ChannelMarshaler{
 				Channel:   outChan,
 				Marshaler: marshal,
+				Res:       res,
 			}, nil
 		},
 	},

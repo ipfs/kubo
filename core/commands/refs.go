@@ -141,6 +141,7 @@ Note: list all refs recursively with -r.
 			return &cmds.ChannelMarshaler{
 				Channel:   outChan,
 				Marshaler: marshal,
+				Res:       res,
 			}, nil
 		},
 	},

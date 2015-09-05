@@ -167,6 +167,7 @@ var statBwCmd = &cmds.Command{
 			return &cmds.ChannelMarshaler{
 				Channel:   outCh,
 				Marshaler: marshal,
+				Res:       res,
 			}, nil
 		},
 	},

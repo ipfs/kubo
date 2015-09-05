@@ -71,6 +71,7 @@ trip latency information.
 			return &cmds.ChannelMarshaler{
 				Channel:   outChan,
 				Marshaler: marshal,
+				Res:       res,
 			}, nil
 		},
 	},
