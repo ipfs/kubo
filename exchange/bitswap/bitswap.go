@@ -9,6 +9,7 @@ import (
 	"time"
 
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	procctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -68,15 +69,6 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		return nil
 	})
 
-	go func() {
-		<-px.Closing() // process closes first
-		cancelFunc()
-	}()
-	go func() {
-		<-ctx.Done() // parent cancelled first
-		px.Close()
-	}()
-
 	bs := &Bitswap{
 		self:          p,
 		blockstore:    bstore,
@@ -94,6 +86,15 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 
 	// Start up bitswaps async worker routines
 	bs.startWorkers(px, ctx)
+
+	// bind the context and process.
+	// do it over here to avoid closing before all setup is done.
+	go func() {
+		<-px.Closing() // process closes first
+		cancelFunc()
+	}()
+	procctx.CloseAfterContext(px, ctx) // parent cancelled first
+
 	return bs
 }
 
