@@ -9,8 +9,9 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	files "github.com/ipfs/go-ipfs/commands/files"
 	u "github.com/ipfs/go-ipfs/util"
+
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multipart-files"
 )
 
 // Parse parses the input commandline string (cmd, flags, and args).

@@ -15,6 +15,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multipart-files"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -73,11 +74,11 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		return nil, err
 	}
 
-	var fileReader *MultiFileReader
+	var fileReader *files.MultiFileReader
 	var reader io.Reader
 
 	if req.Files() != nil {
-		fileReader = NewMultiFileReader(req.Files(), true)
+		fileReader = files.NewMultiFileReader(req.Files(), true)
 		reader = fileReader
 	} else {
 		// if we have no file data, use an empty Reader

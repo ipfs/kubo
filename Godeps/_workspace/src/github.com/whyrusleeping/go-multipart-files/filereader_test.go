@@ -1,4 +1,4 @@
-package http
+package files
 
 import (
 	"io"
@@ -6,21 +6,19 @@ import (
 	"mime/multipart"
 	"strings"
 	"testing"
-
-	files "github.com/ipfs/go-ipfs/commands/files"
 )
 
 func TestOutput(t *testing.T) {
 	text := "Some text! :)"
-	fileset := []files.File{
-		files.NewReaderFile("file.txt", "file.txt", ioutil.NopCloser(strings.NewReader(text)), nil),
-		files.NewSliceFile("boop", "boop", []files.File{
-			files.NewReaderFile("boop/a.txt", "boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep")), nil),
-			files.NewReaderFile("boop/b.txt", "boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop")), nil),
+	fileset := []File{
+		NewReaderFile("file.txt", "file.txt", ioutil.NopCloser(strings.NewReader(text)), nil),
+		NewSliceFile("boop", "boop", []File{
+			NewReaderFile("boop/a.txt", "boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep")), nil),
+			NewReaderFile("boop/b.txt", "boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop")), nil),
 		}),
-		files.NewReaderFile("beep.txt", "beep.txt", ioutil.NopCloser(strings.NewReader("beep")), nil),
+		NewReaderFile("beep.txt", "beep.txt", ioutil.NopCloser(strings.NewReader("beep")), nil),
 	}
-	sf := files.NewSliceFile("", "", fileset)
+	sf := NewSliceFile("", "", fileset)
 	buf := make([]byte, 20)
 
 	// testing output by reading it with the go stdlib "mime/multipart" Reader
@@ -31,7 +29,7 @@ func TestOutput(t *testing.T) {
 	if part == nil || err != nil {
 		t.Error("Expected non-nil part, nil error")
 	}
-	mpf, err := files.NewFileFromPart(part)
+	mpf, err := NewFileFromPart(part)
 	if mpf == nil || err != nil {
 		t.Error("Expected non-nil MultipartFile, nil error")
 	}
@@ -52,7 +50,7 @@ func TestOutput(t *testing.T) {
 	if part == nil || err != nil {
 		t.Error("Expected non-nil part, nil error")
 	}
-	mpf, err = files.NewFileFromPart(part)
+	mpf, err = NewFileFromPart(part)
 	if mpf == nil || err != nil {
 		t.Error("Expected non-nil MultipartFile, nil error")
 	}
@@ -94,7 +92,7 @@ func TestOutput(t *testing.T) {
 	if part == nil || err != nil {
 		t.Error("Expected non-nil part, nil error")
 	}
-	mpf, err = files.NewFileFromPart(part)
+	mpf, err = NewFileFromPart(part)
 	if mpf == nil || err != nil {
 		t.Error("Expected non-nil MultipartFile, nil error")
 	}

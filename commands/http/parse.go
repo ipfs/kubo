@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	files "github.com/ipfs/go-ipfs/commands/files"
+
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multipart-files"
 )
 
 // Parse parses the data in a http.Request and returns a command Request object
