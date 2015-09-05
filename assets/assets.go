@@ -1,4 +1,5 @@
-//go:generate go-bindata -pkg=assets init-doc
+//go:generate go-bindata -pkg=assets init-doc ../vendor/dir-index-html-v1.0.0
+//go:generate gofmt -w bindata.go
 
 package assets
 
@@ -29,18 +30,12 @@ func SeedInitDocs(nd *core.IpfsNode) (*key.Key, error) {
 }
 
 var initDirIndex = []string{
-	"../vendor/src/QmeMZwyPnHMkvgdUNtdNcTX425gTCi5DCMeHLwTXbKoUB8/dir-index-html/knownIcons.txt",
-	"../vendor/src/QmeMZwyPnHMkvgdUNtdNcTX425gTCi5DCMeHLwTXbKoUB8/dir-index-html/dir-index.html",
+	"../vendor/dir-index-html-v1.0.0/knownIcons.txt",
+	"../vendor/dir-index-html-v1.0.0/dir-index.html",
 }
 
-var initGwAssets = []string{
-	"gw-assets/icons.css",
-	"gw-assets/bootstrap.min.css",
-}
-
-// SeedGatewayAssets adds the list of embedded gateway inidex assets to the passed node, pins it and returns the root key
-func SeedGatewayAssets(nd *core.IpfsNode) (*key.Key, error) {
-	return addAssetList(nd, initGwAssets)
+func SeedInitDirIndex(nd *core.IpfsNode) (*key.Key, error) {
+	return addAssetList(nd, initDirIndex)
 }
 
 func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {

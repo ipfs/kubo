@@ -172,16 +172,11 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 	}
 	defer nd.Close()
 
-	gwAkey, err := assets.SeedGatewayAssets(nd)
-	if err != nil {
-		return fmt.Errorf("init: seeding init docs failed: %s", err)
-	}
-	log.Debugf("init: seeded gateway assets %s", gwAkey)
-
 	dkey, err := assets.SeedInitDocs(nd)
 	if err != nil {
 		return fmt.Errorf("init: seeding init docs failed: %s", err)
 	}
+	log.Debugf("init: seeded init docs %s", dkey)
 
 	if _, err = fmt.Fprintf(out, "to get started, enter:\n"); err != nil {
 		return err
