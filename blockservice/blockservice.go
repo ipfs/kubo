@@ -104,6 +104,9 @@ func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (*blocks.Block, 
 		log.Debug("Blockservice: Searching bitswap.")
 		blk, err := s.Exchange.GetBlock(ctx, k)
 		if err != nil {
+			if err == blockstore.ErrNotFound {
+				return nil, ErrNotFound
+			}
 			return nil, err
 		}
 		return blk, nil

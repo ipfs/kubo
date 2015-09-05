@@ -41,7 +41,11 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.Node, cs []*Cha
 	for _, c := range cs {
 		switch c.Type {
 		case Add:
-			err := e.InsertNodeAtPath(ctx, c.Path, c.After, nil)
+			child, err := ds.Get(ctx, c.After)
+			if err != nil {
+				return nil, err
+			}
+			err = e.InsertNodeAtPath(ctx, c.Path, child, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -57,7 +61,11 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.Node, cs []*Cha
 			if err != nil {
 				return nil, err
 			}
-			err = e.InsertNodeAtPath(ctx, c.Path, c.After, nil)
+			child, err := ds.Get(ctx, c.After)
+			if err != nil {
+				return nil, err
+			}
+			err = e.InsertNodeAtPath(ctx, c.Path, child, nil)
 			if err != nil {
 				return nil, err
 			}

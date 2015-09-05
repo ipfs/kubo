@@ -23,7 +23,7 @@ func TestAddLink(t *testing.T) {
 	}
 
 	nd := new(dag.Node)
-	nnode, err := addLink(context.Background(), ds, nd, "fish", fk)
+	nnode, err := addLink(context.Background(), ds, nd, "fish", fishnode)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func testInsert(t *testing.T, e *Editor, path, data string, create bool, experr 
 		}
 	}
 
-	err = e.InsertNodeAtPath(context.Background(), path, ck, c)
+	err = e.InsertNodeAtPath(context.Background(), path, child, c)
 	if experr != "" {
 		var got string
 		if err != nil {
