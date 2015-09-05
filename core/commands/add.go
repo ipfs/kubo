@@ -342,7 +342,6 @@ func (params *adder) RootNode() (*dag.Node, error) {
 	if !params.wrap && len(r.Links) == 1 {
 		var err error
 		r, err = r.Links[0].GetNode(params.ctx, params.editor.GetDagService())
-		log.Error("ERR: ", err)
 		// no need to output, as we've already done so.
 		return r, err
 	}
