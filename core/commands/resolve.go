@@ -4,8 +4,8 @@ import (
 	"io"
 	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	cmds "github.com/ipfs/go-ipfs/commands"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
@@ -84,17 +84,22 @@ Resolve the value of an IPFS DAG path:
 			depth = namesys.DefaultDepthLimit
 		}
 
+		// for /ipfs/ paths, just parse the path
+		// for /ipns/ paths, resolve into a /ipfs/ path
+		var p path.Path
 		if strings.HasPrefix(name, "/ipfs/") || !strings.HasPrefix(name, "/") {
-			resolved, err := resolveIpfsPath(req.Context(), n.Resolver, name)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&ResolvedPath{resolved})
+			p, err = path.ParsePath(name)
+		} else {
+			p, err = n.Namesys.ResolveN(req.Context(), name, depth)
+		}
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		output, err := n.Namesys.ResolveN(req.Context(), name, depth)
+		// now fully resolve the /ipfs/ path
+		// (walk DAG links if there is a path of link names)
+		output, err := resolveIpfsPath(req.Context(), n.Resolver, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -114,12 +119,7 @@ Resolve the value of an IPFS DAG path:
 	Type: ResolvedPath{},
 }
 
-func resolveIpfsPath (ctx context.Context, r *path.Resolver, name string) (path.Path, error) {
-	p, err := path.ParsePath(name)
-	if err != nil {
-		return "", err
-	}
-
+func resolveIpfsPath(ctx context.Context, r *path.Resolver, p path.Path) (path.Path, error) {
 	node, err := r.ResolvePath(ctx, p)
 	if err != nil {
 		return "", err
