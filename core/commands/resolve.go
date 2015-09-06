@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
@@ -78,6 +79,16 @@ Resolve the value of another name recursively:
 			depth = namesys.DefaultDepthLimit
 		}
 
+		if strings.HasPrefix(name, "/ipfs/") || !strings.HasPrefix(name, "/") {
+			resolved, err := resolveIpfsPath(req.Context(), n.Resolver, name)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(&ResolvedPath{resolved})
+			return
+		}
+
 		output, err := n.Namesys.ResolveN(req.Context(), name, depth)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -96,4 +107,23 @@ Resolve the value of another name recursively:
 		},
 	},
 	Type: ResolvedPath{},
+}
+
+func resolveIpfsPath (ctx context.Context, r *path.Resolver, name string) (path.Path, error) {
+	p, err := path.ParsePath(name)
+	if err != nil {
+		return "", err
+	}
+
+	node, err := r.ResolvePath(ctx, p)
+	if err != nil {
+		return "", err
+	}
+
+	key, err := node.Key()
+	if err != nil {
+		return "", err
+	}
+
+	return path.FromKey(key), nil
 }
