@@ -171,7 +171,7 @@ func (tl *prq) UpdatePeer(pid peer.ID) {
 }
 
 func (tl *prq) block(partner *activePartner) {
-	time.AfterFunc(PEER_BLOCK_TIME, func() {
+	time.AfterFunc(PeerBlockTime, func() {
 		tl.pQueue.Push(partner)
 	})
 }
