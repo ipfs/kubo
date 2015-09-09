@@ -85,7 +85,7 @@ type dhtQueryRunner struct {
 
 func newQueryRunner(q *dhtQuery) *dhtQueryRunner {
 	proc := process.WithParent(process.Background())
-	ctx := ctxproc.WithProcessClosing(context.Background(), proc)
+	ctx := ctxproc.OnClosingContext(proc)
 	return &dhtQueryRunner{
 		query:          q,
 		peersToQuery:   queue.NewChanQueue(ctx, queue.NewXORDistancePQ(q.key)),
@@ -210,7 +210,7 @@ func (r *dhtQueryRunner) queryPeer(proc process.Process, p peer.ID) {
 	// ok let's do this!
 
 	// create a context from our proc.
-	ctx := ctxproc.WithProcessClosing(context.Background(), proc)
+	ctx := ctxproc.OnClosingContext(proc)
 
 	// make sure we do this when we exit
 	defer func() {

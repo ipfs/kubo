@@ -51,7 +51,7 @@ func TestGetFailures(t *testing.T) {
 			err = merr[0]
 		}
 
-		if err != context.DeadlineExceeded && err != context.Canceled {
+		if err.Error() != "process closing" {
 			t.Fatal("Got different error than we expected", err)
 		}
 	} else {

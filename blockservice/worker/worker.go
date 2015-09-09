@@ -7,11 +7,11 @@ import (
 	"time"
 
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	procctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	ratelimit "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	exchange "github.com/ipfs/go-ipfs/exchange"
-	waitable "github.com/ipfs/go-ipfs/thirdparty/waitable"
 	util "github.com/ipfs/go-ipfs/util"
 )
 
@@ -121,7 +121,7 @@ func (w *Worker) start(c Config) {
 	// reads from |workerChan| until w.process closes
 	limiter := ratelimit.NewRateLimiter(w.process, c.NumWorkers)
 	limiter.Go(func(proc process.Process) {
-		ctx := waitable.Context(proc) // shut down in-progress HasBlock when time to die
+		ctx := procctx.OnClosingContext(proc) // shut down in-progress HasBlock when time to die
 		for {
 			select {
 			case <-proc.Closing():

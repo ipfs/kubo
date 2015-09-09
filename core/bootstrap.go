@@ -79,7 +79,7 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 
 	// the periodic bootstrap function -- the connection supervisor
 	periodic := func(worker goprocess.Process) {
-		ctx := procctx.WithProcessClosing(context.Background(), worker)
+		ctx := procctx.OnClosingContext(worker)
 		defer log.EventBegin(ctx, "periodicBootstrap", n.Identity).Done()
 
 		if err := bootstrapRound(ctx, n.PeerHost, cfg); err != nil {
@@ -96,7 +96,7 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 
 	// kick off Routing.Bootstrap
 	if n.Routing != nil {
-		ctx := procctx.WithProcessClosing(context.Background(), proc)
+		ctx := procctx.OnClosingContext(proc)
 		if err := n.Routing.Bootstrap(ctx); err != nil {
 			proc.Close()
 			return nil, err
