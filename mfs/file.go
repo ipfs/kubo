@@ -1,4 +1,4 @@
-package ipnsfs
+package mfs
 
 import (
 	"sync"
@@ -12,7 +12,6 @@ import (
 
 type File struct {
 	parent childCloser
-	fs     *Filesystem
 
 	name       string
 	hasChanges bool
@@ -22,14 +21,13 @@ type File struct {
 }
 
 // NewFile returns a NewFile object with the given parameters
-func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*File, error) {
-	dmod, err := mod.NewDagModifier(context.Background(), node, fs.dserv, fs.pins, chunk.DefaultSplitter)
+func NewFile(name string, node *dag.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
+	dmod, err := mod.NewDagModifier(context.Background(), node, dserv, chunk.DefaultSplitter)
 	if err != nil {
 		return nil, err
 	}
 
 	return &File{
-		fs:     fs,
 		parent: parent,
 		name:   name,
 		mod:    dmod,

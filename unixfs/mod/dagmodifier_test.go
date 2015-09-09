@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"testing"
 
@@ -17,8 +16,6 @@ import (
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
-	pin "github.com/ipfs/go-ipfs/pin"
-	gc "github.com/ipfs/go-ipfs/pin/gc"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "github.com/ipfs/go-ipfs/util"
@@ -27,25 +24,24 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-func getMockDagServ(t testing.TB) (mdag.DAGService, pin.Pinner) {
+func getMockDagServ(t testing.TB) mdag.DAGService {
+	dstore := ds.NewMapDatastore()
+	tsds := sync.MutexWrap(dstore)
+	bstore := blockstore.NewBlockstore(tsds)
+	bserv := bs.New(bstore, offline.Exchange(bstore))
+	return mdag.NewDAGService(bserv)
+}
+
+func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlockstore) {
 	dstore := ds.NewMapDatastore()
 	tsds := sync.MutexWrap(dstore)
 	bstore := blockstore.NewBlockstore(tsds)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
 	dserv := mdag.NewDAGService(bserv)
-	return dserv, pin.NewPinner(tsds, dserv)
+	return dserv, bstore
 }
 
-func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlockstore, pin.Pinner) {
-	dstore := ds.NewMapDatastore()
-	tsds := sync.MutexWrap(dstore)
-	bstore := blockstore.NewBlockstore(tsds)
-	bserv := bs.New(bstore, offline.Exchange(bstore))
-	dserv := mdag.NewDAGService(bserv)
-	return dserv, bstore, pin.NewPinner(tsds, dserv)
-}
-
-func getNode(t testing.TB, dserv mdag.DAGService, size int64, pinner pin.Pinner) ([]byte, *mdag.Node) {
+func getNode(t testing.TB, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	node, err := imp.BuildTrickleDagFromReader(dserv, sizeSplitterGen(500)(in))
 	if err != nil {
@@ -118,12 +114,12 @@ func sizeSplitterGen(size int64) chunk.SplitterGen {
 }
 
 func TestDagModifierBasic(t *testing.T) {
-	dserv, pin := getMockDagServ(t)
-	b, n := getNode(t, dserv, 50000, pin)
+	dserv := getMockDagServ(t)
+	b, n := getNode(t, dserv, 50000)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pin, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,13 +168,13 @@ func TestDagModifierBasic(t *testing.T) {
 }
 
 func TestMultiWrite(t *testing.T) {
-	dserv, pins := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0, pins)
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,13 +221,13 @@ func TestMultiWrite(t *testing.T) {
 }
 
 func TestMultiWriteAndFlush(t *testing.T) {
-	dserv, pins := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0, pins)
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,13 +269,13 @@ func TestMultiWriteAndFlush(t *testing.T) {
 }
 
 func TestWriteNewFile(t *testing.T) {
-	dserv, pins := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0, pins)
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,13 +312,13 @@ func TestWriteNewFile(t *testing.T) {
 }
 
 func TestMultiWriteCoal(t *testing.T) {
-	dserv, pins := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0, pins)
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -362,13 +358,13 @@ func TestMultiWriteCoal(t *testing.T) {
 }
 
 func TestLargeWriteChunks(t *testing.T) {
-	dserv, pins := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0, pins)
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,12 +397,12 @@ func TestLargeWriteChunks(t *testing.T) {
 }
 
 func TestDagTruncate(t *testing.T) {
-	dserv, pins := getMockDagServ(t)
-	b, n := getNode(t, dserv, 50000, pins)
+	dserv := getMockDagServ(t)
+	b, n := getNode(t, dserv, 50000)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -414,6 +410,14 @@ func TestDagTruncate(t *testing.T) {
 	err = dagmod.Truncate(12345)
 	if err != nil {
 		t.Fatal(err)
+	}
+	size, err := dagmod.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if size != 12345 {
+		t.Fatal("size was incorrect!")
 	}
 
 	_, err = dagmod.Seek(0, os.SEEK_SET)
@@ -429,15 +433,29 @@ func TestDagTruncate(t *testing.T) {
 	if err = arrComp(out, b[:12345]); err != nil {
 		t.Fatal(err)
 	}
+
+	err = dagmod.Truncate(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	size, err = dagmod.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if size != 10 {
+		t.Fatal("size was incorrect!")
+	}
 }
 
 func TestSparseWrite(t *testing.T) {
-	dserv, pins := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0, pins)
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -469,110 +487,16 @@ func TestSparseWrite(t *testing.T) {
 	}
 }
 
-func basicGC(t *testing.T, bs blockstore.GCBlockstore, pins pin.Pinner) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() // in case error occurs during operation
-	out, err := gc.GC(ctx, bs, pins)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for range out {
-	}
-}
-
-func TestCorrectPinning(t *testing.T) {
-	dserv, bstore, pins := getMockDagServAndBstore(t)
-	b, n := getNode(t, dserv, 50000, pins)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	buf := make([]byte, 1024)
-	for i := 0; i < 100; i++ {
-		size, err := dagmod.Size()
-		if err != nil {
-			t.Fatal(err)
-		}
-		offset := rand.Intn(int(size))
-		u.NewTimeSeededRand().Read(buf)
-
-		if offset+len(buf) > int(size) {
-			b = append(b[:offset], buf...)
-		} else {
-			copy(b[offset:], buf)
-		}
-
-		n, err := dagmod.WriteAt(buf, int64(offset))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if n != len(buf) {
-			t.Fatal("wrote incorrect number of bytes")
-		}
-	}
-
-	fisize, err := dagmod.Size()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if int(fisize) != len(b) {
-		t.Fatal("reported filesize incorrect", fisize, len(b))
-	}
-
-	// Run a GC, then ensure we can still read the file correctly
-	basicGC(t, bstore, pins)
-
-	nd, err := dagmod.GetNode()
-	if err != nil {
-		t.Fatal(err)
-	}
-	read, err := uio.NewDagReader(context.Background(), nd, dserv)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	out, err := ioutil.ReadAll(read)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err = arrComp(out, b); err != nil {
-		t.Fatal(err)
-	}
-
-	rootk, err := nd.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify only one recursive pin
-	recpins := pins.RecursiveKeys()
-	if len(recpins) != 1 {
-		t.Fatal("Incorrect number of pinned entries")
-	}
-
-	// verify the correct node is pinned
-	if recpins[0] != rootk {
-		t.Fatal("Incorrect node recursively pinned")
-	}
-
-}
-
 func BenchmarkDagmodWrite(b *testing.B) {
 	b.StopTimer()
-	dserv, pins := getMockDagServ(b)
-	_, n := getNode(b, dserv, 0, pins)
+	dserv := getMockDagServ(b)
+	_, n := getNode(b, dserv, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	wrsize := 4096
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
 	if err != nil {
 		b.Fatal(err)
 	}
