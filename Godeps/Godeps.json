@@ -287,6 +287,10 @@
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
 		},
 		{
+			"ImportPath": "github.com/whyrusleeping/go-notifier",
+			"Rev": "33c1b2704620675301ca7ad403cda89a264095fd"
+		},
+		{
 			"ImportPath": "github.com/whyrusleeping/iptb",
 			"Rev": "3970c95a864f1a40037f796ff596607ce8ae43be"
 		},
