@@ -20,18 +20,12 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
 )
 
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {
-	dagnodes := make([]*merkledag.Node, 0)
-	for _, fpath := range paths {
-		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
-		if err != nil {
-			return nil, fmt.Errorf("pin: %s", err)
-		}
-		dagnodes = append(dagnodes, dagnode)
+	dagnodes, err := core.ResolveMany(ctx, n, paths)
+	if err != nil {
+		return nil, fmt.Errorf("pin: %s", err)
 	}
 
 	var out []key.Key
@@ -50,8 +44,7 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 		out = append(out, k)
 	}
 
-	err := n.Pinning.Flush()
-	if err != nil {
+	if err := n.Pinning.Flush(); err != nil {
 		return nil, err
 	}
 
@@ -59,14 +52,9 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 }
 
 func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {
-
-	dagnodes := make([]*merkledag.Node, 0)
-	for _, fpath := range paths {
-		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
-		if err != nil {
-			return nil, err
-		}
-		dagnodes = append(dagnodes, dagnode)
+	dagnodes, err := core.ResolveMany(ctx, n, paths)
+	if err != nil {
+		return nil, err
 	}
 
 	var unpinned []key.Key
@@ -82,8 +70,7 @@ func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool
 		unpinned = append(unpinned, k)
 	}
 
-	err := n.Pinning.Flush()
-	if err != nil {
+	if err := n.Pinning.Flush(); err != nil {
 		return nil, err
 	}
 	return unpinned, nil

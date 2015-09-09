@@ -8,8 +8,6 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
@@ -61,17 +59,13 @@ it contains, with the following format:
 
 		paths := req.Arguments()
 
-		var dagnodes []*merkledag.Node
-		for _, fpath := range paths {
-			dagnode, err := core.Resolve(req.Context(), node, path.Path(fpath))
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			dagnodes = append(dagnodes, dagnode)
+		dagnodes, err := core.ResolveMany(req.Context(), node, paths)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		output := make([]LsObject, len(req.Arguments()))
+		output := make([]LsObject, len(paths))
 		for i, dagnode := range dagnodes {
 			output[i] = LsObject{
 				Hash:  paths[i],
