@@ -47,7 +47,6 @@ import (
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
-	ipnsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
@@ -106,8 +105,6 @@ type IpfsNode struct {
 	Ping         *ping.PingService
 	Reprovider   *rp.Reprovider // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
-
-	IpnsFs *ipnsfs.Filesystem
 
 	proc goprocess.Process
 	ctx  context.Context
@@ -332,12 +329,6 @@ func (n *IpfsNode) teardown() error {
 	}
 	if n.Mounts.Ipns != nil {
 		closers = append(closers, mount.Closer(n.Mounts.Ipns))
-	}
-
-	// Filesystem needs to be closed before network, dht, and blockservice
-	// so it can use them as its shutting down
-	if n.IpnsFs != nil {
-		closers = append(closers, n.IpnsFs)
 	}
 
 	if n.Blocks != nil {
