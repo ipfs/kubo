@@ -139,6 +139,10 @@ type Process interface {
 	// _after_ Close has completed; teardown has finished. The primary use case
 	// of Closed is waiting for a Process to Close without _causing_ the Close.
 	Closed() <-chan struct{}
+
+	// Err waits until the process is closed, and then returns any error that
+	// occurred during shutdown.
+	Err() error
 }
 
 // TeardownFunc is a function used to cleanup state at the end of the

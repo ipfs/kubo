@@ -163,6 +163,11 @@ func (p *process) Closed() <-chan struct{} {
 	return p.closed
 }
 
+func (p *process) Err() error {
+	<-p.Closed()
+	return p.closeErr
+}
+
 // the _actual_ close process.
 func (p *process) doClose() {
 	// this function is only be called once (protected by p.Lock()).

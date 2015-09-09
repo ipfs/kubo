@@ -4,9 +4,9 @@ import (
 	"time"
 
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	procctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	ratelimit "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	waitable "github.com/ipfs/go-ipfs/thirdparty/waitable"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
@@ -80,7 +80,7 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 		ev := eventlog.LoggableMap{"ID": wid}
 		limiter.LimitedGo(func(px process.Process) {
 
-			ctx := waitable.Context(px) // derive ctx from px
+			ctx := procctx.OnClosingContext(px) // derive ctx from px
 			defer log.EventBegin(ctx, "Bitswap.ProvideWorker.Work", ev, &k).Done()
 
 			ctx, cancel := context.WithTimeout(ctx, provideTimeout) // timeout ctx
@@ -97,7 +97,7 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 	limiter.Go(func(px process.Process) {
 		for wid := 2; ; wid++ {
 			ev := eventlog.LoggableMap{"ID": 1}
-			log.Event(waitable.Context(px), "Bitswap.ProvideWorker.Loop", ev)
+			log.Event(procctx.OnClosingContext(px), "Bitswap.ProvideWorker.Loop", ev)
 
 			select {
 			case <-px.Closing():
