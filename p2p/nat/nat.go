@@ -29,12 +29,17 @@ var log = eventlog.Logger("nat")
 // Port mappings are renewed every (MappingDuration / 3)
 const MappingDuration = time.Second * 60
 
+// CacheTime is the time a mapping will cache an external address for
+const CacheTime = time.Second * 15
+
 // DiscoverNAT looks for a NAT device in the network and
 // returns an object that can manage port mappings.
 func DiscoverNAT() *NAT {
+	log.Error("DISCOVER NAT")
 	nat, err := nat.DiscoverGateway()
 	if err != nil {
 		log.Debug("DiscoverGateway error:", err)
+		log.Error("DISCOVER GATEWAY ERROR: ", err)
 		return nil
 	}
 	addr, err := nat.GetDeviceAddress()
@@ -43,6 +48,7 @@ func DiscoverNAT() *NAT {
 	} else {
 		log.Debug("DiscoverGateway address:", addr)
 	}
+	log.Error("NEW NAT!")
 	return newNAT(nat)
 }
 
@@ -159,6 +165,9 @@ type mapping struct {
 	extport int
 	intaddr ma.Multiaddr
 	proc    goprocess.Process
+
+	cached    ma.Multiaddr
+	cacheTime time.Time
 }
 
 func (m *mapping) NAT() *NAT {
@@ -198,6 +207,10 @@ func (m *mapping) InternalAddr() ma.Multiaddr {
 }
 
 func (m *mapping) ExternalAddr() (ma.Multiaddr, error) {
+	if time.Now().Sub(m.cacheTime) < CacheTime {
+		return m.cached, nil
+	}
+
 	if m.ExternalPort() == 0 { // dont even try right now.
 		return nil, ErrNoMapping
 	}
@@ -224,6 +237,9 @@ func (m *mapping) ExternalAddr() (ma.Multiaddr, error) {
 	}
 
 	maddr2 := ipmaddr.Encapsulate(tcp)
+
+	m.cached = maddr2
+	m.cacheTime = time.Now()
 	return maddr2, nil
 }
 
@@ -266,6 +282,7 @@ func (nat *NAT) rmMapping(m *mapping) {
 // Clients should not store the mapped results, but rather always
 // poll our object for the latest mappings.
 func (nat *NAT) NewMapping(maddr ma.Multiaddr) (Mapping, error) {
+	log.Error("NEW MAPPING!")
 	if nat == nil {
 		return nil, fmt.Errorf("no nat available")
 	}
@@ -313,6 +330,7 @@ func (nat *NAT) NewMapping(maddr ma.Multiaddr) (Mapping, error) {
 }
 
 func (nat *NAT) establishMapping(m *mapping) {
+	log.Error("establishMapping!")
 	oldport := m.ExternalPort()
 	log.Debugf("Attempting port map: %s/%d", m.Protocol(), m.InternalPort())
 	newport, err := nat.nat.AddPortMapping(m.Protocol(), m.InternalPort(), "http", MappingDuration)
@@ -413,6 +431,7 @@ func (nat *NAT) MappedAddrs() map[ma.Multiaddr]ma.Multiaddr {
 // This set of mappings _may not_ be correct, as NAT devices are finicky.
 // Consider this with _best effort_ semantics.
 func (nat *NAT) ExternalAddrs() []ma.Multiaddr {
+	log.Error("EXTERNAL ADDRS")
 	mappings := nat.Mappings()
 	addrs := make([]ma.Multiaddr, 0, len(mappings))
 	for _, m := range mappings {
