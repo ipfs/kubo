@@ -6,14 +6,19 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	importer "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	dagutil "github.com/ipfs/go-ipfs/merkledag/utils"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	u "github.com/ipfs/go-ipfs/util"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
+
+var log = u.Logger("tarfmt")
 
 var blockSize = 512
 var zeroBlock = make([]byte, blockSize)
@@ -40,6 +45,8 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 
 	root := new(dag.Node)
 	root.Data = []byte("ipfs/tar")
+
+	e := dagutil.NewDagEditor(ds, root)
 
 	for {
 		h, err := tr.Next()
@@ -77,12 +84,14 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 			return nil, err
 		}
 
-		err = root.AddNodeLinkClean(h.Name, header)
+		path := escapePath(h.Name)
+		err = e.InsertNodeAtPath(context.Background(), path, header, func() *dag.Node { return new(dag.Node) })
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	root = e.GetNode()
 	_, err = ds.Add(root)
 	if err != nil {
 		return nil, err
@@ -91,18 +100,30 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 	return root, nil
 }
 
+// adds a '-' to the beginning of each path element so we can use 'data' as a
+// special link in the structure without having to worry about
+func escapePath(path string) string {
+	elems := strings.Split(strings.Trim(path, "/"), "/")
+	for i, e := range elems {
+		elems[i] = "-" + e
+	}
+	return strings.Join(elems, "/")
+}
+
 type tarReader struct {
 	links []*dag.Link
 	ds    dag.DAGService
 
-	hdrBuf   *bytes.Reader
-	fileRead *countReader
-	pad      int
+	childRead *tarReader
+	hdrBuf    *bytes.Reader
+	fileRead  *countReader
+	pad       int
 
 	ctx context.Context
 }
 
 func (tr *tarReader) Read(b []byte) (int, error) {
+	// if we have a header to be read, it takes priority
 	if tr.hdrBuf != nil {
 		n, err := tr.hdrBuf.Read(b)
 		if err == io.EOF {
@@ -111,6 +132,18 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 		}
 		return n, err
 	}
+
+	// no header remaining, check for recursive
+	if tr.childRead != nil {
+		n, err := tr.childRead.Read(b)
+		if err == io.EOF {
+			tr.childRead = nil
+			return n, nil
+		}
+		return n, err
+	}
+
+	// check for filedata to be read
 	if tr.fileRead != nil {
 		n, err := tr.fileRead.Read(b)
 		if err == io.EOF {
@@ -122,6 +155,8 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 		}
 		return n, err
 	}
+
+	// filedata reads must be padded out to 512 byte offsets
 	if tr.pad > 0 {
 		n := copy(b, zeroBlock[:tr.pad])
 		tr.pad -= n
@@ -141,18 +176,26 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 	}
 
 	tr.hdrBuf = bytes.NewReader(headerNd.Data)
-	if len(headerNd.Links) > 0 {
-		data, err := headerNd.Links[0].GetNode(tr.ctx, tr.ds)
-		if err != nil {
-			return 0, err
-		}
 
-		dr, err := uio.NewDagReader(tr.ctx, data, tr.ds)
+	dataNd, err := headerNd.GetLinkedNode(tr.ctx, tr.ds, "data")
+	if err != nil && err != dag.ErrNotFound {
+		return 0, err
+	}
+
+	if err == nil {
+		dr, err := uio.NewDagReader(tr.ctx, dataNd, tr.ds)
 		if err != nil {
+			log.Error("dagreader error: ", err)
 			return 0, err
 		}
 
 		tr.fileRead = &countReader{r: dr}
+	} else if len(headerNd.Links) > 0 {
+		tr.childRead = &tarReader{
+			links: headerNd.Links,
+			ds:    tr.ds,
+			ctx:   tr.ctx,
+		}
 	}
 
 	return tr.Read(b)
