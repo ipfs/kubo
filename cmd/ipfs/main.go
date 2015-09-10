@@ -557,6 +557,11 @@ func (i *cmdInvocation) SetupInterruptHandler(ctx context.Context) (io.Closer, c
 				defer ih.wg.Done()
 				cancelFunc()
 			}()
+			go func() {
+				time.Sleep(10 * time.Second)
+				fmt.Println("Shutdown timed out after 10s, terminating...")
+				os.Exit(-1)
+			}()
 
 		default:
 			fmt.Println("Received another interrupt before graceful shutdown, terminating...")
