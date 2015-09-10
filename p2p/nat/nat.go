@@ -35,11 +35,9 @@ const CacheTime = time.Second * 15
 // DiscoverNAT looks for a NAT device in the network and
 // returns an object that can manage port mappings.
 func DiscoverNAT() *NAT {
-	log.Error("DISCOVER NAT")
 	nat, err := nat.DiscoverGateway()
 	if err != nil {
 		log.Debug("DiscoverGateway error:", err)
-		log.Error("DISCOVER GATEWAY ERROR: ", err)
 		return nil
 	}
 	addr, err := nat.GetDeviceAddress()
@@ -48,7 +46,6 @@ func DiscoverNAT() *NAT {
 	} else {
 		log.Debug("DiscoverGateway address:", addr)
 	}
-	log.Error("NEW NAT!")
 	return newNAT(nat)
 }
 
@@ -282,7 +279,6 @@ func (nat *NAT) rmMapping(m *mapping) {
 // Clients should not store the mapped results, but rather always
 // poll our object for the latest mappings.
 func (nat *NAT) NewMapping(maddr ma.Multiaddr) (Mapping, error) {
-	log.Error("NEW MAPPING!")
 	if nat == nil {
 		return nil, fmt.Errorf("no nat available")
 	}
@@ -330,7 +326,6 @@ func (nat *NAT) NewMapping(maddr ma.Multiaddr) (Mapping, error) {
 }
 
 func (nat *NAT) establishMapping(m *mapping) {
-	log.Error("establishMapping!")
 	oldport := m.ExternalPort()
 	log.Debugf("Attempting port map: %s/%d", m.Protocol(), m.InternalPort())
 	newport, err := nat.nat.AddPortMapping(m.Protocol(), m.InternalPort(), "http", MappingDuration)
@@ -431,7 +426,6 @@ func (nat *NAT) MappedAddrs() map[ma.Multiaddr]ma.Multiaddr {
 // This set of mappings _may not_ be correct, as NAT devices are finicky.
 // Consider this with _best effort_ semantics.
 func (nat *NAT) ExternalAddrs() []ma.Multiaddr {
-	log.Error("EXTERNAL ADDRS")
 	mappings := nat.Mappings()
 	addrs := make([]ma.Multiaddr, 0, len(mappings))
 	for _, m := range mappings {
