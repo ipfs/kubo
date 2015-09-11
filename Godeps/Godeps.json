@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/ipfs/go-ipfs",
-	"GoVersion": "go1.4.2",
+	"GoVersion": "go1.5",
 	"Packages": [
 		"./..."
 	],
@@ -42,10 +42,6 @@
 		{
 			"ImportPath": "github.com/cheggaaa/pb",
 			"Rev": "d7729fd7ec1372c15b83db39834bf842bf2d69fb"
-		},
-		{
-			"ImportPath": "github.com/chriscool/go-sleep",
-			"Rev": "743ab5f1bb487edf1772bc29ca0bdf572b40785e"
 		},
 		{
 			"ImportPath": "github.com/codahale/hdrhistogram",
@@ -285,10 +281,6 @@
 		{
 			"ImportPath": "github.com/whyrusleeping/go-metrics",
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
-		},
-		{
-			"ImportPath": "github.com/whyrusleeping/iptb",
-			"Rev": "3970c95a864f1a40037f796ff596607ce8ae43be"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",

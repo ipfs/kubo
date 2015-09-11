@@ -5,9 +5,9 @@ IPFS_CMD = ../cmd/ipfs
 RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
 RANDOM_FILES_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random-files
 MULTIHASH_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-multihash
-IPTB_SRC = ../Godeps/_workspace/src/github.com/whyrusleeping/iptb
+IPTB_SRC = ./dependencies/iptb
 POLLENDPOINT_SRC= ../thirdparty/pollEndpoint
-GOSLEEP_SRC = ../Godeps/_workspace/src/github.com/chriscool/go-sleep
+GOSLEEP_SRC = ./dependencies/go-sleep
 
 # User might want to override those on the command line
 GOFLAGS =
