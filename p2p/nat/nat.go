@@ -29,6 +29,9 @@ var log = eventlog.Logger("nat")
 // Port mappings are renewed every (MappingDuration / 3)
 const MappingDuration = time.Second * 60
 
+// CacheTime is the time a mapping will cache an external address for
+const CacheTime = time.Second * 15
+
 // DiscoverNAT looks for a NAT device in the network and
 // returns an object that can manage port mappings.
 func DiscoverNAT() *NAT {
@@ -159,6 +162,9 @@ type mapping struct {
 	extport int
 	intaddr ma.Multiaddr
 	proc    goprocess.Process
+
+	cached    ma.Multiaddr
+	cacheTime time.Time
 }
 
 func (m *mapping) NAT() *NAT {
@@ -198,6 +204,10 @@ func (m *mapping) InternalAddr() ma.Multiaddr {
 }
 
 func (m *mapping) ExternalAddr() (ma.Multiaddr, error) {
+	if time.Now().Sub(m.cacheTime) < CacheTime {
+		return m.cached, nil
+	}
+
 	if m.ExternalPort() == 0 { // dont even try right now.
 		return nil, ErrNoMapping
 	}
@@ -224,6 +234,9 @@ func (m *mapping) ExternalAddr() (ma.Multiaddr, error) {
 	}
 
 	maddr2 := ipmaddr.Encapsulate(tcp)
+
+	m.cached = maddr2
+	m.cacheTime = time.Now()
 	return maddr2, nil
 }
 
