@@ -12,6 +12,8 @@ easy!
 		- -n=[number of nodes]
 		- -f : force overwriting of existing nodes
 		- -bootstrap : select bootstrapping style for cluster choices: star, none
+		- -mdns=[true||false] : defaults to false
+		- -p=[start port] : port to start allocations from
 - start 
 	- starts up all testbed nodes
 	- Options:
