@@ -288,7 +288,7 @@
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/iptb",
-			"Rev": "3970c95a864f1a40037f796ff596607ce8ae43be"
+			"Rev": "1fd1df917894dbcda078907f8d92f9d0b004f634"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",
