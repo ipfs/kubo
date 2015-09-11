@@ -14,12 +14,14 @@ import (
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	mfs "github.com/ipfs/go-ipfs/mfs"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
 type BuildCfg struct {
@@ -158,6 +160,18 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG)
 	}
 	n.Resolver = &path.Resolver{DAG: n.DAG}
+
+	if cfg.Online {
+		fs, err := mfs.NewFilesystem(ctx, n.DAG, n.Pinning)
+		if err != nil {
+			return err
+		}
+		n.Mfs = fs
+		_, err = n.Mfs.NewRoot("root", "dag", &dag.Node{Data: ft.FolderPBData()}, func(_ context.Context, k key.Key) error { return nil })
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

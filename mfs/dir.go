@@ -1,4 +1,4 @@
-package ipnsfs
+package mfs
 
 import (
 	"errors"
@@ -15,6 +15,7 @@ import (
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
 var ErrInvalidChild = errors.New("invalid child node")
+var ErrDirExists = errors.New("directory already has entry by that name")
 
 type Directory struct {
 	fs     *Filesystem
@@ -28,6 +29,8 @@ type Directory struct {
 	ctx  context.Context
 
 	name string
+
+	mount *Root
 }
 
 func NewDirectory(ctx context.Context, name string, node *dag.Node, parent childCloser, fs *Filesystem) *Directory {
@@ -156,6 +159,10 @@ func (d *Directory) Child(name string) (FSNode, error) {
 // childUnsync returns the child under this directory by the given name
 // without locking, useful for operations which already hold a lock
 func (d *Directory) childUnsync(name string) (FSNode, error) {
+	if d.mount != nil {
+		return rootLookup(d.mount, name)
+	}
+
 	dir, err := d.childDir(name)
 	if err == nil {
 		return dir, nil
@@ -168,20 +175,63 @@ func (d *Directory) childUnsync(name string) (FSNode, error) {
 	return nil, os.ErrNotExist
 }
 
-func (d *Directory) List() []string {
+type NodeListing struct {
+	Name string
+	Type int
+	Size int64
+	Hash string
+}
+
+func (d *Directory) List() ([]NodeListing, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	var out []string
-	for _, lnk := range d.node.Links {
-		out = append(out, lnk.Name)
+	if d.mount != nil {
+		return d.mount.GetValue().(*Directory).List()
 	}
-	return out
+
+	var out []NodeListing
+	for _, l := range d.node.Links {
+		child := NodeListing{}
+		child.Name = l.Name
+
+		c, err := d.childUnsync(l.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		child.Type = int(c.Type())
+		if c, ok := c.(*File); ok {
+			size, err := c.Size()
+			if err != nil {
+				return nil, err
+			}
+			child.Size = size
+		}
+		nd, err := c.GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		k, err := nd.Key()
+		if err != nil {
+			return nil, err
+		}
+
+		child.Hash = k.B58String()
+
+		out = append(out, child)
+	}
+
+	return out, nil
 }
 
 func (d *Directory) Mkdir(name string) (*Directory, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
+	if d.mount != nil {
+		return d.mount.GetValue().(*Directory).Mkdir(name)
+	}
 
 	_, err := d.childDir(name)
 	if err == nil {
@@ -193,6 +243,12 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	}
 
 	ndir := &dag.Node{Data: ft.FolderPBData()}
+
+	_, err = d.fs.dserv.Add(ndir)
+	if err != nil {
+		return nil, err
+	}
+
 	err = d.node.AddNodeLinkClean(name, ndir)
 	if err != nil {
 		return nil, err
@@ -209,6 +265,9 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 func (d *Directory) Unlink(name string) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
+	if d.mount != nil {
+		return d.mount.GetValue().(*Directory).Unlink(name)
+	}
 
 	delete(d.childDirs, name)
 	delete(d.files, name)
@@ -225,6 +284,10 @@ func (d *Directory) Unlink(name string) error {
 func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	d.Lock()
 	defer d.Unlock()
+	if d.mount != nil {
+		return d.mount.GetValue().(*Directory).AddChild(name, nd)
+	}
+
 	pbn, err := ft.FromBytes(nd.Data)
 	if err != nil {
 		return err
@@ -232,7 +295,7 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 
 	_, err = d.childUnsync(name)
 	if err == nil {
-		return errors.New("directory already has entry by that name")
+		return ErrDirExists
 	}
 
 	err = d.node.AddNodeLinkClean(name, nd)

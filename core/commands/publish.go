@@ -15,8 +15,6 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 )
 
-var errNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")
-
 var PublishCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Publish an object to IPNS",

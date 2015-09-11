@@ -48,7 +48,7 @@ var statBwCmd = &cmds.Command{
 
 		// Must be online!
 		if !nd.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(cmds.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 

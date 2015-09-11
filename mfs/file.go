@@ -1,4 +1,4 @@
-package ipnsfs
+package mfs
 
 import (
 	"sync"

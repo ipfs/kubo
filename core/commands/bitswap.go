@@ -40,7 +40,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer`,
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(cmds.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 
@@ -85,7 +85,7 @@ var bitswapStatCmd = &cmds.Command{
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(cmds.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 

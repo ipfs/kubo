@@ -416,6 +416,15 @@ func TestDagTruncate(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	size, err := dagmod.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if size != 12345 {
+		t.Fatal("size was incorrect!")
+	}
+
 	_, err = dagmod.Seek(0, os.SEEK_SET)
 	if err != nil {
 		t.Fatal(err)
@@ -428,6 +437,21 @@ func TestDagTruncate(t *testing.T) {
 
 	if err = arrComp(out, b[:12345]); err != nil {
 		t.Fatal(err)
+	}
+
+	// now truncate to a single block
+	err = dagmod.Truncate(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	size, err = dagmod.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if size != 10 {
+		t.Fatal("size was incorrect!")
 	}
 }
 

@@ -96,7 +96,7 @@ that consume the dot format to generate graphs of the network.
 		}
 
 		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(cmds.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 
