@@ -344,3 +344,8 @@ generic_stat() {
     esac
     $_STAT "$1"
 }
+
+test_check_peerid() {
+	test $(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") = "46"
+}
+

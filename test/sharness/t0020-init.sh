@@ -58,10 +58,6 @@ test_expect_success "ipfs config succeeds" '
 	test_cmp expected_config actual_config
 '
 
-test_check_peerid() {
-	test $(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") = "46"
-}
-
 test_expect_success "ipfs peer id looks good" '
 	PEERID=$(ipfs config Identity.PeerID) &&
 	test_check_peerid "$PEERID"
