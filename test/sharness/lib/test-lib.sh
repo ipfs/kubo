@@ -346,6 +346,10 @@ generic_stat() {
 }
 
 test_check_peerid() {
-	test $(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") = "46"
+	peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
+	test "$peeridlen" = "46" || {
+		echo "Bad peerid '$1' with len '$peeridlen'"
+		return 1
+	}
 }
 
