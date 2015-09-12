@@ -14,6 +14,7 @@ test_init_ipfs
 
 test_expect_success "'ipfs name publish' succeeds" '
 	PEERID=`ipfs id --format="<id>"` &&
+	test_check_peerid "${PEERID}" &&
 	ipfs name publish "/ipfs/$HASH_WELCOME_DOCS" >publish_out
 '
 
@@ -35,6 +36,7 @@ test_expect_success "resolve output looks good" '
 
 test_expect_success "'ipfs name publish' succeeds" '
 	PEERID=`ipfs id --format="<id>"` &&
+	test_check_peerid "${PEERID}" &&
 	ipfs name publish "/ipfs/$HASH_WELCOME_DOCS/help" >publish_out
 '
 
@@ -56,6 +58,7 @@ test_expect_success "resolve output looks good" '
 
 test_expect_success "'ipfs name publish <local-id> <hash>' succeeds" '
 	PEERID=`ipfs id --format="<id>"` &&
+	test_check_peerid "${PEERID}" &&
 	ipfs name publish "${PEERID}" "/ipfs/$HASH_WELCOME_DOCS" >actual_node_id_publish
 '
 
