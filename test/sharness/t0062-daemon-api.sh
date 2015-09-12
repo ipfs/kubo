@@ -15,7 +15,8 @@ api_unreachable="/ip4/127.0.0.1/tcp/1"
 
 test_expect_success "config setup" '
 	api_fromcfg=$(ipfs config Addresses.API) &&
-	peerid=$(ipfs config Identity.PeerID)
+	peerid=$(ipfs config Identity.PeerID) &&
+	test_check_peerid "$peerid"
 '
 
 test_client() {
