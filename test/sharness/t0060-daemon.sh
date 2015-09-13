@@ -33,20 +33,15 @@ test_expect_success "initialization ended" '
 
 # this errors if daemon didnt --init $IPFS_PATH correctly
 test_expect_success "'ipfs config Identity.PeerID' works" '
-  ipfs config Identity.PeerID >config_peerId
+  PEERID=$(ipfs config Identity.PeerID)
 '
 
 test_expect_success "'ipfs swarm addrs local' works" '
   ipfs swarm addrs local >local_addrs
 '
 
-
-# this is lifted straight from t0020-init.sh
 test_expect_success "ipfs peer id looks good" '
-  PEERID=$(cat config_peerId) &&
-  echo $PEERID | tr -dC "[:alnum:]" | wc -c | tr -d " " >actual_id &&
-  echo "46" >expected_id &&
-  test_cmp_repeat_10_sec expected_id actual_id
+  test_check_peerid "$PEERID"
 '
 
 # This is like t0020-init.sh "ipfs init output looks good"
