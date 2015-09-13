@@ -51,8 +51,7 @@ test_get_cmd() {
 		test_cmp expected actual
 	'
 
-	# TODO: determine why this fails
-	test_expect_failure "ipfs get -a archive output is valid" '
+	test_expect_success "ipfs get -a archive output is valid" '
 		tar -xf "$HASH".tar &&
 		test_cmp "$HASH" data &&
 		rm "$HASH".tar &&
@@ -68,8 +67,7 @@ test_get_cmd() {
 		test_cmp expected actual
 	'
 
-	# TODO(mappum)
-	test_expect_failure "gzipped tar archive output is valid" '
+	test_expect_success "gzipped tar archive output is valid" '
 		tar -zxf "$HASH".tar.gz &&
 		test_cmp "$HASH" data &&
 		rm "$HASH".tar.gz &&
@@ -105,8 +103,7 @@ test_get_cmd() {
 		test_cmp expected actual
 	'
 
-	# TODO(mappum)
-	test_expect_failure "gzipped tar archive output is valid (directory)" '
+	test_expect_success "gzipped tar archive output is valid (directory)" '
 		tar -zxf "$HASH2".tar.gz &&
 		test_cmp dir/a "$HASH2"/a &&
 		test_cmp dir/b/c "$HASH2"/b/c &&

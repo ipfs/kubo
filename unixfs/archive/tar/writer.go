@@ -60,8 +60,11 @@ func (w *Writer) writeFile(nd *mdag.Node, pb *upb.Data, fpath string) error {
 	}
 
 	dagr := uio.NewDataFileReader(w.ctx, nd, pb, w.Dag)
-	_, err := dagr.WriteTo(w.TarW)
-	return err
+	if _, err := dagr.WriteTo(w.TarW); err != nil {
+		return err
+	}
+	w.TarW.Flush()
+	return nil
 }
 
 func (w *Writer) WriteNode(nd *mdag.Node, fpath string) error {
