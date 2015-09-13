@@ -17,6 +17,18 @@ import (
 // TODO: does this need to be configurable?
 var DefaultBufSize = 1048576
 
+type identityWriteCloser struct {
+	w io.Writer
+}
+
+func (i *identityWriteCloser) Write(p []byte) (int, error) {
+	return i.w.Write(p)
+}
+
+func (i *identityWriteCloser) Close() error {
+	return nil
+}
+
 // DagArchive is equivalent to `ipfs getdag $hash | maybe_tar | maybe_gzip`
 func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService, archive bool, compression int) (io.Reader, error) {
 
@@ -29,15 +41,16 @@ func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService
 	bufw := bufio.NewWriterSize(pipew, DefaultBufSize)
 
 	// compression determines whether to use gzip compression.
-	var maybeGzw io.Writer
+	var maybeGzw io.WriteCloser
+	var err error
 	if compression != gzip.NoCompression {
-		var err error
 		maybeGzw, err = gzip.NewWriterLevel(bufw, compression)
 		if err != nil {
+			pipew.CloseWithError(err)
 			return nil, err
 		}
 	} else {
-		maybeGzw = bufw
+		maybeGzw = &identityWriteCloser{bufw}
 	}
 
 	if !archive && compression != gzip.NoCompression {
@@ -50,6 +63,11 @@ func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService
 
 		go func() {
 			if _, err := dagr.WriteTo(maybeGzw); err != nil {
+				pipew.CloseWithError(err)
+				return
+			}
+			maybeGzw.Close()
+			if err := bufw.Flush(); err != nil {
 				pipew.CloseWithError(err)
 				return
 			}
@@ -70,11 +88,12 @@ func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService
 				pipew.CloseWithError(err)
 				return
 			}
+			w.Close()
+			maybeGzw.Close()
 			if err := bufw.Flush(); err != nil {
 				pipew.CloseWithError(err)
 				return
 			}
-			w.Close()
 			pipew.Close() // everything seems to be ok.
 		}()
 	}
