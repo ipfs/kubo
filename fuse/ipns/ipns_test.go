@@ -16,8 +16,9 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
-	coremock "github.com/ipfs/go-ipfs/core/mock"
 	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
+	namesys "github.com/ipfs/go-ipfs/namesys"
+	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	u "github.com/ipfs/go-ipfs/util"
 	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
 )
@@ -101,10 +102,18 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 
 	var err error
 	if node == nil {
-		node, err = coremock.NewMockNode()
+		node, err = core.NewNode(context.Background(), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		err = node.LoadPrivateKey()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		node.Routing = offroute.NewOfflineRouter(node.Repo.Datastore(), node.PrivateKey)
+		node.Namesys = namesys.NewNameSystem(node.Routing)
 
 		ipnsfs, err := nsfs.NewFilesystem(context.Background(), node.DAG, node.Namesys, node.Pinning, node.PrivateKey)
 		if err != nil {
