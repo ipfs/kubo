@@ -8,3 +8,7 @@ artifacts:
   README.md: dist/README.md
   LICENSE: dist/LICENSE
   install.sh: dist/install.sh
+notify:
+  - type: dockerhub
+    target: U2FsdGVkX18fMPhIZ3k1QDCwnB49ln6DdyvIH2tDDHxTZi3Q3DQ7AKWllo9KngxwteX2dBFQ2P+jLEBh12PEEqOkN2SePNbMhMtmk/c4siHVAqo5wnf8Utgqob0jB40sobmqNN9X3Y/W2yb72LuGJg==
+    filter: success
