@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -19,6 +20,47 @@ var BitswapCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"wantlist": showWantlistCmd,
 		"stat":     bitswapStatCmd,
+		"unwant":   unwantCmd,
+	},
+}
+
+var unwantCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove a given block from your wantlist",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, true, "key to remove from your wantlist").EnableStdin(),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		nd, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if !nd.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		bs, ok := nd.Exchange.(*bitswap.Bitswap)
+		if !ok {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
+		}
+
+		var ks []key.Key
+		for _, arg := range req.Arguments() {
+			dec := key.B58KeyDecode(arg)
+			if dec == "" {
+				res.SetError(fmt.Errorf("incorrectly formatted key: %s", arg), cmds.ErrNormal)
+				return
+			}
+
+			ks = append(ks, dec)
+		}
+
+		bs.CancelWants(ks)
 	},
 }
 

@@ -221,6 +221,11 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan *block
 	}
 }
 
+// CancelWant removes a given key from the wantlist
+func (bs *Bitswap) CancelWants(ks []key.Key) {
+	bs.wm.CancelWants(ks)
+}
+
 // HasBlock announces the existance of a block to this bitswap service. The
 // service will potentially notify its peers.
 func (bs *Bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
