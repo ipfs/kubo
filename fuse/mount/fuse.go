@@ -1,4 +1,5 @@
 // +build !nofuse
+// +build !windows
 
 package mount
 
