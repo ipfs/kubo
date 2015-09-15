@@ -18,4 +18,4 @@ else
   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 fi
 
-ipfs daemon
+exec ipfs daemon
