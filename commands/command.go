@@ -15,10 +15,10 @@ import (
 	"reflect"
 	"strings"
 
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("command")
+var log = logging.Logger("command")
 
 // Function is the type of function that Commands use.
 // It reads from the Request, and writes results to the Response.

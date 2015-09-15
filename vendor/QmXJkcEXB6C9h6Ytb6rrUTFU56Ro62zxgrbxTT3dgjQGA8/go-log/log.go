@@ -1,11 +1,10 @@
-package eventlog
+package log
 
 import (
 	"fmt"
 	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/ipfs/go-ipfs/util" // TODO remove IPFS dependency
 )
 
 // StandardLogger provides API compatibility with standard printf loggers
@@ -53,7 +52,16 @@ func Logger(system string) EventLogger {
 
 	// TODO if we would like to adjust log levels at run-time. Store this event
 	// logger in a map (just like the util.Logger impl)
-	return &eventLogger{system: system, StandardLogger: util.Logger(system)}
+	if len(system) == 0 {
+		log.Warnf("Missing name parameter")
+		system = "undefined"
+	}
+	if _, ok := loggers[system]; !ok {
+		loggers[system] = log.WithField("module", system)
+	}
+	logger := loggers[system]
+
+	return &eventLogger{system: system, StandardLogger: logger}
 }
 
 // eventLogger implements the EventLogger and wraps a go-logging Logger

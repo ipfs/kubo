@@ -15,10 +15,10 @@ import (
 
 	"github.com/ipfs/go-ipfs/p2p/host"
 	"github.com/ipfs/go-ipfs/p2p/peer"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("mdns")
+var log = logging.Logger("mdns")
 
 const ServiceTag = "discovery.ipfs.io"
 

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	core "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 type writeErrNotifier struct {
@@ -41,7 +41,7 @@ func LogOption() ServeOption {
 		mux.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(200)
 			wnf, errs := newWriteErrNotifier(w)
-			eventlog.WriterGroup.AddWriter(wnf)
+			logging.WriterGroup.AddWriter(wnf)
 			log.Event(n.Context(), "log API client connected")
 			<-errs
 		})

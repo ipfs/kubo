@@ -20,10 +20,10 @@ import (
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
-	util "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = util.Logger("diagnostics")
+var log = logging.Logger("diagnostics")
 
 // ProtocolDiag is the diagnostics protocol.ID
 var ProtocolDiag protocol.ID = "/ipfs/diagnostics"

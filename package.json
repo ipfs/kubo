@@ -5,6 +5,11 @@
     {
       "name": "dir-index-html",
       "hash": "QmdDfkqDWheE4gsCXNrhixwTwSHnZMPT2cGLcNbiBNcMyU"
+    },
+    {
+      "name": "go-log",
+      "hash": "QmXJkcEXB6C9h6Ytb6rrUTFU56Ro62zxgrbxTT3dgjQGA8",
+      "linkname": "go-log-v1.0.0"
     }
   ]
 }

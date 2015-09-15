@@ -21,7 +21,7 @@ import (
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	secio "github.com/ipfs/go-ipfs/p2p/crypto/secio"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 var verbose = false
@@ -93,7 +93,7 @@ func main() {
 	args := parseArgs()
 	verbose = args.verbose
 	if args.debug {
-		u.SetDebugLogging()
+		logging.SetDebugLogging()
 	}
 
 	go func() {

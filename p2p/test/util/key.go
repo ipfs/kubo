@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	u "github.com/ipfs/go-ipfs/util"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 
@@ -15,7 +15,7 @@ import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-var log = eventlog.Logger("boguskey")
+var log = logging.Logger("boguskey")
 
 // TestBogusPrivateKey is a key used for testing (to avoid expensive keygen)
 type TestBogusPrivateKey []byte

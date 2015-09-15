@@ -3,10 +3,10 @@ package queue
 import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("peerqueue")
+var log = logging.Logger("peerqueue")
 
 // ChanQueue makes any PeerQueue synchronizable through channels.
 type ChanQueue struct {

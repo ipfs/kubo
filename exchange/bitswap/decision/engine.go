@@ -10,7 +10,7 @@ import (
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 // TODO consider taking responsibility for other types of requests. For
@@ -43,7 +43,7 @@ import (
 // whatever it sees fit to produce desired outcomes (get wanted keys
 // quickly, maintain good relationships with peers, etc).
 
-var log = eventlog.Logger("engine")
+var log = logging.Logger("engine")
 
 const (
 	// outboxChanBuffer must be 0 to prevent stale messages from being sent

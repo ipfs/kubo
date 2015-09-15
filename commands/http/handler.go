@@ -16,10 +16,10 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("commands/http")
+var log = logging.Logger("commands/http")
 
 // the internal handler for the API
 type internalHandler struct {

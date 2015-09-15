@@ -10,9 +10,10 @@ import (
 	"strings"
 
 	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("config")
+var log = logging.Logger("config")
 
 // Config is used to load IPFS config files.
 type Config struct {

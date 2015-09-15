@@ -27,12 +27,12 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 // log is the command logger
-var log = eventlog.Logger("cmd/ipfs")
+var log = logging.Logger("cmd/ipfs")
 
 var (
 	errUnexpectedApiOutput = errors.New("api returned unexpected output")
@@ -62,7 +62,7 @@ type cmdInvocation struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	runtime.GOMAXPROCS(3) // FIXME rm arbitrary choice for n
-	ctx := eventlog.ContextWithLoggable(context.Background(), eventlog.Uuid("session"))
+	ctx := logging.ContextWithLoggable(context.Background(), logging.Uuid("session"))
 	var err error
 	var invoc cmdInvocation
 	defer invoc.close()
@@ -175,7 +175,7 @@ func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 	}
 	if debug || u.GetenvBool("DEBUG") || os.Getenv("IPFS_LOGGING") == "debug" {
 		u.Debug = true
-		u.SetDebugLogging()
+		logging.SetDebugLogging()
 	}
 
 	res, err := callCommand(ctx, i.req, Root, i.cmd)

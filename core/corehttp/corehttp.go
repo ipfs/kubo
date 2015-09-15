@@ -14,10 +14,10 @@ import (
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	core "github.com/ipfs/go-ipfs/core"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("core/server")
+var log = logging.Logger("core/server")
 
 // ServeOption registers any HTTP handlers it provides on the given mux.
 // It returns the mux to expose to future options, which may be a new mux if it

@@ -9,10 +9,10 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("merkledag")
+var log = logging.Logger("merkledag")
 var ErrNotFound = fmt.Errorf("merkledag: not found")
 
 // DAGService is an IPFS Merkle DAG service.

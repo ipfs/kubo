@@ -8,12 +8,12 @@ import (
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	relay "github.com/ipfs/go-ipfs/p2p/protocol/relay"
 	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-var log = eventlog.Logger("relay_test")
+var log = logging.Logger("relay_test")
 
 func TestRelaySimple(t *testing.T) {
 

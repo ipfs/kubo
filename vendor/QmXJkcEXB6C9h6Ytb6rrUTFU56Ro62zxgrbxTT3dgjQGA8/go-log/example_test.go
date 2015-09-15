@@ -1,4 +1,4 @@
-package eventlog
+package log
 
 import "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 

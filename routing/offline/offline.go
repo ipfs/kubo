@@ -13,10 +13,10 @@ import (
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("offlinerouting")
+var log = logging.Logger("offlinerouting")
 
 var ErrOffline = errors.New("routing system in offline mode")
 

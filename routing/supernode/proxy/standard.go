@@ -12,12 +12,12 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kbucket "github.com/ipfs/go-ipfs/routing/kbucket"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"
 
-var log = eventlog.Logger("supernode/proxy")
+var log = logging.Logger("supernode/proxy")
 
 type Proxy interface {
 	Bootstrap(context.Context) error
@@ -127,7 +127,7 @@ func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.M
 }
 
 func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote peer.ID) (*dhtpb.Message, error) {
-	e := log.EventBegin(ctx, "sendRoutingRequest", px.Host.ID(), remote, eventlog.Pair("request", m))
+	e := log.EventBegin(ctx, "sendRoutingRequest", px.Host.ID(), remote, logging.Pair("request", m))
 	defer e.Done()
 	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
 		e.SetError(err)
@@ -157,8 +157,8 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 		e.SetError(err)
 		return nil, err
 	}
-	e.Append(eventlog.Pair("response", response))
-	e.Append(eventlog.Pair("uuid", eventlog.Uuid("foo")))
+	e.Append(logging.Pair("response", response))
+	e.Append(logging.Pair("uuid", logging.Uuid("foo")))
 	return response, nil
 }
 

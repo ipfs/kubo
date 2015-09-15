@@ -7,10 +7,10 @@ import (
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("p2p/host")
+var log = logging.Logger("p2p/host")
 
 // Host is an object participating in a p2p network, which
 // implements protocols or provides services. It handles

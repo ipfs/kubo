@@ -11,10 +11,10 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("path")
+var log = logging.Logger("path")
 
 // Paths after a protocol must contain at least one component
 var ErrNoComponents = errors.New(

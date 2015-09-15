@@ -8,7 +8,7 @@ import (
 
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	semver "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 	update "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update"
@@ -79,7 +79,7 @@ AAb7RaEDNJOa7qvUFecB
 
 )
 
-var log = u.Logger("updates")
+var log = logging.Logger("updates")
 
 var currentVersion *semver.Version
 

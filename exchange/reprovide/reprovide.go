@@ -8,10 +8,10 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks/blockstore"
 	routing "github.com/ipfs/go-ipfs/routing"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("reprovider")
+var log = logging.Logger("reprovider")
 
 type Reprovider struct {
 	// The routing system to provide values through

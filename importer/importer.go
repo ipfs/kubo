@@ -13,10 +13,10 @@ import (
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("importer")
+var log = logging.Logger("importer")
 
 // Builds a DAG from the given file, writing created blocks to disk as they are
 // created

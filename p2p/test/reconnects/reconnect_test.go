@@ -12,7 +12,7 @@ import (
 	swarm "github.com/ipfs/go-ipfs/p2p/net/swarm"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	u "github.com/ipfs/go-ipfs/util"
 
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
@@ -24,7 +24,7 @@ func init() {
 	ps.GarbageCollectTimeout = 10 * time.Millisecond
 }
 
-var log = eventlog.Logger("reconnect")
+var log = logging.Logger("reconnect")
 
 func EchoStreamHandler(stream inet.Stream) {
 	c := stream.Conn()

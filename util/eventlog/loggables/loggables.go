@@ -11,22 +11,22 @@ import (
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	log "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
 // NetConn returns an eventlog.Metadata with the conn addresses
-func NetConn(c net.Conn) log.Loggable {
-	return log.Metadata{
+func NetConn(c net.Conn) logging.Loggable {
+	return logging.Metadata{
 		"localAddr":  c.LocalAddr(),
 		"remoteAddr": c.RemoteAddr(),
 	}
 }
 
 // Error returns an eventlog.Metadata with an error
-func Error(e error) log.Loggable {
-	return log.Metadata{
+func Error(e error) logging.Loggable {
+	return logging.Metadata{
 		"error": e.Error(),
 	}
 }

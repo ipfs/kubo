@@ -1,4 +1,4 @@
-package eventlog
+package log
 
 // Loggable describes objects that can be marshalled into Metadata for logging
 type Loggable interface {

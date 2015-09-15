@@ -8,10 +8,10 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	queue "github.com/ipfs/go-ipfs/p2p/peer/queue"
 	"github.com/ipfs/go-ipfs/routing"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
 	pset "github.com/ipfs/go-ipfs/util/peerset"
 	todoctr "github.com/ipfs/go-ipfs/util/todocounter"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	ctxproc "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
@@ -77,7 +77,7 @@ type dhtQueryRunner struct {
 	errs   u.MultiErr      // result errors. maybe should be a map[peer.ID]error
 
 	rateLimit chan struct{} // processing semaphore
-	log       eventlog.EventLogger
+	log       logging.EventLogger
 
 	proc process.Process
 	sync.RWMutex

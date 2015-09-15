@@ -28,12 +28,12 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	unit "github.com/ipfs/go-ipfs/thirdparty/unit"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var elog = eventlog.Logger("gc-client")
+var elog = logging.Logger("gc-client")
 
 var (
 	cat             = flag.Bool("cat", false, "else add")
@@ -193,7 +193,7 @@ func runFileCattingWorker(ctx context.Context, n *core.IpfsNode) error {
 			if err != nil {
 				log.Fatal(err)
 			}
-			e := elog.EventBegin(ctx, "cat", eventlog.LoggableF(func() map[string]interface{} {
+			e := elog.EventBegin(ctx, "cat", logging.LoggableF(func() map[string]interface{} {
 				return map[string]interface{}{
 					"key":       k,
 					"localPeer": n.Identity,

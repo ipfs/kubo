@@ -33,7 +33,7 @@ import (
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	ping "github.com/ipfs/go-ipfs/p2p/protocol/ping"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	routing "github.com/ipfs/go-ipfs/routing"
 	dht "github.com/ipfs/go-ipfs/routing/dht"
@@ -62,7 +62,7 @@ const kSizeBlockstoreWriteCache = 100
 const kReprovideFrequency = time.Hour * 12
 const discoveryConnTimeout = time.Second * 30
 
-var log = eventlog.Logger("core")
+var log = logging.Logger("core")
 
 type mode int
 

@@ -7,10 +7,10 @@ import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("ipfsaddr")
+var log = logging.Logger("ipfsaddr")
 
 // ErrInvalidAddr signals an address is not a valid ipfs address.
 var ErrInvalidAddr = errors.New("invalid ipfs address")

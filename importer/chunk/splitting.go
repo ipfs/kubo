@@ -4,10 +4,10 @@ package chunk
 import (
 	"io"
 
-	"github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = util.Logger("chunk")
+var log = logging.Logger("chunk")
 
 var DefaultBlockSize int64 = 1024 * 256
 

@@ -9,10 +9,10 @@ import (
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("bitswap_network")
+var log = logging.Logger("bitswap_network")
 
 // NewFromIpfsHost returns a BitSwapNetwork supported by underlying IPFS host
 func NewFromIpfsHost(host host.Host, r routing.IpfsRouting) BitSwapNetwork {

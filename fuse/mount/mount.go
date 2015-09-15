@@ -10,10 +10,10 @@ import (
 
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("mount")
+var log = logging.Logger("mount")
 
 var MountTimeout = time.Second * 5
 

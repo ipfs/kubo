@@ -22,10 +22,10 @@ import (
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("bitswap")
+var log = logging.Logger("bitswap")
 
 const (
 	// maxProvidersPerRequest specifies the maximum number of providers desired
@@ -151,7 +151,7 @@ func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (*blocks.Block, e
 
 	ctx, cancelFunc := context.WithCancel(parent)
 
-	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("GetBlockRequest"))
+	ctx = logging.ContextWithLoggable(ctx, logging.Uuid("GetBlockRequest"))
 	log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
 	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
 

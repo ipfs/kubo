@@ -11,9 +11,10 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/atomicfile"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = util.Logger("fsrepo")
+var log = logging.Logger("fsrepo")
 
 // ReadConfigFile reads the config from `filename` into `cfg`.
 func ReadConfigFile(filename string, cfg interface{}) error {

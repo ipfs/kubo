@@ -16,11 +16,11 @@ import (
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	pb "github.com/ipfs/go-ipfs/p2p/protocol/identify/pb"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 )
 
-var log = eventlog.Logger("net/identify")
+var log = logging.Logger("net/identify")
 
 // ID is the protocol.ID of the Identify Service.
 const ID protocol.ID = "/ipfs/identify"

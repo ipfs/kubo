@@ -11,10 +11,10 @@ import (
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	routing "github.com/ipfs/go-ipfs/routing"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("namesys")
+var log = logging.Logger("namesys")
 
 // routingResolver implements NSResolver for the main IPFS SFS-like naming
 type routingResolver struct {
