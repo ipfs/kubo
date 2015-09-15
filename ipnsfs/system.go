@@ -25,10 +25,10 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("ipnsfs")
+var log = logging.Logger("ipnsfs")
 
 var ErrIsDirectory = errors.New("error: is a directory")
 
@@ -236,7 +236,7 @@ func (kr *KeyRoot) Publish(ctx context.Context) error {
 
 	kp := path.FromKey(k)
 
-	ev := &eventlog.Metadata{"name": kr.name, "key": kp}
+	ev := &logging.Metadata{"name": kr.name, "key": kp}
 	defer log.EventBegin(ctx, "ipnsfsPublishing", ev).Done()
 	log.Info("ipnsfs publishing %s -> %s", kr.name, kp)
 

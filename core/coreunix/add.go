@@ -14,11 +14,11 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 )
 
-var log = eventlog.Logger("coreunix")
+var log = logging.Logger("coreunix")
 
 // Add builds a merkledag from the a reader, pinning all objects to the local
 // datastore. Returns a key representing the root node.

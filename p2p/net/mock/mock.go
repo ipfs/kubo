@@ -1,12 +1,12 @@
 package mocknet
 
 import (
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-var log = eventlog.Logger("mocknet")
+var log = logging.Logger("mocknet")
 
 // WithNPeers constructs a Mocknet with N peers.
 func WithNPeers(ctx context.Context, n int) (Mocknet, error) {

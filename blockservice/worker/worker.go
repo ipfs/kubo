@@ -12,10 +12,11 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	exchange "github.com/ipfs/go-ipfs/exchange"
-	util "github.com/ipfs/go-ipfs/util"
+
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = util.Logger("blockservice")
+var log = logging.Logger("blockservice")
 
 var DefaultConfig = Config{
 	NumWorkers:       1,

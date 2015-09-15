@@ -10,11 +10,11 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
-	u "github.com/ipfs/go-ipfs/util"
 	"github.com/ipfs/go-ipfs/util/testutil"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("mockrouter")
+var log = logging.Logger("mockrouter")
 
 type client struct {
 	datastore ds.Datastore

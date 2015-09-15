@@ -7,11 +7,11 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 )
 
-var log = eventlog.Logger("net/mux")
+var log = logging.Logger("net/mux")
 
 type streamHandlerMap map[ID]inet.StreamHandler
 

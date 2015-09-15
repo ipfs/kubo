@@ -18,12 +18,12 @@ import (
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
 	"github.com/ipfs/go-ipfs/p2p/peer"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
-var log = eventlog.Logger("epictest")
+var log = logging.Logger("epictest")
 
 const kSeed = 1
 

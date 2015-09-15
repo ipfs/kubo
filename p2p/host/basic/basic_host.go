@@ -8,7 +8,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	metrics "github.com/ipfs/go-ipfs/metrics"
 	mstream "github.com/ipfs/go-ipfs/metrics/stream"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -17,7 +17,7 @@ import (
 	relay "github.com/ipfs/go-ipfs/p2p/protocol/relay"
 )
 
-var log = eventlog.Logger("p2p/host/basic")
+var log = logging.Logger("p2p/host/basic")
 
 // Option is a type used to pass in options to the host.
 type Option int

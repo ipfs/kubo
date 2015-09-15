@@ -9,7 +9,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 var TaskWorkerCount = 8
@@ -45,7 +45,7 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 }
 
 func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
-	idmap := eventlog.LoggableMap{"ID": id}
+	idmap := logging.LoggableMap{"ID": id}
 	defer log.Info("bitswap task worker shutting down...")
 	for {
 		log.Event(ctx, "Bitswap.TaskWorker.Loop", idmap)
@@ -56,7 +56,7 @@ func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 				if !ok {
 					continue
 				}
-				log.Event(ctx, "Bitswap.TaskWorker.Work", eventlog.LoggableMap{
+				log.Event(ctx, "Bitswap.TaskWorker.Work", logging.LoggableMap{
 					"ID":     id,
 					"Target": envelope.Peer.Pretty(),
 					"Block":  envelope.Block.Multihash.B58String(),
@@ -77,7 +77,7 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 	limiter := ratelimit.NewRateLimiter(px, provideWorkerMax)
 
 	limitedGoProvide := func(k key.Key, wid int) {
-		ev := eventlog.LoggableMap{"ID": wid}
+		ev := logging.LoggableMap{"ID": wid}
 		limiter.LimitedGo(func(px process.Process) {
 
 			ctx := procctx.OnClosingContext(px) // derive ctx from px
@@ -96,7 +96,7 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 	// _ratelimited_ number of workers to handle each key.
 	limiter.Go(func(px process.Process) {
 		for wid := 2; ; wid++ {
-			ev := eventlog.LoggableMap{"ID": 1}
+			ev := logging.LoggableMap{"ID": 1}
 			log.Event(procctx.OnClosingContext(px), "Bitswap.ProvideWorker.Loop", ev)
 
 			select {
@@ -158,7 +158,7 @@ func (bs *Bitswap) providerConnector(parent context.Context) {
 				log.Warning("Received batch request for zero blocks")
 				continue
 			}
-			log.Event(parent, "Bitswap.ProviderConnector.Work", eventlog.LoggableMap{"Keys": keys})
+			log.Event(parent, "Bitswap.ProviderConnector.Work", logging.LoggableMap{"Keys": keys})
 
 			// NB: Optimization. Assumes that providers of key[0] are likely to
 			// be able to provide for all keys. This currently holds true in most

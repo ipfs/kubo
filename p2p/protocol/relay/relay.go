@@ -10,10 +10,10 @@ import (
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("p2p/protocol/relay")
+var log = logging.Logger("p2p/protocol/relay")
 
 // ID is the protocol.ID of the Relay Service.
 const ID protocol.ID = "/ipfs/relay"

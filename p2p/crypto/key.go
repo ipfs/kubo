@@ -23,9 +23,10 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/p2p/crypto/pb"
 	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("crypto")
+var log = logging.Logger("crypto")
 
 var ErrBadKeyType = errors.New("invalid or unsupported key type")
 

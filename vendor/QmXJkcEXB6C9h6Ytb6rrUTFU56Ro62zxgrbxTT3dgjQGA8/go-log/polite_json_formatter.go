@@ -1,4 +1,4 @@
-package eventlog
+package log
 
 import (
 	"encoding/json"

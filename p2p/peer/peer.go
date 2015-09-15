@@ -13,9 +13,10 @@ import (
 
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
 	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("peer")
+var log = logging.Logger("peer")
 
 // ID represents the identity of a peer.
 type ID string

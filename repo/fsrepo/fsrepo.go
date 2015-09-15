@@ -23,10 +23,10 @@ import (
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
-	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
 	util "github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 // version number that we are currently expecting to see
@@ -406,9 +406,9 @@ func (r *FSRepo) openDatastore() error {
 }
 
 func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
-	eventlog.Configure(eventlog.LevelInfo)
-	eventlog.Configure(eventlog.LdJSONFormatter)
-	eventlog.Configure(eventlog.Output(eventlog.WriterGroup))
+	logging.Configure(logging.LevelInfo)
+	logging.Configure(logging.LdJSONFormatter)
+	logging.Configure(logging.Output(logging.WriterGroup))
 }
 
 // Close closes the FSRepo, releasing held resources.
@@ -436,7 +436,7 @@ func (r *FSRepo) Close() error {
 	//
 	// TODO It isn't part of the current contract, but callers may like for us
 	// to disable logging once the component is closed.
-	// eventlog.Configure(eventlog.Output(os.Stderr))
+	// logging.Configure(logging.Output(os.Stderr))
 
 	r.closed = true
 	if err := r.lockfile.Close(); err != nil {

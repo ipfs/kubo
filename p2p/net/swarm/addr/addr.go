@@ -3,14 +3,14 @@ package addrutil
 import (
 	"fmt"
 
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-var log = eventlog.Logger("p2p/net/swarm/addr")
+var log = logging.Logger("p2p/net/swarm/addr")
 
 // SupportedTransportStrings is the list of supported transports for the swarm.
 // These are strings of encapsulated multiaddr protocols. E.g.:
@@ -176,12 +176,12 @@ func ResolveUnspecifiedAddresses(unspecAddrs, ifaceAddrs []ma.Multiaddr) ([]ma.M
 		return nil, fmt.Errorf("failed to specify addrs: %s", unspecAddrs)
 	}
 
-	log.Event(context.TODO(), "interfaceListenAddresses", func() eventlog.Loggable {
+	log.Event(context.TODO(), "interfaceListenAddresses", func() logging.Loggable {
 		var addrs []string
 		for _, addr := range outputAddrs {
 			addrs = append(addrs, addr.String())
 		}
-		return eventlog.Metadata{"addresses": addrs}
+		return logging.Metadata{"addresses": addrs}
 	}())
 
 	log.Debug("ResolveUnspecifiedAddresses:", unspecAddrs, ifaceAddrs, outputAddrs)

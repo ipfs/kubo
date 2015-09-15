@@ -16,13 +16,13 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 )
 
-var log = eventlog.Logger("fuse/ipfs")
+var log = logging.Logger("fuse/ipfs")
 
 // FileSystem is the readonly Ipfs Fuse Filesystem.
 type FileSystem struct {

@@ -9,10 +9,10 @@ import (
 	p2phost "github.com/ipfs/go-ipfs/p2p/host"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("mockrouter")
+var log = logging.Logger("mockrouter")
 
 type nilclient struct {
 }

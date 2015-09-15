@@ -18,8 +18,8 @@ import (
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -28,7 +28,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-var log = eventlog.Logger("dht")
+var log = logging.Logger("dht")
 
 var ProtocolDHT protocol.ID = "/ipfs/dht"
 
@@ -98,7 +98,7 @@ func (dht *IpfsDHT) LocalPeer() peer.ID {
 }
 
 // log returns the dht's logger
-func (dht *IpfsDHT) log() eventlog.EventLogger {
+func (dht *IpfsDHT) log() logging.EventLogger {
 	return log // TODO rm
 }
 

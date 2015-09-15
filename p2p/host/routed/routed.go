@@ -6,7 +6,7 @@ import (
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 
 	metrics "github.com/ipfs/go-ipfs/metrics"
@@ -17,7 +17,7 @@ import (
 	routing "github.com/ipfs/go-ipfs/routing"
 )
 
-var log = eventlog.Logger("p2p/host/routed")
+var log = logging.Logger("p2p/host/routed")
 
 // AddressTTL is the expiry time for our addresses.
 // We expire them quickly.

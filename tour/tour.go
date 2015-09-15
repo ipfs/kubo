@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"strings"
 
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("tour")
+var log = logging.Logger("tour")
 
 // ID is a string identifier for topics
 type ID string

@@ -13,7 +13,7 @@ import (
 	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
@@ -23,7 +23,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
-var log = eventlog.Logger("fuse/ipns")
+var log = logging.Logger("fuse/ipns")
 
 // FileSystem is the readwrite IPNS Fuse Filesystem.
 type FileSystem struct {

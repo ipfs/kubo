@@ -4,10 +4,10 @@ package set
 import (
 	"github.com/ipfs/go-ipfs/blocks/bloom"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	"github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = util.Logger("blockset")
+var log = logging.Logger("blockset")
 
 // BlockSet represents a mutable set of keyed blocks
 type BlockSet interface {

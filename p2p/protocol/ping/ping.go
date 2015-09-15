@@ -11,11 +11,11 @@ import (
 	host "github.com/ipfs/go-ipfs/p2p/host"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-var log = eventlog.Logger("ping")
+var log = logging.Logger("ping")
 
 const PingSize = 32
 

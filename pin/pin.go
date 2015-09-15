@@ -14,10 +14,10 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/blocks/set"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
-	"github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = util.Logger("pin")
+var log = logging.Logger("pin")
 var recursePinDatastoreKey = ds.NewKey("/local/pins/recursive/keys")
 var directPinDatastoreKey = ds.NewKey("/local/pins/direct/keys")
 var indirectPinDatastoreKey = ds.NewKey("/local/pins/indirect/keys")

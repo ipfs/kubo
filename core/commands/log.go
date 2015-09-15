@@ -5,8 +5,7 @@ import (
 	"io"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -54,7 +53,7 @@ output of a running daemon.
 			subsystem = "*"
 		}
 
-		if err := u.SetLogLevel(subsystem, level); err != nil {
+		if err := logging.SetLogLevel(subsystem, level); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -79,7 +78,7 @@ var logTailCmd = &cmds.Command{
 
 	Run: func(req cmds.Request, res cmds.Response) {
 		r, w := io.Pipe()
-		eventlog.WriterGroup.AddWriter(w)
+		logging.WriterGroup.AddWriter(w)
 		go func() {
 			<-req.Context().Done()
 			w.Close()

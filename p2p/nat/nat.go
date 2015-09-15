@@ -14,8 +14,8 @@ import (
 	nat "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/fd/go-nat"
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	periodic "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	notifier "github.com/ipfs/go-ipfs/thirdparty/notifier"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 	ErrNoMapping = errors.New("mapping not established")
 )
 
-var log = eventlog.Logger("nat")
+var log = logging.Logger("nat")
 
 // MappingDuration is a default port mapping duration.
 // Port mappings are renewed every (MappingDuration / 3)

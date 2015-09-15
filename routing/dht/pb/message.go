@@ -6,10 +6,10 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("dht.pb")
+var log = logging.Logger("dht.pb")
 
 type PeerRoutingInfo struct {
 	peer.PeerInfo

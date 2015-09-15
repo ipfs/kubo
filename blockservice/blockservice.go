@@ -12,7 +12,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	worker "github.com/ipfs/go-ipfs/blockservice/worker"
 	exchange "github.com/ipfs/go-ipfs/exchange"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 var wc = worker.Config{
@@ -32,7 +32,7 @@ var wc = worker.Config{
 	WorkerBufferSize: 0,
 }
 
-var log = u.Logger("blockservice")
+var log = logging.Logger("blockservice")
 var ErrNotFound = errors.New("blockservice: key not found")
 
 // BlockService is a hybrid block datastore. It stores data in a local

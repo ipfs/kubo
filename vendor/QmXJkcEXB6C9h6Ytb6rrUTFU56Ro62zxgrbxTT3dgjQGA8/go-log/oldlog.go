@@ -1,6 +1,7 @@
-package util
+package log
 
 import (
+	"errors"
 	"os"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
@@ -27,6 +28,9 @@ const (
 	envLoggingFmt = "IPFS_LOGGING_FMT"
 )
 
+// ErrNoSuchLogger is returned when the util pkg is asked for a non existant logger
+var ErrNoSuchLogger = errors.New("Error: No such logger")
+
 // loggers is the set of loggers in the system
 var loggers = map[string]*logrus.Entry{}
 
@@ -52,10 +56,6 @@ func SetupLogging() {
 		}
 	}
 
-	if Debug := GetenvBool("IPFS_DEBUG"); Debug {
-		lvl = logrus.DebugLevel
-	}
-
 	SetAllLoggers(lvl)
 }
 
@@ -70,18 +70,6 @@ func SetAllLoggers(lvl logrus.Level) {
 	for _, logger := range loggers {
 		logger.Level = lvl
 	}
-}
-
-// Logger retrieves a particular logger
-func Logger(name string) *logrus.Entry {
-	if len(name) == 0 {
-		log.Warnf("Missing name parameter")
-		name = "undefined"
-	}
-	if _, ok := loggers[name]; !ok {
-		loggers[name] = log.WithField("module", name)
-	}
-	return loggers[name]
 }
 
 // SetLogLevel changes the log level of a specific subsystem

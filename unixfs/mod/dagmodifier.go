@@ -19,7 +19,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
@@ -29,7 +29,7 @@ var ErrUnrecognizedWhence = errors.New("unrecognized whence")
 // 2MB
 var writebufferSize = 1 << 21
 
-var log = u.Logger("dagio")
+var log = logging.Logger("dagio")
 
 // DagModifier is the only struct licensed and able to correctly
 // perform surgery on a DAG 'file'

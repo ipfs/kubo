@@ -14,11 +14,11 @@ import (
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	pb "github.com/ipfs/go-ipfs/p2p/crypto/secio/pb"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("secio")
+var log = logging.Logger("secio")
 
 // ErrUnsupportedKeyType is returned when a private key cast/type switch fails.
 var ErrUnsupportedKeyType = errors.New("unsupported key type")

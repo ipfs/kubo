@@ -14,10 +14,10 @@ import (
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = eventlog.Logger("supernode")
+var log = logging.Logger("supernode")
 
 type Client struct {
 	peerhost  host.Host
@@ -37,7 +37,7 @@ func NewClient(px proxy.Proxy, h host.Host, ps peer.Peerstore, local peer.ID) (*
 }
 
 func (c *Client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.PeerInfo {
-	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("findProviders"))
+	ctx = logging.ContextWithLoggable(ctx, logging.Uuid("findProviders"))
 	defer log.EventBegin(ctx, "findProviders", &k).Done()
 	ch := make(chan peer.PeerInfo)
 	go func() {

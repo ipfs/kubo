@@ -8,10 +8,10 @@ import (
 	"time"
 
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	u "github.com/ipfs/go-ipfs/util"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var log = u.Logger("table")
+var log = logging.Logger("table")
 
 // RoutingTable defines the routing table.
 type RoutingTable struct {

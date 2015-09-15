@@ -11,13 +11,13 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-var log = eventlog.Logger("backpressure")
+var log = logging.Logger("backpressure")
 
 // TestBackpressureStreamHandler tests whether mux handler
 // ratelimiting works. Meaning, since the handler is sequential
