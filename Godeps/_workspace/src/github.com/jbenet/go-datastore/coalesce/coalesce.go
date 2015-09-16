@@ -1,6 +1,7 @@
 package coalesce
 
 import (
+	"io"
 	"sync"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -123,4 +124,17 @@ func (d *datastore) Delete(key ds.Key) (err error) {
 func (d *datastore) Query(q dsq.Query) (dsq.Results, error) {
 	// query not coalesced yet.
 	return d.child.Query(q)
+}
+
+func (d *datastore) Close() error {
+	d.reqmu.Lock()
+	defer d.reqmu.Unlock()
+
+	for _, s := range d.req {
+		<-s.done
+	}
+	if c, ok := d.child.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
 }

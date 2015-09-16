@@ -1,8 +1,6 @@
 package leveldb
 
 import (
-	"io"
-
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
@@ -11,18 +9,13 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/util"
 )
 
-type Datastore interface {
-	ds.ThreadSafeDatastore
-	io.Closer
-}
-
 type datastore struct {
 	DB *leveldb.DB
 }
 
 type Options opt.Options
 
-func NewDatastore(path string, opts *Options) (Datastore, error) {
+func NewDatastore(path string, opts *Options) (*datastore, error) {
 	var nopts opt.Options
 	if opts != nil {
 		nopts = opt.Options(*opts)
@@ -146,6 +139,11 @@ func (d *datastore) runQuery(worker goprocess.Process, qrb *dsq.ResultBuilder) {
 			return
 		}
 	}
+}
+
+func (d *datastore) Batch() (ds.Batch, error) {
+	// TODO: implement batch on leveldb
+	return nil, ds.ErrBatchUnsupported
 }
 
 // LevelDB needs to be closed.

@@ -26,7 +26,7 @@ func (w *datastoreCloserWrapper) Close() error {
 }
 
 func (w *datastoreCloserWrapper) Batch() (datastore.Batch, error) {
-	bds, ok := w.ThreadSafeDatastore.(datastore.BatchingDatastore)
+	bds, ok := w.ThreadSafeDatastore.(datastore.Batching)
 	if !ok {
 		return nil, datastore.ErrBatchUnsupported
 	}

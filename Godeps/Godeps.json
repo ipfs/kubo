@@ -112,6 +112,10 @@
 			"Rev": "68f5725818189545231c1fd8694793d45f2fc529"
 		},
 		{
+			"ImportPath": "github.com/ipfs/go-log",
+			"Rev": "ee5cb9834b33bcf29689183e0323e328c8b8de29"
+		},
+		{
 			"ImportPath": "github.com/jackpal/go-nat-pmp",
 			"Rev": "a45aa3d54aef73b504e15eb71bea0e5565b5e6e1"
 		},
@@ -129,7 +133,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-datastore",
-			"Rev": "7d6acaf7c0164c335f2ca4100f8fe30a7e2943dd"
+			"Rev": "c835c30f206c1e97172e428f052e225adab9abde"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-detect-race",

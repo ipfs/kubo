@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"io"
 	"log"
 
 	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
@@ -67,6 +68,10 @@ func (d *MapDatastore) Batch() (Batch, error) {
 	return NewBasicBatch(d), nil
 }
 
+func (d *MapDatastore) Close() error {
+	return nil
+}
+
 // NullDatastore stores nothing, but conforms to the API.
 // Useful to test with.
 type NullDatastore struct {
@@ -104,6 +109,10 @@ func (d *NullDatastore) Query(q dsq.Query) (dsq.Results, error) {
 
 func (d *NullDatastore) Batch() (Batch, error) {
 	return NewBasicBatch(d), nil
+}
+
+func (d *NullDatastore) Close() error {
+	return nil
 }
 
 // LogDatastore logs all accesses through the datastore.
@@ -165,9 +174,16 @@ func (d *LogDatastore) Query(q dsq.Query) (dsq.Results, error) {
 
 func (d *LogDatastore) Batch() (Batch, error) {
 	log.Printf("%s: Batch\n", d.Name)
-	bds, ok := d.child.(BatchingDatastore)
-	if !ok {
-		return nil, ErrBatchUnsupported
+	if bds, ok := d.child.(Batching); ok {
+		return bds.Batch()
 	}
-	return bds.Batch()
+	return nil, ErrBatchUnsupported
+}
+
+func (d *LogDatastore) Close() error {
+	log.Printf("%s: Close\n", d.Name)
+	if cds, ok := d.child.(io.Closer); ok {
+		return cds.Close()
+	}
+	return nil
 }
