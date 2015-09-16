@@ -21,6 +21,7 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 		return err
 	}
 
+	// block until gc completes
 	for _ = range kr {
 	}
 

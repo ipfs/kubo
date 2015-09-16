@@ -63,13 +63,13 @@ type pinner struct {
 	// Track the keys used for storing the pinning state, so gc does
 	// not delete them.
 	internalPin map[key.Key]struct{}
-	dserv       mdag.DAGService
-	privdag     mdag.DAGService
+	datadag     mdag.DAGService
+	statedag    mdag.DAGService
 	dstore      ds.Datastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
-func NewPinner(dstore ds.Datastore, pub mdag.DAGService, priv mdag.DAGService) Pinner {
+func NewPinner(dstore ds.Datastore, data mdag.DAGService, state mdag.DAGService) Pinner {
 
 	// Load set from given datastore...
 	rcset := set.NewSimpleBlockSet()
@@ -79,9 +79,9 @@ func NewPinner(dstore ds.Datastore, pub mdag.DAGService, priv mdag.DAGService) P
 	return &pinner{
 		recursePin: rcset,
 		directPin:  dirset,
-		dserv:      pub,
+		datadag:    data,
 		dstore:     dstore,
-		privdag:    priv,
+		statedag:   state,
 	}
 }
 
@@ -104,14 +104,14 @@ func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
 		}
 
 		// fetch entire graph
-		err := mdag.FetchGraph(ctx, node, p.dserv)
+		err := mdag.FetchGraph(ctx, node, p.datadag)
 		if err != nil {
 			return err
 		}
 
 		p.recursePin.AddBlock(k)
 	} else {
-		if _, err := p.dserv.Get(ctx, k); err != nil {
+		if _, err := p.datadag.Get(ctx, k); err != nil {
 			return err
 		}
 
@@ -178,12 +178,12 @@ func (p *pinner) isPinned(k key.Key) (string, bool, error) {
 	}
 
 	for _, rk := range p.recursePin.GetKeys() {
-		rnd, err := p.dserv.Get(context.Background(), rk)
+		rnd, err := p.datadag.Get(context.Background(), rk)
 		if err != nil {
 			return "", false, err
 		}
 
-		has, err := hasChild(p.dserv, rnd, k)
+		has, err := hasChild(p.datadag, rnd, k)
 		if err != nil {
 			return "", false, err
 		}
@@ -209,7 +209,7 @@ func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(d ds.Datastore, dserv mdag.DAGService, priv mdag.DAGService) (Pinner, error) {
+func LoadPinner(d ds.Datastore, datadag mdag.DAGService, statedag mdag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	rootKeyI, err := d.Get(pinDatastoreKey)
@@ -226,7 +226,7 @@ func LoadPinner(d ds.Datastore, dserv mdag.DAGService, priv mdag.DAGService) (Pi
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
 	defer cancel()
 
-	root, err := priv.Get(ctx, rootKey)
+	root, err := statedag.Get(ctx, rootKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find pinning root object: %v", err)
 	}
@@ -239,7 +239,7 @@ func LoadPinner(d ds.Datastore, dserv mdag.DAGService, priv mdag.DAGService) (Pi
 	}
 
 	{ // load recursive set
-		recurseKeys, err := loadSet(ctx, priv, root, linkRecursive, recordInternal)
+		recurseKeys, err := loadSet(ctx, statedag, root, linkRecursive, recordInternal)
 		if err != nil {
 			return nil, fmt.Errorf("cannot load recursive pins: %v", err)
 		}
@@ -247,7 +247,7 @@ func LoadPinner(d ds.Datastore, dserv mdag.DAGService, priv mdag.DAGService) (Pi
 	}
 
 	{ // load direct set
-		directKeys, err := loadSet(ctx, priv, root, linkDirect, recordInternal)
+		directKeys, err := loadSet(ctx, statedag, root, linkDirect, recordInternal)
 		if err != nil {
 			return nil, fmt.Errorf("cannot load direct pins: %v", err)
 		}
@@ -257,8 +257,8 @@ func LoadPinner(d ds.Datastore, dserv mdag.DAGService, priv mdag.DAGService) (Pi
 	p.internalPin = internalPin
 
 	// assign services
-	p.dserv = dserv
-	p.privdag = priv
+	p.datadag = datadag
+	p.statedag = statedag
 	p.dstore = d
 
 	return p, nil
@@ -288,12 +288,12 @@ func (p *pinner) Flush() error {
 
 	root := &mdag.Node{}
 	{
-		n, err := storeSet(ctx, p.privdag, p.directPin.GetKeys(), recordInternal)
+		n, err := storeSet(ctx, p.statedag, p.directPin.GetKeys(), recordInternal)
 		if err != nil {
 			return err
 		}
 
-		_, err = p.privdag.Add(n)
+		_, err = p.statedag.Add(n)
 		if err != nil {
 			return err
 		}
@@ -304,12 +304,12 @@ func (p *pinner) Flush() error {
 	}
 
 	{
-		n, err := storeSet(ctx, p.privdag, p.recursePin.GetKeys(), recordInternal)
+		n, err := storeSet(ctx, p.statedag, p.recursePin.GetKeys(), recordInternal)
 		if err != nil {
 			return err
 		}
 
-		_, err = p.privdag.Add(n)
+		_, err = p.statedag.Add(n)
 		if err != nil {
 			return err
 		}
@@ -320,12 +320,12 @@ func (p *pinner) Flush() error {
 	}
 
 	// add the empty node, its referenced by the pin sets but never created
-	_, err := p.privdag.Add(new(mdag.Node))
+	_, err := p.statedag.Add(new(mdag.Node))
 	if err != nil {
 		return err
 	}
 
-	k, err := p.privdag.Add(root)
+	k, err := p.statedag.Add(root)
 	if err != nil {
 		return err
 	}

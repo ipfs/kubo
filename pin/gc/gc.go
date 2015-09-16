@@ -43,6 +43,7 @@ func RunGC(ctx context.Context, bs bstore.GCBlockstore, gcs key.KeySet) (<-chan 
 		return nil, err
 	}
 
+	// buffered so background progress can continue if consumer is slow
 	output := make(chan key.Key, 16)
 	go func() {
 		defer close(output)
