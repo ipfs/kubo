@@ -43,7 +43,7 @@ func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
 }
 
 type blockstore struct {
-	datastore ds.BatchingDatastore
+	datastore ds.Batching
 	// cant be ThreadSafeDatastore cause namespace.Datastore doesnt support it.
 	// we do check it on `NewBlockstore` though.
 }

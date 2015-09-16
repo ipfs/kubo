@@ -3,6 +3,7 @@
 package measure
 
 import (
+	"io"
 	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/codahale/metrics"
@@ -18,17 +19,12 @@ const (
 	maxSize    = int64(1 << 32)
 )
 
-type DatastoreCloser interface {
-	datastore.Datastore
-	Close() error
-}
-
 // New wraps the datastore, providing metrics on the operations. The
 // metrics are registered with names starting with prefix and a dot.
 //
 // If prefix is not unique, New will panic. Call Close to release the
 // prefix.
-func New(prefix string, ds datastore.Datastore) DatastoreCloser {
+func New(prefix string, ds datastore.Datastore) *measure {
 	m := &measure{
 		backend: ds,
 
@@ -84,7 +80,6 @@ type measure struct {
 }
 
 var _ datastore.Datastore = (*measure)(nil)
-var _ DatastoreCloser = (*measure)(nil)
 
 func recordLatency(h *metrics.Histogram, start time.Time) {
 	elapsed := time.Now().Sub(start) / time.Microsecond
@@ -159,7 +154,7 @@ type measuredBatch struct {
 }
 
 func (m *measure) Batch() (datastore.Batch, error) {
-	bds, ok := m.backend.(datastore.BatchingDatastore)
+	bds, ok := m.backend.(datastore.Batching)
 	if !ok {
 		return nil, datastore.ErrBatchUnsupported
 	}
@@ -245,5 +240,9 @@ func (m *measure) Close() error {
 	m.queryNum.Remove()
 	m.queryErr.Remove()
 	m.queryLatency.Remove()
+
+	if c, ok := m.backend.(io.Closer); ok {
+		return c.Close()
+	}
 	return nil
 }

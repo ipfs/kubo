@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"io"
 	"sync"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -17,7 +18,7 @@ type MutexDatastore struct {
 
 // MutexWrap constructs a datastore with a coarse lock around
 // the entire datastore, for every single operation
-func MutexWrap(d ds.Datastore) ds.ThreadSafeDatastore {
+func MutexWrap(d ds.Datastore) *MutexDatastore {
 	return &MutexDatastore{child: d}
 }
 
@@ -67,7 +68,7 @@ func (d *MutexDatastore) Query(q dsq.Query) (dsq.Results, error) {
 func (d *MutexDatastore) Batch() (ds.Batch, error) {
 	d.RLock()
 	defer d.RUnlock()
-	bds, ok := d.child.(ds.BatchingDatastore)
+	bds, ok := d.child.(ds.Batching)
 	if !ok {
 		return nil, ds.ErrBatchUnsupported
 	}
@@ -79,6 +80,15 @@ func (d *MutexDatastore) Batch() (ds.Batch, error) {
 	return &syncBatch{
 		batch: b,
 	}, nil
+}
+
+func (d *MutexDatastore) Close() error {
+	d.RWMutex.Lock()
+	defer d.RWMutex.Unlock()
+	if c, ok := d.child.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
 }
 
 type syncBatch struct {

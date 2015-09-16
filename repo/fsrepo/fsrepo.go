@@ -94,10 +94,6 @@ type FSRepo struct {
 	lockfile io.Closer
 	config   *config.Config
 	ds       ds.ThreadSafeDatastore
-	// tracked separately for use in Close; do not use directly.
-	leveldbDS      levelds.Datastore
-	metricsBlocks  measure.DatastoreCloser
-	metricsLevelDB measure.DatastoreCloser
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -352,7 +348,7 @@ func (r *FSRepo) openDatastore() error {
 	leveldbPath := path.Join(r.path, leveldbDirectory)
 	var err error
 	// save leveldb reference so it can be neatly closed afterward
-	r.leveldbDS, err = levelds.NewDatastore(leveldbPath, &levelds.Options{
+	leveldbDS, err := levelds.NewDatastore(leveldbPath, &levelds.Options{
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
@@ -382,16 +378,16 @@ func (r *FSRepo) openDatastore() error {
 		id = fmt.Sprintf("uninitialized_%p", r)
 	}
 	prefix := "fsrepo." + id + ".datastore."
-	r.metricsBlocks = measure.New(prefix+"blocks", blocksDS)
-	r.metricsLevelDB = measure.New(prefix+"leveldb", r.leveldbDS)
+	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
+	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
 	mountDS := mount.New([]mount.Mount{
 		{
 			Prefix:    ds.NewKey("/blocks"),
-			Datastore: r.metricsBlocks,
+			Datastore: metricsBlocks,
 		},
 		{
 			Prefix:    ds.NewKey("/"),
-			Datastore: r.metricsLevelDB,
+			Datastore: metricsLevelDB,
 		},
 	})
 	// Make sure it's ok to claim the virtual datastore from mount as
@@ -400,7 +396,7 @@ func (r *FSRepo) openDatastore() error {
 	// variants. This is the same dilemma as the `[].byte` attempt at
 	// introducing const types to Go.
 	var _ ds.ThreadSafeDatastore = blocksDS
-	var _ ds.ThreadSafeDatastore = r.leveldbDS
+	var _ ds.ThreadSafeDatastore = leveldbDS
 	r.ds = ds2.ClaimThreadSafe{mountDS}
 	return nil
 }
@@ -420,13 +416,7 @@ func (r *FSRepo) Close() error {
 		return errors.New("repo is closed")
 	}
 
-	if err := r.metricsBlocks.Close(); err != nil {
-		return err
-	}
-	if err := r.metricsLevelDB.Close(); err != nil {
-		return err
-	}
-	if err := r.leveldbDS.Close(); err != nil {
+	if err := r.ds.(io.Closer).Close(); err != nil {
 		return err
 	}
 

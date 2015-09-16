@@ -2,6 +2,7 @@ package sync
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -65,6 +66,26 @@ func (d *datastore) Query(q dsq.Query) (dsq.Results, error) {
 		panic("panic datastore: Query failed")
 	}
 	return r, nil
+}
+
+func (d *datastore) Close() error {
+	if c, ok := d.child.(io.Closer); ok {
+		err := c.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stdout, "panic datastore: %s", err)
+			panic("panic datastore: Close failed")
+		}
+	}
+	return nil
+}
+
+func (d *datastore) Batch() (ds.Batch, error) {
+	b, err := d.child.(ds.Batching).Batch()
+	if err != nil {
+		return nil, err
+	}
+
+	return &panicBatch{b}, nil
 }
 
 type panicBatch struct {

@@ -323,6 +323,8 @@ func (s *Swarm) StreamsWithGroup(g Group) []*Stream {
 
 // Close shuts down the Swarm, and it's listeners.
 func (s *Swarm) Close() error {
+	defer close(s.closed)
+
 	// automatically close everything new we get.
 	s.SetConnHandler(func(c *Conn) { c.Close() })
 	s.SetStreamHandler(func(s *Stream) { s.Close() })

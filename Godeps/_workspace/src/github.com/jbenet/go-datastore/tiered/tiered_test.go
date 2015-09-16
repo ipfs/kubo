@@ -49,19 +49,19 @@ func TestTiered(t *testing.T) {
 	td := New(d1, d2, d3, d4)
 	td.Put(ds.NewKey("foo"), "bar")
 	testHas(t, []ds.Datastore{td}, ds.NewKey("foo"), "bar")
-	testHas(t, td.(tiered), ds.NewKey("foo"), "bar") // all children
+	testHas(t, td, ds.NewKey("foo"), "bar") // all children
 
 	// remove it from, say, caches.
 	d1.Delete(ds.NewKey("foo"))
 	d2.Delete(ds.NewKey("foo"))
 	testHas(t, []ds.Datastore{td}, ds.NewKey("foo"), "bar")
-	testHas(t, td.(tiered)[2:], ds.NewKey("foo"), "bar")
-	testNotHas(t, td.(tiered)[:2], ds.NewKey("foo"))
+	testHas(t, td[2:], ds.NewKey("foo"), "bar")
+	testNotHas(t, td[:2], ds.NewKey("foo"))
 
 	// write it again.
 	td.Put(ds.NewKey("foo"), "bar2")
 	testHas(t, []ds.Datastore{td}, ds.NewKey("foo"), "bar2")
-	testHas(t, td.(tiered), ds.NewKey("foo"), "bar2")
+	testHas(t, td, ds.NewKey("foo"), "bar2")
 }
 
 func TestQueryCallsLast(t *testing.T) {
