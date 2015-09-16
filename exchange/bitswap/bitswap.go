@@ -228,7 +228,7 @@ func (bs *Bitswap) CancelWants(ks []key.Key) {
 
 // HasBlock announces the existance of a block to this bitswap service. The
 // service will potentially notify its peers.
-func (bs *Bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
+func (bs *Bitswap) HasBlock(blk *blocks.Block) error {
 	select {
 	case <-bs.process.Closing():
 		return errors.New("bitswap is closed")
@@ -246,8 +246,8 @@ func (bs *Bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	select {
 	case bs.newBlocks <- blk:
 		// send block off to be reprovided
-	case <-ctx.Done():
-		return ctx.Err()
+	case <-bs.process.Closing():
+		return bs.process.Close()
 	}
 	return nil
 }
@@ -328,9 +328,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 			log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
 
 			log.Debugf("got block %s from %s", b, p)
-			hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
-			defer cancel()
-			if err := bs.HasBlock(hasBlockCtx, b); err != nil {
+			if err := bs.HasBlock(b); err != nil {
 				log.Warningf("ReceiveMessage HasBlock error: %s", err)
 			}
 		}(block)
