@@ -18,7 +18,7 @@ def main():
   print 'generated on', datetime.datetime.now()
   print ''
   for line in lines:
-    print '- [%s](#%s)' % (line, line.replace(' ', '-'))
+    print '- [%s](/docs/commands/#%s)' % (line, line.replace(' ', '-'))
   print ''
 
   for line in lines:
