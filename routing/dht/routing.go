@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"bytes"
 	"sync"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -76,16 +77,71 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key key.Key, value []byte) err
 }
 
 // GetValue searches for the value corresponding to given Key.
-// If the search does not succeed, a multiaddr string of a closer peer is
-// returned along with util.ErrSearchIncomplete
 func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
+	vals, err := dht.GetValues(ctx, key, 3)
+	if err != nil {
+		return nil, err
+	}
+
+	var recs [][]byte
+	for _, v := range vals {
+		recs = append(recs, v.Val)
+	}
+
+	i, err := dht.Selector.BestRecord(key, recs)
+	if err != nil {
+		return nil, err
+	}
+
+	best := recs[i]
+	log.Debugf("GetValue %v %v", key, best)
+	if best == nil {
+		log.Errorf("GetValue yielded correct record with nil value.")
+		return nil, routing.ErrNotFound
+	}
+
+	fixupRec, err := record.MakePutRecord(dht.peerstore.PrivKey(dht.self), key, best, true)
+	if err != nil {
+		// probably shouldnt actually 'error' here as we have found a value we like,
+		// but this call failing probably isnt something we want to ignore
+		return nil, err
+	}
+
+	for _, v := range vals {
+		// if someone sent us a different 'less-valid' record, lets correct them
+		if !bytes.Equal(v.Val, best) {
+			go func(v routing.RecvdVal) {
+				err := dht.putValueToPeer(ctx, v.From, key, fixupRec)
+				if err != nil {
+					log.Error("Error correcting DHT entry: ", err)
+				}
+			}(v)
+		}
+	}
+
+	return best, nil
+}
+
+func (dht *IpfsDHT) GetValues(ctx context.Context, key key.Key, nvals int) ([]routing.RecvdVal, error) {
+	var vals []routing.RecvdVal
+	var valslock sync.Mutex
+
 	// If we have it local, dont bother doing an RPC!
-	val, err := dht.getLocal(key)
+	lrec, err := dht.getLocal(key)
 	if err == nil {
+		// TODO: this is tricky, we dont always want to trust our own value
+		// what if the authoritative source updated it?
 		log.Debug("have it locally")
-		return val, nil
-	} else {
-		log.Debug("failed to get value locally: %s", err)
+		vals = append(vals, routing.RecvdVal{
+			Val:  lrec.GetValue(),
+			From: dht.self,
+		})
+
+		if nvals <= 1 {
+			return vals, nil
+		}
+	} else if nvals == 0 {
+		return nil, err
 	}
 
 	// get closest peers in the routing table
@@ -104,14 +160,26 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 			ID:   p,
 		})
 
-		val, peers, err := dht.getValueOrPeers(ctx, p, key)
+		rec, peers, err := dht.getValueOrPeers(ctx, p, key)
 		if err != nil {
 			return nil, err
 		}
 
-		res := &dhtQueryResult{value: val, closerPeers: peers}
-		if val != nil {
-			res.success = true
+		res := &dhtQueryResult{closerPeers: peers}
+
+		if rec.GetValue() != nil {
+			rv := routing.RecvdVal{
+				Val:  rec.GetValue(),
+				From: p,
+			}
+			valslock.Lock()
+			vals = append(vals, rv)
+
+			// If weve collected enough records, we're done
+			if len(vals) >= nvals {
+				res.success = true
+			}
+			valslock.Unlock()
 		}
 
 		notif.PublishQueryEvent(parent, &notif.QueryEvent{
@@ -124,17 +192,15 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 	})
 
 	// run it!
-	result, err := query.Run(ctx, rtp)
-	if err != nil {
-		return nil, err
+	_, err = query.Run(ctx, rtp)
+	if len(vals) == 0 {
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	log.Debugf("GetValue %v %v", key, result.value)
-	if result.value == nil {
-		return nil, routing.ErrNotFound
-	}
+	return vals, nil
 
-	return result.value, nil
 }
 
 // Value provider layer of indirection.

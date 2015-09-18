@@ -131,8 +131,14 @@ func TestValueGetSet(t *testing.T) {
 		},
 		Sign: false,
 	}
+	nulsel := func(_ key.Key, bs [][]byte) (int, error) {
+		return 0, nil
+	}
+
 	dhtA.Validator["v"] = vf
 	dhtB.Validator["v"] = vf
+	dhtA.Selector["v"] = nulsel
+	dhtB.Selector["v"] = nulsel
 
 	connect(t, ctx, dhtA, dhtB)
 
@@ -193,7 +199,7 @@ func TestProvides(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !bytes.Equal(bits, v) {
+		if !bytes.Equal(bits.GetValue(), v) {
 			t.Fatal("didn't store the right bits (%s, %s)", k, v)
 		}
 	}
@@ -466,7 +472,7 @@ func TestProvidesMany(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !bytes.Equal(bits, v) {
+		if !bytes.Equal(bits.GetValue(), v) {
 			t.Fatal("didn't store the right bits (%s, %s)", k, v)
 		}
 
@@ -558,7 +564,7 @@ func TestProvidesAsync(t *testing.T) {
 	}
 
 	bits, err := dhts[3].getLocal(k)
-	if err != nil && bytes.Equal(bits, val) {
+	if err != nil && bytes.Equal(bits.GetValue(), val) {
 		t.Fatal(err)
 	}
 

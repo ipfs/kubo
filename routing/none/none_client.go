@@ -25,6 +25,10 @@ func (c *nilclient) GetValue(_ context.Context, _ key.Key) ([]byte, error) {
 	return nil, errors.New("Tried GetValue from nil routing.")
 }
 
+func (c *nilclient) GetValues(_ context.Context, _ key.Key, _ int) ([]routing.RecvdVal, error) {
+	return nil, errors.New("Tried GetValues from nil routing.")
+}
+
 func (c *nilclient) FindPeer(_ context.Context, _ peer.ID) (peer.PeerInfo, error) {
 	return peer.PeerInfo{}, nil
 }

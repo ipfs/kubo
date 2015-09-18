@@ -26,6 +26,18 @@ type IpfsRouting interface {
 	// GetValue searches for the value corresponding to given Key.
 	GetValue(context.Context, key.Key) ([]byte, error)
 
+	// GetValues searches for values corresponding to given Key.
+	//
+	// Passing a value of '0' for the count argument will cause the
+	// routing interface to return values only from cached or local storage
+	// and return an error if no cached value is found.
+	//
+	// Passing a value of '1' will return a local value if found, and query
+	// the network for the first value it finds otherwise.
+	// As a result, a value of '1' is mostly useful for cases where the record
+	// in question has only one valid value (such as public keys)
+	GetValues(c context.Context, k key.Key, count int) ([]RecvdVal, error)
+
 	// Value provider layer of indirection.
 	// This is what DSHTs (Coral and MainlineDHT) do to store large values in a DHT.
 
@@ -42,6 +54,13 @@ type IpfsRouting interface {
 	Bootstrap(context.Context) error
 
 	// TODO expose io.Closer or plain-old Close error
+}
+
+// RecvdVal represents a dht value record that has been received from a given peer
+// it is used to track peers with expired records in order to correct them.
+type RecvdVal struct {
+	From peer.ID
+	Val  []byte
 }
 
 type PubKeyFetcher interface {
