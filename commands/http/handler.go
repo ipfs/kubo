@@ -224,13 +224,8 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 		_, isChan = res.Output().(<-chan interface{})
 	}
 
-	streamChans, _, _ := req.Option("stream-channels").Bool()
 	if isChan {
 		h.Set(channelHeader, "1")
-		if streamChans {
-			// streaming output from a channel will always be json objects
-			mime = applicationJson
-		}
 	}
 
 	if mime != "" {
