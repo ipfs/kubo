@@ -23,6 +23,7 @@ type Config struct {
 	Mounts           Mounts                // local node's mount points
 	Version          Version               // local node's version management
 	Discovery        Discovery             // local node's discovery mechanisms
+	Ipns             Ipns                  // Ipns settings
 	Bootstrap        []string              // local nodes's bootstrap peer addresses
 	Tour             Tour                  // local node's tour position
 	Gateway          Gateway               // local node's gateway server options
