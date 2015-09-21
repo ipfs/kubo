@@ -18,7 +18,6 @@ import (
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	u "github.com/ipfs/go-ipfs/util"
 	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
@@ -217,13 +216,10 @@ func (dht *IpfsDHT) getLocal(key key.Key) (*pb.Record, error) {
 		return nil, err
 	}
 
-	// TODO: 'if paranoid'
-	if u.Debug {
-		err = dht.verifyRecordLocally(rec)
-		if err != nil {
-			log.Debugf("local record verify failed: %s (discarded)", err)
-			return nil, err
-		}
+	err = dht.verifyRecordLocally(rec)
+	if err != nil {
+		log.Debugf("local record verify failed: %s (discarded)", err)
+		return nil, err
 	}
 
 	return rec, nil

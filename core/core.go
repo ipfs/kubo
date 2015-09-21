@@ -51,6 +51,7 @@ import (
 	ipnsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
+	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
@@ -104,6 +105,7 @@ type IpfsNode struct {
 	Diagnostics  *diag.Diagnostics   // the diagnostics service
 	Ping         *ping.PingService
 	Reprovider   *rp.Reprovider // the value reprovider system
+	IpnsRepub    *ipnsrp.Republisher
 
 	IpnsFs *ipnsfs.Filesystem
 
@@ -225,6 +227,29 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 
 	// setup name system
 	n.Namesys = namesys.NewNameSystem(n.Routing)
+
+	// setup ipns republishing
+	n.IpnsRepub = ipnsrp.NewRepublisher(n.Routing, n.Repo.Datastore(), n.Peerstore)
+	n.IpnsRepub.AddName(n.Identity)
+
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+	if cfg.Ipns.RepublishPeriod != "" {
+		d, err := time.ParseDuration(cfg.Ipns.RepublishPeriod)
+		if err != nil {
+			return fmt.Errorf("failure to parse config setting IPNS.RepublishPeriod: %s", err)
+		}
+
+		if d < time.Minute || d > (time.Hour*24) {
+			return fmt.Errorf("config setting IPNS.RepublishPeriod is not between 1min and 1day: %s", d)
+		}
+
+		n.IpnsRepub.Interval = d
+	}
+
+	n.Process().Go(n.IpnsRepub.Run)
 
 	return nil
 }
