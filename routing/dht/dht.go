@@ -312,11 +312,7 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) [
 			continue
 		}
 
-		// must all be closer than self
-		key := key.Key(pmes.GetKey())
-		if !kb.Closer(dht.self, clp, key) {
-			filtered = append(filtered, clp)
-		}
+		filtered = append(filtered, clp)
 	}
 
 	// ok seems like closer nodes

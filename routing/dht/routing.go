@@ -145,7 +145,7 @@ func (dht *IpfsDHT) GetValues(ctx context.Context, key key.Key, nvals int) ([]ro
 	}
 
 	// get closest peers in the routing table
-	rtp := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
+	rtp := dht.routingTable.NearestPeers(kb.ConvertKey(key), KValue)
 	log.Debugf("peers in rt: %s", len(rtp), rtp)
 	if len(rtp) == 0 {
 		log.Warning("No peers from routing table!")
@@ -322,7 +322,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, 
 		return &dhtQueryResult{closerPeers: clpeers}, nil
 	})
 
-	peers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
+	peers := dht.routingTable.NearestPeers(kb.ConvertKey(key), KValue)
 	_, err := query.Run(ctx, peers)
 	if err != nil {
 		log.Debugf("Query error: %s", err)
@@ -342,7 +342,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 		return pi, nil
 	}
 
-	peers := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), AlphaValue)
+	peers := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), KValue)
 	if len(peers) == 0 {
 		return peer.PeerInfo{}, kb.ErrLookupFailure
 	}
@@ -409,7 +409,7 @@ func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<
 	peerchan := make(chan peer.PeerInfo, asyncQueryBuffer)
 	peersSeen := peer.Set{}
 
-	peers := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), AlphaValue)
+	peers := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), KValue)
 	if len(peers) == 0 {
 		return nil, kb.ErrLookupFailure
 	}

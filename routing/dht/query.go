@@ -184,29 +184,28 @@ func (r *dhtQueryRunner) spawnWorkers(proc process.Process) {
 		case <-r.proc.Closing():
 			return
 
-		case p, more := <-r.peersToQuery.DeqChan:
-			if !more {
-				return // channel closed.
-			}
+		case <-r.rateLimit:
+			select {
+			case p, more := <-r.peersToQuery.DeqChan:
+				if !more {
+					return // channel closed.
+				}
 
-			// do it as a child func to make sure Run exits
-			// ONLY AFTER spawn workers has exited.
-			proc.Go(func(proc process.Process) {
-				r.queryPeer(proc, p)
-			})
+				// do it as a child func to make sure Run exits
+				// ONLY AFTER spawn workers has exited.
+				proc.Go(func(proc process.Process) {
+					r.queryPeer(proc, p)
+				})
+			case <-r.proc.Closing():
+				return
+			case <-r.peersRemaining.Done():
+				return
+			}
 		}
 	}
 }
 
 func (r *dhtQueryRunner) queryPeer(proc process.Process, p peer.ID) {
-	// make sure we rate limit concurrency.
-	select {
-	case <-r.rateLimit:
-	case <-proc.Closing():
-		r.peersRemaining.Decrement(1)
-		return
-	}
-
 	// ok let's do this!
 
 	// create a context from our proc.

@@ -14,7 +14,7 @@ import (
 )
 
 // The number of closer peers to send on requests.
-var CloserPeerCount = 4
+var CloserPeerCount = KValue
 
 // dhthandler specifies the signature of functions that handle DHT messages.
 type dhtHandler func(context.Context, peer.ID, *pb.Message) (*pb.Message, error)
