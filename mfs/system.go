@@ -39,7 +39,7 @@ const (
 	TDir
 )
 
-// FSNode represents any node (directory, root, or file) in the ipns filesystem
+// FSNode represents any node (directory, root, or file) in the mfs filesystem
 type FSNode interface {
 	GetNode() (*dag.Node, error)
 	Type() NodeType
@@ -47,12 +47,12 @@ type FSNode interface {
 	Unlock()
 }
 
-// Root represents the root of a filesystem tree pointed to by a given keypair
+// Root represents the root of a filesystem tree
 type Root struct {
-	// node is the merkledag node pointed to by this keypair
+	// node is the merkledag root
 	node *dag.Node
 
-	// val represents the node pointed to by this key. It can either be a File or a Directory
+	// val represents the node. It can either be a File or a Directory
 	val FSNode
 
 	repub *Republisher
@@ -64,8 +64,7 @@ type Root struct {
 
 type PubFunc func(context.Context, key.Key) error
 
-// newRoot creates a new Root for the given key, and starts up a republisher routine
-// for it
+// newRoot creates a new Root and starts up a republisher routine for it
 func NewRoot(parent context.Context, ds dag.DAGService, node *dag.Node, pf PubFunc) (*Root, error) {
 	ndk, err := node.Key()
 	if err != nil {
@@ -122,7 +121,7 @@ func (kr *Root) Close() error {
 	return kr.repub.Close()
 }
 
-// Republisher manages when to publish the ipns entry associated with a given key
+// Republisher manages when to publish a given entry
 type Republisher struct {
 	TimeoutLong  time.Duration
 	TimeoutShort time.Duration
@@ -144,7 +143,7 @@ func (rp *Republisher) getVal() key.Key {
 	return rp.val
 }
 
-// NewRepublisher creates a new Republisher object to republish the given keyroot
+// NewRepublisher creates a new Republisher object to republish the given root
 // using the given short and long time intervals
 func NewRepublisher(ctx context.Context, pf PubFunc, tshort, tlong time.Duration) *Republisher {
 	ctx, cancel := context.WithCancel(ctx)
