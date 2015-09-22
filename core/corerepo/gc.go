@@ -30,6 +30,8 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 
 func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, error) {
 	// GC blocks from data blockstore
+	// the gc.GC call will use the pinner to enumerate the colored set
+	// and then call 'gc.RunGC' internally.
 	rmed, err := gc.GC(ctx, n.DataBlocks, n.Pinning)
 	if err != nil {
 		return nil, err
@@ -41,6 +43,8 @@ func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemo
 		ks.Add(k)
 	}
 
+	// for the nodestate blockstore, we manually enumerate the colored set
+	// from the pinners internal pins. And then make a direct call to 'gc.RunGC' here
 	internal, err := gc.RunGC(ctx, n.StateBlocks, ks)
 	if err != nil {
 		return nil, err
