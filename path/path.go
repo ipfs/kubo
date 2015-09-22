@@ -49,7 +49,20 @@ func FromSegments(prefix string, seg ...string) (Path, error) {
 }
 
 func ParsePath(txt string) (Path, error) {
+	// normalize /foo/./bar to /foo/bar, /foo//bar to /foo/bar, and /foo/../bar to /bar
+	txt = path.Clean(txt)
+
 	parts := strings.Split(txt, "/")
+	for i, segment := range parts {
+		// allow the first and last segment to be empty, since paths are anchored at /
+		// validate all other path segments
+		if (i == 0 || i == len(parts)-1) && segment == "" {
+			// okay
+		} else if err := ValidateSegment(segment); err != nil {
+			return "", err
+		}
+	}
+
 	if len(parts) == 1 {
 		kp, err := ParseKeyToPath(txt)
 		if err == nil {
@@ -100,5 +113,14 @@ func ParseKeyToPath(txt string) (Path, error) {
 
 func (p *Path) IsValid() error {
 	_, err := ParsePath(p.String())
+
+	/*
+		for _, segment := range p.Segments() {
+			if err := ValidateSegment(segment); err != nil {
+				return err
+			}
+		}
+	*/
+
 	return err
 }
