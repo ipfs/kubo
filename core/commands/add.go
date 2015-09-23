@@ -302,37 +302,28 @@ type adder struct {
 	trickle  bool
 	wrap     bool
 	chunker  string
-
-	nextUntitled int
 }
 
-// Perform the actual add & pin locally, outputting results to reader
-func add(n *core.IpfsNode, reader io.Reader, useTrickle bool, chunker string) (*dag.Node, error) {
-	chnk, err := chunk.FromString(reader, chunker)
+func (params *adder) add(reader io.Reader) (*dag.Node, error) {
+	mp := params.node.Pinning.GetManual()
+
+	chnk, err := chunk.FromString(reader, params.chunker)
 	if err != nil {
 		return nil, err
 	}
 
-	var node *dag.Node
-	if useTrickle {
-		node, err = importer.BuildTrickleDagFromReader(
-			n.DAG,
+	if params.trickle {
+		return importer.BuildTrickleDagFromReader(
+			params.node.DAG,
 			chnk,
-			importer.PinIndirectCB(n.Pinning.GetManual()),
-		)
-	} else {
-		node, err = importer.BuildDagFromReader(
-			n.DAG,
-			chnk,
-			importer.PinIndirectCB(n.Pinning.GetManual()),
+			importer.PinIndirectCB(mp),
 		)
 	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return node, nil
+	return importer.BuildDagFromReader(
+		params.node.DAG,
+		chnk,
+		importer.PinIndirectCB(mp),
+	)
 }
 
 func (params *adder) RootNode() (*dag.Node, error) {
@@ -372,7 +363,7 @@ func (params *adder) addNode(node *dag.Node, path string) error {
 // Add the given file while respecting the params.
 func (params *adder) addFile(file files.File) (*dag.Node, error) {
 	// Check if file is hidden
-	if fileIsHidden := files.IsHidden(file); fileIsHidden && !params.hidden {
+	if files.IsHidden(file) && !params.hidden {
 		log.Debugf("%s is hidden, skipping", file.FileName())
 		return nil, &hiddenFileError{file.FileName()}
 	}
@@ -405,7 +396,7 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 		reader = &progressReader{file: file, out: params.out}
 	}
 
-	dagnode, err := add(params.node, reader, params.trickle, params.chunker)
+	dagnode, err := params.add(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +408,7 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 }
 
 func (params *adder) addDir(file files.File) (*dag.Node, error) {
-	tree := &dag.Node{Data: ft.FolderPBData()}
+	tree := newDirNode()
 	log.Infof("adding directory: %s", file.FileName())
 
 	for {

@@ -7,6 +7,7 @@ import (
 	gopath "path"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/unixfs"
 
 	"github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
@@ -15,7 +16,6 @@ import (
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
 	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
-	unixfs "github.com/ipfs/go-ipfs/unixfs"
 )
 
 var log = logging.Logger("coreunix")
@@ -23,17 +23,12 @@ var log = logging.Logger("coreunix")
 // Add builds a merkledag from the a reader, pinning all objects to the local
 // datastore. Returns a key representing the root node.
 func Add(n *core.IpfsNode, r io.Reader) (string, error) {
-	// TODO more attractive function signature importer.BuildDagFromReader
-
-	dagNode, err := importer.BuildDagFromReader(
-		n.DAG,
-		chunk.NewSizeSplitter(r, chunk.DefaultBlockSize),
-		importer.BasicPinnerCB(n.Pinning.GetManual()),
-	)
+	fileAdder := adder{n.Context(), n, false, "default"}
+	node, err := fileAdder.add(r, true)
 	if err != nil {
 		return "", err
 	}
-	k, err := dagNode.Key()
+	k, err := node.Key()
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +49,8 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 	}
 	defer f.Close()
 
-	dagnode, err := addFile(n, f)
+	fileAdder := adder{n.Context(), n, false, "default"}
+	dagnode, err := fileAdder.addFile(f)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +75,8 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkledag.Node, error) {
 	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
 	dir := files.NewSliceFile("", "", []files.File{file})
-	dagnode, err := addDir(n, dir)
+	fileAdder := adder{n.Context(), n, false, "default"}
+	dagnode, err := fileAdder.addDir(dir)
 	if err != nil {
 		return "", nil, err
 	}
@@ -90,48 +87,65 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkle
 	return gopath.Join(k.String(), filename), dagnode, nil
 }
 
-func add(n *core.IpfsNode, reader io.Reader) (*merkledag.Node, error) {
-	mp := n.Pinning.GetManual()
+type adder struct {
+	ctx     context.Context
+	node    *core.IpfsNode
+	trickle bool
+	chunker string
+}
 
+// Perform the actual add & pin locally, outputting results to reader
+func (params *adder) add(reader io.Reader, pinDirect bool) (*merkledag.Node, error) {
+	mp := params.node.Pinning.GetManual()
+
+	chnk, err := chunk.FromString(reader, params.chunker)
+	if err != nil {
+		return nil, err
+	}
+
+	cb := importer.PinIndirectCB(mp)
+	if pinDirect {
+		cb = importer.BasicPinnerCB(mp)
+	}
+
+	if params.trickle {
+		return importer.BuildTrickleDagFromReader(
+			params.node.DAG,
+			chnk,
+			cb,
+		)
+	}
 	return importer.BuildDagFromReader(
-		n.DAG,
-		chunk.DefaultSplitter(reader),
-		importer.PinIndirectCB(mp),
+		params.node.DAG,
+		chnk,
+		cb,
 	)
 }
 
-func addNode(n *core.IpfsNode, node *merkledag.Node) error {
-	if err := n.DAG.AddRecursive(node); err != nil { // add the file to the graph + local storage
-		return err
-	}
-	ctx, cancel := context.WithCancel(n.Context())
-	defer cancel()
-	err := n.Pinning.Pin(ctx, node, true) // ensure we keep it
-	return err
+func (params *adder) addNode(node *merkledag.Node) error {
+	return params.node.DAG.AddRecursive(node) // add the file to the graph + local storage
 }
 
-func addFile(n *core.IpfsNode, file files.File) (*merkledag.Node, error) {
+func (params *adder) addFile(file files.File) (*merkledag.Node, error) {
 	if file.IsDirectory() {
-		return addDir(n, file)
+		return params.addDir(file)
 	}
-	return add(n, file)
+	return params.add(file, false)
 }
 
-func addDir(n *core.IpfsNode, dir files.File) (*merkledag.Node, error) {
+func (params *adder) addDir(dir files.File) (*merkledag.Node, error) {
+	tree := newDirNode()
 
-	tree := &merkledag.Node{Data: unixfs.FolderPBData()}
-
-Loop:
 	for {
 		file, err := dir.NextFile()
 		switch {
 		case err != nil && err != io.EOF:
 			return nil, err
 		case err == io.EOF:
-			break Loop
+			break
 		}
 
-		node, err := addFile(n, file)
+		node, err := params.addFile(file)
 		if err != nil {
 			return nil, err
 		}
@@ -143,8 +157,21 @@ Loop:
 		}
 	}
 
-	if err := addNode(n, tree); err != nil {
+	if err := params.addNode(tree); err != nil {
 		return nil, err
 	}
+
+	// ensure we keep it
+	k, err := tree.Key()
+	if err != nil {
+		return nil, err
+	}
+	params.node.Pinning.GetManual().PinWithMode(k, pin.Indirect)
+
 	return tree, nil
+}
+
+// TODO: generalize this to more than unix-fs nodes.
+func newDirNode() *merkledag.Node {
+	return &merkledag.Node{Data: unixfs.FolderPBData()}
 }
