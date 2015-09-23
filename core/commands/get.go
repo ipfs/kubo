@@ -188,5 +188,5 @@ func getCompressOptions(req cmds.Request) (int, error) {
 	case cmprs && cmplvlFound && (cmplvl < 1 || cmplvl > 9):
 		return gzip.NoCompression, ErrInvalidCompressionLevel
 	}
-	return gzip.NoCompression, nil
+	return cmplvl, nil
 }
