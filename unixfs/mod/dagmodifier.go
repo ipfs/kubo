@@ -15,7 +15,6 @@ import (
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
-	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "github.com/ipfs/go-ipfs/util"
@@ -36,7 +35,6 @@ var log = u.Logger("dagio")
 type DagModifier struct {
 	dagserv mdag.DAGService
 	curNode *mdag.Node
-	mp      pin.Pinner
 
 	splitter   chunk.SplitterGen
 	ctx        context.Context
@@ -49,13 +47,12 @@ type DagModifier struct {
 	read *uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.Pinner, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
 	return &DagModifier{
 		curNode:  from.Copy(),
 		dagserv:  serv,
 		splitter: spl,
 		ctx:      ctx,
-		mp:       mp,
 	}, nil
 }
 
@@ -174,7 +171,7 @@ func (dm *DagModifier) Sync() error {
 	buflen := dm.wrBuf.Len()
 
 	// Grab key for unpinning after mod operation
-	curk, err := dm.curNode.Key()
+	_, err := dm.curNode.Key()
 	if err != nil {
 		return err
 	}
@@ -206,15 +203,6 @@ func (dm *DagModifier) Sync() error {
 		}
 
 		dm.curNode = nd
-	}
-
-	// Finalize correct pinning, and flush pinner.
-	// Be careful about the order, as curk might equal thisk.
-	dm.mp.RemovePinWithMode(curk, pin.Recursive)
-	dm.mp.PinWithMode(thisk, pin.Recursive)
-	err = dm.mp.Flush()
-	if err != nil {
-		return err
 	}
 
 	dm.writeStart += uint64(buflen)

@@ -14,10 +14,8 @@ import (
 	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
-	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	u "github.com/ipfs/go-ipfs/util"
 	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
 )
@@ -105,13 +103,6 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		ipnsfs, err := nsfs.NewFilesystem(context.Background(), node.DAG, node.Namesys, node.Pinning, node.PrivateKey)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		node.IpnsFs = ipnsfs
 	}
 
 	fs, err := NewFileSystem(node, node.PrivateKey, "", "")
