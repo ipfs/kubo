@@ -125,7 +125,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-IPFS-Path", urlPath)
 
-	//robots-header to prevent search-engines from indexing the gateway because of the duplicate-content problematic
+	//robots-header to prevent search-engines from indexing the gateway because of the duplicate-content problematic when makeing the gateway public
 	w.Header().Set("X-Robots-Tag", "noindex")
 
 
