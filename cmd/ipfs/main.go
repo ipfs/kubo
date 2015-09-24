@@ -668,5 +668,6 @@ func apiClientForAddr(addr ma.Multiaddr) (cmdsHttp.Client, error) {
 }
 
 func isConnRefused(err error) bool {
-	return strings.Contains(err.Error(), "connection refused")
+	return  strings.Contains(err.Error(), "connection refused") ||
+	        strings.Contains(err.Error(), "target machine actively refused it")
 }
