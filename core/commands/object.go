@@ -433,9 +433,17 @@ var objectPatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create a new merkledag object based on an existing one",
 		ShortDescription: `
-'ipfs object patch <root> [add-link|rm-link] <args>' is a plumbing command used to
+'ipfs object patch <root> <cmd> <args>' is a plumbing command used to
 build custom DAG objects. It adds and removes links from objects, creating a new
-object as a result. This is the merkle-dag version of modifying an object.
+object as a result. This is the merkle-dag version of modifying an object. It
+can also set the data inside a node with 'set-data' and append to that data as
+well with 'append-data'.
+
+Patch commands:
+    add-link <name> <ref>     - adds a link to a node
+    rm-link <name>            - removes a link from a node
+    set-data                  - sets a nodes data from stdin
+    append-data               - appends to a nodes data from stdin
 
 Examples:
 
@@ -450,6 +458,12 @@ a file containing 'bar', and returns the hash of the new object.
 
 This removes the link named foo from the hash in $FOO_BAR and returns the
 resulting object hash.
+
+The data inside the node can be modified as well:
+
+    ipfs object patch $FOO_BAR set-data < file.dat
+    ipfs object patch $FOO_BAR append-data < file.dat
+
 `,
 	},
 	Options: []cmds.Option{
