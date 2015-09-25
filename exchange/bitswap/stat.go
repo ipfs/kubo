@@ -11,6 +11,7 @@ type Stat struct {
 	Peers           []string
 	BlocksReceived  int
 	DupBlksReceived int
+	DupDataReceived uint64
 }
 
 func (bs *Bitswap) Stat() (*Stat, error) {
@@ -20,6 +21,7 @@ func (bs *Bitswap) Stat() (*Stat, error) {
 	bs.counterLk.Lock()
 	st.BlocksReceived = bs.blocksRecvd
 	st.DupBlksReceived = bs.dupBlocksRecvd
+	st.DupDataReceived = bs.dupDataRecvd
 	bs.counterLk.Unlock()
 
 	for _, p := range bs.engine.Peers() {
