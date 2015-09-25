@@ -131,6 +131,7 @@ type Bitswap struct {
 	counterLk      sync.Mutex
 	blocksRecvd    int
 	dupBlocksRecvd int
+	dupDataRecvd   uint64
 }
 
 type blockRequest struct {
@@ -320,7 +321,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		go func(b *blocks.Block) {
 			defer wg.Done()
 
-			if err := bs.updateReceiveCounters(b.Key()); err != nil {
+			if err := bs.updateReceiveCounters(b); err != nil {
 				return // ignore error, is either logged previously, or ErrAlreadyHaveBlock
 			}
 
@@ -338,17 +339,18 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 
 var ErrAlreadyHaveBlock = errors.New("already have block")
 
-func (bs *Bitswap) updateReceiveCounters(k key.Key) error {
+func (bs *Bitswap) updateReceiveCounters(b *blocks.Block) error {
 	bs.counterLk.Lock()
 	defer bs.counterLk.Unlock()
 	bs.blocksRecvd++
-	has, err := bs.blockstore.Has(k)
+	has, err := bs.blockstore.Has(b.Key())
 	if err != nil {
 		log.Infof("blockstore.Has error: %s", err)
 		return err
 	}
 	if err == nil && has {
 		bs.dupBlocksRecvd++
+		bs.dupDataRecvd += uint64(len(b.Data))
 	}
 
 	if has {
