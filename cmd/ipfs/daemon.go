@@ -357,7 +357,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		return fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err), nil
 	}
 
-	if err := node.Repo.SetAPIAddr(apiAddr); err != nil {
+	if err := node.Repo.SetAPIAddr(apiMaddr.String()); err != nil {
 		return fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %s", err), nil
 	}
 
