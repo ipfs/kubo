@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -396,6 +397,12 @@ GetValue will return the value stored in the dht at the given key.
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
+		dhtkey, err := escapeDhtKey(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		go func() {
 			defer close(outChan)
 			for e := range events {
@@ -405,7 +412,7 @@ GetValue will return the value stored in the dht at the given key.
 
 		go func() {
 			defer close(events)
-			val, err := dht.GetValue(ctx, key.B58KeyDecode(req.Arguments()[0]))
+			val, err := dht.GetValue(ctx, dhtkey)
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
@@ -452,7 +459,11 @@ GetValue will return the value stored in the dht at the given key.
 						fmt.Fprintf(buf, "* querying %s\n", obj.ID)
 					}
 				case notif.Value:
-					fmt.Fprintf(buf, "got value: '%s'\n", obj.Extra)
+					if verbose {
+						fmt.Fprintf(buf, "got value: '%s'\n", obj.Extra)
+					} else {
+						buf.WriteString(obj.Extra)
+					}
 				case notif.QueryError:
 					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
 				default:
@@ -505,7 +516,12 @@ PutValue will store the given key value pair in the dht.
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
-		key := key.B58KeyDecode(req.Arguments()[0])
+		key, err := escapeDhtKey(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		data := req.Arguments()[1]
 
 		go func() {
@@ -580,4 +596,17 @@ PutValue will store the given key value pair in the dht.
 		},
 	},
 	Type: notif.QueryEvent{},
+}
+
+func escapeDhtKey(s string) (key.Key, error) {
+	parts := strings.Split(s, "/")
+	switch len(parts) {
+	case 1:
+		return key.B58KeyDecode(s), nil
+	case 3:
+		k := key.B58KeyDecode(parts[2])
+		return key.Key(strings.Join(append(parts[:2], string(k)), "/")), nil
+	default:
+		return "", errors.New("invalid key")
+	}
 }
