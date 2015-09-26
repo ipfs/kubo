@@ -10,6 +10,28 @@ test_description="Test get command"
 
 test_init_ipfs
 
+test_ipfs_get_flag() {
+    ext="$1"; shift
+    tar_flag="$1"; shift
+    flag="$@"
+
+    test_expect_success "ipfs get $flag succeeds" '
+        ipfs get "$HASH" '"$flag"' >actual
+    '
+
+    test_expect_success "ipfs get $flag output looks good" '
+		printf "%s\n\n" "Saving archive to $HASH$ext" >expected &&
+		test_cmp expected actual
+	'
+
+    test_expect_success "ipfs get $flag archive output is valid" '
+		tar "$tar_flag" "$HASH$ext" &&
+		test_cmp "$HASH" data &&
+		rm "$HASH$ext" &&
+		rm "$HASH"
+	'
+}
+
 # we use a function so that we can run it both offline + online
 test_get_cmd() {
 
@@ -42,37 +64,11 @@ test_get_cmd() {
 		rm "$HASH"
 	'
 
-	test_expect_success "ipfs get -a succeeds" '
-		ipfs get "$HASH" -a >actual
-	'
+    test_ipfs_get_flag ".tar" "-xf" -a
 
-	test_expect_success "ipfs get -a output looks good" '
-		printf "%s\n\n" "Saving archive to $HASH.tar" >expected &&
-		test_cmp expected actual
-	'
+    test_ipfs_get_flag ".tar.gz" "-zxf" -a -C
 
-	test_expect_success "ipfs get -a archive output is valid" '
-		tar -xf "$HASH".tar &&
-		test_cmp "$HASH" data &&
-		rm "$HASH".tar &&
-		rm "$HASH"
-	'
-
-	test_expect_success "ipfs get -a -C succeeds" '
-		ipfs get "$HASH" -a -C >actual
-	'
-
-	test_expect_success "ipfs get -a -C output looks good" '
-		printf "%s\n\n" "Saving archive to $HASH.tar.gz" >expected &&
-		test_cmp expected actual
-	'
-
-	test_expect_success "gzipped tar archive output is valid" '
-		tar -zxf "$HASH".tar.gz &&
-		test_cmp "$HASH" data &&
-		rm "$HASH".tar.gz &&
-		rm "$HASH"
-	'
+    test_ipfs_get_flag ".tar.gz" "-zxf" -a -C -l 9
 
 	test_expect_success "ipfs get succeeds (directory)" '
 		mkdir -p dir &&
