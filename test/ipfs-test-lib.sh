@@ -22,3 +22,15 @@ test_sort_cmp() {
 	sort "$2" >"$2_sorted" &&
 	test_cmp "$1_sorted" "$2_sorted"
 }
+
+# Quote arguments for sh eval
+shellquote() {
+	_space=''
+	for _arg
+	do
+		printf '%s' "$_space"
+		printf '%s' "$_arg" | sed -e "s/'/'\\\\''/g; s/^/'/; s/\$/'/;"
+		_space=' '
+	done
+	printf '\n'
+}
