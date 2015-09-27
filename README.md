@@ -155,7 +155,7 @@ ipfs files that will persist when you restart the container.
     export ipfs_staging=</absolute/path/to/somewhere/>
     export ipfs_data=</absolute/path/to/somewhere_else/>
     
-Make these folders accesible from docker:
+Make sure docker can access these folders:
 
     sudo chmod -R 777 /absolute/path/to/somewhere/
     sudo chmod -R 777 /absolute/path/to/somewhere_else/
