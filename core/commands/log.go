@@ -58,7 +58,7 @@ output of a running daemon.
 			return
 		}
 
-		s := fmt.Sprintf("Changed log level of '%s' to '%s'", subsystem, level)
+		s := fmt.Sprintf("Changed log level of '%s' to '%s'\n", subsystem, level)
 		log.Info(s)
 		res.SetOutput(&MessageOutput{s})
 	},
