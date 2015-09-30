@@ -20,6 +20,19 @@
 			"Rev": "26709e2714106fb8ad40b773b711ebce25b78914"
 		},
 		{
+			"ImportPath": "github.com/alecthomas/kingpin",
+			"Comment": "v2.1.0-2-gaedd543",
+			"Rev": "aedd5430ecd39ba1396fee0c00308b494c552b1e"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/template",
+			"Rev": "b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/units",
+			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
+		},
+		{
 			"ImportPath": "github.com/beorn7/perks/quantile",
 			"Rev": "b965b613227fddccbfffe13eae360ed3fa822f8d"
 		},
