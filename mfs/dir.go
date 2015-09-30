@@ -280,6 +280,11 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 		return ErrDirExists
 	}
 
+	_, err = d.dserv.Add(nd)
+	if err != nil {
+		return err
+	}
+
 	err = d.node.AddNodeLinkClean(name, nd)
 	if err != nil {
 		return err
