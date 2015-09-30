@@ -69,7 +69,7 @@ func (rp *Republisher) Run(proc goprocess.Process) {
 		case <-tick.C:
 			err := rp.republishEntries(proc)
 			if err != nil {
-				log.Error(err)
+				log.Error("Republisher failed to republish: ", err)
 			}
 		case <-proc.Closing():
 			return
@@ -86,7 +86,7 @@ func (rp *Republisher) republishEntries(p goprocess.Process) error {
 		priv := rp.ps.PrivKey(id)
 
 		// Look for it locally only
-		namekey, ipnskey := namesys.IpnsKeysForID(id)
+		_, ipnskey := namesys.IpnsKeysForID(id)
 		p, seq, err := rp.getLastVal(ipnskey)
 		if err != nil {
 			if err == errNoEntry {
@@ -97,19 +97,7 @@ func (rp *Republisher) republishEntries(p goprocess.Process) error {
 
 		// update record with same sequence number
 		eol := time.Now().Add(rp.RecordLifetime)
-		entry, err := namesys.CreateRoutingEntryData(priv, p, seq, eol)
-		if err != nil {
-			return err
-		}
-
-		// republish public key
-		err = namesys.PublishPublicKey(ctx, rp.r, namekey, priv.GetPublic())
-		if err != nil {
-			return err
-		}
-
-		// republish ipns entry
-		err = namesys.PublishEntry(ctx, rp.r, ipnskey, entry)
+		err = namesys.PutRecordToRouting(ctx, priv, p, seq, eol, rp.r, id)
 		if err != nil {
 			return err
 		}

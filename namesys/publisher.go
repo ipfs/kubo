@@ -60,7 +60,7 @@ func (p *ipnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value 
 		return err
 	}
 
-	namekey, ipnskey := IpnsKeysForID(id)
+	_, ipnskey := IpnsKeysForID(id)
 
 	// get previous records sequence number, and add one to it
 	var seqnum uint64
@@ -77,17 +77,22 @@ func (p *ipnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value 
 		return err
 	}
 
+	return PutRecordToRouting(ctx, k, value, seqnum, eol, p.routing, id)
+}
+
+func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqnum uint64, eol time.Time, r routing.IpfsRouting, id peer.ID) error {
+	namekey, ipnskey := IpnsKeysForID(id)
 	entry, err := CreateRoutingEntryData(k, value, seqnum, eol)
 	if err != nil {
 		return err
 	}
 
-	err = PublishEntry(ctx, p.routing, ipnskey, entry)
+	err = PublishEntry(ctx, r, ipnskey, entry)
 	if err != nil {
 		return err
 	}
 
-	err = PublishPublicKey(ctx, p.routing, namekey, k.GetPublic())
+	err = PublishPublicKey(ctx, r, namekey, k.GetPublic())
 	if err != nil {
 		return err
 	}
@@ -174,13 +179,18 @@ func IpnsSelectorFunc(k key.Key, vals [][]byte) (int, error) {
 		}
 	}
 
+	return selectRecord(recs, vals)
+}
+
+func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
 	var best_seq uint64
 	best_i := -1
 
 	for i, r := range recs {
-		if r == nil {
+		if r == nil || r.GetSequence() < best_seq {
 			continue
 		}
+
 		if best_i == -1 || r.GetSequence() > best_seq {
 			best_seq = r.GetSequence()
 			best_i = i
@@ -196,8 +206,11 @@ func IpnsSelectorFunc(k key.Key, vals [][]byte) (int, error) {
 			}
 
 			if rt.After(bestt) {
-				best_seq = r.GetSequence()
 				best_i = i
+			} else if rt == bestt {
+				if bytes.Compare(vals[i], vals[best_i]) > 0 {
+					best_i = i
+				}
 			}
 		}
 	}

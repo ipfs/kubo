@@ -3,6 +3,7 @@ package dht
 import (
 	"bytes"
 	"sync"
+	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -60,6 +61,8 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key key.Key, value []byte) err
 	for p := range pchan {
 		wg.Add(1)
 		go func(p peer.ID) {
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
 			defer wg.Done()
 			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 				Type: notif.Value,
@@ -78,7 +81,10 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key key.Key, value []byte) err
 
 // GetValue searches for the value corresponding to given Key.
 func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
-	vals, err := dht.GetValues(ctx, key, 3)
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	vals, err := dht.GetValues(ctx, key, 16)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +117,8 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 		// if someone sent us a different 'less-valid' record, lets correct them
 		if !bytes.Equal(v.Val, best) {
 			go func(v routing.RecvdVal) {
+				ctx, cancel := context.WithTimeout(dht.Context(), time.Second*30)
+				defer cancel()
 				err := dht.putValueToPeer(ctx, v.From, key, fixupRec)
 				if err != nil {
 					log.Error("Error correcting DHT entry: ", err)
