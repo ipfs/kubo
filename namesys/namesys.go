@@ -2,6 +2,7 @@ package namesys
 
 import (
 	"strings"
+	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
@@ -80,4 +81,8 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error)
 // Publish implements Publisher
 func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
 	return ns.publishers["/ipns/"].Publish(ctx, name, value)
+}
+
+func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, val path.Path, eol time.Time) error {
+	return ns.publishers["/ipns/"].PublishWithEOL(ctx, name, val, eol)
 }
