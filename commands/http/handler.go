@@ -283,7 +283,11 @@ func flushCopy(w io.Writer, r io.Reader) error {
 		n, err := r.Read(buf)
 		switch err {
 		case io.EOF:
-			return nil
+			if n <= 0 {
+				return nil
+			}
+			// if data was returned alongside the EOF, pretend we didnt
+			// get an EOF. The next read call should also EOF.
 		case nil:
 			// continue
 		default:
