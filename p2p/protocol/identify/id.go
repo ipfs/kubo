@@ -16,7 +16,7 @@ import (
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	pb "github.com/ipfs/go-ipfs/p2p/protocol/identify/pb"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	logging "github.com/ipfs/go-ipfs/vendor/QmXJkcEXB6C9h6Ytb6rrUTFU56Ro62zxgrbxTT3dgjQGA8/go-log"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 )
 
