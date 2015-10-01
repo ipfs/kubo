@@ -75,4 +75,7 @@ message Record {
 
 	// A PKI signature for the key+value+author
 	optional bytes signature = 4;
+
+	// Time the record was received, set by receiver
+	optional string timeReceived = 5;
 }

@@ -14,7 +14,7 @@ It has these top-level messages:
 */
 package dht_pb
 
-import proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
+import proto "github.com/gogo/protobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -221,8 +221,10 @@ type Record struct {
 	// hash of the authors public key
 	Author *string `protobuf:"bytes,3,opt,name=author" json:"author,omitempty"`
 	// A PKI signature for the key+value+author
-	Signature        []byte `protobuf:"bytes,4,opt,name=signature" json:"signature,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
+	Signature []byte `protobuf:"bytes,4,opt,name=signature" json:"signature,omitempty"`
+	// Time the record was received, set by receiver
+	TimeReceived     *string `protobuf:"bytes,5,opt,name=timeReceived" json:"timeReceived,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
 }
 
 func (m *Record) Reset()         { *m = Record{} }
@@ -255,6 +257,13 @@ func (m *Record) GetSignature() []byte {
 		return m.Signature
 	}
 	return nil
+}
+
+func (m *Record) GetTimeReceived() string {
+	if m != nil && m.TimeReceived != nil {
+		return *m.TimeReceived
+	}
+	return ""
 }
 
 func init() {

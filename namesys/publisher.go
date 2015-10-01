@@ -18,6 +18,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	routing "github.com/ipfs/go-ipfs/routing"
+	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
@@ -37,11 +38,15 @@ var PublishPutValTimeout = time.Minute
 // routing system.
 type ipnsPublisher struct {
 	routing routing.IpfsRouting
+	ds      ds.Datastore
 }
 
 // NewRoutingPublisher constructs a publisher for the IPFS Routing name system.
-func NewRoutingPublisher(route routing.IpfsRouting) *ipnsPublisher {
-	return &ipnsPublisher{routing: route}
+func NewRoutingPublisher(route routing.IpfsRouting, ds ds.Datastore) *ipnsPublisher {
+	if ds == nil {
+		panic("nil datastore")
+	}
+	return &ipnsPublisher{routing: route, ds: ds}
 }
 
 // Publish implements Publisher. Accepts a keypair and a value,
@@ -62,22 +67,58 @@ func (p *ipnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value 
 
 	_, ipnskey := IpnsKeysForID(id)
 
-	// get previous records sequence number, and add one to it
-	var seqnum uint64
-	prevrec, err := p.routing.GetValues(ctx, ipnskey, 0)
-	if err == nil {
-		e := new(pb.IpnsEntry)
-		err := proto.Unmarshal(prevrec[0].Val, e)
-		if err != nil {
-			return err
-		}
-
-		seqnum = e.GetSequence() + 1
-	} else if err != ds.ErrNotFound {
+	// get previous records sequence number
+	seqnum, err := p.getPreviousSeqNo(ctx, ipnskey)
+	if err != nil {
 		return err
 	}
 
+	// increment it
+	seqnum++
+
 	return PutRecordToRouting(ctx, k, value, seqnum, eol, p.routing, id)
+}
+
+func (p *ipnsPublisher) getPreviousSeqNo(ctx context.Context, ipnskey key.Key) (uint64, error) {
+	prevrec, err := p.ds.Get(ipnskey.DsKey())
+	if err != nil && err != ds.ErrNotFound {
+		// None found, lets start at zero!
+		return 0, err
+	}
+	var val []byte
+	if err == nil {
+		prbytes, ok := prevrec.([]byte)
+		if !ok {
+			return 0, fmt.Errorf("unexpected type returned from datastore: %#v", prevrec)
+		}
+		dhtrec := new(dhtpb.Record)
+		err := proto.Unmarshal(prbytes, dhtrec)
+		if err != nil {
+			return 0, err
+		}
+
+		val = dhtrec.GetValue()
+	} else {
+		// try and check the dht for a record
+		ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+		defer cancel()
+
+		rv, err := p.routing.GetValue(ctx, ipnskey)
+		if err != nil {
+			// no such record found, start at zero!
+			return 0, nil
+		}
+
+		val = rv
+	}
+
+	e := new(pb.IpnsEntry)
+	err = proto.Unmarshal(val, e)
+	if err != nil {
+		return 0, err
+	}
+
+	return e.GetSequence(), nil
 }
 
 func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqnum uint64, eol time.Time, r routing.IpfsRouting, id peer.ID) error {

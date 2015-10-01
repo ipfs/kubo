@@ -227,7 +227,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
 
 	// setup name system
-	n.Namesys = namesys.NewNameSystem(n.Routing)
+	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore())
 
 	// setup ipns republishing
 	err = n.setupIpnsRepublisher()
@@ -456,7 +456,7 @@ func (n *IpfsNode) SetupOfflineRouting() error {
 
 	n.Routing = offroute.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
 
-	n.Namesys = namesys.NewNameSystem(n.Routing)
+	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore())
 
 	return nil
 }

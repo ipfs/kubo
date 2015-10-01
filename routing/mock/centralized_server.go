@@ -80,7 +80,7 @@ func (rs *s) Client(p testutil.Identity) Client {
 func (rs *s) ClientWithDatastore(_ context.Context, p testutil.Identity, datastore ds.Datastore) Client {
 	return &client{
 		peer:      p,
-		datastore: ds.NewMapDatastore(),
+		datastore: datastore,
 		server:    rs,
 	}
 }

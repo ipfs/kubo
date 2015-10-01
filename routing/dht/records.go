@@ -2,6 +2,7 @@ package dht
 
 import (
 	"fmt"
+	"time"
 
 	ctxfrac "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-context/frac"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -11,6 +12,14 @@ import (
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
 )
+
+// MaxRecordAge specifies the maximum time that any node will hold onto a record
+// from the time its received. This does not apply to any other forms of validity that
+// the record may contain.
+// For example, a record may contain an ipns entry with an EOL saying its valid
+// until the year 2020 (a great time in the future). For that record to stick around
+// it must be rebroadcasted more frequently than once every 'MaxRecordAge'
+const MaxRecordAge = time.Hour * 36
 
 func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, error) {
 	log.Debugf("getPublicKey for: %s", p)
