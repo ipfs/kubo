@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
@@ -34,6 +35,10 @@ func (m mockNamesys) ResolveN(ctx context.Context, name string, depth int) (valu
 }
 
 func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
+	return errors.New("not implemented for mockNamesys")
+}
+
+func (m mockNamesys) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, _ time.Time) error {
 	return errors.New("not implemented for mockNamesys")
 }
 

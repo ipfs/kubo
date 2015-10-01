@@ -173,9 +173,12 @@ func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if debug || u.GetenvBool("DEBUG") || os.Getenv("IPFS_LOGGING") == "debug" {
+	if debug || os.Getenv("IPFS_LOGGING") == "debug" {
 		u.Debug = true
 		logging.SetDebugLogging()
+	}
+	if u.GetenvBool("DEBUG") {
+		u.Debug = true
 	}
 
 	res, err := callCommand(ctx, i.req, Root, i.cmd)
@@ -668,6 +671,6 @@ func apiClientForAddr(addr ma.Multiaddr) (cmdsHttp.Client, error) {
 }
 
 func isConnRefused(err error) bool {
-	return  strings.Contains(err.Error(), "connection refused") ||
-	        strings.Contains(err.Error(), "target machine actively refused it")
+	return strings.Contains(err.Error(), "connection refused") ||
+		strings.Contains(err.Error(), "target machine actively refused it")
 }

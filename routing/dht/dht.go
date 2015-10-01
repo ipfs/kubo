@@ -18,7 +18,6 @@ import (
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	u "github.com/ipfs/go-ipfs/util"
 	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
@@ -54,6 +53,7 @@ type IpfsDHT struct {
 	diaglock sync.Mutex // lock to make diagnostics work better
 
 	Validator record.Validator // record validator funcs
+	Selector  record.Selector  // record selection funcs
 
 	ctx  context.Context
 	proc goprocess.Process
@@ -88,6 +88,9 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 
 	dht.Validator = make(record.Validator)
 	dht.Validator["pk"] = record.PublicKeyValidator
+
+	dht.Selector = make(record.Selector)
+	dht.Selector["pk"] = record.PublicKeySelector
 
 	return dht
 }
@@ -152,12 +155,15 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, skey string) err
 // NOTE: it will update the dht's peerstore with any new addresses
 // it finds for the given peer.
 func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
-	key key.Key) ([]byte, []peer.PeerInfo, error) {
+	key key.Key) (*pb.Record, []peer.PeerInfo, error) {
 
 	pmes, err := dht.getValueSingle(ctx, p, key)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Perhaps we were given closer peers
+	peers := pb.PBPeersToPeerInfos(pmes.GetCloserPeers())
 
 	if record := pmes.GetRecord(); record != nil {
 		// Success! We were given the value
@@ -169,11 +175,9 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 			log.Info("Received invalid record! (discarded)")
 			return nil, nil, err
 		}
-		return record.GetValue(), nil, nil
+		return record, peers, nil
 	}
 
-	// Perhaps we were given closer peers
-	peers := pb.PBPeersToPeerInfos(pmes.GetCloserPeers())
 	if len(peers) > 0 {
 		log.Debug("getValueOrPeers: peers")
 		return nil, peers, nil
@@ -193,7 +197,7 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
 }
 
 // getLocal attempts to retrieve the value from the datastore
-func (dht *IpfsDHT) getLocal(key key.Key) ([]byte, error) {
+func (dht *IpfsDHT) getLocal(key key.Key) (*pb.Record, error) {
 
 	log.Debug("getLocal %s", key)
 	v, err := dht.datastore.Get(key.DsKey())
@@ -212,16 +216,13 @@ func (dht *IpfsDHT) getLocal(key key.Key) ([]byte, error) {
 		return nil, err
 	}
 
-	// TODO: 'if paranoid'
-	if u.Debug {
-		err = dht.verifyRecordLocally(rec)
-		if err != nil {
-			log.Debugf("local record verify failed: %s (discarded)", err)
-			return nil, err
-		}
+	err = dht.verifyRecordLocally(rec)
+	if err != nil {
+		log.Debugf("local record verify failed: %s (discarded)", err)
+		return nil, err
 	}
 
-	return rec.GetValue(), nil
+	return rec, nil
 }
 
 // getOwnPrivateKey attempts to load the local peers private
@@ -307,11 +308,7 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) [
 			continue
 		}
 
-		// must all be closer than self
-		key := key.Key(pmes.GetKey())
-		if !kb.Closer(dht.self, clp, key) {
-			filtered = append(filtered, clp)
-		}
+		filtered = append(filtered, clp)
 	}
 
 	// ok seems like closer nodes

@@ -6,13 +6,11 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 )
 
-var _ = dag.FetchGraph
 var log = logging.Logger("routing/record")
 
 // MakePutRecord creates and signs a dht record for the given key/value pair

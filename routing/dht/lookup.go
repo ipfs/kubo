@@ -23,7 +23,7 @@ func pointerizePeerInfos(pis []peer.PeerInfo) []*peer.PeerInfo {
 // to the given key
 func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key key.Key) (<-chan peer.ID, error) {
 	e := log.EventBegin(ctx, "getClosestPeers", &key)
-	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
+	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), KValue)
 	if len(tablepeers) == 0 {
 		return nil, kb.ErrLookupFailure
 	}

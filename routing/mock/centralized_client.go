@@ -44,6 +44,21 @@ func (c *client) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 	return data, nil
 }
 
+func (c *client) GetValues(ctx context.Context, key key.Key, count int) ([]routing.RecvdVal, error) {
+	log.Debugf("GetValue: %s", key)
+	v, err := c.datastore.Get(key.DsKey())
+	if err != nil {
+		return nil, err
+	}
+
+	data, ok := v.([]byte)
+	if !ok {
+		return nil, errors.New("could not cast value from datastore")
+	}
+
+	return []routing.RecvdVal{{Val: data, From: c.peer.ID()}}, nil
+}
+
 func (c *client) FindProviders(ctx context.Context, key key.Key) ([]peer.PeerInfo, error) {
 	return c.server.Providers(key), nil
 }

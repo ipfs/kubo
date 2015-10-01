@@ -67,6 +67,27 @@ func (c *offlineRouting) GetValue(ctx context.Context, key key.Key) ([]byte, err
 	return rec.GetValue(), nil
 }
 
+func (c *offlineRouting) GetValues(ctx context.Context, key key.Key, _ int) ([]routing.RecvdVal, error) {
+	v, err := c.datastore.Get(key.DsKey())
+	if err != nil {
+		return nil, err
+	}
+
+	byt, ok := v.([]byte)
+	if !ok {
+		return nil, errors.New("value stored in datastore not []byte")
+	}
+	rec := new(pb.Record)
+	err = proto.Unmarshal(byt, rec)
+	if err != nil {
+		return nil, err
+	}
+
+	return []routing.RecvdVal{
+		{Val: rec.GetValue()},
+	}, nil
+}
+
 func (c *offlineRouting) FindProviders(ctx context.Context, key key.Key) ([]peer.PeerInfo, error) {
 	return nil, ErrOffline
 }

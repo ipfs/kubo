@@ -10,4 +10,6 @@ message IpnsEntry {
 
 	optional ValidityType validityType = 3;
 	optional bytes validity = 4;
+
+	optional uint64 sequence = 5;
 }

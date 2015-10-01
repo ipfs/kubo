@@ -56,6 +56,7 @@ type IpnsEntry struct {
 	Signature        []byte                  `protobuf:"bytes,2,req,name=signature" json:"signature,omitempty"`
 	ValidityType     *IpnsEntry_ValidityType `protobuf:"varint,3,opt,name=validityType,enum=namesys.pb.IpnsEntry_ValidityType" json:"validityType,omitempty"`
 	Validity         []byte                  `protobuf:"bytes,4,opt,name=validity" json:"validity,omitempty"`
+	Sequence         *uint64                 `protobuf:"varint,5,opt,name=sequence" json:"sequence,omitempty"`
 	XXX_unrecognized []byte                  `json:"-"`
 }
 
@@ -89,6 +90,13 @@ func (m *IpnsEntry) GetValidity() []byte {
 		return m.Validity
 	}
 	return nil
+}
+
+func (m *IpnsEntry) GetSequence() uint64 {
+	if m != nil && m.Sequence != nil {
+		return *m.Sequence
+	}
+	return 0
 }
 
 func init() {

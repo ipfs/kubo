@@ -81,6 +81,22 @@ func (c *Client) GetValue(ctx context.Context, k key.Key) ([]byte, error) {
 	return response.Record.GetValue(), nil
 }
 
+func (c *Client) GetValues(ctx context.Context, k key.Key, _ int) ([]routing.RecvdVal, error) {
+	defer log.EventBegin(ctx, "getValue", &k).Done()
+	msg := pb.NewMessage(pb.Message_GET_VALUE, string(k), 0)
+	response, err := c.proxy.SendRequest(ctx, msg) // TODO wrap to hide the remote
+	if err != nil {
+		return nil, err
+	}
+
+	return []routing.RecvdVal{
+		{
+			Val:  response.Record.GetValue(),
+			From: c.local,
+		},
+	}, nil
+}
+
 func (c *Client) Provide(ctx context.Context, k key.Key) error {
 	defer log.EventBegin(ctx, "provide", &k).Done()
 	msg := pb.NewMessage(pb.Message_ADD_PROVIDER, string(k), 0)
