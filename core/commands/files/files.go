@@ -16,6 +16,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
@@ -55,36 +56,67 @@ var FilesStatCmd = &cmds.Command{
 			return
 		}
 
-		path := req.Arguments()[0]
+		path, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		fsn, err := mfs.Lookup(node.FilesRoot, path)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		nd, err := fsn.GetNode()
+		o, err := statNode(fsn)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		k, err := nd.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&Object{
-			Hash: k.B58String(),
-		})
+		res.SetOutput(o)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			out := res.Output().(*Object)
-			return strings.NewReader(out.Hash), nil
+			buf := new(bytes.Buffer)
+			fmt.Fprintln(buf, out.Hash)
+			fmt.Fprintf(buf, "Size: %d\n", out.Size)
+			fmt.Fprintf(buf, "CumulativeSize: %d\n", out.CumulativeSize)
+			fmt.Fprintf(buf, "ChildBlocks: %d\n", out.Blocks)
+			return buf, nil
 		},
 	},
 	Type: Object{},
+}
+
+func statNode(fsn mfs.FSNode) (*Object, error) {
+	nd, err := fsn.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	k, err := nd.Key()
+	if err != nil {
+		return nil, err
+	}
+
+	d, err := ft.FromBytes(nd.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	cumulsize, err := nd.Size()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Object{
+		Hash:           k.B58String(),
+		Blocks:         len(nd.Links),
+		Size:           d.GetFilesize(),
+		CumulativeSize: cumulsize,
+	}, nil
 }
 
 var FilesCpCmd = &cmds.Command{
@@ -92,7 +124,7 @@ var FilesCpCmd = &cmds.Command{
 		Tagline: "copy files into mfs",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("src", true, false, "source object to copy"),
+		cmds.StringArg("source", true, false, "source object to copy"),
 		cmds.StringArg("dest", true, false, "destination to copy object to"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -102,39 +134,21 @@ var FilesCpCmd = &cmds.Command{
 			return
 		}
 
-		src := req.Arguments()[0]
-		dst := req.Arguments()[1]
+		src, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		dst, err := checkPath(req.Arguments()[1])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
-		var nd *dag.Node
-		switch {
-		case strings.HasPrefix(src, "/ipfs/"):
-			p, err := path.ParsePath(src)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			obj, err := core.Resolve(req.Context(), node, p)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			nd = obj
-		default:
-			fsn, err := mfs.Lookup(node.FilesRoot, src)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			obj, err := fsn.GetNode()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			nd = obj
+		nd, err := getNodeFromPath(req.Context(), node, src)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		err = mfs.PutNode(node.FilesRoot, dst, nd)
@@ -145,8 +159,30 @@ var FilesCpCmd = &cmds.Command{
 	},
 }
 
+func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (*dag.Node, error) {
+	switch {
+	case strings.HasPrefix(p, "/ipfs/"):
+		np, err := path.ParsePath(p)
+		if err != nil {
+			return nil, err
+		}
+
+		return core.Resolve(ctx, node, np)
+	default:
+		fsn, err := mfs.Lookup(node.FilesRoot, p)
+		if err != nil {
+			return nil, err
+		}
+
+		return fsn.GetNode()
+	}
+}
+
 type Object struct {
-	Hash string
+	Hash           string
+	Size           uint64
+	CumulativeSize uint64
+	Blocks         int
 }
 
 type FilesLsOutput struct {
@@ -181,7 +217,12 @@ Examples:
 		cmds.BoolOption("l", "use long listing format"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		path := req.Arguments()[0]
+		path, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -243,7 +284,7 @@ Examples:
 
     $ ipfs files read /test/hello
     hello
-		`,
+        `,
 	},
 
 	Arguments: []cmds.Argument{
@@ -260,7 +301,12 @@ Examples:
 			return
 		}
 
-		path := req.Arguments()[0]
+		path, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		fsn, err := mfs.Lookup(n.FilesRoot, path)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -273,7 +319,26 @@ Examples:
 			return
 		}
 
-		offset, _, _ := req.Option("offset").Int()
+		offset, _, err := req.Option("offset").Int()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if offset < 0 {
+			res.SetError(fmt.Errorf("cannot specify negative offset"), cmds.ErrNormal)
+			return
+		}
+
+		filen, err := fi.Size()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if int64(offset) > filen {
+			res.SetError(fmt.Errorf("offset was past end of file (%d > %d)", offset, filen), cmds.ErrNormal)
+			return
+		}
 
 		_, err = fi.Seek(int64(offset), os.SEEK_SET)
 		if err != nil {
@@ -282,7 +347,15 @@ Examples:
 		}
 		var r io.Reader = fi
 		count, found, err := req.Option("count").Int()
-		if err == nil && found {
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if found {
+			if count < 0 {
+				res.SetError(fmt.Errorf("cannot specify negative 'count'"), cmds.ErrNormal)
+				return
+			}
 			r = io.LimitReader(fi, int64(count))
 		}
 
@@ -300,7 +373,7 @@ Example:
 
     $ ipfs files mv /myfs/a/b/c /myfs/foo/newc
 
-		`,
+`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -314,8 +387,16 @@ Example:
 			return
 		}
 
-		src := req.Arguments()[0]
-		dst := req.Arguments()[1]
+		src, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		dst, err := checkPath(req.Arguments()[1])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		err = mfs.Mv(n.FilesRoot, src, dst)
 		if err != nil {
@@ -332,14 +413,14 @@ var FilesWriteCmd = &cmds.Command{
 Write data to a file in a given filesystem. This command allows you to specify
 a beginning offset to write to. The entire length of the input will be written.
 
-If the '--create' option is specified, the file will be create if it does not
+If the '--create' option is specified, the file will be created if it does not
 exist. Nonexistant intermediate directories will not be created.
 
 Example:
 
-	echo "hello world" | ipfs files write --create /myfs/a/b/file
-	echo "hello world" | ipfs files write --truncate /myfs/a/b/file
-		`,
+    echo "hello world" | ipfs files write --create /myfs/a/b/file
+    echo "hello world" | ipfs files write --truncate /myfs/a/b/file
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", true, false, "path to write to"),
@@ -347,11 +428,17 @@ Example:
 	},
 	Options: []cmds.Option{
 		cmds.IntOption("o", "offset", "offset to write to"),
-		cmds.BoolOption("n", "create", "create the file if it does not exist"),
+		cmds.BoolOption("e", "create", "create the file if it does not exist"),
 		cmds.BoolOption("t", "truncate", "truncate the file before writing"),
+		cmds.IntOption("n", "count", "maximum number of bytes to read"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		path := req.Arguments()[0]
+		path, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		create, _, _ := req.Option("create").Bool()
 		trunc, _, _ := req.Option("truncate").Bool()
 
@@ -375,7 +462,25 @@ Example:
 			}
 		}
 
-		offset, _, _ := req.Option("offset").Int()
+		offset, _, err := req.Option("offset").Int()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if offset < 0 {
+			res.SetError(fmt.Errorf("cannot have negative write offset"), cmds.ErrNormal)
+			return
+		}
+
+		count, countfound, err := req.Option("count").Int()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if countfound && count < 0 {
+			res.SetError(fmt.Errorf("cannot have negative byte count"), cmds.ErrNormal)
+			return
+		}
 
 		_, err = fi.Seek(int64(offset), os.SEEK_SET)
 		if err != nil {
@@ -388,6 +493,11 @@ Example:
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+
+		var r io.Reader = input
+		if countfound {
+			r = io.LimitReader(r, int64(count))
 		}
 
 		n, err := io.Copy(fi, input)
@@ -411,7 +521,7 @@ Note: all paths must be absolute.
 Examples:
 
     $ ipfs mfs mkdir /test/newdir
-	$ ipfs mfs mkdir -p /test/does/not/exist/yet
+    $ ipfs mfs mkdir -p /test/does/not/exist/yet
 `,
 	},
 
@@ -429,10 +539,9 @@ Examples:
 		}
 
 		dashp, _, _ := req.Option("parents").Bool()
-		dirtomake := req.Arguments()[0]
-
-		if dirtomake[0] != '/' {
-			res.SetError(errors.New("paths must be absolute"), cmds.ErrNormal)
+		dirtomake, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
@@ -446,8 +555,17 @@ Examples:
 
 var FilesRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "remove a file",
-		ShortDescription: ``,
+		Tagline: "remove a file",
+		ShortDescription: `
+remove files or directories
+
+    $ ipfs files rm /foo
+    $ ipfs files ls /bar
+    cat
+    dog
+    fish
+    $ ipfs files rm -r /bar
+`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -463,7 +581,22 @@ var FilesRmCmd = &cmds.Command{
 			return
 		}
 
-		path := req.Arguments()[0]
+		path, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if path == "/" {
+			res.SetError(fmt.Errorf("cannot delete root"), cmds.ErrNormal)
+			return
+		}
+
+		// 'rm a/b/c/' will fail unless we trim the slash at the end
+		if path[len(path)-1] == '/' {
+			path = path[:len(path)-1]
+		}
+
 		dir, name := gopath.Split(path)
 		parent, err := mfs.Lookup(nd.FilesRoot, dir)
 		if err != nil {
@@ -546,11 +679,29 @@ func getFileHandle(r *mfs.Root, path string, create bool) (*mfs.File, error) {
 			return nil, err
 		}
 
-		// can unsafely cast, if it fails, that means programmer error
-		return fsn.(*mfs.File), nil
+		fi, ok := fsn.(*mfs.File)
+		if !ok {
+			return nil, errors.New("expected *mfs.File, didnt get it. This is likely a race condition")
+		}
+		return fi, nil
 
 	default:
-		log.Error("GFH default")
 		return nil, err
 	}
+}
+
+func checkPath(p string) (string, error) {
+	if len(p) == 0 {
+		return "", fmt.Errorf("paths must not be empty")
+	}
+
+	if p[0] != '/' {
+		return "", fmt.Errorf("paths must start with a leading slash")
+	}
+
+	cleaned := gopath.Clean(p)
+	if p[len(p)-1] == '/' && p != "/" {
+		cleaned += "/"
+	}
+	return cleaned, nil
 }
