@@ -368,18 +368,30 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 
+	fisize, err := dm.Size()
+	if err != nil {
+		return 0, err
+	}
+
+	var newoffset uint64
 	switch whence {
 	case os.SEEK_CUR:
-		dm.curWrOff += uint64(offset)
-		dm.writeStart = dm.curWrOff
+		newoffset = dm.curWrOff + uint64(offset)
 	case os.SEEK_SET:
-		dm.curWrOff = uint64(offset)
-		dm.writeStart = uint64(offset)
+		newoffset = uint64(offset)
 	case os.SEEK_END:
 		return 0, ErrSeekEndNotImpl
 	default:
 		return 0, ErrUnrecognizedWhence
 	}
+
+	if offset > fisize {
+		if err := dm.expandSparse(offset - fisize); err != nil {
+			return 0, err
+		}
+	}
+	dm.curWrOff = newoffset
+	dm.writeStart = newoffset
 
 	if dm.read != nil {
 		_, err = dm.read.Seek(offset, whence)

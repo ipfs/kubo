@@ -14,11 +14,6 @@ import (
 func Mv(r *Root, src, dst string) error {
 	srcDir, srcFname := gopath.Split(src)
 
-	srcObj, err := Lookup(r, src)
-	if err != nil {
-		return err
-	}
-
 	var dstDirStr string
 	var filename string
 	if dst[len(dst)-1] == '/' {
@@ -28,14 +23,38 @@ func Mv(r *Root, src, dst string) error {
 		dstDirStr, filename = gopath.Split(dst)
 	}
 
-	dstDiri, err := Lookup(r, dstDirStr)
+	// get parent directories of both src and dest first
+	dstDir, err := lookupDir(r, dstDirStr)
 	if err != nil {
 		return err
 	}
 
-	dstDir := dstDiri.(*Directory)
+	srcDirObj, err := lookupDir(r, srcDir)
+	if err != nil {
+		return err
+	}
+
+	srcObj, err := srcDirObj.Child(srcFname)
+	if err != nil {
+		return err
+	}
+
 	nd, err := srcObj.GetNode()
 	if err != nil {
+		return err
+	}
+
+	fsn, err := dstDir.Child(filename)
+	if err == nil {
+		switch n := fsn.(type) {
+		case *File:
+			_ = dstDir.Unlink(filename)
+		case *Directory:
+			dstDir = n
+		default:
+			return fmt.Errorf("unexpected type at path: %s", dst)
+		}
+	} else if err != os.ErrNotExist {
 		return err
 	}
 
@@ -44,12 +63,6 @@ func Mv(r *Root, src, dst string) error {
 		return err
 	}
 
-	srcDirObji, err := Lookup(r, srcDir)
-	if err != nil {
-		return err
-	}
-
-	srcDirObj := srcDirObji.(*Directory)
 	err = srcDirObj.Unlink(srcFname)
 	if err != nil {
 		return err
@@ -58,18 +71,27 @@ func Mv(r *Root, src, dst string) error {
 	return nil
 }
 
+func lookupDir(r *Root, path string) (*Directory, error) {
+	di, err := Lookup(r, path)
+	if err != nil {
+		return nil, err
+	}
+
+	d, ok := di.(*Directory)
+	if !ok {
+		return nil, fmt.Errorf("%s is not a directory", path)
+	}
+
+	return d, nil
+}
+
 // PutNode inserts 'nd' at 'path' in the given mfs
 func PutNode(r *Root, path string, nd *dag.Node) error {
 	dirp, filename := gopath.Split(path)
 
-	parent, err := Lookup(r, dirp)
+	pdir, err := lookupDir(r, dirp)
 	if err != nil {
-		return fmt.Errorf("lookup '%s' failed: %s", dirp, err)
-	}
-
-	pdir, ok := parent.(*Directory)
-	if !ok {
-		return fmt.Errorf("%s did not point to directory", dirp)
+		return err
 	}
 
 	return pdir.AddChild(filename, nd)
@@ -83,17 +105,27 @@ func Mkdir(r *Root, path string, parents bool) error {
 		parts = parts[1:]
 	}
 
+	// allow 'mkdir /a/b/c/' to create c
+	if parts[len(parts)-1] == "" {
+		parts = parts[:len(parts)-1]
+	}
+
+	if len(parts) == 0 {
+		// this will only happen on 'mkdir /'
+		return fmt.Errorf("cannot mkdir '%s'", path)
+	}
+
 	cur := r.GetValue().(*Directory)
 	for i, d := range parts[:len(parts)-1] {
 		fsn, err := cur.Child(d)
-		if err != nil {
-			if err == os.ErrNotExist && parents {
-				mkd, err := cur.Mkdir(d)
-				if err != nil {
-					return err
-				}
-				fsn = mkd
+		if err == os.ErrNotExist && parents {
+			mkd, err := cur.Mkdir(d)
+			if err != nil {
+				return err
 			}
+			fsn = mkd
+		} else if err != nil {
+			return err
 		}
 
 		next, ok := fsn.(*Directory)

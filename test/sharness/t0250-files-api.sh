@@ -59,6 +59,19 @@ test_files_api() {
 		verify_dir_contents /cats
 	'
 
+	test_expect_success "check root hash" '
+		ipfs files stat / | head -n1 > roothash
+	'
+
+	test_expect_success "cannot mkdir /" '
+		test_expect_code 1 ipfs files mkdir /
+	'
+
+	test_expect_success "check root hash was not changed" '
+		ipfs files stat / | head -n1 > roothashafter &&
+		test_cmp roothash roothashafter
+	'
+
 	test_expect_success "can put files into directory" '
 		ipfs files cp /ipfs/$FILE1 /cats/file1
 	'
@@ -73,7 +86,7 @@ test_files_api() {
 
 	test_expect_success "output looks good" '
 		echo foo > expected &&
-		test_cmp file1out expected
+		test_cmp expected file1out 
 	'
 
 	test_expect_success "can put another file into root" '
@@ -90,7 +103,7 @@ test_files_api() {
 
 	test_expect_success "output looks good" '
 		echo bar > expected &&
-		test_cmp file2out expected
+		test_cmp expected file2out 
 	'
 
 	test_expect_success "can make deep directory" '
@@ -116,7 +129,7 @@ test_files_api() {
 
 	test_expect_success "output looks good" '
 		echo baz > expected &&
-		test_cmp output expected
+		test_cmp expected output
 	'
 
 	test_expect_success "file shows up in dir" '
@@ -147,6 +160,19 @@ test_files_api() {
 		verify_dir_contents / cats
 	'
 
+	test_expect_success "check root hash" '
+		ipfs files stat / | head -n1 > roothash
+	'
+
+	test_expect_success "cannot remove root" '
+		test_expect_code 1 ipfs files rm -r /
+	'
+
+	test_expect_success "check root hash was not changed" '
+		ipfs files stat / | head -n1 > roothashafter &&
+		test_cmp roothash roothashafter
+	'
+
 	# test read options
 
 	test_expect_success "read from offset works" '
@@ -155,7 +181,7 @@ test_files_api() {
 
 	test_expect_success "output looks good" '
 		echo oo > expected &&
-		test_cmp output expected
+		test_cmp expected output
 	'
 
 	test_expect_success "read with size works" '
@@ -164,7 +190,55 @@ test_files_api() {
 
 	test_expect_success "output looks good" '
 		printf fo > expected &&
-		test_cmp output expected
+		test_cmp expected output
+	'
+
+	test_expect_success "cannot read from negative offset" '
+		test_expect_code 1 ipfs files read --offset -3 /cats/file1
+	'
+
+	test_expect_success "read from offset 0 works" '
+		ipfs files read --offset 0 /cats/file1 > output
+	'
+
+	test_expect_success "output looks good" '
+		echo foo > expected &&
+		test_cmp expected output
+	'
+
+	test_expect_success "read last byte works" '
+		ipfs files read --offset 2 /cats/file1 > output
+	'
+
+	test_expect_success "output looks good" '
+		echo o > expected &&
+		test_cmp expected output
+	'
+
+	test_expect_success "offset past end of file fails" '
+		test_expect_code 1 ipfs files read --offset 5 /cats/file1 
+	'
+
+	test_expect_success "cannot read negative count bytes" '
+		test_expect_code 1 ipfs read --count -1 /cats/file1
+	'
+
+	test_expect_success "reading zero bytes prints nothing" '
+		ipfs files read --count 0 /cats/file1 > output
+	'
+
+	test_expect_success "output looks good" '
+		printf "" > expected &&
+		test_cmp expected output
+	'
+
+	test_expect_success "count > len(file) prints entire file" '
+		ipfs files read --count 200 /cats/file1 > output
+	'
+
+	test_expect_success "output looks good" '
+		echo foo > expected &&
+		test_cmp expected output
 	'
 
 	# test write
@@ -189,7 +263,57 @@ test_files_api() {
 	test_expect_success "file looks correct" '
 		echo "ipfs is super cool" > expected && 
 		ipfs files read /cats/ipfs > output &&
-		test_cmp output expected
+		test_cmp expected output
+	'
+
+	test_expect_success "cant write to negative offset" '
+		ipfs files stat /cats/ipfs | head -n1 > filehash &&
+		test_expect_code 1 ipfs files write --offset -1 /cats/ipfs < output
+	'
+
+	test_expect_success "verify file was not changed" '
+		ipfs files stat /cats/ipfs | head -n1 > afterhash &&
+		test_cmp filehash afterhash
+	'
+
+	test_expect_success "write new file for testing" '
+		echo foobar | ipfs files write --create /fun
+	'
+
+	test_expect_success "write to offset past end works" '
+		echo blah | ipfs files write --offset 50 /fun
+	'
+
+	test_expect_success "can read file" '
+		ipfs files read /fun > sparse_output
+	'
+
+	test_expect_success "output looks good" '
+		echo foobar > sparse_expected &&
+		echo blah | dd of=sparse_expected bs=50 seek=1 &&
+		test_cmp sparse_expected sparse_output
+	'
+
+	test_expect_success "cleanup" '
+		ipfs files rm /fun
+	'
+
+	test_expect_success "cannot write to directory" '
+		ipfs files stat /cats | head -n1 > dirhash &&
+		test_expect_code 1 ipfs files write /cats < output
+	'
+
+	test_expect_success "verify dir was not changed" '
+		ipfs files stat /cats | head -n1 > afterdirhash &&
+		test_cmp dirhash afterdirhash
+	'
+
+	test_expect_success "cannot write to nonexistant path" '
+		test_expect_code 1 ipfs files write /cats/bar/ < output
+	'
+
+	test_expect_success "no new paths were created" '
+		verify_dir_contents /cats file1 ipfs this
 	'
 
 	# test mv
