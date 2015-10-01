@@ -487,6 +487,53 @@ func TestSparseWrite(t *testing.T) {
 	}
 }
 
+func TestSeekPastEndWrite(t *testing.T) {
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := make([]byte, 5000)
+	u.NewTimeSeededRand().Read(buf[2500:])
+
+	nseek, err := dagmod.Seek(2500, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if nseek != 2500 {
+		t.Fatal("failed to seek")
+	}
+
+	wrote, err := dagmod.Write(buf[2500:])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if wrote != 2500 {
+		t.Fatal("incorrect write amount")
+	}
+
+	_, err = dagmod.Seek(0, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ioutil.ReadAll(dagmod)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = arrComp(out, buf); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func BenchmarkDagmodWrite(b *testing.B) {
 	b.StopTimer()
 	dserv := getMockDagServ(b)
