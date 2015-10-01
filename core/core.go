@@ -57,7 +57,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	unixfs "github.com/ipfs/go-ipfs/unixfs"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -472,7 +472,7 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
 }
 
 func (n *IpfsNode) loadFilesRoot() error {
-	dsk := ds.NewKey("/filesroot")
+	dsk := ds.NewKey("/local/filesroot")
 	pf := func(ctx context.Context, k key.Key) error {
 		return n.Repo.Datastore().Put(dsk, []byte(k))
 	}
@@ -482,7 +482,7 @@ func (n *IpfsNode) loadFilesRoot() error {
 
 	switch {
 	case err == ds.ErrNotFound || val == nil:
-		nd = &merkledag.Node{Data: unixfs.FolderPBData()}
+		nd = uio.NewEmptyDirectory()
 		_, err := n.DAG.Add(nd)
 		if err != nil {
 			return fmt.Errorf("failure writing to dagstore: %s", err)
