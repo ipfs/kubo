@@ -3,6 +3,7 @@ package dht
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -10,6 +11,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	u "github.com/ipfs/go-ipfs/util"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 )
 
@@ -46,41 +48,17 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 
 	// first, is there even a key?
-	k := pmes.GetKey()
+	k := key.Key(pmes.GetKey())
 	if k == "" {
 		return nil, errors.New("handleGetValue but no key was provided")
 		// TODO: send back an error response? could be bad, but the other node's hanging.
 	}
 
-	// let's first check if we have the value locally.
-	log.Debugf("%s handleGetValue looking into ds", dht.self)
-	dskey := key.Key(k).DsKey()
-	iVal, err := dht.datastore.Get(dskey)
-	log.Debugf("%s handleGetValue looking into ds GOT %v", dht.self, iVal)
-
-	// if we got an unexpected error, bail.
-	if err != nil && err != ds.ErrNotFound {
+	rec, err := dht.checkLocalDatastore(k)
+	if err != nil {
 		return nil, err
 	}
-
-	// if we have the value, send it back
-	if err == nil {
-		log.Debugf("%s handleGetValue success!", dht.self)
-
-		byts, ok := iVal.([]byte)
-		if !ok {
-			return nil, fmt.Errorf("datastore had non byte-slice value for %v", dskey)
-		}
-
-		rec := new(pb.Record)
-		err := proto.Unmarshal(byts, rec)
-		if err != nil {
-			log.Debug("Failed to unmarshal dht record from datastore")
-			return nil, err
-		}
-
-		resp.Record = rec
-	}
+	resp.Record = rec
 
 	// Find closest peer on given cluster to desired key and reply with that info
 	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
@@ -102,6 +80,69 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	return resp, nil
 }
 
+func (dht *IpfsDHT) checkLocalDatastore(k key.Key) (*pb.Record, error) {
+	log.Debugf("%s handleGetValue looking into ds", dht.self)
+	dskey := k.DsKey()
+	iVal, err := dht.datastore.Get(dskey)
+	log.Debugf("%s handleGetValue looking into ds GOT %v", dht.self, iVal)
+
+	if err == ds.ErrNotFound {
+		return nil, nil
+	}
+
+	// if we got an unexpected error, bail.
+	if err != nil {
+		return nil, err
+	}
+
+	// if we have the value, send it back
+	log.Debugf("%s handleGetValue success!", dht.self)
+
+	byts, ok := iVal.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("datastore had non byte-slice value for %v", dskey)
+	}
+
+	rec := new(pb.Record)
+	err = proto.Unmarshal(byts, rec)
+	if err != nil {
+		log.Debug("Failed to unmarshal dht record from datastore")
+		return nil, err
+	}
+
+	// if its our record, dont bother checking the times on it
+	if peer.ID(rec.GetAuthor()) == dht.self {
+		return rec, nil
+	}
+
+	var recordIsBad bool
+	recvtime, err := u.ParseRFC3339(rec.GetTimeReceived())
+	if err != nil {
+		log.Info("either no receive time set on record, or it was invalid: ", err)
+		recordIsBad = true
+	}
+
+	if time.Now().Sub(recvtime) > MaxRecordAge {
+		log.Debug("old record found, tossing.")
+		recordIsBad = true
+	}
+
+	// NOTE: we do not verify the record here beyond checking these timestamps.
+	// we put the burden of checking the records on the requester as checking a record
+	// may be computationally expensive
+
+	if recordIsBad {
+		err := dht.datastore.Delete(dskey)
+		if err != nil {
+			log.Error("Failed to delete bad record from datastore: ", err)
+		}
+
+		return nil, nil // can treat this as not having the record at all
+	}
+
+	return rec, nil
+}
+
 // Store a value in this peer local storage
 func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 	defer log.EventBegin(ctx, "handlePutValue", p).Done()
@@ -112,7 +153,12 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 		return nil, err
 	}
 
-	data, err := proto.Marshal(pmes.GetRecord())
+	rec := pmes.GetRecord()
+
+	// record the time we receive every record
+	rec.TimeReceived = proto.String(u.FormatRFC3339(time.Now()))
+
+	data, err := proto.Marshal(rec)
 	if err != nil {
 		return nil, err
 	}

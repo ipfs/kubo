@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
@@ -25,7 +26,7 @@ type mpns struct {
 }
 
 // NewNameSystem will construct the IPFS naming system based on Routing
-func NewNameSystem(r routing.IpfsRouting) NameSystem {
+func NewNameSystem(r routing.IpfsRouting, ds ds.Datastore) NameSystem {
 	return &mpns{
 		resolvers: map[string]resolver{
 			"dns":      newDNSResolver(),
@@ -33,7 +34,7 @@ func NewNameSystem(r routing.IpfsRouting) NameSystem {
 			"dht":      newRoutingResolver(r),
 		},
 		publishers: map[string]Publisher{
-			"/ipns/": NewRoutingPublisher(r),
+			"/ipns/": NewRoutingPublisher(r, ds),
 		},
 	}
 }
