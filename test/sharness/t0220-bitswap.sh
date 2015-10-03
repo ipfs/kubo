@@ -14,7 +14,8 @@ test_launch_ipfs_daemon
 test_expect_success "'ipfs block get' adds hash to wantlist" '
 	export NONEXIST=QmeXxaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa &&
 	test_expect_code 1 ipfs block get $NONEXIST --timeout=10ms &&
-	ipfs bitswap wantlist | grep $NONEXIST
+	ipfs bitswap wantlist >wantlist_out &&
+	grep $NONEXIST wantlist_out
 '
 
 test_expect_success "'ipfs bitswap unwant' succeeds" '
