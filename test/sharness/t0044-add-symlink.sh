@@ -18,7 +18,8 @@ test_expect_success "creating files succeeds" '
 
 test_add_symlinks() {
 	test_expect_success "ipfs add files succeeds" '
-		ipfs add -q -r files | tail -n 1 > filehash_out
+		ipfs add -q -r files >filehash_all &&
+		tail -n 1 filehash_all >filehash_out
 	'
 
 	test_expect_success "output looks good" '
