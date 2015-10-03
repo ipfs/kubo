@@ -12,6 +12,146 @@ client_err() {
     printf "$@\n\nUse 'ipfs add --help' for information about this command\n"
 }
 
+test_add_cat_file() {
+    test_expect_success "ipfs add succeeds" '
+    	echo "Hello Worlds!" >mountdir/hello.txt &&
+        ipfs add mountdir/hello.txt >actual
+    '
+
+    test_expect_success "ipfs add output looks good" '
+    	HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
+        echo "added $HASH hello.txt" >expected &&
+    	test_cmp expected actual
+    '
+
+    test_expect_success "ipfs add --only-hash succeeds" '
+    	ipfs add --only-hash mountdir/hello.txt > oh_actual
+    '
+
+    test_expect_success "ipfs add --only-hash output looks good" '
+        test_cmp expected oh_actual
+    '
+
+    test_expect_success "ipfs cat succeeds" '
+    	ipfs cat "$HASH" >actual
+    '
+
+    test_expect_success "ipfs cat output looks good" '
+    	echo "Hello Worlds!" >expected &&
+    	test_cmp expected actual
+    '
+
+    test_expect_success "ipfs cat /ipfs/file succeeds" '
+    	ipfs cat /ipfs/$HASH >actual
+    '
+
+    test_expect_success "output looks good" '
+    	test_cmp expected actual
+    '
+}
+
+test_add_cat_5MB() {
+    test_expect_success "generate 5MB file using go-random" '
+    	random 5242880 41 >mountdir/bigfile
+    '
+
+    test_expect_success "sha1 of the file looks ok" '
+    	echo "11145620fb92eb5a49c9986b5c6844efda37e471660e" >sha1_expected &&
+    	multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
+    	test_cmp sha1_expected sha1_actual
+    '
+
+    test_expect_success "'ipfs add bigfile' succeeds" '
+    	ipfs add mountdir/bigfile >actual
+    '
+
+    test_expect_success "'ipfs add bigfile' output looks good" '
+    	HASH="QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" &&
+    	echo "added $HASH bigfile" >expected &&
+    	test_cmp expected actual
+    '
+    test_expect_success "'ipfs cat' succeeds" '
+    	ipfs cat "$HASH" >actual
+    '
+
+    test_expect_success "'ipfs cat' output looks good" '
+    	test_cmp mountdir/bigfile actual
+    '
+
+    test_expect_success FUSE "cat ipfs/bigfile succeeds" '
+    	cat "ipfs/$HASH" >actual
+    '
+
+    test_expect_success FUSE "cat ipfs/bigfile looks good" '
+    	test_cmp mountdir/bigfile actual
+    '
+}
+
+test_add_cat_expensive() {
+    test_expect_success EXPENSIVE "generate 100MB file using go-random" '
+    	random 104857600 42 >mountdir/bigfile
+    '
+
+    test_expect_success EXPENSIVE "sha1 of the file looks ok" '
+    	echo "1114885b197b01e0f7ff584458dc236cb9477d2e736d" >sha1_expected &&
+    	multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
+    	test_cmp sha1_expected sha1_actual
+    '
+
+    test_expect_success EXPENSIVE "ipfs add bigfile succeeds" '
+    	ipfs add mountdir/bigfile >actual
+    '
+
+    test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
+    	HASH="QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3" &&
+    	echo "added $HASH bigfile" >expected &&
+    	test_cmp expected actual
+    '
+
+    test_expect_success EXPENSIVE "ipfs cat succeeds" '
+    	ipfs cat "$HASH" | multihash -a=sha1 -e=hex >sha1_actual
+    '
+
+    test_expect_success EXPENSIVE "ipfs cat output looks good" '
+    	ipfs cat "$HASH" >actual &&
+    	test_cmp mountdir/bigfile actual
+    '
+
+    test_expect_success EXPENSIVE "ipfs cat output hashed looks good" '
+    	echo "1114885b197b01e0f7ff584458dc236cb9477d2e736d" >sha1_expected &&
+    	test_cmp sha1_expected sha1_actual
+    '
+
+    test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile succeeds" '
+    	cat "ipfs/$HASH" | multihash -a=sha1 -e=hex >sha1_actual
+    '
+
+    test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile looks good" '
+    	test_cmp sha1_expected sha1_actual
+    '
+}
+
+test_add_named_pipe() {
+    err_prefix=$1
+    test_expect_success "useful error message when adding a named pipe" '
+        mkfifo named-pipe &&
+	    test_expect_code 1 ipfs add named-pipe 2>actual &&
+        client_err "Error: Unrecognized file type for named-pipe: $(generic_stat named-pipe)" >expected &&
+        rm named-pipe &&
+	    test_cmp expected actual
+    '
+
+    test_expect_success "useful error message when recursively adding a named pipe" '
+    	mkdir -p named-pipe-dir &&
+    	mkfifo named-pipe-dir/named-pipe &&
+    	test_expect_code 1 ipfs add -r named-pipe-dir 2>actual &&
+        printf "Error:$err_prefix Unrecognized file type for named-pipe-dir/named-pipe: $(generic_stat named-pipe-dir/named-pipe)\n" >expected &&
+        rm named-pipe-dir/named-pipe &&
+        rmdir named-pipe-dir &&
+    	test_cmp expected actual
+    '
+}
+
 test_launch_ipfs_daemon_and_mount
 
 test_expect_success "'ipfs add --help' succeeds" '
@@ -32,33 +172,7 @@ test_expect_success "'ipfs cat --help' output looks good" '
 	test_fsh cat actual
 '
 
-test_expect_success "ipfs add succeeds" '
-	echo "Hello Worlds!" >mountdir/hello.txt &&
-	ipfs add mountdir/hello.txt >actual
-'
-
-test_expect_success "ipfs add output looks good" '
-	HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
-	echo "added $HASH hello.txt" >expected &&
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs add --only-hash succeeds" '
-	ipfs add --only-hash mountdir/hello.txt > oh_actual
-'
-
-test_expect_success "ipfs add --only-hash output looks good" '
-	ipfs add --only-hash mountdir/hello.txt > oh_actual
-'
-
-test_expect_success "ipfs cat succeeds" '
-	ipfs cat "$HASH" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	echo "Hello Worlds!" >expected &&
-	test_cmp expected actual
-'
+test_add_cat_file
 
 test_expect_success "ipfs cat succeeds with stdin opened (issue #1141)" '
 	cat mountdir/hello.txt | while read line; do ipfs cat "$HASH" >actual || exit; done
@@ -186,101 +300,30 @@ test_expect_success "ipfs cat output looks good" '
 '
 
 test_expect_success "go-random is installed" '
-	type random
-'
+    	type random
+    '
 
-test_expect_success "generate 5MB file using go-random" '
-	random 5242880 41 >mountdir/bigfile
-'
+test_add_cat_5MB
 
-test_expect_success "sha1 of the file looks ok" '
-	echo "11145620fb92eb5a49c9986b5c6844efda37e471660e" >sha1_expected &&
-	multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
-	test_cmp sha1_expected sha1_actual
-'
+test_add_cat_expensive
 
-test_expect_success "'ipfs add bigfile' succeeds" '
-	ipfs add mountdir/bigfile >actual
-'
-
-test_expect_success "'ipfs add bigfile' output looks good" '
-	HASH="QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" &&
-	echo "added $HASH bigfile" >expected &&
-	test_cmp expected actual
-'
-test_expect_success "'ipfs cat' succeeds" '
-	ipfs cat "$HASH" >actual
-'
-
-test_expect_success "'ipfs cat' output looks good" '
-	test_cmp mountdir/bigfile actual
-'
-
-test_expect_success FUSE "cat ipfs/bigfile succeeds" '
-	cat "ipfs/$HASH" >actual
-'
-
-test_expect_success FUSE "cat ipfs/bigfile looks good" '
-	test_cmp mountdir/bigfile actual
-'
-
-test_expect_success EXPENSIVE "generate 100MB file using go-random" '
-	random 104857600 42 >mountdir/bigfile
-'
-
-test_expect_success EXPENSIVE "sha1 of the file looks ok" '
-	echo "1114885b197b01e0f7ff584458dc236cb9477d2e736d" >sha1_expected &&
-	multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
-	test_cmp sha1_expected sha1_actual
-'
-
-test_expect_success EXPENSIVE "ipfs add bigfile succeeds" '
-	ipfs add mountdir/bigfile >actual
-'
-
-test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
-	HASH="QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3" &&
-	echo "added $HASH bigfile" >expected &&
-	test_cmp expected actual
-'
-
-test_expect_success EXPENSIVE "ipfs cat succeeds" '
-	ipfs cat "$HASH" | multihash -a=sha1 -e=hex >sha1_actual
-'
-
-test_expect_success EXPENSIVE "ipfs cat output looks good" '
-	ipfs cat "$HASH" >actual &&
-	test_cmp mountdir/bigfile actual
-'
-
-test_expect_success EXPENSIVE "ipfs cat output hashed looks good" '
-	echo "1114885b197b01e0f7ff584458dc236cb9477d2e736d" >sha1_expected &&
-	test_cmp sha1_expected sha1_actual
-'
-
-test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile succeeds" '
-	cat "ipfs/$HASH" | multihash -a=sha1 -e=hex >sha1_actual
-'
-
-test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile looks good" '
-	test_cmp sha1_expected sha1_actual
-'
-
-test_expect_success "useful error message when adding a named pipe" '
-	mkfifo named-pipe &&
-	test_expect_code 1 ipfs add named-pipe 2>actual &&
-    client_err "Error: Unrecognized file type for named-pipe: $(generic_stat named-pipe)" >expected &&
-	test_cmp expected actual
-'
-
-test_expect_success "useful error message when recursively adding a named pipe" '
-	mkdir named-pipe-dir &&
-	mkfifo named-pipe-dir/named-pipe &&
-	test_expect_code 1 ipfs add -r named-pipe-dir 2>actual &&
-    printf "Error: Post http://127.0.0.1:$PORT_API/api/v0/add?encoding=json&progress=true&r=true&stream-channels=true: Unrecognized file type for named-pipe-dir/named-pipe: $(generic_stat named-pipe-dir/named-pipe)\n" >expected &&
-	test_cmp expected actual
-'
+test_add_named_pipe " Post http://127.0.0.1:$PORT_API/api/v0/add?encoding=json&progress=true&r=true&stream-channels=true:"
 
 test_kill_ipfs_daemon
+
+# should work offline
+
+test_add_cat_file
+
+test_expect_success "ipfs add --only-hash succeeds" '
+    echo "unknown content for only-hash" | ipfs add --only-hash -q > oh_hash
+'
+
+#TODO: this doesn't work when online hence separated out from test_add_cat_file
+test_expect_success "ipfs cat file fails" '
+    test_must_fail ipfs cat $(cat oh_hash)
+'
+
+test_add_named_pipe ""
 
 test_done
