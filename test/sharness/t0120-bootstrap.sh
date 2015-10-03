@@ -34,7 +34,7 @@ test_bootstrap_list_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap' output looks good" '
-    test_cmp list_actual list_expected
+    test_cmp list_expected list_actual
   '
 
   test_expect_success "'ipfs bootstrap list' succeeds" '
@@ -42,7 +42,7 @@ test_bootstrap_list_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap list' output looks good" '
-    test_cmp list2_actual list_expected
+    test_cmp list_expected list2_actual
   '
 }
 
@@ -63,7 +63,7 @@ test_bootstrap_cmd() {
     echo $BP1 >add_expected
     echo $BP2 >>add_expected
     echo $BP3 >>add_expected
-    test_cmp add_actual add_expected
+    test_cmp add_expected add_actual
   '
 
   test_bootstrap_list_cmd $BP1 $BP2 $BP3
@@ -75,7 +75,7 @@ test_bootstrap_cmd() {
   test_expect_success "'ipfs bootstrap rm' output looks good" '
     echo $BP1 >rm_expected
     echo $BP3 >>rm_expected
-    test_cmp rm_actual rm_expected
+    test_cmp rm_expected rm_actual
   '
 
   test_bootstrap_list_cmd $BP2
@@ -94,7 +94,7 @@ test_bootstrap_cmd() {
     echo $BP7 >>add2_expected
     echo $BP8 >>add2_expected
     echo $BP9 >>add2_expected
-    test_cmp add2_actual add2_expected
+    test_cmp add2_expected add2_actual
   '
 
   test_bootstrap_list_cmd $BP1 $BP2 $BP3 $BP4 $BP5 $BP6 $BP7 $BP8 $BP9
