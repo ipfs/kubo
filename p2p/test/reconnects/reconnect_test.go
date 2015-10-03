@@ -12,7 +12,7 @@ import (
 	swarm "github.com/ipfs/go-ipfs/p2p/net/swarm"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	logging "github.com/ipfs/go-ipfs/vendor/QmXJkcEXB6C9h6Ytb6rrUTFU56Ro62zxgrbxTT3dgjQGA8/go-log"
 	u "github.com/ipfs/go-ipfs/util"
 
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"

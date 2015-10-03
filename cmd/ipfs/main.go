@@ -28,7 +28,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	u "github.com/ipfs/go-ipfs/util"
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	logging "github.com/ipfs/go-ipfs/vendor/QmXJkcEXB6C9h6Ytb6rrUTFU56Ro62zxgrbxTT3dgjQGA8/go-log"
 )
 
 // log is the command logger

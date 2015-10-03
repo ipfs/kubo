@@ -3,7 +3,7 @@ package queue
 import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	logging "github.com/ipfs/go-ipfs/vendor/QmXJkcEXB6C9h6Ytb6rrUTFU56Ro62zxgrbxTT3dgjQGA8/go-log"
 )
 
 var log = logging.Logger("peerqueue")

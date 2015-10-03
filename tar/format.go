@@ -13,7 +13,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutil "github.com/ipfs/go-ipfs/merkledag/utils"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	logging "github.com/ipfs/go-ipfs/vendor/QmXJkcEXB6C9h6Ytb6rrUTFU56Ro62zxgrbxTT3dgjQGA8/go-log"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )

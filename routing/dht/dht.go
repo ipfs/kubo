@@ -18,7 +18,7 @@ import (
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	logging "github.com/ipfs/go-ipfs/vendor/QmXJkcEXB6C9h6Ytb6rrUTFU56Ro62zxgrbxTT3dgjQGA8/go-log"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"

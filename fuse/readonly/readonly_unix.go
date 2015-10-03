@@ -16,7 +16,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	logging "github.com/ipfs/go-ipfs/vendor/QmXJkcEXB6C9h6Ytb6rrUTFU56Ro62zxgrbxTT3dgjQGA8/go-log"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
