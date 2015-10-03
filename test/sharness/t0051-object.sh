@@ -20,9 +20,9 @@ test_patch_create_path() {
 	'
 
 	test_expect_success "output looks good" '
-		ipfs cat $PCOUT/$name > tpcp_out &&
-		ipfs cat $target > tpcp_exp &&
-		test_cmp tpcp_out tpcp_exp
+		ipfs cat "$PCOUT/$name" >tpcp_out &&
+		ipfs cat "$target" >tpcp_exp &&
+		test_cmp tpcp_exp tpcp_out
 	'
 }
 
@@ -161,7 +161,7 @@ test_object_cmd() {
 		echo DataSize: 2 >> obj_stat_exp &&
 		echo CumulativeSize: 114 >> obj_stat_exp &&
 
-		test_cmp obj_stat_out obj_stat_exp
+		test_cmp obj_stat_exp obj_stat_out
 	'
 
 	test_expect_success "should have created dir within a dir" '
@@ -188,7 +188,7 @@ test_object_cmd() {
 
 	test_expect_success "output looks good" '
 		echo "QmZD3r9cZjzU8huNY2JS9TC6n8daDfT8TmE8zBSqG31Wvq" > multi_link_rm_exp &&
-		test_cmp multi_link_rm_out multi_link_rm_exp
+		test_cmp multi_link_rm_exp multi_link_rm_out
 	'
 
 	test_patch_create_path $EMPTY a/b/c $FILE
