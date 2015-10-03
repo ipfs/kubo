@@ -12,7 +12,9 @@ export IPTB_ROOT="`pwd`/.iptb"
 export DEBUG=true
 
 ipfsi() {
-	local dir=$1; shift; IPFS_PATH="$IPTB_ROOT/$dir" ipfs $@
+	dir="$1"
+	shift
+	IPFS_PATH="$IPTB_ROOT/$dir" ipfs "$@"
 }
 
 setup_iptb() {
@@ -21,7 +23,7 @@ setup_iptb() {
 	'
 
 	test_expect_success "set configs up" '
-		for i in `seq 0 3`
+		for i in $(test_seq 0 3)
 		do
 			ipfsi $i config Ipns.RepublishPeriod 20s
 		done
@@ -61,8 +63,8 @@ verify_can_resolve() {
 	'
 
 	test_expect_success "output looks right" '
-		printf /ipfs/$expected > expected &&
-		test_cmp resolve expected
+		printf "/ipfs/$expected" > expected &&
+		test_cmp expected resolve
 	'
 }
 
