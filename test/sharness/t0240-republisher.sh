@@ -23,7 +23,7 @@ setup_iptb() {
 	'
 
 	test_expect_success "set configs up" '
-		for i in `seq 0 3`
+		for i in $(test_seq 0 3)
 		do
 			ipfsi $i config Ipns.RepublishPeriod 20s
 		done
