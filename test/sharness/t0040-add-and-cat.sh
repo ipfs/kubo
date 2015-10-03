@@ -48,6 +48,26 @@ test_add_cat_file() {
     test_expect_success "output looks good" '
     	test_cmp expected actual
     '
+
+    test_expect_success "ipfs add -t succeeds" '
+        ipfs add -t mountdir/hello.txt >actual
+    '
+
+    test_expect_success "ipfs add -t output looks good" '
+    	HASH="QmUkUQgxXeggyaD5Ckv8ZqfW8wHBX6cYyeiyqvVZYzq5Bi" &&
+        echo "added $HASH hello.txt" >expected &&
+        test_cmp expected actual
+    '
+
+    test_expect_success "ipfs add --chunker size-32 succeeds" '
+        ipfs add --chunker rabin mountdir/hello.txt >actual
+    '
+
+    test_expect_success "ipfs add --chunker size-32 output looks good" '
+    	HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
+        echo "added $HASH hello.txt" >expected &&
+        test_cmp expected actual
+    '
 }
 
 test_add_cat_5MB() {
@@ -179,6 +199,7 @@ test_expect_success "ipfs cat succeeds with stdin opened (issue #1141)" '
 '
 
 test_expect_success "ipfs cat output looks good" '
+    cat mountdir/hello.txt >expected &&
 	test_cmp expected actual
 '
 
