@@ -12,7 +12,9 @@ export IPTB_ROOT="`pwd`/.iptb"
 export DEBUG=true
 
 ipfsi() {
-	local dir=$1; shift; IPFS_PATH="$IPTB_ROOT/$dir" ipfs $@
+	dir="$1"
+	shift
+	IPFS_PATH="$IPTB_ROOT/$dir" ipfs "$@"
 }
 
 setup_iptb() {
