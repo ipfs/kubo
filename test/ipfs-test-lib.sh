@@ -28,8 +28,9 @@ shellquote() {
 	_space=''
 	for _arg
 	do
-		printf '%s' "$_space"
-		printf '%s' "$_arg" | sed -e "s/'/'\\\\''/g; s/^/'/; s/\$/'/;"
+		# On Mac OS, sed adds a newline character.
+		# With a printf wrapper the extra newline is removed.
+		printf "$_space'%s'" "$(printf "%s" "$_arg" | sed -e "s/'/'\\\\''/g;")"
 		_space=' '
 	done
 	printf '\n'
