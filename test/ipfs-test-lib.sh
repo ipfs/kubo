@@ -29,7 +29,7 @@ shellquote() {
 	for _arg
 	do
 		printf '%s' "$_space"
-		printf '%s' "$_arg" | sed -e "s/'/'\\\\''/g; s/^/'/; s/\$/'/;"
+		printf '%s' "$(printf '%s' "$_arg" | sed -e "s/'/'\\\\''/g; s/^/'/; s/\$/'/;")"
 		_space=' '
 	done
 	printf '\n'
