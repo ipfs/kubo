@@ -24,8 +24,7 @@ test_expect_success "'ipfs bitswap unwant' succeeds" '
 
 test_expect_success "hash was removed from wantlist" '
 	ipfs bitswap wantlist > wantlist_out &&
-	printf "" > wantlist_exp &&
-	test_cmp wantlist_out wantlist_exp
+	test_must_be_empty wantlist_out
 '
 
 test_kill_ipfs_daemon
