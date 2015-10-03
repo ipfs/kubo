@@ -60,9 +60,9 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap add' output looks good" '
-    echo $BP1 >add_expected
-    echo $BP2 >>add_expected
-    echo $BP3 >>add_expected
+    echo $BP1 >add_expected &&
+    echo $BP2 >>add_expected &&
+    echo $BP3 >>add_expected &&
     test_cmp add_expected add_actual
   '
 
@@ -73,8 +73,8 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap rm' output looks good" '
-    echo $BP1 >rm_expected
-    echo $BP3 >>rm_expected
+    echo $BP1 >rm_expected &&
+    echo $BP3 >>rm_expected &&
     test_cmp rm_expected rm_actual
   '
 
@@ -85,15 +85,15 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap add --default' output has default BP" '
-    echo $BP1 >add2_expected
-    echo $BP2 >>add2_expected
-    echo $BP3 >>add2_expected
-    echo $BP4 >>add2_expected
-    echo $BP5 >>add2_expected
-    echo $BP6 >>add2_expected
-    echo $BP7 >>add2_expected
-    echo $BP8 >>add2_expected
-    echo $BP9 >>add2_expected
+    echo $BP1 >add2_expected &&
+    echo $BP2 >>add2_expected &&
+    echo $BP3 >>add2_expected &&
+    echo $BP4 >>add2_expected &&
+    echo $BP5 >>add2_expected &&
+    echo $BP6 >>add2_expected &&
+    echo $BP7 >>add2_expected &&
+    echo $BP8 >>add2_expected &&
+    echo $BP9 >>add2_expected &&
     test_cmp add2_expected add2_actual
   '
 
@@ -104,16 +104,16 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap rm' output looks good" '
-    echo $BP1 >rm2_expected
-    echo $BP2 >>rm2_expected
-    echo $BP3 >>rm2_expected
-    echo $BP4 >>rm2_expected
-    echo $BP5 >>rm2_expected
-    echo $BP6 >>rm2_expected
-    echo $BP7 >>rm2_expected
-    echo $BP8 >>rm2_expected
-    echo $BP9 >>rm2_expected
-    test_cmp rm2_actual rm2_expected
+    echo $BP1 >rm2_expected &&
+    echo $BP2 >>rm2_expected &&
+    echo $BP3 >>rm2_expected &&
+    echo $BP4 >>rm2_expected &&
+    echo $BP5 >>rm2_expected &&
+    echo $BP6 >>rm2_expected &&
+    echo $BP7 >>rm2_expected &&
+    echo $BP8 >>rm2_expected &&
+    echo $BP9 >>rm2_expected &&
+    test_cmp rm2_expected rm2_actual
   '
 
   test_bootstrap_list_cmd
