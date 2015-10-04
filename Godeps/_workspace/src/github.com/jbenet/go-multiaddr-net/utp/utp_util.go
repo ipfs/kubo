@@ -8,8 +8,16 @@ import (
 	utp "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/anacrolix/utp"
 )
 
-type Listener struct {
-	*utp.Socket
+type Socket struct {
+	s *utp.Socket
+
+	Timeout time.Duration
+}
+
+type Dialer struct {
+	s         *Socket
+	Timeout   time.Duration
+	LocalAddr net.Addr
 }
 
 type Conn struct {
@@ -57,7 +65,7 @@ func (u *Conn) RemoteAddr() net.Addr {
 	return MakeAddr(u.Conn.RemoteAddr())
 }
 
-func Listen(network string, laddr string) (net.Listener, error) {
+func NewSocket(network string, laddr string) (*Socket, error) {
 	switch network {
 	case "utp", "utp4", "utp6":
 		s, err := utp.NewSocket("udp"+network[3:], laddr)
@@ -65,15 +73,21 @@ func Listen(network string, laddr string) (net.Listener, error) {
 			return nil, err
 		}
 
-		return &Listener{s}, nil
+		return &Socket{
+			s: s,
+		}, nil
 
 	default:
 		return nil, errors.New("unrecognized network: " + network)
 	}
 }
 
-func (u *Listener) Accept() (net.Conn, error) {
-	c, err := u.Socket.Accept()
+func (u *Socket) Close() error {
+	return u.s.Close()
+}
+
+func (u *Socket) Accept() (net.Conn, error) {
+	c, err := u.s.Accept()
 	if err != nil {
 		return nil, err
 	}
@@ -81,25 +95,51 @@ func (u *Listener) Accept() (net.Conn, error) {
 	return &Conn{c}, nil
 }
 
-func (u *Listener) Addr() net.Addr {
-	return MakeAddr(u.Socket.Addr())
+func (u *Socket) Addr() net.Addr {
+	return MakeAddr(u.s.Addr())
 }
 
-type Dialer struct {
-	Timeout   time.Duration
-	LocalAddr net.Addr
+func (d *Socket) Dial(rnet string, raddr string) (net.Conn, error) {
+	c, err := d.s.DialTimeout(raddr, d.Timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Conn{c}, nil
+}
+
+func DialTimeout(rnet, raddr string, timeout time.Duration) (net.Conn, error) {
+	c, err := utp.DialTimeout(raddr, timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Conn{c}, nil
 }
 
 func (d *Dialer) Dial(rnet string, raddr string) (net.Conn, error) {
-	if d.LocalAddr != nil {
-		s, err := utp.NewSocket(d.LocalAddr.Network(), d.LocalAddr.String())
+	if d.LocalAddr != nil && d.s == nil {
+		s, err := NewSocket(d.LocalAddr.Network(), d.LocalAddr.String())
 		if err != nil {
 			return nil, err
 		}
 
-		// zero timeout is the same as calling s.Dial()
-		return s.DialTimeout(raddr, d.Timeout)
+		s.Timeout = d.Timeout
+		d.s = s
 	}
 
-	return utp.DialTimeout(raddr, d.Timeout)
+	var c net.Conn
+	var err error
+	if d.s != nil {
+		// zero timeout is the same as calling s.Dial()
+		c, err = d.s.Dial(rnet, raddr)
+	} else {
+		c, err = utp.DialTimeout(raddr, d.Timeout)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &Conn{c}, nil
 }
