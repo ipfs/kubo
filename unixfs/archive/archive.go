@@ -36,67 +36,71 @@ func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService
 
 	// need to connect a writer to a reader
 	piper, pipew := io.Pipe()
+	checkErrAndClosePipe := func(err error) bool {
+		if err != nil {
+			pipew.CloseWithError(err)
+			return true
+		}
+		return false
+	}
 
 	// use a buffered writer to parallelize task
 	bufw := bufio.NewWriterSize(pipew, DefaultBufSize)
 
 	// compression determines whether to use gzip compression.
-	var maybeGzw io.WriteCloser
-	var err error
-	if compression != gzip.NoCompression {
-		maybeGzw, err = gzip.NewWriterLevel(bufw, compression)
-		if err != nil {
-			pipew.CloseWithError(err)
-			return nil, err
+	maybeGzw, err := newMaybeGzWriter(bufw, compression)
+	if checkErrAndClosePipe(err) {
+		return nil, err
+	}
+
+	closeGzwAndPipe := func() {
+		if err := maybeGzw.Close(); checkErrAndClosePipe(err) {
+			return
 		}
-	} else {
-		maybeGzw = &identityWriteCloser{bufw}
+		if err := bufw.Flush(); checkErrAndClosePipe(err) {
+			return
+		}
+		pipew.Close() // everything seems to be ok.
 	}
 
 	if !archive && compression != gzip.NoCompression {
 		// the case when the node is a file
 		dagr, err := uio.NewDagReader(ctx, nd, dag)
-		if err != nil {
-			pipew.CloseWithError(err)
+		if checkErrAndClosePipe(err) {
 			return nil, err
 		}
 
 		go func() {
-			if _, err := dagr.WriteTo(maybeGzw); err != nil {
-				pipew.CloseWithError(err)
+			if _, err := dagr.WriteTo(maybeGzw); checkErrAndClosePipe(err) {
 				return
 			}
-			maybeGzw.Close()
-			if err := bufw.Flush(); err != nil {
-				pipew.CloseWithError(err)
-				return
-			}
-			pipew.Close() // everything seems to be ok.
+			closeGzwAndPipe() // everything seems to be ok
 		}()
 	} else {
 		// the case for 1. archive, and 2. not archived and not compressed, in which tar is used anyway as a transport format
 
 		// construct the tar writer
 		w, err := tar.NewWriter(ctx, dag, archive, compression, maybeGzw)
-		if err != nil {
+		if checkErrAndClosePipe(err) {
 			return nil, err
 		}
 
 		go func() {
 			// write all the nodes recursively
-			if err := w.WriteNode(nd, filename); err != nil {
-				pipew.CloseWithError(err)
+			if err := w.WriteNode(nd, filename); checkErrAndClosePipe(err) {
 				return
 			}
-			w.Close()
-			maybeGzw.Close()
-			if err := bufw.Flush(); err != nil {
-				pipew.CloseWithError(err)
-				return
-			}
-			pipew.Close() // everything seems to be ok.
+			w.Close()         // close tar writer
+			closeGzwAndPipe() // everything seems to be ok
 		}()
 	}
 
 	return piper, nil
+}
+
+func newMaybeGzWriter(w io.Writer, compression int) (io.WriteCloser, error) {
+	if compression != gzip.NoCompression {
+		return gzip.NewWriterLevel(w, compression)
+	}
+	return &identityWriteCloser{w}, nil
 }
