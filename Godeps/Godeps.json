@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/ipfs/go-ipfs",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.5.1",
 	"Packages": [
 		"./..."
 	],

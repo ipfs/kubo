@@ -154,6 +154,10 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey
 		return nil, err
 	}
 
+	return WrapManetListener(ctx, ml, local, sk)
+}
+
+func WrapManetListener(ctx context.Context, ml manet.Listener, local peer.ID, sk ic.PrivKey) (Listener, error) {
 	l := &listener{
 		Listener: ml,
 		local:    local,

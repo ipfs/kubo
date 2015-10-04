@@ -54,15 +54,18 @@ type Conn interface {
 // Dial function as before, but it would have many arguments, as dialing is
 // no longer simple (need a peerstore, a local peer, a context, a network, etc)
 type Dialer struct {
-
-	// Dialer is an optional manet.Dialer to use.
-	Dialer manet.Dialer
-
 	// LocalPeer is the identity of the local Peer.
 	LocalPeer peer.ID
 
 	// LocalAddrs is a set of local addresses to use.
-	LocalAddrs []ma.Multiaddr
+	//LocalAddrs []ma.Multiaddr
+
+	// Dialers are the sub-dialers usable by this dialer
+	// selected in order based on the address being dialed
+	Dialers []ProtoDialer
+
+	// fallback will be tried if no other transport can dial a given address
+	fallbackDialer ProtoDialer
 
 	// PrivateKey used to initialize a secure connection.
 	// Warning: if PrivateKey is nil, connection will not be secured.

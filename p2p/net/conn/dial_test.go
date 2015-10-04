@@ -70,6 +70,7 @@ func setupConn(t *testing.T, ctx context.Context, secure bool) (a, b Conn, p1, p
 		LocalPeer:  p2.ID,
 		PrivateKey: key2,
 	}
+	d2.AddDialer(new(BasicMaDialer))
 
 	var c2 Conn
 
@@ -152,6 +153,7 @@ func testDialer(t *testing.T, secure bool) {
 		LocalPeer:  p2.ID,
 		PrivateKey: key2,
 	}
+	d2.AddDialer(new(BasicMaDialer))
 
 	go echoListen(ctx, l1)
 
@@ -227,6 +229,7 @@ func testDialerCloseEarly(t *testing.T, secure bool) {
 		LocalPeer: p2.ID,
 		// PrivateKey: key2, -- dont give it key. we'll just close the conn.
 	}
+	d2.AddDialer(new(BasicMaDialer))
 
 	errs := make(chan error, 100)
 	done := make(chan struct{}, 1)
@@ -253,7 +256,7 @@ func testDialerCloseEarly(t *testing.T, secure bool) {
 
 	c, err := d2.Dial(ctx, p1.Addr, p1.ID)
 	if err != nil {
-		errs <- err
+		t.Fatal(err)
 	}
 	c.Close() // close it early.
 
