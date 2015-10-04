@@ -33,22 +33,8 @@ func (l *link) newConnPair(dialer *peernet) (*conn, *conn) {
 	l.RLock()
 	defer l.RUnlock()
 
-	mkconn := func(ln, rn *peernet) *conn {
-		c := &conn{net: ln, link: l}
-		c.local = ln.peer
-		c.remote = rn.peer
-
-		c.localAddr = ln.ps.Addrs(ln.peer)[0]
-		c.remoteAddr = rn.ps.Addrs(rn.peer)[0]
-
-		c.localPrivKey = ln.ps.PrivKey(ln.peer)
-		c.remotePubKey = rn.ps.PubKey(rn.peer)
-
-		return c
-	}
-
-	c1 := mkconn(l.nets[0], l.nets[1])
-	c2 := mkconn(l.nets[1], l.nets[0])
+	c1 := newConn(l.nets[0], l.nets[1], l)
+	c2 := newConn(l.nets[1], l.nets[0], l)
 	c1.rconn = c2
 	c2.rconn = c1
 
