@@ -14,7 +14,8 @@ test_launch_ipfs_daemon
 test_expect_success "'ipfs block get' adds hash to wantlist" '
 	export NONEXIST=QmeXxaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa &&
 	test_expect_code 1 ipfs block get $NONEXIST --timeout=10ms &&
-	ipfs bitswap wantlist | grep $NONEXIST
+	ipfs bitswap wantlist >wantlist_out &&
+	grep $NONEXIST wantlist_out
 '
 
 test_expect_success "'ipfs bitswap unwant' succeeds" '
@@ -23,8 +24,7 @@ test_expect_success "'ipfs bitswap unwant' succeeds" '
 
 test_expect_success "hash was removed from wantlist" '
 	ipfs bitswap wantlist > wantlist_out &&
-	printf "" > wantlist_exp &&
-	test_cmp wantlist_out wantlist_exp
+	test_must_be_empty wantlist_out
 '
 
 test_kill_ipfs_daemon
