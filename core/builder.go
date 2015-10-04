@@ -159,5 +159,10 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 	n.Resolver = &path.Resolver{DAG: n.DAG}
 
+	err = n.loadFilesRoot()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
