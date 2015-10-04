@@ -30,7 +30,7 @@ test_expect_success "cat that file on node2" '
 test_expect_success "verify files match" '
 	multihash filea > expected1 &&
 	multihash fileb > actual1 &&
-	test_cmp actual1 expected1
+	test_cmp expected1 actual1
 '
 
 test_expect_success "shut down nodes" '

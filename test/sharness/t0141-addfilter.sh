@@ -27,7 +27,7 @@ test_swarm_filter_cmd() {
 	'
 
 	test_expect_success "'ipfs swarm filters' output looks good" '
-		test_sort_cmp list_actual list_expected
+		test_sort_cmp list_expected list_actual
 	'
 }
 

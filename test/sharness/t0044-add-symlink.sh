@@ -24,7 +24,7 @@ test_add_symlinks() {
 
 	test_expect_success "output looks good" '
 		echo QmWdiHKoeSW8G1u7ATCgpx4yMoUhYaJBQGkyPLkS9goYZ8 > filehash_exp &&
-		test_cmp filehash_out filehash_exp
+		test_cmp filehash_exp filehash_out
 	'
 
 	test_expect_success "adding a symlink adds the link itself" '
@@ -33,7 +33,7 @@ test_add_symlinks() {
 
 	test_expect_success "output looks good" '
 		echo "QmdocmZeF7qwPT9Z8SiVhMSyKA2KKoA2J7jToW6z6WBmxR" > goodlink_exp &&
-		test_cmp goodlink_out goodlink_exp
+		test_cmp goodlink_exp goodlink_out
 	'
 
 	test_expect_success "adding a broken symlink works" '
@@ -42,7 +42,7 @@ test_add_symlinks() {
 
 	test_expect_success "output looks good" '
 		echo "QmWYN8SEXCgNT2PSjB6BnxAx6NJQtazWoBkTRH9GRfPFFQ" > badlink_exp &&
-		test_cmp badlink_out badlink_exp
+		test_cmp badlink_exp badlink_out
 	'
 }
 
