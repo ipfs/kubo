@@ -62,7 +62,7 @@ func RunSupernodeBootstrappedAddCat(data []byte, conf testutil.LatencyConfig) er
 		return err
 	}
 
-	readerCatted, err := coreunix.Cat(catter, keyAdded)
+	readerCatted, err := coreunix.Cat(ctx, catter, keyAdded)
 	if err != nil {
 		return err
 	}

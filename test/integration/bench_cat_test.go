@@ -84,7 +84,7 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 	}
 
 	b.StartTimer()
-	readerCatted, err := coreunix.Cat(catter, added)
+	readerCatted, err := coreunix.Cat(ctx, catter, added)
 	if err != nil {
 		return err
 	}

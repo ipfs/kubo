@@ -117,7 +117,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	readerCatted, err := coreunix.Cat(catter, added)
+	readerCatted, err := coreunix.Cat(ctx, catter, added)
 	if err != nil {
 		return err
 	}
