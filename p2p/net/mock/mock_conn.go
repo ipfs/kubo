@@ -9,6 +9,7 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 )
 
 // conn represents one side's perspective of a
@@ -28,11 +29,31 @@ type conn struct {
 	link    *link
 	rconn   *conn // counterpart
 	streams list.List
+	proc    process.Process
 
 	sync.RWMutex
 }
 
+func newConn(ln, rn *peernet, l *link) *conn {
+	c := &conn{net: ln, link: l}
+	c.local = ln.peer
+	c.remote = rn.peer
+
+	c.localAddr = ln.ps.Addrs(ln.peer)[0]
+	c.remoteAddr = rn.ps.Addrs(rn.peer)[0]
+
+	c.localPrivKey = ln.ps.PrivKey(ln.peer)
+	c.remotePubKey = rn.ps.PubKey(rn.peer)
+
+	c.proc = process.WithTeardown(c.teardown)
+	return c
+}
+
 func (c *conn) Close() error {
+	return c.proc.Close()
+}
+
+func (c *conn) teardown() error {
 	for _, s := range c.allStreams() {
 		s.Close()
 	}
