@@ -338,6 +338,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		},
 	})
 	var opts = []corehttp.ServeOption{
+		corehttp.PrometheusCollectorOption("api"),
 		corehttp.CommandsOption(*req.InvocContext()),
 		corehttp.WebUIOption,
 		apiGw.ServeOption(),
@@ -416,6 +417,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	}
 
 	var opts = []corehttp.ServeOption{
+		corehttp.PrometheusCollectorOption("gateway"),
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
