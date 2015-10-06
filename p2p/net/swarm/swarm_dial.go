@@ -44,6 +44,9 @@ var (
 // add loop back in Dial(.)
 const dialAttempts = 1
 
+// number of concurrent outbound dials over transports that consume file descriptors
+const concurrentFdDials = 160
+
 // DialTimeout is the amount of time each dial attempt has. We can think about making
 // this larger down the road, or putting more granular timeouts (i.e. within each
 // subcomponent of Dial)
@@ -115,6 +118,7 @@ func (ds *dialsync) Unlock(dst peer.ID) {
 	if !found {
 		panic("called dialDone with no ongoing dials to peer: " + dst.Pretty())
 	}
+
 	delete(ds.ongoing, dst) // remove ongoing dial
 	close(wait)             // release everyone else
 	ds.lock.Unlock()
@@ -398,7 +402,7 @@ func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remote
 	// to end early.
 	go func() {
 		// rate limiting just in case. at most 10 addrs at once.
-		limiter := ratelimit.NewRateLimiter(process.Background(), 10)
+		limiter := ratelimit.NewRateLimiter(process.Background(), 8)
 		limiter.Go(func(worker process.Process) {
 			// permute addrs so we try different sets first each time.
 			for _, i := range rand.Perm(len(remoteAddrs)) {
@@ -411,9 +415,27 @@ func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remote
 				}
 
 				workerAddr := remoteAddrs[i] // shadow variable to avoid race
-				limiter.LimitedGo(func(worker process.Process) {
-					dialSingleAddr(workerAddr)
+
+				// we have to do the waiting concurrently because there are addrs
+				// that SHOULD NOT be rate limited (utp), nor blocked by other
+				// rate limited addrs (tcp).
+				//
+				// (and we need to call `limiter.Go`, instead of `go` as required
+				// by goproc/limiter semantics. note: limiter.Go is not LimitedGo.)
+				limiter.Go(func(p process.Process) {
+
+					// returns whatever ratelimiting is acceptable for workerAddr.
+					// may not rate limit at all.
+					rl := s.addrDialRateLimit(workerAddr)
+					rl <- struct{}{}
+
+					limiter.LimitedGo(func(worker process.Process) {
+						dialSingleAddr(workerAddr)
+					})
+
+					<-rl
 				})
+
 			}
 		})
 
@@ -490,4 +512,24 @@ func dialConnSetup(ctx context.Context, s *Swarm, connC conn.Conn) (*Conn, error
 	}
 
 	return swarmC, err
+}
+
+// addrDialRateLimit returns a ratelimiting channel for dialing transport
+// addrs like a. for example, tcp is fd-ratelimited. utp is not ratelimited.
+func (s *Swarm) addrDialRateLimit(a ma.Multiaddr) chan struct{} {
+	if isFDCostlyTransport(a) {
+		return s.fdRateLimit
+	}
+
+	// do not rate limit it at all
+	return make(chan struct{}, 1)
+}
+
+func isFDCostlyTransport(a ma.Multiaddr) bool {
+	return isTCPMultiaddr(a)
+}
+
+func isTCPMultiaddr(a ma.Multiaddr) bool {
+	p := a.Protocols()
+	return len(p) == 2 && (p[0].Name == "ip4" || p[0].Name == "ip6") && p[1].Name == "tcp"
 }
