@@ -1,6 +1,7 @@
 package swarm
 
 import (
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -49,7 +50,8 @@ func TestSimultOpenMany(t *testing.T) {
 
 	addrs := 20
 	rounds := 10
-	if ci.IsRunning() {
+	if ci.IsRunning() || runtime.GOOS == "darwin" {
+		// osx has a limit of 256 file descriptors
 		addrs = 10
 		rounds = 5
 	}
