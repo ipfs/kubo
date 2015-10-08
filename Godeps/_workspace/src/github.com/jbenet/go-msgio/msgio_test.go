@@ -180,3 +180,18 @@ func SubtestReadWriteMsgSync(t *testing.T, writer WriteCloser, reader ReadCloser
 		t.Error(e)
 	}
 }
+
+func TestBadSizes(t *testing.T) {
+	data := make([]byte, 4)
+
+	// on a 64 bit system, this will fail because its too large
+	// on a 32 bit system, this will fail because its too small
+	NBO.PutUint32(data, 4000000000)
+	buf := bytes.NewReader(data)
+	read := NewReader(buf)
+	msg, err := read.ReadMsg()
+	if err == nil {
+		t.Fatal(err)
+	}
+	_ = msg
+}
