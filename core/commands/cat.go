@@ -67,7 +67,7 @@ func cat(ctx context.Context, node *core.IpfsNode, paths []string) ([]io.Reader,
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
 	for _, fpath := range paths {
-		read, err := coreunix.Cat(node, fpath)
+		read, err := coreunix.Cat(ctx, node, fpath)
 		if err != nil {
 			return nil, 0, err
 		}

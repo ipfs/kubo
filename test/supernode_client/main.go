@@ -199,7 +199,7 @@ func runFileCattingWorker(ctx context.Context, n *core.IpfsNode) error {
 					"localPeer": n.Identity,
 				}
 			}))
-			if r, err := coreunix.Cat(n, k); err != nil {
+			if r, err := coreunix.Cat(ctx, n, k); err != nil {
 				e.Done()
 				log.Printf("failed to cat file. seed: %d #%d key: %s err: %s", *seed, i, k, err)
 			} else {

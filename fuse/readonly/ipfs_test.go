@@ -168,7 +168,7 @@ func TestIpfsStressRead(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				read, err := coreunix.Cat(nd, item)
+				read, err := coreunix.Cat(nd.Context(), nd, item)
 				if err != nil {
 					t.Fatal(err)
 				}
