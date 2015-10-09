@@ -32,25 +32,25 @@ test_object_cmd() {
 		printf "Hello Mars" >expected_in &&
 		ipfs add expected_in >actual_Addout
 	'
-	
+
 	test_expect_success "'ipfs add testData' output looks good" '
 		HASH="QmWkHFpYBZ9mpPRreRbMhhYWXfUhBAue3JkbbpFqwowSRb" &&
 		echo "added $HASH expected_in" >expected_Addout &&
 		test_cmp expected_Addout actual_Addout
 	'
-	
+
 	test_expect_success "'ipfs object get' succeeds" '
 		ipfs object get $HASH >actual_getOut
 	'
-	
+
 	test_expect_success "'ipfs object get' output looks good" '
 		test_cmp ../t0051-object-data/expected_getOut actual_getOut
 	'
-	
+
 	test_expect_success "'ipfs object stat' succeeds" '
 		ipfs object stat $HASH >actual_stat
 	'
-	
+
 	test_expect_success "'ipfs object get' output looks good" '
 		echo "NumLinks: 0" > expected_stat &&
 		echo "BlockSize: 18" >> expected_stat &&
@@ -63,47 +63,84 @@ test_object_cmd() {
 	test_expect_success "'ipfs object put file.json' succeeds" '
 		ipfs object put  ../t0051-object-data/testPut.json > actual_putOut
 	'
-	
+
 	test_expect_success "'ipfs object put file.json' output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
 		printf "added $HASH" > expected_putOut &&
 		test_cmp expected_putOut actual_putOut
 	'
-	
+
+	test_expect_success "'ipfs object put file.xml' succeeds" '
+		ipfs object put  ../t0051-object-data/testPut.xml --inputenc=xml > actual_putOut
+	'
+
+	test_expect_success "'ipfs object put file.xml' output looks good" '
+		HASH="QmQzNKUHy4HyEUGkqKe3q3t796ffPLQXYCkHCcXUNT5JNK" &&
+		printf "added $HASH" > expected_putOut &&
+		test_cmp expected_putOut actual_putOut
+	'
+
+	test_expect_success "'ipfs object put' from stdin succeeds" '
+		cat ../t0051-object-data/testPut.xml | ipfs object put --inputenc=xml > actual_putStdinOut
+	'
+
+	test_expect_success "'ipfs object put broken.xml' should fail" '
+		test_expect_code 1 ipfs object put ../t0051-object-data/brokenPut.xml --inputenc=xml 2>actual_putBrokenErr >actual_putBroken
+	'
+
+	test_expect_success "'ipfs object put broken.hxml' output looks good" '
+		touch expected_putBroken &&
+		printf "Error: no data or links in this node\n" > expected_putBrokenErr &&
+		test_cmp expected_putBroken actual_putBroken &&
+		test_cmp expected_putBrokenErr actual_putBrokenErr
+	'
+	test_expect_success "'ipfs object get --enc=xml' succeeds" '
+		ipfs object get --enc=xml $HASH >utf8_xml
+	'
+
+	test_expect_success "'ipfs object put --inputenc=xml' succeeds" '
+		ipfs object put --inputenc=xml <utf8_xml >actual
+	'
+
+	test_expect_failure "'ipfs object put --inputenc=xml' output looks good" '
+		echo "added $HASH" >expected &&
+		test_cmp expected actual
+	'
+
 	test_expect_success "'ipfs object put file.pb' succeeds" '
 		ipfs object put --inputenc=protobuf ../t0051-object-data/testPut.pb > actual_putOut
 	'
-	
+
 	test_expect_success "'ipfs object put file.pb' output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
 		printf "added $HASH" > expected_putOut &&
 		test_cmp expected_putOut actual_putOut
 	'
-	
+
 	test_expect_success "'ipfs object put' from stdin succeeds" '
 		cat ../t0051-object-data/testPut.json | ipfs object put > actual_putStdinOut
 	'
-	
+
 	test_expect_success "'ipfs object put' from stdin output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
 		printf "added $HASH" > expected_putStdinOut &&
 		test_cmp expected_putStdinOut actual_putStdinOut
 	'
-	
+
 	test_expect_success "'ipfs object put' from stdin (pb) succeeds" '
 		cat ../t0051-object-data/testPut.pb | ipfs object put --inputenc=protobuf > actual_putPbStdinOut
 	'
-	
+
 	test_expect_success "'ipfs object put' from stdin (pb) output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
 		printf "added $HASH" > expected_putStdinOut &&
 		test_cmp expected_putStdinOut actual_putPbStdinOut
 	'
-	
+
 	test_expect_success "'ipfs object put broken.json' should fail" '
 		test_expect_code 1 ipfs object put ../t0051-object-data/brokenPut.json 2>actual_putBrokenErr >actual_putBroken
 	'
-	
+
 	test_expect_success "'ipfs object put broken.hjson' output looks good" '
 		touch expected_putBroken &&
 		printf "Error: no data or links in this node\n" > expected_putBrokenErr &&

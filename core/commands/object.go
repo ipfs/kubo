@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -689,7 +690,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 
 		// check that we have data in the Node to add
 		// otherwise we will add the empty object without raising an error
-		if node.Data == "" && len(node.Links) == 0 {
+		if NodeEmpty(node) {
 			return nil, ErrEmptyNode
 		}
 
@@ -700,6 +701,24 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 
 	case objectEncodingProtobuf:
 		dagnode, err = dag.Decoded(data)
+
+	case objectEncodingXML:
+		node := new(Node)
+		err = xml.Unmarshal(data, node)
+		if err != nil {
+			return nil, err
+		}
+
+		// check that we have data in the Node to add
+		// otherwise we will add the empty object without raising an error
+		if NodeEmpty(node) {
+			return nil, ErrEmptyNode
+		}
+
+		dagnode, err = deserializeNode(node)
+		if err != nil {
+			return nil, err
+		}
 
 	default:
 		return nil, ErrUnknownObjectEnc
@@ -725,6 +744,7 @@ type objectEncoding string
 const (
 	objectEncodingJSON     objectEncoding = "json"
 	objectEncodingProtobuf                = "protobuf"
+	objectEncodingXML                     = "xml"
 )
 
 func getObjectEnc(o interface{}) objectEncoding {
@@ -778,4 +798,8 @@ func deserializeNode(node *Node) (*dag.Node, error) {
 	}
 
 	return dagnode, nil
+}
+
+func NodeEmpty(node *Node) bool {
+	return (node.Data == "" && len(node.Links) == 0)
 }
