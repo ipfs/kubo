@@ -64,6 +64,9 @@ type Swarm struct {
 	// filters for addresses that shouldnt be dialed
 	Filters *filter.Filters
 
+	// file descriptor rate limited
+	fdRateLimit chan struct{}
+
 	proc goprocess.Process
 	ctx  context.Context
 	bwc  metrics.Reporter
@@ -79,14 +82,15 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	}
 
 	s := &Swarm{
-		swarm:   ps.NewSwarm(PSTransport),
-		local:   local,
-		peers:   peers,
-		ctx:     ctx,
-		dialT:   DialTimeout,
-		notifs:  make(map[inet.Notifiee]ps.Notifiee),
-		bwc:     bwc,
-		Filters: filter.NewFilters(),
+		swarm:       ps.NewSwarm(PSTransport),
+		local:       local,
+		peers:       peers,
+		ctx:         ctx,
+		dialT:       DialTimeout,
+		notifs:      make(map[inet.Notifiee]ps.Notifiee),
+		bwc:         bwc,
+		fdRateLimit: make(chan struct{}, concurrentFdDials),
+		Filters:     filter.NewFilters(),
 	}
 
 	// configure Swarm
