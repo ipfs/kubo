@@ -1,16 +1,12 @@
 package msgio
 
 import (
-	"encoding/binary"
 	"errors"
 	"io"
 	"sync"
 
 	mpool "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio/mpool"
 )
-
-// NBO is NetworkByteOrder
-var NBO = binary.BigEndian
 
 //  ErrMsgTooLarge is returned when the message length is exessive
 var ErrMsgTooLarge = errors.New("message too large")
@@ -101,9 +97,7 @@ func (s *writer) Write(msg []byte) (int, error) {
 func (s *writer) WriteMsg(msg []byte) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
-	length := uint32(len(msg))
-	if err := binary.Write(s.W, NBO, &length); err != nil {
+	if err := WriteLen(s.W, len(msg)); err != nil {
 		return err
 	}
 	_, err = s.W.Write(msg)
@@ -166,10 +160,12 @@ func (s *reader) NextMsgLen() (int, error) {
 
 func (s *reader) nextMsgLen() (int, error) {
 	if s.next == -1 {
-		if _, err := io.ReadFull(s.R, s.lbuf); err != nil {
+		n, err := ReadLen(s.R, s.lbuf)
+		if err != nil {
 			return 0, err
 		}
-		s.next = int(NBO.Uint32(s.lbuf))
+
+		s.next = n
 	}
 	return s.next, nil
 }
@@ -186,6 +182,7 @@ func (s *reader) Read(msg []byte) (int, error) {
 	if length > len(msg) {
 		return 0, io.ErrShortBuffer
 	}
+
 	_, err = io.ReadFull(s.R, msg[:length])
 	s.next = -1 // signal we've consumed this msg
 	return length, err
@@ -200,7 +197,7 @@ func (s *reader) ReadMsg() ([]byte, error) {
 		return nil, err
 	}
 
-	if length > s.max {
+	if length > s.max || length < 0 {
 		return nil, ErrMsgTooLarge
 	}
 
