@@ -85,13 +85,28 @@ func parseOpts(args []string, root *cmds.Command) (
 			err = fmt.Errorf("Unrecognized option '%s'", name)
 			return false, err
 		}
-
+		// mustUse implies that you must use the argument given after the '='
+		// eg. -r=true means you must take true into consideration
+		//		mustUse == true in the above case
+		// eg. ipfs -r <file> means disregard <file> since there is no '='
+		//		mustUse == false in the above situation
+		//arg == nil implies the flag was specified without an argument
 		if optDef.Type() == cmds.Bool {
-			if mustUse {
-				return false, fmt.Errorf("Option '%s' takes no arguments, but was passed '%s'", name, *arg)
+			if arg == nil || !mustUse {
+				opts[name] = true
+				return false, nil
 			}
-			opts[name] = ""
-			return false, nil
+			argVal := strings.ToLower(*arg)
+			switch argVal {
+			case "true":
+				opts[name] = true
+				return true, nil
+			case "false":
+				opts[name] = false
+				return true, nil
+			default:
+				return true, fmt.Errorf("Option '%s' takes true/false arguments, but was passed '%s'", name, argVal)
+			}
 		} else {
 			if arg == nil {
 				return true, fmt.Errorf("Missing argument for option '%s'", name)
