@@ -74,20 +74,28 @@ test_expect_success "file no longer pinned" '
 	test_sort_cmp expected2 actual2
 '
 
-test_expect_success "recursively pin afile" '
+test_expect_success "recursively pin afile(default action)" '
 	HASH=`ipfs add -q afile` &&
+	ipfs pin add "$HASH"
+'
+
+test_expect_success "recursively pin rm afile (default action)" '
+	ipfs pin rm "$HASH"
+'
+
+test_expect_success "recursively pin afile" '
 	ipfs pin add -r "$HASH"
 '
 
 test_expect_success "pinning directly should fail now" '
 	echo "Error: pin: $HASH already pinned recursively" >expected3 &&
-	test_must_fail ipfs pin add "$HASH" 2>actual3 &&
+	test_must_fail ipfs pin add -r=false "$HASH" 2>actual3 &&
 	test_cmp expected3 actual3
 '
 
-test_expect_success "'ipfs pin rm <hash>' should fail" '
+test_expect_success "'ipfs pin rm -r=false <hash>' should fail" '
 	echo "Error: $HASH is pinned recursively" >expected4 &&
-	test_must_fail ipfs pin rm "$HASH" 2>actual4 &&
+	test_must_fail ipfs pin rm -r=false "$HASH" 2>actual4 &&
 	test_cmp expected4 actual4
 '
 
@@ -95,7 +103,7 @@ test_expect_success "remove recursive pin, add direct" '
 	echo "unpinned $HASH" >expected5 &&
 	ipfs pin rm -r "$HASH" >actual5 &&
 	test_cmp expected5 actual5 &&
-	ipfs pin add "$HASH"
+	ipfs pin add -r=false "$HASH"
 '
 
 test_expect_success "remove direct pin" '
@@ -142,7 +150,7 @@ test_expect_success "pin something directly" '
 	test_cmp expected9 actual9  &&
 
 	echo "pinned $DIRECTPIN directly" >expected10 &&
-	ipfs pin add "$DIRECTPIN" >actual10 &&
+	ipfs pin add -r=false "$DIRECTPIN" >actual10 &&
 	test_cmp expected10 actual10
 '
 

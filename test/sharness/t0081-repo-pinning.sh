@@ -190,9 +190,9 @@ test_expect_success "none are pinned any more" '
 '
 
 test_expect_success "pin some directly and indirectly" '
-	ipfs pin add    "$HASH_DIR1"  >actual7 &&
-	ipfs pin add -r "$HASH_DIR2"  >>actual7 &&
-	ipfs pin add    "$HASH_FILE1" >>actual7 &&
+	ipfs pin add -r=false	"$HASH_DIR1"  >actual7 &&
+	ipfs pin add -r=true	"$HASH_DIR2"  >>actual7 &&
+	ipfs pin add -r=false	"$HASH_FILE1" >>actual7 &&
 	echo "pinned $HASH_DIR1 directly"	   >expected7 &&
 	echo "pinned $HASH_DIR2 recursively" >>expected7 &&
 	echo "pinned $HASH_FILE1 directly"	 >>expected7 &&
