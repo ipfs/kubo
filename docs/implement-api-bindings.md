@@ -81,7 +81,7 @@ Despite all the generalization spoken about above, the IPFS API is actually very
 > ipfs --api /ip4/127.0.0.1/tcp/5002 swarm addrs local --enc=json
 POST /api/v0/version?enc=json&stream-channels=true HTTP/1.1
 Host: 127.0.0.1:5002
-User-Agent: /go-ipfs/0.3.8-dev/
+User-Agent: /go-ipfs/0.3.8/
 Content-Length: 0
 Content-Type: application/octet-stream
 Accept-Encoding: gzip
@@ -96,7 +96,7 @@ The only hard part is getting the file streaming right. It is (now) fairly easy 
 > ipfs --api /ip4/127.0.0.1/tcp/5002 add -r ~/demo/basic/test
 POST /api/v0/add?encoding=json&progress=true&r=true&stream-channels=true HTTP/1.1
 Host: 127.0.0.1:5002
-User-Agent: /go-ipfs/0.3.8-dev/
+User-Agent: /go-ipfs/0.3.8/
 Transfer-Encoding: chunked
 Content-Disposition: form-data: name="files"
 Content-Type: multipart/form-data; boundary=2186ef15d8f2c4f100af72d6d345afe36a4d17ef11264ec5b8ec4436447f
