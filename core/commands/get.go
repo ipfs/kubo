@@ -112,13 +112,35 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 	},
 }
 
-func progressBarForReader(out io.Writer, r io.Reader) (*pb.ProgressBar, *pb.Reader) {
+type clearlineReader struct {
+	io.Reader
+	out io.Writer
+}
+
+func (r *clearlineReader) Read(p []byte) (n int, err error) {
+	n, err = r.Reader.Read(p)
+	if err == io.EOF {
+		// callback
+		fmt.Fprintf(r.out, "\033[2K\r") // clear progress bar line on EOF
+	}
+	return
+}
+
+func progressBarForReader(out io.Writer, r io.Reader, l int64) (*pb.ProgressBar, io.Reader) {
 	// setup bar reader
 	// TODO: get total length of files
-	bar := pb.New(0).SetUnits(pb.U_BYTES)
+	bar := pb.New64(l).SetUnits(pb.U_BYTES)
 	bar.Output = out
+
+	// the progress bar lib doesn't give us a way to get the width of the output,
+	// so as a hack we just use a callback to measure the output, then git rid of it
+	bar.Callback = func(line string) {
+		terminalWidth := len(line)
+		bar.Callback = nil
+		log.Infof("terminal width: %v\n", terminalWidth)
+	}
 	barR := bar.NewProxyReader(r)
-	return bar, barR
+	return bar, &clearlineReader{barR, out}
 }
 
 type getWriter struct {
@@ -159,7 +181,7 @@ func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
 	defer file.Close()
 
 	fmt.Fprintf(gw.Out, "Saving archive to %s\n", fpath)
-	bar, barR := progressBarForReader(gw.Err, r)
+	bar, barR := progressBarForReader(gw.Err, r, 0)
 	bar.Start()
 	defer bar.Finish()
 
@@ -169,7 +191,7 @@ func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
 
 func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	fmt.Fprintf(gw.Out, "Saving file(s) to %s\n", fpath)
-	bar, barR := progressBarForReader(gw.Err, r)
+	bar, barR := progressBarForReader(gw.Err, r, 0)
 	bar.Start()
 	defer bar.Finish()
 
