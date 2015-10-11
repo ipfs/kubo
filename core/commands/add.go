@@ -68,7 +68,7 @@ remains to be implemented.
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk"),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
-		cmds.BoolOption(hiddenOptionName, "Include files that are hidden"),
+		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden"),
 		cmds.StringOption(chunkerOptionName, "s", "chunking algorithm to use"),
 	},
 	PreRun: func(req cmds.Request) error {
