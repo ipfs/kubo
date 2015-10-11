@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -69,7 +70,8 @@ type ServerConfig struct {
 	Headers map[string][]string
 
 	// CORSOpts is a set of options for CORS headers.
-	CORSOpts *cors.Options
+	CORSOpts    *cors.Options
+	CORSRWMutex sync.RWMutex
 }
 
 func skipAPIHeader(h string) bool {
@@ -334,6 +336,8 @@ func allowOrigin(r *http.Request, cfg *ServerConfig) bool {
 		return true
 	}
 
+	cfg.CORSRWMutex.RLock()
+	defer cfg.CORSRWMutex.RUnlock()
 	for _, o := range cfg.CORSOpts.AllowedOrigins {
 		if o == "*" { // ok! you asked for it!
 			return true
