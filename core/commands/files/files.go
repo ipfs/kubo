@@ -24,7 +24,7 @@ var log = u.Logger("cmds/files")
 
 var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate unixfs files",
+		Tagline: "Manipulate mfs files",
 		ShortDescription: `
 Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 `,
@@ -124,8 +124,8 @@ var FilesCpCmd = &cmds.Command{
 		Tagline: "copy files into mfs",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("source", true, false, "source object to copy"),
-		cmds.StringArg("dest", true, false, "destination to copy object to"),
+		cmds.StringArg("source", true, false, "source object to copy (e.g. ipfs hash '/ipfs/Qm...' or mfs path '/somefolder'"),
+		cmds.StringArg("dest", true, false, "destination to copy object to (inside mfs)"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
