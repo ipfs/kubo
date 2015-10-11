@@ -33,8 +33,24 @@
 			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
 		},
 		{
+			"ImportPath": "github.com/anacrolix/jitter",
+			"Rev": "2ea5c18645100745b24e9f5cfc9b3f6f7eac51ef"
+		},
+		{
+			"ImportPath": "github.com/anacrolix/missinggo",
+			"Rev": "4e1ca5963308863b56c31863f60c394a7365ec29"
+		},
+		{
+			"ImportPath": "github.com/anacrolix/utp",
+			"Rev": "0bb24de92c268452fb9106ca4fb9302442ca0dee"
+		},
+		{
 			"ImportPath": "github.com/beorn7/perks/quantile",
 			"Rev": "b965b613227fddccbfffe13eae360ed3fa822f8d"
+		},
+		{
+			"ImportPath": "github.com/bradfitz/iter",
+			"Rev": "454541ec3da2a73fc34fd049b19ee5777bf19345"
 		},
 		{
 			"ImportPath": "github.com/bren2010/proquint",
@@ -105,10 +121,6 @@
 			"Rev": "aece6fb931241ad332956db4f62798dfbea944b3"
 		},
 		{
-			"ImportPath": "github.com/h2so5/utp",
-			"Rev": "6ca83358f5c331028feb9b97c445e9c7354967b0"
-		},
-		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
 		},
@@ -171,7 +183,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr-net",
-			"Rev": "6b29a00b65526d23f534813eb5bfa64dfa281e4a"
+			"Rev": "4a8bd8f8baf45afcf2bb385bbc17e5208d5d4c71"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",

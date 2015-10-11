@@ -6,8 +6,20 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "github.com/h2so5/utp",
-			"Rev": "5288a05e1781334589c4b8806bcfb1e69f5b5d63"
+			"ImportPath": "github.com/anacrolix/jitter",
+			"Rev": "2ea5c18645100745b24e9f5cfc9b3f6f7eac51ef"
+		},
+		{
+			"ImportPath": "github.com/anacrolix/missinggo",
+			"Rev": "4e1ca5963308863b56c31863f60c394a7365ec29"
+		},
+		{
+			"ImportPath": "github.com/anacrolix/utp",
+			"Rev": "0bb24de92c268452fb9106ca4fb9302442ca0dee"
+		},
+		{
+			"ImportPath": "github.com/bradfitz/iter",
+			"Rev": "454541ec3da2a73fc34fd049b19ee5777bf19345"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-base58",

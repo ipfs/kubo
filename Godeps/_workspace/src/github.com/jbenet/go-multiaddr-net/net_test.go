@@ -246,12 +246,10 @@ func TestListenAndDial(t *testing.T) {
 }
 
 func TestListenAndDialUTP(t *testing.T) {
-	t.Skip("utp is broken")
-
 	maddr := newMultiaddr(t, "/ip4/127.0.0.1/udp/4323/utp")
 	listener, err := Listen(maddr)
 	if err != nil {
-		t.Fatal("failed to listen")
+		t.Fatal("failed to listen: ", err)
 	}
 
 	var wg sync.WaitGroup
@@ -266,6 +264,8 @@ func TestListenAndDialUTP(t *testing.T) {
 		if !cB.LocalMultiaddr().Equal(maddr) {
 			t.Fatal("local multiaddr not equal:", maddr, cB.LocalMultiaddr())
 		}
+
+		defer cB.Close()
 
 		// echo out
 		buf := make([]byte, 1024)

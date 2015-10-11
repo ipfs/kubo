@@ -4,8 +4,8 @@ import (
 	"net"
 	"testing"
 
-	utp "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/h2so5/utp"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	mautp "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net/utp"
 )
 
 type GenFunc func() (ma.Multiaddr, error)
@@ -90,13 +90,9 @@ func TestFromUDP(t *testing.T) {
 }
 
 func TestFromUTP(t *testing.T) {
+	a := &net.UDPAddr{IP: net.ParseIP("10.20.30.40"), Port: 1234}
 	testConvert(t, "/ip4/10.20.30.40/udp/1234/utp", func() (ma.Multiaddr, error) {
-		return FromNetAddr(&utp.Addr{
-			Addr: &net.UDPAddr{
-				IP:   net.ParseIP("10.20.30.40"),
-				Port: 1234,
-			},
-		})
+		return FromNetAddr(mautp.MakeAddr(a))
 	})
 }
 
