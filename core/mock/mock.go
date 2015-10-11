@@ -58,6 +58,9 @@ func MockCmdsCtx() (commands.Context, error) {
 	node, err := core.NewNode(context.Background(), &core.BuildCfg{
 		Repo: r,
 	})
+	if err != nil {
+		return commands.Context{}, err
+	}
 
 	return commands.Context{
 		Online:     true,
