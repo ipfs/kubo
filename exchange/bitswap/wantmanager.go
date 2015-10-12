@@ -56,6 +56,8 @@ type msgQueue struct {
 	out     bsmsg.BitSwapMessage
 	network bsnet.BitSwapNetwork
 
+	refcnt int
+
 	work chan struct{}
 	done chan struct{}
 }
@@ -101,13 +103,13 @@ func (pm *WantManager) SendBlock(ctx context.Context, env *engine.Envelope) {
 }
 
 func (pm *WantManager) startPeerHandler(p peer.ID) *msgQueue {
-	_, ok := pm.peers[p]
+	mq, ok := pm.peers[p]
 	if ok {
-		// TODO: log an error?
+		mq.refcnt++
 		return nil
 	}
 
-	mq := pm.newMsgQueue(p)
+	mq = pm.newMsgQueue(p)
 
 	// new peer, we will want to give them our full wantlist
 	fullwantlist := bsmsg.New(true)
@@ -126,6 +128,11 @@ func (pm *WantManager) stopPeerHandler(p peer.ID) {
 	pq, ok := pm.peers[p]
 	if !ok {
 		// TODO: log error?
+		return
+	}
+
+	pq.refcnt--
+	if pq.refcnt > 0 {
 		return
 	}
 
@@ -247,6 +254,7 @@ func (wm *WantManager) newMsgQueue(p peer.ID) *msgQueue {
 	mq.work = make(chan struct{}, 1)
 	mq.network = wm.network
 	mq.p = p
+	mq.refcnt = 1
 
 	return mq
 }
