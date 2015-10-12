@@ -31,7 +31,7 @@ func originCfg(origins []string) *ServerConfig {
 	cfg := NewServerConfig()
 	cfg.SetAllowedOrigins(origins...)
 	cfg.SetAllowedMethods("GET", "PUT", "POST")
-	return
+	return cfg
 }
 
 type testCase struct {
