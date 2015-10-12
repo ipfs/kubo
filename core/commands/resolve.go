@@ -84,6 +84,23 @@ Resolve the value of another name recursively:
 			return
 		}
 
+		if len(output.Segments()) > 2 {
+			merkNode, err := n.Resolver.ResolvePath(n.Context(), output)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			k, err := merkNode.Key()
+
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			output = path.Path("/ipfs/" + k.Pretty())
+		}
+
 		res.SetOutput(&ResolvedPath{output})
 	},
 	Marshalers: cmds.MarshalerMap{
