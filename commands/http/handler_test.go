@@ -28,12 +28,10 @@ func assertStatus(t *testing.T, actual, expected int) {
 }
 
 func originCfg(origins []string) *ServerConfig {
-	return &ServerConfig{
-		CORSOpts: &cors.Options{
-			AllowedOrigins: origins,
-			AllowedMethods: []string{"GET", "PUT", "POST"},
-		},
-	}
+	cfg := NewServerConfig()
+	cfg.SetAllowedOrigins(origins...)
+	cfg.SetAllowedMethods("GET", "PUT", "POST")
+	return
 }
 
 type testCase struct {
