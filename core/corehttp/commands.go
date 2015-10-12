@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
-
 	commands "github.com/ipfs/go-ipfs/commands"
 	cmdsHttp "github.com/ipfs/go-ipfs/commands/http"
 	core "github.com/ipfs/go-ipfs/core"
@@ -41,10 +39,10 @@ func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
 	origin := os.Getenv(originEnvKey)
 	if origin != "" {
 		log.Warning(originEnvKeyDeprecate)
-		if c.CORSOpts == nil {
-			c.CORSOpts.AllowedOrigins = []string{origin}
+		if len(c.AllowedOrigins()) == 0 {
+			c.SetAllowedOrigins([]string{origin}...)
 		}
-		c.CORSOpts.AllowedOrigins = append(c.CORSOpts.AllowedOrigins, origin)
+		c.AppendAllowedOrigins(origin)
 	}
 }
 
@@ -52,14 +50,14 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 	log.Info("Using API.HTTPHeaders:", nc.API.HTTPHeaders)
 
 	if acao := nc.API.HTTPHeaders[cmdsHttp.ACAOrigin]; acao != nil {
-		c.CORSOpts.AllowedOrigins = acao
+		c.SetAllowedOrigins(acao...)
 	}
 	if acam := nc.API.HTTPHeaders[cmdsHttp.ACAMethods]; acam != nil {
-		c.CORSOpts.AllowedMethods = acam
+		c.SetAllowedMethods(acam...)
 	}
 	if acac := nc.API.HTTPHeaders[cmdsHttp.ACACredentials]; acac != nil {
 		for _, v := range acac {
-			c.CORSOpts.AllowCredentials = (strings.ToLower(v) == "true")
+			c.SetAllowCredentials(strings.ToLower(v) == "true")
 		}
 	}
 
@@ -68,13 +66,13 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 
 func addCORSDefaults(c *cmdsHttp.ServerConfig) {
 	// by default use localhost origins
-	if len(c.CORSOpts.AllowedOrigins) == 0 {
-		c.CORSOpts.AllowedOrigins = defaultLocalhostOrigins
+	if len(c.AllowedOrigins()) == 0 {
+		c.SetAllowedOrigins(defaultLocalhostOrigins...)
 	}
 
 	// by default, use GET, PUT, POST
-	if len(c.CORSOpts.AllowedMethods) == 0 {
-		c.CORSOpts.AllowedMethods = []string{"GET", "POST", "PUT"}
+	if len(c.AllowedMethods()) == 0 {
+		c.SetAllowedMethods("GET", "POST", "PUT")
 	}
 }
 
@@ -90,23 +88,22 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	}
 
 	// we're listening on tcp/udp with ports. ("udp!?" you say? yeah... it happens...)
-	for i, o := range c.CORSOpts.AllowedOrigins {
+	origins := c.AllowedOrigins()
+	for i, o := range origins {
 		// TODO: allow replacing <host>. tricky, ip4 and ip6 and hostnames...
 		if port != "" {
 			o = strings.Replace(o, "<port>", port, -1)
 		}
-		c.CORSOpts.AllowedOrigins[i] = o
+		origins[i] = o
 	}
+	c.SetAllowedOrigins(origins...)
 }
 
 func commandsOption(cctx commands.Context, command *commands.Command) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 
-		cfg := &cmdsHttp.ServerConfig{
-			CORSOpts: &cors.Options{
-				AllowedMethods: []string{"GET", "POST", "PUT"},
-			},
-		}
+		cfg := cmdsHttp.NewServerConfig()
+		cfg.SetAllowedMethods("GET", "POST", "PUT")
 		rcfg, err := n.Repo.Config()
 		if err != nil {
 			return nil, err
