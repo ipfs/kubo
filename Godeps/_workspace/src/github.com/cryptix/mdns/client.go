@@ -103,7 +103,7 @@ type client struct {
 
 	closed    bool
 	closedCh  chan struct{} // TODO(reddaly): This doesn't appear to be used.
-	closeLock sync.Mutex
+	closeLock sync.RWMutex
 }
 
 // NewClient creates a new mdns Client that can be used to query
@@ -324,7 +324,14 @@ func (c *client) recv(l *net.UDPConn, msgCh chan *dns.Msg) {
 		return
 	}
 	buf := make([]byte, 65536)
-	for !c.closed {
+	var closed bool
+	for {
+		c.closeLock.RLock()
+		closed = c.closed
+		c.closeLock.RUnlock()
+		if closed {
+			break
+		}
 		n, err := l.Read(buf)
 		if err != nil {
 			log.Printf("[ERR] mdns: Failed to read packet: %v", err)
