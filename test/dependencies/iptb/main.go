@@ -73,13 +73,19 @@ type initCfg struct {
 	Bootstrap string
 	PortStart int
 	Mdns      bool
+	Utp       bool
 }
 
 func (c *initCfg) swarmAddrForPeer(i int) string {
-	if c.PortStart == 0 {
-		return "/ip4/0.0.0.0/tcp/0"
+	str := "/ip4/0.0.0.0/tcp/%d"
+	if c.Utp {
+		str = "/ip4/0.0.0.0/udp/%d/utp"
 	}
-	return fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", c.PortStart+i)
+
+	if c.PortStart == 0 {
+		return fmt.Sprintf(str, 0)
+	}
+	return fmt.Sprintf(str, c.PortStart+i)
 }
 
 func (c *initCfg) apiAddrForPeer(i int) string {
@@ -250,6 +256,20 @@ func IpfsKillAll() error {
 	return nil
 }
 
+func envForDaemon(n int) []string {
+	envs := os.Environ()
+	npath := "IPFS_PATH=" + IpfsDirN(n)
+	for i, e := range envs {
+		p := strings.Split(e, "=")
+		if p[0] == "IPFS_PATH" {
+			envs[i] = npath
+			return envs
+		}
+	}
+
+	return append(envs, npath)
+}
+
 func IpfsStart(waitall bool) error {
 	var addrs []string
 	n := GetNumNodes()
@@ -257,7 +277,7 @@ func IpfsStart(waitall bool) error {
 		dir := IpfsDirN(i)
 		cmd := exec.Command("ipfs", "daemon")
 		cmd.Dir = dir
-		cmd.Env = append(os.Environ(), "IPFS_PATH="+dir)
+		cmd.Env = envForDaemon(i)
 
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 
@@ -441,6 +461,11 @@ func IpfsShell(n int) error {
 }
 
 func ConnectNodes(from, to int) error {
+	if from == to {
+		// skip connecting to self..
+		return nil
+	}
+	fmt.Printf("connecting %d -> %d\n", from, to)
 	cmd := exec.Command("ipfs", "id", "-f", "<addrs>")
 	cmd.Env = []string{"IPFS_PATH=" + IpfsDirN(to)}
 	out, err := cmd.Output()
@@ -449,7 +474,6 @@ func ConnectNodes(from, to int) error {
 		return err
 	}
 	addr := strings.Split(string(out), "\n")[0]
-	fmt.Println("ADDR: ", addr)
 
 	connectcmd := exec.Command("ipfs", "swarm", "connect", addr)
 	connectcmd.Env = []string{"IPFS_PATH=" + IpfsDirN(from)}
@@ -459,6 +483,55 @@ func ConnectNodes(from, to int) error {
 		return err
 	}
 	return nil
+}
+
+func parseRange(s string) ([]int, error) {
+	if strings.HasPrefix(s, "[") && strings.HasSuffix(s, "]") {
+		ranges := strings.Split(s[1:len(s)-1], ",")
+		var out []int
+		for _, r := range ranges {
+			rng, err := expandDashRange(r)
+			if err != nil {
+				return nil, err
+			}
+
+			out = append(out, rng...)
+		}
+		return out, nil
+	} else {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+
+		return []int{i}, nil
+	}
+}
+
+func expandDashRange(s string) ([]int, error) {
+	parts := strings.Split(s, "-")
+	if len(parts) == 0 {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+		return []int{i}, nil
+	}
+	low, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return nil, err
+	}
+
+	hi, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	var out []int
+	for i := low; i <= hi; i++ {
+		out = append(out, i)
+	}
+	return out, nil
 }
 
 func GetAttr(attr string, node int) (string, error) {
@@ -518,9 +591,10 @@ func main() {
 	cfg := new(initCfg)
 	kingpin.Flag("n", "number of ipfs nodes to initialize").Short('n').IntVar(&cfg.Count)
 	kingpin.Flag("port", "port to start allocations from").Default("4002").Short('p').IntVar(&cfg.PortStart)
-	kingpin.Flag("f", "force initialization (overwrite existing configs)").BoolVar(&cfg.Force)
+	kingpin.Flag("force", "force initialization (overwrite existing configs)").Short('f').BoolVar(&cfg.Force)
 	kingpin.Flag("mdns", "turn on mdns for nodes").BoolVar(&cfg.Mdns)
 	kingpin.Flag("bootstrap", "select bootstrapping style for cluster").Default("star").StringVar(&cfg.Bootstrap)
+	kingpin.Flag("utp", "use utp for addresses").BoolVar(&cfg.Utp)
 
 	wait := kingpin.Flag("wait", "wait for nodes to come fully online before exiting").Bool()
 
@@ -576,22 +650,26 @@ func main() {
 			os.Exit(1)
 		}
 
-		from, err := strconv.Atoi(args[1])
+		from, err := parseRange(args[1])
 		if err != nil {
 			fmt.Printf("failed to parse: %s\n", err)
 			return
 		}
 
-		to, err := strconv.Atoi(args[2])
+		to, err := parseRange(args[2])
 		if err != nil {
 			fmt.Printf("failed to parse: %s\n", err)
 			return
 		}
 
-		err = ConnectNodes(from, to)
-		if err != nil {
-			fmt.Printf("failed to connect: %s\n", err)
-			return
+		for _, f := range from {
+			for _, t := range to {
+				err = ConnectNodes(f, t)
+				if err != nil {
+					fmt.Printf("failed to connect: %s\n", err)
+					return
+				}
+			}
 		}
 
 	case "get":

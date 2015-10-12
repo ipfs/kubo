@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	// utp "github.com/jbenet/go-multiaddr-net/Godeps/_workspace/src/github.com/h2so5/utp"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	mautp "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net/utp"
 )
 
 // Conn is the equivalent of a net.Conn object. It is the
@@ -109,24 +109,21 @@ func (d *Dialer) Dial(remote ma.Multiaddr) (Conn, error) {
 	// ok, Dial!
 	var nconn net.Conn
 	switch rnet {
-	case "tcp", "tcp4", "tcp6":
+	case "tcp", "tcp4", "tcp6", "udp", "udp4", "udp6":
 		nconn, err = d.Dialer.Dial(rnet, rnaddr)
 		if err != nil {
 			return nil, err
 		}
-	case "udp", "udp4", "udp6":
-		return nil, fmt.Errorf("utp is currently broken")
-
-		// // construct utp dialer, with options on our net.Dialer
-		// utpd := utp.Dialer{
-		// 	Timeout:   d.Dialer.Timeout,
-		// 	LocalAddr: d.Dialer.LocalAddr,
-		// }
-		//
-		// nconn, err = utpd.Dial(rnet, rnaddr)
-		// if err != nil {
-		// 	return nil, err
-		// }
+	case "utp", "utp4", "utp6":
+		utpd := mautp.Dialer{
+			Timeout:   d.Timeout,
+			LocalAddr: d.Dialer.LocalAddr,
+		}
+		// construct utp dialer, with options on our net.Dialer
+		nconn, err = utpd.Dial(rnet, rnaddr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// get local address (pre-specified or assigned within net.Conn)
@@ -229,9 +226,8 @@ func Listen(laddr ma.Multiaddr) (Listener, error) {
 
 	var nl net.Listener
 	switch lnet {
-	case "utp":
-		// nl, err = utp.Listen(lnet, lnaddr)
-		return nil, fmt.Errorf("utp is currently broken")
+	case "utp", "utp4", "utp6":
+		nl, err = mautp.Listen(lnet, lnaddr)
 	default:
 		nl, err = net.Listen(lnet, lnaddr)
 	}

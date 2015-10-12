@@ -44,6 +44,9 @@ type Conn struct {
 
 	streams    map[*Stream]struct{}
 	streamLock sync.RWMutex
+
+	closed    bool
+	closeLock sync.Mutex
 }
 
 func newConn(nconn net.Conn, tconn smux.Conn, s *Swarm) *Conn {
@@ -114,6 +117,14 @@ func (c *Conn) Streams() []*Stream {
 
 // Close closes this connection
 func (c *Conn) Close() error {
+	c.closeLock.Lock()
+	defer c.closeLock.Unlock()
+
+	if c.closed {
+		return nil
+	}
+	c.closed = true
+
 	// close streams
 	streams := c.Streams()
 	for _, s := range streams {
