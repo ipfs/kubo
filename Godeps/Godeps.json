@@ -196,7 +196,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
-			"Rev": "cfdc29a19c1a209d548670f5c33c5cda2e040143"
+			"Rev": "f90119e97e8be7b2bdd5e598067b0dc44df63381"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
