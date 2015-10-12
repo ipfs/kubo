@@ -79,7 +79,8 @@ func addCORSDefaults(c *cmdsHttp.ServerConfig) {
 }
 
 func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
-
+	c.CORSRWMutex.Lock()
+	defer c.CORSRWMutex.Unlock()
 	// we have to grab the port from an addr, which may be an ip6 addr.
 	// TODO: this should take multiaddrs and derive port from there.
 	port := ""
