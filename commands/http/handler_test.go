@@ -6,8 +6,6 @@ import (
 	"net/url"
 	"testing"
 
-	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	ipfscmd "github.com/ipfs/go-ipfs/core/commands"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
