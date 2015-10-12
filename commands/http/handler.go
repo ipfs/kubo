@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -67,8 +68,11 @@ type ServerConfig struct {
 	// Headers is an optional map of headers that is written out.
 	Headers map[string][]string
 
-	// CORSOpts is a set of options for CORS headers.
-	CORSOpts *cors.Options
+	// cORSOpts is a set of options for CORS headers.
+	cORSOpts *cors.Options
+
+	// cORSOptsRWMutex is a RWMutex for read/write CORSOpts
+	cORSOptsRWMutex sync.RWMutex
 }
 
 func skipAPIHeader(h string) bool {
@@ -92,7 +96,7 @@ func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) *Handle
 	// Wrap the internal handler with CORS handling-middleware.
 	// Create a handler for the API.
 	internal := internalHandler{ctx, root, cfg}
-	c := cors.New(*cfg.CORSOpts)
+	c := cors.New(*cfg.cORSOpts)
 	return &Handler{internal, c.Handler(internal)}
 }
 
@@ -255,6 +259,51 @@ func sanitizedErrStr(err error) string {
 	return s
 }
 
+func NewServerConfig() *ServerConfig {
+	cfg := new(ServerConfig)
+	cfg.cORSOpts = new(cors.Options)
+	return cfg
+}
+
+func (cfg ServerConfig) AllowedOrigins() []string {
+	cfg.cORSOptsRWMutex.RLock()
+	defer cfg.cORSOptsRWMutex.RUnlock()
+	return cfg.cORSOpts.AllowedOrigins
+}
+
+func (cfg *ServerConfig) SetAllowedOrigins(origins ...string) {
+	cfg.cORSOptsRWMutex.Lock()
+	defer cfg.cORSOptsRWMutex.Unlock()
+	cfg.cORSOpts.AllowedOrigins = origins
+}
+
+func (cfg *ServerConfig) AppendAllowedOrigins(origins ...string) {
+	cfg.cORSOptsRWMutex.Lock()
+	defer cfg.cORSOptsRWMutex.Unlock()
+	cfg.cORSOpts.AllowedOrigins = append(cfg.cORSOpts.AllowedOrigins, origins...)
+}
+
+func (cfg ServerConfig) AllowedMethods() []string {
+	cfg.cORSOptsRWMutex.RLock()
+	defer cfg.cORSOptsRWMutex.RUnlock()
+	return []string(cfg.cORSOpts.AllowedMethods)
+}
+
+func (cfg *ServerConfig) SetAllowedMethods(methods ...string) {
+	cfg.cORSOptsRWMutex.Lock()
+	defer cfg.cORSOptsRWMutex.Unlock()
+	if cfg.cORSOpts == nil {
+		cfg.cORSOpts = new(cors.Options)
+	}
+	cfg.cORSOpts.AllowedMethods = methods
+}
+
+func (cfg *ServerConfig) SetAllowCredentials(flag bool) {
+	cfg.cORSOptsRWMutex.Lock()
+	defer cfg.cORSOptsRWMutex.Unlock()
+	cfg.cORSOpts.AllowCredentials = flag
+}
+
 // allowOrigin just stops the request if the origin is not allowed.
 // the CORS middleware apparently does not do this for us...
 func allowOrigin(r *http.Request, cfg *ServerConfig) bool {
@@ -266,8 +315,8 @@ func allowOrigin(r *http.Request, cfg *ServerConfig) bool {
 	if origin == "" {
 		return true
 	}
-
-	for _, o := range cfg.CORSOpts.AllowedOrigins {
+	origins := cfg.AllowedOrigins()
+	for _, o := range origins {
 		if o == "*" { // ok! you asked for it!
 			return true
 		}
@@ -308,7 +357,8 @@ func allowReferer(r *http.Request, cfg *ServerConfig) bool {
 	// check CORS ACAOs and pretend Referer works like an origin.
 	// this is valid for many (most?) sane uses of the API in
 	// other applications, and will have the desired effect.
-	for _, o := range cfg.CORSOpts.AllowedOrigins {
+	origins := cfg.AllowedOrigins()
+	for _, o := range origins {
 		if o == "*" { // ok! you asked for it!
 			return true
 		}
