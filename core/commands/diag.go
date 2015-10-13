@@ -46,6 +46,7 @@ var DiagCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"net": diagNetCmd,
+		"sys": sysDiagCmd,
 	},
 }
 

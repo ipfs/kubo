@@ -287,6 +287,21 @@
 			"Rev": "7c7f2020c4c9491594b85767967f4619c2fa75f9"
 		},
 		{
+			"ImportPath": "github.com/shirou/gopsutil/common",
+			"Comment": "1.0.0-167-g6a274c3",
+			"Rev": "6a274c3628382ab316340478300f5282b89f7778"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/disk",
+			"Comment": "1.0.0-167-g6a274c3",
+			"Rev": "6a274c3628382ab316340478300f5282b89f7778"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/mem",
+			"Comment": "1.0.0-167-g6a274c3",
+			"Rev": "6a274c3628382ab316340478300f5282b89f7778"
+		},
+		{
 			"ImportPath": "github.com/steakknife/hamming",
 			"Comment": "0.0.10",
 			"Rev": "8bad99011016569c05320e51be39c648679c5b73"
