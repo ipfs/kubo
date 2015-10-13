@@ -103,7 +103,6 @@ var cmdDetailsMap = map[*cmds.Command]cmdDetails{
 	daemonCmd:                  {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
 	commandsClientCmd:          {doesNotUseRepo: true},
 	commands.CommandsDaemonCmd: {doesNotUseRepo: true},
-	commands.DiagCmd:           {cannotRunOnClient: true},
 	commands.VersionCmd:        {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
 	commands.UpdateCmd:         {preemptsAutoUpdate: true, cannotRunOnDaemon: true},
 	commands.UpdateCheckCmd:    {preemptsAutoUpdate: true},
