@@ -4,9 +4,8 @@ import (
 	"io"
 	"strings"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	namesys "github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -79,33 +78,38 @@ Resolve the value of an IPFS DAG path:
 
 		name := req.Arguments()[0]
 		recursive, _, _ := req.Option("recursive").Bool()
-		depth := 1
-		if recursive {
-			depth = namesys.DefaultDepthLimit
+
+		// the case when ipns is resolved step by step
+		if strings.HasPrefix(name, "/ipns/") && !recursive {
+			p, err := n.Namesys.ResolveN(req.Context(), name, 1)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(&ResolvedPath{p})
+			return
 		}
 
-		// for /ipfs/ paths, just parse the path
-		// for /ipns/ paths, resolve into a /ipfs/ path
-		var p path.Path
-		if strings.HasPrefix(name, "/ipfs/") || !strings.HasPrefix(name, "/") {
-			p, err = path.ParsePath(name)
-		} else {
-			p, err = n.Namesys.ResolveN(req.Context(), name, depth)
-		}
+		// else, ipfs path or ipns with recursive flag
+		p, err := path.ParsePath(name)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		// now fully resolve the /ipfs/ path
-		// (walk DAG links if there is a path of link names)
-		output, err := resolveIpfsPath(req.Context(), n.Resolver, p)
+		node, err := core.Resolve(req.Context(), n, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		res.SetOutput(&ResolvedPath{output})
+		key, err := node.Key()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&ResolvedPath{path.FromKey(key)})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -117,18 +121,4 @@ Resolve the value of an IPFS DAG path:
 		},
 	},
 	Type: ResolvedPath{},
-}
-
-func resolveIpfsPath(ctx context.Context, r *path.Resolver, p path.Path) (path.Path, error) {
-	node, err := r.ResolvePath(ctx, p)
-	if err != nil {
-		return "", err
-	}
-
-	key, err := node.Key()
-	if err != nil {
-		return "", err
-	}
-
-	return path.FromKey(key), nil
 }
