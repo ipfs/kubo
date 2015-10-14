@@ -11,6 +11,8 @@ import (
 
 	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/commands/files"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
@@ -255,13 +257,27 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	nd, err := i.newDagFromReader(r.Body)
+	fileAdder := coreunix.NewAdder(i.node.Context(), i.node, nil)
+	f := &files.MultipartFile{Mediatype: "multipart/form-data"}
+	var err error
+	f.Reader, err = r.MultipartReader()
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
-	k, err := i.node.DAG.Add(nd)
+	nd, err := fileAdder.AddNode(f)
+	if err != nil {
+		internalWebError(w, err)
+		return
+	}
+
+	if err := fileAdder.PinRoot(); err != nil {
+		internalWebError(w, err)
+		return
+	}
+
+	k, err := nd.Key()
 	if err != nil {
 		internalWebError(w, err)
 		return

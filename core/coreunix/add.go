@@ -331,6 +331,13 @@ func (params *Adder) addDir(dir files.File) (*merkledag.Node, error) {
 	return tree, nil
 }
 
+func (params *Adder) AddNode(file files.File) (*merkledag.Node, error) {
+	if file.IsDirectory() {
+		return params.addDir(file)
+	}
+	return params.AddFile(file)
+}
+
 // outputDagnode sends dagnode info over the output channel
 func outputDagnode(out chan interface{}, name string, dn *merkledag.Node) error {
 	if out == nil {
