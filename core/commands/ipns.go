@@ -7,6 +7,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	namesys "github.com/ipfs/go-ipfs/namesys"
+	offline "github.com/ipfs/go-ipfs/routing/offline"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -61,6 +62,11 @@ Resolve the value of another name:
 			}
 		}
 
+		router := n.Routing
+		if local, _, _ := req.Option("local").Bool(); local {
+			router = offline.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
+		}
+
 		var name string
 
 		if len(req.Arguments()) == 0 {
@@ -80,7 +86,7 @@ Resolve the value of another name:
 			depth = namesys.DefaultDepthLimit
 		}
 
-		resolver := namesys.NewRoutingResolver(n.Routing)
+		resolver := namesys.NewRoutingResolver(router)
 		output, err := resolver.ResolveN(req.Context(), name, depth)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
