@@ -22,11 +22,14 @@ test_ls_cmd() {
 	test_expect_success "Text encoded channel-streaming command output looks good" '
 		printf "HTTP/1.1 200 OK\r\n" >expected_output &&
 		printf "Content-Type: text/plain\r\n" >>expected_output &&
+		printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
 		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "X-Chunked-Output: 1\r\n" >>expected_output &&
+		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "\r\n" >>expected_output &&
 		echo QmRmPLc1FsPAn8F8F9DQDEYADNX5ER2sgqiokEvqnYknVW >>expected_output &&
-		test_cmp expected_output actual_output
+		cat actual_output | grep -vE Date > cleaned_output &&
+		test_cmp expected_output cleaned_output
 	'
 
 	test_expect_success "JSON encoded channel-streaming command succeeds" '
@@ -39,8 +42,10 @@ test_ls_cmd() {
 	test_expect_success "JSON encoded channel-streaming command output looks good" '
 		printf "HTTP/1.1 200 OK\r\n" >expected_output &&
 		printf "Content-Type: application/json\r\n" >>expected_output &&
+		printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
 		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "X-Chunked-Output: 1\r\n" >>expected_output &&
+		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "\r\n" >>expected_output &&
 		cat <<-\EOF >>expected_output &&
 			{
@@ -48,8 +53,10 @@ test_ls_cmd() {
 			  "Err": ""
 			}
 		EOF
+		printf "\n" >> expected_output &&
 		perl -pi -e '"'"'chomp if eof'"'"' expected_output &&
-		test_cmp expected_output actual_output
+		cat actual_output | grep -vE Date > cleaned_output &&
+		test_cmp expected_output cleaned_output
 	'
 }
 

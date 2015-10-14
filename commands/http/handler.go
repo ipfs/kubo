@@ -1,7 +1,6 @@
 package http
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -205,6 +204,10 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	}
 
 	h := w.Header()
+
+	// Set up our potential trailer
+	h.Set("Trailer", StreamErrHeader)
+
 	if res.Length() > 0 {
 		h.Set(contentLengthHeader, strconv.FormatUint(res.Length(), 10))
 	}
@@ -237,82 +240,12 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 		return
 	}
 
-	if err := writeResponse(status, w, out); err != nil {
-		if strings.Contains(err.Error(), "broken pipe") {
-			log.Info("client disconnect while writing stream ", err)
-			return
-		}
-
-		log.Error("error while writing stream ", err)
-	}
-}
-
-// Copies from an io.Reader to a http.ResponseWriter.
-// Flushes chunks over HTTP stream as they are read (if supported by transport).
-func writeResponse(status int, w http.ResponseWriter, out io.Reader) error {
-	// hijack the connection so we can write our own chunked output and trailers
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		log.Error("Failed to create hijacker! cannot continue!")
-		return errors.New("Could not create hijacker")
-	}
-	conn, writer, err := hijacker.Hijack()
+	w.WriteHeader(status)
+	_, err = io.Copy(w, out)
 	if err != nil {
-		return err
+		log.Error("err: ", err)
+		w.Header().Set(StreamErrHeader, sanitizedErrStr(err))
 	}
-	defer conn.Close()
-
-	// write status
-	writer.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\r\n", status, http.StatusText(status)))
-
-	// Write out headers
-	w.Header().Write(writer)
-
-	// end of headers
-	writer.WriteString("\r\n")
-
-	// write body
-	streamErr := writeChunks(out, writer)
-
-	// close body
-	writer.WriteString("0\r\n")
-
-	// if there was a stream error, write out an error trailer. hopefully
-	// the client will pick it up!
-	if streamErr != nil {
-		writer.WriteString(StreamErrHeader + ": " + sanitizedErrStr(streamErr) + "\r\n")
-	}
-	writer.WriteString("\r\n") // close response
-	writer.Flush()
-	return streamErr
-}
-
-func writeChunks(r io.Reader, w *bufio.ReadWriter) error {
-	buf := make([]byte, 32*1024)
-	for {
-		n, err := r.Read(buf)
-
-		if n > 0 {
-			length := fmt.Sprintf("%x\r\n", n)
-			w.WriteString(length)
-
-			_, err := w.Write(buf[0:n])
-			if err != nil {
-				return err
-			}
-
-			w.WriteString("\r\n")
-			w.Flush()
-		}
-
-		if err != nil && err != io.EOF {
-			return err
-		}
-		if err == io.EOF {
-			break
-		}
-	}
-	return nil
 }
 
 func sanitizedErrStr(err error) string {

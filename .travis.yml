@@ -7,8 +7,7 @@ os:
 language: go
 
 go:
-#  - 1.3
-  - 1.4
+    - 1.5.1
 
 env:
   - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_go_expensive
