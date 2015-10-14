@@ -94,10 +94,10 @@ on disk.
 
 var rmPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Recursively unpin an object from local storage",
+		Tagline: "Removes the pinned object from local storage. (By default, recursively. Use -r=false for direct pins)",
 		ShortDescription: `
-Recursively removes the pin from the given object allowing it to be garbage
-collected if needed.
+Removes the pin from the given object allowing it to be garbage
+collected if needed. (By default, recursively. Use -r=false for direct pins)
 `,
 	},
 
