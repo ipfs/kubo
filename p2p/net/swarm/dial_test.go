@@ -2,6 +2,7 @@ package swarm
 
 import (
 	"net"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -436,5 +437,40 @@ func TestDialBackoffClears(t *testing.T) {
 		t.Error("s2 should no longer be on backoff")
 	} else {
 		t.Log("correctly cleared backoff")
+	}
+}
+
+func mkAddr(t *testing.T, s string) ma.Multiaddr {
+	a, err := ma.NewMultiaddr(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return a
+}
+
+func TestAddressSorting(t *testing.T) {
+	u1 := mkAddr(t, "/ip4/152.12.23.53/udp/1234/utp")
+	u2l := mkAddr(t, "/ip4/127.0.0.1/udp/1234/utp")
+	local := mkAddr(t, "/ip4/127.0.0.1/tcp/1234")
+	norm := mkAddr(t, "/ip4/6.5.4.3/tcp/1234")
+
+	l := AddrList{local, u1, u2l, norm}
+	sort.Sort(l)
+
+	if !l[0].Equal(u2l) {
+		t.Fatal("expected utp local addr to be sorted first: ", l[0])
+	}
+
+	if !l[1].Equal(u1) {
+		t.Fatal("expected utp addr to be sorted second")
+	}
+
+	if !l[2].Equal(local) {
+		t.Fatal("expected tcp localhost addr thid")
+	}
+
+	if !l[3].Equal(norm) {
+		t.Fatal("expected normal addr last")
 	}
 }
