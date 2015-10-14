@@ -125,6 +125,10 @@ func TestOptionParsing(t *testing.T) {
 	test("--bool=false foo", kvs{"bool": false}, words{"foo"})
 	test("-b=FaLsE foo", kvs{"b": false}, words{"foo"})
 	test("-b=TrUe foo", kvs{"b": true}, words{"foo"})
+	test("-b true", kvs{"b": true}, words{"true"})
+	test("-b false", kvs{"b": true}, words{"false"})
+	test("-b --string foo bar", kvs{"b": true, "string": "foo"}, words{"bar"})
+	test("-b=false --string bar", kvs{"b": false, "string": "bar"}, words{})
 }
 
 func TestArgumentParsing(t *testing.T) {
