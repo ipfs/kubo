@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	config "github.com/ipfs/go-ipfs/repo/config"
 
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	psud "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/shirou/gopsutil/disk"
@@ -51,6 +52,8 @@ Prints out information about your computer to aid in easier debugging.
 			return
 		}
 
+		info["ipfs_version"] = config.CurrentVersionNumber
+		info["ipfs_git_sha"] = config.CurrentCommit
 		res.SetOutput(info)
 	},
 }
