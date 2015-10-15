@@ -31,4 +31,22 @@ test_expect_success "ipfs help output looks good" '
 	test_fsh cat help.txt
 '
 
+test_expect_success "'ipfs commands' succeeds" '
+	ipfs commands >commands.txt
+'
+
+test_expect_success "'ipfs commands' output looks good" '
+	grep "ipfs add" commands.txt &&
+	grep "ipfs daemon" commands.txt &&
+	grep "ipfs update" commands.txt
+'
+
+test_expect_success "All commands accept --help" '
+	while read -r cmd
+	do
+		echo "running: $cmd --help"
+		$cmd --help </dev/null >/dev/null || return
+	done <commands.txt
+'
+
 test_done
