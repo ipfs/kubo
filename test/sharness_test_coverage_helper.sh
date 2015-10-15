@@ -44,22 +44,44 @@ TMPDIR=$(mktemp -d "/tmp/coverage_helper.$DATE.XXXXXX") ||
 die "could not 'mktemp -d /tmp/coverage_helper.$DATE.XXXXXX'"
 
 log "Grep the sharness tests"
-CMDRAW="$TMPDIR/ipfs_cmd_raw.txt"
-git grep -E '\Wipfs\W' -- sharness/t*-*.sh >"$CMDRAW" ||
+CMD_RAW="$TMPDIR/ipfs_cmd_raw.txt"
+git grep -n -E '\Wipfs\W' -- sharness/t*-*.sh >"$CMD_RAW" ||
 die "Could not grep ipfs in the sharness tests"
 
 log "Remove test_expect_{success,failure} lines"
-CMDPROC1="$TMPDIR/ipfs_cmd_proc1.txt"
-egrep -v 'test_expect_.*ipfs' "$CMDRAW" >"$CMDPROC1" ||
+CMD_EXPECT="$TMPDIR/ipfs_cmd_expect.txt"
+egrep -v 'test_expect_.*ipfs' "$CMD_RAW" >"$CMD_EXPECT" ||
 die "Could not remove test_expect_{success,failure} lines"
 
 log "Remove comments"
-CMDPROC2="$TMPDIR/ipfs_cmd_proc2.txt"
-egrep -v '^\s*#' "$CMDPROC1" >"$CMDPROC2" ||
+CMD_COMMENT="$TMPDIR/ipfs_cmd_comment.txt"
+egrep -v '^\s*#' "$CMD_EXPECT" >"$CMD_COMMENT" ||
 die "Could not remove comments"
+
+log "Remove test_description lines"
+CMD_DESC="$TMPDIR/ipfs_cmd_description.txt"
+egrep -v 'test_description=' "$CMD_COMMENT" >"$CMD_DESC" ||
+die "Could not remove test_description lines"
+
+log "Remove echos lines"
+CMD_ECHO="$TMPDIR/ipfs_cmd_echo.txt"
+egrep -v '\Wecho\s[^|]*ipfs' "$CMD_DESC" >"$CMD_ECHO" ||
+die "Could not remove echo lines"
+
+
+
+log "Keep ipfs.*/ipfs/"
+CMD_IPFS_OK="$TMPDIR/ipfs_cmd_ipfs_ok.txt"
+egrep '\Wipfs\W.*/ipfs/' "$CMD_ECHO" >"$CMD_IPFS_OK" ||
+die "Could not keep 'ipfs.*/ipfs/'"
+
+log "Remove /ipfs/"
+CMD_SLASH="$TMPDIR/ipfs_cmd_slash_ipfs.txt"
+egrep -v '/ipfs/' "$CMD_ECHO" >"$CMD_SLASH" ||
+die "Could not remove /ipfs/"
 
 
 log "Print result"
-cat "$CMDPROC2"
+cat "$CMD_SLASH" "$CMD_IPFS_OK" | sort
 
 # Remove temp directory...
