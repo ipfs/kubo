@@ -55,7 +55,7 @@ die "Could not remove test_expect_{success,failure} lines"
 
 log "Remove comments"
 CMD_COMMENT="$TMPDIR/ipfs_cmd_comment.txt"
-egrep -v '^\s*#' "$CMD_EXPECT" >"$CMD_COMMENT" ||
+egrep -v '^[^:]+:[^:]+:\s*#' "$CMD_EXPECT" >"$CMD_COMMENT" ||
 die "Could not remove comments"
 
 log "Remove test_description lines"
@@ -65,23 +65,33 @@ die "Could not remove test_description lines"
 
 log "Remove echos lines"
 CMD_ECHO="$TMPDIR/ipfs_cmd_echo.txt"
-egrep -v '\Wecho\s[^|]*ipfs' "$CMD_DESC" >"$CMD_ECHO" ||
+egrep -v '^[^:]+:[^:]+:\s*echo\W[^|]*\Wipfs' "$CMD_DESC" >"$CMD_ECHO" ||
 die "Could not remove echo lines"
 
 
 
 log "Keep ipfs.*/ipfs/"
-CMD_IPFS_OK="$TMPDIR/ipfs_cmd_ipfs_ok.txt"
-egrep '\Wipfs\W.*/ipfs/' "$CMD_ECHO" >"$CMD_IPFS_OK" ||
-die "Could not keep 'ipfs.*/ipfs/'"
+CMD_SLASH_OK="$TMPDIR/ipfs_cmd_slash_ok.txt"
+egrep '\Wipfs\W.*/ipfs/' "$CMD_ECHO" >"$CMD_SLASH_OK"
+# die "Could not keep ipfs.*/ipfs/"
+
+log "Keep ipfs.*\.ipfs and \.ipfs.*ipfs"
+CMD_DOT_OK="$TMPDIR/ipfs_cmd_dot_ok.txt"
+egrep -e '\Wipfs\W.*\.ipfs' -e '\.ipfs.*\Wipfs\W' "$CMD_ECHO" >"$CMD_DOT_OK"
+# die "Could not keep ipfs.*\.ipfs and \.ipfs.*ipfs"
 
 log "Remove /ipfs/"
-CMD_SLASH="$TMPDIR/ipfs_cmd_slash_ipfs.txt"
+CMD_SLASH="$TMPDIR/ipfs_cmd_slash.txt"
 egrep -v '/ipfs/' "$CMD_ECHO" >"$CMD_SLASH" ||
 die "Could not remove /ipfs/"
 
+log "Remove .ipfs"
+CMD_DOT="$TMPDIR/ipfs_cmd_dot.txt"
+egrep -v '\.ipfs' "$CMD_SLASH" >"$CMD_DOT" ||
+die "Could not remove .ipfs"
+
 
 log "Print result"
-cat "$CMD_SLASH" "$CMD_IPFS_OK" | sort
+cat "$CMD_DOT" "$CMD_SLASH_OK" "$CMD_DOT_OK" | sort
 
 # Remove temp directory...
