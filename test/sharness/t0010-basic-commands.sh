@@ -17,7 +17,7 @@ test_expect_success "ipfs version succeeds" '
 '
 
 test_expect_success "ipfs version output looks good" '
-	cat version.txt | egrep "^ipfs version [0-9]+\.[0-9]+\.[0-9]" >/dev/null ||
+	egrep "^ipfs version [0-9]+\.[0-9]+\.[0-9]" version.txt >/dev/null ||
 	test_fsh cat version.txt
 '
 
@@ -26,8 +26,8 @@ test_expect_success "ipfs help succeeds" '
 '
 
 test_expect_success "ipfs help output looks good" '
-	cat help.txt | egrep -i "^Usage:" >/dev/null &&
-	cat help.txt | egrep "ipfs .* <command>" >/dev/null ||
+	egrep -i "^Usage:" help.txt >/dev/null &&
+	egrep "ipfs .* <command>" help.txt >/dev/null ||
 	test_fsh cat help.txt
 '
 
