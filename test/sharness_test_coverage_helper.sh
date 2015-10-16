@@ -106,23 +106,36 @@ reverse() {
     fi
 }
 
-log "Math the test line commands with the commands they use"
+log "Match the test line commands with the commands they use"
+GLOBAL_REV="$TMPDIR/global_results_reversed.txt"
 reverse "$CMD_CMDS" | while read -r ipfs cmd sub1 sub2
 do
     if test -n "$sub2"
     then
-	egrep "$ipfs(\W.*)*\W$cmd(\W.*)*\W$sub1(\W.*)*\W$sub2" "$CMD_RES" >"$TMPDIR/res_${ipfs}_${cmd}_${sub1}_${sub2}.txt"
+	CMD_OUT="$TMPDIR/res_${ipfs}_${cmd}_${sub1}_${sub2}.txt"
+	egrep "$ipfs(\W.*)*\W$cmd(\W.*)*\W$sub1(\W.*)*\W$sub2" "$CMD_RES" >"$CMD_OUT"
+	reverse "$CMD_OUT" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
+	echo "$ipfs $cmd $sub1 $sub2" >>"$GLOBAL_REV"
     else
 	if test -n "$sub1"
 	then
-	    egrep "$ipfs(\W.*)*\W$cmd(\W.*)*\W$sub1" "$CMD_RES" >"$TMPDIR/res_${ipfs}_${cmd}_${sub1}.txt"
+	    CMD_OUT="$TMPDIR/res_${ipfs}_${cmd}_${sub1}.txt"
+	    egrep "$ipfs(\W.*)*\W$cmd(\W.*)*\W$sub1" "$CMD_RES" >"$CMD_OUT"
+	    reverse "$CMD_OUT" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
+	    echo "$ipfs $cmd $sub1" >>"$GLOBAL_REV"
 	else
 	    if test -n "$cmd"
 	    then
-		egrep "$ipfs(\W.*)*\W$cmd" "$CMD_RES" >"$TMPDIR/res_${ipfs}_${cmd}.txt"
+		CMD_OUT="$TMPDIR/res_${ipfs}_${cmd}.txt"
+		egrep "$ipfs(\W.*)*\W$cmd" "$CMD_RES" >"$CMD_OUT"
+		reverse "$CMD_OUT" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
+		echo "$ipfs $cmd" >>"$GLOBAL_REV"
 	    fi
 	fi
     fi
 done
+
+log "Print results"
+reverse "$GLOBAL_REV"
 
 # Remove temp directory...
