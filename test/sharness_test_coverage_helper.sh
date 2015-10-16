@@ -43,7 +43,7 @@ DATE=$(date +"%Y-%m-%dT%H:%M:%SZ")
 TMPDIR=$(mktemp -d "/tmp/coverage_helper.$DATE.XXXXXX") ||
 die "could not 'mktemp -d /tmp/coverage_helper.$DATE.XXXXXX'"
 
-log "Grep the sharness tests"
+log "Grep the sharness tests for ipfs commands"
 CMD_RAW="$TMPDIR/ipfs_cmd_raw.txt"
 git grep -n -E '\Wipfs\W' -- sharness/t*-*.sh >"$CMD_RAW" ||
 die "Could not grep ipfs in the sharness tests"
@@ -85,9 +85,15 @@ grep_in '\.ipfs.*\Wipfs\W' slash dot_in2 "\.ipfs.*ipfs"
 grep_out '\.ipfs' slash dot ".ipfs"
 
 log "Print result"
+CMD_RES="$TMPDIR/ipfs_cmd_result.txt"
 for f in dot slash_in1 slash_in2 dot_in1 dot_in2
 do
-    cat "$TMPDIR/ipfs_cmd_${f}.txt"
-done | sort | uniq
+    fname="$TMPDIR/ipfs_cmd_${f}.txt"
+    cat "$fname" || die "Could not cat '$fname'"
+done | sort | uniq >"$CMD_RES" || die "Could not write '$CMD_RES'"
+
+log "Get all the ipfs commands from 'ipfs commands'"
+CMD_CMDS="$TMPDIR/commands.txt"
+ipfs commands >"$CMD_CMDS" || die "'ipfs commands' failed"
 
 # Remove temp directory...
