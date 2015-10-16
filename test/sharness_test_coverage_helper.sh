@@ -96,4 +96,33 @@ log "Get all the ipfs commands from 'ipfs commands'"
 CMD_CMDS="$TMPDIR/commands.txt"
 ipfs commands >"$CMD_CMDS" || die "'ipfs commands' failed"
 
+# Portable function to reverse lines in a file
+reverse() {
+    if type tac >/dev/null
+    then
+	tac "$@"
+    else
+	tail -r "$@"
+    fi
+}
+
+log "Math the test line commands with the commands they use"
+reverse "$CMD_CMDS" | while read -r ipfs cmd sub1 sub2
+do
+    if test -n "$sub2"
+    then
+	egrep "$ipfs(\W.*)*\W$cmd(\W.*)*\W$sub1(\W.*)*\W$sub2" "$CMD_RES" >"$TMPDIR/res_${ipfs}_${cmd}_${sub1}_${sub2}.txt"
+    else
+	if test -n "$sub1"
+	then
+	    egrep "$ipfs(\W.*)*\W$cmd(\W.*)*\W$sub1" "$CMD_RES" >"$TMPDIR/res_${ipfs}_${cmd}_${sub1}.txt"
+	else
+	    if test -n "$cmd"
+	    then
+		egrep "$ipfs(\W.*)*\W$cmd" "$CMD_RES" >"$TMPDIR/res_${ipfs}_${cmd}.txt"
+	    fi
+	fi
+    fi
+done
+
 # Remove temp directory...
