@@ -63,9 +63,14 @@ CMD_DESC="$TMPDIR/ipfs_cmd_description.txt"
 egrep -v 'test_description=' "$CMD_COMMENT" >"$CMD_DESC" ||
 die "Could not remove test_description lines"
 
-log "Remove echos lines"
+log "Remove grep lines"
+CMD_GREP="$TMPDIR/ipfs_cmd_grep.txt"
+egrep -v '^[^:]+:[^:]+:\s*e?grep\W[^|]*\Wipfs' "$CMD_DESC" >"$CMD_GREP" ||
+die "Could not remove grep lines"
+
+log "Remove echo lines"
 CMD_ECHO="$TMPDIR/ipfs_cmd_echo.txt"
-egrep -v '^[^:]+:[^:]+:\s*echo\W[^|]*\Wipfs' "$CMD_DESC" >"$CMD_ECHO" ||
+egrep -v '^[^:]+:[^:]+:\s*echo\W[^|]*\Wipfs' "$CMD_GREP" >"$CMD_ECHO" ||
 die "Could not remove echo lines"
 
 
@@ -73,12 +78,10 @@ die "Could not remove echo lines"
 log "Keep ipfs.*/ipfs/"
 CMD_SLASH_OK="$TMPDIR/ipfs_cmd_slash_ok.txt"
 egrep '\Wipfs\W.*/ipfs/' "$CMD_ECHO" >"$CMD_SLASH_OK"
-# die "Could not keep ipfs.*/ipfs/"
 
 log "Keep ipfs.*\.ipfs and \.ipfs.*ipfs"
 CMD_DOT_OK="$TMPDIR/ipfs_cmd_dot_ok.txt"
 egrep -e '\Wipfs\W.*\.ipfs' -e '\.ipfs.*\Wipfs\W' "$CMD_ECHO" >"$CMD_DOT_OK"
-# die "Could not keep ipfs.*\.ipfs and \.ipfs.*ipfs"
 
 log "Remove /ipfs/"
 CMD_SLASH="$TMPDIR/ipfs_cmd_slash.txt"
