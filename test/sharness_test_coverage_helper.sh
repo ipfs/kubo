@@ -61,7 +61,8 @@ grep_out() {
 grep_out 'test_expect_.*ipfs' raw expect "test_expect_{success,failure} lines"
 grep_out '^[^:]+:[^:]+:\s*#' expect comment "comments"
 grep_out 'test_description=' comment desc "test_description lines"
-grep_out '^[^:]+:[^:]+:\s*e?grep\W[^|]*\Wipfs' desc grep "grep lines"
+grep_out '^[^:]+:[^:]+:\s*\w+="[^"]*"\s*(\&\&)?\s*$' desc def "variable definition lines"
+grep_out '^[^:]+:[^:]+:\s*e?grep\W[^|]*\Wipfs' def grep "grep lines"
 grep_out '^[^:]+:[^:]+:\s*echo\W[^|]*\Wipfs' grep echo "echo lines"
 
 grep_in() {
