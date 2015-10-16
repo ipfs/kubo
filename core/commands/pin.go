@@ -57,7 +57,7 @@ on disk.
 			return
 		}
 		if !found {
-			recursive = false
+			recursive = true
 		}
 
 		added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
@@ -76,8 +76,8 @@ on disk.
 			}
 
 			var pintype string
-			rec, _, _ := res.Request().Option("recursive").Bool()
-			if rec {
+			rec, found, _ := res.Request().Option("recursive").Bool()
+			if rec || !found {
 				pintype = "recursively"
 			} else {
 				pintype = "directly"
@@ -94,10 +94,10 @@ on disk.
 
 var rmPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Unpin an object from local storage",
+		Tagline: "Removes the pinned object from local storage. (By default, recursively. Use -r=false for direct pins)",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
-collected if needed.
+collected if needed. (By default, recursively. Use -r=false for direct pins)
 `,
 	},
 
@@ -122,7 +122,7 @@ collected if needed.
 			return
 		}
 		if !found {
-			recursive = false // default
+			recursive = true // default
 		}
 
 		removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive)
@@ -153,26 +153,27 @@ var listPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List objects pinned to local storage",
 		ShortDescription: `
-Returns a list of hashes of objects being pinned. Objects that are indirectly
-or recursively pinned are not included in the list.
+Returns a list of objects that are pinned locally.
+By default, only recursively pinned returned, but others may be shown via the '--type' flag.
 `,
 		LongDescription: `
-Returns a list of hashes of objects being pinned. Objects that are indirectly
-or recursively pinned are not included in the list.
-
-Use --type=<type> to specify the type of pinned keys to list. Valid values are:
-    * "direct": pin that specific object.
-    * "recursive": pin that specific object, and indirectly pin all its decendants
-    * "indirect": pinned indirectly by an ancestor (like a refcount)
-    * "all"
-
-To see the ref count on indirect pins, pass the -count option flag.
-Defaults to "direct".
+Returns a list of objects that are pinned locally.
+By default, only recursively pinned returned, but others may be shown via the '--type' flag.
+Example:
+	$ echo "hello" | ipfs add -q
+	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	$ ipfs pin ls
+	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	# now remove the pin, and repin it directly
+	$ ipfs pin rm QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	$ ipfs pin add -r=false QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	$ ipfs pin ls --type=direct
+	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
 `,
 	},
 
 	Options: []cmds.Option{
-		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"direct\""),
+		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"recursive\""),
 		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins"),
 		cmds.BoolOption("quiet", "q", "Write just hashes of objects"),
 	},
@@ -189,7 +190,7 @@ Defaults to "direct".
 			return
 		}
 		if !found {
-			typeStr = "direct"
+			typeStr = "recursive"
 		}
 
 		switch typeStr {
