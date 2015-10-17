@@ -5,6 +5,8 @@ else
 go_test=go test
 endif
 
+commit = `git rev-parse --short HEAD`
+ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(commit)"
 
 all:
 	# no-op. try:
@@ -24,7 +26,7 @@ install:
 	cd cmd/ipfs && go install
 
 build:
-	cd cmd/ipfs && go build -i
+	cd cmd/ipfs && go build -i -ldflags=$(ldflags)
 
 nofuse:
 	cd cmd/ipfs && go install -tags nofuse
