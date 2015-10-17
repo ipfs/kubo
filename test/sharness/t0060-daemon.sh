@@ -98,7 +98,9 @@ test_expect_success "ipfs help output looks good" '
 
 # check transport is encrypted
 
-test_expect_success "transport should be encrypted" '
+type nc >/dev/null && test_set_prereq NC
+
+test_expect_success NC "transport should be encrypted" '
   nc -w 5 localhost 4001 >swarmnc &&
   grep -q "AES-256,AES-128" swarmnc &&
   test_must_fail grep -q "/ipfs/identify" swarmnc ||
