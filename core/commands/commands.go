@@ -18,6 +18,7 @@ import (
 type Command struct {
 	Name        string
 	Subcommands []Command
+	Options     []cmds.Option
 }
 
 // CommandsCmd takes in a root command,
@@ -51,6 +52,7 @@ func cmd2outputCmd(name string, cmd *cmds.Command) Command {
 	output := Command{
 		Name:        name,
 		Subcommands: make([]Command, len(cmd.Subcommands)),
+		Options:     cmd.Options,
 	}
 
 	i := 0
@@ -67,9 +69,21 @@ func cmdPathStrings(cmd *Command) []string {
 
 	var recurse func(prefix string, cmd *Command)
 	recurse = func(prefix string, cmd *Command) {
-		cmds = append(cmds, prefix+cmd.Name)
+		newPrefix := prefix + cmd.Name
+		cmds = append(cmds, newPrefix)
+		if prefix != "" {
+			for _, option := range cmd.Options {
+				optName := option.Names()[0]
+				if len(optName) == 1 {
+					optName = "-" + optName
+				} else {
+					optName = "--" + optName
+				}
+				cmds = append(cmds, newPrefix+" "+optName)
+			}
+		}
 		for _, sub := range cmd.Subcommands {
-			recurse(prefix+cmd.Name+" ", &sub)
+			recurse(newPrefix+" ", &sub)
 		}
 	}
 
