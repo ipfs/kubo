@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"io"
 	"sort"
+	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 )
@@ -23,7 +24,7 @@ type Command struct {
 }
 
 const (
-	flagsOptionName    = "flags"
+	flagsOptionName = "flags"
 )
 
 // CommandsCmd takes in a root command,
@@ -38,7 +39,7 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 			cmds.BoolOption(flagsOptionName, "f", "Show command flags"),
 		},
 		Run: func(req cmds.Request, res cmds.Response) {
-			showOptions, _, _ := req.Option(flagsOptionName).Bool();
+			showOptions, _, _ := req.Option(flagsOptionName).Bool()
 			rootCmd := cmd2outputCmd("ipfs", root, showOptions)
 			res.SetOutput(&rootCmd)
 		},
@@ -82,13 +83,17 @@ func cmdPathStrings(cmd *Command) []string {
 		cmds = append(cmds, newPrefix)
 		if prefix != "" && cmd.ShowOptions {
 			for _, option := range cmd.Options {
-				optName := option.Names()[0]
-				if len(optName) == 1 {
-					optName = "-" + optName
-				} else {
-					optName = "--" + optName
+				names := option.Names()
+				var cmdOpts []string
+				for _, flag := range names {
+					if len(flag) == 1 {
+						flag = "-" + flag
+					} else {
+						flag = "--" + flag
+					}
+					cmdOpts = append(cmdOpts, newPrefix+" "+flag)
 				}
-				cmds = append(cmds, newPrefix+" "+optName)
+				cmds = append(cmds, strings.Join(cmdOpts, " / "))
 			}
 		}
 		for _, sub := range cmd.Subcommands {
