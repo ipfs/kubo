@@ -96,8 +96,12 @@ test_expect_success "ipfs help output looks good" '
 	test_fsh cat help.txt
 '
 
-# check transport is encrypted
+# netcat (nc) is needed for the following test
+test_expect_success "nc is available" '
+	type nc >/dev/null
+'
 
+# check transport is encrypted
 test_expect_success "transport should be encrypted" '
   nc -w 5 localhost 4001 >swarmnc &&
   grep -q "AES-256,AES-128" swarmnc &&
