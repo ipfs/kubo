@@ -111,28 +111,29 @@ log "Match the test line commands with the commands they use"
 GLOBAL_REV="$TMPDIR/global_results_reversed.txt"
 reverse "$CMD_CMDS" | while read -r ipfs cmd sub1 sub2
 do
-    if test -n "$sub2"
+    if test -n "$cmd"
     then
-	CMD_OUT="$TMPDIR/res_${ipfs}_${cmd}_${sub1}_${sub2}.txt"
-	egrep "$ipfs(\W.*)*\W$cmd(\W.*)*\W$sub1(\W.*)*\W$sub2" "$CMD_RES" >"$CMD_OUT"
-	reverse "$CMD_OUT" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
-	echo "$ipfs $cmd $sub1 $sub2" >>"$GLOBAL_REV"
-    else
+	CMD_OUT="$TMPDIR/res_${ipfs}_${cmd}"
+	PATTERN="$ipfs(\W.*)*\W$cmd"
+	NAME="$ipfs $cmd"
+
 	if test -n "$sub1"
 	then
-	    CMD_OUT="$TMPDIR/res_${ipfs}_${cmd}_${sub1}.txt"
-	    egrep "$ipfs(\W.*)*\W$cmd(\W.*)*\W$sub1" "$CMD_RES" >"$CMD_OUT"
-	    reverse "$CMD_OUT" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
-	    echo "$ipfs $cmd $sub1" >>"$GLOBAL_REV"
-	else
-	    if test -n "$cmd"
+	    CMD_OUT="${CMD_OUT}_${sub1}"
+	    PATTERN="$PATTERN(\W.*)*\W$sub1"
+	    NAME="$NAME $sub1"
+
+	    if test -n "$sub2"
 	    then
-		CMD_OUT="$TMPDIR/res_${ipfs}_${cmd}.txt"
-		egrep "$ipfs(\W.*)*\W$cmd" "$CMD_RES" >"$CMD_OUT"
-		reverse "$CMD_OUT" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
-		echo "$ipfs $cmd" >>"$GLOBAL_REV"
+		CMD_OUT="${CMD_OUT}_${sub2}"
+		PATTERN="$PATTERN(\W.*)*\W$sub2"
+		NAME="$NAME $sub2"
 	    fi
 	fi
+
+	egrep "$PATTERN" "$CMD_RES" >"$CMD_OUT"
+	reverse "$CMD_OUT" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
+	echo "$NAME" >>"$GLOBAL_REV"
     fi
 done
 
