@@ -63,7 +63,9 @@ grep_out '^[^:]+:[^:]+:\s*#' expect comment "comments"
 grep_out 'test_description=' comment desc "test_description lines"
 grep_out '^[^:]+:[^:]+:\s*\w+="[^"]*"\s*(\&\&)?\s*$' desc def "variable definition lines"
 grep_out '^[^:]+:[^:]+:\s*e?grep\W[^|]*\Wipfs' def grep "grep lines"
-grep_out '^[^:]+:[^:]+:\s*echo\W[^|]*\Wipfs' grep echo "echo lines"
+grep_out '^[^:]+:[^:]+:\s*cat\W[^|]*\Wipfs' grep cat "cat lines"
+grep_out '^[^:]+:[^:]+:\s*rmdir\W[^|]*\Wipfs' cat rmdir "rmdir lines"
+grep_out '^[^:]+:[^:]+:\s*echo\W[^|]*\Wipfs' cat echo "echo lines"
 
 grep_in() {
     pattern="$1"
@@ -131,11 +133,18 @@ do
 	    fi
 	fi
 
-	egrep "$PATTERN" "$CMD_RES" >"$CMD_OUT"
-	reverse "$CMD_OUT" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
+	egrep "$PATTERN" "$CMD_RES" >"$CMD_OUT.txt"
+	reverse "$CMD_OUT.txt" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
 	echo "$NAME" >>"$GLOBAL_REV"
     fi
 done
+
+# The following will allow us to check that
+# we are properly excuding enough stuff using:
+# diff -u ipfs_cmd_result.txt cmd_found.txt
+log "Get all the line commands that matched"
+CMD_FOUND="$TMPDIR/cmd_found.txt"
+cat $TMPDIR/res_*.txt | sort -n | uniq >"$CMD_FOUND"
 
 log "Print results"
 reverse "$GLOBAL_REV"
