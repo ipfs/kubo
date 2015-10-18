@@ -62,21 +62,24 @@ ipfs id supports the format option for output with the following keys:
 			return
 		}
 
-		if len(req.Arguments()) == 0 {
+		var id peer.ID
+		if len(req.Arguments()) > 0 {
+			id = peer.ID(b58.Decode(req.Arguments()[0]))
+			if len(id) == 0 {
+				res.SetError(cmds.ClientError("Invalid peer id"), cmds.ErrClient)
+				return
+			}
+		} else {
+			id = node.Identity
+		}
+
+		if id == node.Identity {
 			output, err := printSelf(node)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 			res.SetOutput(output)
-			return
-		}
-
-		pid := req.Arguments()[0]
-
-		id := peer.ID(b58.Decode(pid))
-		if len(id) == 0 {
-			res.SetError(cmds.ClientError("Invalid peer id"), cmds.ErrClient)
 			return
 		}
 
