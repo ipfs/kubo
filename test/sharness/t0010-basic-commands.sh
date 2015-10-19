@@ -49,4 +49,14 @@ test_expect_success "All commands accept --help" '
 	done <commands.txt
 '
 
+test_expect_success "'ipfs commands --flags' succeeds" '
+	ipfs commands --flags >commands.txt
+'
+
+test_expect_success "'ipfs commands --flags' output looks good" '
+	grep "ipfs pin add --recursive / ipfs pin add -r" commands.txt &&
+	grep "ipfs id --format / ipfs id -f" commands.txt &&
+	grep "ipfs repo gc --quiet / ipfs repo gc -q" commands.txt
+'
+
 test_done
