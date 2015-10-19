@@ -6,7 +6,7 @@ before reporting things, and help us with the open ones.
 
 Go Guidelines:
 
-- Please look and conform to our [Go Contribution Guidelines](https://github.com/ipfs/community/go-contribution-guidelines.md).
+- Please look and conform to our [Go Contribution Guidelines](https://github.com/ipfs/community/blob/master/go-contribution-guidelines.md).
 
 General Guidelines:
 
