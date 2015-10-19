@@ -18,19 +18,25 @@ const (
 
 // Option is used to specify a field that will be provided by a consumer
 type Option interface {
-	Names() []string     // a list of unique names matched with user-provided flags
+	LongName() string    // long option name
+	ShortName() rune     // short option name
 	Type() reflect.Kind  // value must be this type
 	Description() string // a short string that describes this option
 }
 
 type option struct {
-	names       []string
+	longName    string
+	shortName   rune
 	kind        reflect.Kind
 	description string
 }
 
-func (o *option) Names() []string {
-	return o.names
+func (o *option) LongName() string {
+	return o.longName
+}
+
+func (o *option) ShortName() rune {
+	return o.shortName
 }
 
 func (o *option) Type() reflect.Kind {
@@ -42,17 +48,11 @@ func (o *option) Description() string {
 }
 
 // constructor helper functions
-func NewOption(kind reflect.Kind, names ...string) Option {
-	if len(names) < 2 {
-		// FIXME(btc) don't panic (fix_before_merge)
-		panic("Options require at least two string values (name and description)")
-	}
-
-	desc := names[len(names)-1]
-	names = names[:len(names)-1]
+func NewOption(kind reflect.Kind, longName string, shortName rune, desc string) Option {
 
 	return &option{
-		names:       names,
+		longName:    longName,
+		shortName:   shortName,
 		kind:        kind,
 		description: desc,
 	}
@@ -64,20 +64,20 @@ func NewOption(kind reflect.Kind, names ...string) Option {
 // For all func {Type}Option(...string) functions, the last variadic argument
 // is treated as the description field.
 
-func BoolOption(names ...string) Option {
-	return NewOption(Bool, names...)
+func BoolOption(longName string, shortName rune, desc string) Option {
+	return NewOption(Bool, longName, shortName, desc)
 }
-func IntOption(names ...string) Option {
-	return NewOption(Int, names...)
+func IntOption(longName string, shortName rune, desc string) Option {
+	return NewOption(Int, longName, shortName, desc)
 }
-func UintOption(names ...string) Option {
-	return NewOption(Uint, names...)
+func UintOption(longName string, shortName rune, desc string) Option {
+	return NewOption(Uint, longName, shortName, desc)
 }
-func FloatOption(names ...string) Option {
-	return NewOption(Float, names...)
+func FloatOption(longName string, shortName rune, desc string) Option {
+	return NewOption(Float, longName, shortName, desc)
 }
-func StringOption(names ...string) Option {
-	return NewOption(String, names...)
+func StringOption(longName string, shortName rune, desc string) Option {
+	return NewOption(String, longName, shortName, desc)
 }
 
 type OptionValue struct {
