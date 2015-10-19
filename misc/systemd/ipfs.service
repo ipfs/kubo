@@ -1,0 +1,9 @@
+[Unit]
+Description=ipfs: The Permanent Web
+
+[Service]
+ExecStart=/usr/bin/ipfs daemon
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
