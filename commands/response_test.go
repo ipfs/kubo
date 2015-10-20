@@ -26,7 +26,7 @@ func TestMarshalling(t *testing.T) {
 		t.Error("Should have failed (no encoding type specified in request)")
 	}
 
-	req.SetOption(EncShort, JSON)
+	req.SetOption(string(EncShort), JSON)
 
 	reader, err := res.Marshal()
 	if err != nil {

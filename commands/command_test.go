@@ -93,14 +93,14 @@ func TestOptionValidation(t *testing.T) {
 func TestRegistration(t *testing.T) {
 	cmdA := &Command{
 		Options: []Option{
-			IntOption("beep", "number of beeps"),
+			IntOption("beep", 0, "number of beeps"),
 		},
 		Run: noop,
 	}
 
 	cmdB := &Command{
 		Options: []Option{
-			IntOption("beep", "number of beeps"),
+			IntOption("beep", 0, "number of beeps"),
 		},
 		Run: noop,
 		Subcommands: map[string]*Command{
@@ -110,7 +110,7 @@ func TestRegistration(t *testing.T) {
 
 	cmdC := &Command{
 		Options: []Option{
-			StringOption("encoding", "data encoding type"),
+			StringOption("encoding", 0, "data encoding type"),
 		},
 		Run: noop,
 	}
