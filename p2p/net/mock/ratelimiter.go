@@ -1,12 +1,14 @@
 package mocknet
 
 import (
+	"sync"
 	"time"
 )
 
 //  A ratelimiter is used by a link to determine how long to wait before sending
 //  data given a bandwidth cap.
 type ratelimiter struct {
+	lock         sync.Mutex
 	bandwidth    float64       // bytes per nanosecond
 	allowance    float64       // in bytes
 	maxAllowance float64       // in bytes
@@ -29,6 +31,8 @@ func NewRatelimiter(bandwidth float64) *ratelimiter {
 
 //  Changes bandwidth of a ratelimiter and resets its allowance
 func (r *ratelimiter) UpdateBandwidth(bandwidth float64) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	//  Convert bandwidth from bytes/second to bytes/nanosecond
 	b := bandwidth / float64(time.Second)
 	r.bandwidth = b
@@ -40,6 +44,8 @@ func (r *ratelimiter) UpdateBandwidth(bandwidth float64) {
 
 //  Returns how long to wait before sending data with length 'dataSize' bytes
 func (r *ratelimiter) Limit(dataSize int) time.Duration {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	//  update time
 	var duration time.Duration = time.Duration(0)
 	if r.bandwidth == 0 {
