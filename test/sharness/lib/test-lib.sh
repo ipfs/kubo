@@ -324,8 +324,8 @@ disk_usage() {
         FreeBSD)
             DU="du -s -A -B 1"
             ;;
-        Darwin | DragonFly)
-            DU="du"
+        Darwin | DragonFly | *)
+            DU="du -s"
             ;;
     esac
         $DU "$1" | awk "{print \$1}"

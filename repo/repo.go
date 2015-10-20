@@ -21,6 +21,7 @@ type Repo interface {
 	GetConfigKey(key string) (interface{}, error)
 
 	Datastore() datastore.ThreadSafeDatastore
+	GetStorageUsage() (uint64, error)
 
 	// SetAPIAddr sets the API address in the repo.
 	SetAPIAddr(addr string) error

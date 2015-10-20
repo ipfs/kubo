@@ -23,7 +23,6 @@ import (
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
-	u "github.com/ipfs/go-ipfs/util"
 	util "github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
@@ -166,7 +165,7 @@ func open(repoPath string) (repo.Repo, error) {
 }
 
 func newFSRepo(rpath string) (*FSRepo, error) {
-	expPath, err := u.TildeExpansion(filepath.Clean(rpath))
+	expPath, err := util.TildeExpansion(filepath.Clean(rpath))
 	if err != nil {
 		return nil, err
 	}
@@ -585,6 +584,21 @@ func (r *FSRepo) Datastore() ds.ThreadSafeDatastore {
 	d := r.ds
 	packageLock.Unlock()
 	return d
+}
+
+// GetStorageUsage computes the storage space taken by the repo in bytes
+func (r *FSRepo) GetStorageUsage() (uint64, error) {
+	pth, err := config.PathRoot()
+	if err != nil {
+		return 0, err
+	}
+
+	var du uint64
+	err = filepath.Walk(pth, func(p string, f os.FileInfo, err error) error {
+		du += uint64(f.Size())
+		return nil
+	})
+	return du, err
 }
 
 var _ io.Closer = &FSRepo{}
