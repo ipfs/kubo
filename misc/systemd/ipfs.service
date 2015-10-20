@@ -1,5 +1,5 @@
 [Unit]
-Description=ipfs: The Permanent Web
+Description=ipfs: global versioned p2p merkledag file system
 
 [Service]
 ExecStart=/usr/bin/ipfs daemon
