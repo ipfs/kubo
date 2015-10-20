@@ -19,6 +19,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
+	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -36,6 +37,7 @@ const (
 	ipnsMountKwd              = "mount-ipns"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	unencryptTransportKwd     = "disable-transport-encryption"
+	enableGCKwd               = "enable-gc"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -114,6 +116,7 @@ future version, along with this notice. Please move to setting the HTTP Headers.
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount)"),
 		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
+		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -277,15 +280,23 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 	}
 
+	// repo blockstore GC - if --enable-gc flag is present
+	err, gcErrc := maybeRunGC(req, node)
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+
 	fmt.Printf("Daemon is ready\n")
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
-	for err := range merge(apiErrc, gwErrc) {
+	for err := range merge(apiErrc, gwErrc, gcErrc) {
 		if err != nil {
+			log.Error(err)
 			res.SetError(err, cmds.ErrNormal)
-			return
 		}
 	}
+	return
 }
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests
@@ -476,6 +487,23 @@ func mountFuse(req cmds.Request) error {
 	fmt.Printf("IPFS mounted at: %s\n", fsdir)
 	fmt.Printf("IPNS mounted at: %s\n", nsdir)
 	return nil
+}
+
+func maybeRunGC(req cmds.Request, node *core.IpfsNode) (error, <-chan error) {
+	enableGC, _, err := req.Option(enableGCKwd).Bool()
+	if err != nil {
+		return err, nil
+	}
+	if !enableGC {
+		return nil, nil
+	}
+
+	errc := make(chan error)
+	go func() {
+		errc <- corerepo.PeriodicGC(req.Context(), node)
+		close(errc)
+	}()
+	return nil, errc
 }
 
 // merge does fan-in of multiple read-only error channels

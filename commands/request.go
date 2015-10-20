@@ -43,7 +43,7 @@ func (c *Context) GetConfig() (*config.Config, error) {
 }
 
 // GetNode returns the node of the current Command exection
-// context. It may construct it with the providied function.
+// context. It may construct it with the provided function.
 func (c *Context) GetNode() (*core.IpfsNode, error) {
 	var err error
 	if c.node == nil {
