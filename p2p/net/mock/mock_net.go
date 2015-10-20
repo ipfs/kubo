@@ -34,7 +34,7 @@ type mocknet struct {
 
 	proc goprocess.Process // for Context closing
 	ctx  context.Context
-	sync.RWMutex
+	sync.Mutex
 }
 
 func New(ctx context.Context) Mocknet {
@@ -95,8 +95,8 @@ func (mn *mocknet) AddPeerWithPeerstore(p peer.ID, ps peer.Peerstore) (host.Host
 }
 
 func (mn *mocknet) Peers() []peer.ID {
-	mn.RLock()
-	defer mn.RUnlock()
+	mn.Lock()
+	defer mn.Unlock()
 
 	cp := make([]peer.ID, 0, len(mn.nets))
 	for _, n := range mn.nets {
@@ -107,22 +107,22 @@ func (mn *mocknet) Peers() []peer.ID {
 }
 
 func (mn *mocknet) Host(pid peer.ID) host.Host {
-	mn.RLock()
+	mn.Lock()
 	host := mn.hosts[pid]
-	mn.RUnlock()
+	mn.Unlock()
 	return host
 }
 
 func (mn *mocknet) Net(pid peer.ID) inet.Network {
-	mn.RLock()
+	mn.Lock()
 	n := mn.nets[pid]
-	mn.RUnlock()
+	mn.Unlock()
 	return n
 }
 
 func (mn *mocknet) Hosts() []host.Host {
-	mn.RLock()
-	defer mn.RUnlock()
+	mn.Lock()
+	defer mn.Unlock()
 
 	cp := make([]host.Host, 0, len(mn.hosts))
 	for _, h := range mn.hosts {
@@ -134,8 +134,8 @@ func (mn *mocknet) Hosts() []host.Host {
 }
 
 func (mn *mocknet) Nets() []inet.Network {
-	mn.RLock()
-	defer mn.RUnlock()
+	mn.Lock()
+	defer mn.Unlock()
 
 	cp := make([]inet.Network, 0, len(mn.nets))
 	for _, n := range mn.nets {
@@ -148,8 +148,8 @@ func (mn *mocknet) Nets() []inet.Network {
 // Links returns a copy of the internal link state map.
 // (wow, much map. so data structure. how compose. ahhh pointer)
 func (mn *mocknet) Links() LinkMap {
-	mn.RLock()
-	defer mn.RUnlock()
+	mn.Lock()
+	defer mn.Unlock()
 
 	links := map[string]map[string]map[Link]struct{}{}
 	for p1, lm := range mn.links {
@@ -179,10 +179,10 @@ func (mn *mocknet) LinkAll() error {
 }
 
 func (mn *mocknet) LinkPeers(p1, p2 peer.ID) (Link, error) {
-	mn.RLock()
+	mn.Lock()
 	n1 := mn.nets[p1]
 	n2 := mn.nets[p2]
-	mn.RUnlock()
+	mn.Unlock()
 
 	if n1 == nil {
 		return nil, fmt.Errorf("network for p1 not in mocknet")
@@ -211,11 +211,11 @@ func (mn *mocknet) validate(n inet.Network) (*peernet, error) {
 }
 
 func (mn *mocknet) LinkNets(n1, n2 inet.Network) (Link, error) {
-	mn.RLock()
+	mn.Lock()
 	n1r, err1 := mn.validate(n1)
 	n2r, err2 := mn.validate(n2)
 	ld := mn.linkDefaults
-	mn.RUnlock()
+	mn.Unlock()
 
 	if err1 != nil {
 		return nil, err1
@@ -260,7 +260,7 @@ func (mn *mocknet) UnlinkNets(n1, n2 inet.Network) error {
 }
 
 // get from the links map. and lazily contruct.
-func (mn *mocknet) linksMapGet(p1, p2 peer.ID) *map[*link]struct{} {
+func (mn *mocknet) linksMapGet(p1, p2 peer.ID) map[*link]struct{} {
 
 	l1, found := mn.links[p1]
 	if !found {
@@ -275,7 +275,7 @@ func (mn *mocknet) linksMapGet(p1, p2 peer.ID) *map[*link]struct{} {
 		l2 = l1[p2]
 	}
 
-	return &l2
+	return l2
 }
 
 func (mn *mocknet) addLink(l *link) {
@@ -283,8 +283,8 @@ func (mn *mocknet) addLink(l *link) {
 	defer mn.Unlock()
 
 	n1, n2 := l.nets[0], l.nets[1]
-	(*mn.linksMapGet(n1.peer, n2.peer))[l] = struct{}{}
-	(*mn.linksMapGet(n2.peer, n1.peer))[l] = struct{}{}
+	mn.linksMapGet(n1.peer, n2.peer)[l] = struct{}{}
+	mn.linksMapGet(n2.peer, n1.peer)[l] = struct{}{}
 }
 
 func (mn *mocknet) removeLink(l *link) {
@@ -292,8 +292,8 @@ func (mn *mocknet) removeLink(l *link) {
 	defer mn.Unlock()
 
 	n1, n2 := l.nets[0], l.nets[1]
-	delete(*mn.linksMapGet(n1.peer, n2.peer), l)
-	delete(*mn.linksMapGet(n2.peer, n1.peer), l)
+	delete(mn.linksMapGet(n1.peer, n2.peer), l)
+	delete(mn.linksMapGet(n2.peer, n1.peer), l)
 }
 
 func (mn *mocknet) ConnectAllButSelf() error {
@@ -329,10 +329,10 @@ func (mn *mocknet) DisconnectNets(n1, n2 inet.Network) error {
 }
 
 func (mn *mocknet) LinksBetweenPeers(p1, p2 peer.ID) []Link {
-	mn.RLock()
-	defer mn.RUnlock()
+	mn.Lock()
+	defer mn.Unlock()
 
-	ls2 := *mn.linksMapGet(p1, p2)
+	ls2 := mn.linksMapGet(p1, p2)
 	cp := make([]Link, 0, len(ls2))
 	for l := range ls2 {
 		cp = append(cp, l)
@@ -351,8 +351,8 @@ func (mn *mocknet) SetLinkDefaults(o LinkOptions) {
 }
 
 func (mn *mocknet) LinkDefaults() LinkOptions {
-	mn.RLock()
-	defer mn.RUnlock()
+	mn.Lock()
+	defer mn.Unlock()
 	return mn.linkDefaults
 }
 
