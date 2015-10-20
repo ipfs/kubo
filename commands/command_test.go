@@ -9,8 +9,8 @@ func noop(req Request, res Response) {
 func TestOptionValidation(t *testing.T) {
 	cmd := Command{
 		Options: []Option{
-			IntOption("b", "beep", "enables beeper"),
-			StringOption("B", "boop", "password for booper"),
+			IntOption("beep", 'b', "enables beeper"),
+			StringOption("boop", 'B', "password for booper"),
 		},
 		Run: noop,
 	}
