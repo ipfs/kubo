@@ -72,12 +72,12 @@ Use 'ipfs <command> --help' to learn more about each command.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("config", "c", "Path to the configuration file to use"),
-		cmds.BoolOption("debug", "D", "Operate in debug mode"),
-		cmds.BoolOption("help", "Show the full command help text"),
-		cmds.BoolOption("h", "Show a short version of the command help text"),
-		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon"),
-		cmds.StringOption(ApiOption, "Overrides the routing option (dht, supernode)"),
+		cmds.StringOption("config", 'c', "Path to the configuration file to use"),
+		cmds.BoolOption("debug", 'D', "Operate in debug mode"),
+		cmds.BoolOption("help", 0, "Show the full command help text"),
+		cmds.BoolOption("", 'h', "Show a short version of the command help text"),
+		cmds.BoolOption("local", 'L', "Run the command locally, instead of using the daemon"),
+		cmds.StringOption(ApiOption, 0, "Overrides the routing option (dht, supernode)"),
 	},
 }
 

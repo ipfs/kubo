@@ -36,7 +36,7 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 			ShortDescription: `Lists all available commands (and subcommands) and exits.`,
 		},
 		Options: []cmds.Option{
-			cmds.BoolOption(flagsOptionName, "f", "Show command flags"),
+			cmds.BoolOption(flagsOptionName, 'f', "Show command flags"),
 		},
 		Run: func(req cmds.Request, res cmds.Response) {
 			showOptions, _, _ := req.Option(flagsOptionName).Bool()
@@ -83,21 +83,20 @@ func cmdPathStrings(cmd *Command) []string {
 		cmds = append(cmds, newPrefix)
 		if prefix != "" && cmd.ShowOptions {
 			for _, option := range cmd.Options {
-				names := option.Names()
 				var cmdOpts []string
-				for _, flag := range names {
-					if len(flag) == 1 {
-						flag = "-" + flag
-					} else {
-						flag = "--" + flag
-					}
-					cmdOpts = append(cmdOpts, newPrefix+" "+flag)
+				long := option.LongName()
+				if long != "" {
+					cmdOpts = append(cmdOpts, newPrefix + " --" + long)
+				}
+				short := option.ShortName()
+				if short != 0 {
+					cmdOpts = append(cmdOpts, newPrefix + " -" + string(short))
 				}
 				cmds = append(cmds, strings.Join(cmdOpts, " / "))
 			}
 		}
 		for _, sub := range cmd.Subcommands {
-			recurse(newPrefix+" ", &sub)
+			recurse(newPrefix + " ", &sub)
 		}
 	}
 

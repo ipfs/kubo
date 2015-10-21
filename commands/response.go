@@ -162,7 +162,7 @@ func (r *response) Marshal() (io.Reader, error) {
 		return bytes.NewReader([]byte{}), nil
 	}
 
-	enc, found, err := r.req.Option(EncShort).String()
+	enc, found, err := r.req.Option(string(EncShort)).String()
 	if err != nil {
 		return nil, err
 	}

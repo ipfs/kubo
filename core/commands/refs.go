@@ -50,10 +50,10 @@ Note: list all refs recursively with -r.
 		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "Emit edges with given format. tokens: <src> <dst> <linkname>"),
-		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`"),
-		cmds.BoolOption("unique", "u", "Omit duplicate refs from output"),
-		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
+		cmds.StringOption("format", 0, "Emit edges with given format. tokens: <src> <dst> <linkname>"),
+		cmds.BoolOption("edges", 'e', "Emit edge format: `<from> -> <to>`"),
+		cmds.BoolOption("unique", 'u', "Omit duplicate refs from output"),
+		cmds.BoolOption("recursive", 'r', "Recursively list links of child nodes"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()

@@ -248,11 +248,23 @@ func optionText(cmd ...*cmds.Command) []string {
 				lines = append(lines, "")
 			}
 
-			names := sortByLength(opt.Names())
-			if len(names) >= j+1 {
-				lines[i] += optionFlag(names[j])
+			len_names := 0
+			long := opt.LongName()
+			short := opt.ShortName()
+			if long != "" {
+				len_names = len_names + 1
 			}
-			if len(names) > j+1 {
+			if short != 0 {
+				len_names = len_names + 1
+			}
+			if len_names >= j+1 {
+				if j == 0 {
+					lines[i] += optionFlag(long)
+				} else if j == 1 {
+					lines[i] += optionFlag(string(short))
+				}
+			}
+			if len_names > j+1 {
 				lines[i] += ", "
 				done = false
 			}

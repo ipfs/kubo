@@ -25,9 +25,9 @@ var initCmd = &cmds.Command{
 	},
 
 	Options: []cmds.Option{
-		cmds.IntOption("bits", "b", fmt.Sprintf("Number of bits to use in the generated RSA private key (defaults to %d)", nBitsForKeypairDefault)),
-		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
-		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage"),
+		cmds.IntOption("bits", 'b', fmt.Sprintf("Number of bits to use in the generated RSA private key (defaults to %d)", nBitsForKeypairDefault)),
+		cmds.BoolOption("force", 'f', "Overwrite existing config (if it exists)"),
+		cmds.BoolOption("empty-repo", 'e', "Don't add and pin help files to the local storage"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the

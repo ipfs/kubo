@@ -154,9 +154,9 @@ func (ov OptionValue) String() (value string, found bool, err error) {
 
 // Flag names
 const (
-	EncShort   = "enc"
+	EncShort   = 'E'
 	EncLong    = "encoding"
-	RecShort   = "r"
+	RecShort   = 'r'
 	RecLong    = "recursive"
 	ChanOpt    = "stream-channels"
 	TimeoutOpt = "timeout"
@@ -165,8 +165,8 @@ const (
 // options that are used by this package
 var OptionEncodingType = StringOption(EncLong, EncShort, "The encoding type the output should be encoded with (json, xml, or text)")
 var OptionRecursivePath = BoolOption(RecLong, RecShort, "Add directory paths recursively")
-var OptionStreamChannels = BoolOption(ChanOpt, "Stream channel output")
-var OptionTimeout = StringOption(TimeoutOpt, "set a global timeout on the command")
+var OptionStreamChannels = BoolOption(ChanOpt, 0, "Stream channel output")
+var OptionTimeout = StringOption(TimeoutOpt, 0, "set a global timeout on the command")
 
 // global options, added to every command
 var globalOptions = []Option{

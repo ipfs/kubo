@@ -53,7 +53,7 @@ ipfs id supports the format option for output with the following keys:
 		cmds.StringArg("peerid", false, false, "peer.ID of node to look up").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "f", "optional output format"),
+		cmds.StringOption("format", 'f', "optional output format"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()

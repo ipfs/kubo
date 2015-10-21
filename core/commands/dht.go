@@ -43,7 +43,7 @@ var queryDhtCmd = &cmds.Command{
 		cmds.StringArg("peerID", true, true, "The peerID to run the query against"),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", 'v', "Write extra information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -151,7 +151,7 @@ FindProviders will return a list of peers who are able to provide the value requ
 		cmds.StringArg("key", true, true, "The key to find providers for"),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", 'v', "Write extra information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -376,7 +376,7 @@ GetValue will return the value stored in the dht at the given key.
 		cmds.StringArg("key", true, true, "The key to find a value for"),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", 'v', "Write extra information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -495,7 +495,7 @@ PutValue will store the given key value pair in the dht.
 		cmds.StringArg("value", true, false, "The value to store").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", 'v', "Write extra information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
