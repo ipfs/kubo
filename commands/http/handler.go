@@ -245,11 +245,43 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	}
 
 	w.WriteHeader(status)
-	_, err = io.Copy(w, out)
+	err = flushCopy(w, out)
 	if err != nil {
 		log.Error("err: ", err)
 		w.Header().Set(StreamErrHeader, sanitizedErrStr(err))
 	}
+}
+
+func flushCopy(w io.Writer, r io.Reader) error {
+	buf := make([]byte, 4096)
+	f, ok := w.(http.Flusher)
+	if !ok {
+		_, err := io.Copy(w, r)
+		return err
+	}
+	for {
+		n, err := r.Read(buf)
+		switch err {
+		case io.EOF:
+			return nil
+		case nil:
+			// continue
+		default:
+			return err
+		}
+
+		nw, err := w.Write(buf[:n])
+		if err != nil {
+			return err
+		}
+
+		if nw != n {
+			return fmt.Errorf("http write failed to write full amount: %d != %d", nw, n)
+		}
+
+		f.Flush()
+	}
+	return nil
 }
 
 func sanitizedErrStr(err error) string {
