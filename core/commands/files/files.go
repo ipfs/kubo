@@ -24,7 +24,7 @@ var log = u.Logger("cmds/files")
 
 var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate mfs files",
+		Tagline: "Manipulate unixfs files",
 		ShortDescription: `
 Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 `,
@@ -121,11 +121,11 @@ func statNode(fsn mfs.FSNode) (*Object, error) {
 
 var FilesCpCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "copy files into mfs",
+		Tagline: "copy files into unixfs",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("source", true, false, "source object to copy (e.g. ipfs hash '/ipfs/Qm...' or mfs path '/somefolder'"),
-		cmds.StringArg("dest", true, false, "destination to copy object to (inside mfs)"),
+		cmds.StringArg("source", true, false, "source object to copy (e.g. ipfs hash '/ipfs/Qm...' or unixfs path '/somefolder'"),
+		cmds.StringArg("dest", true, false, "destination to copy object to (inside unixfs)"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -275,7 +275,7 @@ Examples:
 
 var FilesReadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Read a file in a given mfs",
+		Tagline: "Read a file in a given unixfs",
 		ShortDescription: `
 Read a specified number of bytes from a file at a given offset. By default, will
 read the entire file similar to unix cat.
@@ -520,8 +520,8 @@ Note: all paths must be absolute.
 
 Examples:
 
-    $ ipfs mfs mkdir /test/newdir
-    $ ipfs mfs mkdir -p /test/does/not/exist/yet
+    $ ipfs files mkdir /test/newdir
+    $ ipfs files mkdir -p /test/does/not/exist/yet
 `,
 	},
 
