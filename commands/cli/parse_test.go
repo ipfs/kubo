@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -132,6 +133,9 @@ func TestOptionParsing(t *testing.T) {
 }
 
 func TestArgumentParsing(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("stdin handling doesnt yet work on windows")
+	}
 	rootCmd := &commands.Command{
 		Subcommands: map[string]*commands.Command{
 			"noarg": {},
