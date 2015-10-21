@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/ipfs/go-ipfs",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.5.1",
 	"Packages": [
 		"./..."
 	],
@@ -13,6 +13,10 @@
 			"ImportPath": "bitbucket.org/ww/goautoneg",
 			"Comment": "null-5",
 			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
+		},
+		{
+			"ImportPath": "github.com/StackExchange/wmi",
+			"Rev": "8730d7ed549382cb1f889a576a7223c137be7989"
 		},
 		{
 			"ImportPath": "github.com/alecthomas/kingpin",
@@ -102,6 +106,11 @@
 		{
 			"ImportPath": "github.com/fd/go-nat",
 			"Rev": "50e7633d5f27d81490026a13e5b92d2e42d8c6bb"
+		},
+		{
+			"ImportPath": "github.com/go-ole/go-ole",
+			"Comment": "v1.1.1-64-g4246eab",
+			"Rev": "4246eab2a27c71c143f965432ace52990308d362"
 		},
 		{
 			"ImportPath": "github.com/gogo/protobuf/io",
