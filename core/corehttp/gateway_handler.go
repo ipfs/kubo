@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	gopath "path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
@@ -273,116 +275,82 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, ipfsPathPrefix+k.String(), http.StatusCreated)
 }
 
-func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Request) {
-	newnode := uio.NewEmptyDirectory()
-
-	key, err := i.node.DAG.Add(newnode)
+func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	rootPath, err := path.ParsePath(r.URL.Path)
 	if err != nil {
-		webError(w, "Could not recursively add new node", err, http.StatusInternalServerError)
+		webError(w, "putHandler: ipfs path not valid", err, http.StatusBadRequest)
 		return
 	}
 
-	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/", http.StatusCreated)
-}
-
-func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO(cryptix): either ask mildred about the flow of this or rewrite it
-	webErrorWithCode(w, "Sorry, PUT is bugged right now, closing request", errors.New("handler disabled"), http.StatusInternalServerError)
-	return
-	urlPath := r.URL.Path
-	pathext := urlPath[5:]
-	var err error
-	if urlPath == ipfsPathPrefix+"QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn/" {
-		i.putEmptyDirHandler(w, r)
+	rsegs := rootPath.Segments()
+	if rsegs[0] == ipnsPathPrefix {
+		webError(w, "putHandler: updating named entries not supported", errors.New("WritableGateway: ipns put not supported"), http.StatusBadRequest)
 		return
 	}
 
 	var newnode *dag.Node
-	if pathext[len(pathext)-1] == '/' {
+	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
 		newnode = uio.NewEmptyDirectory()
 	} else {
-		newnode, err = i.newDagFromReader(r.Body)
+		putNode, err := i.newDagFromReader(r.Body)
 		if err != nil {
-			webError(w, "Could not create DAG from request", err, http.StatusInternalServerError)
+			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
 			return
 		}
+		newnode = putNode
 	}
 
-	ctx, cancel := context.WithCancel(i.node.Context())
-	defer cancel()
-
-	ipfsNode, err := core.Resolve(ctx, i.node, path.Path(urlPath))
-	if err != nil {
-		// FIXME HTTP error code
-		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
-		return
+	var newPath string
+	if len(rsegs) > 1 {
+		newPath = strings.Join(rsegs[2:], "/")
 	}
 
-	k, err := ipfsNode.Key()
-	if err != nil {
-		webError(w, "Could not get key from resolved node", err, http.StatusInternalServerError)
-		return
-	}
-
-	h, components, err := path.SplitAbsPath(path.FromKey(k))
-	if err != nil {
-		webError(w, "Could not split path", err, http.StatusInternalServerError)
-		return
-	}
-
-	if len(components) < 1 {
-		err = fmt.Errorf("Cannot override existing object")
-		webError(w, "http gateway", err, http.StatusBadRequest)
-		return
-	}
-
-	tctx, cancel := context.WithTimeout(ctx, time.Minute)
-	defer cancel()
-	// TODO(cryptix): could this be core.Resolve() too?
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, key.Key(h))
-	if err != nil {
-		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
-		return
-	}
-
-	// resolving path components into merkledag nodes. if a component does not
-	// resolve, create empty directories (which will be linked and populated below.)
-	pathNodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
-	if _, ok := err.(path.ErrNoLink); ok {
-		// Create empty directories, links will be made further down the code
-		for len(pathNodes) < len(components) {
-			pathNodes = append(pathNodes, uio.NewDirectory(i.node.DAG).GetNode())
-		}
-	} else if err != nil {
-		webError(w, "Could not resolve parent object", err, http.StatusBadRequest)
-		return
-	}
-
-	for i := len(pathNodes) - 1; i >= 0; i-- {
-		newnode, err = pathNodes[i].UpdateNodeLink(components[i], newnode)
+	var newkey key.Key
+	rnode, err := core.Resolve(i.node.Context(), i.node, rootPath)
+	switch ev := err.(type) {
+	case path.ErrNoLink:
+		// ev.Node < node where resolve failed
+		// ev.Name < new link
+		// but we need to patch from the root
+		rnode, err := i.node.DAG.Get(i.node.Context(), key.B58KeyDecode(rsegs[1]))
 		if err != nil {
-			webError(w, "Could not update node links", err, http.StatusInternalServerError)
+			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
 			return
 		}
-	}
 
-	if err := i.node.DAG.AddRecursive(newnode); err != nil {
-		webError(w, "Could not add recursively new node", err, http.StatusInternalServerError)
-		return
-	}
+		e := dagutils.NewDagEditor(i.node.DAG, rnode)
+		err = e.InsertNodeAtPath(i.node.Context(), newPath, newnode, uio.NewEmptyDirectory)
+		if err != nil {
+			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
+			return
+		}
 
-	// Redirect to new path
-	key, err := newnode.Key()
-	if err != nil {
-		webError(w, "Could not get key of new node", err, http.StatusInternalServerError)
+		newkey, err = e.GetNode().Key()
+		if err != nil {
+			webError(w, "putHandler: could not get key of edited node", err, http.StatusInternalServerError)
+			return
+		}
+
+	case nil:
+		// object set-data case
+		rnode.Data = newnode.Data
+
+		newkey, err = i.node.DAG.Add(rnode)
+		if err != nil {
+			nnk, _ := newnode.Key()
+			rk, _ := rnode.Key()
+			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.B58String(), rk.B58String()), err, http.StatusInternalServerError)
+			return
+		}
+	default:
+		log.Warningf("putHandler: unhandled resolve error %T", ev)
+		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
 		return
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/"+strings.Join(components, "/"), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", newkey.String())
+	http.Redirect(w, r, filepath.Join(ipfsPathPrefix, newkey.String(), newPath), http.StatusCreated)
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
