@@ -22,12 +22,12 @@ var ErrNoComponents = errors.New(
 
 // ErrNoLink is returned when a link is not found in a path
 type ErrNoLink struct {
-	name string
-	node mh.Multihash
+	Name string
+	Node mh.Multihash
 }
 
 func (e ErrNoLink) Error() string {
-	return fmt.Sprintf("no link named %q under %s", e.name, e.node.B58String())
+	return fmt.Sprintf("no link named %q under %s", e.Name, e.Node.B58String())
 }
 
 // Resolver provides path resolution to IPFS
@@ -124,7 +124,7 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 
 		if next == "" {
 			n, _ := nd.Multihash()
-			return result, ErrNoLink{name: name, node: n}
+			return result, ErrNoLink{Name: name, Node: n}
 		}
 
 		if nlink.Node == nil {
