@@ -113,7 +113,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 		}
 
 		node.Routing = offroute.NewOfflineRouter(node.Repo.Datastore(), node.PrivateKey)
-		node.Namesys = namesys.NewNameSystem(node.Routing, node.Repo.Datastore())
+		node.Namesys = namesys.NewNameSystem(node.Routing, node.Repo.Datastore(), 0)
 
 		ipnsfs, err := nsfs.NewFilesystem(context.Background(), node.DAG, node.Namesys, node.Pinning, node.PrivateKey)
 		if err != nil {

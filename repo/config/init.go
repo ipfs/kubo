@@ -64,6 +64,10 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			IPNS: "/ipns",
 		},
 
+		Ipns: Ipns{
+			ResolveCacheSize: 128,
+		},
+
 		// tracking ipfs version used to generate the init folder and adding
 		// update checker default setting.
 		Version: VersionDefaultValue(),
