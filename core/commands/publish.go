@@ -52,6 +52,7 @@ Publish an <ipfs-path> to another public key (not implemented):
 	Options: []cmds.Option{
 		cmds.BoolOption("resolve", "resolve given path before publishing (default=true)"),
 		cmds.StringOption("lifetime", "t", "time duration that the record will be valid for (default: 24hrs)"),
+		cmds.StringOption("ttl", "time duration this record should be cached for (caution: experimental)"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		log.Debug("Begin Publish")
@@ -96,7 +97,18 @@ Publish an <ipfs-path> to another public key (not implemented):
 			popts.pubValidTime = d
 		}
 
-		output, err := publish(req.Context(), n, n.PrivateKey, path.Path(pstr), popts)
+		ctx := req.Context()
+		if ttl, found, _ := req.Option("ttl").String(); found {
+			d, err := time.ParseDuration(ttl)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			ctx = context.WithValue(ctx, "ipns-publish-ttl", d)
+		}
+
+		output, err := publish(ctx, n, n.PrivateKey, path.Path(pstr), popts)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
