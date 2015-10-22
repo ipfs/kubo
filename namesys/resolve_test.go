@@ -19,7 +19,7 @@ func TestRoutingResolve(t *testing.T) {
 	d := mockrouting.NewServer().Client(testutil.RandIdentityOrFatal(t))
 	dstore := ds.NewMapDatastore()
 
-	resolver := NewRoutingResolver(d)
+	resolver := NewRoutingResolver(d, 0)
 	publisher := NewRoutingPublisher(d, dstore)
 
 	privk, pubk, err := testutil.RandTestKeyPair(512)
@@ -53,7 +53,7 @@ func TestPrexistingExpiredRecord(t *testing.T) {
 	dstore := ds.NewMapDatastore()
 	d := mockrouting.NewServer().ClientWithDatastore(context.Background(), testutil.RandIdentityOrFatal(t), dstore)
 
-	resolver := NewRoutingResolver(d)
+	resolver := NewRoutingResolver(d, 0)
 	publisher := NewRoutingPublisher(d, dstore)
 
 	privk, pubk, err := testutil.RandTestKeyPair(512)
@@ -90,7 +90,7 @@ func TestPrexistingRecord(t *testing.T) {
 	dstore := ds.NewMapDatastore()
 	d := mockrouting.NewServer().ClientWithDatastore(context.Background(), testutil.RandIdentityOrFatal(t), dstore)
 
-	resolver := NewRoutingResolver(d)
+	resolver := NewRoutingResolver(d, 0)
 	publisher := NewRoutingPublisher(d, dstore)
 
 	privk, pubk, err := testutil.RandTestKeyPair(512)
