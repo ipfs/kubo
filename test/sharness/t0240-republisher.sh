@@ -26,6 +26,7 @@ setup_iptb() {
 		for i in $(test_seq 0 3)
 		do
 			ipfsi $i config Ipns.RepublishPeriod 20s
+			ipfsi $i config --json Ipns.ResolveCacheSize 0
 		done
 	'
 

@@ -121,11 +121,29 @@ func (p *ipnsPublisher) getPreviousSeqNo(ctx context.Context, ipnskey key.Key) (
 	return e.GetSequence(), nil
 }
 
+// setting the TTL on published records is an experimental feature.
+// as such, i'm using the context to wire it through to avoid changing too
+// much code along the way.
+func checkCtxTTL(ctx context.Context) (time.Duration, bool) {
+	v := ctx.Value("ipns-publish-ttl")
+	if v == nil {
+		return 0, false
+	}
+
+	d, ok := v.(time.Duration)
+	return d, ok
+}
+
 func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqnum uint64, eol time.Time, r routing.IpfsRouting, id peer.ID) error {
 	namekey, ipnskey := IpnsKeysForID(id)
 	entry, err := CreateRoutingEntryData(k, value, seqnum, eol)
 	if err != nil {
 		return err
+	}
+
+	ttl, ok := checkCtxTTL(ctx)
+	if ok {
+		entry.Ttl = proto.Uint64(uint64(ttl.Nanoseconds()))
 	}
 
 	err = PublishEntry(ctx, r, ipnskey, entry)
