@@ -12,4 +12,6 @@ message IpnsEntry {
 	optional bytes validity = 4;
 
 	optional uint64 sequence = 5;
+
+	optional uint64 ttl = 6;
 }
