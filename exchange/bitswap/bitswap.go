@@ -308,7 +308,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	var keys []key.Key
 	for _, block := range iblocks {
 		if _, found := bs.wm.wl.Contains(block.Key()); !found {
-			log.Info("received un-asked-for block: %s", block)
+			log.Infof("received un-asked-for %s from %s", block, p)
 			continue
 		}
 		keys = append(keys, block.Key())

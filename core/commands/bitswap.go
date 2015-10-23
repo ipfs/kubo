@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
+
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
@@ -156,7 +158,7 @@ var bitswapStatCmd = &cmds.Command{
 			fmt.Fprintf(buf, "\tprovides buffer: %d / %d\n", out.ProvideBufLen, bitswap.HasBlockBufferSize)
 			fmt.Fprintf(buf, "\tblocks received: %d\n", out.BlocksReceived)
 			fmt.Fprintf(buf, "\tdup blocks received: %d\n", out.DupBlksReceived)
-			fmt.Fprintf(buf, "\tdup data received: %d\n", out.DupDataReceived)
+			fmt.Fprintf(buf, "\tdup data received: %s\n", humanize.Bytes(out.DupDataReceived))
 			fmt.Fprintf(buf, "\twantlist [%d keys]\n", len(out.Wantlist))
 			for _, k := range out.Wantlist {
 				fmt.Fprintf(buf, "\t\t%s\n", k.B58String())
