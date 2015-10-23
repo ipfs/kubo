@@ -22,6 +22,7 @@ type writecache struct {
 }
 
 func (w *writecache) DeleteBlock(k key.Key) error {
+	defer log.EventBegin(context.TODO(), "writecache.BlockRemoved", &k).Done()
 	w.cache.Remove(k)
 	return w.blockstore.DeleteBlock(k)
 }
@@ -38,9 +39,12 @@ func (w *writecache) Get(k key.Key) (*blocks.Block, error) {
 }
 
 func (w *writecache) Put(b *blocks.Block) error {
-	if _, ok := w.cache.Get(b.Key()); ok {
+	k := b.Key()
+	if _, ok := w.cache.Get(k); ok {
 		return nil
 	}
+	defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
+
 	w.cache.Add(b.Key(), struct{}{})
 	return w.blockstore.Put(b)
 }
@@ -50,6 +54,8 @@ func (w *writecache) PutMany(bs []*blocks.Block) error {
 	for _, b := range bs {
 		if _, ok := w.cache.Get(b.Key()); !ok {
 			good = append(good, b)
+			k := b.Key()
+			defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
 		}
 	}
 	return w.blockstore.PutMany(good)
