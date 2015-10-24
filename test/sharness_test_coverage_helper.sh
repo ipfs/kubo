@@ -148,7 +148,6 @@ process_command() {
 
 	egrep "$PATTERN" "$CMD_RES" >"$CMD_OUT.txt"
 	reverse "$CMD_OUT.txt" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
-	echo "$NAME" >>"$GLOBAL_REV"
     fi
 }
 
@@ -159,10 +158,14 @@ do
 
     log "Processing $LONG_CMD"
     process_command $LONG_CMD
+    LONG_NAME="$NAME"
 
     log "Processing $SHORT_CMD"
     process_command $SHORT_CMD
+    SHORT_NAME="$NAME"
 
+    test -n "$SHORT_CMD" && echo "$SHORT_NAME" >>"$GLOBAL_REV"
+    test "$LONG_CMD" != "ipfs" && echo "$LONG_NAME" >>"$GLOBAL_REV"
     echo >>"$GLOBAL_REV"
 done
 
