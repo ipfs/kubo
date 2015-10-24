@@ -67,6 +67,11 @@ test_race: verify_gofmt
 	cd 3nodetest && make GOFLAGS=-race
 	cd dependencies && make GOFLAGS=-race
 
+coverage: coverage_sharness
+
+coverage_sharness:
+	./sharness_test_coverage_helper.sh
+
 IPFS-BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'
 
