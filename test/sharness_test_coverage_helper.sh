@@ -97,7 +97,7 @@ done | sort | uniq >"$CMD_RES" || die "Could not write '$CMD_RES'"
 
 log "Get all the ipfs commands from 'ipfs commands'"
 CMD_CMDS="$TMPDIR/commands.txt"
-ipfs commands >"$CMD_CMDS" || die "'ipfs commands' failed"
+ipfs commands --flags >"$CMD_CMDS" || die "'ipfs commands' failed"
 
 # Portable function to reverse lines in a file
 reverse() {
@@ -111,8 +111,14 @@ reverse() {
 
 log "Match the test line commands with the commands they use"
 GLOBAL_REV="$TMPDIR/global_results_reversed.txt"
-reverse "$CMD_CMDS" | while read -r ipfs cmd sub1 sub2
-do
+
+process_command() {
+    ipfs="$1"
+    cmd="$2"
+    sub1="$3"
+    sub2="$4"
+    sub3="$5"
+
     if test -n "$cmd"
     then
 	CMD_OUT="$TMPDIR/res_${ipfs}_${cmd}"
@@ -130,6 +136,13 @@ do
 		CMD_OUT="${CMD_OUT}_${sub2}"
 		PATTERN="$PATTERN(\W.*)*\W$sub2"
 		NAME="$NAME $sub2"
+
+		if test -n "$sub3"
+		then
+		    CMD_OUT="${CMD_OUT}_${sub3}"
+		    PATTERN="$PATTERN(\W.*)*\W$sub3"
+		    NAME="$NAME $sub3"
+		fi
 	    fi
 	fi
 
@@ -137,6 +150,20 @@ do
 	reverse "$CMD_OUT.txt" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
 	echo "$NAME" >>"$GLOBAL_REV"
     fi
+}
+
+reverse "$CMD_CMDS" | while read -r line
+do
+    LONG_CMD=$(echo "$line" | cut -d/ -f1)
+    SHORT_CMD=$(expr "$line" : "[^/]*/*\(.*\)")
+
+    log "Processing $LONG_CMD"
+    process_command $LONG_CMD
+
+    log "Processing $SHORT_CMD"
+    process_command $SHORT_CMD
+
+    echo >>"$GLOBAL_REV"
 done
 
 # The following will allow us to check that
