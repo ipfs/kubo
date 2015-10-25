@@ -567,7 +567,7 @@ func (i *cmdInvocation) SetupInterruptHandler(ctx context.Context) (io.Closer, c
 		}
 	}
 
-	intrh.Handle(handlerFunc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	intrh.Handle(handlerFunc, syscall.SIGHUP, os.Interrupt, syscall.SIGTERM)
 
 	return intrh, ctx
 }
