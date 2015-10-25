@@ -237,10 +237,10 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 			err := n.PeerHost.Connect(ctx, pi)
 			if err != nil {
-				output[i] += " failure: " + err.Error()
-			} else {
-				output[i] += " success"
+				res.SetError(fmt.Errorf("%s failure: %s", output[i], err), cmds.ErrNormal)
+				return
 			}
+			output[i] += " success"
 		}
 
 		res.SetOutput(&stringList{output})
