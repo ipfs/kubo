@@ -78,12 +78,13 @@ it contains, with the following format:
 				Links: make([]LsLink, len(dagnode.Links)),
 			}
 			for j, link := range dagnode.Links {
-				link.Node, err = link.GetNode(req.Context(), node.DAG)
+				var linkNode *merkledag.Node
+				linkNode, err = link.GetNode(req.Context(), node.DAG)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
-				d, err := unixfs.FromBytes(link.Node.Data)
+				d, err := unixfs.FromBytes(linkNode.Data)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
