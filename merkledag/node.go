@@ -2,7 +2,6 @@ package merkledag
 
 import (
 	"fmt"
-	"time"
 
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
@@ -77,6 +76,11 @@ func MakeLink(n *Node) (*Link, error) {
 	}, nil
 }
 
+// GetCachedNode returns the MDAG Node that was cached, or nil
+func (l *Link) GetCachedNode() *Node {
+	return l.Node
+}
+
 // GetNode returns the MDAG Node that this link points to
 func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 	if l.Node != nil {
@@ -89,13 +93,8 @@ func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 // GetNodeAndCache return the MDAG Node that the link points to and store a
 // pointer to that node along with the link to speed up further retrivals. A
 // timeout is to be specified to avoid taking too much time.
-func (l *Link) GetNodeAndCache(ctx context.Context, serv DAGService, timeout time.Duration) (*Node, error) {
+func (l *Link) GetNodeAndCache(ctx context.Context, serv DAGService) (*Node, error) {
 	if l.Node == nil {
-		if timeout != 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, time.Minute)
-			defer cancel()
-		}
 		nd, err := serv.Get(ctx, key.Key(l.Hash))
 		if err != nil {
 			return nil, err
