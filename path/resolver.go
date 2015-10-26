@@ -125,8 +125,14 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 			return result, ErrNoLink{name: name, node: n}
 		}
 
+		if nlink.GetCachedNode() == nil {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, time.Minute)
+			defer cancel()
+		}
+
 		var err error
-		nd, err = nlink.GetNodeAndCache(ctx, s.DAG, time.Minute)
+		nd, err = nlink.GetNodeAndCache(ctx, s.DAG)
 		if err != nil {
 			return append(result, nd), err
 		}
