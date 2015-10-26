@@ -12,6 +12,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
+	merkledag "github.com/ipfs/go-ipfs/merkledag"
 )
 
 type LsLink struct {
@@ -105,12 +106,13 @@ size is the IPFS link size.
 				links := make([]LsLink, len(merkleNode.Links))
 				output.Objects[hash].Links = links
 				for i, link := range merkleNode.Links {
-					link.Node, err = link.GetNode(ctx, node.DAG)
+					var linkNode *merkledag.Node
+					linkNode, err = link.GetNode(ctx, node.DAG)
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
 					}
-					d, err := unixfs.FromBytes(link.Node.Data)
+					d, err := unixfs.FromBytes(linkNode.Data)
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
