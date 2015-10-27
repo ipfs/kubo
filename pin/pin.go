@@ -83,6 +83,8 @@ func NewPinner(dstore ds.ThreadSafeDatastore, serv mdag.DAGService) Pinner {
 
 // Pin the given node, optionally recursive
 func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	k, err := node.Key()

@@ -142,10 +142,12 @@ func TestValueGetSet(t *testing.T) {
 
 	connect(t, ctx, dhtA, dhtB)
 
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
+	ctxT, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 	dhtA.PutValue(ctxT, "/v/hello", []byte("world"))
 
-	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
+	ctxT, cancel = context.WithTimeout(ctx, time.Second*2)
+	defer cancel()
 	val, err := dhtA.GetValue(ctxT, "/v/hello")
 	if err != nil {
 		t.Fatal(err)
@@ -155,7 +157,8 @@ func TestValueGetSet(t *testing.T) {
 		t.Fatalf("Expected 'world' got '%s'", string(val))
 	}
 
-	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
+	ctxT, cancel = context.WithTimeout(ctx, time.Second*2)
+	defer cancel()
 	val, err = dhtB.GetValue(ctxT, "/v/hello")
 	if err != nil {
 		t.Fatal(err)
@@ -219,7 +222,8 @@ func TestProvides(t *testing.T) {
 		n = (n + 1) % 3
 
 		log.Debugf("getting providers for %s from %d", k, n)
-		ctxT, _ := context.WithTimeout(ctx, time.Second)
+		ctxT, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
 		provchan := dhts[n].FindProvidersAsync(ctxT, k, 1)
 
 		select {
@@ -311,7 +315,8 @@ func TestBootstrap(t *testing.T) {
 	go func() {
 		for {
 			t.Logf("bootstrapping them so they find each other", nDHTs)
-			ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
+			ctxT, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
 			bootstrap(t, ctxT, dhts)
 
 			select {
@@ -436,7 +441,8 @@ func TestProvidesMany(t *testing.T) {
 
 	<-time.After(100 * time.Millisecond)
 	t.Logf("bootstrapping them so they find each other", nDHTs)
-	ctxT, _ := context.WithTimeout(ctx, 20*time.Second)
+	ctxT, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
 	bootstrap(t, ctxT, dhts)
 
 	if u.Debug {
@@ -487,7 +493,8 @@ func TestProvidesMany(t *testing.T) {
 
 	errchan := make(chan error)
 
-	ctxT, _ = context.WithTimeout(ctx, 5*time.Second)
+	ctxT, cancel = context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	var wg sync.WaitGroup
 	getProvider := func(dht *IpfsDHT, k key.Key) {
@@ -575,7 +582,8 @@ func TestProvidesAsync(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 60)
 
-	ctxT, _ := context.WithTimeout(ctx, time.Millisecond*300)
+	ctxT, cancel := context.WithTimeout(ctx, time.Millisecond*300)
+	defer cancel()
 	provs := dhts[0].FindProvidersAsync(ctxT, key.Key("hello"), 5)
 	select {
 	case p, ok := <-provs:
@@ -621,7 +629,8 @@ func TestLayeredGet(t *testing.T) {
 	time.Sleep(time.Millisecond * 6)
 
 	t.Log("interface was changed. GetValue should not use providers.")
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
+	ctxT, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 	val, err := dhts[0].GetValue(ctxT, key.Key("/v/hello"))
 	if err != routing.ErrNotFound {
 		t.Error(err)
@@ -654,7 +663,8 @@ func TestFindPeer(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
+	ctxT, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 	p, err := dhts[0].FindPeer(ctxT, peers[2])
 	if err != nil {
 		t.Fatal(err)
@@ -698,7 +708,8 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 	// fmt.Println("2 is", peers[2])
 	// fmt.Println("3 is", peers[3])
 
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
+	ctxT, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 	pchan, err := dhts[0].FindPeersConnectedToPeer(ctxT, peers[2])
 	if err != nil {
 		t.Fatal(err)

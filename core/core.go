@@ -59,10 +59,12 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-const IpnsValidatorTag = "ipns"
-const kSizeBlockstoreWriteCache = 100
-const kReprovideFrequency = time.Hour * 12
-const discoveryConnTimeout = time.Second * 30
+const (
+	IpnsValidatorTag          = "ipns"
+	kSizeBlockstoreWriteCache = 100
+	kReprovideFrequency       = time.Hour * 12
+	discoveryConnTimeout      = time.Second * 30
+)
 
 var log = logging.Logger("core")
 

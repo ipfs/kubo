@@ -338,10 +338,8 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tctx, cancel := context.WithTimeout(ctx, time.Minute)
-	defer cancel()
 	// TODO(cryptix): could this be core.Resolve() too?
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, key.Key(h))
+	rootnd, err := i.node.Resolver.DAG.Get(ctx, key.Key(h))
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return
@@ -349,7 +347,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	// resolving path components into merkledag nodes. if a component does not
 	// resolve, create empty directories (which will be linked and populated below.)
-	pathNodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
+	pathNodes, err := i.node.Resolver.ResolveLinks(ctx, rootnd, components[:len(components)-1])
 	if _, ok := err.(path.ErrNoLink); ok {
 		// Create empty directories, links will be made further down the code
 		for len(pathNodes) < len(components) {
@@ -409,15 +407,13 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tctx, cancel := context.WithTimeout(ctx, time.Minute)
-	defer cancel()
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, key.Key(h))
+	rootnd, err := i.node.Resolver.DAG.Get(ctx, key.Key(h))
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return
 	}
 
-	pathNodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
+	pathNodes, err := i.node.Resolver.ResolveLinks(ctx, rootnd, components[:len(components)-1])
 	if err != nil {
 		webError(w, "Could not resolve parent object", err, http.StatusBadRequest)
 		return

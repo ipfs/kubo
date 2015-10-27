@@ -533,8 +533,7 @@ PutValue will store the given key value pair in the dht.
 
 		go func() {
 			defer close(events)
-			err := dht.PutValue(ctx, key, []byte(data))
-			if err != nil {
+			if err := dht.PutValue(ctx, key, []byte(data)); err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
 					Extra: err.Error(),
