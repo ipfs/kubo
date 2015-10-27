@@ -122,7 +122,7 @@ test_ls_cmd() {
 			  }
 			}
 		EOF
-		printf %s "$(cat expected_json_ls_file_trailing_newline)" >expected_json_ls_file &&
+		printf "%s\n" "$(cat expected_json_ls_file_trailing_newline)" >expected_json_ls_file &&
 		test_cmp expected_json_ls_file actual_json_ls_file
 	'
 
@@ -168,7 +168,7 @@ test_ls_cmd() {
 			  }
 			}
 		EOF
-		printf %s "$(cat expected_json_ls_duplicates_file_trailing_newline)" >expected_json_ls_duplicates_file &&
+		printf "%s\n" "$(cat expected_json_ls_duplicates_file_trailing_newline)" >expected_json_ls_duplicates_file &&
 		test_cmp expected_json_ls_duplicates_file actual_json_ls_duplicates_file
 	'
 }

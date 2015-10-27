@@ -47,6 +47,7 @@ func marshalJson(value interface{}) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
+	b = append(b, '\n')
 	return bytes.NewReader(b), nil
 }
 
