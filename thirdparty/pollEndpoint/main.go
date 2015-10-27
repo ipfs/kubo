@@ -10,9 +10,9 @@ import (
 	"os"
 	"time"
 
-	log "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	logging "github.com/ipfs/go-ipfs/vendor/QmTBXYb6y2ZcJmoXVKk3pf9rzSEjbCg7tQaJW7RSuH14nv/go-log"
 )
 
 var (
@@ -23,25 +23,27 @@ var (
 	verbose  = flag.Bool("v", false, "verbose logging")
 )
 
+var log = logging.Logger("pollEndpoint")
+
 func main() {
 	flag.Parse()
 
 	// extract address from host flag
 	addr, err := ma.NewMultiaddr(*host)
 	if err != nil {
-		log.WithField("err", err).Fatal("NewMultiaddr() failed")
+		log.Fatal("NewMultiaddr() failed: ", err)
 	}
 	p := addr.Protocols()
 	if len(p) < 2 {
-		log.WithField("addr", addr).Fatal("need two protocols in host flag (/ip/tcp)")
+		log.Fatal("need two protocols in host flag (/ip/tcp): ", addr)
 	}
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
-		log.WithField("err", err).Fatal("manet.DialArgs() failed")
+		log.Fatal("manet.DialArgs() failed: ", err)
 	}
 
 	if *verbose { // lower log level
-		log.SetLevel(log.DebugLevel)
+		logging.SetDebugLogging()
 	}
 
 	// construct url to dial
@@ -52,29 +54,21 @@ func main() {
 
 	// show what we got
 	start := time.Now()
-	log.WithFields(log.Fields{
-		"when":    start,
-		"tries":   *tries,
-		"timeout": *timeout,
-		"url":     u.String(),
-	}).Debug("starting")
+	log.Debug("starting at %s, tries: %d, timeout: %s, url: %s", start, *tries, *timeout, u)
 
 	for *tries > 0 {
-		f := log.Fields{"tries": *tries}
 
 		err := checkOK(http.Get(u.String()))
 		if err == nil {
-			f["took"] = time.Since(start)
-			log.WithFields(f).Println("status ok - endpoint reachable")
+			log.Debugf("ok -  endpoint reachable with %d tries remaining, took %s", *tries, time.Since(start))
 			os.Exit(0)
 		}
-		f["error"] = err
-		log.WithFields(f).Debug("get failed")
+		log.Debug("get failed: ", err)
 		time.Sleep(*timeout)
 		*tries--
 	}
 
-	log.Println("failed.")
+	log.Error("failed.")
 	os.Exit(1)
 }
 
