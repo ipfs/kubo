@@ -28,6 +28,16 @@ test_expect_success 'disconnected: addrs local matches ipfs id' '
 	test_cmp expected actual
 '
 
+test_expect_success "ipfs id self works" '
+	myid=$(ipfs id -f="<id>") &&
+	ipfs id --timeout=1s $myid > output
+'
+
+test_expect_success "output looks good" '
+	grep $myid output &&
+	grep PublicKey output
+'
+
 test_kill_ipfs_daemon
 
 test_done
