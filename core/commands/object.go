@@ -332,7 +332,7 @@ and then run
 		cmds.FileArg("data", true, false, "Data to be stored as a DAG object").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\""),
+		cmds.StringOption("inputenc", 0, "Encoding type of input data, either \"protobuf\" or \"json\""),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -468,7 +468,7 @@ The data inside the node can be modified as well:
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("create", "p", "create intermediate directories on add-link"),
+		cmds.BoolOption("create", 'p', "create intermediate directories on add-link"),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "the hash of the node to modify"),

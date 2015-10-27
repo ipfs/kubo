@@ -63,13 +63,13 @@ remains to be implemented.
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
-		cmds.BoolOption(quietOptionName, "q", "Write minimal output"),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
-		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
-		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk"),
-		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
-		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden"),
-		cmds.StringOption(chunkerOptionName, "s", "chunking algorithm to use"),
+		cmds.BoolOption(quietOptionName, 'q', "Write minimal output"),
+		cmds.BoolOption(progressOptionName, 'p', "Stream progress data"),
+		cmds.BoolOption(trickleOptionName, 't', "Use trickle-dag format for dag generation"),
+		cmds.BoolOption(onlyHashOptionName, 'n', "Only chunk and hash - do not write to disk"),
+		cmds.BoolOption(wrapOptionName, 'w', "Wrap files with a directory object"),
+		cmds.BoolOption(hiddenOptionName, 'H', "Include files that are hidden"),
+		cmds.StringOption(chunkerOptionName, 's', "chunking algorithm to use"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {

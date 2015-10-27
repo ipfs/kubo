@@ -68,8 +68,8 @@ func TestOptionParsing(t *testing.T) {
 	subCmd := &commands.Command{}
 	cmd := &commands.Command{
 		Options: []commands.Option{
-			commands.StringOption("string", "s", "a string"),
-			commands.BoolOption("bool", "b", "a bool"),
+			commands.StringOption("string", 's', "a string"),
+			commands.BoolOption("bool", 'b', "a bool"),
 		},
 		Subcommands: map[string]*commands.Command{
 			"test": subCmd,

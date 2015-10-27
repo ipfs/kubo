@@ -106,14 +106,14 @@ future version, along with this notice. Please move to setting the HTTP Headers.
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption(initOptionKwd, "Initialize IPFS with default settings if not already initialized"),
-		cmds.StringOption(routingOptionKwd, "Overrides the routing option (dht, supernode)"),
-		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
-		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
-		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
-		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount)"),
-		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
-		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
+		cmds.BoolOption(initOptionKwd, 0, "Initialize IPFS with default settings if not already initialized"),
+		cmds.StringOption(routingOptionKwd, 0, "Overrides the routing option (dht, supernode)"),
+		cmds.BoolOption(mountKwd, 0, "Mounts IPFS to the filesystem"),
+		cmds.BoolOption(writableKwd, 0, "Enable writing objects (with POST, PUT and DELETE)"),
+		cmds.StringOption(ipfsMountKwd, 0, "Path to the mountpoint for IPFS (if using --mount)"),
+		cmds.StringOption(ipnsMountKwd, 0, "Path to the mountpoint for IPNS (if using --mount)"),
+		cmds.BoolOption(unrestrictedApiAccessKwd, 0, "Allow API access to unlisted hashes"),
+		cmds.BoolOption(unencryptTransportKwd, 0, "Disable transport encryption (for debugging protocols)"),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),

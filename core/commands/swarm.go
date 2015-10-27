@@ -159,7 +159,7 @@ ipfs swarm addrs local lists all local addresses the node is listening on.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("id", "Show peer ID in addresses"),
+		cmds.BoolOption("id", 0, "Show peer ID in addresses"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

@@ -136,10 +136,10 @@ func parseOptions(r *http.Request) (map[string]interface{}, []string) {
 	}
 
 	// default to setting encoding to JSON
-	_, short := opts[cmds.EncShort]
+	_, short := opts[string(cmds.EncShort)]
 	_, long := opts[cmds.EncLong]
 	if !short && !long {
-		opts[cmds.EncShort] = cmds.JSON
+		opts[string(cmds.EncShort)] = cmds.JSON
 	}
 
 	return opts, args

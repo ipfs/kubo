@@ -94,8 +94,8 @@ test_object_cmd() {
 		test_cmp expected_putBroken actual_putBroken &&
 		test_cmp expected_putBrokenErr actual_putBrokenErr
 	'
-	test_expect_success "'ipfs object get --enc=xml' succeeds" '
-		ipfs object get --enc=xml $HASH >utf8_xml
+	test_expect_success "'ipfs object get -E=xml' succeeds" '
+		ipfs object get -E=xml $HASH >utf8_xml
 	'
 
 	test_expect_success "'ipfs object put --inputenc=xml' succeeds" '
@@ -155,8 +155,8 @@ test_object_cmd() {
 		test_cmp expected actual
 	'
 
-	test_expect_success "'ipfs object get --enc=json' succeeds" '
-		ipfs object get --enc=json $HASH >utf8_json
+	test_expect_success "'ipfs object get -E=json' succeeds" '
+		ipfs object get -E=json $HASH >utf8_json
 	'
 
 	test_expect_success "'ipfs object put --inputenc=json' succeeds" '

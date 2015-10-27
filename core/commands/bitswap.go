@@ -73,7 +73,7 @@ var showWantlistCmd = &cmds.Command{
 Print out all blocks currently on the bitswap wantlist for the local peer`,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("peer", "p", "specify which peer to show wantlist for (default self)"),
+		cmds.StringOption("peer", 'p', "specify which peer to show wantlist for (default self)"),
 	},
 	Type: KeyList{},
 	Run: func(req cmds.Request, res cmds.Response) {

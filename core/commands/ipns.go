@@ -44,7 +44,7 @@ Resolve the value of another name:
 		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name"),
+		cmds.BoolOption("recursive", 'r', "Resolve until the result is not an IPNS name"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

@@ -34,7 +34,7 @@ order to reclaim hard disk space.
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("quiet", "q", "Write minimal output"),
+		cmds.BoolOption("quiet", 'q', "Write minimal output"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

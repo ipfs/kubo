@@ -56,7 +56,7 @@ in the bootstrap list).
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("default", "add default bootstrap nodes"),
+		cmds.BoolOption("default", 0, "add default bootstrap nodes"),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -137,7 +137,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("all", "Remove all bootstrap peers."),
+		cmds.BoolOption("all", 0, "Remove all bootstrap peers."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		input, err := config.ParseBootstrapPeers(req.Arguments())

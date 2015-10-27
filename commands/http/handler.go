@@ -172,7 +172,7 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func guessMimeType(res cmds.Response) (string, error) {
 	// Try to guess mimeType from the encoding option
-	enc, found, err := res.Request().Option(cmds.EncShort).String()
+	enc, found, err := res.Request().Option(string(cmds.EncShort)).String()
 	if err != nil {
 		return "", err
 	}

@@ -171,6 +171,15 @@ func (c *Command) Get(path []string) (*Command, error) {
 	return cmds[len(cmds)-1], nil
 }
 
+func AddOption(optionsMap map[string]Option, name string, opt Option) error {
+	if _, found := optionsMap[name]; found {
+		return fmt.Errorf("Option name '%s' used multiple times", name)
+	}
+
+	optionsMap[name] = opt
+	return nil
+}
+
 // GetOptions gets the options in the given path of commands
 func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 	options := make([]Option, 0, len(c.Options))
@@ -187,12 +196,17 @@ func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 
 	optionsMap := make(map[string]Option)
 	for _, opt := range options {
-		for _, name := range opt.Names() {
-			if _, found := optionsMap[name]; found {
-				return nil, fmt.Errorf("Option name '%s' used multiple times", name)
+		if opt.LongName() != "" {
+			err := AddOption(optionsMap, opt.LongName(), opt)
+			if err != nil {
+				return nil, err
 			}
-
-			optionsMap[name] = opt
+		}
+		if opt.ShortName() != 0 {
+			err = AddOption(optionsMap, string(opt.ShortName()), opt)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

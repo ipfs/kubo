@@ -86,7 +86,7 @@ that consume the dot format to generate graphs of the network.
 	},
 
 	Options: []cmds.Option{
-		cmds.StringOption("vis", "output vis. one of: "+strings.Join(visFmts, ", ")),
+		cmds.StringOption("vis", 0, "output vis. one of: "+strings.Join(visFmts, ", ")),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {

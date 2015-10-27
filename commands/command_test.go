@@ -9,8 +9,8 @@ func noop(req Request, res Response) {
 func TestOptionValidation(t *testing.T) {
 	cmd := Command{
 		Options: []Option{
-			IntOption("b", "beep", "enables beeper"),
-			StringOption("B", "boop", "password for booper"),
+			IntOption("beep", 'b', "enables beeper"),
+			StringOption("boop", 'B', "password for booper"),
 		},
 		Run: noop,
 	}
@@ -55,7 +55,7 @@ func TestOptionValidation(t *testing.T) {
 	}
 
 	req, _ = NewRequest(nil, nil, nil, nil, nil, opts)
-	req.SetOption(EncShort, "json")
+	req.SetOption(string(EncShort), "json")
 	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")
@@ -93,14 +93,14 @@ func TestOptionValidation(t *testing.T) {
 func TestRegistration(t *testing.T) {
 	cmdA := &Command{
 		Options: []Option{
-			IntOption("beep", "number of beeps"),
+			IntOption("beep", 0, "number of beeps"),
 		},
 		Run: noop,
 	}
 
 	cmdB := &Command{
 		Options: []Option{
-			IntOption("beep", "number of beeps"),
+			IntOption("beep", 0, "number of beeps"),
 		},
 		Run: noop,
 		Subcommands: map[string]*Command{
@@ -110,7 +110,7 @@ func TestRegistration(t *testing.T) {
 
 	cmdC := &Command{
 		Options: []Option{
-			StringOption("encoding", "data encoding type"),
+			StringOption("encoding", 0, "data encoding type"),
 		},
 		Run: noop,
 	}

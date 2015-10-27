@@ -110,11 +110,16 @@ func (r *request) Option(name string) *OptionValue {
 	}
 
 	// try all the possible names, break if we find a value
-	for _, n := range option.Names() {
-		val, found := r.options[n]
-		if found {
-			return &OptionValue{val, found, option}
-		}
+	n := option.LongName()
+	val, found := r.options[n]
+	if found {
+		return &OptionValue{val, found, option}
+	}
+
+	n = string(option.ShortName())
+	val, found = r.options[n]
+	if found {
+		return &OptionValue{val, found, option}
 	}
 
 	// MAYBE_TODO: use default value instead of nil
@@ -149,12 +154,18 @@ func (r *request) SetOption(name string, val interface{}) {
 	}
 
 	// try all the possible names, if we already have a value then set over it
-	for _, n := range option.Names() {
-		_, found := r.options[n]
-		if found {
-			r.options[n] = val
-			return
-		}
+	n := option.LongName()
+	_, found = r.options[n]
+	if found {
+		r.options[n] = val
+		return
+	}
+
+	n = string(option.ShortName())
+	_, found = r.options[n]
+	if found {
+		r.options[n] = val
+		return
 	}
 
 	r.options[name] = val
@@ -291,11 +302,15 @@ func (r *request) ConvertOptions() error {
 			r.options[k] = v
 		}
 
-		for _, name := range opt.Names() {
-			if _, ok := r.options[name]; name != k && ok {
-				return fmt.Errorf("Duplicate command options were provided ('%s' and '%s')",
-					k, name)
-			}
+		name := opt.LongName()
+		if _, ok := r.options[name]; name != k && ok {
+			return fmt.Errorf("Duplicate command options were provided ('%s' and '%s')",
+				k, name)
+		}
+		name = string(opt.ShortName())
+		if _, ok := r.options[name]; name != k && ok {
+			return fmt.Errorf("Duplicate command options were provided ('%s' and '%s')",
+				k, name)
 		}
 	}
 
