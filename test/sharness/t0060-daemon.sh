@@ -109,6 +109,17 @@ test_expect_success "transport should be encrypted" '
 	test_fsh cat swarmnc
 '
 
+test_expect_success "output from streaming commands works" '
+	test_expect_code 28 curl -m 2 http://localhost:5001/api/v0/stats/bw\?poll=true > statsout
+'
+
+test_expect_success "output looks good" '
+	grep TotalIn statsout > /dev/null &&
+	grep TotalOut statsout > /dev/null &&
+	grep RateIn statsout > /dev/null &&
+	grep RateOut statsout >/dev/null
+'
+
 # end same as in t0010
 
 test_expect_success "daemon is still running" '
