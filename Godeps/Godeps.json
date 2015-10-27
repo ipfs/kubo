@@ -15,11 +15,6 @@
 			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
 		},
 		{
-			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.7.3-2-g26709e2",
-			"Rev": "26709e2714106fb8ad40b773b711ebce25b78914"
-		},
-		{
 			"ImportPath": "github.com/alecthomas/kingpin",
 			"Comment": "v2.1.0-2-gaedd543",
 			"Rev": "aedd5430ecd39ba1396fee0c00308b494c552b1e"
@@ -138,7 +133,7 @@
 		},
 		{
 			"ImportPath": "github.com/ipfs/go-log",
-			"Rev": "ee5cb9834b33bcf29689183e0323e328c8b8de29"
+			"Rev": "bf32e06c2f9c81eb33460bc08305aa946f0d893d"
 		},
 		{
 			"ImportPath": "github.com/jackpal/go-nat-pmp",
@@ -321,6 +316,10 @@
 		{
 			"ImportPath": "github.com/whyrusleeping/chunker",
 			"Rev": "537e901819164627ca4bb5ce4e3faa8ce7956564"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-logging",
+			"Rev": "128b9855511a4ea3ccbcf712695baf2bab72e134"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/go-metrics",
