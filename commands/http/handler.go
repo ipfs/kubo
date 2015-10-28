@@ -180,7 +180,11 @@ func guessMimeType(res cmds.Response) (string, error) {
 		return "", errors.New("no encoding option set")
 	}
 
-	return mimeTypes[enc], nil
+	if m, ok := mimeTypes[enc]; ok {
+		return m, nil
+	}
+
+	return mimeTypes[cmds.JSON], nil
 }
 
 func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req cmds.Request) {
@@ -217,10 +221,9 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	}
 
 	if _, ok := res.Output().(io.Reader); ok {
-		// we don't set the Content-Type for streams, so that browsers can MIME-sniff the type themselves
-		// we set this header so clients have a way to know this is an output stream
-		// (not marshalled command output)
-		mime = ""
+		// set streams output type to text to avoid issues with browsers rendering
+		// html pages on priveleged api ports
+		mime = "text/plain"
 		h.Set(streamHeader, "1")
 	}
 
@@ -235,9 +238,12 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 		h.Set(channelHeader, "1")
 	}
 
-	if mime != "" {
-		h.Set(contentTypeHeader, mime)
+	// catch-all, set to text as default
+	if mime == "" {
+		mime = "text/plain"
 	}
+
+	h.Set(contentTypeHeader, mime)
 	h.Set(transferEncodingHeader, "chunked")
 
 	if r.Method == "HEAD" { // after all the headers.
