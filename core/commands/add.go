@@ -18,6 +18,7 @@ import (
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	importer "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
+	"github.com/ipfs/go-ipfs/importer/helpers"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	pin "github.com/ipfs/go-ipfs/pin"
@@ -39,6 +40,7 @@ const (
 	hiddenOptionName   = "hidden"
 	onlyHashOptionName = "only-hash"
 	chunkerOptionName  = "chunker"
+	noPinOptionName    = "no-pin"
 )
 
 type AddedObject struct {
@@ -70,6 +72,7 @@ remains to be implemented.
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
 		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden"),
 		cmds.StringOption(chunkerOptionName, "s", "chunking algorithm to use"),
+		cmds.BoolOption(noPinOptionName, "x", "Don't pin when adding content"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
@@ -107,6 +110,7 @@ remains to be implemented.
 		hash, _, _ := req.Option(onlyHashOptionName).Bool()
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
+		nopin, _, _ := req.Option(noPinOptionName).Bool()
 
 		e := dagutils.NewDagEditor(NewMemoryDagService(), newDirNode())
 		if hash {
@@ -135,6 +139,7 @@ remains to be implemented.
 			hidden:   hidden,
 			trickle:  trickle,
 			wrap:     wrap,
+			nopin:    nopin,
 		}
 
 		// addAllFiles loops over a convenience slice file to
@@ -156,6 +161,9 @@ remains to be implemented.
 		}
 
 		pinRoot := func(rootnd *dag.Node) error {
+			if nopin {
+				return nil
+			}
 			rnk, err := rootnd.Key()
 			if err != nil {
 				return err
@@ -302,29 +310,36 @@ type adder struct {
 	trickle  bool
 	wrap     bool
 	chunker  string
+	nopin    bool
 
 	nextUntitled int
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func add(n *core.IpfsNode, reader io.Reader, useTrickle bool, chunker string) (*dag.Node, error) {
+func add(n *core.IpfsNode, reader io.Reader, useTrickle bool, chunker string, nopin bool) (*dag.Node, error) {
 	chnk, err := chunk.FromString(reader, chunker)
 	if err != nil {
 		return nil, err
 	}
 
 	var node *dag.Node
+	var pinCB helpers.NodeCB
+	if nopin {
+		pinCB = helpers.NilFunc
+	} else {
+		pinCB = importer.PinIndirectCB(n.Pinning.GetManual())
+	}
 	if useTrickle {
 		node, err = importer.BuildTrickleDagFromReader(
 			n.DAG,
 			chnk,
-			importer.PinIndirectCB(n.Pinning.GetManual()),
+			pinCB,
 		)
 	} else {
 		node, err = importer.BuildDagFromReader(
 			n.DAG,
 			chnk,
-			importer.PinIndirectCB(n.Pinning.GetManual()),
+			pinCB,
 		)
 	}
 
@@ -405,7 +420,7 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 		reader = &progressReader{file: file, out: params.out}
 	}
 
-	dagnode, err := add(params.node, reader, params.trickle, params.chunker)
+	dagnode, err := add(params.node, reader, params.trickle, params.chunker, params.nopin)
 	if err != nil {
 		return nil, err
 	}
@@ -456,7 +471,9 @@ func (params *adder) addDir(file files.File) (*dag.Node, error) {
 		return nil, err
 	}
 
-	params.node.Pinning.GetManual().PinWithMode(k, pin.Indirect)
+	if !params.nopin {
+		params.node.Pinning.GetManual().PinWithMode(k, pin.Indirect)
+	}
 
 	return tree, nil
 }

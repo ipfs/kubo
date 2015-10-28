@@ -11,7 +11,7 @@ import (
 // only pinning the first node recursively.
 type NodeCB func(node *dag.Node, last bool) error
 
-var nilFunc NodeCB = func(_ *dag.Node, _ bool) error { return nil }
+var NilFunc NodeCB = func(_ *dag.Node, _ bool) error { return nil }
 
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
@@ -44,7 +44,7 @@ type DagBuilderParams struct {
 func (dbp *DagBuilderParams) New(in <-chan []byte, errs <-chan error) *DagBuilderHelper {
 	ncb := dbp.NodeCB
 	if ncb == nil {
-		ncb = nilFunc
+		ncb = NilFunc
 	}
 
 	return &DagBuilderHelper{
