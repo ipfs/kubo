@@ -61,6 +61,16 @@ test_config_cmd() {
   test_config_cmd_set "--json" "deep-null" "null"
   test_config_cmd_set "--json" "deep-null.prop" "true"
 
+  test_expect_success "'ipfs config show' works" '
+    ipfs config show >actual
+  '
+
+  test_expect_success "'ipfs config show' output looks good" '
+    grep "\"beep\": \"boop\"," actual &&
+    grep "\"beep1\": \"boop2\"," actual &&
+    grep "\"beep2\": false," actual &&
+    grep "\"beep3\": false," actual
+  '
 }
 
 test_init_ipfs
