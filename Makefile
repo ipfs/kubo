@@ -34,7 +34,7 @@ nofuse:
 ##############################################################
 # tests targets
 
-test: test_expensive
+test: test_expensive windows_build_check
 
 test_short: build test_go_short test_sharness_short
 
@@ -71,3 +71,8 @@ test_all_commits_travis:
 	git config --global user.name "IPFS BOT"
 	git fetch origin master:master
 	GIT_EDITOR=true git rebase -i --exec "make test" master
+
+# since we have CI for osx and linux but not windows, this should help
+windows_build_check:
+	GOOS=windows GOARCH=amd64 go build -o .test.ipfs.exe -tags=nofuse ./cmd/ipfs
+	rm .test.ipfs.exe

@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/StackExchange/wmi"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/StackExchange/wmi"
 
 	common "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/shirou/gopsutil/common"
 )
