@@ -17,21 +17,32 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
+	infd "github.com/ipfs/go-ipfs/util/infduration"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 type mockNamesys map[string]path.Path
 
 func (m mockNamesys) Resolve(ctx context.Context, name string) (value path.Path, err error) {
-	return m.ResolveN(ctx, name, namesys.DefaultDepthLimit)
+	p, _, err := m.ResolveWithTTL(ctx, name)
+	return p, err
 }
 
 func (m mockNamesys) ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error) {
+	p, _, err := m.ResolveNWithTTL(ctx, name, depth)
+	return p, err
+}
+
+func (m mockNamesys) ResolveWithTTL(ctx context.Context, name string) (value path.Path, ttl infd.Duration, err error) {
+	return m.ResolveNWithTTL(ctx, name, namesys.DefaultDepthLimit)
+}
+
+func (m mockNamesys) ResolveNWithTTL(ctx context.Context, name string, depth int) (value path.Path, ttl infd.Duration, err error) {
 	p, ok := m[name]
 	if !ok {
-		return "", namesys.ErrResolveFailed
+		return "", infd.FiniteDuration(0), namesys.ErrResolveFailed
 	}
-	return p, nil
+	return p, infd.FiniteDuration(0), nil
 }
 
 func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {

@@ -36,6 +36,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
+	infd "github.com/ipfs/go-ipfs/util/infduration"
 )
 
 const (
@@ -47,6 +48,10 @@ const (
 	// trust resolution to eventually complete and can't put an upper
 	// limit on how many steps it will take.
 	UnlimitedDepth = 0
+
+	// UnknownTTL is the time-to-live value to be reported for mutable
+	// paths when accurate information is not available.
+	UnknownTTL = time.Minute
 )
 
 // ErrResolveFailed signals an error when attempting to resolve.
@@ -98,6 +103,16 @@ type Resolver interface {
 	// Most users should use Resolve, since the default limit works well
 	// in most real-world situations.
 	ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error)
+
+	// ResolveWithTTL is like Resolve but also returns a time-to-live value
+	// which indicates the maximum amount of time the result (whether a
+	// success or an error) may be cached.
+	ResolveWithTTL(ctx context.Context, name string) (value path.Path, ttl infd.Duration, err error)
+
+	// ResolveNWithTTL is like ResolveN but also returns a time-to-live
+	// value which indicates the maximum amount of time the result (whether
+	// a success or an error) may be cached.
+	ResolveNWithTTL(ctx context.Context, name string, depth int) (value path.Path, ttl infd.Duration, err error)
 }
 
 // Publisher is an object capable of publishing particular names.

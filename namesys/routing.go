@@ -14,6 +14,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	routing "github.com/ipfs/go-ipfs/routing"
 	u "github.com/ipfs/go-ipfs/util"
+	infd "github.com/ipfs/go-ipfs/util/infduration"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
@@ -26,14 +27,14 @@ type routingResolver struct {
 	cache *lru.Cache
 }
 
-func (r *routingResolver) cacheGet(name string) (path.Path, bool) {
+func (r *routingResolver) cacheGet(name string) (path.Path, time.Duration, bool) {
 	if r.cache == nil {
-		return "", false
+		return "", 0, false
 	}
 
 	ientry, ok := r.cache.Get(name)
 	if !ok {
-		return "", false
+		return "", 0, false
 	}
 
 	entry, ok := ientry.(cacheEntry)
@@ -42,13 +43,14 @@ func (r *routingResolver) cacheGet(name string) (path.Path, bool) {
 		log.Panicf("unexpected type %T in cache for %q.", ientry, name)
 	}
 
-	if time.Now().Before(entry.eol) {
-		return entry.val, true
+	now := time.Now()
+	if now.Before(entry.eol) {
+		return entry.val, entry.eol.Sub(now), true
 	}
 
 	r.cache.Remove(name)
 
-	return "", false
+	return "", 0, false
 }
 
 func (r *routingResolver) cacheSet(name string, val path.Path, eol time.Time, rec *pb.IpnsEntry) {
@@ -89,27 +91,38 @@ func NewRoutingResolver(route routing.IpfsRouting, cachesize int) *routingResolv
 
 // Resolve implements Resolver.
 func (r *routingResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
-	return r.ResolveN(ctx, name, DefaultDepthLimit)
+	p, _, err := r.ResolveWithTTL(ctx, name)
+	return p, err
 }
 
 // ResolveN implements Resolver.
 func (r *routingResolver) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
+	p, _, err := r.ResolveNWithTTL(ctx, name, depth)
+	return p, err
+}
+
+// ResolveWithTTL implements Resolver.
+func (r *routingResolver) ResolveWithTTL(ctx context.Context, name string) (path.Path, infd.Duration, error) {
+	return r.ResolveNWithTTL(ctx, name, DefaultDepthLimit)
+}
+
+// ResolveNWithTTL implements Resolver.
+func (r *routingResolver) ResolveNWithTTL(ctx context.Context, name string, depth int) (path.Path, infd.Duration, error) {
 	return resolve(ctx, r, name, depth, "/ipns/")
 }
 
 // resolveOnce implements resolver. Uses the IPFS routing system to
 // resolve SFS-like names.
-func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
-	log.Debugf("RoutingResolve: '%s'", name)
-	cached, ok := r.cacheGet(name)
-	if ok {
-		return cached, nil
+func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Path, infd.Duration, error) {
+	log.Debugf("RoutingResolve: %q", name)
+	if cached, ttl, ok := r.cacheGet(name); ok {
+		return cached, infd.FiniteDuration(ttl), nil
 	}
 
 	hash, err := mh.FromB58String(name)
 	if err != nil {
-		log.Warning("RoutingResolve: bad input hash: [%s]\n", name)
-		return "", err
+		log.Warningf("RoutingResolve: bad input hash: %q", name)
+		return "", infd.InfiniteDuration(), err
 	}
 	// name should be a multihash. if it isn't, error out here.
 
@@ -121,19 +134,19 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 	val, err := r.routing.GetValue(ctx, ipnsKey)
 	if err != nil {
 		log.Warning("RoutingResolve get failed.")
-		return "", err
+		return "", infd.FiniteDuration(0), err
 	}
 
 	entry := new(pb.IpnsEntry)
 	err = proto.Unmarshal(val, entry)
 	if err != nil {
-		return "", err
+		return "", infd.FiniteDuration(0), err
 	}
 
 	// name should be a public key retrievable from ipfs
 	pubkey, err := routing.GetPublicKey(r.routing, ctx, hash)
 	if err != nil {
-		return "", err
+		return "", infd.FiniteDuration(0), err
 	}
 
 	hsh, _ := pubkey.Hash()
@@ -141,14 +154,14 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 
 	// check sig with pk
 	if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
-		return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pubkey)
+		return "", infd.FiniteDuration(0), fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pubkey)
 	}
 
 	// ok sig checks out. this is a valid name.
 
 	p, err := entryPath(entry)
 	if err != nil {
-		return "", err
+		return "", infd.FiniteDuration(0), err
 	}
 
 	eol, ttl := entryEOL(name, entry)
@@ -156,7 +169,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		r.cacheSet(name, p, eol, entry)
 	}
 
-	return p, nil
+	return p, infd.FiniteDuration(ttl), nil
 }
 
 // entryPath computes the path an IPNS entry points to.
@@ -181,7 +194,7 @@ func entryPath(e *pb.IpnsEntry) (path.Path, error) {
 // and the EOL into account.
 func entryEOL(name string, e *pb.IpnsEntry) (time.Time, time.Duration) {
 	// if completely unspecified, just use one minute
-	ttl := DefaultResolverCacheTTL
+	ttl := UnknownTTL
 	if e.Ttl != nil {
 		recttl := time.Duration(e.GetTtl())
 		if recttl >= 0 {
