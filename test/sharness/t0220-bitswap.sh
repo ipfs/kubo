@@ -36,6 +36,19 @@ EOF
 	test_cmp expected stat_out
 '
 
+test_expect_success "ipfs peer id looks good" '
+	PEERID=$(ipfs config Identity.PeerID) &&
+	test_check_peerid "$PEERID"
+'
+
+test_expect_success "'ipfs bitswap wantlist -p' works" '
+	ipfs bitswap wantlist -p "$PEERID" >wantlist_p_out
+'
+
+test_expect_failure "'ipfs bitswap wantlist -p' output looks good" '
+	test_cmp wantlist_out wantlist_p_out
+'
+
 test_expect_success "'ipfs bitswap unwant' succeeds" '
 	ipfs bitswap unwant $NONEXIST
 '
@@ -60,6 +73,14 @@ bitswap status
 	partners [0]
 EOF
 	test_cmp expected stat_out
+'
+
+test_expect_success "'ipfs bitswap wantlist -p' works" '
+	ipfs bitswap wantlist -p "$PEERID" >wantlist_p_out
+'
+
+test_expect_success "'ipfs bitswap wantlist -p' output looks good" '
+	test_cmp wantlist_out wantlist_p_out
 '
 
 test_kill_ipfs_daemon
