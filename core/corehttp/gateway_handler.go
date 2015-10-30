@@ -401,6 +401,12 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// catches handler panic
+	if len(components) == 0 {
+		webError(w, "delete request not meaningful", fmt.Errorf("deleteHandler: empty path. %q", urlPath), http.StatusMethodNotAllowed)
+		return
+	}
+
 	pathNodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
 	if err != nil {
 		webError(w, "Could not resolve parent object", err, http.StatusBadRequest)
