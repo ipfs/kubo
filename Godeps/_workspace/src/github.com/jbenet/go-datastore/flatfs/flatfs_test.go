@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"testing"
 
-	rand "github.com/dustin/randbo"
+	rand "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/randbo"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/flatfs"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
