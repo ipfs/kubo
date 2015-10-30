@@ -77,12 +77,13 @@ var logTailCmd = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
+		ctx := req.Context()
 		r, w := io.Pipe()
-		logging.WriterGroup.AddWriter(w)
 		go func() {
-			<-req.Context().Done()
-			w.Close()
+			defer w.Close()
+			<-ctx.Done()
 		}()
+		logging.WriterGroup.AddWriter(w)
 		res.SetOutput(r)
 	},
 }

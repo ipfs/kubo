@@ -14,7 +14,7 @@ type writeErrNotifier struct {
 	errs chan error
 }
 
-func newWriteErrNotifier(w io.Writer) (io.Writer, <-chan error) {
+func newWriteErrNotifier(w io.Writer) (io.WriteCloser, <-chan error) {
 	ch := make(chan error, 1)
 	return &writeErrNotifier{
 		w:    w,
@@ -34,6 +34,14 @@ func (w *writeErrNotifier) Write(b []byte) (int, error) {
 		f.Flush()
 	}
 	return n, err
+}
+
+func (w *writeErrNotifier) Close() error {
+	select {
+	case w.errs <- io.EOF:
+	default:
+	}
+	return nil
 }
 
 func LogOption() ServeOption {
