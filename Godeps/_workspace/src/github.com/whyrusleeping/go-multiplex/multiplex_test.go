@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	rand "github.com/dustin/randbo"
+	rand "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/randbo"
 )
 
 func TestBasicStreams(t *testing.T) {

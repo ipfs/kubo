@@ -2,6 +2,7 @@ package log
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	logging "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-logging"
@@ -37,14 +38,14 @@ var loggers = map[string]*logging.Logger{}
 // SetupLogging will initialize the logger backend and set the flags.
 func SetupLogging() {
 
-	fmt := LogFormats[os.Getenv(envLoggingFmt)]
-	if fmt == "" {
-		fmt = LogFormats[defaultLogFormat]
+	lfmt := LogFormats[os.Getenv(envLoggingFmt)]
+	if lfmt == "" {
+		lfmt = LogFormats[defaultLogFormat]
 	}
 
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
 	logging.SetBackend(backend)
-	logging.SetFormatter(logging.MustStringFormatter(fmt))
+	logging.SetFormatter(logging.MustStringFormatter(lfmt))
 
 	lvl := logging.ERROR
 
@@ -52,7 +53,7 @@ func SetupLogging() {
 		var err error
 		lvl, err = logging.LogLevel(logenv)
 		if err != nil {
-
+			fmt.Println("error setting log levels", err)
 		}
 	}
 
