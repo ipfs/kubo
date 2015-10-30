@@ -1,5 +1,45 @@
 # go-ipfs changelog
 
+### 0.3.9 - 2015-10-30
+
+This patch update includes a good number of bugfixes, notably, it fixes
+builds on windows, and puts newlines between streaming json objects for a
+proper nsjon format.
+
+* Features
+  * Writable gateway enabled again (@cryptix)
+
+* Bugfixes
+  * fix windows builds (@whyrusleeping)
+  * content type on command responses default to text (@whyrusleeping)
+  * add check to makefile to ensure windows builds dont fail silently (@whyrusleeping)
+  * put newlines between streaming json output objects (@whyrusleeping)
+  * fix streaming output to flush per write (@whyrusleeping)
+  * purposely fail builds pre go1.5 (@whyrusleeping)
+  * fix ipfs id <self> (@whyrusleeping)
+  * fix a few race conditions in mocknet (@whyrusleeping)
+  * fix makefile failing when not in a git repo (@whyrusleeping)
+  * fix cli flag orders (long, short) (@rht)
+  * fix races in http cors (@miolini)
+  * small webui update (some bugfixes) (@jbenet)
+
+* Tool Changes
+  * make swarm connect return an error when it fails (@whyrusleeping)
+  * Add short flag for `ipfs ls --headers` (v for verbose) (@rht)
+
+* General Codebase
+  * bitswap: clean log printf and humanize dup data count (@cryptix)
+  * config: update pluto's peerID (@lgierth)
+  * config: update bootstrap list hostname (@lgierth)
+
+* Documentation
+  * Pared down contribute to link to new go guidelines (@richardlitt)
+
+* Testing
+  * t0010: add tests for 'ipfs commands --flags' (@chriscool)
+  * ipns_test: fix namesys.NewNameSystem() call (@chriscool)
+  * t0060: fail if no nc (@chriscool)
+
 ### 0.3.8 - 2015-10-09
 
 This patch update includes changes to make ipns more consistent and reliable,
