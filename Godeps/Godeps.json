@@ -100,6 +100,10 @@
 			"Rev": "00897f070f09f194c26d65afae734ba4c32404e8"
 		},
 		{
+			"ImportPath": "github.com/dustin/randbo",
+			"Rev": "7f1b564ca7242d22bcc6e2128beb90d9fa38b9f0"
+		},
+		{
 			"ImportPath": "github.com/facebookgo/atomicfile",
 			"Rev": "6f117f2e7f224fb03eb5e5fba370eade6e2b90c8"
 		},

@@ -21,7 +21,7 @@ import (
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	secio "github.com/ipfs/go-ipfs/p2p/crypto/secio"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	logging "github.com/ipfs/go-ipfs/vendor/QmTBXYb6y2ZcJmoXVKk3pf9rzSEjbCg7tQaJW7RSuH14nv/go-log"
+	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
 var verbose = false
