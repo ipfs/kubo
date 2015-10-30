@@ -2,22 +2,12 @@ package log
 
 import (
 	"io"
-	"os"
 
 	logging "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-logging"
 )
 
-// init sets up sane defaults
-func init() {
-	Configure(TextFormatter)
-	Configure(Output(os.Stderr))
-	// has the effect of disabling logging since we log event entries at Info
-	// level by convention
-	Configure(LevelError)
-}
-
 // Global writer group for logs to output to
-var WriterGroup = new(MirrorWriter)
+var WriterGroup = NewMirrorWriter()
 
 type Option func()
 

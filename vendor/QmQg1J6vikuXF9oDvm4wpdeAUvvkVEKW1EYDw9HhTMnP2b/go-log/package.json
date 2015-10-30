@@ -1,0 +1,8 @@
+{
+  "name": "go-log",
+  "version": "1.0.0",
+  "language": "go",
+  "go":{
+	"dvcsimport":"github.com/ipfs/go-log"
+  }
+}
