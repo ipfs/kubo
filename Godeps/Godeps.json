@@ -145,10 +145,6 @@
 			"Rev": "68f5725818189545231c1fd8694793d45f2fc529"
 		},
 		{
-			"ImportPath": "github.com/ipfs/go-log",
-			"Rev": "bf32e06c2f9c81eb33460bc08305aa946f0d893d"
-		},
-		{
 			"ImportPath": "github.com/jackpal/go-nat-pmp",
 			"Rev": "a45aa3d54aef73b504e15eb71bea0e5565b5e6e1"
 		},
