@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	logging "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-log"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-os-rename"
+	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
 var log = logging.Logger("flatfs")
