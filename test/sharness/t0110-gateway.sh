@@ -86,6 +86,26 @@ test_item_max_age() {
   '
 }
 
+test_item_no_etag() {
+  _item="$1"
+
+  "$TEST_COMMAND" "$_item: has no ETag" '
+    test_get_header ETag actual.headers >actual.etag &&
+    test_must_be_empty actual.etag || test_fsh cat actual.headers
+  '
+}
+
+test_item_etag() {
+  _item="$1"
+  _etag="$2" # Without the surrounding quote marks
+
+  "$TEST_COMMAND" "$_item: has ETag" '
+    test_get_header ETag actual.headers >actual.etag &&
+    printf "\"%s\"\n" "$_etag" >expected.etag &&
+    test_cmp expected.etag actual.etag || test_fsh cat actual.headers
+  '
+}
+
 IMMUTABLE_TTL=$((10*365*24*60*60))
 UNKNOWN_TTL=60
 
@@ -111,14 +131,17 @@ ITEM="GET IPFS path"
 test_item_curl    "$ITEM" "http://127.0.0.1:$port/ipfs/$HASH1" "200 OK"
 test_item_output  "$ITEM" "$DATA1"
 test_item_max_age "$ITEM" "$IMMUTABLE_TTL"
+test_item_etag    "$ITEM" "$HASH1"
 
 ITEM="GET IPFS path on API"
 test_item_curl       "$ITEM" "http://127.0.0.1:$apiport/ipfs/$HASH1" "403 Forbidden"
 test_item_no_max_age "$ITEM"
+test_item_no_etag    "$ITEM"
 
 ITEM="GET IPFS directory path"
 test_item_curl    "$ITEM" "http://127.0.0.1:$port/ipfs/$HASH2" "200 OK"
 test_item_max_age "$ITEM" "$IMMUTABLE_TTL"
+test_item_etag    "$ITEM" "$HASH2"
 test_expect_success "$ITEM: output looks good" '
   test_should_contain "Index of /ipfs/$HASH2" actual
 '
@@ -127,10 +150,12 @@ ITEM="GET IPFS directory file"
 test_item_curl    "$ITEM" "http://127.0.0.1:$port/ipfs/$HASH2/test" "200 OK"
 test_item_output  "$ITEM" "$DATA2/test"
 test_item_max_age "$ITEM" "$IMMUTABLE_TTL"
+test_item_etag    "$ITEM" "$(ipfs add --only-hash -q "$DATA2/test")"
 
 ITEM="GET IPFS directory path with index.html"
 test_item_curl    "$ITEM" "http://127.0.0.1:$port/ipfs/$HASH2/has-index-html" "302 Found"
 test_item_max_age "$ITEM" "$IMMUTABLE_TTL"
+test_item_etag    "$ITEM" "$(ipfs add --only-hash -r -q "$DATA2/has-index-html" | tail -n 1)"
 test_expect_success "$ITEM: redirects to path/" '
   test_get_header Location actual.headers >actual.location &&
   printf "%s\n" "/ipfs/$HASH2/has-index-html/" >expected.location &&
@@ -141,10 +166,12 @@ ITEM="GET IPFS directory path/ with index.html"
 test_item_curl    "$ITEM" "http://127.0.0.1:$port/ipfs/$HASH2/has-index-html/" "200 OK"
 test_item_output  "$ITEM" "$DATA2/has-index-html/index.html"
 test_item_max_age "$ITEM" "$IMMUTABLE_TTL"
+test_item_etag    "$ITEM" "$(ipfs add --only-hash -r -q "$DATA2/has-index-html" | tail -n 1)"
 
 ITEM="GET IPFS non-existent file"
 test_item_curl       "$ITEM" "http://127.0.0.1:$port/ipfs/$HASH2/pleaseDontAddMe" "404 Not Found"
 test_item_no_max_age "$ITEM"
+test_item_no_etag    "$ITEM"
 
 TTL=10
 
@@ -155,6 +182,7 @@ test_expect_success_1941 "$ITEM: IPNS publish with TTL $TTL succeeds" '
 test_item_curl    "$ITEM" "http://127.0.0.1:$port/ipns/$PEERID" "200 OK"
 test_item_output  "$ITEM" "$DATA1"
 test_item_max_age "$ITEM" "$TTL"
+test_item_etag    "$ITEM" "$HASH1"
 
 test_timer_start EXPIRY_TIMER "${TTL}s" # The cache entry has expired when this finishes.
 
@@ -167,6 +195,7 @@ test_expect_success_1941 "$ITEM: IPNS publish with default TTL succeeds" '
 go-sleep 1s # Ensure the following max-age is strictly less than TTL.
 test_item_curl   "$ITEM" "http://127.0.0.1:$port/ipns/$PEERID" "200 OK"
 test_item_output "$ITEM" "$DATA1"
+test_item_etag   "$ITEM" "$HASH1"
 test_expect_success_1941 "$ITEM: has Cache-Control max-age between 0 and $TTL" '
   max_age="$(test_get_max_age actual.headers)" &&
   test "$max_age" -gt 0 &&
@@ -188,14 +217,17 @@ ITEM="GET IPNS path again after cache expiry"
 test_item_curl    "$ITEM" "http://127.0.0.1:$port/ipns/$PEERID/test" "200 OK"
 test_item_output  "$ITEM" "$DATA2/test"
 test_item_max_age "$ITEM" "$UNKNOWN_TTL"
+test_item_etag    "$ITEM" "$(ipfs add --only-hash -q "$DATA2/test")"
 
 ITEM="GET invalid IPFS path"
 test_item_curl       "$ITEM" "http://127.0.0.1:$port/ipfs/12345" "400 Bad Request"
 test_item_no_max_age "$ITEM"
+test_item_no_etag    "$ITEM"
 
 ITEM="GET invalid root path"
 test_item_curl       "$ITEM" "http://127.0.0.1:$port/12345" "404 Not Found"
 test_item_no_max_age "$ITEM"
+test_item_no_etag    "$ITEM"
 
 test_expect_success "GET /webui returns code expected" '
   test_curl_resp_http_code "http://127.0.0.1:$apiport/webui" "HTTP/1.1 302 Found" "HTTP/1.1 301 Moved Permanently"

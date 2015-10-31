@@ -121,7 +121,15 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	etag := gopath.Base(urlPath)
+	ndHash, err := nd.Key()
+	if err != nil {
+		internalWebError(w, err)
+		return
+	}
+
+	// ETag requires the quote marks:
+	// https://tools.ietf.org/html/rfc7232#section-2.3
+	etag := "\"" + ndHash.String() + "\""
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -154,11 +162,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// responses!  The webError functions unset them automatically.
 	// TODO: Consider letting clients cache 404s.  Are there cases where
 	// that would hurt?
-	setSuccessHeaders(w, ttl)
+	setSuccessHeaders(w, ttl, etag)
 
 	modtime := time.Now()
 	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
-		w.Header().Set("Etag", etag)
 		// set modtime to a really long time ago, since files are immutable and should stay cached
 		modtime = time.Unix(1, 0)
 	}
@@ -461,9 +468,10 @@ func internalWebError(w http.ResponseWriter, err error) {
 	webErrorWithCode(w, "internalWebError", err, http.StatusInternalServerError)
 }
 
-func setSuccessHeaders(w http.ResponseWriter, ttl infd.Duration) {
+func setSuccessHeaders(w http.ResponseWriter, ttl infd.Duration, etag string) {
 	maxAge := infd.GetFiniteDuration(ttl, ImmutableTTL)
 	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(maxAge.Seconds())))
+	w.Header().Set("ETag", etag)
 }
 
 func unsetSuccessHeaders(w http.ResponseWriter) {

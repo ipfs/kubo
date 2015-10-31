@@ -144,14 +144,15 @@ func TestGatewayGet(t *testing.T) {
 		path   string
 		status int
 		ttl    *infd.Duration
+		etag   string
 		text   string
 	}{
-		{"localhost:5001", "/", http.StatusNotFound, nil, "404 page not found\n"},
-		{"localhost:5001", "/" + k, http.StatusNotFound, nil, "404 page not found\n"},
-		{"localhost:5001", "/ipfs/" + k, http.StatusOK, &infTTL, "fnord"},
-		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusBadRequest, nil, "Path Resolve error: " + namesys.ErrResolveFailed.Error()},
-		{"localhost:5001", "/ipns/example.com", http.StatusOK, &kTTL, "fnord"},
-		{"example.com", "/", http.StatusOK, &kTTL, "fnord"},
+		{"localhost:5001", "/", http.StatusNotFound, nil, "", "404 page not found\n"},
+		{"localhost:5001", "/" + k, http.StatusNotFound, nil, "", "404 page not found\n"},
+		{"localhost:5001", "/ipfs/" + k, http.StatusOK, &infTTL, k, "fnord"},
+		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusBadRequest, nil, "", "Path Resolve error: " + namesys.ErrResolveFailed.Error()},
+		{"localhost:5001", "/ipns/example.com", http.StatusOK, &kTTL, k, "fnord"},
+		{"example.com", "/", http.StatusOK, &kTTL, k, "fnord"},
 	} {
 		var c http.Client
 		r, err := http.NewRequest("GET", ts.URL+test.path, nil)
@@ -172,6 +173,7 @@ func TestGatewayGet(t *testing.T) {
 			continue
 		}
 		checkCacheControl(t, urlstr, resp, test.ttl)
+		checkETag(t, urlstr, resp, test.etag)
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatalf("error reading response from %s: %s", urlstr, err)
@@ -212,6 +214,10 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	kFoo, err := dagn2.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Logf("k: %s\n", k)
 	kTTL := infd.FiniteDuration(10 * time.Minute)
 	ns["/ipns/example.net"] = mockEntry{
@@ -241,7 +247,9 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	} else if hdr[0] != "/foo/" {
 		t.Errorf("location header is %v, expected /foo/", hdr[0])
 	}
+
 	checkCacheControl(t, "http://example.net/foo", res, &kTTL)
+	checkETag(t, "http://example.net/foo", res, kFoo.String())
 }
 
 func TestIPNSHostnameBacklinks(t *testing.T) {
@@ -275,6 +283,14 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	k, err := dagn1.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+	kFoo, err := dagn2.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+	kBar, err := dagn3.Key()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,6 +332,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	checkCacheControl(t, "http://example.net/foo/", res, &kTTL)
+	checkETag(t, "http://example.net/foo/", res, kFoo.String())
 
 	// make request to directory listing
 	req, err = http.NewRequest("GET", ts.URL, nil)
@@ -348,6 +365,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	checkCacheControl(t, "http://example.net/", res, &kTTL)
+	checkETag(t, "http://example.net/", res, k.String())
 
 	// make request to directory listing
 	req, err = http.NewRequest("GET", ts.URL+"/foo/bar/", nil)
@@ -380,6 +398,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	checkCacheControl(t, "http://example.net/foo/bar/", res, &kTTL)
+	checkETag(t, "http://example.net/foo/bar/", res, kBar.String())
 }
 
 func checkCacheControl(t *testing.T, urlstr string, resp *http.Response, ttl *infd.Duration) {
@@ -391,5 +410,16 @@ func checkCacheControl(t *testing.T, urlstr string, resp *http.Response, ttl *in
 	cacheControl := resp.Header.Get("Cache-Control")
 	if cacheControl != expCacheControl {
 		t.Errorf("unexpected Cache-Control header from %s: expected %q; got %q", urlstr, expCacheControl, cacheControl)
+	}
+}
+
+func checkETag(t *testing.T, urlstr string, resp *http.Response, expETagSansQuotes string) {
+	expETag := ""
+	if expETagSansQuotes != "" {
+		expETag = "\"" + expETagSansQuotes + "\""
+	}
+	etag := resp.Header.Get("ETag")
+	if etag != expETag {
+		t.Errorf("unexpected ETag header from %s: expected %q; got %q", urlstr, expETag, etag)
 	}
 }
