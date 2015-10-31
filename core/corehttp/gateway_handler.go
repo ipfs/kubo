@@ -21,11 +21,15 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	infd "github.com/ipfs/go-ipfs/util/infduration"
 )
 
 const (
 	ipfsPathPrefix = "/ipfs/"
 	ipnsPathPrefix = "/ipns/"
+
+	// HTTP needs a finite TTL.
+	ImmutableTTL = 10 * 365 * 24 * time.Hour
 )
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
@@ -111,7 +115,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	nd, err := core.Resolve(ctx, i.node, path.Path(urlPath))
+	nd, ttl, err := core.ResolveWithTTL(ctx, i.node, path.Path(urlPath))
 	if err != nil {
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
 		return
@@ -146,15 +150,15 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// set these headers _after_ the error, for we may just not have it
-	// and dont want the client to cache a 500 response...
-	// and only if it's /ipfs!
-	// TODO: break this out when we split /ipfs /ipns routes.
+	// Remember to unset the Cache-Control/ETag headers before error
+	// responses!  The webError functions unset them automatically.
+	// TODO: Consider letting clients cache 404s.  Are there cases where
+	// that would hurt?
+	setSuccessHeaders(w, ttl)
+
 	modtime := time.Now()
 	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
 		w.Header().Set("Etag", etag)
-		w.Header().Set("Cache-Control", "public, max-age=29030400")
-
 		// set modtime to a really long time ago, since files are immutable and should stay cached
 		modtime = time.Unix(1, 0)
 	}
@@ -446,6 +450,7 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 }
 
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
+	unsetSuccessHeaders(w)
 	w.WriteHeader(code)
 	log.Errorf("%s: %s", message, err) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
 	fmt.Fprintf(w, "%s: %s", message, err)
@@ -454,4 +459,14 @@ func webErrorWithCode(w http.ResponseWriter, message string, err error, code int
 // return a 500 error and log
 func internalWebError(w http.ResponseWriter, err error) {
 	webErrorWithCode(w, "internalWebError", err, http.StatusInternalServerError)
+}
+
+func setSuccessHeaders(w http.ResponseWriter, ttl infd.Duration) {
+	maxAge := infd.GetFiniteDuration(ttl, ImmutableTTL)
+	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(maxAge.Seconds())))
+}
+
+func unsetSuccessHeaders(w http.ResponseWriter) {
+	w.Header().Del("Cache-Control")
+	w.Header().Del("ETag")
 }
