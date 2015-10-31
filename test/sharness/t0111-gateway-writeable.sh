@@ -14,10 +14,10 @@ test_launch_ipfs_daemon
 
 port=$PORT_GWAY
 
-# TODO(cryptix): netstat not avail on testing system?
-#test_expect_success "ipfs daemon listening to TCP port $port" '
-#  test_wait_open_tcp_port_10_sec "$PORT_GWAY"
-#'
+test_expect_success "ipfs daemon up" '
+  pollEndpoint -host $ADDR_GWAY -ep=/version -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
+  test_fsh cat poll_apierr || test_fsh cat poll_apiout
+'
 
 test_expect_success "HTTP gateway gives access to sample file" '
   curl -s -o welcome "http://localhost:$PORT_GWAY/ipfs/$HASH_WELCOME_DOCS/readme" &&
