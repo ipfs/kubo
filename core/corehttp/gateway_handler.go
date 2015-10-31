@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	gopath "path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -276,6 +275,10 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO(cryptix): move me to ServeHTTP and pass into all handlers
+	ctx, cancel := context.WithCancel(i.node.Context())
+	defer cancel()
+
 	rootPath, err := path.ParsePath(r.URL.Path)
 	if err != nil {
 		webError(w, "putHandler: ipfs path not valid", err, http.StatusBadRequest)
@@ -306,20 +309,20 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newkey key.Key
-	rnode, err := core.Resolve(i.node.Context(), i.node, rootPath)
+	rnode, err := core.Resolve(ctx, i.node, rootPath)
 	switch ev := err.(type) {
 	case path.ErrNoLink:
 		// ev.Node < node where resolve failed
 		// ev.Name < new link
 		// but we need to patch from the root
-		rnode, err := i.node.DAG.Get(i.node.Context(), key.B58KeyDecode(rsegs[1]))
+		rnode, err := i.node.DAG.Get(ctx, key.B58KeyDecode(rsegs[1]))
 		if err != nil {
 			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
 			return
 		}
 
 		e := dagutils.NewDagEditor(i.node.DAG, rnode)
-		err = e.InsertNodeAtPath(i.node.Context(), newPath, newnode, uio.NewEmptyDirectory)
+		err = e.InsertNodeAtPath(ctx, newPath, newnode, uio.NewEmptyDirectory)
 		if err != nil {
 			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
 			return
@@ -350,7 +353,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", newkey.String())
-	http.Redirect(w, r, filepath.Join(ipfsPathPrefix, newkey.String(), newPath), http.StatusCreated)
+	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newkey.String(), newPath), http.StatusCreated)
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
