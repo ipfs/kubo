@@ -8,8 +8,7 @@ import (
 )
 
 func Cat(ctx context.Context, n *core.IpfsNode, pstr string) (*uio.DagReader, error) {
-	p := path.FromString(pstr)
-	dagNode, err := n.Resolver.ResolvePath(ctx, p)
+	dagNode, err := core.Resolve(ctx, n, path.Path(pstr))
 	if err != nil {
 		return nil, err
 	}
