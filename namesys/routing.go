@@ -51,29 +51,14 @@ func (r *routingResolver) cacheGet(name string) (path.Path, bool) {
 	return "", false
 }
 
-func (r *routingResolver) cacheSet(name string, val path.Path, rec *pb.IpnsEntry) {
+func (r *routingResolver) cacheSet(name string, val path.Path, eol time.Time, rec *pb.IpnsEntry) {
 	if r.cache == nil {
 		return
 	}
 
-	// if completely unspecified, just use one minute
-	ttl := DefaultResolverCacheTTL
-	if rec.Ttl != nil {
-		recttl := time.Duration(rec.GetTtl())
-		if recttl >= 0 {
-			ttl = recttl
-		}
-	}
-
-	cacheTil := time.Now().Add(ttl)
-	eol, ok := checkEOL(rec)
-	if ok && eol.Before(cacheTil) {
-		cacheTil = eol
-	}
-
 	r.cache.Add(name, cacheEntry{
 		val: val,
-		eol: cacheTil,
+		eol: eol,
 	})
 }
 
@@ -161,24 +146,66 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 
 	// ok sig checks out. this is a valid name.
 
+	p, err := entryPath(entry)
+	if err != nil {
+		return "", err
+	}
+
+	eol, ttl := entryEOL(name, entry)
+	if ttl > 0 {
+		r.cacheSet(name, p, eol, entry)
+	}
+
+	return p, nil
+}
+
+// entryPath computes the path an IPNS entry points to.
+func entryPath(e *pb.IpnsEntry) (path.Path, error) {
 	// check for old style record:
-	valh, err := mh.Cast(entry.GetValue())
+	valh, err := mh.Cast(e.GetValue())
 	if err != nil {
 		// Not a multihash, probably a new record
-		p, err := path.ParsePath(string(entry.GetValue()))
+		p, err := path.ParsePath(string(e.GetValue()))
 		if err != nil {
 			return "", err
 		}
-
-		r.cacheSet(name, p, entry)
 		return p, nil
 	} else {
 		// Its an old style multihash record
 		log.Warning("Detected old style multihash record")
-		p := path.FromKey(key.Key(valh))
-		r.cacheSet(name, p, entry)
-		return p, nil
+		return path.FromKey(key.Key(valh)), nil
 	}
+}
+
+// entryEOL computes the maximum cache time for an IPNS entry taking the TTL
+// and the EOL into account.
+func entryEOL(name string, e *pb.IpnsEntry) (time.Time, time.Duration) {
+	// if completely unspecified, just use one minute
+	ttl := DefaultResolverCacheTTL
+	if e.Ttl != nil {
+		recttl := time.Duration(e.GetTtl())
+		if recttl >= 0 {
+			ttl = recttl
+		}
+	}
+
+	now := time.Now()
+	cacheTil := now.Add(ttl)
+	eol, ok := checkEOL(e)
+	if ok && eol.Before(cacheTil) {
+		cacheTil = eol
+	}
+
+	if cacheTil.Before(now) {
+		// Already EOL, do not cache.  This is unexpected, an expired
+		// record should have been caught before this code is called.
+		// (But it is possible for the expiry to happen between the two
+		// time.Now() calls.)
+		log.Warning("%q already expired on %v, will not cache", name, eol)
+		return now, 0
+	}
+
+	return cacheTil, cacheTil.Sub(now)
 }
 
 func checkEOL(e *pb.IpnsEntry) (time.Time, bool) {
