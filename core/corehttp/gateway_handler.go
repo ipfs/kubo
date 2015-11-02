@@ -161,7 +161,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	if err == nil {
 		defer dr.Close()
-		_, name := gopath.Split(urlPath)
+		name := gopath.Base(urlPath)
 		http.ServeContent(w, r, name, modtime, dr)
 		return
 	}

@@ -5,7 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	fp "path/filepath"
+	"path/filepath"
 	"syscall"
 )
 
@@ -69,8 +69,8 @@ func (f *serialFile) NextFile() (File, error) {
 	f.files = f.files[1:]
 
 	// open the next file
-	fileName := fp.Join(f.name, stat.Name())
-	filePath := fp.Join(f.path, stat.Name())
+	fileName := filepath.ToSlash(filepath.Join(f.name, stat.Name()))
+	filePath := filepath.ToSlash(filepath.Join(f.path, stat.Name()))
 
 	// recursively call the constructor on the next file
 	// if it's a regular file, we will open it as a ReaderFile
@@ -120,7 +120,7 @@ func (f *serialFile) Size() (int64, error) {
 	}
 
 	var du int64
-	err := fp.Walk(f.FileName(), func(p string, fi os.FileInfo, err error) error {
+	err := filepath.Walk(f.FileName(), func(p string, fi os.FileInfo, err error) error {
 		if fi != nil && fi.Mode()&(os.ModeSymlink|os.ModeNamedPipe) == 0 {
 			du += fi.Size()
 		}
