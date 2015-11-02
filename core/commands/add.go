@@ -24,6 +24,7 @@ const (
 	hiddenOptionName   = "hidden"
 	onlyHashOptionName = "only-hash"
 	chunkerOptionName  = "chunker"
+	pinOptionName      = "pin"
 )
 
 var AddCmd = &cmds.Command{
@@ -49,6 +50,7 @@ remains to be implemented.
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
 		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden"),
 		cmds.StringOption(chunkerOptionName, "s", "chunking algorithm to use"),
+		cmds.BoolOption(pinOptionName, "Pin this object when adding.  Default true"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
@@ -94,6 +96,11 @@ remains to be implemented.
 		hash, _, _ := req.Option(onlyHashOptionName).Bool()
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
+		dopin, pin_found, _ := req.Option(pinOptionName).Bool()
+
+		if !pin_found { // default
+			dopin = true
+		}
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -117,6 +124,7 @@ remains to be implemented.
 		fileAdder.Hidden = hidden
 		fileAdder.Trickle = trickle
 		fileAdder.Wrap = wrap
+		fileAdder.Pin = dopin
 
 		// addAllFiles loops over a convenience slice file to
 		// add each file individually. e.g. 'ipfs add a b c'
