@@ -226,8 +226,13 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
 	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
 
+	size, err := n.getCacheSize()
+	if err != nil {
+		return err
+	}
+
 	// setup name system
-	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore())
+	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), size)
 
 	// setup ipns republishing
 	err = n.setupIpnsRepublisher()
@@ -236,6 +241,23 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	}
 
 	return nil
+}
+
+// getCacheSize returns cache life and cache size
+func (n *IpfsNode) getCacheSize() (int, error) {
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return 0, err
+	}
+
+	cs := cfg.Ipns.ResolveCacheSize
+	if cs == 0 {
+		cs = 128
+	}
+	if cs < 0 {
+		return 0, fmt.Errorf("cannot specify negative resolve cache size")
+	}
+	return cs, nil
 }
 
 func (n *IpfsNode) setupIpnsRepublisher() error {
@@ -456,7 +478,12 @@ func (n *IpfsNode) SetupOfflineRouting() error {
 
 	n.Routing = offroute.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
 
-	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore())
+	size, err := n.getCacheSize()
+	if err != nil {
+		return err
+	}
+
+	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), size)
 
 	return nil
 }

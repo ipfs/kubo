@@ -45,6 +45,7 @@ Resolve the value of another name:
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name"),
+		cmds.BoolOption("nocache", "n", "Do not used cached entries"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -62,13 +63,27 @@ Resolve the value of another name:
 			}
 		}
 
-		router := n.Routing
-		if local, _, _ := req.Option("local").Bool(); local {
-			router = offline.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
+		nocache, _, _ := req.Option("nocache").Bool()
+		local, _, _ := req.Option("local").Bool()
+
+		// default to nodes namesys resolver
+		var resolver namesys.Resolver = n.Namesys
+
+		if local && nocache {
+			res.SetError(errors.New("cannot specify both local and nocache"), cmds.ErrNormal)
+			return
+		}
+
+		if local {
+			offroute := offline.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
+			resolver = namesys.NewRoutingResolver(offroute, 0)
+		}
+
+		if nocache {
+			resolver = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), 0)
 		}
 
 		var name string
-
 		if len(req.Arguments()) == 0 {
 			if n.Identity == "" {
 				res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
@@ -86,7 +101,10 @@ Resolve the value of another name:
 			depth = namesys.DefaultDepthLimit
 		}
 
-		resolver := namesys.NewRoutingResolver(router)
+		if !strings.HasPrefix(name, "/ipns/") {
+			name = "/ipns/" + name
+		}
+
 		output, err := resolver.ResolveN(req.Context(), name, depth)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
