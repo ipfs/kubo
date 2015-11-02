@@ -1,9 +1,9 @@
 package commands
 
 import (
+	"filepath"
 	"fmt"
 	"io"
-	"path"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -438,7 +438,7 @@ func (params *adder) addDir(file files.File) (*dag.Node, error) {
 		}
 
 		if node != nil {
-			_, name := path.Split(file.FileName())
+			_, name := filepath.Split(file.FileName())
 
 			err = tree.AddNodeLink(name, node)
 			if err != nil {
