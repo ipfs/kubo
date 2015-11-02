@@ -3,33 +3,18 @@ package commands
 import (
 	"fmt"
 	"io"
-	"path"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	cxt "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 
-	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
-	offline "github.com/ipfs/go-ipfs/exchange/offline"
-	importer "github.com/ipfs/go-ipfs/importer"
-	"github.com/ipfs/go-ipfs/importer/chunk"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
-	pin "github.com/ipfs/go-ipfs/pin"
-	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
 // Error indicating the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
-
-// how many bytes of progress to wait before sending a progress update message
-const progressReaderIncrement = 1024 * 256
 
 const (
 	quietOptionName    = "quiet"
@@ -40,12 +25,6 @@ const (
 	onlyHashOptionName = "only-hash"
 	chunkerOptionName  = "chunker"
 )
-
-type AddedObject struct {
-	Name  string
-	Hash  string `json:",omitempty"`
-	Bytes int64  `json:",omitempty"`
-}
 
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -108,7 +87,6 @@ remains to be implemented.
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 
-		e := dagutils.NewDagEditor(NewMemoryDagService(), newDirNode())
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
 				//TODO: need this to be true or all files
@@ -125,17 +103,12 @@ remains to be implemented.
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
-		fileAdder := adder{
-			ctx:      req.Context(),
-			node:     n,
-			editor:   e,
-			out:      outChan,
-			chunker:  chunker,
-			progress: progress,
-			hidden:   hidden,
-			trickle:  trickle,
-			wrap:     wrap,
-		}
+		fileAdder := coreunix.NewAdder(req.Context(), n, outChan)
+		fileAdder.Chunker = chunker
+		fileAdder.Progress = progress
+		fileAdder.Hidden = hidden
+		fileAdder.Trickle = trickle
+		fileAdder.Wrap = wrap
 
 		// addAllFiles loops over a convenience slice file to
 		// add each file individually. e.g. 'ipfs add a b c'
@@ -149,20 +122,10 @@ remains to be implemented.
 					return nil // done
 				}
 
-				if _, err := fileAdder.addFile(file); err != nil {
+				if _, err := fileAdder.AddFile(file); err != nil {
 					return err
 				}
 			}
-		}
-
-		pinRoot := func(rootnd *dag.Node) error {
-			rnk, err := rootnd.Key()
-			if err != nil {
-				return err
-			}
-
-			n.Pinning.PinWithMode(rnk, pin.Recursive)
-			return n.Pinning.Flush()
 		}
 
 		addAllAndPin := func(f files.File) error {
@@ -172,19 +135,14 @@ remains to be implemented.
 
 			if !hash {
 				// copy intermediary nodes from editor to our actual dagservice
-				err := e.WriteOutputTo(n.DAG)
+				err := fileAdder.WriteOutputTo(n.DAG)
 				if err != nil {
 					log.Error("WRITE OUT: ", err)
 					return err
 				}
 			}
 
-			rootnd, err := fileAdder.RootNode()
-			if err != nil {
-				return err
-			}
-
-			return pinRoot(rootnd)
+			return fileAdder.PinRoot()
 		}
 
 		go func() {
@@ -243,7 +201,7 @@ remains to be implemented.
 		var totalProgress, prevFiles, lastBytes int64
 
 		for out := range outChan {
-			output := out.(*AddedObject)
+			output := out.(*coreunix.AddedObject)
 			if len(output.Hash) > 0 {
 				if showProgressBar {
 					// clear progress bar line before we print "added x" output
@@ -279,236 +237,5 @@ remains to be implemented.
 			}
 		}
 	},
-	Type: AddedObject{},
-}
-
-func NewMemoryDagService() dag.DAGService {
-	// build mem-datastore for editor's intermediary nodes
-	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-	bsrv := bserv.New(bs, offline.Exchange(bs))
-	return dag.NewDAGService(bsrv)
-}
-
-// Internal structure for holding the switches passed to the `add` call
-type adder struct {
-	ctx      cxt.Context
-	node     *core.IpfsNode
-	editor   *dagutils.Editor
-	out      chan interface{}
-	progress bool
-	hidden   bool
-	trickle  bool
-	wrap     bool
-	chunker  string
-
-	nextUntitled int
-}
-
-// Perform the actual add & pin locally, outputting results to reader
-func add(n *core.IpfsNode, reader io.Reader, useTrickle bool, chunker string) (*dag.Node, error) {
-	chnk, err := chunk.FromString(reader, chunker)
-	if err != nil {
-		return nil, err
-	}
-
-	var node *dag.Node
-	if useTrickle {
-		node, err = importer.BuildTrickleDagFromReader(
-			n.DAG,
-			chnk,
-		)
-	} else {
-		node, err = importer.BuildDagFromReader(
-			n.DAG,
-			chnk,
-		)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return node, nil
-}
-
-func (params *adder) RootNode() (*dag.Node, error) {
-	r := params.editor.GetNode()
-
-	// if not wrapping, AND one root file, use that hash as root.
-	if !params.wrap && len(r.Links) == 1 {
-		var err error
-		r, err = r.Links[0].GetNode(params.ctx, params.editor.GetDagService())
-		// no need to output, as we've already done so.
-		return r, err
-	}
-
-	// otherwise need to output, as we have not.
-	err := outputDagnode(params.out, "", r)
-	return r, err
-}
-
-func (params *adder) addNode(node *dag.Node, path string) error {
-	// patch it into the root
-	if path == "" {
-		key, err := node.Key()
-		if err != nil {
-			return err
-		}
-
-		path = key.Pretty()
-	}
-
-	if err := params.editor.InsertNodeAtPath(params.ctx, path, node, newDirNode); err != nil {
-		return err
-	}
-
-	return outputDagnode(params.out, path, node)
-}
-
-// Add the given file while respecting the params.
-func (params *adder) addFile(file files.File) (*dag.Node, error) {
-	// Check if file is hidden
-	if fileIsHidden := files.IsHidden(file); fileIsHidden && !params.hidden {
-		log.Debugf("%s is hidden, skipping", file.FileName())
-		return nil, &hiddenFileError{file.FileName()}
-	}
-
-	// Check if "file" is actually a directory
-	if file.IsDirectory() {
-		return params.addDir(file)
-	}
-
-	if s, ok := file.(*files.Symlink); ok {
-		sdata, err := ft.SymlinkData(s.Target)
-		if err != nil {
-			return nil, err
-		}
-
-		dagnode := &dag.Node{Data: sdata}
-		_, err = params.node.DAG.Add(dagnode)
-		if err != nil {
-			return nil, err
-		}
-
-		err = params.addNode(dagnode, s.FileName())
-		return dagnode, err
-	}
-
-	// if the progress flag was specified, wrap the file so that we can send
-	// progress updates to the client (over the output channel)
-	var reader io.Reader = file
-	if params.progress {
-		reader = &progressReader{file: file, out: params.out}
-	}
-
-	dagnode, err := add(params.node, reader, params.trickle, params.chunker)
-	if err != nil {
-		return nil, err
-	}
-
-	// patch it into the root
-	log.Infof("adding file: %s", file.FileName())
-	err = params.addNode(dagnode, file.FileName())
-	return dagnode, err
-}
-
-func (params *adder) addDir(file files.File) (*dag.Node, error) {
-	tree := &dag.Node{Data: ft.FolderPBData()}
-	log.Infof("adding directory: %s", file.FileName())
-
-	for {
-		file, err := file.NextFile()
-		if err != nil && err != io.EOF {
-			return nil, err
-		}
-		if file == nil {
-			break
-		}
-
-		node, err := params.addFile(file)
-		if _, ok := err.(*hiddenFileError); ok {
-			// hidden file error, set the node to nil for below
-			node = nil
-		} else if err != nil {
-			return nil, err
-		}
-
-		if node != nil {
-			_, name := path.Split(file.FileName())
-
-			err = tree.AddNodeLink(name, node)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := params.addNode(tree, file.FileName()); err != nil {
-		return nil, err
-	}
-
-	_, err := params.node.DAG.Add(tree)
-	if err != nil {
-		return nil, err
-	}
-
-	return tree, nil
-}
-
-// outputDagnode sends dagnode info over the output channel
-func outputDagnode(out chan interface{}, name string, dn *dag.Node) error {
-	o, err := getOutput(dn)
-	if err != nil {
-		return err
-	}
-
-	out <- &AddedObject{
-		Hash: o.Hash,
-		Name: name,
-	}
-
-	return nil
-}
-
-type hiddenFileError struct {
-	fileName string
-}
-
-func (e *hiddenFileError) Error() string {
-	return fmt.Sprintf("%s is a hidden file", e.fileName)
-}
-
-type ignoreFileError struct {
-	fileName string
-}
-
-func (e *ignoreFileError) Error() string {
-	return fmt.Sprintf("%s is an ignored file", e.fileName)
-}
-
-type progressReader struct {
-	file         files.File
-	out          chan interface{}
-	bytes        int64
-	lastProgress int64
-}
-
-func (i *progressReader) Read(p []byte) (int, error) {
-	n, err := i.file.Read(p)
-
-	i.bytes += int64(n)
-	if i.bytes-i.lastProgress >= progressReaderIncrement || err == io.EOF {
-		i.lastProgress = i.bytes
-		i.out <- &AddedObject{
-			Name:  i.file.FileName(),
-			Bytes: i.bytes,
-		}
-	}
-
-	return n, err
-}
-
-// TODO: generalize this to more than unix-fs nodes.
-func newDirNode() *dag.Node {
-	return &dag.Node{Data: ft.FolderPBData()}
+	Type: coreunix.AddedObject{},
 }
