@@ -71,6 +71,9 @@ HASH_DIR4="QmW98gV71Ns4bX7QbgWAqLiGF3SDC1JpveZSgBh4ExaSAd"
 HASH_DIR3="QmRsCaNBMkweZ9vHT5PJRd2TT9rtNKEKyuognCEVxZxF1H"
 HASH_DIR2="QmTUTQAgeVfughDSFukMZLbfGvetDJY7Ef5cDXkKK4abKC"
 HASH_DIR1="QmNyZVFbgvmzguS2jVMRb8PQMNcCMJrn9E3doDhBbcPNTY"
+HASH_NOPINDIR="QmWHjrRJYSfYKz5V9dWWSKu47GdY7NewyRhyTiroXgWcDU"
+HASH_NOPIN_FILE1="QmUJT3GQi1dxQyTZbkaWeer9GkCn1d3W3HHRLSDr6PTcpx"
+HASH_NOPIN_FILE2="QmarR7m9JT7qHEGhuFNZUEMAnoZ8E9QAfsthHCQ9Y2GfoT"
 
 DIR1="dir1"
 DIR2="dir1/dir2"
@@ -246,6 +249,34 @@ test_expect_success "recursive pin fails without objects" '
 	test_must_fail ipfs pin add -r "$HASH_DIR1" --timeout=500ms 2>err_expected8 &&
 	grep "context deadline exceeded" err_expected8 ||
 	test_fsh cat err_expected8
+'
+
+test_expect_success "test add nopin file" '
+	echo "test nopin data" > test_nopin_data &&
+	NOPINHASH=$(ipfs add -q --pin=false test_nopin_data) &&
+	test_pin_flag "$NOPINHASH" direct false &&
+	test_pin_flag "$NOPINHASH" indirect false &&
+	test_pin_flag "$NOPINHASH" recursive false
+'
+
+
+test_expect_success "test add nopin dir" '
+	mkdir nopin_dir1 &&
+	echo "some nopin text 1" >nopin_dir1/file1 &&
+	echo "some nopin text 2" >nopin_dir1/file2 &&
+	ipfs add -q -r --pin=false nopin_dir1 | tail -n1 >actual1 &&
+	echo "$HASH_NOPINDIR" >expected1 &&
+	test_cmp actual1 expected1 &&
+	test_pin_flag "$HASH_NOPINDIR" direct false &&
+	test_pin_flag "$HASH_NOPINDIR" indirect false &&
+	test_pin_flag "$HASH_NOPINDIR" recursive false &&
+	test_pin_flag "$HASH_NOPIN_FILE1" direct false &&
+	test_pin_flag "$HASH_NOPIN_FILE1" indirect false &&
+	test_pin_flag "$HASH_NOPIN_FILE1" recursive false &&
+	test_pin_flag "$HASH_NOPIN_FILE2" direct false &&
+	test_pin_flag "$HASH_NOPIN_FILE2" indirect false &&
+	test_pin_flag "$HASH_NOPIN_FILE2" recursive false
+
 '
 
 # test_kill_ipfs_daemon
