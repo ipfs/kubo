@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"time"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
@@ -19,7 +18,7 @@ import (
 
 type WrapFunc func(transport.Conn) transport.Conn
 
-func NewDialer(p peer.ID, pk ci.PrivKey, tout time.Duration, wrap WrapFunc) *Dialer {
+func NewDialer(p peer.ID, pk ci.PrivKey, wrap WrapFunc) *Dialer {
 	return &Dialer{
 		LocalPeer:  p,
 		PrivateKey: pk,

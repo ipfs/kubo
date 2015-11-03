@@ -17,7 +17,7 @@ type Conn interface {
 }
 
 type Transport interface {
-	Dialer(laddr ma.Multiaddr) (Dialer, error)
+	Dialer(laddr ma.Multiaddr, opts ...DialOpt) (Dialer, error)
 	Listener(laddr ma.Multiaddr) (Listener, error)
 	Matches(ma.Multiaddr) bool
 }
@@ -42,6 +42,9 @@ type connWrap struct {
 func (cw *connWrap) Transport() Transport {
 	return cw.transport
 }
+
+type DialOpt interface{}
+type TimeoutOpt interface{}
 
 func IsTcpMultiaddr(a ma.Multiaddr) bool {
 	p := a.Protocols()
