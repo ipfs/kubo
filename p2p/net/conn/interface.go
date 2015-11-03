@@ -8,11 +8,11 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
 	filter "github.com/ipfs/go-ipfs/p2p/net/filter"
+	transport "github.com/ipfs/go-ipfs/p2p/net/transport"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
 	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 )
 
 // Map maps Keys (Peer.IDs) to Connections.
@@ -54,22 +54,22 @@ type Conn interface {
 // Dial function as before, but it would have many arguments, as dialing is
 // no longer simple (need a peerstore, a local peer, a context, a network, etc)
 type Dialer struct {
-
-	// Dialer is an optional manet.Dialer to use.
-	Dialer manet.Dialer
-
 	// LocalPeer is the identity of the local Peer.
 	LocalPeer peer.ID
 
 	// LocalAddrs is a set of local addresses to use.
-	LocalAddrs []ma.Multiaddr
+	//LocalAddrs []ma.Multiaddr
+
+	// Dialers are the sub-dialers usable by this dialer
+	// selected in order based on the address being dialed
+	Dialers []transport.Dialer
 
 	// PrivateKey used to initialize a secure connection.
 	// Warning: if PrivateKey is nil, connection will not be secured.
 	PrivateKey ic.PrivKey
 
 	// Wrapper to wrap the raw connection (optional)
-	Wrapper func(manet.Conn) manet.Conn
+	Wrapper WrapFunc
 }
 
 // Listener is an object that can accept connections. It matches net.Listener
