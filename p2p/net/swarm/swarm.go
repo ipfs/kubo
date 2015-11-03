@@ -8,9 +8,12 @@ import (
 	"time"
 
 	metrics "github.com/ipfs/go-ipfs/metrics"
+	mconn "github.com/ipfs/go-ipfs/metrics/conn"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
+	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
 	filter "github.com/ipfs/go-ipfs/p2p/net/filter"
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
+	transport "github.com/ipfs/go-ipfs/p2p/net/transport"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 
@@ -58,8 +61,12 @@ type Swarm struct {
 	backf dialbackoff
 	dialT time.Duration // mainly for tests
 
+	dialer *conn.Dialer
+
 	notifmu sync.RWMutex
 	notifs  map[inet.Notifiee]ps.Notifiee
+
+	transports []transport.Transport
 
 	// filters for addresses that shouldnt be dialed
 	Filters *filter.Filters
@@ -81,6 +88,10 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		return nil, err
 	}
 
+	wrap := func(c transport.Conn) transport.Conn {
+		return mconn.WrapConn(bwc, c)
+	}
+
 	s := &Swarm{
 		swarm:       ps.NewSwarm(PSTransport),
 		local:       local,
@@ -88,9 +99,11 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		ctx:         ctx,
 		dialT:       DialTimeout,
 		notifs:      make(map[inet.Notifiee]ps.Notifiee),
+		transports:  []transport.Transport{transport.NewTCPTransport()},
 		bwc:         bwc,
 		fdRateLimit: make(chan struct{}, concurrentFdDials),
 		Filters:     filter.NewFilters(),
+		dialer:      conn.NewDialer(local, peers.PrivKey(local), DialTimeout, wrap),
 	}
 
 	// configure Swarm
@@ -101,7 +114,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	prom.MustRegisterOrGet(peersTotal)
 	s.Notify((*metricsNotifiee)(s))
 
-	return s, s.listen(listenAddrs)
+	return s, s.setupAddresses(listenAddrs)
 }
 
 func (s *Swarm) teardown() error {
@@ -134,7 +147,7 @@ func (s *Swarm) Listen(addrs ...ma.Multiaddr) error {
 		return err
 	}
 
-	return s.listen(addrs)
+	return s.setupAddresses(addrs)
 }
 
 // Process returns the Process of the swarm

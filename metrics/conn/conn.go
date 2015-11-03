@@ -1,22 +1,22 @@
 package meterconn
 
 import (
-	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	metrics "github.com/ipfs/go-ipfs/metrics"
+	transport "github.com/ipfs/go-ipfs/p2p/net/transport"
 )
 
 type MeteredConn struct {
 	mesRecv metrics.MeterCallback
 	mesSent metrics.MeterCallback
 
-	manet.Conn
+	transport.Conn
 }
 
-func WrapConn(bwc metrics.Reporter, c manet.Conn) manet.Conn {
+func WrapConn(bwc metrics.Reporter, c transport.Conn) transport.Conn {
 	return newMeteredConn(c, bwc.LogRecvMessage, bwc.LogSentMessage)
 }
 
-func newMeteredConn(base manet.Conn, rcb metrics.MeterCallback, scb metrics.MeterCallback) manet.Conn {
+func newMeteredConn(base transport.Conn, rcb metrics.MeterCallback, scb metrics.MeterCallback) transport.Conn {
 	return &MeteredConn{
 		Conn:    base,
 		mesRecv: rcb,
