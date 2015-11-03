@@ -50,7 +50,9 @@ func (n *Node) Marshal() ([]byte, error) {
 
 func (n *Node) getPBNode() *pb.PBNode {
 	pbn := &pb.PBNode{}
-	pbn.Links = make([]*pb.PBLink, len(n.Links))
+	if len(n.Links) > 0 {
+		pbn.Links = make([]*pb.PBLink, len(n.Links))
+	}
 
 	sort.Stable(LinkSlice(n.Links)) // keep links sorted
 	for i, l := range n.Links {
@@ -60,7 +62,9 @@ func (n *Node) getPBNode() *pb.PBNode {
 		pbn.Links[i].Hash = []byte(l.Hash)
 	}
 
-	pbn.Data = n.Data
+	if len(n.Data) > 0 {
+		pbn.Data = n.Data
+	}
 	return pbn
 }
 
