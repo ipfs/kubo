@@ -85,8 +85,8 @@ func TestInsertNode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if k.B58String() != "QmThorWojP6YzLJwDukxiYCoKQSwyrMCvdt4WZ6rPm221t" {
-		t.Fatal("output was different than expected")
+	if k.B58String() != "QmZ8yeT9uD6ouJPNAYt62XffYuXBT6b4mP4obRSE9cJrSt" {
+		t.Fatal("output was different than expected: ", k)
 	}
 }
 
