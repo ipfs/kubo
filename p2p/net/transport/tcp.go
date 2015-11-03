@@ -1,8 +1,10 @@
 package transport
 
 import (
+	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
@@ -26,7 +28,7 @@ func NewTCPTransport() *TcpTransport {
 	}
 }
 
-func (t *TcpTransport) Dialer(laddr ma.Multiaddr) (Dialer, error) {
+func (t *TcpTransport) Dialer(laddr ma.Multiaddr, opts ...DialOpt) (Dialer, error) {
 	t.dlock.Lock()
 	defer t.dlock.Unlock()
 	s := laddr.String()
@@ -34,8 +36,17 @@ func (t *TcpTransport) Dialer(laddr ma.Multiaddr) (Dialer, error) {
 	if found {
 		return d, nil
 	}
-
 	var base manet.Dialer
+
+	for _, o := range opts {
+		switch o := o.(type) {
+		case TimeoutOpt:
+			base.Timeout = o.(time.Duration)
+		default:
+			return nil, fmt.Errorf("unrecognized option: %#v", o)
+		}
+	}
+
 	tcpd, err := t.newTcpDialer(base, laddr)
 	if err != nil {
 		return nil, err
@@ -119,10 +130,17 @@ func (t *TcpTransport) newTcpDialer(base manet.Dialer, laddr ma.Multiaddr) (*tcp
 		}, nil
 	}
 
+	rd := reuseport.Dialer{
+		D: net.Dialer{
+			LocalAddr: la,
+			Timeout:   base.Timeout,
+		},
+	}
+
 	return &tcpDialer{
 		doReuse:   true,
 		laddr:     laddr,
-		rd:        reuseport.Dialer{D: net.Dialer{LocalAddr: la}},
+		rd:        rd,
 		madialer:  base,
 		transport: t,
 	}, nil
