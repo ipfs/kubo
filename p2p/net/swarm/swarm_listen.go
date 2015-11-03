@@ -22,7 +22,7 @@ func (s *Swarm) setupAddresses(addrs []ma.Multiaddr) error {
 			return fmt.Errorf("no transport for address: %s", a)
 		}
 
-		d, err := tpt.Dialer(a)
+		d, err := tpt.Dialer(a, transport.TimeoutOpt(DialTimeout))
 		if err != nil {
 			return err
 		}

@@ -103,7 +103,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		bwc:         bwc,
 		fdRateLimit: make(chan struct{}, concurrentFdDials),
 		Filters:     filter.NewFilters(),
-		dialer:      conn.NewDialer(local, peers.PrivKey(local), DialTimeout, wrap),
+		dialer:      conn.NewDialer(local, peers.PrivKey(local), wrap),
 	}
 
 	// configure Swarm
