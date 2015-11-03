@@ -234,6 +234,12 @@ test_object_cmd() {
 
 	test_patch_create_path $EMPTY a/b/b/b/b $FILE
 
+	test_expect_success "can create blank object" '
+		BLANK=$(ipfs object new)
+	'
+
+	test_patch_create_path $BLANK a $FILE
+
 	test_expect_success "create bad path fails" '
 		test_must_fail ipfs object patch --create $EMPTY add-link / $FILE
 	'

@@ -176,11 +176,15 @@ func (n *Node) GetLinkedNode(ctx context.Context, ds DAGService, name string) (*
 // NOTE: does not make copies of Node objects in the links.
 func (n *Node) Copy() *Node {
 	nnode := new(Node)
-	nnode.Data = make([]byte, len(n.Data))
-	copy(nnode.Data, n.Data)
+	if len(n.Data) > 0 {
+		nnode.Data = make([]byte, len(n.Data))
+		copy(nnode.Data, n.Data)
+	}
 
-	nnode.Links = make([]*Link, len(n.Links))
-	copy(nnode.Links, n.Links)
+	if len(n.Links) > 0 {
+		nnode.Links = make([]*Link, len(n.Links))
+		copy(nnode.Links, n.Links)
+	}
 	return nnode
 }
 
