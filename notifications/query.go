@@ -18,6 +18,8 @@ const (
 	QueryError
 	Provider
 	Value
+	AddingPeer
+	DialingPeer
 )
 
 type QueryEvent struct {
