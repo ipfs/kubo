@@ -420,17 +420,17 @@ func TestDialBackoffClears(t *testing.T) {
 	}
 	s1.peers.AddAddrs(s2.local, ifaceAddrs1, peer.PermanentAddrTTL)
 
-	before = time.Now()
+	if _, err := s1.Dial(ctx, s2.local); err == nil {
+		t.Fatal("should have failed to dial backed off peer")
+	}
+
+	time.Sleep(baseBackoffTime)
+
 	if c, err := s1.Dial(ctx, s2.local); err != nil {
 		t.Fatal(err)
 	} else {
 		c.Close()
 		t.Log("correctly connected")
-	}
-	duration = time.Now().Sub(before)
-
-	if duration >= dt {
-		// t.Error("took too long", duration, dt)
 	}
 
 	if s1.backf.Backoff(s2.local) {
