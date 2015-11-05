@@ -157,5 +157,8 @@ func (s *Swarm) connHandler(c *ps.Conn) *Conn {
 		return nil
 	}
 
+	// if a peer dials us, remove from dial backoff.
+	s.backf.Clear(sc.RemotePeer())
+
 	return sc
 }
