@@ -131,7 +131,15 @@ func checkCtxTTL(ctx context.Context) (time.Duration, bool) {
 	}
 
 	d, ok := v.(time.Duration)
-	return d, ok
+	if !ok {
+		return 0, false
+	}
+
+	if d < 0 {
+		return 0, false
+	}
+
+	return d, true
 }
 
 func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqnum uint64, eol time.Time, r routing.IpfsRouting, id peer.ID) error {

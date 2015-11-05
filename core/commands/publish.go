@@ -104,6 +104,10 @@ Publish an <ipfs-path> to another public key (not implemented):
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
+			if d < 0 {
+				res.SetError(fmt.Errorf("ttl can not be negative"), cmds.ErrNormal)
+				return
+			}
 
 			ctx = context.WithValue(ctx, "ipns-publish-ttl", d)
 		}

@@ -78,4 +78,8 @@ test_expect_failure "publish with our explicit node ID looks good" '
 
 done
 
+test_expect_success "'ipfs name publish --ttl=-1s' fails (negative TTL)" '
+	test_must_fail ipfs name publish --ttl=-1s "/ipfs/$HASH_WELCOME_DOCS"
+'
+
 test_done
