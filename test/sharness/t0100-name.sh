@@ -10,12 +10,14 @@ test_description="Test ipfs repo operations"
 
 test_init_ipfs
 
+for TTL_PARAMS in "" "--ttl=0s" "--ttl=1h"; do
+
 # test publishing a hash
 
-test_expect_success "'ipfs name publish' succeeds" '
+test_expect_success "'ipfs name publish${TTL_PARAMS:+ $TTL_PARAMS}' succeeds" '
 	PEERID=`ipfs id --format="<id>"` &&
 	test_check_peerid "${PEERID}" &&
-	ipfs name publish "/ipfs/$HASH_WELCOME_DOCS" >publish_out
+	ipfs name publish $TTL_PARAMS "/ipfs/$HASH_WELCOME_DOCS" >publish_out
 '
 
 test_expect_success "publish output looks good" '
@@ -34,10 +36,10 @@ test_expect_success "resolve output looks good" '
 
 # now test with a path
 
-test_expect_success "'ipfs name publish' succeeds" '
+test_expect_success "'ipfs name publish${TTL_PARAMS:+ $TTL_PARAMS}' succeeds" '
 	PEERID=`ipfs id --format="<id>"` &&
 	test_check_peerid "${PEERID}" &&
-	ipfs name publish "/ipfs/$HASH_WELCOME_DOCS/help" >publish_out
+	ipfs name publish $TTL_PARAMS "/ipfs/$HASH_WELCOME_DOCS/help" >publish_out
 '
 
 test_expect_success "publish a path looks good" '
@@ -62,16 +64,18 @@ test_expect_success "ipfs cat on published content succeeds" '
 
 # publish with an explicit node ID
 
-test_expect_failure "'ipfs name publish <local-id> <hash>' succeeds" '
+test_expect_failure "'ipfs name publish${TTL_PARAMS:+ $TTL_PARAMS} <local-id> <hash>' succeeds" '
 	PEERID=`ipfs id --format="<id>"` &&
 	test_check_peerid "${PEERID}" &&
-	echo ipfs name publish "${PEERID}" "/ipfs/$HASH_WELCOME_DOCS" &&
-	ipfs name publish "${PEERID}" "/ipfs/$HASH_WELCOME_DOCS" >actual_node_id_publish
+	echo ipfs name publish $TTL_PARAMS "${PEERID}" "/ipfs/$HASH_WELCOME_DOCS" &&
+	ipfs name publish $TTL_PARAMS "${PEERID}" "/ipfs/$HASH_WELCOME_DOCS" >actual_node_id_publish
 '
 
 test_expect_failure "publish with our explicit node ID looks good" '
 	echo "Published to ${PEERID}: /ipfs/$HASH_WELCOME_DOCS" >expected_node_id_publish &&
 	test_cmp expected_node_id_publish actual_node_id_publish
 '
+
+done
 
 test_done
