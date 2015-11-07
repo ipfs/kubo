@@ -19,6 +19,9 @@ import (
 
 func init() {
 	log.SetFlags(log.Flags() | log.Lshortfile)
+	writeTimeout = 1 * time.Second
+	initialLatency = 10 * time.Millisecond
+	packetReadTimeout = 2 * time.Second
 }
 
 func TestUTPPingPong(t *testing.T) {
@@ -154,7 +157,7 @@ func TestUTPRawConn(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(time.Microsecond)
+		time.Sleep(10 * time.Microsecond)
 	}
 	select {
 	case <-readerStopped:
@@ -167,6 +170,7 @@ func TestUTPRawConn(t *testing.T) {
 }
 
 func TestConnReadDeadline(t *testing.T) {
+	t.Parallel()
 	ls, _ := NewSocket("udp", "localhost:0")
 	ds, _ := NewSocket("udp", "localhost:0")
 	dcReadErr := make(chan error)
@@ -202,13 +206,13 @@ func TestConnReadDeadline(t *testing.T) {
 	case <-time.After(time.Millisecond):
 	}
 	c.Close()
+	if err := <-dcReadErr; err != io.EOF {
+		t.Fatalf("dial conn read returned %s", err)
+	}
 	select {
 	case <-readReturned:
 	case <-time.After(time.Millisecond):
 		t.Fatal("read should return after Conn is closed")
-	}
-	if err := <-dcReadErr; err != io.EOF {
-		t.Fatalf("dial conn read returned %s", err)
 	}
 }
 
@@ -267,6 +271,7 @@ func connectSelfLots(n int, t testing.TB) {
 
 // Connect to ourself heaps.
 func TestConnectSelf(t *testing.T) {
+	t.Parallel()
 	// A rough guess says that at worst, I can only have 0x10000/3 connections
 	// to the same socket, due to fragmentation in the assigned connection
 	// IDs.
@@ -330,6 +335,7 @@ func TestRejectDialBacklogFilled(t *testing.T) {
 // Make sure that we can reset AfterFunc timers, so we don't have to create
 // brand new ones everytime they fire. Specifically for the Conn resend timer.
 func TestResetAfterFuncTimer(t *testing.T) {
+	t.Parallel()
 	fired := make(chan struct{})
 	timer := time.AfterFunc(time.Millisecond, func() {
 		fired <- struct{}{}
@@ -392,6 +398,7 @@ func TestReadFinishedConn(t *testing.T) {
 }
 
 func TestCloseDetachesQuickly(t *testing.T) {
+	t.Parallel()
 	s, _ := NewSocket("udp", "localhost:0")
 	defer s.Close()
 	go func() {
@@ -408,4 +415,70 @@ func TestCloseDetachesQuickly(t *testing.T) {
 		s.event.Wait()
 	}
 	s.mu.Unlock()
+}
+
+// Check that closing, and resulting detach of a Conn doesn't close the parent
+// Socket. We Accept, then close the connection and ensure it's detached. Then
+// Accept again to check the Socket is still functional and unclosed.
+func TestConnCloseUnclosedSocket(t *testing.T) {
+	t.Parallel()
+	s, err := NewSocket("udp", "localhost:0")
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, s.Close())
+	}()
+	// Prevents the dialing goroutine from closing its end of the Conn before
+	// we can check that it has been registered in the listener.
+	dialerSync := make(chan struct{})
+
+	go func() {
+		for range iter.N(2) {
+			c, err := Dial(s.Addr().String())
+			require.NoError(t, err)
+			<-dialerSync
+			err = c.Close()
+			require.NoError(t, err)
+		}
+	}()
+	for range iter.N(2) {
+		a, err := s.Accept()
+		require.NoError(t, err)
+		// We do this in a closure because we need to unlock Server.mu if the
+		// test failure exception is thrown. "Do as we say, not as we do" -Go
+		// team.
+		func() {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			require.Len(t, s.conns, 1)
+		}()
+		dialerSync <- struct{}{}
+		require.NoError(t, a.Close())
+		func() {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			for len(s.conns) != 0 {
+				s.event.Wait()
+			}
+		}()
+	}
+}
+
+func TestAcceptGone(t *testing.T) {
+	s, _ := NewSocket("udp", "localhost:0")
+	_, err := DialTimeout(s.Addr().String(), time.Millisecond)
+	require.Error(t, err)
+	c, _ := s.Accept()
+	c.SetReadDeadline(time.Now().Add(time.Millisecond))
+	c.Read(nil)
+	// select {}
+}
+
+func TestPacketReadTimeout(t *testing.T) {
+	t.Parallel()
+	a, b := connPair()
+	_, err := a.Read(nil)
+	require.Contains(t, err.Error(), "timeout")
+	t.Log(err)
+	t.Log(a.Close())
+	t.Log(b.Close())
 }

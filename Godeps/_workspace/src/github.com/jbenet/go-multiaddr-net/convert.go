@@ -13,10 +13,6 @@ var errIncorrectNetAddr = fmt.Errorf("incorrect network addr conversion")
 
 // FromNetAddr converts a net.Addr type to a Multiaddr.
 func FromNetAddr(a net.Addr) (ma.Multiaddr, error) {
-	if a == nil {
-		return nil, fmt.Errorf("nil multiaddr")
-	}
-
 	switch a.Network() {
 	case "tcp", "tcp4", "tcp6":
 		ac, ok := a.(*net.TCPAddr)

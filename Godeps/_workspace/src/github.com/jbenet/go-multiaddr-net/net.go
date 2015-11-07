@@ -119,6 +119,7 @@ func (d *Dialer) Dial(remote ma.Multiaddr) (Conn, error) {
 			Timeout:   d.Timeout,
 			LocalAddr: d.Dialer.LocalAddr,
 		}
+
 		// construct utp dialer, with options on our net.Dialer
 		nconn, err = utpd.Dial(rnet, rnaddr)
 		if err != nil {
@@ -227,7 +228,7 @@ func Listen(laddr ma.Multiaddr) (Listener, error) {
 	var nl net.Listener
 	switch lnet {
 	case "utp", "utp4", "utp6":
-		nl, err = mautp.Listen(lnet, lnaddr)
+		nl, err = mautp.NewSocket(lnet, lnaddr)
 	default:
 		nl, err = net.Listen(lnet, lnaddr)
 	}

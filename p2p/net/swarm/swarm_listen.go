@@ -1,70 +1,59 @@
 package swarm
 
 import (
-	"fmt"
-
 	mconn "github.com/ipfs/go-ipfs/metrics/conn"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
-	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	multierr "github.com/ipfs/go-ipfs/thirdparty/multierr"
 )
 
-// Open listeners for each network the swarm should listen on
-func (s *Swarm) listen(addrs []ma.Multiaddr) error {
-
-	for _, addr := range addrs {
-		if !addrutil.AddrUsable(addr, true) {
-			return fmt.Errorf("cannot use addr: %s", addr)
-		}
-	}
-
-	retErr := multierr.New()
-
-	// listen on every address
-	for i, addr := range addrs {
-		err := s.setupListener(addr)
+// Open listeners and reuse-dialers for the given addresses
+func (s *Swarm) setupAddresses(addrs []ma.Multiaddr) error {
+	merr := multierr.New()
+	for i, a := range addrs {
+		t, err := conn.MakeTransport(a, DialTimeout)
 		if err != nil {
-			if retErr.Errors == nil {
-				retErr.Errors = make([]error, len(addrs))
+			if err == conn.ErrNoSpecialTransport {
+				log.Error("no special transport for ", a)
+				continue
 			}
-			retErr.Errors[i] = err
-			log.Debugf("Failed to listen on: %s - %s", addr, err)
+			if merr.Errors == nil {
+				merr.Errors = make([]error, len(addrs))
+			}
+			merr.Errors[i] = err
+			continue
+		}
+		s.dialer.AddDialer(t)
+
+		err = s.addListener(t)
+		if err != nil {
+			merr.Errors[i] = err
 		}
 	}
 
-	if retErr.Errors != nil {
-		return retErr
+	if merr.Errors != nil {
+		return merr
 	}
+
 	return nil
 }
 
-// Listen for new connections on the given multiaddr
-func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
-
-	// TODO rethink how this has to work. (jbenet)
-	//
-	// resolved, err := resolveUnspecifiedAddresses([]ma.Multiaddr{maddr})
-	// if err != nil {
-	// 	return err
-	// }
-	// for _, a := range resolved {
-	// 	s.peers.AddAddr(s.local, a)
-	// }
+func (s *Swarm) addListener(malist manet.Listener) error {
 
 	sk := s.peers.PrivKey(s.local)
 	if sk == nil {
 		// may be fine for sk to be nil, just log a warning.
 		log.Warning("Listener not given PrivateKey, so WILL NOT SECURE conns.")
 	}
-	log.Debugf("Swarm Listening at %s", maddr)
-	list, err := conn.Listen(s.Context(), maddr, s.local, sk)
+
+	list, err := conn.WrapManetListener(s.Context(), malist, s.local, sk)
 	if err != nil {
 		return err
 	}
@@ -77,6 +66,10 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 		})
 	}
 
+	return s.addConnListener(list)
+}
+
+func (s *Swarm) addConnListener(list conn.Listener) error {
 	// AddListener to the peerstream Listener. this will begin accepting connections
 	// and streams!
 	sl, err := s.swarm.AddListener(list)
@@ -84,6 +77,8 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 		return err
 	}
 	log.Debugf("Swarm Listeners at %s", s.ListenAddresses())
+
+	maddr := list.Multiaddr()
 
 	// signal to our notifiees on successful conn.
 	s.notifyAll(func(n inet.Notifiee) {
@@ -107,7 +102,7 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 				if !more {
 					return
 				}
-				log.Warningf("swarm listener accept error: %s", err)
+				log.Errorf("swarm listener accept error: %s", err)
 			case <-ctx.Done():
 				return
 			}

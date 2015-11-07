@@ -41,7 +41,7 @@
 		},
 		{
 			"ImportPath": "github.com/anacrolix/utp",
-			"Rev": "0bb24de92c268452fb9106ca4fb9302442ca0dee"
+			"Rev": "9cb4fcf35c913df77d2e95eb17c5c513eb16794a"
 		},
 		{
 			"ImportPath": "github.com/beorn7/perks/quantile",
@@ -187,7 +187,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr-net",
-			"Rev": "4a8bd8f8baf45afcf2bb385bbc17e5208d5d4c71"
+			"Rev": "9ddf10f895d6a5f8aedf6f6657e28ca6614ad7e9"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
