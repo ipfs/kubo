@@ -2,6 +2,7 @@ package transport
 
 import (
 	"net"
+	"time"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
@@ -18,7 +19,7 @@ type Conn interface {
 
 type Transport interface {
 	Dialer(laddr ma.Multiaddr, opts ...DialOpt) (Dialer, error)
-	Listener(laddr ma.Multiaddr) (Listener, error)
+	Listen(laddr ma.Multiaddr) (Listener, error)
 	Matches(ma.Multiaddr) bool
 }
 
@@ -44,7 +45,10 @@ func (cw *connWrap) Transport() Transport {
 }
 
 type DialOpt interface{}
-type TimeoutOpt interface{}
+type TimeoutOpt time.Duration
+type ReuseportOpt bool
+
+var ReusePorts ReuseportOpt = true
 
 func IsTcpMultiaddr(a ma.Multiaddr) bool {
 	p := a.Protocols()

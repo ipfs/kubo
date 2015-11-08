@@ -114,7 +114,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	prom.MustRegisterOrGet(peersTotal)
 	s.Notify((*metricsNotifiee)(s))
 
-	return s, s.setupAddresses(listenAddrs)
+	return s, s.setupInterfaces(listenAddrs)
 }
 
 func (s *Swarm) teardown() error {
@@ -147,7 +147,7 @@ func (s *Swarm) Listen(addrs ...ma.Multiaddr) error {
 		return err
 	}
 
-	return s.setupAddresses(addrs)
+	return s.setupInterfaces(addrs)
 }
 
 // Process returns the Process of the swarm
