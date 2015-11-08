@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
+	"net/url"
 	"os"
 	"os/signal"
 	"runtime"
@@ -671,6 +673,15 @@ func apiClientForAddr(addr ma.Multiaddr) (cmdsHttp.Client, error) {
 }
 
 func isConnRefused(err error) bool {
-	return strings.Contains(err.Error(), "connection refused") ||
-		strings.Contains(err.Error(), "target machine actively refused it")
+	// unwrap url errors from http calls
+	if urlerr, ok := err.(*url.Error); ok {
+		err = urlerr.Err
+	}
+
+	netoperr, ok := err.(*net.OpError)
+	if !ok {
+		return false
+	}
+
+	return netoperr.Op == "dial"
 }
