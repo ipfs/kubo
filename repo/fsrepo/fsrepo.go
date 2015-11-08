@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,7 +26,10 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 	util "github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
+	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
+
+var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
 var RepoVersion = "2"
@@ -163,7 +166,7 @@ func open(repoPath string) (repo.Repo, error) {
 }
 
 func newFSRepo(rpath string) (*FSRepo, error) {
-	expPath, err := u.TildeExpansion(path.Clean(rpath))
+	expPath, err := u.TildeExpansion(filepath.Clean(rpath))
 	if err != nil {
 		return nil, err
 	}
@@ -247,17 +250,17 @@ func Init(repoPath string, conf *config.Config) error {
 
 	// The actual datastore contents are initialized lazily when Opened.
 	// During Init, we merely check that the directory is writeable.
-	leveldbPath := path.Join(repoPath, leveldbDirectory)
+	leveldbPath := filepath.Join(repoPath, leveldbDirectory)
 	if err := dir.Writable(leveldbPath); err != nil {
 		return fmt.Errorf("datastore: %s", err)
 	}
 
-	flatfsPath := path.Join(repoPath, flatfsDirectory)
+	flatfsPath := filepath.Join(repoPath, flatfsDirectory)
 	if err := dir.Writable(flatfsPath); err != nil {
 		return fmt.Errorf("datastore: %s", err)
 	}
 
-	if err := dir.Writable(path.Join(repoPath, "logs")); err != nil {
+	if err := dir.Writable(filepath.Join(repoPath, "logs")); err != nil {
 		return err
 	}
 
@@ -270,14 +273,14 @@ func Init(repoPath string, conf *config.Config) error {
 
 // Remove recursively removes the FSRepo at |path|.
 func Remove(repoPath string) error {
-	repoPath = path.Clean(repoPath)
+	repoPath = filepath.Clean(repoPath)
 	return os.RemoveAll(repoPath)
 }
 
 // LockedByOtherProcess returns true if the FSRepo is locked by another
 // process. If true, then the repo cannot be opened by this process.
 func LockedByOtherProcess(repoPath string) (bool, error) {
-	repoPath = path.Clean(repoPath)
+	repoPath = filepath.Clean(repoPath)
 	// NB: the lock is only held when repos are Open
 	return lockfile.Locked(repoPath)
 }
@@ -287,8 +290,8 @@ func LockedByOtherProcess(repoPath string) (bool, error) {
 // process may read this file. modifying this file, therefore, should
 // use "mv" to replace the whole file and avoid interleaved read/writes.
 func APIAddr(repoPath string) (string, error) {
-	repoPath = path.Clean(repoPath)
-	apiFilePath := path.Join(repoPath, apiFile)
+	repoPath = filepath.Clean(repoPath)
+	apiFilePath := filepath.Join(repoPath, apiFile)
 
 	// if there is no file, assume there is no api addr.
 	f, err := os.Open(apiFilePath)
@@ -315,7 +318,7 @@ func APIAddr(repoPath string) (string, error) {
 
 // SetAPIAddr writes the API Addr to the /api file.
 func (r *FSRepo) SetAPIAddr(addr string) error {
-	f, err := os.Create(path.Join(r.path, apiFile))
+	f, err := os.Create(filepath.Join(r.path, apiFile))
 	if err != nil {
 		return err
 	}
@@ -341,7 +344,7 @@ func (r *FSRepo) openConfig() error {
 
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
-	leveldbPath := path.Join(r.path, leveldbDirectory)
+	leveldbPath := filepath.Join(r.path, leveldbDirectory)
 	var err error
 	// save leveldb reference so it can be neatly closed afterward
 	leveldbDS, err := levelds.NewDatastore(leveldbPath, &levelds.Options{
@@ -359,7 +362,7 @@ func (r *FSRepo) openDatastore() error {
 	// including "/" from datastore.Key and 2 bytes from multihash. To
 	// reach a uniform 256-way split, we need approximately 4 bytes of
 	// prefix.
-	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 4)
+	blocksDS, err := flatfs.New(filepath.Join(r.path, flatfsDirectory), 4)
 	if err != nil {
 		return errors.New("unable to open flatfs datastore")
 	}
@@ -408,6 +411,11 @@ func (r *FSRepo) Close() error {
 
 	if err := r.ds.(io.Closer).Close(); err != nil {
 		return err
+	}
+
+	err := os.Remove(filepath.Join(r.path, apiFile))
+	if err != nil {
+		log.Warning("error removing api file: ", err)
 	}
 
 	// This code existed in the previous versions, but
@@ -600,7 +608,7 @@ func isInitializedUnsynced(repoPath string) bool {
 	if !configIsInitialized(repoPath) {
 		return false
 	}
-	if !util.FileExists(path.Join(repoPath, leveldbDirectory)) {
+	if !util.FileExists(filepath.Join(repoPath, leveldbDirectory)) {
 		return false
 	}
 	return true
