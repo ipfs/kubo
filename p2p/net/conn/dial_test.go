@@ -54,7 +54,7 @@ func setupSingleConn(t *testing.T, ctx context.Context) (a, b Conn, p1, p2 tu.Pe
 }
 
 func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey) (Listener, error) {
-	list, err := transport.NewTCPTransport().Listener(addr)
+	list, err := transport.NewTCPTransport().Listen(addr)
 	if err != nil {
 		return nil, err
 	}
