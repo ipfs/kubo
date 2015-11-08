@@ -38,16 +38,19 @@ func (t *TcpTransport) Dialer(laddr ma.Multiaddr, opts ...DialOpt) (Dialer, erro
 	}
 	var base manet.Dialer
 
+	var doReuse bool
 	for _, o := range opts {
 		switch o := o.(type) {
 		case TimeoutOpt:
-			base.Timeout = o.(time.Duration)
+			base.Timeout = time.Duration(o)
+		case ReuseportOpt:
+			doReuse = bool(o)
 		default:
 			return nil, fmt.Errorf("unrecognized option: %#v", o)
 		}
 	}
 
-	tcpd, err := t.newTcpDialer(base, laddr)
+	tcpd, err := t.newTcpDialer(base, laddr, doReuse)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +59,7 @@ func (t *TcpTransport) Dialer(laddr ma.Multiaddr, opts ...DialOpt) (Dialer, erro
 	return tcpd, nil
 }
 
-func (t *TcpTransport) Listener(laddr ma.Multiaddr) (Listener, error) {
+func (t *TcpTransport) Listen(laddr ma.Multiaddr) (Listener, error) {
 	t.llock.Lock()
 	defer t.llock.Unlock()
 	s := laddr.String()
@@ -114,33 +117,33 @@ type tcpDialer struct {
 	transport Transport
 }
 
-func (t *TcpTransport) newTcpDialer(base manet.Dialer, laddr ma.Multiaddr) (*tcpDialer, error) {
+func (t *TcpTransport) newTcpDialer(base manet.Dialer, laddr ma.Multiaddr, doReuse bool) (*tcpDialer, error) {
 	// get the local net.Addr manually
 	la, err := manet.ToNetAddr(laddr)
 	if err != nil {
 		return nil, err // something wrong with laddr.
 	}
 
-	if !ReuseportIsAvailable() {
+	if doReuse && ReuseportIsAvailable() {
+		rd := reuseport.Dialer{
+			D: net.Dialer{
+				LocalAddr: la,
+				Timeout:   base.Timeout,
+			},
+		}
+
 		return &tcpDialer{
-			doReuse:   false,
+			doReuse:   true,
 			laddr:     laddr,
+			rd:        rd,
 			madialer:  base,
 			transport: t,
 		}, nil
 	}
 
-	rd := reuseport.Dialer{
-		D: net.Dialer{
-			LocalAddr: la,
-			Timeout:   base.Timeout,
-		},
-	}
-
 	return &tcpDialer{
-		doReuse:   true,
+		doReuse:   false,
 		laddr:     laddr,
-		rd:        rd,
 		madialer:  base,
 		transport: t,
 	}, nil

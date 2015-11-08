@@ -15,21 +15,21 @@ import (
 )
 
 // Open listeners and reuse-dialers for the given addresses
-func (s *Swarm) setupAddresses(addrs []ma.Multiaddr) error {
+func (s *Swarm) setupInterfaces(addrs []ma.Multiaddr) error {
 	for _, a := range addrs {
 		tpt := s.transportForAddr(a)
 		if tpt == nil {
 			return fmt.Errorf("no transport for address: %s", a)
 		}
 
-		d, err := tpt.Dialer(a, transport.TimeoutOpt(DialTimeout))
+		d, err := tpt.Dialer(a, transport.TimeoutOpt(DialTimeout), transport.ReusePorts)
 		if err != nil {
 			return err
 		}
 
 		s.dialer.AddDialer(d)
 
-		list, err := tpt.Listener(a)
+		list, err := tpt.Listen(a)
 		if err != nil {
 			return err
 		}
