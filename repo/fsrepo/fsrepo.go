@@ -26,7 +26,6 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 	util "github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
-	logging "github.com/ipfs/go-ipfs/vendor/QmTBXYb6y2ZcJmoXVKk3pf9rzSEjbCg7tQaJW7RSuH14nv/go-log"
 )
 
 // version number that we are currently expecting to see
@@ -158,9 +157,6 @@ func open(repoPath string) (repo.Repo, error) {
 	if err := r.openDatastore(); err != nil {
 		return nil, err
 	}
-
-	// setup eventlogger
-	configureEventLoggerAtRepoPath(r.config, r.path)
 
 	keepLocked = true
 	return r, nil
@@ -399,12 +395,6 @@ func (r *FSRepo) openDatastore() error {
 	var _ ds.ThreadSafeDatastore = leveldbDS
 	r.ds = ds2.ClaimThreadSafe{mountDS}
 	return nil
-}
-
-func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
-	logging.Configure(logging.LevelInfo)
-	logging.Configure(logging.LdJSONFormatter)
-	logging.Configure(logging.Output(logging.WriterGroup))
 }
 
 // Close closes the FSRepo, releasing held resources.

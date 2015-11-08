@@ -16,7 +16,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	logging "github.com/ipfs/go-ipfs/vendor/QmTBXYb6y2ZcJmoXVKk3pf9rzSEjbCg7tQaJW7RSuH14nv/go-log"
+	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
 var log = logging.Logger("commands/http")
@@ -149,6 +149,15 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(node.Context())
 	defer cancel()
+	if cn, ok := w.(http.CloseNotifier); ok {
+		go func() {
+			select {
+			case <-cn.CloseNotify():
+			case <-ctx.Done():
+			}
+			cancel()
+		}()
+	}
 
 	err = req.SetRootContext(ctx)
 	if err != nil {

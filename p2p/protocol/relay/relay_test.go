@@ -8,7 +8,7 @@ import (
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	relay "github.com/ipfs/go-ipfs/p2p/protocol/relay"
 	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
-	logging "github.com/ipfs/go-ipfs/vendor/QmTBXYb6y2ZcJmoXVKk3pf9rzSEjbCg7tQaJW7RSuH14nv/go-log"
+	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
