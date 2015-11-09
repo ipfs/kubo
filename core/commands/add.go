@@ -440,7 +440,7 @@ func (params *adder) addDir(file files.File) (*dag.Node, error) {
 		if node != nil {
 			_, name := path.Split(file.FileName())
 
-			err = tree.AddNodeLink(name, node)
+			err = tree.AddNodeLinkClean(name, node)
 			if err != nil {
 				return nil, err
 			}
