@@ -16,28 +16,44 @@ import (
 
 // Open listeners and reuse-dialers for the given addresses
 func (s *Swarm) setupInterfaces(addrs []ma.Multiaddr) error {
-	for _, a := range addrs {
+	errs := make([]error, len(addrs))
+	var succeeded int
+	for i, a := range addrs {
 		tpt := s.transportForAddr(a)
 		if tpt == nil {
-			return fmt.Errorf("no transport for address: %s", a)
+			errs[i] = fmt.Errorf("no transport for address: %s", a)
+			continue
 		}
 
 		d, err := tpt.Dialer(a, transport.TimeoutOpt(DialTimeout), transport.ReusePorts)
 		if err != nil {
-			return err
+			errs[i] = err
+			continue
 		}
 
 		s.dialer.AddDialer(d)
 
 		list, err := tpt.Listen(a)
 		if err != nil {
-			return err
+			errs[i] = err
+			continue
 		}
 
 		err = s.addListener(list)
 		if err != nil {
-			return err
+			errs[i] = err
+			continue
 		}
+		succeeded++
+	}
+
+	for i, e := range errs {
+		if e != nil {
+			log.Warning("listen on %s failed: %s", addrs[i], errs[i])
+		}
+	}
+	if succeeded == 0 && len(addrs) > 0 {
+		return fmt.Errorf("failed to listen on any addresses: %s", errs)
 	}
 
 	return nil
