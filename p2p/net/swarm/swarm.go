@@ -114,7 +114,12 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	prom.MustRegisterOrGet(peersTotal)
 	s.Notify((*metricsNotifiee)(s))
 
-	return s, s.setupInterfaces(listenAddrs)
+	err = s.setupInterfaces(listenAddrs)
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
 func (s *Swarm) teardown() error {
