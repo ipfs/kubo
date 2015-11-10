@@ -87,8 +87,11 @@ func datastoreConfig() (*Datastore, error) {
 		return nil, err
 	}
 	return &Datastore{
-		Path: dspath,
-		Type: "leveldb",
+		Path:               dspath,
+		Type:               "leveldb",
+		StorageMax:         "10GB",
+		StorageGCWatermark: 90, // 90%
+		GCPeriod:           "1h",
 	}, nil
 }
 

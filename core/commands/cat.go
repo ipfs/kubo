@@ -5,6 +5,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/corerepo"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -44,6 +45,10 @@ it contains.
 			return
 		}
 
+		if err := corerepo.ConditionalGC(req.Context(), node, length); err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		res.SetLength(length)
 
 		reader := io.MultiReader(readers...)

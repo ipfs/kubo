@@ -55,6 +55,7 @@ test_expect_success "'ipfs pin rm' output looks good" '
 '
 
 test_expect_failure "ipfs repo gc fully reverse ipfs add" '
+    ipfs repo gc &&
     random 100000 41 >gcfile &&
     disk_usage "$IPFS_PATH/blocks" >expected &&
     hash=`ipfs add -q gcfile` &&
