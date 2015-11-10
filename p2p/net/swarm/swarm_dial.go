@@ -145,44 +145,71 @@ func (ds *dialsync) Unlock(dst peer.ID) {
 //  	dialbackoff.Clear(p)
 //  }
 //
+
 type dialbackoff struct {
-	entries map[peer.ID]struct{}
+	entries map[peer.ID]*backoffPeer
 	lock    sync.RWMutex
+}
+
+type backoffPeer struct {
+	tries int
+	until time.Time
 }
 
 func (db *dialbackoff) init() {
 	if db.entries == nil {
-		db.entries = make(map[peer.ID]struct{})
+		db.entries = make(map[peer.ID]*backoffPeer)
 	}
 }
 
 // Backoff returns whether the client should backoff from dialing
-// peeer p
-func (db *dialbackoff) Backoff(p peer.ID) bool {
+// peer p
+func (db *dialbackoff) Backoff(p peer.ID) (backoff bool) {
 	db.lock.Lock()
+	defer db.lock.Unlock()
 	db.init()
-	_, found := db.entries[p]
-	db.lock.Unlock()
-	return found
+	bp, found := db.entries[p]
+	if found && time.Now().Before(bp.until) {
+		return true
+	}
+
+	return false
 }
+
+const baseBackoffTime = time.Second * 5
+const maxBackoffTime = time.Minute * 5
 
 // AddBackoff lets other nodes know that we've entered backoff with
 // peer p, so dialers should not wait unnecessarily. We still will
 // attempt to dial with one goroutine, in case we get through.
 func (db *dialbackoff) AddBackoff(p peer.ID) {
 	db.lock.Lock()
+	defer db.lock.Unlock()
 	db.init()
-	db.entries[p] = struct{}{}
-	db.lock.Unlock()
+	bp, ok := db.entries[p]
+	if !ok {
+		db.entries[p] = &backoffPeer{
+			tries: 1,
+			until: time.Now().Add(baseBackoffTime),
+		}
+		return
+	}
+
+	expTimeAdd := time.Second * time.Duration(bp.tries*bp.tries)
+	if expTimeAdd > maxBackoffTime {
+		expTimeAdd = maxBackoffTime
+	}
+	bp.until = time.Now().Add(baseBackoffTime + expTimeAdd)
+	bp.tries++
 }
 
 // Clear removes a backoff record. Clients should call this after a
 // successful Dial.
 func (db *dialbackoff) Clear(p peer.ID) {
 	db.lock.Lock()
+	defer db.lock.Unlock()
 	db.init()
 	delete(db.entries, p)
-	db.lock.Unlock()
 }
 
 // Dial connects to a peer.
@@ -225,14 +252,20 @@ func (s *Swarm) gatedDialAttempt(ctx context.Context, p peer.ID) (*Conn, error) 
 
 	// check if there's an ongoing dial to this peer
 	if ok, wait := s.dsync.Lock(p); ok {
+		defer s.dsync.Unlock(p)
+
+		// if this peer has been backed off, lets get out of here
+		if s.backf.Backoff(p) {
+			log.Event(ctx, "swarmDialBackoff", logdial)
+			return nil, ErrDialBackoff
+		}
+
 		// ok, we have been charged to dial! let's do it.
 		// if it succeeds, dial will add the conn to the swarm itself.
-
 		defer log.EventBegin(ctx, "swarmDialAttemptStart", logdial).Done()
 		ctxT, cancel := context.WithTimeout(ctx, s.dialT)
 		conn, err := s.dial(ctxT, p)
 		cancel()
-		s.dsync.Unlock(p)
 		log.Debugf("dial end %s", conn)
 		if err != nil {
 			log.Event(ctx, "swarmDialBackoffAdd", logdial)
