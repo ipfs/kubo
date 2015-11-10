@@ -8,8 +8,12 @@ import (
 	"testing"
 	"time"
 
+	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	transport "github.com/ipfs/go-ipfs/p2p/net/transport"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	tu "github.com/ipfs/go-ipfs/util/testutil"
 
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -49,6 +53,25 @@ func setupSingleConn(t *testing.T, ctx context.Context) (a, b Conn, p1, p2 tu.Pe
 	return setupConn(t, ctx, false)
 }
 
+func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey) (Listener, error) {
+	list, err := transport.NewTCPTransport().Listen(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return WrapTransportListener(ctx, list, local, sk)
+}
+
+func dialer(t *testing.T, a ma.Multiaddr) transport.Dialer {
+	tpt := transport.NewTCPTransport()
+	tptd, err := tpt.Dialer(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return tptd
+}
+
 func setupConn(t *testing.T, ctx context.Context, secure bool) (a, b Conn, p1, p2 tu.PeerNetParams) {
 
 	p1 = tu.RandPeerNetParamsOrFatal(t)
@@ -70,6 +93,8 @@ func setupConn(t *testing.T, ctx context.Context, secure bool) (a, b Conn, p1, p
 		LocalPeer:  p2.ID,
 		PrivateKey: key2,
 	}
+
+	d2.AddDialer(dialer(t, p2.Addr))
 
 	var c2 Conn
 
@@ -152,6 +177,7 @@ func testDialer(t *testing.T, secure bool) {
 		LocalPeer:  p2.ID,
 		PrivateKey: key2,
 	}
+	d2.AddDialer(dialer(t, p2.Addr))
 
 	go echoListen(ctx, l1)
 
@@ -227,6 +253,7 @@ func testDialerCloseEarly(t *testing.T, secure bool) {
 		LocalPeer: p2.ID,
 		// PrivateKey: key2, -- dont give it key. we'll just close the conn.
 	}
+	d2.AddDialer(dialer(t, p2.Addr))
 
 	errs := make(chan error, 100)
 	done := make(chan struct{}, 1)
@@ -253,7 +280,7 @@ func testDialerCloseEarly(t *testing.T, secure bool) {
 
 	c, err := d2.Dial(ctx, p1.Addr, p1.ID)
 	if err != nil {
-		errs <- err
+		t.Fatal(err)
 	}
 	c.Close() // close it early.
 

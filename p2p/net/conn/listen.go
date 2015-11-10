@@ -6,8 +6,6 @@ import (
 	"net"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
-	reuseport "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport"
 	tec "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-temp-err-catcher"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
@@ -15,15 +13,16 @@ import (
 
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
 	filter "github.com/ipfs/go-ipfs/p2p/net/filter"
+	transport "github.com/ipfs/go-ipfs/p2p/net/transport"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
 // ConnWrapper is any function that wraps a raw multiaddr connection
-type ConnWrapper func(manet.Conn) manet.Conn
+type ConnWrapper func(transport.Conn) transport.Conn
 
 // listener is an object that can accept connections. It implements Listener
 type listener struct {
-	manet.Listener
+	transport.Listener
 
 	local peer.ID    // LocalPeer is the identity of the local Peer
 	privk ic.PrivKey // private key to use to initialize secure conns
@@ -147,13 +146,7 @@ func (l *listener) Loggable() map[string]interface{} {
 	}
 }
 
-// Listen listens on the particular multiaddr, with given peer and peerstore.
-func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey) (Listener, error) {
-	ml, err := manetListen(addr)
-	if err != nil {
-		return nil, err
-	}
-
+func WrapTransportListener(ctx context.Context, ml transport.Listener, local peer.ID, sk ic.PrivKey) (Listener, error) {
 	l := &listener{
 		Listener: ml,
 		local:    local,
@@ -174,24 +167,4 @@ type ListenerConnWrapper interface {
 // connections with. MUST be set _before_ calling `Accept()`
 func (l *listener) SetConnWrapper(cw ConnWrapper) {
 	l.wrapper = cw
-}
-
-func manetListen(addr ma.Multiaddr) (manet.Listener, error) {
-	network, naddr, err := manet.DialArgs(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	if reuseportIsAvailable() {
-		nl, err := reuseport.Listen(network, naddr)
-		if err == nil {
-			// hey, it worked!
-			return manet.WrapNetListener(nl)
-		}
-		// reuseport is available, but we failed to listen. log debug, and retry normally.
-		log.Debugf("reuseport available, but failed to listen: %s %s, %s", network, naddr, err)
-	}
-
-	// either reuseport not available, or it failed. try normally.
-	return manet.Listen(addr)
 }
