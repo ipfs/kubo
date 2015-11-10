@@ -6,16 +6,11 @@ import (
 	"path"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	cxt "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
-	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	importer "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -116,7 +111,7 @@ remains to be implemented.
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 
-		e := dagutils.NewDagEditor(NewMemoryDagService(), newDirNode())
+		e := dagutils.NewDagEditor(newDirNode(), nil)
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
 				//TODO: need this to be true or all files
@@ -180,21 +175,24 @@ remains to be implemented.
 				return err
 			}
 
-			if !hash {
-				// copy intermediary nodes from editor to our actual dagservice
-				err := e.WriteOutputTo(n.DAG)
-				if err != nil {
-					log.Error("WRITE OUT: ", err)
-					return err
-				}
+			if hash {
+				return nil
 			}
 
+			// copy intermediary nodes from editor to our actual dagservice
+			_, err := e.Finalize(n.DAG)
+			if err != nil {
+				return err
+			}
+
+			// rootnode will optionally wrap the output
 			rootnd, err := fileAdder.RootNode()
 			if err != nil {
 				return err
 			}
 
 			return pinRoot(rootnd)
+
 		}
 
 		go func() {
@@ -290,13 +288,6 @@ remains to be implemented.
 		}
 	},
 	Type: AddedObject{},
-}
-
-func NewMemoryDagService() dag.DAGService {
-	// build mem-datastore for editor's intermediary nodes
-	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-	bsrv := bserv.New(bs, offline.Exchange(bs))
-	return dag.NewDAGService(bsrv)
 }
 
 // Internal structure for holding the switches passed to the `add` call
@@ -448,7 +439,7 @@ func (params *adder) addDir(file files.File) (*dag.Node, error) {
 		if node != nil {
 			_, name := path.Split(file.FileName())
 
-			err = tree.AddNodeLink(name, node)
+			err = tree.AddNodeLinkClean(name, node)
 			if err != nil {
 				return nil, err
 			}
