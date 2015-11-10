@@ -229,7 +229,7 @@ func (r *dhtQueryRunner) queryPeer(proc process.Process, p peer.ID) {
 	// make sure we're connected to the peer.
 	// FIXME abstract away into the network layer
 	if conns := r.query.dht.host.Network().ConnsToPeer(p); len(conns) == 0 {
-		log.Error("not connected. dialing.")
+		log.Debug("not connected. dialing.")
 
 		notif.PublishQueryEvent(r.runCtx, &notif.QueryEvent{
 			Type: notif.DialingPeer,
