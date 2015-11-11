@@ -9,9 +9,12 @@ output to the user, including text, JSON, and XML marshallers.
 package commands
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"os/exec"
 	"reflect"
 	"strings"
 
@@ -58,6 +61,10 @@ type Command struct {
 	PostRun    Function
 	Marshalers map[EncodingType]Marshaler
 	Helptext   HelpText
+
+	// External denotes that a command is actually an external binary.
+	// fewer checks and validations will be performed on such commands.
+	External bool
 
 	// Type describes the type of the output of the Command's Run Function.
 	// In precise terms, the value of Type is an instance of the return type of
@@ -261,4 +268,68 @@ func checkArgValue(v string, found bool, def Argument) error {
 
 func ClientError(msg string) error {
 	return &Error{Code: ErrClient, Message: msg}
+}
+
+func ExternalBinary() *Command {
+	return &Command{
+		Arguments: []Argument{
+			StringArg("args", false, true, "arguments for subcommand"),
+		},
+		External: true,
+		Run: func(req Request, res Response) {
+			binname := strings.Join(append([]string{"ipfs"}, req.Path()...), "-")
+			_, err := exec.LookPath(binname)
+			if err != nil {
+				// special case for '--help' on uninstalled binaries.
+				if req.Arguments()[0] == "--help" {
+					buf := new(bytes.Buffer)
+					fmt.Fprintf(buf, "%s is an 'external' command.\n", binname)
+					fmt.Fprintf(buf, "it does not currently appear to be installated.\n")
+					fmt.Fprintf(buf, "please refer to the ipfs documentation for instructions\n")
+					res.SetOutput(buf)
+					return
+				}
+
+				res.SetError(fmt.Errorf("%s not installed."), ErrNormal)
+				return
+			}
+
+			r, w := io.Pipe()
+
+			cmd := exec.Command(binname, req.Arguments()...)
+
+			// TODO: make commands lib be able to pass stdin through daemon
+			//cmd.Stdin = req.Stdin()
+			cmd.Stdin = io.LimitReader(nil, 0)
+			cmd.Stdout = w
+			cmd.Stderr = w
+
+			// setup env of child program
+			env := os.Environ()
+
+			nd, err := req.InvocContext().GetNode()
+			if err == nil {
+				env = append(env, fmt.Sprintf("IPFS_ONLINE=%t", nd.OnlineMode()))
+			}
+
+			cmd.Env = env
+
+			err = cmd.Start()
+			if err != nil {
+				res.SetError(fmt.Errorf("failed to start subcommand: %s", err), ErrNormal)
+				return
+			}
+
+			res.SetOutput(r)
+
+			go func() {
+				err = cmd.Wait()
+				if err != nil {
+					res.SetError(err, ErrNormal)
+				}
+
+				w.Close()
+			}()
+		},
+	}
 }

@@ -204,6 +204,13 @@ func parseOpts(args []string, root *cmds.Command) (
 				if err != nil {
 					return
 				}
+
+				// If we've come across an external binary call, pass all the remaining
+				// arguments on to it
+				if cmd.External {
+					stringVals = append(stringVals, args[i+1:]...)
+					return
+				}
 			} else {
 				stringVals = append(stringVals, arg)
 			}
