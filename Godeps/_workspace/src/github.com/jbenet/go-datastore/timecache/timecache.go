@@ -9,10 +9,10 @@ import (
 	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
+// op keys
 var (
-	putKey = "put"
-	getKey = // op keys
-	"get"
+	putKey    = "put"
+	getKey    = "get"
 	hasKey    = "has"
 	deleteKey = "delete"
 )
