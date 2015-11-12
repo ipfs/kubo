@@ -16,6 +16,7 @@ type Datastore struct {
 	GCPeriod           string // in ns, us, ms, s, m, h
 
 	Params *json.RawMessage
+	NoSync bool
 }
 
 func (d *Datastore) ParamData() []byte {

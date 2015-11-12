@@ -39,7 +39,8 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	// including "/" from datastore.Key and 2 bytes from multihash. To
 	// reach a uniform 256-way split, we need approximately 4 bytes of
 	// prefix.
-	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 4)
+	syncfs := !r.config.Datastore.NoSync
+	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 4, syncfs)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}
