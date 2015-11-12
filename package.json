@@ -10,8 +10,7 @@
     {
       "name": "dir-index-html",
       "hash": "QmdDfkqDWheE4gsCXNrhixwTwSHnZMPT2cGLcNbiBNcMyU",
-      "version": "1.0.0",
-      "linkname": "dir-index-html-v1.0.0"
+      "version": "1.0.0"
     }
   ],
   "language": "go"
