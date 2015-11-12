@@ -10,8 +10,13 @@ go:
     - 1.5.1
 
 env:
-  - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_go_expensive
-  - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_sharness_expensive
+  global:
+    - GO15VENDOREXPERIMENT=1
+    - TEST_NO_FUSE=1
+    - TEST_VERBOSE=1
+  matrix:
+    - TEST_SUITE=test_go_expensive
+    - TEST_SUITE=test_sharness_expensive
 
 script:
   - make $TEST_SUITE

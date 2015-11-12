@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"math/big"
-
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 // XORKeySpace is a KeySpace which:
@@ -35,7 +33,7 @@ func (s *xorKeySpace) Equal(k1, k2 Key) bool {
 // Distance returns the distance metric in this key space
 func (s *xorKeySpace) Distance(k1, k2 Key) *big.Int {
 	// XOR the keys
-	k3 := u.XOR(k1.Bytes, k2.Bytes)
+	k3 := XOR(k1.Bytes, k2.Bytes)
 
 	// interpret it as an integer
 	dist := big.NewInt(0).SetBytes(k3)
@@ -64,4 +62,13 @@ func ZeroPrefixLen(id []byte) int {
 		}
 	}
 	return len(id) * 8
+}
+
+// XOR takes two byte slices, XORs them together, returns the resulting slice.
+func XOR(a, b []byte) []byte {
+	c := make([]byte, len(a))
+	for i := 0; i < len(a); i++ {
+		c[i] = a[i] ^ b[i]
+	}
+	return c
 }

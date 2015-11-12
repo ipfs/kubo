@@ -11,6 +11,11 @@
       "name": "dir-index-html",
       "hash": "QmdDfkqDWheE4gsCXNrhixwTwSHnZMPT2cGLcNbiBNcMyU",
       "version": "1.0.0"
+    },
+    {
+      "name": "go-keyspace",
+      "hash": "QmPY1AT9M1LXE99zmTVV9xMEPa93BvGGJRexFjahNkpkbh",
+      "version": "1.0.0"
     }
   ],
   "language": "go"
