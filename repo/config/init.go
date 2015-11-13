@@ -45,6 +45,18 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			Gateway: "/ip4/127.0.0.1/tcp/8080",
 		},
 
+		// setup CORS
+		API: API{
+			HTTPHeaders: map[string][]string {
+				"Access-Control-Allow-Origin" : []string{
+					"http://127.0.0.1",
+					"http://127.0.0.1:5001",
+					"http://localhost",
+					"http://localhost:5001",
+				},
+			},
+		},
+
 		Bootstrap:        BootstrapPeerStrings(bootstrapPeers),
 		SupernodeRouting: *snr,
 		Datastore:        *ds,
