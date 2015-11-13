@@ -37,7 +37,7 @@ func (c *Change) String() string {
 }
 
 func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.Node, cs []*Change) (*dag.Node, error) {
-	e := NewDagEditor(ds, nd)
+	e := NewDagEditor(nd, ds)
 	for _, c := range cs {
 		switch c.Type {
 		case Add:
@@ -71,7 +71,8 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.Node, cs []*Cha
 			}
 		}
 	}
-	return e.GetNode(), nil
+
+	return e.Finalize(ds)
 }
 
 func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.Node) []*Change {
