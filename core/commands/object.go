@@ -599,14 +599,17 @@ func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 
 	path := req.Arguments()[2]
 
-	e := dagutils.NewDagEditor(nd.DAG, root)
+	e := dagutils.NewDagEditor(root, nd.DAG)
 
 	err = e.RmLink(req.Context(), path)
 	if err != nil {
 		return "", err
 	}
 
-	nnode := e.GetNode()
+	nnode, err := e.Finalize(nd.DAG)
+	if err != nil {
+		return "", err
+	}
 
 	return nnode.Key()
 }
@@ -636,7 +639,7 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		}
 	}
 
-	e := dagutils.NewDagEditor(nd.DAG, root)
+	e := dagutils.NewDagEditor(root, nd.DAG)
 
 	childnd, err := nd.DAG.Get(req.Context(), childk)
 	if err != nil {
@@ -648,7 +651,10 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", err
 	}
 
-	nnode := e.GetNode()
+	nnode, err := e.Finalize(nd.DAG)
+	if err != nil {
+		return "", err
+	}
 
 	return nnode.Key()
 }
