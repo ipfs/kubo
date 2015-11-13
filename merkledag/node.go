@@ -9,6 +9,8 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 )
 
+var ErrLinkNotFound = fmt.Errorf("no link by that name")
+
 // Node represents a node in the IPFS Merkle DAG.
 // nodes have opaque data and a set of navigable links.
 type Node struct {
@@ -160,7 +162,7 @@ func (n *Node) GetNodeLink(name string) (*Link, error) {
 			}, nil
 		}
 	}
-	return nil, ErrNotFound
+	return nil, ErrLinkNotFound
 }
 
 func (n *Node) GetLinkedNode(ctx context.Context, ds DAGService, name string) (*Node, error) {

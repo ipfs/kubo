@@ -149,13 +149,15 @@ remains to be implemented.
 				return err
 			}
 
-			if !hash {
-				// copy intermediary nodes from editor to our actual dagservice
-				err := fileAdder.WriteOutputTo(n.DAG)
-				if err != nil {
-					log.Error("WRITE OUT: ", err)
-					return err
-				}
+			if hash {
+				return nil
+			}
+
+			// copy intermediary nodes from editor to our actual dagservice
+			_, err := fileAdder.Finalize(n.DAG)
+			if err != nil {
+				log.Error("WRITE OUT: ", err)
+				return err
 			}
 
 			return fileAdder.PinRoot()
