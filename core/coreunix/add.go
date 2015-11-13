@@ -230,8 +230,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 	return gopath.Join(k.String(), filename), dagnode, nil
 }
 
-func (params *Adder) addNode(node *dag.Node, path string) error {
-	// patch it into the root
+func (params *Adder) outputDagnode(node *dag.Node, path string) error {
 	if path == "" {
 		key, err := node.Key()
 		if err != nil {
@@ -241,11 +240,19 @@ func (params *Adder) addNode(node *dag.Node, path string) error {
 		path = key.Pretty()
 	}
 
-	if err := params.editor.InsertNodeAtPath(params.ctx, path, node, newDirNode); err != nil {
-		return err
+	return outputDagnode(params.out, path, node)
+}
+
+func (params *Adder) InsertNodeAtPath(path string, node *dag.Node) error {
+	if path == "" {
+		key, err := node.Key()
+		if err != nil {
+			return err
+		}
+		path = key.Pretty()
 	}
 
-	return outputDagnode(params.out, path, node)
+	return params.editor.InsertNodeAtPath(params.ctx, path, node, newDirNode)
 }
 
 // Add the given file while respecting the params.
@@ -260,6 +267,7 @@ func (params *Adder) AddFile(file files.File) (*dag.Node, error) {
 
 	// case for symlink
 	if s, ok := file.(*files.Symlink); ok {
+		log.Infof("adding symlink: %s", s.FileName())
 		sdata, err := unixfs.SymlinkData(s.Target)
 		if err != nil {
 			return nil, err
@@ -271,7 +279,7 @@ func (params *Adder) AddFile(file files.File) (*dag.Node, error) {
 			return nil, err
 		}
 
-		err = params.addNode(dagnode, s.FileName())
+		err = params.outputDagnode(dagnode, s.FileName())
 		return dagnode, err
 	}
 
@@ -283,20 +291,19 @@ func (params *Adder) AddFile(file files.File) (*dag.Node, error) {
 		reader = &progressReader{file: file, out: params.out}
 	}
 
+	log.Infof("adding file: %s", file.FileName())
 	dagnode, err := params.add(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	// patch it into the root
-	log.Infof("adding file: %s", file.FileName())
-	err = params.addNode(dagnode, file.FileName())
+	err = params.outputDagnode(dagnode, file.FileName())
 	return dagnode, err
 }
 
 func (params *Adder) addDir(dir files.File) (*dag.Node, error) {
-	tree := newDirNode()
 	log.Infof("adding directory: %s", dir.FileName())
+	tree := newDirNode()
 
 	for {
 		file, err := dir.NextFile()
@@ -322,15 +329,12 @@ func (params *Adder) addDir(dir files.File) (*dag.Node, error) {
 		}
 	}
 
-	if err := params.addNode(tree, dir.FileName()); err != nil {
-		return nil, err
-	}
-
 	if _, err := params.node.DAG.Add(tree); err != nil {
 		return nil, err
 	}
 
-	return tree, nil
+	err := params.outputDagnode(tree, dir.FileName())
+	return tree, err
 }
 
 // outputDagnode sends dagnode info over the output channel
