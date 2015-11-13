@@ -317,7 +317,7 @@ func (params *Adder) addDir(dir files.File) (*merkledag.Node, error) {
 
 		name := gopath.Base(file.FileName())
 
-		if err := tree.AddNodeLink(name, node); err != nil {
+		if err := tree.AddNodeLinkClean(name, node); err != nil {
 			return nil, err
 		}
 	}
