@@ -320,14 +320,20 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		e := dagutils.NewDagEditor(i.node.DAG, rnode)
+		e := dagutils.NewDagEditor(rnode, i.node.DAG)
 		err = e.InsertNodeAtPath(ctx, newPath, newnode, uio.NewEmptyDirectory)
 		if err != nil {
 			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
 			return
 		}
 
-		newkey, err = e.GetNode().Key()
+		nnode, err := e.Finalize(i.node.DAG)
+		if err != nil {
+			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
+			return
+		}
+
+		newkey, err = nnode.Key()
 		if err != nil {
 			webError(w, "putHandler: could not get key of edited node", err, http.StatusInternalServerError)
 			return
