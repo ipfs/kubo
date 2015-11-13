@@ -155,9 +155,10 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []peer.ID {
 	bucket = rt.Buckets[cpl]
 
 	var peerArr peerSorterArr
-	if bucket.Len() == 0 {
-		// In the case of an unusual split, one bucket may be empty.
-		// if this happens, search both surrounding buckets for nearest peer
+	peerArr = copyPeersFromList(id, peerArr, bucket.list)
+	if len(peerArr) < count {
+		// In the case of an unusual split, one bucket may be short or empty.
+		// if this happens, search both surrounding buckets for nearby peers
 		if cpl > 0 {
 			plist := rt.Buckets[cpl-1].list
 			peerArr = copyPeersFromList(id, peerArr, plist)
@@ -167,8 +168,6 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []peer.ID {
 			plist := rt.Buckets[cpl+1].list
 			peerArr = copyPeersFromList(id, peerArr, plist)
 		}
-	} else {
-		peerArr = copyPeersFromList(id, peerArr, bucket.list)
 	}
 
 	// Sort by distance to local peer
