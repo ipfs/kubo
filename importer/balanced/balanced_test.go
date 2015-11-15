@@ -22,15 +22,12 @@ import (
 // TODO: extract these tests and more as a generic layout test suite
 
 func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
-	// Start the splitter
-	blkch, errs := chunk.Chan(spl)
-
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return BalancedLayout(dbp.New(blkch, errs))
+	return BalancedLayout(dbp.New(spl))
 }
 
 func getTestDag(t *testing.T, ds dag.DAGService, size int64, blksize int64) (*dag.Node, []byte) {

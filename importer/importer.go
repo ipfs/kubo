@@ -39,25 +39,19 @@ func BuildDagFromFile(fpath string, ds dag.DAGService) (*dag.Node, error) {
 }
 
 func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
-	// Start the splitter
-	blkch, errch := chunk.Chan(spl)
-
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return bal.BalancedLayout(dbp.New(blkch, errch))
+	return bal.BalancedLayout(dbp.New(spl))
 }
 
 func BuildTrickleDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
-	// Start the splitter
-	blkch, errch := chunk.Chan(spl)
-
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return trickle.TrickleLayout(dbp.New(blkch, errch))
+	return trickle.TrickleLayout(dbp.New(spl))
 }
