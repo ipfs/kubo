@@ -21,15 +21,12 @@ import (
 )
 
 func buildTestDag(ds merkledag.DAGService, spl chunk.Splitter) (*merkledag.Node, error) {
-	// Start the splitter
-	blkch, errs := chunk.Chan(spl)
-
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	nd, err := TrickleLayout(dbp.New(blkch, errs))
+	nd, err := TrickleLayout(dbp.New(spl))
 	if err != nil {
 		return nil, err
 	}
@@ -441,10 +438,9 @@ func TestAppend(t *testing.T) {
 	}
 
 	r := bytes.NewReader(should[nbytes/2:])
-	blks, errs := chunk.Chan(chunk.NewSizeSplitter(r, 500))
 
 	ctx := context.Background()
-	nnode, err := TrickleAppend(ctx, nd, dbp.New(blks, errs))
+	nnode, err := TrickleAppend(ctx, nd, dbp.New(chunk.NewSizeSplitter(r, 500)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -494,9 +490,8 @@ func TestMultipleAppends(t *testing.T) {
 
 	ctx := context.Background()
 	for i := 0; i < len(should); i++ {
-		blks, errs := chunk.Chan(spl(bytes.NewReader(should[i : i+1])))
 
-		nnode, err := TrickleAppend(ctx, nd, dbp.New(blks, errs))
+		nnode, err := TrickleAppend(ctx, nd, dbp.New(spl(bytes.NewReader(should[i:i+1]))))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -538,17 +533,13 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 
 	spl := chunk.SizeSplitterGen(500)
 
-	blks, errs := chunk.Chan(spl(bytes.NewReader(data[:1])))
-
 	ctx := context.Background()
-	nnode, err := TrickleAppend(ctx, nd, dbp.New(blks, errs))
+	nnode, err := TrickleAppend(ctx, nd, dbp.New(spl(bytes.NewReader(data[:1]))))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	blks, errs = chunk.Chan(spl(bytes.NewReader(data[1:])))
-
-	nnode, err = TrickleAppend(ctx, nnode, dbp.New(blks, errs))
+	nnode, err = TrickleAppend(ctx, nnode, dbp.New(spl(bytes.NewReader(data[1:]))))
 	if err != nil {
 		t.Fatal(err)
 	}
