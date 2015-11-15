@@ -103,8 +103,7 @@ func (zr zeroReader) Read(b []byte) (int, error) {
 func (dm *DagModifier) expandSparse(size int64) error {
 	r := io.LimitReader(zeroReader{}, size)
 	spl := chunk.NewSizeSplitter(r, 4096)
-	blks, errs := chunk.Chan(spl)
-	nnode, err := dm.appendData(dm.curNode, blks, errs)
+	nnode, err := dm.appendData(dm.curNode, spl)
 	if err != nil {
 		return err
 	}
@@ -191,8 +190,7 @@ func (dm *DagModifier) Sync() error {
 
 	// need to write past end of current dag
 	if !done {
-		blks, errs := chunk.Chan(dm.splitter(dm.wrBuf))
-		nd, err = dm.appendData(dm.curNode, blks, errs)
+		nd, err = dm.appendData(dm.curNode, dm.splitter(dm.wrBuf))
 		if err != nil {
 			return err
 		}
@@ -286,13 +284,13 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte, errs <-chan error) (*mdag.Node, error) {
+func (dm *DagModifier) appendData(node *mdag.Node, spl chunk.Splitter) (*mdag.Node, error) {
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,
 	}
 
-	return trickle.TrickleAppend(dm.ctx, node, dbp.New(blks, errs))
+	return trickle.TrickleAppend(dm.ctx, node, dbp.New(spl))
 }
 
 // Read data from this dag starting at the current offset
