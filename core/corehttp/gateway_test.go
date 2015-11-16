@@ -213,6 +213,30 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	} else if hdr[0] != "/foo/" {
 		t.Errorf("location header is %v, expected /foo/", hdr[0])
 	}
+
+	// make request with prefix to directory containing index.html
+	req, err = http.NewRequest("GET", ts.URL+"/foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+	req.Header.Set("X-Ipfs-Gateway-Prefix", "/prefix")
+
+	res, err = doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// expect 302 redirect to same path, but with prefix and trailing slash
+	if res.StatusCode != 302 {
+		t.Errorf("status is %d, expected 302", res.StatusCode)
+	}
+	hdr = res.Header["Location"]
+	if len(hdr) < 1 {
+		t.Errorf("location header not present")
+	} else if hdr[0] != "/prefix/foo/" {
+		t.Errorf("location header is %v, expected /prefix/foo/", hdr[0])
+	}
 }
 
 func TestIPNSHostnameBacklinks(t *testing.T) {
@@ -282,7 +306,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatalf("expected file in directory listing")
 	}
 
-	// make request to directory listing
+	// make request to directory listing at root
 	req, err = http.NewRequest("GET", ts.URL, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -294,7 +318,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// expect correct backlinks
+	// expect correct backlinks at root
 	body, err = ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
@@ -339,6 +363,37 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo/bar/file.txt\">") {
+		t.Fatalf("expected file in directory listing")
+	}
+
+	// make request to directory listing with prefix
+	req, err = http.NewRequest("GET", ts.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+	req.Header.Set("X-Ipfs-Gateway-Prefix", "/prefix")
+
+	res, err = doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// expect correct backlinks with prefix
+	body, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("error reading response: %s", err)
+	}
+	s = string(body)
+	t.Logf("body: %s\n", string(body))
+
+	if !strings.Contains(s, "Index of /prefix") {
+		t.Fatalf("expected a path in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/prefix/\">") {
+		t.Fatalf("expected backlink in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/prefix/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
 	}
 }
