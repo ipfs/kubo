@@ -76,6 +76,11 @@ dependencies as well.
 * Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
 * See the [init examples](https://github.com/ipfs/examples/tree/master/examples/init) for how to connect IPFS to systemd or whatever init system your distro uses.
 
+### Updating
+ipfs has an updating tool that can be accessed through `ipfs update`. The tool is
+not installed alongside ipfs in order to keep that logic indepedent of the main
+codebase. To install ipfs update, either [download it here](https://gobuilder.me/github.com/ipfs/ipfs-update)
+or install it from source with `go get -u github.com/ipfs/ipfs-update`.
 
 ## Usage
 
