@@ -284,7 +284,7 @@ func ExternalBinary() *Command {
 				if req.Arguments()[0] == "--help" {
 					buf := new(bytes.Buffer)
 					fmt.Fprintf(buf, "%s is an 'external' command.\n", binname)
-					fmt.Fprintf(buf, "it does not currently appear to be installated.\n")
+					fmt.Fprintf(buf, "it does not currently appear to be installed.\n")
 					fmt.Fprintf(buf, "please refer to the ipfs documentation for instructions\n")
 					res.SetOutput(buf)
 					return
