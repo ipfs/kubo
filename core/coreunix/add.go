@@ -140,6 +140,9 @@ func (params *Adder) PinRoot() error {
 	if err != nil {
 		return err
 	}
+	if !params.Pin {
+		return nil
+	}
 
 	rnk, err := root.Key()
 	if err != nil {
