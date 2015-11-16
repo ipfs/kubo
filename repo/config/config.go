@@ -30,7 +30,6 @@ type Config struct {
 	SupernodeRouting SupernodeClientConfig // local node's routing servers (if SupernodeRouting enabled)
 	API              API                   // local node's API settings
 	Swarm            SwarmConfig
-	Log              Log
 }
 
 const (
