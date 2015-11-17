@@ -78,7 +78,7 @@ dependencies as well.
 
 ### Updating
 ipfs has an updating tool that can be accessed through `ipfs update`. The tool is
-not installed alongside ipfs in order to keep that logic indepedent of the main
+not installed alongside ipfs in order to keep that logic independent of the main
 codebase. To install ipfs update, either [download it here](https://gobuilder.me/github.com/ipfs/ipfs-update)
 or install it from source with `go get -u github.com/ipfs/ipfs-update`.
 
