@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	path "github.com/ipfs/go-ipfs/path"
 )
 
 // Mv moves the file or directory at 'src' to 'dst'
@@ -99,8 +100,8 @@ func PutNode(r *Root, path string, nd *dag.Node) error {
 
 // Mkdir creates a directory at 'path' under the directory 'd', creating
 // intermediary directories as needed if 'parents' is set to true
-func Mkdir(r *Root, path string, parents bool) error {
-	parts := strings.Split(path, "/")
+func Mkdir(r *Root, pth string, parents bool) error {
+	parts := strings.Split(pth, "/")
 	if parts[0] == "" {
 		parts = parts[1:]
 	}
@@ -112,7 +113,7 @@ func Mkdir(r *Root, path string, parents bool) error {
 
 	if len(parts) == 0 {
 		// this will only happen on 'mkdir /'
-		return fmt.Errorf("cannot mkdir '%s'", path)
+		return fmt.Errorf("cannot mkdir '%s'", pth)
 	}
 
 	cur := r.GetValue().(*Directory)
@@ -130,7 +131,7 @@ func Mkdir(r *Root, path string, parents bool) error {
 
 		next, ok := fsn.(*Directory)
 		if !ok {
-			return fmt.Errorf("%s was not a directory", strings.Join(parts[:i], "/"))
+			return fmt.Errorf("%s was not a directory", path.Join(parts[:i]))
 		}
 		cur = next
 	}
@@ -156,9 +157,9 @@ func Lookup(r *Root, path string) (FSNode, error) {
 
 // DirLookup will look up a file or directory at the given path
 // under the directory 'd'
-func DirLookup(d *Directory, path string) (FSNode, error) {
-	path = strings.Trim(path, "/")
-	parts := strings.Split(path, "/")
+func DirLookup(d *Directory, pth string) (FSNode, error) {
+	pth = strings.Trim(pth, "/")
+	parts := strings.Split(pth, "/")
 	if len(parts) == 1 && parts[0] == "" {
 		return d, nil
 	}
@@ -168,7 +169,7 @@ func DirLookup(d *Directory, path string) (FSNode, error) {
 	for i, p := range parts {
 		chdir, ok := cur.(*Directory)
 		if !ok {
-			return nil, fmt.Errorf("cannot access %s: Not a directory", strings.Join(parts[:i+1], "/"))
+			return nil, fmt.Errorf("cannot access %s: Not a directory", path.Join(parts[:i+1]))
 		}
 
 		child, err := chdir.Child(p)
