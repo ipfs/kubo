@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
@@ -194,7 +193,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 	segments := resolved.Segments()
 	if segments[0] == "ipfs" {
-		p := strings.Join(resolved.Segments()[1:], "/")
+		p := path.Join(resolved.Segments()[1:])
 		return &Link{s.IpfsRoot + "/" + p}, nil
 	}
 
