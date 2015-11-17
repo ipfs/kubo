@@ -260,7 +260,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				if len(pathSplit) > 5 {
 					// also strip the trailing segment, because it's a backlink
 					backLinkParts := pathSplit[3 : len(pathSplit)-2]
-					backLink += strings.Join(backLinkParts, "/") + "/"
+					backLink += path.Join(backLinkParts) + "/"
 				}
 			}
 
@@ -328,7 +328,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newPath string
 	if len(rsegs) > 1 {
-		newPath = strings.Join(rsegs[2:], "/")
+		newPath = path.Join(rsegs[2:])
 	}
 
 	var newkey key.Key
@@ -453,7 +453,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/"+strings.Join(components[:len(components)-1], "/"), http.StatusCreated)
+	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+key.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
