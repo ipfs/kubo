@@ -98,9 +98,12 @@ func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.Node, path []st
 			nd = create()
 			err = nil // no longer an error case
 		} else if err == dag.ErrNotFound {
+			// try finding it in our source dagstore
 			nd, err = root.GetLinkedNode(ctx, e.src, path[0])
 		}
 
+		// if we receive an ErrNotFound, then our second 'GetLinkedNode' call
+		// also fails, we want to error out
 		if err != nil {
 			return nil, err
 		}
@@ -153,6 +156,7 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.Node, path []string) (*da
 		return root, nil
 	}
 
+	// search for node in both tmp dagstore and source dagstore
 	nd, err := root.GetLinkedNode(ctx, e.tmp, path[0])
 	if err == dag.ErrNotFound {
 		nd, err = root.GetLinkedNode(ctx, e.src, path[0])
