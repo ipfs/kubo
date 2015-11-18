@@ -52,7 +52,6 @@ func (db *DagBuilderHelper) prepareNext() {
 func (db *DagBuilderHelper) Done() bool {
 	// ensure we have an accurate perspective on data
 	// as `done` this may be called before `next`.
-	//db.prepareNext() // idempotent
 	db.prepareNext() // idempotent
 	return db.nextData == nil
 }
