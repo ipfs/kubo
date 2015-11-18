@@ -211,8 +211,6 @@ func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
 }
 
 func toPeerInfo(bp config.BootstrapPeer) peer.PeerInfo {
-	// for now, we drop the "ipfs addr" part of the multiaddr. the rest
-	// of the codebase currently uses addresses without the peerid part.
 	m := bp.Multiaddr()
 	s := ma.Split(m)
 	m = ma.Join(s[:len(s)-1]...)
