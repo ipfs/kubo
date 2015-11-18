@@ -9,6 +9,7 @@ import (
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
 	routing "github.com/ipfs/go-ipfs/routing"
+	infd "github.com/ipfs/go-ipfs/util/infduration"
 )
 
 // mpns (a multi-protocol NameSystem) implements generic IPFS naming.
@@ -39,46 +40,59 @@ func NewNameSystem(r routing.IpfsRouting, ds ds.Datastore, cachesize int) NameSy
 	}
 }
 
-const DefaultResolverCacheTTL = time.Minute
-
 // Resolve implements Resolver.
 func (ns *mpns) Resolve(ctx context.Context, name string) (path.Path, error) {
-	return ns.ResolveN(ctx, name, DefaultDepthLimit)
+	p, _, err := ns.ResolveWithTTL(ctx, name)
+	return p, err
 }
 
 // ResolveN implements Resolver.
 func (ns *mpns) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
-	if strings.HasPrefix(name, "/ipfs/") {
-		return path.ParsePath(name)
-	}
+	p, _, err := ns.ResolveNWithTTL(ctx, name, depth)
+	return p, err
+}
 
-	if !strings.HasPrefix(name, "/") {
-		return path.ParsePath("/ipfs/" + name)
+// ResolveWithTTL implements Resolver.
+func (ns *mpns) ResolveWithTTL(ctx context.Context, name string) (path.Path, infd.Duration, error) {
+	return ns.ResolveNWithTTL(ctx, name, DefaultDepthLimit)
+}
+
+// ResolveNWithTTL implements Resolver.
+func (ns *mpns) ResolveNWithTTL(ctx context.Context, name string, depth int) (path.Path, infd.Duration, error) {
+	if strings.HasPrefix(name, "/ipfs/") || !strings.HasPrefix(name, "/") {
+		// ParsePath also handles paths without a / prefix.
+		path, err := path.ParsePath(name)
+		return path, infd.InfiniteDuration(), err
 	}
 
 	return resolve(ctx, ns, name, depth, "/ipns/")
 }
 
 // resolveOnce implements resolver.
-func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error) {
+func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, infd.Duration, error) {
 	if !strings.HasPrefix(name, "/ipns/") {
 		name = "/ipns/" + name
 	}
 	segments := strings.SplitN(name, "/", 3)
 	if len(segments) < 3 || segments[0] != "" {
 		log.Warningf("Invalid name syntax for %s", name)
-		return "", ErrResolveFailed
+		return "", infd.InfiniteDuration(), ErrResolveFailed
 	}
 
+	// Start with a long TTL.  Many errors will lower it to or near 0 in
+	// the loop.
+	errTTL := infd.InfiniteDuration()
 	for protocol, resolver := range ns.resolvers {
 		log.Debugf("Attempting to resolve %s with %s", name, protocol)
-		p, err := resolver.resolveOnce(ctx, segments[2])
+		p, resTTL, err := resolver.resolveOnce(ctx, segments[2])
 		if err == nil {
-			return p, err
+			return p, resTTL, err
 		}
+		// Use the lowest TTL reported for errors.
+		errTTL = infd.Min(errTTL, resTTL)
 	}
 	log.Warningf("No resolver found for %s", name)
-	return "", ErrResolveFailed
+	return "", errTTL, ErrResolveFailed
 }
 
 // Publish implements Publisher

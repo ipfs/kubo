@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -17,21 +18,37 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
+	infd "github.com/ipfs/go-ipfs/util/infduration"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
-type mockNamesys map[string]path.Path
+type mockNamesys map[string]mockEntry
+
+type mockEntry struct {
+	path path.Path
+	ttl  infd.Duration
+}
 
 func (m mockNamesys) Resolve(ctx context.Context, name string) (value path.Path, err error) {
-	return m.ResolveN(ctx, name, namesys.DefaultDepthLimit)
+	p, _, err := m.ResolveWithTTL(ctx, name)
+	return p, err
 }
 
 func (m mockNamesys) ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error) {
-	p, ok := m[name]
+	p, _, err := m.ResolveNWithTTL(ctx, name, depth)
+	return p, err
+}
+
+func (m mockNamesys) ResolveWithTTL(ctx context.Context, name string) (value path.Path, ttl infd.Duration, err error) {
+	return m.ResolveNWithTTL(ctx, name, namesys.DefaultDepthLimit)
+}
+
+func (m mockNamesys) ResolveNWithTTL(ctx context.Context, name string, depth int) (value path.Path, ttl infd.Duration, err error) {
+	entry, ok := m[name]
 	if !ok {
-		return "", namesys.ErrResolveFailed
+		return "", infd.FiniteDuration(0), namesys.ErrResolveFailed
 	}
-	return p, nil
+	return entry.path, entry.ttl, nil
 }
 
 func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
@@ -114,21 +131,28 @@ func TestGatewayGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ns["/ipns/example.com"] = path.FromString("/ipfs/" + k)
+	kTTL := infd.FiniteDuration(10 * time.Minute)
+	ns["/ipns/example.com"] = mockEntry{
+		path: path.FromString("/ipfs/" + k),
+		ttl:  kTTL,
+	}
 
 	t.Log(ts.URL)
+	infTTL := infd.InfiniteDuration()
 	for _, test := range []struct {
 		host   string
 		path   string
 		status int
+		ttl    *infd.Duration
+		etag   string
 		text   string
 	}{
-		{"localhost:5001", "/", http.StatusNotFound, "404 page not found\n"},
-		{"localhost:5001", "/" + k, http.StatusNotFound, "404 page not found\n"},
-		{"localhost:5001", "/ipfs/" + k, http.StatusOK, "fnord"},
-		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusBadRequest, "Path Resolve error: " + namesys.ErrResolveFailed.Error()},
-		{"localhost:5001", "/ipns/example.com", http.StatusOK, "fnord"},
-		{"example.com", "/", http.StatusOK, "fnord"},
+		{"localhost:5001", "/", http.StatusNotFound, nil, "", "404 page not found\n"},
+		{"localhost:5001", "/" + k, http.StatusNotFound, nil, "", "404 page not found\n"},
+		{"localhost:5001", "/ipfs/" + k, http.StatusOK, &infTTL, k, "fnord"},
+		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusBadRequest, nil, "", "Path Resolve error: " + namesys.ErrResolveFailed.Error()},
+		{"localhost:5001", "/ipns/example.com", http.StatusOK, &kTTL, k, "fnord"},
+		{"example.com", "/", http.StatusOK, &kTTL, k, "fnord"},
 	} {
 		var c http.Client
 		r, err := http.NewRequest("GET", ts.URL+test.path, nil)
@@ -148,6 +172,8 @@ func TestGatewayGet(t *testing.T) {
 			t.Errorf("got %d, expected %d from %s", resp.StatusCode, test.status, urlstr)
 			continue
 		}
+		checkCacheControl(t, urlstr, resp, test.ttl)
+		checkETag(t, urlstr, resp, test.etag)
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatalf("error reading response from %s: %s", urlstr, err)
@@ -188,8 +214,16 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	kFoo, err := dagn2.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Logf("k: %s\n", k)
-	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
+	kTTL := infd.FiniteDuration(10 * time.Minute)
+	ns["/ipns/example.net"] = mockEntry{
+		path: path.FromString("/ipfs/" + k.String()),
+		ttl:  kTTL,
+	}
 
 	// make request to directory containing index.html
 	req, err := http.NewRequest("GET", ts.URL+"/foo", nil)
@@ -213,6 +247,9 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	} else if hdr[0] != "/foo/" {
 		t.Errorf("location header is %v, expected /foo/", hdr[0])
 	}
+
+	checkCacheControl(t, "http://example.net/foo", res, &kTTL)
+	checkETag(t, "http://example.net/foo", res, kFoo.String())
 }
 
 func TestIPNSHostnameBacklinks(t *testing.T) {
@@ -249,8 +286,20 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	kFoo, err := dagn2.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+	kBar, err := dagn3.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Logf("k: %s\n", k)
-	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
+	kTTL := infd.FiniteDuration(10 * time.Minute)
+	ns["/ipns/example.net"] = mockEntry{
+		path: path.FromString("/ipfs/" + k.String()),
+		ttl:  kTTL,
+	}
 
 	// make request to directory listing
 	req, err := http.NewRequest("GET", ts.URL+"/foo/", nil)
@@ -282,6 +331,9 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatalf("expected file in directory listing")
 	}
 
+	checkCacheControl(t, "http://example.net/foo/", res, &kTTL)
+	checkETag(t, "http://example.net/foo/", res, kFoo.String())
+
 	// make request to directory listing
 	req, err = http.NewRequest("GET", ts.URL, nil)
 	if err != nil {
@@ -312,6 +364,9 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatalf("expected file in directory listing")
 	}
 
+	checkCacheControl(t, "http://example.net/", res, &kTTL)
+	checkETag(t, "http://example.net/", res, k.String())
+
 	// make request to directory listing
 	req, err = http.NewRequest("GET", ts.URL+"/foo/bar/", nil)
 	if err != nil {
@@ -340,5 +395,31 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 	if !strings.Contains(s, "<a href=\"/foo/bar/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
+	}
+
+	checkCacheControl(t, "http://example.net/foo/bar/", res, &kTTL)
+	checkETag(t, "http://example.net/foo/bar/", res, kBar.String())
+}
+
+func checkCacheControl(t *testing.T, urlstr string, resp *http.Response, ttl *infd.Duration) {
+	expCacheControl := ""
+	if ttl != nil {
+		maxAge := infd.GetFiniteDuration(*ttl, ImmutableTTL)
+		expCacheControl = fmt.Sprintf("public, max-age=%d", int(maxAge.Seconds()))
+	}
+	cacheControl := resp.Header.Get("Cache-Control")
+	if cacheControl != expCacheControl {
+		t.Errorf("unexpected Cache-Control header from %s: expected %q; got %q", urlstr, expCacheControl, cacheControl)
+	}
+}
+
+func checkETag(t *testing.T, urlstr string, resp *http.Response, expETagSansQuotes string) {
+	expETag := ""
+	if expETagSansQuotes != "" {
+		expETag = "\"" + expETagSansQuotes + "\""
+	}
+	etag := resp.Header.Get("ETag")
+	if etag != expETag {
+		t.Errorf("unexpected ETag header from %s: expected %q; got %q", urlstr, expETag, etag)
 	}
 }

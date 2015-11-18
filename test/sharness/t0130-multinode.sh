@@ -53,6 +53,19 @@ check_file_fetch() {
 	'
 }
 
+test_resolve() {
+	_nid="$1"
+	_name="$2"
+	_expected="$3"
+	_comment="${4:+ ($4)}"  # Optional
+
+	test_expect_success "IPNS resolve on node $_nid$_comment" '
+		printf "%s" "$_expected" >expected &&
+		ipfsi "$_nid" resolve -r "$_name" >actual &&
+		test_cmp expected actual
+	'
+}
+
 run_basic_test() {
 	startup_cluster 
 
@@ -66,6 +79,28 @@ run_basic_test() {
 	check_file_fetch 2 $FILEA_HASH filea
 	check_file_fetch 1 $FILEA_HASH filea
 	check_file_fetch 0 $FILEA_HASH filea
+
+	ref1="/ipfs/$HASH_WELCOME_DOCS"
+	test_expect_success "IPNS publish on node 1" '
+		node="$(ipfsi 1 id -f="<id>")" &&
+		ipfsi 1 name publish "$ref1"
+	'
+
+	for nid in 0 1 2; do
+		test_resolve "$nid" "/ipns/$node" "$ref1"
+	done
+
+	ref2="/ipfs/$FILEA_HASH"
+	test_expect_success "IPNS publish again on node 1" '
+		ipfsi 1 name publish "$ref2"
+	'
+
+	for nid in 0 1 2; do
+		test_resolve "$nid" "/ipns/$node" "$ref1" "cached result"
+	done
+	for nid in 3 4; do
+		test_resolve "$nid" "/ipns/$node" "$ref2" "new result"
+	done
 
 	test_expect_success "shut down nodes" '
 		iptb stop

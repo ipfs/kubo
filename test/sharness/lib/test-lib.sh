@@ -191,6 +191,7 @@ test_config_ipfs_gateway_writable() {
 	'
 }
 
+IPFS_PID=""
 test_launch_ipfs_daemon() {
 
 	args="$@"
@@ -261,11 +262,12 @@ test_kill_repeat_10_sec() {
 test_kill_ipfs_daemon() {
 
 	test_expect_success "'ipfs daemon' is still running" '
-		kill -0 $IPFS_PID
+		kill -0 "$IPFS_PID"
 	'
 
 	test_expect_success "'ipfs daemon' can be killed" '
-		test_kill_repeat_10_sec $IPFS_PID
+		test_kill_repeat_10_sec "$IPFS_PID" &&
+		IPFS_PID=""
 	'
 }
 
@@ -353,3 +355,38 @@ test_check_peerid() {
 	}
 }
 
+# A workaround for https://github.com/ipfs/go-ipfs/issues/1941 ‘sharness suite:
+# ipfs name publish: “Error: failed to find any peer in table”’.  Certain
+# commands fail whenever the daemon is running with no peers.
+# test_expect_success_1941 runs test_expect_failure if that is the case and
+# test_expect_success otherwise.  As soon as #1941 is fixed, all invocations of
+# test_expect_success_1941 can be replaced with test_expect_success and this
+# function can be removed.
+test_expect_success_1941() {
+	if [ -n "$IPFS_PID" ] && [ -z "$(ipfs swarm peers)" ]; then
+		# The daemon is running and has no peers.
+		test_expect_failure "(TODO: #1941) $@"
+	else
+		test_expect_success "$@"
+	fi
+}
+
+# Start a new timer.
+# > test_timer_start TIMER_VARIABLE 10s
+test_timer_start() {
+	go-sleep "$2" &
+	eval "$1='$!'"
+}
+
+# Check whether the given timer is still running.  Only use before doing a
+# test_timer_wait.
+# > test_timer_is_running "$TIMER_VARIABLE"
+test_timer_is_running() {
+	kill -0 "$1" 2>/dev/null
+}
+
+# Wait until the given timer finishes.  Use against a timer exactly once.
+# > test_timer_wait "$TIMER_VARIABLE"
+test_timer_wait() {
+	wait "$1"
+}

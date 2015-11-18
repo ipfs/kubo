@@ -9,6 +9,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	path "github.com/ipfs/go-ipfs/path"
+	infd "github.com/ipfs/go-ipfs/util/infduration"
 )
 
 type LookupTXTFunc func(name string) (txt []string, err error)
@@ -33,36 +34,55 @@ func newDNSResolver() resolver {
 
 // Resolve implements Resolver.
 func (r *DNSResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
-	return r.ResolveN(ctx, name, DefaultDepthLimit)
+	p, _, err := r.ResolveWithTTL(ctx, name)
+	return p, err
 }
 
 // ResolveN implements Resolver.
 func (r *DNSResolver) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
+	p, _, err := r.ResolveNWithTTL(ctx, name, depth)
+	return p, err
+}
+
+// ResolveWithTTL implements Resolver.
+func (r *DNSResolver) ResolveWithTTL(ctx context.Context, name string) (path.Path, infd.Duration, error) {
+	return r.ResolveNWithTTL(ctx, name, DefaultDepthLimit)
+}
+
+// ResolveNWithTTL implements Resolver.
+func (r *DNSResolver) ResolveNWithTTL(ctx context.Context, name string, depth int) (path.Path, infd.Duration, error) {
 	return resolve(ctx, r, name, depth, "/ipns/")
 }
 
 // resolveOnce implements resolver.
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
-func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
+func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, infd.Duration, error) {
 	if !isd.IsDomain(name) {
-		return "", errors.New("not a valid domain name")
+		// IsDomain may change, do not use InfiniteDuration.
+		return "", infd.FiniteDuration(UnknownTTL), errors.New("not a valid domain name")
 	}
 
 	log.Infof("DNSResolver resolving %s", name)
+
+	// XXX: net.LookupTXT does not provide TTL information, use UnknownTTL
+	// (1 minute) for now.
+	ttl := infd.FiniteDuration(UnknownTTL)
+
 	txt, err := r.lookupTXT(name)
 	if err != nil {
-		return "", err
+		return "", infd.FiniteDuration(0), err
 	}
 
 	for _, t := range txt {
 		p, err := parseEntry(t)
 		if err == nil {
-			return p, nil
+			return p, ttl, nil
 		}
 	}
 
-	return "", ErrResolveFailed
+	// We received a result but it had no entries.  This can be cached.
+	return "", ttl, ErrResolveFailed
 }
 
 func parseEntry(txt string) (path.Path, error) {

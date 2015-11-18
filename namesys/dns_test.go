@@ -3,6 +3,8 @@ package namesys
 import (
 	"fmt"
 	"testing"
+
+	infd "github.com/ipfs/go-ipfs/util/infduration"
 )
 
 type mockDNS struct {
@@ -93,20 +95,21 @@ func newMockDNS() *mockDNS {
 func TestDNSResolution(t *testing.T) {
 	mock := newMockDNS()
 	r := &DNSResolver{lookupTXT: mock.lookupTXT}
-	testResolution(t, r, "multihash.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", nil)
-	testResolution(t, r, "ipfs.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", nil)
-	testResolution(t, r, "dns1.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", nil)
-	testResolution(t, r, "dns1.example.com", 1, "/ipns/ipfs.example.com", ErrResolveRecursion)
-	testResolution(t, r, "dns2.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", nil)
-	testResolution(t, r, "dns2.example.com", 1, "/ipns/dns1.example.com", ErrResolveRecursion)
-	testResolution(t, r, "dns2.example.com", 2, "/ipns/ipfs.example.com", ErrResolveRecursion)
-	testResolution(t, r, "multi.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", nil)
-	testResolution(t, r, "multi.example.com", 1, "/ipns/dns1.example.com", ErrResolveRecursion)
-	testResolution(t, r, "multi.example.com", 2, "/ipns/ipfs.example.com", ErrResolveRecursion)
-	testResolution(t, r, "equals.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD/=equals", nil)
-	testResolution(t, r, "loop1.example.com", 1, "/ipns/loop2.example.com", ErrResolveRecursion)
-	testResolution(t, r, "loop1.example.com", 2, "/ipns/loop1.example.com", ErrResolveRecursion)
-	testResolution(t, r, "loop1.example.com", 3, "/ipns/loop2.example.com", ErrResolveRecursion)
-	testResolution(t, r, "loop1.example.com", DefaultDepthLimit, "/ipns/loop1.example.com", ErrResolveRecursion)
-	testResolution(t, r, "bad.example.com", DefaultDepthLimit, "", ErrResolveFailed)
+	ttl := infd.FiniteDuration(UnknownTTL)
+	testResolution(t, r, "multihash.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", ttl, nil)
+	testResolution(t, r, "ipfs.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", ttl, nil)
+	testResolution(t, r, "dns1.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", ttl, nil)
+	testResolution(t, r, "dns1.example.com", 1, "/ipns/ipfs.example.com", ttl, ErrResolveRecursion)
+	testResolution(t, r, "dns2.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", ttl, nil)
+	testResolution(t, r, "dns2.example.com", 1, "/ipns/dns1.example.com", ttl, ErrResolveRecursion)
+	testResolution(t, r, "dns2.example.com", 2, "/ipns/ipfs.example.com", ttl, ErrResolveRecursion)
+	testResolution(t, r, "multi.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", ttl, nil)
+	testResolution(t, r, "multi.example.com", 1, "/ipns/dns1.example.com", ttl, ErrResolveRecursion)
+	testResolution(t, r, "multi.example.com", 2, "/ipns/ipfs.example.com", ttl, ErrResolveRecursion)
+	testResolution(t, r, "equals.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD/=equals", ttl, nil)
+	testResolution(t, r, "loop1.example.com", 1, "/ipns/loop2.example.com", ttl, ErrResolveRecursion)
+	testResolution(t, r, "loop1.example.com", 2, "/ipns/loop1.example.com", ttl, ErrResolveRecursion)
+	testResolution(t, r, "loop1.example.com", 3, "/ipns/loop2.example.com", ttl, ErrResolveRecursion)
+	testResolution(t, r, "loop1.example.com", DefaultDepthLimit, "/ipns/loop1.example.com", ttl, ErrResolveRecursion)
+	testResolution(t, r, "bad.example.com", DefaultDepthLimit, "", ttl, ErrResolveFailed)
 }
