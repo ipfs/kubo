@@ -95,7 +95,7 @@ type IpfsNode struct {
 	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
 	Resolver   *path.Resolver       // the path resolution system
 	Reporter   metrics.Reporter
-	Discovery  discovery.Service
+	Discovery  []discovery.Service
 
 	// Online
 	PeerHost     p2phost.Host        // the network host (server+client)
@@ -124,7 +124,7 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, discoveryOpts []DiscoveryOption) error {
 
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
@@ -170,29 +170,40 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
 
 	// setup local discovery
-	if do != nil {
-		service, err := do(n.PeerHost)
-		if err != nil {
-			log.Error("mdns error: ", err)
+	for _, opt := range discoveryOpts {
+		if service, err := opt(n.PeerHost); err != nil {
+			return err
 		} else {
 			service.RegisterNotifee(n)
-			n.Discovery = service
+			n.Discovery = append(n.Discovery, service)
 		}
 	}
 
 	return n.Bootstrap(DefaultBootstrapConfig)
 }
 
-func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
+func setupDiscoveryOptions(d config.Discovery) []DiscoveryOption {
+	opts := []DiscoveryOption{}
+
 	if d.MDNS.Enabled {
-		return func(h p2phost.Host) (discovery.Service, error) {
+		opt := func(h p2phost.Host) (discovery.Service, error) {
 			if d.MDNS.Interval == 0 {
 				d.MDNS.Interval = 5
 			}
 			return discovery.NewMdnsService(h, time.Duration(d.MDNS.Interval)*time.Second)
 		}
+		opts = append(opts, opt)
 	}
-	return nil
+	if d.Cjdns.Enabled {
+		opt := func(h p2phost.Host) (discovery.Service, error) {
+			if d.Cjdns.Interval == 0 {
+				d.Cjdns.Interval = 5
+			}
+			return discovery.NewCjdnsService(h, time.Duration(d.Cjdns.Interval)*time.Second)
+		}
+		opts = append(opts, opt)
+	}
+	return opts
 }
 
 func (n *IpfsNode) HandlePeerFound(p peer.PeerInfo) {
