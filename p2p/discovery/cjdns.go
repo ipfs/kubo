@@ -1,17 +1,18 @@
 package discovery
 
-// mdns introduced in https://github.com/ipfs/go-ipfs/pull/1117
-
 import (
+	"io"
 	"net"
 	"sync"
 	"time"
 
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	"github.com/ipfs/go-ipfs/p2p/host"
+	swarm "github.com/ipfs/go-ipfs/p2p/net/swarm"
 
 	"github.com/ehmry/go-cjdns/admin"
-	"github.com/ehmry/go-cjdns/key"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 type cjdnsService struct {
@@ -42,7 +43,12 @@ func NewCjdnsService(host host.Host, interval time.Duration) (Service, error) {
 		interval: interval,
 	}
 
-	go service.pollPeerStats()
+	go func() {
+		for {
+			service.pollPeerStats()
+			log.Fatal("quit here")
+		}
+	}()
 
 	return service, nil
 }
@@ -52,27 +58,35 @@ func (cjdns *cjdnsService) Close() error {
 }
 
 func (cjdns *cjdnsService) pollPeerStats() {
-	ticker := time.NewTicker(cjdns.interval)
-	for {
-		select {
-		case <-ticker.C:
-			results, err := cjdns.admin.InterfaceController_peerStats()
-			if err != nil {
-				log.Error("cjdns peerstats error: ", err)
-			}
+	peerstats, err := cjdns.admin.InterfaceController_peerStats()
+	if err != nil {
+		log.Errorf("cjdns peerstats error: %s", err)
+		return
+	}
 
-			for _, peer := range results {
-				k, err := key.DecodePublic(peer.PublicKey.String())
-				if err != nil {
-					log.Error("malformed cjdns key: [%s] %s", peer.PublicKey.String(), err)
-				}
-				maddr, err := manet.FromNetAddr(&net.TCPAddr{IP: k.IP(), Port: 4001})
-				if err != nil {
-					log.Error("corrupt multiaddr: %s", err)
-				}
-				log.Debugf("possible cjdns peer: %s", maddr.String())
-			}
+	for _, peer := range peerstats {
+		ipaddr := peer.PublicKey.IP()
+		maddr, err := manet.FromNetAddr(&net.TCPAddr{IP: ipaddr, Port: 4001})
+		if err != nil {
+			log.Errorf("corrupt multiaddr: [%s] %s", ipaddr, err)
+			continue
 		}
+
+		p2pnet := cjdns.host.Network()
+		swnet := p2pnet.(*swarm.Network)
+		conn, err := swnet.Swarm().Dialer().Dial(context.TODO(), maddr, "")
+		if err != nil {
+			log.Debugf("dial failed: [%s] %s", maddr.String(), err)
+			continue
+		}
+
+		rp := conn.RemotePeer().Pretty()
+		if len(rp) == 0 {
+			log.Errorf("handshake failed with %s", maddr.String())
+			continue
+		}
+		maddr = ma.NewMultiaddr(maddr.String() + "/ipfs/" + rp)
+		log.Debugf("possible cjdns peer: %s", maddr)
 	}
 }
 
