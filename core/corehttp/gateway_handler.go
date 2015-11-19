@@ -95,8 +95,19 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithCancel(i.node.Context())
+	ctx, cancel := context.WithTimeout(i.node.Context(), time.Hour)
+	// the hour is a hard fallback, we don't expect it to happen, but just in case
 	defer cancel()
+
+	if cn, ok := w.(http.CloseNotifier); ok {
+		go func() {
+			select {
+			case <-cn.CloseNotify():
+			case <-ctx.Done():
+			}
+			cancel()
+		}()
+	}
 
 	urlPath := r.URL.Path
 
