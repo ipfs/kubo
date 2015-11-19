@@ -46,7 +46,7 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 	root := new(dag.Node)
 	root.Data = []byte("ipfs/tar")
 
-	e := dagutil.NewDagEditor(ds, root)
+	e := dagutil.NewDagEditor(root, ds)
 
 	for {
 		h, err := tr.Next()
@@ -91,13 +91,7 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 		}
 	}
 
-	root = e.GetNode()
-	_, err = ds.Add(root)
-	if err != nil {
-		return nil, err
-	}
-
-	return root, nil
+	return e.Finalize(ds)
 }
 
 // adds a '-' to the beginning of each path element so we can use 'data' as a
@@ -178,7 +172,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 	tr.hdrBuf = bytes.NewReader(headerNd.Data)
 
 	dataNd, err := headerNd.GetLinkedNode(tr.ctx, tr.ds, "data")
-	if err != nil && err != dag.ErrNotFound {
+	if err != nil && err != dag.ErrLinkNotFound {
 		return 0, err
 	}
 

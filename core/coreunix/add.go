@@ -20,7 +20,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
@@ -63,7 +63,7 @@ type AddedObject struct {
 }
 
 func NewAdder(ctx context.Context, n *core.IpfsNode, out chan interface{}) *Adder {
-	e := dagutils.NewDagEditor(NewMemoryDagService(), newDirNode())
+	e := dagutils.NewDagEditor(newDirNode(), nil)
 	return &Adder{
 		ctx:      ctx,
 		node:     n,
@@ -90,11 +90,11 @@ type Adder struct {
 	Trickle  bool
 	Wrap     bool
 	Chunker  string
-	root     *merkledag.Node
+	root     *dag.Node
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func (params Adder) add(reader io.Reader) (*merkledag.Node, error) {
+func (params Adder) add(reader io.Reader) (*dag.Node, error) {
 	chnk, err := chunk.FromString(reader, params.Chunker)
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (params Adder) add(reader io.Reader) (*merkledag.Node, error) {
 	)
 }
 
-func (params *Adder) RootNode() (*merkledag.Node, error) {
+func (params *Adder) RootNode() (*dag.Node, error) {
 	// for memoizing
 	if params.root != nil {
 		return params.root, nil
@@ -153,8 +153,8 @@ func (params *Adder) PinRoot() error {
 	return params.node.Pinning.Flush()
 }
 
-func (params *Adder) WriteOutputTo(DAG merkledag.DAGService) error {
-	return params.editor.WriteOutputTo(DAG)
+func (params *Adder) Finalize(DAG dag.DAGService) (*dag.Node, error) {
+	return params.editor.Finalize(DAG)
 }
 
 // Add builds a merkledag from the a reader, pinning all objects to the local
@@ -212,7 +212,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 // to preserve the filename.
 // Returns the path of the added file ("<dir hash>/filename"), the DAG node of
 // the directory, and and error if any.
-func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkledag.Node, error) {
+func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.Node, error) {
 	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
 	dir := files.NewSliceFile("", "", []files.File{file})
 	fileAdder := NewAdder(n.Context(), n, nil)
@@ -230,7 +230,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkle
 	return gopath.Join(k.String(), filename), dagnode, nil
 }
 
-func (params *Adder) addNode(node *merkledag.Node, path string) error {
+func (params *Adder) addNode(node *dag.Node, path string) error {
 	// patch it into the root
 	if path == "" {
 		key, err := node.Key()
@@ -249,7 +249,7 @@ func (params *Adder) addNode(node *merkledag.Node, path string) error {
 }
 
 // Add the given file while respecting the params.
-func (params *Adder) AddFile(file files.File) (*merkledag.Node, error) {
+func (params *Adder) AddFile(file files.File) (*dag.Node, error) {
 	switch {
 	case files.IsHidden(file) && !params.Hidden:
 		log.Debugf("%s is hidden, skipping", file.FileName())
@@ -265,7 +265,7 @@ func (params *Adder) AddFile(file files.File) (*merkledag.Node, error) {
 			return nil, err
 		}
 
-		dagnode := &merkledag.Node{Data: sdata}
+		dagnode := &dag.Node{Data: sdata}
 		_, err = params.node.DAG.Add(dagnode)
 		if err != nil {
 			return nil, err
@@ -294,7 +294,7 @@ func (params *Adder) AddFile(file files.File) (*merkledag.Node, error) {
 	return dagnode, err
 }
 
-func (params *Adder) addDir(dir files.File) (*merkledag.Node, error) {
+func (params *Adder) addDir(dir files.File) (*dag.Node, error) {
 	tree := newDirNode()
 	log.Infof("adding directory: %s", dir.FileName())
 
@@ -317,7 +317,7 @@ func (params *Adder) addDir(dir files.File) (*merkledag.Node, error) {
 
 		_, name := gopath.Split(file.FileName())
 
-		if err := tree.AddNodeLink(name, node); err != nil {
+		if err := tree.AddNodeLinkClean(name, node); err != nil {
 			return nil, err
 		}
 	}
@@ -334,7 +334,7 @@ func (params *Adder) addDir(dir files.File) (*merkledag.Node, error) {
 }
 
 // outputDagnode sends dagnode info over the output channel
-func outputDagnode(out chan interface{}, name string, dn *merkledag.Node) error {
+func outputDagnode(out chan interface{}, name string, dn *dag.Node) error {
 	if out == nil {
 		return nil
 	}
@@ -352,20 +352,20 @@ func outputDagnode(out chan interface{}, name string, dn *merkledag.Node) error 
 	return nil
 }
 
-func NewMemoryDagService() merkledag.DAGService {
+func NewMemoryDagService() dag.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	bsrv := bserv.New(bs, offline.Exchange(bs))
-	return merkledag.NewDAGService(bsrv)
+	return dag.NewDAGService(bsrv)
 }
 
 // TODO: generalize this to more than unix-fs nodes.
-func newDirNode() *merkledag.Node {
-	return &merkledag.Node{Data: unixfs.FolderPBData()}
+func newDirNode() *dag.Node {
+	return &dag.Node{Data: unixfs.FolderPBData()}
 }
 
 // from core/commands/object.go
-func getOutput(dagnode *merkledag.Node) (*Object, error) {
+func getOutput(dagnode *dag.Node) (*Object, error) {
 	key, err := dagnode.Key()
 	if err != nil {
 		return nil, err
