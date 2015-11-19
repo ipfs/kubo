@@ -44,6 +44,16 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			API:     "/ip4/127.0.0.1/tcp/5001",
 			Gateway: "/ip4/127.0.0.1/tcp/8080",
 		},
+		API: API{
+			HTTPHeaders: map[string][]string{
+				"Access-Control-Allow-Headers": []string{
+					"X-Stream-Output, X-Chunked-Output",
+				},
+				"Access-Control-Expose-Headers": []string{
+					"X-Stream-Output, X-Chunked-Output",
+				},
+			},
+		},
 
 		Bootstrap:        BootstrapPeerStrings(bootstrapPeers),
 		SupernodeRouting: *snr,
