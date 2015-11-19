@@ -173,7 +173,9 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 		err = dht.verifyRecordOnline(ctx, record)
 		if err != nil {
 			log.Info("Received invalid record! (discarded)")
-			return nil, nil, err
+			// still return a non-nil record to signify that we received
+			// a bad record from this peer
+			record = new(pb.Record)
 		}
 		return record, peers, nil
 	}
