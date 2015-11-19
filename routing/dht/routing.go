@@ -91,7 +91,9 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 
 	var recs [][]byte
 	for _, v := range vals {
-		recs = append(recs, v.Val)
+		if v.Val != nil {
+			recs = append(recs, v.Val)
+		}
 	}
 
 	i, err := dht.Selector.BestRecord(key, recs)
@@ -170,6 +172,14 @@ func (dht *IpfsDHT) GetValues(ctx context.Context, key key.Key, nvals int) ([]ro
 
 		rec, peers, err := dht.getValueOrPeers(ctx, p, key)
 		if err != nil {
+			if err == routing.ErrNotFound {
+				// in this case, they responded with nothing,
+				// still send a notification
+				notif.PublishQueryEvent(parent, &notif.QueryEvent{
+					Type: notif.PeerResponse,
+					ID:   p,
+				})
+			}
 			return nil, err
 		}
 
