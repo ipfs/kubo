@@ -92,16 +92,24 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	urlPath := r.URL.Path
 
+	// If the gateway is behind a reverse proxy and mounted at a sub-path,
+	// the prefix header can be set to signal this sub-path.
+	// It will be prepended to links in directory listings and the index.html redirect.
+	prefix := ""
+	if prefixHdr := r.Header["X-Ipfs-Gateway-Prefix"]; len(prefixHdr) > 0 {
+		log.Debugf("X-Ipfs-Gateway-Prefix: %s", prefixHdr[0])
+		prefix = prefixHdr[0]
+	}
+
 	// IPNSHostnameOption might have constructed an IPNS path using the Host header.
 	// In this case, we need the original path for constructing redirects
 	// and links that match the requested URL.
 	// For example, http://example.net would become /ipns/example.net, and
 	// the redirects and links would end up as http://example.net/ipns/example.net
-	originalUrlPath := urlPath
+	originalUrlPath := prefix + urlPath
 	ipnsHostname := false
-	hdr := r.Header["X-IPNS-Original-Path"]
-	if len(hdr) > 0 {
-		originalUrlPath = hdr[0]
+	if hdr := r.Header["X-Ipns-Original-Path"]; len(hdr) > 0 {
+		originalUrlPath = prefix + hdr[0]
 		ipnsHostname = true
 	}
 
@@ -211,7 +219,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		if r.Method != "HEAD" {
 			// construct the correct back link
 			// https://github.com/ipfs/go-ipfs/issues/1365
-			var backLink string = urlPath
+			var backLink string = prefix + urlPath
 
 			// don't go further up than /ipfs/$hash/
 			pathSplit := strings.Split(backLink, "/")
@@ -233,7 +241,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 			// strip /ipfs/$hash from backlink if IPNSHostnameOption touched the path.
 			if ipnsHostname {
-				backLink = "/"
+				backLink = prefix + "/"
 				if len(pathSplit) > 5 {
 					// also strip the trailing segment, because it's a backlink
 					backLinkParts := pathSplit[3 : len(pathSplit)-2]
