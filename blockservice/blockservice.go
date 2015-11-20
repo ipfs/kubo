@@ -122,6 +122,10 @@ func (s *BlockService) GetBlocks(ctx context.Context, ks []key.Key) <-chan *bloc
 			}
 		}
 
+		if len(misses) == 0 {
+			return
+		}
+
 		rblocks, err := s.Exchange.GetBlocks(ctx, misses)
 		if err != nil {
 			log.Debugf("Error with GetBlocks: %s", err)

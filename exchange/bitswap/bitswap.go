@@ -86,7 +86,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
 		network:       network,
-		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
+		findKeys:      make(chan *wantlist.Entry, sizeBatchRequestChan),
 		process:       px,
 		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
 		provideKeys:   make(chan key.Key, provideKeysBufferSize),
@@ -129,7 +129,7 @@ type Bitswap struct {
 	notifications notifications.PubSub
 
 	// send keys to a worker to find and connect to providers for them
-	findKeys chan *blockRequest
+	findKeys chan *wantlist.Entry
 
 	engine *decision.Engine
 
@@ -146,8 +146,8 @@ type Bitswap struct {
 }
 
 type blockRequest struct {
-	keys []key.Key
-	ctx  context.Context
+	key key.Key
+	ctx context.Context
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
@@ -219,11 +219,14 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan *block
 		log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
 	}
 
-	bs.wm.WantBlocks(keys)
+	bs.wm.WantBlocks(ctx, keys)
 
-	req := &blockRequest{
-		keys: keys,
-		ctx:  ctx,
+	// NB: Optimization. Assumes that providers of key[0] are likely to
+	// be able to provide for all keys. This currently holds true in most
+	// every situation. Later, this assumption may not hold as true.
+	req := &wantlist.Entry{
+		Key: keys[0],
+		Ctx: ctx,
 	}
 	select {
 	case bs.findKeys <- req:
@@ -274,32 +277,6 @@ func (bs *Bitswap) tryPutBlock(blk *blocks.Block, attempts int) error {
 		time.Sleep(time.Millisecond * time.Duration(400*(i+1)))
 	}
 	return err
-}
-
-func (bs *Bitswap) connectToProviders(ctx context.Context, entries []wantlist.Entry) {
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	// Get providers for all entries in wantlist (could take a while)
-	wg := sync.WaitGroup{}
-	for _, e := range entries {
-		wg.Add(1)
-		go func(k key.Key) {
-			defer wg.Done()
-
-			child, cancel := context.WithTimeout(ctx, providerRequestTimeout)
-			defer cancel()
-			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
-			for prov := range providers {
-				go func(p peer.ID) {
-					bs.network.ConnectTo(ctx, p)
-				}(prov)
-			}
-		}(e.Key)
-	}
-
-	wg.Wait() // make sure all our children do finish.
 }
 
 func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) {

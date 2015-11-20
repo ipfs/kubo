@@ -64,16 +64,16 @@ type msgQueue struct {
 	done chan struct{}
 }
 
-func (pm *WantManager) WantBlocks(ks []key.Key) {
+func (pm *WantManager) WantBlocks(ctx context.Context, ks []key.Key) {
 	log.Infof("want blocks: %s", ks)
-	pm.addEntries(ks, false)
+	pm.addEntries(ctx, ks, false)
 }
 
 func (pm *WantManager) CancelWants(ks []key.Key) {
-	pm.addEntries(ks, true)
+	pm.addEntries(context.TODO(), ks, true)
 }
 
-func (pm *WantManager) addEntries(ks []key.Key, cancel bool) {
+func (pm *WantManager) addEntries(ctx context.Context, ks []key.Key, cancel bool) {
 	var entries []*bsmsg.Entry
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
@@ -81,6 +81,7 @@ func (pm *WantManager) addEntries(ks []key.Key, cancel bool) {
 			Entry: wantlist.Entry{
 				Key:      k,
 				Priority: kMaxPriority - i,
+				Ctx:      ctx,
 			},
 		})
 	}
@@ -224,7 +225,7 @@ func (pm *WantManager) Run() {
 				if e.Cancel {
 					pm.wl.Remove(e.Key)
 				} else {
-					pm.wl.Add(e.Key, e.Priority)
+					pm.wl.AddEntry(e.Entry)
 				}
 			}
 
@@ -237,6 +238,14 @@ func (pm *WantManager) Run() {
 			// resend entire wantlist every so often (REALLY SHOULDNT BE NECESSARY)
 			var es []*bsmsg.Entry
 			for _, e := range pm.wl.Entries() {
+				select {
+				case <-e.Ctx.Done():
+					// entry has been cancelled
+					// simply continue, the entry will be removed from the
+					// wantlist soon enough
+					continue
+				default:
+				}
 				es = append(es, &bsmsg.Entry{Entry: e})
 			}
 			for _, p := range pm.peers {
