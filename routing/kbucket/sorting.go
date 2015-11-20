@@ -32,10 +32,6 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 			distance: xor(target, pID),
 		}
 		peerArr = append(peerArr, &pd)
-		if e == nil {
-			log.Debug("list element was nil")
-			return peerArr
-		}
 	}
 	return peerArr
 }
