@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"math/big"
 	"testing"
-
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 func TestPrefixLen(t *testing.T) {
@@ -101,7 +99,7 @@ func TestDistancesAndCenterSorting(t *testing.T) {
 	}
 
 	d1 := keys[2].Distance(keys[5])
-	d2 := u.XOR(keys[2].Bytes, keys[5].Bytes)
+	d2 := XOR(keys[2].Bytes, keys[5].Bytes)
 	d2 = d2[len(keys[2].Bytes)-len(d1.Bytes()):] // skip empty space for big
 	if !bytes.Equal(d1.Bytes(), d2) {
 		t.Errorf("bytes should be the same. %v == %v", d1.Bytes(), d2)

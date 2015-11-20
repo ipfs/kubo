@@ -7,8 +7,9 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	ks "github.com/ipfs/go-ipfs/routing/keyspace"
 	u "github.com/ipfs/go-ipfs/util"
+
+	ks "QmPY1AT9M1LXE99zmTVV9xMEPa93BvGGJRexFjahNkpkbh/go-keyspace"
 )
 
 // Returned if a routing table query returns no results. This is NOT expected

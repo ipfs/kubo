@@ -8,7 +8,7 @@ import (
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	relay "github.com/ipfs/go-ipfs/p2p/protocol/relay"
 	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	logging "QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 
 	msmux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multistream"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"

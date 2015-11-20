@@ -7,7 +7,7 @@ import (
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	logging "QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 
 	msmux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multistream"
 )
