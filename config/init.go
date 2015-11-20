@@ -81,6 +81,14 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		Gateway: Gateway{
 			RootRedirect: "",
 			Writable:     false,
+			HTTPHeaders: map[string][]string{
+				"Access-Control-Allow-Headers": []string{
+					"X-Stream-Output, X-Chunked-Output",
+				},
+				"Access-Control-Expose-Headers": []string{
+					"X-Stream-Output, X-Chunked-Output",
+				},
+			},
 		},
 	}
 
