@@ -150,6 +150,8 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, skey string) err
 	return nil
 }
 
+var errInvalidRecord = errors.New("received invalid record")
+
 // getValueOrPeers queries a particular peer p for the value for
 // key. It returns either the value or a list of closer peers.
 // NOTE: it will update the dht's peerstore with any new addresses
@@ -173,11 +175,11 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 		err = dht.verifyRecordOnline(ctx, record)
 		if err != nil {
 			log.Info("Received invalid record! (discarded)")
-			// still return a non-nil record to signify that we received
-			// a bad record from this peer
+			// return a sentinal to signify an invalid record was received
+			err = errInvalidRecord
 			record = new(pb.Record)
 		}
-		return record, peers, nil
+		return record, peers, err
 	}
 
 	if len(peers) > 0 {
