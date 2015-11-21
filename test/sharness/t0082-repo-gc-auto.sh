@@ -58,12 +58,12 @@ test_gc() {
 #    test_cmp add_fail_exp add_fail_out
 #'
 
-test_expect_success "periodic auto gc stress test" '
-    for i in $(test_seq 1 20)
-    do
-        test_gc
-    done
-'
+#test_expect_success "periodic auto gc stress test" '
+#    for i in $(test_seq 1 20)
+#    do
+#        test_gc
+#    done
+#'
 
 test_kill_ipfs_daemon
 
