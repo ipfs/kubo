@@ -31,7 +31,7 @@ test_gc() {
     test_expect_success "adding data below watermark doesn't trigger auto gc" '
         ipfs add 600k1 >/dev/null &&
         disk_usage "$IPFS_PATH/blocks" >expected &&
-        go-sleep 40ms &&
+        go-sleep 50ms &&
         disk_usage "$IPFS_PATH/blocks" >actual &&
         test_cmp expected actual
     '
