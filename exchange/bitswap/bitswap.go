@@ -208,6 +208,12 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan *block
 		log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
 	}
 
+	go func() {
+		select {
+		case <-ctx.Done(): // ctx is canceled
+			bs.CancelWants(keys)
+		}
+	}()
 	bs.wm.WantBlocks(keys)
 
 	req := &blockRequest{
