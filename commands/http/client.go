@@ -132,6 +132,9 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 			tr.CancelRequest(httpReq)
 			dc = nil // Wait for ec or rc
 		case err := <-ec:
+			if strings.Contains(err.Error(), "request canceled") {
+				err = errors.New("request canceled")
+			}
 			return nil, err
 		case res := <-rc:
 			if found && len(previousUserProvidedEncoding) > 0 {
