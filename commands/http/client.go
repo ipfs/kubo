@@ -16,7 +16,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	ctxhttp "golang.org/x/net/context/ctxhttp"
+	ctxhttp "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context/ctxhttp"
 )
 
 const (
@@ -41,9 +41,7 @@ func NewClient(address string) Client {
 	return &client{
 		serverAddress: address,
 		httpClient: &http.Client{
-			Transport: &http.Transport{
-				DisableKeepAlives: true,
-			},
+			Transport: &http.Transport{},
 		},
 	}
 }
