@@ -153,6 +153,7 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			select {
 			case <-cn.CloseNotify():
+				log.Error("CLOSE NOTIFY")
 			case <-ctx.Done():
 			}
 			cancel()

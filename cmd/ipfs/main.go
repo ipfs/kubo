@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"runtime"
 	"runtime/pprof"
 	"strings"
 	"sync"
@@ -53,6 +52,7 @@ type cmdInvocation struct {
 	cmd  *cmds.Command
 	req  cmds.Request
 	node *core.IpfsNode
+	resp cmds.Response
 }
 
 // main roadmap:
@@ -63,22 +63,36 @@ type cmdInvocation struct {
 // - if anything fails, print error, maybe with help
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	runtime.GOMAXPROCS(3) // FIXME rm arbitrary choice for n
-	ctx := logging.ContextWithLoggable(context.Background(), logging.Uuid("session"))
-	var err error
+
 	var invoc cmdInvocation
+
+	// this is a message to tell the user how to get the help text
+	printMetaHelp := func(w io.Writer) {
+		cmdPath := strings.Join(invoc.path, " ")
+		fmt.Fprintf(w, "Use 'ipfs %s --help' for information about this command\n", cmdPath)
+	}
+
+	err := runIpfs(&invoc)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+
+		// if this error was a client error, print short help too.
+		if isClientError(err) {
+			printMetaHelp(os.Stderr)
+		}
+
+		os.Exit(1)
+	}
+}
+
+func runIpfs(invoc *cmdInvocation) error {
 	defer invoc.close()
 
-	// we'll call this local helper to output errors.
-	// this is so we control how to print errors in one place.
-	printErr := func(err error) {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-	}
+	ctx := logging.ContextWithLoggable(context.Background(), logging.Uuid("session"))
 
 	stopFunc, err := profileIfEnabled()
 	if err != nil {
-		printErr(err)
-		os.Exit(1)
+		return err
 	}
 	defer stopFunc() // to be executed as late as possible
 
@@ -93,16 +107,10 @@ func main() {
 		helpFunc("ipfs", Root, invoc.path, w)
 	}
 
-	// this is a message to tell the user how to get the help text
-	printMetaHelp := func(w io.Writer) {
-		cmdPath := strings.Join(invoc.path, " ")
-		fmt.Fprintf(w, "Use 'ipfs %s --help' for information about this command\n", cmdPath)
-	}
-
 	// Handle `ipfs help'
 	if len(os.Args) == 2 && os.Args[1] == "help" {
 		printHelp(false, os.Stdout)
-		os.Exit(0)
+		return nil
 	}
 
 	// parse the commandline into a command invocation
@@ -113,27 +121,18 @@ func main() {
 	if invoc.req != nil {
 		longH, shortH, err := invoc.requestedHelp()
 		if err != nil {
-			printErr(err)
-			os.Exit(1)
+			return err
 		}
 		if longH || shortH {
 			printHelp(longH, os.Stdout)
-			os.Exit(0)
+			return nil
 		}
 	}
 
 	// ok now handle parse error (which means cli input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
 	if parseErr != nil {
-		printErr(parseErr)
-
-		// this was a user error, print help.
-		if invoc.cmd != nil {
-			// we need a newline space.
-			fmt.Fprintf(os.Stderr, "\n")
-			printMetaHelp(os.Stderr)
-		}
-		os.Exit(1)
+		return parseErr
 	}
 
 	// here we handle the cases where
@@ -141,7 +140,7 @@ func main() {
 	// - the main command is invoked.
 	if invoc.cmd == nil || invoc.cmd.Run == nil {
 		printHelp(false, os.Stdout)
-		os.Exit(0)
+		return nil
 	}
 
 	// ok, finally, run the command invocation.
@@ -150,22 +149,15 @@ func main() {
 
 	output, err := invoc.Run(ctx)
 	if err != nil {
-		printErr(err)
-
-		// if this error was a client error, print short help too.
-		if isClientError(err) {
-			printMetaHelp(os.Stderr)
-		}
-		os.Exit(1)
+		return err
 	}
 
 	// everything went better than expected :)
 	_, err = io.Copy(os.Stdout, output)
 	if err != nil {
-		printErr(err)
-
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
 
 func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
@@ -183,10 +175,14 @@ func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 		u.Debug = true
 	}
 
+	log.Error("not even to callCommand yet!")
 	res, err := callCommand(ctx, i.req, Root, i.cmd)
 	if err != nil {
+		log.Error("call command errored and stuff.")
 		return nil, err
 	}
+
+	i.resp = res // set this here to ensure its properly closed in any case
 
 	if err := res.Error(); err != nil {
 		return nil, err
@@ -226,12 +222,18 @@ func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.Ipf
 }
 
 func (i *cmdInvocation) close() {
+	log.Error("close cmd invok!")
 	// let's not forget teardown. If a node was initialized, we must close it.
 	// Note that this means the underlying req.Context().Node variable is exposed.
 	// this is gross, and should be changed when we extract out the exec Context.
 	if i.node != nil {
 		log.Info("Shutting down node...")
 		i.node.Close()
+	}
+
+	if i.resp != nil {
+		log.Error("closing response!!")
+		i.resp.Close()
 	}
 }
 
@@ -341,7 +343,6 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 
 		// Okay!!!!! NOW we can call the command.
 		res = root.Call(req)
-
 	}
 
 	if cmd.PostRun != nil {
@@ -655,6 +656,7 @@ func doVersionRequest(client cmdsHttp.Client) (*coreCmds.VersionOutput, error) {
 		}
 		return nil, err
 	}
+	defer res.Close()
 
 	ver, ok := res.Output().(*coreCmds.VersionOutput)
 	if !ok {

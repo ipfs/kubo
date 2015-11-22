@@ -223,6 +223,7 @@ func (r *response) Reader() (io.Reader, error) {
 
 func (r *response) Close() error {
 	if r.closer != nil {
+		log.Error("CLOSING RESPONSE CLOSER")
 		return r.closer.Close()
 	}
 	return nil

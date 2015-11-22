@@ -40,9 +40,7 @@ func NewClient(address string) Client {
 	return &client{
 		serverAddress: address,
 		httpClient: http.Client{
-			Transport: &http.Transport{
-				DisableKeepAlives: true,
-			},
+			Transport: &http.Transport{},
 		},
 	}
 }
@@ -117,6 +115,8 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		// using the overridden JSON encoding in request
 		res, err := getResponse(httpRes, req)
 		if err != nil {
+			//log.Error("ERROR ERROR ERROR")
+			httpRes.Body.Close()
 			ec <- err
 			return
 		}
@@ -127,8 +127,8 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	for {
 		select {
 		case <-dc:
-			log.Debug("Context cancelled, cancelling HTTP request...")
-			tr := http.DefaultTransport.(*http.Transport)
+			log.Error("Context cancelled, cancelling HTTP request...")
+			tr := c.httpClient.Transport.(*http.Transport)
 			tr.CancelRequest(httpReq)
 			dc = nil // Wait for ec or rc
 		case err := <-ec:
@@ -140,6 +140,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 				// still leave it as JSON.
 				req.SetOption(cmds.EncShort, previousUserProvidedEncoding)
 			}
+			log.Error("response returned")
 			return res, nil
 		}
 	}
