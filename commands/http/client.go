@@ -30,7 +30,7 @@ type Client interface {
 
 type client struct {
 	serverAddress string
-	httpClient    http.Client
+	httpClient    *http.Client
 }
 
 func NewClient(address string) Client {
@@ -39,7 +39,7 @@ func NewClient(address string) Client {
 	// refused on 'client.Do'
 	return &client{
 		serverAddress: address,
-		httpClient: http.Client{
+		httpClient: &http.Client{
 			Transport: &http.Transport{
 				DisableKeepAlives: true,
 			},
@@ -105,7 +105,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 
 	ec := make(chan error, 1)
 	rc := make(chan cmds.Response, 1)
-	dc := req.Context().Done()
+	httpReq.Cancel = req.Context().Done()
 
 	go func() {
 		httpRes, err := c.httpClient.Do(httpReq)
@@ -124,24 +124,17 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		rc <- res
 	}()
 
-	for {
-		select {
-		case <-dc:
-			log.Debug("Context cancelled, cancelling HTTP request...")
-			tr := http.DefaultTransport.(*http.Transport)
-			tr.CancelRequest(httpReq)
-			dc = nil // Wait for ec or rc
-		case err := <-ec:
-			return nil, err
-		case res := <-rc:
-			if found && len(previousUserProvidedEncoding) > 0 {
-				// reset to user provided encoding after sending request
-				// NB: if user has provided an encoding but it is the empty string,
-				// still leave it as JSON.
-				req.SetOption(cmds.EncShort, previousUserProvidedEncoding)
-			}
-			return res, nil
+	select {
+	case err := <-ec:
+		return nil, err
+	case res := <-rc:
+		if found && len(previousUserProvidedEncoding) > 0 {
+			// reset to user provided encoding after sending request
+			// NB: if user has provided an encoding but it is the empty string,
+			// still leave it as JSON.
+			req.SetOption(cmds.EncShort, previousUserProvidedEncoding)
 		}
+		return res, nil
 	}
 }
 
