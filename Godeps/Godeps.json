@@ -360,7 +360,7 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
+			"Rev": "c764672d0ee39ffd83cfcb375804d3181302b62b"
 		},
 		{
 			"ImportPath": "golang.org/x/net/internal/iana",
