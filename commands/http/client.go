@@ -128,7 +128,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		select {
 		case <-dc:
 			log.Debug("Context cancelled, cancelling HTTP request...")
-			tr := http.DefaultTransport.(*http.Transport)
+			tr := c.httpClient.Transport.(*http.Transport)
 			tr.CancelRequest(httpReq)
 			dc = nil // Wait for ec or rc
 		case err := <-ec:
