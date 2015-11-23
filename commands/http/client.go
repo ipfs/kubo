@@ -30,7 +30,7 @@ type Client interface {
 
 type client struct {
 	serverAddress string
-	httpClient    http.Client
+	httpClient    *http.Client
 }
 
 func NewClient(address string) Client {
@@ -39,9 +39,14 @@ func NewClient(address string) Client {
 	// refused on 'client.Do'
 	return &client{
 		serverAddress: address,
-		httpClient: http.Client{
-			Transport: &http.Transport{},
-		},
+		httpClient:    http.DefaultClient,
+		/*
+			httpClient: &http.Client{
+				Transport: &http.Transport{
+					DisableKeepAlives: true,
+				},
+			},
+		*/
 	}
 }
 
@@ -98,7 +103,9 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 
 	// set request canceller
 	httpReq.Cancel = req.Context().Done()
+	httpReq.Close = true
 
+	log.Error("about to do")
 	httpRes, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, err

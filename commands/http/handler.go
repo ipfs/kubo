@@ -108,6 +108,29 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Incoming API request: ", r.URL)
 
+	// get the node's context to pass into the commands.
+	node, err := i.ctx.GetNode()
+	if err != nil {
+		s := fmt.Sprintf("cmds/http: couldn't GetNode(): %s", err)
+		http.Error(w, s, http.StatusInternalServerError)
+		return
+	}
+
+	ctx, cancel := context.WithCancel(node.Context())
+	defer cancel()
+	if cn, ok := w.(http.CloseNotifier); ok {
+		go func() {
+			log.Error("start close notif")
+			select {
+			case <-cn.CloseNotify():
+				log.Error("CLOSE NOTIFY")
+			case <-ctx.Done():
+			}
+			log.Error("done close notif")
+			cancel()
+		}()
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error(r)
@@ -136,29 +159,8 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get the node's context to pass into the commands.
-	node, err := i.ctx.GetNode()
-	if err != nil {
-		s := fmt.Sprintf("cmds/http: couldn't GetNode(): %s", err)
-		http.Error(w, s, http.StatusInternalServerError)
-		return
-	}
-
 	//ps: take note of the name clash - commands.Context != context.Context
 	req.SetInvocContext(i.ctx)
-
-	ctx, cancel := context.WithCancel(node.Context())
-	defer cancel()
-	if cn, ok := w.(http.CloseNotifier); ok {
-		go func() {
-			select {
-			case <-cn.CloseNotify():
-				log.Error("CLOSE NOTIFY")
-			case <-ctx.Done():
-			}
-			cancel()
-		}()
-	}
 
 	err = req.SetRootContext(ctx)
 	if err != nil {
