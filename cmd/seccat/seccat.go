@@ -18,6 +18,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	secio "github.com/ipfs/go-ipfs/p2p/crypto/secio"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -155,7 +156,7 @@ func connect(args args) error {
 	// OK, let's setup the channel.
 	sk := ps.PrivKey(p)
 	sg := secio.SessionGenerator{LocalID: p, PrivateKey: sk}
-	sess, err := sg.NewSession(nil, rwc)
+	sess, err := sg.NewSession(context.TODO(), rwc)
 	if err != nil {
 		return err
 	}
