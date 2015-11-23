@@ -28,7 +28,7 @@ test_expect_success "'ipfs name resolve' succeeds" '
 '
 
 test_expect_success "resolve output looks good" '
-	printf "/ipfs/%s" "$HASH_WELCOME_DOCS" >expected2 &&
+	printf "/ipfs/%s\n" "$HASH_WELCOME_DOCS" >expected2 &&
 	test_cmp expected2 output
 '
 
@@ -50,7 +50,7 @@ test_expect_success "'ipfs name resolve' succeeds" '
 '
 
 test_expect_success "resolve output looks good" '
-	printf "/ipfs/%s/help" "$HASH_WELCOME_DOCS" >expected4 &&
+	printf "/ipfs/%s/help\n" "$HASH_WELCOME_DOCS" >expected4 &&
 	test_cmp expected4 output
 '
 

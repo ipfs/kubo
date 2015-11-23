@@ -20,7 +20,7 @@ test_resolve_setup_name() {
 	test_expect_success "resolve: prepare name" '
 		id_hash=$(ipfs id -f="<id>") &&
 		ipfs name publish "$ref" &&
-		printf "$ref" >expected_nameval &&
+		printf "$ref\n" >expected_nameval &&
 		ipfs name resolve >actual_nameval &&
 		test_cmp expected_nameval actual_nameval
 	'
@@ -47,7 +47,7 @@ test_resolve() {
 	'
 
 	test_expect_success "resolved correctly: $src -> $dst" '
-		printf "$dst" >expected &&
+		printf "$dst\n" >expected &&
 		test_cmp expected actual
 	'
 }

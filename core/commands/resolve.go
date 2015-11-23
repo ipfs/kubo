@@ -117,7 +117,7 @@ Resolve the value of an IPFS DAG path:
 			if !ok {
 				return nil, u.ErrCast()
 			}
-			return strings.NewReader(output.Path.String()), nil
+			return strings.NewReader(output.Path.String() + "\n"), nil
 		},
 	},
 	Type: ResolvedPath{},
