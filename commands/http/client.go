@@ -34,16 +34,9 @@ type client struct {
 }
 
 func NewClient(address string) Client {
-	// We cannot use the default transport because of a bug in go's connection reuse
-	// code. It causes random failures in the connection including io.EOF and connection
-	// refused on 'client.Do'
 	return &client{
 		serverAddress: address,
-		httpClient: &http.Client{
-			Transport: &http.Transport{
-				DisableKeepAlives: true,
-			},
-		},
+		httpClient:    http.DefaultClient,
 	}
 }
 
@@ -103,39 +96,27 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	version := config.CurrentVersionNumber
 	httpReq.Header.Set(uaHeader, fmt.Sprintf("/go-ipfs/%s/", version))
 
-	ec := make(chan error, 1)
-	rc := make(chan cmds.Response, 1)
 	httpReq.Cancel = req.Context().Done()
+	httpReq.Close = true
 
-	go func() {
-		httpRes, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			ec <- err
-			return
-		}
-
-		// using the overridden JSON encoding in request
-		res, err := getResponse(httpRes, req)
-		if err != nil {
-			ec <- err
-			return
-		}
-
-		rc <- res
-	}()
-
-	select {
-	case err := <-ec:
+	httpRes, err := c.httpClient.Do(httpReq)
+	if err != nil {
 		return nil, err
-	case res := <-rc:
-		if found && len(previousUserProvidedEncoding) > 0 {
-			// reset to user provided encoding after sending request
-			// NB: if user has provided an encoding but it is the empty string,
-			// still leave it as JSON.
-			req.SetOption(cmds.EncShort, previousUserProvidedEncoding)
-		}
-		return res, nil
 	}
+
+	// using the overridden JSON encoding in request
+	res, err := getResponse(httpRes, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if found && len(previousUserProvidedEncoding) > 0 {
+		// reset to user provided encoding after sending request
+		// NB: if user has provided an encoding but it is the empty string,
+		// still leave it as JSON.
+		req.SetOption(cmds.EncShort, previousUserProvidedEncoding)
+	}
+	return res, nil
 }
 
 func getQuery(req cmds.Request) (string, error) {
