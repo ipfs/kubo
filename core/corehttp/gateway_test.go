@@ -14,6 +14,7 @@ import (
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	id "github.com/ipfs/go-ipfs/p2p/protocol/identify"
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -95,6 +96,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, *core
 
 	dh.Handler, err = makeHandler(n,
 		ts.Listener,
+		VersionOption(),
 		IPNSHostnameOption(),
 		GatewayOption(false),
 	)
@@ -395,5 +397,35 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 	if !strings.Contains(s, "<a href=\"/prefix/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
+	}
+}
+
+func TestVersion(t *testing.T) {
+	ns := mockNamesys{}
+	ts, _ := newTestServerAndNode(t, ns)
+	t.Logf("test server url: %s", ts.URL)
+	defer ts.Close()
+
+	req, err := http.NewRequest("GET", ts.URL+"/version", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("error reading response: %s", err)
+	}
+	s := string(body)
+
+	if !strings.Contains(s, "Client Version: "+id.ClientVersion) {
+		t.Fatalf("response doesn't contain client version:\n%s", s)
+	}
+
+	if !strings.Contains(s, "Protocol Version: "+id.IpfsVersion) {
+		t.Fatalf("response doesn't contain protocol version:\n%s", s)
 	}
 }
