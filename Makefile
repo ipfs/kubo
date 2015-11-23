@@ -74,5 +74,5 @@ test_all_commits_travis:
 
 # since we have CI for osx and linux but not windows, this should help
 windows_build_check:
-	GOOS=windows GOARCH=amd64 go build -o .test.ipfs.exe -tags=nofuse ./cmd/ipfs
+	GOOS=windows GOARCH=amd64 go build -o .test.ipfs.exe ./cmd/ipfs
 	rm .test.ipfs.exe
