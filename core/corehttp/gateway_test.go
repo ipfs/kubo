@@ -401,6 +401,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
+	config.CurrentCommit = "theshortcommithash"
+
 	ns := mockNamesys{}
 	ts, _ := newTestServerAndNode(t, ns)
 	t.Logf("test server url: %s", ts.URL)
@@ -420,6 +422,10 @@ func TestVersion(t *testing.T) {
 		t.Fatalf("error reading response: %s", err)
 	}
 	s := string(body)
+
+	if !strings.Contains(s, "Commit: theshortcommithash") {
+		t.Fatalf("response doesn't contain commit:\n%s", s)
+	}
 
 	if !strings.Contains(s, "Client Version: "+id.ClientVersion) {
 		t.Fatalf("response doesn't contain client version:\n%s", s)

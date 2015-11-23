@@ -8,6 +8,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	id "github.com/ipfs/go-ipfs/p2p/protocol/identify"
+	config "github.com/ipfs/go-ipfs/repo/config"
 )
 
 // Gateway should be instantiated using NewGateway
@@ -58,7 +59,8 @@ func GatewayOption(writable bool) ServeOption {
 func VersionOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Client Version:   %s\n", id.ClientVersion)
+			fmt.Fprintf(w, "Commit: %s\n", config.CurrentCommit)
+			fmt.Fprintf(w, "Client Version: %s\n", id.ClientVersion)
 			fmt.Fprintf(w, "Protocol Version: %s\n", id.IpfsVersion)
 		})
 		return mux, nil
