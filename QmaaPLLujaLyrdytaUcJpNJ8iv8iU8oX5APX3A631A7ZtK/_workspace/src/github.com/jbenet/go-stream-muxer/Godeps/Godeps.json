@@ -1,0 +1,29 @@
+{
+	"ImportPath": "github.com/jbenet/go-stream-muxer",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/docker/spdystream",
+			"Rev": "b2c3287865f3ad6aa22821ddb7b4692b896ac207"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/yamux",
+			"Rev": "b2e55852ddaf823a85c67f798080eb7d08acd71d"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/muxado",
+			"Rev": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-multiplex",
+			"Rev": "ce5baa716247510379cb7640a14da857afd3b622"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-multistream",
+			"Rev": "08e8f9c9f5665ed0c63ffde4fa5ef1d5fb3d516d"
+		}
+	]
+}

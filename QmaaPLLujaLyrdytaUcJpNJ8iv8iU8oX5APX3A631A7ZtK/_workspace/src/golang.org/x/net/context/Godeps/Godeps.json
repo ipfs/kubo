@@ -1,0 +1,13 @@
+{
+	"ImportPath": "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context",
+	"GoVersion": "go1.5.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "4f2fc6c1e69d41baf187332ee08fbd2b296f21ed"
+		}
+	]
+}

@@ -1,0 +1,12 @@
+code	size	name
+4	32	ip4
+6	16	tcp
+17	16	udp
+33	16	dccp
+41	128	ip6
+132	16	sctp
+301	0	udt
+302	0	utp
+421	V	ipfs
+480	0	http
+443	0	https

@@ -1,0 +1,43 @@
+{
+	"ImportPath": "github.com/jbenet/go-multiaddr-net",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/anacrolix/jitter",
+			"Rev": "2ea5c18645100745b24e9f5cfc9b3f6f7eac51ef"
+		},
+		{
+			"ImportPath": "github.com/anacrolix/missinggo",
+			"Rev": "4e1ca5963308863b56c31863f60c394a7365ec29"
+		},
+		{
+			"ImportPath": "github.com/anacrolix/utp",
+			"Rev": "0bb24de92c268452fb9106ca4fb9302442ca0dee"
+		},
+		{
+			"ImportPath": "github.com/bradfitz/iter",
+			"Rev": "454541ec3da2a73fc34fd049b19ee5777bf19345"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-base58",
+			"Rev": "568a28d73fd97651d3442392036a658b6976eed5"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multiaddr",
+			"Comment": "0.1.2-38-gc13f11b",
+			"Rev": "c13f11bbfe6439771f4df7bfb330f686826144e8"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multihash",
+			"Comment": "0.1.0-36-g87e53a9",
+			"Rev": "87e53a9d2875a18a7863b351d22f912545e6b3a3"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/sha3",
+			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
+		}
+	]
+}
