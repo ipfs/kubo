@@ -2,7 +2,6 @@ package dagutils
 
 import (
 	"errors"
-	"strings"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
@@ -12,6 +11,7 @@ import (
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	path "github.com/ipfs/go-ipfs/path"
 )
 
 type Editor struct {
@@ -76,8 +76,8 @@ func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname s
 	return root, nil
 }
 
-func (e *Editor) InsertNodeAtPath(ctx context.Context, path string, toinsert *dag.Node, create func() *dag.Node) error {
-	splpath := strings.Split(path, "/")
+func (e *Editor) InsertNodeAtPath(ctx context.Context, pth string, toinsert *dag.Node, create func() *dag.Node) error {
+	splpath := path.SplitList(pth)
 	nd, err := e.insertNodeAtPath(ctx, e.root, splpath, toinsert, create)
 	if err != nil {
 		return err
@@ -130,8 +130,8 @@ func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.Node, path []st
 	return root, nil
 }
 
-func (e *Editor) RmLink(ctx context.Context, path string) error {
-	splpath := strings.Split(path, "/")
+func (e *Editor) RmLink(ctx context.Context, pth string) error {
+	splpath := path.SplitList(pth)
 	nd, err := e.rmLink(ctx, e.root, splpath)
 	if err != nil {
 		return err

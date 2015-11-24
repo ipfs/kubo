@@ -245,8 +245,7 @@ Examples:
 			res.SetOutput(&FilesLsOutput{listing})
 			return
 		case *mfs.File:
-			parts := strings.Split(path, "/")
-			name := parts[len(parts)-1]
+			_, name := gopath.Split(path)
 			out := &FilesLsOutput{[]mfs.NodeListing{mfs.NodeListing{Name: name, Type: 1}}}
 			res.SetOutput(out)
 			return

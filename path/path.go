@@ -106,3 +106,7 @@ func (p *Path) IsValid() error {
 func Join(pths []string) string {
 	return strings.Join(pths, "/")
 }
+
+func SplitList(pth string) []string {
+	return strings.Split(pth, "/")
+}
