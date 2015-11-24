@@ -1,4 +1,4 @@
-
+ 
 ifeq ($(TEST_NO_FUSE),1)
 go_test=go test -tags nofuse
 else
