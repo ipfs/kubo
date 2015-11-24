@@ -114,6 +114,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"update":    UpdateCmd,
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
+	"service":   ServiceCmd,
 }
 
 // RootRO is the readonly version of Root

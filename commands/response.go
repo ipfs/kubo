@@ -6,7 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"os"
+	// "os"
 	"strings"
 )
 
@@ -241,10 +241,10 @@ func (r *response) Stderr() io.Writer {
 }
 
 // NewResponse returns a response to match given Request
-func NewResponse(req Request) Response {
+func NewResponse(req Request, stdout, stderr io.Writer) Response {
 	return &response{
 		req:    req,
-		stdout: os.Stdout,
-		stderr: os.Stderr,
+		stdout: stdout,
+		stderr: stderr,
 	}
 }

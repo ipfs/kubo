@@ -58,6 +58,7 @@ type Command struct {
 	PostRun    Function
 	Marshalers map[EncodingType]Marshaler
 	Helptext   HelpText
+	Interact   func(Request, io.ReadWriter) error
 
 	// Type describes the type of the output of the Command's Run Function.
 	// In precise terms, the value of Type is an instance of the return type of
@@ -76,8 +77,8 @@ var ErrNoFormatter = ClientError("This command cannot be formatted to plain text
 var ErrIncorrectType = errors.New("The command returned a value with a different type than expected")
 
 // Call invokes the command for the given Request
-func (c *Command) Call(req Request) Response {
-	res := NewResponse(req)
+func (c *Command) Call(req Request, stdout, stderr io.Writer) Response {
+	res := NewResponse(req, stdout, stderr)
 
 	cmds, err := c.Resolve(req.Path())
 	if err != nil {
