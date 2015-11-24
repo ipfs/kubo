@@ -1,4 +1,4 @@
-//go:generate go-bindata -pkg=assets init-doc ../vendor/dir-index-html-v1.0.0
+//go:generate go-bindata -pkg=assets init-doc
 //go:generate gofmt -w bindata.go
 
 package assets
@@ -27,15 +27,6 @@ var initDocPaths = []string{
 // SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key
 func SeedInitDocs(nd *core.IpfsNode) (*key.Key, error) {
 	return addAssetList(nd, initDocPaths)
-}
-
-var initDirIndex = []string{
-	filepath.Join("..", "vendor", "dir-index-html-v1.0.0", "knownIcons.txt"),
-	filepath.Join("..", "vendor", "dir-index-html-v1.0.0", "dir-index.html"),
-}
-
-func SeedInitDirIndex(nd *core.IpfsNode) (*key.Key, error) {
-	return addAssetList(nd, initDirIndex)
 }
 
 func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {

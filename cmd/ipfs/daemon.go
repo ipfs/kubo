@@ -25,6 +25,7 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	util "github.com/ipfs/go-ipfs/util"
+	gateway "github.com/ipfs/go-ipfs/vendor/QmXvNwFNR7CQJ1J5oJnjS4oAFv2ai6v9JZBkTBbJp6wRQf/go-ipfs-gateway"
 )
 
 const (
@@ -331,9 +332,9 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
 	}
 
-	apiGw := corehttp.NewGateway(corehttp.GatewayConfig{
+	apiGw := gateway.NewGateway(gateway.GatewayConfig{
 		Writable: true,
-		BlockList: &corehttp.BlockList{
+		BlockList: &gateway.BlockList{
 			Decider: func(s string) bool {
 				if unrestricted {
 					return true
@@ -353,7 +354,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		corehttp.CommandsOption(*req.InvocContext()),
 		corehttp.WebUIOption,
 		apiGw.ServeOption(),
-		corehttp.VersionOption(),
+		gateway.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
 		corehttp.LogOption(),
@@ -430,9 +431,9 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	var opts = []corehttp.ServeOption{
 		corehttp.PrometheusCollectorOption("gateway"),
 		corehttp.CommandsROOption(*req.InvocContext()),
-		corehttp.VersionOption(),
+		gateway.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(writable),
+		gateway.GatewayOption(writable),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

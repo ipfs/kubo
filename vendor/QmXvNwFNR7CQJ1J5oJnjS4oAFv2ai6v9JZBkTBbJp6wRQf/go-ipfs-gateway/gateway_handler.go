@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"errors"
@@ -21,12 +21,16 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+
+	logging "github.com/rht/go-ipfs-gateway/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
 const (
 	ipfsPathPrefix = "/ipfs/"
 	ipnsPathPrefix = "/ipns/"
 )
+
+var log = logging.Logger("core/gateway")
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)

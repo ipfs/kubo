@@ -1,17 +1,16 @@
 {
   "name": "go-ipfs",
-  "version": "0.3.8",
+  "version": "0.4.0",
   "gxDependencies": [
     {
-      "name": "go-log",
-      "hash": "QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b",
+      "name": "go-ipfs-gateway",
+      "hash": "Qmc2aJFKUyJMUCsEHugka6oCKm88kSQrV678YKTFb4mc1U",
       "version": "1.0.0"
     },
     {
-      "name": "dir-index-html",
-      "hash": "QmdDfkqDWheE4gsCXNrhixwTwSHnZMPT2cGLcNbiBNcMyU",
-      "version": "1.0.0",
-      "linkname": "dir-index-html-v1.0.0"
+      "name": "go-log",
+      "hash": "QmaywEmHiYfhcv1gj8gTNq6jwcN7Cs1EJkkE9kksT1255V",
+      "version": "1.0.0"
     }
   ],
   "language": "go"

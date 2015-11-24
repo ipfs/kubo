@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"errors"
@@ -11,6 +11,7 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
+	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
@@ -95,7 +96,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, *core
 
 	dh.Handler, err = makeHandler(n,
 		ts.Listener,
-		IPNSHostnameOption(),
+		corehttp.IPNSHostnameOption(),
 		GatewayOption(false),
 	)
 	if err != nil {

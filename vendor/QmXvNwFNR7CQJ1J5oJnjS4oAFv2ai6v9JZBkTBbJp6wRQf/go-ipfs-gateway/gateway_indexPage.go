@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"html/template"

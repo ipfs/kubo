@@ -1,4 +1,4 @@
-package corehttp
+package gateway
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	core "github.com/ipfs/go-ipfs/core"
+	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	id "github.com/ipfs/go-ipfs/p2p/protocol/identify"
 )
 
@@ -27,7 +28,23 @@ func NewGateway(conf GatewayConfig) *Gateway {
 	}
 }
 
-func (g *Gateway) ServeOption() ServeOption {
+// extracted from github.com/ipfs/go-ipfs/core/corehttp/corehttp.go
+// makeHandler turns a list of ServeOptions into a http.Handler that implements
+// all of the given options, in order.
+func makeHandler(n *core.IpfsNode, l net.Listener, options ...corehttp.ServeOption) (http.Handler, error) {
+	topMux := http.NewServeMux()
+	mux := topMux
+	for _, option := range options {
+		var err error
+		mux, err = option(n, l, mux)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return topMux, nil
+}
+
+func (g *Gateway) ServeOption() corehttp.ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		// pass user's HTTP headers
 		cfg, err := n.Repo.Config()
@@ -47,7 +64,7 @@ func (g *Gateway) ServeOption() ServeOption {
 	}
 }
 
-func GatewayOption(writable bool) ServeOption {
+func GatewayOption(writable bool) corehttp.ServeOption {
 	g := NewGateway(GatewayConfig{
 		Writable:  writable,
 		BlockList: &BlockList{},
@@ -55,7 +72,7 @@ func GatewayOption(writable bool) ServeOption {
 	return g.ServeOption()
 }
 
-func VersionOption() ServeOption {
+func VersionOption() corehttp.ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "Client Version:   %s\n", id.ClientVersion)
