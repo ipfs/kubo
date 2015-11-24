@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -600,7 +599,7 @@ PutValue will store the given key value pair in the dht.
 }
 
 func escapeDhtKey(s string) (key.Key, error) {
-	parts := strings.Split(s, "/")
+	parts := path.SplitList(s)
 	switch len(parts) {
 	case 1:
 		return key.B58KeyDecode(s), nil

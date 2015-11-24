@@ -1,11 +1,11 @@
 package ipfsaddr
 
 import (
-	"strings"
 	"testing"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	path "github.com/ipfs/go-ipfs/path"
 )
 
 var good = []string{
@@ -87,7 +87,7 @@ func TestIDMatches(t *testing.T) {
 			continue
 		}
 
-		sp := strings.Split(g, "/")
+		sp := path.SplitList(g)
 		sid := sp[len(sp)-1]
 		id, err := peer.IDB58Decode(sid)
 		if err != nil {

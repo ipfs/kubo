@@ -237,7 +237,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			var backLink string = prefix + urlPath
 
 			// don't go further up than /ipfs/$hash/
-			pathSplit := strings.Split(backLink, "/")
+			pathSplit := path.SplitList(backLink)
 			switch {
 			// keep backlink
 			case len(pathSplit) == 3: // url: /ipfs/$hash
