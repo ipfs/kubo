@@ -98,7 +98,7 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 // adds a '-' to the beginning of each path element so we can use 'data' as a
 // special link in the structure without having to worry about
 func escapePath(pth string) string {
-	elems := strings.Split(strings.Trim(pth, "/"), "/")
+	elems := path.SplitList(strings.Trim(pth, "/"))
 	for i, e := range elems {
 		elems[i] = "-" + e
 	}

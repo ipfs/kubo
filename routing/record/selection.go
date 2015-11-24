@@ -2,9 +2,9 @@ package record
 
 import (
 	"errors"
-	"strings"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	path "github.com/ipfs/go-ipfs/path"
 )
 
 // A SelectorFunc selects the best value for the given key from
@@ -18,7 +18,7 @@ func (s Selector) BestRecord(k key.Key, recs [][]byte) (int, error) {
 		return 0, errors.New("no records given!")
 	}
 
-	parts := strings.Split(string(k), "/")
+	parts := path.SplitList(string(k))
 	if len(parts) < 3 {
 		log.Infof("Record key does not have selectorfunc: %s", k)
 		return 0, errors.New("record key does not have selectorfunc")
