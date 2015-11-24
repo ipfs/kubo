@@ -101,7 +101,7 @@ func PutNode(r *Root, path string, nd *dag.Node) error {
 // Mkdir creates a directory at 'path' under the directory 'd', creating
 // intermediary directories as needed if 'parents' is set to true
 func Mkdir(r *Root, pth string, parents bool) error {
-	parts := strings.Split(pth, "/")
+	parts := path.SplitList(pth)
 	if parts[0] == "" {
 		parts = parts[1:]
 	}
@@ -159,7 +159,7 @@ func Lookup(r *Root, path string) (FSNode, error) {
 // under the directory 'd'
 func DirLookup(d *Directory, pth string) (FSNode, error) {
 	pth = strings.Trim(pth, "/")
-	parts := strings.Split(pth, "/")
+	parts := path.SplitList(pth)
 	if len(parts) == 1 && parts[0] == "" {
 		return d, nil
 	}
