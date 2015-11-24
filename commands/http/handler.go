@@ -64,6 +64,8 @@ const (
 var mimeTypes = map[string]string{
 	cmds.JSON: "application/json",
 	cmds.XML:  "application/xml",
+	cmds.Tar:  "application/x-tar",
+	cmds.Gzip: "application/gzip", // http://tools.ietf.org/html/rfc6713
 	cmds.Text: "text/plain",
 }
 
@@ -236,7 +238,9 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	if _, ok := res.Output().(io.Reader); ok {
 		// set streams output type to text to avoid issues with browsers rendering
 		// html pages on priveleged api ports
-		mime = "text/plain"
+		if mime != mimeTypes[cmds.Tar] && mime != mimeTypes[cmds.Gzip] {
+			mime = mimeTypes[cmds.Text]
+		}
 		h.Set(streamHeader, "1")
 	}
 

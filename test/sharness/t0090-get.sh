@@ -119,6 +119,9 @@ test_get_cmd
 # should work online
 test_launch_ipfs_daemon
 test_get_cmd
+test_expect_success "ipfs get response has the correct content-type" '
+    curl -I "http://localhost:$PORT_API/api/v0/get?arg=$HASH" | grep "^Content-Type: application/x-tar"
+'
 test_kill_ipfs_daemon
 
 test_done
