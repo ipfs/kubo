@@ -22,7 +22,7 @@ test_expect_success "generate 2 600 kB files and 2 MB file using go-random" '
 test_expect_success "set ipfs gc watermark, storage max, and gc timeout" '
     test_config_set Datastore.StorageMax "2MB" &&
     test_config_set --json Datastore.StorageGCWatermark 60 &&
-    test_config_set Datastore.GCPeriod "20ms"
+    test_config_set Datastore.GCPeriod "40ms"
 '
 
 test_launch_ipfs_daemon --enable-gc
@@ -31,7 +31,7 @@ test_gc() {
     test_expect_success "adding data below watermark doesn't trigger auto gc" '
         ipfs add 600k1 >/dev/null &&
         disk_usage "$IPFS_PATH/blocks" >expected &&
-        go-sleep 40ms &&
+        go-sleep 50ms &&
         disk_usage "$IPFS_PATH/blocks" >actual &&
         test_cmp expected actual
     '
@@ -39,7 +39,7 @@ test_gc() {
     test_expect_success "adding data beyond watermark triggers auto gc" '
         HASH=`ipfs add -q 600k2` &&
         ipfs pin rm -r $HASH &&
-        go-sleep 40ms &&
+        go-sleep 100ms &&
         DU=$(disk_usage "$IPFS_PATH/blocks") &&
         if test $(uname -s) = "Darwin"; then
             test "$DU" -lt 1400  # 60% of 2MB

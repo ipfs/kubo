@@ -1,10 +1,10 @@
-
+ 
 ifeq ($(TEST_NO_FUSE),1)
 go_test=go test -tags nofuse
 else
 go_test=go test
 endif
-
+ 
 commit = `git rev-parse --short HEAD`
 ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(commit)"
 

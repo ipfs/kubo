@@ -9,7 +9,7 @@ test_description="Test add and cat commands"
 . lib/test-lib.sh
 
 client_err() {
-    printf "$@\n\nUse 'ipfs add --help' for information about this command\n"
+    printf "$@\n\nUse 'ipfs add --help' for information about this command\n"  
 }
 
 test_add_cat_file() {
