@@ -216,11 +216,11 @@ func KeyStretcher(cipherType string, hashType string, secret []byte) (StretchedK
 	var k1 StretchedKeys
 	var k2 StretchedKeys
 
-	k1.IV = r1[0:ivSize]
+	k1.IV = r1[:ivSize]
 	k1.CipherKey = r1[ivSize : ivSize+cipherKeySize]
 	k1.MacKey = r1[ivSize+cipherKeySize:]
 
-	k2.IV = r2[0:ivSize]
+	k2.IV = r2[:ivSize]
 	k2.CipherKey = r2[ivSize : ivSize+cipherKeySize]
 	k2.MacKey = r2[ivSize+cipherKeySize:]
 
