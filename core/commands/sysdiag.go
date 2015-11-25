@@ -53,7 +53,7 @@ Prints out information about your computer to aid in easier debugging.
 		}
 
 		info["ipfs_version"] = config.CurrentVersionNumber
-		info["ipfs_git_sha"] = config.CurrentCommit
+		info["ipfs_commit"] = config.CurrentCommit
 		res.SetOutput(info)
 	},
 }
