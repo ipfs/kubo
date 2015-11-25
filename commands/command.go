@@ -156,7 +156,7 @@ func (c *Command) Resolve(pth []string) ([]*Command, error) {
 		cmd = cmd.Subcommand(name)
 
 		if cmd == nil {
-			pathS := path.Join(pth[0:i])
+			pathS := path.Join(pth[:i])
 			return nil, fmt.Errorf("Undefined command: '%s'", pathS)
 		}
 
