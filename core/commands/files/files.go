@@ -235,14 +235,33 @@ Examples:
 			return
 		}
 
+		long, _, _ := req.Option("l").Bool()
+
 		switch fsn := fsn.(type) {
 		case *mfs.Directory:
-			listing, err := fsn.List()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
+			if !long {
+				mdnd, err := fsn.GetNode()
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+
+				var output []mfs.NodeListing
+				for _, lnk := range mdnd.Links {
+					output = append(output, mfs.NodeListing{
+						Name: lnk.Name,
+						Hash: lnk.Hash.B58String(),
+					})
+				}
+				res.SetOutput(&FilesLsOutput{output})
+			} else {
+				listing, err := fsn.List()
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+				res.SetOutput(&FilesLsOutput{listing})
 			}
-			res.SetOutput(&FilesLsOutput{listing})
 			return
 		case *mfs.File:
 			_, name := gopath.Split(path)
