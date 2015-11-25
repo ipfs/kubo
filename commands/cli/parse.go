@@ -185,7 +185,7 @@ func parseOpts(args []string, root *cmds.Command) (
 					}
 				}
 				var end bool
-				end, err = parseFlag(arg[0:1], rest, mustUse)
+				end, err = parseFlag(arg[:1], rest, mustUse)
 				if err != nil {
 					return
 				}
