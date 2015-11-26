@@ -228,9 +228,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			defer dr.Close()
 
 			// write to request
-			if r.Method != "HEAD" {
-				io.Copy(w, dr)
-			}
+			http.ServeContent(w, r, "index.html", modtime, dr)
 			break
 		}
 
