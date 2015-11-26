@@ -16,6 +16,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	config "github.com/ipfs/go-ipfs/repo/config"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
@@ -35,7 +36,10 @@ type Handler struct {
 	corsHandler http.Handler
 }
 
-var ErrNotFound = errors.New("404 page not found")
+var (
+	ErrNotFound           = errors.New("404 page not found")
+	errApiVersionMismatch = errors.New("api version mismatch")
+)
 
 const (
 	StreamErrHeader        = "X-Stream-Error"
@@ -421,4 +425,22 @@ func allowReferer(r *http.Request, cfg *ServerConfig) bool {
 	}
 
 	return false
+}
+
+// apiVersionMatches checks whether the api server is running the
+// same version of go-ipfs. for now, only the exact same version of
+// client + server work. In the future, we should use semver for
+// proper API versioning! \o/
+func apiVersionMatches(r *http.Request) error {
+	clientVersion := r.UserAgent()
+	// skips check if client is not go-ipfs
+	if clientVersion == "" || !strings.Contains(clientVersion, "/go-ipfs/") {
+		return nil
+	}
+
+	daemonVersion := fmt.Sprintf("/go-ipfs/%s/", config.CurrentVersionNumber)
+	if daemonVersion != clientVersion {
+		return fmt.Errorf("%s (%s != %s)", errApiVersionMismatch, daemonVersion, clientVersion)
+	}
+	return nil
 }
