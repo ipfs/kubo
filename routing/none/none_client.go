@@ -43,6 +43,10 @@ func (c *nilclient) Provide(_ context.Context, _ key.Key) error {
 	return nil
 }
 
+func (c *nilclient) ProvideMany(_ context.Context, _ []key.Key) error {
+	return nil
+}
+
 func (c *nilclient) Bootstrap(_ context.Context) error {
 	return nil
 }

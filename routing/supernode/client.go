@@ -115,6 +115,32 @@ func (c *Client) Provide(ctx context.Context, k key.Key) error {
 	return c.proxy.SendMessage(ctx, msg) // TODO wrap to hide remote
 }
 
+func (c *Client) ProvideMany(ctx context.Context, ks []key.Key) error {
+	defer log.EventBegin(ctx, "provideMany").Done()
+	var strkeys []string
+	for _, k := range ks {
+		strkeys = append(strkeys, string(k))
+	}
+
+	t := pb.Message_ADD_PROVIDER
+	msg := &pb.Message{
+		Type: &t,
+		Keys: strkeys,
+	}
+	// FIXME how is connectedness defined for the local node
+	pri := []pb.PeerRoutingInfo{
+		{
+			PeerInfo: peer.PeerInfo{
+				ID:    c.local,
+				Addrs: c.peerhost.Addrs(),
+			},
+		},
+	}
+	msg.ProviderPeers = pb.PeerRoutingInfosToPBPeers(pri)
+
+	return c.proxy.SendMessage(ctx, msg) // TODO wrap to hide remote
+}
+
 func (c *Client) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, error) {
 	defer log.EventBegin(ctx, "findPeer", id).Done()
 	request := pb.NewMessage(pb.Message_FIND_NODE, string(id), 0)

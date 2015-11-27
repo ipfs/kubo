@@ -99,7 +99,7 @@ func (c *client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-c
 	return out
 }
 
-// Provide returns once the message is on the network. Value is not necessarily
+// provide returns once the message is on the network. value is not necessarily
 // visible yet.
 func (c *client) Provide(_ context.Context, key key.Key) error {
 	info := peer.PeerInfo{
@@ -107,6 +107,20 @@ func (c *client) Provide(_ context.Context, key key.Key) error {
 		Addrs: []ma.Multiaddr{c.peer.Address()},
 	}
 	return c.server.Announce(info, key)
+}
+
+func (c *client) ProvideMany(_ context.Context, keys []key.Key) error {
+	info := peer.PeerInfo{
+		ID:    c.peer.ID(),
+		Addrs: []ma.Multiaddr{c.peer.Address()},
+	}
+	for _, k := range keys {
+		err := c.server.Announce(info, k)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *client) Ping(ctx context.Context, p peer.ID) (time.Duration, error) {

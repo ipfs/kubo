@@ -106,6 +106,10 @@ func (c *offlineRouting) Provide(_ context.Context, key key.Key) error {
 	return ErrOffline
 }
 
+func (c *offlineRouting) ProvideMany(_ context.Context, keys []key.Key) error {
+	return ErrOffline
+}
+
 func (c *offlineRouting) Ping(ctx context.Context, p peer.ID) (time.Duration, error) {
 	return 0, ErrOffline
 }

@@ -230,13 +230,13 @@ func (dht *IpfsDHT) GetValues(ctx context.Context, key key.Key, nvals int) ([]ro
 // This is what DSHTs (Coral and MainlineDHT) do to store large values in a DHT.
 
 // Provide makes this node announce that it can provide a value for the given key
-func (dht *IpfsDHT) Provide(ctx context.Context, key key.Key) error {
-	defer log.EventBegin(ctx, "provide", &key).Done()
+func (dht *IpfsDHT) Provide(ctx context.Context, k key.Key) error {
+	defer log.EventBegin(ctx, "provide", &k).Done()
 
 	// add self locally
-	dht.providers.AddProvider(ctx, key, dht.self)
+	dht.providers.AddProvider(ctx, k, dht.self)
 
-	peers, err := dht.GetClosestPeers(ctx, key)
+	peers, err := dht.GetClosestPeers(ctx, k)
 	if err != nil {
 		return err
 	}
@@ -246,8 +246,8 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key key.Key) error {
 		wg.Add(1)
 		go func(p peer.ID) {
 			defer wg.Done()
-			log.Debugf("putProvider(%s, %s)", key, p)
-			err := dht.putProvider(ctx, p, string(key))
+			log.Debugf("putProvider(%s, %s)", k, p)
+			err := dht.putProviders(ctx, p, []key.Key{k})
 			if err != nil {
 				log.Debug(err)
 			}
