@@ -13,9 +13,9 @@ import (
 // for now, we use a PBNode intermediate thing.
 // because native go objects are nice.
 
-// Unmarshal decodes raw data into a *Node instance.
+// unmarshal decodes raw data into a *Node instance.
 // The conversion uses an intermediate PBNode.
-func (n *Node) Unmarshal(encoded []byte) error {
+func (n *Node) unmarshal(encoded []byte) error {
 	var pbn pb.PBNode
 	if err := pbn.Unmarshal(encoded); err != nil {
 		return fmt.Errorf("Unmarshal failed. %v", err)
@@ -87,7 +87,7 @@ func (n *Node) Encoded(force bool) ([]byte, error) {
 // Decoded decodes raw data and returns a new Node instance.
 func Decoded(encoded []byte) (*Node, error) {
 	n := new(Node)
-	err := n.Unmarshal(encoded)
+	err := n.unmarshal(encoded)
 	if err != nil {
 		return nil, fmt.Errorf("incorrectly formatted merkledag node: %s", err)
 	}
