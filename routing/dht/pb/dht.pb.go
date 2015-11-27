@@ -126,8 +126,10 @@ type Message struct {
 	CloserPeers []*Message_Peer `protobuf:"bytes,8,rep,name=closerPeers" json:"closerPeers,omitempty"`
 	// Used to return Providers
 	// GET_VALUE, ADD_PROVIDER, GET_PROVIDERS
-	ProviderPeers    []*Message_Peer `protobuf:"bytes,9,rep,name=providerPeers" json:"providerPeers,omitempty"`
-	XXX_unrecognized []byte          `json:"-"`
+	ProviderPeers []*Message_Peer `protobuf:"bytes,9,rep,name=providerPeers" json:"providerPeers,omitempty"`
+	// Used to query for multiple targets in one request
+	Keys             []string `protobuf:"bytes,11,rep,name=keys" json:"keys,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
 }
 
 func (m *Message) Reset()         { *m = Message{} }
@@ -172,6 +174,13 @@ func (m *Message) GetCloserPeers() []*Message_Peer {
 func (m *Message) GetProviderPeers() []*Message_Peer {
 	if m != nil {
 		return m.ProviderPeers
+	}
+	return nil
+}
+
+func (m *Message) GetKeys() []string {
+	if m != nil {
+		return m.Keys
 	}
 	return nil
 }

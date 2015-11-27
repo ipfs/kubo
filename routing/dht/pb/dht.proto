@@ -59,6 +59,9 @@ message Message {
 	// Used to return Providers
 	// GET_VALUE, ADD_PROVIDER, GET_PROVIDERS
 	repeated Peer providerPeers = 9;
+
+	// Used to query for multiple targets in one request
+	repeated string keys = 11;
 }
 
 // Record represents a dht record that contains a value

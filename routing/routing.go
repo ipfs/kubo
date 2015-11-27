@@ -44,6 +44,9 @@ type IpfsRouting interface {
 	// Announce that this node can provide value for given key
 	Provide(context.Context, key.Key) error
 
+	// Announce that this node can provide all the given values
+	ProvideMany(context.Context, []key.Key) error
+
 	// Find specific Peer
 	// FindPeer searches for a peer with given ID, returns a peer.PeerInfo
 	// with relevant addresses.
