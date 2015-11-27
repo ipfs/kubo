@@ -3,6 +3,7 @@
 *.memprof
 
 *.swp
+.project
 .ipfsconfig
 *.out
 *.test
