@@ -12,9 +12,9 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/codegangsta/cli"
+	"gx/ipfs/QmVcLF2CgjQb5BWmYFWsDfxDjbzBfcChfdHRedxeL3dV4K/cli"
 
-	"gopkg.in/yaml.v2"
+	"gx/ipfs/QmNNARAR2ncSEDKGVAjsE77VYAtNE6qMMPEC7hfWMwMdF9/yaml.v2"
 )
 
 type yamlSourceContext struct {

@@ -3,6 +3,7 @@ package dht
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -31,12 +32,15 @@ func TestProvideMany(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// sleep a small amount to make sure messages all arrive
+	time.Sleep(time.Millisecond * 100)
+
 	// in this setup (len(dhts) == 10), every node should know every provider
-	for _, d := range dhts {
+	for i, d := range dhts {
 		for _, k := range keys {
 			pids := d.providers.GetProviders(ctx, k)
 			if len(pids) != 1 {
-				t.Fatalf("expected 1 provider for %s, got %d", k, len(pids))
+				t.Fatalf("[%d] expected 1 provider for %s, got %d", i, k, len(pids))
 			}
 		}
 	}
@@ -67,6 +71,9 @@ func TestProvideManyOld(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// sleep a small amount to make sure messages all arrive
+	time.Sleep(time.Millisecond * 100)
 
 	// in this setup (len(dhts) == 10), every node should know every provider
 	for i, d := range dhts {

@@ -142,6 +142,11 @@ func (bsnet *impl) Provide(ctx context.Context, k key.Key) error {
 	return bsnet.routing.Provide(ctx, k)
 }
 
+// Provide provides the key to the network
+func (bsnet *impl) ProvideMany(ctx context.Context, ks []key.Key) error {
+	return bsnet.routing.ProvideMany(ctx, ks)
+}
+
 // handleNewStream receives a new stream from the network.
 func (bsnet *impl) handleNewStream(s inet.Stream) {
 	defer s.Close()

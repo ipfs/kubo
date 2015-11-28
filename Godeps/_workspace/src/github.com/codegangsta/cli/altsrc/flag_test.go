@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/codegangsta/cli"
+	"gx/ipfs/QmVcLF2CgjQb5BWmYFWsDfxDjbzBfcChfdHRedxeL3dV4K/cli"
 )
 
 type testApplyInputSource struct {

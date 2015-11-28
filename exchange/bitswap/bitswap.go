@@ -91,7 +91,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		findKeys:      make(chan *wantlist.Entry, sizeBatchRequestChan),
 		process:       px,
 		newBlocks:     make(chan blocks.Block, HasBlockBufferSize),
-		provideKeys:   make(chan key.Key, provideKeysBufferSize),
+		provideKeys:   make(chan []key.Key, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
 	}
 	go bs.wm.Run()
@@ -139,7 +139,7 @@ type Bitswap struct {
 
 	newBlocks chan blocks.Block
 
-	provideKeys chan key.Key
+	provideKeys chan []key.Key
 
 	counterLk      sync.Mutex
 	blocksRecvd    int

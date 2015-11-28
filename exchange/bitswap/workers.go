@@ -78,7 +78,7 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 
 	limit := make(chan struct{}, provideWorkerMax)
 
-	limitedGoProvide := func(k key.Key, wid int) {
+	limitedGoProvide := func(ks []key.Key, wid int) {
 		defer func() {
 			// replace token when done
 			<-limit
@@ -86,12 +86,12 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 		ev := logging.LoggableMap{"ID": wid}
 
 		ctx := procctx.OnClosingContext(px) // derive ctx from px
-		defer log.EventBegin(ctx, "Bitswap.ProvideWorker.Work", ev, &k).Done()
+		defer log.EventBegin(ctx, "Bitswap.ProvideWorker.Work", ev).Done()
 
 		ctx, cancel := context.WithTimeout(ctx, provideTimeout) // timeout ctx
 		defer cancel()
 
-		if err := bs.network.Provide(ctx, k); err != nil {
+		if err := bs.network.ProvideMany(ctx, ks); err != nil {
 			log.Warning(err)
 		}
 	}
@@ -105,7 +105,7 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 		select {
 		case <-px.Closing():
 			return
-		case k, ok := <-bs.provideKeys:
+		case ks, ok := <-bs.provideKeys:
 			if !ok {
 				log.Debug("provideKeys channel closed")
 				return
@@ -114,38 +114,50 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 			case <-px.Closing():
 				return
 			case limit <- struct{}{}:
-				go limitedGoProvide(k, wid)
+				go limitedGoProvide(ks, wid)
 			}
 		}
 	}
 }
 
+var batchProvideSize = 50
+var batchTimeout = time.Second
+
 func (bs *Bitswap) provideCollector(ctx context.Context) {
-	defer close(bs.provideKeys)
-	var toProvide []key.Key
-	var nextKey key.Key
-	var keysOut chan key.Key
+	var keys []key.Key
+	var keysOut chan []key.Key
+	var timer *time.Timer
+	var timerChan <-chan time.Time
 
 	for {
 		select {
-		case blk, ok := <-bs.newBlocks:
+		case blk, ok := <-bs.newBlocks: // TODO: only send keys down this channel
 			if !ok {
-				log.Debug("newBlocks channel closed")
 				return
 			}
-			if keysOut == nil {
-				nextKey = blk.Key()
+			keys = append(keys, blk.Key())
+
+			if len(keys) >= batchProvideSize {
 				keysOut = bs.provideKeys
-			} else {
-				toProvide = append(toProvide, blk.Key())
 			}
-		case keysOut <- nextKey:
-			if len(toProvide) > 0 {
-				nextKey = toProvide[0]
-				toProvide = toProvide[1:]
-			} else {
-				keysOut = nil
+
+			if timer != nil {
+				timer.Stop()
+				timer = time.NewTimer(batchTimeout)
+				timerChan = timer.C
 			}
+
+		case <-timerChan:
+			if len(keys) == 0 {
+				timer.Stop()
+				continue
+			}
+			keysOut = bs.provideKeys
+
+		case keysOut <- keys:
+			keysOut = nil
+			keys = nil
+
 		case <-ctx.Done():
 			return
 		}

@@ -4,16 +4,16 @@ import (
 	"sync"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	pqueue "github.com/ipfs/go-ipfs/p2p/peer/queue"
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
-	pset "github.com/ipfs/go-ipfs/util/peerset"
-	todoctr "github.com/ipfs/go-ipfs/util/todocounter"
 
-	ctxproc "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	pset "github.com/ipfs/go-ipfs/thirdparty/peerset"
+	todoctr "github.com/ipfs/go-ipfs/thirdparty/todocounter"
+	ctxproc "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	pqueue "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer/queue"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 // peerFifo implements the peerQueue interface, but provides no additional
@@ -64,8 +64,8 @@ func newProvManyReq(ctx context.Context, dht *IpfsDHT, keys []key.Key) *provMany
 		keyStrs = append(keyStrs, string(k))
 		dht.providers.AddProvider(ctx, k, dht.self)
 
-		closest[k] = pqueue.NewXORDistancePQ(k)
-		perKeyQuery[k] = pqueue.NewXORDistancePQ(k)
+		closest[k] = pqueue.NewXORDistancePQ(string(k))
+		perKeyQuery[k] = pqueue.NewXORDistancePQ(string(k))
 
 		peers := dht.routingTable.NearestPeers(kb.ConvertKey(k), 20)
 		for _, p := range peers {

@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/codegangsta/cli"
+	"gx/ipfs/QmVcLF2CgjQb5BWmYFWsDfxDjbzBfcChfdHRedxeL3dV4K/cli"
 )
 
 func TestCommandYamlFileTest(t *testing.T) {

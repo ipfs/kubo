@@ -117,6 +117,11 @@ func (nc *networkClient) Provide(ctx context.Context, k key.Key) error {
 	return nc.routing.Provide(ctx, k)
 }
 
+// Provide provides the key to the network
+func (nc *networkClient) ProvideMany(ctx context.Context, ks []key.Key) error {
+	return nc.routing.ProvideMany(ctx, ks)
+}
+
 func (nc *networkClient) SetDelegate(r bsnet.Receiver) {
 	nc.Receiver = r
 }

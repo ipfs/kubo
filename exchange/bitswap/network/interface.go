@@ -48,4 +48,7 @@ type Routing interface {
 
 	// Provide provides the key to the network
 	Provide(context.Context, key.Key) error
+
+	// Provide multiple keys to the network at the same time, sharing RPCs
+	ProvideMany(context.Context, []key.Key) error
 }
