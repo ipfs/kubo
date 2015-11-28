@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -152,6 +153,9 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if cn, ok := w.(http.CloseNotifier); ok {
 		go func() {
 			select {
+			case <-time.After(time.Minute * 30):
+				// TODO: this is a hack to avoid these goroutines building up in memory
+				log.Warning("TODO: close notify needs to be fixed")
 			case <-cn.CloseNotify():
 			case <-ctx.Done():
 			}
