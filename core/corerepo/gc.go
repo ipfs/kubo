@@ -154,7 +154,7 @@ func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {
 		case <-time.After(period):
 			// the private func maybeGC doesn't compute storageMax, storageGC, slackGC so that they are not re-computed for every cycle
 			if err := gc.maybeGC(ctx, 0); err != nil {
-				return err
+				log.Error(err)
 			}
 		}
 	}
