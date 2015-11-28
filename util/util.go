@@ -22,6 +22,9 @@ import (
 // Debug is a global flag for debugging.
 var Debug bool
 
+// LowMemMode is a global flag to signify that processes should use fewer resources
+var LowMemMode bool
+
 // ErrNotImplemented signifies a function has not been implemented yet.
 var ErrNotImplemented = errors.New("Error: not implemented yet.")
 
