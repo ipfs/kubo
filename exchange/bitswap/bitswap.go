@@ -22,6 +22,7 @@ import (
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
+	u "github.com/ipfs/go-ipfs/util"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
@@ -39,11 +40,21 @@ const (
 	sizeBatchRequestChan   = 32
 	// kMaxPriority is the max priority as defined by the bitswap protocol
 	kMaxPriority = math.MaxInt32
+)
 
+var (
 	HasBlockBufferSize    = 256
 	provideKeysBufferSize = 2048
 	provideWorkerMax      = 512
 )
+
+func init() {
+	if u.LowMemMode {
+		HasBlockBufferSize = 64
+		provideKeysBufferSize = 512
+		provideWorkerMax = 16
+	}
+}
 
 var rebroadcastDelay = delay.Fixed(time.Second * 10)
 
