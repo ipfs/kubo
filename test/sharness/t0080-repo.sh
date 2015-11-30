@@ -217,7 +217,7 @@ test_expect_success "'ipfs refs --recursive (bigger)'" '
 	cp -r b b4 && mv b4 b/b4 &&
 	hash=$(ipfs add -r -q b | tail -n1) &&
 	ipfs refs -r "$hash" | wc -l | sed "s/^ *//g" >actual &&
-	echo "79" >expected &&
+	echo "79" >expected &&      
 	test_cmp expected actual
 '
 

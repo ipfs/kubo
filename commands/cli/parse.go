@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -357,7 +358,7 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 }
 
 func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]files.File, []string, error) {
-	fpath := inputs[0]
+	fpath := filepath.ToSlash(filepath.Clean(inputs[0]))
 
 	if fpath == "." {
 		cwd, err := os.Getwd()

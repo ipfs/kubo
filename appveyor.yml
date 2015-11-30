@@ -1,0 +1,20 @@
+version: "{build}"
+os: Windows Server 2012 R2
+environment:
+  GOPATH: c:\gopath
+  TEST_NO_FUSE: 1
+  TEST_VERBOSE: 1
+  TEST_SUITE: test_sharness_expensive
+install:
+  - set PATH=%GOPATH%\bin;c:\go\bin;%PATH%
+  - rmdir c:\go /s /q
+  - appveyor DownloadFile https://storage.googleapis.com/golang/go1.5.1.windows-amd64.msi
+  - msiexec /i go1.5.1.windows-amd64.msi /q
+  - go version
+  - go env
+build_script:
+  - make install
+test_script:
+  - make $TEST_SUITE
+build:
+  parallel: true
