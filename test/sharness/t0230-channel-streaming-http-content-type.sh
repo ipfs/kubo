@@ -48,10 +48,7 @@ test_ls_cmd() {
 		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "\r\n" >>expected_output &&
 		cat <<-\EOF >>expected_output &&
-			{
-			  "Ref": "QmRmPLc1FsPAn8F8F9DQDEYADNX5ER2sgqiokEvqnYknVW",
-			  "Err": ""
-			}
+			{"Ref":"QmRmPLc1FsPAn8F8F9DQDEYADNX5ER2sgqiokEvqnYknVW","Err":""}
 		EOF
 		printf "\n" >> expected_output &&
 		perl -pi -e '"'"'chomp if eof'"'"' expected_output &&
