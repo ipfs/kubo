@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	notif "github.com/ipfs/go-ipfs/notifications"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	path "github.com/ipfs/go-ipfs/path"
 	ipdht "github.com/ipfs/go-ipfs/routing/dht"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -599,13 +599,13 @@ PutValue will store the given key value pair in the dht.
 }
 
 func escapeDhtKey(s string) (key.Key, error) {
-	parts := strings.Split(s, "/")
+	parts := path.SplitList(s)
 	switch len(parts) {
 	case 1:
 		return key.B58KeyDecode(s), nil
 	case 3:
 		k := key.B58KeyDecode(parts[2])
-		return key.Key(strings.Join(append(parts[:2], string(k)), "/")), nil
+		return key.Key(path.Join(append(parts[:2], k.String()))), nil
 	default:
 		return "", errors.New("invalid key")
 	}

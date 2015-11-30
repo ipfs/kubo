@@ -12,6 +12,7 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutil "github.com/ipfs/go-ipfs/merkledag/utils"
+	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 
@@ -96,12 +97,12 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 
 // adds a '-' to the beginning of each path element so we can use 'data' as a
 // special link in the structure without having to worry about
-func escapePath(path string) string {
-	elems := strings.Split(strings.Trim(path, "/"), "/")
+func escapePath(pth string) string {
+	elems := path.SplitList(strings.Trim(pth, "/"))
 	for i, e := range elems {
 		elems[i] = "-" + e
 	}
-	return strings.Join(elems, "/")
+	return path.Join(elems)
 }
 
 type tarReader struct {

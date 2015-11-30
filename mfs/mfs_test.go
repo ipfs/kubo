@@ -8,12 +8,12 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
-	"strings"
 	"testing"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/path"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -43,8 +43,8 @@ func getRandFile(t *testing.T, ds dag.DAGService, size int64) *dag.Node {
 	return nd
 }
 
-func mkdirP(t *testing.T, root *Directory, path string) *Directory {
-	dirs := strings.Split(path, "/")
+func mkdirP(t *testing.T, root *Directory, pth string) *Directory {
+	dirs := path.SplitList(pth)
 	cur := root
 	for _, d := range dirs {
 		n, err := cur.Mkdir(d)
@@ -69,15 +69,15 @@ func mkdirP(t *testing.T, root *Directory, path string) *Directory {
 	return cur
 }
 
-func assertDirAtPath(root *Directory, path string, children []string) error {
-	fsn, err := DirLookup(root, path)
+func assertDirAtPath(root *Directory, pth string, children []string) error {
+	fsn, err := DirLookup(root, pth)
 	if err != nil {
 		return err
 	}
 
 	dir, ok := fsn.(*Directory)
 	if !ok {
-		return fmt.Errorf("%s was not a directory", path)
+		return fmt.Errorf("%s was not a directory", pth)
 	}
 
 	listing, err := dir.List()
@@ -113,13 +113,13 @@ func compStrArrs(a, b []string) bool {
 	return true
 }
 
-func assertFileAtPath(ds dag.DAGService, root *Directory, exp *dag.Node, path string) error {
-	parts := strings.Split(path, "/")
+func assertFileAtPath(ds dag.DAGService, root *Directory, exp *dag.Node, pth string) error {
+	parts := path.SplitList(pth)
 	cur := root
 	for i, d := range parts[:len(parts)-1] {
 		next, err := cur.Child(d)
 		if err != nil {
-			return fmt.Errorf("looking for %s failed: %s", path, err)
+			return fmt.Errorf("looking for %s failed: %s", pth, err)
 		}
 
 		nextDir, ok := next.(*Directory)
@@ -138,7 +138,7 @@ func assertFileAtPath(ds dag.DAGService, root *Directory, exp *dag.Node, path st
 
 	file, ok := finaln.(*File)
 	if !ok {
-		return fmt.Errorf("%s was not a file!", path)
+		return fmt.Errorf("%s was not a file!", pth)
 	}
 
 	out, err := ioutil.ReadAll(file)

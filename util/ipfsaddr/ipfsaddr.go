@@ -2,11 +2,11 @@ package ipfsaddr
 
 import (
 	"errors"
-	"strings"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	path "github.com/ipfs/go-ipfs/path"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
@@ -94,7 +94,7 @@ func ParseMultiaddr(m ma.Multiaddr) (a IPFSAddr, err error) {
 	}
 
 	// make sure ipfs id parses as a peer.ID
-	peerIdParts := strings.Split(ipfspart.String(), "/")
+	peerIdParts := path.SplitList(ipfspart.String())
 	peerIdStr := peerIdParts[len(peerIdParts)-1]
 	id, err := peer.IDB58Decode(peerIdStr)
 	if err != nil {

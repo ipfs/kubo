@@ -3,10 +3,10 @@ package record
 import (
 	"bytes"
 	"errors"
-	"strings"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	path "github.com/ipfs/go-ipfs/path"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -37,7 +37,7 @@ type ValidChecker struct {
 // It runs needed validators
 func (v Validator) VerifyRecord(r *pb.Record) error {
 	// Now, check validity func
-	parts := strings.Split(r.GetKey(), "/")
+	parts := path.SplitList(r.GetKey())
 	if len(parts) < 3 {
 		log.Infof("Record key does not have validator: %s", key.Key(r.GetKey()))
 		return nil
@@ -54,7 +54,7 @@ func (v Validator) VerifyRecord(r *pb.Record) error {
 
 func (v Validator) IsSigned(k key.Key) (bool, error) {
 	// Now, check validity func
-	parts := strings.Split(string(k), "/")
+	parts := path.SplitList(string(k))
 	if len(parts) < 3 {
 		log.Infof("Record key does not have validator: %s", k)
 		return false, nil
