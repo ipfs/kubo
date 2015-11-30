@@ -255,6 +255,11 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	h.Set(contentTypeHeader, mime)
 	h.Set(transferEncodingHeader, "chunked")
 
+	// set 'allowed' headers
+	h.Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
+	// expose those headers
+	h.Set("Access-Control-Expose-Headers", "X-Stream-Output, X-Chunked-Output")
+
 	if r.Method == "HEAD" { // after all the headers.
 		return
 	}
