@@ -154,7 +154,7 @@ func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {
 		case <-time.After(period):
 			// the private func maybeGC doesn't compute storageMax, storageGC, slackGC so that they are not re-computed for every cycle
 			if err := gc.maybeGC(ctx, 0); err != nil {
-				return err
+				log.Error(err)
 			}
 		}
 	}
@@ -174,15 +174,13 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 		return err
 	}
 
-	if storage+offset > gc.StorageMax {
-		err := ErrMaxStorageExceeded
-		log.Error(err)
-		return err
-	}
-
 	if storage+offset > gc.StorageGC {
+		if storage+offset > gc.StorageMax {
+			log.Warningf("pre-GC: %s", ErrMaxStorageExceeded)
+		}
+
 		// Do GC here
-		log.Info("Starting repo GC...")
+		log.Info("Watermark exceeded. Starting repo GC...")
 		defer log.EventBegin(ctx, "repoGC").Done()
 		// 1 minute is sufficient for ~1GB unlink() blocks each of 100kb in SSD
 		_ctx, cancel := context.WithTimeout(ctx, time.Duration(gc.SlackGB)*time.Minute)
@@ -196,7 +194,14 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 			return err
 		}
 		log.Infof("Repo GC done. Released %s\n", humanize.Bytes(uint64(storage-newStorage)))
-		return nil
+		if newStorage > gc.StorageGC {
+			log.Warningf("post-GC: Watermark still exceeded")
+			if newStorage > gc.StorageMax {
+				err := ErrMaxStorageExceeded
+				log.Error(err)
+				return err
+			}
+		}
 	}
 	return nil
 }
