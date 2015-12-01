@@ -148,6 +148,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 	},
 	"refs": RefsROCmd,
 	//"resolve": ResolveCmd,
+	"version": VersionCmd,
 }
 
 func init() {
