@@ -55,8 +55,11 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 				Interval: 10,
 			},
 			Cjdns{
-				Enabled:  true,
-				Interval: 10,
+				Enabled:         true,
+				Interval:        3600,
+				RefreshInterval: 24 * 3600,
+				AdminAddress:    "/ip4/127.0.0.1/udp/11234",
+				Password:        "NONE",
 			}},
 
 		// setup the node mount points.

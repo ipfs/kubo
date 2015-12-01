@@ -13,6 +13,10 @@ type MDNS struct {
 }
 
 type Cjdns struct {
-	Enabled  bool
-	Interval int
+	Enabled         bool
+	DialTimeout     int
+	Interval        int    // 10m0s
+	RefreshInterval int    // 24h0m0s
+	AdminAddress    string // /ip4/127.0.0.1/udp/11234
+	Password        string // NONE
 }

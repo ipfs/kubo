@@ -171,7 +171,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 	// setup local discovery
 	for _, opt := range discoveryOpts {
-		if service, err := opt(n.PeerHost); err != nil {
+		if service, err := opt(ctx, n.PeerHost); err != nil {
 			return err
 		} else {
 			service.RegisterNotifee(n)
@@ -186,7 +186,7 @@ func setupDiscoveryOptions(d config.Discovery) []DiscoveryOption {
 	opts := []DiscoveryOption{}
 
 	if d.MDNS.Enabled {
-		opt := func(h p2phost.Host) (discovery.Service, error) {
+		opt := func(_ context.Context, h p2phost.Host) (discovery.Service, error) {
 			if d.MDNS.Interval == 0 {
 				d.MDNS.Interval = 5
 			}
@@ -195,11 +195,8 @@ func setupDiscoveryOptions(d config.Discovery) []DiscoveryOption {
 		opts = append(opts, opt)
 	}
 	if d.Cjdns.Enabled {
-		opt := func(h p2phost.Host) (discovery.Service, error) {
-			if d.Cjdns.Interval == 0 {
-				d.Cjdns.Interval = 5
-			}
-			return discovery.NewCjdnsService(h, time.Duration(d.Cjdns.Interval)*time.Second)
+		opt := func(ctx, context.Context, h p2phost.Host) (discovery.Service, error) {
+			return discovery.NewCjdnsService(ctx, h, d.Cjdns)
 		}
 		opts = append(opts, opt)
 	}
