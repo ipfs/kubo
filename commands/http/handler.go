@@ -332,7 +332,9 @@ func (cfg ServerConfig) AllowedOrigins() []string {
 func (cfg *ServerConfig) SetAllowedOrigins(origins ...string) {
 	cfg.cORSOptsRWMutex.Lock()
 	defer cfg.cORSOptsRWMutex.Unlock()
-	cfg.cORSOpts.AllowedOrigins = origins
+	o := make([]string, len(origins))
+	copy(o, origins)
+	cfg.cORSOpts.AllowedOrigins = o
 }
 
 func (cfg *ServerConfig) AppendAllowedOrigins(origins ...string) {
