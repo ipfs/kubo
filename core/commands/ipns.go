@@ -121,7 +121,7 @@ Resolve the value of another name:
 			if !ok {
 				return nil, u.ErrCast()
 			}
-			return strings.NewReader(output.Path.String()), nil
+			return strings.NewReader(output.Path.String() + "\n"), nil
 		},
 	},
 	Type: ResolvedPath{},

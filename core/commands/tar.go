@@ -67,7 +67,7 @@ var tarAddCmd = &cmds.Command{
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			o := res.Output().(*AddedObject)
-			return strings.NewReader(o.Hash), nil
+			return strings.NewReader(o.Hash + "\n"), nil
 		},
 	},
 }

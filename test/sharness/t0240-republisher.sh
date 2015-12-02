@@ -64,7 +64,7 @@ verify_can_resolve() {
 	'
 
 	test_expect_success "output looks right" '
-		printf "/ipfs/$expected" > expected &&
+		printf "/ipfs/$expected\n" > expected &&
 		test_cmp expected resolve
 	'
 }

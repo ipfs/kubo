@@ -371,7 +371,7 @@ and then run
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			object := res.Output().(*Object)
-			return strings.NewReader("added " + object.Hash), nil
+			return strings.NewReader("added " + object.Hash + "\n"), nil
 		},
 	},
 	Type: Object{},

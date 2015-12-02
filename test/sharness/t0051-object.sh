@@ -66,7 +66,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put file.json' output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
-		printf "added $HASH" > expected_putOut &&
+		printf "added $HASH\n" > expected_putOut &&
 		test_cmp expected_putOut actual_putOut
 	'
 
@@ -76,7 +76,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put file.xml' output looks good" '
 		HASH="QmQzNKUHy4HyEUGkqKe3q3t796ffPLQXYCkHCcXUNT5JNK" &&
-		printf "added $HASH" > expected_putOut &&
+		printf "added $HASH\n" > expected_putOut &&
 		test_cmp expected_putOut actual_putOut
 	'
 
@@ -103,7 +103,7 @@ test_object_cmd() {
 	'
 
 	test_expect_failure "'ipfs object put --inputenc=xml' output looks good" '
-		echo "added $HASH" >expected &&
+		echo "added $HASH\n" >expected &&
 		test_cmp expected actual
 	'
 
@@ -113,7 +113,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put file.pb' output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
-		printf "added $HASH" > expected_putOut &&
+		printf "added $HASH\n" > expected_putOut &&
 		test_cmp expected_putOut actual_putOut
 	'
 
@@ -123,7 +123,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put' from stdin output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
-		printf "added $HASH" > expected_putStdinOut &&
+		printf "added $HASH\n" > expected_putStdinOut &&
 		test_cmp expected_putStdinOut actual_putStdinOut
 	'
 
@@ -133,7 +133,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put' from stdin (pb) output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
-		printf "added $HASH" > expected_putStdinOut &&
+		printf "added $HASH\n" > expected_putStdinOut &&
 		test_cmp expected_putStdinOut actual_putPbStdinOut
 	'
 
