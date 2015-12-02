@@ -53,7 +53,16 @@ func (d *Directory) closeChild(name string, nd *dag.Node) error {
 
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	err = d.node.RemoveNodeLink(name)
+	err = d.updateChild(name, nd)
+	if err != nil {
+		return err
+	}
+
+	return d.parent.closeChild(d.name, d.node)
+}
+
+func (d *Directory) updateChild(name string, nd *dag.Node) error {
+	err := d.node.RemoveNodeLink(name)
 	if err != nil && err != dag.ErrNotFound {
 		return err
 	}
@@ -63,7 +72,7 @@ func (d *Directory) closeChild(name string, nd *dag.Node) error {
 		return err
 	}
 
-	return d.parent.closeChild(d.name, d.node)
+	return nil
 }
 
 func (d *Directory) Type() NodeType {
@@ -77,30 +86,16 @@ func (d *Directory) childFile(name string) (*File, error) {
 		return fi, nil
 	}
 
-	nd, err := d.childFromDag(name)
-	if err != nil {
-		return nil, err
-	}
-	i, err := ft.FromBytes(nd.Data)
+	fsn, err := d.childNode(name)
 	if err != nil {
 		return nil, err
 	}
 
-	switch i.GetType() {
-	case ufspb.Data_Directory:
-		return nil, ErrIsDirectory
-	case ufspb.Data_File:
-		nfi, err := NewFile(name, nd, d, d.dserv)
-		if err != nil {
-			return nil, err
-		}
-		d.files[name] = nfi
-		return nfi, nil
-	case ufspb.Data_Metadata:
-		return nil, ErrNotYetImplemented
-	default:
-		return nil, ErrInvalidChild
+	if fi, ok := fsn.(*File); ok {
+		return fi, nil
 	}
+
+	return nil, fmt.Errorf("%s is not a file", name)
 }
 
 // childDir returns a directory under this directory by the given name if it
@@ -111,6 +106,21 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 		return dir, nil
 	}
 
+	fsn, err := d.childNode(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if dir, ok := fsn.(*Directory); ok {
+		return dir, nil
+	}
+
+	return nil, fmt.Errorf("%s is not a directory", name)
+}
+
+// childNode returns a FSNode under this directory by the given name if it exists.
+// it does *not* check the cached dirs and files
+func (d *Directory) childNode(name string) (FSNode, error) {
 	nd, err := d.childFromDag(name)
 	if err != nil {
 		return nil, err
@@ -127,7 +137,12 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 		d.childDirs[name] = ndir
 		return ndir, nil
 	case ufspb.Data_File:
-		return nil, fmt.Errorf("%s is not a directory", name)
+		nfi, err := NewFile(name, nd, d, d.dserv)
+		if err != nil {
+			return nil, err
+		}
+		d.files[name] = nfi
+		return nfi, nil
 	case ufspb.Data_Metadata:
 		return nil, ErrNotYetImplemented
 	default:
@@ -157,17 +172,17 @@ func (d *Directory) Child(name string) (FSNode, error) {
 // childUnsync returns the child under this directory by the given name
 // without locking, useful for operations which already hold a lock
 func (d *Directory) childUnsync(name string) (FSNode, error) {
-
-	dir, err := d.childDir(name)
-	if err == nil {
-		return dir, nil
-	}
-	fi, err := d.childFile(name)
-	if err == nil {
-		return fi, nil
+	cdir, ok := d.childDirs[name]
+	if ok {
+		return cdir, nil
 	}
 
-	return nil, os.ErrNotExist
+	cfile, ok := d.files[name]
+	if ok {
+		return cfile, nil
+	}
+
+	return d.childNode(name)
 }
 
 type NodeListing struct {
@@ -305,7 +320,53 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	return d.parent.closeChild(d.name, d.node)
 }
 
+func (d *Directory) sync() error {
+	for name, dir := range d.childDirs {
+		nd, err := dir.GetNode()
+		if err != nil {
+			return err
+		}
+
+		_, err = d.dserv.Add(nd)
+		if err != nil {
+			return err
+		}
+
+		err = d.updateChild(name, nd)
+		if err != nil {
+			return err
+		}
+	}
+
+	for name, file := range d.files {
+		nd, err := file.GetNode()
+		if err != nil {
+			return err
+		}
+
+		_, err = d.dserv.Add(nd)
+		if err != nil {
+			return err
+		}
+
+		err = d.updateChild(name, nd)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (d *Directory) GetNode() (*dag.Node, error) {
+	d.Lock()
+	defer d.Unlock()
+
+	err := d.sync()
+	if err != nil {
+		return nil, err
+	}
+
 	return d.node, nil
 }
 
