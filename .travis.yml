@@ -1,24 +1,32 @@
-# dist: trusty # KVM Setup
+sudo: required
+
+dist: trusty
 
 os:
   - linux
-  - osx
+  # - osx TODO re-enable osx support
+
+go_import_path: github.com/ipfs/go-ipfs
 
 language: go
 
 go:
     - 1.5.2
 
+before_install:
+  - sudo apt-get install -qq pkg-config fuse
+  - sudo modprobe fuse
+  - sudo chmod 666 /dev/fuse
+  - sudo chown root:$USER /etc/fuse.conf
+
 env:
-  - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_go_expensive
-  - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_sharness_expensive
+  - TEST_VERBOSE=1 TEST_SUITE=test_go_expensive
+  - TEST_VERBOSE=1 TEST_SUITE=test_sharness_expensive
 
 script:
   - make $TEST_SUITE
 
 # For docker containers
-
-sudo: required
 
 services:
   - docker
