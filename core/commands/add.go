@@ -138,7 +138,13 @@ remains to be implemented.
 					return nil // done
 				}
 
-				if _, err := fileAdder.AddFile(file); err != nil {
+				n, err := fileAdder.AddFile(file)
+				if err != nil {
+					return err
+				}
+
+				// patch it into root
+				if err := fileAdder.InsertNodeAtPath(file.FileName(), n); err != nil {
 					return err
 				}
 			}
