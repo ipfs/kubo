@@ -68,7 +68,7 @@ var FilesStatCmd = &cmds.Command{
 			return
 		}
 
-		o, err := statNode(fsn)
+		o, err := statNode(node.DAG, fsn)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -90,13 +90,14 @@ var FilesStatCmd = &cmds.Command{
 	Type: Object{},
 }
 
-func statNode(fsn mfs.FSNode) (*Object, error) {
+func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 	nd, err := fsn.GetNode()
 	if err != nil {
 		return nil, err
 	}
 
-	k, err := nd.Key()
+	// add to dagserv to ensure its available
+	k, err := ds.Add(nd)
 	if err != nil {
 		return nil, err
 	}
@@ -434,10 +435,20 @@ a beginning offset to write to. The entire length of the input will be written.
 If the '--create' option is specified, the file will be created if it does not
 exist. Nonexistant intermediate directories will not be created.
 
+If the '--flush' option is set to false, changes will not be propogated to the
+merkledag root. This can make operations much faster when doing a large number
+of writes to a deeper directory structure.
+
 Example:
 
     echo "hello world" | ipfs files write --create /myfs/a/b/file
     echo "hello world" | ipfs files write --truncate /myfs/a/b/file
+
+Warning:
+
+    Usage of the '--flush=false' option does not guarantee data durability until
+	the tree has been flushed. This can be accomplished by running 'ipfs files stat'
+	on the file or any of its ancestors.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -449,6 +460,7 @@ Example:
 		cmds.BoolOption("e", "create", "create the file if it does not exist"),
 		cmds.BoolOption("t", "truncate", "truncate the file before writing"),
 		cmds.IntOption("n", "count", "maximum number of bytes to read"),
+		cmds.BoolOption("f", "flush", "flush file and ancestors after write (default: true)"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -459,6 +471,10 @@ Example:
 
 		create, _, _ := req.Option("create").Bool()
 		trunc, _, _ := req.Option("truncate").Bool()
+		flush, set, _ := req.Option("flush").Bool()
+		if !set {
+			flush = true
+		}
 
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -471,7 +487,12 @@ Example:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		defer fi.Close()
+
+		if flush {
+			defer fi.Close()
+		} else {
+			defer fi.Sync()
+		}
 
 		if trunc {
 			if err := fi.Truncate(0); err != nil {
