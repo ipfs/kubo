@@ -69,6 +69,11 @@ TOOL COMMANDS
     commands      List all available commands
 
 Use 'ipfs <command> --help' to learn more about each command.
+
+ipfs uses a repository in the local file system. By default, the repo is located
+at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+
+    export IPFS_PATH=/path/to/ipfsrepo
 `,
 	},
 	Options: []cmds.Option{
