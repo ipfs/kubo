@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 )
 
@@ -8,8 +9,7 @@ import (
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
 	dserv    dag.DAGService
-	in       <-chan []byte
-	errs     <-chan error
+	spl      chunk.Splitter
 	recvdErr error
 	nextData []byte // the next item to return.
 	maxlinks int
@@ -24,39 +24,28 @@ type DagBuilderParams struct {
 	Dagserv dag.DAGService
 }
 
-// Generate a new DagBuilderHelper from the given params, using 'in' as a
-// data source
-func (dbp *DagBuilderParams) New(in <-chan []byte, errs <-chan error) *DagBuilderHelper {
+// Generate a new DagBuilderHelper from the given params, which data source comes
+// from chunks object
+func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 	return &DagBuilderHelper{
 		dserv:    dbp.Dagserv,
-		in:       in,
-		errs:     errs,
+		spl:      spl,
 		maxlinks: dbp.Maxlinks,
 		batch:    dbp.Dagserv.Batch(),
 	}
 }
 
-// prepareNext consumes the next item from the channel and puts it
+// prepareNext consumes the next item from the splitter and puts it
 // in the nextData field. it is idempotent-- if nextData is full
 // it will do nothing.
-//
-// i realized that building the dag becomes _a lot_ easier if we can
-// "peek" the "are done yet?" (i.e. not consume it from the channel)
 func (db *DagBuilderHelper) prepareNext() {
-	if db.in == nil {
-		// if our input is nil, there is "nothing to do". we're done.
-		// as if there was no data at all. (a sort of zero-value)
-		return
-	}
-
-	// if we already have data waiting to be consumed, we're ready.
+	// if we already have data waiting to be consumed, we're ready
 	if db.nextData != nil {
 		return
 	}
 
-	// if it's closed, nextData will be correctly set to nil, signaling
-	// that we're done consuming from the channel.
-	db.nextData = <-db.in
+	// TODO: handle err (which wasn't handled either when the splitter was channeled)
+	db.nextData, _ = db.spl.NextBytes()
 }
 
 // Done returns whether or not we're done consuming the incoming data.
