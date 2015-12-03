@@ -79,10 +79,6 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	if req.Files() != nil {
 		fileReader = NewMultiFileReader(req.Files(), true)
 		reader = fileReader
-	} else {
-		// if we have no file data, use an empty Reader
-		// (http.NewRequest panics when a nil Reader is used)
-		reader = strings.NewReader("")
 	}
 
 	path := strings.Join(req.Path(), "/")
@@ -145,8 +141,15 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 }
 
 func getQuery(req cmds.Request) (string, error) {
+	// some options should be kept clientside, the server doesnt care
+	skip := map[string]bool{
+		"api": true,
+	}
 	query := url.Values{}
 	for k, v := range req.Options() {
+		if skip[k] {
+			continue
+		}
 		str := fmt.Sprintf("%v", v)
 		query.Set(k, str)
 	}
