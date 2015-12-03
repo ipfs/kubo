@@ -49,8 +49,10 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	}
 	req.SetArguments(stringArgs)
 
-	file := files.NewSliceFile("", "", fileArgs)
-	req.SetFiles(file)
+	if len(fileArgs) > 0 {
+		file := files.NewSliceFile("", "", fileArgs)
+		req.SetFiles(file)
+	}
 
 	err = cmd.CheckArguments(req)
 	if err != nil {
