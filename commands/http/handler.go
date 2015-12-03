@@ -6,8 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -92,7 +91,7 @@ func skipAPIHeader(h string) bool {
 	}
 }
 
-func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) *Handler {
+func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) http.Handler {
 	if cfg == nil {
 		panic("must provide a valid ServerConfig")
 	}
@@ -114,13 +113,32 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		if r := recover(); r != nil {
+			log.Error("A panic has occurred in the commands handler!")
 			log.Error(r)
 
-			buf := make([]byte, 4096)
-			n := runtime.Stack(buf, false)
-			fmt.Fprintln(os.Stderr, string(buf[:n]))
+			debug.PrintStack()
 		}
 	}()
+
+	// get the node's context to pass into the commands.
+	node, err := i.ctx.GetNode()
+	if err != nil {
+		s := fmt.Sprintf("cmds/http: couldn't GetNode(): %s", err)
+		http.Error(w, s, http.StatusInternalServerError)
+		return
+	}
+
+	ctx, cancel := context.WithCancel(node.Context())
+	defer cancel()
+	if cn, ok := w.(http.CloseNotifier); ok {
+		go func() {
+			select {
+			case <-cn.CloseNotify():
+			case <-ctx.Done():
+			}
+			cancel()
+		}()
+	}
 
 	if !allowOrigin(r, i.cfg) || !allowReferer(r, i.cfg) {
 		w.WriteHeader(http.StatusForbidden)
@@ -140,28 +158,8 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get the node's context to pass into the commands.
-	node, err := i.ctx.GetNode()
-	if err != nil {
-		s := fmt.Sprintf("cmds/http: couldn't GetNode(): %s", err)
-		http.Error(w, s, http.StatusInternalServerError)
-		return
-	}
-
 	//ps: take note of the name clash - commands.Context != context.Context
 	req.SetInvocContext(i.ctx)
-
-	ctx, cancel := context.WithCancel(node.Context())
-	defer cancel()
-	if cn, ok := w.(http.CloseNotifier); ok {
-		go func() {
-			select {
-			case <-cn.CloseNotify():
-			case <-ctx.Done():
-			}
-			cancel()
-		}()
-	}
 
 	err = req.SetRootContext(ctx)
 	if err != nil {

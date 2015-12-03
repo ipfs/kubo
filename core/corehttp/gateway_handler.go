@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	gopath "path"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -55,6 +56,14 @@ func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("A panic occurred in the gateway handler!")
+			log.Error(r)
+			debug.PrintStack()
+		}
+	}()
+
 	if i.config.Writable {
 		switch r.Method {
 		case "POST":
