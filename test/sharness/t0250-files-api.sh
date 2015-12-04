@@ -316,13 +316,26 @@ test_files_api() {
 		verify_dir_contents /cats file1 ipfs this
 	'
 
+	test_expect_success "write 'no-flush' succeeds" '
+		echo "testing" | ipfs files write -f -e /cats/walrus
+	'
+
+	test_expect_success "changes bubbled up to root on inspection" '
+		ipfs files stat / | head -n1 > root_hash
+	'
+
+	test_expect_success "root hash looks good" '
+		echo "QmcwKfTMCT7AaeiD92hWjnZn9b6eh9NxnhfSzN5x2vnDpt" > root_hash_exp &&
+		test_cmp root_hash_exp root_hash 
+	'
+
 	# test mv
 	test_expect_success "can mv dir" '
 		ipfs files mv /cats/this/is /cats/
 	'
 
 	test_expect_success "mv worked" '
-		verify_dir_contents /cats file1 ipfs this is &&
+		verify_dir_contents /cats file1 ipfs this is walrus &&
 		verify_dir_contents /cats/this
 	'
 
