@@ -71,14 +71,18 @@ func NewRoot(parent context.Context, ds dag.DAGService, node *dag.Node, pf PubFu
 		return nil, err
 	}
 
-	root := &Root{
-		node:  node,
-		repub: NewRepublisher(parent, pf, time.Millisecond*300, time.Second*3),
-		dserv: ds,
+	var repub *Republisher
+	if pf != nil {
+		repub = NewRepublisher(parent, pf, time.Millisecond*300, time.Second*3)
+		repub.setVal(ndk)
+		go repub.Run()
 	}
 
-	root.repub.setVal(ndk)
-	go root.repub.Run()
+	root := &Root{
+		node:  node,
+		repub: repub,
+		dserv: ds,
+	}
 
 	pbn, err := ft.FromBytes(node.Data)
 	if err != nil {
@@ -113,12 +117,17 @@ func (kr *Root) closeChild(name string, nd *dag.Node) error {
 		return err
 	}
 
-	kr.repub.Update(k)
+	if kr.repub != nil {
+		kr.repub.Update(k)
+	}
 	return nil
 }
 
 func (kr *Root) Close() error {
-	return kr.repub.Close()
+	if kr.repub != nil {
+		return kr.repub.Close()
+	}
+	return nil
 }
 
 // Republisher manages when to publish a given entry
