@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -28,6 +29,8 @@ type Directory struct {
 	node *dag.Node
 	ctx  context.Context
 
+	modTime time.Time
+
 	name string
 }
 
@@ -40,6 +43,7 @@ func NewDirectory(ctx context.Context, name string, node *dag.Node, parent child
 		parent:    parent,
 		childDirs: make(map[string]*Directory),
 		files:     make(map[string]*File),
+		modTime:   time.Now(),
 	}
 }
 
@@ -71,6 +75,8 @@ func (d *Directory) updateChild(name string, nd *dag.Node) error {
 	if err != nil {
 		return err
 	}
+
+	d.modTime = time.Now()
 
 	return nil
 }
@@ -285,12 +291,7 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	d.Lock()
 	defer d.Unlock()
 
-	pbn, err := ft.FromBytes(nd.Data)
-	if err != nil {
-		return err
-	}
-
-	_, err = d.childUnsync(name)
+	_, err := d.childUnsync(name)
 	if err == nil {
 		return ErrDirExists
 	}
@@ -305,18 +306,8 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 		return err
 	}
 
-	switch pbn.GetType() {
-	case ft.TDirectory:
-		d.childDirs[name] = NewDirectory(d.ctx, name, nd, d, d.dserv)
-	case ft.TFile, ft.TMetadata, ft.TRaw:
-		nfi, err := NewFile(name, nd, d, d.dserv)
-		if err != nil {
-			return err
-		}
-		d.files[name] = nfi
-	default:
-		return ErrInvalidChild
-	}
+	d.modTime = time.Now()
+
 	return d.parent.closeChild(d.name, d.node)
 }
 

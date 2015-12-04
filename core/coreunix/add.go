@@ -1,6 +1,7 @@
 package coreunix
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,6 +27,8 @@ import (
 )
 
 var log = logging.Logger("coreunix")
+
+var folderData = unixfs.FolderPBData()
 
 // how many bytes of progress to wait before sending a progress update message
 const progressReaderIncrement = 1024 * 256
@@ -118,29 +121,26 @@ func (params Adder) add(reader io.Reader) (*dag.Node, error) {
 }
 
 func (params *Adder) RootNode() (*dag.Node, error) {
-	return params.mr.GetValue().GetNode()
-	/*
-		// for memoizing
-		if params.root != nil {
-			return params.root, nil
+	// for memoizing
+	if params.root != nil {
+		return params.root, nil
+	}
+
+	root, err := params.mr.GetValue().GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	// if not wrapping, AND one root file, use that hash as root.
+	if !params.Wrap && len(root.Links) == 1 {
+		root, err = root.Links[0].GetNode(params.ctx, params.node.DAG)
+		if err != nil {
+			return nil, err
 		}
+	}
 
-		root := params.editor.GetNode()
-
-		// if not wrapping, AND one root file, use that hash as root.
-		if !params.Wrap && len(root.Links) == 1 {
-			var err error
-			root, err = root.Links[0].GetNode(params.ctx, params.editor.GetDagService())
-			params.root = root
-			// no need to output, as we've already done so.
-			return root, err
-		}
-
-		// otherwise need to output, as we have not.
-		err := outputDagnode(params.out, "", root)
-		params.root = root
-		return root, err
-	*/
+	params.root = root
+	return root, err
 }
 
 func (params *Adder) PinRoot() error {
@@ -162,7 +162,51 @@ func (params *Adder) PinRoot() error {
 }
 
 func (params *Adder) Finalize() (*dag.Node, error) {
-	return params.mr.GetValue().GetNode()
+	root, err := params.mr.GetValue().GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	params.RootNode()
+
+	var name string
+	if !params.Wrap {
+		name = root.Links[0].Name
+		child, err := root.Links[0].GetNode(params.ctx, params.node.DAG)
+		if err != nil {
+			return nil, err
+		}
+		root = child
+	}
+
+	err = params.outputDirs(name, root)
+	if err != nil {
+		return nil, err
+	}
+
+	err = params.mr.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return root, nil
+}
+
+func (params *Adder) outputDirs(path string, nd *dag.Node) error {
+	for _, l := range nd.Links {
+		child, err := l.GetNode(params.ctx, params.node.DAG)
+		if err != nil {
+			return err
+		}
+
+		if bytes.Equal(child.Data, folderData) {
+			err := params.outputDirs(gopath.Join(path, l.Name), child)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return outputDagnode(params.out, path, nd)
 }
 
 // Add builds a merkledag from the a reader, pinning all objects to the local
