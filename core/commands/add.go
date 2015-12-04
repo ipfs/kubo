@@ -65,14 +65,19 @@ remains to be implemented.
 			return nil
 		}
 
-		size, err := sizeFile.Size()
-		if err != nil {
-			// see comment above
-			return nil
-		}
+		sizeCh := make(chan int64, 1)
+		req.Values()["size"] = sizeCh
 
-		log.Debugf("Total size of file being added: %v\n", size)
-		req.Values()["size"] = size
+		go func() {
+			size, err := sizeFile.Size()
+			if err != nil {
+				// see comment above
+				return
+			}
+
+			log.Debugf("Total size of file being added: %v\n", size)
+			sizeCh <- size
+		}()
 
 		return nil
 	},
@@ -189,17 +194,12 @@ remains to be implemented.
 			return
 		}
 
-		size := int64(0)
-		s, found := req.Values()["size"]
-		if found {
-			size = s.(int64)
-		}
-		showProgressBar := !quiet && size >= progressBarMinSize
+		showProgressBar := !quiet
 
 		var bar *pb.ProgressBar
 		var terminalWidth int
 		if showProgressBar {
-			bar = pb.New64(size).SetUnits(pb.U_BYTES)
+			bar = pb.New64(0).SetUnits(pb.U_BYTES)
 			bar.ManualUpdate = true
 			bar.Start()
 
@@ -215,43 +215,61 @@ remains to be implemented.
 			bar.Update()
 		}
 
+		var sizeChan chan int64
+		s, found := req.Values()["size"]
+		if found {
+			sizeChan = s.(chan int64)
+		}
+
 		lastFile := ""
 		var totalProgress, prevFiles, lastBytes int64
 
-		for out := range outChan {
-			output := out.(*coreunix.AddedObject)
-			if len(output.Hash) > 0 {
-				if showProgressBar {
-					// clear progress bar line before we print "added x" output
-					fmt.Fprintf(res.Stderr(), "\033[2K\r")
+	LOOP:
+		for {
+			select {
+			case out, ok := <-outChan:
+				if !ok {
+					break LOOP
 				}
-				if quiet {
-					fmt.Fprintf(res.Stdout(), "%s\n", output.Hash)
+				output := out.(*coreunix.AddedObject)
+				if len(output.Hash) > 0 {
+					if showProgressBar {
+						// clear progress bar line before we print "added x" output
+						fmt.Fprintf(res.Stderr(), "\033[2K\r")
+					}
+					if quiet {
+						fmt.Fprintf(res.Stdout(), "%s\n", output.Hash)
+					} else {
+						fmt.Fprintf(res.Stdout(), "added %s %s\n", output.Hash, output.Name)
+					}
+
 				} else {
-					fmt.Fprintf(res.Stdout(), "added %s %s\n", output.Hash, output.Name)
+					log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
+
+					if !showProgressBar {
+						continue
+					}
+
+					if len(lastFile) == 0 {
+						lastFile = output.Name
+					}
+					if output.Name != lastFile || output.Bytes < lastBytes {
+						prevFiles += lastBytes
+						lastFile = output.Name
+					}
+					lastBytes = output.Bytes
+					delta := prevFiles + lastBytes - totalProgress
+					totalProgress = bar.Add64(delta)
 				}
 
-			} else {
-				log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
-
-				if !showProgressBar {
-					continue
+				if showProgressBar {
+					bar.Update()
 				}
-
-				if len(lastFile) == 0 {
-					lastFile = output.Name
-				}
-				if output.Name != lastFile || output.Bytes < lastBytes {
-					prevFiles += lastBytes
-					lastFile = output.Name
-				}
-				lastBytes = output.Bytes
-				delta := prevFiles + lastBytes - totalProgress
-				totalProgress = bar.Add64(delta)
-			}
-
-			if showProgressBar {
-				bar.Update()
+			case size := <-sizeChan:
+				bar.Total = size
+				bar.ShowPercent = true
+				bar.ShowBar = true
+				bar.ShowTimeLeft = true
 			}
 		}
 	},
