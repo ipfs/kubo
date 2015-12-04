@@ -18,6 +18,7 @@ var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 const (
 	quietOptionName    = "quiet"
+	silentOptionName   = "silent"
 	progressOptionName = "progress"
 	trickleOptionName  = "trickle"
 	wrapOptionName     = "wrap-with-directory"
@@ -44,6 +45,7 @@ remains to be implemented.
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output"),
+		cmds.BoolOption(silentOptionName, "x", "Write no output"),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk"),
@@ -58,6 +60,9 @@ remains to be implemented.
 		}
 
 		req.SetOption(progressOptionName, true)
+
+		log.Error("SKIPPING SIZE")
+		return nil
 
 		sizeFile, ok := req.Files().(files.SizeFile)
 		if !ok {
@@ -100,6 +105,7 @@ remains to be implemented.
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
 		hash, _, _ := req.Option(onlyHashOptionName).Bool()
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
+		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, pin_found, _ := req.Option(pinOptionName).Bool()
 
@@ -123,13 +129,18 @@ remains to be implemented.
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
-		fileAdder := coreunix.NewAdder(req.Context(), n, outChan)
+		fileAdder, err := coreunix.NewAdder(req.Context(), n, outChan)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		fileAdder.Chunker = chunker
 		fileAdder.Progress = progress
 		fileAdder.Hidden = hidden
 		fileAdder.Trickle = trickle
 		fileAdder.Wrap = wrap
 		fileAdder.Pin = dopin
+		fileAdder.Silent = silent
 
 		// addAllFiles loops over a convenience slice file to
 		// add each file individually. e.g. 'ipfs add a b c'
@@ -143,7 +154,7 @@ remains to be implemented.
 					return nil // done
 				}
 
-				if _, err := fileAdder.AddFile(file); err != nil {
+				if err := fileAdder.AddFile(file); err != nil {
 					return err
 				}
 			}
@@ -159,9 +170,8 @@ remains to be implemented.
 			}
 
 			// copy intermediary nodes from editor to our actual dagservice
-			_, err := fileAdder.Finalize(n.DAG)
+			_, err := fileAdder.Finalize()
 			if err != nil {
-				log.Error("WRITE OUT: ", err)
 				return err
 			}
 
@@ -194,7 +204,13 @@ remains to be implemented.
 			return
 		}
 
-		showProgressBar := !quiet
+		progress, _, err := req.Option(progressOptionName).Bool()
+		if err != nil {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
+		}
+
+		showProgressBar := !quiet || progress
 
 		var bar *pb.ProgressBar
 		var terminalWidth int
