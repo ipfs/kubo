@@ -61,9 +61,6 @@ remains to be implemented.
 
 		req.SetOption(progressOptionName, true)
 
-		log.Error("SKIPPING SIZE")
-		return nil
-
 		sizeFile, ok := req.Files().(files.SizeFile)
 		if !ok {
 			// we don't need to error, the progress bar just won't know how big the files are
