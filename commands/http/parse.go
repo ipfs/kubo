@@ -20,12 +20,20 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 
 	stringArgs := make([]string, 0)
 
+	if err := apiVersionMatches(r); err != nil {
+		if path[0] != "version" { // compatibility with previous version check
+			return nil, err
+		}
+	}
+
 	cmd, err := root.Get(path[:len(path)-1])
 	if err != nil {
 		// 404 if there is no command at that path
 		return nil, ErrNotFound
 
-	} else if sub := cmd.Subcommand(path[len(path)-1]); sub == nil {
+	}
+
+	if sub := cmd.Subcommand(path[len(path)-1]); sub == nil {
 		if len(path) <= 1 {
 			return nil, ErrNotFound
 		}
@@ -34,7 +42,6 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		// e.g. /objects/Qabc12345 (we are passing "Qabc12345" to the "objects" command)
 		stringArgs = append(stringArgs, path[len(path)-1])
 		path = path[:len(path)-1]
-
 	} else {
 		cmd = sub
 	}
