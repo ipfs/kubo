@@ -31,6 +31,16 @@ build:
 nofuse:
 	cd cmd/ipfs && go install -tags nofuse
 
+proto:
+	go get -v go.pedge.io/protoeasy/cmd/protoeasy
+	protoeasy \
+		--exclude blocks/bloom \
+		--exclude Godeps \
+		--gogo \
+		--gogo-plugin gogo \
+		--gogo-import-path github.com/ipfs/go-ipfs \
+		.
+
 ##############################################################
 # tests targets
 
