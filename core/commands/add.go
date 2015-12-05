@@ -59,7 +59,13 @@ remains to be implemented.
 			return nil
 		}
 
-		req.SetOption(progressOptionName, true)
+		// ipfs cli progress bar defaults to true
+		progress, found, _ := req.Option(progressOptionName).Bool()
+		if !found {
+			progress = true
+		}
+
+		req.SetOption(progressOptionName, progress)
 
 		sizeFile, ok := req.Files().(files.SizeFile)
 		if !ok {
@@ -201,13 +207,18 @@ remains to be implemented.
 			return
 		}
 
-		progress, _, err := req.Option(progressOptionName).Bool()
+		progress, prgFound, err := req.Option(progressOptionName).Bool()
 		if err != nil {
 			res.SetError(u.ErrCast(), cmds.ErrNormal)
 			return
 		}
 
-		showProgressBar := !quiet || progress
+		var showProgressBar bool
+		if prgFound {
+			showProgressBar = progress
+		} else if !quiet {
+			showProgressBar = true
+		}
 
 		var bar *pb.ProgressBar
 		var terminalWidth int
@@ -279,10 +290,12 @@ remains to be implemented.
 					bar.Update()
 				}
 			case size := <-sizeChan:
-				bar.Total = size
-				bar.ShowPercent = true
-				bar.ShowBar = true
-				bar.ShowTimeLeft = true
+				if showProgressBar {
+					bar.Total = size
+					bar.ShowPercent = true
+					bar.ShowBar = true
+					bar.ShowTimeLeft = true
+				}
 			}
 		}
 	},
