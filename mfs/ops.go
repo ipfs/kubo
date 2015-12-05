@@ -101,6 +101,9 @@ func PutNode(r *Root, path string, nd *dag.Node) error {
 // Mkdir creates a directory at 'path' under the directory 'd', creating
 // intermediary directories as needed if 'parents' is set to true
 func Mkdir(r *Root, pth string, parents bool) error {
+	if pth == "" {
+		panic("empty path")
+	}
 	parts := path.SplitList(pth)
 	if parts[0] == "" {
 		parts = parts[1:]

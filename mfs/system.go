@@ -124,9 +124,21 @@ func (kr *Root) closeChild(name string, nd *dag.Node) error {
 }
 
 func (kr *Root) Close() error {
+	nd, err := kr.GetValue().GetNode()
+	if err != nil {
+		return err
+	}
+
+	k, err := kr.dserv.Add(nd)
+	if err != nil {
+		return err
+	}
+
 	if kr.repub != nil {
+		kr.repub.Update(k)
 		return kr.repub.Close()
 	}
+
 	return nil
 }
 

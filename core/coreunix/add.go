@@ -280,16 +280,16 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 // the directory, and and error if any.
 func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.Node, error) {
 	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
-	dir := files.NewSliceFile("", "", []files.File{file})
 	fileAdder, err := NewAdder(n.Context(), n, nil)
 	if err != nil {
 		return "", nil, err
 	}
+	fileAdder.Wrap = true
 
 	unlock := n.Blockstore.PinLock()
 	defer unlock()
 
-	err = fileAdder.addDir(dir)
+	err = fileAdder.AddFile(file)
 	if err != nil {
 		return "", nil, err
 	}
