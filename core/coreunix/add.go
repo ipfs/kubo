@@ -193,19 +193,22 @@ func (params *Adder) Finalize() (*dag.Node, error) {
 }
 
 func (params *Adder) outputDirs(path string, nd *dag.Node) error {
+	if !bytes.Equal(nd.Data, folderData) {
+		return nil
+	}
+
 	for _, l := range nd.Links {
 		child, err := l.GetNode(params.ctx, params.node.DAG)
 		if err != nil {
 			return err
 		}
 
-		if bytes.Equal(child.Data, folderData) {
-			err := params.outputDirs(gopath.Join(path, l.Name), child)
-			if err != nil {
-				return err
-			}
+		err = params.outputDirs(gopath.Join(path, l.Name), child)
+		if err != nil {
+			return err
 		}
 	}
+
 	return outputDagnode(params.out, path, nd)
 }
 
