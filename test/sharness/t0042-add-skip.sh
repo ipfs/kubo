@@ -38,11 +38,11 @@ test_add_skip() {
 		cat >expected <<-\EOF &&
 			added QmcAREBcjgnUpKfyFmUGnfajA1NQS5ydqRp7WfqZ6JF8Dx planets/.asteroids/ceres.txt
 			added QmZ5eaLybJ5GUZBNwy24AA9EEDTDpA4B8qXnuN3cGxu2uF planets/.asteroids/pallas.txt
-			added Qmf6rbs5GF85anDuoxpSAdtuZPM9D2Yt3HngzjUVSQ7kDV planets/.asteroids
 			added QmaowqjedBkUrMUXgzt9c2ZnAJncM9jpJtkFfgdFstGr5a planets/.charon.txt
 			added QmU4zFD5eJtRBsWC63AvpozM9Atiadg9kPVTuTrnCYJiNF planets/.pluto.txt
 			added QmZy3khu7qf696i5HtkgL2NotsCZ8wzvNZJ1eUdA5n8KaV planets/mars.txt
 			added QmQnv4m3Q5512zgVtpbJ9z85osQrzZzGRn934AGh6iVEXz planets/venus.txt
+			added Qmf6rbs5GF85anDuoxpSAdtuZPM9D2Yt3HngzjUVSQ7kDV planets/.asteroids
 			added QmetajtFdmzhWYodAsZoVZSiqpeJDAiaw2NwbM3xcWcpDj planets
 		EOF
 		test_cmp expected actual
