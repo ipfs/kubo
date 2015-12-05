@@ -3,7 +3,6 @@ package merkledag
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
@@ -49,14 +48,6 @@ func (n *dagService) Add(nd *Node) (key.Key, error) {
 	if n == nil { // FIXME remove this assertion. protect with constructor invariant
 		return "", fmt.Errorf("dagService is nil")
 	}
-	/*
-		start := time.Now()
-		defer func() {
-			took := time.Now().Sub(start)
-			log.Error("add took: %s", took)
-		}()
-	*/
-	_ = time.Saturday
 
 	d, err := nd.Encoded(false)
 	if err != nil {
