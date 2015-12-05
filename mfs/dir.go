@@ -308,7 +308,8 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 
 	d.modTime = time.Now()
 
-	return d.parent.closeChild(d.name, d.node)
+	//return d.parent.closeChild(d.name, d.node)
+	return nil
 }
 
 func (d *Directory) sync() error {
