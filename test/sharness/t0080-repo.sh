@@ -185,10 +185,11 @@ test_expect_success "'ipfs refs --unique' is correct" '
 	cd uniques &&
 	echo "content1" > file1 &&
 	echo "content1" > file2 &&
-	ROOT=$(ipfs add -r -q . | tail -n1) &&
+	ipfs add -r -q . > ../add_output &&
+	ROOT=$(tail -n1 ../add_output) &&
 	ipfs refs --unique $ROOT >expected &&
 	ipfs add -q file1 >unique_hash &&
-	test_cmp expected unique_hash
+	test_cmp expected unique_hash || test_fsh cat ../add_output
 '
 
 test_expect_success "'ipfs refs --unique --recursive' is correct" '
