@@ -197,11 +197,12 @@ test_expect_success "'ipfs refs --unique --recursive' is correct" '
 	echo "c1" > a/b/f1 &&
 	echo "c1" > a/b/c/f1 &&
 	echo "c2" > a/b/c/f2 &&
-	ROOT=$(ipfs add -r -q a | tail -n1) &&
+	ipfs add -r -q a >add_output &&
+	ROOT=$(tail -n1 add_output) &&
 	ipfs refs --unique --recursive $ROOT >refs_output &&
 	wc -l refs_output | sed "s/^ *//g" >line_count &&
 	echo "4 refs_output" >expected &&
-	test_cmp expected line_count
+	test_cmp expected line_count || test_fsh cat add_output || test_fsh cat refs_output
 '
 
 test_expect_success "'ipfs refs --recursive (bigger)'" '
@@ -215,16 +216,19 @@ test_expect_success "'ipfs refs --recursive (bigger)'" '
 	cp -r b b2 && mv b2 b/b2 &&
 	cp -r b b3 && mv b3 b/b3 &&
 	cp -r b b4 && mv b4 b/b4 &&
-	hash=$(ipfs add -r -q b | tail -n1) &&
-	ipfs refs -r "$hash" | wc -l | sed "s/^ *//g" >actual &&
-	echo "79" >expected &&
-	test_cmp expected actual
+	ipfs add -r -q b >add_output &&
+	hash=$(tail -n1 add_output) &&
+	ipfs refs -r "$hash" >refs_output &&
+	wc -l refs_output | sed "s/^ *//g" >actual &&
+	echo "79 refs_output" >expected &&
+	test_cmp expected actual || test_fsh cat add_output || test_fsh cat refs_output
 '
 
 test_expect_success "'ipfs refs --unique --recursive (bigger)'" '
-	ipfs refs -r "$hash" | sort | uniq >expected &&
-	ipfs refs -r -u "$hash" | sort >actual &&
-	test_cmp expected actual
+	ipfs refs -r "$hash" >refs_output &&
+	sort refs_output | uniq >expected &&
+	ipfs refs -r -u "$hash" >actual &&
+	test_sort_cmp expected actual || test_fsh cat refs_output
 '
 
 test_kill_ipfs_daemon
