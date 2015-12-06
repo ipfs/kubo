@@ -41,7 +41,7 @@ func (f *SliceFile) FullPath() string {
 }
 
 func (f *SliceFile) Read(p []byte) (int, error) {
-	return 0, ErrNotReader
+	return 0, io.EOF
 }
 
 func (f *SliceFile) Close() error {

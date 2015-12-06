@@ -17,7 +17,7 @@ import (
 type MultiFileReader struct {
 	io.Reader
 
-	files       files.File
+	files       []files.File
 	currentFile io.Reader
 	buf         bytes.Buffer
 	mpWriter    *multipart.Writer
@@ -34,7 +34,7 @@ type MultiFileReader struct {
 // if `form` is false, the Content-Type will be 'multipart/mixed'.
 func NewMultiFileReader(file files.File, form bool) *MultiFileReader {
 	mfr := &MultiFileReader{
-		files: file,
+		files: []files.File{file},
 		form:  form,
 		mutex: &sync.Mutex{},
 	}
@@ -54,33 +54,40 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 
 	// if the current file isn't set, advance to the next file
 	if mfr.currentFile == nil {
-		file, err := mfr.files.NextFile()
-		if err == io.EOF {
-			mfr.mpWriter.Close()
-			mfr.closed = true
-		} else if err != nil {
-			return 0, err
+		var file files.File
+		for file == nil {
+			if len(mfr.files) == 0 {
+				mfr.mpWriter.Close()
+				mfr.closed = true
+				return mfr.buf.Read(buf)
+			}
+
+			nextfile, err := mfr.files[len(mfr.files)-1].NextFile()
+			if err == io.EOF {
+				mfr.files = mfr.files[:len(mfr.files)-1]
+				continue
+			} else if err != nil {
+				return 0, err
+			}
+
+			file = nextfile
 		}
 
 		// handle starting a new file part
 		if !mfr.closed {
 
 			var contentType string
-			if s, ok := file.(*files.Symlink); ok {
-				mfr.currentFile = s
-
+			if _, ok := file.(*files.Symlink); ok {
 				contentType = "application/symlink"
 			} else if file.IsDirectory() {
-				// if file is a directory, create a multifilereader from it
-				// (using 'multipart/mixed')
-				nmfr := NewMultiFileReader(file, false)
-				mfr.currentFile = nmfr
-				contentType = fmt.Sprintf("multipart/mixed; boundary=%s", nmfr.Boundary())
+				mfr.files = append(mfr.files, file)
+				contentType = "application/x-directory"
 			} else {
 				// otherwise, use the file as a reader to read its contents
-				mfr.currentFile = file
 				contentType = "application/octet-stream"
 			}
+
+			mfr.currentFile = file
 
 			// write the boundary and headers
 			header := make(textproto.MIMEHeader)
