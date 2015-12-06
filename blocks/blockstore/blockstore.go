@@ -5,6 +5,7 @@ package blockstore
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dsns "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
@@ -49,6 +50,10 @@ type GCBlockstore interface {
 	// at the same time, but no GC should not happen simulatenously.
 	// Reading during Pinning is safe, and requires no lock.
 	PinLock() func()
+
+	// GcRequested returns true if GCLock has been called and is waiting to
+	// take the lock
+	GCRequested() bool
 }
 
 func NewBlockstore(d ds.Batching) *blockstore {
@@ -63,7 +68,9 @@ func NewBlockstore(d ds.Batching) *blockstore {
 type blockstore struct {
 	datastore ds.Batching
 
-	lk sync.RWMutex
+	lk      sync.RWMutex
+	gcreq   int32
+	gcreqlk sync.Mutex
 }
 
 func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
@@ -192,11 +199,17 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 }
 
 func (bs *blockstore) GCLock() func() {
+	atomic.AddInt32(&bs.gcreq, 1)
 	bs.lk.Lock()
+	atomic.AddInt32(&bs.gcreq, -1)
 	return bs.lk.Unlock
 }
 
 func (bs *blockstore) PinLock() func() {
 	bs.lk.RLock()
 	return bs.lk.RUnlock
+}
+
+func (bs *blockstore) GCRequested() bool {
+	return atomic.LoadInt32(&bs.gcreq) > 0
 }
