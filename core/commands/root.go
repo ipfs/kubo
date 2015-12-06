@@ -111,7 +111,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"tar":       TarCmd,
 	"tour":      tourCmd,
 	"file":      unixfs.UnixFSCmd,
-	"update":    cmds.ExternalBinary(),
+	"update":    ExternalBinary(),
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
 }
