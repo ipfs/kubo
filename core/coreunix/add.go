@@ -155,7 +155,7 @@ func (params *Adder) PinRoot() error {
 		return nil
 	}
 
-	rnk, err := root.Key()
+	rnk, err := params.node.DAG.Add(root)
 	if err != nil {
 		return err
 	}
