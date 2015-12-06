@@ -12,6 +12,7 @@ import (
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	importer "github.com/ipfs/go-ipfs/importer"
@@ -99,6 +100,8 @@ type Adder struct {
 	Chunker  string
 	root     *dag.Node
 	mr       *mfs.Root
+	unlock   func()
+	tempRoot key.Key
 }
 
 // Perform the actual add & pin locally, outputting results to reader
@@ -155,6 +158,14 @@ func (params *Adder) PinRoot() error {
 	rnk, err := root.Key()
 	if err != nil {
 		return err
+	}
+
+	if params.tempRoot != "" {
+		err := params.node.Pinning.Unpin(params.ctx, params.tempRoot, true)
+		if err != nil {
+			return err
+		}
+		params.tempRoot = rnk
 	}
 
 	params.node.Pinning.PinWithMode(rnk, pin.Recursive)
@@ -256,7 +267,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	err = fileAdder.AddFile(f)
+	err = fileAdder.addFile(f)
 	if err != nil {
 		return "", err
 	}
@@ -289,7 +300,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 	unlock := n.Blockstore.PinLock()
 	defer unlock()
 
-	err = fileAdder.AddFile(file)
+	err = fileAdder.addFile(file)
 	if err != nil {
 		return "", nil, err
 	}
@@ -330,12 +341,24 @@ func (params *Adder) addNode(node *dag.Node, path string) error {
 
 // Add the given file while respecting the params.
 func (params *Adder) AddFile(file files.File) error {
+	params.unlock = params.node.Blockstore.PinLock()
+	defer params.unlock()
+
+	return params.addFile(file)
+}
+
+func (adder *Adder) addFile(file files.File) error {
+	err := adder.maybePauseForGC()
+	if err != nil {
+		return err
+	}
+
 	switch {
-	case files.IsHidden(file) && !params.Hidden:
+	case files.IsHidden(file) && !adder.Hidden:
 		log.Debugf("%s is hidden, skipping", file.FileName())
 		return &hiddenFileError{file.FileName()}
 	case file.IsDirectory():
-		return params.addDir(file)
+		return adder.addDir(file)
 	}
 
 	// case for symlink
@@ -346,29 +369,29 @@ func (params *Adder) AddFile(file files.File) error {
 		}
 
 		dagnode := &dag.Node{Data: sdata}
-		_, err = params.node.DAG.Add(dagnode)
+		_, err = adder.node.DAG.Add(dagnode)
 		if err != nil {
 			return err
 		}
 
-		return params.addNode(dagnode, s.FileName())
+		return adder.addNode(dagnode, s.FileName())
 	}
 
 	// case for regular file
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
 	var reader io.Reader = file
-	if params.Progress {
-		reader = &progressReader{file: file, out: params.out}
+	if adder.Progress {
+		reader = &progressReader{file: file, out: adder.out}
 	}
 
-	dagnode, err := params.add(reader)
+	dagnode, err := adder.add(reader)
 	if err != nil {
 		return err
 	}
 
 	// patch it into the root
-	return params.addNode(dagnode, file.FileName())
+	return adder.addNode(dagnode, file.FileName())
 }
 
 func (params *Adder) addDir(dir files.File) error {
@@ -388,7 +411,7 @@ func (params *Adder) addDir(dir files.File) error {
 			break
 		}
 
-		err = params.AddFile(file)
+		err = params.addFile(file)
 		if _, ok := err.(*hiddenFileError); ok {
 			// hidden file error, skip file
 			continue
@@ -397,6 +420,19 @@ func (params *Adder) addDir(dir files.File) error {
 		}
 	}
 
+	return nil
+}
+
+func (adder *Adder) maybePauseForGC() error {
+	if adder.node.Blockstore.GCRequested() {
+		err := adder.PinRoot()
+		if err != nil {
+			return err
+		}
+
+		adder.unlock()
+		adder.unlock = adder.node.Blockstore.PinLock()
+	}
 	return nil
 }
 
