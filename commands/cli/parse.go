@@ -44,7 +44,17 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		}
 	}
 
-	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive, root)
+	// if '--hidden' is provided, enumerate hidden paths
+	hiddenOpt := req.Option("hidden")
+	hidden := false
+	if hiddenOpt != nil {
+		hidden, _, err = hiddenOpt.Bool()
+		if err != nil {
+			return req, nil, nil, u.ErrCast()
+		}
+	}
+
+	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive, hidden, root)
 	if err != nil {
 		return req, cmd, path, err
 	}
@@ -221,7 +231,7 @@ func parseOpts(args []string, root *cmds.Command) (
 	return
 }
 
-func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool, root *cmds.Command) ([]string, []files.File, error) {
+func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive, hidden bool, root *cmds.Command) ([]string, []files.File, error) {
 	// ignore stdin on Windows
 	if runtime.GOOS == "windows" {
 		stdin = nil
@@ -306,7 +316,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				// treat stringArg values as file paths
 				fpath := inputs[0]
 				inputs = inputs[1:]
-				file, err := appendFile(fpath, argDef, recursive)
+				file, err := appendFile(fpath, argDef, recursive, hidden)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -387,7 +397,7 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 const notRecursiveFmtStr = "'%s' is a directory, use the '-%s' flag to specify directories"
 const dirNotSupportedFmtStr = "Invalid path '%s', argument '%s' does not support directories"
 
-func appendFile(fpath string, argDef *cmds.Argument, recursive bool) (files.File, error) {
+func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (files.File, error) {
 	fpath = filepath.ToSlash(filepath.Clean(fpath))
 
 	if fpath == "." {
@@ -412,7 +422,7 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive bool) (files.File
 		}
 	}
 
-	return files.NewSerialFile(path.Base(fpath), fpath, stat)
+	return files.NewSerialFile(path.Base(fpath), fpath, hidden, stat)
 }
 
 // isTerminal returns true if stdin is a Stdin pipe (e.g. `cat file | ipfs`),
