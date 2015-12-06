@@ -24,6 +24,11 @@ test_expect_success "ipfs init output looks good" '
 	test_cmp init_fail_exp init_fail_out
 '
 
+test_expect_success "cleanup dir with bad perms" '
+	chmod 775 "$IPFS_PATH" &&
+	rmdir "$IPFS_PATH"
+'
+
 # test no repo error message
 # this applies to `ipfs add sth`, `ipfs refs <hash>`
 test_expect_success "ipfs cat fails" '
