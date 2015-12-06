@@ -66,3 +66,7 @@ func (w *writecache) GCLock() func() {
 func (w *writecache) PinLock() func() {
 	return w.blockstore.(GCBlockstore).PinLock()
 }
+
+func (w *writecache) GCRequested() bool {
+	return w.blockstore.(GCBlockstore).GCRequested()
+}
