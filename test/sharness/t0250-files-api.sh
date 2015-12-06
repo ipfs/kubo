@@ -317,7 +317,13 @@ test_files_api() {
 	'
 
 	test_expect_success "write 'no-flush' succeeds" '
-		echo "testing" | ipfs files write -f -e /cats/walrus
+		echo "testing" | ipfs files write -f=false -e /cats/walrus
+	'
+
+	test_expect_success "root hash not bubbled up yet" '
+		test -z "$ONLINE" ||
+		(ipfs refs local > refsout &&
+		test_expect_code 1 grep QmcwKfTMCT7AaeiD92hWjnZn9b6eh9NxnhfSzN5x2vnDpt refsout)
 	'
 
 	test_expect_success "changes bubbled up to root on inspection" '
@@ -350,7 +356,14 @@ test_files_api() {
 
 # test offline and online
 test_files_api
+
+test_expect_success "clean up objects from previous test run" '
+	ipfs repo gc
+'
+
 test_launch_ipfs_daemon
+
+ONLINE=1 # set online flag so tests can easily tell
 test_files_api
 test_kill_ipfs_daemon
 test_done
