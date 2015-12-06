@@ -1,4 +1,5 @@
-// +build linux darwin freebsd
+// +windows
+
 package main
 
 import (
