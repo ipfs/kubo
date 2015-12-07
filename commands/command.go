@@ -59,6 +59,10 @@ type Command struct {
 	Marshalers map[EncodingType]Marshaler
 	Helptext   HelpText
 
+	// External denotes that a command is actually an external binary.
+	// fewer checks and validations will be performed on such commands.
+	External bool
+
 	// Type describes the type of the output of the Command's Run Function.
 	// In precise terms, the value of Type is an instance of the return type of
 	// the Run Function.
