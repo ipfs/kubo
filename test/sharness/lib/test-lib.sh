@@ -12,6 +12,7 @@
 PATH=$(pwd)/bin:${PATH}
 echo $PATH
 echo $(pwd)
+echo `which ipfs`
 # set sharness verbosity. we set the env var directly as
 # it's too late to pass in --verbose, and --verbose is harder
 # to pass through in some cases.
