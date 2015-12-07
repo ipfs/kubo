@@ -11,6 +11,7 @@
 # add current directory to path, for ipfs tool.
 PATH=$(pwd)/bin:${PATH}
 echo $PATH
+echo $(pwd)
 # set sharness verbosity. we set the env var directly as
 # it's too late to pass in --verbose, and --verbose is harder
 # to pass through in some cases.
