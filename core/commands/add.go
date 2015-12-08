@@ -70,6 +70,7 @@ remains to be implemented.
 		sizeFile, ok := req.Files().(files.SizeFile)
 		if !ok {
 			// we don't need to error, the progress bar just won't know how big the files are
+			log.Warning("cannnot determine size of input file")
 			return nil
 		}
 
@@ -79,6 +80,7 @@ remains to be implemented.
 		go func() {
 			size, err := sizeFile.Size()
 			if err != nil {
+				log.Warningf("error getting files size: %s", err)
 				// see comment above
 				return
 			}
