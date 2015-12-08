@@ -105,97 +105,96 @@ type Adder struct {
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func (params Adder) add(reader io.Reader) (*dag.Node, error) {
-	chnk, err := chunk.FromString(reader, params.Chunker)
+func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
+	chnk, err := chunk.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
 	}
 
-	if params.Trickle {
+	if adder.Trickle {
 		return importer.BuildTrickleDagFromReader(
-			params.node.DAG,
+			adder.node.DAG,
 			chnk,
 		)
 	}
 	return importer.BuildDagFromReader(
-		params.node.DAG,
+		adder.node.DAG,
 		chnk,
 	)
 }
 
-func (params *Adder) RootNode() (*dag.Node, error) {
+func (adder *Adder) RootNode() (*dag.Node, error) {
 	// for memoizing
-	if params.root != nil {
-		return params.root, nil
+	if adder.root != nil {
+		return adder.root, nil
 	}
 
-	root, err := params.mr.GetValue().GetNode()
+	root, err := adder.mr.GetValue().GetNode()
 	if err != nil {
 		return nil, err
 	}
 
 	// if not wrapping, AND one root file, use that hash as root.
-	if !params.Wrap && len(root.Links) == 1 {
-		root, err = root.Links[0].GetNode(params.ctx, params.node.DAG)
+	if !adder.Wrap && len(root.Links) == 1 {
+		root, err = root.Links[0].GetNode(adder.ctx, adder.node.DAG)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	params.root = root
+	adder.root = root
 	return root, err
 }
 
-func (params *Adder) PinRoot() error {
-	root, err := params.RootNode()
+func (adder *Adder) PinRoot() error {
+	root, err := adder.RootNode()
 	if err != nil {
 		return err
 	}
-	if !params.Pin {
+	if !adder.Pin {
 		return nil
 	}
 
-	rnk, err := params.node.DAG.Add(root)
+	rnk, err := adder.node.DAG.Add(root)
 	if err != nil {
 		return err
 	}
 
-	if params.tempRoot != "" {
-		err := params.node.Pinning.Unpin(params.ctx, params.tempRoot, true)
+	if adder.tempRoot != "" {
+		err := adder.node.Pinning.Unpin(adder.ctx, adder.tempRoot, true)
 		if err != nil {
 			return err
 		}
-		params.tempRoot = rnk
+		adder.tempRoot = rnk
 	}
 
-	params.node.Pinning.PinWithMode(rnk, pin.Recursive)
-	return params.node.Pinning.Flush()
+	adder.node.Pinning.PinWithMode(rnk, pin.Recursive)
+	return adder.node.Pinning.Flush()
 }
 
-func (params *Adder) Finalize() (*dag.Node, error) {
-	root, err := params.mr.GetValue().GetNode()
+func (adder *Adder) Finalize() (*dag.Node, error) {
+	// cant just call adder.RootNode() here as we need the name for printing
+	root, err := adder.mr.GetValue().GetNode()
 	if err != nil {
 		return nil, err
 	}
 
-	params.RootNode()
-
 	var name string
-	if !params.Wrap {
+	if !adder.Wrap {
 		name = root.Links[0].Name
-		child, err := root.Links[0].GetNode(params.ctx, params.node.DAG)
+		child, err := root.Links[0].GetNode(adder.ctx, adder.node.DAG)
 		if err != nil {
 			return nil, err
 		}
 		root = child
 	}
 
-	err = params.outputDirs(name, root)
+	err = adder.outputDirs(name, root)
 	if err != nil {
 		return nil, err
 	}
 
-	err = params.mr.Close()
+	err = adder.mr.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -203,24 +202,24 @@ func (params *Adder) Finalize() (*dag.Node, error) {
 	return root, nil
 }
 
-func (params *Adder) outputDirs(path string, nd *dag.Node) error {
+func (adder *Adder) outputDirs(path string, nd *dag.Node) error {
 	if !bytes.Equal(nd.Data, folderData) {
 		return nil
 	}
 
 	for _, l := range nd.Links {
-		child, err := l.GetNode(params.ctx, params.node.DAG)
+		child, err := l.GetNode(adder.ctx, adder.node.DAG)
 		if err != nil {
 			return err
 		}
 
-		err = params.outputDirs(gopath.Join(path, l.Name), child)
+		err = adder.outputDirs(gopath.Join(path, l.Name), child)
 		if err != nil {
 			return err
 		}
 	}
 
-	return outputDagnode(params.out, path, nd)
+	return outputDagnode(adder.out, path, nd)
 }
 
 // Add builds a merkledag from the a reader, pinning all objects to the local
@@ -318,7 +317,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 	return gopath.Join(k.String(), filename), dagnode, nil
 }
 
-func (params *Adder) addNode(node *dag.Node, path string) error {
+func (adder *Adder) addNode(node *dag.Node, path string) error {
 	// patch it into the root
 	if path == "" {
 		key, err := node.Key()
@@ -329,22 +328,22 @@ func (params *Adder) addNode(node *dag.Node, path string) error {
 		path = key.Pretty()
 	}
 
-	if err := mfs.PutNode(params.mr, path, node); err != nil {
+	if err := mfs.PutNode(adder.mr, path, node); err != nil {
 		return err
 	}
 
-	if !params.Silent {
-		return outputDagnode(params.out, path, node)
+	if !adder.Silent {
+		return outputDagnode(adder.out, path, node)
 	}
 	return nil
 }
 
-// Add the given file while respecting the params.
-func (params *Adder) AddFile(file files.File) error {
-	params.unlock = params.node.Blockstore.PinLock()
-	defer params.unlock()
+// Add the given file while respecting the adder.
+func (adder *Adder) AddFile(file files.File) error {
+	adder.unlock = adder.node.Blockstore.PinLock()
+	defer adder.unlock()
 
-	return params.addFile(file)
+	return adder.addFile(file)
 }
 
 func (adder *Adder) addFile(file files.File) error {
@@ -394,10 +393,10 @@ func (adder *Adder) addFile(file files.File) error {
 	return adder.addNode(dagnode, file.FileName())
 }
 
-func (params *Adder) addDir(dir files.File) error {
+func (adder *Adder) addDir(dir files.File) error {
 	log.Infof("adding directory: %s", dir.FileName())
 
-	err := mfs.Mkdir(params.mr, dir.FileName(), true)
+	err := mfs.Mkdir(adder.mr, dir.FileName(), true)
 	if err != nil {
 		return err
 	}
@@ -411,7 +410,7 @@ func (params *Adder) addDir(dir files.File) error {
 			break
 		}
 
-		err = params.addFile(file)
+		err = adder.addFile(file)
 		if _, ok := err.(*hiddenFileError); ok {
 			// hidden file error, skip file
 			continue
