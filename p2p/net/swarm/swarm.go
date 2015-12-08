@@ -91,13 +91,16 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	}
 
 	s := &Swarm{
-		swarm:       ps.NewSwarm(PSTransport),
-		local:       local,
-		peers:       peers,
-		ctx:         ctx,
-		dialT:       DialTimeout,
-		notifs:      make(map[inet.Notifiee]ps.Notifiee),
-		transports:  []transport.Transport{transport.NewTCPTransport()},
+		swarm:  ps.NewSwarm(PSTransport),
+		local:  local,
+		peers:  peers,
+		ctx:    ctx,
+		dialT:  DialTimeout,
+		notifs: make(map[inet.Notifiee]ps.Notifiee),
+		transports: []transport.Transport{
+			transport.NewTCPTransport(),
+			transport.NewUtpTransport(),
+		},
 		bwc:         bwc,
 		fdRateLimit: make(chan struct{}, concurrentFdDials),
 		Filters:     filter.NewFilters(),
