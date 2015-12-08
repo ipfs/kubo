@@ -18,8 +18,8 @@ var log = logging.Logger("p2p/net/swarm/addr")
 var SupportedTransportStrings = []string{
 	"/ip4/tcp",
 	"/ip6/tcp",
-	// "/ip4/udp/utp", disabled because the lib is broken
-	// "/ip6/udp/utp", disabled because the lib is broken
+	"/ip4/udp/utp",
+	"/ip6/udp/utp",
 	// "/ip4/udp/udt", disabled because the lib doesnt work on arm
 	// "/ip6/udp/udt", disabled because the lib doesnt work on arm
 }

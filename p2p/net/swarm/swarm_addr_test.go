@@ -25,7 +25,6 @@ func TestFilterAddrs(t *testing.T) {
 	bad := []ma.Multiaddr{
 		m("/ip4/1.2.3.4/udp/1234"),           // unreliable
 		m("/ip4/1.2.3.4/udp/1234/sctp/1234"), // not in manet
-		m("/ip4/1.2.3.4/udp/1234/utp"),       // utp is broken
 		m("/ip4/1.2.3.4/udp/1234/udt"),       // udt is broken on arm
 		m("/ip6/fe80::1/tcp/0"),              // link local
 		m("/ip6/fe80::100/tcp/1234"),         // link local
@@ -34,6 +33,7 @@ func TestFilterAddrs(t *testing.T) {
 	good := []ma.Multiaddr{
 		m("/ip4/127.0.0.1/tcp/0"),
 		m("/ip6/::1/tcp/0"),
+		m("/ip4/1.2.3.4/udp/1234/utp"),
 	}
 
 	goodAndBad := append(good, bad...)
@@ -41,13 +41,13 @@ func TestFilterAddrs(t *testing.T) {
 	// test filters
 
 	for _, a := range bad {
-		if addrutil.AddrUsable(a, true) {
+		if addrutil.AddrUsable(a, false) {
 			t.Errorf("addr %s should be unusable", a)
 		}
 	}
 
 	for _, a := range good {
-		if !addrutil.AddrUsable(a, true) {
+		if !addrutil.AddrUsable(a, false) {
 			t.Errorf("addr %s should be usable", a)
 		}
 	}
