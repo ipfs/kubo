@@ -15,8 +15,8 @@ add_w_12='added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
 added QmVb4ntSZZnT2J2zvCmXKMJc52cmZYH6AB37MzeYewnkjs 4u6ead
 added QmZPASVB6EsADrLN8S2sak34zEHL8mx4TAVsPJU9cNnQQJ '
 
-add_w_21='added QmVb4ntSZZnT2J2zvCmXKMJc52cmZYH6AB37MzeYewnkjs 4u6ead
-added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
+add_w_21='added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
+added QmVb4ntSZZnT2J2zvCmXKMJc52cmZYH6AB37MzeYewnkjs 4u6ead
 added QmZPASVB6EsADrLN8S2sak34zEHL8mx4TAVsPJU9cNnQQJ '
 
 add_w_d1='added QmPcaX84tDiTfzdTn8GQxexodgeWH6mHjSss5Zfr5ojssb _jo7/-s782qgs
@@ -27,20 +27,20 @@ added QmYC3u5jGWuyFwvTxtvLYm2K3SpWZ31tg3NjpVVvh9cJaJ _jo7/wzvsihy
 added QmQkib3f9XNX5sj6WEahLUPFpheTcwSRJwUCSvjcv8b9by _jo7
 added QmNQoesMj1qp8ApE51NbtTjFYksyzkezPD4cat7V2kzbKN '
 
-add_w_d2='added QmVaKAt2eVftNKFfKhiBV7Mu5HjCugffuLqWqobSSFgiA7 h3qpecj0
+add_w_d2='added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
 added QmU9Jqks8TPu4vFr6t7EKkAKQrSJuEujNj1AkzoCeTEDFJ gnz66h/1k0xpx34
 added QmSLYZycXAufRw3ePMVH2brbtYWCcWsmksGLbHcT8ia9Ke gnz66h/9cwudvacx
 added QmfYmpCCAMU9nLe7xbrYsHf5z2R2GxeQnsm4zavUhX9vq2 gnz66h/9ximv51cbo8
 added QmWgEE4e2kfx3b8HZcBk5cLrfhoi8kTMQP2MipgPhykuV3 gnz66h/b54ygh6gs
 added QmcLbqEqhREGednc6mrVtanee4WHKp5JnUfiwTTHCJwuDf gnz66h/lbl5
-added QmVPwNy8pZegpsNmsjjZvdTQn4uCeuZgtzhgWhRSQWjK9x gnz66h
 added QmPcaX84tDiTfzdTn8GQxexodgeWH6mHjSss5Zfr5ojssb _jo7/-s782qgs
 added QmaVBqquUuXKjkyWHXaXfsaQUxAnsCKS95VRDHU8PzGA4K _jo7/15totauzkak-
 added QmaAHFG8cmhW3WLjofx5siSp44VV25ETN6ThzrU8iAqpkR _jo7/galecuirrj4r
 added QmeuSfhJNKwBESp1W9H8cfoMdBfW3AeHQDWXbNXQJYWp53 _jo7/mzo50r-1xidf5zx
 added QmYC3u5jGWuyFwvTxtvLYm2K3SpWZ31tg3NjpVVvh9cJaJ _jo7/wzvsihy
+added QmVaKAt2eVftNKFfKhiBV7Mu5HjCugffuLqWqobSSFgiA7 h3qpecj0
 added QmQkib3f9XNX5sj6WEahLUPFpheTcwSRJwUCSvjcv8b9by _jo7
-added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
+added QmVPwNy8pZegpsNmsjjZvdTQn4uCeuZgtzhgWhRSQWjK9x gnz66h
 added QmTmc46fhKC8Liuh5soy1VotdnHcqLu3r6HpPGwDZCnqL1 '
 
 add_w_r='QmcCksBMDuuyuyfAMMNzEAx6Z7jTrdRy9a23WpufAhG9ji'
@@ -57,7 +57,7 @@ test_add_w() {
     random-files --seed 7547632 --files 5 --dirs 2 --depth 3 m &&
     echo "$add_w_m" >expected &&
     ipfs add -q -r m | tail -n1 >actual &&
-    test_cmp expected actual
+    test_sort_cmp expected actual
   '
 
   # test single file
@@ -67,7 +67,7 @@ test_add_w() {
 
   test_expect_success "ipfs add -w (single file) is correct" '
     echo "$add_w_1" >expected &&
-    test_cmp expected actual
+    test_sort_cmp expected actual
   '
 
   # test two files together
@@ -77,7 +77,7 @@ test_add_w() {
 
   test_expect_success "ipfs add -w (multiple) is correct" '
     echo "$add_w_12" >expected  &&
-    test_cmp expected actual
+    test_sort_cmp expected actual
   '
 
   test_expect_success "ipfs add -w (multiple) succeeds" '
@@ -86,7 +86,7 @@ test_add_w() {
 
   test_expect_success "ipfs add -w (multiple) orders" '
     echo "$add_w_21" >expected  &&
-    test_cmp expected actual
+    test_sort_cmp expected actual
   '
 
   # test a directory
@@ -96,7 +96,7 @@ test_add_w() {
 
   test_expect_success "ipfs add -w -r (dir) is correct" '
     echo "$add_w_d1" >expected &&
-    test_cmp expected actual
+    test_sort_cmp expected actual
   '
 
   # test files and directory
@@ -107,7 +107,7 @@ test_add_w() {
 
   test_expect_success "ipfs add -w -r <many> is correct" '
     echo "$add_w_d2" >expected &&
-    test_cmp expected actual
+    test_sort_cmp expected actual
   '
 
   # test -w -r m/* == -r m
@@ -117,7 +117,7 @@ test_add_w() {
 
   test_expect_success "ipfs add -w -r m/* == add -r m  is correct" '
     echo "$add_w_m" >expected &&
-    test_cmp expected actual
+    test_sort_cmp expected actual
   '
 
   # test repeats together
@@ -130,7 +130,7 @@ test_add_w() {
 
   test_expect_success "ipfs add -w (repeats) is correct" '
     echo "$add_w_r" >expected  &&
-    test_cmp expected actual
+    test_sort_cmp expected actual
   '
 
 }

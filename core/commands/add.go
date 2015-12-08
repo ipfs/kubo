@@ -18,6 +18,7 @@ var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 const (
 	quietOptionName    = "quiet"
+	silentOptionName   = "silent"
 	progressOptionName = "progress"
 	trickleOptionName  = "trickle"
 	wrapOptionName     = "wrap-with-directory"
@@ -44,6 +45,7 @@ remains to be implemented.
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output"),
+		cmds.BoolOption(silentOptionName, "Write no output"),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk"),
@@ -57,22 +59,35 @@ remains to be implemented.
 			return nil
 		}
 
-		req.SetOption(progressOptionName, true)
+		// ipfs cli progress bar defaults to true
+		progress, found, _ := req.Option(progressOptionName).Bool()
+		if !found {
+			progress = true
+		}
+
+		req.SetOption(progressOptionName, progress)
 
 		sizeFile, ok := req.Files().(files.SizeFile)
 		if !ok {
 			// we don't need to error, the progress bar just won't know how big the files are
+			log.Warning("cannnot determine size of input file")
 			return nil
 		}
 
-		size, err := sizeFile.Size()
-		if err != nil {
-			// see comment above
-			return nil
-		}
+		sizeCh := make(chan int64, 1)
+		req.Values()["size"] = sizeCh
 
-		log.Debugf("Total size of file being added: %v\n", size)
-		req.Values()["size"] = size
+		go func() {
+			size, err := sizeFile.Size()
+			if err != nil {
+				log.Warningf("error getting files size: %s", err)
+				// see comment above
+				return
+			}
+
+			log.Debugf("Total size of file being added: %v\n", size)
+			sizeCh <- size
+		}()
 
 		return nil
 	},
@@ -95,6 +110,7 @@ remains to be implemented.
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
 		hash, _, _ := req.Option(onlyHashOptionName).Bool()
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
+		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, pin_found, _ := req.Option(pinOptionName).Bool()
 
@@ -118,13 +134,18 @@ remains to be implemented.
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
-		fileAdder := coreunix.NewAdder(req.Context(), n, outChan)
+		fileAdder, err := coreunix.NewAdder(req.Context(), n, outChan)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		fileAdder.Chunker = chunker
 		fileAdder.Progress = progress
 		fileAdder.Hidden = hidden
 		fileAdder.Trickle = trickle
 		fileAdder.Wrap = wrap
 		fileAdder.Pin = dopin
+		fileAdder.Silent = silent
 
 		// addAllFiles loops over a convenience slice file to
 		// add each file individually. e.g. 'ipfs add a b c'
@@ -138,7 +159,7 @@ remains to be implemented.
 					return nil // done
 				}
 
-				if _, err := fileAdder.AddFile(file); err != nil {
+				if err := fileAdder.AddFile(file); err != nil {
 					return err
 				}
 			}
@@ -154,9 +175,8 @@ remains to be implemented.
 			}
 
 			// copy intermediary nodes from editor to our actual dagservice
-			_, err := fileAdder.Finalize(n.DAG)
+			_, err := fileAdder.Finalize()
 			if err != nil {
-				log.Error("WRITE OUT: ", err)
 				return err
 			}
 
@@ -189,17 +209,29 @@ remains to be implemented.
 			return
 		}
 
-		size := int64(0)
-		s, found := req.Values()["size"]
-		if found {
-			size = s.(int64)
+		progress, prgFound, err := req.Option(progressOptionName).Bool()
+		if err != nil {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
 		}
-		showProgressBar := !quiet && size >= progressBarMinSize
+
+		silent, _, err := req.Option(silentOptionName).Bool()
+		if err != nil {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
+		}
+
+		var showProgressBar bool
+		if prgFound {
+			showProgressBar = progress
+		} else if !quiet && !silent {
+			showProgressBar = true
+		}
 
 		var bar *pb.ProgressBar
 		var terminalWidth int
 		if showProgressBar {
-			bar = pb.New64(size).SetUnits(pb.U_BYTES)
+			bar = pb.New64(0).SetUnits(pb.U_BYTES)
 			bar.ManualUpdate = true
 			bar.Start()
 
@@ -215,43 +247,63 @@ remains to be implemented.
 			bar.Update()
 		}
 
+		var sizeChan chan int64
+		s, found := req.Values()["size"]
+		if found {
+			sizeChan = s.(chan int64)
+		}
+
 		lastFile := ""
 		var totalProgress, prevFiles, lastBytes int64
 
-		for out := range outChan {
-			output := out.(*coreunix.AddedObject)
-			if len(output.Hash) > 0 {
-				if showProgressBar {
-					// clear progress bar line before we print "added x" output
-					fmt.Fprintf(res.Stderr(), "\033[2K\r")
+	LOOP:
+		for {
+			select {
+			case out, ok := <-outChan:
+				if !ok {
+					break LOOP
 				}
-				if quiet {
-					fmt.Fprintf(res.Stdout(), "%s\n", output.Hash)
+				output := out.(*coreunix.AddedObject)
+				if len(output.Hash) > 0 {
+					if showProgressBar {
+						// clear progress bar line before we print "added x" output
+						fmt.Fprintf(res.Stderr(), "\033[2K\r")
+					}
+					if quiet {
+						fmt.Fprintf(res.Stdout(), "%s\n", output.Hash)
+					} else {
+						fmt.Fprintf(res.Stdout(), "added %s %s\n", output.Hash, output.Name)
+					}
+
 				} else {
-					fmt.Fprintf(res.Stdout(), "added %s %s\n", output.Hash, output.Name)
+					log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
+
+					if !showProgressBar {
+						continue
+					}
+
+					if len(lastFile) == 0 {
+						lastFile = output.Name
+					}
+					if output.Name != lastFile || output.Bytes < lastBytes {
+						prevFiles += lastBytes
+						lastFile = output.Name
+					}
+					lastBytes = output.Bytes
+					delta := prevFiles + lastBytes - totalProgress
+					totalProgress = bar.Add64(delta)
 				}
 
-			} else {
-				log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
-
-				if !showProgressBar {
-					continue
+				if showProgressBar {
+					bar.Update()
 				}
-
-				if len(lastFile) == 0 {
-					lastFile = output.Name
+			case size := <-sizeChan:
+				if showProgressBar {
+					bar.Total = size
+					bar.ShowPercent = true
+					bar.ShowBar = true
+					bar.ShowTimeLeft = true
 				}
-				if output.Name != lastFile || output.Bytes < lastBytes {
-					prevFiles += lastBytes
-					lastFile = output.Name
-				}
-				lastBytes = output.Bytes
-				delta := prevFiles + lastBytes - totalProgress
-				totalProgress = bar.Add64(delta)
-			}
-
-			if showProgressBar {
-				bar.Update()
 			}
 		}
 	},

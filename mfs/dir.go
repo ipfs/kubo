@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -28,6 +29,8 @@ type Directory struct {
 	node *dag.Node
 	ctx  context.Context
 
+	modTime time.Time
+
 	name string
 }
 
@@ -40,6 +43,7 @@ func NewDirectory(ctx context.Context, name string, node *dag.Node, parent child
 		parent:    parent,
 		childDirs: make(map[string]*Directory),
 		files:     make(map[string]*File),
+		modTime:   time.Now(),
 	}
 }
 
@@ -53,7 +57,16 @@ func (d *Directory) closeChild(name string, nd *dag.Node) error {
 
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	err = d.node.RemoveNodeLink(name)
+	err = d.updateChild(name, nd)
+	if err != nil {
+		return err
+	}
+
+	return d.parent.closeChild(d.name, d.node)
+}
+
+func (d *Directory) updateChild(name string, nd *dag.Node) error {
+	err := d.node.RemoveNodeLink(name)
 	if err != nil && err != dag.ErrNotFound {
 		return err
 	}
@@ -63,7 +76,9 @@ func (d *Directory) closeChild(name string, nd *dag.Node) error {
 		return err
 	}
 
-	return d.parent.closeChild(d.name, d.node)
+	d.modTime = time.Now()
+
+	return nil
 }
 
 func (d *Directory) Type() NodeType {
@@ -77,30 +92,16 @@ func (d *Directory) childFile(name string) (*File, error) {
 		return fi, nil
 	}
 
-	nd, err := d.childFromDag(name)
-	if err != nil {
-		return nil, err
-	}
-	i, err := ft.FromBytes(nd.Data)
+	fsn, err := d.childNode(name)
 	if err != nil {
 		return nil, err
 	}
 
-	switch i.GetType() {
-	case ufspb.Data_Directory:
-		return nil, ErrIsDirectory
-	case ufspb.Data_File:
-		nfi, err := NewFile(name, nd, d, d.dserv)
-		if err != nil {
-			return nil, err
-		}
-		d.files[name] = nfi
-		return nfi, nil
-	case ufspb.Data_Metadata:
-		return nil, ErrNotYetImplemented
-	default:
-		return nil, ErrInvalidChild
+	if fi, ok := fsn.(*File); ok {
+		return fi, nil
 	}
+
+	return nil, fmt.Errorf("%s is not a file", name)
 }
 
 // childDir returns a directory under this directory by the given name if it
@@ -111,6 +112,21 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 		return dir, nil
 	}
 
+	fsn, err := d.childNode(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if dir, ok := fsn.(*Directory); ok {
+		return dir, nil
+	}
+
+	return nil, fmt.Errorf("%s is not a directory", name)
+}
+
+// childNode returns a FSNode under this directory by the given name if it exists.
+// it does *not* check the cached dirs and files
+func (d *Directory) childNode(name string) (FSNode, error) {
 	nd, err := d.childFromDag(name)
 	if err != nil {
 		return nil, err
@@ -127,7 +143,12 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 		d.childDirs[name] = ndir
 		return ndir, nil
 	case ufspb.Data_File:
-		return nil, fmt.Errorf("%s is not a directory", name)
+		nfi, err := NewFile(name, nd, d, d.dserv)
+		if err != nil {
+			return nil, err
+		}
+		d.files[name] = nfi
+		return nfi, nil
 	case ufspb.Data_Metadata:
 		return nil, ErrNotYetImplemented
 	default:
@@ -157,17 +178,17 @@ func (d *Directory) Child(name string) (FSNode, error) {
 // childUnsync returns the child under this directory by the given name
 // without locking, useful for operations which already hold a lock
 func (d *Directory) childUnsync(name string) (FSNode, error) {
-
-	dir, err := d.childDir(name)
-	if err == nil {
-		return dir, nil
-	}
-	fi, err := d.childFile(name)
-	if err == nil {
-		return fi, nil
+	cdir, ok := d.childDirs[name]
+	if ok {
+		return cdir, nil
 	}
 
-	return nil, os.ErrNotExist
+	cfile, ok := d.files[name]
+	if ok {
+		return cfile, nil
+	}
+
+	return d.childNode(name)
 }
 
 type NodeListing struct {
@@ -270,12 +291,7 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	d.Lock()
 	defer d.Unlock()
 
-	pbn, err := ft.FromBytes(nd.Data)
-	if err != nil {
-		return err
-	}
-
-	_, err = d.childUnsync(name)
+	_, err := d.childUnsync(name)
 	if err == nil {
 		return ErrDirExists
 	}
@@ -290,22 +306,59 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 		return err
 	}
 
-	switch pbn.GetType() {
-	case ft.TDirectory:
-		d.childDirs[name] = NewDirectory(d.ctx, name, nd, d, d.dserv)
-	case ft.TFile, ft.TMetadata, ft.TRaw:
-		nfi, err := NewFile(name, nd, d, d.dserv)
+	d.modTime = time.Now()
+
+	//return d.parent.closeChild(d.name, d.node)
+	return nil
+}
+
+func (d *Directory) sync() error {
+	for name, dir := range d.childDirs {
+		nd, err := dir.GetNode()
 		if err != nil {
 			return err
 		}
-		d.files[name] = nfi
-	default:
-		return ErrInvalidChild
+
+		_, err = d.dserv.Add(nd)
+		if err != nil {
+			return err
+		}
+
+		err = d.updateChild(name, nd)
+		if err != nil {
+			return err
+		}
 	}
-	return d.parent.closeChild(d.name, d.node)
+
+	for name, file := range d.files {
+		nd, err := file.GetNode()
+		if err != nil {
+			return err
+		}
+
+		_, err = d.dserv.Add(nd)
+		if err != nil {
+			return err
+		}
+
+		err = d.updateChild(name, nd)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (d *Directory) GetNode() (*dag.Node, error) {
+	d.Lock()
+	defer d.Unlock()
+
+	err := d.sync()
+	if err != nil {
+		return nil, err
+	}
+
 	return d.node, nil
 }
 
