@@ -43,7 +43,7 @@ From there:
 
 ### Prerequisite: Install Go
 
-First, you'll need go. If you don't have it: [Download Go 1.5.1+](https://golang.org/dl/).
+First, you'll need go. If you don't have it: [Download Go 1.5.2+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 ```

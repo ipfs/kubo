@@ -1,5 +1,56 @@
 # go-ipfs changelog
 
+### 0.3.10 - 2015-12-07
+
+This patch update introduces the 'ipfs update' command which will be used for
+future ipfs updates along with a few other bugfixes and documentation
+improvements.
+
+
+* Features
+  * support for 'ipfs update' to call external binary (@whyrusleeping)
+  * cache ipns entries to speed things up a little (@whyrusleeping)
+  * add option to version command to print repo version (@whyrusleeping)
+  * Add in some more notifications to help profile queries (@whyrusleeping)
+  * gateway: add path prefix for directory listings (@lgierth)
+  * gateway: add CurrentCommit to /version (@lgierth)
+
+* BugFixes
+  * set data and links nil if not present (@whyrusleeping)
+  * fix log hanging issue, and implement close-notify for commands (@whyrusleeping)
+  * fix dial backoff (@whyrusleeping)
+  * proper ndjson implementation (@whyrusleeping)
+  * seccat: fix secio context (@lgierth)
+  * Add newline to end of the output for a few commands. (@nham)
+  * Add fixed period repo GC + test (@rht)
+
+* Tool Changes
+  * Allow `ipfs cat` on ipns path (@rht)
+
+* General Codebase
+  * rewrite of backoff mechanism (@whyrusleeping)
+  * refactor net code to use transports, in rough accordance with libp2p (@whyrusleeping)
+  * disable building fuse stuff on windows (@whyrusleeping)
+  * repo: remove Log config (@lgierth)
+  * commands: fix description of --api (@lgierth)
+
+* Documentation
+  * --help: Add a note on using IPFS_PATH to the footer of the helptext.  (@sahib)
+  * Moved email juan to ipfs/contribute (@richardlitt)
+  * Added commit sign off section (@richardlitt)
+  * Added a security section (@richardlitt)
+  * Moved TODO doc to issue #1929 (@richardlitt)
+
+* Testing
+  * gateway: add tests for /version (@lgierth)
+  * Add gc auto test (@rht)
+  * t0020: cleanup dir with bad perms (@chriscool)
+
+Note: this commit introduces fixed-period repo gc, which will trigger gc
+after a fixed period of time. This feature is introduced now, disabled by
+default, and can be enabled with `ipfs daemon --enable-gc`. If all goes well,
+in the future, it will be enabled by default.
+
 ### 0.3.9 - 2015-10-30
 
 This patch update includes a good number of bugfixes, notably, it fixes
