@@ -47,6 +47,9 @@ type Conn struct {
 
 	closed    bool
 	closeLock sync.Mutex
+
+	closing     bool
+	closingLock sync.Mutex
 }
 
 func newConn(nconn net.Conn, tconn smux.Conn, s *Swarm) *Conn {
@@ -115,14 +118,31 @@ func (c *Conn) Streams() []*Stream {
 	return streams
 }
 
+// GoClose spawns off a goroutine to close the connection iff the connection is
+// not already being closed and returns immediately
+func (c *Conn) GoClose() {
+	c.closingLock.Lock()
+	defer c.closingLock.Unlock()
+	if c.closing {
+		return
+	}
+	c.closing = true
+
+	go c.Close()
+}
+
 // Close closes this connection
 func (c *Conn) Close() error {
 	c.closeLock.Lock()
 	defer c.closeLock.Unlock()
-
-	if c.closed {
+	if c.closed == true {
 		return nil
 	}
+
+	c.closingLock.Lock()
+	c.closing = true
+	c.closingLock.Unlock()
+
 	c.closed = true
 
 	// close streams
