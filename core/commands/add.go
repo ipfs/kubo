@@ -213,10 +213,16 @@ remains to be implemented.
 			return
 		}
 
+		silent, _, err := req.Option(silentOptionName).Bool()
+		if err != nil {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
+		}
+
 		var showProgressBar bool
 		if prgFound {
 			showProgressBar = progress
-		} else if !quiet {
+		} else if !quiet && !silent {
 			showProgressBar = true
 		}
 
