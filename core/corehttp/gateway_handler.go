@@ -134,6 +134,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-IPFS-Path", urlPath)
 
+	// set 'allowed' headers
+	w.Header().Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
+	// expose those headers
+	w.Header().Set("Access-Control-Expose-Headers", "X-Stream-Output, X-Chunked-Output")
+
 	// Suborigin header, sandboxes apps from each other in the browser (even
 	// though they are served from the same gateway domain).
 	//
