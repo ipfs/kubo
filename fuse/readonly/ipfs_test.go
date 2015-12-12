@@ -4,6 +4,7 @@ package readonly
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -154,6 +155,7 @@ func TestIpfsStressRead(t *testing.T) {
 
 	// Now read a bunch, concurrently
 	wg := sync.WaitGroup{}
+	errs := make(chan error)
 
 	for s := 0; s < 4; s++ {
 		wg.Add(1)
@@ -165,26 +167,36 @@ func TestIpfsStressRead(t *testing.T) {
 				fname := path.Join(mnt.Dir, item)
 				rbuf, err := ioutil.ReadFile(fname)
 				if err != nil {
-					t.Fatal(err)
+					errs <- err
 				}
 
 				read, err := coreunix.Cat(nd.Context(), nd, item)
 				if err != nil {
-					t.Fatal(err)
+					errs <- err
 				}
 
 				data, err := ioutil.ReadAll(read)
 				if err != nil {
-					t.Fatal(err)
+					errs <- err
 				}
 
 				if !bytes.Equal(rbuf, data) {
-					t.Fatal("Incorrect Read!")
+					errs <- errors.New("Incorrect Read!")
 				}
 			}
 		}()
 	}
-	wg.Wait()
+
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 // Test writing a file and reading it back
