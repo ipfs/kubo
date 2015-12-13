@@ -8,9 +8,12 @@ test_description="Test docker image"
 
 . lib/test-lib.sh
 
-test_expect_success "docker is installed" '
-	type docker
-'
+# if in travis CI on OSX, docker is not available
+if ! test_have_prereq DOCKER; then
+	skip_all='skipping docker tests, docker not available'
+
+	test_done
+fi
 
 test_expect_success "'docker --version' works" '
 	docker --version >actual
