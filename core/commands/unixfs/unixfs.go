@@ -6,7 +6,7 @@ var UnixFSCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with ipfs objects representing Unix filesystems",
 		ShortDescription: `
-'ipfs file' provides a familar interface to filesystems represtented
+'ipfs file' provides a familar interface to filesystems represented
 by IPFS objects that hides IPFS-implementation details like layout
 objects (e.g. fanout and chunking).
 `,
