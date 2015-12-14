@@ -23,13 +23,13 @@ vendor: godep
 	godep save -r ./...
 
 install:
-	cd cmd/ipfs && go install
+	cd cmd/ipfs && go install -ldflags=$(ldflags)
 
 build:
 	cd cmd/ipfs && go build -i -ldflags=$(ldflags)
 
 nofuse:
-	cd cmd/ipfs && go install -tags nofuse
+	cd cmd/ipfs && go install -tags nofuse -ldflags=$(ldflags)
 
 ##############################################################
 # tests targets
