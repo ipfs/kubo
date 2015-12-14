@@ -137,6 +137,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 	},
 	"cat":      CatCmd,
 	"commands": CommandsDaemonROCmd,
+	"get":      GetCmd,
 	"ls":       LsCmd,
 	"name": &cmds.Command{
 		Subcommands: map[string]*cmds.Command{
@@ -149,6 +150,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"links": objectLinksCmd,
 			"get":   objectGetCmd,
 			"stat":  objectStatCmd,
+			"patch": objectPatchCmd,
 		},
 	},
 	"refs": RefsROCmd,
