@@ -35,3 +35,30 @@ shellquote() {
 	done
 	printf '\n'
 }
+
+# Docker
+
+# This takes a directory, that should contain a Dockerfile, as argument
+docker_build() {
+    docker build --rm "$1"
+}
+
+# This takes an image as argument and writes a docker ID on stdout
+docker_run() {
+    docker run -it -d -p 8080:8080 -p 4001:4001 -p 5001:5001 "$1"
+}
+
+# This takes a docker ID and a command as arguments
+docker_exec() {
+    if test "$CIRCLE" = 1
+    then
+        sudo lxc-attach -n "$(docker inspect --format '{{.Id}}' $1)" -- /bin/bash -c "$2"
+    else
+	docker exec -i "$1" /bin/bash -c "$2"
+    fi
+}
+
+# This takes a docker ID as argument
+docker_stop() {
+    docker stop "$1"
+}
