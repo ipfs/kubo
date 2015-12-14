@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/ipfs/go-ipfs",
-	"GoVersion": "go1.5.1",
+	"GoVersion": "go1.5.2",
 	"Packages": [
 		"./..."
 	],
@@ -166,7 +166,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-datastore",
-			"Rev": "bec407bccea1cfaf56ee946e947642e3ac5a9258"
+			"Rev": "19e39c85262aa4c796b26346f3e1937711ffe2bf"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-detect-race",
