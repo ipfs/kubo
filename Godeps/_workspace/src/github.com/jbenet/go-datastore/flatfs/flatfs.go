@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -314,52 +315,33 @@ func (fs *Datastore) Query(q query.Query) (query.Results, error) {
 		return nil, errors.New("flatfs only supports listing all keys in random order")
 	}
 
-	// TODO this dumb implementation gathers all keys into a single slice.
-	root, err := os.Open(fs.path)
-	if err != nil {
-		return nil, err
-	}
-	defer root.Close()
+	reschan := make(chan query.Result)
+	go func() {
+		defer close(reschan)
+		err := filepath.Walk(fs.path, func(path string, info os.FileInfo, err error) error {
 
-	var res []query.Entry
-	prefixes, err := root.Readdir(0)
-	if err != nil {
-		return nil, err
-	}
-	for _, fi := range prefixes {
-		var err error
-		res, err = fs.enumerateKeys(fi, res)
+			if !info.Mode().IsRegular() || info.Name()[0] == '.' {
+				return nil
+			}
+
+			key, ok := fs.decode(info.Name())
+			if !ok {
+				log.Warning("failed to decode entry in flatfs")
+				return nil
+			}
+
+			reschan <- query.Result{
+				Entry: query.Entry{
+					Key: key.String(),
+				},
+			}
+			return nil
+		})
 		if err != nil {
-			return nil, err
+			log.Warning("walk failed: ", err)
 		}
-	}
-	return query.ResultsWithEntries(q, res), nil
-}
-
-func (fs *Datastore) enumerateKeys(fi os.FileInfo, res []query.Entry) ([]query.Entry, error) {
-	if !fi.IsDir() || fi.Name()[0] == '.' {
-		return res, nil
-	}
-	child, err := os.Open(path.Join(fs.path, fi.Name()))
-	if err != nil {
-		return nil, err
-	}
-	defer child.Close()
-	objs, err := child.Readdir(0)
-	if err != nil {
-		return nil, err
-	}
-	for _, fi := range objs {
-		if !fi.Mode().IsRegular() || fi.Name()[0] == '.' {
-			return res, nil
-		}
-		key, ok := fs.decode(fi.Name())
-		if !ok {
-			return res, nil
-		}
-		res = append(res, query.Entry{Key: key.String()})
-	}
-	return res, nil
+	}()
+	return query.ResultsWithChan(q, reschan), nil
 }
 
 func (fs *Datastore) Close() error {
