@@ -328,7 +328,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 			if isConnRefused(err) {
 				err = repo.ErrApiNotRunning
 			}
-			return nil, err
+			return nil, wrapContextCanceled(err)
 		}
 
 	} else {
@@ -684,4 +684,11 @@ func isConnRefused(err error) bool {
 	}
 
 	return netoperr.Op == "dial"
+}
+
+func wrapContextCanceled(err error) error {
+	if strings.Contains(err.Error(), "request canceled") {
+		err = errors.New("request canceled")
+	}
+	return err
 }

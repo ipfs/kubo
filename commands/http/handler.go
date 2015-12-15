@@ -149,15 +149,6 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(node.Context())
 	defer cancel()
-	if cn, ok := w.(http.CloseNotifier); ok {
-		go func() {
-			select {
-			case <-cn.CloseNotify():
-			case <-ctx.Done():
-			}
-			cancel()
-		}()
-	}
 
 	err = req.SetRootContext(ctx)
 	if err != nil {
@@ -166,7 +157,11 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call the command
-	res := i.root.Call(req)
+	go func() {
+		res := i.root.Call(req)
+		// now handle responding to the client properly
+		sendResponse(w, r, res, req)
+	}()
 
 	// set user's headers first.
 	for k, v := range i.cfg.Headers {
@@ -174,9 +169,16 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header()[k] = v
 		}
 	}
+	if cn, ok := w.(http.CloseNotifier); ok {
+		select {
+		case <-cn.CloseNotify():
+			log.Error("closenotify")
+		case <-ctx.Done():
+			log.Error("done")
+		}
+		cancel()
+	}
 
-	// now handle responding to the client properly
-	sendResponse(w, r, res, req)
 }
 
 func guessMimeType(res cmds.Response) (string, error) {
