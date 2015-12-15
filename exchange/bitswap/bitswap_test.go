@@ -168,19 +168,31 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	t.Log("Distribute!")
 
 	wg := sync.WaitGroup{}
+	errs := make(chan error)
+
 	for _, inst := range instances[1:] {
 		wg.Add(1)
 		go func(inst Instance) {
 			defer wg.Done()
 			outch, err := inst.Exchange.GetBlocks(ctx, blkeys)
 			if err != nil {
-				t.Fatal(err)
+				errs <- err
 			}
 			for _ = range outch {
 			}
 		}(inst)
 	}
-	wg.Wait()
+
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	t.Log("Verify!")
 

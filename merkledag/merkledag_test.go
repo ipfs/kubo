@@ -2,6 +2,7 @@ package merkledag_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -193,32 +194,43 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 	}
 
 	wg := sync.WaitGroup{}
+	errs := make(chan error)
+
 	for i := 1; i < len(dagservs); i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 			first, err := dagservs[i].Get(ctx, k)
 			if err != nil {
-				t.Fatal(err)
+				errs <- err
 			}
 			fmt.Println("Got first node back.")
 
 			read, err := uio.NewDagReader(ctx, first, dagservs[i])
 			if err != nil {
-				t.Fatal(err)
+				errs <- err
 			}
 			datagot, err := ioutil.ReadAll(read)
 			if err != nil {
-				t.Fatal(err)
+				errs <- err
 			}
 
 			if !bytes.Equal(datagot, expected) {
-				t.Fatal("Got bad data back!")
+				errs <- errors.New("Got bad data back!")
 			}
 		}(i)
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func TestRecursiveAdd(t *testing.T) {
