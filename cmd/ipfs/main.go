@@ -182,6 +182,9 @@ func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 	if u.GetenvBool("DEBUG") {
 		u.Debug = true
 	}
+	if u.GetenvBool("IPFS_LOW_MEM") {
+		u.LowMemMode = true
+	}
 
 	res, err := callCommand(ctx, i.req, Root, i.cmd)
 	if err != nil {

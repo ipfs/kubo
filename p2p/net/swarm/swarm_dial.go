@@ -12,6 +12,7 @@ import (
 	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	u "github.com/ipfs/go-ipfs/util"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -41,7 +42,14 @@ var (
 const dialAttempts = 1
 
 // number of concurrent outbound dials over transports that consume file descriptors
-const concurrentFdDials = 160
+var concurrentFdDials = 160
+
+func init() {
+	if u.LowMemMode {
+		concurrentFdDials = 80
+		DialTimeout = time.Second * 8
+	}
+}
 
 // DialTimeout is the amount of time each dial attempt has. We can think about making
 // this larger down the road, or putting more granular timeouts (i.e. within each
