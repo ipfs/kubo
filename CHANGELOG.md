@@ -1,4 +1,83 @@
-# go-ipfs changelog
+# go-ipfs changelog       
+
+### 0.3.8 - 2015-10-09
+
+This patch update includes changes to make ipns more consistent and reliable,
+symlink support in unixfs, mild performance improvements, new tooling features,
+a plethora of bugfixes, and greatly improved tests.
+
+NOTICE: Version 0.3.8 also requires golang version 1.5.1 or higher.
+
+* Bugfixes
+  * refactor ipns to be more consistent and reliable (@whyrusleeping)
+  * fix 'ipfs refs' json output (@whyrusleeping)
+  * fix setting null config maps (@rht)
+  * fix output of dht commands (@whyrusleeping)
+  * fix NAT spam dialing (@whyrusleeping)
+  * fix random panics on 32 bit systems (@whyrusleeping)
+  * limit total number of network fd's (@whyrusleeping)
+  * fix http api content type (@WeMeetAgain)
+  * fix writing of api file for port zero daemons (@whyrusleeping)
+  * windows connection refused fixes (@mjanczyk)
+  * use go1.5's built in trailers, no more failures (@whyrusleeping)
+  * fix random bitswap hangs (@whyrusleeping)
+  * rate limit fd usage (@whyrusleeping)
+  * fix panic in bitswap ratelimiting (@whyrusleeping)
+
+* Tool Changes
+  * --empty-repo option for init (@prusnak)
+  * implement symlinks (@whyrusleeping)
+  * improve cmds lib files processing (@rht)
+  * properly return errors through commands (@whyrusleeping)
+  * bitswap unwant command (@whyrusleeping)
+  * tar add/cat commands (@whyrusleeping)
+  * fix gzip compression in get (@klauspost)
+  * bitswap stat logs wasted bytes (@whyrusleeping)
+  * resolve command now uses core.Resolve (@rht)
+  * add `--local` flag to 'name resolve' (@whyrusleeping)
+  * add `ipfs diag sys` command for debugging help (@whyrusleeping)
+
+* General Codebase
+  * improvements to dag editor (@whyrusleeping)
+  * swarm IPv6 in default config (Baptiste Jonglez)
+  * improve dir listing css (@rht)
+  * removed elliptic.P224 usage (@prusnak)
+  * improve bitswap providing speed (@jbenet)
+  * print panics that occur in cmds lib (@whyrusleeping)
+  * ipfs api check test fixes (@rht)
+  * update peerstream and datastore (@whyrusleeping)
+  * cleaned up tar-reader code (@jbenet)
+  * write context into coreunix.Cat (@rht)
+  * move assets to separate repo (@rht)
+  * fix proc/ctx wiring in bitswap (@jbenet)
+  * rabin fingerprinting chunker (@whyrusleeping)
+  * better notification on daemon ready (@rht)
+  * coreunix cat cleanup (@rht)
+  * extract logging into go-log (@whyrusleeping)
+  * blockservice.New no longer errors (@whyrusleeping)
+  * refactor ipfs get (@rht)
+  * readonly api on gateway (@rht)
+  * cleanup context usage all over (@rht)
+  * add xml decoding to 'object put' (@ForrestWeston)
+  * replace nodebuilder with NewNode method (@whyrusleeping)
+  * add metrics to http handlers (@lgierth)
+  * rm blockservice workers (@whyrusleeping)
+  * decompose maybeGzWriter (@rht)
+  * makefile sets git commit sha on build (@CaioAlonso)
+
+* Documentation
+  * add contribute file (@RichardLitt)
+  * add go devel guide to contribute.md (@whyrusleeping)
+
+* Testing
+  * fix mock notifs test (@whyrusleeping)
+  * test utf8 with object cmd (@chriscool)
+  * make mocknet conn close idempotent (@jbenet)
+  * fix fuse tests (@pnelson)
+  * improve sharness test quoting (@chriscool)
+  * sharness tests for chunker and add-cat (@rht)
+  * generalize peerid check in sharness (@chriscool)
+  * test_cmp argument cleanup (@chriscool)
 
 ### 0.3.8 - 2015-10-09
 
