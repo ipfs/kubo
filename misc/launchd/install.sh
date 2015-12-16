@@ -23,5 +23,10 @@ if [ $? ]; then
 fi
 
 echo Loading ipfs-daemon
-launchctl load "$dest_dir/$plist"
+if [[ `sw_vers -productVersion` == 10.1* ]]; then
+  sudo chown root "$dest_dir/$plist"
+  sudo launchctl bootstrap system "$dest_dir/$plist"
+else
+  launchctl load "$dest_dir/$plist"
+fi
 launchctl list | grep ipfs-daemon
