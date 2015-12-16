@@ -14,6 +14,7 @@ import (
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/util"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
@@ -60,14 +61,6 @@ const (
 	ACAMethods     = "Access-Control-Allow-Methods"
 	ACACredentials = "Access-Control-Allow-Credentials"
 )
-
-var mimeTypes = map[string]string{
-	cmds.JSON: "application/json",
-	cmds.XML:  "application/xml",
-	cmds.Tar:  "application/x-tar",
-	cmds.Gzip: "application/gzip", // http://tools.ietf.org/html/rfc6713
-	cmds.Text: "text/plain",
-}
 
 type ServerConfig struct {
 	// Headers is an optional map of headers that is written out.
@@ -193,18 +186,18 @@ func guessMimeType(res cmds.Response) (string, error) {
 		return "", errors.New("no encoding option set")
 	}
 
-	if m, ok := mimeTypes[enc]; ok {
+	if m, ok := util.MimeTypes[enc]; ok {
 		return m, nil
 	}
 
-	return mimeTypes[cmds.JSON], nil
+	return util.MimeTypes[cmds.JSON], nil
 }
 
 func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req cmds.Request) {
 	h := w.Header()
 	// Expose our agent to allow identification
-	h.Set("Server", "go-ipfs/" + config.CurrentVersionNumber)
-	
+	h.Set("Server", "go-ipfs/"+config.CurrentVersionNumber)
+
 	mime, err := guessMimeType(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -238,8 +231,8 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	if _, ok := res.Output().(io.Reader); ok {
 		// set streams output type to text to avoid issues with browsers rendering
 		// html pages on priveleged api ports
-		if mime != mimeTypes[cmds.Tar] && mime != mimeTypes[cmds.Gzip] {
-			mime = mimeTypes[cmds.Text]
+		if !util.XssSafeMimeType(mime) {
+			mime = util.MimeTypes[cmds.Text]
 		}
 		h.Set(streamHeader, "1")
 	}
