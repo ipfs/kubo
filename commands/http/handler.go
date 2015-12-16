@@ -439,7 +439,7 @@ func apiVersionMatches(r *http.Request) error {
 		return nil
 	}
 
-	daemonVersion := fmt.Sprintf("/go-ipfs/%s/", config.CurrentVersionNumber)
+	daemonVersion := config.ApiVersion
 	if daemonVersion != clientVersion {
 		return fmt.Errorf("%s (%s != %s)", errApiVersionMismatch, daemonVersion, clientVersion)
 	}
