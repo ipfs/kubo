@@ -1,4 +1,4 @@
-# go-ipfs changelog      
+# go-ipfs changelog       
 
 ### 0.3.9 - 2015-10-30
 
