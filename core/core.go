@@ -510,9 +510,10 @@ func (n *IpfsNode) loadFilesRoot() error {
 // uses it to instantiate a routing system in offline mode.
 // This is primarily used for offline ipns modifications.
 func (n *IpfsNode) SetupOfflineRouting() error {
-	err := n.LoadPrivateKey()
-	if err != nil {
-		return err
+	if n.PrivateKey == nil {
+		if err := n.LoadPrivateKey(); err != nil {
+			return err
+		}
 	}
 
 	n.Routing = offroute.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
