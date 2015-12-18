@@ -27,6 +27,7 @@ func (w *writeErrNotifier) Write(b []byte) (int, error) {
 	if err != nil {
 		select {
 		case w.errs <- err:
+			close(w.errs) // this chan should have been automatically gc-ed, but is closed explicitly here due to osx bug
 		default:
 		}
 	}
@@ -38,7 +39,13 @@ func (w *writeErrNotifier) Write(b []byte) (int, error) {
 
 func (w *writeErrNotifier) Close() error {
 	select {
+	case v, ok := <-w.errs:
+		if !ok {
+			// chan has been closed
+			return v
+		}
 	case w.errs <- io.EOF:
+		close(w.errs)
 	default:
 	}
 	return nil
