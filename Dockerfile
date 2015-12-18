@@ -7,8 +7,6 @@ ENV VERSION master
 EXPOSE 4001 5001 8080
 # 4001 = Swarm, 5001 = API, 8080 = HTTP transport
 
-VOLUME /data/ipfs
-
 ADD bin/container_daemon /usr/local/bin/start_ipfs
 ADD bin/container_shacheck /usr/local/bin/shacheck
 
@@ -24,6 +22,7 @@ RUN adduser -D -h /data -u 1000 ipfs \
  && apk del wget zip curl
 
 USER ipfs
+VOLUME /data/ipfs
 
 ENTRYPOINT ["/usr/local/bin/start_ipfs"]
 
