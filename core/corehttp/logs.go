@@ -40,9 +40,9 @@ func (w *writeErrNotifier) Write(b []byte) (int, error) {
 func (w *writeErrNotifier) Close() error {
 	select {
 	case w.errs <- io.EOF:
-		close(w.errs)
 	default:
 	}
+	close(w.errs)
 	return nil
 }
 
