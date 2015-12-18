@@ -63,7 +63,7 @@ test_gc() {
 #'
 
 test_expect_success "periodic auto gc stress test" '
-    for i in $(test_seq 1 20)
+    for i in $(test_seq 1 2)
     do
         test_gc
     done
