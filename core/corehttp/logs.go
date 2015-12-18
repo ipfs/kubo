@@ -27,6 +27,7 @@ func (w *writeErrNotifier) Write(b []byte) (int, error) {
 	if err != nil {
 		select {
 		case w.errs <- err:
+			close(w.errs)
 		default:
 		}
 	}
@@ -39,6 +40,7 @@ func (w *writeErrNotifier) Write(b []byte) (int, error) {
 func (w *writeErrNotifier) Close() error {
 	select {
 	case w.errs <- io.EOF:
+		close(w.errs)
 	default:
 	}
 	return nil
