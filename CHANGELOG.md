@@ -380,3 +380,4 @@ And many more things.
       <install new ipfs>
       <manually add .../ipfs/... to addrs in bootstrap_peers>
       ipfs bootstrap add <bootstrap_peers
+ 
