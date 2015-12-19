@@ -639,7 +639,7 @@ remove files or directories
 		dir, name := gopath.Split(path)
 		parent, err := mfs.Lookup(nd.FilesRoot, dir)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(fmt.Errorf("parent lookup: %s", err), cmds.ErrNormal)
 			return
 		}
 
@@ -649,26 +649,29 @@ remove files or directories
 			return
 		}
 
+		dashr, _, _ := req.Option("r").Bool()
+
+		// if '-r' specified, don't check file type (in bad scenarios, the block may not exist)
+		if dashr {
+			err := pdir.Unlink(name)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			return
+		}
+
 		childi, err := pdir.Child(name)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		dashr, _, _ := req.Option("r").Bool()
-
 		switch childi.(type) {
 		case *mfs.Directory:
-			if dashr {
-				err := pdir.Unlink(name)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-			} else {
-				res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmds.ErrNormal)
-				return
-			}
+			res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmds.ErrNormal)
+			return
 		default:
 			err := pdir.Unlink(name)
 			if err != nil {
