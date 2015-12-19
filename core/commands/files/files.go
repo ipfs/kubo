@@ -586,24 +586,17 @@ Examples:
 			return
 		}
 
-		err = mfs.Mkdir(n.FilesRoot, dirtomake, dashp)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
 		flush, found, _ := req.Option("flush").Bool()
 		if !found {
 			flush = true
 		}
 
-		if flush {
-			err := n.FilesRoot.Flush()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
+		err = mfs.Mkdir(n.FilesRoot, dirtomake, dashp, flush)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
+
 	},
 }
 
