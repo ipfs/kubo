@@ -278,11 +278,6 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 		return nil, err
 	}
 
-	err = d.flushUp()
-	if err != nil {
-		return nil, err
-	}
-
 	dirobj := NewDirectory(d.ctx, name, ndir, d, d.dserv)
 	d.childDirs[name] = dirobj
 	return dirobj, nil
@@ -300,12 +295,21 @@ func (d *Directory) Unlink(name string) error {
 		return err
 	}
 
-	return d.flushUp()
-}
-
-func (d *Directory) flushUp() error {
+	_, err = d.dserv.Add(d.node)
+	if err != nil {
+		return err
+	}
 
 	return d.parent.closeChild(d.name, d.node)
+}
+
+func (d *Directory) Flush() error {
+	nd, err := d.flushCurrentNode()
+	if err != nil {
+		return err
+	}
+
+	return d.parent.closeChild(d.name, nd)
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
