@@ -50,19 +50,34 @@ func NewDirectory(ctx context.Context, name string, node *dag.Node, parent child
 // closeChild updates the child by the given name to the dag node 'nd'
 // and changes its own dag node, then propogates the changes upward
 func (d *Directory) closeChild(name string, nd *dag.Node) error {
-	_, err := d.dserv.Add(nd)
+	mynd, err := d.closeChildUpdate(name, nd)
 	if err != nil {
 		return err
 	}
 
+	return d.parent.closeChild(d.name, mynd)
+}
+
+// closeChildUpdate is the portion of closeChild that needs to be locked around
+func (d *Directory) closeChildUpdate(name string, nd *dag.Node) (*dag.Node, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	err = d.updateChild(name, nd)
+
+	err := d.updateChild(name, nd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return d.parent.closeChild(d.name, d.node)
+	return d.flushCurrentNode()
+}
+
+func (d *Directory) flushCurrentNode() (*dag.Node, error) {
+	_, err := d.dserv.Add(d.node)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.node.Copy(), nil
 }
 
 func (d *Directory) updateChild(name string, nd *dag.Node) error {
@@ -263,7 +278,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 		return nil, err
 	}
 
-	err = d.parent.closeChild(d.name, d.node)
+	err = d.flushUp()
 	if err != nil {
 		return nil, err
 	}
@@ -285,13 +300,18 @@ func (d *Directory) Unlink(name string) error {
 		return err
 	}
 
+	return d.flushUp()
+}
+
+func (d *Directory) flushUp() error {
+
 	return d.parent.closeChild(d.name, d.node)
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
 func (d *Directory) AddChild(name string, nd *dag.Node) error {
-	d.Lock()
-	defer d.Unlock()
+	d.lock.Lock()
+	defer d.lock.Unlock()
 
 	_, err := d.childUnsync(name)
 	if err == nil {
@@ -310,7 +330,6 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 
 	d.modTime = time.Now()
 
-	//return d.parent.closeChild(d.name, d.node)
 	return nil
 }
 
@@ -353,8 +372,8 @@ func (d *Directory) sync() error {
 }
 
 func (d *Directory) GetNode() (*dag.Node, error) {
-	d.Lock()
-	defer d.Unlock()
+	d.lock.Lock()
+	defer d.lock.Unlock()
 
 	err := d.sync()
 	if err != nil {

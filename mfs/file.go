@@ -16,8 +16,9 @@ type File struct {
 	name       string
 	hasChanges bool
 
-	mod  *mod.DagModifier
-	lock sync.Mutex
+	dserv dag.DAGService
+	mod   *mod.DagModifier
+	lock  sync.Mutex
 }
 
 // NewFile returns a NewFile object with the given parameters
@@ -28,6 +29,7 @@ func NewFile(name string, node *dag.Node, parent childCloser, dserv dag.DAGServi
 	}
 
 	return &File{
+		dserv:  dserv,
 		parent: parent,
 		name:   name,
 		mod:    dmod,
@@ -60,29 +62,43 @@ func (fi *File) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 // and signals a republish to occur
 func (fi *File) Close() error {
 	fi.Lock()
-	defer fi.Unlock()
 	if fi.hasChanges {
 		err := fi.mod.Sync()
 		if err != nil {
 			return err
 		}
 
-		nd, err := fi.mod.GetNode()
-		if err != nil {
-			return err
-		}
-
-		fi.Unlock()
-		err = fi.parent.closeChild(fi.name, nd)
-		fi.Lock()
-		if err != nil {
-			return err
-		}
-
 		fi.hasChanges = false
+
+		// explicitly stay locked for flushUp call,
+		// it will manage the lock for us
+		return fi.flushUp()
 	}
 
 	return nil
+}
+
+// flushUp syncs the file and adds it to the dagservice
+// it *must* be called with the File's lock taken
+func (fi *File) flushUp() error {
+	nd, err := fi.mod.GetNode()
+	if err != nil {
+		fi.Unlock()
+		return err
+	}
+
+	_, err = fi.dserv.Add(nd)
+	if err != nil {
+		fi.Unlock()
+		return err
+	}
+
+	name := fi.name
+	parent := fi.parent
+
+	// explicit unlock *only* before closeChild call
+	fi.Unlock()
+	return parent.closeChild(name, nd)
 }
 
 // Sync flushes the changes in the file to disk
