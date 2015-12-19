@@ -29,6 +29,9 @@ var FilesCmd = &cmds.Command{
 Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 `,
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("f", "flush", "flush target and ancestors after write (default: true)"),
+	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
 		"write": FilesWriteCmd,
@@ -460,7 +463,6 @@ Warning:
 		cmds.BoolOption("e", "create", "create the file if it does not exist"),
 		cmds.BoolOption("t", "truncate", "truncate the file before writing"),
 		cmds.IntOption("n", "count", "maximum number of bytes to read"),
-		cmds.BoolOption("f", "flush", "flush file and ancestors after write (default: true)"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -482,6 +484,16 @@ Warning:
 			return
 		}
 
+		offset, _, err := req.Option("offset").Int()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if offset < 0 {
+			res.SetError(fmt.Errorf("cannot have negative write offset"), cmds.ErrNormal)
+			return
+		}
+
 		fi, err := getFileHandle(nd.FilesRoot, path, create)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -499,16 +511,6 @@ Warning:
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-		}
-
-		offset, _, err := req.Option("offset").Int()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		if offset < 0 {
-			res.SetError(fmt.Errorf("cannot have negative write offset"), cmds.ErrNormal)
-			return
 		}
 
 		count, countfound, err := req.Option("count").Int()
@@ -588,6 +590,19 @@ Examples:
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+
+		flush, found, _ := req.Option("flush").Bool()
+		if !found {
+			flush = true
+		}
+
+		if flush {
+			err := n.FilesRoot.Flush()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 	},
 }
