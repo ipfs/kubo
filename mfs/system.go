@@ -109,6 +109,23 @@ func (kr *Root) GetValue() FSNode {
 	return kr.val
 }
 
+func (kr *Root) Flush() error {
+	nd, err := kr.GetValue().GetNode()
+	if err != nil {
+		return err
+	}
+
+	k, err := kr.dserv.Add(nd)
+	if err != nil {
+		return err
+	}
+
+	if kr.repub != nil {
+		kr.repub.Update(k)
+	}
+	return nil
+}
+
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
 func (kr *Root) closeChild(name string, nd *dag.Node) error {
