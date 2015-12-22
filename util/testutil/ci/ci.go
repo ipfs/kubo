@@ -6,7 +6,6 @@ package ci
 import (
 	"os"
 
-	jenkins "github.com/ipfs/go-ipfs/util/testutil/ci/jenkins"
 	travis "github.com/ipfs/go-ipfs/util/testutil/ci/travis"
 )
 
@@ -26,14 +25,9 @@ const (
 //
 //  CI=true
 //  travis.IsRunning()
-//  jenkins.IsRunning()
 //
 func IsRunning() bool {
-	if os.Getenv(string(VarCI)) == "true" {
-		return true
-	}
-
-	return travis.IsRunning() || jenkins.IsRunning()
+	return os.Getenv(string(VarCI)) == "true" || travis.IsRunning()
 }
 
 // Env returns the value of a CI env variable.
