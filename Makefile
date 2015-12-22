@@ -1,6 +1,9 @@
-
-ifeq ($(TEST_NO_FUSE),1)
+ifeq ($(TEST_NO_FUSE)$(TEST_NO_IPV6), 11)
+go_test=go test -tags 'nofuse noipv6'
+else ifeq ($(TEST_NO_FUSE),1)
 go_test=go test -tags nofuse
+else ifeq ($(TEST_NO_IPV6),1)
+go_test=go test -tags noipv6
 else
 go_test=go test
 endif
