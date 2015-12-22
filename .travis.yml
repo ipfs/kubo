@@ -20,8 +20,8 @@ before_install:
   - sudo chown root:$USER /etc/fuse.conf
 
 env:
-  - TEST_VERBOSE=1 TEST_SUITE=test_go_expensive
-  - TEST_VERBOSE=1 TEST_SUITE=test_sharness_expensive
+  - TEST_VERBOSE=1 TEST_NO_IPV6=1 TEST_SUITE=test_go_expensive
+  - TEST_VERBOSE=1 TEST_NO_IPV6=1 TEST_SUITE=test_sharness_expensive
 
 install:
   - make toolkit_upgrade
