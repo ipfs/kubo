@@ -14,12 +14,12 @@ go:
     - 1.5.2
 
 before_install:
-  - "if [ ${TRAVIS_OS_NAME:-'linux'} = 'linux' ]; then . ./.travis/before_install-linux.sh; fi"
-  - "if [ ${TRAVIS_OS_NAME:-'linux'} = 'osx' ]; then . ./.travis/before_install-osx.sh; fi"
+  - if [ ${TRAVIS_OS_NAME:-'linux'} = 'linux' ]; then . ./.travis/before_install-linux.sh; fi
+  - if [ ${TRAVIS_OS_NAME:-'linux'} = 'osx' ]; then . ./.travis/before_install-osx.sh; fi
 
 env:
-  - TEST_VERBOSE=1 TEST_NO_IPV6=1 TEST_SUITE=test_go_expensive
-  - TEST_VERBOSE=1 TEST_NO_IPV6=1 TEST_SUITE=test_sharness_expensive
+  - if [ ${TRAVIS_OS_NAME:-'linux'} = 'linux' ]; then TEST_NO_IPV6=1; fi TEST_VERBOSE=1 TEST_SUITE=test_go_expensive
+  - if [ ${TRAVIS_OS_NAME:-'linux'} = 'linux' ]; then TEST_NO_IPV6=1; fi TEST_VERBOSE=1 TEST_SUITE=test_sharness_expensive
 
 script:
   - make $TEST_SUITE
