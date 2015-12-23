@@ -10,7 +10,7 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
-func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
+func Init(out io.Writer, nBitsForKeypair int, datastore string) (*Config, error) {
 	identity, err := identityConfig(out, nBitsForKeypair)
 	if err != nil {
 		return nil, err
@@ -22,6 +22,11 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	}
 
 	snr, err := initSNRConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	ds, err := datastoreConfig("", datastore)
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +63,8 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			ResolveCacheSize: 128,
 		},
 
+		Datastore: *ds,
+
 		// tracking ipfs version used to generate the init folder and adding
 		// update checker default setting.
 		Version: VersionDefaultValue(),
@@ -71,11 +78,16 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	return conf, nil
 }
 
-func datastoreConfig() (*Datastore, error) {
-	dspath, err := DataStorePath("")
+func datastoreConfig(configroot string, datastore string) (*Datastore, error) {
+	dspath, err := DataStorePath(configroot, datastore)
 	if err != nil {
 		return nil, err
 	}
+
+	if len(datastore) != 0 {
+		dspath = datastore
+	}
+
 	return &Datastore{
 		Path:               dspath,
 		Type:               "leveldb",

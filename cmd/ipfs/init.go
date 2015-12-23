@@ -28,6 +28,7 @@ var initCmd = &cmds.Command{
 		cmds.IntOption("bits", "b", fmt.Sprintf("Number of bits to use in the generated RSA private key (defaults to %d)", nBitsForKeypairDefault)),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
 		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage"),
+		cmds.StringOption("datastore", "d", "Change the default datastore path"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -76,7 +77,18 @@ var initCmd = &cmds.Command{
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, force, empty, nBitsForKeypair); err != nil {
+		datastore, _, err := req.Option("d").String()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if len(datastore) > 0 && datastore[0] != '/' {
+			res.SetError(errors.New("datastore must be an absolute path"), cmds.ErrNormal)
+			return
+		}
+
+		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, force, empty, nBitsForKeypair, datastore); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -89,10 +101,10 @@ Reinitializing would overwrite your keys.
 `)
 
 func initWithDefaults(out io.Writer, repoRoot string) error {
-	return doInit(out, repoRoot, false, false, nBitsForKeypairDefault)
+	return doInit(out, repoRoot, false, false, nBitsForKeypairDefault, "")
 }
 
-func doInit(out io.Writer, repoRoot string, force bool, empty bool, nBitsForKeypair int) error {
+func doInit(out io.Writer, repoRoot string, force bool, empty bool, nBitsForKeypair int, datastore string) error {
 	if _, err := fmt.Fprintf(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -101,16 +113,18 @@ func doInit(out io.Writer, repoRoot string, force bool, empty bool, nBitsForKeyp
 		return err
 	}
 
-	if fsrepo.IsInitialized(repoRoot) && !force {
+	// Check if datastore already exists as well?
+	// we don't have a config yet so we can't check for datastore as it's dependant on the config
+	if fsrepo.IsInitialized(repoRoot, nil) && !force {
 		return errRepoExists
 	}
 
-	conf, err := config.Init(out, nBitsForKeypair)
+	conf, err := config.Init(out, nBitsForKeypair, datastore)
 	if err != nil {
 		return err
 	}
 
-	if fsrepo.IsInitialized(repoRoot) {
+	if fsrepo.IsInitialized(repoRoot, conf) {
 		if err := fsrepo.Remove(repoRoot); err != nil {
 			return err
 		}

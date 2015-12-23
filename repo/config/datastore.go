@@ -35,6 +35,10 @@ type S3Datastore struct {
 
 // DataStorePath returns the default data store path given a configuration root
 // (set an empty string to have the default configuration root)
-func DataStorePath(configroot string) (string, error) {
+func DataStorePath(configroot string, datastore string) (string, error) {
+	if len(datastore) != 0 {
+		return Path("", datastore)
+	}
+
 	return Path(configroot, DefaultDataStoreDirectory)
 }
