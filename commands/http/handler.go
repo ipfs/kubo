@@ -12,8 +12,10 @@ import (
 	"strings"
 	"sync"
 
+	
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	websocket "github.com/gorilla/websocket"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
@@ -62,6 +64,11 @@ var mimeTypes = map[string]string{
 	cmds.JSON: "application/json",
 	cmds.XML:  "application/xml",
 	cmds.Text: "text/plain",
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 }
 
 type ServerConfig struct {
@@ -165,18 +172,37 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// call the command
-	res := i.root.Call(req)
-
-	// set user's headers first.
-	for k, v := range i.cfg.Headers {
-		if !skipAPIHeader(k) {
-			w.Header()[k] = v
+	var stdout, stderr io.Writer
+	if req.Command().Interact != nil {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		wsio := NewWebsocketIO(conn)
+		defer wsio.Close()
+		req.SetStdin(wsio)
+		stdout = wsio
+		stderr = wsio
+	} else {	
+		stdout = nil
+		stderr = nil
 	}
+	
+	// call the command
+	res := i.root.Call(req, stdout, stderr)
 
-	// now handle responding to the client properly
-	sendResponse(w, r, res, req)
+	if req.Command().Interact == nil {
+		// set user's headers first.
+		for k, v := range i.cfg.Headers {
+			if !skipAPIHeader(k) {
+				w.Header()[k] = v
+			}
+		}
+		
+		// now handle responding to the client properly
+		sendResponse(w, r, res, req)
+	}
 }
 
 func guessMimeType(res cmds.Response) (string, error) {

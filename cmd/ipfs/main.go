@@ -340,7 +340,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		}
 
 		// Okay!!!!! NOW we can call the command.
-		res = root.Call(req)
+		res = root.Call(req, os.Stdout, os.Stderr)
 
 	}
 
@@ -643,7 +643,7 @@ func doVersionRequest(client cmdsHttp.Client) (*coreCmds.VersionOutput, error) {
 		return nil, err
 	}
 
-	req, err := cmds.NewRequest([]string{"version"}, nil, nil, nil, cmd, optDefs)
+	req, err := cmds.NewRequest([]string{"version"}, nil, nil, nil, cmd, optDefs, nil)
 	if err != nil {
 		return nil, err
 	}
