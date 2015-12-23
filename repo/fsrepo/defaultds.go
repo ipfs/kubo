@@ -21,12 +21,20 @@ const (
 )
 
 func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
-	leveldbPath := path.Join(r.path, leveldbDirectory)
+	dsPath := r.config.Datastore.Path
+
+	if len(dsPath) == 0 {
+		dsPath = r.path
+	}
+
+	leveldbPath := path.Join(dsPath, leveldbDirectory)
+	flatfsPath := path.Join(dsPath, flatfsDirectory)
 
 	// save leveldb reference so it can be neatly closed afterward
 	leveldbDS, err := levelds.NewDatastore(leveldbPath, &levelds.Options{
 		Compression: ldbopts.NoCompression,
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("unable to open leveldb datastore: %v", err)
 	}
@@ -40,7 +48,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	// reach a uniform 256-way split, we need approximately 4 bytes of
 	// prefix.
 	syncfs := !r.config.Datastore.NoSync
-	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 4, syncfs)
+	blocksDS, err := flatfs.New(flatfsPath, 4, syncfs)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}
@@ -54,6 +62,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		// the tests pass in a zero Config; cope with it
 		id = fmt.Sprintf("uninitialized_%p", r)
 	}
+
 	prefix := "fsrepo." + id + ".datastore."
 	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
 	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
@@ -72,16 +81,23 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 }
 
 func initDefaultDatastore(repoPath string, conf *config.Config) error {
+	dsPath := conf.Datastore.Path
+
+	if len(dsPath) == 0 {
+		dsPath = repoPath
+	}
+
 	// The actual datastore contents are initialized lazily when Opened.
 	// During Init, we merely check that the directory is writeable.
-	leveldbPath := path.Join(repoPath, leveldbDirectory)
+	leveldbPath := path.Join(dsPath, leveldbDirectory)
 	if err := dir.Writable(leveldbPath); err != nil {
 		return fmt.Errorf("datastore: %s", err)
 	}
 
-	flatfsPath := path.Join(repoPath, flatfsDirectory)
+	flatfsPath := path.Join(dsPath, flatfsDirectory)
 	if err := dir.Writable(flatfsPath); err != nil {
 		return fmt.Errorf("datastore: %s", err)
 	}
+
 	return nil
 }

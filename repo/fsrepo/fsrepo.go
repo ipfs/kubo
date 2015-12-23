@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -109,7 +110,7 @@ func open(repoPath string) (repo.Repo, error) {
 	}
 
 	// Check if its initialized
-	if err := checkInitialized(r.path); err != nil {
+	if err := checkInitialized(r.path, r.config); err != nil {
 		return nil, err
 	}
 
@@ -164,10 +165,10 @@ func newFSRepo(rpath string) (*FSRepo, error) {
 	return &FSRepo{path: expPath}, nil
 }
 
-func checkInitialized(path string) error {
-	if !isInitializedUnsynced(path) {
+func checkInitialized(path string, conf *config.Config) error {
+	if !isInitializedUnsynced(path, conf) {
 		alt := strings.Replace(path, ".ipfs", ".go-ipfs", 1)
-		if isInitializedUnsynced(alt) {
+		if isInitializedUnsynced(alt, conf) {
 			return ErrOldRepo
 		}
 		return NoRepoError{Path: path}
@@ -230,7 +231,7 @@ func Init(repoPath string, conf *config.Config) error {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if isInitializedUnsynced(repoPath) {
+	if isInitializedUnsynced(repoPath, conf) {
 		return nil
 	}
 
@@ -572,25 +573,34 @@ var _ io.Closer = &FSRepo{}
 var _ repo.Repo = &FSRepo{}
 
 // IsInitialized returns true if the repo is initialized at provided |path|.
-func IsInitialized(path string) bool {
+func IsInitialized(path string, conf *config.Config) bool {
 	// packageLock is held to ensure that another caller doesn't attempt to
 	// Init or Remove the repo while this call is in progress.
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	return isInitializedUnsynced(path)
+	return isInitializedUnsynced(path, conf)
 }
 
 // private methods below this point. NB: packageLock must held by caller.
 
 // isInitializedUnsynced reports whether the repo is initialized. Caller must
 // hold the packageLock.
-func isInitializedUnsynced(repoPath string) bool {
+func isInitializedUnsynced(repoPath string, conf *config.Config) bool {
 	if !configIsInitialized(repoPath) {
 		return false
 	}
 
-	if !util.FileExists(filepath.Join(repoPath, leveldbDirectory)) {
+	leveldbPath := path.Join(repoPath, leveldbDirectory)
+	if conf != nil {
+		dsPath := conf.Datastore.Path
+		if len(dsPath) != 0 {
+			leveldbPath = path.Join(dsPath, leveldbDirectory)
+		}
+
+	}
+
+	if !util.FileExists(leveldbPath) {
 		return false
 	}
 
