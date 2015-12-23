@@ -4,7 +4,7 @@ dist: trusty
 
 os:
   - linux
-  # - osx TODO re-enable osx support
+  - osx
 
 go_import_path: github.com/ipfs/go-ipfs
 
@@ -14,10 +14,8 @@ go:
     - 1.5.2
 
 before_install:
-  - sudo apt-get install -qq pkg-config fuse
-  - sudo modprobe fuse
-  - sudo chmod 666 /dev/fuse
-  - sudo chown root:$USER /etc/fuse.conf
+  - "if [ ${TRAVIS_OS_NAME:-'linux'} = 'linux' ]; then . ./.travis/before_install-linux.sh; fi"
+  - "if [ ${TRAVIS_OS_NAME:-'linux'} = 'osx' ]; then . ./.travis/before_install-osx.sh; fi"
 
 env:
   - TEST_VERBOSE=1 TEST_NO_IPV6=1 TEST_SUITE=test_go_expensive
