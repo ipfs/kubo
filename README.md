@@ -22,7 +22,7 @@ If the issue is a protocol weakness that cannot be immediately exploited or some
 
 ## Install
 
-The canonical download instructions for IPFS are over at: http://ipfs.io/docs/install
+The canonical download instructions for IPFS are over at: http://ipfs.io/docs/install/
 
 ## Install prebuilt packages
 
@@ -51,7 +51,7 @@ export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$GOPATH/bin
 ```
 
-(If you run into trouble, see the [Go install instructions](http://golang.org/doc/install))
+(If you run into trouble, see the [Go install instructions](https://golang.org/doc/install))
 
 ### Download + Compile IPFS
 
@@ -159,7 +159,7 @@ Basic proof of 'ipfs working' locally:
 
 ### Docker usage
 
-An ipfs docker image is hosted at [hub.docker.com/r/jbenet/go-ipfs](http://hub.docker.com/r/jbenet/go-ipfs).
+An ipfs docker image is hosted at [hub.docker.com/r/jbenet/go-ipfs](https://hub.docker.com/r/jbenet/go-ipfs/).
 To make files visible inside the container you need to mount a host directory
 with the `-v` option to docker. Choose a directory that you want to use to
 import/export files from ipfs. You should also choose a directory to store
@@ -222,7 +222,7 @@ else) your ipfs config directory (~/.ipfs by default) and rerunning `ipfs init`.
 This will reinitialize the config file to its defaults and clear out the local
 datastore of any bad entries.
 
-For any other problems, check the [issues list](http://github.com/ipfs/go-ipfs/issues)
+For any other problems, check the [issues list](https://github.com/ipfs/go-ipfs/issues)
 and if you dont see your problem there, either come talk to us on irc (freenode #ipfs) or
 file an issue of your own!
 
@@ -237,7 +237,7 @@ An IPFS alpha version has been released in February 2015. Things left to be done
 
 ## Development Dependencies
 
-If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://code.google.com/p/protobuf/downloads/list).
+If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
 
 ## License
 
