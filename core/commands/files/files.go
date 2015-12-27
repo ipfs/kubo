@@ -659,6 +659,17 @@ remove files or directories
 
 		dashr, _, _ := req.Option("r").Bool()
 
+		var success bool
+		defer func() {
+			if success {
+				err := pdir.Flush()
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+			}
+		}()
+
 		// if '-r' specified, don't check file type (in bad scenarios, the block may not exist)
 		if dashr {
 			err := pdir.Unlink(name)
@@ -667,6 +678,7 @@ remove files or directories
 				return
 			}
 
+			success = true
 			return
 		}
 
@@ -686,6 +698,8 @@ remove files or directories
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
+
+			success = true
 		}
 	},
 }
