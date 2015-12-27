@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -48,7 +49,7 @@ func NewDirectory(ctx context.Context, name string, node *dag.Node, parent child
 }
 
 // closeChild updates the child by the given name to the dag node 'nd'
-// and changes its own dag node, then propogates the changes upward
+// and changes its own dag node
 func (d *Directory) closeChild(name string, nd *dag.Node) error {
 	mynd, err := d.closeChildUpdate(name, nd)
 	if err != nil {
@@ -300,7 +301,7 @@ func (d *Directory) Unlink(name string) error {
 		return err
 	}
 
-	return d.parent.closeChild(d.name, d.node)
+	return nil
 }
 
 func (d *Directory) Flush() error {
@@ -373,6 +374,16 @@ func (d *Directory) sync() error {
 	}
 
 	return nil
+}
+
+func (d *Directory) Path() string {
+	cur := d
+	var out string
+	for cur != nil {
+		out = path.Join(cur.name, out)
+		cur = cur.parent.(*Directory)
+	}
+	return out
 }
 
 func (d *Directory) GetNode() (*dag.Node, error) {
