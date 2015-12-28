@@ -14,12 +14,12 @@ import (
 // No more than one file will be opened at a time (directories will advance
 // to the next file when NextFile() is called).
 type serialFile struct {
-	name    string
-	path    string
-	files   []os.FileInfo
-	stat    os.FileInfo
-	current *File
-	hidden  bool
+	name              string
+	path              string
+	files             []os.FileInfo
+	stat              os.FileInfo
+	current           *File
+	handleHiddenFiles bool
 }
 
 func NewSerialFile(name, path string, hidden bool, stat os.FileInfo) (File, error) {
@@ -70,7 +70,7 @@ func (f *serialFile) NextFile() (File, error) {
 	stat := f.files[0]
 	f.files = f.files[1:]
 
-	for !f.hidden && strings.HasPrefix(stat.Name(), ".") {
+	for !f.handleHiddenFiles && strings.HasPrefix(stat.Name(), ".") {
 		if len(f.files) == 0 {
 			return nil, io.EOF
 		}
@@ -86,7 +86,7 @@ func (f *serialFile) NextFile() (File, error) {
 	// recursively call the constructor on the next file
 	// if it's a regular file, we will open it as a ReaderFile
 	// if it's a directory, files in it will be opened serially
-	sf, err := NewSerialFile(fileName, filePath, f.hidden, stat)
+	sf, err := NewSerialFile(fileName, filePath, f.handleHiddenFiles, stat)
 	if err != nil {
 		return nil, err
 	}
