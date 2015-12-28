@@ -91,6 +91,16 @@ beep
 Content-Type: application/x-directory
 Content-Disposition: file; filename="dir"
 
+--Boundary!
+Content-Type: text/plain
+Content-Disposition: file; filename="dir/nested"
+
+some content
+--Boundary!
+Content-Type: application/symlink
+Content-Disposition: file; filename="dir/simlynk"
+
+anotherfile
 --Boundary!--
 
 `
@@ -146,4 +156,48 @@ Content-Disposition: file; filename="dir"
 		t.Fatal("Shouldn't be able to call `Close` on a directory")
 	}
 
+	// test properties of file created from third part (nested file)
+	part, err = mpReader.NextPart()
+	if part == nil || err != nil {
+		t.Fatal("Expected non-nil part, nil error")
+	}
+	mpf, err = NewFileFromPart(part)
+	if mpf == nil || err != nil {
+		t.Fatal("Expected non-nil MultipartFile, nil error")
+	}
+	if mpf.IsDirectory() {
+		t.Fatal("Expected file, got directory")
+	}
+	if mpf.FileName() != "dir/nested" {
+		t.Fatalf("Expected filename to be \"nested\", got %s", mpf.FileName())
+	}
+	if n, err := mpf.Read(buf); n != 12 || err != nil {
+		t.Fatalf("expected to be able to read 12 bytes from file: %s (got %d)", err, n)
+	}
+	if err := mpf.Close(); err != nil {
+		t.Fatal("should be able to close file: %s", err)
+	}
+
+	// test properties of symlink created from fourth part (symlink)
+	part, err = mpReader.NextPart()
+	if part == nil || err != nil {
+		t.Fatal("Expected non-nil part, nil error")
+	}
+	mpf, err = NewFileFromPart(part)
+	if mpf == nil || err != nil {
+		t.Fatal("Expected non-nil MultipartFile, nil error")
+	}
+	if mpf.IsDirectory() {
+		t.Fatal("Expected file to be a symlink")
+	}
+	if mpf.FileName() != "dir/simlynk" {
+		t.Fatal("Expected filename to be \"dir/simlynk\"")
+	}
+	slink, ok := mpf.(*Symlink)
+	if !ok {
+		t.Fatalf("expected file to be a symlink")
+	}
+	if slink.Target != "anotherfile" {
+		t.Fatal("expected link to point to anotherfile")
+	}
 }
