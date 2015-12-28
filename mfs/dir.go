@@ -268,7 +268,9 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 		return nil, err
 	}
 
-	return d.childDir(name)
+	dirobj := NewDirectory(d.ctx, name, ndir, d, d.dserv)
+	d.childDirs[name] = dirobj
+	return dirobj, nil
 }
 
 func (d *Directory) Unlink(name string) error {

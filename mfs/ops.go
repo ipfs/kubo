@@ -116,7 +116,10 @@ func Mkdir(r *Root, pth string, parents bool) error {
 
 	if len(parts) == 0 {
 		// this will only happen on 'mkdir /'
-		return fmt.Errorf("cannot mkdir '%s'", pth)
+		if parents {
+			return nil
+		}
+		return fmt.Errorf("cannot create directory '/': Already exists")
 	}
 
 	cur := r.GetValue().(*Directory)
