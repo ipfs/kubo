@@ -328,6 +328,13 @@ func (adder *Adder) addNode(node *dag.Node, path string) error {
 		path = key.Pretty()
 	}
 
+	dir := gopath.Dir(path)
+	if dir != "." {
+		if err := mfs.Mkdir(adder.mr, dir, true); err != nil {
+			return err
+		}
+	}
+
 	if err := mfs.PutNode(adder.mr, path, node); err != nil {
 		return err
 	}
