@@ -96,7 +96,6 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	// TODO extract string consts?
 	if fileReader != nil {
 		httpReq.Header.Set(contentTypeHeader, "multipart/form-data; boundary="+fileReader.Boundary())
-		httpReq.Header.Set(contentDispHeader, "form-data: name=\"files\"")
 	} else {
 		httpReq.Header.Set(contentTypeHeader, applicationOctetStream)
 	}
