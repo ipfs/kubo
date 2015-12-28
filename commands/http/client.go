@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	path "github.com/ipfs/go-ipfs/path"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -86,8 +85,8 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		reader = strings.NewReader("")
 	}
 
-	pth := path.Join(req.Path())
-	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, pth, query)
+	path := strings.Join(req.Path(), "/")
+	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query)
 
 	httpReq, err := http.NewRequest("POST", url, reader)
 	if err != nil {
@@ -97,7 +96,6 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	// TODO extract string consts?
 	if fileReader != nil {
 		httpReq.Header.Set(contentTypeHeader, "multipart/form-data; boundary="+fileReader.Boundary())
-		httpReq.Header.Set(contentDispHeader, "form-data: name=\"files\"")
 	} else {
 		httpReq.Header.Set(contentTypeHeader, applicationOctetStream)
 	}

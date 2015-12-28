@@ -255,7 +255,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	f, err := files.NewSerialFile(root, root, stat)
+	f, err := files.NewSerialFile(root, root, false, stat)
 	if err != nil {
 		return "", err
 	}
@@ -328,6 +328,13 @@ func (adder *Adder) addNode(node *dag.Node, path string) error {
 		path = key.Pretty()
 	}
 
+	dir := gopath.Dir(path)
+	if dir != "." {
+		if err := mfs.Mkdir(adder.mr, dir, true); err != nil {
+			return err
+		}
+	}
+
 	if err := mfs.PutNode(adder.mr, path, node); err != nil {
 		return err
 	}
@@ -354,7 +361,7 @@ func (adder *Adder) addFile(file files.File) error {
 
 	switch {
 	case files.IsHidden(file) && !adder.Hidden:
-		log.Debugf("%s is hidden, skipping", file.FileName())
+		log.Infof("%s is hidden, skipping", file.FileName())
 		return &hiddenFileError{file.FileName()}
 	case file.IsDirectory():
 		return adder.addDir(file)

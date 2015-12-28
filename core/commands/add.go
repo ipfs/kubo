@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"github.com/ipfs/go-ipfs/core/coreunix"
@@ -147,26 +146,8 @@ remains to be implemented.
 		fileAdder.Pin = dopin
 		fileAdder.Silent = silent
 
-		// addAllFiles loops over a convenience slice file to
-		// add each file individually. e.g. 'ipfs add a b c'
-		addAllFiles := func(sliceFile files.File) error {
-			for {
-				file, err := sliceFile.NextFile()
-				if err != nil && err != io.EOF {
-					return err
-				}
-				if file == nil {
-					return nil // done
-				}
-
-				if err := fileAdder.AddFile(file); err != nil {
-					return err
-				}
-			}
-		}
-
 		addAllAndPin := func(f files.File) error {
-			if err := addAllFiles(f); err != nil {
+			if err := fileAdder.AddFile(f); err != nil {
 				return err
 			}
 

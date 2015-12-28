@@ -1,10 +1,10 @@
 package files
 
 import (
+	"io"
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
-	"net/http"
 	"net/url"
 )
 
@@ -12,7 +12,8 @@ const (
 	multipartFormdataType = "multipart/form-data"
 	multipartMixedType    = "multipart/mixed"
 
-	applicationSymlink = "application/symlink"
+	applicationDirectory = "application/x-directory"
+	applicationSymlink   = "application/symlink"
 
 	contentTypeHeader = "Content-Type"
 )
@@ -45,40 +46,33 @@ func NewFileFromPart(part *multipart.Part) (File, error) {
 		}, nil
 	}
 
-	var params map[string]string
 	var err error
-	f.Mediatype, params, err = mime.ParseMediaType(contentType)
+	f.Mediatype, _, err = mime.ParseMediaType(contentType)
 	if err != nil {
 		return nil, err
-	}
-
-	if f.IsDirectory() {
-		boundary, found := params["boundary"]
-		if !found {
-			return nil, http.ErrMissingBoundary
-		}
-
-		f.Reader = multipart.NewReader(part, boundary)
 	}
 
 	return f, nil
 }
 
 func (f *MultipartFile) IsDirectory() bool {
-	return f.Mediatype == multipartFormdataType || f.Mediatype == multipartMixedType
+	return f.Mediatype == multipartFormdataType || f.Mediatype == applicationDirectory
 }
 
 func (f *MultipartFile) NextFile() (File, error) {
 	if !f.IsDirectory() {
 		return nil, ErrNotDirectory
 	}
+	if f.Reader != nil {
+		part, err := f.Reader.NextPart()
+		if err != nil {
+			return nil, err
+		}
 
-	part, err := f.Reader.NextPart()
-	if err != nil {
-		return nil, err
+		return NewFileFromPart(part)
 	}
 
-	return NewFileFromPart(part)
+	return nil, io.EOF
 }
 
 func (f *MultipartFile) FileName() string {
