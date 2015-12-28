@@ -100,8 +100,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	} else {
 		httpReq.Header.Set(contentTypeHeader, applicationOctetStream)
 	}
-	version := config.CurrentVersionNumber
-	httpReq.Header.Set(uaHeader, fmt.Sprintf("/go-ipfs/%s/", version))
+	httpReq.Header.Set(uaHeader, config.ApiVersion)
 
 	ec := make(chan error, 1)
 	rc := make(chan cmds.Response, 1)
