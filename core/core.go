@@ -147,7 +147,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	for _, s := range cfg.Swarm.AddrFilters {
 		f, err := mamask.NewMask(s)
 		if err != nil {
-			return fmt.Errorf("incorrectly formatter address filter in config: %s", s)
+			return fmt.Errorf("incorrectly formatted address filter in config: %s", s)
 		}
 		addrfilter = append(addrfilter, f)
 	}
