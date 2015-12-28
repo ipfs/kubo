@@ -23,6 +23,10 @@ const (
 	ApiPath      = "/api/v0" // TODO: make configurable
 )
 
+var OptionSkipMap = map[string]bool{
+	"api": true,
+}
+
 // Client is the commands HTTP client interface.
 type Client interface {
 	Send(req cmds.Request) (cmds.Response, error)
@@ -141,13 +145,9 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 }
 
 func getQuery(req cmds.Request) (string, error) {
-	// some options should be kept clientside, the server doesnt care
-	skip := map[string]bool{
-		"api": true,
-	}
 	query := url.Values{}
 	for k, v := range req.Options() {
-		if skip[k] {
+		if OptionSkipMap[k] {
 			continue
 		}
 		str := fmt.Sprintf("%v", v)
