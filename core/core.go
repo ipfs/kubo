@@ -434,12 +434,12 @@ func (n *IpfsNode) loadID() error {
 }
 
 func (n *IpfsNode) LoadPrivateKey() error {
-	if n.Identity == "" || n.Peerstore == nil {
-		return errors.New("loaded private key out of order.")
+	if n.PrivateKey != nil {
+		return nil
 	}
 
-	if n.PrivateKey != nil {
-		return errors.New("private key already loaded")
+	if n.Identity == "" || n.Peerstore == nil {
+		return errors.New("loaded private key out of order.")
 	}
 
 	cfg, err := n.Repo.Config()
@@ -510,10 +510,9 @@ func (n *IpfsNode) loadFilesRoot() error {
 // uses it to instantiate a routing system in offline mode.
 // This is primarily used for offline ipns modifications.
 func (n *IpfsNode) SetupOfflineRouting() error {
-	if n.PrivateKey == nil {
-		if err := n.LoadPrivateKey(); err != nil {
-			return err
-		}
+	err := n.LoadPrivateKey()
+	if err != nil {
+		return err
 	}
 
 	n.Routing = offroute.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
