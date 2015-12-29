@@ -2,6 +2,7 @@ package namesys
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
@@ -117,6 +118,8 @@ func (r *routingResolver) ResolveN(ctx context.Context, name string, depth int) 
 // resolve SFS-like names.
 func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
 	log.Debugf("RoutingResolve: '%s'", name)
+	name = strings.TrimLeft(name, "/ipns/")
+
 	cached, ok := r.cacheGet(name)
 	if ok {
 		return cached, nil
@@ -124,7 +127,6 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 
 	hash, err := mh.FromB58String(name)
 	if err != nil {
-		// name should be a multihash. if it isn't, error out here.
 		log.Warningf("RoutingResolve: bad input hash: [%s]\n", name)
 		return "", err
 	}
