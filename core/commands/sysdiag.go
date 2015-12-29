@@ -9,8 +9,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
-	psud "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/shirou/gopsutil/disk"
-	psum "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/shirou/gopsutil/mem"
+	sysi "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-sysinfo"
 )
 
 var sysDiagCmd = &cmds.Command{
@@ -91,14 +90,13 @@ func ipfsPath() string {
 
 func diskSpaceInfo(out map[string]interface{}) error {
 	di := make(map[string]interface{})
-	dinfo, err := psud.DiskUsage(ipfsPath())
+	dinfo, err := sysi.DiskUsage(ipfsPath())
 	if err != nil {
 		return err
 	}
 
-	di["fstype"] = dinfo.Fstype
+	di["fstype"] = dinfo.FsType
 	di["total_space"] = dinfo.Total
-	di["used_space"] = dinfo.Used
 	di["free_space"] = dinfo.Free
 
 	out["diskinfo"] = di
@@ -107,18 +105,14 @@ func diskSpaceInfo(out map[string]interface{}) error {
 
 func memInfo(out map[string]interface{}) error {
 	m := make(map[string]interface{})
-	swap, err := psum.SwapMemory()
+
+	meminf, err := sysi.MemoryInfo()
 	if err != nil {
 		return err
 	}
 
-	virt, err := psum.VirtualMemory()
-	if err != nil {
-		return err
-	}
-
-	m["swap"] = swap
-	m["virt"] = virt
+	m["swap"] = meminf.Swap
+	m["virt"] = meminf.Used
 	out["memory"] = m
 	return nil
 }
