@@ -15,10 +15,6 @@
 			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
 		},
 		{
-			"ImportPath": "github.com/StackExchange/wmi",
-			"Rev": "8730d7ed549382cb1f889a576a7223c137be7989"
-		},
-		{
 			"ImportPath": "github.com/alecthomas/kingpin",
 			"Comment": "v2.1.0-2-gaedd543",
 			"Rev": "aedd5430ecd39ba1396fee0c00308b494c552b1e"
@@ -116,11 +112,6 @@
 			"Rev": "50e7633d5f27d81490026a13e5b92d2e42d8c6bb"
 		},
 		{
-			"ImportPath": "github.com/go-ole/go-ole",
-			"Comment": "v1.1.1-64-g4246eab",
-			"Rev": "4246eab2a27c71c143f965432ace52990308d362"
-		},
-		{
 			"ImportPath": "github.com/gogo/protobuf/io",
 			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
 		},
@@ -143,10 +134,6 @@
 		{
 			"ImportPath": "github.com/huin/goupnp",
 			"Rev": "223008361153d7d434c1f0ac990cd3fcae6931f5"
-		},
-		{
-			"ImportPath": "github.com/inconshreveable/go-update",
-			"Rev": "68f5725818189545231c1fd8694793d45f2fc529"
 		},
 		{
 			"ImportPath": "github.com/jackpal/go-nat-pmp",
@@ -235,14 +222,6 @@
 			"Rev": "64a8220330a485070813201cc05b0c6777f6a516"
 		},
 		{
-			"ImportPath": "github.com/kardianos/osext",
-			"Rev": "8fef92e41e22a70e700a96b29f066cda30ea24ef"
-		},
-		{
-			"ImportPath": "github.com/kr/binarydist",
-			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
-		},
-		{
 			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
 			"Rev": "fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a"
 		},
@@ -295,21 +274,6 @@
 			"Rev": "7c7f2020c4c9491594b85767967f4619c2fa75f9"
 		},
 		{
-			"ImportPath": "github.com/shirou/gopsutil/common",
-			"Comment": "1.0.0-167-g6a274c3",
-			"Rev": "6a274c3628382ab316340478300f5282b89f7778"
-		},
-		{
-			"ImportPath": "github.com/shirou/gopsutil/disk",
-			"Comment": "1.0.0-167-g6a274c3",
-			"Rev": "6a274c3628382ab316340478300f5282b89f7778"
-		},
-		{
-			"ImportPath": "github.com/shirou/gopsutil/mem",
-			"Comment": "1.0.0-167-g6a274c3",
-			"Rev": "6a274c3628382ab316340478300f5282b89f7778"
-		},
-		{
 			"ImportPath": "github.com/steakknife/hamming",
 			"Comment": "0.0.10",
 			"Rev": "8bad99011016569c05320e51be39c648679c5b73"
@@ -345,6 +309,10 @@
 		{
 			"ImportPath": "github.com/whyrusleeping/go-multistream",
 			"Rev": "31bb014803a6eba2261bda5593e42c016a5f33bb"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-sysinfo",
+			"Rev": "769b7c0b50e8030895abc74ba8107ac715e3162a"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",
