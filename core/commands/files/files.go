@@ -13,8 +13,10 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
+	namesys "github.com/ipfs/go-ipfs/namesys"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
+	offline "github.com/ipfs/go-ipfs/routing/offline"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -625,6 +627,15 @@ publish a file to ipns directly out of the files api
 			}
 		}
 
+		local, _, _ := req.Option("local").Bool()
+		var publisher namesys.Publisher
+		if local {
+			offroute := offline.NewOfflineRouter(nd.Repo.Datastore(), nd.PrivateKey)
+			publisher = namesys.NewRoutingPublisher(offroute, nd.Repo.Datastore())
+		} else {
+			publisher = nd.Namesys
+		}
+
 		fpath, err := checkPath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -668,7 +679,7 @@ publish a file to ipns directly out of the files api
 			return
 		}
 
-		err = nd.Namesys.Publish(req.Context(), key, path.FromKey(ndkey))
+		err = publisher.Publish(req.Context(), key, path.FromKey(ndkey))
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

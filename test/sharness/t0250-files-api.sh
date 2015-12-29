@@ -345,6 +345,21 @@ test_files_api() {
 		verify_dir_contents /cats/this
 	'
 
+	# test publish
+	test_expect_success "ipfs name publish works" '
+		ipfs files publish --local /cats/walrus
+	'
+
+	test_expect_success "ipns record looks good" '
+		ipfs name resolve --local > record_out
+	'
+
+	test_expect_success "record is correct" '
+		echo "/ipfs/QmNzVQoBR7wQjSNXFrcJHZ29PMsEDfF6iZB1QEhKD4uZpV" > record_exp &&
+		test_cmp record_exp record_out
+	'
+
+	# cleanup
 	test_expect_success "cleanup, remove 'cats'" '
 		ipfs files rm -r /cats
 	'
@@ -352,6 +367,7 @@ test_files_api() {
 	test_expect_success "cleanup looks good" '
 		verify_dir_contents /
 	'
+
 }
 
 # test offline and online
