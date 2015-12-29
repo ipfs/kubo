@@ -392,7 +392,11 @@ func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recur
 		}
 	}
 
-	arg, err := files.NewSerialFile(path.Base(fpath), fpath, stat)
+	basename := path.Base(fpath)
+	if stat.IsDir() {
+		basename = "."
+	}
+	arg, err := files.NewSerialFile(basename, fpath, stat)
 	if err != nil {
 		return nil, nil, err
 	}
