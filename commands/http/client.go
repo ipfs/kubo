@@ -23,6 +23,10 @@ const (
 	ApiPath      = "/api/v0" // TODO: make configurable
 )
 
+var OptionSkipMap = map[string]bool{
+	"api": true,
+}
+
 // Client is the commands HTTP client interface.
 type Client interface {
 	Send(req cmds.Request) (cmds.Response, error)
@@ -79,10 +83,6 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	if req.Files() != nil {
 		fileReader = NewMultiFileReader(req.Files(), true)
 		reader = fileReader
-	} else {
-		// if we have no file data, use an empty Reader
-		// (http.NewRequest panics when a nil Reader is used)
-		reader = strings.NewReader("")
 	}
 
 	path := strings.Join(req.Path(), "/")
@@ -147,6 +147,9 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 func getQuery(req cmds.Request) (string, error) {
 	query := url.Values{}
 	for k, v := range req.Options() {
+		if OptionSkipMap[k] {
+			continue
+		}
 		str := fmt.Sprintf("%v", v)
 		query.Set(k, str)
 	}
