@@ -321,7 +321,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		}
 	}
 
-	if client != nil {
+	if client != nil && !cmd.External {
 		log.Debug("Executing command via API")
 		res, err = client.Send(req)
 		if err != nil {
