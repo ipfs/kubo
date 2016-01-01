@@ -64,17 +64,21 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error)
 	if !strings.HasPrefix(name, "/ipns/") {
 		name = "/ipns/" + name
 	}
-	segments := strings.SplitN(name, "/", 3)
+	segments := strings.SplitN(name, "/", 4)
 	if len(segments) < 3 || segments[0] != "" {
 		log.Warningf("Invalid name syntax for %s", name)
 		return "", ErrResolveFailed
 	}
 
 	for protocol, resolver := range ns.resolvers {
-		log.Debugf("Attempting to resolve %s with %s", name, protocol)
+		log.Debugf("Attempting to resolve %s with %s", segments[2], protocol)
 		p, err := resolver.resolveOnce(ctx, segments[2])
 		if err == nil {
-			return p, err
+			if len(segments) > 3 {
+				return path.FromSegments(p.String() + "/", segments[3])
+			} else {
+				return p, err
+			}
 		}
 	}
 	log.Warningf("No resolver found for %s", name)

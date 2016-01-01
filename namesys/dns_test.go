@@ -18,6 +18,7 @@ func (m *mockDNS) lookupTXT(name string) (txt []string, err error) {
 }
 
 func TestDnsEntryParsing(t *testing.T) {
+
 	goodEntries := []string{
 		"QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD",
 		"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD",
@@ -86,6 +87,12 @@ func newMockDNS() *mockDNS {
 			"bad.example.com": []string{
 				"dnslink=",
 			},
+			"withsegment.example.com": []string{
+				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD/sub/segment",
+			},
+			"withrecsegment.example.com": []string{
+				"dnslink=/ipns/withsegment.example.com/subsub",
+			},
 		},
 	}
 }
@@ -109,4 +116,6 @@ func TestDNSResolution(t *testing.T) {
 	testResolution(t, r, "loop1.example.com", 3, "/ipns/loop2.example.com", ErrResolveRecursion)
 	testResolution(t, r, "loop1.example.com", DefaultDepthLimit, "/ipns/loop1.example.com", ErrResolveRecursion)
 	testResolution(t, r, "bad.example.com", DefaultDepthLimit, "", ErrResolveFailed)
+	testResolution(t, r, "withsegment.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD/sub/segment", nil)
+	testResolution(t, r, "withrecsegment.example.com", DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD/sub/segment/subsub", nil)
 }

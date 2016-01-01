@@ -45,12 +45,14 @@ func (r *DNSResolver) ResolveN(ctx context.Context, name string, depth int) (pat
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
 func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
-	if !isd.IsDomain(name) {
+	segments := strings.SplitN(name, "/", 2)
+
+	if !isd.IsDomain(segments[0]) {
 		return "", errors.New("not a valid domain name")
 	}
 
-	log.Infof("DNSResolver resolving %s", name)
-	txt, err := r.lookupTXT(name)
+	log.Infof("DNSResolver resolving %s", segments[0])
+	txt, err := r.lookupTXT(segments[0])
 	if err != nil {
 		return "", err
 	}
@@ -58,6 +60,9 @@ func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, 
 	for _, t := range txt {
 		p, err := parseEntry(t)
 		if err == nil {
+			if len(segments) > 1 {
+				return path.FromSegments(p.String() + "/", segments[1])
+			}
 			return p, nil
 		}
 	}
