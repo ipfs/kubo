@@ -13,7 +13,10 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
+	namesys "github.com/ipfs/go-ipfs/namesys"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
+	offline "github.com/ipfs/go-ipfs/routing/offline"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -30,14 +33,15 @@ Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"read":  FilesReadCmd,
-		"write": FilesWriteCmd,
-		"mv":    FilesMvCmd,
-		"cp":    FilesCpCmd,
-		"ls":    FilesLsCmd,
-		"mkdir": FilesMkdirCmd,
-		"stat":  FilesStatCmd,
-		"rm":    FilesRmCmd,
+		"read":    FilesReadCmd,
+		"write":   FilesWriteCmd,
+		"mv":      FilesMvCmd,
+		"cp":      FilesCpCmd,
+		"ls":      FilesLsCmd,
+		"mkdir":   FilesMkdirCmd,
+		"stat":    FilesStatCmd,
+		"rm":      FilesRmCmd,
+		"publish": FilesPublishCmd,
 	},
 }
 
@@ -585,6 +589,97 @@ Examples:
 		}
 
 		err = mfs.Mkdir(n.FilesRoot, dirtomake, dashp)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+	},
+}
+
+var FilesPublishCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "publish a path to a specified ipns entry",
+		ShortDescription: `
+publish a file to ipns directly out of the files api
+
+   $ ipfs files publish /path/to/file
+   $ ipfs files publish --name=Qma3q5S8Eq1vCc1nSiPYNbSa1f2cH448sxdSnNR9nYoNoL /other/file
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", true, false, "path to entry to publish"),
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("n", "name", "ipns name to publish to"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		nd, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if !nd.OnlineMode() {
+			err := nd.SetupOfflineRouting()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
+
+		local, _, _ := req.Option("local").Bool()
+		var publisher namesys.Publisher
+		if local {
+			offroute := offline.NewOfflineRouter(nd.Repo.Datastore(), nd.PrivateKey)
+			publisher = namesys.NewRoutingPublisher(offroute, nd.Repo.Datastore())
+		} else {
+			publisher = nd.Namesys
+		}
+
+		fpath, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		topub, err := mfs.Lookup(nd.FilesRoot, fpath)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		dagnd, err := topub.GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		ndkey, err := dagnd.Key()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		name, found, err := req.Option("name").String()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if !found {
+			name = "local"
+		}
+
+		var key ci.PrivKey
+		switch name {
+		case "local":
+			key = nd.PrivateKey
+		default:
+			res.SetError(fmt.Errorf("keys other than your nodes ID key are not currently supported."), cmds.ErrNormal)
+			return
+		}
+
+		err = publisher.Publish(req.Context(), key, path.FromKey(ndkey))
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
