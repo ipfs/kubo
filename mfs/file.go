@@ -65,6 +65,7 @@ func (fi *File) Close() error {
 	if fi.hasChanges {
 		err := fi.mod.Sync()
 		if err != nil {
+			fi.Unlock()
 			return err
 		}
 
@@ -74,6 +75,7 @@ func (fi *File) Close() error {
 		// it will manage the lock for us
 		return fi.flushUp()
 	}
+	fi.Unlock()
 
 	return nil
 }
@@ -93,12 +95,13 @@ func (fi *File) flushUp() error {
 		return err
 	}
 
-	name := fi.name
-	parent := fi.parent
+	//name := fi.name
+	//parent := fi.parent
 
 	// explicit unlock *only* before closeChild call
 	fi.Unlock()
-	return parent.closeChild(name, nd)
+	return nil
+	//return parent.closeChild(name, nd)
 }
 
 // Sync flushes the changes in the file to disk

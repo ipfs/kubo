@@ -258,9 +258,9 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	_, err := d.childDir(name)
+	child, err := d.childDir(name)
 	if err == nil {
-		return nil, os.ErrExist
+		return child, os.ErrExist
 	}
 	_, err = d.childFile(name)
 	if err == nil {
@@ -395,7 +395,7 @@ func (d *Directory) GetNode() (*dag.Node, error) {
 		return nil, err
 	}
 
-	return d.node, nil
+	return d.node.Copy(), nil
 }
 
 func (d *Directory) Lock() {
