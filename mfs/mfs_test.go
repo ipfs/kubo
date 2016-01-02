@@ -576,10 +576,56 @@ func actorRemoveFile(d *Directory) error {
 	return d.Unlink(re.Name)
 }
 
+func actorReadFile(d *Directory) error {
+	d, err := randomWalk(d, rand.Intn(6))
+	if err != nil {
+		return err
+	}
+
+	ents, err := d.List()
+	if err != nil {
+		return err
+	}
+
+	var files []string
+	for _, e := range ents {
+		if e.Type == int(TFile) {
+			files = append(files, e.Name)
+		}
+	}
+
+	if len(files) == 0 {
+		return nil
+	}
+
+	fname := files[rand.Intn(len(files))]
+	fsn, err := d.Child(fname)
+	if err != nil {
+		return err
+	}
+
+	fi, ok := fsn.(*File)
+	if !ok {
+		return errors.New("file wasnt a file, race?")
+	}
+
+	_, err = fi.Size()
+	if err != nil {
+		return err
+	}
+
+	_, err = ioutil.ReadAll(fi)
+	if err != nil {
+		return err
+	}
+
+	return fi.Close()
+}
+
 func testActor(rt *Root, iterations int, errs chan error) {
 	d := rt.GetValue().(*Directory)
 	for i := 0; i < iterations; i++ {
-		switch rand.Intn(4) {
+		switch rand.Intn(5) {
 		case 0:
 			if err := actorMkdir(d); err != nil {
 				errs <- err
@@ -591,7 +637,17 @@ func testActor(rt *Root, iterations int, errs chan error) {
 				return
 			}
 		case 3:
+			continue
+			// randomly deleting things
+			// doesnt really give us any sort of useful test results.
+			// you will never have this in a real environment where
+			// you expect anything productive to happen...
 			if err := actorRemoveFile(d); err != nil {
+				errs <- err
+				return
+			}
+		case 4:
+			if err := actorReadFile(d); err != nil {
 				errs <- err
 				return
 			}
@@ -605,7 +661,7 @@ func TestMfsStress(t *testing.T) {
 	defer cancel()
 	_, rt := setupRoot(ctx, t)
 
-	numroutines := 2
+	numroutines := 10
 
 	errs := make(chan error)
 	for i := 0; i < numroutines; i++ {
