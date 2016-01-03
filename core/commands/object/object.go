@@ -1,4 +1,4 @@
-package commands
+package objectcmd
 
 import (
 	"bytes"
@@ -13,14 +13,11 @@ import (
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
@@ -61,17 +58,17 @@ ipfs object patch <args>    - Create new object from old ones
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"data":  objectDataCmd,
-		"links": objectLinksCmd,
-		"get":   objectGetCmd,
-		"put":   objectPutCmd,
-		"stat":  objectStatCmd,
-		"new":   objectNewCmd,
-		"patch": objectPatchCmd,
+		"data":  ObjectDataCmd,
+		"links": ObjectLinksCmd,
+		"get":   ObjectGetCmd,
+		"put":   ObjectPutCmd,
+		"stat":  ObjectStatCmd,
+		"new":   ObjectNewCmd,
+		"patch": ObjectPatchCmd,
 	},
 }
 
-var objectDataCmd = &cmds.Command{
+var ObjectDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the raw bytes in an IPFS object",
 		ShortDescription: `
@@ -109,7 +106,7 @@ output is the raw data of the object.
 	},
 }
 
-var objectLinksCmd = &cmds.Command{
+var ObjectLinksCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the links pointed to by the specified object",
 		ShortDescription: `
@@ -158,7 +155,7 @@ multihash.
 	Type: Object{},
 }
 
-var objectGetCmd = &cmds.Command{
+var ObjectGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get and serialize the DAG node named by <key>",
 		ShortDescription: `
@@ -229,7 +226,7 @@ This command outputs data in the following encodings:
 	},
 }
 
-var objectStatCmd = &cmds.Command{
+var ObjectStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get stats for the DAG node named by <key>",
 		ShortDescription: `
@@ -290,7 +287,7 @@ var objectStatCmd = &cmds.Command{
 	},
 }
 
-var objectPutCmd = &cmds.Command{
+var ObjectPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Stores input as a DAG object, outputs its key",
 		ShortDescription: `
@@ -377,7 +374,7 @@ and then run
 	Type: Object{},
 }
 
-var objectNewCmd = &cmds.Command{
+var ObjectNewCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "creates a new object from an ipfs template",
 		ShortDescription: `
@@ -428,235 +425,6 @@ Available templates:
 		},
 	},
 	Type: Object{},
-}
-
-var objectPatchCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Create a new merkledag object based on an existing one",
-		ShortDescription: `
-'ipfs object patch <root> <cmd> <args>' is a plumbing command used to
-build custom DAG objects. It adds and removes links from objects, creating a new
-object as a result. This is the merkle-dag version of modifying an object. It
-can also set the data inside a node with 'set-data' and append to that data as
-well with 'append-data'.
-
-Patch commands:
-    add-link <name> <ref>     - adds a link to a node
-    rm-link <name>            - removes a link from a node
-    set-data                  - sets a nodes data from stdin
-    append-data               - appends to a nodes data from stdin
-
-Examples:
-
-    EMPTY_DIR=$(ipfs object new unixfs-dir)
-    BAR=$(echo "bar" | ipfs add -q)
-    ipfs object patch $EMPTY_DIR add-link foo $BAR
-
-This takes an empty directory, and adds a link named foo under it, pointing to
-a file containing 'bar', and returns the hash of the new object.
-
-    ipfs object patch $FOO_BAR rm-link foo
-
-This removes the link named foo from the hash in $FOO_BAR and returns the
-resulting object hash.
-
-The data inside the node can be modified as well:
-
-    ipfs object patch $FOO_BAR set-data < file.dat
-    ipfs object patch $FOO_BAR append-data < file.dat
-
-`,
-	},
-	Options: []cmds.Option{
-		cmds.BoolOption("create", "p", "create intermediate directories on add-link"),
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.StringArg("command", true, false, "the operation to perform"),
-		cmds.StringArg("args", true, true, "extra arguments").EnableStdin(),
-	},
-	Type: Object{},
-	Run: func(req cmds.Request, res cmds.Response) {
-		nd, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		rootarg := req.Arguments()[0]
-		if strings.HasPrefix(rootarg, "/ipfs/") {
-			rootarg = rootarg[6:]
-		}
-		rhash := key.B58KeyDecode(rootarg)
-		if rhash == "" {
-			res.SetError(fmt.Errorf("incorrectly formatted root hash: %s", req.Arguments()[0]), cmds.ErrNormal)
-			return
-		}
-
-		rnode, err := nd.DAG.Get(req.Context(), rhash)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		action := req.Arguments()[1]
-
-		switch action {
-		case "add-link":
-			k, err := addLinkCaller(req, rnode)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
-		case "rm-link":
-			k, err := rmLinkCaller(req, rnode)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
-		case "set-data":
-			k, err := setDataCaller(req, rnode)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
-		case "append-data":
-			k, err := appendDataCaller(req, rnode)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
-		default:
-			res.SetError(fmt.Errorf("unrecognized subcommand"), cmds.ErrNormal)
-			return
-		}
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			o, ok := res.Output().(*Object)
-			if !ok {
-				return nil, u.ErrCast()
-			}
-
-			return strings.NewReader(o.Hash + "\n"), nil
-		},
-	},
-}
-
-func appendDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for set-data")
-	}
-
-	nd, err := req.InvocContext().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	root.Data = append(root.Data, []byte(req.Arguments()[2])...)
-
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
-	}
-
-	return newkey, nil
-}
-
-func setDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for set-data")
-	}
-
-	nd, err := req.InvocContext().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	root.Data = []byte(req.Arguments()[2])
-
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
-	}
-
-	return newkey, nil
-}
-
-func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for rm-link")
-	}
-
-	nd, err := req.InvocContext().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	path := req.Arguments()[2]
-
-	e := dagutils.NewDagEditor(root, nd.DAG)
-
-	err = e.RmLink(req.Context(), path)
-	if err != nil {
-		return "", err
-	}
-
-	nnode, err := e.Finalize(nd.DAG)
-	if err != nil {
-		return "", err
-	}
-
-	return nnode.Key()
-}
-
-func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 4 {
-		return "", fmt.Errorf("not enough arguments for add-link")
-	}
-
-	nd, err := req.InvocContext().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	path := req.Arguments()[2]
-	childk := key.B58KeyDecode(req.Arguments()[3])
-
-	create, _, err := req.Option("create").Bool()
-	if err != nil {
-		return "", err
-	}
-
-	var createfunc func() *dag.Node
-	if create {
-		createfunc = func() *dag.Node {
-			return &dag.Node{Data: ft.FolderPBData()}
-		}
-	}
-
-	e := dagutils.NewDagEditor(root, nd.DAG)
-
-	childnd, err := nd.DAG.Get(req.Context(), childk)
-	if err != nil {
-		return "", err
-	}
-
-	err = e.InsertNodeAtPath(req.Context(), path, childnd, createfunc)
-	if err != nil {
-		return "", err
-	}
-
-	nnode, err := e.Finalize(nd.DAG)
-	if err != nil {
-		return "", err
-	}
-
-	return nnode.Key()
 }
 
 func nodeFromTemplate(template string) (*dag.Node, error) {
@@ -757,7 +525,6 @@ func getObjectEnc(o interface{}) objectEncoding {
 	v, ok := o.(string)
 	if !ok {
 		// chosen as default because it's human readable
-		log.Warning("option is not a string - falling back to json")
 		return objectEncodingJSON
 	}
 
