@@ -3,7 +3,7 @@ package corerouting
 import (
 	"errors"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/p2p/host"

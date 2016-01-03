@@ -3,7 +3,7 @@ package supernode
 import (
 	"testing"
 
-	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 )

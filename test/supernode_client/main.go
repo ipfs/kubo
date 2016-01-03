@@ -17,8 +17,8 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/util/ipfsaddr"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	commands "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
@@ -225,7 +225,7 @@ func runFileCattingWorker(ctx context.Context, n *core.IpfsNode) error {
 		}
 	}()
 
-	err = <- errs
+	err = <-errs
 	if err != nil {
 		log.Fatal(err)
 	}
