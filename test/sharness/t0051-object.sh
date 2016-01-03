@@ -16,7 +16,7 @@ test_patch_create_path() {
 	target=$3
 
 	test_expect_success "object patch --create works" '
-		PCOUT=$(ipfs object patch --create $root add-link $name $target)
+		PCOUT=$(ipfs object patch $root add-link --create $name $target)
 	'
 
 	test_expect_success "output looks good" '
