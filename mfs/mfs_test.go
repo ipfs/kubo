@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"sort"
 	"testing"
 
+	randbo "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/randbo"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -472,5 +474,204 @@ func TestMfsFile(t *testing.T) {
 	err = fi.Close()
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func randomWalk(d *Directory, n int) (*Directory, error) {
+	for i := 0; i < n; i++ {
+		dirents, err := d.List()
+		if err != nil {
+			return nil, err
+		}
+
+		var childdirs []NodeListing
+		for _, child := range dirents {
+			if child.Type == int(TDir) {
+				childdirs = append(childdirs, child)
+			}
+		}
+		if len(childdirs) == 0 {
+			return d, nil
+		}
+
+		next := childdirs[rand.Intn(len(childdirs))].Name
+
+		nextD, err := d.Child(next)
+		if err != nil {
+			return nil, err
+		}
+
+		d = nextD.(*Directory)
+	}
+	return d, nil
+}
+
+func randomName() string {
+	set := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
+	length := rand.Intn(10) + 2
+	var out string
+	for i := 0; i < length; i++ {
+		j := rand.Intn(len(set))
+		out += set[j : j+1]
+	}
+	return out
+}
+
+func actorMakeFile(d *Directory) error {
+	d, err := randomWalk(d, rand.Intn(7))
+	if err != nil {
+		return err
+	}
+
+	name := randomName()
+	f, err := NewFile(name, &dag.Node{Data: ft.FilePBData(nil, 0)}, d, d.dserv)
+	if err != nil {
+		return err
+	}
+
+	r := io.LimitReader(randbo.New(), int64(77*rand.Intn(123)))
+	_, err = io.Copy(f, r)
+	if err != nil {
+		return err
+	}
+
+	err = f.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func actorMkdir(d *Directory) error {
+	d, err := randomWalk(d, rand.Intn(7))
+	if err != nil {
+		return err
+	}
+
+	_, err = d.Mkdir(randomName())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func actorRemoveFile(d *Directory) error {
+	d, err := randomWalk(d, rand.Intn(7))
+	if err != nil {
+		return err
+	}
+
+	ents, err := d.List()
+	if err != nil {
+		return err
+	}
+
+	if len(ents) == 0 {
+		return nil
+	}
+
+	re := ents[rand.Intn(len(ents))]
+
+	return d.Unlink(re.Name)
+}
+
+func actorReadFile(d *Directory) error {
+	d, err := randomWalk(d, rand.Intn(6))
+	if err != nil {
+		return err
+	}
+
+	ents, err := d.List()
+	if err != nil {
+		return err
+	}
+
+	var files []string
+	for _, e := range ents {
+		if e.Type == int(TFile) {
+			files = append(files, e.Name)
+		}
+	}
+
+	if len(files) == 0 {
+		return nil
+	}
+
+	fname := files[rand.Intn(len(files))]
+	fsn, err := d.Child(fname)
+	if err != nil {
+		return err
+	}
+
+	fi, ok := fsn.(*File)
+	if !ok {
+		return errors.New("file wasnt a file, race?")
+	}
+
+	_, err = fi.Size()
+	if err != nil {
+		return err
+	}
+
+	_, err = ioutil.ReadAll(fi)
+	if err != nil {
+		return err
+	}
+
+	return fi.Close()
+}
+
+func testActor(rt *Root, iterations int, errs chan error) {
+	d := rt.GetValue().(*Directory)
+	for i := 0; i < iterations; i++ {
+		switch rand.Intn(5) {
+		case 0:
+			if err := actorMkdir(d); err != nil {
+				errs <- err
+				return
+			}
+		case 1, 2:
+			if err := actorMakeFile(d); err != nil {
+				errs <- err
+				return
+			}
+		case 3:
+			continue
+			// randomly deleting things
+			// doesnt really give us any sort of useful test results.
+			// you will never have this in a real environment where
+			// you expect anything productive to happen...
+			if err := actorRemoveFile(d); err != nil {
+				errs <- err
+				return
+			}
+		case 4:
+			if err := actorReadFile(d); err != nil {
+				errs <- err
+				return
+			}
+		}
+	}
+	errs <- nil
+}
+
+func TestMfsStress(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, rt := setupRoot(ctx, t)
+
+	numroutines := 10
+
+	errs := make(chan error)
+	for i := 0; i < numroutines; i++ {
+		go testActor(rt, 50, errs)
+	}
+
+	for i := 0; i < numroutines; i++ {
+		err := <-errs
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }

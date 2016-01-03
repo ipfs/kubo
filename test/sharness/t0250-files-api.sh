@@ -352,6 +352,31 @@ test_files_api() {
 	test_expect_success "cleanup looks good" '
 		verify_dir_contents /
 	'
+
+	# test flush flags
+	test_expect_success "mkdir --flush works" '
+		ipfs files mkdir --flush --parents /flushed/deep
+	'
+
+	test_expect_success "mkdir --flush works a second time" '
+		ipfs files mkdir --flush --parents /flushed/deep
+	'
+
+	test_expect_success "dir looks right" '
+		verify_dir_contents / flushed
+	'
+
+	test_expect_success "child dir looks right" '
+		verify_dir_contents /flushed deep
+	'
+
+	test_expect_success "cleanup" '
+		ipfs files rm -r /flushed
+	'
+
+	test_expect_success "child dir looks right" '
+		verify_dir_contents /
+	'
 }
 
 # test offline and online

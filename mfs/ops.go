@@ -99,8 +99,8 @@ func PutNode(r *Root, path string, nd *dag.Node) error {
 }
 
 // Mkdir creates a directory at 'path' under the directory 'd', creating
-// intermediary directories as needed if 'parents' is set to true
-func Mkdir(r *Root, pth string, parents bool) error {
+// intermediary directories as needed if 'mkparents' is set to true
+func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
 	if pth == "" {
 		return nil
 	}
@@ -116,7 +116,7 @@ func Mkdir(r *Root, pth string, parents bool) error {
 
 	if len(parts) == 0 {
 		// this will only happen on 'mkdir /'
-		if parents {
+		if mkparents {
 			return nil
 		}
 		return fmt.Errorf("cannot create directory '/': Already exists")
@@ -125,7 +125,7 @@ func Mkdir(r *Root, pth string, parents bool) error {
 	cur := r.GetValue().(*Directory)
 	for i, d := range parts[:len(parts)-1] {
 		fsn, err := cur.Child(d)
-		if err == os.ErrNotExist && parents {
+		if err == os.ErrNotExist && mkparents {
 			mkd, err := cur.Mkdir(d)
 			if err != nil {
 				return err
@@ -142,9 +142,16 @@ func Mkdir(r *Root, pth string, parents bool) error {
 		cur = next
 	}
 
-	_, err := cur.Mkdir(parts[len(parts)-1])
+	final, err := cur.Mkdir(parts[len(parts)-1])
 	if err != nil {
-		if !parents || err != os.ErrExist {
+		if !mkparents || err != os.ErrExist || final == nil {
+			return err
+		}
+	}
+
+	if flush {
+		err := final.Flush()
+		if err != nil {
 			return err
 		}
 	}

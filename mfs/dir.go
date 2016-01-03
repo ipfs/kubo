@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -48,21 +49,36 @@ func NewDirectory(ctx context.Context, name string, node *dag.Node, parent child
 }
 
 // closeChild updates the child by the given name to the dag node 'nd'
-// and changes its own dag node, then propogates the changes upward
+// and changes its own dag node
 func (d *Directory) closeChild(name string, nd *dag.Node) error {
-	_, err := d.dserv.Add(nd)
+	mynd, err := d.closeChildUpdate(name, nd)
 	if err != nil {
 		return err
 	}
 
+	return d.parent.closeChild(d.name, mynd)
+}
+
+// closeChildUpdate is the portion of closeChild that needs to be locked around
+func (d *Directory) closeChildUpdate(name string, nd *dag.Node) (*dag.Node, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	err = d.updateChild(name, nd)
+
+	err := d.updateChild(name, nd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return d.parent.closeChild(d.name, d.node)
+	return d.flushCurrentNode()
+}
+
+func (d *Directory) flushCurrentNode() (*dag.Node, error) {
+	_, err := d.dserv.Add(d.node)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.node.Copy(), nil
 }
 
 func (d *Directory) updateChild(name string, nd *dag.Node) error {
@@ -242,9 +258,9 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	_, err := d.childDir(name)
+	child, err := d.childDir(name)
 	if err == nil {
-		return nil, os.ErrExist
+		return child, os.ErrExist
 	}
 	_, err = d.childFile(name)
 	if err == nil {
@@ -259,11 +275,6 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	}
 
 	err = d.node.AddNodeLinkClean(name, ndir)
-	if err != nil {
-		return nil, err
-	}
-
-	err = d.parent.closeChild(d.name, d.node)
 	if err != nil {
 		return nil, err
 	}
@@ -285,13 +296,27 @@ func (d *Directory) Unlink(name string) error {
 		return err
 	}
 
-	return d.parent.closeChild(d.name, d.node)
+	_, err = d.dserv.Add(d.node)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Directory) Flush() error {
+	nd, err := d.flushCurrentNode()
+	if err != nil {
+		return err
+	}
+
+	return d.parent.closeChild(d.name, nd)
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
 func (d *Directory) AddChild(name string, nd *dag.Node) error {
-	d.Lock()
-	defer d.Unlock()
+	d.lock.Lock()
+	defer d.lock.Unlock()
 
 	_, err := d.childUnsync(name)
 	if err == nil {
@@ -310,7 +335,6 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 
 	d.modTime = time.Now()
 
-	//return d.parent.closeChild(d.name, d.node)
 	return nil
 }
 
@@ -352,16 +376,26 @@ func (d *Directory) sync() error {
 	return nil
 }
 
+func (d *Directory) Path() string {
+	cur := d
+	var out string
+	for cur != nil {
+		out = path.Join(cur.name, out)
+		cur = cur.parent.(*Directory)
+	}
+	return out
+}
+
 func (d *Directory) GetNode() (*dag.Node, error) {
-	d.Lock()
-	defer d.Unlock()
+	d.lock.Lock()
+	defer d.lock.Unlock()
 
 	err := d.sync()
 	if err != nil {
 		return nil, err
 	}
 
-	return d.node, nil
+	return d.node.Copy(), nil
 }
 
 func (d *Directory) Lock() {
