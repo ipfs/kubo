@@ -20,29 +20,8 @@ var ObjectPatchCmd = &cmds.Command{
 		Tagline: "Create a new merkledag object based on an existing one",
 		ShortDescription: `
 'ipfs object patch <root> <cmd> <args>' is a plumbing command used to
-build custom DAG objects. It adds and removes links from objects, creating a new
-object as a result. This is the merkle-dag version of modifying an object. It
-can also set the data inside a node with 'set-data' and append to that data as
-well with 'append-data'.
-
-Patch commands:
-    add-link <name> <ref>     - adds a link to a node
-    rm-link <name>            - removes a link from a node
-    set-data                  - sets a nodes data from stdin
-    append-data               - appends to a nodes data from stdin
-
-
-
-    ipfs object patch $FOO_BAR rm-link foo
-
-This removes the link named foo from the hash in $FOO_BAR and returns the
-resulting object hash.
-
-The data inside the node can be modified as well:
-
-    ipfs object patch $FOO_BAR set-data < file.dat
-    ipfs object patch $FOO_BAR append-data < file.dat
-
+build custom DAG objects. It mutates objects, creating new objects as a
+result. This is the merkle-dag version of modifying an object.
 `,
 	},
 	Arguments: []cmds.Argument{},
@@ -67,7 +46,15 @@ var patchAppendDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Append data to the data segment of a dag node",
 		ShortDescription: `
-		`,
+Append data to what already exists in the data segment in the given object.
+
+EXAMPLE:
+	$ echo "hello" | ipfs object patch $HASH append-data
+
+note: this does not append data to a 'file', it modifies the actual raw
+data within an object. Objects have a max size of 1MB and objects larger than
+the limit will not be respected by the network.
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "the hash of the node to modify"),
@@ -162,7 +149,12 @@ var patchSetDataCmd = &cmds.Command{
 }
 
 var patchRmLinkCmd = &cmds.Command{
-	Helptext: cmds.HelpText{},
+	Helptext: cmds.HelpText{
+		Tagline: "remove a link from an object",
+		ShortDescription: `
+removes a link by the given name from root.
+`,
+	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "the hash of the node to modify"),
 		cmds.StringArg("link", true, false, "name of the link to remove"),
@@ -220,6 +212,8 @@ var patchAddLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "add a link to a given object",
 		ShortDescription: `
+Add a merkle-link to the given object and return the hash of the result.
+
 Examples:
 
     EMPTY_DIR=$(ipfs object new unixfs-dir)
