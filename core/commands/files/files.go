@@ -115,11 +115,22 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 		return nil, err
 	}
 
+	var ndtype string
+	switch fsn.Type() {
+	case mfs.TDir:
+		ndtype = "directory"
+	case mfs.TFile:
+		ndtype = "file"
+	default:
+		return nil, fmt.Errorf("unrecognized node type: %s", fsn.Type())
+	}
+
 	return &Object{
 		Hash:           k.B58String(),
 		Blocks:         len(nd.Links),
 		Size:           d.GetFilesize(),
 		CumulativeSize: cumulsize,
+		Type:           ndtype,
 	}, nil
 }
 
@@ -187,6 +198,7 @@ type Object struct {
 	Size           uint64
 	CumulativeSize uint64
 	Blocks         int
+	Type           string
 }
 
 type FilesLsOutput struct {
