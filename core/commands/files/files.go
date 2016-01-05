@@ -59,6 +59,9 @@ var FilesStatCmd = &cmds.Command{
 			return
 		}
 
+		// take the lock and defer the unlock
+		defer node.Blockstore.PinLock()()
+
 		path, err := checkPath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -137,6 +140,9 @@ var FilesCpCmd = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		// take the lock and defer the unlock
+		defer node.Blockstore.PinLock()()
 
 		src, err := checkPath(req.Arguments()[0])
 		if err != nil {
@@ -233,6 +239,9 @@ Examples:
 			return
 		}
 
+		// take the lock and defer the unlock
+		defer nd.Blockstore.PinLock()()
+
 		fsn, err := mfs.Lookup(nd.FilesRoot, path)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -323,6 +332,9 @@ Examples:
 			return
 		}
 
+		// take the lock and defer the unlock
+		defer n.Blockstore.PinLock()()
+
 		path, err := checkPath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -409,6 +421,9 @@ Example:
 			return
 		}
 
+		// take the lock and defer the unlock
+		defer n.Blockstore.PinLock()()
+
 		src, err := checkPath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -483,6 +498,9 @@ Warning:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		// take the lock and defer the unlock
+		defer nd.Blockstore.PinLock()()
 
 		offset, _, err := req.Option("offset").Int()
 		if err != nil {
@@ -579,6 +597,9 @@ Examples:
 			return
 		}
 
+		// take the lock and defer the unlock
+		defer n.Blockstore.PinLock()()
+
 		dashp, _, _ := req.Option("parents").Bool()
 		dirtomake, err := checkPath(req.Arguments()[0])
 		if err != nil {
@@ -627,6 +648,9 @@ remove files or directories
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		// take the lock and defer the unlock
+		defer nd.Blockstore.PinLock()()
 
 		path, err := checkPath(req.Arguments()[0])
 		if err != nil {
