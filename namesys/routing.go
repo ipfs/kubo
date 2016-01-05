@@ -123,7 +123,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 
 	hash, err := mh.FromB58String(name)
 	if err != nil {
-		log.Warning("RoutingResolve: bad input hash: [%s]\n", name)
+		log.Warningf("RoutingResolve: bad input hash: [%s]\n", name)
 		return "", err
 	}
 	// name should be a multihash. if it isn't, error out here.
