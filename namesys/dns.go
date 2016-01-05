@@ -61,7 +61,7 @@ func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, 
 		p, err := parseEntry(t)
 		if err == nil {
 			if len(segments) > 1 {
-				return path.FromSegments(p.String() + "/", segments[1])
+				return path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[1])
 			}
 			return p, nil
 		}

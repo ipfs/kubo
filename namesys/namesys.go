@@ -75,7 +75,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error)
 		p, err := resolver.resolveOnce(ctx, segments[2])
 		if err == nil {
 			if len(segments) > 3 {
-				return path.FromSegments(p.String() + "/", segments[3])
+				return path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
 			} else {
 				return p, err
 			}
