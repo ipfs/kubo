@@ -79,7 +79,13 @@ the limit will not be respected by the network.
 			return
 		}
 
-		data, err := ioutil.ReadAll(req.Files())
+		fi, err := req.Files().NextFile()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		data, err := ioutil.ReadAll(fi)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -102,7 +108,16 @@ the limit will not be respected by the network.
 }
 
 var patchSetDataCmd = &cmds.Command{
-	Helptext: cmds.HelpText{},
+	Helptext: cmds.HelpText{
+		Tagline: "set data field of an ipfs object",
+		ShortDescription: `
+Set the data of an ipfs object from stdin or with the contents of a file
+
+EXAMPLE:
+
+    $ echo "my data" | ipfs object patch $MYHASH set-data
+`,
+	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "the hash of the node to modify"),
 		cmds.FileArg("data", true, false, "data fill with").EnableStdin(),
@@ -126,7 +141,13 @@ var patchSetDataCmd = &cmds.Command{
 			return
 		}
 
-		data, err := ioutil.ReadAll(req.Files())
+		fi, err := req.Files().NextFile()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		data, err := ioutil.ReadAll(fi)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
