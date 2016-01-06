@@ -1,4 +1,4 @@
-FROM alpine:3.2
+FROM alpine:3.3
 MAINTAINER Brian Tiger Chow <btc@perfmode.com>
 
 ENV IPFS_PATH /data/ipfs
