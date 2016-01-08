@@ -95,6 +95,36 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Error(errmsg) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
 }
 
+func (i *gatewayHandler) allowListBlocks(path string) bool {
+	if i.config.AllowList == nil {
+		return false
+	}
+
+	parts := strings.Split(path, "/")
+	if len(parts) < 3 {
+		return true
+	}
+
+	k := key.B58KeyDecode(parts[2])
+	if i.config.AllowList.Has(k) {
+		return false
+	}
+
+	return true
+}
+
+func (i *gatewayHandler) denyListBlocks(k key.Key) bool {
+	if i.config.DenyList == nil {
+		return false
+	}
+
+	if i.config.DenyList.Has(k) {
+		return true
+	}
+
+	return false
+}
+
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
@@ -122,15 +152,28 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		ipnsHostname = true
 	}
 
-	if i.config.BlockList != nil && i.config.BlockList.ShouldBlock(urlPath) {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - Forbidden"))
-		return
-	}
-
 	nd, err := core.Resolve(ctx, i.node, path.Path(urlPath))
 	if err != nil {
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
+		return
+	}
+
+	k, err := nd.Key()
+	if err != nil {
+		log.Error("failed to get key from node: %s", err)
+		webError(w, "Marshaling Error", err, http.StatusInternalServerError)
+		return
+	}
+
+	if i.denyListBlocks(k) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden (content on denylist)"))
+		return
+	}
+
+	if i.allowListBlocks(urlPath) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden (content not on allowlist)"))
 		return
 	}
 

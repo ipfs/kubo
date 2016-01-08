@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	_ "expvar"
 	"fmt"
 	"net"
@@ -8,13 +9,13 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"sort"
-	"strings"
 	"sync"
 
 	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/codahale/metrics/runtime"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
@@ -331,23 +332,20 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
 	}
 
+	var allowlist key.KeySet
+	if !unrestricted {
+		allowlist = key.Threadsafe(key.NewKeySet())
+		for _, webuipath := range corehttp.WebUIPaths {
+			// extract the key
+			allowlist.Add(key.B58KeyDecode(webuipath[6:]))
+		}
+	}
+
 	apiGw := corehttp.NewGateway(corehttp.GatewayConfig{
-		Writable: true,
-		BlockList: &corehttp.BlockList{
-			Decider: func(s string) bool {
-				if unrestricted {
-					return true
-				}
-				// for now, only allow paths in the WebUI path
-				for _, webuipath := range corehttp.WebUIPaths {
-					if strings.HasPrefix(s, webuipath) {
-						return true
-					}
-				}
-				return false
-			},
-		},
+		Writable:  true,
+		AllowList: allowlist,
 	})
+
 	var opts = []corehttp.ServeOption{
 		corehttp.PrometheusCollectorOption("api"),
 		corehttp.CommandsOption(*req.InvocContext()),
@@ -427,12 +425,37 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		fmt.Printf("Gateway (readonly) server listening on %s\n", gatewayMaddr)
 	}
 
+	var denylist key.KeySet
+	var allowlist key.KeySet
+	if len(cfg.Gateway.DenyList) > 0 {
+		l, err := loadKeySetFromURLs(cfg.Gateway.DenyList)
+		if err != nil {
+			return err, nil
+		}
+		denylist = l
+	}
+
+	if len(cfg.Gateway.AllowList) > 0 {
+		l, err := loadKeySetFromURLs(cfg.Gateway.AllowList)
+		if err != nil {
+			return err, nil
+		}
+		allowlist = l
+	}
+
+	gateway := corehttp.Gateway{
+		Config: corehttp.GatewayConfig{
+			DenyList:  denylist,
+			AllowList: allowlist,
+		},
+	}
+
 	var opts = []corehttp.ServeOption{
 		corehttp.PrometheusCollectorOption("gateway"),
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(writable),
+		gateway.ServeOption(),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
@@ -450,6 +473,35 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		close(errc)
 	}()
 	return nil, errc
+}
+
+type listing struct {
+	Uri  string
+	Keys []string
+}
+
+func loadKeySetFromURLs(urls []string) (key.KeySet, error) {
+	ks := key.NewKeySet()
+	for _, url := range urls {
+		resp, err := http.Get(url)
+		if err != nil {
+			return nil, err
+		}
+
+		var list listing
+		err = json.NewDecoder(resp.Body).Decode(&list)
+		if err != nil {
+			return nil, err
+		}
+		for _, k := range list.Keys {
+			lk := key.B58KeyDecode(k)
+			if lk == "" {
+				return nil, fmt.Errorf("incorrectly formatted key '%s'", k)
+			}
+			ks.Add(lk)
+		}
+	}
+	return key.Threadsafe(ks), nil
 }
 
 //collects options and opens the fuse mountpoint
