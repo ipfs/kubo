@@ -95,6 +95,10 @@ You can setup CORS headers the same way:
 	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
 	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Credentials '["true"]'
 
+Shutdown
+
+To shutdown, kill, quit, or otherwise stop the daemon, send a SIGTERM signal.
+If it persists, send a second. This can be done by pressing Ctrl+C twice.
 
 DEPRECATION NOTICE
 
