@@ -139,7 +139,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		if err != nil {
 			return err
 		}
-		do := setupDiscoveryOption(rcfg.Discovery)
+		do := setupDiscoveryOptions(rcfg.Discovery)
 		if err := n.startOnlineServices(ctx, cfg.Routing, cfg.Host, do); err != nil {
 			return err
 		}

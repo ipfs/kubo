@@ -49,10 +49,18 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		SupernodeRouting: *snr,
 		Datastore:        *ds,
 		Identity:         identity,
-		Discovery: Discovery{MDNS{
-			Enabled:  true,
-			Interval: 10,
-		}},
+		Discovery: Discovery{
+			MDNS{
+				Enabled:  true,
+				Interval: 10,
+			},
+			Cjdns{
+				Enabled:         true,
+				Interval:        3600,
+				RefreshInterval: 24 * 3600,
+				AdminAddress:    "/ip4/127.0.0.1/udp/11234",
+				Password:        "NONE",
+			}},
 
 		// setup the node mount points.
 		Mounts: Mounts{

@@ -2,6 +2,7 @@
 package secio
 
 import (
+	"fmt"
 	"io"
 
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
@@ -68,6 +69,7 @@ func (s *secureSession) LocalPrivateKey() ci.PrivKey {
 // RemotePeer retrieves the remote peer.
 func (s *secureSession) RemotePeer() peer.ID {
 	if err := s.Handshake(); err != nil {
+		fmt.Printf("handshake error: %s\n", err)
 		return ""
 	}
 	return s.remotePeer

@@ -170,6 +170,11 @@ func (s *Swarm) Close() error {
 	return s.proc.Close()
 }
 
+// Dialer returns the p2p/net dialer of this swarm
+func (s *Swarm) Dialer() *conn.Dialer {
+	return s.dialer
+}
+
 // StreamSwarm returns the underlying peerstream.Swarm
 func (s *Swarm) StreamSwarm() *ps.Swarm {
 	return s.swarm
