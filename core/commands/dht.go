@@ -103,29 +103,7 @@ var queryDhtCmd = &cmds.Command{
 				verbose, _, _ := res.Request().Option("v").Bool()
 
 				buf := new(bytes.Buffer)
-				if verbose {
-					fmt.Fprintf(buf, "%s: ", time.Now().Format("15:04:05.000"))
-				}
-				switch obj.Type {
-				case notif.FinalPeer:
-					fmt.Fprintf(buf, "%s\n", obj.ID)
-				case notif.PeerResponse:
-					if verbose {
-						fmt.Fprintf(buf, "* %s says use ", obj.ID)
-						for _, p := range obj.Responses {
-							fmt.Fprintf(buf, "%s ", p.ID)
-						}
-						fmt.Fprintln(buf)
-					}
-				case notif.SendingQuery:
-					if verbose {
-						fmt.Fprintf(buf, "* querying %s\n", obj.ID)
-					}
-				case notif.QueryError:
-					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
-				default:
-					fmt.Fprintf(buf, "unrecognized event type: %d\n", obj.Type)
-				}
+				printEvent(obj, buf, verbose, nil)
 				return buf, nil
 			}
 
@@ -201,6 +179,25 @@ FindProviders will return a list of peers who are able to provide the value requ
 			}
 
 			verbose, _, _ := res.Request().Option("v").Bool()
+			pfm := pfuncMap{
+				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					if verbose {
+						fmt.Fprintf(out, "* closest peer %s\n", obj.ID)
+					}
+				},
+				notif.Provider: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					prov := obj.Responses[0]
+					if verbose {
+						fmt.Fprintf(out, "provider: ")
+					}
+					fmt.Fprintf(out, "%s\n", prov.ID.Pretty())
+					if verbose {
+						for _, a := range prov.Addrs {
+							fmt.Fprintf(out, "\t%s\n", a)
+						}
+					}
+				},
+			}
 
 			marshal := func(v interface{}) (io.Reader, error) {
 				obj, ok := v.(*notif.QueryEvent)
@@ -209,42 +206,7 @@ FindProviders will return a list of peers who are able to provide the value requ
 				}
 
 				buf := new(bytes.Buffer)
-				if verbose {
-					fmt.Fprintf(buf, "%s: ", time.Now().Format("15:04:05.000"))
-				}
-				switch obj.Type {
-				case notif.FinalPeer:
-					if verbose {
-						fmt.Fprintf(buf, "* closest peer %s\n", obj.ID)
-					}
-				case notif.Provider:
-					prov := obj.Responses[0]
-					if verbose {
-						fmt.Fprintf(buf, "provider: ")
-					}
-					fmt.Fprintf(buf, "%s\n", prov.ID.Pretty())
-					if verbose {
-						for _, a := range prov.Addrs {
-							fmt.Fprintf(buf, "\t%s\n", a)
-						}
-					}
-				case notif.PeerResponse:
-					if verbose {
-						fmt.Fprintf(buf, "* %s says use ", obj.ID)
-						for _, p := range obj.Responses {
-							fmt.Fprintf(buf, "%s ", p.ID)
-						}
-						fmt.Fprintln(buf)
-					}
-				case notif.SendingQuery:
-					if verbose {
-						fmt.Fprintf(buf, "* querying %s\n", obj.ID)
-					}
-				case notif.QueryError:
-					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
-				default:
-					fmt.Fprintf(buf, "unrecognized event type: %d\n", obj.Type)
-				}
+				printEvent(obj, buf, verbose, pfm)
 				return buf, nil
 			}
 
@@ -323,6 +285,15 @@ var findPeerDhtCmd = &cmds.Command{
 				return nil, u.ErrCast()
 			}
 
+			pfm := pfuncMap{
+				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					pi := obj.Responses[0]
+					fmt.Fprintf(out, "%s\n", pi.ID)
+					for _, a := range pi.Addrs {
+						fmt.Fprintf(out, "\t%s\n", a)
+					}
+				},
+			}
 			marshal := func(v interface{}) (io.Reader, error) {
 				obj, ok := v.(*notif.QueryEvent)
 				if !ok {
@@ -330,27 +301,7 @@ var findPeerDhtCmd = &cmds.Command{
 				}
 
 				buf := new(bytes.Buffer)
-				fmt.Fprintf(buf, "%s: ", time.Now().Format("15:04:05.000"))
-				switch obj.Type {
-				case notif.FinalPeer:
-					pi := obj.Responses[0]
-					fmt.Fprintf(buf, "%s\n", pi.ID)
-					for _, a := range pi.Addrs {
-						fmt.Fprintf(buf, "\t%s\n", a)
-					}
-				case notif.PeerResponse:
-					fmt.Fprintf(buf, "* %s says use ", obj.ID)
-					for _, p := range obj.Responses {
-						fmt.Fprintf(buf, "%s ", p.ID)
-					}
-					fmt.Fprintln(buf)
-				case notif.SendingQuery:
-					fmt.Fprintf(buf, "* querying %s\n", obj.ID)
-				case notif.QueryError:
-					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
-				default:
-					fmt.Fprintf(buf, "unrecognized event type: %d\n", obj.Type)
-				}
+				printEvent(obj, buf, true, pfm)
 				return buf, nil
 			}
 
@@ -435,6 +386,15 @@ GetValue will return the value stored in the dht at the given key.
 
 			verbose, _, _ := res.Request().Option("v").Bool()
 
+			pfm := pfuncMap{
+				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					if verbose {
+						fmt.Fprintf(out, "got value: '%s'\n", obj.Extra)
+					} else {
+						fmt.Fprintln(out, obj.Extra)
+					}
+				},
+			}
 			marshal := func(v interface{}) (io.Reader, error) {
 				obj, ok := v.(*notif.QueryEvent)
 				if !ok {
@@ -442,33 +402,9 @@ GetValue will return the value stored in the dht at the given key.
 				}
 
 				buf := new(bytes.Buffer)
-				if verbose {
-					fmt.Fprintf(buf, "%s: ", time.Now().Format("15:04:05.000"))
-				}
-				switch obj.Type {
-				case notif.PeerResponse:
-					if verbose {
-						fmt.Fprintf(buf, "* %s says use ", obj.ID)
-						for _, p := range obj.Responses {
-							fmt.Fprintf(buf, "%s ", p.ID)
-						}
-						fmt.Fprintln(buf)
-					}
-				case notif.SendingQuery:
-					if verbose {
-						fmt.Fprintf(buf, "* querying %s\n", obj.ID)
-					}
-				case notif.Value:
-					if verbose {
-						fmt.Fprintf(buf, "got value: '%s'\n", obj.Extra)
-					} else {
-						buf.WriteString(obj.Extra)
-					}
-				case notif.QueryError:
-					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
-				default:
-					fmt.Fprintf(buf, "unrecognized event type: %d\n", obj.Type)
-				}
+
+				printEvent(obj, buf, verbose, pfm)
+
 				return buf, nil
 			}
 
@@ -550,6 +486,16 @@ PutValue will store the given key value pair in the dht.
 			}
 
 			verbose, _, _ := res.Request().Option("v").Bool()
+			pfm := pfuncMap{
+				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					if verbose {
+						fmt.Fprintf(out, "* closest peer %s\n", obj.ID)
+					}
+				},
+				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					fmt.Fprintf(out, "storing value at %s\n", obj.ID)
+				},
+			}
 
 			marshal := func(v interface{}) (io.Reader, error) {
 				obj, ok := v.(*notif.QueryEvent)
@@ -558,33 +504,8 @@ PutValue will store the given key value pair in the dht.
 				}
 
 				buf := new(bytes.Buffer)
-				if verbose {
-					fmt.Fprintf(buf, "%s: ", time.Now().Format("15:04:05.000"))
-				}
-				switch obj.Type {
-				case notif.FinalPeer:
-					if verbose {
-						fmt.Fprintf(buf, "* closest peer %s\n", obj.ID)
-					}
-				case notif.PeerResponse:
-					if verbose {
-						fmt.Fprintf(buf, "* %s says use ", obj.ID)
-						for _, p := range obj.Responses {
-							fmt.Fprintf(buf, "%s ", p.ID)
-						}
-						fmt.Fprintln(buf)
-					}
-				case notif.SendingQuery:
-					if verbose {
-						fmt.Fprintf(buf, "* querying %s\n", obj.ID)
-					}
-				case notif.QueryError:
-					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
-				case notif.Value:
-					fmt.Fprintf(buf, "storing value at %s\n", obj.ID)
-				default:
-					fmt.Fprintf(buf, "unrecognized event type: %d\n", obj.Type)
-				}
+				printEvent(obj, buf, verbose, pfm)
+
 				return buf, nil
 			}
 
@@ -596,6 +517,53 @@ PutValue will store the given key value pair in the dht.
 		},
 	},
 	Type: notif.QueryEvent{},
+}
+
+type printFunc func(obj *notif.QueryEvent, out io.Writer, verbose bool)
+type pfuncMap map[notif.QueryEventType]printFunc
+
+func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfuncMap) {
+	if verbose {
+		fmt.Fprintf(out, "%s: ", time.Now().Format("15:04:05.000"))
+	}
+
+	if override != nil {
+		if pf, ok := override[obj.Type]; ok {
+			pf(obj, out, verbose)
+			return
+		}
+	}
+
+	switch obj.Type {
+	case notif.SendingQuery:
+		if verbose {
+			fmt.Fprintf(out, "* querying %s\n", obj.ID)
+		}
+	case notif.Value:
+		if verbose {
+			fmt.Fprintf(out, "got value: '%s'\n", obj.Extra)
+		} else {
+			fmt.Fprint(out, obj.Extra)
+		}
+	case notif.PeerResponse:
+		fmt.Fprintf(out, "* %s says use ", obj.ID)
+		for _, p := range obj.Responses {
+			fmt.Fprintf(out, "%s ", p.ID)
+		}
+		fmt.Fprintln(out)
+	case notif.QueryError:
+		fmt.Fprintf(out, "error: %s\n", obj.Extra)
+	case notif.DialingPeer:
+		if verbose {
+			fmt.Fprintf(out, "dialing peer: %s\n", obj.ID)
+		}
+	case notif.AddingPeer:
+		if verbose {
+			fmt.Fprintf(out, "adding peer to query: %s\n", obj.ID)
+		}
+	default:
+		fmt.Fprintf(out, "unrecognized event type: %d\n", obj.Type)
+	}
 }
 
 func escapeDhtKey(s string) (key.Key, error) {
