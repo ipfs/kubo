@@ -41,33 +41,76 @@ func (r *DNSResolver) ResolveN(ctx context.Context, name string, depth int) (pat
 	return resolve(ctx, r, name, depth, "/ipns/")
 }
 
+type lookupRes struct {
+	path  path.Path
+	error error
+}
+
 // resolveOnce implements resolver.
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
 func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
 	segments := strings.SplitN(name, "/", 2)
+	domain := segments[0]
 
-	if !isd.IsDomain(segments[0]) {
+	if !isd.IsDomain(domain) {
 		return "", errors.New("not a valid domain name")
 	}
+	log.Infof("DNSResolver resolving %s", domain)
 
-	log.Infof("DNSResolver resolving %s", segments[0])
-	txt, err := r.lookupTXT(segments[0])
+	rootChan := make(chan lookupRes, 1)
+	go workDomain(r, domain, rootChan)
+
+	subChan := make(chan lookupRes, 1)
+	go workDomain(r, "_dnslink."+domain, subChan)
+
+	var subRes lookupRes
+	select {
+	case subRes = <-subChan:
+	case <-ctx.Done():
+		return "", ctx.Err()
+	}
+
+	var p path.Path
+	if subRes.error == nil {
+		p = subRes.path
+	} else {
+		var rootRes lookupRes
+		select {
+		case rootRes = <-rootChan:
+		case <-ctx.Done():
+			return "", ctx.Err()
+		}
+		if rootRes.error == nil {
+			p = rootRes.path
+		} else {
+			return "", ErrResolveFailed
+		}
+	}
+	if len(segments) > 1 {
+		return path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[1])
+	} else {
+		return p, nil
+	}
+}
+
+func workDomain(r *DNSResolver, name string, res chan lookupRes) {
+	txt, err := r.lookupTXT(name)
+
 	if err != nil {
-		return "", err
+		// Error is != nil
+		res <- lookupRes{"", err}
+		return
 	}
 
 	for _, t := range txt {
 		p, err := parseEntry(t)
 		if err == nil {
-			if len(segments) > 1 {
-				return path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[1])
-			}
-			return p, nil
+			res <- lookupRes{p, nil}
+			return
 		}
 	}
-
-	return "", ErrResolveFailed
+	res <- lookupRes{"", ErrResolveFailed}
 }
 
 func parseEntry(txt string) (path.Path, error) {
