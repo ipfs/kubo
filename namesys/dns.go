@@ -41,6 +41,11 @@ func (r *DNSResolver) ResolveN(ctx context.Context, name string, depth int) (pat
 	return resolve(ctx, r, name, depth, "/ipns/")
 }
 
+type lookupRes struct {
+	path path.Path
+	error error
+}
+
 // resolveOnce implements resolver.
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
@@ -50,24 +55,46 @@ func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, 
 	if !isd.IsDomain(segments[0]) {
 		return "", errors.New("not a valid domain name")
 	}
-
 	log.Infof("DNSResolver resolving %s", segments[0])
-	txt, err := r.lookupTXT(segments[0])
+
+	prefixes := []string{"", "_dnslink."}
+
+	resChan := make(chan lookupRes)
+
+	for _, prefix := range prefixes {
+		go workDomain(r, prefix + segments[0], resChan)
+	}
+
+	for active := len(prefixes); active > 0; active-- {
+		res := <- resChan
+		if res.error == nil {
+			return res.path, nil
+		}
+	}
+
+	return "", ErrResolveFailed
+}
+
+func workDomain(r *DNSResolver, name string, res chan lookupRes) {
+	txt, err := r.lookupTXT(name)
+
 	if err != nil {
-		return "", err
+		res <- lookupRes{"", err}
+		return
 	}
 
 	for _, t := range txt {
 		p, err := parseEntry(t)
 		if err == nil {
 			if len(segments) > 1 {
-				return path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[1])
+				res <- lookupRes{path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[1])}
+			} else {
+				res <-lookupRes{p, nil}
 			}
-			return p, nil
+			return
 		}
 	}
-
-	return "", ErrResolveFailed
+	res <- lookupRes{"", ErrResolveFailed}
 }
 
 func parseEntry(txt string) (path.Path, error) {
