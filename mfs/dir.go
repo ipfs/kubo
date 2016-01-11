@@ -101,45 +101,6 @@ func (d *Directory) Type() NodeType {
 	return TDir
 }
 
-// childFile returns a file under this directory by the given name if it exists
-func (d *Directory) childFile(name string) (*File, error) {
-	fi, ok := d.files[name]
-	if ok {
-		return fi, nil
-	}
-
-	fsn, err := d.childNode(name)
-	if err != nil {
-		return nil, err
-	}
-
-	if fi, ok := fsn.(*File); ok {
-		return fi, nil
-	}
-
-	return nil, fmt.Errorf("%s is not a file", name)
-}
-
-// childDir returns a directory under this directory by the given name if it
-// exists.
-func (d *Directory) childDir(name string) (*Directory, error) {
-	dir, ok := d.childDirs[name]
-	if ok {
-		return dir, nil
-	}
-
-	fsn, err := d.childNode(name)
-	if err != nil {
-		return nil, err
-	}
-
-	if dir, ok := fsn.(*Directory); ok {
-		return dir, nil
-	}
-
-	return nil, fmt.Errorf("%s is not a directory", name)
-}
-
 // childNode returns a FSNode under this directory by the given name if it exists.
 // it does *not* check the cached dirs and files
 func (d *Directory) childNode(name string) (FSNode, error) {
@@ -172,6 +133,13 @@ func (d *Directory) childNode(name string) (FSNode, error) {
 	}
 }
 
+// Child returns the child of this directory by the given name
+func (d *Directory) Child(name string) (FSNode, error) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	return d.childUnsync(name)
+}
+
 // childFromDag searches through this directories dag node for a child link
 // with the given name
 func (d *Directory) childFromDag(name string) (*dag.Node, error) {
@@ -182,13 +150,6 @@ func (d *Directory) childFromDag(name string) (*dag.Node, error) {
 	}
 
 	return nil, os.ErrNotExist
-}
-
-// Child returns the child of this directory by the given name
-func (d *Directory) Child(name string) (FSNode, error) {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	return d.childUnsync(name)
 }
 
 // childUnsync returns the child under this directory by the given name
@@ -258,13 +219,16 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	child, err := d.childDir(name)
+	fsn, err := d.childUnsync(name)
 	if err == nil {
-		return child, os.ErrExist
-	}
-	_, err = d.childFile(name)
-	if err == nil {
-		return nil, os.ErrExist
+		switch fsn := fsn.(type) {
+		case *Directory:
+			return fsn, os.ErrExist
+		case *File:
+			return nil, os.ErrExist
+		default:
+			return nil, fmt.Errorf("unrecognized type: %#v", fsn)
+		}
 	}
 
 	ndir := &dag.Node{Data: ft.FolderPBData()}
