@@ -483,8 +483,11 @@ func (n *IpfsNode) loadFilesRoot() error {
 			return err
 		}
 
-		err = n.Pinning.Pin(n.Context(), nnd, true)
-		if err != nil {
+		if err := n.Pinning.Pin(n.Context(), nnd, true); err != nil {
+			return err
+		}
+
+		if err := n.Pinning.Flush(); err != nil {
 			return err
 		}
 

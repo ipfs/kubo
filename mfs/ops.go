@@ -197,6 +197,9 @@ func DirLookup(d *Directory, pth string) (FSNode, error) {
 
 func FlushPath(r *Root, pth string) error {
 	parts := path.SplitList(strings.Trim(pth, "/"))
+	if len(parts) == 1 && parts[0] == "" {
+		parts = nil
+	}
 
 	d, ok := r.GetValue().(*Directory)
 	if !ok {
@@ -214,12 +217,24 @@ func FlushPath(r *Root, pth string) error {
 	}
 
 	r.repub.Update(k)
+	r.repub.WaitPub()
+
 	return nil
 }
 
 func flushPathRec(d *Directory, parts []string) (*dag.Node, error) {
 	if len(parts) == 0 {
-		return d.GetNode()
+		nd, err := d.GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = d.dserv.Add(nd)
+		if err != nil {
+			return nil, err
+		}
+
+		return nd, nil
 	}
 
 	d.Lock()
@@ -239,6 +254,11 @@ func flushPathRec(d *Directory, parts []string) (*dag.Node, error) {
 		}
 
 		newnode, err := d.node.UpdateNodeLink(parts[0], nd)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = d.dserv.Add(newnode)
 		if err != nil {
 			return nil, err
 		}

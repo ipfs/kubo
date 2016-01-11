@@ -336,9 +336,13 @@ test_files_api() {
 		test_cmp root_hash_exp root_hash
 	'
 
-	test_expect_success "root hash is pinned" '
-		ipfs pin ls
-		return 1
+	test_expect_success "flush root succeeds" '
+		ipfs files flush /
+	'
+
+	test_expect_success "root hash is pinned after flush" '
+		ipfs pin ls > pins &&
+			grep $EXP_ROOT_HASH pins || (cat pins && exit 1)
 	'
 
 	# test mv
