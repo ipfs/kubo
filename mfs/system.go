@@ -165,7 +165,7 @@ type Republisher struct {
 	TimeoutShort time.Duration
 	Publish      chan struct{}
 	pubfunc      PubFunc
-	pubnowch     chan struct{}
+	pubnowch     chan chan struct{}
 
 	ctx    context.Context
 	cancel func()
@@ -190,7 +190,7 @@ func NewRepublisher(ctx context.Context, pf PubFunc, tshort, tlong time.Duration
 		TimeoutLong:  tlong,
 		Publish:      make(chan struct{}, 1),
 		pubfunc:      pf,
-		pubnowch:     make(chan struct{}),
+		pubnowch:     make(chan chan struct{}),
 		ctx:          ctx,
 		cancel:       cancel,
 	}
@@ -204,9 +204,15 @@ func (p *Republisher) setVal(k key.Key) {
 
 func (p *Republisher) pubNow() {
 	select {
-	case p.pubnowch <- struct{}{}:
+	case p.pubnowch <- nil:
 	default:
 	}
+}
+
+func (p *Republisher) WaitPub() {
+	wait := make(chan struct{})
+	p.pubnowch <- wait
+	<-wait
 }
 
 func (p *Republisher) Close() error {
@@ -235,6 +241,8 @@ func (np *Republisher) Run() {
 			longer := time.After(np.TimeoutLong)
 
 		wait:
+			var pubnowresp chan struct{}
+
 			select {
 			case <-np.ctx.Done():
 				return
@@ -243,10 +251,13 @@ func (np *Republisher) Run() {
 				goto wait
 			case <-quick:
 			case <-longer:
-			case <-np.pubnowch:
+			case pubnowresp = <-np.pubnowch:
 			}
 
 			err := np.publish(np.ctx)
+			if pubnowresp != nil {
+				pubnowresp <- struct{}{}
+			}
 			if err != nil {
 				log.Error("republishRoot error: %s", err)
 			}
