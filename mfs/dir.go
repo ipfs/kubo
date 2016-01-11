@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"sync"
 	"time"
 
@@ -195,6 +196,7 @@ func (d *Directory) ListNames() []string {
 	for n, _ := range names {
 		out = append(out, n)
 	}
+	sort.Strings(out)
 
 	return out
 }
