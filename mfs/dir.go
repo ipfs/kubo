@@ -175,6 +175,30 @@ type NodeListing struct {
 	Hash string
 }
 
+func (d *Directory) ListNames() []string {
+	d.Lock()
+	defer d.Unlock()
+
+	names := make(map[string]struct{})
+	for n, _ := range d.childDirs {
+		names[n] = struct{}{}
+	}
+	for n, _ := range d.files {
+		names[n] = struct{}{}
+	}
+
+	for _, l := range d.node.Links {
+		names[l.Name] = struct{}{}
+	}
+
+	var out []string
+	for n, _ := range names {
+		out = append(out, n)
+	}
+
+	return out
+}
+
 func (d *Directory) List() ([]NodeListing, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
