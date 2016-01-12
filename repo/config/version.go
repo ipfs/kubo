@@ -8,7 +8,7 @@ import (
 )
 
 // CurrentVersionNumber is the current application's version literal
-const CurrentVersionNumber = "0.3.11-dev"
+const CurrentVersionNumber = "0.3.11"
 
 const ApiVersion = "/go-ipfs/" + CurrentVersionNumber + "/"
 
