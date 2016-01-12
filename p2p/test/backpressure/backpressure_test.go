@@ -299,6 +299,12 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 		}
 	}
 
+	// trigger lazy connection handshaking
+	_, err = s.Read(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// 500ms rounds of lockstep write + drain
 	roundsStart := time.Now()
 	roundsTotal := 0

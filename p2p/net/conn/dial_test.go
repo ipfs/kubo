@@ -187,10 +187,10 @@ func testDialer(t *testing.T, secure bool) {
 	}
 
 	// fmt.Println("sending")
-	c.WriteMsg([]byte("beep"))
-	c.WriteMsg([]byte("boop"))
-
-	out, err := c.ReadMsg()
+	mc := msgioWrap(c)
+	mc.WriteMsg([]byte("beep"))
+	mc.WriteMsg([]byte("boop"))
+	out, err := mc.ReadMsg()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func testDialer(t *testing.T, secure bool) {
 		t.Error("unexpected conn output", data)
 	}
 
-	out, err = c.ReadMsg()
+	out, err = mc.ReadMsg()
 	if err != nil {
 		t.Fatal(err)
 	}

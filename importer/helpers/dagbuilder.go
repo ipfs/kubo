@@ -1,31 +1,19 @@
 package helpers
 
 import (
+	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	"github.com/ipfs/go-ipfs/pin"
 )
-
-// NodeCB is callback function for dag generation
-// the `last` flag signifies whether or not this is the last
-// (top-most root) node being added. useful for things like
-// only pinning the first node recursively.
-type NodeCB func(node *dag.Node, last bool) error
-
-var nilFunc NodeCB = func(_ *dag.Node, _ bool) error { return nil }
 
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
 	dserv    dag.DAGService
-	mp       pin.ManualPinner
-	in       <-chan []byte
-	errs     <-chan error
+	spl      chunk.Splitter
 	recvdErr error
 	nextData []byte // the next item to return.
 	maxlinks int
-	ncb      NodeCB
-
-	batch *dag.Batch
+	batch    *dag.Batch
 }
 
 type DagBuilderParams struct {
@@ -34,50 +22,30 @@ type DagBuilderParams struct {
 
 	// DAGService to write blocks to (required)
 	Dagserv dag.DAGService
-
-	// Callback for each block added
-	NodeCB NodeCB
 }
 
-// Generate a new DagBuilderHelper from the given params, using 'in' as a
-// data source
-func (dbp *DagBuilderParams) New(in <-chan []byte, errs <-chan error) *DagBuilderHelper {
-	ncb := dbp.NodeCB
-	if ncb == nil {
-		ncb = nilFunc
-	}
-
+// Generate a new DagBuilderHelper from the given params, which data source comes
+// from chunks object
+func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 	return &DagBuilderHelper{
 		dserv:    dbp.Dagserv,
-		in:       in,
-		errs:     errs,
+		spl:      spl,
 		maxlinks: dbp.Maxlinks,
-		ncb:      ncb,
 		batch:    dbp.Dagserv.Batch(),
 	}
 }
 
-// prepareNext consumes the next item from the channel and puts it
+// prepareNext consumes the next item from the splitter and puts it
 // in the nextData field. it is idempotent-- if nextData is full
 // it will do nothing.
-//
-// i realized that building the dag becomes _a lot_ easier if we can
-// "peek" the "are done yet?" (i.e. not consume it from the channel)
 func (db *DagBuilderHelper) prepareNext() {
-	if db.in == nil {
-		// if our input is nil, there is "nothing to do". we're done.
-		// as if there was no data at all. (a sort of zero-value)
-		return
-	}
-
-	// if we already have data waiting to be consumed, we're ready.
+	// if we already have data waiting to be consumed, we're ready
 	if db.nextData != nil {
 		return
 	}
 
-	// if it's closed, nextData will be correctly set to nil, signaling
-	// that we're done consuming from the channel.
-	db.nextData = <-db.in
+	// TODO: handle err (which wasn't handled either when the splitter was channeled)
+	db.nextData, _ = db.spl.NextBytes()
 }
 
 // Done returns whether or not we're done consuming the incoming data.
@@ -106,7 +74,6 @@ func (db *DagBuilderHelper) GetDagServ() dag.DAGService {
 // FillNodeLayer will add datanodes as children to the give node until
 // at most db.indirSize ndoes are added
 //
-// warning: **children** pinned indirectly, but input node IS NOT pinned.
 func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 
 	// while we have room AND we're not done
@@ -146,12 +113,6 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
 	}
 
 	_, err = db.dserv.Add(dn)
-	if err != nil {
-		return nil, err
-	}
-
-	// node callback
-	err = db.ncb(dn, true)
 	if err != nil {
 		return nil, err
 	}

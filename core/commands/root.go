@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	files "github.com/ipfs/go-ipfs/core/commands/files"
+	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
@@ -99,13 +101,14 @@ var rootSubcommands = map[string]*cmds.Command{
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
 	"dns":       DNSCmd,
+	"files":     files.FilesCmd,
 	"get":       GetCmd,
 	"id":        IDCmd,
 	"log":       LogCmd,
 	"ls":        LsCmd,
 	"mount":     MountCmd,
 	"name":      NameCmd,
-	"object":    ObjectCmd,
+	"object":    ocmd.ObjectCmd,
 	"pin":       PinCmd,
 	"ping":      PingCmd,
 	"refs":      RefsCmd,
@@ -146,11 +149,11 @@ var rootROSubcommands = map[string]*cmds.Command{
 	},
 	"object": &cmds.Command{
 		Subcommands: map[string]*cmds.Command{
-			"data":  objectDataCmd,
-			"links": objectLinksCmd,
-			"get":   objectGetCmd,
-			"stat":  objectStatCmd,
-			"patch": objectPatchCmd,
+			"data":  ocmd.ObjectDataCmd,
+			"links": ocmd.ObjectLinksCmd,
+			"get":   ocmd.ObjectGetCmd,
+			"stat":  ocmd.ObjectStatCmd,
+			"patch": ocmd.ObjectPatchCmd,
 		},
 	},
 	"refs": RefsROCmd,

@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"strings"
 
+	"github.com/ipfs/go-ipfs/path"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
@@ -147,16 +147,16 @@ func (c *Command) Call(req Request) Response {
 }
 
 // Resolve gets the subcommands at the given path
-func (c *Command) Resolve(path []string) ([]*Command, error) {
-	cmds := make([]*Command, len(path)+1)
+func (c *Command) Resolve(pth []string) ([]*Command, error) {
+	cmds := make([]*Command, len(pth)+1)
 	cmds[0] = c
 
 	cmd := c
-	for i, name := range path {
+	for i, name := range pth {
 		cmd = cmd.Subcommand(name)
 
 		if cmd == nil {
-			pathS := strings.Join(path[0:i], "/")
+			pathS := path.Join(pth[:i])
 			return nil, fmt.Errorf("Undefined command: '%s'", pathS)
 		}
 

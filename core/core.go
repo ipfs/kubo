@@ -16,8 +16,8 @@ import (
 	"net"
 	"time"
 
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	mamask "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
@@ -41,14 +41,15 @@ import (
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
+	mfs "github.com/ipfs/go-ipfs/mfs"
 
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
-	ipnsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
@@ -56,6 +57,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -90,12 +92,13 @@ type IpfsNode struct {
 
 	// Services
 	Peerstore  peer.Peerstore       // storage for other Peer instances
-	Blockstore bstore.Blockstore    // the block store (lower level)
+	Blockstore bstore.GCBlockstore  // the block store (lower level)
 	Blocks     *bserv.BlockService  // the block service, get/add blocks.
 	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
 	Resolver   *path.Resolver       // the path resolution system
 	Reporter   metrics.Reporter
 	Discovery  discovery.Service
+	FilesRoot  *mfs.Root
 
 	// Online
 	PeerHost     p2phost.Host        // the network host (server+client)
@@ -107,8 +110,6 @@ type IpfsNode struct {
 	Ping         *ping.PingService
 	Reprovider   *rp.Reprovider // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
-
-	IpnsFs *ipnsfs.Filesystem
 
 	proc goprocess.Process
 	ctx  context.Context
@@ -320,8 +321,14 @@ func (n *IpfsNode) teardown() error {
 	log.Debug("core is shutting down...")
 	// owned objects are closed in this teardown to ensure that they're closed
 	// regardless of which constructor was used to add them to the node.
-	closers := []io.Closer{
-		n.Repo,
+	var closers []io.Closer
+
+	// NOTE: the order that objects are added(closed) matters, if an object
+	// needs to use another during its shutdown/cleanup process, it should be
+	// closed before that other object
+
+	if n.FilesRoot != nil {
+		closers = append(closers, n.FilesRoot)
 	}
 
 	if n.Exchange != nil {
@@ -335,10 +342,8 @@ func (n *IpfsNode) teardown() error {
 		closers = append(closers, mount.Closer(n.Mounts.Ipns))
 	}
 
-	// Filesystem needs to be closed before network, dht, and blockservice
-	// so it can use them as its shutting down
-	if n.IpnsFs != nil {
-		closers = append(closers, n.IpnsFs)
+	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
+		closers = append(closers, dht.Process())
 	}
 
 	if n.Blocks != nil {
@@ -349,13 +354,12 @@ func (n *IpfsNode) teardown() error {
 		closers = append(closers, n.Bootstrapper)
 	}
 
-	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
-		closers = append(closers, dht.Process())
-	}
-
 	if n.PeerHost != nil {
 		closers = append(closers, n.PeerHost)
 	}
+
+	// Repo closed last, most things need to preserve state here
+	closers = append(closers, n.Repo)
 
 	var errs []error
 	for _, closer := range closers {
@@ -467,6 +471,41 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
 	return toPeerInfos(parsed), nil
 }
 
+func (n *IpfsNode) loadFilesRoot() error {
+	dsk := ds.NewKey("/local/filesroot")
+	pf := func(ctx context.Context, k key.Key) error {
+		return n.Repo.Datastore().Put(dsk, []byte(k))
+	}
+
+	var nd *merkledag.Node
+	val, err := n.Repo.Datastore().Get(dsk)
+
+	switch {
+	case err == ds.ErrNotFound || val == nil:
+		nd = uio.NewEmptyDirectory()
+		_, err := n.DAG.Add(nd)
+		if err != nil {
+			return fmt.Errorf("failure writing to dagstore: %s", err)
+		}
+	case err == nil:
+		k := key.Key(val.([]byte))
+		nd, err = n.DAG.Get(n.Context(), k)
+		if err != nil {
+			return fmt.Errorf("error loading filesroot from DAG: %s", err)
+		}
+	default:
+		return err
+	}
+
+	mr, err := mfs.NewRoot(n.Context(), n.DAG, nd, pf)
+	if err != nil {
+		return err
+	}
+
+	n.FilesRoot = mr
+	return nil
+}
+
 // SetupOfflineRouting loads the local nodes private key and
 // uses it to instantiate a routing system in offline mode.
 // This is primarily used for offline ipns modifications.
@@ -570,14 +609,14 @@ func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) 
 	return nil
 }
 
-func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.ThreadSafeDatastore) (routing.IpfsRouting, error) {
+func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore repo.Datastore) (routing.IpfsRouting, error) {
 	dhtRouting := dht.NewDHT(ctx, host, dstore)
 	dhtRouting.Validator[IpnsValidatorTag] = namesys.IpnsRecordValidator
 	dhtRouting.Selector[IpnsValidatorTag] = namesys.IpnsSelectorFunc
 	return dhtRouting, nil
 }
 
-type RoutingOption func(context.Context, p2phost.Host, ds.ThreadSafeDatastore) (routing.IpfsRouting, error)
+type RoutingOption func(context.Context, p2phost.Host, repo.Datastore) (routing.IpfsRouting, error)
 
 type DiscoveryOption func(p2phost.Host) (discovery.Service, error)
 

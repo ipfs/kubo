@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/ipfs/go-ipfs",
-	"GoVersion": "go1.5.1",
+	"GoVersion": "go1.5.2",
 	"Packages": [
 		"./..."
 	],
@@ -13,10 +13,6 @@
 			"ImportPath": "bitbucket.org/ww/goautoneg",
 			"Comment": "null-5",
 			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
-		},
-		{
-			"ImportPath": "github.com/StackExchange/wmi",
-			"Rev": "8730d7ed549382cb1f889a576a7223c137be7989"
 		},
 		{
 			"ImportPath": "github.com/alecthomas/kingpin",
@@ -96,6 +92,10 @@
 			"Rev": "04ff72a32679d57d009c0ac0fc5c4cda10350bad"
 		},
 		{
+			"ImportPath": "github.com/docker/spdystream",
+			"Rev": "e372247595b2edd26f6d022288e97eed793d70a2"
+		},
+		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "00897f070f09f194c26d65afae734ba4c32404e8"
 		},
@@ -110,11 +110,6 @@
 		{
 			"ImportPath": "github.com/fd/go-nat",
 			"Rev": "50e7633d5f27d81490026a13e5b92d2e42d8c6bb"
-		},
-		{
-			"ImportPath": "github.com/go-ole/go-ole",
-			"Comment": "v1.1.1-64-g4246eab",
-			"Rev": "4246eab2a27c71c143f965432ace52990308d362"
 		},
 		{
 			"ImportPath": "github.com/gogo/protobuf/io",
@@ -141,8 +136,8 @@
 			"Rev": "223008361153d7d434c1f0ac990cd3fcae6931f5"
 		},
 		{
-			"ImportPath": "github.com/inconshreveable/go-update",
-			"Rev": "68f5725818189545231c1fd8694793d45f2fc529"
+			"ImportPath": "github.com/ipfs/go-datastore",
+			"Rev": "e63957b6da369d986ef3e7a3f249779ba3f56c7e"
 		},
 		{
 			"ImportPath": "github.com/jackpal/go-nat-pmp",
@@ -159,10 +154,6 @@
 		{
 			"ImportPath": "github.com/jbenet/go-context/io",
 			"Rev": "d14ea06fba99483203c19d92cfcd13ebe73135f4"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-datastore",
-			"Rev": "c835c30f206c1e97172e428f052e225adab9abde"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-detect-race",
@@ -220,7 +211,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-stream-muxer",
-			"Rev": "4a97500beeb081571128d41d539787e137f18404"
+			"Rev": "e2e261765847234749629e0190fef193a4548303"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
@@ -229,14 +220,6 @@
 		{
 			"ImportPath": "github.com/jbenet/goprocess",
 			"Rev": "64a8220330a485070813201cc05b0c6777f6a516"
-		},
-		{
-			"ImportPath": "github.com/kardianos/osext",
-			"Rev": "8fef92e41e22a70e700a96b29f066cda30ea24ef"
-		},
-		{
-			"ImportPath": "github.com/kr/binarydist",
-			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
 		},
 		{
 			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
@@ -291,21 +274,6 @@
 			"Rev": "7c7f2020c4c9491594b85767967f4619c2fa75f9"
 		},
 		{
-			"ImportPath": "github.com/shirou/gopsutil/common",
-			"Comment": "1.0.0-167-g6a274c3",
-			"Rev": "6a274c3628382ab316340478300f5282b89f7778"
-		},
-		{
-			"ImportPath": "github.com/shirou/gopsutil/disk",
-			"Comment": "1.0.0-167-g6a274c3",
-			"Rev": "6a274c3628382ab316340478300f5282b89f7778"
-		},
-		{
-			"ImportPath": "github.com/shirou/gopsutil/mem",
-			"Comment": "1.0.0-167-g6a274c3",
-			"Rev": "6a274c3628382ab316340478300f5282b89f7778"
-		},
-		{
 			"ImportPath": "github.com/steakknife/hamming",
 			"Comment": "0.0.10",
 			"Rev": "8bad99011016569c05320e51be39c648679c5b73"
@@ -333,6 +301,18 @@
 		{
 			"ImportPath": "github.com/whyrusleeping/go-metrics",
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-multiplex",
+			"Rev": "474b9aebeb391746f304ddf7c764a5da12319857"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-multistream",
+			"Rev": "31bb014803a6eba2261bda5593e42c016a5f33bb"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-sysinfo",
+			"Rev": "769b7c0b50e8030895abc74ba8107ac715e3162a"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",

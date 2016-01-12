@@ -43,7 +43,7 @@ func addrSourcesSame(a, b Source) bool {
 
 func TestAddrCombine(t *testing.T) {
 	addrs := newAddrs(t, 30)
-	a := Slice(addrs[0:10])
+	a := Slice(addrs[:10])
 	b := Slice(addrs[10:20])
 	c := Slice(addrs[20:30])
 	d := CombineSources(a, b, c)
@@ -58,7 +58,7 @@ func TestAddrCombine(t *testing.T) {
 func TestAddrUnique(t *testing.T) {
 
 	addrs := newAddrs(t, 40)
-	a := Slice(addrs[0:20])
+	a := Slice(addrs[:20])
 	b := Slice(addrs[10:30])
 	c := Slice(addrs[20:40])
 	d := CombineSources(a, b, c)

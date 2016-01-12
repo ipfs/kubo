@@ -4,10 +4,12 @@ package blockstore
 
 import (
 	"errors"
+	"sync"
+	"sync/atomic"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	dsns "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
-	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	dsns "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/namespace"
+	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
@@ -24,7 +26,7 @@ var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
 
 var ErrNotFound = errors.New("blockstore: block not found")
 
-// Blockstore wraps a ThreadSafeDatastore
+// Blockstore wraps a Datastore
 type Blockstore interface {
 	DeleteBlock(key.Key) error
 	Has(key.Key) (bool, error)
@@ -35,17 +37,40 @@ type Blockstore interface {
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
 
-func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
+type GCBlockstore interface {
+	Blockstore
+
+	// GCLock locks the blockstore for garbage collection. No operations
+	// that expect to finish with a pin should ocurr simultaneously.
+	// Reading during GC is safe, and requires no lock.
+	GCLock() func()
+
+	// PinLock locks the blockstore for sequences of puts expected to finish
+	// with a pin (before GC). Multiple put->pin sequences can write through
+	// at the same time, but no GC should not happen simulatenously.
+	// Reading during Pinning is safe, and requires no lock.
+	PinLock() func()
+
+	// GcRequested returns true if GCLock has been called and is waiting to
+	// take the lock
+	GCRequested() bool
+}
+
+func NewBlockstore(d ds.Batching) *blockstore {
+	var dsb ds.Batching
 	dd := dsns.Wrap(d, BlockPrefix)
+	dsb = dd
 	return &blockstore{
-		datastore: dd,
+		datastore: dsb,
 	}
 }
 
 type blockstore struct {
 	datastore ds.Batching
-	// cant be ThreadSafeDatastore cause namespace.Datastore doesnt support it.
-	// we do check it on `NewBlockstore` though.
+
+	lk      sync.RWMutex
+	gcreq   int32
+	gcreqlk sync.Mutex
 }
 
 func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
@@ -171,4 +196,20 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	}()
 
 	return output, nil
+}
+
+func (bs *blockstore) GCLock() func() {
+	atomic.AddInt32(&bs.gcreq, 1)
+	bs.lk.Lock()
+	atomic.AddInt32(&bs.gcreq, -1)
+	return bs.lk.Unlock
+}
+
+func (bs *blockstore) PinLock() func() {
+	bs.lk.RLock()
+	return bs.lk.RUnlock
+}
+
+func (bs *blockstore) GCRequested() bool {
+	return atomic.LoadInt32(&bs.gcreq) > 0
 }

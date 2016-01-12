@@ -15,6 +15,8 @@ import (
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	identify "github.com/ipfs/go-ipfs/p2p/protocol/identify"
 	relay "github.com/ipfs/go-ipfs/p2p/protocol/relay"
+
+	msmux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multistream"
 )
 
 var log = logging.Logger("p2p/host/basic")
@@ -39,7 +41,7 @@ const (
 //  * uses a nat service to establish NAT port mappings
 type BasicHost struct {
 	network inet.Network
-	mux     *protocol.Mux
+	mux     *msmux.MultistreamMuxer
 	ids     *identify.IDService
 	relay   *relay.RelayService
 	natmgr  *natManager
@@ -53,7 +55,7 @@ type BasicHost struct {
 func New(net inet.Network, opts ...interface{}) *BasicHost {
 	h := &BasicHost{
 		network: net,
-		mux:     protocol.NewMux(),
+		mux:     msmux.NewMultistreamMuxer(),
 		bwc:     metrics.NewBandwidthCounter(),
 	}
 
@@ -67,7 +69,12 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 
 	// setup host services
 	h.ids = identify.NewIDService(h)
-	h.relay = relay.NewRelayService(h, h.Mux().HandleSync)
+
+	muxh := h.Mux().Handle
+	handle := func(s inet.Stream) {
+		muxh(s)
+	}
+	h.relay = relay.NewRelayService(h, handle)
 
 	for _, o := range opts {
 		switch o := o.(type) {
@@ -95,7 +102,7 @@ func (h *BasicHost) newConnHandler(c inet.Conn) {
 // newStreamHandler is the remote-opened stream handler for inet.Network
 // TODO: this feels a bit wonky
 func (h *BasicHost) newStreamHandler(s inet.Stream) {
-	protoID, handle, err := h.Mux().ReadHeader(s)
+	protoID, handle, err := h.Mux().Negotiate(s)
 	if err != nil {
 		if err == io.EOF {
 			log.Debugf("protocol EOF: %s", s.Conn().RemotePeer())
@@ -105,7 +112,7 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 		return
 	}
 
-	logStream := mstream.WrapStream(s, protoID, h.bwc)
+	logStream := mstream.WrapStream(s, protocol.ID(protoID), h.bwc)
 
 	go handle(logStream)
 }
@@ -126,7 +133,7 @@ func (h *BasicHost) Network() inet.Network {
 }
 
 // Mux returns the Mux multiplexing incoming streams to protocol handlers
-func (h *BasicHost) Mux() *protocol.Mux {
+func (h *BasicHost) Mux() *msmux.MultistreamMuxer {
 	return h.mux
 }
 
@@ -140,12 +147,15 @@ func (h *BasicHost) IDService() *identify.IDService {
 //   host.Mux().SetHandler(proto, handler)
 // (Threadsafe)
 func (h *BasicHost) SetStreamHandler(pid protocol.ID, handler inet.StreamHandler) {
-	h.Mux().SetHandler(pid, handler)
+	h.Mux().AddHandler(string(pid), func(rwc io.ReadWriteCloser) error {
+		handler(rwc.(inet.Stream))
+		return nil
+	})
 }
 
 // RemoveStreamHandler returns ..
 func (h *BasicHost) RemoveStreamHandler(pid protocol.ID) {
-	h.Mux().RemoveHandler(pid)
+	h.Mux().RemoveHandler(string(pid))
 }
 
 // NewStream opens a new stream to given peer p, and writes a p2p/protocol
@@ -160,12 +170,11 @@ func (h *BasicHost) NewStream(pid protocol.ID, p peer.ID) (inet.Stream, error) {
 
 	logStream := mstream.WrapStream(s, pid, h.bwc)
 
-	if err := protocol.WriteHeader(logStream, pid); err != nil {
-		logStream.Close()
-		return nil, err
-	}
-
-	return logStream, nil
+	lzcon := msmux.NewMSSelect(logStream, string(pid))
+	return &streamWrapper{
+		Stream: logStream,
+		rw:     lzcon,
+	}, nil
 }
 
 // Connect ensures there is a connection between this host and the peer with
@@ -243,4 +252,17 @@ func (h *BasicHost) Close() error {
 // GetBandwidthReporter exposes the Host's bandiwth metrics reporter
 func (h *BasicHost) GetBandwidthReporter() metrics.Reporter {
 	return h.bwc
+}
+
+type streamWrapper struct {
+	inet.Stream
+	rw io.ReadWriter
+}
+
+func (s *streamWrapper) Read(b []byte) (int, error) {
+	return s.rw.Read(b)
+}
+
+func (s *streamWrapper) Write(b []byte) (int, error) {
+	return s.rw.Write(b)
 }
