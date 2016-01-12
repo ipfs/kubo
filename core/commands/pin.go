@@ -7,8 +7,11 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	core "github.com/ipfs/go-ipfs/core"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -183,6 +186,9 @@ Example:
 `,
 	},
 
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", false, true, "Path to object(s) to be listed"),
+	},
 	Options: []cmds.Option{
 		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"recursive\""),
 		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins"),
@@ -195,20 +201,40 @@ Example:
 			return
 		}
 
-		typeStr, found, err := req.Option("type").String()
+		typeStr, typeStrFound, err := req.Option("type").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if !found {
-			typeStr = "recursive"
+
+		if typeStrFound {
+			switch typeStr {
+			case "all", "direct", "indirect", "recursive":
+			default:
+				err = fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+				res.SetError(err, cmds.ErrClient)
+				return
+			}
 		}
 
-		switch typeStr {
-		case "all", "direct", "indirect", "recursive":
-		default:
-			err = fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-			res.SetError(err, cmds.ErrClient)
+		if len(req.Arguments()) > 0 {
+			if !typeStrFound {
+				typeStr = "all"
+			}
+
+			keys, err := pinLsKeys(req.Arguments(), typeStr, req.Context(), n)
+
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+			} else {
+				res.SetOutput(&RefKeyList{Keys: keys})
+			}
+
+			return
+		}
+
+		if !typeStrFound {
+			typeStr = "recursive"
 		}
 
 		keys := make(map[string]RefKeyObject)
@@ -277,4 +303,40 @@ type RefKeyObject struct {
 
 type RefKeyList struct {
 	Keys map[string]RefKeyObject
+}
+
+func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+	keys := make(map[string]RefKeyObject)
+
+	for _, p := range args {
+		dagNode, err := core.Resolve(ctx, n, path.Path(p))
+		if err != nil {
+			return nil, err
+		}
+
+		k, err := dagNode.Key()
+		if err != nil {
+			return nil, err
+		}
+
+		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, typeStr)
+		if err != nil {
+			return nil, err
+		}
+
+		if !pinned {
+			return nil, fmt.Errorf("Path '%s' is not pinned", p)
+		}
+
+		switch pinType {
+		case "direct", "indirect", "recursive", "internal":
+		default:
+			pinType = "indirect through " + pinType
+		}
+		keys[k.B58String()] = RefKeyObject{
+			Type: pinType,
+		}
+	}
+
+	return keys, nil
 }
