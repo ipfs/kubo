@@ -71,15 +71,6 @@ func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, 
 }
 
 func parseEntry(txt string) (path.Path, error) {
-	p, err := path.ParseKeyToPath(txt) // bare IPFS multihashes
-	if err == nil {
-		return p, nil
-	}
-
-	return tryParseDnsLink(txt)
-}
-
-func tryParseDnsLink(txt string) (path.Path, error) {
 	parts := strings.SplitN(txt, "=", 2)
 	if len(parts) == 2 && parts[0] == "dnslink" {
 		return path.ParsePath(parts[1])
