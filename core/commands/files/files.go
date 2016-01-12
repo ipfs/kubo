@@ -361,7 +361,7 @@ Examples:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		var r io.Reader = fi
+		var r io.Reader = &contextReaderWrapper{R: fi, ctx: req.Context()}
 		count, found, err := req.Option("count").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -377,6 +377,19 @@ Examples:
 
 		res.SetOutput(r)
 	},
+}
+
+type contextReader interface {
+	CtxReadFull(context.Context, []byte) (int, error)
+}
+
+type contextReaderWrapper struct {
+	R   contextReader
+	ctx context.Context
+}
+
+func (crw *contextReaderWrapper) Read(b []byte) (int, error) {
+	return crw.R.CtxReadFull(crw.ctx, b)
 }
 
 var FilesMvCmd = &cmds.Command{
