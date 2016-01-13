@@ -675,3 +675,53 @@ func TestMfsStress(t *testing.T) {
 		}
 	}
 }
+
+func TestFlushing(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, rt := setupRoot(ctx, t)
+
+	dir := rt.GetValue().(*Directory)
+	c := mkdirP(t, dir, "a/b/c")
+	d := mkdirP(t, dir, "a/b/d")
+	e := mkdirP(t, dir, "a/b/e")
+
+	data := []byte("this is a test\n")
+	nd1 := &dag.Node{Data: ft.FilePBData(data, uint64(len(data)))}
+
+	if err := c.AddChild("TEST", nd1); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.AddChild("TEST", nd1); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.AddChild("TEST", nd1); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := FlushPath(rt, "/a/b/c/TEST"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := FlushPath(rt, "/a/b/d/TEST"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := FlushPath(rt, "/a/b/e/TEST"); err != nil {
+		t.Fatal(err)
+	}
+
+	rnd, err := dir.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rnk, err := rnd.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if rnk.B58String() != "QmWcvrHUFk7LQRrA4WqKjqy7ZyRGFLVagtgNxbEodTEzQ4" {
+		t.Fatal("dag looks wrong")
+	}
+}

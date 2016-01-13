@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"sync"
 	"time"
 
@@ -173,6 +174,31 @@ type NodeListing struct {
 	Type int
 	Size int64
 	Hash string
+}
+
+func (d *Directory) ListNames() []string {
+	d.Lock()
+	defer d.Unlock()
+
+	names := make(map[string]struct{})
+	for n, _ := range d.childDirs {
+		names[n] = struct{}{}
+	}
+	for n, _ := range d.files {
+		names[n] = struct{}{}
+	}
+
+	for _, l := range d.node.Links {
+		names[l.Name] = struct{}{}
+	}
+
+	var out []string
+	for n, _ := range names {
+		out = append(out, n)
+	}
+	sort.Strings(out)
+
+	return out
 }
 
 func (d *Directory) List() ([]NodeListing, error) {

@@ -41,6 +41,7 @@ Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 		"mkdir": FilesMkdirCmd,
 		"stat":  FilesStatCmd,
 		"rm":    FilesRmCmd,
+		"flush": FilesFlushCmd,
 	},
 }
 
@@ -244,17 +245,10 @@ Examples:
 		switch fsn := fsn.(type) {
 		case *mfs.Directory:
 			if !long {
-				mdnd, err := fsn.GetNode()
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-
 				var output []mfs.NodeListing
-				for _, lnk := range mdnd.Links {
+				for _, name := range fsn.ListNames() {
 					output = append(output, mfs.NodeListing{
-						Name: lnk.Name,
-						Hash: lnk.Hash.B58String(),
+						Name: name,
 					})
 				}
 				res.SetOutput(&FilesLsOutput{output})
@@ -367,7 +361,7 @@ Examples:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		var r io.Reader = fi
+		var r io.Reader = &contextReaderWrapper{R: fi, ctx: req.Context()}
 		count, found, err := req.Option("count").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -383,6 +377,19 @@ Examples:
 
 		res.SetOutput(r)
 	},
+}
+
+type contextReader interface {
+	CtxReadFull(context.Context, []byte) (int, error)
+}
+
+type contextReaderWrapper struct {
+	R   contextReader
+	ctx context.Context
+}
+
+func (crw *contextReaderWrapper) Read(b []byte) (int, error) {
+	return crw.R.CtxReadFull(crw.ctx, b)
 }
 
 var FilesMvCmd = &cmds.Command{
@@ -501,7 +508,14 @@ Warning:
 		}
 
 		if flush {
-			defer fi.Close()
+			defer func() {
+				fi.Close()
+				err := mfs.FlushPath(nd.FilesRoot, path)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+			}()
 		} else {
 			defer fi.Sync()
 		}
@@ -597,6 +611,40 @@ Examples:
 			return
 		}
 
+	},
+}
+
+var FilesFlushCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "flush a given path's data to disk",
+		ShortDescription: `
+flush a given path to disk. This is only useful when other commands
+are run with the '--flush=false'.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", false, false, "path to flush (default '/')"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		nd, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		// take the lock and defer the unlock
+		defer nd.Blockstore.PinLock()()
+
+		path := "/"
+		if len(req.Arguments()) > 0 {
+			path = req.Arguments()[0]
+		}
+
+		err = mfs.FlushPath(nd.FilesRoot, path)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 	},
 }
 
