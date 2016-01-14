@@ -203,10 +203,22 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.PeerInfo) 
 }
 
 func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
-	var peers []peer.PeerInfo
+	pinfos := make(map[peer.ID]*peer.PeerInfo)
 	for _, bootstrap := range bpeers {
-		peers = append(peers, toPeerInfo(bootstrap))
+		pinfo, ok := pinfos[bootstrap.ID()]
+		if !ok {
+			pinfo = new(peer.PeerInfo)
+			pinfos[bootstrap.ID()] = pinfo
+			pinfo.ID = bootstrap.ID()
+		}
+		pinfo.Addrs = append(pinfo.Addrs, bootstrap.Multiaddr())
 	}
+
+	var peers []peer.PeerInfo
+	for _, pinfo := range pinfos {
+		peers = append(peers, *pinfo)
+	}
+
 	return peers
 }
 
