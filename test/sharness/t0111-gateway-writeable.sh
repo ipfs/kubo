@@ -39,6 +39,45 @@ test_expect_success "We can HTTP GET file just created" '
   test_cmp infile outfile
 '
 
+test_expect_success "File is pinned (unpin file should work)" '
+  ipfs pin rm -r $HASH
+'
+
+test_expect_success "HTTP POST file with flag pin=false gives Hash" '
+  echo "$RANDOM" >infile &&
+  URL="http://localhost:$port/ipfs/?pin=false" &&
+  curl -svX POST --data-binary @infile "$URL" 2>curl_post.out &&
+  grep "HTTP/1.1 201 Created" curl_post.out &&
+  LOCATION=$(grep Location curl_post.out) &&
+  HASH=$(echo $LOCATION | cut -d":" -f2- |tr -d " \n\r")
+'
+
+test_expect_success "We can HTTP GET file just created" '
+  URL="http://localhost:${port}${HASH}" &&
+  curl -so outfile "$URL" &&
+  test_cmp infile outfile
+'
+
+test_expect_success "File is not pinned (unpin file should fail)" '
+  test_must_fail ipfs pin rm -r $HASH
+'
+
+test_expect_success "HTTP POST multiple files gives Hash" '
+  echo "hapax" >infile1 &&
+  echo "dis" >infile2 &&
+  URL="http://localhost:$port/ipfs" &&
+  curl --form file1=@infile1 --form file2=@infile2 "$URL" &&
+  grep "HTTP/1.1 201 Created" curl_post.out &&
+  LOCATION=$(grep Location curl_post.out) &&
+  HASH=$(echo $LOCATION | cut -d":" -f2- |tr -d " \n\r")
+'
+
+test_expect_success "We can HTTP GET files just created" '
+  URL="http://localhost:${port}${HASH}" &&
+  curl -O "$URL" &&
+  test_cmp infile outfile
+'
+
 test_expect_success "HTTP PUT empty directory" '
   URL="http://localhost:$port/ipfs/$HASH_EMPTY_DIR/" &&
   echo "PUT $URL" &&

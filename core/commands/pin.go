@@ -161,7 +161,6 @@ Returns a list of objects that are pinned locally.
 By default, only recursively pinned returned, but others may be shown via the '--type' flag.
 `,
 		LongDescription: `
-<<<<<<< HEAD
 Returns a list of objects that are pinned locally.
 By default, only recursively pinned returned, but others may be shown via the '--type' flag.
 

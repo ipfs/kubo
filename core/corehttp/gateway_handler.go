@@ -12,6 +12,8 @@ import (
 
 	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/commands/files"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
@@ -287,16 +289,47 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	nd, err := i.newDagFromReader(r.Body)
+	fileAdder, err := coreunix.NewAdder(i.node.Context(), i.node, nil)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
-	k, err := i.node.DAG.Add(nd)
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "multipart/form-data" || contentType == "multipart/mixed" {
+		f := &files.MultipartFile{Mediatype: contentType}
+		f.Reader, err = r.MultipartReader()
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+		err = fileAdder.AddFile(f)
+	} else {
+		err = fileAdder.AddFile(files.NewReaderFile("", "", r.Body, nil))
+	}
 	if err != nil {
 		internalWebError(w, err)
 		return
+	}
+
+	nd, err := fileAdder.Finalize()
+	if err != nil {
+		internalWebError(w, err)
+		return
+	}
+
+	k, err := nd.Key()
+	if err != nil {
+		internalWebError(w, err)
+		return
+	}
+
+	doPin := r.FormValue("pin")
+	if doPin == "" || doPin == "true" {
+		if err := fileAdder.PinRoot(); err != nil {
+			internalWebError(w, err)
+			return
+		}
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
