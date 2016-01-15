@@ -359,11 +359,7 @@ func (adder *Adder) addFile(file files.File) error {
 		return err
 	}
 
-	switch {
-	case files.IsHidden(file) && !adder.Hidden:
-		log.Infof("%s is hidden, skipping", file.FileName())
-		return &hiddenFileError{file.FileName()}
-	case file.IsDirectory():
+	if file.IsDirectory() {
 		return adder.addDir(file)
 	}
 
@@ -417,11 +413,13 @@ func (adder *Adder) addDir(dir files.File) error {
 			break
 		}
 
-		err = adder.addFile(file)
-		if _, ok := err.(*hiddenFileError); ok {
-			// hidden file error, skip file
+		// Skip hidden files when adding recursively, unless Hidden is enabled.
+		if files.IsHidden(file) && !adder.Hidden {
+			log.Infof("%s is hidden, skipping", file.FileName())
 			continue
-		} else if err != nil {
+		}
+		err = adder.addFile(file)
+		if err != nil {
 			return err
 		}
 	}

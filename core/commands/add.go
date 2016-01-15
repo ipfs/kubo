@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"github.com/ipfs/go-ipfs/core/coreunix"
@@ -49,7 +50,7 @@ remains to be implemented.
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk"),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
-		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden"),
+		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmds.StringOption(chunkerOptionName, "s", "chunking algorithm to use"),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.  Default true"),
 	},
@@ -147,8 +148,20 @@ remains to be implemented.
 		fileAdder.Silent = silent
 
 		addAllAndPin := func(f files.File) error {
-			if err := fileAdder.AddFile(f); err != nil {
-				return err
+			// Iterate over each top-level file and add individually. Otherwise the
+			// single files.File f is treated as a directory, affecting hidden file
+			// semantics.
+			for {
+				file, err := f.NextFile()
+				if err == io.EOF {
+					// Finished the list of files.
+					break
+				} else if err != nil {
+					return err
+				}
+				if err := fileAdder.AddFile(file); err != nil {
+					return err
+				}
 			}
 
 			if hash {
