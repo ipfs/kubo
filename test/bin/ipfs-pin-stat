@@ -19,12 +19,12 @@ if [ "$?" -eq 0 ]; then
 fi
 
 ipfs pin ls --type=recursive | grep "$path" >/dev/null
-[ "$?" -eq 0 ] && echo "$path pinned recursively"
+[ "$?" -eq 0 ] && echo "$path pinned recursive-ly"
 
 ipfs pin ls --type=indirect | grep "$path" >/dev/null
-[ "$?" -eq 0 ] && echo "$path pinned indirectly"
+[ "$?" -eq 0 ] && echo "$path pinned indirect-ly"
 
 ipfs pin ls --type=direct | grep "$path" >/dev/null
-[ "$?" -eq 0 ] && echo "$path pinned directly"
+[ "$?" -eq 0 ] && echo "$path pinned direct-ly"
 
 exit 0
