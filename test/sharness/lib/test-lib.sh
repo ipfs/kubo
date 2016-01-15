@@ -321,7 +321,7 @@ test_should_contain() {
 test_str_contains() {
 	find=$1
 	shift
-	echo "$@" | grep "\b$find\b" >/dev/null
+	echo "$@" | egrep "\b$find\b" >/dev/null
 }
 
 disk_usage() {
