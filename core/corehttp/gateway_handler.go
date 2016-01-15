@@ -12,6 +12,8 @@ import (
 
 	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/commands/files"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
@@ -301,21 +303,57 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	nd, err := i.newDagFromReader(r.Body)
+	fileAdder, err := coreunix.NewAdder(i.node.Context(), i.node, nil)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
-	k, err := i.node.DAG.Add(nd)
+	f, err := files.NewFileFromRequest(r)
+	if err != nil {
+		internalWebError(w, err)
+		return
+	}
+
+	if f.IsDirectory() {
+		// multiple files upload detected
+		// though it is better to detect using the 'Expect: 100-continue' header
+		// the files are wrapped in one hash since the response
+		// returns only one hash value
+		fileAdder.Wrap = true
+	}
+
+	addAllAndPin := func(fi files.File) (string, error) {
+		if err := fileAdder.AddFile(fi); err != nil {
+			return "", err
+		}
+		nd, err := fileAdder.Finalize()
+		if err != nil {
+			return "", err
+		}
+		k, err := nd.Key()
+		if err != nil {
+			return "", err
+		}
+
+		dopin := r.FormValue("pin")
+		if dopin == "" || dopin == "true" {
+			if err := fileAdder.PinRoot(); err != nil {
+				return "", err
+			}
+		}
+		return k.String(), nil
+	}
+
+	k, err := addAllAndPin(f)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", k.String())
-	http.Redirect(w, r, ipfsPathPrefix+k.String(), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", k)
+	http.Redirect(w, r, ipfsPathPrefix+k, http.StatusCreated)
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
