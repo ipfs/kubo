@@ -100,6 +100,13 @@ Shutdown
 To shutdown, kill, quit, or otherwise stop the daemon, send a SIGTERM signal.
 If it persists, send a second. This can be done by pressing Ctrl+C twice.
 
+IPFS_PATH environment variable
+
+ipfs uses a repository in the local file system. By default, the repo is located
+at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+
+    export IPFS_PATH=/path/to/ipfsrepo
+
 DEPRECATION NOTICE
 
 Previously, IPFS used an environment variable as seen below:
