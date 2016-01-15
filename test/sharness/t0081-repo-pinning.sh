@@ -17,7 +17,7 @@ test_pin_flag() {
 
 	echo "test_pin_flag" $@
 
-	ipfs-pin-stat "$object" | grep "$ptype"
+	ipfs-pin-stat "$object" | egrep "\b$ptype\b"
 	actual=$?
 
 	if [ "$expect" = "true" ]; then
