@@ -54,8 +54,7 @@ on disk.
 			return
 		}
 
-		unlock := n.Blockstore.PinLock()
-		defer unlock()
+		defer n.Blockstore.PinLock().Unlock()
 
 		// set recursive flag
 		recursive, found, err := req.Option("recursive").Bool()

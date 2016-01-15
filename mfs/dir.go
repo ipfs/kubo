@@ -51,17 +51,20 @@ func NewDirectory(ctx context.Context, name string, node *dag.Node, parent child
 
 // closeChild updates the child by the given name to the dag node 'nd'
 // and changes its own dag node
-func (d *Directory) closeChild(name string, nd *dag.Node) error {
-	mynd, err := d.closeChildUpdate(name, nd)
+func (d *Directory) closeChild(name string, nd *dag.Node, sync bool) error {
+	mynd, err := d.closeChildUpdate(name, nd, sync)
 	if err != nil {
 		return err
 	}
 
-	return d.parent.closeChild(d.name, mynd)
+	if sync {
+		return d.parent.closeChild(d.name, mynd, true)
+	}
+	return nil
 }
 
 // closeChildUpdate is the portion of closeChild that needs to be locked around
-func (d *Directory) closeChildUpdate(name string, nd *dag.Node) (*dag.Node, error) {
+func (d *Directory) closeChildUpdate(name string, nd *dag.Node, sync bool) (*dag.Node, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -70,7 +73,10 @@ func (d *Directory) closeChildUpdate(name string, nd *dag.Node) (*dag.Node, erro
 		return nil, err
 	}
 
-	return d.flushCurrentNode()
+	if sync {
+		return d.flushCurrentNode()
+	}
+	return nil, nil
 }
 
 func (d *Directory) flushCurrentNode() (*dag.Node, error) {
@@ -295,12 +301,15 @@ func (d *Directory) Unlink(name string) error {
 }
 
 func (d *Directory) Flush() error {
+	d.lock.Lock()
 	nd, err := d.flushCurrentNode()
 	if err != nil {
+		d.lock.Unlock()
 		return err
 	}
+	d.lock.Unlock()
 
-	return d.parent.closeChild(d.name, nd)
+	return d.parent.closeChild(d.name, nd, true)
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
@@ -335,11 +344,6 @@ func (d *Directory) sync() error {
 			return err
 		}
 
-		_, err = d.dserv.Add(nd)
-		if err != nil {
-			return err
-		}
-
 		err = d.updateChild(name, nd)
 		if err != nil {
 			return err
@@ -348,11 +352,6 @@ func (d *Directory) sync() error {
 
 	for name, file := range d.files {
 		nd, err := file.GetNode()
-		if err != nil {
-			return err
-		}
-
-		_, err = d.dserv.Add(nd)
 		if err != nil {
 			return err
 		}
@@ -381,6 +380,11 @@ func (d *Directory) GetNode() (*dag.Node, error) {
 	defer d.lock.Unlock()
 
 	err := d.sync()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = d.dserv.Add(d.node)
 	if err != nil {
 		return nil, err
 	}

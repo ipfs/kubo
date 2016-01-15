@@ -59,11 +59,11 @@ func (w *writecache) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	return w.blockstore.AllKeysChan(ctx)
 }
 
-func (w *writecache) GCLock() func() {
+func (w *writecache) GCLock() Unlocker {
 	return w.blockstore.(GCBlockstore).GCLock()
 }
 
-func (w *writecache) PinLock() func() {
+func (w *writecache) PinLock() Unlocker {
 	return w.blockstore.(GCBlockstore).PinLock()
 }
 

@@ -23,7 +23,7 @@ var log = logging.Logger("gc")
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
 func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner) (<-chan key.Key, error) {
-	unlock := bs.GCLock()
+	unlocker := bs.GCLock()
 
 	bsrv := bserv.New(bs, offline.Exchange(bs))
 	ds := dag.NewDAGService(bsrv)
@@ -41,7 +41,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner) (<-chan key.
 	output := make(chan key.Key)
 	go func() {
 		defer close(output)
-		defer unlock()
+		defer unlocker.Unlock()
 		for {
 			select {
 			case k, ok := <-keychan:

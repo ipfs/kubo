@@ -474,23 +474,6 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
 func (n *IpfsNode) loadFilesRoot() error {
 	dsk := ds.NewKey("/local/filesroot")
 	pf := func(ctx context.Context, k key.Key) error {
-		ds := n.Repo.Datastore()
-		if old, err := ds.Get(dsk); err == nil && old != nil {
-			_ = n.Pinning.Unpin(ctx, key.Key(old.([]byte)), true)
-		}
-		nnd, err := n.DAG.Get(ctx, k)
-		if err != nil {
-			return err
-		}
-
-		if err := n.Pinning.Pin(ctx, nnd, true); err != nil {
-			return err
-		}
-
-		if err := n.Pinning.Flush(); err != nil {
-			return err
-		}
-
 		return n.Repo.Datastore().Put(dsk, []byte(k))
 	}
 

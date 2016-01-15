@@ -29,7 +29,7 @@ var log = logging.Logger("mfs")
 var ErrIsDirectory = errors.New("error: is a directory")
 
 type childCloser interface {
-	closeChild(string, *dag.Node) error
+	closeChild(string, *dag.Node, bool) error
 }
 
 type NodeType int
@@ -115,7 +115,7 @@ func (kr *Root) Flush() error {
 		return err
 	}
 
-	k, err := kr.dserv.Add(nd)
+	k, err := nd.Key()
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (kr *Root) Flush() error {
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
-func (kr *Root) closeChild(name string, nd *dag.Node) error {
+func (kr *Root) closeChild(name string, nd *dag.Node, sync bool) error {
 	k, err := kr.dserv.Add(nd)
 	if err != nil {
 		return err
@@ -146,7 +146,7 @@ func (kr *Root) Close() error {
 		return err
 	}
 
-	k, err := kr.dserv.Add(nd)
+	k, err := nd.Key()
 	if err != nil {
 		return err
 	}

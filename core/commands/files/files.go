@@ -109,8 +109,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 		return nil, err
 	}
 
-	// add to dagserv to ensure its available
-	k, err := ds.Add(nd)
+	k, err := nd.Key()
 	if err != nil {
 		return nil, err
 	}
@@ -159,6 +158,11 @@ var FilesCpCmd = &cmds.Command{
 			return
 		}
 
+		flush, found, _ := req.Option("flush").Bool()
+		if !found {
+			flush = true
+		}
+
 		src, err := checkPath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -180,6 +184,14 @@ var FilesCpCmd = &cmds.Command{
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+
+		if flush {
+			err := mfs.FlushPath(node.FilesRoot, dst)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 	},
 }
@@ -501,8 +513,8 @@ Warning:
 
 		create, _, _ := req.Option("create").Bool()
 		trunc, _, _ := req.Option("truncate").Bool()
-		flush, set, _ := req.Option("flush").Bool()
-		if !set {
+		flush, fset, _ := req.Option("flush").Bool()
+		if !fset {
 			flush = true
 		}
 
@@ -529,14 +541,7 @@ Warning:
 		}
 
 		if flush {
-			defer func() {
-				fi.Close()
-				err := mfs.FlushPath(nd.FilesRoot, path)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-			}()
+			defer fi.Close()
 		} else {
 			defer fi.Sync()
 		}
@@ -652,9 +657,6 @@ are run with the '--flush=false'.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
-		// take the lock and defer the unlock
-		defer nd.Blockstore.PinLock()()
 
 		path := "/"
 		if len(req.Arguments()) > 0 {

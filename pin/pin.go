@@ -123,6 +123,8 @@ func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
 	return nil
 }
 
+var ErrNotPinned = fmt.Errorf("not pinned")
+
 // Unpin a given key
 func (p *pinner) Unpin(ctx context.Context, k key.Key, recursive bool) error {
 	p.lock.Lock()
@@ -132,7 +134,7 @@ func (p *pinner) Unpin(ctx context.Context, k key.Key, recursive bool) error {
 		return err
 	}
 	if !pinned {
-		return fmt.Errorf("%s is not pinned", k)
+		return ErrNotPinned
 	}
 	switch reason {
 	case "recursive":

@@ -576,15 +576,15 @@ func actorRemoveFile(d *Directory) error {
 	return d.Unlink(re.Name)
 }
 
-func actorReadFile(d *Directory) error {
+func randomFile(d *Directory) (*File, error) {
 	d, err := randomWalk(d, rand.Intn(6))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ents, err := d.List()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var files []string
@@ -595,18 +595,61 @@ func actorReadFile(d *Directory) error {
 	}
 
 	if len(files) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	fname := files[rand.Intn(len(files))]
 	fsn, err := d.Child(fname)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fi, ok := fsn.(*File)
 	if !ok {
-		return errors.New("file wasnt a file, race?")
+		return nil, errors.New("file wasnt a file, race?")
+	}
+
+	return fi, nil
+}
+
+func actorWriteFile(d *Directory) error {
+	fi, err := randomFile(d)
+	if err != nil {
+		return err
+	}
+	if fi == nil {
+		return nil
+	}
+
+	size := rand.Intn(1024)
+	buf := make([]byte, size)
+	randbo.New().Read(buf)
+
+	s, err := fi.Size()
+	if err != nil {
+		return err
+	}
+
+	offset := rand.Int63n(s)
+
+	n, err := fi.WriteAt(buf, offset)
+	if err != nil {
+		return err
+	}
+	if n != size {
+		return fmt.Errorf("didnt write enough")
+	}
+
+	return fi.Close()
+}
+
+func actorReadFile(d *Directory) error {
+	fi, err := randomFile(d)
+	if err != nil {
+		return err
+	}
+	if fi == nil {
+		return nil
 	}
 
 	_, err = fi.Size()
@@ -637,12 +680,7 @@ func testActor(rt *Root, iterations int, errs chan error) {
 				return
 			}
 		case 3:
-			continue
-			// randomly deleting things
-			// doesnt really give us any sort of useful test results.
-			// you will never have this in a real environment where
-			// you expect anything productive to happen...
-			if err := actorRemoveFile(d); err != nil {
+			if err := actorWriteFile(d); err != nil {
 				errs <- err
 				return
 			}
@@ -698,6 +736,9 @@ func TestFlushing(t *testing.T) {
 	if err := e.AddChild("TEST", nd1); err != nil {
 		t.Fatal(err)
 	}
+	if err := dir.AddChild("FILE", nd1); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := FlushPath(rt, "/a/b/c/TEST"); err != nil {
 		t.Fatal(err)
@@ -711,9 +752,22 @@ func TestFlushing(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if err := FlushPath(rt, "/FILE"); err != nil {
+		t.Fatal(err)
+	}
+
 	rnd, err := dir.GetNode()
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	fsnode, err := ft.FSNodeFromBytes(rnd.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fsnode.Type != ft.TDirectory {
+		t.Fatal("root wasnt a directory")
 	}
 
 	rnk, err := rnd.Key()
@@ -721,7 +775,8 @@ func TestFlushing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if rnk.B58String() != "QmWcvrHUFk7LQRrA4WqKjqy7ZyRGFLVagtgNxbEodTEzQ4" {
-		t.Fatal("dag looks wrong")
+	exp := "QmWMVyhTuyxUrXX3ynz171jq76yY3PktfY9Bxiph7b9ikr"
+	if rnk.B58String() != exp {
+		t.Fatalf("dag looks wrong, expected %s, but got %s", exp, rnk.B58String())
 	}
 }

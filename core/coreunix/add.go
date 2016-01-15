@@ -20,6 +20,7 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	"github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -100,7 +101,7 @@ type Adder struct {
 	Chunker  string
 	root     *dag.Node
 	mr       *mfs.Root
-	unlock   func()
+	unlocker bs.Unlocker
 	tempRoot key.Key
 }
 
@@ -225,8 +226,7 @@ func (adder *Adder) outputDirs(path string, nd *dag.Node) error {
 // Add builds a merkledag from the a reader, pinning all objects to the local
 // datastore. Returns a key representing the root node.
 func Add(n *core.IpfsNode, r io.Reader) (string, error) {
-	unlock := n.Blockstore.PinLock()
-	defer unlock()
+	defer n.Blockstore.PinLock().Unlock()
 
 	fileAdder, err := NewAdder(n.Context(), n, nil)
 	if err != nil {
@@ -247,8 +247,7 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 
 // AddR recursively adds files in |path|.
 func AddR(n *core.IpfsNode, root string) (key string, err error) {
-	unlock := n.Blockstore.PinLock()
-	defer unlock()
+	n.Blockstore.PinLock().Unlock()
 
 	stat, err := os.Lstat(root)
 	if err != nil {
@@ -296,8 +295,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 	}
 	fileAdder.Wrap = true
 
-	unlock := n.Blockstore.PinLock()
-	defer unlock()
+	defer n.Blockstore.PinLock().Unlock()
 
 	err = fileAdder.addFile(file)
 	if err != nil {
@@ -347,8 +345,10 @@ func (adder *Adder) addNode(node *dag.Node, path string) error {
 
 // Add the given file while respecting the adder.
 func (adder *Adder) AddFile(file files.File) error {
-	adder.unlock = adder.node.Blockstore.PinLock()
-	defer adder.unlock()
+	adder.unlocker = adder.node.Blockstore.PinLock()
+	defer func() {
+		adder.unlocker.Unlock()
+	}()
 
 	return adder.addFile(file)
 }
@@ -434,8 +434,8 @@ func (adder *Adder) maybePauseForGC() error {
 			return err
 		}
 
-		adder.unlock()
-		adder.unlock = adder.node.Blockstore.PinLock()
+		adder.unlocker.Unlock()
+		adder.unlocker = adder.node.Blockstore.PinLock()
 	}
 	return nil
 }

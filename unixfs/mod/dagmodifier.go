@@ -169,12 +169,6 @@ func (dm *DagModifier) Sync() error {
 	// Number of bytes we're going to write
 	buflen := dm.wrBuf.Len()
 
-	// Grab key for unpinning after mod operation
-	_, err := dm.curNode.Key()
-	if err != nil {
-		return err
-	}
-
 	// overwrite existing dag nodes
 	thisk, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
 	if err != nil {

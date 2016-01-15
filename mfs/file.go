@@ -73,7 +73,7 @@ func (fi *File) Close() error {
 
 		// explicitly stay locked for flushUp call,
 		// it will manage the lock for us
-		return fi.flushUp()
+		return fi.flushUp(true)
 	}
 	fi.Unlock()
 
@@ -82,7 +82,7 @@ func (fi *File) Close() error {
 
 // flushUp syncs the file and adds it to the dagservice
 // it *must* be called with the File's lock taken
-func (fi *File) flushUp() error {
+func (fi *File) flushUp(fullsync bool) error {
 	nd, err := fi.mod.GetNode()
 	if err != nil {
 		fi.Unlock()
@@ -95,20 +95,18 @@ func (fi *File) flushUp() error {
 		return err
 	}
 
-	//name := fi.name
-	//parent := fi.parent
+	name := fi.name
+	parent := fi.parent
 
 	// explicit unlock *only* before closeChild call
 	fi.Unlock()
-	return nil
-	//return parent.closeChild(name, nd)
+	return parent.closeChild(name, nd, fullsync)
 }
 
 // Sync flushes the changes in the file to disk
 func (fi *File) Sync() error {
 	fi.Lock()
-	defer fi.Unlock()
-	return fi.mod.Sync()
+	return fi.flushUp(false)
 }
 
 // Seek implements io.Seeker

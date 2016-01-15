@@ -230,11 +230,6 @@ func flushPathRec(d *Directory, parts []string) (*dag.Node, error) {
 			return nil, err
 		}
 
-		_, err = d.dserv.Add(nd)
-		if err != nil {
-			return nil, err
-		}
-
 		return nd, nil
 	}
 
@@ -247,6 +242,7 @@ func flushPathRec(d *Directory, parts []string) (*dag.Node, error) {
 		return nil, err
 	}
 
+	var ndagnode *dag.Node
 	switch next := next.(type) {
 	case *Directory:
 		nd, err := flushPathRec(next, parts[1:])
@@ -254,25 +250,33 @@ func flushPathRec(d *Directory, parts []string) (*dag.Node, error) {
 			return nil, err
 		}
 
-		newnode, err := d.node.UpdateNodeLink(parts[0], nd)
-		if err != nil {
-			return nil, err
-		}
+		ndagnode = nd
 
-		_, err = d.dserv.Add(newnode)
-		if err != nil {
-			return nil, err
-		}
-
-		d.node = newnode
-		return newnode, nil
 	case *File:
 		if len(parts) > 1 {
 			return nil, fmt.Errorf("%s is a file, not a directory", parts[0])
 		}
 
-		return next.GetNode()
+		child, err := next.GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		ndagnode = child
 	default:
 		return nil, fmt.Errorf("unrecognized FSNode type: %#v", next)
 	}
+
+	newnode, err := d.node.UpdateNodeLink(parts[0], ndagnode)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = d.dserv.Add(newnode)
+	if err != nil {
+		return nil, err
+	}
+
+	d.node = newnode
+	return newnode, nil
 }

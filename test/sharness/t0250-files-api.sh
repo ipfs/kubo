@@ -340,11 +340,6 @@ test_files_api() {
 		ipfs files flush /
 	'
 
-	test_expect_success "root hash is pinned after flush" '
-		ipfs pin ls > pins &&
-			grep $EXP_ROOT_HASH pins || (cat pins && exit 1)
-	'
-
 	# test mv
 	test_expect_success "can mv dir" '
 		ipfs files mv /cats/this/is /cats/
