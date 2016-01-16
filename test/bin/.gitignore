@@ -7,5 +7,4 @@
 # Do not ignore the following special scripts
 !checkflags
 !continueyn
-!ipfs-pin-stat
 !verify-go-fmt.sh
