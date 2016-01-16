@@ -8,30 +8,23 @@ test_description="Test ipfs repo pinning"
 
 . lib/test-lib.sh
 
-
-
 test_pin_flag() {
 	object=$1
 	ptype=$2
 	expect=$3
 
-	echo "test_pin_flag" $@
+	echo "test_pin_flag" "$@"
 
-	ipfs-pin-stat "$object" | egrep "\b$ptype\b"
-	actual=$?
-
-	if [ "$expect" = "true" ]; then
-		if [ "$actual" != "0" ]; then
-			echo "$object should be pinned $ptype ($actual)"
-			return 1
-		fi
+	if ipfs pin ls --type="$ptype" "$object" >actual
+	then
+	    test "$expect" = "true" && return
+	    test_fsh cat actual
+	    return
 	else
-		if [ "$actual" != "1" ]; then
-			echo "$object should NOT be pinned $ptype ($actual)"
-			return 1
-		fi
+	    test "$expect" = "false" && return
+	    test_fsh cat actual
+	    return
 	fi
-	return 0
 }
 
 test_pin() {
