@@ -279,6 +279,13 @@ test_expect_success "test add nopin dir" '
 
 '
 
+FICTIONAL_HASH="QmXV4f9v8a56MxWKBhP3ETsz4EaafudU1cKfPaaJnenc48"
+test_launch_ipfs_daemon
+test_expect_success "test unpinning a hash that's not pinned" "
+  test_expect_code 1 ipfs pin rm $FICTIONAL_HASH --timeout=5s
+"
+test_kill_ipfs_daemon
+
 # test_kill_ipfs_daemon
 
 test_done
