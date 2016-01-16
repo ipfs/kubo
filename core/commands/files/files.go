@@ -87,6 +87,7 @@ var FilesStatCmd = &cmds.Command{
 			fmt.Fprintf(buf, "Size: %d\n", out.Size)
 			fmt.Fprintf(buf, "CumulativeSize: %d\n", out.CumulativeSize)
 			fmt.Fprintf(buf, "ChildBlocks: %d\n", out.Blocks)
+			fmt.Fprintf(buf, "Type: %s\n", out.Type)
 			return buf, nil
 		},
 	},
