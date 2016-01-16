@@ -161,11 +161,11 @@ var listPinCmd = &cmds.Command{
 		Tagline: "List objects pinned to local storage",
 		ShortDescription: `
 Returns a list of objects that are pinned locally.
-By default, only recursively pinned returned, but others may be shown via the '--type' flag.
+Without arguments, by default, only recursively pinned objects are returned, but others may be shown via the '--type' flag.
 `,
 		LongDescription: `
 Returns a list of objects that are pinned locally.
-By default, only recursively pinned returned, but others may be shown via the '--type' flag.
+Without arguments, by default, only recursively pinned objects are returned, but others may be shown via the '--type' flag.
 
 Use --type=<type> to specify the type of pinned keys to list. Valid values are:
     * "direct": pin that specific object.
@@ -173,16 +173,23 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
     * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
 
+With arguments, the command fails if any of the arguments is not a pinned object.
+And if --type=<type> is additionally used, the command will also fail if any of the arguments is not of the specified type.
+
 Example:
 	$ echo "hello" | ipfs add -q
 	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
 	$ ipfs pin ls
-	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN recursive
 	# now remove the pin, and repin it directly
 	$ ipfs pin rm QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	unpinned QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
 	$ ipfs pin add -r=false QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	pinned QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN directly
 	$ ipfs pin ls --type=direct
-	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN direct
+	$ ipfs pin ls QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN direct
 `,
 	},
 
