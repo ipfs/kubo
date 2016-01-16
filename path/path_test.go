@@ -28,3 +28,23 @@ func TestPathParsing(t *testing.T) {
 		}
 	}
 }
+
+func TestIsJustAKey(t *testing.T) {
+	cases := map[string]bool{
+		"QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n":           true,
+		"/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n":     true,
+		"/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n/a":   false,
+		"/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n/a/b": false,
+	}
+
+	for p, expected := range cases {
+		path, err := ParsePath(p)
+		if err != nil {
+			t.Fatalf("ParsePath failed to parse \"%s\", but should have succeeded", p)
+		}
+		result := path.IsJustAKey()
+		if result != expected {
+			t.Fatalf("expected IsJustAKey(%s) to return %v, not %v", p, expected, result)
+		}
+	}
+}
