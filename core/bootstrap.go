@@ -15,7 +15,6 @@ import (
 	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 
-	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	procctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	periodicproc "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
@@ -211,7 +210,8 @@ func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
 			pinfos[bootstrap.ID()] = pinfo
 			pinfo.ID = bootstrap.ID()
 		}
-		pinfo.Addrs = append(pinfo.Addrs, bootstrap.Multiaddr())
+
+		pinfo.Addrs = append(pinfo.Addrs, bootstrap.Transport())
 	}
 
 	var peers []peer.PeerInfo
@@ -220,19 +220,6 @@ func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
 	}
 
 	return peers
-}
-
-func toPeerInfo(bp config.BootstrapPeer) peer.PeerInfo {
-	// for now, we drop the "ipfs addr" part of the multiaddr. the rest
-	// of the codebase currently uses addresses without the peerid part.
-	m := bp.Multiaddr()
-	s := ma.Split(m)
-	m = ma.Join(s[:len(s)-1]...)
-
-	return peer.PeerInfo{
-		ID:    bp.ID(),
-		Addrs: []ma.Multiaddr{m},
-	}
 }
 
 func randomSubsetOfPeers(in []peer.PeerInfo, max int) []peer.PeerInfo {
