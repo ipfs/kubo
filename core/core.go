@@ -468,7 +468,7 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return toPeerInfos(parsed)
+	return toPeerInfos(parsed), nil
 }
 
 func (n *IpfsNode) loadFilesRoot() error {

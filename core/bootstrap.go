@@ -201,7 +201,7 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.PeerInfo) 
 	return nil
 }
 
-func toPeerInfos(bpeers []config.BootstrapPeer) ([]peer.PeerInfo, error) {
+func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
 	pinfos := make(map[peer.ID]*peer.PeerInfo)
 	for _, bootstrap := range bpeers {
 		pinfo, ok := pinfos[bootstrap.ID()]
@@ -219,7 +219,7 @@ func toPeerInfos(bpeers []config.BootstrapPeer) ([]peer.PeerInfo, error) {
 		peers = append(peers, *pinfo)
 	}
 
-	return peers, nil
+	return peers
 }
 
 func randomSubsetOfPeers(in []peer.PeerInfo, max int) []peer.PeerInfo {
