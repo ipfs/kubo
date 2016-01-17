@@ -217,60 +217,27 @@ Example:
 			}
 		}
 
+		var keys map[string]RefKeyObject
+
 		if len(req.Arguments()) > 0 {
 			if !typeStrFound {
 				typeStr = "all"
 			}
 
-			keys, err := pinLsKeys(req.Arguments(), typeStr, req.Context(), n)
-
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-			} else {
-				res.SetOutput(&RefKeyList{Keys: keys})
+			keys, err = pinLsKeys(req.Arguments(), typeStr, req.Context(), n)
+		} else {
+			if !typeStrFound {
+				typeStr = "recursive"
 			}
 
-			return
+			keys, err = pinLsAll(typeStr, req.Context(), n)
 		}
 
-		if !typeStrFound {
-			typeStr = "recursive"
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+		} else {
+			res.SetOutput(&RefKeyList{Keys: keys})
 		}
-
-		keys := make(map[string]RefKeyObject)
-
-		AddToResultKeys := func(keyList []key.Key, typeStr string) {
-			for _, k := range keyList {
-				keys[k.B58String()] = RefKeyObject{
-					Type: typeStr,
-				}
-			}
-		}
-
-		if typeStr == "direct" || typeStr == "all" {
-			AddToResultKeys(n.Pinning.DirectKeys(), "direct")
-		}
-		if typeStr == "indirect" || typeStr == "all" {
-			ks := key.NewKeySet()
-			for _, k := range n.Pinning.RecursiveKeys() {
-				nd, err := n.DAG.Get(n.Context(), k)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-				err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-			}
-			AddToResultKeys(ks.Keys(), "indirect")
-		}
-		if typeStr == "recursive" || typeStr == "all" {
-			AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
-		}
-
-		res.SetOutput(&RefKeyList{Keys: keys})
 	},
 	Type: RefKeyList{},
 	Marshalers: cmds.MarshalerMap{
@@ -306,6 +273,7 @@ type RefKeyList struct {
 }
 
 func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+
 	keys := make(map[string]RefKeyObject)
 
 	for _, p := range args {
@@ -336,6 +304,42 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 		keys[k.B58String()] = RefKeyObject{
 			Type: pinType,
 		}
+	}
+
+	return keys, nil
+}
+
+func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+
+	keys := make(map[string]RefKeyObject)
+
+	AddToResultKeys := func(keyList []key.Key, typeStr string) {
+		for _, k := range keyList {
+			keys[k.B58String()] = RefKeyObject{
+				Type: typeStr,
+			}
+		}
+	}
+
+	if typeStr == "direct" || typeStr == "all" {
+		AddToResultKeys(n.Pinning.DirectKeys(), "direct")
+	}
+	if typeStr == "indirect" || typeStr == "all" {
+		ks := key.NewKeySet()
+		for _, k := range n.Pinning.RecursiveKeys() {
+			nd, err := n.DAG.Get(ctx, k)
+			if err != nil {
+				return nil, err
+			}
+			err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks)
+			if err != nil {
+				return nil, err
+			}
+		}
+		AddToResultKeys(ks.Keys(), "indirect")
+	}
+	if typeStr == "recursive" || typeStr == "all" {
+		AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
 	}
 
 	return keys, nil
