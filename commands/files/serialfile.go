@@ -5,7 +5,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	fp "path/filepath"
+	"path/filepath"
+	"strings"
 	"syscall"
 )
 
@@ -13,14 +14,15 @@ import (
 // No more than one file will be opened at a time (directories will advance
 // to the next file when NextFile() is called).
 type serialFile struct {
-	name    string
-	path    string
-	files   []os.FileInfo
-	stat    os.FileInfo
-	current *File
+	name              string
+	path              string
+	files             []os.FileInfo
+	stat              os.FileInfo
+	current           *File
+	handleHiddenFiles bool
 }
 
-func NewSerialFile(name, path string, stat os.FileInfo) (File, error) {
+func NewSerialFile(name, path string, hidden bool, stat os.FileInfo) (File, error) {
 	switch mode := stat.Mode(); {
 	case mode.IsRegular():
 		file, err := os.Open(path)
@@ -35,7 +37,7 @@ func NewSerialFile(name, path string, stat os.FileInfo) (File, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &serialFile{name, path, contents, stat, nil}, nil
+		return &serialFile{name, path, contents, stat, nil, hidden}, nil
 	case mode&os.ModeSymlink != 0:
 		target, err := os.Readlink(path)
 		if err != nil {
@@ -68,14 +70,23 @@ func (f *serialFile) NextFile() (File, error) {
 	stat := f.files[0]
 	f.files = f.files[1:]
 
+	for !f.handleHiddenFiles && strings.HasPrefix(stat.Name(), ".") {
+		if len(f.files) == 0 {
+			return nil, io.EOF
+		}
+
+		stat = f.files[0]
+		f.files = f.files[1:]
+	}
+
 	// open the next file
-	fileName := fp.Join(f.name, stat.Name())
-	filePath := fp.Join(f.path, stat.Name())
+	fileName := filepath.ToSlash(filepath.Join(f.name, stat.Name()))
+	filePath := filepath.ToSlash(filepath.Join(f.path, stat.Name()))
 
 	// recursively call the constructor on the next file
 	// if it's a regular file, we will open it as a ReaderFile
 	// if it's a directory, files in it will be opened serially
-	sf, err := NewSerialFile(fileName, filePath, stat)
+	sf, err := NewSerialFile(fileName, filePath, f.handleHiddenFiles, stat)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +105,7 @@ func (f *serialFile) FullPath() string {
 }
 
 func (f *serialFile) Read(p []byte) (int, error) {
-	return 0, ErrNotReader
+	return 0, io.EOF
 }
 
 func (f *serialFile) Close() error {
@@ -120,7 +131,7 @@ func (f *serialFile) Size() (int64, error) {
 	}
 
 	var du int64
-	err := fp.Walk(f.FileName(), func(p string, fi os.FileInfo, err error) error {
+	err := filepath.Walk(f.FileName(), func(p string, fi os.FileInfo, err error) error {
 		if fi != nil && fi.Mode()&(os.ModeSymlink|os.ModeNamedPipe) == 0 {
 			du += fi.Size()
 		}

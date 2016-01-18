@@ -102,3 +102,11 @@ func (p *Path) IsValid() error {
 	_, err := ParsePath(p.String())
 	return err
 }
+
+func Join(pths []string) string {
+	return strings.Join(pths, "/")
+}
+
+func SplitList(pth string) []string {
+	return strings.Split(pth, "/")
+}

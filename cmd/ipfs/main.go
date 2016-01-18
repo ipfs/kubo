@@ -321,7 +321,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		}
 	}
 
-	if client != nil {
+	if client != nil && !cmd.External {
 		log.Debug("Executing command via API")
 		res, err = client.Send(req)
 		if err != nil {
@@ -416,17 +416,13 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 		return nil, err
 	}
 
-	if client != nil { // daemon is running
+	if client != nil { // api file exists
 		if details.cannotRunOnDaemon {
-			e := "cannot use API with this command."
-
 			// check if daemon locked. legacy error text, for now.
-			daemonLocked, _ := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot)
-			if daemonLocked {
-				e = "ipfs daemon is running. please stop it to run this command"
+			if daemonLocked, _ := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot); daemonLocked {
+				return nil, cmds.ClientError("ipfs daemon is running. please stop it to run this command")
 			}
-
-			return nil, cmds.ClientError(e)
+			return nil, nil
 		}
 
 		return client, nil
@@ -604,63 +600,7 @@ func getApiClient(repoPath, apiAddrStr string) (cmdsHttp.Client, error) {
 		return nil, err
 	}
 
-	client, err := apiClientForAddr(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	// make sure the api is actually running.
-	// this is slow, as it might mean an RTT to a remote server.
-	// TODO: optimize some way
-	if err := apiVersionMatches(client); err != nil {
-		return nil, err
-	}
-
-	return client, nil
-}
-
-// apiVersionMatches checks whether the api server is running the
-// same version of go-ipfs. for now, only the exact same version of
-// client + server work. In the future, we should use semver for
-// proper API versioning! \o/
-func apiVersionMatches(client cmdsHttp.Client) (err error) {
-	ver, err := doVersionRequest(client)
-	if err != nil {
-		return err
-	}
-
-	currv := config.CurrentVersionNumber
-	if ver.Version != currv {
-		return fmt.Errorf("%s (%s != %s)", errApiVersionMismatch, ver.Version, currv)
-	}
-	return nil
-}
-
-func doVersionRequest(client cmdsHttp.Client) (*coreCmds.VersionOutput, error) {
-	cmd := coreCmds.VersionCmd
-	optDefs, err := cmd.GetOptions([]string{})
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := cmds.NewRequest([]string{"version"}, nil, nil, nil, cmd, optDefs)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := client.Send(req)
-	if err != nil {
-		if isConnRefused(err) {
-			err = repo.ErrApiNotRunning
-		}
-		return nil, err
-	}
-
-	ver, ok := res.Output().(*coreCmds.VersionOutput)
-	if !ok {
-		return nil, errUnexpectedApiOutput
-	}
-	return ver, nil
+	return apiClientForAddr(addr)
 }
 
 func apiClientForAddr(addr ma.Multiaddr) (cmdsHttp.Client, error) {

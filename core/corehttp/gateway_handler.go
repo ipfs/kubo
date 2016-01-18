@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	gopath "path"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -49,12 +50,19 @@ func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
 		i.node.DAG,
-		chunk.DefaultSplitter(r),
-		importer.BasicPinnerCB(i.node.Pinning.GetManual()))
+		chunk.DefaultSplitter(r))
 }
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("A panic occurred in the gateway handler!")
+			log.Error(r)
+			debug.PrintStack()
+		}
+	}()
+
 	if i.config.Writable {
 		switch r.Method {
 		case "POST":
@@ -87,8 +95,19 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithCancel(i.node.Context())
+	ctx, cancel := context.WithTimeout(i.node.Context(), time.Hour)
+	// the hour is a hard fallback, we don't expect it to happen, but just in case
 	defer cancel()
+
+	if cn, ok := w.(http.CloseNotifier); ok {
+		go func() {
+			select {
+			case <-cn.CloseNotify():
+			case <-ctx.Done():
+			}
+			cancel()
+		}()
+	}
 
 	urlPath := r.URL.Path
 
@@ -134,6 +153,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-IPFS-Path", urlPath)
 
+	// set 'allowed' headers
+	w.Header().Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
+	// expose those headers
+	w.Header().Set("Access-Control-Expose-Headers", "X-Stream-Output, X-Chunked-Output")
+
 	// Suborigin header, sandboxes apps from each other in the browser (even
 	// though they are served from the same gateway domain).
 	//
@@ -169,7 +193,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	if err == nil {
 		defer dr.Close()
-		_, name := gopath.Split(urlPath)
+		name := gopath.Base(urlPath)
 		http.ServeContent(w, r, name, modtime, dr)
 		return
 	}
@@ -204,9 +228,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			defer dr.Close()
 
 			// write to request
-			if r.Method != "HEAD" {
-				io.Copy(w, dr)
-			}
+			http.ServeContent(w, r, "index.html", modtime, dr)
 			break
 		}
 
@@ -222,7 +244,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			var backLink string = prefix + urlPath
 
 			// don't go further up than /ipfs/$hash/
-			pathSplit := strings.Split(backLink, "/")
+			pathSplit := path.SplitList(backLink)
 			switch {
 			// keep backlink
 			case len(pathSplit) == 3: // url: /ipfs/$hash
@@ -245,7 +267,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				if len(pathSplit) > 5 {
 					// also strip the trailing segment, because it's a backlink
 					backLinkParts := pathSplit[3 : len(pathSplit)-2]
-					backLink += strings.Join(backLinkParts, "/") + "/"
+					backLink += path.Join(backLinkParts) + "/"
 				}
 			}
 
@@ -313,7 +335,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newPath string
 	if len(rsegs) > 1 {
-		newPath = strings.Join(rsegs[2:], "/")
+		newPath = path.Join(rsegs[2:])
 	}
 
 	var newkey key.Key
@@ -329,14 +351,20 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		e := dagutils.NewDagEditor(i.node.DAG, rnode)
+		e := dagutils.NewDagEditor(rnode, i.node.DAG)
 		err = e.InsertNodeAtPath(ctx, newPath, newnode, uio.NewEmptyDirectory)
 		if err != nil {
 			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
 			return
 		}
 
-		newkey, err = e.GetNode().Key()
+		nnode, err := e.Finalize(i.node.DAG)
+		if err != nil {
+			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
+			return
+		}
+
+		newkey, err = nnode.Key()
 		if err != nil {
 			webError(w, "putHandler: could not get key of edited node", err, http.StatusInternalServerError)
 			return
@@ -432,7 +460,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/"+strings.Join(components[:len(components)-1], "/"), http.StatusCreated)
+	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+key.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {

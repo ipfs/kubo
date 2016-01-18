@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
-	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -18,13 +18,13 @@ import (
 // Server handles routing queries using a database backend
 type Server struct {
 	local           peer.ID
-	routingBackend  datastore.ThreadSafeDatastore
+	routingBackend  datastore.Datastore
 	peerstore       peer.Peerstore
 	*proxy.Loopback // so server can be injected into client
 }
 
 // NewServer creates a new Supernode routing Server
-func NewServer(ds datastore.ThreadSafeDatastore, ps peer.Peerstore, local peer.ID) (*Server, error) {
+func NewServer(ds datastore.Datastore, ps peer.Peerstore, local peer.ID) (*Server, error) {
 	s := &Server{local, ds, ps, nil}
 	s.Loopback = &proxy.Loopback{
 		Handler: s,

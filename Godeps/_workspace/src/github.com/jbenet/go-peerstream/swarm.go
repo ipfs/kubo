@@ -184,7 +184,7 @@ func (s *Swarm) Conns() []*Conn {
 	open := make([]*Conn, 0, len(conns))
 	for _, c := range conns {
 		if c.smuxConn.IsClosed() {
-			c.Close()
+			c.GoClose()
 		} else {
 			open = append(open, c)
 		}

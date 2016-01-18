@@ -7,7 +7,7 @@ os:
 language: go
 
 go:
-    - 1.5.1
+    - 1.5.2
 
 env:
   - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_go_expensive
@@ -16,4 +16,9 @@ env:
 script:
   - make $TEST_SUITE
 
-sudo: false #docker containers for CI
+# For docker containers
+
+sudo: required
+
+services:
+  - docker

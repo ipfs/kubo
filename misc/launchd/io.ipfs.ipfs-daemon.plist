@@ -8,7 +8,7 @@
     <string>io.ipfs.ipfs-daemon</string>
     <key>ProgramArguments</key>
     <array>
-      <string>ipfs</string>
+      <string>{{IPFS_BIN}}</string>
       <string>daemon</string>
     </array>
     <key>EnvironmentVariables</key>

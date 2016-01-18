@@ -15,11 +15,6 @@ test_expect_success "'ipfs repo gc' succeeds" '
 	ipfs repo gc >gc_out_actual
 '
 
-test_expect_success "'ipfs repo gc' looks good (empty)" '
-	true >empty &&
-	test_cmp empty gc_out_actual
-'
-
 test_expect_success "'ipfs add afile' succeeds" '
 	echo "some text" >afile &&
 	HASH=`ipfs add -q afile`
@@ -36,8 +31,7 @@ test_expect_success "'ipfs repo gc' succeeds" '
 
 test_expect_success "'ipfs repo gc' looks good (patch root)" '
 	PATCH_ROOT=QmQXirSbubiySKnqaFyfs5YzziXRB5JEVQVjU6xsd7innr &&
-	echo "removed $PATCH_ROOT" >patch_root &&
-	test_cmp patch_root gc_out_actual
+	grep "removed $PATCH_ROOT" gc_out_actual
 '
 
 test_expect_success "'ipfs repo gc' doesnt remove file" '
@@ -66,13 +60,8 @@ test_expect_failure "ipfs repo gc fully reverse ipfs add" '
 '
 
 test_expect_success "file no longer pinned" '
-	# we expect the welcome files to show up here
-	echo "$HASH_WELCOME_DOCS" >expected2 &&
-	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
-	EMPTY_DIR=QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn &&
-	echo "$EMPTY_DIR" >>expected2 &&
 	ipfs pin ls --type=recursive --quiet >actual2 &&
-	test_sort_cmp expected2 actual2
+	test_expect_code 1 grep $HASH actual2
 '
 
 test_expect_success "recursively pin afile(default action)" '
@@ -114,10 +103,9 @@ test_expect_success "remove direct pin" '
 '
 
 test_expect_success "'ipfs repo gc' removes file" '
-	echo "removed $PATCH_ROOT" >expected7 &&
-	echo "removed $HASH" >>expected7 &&
 	ipfs repo gc >actual7 &&
-	test_sort_cmp expected7 actual7
+	grep "removed $HASH" actual7 &&
+	grep "removed $PATCH_ROOT" actual7
 '
 
 # TODO: there seems to be a serious bug with leveldb not returning a key.
@@ -138,7 +126,7 @@ test_expect_success "adding multiblock random file succeeds" '
 test_expect_success "'ipfs pin ls --type=indirect' is correct" '
 	ipfs refs "$MBLOCKHASH" >refsout &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
-	sed -i="" "s/\(.*\)/\1 indirect/g" refsout &&
+	sed -i"~" "s/\(.*\)/\1 indirect/g" refsout &&
 	ipfs pin ls --type=indirect >indirectpins &&
 	test_sort_cmp refsout indirectpins
 '
@@ -165,8 +153,7 @@ test_expect_success "'ipfs pin ls --type=recursive' is correct" '
 	echo "$MBLOCKHASH" >rp_expected &&
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
 	echo "$EMPTY_DIR" >>rp_expected &&
-	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
-	sed -i="" "s/\(.*\)/\1 recursive/g" rp_expected &&
+	sed -i"~" "s/\(.*\)/\1 recursive/g" rp_expected &&
 	ipfs pin ls --type=recursive >rp_actual &&
 	test_sort_cmp rp_expected rp_actual
 '
@@ -185,10 +172,11 @@ test_expect_success "'ipfs refs --unique' is correct" '
 	cd uniques &&
 	echo "content1" > file1 &&
 	echo "content1" > file2 &&
-	ROOT=$(ipfs add -r -q . | tail -n1) &&
+	ipfs add -r -q . > ../add_output &&
+	ROOT=$(tail -n1 ../add_output) &&
 	ipfs refs --unique $ROOT >expected &&
 	ipfs add -q file1 >unique_hash &&
-	test_cmp expected unique_hash
+	test_cmp expected unique_hash || test_fsh cat ../add_output
 '
 
 test_expect_success "'ipfs refs --unique --recursive' is correct" '
@@ -197,11 +185,12 @@ test_expect_success "'ipfs refs --unique --recursive' is correct" '
 	echo "c1" > a/b/f1 &&
 	echo "c1" > a/b/c/f1 &&
 	echo "c2" > a/b/c/f2 &&
-	ROOT=$(ipfs add -r -q a | tail -n1) &&
+	ipfs add -r -q a >add_output &&
+	ROOT=$(tail -n1 add_output) &&
 	ipfs refs --unique --recursive $ROOT >refs_output &&
 	wc -l refs_output | sed "s/^ *//g" >line_count &&
 	echo "4 refs_output" >expected &&
-	test_cmp expected line_count
+	test_cmp expected line_count || test_fsh cat add_output || test_fsh cat refs_output
 '
 
 test_expect_success "'ipfs refs --recursive (bigger)'" '
@@ -215,16 +204,19 @@ test_expect_success "'ipfs refs --recursive (bigger)'" '
 	cp -r b b2 && mv b2 b/b2 &&
 	cp -r b b3 && mv b3 b/b3 &&
 	cp -r b b4 && mv b4 b/b4 &&
-	hash=$(ipfs add -r -q b | tail -n1) &&
-	ipfs refs -r "$hash" | wc -l | sed "s/^ *//g" >actual &&
-	echo "79" >expected &&
-	test_cmp expected actual
+	ipfs add -r -q b >add_output &&
+	hash=$(tail -n1 add_output) &&
+	ipfs refs -r "$hash" >refs_output &&
+	wc -l refs_output | sed "s/^ *//g" >actual &&
+	echo "79 refs_output" >expected &&
+	test_cmp expected actual || test_fsh cat add_output || test_fsh cat refs_output
 '
 
 test_expect_success "'ipfs refs --unique --recursive (bigger)'" '
-	ipfs refs -r "$hash" | sort | uniq >expected &&
-	ipfs refs -r -u "$hash" | sort >actual &&
-	test_cmp expected actual
+	ipfs refs -r "$hash" >refs_output &&
+	sort refs_output | uniq >expected &&
+	ipfs refs -r -u "$hash" >actual &&
+	test_sort_cmp expected actual || test_fsh cat refs_output
 '
 
 test_kill_ipfs_daemon

@@ -43,7 +43,7 @@ References:
 
 Get:
 
-  ipfs get <the-hash-here> foo2
+  ipfs get <the-hash-here> -o foo2
   diff foo foo2
 
 
@@ -56,11 +56,11 @@ Objects:
 
 Pin + GC:
 
-  ipfs pin -r <the-hash-here>
-  ipfs gc
+  ipfs pin add <the-hash-here>
+  ipfs repo gc
   ipfs ls <the-hash-here>
-  ipfs unpin -r <the-hash-here>
-  ipfs gc
+  ipfs pin rm <the-hash-here>
+  ipfs repo gc
 
 
 Daemon:
@@ -81,7 +81,8 @@ Mount:
 
   (warning: fuse is finicky!)
   ipfs mount
-  cd /ipfs/<
+  cd /ipfs/<the-hash-here>
+  ls
 
 
 Tool:

@@ -9,7 +9,8 @@
 # use the ipfs tool to test against
 
 # add current directory to path, for ipfs tool.
-PATH=$(pwd)/bin:${PATH}
+BIN=$(cd .. && echo `pwd`/bin)
+PATH=${BIN}:${PATH}
 
 # set sharness verbosity. we set the env var directly as
 # it's too late to pass in --verbose, and --verbose is harder
@@ -17,7 +18,7 @@ PATH=$(pwd)/bin:${PATH}
 test "$TEST_VERBOSE" = 1 && verbose=t
 
 # assert the `ipfs` we're using is the right one.
-if test `which ipfs` != $(pwd)/bin/ipfs; then
+if test `which ipfs` != ${BIN}/ipfs; then
 	echo >&2 "Cannot find the tests' local ipfs tool."
 	echo >&2 "Please check test and ipfs tool installation."
 	exit 1
@@ -41,6 +42,7 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 # grab + output options
 test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
+type docker && test_set_prereq DOCKER
 
 if test "$TEST_VERBOSE" = 1; then
 	echo '# TEST_VERBOSE='"$TEST_VERBOSE"
@@ -214,12 +216,20 @@ test_launch_ipfs_daemon() {
 	fi
 }
 
+do_umount() {
+    if [ "$(uname -s)" = "Linux" ]; then
+	fusermount -u "$1"
+    else
+	umount "$1"
+    fi
+}
+
 test_mount_ipfs() {
 
 	# make sure stuff is unmounted first.
 	test_expect_success FUSE "'ipfs mount' succeeds" '
-		umount "$(pwd)/ipfs" || true &&
-		umount "$(pwd)/ipns" || true &&
+		do_umount "$(pwd)/ipfs" || true &&
+		do_umount "$(pwd)/ipns" || true &&
 		ipfs mount >actual
 	'
 
@@ -312,7 +322,7 @@ test_should_contain() {
 test_str_contains() {
 	find=$1
 	shift
-	echo "$@" | grep "$find" >/dev/null
+	echo "$@" | egrep "\b$find\b" >/dev/null
 }
 
 disk_usage() {
@@ -352,4 +362,3 @@ test_check_peerid() {
 		return 1
 	}
 }
-

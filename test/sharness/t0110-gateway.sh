@@ -92,6 +92,21 @@ test_expect_success "log output looks good" '
 	grep "log API client connected" log_out
 '
 
+test_expect_success "setup index hash" '
+	mkdir index &&
+	echo "<p></p>" > index/index.html &&
+	INDEXHASH=$(ipfs add -q -r index | tail -n1)
+	echo index: $INDEXHASH
+'
+
+test_expect_success "GET 'index.html' has correct content type" '
+	curl -I "http://127.0.0.1:$port/ipfs/$INDEXHASH/" > indexout
+'
+
+test_expect_success "output looks good" '
+	grep "Content-Type: text/html" indexout
+'
+
 # test ipfs readonly api
 
 test_curl_gateway_api() {

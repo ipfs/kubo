@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -42,14 +44,26 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		}
 	}
 
-	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive, root)
+	// if '--hidden' is provided, enumerate hidden paths
+	hiddenOpt := req.Option("hidden")
+	hidden := false
+	if hiddenOpt != nil {
+		hidden, _, err = hiddenOpt.Bool()
+		if err != nil {
+			return req, nil, nil, u.ErrCast()
+		}
+	}
+
+	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive, hidden, root)
 	if err != nil {
 		return req, cmd, path, err
 	}
 	req.SetArguments(stringArgs)
 
-	file := files.NewSliceFile("", "", fileArgs)
-	req.SetFiles(file)
+	if len(fileArgs) > 0 {
+		file := files.NewSliceFile("", "", fileArgs)
+		req.SetFiles(file)
+	}
 
 	err = cmd.CheckArguments(req)
 	if err != nil {
@@ -184,7 +198,7 @@ func parseOpts(args []string, root *cmds.Command) (
 					}
 				}
 				var end bool
-				end, err = parseFlag(arg[0:1], rest, mustUse)
+				end, err = parseFlag(arg[:1], rest, mustUse)
 				if err != nil {
 					return
 				}
@@ -204,6 +218,13 @@ func parseOpts(args []string, root *cmds.Command) (
 				if err != nil {
 					return
 				}
+
+				// If we've come across an external binary call, pass all the remaining
+				// arguments on to it
+				if cmd.External {
+					stringVals = append(stringVals, args[i+1:]...)
+					return
+				}
 			} else {
 				stringVals = append(stringVals, arg)
 			}
@@ -212,7 +233,7 @@ func parseOpts(args []string, root *cmds.Command) (
 	return
 }
 
-func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool, root *cmds.Command) ([]string, []files.File, error) {
+func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive, hidden bool, root *cmds.Command) ([]string, []files.File, error) {
 	// ignore stdin on Windows
 	if runtime.GOOS == "windows" {
 		stdin = nil
@@ -259,8 +280,8 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	}
 
 	stringArgs := make([]string, 0, numInputs)
-	fileArgs := make([]files.File, 0, numInputs)
 
+	fileArgs := make(map[string]files.File)
 	argDefIndex := 0 // the index of the current argument definition
 	for i := 0; i < numInputs; i++ {
 		argDef := getArgDef(argDefIndex, argDefs)
@@ -295,18 +316,21 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		} else if argDef.Type == cmds.ArgFile {
 			if stdin == nil || !argDef.SupportsStdin {
 				// treat stringArg values as file paths
-				fileArgs, inputs, err = appendFile(fileArgs, inputs, argDef, recursive)
+				fpath := inputs[0]
+				inputs = inputs[1:]
+				file, err := appendFile(fpath, argDef, recursive, hidden)
 				if err != nil {
 					return nil, nil, err
 				}
 
+				fileArgs[fpath] = file
 			} else {
 				if len(inputs) > 0 {
 					// don't use stdin if we have inputs
 					stdin = nil
 				} else {
 					// if we have a stdin, create a file from it
-					fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
+					fileArgs[""] = files.NewReaderFile("", "", stdin, nil)
 				}
 			}
 		}
@@ -323,7 +347,23 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		}
 	}
 
-	return stringArgs, fileArgs, nil
+	return stringArgs, filesMapToSortedArr(fileArgs), nil
+}
+
+func filesMapToSortedArr(fs map[string]files.File) []files.File {
+	var names []string
+	for name, _ := range fs {
+		names = append(names, name)
+	}
+
+	sort.Strings(names)
+
+	var out []files.File
+	for _, f := range names {
+		out = append(out, fs[f])
+	}
+
+	return out
 }
 
 func getArgDef(i int, argDefs []cmds.Argument) *cmds.Argument {
@@ -356,44 +396,35 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 	return append(args, strings.Split(input, "\n")...), nil, nil
 }
 
-func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]files.File, []string, error) {
-	fpath := inputs[0]
+const notRecursiveFmtStr = "'%s' is a directory, use the '-%s' flag to specify directories"
+const dirNotSupportedFmtStr = "Invalid path '%s', argument '%s' does not support directories"
+
+func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (files.File, error) {
+	fpath = filepath.ToSlash(filepath.Clean(fpath))
 
 	if fpath == "." {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		fpath = cwd
 	}
+
 	stat, err := os.Lstat(fpath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if stat.IsDir() {
 		if !argDef.Recursive {
-			err = fmt.Errorf("Invalid path '%s', argument '%s' does not support directories",
-				fpath, argDef.Name)
-			return nil, nil, err
+			return nil, fmt.Errorf(dirNotSupportedFmtStr, fpath, argDef.Name)
 		}
 		if !recursive {
-			err = fmt.Errorf("'%s' is a directory, use the '-%s' flag to specify directories",
-				fpath, cmds.RecShort)
-			return nil, nil, err
+			return nil, fmt.Errorf(notRecursiveFmtStr, fpath, cmds.RecShort)
 		}
 	}
 
-	arg, err := files.NewSerialFile(path.Base(fpath), fpath, stat)
-	if err != nil {
-		return nil, nil, err
-	}
-	return append(args, arg), inputs[1:], nil
-}
-
-func appendStdinAsFile(args []files.File, stdin *os.File) ([]files.File, *os.File) {
-	arg := files.NewReaderFile("", "", stdin, nil)
-	return append(args, arg), nil
+	return files.NewSerialFile(path.Base(fpath), fpath, hidden, stat)
 }
 
 // isTerminal returns true if stdin is a Stdin pipe (e.g. `cat file | ipfs`),

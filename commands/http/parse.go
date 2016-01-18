@@ -9,6 +9,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
+	path "github.com/ipfs/go-ipfs/path"
 )
 
 // Parse parses the data in a http.Request and returns a command Request object
@@ -16,24 +17,32 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	if !strings.HasPrefix(r.URL.Path, ApiPath) {
 		return nil, errors.New("Unexpected path prefix")
 	}
-	path := strings.Split(strings.TrimPrefix(r.URL.Path, ApiPath+"/"), "/")
+	pth := path.SplitList(strings.TrimPrefix(r.URL.Path, ApiPath+"/"))
 
 	stringArgs := make([]string, 0)
 
-	cmd, err := root.Get(path[:len(path)-1])
+	if err := apiVersionMatches(r); err != nil {
+		if pth[0] != "version" { // compatibility with previous version check
+			return nil, err
+		}
+	}
+
+	cmd, err := root.Get(pth[:len(pth)-1])
 	if err != nil {
 		// 404 if there is no command at that path
 		return nil, ErrNotFound
 
-	} else if sub := cmd.Subcommand(path[len(path)-1]); sub == nil {
-		if len(path) <= 1 {
+	}
+
+	if sub := cmd.Subcommand(pth[len(pth)-1]); sub == nil {
+		if len(pth) <= 1 {
 			return nil, ErrNotFound
 		}
 
 		// if the last string in the path isn't a subcommand, use it as an argument
 		// e.g. /objects/Qabc12345 (we are passing "Qabc12345" to the "objects" command)
-		stringArgs = append(stringArgs, path[len(path)-1])
-		path = path[:len(path)-1]
+		stringArgs = append(stringArgs, pth[len(pth)-1])
+		pth = pth[:len(pth)-1]
 
 	} else {
 		cmd = sub
@@ -86,7 +95,7 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		}
 	}
 
-	optDefs, err := root.GetOptions(path)
+	optDefs, err := root.GetOptions(pth)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +118,7 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		return nil, fmt.Errorf("File argument '%s' is required", requiredFile)
 	}
 
-	req, err := cmds.NewRequest(path, opts, args, f, cmd, optDefs)
+	req, err := cmds.NewRequest(pth, opts, args, f, cmd, optDefs)
 	if err != nil {
 		return nil, err
 	}

@@ -11,12 +11,10 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	imp "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
-	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
@@ -37,7 +35,6 @@ var log = logging.Logger("dagio")
 type DagModifier struct {
 	dagserv mdag.DAGService
 	curNode *mdag.Node
-	mp      pin.ManualPinner
 
 	splitter   chunk.SplitterGen
 	ctx        context.Context
@@ -50,13 +47,12 @@ type DagModifier struct {
 	read *uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.ManualPinner, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
 	return &DagModifier{
 		curNode:  from.Copy(),
 		dagserv:  serv,
 		splitter: spl,
 		ctx:      ctx,
-		mp:       mp,
 	}, nil
 }
 
@@ -107,8 +103,7 @@ func (zr zeroReader) Read(b []byte) (int, error) {
 func (dm *DagModifier) expandSparse(size int64) error {
 	r := io.LimitReader(zeroReader{}, size)
 	spl := chunk.NewSizeSplitter(r, 4096)
-	blks, errs := chunk.Chan(spl)
-	nnode, err := dm.appendData(dm.curNode, blks, errs)
+	nnode, err := dm.appendData(dm.curNode, spl)
 	if err != nil {
 		return err
 	}
@@ -175,7 +170,7 @@ func (dm *DagModifier) Sync() error {
 	buflen := dm.wrBuf.Len()
 
 	// Grab key for unpinning after mod operation
-	curk, err := dm.curNode.Key()
+	_, err := dm.curNode.Key()
 	if err != nil {
 		return err
 	}
@@ -195,8 +190,7 @@ func (dm *DagModifier) Sync() error {
 
 	// need to write past end of current dag
 	if !done {
-		blks, errs := chunk.Chan(dm.splitter(dm.wrBuf))
-		nd, err = dm.appendData(dm.curNode, blks, errs)
+		nd, err = dm.appendData(dm.curNode, dm.splitter(dm.wrBuf))
 		if err != nil {
 			return err
 		}
@@ -207,14 +201,6 @@ func (dm *DagModifier) Sync() error {
 		}
 
 		dm.curNode = nd
-	}
-
-	// Finalize correct pinning, and flush pinner
-	dm.mp.PinWithMode(thisk, pin.Recursive)
-	dm.mp.RemovePinWithMode(curk, pin.Recursive)
-	err = dm.mp.Flush()
-	if err != nil {
-		return err
 	}
 
 	dm.writeStart += uint64(buflen)
@@ -265,10 +251,6 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 	for i, bs := range f.GetBlocksizes() {
 		// We found the correct child to write into
 		if cur+bs > offset {
-			// Unpin block
-			ckey := key.Key(node.Links[i].Hash)
-			dm.mp.RemovePinWithMode(ckey, pin.Indirect)
-
 			child, err := node.Links[i].GetNode(dm.ctx, dm.dagserv)
 			if err != nil {
 				return "", false, err
@@ -277,9 +259,6 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 			if err != nil {
 				return "", false, err
 			}
-
-			// pin the new node
-			dm.mp.PinWithMode(k, pin.Indirect)
 
 			offset += bs
 			node.Links[i].Hash = mh.Multihash(k)
@@ -305,14 +284,13 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte, errs <-chan error) (*mdag.Node, error) {
+func (dm *DagModifier) appendData(node *mdag.Node, spl chunk.Splitter) (*mdag.Node, error) {
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,
-		NodeCB:   imp.BasicPinnerCB(dm.mp),
 	}
 
-	return trickle.TrickleAppend(dm.ctx, node, dbp.New(blks, errs))
+	return trickle.TrickleAppend(dm.ctx, node, dbp.New(spl))
 }
 
 // Read data from this dag starting at the current offset
@@ -388,18 +366,30 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 
+	fisize, err := dm.Size()
+	if err != nil {
+		return 0, err
+	}
+
+	var newoffset uint64
 	switch whence {
 	case os.SEEK_CUR:
-		dm.curWrOff += uint64(offset)
-		dm.writeStart = dm.curWrOff
+		newoffset = dm.curWrOff + uint64(offset)
 	case os.SEEK_SET:
-		dm.curWrOff = uint64(offset)
-		dm.writeStart = uint64(offset)
+		newoffset = uint64(offset)
 	case os.SEEK_END:
 		return 0, ErrSeekEndNotImpl
 	default:
 		return 0, ErrUnrecognizedWhence
 	}
+
+	if offset > fisize {
+		if err := dm.expandSparse(offset - fisize); err != nil {
+			return 0, err
+		}
+	}
+	dm.curWrOff = newoffset
+	dm.writeStart = newoffset
 
 	if dm.read != nil {
 		_, err = dm.read.Seek(offset, whence)

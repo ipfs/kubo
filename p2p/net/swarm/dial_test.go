@@ -89,7 +89,7 @@ func TestSimultDials(t *testing.T) {
 
 func newSilentPeer(t *testing.T) (peer.ID, ma.Multiaddr, net.Listener) {
 	dst := testutil.RandPeerIDFatal(t)
-	lst, err := net.Listen("tcp", ":0")
+	lst, err := net.Listen("tcp4", "0.0.0.0:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestDialWait(t *testing.T) {
 func TestDialBackoff(t *testing.T) {
 	// t.Skip("skipping for another test")
 	if ci.IsRunning() {
-		t.Skip("travis and jenkins will never have fun with this test")
+		t.Skip("travis will never have fun with this test")
 	}
 
 	t.Parallel()

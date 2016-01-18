@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"errors"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	dsync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	dsync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -63,7 +63,7 @@ func (cfg *BuildCfg) fillDefaults() error {
 	return nil
 }
 
-func defaultRepo(dstore ds.ThreadSafeDatastore) (repo.Repo, error) {
+func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 	c := cfg.Config{}
 	priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, rand.Reader)
 	if err != nil {
@@ -158,6 +158,11 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG)
 	}
 	n.Resolver = &path.Resolver{DAG: n.DAG}
+
+	err = n.loadFilesRoot()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

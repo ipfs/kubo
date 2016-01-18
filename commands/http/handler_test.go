@@ -11,6 +11,8 @@ import (
 	coremock "github.com/ipfs/go-ipfs/core/mock"
 )
 
+const AllowedExposedHeaders = "X-Stream-Output, X-Chunked-Output"
+
 func assertHeaders(t *testing.T, resHeaders http.Header, reqHeaders map[string]string) {
 	for name, value := range reqHeaders {
 		if resHeaders.Get(name) != value {
@@ -170,7 +172,7 @@ func TestAllowedOrigins(t *testing.T) {
 				ACAMethods:                      "",
 				ACACredentials:                  "",
 				"Access-Control-Max-Age":        "",
-				"Access-Control-Expose-Headers": "",
+				"Access-Control-Expose-Headers": AllowedExposedHeaders,
 			},
 			Code: http.StatusOK,
 		}
@@ -198,7 +200,7 @@ func TestWildcardOrigin(t *testing.T) {
 				ACAMethods:                      "",
 				ACACredentials:                  "",
 				"Access-Control-Max-Age":        "",
-				"Access-Control-Expose-Headers": "",
+				"Access-Control-Expose-Headers": AllowedExposedHeaders,
 			},
 			Code: http.StatusOK,
 		}
@@ -258,7 +260,7 @@ func TestAllowedReferer(t *testing.T) {
 				ACAMethods:                      "",
 				ACACredentials:                  "",
 				"Access-Control-Max-Age":        "",
-				"Access-Control-Expose-Headers": "",
+				"Access-Control-Expose-Headers": AllowedExposedHeaders,
 			},
 			Code: http.StatusOK,
 		}
@@ -286,7 +288,7 @@ func TestWildcardReferer(t *testing.T) {
 				ACAMethods:                      "",
 				ACACredentials:                  "",
 				"Access-Control-Max-Age":        "",
-				"Access-Control-Expose-Headers": "",
+				"Access-Control-Expose-Headers": AllowedExposedHeaders,
 			},
 			Code: http.StatusOK,
 		}

@@ -8,6 +8,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
+	gc "github.com/ipfs/go-ipfs/pin/gc"
 	repo "github.com/ipfs/go-ipfs/repo"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
@@ -73,53 +74,42 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel() // in case error occurs during operation
-	keychan, err := n.Blockstore.AllKeysChan(ctx)
+	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning)
 	if err != nil {
 		return err
 	}
-	for k := range keychan { // rely on AllKeysChan to close chan
-		if !n.Pinning.IsPinned(k) {
-			if err := n.Blockstore.DeleteBlock(k); err != nil {
-				return err
+
+	for {
+		select {
+		case _, ok := <-rmed:
+			if !ok {
+				return nil
 			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
-	return nil
+
 }
 
 func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, error) {
-
-	keychan, err := n.Blockstore.AllKeysChan(ctx)
+	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning)
 	if err != nil {
 		return nil, err
 	}
 
-	output := make(chan *KeyRemoved)
+	out := make(chan *KeyRemoved)
 	go func() {
-		defer close(output)
-		for {
+		defer close(out)
+		for k := range rmed {
 			select {
-			case k, ok := <-keychan:
-				if !ok {
-					return
-				}
-				if !n.Pinning.IsPinned(k) {
-					err := n.Blockstore.DeleteBlock(k)
-					if err != nil {
-						log.Debugf("Error removing key from blockstore: %s", err)
-						continue
-					}
-					select {
-					case output <- &KeyRemoved{k}:
-					case <-ctx.Done():
-					}
-				}
+			case out <- &KeyRemoved{k}:
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
-	return output, nil
+	return out, nil
 }
 
 func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {
@@ -154,7 +144,7 @@ func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {
 		case <-time.After(period):
 			// the private func maybeGC doesn't compute storageMax, storageGC, slackGC so that they are not re-computed for every cycle
 			if err := gc.maybeGC(ctx, 0); err != nil {
-				return err
+				log.Error(err)
 			}
 		}
 	}
@@ -174,15 +164,13 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 		return err
 	}
 
-	if storage+offset > gc.StorageMax {
-		err := ErrMaxStorageExceeded
-		log.Error(err)
-		return err
-	}
-
 	if storage+offset > gc.StorageGC {
+		if storage+offset > gc.StorageMax {
+			log.Warningf("pre-GC: %s", ErrMaxStorageExceeded)
+		}
+
 		// Do GC here
-		log.Info("Starting repo GC...")
+		log.Info("Watermark exceeded. Starting repo GC...")
 		defer log.EventBegin(ctx, "repoGC").Done()
 		// 1 minute is sufficient for ~1GB unlink() blocks each of 100kb in SSD
 		_ctx, cancel := context.WithTimeout(ctx, time.Duration(gc.SlackGB)*time.Minute)
@@ -196,7 +184,14 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 			return err
 		}
 		log.Infof("Repo GC done. Released %s\n", humanize.Bytes(uint64(storage-newStorage)))
-		return nil
+		if newStorage > gc.StorageGC {
+			log.Warningf("post-GC: Watermark still exceeded")
+			if newStorage > gc.StorageMax {
+				err := ErrMaxStorageExceeded
+				log.Error(err)
+				return err
+			}
+		}
 	}
 	return nil
 }

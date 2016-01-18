@@ -21,7 +21,7 @@ import (
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -44,7 +44,7 @@ type IpfsDHT struct {
 	self      peer.ID        // Local peer (yourself)
 	peerstore peer.Peerstore // Peer Registry
 
-	datastore ds.ThreadSafeDatastore // Local data
+	datastore ds.Datastore // Local data
 
 	routingTable *kb.RoutingTable // Array of routing tables for differently distanced nodes
 	providers    *ProviderManager
@@ -60,7 +60,7 @@ type IpfsDHT struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *IpfsDHT {
+func NewDHT(ctx context.Context, h host.Host, dstore ds.Datastore) *IpfsDHT {
 	dht := new(IpfsDHT)
 	dht.datastore = dstore
 	dht.self = h.ID()
@@ -150,6 +150,8 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, skey string) err
 	return nil
 }
 
+var errInvalidRecord = errors.New("received invalid record")
+
 // getValueOrPeers queries a particular peer p for the value for
 // key. It returns either the value or a list of closer peers.
 // NOTE: it will update the dht's peerstore with any new addresses
@@ -173,9 +175,11 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 		err = dht.verifyRecordOnline(ctx, record)
 		if err != nil {
 			log.Info("Received invalid record! (discarded)")
-			return nil, nil, err
+			// return a sentinal to signify an invalid record was received
+			err = errInvalidRecord
+			record = new(pb.Record)
 		}
-		return record, peers, nil
+		return record, peers, err
 	}
 
 	if len(peers) > 0 {

@@ -1,7 +1,7 @@
 package bitswap
 
 import (
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	mockpeernet "github.com/ipfs/go-ipfs/p2p/net/mock"

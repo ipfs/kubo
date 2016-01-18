@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	files "github.com/ipfs/go-ipfs/core/commands/files"
+	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
@@ -69,6 +71,11 @@ TOOL COMMANDS
     commands      List all available commands
 
 Use 'ipfs <command> --help' to learn more about each command.
+
+ipfs uses a repository in the local file system. By default, the repo is located
+at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+
+    export IPFS_PATH=/path/to/ipfsrepo
 `,
 	},
 	Options: []cmds.Option{
@@ -77,7 +84,7 @@ Use 'ipfs <command> --help' to learn more about each command.
 		cmds.BoolOption("help", "Show the full command help text"),
 		cmds.BoolOption("h", "Show a short version of the command help text"),
 		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon"),
-		cmds.StringOption(ApiOption, "Overrides the routing option (dht, supernode)"),
+		cmds.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 	},
 }
 
@@ -94,13 +101,14 @@ var rootSubcommands = map[string]*cmds.Command{
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
 	"dns":       DNSCmd,
+	"files":     files.FilesCmd,
 	"get":       GetCmd,
 	"id":        IDCmd,
 	"log":       LogCmd,
 	"ls":        LsCmd,
 	"mount":     MountCmd,
 	"name":      NameCmd,
-	"object":    ObjectCmd,
+	"object":    ocmd.ObjectCmd,
 	"pin":       PinCmd,
 	"ping":      PingCmd,
 	"refs":      RefsCmd,
@@ -111,7 +119,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"tar":       TarCmd,
 	"tour":      tourCmd,
 	"file":      unixfs.UnixFSCmd,
-	"update":    UpdateCmd,
+	"update":    ExternalBinary(),
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
 }
@@ -132,6 +140,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 	},
 	"cat":      CatCmd,
 	"commands": CommandsDaemonROCmd,
+	"get":      GetCmd,
 	"ls":       LsCmd,
 	"name": &cmds.Command{
 		Subcommands: map[string]*cmds.Command{
@@ -140,14 +149,16 @@ var rootROSubcommands = map[string]*cmds.Command{
 	},
 	"object": &cmds.Command{
 		Subcommands: map[string]*cmds.Command{
-			"data":  objectDataCmd,
-			"links": objectLinksCmd,
-			"get":   objectGetCmd,
-			"stat":  objectStatCmd,
+			"data":  ocmd.ObjectDataCmd,
+			"links": ocmd.ObjectLinksCmd,
+			"get":   ocmd.ObjectGetCmd,
+			"stat":  ocmd.ObjectStatCmd,
+			"patch": ocmd.ObjectPatchCmd,
 		},
 	},
 	"refs": RefsROCmd,
 	//"resolve": ResolveCmd,
+	"version": VersionCmd,
 }
 
 func init() {

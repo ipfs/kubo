@@ -27,12 +27,12 @@ test_ls_cmd() {
 		cat <<-\EOF >expected_add &&
 			added QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe testData/d1/128
 			added QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN testData/d1/a
-			added QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss testData/d1
 			added QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd testData/d2/1024
 			added QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL testData/d2/a
-			added QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy testData/d2
 			added QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH testData/f1
 			added QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M testData/f2
+			added QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss testData/d1
+			added QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy testData/d2
 			added QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj testData
 		EOF
 		test_cmp expected_add actual_add
@@ -108,19 +108,7 @@ test_ls_cmd() {
 
 	test_expect_success "'ipfs --encoding=json file ls <file hashes>' output looks good" '
 		cat <<-\EOF >expected_json_ls_file_trailing_newline &&
-			{
-			  "Arguments": {
-			    "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd"
-			  },
-			  "Objects": {
-			    "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd": {
-			      "Hash": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
-			      "Size": 1024,
-			      "Type": "File",
-			      "Links": null
-			    }
-			  }
-			}
+			{"Arguments":{"/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024":"QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd"},"Objects":{"QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd":{"Hash":"QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd","Size":1024,"Type":"File","Links":null}}}
 		EOF
 		printf "%s\n" "$(cat expected_json_ls_file_trailing_newline)" >expected_json_ls_file &&
 		test_cmp expected_json_ls_file actual_json_ls_file
@@ -131,46 +119,13 @@ test_ls_cmd() {
 	'
 
 	test_expect_success "'ipfs --encoding=json file ls <duplicates>' output looks good" '
-		cat <<-\EOF >expected_json_ls_duplicates_file_trailing_newline &&
-			{
-			  "Arguments": {
-			    "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
-			    "/ipfs/QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss": "QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss",
-			    "/ipfs/QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
-			    "/ipfs/QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj/d1": "QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss"
-			  },
-			  "Objects": {
-			    "QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss": {
-			      "Hash": "QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss",
-			      "Size": 0,
-			      "Type": "Directory",
-			      "Links": [
-			        {
-			          "Name": "128",
-			          "Hash": "QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe",
-			          "Size": 128,
-			          "Type": "File"
-			        },
-			        {
-			          "Name": "a",
-			          "Hash": "QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN",
-			          "Size": 6,
-			          "Type": "File"
-			        }
-			      ]
-			    },
-			    "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd": {
-			      "Hash": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
-			      "Size": 1024,
-			      "Type": "File",
-			      "Links": null
-			    }
-			  }
-			}
-		EOF
-		printf "%s\n" "$(cat expected_json_ls_duplicates_file_trailing_newline)" >expected_json_ls_duplicates_file &&
-		test_cmp expected_json_ls_duplicates_file actual_json_ls_duplicates_file
+			cat <<-\EOF >expected_json_ls_duplicates_file_trailing_newline &&
+					{"Arguments":{"/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024":"QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd","/ipfs/QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss":"QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss","/ipfs/QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd":"QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd","/ipfs/QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj/d1":"QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss"},"Objects":{"QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss":{"Hash":"QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss","Size":0,"Type":"Directory","Links":[{"Name":"128","Hash":"QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe","Size":128,"Type":"File"},{"Name":"a","Hash":"QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN","Size":6,"Type":"File"}]},"QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd":{"Hash":"QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd","Size":1024,"Type":"File","Links":null}}}
+			EOF
+			printf "%s\n" "$(cat expected_json_ls_duplicates_file_trailing_newline)" >expected_json_ls_duplicates_file &&
+			test_cmp expected_json_ls_duplicates_file actual_json_ls_duplicates_file
 	'
+
 }
 
 

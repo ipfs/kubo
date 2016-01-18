@@ -43,7 +43,7 @@ const (
 )
 
 func marshalJson(value interface{}) (io.Reader, error) {
-	b, err := json.MarshalIndent(value, "", "  ")
+	b, err := json.Marshal(value)
 	if err != nil {
 		return nil, err
 	}

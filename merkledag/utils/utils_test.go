@@ -1,12 +1,12 @@
 package dagutils
 
 import (
-	"strings"
 	"testing"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
+	path "github.com/ipfs/go-ipfs/path"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
@@ -43,8 +43,8 @@ func TestAddLink(t *testing.T) {
 	}
 }
 
-func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.Node, path string, exp key.Key) {
-	parts := strings.Split(path, "/")
+func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.Node, pth string, exp key.Key) {
+	parts := path.SplitList(pth)
 	cur := root
 	for _, e := range parts {
 		nxt, err := cur.GetLinkedNode(context.Background(), ds, e)
@@ -66,13 +66,12 @@ func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.Node, path stri
 }
 
 func TestInsertNode(t *testing.T) {
-	ds := mdtest.Mock()
 	root := new(dag.Node)
-	e := NewDagEditor(ds, root)
+	e := NewDagEditor(root, nil)
 
 	testInsert(t, e, "a", "anodefortesting", false, "")
 	testInsert(t, e, "a/b", "data", false, "")
-	testInsert(t, e, "a/b/c/d/e", "blah", false, "merkledag: not found")
+	testInsert(t, e, "a/b/c/d/e", "blah", false, "no link by that name")
 	testInsert(t, e, "a/b/c/d/e", "foo", true, "")
 	testInsert(t, e, "a/b/c/d/f", "baz", true, "")
 	testInsert(t, e, "a/b/c/d/f", "bar", true, "")
@@ -92,7 +91,7 @@ func TestInsertNode(t *testing.T) {
 
 func testInsert(t *testing.T, e *Editor, path, data string, create bool, experr string) {
 	child := &dag.Node{Data: []byte(data)}
-	ck, err := e.ds.Add(child)
+	ck, err := e.tmp.Add(child)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,8 +116,8 @@ func testInsert(t *testing.T, e *Editor, path, data string, create bool, experr 
 	}
 
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal(err, path, data, create, experr)
 	}
 
-	assertNodeAtPath(t, e.ds, e.root, path, ck)
+	assertNodeAtPath(t, e.tmp, e.root, path, ck)
 }

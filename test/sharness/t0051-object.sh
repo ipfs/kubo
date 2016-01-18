@@ -16,7 +16,7 @@ test_patch_create_path() {
 	target=$3
 
 	test_expect_success "object patch --create works" '
-		PCOUT=$(ipfs object patch --create $root add-link $name $target)
+		PCOUT=$(ipfs object patch $root add-link --create $name $target)
 	'
 
 	test_expect_success "output looks good" '
@@ -66,7 +66,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put file.json' output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
-		printf "added $HASH" > expected_putOut &&
+		printf "added $HASH\n" > expected_putOut &&
 		test_cmp expected_putOut actual_putOut
 	'
 
@@ -76,7 +76,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put file.xml' output looks good" '
 		HASH="QmQzNKUHy4HyEUGkqKe3q3t796ffPLQXYCkHCcXUNT5JNK" &&
-		printf "added $HASH" > expected_putOut &&
+		printf "added $HASH\n" > expected_putOut &&
 		test_cmp expected_putOut actual_putOut
 	'
 
@@ -103,7 +103,7 @@ test_object_cmd() {
 	'
 
 	test_expect_failure "'ipfs object put --inputenc=xml' output looks good" '
-		echo "added $HASH" >expected &&
+		echo "added $HASH\n" >expected &&
 		test_cmp expected actual
 	'
 
@@ -113,7 +113,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put file.pb' output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
-		printf "added $HASH" > expected_putOut &&
+		printf "added $HASH\n" > expected_putOut &&
 		test_cmp expected_putOut actual_putOut
 	'
 
@@ -123,7 +123,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put' from stdin output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
-		printf "added $HASH" > expected_putStdinOut &&
+		printf "added $HASH\n" > expected_putStdinOut &&
 		test_cmp expected_putStdinOut actual_putStdinOut
 	'
 
@@ -133,7 +133,7 @@ test_object_cmd() {
 
 	test_expect_success "'ipfs object put' from stdin (pb) output looks good" '
 		HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
-		printf "added $HASH" > expected_putStdinOut &&
+		printf "added $HASH\n" > expected_putStdinOut &&
 		test_cmp expected_putStdinOut actual_putPbStdinOut
 	'
 
@@ -241,7 +241,28 @@ test_object_cmd() {
 	test_patch_create_path $BLANK a $FILE
 
 	test_expect_success "create bad path fails" '
-		test_must_fail ipfs object patch --create $EMPTY add-link / $FILE
+		test_must_fail ipfs object patch $EMPTY add-link --create / $FILE
+	'
+
+	test_expect_success "patch set-data works" '
+		EMPTY=$(ipfs object new) &&
+		HASH=$(printf "foo" | ipfs object patch $EMPTY set-data)
+	'
+
+	test_expect_success "output looks good" '
+		echo "{\"Links\":[],\"Data\":\"foo\"}" > exp_data_set &&
+		ipfs object get $HASH > actual_data_set &&
+		test_cmp exp_data_set actual_data_set
+	'
+
+	test_expect_success "patch append-data works" '
+		HASH=$(printf "bar" | ipfs object patch $HASH append-data)
+	'
+
+	test_expect_success "output looks good" '
+		echo "{\"Links\":[],\"Data\":\"foobar\"}" > exp_data_append &&
+		ipfs object get $HASH > actual_data_append &&
+		test_cmp exp_data_append actual_data_append
 	'
 }
 

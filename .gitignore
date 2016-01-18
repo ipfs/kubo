@@ -9,6 +9,4 @@
 *.test
 *.orig
 *~
-
-/test/bin
 .ipfs

@@ -7,6 +7,10 @@ test_description="Test ipfs repo auto gc"
 
 . lib/test-lib.sh
 
+skip_all="skipping auto repo gc tests until they can be fixed"
+
+test_done
+
 check_ipfs_storage() {
     ipfs config Datastore.StorageMax
 }

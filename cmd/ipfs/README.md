@@ -14,7 +14,7 @@ ipfs
 
 ## Install from [gobuilder.me](https://gobuilder.me/)
 
-If you're viewing this in [gobuilder](https://gobuilder.me/github.com/ipfs/go-ipfs/cmd/ipfs), chose the binary that suits you best at the end of this page. Download it, unzip it, and move the binary into place.
+If you're viewing this in [gobuilder](https://gobuilder.me/github.com/ipfs/go-ipfs/cmd/ipfs), choose the binary that suits you best at the end of this page. Download it, unzip it, and move the binary into place.
 
 ## Usage
 

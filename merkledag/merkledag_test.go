@@ -2,6 +2,7 @@ package merkledag_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -27,7 +28,7 @@ import (
 
 type dagservAndPinner struct {
 	ds DAGService
-	mp pin.ManualPinner
+	mp pin.Pinner
 }
 
 func getDagservAndPinner(t *testing.T) dagservAndPinner {
@@ -35,7 +36,7 @@ func getDagservAndPinner(t *testing.T) dagservAndPinner {
 	bs := bstore.NewBlockstore(db)
 	blockserv := bserv.New(bs, offline.Exchange(bs))
 	dserv := NewDAGService(blockserv)
-	mpin := pin.NewPinner(db, dserv).GetManual()
+	mpin := pin.NewPinner(db, dserv)
 	return dagservAndPinner{
 		ds: dserv,
 		mp: mpin,
@@ -129,7 +130,7 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 	}
 
 	if expected != *actual {
-		t.Errorf("n.Stat incorrect.\nexpect: %s\nactual: %s", expected, actual)
+		t.Error("n.Stat incorrect.\nexpect: %s\nactual: %s", expected, actual)
 	} else {
 		fmt.Printf("n.Stat correct: %s\n", actual)
 	}
@@ -163,7 +164,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 
 	spl := chunk.NewSizeSplitter(read, 512)
 
-	root, err := imp.BuildDagFromReader(dagservs[0], spl, nil)
+	root, err := imp.BuildDagFromReader(dagservs[0], spl)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,34 +194,44 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 	}
 
 	wg := sync.WaitGroup{}
+	errs := make(chan error)
+
 	for i := 1; i < len(dagservs); i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 			first, err := dagservs[i].Get(ctx, k)
 			if err != nil {
-				t.Fatal(err)
+				errs <- err
 			}
 			fmt.Println("Got first node back.")
 
 			read, err := uio.NewDagReader(ctx, first, dagservs[i])
 			if err != nil {
-				t.Fatal(err)
+				errs <- err
 			}
 			datagot, err := ioutil.ReadAll(read)
 			if err != nil {
-				t.Fatal(err)
+				errs <- err
 			}
 
 			if !bytes.Equal(datagot, expected) {
-				t.Fatal("Got bad data back!")
+				errs <- errors.New("Got bad data back!")
 			}
 		}(i)
 	}
 
-	wg.Wait()
-}
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
 
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
 func TestRecursiveAdd(t *testing.T) {
 	a := &Node{Data: []byte("A")}
 	b := &Node{Data: []byte("B")}
@@ -285,4 +296,69 @@ func TestCantGet(t *testing.T) {
 	if !strings.Contains(err.Error(), "not found") {
 		t.Fatal("expected err not found, got: ", err)
 	}
+}
+
+func TestFetchGraph(t *testing.T) {
+	var dservs []DAGService
+	bsis := bstest.Mocks(2)
+	for _, bsi := range bsis {
+		dservs = append(dservs, NewDAGService(bsi))
+	}
+
+	read := io.LimitReader(u.NewTimeSeededRand(), 1024*32)
+	root, err := imp.BuildDagFromReader(dservs[0], chunk.NewSizeSplitter(read, 512))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = FetchGraph(context.TODO(), root, dservs[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create an offline dagstore and ensure all blocks were fetched
+	bs := bserv.New(bsis[1].Blockstore, offline.Exchange(bsis[1].Blockstore))
+
+	offline_ds := NewDAGService(bs)
+	ks := key.NewKeySet()
+
+	err = EnumerateChildren(context.Background(), offline_ds, root, ks)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEnumerateChildren(t *testing.T) {
+	bsi := bstest.Mocks(1)
+	ds := NewDAGService(bsi[0])
+
+	read := io.LimitReader(u.NewTimeSeededRand(), 1024*1024)
+	root, err := imp.BuildDagFromReader(ds, chunk.NewSizeSplitter(read, 512))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ks := key.NewKeySet()
+	err = EnumerateChildren(context.Background(), ds, root, ks)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var traverse func(n *Node)
+	traverse = func(n *Node) {
+		// traverse dag and check
+		for _, lnk := range n.Links {
+			k := key.Key(lnk.Hash)
+			if !ks.Has(k) {
+				t.Fatal("missing key in set!")
+			}
+			child, err := ds.Get(context.Background(), k)
+			if err != nil {
+				t.Fatal(err)
+			}
+			traverse(child)
+		}
+	}
+
+	traverse(root)
 }

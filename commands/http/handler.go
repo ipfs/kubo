@@ -6,14 +6,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
 
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/repo/config"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
@@ -35,7 +35,10 @@ type Handler struct {
 	corsHandler http.Handler
 }
 
-var ErrNotFound = errors.New("404 page not found")
+var (
+	ErrNotFound           = errors.New("404 page not found")
+	errApiVersionMismatch = errors.New("api version mismatch")
+)
 
 const (
 	StreamErrHeader        = "X-Stream-Error"
@@ -88,7 +91,7 @@ func skipAPIHeader(h string) bool {
 	}
 }
 
-func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) *Handler {
+func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) http.Handler {
 	if cfg == nil {
 		panic("must provide a valid ServerConfig")
 	}
@@ -110,13 +113,32 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		if r := recover(); r != nil {
+			log.Error("A panic has occurred in the commands handler!")
 			log.Error(r)
 
-			buf := make([]byte, 4096)
-			n := runtime.Stack(buf, false)
-			fmt.Fprintln(os.Stderr, string(buf[:n]))
+			debug.PrintStack()
 		}
 	}()
+
+	// get the node's context to pass into the commands.
+	node, err := i.ctx.GetNode()
+	if err != nil {
+		s := fmt.Sprintf("cmds/http: couldn't GetNode(): %s", err)
+		http.Error(w, s, http.StatusInternalServerError)
+		return
+	}
+
+	ctx, cancel := context.WithCancel(node.Context())
+	defer cancel()
+	if cn, ok := w.(http.CloseNotifier); ok {
+		go func() {
+			select {
+			case <-cn.CloseNotify():
+			case <-ctx.Done():
+			}
+			cancel()
+		}()
+	}
 
 	if !allowOrigin(r, i.cfg) || !allowReferer(r, i.cfg) {
 		w.WriteHeader(http.StatusForbidden)
@@ -136,28 +158,8 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get the node's context to pass into the commands.
-	node, err := i.ctx.GetNode()
-	if err != nil {
-		s := fmt.Sprintf("cmds/http: couldn't GetNode(): %s", err)
-		http.Error(w, s, http.StatusInternalServerError)
-		return
-	}
-
 	//ps: take note of the name clash - commands.Context != context.Context
 	req.SetInvocContext(i.ctx)
-
-	ctx, cancel := context.WithCancel(node.Context())
-	defer cancel()
-	if cn, ok := w.(http.CloseNotifier); ok {
-		go func() {
-			select {
-			case <-cn.CloseNotify():
-			case <-ctx.Done():
-			}
-			cancel()
-		}()
-	}
 
 	err = req.SetRootContext(ctx)
 	if err != nil {
@@ -255,6 +257,11 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	h.Set(contentTypeHeader, mime)
 	h.Set(transferEncodingHeader, "chunked")
 
+	// set 'allowed' headers
+	h.Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
+	// expose those headers
+	h.Set("Access-Control-Expose-Headers", "X-Stream-Output, X-Chunked-Output")
+
 	if r.Method == "HEAD" { // after all the headers.
 		return
 	}
@@ -278,7 +285,11 @@ func flushCopy(w io.Writer, r io.Reader) error {
 		n, err := r.Read(buf)
 		switch err {
 		case io.EOF:
-			return nil
+			if n <= 0 {
+				return nil
+			}
+			// if data was returned alongside the EOF, pretend we didnt
+			// get an EOF. The next read call should also EOF.
 		case nil:
 			// continue
 		default:
@@ -417,4 +428,22 @@ func allowReferer(r *http.Request, cfg *ServerConfig) bool {
 	}
 
 	return false
+}
+
+// apiVersionMatches checks whether the api client is running the
+// same version of go-ipfs. for now, only the exact same version of
+// client + server work. In the future, we should use semver for
+// proper API versioning! \o/
+func apiVersionMatches(r *http.Request) error {
+	clientVersion := r.UserAgent()
+	// skips check if client is not go-ipfs
+	if clientVersion == "" || !strings.Contains(clientVersion, "/go-ipfs/") {
+		return nil
+	}
+
+	daemonVersion := config.ApiVersion
+	if daemonVersion != clientVersion {
+		return fmt.Errorf("%s (%s != %s)", errApiVersionMismatch, daemonVersion, clientVersion)
+	}
+	return nil
 }
