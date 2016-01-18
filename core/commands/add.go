@@ -266,7 +266,7 @@ remains to be implemented.
 					if quiet {
 						fmt.Fprintf(res.Stdout(), "%s\n", output.Hash)
 					} else {
-						fmt.Fprintf(res.Stdout(), "added %s %s\n", output.Hash, output.Name)
+						fmt.Fprintf(res.Stdout(), "added %s %s\nhttps://ipfs.io/ipfs/%s\n", output.Hash, output.Name, output.Hash)
 					}
 
 				} else {
