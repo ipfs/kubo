@@ -161,11 +161,11 @@ var listPinCmd = &cmds.Command{
 		Tagline: "List objects pinned to local storage",
 		ShortDescription: `
 Returns a list of objects that are pinned locally.
-Without arguments, by default, only recursively pinned objects are returned, but others may be shown via the '--type' flag.
+By default, all pinned objects are returned, but the '--type' flag or arguments can restrict that to a specific pin type or to some specific objects respectively.
 `,
 		LongDescription: `
 Returns a list of objects that are pinned locally.
-Without arguments, by default, only recursively pinned objects are returned, but others may be shown via the '--type' flag.
+By default, all pinned objects are returned, but the '--type' flag or arguments can restrict that to a specific pin type or to some specific objects respectively.
 
 Use --type=<type> to specify the type of pinned keys to list. Valid values are:
     * "direct": pin that specific object.
@@ -222,21 +222,15 @@ Example:
 				res.SetError(err, cmds.ErrClient)
 				return
 			}
+		} else {
+			typeStr = "all"
 		}
 
 		var keys map[string]RefKeyObject
 
 		if len(req.Arguments()) > 0 {
-			if !typeStrFound {
-				typeStr = "all"
-			}
-
 			keys, err = pinLsKeys(req.Arguments(), typeStr, req.Context(), n)
 		} else {
-			if !typeStrFound {
-				typeStr = "recursive"
-			}
-
 			keys, err = pinLsAll(typeStr, req.Context(), n)
 		}
 
