@@ -3,9 +3,13 @@ package corehttp
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/net/html/charset"
 	"io"
+	"mime"
 	"net/http"
+	"os"
 	gopath "path"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -194,6 +198,38 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	if err == nil {
 		defer dr.Close()
 		name := gopath.Base(urlPath)
+
+		// TODO: move the content detection to a separate function
+		// detect content type and content encoding through charset package
+		_, haveType := w.Header()["Content-Type"]
+		if !haveType {
+			ctype := mime.TypeByExtension(filepath.Ext(name))
+			if ctype == "" {
+				var buf [1024]byte
+				n, _ := io.ReadFull(dr, buf[:])
+				_, err := dr.Seek(0, os.SEEK_SET) // rewind the reader
+				if err != nil {
+					internalWebError(w, err)
+					return
+				}
+				ctype = http.DetectContentType(buf[:512])
+				mt, params, err := mime.ParseMediaType(ctype)
+				if err != nil {
+					internalWebError(w, err)
+					return
+				}
+
+				_, cs, _ := charset.DetermineEncoding(buf[:n], "")
+				if params["charset"] != cs {
+					params["charset"] = cs // favor the one detected by charset package
+					mt = mime.FormatMediaType(mt, params)
+					w.Header().Set("Content-Type", mt)
+				} else {
+					w.Header().Set("Content-Type", ctype)
+				}
+			}
+		}
+
 		http.ServeContent(w, r, name, modtime, dr)
 		return
 	}
