@@ -34,8 +34,7 @@ var AddCmd = &cmds.Command{
 		ShortDescription: `
 Adds contents of <path> to ipfs. Use -r to add directories.
 Note that directories are added recursively, to form the ipfs
-MerkleDAG. A smarter partial add with a staging area (like git)
-remains to be implemented.
+MerkleDAG.
 `,
 	},
 
