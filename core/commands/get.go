@@ -22,7 +22,7 @@ var ErrInvalidCompressionLevel = errors.New("Compression level must be between 1
 
 var GetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Download IPFS objects",
+		Tagline: "Download IPFS objects.",
 		ShortDescription: `
 Retrieves the object named by <ipfs-or-ipns-path> and stores the data to disk.
 

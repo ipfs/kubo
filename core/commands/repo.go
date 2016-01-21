@@ -12,7 +12,7 @@ import (
 
 var RepoCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate the IPFS repo",
+		Tagline: "Manipulate the IPFS repo.",
 		ShortDescription: `
 'ipfs repo' is a plumbing command used to manipulate the repo.
 `,
@@ -25,7 +25,7 @@ var RepoCmd = &cmds.Command{
 
 var repoGcCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Perform a garbage collection sweep on the repo",
+		Tagline: "Perform a garbage collection sweep on the repo.",
 		ShortDescription: `
 'ipfs repo gc' is a plumbing command that will sweep the local
 set of stored objects and remove ones that are not pinned in

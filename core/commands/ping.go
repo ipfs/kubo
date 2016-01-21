@@ -27,7 +27,7 @@ type PingResult struct {
 
 var PingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "send echo request packets to IPFS hosts",
+		Tagline: "Send echo request packets to IPFS hosts.",
 		Synopsis: `
 Send pings to a peer using the routing system to discover its address
 		`,

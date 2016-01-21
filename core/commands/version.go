@@ -18,7 +18,7 @@ type VersionOutput struct {
 
 var VersionCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Shows ipfs version information",
+		Tagline:          "Shows ipfs version information.",
 		ShortDescription: "Returns the current version of ipfs and exits.",
 	},
 

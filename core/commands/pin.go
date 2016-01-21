@@ -14,7 +14,7 @@ import (
 
 var PinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Pin (and unpin) objects to local storage",
+		Tagline: "Pin (and unpin) objects to local storage.",
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -30,7 +30,7 @@ type PinOutput struct {
 
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Pins objects to local storage",
+		Tagline: "Pins objects to local storage.",
 		ShortDescription: `
 Retrieves the object named by <ipfs-path> and stores it locally
 on disk.
@@ -98,7 +98,7 @@ on disk.
 
 var rmPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes the pinned object from local storage. (By default, recursively. Use -r=false for direct pins)",
+		Tagline: "Removes the pinned object from local storage. (By default, recursively. Use -r=false for direct pins).",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
 collected if needed. (By default, recursively. Use -r=false for direct pins)
@@ -155,7 +155,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 
 var listPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List objects pinned to local storage",
+		Tagline: "List objects pinned to local storage.",
 		ShortDescription: `
 Returns a list of objects that are pinned locally.
 By default, only recursively pinned returned, but others may be shown via the '--type' flag.

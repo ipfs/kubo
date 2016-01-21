@@ -13,7 +13,7 @@ import (
 
 var TarCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "utility functions for tar files in ipfs",
+		Tagline: "Utility functions for tar files in ipfs.",
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -24,7 +24,7 @@ var TarCmd = &cmds.Command{
 
 var tarAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "import a tar file into ipfs",
+		Tagline: "Import a tar file into ipfs.",
 		ShortDescription: `
 'ipfs tar add' will parse a tar file and create a merkledag structure to represent it.
 `,
@@ -75,7 +75,7 @@ var tarAddCmd = &cmds.Command{
 
 var tarCatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "export a tar file from ipfs",
+		Tagline: "Export a tar file from ipfs.",
 		ShortDescription: `
 'ipfs tar cat' will export a tar file from a previously imported one in ipfs
 `,

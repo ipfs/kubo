@@ -20,7 +20,7 @@ var ErrNotDHT = errors.New("routing service is not a DHT")
 
 var DhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Issue commands directly through the DHT",
+		Tagline:          "Issue commands directly through the DHT.",
 		ShortDescription: ``,
 	},
 
@@ -35,7 +35,7 @@ var DhtCmd = &cmds.Command{
 
 var queryDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Run a 'findClosestPeers' query through the DHT",
+		Tagline:          "Run a 'findClosestPeers' query through the DHT.",
 		ShortDescription: ``,
 	},
 
@@ -119,7 +119,7 @@ var queryDhtCmd = &cmds.Command{
 
 var findProvidersDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'FindProviders' query through the DHT",
+		Tagline: "Run a 'FindProviders' query through the DHT.",
 		ShortDescription: `
 FindProviders will return a list of peers who are able to provide the value requested.
 `,
@@ -222,7 +222,7 @@ FindProviders will return a list of peers who are able to provide the value requ
 
 var findPeerDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Run a 'FindPeer' query through the DHT",
+		Tagline:          "Run a 'FindPeer' query through the DHT.",
 		ShortDescription: ``,
 	},
 
@@ -317,7 +317,7 @@ var findPeerDhtCmd = &cmds.Command{
 
 var getValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'GetValue' query through the DHT",
+		Tagline: "Run a 'GetValue' query through the DHT.",
 		ShortDescription: `
 GetValue will return the value stored in the dht at the given key.
 `,
@@ -420,7 +420,7 @@ GetValue will return the value stored in the dht at the given key.
 
 var putValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'PutValue' query through the DHT",
+		Tagline: "Run a 'PutValue' query through the DHT.",
 		ShortDescription: `
 PutValue will store the given key value pair in the dht.
 `,

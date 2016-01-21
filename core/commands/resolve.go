@@ -16,7 +16,7 @@ type ResolvedPath struct {
 
 var ResolveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Resolve the value of names to IPFS",
+		Tagline: "Resolve the value of names to IPFS.",
 		ShortDescription: `
 There are a number of mutable name protocols that can link among
 themselves and into IPNS.  This command accepts any of these

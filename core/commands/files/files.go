@@ -24,7 +24,7 @@ var log = logging.Logger("cmds/files")
 
 var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate unixfs files",
+		Tagline: "Manipulate unixfs files.",
 		ShortDescription: `
 Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 `,
@@ -46,7 +46,7 @@ Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 
 var FilesStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "display file status",
+		Tagline: "Display file status.",
 	},
 
 	Arguments: []cmds.Argument{
@@ -137,7 +137,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 
 var FilesCpCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "copy files into mfs",
+		Tagline: "Copy files into mfs.",
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("source", true, false, "source object to copy"),
@@ -208,7 +208,7 @@ type FilesLsOutput struct {
 
 var FilesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directories",
+		Tagline: "List directories.",
 		ShortDescription: `
 List directories.
 
@@ -310,7 +310,7 @@ Examples:
 
 var FilesReadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Read a file in a given mfs",
+		Tagline: "Read a file in a given mfs.",
 		ShortDescription: `
 Read a specified number of bytes from a file at a given offset. By default, will
 read the entire file similar to unix cat.
@@ -400,7 +400,7 @@ Examples:
 
 var FilesMvCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Move files",
+		Tagline: "Move files.",
 		ShortDescription: `
 Move files around. Just like traditional unix mv.
 
@@ -443,7 +443,7 @@ Example:
 
 var FilesWriteCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Write to a mutable file in a given filesystem",
+		Tagline: "Write to a mutable file in a given filesystem.",
 		ShortDescription: `
 Write data to a file in a given filesystem. This command allows you to specify
 a beginning offset to write to. The entire length of the input will be written.
@@ -566,7 +566,7 @@ Warning:
 
 var FilesMkdirCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "make directories",
+		Tagline: "Make directories.",
 		ShortDescription: `
 Create the directory if it does not already exist.
 
@@ -615,7 +615,7 @@ Examples:
 
 var FilesRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "remove a file",
+		Tagline: "Remove a file.",
 		ShortDescription: `
 remove files or directories
 

@@ -20,7 +20,7 @@ const nBitsForKeypairDefault = 2048
 
 var initCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Initializes IPFS config file",
+		Tagline: "Initializes IPFS config file.",
 		ShortDescription: `
 Initializes IPFS configuration files and generates a new keypair.
 

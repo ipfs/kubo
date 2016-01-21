@@ -35,7 +35,7 @@ var platformFuseChecks = func(*core.IpfsNode) error {
 
 var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Mounts IPFS to the filesystem (read-only)",
+		Tagline: "Mounts IPFS to the filesystem (read-only).",
 		Synopsis: `
 ipfs mount [-f <ipfs mount path>] [-n <ipns mount path>]
 `,

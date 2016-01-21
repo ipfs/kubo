@@ -14,7 +14,7 @@ import (
 
 var tourCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "An introduction to IPFS",
+		Tagline: "An introduction to IPFS.",
 		ShortDescription: `
 This is a tour that takes you through various IPFS concepts,
 features, and tools to make sure you get up to speed with
@@ -73,7 +73,7 @@ func tourRunFunc(req cmds.Request, res cmds.Response) {
 
 var cmdIpfsTourNext = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show the next IPFS Tour topic",
+		Tagline: "Show the next IPFS Tour topic.",
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -112,7 +112,7 @@ var cmdIpfsTourNext = &cmds.Command{
 
 var cmdIpfsTourRestart = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Restart the IPFS Tour",
+		Tagline: "Restart the IPFS Tour.",
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -134,7 +134,7 @@ var cmdIpfsTourRestart = &cmds.Command{
 
 var cmdIpfsTourList = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show a list of IPFS Tour topics",
+		Tagline: "Show a list of IPFS Tour topics.",
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {

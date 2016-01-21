@@ -11,7 +11,7 @@ import (
 
 var DNSCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "DNS link resolver",
+		Tagline: "DNS link resolver.",
 		ShortDescription: `
 Multihashes are hard to remember, but domain names are usually easy to
 remember.  To create memorable aliases for multihashes, DNS TXT

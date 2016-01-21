@@ -33,7 +33,7 @@ func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
 
 var RefsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Lists links (references) from an object",
+		Tagline: "Lists links (references) from an object.",
 		ShortDescription: `
 Retrieves the object named by <ipfs-path> and displays the link
 hashes it contains, with the following format:
@@ -150,7 +150,7 @@ Note: list all refs recursively with -r.
 
 var RefsLocalCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Lists all local references",
+		Tagline: "Lists all local references.",
 		ShortDescription: `
 Displays the hashes of all local objects.
 `,

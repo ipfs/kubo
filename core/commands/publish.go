@@ -20,7 +20,7 @@ var errNotOnline = errors.New("This command must be run in online mode. Try runn
 
 var PublishCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Publish an object to IPNS",
+		Tagline: "Publish an object to IPNS.",
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In publish, the

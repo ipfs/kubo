@@ -18,7 +18,7 @@ import (
 
 var StatsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Query IPFS statistics",
+		Tagline:          "Query IPFS statistics.",
 		ShortDescription: ``,
 	},
 
@@ -29,7 +29,7 @@ var StatsCmd = &cmds.Command{
 
 var statBwCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Print ipfs bandwidth information",
+		Tagline:          "Print ipfs bandwidth information.",
 		ShortDescription: ``,
 	},
 	Options: []cmds.Option{

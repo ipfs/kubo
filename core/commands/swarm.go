@@ -27,7 +27,7 @@ type addrMap struct {
 
 var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "swarm inspection tool",
+		Tagline: "Swarm inspection tool.",
 		Synopsis: `
 ipfs swarm peers                - List peers with open connections
 ipfs swarm addrs                - List known addresses. Useful to debug.
@@ -52,7 +52,7 @@ ipfs peers in the internet.
 
 var swarmPeersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List peers with open connections",
+		Tagline: "List peers with open connections.",
 		ShortDescription: `
 ipfs swarm peers lists the set of peers this node is connected to.
 `,
@@ -197,7 +197,7 @@ ipfs swarm addrs local lists all local addresses the node is listening on.
 
 var swarmConnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Open connection to a given address",
+		Tagline: "Open connection to a given address.",
 		ShortDescription: `
 'ipfs swarm connect' opens a new direct connection to a peer address.
 
@@ -253,7 +253,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 var swarmDisconnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Close connection to a given address",
+		Tagline: "Close connection to a given address.",
 		ShortDescription: `
 'ipfs swarm disconnect' closes a connection to a peer address. The address format
 is an ipfs multiaddr:
@@ -364,7 +364,7 @@ func peersWithAddresses(addrs []string) (pis []peer.PeerInfo, err error) {
 
 var swarmFiltersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate address filters",
+		Tagline: "Manipulate address filters.",
 		ShortDescription: `
 'ipfs swarm filters' will list out currently applied filters. Its subcommands can be used
 to add or remove said filters. Filters are specified using the multiaddr-filter format:
@@ -421,7 +421,7 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 
 var swarmFiltersAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "add an address filter",
+		Tagline: "Add an address filter.",
 		ShortDescription: `
 'ipfs swarm filters add' will add an address filter to the daemons swarm.
 Filters applied this way will not persist daemon reboots, to acheive that,
@@ -463,7 +463,7 @@ add your filters to the ipfs config file.
 
 var swarmFiltersRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "remove an address filter",
+		Tagline: "Remove an address filter.",
 		ShortDescription: `
 'ipfs swarm filters rm' will remove an address filter from the daemons swarm.
 Filters removed this way will not persist daemon reboots, to acheive that,
