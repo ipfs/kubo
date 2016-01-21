@@ -1,5 +1,14 @@
 # go-ipfs changelog
 
+### 0.4.0 - 2016-01-31
+
+* Features
+  * add optional path arguments to 'ipfs pin ls' (@chriscool)
+
+* Incompatible Changes
+  * the default for '--type' in 'ipfs pin ls' is now "all" (@chriscool)
+
+
 ### 0.3.10 - 2015-12-07
 
 This patch update introduces the 'ipfs update' command which will be used for
