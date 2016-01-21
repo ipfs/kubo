@@ -36,6 +36,12 @@ test_expect_success "'ipfs config Identity.PeerID' works" '
   PEERID=$(ipfs config Identity.PeerID)
 '
 
+# see https://github.com/ipfs/go-ipfs/issues/2190
+test_expect_success "test for duplicate Transfer-Encoding Header" '
+    curl -v -i http://localhost:5001/api/v0/version 2> curl_output &&
+    test $(grep -c "Transfer-Encoding" curl_output) -eq 1
+'
+
 test_expect_success "'ipfs swarm addrs local' works" '
   ipfs swarm addrs local >local_addrs
 '
