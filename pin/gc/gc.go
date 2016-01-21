@@ -28,7 +28,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner) (<-chan key.
 	bsrv := bserv.New(bs, offline.Exchange(bs))
 	ds := dag.NewDAGService(bsrv)
 
-	gcs, err := ColoredSet(pn, ds)
+	gcs, err := ColoredSet(ctx, pn, ds)
 	if err != nil {
 		return nil, err
 	}
@@ -69,16 +69,16 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner) (<-chan key.
 	return output, nil
 }
 
-func Descendants(ds dag.DAGService, set key.KeySet, roots []key.Key) error {
+func Descendants(ctx context.Context, ds dag.DAGService, set key.KeySet, roots []key.Key) error {
 	for _, k := range roots {
 		set.Add(k)
-		nd, err := ds.Get(context.Background(), k)
+		nd, err := ds.Get(ctx, k)
 		if err != nil {
 			return err
 		}
 
 		// EnumerateChildren recursively walks the dag and adds the keys to the given set
-		err = dag.EnumerateChildren(context.Background(), ds, nd, set)
+		err = dag.EnumerateChildren(ctx, ds, nd, set)
 		if err != nil {
 			return err
 		}
@@ -87,11 +87,11 @@ func Descendants(ds dag.DAGService, set key.KeySet, roots []key.Key) error {
 	return nil
 }
 
-func ColoredSet(pn pin.Pinner, ds dag.DAGService) (key.KeySet, error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ds dag.DAGService) (key.KeySet, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	gcs := key.NewKeySet()
-	err := Descendants(ds, gcs, pn.RecursiveKeys())
+	err := Descendants(ctx, ds, gcs, pn.RecursiveKeys())
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func ColoredSet(pn pin.Pinner, ds dag.DAGService) (key.KeySet, error) {
 		gcs.Add(k)
 	}
 
-	err = Descendants(ds, gcs, pn.InternalPins())
+	err = Descendants(ctx, ds, gcs, pn.InternalPins())
 	if err != nil {
 		return nil, err
 	}
