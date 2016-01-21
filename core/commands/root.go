@@ -32,7 +32,7 @@ ipfs [<flags>] <command> [<arg>] ...
 BASIC COMMANDS
 
     init          Initialize ipfs local configuration
-    add <path>    Add an object to ipfs
+    add <path>    Add a file to ipfs
     cat <ref>     Show ipfs object data
     get <ref>     Download ipfs objects
     ls <ref>      List links from an object
