@@ -24,7 +24,7 @@ type ConfigField struct {
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "get and set IPFS config values.",
+		Tagline: "Get and set IPFS config values.",
 		Synopsis: `
 ipfs config <key>          - Get value of <key>
 ipfs config <key> <value>  - Set value of <key> to <value>
