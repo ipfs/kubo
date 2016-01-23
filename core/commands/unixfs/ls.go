@@ -34,7 +34,7 @@ type LsOutput struct {
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directory contents for Unix-filesystem objects",
+		Tagline: "List directory contents for Unix-filesystem objects.",
 		ShortDescription: `
 Retrieves the object named by <ipfs-or-ipns-path> and displays the
 contents.

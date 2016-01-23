@@ -44,7 +44,7 @@ const (
 
 var daemonCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a network-connected IPFS node",
+		Tagline: "Run a network-connected IPFS node.",
 		ShortDescription: `
 'ipfs daemon' runs a persistent IPFS daemon that can serve commands
 over the network. Most applications that use IPFS will do so by

@@ -14,7 +14,7 @@ import (
 
 var sysDiagCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "prints out system diagnostic information.",
+		Tagline: "Prints out system diagnostic information.",
 		ShortDescription: `
 Prints out information about your computer to aid in easier debugging.
 `,

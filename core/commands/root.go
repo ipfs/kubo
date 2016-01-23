@@ -24,7 +24,7 @@ const (
 
 var Root = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "global p2p merkle-dag filesystem",
+		Tagline: "Global p2p merkle-dag filesystem.",
 		Synopsis: `
 ipfs [<flags>] <command> [<arg>] ...
 `,

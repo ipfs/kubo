@@ -17,7 +17,7 @@ import (
 
 var ObjectPatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create a new merkledag object based on an existing one",
+		Tagline: "Create a new merkledag object based on an existing one.",
 		ShortDescription: `
 'ipfs object patch <root> <cmd> <args>' is a plumbing command used to
 build custom DAG objects. It mutates objects, creating new objects as a
@@ -44,7 +44,7 @@ func objectMarshaler(res cmds.Response) (io.Reader, error) {
 
 var patchAppendDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Append data to the data segment of a dag node",
+		Tagline: "Append data to the data segment of a dag node.",
 		ShortDescription: `
 Append data to what already exists in the data segment in the given object.
 
@@ -109,7 +109,7 @@ the limit will not be respected by the network.
 
 var patchSetDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "set data field of an ipfs object",
+		Tagline: "Set data field of an ipfs object.",
 		ShortDescription: `
 Set the data of an ipfs object from stdin or with the contents of a file
 
@@ -171,7 +171,7 @@ EXAMPLE:
 
 var patchRmLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "remove a link from an object",
+		Tagline: "Remove a link from an object.",
 		ShortDescription: `
 removes a link by the given name from root.
 `,
@@ -231,7 +231,7 @@ removes a link by the given name from root.
 
 var patchAddLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "add a link to a given object",
+		Tagline: "Add a link to a given object.",
 		ShortDescription: `
 Add a merkle-link to the given object and return the hash of the result.
 
