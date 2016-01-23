@@ -30,12 +30,11 @@ const (
 
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add an object to ipfs.",
+		Tagline: "Add a file to ipfs.",
 		ShortDescription: `
 Adds contents of <path> to ipfs. Use -r to add directories.
 Note that directories are added recursively, to form the ipfs
-MerkleDAG. A smarter partial add with a staging area (like git)
-remains to be implemented.
+MerkleDAG.
 `,
 	},
 
@@ -44,15 +43,15 @@ remains to be implemented.
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
-		cmds.BoolOption(quietOptionName, "q", "Write minimal output"),
-		cmds.BoolOption(silentOptionName, "Write no output"),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
-		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
-		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk"),
-		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
+		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
+		cmds.BoolOption(silentOptionName, "Write no output."),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
+		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
-		cmds.StringOption(chunkerOptionName, "s", "chunking algorithm to use"),
-		cmds.BoolOption(pinOptionName, "Pin this object when adding.  Default true"),
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
+		cmds.BoolOption(pinOptionName, "Pin this object when adding.  Default: true."),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
