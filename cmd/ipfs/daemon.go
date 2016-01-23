@@ -97,8 +97,10 @@ You can setup CORS headers the same way:
 
 Shutdown
 
-To shutdown, kill, quit, or otherwise stop the daemon, send a SIGTERM signal.
-If it persists, send a second. This can be done by pressing Ctrl+C twice.
+To shutdown the daemon, send a SIGINT signal to it (e.g. by pressing 'Ctrl-C')
+or send a SIGTERM signal to it (e.g. with 'kill'). It may take a while for the
+daemon to shutdown gracefully, but it can be killed forcibly by sending a
+second signal.
 
 IPFS_PATH environment variable
 
