@@ -28,3 +28,27 @@ func TestPathParsing(t *testing.T) {
 		}
 	}
 }
+
+func TestPathCleaning(t *testing.T) {
+	cases := map[string]string{
+		// .. should strip the preceding path segment
+		"/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n/a/../b": "/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n/b",
+
+		// . should be interpreted as "here"
+		"/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n/a/./b": "/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n/a/b",
+
+		// repeated slashes should collapse to one slash
+		"/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n/a////b": "/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n/a/b",
+
+		// bare hashes should be interpreted as IPFS paths
+		"QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n": "/ipfs/QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n",
+	}
+
+	for p, expected := range cases {
+		if parsed, err := ParsePath(p); err != nil {
+			t.Fatalf("path %q failed to parse: %v", p, err)
+		} else if parsed.String() != expected {
+			t.Fatalf("expected %q to parse to %q, got %q", p, expected, parsed.String())
+		}
+	}
+}
