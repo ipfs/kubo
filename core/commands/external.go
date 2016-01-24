@@ -33,7 +33,7 @@ func ExternalBinary() *cmds.Command {
 					}
 				}
 
-				res.SetError(fmt.Errorf("%s not installed."), cmds.ErrNormal)
+				res.SetError(fmt.Errorf("%s not installed.", binname), cmds.ErrNormal)
 				return
 			}
 
