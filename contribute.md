@@ -90,3 +90,8 @@ reasons why this is _the right thing to do_:
 License: MIT
 Signed-off-by: Juan Benet <juan@ipfs.io>
 ```
+
+### Each Commit Must Pass Tests
+
+All commits in a PR must pass tests. If they don't, fix the commits and/or [squash them](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History#Squashing-Commits) so that they do pass the tests. This should be done so that we can use git-bisect easily.
+
