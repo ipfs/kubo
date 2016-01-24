@@ -56,8 +56,8 @@ type ReadSeekCloser interface {
 	io.WriterTo
 }
 
-// NewDagReader creates a new reader object that reads the data represented by the given
-// node, using the passed in DAGService for data retreival
+// NewDagReader creates a new reader object that reads the data represented by
+// the given node, using the passed in DAGService for data retreival
 func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*DagReader, error) {
 	pb := new(ftpb.Data)
 	if err := proto.Unmarshal(n.Data, pb); err != nil {
@@ -102,8 +102,8 @@ func NewDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv md
 	}
 }
 
-// precalcNextBuf follows the next link in line and loads it from the DAGService,
-// setting the next buffer to read from
+// precalcNextBuf follows the next link in line and loads it from the
+// DAGService, setting the next buffer to read from
 func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 	dr.buf.Close() // Just to make sure
 	if dr.linkPosition >= len(dr.promises) {

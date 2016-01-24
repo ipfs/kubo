@@ -75,7 +75,7 @@ recover quickly. This led to gateways not bootstrapping peers
 fast enough.
 
 The approach taken here is to do what crypto/tls does:
-defer the handshake until Read/Write[1]. There are a number of
+defer the handshake until Read/Write[0]. There are a number of
 reasons why this is _the right thing to do_:
 - it delays handshaking until it is known to be necessary (doing io)
 - it "accepts" before the handshake, getting the handshake out of the

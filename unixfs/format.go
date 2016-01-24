@@ -1,5 +1,6 @@
-// Package format implements a data format for files in the ipfs filesystem
-// It is not the only format in ipfs, but it is the one that the filesystem assumes
+// Package format implements a data format for files in the ipfs filesystem It
+// is not the only format in ipfs, but it is the one that the filesystem
+// assumes
 package unixfs
 
 import (

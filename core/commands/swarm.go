@@ -33,7 +33,7 @@ ipfs swarm peers                - List peers with open connections
 ipfs swarm addrs                - List known addresses. Useful to debug.
 ipfs swarm connect <address>    - Open connection to a given address
 ipfs swarm disconnect <address> - Close connection to a given address
-ipfs swarm filters				- Manipulate filters addresses
+ipfs swarm filters              - Manipulate filters addresses
 `,
 		ShortDescription: `
 'ipfs swarm' is a tool to manipulate the network swarm. The swarm is the

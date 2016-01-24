@@ -133,7 +133,8 @@ func (c *Command) Call(req Request) Response {
 		}
 	}
 
-	// If the command specified an output type, ensure the actual value returned is of that type
+	// If the command specified an output type, ensure the actual value
+	// returned is of that type
 	if cmd.Type != nil && !isChan {
 		expectedType := reflect.TypeOf(cmd.Type)
 
@@ -146,7 +147,7 @@ func (c *Command) Call(req Request) Response {
 	return res
 }
 
-// Resolve gets the subcommands at the given path
+// Resolve returns the subcommands at the given path
 func (c *Command) Resolve(pth []string) ([]*Command, error) {
 	cmds := make([]*Command, len(pth)+1)
 	cmds[0] = c
@@ -175,7 +176,7 @@ func (c *Command) Get(path []string) (*Command, error) {
 	return cmds[len(cmds)-1], nil
 }
 
-// GetOptions gets the options in the given path of commands
+// GetOptions returns the options in the given path of commands
 func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 	options := make([]Option, 0, len(c.Options))
 
@@ -217,12 +218,15 @@ func (c *Command) CheckArguments(req Request) error {
 	// iterate over the arg definitions
 	valueIndex := 0 // the index of the current value (in `args`)
 	for _, argDef := range c.Arguments {
-		// skip optional argument definitions if there aren't sufficient remaining values
-		if len(args)-valueIndex <= numRequired && !argDef.Required || argDef.Type == ArgFile {
+		// skip optional argument definitions if there aren't
+		// sufficient remaining values
+		if len(args)-valueIndex <= numRequired && !argDef.Required ||
+			argDef.Type == ArgFile {
 			continue
 		}
 
-		// the value for this argument definition. can be nil if it wasn't provided by the caller
+		// the value for this argument definition. can be nil if it
+		// wasn't provided by the caller
 		v, found := "", false
 		if valueIndex < len(args) {
 			v = args[valueIndex]
@@ -254,7 +258,8 @@ func (c *Command) Subcommand(id string) *Command {
 	return c.Subcommands[id]
 }
 
-// checkArgValue returns an error if a given arg value is not valid for the given Argument
+// checkArgValue returns an error if a given arg value is not valid for the
+// given Argument
 func checkArgValue(v string, found bool, def Argument) error {
 	if !found && def.Required {
 		return fmt.Errorf("Argument '%s' is required", def.Name)

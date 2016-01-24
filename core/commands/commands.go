@@ -1,10 +1,8 @@
-/*
-Package commands implements the IPFS command interface
-
-Using github.com/ipfs/go-ipfs/commands to define the command line and
-HTTP APIs.  This is the interface available to folks consuming IPFS
-from outside of the Go language.
-*/
+// Package commands implements the IPFS command interface
+//
+// Using github.com/ipfs/go-ipfs/commands to define the command line and HTTP
+// APIs.  This is the interface available to folks using IPFS from outside of
+// the Go language.
 package commands
 
 import (

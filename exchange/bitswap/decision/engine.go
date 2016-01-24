@@ -21,7 +21,8 @@ import (
 // batches/combines and takes all of these into consideration.
 //
 // Right now, messages go onto the network for four reasons:
-// 1. an initial `sendwantlist` message to a provider of the first key in a request
+// 1. an initial `sendwantlist` message to a provider of the first key in a
+//    request
 // 2. a periodic full sweep of `sendwantlist` messages to all providers
 // 3. upon receipt of blocks, a `cancel` message to all peers
 // 4. draining the priority queue of `blockrequests` from peers
@@ -34,9 +35,10 @@ import (
 // Some examples of what would be possible:
 //
 // * when sending out the wantlists, include `cancel` requests
-// * when handling `blockrequests`, include `sendwantlist` and `cancel` as appropriate
+// * when handling `blockrequests`, include `sendwantlist` and `cancel` as
+//   appropriate
 // * when handling `cancel`, if we recently received a wanted block from a
-// 	 peer, include a partial wantlist that contains a few other high priority
+//   peer, include a partial wantlist that contains a few other high priority
 //   blocks
 //
 // In a sense, if we treat the decision engine as a black box, it could do
