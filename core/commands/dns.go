@@ -75,7 +75,7 @@ The resolver will give:
 			if !ok {
 				return nil, util.ErrCast()
 			}
-			return strings.NewReader(output.Path.String()), nil
+			return strings.NewReader(output.Path.String() + "\n"), nil
 		},
 	},
 	Type: ResolvedPath{},

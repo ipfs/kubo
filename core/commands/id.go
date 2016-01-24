@@ -133,6 +133,7 @@ ipfs id supports the format option for output with the following keys:
 				if err != nil {
 					return nil, err
 				}
+				marshaled = append(marshaled, byte('\n'))
 				return bytes.NewReader(marshaled), nil
 			}
 		},
