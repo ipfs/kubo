@@ -57,8 +57,8 @@ the limit will not be respected by the network.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.FileArg("data", true, false, "data to append").EnableStdin(),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.FileArg("data", true, false, "Data to append.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -119,8 +119,8 @@ EXAMPLE:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.FileArg("data", true, false, "data fill with").EnableStdin(),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.FileArg("data", true, false, "Data fill with.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -177,8 +177,8 @@ removes a link by the given name from root.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.StringArg("link", true, false, "name of the link to remove"),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.StringArg("link", true, false, "Name of the link to remove."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -246,12 +246,12 @@ a file containing 'bar', and returns the hash of the new object.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "create", "create intermediary nodes"),
+		cmds.BoolOption("p", "create", "Create intermediary nodes."),
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.StringArg("name", true, false, "name of link to create"),
-		cmds.StringArg("ref", true, false, "ipfs object to add link to"),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.StringArg("name", true, false, "Name of link to create."),
+		cmds.StringArg("ref", true, false, "IPFS object to add link to."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

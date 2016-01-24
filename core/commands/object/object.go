@@ -87,7 +87,7 @@ output is the raw data of the object.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -117,7 +117,7 @@ multihash.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -176,7 +176,7 @@ This command outputs data in the following encodings:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -242,7 +242,7 @@ var ObjectStatCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -326,10 +326,10 @@ and then run
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("data", true, false, "Data to be stored as a DAG object").EnableStdin(),
+		cmds.FileArg("data", true, false, "Data to be stored as a DAG object.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\""),
+		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\"."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -391,7 +391,7 @@ Available templates:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("template", false, false, "optional template to use"),
+		cmds.StringArg("template", false, false, "Optional template to use."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

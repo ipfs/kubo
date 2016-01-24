@@ -58,7 +58,7 @@ Resolve the value of an IPFS DAG path:
 		cmds.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is an IPFS name"),
+		cmds.BoolOption("recursive", "r", "Resolve until the result is an IPFS name."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

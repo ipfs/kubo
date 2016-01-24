@@ -56,7 +56,7 @@ in the bootstrap list).
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("default", "add default bootstrap nodes"),
+		cmds.BoolOption("default", "Add default bootstrap nodes."),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {

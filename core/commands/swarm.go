@@ -159,7 +159,7 @@ ipfs swarm addrs local lists all local addresses the node is listening on.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("id", "Show peer ID in addresses"),
+		cmds.BoolOption("id", "Show peer ID in addresses."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -207,7 +207,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("address", true, true, "address of peer to connect to").EnableStdin(),
+		cmds.StringArg("address", true, true, "Address of peer to connect to.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
@@ -262,7 +262,7 @@ ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQA
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("address", true, true, "address of peer to connect to").EnableStdin(),
+		cmds.StringArg("address", true, true, "Address of peer to connect to.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -429,7 +429,7 @@ add your filters to the ipfs config file.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("address", true, true, "multiaddr to filter").EnableStdin(),
+		cmds.StringArg("address", true, true, "Multiaddr to filter.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -471,7 +471,7 @@ remove your filters from the ipfs config file.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("address", true, true, "multiaddr filter to remove").EnableStdin(),
+		cmds.StringArg("address", true, true, "Multiaddr filter to remove.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

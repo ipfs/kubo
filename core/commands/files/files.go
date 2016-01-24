@@ -30,7 +30,7 @@ Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("f", "flush", "flush target and ancestors after write (default: true)"),
+		cmds.BoolOption("f", "flush", "Flush target and ancestors after write (default: true)."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -50,7 +50,7 @@ var FilesStatCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to node to stat"),
+		cmds.StringArg("path", true, false, "Path to node to stat."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -140,8 +140,8 @@ var FilesCpCmd = &cmds.Command{
 		Tagline: "Copy files into mfs.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("source", true, false, "source object to copy"),
-		cmds.StringArg("dest", true, false, "destination to copy object to"),
+		cmds.StringArg("source", true, false, "Source object to copy."),
+		cmds.StringArg("dest", true, false, "Destination to copy object to."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -228,10 +228,10 @@ Examples:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to show listing for"),
+		cmds.StringArg("path", true, false, "Path to show listing for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("l", "use long listing format"),
+		cmds.BoolOption("l", "Use long listing format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -323,11 +323,11 @@ Examples:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to file to be read"),
+		cmds.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "offset to read from"),
-		cmds.IntOption("n", "count", "maximum number of bytes to read"),
+		cmds.IntOption("o", "offset", "Offset to read from."),
+		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -412,8 +412,8 @@ Example:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("source", true, false, "source file to move"),
-		cmds.StringArg("dest", true, false, "target path for file to be moved to"),
+		cmds.StringArg("source", true, false, "Source file to move."),
+		cmds.StringArg("dest", true, false, "Target path for file to be moved to."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -468,14 +468,14 @@ Warning:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to write to"),
-		cmds.FileArg("data", true, false, "data to write").EnableStdin(),
+		cmds.StringArg("path", true, false, "Path to write to."),
+		cmds.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "offset to write to"),
-		cmds.BoolOption("e", "create", "create the file if it does not exist"),
-		cmds.BoolOption("t", "truncate", "truncate the file before writing"),
-		cmds.IntOption("n", "count", "maximum number of bytes to read"),
+		cmds.IntOption("o", "offset", "Offset to write to."),
+		cmds.BoolOption("e", "create", "Create the file if it does not exist."),
+		cmds.BoolOption("t", "truncate", "Truncate the file before writing."),
+		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -580,10 +580,10 @@ Examples:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to dir to make"),
+		cmds.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "parents", "no error if existing, make parent directories as needed"),
+		cmds.BoolOption("p", "parents", "No error if existing, make parent directories as needed."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -629,10 +629,10 @@ remove files or directories
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, true, "file to remove"),
+		cmds.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("r", "recursive", "recursively remove directories"),
+		cmds.BoolOption("r", "recursive", "Recursively remove directories."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
