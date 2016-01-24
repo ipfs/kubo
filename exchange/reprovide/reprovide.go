@@ -53,6 +53,11 @@ func (rp *Reprovider) Reprovide(ctx context.Context) error {
 		return fmt.Errorf("Failed to get key chan from blockstore: %s", err)
 	}
 	for k := range keychan {
+		select {
+		case <-ctx.Done():
+			log.Debug("context canceled")
+			return ctx.Err()
+		}
 		op := func() error {
 			err := rp.rsys.Provide(ctx, k)
 			if err != nil {
@@ -63,7 +68,14 @@ func (rp *Reprovider) Reprovide(ctx context.Context) error {
 
 		// TODO: this backoff library does not respect our context, we should
 		// eventually work contexts into it. low priority.
-		err := backoff.Retry(op, backoff.NewExponentialBackOff())
+		var bo backoff.BackOff
+		bo = backoff.NewExponentialBackOff()
+		go func() {
+			<-ctx.Done()
+			bo = &backoff.StopBackOff{}
+			log.Debug("Providing canceled")
+		}()
+		err := backoff.Retry(op, bo)
 		if err != nil {
 			log.Debugf("Providing failed after number of retries: %s", err)
 			return err

@@ -343,7 +343,7 @@ func (n *IpfsNode) teardown() error {
 	}
 
 	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
-		closers = append(closers, dht.Process())
+		closers = append(closers, dht)
 	}
 
 	if n.Blocks != nil {

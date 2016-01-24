@@ -331,5 +331,6 @@ func (dht *IpfsDHT) Process() goprocess.Process {
 
 // Close calls Process Close
 func (dht *IpfsDHT) Close() error {
+	defer log.Info("dht routing is shutting down...")
 	return dht.proc.Close()
 }

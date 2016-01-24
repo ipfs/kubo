@@ -124,6 +124,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 }
 
 func (s *Swarm) teardown() error {
+	defer log.Info("swarm is shutting down...")
 	return s.swarm.Close()
 }
 

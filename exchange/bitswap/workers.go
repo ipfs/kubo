@@ -45,7 +45,7 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 
 func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 	idmap := logging.LoggableMap{"ID": id}
-	defer log.Info("bitswap task worker shutting down...")
+	defer log.Infof("bitswap task worker %d shutting down...", id)
 	for {
 		log.Event(ctx, "Bitswap.TaskWorker.Loop", idmap)
 		select {
@@ -118,6 +118,7 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 }
 
 func (bs *Bitswap) provideCollector(ctx context.Context) {
+	defer log.Info("bitswap provide collector shutting down...")
 	defer close(bs.provideKeys)
 	var toProvide []key.Key
 	var nextKey key.Key
@@ -181,6 +182,7 @@ func (bs *Bitswap) providerConnector(parent context.Context) {
 }
 
 func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
+	defer log.Info("bitswap rebroadcast worker shutting down...")
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 

@@ -145,6 +145,6 @@ func (s *BlockService) DeleteBlock(k key.Key) error {
 }
 
 func (s *BlockService) Close() error {
-	log.Debug("blockservice is shutting down...")
+	defer log.Debug("blockservice is shutting down...")
 	return s.Exchange.Close()
 }

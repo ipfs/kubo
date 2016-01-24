@@ -116,6 +116,7 @@ func (rh *RoutedHost) NewStream(pid protocol.ID, p peer.ID) (inet.Stream, error)
 }
 func (rh *RoutedHost) Close() error {
 	// no need to close IpfsRouting. we dont own it.
+	defer log.Info("routed host is shutting down...")
 	return rh.host.Close()
 }
 
