@@ -1,6 +1,6 @@
-sudo: required
+# dist: trusty
 
-dist: trusty
+sudo: required
 
 os:
   - linux
