@@ -71,16 +71,22 @@ func ResolveToKey(ctx context.Context, n *IpfsNode, p path.Path) (key.Key, error
 		return key.B58KeyDecode(p.Segments()[1]), nil
 	}
 
-	// Fall back onto regular dagnode resolution.
-	dagnode, err := Resolve(ctx, n, p)
+	// Fall back onto regular dagnode resolution. Retrieve the second-to-last
+	// segment of the path and resolve its link to the last segment.
+	head, tail, err := p.PopLastSegment()
+	if err != nil {
+		return key.Key(""), err
+	}
+	dagnode, err := Resolve(ctx, n, head)
 	if err != nil {
 		return key.Key(""), err
 	}
 
-	// Extract and return the node's key.
-	k, err := dagnode.Key()
+	// Extract and return the key of the link to the target dag node.
+	link, err := dagnode.GetNodeLink(tail)
 	if err != nil {
 		return key.Key(""), err
 	}
-	return k, nil
+
+	return key.Key(link.Hash), nil
 }
