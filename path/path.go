@@ -50,6 +50,24 @@ func (p Path) IsJustAKey() bool {
 	return (len(parts) == 2 && parts[0] == "ipfs")
 }
 
+// PopLastSegment returns a new Path without its final segment, and the final
+// segment, separately. If there is no more to pop (the path is just a key),
+// the original path is returned.
+func (p Path) PopLastSegment() (Path, string, error) {
+
+	if p.IsJustAKey() {
+		return p, "", nil
+	}
+
+	segs := p.Segments()
+	newPath, err := ParsePath("/" + strings.Join(segs[:len(segs)-1], "/"))
+	if err != nil {
+		return "", "", err
+	}
+
+	return newPath, segs[len(segs)-1], nil
+}
+
 func FromSegments(prefix string, seg ...string) (Path, error) {
 	return ParsePath(prefix + strings.Join(seg, "/"))
 }
