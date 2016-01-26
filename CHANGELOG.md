@@ -8,6 +8,47 @@
 * Incompatible Changes
   * the default for '--type' in 'ipfs pin ls' is now "all" (@chriscool)
 
+### 0.3.11 - 2016-01-12
+
+This is the final ipfs version before the transition to v0.4.0.
+It introduces a few stability improvements, bugfixes, and increased
+test coverage.
+
+* Features
+  * add 'get' and 'patch' to the allowed gateway commands (@whyrusleeping)
+
+* BugFixes
+  * Fix path parsing for add command (@djdv)
+  * namesys: Make paths with multiple segemnts work. Fixes #2059 (@Kubuxu)
+  * fixup panic catching in http handler funcs (@whyrusleeping)
+  * Add correct access control headers to the default api config (@dignifiedquire)
+  * fix closenotify by not sending empty file set (@whyrusleeping)
+
+* Tool Changes
+  * Have install.sh use the full path to ipfs binary if detected (@jedahan)
+  * Install daemon system-wide if on El Capitan (@jedahan)
+  * makefile: add -ldflags to install and nofuse tasks (@lgierth)
+
+* General Codebase
+  * cleanup http client code (@whyrusleeping)
+  * Move api version check to header (@rht)
+
+* Documentation
+  * improved release checklist (@jbenet)
+  * Added quotes around command in long desc (@RichardLitt)
+  * Added a shutdown note to daemon desc (@RichardLitt)
+
+* Testing
+  * t0080: improve last tests (@chriscool)
+  * t0080: improve 'ipfs refs --unique' test (@chriscool)
+  * fix t.Fatal usage in goroutines (@chriscool)
+  * add docker testing support to sharness (@chriscool)
+  * sharness: add t0300-docker-image.sh (@chriscool)
+  * Included more namesys tests. (@Kubuxu)
+  * add sharness test to verify requests look good (@whyrusleeping)
+  * reenable ipns sharness test now that iptb is fixed (@whyrusleeping)
+  * force use of ipv4 in test (@whyrusleeping)
+  * travis-ci: use go 1.5.2 (@jbenet)
 
 ### 0.3.10 - 2015-12-07
 
