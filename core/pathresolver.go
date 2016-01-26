@@ -6,6 +6,7 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 )
@@ -54,4 +55,38 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, er
 
 	// ok, we have an ipfs path now (or what we'll treat as one)
 	return n.Resolver.ResolvePath(ctx, p)
+}
+
+// ResolveToKey resolves a path to a key.
+//
+// It first checks if the path is already in the form of just a key (<key> or
+// /ipfs/<key>) and returns immediately if so. Otherwise, it falls back onto
+// Resolve to perform resolution of the dagnode being referenced.
+func ResolveToKey(ctx context.Context, n *IpfsNode, p path.Path) (key.Key, error) {
+
+	// If the path is simply a key, parse and return it. Parsed paths are already
+	// normalized (read: prepended with /ipfs/ if needed), so segment[1] should
+	// always be the key.
+	if p.IsJustAKey() {
+		return key.B58KeyDecode(p.Segments()[1]), nil
+	}
+
+	// Fall back onto regular dagnode resolution. Retrieve the second-to-last
+	// segment of the path and resolve its link to the last segment.
+	head, tail, err := p.PopLastSegment()
+	if err != nil {
+		return key.Key(""), err
+	}
+	dagnode, err := Resolve(ctx, n, head)
+	if err != nil {
+		return key.Key(""), err
+	}
+
+	// Extract and return the key of the link to the target dag node.
+	link, err := dagnode.GetNodeLink(tail)
+	if err != nil {
+		return key.Key(""), err
+	}
+
+	return key.Key(link.Hash), nil
 }
