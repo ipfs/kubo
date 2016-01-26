@@ -434,12 +434,12 @@ func (n *IpfsNode) loadID() error {
 }
 
 func (n *IpfsNode) LoadPrivateKey() error {
-	if n.Identity == "" || n.Peerstore == nil {
-		return errors.New("loaded private key out of order.")
+	if n.PrivateKey != nil {
+		return nil
 	}
 
-	if n.PrivateKey != nil {
-		return errors.New("private key already loaded")
+	if n.Identity == "" || n.Peerstore == nil {
+		return errors.New("loaded private key out of order.")
 	}
 
 	cfg, err := n.Repo.Config()

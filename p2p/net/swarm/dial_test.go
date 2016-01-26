@@ -1,3 +1,5 @@
+// +build !noipv6
+
 package swarm
 
 import (
