@@ -6,8 +6,8 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	pq "github.com/ipfs/go-ipfs/thirdparty/pq"
+	peer "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer"
 )
 
 type peerRequestQueue interface {

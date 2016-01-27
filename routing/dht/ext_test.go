@@ -10,16 +10,16 @@ import (
 	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	inet "github.com/ipfs/go-ipfs/p2p/net"
-	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
 	u "github.com/ipfs/go-ipfs/util"
+	inet "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/net"
+	mocknet "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/net/mock"
+	peer "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer"
 )
 
 func TestGetFailures(t *testing.T) {
@@ -120,7 +120,7 @@ func TestGetFailures(t *testing.T) {
 			Record: rec,
 		}
 
-		s, err := hosts[1].NewStream(ProtocolDHT, hosts[0].ID())
+		s, err := hosts[1].NewStream(context.Background(), ProtocolDHT, hosts[0].ID())
 		if err != nil {
 			t.Fatal(err)
 		}

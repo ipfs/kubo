@@ -8,7 +8,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
-	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	manet "gx/ipfs/QmYtzQmUwPFGxjCXctJ8e6GXS8sYfoXy2pdeMbS5SFWqRi/go-multiaddr-net"
 	sysi "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-sysinfo"
 )
 

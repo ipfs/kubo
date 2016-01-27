@@ -6,15 +6,15 @@ import (
 	"time"
 
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	"github.com/ipfs/go-ipfs/core"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
-	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	path "github.com/ipfs/go-ipfs/path"
+	mocknet "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/net/mock"
+	peer "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer"
 )
 
 func TestRepublish(t *testing.T) {

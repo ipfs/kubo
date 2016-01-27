@@ -3,9 +3,9 @@ package ipfsaddr
 import (
 	"testing"
 
-	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	path "github.com/ipfs/go-ipfs/path"
+	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
+	peer "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer"
 )
 
 var good = []string{

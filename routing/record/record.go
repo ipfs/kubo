@@ -6,9 +6,9 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	logging "gx/ipfs/QmaPaGNE2GqnfJjRRpQuQuFHuJn4FZvsrGxdik4kgxCkBi/go-log"
+	ci "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/crypto"
 )
 
 var log = logging.Logger("routing/record")

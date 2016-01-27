@@ -7,16 +7,16 @@ import (
 	"time"
 
 	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	travis "github.com/ipfs/go-ipfs/util/testutil/ci/travis"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
-	p2ptestutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
+	p2ptestutil "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/test/util"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work

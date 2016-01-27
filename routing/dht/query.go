@@ -5,17 +5,17 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	notif "github.com/ipfs/go-ipfs/notifications"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	queue "github.com/ipfs/go-ipfs/p2p/peer/queue"
 	"github.com/ipfs/go-ipfs/routing"
 	u "github.com/ipfs/go-ipfs/util"
 	pset "github.com/ipfs/go-ipfs/util/peerset"
 	todoctr "github.com/ipfs/go-ipfs/util/todocounter"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	logging "gx/ipfs/QmaPaGNE2GqnfJjRRpQuQuFHuJn4FZvsrGxdik4kgxCkBi/go-log"
+	peer "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer"
+	queue "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer/queue"
 
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	ctxproc "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var maxQueryConcurrency = AlphaValue
@@ -90,7 +90,7 @@ func newQueryRunner(q *dhtQuery) *dhtQueryRunner {
 	ctx := ctxproc.OnClosingContext(proc)
 	return &dhtQueryRunner{
 		query:          q,
-		peersToQuery:   queue.NewChanQueue(ctx, queue.NewXORDistancePQ(q.key)),
+		peersToQuery:   queue.NewChanQueue(ctx, queue.NewXORDistancePQ(string(q.key))),
 		peersRemaining: todoctr.NewSyncCounter(),
 		peersSeen:      pset.New(),
 		rateLimit:      make(chan struct{}, q.concurrency),
