@@ -16,6 +16,7 @@ test coverage.
 
 * Features
   * Add 'get' and 'patch' to the allowed gateway commands (@whyrusleeping)
+  * Updated webui version (@dignifiedquire)
 
 * BugFixes
   * Fix path parsing for add command (@djdv)
