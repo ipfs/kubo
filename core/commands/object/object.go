@@ -72,12 +72,12 @@ var ObjectDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the raw bytes in an IPFS object.",
 		ShortDescription: `
-'ipfs object data' is a plumbing command for retreiving the raw bytes stored in
+'ipfs object data' is a plumbing command for retrieving the raw bytes stored in
 a DAG node. It outputs to stdout, and <key> is a base58 encoded
 multihash.
 `,
 		LongDescription: `
-'ipfs object data' is a plumbing command for retreiving the raw bytes stored in
+'ipfs object data' is a plumbing command for retrieving the raw bytes stored in
 a DAG node. It outputs to stdout, and <key> is a base58 encoded
 multihash.
 
@@ -110,7 +110,7 @@ var ObjectLinksCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the links pointed to by the specified object.",
 		ShortDescription: `
-'ipfs object links' is a plumbing command for retreiving the links from
+'ipfs object links' is a plumbing command for retrieving the links from
 a DAG node. It outputs to stdout, and <key> is a base58 encoded
 multihash.
 `,
@@ -159,12 +159,12 @@ var ObjectGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get and serialize the DAG node named by <key>.",
 		ShortDescription: `
-'ipfs object get' is a plumbing command for retreiving DAG nodes.
+'ipfs object get' is a plumbing command for retrieving DAG nodes.
 It serializes the DAG node to the format specified by the "--encoding"
 flag. It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 		LongDescription: `
-'ipfs object get' is a plumbing command for retreiving DAG nodes.
+'ipfs object get' is a plumbing command for retrieving DAG nodes.
 It serializes the DAG node to the format specified by the "--encoding"
 flag. It outputs to stdout, and <key> is a base58 encoded multihash.
 
