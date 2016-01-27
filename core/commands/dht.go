@@ -40,10 +40,10 @@ var queryDhtCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerID", true, true, "The peerID to run the query against"),
+		cmds.StringArg("peerID", true, true, "The peerID to run the query against."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", "v", "Write extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -126,10 +126,10 @@ FindProviders will return a list of peers who are able to provide the value requ
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, true, "The key to find providers for"),
+		cmds.StringArg("key", true, true, "The key to find providers for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", "v", "Write extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -227,7 +227,7 @@ var findPeerDhtCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerID", true, true, "The peer to search for"),
+		cmds.StringArg("peerID", true, true, "The peer to search for."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -324,10 +324,10 @@ GetValue will return the value stored in the dht at the given key.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, true, "The key to find a value for"),
+		cmds.StringArg("key", true, true, "The key to find a value for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", "v", "Write extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -427,11 +427,11 @@ PutValue will store the given key value pair in the dht.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "The key to store the value at"),
-		cmds.StringArg("value", true, false, "The value to store").EnableStdin(),
+		cmds.StringArg("key", true, false, "The key to store the value at."),
+		cmds.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", "v", "Write extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

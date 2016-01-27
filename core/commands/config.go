@@ -54,12 +54,12 @@ Set the value of the 'datastore.path' key:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")"),
-		cmds.StringArg("value", false, false, "The value to set the config entry to"),
+		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")."),
+		cmds.StringArg("value", false, false, "The value to set the config entry to."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("bool", "Set a boolean value"),
-		cmds.BoolOption("json", "Parse stringified JSON"),
+		cmds.BoolOption("bool", "Set a boolean value."),
+		cmds.BoolOption("json", "Parse stringified JSON."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
@@ -189,7 +189,7 @@ can't be undone.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("file", true, false, "The file to use as the new config"),
+		cmds.FileArg("file", true, false, "The file to use as the new config."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)

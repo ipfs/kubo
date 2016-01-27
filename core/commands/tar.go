@@ -31,7 +31,7 @@ var tarAddCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("file", true, false, "tar file to add").EnableStdin(),
+		cmds.FileArg("file", true, false, "Tar file to add.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -82,7 +82,7 @@ var tarCatCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "ipfs path of archive to export").EnableStdin(),
+		cmds.StringArg("path", true, false, "Ipfs path of archive to export.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

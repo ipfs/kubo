@@ -41,10 +41,10 @@ on disk.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)"),
+		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)."),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -109,10 +109,10 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)"),
+		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)."),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -194,12 +194,12 @@ Example:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", false, true, "Path to object(s) to be listed"),
+		cmds.StringArg("ipfs-path", false, true, "Path to object(s) to be listed."),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"recursive\""),
-		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins"),
-		cmds.BoolOption("quiet", "q", "Write just hashes of objects"),
+		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"recursive\"."),
+		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins."),
+		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
