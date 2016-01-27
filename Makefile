@@ -14,6 +14,13 @@ all: help
 godep:
 	go get github.com/tools/godep
 
+gx:
+	go get -u github.com/whyrusleeping/gx
+	go get -u github.com/whyrusleeping/gx-go
+
+deps: gx
+	gx install --global
+
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
 # ./... performs operation on all packages in tree
