@@ -27,7 +27,7 @@ result. This is the merkle-dag version of modifying an object.
 	Arguments: []cmds.Argument{},
 	Subcommands: map[string]*cmds.Command{
 		"append-data": patchAppendDataCmd,
-		"add-link":    patchAddLinkCmd,
+		"add-link":    PatchAddLinkCmd,
 		"rm-link":     patchRmLinkCmd,
 		"set-data":    patchSetDataCmd,
 	},
@@ -229,7 +229,7 @@ removes a link by the given name from root.
 	},
 }
 
-var patchAddLinkCmd = &cmds.Command{
+var PatchAddLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add a link to a given object.",
 		ShortDescription: `

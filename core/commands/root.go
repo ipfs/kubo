@@ -153,7 +153,11 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"links": ocmd.ObjectLinksCmd,
 			"get":   ocmd.ObjectGetCmd,
 			"stat":  ocmd.ObjectStatCmd,
-			"patch": ocmd.ObjectPatchCmd,
+			"patch": &cmds.Command{
+				Subcommands: map[string]*cmds.Command{
+					"add-link": ocmd.PatchAddLinkCmd,
+				},
+			},
 		},
 	},
 	"refs": RefsROCmd,
