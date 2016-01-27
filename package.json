@@ -1,6 +1,6 @@
 {
   "name": "go-ipfs",
-  "version": "0.3.8",
+  "version": "0.4.0",
   "gxDependencies": [
     {
       "name": "go-log",
@@ -14,5 +14,5 @@
     }
   ],
   "language": "go",
-  "issues_url": ""
+  "issues_url": "https://github.com/ipfs/go-ipfs"
 }
