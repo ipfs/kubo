@@ -316,9 +316,8 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, 
 
 		// Add unique providers from request, up to 'count'
 		for _, prov := range provs {
-			log.Debugf("got provider: %s", prov)
 			if ps.TryAdd(prov.ID) {
-				log.Debugf("using provider: %s", prov)
+				log.Event(ctx, "gotProvider", &key, &prov.ID)
 				select {
 				case peerOut <- prov:
 				case <-ctx.Done():
@@ -397,6 +396,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 		// see it we got the peer here
 		for _, npi := range clpeerInfos {
 			if npi.ID == id {
+				log.Event(ctx, "findPeerSuccess", &npi)
 				return &dhtQueryResult{
 					peer:    npi,
 					success: true,
