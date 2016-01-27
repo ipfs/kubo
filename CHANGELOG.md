@@ -15,14 +15,14 @@ It introduces a few stability improvements, bugfixes, and increased
 test coverage.
 
 * Features
-  * add 'get' and 'patch' to the allowed gateway commands (@whyrusleeping)
+  * Add 'get' and 'patch' to the allowed gateway commands (@whyrusleeping)
 
 * BugFixes
   * Fix path parsing for add command (@djdv)
-  * namesys: Make paths with multiple segemnts work. Fixes #2059 (@Kubuxu)
-  * fixup panic catching in http handler funcs (@whyrusleeping)
+  * namesys: Make paths with multiple segments work. Fixes #2059 (@Kubuxu)
+  * Fix up panic catching in http handler funcs (@whyrusleeping)
   * Add correct access control headers to the default api config (@dignifiedquire)
-  * fix closenotify by not sending empty file set (@whyrusleeping)
+  * Fix closenotify by not sending empty file set (@whyrusleeping)
 
 * Tool Changes
   * Have install.sh use the full path to ipfs binary if detected (@jedahan)
@@ -30,25 +30,25 @@ test coverage.
   * makefile: add -ldflags to install and nofuse tasks (@lgierth)
 
 * General Codebase
-  * cleanup http client code (@whyrusleeping)
+  * Clean up http client code (@whyrusleeping)
   * Move api version check to header (@rht)
 
 * Documentation
-  * improved release checklist (@jbenet)
-  * Added quotes around command in long desc (@RichardLitt)
-  * Added a shutdown note to daemon desc (@RichardLitt)
+  * Improved release checklist (@jbenet)
+  * Added quotes around command in long description (@RichardLitt)
+  * Added a shutdown note to daemon description (@RichardLitt)
 
 * Testing
   * t0080: improve last tests (@chriscool)
   * t0080: improve 'ipfs refs --unique' test (@chriscool)
-  * fix t.Fatal usage in goroutines (@chriscool)
-  * add docker testing support to sharness (@chriscool)
+  * Fix t.Fatal usage in goroutines (@chriscool)
+  * Add docker testing support to sharness (@chriscool)
   * sharness: add t0300-docker-image.sh (@chriscool)
   * Included more namesys tests. (@Kubuxu)
-  * add sharness test to verify requests look good (@whyrusleeping)
-  * reenable ipns sharness test now that iptb is fixed (@whyrusleeping)
-  * force use of ipv4 in test (@whyrusleeping)
-  * travis-ci: use go 1.5.2 (@jbenet)
+  * Add sharness test to verify requests look good (@whyrusleeping)
+  * Re-enable ipns sharness test now that iptb is fixed (@whyrusleeping)
+  * Force use of ipv4 in test (@whyrusleeping)
+  * Travis-CI: use go 1.5.2 (@jbenet)
 
 ### 0.3.10 - 2015-12-07
 
