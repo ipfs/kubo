@@ -1,17 +1,15 @@
 
 ifeq ($(TEST_NO_FUSE),1)
-go_test=go test -tags nofuse
+  go_test=go test -tags nofuse
 else
-go_test=go test
+  go_test=go test
 endif
 
-commit = `git rev-parse --short HEAD`
-ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(commit)"
+COMMIT := $(shell git rev-parse --short HEAD)
+ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
+MAKEFLAGS += --no-print-directory
 
-all:
-	# no-op. try:
-	#   make install
-	#   make test
+all: help
 
 godep:
 	go get github.com/tools/godep
@@ -30,6 +28,14 @@ build:
 
 nofuse:
 	cd cmd/ipfs && go install -tags nofuse -ldflags=$(ldflags)
+
+clean:
+	cd cmd/ipfs && go clean -ldflags=$(ldflags)
+
+uninstall:
+	cd cmd/ipfs && go clean -i -ldflags=$(ldflags)
+
+PHONY += all help godep install build nofuse clean uninstall
 
 ##############################################################
 # tests targets
@@ -76,3 +82,46 @@ test_all_commits_travis:
 windows_build_check:
 	GOOS=windows GOARCH=amd64 go build -o .test.ipfs.exe ./cmd/ipfs
 	rm .test.ipfs.exe
+
+PHONY += test test_short test_expensive
+
+##############################################################
+# A semi-helpful help message
+
+help:
+	@echo 'DEPENDENCY TARGETS:'
+	@echo ''
+	@echo '  vendor       - Create a Godep workspace of 3rd party dependencies'
+	@echo ''
+	@echo 'BUILD TARGETS:'
+	@echo ''
+	@echo '  all          - print this help message'
+	@echo '  build        - Build binary at ./cmd/ipfs/ipfs'
+	@echo '  nofuse       - Build binary with no fuse support'
+	@echo '  install      - Build binary and install into $$GOPATH/bin'
+#	@echo '  dist_install - TODO: c.f. ./cmd/ipfs/dist/README.md'
+	@echo ''
+	@echo 'CLEANING TARGETS:'
+	@echo ''
+	@echo '  clean        - Remove binary from build directory'
+	@echo '  uninstall    - Remove binary from $$GOPATH/bin'
+	@echo ''
+	@echo 'TESTING TARGETS:'
+	@echo ''
+	@echo '  test                    - Run expensive tests and Window$$ check'
+	@echo '  test_short              - Run short tests and sharness tests'
+	@echo '  test_expensive          - Run a few extras'
+	@echo '  test_3node'
+	@echo '  test_go_short'
+	@echo '  test_go_expensive'
+	@echo '  test_go_race'
+	@echo '  test_sharness_short'
+	@echo '  test_sharness_expensive'
+	@echo '  test_all_commits'
+	@echo "  test_all_commits_travis - DON'T USE: takes way too long"
+	@echo '  windows_build_check'
+	@echo ''
+
+PHONY += help
+
+.PHONY: $(PHONY)
