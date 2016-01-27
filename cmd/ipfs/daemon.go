@@ -160,6 +160,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		select {
 		case <-req.Context().Done():
 			fmt.Println("Received interrupt signal, shutting down...")
+			fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 		}
 	}()
 
