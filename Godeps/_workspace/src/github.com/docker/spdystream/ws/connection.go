@@ -1,7 +1,7 @@
 package ws
 
 import (
-	"github.com/gorilla/websocket"
+	"gx/ipfs/QmUe1Ljrtwz5NSKqJRw5mgjthSSfW7g94hkGRqiQs5aJna/websocket"
 	"io"
 	"log"
 	"time"

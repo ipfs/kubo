@@ -2,7 +2,7 @@ package msgio
 
 import (
 	"bytes"
-	randbuf "github.com/jbenet/go-randbuf"
+	randbuf "gx/ipfs/QmYNGtJHgaGZkpzq8yG6Wxqm6EQTKqgpBfnyyGBKbZeDUi/go-randbuf"
 	"io"
 	"math/rand"
 	"testing"

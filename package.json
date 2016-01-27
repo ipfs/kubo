@@ -4,15 +4,15 @@
   "gxDependencies": [
     {
       "name": "go-log",
-      "hash": "QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b",
+      "hash": "QmaPaGNE2GqnfJjRRpQuQuFHuJn4FZvsrGxdik4kgxCkBi",
       "version": "1.0.0"
     },
     {
-      "name": "dir-index-html",
-      "hash": "QmdDfkqDWheE4gsCXNrhixwTwSHnZMPT2cGLcNbiBNcMyU",
-      "version": "1.0.0",
-      "linkname": "dir-index-html-v1.0.0"
+      "name": "go-libp2p",
+      "hash": "QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC",
+      "version": "1.0.0"
     }
   ],
-  "language": "go"
+  "language": "go",
+  "issues_url": ""
 }

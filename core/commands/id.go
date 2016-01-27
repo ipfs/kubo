@@ -12,11 +12,11 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	ic "github.com/ipfs/go-ipfs/p2p/crypto"
-	"github.com/ipfs/go-ipfs/p2p/peer"
-	identify "github.com/ipfs/go-ipfs/p2p/protocol/identify"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	u "github.com/ipfs/go-ipfs/util"
+	ic "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/crypto"
+	"gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer"
+	identify "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/protocol/identify"
 )
 
 const offlineIdErrorMessage = `ID command fails when run without daemon, we are working to fix this.
@@ -199,7 +199,7 @@ func printSelf(node *core.IpfsNode) (interface{}, error) {
 			info.Addresses = append(info.Addresses, s)
 		}
 	}
-	info.ProtocolVersion = identify.IpfsVersion
+	info.ProtocolVersion = identify.LibP2PVersion
 	info.AgentVersion = identify.ClientVersion
 	return info, nil
 }

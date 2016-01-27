@@ -9,12 +9,12 @@ import (
 	"sort"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	swarm "github.com/ipfs/go-ipfs/p2p/net/swarm"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	iaddr "github.com/ipfs/go-ipfs/util/ipfsaddr"
+	swarm "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/net/swarm"
+	peer "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer"
 
-	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	mafilter "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
+	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
 )
 
 type stringList struct {

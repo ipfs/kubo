@@ -3,8 +3,8 @@ package peerstream_muxado
 import (
 	"net"
 
-	muxado "github.com/inconshreveable/muxado"
 	smux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer"
+	muxado "gx/ipfs/QmaZ9WavcC9EKocNHof8onR8JHci2Qt8AuybkFaxJdr51Q/muxado"
 )
 
 // stream implements smux.Stream using a ss.Stream
