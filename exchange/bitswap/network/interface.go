@@ -1,11 +1,11 @@
 package network
 
 import (
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
-	peer "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer"
-	protocol "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/protocol"
+	peer "gx/ipfs/QmZxtCsPRgCnCXwVPUjcBiFckkG5NMYM4Pthwe6X4C8uQq/go-libp2p/p2p/peer"
+	protocol "gx/ipfs/QmZxtCsPRgCnCXwVPUjcBiFckkG5NMYM4Pthwe6X4C8uQq/go-libp2p/p2p/protocol"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var ProtocolBitswap protocol.ID = "/ipfs/bitswap"

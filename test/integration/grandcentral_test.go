@@ -20,8 +20,8 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
-	mocknet "gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/net/mock"
-	"gx/ipfs/QmY3NAw959vbE1oJooP9HchcRdBsbxhgQsEZTRhKgvoSuC/go-libp2p/p2p/peer"
+	mocknet "gx/ipfs/QmZxtCsPRgCnCXwVPUjcBiFckkG5NMYM4Pthwe6X4C8uQq/go-libp2p/p2p/net/mock"
+	"gx/ipfs/QmZxtCsPRgCnCXwVPUjcBiFckkG5NMYM4Pthwe6X4C8uQq/go-libp2p/p2p/peer"
 )
 
 func TestSupernodeBootstrappedAddCat(t *testing.T) {
