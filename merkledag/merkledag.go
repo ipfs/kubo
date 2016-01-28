@@ -192,6 +192,9 @@ func GetNodes(ctx context.Context, ds DAGService, keys []key.Key) []NodeGetter {
 			select {
 			case opt, ok := <-nodechan:
 				if !ok {
+					for _, p := range promises {
+						p.Fail(ErrNotFound)
+					}
 					return
 				}
 
@@ -239,6 +242,7 @@ func newNodePromise(ctx context.Context) (NodeGetter, chan<- *Node) {
 	return &nodePromise{
 		recv: ch,
 		ctx:  ctx,
+		err:  make(chan error, 1),
 	}, ch
 }
 
@@ -246,6 +250,7 @@ type nodePromise struct {
 	cache *Node
 	recv  <-chan *Node
 	ctx   context.Context
+	err   chan error
 }
 
 // NodeGetter provides a promise like interface for a dag Node
@@ -254,6 +259,11 @@ type nodePromise struct {
 // cached node.
 type NodeGetter interface {
 	Get(context.Context) (*Node, error)
+	Fail(err error)
+}
+
+func (np *nodePromise) Fail(err error) {
+	np.err <- err
 }
 
 func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
@@ -268,6 +278,8 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 		return nil, np.ctx.Err()
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case err := <-np.err:
+		return nil, err
 	}
 	return np.cache, nil
 }
