@@ -55,10 +55,12 @@ export PATH=$PATH:$GOPATH/bin
 
 ### Download + Compile IPFS
 
-Then simply:
+Then:
 
 ```
-go get -u github.com/ipfs/go-ipfs/cmd/ipfs
+$ go get -d github.com/ipfs/go-ipfs
+$ cd $GOPATH/src/github.com/ipfs/go-ipfs
+$ make install
 ```
 
 NOTES:
