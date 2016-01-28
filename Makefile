@@ -27,7 +27,7 @@ deps: gx
 vendor: godep
 	godep save -r ./...
 
-install:
+install: deps
 	cd cmd/ipfs && go install -ldflags=$(ldflags)
 
 build:
