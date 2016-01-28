@@ -12,11 +12,11 @@ import (
 	"sync"
 
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	"github.com/ipfs/go-ipfs/repo/config"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	logging "gx/ipfs/QmaPaGNE2GqnfJjRRpQuQuFHuJn4FZvsrGxdik4kgxCkBi/go-log"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("commands/http")
@@ -201,8 +201,8 @@ func guessMimeType(res cmds.Response) (string, error) {
 func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req cmds.Request) {
 	h := w.Header()
 	// Expose our agent to allow identification
-	h.Set("Server", "go-ipfs/" + config.CurrentVersionNumber)
-	
+	h.Set("Server", "go-ipfs/"+config.CurrentVersionNumber)
+
 	mime, err := guessMimeType(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
