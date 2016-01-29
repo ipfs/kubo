@@ -54,7 +54,7 @@ test_object_cmd() {
 	test_expect_success "'ipfs object get' output looks good" '
 		echo "NumLinks: 0" > expected_stat &&
 		echo "BlockSize: 18" >> expected_stat &&
-		echo "LinksSize: 2" >> expected_stat &&
+		echo "LinksSize: 0" >> expected_stat &&
 		echo "DataSize: 16" >> expected_stat &&
 		echo "CumulativeSize: 18" >> expected_stat &&
 		test_cmp expected_stat actual_stat
@@ -194,7 +194,7 @@ test_object_cmd() {
 	test_expect_success "ipfs object stat output looks good" '
 		echo NumLinks: 1 > obj_stat_exp &&
 		echo BlockSize: 47 >> obj_stat_exp &&
-		echo LinksSize: 45 >> obj_stat_exp &&
+		echo LinksSize: 67 >> obj_stat_exp &&
 		echo DataSize: 2 >> obj_stat_exp &&
 		echo CumulativeSize: 114 >> obj_stat_exp &&
 
