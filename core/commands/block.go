@@ -105,7 +105,7 @@ var blockPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Stores input as an IPFS block.",
 		ShortDescription: `
-ipfs block put is a plumbing command for storing raw ipfs blocks.
+'ipfs block put' is a plumbing command for storing raw ipfs blocks.
 It reads from stdin, and <key> is a base58 encoded multihash.
 `,
 	},
