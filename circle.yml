@@ -25,9 +25,6 @@ dependencies:
     - ~/go1.5.2.linux-amd64.tar.gz
     - "$GOPATH/src/gx/ipfs"
 
-dependencies:
-  pre:
-
 test:
   override:
     - make test_go_expensive
