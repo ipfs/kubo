@@ -32,8 +32,8 @@ var PingCmd = &cmds.Command{
 Send pings to a peer using the routing system to discover its address
 		`,
 		ShortDescription: `
-ipfs ping is a tool to test sending data to other nodes. It finds nodes
-via the routing system, send pings, wait for pongs, and print out round-
+'ipfs ping' is a tool to test sending data to other nodes. It finds nodes
+via the routing system, sends pings, waits for pongs, and prints out round-
 trip latency information.
 		`,
 	},

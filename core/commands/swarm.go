@@ -36,7 +36,7 @@ ipfs swarm disconnect <address> - Close connection to a given address
 ipfs swarm filters				- Manipulate filters addresses
 `,
 		ShortDescription: `
-ipfs swarm is a tool to manipulate the network swarm. The swarm is the
+'ipfs swarm' is a tool to manipulate the network swarm. The swarm is the
 component that opens, listens for, and maintains connections to other
 ipfs peers in the internet.
 `,
@@ -54,7 +54,7 @@ var swarmPeersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List peers with open connections.",
 		ShortDescription: `
-ipfs swarm peers lists the set of peers this node is connected to.
+'ipfs swarm peers' lists the set of peers this node is connected to.
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -92,7 +92,7 @@ var swarmAddrsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List known addresses. Useful to debug.",
 		ShortDescription: `
-ipfs swarm addrs lists all addresses this node is aware of.
+'ipfs swarm addrs' lists all addresses this node is aware of.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -155,7 +155,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List local addresses.",
 		ShortDescription: `
-ipfs swarm addrs local lists all local addresses the node is listening on.
+'ipfs swarm addrs local' lists all local addresses the node is listening on.
 `,
 	},
 	Options: []cmds.Option{
