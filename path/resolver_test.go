@@ -7,14 +7,14 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	path "github.com/ipfs/go-ipfs/path"
 	util "github.com/ipfs/go-ipfs/util"
 )
 
-func randNode() (*merkledag.Node, key.Key) {
-	node := new(merkledag.Node)
+func randNode() (*dag.Node, key.Key) {
+	node := new(dag.Node)
 	node.Data = make([]byte, 32)
 	util.NewTimeSeededRand().Read(node.Data)
 	k, _ := node.Key()

@@ -8,7 +8,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
@@ -61,7 +61,7 @@ it contains, with the following format:
 
 		paths := req.Arguments()
 
-		var dagnodes []*merkledag.Node
+		var dagnodes []*dag.Node
 		for _, fpath := range paths {
 			dagnode, err := core.Resolve(req.Context(), node, path.Path(fpath))
 			if err != nil {

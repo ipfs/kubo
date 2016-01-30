@@ -14,7 +14,7 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks/key"
-	"github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin/internal/pb"
 )
 
@@ -68,7 +68,7 @@ func (r *refcount) ReadFromIdx(buf []byte, idx int) {
 }
 
 type sortByHash struct {
-	links []*merkledag.Link
+	links []*dag.Link
 	data  []byte
 }
 
@@ -91,16 +91,16 @@ func (s sortByHash) Swap(a, b int) {
 	}
 }
 
-func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint64, iter itemIterator, internalKeys keyObserver) (*merkledag.Node, error) {
+func storeItems(ctx context.Context, dag dag.DAGService, estimatedLen uint64, iter itemIterator, internalKeys keyObserver) (*dag.Node, error) {
 	seed, err := randomSeed()
 	if err != nil {
 		return nil, err
 	}
-	n := &merkledag.Node{
-		Links: make([]*merkledag.Link, 0, defaultFanout+maxItems),
+	n := &dag.Node{
+		Links: make([]*dag.Link, 0, defaultFanout+maxItems),
 	}
 	for i := 0; i < defaultFanout; i++ {
-		n.Links = append(n.Links, &merkledag.Link{Hash: emptyKey.ToMultihash()})
+		n.Links = append(n.Links, &dag.Link{Hash: emptyKey.ToMultihash()})
 	}
 	internalKeys(emptyKey)
 	hdr := &pb.Set{
@@ -121,7 +121,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 				// all done
 				break
 			}
-			n.Links = append(n.Links, &merkledag.Link{Hash: k.ToMultihash()})
+			n.Links = append(n.Links, &dag.Link{Hash: k.ToMultihash()})
 			n.Data = append(n.Data, data...)
 		}
 		// sort by hash, also swap item Data
@@ -168,7 +168,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 			return nil, err
 		}
 		internalKeys(childKey)
-		l := &merkledag.Link{
+		l := &dag.Link{
 			Name: "",
 			Hash: childKey.ToMultihash(),
 			Size: size,
@@ -179,7 +179,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 	return n, nil
 }
 
-func readHdr(n *merkledag.Node) (*pb.Set, []byte, error) {
+func readHdr(n *dag.Node) (*pb.Set, []byte, error) {
 	hdrLenRaw, consumed := binary.Uvarint(n.Data)
 	if consumed <= 0 {
 		return nil, nil, errors.New("invalid Set header length")
@@ -205,7 +205,7 @@ func readHdr(n *merkledag.Node) (*pb.Set, []byte, error) {
 	return &hdr, buf, nil
 }
 
-func writeHdr(n *merkledag.Node, hdr *pb.Set) error {
+func writeHdr(n *dag.Node, hdr *pb.Set) error {
 	hdrData, err := proto.Marshal(hdr)
 	if err != nil {
 		return err
@@ -217,9 +217,9 @@ func writeHdr(n *merkledag.Node, hdr *pb.Set) error {
 	return nil
 }
 
-type walkerFunc func(buf []byte, idx int, link *merkledag.Link) error
+type walkerFunc func(buf []byte, idx int, link *dag.Link) error
 
-func walkItems(ctx context.Context, dag merkledag.DAGService, n *merkledag.Node, fn walkerFunc, children keyObserver) error {
+func walkItems(ctx context.Context, dag dag.DAGService, n *dag.Node, fn walkerFunc, children keyObserver) error {
 	hdr, buf, err := readHdr(n)
 	if err != nil {
 		return err
@@ -247,7 +247,7 @@ func walkItems(ctx context.Context, dag merkledag.DAGService, n *merkledag.Node,
 	return nil
 }
 
-func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node, name string, internalKeys keyObserver) ([]key.Key, error) {
+func loadSet(ctx context.Context, dag dag.DAGService, root *dag.Node, name string, internalKeys keyObserver) ([]key.Key, error) {
 	l, err := root.GetNodeLink(name)
 	if err != nil {
 		return nil, err
@@ -259,7 +259,7 @@ func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node
 	}
 
 	var res []key.Key
-	walk := func(buf []byte, idx int, link *merkledag.Link) error {
+	walk := func(buf []byte, idx int, link *dag.Link) error {
 		res = append(res, key.Key(link.Hash))
 		return nil
 	}
@@ -269,7 +269,7 @@ func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node
 	return res, nil
 }
 
-func loadMultiset(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node, name string, internalKeys keyObserver) (map[key.Key]uint64, error) {
+func loadMultiset(ctx context.Context, dag dag.DAGService, root *dag.Node, name string, internalKeys keyObserver) (map[key.Key]uint64, error) {
 	l, err := root.GetNodeLink(name)
 	if err != nil {
 		return nil, err
@@ -281,7 +281,7 @@ func loadMultiset(ctx context.Context, dag merkledag.DAGService, root *merkledag
 	}
 
 	refcounts := make(map[key.Key]uint64)
-	walk := func(buf []byte, idx int, link *merkledag.Link) error {
+	walk := func(buf []byte, idx int, link *dag.Link) error {
 		var r refcount
 		r.ReadFromIdx(buf, idx)
 		refcounts[key.Key(link.Hash)] += uint64(r)
@@ -293,7 +293,7 @@ func loadMultiset(ctx context.Context, dag merkledag.DAGService, root *merkledag
 	return refcounts, nil
 }
 
-func storeSet(ctx context.Context, dag merkledag.DAGService, keys []key.Key, internalKeys keyObserver) (*merkledag.Node, error) {
+func storeSet(ctx context.Context, dag dag.DAGService, keys []key.Key, internalKeys keyObserver) (*dag.Node, error) {
 	iter := func() (k key.Key, data []byte, ok bool) {
 		if len(keys) == 0 {
 			return "", nil, false
@@ -322,7 +322,7 @@ func copyRefcounts(orig map[key.Key]uint64) map[key.Key]uint64 {
 	return r
 }
 
-func storeMultiset(ctx context.Context, dag merkledag.DAGService, refcounts map[key.Key]uint64, internalKeys keyObserver) (*merkledag.Node, error) {
+func storeMultiset(ctx context.Context, dag dag.DAGService, refcounts map[key.Key]uint64, internalKeys keyObserver) (*dag.Node, error) {
 	// make a working copy of the refcounts
 	refcounts = copyRefcounts(refcounts)
 

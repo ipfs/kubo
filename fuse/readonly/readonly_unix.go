@@ -14,7 +14,7 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
@@ -77,7 +77,7 @@ func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 // Node is the core object representing a filesystem tree node.
 type Node struct {
 	Ipfs   *core.IpfsNode
-	Nd     *mdag.Node
+	Nd     *dag.Node
 	fd     *uio.DagReader
 	cached *ftpb.Data
 }

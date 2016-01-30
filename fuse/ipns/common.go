@@ -4,7 +4,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	"github.com/ipfs/go-ipfs/core"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	nsys "github.com/ipfs/go-ipfs/namesys"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
@@ -14,7 +14,7 @@ import (
 // InitializeKeyspace sets the ipns record for the given key to
 // point to an empty directory.
 func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
-	emptyDir := &mdag.Node{Data: ft.FolderPBData()}
+	emptyDir := &dag.Node{Data: ft.FolderPBData()}
 	nodek, err := n.DAG.Add(emptyDir)
 	if err != nil {
 		return err

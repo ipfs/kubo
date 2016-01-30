@@ -10,7 +10,7 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
@@ -21,10 +21,10 @@ var ErrCantReadSymlinks = errors.New("cannot currently read symlinks")
 
 // DagReader provides a way to easily read the data contained in a dag.
 type DagReader struct {
-	serv mdag.DAGService
+	serv dag.DAGService
 
 	// the node being read
-	node *mdag.Node
+	node *dag.Node
 
 	// cached protobuf structure from node.Data
 	pbdata *ftpb.Data
@@ -34,7 +34,7 @@ type DagReader struct {
 	buf ReadSeekCloser
 
 	// NodeGetters for each of 'nodes' child links
-	promises []mdag.NodeGetter
+	promises []dag.NodeGetter
 
 	// the index of the child link currently being read from
 	linkPosition int
@@ -58,7 +58,7 @@ type ReadSeekCloser interface {
 
 // NewDagReader creates a new reader object that reads the data represented by the given
 // node, using the passed in DAGService for data retreival
-func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*DagReader, error) {
+func NewDagReader(ctx context.Context, n *dag.Node, serv dag.DAGService) (*DagReader, error) {
 	pb := new(ftpb.Data)
 	if err := proto.Unmarshal(n.Data, pb); err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 	}
 }
 
-func NewDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv mdag.DAGService) *DagReader {
+func NewDataFileReader(ctx context.Context, n *dag.Node, pb *ftpb.Data, serv dag.DAGService) *DagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	promises := serv.GetDAG(fctx, n)
 	return &DagReader{

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 )
 
 func TestDFSPreNoSkip(t *testing.T) {
@@ -314,7 +314,7 @@ func TestBFSSkip(t *testing.T) {
 `))
 }
 
-func testWalkOutputs(t *testing.T, root *mdag.Node, opts Options, expect []byte) {
+func testWalkOutputs(t *testing.T, root *dag.Node, opts Options, expect []byte) {
 	expect = bytes.TrimLeft(expect, "\n")
 
 	buf := new(bytes.Buffer)
@@ -341,8 +341,8 @@ func testWalkOutputs(t *testing.T, root *mdag.Node, opts Options, expect []byte)
 	}
 }
 
-func newFan(t *testing.T) *mdag.Node {
-	a := &mdag.Node{Data: []byte("/a")}
+func newFan(t *testing.T) *dag.Node {
+	a := &dag.Node{Data: []byte("/a")}
 	addChild(t, a, "aa")
 	addChild(t, a, "ab")
 	addChild(t, a, "ac")
@@ -350,8 +350,8 @@ func newFan(t *testing.T) *mdag.Node {
 	return a
 }
 
-func newLinkedList(t *testing.T) *mdag.Node {
-	a := &mdag.Node{Data: []byte("/a")}
+func newLinkedList(t *testing.T) *dag.Node {
+	a := &dag.Node{Data: []byte("/a")}
 	aa := addChild(t, a, "aa")
 	aaa := addChild(t, aa, "aaa")
 	aaaa := addChild(t, aaa, "aaaa")
@@ -359,8 +359,8 @@ func newLinkedList(t *testing.T) *mdag.Node {
 	return a
 }
 
-func newBinaryTree(t *testing.T) *mdag.Node {
-	a := &mdag.Node{Data: []byte("/a")}
+func newBinaryTree(t *testing.T) *dag.Node {
+	a := &dag.Node{Data: []byte("/a")}
 	aa := addChild(t, a, "aa")
 	ab := addChild(t, a, "ab")
 	addChild(t, aa, "aaa")
@@ -370,8 +370,8 @@ func newBinaryTree(t *testing.T) *mdag.Node {
 	return a
 }
 
-func newBinaryDAG(t *testing.T) *mdag.Node {
-	a := &mdag.Node{Data: []byte("/a")}
+func newBinaryDAG(t *testing.T) *dag.Node {
+	a := &dag.Node{Data: []byte("/a")}
 	aa := addChild(t, a, "aa")
 	aaa := addChild(t, aa, "aaa")
 	aaaa := addChild(t, aaa, "aaaa")
@@ -383,15 +383,15 @@ func newBinaryDAG(t *testing.T) *mdag.Node {
 	return a
 }
 
-func addLink(t *testing.T, a, b *mdag.Node) {
+func addLink(t *testing.T, a, b *dag.Node) {
 	to := string(a.Data) + "2" + string(b.Data)
 	if err := a.AddNodeLink(to, b); err != nil {
 		t.Error(err)
 	}
 }
 
-func addChild(t *testing.T, a *mdag.Node, name string) *mdag.Node {
-	c := &mdag.Node{Data: []byte(string(a.Data) + "/" + name)}
+func addChild(t *testing.T, a *dag.Node, name string) *dag.Node {
+	c := &dag.Node{Data: []byte(string(a.Data) + "/" + name)}
 	addLink(t, a, c)
 	return c
 }

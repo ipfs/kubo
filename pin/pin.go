@@ -11,7 +11,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/blocks/set"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
@@ -37,7 +37,7 @@ const (
 type Pinner interface {
 	IsPinned(key.Key) (string, bool, error)
 	IsPinnedWithType(key.Key, string) (string, bool, error)
-	Pin(context.Context, *mdag.Node, bool) error
+	Pin(context.Context, *dag.Node, bool) error
 	Unpin(context.Context, key.Key, bool) error
 
 	// PinWithMode is for manually editing the pin structure. Use with
@@ -64,12 +64,12 @@ type pinner struct {
 	// Track the keys used for storing the pinning state, so gc does
 	// not delete them.
 	internalPin map[key.Key]struct{}
-	dserv       mdag.DAGService
+	dserv       dag.DAGService
 	dstore      ds.Datastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
-func NewPinner(dstore ds.Datastore, serv mdag.DAGService) Pinner {
+func NewPinner(dstore ds.Datastore, serv dag.DAGService) Pinner {
 
 	// Load set from given datastore...
 	rcset := set.NewSimpleBlockSet()
@@ -85,7 +85,7 @@ func NewPinner(dstore ds.Datastore, serv mdag.DAGService) Pinner {
 }
 
 // Pin the given node, optionally recursive
-func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
+func (p *pinner) Pin(ctx context.Context, node *dag.Node, recurse bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	k, err := node.Key()
@@ -103,7 +103,7 @@ func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
 		}
 
 		// fetch entire graph
-		err := mdag.FetchGraph(ctx, node, p.dserv)
+		err := dag.FetchGraph(ctx, node, p.dserv)
 		if err != nil {
 			return err
 		}
@@ -232,7 +232,7 @@ func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(d ds.Datastore, dserv mdag.DAGService) (Pinner, error) {
+func LoadPinner(d ds.Datastore, dserv dag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	rootKeyI, err := d.Get(pinDatastoreKey)
@@ -308,7 +308,7 @@ func (p *pinner) Flush() error {
 		internalPin[k] = struct{}{}
 	}
 
-	root := &mdag.Node{}
+	root := &dag.Node{}
 	{
 		n, err := storeSet(ctx, p.dserv, p.directPin.GetKeys(), recordInternal)
 		if err != nil {
@@ -330,7 +330,7 @@ func (p *pinner) Flush() error {
 	}
 
 	// add the empty node, its referenced by the pin sets but never created
-	_, err := p.dserv.Add(new(mdag.Node))
+	_, err := p.dserv.Add(new(dag.Node))
 	if err != nil {
 		return err
 	}
@@ -371,7 +371,7 @@ func (p *pinner) PinWithMode(k key.Key, mode PinMode) {
 	}
 }
 
-func hasChild(ds mdag.DAGService, root *mdag.Node, child key.Key) (bool, error) {
+func hasChild(ds dag.DAGService, root *dag.Node, child key.Key) (bool, error) {
 	for _, lnk := range root.Links {
 		k := key.Key(lnk.Hash)
 		if k == child {
