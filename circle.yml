@@ -19,7 +19,7 @@ dependencies:
     - go get -u github.com/whyrusleeping/gx-go
 
   override:
-    - gx install --global
+      - gx --verbose install --global
 
   cache_directories:
     - ~/go1.5.2.linux-amd64.tar.gz
