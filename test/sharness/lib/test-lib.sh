@@ -9,7 +9,8 @@
 # use the ipfs tool to test against
 
 # add current directory to path, for ipfs tool.
-PATH=$(pwd)/bin:${PATH}
+BIN=$(cd .. && echo `pwd`/bin)
+PATH=${BIN}:${PATH}
 
 # set sharness verbosity. we set the env var directly as
 # it's too late to pass in --verbose, and --verbose is harder
@@ -17,7 +18,7 @@ PATH=$(pwd)/bin:${PATH}
 test "$TEST_VERBOSE" = 1 && verbose=t
 
 # assert the `ipfs` we're using is the right one.
-if test `which ipfs` != $(pwd)/bin/ipfs; then
+if test `which ipfs` != ${BIN}/ipfs; then
 	echo >&2 "Cannot find the tests' local ipfs tool."
 	echo >&2 "Please check test and ipfs tool installation."
 	exit 1
@@ -321,7 +322,7 @@ test_should_contain() {
 test_str_contains() {
 	find=$1
 	shift
-	echo "$@" | grep "$find" >/dev/null
+	echo "$@" | egrep "\b$find\b" >/dev/null
 }
 
 disk_usage() {
@@ -361,4 +362,3 @@ test_check_peerid() {
 		return 1
 	}
 }
-

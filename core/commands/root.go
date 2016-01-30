@@ -24,7 +24,7 @@ const (
 
 var Root = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "global p2p merkle-dag filesystem",
+		Tagline: "Global p2p merkle-dag filesystem.",
 		Synopsis: `
 ipfs [<flags>] <command> [<arg>] ...
 `,
@@ -32,7 +32,7 @@ ipfs [<flags>] <command> [<arg>] ...
 BASIC COMMANDS
 
     init          Initialize ipfs local configuration
-    add <path>    Add an object to ipfs
+    add <path>    Add a file to ipfs
     cat <ref>     Show ipfs object data
     get <ref>     Download ipfs objects
     ls <ref>      List links from an object
@@ -79,11 +79,11 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("config", "c", "Path to the configuration file to use"),
-		cmds.BoolOption("debug", "D", "Operate in debug mode"),
-		cmds.BoolOption("help", "Show the full command help text"),
-		cmds.BoolOption("h", "Show a short version of the command help text"),
-		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon"),
+		cmds.StringOption("config", "c", "Path to the configuration file to use."),
+		cmds.BoolOption("debug", "D", "Operate in debug mode."),
+		cmds.BoolOption("help", "Show the full command help text."),
+		cmds.BoolOption("h", "Show a short version of the command help text."),
+		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon."),
 		cmds.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 	},
 }

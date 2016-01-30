@@ -36,7 +36,7 @@ type IdOutput struct {
 
 var IDCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show IPFS Node ID info",
+		Tagline: "Show IPFS Node ID info.",
 		ShortDescription: `
 Prints out information about the specified peer,
 if no peer is specified, prints out local peers info.
@@ -50,10 +50,10 @@ ipfs id supports the format option for output with the following keys:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerid", false, false, "peer.ID of node to look up").EnableStdin(),
+		cmds.StringArg("peerid", false, false, "Peer.ID of node to look up.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "f", "optional output format"),
+		cmds.StringOption("format", "f", "Optional output format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -133,6 +133,7 @@ ipfs id supports the format option for output with the following keys:
 				if err != nil {
 					return nil, err
 				}
+				marshaled = append(marshaled, byte('\n'))
 				return bytes.NewReader(marshaled), nil
 			}
 		},

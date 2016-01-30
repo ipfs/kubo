@@ -151,7 +151,7 @@ func TestDialWait(t *testing.T) {
 func TestDialBackoff(t *testing.T) {
 	// t.Skip("skipping for another test")
 	if ci.IsRunning() {
-		t.Skip("travis and jenkins will never have fun with this test")
+		t.Skip("travis will never have fun with this test")
 	}
 
 	t.Parallel()

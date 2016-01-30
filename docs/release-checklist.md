@@ -10,3 +10,4 @@
 - [ ] tag commit with vX.Y.Z
 - [ ] update release branch to point to release commit
 - [ ] ensure version is built in gobuilder
+- [ ] publish next version to https://github.com/ipfs/npm-go-ipfs

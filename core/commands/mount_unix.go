@@ -35,7 +35,7 @@ var platformFuseChecks = func(*core.IpfsNode) error {
 
 var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Mounts IPFS to the filesystem (read-only)",
+		Tagline: "Mounts IPFS to the filesystem (read-only).",
 		Synopsis: `
 ipfs mount [-f <ipfs mount path>] [-n <ipns mount path>]
 `,
@@ -93,8 +93,8 @@ baz
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("ipfs-path", "f", "The path where IPFS should be mounted"),
-		cmds.StringOption("ipns-path", "n", "The path where IPNS should be mounted"),
+		cmds.StringOption("ipfs-path", "f", "The path where IPFS should be mounted."),
+		cmds.StringOption("ipns-path", "n", "The path where IPNS should be mounted."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		cfg, err := req.InvocContext().GetConfig()

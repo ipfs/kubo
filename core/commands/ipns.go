@@ -13,7 +13,7 @@ import (
 
 var IpnsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Gets the value currently published at an IPNS name",
+		Tagline: "Gets the value currently published at an IPNS name.",
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In resolve, the
@@ -44,8 +44,8 @@ Resolve the value of another name:
 		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name"),
-		cmds.BoolOption("nocache", "n", "Do not used cached entries"),
+		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name."),
+		cmds.BoolOption("nocache", "n", "Do not used cached entries."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

@@ -34,7 +34,7 @@ type LsOutput struct {
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directory contents for Unix-filesystem objects",
+		Tagline: "List directory contents for Unix-filesystem objects.",
 		ShortDescription: `
 Retrieves the object named by <ipfs-or-ipns-path> and displays the
 contents.
@@ -46,7 +46,7 @@ size is the IPFS link size.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()

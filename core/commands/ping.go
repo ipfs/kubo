@@ -27,7 +27,7 @@ type PingResult struct {
 
 var PingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "send echo request packets to IPFS hosts",
+		Tagline: "Send echo request packets to IPFS hosts.",
 		Synopsis: `
 Send pings to a peer using the routing system to discover its address
 		`,
@@ -38,10 +38,10 @@ trip latency information.
 		`,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged").EnableStdin(),
+		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("count", "n", "number of ping messages to send"),
+		cmds.IntOption("count", "n", "Number of ping messages to send."),
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

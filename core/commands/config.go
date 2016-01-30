@@ -24,7 +24,7 @@ type ConfigField struct {
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "get and set IPFS config values",
+		Tagline: "Get and set IPFS config values.",
 		Synopsis: `
 ipfs config <key>          - Get value of <key>
 ipfs config <key> <value>  - Set value of <key> to <value>
@@ -54,12 +54,12 @@ Set the value of the 'datastore.path' key:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")"),
-		cmds.StringArg("value", false, false, "The value to set the config entry to"),
+		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")."),
+		cmds.StringArg("value", false, false, "The value to set the config entry to."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("bool", "Set a boolean value"),
-		cmds.BoolOption("json", "Parse stringified JSON"),
+		cmds.BoolOption("bool", "Set a boolean value."),
+		cmds.BoolOption("json", "Parse stringified JSON."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
@@ -133,7 +133,7 @@ Set the value of the 'datastore.path' key:
 
 var configShowCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Outputs the content of the config file",
+		Tagline: "Outputs the content of the config file.",
 		ShortDescription: `
 WARNING: Your private key is stored in the config file, and it will be
 included in the output of this command.
@@ -158,7 +158,7 @@ included in the output of this command.
 
 var configEditCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Opens the config file for editing in $EDITOR",
+		Tagline: "Opens the config file for editing in $EDITOR.",
 		ShortDescription: `
 To use 'ipfs config edit', you must have the $EDITOR environment
 variable set to your preferred text editor.
@@ -181,7 +181,7 @@ variable set to your preferred text editor.
 
 var configReplaceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Replaces the config with <file>",
+		Tagline: "Replaces the config with <file>.",
 		ShortDescription: `
 Make sure to back up the config file first if neccessary, this operation
 can't be undone.
@@ -189,7 +189,7 @@ can't be undone.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("file", true, false, "The file to use as the new config"),
+		cmds.FileArg("file", true, false, "The file to use as the new config."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)

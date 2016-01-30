@@ -82,6 +82,11 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method == "OPTIONS" {
+		i.optionsHandler(w, r)
+		return
+	}
+
 	errmsg := "Method " + r.Method + " not allowed: "
 	if !i.config.Writable {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -92,6 +97,15 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprint(w, errmsg)
 	log.Error(errmsg) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
+}
+
+func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) {
+	/*
+		OPTIONS is a noop request that is used by the browsers to check
+		if server accepts cross-site XMLHttpRequest (indicated by the presence of CORS headers)
+		https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS#Preflighted_requests
+	*/
+	i.addUserHeaders(w) // return all custom headers (including CORS ones, if set)
 }
 
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {

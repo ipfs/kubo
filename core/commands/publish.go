@@ -20,7 +20,7 @@ var errNotOnline = errors.New("This command must be run in online mode. Try runn
 
 var PublishCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Publish an object to IPNS",
+		Tagline: "Publish an object to IPNS.",
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In publish, the
@@ -47,12 +47,12 @@ Publish an <ipfs-path> to another public key (not implemented):
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "IPFS path of the obejct to be published").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, false, "IPFS path of the obejct to be published.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("resolve", "resolve given path before publishing (default=true)"),
-		cmds.StringOption("lifetime", "t", "time duration that the record will be valid for (default: 24hrs)"),
-		cmds.StringOption("ttl", "time duration this record should be cached for (caution: experimental)"),
+		cmds.BoolOption("resolve", "Resolve given path before publishing (default=true)."),
+		cmds.StringOption("lifetime", "t", "Time duration that the record will be valid for (default: 24hrs)."),
+		cmds.StringOption("ttl", "Time duration this record should be cached for (caution: experimental)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		log.Debug("Begin Publish")

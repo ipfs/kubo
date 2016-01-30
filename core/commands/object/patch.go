@@ -17,7 +17,7 @@ import (
 
 var ObjectPatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create a new merkledag object based on an existing one",
+		Tagline: "Create a new merkledag object based on an existing one.",
 		ShortDescription: `
 'ipfs object patch <root> <cmd> <args>' is a plumbing command used to
 build custom DAG objects. It mutates objects, creating new objects as a
@@ -44,7 +44,7 @@ func objectMarshaler(res cmds.Response) (io.Reader, error) {
 
 var patchAppendDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Append data to the data segment of a dag node",
+		Tagline: "Append data to the data segment of a dag node.",
 		ShortDescription: `
 Append data to what already exists in the data segment in the given object.
 
@@ -57,8 +57,8 @@ the limit will not be respected by the network.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.FileArg("data", true, false, "data to append").EnableStdin(),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.FileArg("data", true, false, "Data to append.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -109,7 +109,7 @@ the limit will not be respected by the network.
 
 var patchSetDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "set data field of an ipfs object",
+		Tagline: "Set data field of an ipfs object.",
 		ShortDescription: `
 Set the data of an ipfs object from stdin or with the contents of a file
 
@@ -119,8 +119,8 @@ EXAMPLE:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.FileArg("data", true, false, "data fill with").EnableStdin(),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.FileArg("data", true, false, "Data fill with.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -171,14 +171,14 @@ EXAMPLE:
 
 var patchRmLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "remove a link from an object",
+		Tagline: "Remove a link from an object.",
 		ShortDescription: `
 removes a link by the given name from root.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.StringArg("link", true, false, "name of the link to remove"),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.StringArg("link", true, false, "Name of the link to remove."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -231,7 +231,7 @@ removes a link by the given name from root.
 
 var patchAddLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "add a link to a given object",
+		Tagline: "Add a link to a given object.",
 		ShortDescription: `
 Add a merkle-link to the given object and return the hash of the result.
 
@@ -246,12 +246,12 @@ a file containing 'bar', and returns the hash of the new object.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "create", "create intermediary nodes"),
+		cmds.BoolOption("p", "create", "Create intermediary nodes."),
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.StringArg("name", true, false, "name of link to create"),
-		cmds.StringArg("ref", true, false, "ipfs object to add link to"),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.StringArg("name", true, false, "Name of link to create."),
+		cmds.StringArg("ref", true, false, "IPFS object to add link to."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

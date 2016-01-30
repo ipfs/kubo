@@ -7,14 +7,17 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	core "github.com/ipfs/go-ipfs/core"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
 var PinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Pin (and unpin) objects to local storage",
+		Tagline: "Pin (and unpin) objects to local storage.",
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -30,7 +33,7 @@ type PinOutput struct {
 
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Pins objects to local storage",
+		Tagline: "Pins objects to local storage.",
 		ShortDescription: `
 Retrieves the object named by <ipfs-path> and stores it locally
 on disk.
@@ -38,10 +41,10 @@ on disk.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)"),
+		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)."),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -98,7 +101,7 @@ on disk.
 
 var rmPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes the pinned object from local storage. (By default, recursively. Use -r=false for direct pins)",
+		Tagline: "Removes the pinned object from local storage. (By default, recursively. Use -r=false for direct pins).",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
 collected if needed. (By default, recursively. Use -r=false for direct pins)
@@ -106,10 +109,10 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)"),
+		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)."),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -155,15 +158,14 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 
 var listPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List objects pinned to local storage",
+		Tagline: "List objects pinned to local storage.",
 		ShortDescription: `
 Returns a list of objects that are pinned locally.
-By default, only recursively pinned returned, but others may be shown via the '--type' flag.
+By default, all pinned objects are returned, but the '--type' flag or arguments can restrict that to a specific pin type or to some specific objects respectively.
 `,
 		LongDescription: `
-<<<<<<< HEAD
 Returns a list of objects that are pinned locally.
-By default, only recursively pinned returned, but others may be shown via the '--type' flag.
+By default, all pinned objects are returned, but the '--type' flag or arguments can restrict that to a specific pin type or to some specific objects respectively.
 
 Use --type=<type> to specify the type of pinned keys to list. Valid values are:
     * "direct": pin that specific object.
@@ -171,23 +173,33 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
     * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
 
+With arguments, the command fails if any of the arguments is not a pinned object.
+And if --type=<type> is additionally used, the command will also fail if any of the arguments is not of the specified type.
+
 Example:
 	$ echo "hello" | ipfs add -q
 	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
 	$ ipfs pin ls
-	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN recursive
 	# now remove the pin, and repin it directly
 	$ ipfs pin rm QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	unpinned QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
 	$ ipfs pin add -r=false QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	pinned QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN directly
 	$ ipfs pin ls --type=direct
-	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN direct
+	$ ipfs pin ls QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
+	QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN direct
 `,
 	},
 
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", false, true, "Path to object(s) to be listed."),
+	},
 	Options: []cmds.Option{
-		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"recursive\""),
-		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins"),
-		cmds.BoolOption("quiet", "q", "Write just hashes of objects"),
+		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"recursive\"."),
+		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins."),
+		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -196,60 +208,37 @@ Example:
 			return
 		}
 
-		typeStr, found, err := req.Option("type").String()
+		typeStr, typeStrFound, err := req.Option("type").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if !found {
-			typeStr = "recursive"
+
+		if typeStrFound {
+			switch typeStr {
+			case "all", "direct", "indirect", "recursive":
+			default:
+				err = fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+				res.SetError(err, cmds.ErrClient)
+				return
+			}
+		} else {
+			typeStr = "all"
 		}
 
-		switch typeStr {
-		case "all", "direct", "indirect", "recursive":
-		default:
-			err = fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-			res.SetError(err, cmds.ErrClient)
+		var keys map[string]RefKeyObject
+
+		if len(req.Arguments()) > 0 {
+			keys, err = pinLsKeys(req.Arguments(), typeStr, req.Context(), n)
+		} else {
+			keys, err = pinLsAll(typeStr, req.Context(), n)
 		}
 
-		keys := make(map[string]RefKeyObject)
-		if typeStr == "direct" || typeStr == "all" {
-			for _, k := range n.Pinning.DirectKeys() {
-				keys[k.B58String()] = RefKeyObject{
-					Type: "direct",
-				}
-			}
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+		} else {
+			res.SetOutput(&RefKeyList{Keys: keys})
 		}
-		if typeStr == "indirect" || typeStr == "all" {
-			ks := key.NewKeySet()
-			for _, k := range n.Pinning.RecursiveKeys() {
-				nd, err := n.DAG.Get(n.Context(), k)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-				err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-
-			}
-			for _, k := range ks.Keys() {
-				keys[k.B58String()] = RefKeyObject{
-					Type: "indirect",
-				}
-			}
-		}
-		if typeStr == "recursive" || typeStr == "all" {
-			for _, k := range n.Pinning.RecursiveKeys() {
-				keys[k.B58String()] = RefKeyObject{
-					Type: "recursive",
-				}
-			}
-		}
-
-		res.SetOutput(&RefKeyList{Keys: keys})
 	},
 	Type: RefKeyList{},
 	Marshalers: cmds.MarshalerMap{
@@ -282,4 +271,77 @@ type RefKeyObject struct {
 
 type RefKeyList struct {
 	Keys map[string]RefKeyObject
+}
+
+func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+
+	keys := make(map[string]RefKeyObject)
+
+	for _, p := range args {
+		dagNode, err := core.Resolve(ctx, n, path.Path(p))
+		if err != nil {
+			return nil, err
+		}
+
+		k, err := dagNode.Key()
+		if err != nil {
+			return nil, err
+		}
+
+		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, typeStr)
+		if err != nil {
+			return nil, err
+		}
+
+		if !pinned {
+			return nil, fmt.Errorf("Path '%s' is not pinned", p)
+		}
+
+		switch pinType {
+		case "direct", "indirect", "recursive", "internal":
+		default:
+			pinType = "indirect through " + pinType
+		}
+		keys[k.B58String()] = RefKeyObject{
+			Type: pinType,
+		}
+	}
+
+	return keys, nil
+}
+
+func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+
+	keys := make(map[string]RefKeyObject)
+
+	AddToResultKeys := func(keyList []key.Key, typeStr string) {
+		for _, k := range keyList {
+			keys[k.B58String()] = RefKeyObject{
+				Type: typeStr,
+			}
+		}
+	}
+
+	if typeStr == "direct" || typeStr == "all" {
+		AddToResultKeys(n.Pinning.DirectKeys(), "direct")
+	}
+	if typeStr == "indirect" || typeStr == "all" {
+		ks := key.NewKeySet()
+		for _, k := range n.Pinning.RecursiveKeys() {
+			nd, err := n.DAG.Get(ctx, k)
+			if err != nil {
+				return nil, err
+			}
+			err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks)
+			if err != nil {
+				return nil, err
+			}
+		}
+		AddToResultKeys(ks.Keys(), "indirect")
+	}
+	if typeStr == "recursive" || typeStr == "all" {
+		AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
+	}
+
+	return keys, nil
 }

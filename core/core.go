@@ -50,7 +50,7 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
@@ -91,11 +91,11 @@ type IpfsNode struct {
 	PrivateKey ic.PrivKey // the local node's private Key
 
 	// Services
-	Peerstore  peer.Peerstore       // storage for other Peer instances
-	Blockstore bstore.GCBlockstore  // the block store (lower level)
-	Blocks     *bserv.BlockService  // the block service, get/add blocks.
-	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
-	Resolver   *path.Resolver       // the path resolution system
+	Peerstore  peer.Peerstore      // storage for other Peer instances
+	Blockstore bstore.GCBlockstore // the block store (lower level)
+	Blocks     *bserv.BlockService // the block service, get/add blocks.
+	DAG        dag.DAGService      // the merkle dag service, get/add objects.
+	Resolver   *path.Resolver      // the path resolution system
 	Reporter   metrics.Reporter
 	Discovery  discovery.Service
 	FilesRoot  *mfs.Root
@@ -477,7 +477,7 @@ func (n *IpfsNode) loadFilesRoot() error {
 		return n.Repo.Datastore().Put(dsk, []byte(k))
 	}
 
-	var nd *merkledag.Node
+	var nd *dag.Node
 	val, err := n.Repo.Datastore().Get(dsk)
 
 	switch {

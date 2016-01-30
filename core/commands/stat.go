@@ -18,7 +18,7 @@ import (
 
 var StatsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Query IPFS statistics",
+		Tagline:          "Query IPFS statistics.",
 		ShortDescription: ``,
 	},
 
@@ -29,14 +29,14 @@ var StatsCmd = &cmds.Command{
 
 var statBwCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Print ipfs bandwidth information",
+		Tagline:          "Print ipfs bandwidth information.",
 		ShortDescription: ``,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("peer", "p", "specify a peer to print bandwidth for"),
-		cmds.StringOption("proto", "t", "specify a protocol to print bandwidth for"),
-		cmds.BoolOption("poll", "print bandwidth at an interval"),
-		cmds.StringOption("interval", "i", "time interval to wait between updating output"),
+		cmds.StringOption("peer", "p", "Specify a peer to print bandwidth for."),
+		cmds.StringOption("proto", "t", "Specify a protocol to print bandwidth for."),
+		cmds.BoolOption("poll", "Print bandwidth at an interval."),
+		cmds.StringOption("interval", "i", "Time interval to wait between updating output."),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {

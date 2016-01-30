@@ -8,6 +8,9 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
+gwyport=8080
+apiport=5001
+
 # TODO: randomize ports here once we add --config to ipfs daemon
 
 # this needs to be in a different test than "ipfs daemon --init" below
@@ -42,6 +45,16 @@ test_expect_success "'ipfs swarm addrs local' works" '
 
 test_expect_success "ipfs peer id looks good" '
   test_check_peerid "$PEERID"
+'
+
+# this is for checking SetAllowedOrigins race condition for the api and gateway
+# See https://github.com/ipfs/go-ipfs/pull/1966
+test_expect_success "ipfs API works with the correct allowed origin port" '
+  curl -s -X GET -H "Origin:http://localhost:$apiport" -I "http://localhost:$apiport/api/v0/version"
+'
+
+test_expect_success "ipfs gateway works with the correct allowed origin port" '
+  curl -s -X GET -H "Origin:http://localhost:$gwyport" -I "http://localhost:$gwyport/api/v0/version"
 '
 
 # This is like t0020-init.sh "ipfs init output looks good"

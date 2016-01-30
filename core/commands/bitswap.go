@@ -16,7 +16,7 @@ import (
 
 var BitswapCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "A set of commands to manipulate the bitswap agent",
+		Tagline:          "A set of commands to manipulate the bitswap agent.",
 		ShortDescription: ``,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -28,10 +28,10 @@ var BitswapCmd = &cmds.Command{
 
 var unwantCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove a given block from your wantlist",
+		Tagline: "Remove a given block from your wantlist.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, true, "key to remove from your wantlist").EnableStdin(),
+		cmds.StringArg("key", true, true, "Key to remove from your wantlist.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -55,7 +55,7 @@ var unwantCmd = &cmds.Command{
 		for _, arg := range req.Arguments() {
 			dec := key.B58KeyDecode(arg)
 			if dec == "" {
-				res.SetError(fmt.Errorf("incorrectly formatted key: %s", arg), cmds.ErrNormal)
+				res.SetError(fmt.Errorf("Incorrectly formatted key: %s", arg), cmds.ErrNormal)
 				return
 			}
 
@@ -68,12 +68,12 @@ var unwantCmd = &cmds.Command{
 
 var showWantlistCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show blocks currently on the wantlist",
+		Tagline: "Show blocks currently on the wantlist.",
 		ShortDescription: `
-Print out all blocks currently on the bitswap wantlist for the local peer`,
+Print out all blocks currently on the bitswap wantlist for the local peer.`,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("peer", "p", "specify which peer to show wantlist for (default self)"),
+		cmds.StringOption("peer", "p", "Specify which peer to show wantlist for. Default: self."),
 	},
 	Type: KeyList{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -117,7 +117,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer`,
 
 var bitswapStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "show some diagnostic information on the bitswap agent",
+		Tagline:          "Show some diagnostic information on the bitswap agent.",
 		ShortDescription: ``,
 	},
 	Type: bitswap.Stat{},

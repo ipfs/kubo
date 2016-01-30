@@ -20,12 +20,12 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 )
 
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {
-	dagnodes := make([]*merkledag.Node, 0)
+	dagnodes := make([]*dag.Node, 0)
 	for _, fpath := range paths {
 		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
 		if err != nil {
@@ -60,22 +60,21 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 
 func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {
 
-	dagnodes := make([]*merkledag.Node, 0)
-	for _, fpath := range paths {
-		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
+	var unpinned []key.Key
+	for _, p := range paths {
+		p, err := path.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
-		dagnodes = append(dagnodes, dagnode)
-	}
 
-	var unpinned []key.Key
-	for _, dagnode := range dagnodes {
-		k, _ := dagnode.Key()
+		k, err := core.ResolveToKey(ctx, n, p)
+		if err != nil {
+			return nil, err
+		}
 
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		err := n.Pinning.Unpin(ctx, k, recursive)
+		err = n.Pinning.Unpin(ctx, k, recursive)
 		if err != nil {
 			return nil, err
 		}

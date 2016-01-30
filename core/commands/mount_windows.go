@@ -9,7 +9,7 @@ import (
 
 var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Not yet implemented on Windows",
+		Tagline:          "Not yet implemented on Windows.",
 		ShortDescription: "Not yet implemented on Windows. :(",
 	},
 

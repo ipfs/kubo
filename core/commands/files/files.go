@@ -24,13 +24,13 @@ var log = logging.Logger("cmds/files")
 
 var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate unixfs files",
+		Tagline: "Manipulate unixfs files.",
 		ShortDescription: `
 Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("f", "flush", "flush target and ancestors after write (default: true)"),
+		cmds.BoolOption("f", "flush", "Flush target and ancestors after write (default: true)."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -46,11 +46,11 @@ Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 
 var FilesStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "display file status",
+		Tagline: "Display file status.",
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to node to stat"),
+		cmds.StringArg("path", true, false, "Path to node to stat."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -87,6 +87,7 @@ var FilesStatCmd = &cmds.Command{
 			fmt.Fprintf(buf, "Size: %d\n", out.Size)
 			fmt.Fprintf(buf, "CumulativeSize: %d\n", out.CumulativeSize)
 			fmt.Fprintf(buf, "ChildBlocks: %d\n", out.Blocks)
+			fmt.Fprintf(buf, "Type: %s\n", out.Type)
 			return buf, nil
 		},
 	},
@@ -115,21 +116,32 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 		return nil, err
 	}
 
+	var ndtype string
+	switch fsn.Type() {
+	case mfs.TDir:
+		ndtype = "directory"
+	case mfs.TFile:
+		ndtype = "file"
+	default:
+		return nil, fmt.Errorf("unrecognized node type: %s", fsn.Type())
+	}
+
 	return &Object{
 		Hash:           k.B58String(),
 		Blocks:         len(nd.Links),
 		Size:           d.GetFilesize(),
 		CumulativeSize: cumulsize,
+		Type:           ndtype,
 	}, nil
 }
 
 var FilesCpCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "copy files into mfs",
+		Tagline: "Copy files into mfs.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("source", true, false, "source object to copy"),
-		cmds.StringArg("dest", true, false, "destination to copy object to"),
+		cmds.StringArg("source", true, false, "Source object to copy."),
+		cmds.StringArg("dest", true, false, "Destination to copy object to."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -187,6 +199,7 @@ type Object struct {
 	Size           uint64
 	CumulativeSize uint64
 	Blocks         int
+	Type           string
 }
 
 type FilesLsOutput struct {
@@ -195,7 +208,7 @@ type FilesLsOutput struct {
 
 var FilesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directories",
+		Tagline: "List directories.",
 		ShortDescription: `
 List directories.
 
@@ -215,10 +228,10 @@ Examples:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to show listing for"),
+		cmds.StringArg("path", true, false, "Path to show listing for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("l", "use long listing format"),
+		cmds.BoolOption("l", "Use long listing format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -297,7 +310,7 @@ Examples:
 
 var FilesReadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Read a file in a given mfs",
+		Tagline: "Read a file in a given mfs.",
 		ShortDescription: `
 Read a specified number of bytes from a file at a given offset. By default, will
 read the entire file similar to unix cat.
@@ -310,11 +323,11 @@ Examples:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to file to be read"),
+		cmds.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "offset to read from"),
-		cmds.IntOption("n", "count", "maximum number of bytes to read"),
+		cmds.IntOption("o", "offset", "Offset to read from."),
+		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -387,7 +400,7 @@ Examples:
 
 var FilesMvCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Move files",
+		Tagline: "Move files.",
 		ShortDescription: `
 Move files around. Just like traditional unix mv.
 
@@ -399,8 +412,8 @@ Example:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("source", true, false, "source file to move"),
-		cmds.StringArg("dest", true, false, "target path for file to be moved to"),
+		cmds.StringArg("source", true, false, "Source file to move."),
+		cmds.StringArg("dest", true, false, "Target path for file to be moved to."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -430,7 +443,7 @@ Example:
 
 var FilesWriteCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Write to a mutable file in a given filesystem",
+		Tagline: "Write to a mutable file in a given filesystem.",
 		ShortDescription: `
 Write data to a file in a given filesystem. This command allows you to specify
 a beginning offset to write to. The entire length of the input will be written.
@@ -455,14 +468,14 @@ Warning:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to write to"),
-		cmds.FileArg("data", true, false, "data to write").EnableStdin(),
+		cmds.StringArg("path", true, false, "Path to write to."),
+		cmds.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "offset to write to"),
-		cmds.BoolOption("e", "create", "create the file if it does not exist"),
-		cmds.BoolOption("t", "truncate", "truncate the file before writing"),
-		cmds.IntOption("n", "count", "maximum number of bytes to read"),
+		cmds.IntOption("o", "offset", "Offset to write to."),
+		cmds.BoolOption("e", "create", "Create the file if it does not exist."),
+		cmds.BoolOption("t", "truncate", "Truncate the file before writing."),
+		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -553,7 +566,7 @@ Warning:
 
 var FilesMkdirCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "make directories",
+		Tagline: "Make directories.",
 		ShortDescription: `
 Create the directory if it does not already exist.
 
@@ -567,10 +580,10 @@ Examples:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "path to dir to make"),
+		cmds.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "parents", "no error if existing, make parent directories as needed"),
+		cmds.BoolOption("p", "parents", "No error if existing, make parent directories as needed."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -602,7 +615,7 @@ Examples:
 
 var FilesRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "remove a file",
+		Tagline: "Remove a file.",
 		ShortDescription: `
 remove files or directories
 
@@ -616,10 +629,10 @@ remove files or directories
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, true, "file to remove"),
+		cmds.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("r", "recursive", "recursively remove directories"),
+		cmds.BoolOption("r", "recursive", "Recursively remove directories."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

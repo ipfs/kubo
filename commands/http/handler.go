@@ -199,6 +199,10 @@ func guessMimeType(res cmds.Response) (string, error) {
 }
 
 func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req cmds.Request) {
+	h := w.Header()
+	// Expose our agent to allow identification
+	h.Set("Server", "go-ipfs/" + config.CurrentVersionNumber)
+	
 	mime, err := guessMimeType(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -221,8 +225,6 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	h := w.Header()
 
 	// Set up our potential trailer
 	h.Set("Trailer", StreamErrHeader)
@@ -332,7 +334,9 @@ func (cfg ServerConfig) AllowedOrigins() []string {
 func (cfg *ServerConfig) SetAllowedOrigins(origins ...string) {
 	cfg.cORSOptsRWMutex.Lock()
 	defer cfg.cORSOptsRWMutex.Unlock()
-	cfg.cORSOpts.AllowedOrigins = origins
+	o := make([]string, len(origins))
+	copy(o, origins)
+	cfg.cORSOpts.AllowedOrigins = o
 }
 
 func (cfg *ServerConfig) AppendAllowedOrigins(origins ...string) {

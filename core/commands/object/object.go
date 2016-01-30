@@ -42,7 +42,7 @@ type Object struct {
 
 var ObjectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with ipfs objects",
+		Tagline: "Interact with ipfs objects.",
 		ShortDescription: `
 'ipfs object' is a plumbing command used to manipulate DAG objects
 directly.`,
@@ -70,14 +70,14 @@ ipfs object patch <args>    - Create new object from old ones
 
 var ObjectDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Outputs the raw bytes in an IPFS object",
+		Tagline: "Outputs the raw bytes in an IPFS object.",
 		ShortDescription: `
-'ipfs object data' is a plumbing command for retreiving the raw bytes stored in
+'ipfs object data' is a plumbing command for retrieving the raw bytes stored in
 a DAG node. It outputs to stdout, and <key> is a base58 encoded
 multihash.
 `,
 		LongDescription: `
-'ipfs object data' is a plumbing command for retreiving the raw bytes stored in
+'ipfs object data' is a plumbing command for retrieving the raw bytes stored in
 a DAG node. It outputs to stdout, and <key> is a base58 encoded
 multihash.
 
@@ -87,7 +87,7 @@ output is the raw data of the object.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -108,16 +108,16 @@ output is the raw data of the object.
 
 var ObjectLinksCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Outputs the links pointed to by the specified object",
+		Tagline: "Outputs the links pointed to by the specified object.",
 		ShortDescription: `
-'ipfs object links' is a plumbing command for retreiving the links from
+'ipfs object links' is a plumbing command for retrieving the links from
 a DAG node. It outputs to stdout, and <key> is a base58 encoded
 multihash.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -157,14 +157,14 @@ multihash.
 
 var ObjectGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get and serialize the DAG node named by <key>",
+		Tagline: "Get and serialize the DAG node named by <key>.",
 		ShortDescription: `
-'ipfs object get' is a plumbing command for retreiving DAG nodes.
+'ipfs object get' is a plumbing command for retrieving DAG nodes.
 It serializes the DAG node to the format specified by the "--encoding"
 flag. It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 		LongDescription: `
-'ipfs object get' is a plumbing command for retreiving DAG nodes.
+'ipfs object get' is a plumbing command for retrieving DAG nodes.
 It serializes the DAG node to the format specified by the "--encoding"
 flag. It outputs to stdout, and <key> is a base58 encoded multihash.
 
@@ -176,7 +176,7 @@ This command outputs data in the following encodings:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -228,7 +228,7 @@ This command outputs data in the following encodings:
 
 var ObjectStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get stats for the DAG node named by <key>",
+		Tagline: "Get stats for the DAG node named by <key>.",
 		ShortDescription: `
 'ipfs object stat' is a plumbing command to print DAG node statistics.
 <key> is a base58 encoded multihash. It outputs to stdout:
@@ -242,7 +242,7 @@ var ObjectStatCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -289,7 +289,7 @@ var ObjectStatCmd = &cmds.Command{
 
 var ObjectPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Stores input as a DAG object, outputs its key",
+		Tagline: "Stores input as a DAG object, outputs its key.",
 		ShortDescription: `
 'ipfs object put' is a plumbing command for storing DAG nodes.
 It reads from stdin, and the output is a base58 encoded multihash.
@@ -326,10 +326,10 @@ and then run
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("data", true, false, "Data to be stored as a DAG object").EnableStdin(),
+		cmds.FileArg("data", true, false, "Data to be stored as a DAG object.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\""),
+		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\"."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -376,7 +376,7 @@ and then run
 
 var ObjectNewCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "creates a new object from an ipfs template",
+		Tagline: "Creates a new object from an ipfs template.",
 		ShortDescription: `
 'ipfs object new' is a plumbing command for creating new DAG nodes.
 `,
@@ -391,7 +391,7 @@ Available templates:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("template", false, false, "optional template to use"),
+		cmds.StringArg("template", false, false, "Optional template to use."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

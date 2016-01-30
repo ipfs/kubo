@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 )
 
@@ -33,7 +33,7 @@ func (e ErrNoLink) Error() string {
 // Resolver provides path resolution to IPFS
 // It has a pointer to a DAGService, which is uses to resolve nodes.
 type Resolver struct {
-	DAG merkledag.DAGService
+	DAG dag.DAGService
 }
 
 // SplitAbsPath clean up and split fpath. It extracts the first component (which
@@ -64,7 +64,7 @@ func SplitAbsPath(fpath Path) (mh.Multihash, []string, error) {
 
 // ResolvePath fetches the node for given path. It returns the last item
 // returned by ResolvePathComponents.
-func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (*merkledag.Node, error) {
+func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (*dag.Node, error) {
 	// validate path
 	if err := fpath.IsValid(); err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (*merkledag.Node
 // ResolvePathComponents fetches the nodes for each segment of the given path.
 // It uses the first path component as a hash (key) of the first node, then
 // resolves all other components walking the links, with ResolveLinks.
-func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]*merkledag.Node, error) {
+func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]*dag.Node, error) {
 	h, parts, err := SplitAbsPath(fpath)
 	if err != nil {
 		return nil, err
@@ -102,9 +102,9 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]*me
 //
 // ResolveLinks(nd, []string{"foo", "bar", "baz"})
 // would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
-func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names []string) ([]*merkledag.Node, error) {
+func (s *Resolver) ResolveLinks(ctx context.Context, ndd *dag.Node, names []string) ([]*dag.Node, error) {
 
-	result := make([]*merkledag.Node, 0, len(names)+1)
+	result := make([]*dag.Node, 0, len(names)+1)
 	result = append(result, ndd)
 	nd := ndd // dup arg workaround
 
@@ -112,7 +112,7 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 	for _, name := range names {
 
 		var next key.Key
-		var nlink *merkledag.Link
+		var nlink *dag.Link
 		// for each of the links in nd, the current object
 		for _, link := range nd.Links {
 			if link.Name == name {
