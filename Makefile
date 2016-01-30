@@ -19,7 +19,7 @@ gx:
 	go get -u github.com/whyrusleeping/gx-go
 
 deps: gx
-	gx install --global
+	gx --verbose install --global
 
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
