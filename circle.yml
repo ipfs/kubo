@@ -4,10 +4,13 @@ machine:
     TEST_VERBOSE: 1
     TRAVIS: 1
     CIRCLE: 1
+    IMPORT_PATH: "github.com/ipfs/go-ipfs"
+
   post:
     - sudo rm -rf /usr/local/go
     - if [ ! -e go1.5.2.linux-amd64.tar.gz ]; then curl -o go1.5.2.linux-amd64.tar.gz https://storage.googleapis.com/golang/go1.5.2.linux-amd64.tar.gz; fi
     - sudo tar -C /usr/local -xzf go1.5.2.linux-amd64.tar.gz
+
   services:
     - docker
 
@@ -19,7 +22,9 @@ dependencies:
     - go get -u github.com/whyrusleeping/gx-go
 
   override:
-      - gx --verbose install --global
+    - mkdir -p "$GOPATH/src/$IMPORT_PATH"
+    - rsync -azC --delete ./ "$GOPATH/src/$IMPORT_PATH/"
+    - gx --verbose install --global
 
   cache_directories:
     - ~/go1.5.2.linux-amd64.tar.gz
