@@ -23,7 +23,7 @@ dependencies:
 
   override:
     - mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - rsync -azC --delete ./ "$HOME/.go_workspace/src/$IMPORT_PATH/"
+    - cp -a . "$HOME/.go_workspace/src/$IMPORT_PATH"
     - gx --verbose install --global
 
   cache_directories:
