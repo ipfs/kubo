@@ -4,22 +4,22 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
 )
 
 type directoryBuilder struct {
-	dserv   mdag.DAGService
-	dirnode *mdag.Node
+	dserv   dag.DAGService
+	dirnode *dag.Node
 }
 
 // NewEmptyDirectory returns an empty merkledag Node with a folder Data chunk
-func NewEmptyDirectory() *mdag.Node {
-	return &mdag.Node{Data: format.FolderPBData()}
+func NewEmptyDirectory() *dag.Node {
+	return &dag.Node{Data: format.FolderPBData()}
 }
 
 // NewDirectory returns a directoryBuilder. It needs a DAGService to add the Children
-func NewDirectory(dserv mdag.DAGService) *directoryBuilder {
+func NewDirectory(dserv dag.DAGService) *directoryBuilder {
 	db := new(directoryBuilder)
 	db.dserv = dserv
 	db.dirnode = NewEmptyDirectory()
@@ -37,6 +37,6 @@ func (d *directoryBuilder) AddChild(ctx context.Context, name string, k key.Key)
 }
 
 // GetNode returns the root of this directoryBuilder
-func (d *directoryBuilder) GetNode() *mdag.Node {
+func (d *directoryBuilder) GetNode() *dag.Node {
 	return d.dirnode
 }

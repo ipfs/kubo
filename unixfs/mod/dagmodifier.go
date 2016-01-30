@@ -14,7 +14,7 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
@@ -33,8 +33,8 @@ var log = logging.Logger("dagio")
 // perform surgery on a DAG 'file'
 // Dear god, please rename this to something more pleasant
 type DagModifier struct {
-	dagserv mdag.DAGService
-	curNode *mdag.Node
+	dagserv dag.DAGService
+	curNode *dag.Node
 
 	splitter   chunk.SplitterGen
 	ctx        context.Context
@@ -47,7 +47,7 @@ type DagModifier struct {
 	read *uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from *dag.Node, serv dag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
 	return &DagModifier{
 		curNode:  from.Copy(),
 		dagserv:  serv,
@@ -212,7 +212,7 @@ func (dm *DagModifier) Sync() error {
 // modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
 // returns the new key of the passed in node and whether or not all the data in the reader
 // has been consumed.
-func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (key.Key, bool, error) {
+func (dm *DagModifier) modifyDag(node *dag.Node, offset uint64, data io.Reader) (key.Key, bool, error) {
 	f, err := ft.FromBytes(node.Data)
 	if err != nil {
 		return "", false, err
@@ -231,7 +231,7 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 			return "", false, err
 		}
 
-		nd := &mdag.Node{Data: b}
+		nd := &dag.Node{Data: b}
 		k, err := dm.dagserv.Add(nd)
 		if err != nil {
 			return "", false, err
@@ -284,7 +284,7 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(node *mdag.Node, spl chunk.Splitter) (*mdag.Node, error) {
+func (dm *DagModifier) appendData(node *dag.Node, spl chunk.Splitter) (*dag.Node, error) {
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,
@@ -347,7 +347,7 @@ func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 }
 
 // GetNode gets the modified DAG Node
-func (dm *DagModifier) GetNode() (*mdag.Node, error) {
+func (dm *DagModifier) GetNode() (*dag.Node, error) {
 	err := dm.Sync()
 	if err != nil {
 		return nil, err
@@ -432,7 +432,7 @@ func (dm *DagModifier) Truncate(size int64) error {
 }
 
 // dagTruncate truncates the given node to 'size' and returns the modified Node
-func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, error) {
+func dagTruncate(ctx context.Context, nd *dag.Node, size uint64, ds dag.DAGService) (*dag.Node, error) {
 	if len(nd.Links) == 0 {
 		// TODO: this can likely be done without marshaling and remarshaling
 		pbn, err := ft.FromBytes(nd.Data)
@@ -446,7 +446,7 @@ func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGSer
 
 	var cur uint64
 	end := 0
-	var modified *mdag.Node
+	var modified *dag.Node
 	ndata := new(ft.FSNode)
 	for i, lnk := range nd.Links {
 		child, err := lnk.GetNode(ctx, ds)

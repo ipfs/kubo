@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -20,7 +20,7 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-func buildTestDag(ds merkledag.DAGService, spl chunk.Splitter) (*merkledag.Node, error) {
+func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
@@ -121,7 +121,7 @@ func arrComp(a, b []byte) error {
 }
 
 type dagservAndPinner struct {
-	ds merkledag.DAGService
+	ds dag.DAGService
 	mp pin.Pinner
 }
 
@@ -523,7 +523,7 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 
 	data := []byte("AB")
 
-	nd := new(merkledag.Node)
+	nd := new(dag.Node)
 	nd.Data = ft.FilePBData(nil, 0)
 
 	dbp := &h.DagBuilderParams{
@@ -561,7 +561,7 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 	}
 }
 
-func printDag(nd *merkledag.Node, ds merkledag.DAGService, indent int) {
+func printDag(nd *dag.Node, ds dag.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data)
 	if err != nil {
 		panic(err)

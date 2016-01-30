@@ -7,7 +7,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 )
 
@@ -20,7 +20,7 @@ var ErrNoNamesys = errors.New(
 // entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
 // entries and returning the final merkledag node.  Effectively
 // enables /ipns/, /dns/, etc. in commands.
-func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, error) {
+func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*dag.Node, error) {
 	if strings.HasPrefix(p.String(), "/ipns/") {
 		// resolve ipns paths
 

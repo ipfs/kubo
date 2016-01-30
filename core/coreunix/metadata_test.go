@@ -16,17 +16,17 @@ import (
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	importer "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-func getDagserv(t *testing.T) merkledag.DAGService {
+func getDagserv(t *testing.T) dag.DAGService {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
 	blockserv := bserv.New(bs, offline.Exchange(bs))
-	return merkledag.NewDAGService(blockserv)
+	return dag.NewDAGService(blockserv)
 }
 
 func TestMetadata(t *testing.T) {

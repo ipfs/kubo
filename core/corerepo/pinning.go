@@ -20,12 +20,12 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 )
 
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {
-	dagnodes := make([]*merkledag.Node, 0)
+	dagnodes := make([]*dag.Node, 0)
 	for _, fpath := range paths {
 		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
 		if err != nil {

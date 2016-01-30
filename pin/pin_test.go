@@ -12,12 +12,12 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bs "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/util"
 )
 
-func randNode() (*mdag.Node, key.Key) {
-	nd := new(mdag.Node)
+func randNode() (*dag.Node, key.Key) {
+	nd := new(dag.Node)
 	nd.Data = make([]byte, 32)
 	util.NewTimeSeededRand().Read(nd.Data)
 	k, _ := nd.Key()
@@ -42,7 +42,7 @@ func TestPinnerBasic(t *testing.T) {
 	bstore := blockstore.NewBlockstore(dstore)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
 
-	dserv := mdag.NewDAGService(bserv)
+	dserv := dag.NewDAGService(bserv)
 
 	// TODO does pinner need to share datastore with blockservice?
 	p := NewPinner(dstore, dserv)
@@ -147,7 +147,7 @@ func TestDuplicateSemantics(t *testing.T) {
 	bstore := blockstore.NewBlockstore(dstore)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
 
-	dserv := mdag.NewDAGService(bserv)
+	dserv := dag.NewDAGService(bserv)
 
 	// TODO does pinner need to share datastore with blockservice?
 	p := NewPinner(dstore, dserv)
@@ -182,7 +182,7 @@ func TestFlush(t *testing.T) {
 	bstore := blockstore.NewBlockstore(dstore)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
 
-	dserv := mdag.NewDAGService(bserv)
+	dserv := dag.NewDAGService(bserv)
 	p := NewPinner(dstore, dserv)
 	_, k := randNode()
 
@@ -198,7 +198,7 @@ func TestPinRecursiveFail(t *testing.T) {
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
-	dserv := mdag.NewDAGService(bserv)
+	dserv := dag.NewDAGService(bserv)
 
 	p := NewPinner(dstore, dserv)
 

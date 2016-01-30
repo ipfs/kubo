@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
-	"github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 )
 
 func ignoreKeys(key.Key) {}
@@ -28,7 +28,7 @@ func TestMultisetRoundtrip(t *testing.T) {
 	dstore := dssync.MutexWrap(datastore.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
 	bserv := blockservice.New(bstore, offline.Exchange(bstore))
-	dag := merkledag.NewDAGService(bserv)
+	dag := dag.NewDAGService(bserv)
 
 	fn := func(m map[key.Key]uint16) bool {
 		// Generate a smaller range for refcounts than full uint64, as
@@ -43,7 +43,7 @@ func TestMultisetRoundtrip(t *testing.T) {
 		if err != nil {
 			t.Fatalf("storing multiset: %v", err)
 		}
-		root := &merkledag.Node{}
+		root := &dag.Node{}
 		const linkName = "dummylink"
 		if err := root.AddNodeLink(linkName, n); err != nil {
 			t.Fatalf("adding link to root node: %v", err)

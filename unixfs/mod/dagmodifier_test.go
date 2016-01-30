@@ -15,7 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "github.com/ipfs/go-ipfs/util"
@@ -24,24 +24,24 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-func getMockDagServ(t testing.TB) mdag.DAGService {
+func getMockDagServ(t testing.TB) dag.DAGService {
 	dstore := ds.NewMapDatastore()
 	tsds := sync.MutexWrap(dstore)
 	bstore := blockstore.NewBlockstore(tsds)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
-	return mdag.NewDAGService(bserv)
+	return dag.NewDAGService(bserv)
 }
 
-func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlockstore) {
+func getMockDagServAndBstore(t testing.TB) (dag.DAGService, blockstore.GCBlockstore) {
 	dstore := ds.NewMapDatastore()
 	tsds := sync.MutexWrap(dstore)
 	bstore := blockstore.NewBlockstore(tsds)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
-	dserv := mdag.NewDAGService(bserv)
+	dserv := dag.NewDAGService(bserv)
 	return dserv, bstore
 }
 
-func getNode(t testing.TB, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
+func getNode(t testing.TB, dserv dag.DAGService, size int64) ([]byte, *dag.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	node, err := imp.BuildTrickleDagFromReader(dserv, sizeSplitterGen(500)(in))
 	if err != nil {
@@ -575,7 +575,7 @@ func arrComp(a, b []byte) error {
 	return nil
 }
 
-func printDag(nd *mdag.Node, ds mdag.DAGService, indent int) {
+func printDag(nd *dag.Node, ds dag.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data)
 	if err != nil {
 		panic(err)

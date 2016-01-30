@@ -6,7 +6,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 )
 
 // Order is an identifier for traversal algorithm orders
@@ -20,17 +20,17 @@ const (
 
 // Options specifies a series of traversal options
 type Options struct {
-	DAG     mdag.DAGService // the dagservice to fetch nodes
-	Order   Order           // what order to traverse in
-	Func    Func            // the function to perform at each step
-	ErrFunc ErrFunc         // see ErrFunc. Optional
+	DAG     dag.DAGService // the dagservice to fetch nodes
+	Order   Order          // what order to traverse in
+	Func    Func           // the function to perform at each step
+	ErrFunc ErrFunc        // see ErrFunc. Optional
 
 	SkipDuplicates bool // whether to skip duplicate nodes
 }
 
 // State is a current traversal state
 type State struct {
-	Node  *mdag.Node
+	Node  *dag.Node
 	Depth int
 }
 
@@ -39,7 +39,7 @@ type traversal struct {
 	seen map[string]struct{}
 }
 
-func (t *traversal) shouldSkip(n *mdag.Node) (bool, error) {
+func (t *traversal) shouldSkip(n *dag.Node) (bool, error) {
 	if t.opts.SkipDuplicates {
 		k, err := n.Key()
 		if err != nil {
@@ -63,9 +63,9 @@ func (t *traversal) callFunc(next State) error {
 // stop processing. if it returns a nil node, just skip it.
 //
 // the error handling is a little complicated.
-func (t *traversal) getNode(link *mdag.Link) (*mdag.Node, error) {
+func (t *traversal) getNode(link *dag.Link) (*dag.Node, error) {
 
-	getNode := func(l *mdag.Link) (*mdag.Node, error) {
+	getNode := func(l *dag.Link) (*dag.Node, error) {
 		next, err := l.GetNode(context.TODO(), t.opts.DAG)
 		if err != nil {
 			return nil, err
@@ -103,7 +103,7 @@ type Func func(current State) error
 //
 type ErrFunc func(err error) error
 
-func Traverse(root *mdag.Node, o Options) error {
+func Traverse(root *dag.Node, o Options) error {
 	t := traversal{
 		opts: o,
 		seen: map[string]struct{}{},

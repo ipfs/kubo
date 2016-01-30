@@ -9,7 +9,7 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	cxt "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
@@ -19,14 +19,14 @@ import (
 // unixfs merkledag nodes as a tar archive format.
 // It wraps any io.Writer.
 type Writer struct {
-	Dag  mdag.DAGService
+	Dag  dag.DAGService
 	TarW *tar.Writer
 
 	ctx cxt.Context
 }
 
 // NewWriter wraps given io.Writer.
-func NewWriter(ctx cxt.Context, dag mdag.DAGService, archive bool, compression int, w io.Writer) (*Writer, error) {
+func NewWriter(ctx cxt.Context, dag dag.DAGService, archive bool, compression int, w io.Writer) (*Writer, error) {
 	return &Writer{
 		Dag:  dag,
 		TarW: tar.NewWriter(w),
@@ -34,7 +34,7 @@ func NewWriter(ctx cxt.Context, dag mdag.DAGService, archive bool, compression i
 	}, nil
 }
 
-func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
+func (w *Writer) writeDir(nd *dag.Node, fpath string) error {
 	if err := writeDirHeader(w.TarW, fpath); err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
 	return nil
 }
 
-func (w *Writer) writeFile(nd *mdag.Node, pb *upb.Data, fpath string) error {
+func (w *Writer) writeFile(nd *dag.Node, pb *upb.Data, fpath string) error {
 	if err := writeFileHeader(w.TarW, fpath, pb.GetFilesize()); err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (w *Writer) writeFile(nd *mdag.Node, pb *upb.Data, fpath string) error {
 	return nil
 }
 
-func (w *Writer) WriteNode(nd *mdag.Node, fpath string) error {
+func (w *Writer) WriteNode(nd *dag.Node, fpath string) error {
 	pb := new(upb.Data)
 	if err := proto.Unmarshal(nd.Data, pb); err != nil {
 		return err
