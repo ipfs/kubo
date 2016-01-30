@@ -5,6 +5,7 @@ machine:
     TRAVIS: 1
     CIRCLE: 1
     IMPORT_PATH: "github.com/ipfs/go-ipfs"
+    GOPATH: "$HOME/.go_workspace"
 
   post:
     - sudo rm -rf /usr/local/go
@@ -23,7 +24,7 @@ dependencies:
 
   override:
     - mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - cp -a . "$HOME/.go_workspace/src/$IMPORT_PATH"
+    - cp -a ./* "$HOME/.go_workspace/src/$IMPORT_PATH"
     - gx --verbose install --global
 
   cache_directories:
