@@ -38,6 +38,8 @@ type EncodingType string
 const (
 	JSON = "json"
 	XML  = "xml"
+	Tar  = "tar"
+	Gzip = "gzip"
 	Text = "text"
 	// TODO: support more encoding types
 )
