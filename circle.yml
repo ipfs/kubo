@@ -35,3 +35,4 @@ test:
   override:
     - make test_go_expensive
     - make test_sharness_expensive
+  pwd: "$GOPATH/src/$IMPORT_PATH"
