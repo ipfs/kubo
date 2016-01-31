@@ -34,6 +34,6 @@ dependencies:
 test:
   override:
     - make test_go_expensive:
-        pwd: "$GOPATH/src/$IMPORT_PATH"
+        pwd: "../.go_workspace/src/$IMPORT_PATH"
     - make test_sharness_expensive:
-        pwd: "$GOPATH/src/$IMPORT_PATH"
+        pwd: "../.go_workspace/src/$IMPORT_PATH"
