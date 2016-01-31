@@ -17,9 +17,9 @@ import (
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
 	u "github.com/ipfs/go-ipfs/util"
-	inet "gx/ipfs/QmQQCBoWhMZtStYuAAo2uDNNLit9n7yX5ANBecfjKq4XBn/go-libp2p/p2p/net"
-	mocknet "gx/ipfs/QmQQCBoWhMZtStYuAAo2uDNNLit9n7yX5ANBecfjKq4XBn/go-libp2p/p2p/net/mock"
-	peer "gx/ipfs/QmQQCBoWhMZtStYuAAo2uDNNLit9n7yX5ANBecfjKq4XBn/go-libp2p/p2p/peer"
+	inet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net"
+	mocknet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/mock"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 )
 
 func TestGetFailures(t *testing.T) {

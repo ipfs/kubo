@@ -1,7 +1,7 @@
 package peerset
 
 import (
-	peer "gx/ipfs/QmQQCBoWhMZtStYuAAo2uDNNLit9n7yX5ANBecfjKq4XBn/go-libp2p/p2p/peer"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 	"sync"
 )
 

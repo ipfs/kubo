@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	peer "gx/ipfs/QmQQCBoWhMZtStYuAAo2uDNNLit9n7yX5ANBecfjKq4XBn/go-libp2p/p2p/peer"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 

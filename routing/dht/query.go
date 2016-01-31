@@ -9,8 +9,8 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 	pset "github.com/ipfs/go-ipfs/util/peerset"
 	todoctr "github.com/ipfs/go-ipfs/util/todocounter"
-	peer "gx/ipfs/QmQQCBoWhMZtStYuAAo2uDNNLit9n7yX5ANBecfjKq4XBn/go-libp2p/p2p/peer"
-	queue "gx/ipfs/QmQQCBoWhMZtStYuAAo2uDNNLit9n7yX5ANBecfjKq4XBn/go-libp2p/p2p/peer/queue"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	queue "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer/queue"
 	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
