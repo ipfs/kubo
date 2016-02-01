@@ -8,19 +8,6 @@ test_description="Test multiple ipfs nodes"
 
 . lib/test-lib.sh
 
-export IPTB_ROOT="`pwd`/.iptb"
-
-ipfsi() {
-	dir="$1"
-	shift
-	IPFS_PATH="$IPTB_ROOT/$dir" ipfs $@
-}
-
-check_has_connection() {
-	node=$1
-	ipfsi $node swarm peers | grep ipfs > /dev/null
-}
-
 startup_cluster() {
 	test_expect_success "start up nodes" '
 		iptb start

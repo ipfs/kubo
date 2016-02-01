@@ -17,19 +17,6 @@ test_expect_success "disable mdns" '
 
 test_launch_ipfs_daemon
 
-export IPTB_ROOT="`pwd`/.iptb"
-
-ipfsi() {
-	dir="$1"
-	shift
-	IPFS_PATH="$IPTB_ROOT/$dir" ipfs $@
-}
-
-check_has_connection() {
-	node=$1
-	ipfsi $node swarm peers | grep ipfs > /dev/null
-}
-
 test_expect_success "setup iptb nodes" '
 	iptb init -n 5 -f --bootstrap=none --port=0
 '
