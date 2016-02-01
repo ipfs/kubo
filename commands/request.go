@@ -21,6 +21,7 @@ type OptMap map[string]interface{}
 type Context struct {
 	Online     bool
 	ConfigRoot string
+	ReqLog     *ReqLog
 
 	config     *config.Config
 	LoadConfig func(path string) (*config.Config, error)
