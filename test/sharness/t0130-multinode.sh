@@ -8,24 +8,6 @@ test_description="Test multiple ipfs nodes"
 
 . lib/test-lib.sh
 
-startup_cluster() {
-	test_expect_success "start up nodes" '
-		iptb start
-	'
-
-	test_expect_success "connect nodes to eachother" '
-		iptb connect [1-4] 0
-	'
-
-	test_expect_success "nodes are connected" '
-		check_has_connection 0 &&
-		check_has_connection 1 &&
-		check_has_connection 2 &&
-		check_has_connection 3 &&
-		check_has_connection 4
-	'
-}
-
 check_file_fetch() {
 	node=$1
 	fhash=$2
@@ -41,7 +23,7 @@ check_file_fetch() {
 }
 
 run_basic_test() {
-	startup_cluster 
+	startup_cluster 5
 
 	test_expect_success "add a file on node1" '
 		random 1000000 > filea &&
