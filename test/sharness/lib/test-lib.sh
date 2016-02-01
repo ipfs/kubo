@@ -53,6 +53,9 @@ fi
 # source our generic test lib
 . ../../ipfs-test-lib.sh
 
+# source iptb lib
+. ../lib/iptb-lib.sh
+
 test_cmp_repeat_10_sec() {
 	for i in $(test_seq 1 100)
 	do
