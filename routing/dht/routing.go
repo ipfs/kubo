@@ -317,7 +317,6 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, 
 		// Add unique providers from request, up to 'count'
 		for _, prov := range provs {
 			if ps.TryAdd(prov.ID) {
-				log.Event(ctx, "gotProvider", &key, &prov.ID)
 				select {
 				case peerOut <- prov:
 				case <-ctx.Done():

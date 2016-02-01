@@ -247,6 +247,9 @@ func (bs *Bitswap) HasBlock(blk *blocks.Block) error {
 	default:
 	}
 
+	k := blk.Key()
+	log.Event(context.TODO(), "HasBlock", &k)
+
 	err := bs.tryPutBlock(blk, 4) // attempt to store block up to four times
 	if err != nil {
 		log.Errorf("Error writing block to datastore: %s", err)
