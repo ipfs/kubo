@@ -17,3 +17,23 @@ check_has_connection() {
 	grep "ipfs" "swarm_peers_$node" >/dev/null
 }
 
+startup_cluster() {
+	num_nodes="$1"
+	bound=$(expr $num_nodes - 1)
+
+	test_expect_success "start up nodes" '
+		iptb start
+	'
+
+	test_expect_success "connect nodes to eachother" '
+		iptb connect [1-$bound] 0
+	'
+
+	for i in $(test_seq 1 $bound)
+	do
+		test_expect_success "node $i is connected" '
+			check_has_connection "$i" ||
+			test_fsh cat "swarm_peers_$i"
+		'
+	done
+}
