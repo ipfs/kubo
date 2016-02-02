@@ -108,6 +108,13 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 	result = append(result, ndd)
 	nd := ndd // dup arg workaround
 
+	curk, err := nd.Key()
+	if err != nil {
+		return nil, err
+	}
+
+	prev := curk
+
 	// for each of the path components
 	for _, name := range names {
 
@@ -115,12 +122,34 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 		ctx, cancel = context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 
-		nextnode, err := nd.GetLinkedNode(ctx, s.DAG, name)
-		if err == merkledag.ErrLinkNotFound {
+		var next key.Key
+		var nlink *merkledag.Link
+		// for each of the links in nd, the current object
+		for _, link := range nd.Links {
+			if link.Name == name {
+				this := key.Key(link.Hash)
+				log.Event(ctx, "path.ResolveLinks", &prev, logging.LoggableF(func() map[string]interface{} {
+					return map[string]interface{}{
+						"linkname": name,
+						"nextKey":  this.B58String(),
+					}
+				}))
+
+				prev = next
+				next = this
+				nlink = link
+				break
+			}
+		}
+
+		if nlink == nil {
 			n, _ := nd.Multihash()
 			return result, ErrNoLink{Name: name, Node: n}
-		} else if err != nil {
-			return append(result, nextnode), err
+		}
+
+		nextnode, err := nlink.GetNode(ctx, s.DAG)
+		if err != nil {
+			return result, err
 		}
 
 		nd = nextnode
