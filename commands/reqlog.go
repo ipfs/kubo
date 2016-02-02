@@ -45,7 +45,6 @@ func (rl *ReqLog) Add(req Request) *ReqLogEntry {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
 
-	log.Error("ADD: ", req)
 	rle := &ReqLogEntry{
 		StartTime: time.Now(),
 		Active:    true,
@@ -94,8 +93,6 @@ func (rl *ReqLog) Report() []*ReqLogEntry {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
 	out := make([]*ReqLogEntry, len(rl.Requests))
-
-	log.Error("REPORT: ", rl.Requests)
 
 	for i, e := range rl.Requests {
 		out[i] = e.Copy()

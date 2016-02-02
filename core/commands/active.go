@@ -33,9 +33,9 @@ Lists running and recently run commands.
 			fmt.Fprintln(w, "Command\tActive\tStartTime\tRunTime")
 			for _, req := range *out {
 				if req.Active {
-					fmt.Fprintf(w, "%s\t%s\t%s\n", req.Command, "true", req.StartTime, time.Now().Sub(req.StartTime))
+					fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", req.Command, "true", req.StartTime, time.Now().Sub(req.StartTime))
 				} else {
-					fmt.Fprintf(w, "%s\t%s\t%s\n", req.Command, "false", req.StartTime, req.EndTime.Sub(req.StartTime))
+					fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", req.Command, "false", req.StartTime, req.EndTime.Sub(req.StartTime))
 				}
 			}
 			w.Flush()
