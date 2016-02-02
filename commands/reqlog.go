@@ -20,13 +20,18 @@ type ReqLogEntry struct {
 }
 
 func (r *ReqLogEntry) Finish() {
-	r.log.lock.Lock()
-	defer r.log.lock.Unlock()
+	log := r.log
+	log.lock.Lock()
+	defer log.lock.Unlock()
 
 	r.Active = false
 	r.EndTime = time.Now()
-
 	r.log.maybeCleanup()
+
+	// remove references to save memory
+	r.req = nil
+	r.log = nil
+
 }
 
 func (r *ReqLogEntry) Copy() *ReqLogEntry {

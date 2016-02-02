@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sort"
 	"text/tabwriter"
 	"time"
 
@@ -35,6 +36,9 @@ Lists running and recently run commands.
 			verbose, _, _ := res.Request().Option("v").Bool()
 
 			w := tabwriter.NewWriter(buf, 4, 4, 2, ' ', 0)
+			if verbose {
+				fmt.Fprint(w, "ID\t")
+			}
 			fmt.Fprint(w, "Command\t")
 			if verbose {
 				fmt.Fprint(w, "Arguments\tOptions\t")
@@ -42,11 +46,20 @@ Lists running and recently run commands.
 			fmt.Fprintln(w, "Active\tStartTime\tRunTime")
 
 			for _, req := range *out {
+				if verbose {
+					fmt.Fprintf(w, "%d\t", req.ID)
+				}
 				fmt.Fprintf(w, "%s\t", req.Command)
 				if verbose {
 					fmt.Fprintf(w, "%v\t[", req.Args)
-					for k, v := range req.Options {
-						fmt.Fprintf(w, "%s=%v,", k, v)
+					var keys []string
+					for k, _ := range req.Options {
+						keys = append(keys, k)
+					}
+					sort.Strings(keys)
+
+					for _, k := range keys {
+						fmt.Fprintf(w, "%s=%v,", k, req.Options[k])
 					}
 					fmt.Fprintf(w, "]\t")
 				}
