@@ -38,3 +38,4 @@ func (m *Mock) GetStorageUsage() (uint64, error) { return 0, nil }
 func (m *Mock) Close() error { return errTODO }
 
 func (m *Mock) SetAPIAddr(addr string) error { return errTODO }
+func (m *Mock) GetAPIAddr() (string, error)  { return "", errTODO }

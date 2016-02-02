@@ -22,6 +22,16 @@ var CatCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("v", "verbose", "print verbose debugging information"),
+	},
+	PreRun: func(req cmds.Request) error {
+		verbose, _, _ := req.Option("verbose").Bool()
+		if verbose {
+			return PrintDebugLog(req)
+		}
+		return nil
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
 		if err != nil {

@@ -325,7 +325,9 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 			log.Infof("received un-asked-for %s from %s", block, p)
 			continue
 		}
-		keys = append(keys, block.Key())
+		k := block.Key()
+		keys = append(keys, k)
+		log.Event(ctx, "receivedBlock", &k, &p)
 	}
 	bs.wm.CancelWants(keys)
 

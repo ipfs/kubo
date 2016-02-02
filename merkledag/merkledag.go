@@ -158,11 +158,13 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeO
 // It returns a channel of nodes, which the caller can receive
 // all the child nodes of 'root' on, in proper order.
 func GetDAG(ctx context.Context, ds DAGService, root *Node) []NodeGetter {
-	var keys []key.Key
+	var keys key.KeyList
 	for _, lnk := range root.Links {
 		keys = append(keys, key.Key(lnk.Hash))
 	}
 
+	rootk, _ := root.Key()
+	log.Event(ctx, "getDAG", &rootk, &keys)
 	return GetNodes(ctx, ds, keys)
 }
 

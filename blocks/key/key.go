@@ -67,6 +67,14 @@ func (k *Key) Loggable() map[string]interface{} {
 	}
 }
 
+type KeyList []Key
+
+func (kl *KeyList) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"keys": *kl,
+	}
+}
+
 // KeyFromDsKey returns a Datastore key
 func KeyFromDsKey(dsk ds.Key) Key {
 	return Key(dsk.String()[1:])

@@ -79,8 +79,13 @@ var (
 type FSRepo struct {
 	// has Close been called already
 	closed bool
+
 	// path is the file-system path
 	path string
+
+	// api address cached here
+	apiaddr string
+
 	// lockfile is the file system lock to prevent others from opening
 	// the same fsrepo path concurrently
 	lockfile io.Closer
@@ -308,6 +313,14 @@ func (r *FSRepo) SetAPIAddr(addr string) error {
 
 	_, err = f.WriteString(addr)
 	return err
+}
+
+func (r *FSRepo) GetAPIAddr() (string, error) {
+	if r.apiaddr == "" {
+		return "", errors.New("api address not set")
+	}
+
+	return r.apiaddr, nil
 }
 
 // openConfig returns an error if the config file is not present.
