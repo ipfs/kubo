@@ -96,9 +96,16 @@ func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) http.Ha
 		panic("must provide a valid ServerConfig")
 	}
 
+	// setup request logger
+	ctx.ReqLog = new(cmds.ReqLog)
+
 	// Wrap the internal handler with CORS handling-middleware.
 	// Create a handler for the API.
-	internal := internalHandler{ctx, root, cfg}
+	internal := internalHandler{
+		ctx:  ctx,
+		root: root,
+		cfg:  cfg,
+	}
 	c := cors.New(*cfg.cORSOpts)
 	return &Handler{internal, c.Handler(internal)}
 }
@@ -158,6 +165,9 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rlog := i.ctx.ReqLog.Add(req)
+	defer rlog.Finish()
+
 	//ps: take note of the name clash - commands.Context != context.Context
 	req.SetInvocContext(i.ctx)
 
@@ -201,8 +211,8 @@ func guessMimeType(res cmds.Response) (string, error) {
 func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req cmds.Request) {
 	h := w.Header()
 	// Expose our agent to allow identification
-	h.Set("Server", "go-ipfs/" + config.CurrentVersionNumber)
-	
+	h.Set("Server", "go-ipfs/"+config.CurrentVersionNumber)
+
 	mime, err := guessMimeType(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
