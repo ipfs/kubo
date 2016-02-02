@@ -33,11 +33,11 @@ ipfs config edit           - Edit config file in $EDITOR
 ipfs config replace <file> - Replaces the config file with <file>
 `,
 		ShortDescription: `
-ipfs config controls configuration variables. It works like 'git config'.
+'ipfs config' controls configuration variables. It works like 'git config'.
 The configuration values are stored in a config file inside your IPFS
 repository.`,
 		LongDescription: `
-ipfs config controls configuration variables. It works
+'ipfs config' controls configuration variables. It works
 much like 'git config'. The configuration values are stored in a config
 file inside your IPFS repository.
 
