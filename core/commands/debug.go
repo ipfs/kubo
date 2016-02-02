@@ -83,6 +83,7 @@ func PrintDebugLog(req cmds.Request) error {
 		interested := map[string]bool{
 			target: true,
 		}
+		provs := make(map[string]bool)
 
 		for e := range events {
 			switch e["event"] {
@@ -101,6 +102,7 @@ func PrintDebugLog(req cmds.Request) error {
 			case "gotProvider":
 				if interested[e["key"].(string)] {
 					write(" * got provider %s for %s", e["peerID"], e["key"])
+					provs[e["peerID"].(string)] = true
 				}
 			case "getDAG":
 				if interested[e["key"].(string)] {
@@ -111,12 +113,20 @@ func PrintDebugLog(req cmds.Request) error {
 						}
 					}
 				}
+
 			case "path.ResolveLinks":
 				if interested[e["key"].(string)] {
 					nkey := e["linkkey"].(string)
 					interested[nkey] = true
 					write(" * resolve elem %q = %s", e["linkname"], nkey)
 				}
+
+			case "swarmDialDoSetup":
+				p := e["remotePeer"].(string)
+				if provs[p] {
+					write(" * connected to provider %s on %s", p, e["remoteAddr"])
+				}
+
 			default:
 				write("UNRECOGNIZED: %s", e["event"])
 			}
