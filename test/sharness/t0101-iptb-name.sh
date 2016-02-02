@@ -8,45 +8,11 @@ test_description="Test ipfs repo operations"
 
 . lib/test-lib.sh
 
-export IPTB_ROOT="`pwd`/.iptb"
-
 num_nodes=4
-
-ipfsi() {
-	dir="$1"
-	shift
-	IPFS_PATH="$IPTB_ROOT/$dir" ipfs $@
-}
 
 test_expect_success "set up an iptb cluster" '
 	iptb init -n $num_nodes -p 0 -f --bootstrap=none
 '
-
-check_has_connection() {
-	node=$1
-	ipfsi $node swarm peers | grep ipfs > /dev/null
-}
-
-startup_cluster() {
-	bound=`expr $num_nodes - 1`
-	test_expect_success "start up nodes" '
-		iptb start
-	'
-
-	test_expect_success "connect nodes to eachother" '
-		iptb connect [1-$bound] 0
-	'
-
-	test_expect_success "nodes are connected" '
-		for i in `seq $bound`
-		do
-			if ! check_has_connection $i; then
-				echo "oh shit guys"
-				return 1
-			fi
-		done
-	'
-}
 
 startup_cluster $num_nodes
 

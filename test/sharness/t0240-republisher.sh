@@ -8,14 +8,7 @@ test_description="Test ipfs repo operations"
 
 . lib/test-lib.sh
 
-export IPTB_ROOT="`pwd`/.iptb"
 export DEBUG=true
-
-ipfsi() {
-	dir="$1"
-	shift
-	IPFS_PATH="$IPTB_ROOT/$dir" ipfs "$@"
-}
 
 setup_iptb() {
 	test_expect_success "iptb init" '
