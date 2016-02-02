@@ -71,6 +71,7 @@ func (rl *ReqLog) maybeCleanup() {
 
 func (rl *ReqLog) cleanup() {
 	var i int
+	// drop all logs at are inactive and more than an hour old
 	for ; i < len(rl.Requests); i++ {
 		req := rl.Requests[i]
 		if req.Active || req.EndTime.Add(time.Hour).After(time.Now()) {
@@ -89,6 +90,7 @@ func (rl *ReqLog) cleanup() {
 	}
 }
 
+// Report generates a copy of all the entries in the requestlog
 func (rl *ReqLog) Report() []*ReqLogEntry {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
