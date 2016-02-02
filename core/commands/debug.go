@@ -113,7 +113,7 @@ func PrintDebugLog(req cmds.Request) error {
 				}
 			case "path.ResolveLinks":
 				if interested[e["key"].(string)] {
-					nkey := e["nextKey"].(string)
+					nkey := e["linkkey"].(string)
 					interested[nkey] = true
 					write(" * resolve elem %q = %s", e["linkname"], nkey)
 				}

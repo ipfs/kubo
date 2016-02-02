@@ -78,6 +78,13 @@ func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 	return serv.Get(ctx, key.Key(l.Hash))
 }
 
+func (l *Link) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"linkname": l.Name,
+		"linkkey":  l.Hash.B58String(),
+	}
+}
+
 // AddNodeLink adds a link to another node.
 func (n *Node) AddNodeLink(name string, that *Node) error {
 	n.encoded = nil

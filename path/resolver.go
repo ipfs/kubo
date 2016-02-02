@@ -127,16 +127,10 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 		// for each of the links in nd, the current object
 		for _, link := range nd.Links {
 			if link.Name == name {
-				this := key.Key(link.Hash)
-				log.Event(ctx, "path.ResolveLinks", &prev, logging.LoggableF(func() map[string]interface{} {
-					return map[string]interface{}{
-						"linkname": name,
-						"nextKey":  this.B58String(),
-					}
-				}))
+				log.Event(ctx, "path.ResolveLinks", &prev, link)
 
 				prev = next
-				next = this
+				next = key.Key(link.Hash)
 				nlink = link
 				break
 			}
