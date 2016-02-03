@@ -110,22 +110,13 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 
 	// for each of the path components
 	for _, name := range names {
-
-		var next key.Key
-		var nlink *merkledag.Link
 		// for each of the links in nd, the current object
-		for _, link := range nd.Links {
-			if link.Name == name {
-				next = key.Key(link.Hash)
-				nlink = link
-				break
-			}
-		}
-
-		if next == "" {
+		nlink, err := nd.GetNodeLink(name)
+		if err != nil {
 			n, _ := nd.Multihash()
 			return result, ErrNoLink{Name: name, Node: n}
 		}
+		next := key.Key(nlink.Hash)
 
 		if nlink.Node == nil {
 			// fetch object for link and assign to nd

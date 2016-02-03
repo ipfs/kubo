@@ -150,13 +150,11 @@ func (d *Directory) Child(name string) (FSNode, error) {
 // childFromDag searches through this directories dag node for a child link
 // with the given name
 func (d *Directory) childFromDag(name string) (*dag.Node, error) {
-	for _, lnk := range d.node.Links {
-		if lnk.Name == name {
-			return lnk.GetNode(d.ctx, d.dserv)
-		}
+	nd, err := d.node.GetLinkedNode(d.ctx, d.dserv, name)
+	if err != nil {
+		return nil, os.ErrNotExist
 	}
-
-	return nil, os.ErrNotExist
+	return nd, nil
 }
 
 // childUnsync returns the child under this directory by the given name
