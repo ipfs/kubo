@@ -91,7 +91,7 @@ CORS Headers (for API)
 
 You can setup CORS headers the same way:
 
-	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'
+	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["example.com"]'
 	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
 	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Credentials '["true"]'
 
