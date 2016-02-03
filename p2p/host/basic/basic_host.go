@@ -246,6 +246,7 @@ func (h *BasicHost) Addrs() []ma.Multiaddr {
 
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
+	defer log.Info("host is shutting down...")
 	return h.proc.Close()
 }
 

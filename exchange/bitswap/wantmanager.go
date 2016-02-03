@@ -205,6 +205,7 @@ func (pm *WantManager) Disconnected(p peer.ID) {
 
 // TODO: use goprocess here once i trust it
 func (pm *WantManager) Run() {
+	defer log.Infof("bitswap wantmanager shutting down...")
 	tock := time.NewTicker(rebroadcastDelay.Get())
 	defer tock.Stop()
 	for {

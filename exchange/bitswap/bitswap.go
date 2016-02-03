@@ -377,6 +377,7 @@ func (bs *Bitswap) ReceiveError(err error) {
 }
 
 func (bs *Bitswap) Close() error {
+	defer log.Info("bitswap is shutting down...")
 	return bs.process.Close()
 }
 

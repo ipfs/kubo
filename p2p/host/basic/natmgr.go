@@ -52,6 +52,7 @@ func newNatManager(host *BasicHost) *natManager {
 // Close closes the natManager, closing the underlying nat
 // and unregistering from network events.
 func (nmgr *natManager) Close() error {
+	defer log.Info("natManager is shutting down...")
 	return nmgr.proc.Close()
 }
 

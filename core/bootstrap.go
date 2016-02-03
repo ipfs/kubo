@@ -92,6 +92,10 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 	// kick off the node's periodic bootstrapping
 	proc := periodicproc.Tick(cfg.Period, periodic)
 	proc.Go(periodic) // run one right now.
+	go func() {
+		<-proc.Closing()
+		log.Info("bootstrapper is shutting down...")
+	}()
 
 	// kick off Routing.Bootstrap
 	if n.Routing != nil {
