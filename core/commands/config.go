@@ -217,7 +217,7 @@ can't be undone.
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 	value, err := r.GetConfigKey(key)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get config value: %s", err)
+		return nil, fmt.Errorf("Failed to get config value: %q", err)
 	}
 	return &ConfigField{
 		Key:   key,
