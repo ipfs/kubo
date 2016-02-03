@@ -11,7 +11,7 @@ import (
 
 // Any type that implements exchange.Interface may be used as an IPFS block
 // exchange protocol.
-type Interface interface {
+type Interface interface { // type Exchanger interface
 	// GetBlock returns the block associated with a given key.
 	GetBlock(context.Context, key.Key) (*blocks.Block, error)
 

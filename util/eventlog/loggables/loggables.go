@@ -1,9 +1,9 @@
-// Package loggables includes a bunch of transaltor functions for commonplace/stdlib
-// objects. This is boilerplate code that shouldn't change much, and not sprinkled
-// all over the place (i.e. gather it here).
+// Package loggables includes a bunch of translator functions for
+// commonplace/stdlib objects. This is boilerplate code that shouldn't change
+// much, and not sprinkled all over the place (i.e. gather it here).
 //
 // Note: it may make sense to put all stdlib Loggable functions in the eventlog
-// package. Putting it here for now in case we don't want to polute it.
+// package. Putting it here for now in case we don't want to pollute it.
 package loggables
 
 import (
@@ -50,7 +50,7 @@ func Dial(sys string, lid, rid peer.ID, laddr, raddr ma.Multiaddr) DeferredMap {
 	return m
 }
 
-// DeferredMap is a Loggable which may contained deffered values.
+// DeferredMap is a Loggable which may contain deferred values.
 type DeferredMap map[string]interface{}
 
 // Loggable describes objects that can be marshalled into Metadata for logging

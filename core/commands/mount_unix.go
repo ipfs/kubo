@@ -215,8 +215,15 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 	<-done
 	<-done
 
+	if err1 != nil {
+		log.Errorf("error mounting: %s", err1)
+	}
+
+	if err2 != nil {
+		log.Errorf("error mounting: %s", err2)
+	}
+
 	if err1 != nil || err2 != nil {
-		log.Errorf("error mounting: %s %s", err1, err2)
 		if fsmount != nil {
 			fsmount.Unmount()
 		}

@@ -57,7 +57,7 @@ type cmdInvocation struct {
 
 // main roadmap:
 // - parse the commandline to get a cmdInvocation
-// - if user requests, help, print it and exit.
+// - if user requests help, print it and exit.
 // - run the command invocation
 // - output the response
 // - if anything fails, print error, maybe with help
