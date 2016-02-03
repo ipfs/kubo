@@ -19,6 +19,15 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
+const offlineIdErrorMessage = `'ipfs id' currently cannot query information on remote
+peers without a running daemon; we are working to fix this.
+In the meantime, if you want to query remote peers using 'ipfs id',
+please run the daemon:
+
+    ipfs daemon &
+    ipfs id QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+`
+
 type IdOutput struct {
 	ID              string
 	PublicKey       string
