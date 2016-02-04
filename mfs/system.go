@@ -42,9 +42,8 @@ const (
 // FSNode represents any node (directory, root, or file) in the mfs filesystem
 type FSNode interface {
 	GetNode() (*dag.Node, error)
+	Flush() error
 	Type() NodeType
-	Lock()
-	Unlock()
 }
 
 // Root represents the root of a filesystem tree
@@ -210,6 +209,13 @@ func (p *Republisher) pubNow() {
 }
 
 func (p *Republisher) WaitPub() {
+	p.lk.Lock()
+	consistent := p.lastpub == p.val
+	p.lk.Unlock()
+	if consistent {
+		return
+	}
+
 	wait := make(chan struct{})
 	p.pubnowch <- wait
 	<-wait
@@ -273,7 +279,6 @@ func (np *Republisher) publish(ctx context.Context) error {
 	topub := np.val
 	np.lk.Unlock()
 
-	log.Info("Publishing Changes!")
 	err := np.pubfunc(ctx, topub)
 	if err != nil {
 		return err

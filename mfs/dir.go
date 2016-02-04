@@ -183,8 +183,8 @@ type NodeListing struct {
 }
 
 func (d *Directory) ListNames() []string {
-	d.Lock()
-	defer d.Unlock()
+	d.lock.Lock()
+	defer d.lock.Unlock()
 
 	names := make(map[string]struct{})
 	for n, _ := range d.childDirs {
@@ -390,12 +390,4 @@ func (d *Directory) GetNode() (*dag.Node, error) {
 	}
 
 	return d.node.Copy(), nil
-}
-
-func (d *Directory) Lock() {
-	d.lock.Lock()
-}
-
-func (d *Directory) Unlock() {
-	d.lock.Unlock()
 }

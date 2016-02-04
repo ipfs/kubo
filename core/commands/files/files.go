@@ -368,6 +368,14 @@ Examples:
 			return
 		}
 
+		rfd, err := fi.Open(mfs.OpenReadOnly, false)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		defer rfd.Close()
+
 		offset, _, err := req.Option("offset").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -378,7 +386,7 @@ Examples:
 			return
 		}
 
-		filen, err := fi.Size()
+		filen, err := rfd.Size()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -389,12 +397,13 @@ Examples:
 			return
 		}
 
-		_, err = fi.Seek(int64(offset), os.SEEK_SET)
+		_, err = rfd.Seek(int64(offset), os.SEEK_SET)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		var r io.Reader = &contextReaderWrapper{R: fi, ctx: req.Context()}
+
+		var r io.Reader = &contextReaderWrapper{R: rfd, ctx: req.Context()}
 		count, found, err := req.Option("count").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -405,7 +414,7 @@ Examples:
 				res.SetError(fmt.Errorf("cannot specify negative 'count'"), cmds.ErrNormal)
 				return
 			}
-			r = io.LimitReader(fi, int64(count))
+			r = io.LimitReader(r, int64(count))
 		}
 
 		res.SetOutput(r)
@@ -540,14 +549,16 @@ Warning:
 			return
 		}
 
-		if flush {
-			defer fi.Close()
-		} else {
-			defer fi.Sync()
+		wfd, err := fi.Open(mfs.OpenWriteOnly, flush)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
+		defer wfd.Close()
+
 		if trunc {
-			if err := fi.Truncate(0); err != nil {
+			if err := wfd.Truncate(0); err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
@@ -563,7 +574,7 @@ Warning:
 			return
 		}
 
-		_, err = fi.Seek(int64(offset), os.SEEK_SET)
+		_, err = wfd.Seek(int64(offset), os.SEEK_SET)
 		if err != nil {
 			log.Error("seekfail: ", err)
 			res.SetError(err, cmds.ErrNormal)
@@ -581,7 +592,7 @@ Warning:
 			r = io.LimitReader(r, int64(count))
 		}
 
-		n, err := io.Copy(fi, input)
+		n, err := io.Copy(wfd, input)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

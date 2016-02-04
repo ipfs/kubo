@@ -196,87 +196,17 @@ func DirLookup(d *Directory, pth string) (FSNode, error) {
 	return cur, nil
 }
 
-func FlushPath(r *Root, pth string) error {
-	parts := path.SplitList(strings.Trim(pth, "/"))
-	if len(parts) == 1 && parts[0] == "" {
-		parts = nil
-	}
-
-	d, ok := r.GetValue().(*Directory)
-	if !ok {
-		return errors.New("mfs root somehow didnt point to a directory")
-	}
-
-	nd, err := flushPathRec(d, parts)
+func FlushPath(rt *Root, pth string) error {
+	nd, err := Lookup(rt, pth)
 	if err != nil {
 		return err
 	}
 
-	k, err := nd.Key()
+	err = nd.Flush()
 	if err != nil {
 		return err
 	}
 
-	r.repub.Update(k)
-	r.repub.WaitPub()
-
+	rt.repub.WaitPub()
 	return nil
-}
-
-func flushPathRec(d *Directory, parts []string) (*dag.Node, error) {
-	if len(parts) == 0 {
-		nd, err := d.GetNode()
-		if err != nil {
-			return nil, err
-		}
-
-		return nd, nil
-	}
-
-	d.Lock()
-	defer d.Unlock()
-
-	next, err := d.childUnsync(parts[0])
-	if err != nil {
-		log.Errorf("childnode: %q %q", parts[0], err)
-		return nil, err
-	}
-
-	var ndagnode *dag.Node
-	switch next := next.(type) {
-	case *Directory:
-		nd, err := flushPathRec(next, parts[1:])
-		if err != nil {
-			return nil, err
-		}
-
-		ndagnode = nd
-
-	case *File:
-		if len(parts) > 1 {
-			return nil, fmt.Errorf("%s is a file, not a directory", parts[0])
-		}
-
-		child, err := next.GetNode()
-		if err != nil {
-			return nil, err
-		}
-
-		ndagnode = child
-	default:
-		return nil, fmt.Errorf("unrecognized FSNode type: %#v", next)
-	}
-
-	newnode, err := d.node.UpdateNodeLink(parts[0], ndagnode)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = d.dserv.Add(newnode)
-	if err != nil {
-		return nil, err
-	}
-
-	d.node = newnode
-	return newnode, nil
 }

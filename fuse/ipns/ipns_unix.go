@@ -23,6 +23,14 @@ import (
 	ci "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
 )
 
+func init() {
+	if os.Getenv("IPFS_FUSE_DEBUG") != "" {
+		fuse.Debug = func(msg interface{}) {
+			fmt.Println(msg)
+		}
+	}
+}
+
 var log = logging.Logger("fuse/ipns")
 
 // FileSystem is the readwrite IPNS Fuse Filesystem.
@@ -102,7 +110,7 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 	case *mfs.Directory:
 		return &Directory{dir: val}, nil
 	case *mfs.File:
-		return &File{fi: val}, nil
+		return &FileNode{fi: val}, nil
 	default:
 		return nil, errors.New("unrecognized type")
 	}
@@ -177,7 +185,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		switch nd := nd.(type) {
 		case *Directory:
 			return nd, nil
-		case *File:
+		case *FileNode:
 			return nd, nil
 		default:
 			return nil, fuse.EIO
@@ -248,15 +256,15 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 // Directory is wrapper over an mfs directory to satisfy the fuse fs interface
 type Directory struct {
 	dir *mfs.Directory
+}
 
-	fs.NodeRef
+type FileNode struct {
+	fi *mfs.File
 }
 
 // File is wrapper over an mfs file to satisfy the fuse fs interface
 type File struct {
-	fi *mfs.File
-
-	fs.NodeRef
+	fi mfs.FileDescriptor
 }
 
 // Attr returns the attributes of a given node.
@@ -269,7 +277,7 @@ func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 }
 
 // Attr returns the attributes of a given node.
-func (fi *File) Attr(ctx context.Context, a *fuse.Attr) error {
+func (fi *FileNode) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("File Attr")
 	size, err := fi.fi.Size()
 	if err != nil {
@@ -295,7 +303,7 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	case *mfs.Directory:
 		return &Directory{dir: child}, nil
 	case *mfs.File:
-		return &File{fi: child}, nil
+		return &FileNode{fi: child}, nil
 	default:
 		// NB: if this happens, we do not want to continue, unpredictable behaviour
 		// may occur.
@@ -365,7 +373,7 @@ func (fi *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wr
 func (fi *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	errs := make(chan error, 1)
 	go func() {
-		errs <- fi.fi.Close()
+		errs <- fi.fi.Flush()
 	}()
 	select {
 	case err := <-errs:
@@ -393,7 +401,7 @@ func (fi *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fus
 
 // Fsync flushes the content in the file to disk, but does not
 // update the dag tree internally
-func (fi *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
+func (fi *FileNode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	errs := make(chan error, 1)
 	go func() {
 		errs <- fi.fi.Sync()
@@ -422,25 +430,49 @@ func (dir *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Nod
 	return &Directory{dir: child}, nil
 }
 
-func (fi *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+func (fi *FileNode) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+	var mfsflag int
+	switch {
+	case req.Flags.IsReadOnly():
+		mfsflag = mfs.OpenReadOnly
+	case req.Flags.IsWriteOnly():
+		mfsflag = mfs.OpenWriteOnly
+	case req.Flags.IsReadWrite():
+		mfsflag = mfs.OpenReadWrite
+	default:
+		return nil, errors.New("unsupported flag type")
+	}
+
+	fd, err := fi.fi.Open(mfsflag, true)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.Flags&fuse.OpenTruncate != 0 {
+		if req.Flags.IsReadOnly() {
+			log.Error("tried to open a readonly file with truncate")
+			return nil, fuse.ENOTSUP
+		}
 		log.Info("Need to truncate file!")
-		err := fi.fi.Truncate(0)
+		err := fd.Truncate(0)
 		if err != nil {
 			return nil, err
 		}
 	} else if req.Flags&fuse.OpenAppend != 0 {
 		log.Info("Need to append to file!")
+		if req.Flags.IsReadOnly() {
+			log.Error("tried to open a readonly file with append")
+			return nil, fuse.ENOTSUP
+		}
 
-		// seek(0) essentially resets the file object, this is required for appends to work
-		// properly
-		_, err := fi.fi.Seek(0, os.SEEK_SET)
+		_, err := fd.Seek(0, os.SEEK_END)
 		if err != nil {
 			log.Error("seek reset failed: ", err)
 			return nil, err
 		}
 	}
-	return fi, nil
+
+	return &File{fi: fd}, nil
 }
 
 func (fi *File) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
@@ -465,8 +497,26 @@ func (dir *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp 
 		return nil, nil, errors.New("child creation failed")
 	}
 
-	nodechild := &File{fi: fi}
-	return nodechild, nodechild, nil
+	nodechild := &FileNode{fi: fi}
+
+	var openflag int
+	switch {
+	case req.Flags.IsReadOnly():
+		openflag = mfs.OpenReadOnly
+	case req.Flags.IsWriteOnly():
+		openflag = mfs.OpenWriteOnly
+	case req.Flags.IsReadWrite():
+		openflag = mfs.OpenReadWrite
+	default:
+		return nil, nil, errors.New("unsupported open mode")
+	}
+
+	fd, err := fi.Open(openflag, true)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return nodechild, &File{fi: fd}, nil
 }
 
 func (dir *Directory) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
@@ -500,7 +550,7 @@ func (dir *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDi
 		if err != nil {
 			return err
 		}
-	case *File:
+	case *FileNode:
 		log.Error("Cannot move node into a file!")
 		return fuse.EPERM
 	default:
@@ -543,9 +593,13 @@ type ipnsFile interface {
 	fs.HandleReader
 	fs.HandleWriter
 	fs.HandleReleaser
+}
+
+type ipnsFileNode interface {
 	fs.Node
 	fs.NodeFsyncer
 	fs.NodeOpener
 }
 
+var _ ipnsFileNode = (*FileNode)(nil)
 var _ ipnsFile = (*File)(nil)

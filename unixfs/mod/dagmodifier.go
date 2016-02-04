@@ -372,7 +372,7 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 	case os.SEEK_SET:
 		newoffset = uint64(offset)
 	case os.SEEK_END:
-		return 0, ErrSeekEndNotImpl
+		newoffset = uint64(fisize) - uint64(offset)
 	default:
 		return 0, ErrUnrecognizedWhence
 	}
