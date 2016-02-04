@@ -1,1 +1,3 @@
-.git
+cmd/ipfs/ipfs
+vendor/gx/
+test/

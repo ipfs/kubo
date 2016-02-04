@@ -1,17 +1,18 @@
-#!/bin/bash
+#!/bin/sh
+
+user=$(whoami)
+repo="$IPFS_PATH"
 
 # Test whether the mounted directory is writable for us
-if ( touch /data/ipfs/write_test 2>/dev/null ); then
-  rm /data/ipfs/write_test
-else
-  echo "ERR: /data/ipfs is not writable for user 'ipfs' (UID 1000)"
+if [ ! -w "$repo" 2>/dev/null ]; then
+  echo "error: $repo is not writable for user $user (uid=$(id -u $user))"
   exit 1
 fi
 
-echo "Running $(ipfs version)..."
+ipfs version
 
-if [ -e /data/ipfs/config ]; then
-  echo "Found ipfs repository. Not initializing."
+if [ -e "$repo/config" ]; then
+  echo "Found IPFS fs-repo at $repo"
 else
   ipfs init
   ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
