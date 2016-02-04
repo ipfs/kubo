@@ -11,34 +11,22 @@ test_description="Test ipfs repo operations"
 export DEBUG=true
 
 setup_iptb() {
+	num_nodes="$1"
+	bound=$(expr "$num_nodes" - 1)
+
 	test_expect_success "iptb init" '
-		iptb init -n4 --bootstrap none --port 0
+		iptb init -n$num_nodes --bootstrap none --port 0
 	'
 
-	test_expect_success "set configs up" '
-		for i in $(test_seq 0 3)
-		do
-			ipfsi $i config Ipns.RepublishPeriod 20s
-			ipfsi $i config --json Ipns.ResolveCacheSize 0
-		done
-	'
+	for i in $(test_seq 0 "$bound")
+	do
+		test_expect_success "set configs up for node $i" '
+			ipfsi "$i" config Ipns.RepublishPeriod 20s &&
+			ipfsi "$i" config --json Ipns.ResolveCacheSize 0
+		'
+	done
 
-	test_expect_success "start up nodes" '
-		iptb start
-	'
-
-	test_expect_success "connect nodes" '
-		iptb connect 0 1 &&
-		iptb connect 0 2 &&
-		iptb connect 0 3
-	'
-
-	test_expect_success "nodes have connections" '
-		ipfsi 0 swarm peers | grep ipfs &&
-		ipfsi 1 swarm peers | grep ipfs &&
-		ipfsi 2 swarm peers | grep ipfs &&
-		ipfsi 3 swarm peers | grep ipfs
-	'
+	startup_cluster "$num_nodes"
 }
 
 teardown_iptb() {
@@ -48,62 +36,63 @@ teardown_iptb() {
 }
 
 verify_can_resolve() {
-	node=$1
-	name=$2
-	expected=$3
+	num_nodes="$1"
+	bound=$(expr "$num_nodes" - 1)
+	name="$2"
+	expected="$3"
+	msg="$4"
 
-	test_expect_success "node can resolve entry" '
-		ipfsi $node name resolve $name > resolve
-	'
+	for node in $(test_seq 0 "$bound")
+	do
+		test_expect_success "$msg: node $node can resolve entry" '
+			ipfsi "$node" name resolve "$name" > resolve
+		'
 
-	test_expect_success "output looks right" '
-		printf "/ipfs/$expected\n" > expected &&
-		test_cmp expected resolve
-	'
+		test_expect_success "$msg: output for node $node looks right" '
+			printf "/ipfs/$expected\n" > expected &&
+			test_cmp expected resolve
+		'
+	done
 }
 
 verify_cannot_resolve() {
-	node=$1
-	name=$2
+	num_nodes="$1"
+	bound=$(expr "$num_nodes" - 1)
+	name="$2"
+	msg="$3"
 
-	echo "verifying resolution fails on node $node"
-	test_expect_success "node cannot resolve entry" '
-		# TODO: this should work without the timeout option
-		# but it currently hangs for some reason every so often
-		test_expect_code 1 ipfsi $node name resolve --timeout=300ms $name
-	'
+	for node in $(test_seq 0 "$bound")
+	do
+		test_expect_success "$msg: resolution fails on node $node" '
+			# TODO: this should work without the timeout option
+			# but it currently hangs for some reason every so often
+			test_expect_code 1 ipfsi "$node" name resolve --timeout=300ms "$name"
+		'
+	done
 }
 
-setup_iptb
+num_test_nodes=4
+
+setup_iptb "$num_test_nodes"
 
 test_expect_success "publish succeeds" '
 	HASH=$(echo "foobar" | ipfsi 1 add -q) &&
 	ipfsi 1 name publish -t 5s $HASH
 '
 
-test_expect_success "other nodes can resolve" '
-	id=$(ipfsi 1 id -f "<id>") &&
-	verify_can_resolve 0 $id $HASH &&
-	verify_can_resolve 1 $id $HASH &&
-	verify_can_resolve 2 $id $HASH &&
-	verify_can_resolve 3 $id $HASH
+test_expect_success "get id succeeds" '
+	id=$(ipfsi 1 id -f "<id>")
 '
 
-test_expect_success "after five seconds, records are invalid" '
-	go-sleep 5s &&
-	verify_cannot_resolve 0 $id &&
-	verify_cannot_resolve 1 $id &&
-	verify_cannot_resolve 2 $id &&
-	verify_cannot_resolve 3 $id
-'
+verify_can_resolve "$num_test_nodes" "$id" "$HASH" "just after publishing"
 
-test_expect_success "republisher fires after twenty seconds" '
-	go-sleep 15s &&
-	verify_can_resolve 0 $id $HASH &&
-	verify_can_resolve 1 $id $HASH &&
-	verify_can_resolve 2 $id $HASH &&
-	verify_can_resolve 3 $id $HASH
-'
+go-sleep 5s
+
+verify_cannot_resolve "$num_test_nodes" "$id" "after five seconds, records are invalid"
+
+go-sleep 15s
+
+verify_can_resolve "$num_test_nodes" "$id" "$HASH" "republisher fires after twenty seconds"
 
 teardown_iptb
 
