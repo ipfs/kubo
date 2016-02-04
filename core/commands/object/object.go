@@ -391,7 +391,7 @@ Available templates:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("template", false, false, "Optional template to use."),
+		cmds.StringArg("template", false, false, "Template to use. Optional."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
