@@ -19,8 +19,10 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-const offlineIdErrorMessage = `ID command fails when run without daemon, we are working to fix this.
-In the meantime, please run the daemon if you want to use 'ipfs id':
+const offlineIdErrorMessage = `'ipfs id' currently cannot query information on remote
+peers without a running daemon; we are working to fix this.
+In the meantime, if you want to query remote peers using 'ipfs id',
+please run the daemon:
 
     ipfs daemon &
     ipfs id QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
@@ -38,15 +40,15 @@ var IDCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show IPFS Node ID info.",
 		ShortDescription: `
-Prints out information about the specified peer,
-if no peer is specified, prints out local peers info.
+Prints out information about the specified peer.
+If no peer is specified, prints out information for local peers.
 
-ipfs id supports the format option for output with the following keys:
-<id> : the peers id
-<aver>: agent version
-<pver>: protocol version
-<pubkey>: public key
-<addrs>: addresses (newline delimited)
+'ipfs id' supports the format option for output with the following keys:
+<id> : The peers id.
+<aver>: Agent version.
+<pver>: Protocol version.
+<pubkey>: Public key.
+<addrs>: Addresses (newline delimited).
 `,
 	},
 	Arguments: []cmds.Argument{
