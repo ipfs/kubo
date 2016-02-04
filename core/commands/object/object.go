@@ -307,8 +307,8 @@ Examples:
 
 	echo '{ "Data": "abc" }' | ipfs object put
 
-This creates a node with the data "abc" and no links. For an object with links,
-create a file named node.json with the contents:
+This creates a node with the data 'abc' and no links. For an object with links,
+create a file named 'node.json' with the contents:
 
     {
         "Data": "another",
