@@ -26,8 +26,8 @@ environment:
   
 install:
   # Enable make
-  #- SET PATH=c:\MinGW\bin;%PATH%
   #- copy c:\MinGW\bin\mingw32-make.exe c:\MinGW\bin\make.exe
+  - SET PATH=%GOPATH%/bin;%PATH%
   - go version
   - go env
   
