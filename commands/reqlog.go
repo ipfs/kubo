@@ -66,6 +66,19 @@ func (rl *ReqLog) Add(req Request) *ReqLogEntry {
 	return rle
 }
 
+func (rl *ReqLog) ClearInactive() {
+	rl.lock.Lock()
+	defer rl.lock.Unlock()
+	i := 0
+	for j := 0; j < len(rl.Requests); j++ {
+		if rl.Requests[j].Active {
+			rl.Requests[i] = rl.Requests[j]
+			i++
+		}
+	}
+	rl.Requests = rl.Requests[:i]
+}
+
 func (rl *ReqLog) maybeCleanup() {
 	// only do it every so often or it might
 	// become a perf issue
@@ -79,7 +92,7 @@ func (rl *ReqLog) cleanup() {
 	// drop all logs at are inactive and more than an hour old
 	for ; i < len(rl.Requests); i++ {
 		req := rl.Requests[i]
-		if req.Active || req.EndTime.Add(time.Hour).After(time.Now()) {
+		if req.Active || req.EndTime.Add(time.Hour/2).After(time.Now()) {
 			break
 		}
 	}
