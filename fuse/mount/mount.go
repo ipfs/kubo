@@ -25,6 +25,9 @@ type Mount interface {
 	// Unmounts the mount
 	Unmount() error
 
+	// Checks if the mount is still active.
+	IsActive() bool
+
 	// Process returns the mount's Process to be able to link it
 	// to other processes. Unmount upon closing.
 	Process() goprocess.Process

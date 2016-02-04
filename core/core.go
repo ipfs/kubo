@@ -335,10 +335,10 @@ func (n *IpfsNode) teardown() error {
 		closers = append(closers, n.Exchange)
 	}
 
-	if n.Mounts.Ipfs != nil {
+	if n.Mounts.Ipfs != nil && !n.Mounts.Ipfs.IsActive() {
 		closers = append(closers, mount.Closer(n.Mounts.Ipfs))
 	}
-	if n.Mounts.Ipns != nil {
+	if n.Mounts.Ipns != nil && !n.Mounts.Ipns.IsActive() {
 		closers = append(closers, mount.Closer(n.Mounts.Ipns))
 	}
 
