@@ -24,6 +24,9 @@ Lists running and recently run commands.
 	Options: []cmds.Option{
 		cmds.BoolOption("v", "verbose", "print more verbose output"),
 	},
+	Subcommands: map[string]*cmds.Command{
+		"clear": clearInactiveCmd,
+	},
 	Marshalers: map[cmds.EncodingType]cmds.Marshaler{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			out, ok := res.Output().(*[]*cmds.ReqLogEntry)
@@ -79,4 +82,13 @@ Lists running and recently run commands.
 		},
 	},
 	Type: []*cmds.ReqLogEntry{},
+}
+
+var clearInactiveCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Clear inactive requests from the log",
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		req.InvocContext().ReqLog.ClearInactive()
+	},
 }
