@@ -19,7 +19,7 @@ check_has_connection() {
 
 startup_cluster() {
 	num_nodes="$1"
-	bound=$(expr $num_nodes - 1)
+	bound=$(expr "$num_nodes" - 1)
 
 	test_expect_success "start up nodes" '
 		iptb start
@@ -29,7 +29,7 @@ startup_cluster() {
 		iptb connect [1-$bound] 0
 	'
 
-	for i in $(test_seq 1 $bound)
+	for i in $(test_seq 0 "$bound")
 	do
 		test_expect_success "node $i is connected" '
 			check_has_connection "$i" ||
