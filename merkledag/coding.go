@@ -85,7 +85,7 @@ func (n *Node) Encoded(force bool) ([]byte, error) {
 }
 
 // Decoded decodes raw data and returns a new Node instance.
-func Decoded(encoded []byte) (*Node, error) {
+func DecodeProtobuf(encoded []byte) (*Node, error) {
 	n := new(Node)
 	err := n.unmarshal(encoded)
 	if err != nil {

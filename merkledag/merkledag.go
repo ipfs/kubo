@@ -104,7 +104,7 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 		return nil, err
 	}
 
-	return Decoded(b.Data)
+	return DecodeProtobuf(b.Data)
 }
 
 // Remove deletes the given node and all of its children from the BlockService
@@ -167,7 +167,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeO
 					}
 					return
 				}
-				nd, err := Decoded(b.Data)
+				nd, err := DecodeProtobuf(b.Data)
 				if err != nil {
 					out <- &NodeOption{Err: err}
 					return
