@@ -42,8 +42,12 @@ RUN apk add --update musl go=$GO_VERSION git bash wget ca-certificates \
 
 COPY . $SRC_PATH
 
-RUN cd $SRC_PATH/cmd/ipfs \
-	&& go build -ldflags "-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$(git rev-parse --short HEAD 2> /dev/null)" \
+RUN cd $SRC_PATH \
+	&& ref="$(cat .git/HEAD | cut -d' ' -f2)" \
+	&& commit="$(cat .git/$ref | head -c 7)" \
+	&& echo "ldflags=-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$commit" \
+	&& cd $SRC_PATH/cmd/ipfs \
+	&& go build -ldflags "-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$commit" \
 	&& cp ipfs /usr/local/bin/ipfs \
 	&& cp $SRC_PATH/bin/container_daemon /usr/local/bin/start_ipfs \
 	&& chmod 755 /usr/local/bin/start_ipfs \

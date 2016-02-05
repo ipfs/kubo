@@ -48,9 +48,15 @@ RUN apk add --update musl go=$GO_VERSION git bash wget ca-certificates \
 	# Invoke gx
 	&& cd $SRC_PATH \
 	&& gx --verbose install --global \
+	# We get the current commit using this hack,
+	# so that we don't have to copy all of .git/ into the build context.
+	# This saves us quite a bit of image size.
+	&& ref="$(cat .git/HEAD | cut -d' ' -f2)" \
+	&& commit="$(cat .git/$ref | head -c 7)" \
+	&& echo "ldflags=-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$commit" \
 	# Build and install IPFS and entrypoint script
 	&& cd $SRC_PATH/cmd/ipfs \
-	&& go build -ldflags "-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$(git rev-parse --short HEAD 2> /dev/null)" \
+	&& go build -ldflags "-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$commit" \
 	&& cp ipfs /usr/local/bin/ipfs \
 	&& cp $SRC_PATH/bin/container_daemon /usr/local/bin/start_ipfs \
 	&& chmod 755 /usr/local/bin/start_ipfs \
