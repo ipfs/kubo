@@ -141,13 +141,13 @@ var repoStatCmd = &cmds.Command{
 			return
 		}
 
-		out := &RepoStat{
+		res.SetOutput(&RepoStat{
 			repoPath:  path,
 			repoSize:  usage,
 			numBlocks: count,
-		}
-		res.SetOutput(out)
+		})
 	},
+	Type: RepoStat{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			stat, ok := res.Output().(*RepoStat)
@@ -155,9 +155,10 @@ var repoStatCmd = &cmds.Command{
 				return nil, u.ErrCast()
 			}
 
-			out := fmt.Sprintf("Path: %s\nSize: %d bytes\n"+
-				"Blocks: %d\n",
+			out := fmt.Sprintf(
+				"Path: %s\nSize: %d bytes\nBlocks: %d\n",
 				stat.repoPath, stat.repoSize, stat.numBlocks)
+
 			return strings.NewReader(out), nil
 		},
 	},
