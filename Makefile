@@ -27,10 +27,10 @@ deps: gx
 vendor: godep
 	godep save -r ./...
 
-install: deps
+install: build
 	cd cmd/ipfs && go install -ldflags=$(ldflags)
 
-build:
+build: deps
 	cd cmd/ipfs && go build -i -ldflags=$(ldflags)
 
 nofuse:
