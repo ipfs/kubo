@@ -104,7 +104,7 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 		return nil, err
 	}
 
-	return Decoded(b.Data)
+	return DecodeProtobuf(b.Data)
 }
 
 // Remove deletes the given node and all of its children from the BlockService
@@ -187,7 +187,7 @@ func (ds *dagService) GetNodes(ctx context.Context, keys []key.Key) []NodeGetter
 					return
 				}
 
-				nd, err := Decoded(blk.Data)
+				nd, err := DecodeProtobuf(blk.Data)
 				if err != nil {
 					// NB: can happen with improperly formatted input data
 					log.Debug("Got back bad block!")

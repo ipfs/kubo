@@ -474,7 +474,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 		}
 
 	case objectEncodingProtobuf:
-		dagnode, err = dag.Decoded(data)
+		dagnode, err = dag.DecodeProtobuf(data)
 
 	case objectEncodingXML:
 		node := new(Node)
