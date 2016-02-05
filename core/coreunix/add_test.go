@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/core"
@@ -16,6 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/util/testutil"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 func TestAddRecursive(t *testing.T) {

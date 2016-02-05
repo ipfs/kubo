@@ -2,11 +2,11 @@ package proxy
 
 import (
 	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	inet "github.com/ipfs/go-ipfs/p2p/net"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	inet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 )
 
 // RequestHandler handles routing requests locally

@@ -1,14 +1,14 @@
 package ipns
 
 import (
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	"github.com/ipfs/go-ipfs/core"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	nsys "github.com/ipfs/go-ipfs/namesys"
-	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	ci "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
 )
 
 // InitializeKeyspace sets the ipns record for the given key to

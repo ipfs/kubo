@@ -10,18 +10,18 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	mock "github.com/ipfs/go-ipfs/core/mock"
-	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
-	"github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
+	mocknet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/mock"
+	"gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 )
 
 func TestSupernodeBootstrappedAddCat(t *testing.T) {

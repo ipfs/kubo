@@ -7,7 +7,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	inet "github.com/ipfs/go-ipfs/p2p/net"
+	inet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net"
 
 	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"

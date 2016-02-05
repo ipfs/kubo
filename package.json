@@ -1,18 +1,18 @@
 {
   "name": "go-ipfs",
-  "version": "0.3.8",
+  "version": "0.4.0",
   "gxDependencies": [
     {
       "name": "go-log",
-      "hash": "QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b",
+      "hash": "Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH",
       "version": "1.0.0"
     },
     {
-      "name": "dir-index-html",
-      "hash": "QmdDfkqDWheE4gsCXNrhixwTwSHnZMPT2cGLcNbiBNcMyU",
-      "version": "1.0.0",
-      "linkname": "dir-index-html-v1.0.0"
+      "name": "go-libp2p",
+      "hash": "QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4",
+      "version": "1.0.0"
     }
   ],
-  "language": "go"
+  "language": "go",
+  "issues_url": "https://github.com/ipfs/go-ipfs"
 }
