@@ -66,12 +66,12 @@ timeout. If the timeout is too small, some peers may not be reached.
 The default timeout is 20 seconds.
 
 The 'vis' option may be used to change the output format.
-four formats are supported:
- * plain text - easy to read
+Four formats are supported:
+ * plain text - Easy to read. Default.
  * d3 - json ready to be fed into d3view
  * dot - graphviz format
 
-The d3 format will output a json object ready to be consumed by
+The 'd3' format will output a json object ready to be consumed by
 the chord network viewer, available at the following hash:
 
     /ipfs/QmbesKpGyQGd5jtJFUGEB1ByPjNFpukhnKZDnkfxUiKn38
@@ -87,7 +87,7 @@ that consume the dot format to generate graphs of the network.
 	},
 
 	Options: []cmds.Option{
-		cmds.StringOption("vis", "Output vis. one of: "+strings.Join(visFmts, ", ")),
+		cmds.StringOption("vis", "Output vis. One of: "+strings.Join(visFmts, ", ")),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
