@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
+	"net/http"
 	"net/url"
 )
 
@@ -14,8 +15,7 @@ const (
 
 	applicationDirectory = "application/x-directory"
 	applicationSymlink   = "application/symlink"
-
-	contentTypeHeader = "Content-Type"
+	contentTypeHeader    = "Content-Type"
 )
 
 // MultipartFile implements File, and is created from a `multipart.Part`.
@@ -53,6 +53,22 @@ func NewFileFromPart(part *multipart.Part) (File, error) {
 	}
 
 	return f, nil
+}
+
+func NewFileFromRequest(r *http.Request) (File, error) {
+	contentType := r.Header.Get(contentTypeHeader)
+	mediaType, _, _ := mime.ParseMediaType(contentType)
+	var err error
+	f := &MultipartFile{Mediatype: mediaType}
+	if f.IsDirectory() {
+		f.Reader, err = r.MultipartReader()
+		if err != nil {
+			return nil, err
+		}
+		return f, nil
+	}
+
+	return NewReaderFile("", "", r.Body, nil), nil
 }
 
 func (f *MultipartFile) IsDirectory() bool {

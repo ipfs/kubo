@@ -12,6 +12,8 @@ import (
 
 	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/commands/files"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
@@ -27,6 +29,8 @@ import (
 const (
 	ipfsPathPrefix = "/ipfs/"
 	ipnsPathPrefix = "/ipns/"
+	// the hour is a hard fallback, we don't expect it to happen, but just in case
+	gatewayTimeout = time.Hour
 )
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
@@ -63,27 +67,39 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	ctx, cancel := context.WithTimeout(i.node.Context(), gatewayTimeout)
+	defer cancel()
+
+	if cn, ok := w.(http.CloseNotifier); ok {
+		go func() {
+			select {
+			case <-cn.CloseNotify():
+			case <-ctx.Done():
+			}
+			cancel()
+		}()
+	}
+
 	if i.config.Writable {
 		switch r.Method {
 		case "POST":
-			i.postHandler(w, r)
+			i.postHandler(ctx, w, r)
 			return
 		case "PUT":
-			i.putHandler(w, r)
+			i.putHandler(ctx, w, r)
 			return
 		case "DELETE":
-			i.deleteHandler(w, r)
+			i.deleteHandler(ctx, w, r)
 			return
 		}
 	}
 
-	if r.Method == "GET" || r.Method == "HEAD" {
-		i.getOrHeadHandler(w, r)
+	switch r.Method {
+	case "GET", "HEAD":
+		i.getOrHeadHandler(ctx, w, r)
 		return
-	}
-
-	if r.Method == "OPTIONS" {
-		i.optionsHandler(w, r)
+	case "OPTIONS":
+		i.optionsHandler(ctx, w, r)
 		return
 	}
 
@@ -99,7 +115,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Error(errmsg) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
 }
 
-func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) {
+func (i *gatewayHandler) optionsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	/*
 		OPTIONS is a noop request that is used by the browsers to check
 		if server accepts cross-site XMLHttpRequest (indicated by the presence of CORS headers)
@@ -108,21 +124,7 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 	i.addUserHeaders(w) // return all custom headers (including CORS ones, if set)
 }
 
-func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(i.node.Context(), time.Hour)
-	// the hour is a hard fallback, we don't expect it to happen, but just in case
-	defer cancel()
-
-	if cn, ok := w.(http.CloseNotifier); ok {
-		go func() {
-			select {
-			case <-cn.CloseNotify():
-			case <-ctx.Done():
-			}
-			cancel()
-		}()
-	}
-
+func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
 
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
@@ -300,29 +302,62 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	nd, err := i.newDagFromReader(r.Body)
+func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	fileAdder, err := coreunix.NewAdder(ctx, i.node, nil)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
-	k, err := i.node.DAG.Add(nd)
+	f, err := files.NewFileFromRequest(r)
+	if err != nil {
+		internalWebError(w, err)
+		return
+	}
+
+	if f.IsDirectory() {
+		// multiple files upload detected
+		// though it is better to detect using the 'Expect: 100-continue' header
+		// the files are wrapped in one hash since the response
+		// returns only one hash value
+		fileAdder.Wrap = true
+	}
+
+	addAllAndPin := func(fi files.File) (string, error) {
+		if err := fileAdder.AddFile(fi); err != nil {
+			return "", err
+		}
+		nd, err := fileAdder.Finalize()
+		if err != nil {
+			return "", err
+		}
+		k, err := nd.Key()
+		if err != nil {
+			return "", err
+		}
+
+		dopin := r.FormValue("pin")
+		if dopin == "" || dopin == "true" {
+			if err := fileAdder.PinRoot(); err != nil {
+				return "", err
+			}
+		}
+		return k.String(), nil
+	}
+
+	k, err := addAllAndPin(f)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", k.String())
-	http.Redirect(w, r, ipfsPathPrefix+k.String(), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", k)
+	http.Redirect(w, r, ipfsPathPrefix+k, http.StatusCreated)
 }
 
-func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+func (i *gatewayHandler) putHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	// TODO(cryptix): move me to ServeHTTP and pass into all handlers
-	ctx, cancel := context.WithCancel(i.node.Context())
-	defer cancel()
-
 	rootPath, err := path.ParsePath(r.URL.Path)
 	if err != nil {
 		webError(w, "putHandler: ipfs path not valid", err, http.StatusBadRequest)
@@ -406,10 +441,8 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newkey.String(), newPath), http.StatusCreated)
 }
 
-func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+func (i *gatewayHandler) deleteHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
-	ctx, cancel := context.WithCancel(i.node.Context())
-	defer cancel()
 
 	ipfsNode, err := core.Resolve(ctx, i.node, path.Path(urlPath))
 	if err != nil {

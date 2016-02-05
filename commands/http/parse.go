@@ -3,7 +3,6 @@ package http
 import (
 	"errors"
 	"fmt"
-	"mime"
 	"net/http"
 	"strings"
 
@@ -100,17 +99,10 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		return nil, err
 	}
 
-	// create cmds.File from multipart/form-data contents
-	contentType := r.Header.Get(contentTypeHeader)
-	mediatype, _, _ := mime.ParseMediaType(contentType)
-
-	var f *files.MultipartFile
-	if mediatype == "multipart/form-data" {
-		f = &files.MultipartFile{Mediatype: mediatype}
-		f.Reader, err = r.MultipartReader()
-		if err != nil {
-			return nil, err
-		}
+	// create cmds.File from multipart/form-data or streaming contents
+	f, err := files.NewFileFromRequest(r)
+	if err != nil {
+		return nil, err
 	}
 
 	// if there is a required filearg, error if no files were provided
