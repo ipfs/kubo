@@ -562,7 +562,13 @@ func (r *FSRepo) GetStorageUsage() (uint64, error) {
 
 	var du uint64
 	err = filepath.Walk(pth, func(p string, f os.FileInfo, err error) error {
-		du += uint64(f.Size())
+		if err != nil {
+			log.Debugf("filepath.Walk error: %s", err)
+			return nil
+		}
+		if f != nil {
+			du += uint64(f.Size())
+		}
 		return nil
 	})
 	return du, err
