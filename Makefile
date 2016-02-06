@@ -33,7 +33,7 @@ install: build
 build: deps
 	cd cmd/ipfs && go build -i -ldflags=$(ldflags)
 
-nofuse:
+nofuse: deps
 	cd cmd/ipfs && go install -tags nofuse -ldflags=$(ldflags)
 
 clean:
