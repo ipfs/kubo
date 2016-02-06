@@ -118,22 +118,22 @@ USAGE:
     ipfs [<flags>] <command> [<arg>] ...
 
     BASIC COMMANDS
-    
+
         init          Initialize ipfs local configuration
         add <path>    Add an object to ipfs
         cat <ref>     Show ipfs object data
         get <ref>     Download ipfs objects
         ls <ref>      List links from an object
         refs <ref>    List hashes of links from an object
-    
+
     DATA STRUCTURE COMMANDS
-    
+
         block         Interact with raw blocks in the datastore
         object        Interact with raw dag nodes
         file          Interact with Unix filesystem objects
-    
+
     ADVANCED COMMANDS
-    
+
         daemon        Start a long-running daemon process
         mount         Mount an ipfs read-only mountpoint
         resolve       Resolve any type of name
@@ -141,23 +141,23 @@ USAGE:
         dns           Resolve DNS links
         pin           Pin objects to local storage
         repo gc       Garbage collect unpinned objects
-    
+
     NETWORK COMMANDS
-    
+
         id            Show info about ipfs peers
         bootstrap     Add or remove bootstrap peers
         swarm         Manage connections to the p2p network
         dht           Query the dht for values or peers
         ping          Measure the latency of a connection
         diag          Print diagnostics
-    
+
     TOOL COMMANDS
-    
+
         config        Manage configuration
         version       Show ipfs version information
         update        Download and apply go-ipfs updates
         commands      List all available commands
-    
+
     Use 'ipfs <command> --help' to learn more about each command.
 
 
@@ -185,7 +185,7 @@ Basic proof of 'ipfs working' locally:
 
 ### Docker usage
 
-An IPFS docker image is hosted at [hub.docker.com/r/jbenet/go-ipfs](https://hub.docker.com/r/jbenet/go-ipfs/).
+An IPFS docker image is hosted at [hub.docker.com/r/ipfs/go-ipfs](https://hub.docker.com/r/ipfs/go-ipfs/).
 To make files visible inside the container you need to mount a host directory
 with the `-v` option to docker. Choose a directory that you want to use to
 import/export files from IPFS. You should also choose a directory to store
@@ -201,7 +201,7 @@ Make sure docker can access these folders:
 
 Start a container running ipfs and expose ports 4001, 5001 and 8080:
 
-    docker run -d --name ipfs_host -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 8080:8080 -p 4001:4001 -p 5001:5001 jbenet/go-ipfs:latest
+    docker run -d --name ipfs_host -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 8080:8080 -p 4001:4001 -p 5001:5001 ipfs/go-ipfs:latest
 
 Watch the ipfs log:
 
