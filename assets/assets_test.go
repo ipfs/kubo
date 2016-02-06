@@ -9,12 +9,14 @@ import (
 
 // TestEmbeddedDocs makes sure we don't forget to regenerate after documentation change
 func TestEmbeddedDocs(t *testing.T) {
-	t.Skip("skipping for now, paths are hard")
 	testNFiles(initDocPaths, 6, t, "documents")
 }
 
 func TestDirIndex(t *testing.T) {
-	t.Skip("skipping for now, paths are hard")
+	t.Skip("skipping for now, code being tested is currently unused")
+	// TODO: import assets during init.
+	// this will require figuring out how to set the right paths up for
+	// referencing the code from its gx path
 	testNFiles(initDirIndex, 2, t, "assets")
 }
 
