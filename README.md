@@ -85,10 +85,10 @@ $ make install
 
 Tip:
 
-If the `make install` hangs while fetching dependencies, ensure that if you are
-running a daemon locally, that it is on at least version 0.4.0-dev. If you don't
-have a build that is new enough, run the make install with your daemon turned off
-and the deps will be fetched through the ipfs.io gateways.
+If the `make install` hangs while fetching dependencies and if you are
+running a daemon locally, ensure that it is on at least version 0.4.0-dev. If
+you don't have a build that is new enough, run the `make install` with your
+daemon turned off and the deps will be fetched through the ipfs.io gateways.
 
 NOTES:
 
