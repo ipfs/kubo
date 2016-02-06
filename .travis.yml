@@ -1,7 +1,5 @@
 sudo: required
 
-dist: trusty
-
 os:
   - linux
   - osx
