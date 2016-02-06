@@ -42,7 +42,7 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 # grab + output options
 test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
-type docker && test_set_prereq DOCKER
+test "$TEST_NO_DOCKER" != 1 && type docker && test_set_prereq DOCKER
 
 if test "$TEST_VERBOSE" = 1; then
 	echo '# TEST_VERBOSE='"$TEST_VERBOSE"

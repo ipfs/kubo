@@ -9,16 +9,16 @@ import (
 	"testing"
 	"time"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	ci "github.com/ipfs/go-ipfs/p2p/crypto"
-	id "github.com/ipfs/go-ipfs/p2p/protocol/identify"
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
+	ci "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
+	id "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/protocol/identify"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type mockNamesys map[string]path.Path
@@ -431,7 +431,7 @@ func TestVersion(t *testing.T) {
 		t.Fatalf("response doesn't contain client version:\n%s", s)
 	}
 
-	if !strings.Contains(s, "Protocol Version: "+id.IpfsVersion) {
+	if !strings.Contains(s, "Protocol Version: "+id.LibP2PVersion) {
 		t.Fatalf("response doesn't contain protocol version:\n%s", s)
 	}
 }

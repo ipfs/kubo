@@ -1,1 +1,6 @@
-.git
+.git/
+!.git/HEAD
+!.git/refs/
+cmd/ipfs/ipfs
+vendor/gx/
+test/

@@ -14,19 +14,26 @@ all: help
 godep:
 	go get github.com/tools/godep
 
+gx:
+	go get -u github.com/whyrusleeping/gx
+	go get -u github.com/whyrusleeping/gx-go
+
+deps: gx
+	gx --verbose install --global
+
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
 # ./... performs operation on all packages in tree
 vendor: godep
 	godep save -r ./...
 
-install:
+install: build
 	cd cmd/ipfs && go install -ldflags=$(ldflags)
 
-build:
+build: deps
 	cd cmd/ipfs && go build -i -ldflags=$(ldflags)
 
-nofuse:
+nofuse: deps
 	cd cmd/ipfs && go install -tags nofuse -ldflags=$(ldflags)
 
 clean:

@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/anacrolix/envpprof"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/anacrolix/missinggo"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/bradfitz/iter"
-	"github.com/stretchr/testify/require"
+	"gx/ipfs/QmZwjfAKWe7vWZ8f48u7AGA1xYfzR1iCD9A2XSCYFRBWot/testify/require"
+	_ "gx/ipfs/QmazECKVXFsA3J6cHAqf8HeTDUB8zARjfo75nxE6o63AAp/envpprof"
 )
 
 func init() {

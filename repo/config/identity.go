@@ -2,7 +2,7 @@ package config
 
 import (
 	"encoding/base64"
-	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	ic "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
 )
 
 // Identity tracks the configuration of the local node's identity.

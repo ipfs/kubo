@@ -4,15 +4,15 @@ import (
 	"errors"
 
 	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	host "github.com/ipfs/go-ipfs/p2p/host"
-	inet "github.com/ipfs/go-ipfs/p2p/net"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kbucket "github.com/ipfs/go-ipfs/routing/kbucket"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	host "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"
@@ -98,7 +98,7 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 	if err = px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
 		return err
 	}
-	s, err := px.Host.NewStream(ProtocolSNR, remote)
+	s, err := px.Host.NewStream(ctx, ProtocolSNR, remote)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 		e.SetError(err)
 		return nil, err
 	}
-	s, err := px.Host.NewStream(ProtocolSNR, remote)
+	s, err := px.Host.NewStream(ctx, ProtocolSNR, remote)
 	if err != nil {
 		e.SetError(err)
 		return nil, err
