@@ -138,9 +138,10 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(node.Context())
 	defer cancel()
 	if cn, ok := w.(http.CloseNotifier); ok {
+		clientGone := cn.CloseNotify()
 		go func() {
 			select {
-			case <-cn.CloseNotify():
+			case <-clientGone:
 			case <-ctx.Done():
 			}
 			cancel()
