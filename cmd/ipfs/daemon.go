@@ -21,6 +21,7 @@ import (
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	"github.com/ipfs/go-ipfs/core/corerouting"
+	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	util "github.com/ipfs/go-ipfs/util"
 	conn "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/conn"
@@ -494,7 +495,7 @@ func mountFuse(req cmds.Request) error {
 		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
 	}
 
-	err = commands.Mount(node, fsdir, nsdir)
+	err = nodeMount.Mount(node, fsdir, nsdir)
 	if err != nil {
 		return err
 	}

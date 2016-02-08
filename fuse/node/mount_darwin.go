@@ -1,6 +1,6 @@
 // +build !nofuse
 
-package commands
+package node
 
 import (
 	"bytes"
