@@ -21,6 +21,11 @@
       "name": "goprocess",
       "hash": "QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn",
       "version": "0.0.0"
+    },
+    {
+      "name": "randbo",
+      "hash": "QmYvsG72GsfLgUeSojXArjnU6L4Wmwk7wuAxtNLuyXcc1T",
+      "version": "0.0.0"
     }
   ],
   "language": "go",
