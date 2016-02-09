@@ -162,6 +162,7 @@ func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
 func Lookup(r *Root, path string) (FSNode, error) {
 	dir, ok := r.GetValue().(*Directory)
 	if !ok {
+		log.Error("root not a dir: %#v", r.GetValue())
 		return nil, errors.New("root was not a directory")
 	}
 
@@ -193,4 +194,19 @@ func DirLookup(d *Directory, pth string) (FSNode, error) {
 		cur = child
 	}
 	return cur, nil
+}
+
+func FlushPath(rt *Root, pth string) error {
+	nd, err := Lookup(rt, pth)
+	if err != nil {
+		return err
+	}
+
+	err = nd.Flush()
+	if err != nil {
+		return err
+	}
+
+	rt.repub.WaitPub()
+	return nil
 }

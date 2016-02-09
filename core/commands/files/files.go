@@ -27,6 +27,14 @@ var FilesCmd = &cmds.Command{
 		Tagline: "Manipulate unixfs files.",
 		ShortDescription: `
 Files is an API for manipulating ipfs objects as if they were a unix filesystem.
+
+Note:
+Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults to
+true. Use caution when setting this flag to false, It will improve performance
+for large numbers of file operations, but it does so at the cost of consistency
+guarantees. If the daemon is unexpectedly killed before running 'ipfs files flush'
+on the files in question, then data may be lost. This also applies to running
+'ipfs repo gc' concurrently with '--flush=false' operations.
 `,
 	},
 	Options: []cmds.Option{
@@ -41,6 +49,7 @@ Files is an API for manipulating ipfs objects as if they were a unix filesystem.
 		"mkdir": FilesMkdirCmd,
 		"stat":  FilesStatCmd,
 		"rm":    FilesRmCmd,
+		"flush": FilesFlushCmd,
 	},
 }
 
@@ -100,8 +109,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 		return nil, err
 	}
 
-	// add to dagserv to ensure its available
-	k, err := ds.Add(nd)
+	k, err := nd.Key()
 	if err != nil {
 		return nil, err
 	}
@@ -150,6 +158,11 @@ var FilesCpCmd = &cmds.Command{
 			return
 		}
 
+		flush, found, _ := req.Option("flush").Bool()
+		if !found {
+			flush = true
+		}
+
 		src, err := checkPath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -171,6 +184,14 @@ var FilesCpCmd = &cmds.Command{
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+
+		if flush {
+			err := mfs.FlushPath(node.FilesRoot, dst)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 	},
 }
@@ -257,17 +278,10 @@ Examples:
 		switch fsn := fsn.(type) {
 		case *mfs.Directory:
 			if !long {
-				mdnd, err := fsn.GetNode()
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-
 				var output []mfs.NodeListing
-				for _, lnk := range mdnd.Links {
+				for _, name := range fsn.ListNames() {
 					output = append(output, mfs.NodeListing{
-						Name: lnk.Name,
-						Hash: lnk.Hash.B58String(),
+						Name: name,
 					})
 				}
 				res.SetOutput(&FilesLsOutput{output})
@@ -354,6 +368,14 @@ Examples:
 			return
 		}
 
+		rfd, err := fi.Open(mfs.OpenReadOnly, false)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		defer rfd.Close()
+
 		offset, _, err := req.Option("offset").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -364,7 +386,7 @@ Examples:
 			return
 		}
 
-		filen, err := fi.Size()
+		filen, err := rfd.Size()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -375,12 +397,13 @@ Examples:
 			return
 		}
 
-		_, err = fi.Seek(int64(offset), os.SEEK_SET)
+		_, err = rfd.Seek(int64(offset), os.SEEK_SET)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		var r io.Reader = fi
+
+		var r io.Reader = &contextReaderWrapper{R: rfd, ctx: req.Context()}
 		count, found, err := req.Option("count").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -391,11 +414,24 @@ Examples:
 				res.SetError(fmt.Errorf("cannot specify negative 'count'"), cmds.ErrNormal)
 				return
 			}
-			r = io.LimitReader(fi, int64(count))
+			r = io.LimitReader(r, int64(count))
 		}
 
 		res.SetOutput(r)
 	},
+}
+
+type contextReader interface {
+	CtxReadFull(context.Context, []byte) (int, error)
+}
+
+type contextReaderWrapper struct {
+	R   contextReader
+	ctx context.Context
+}
+
+func (crw *contextReaderWrapper) Read(b []byte) (int, error) {
+	return crw.R.CtxReadFull(crw.ctx, b)
 }
 
 var FilesMvCmd = &cmds.Command{
@@ -486,8 +522,8 @@ Warning:
 
 		create, _, _ := req.Option("create").Bool()
 		trunc, _, _ := req.Option("truncate").Bool()
-		flush, set, _ := req.Option("flush").Bool()
-		if !set {
+		flush, fset, _ := req.Option("flush").Bool()
+		if !fset {
 			flush = true
 		}
 
@@ -513,14 +549,16 @@ Warning:
 			return
 		}
 
-		if flush {
-			defer fi.Close()
-		} else {
-			defer fi.Sync()
+		wfd, err := fi.Open(mfs.OpenWriteOnly, flush)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
+		defer wfd.Close()
+
 		if trunc {
-			if err := fi.Truncate(0); err != nil {
+			if err := wfd.Truncate(0); err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
@@ -536,7 +574,7 @@ Warning:
 			return
 		}
 
-		_, err = fi.Seek(int64(offset), os.SEEK_SET)
+		_, err = wfd.Seek(int64(offset), os.SEEK_SET)
 		if err != nil {
 			log.Error("seekfail: ", err)
 			res.SetError(err, cmds.ErrNormal)
@@ -554,7 +592,7 @@ Warning:
 			r = io.LimitReader(r, int64(count))
 		}
 
-		n, err := io.Copy(fi, input)
+		n, err := io.Copy(wfd, input)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -610,6 +648,37 @@ Examples:
 			return
 		}
 
+	},
+}
+
+var FilesFlushCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "flush a given path's data to disk",
+		ShortDescription: `
+flush a given path to disk. This is only useful when other commands
+are run with the '--flush=false'.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", false, false, "path to flush (default '/')"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		nd, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		path := "/"
+		if len(req.Arguments()) > 0 {
+			path = req.Arguments()[0]
+		}
+
+		err = mfs.FlushPath(nd.FilesRoot, path)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 	},
 }
 

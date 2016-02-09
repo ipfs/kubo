@@ -1,10 +1,12 @@
 package mfs
 
 import (
+	"fmt"
 	"sync"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 	mod "github.com/ipfs/go-ipfs/unixfs/mod"
 
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
@@ -13,152 +15,98 @@ import (
 type File struct {
 	parent childCloser
 
-	name       string
-	hasChanges bool
+	name string
 
-	dserv dag.DAGService
-	mod   *mod.DagModifier
-	lock  sync.Mutex
+	desclock sync.RWMutex
+
+	dserv  dag.DAGService
+	node   *dag.Node
+	nodelk sync.Mutex
 }
 
 // NewFile returns a NewFile object with the given parameters
 func NewFile(name string, node *dag.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
-	dmod, err := mod.NewDagModifier(context.Background(), node, dserv, chunk.DefaultSplitter)
-	if err != nil {
-		return nil, err
-	}
-
 	return &File{
 		dserv:  dserv,
 		parent: parent,
 		name:   name,
-		mod:    dmod,
+		node:   node,
 	}, nil
 }
 
-// Write writes the given data to the file at its current offset
-func (fi *File) Write(b []byte) (int, error) {
-	fi.Lock()
-	defer fi.Unlock()
-	fi.hasChanges = true
-	return fi.mod.Write(b)
-}
+const (
+	OpenReadOnly = iota
+	OpenWriteOnly
+	OpenReadWrite
+)
 
-// Read reads into the given buffer from the current offset
-func (fi *File) Read(b []byte) (int, error) {
-	fi.Lock()
-	defer fi.Unlock()
-	return fi.mod.Read(b)
-}
+func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
+	fi.nodelk.Lock()
+	node := fi.node
+	fi.nodelk.Unlock()
 
-// Read reads into the given buffer from the current offset
-func (fi *File) CtxReadFull(ctx context.Context, b []byte) (int, error) {
-	fi.Lock()
-	defer fi.Unlock()
-	return fi.mod.CtxReadFull(ctx, b)
-}
-
-// Close flushes, then propogates the modified dag node up the directory structure
-// and signals a republish to occur
-func (fi *File) Close() error {
-	fi.Lock()
-	if fi.hasChanges {
-		err := fi.mod.Sync()
-		if err != nil {
-			fi.Unlock()
-			return err
-		}
-
-		fi.hasChanges = false
-
-		// explicitly stay locked for flushUp call,
-		// it will manage the lock for us
-		return fi.flushUp()
+	switch flags {
+	case OpenReadOnly:
+		fi.desclock.RLock()
+	case OpenWriteOnly, OpenReadWrite:
+		fi.desclock.Lock()
+	default:
+		// TODO: support other modes
+		return nil, fmt.Errorf("mode not supported")
 	}
-	fi.Unlock()
 
-	return nil
-}
-
-// flushUp syncs the file and adds it to the dagservice
-// it *must* be called with the File's lock taken
-func (fi *File) flushUp() error {
-	nd, err := fi.mod.GetNode()
+	dmod, err := mod.NewDagModifier(context.TODO(), node, fi.dserv, chunk.DefaultSplitter)
 	if err != nil {
-		fi.Unlock()
-		return err
+		return nil, err
 	}
 
-	_, err = fi.dserv.Add(nd)
-	if err != nil {
-		fi.Unlock()
-		return err
-	}
-
-	//name := fi.name
-	//parent := fi.parent
-
-	// explicit unlock *only* before closeChild call
-	fi.Unlock()
-	return nil
-	//return parent.closeChild(name, nd)
-}
-
-// Sync flushes the changes in the file to disk
-func (fi *File) Sync() error {
-	fi.Lock()
-	defer fi.Unlock()
-	return fi.mod.Sync()
-}
-
-// Seek implements io.Seeker
-func (fi *File) Seek(offset int64, whence int) (int64, error) {
-	fi.Lock()
-	defer fi.Unlock()
-	return fi.mod.Seek(offset, whence)
-}
-
-// Write At writes the given bytes at the offset 'at'
-func (fi *File) WriteAt(b []byte, at int64) (int, error) {
-	fi.Lock()
-	defer fi.Unlock()
-	fi.hasChanges = true
-	return fi.mod.WriteAt(b, at)
+	return &fileDescriptor{
+		inode: fi,
+		perms: flags,
+		sync:  sync,
+		mod:   dmod,
+	}, nil
 }
 
 // Size returns the size of this file
 func (fi *File) Size() (int64, error) {
-	fi.Lock()
-	defer fi.Unlock()
-	return fi.mod.Size()
+	fi.nodelk.Lock()
+	defer fi.nodelk.Unlock()
+	pbd, err := ft.FromBytes(fi.node.Data)
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(pbd.GetFilesize()), nil
 }
 
 // GetNode returns the dag node associated with this file
 func (fi *File) GetNode() (*dag.Node, error) {
-	fi.Lock()
-	defer fi.Unlock()
-	return fi.mod.GetNode()
+	fi.nodelk.Lock()
+	defer fi.nodelk.Unlock()
+	return fi.node, nil
 }
 
-// Truncate truncates the file to size
-func (fi *File) Truncate(size int64) error {
-	fi.Lock()
-	defer fi.Unlock()
-	fi.hasChanges = true
-	return fi.mod.Truncate(size)
+func (fi *File) Flush() error {
+	// open the file in fullsync mode
+	fd, err := fi.Open(OpenWriteOnly, true)
+	if err != nil {
+		return err
+	}
+
+	defer fd.Close()
+
+	return fd.Flush()
+}
+
+func (fi *File) Sync() error {
+	// just being able to take the writelock means the descriptor is synced
+	fi.desclock.Lock()
+	fi.desclock.Unlock()
+	return nil
 }
 
 // Type returns the type FSNode this is
 func (fi *File) Type() NodeType {
 	return TFile
-}
-
-// Lock the file
-func (fi *File) Lock() {
-	fi.lock.Lock()
-}
-
-// Unlock the file
-func (fi *File) Unlock() {
-	fi.lock.Unlock()
 }

@@ -169,12 +169,6 @@ func (dm *DagModifier) Sync() error {
 	// Number of bytes we're going to write
 	buflen := dm.wrBuf.Len()
 
-	// Grab key for unpinning after mod operation
-	_, err := dm.curNode.Key()
-	if err != nil {
-		return err
-	}
-
 	// overwrite existing dag nodes
 	thisk, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
 	if err != nil {
@@ -378,7 +372,7 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 	case os.SEEK_SET:
 		newoffset = uint64(offset)
 	case os.SEEK_END:
-		return 0, ErrSeekEndNotImpl
+		newoffset = uint64(fisize) - uint64(offset)
 	default:
 		return 0, ErrUnrecognizedWhence
 	}
