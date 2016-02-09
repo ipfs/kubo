@@ -6,7 +6,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	util "github.com/ipfs/go-ipfs/util"
+	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 var DNSCmd = &cmds.Command{

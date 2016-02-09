@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 )
 
 // package errors

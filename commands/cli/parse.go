@@ -12,7 +12,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 // Parse parses the input commandline string (cmd, flags, and args).

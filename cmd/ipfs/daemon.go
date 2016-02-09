@@ -23,7 +23,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	util "github.com/ipfs/go-ipfs/util"
+	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	conn "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/conn"
 	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 )

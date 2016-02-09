@@ -13,7 +13,7 @@ import (
 	bs "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
-	"github.com/ipfs/go-ipfs/util"
+	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 func randNode() (*mdag.Node, key.Key) {

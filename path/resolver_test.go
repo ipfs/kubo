@@ -10,7 +10,7 @@ import (
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	dagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	path "github.com/ipfs/go-ipfs/path"
-	util "github.com/ipfs/go-ipfs/util"
+	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 func randNode() (*merkledag.Node, key.Key) {

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	random "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
-	"github.com/ipfs/go-ipfs/util/ipfsaddr"
+	"github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
 	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
@@ -27,8 +27,8 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	unit "github.com/ipfs/go-ipfs/thirdparty/unit"
-	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )

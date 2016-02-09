@@ -17,12 +17,12 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	routing "github.com/ipfs/go-ipfs/routing"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	u "github.com/ipfs/go-ipfs/util"
 	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 	netutil "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/test/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 
-	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
-	travisci "github.com/ipfs/go-ipfs/util/testutil/ci/travis"
+	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
+	travisci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
 )
 
 var testCaseValues = map[key.Key][]byte{}

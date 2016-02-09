@@ -8,7 +8,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 
 	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 )
 
 // ErrBadPath is returned when a given path is incorrectly formatted

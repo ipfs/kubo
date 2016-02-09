@@ -12,7 +12,7 @@ import (
 	notif "github.com/ipfs/go-ipfs/notifications"
 	path "github.com/ipfs/go-ipfs/path"
 	ipdht "github.com/ipfs/go-ipfs/routing/dht"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 )
 

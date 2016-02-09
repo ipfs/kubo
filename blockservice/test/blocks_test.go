@@ -13,7 +13,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	. "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
