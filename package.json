@@ -16,6 +16,11 @@
       "name": "go-net",
       "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
       "version": "0.0.0"
+    },
+    {
+      "name": "goprocess",
+      "hash": "QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn",
+      "version": "0.0.0"
     }
   ],
   "language": "go",
