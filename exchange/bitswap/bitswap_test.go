@@ -158,6 +158,19 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	t.Log("Give the blocks to the first instance")
 
+	nump := len(instances) - 1
+	// assert we're properly connected
+	for _, inst := range instances {
+		peers := inst.Exchange.wm.ConnectedPeers()
+		for i := 0; i < 10 && len(peers) != nump; i++ {
+			time.Sleep(time.Millisecond * 50)
+			peers = inst.Exchange.wm.ConnectedPeers()
+		}
+		if len(peers) != nump {
+			t.Fatal("not enough peers connected to instance")
+		}
+	}
+
 	var blkeys []key.Key
 	first := instances[0]
 	for _, b := range blocks {
