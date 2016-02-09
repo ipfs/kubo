@@ -11,6 +11,11 @@
       "name": "go-libp2p",
       "hash": "QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4",
       "version": "1.0.0"
+    },
+    {
+      "name": "go-net",
+      "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
+      "version": "0.0.0"
     }
   ],
   "language": "go",
