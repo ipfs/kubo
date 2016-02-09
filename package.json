@@ -26,6 +26,11 @@
       "name": "randbo",
       "hash": "QmYvsG72GsfLgUeSojXArjnU6L4Wmwk7wuAxtNLuyXcc1T",
       "version": "0.0.0"
+    },
+    {
+      "name": "gogo-protobuf",
+      "hash": "QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV",
+      "version": "0.0.0"
     }
   ],
   "language": "go",

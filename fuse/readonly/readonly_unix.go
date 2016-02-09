@@ -11,7 +11,7 @@ import (
 
 	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	core "github.com/ipfs/go-ipfs/core"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
