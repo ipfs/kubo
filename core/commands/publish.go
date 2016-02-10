@@ -74,6 +74,11 @@ Publish an <ipfs-path> to another public key (not implemented):
 			}
 		}
 
+		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
+			res.SetError(errors.New("You cannot manually publish while IPNS is mounted."), cmds.ErrNormal)
+			return
+		}
+
 		pstr := req.Arguments()[0]
 
 		if n.Identity == "" {

@@ -151,10 +151,7 @@ func TestIpnsLocalLink(t *testing.T) {
 	defer mnt.Close()
 	name := mnt.Dir + "/local"
 
-	_, err := os.Stat(name)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkExists(t, name)
 
 	linksto, err := os.Readlink(name)
 	if err != nil {
