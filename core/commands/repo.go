@@ -9,6 +9,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -156,8 +157,8 @@ var repoStatCmd = &cmds.Command{
 			}
 
 			out := fmt.Sprintf(
-				"Path: %s\nSize: %d bytes\nBlocks: %d\n",
-				stat.repoPath, stat.repoSize, stat.numBlocks)
+				"Path: %s\nSize: %s\nBlocks: %d\n",
+				stat.repoPath, humanize.Bytes(stat.repoSize), stat.numBlocks)
 
 			return strings.NewReader(out), nil
 		},
