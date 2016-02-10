@@ -28,7 +28,7 @@ var CatCmd = &cmds.Command{
 	PreRun: func(req cmds.Request) error {
 		verbose, _, _ := req.Option("verbose").Bool()
 		if verbose {
-			return PrintDebugLog(req)
+			return PrintDebugLog(req, req.Arguments()[0])
 		}
 		return nil
 	},

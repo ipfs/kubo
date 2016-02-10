@@ -44,10 +44,20 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmds.BoolOption("archive", "a", "Output a TAR archive. Default: false."),
 		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression. Default: false."),
 		cmds.IntOption("compression-level", "l", "The level of compression (1-9). Default: -1."),
+		cmds.BoolOption("verbose", "v", "enable verbose debug output"),
 	},
 	PreRun: func(req cmds.Request) error {
 		_, err := getCompressOptions(req)
-		return err
+		if err != nil {
+			return err
+		}
+
+		verbose, _, _ := req.Option("verbose").Bool()
+		if verbose {
+			return PrintDebugLog(req, req.Arguments()[0])
+		}
+
+		return nil
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		cmplvl, err := getCompressOptions(req)

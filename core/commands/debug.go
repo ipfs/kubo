@@ -11,6 +11,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
+	"golang.org/x/net/context"
 	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
 	manet "gx/ipfs/QmYtzQmUwPFGxjCXctJ8e6GXS8sYfoXy2pdeMbS5SFWqRi/go-multiaddr-net"
 )
@@ -36,11 +37,17 @@ func GetEventStream(req cmds.Request) (<-chan map[string]interface{}, error) {
 		return nil, err
 	}
 
+	events := parseJsonStream(req.Context(), resp.Body)
+
+	return events, nil
+}
+
+func parseJsonStream(ctx context.Context, r io.ReadCloser) chan map[string]interface{} {
 	events := make(chan map[string]interface{})
 	go func() {
-		defer resp.Body.Close()
+		defer r.Close()
 
-		dec := json.NewDecoder(resp.Body)
+		dec := json.NewDecoder(r)
 		for {
 			var obj map[string]interface{}
 			err := dec.Decode(&obj)
@@ -53,16 +60,16 @@ func GetEventStream(req cmds.Request) (<-chan map[string]interface{}, error) {
 
 			select {
 			case events <- obj:
-			case <-req.Context().Done():
+			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 
-	return events, nil
+	return events
 }
 
-func PrintDebugLog(req cmds.Request) error {
+func PrintDebugLog(req cmds.Request, targetstr string) error {
 	events, err := GetEventStream(req)
 	if err != nil {
 		return err
@@ -72,7 +79,7 @@ func PrintDebugLog(req cmds.Request) error {
 		fmt.Fprintf(os.Stderr, f+"\n", args...)
 	}
 
-	p, err := path.ParsePath(req.Arguments()[0])
+	p, err := path.ParsePath(targetstr)
 	if err != nil {
 		return err
 	}
