@@ -2,7 +2,6 @@
 # docker environment.
 
 IPFS_ROOT = ../..
-IMAGE = jbenet/go-ipfs-bench
 CONTAINER = go-ipfs-bench
 PACKAGE = integrationtest
 PACKAGE_DIR = test/integration
