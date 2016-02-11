@@ -172,14 +172,10 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 func waitOnErrChan(ctx context.Context, errs chan error) error {
 	select {
 	case err := <-errs:
-		if err != nil {
-			return err
-		}
+		return err
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-
-	return nil
 }
 
 func PublishPublicKey(ctx context.Context, r routing.IpfsRouting, k key.Key, pubk ci.PubKey) error {
