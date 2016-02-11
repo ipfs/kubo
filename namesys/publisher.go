@@ -146,17 +146,36 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 		entry.Ttl = proto.Uint64(uint64(ttl.Nanoseconds()))
 	}
 
-	err = PublishEntry(ctx, r, ipnskey, entry)
+	errs := make(chan error)
+
+	go func() {
+		errs <- PublishEntry(ctx, r, ipnskey, entry)
+	}()
+
+	go func() {
+		errs <- PublishPublicKey(ctx, r, namekey, k.GetPublic())
+	}()
+
+	err = waitOnErrChan(ctx, errs)
 	if err != nil {
 		return err
 	}
 
-	err = PublishPublicKey(ctx, r, namekey, k.GetPublic())
+	err = waitOnErrChan(ctx, errs)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func waitOnErrChan(ctx context.Context, errs chan error) error {
+	select {
+	case err := <-errs:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func PublishPublicKey(ctx context.Context, r routing.IpfsRouting, k key.Key, pubk ci.PubKey) error {
