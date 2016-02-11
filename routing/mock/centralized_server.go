@@ -6,6 +6,7 @@ import (
 	"time"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/util/testutil"
 	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
@@ -74,7 +75,7 @@ func (rs *s) Providers(k key.Key) []peer.PeerInfo {
 }
 
 func (rs *s) Client(p testutil.Identity) Client {
-	return rs.ClientWithDatastore(context.Background(), p, ds.NewMapDatastore())
+	return rs.ClientWithDatastore(context.Background(), p, dssync.MutexWrap(ds.NewMapDatastore()))
 }
 
 func (rs *s) ClientWithDatastore(_ context.Context, p testutil.Identity, datastore ds.Datastore) Client {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	path "github.com/ipfs/go-ipfs/path"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
@@ -16,8 +17,10 @@ import (
 )
 
 func TestRoutingResolve(t *testing.T) {
-	d := mockrouting.NewServer().Client(testutil.RandIdentityOrFatal(t))
-	dstore := ds.NewMapDatastore()
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
+	serv := mockrouting.NewServer()
+	id := testutil.RandIdentityOrFatal(t)
+	d := serv.ClientWithDatastore(context.Background(), id, dstore)
 
 	resolver := NewRoutingResolver(d, 0)
 	publisher := NewRoutingPublisher(d, dstore)
@@ -50,7 +53,7 @@ func TestRoutingResolve(t *testing.T) {
 }
 
 func TestPrexistingExpiredRecord(t *testing.T) {
-	dstore := ds.NewMapDatastore()
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	d := mockrouting.NewServer().ClientWithDatastore(context.Background(), testutil.RandIdentityOrFatal(t), dstore)
 
 	resolver := NewRoutingResolver(d, 0)
@@ -87,7 +90,7 @@ func TestPrexistingExpiredRecord(t *testing.T) {
 }
 
 func TestPrexistingRecord(t *testing.T) {
-	dstore := ds.NewMapDatastore()
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	d := mockrouting.NewServer().ClientWithDatastore(context.Background(), testutil.RandIdentityOrFatal(t), dstore)
 
 	resolver := NewRoutingResolver(d, 0)
