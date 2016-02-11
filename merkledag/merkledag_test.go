@@ -20,6 +20,7 @@ import (
 	imp "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	. "github.com/ipfs/go-ipfs/merkledag"
+	dstest "github.com/ipfs/go-ipfs/merkledag/test"
 	"github.com/ipfs/go-ipfs/pin"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
@@ -322,4 +323,47 @@ func TestEnumerateChildren(t *testing.T) {
 	}
 
 	traverse(root)
+}
+
+func TestFetchFailure(t *testing.T) {
+	ds := dstest.Mock()
+	ds_bad := dstest.Mock()
+
+	top := new(Node)
+	for i := 0; i < 10; i++ {
+		nd := &Node{Data: []byte{byte('a' + i)}}
+		_, err := ds.Add(nd)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = top.AddNodeLinkClean(fmt.Sprintf("AA%d", i), nd)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for i := 0; i < 10; i++ {
+		nd := &Node{Data: []byte{'f', 'a' + byte(i)}}
+		_, err := ds_bad.Add(nd)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = top.AddNodeLinkClean(fmt.Sprintf("BB%d", i), nd)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	getters := GetDAG(context.Background(), ds, top)
+	for i, getter := range getters {
+		_, err := getter.Get(context.Background())
+		if err != nil && i < 10 {
+			t.Fatal(err)
+		}
+		if err == nil && i >= 10 {
+			t.Fatal("should have failed request")
+		}
+	}
 }
