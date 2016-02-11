@@ -45,5 +45,5 @@ build_script:
 test_script:
   - '%BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; export GOFLAGS=''-tags nofuse''; export TEST_NO_FUSE=1; export TEST_VERBOSE=1; export TEST_SUITE=test_sharness_expensive; make $TEST_SUITE"'   
   
-build:
-  parallel: true
+#build:
+#  parallel: true
