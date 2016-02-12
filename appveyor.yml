@@ -12,8 +12,8 @@ clone_folder: c:\go\src\github.com\ipfs\go-ipfs
 
 environment:
   GOPATH: c:\gopath
+  TEST_VERBOSE: 1
   #TEST_NO_FUSE: 1
-  #TEST_VERBOSE: 1
   #TEST_SUITE: test_sharness_expensive
   #GOFLAGS: -tags nofuse 
   global:

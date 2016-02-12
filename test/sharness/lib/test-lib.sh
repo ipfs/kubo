@@ -44,10 +44,14 @@ test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
 test "$TEST_NO_DOCKER" != 1 && type docker && test_set_prereq DOCKER
 
+TEST_OS=$(uname -s | tr [a-z] [A-Z])
+test expr "$TEST_OS" : "CYGWIN_NT" >/dev/null && test_set_prereq POSIX
+
 if test "$TEST_VERBOSE" = 1; then
 	echo '# TEST_VERBOSE='"$TEST_VERBOSE"
 	echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
 	echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
+	echo '# TEST_OS='"$TEST_OS"
 fi
 
 # source our generic test lib
