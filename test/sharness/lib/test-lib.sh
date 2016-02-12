@@ -125,29 +125,6 @@ test_config_set() {
 
 test_init_ipfs() {
 
-	# we have a problem where initializing daemons with the same api port
-	# often fails-- it hangs indefinitely. The proper solution is to make
-	# ipfs pick an unused port for the api on startup, and then use that.
-	# Unfortunately, ipfs doesnt yet know how to do this-- the api port
-	# must be specified. Until ipfs learns how to do this, we must use
-	# specific port numbers, which may still fail but less frequently
-	# if we at least use different ones.
-
-	# Using RANDOM like this is clearly wrong-- it samples with replacement
-	# and it doesnt even check the port is unused. this is a trivial stop gap
-	# until the proper solution is implemented.
-	RANDOM=$$
-	PORT_API=$((RANDOM % 3000 + 5100))
-	ADDR_API="/ip4/127.0.0.1/tcp/$PORT_API"
-
-	PORT_GWAY=$((RANDOM % 3000 + 8100))
-	ADDR_GWAY="/ip4/127.0.0.1/tcp/$PORT_GWAY"
-
-	PORT_SWARM=$((RANDOM % 3000 + 12000))
-	ADDR_SWARM="[
-  \"/ip4/0.0.0.0/tcp/$PORT_SWARM\"
-]"
-
 
 	# we set the Addresses.API config variable.
 	# the cli client knows to use it, so only need to set.
@@ -162,38 +139,40 @@ test_init_ipfs() {
 		mkdir mountdir ipfs ipns &&
 		test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
 		test_config_set Mounts.IPNS "$(pwd)/ipns" &&
-		test_config_set Addresses.API "$ADDR_API" &&
-		test_config_set Addresses.Gateway "$ADDR_GWAY" &&
-		test_config_set --json Addresses.Swarm "$ADDR_SWARM" &&
+		test_config_set Addresses.API "/ip4/127.0.0.1/tcp/0" &&
+		test_config_set Addresses.Gateway "/ip4/127.0.0.1/tcp/0" &&
+		test_config_set --json Addresses.Swarm "[
+  \"/ip4/0.0.0.0/tcp/0\"
+]" &&
 		ipfs bootstrap rm --all ||
 		test_fsh cat "\"$IPFS_PATH/config\""
 	'
 
 }
 
-test_config_ipfs_gateway_readonly() {
-	ADDR_GWAY=$1
-	test_expect_success "prepare config -- gateway address" '
-		test "$ADDR_GWAY" != "" &&
-		test_config_set "Addresses.Gateway" "$ADDR_GWAY"
-	'
-
-	# tell the user what's going on if they messed up the call.
-	if test "$#" = 0; then
-		echo "#			Error: must call with an address, for example:"
-		echo '#			test_config_ipfs_gateway_readonly "/ip4/0.0.0.0/tcp/5002"'
-		echo '#'
-	fi
-}
-
 test_config_ipfs_gateway_writable() {
-
-	test_config_ipfs_gateway_readonly $1
-
 	test_expect_success "prepare config -- gateway writable" '
 		test_config_set --bool Gateway.Writable true ||
 		test_fsh cat "\"$IPFS_PATH/config\""
 	'
+}
+
+test_wait_for_file() {
+	loops=$1
+	delay=$2
+	file=$3
+	fwaitc=0
+	while ! test -f "$file"
+	do
+		if test $fwaitc -ge $loops
+		then
+			echo "Error: timed out waiting for file: $file"
+			return 1
+		fi
+
+		go-sleep $delay
+		fwaitc=`expr $fwaitc + 1`
+	done
 }
 
 test_launch_ipfs_daemon() {
@@ -204,19 +183,34 @@ test_launch_ipfs_daemon() {
 		ipfs daemon $args >actual_daemon 2>daemon_err &
 	'
 
+	# wait for api file to show up
+	test_expect_success "api file shows up" '
+		test_wait_for_file 20 100ms "$IPFS_PATH/api"
+	'
+
+	test_expect_success "set up address variables" '
+		API_MADDR=$(cat "$IPFS_PATH/api") &&
+		API_ADDR=$(convert_tcp_maddr $API_MADDR) &&
+		API_PORT=$(port_from_maddr $API_MADDR) &&
+
+		GWAY_MADDR=$(sed -n "s/^Gateway (.*) server listening on //p" actual_daemon) &&
+		GWAY_ADDR=$(convert_tcp_maddr $GWAY_MADDR) &&
+		GWAY_PORT=$(port_from_maddr $GWAY_MADDR)
+	'
+
+
+	test_expect_success "set swarm address vars" '
+		ipfs swarm addrs local > addrs_out &&
+		SWARM_MADDR=$(grep "127.0.0.1" addrs_out) &&
+		SWARM_PORT=$(port_from_maddr $SWARM_MADDR)
+	'
+
 	# we say the daemon is ready when the API server is ready.
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
-		pollEndpoint -ep=/version -host=$ADDR_API -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
+		pollEndpoint -ep=/version -host=$API_MADDR -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
 		test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
 	'
-
-	if test "$ADDR_GWAY" != ""; then
-		test_expect_success "'ipfs daemon' output includes Gateway address" '
-			pollEndpoint -ep=/version -host=$ADDR_GWAY -v -tout=1s -tries=60 2>poll_gwerr > poll_gwout ||
-			test_fsh cat daemon_err || test_fsh cat poll_gwerr || test_fsh cat poll_gwout
-		'
-	fi
 }
 
 do_umount() {
@@ -364,4 +358,12 @@ test_check_peerid() {
 		echo "Bad peerid '$1' with len '$peeridlen'"
 		return 1
 	}
+}
+
+convert_tcp_maddr() {
+	echo $1 | awk -F'/' '{ printf "%s:%s", $3, $5 }'
+}
+
+port_from_maddr() {
+	echo $1 | awk -F'/' '{ print $NF }'
 }
