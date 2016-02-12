@@ -45,8 +45,10 @@ test_expect_success "ipfs cat no repo message looks good" '
 # test that init succeeds
 test_expect_success "ipfs init succeeds" '
 	export IPFS_PATH="$(pwd)/.ipfs" &&
+	echo "IPFS_PATH: \"$IPFS_PATH\"" &&
 	BITS="2048" &&
-	ipfs init --bits="$BITS" >actual_init
+	ipfs init --bits="$BITS" >actual_init ||
+	test_fsh cat actual_init
 '
 
 test_expect_success ".ipfs/ has been created" '
