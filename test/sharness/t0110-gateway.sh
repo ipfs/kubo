@@ -9,11 +9,10 @@ test_description="Test HTTP Gateway"
 . lib/test-lib.sh
 
 test_init_ipfs
-test_config_ipfs_gateway_readonly $ADDR_GWAY
 test_launch_ipfs_daemon
 
-port=$PORT_GWAY
-apiport=$PORT_API
+port=$GWAY_PORT
+apiport=$API_PORT
 
 # TODO check both 5001 and 5002.
 # 5001 should have a readable gateway (part of the API)

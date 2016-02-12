@@ -19,12 +19,11 @@ test_config_ipfs_cors_headers() {
 . lib/test-lib.sh
 
 test_init_ipfs
-test_config_ipfs_gateway_readonly $ADDR_GWAY
 test_config_ipfs_cors_headers
 test_launch_ipfs_daemon
 
-gwport=$PORT_GWAY
-apiport=$PORT_API
+gwport=$GWAY_PORT
+apiport=$API_PORT
 thash='QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn'
 
 # Gateway
