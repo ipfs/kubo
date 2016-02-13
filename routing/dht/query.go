@@ -6,15 +6,15 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	notif "github.com/ipfs/go-ipfs/notifications"
 	"github.com/ipfs/go-ipfs/routing"
-	u "github.com/ipfs/go-ipfs/util"
-	pset "github.com/ipfs/go-ipfs/util/peerset"
-	todoctr "github.com/ipfs/go-ipfs/util/todocounter"
+	pset "github.com/ipfs/go-ipfs/thirdparty/peerset"
+	todoctr "github.com/ipfs/go-ipfs/thirdparty/todocounter"
 	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 	queue "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer/queue"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 
-	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	ctxproc "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
+	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
+	ctxproc "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 

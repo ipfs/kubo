@@ -14,7 +14,7 @@ It has these top-level messages:
 */
 package dht_pb
 
-import proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
+import proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.

@@ -9,7 +9,7 @@ import (
 	"sort"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	iaddr "github.com/ipfs/go-ipfs/util/ipfsaddr"
+	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
 	swarm "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/swarm"
 	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 
