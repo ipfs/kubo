@@ -23,6 +23,14 @@ test_sort_cmp() {
 	test_cmp "$1_sorted" "$2_sorted"
 }
 
+# Same as test_cmp above, but we standardize directory
+# separators before comparing the files.
+test_path_cmp() {
+	sed -e "s/\\\\/\//g" "$1" >"$1_std" &&
+	sed -e "s/\\\\/\//g" "$2" >"$2_std" &&
+	test_cmp "$1_std" "$2_std"
+}
+
 # Quote arguments for sh eval
 shellquote() {
 	_space=''
