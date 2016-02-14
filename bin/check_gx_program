@@ -38,9 +38,9 @@ major_number() {
 
     # Hack around 'expr' exiting with code 1 when it outputs 0
     case "$vers" in
-	0) echo "0" ;;
-	0.*) echo "0" ;;
-	*) expr "$vers" : "\([^.]*\).*" || return 1
+        0) echo "0" ;;
+        0.*) echo "0" ;;
+        *) expr "$vers" : "\([^.]*\).*" || return 1
     esac
 }
 
@@ -52,35 +52,34 @@ check_at_least_version() {
     # Get major, minor and fix numbers for each version
     MIN_MAJ=$(major_number "$MIN_VERS") || die "No major version number in '$MIN_VERS' for '$PROG_NAME'"
     CUR_MAJ=$(major_number "$CUR_VERS") || die "No major version number in '$CUR_VERS' for '$PROG_NAME'"
-    if MIN_MIN=$(expr "$MIN_VERS" : "[^.]*\.\([^.]*\).*")
-    then
-	MIN_FIX=$(expr "$MIN_VERS" : "[^.]*\.[^.]*\.\([^.]*\).*") || MIN_FIX="0"
+
+    if MIN_MIN=$(expr "$MIN_VERS" : "[^.]*\.\([^.]*\).*"); then
+        MIN_FIX=$(expr "$MIN_VERS" : "[^.]*\.[^.]*\.\([^.]*\).*") || MIN_FIX="0"
     else
-	MIN_MIN="0"
-	MIN_FIX="0"
+        MIN_MIN="0"
+        MIN_FIX="0"
     fi
-    if CUR_MIN=$(expr "$CUR_VERS" : "[^.]*\.\([^.]*\).*")
-    then
-	CUR_FIX=$(expr "$CUR_VERS" : "[^.]*\.[^.]*\.\([^.]*\).*") || CUR_FIX="0"
+    if CUR_MIN=$(expr "$CUR_VERS" : "[^.]*\.\([^.]*\).*"); then
+        CUR_FIX=$(expr "$CUR_VERS" : "[^.]*\.[^.]*\.\([^.]*\).*") || CUR_FIX="0"
     else
-	CUR_MIN="0"
-	CUR_FIX="0"
+        CUR_MIN="0"
+        CUR_FIX="0"
     fi
 
     # Compare versions
     VERS_LEAST="$PROG_NAME version '$CUR_VERS' should be at least '$MIN_VERS'"
     test "$CUR_MAJ" -gt $(expr "$MIN_MAJ" - 1) || die_upgrade "$VERS_LEAST"
     test "$CUR_MAJ" -gt "$MIN_MAJ" || {
-	test "$CUR_MIN" -gt $(expr "$MIN_MIN" - 1) || die_upgrade "$VERS_LEAST"
-	test "$CUR_MIN" -gt "$MIN_MIN" || {
-	    test "$CUR_FIX" -ge "$MIN_FIX" || die_upgrade "$VERS_LEAST"
-	}
+        test "$CUR_MIN" -gt $(expr "$MIN_MIN" - 1) || die_upgrade "$VERS_LEAST"
+        test "$CUR_MIN" -gt "$MIN_MIN" || {
+            test "$CUR_FIX" -ge "$MIN_FIX" || die_upgrade "$VERS_LEAST"
+        }
     }
 }
 
 # Check that the gx program exists
 
-type "$GX_PROGRAM_NAME" >/dev/null || die_upgrade "Program $GX_PROGRAM_NAME is not installed!"
+type "$GX_PROGRAM_NAME" >/dev/null 2>&1 || die_upgrade "Program $GX_PROGRAM_NAME is not installed!"
 
 # Check the gx program version
 
