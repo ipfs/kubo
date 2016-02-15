@@ -141,7 +141,6 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 		return err
 	}
 
-	log.Error("KEY: ", []byte(namekey))
 	ttl, ok := checkCtxTTL(ctx)
 	if ok {
 		entry.Ttl = proto.Uint64(uint64(ttl.Nanoseconds()))
