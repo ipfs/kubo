@@ -14,11 +14,19 @@ all: help
 godep:
 	go get github.com/tools/godep
 
-gx:
+toolkit_upgrade: gx_upgrade gxgo_upgrade
+
+gx_upgrade:
 	go get -u github.com/whyrusleeping/gx
+
+gxgo_upgrade:
 	go get -u github.com/whyrusleeping/gx-go
 
-deps: gx
+gx_check:
+	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
+	@bin/check_gx_program "gx-go" "0.2" 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
+
+deps: gx_check
 	gx --verbose install --global
 
 # saves/vendors third-party dependencies to Godeps/_workspace
@@ -42,7 +50,7 @@ clean:
 uninstall:
 	cd cmd/ipfs && go clean -i -ldflags=$(ldflags)
 
-PHONY += all help godep install build nofuse clean uninstall
+PHONY += all help godep toolkit_upgrade gx_upgrade gxgo_upgrade gx_check deps vendor install build nofuse clean uninstall
 
 ##############################################################
 # tests targets
@@ -98,6 +106,7 @@ PHONY += test test_short test_expensive
 help:
 	@echo 'DEPENDENCY TARGETS:'
 	@echo ''
+	@echo '  deps         - Download dependencies using gx'
 	@echo '  vendor       - Create a Godep workspace of 3rd party dependencies'
 	@echo ''
 	@echo 'BUILD TARGETS:'
