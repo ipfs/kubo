@@ -354,6 +354,8 @@ GetValue will return the value stored in the DHT at the given key.
 			return
 		}
 
+		log.Error("RESOLVE KEY: ", []byte(dhtkey))
+
 		go func() {
 			defer close(outChan)
 			for e := range events {
@@ -573,7 +575,7 @@ func escapeDhtKey(s string) (key.Key, error) {
 		return key.B58KeyDecode(s), nil
 	case 3:
 		k := key.B58KeyDecode(parts[2])
-		return key.Key(path.Join(append(parts[:2], k.String()))), nil
+		return key.Key(path.Join(append(parts[:2], string(k)))), nil
 	default:
 		return "", errors.New("invalid key")
 	}
