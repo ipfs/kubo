@@ -32,9 +32,10 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		// Note: two swarm listen addrs, one tcp, one utp.
 		Addresses: Addresses{
 			Swarm: []string{
-				"/ip4/0.0.0.0/tcp/4001",
-				// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-				"/ip6/::/tcp/4001",
+				"/ip4/0.0.0.0/tcp/4737",
+				"/ip4/0.0.0.0/udp/4737/utp",
+				"/ip6/::/tcp/4737",
+				"/ip6/::/udp/4737/utp",
 			},
 			API:     "/ip4/127.0.0.1/tcp/5001",
 			Gateway: "/ip4/127.0.0.1/tcp/8080",
