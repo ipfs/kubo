@@ -22,6 +22,7 @@ test_expect_success "invoc shows up in output" '
 test_expect_success "start longer running command" '
 	ipfs log tail &
 	LOGPID=$!
+	go-sleep 100ms
 '
 
 test_expect_success "long running command shows up" '
