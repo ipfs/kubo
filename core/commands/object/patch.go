@@ -21,7 +21,7 @@ var ObjectPatchCmd = &cmds.Command{
 		ShortDescription: `
 'ipfs object patch <root> <cmd> <args>' is a plumbing command used to
 build custom DAG objects. It mutates objects, creating new objects as a
-result. This is the merkle-dag version of modifying an object.
+result. This is the Merkle-DAG version of modifying an object.
 `,
 	},
 	Arguments: []cmds.Argument{},
@@ -51,7 +51,7 @@ Append data to what already exists in the data segment in the given object.
 EXAMPLE:
 	$ echo "hello" | ipfs object patch $HASH append-data
 
-note: this does not append data to a 'file', it modifies the actual raw
+Note: This does not append data to a file - it modifies the actual raw
 data within an object. Objects have a max size of 1MB and objects larger than
 the limit will not be respected by the network.
 `,
@@ -111,7 +111,7 @@ var patchSetDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Set data field of an ipfs object.",
 		ShortDescription: `
-Set the data of an ipfs object from stdin or with the contents of a file
+Set the data of an ipfs object from stdin or with the contents of a file.
 
 EXAMPLE:
 
@@ -173,7 +173,7 @@ var patchRmLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Remove a link from an object.",
 		ShortDescription: `
-removes a link by the given name from root.
+Removes a link by the given name from root.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -233,7 +233,7 @@ var patchAddLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add a link to a given object.",
 		ShortDescription: `
-Add a merkle-link to the given object and return the hash of the result.
+Add a Merkle-link to the given object and return the hash of the result.
 
 Examples:
 
@@ -241,7 +241,7 @@ Examples:
     BAR=$(echo "bar" | ipfs add -q)
     ipfs object patch $EMPTY_DIR add-link foo $BAR
 
-This takes an empty directory, and adds a link named foo under it, pointing to
+This takes an empty directory, and adds a link named 'foo' under it, pointing to
 a file containing 'bar', and returns the hash of the new object.
 `,
 	},
