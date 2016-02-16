@@ -60,7 +60,7 @@ From there:
 
 ### Build from Source
 
-#### Prerequisite: Install Go
+#### Prerequisite 1: Install Go
 
 First, you'll need Go. If you don't have it: [Download Go 1.5.2+](https://golang.org/dl/).
 
@@ -72,6 +72,10 @@ export PATH=$PATH:$GOPATH/bin
 ```
 
 (If you run into trouble, see the [Go install instructions](https://golang.org/doc/install)).
+
+#### Prerequisite 2: Install gx and gx-go
+
+You can try using package manager, but gx and gx-go are unlikely to be available in repositories currently. The recommended way to install is to run `make toolkit_upgrade` before running `make install` in the next step.
 
 #### Download + Compile IPFS
 
