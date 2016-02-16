@@ -48,7 +48,8 @@ var patchAppendDataCmd = &cmds.Command{
 		ShortDescription: `
 Append data to what already exists in the data segment in the given object.
 
-EXAMPLE:
+Example:
+
 	$ echo "hello" | ipfs object patch $HASH append-data
 
 Note: This does not append data to a file - it modifies the actual raw
@@ -113,7 +114,7 @@ var patchSetDataCmd = &cmds.Command{
 		ShortDescription: `
 Set the data of an ipfs object from stdin or with the contents of a file.
 
-EXAMPLE:
+Example:
 
     $ echo "my data" | ipfs object patch $MYHASH set-data
 `,
@@ -235,11 +236,11 @@ var patchAddLinkCmd = &cmds.Command{
 		ShortDescription: `
 Add a Merkle-link to the given object and return the hash of the result.
 
-Examples:
+Example:
 
-    EMPTY_DIR=$(ipfs object new unixfs-dir)
-    BAR=$(echo "bar" | ipfs add -q)
-    ipfs object patch $EMPTY_DIR add-link foo $BAR
+    $ EMPTY_DIR=$(ipfs object new unixfs-dir)
+    $ BAR=$(echo "bar" | ipfs add -q)
+    $ ipfs object patch $EMPTY_DIR add-link foo $BAR
 
 This takes an empty directory, and adds a link named 'foo' under it, pointing to
 a file containing 'bar', and returns the hash of the new object.

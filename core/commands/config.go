@@ -41,15 +41,15 @@ repository.`,
 much like 'git config'. The configuration values are stored in a config
 file inside your IPFS repository.
 
-EXAMPLES:
+Examples:
 
 Get the value of the 'datastore.path' key:
 
-  ipfs config datastore.path
+  $ ipfs config datastore.path
 
 Set the value of the 'datastore.path' key:
 
-  ipfs config datastore.path ~/.ipfs/datastore
+  $ ipfs config datastore.path ~/.ipfs/datastore
 `,
 	},
 
