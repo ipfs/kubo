@@ -25,7 +25,8 @@ Lists running and recently run commands.
 		cmds.BoolOption("v", "verbose", "print more verbose output"),
 	},
 	Subcommands: map[string]*cmds.Command{
-		"clear": clearInactiveCmd,
+		"clear":    clearInactiveCmd,
+		"set-time": setRequestClearCmd,
 	},
 	Marshalers: map[cmds.EncodingType]cmds.Marshaler{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -90,5 +91,23 @@ var clearInactiveCmd = &cmds.Command{
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		req.InvocContext().ReqLog.ClearInactive()
+	},
+}
+
+var setRequestClearCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Set how long to keep inactive requests in the log",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("time", true, false, "time to keep inactive requests in log"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		tval, err := time.ParseDuration(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		req.InvocContext().ReqLog.SetKeepTime(tval)
 	},
 }
