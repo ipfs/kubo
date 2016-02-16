@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
 	"testing"
 	"time"
 
@@ -77,6 +78,10 @@ func TestExternalUnmount(t *testing.T) {
 	// Run shell command to externally unmount the directory
 	cmd := "fusermount"
 	args := []string{"-u", ipnsDir}
+	if runtime.GOOS == "darwin" {
+		cmd = "umount"
+		args = []string{ipnsDir}
+	}
 	if err := exec.Command(cmd, args...).Run(); err != nil {
 		t.Fatal(err)
 	}
