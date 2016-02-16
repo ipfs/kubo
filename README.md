@@ -75,8 +75,7 @@ export PATH=$PATH:$GOPATH/bin
 
 #### Prerequisite 2: Install gx and gx-go
 
-You can try using your package manager for it but it is unlikely it is there.
-Other way is to run `make toolkit_upgrade` before running `make install` in the next step.
+You can try using package manager, but gx and gx-go are unlikely to be available in repositories currently. The recommended way to install is to run `make toolkit_upgrade` before running `make install` in the next step.
 
 #### Download + Compile IPFS
 
