@@ -13,7 +13,7 @@ import (
 
 var TarCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Utility functions for tar files in ipfs.",
+		Tagline: "Utility functions for tar files in IPFS.",
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -75,14 +75,14 @@ var tarAddCmd = &cmds.Command{
 
 var tarCatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Export a tar file from ipfs.",
+		Tagline: "Export a tar file from IPFS.",
 		ShortDescription: `
-'ipfs tar cat' will export a tar file from a previously imported one in ipfs
+'ipfs tar cat' will export a tar file from a previously imported one in IPFS.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "Ipfs path of archive to export.").EnableStdin(),
+		cmds.StringArg("path", true, false, "IPFS path of archive to export.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
