@@ -424,7 +424,7 @@ var swarmFiltersAddCmd = &cmds.Command{
 		Tagline: "Add an address filter.",
 		ShortDescription: `
 'ipfs swarm filters add' will add an address filter to the daemons swarm.
-Filters applied this way will not persist daemon reboots, to acheive that,
+Filters applied this way will not persist daemon reboots, to achieve that,
 add your filters to the ipfs config file.
 `,
 	},
@@ -466,7 +466,7 @@ var swarmFiltersRmCmd = &cmds.Command{
 		Tagline: "Remove an address filter.",
 		ShortDescription: `
 'ipfs swarm filters rm' will remove an address filter from the daemons swarm.
-Filters removed this way will not persist daemon reboots, to acheive that,
+Filters removed this way will not persist daemon reboots, to achieve that,
 remove your filters from the ipfs config file.
 `,
 	},
