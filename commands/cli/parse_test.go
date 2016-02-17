@@ -212,7 +212,7 @@ func TestArgumentParsing(t *testing.T) {
 		}
 	}
 
-	testFail := func(cmd words, msg string) {
+	testFail := func(cmd words, fi *os.File, msg string) {
 		_, _, _, err := Parse(cmd, nil, rootCmd)
 		if err == nil {
 			t.Errorf("Should have failed: %v", msg)
@@ -220,18 +220,18 @@ func TestArgumentParsing(t *testing.T) {
 	}
 
 	test([]string{"noarg"}, nil, []string{})
-	testFail([]string{"noarg", "value!"}, "provided an arg, but command didn't define any")
+	testFail([]string{"noarg", "value!"}, nil, "provided an arg, but command didn't define any")
 
 	test([]string{"onearg", "value!"}, nil, []string{"value!"})
-	testFail([]string{"onearg"}, "didn't provide any args, arg is required")
+	testFail([]string{"onearg"}, nil, "didn't provide any args, arg is required")
 
 	test([]string{"twoargs", "value1", "value2"}, nil, []string{"value1", "value2"})
-	testFail([]string{"twoargs", "value!"}, "only provided 1 arg, needs 2")
-	testFail([]string{"twoargs"}, "didn't provide any args, 2 required")
+	testFail([]string{"twoargs", "value!"}, nil, "only provided 1 arg, needs 2")
+	testFail([]string{"twoargs"}, nil, "didn't provide any args, 2 required")
 
 	test([]string{"variadic", "value!"}, nil, []string{"value!"})
 	test([]string{"variadic", "value1", "value2", "value3"}, nil, []string{"value1", "value2", "value3"})
-	testFail([]string{"variadic"}, "didn't provide any args, 1 required")
+	testFail([]string{"variadic"}, nil, "didn't provide any args, 1 required")
 
 	test([]string{"optional", "value!"}, nil, []string{"value!"})
 	test([]string{"optional"}, nil, []string{})
@@ -239,14 +239,14 @@ func TestArgumentParsing(t *testing.T) {
 
 	test([]string{"optionalsecond", "value!"}, nil, []string{"value!"})
 	test([]string{"optionalsecond", "value1", "value2"}, nil, []string{"value1", "value2"})
-	testFail([]string{"optionalsecond"}, "didn't provide any args, 1 required")
-	testFail([]string{"optionalsecond", "value1", "value2", "value3"}, "provided too many args, takes 2 maximum")
+	testFail([]string{"optionalsecond"}, nil, "didn't provide any args, 1 required")
+	testFail([]string{"optionalsecond", "value1", "value2", "value3"}, nil, "provided too many args, takes 2 maximum")
 
 	test([]string{"reversedoptional", "value1", "value2"}, nil, []string{"value1", "value2"})
 	test([]string{"reversedoptional", "value!"}, nil, []string{"value!"})
 
-	testFail([]string{"reversedoptional"}, "didn't provide any args, 1 required")
-	testFail([]string{"reversedoptional", "value1", "value2", "value3"}, "provided too many args, only takes 1")
+	testFail([]string{"reversedoptional"}, nil, "didn't provide any args, 1 required")
+	testFail([]string{"reversedoptional", "value1", "value2", "value3"}, nil, "provided too many args, only takes 1")
 
 	// Use a temp file to simulate stdin
 	fileToSimulateStdin := func(t *testing.T, content string) *os.File {
@@ -296,6 +296,7 @@ func TestArgumentParsing(t *testing.T) {
 	fstdin = fileToSimulateStdin(t, "stdin1")
 	test([]string{"stdinenablednotvariadic2args", "value1"}, fstdin, []string{"value1", "stdin1"})
 	test([]string{"stdinenablednotvariadic2args", "value1", "value2"}, fstdin, []string{"value1", "value2"})
+	testFail([]string{"stdinenablednotvariadic2args"}, fstdin, "cant use stdin for non stdin arg")
 
 	fstdin = fileToSimulateStdin(t, "stdin1")
 	test([]string{"noarg"}, fstdin, []string{})
