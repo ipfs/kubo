@@ -35,7 +35,7 @@ var statBwCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption("peer", "p", "Specify a peer to print bandwidth for."),
 		cmds.StringOption("proto", "t", "Specify a protocol to print bandwidth for."),
-		cmds.BoolOption("poll", "Print bandwidth at an interval."),
+		cmds.BoolOption("poll", "Print bandwidth at an interval. Default: false."),
 		cmds.StringOption("interval", "i", "Time interval to wait between updating output."),
 	},
 
