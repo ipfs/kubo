@@ -2,8 +2,8 @@ package ws
 
 import (
 	"bytes"
-	"github.com/gorilla/websocket"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/docker/spdystream"
+	"gx/ipfs/QmUe1Ljrtwz5NSKqJRw5mgjthSSfW7g94hkGRqiQs5aJna/websocket"
 	"io"
 	"log"
 	"net/http"

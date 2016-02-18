@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"sync"
 	"time"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -50,17 +51,20 @@ func NewDirectory(ctx context.Context, name string, node *dag.Node, parent child
 
 // closeChild updates the child by the given name to the dag node 'nd'
 // and changes its own dag node
-func (d *Directory) closeChild(name string, nd *dag.Node) error {
-	mynd, err := d.closeChildUpdate(name, nd)
+func (d *Directory) closeChild(name string, nd *dag.Node, sync bool) error {
+	mynd, err := d.closeChildUpdate(name, nd, sync)
 	if err != nil {
 		return err
 	}
 
-	return d.parent.closeChild(d.name, mynd)
+	if sync {
+		return d.parent.closeChild(d.name, mynd, true)
+	}
+	return nil
 }
 
 // closeChildUpdate is the portion of closeChild that needs to be locked around
-func (d *Directory) closeChildUpdate(name string, nd *dag.Node) (*dag.Node, error) {
+func (d *Directory) closeChildUpdate(name string, nd *dag.Node, sync bool) (*dag.Node, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -69,7 +73,10 @@ func (d *Directory) closeChildUpdate(name string, nd *dag.Node) (*dag.Node, erro
 		return nil, err
 	}
 
-	return d.flushCurrentNode()
+	if sync {
+		return d.flushCurrentNode()
+	}
+	return nil, nil
 }
 
 func (d *Directory) flushCurrentNode() (*dag.Node, error) {
@@ -175,6 +182,31 @@ type NodeListing struct {
 	Hash string
 }
 
+func (d *Directory) ListNames() []string {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
+	names := make(map[string]struct{})
+	for n, _ := range d.childDirs {
+		names[n] = struct{}{}
+	}
+	for n, _ := range d.files {
+		names[n] = struct{}{}
+	}
+
+	for _, l := range d.node.Links {
+		names[l.Name] = struct{}{}
+	}
+
+	var out []string
+	for n, _ := range names {
+		out = append(out, n)
+	}
+	sort.Strings(out)
+
+	return out
+}
+
 func (d *Directory) List() ([]NodeListing, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -269,12 +301,15 @@ func (d *Directory) Unlink(name string) error {
 }
 
 func (d *Directory) Flush() error {
+	d.lock.Lock()
 	nd, err := d.flushCurrentNode()
 	if err != nil {
+		d.lock.Unlock()
 		return err
 	}
+	d.lock.Unlock()
 
-	return d.parent.closeChild(d.name, nd)
+	return d.parent.closeChild(d.name, nd, true)
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
@@ -309,11 +344,6 @@ func (d *Directory) sync() error {
 			return err
 		}
 
-		_, err = d.dserv.Add(nd)
-		if err != nil {
-			return err
-		}
-
 		err = d.updateChild(name, nd)
 		if err != nil {
 			return err
@@ -322,11 +352,6 @@ func (d *Directory) sync() error {
 
 	for name, file := range d.files {
 		nd, err := file.GetNode()
-		if err != nil {
-			return err
-		}
-
-		_, err = d.dserv.Add(nd)
 		if err != nil {
 			return err
 		}
@@ -359,13 +384,10 @@ func (d *Directory) GetNode() (*dag.Node, error) {
 		return nil, err
 	}
 
+	_, err = d.dserv.Add(d.node)
+	if err != nil {
+		return nil, err
+	}
+
 	return d.node.Copy(), nil
-}
-
-func (d *Directory) Lock() {
-	d.lock.Lock()
-}
-
-func (d *Directory) Unlock() {
-	d.lock.Unlock()
 }

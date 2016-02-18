@@ -406,7 +406,7 @@ _ipfs()
         1)  
             local opts="add bitswap block bootstrap cat commands config daemon dht \
                         diag dns file get id init log ls mount name object pin ping \
-                        refs repo swarm tour update version"
+                        refs repo stats swarm tour update version"
             COMPREPLY=( $(compgen -W "${opts}" -- ${word}) );;
         2)  
             local command="${COMP_WORDS[1]}"

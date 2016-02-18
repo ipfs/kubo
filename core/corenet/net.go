@@ -3,11 +3,11 @@ package corenet
 import (
 	"time"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
-	net "github.com/ipfs/go-ipfs/p2p/net"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	pro "github.com/ipfs/go-ipfs/p2p/protocol"
+	net "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	pro "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/protocol"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type ipfsListener struct {
@@ -60,5 +60,5 @@ func Dial(nd *core.IpfsNode, p peer.ID, protocol string) (net.Stream, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nd.PeerHost.NewStream(pro.ID(protocol), p)
+	return nd.PeerHost.NewStream(nd.Context(), pro.ID(protocol), p)
 }

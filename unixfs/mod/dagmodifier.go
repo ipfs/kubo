@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -17,7 +17,7 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
@@ -168,12 +168,6 @@ func (dm *DagModifier) Sync() error {
 
 	// Number of bytes we're going to write
 	buflen := dm.wrBuf.Len()
-
-	// Grab key for unpinning after mod operation
-	_, err := dm.curNode.Key()
-	if err != nil {
-		return err
-	}
 
 	// overwrite existing dag nodes
 	thisk, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
@@ -378,7 +372,7 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 	case os.SEEK_SET:
 		newoffset = uint64(offset)
 	case os.SEEK_END:
-		return 0, ErrSeekEndNotImpl
+		newoffset = uint64(fisize) - uint64(offset)
 	default:
 		return 0, ErrUnrecognizedWhence
 	}

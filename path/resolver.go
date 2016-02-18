@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("path")
@@ -111,37 +111,33 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 	// for each of the path components
 	for _, name := range names {
 
-		var next key.Key
 		var nlink *merkledag.Link
 		// for each of the links in nd, the current object
 		for _, link := range nd.Links {
 			if link.Name == name {
-				next = key.Key(link.Hash)
 				nlink = link
 				break
 			}
 		}
 
-		if next == "" {
+		if nlink == nil || len(nlink.Hash) == 0 {
 			n, _ := nd.Multihash()
 			return result, ErrNoLink{Name: name, Node: n}
 		}
 
-		if nlink.Node == nil {
-			// fetch object for link and assign to nd
-			ctx, cancel := context.WithTimeout(ctx, time.Minute)
+		if nlink.GetCachedNode() == nil {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, time.Minute)
 			defer cancel()
-			var err error
-			nd, err = s.DAG.Get(ctx, next)
-			if err != nil {
-				return append(result, nd), err
-			}
-			nlink.Node = nd
-		} else {
-			nd = nlink.Node
 		}
 
-		result = append(result, nlink.Node)
+		var err error
+		nd, err = nlink.GetNodeAndCache(ctx, s.DAG)
+		if err != nil {
+			return append(result, nd), err
+		}
+
+		result = append(result, nd)
 	}
 	return result, nil
 }

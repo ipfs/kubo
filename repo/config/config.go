@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	u "github.com/ipfs/go-ipfs/util"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("config")
@@ -48,7 +48,7 @@ func PathRoot() (string, error) {
 	dir := os.Getenv(EnvDir)
 	var err error
 	if len(dir) == 0 {
-		dir, err = u.TildeExpansion(DefaultPathRoot)
+		dir, err = homedir.Expand(DefaultPathRoot)
 	}
 	return dir, err
 }

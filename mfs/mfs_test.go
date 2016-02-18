@@ -9,13 +9,15 @@ import (
 	"math/rand"
 	"os"
 	"sort"
+	"sync"
 	"testing"
+	"time"
 
-	randbo "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/randbo"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/path"
+	randbo "gx/ipfs/QmYvsG72GsfLgUeSojXArjnU6L4Wmwk7wuAxtNLuyXcc1T/randbo"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -26,7 +28,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 func getDagserv(t *testing.T) dag.DAGService {
@@ -38,6 +40,10 @@ func getDagserv(t *testing.T) dag.DAGService {
 
 func getRandFile(t *testing.T, ds dag.DAGService, size int64) *dag.Node {
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
+	return fileNodeFromReader(t, ds, r)
+}
+
+func fileNodeFromReader(t *testing.T, ds dag.DAGService, r io.Reader) *dag.Node {
 	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r))
 	if err != nil {
 		t.Fatal(err)
@@ -143,7 +149,12 @@ func assertFileAtPath(ds dag.DAGService, root *Directory, exp *dag.Node, pth str
 		return fmt.Errorf("%s was not a file!", pth)
 	}
 
-	out, err := ioutil.ReadAll(file)
+	rfd, err := file.Open(OpenReadOnly, false)
+	if err != nil {
+		return err
+	}
+
+	out, err := ioutil.ReadAll(rfd)
 	if err != nil {
 		return err
 	}
@@ -374,6 +385,11 @@ func TestMfsFile(t *testing.T) {
 		t.Fatal("some is seriously wrong here")
 	}
 
+	wfd, err := fi.Open(OpenReadWrite, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// assert size is as expected
 	size, err := fi.Size()
 	if size != int64(fisize) {
@@ -382,7 +398,7 @@ func TestMfsFile(t *testing.T) {
 
 	// write to beginning of file
 	b := []byte("THIS IS A TEST")
-	n, err := fi.Write(b)
+	n, err := wfd.Write(b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -392,19 +408,19 @@ func TestMfsFile(t *testing.T) {
 	}
 
 	// sync file
-	err = fi.Sync()
+	err = wfd.Sync()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// make sure size hasnt changed
-	size, err = fi.Size()
+	size, err = wfd.Size()
 	if size != int64(fisize) {
 		t.Fatal("size isnt correct")
 	}
 
 	// seek back to beginning
-	ns, err := fi.Seek(0, os.SEEK_SET)
+	ns, err := wfd.Seek(0, os.SEEK_SET)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,7 +431,7 @@ func TestMfsFile(t *testing.T) {
 
 	// read back bytes we wrote
 	buf := make([]byte, len(b))
-	n, err = fi.Read(buf)
+	n, err = wfd.Read(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -429,12 +445,12 @@ func TestMfsFile(t *testing.T) {
 	}
 
 	// truncate file to ten bytes
-	err = fi.Truncate(10)
+	err = wfd.Truncate(10)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	size, err = fi.Size()
+	size, err = wfd.Size()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -445,7 +461,7 @@ func TestMfsFile(t *testing.T) {
 
 	// 'writeAt' to extend it
 	data := []byte("this is a test foo foo foo")
-	nwa, err := fi.WriteAt(data, 5)
+	nwa, err := wfd.WriteAt(data, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -455,7 +471,7 @@ func TestMfsFile(t *testing.T) {
 	}
 
 	// assert size once more
-	size, err = fi.Size()
+	size, err = wfd.Size()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -464,14 +480,14 @@ func TestMfsFile(t *testing.T) {
 		t.Fatal("size was incorrect")
 	}
 
-	// make sure we can get node. TODO: verify it later
-	_, err = fi.GetNode()
+	// close it out!
+	err = wfd.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// close it out!
-	err = fi.Close()
+	// make sure we can get node. TODO: verify it later
+	_, err = fi.GetNode()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -529,13 +545,18 @@ func actorMakeFile(d *Directory) error {
 		return err
 	}
 
-	r := io.LimitReader(randbo.New(), int64(77*rand.Intn(123)))
-	_, err = io.Copy(f, r)
+	wfd, err := f.Open(OpenWriteOnly, true)
 	if err != nil {
 		return err
 	}
 
-	err = f.Close()
+	r := io.LimitReader(randbo.New(), int64(77*rand.Intn(123)))
+	_, err = io.Copy(wfd, r)
+	if err != nil {
+		return err
+	}
+
+	err = wfd.Close()
 	if err != nil {
 		return err
 	}
@@ -576,15 +597,15 @@ func actorRemoveFile(d *Directory) error {
 	return d.Unlink(re.Name)
 }
 
-func actorReadFile(d *Directory) error {
+func randomFile(d *Directory) (*File, error) {
 	d, err := randomWalk(d, rand.Intn(6))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ents, err := d.List()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var files []string
@@ -595,18 +616,66 @@ func actorReadFile(d *Directory) error {
 	}
 
 	if len(files) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	fname := files[rand.Intn(len(files))]
 	fsn, err := d.Child(fname)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fi, ok := fsn.(*File)
 	if !ok {
-		return errors.New("file wasnt a file, race?")
+		return nil, errors.New("file wasnt a file, race?")
+	}
+
+	return fi, nil
+}
+
+func actorWriteFile(d *Directory) error {
+	fi, err := randomFile(d)
+	if err != nil {
+		return err
+	}
+	if fi == nil {
+		return nil
+	}
+
+	size := rand.Intn(1024)
+	buf := make([]byte, size)
+	randbo.New().Read(buf)
+
+	s, err := fi.Size()
+	if err != nil {
+		return err
+	}
+
+	wfd, err := fi.Open(OpenWriteOnly, true)
+	if err != nil {
+		return err
+	}
+
+	offset := rand.Int63n(s)
+
+	n, err := wfd.WriteAt(buf, offset)
+	if err != nil {
+		return err
+	}
+	if n != size {
+		return fmt.Errorf("didnt write enough")
+	}
+
+	return wfd.Close()
+}
+
+func actorReadFile(d *Directory) error {
+	fi, err := randomFile(d)
+	if err != nil {
+		return err
+	}
+	if fi == nil {
+		return nil
 	}
 
 	_, err = fi.Size()
@@ -614,12 +683,17 @@ func actorReadFile(d *Directory) error {
 		return err
 	}
 
-	_, err = ioutil.ReadAll(fi)
+	rfd, err := fi.Open(OpenReadOnly, false)
 	if err != nil {
 		return err
 	}
 
-	return fi.Close()
+	_, err = ioutil.ReadAll(rfd)
+	if err != nil {
+		return err
+	}
+
+	return rfd.Close()
 }
 
 func testActor(rt *Root, iterations int, errs chan error) {
@@ -637,12 +711,7 @@ func testActor(rt *Root, iterations int, errs chan error) {
 				return
 			}
 		case 3:
-			continue
-			// randomly deleting things
-			// doesnt really give us any sort of useful test results.
-			// you will never have this in a real environment where
-			// you expect anything productive to happen...
-			if err := actorRemoveFile(d); err != nil {
+			if err := actorWriteFile(d); err != nil {
 				errs <- err
 				return
 			}
@@ -673,5 +742,256 @@ func TestMfsStress(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestFlushing(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, rt := setupRoot(ctx, t)
+
+	dir := rt.GetValue().(*Directory)
+	c := mkdirP(t, dir, "a/b/c")
+	d := mkdirP(t, dir, "a/b/d")
+	e := mkdirP(t, dir, "a/b/e")
+
+	data := []byte("this is a test\n")
+	nd1 := &dag.Node{Data: ft.FilePBData(data, uint64(len(data)))}
+
+	if err := c.AddChild("TEST", nd1); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.AddChild("TEST", nd1); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.AddChild("TEST", nd1); err != nil {
+		t.Fatal(err)
+	}
+	if err := dir.AddChild("FILE", nd1); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := FlushPath(rt, "/a/b/c/TEST"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := FlushPath(rt, "/a/b/d/TEST"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := FlushPath(rt, "/a/b/e/TEST"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := FlushPath(rt, "/FILE"); err != nil {
+		t.Fatal(err)
+	}
+
+	rnd, err := dir.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fsnode, err := ft.FSNodeFromBytes(rnd.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fsnode.Type != ft.TDirectory {
+		t.Fatal("root wasnt a directory")
+	}
+
+	rnk, err := rnd.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	exp := "QmWMVyhTuyxUrXX3ynz171jq76yY3PktfY9Bxiph7b9ikr"
+	if rnk.B58String() != exp {
+		t.Fatalf("dag looks wrong, expected %s, but got %s", exp, rnk.B58String())
+	}
+}
+
+func readFile(rt *Root, path string, offset int64, buf []byte) error {
+	n, err := Lookup(rt, path)
+	if err != nil {
+		return err
+	}
+
+	fi, ok := n.(*File)
+	if !ok {
+		return fmt.Errorf("%s was not a file", path)
+	}
+
+	fd, err := fi.Open(OpenReadOnly, false)
+	if err != nil {
+		return err
+	}
+
+	_, err = fd.Seek(offset, os.SEEK_SET)
+	if err != nil {
+		return err
+	}
+
+	nread, err := fd.Read(buf)
+	if err != nil {
+		return err
+	}
+	if nread != len(buf) {
+		return fmt.Errorf("didnt read enough!")
+	}
+
+	return fd.Close()
+}
+
+func TestConcurrentReads(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ds, rt := setupRoot(ctx, t)
+
+	rootdir := rt.GetValue().(*Directory)
+
+	path := "a/b/c"
+	d := mkdirP(t, rootdir, path)
+
+	buf := make([]byte, 2048)
+	randbo.New().Read(buf)
+
+	fi := fileNodeFromReader(t, ds, bytes.NewReader(buf))
+	err := d.AddChild("afile", fi)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	nloops := 100
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(me int) {
+			defer wg.Done()
+			mybuf := make([]byte, len(buf))
+			for j := 0; j < nloops; j++ {
+				offset := rand.Intn(len(buf))
+				length := rand.Intn(len(buf) - offset)
+
+				err := readFile(rt, "/a/b/c/afile", int64(offset), mybuf[:length])
+				if err != nil {
+					t.Error("readfile failed: ", err)
+					return
+				}
+
+				if !bytes.Equal(mybuf[:length], buf[offset:offset+length]) {
+					t.Error("incorrect read!")
+				}
+			}
+		}(i)
+	}
+	wg.Wait()
+}
+
+func TestFileDescriptors(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ds, rt := setupRoot(ctx, t)
+	dir := rt.GetValue().(*Directory)
+
+	nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+	fi, err := NewFile("test", nd, dir, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// test read only
+	rfd1, err := fi.Open(OpenReadOnly, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = rfd1.Truncate(0)
+	if err == nil {
+		t.Fatal("shouldnt be able to truncate readonly fd")
+	}
+
+	_, err = rfd1.Write([]byte{})
+	if err == nil {
+		t.Fatal("shouldnt be able to write to readonly fd")
+	}
+
+	_, err = rfd1.Read([]byte{})
+	if err != nil {
+		t.Fatalf("expected to be able to read from file: %s", err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// can open second readonly file descriptor
+		rfd2, err := fi.Open(OpenReadOnly, false)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		rfd2.Close()
+	}()
+
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("open second file descriptor failed")
+	case <-done:
+	}
+
+	if t.Failed() {
+		return
+	}
+
+	// test not being able to open for write until reader are closed
+	done = make(chan struct{})
+	go func() {
+		defer close(done)
+		wfd1, err := fi.Open(OpenWriteOnly, true)
+		if err != nil {
+			t.Error(err)
+		}
+
+		wfd1.Close()
+	}()
+
+	select {
+	case <-time.After(time.Millisecond * 200):
+	case <-done:
+		if t.Failed() {
+			return
+		}
+
+		t.Fatal("shouldnt have been able to open file for writing")
+	}
+
+	err = rfd1.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("should have been able to open write fd after closing read fd")
+	case <-done:
+	}
+
+	wfd, err := fi.Open(OpenWriteOnly, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = wfd.Read([]byte{})
+	if err == nil {
+		t.Fatal("shouldnt have been able to read from write only filedescriptor")
+	}
+
+	_, err = wfd.Write([]byte{})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

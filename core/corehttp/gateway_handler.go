@@ -11,7 +11,7 @@ import (
 	"time"
 
 	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
@@ -82,6 +82,11 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method == "OPTIONS" {
+		i.optionsHandler(w, r)
+		return
+	}
+
 	errmsg := "Method " + r.Method + " not allowed: "
 	if !i.config.Writable {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -94,15 +99,25 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Error(errmsg) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
 }
 
+func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) {
+	/*
+		OPTIONS is a noop request that is used by the browsers to check
+		if server accepts cross-site XMLHttpRequest (indicated by the presence of CORS headers)
+		https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS#Preflighted_requests
+	*/
+	i.addUserHeaders(w) // return all custom headers (including CORS ones, if set)
+}
+
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(i.node.Context(), time.Hour)
 	// the hour is a hard fallback, we don't expect it to happen, but just in case
 	defer cancel()
 
 	if cn, ok := w.(http.CloseNotifier); ok {
+		clientGone := cn.CloseNotify()
 		go func() {
 			select {
-			case <-cn.CloseNotify():
+			case <-clientGone:
 			case <-ctx.Done():
 			}
 			cancel()

@@ -1,5 +1,56 @@
 # go-ipfs changelog
 
+### 0.4.0 - 2016-01-31
+
+* Features
+  * add optional path arguments to 'ipfs pin ls' (@chriscool)
+
+* Incompatible Changes
+  * the default for '--type' in 'ipfs pin ls' is now "all" (@chriscool)
+
+### 0.3.11 - 2016-01-12
+
+This is the final ipfs version before the transition to v0.4.0.
+It introduces a few stability improvements, bugfixes, and increased
+test coverage.
+
+* Features
+  * Add 'get' and 'patch' to the allowed gateway commands (@whyrusleeping)
+  * Updated webui version (@dignifiedquire)
+
+* BugFixes
+  * Fix path parsing for add command (@djdv)
+  * namesys: Make paths with multiple segments work. Fixes #2059 (@Kubuxu)
+  * Fix up panic catching in http handler funcs (@whyrusleeping)
+  * Add correct access control headers to the default api config (@dignifiedquire)
+  * Fix closenotify by not sending empty file set (@whyrusleeping)
+
+* Tool Changes
+  * Have install.sh use the full path to ipfs binary if detected (@jedahan)
+  * Install daemon system-wide if on El Capitan (@jedahan)
+  * makefile: add -ldflags to install and nofuse tasks (@lgierth)
+
+* General Codebase
+  * Clean up http client code (@whyrusleeping)
+  * Move api version check to header (@rht)
+
+* Documentation
+  * Improved release checklist (@jbenet)
+  * Added quotes around command in long description (@RichardLitt)
+  * Added a shutdown note to daemon description (@RichardLitt)
+
+* Testing
+  * t0080: improve last tests (@chriscool)
+  * t0080: improve 'ipfs refs --unique' test (@chriscool)
+  * Fix t.Fatal usage in goroutines (@chriscool)
+  * Add docker testing support to sharness (@chriscool)
+  * sharness: add t0300-docker-image.sh (@chriscool)
+  * Included more namesys tests. (@Kubuxu)
+  * Add sharness test to verify requests look good (@whyrusleeping)
+  * Re-enable ipns sharness test now that iptb is fixed (@whyrusleeping)
+  * Force use of ipv4 in test (@whyrusleeping)
+  * Travis-CI: use go 1.5.2 (@jbenet)
+
 ### 0.3.10 - 2015-12-07
 
 This patch update introduces the 'ipfs update' command which will be used for

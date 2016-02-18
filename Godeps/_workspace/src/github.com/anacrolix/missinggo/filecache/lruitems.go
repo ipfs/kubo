@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"io"
 
-	"github.com/cznic/b"
+	"gx/ipfs/QmVgtwPh2NNoZTSyYkr4Y3epaYACBKf26r8hV6EFA7xS6c/b"
 )
 
 type Iterator interface {

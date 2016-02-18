@@ -33,7 +33,7 @@ TEST_TESTS_DIR=$(dirname "$TEST_SCRIPTS_DIR")
 APP_ROOT_DIR=$(dirname "$TEST_TESTS_DIR")
 
 test_expect_success "docker image build succeeds" '
-	docker_build "$APP_ROOT_DIR" >actual
+	docker_build "$TEST_TESTS_DIR/Dockerfile" "$APP_ROOT_DIR" >actual
 '
 
 test_expect_success "docker image build output looks good" '
@@ -46,12 +46,20 @@ test_expect_success "docker image runs" '
 	DOC_ID=$(docker_run "$IMAGE_ID")
 '
 
-test_expect_success "simple command can be run in docker container" '
-	docker_exec "$DOC_ID" "echo Hello Worlds" >actual
+test_expect_success "docker image gateway is up" '
+	docker_exec "$DOC_ID" "wget --retry-connrefused --waitretry=1 --timeout=30 -t 30 \
+		-q -O - http://localhost:8080/version >/dev/null"
 '
 
-test_expect_success "simple command output looks good" '
-	echo "Hello Worlds" >expected &&
+test_expect_success "docker image API is up" '
+	docker_exec "$DOC_ID" "wget --retry-connrefused --waitretry=1 --timeout=30 -t 30 \
+		-q -O - http://localhost:5001/api/v0/version >/dev/null"
+'
+
+test_expect_success "simple ipfs add/cat can be run in docker container" '
+	expected="Hello Worlds" &&
+	HASH=$(docker_exec "$DOC_ID" "echo $(cat expected) | ipfs add | cut -d' ' -f2") &&
+	docker_exec "$DOC_ID" "ipfs cat $HASH" >actual &&
 	test_cmp expected actual
 '
 

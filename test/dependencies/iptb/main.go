@@ -19,9 +19,11 @@ import (
 	kingpin "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/alecthomas/kingpin"
 	serial "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 
-	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
+	manet "gx/ipfs/QmYtzQmUwPFGxjCXctJ8e6GXS8sYfoXy2pdeMbS5SFWqRi/go-multiaddr-net"
 )
+
+var setupOpt = func(cmd *exec.Cmd) {}
 
 // GetNumNodes returns the number of testbed nodes configured in the testbed directory
 func GetNumNodes() int {
@@ -279,7 +281,7 @@ func IpfsStart(waitall bool) error {
 		cmd.Dir = dir
 		cmd.Env = envForDaemon(i)
 
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+		setupOpt(cmd)
 
 		stdout, err := os.Create(path.Join(dir, "daemon.stdout"))
 		if err != nil {
@@ -601,6 +603,11 @@ func main() {
 	var args []string
 	kingpin.Arg("args", "arguments").StringsVar(&args)
 	kingpin.Parse()
+
+	if len(args) == 0 {
+		kingpin.Usage()
+		return
+	}
 
 	switch args[0] {
 	case "init":

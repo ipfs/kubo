@@ -331,8 +331,13 @@ test_files_api() {
 	'
 
 	test_expect_success "root hash looks good" '
-		echo "QmcwKfTMCT7AaeiD92hWjnZn9b6eh9NxnhfSzN5x2vnDpt" > root_hash_exp &&
+		export EXP_ROOT_HASH="QmcwKfTMCT7AaeiD92hWjnZn9b6eh9NxnhfSzN5x2vnDpt" &&
+		echo $EXP_ROOT_HASH > root_hash_exp &&
 		test_cmp root_hash_exp root_hash
+	'
+
+	test_expect_success "flush root succeeds" '
+		ipfs files flush /
 	'
 
 	# test mv

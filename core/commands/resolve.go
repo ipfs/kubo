@@ -7,7 +7,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 type ResolvedPath struct {
@@ -16,7 +16,7 @@ type ResolvedPath struct {
 
 var ResolveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Resolve the value of names to IPFS",
+		Tagline: "Resolve the value of names to IPFS.",
 		ShortDescription: `
 There are a number of mutable name protocols that can link among
 themselves and into IPNS.  This command accepts any of these
@@ -58,7 +58,7 @@ Resolve the value of an IPFS DAG path:
 		cmds.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is an IPFS name"),
+		cmds.BoolOption("recursive", "r", "Resolve until the result is an IPFS name."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

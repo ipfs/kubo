@@ -4,12 +4,12 @@ import (
 	"errors"
 	"time"
 
-	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
+	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	ctxio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-context/io"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	inet "github.com/ipfs/go-ipfs/p2p/net"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	inet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 // handleNewStream implements the inet.StreamHandler
@@ -71,7 +71,7 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 
 	log.Debugf("%s dht starting stream", dht.self)
-	s, err := dht.host.NewStream(ProtocolDHT, p)
+	s, err := dht.host.NewStream(ctx, ProtocolDHT, p)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message
 func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.ID, pmes *pb.Message) error {
 
 	log.Debugf("%s dht starting stream", dht.self)
-	s, err := dht.host.NewStream(ProtocolDHT, p)
+	s, err := dht.host.NewStream(ctx, ProtocolDHT, p)
 	if err != nil {
 		return err
 	}

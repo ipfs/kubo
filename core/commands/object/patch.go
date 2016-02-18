@@ -12,16 +12,16 @@ import (
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 var ObjectPatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create a new merkledag object based on an existing one",
+		Tagline: "Create a new merkledag object based on an existing one.",
 		ShortDescription: `
 'ipfs object patch <root> <cmd> <args>' is a plumbing command used to
 build custom DAG objects. It mutates objects, creating new objects as a
-result. This is the merkle-dag version of modifying an object.
+result. This is the Merkle-DAG version of modifying an object.
 `,
 	},
 	Arguments: []cmds.Argument{},
@@ -44,21 +44,22 @@ func objectMarshaler(res cmds.Response) (io.Reader, error) {
 
 var patchAppendDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Append data to the data segment of a dag node",
+		Tagline: "Append data to the data segment of a dag node.",
 		ShortDescription: `
 Append data to what already exists in the data segment in the given object.
 
-EXAMPLE:
+Example:
+
 	$ echo "hello" | ipfs object patch $HASH append-data
 
-note: this does not append data to a 'file', it modifies the actual raw
+Note: This does not append data to a file - it modifies the actual raw
 data within an object. Objects have a max size of 1MB and objects larger than
 the limit will not be respected by the network.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.FileArg("data", true, false, "data to append").EnableStdin(),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.FileArg("data", true, false, "Data to append.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -109,18 +110,18 @@ the limit will not be respected by the network.
 
 var patchSetDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "set data field of an ipfs object",
+		Tagline: "Set data field of an ipfs object.",
 		ShortDescription: `
-Set the data of an ipfs object from stdin or with the contents of a file
+Set the data of an ipfs object from stdin or with the contents of a file.
 
-EXAMPLE:
+Example:
 
     $ echo "my data" | ipfs object patch $MYHASH set-data
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.FileArg("data", true, false, "data fill with").EnableStdin(),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.FileArg("data", true, false, "Data fill with.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -171,14 +172,14 @@ EXAMPLE:
 
 var patchRmLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "remove a link from an object",
+		Tagline: "Remove a link from an object.",
 		ShortDescription: `
-removes a link by the given name from root.
+Removes a link by the given name from root.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.StringArg("link", true, false, "name of the link to remove"),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.StringArg("link", true, false, "Name of the link to remove."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -231,27 +232,27 @@ removes a link by the given name from root.
 
 var patchAddLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "add a link to a given object",
+		Tagline: "Add a link to a given object.",
 		ShortDescription: `
-Add a merkle-link to the given object and return the hash of the result.
+Add a Merkle-link to the given object and return the hash of the result.
 
-Examples:
+Example:
 
-    EMPTY_DIR=$(ipfs object new unixfs-dir)
-    BAR=$(echo "bar" | ipfs add -q)
-    ipfs object patch $EMPTY_DIR add-link foo $BAR
+    $ EMPTY_DIR=$(ipfs object new unixfs-dir)
+    $ BAR=$(echo "bar" | ipfs add -q)
+    $ ipfs object patch $EMPTY_DIR add-link foo $BAR
 
-This takes an empty directory, and adds a link named foo under it, pointing to
+This takes an empty directory, and adds a link named 'foo' under it, pointing to
 a file containing 'bar', and returns the hash of the new object.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "create", "create intermediary nodes"),
+		cmds.BoolOption("p", "create", "Create intermediary nodes."),
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "the hash of the node to modify"),
-		cmds.StringArg("name", true, false, "name of link to create"),
-		cmds.StringArg("ref", true, false, "ipfs object to add link to"),
+		cmds.StringArg("root", true, false, "The hash of the node to modify."),
+		cmds.StringArg("name", true, false, "Name of link to create."),
+		cmds.StringArg("ref", true, false, "IPFS object to add link to."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

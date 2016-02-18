@@ -8,11 +8,11 @@ import (
 	"io/ioutil"
 	"strings"
 
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	"github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 type BlockStat struct {
@@ -26,7 +26,7 @@ func (bs BlockStat) String() string {
 
 var BlockCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate raw IPFS blocks",
+		Tagline: "Manipulate raw IPFS blocks.",
 		ShortDescription: `
 'ipfs block' is a plumbing command used to manipulate raw ipfs blocks.
 Reads from stdin or writes to stdout, and <key> is a base58 encoded
@@ -43,9 +43,9 @@ multihash.
 
 var blockStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Print information of a raw IPFS block",
+		Tagline: "Print information of a raw IPFS block.",
 		ShortDescription: `
-'ipfs block stat' is a plumbing command for retreiving information
+'ipfs block stat' is a plumbing command for retrieving information
 on raw ipfs blocks. It outputs the following to stdout:
 
 	Key  - the base58 encoded multihash
@@ -55,7 +55,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get").EnableStdin(),
+		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		b, err := getBlockForKey(req, req.Arguments()[0])
@@ -80,15 +80,15 @@ on raw ipfs blocks. It outputs the following to stdout:
 
 var blockGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get a raw IPFS block",
+		Tagline: "Get a raw IPFS block.",
 		ShortDescription: `
-'ipfs block get' is a plumbing command for retreiving raw ipfs blocks.
+'ipfs block get' is a plumbing command for retrieving raw ipfs blocks.
 It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get").EnableStdin(),
+		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		b, err := getBlockForKey(req, req.Arguments()[0])
@@ -103,15 +103,15 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 
 var blockPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Stores input as an IPFS block",
+		Tagline: "Stores input as an IPFS block.",
 		ShortDescription: `
-ipfs block put is a plumbing command for storing raw ipfs blocks.
+'ipfs block put' is a plumbing command for storing raw ipfs blocks.
 It reads from stdin, and <key> is a base58 encoded multihash.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block").EnableStdin(),
+		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

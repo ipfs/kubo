@@ -17,10 +17,9 @@ import (
 	"syscall"
 	"time"
 
-	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
+	manet "gx/ipfs/QmYtzQmUwPFGxjCXctJ8e6GXS8sYfoXy2pdeMbS5SFWqRi/go-multiaddr-net"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	cmdsCli "github.com/ipfs/go-ipfs/commands/cli"
 	cmdsHttp "github.com/ipfs/go-ipfs/commands/http"
@@ -29,8 +28,9 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	u "github.com/ipfs/go-ipfs/util"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 // log is the command logger
@@ -39,6 +39,7 @@ var log = logging.Logger("cmd/ipfs")
 var (
 	errUnexpectedApiOutput = errors.New("api returned unexpected output")
 	errApiVersionMismatch  = errors.New("api version mismatch")
+	errRequestCanceled     = errors.New("request canceled")
 )
 
 const (
@@ -57,7 +58,7 @@ type cmdInvocation struct {
 
 // main roadmap:
 // - parse the commandline to get a cmdInvocation
-// - if user requests, help, print it and exit.
+// - if user requests help, print it and exit.
 // - run the command invocation
 // - output the response
 // - if anything fails, print error, maybe with help
@@ -328,7 +329,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 			if isConnRefused(err) {
 				err = repo.ErrApiNotRunning
 			}
-			return nil, err
+			return nil, wrapContextCanceled(err)
 		}
 
 	} else {
@@ -624,4 +625,11 @@ func isConnRefused(err error) bool {
 	}
 
 	return netoperr.Op == "dial"
+}
+
+func wrapContextCanceled(err error) error {
+	if strings.Contains(err.Error(), "request canceled") {
+		err = errRequestCanceled
+	}
+	return err
 }

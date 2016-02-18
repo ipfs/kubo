@@ -1,16 +1,36 @@
-# ipfs implementation in go.
+# IPFS implementation in Go
 [![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs) [![Build Status](https://travis-ci.org/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs)
 
-Ipfs is a global, versioned, peer-to-peer filesystem. It combines good ideas from
+IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from
 Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm,
 exchanging git objects. IPFS provides an interface as simple as the HTTP web, but
 with permanence built in. You can also mount the world at /ipfs.
 
-For more info see: https://github.com/ipfs/ipfs
+For more info see: https://github.com/ipfs/ipfs.
 
 Please put all issues regarding IPFS _design_ in the
 [ipfs repo issues](https://github.com/ipfs/ipfs/issues).
-Please put all issues regarding go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
+Please put all issues regarding Go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
+
+## Table of Contents
+
+- [Security Issues](#security-issues)
+- [Install](#install)
+  - [Install prebuilt packages](#install-prebuilt-packages)
+  - [Build from Source](#build-from-source)
+  - [Prerequisite: Install Go](#prerequisite-install-go)
+  - [Download + Compile IPFS](#download--compile-ipfs)
+  - [Development Dependencies](#development-dependencies)
+- [Updating](#updating)
+- [Usage](#usage)
+- [Getting Started](#getting-started)
+  - [Some things to try](#some-things-to-try)
+  - [Docker usage](#docker-usage)
+    - [Docker usage with VirtualBox/boot2docker (OSX and Windows)](#docker-usage-with-virtualboxboot2docker-osx-and-windows)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Todo](#todo)
+- [License](#license)
 
 ## Security Issues
 
@@ -22,9 +42,9 @@ If the issue is a protocol weakness that cannot be immediately exploited or some
 
 ## Install
 
-The canonical download instructions for IPFS are over at: http://ipfs.io/docs/install/
+The canonical download instructions for IPFS are over at: http://ipfs.io/docs/install/. It is **highly suggested** you follow those instructions if you are not interested in working on IPFS development.
 
-## Install prebuilt packages
+### Install prebuilt packages
 
 We use [gobuilder.me](https://gobuilder.me), a great service that automatically builds a release on every commit.
 
@@ -34,32 +54,45 @@ You can see the latest builds for your platform at these links:
 - [`master` - development, stable](https://gobuilder.me/github.com/ipfs/go-ipfs/cmd/ipfs?branch=master)
 
 From there:
-- click "Download" on the build for your platform
-- open/extract the archive
-- move `ipfs` to your path (`install.sh` can do it for you)
+- Click "Download" on the build for your platform.
+- Open/extract the archive.
+- Move `ipfs` to your path (`install.sh` can do it for you),
 
+### Build from Source
 
-## Build from Source
+#### Prerequisite 1: Install Go
 
-### Prerequisite: Install Go
-
-First, you'll need go. If you don't have it: [Download Go 1.5.2+](https://golang.org/dl/).
+First, you'll need Go. If you don't have it: [Download Go 1.5.2+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
+
 ```
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$GOPATH/bin
 ```
 
-(If you run into trouble, see the [Go install instructions](https://golang.org/doc/install))
+(If you run into trouble, see the [Go install instructions](https://golang.org/doc/install)).
 
-### Download + Compile IPFS
+#### Prerequisite 2: Install gx and gx-go
 
-Then simply:
+You can try using package manager, but gx and gx-go are unlikely to be available in repositories currently. The recommended way to install is to run `make toolkit_upgrade` before running `make install` in the next step.
+
+#### Download + Compile IPFS
+
+Then:
 
 ```
-go get -u github.com/ipfs/go-ipfs/cmd/ipfs
+$ go get -d github.com/ipfs/go-ipfs
+$ cd $GOPATH/src/github.com/ipfs/go-ipfs
+$ make install
 ```
+
+Tip:
+
+If the `make install` hangs while fetching dependencies and if you are
+running a daemon locally, ensure that it is on at least version 0.4.0-dev. If
+you don't have a build that is new enough, run the `make install` with your
+daemon turned off and the deps will be fetched through the ipfs.io gateways.
 
 NOTES:
 
@@ -69,17 +102,21 @@ all dependencies.
   Compilation from source is recommended.
 * If you are interested in development, please install the development
 dependencies as well.
-* *WARNING: older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
+* *WARNING: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
   We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
   (See https://github.com/ipfs/go-ipfs/issues/177)
-* For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder
+* For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder.
 * Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
 * See the [init examples](https://github.com/ipfs/examples/tree/master/examples/init) for how to connect IPFS to systemd or whatever init system your distro uses.
 
-### Updating
-ipfs has an updating tool that can be accessed through `ipfs update`. The tool is
-not installed alongside ipfs in order to keep that logic independent of the main
-codebase. To install ipfs update, either [download it here](https://gobuilder.me/github.com/ipfs/ipfs-update)
+### Development Dependencies
+
+If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
+
+## Updating
+IPFS has an updating tool that can be accessed through `ipfs update`. The tool is
+not installed alongside IPFS in order to keep that logic independent of the main
+codebase. To install `ipfs update`, either [download it here](https://gobuilder.me/github.com/ipfs/ipfs-update)
 or install it from source with `go get -u github.com/ipfs/ipfs-update`.
 
 ## Usage
@@ -92,22 +129,22 @@ USAGE:
     ipfs [<flags>] <command> [<arg>] ...
 
     BASIC COMMANDS
-    
+
         init          Initialize ipfs local configuration
         add <path>    Add an object to ipfs
         cat <ref>     Show ipfs object data
         get <ref>     Download ipfs objects
         ls <ref>      List links from an object
         refs <ref>    List hashes of links from an object
-    
+
     DATA STRUCTURE COMMANDS
-    
+
         block         Interact with raw blocks in the datastore
         object        Interact with raw dag nodes
         file          Interact with Unix filesystem objects
-    
+
     ADVANCED COMMANDS
-    
+
         daemon        Start a long-running daemon process
         mount         Mount an ipfs read-only mountpoint
         resolve       Resolve any type of name
@@ -115,23 +152,23 @@ USAGE:
         dns           Resolve DNS links
         pin           Pin objects to local storage
         repo gc       Garbage collect unpinned objects
-    
+
     NETWORK COMMANDS
-    
+
         id            Show info about ipfs peers
         bootstrap     Add or remove bootstrap peers
         swarm         Manage connections to the p2p network
         dht           Query the dht for values or peers
         ping          Measure the latency of a connection
         diag          Print diagnostics
-    
+
     TOOL COMMANDS
-    
+
         config        Manage configuration
         version       Show ipfs version information
         update        Download and apply go-ipfs updates
         commands      List all available commands
-    
+
     Use 'ipfs <command> --help' to learn more about each command.
 
 
@@ -141,7 +178,7 @@ USAGE:
 
 See also: http://ipfs.io/docs/getting-started/
 
-To start using ipfs, you must first initialize ipfs's config files on your
+To start using IPFS, you must first initialize IPFS's config files on your
 system, this is done with `ipfs init`. See `ipfs init --help` for information on
 the optional arguments it takes. After initialization is complete, you can use
 `ipfs mount`, `ipfs add` and any of the other commands to explore!
@@ -159,15 +196,15 @@ Basic proof of 'ipfs working' locally:
 
 ### Docker usage
 
-An ipfs docker image is hosted at [hub.docker.com/r/jbenet/go-ipfs](https://hub.docker.com/r/jbenet/go-ipfs/).
+An IPFS docker image is hosted at [hub.docker.com/r/ipfs/go-ipfs](https://hub.docker.com/r/ipfs/go-ipfs/).
 To make files visible inside the container you need to mount a host directory
 with the `-v` option to docker. Choose a directory that you want to use to
-import/export files from ipfs. You should also choose a directory to store
-ipfs files that will persist when you restart the container.
+import/export files from IPFS. You should also choose a directory to store
+IPFS files that will persist when you restart the container.
 
     export ipfs_staging=</absolute/path/to/somewhere/>
     export ipfs_data=</absolute/path/to/somewhere_else/>
-    
+
 Make sure docker can access these folders:
 
     sudo chmod -R 777 /absolute/path/to/somewhere/
@@ -175,7 +212,7 @@ Make sure docker can access these folders:
 
 Start a container running ipfs and expose ports 4001, 5001 and 8080:
 
-    docker run -d --name ipfs_host -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 8080:8080 -p 4001:4001 -p 5001:5001 jbenet/go-ipfs:latest
+    docker run -d --name ipfs_host -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 8080:8080 -p 4001:4001 -p 5001:5001 ipfs/go-ipfs:latest
 
 Watch the ipfs log:
 
@@ -186,7 +223,7 @@ Wait for ipfs to start. ipfs is running when you see:
     Gateway (readonly) server
     listening on /ip4/0.0.0.0/tcp/8080
 
-(you can now stop watching the log)
+You can now stop watching the log.
 
 Run ipfs commands:
 
@@ -195,7 +232,6 @@ Run ipfs commands:
 For example: connect to peers
 
     docker exec ipfs_host ipfs swarm peers
-
 
 Add files:
 
@@ -209,16 +245,15 @@ Stop the running container:
 #### Docker usage with VirtualBox/boot2docker (OSX and Windows)
 
 Since docker is running in the boot2docker VM, you need to forward
-relevant ports from the VM to your host for ipfs act normally. This is
+relevant ports from the VM to your host for IPFS to act normally. This is
 accomplished with the following command:
 
     boot2docker ssh -L 5001:localhost:5001 -L 4001:localhost:4001 -L 8080:localhost:8080 -fN
 
-
 ### Troubleshooting
-If you have previously installed ipfs before and you are running into
+If you have previously installed IPFS before and you are running into
 problems getting a newer version to work, try deleting (or backing up somewhere
-else) your ipfs config directory (~/.ipfs by default) and rerunning `ipfs init`.
+else) your IPFS config directory (~/.ipfs by default) and rerunning `ipfs init`.
 This will reinitialize the config file to its defaults and clear out the local
 datastore of any bad entries.
 
@@ -226,18 +261,13 @@ For any other problems, check the [issues list](https://github.com/ipfs/go-ipfs/
 and if you dont see your problem there, either come talk to us on irc (freenode #ipfs) or
 file an issue of your own!
 
-
 ## Contributing
 
 Please see [Contribute.md](contribute.md)!
 
 ## Todo
 
-An IPFS alpha version has been released in February 2015. Things left to be done are all marked as [Issues](https://github.com/ipfs/go-ipfs/issues)
-
-## Development Dependencies
-
-If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
+An IPFS alpha version has been released in February 2015. Things left to be done are all marked as [issues](https://github.com/ipfs/go-ipfs/issues).
 
 ## License
 

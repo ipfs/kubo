@@ -3,9 +3,9 @@ package merkledag
 import (
 	"fmt"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 )
 
@@ -76,6 +76,11 @@ func MakeLink(n *Node) (*Link, error) {
 	}, nil
 }
 
+// GetCachedNode returns the MDAG Node that was cached, or nil
+func (l *Link) GetCachedNode() *Node {
+	return l.Node
+}
+
 // GetNode returns the MDAG Node that this link points to
 func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 	if l.Node != nil {
@@ -83,6 +88,21 @@ func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 	}
 
 	return serv.Get(ctx, key.Key(l.Hash))
+}
+
+// GetNodeAndCache return the MDAG Node that the link points to and store a
+// pointer to that node along with the link to speed up further retrivals. A
+// timeout is to be specified to avoid taking too much time.
+func (l *Link) GetNodeAndCache(ctx context.Context, serv DAGService) (*Node, error) {
+	if l.Node == nil {
+		nd, err := serv.Get(ctx, key.Key(l.Hash))
+		if err != nil {
+			return nil, err
+		}
+		l.Node = nd
+	}
+
+	return l.Node, nil
 }
 
 // AddNodeLink adds a link to another node.

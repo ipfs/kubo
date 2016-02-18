@@ -12,6 +12,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
+	merkledag "github.com/ipfs/go-ipfs/merkledag"
 )
 
 type LsLink struct {
@@ -34,19 +35,19 @@ type LsOutput struct {
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directory contents for Unix-filesystem objects",
+		Tagline: "List directory contents for Unix filesystem objects.",
 		ShortDescription: `
 Retrieves the object named by <ipfs-or-ipns-path> and displays the
 contents.
 
-The JSON output contains size information.  For files, the child size
-is the total size of the file contents.  For directories, the child
+The JSON output contains size information. For files, the child size
+is the total size of the file contents. For directories, the child
 size is the IPFS link size.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -105,12 +106,13 @@ size is the IPFS link size.
 				links := make([]LsLink, len(merkleNode.Links))
 				output.Objects[hash].Links = links
 				for i, link := range merkleNode.Links {
-					link.Node, err = link.GetNode(ctx, node.DAG)
+					var linkNode *merkledag.Node
+					linkNode, err = link.GetNode(ctx, node.DAG)
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
 					}
-					d, err := unixfs.FromBytes(link.Node.Data)
+					d, err := unixfs.FromBytes(linkNode.Data)
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return

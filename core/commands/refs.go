@@ -7,13 +7,13 @@ import (
 	"io"
 	"strings"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 // KeyList is a general type for outputting lists of keys
@@ -33,7 +33,7 @@ func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
 
 var RefsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Lists links (references) from an object",
+		Tagline: "Lists links (references) from an object.",
 		ShortDescription: `
 Retrieves the object named by <ipfs-path> and displays the link
 hashes it contains, with the following format:
@@ -47,13 +47,13 @@ Note: list all refs recursively with -r.
 		"local": RefsLocalCmd,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "Emit edges with given format. tokens: <src> <dst> <linkname>"),
-		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`"),
-		cmds.BoolOption("unique", "u", "Omit duplicate refs from output"),
-		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
+		cmds.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>."),
+		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
+		cmds.BoolOption("unique", "u", "Omit duplicate refs from output."),
+		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
@@ -150,7 +150,7 @@ Note: list all refs recursively with -r.
 
 var RefsLocalCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Lists all local references",
+		Tagline: "Lists all local references.",
 		ShortDescription: `
 Displays the hashes of all local objects.
 `,

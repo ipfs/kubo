@@ -41,10 +41,10 @@ it contains, with the following format:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("headers", "v", "Print table headers (Hash, Name, Size)"),
+		cmds.BoolOption("headers", "v", "Print table headers (Hash, Name, Size)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -78,12 +78,13 @@ it contains, with the following format:
 				Links: make([]LsLink, len(dagnode.Links)),
 			}
 			for j, link := range dagnode.Links {
-				link.Node, err = link.GetNode(req.Context(), node.DAG)
+				var linkNode *merkledag.Node
+				linkNode, err = link.GetNode(req.Context(), node.DAG)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
-				d, err := unixfs.FromBytes(link.Node.Data)
+				d, err := unixfs.FromBytes(linkNode.Data)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return

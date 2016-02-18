@@ -6,12 +6,12 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	util "github.com/ipfs/go-ipfs/util"
+	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 var DNSCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "DNS link resolver",
+		Tagline: "DNS link resolver.",
 		ShortDescription: `
 Multihashes are hard to remember, but domain names are usually easy to
 remember.  To create memorable aliases for multihashes, DNS TXT
@@ -50,7 +50,7 @@ The resolver will give:
 		cmds.StringArg("domain-name", true, false, "The domain-name name to resolve.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is not a DNS link"),
+		cmds.BoolOption("recursive", "r", "Resolve until the result is not a DNS link."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -75,7 +75,7 @@ The resolver will give:
 			if !ok {
 				return nil, util.ErrCast()
 			}
-			return strings.NewReader(output.Path.String()), nil
+			return strings.NewReader(output.Path.String() + "\n"), nil
 		},
 	},
 	Type: ResolvedPath{},
