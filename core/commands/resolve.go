@@ -19,36 +19,36 @@ var ResolveCmd = &cmds.Command{
 		Tagline: "Resolve the value of names to IPFS.",
 		ShortDescription: `
 There are a number of mutable name protocols that can link among
-themselves and into IPNS.  This command accepts any of these
+themselves and into IPNS. This command accepts any of these
 identifiers and resolves them to the referenced item.
 `,
 		LongDescription: `
 There are a number of mutable name protocols that can link among
-themselves and into IPNS.  For example IPNS references can (currently)
-point at IPFS object, and DNS links can point at other DNS links, IPNS
-entries, or IPFS objects.  This command accepts any of these
+themselves and into IPNS. For example IPNS references can (currently)
+point at an IPFS object, and DNS links can point at other DNS links, IPNS
+entries, or IPFS objects. This command accepts any of these
 identifiers and resolves them to the referenced item.
 
-Examples:
+EXAMPLES
 
 Resolve the value of your identity:
 
-  > ipfs resolve /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  $ ipfs resolve /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   /ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj
 
 Resolve the value of another name:
 
-  > ipfs resolve /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
+  $ ipfs resolve /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
   /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
 Resolve the value of another name recursively:
 
-  > ipfs resolve -r /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
+  $ ipfs resolve -r /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
   /ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj
 
 Resolve the value of an IPFS DAG path:
 
-  > ipfs resolve /ipfs/QmeZy1fGbwgVSrqbfh9fKQrAWgeyRnj7h8fsHS1oy3k99x/beep/boop
+  $ ipfs resolve /ipfs/QmeZy1fGbwgVSrqbfh9fKQrAWgeyRnj7h8fsHS1oy3k99x/beep/boop
   /ipfs/QmYRMjyvAiHKN9UTi8Bzt1HUspmSRD8T8DwxfSMzLgBon1
 
 `,
