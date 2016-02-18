@@ -45,7 +45,7 @@ test_expect_success "bring down iptb nodes" '
 	PID4=$(cat "$IPTB_ROOT/4/daemon.pid") &&
 	iptb stop && # TODO: add --wait flag to iptb stop
 	betterwait $PID0
-	betterwait $PID1 
+	betterwait $PID1
 	betterwait $PID2
 	betterwait $PID3
 	betterwait $PID4
