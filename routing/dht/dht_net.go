@@ -70,7 +70,7 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 // measure the RTT for latency measurements.
 func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 
-	log.Debugf("%s dht starting stream", dht.self)
+	log.Debugf("%s DHT starting stream", dht.self)
 	s, err := dht.host.NewStream(ctx, ProtocolDHT, p)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message
 // sendMessage sends out a message
 func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.ID, pmes *pb.Message) error {
 
-	log.Debugf("%s dht starting stream", dht.self)
+	log.Debugf("%s DHT starting stream", dht.self)
 	s, err := dht.host.NewStream(ctx, ProtocolDHT, p)
 	if err != nil {
 		return err

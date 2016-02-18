@@ -42,7 +42,7 @@ func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, err
 	}
 
 	// last ditch effort: let's try the dht.
-	log.Debugf("pk for %s not in peerstore, and peer failed. trying dht.", p)
+	log.Debugf("pk for %s not in peerstore, and peer failed. Trying DHT.", p)
 	pkkey := routing.KeyForPublicKey(p)
 
 	val, err := dht.GetValue(ctxT, pkkey)
@@ -77,14 +77,14 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 	// node doesn't have key :(
 	record := pmes.GetRecord()
 	if record == nil {
-		return nil, fmt.Errorf("node not responding with its public key: %s", p)
+		return nil, fmt.Errorf("Node not responding with its public key: %s", p)
 	}
 
 	// Success! We were given the value. we don't need to check
 	// validity because a) we can't. b) we know the hash of the
 	// key we're looking for.
 	val := record.GetValue()
-	log.Debug("dht got a value from other peer.")
+	log.Debug("DHT got a value from other peer.")
 
 	pk, err = ci.UnmarshalPublicKey(val)
 	if err != nil {
@@ -100,7 +100,7 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 	}
 
 	// ok! it's valid. we got it!
-	log.Debugf("dht got public key from node itself.")
+	log.Debugf("DHT got public key from node itself.")
 	return pk, nil
 }
 
