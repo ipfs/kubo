@@ -26,7 +26,7 @@ var GetCmd = &cmds.Command{
 		ShortDescription: `
 Retrieves the object named by <ipfs-or-ipns-path> and stores the data to disk.
 
-By default, the output will be stored at ./<ipfs-path>, but an alternate path
+By default, the output will be stored at './<ipfs-path>', but an alternate path
 can be specified with '--output=<path>' or '-o=<path>'.
 
 To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
@@ -40,10 +40,10 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmds.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("output", "o", "The path where output should be stored."),
-		cmds.BoolOption("archive", "a", "Output a TAR archive."),
-		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression."),
-		cmds.IntOption("compression-level", "l", "The level of compression (1-9)."),
+		cmds.StringOption("output", "o", "The path where the output should be stored."),
+		cmds.BoolOption("archive", "a", "Output a TAR archive. Default: false."),
+		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression. Default: false."),
+		cmds.IntOption("compression-level", "l", "The level of compression (1-9). Default: -1."),
 	},
 	PreRun: func(req cmds.Request) error {
 		_, err := getCompressOptions(req)
