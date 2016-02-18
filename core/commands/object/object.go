@@ -119,9 +119,9 @@ multihash.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
-        Options: []cmds.Option{
+	Options: []cmds.Option{
 		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
-        },
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
