@@ -642,7 +642,7 @@ func actorWriteFile(d *Directory) error {
 		return nil
 	}
 
-	size := rand.Intn(1024)
+	size := rand.Intn(1024) + 1
 	buf := make([]byte, size)
 	randbo.New().Read(buf)
 
