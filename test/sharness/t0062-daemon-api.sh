@@ -39,29 +39,29 @@ test_client_must_fail() {
 }
 
 test_client_suite() {
-    state="$1"
-    cfg_success="$2"
-    diff_success="$3"
+	state="$1"
+	cfg_success="$2"
+	diff_success="$3"
 	api_fromcfg="$4"
 	api_different="$5"
 
-    # must always work
-    test_client
+	# must always work
+	test_client
 
-    # must always err
-    test_client_must_fail --api "$api_unreachable"
+	# must always err
+	test_client_must_fail --api "$api_unreachable"
 
-    if [ "$cfg_success" = true ]; then
-	    test_client --api "$api_fromcfg"
-    else
-        test_client_must_fail --api "$api_fromcfg"
-    fi
+	if [ "$cfg_success" = true ]; then
+		test_client --api "$api_fromcfg"
+	else
+		test_client_must_fail --api "$api_fromcfg"
+	fi
 
-    if [ "$diff_success" = true ]; then
-        test_client --api "$api_different"
-    else
-        test_client_must_fail --api "$api_different"
-    fi
+	if [ "$diff_success" = true ]; then
+		test_client --api "$api_different"
+	else
+		test_client_must_fail --api "$api_different"
+	fi
 }
 
 # first, test things without daemon, without /api file
