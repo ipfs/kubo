@@ -34,10 +34,7 @@ type PinOutput struct {
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Pins objects to local storage.",
-		ShortDescription: `
-Retrieves the object named by <ipfs-path> and stores it locally
-on disk.
-`,
+		ShortDescription: "Stores an IPFS object(s) from a given path locally to disk.",
 	},
 
 	Arguments: []cmds.Argument{

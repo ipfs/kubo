@@ -36,8 +36,7 @@ var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List directory contents for Unix filesystem objects.",
 		ShortDescription: `
-Retrieves the object named by <ipfs-or-ipns-path> and displays the
-contents.
+Displays the contents  of an IPFS or IPNS object(s) at the given path.
 
 The JSON output contains size information. For files, the child size
 is the total size of the file contents. For directories, the child

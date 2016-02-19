@@ -24,7 +24,7 @@ var GetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Download IPFS objects.",
 		ShortDescription: `
-Retrieves the object named by <ipfs-or-ipns-path> and stores the data to disk.
+Stores to disk the data contained an IPFS or IPNS object(s) at the given path.
 
 By default, the output will be stored at './<ipfs-path>', but an alternate path
 can be specified with '--output=<path>' or '-o=<path>'.
