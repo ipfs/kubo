@@ -106,7 +106,7 @@ func (dht *IpfsDHT) checkLocalDatastore(k key.Key) (*pb.Record, error) {
 	rec := new(pb.Record)
 	err = proto.Unmarshal(byts, rec)
 	if err != nil {
-		log.Debug("Failed to unmarshal dht record from datastore")
+		log.Debug("Failed to unmarshal DHT record from datastore.")
 		return nil, err
 	}
 

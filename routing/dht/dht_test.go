@@ -93,7 +93,7 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 
 	ctx, cancel := context.WithCancel(ctx)
-	log.Debugf("bootstrapping dhts...")
+	log.Debugf("Bootstrapping DHTs...")
 
 	// tried async. sequential fares much better. compare:
 	// 100 async https://gist.github.com/jbenet/56d12f0578d5f34810b2
@@ -391,7 +391,7 @@ func TestPeriodicBootstrap(t *testing.T) {
 		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
 	}
 
-	t.Logf("dhts are now connected to 1-2 others.", nDHTs)
+	t.Logf("DHTs are now connected to 1-2 others.", nDHTs)
 	for _, dht := range dhts {
 		rtlen := dht.routingTable.Size()
 		if rtlen > 2 {

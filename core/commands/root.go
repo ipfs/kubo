@@ -59,7 +59,7 @@ NETWORK COMMANDS
     id            Show info about ipfs peers
     bootstrap     Add or remove bootstrap peers
     swarm         Manage connections to the p2p network
-    dht           Query the dht for values or peers
+    dht           Query the DHT for values or peers
     ping          Measure the latency of a connection
     diag          Print diagnostics
 

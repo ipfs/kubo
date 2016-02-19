@@ -319,7 +319,7 @@ var getValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Run a 'GetValue' query through the DHT.",
 		ShortDescription: `
-GetValue will return the value stored in the dht at the given key.
+GetValue will return the value stored in the DHT at the given key.
 `,
 	},
 
@@ -422,7 +422,7 @@ var putValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Run a 'PutValue' query through the DHT.",
 		ShortDescription: `
-PutValue will store the given key value pair in the dht.
+PutValue will store the given key value pair in the DHT.
 `,
 	},
 
