@@ -449,7 +449,7 @@ Example:
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("source", true, false, "Source file to move."),
-		cmds.StringArg("dest", true, false, "Target path for file to be moved to."),
+		cmds.StringArg("dest", true, false, "Destination path for file to be moved to."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
