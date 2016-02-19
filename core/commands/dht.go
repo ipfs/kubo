@@ -35,7 +35,7 @@ var DhtCmd = &cmds.Command{
 
 var queryDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Run a 'findClosestPeers' query through the DHT.",
+		Tagline:          "Find the closest peers to a given key by querying through the DHT.",
 		ShortDescription: ``,
 	},
 
