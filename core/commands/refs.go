@@ -35,12 +35,11 @@ var RefsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Lists links (references) from an object.",
 		ShortDescription: `
-Retrieves the object named by <ipfs-path> and displays the link
-hashes it contains, with the following format:
+Displays the link hashes an IPFS or IPNS object(s) contains, with the following format:
 
   <link base58 hash>
 
-Note: list all refs recursively with -r.
+Note: List all referencess recursively by using the flag '-r'.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
