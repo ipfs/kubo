@@ -608,7 +608,7 @@ var FilesMkdirCmd = &cmds.Command{
 		ShortDescription: `
 Create the directory if it does not already exist.
 
-Note: all paths must be absolute.
+Note: All paths must be absolute.
 
 Examples:
 
