@@ -12,8 +12,8 @@ gwyport=8082
 apiport=5002
 swarmport=4003
 
-API_ADDR="/ip4/0.0.0.0/tcp/$apiport"
-GATEWAY_ADDR="/ip4/0.0.0.0/tcp/$gwyport"
+API_MADDR="/ip4/0.0.0.0/tcp/$apiport"
+GATEWAY_MADDR="/ip4/0.0.0.0/tcp/$gwyport"
 
 # TODO: randomize ports here once we add --config to ipfs daemon
 
@@ -25,8 +25,8 @@ test_expect_success "setup IPFS_PATH" '
 
 test_expect_success 'ipfs init & config' '
   ipfs init &&
-  ipfs config Addresses.Gateway $GATEWAY_ADDR &&
-  ipfs config Addresses.API $API_ADDR &&
+  ipfs config Addresses.Gateway $GATEWAY_MADDR &&
+  ipfs config Addresses.API $API_MADDR &&
   ipfs config --json=true Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/4003\"]"
 '
 
@@ -59,8 +59,8 @@ test_expect_success "ipfs daemon output looks good" '
   STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
   echo "Initializing daemon..." >expected_daemon &&
   sed "s/^/Swarm listening on /" local_addrs >>expected_daemon &&
-  echo "API server listening on '$API_ADDR'" >>expected_daemon &&
-  echo "Gateway (readonly) server listening on '$GATEWAY_ADDR'" >>expected_daemon &&
+  echo "API server listening on '$API_MADDR'" >>expected_daemon &&
+  echo "Gateway (readonly) server listening on '$GATEWAY_MADDR'" >>expected_daemon &&
   echo "Daemon is ready" >>expected_daemon &&
   test_cmp expected_daemon actual_daemon
 '
@@ -130,7 +130,7 @@ test_expect_success "'ipfs daemon' can be killed" '
 
 test_expect_success "'ipfs daemon' should be able to run with a pipe attached to stdin (issue #861)" '
   yes | ipfs daemon --init >stdin_daemon_out 2>stdin_daemon_err &
-  pollEndpoint -host='$API_ADDR' -ep=/version -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
+  pollEndpoint -host='$API_MADDR' -ep=/version -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
   test_kill_repeat_10_sec $! ||
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
