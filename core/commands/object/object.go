@@ -119,9 +119,18 @@ multihash.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		// get options early -> exit early in case of error
+		if _, _, err := req.Option("headers").Bool(); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -144,7 +153,10 @@ multihash.
 			object := res.Output().(*Object)
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
-			fmt.Fprintln(w, "Hash\tSize\tName\t")
+			headers, _, _ := res.Request().Option("headers").Bool()
+			if headers {
+				fmt.Fprintln(w, "Hash\tSize\tName\t")
+			}
 			for _, link := range object.Links {
 				fmt.Fprintf(w, "%s\t%v\t%s\t\n", link.Hash, link.Size, link.Name)
 			}
