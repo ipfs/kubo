@@ -44,6 +44,7 @@ type ReqLog struct {
 	Requests []*ReqLogEntry
 	nextID   int
 	lock     sync.Mutex
+	keep     time.Duration
 }
 
 func (rl *ReqLog) Add(req Request) *ReqLogEntry {
@@ -69,9 +70,26 @@ func (rl *ReqLog) Add(req Request) *ReqLogEntry {
 func (rl *ReqLog) ClearInactive() {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
+	k := rl.keep
+	rl.keep = 0
+	rl.cleanup()
+	rl.keep = k
+}
+
+func (rl *ReqLog) maybeCleanup() {
+	// only do it every so often or it might
+	// become a perf issue
+	if len(rl.Requests)%10 == 0 {
+		rl.cleanup()
+	}
+}
+
+func (rl *ReqLog) cleanup() {
 	i := 0
+	now := time.Now()
 	for j := 0; j < len(rl.Requests); j++ {
-		if rl.Requests[j].Active {
+		rj := rl.Requests[j]
+		if rj.Active || rl.Requests[j].EndTime.Add(rl.keep).After(now) {
 			rl.Requests[i] = rl.Requests[j]
 			i++
 		}
@@ -79,33 +97,10 @@ func (rl *ReqLog) ClearInactive() {
 	rl.Requests = rl.Requests[:i]
 }
 
-func (rl *ReqLog) maybeCleanup() {
-	// only do it every so often or it might
-	// become a perf issue
-	if len(rl.Requests) == 0 {
-		rl.cleanup()
-	}
-}
-
-func (rl *ReqLog) cleanup() {
-	var i int
-	// drop all logs at are inactive and more than an hour old
-	for ; i < len(rl.Requests); i++ {
-		req := rl.Requests[i]
-		if req.Active || req.EndTime.Add(time.Hour/2).After(time.Now()) {
-			break
-		}
-	}
-
-	if i > 0 {
-		var j int
-		for i < len(rl.Requests) {
-			rl.Requests[j] = rl.Requests[i]
-			j++
-			i++
-		}
-		rl.Requests = rl.Requests[:len(rl.Requests)-i]
-	}
+func (rl *ReqLog) SetKeepTime(t time.Duration) {
+	rl.lock.Lock()
+	defer rl.lock.Unlock()
+	rl.keep = t
 }
 
 // Report generates a copy of all the entries in the requestlog
