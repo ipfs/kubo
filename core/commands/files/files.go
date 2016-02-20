@@ -26,11 +26,11 @@ var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Manipulate unixfs files.",
 		ShortDescription: `
-Files is an API for manipulating ipfs objects as if they were a unix filesystem.
+Files is an API for manipulating IPFS objects as if they were a unix filesystem.
 
 Note:
 Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults to
-true. Use caution when setting this flag to false, It will improve performance
+true. Use caution when setting this flag to false. It will improve performance
 for large numbers of file operations, but it does so at the cost of consistency
 guarantees. If the daemon is unexpectedly killed before running 'ipfs files flush'
 on the files in question, then data may be lost. This also applies to running
@@ -38,7 +38,7 @@ on the files in question, then data may be lost. This also applies to running
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("f", "flush", "Flush target and ancestors after write (default: true)."),
+		cmds.BoolOption("f", "flush", "Flush target and ancestors after write. Default: true."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -131,7 +131,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 	case mfs.TFile:
 		ndtype = "file"
 	default:
-		return nil, fmt.Errorf("unrecognized node type: %s", fsn.Type())
+		return nil, fmt.Errorf("Unrecognized node type: %s", fsn.Type())
 	}
 
 	return &Object{
@@ -364,7 +364,7 @@ Examples:
 
 		fi, ok := fsn.(*mfs.File)
 		if !ok {
-			res.SetError(fmt.Errorf("%s was not a file", path), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("%s was not a file.", path), cmds.ErrNormal)
 			return
 		}
 
@@ -382,7 +382,7 @@ Examples:
 			return
 		}
 		if offset < 0 {
-			res.SetError(fmt.Errorf("cannot specify negative offset"), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("Cannot specify negative offset."), cmds.ErrNormal)
 			return
 		}
 
@@ -393,7 +393,7 @@ Examples:
 		}
 
 		if int64(offset) > filen {
-			res.SetError(fmt.Errorf("offset was past end of file (%d > %d)", offset, filen), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("Offset was past end of file (%d > %d).", offset, filen), cmds.ErrNormal)
 			return
 		}
 
@@ -411,7 +411,7 @@ Examples:
 		}
 		if found {
 			if count < 0 {
-				res.SetError(fmt.Errorf("cannot specify negative 'count'"), cmds.ErrNormal)
+				res.SetError(fmt.Errorf("Cannot specify negative 'count'."), cmds.ErrNormal)
 				return
 			}
 			r = io.LimitReader(r, int64(count))
@@ -449,7 +449,7 @@ Example:
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("source", true, false, "Source file to move."),
-		cmds.StringArg("dest", true, false, "Target path for file to be moved to."),
+		cmds.StringArg("dest", true, false, "Destination path for file to be moved to."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -608,7 +608,7 @@ var FilesMkdirCmd = &cmds.Command{
 		ShortDescription: `
 Create the directory if it does not already exist.
 
-Note: all paths must be absolute.
+Note: All paths must be absolute.
 
 Examples:
 
@@ -653,14 +653,14 @@ Examples:
 
 var FilesFlushCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "flush a given path's data to disk",
+		Tagline: "Flush a given path's data to disk.",
 		ShortDescription: `
-flush a given path to disk. This is only useful when other commands
+Flush a given path to disk. This is only useful when other commands
 are run with the '--flush=false'.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", false, false, "path to flush (default '/')"),
+		cmds.StringArg("path", false, false, "Path to flush. Default: '/'."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -686,7 +686,7 @@ var FilesRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Remove a file.",
 		ShortDescription: `
-remove files or directories
+Remove files or directories.
 
     $ ipfs files rm /foo
     $ ipfs files ls /bar
@@ -735,7 +735,7 @@ remove files or directories
 
 		pdir, ok := parent.(*mfs.Directory)
 		if !ok {
-			res.SetError(fmt.Errorf("no such file or directory: %s", path), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("No such file or directory: %s", path), cmds.ErrNormal)
 			return
 		}
 
@@ -827,7 +827,7 @@ func getFileHandle(r *mfs.Root, path string, create bool) (*mfs.File, error) {
 
 		fi, ok := fsn.(*mfs.File)
 		if !ok {
-			return nil, errors.New("expected *mfs.File, didnt get it. This is likely a race condition")
+			return nil, errors.New("Expected *mfs.File, didnt get it. This is likely a race condition.")
 		}
 		return fi, nil
 
@@ -838,11 +838,11 @@ func getFileHandle(r *mfs.Root, path string, create bool) (*mfs.File, error) {
 
 func checkPath(p string) (string, error) {
 	if len(p) == 0 {
-		return "", fmt.Errorf("paths must not be empty")
+		return "", fmt.Errorf("Paths must not be empty.")
 	}
 
 	if p[0] != '/' {
-		return "", fmt.Errorf("paths must start with a leading slash")
+		return "", fmt.Errorf("Paths must start with a leading slash.")
 	}
 
 	cleaned := gopath.Clean(p)
