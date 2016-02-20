@@ -24,8 +24,7 @@ type DAGService interface {
 
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
-	GetDAG(context.Context, *Node) []NodeGetter
-	GetNodes(context.Context, []key.Key) []NodeGetter
+	GetMany(context.Context, []key.Key) (<-chan *Node, <-chan error)
 
 	Batch() *Batch
 }
@@ -146,21 +145,52 @@ func FindLinks(links []key.Key, k key.Key, start int) []int {
 	return out
 }
 
+func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) (<-chan *Node, <-chan error) {
+	out := make(chan *Node)
+	errs := make(chan error, 1)
+	blocks := ds.Blocks.GetBlocks(ctx, keys)
+	go func() {
+		defer close(out)
+		defer close(errs)
+		for {
+			select {
+			case b, ok := <-blocks:
+				if !ok {
+					return
+				}
+				nd, err := Decoded(b.Data)
+				if err != nil {
+					errs <- err
+					return
+				}
+				select {
+				case out <- nd:
+				case <-ctx.Done():
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return out, errs
+}
+
 // GetDAG will fill out all of the links of the given Node.
 // It returns a channel of nodes, which the caller can receive
 // all the child nodes of 'root' on, in proper order.
-func (ds *dagService) GetDAG(ctx context.Context, root *Node) []NodeGetter {
+func GetDAG(ctx context.Context, ds DAGService, root *Node) []NodeGetter {
 	var keys []key.Key
 	for _, lnk := range root.Links {
 		keys = append(keys, key.Key(lnk.Hash))
 	}
 
-	return ds.GetNodes(ctx, keys)
+	return GetNodes(ctx, ds, keys)
 }
 
 // GetNodes returns an array of 'NodeGetter' promises, with each corresponding
 // to the key with the same index as the passed in keys
-func (ds *dagService) GetNodes(ctx context.Context, keys []key.Key) []NodeGetter {
+func GetNodes(ctx context.Context, ds DAGService, keys []key.Key) []NodeGetter {
 
 	// Early out if no work to do
 	if len(keys) == 0 {
@@ -178,26 +208,29 @@ func (ds *dagService) GetNodes(ctx context.Context, keys []key.Key) []NodeGetter
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		blkchan := ds.Blocks.GetBlocks(ctx, dedupedKeys)
+		nodechan, errchan := ds.GetMany(ctx, dedupedKeys)
 
 		for count := 0; count < len(keys); {
 			select {
-			case blk, ok := <-blkchan:
+			case nd, ok := <-nodechan:
 				if !ok {
 					return
 				}
 
-				nd, err := Decoded(blk.Data)
+				k, err := nd.Key()
 				if err != nil {
-					// NB: can happen with improperly formatted input data
-					log.Debug("Got back bad block!")
-					return
+					log.Error("Failed to get node key: ", err)
+					continue
 				}
-				is := FindLinks(keys, blk.Key(), 0)
+
+				is := FindLinks(keys, k, 0)
 				for _, i := range is {
 					count++
 					sendChans[i] <- nd
 				}
+			case err := <-errchan:
+				log.Error("error fetching: ", err)
+				return
 			case <-ctx.Done():
 				return
 			}
@@ -389,9 +422,10 @@ func fetchNodes(ctx context.Context, ds DAGService, in <-chan []key.Key, out cha
 	}
 
 	for ks := range in {
-		ng := ds.GetNodes(ctx, ks)
+		ng := GetNodes(ctx, ds, ks)
 		for _, g := range ng {
 			go get(g)
 		}
 	}
+
 }

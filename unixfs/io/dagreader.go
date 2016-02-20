@@ -90,7 +90,7 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 
 func NewDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv mdag.DAGService) *DagReader {
 	fctx, cancel := context.WithCancel(ctx)
-	promises := serv.GetDAG(fctx, n)
+	promises := mdag.GetDAG(fctx, serv, n)
 	return &DagReader{
 		node:     n,
 		serv:     serv,

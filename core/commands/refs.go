@@ -233,7 +233,7 @@ func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
 	}
 
 	var count int
-	for i, ng := range rw.DAG.GetDAG(rw.Ctx, n) {
+	for i, ng := range dag.GetDAG(rw.Ctx, rw.DAG, n) {
 		lk := key.Key(n.Links[i].Hash)
 		if rw.skip(lk) {
 			continue

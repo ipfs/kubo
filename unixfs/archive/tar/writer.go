@@ -39,7 +39,7 @@ func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
 		return err
 	}
 
-	for i, ng := range w.Dag.GetDAG(w.ctx, nd) {
+	for i, ng := range mdag.GetDAG(w.ctx, w.Dag, nd) {
 		child, err := ng.Get(w.ctx)
 		if err != nil {
 			return err
