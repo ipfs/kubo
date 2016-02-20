@@ -30,21 +30,9 @@ test_expect_success 'ipfs init & config' '
   ipfs config --json=true Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/4003\"]"
 '
 
-# NOTE: this should remove bootstrap peers (needs a flag)
-# TODO(cryptix):
-#  - we won't see daemon startup failure because we put the daemon in the background - fix: fork with exit code after api listen
-test_expect_success "ipfs daemon launches" '
-  ipfs daemon >actual_daemon 2>daemon_err &
-'
+test_launch_ipfs_daemon
 
-# this is like "'ipfs daemon' is ready" in test_launch_ipfs_daemon(), see test-lib.sh
-test_expect_success "initialization ended" '
-  IPFS_PID=$! &&
-  pollEndpoint -host='$API_ADDR' -ep=/version -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
-  test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
-'
-
-# this errors if daemon didnt --init $IPFS_PATH correctly
+# this errors if we didn't --init $IPFS_PATH correctly
 test_expect_success "'ipfs config Identity.PeerID' works" '
   PEERID=$(ipfs config Identity.PeerID)
 '
