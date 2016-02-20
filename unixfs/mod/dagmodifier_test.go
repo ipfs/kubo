@@ -447,6 +447,20 @@ func TestDagTruncate(t *testing.T) {
 	if size != 10 {
 		t.Fatal("size was incorrect!")
 	}
+
+	err = dagmod.Truncate(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	size, err = dagmod.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if size != 0 {
+		t.Fatal("size was incorrect!")
+	}
 }
 
 func TestSparseWrite(t *testing.T) {
