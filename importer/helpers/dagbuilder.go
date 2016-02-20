@@ -13,7 +13,6 @@ type DagBuilderHelper struct {
 	recvdErr error
 	nextData []byte // the next item to return.
 	maxlinks int
-	batch    *dag.Batch
 }
 
 type DagBuilderParams struct {
@@ -31,7 +30,6 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		dserv:    dbp.Dagserv,
 		spl:      spl,
 		maxlinks: dbp.Maxlinks,
-		batch:    dbp.Dagserv.Batch(),
 	}
 }
 
@@ -125,5 +123,5 @@ func (db *DagBuilderHelper) Maxlinks() int {
 }
 
 func (db *DagBuilderHelper) Close() error {
-	return db.batch.Commit()
+	return nil
 }
