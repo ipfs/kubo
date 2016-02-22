@@ -16,8 +16,10 @@ test_init_ipfs
 
 # start iptb + wait for peering
 NUM_NODES=3
-iptb init -n $NUM_NODES -f --bootstrap=none --port=0
-startup_cluster $NUM_NODES
+test_expect_success 'init iptb' '
+  iptb init -n $NUM_NODES -f --bootstrap=none --port=0 &&
+  startup_cluster $NUM_NODES
+'
 
 # pre-mount publish
 HASH=$(echo 'hello warld' | ipfsi 0 add -q)
