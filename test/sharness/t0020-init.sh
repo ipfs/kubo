@@ -19,8 +19,16 @@ test_expect_success "ipfs init fails" '
 	test_must_fail ipfs init 2> init_fail_out
 '
 
-test_expect_success POSIX "ipfs init output looks good" '
-	echo "Error: failed to take lock at $IPFS_PATH: permission denied" > init_fail_exp &&
+# Under Windows/Cygwin the error message is different,
+# so we use the STD_ERR_MSG prereq.
+if test_have_prereq STD_ERR_MSG; then
+	init_err_msg="Error: failed to take lock at $IPFS_PATH: permission denied"
+else
+	init_err_msg="Error: mkdir $IPFS_PATH: The system cannot find the path specified."
+fi
+
+test_expect_success "ipfs init output looks good" '
+	echo "$init_err_msg" >init_fail_exp &&
 	test_cmp init_fail_exp init_fail_out
 '
 
