@@ -9,6 +9,9 @@ COMMIT := $(shell git rev-parse --short HEAD)
 ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
 MAKEFLAGS += --no-print-directory
 
+
+IPFS_API = "https://v04x.ipfs.io"
+
 all: help
 
 godep:
