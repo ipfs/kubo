@@ -12,9 +12,6 @@ gwyport=8082
 apiport=5002
 swarmport=4003
 
-API_MADDR="/ip4/0.0.0.0/tcp/$apiport"
-GATEWAY_MADDR="/ip4/0.0.0.0/tcp/$gwyport"
-
 # TODO: randomize ports here once we add --config to ipfs daemon
 
 # this needs to be in a different test than "ipfs daemon" below
@@ -23,10 +20,12 @@ test_expect_success "setup IPFS_PATH" '
   export IPFS_PATH
 '
 
+api_maddr="/ip4/0.0.0.0/tcp/$apiport"
+gway_maddr="/ip4/0.0.0.0/tcp/$gwyport"
 test_expect_success 'ipfs init & config' '
   ipfs init &&
-  ipfs config Addresses.Gateway $GATEWAY_MADDR &&
-  ipfs config Addresses.API $API_MADDR &&
+  ipfs config Addresses.Gateway $gway_maddr &&
+  ipfs config Addresses.API $api_maddr &&
   ipfs config --json=true Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/4003\"]"
 '
 
@@ -60,7 +59,7 @@ test_expect_success "ipfs daemon output looks good" '
   echo "Initializing daemon..." >expected_daemon &&
   sed "s/^/Swarm listening on /" local_addrs >>expected_daemon &&
   echo "API server listening on '$API_MADDR'" >>expected_daemon &&
-  echo "Gateway (readonly) server listening on '$GATEWAY_MADDR'" >>expected_daemon &&
+  echo "Gateway (readonly) server listening on '$GWAY_MADDR'" >>expected_daemon &&
   echo "Daemon is ready" >>expected_daemon &&
   test_cmp expected_daemon actual_daemon
 '
