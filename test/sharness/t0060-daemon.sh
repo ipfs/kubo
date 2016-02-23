@@ -8,33 +8,30 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
-gwyport=8080
-apiport=5001
+gwyport=8082
+apiport=5002
+swarmport=4003
 
 # TODO: randomize ports here once we add --config to ipfs daemon
 
-# this needs to be in a different test than "ipfs daemon --init" below
+# this needs to be in a different test than "ipfs daemon" below
 test_expect_success "setup IPFS_PATH" '
   IPFS_PATH="$(pwd)/.ipfs" &&
   export IPFS_PATH
 '
 
-# NOTE: this should remove bootstrap peers (needs a flag)
-# TODO(cryptix):
-#  - we won't see daemon startup failure because we put the daemon in the background - fix: fork with exit code after api listen
-#  - also default ports: might clash with local clients. Failure in that case isn't clear as well because pollEndpoint just uses the already running node
-test_expect_success "ipfs daemon --init launches" '
-  ipfs daemon --init >actual_daemon 2>daemon_err &
+api_maddr="/ip4/0.0.0.0/tcp/$apiport"
+gway_maddr="/ip4/0.0.0.0/tcp/$gwyport"
+test_expect_success 'ipfs init & config' '
+  ipfs init &&
+  ipfs config Addresses.Gateway $gway_maddr &&
+  ipfs config Addresses.API $api_maddr &&
+  ipfs config --json=true Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/4003\"]"
 '
 
-# this is like "'ipfs daemon' is ready" in test_launch_ipfs_daemon(), see test-lib.sh
-test_expect_success "initialization ended" '
-  IPFS_PID=$! &&
-  pollEndpoint -ep=/version -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
-  test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
-'
+test_launch_ipfs_daemon
 
-# this errors if daemon didnt --init $IPFS_PATH correctly
+# this errors if we didn't --init $IPFS_PATH correctly
 test_expect_success "'ipfs config Identity.PeerID' works" '
   PEERID=$(ipfs config Identity.PeerID)
 '
@@ -57,25 +54,12 @@ test_expect_success "ipfs gateway works with the correct allowed origin port" '
   curl -s -X GET -H "Origin:http://localhost:$gwyport" -I "http://localhost:$gwyport/api/v0/version"
 '
 
-# This is like t0020-init.sh "ipfs init output looks good"
-#
-# Unfortunately the line:
-#
-#   API server listening on /ip4/127.0.0.1/tcp/5001
-#
-# sometimes doesn't show up, so we cannot use test_expect_success yet.
-#
 test_expect_success "ipfs daemon output looks good" '
   STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
   echo "Initializing daemon..." >expected_daemon &&
-  echo "initializing ipfs node at $IPFS_PATH" >>expected_daemon &&
-  echo "generating 2048-bit RSA keypair...done" >>expected_daemon &&
-  echo "peer identity: $PEERID" >>expected_daemon &&
-  echo "to get started, enter:" >>expected_daemon &&
-  printf "\\n\\t$STARTFILE\\n\\n" >>expected_daemon &&
   sed "s/^/Swarm listening on /" local_addrs >>expected_daemon &&
-  echo "API server listening on /ip4/127.0.0.1/tcp/5001" >>expected_daemon &&
-  echo "Gateway (readonly) server listening on /ip4/127.0.0.1/tcp/8080" >>expected_daemon &&
+  echo "API server listening on '$API_MADDR'" >>expected_daemon &&
+  echo "Gateway (readonly) server listening on '$GWAY_MADDR'" >>expected_daemon &&
   echo "Daemon is ready" >>expected_daemon &&
   test_cmp expected_daemon actual_daemon
 '
@@ -116,14 +100,14 @@ test_expect_success "nc is available" '
 
 # check transport is encrypted
 test_expect_success "transport should be encrypted" '
-  nc -w 5 localhost 4001 >swarmnc &&
+  nc -w 5 localhost '$swarmport' >swarmnc &&
   grep -q "AES-256,AES-128" swarmnc &&
   test_must_fail grep -q "/multistream/1.0.0" swarmnc ||
 	test_fsh cat swarmnc
 '
 
 test_expect_success "output from streaming commands works" '
-	test_expect_code 28 curl -m 2 http://localhost:5001/api/v0/stats/bw\?poll=true > statsout
+	test_expect_code 28 curl -m 2 http://localhost:'$apiport'/api/v0/stats/bw\?poll=true > statsout
 '
 
 test_expect_success "output looks good" '
@@ -145,7 +129,7 @@ test_expect_success "'ipfs daemon' can be killed" '
 
 test_expect_success "'ipfs daemon' should be able to run with a pipe attached to stdin (issue #861)" '
   yes | ipfs daemon --init >stdin_daemon_out 2>stdin_daemon_err &
-  pollEndpoint -ep=/version -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
+  pollEndpoint -host='$API_MADDR' -ep=/version -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
   test_kill_repeat_10_sec $! ||
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
