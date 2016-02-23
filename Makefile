@@ -16,6 +16,9 @@ godep:
 
 toolkit_upgrade: gx_upgrade gxgo_upgrade
 
+go_check:
+	@bin/check_go_version "1.5.2"
+
 gx_upgrade:
 	go get -u github.com/whyrusleeping/gx
 
@@ -26,7 +29,7 @@ gx_check:
 	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
 	@bin/check_gx_program "gx-go" "0.2" 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
 
-deps: gx_check
+deps: go_check gx_check
 	gx --verbose install --global
 
 # saves/vendors third-party dependencies to Godeps/_workspace
@@ -50,7 +53,8 @@ clean:
 uninstall:
 	cd cmd/ipfs && go clean -i -ldflags=$(ldflags)
 
-PHONY += all help godep toolkit_upgrade gx_upgrade gxgo_upgrade gx_check deps vendor install build nofuse clean uninstall
+PHONY += all help godep toolkit_upgrade gx_upgrade gxgo_upgrade gx_check
+PHONY += go_check deps vendor install build nofuse clean uninstall
 
 ##############################################################
 # tests targets
