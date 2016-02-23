@@ -87,7 +87,7 @@ NOTES:
 * `git` is required in order for `go get` to fetch
 all dependencies.
 * Package managers often contain out-of-date `golang` packages.
-  ensure that `go version` reports at least 1.5.2. See above for how to install go.
+  Ensure that `go version` reports at least 1.5.2. See above for how to install go.
 * If you are interested in development, please install the development
 dependencies as well.
 * *WARNING: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
