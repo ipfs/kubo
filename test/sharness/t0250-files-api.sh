@@ -51,6 +51,12 @@ test_files_api() {
 		ipfs files mkdir /cats
 	'
 
+	test_expect_success "'files ls' lists root by default" '
+		ipfs files ls >actual &&
+		echo "cats" >expected &&
+		test_cmp expected actual
+	'
+
 	test_expect_success "directory was created" '
 		verify_path_exists /cats
 	'

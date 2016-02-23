@@ -249,13 +249,21 @@ Examples:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "Path to show listing for."),
+		cmds.StringArg("path", false, false, "Path to show listing for. Defaults to '/'."),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Use long listing format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		path, err := checkPath(req.Arguments()[0])
+		var arg string
+
+		if len(req.Arguments()) == 0 {
+			arg = "/"
+		} else {
+			arg = req.Arguments()[0]
+		}
+
+		path, err := checkPath(arg)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
