@@ -126,7 +126,7 @@ func (d *Directory) childNode(name string) (FSNode, error) {
 		ndir := NewDirectory(d.ctx, name, nd, d, d.dserv)
 		d.childDirs[name] = ndir
 		return ndir, nil
-	case ufspb.Data_File:
+	case ufspb.Data_File, ufspb.Data_Raw:
 		nfi, err := NewFile(name, nd, d, d.dserv)
 		if err != nil {
 			return nil, err

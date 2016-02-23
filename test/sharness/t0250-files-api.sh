@@ -364,6 +364,25 @@ test_files_api() {
 		verify_dir_contents /
 	'
 
+	# test truncating
+	test_expect_success "create a new file" '
+		echo "some content" | ipfs files write --create /cats
+	'
+
+	test_expect_success "truncate and write over that file" '
+		echo "fish" | ipfs files write --truncate /cats
+	'
+
+	test_expect_success "output looks good" '
+		ipfs files read /cats > file_out &&
+		echo "fish" > file_exp &&
+		test_cmp file_out file_exp
+	'
+
+	test_expect_success "cleanup" '
+		ipfs files rm /cats
+	'
+
 	# test flush flags
 	test_expect_success "mkdir --flush works" '
 		ipfs files mkdir --flush --parents /flushed/deep
