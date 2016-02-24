@@ -46,17 +46,12 @@ The canonical download instructions for IPFS are over at: http://ipfs.io/docs/in
 
 ### Install prebuilt packages
 
-We use [gobuilder.me](https://gobuilder.me), a great service that automatically builds a release on every commit.
-
-You can see the latest builds for your platform at these links:
-
-- [`release` - the last released version](https://gobuilder.me/github.com/ipfs/go-ipfs/cmd/ipfs?branch=release)  **<-- recommended**
-- [`master` - development, stable](https://gobuilder.me/github.com/ipfs/go-ipfs/cmd/ipfs?branch=master)
+We host prebuilt binaries over at our [distributions page](https://dist.ipfs.io#go-ipfs).
 
 From there:
-- Click "Download" on the build for your platform.
+- Click the blue "Download go-ipfs" on the right side of the page.
 - Open/extract the archive.
-- Move `ipfs` to your path (`install.sh` can do it for you),
+- Move `ipfs` to your path (`install.sh` can do it for you).
 
 ### Build from Source
 
@@ -79,7 +74,7 @@ You can try using package manager, but gx and gx-go are unlikely to be available
 
 #### Download + Compile IPFS
 
-Then:
+Simply run:
 
 ```
 $ go get -d github.com/ipfs/go-ipfs
@@ -87,19 +82,12 @@ $ cd $GOPATH/src/github.com/ipfs/go-ipfs
 $ make install
 ```
 
-Tip:
-
-If the `make install` hangs while fetching dependencies and if you are
-running a daemon locally, ensure that it is on at least version 0.4.0-dev. If
-you don't have a build that is new enough, run the `make install` with your
-daemon turned off and the deps will be fetched through the ipfs.io gateways.
-
 NOTES:
 
 * `git` is required in order for `go get` to fetch
 all dependencies.
 * Package managers often contain out-of-date `golang` packages.
-  Compilation from source is recommended.
+  Ensure that `go version` reports at least 1.5.2. See above for how to install go.
 * If you are interested in development, please install the development
 dependencies as well.
 * *WARNING: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
