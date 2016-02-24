@@ -146,14 +146,13 @@ func FindLinks(links []key.Key, k key.Key, start int) []int {
 }
 
 func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) (<-chan *Node, <-chan error) {
-	out := make(chan *Node)
+	out := make(chan *Node, len(keys))
 	errs := make(chan error, 1)
 	blocks := ds.Blocks.GetBlocks(ctx, keys)
 	var count int
 
 	go func() {
 		defer close(out)
-		defer close(errs)
 		for {
 			select {
 			case b, ok := <-blocks:
@@ -168,13 +167,13 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) (<-chan *Node
 					errs <- err
 					return
 				}
-				select {
-				case out <- nd:
-					count++
-				case <-ctx.Done():
-					return
-				}
+
+				// buffered, no need to select
+				out <- nd
+				count++
+
 			case <-ctx.Done():
+				errs <- ctx.Err()
 				return
 			}
 		}
