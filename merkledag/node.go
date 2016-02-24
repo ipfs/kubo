@@ -22,6 +22,8 @@ type Node struct {
 	encoded []byte
 
 	cached mh.Multihash
+
+	sorted bool
 }
 
 // NodeStat is a statistics object for a Node. Mostly sizes.
@@ -119,6 +121,7 @@ func (n *Node) AddNodeLinkClean(name string, that *Node) error {
 // AddRawLink adds a copy of a link to this node
 func (n *Node) AddRawLink(name string, l *Link) error {
 	n.encoded = nil
+	n.sorted = false
 	n.Links = append(n.Links, &Link{
 		Name: name,
 		Size: l.Size,
@@ -153,7 +156,10 @@ func (n *Node) RemoveNodeLink(name string) error {
 
 // Return a copy of the link with given name
 func (n *Node) GetNodeLink(name string) (*Link, error) {
-	sort.Stable(LinkSlice(n.Links)) // keep links sorted
+	if !n.sorted {
+		sort.Stable(LinkSlice(n.Links)) // keep links sorted
+		n.sorted = true
+	}
 	i := sort.Search(len(n.Links), func(i int) bool {
 		return n.Links[i].Name >= name
 	})
