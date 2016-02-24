@@ -28,6 +28,9 @@ gx_upgrade:
 gxgo_upgrade:
 	go get -u github.com/whyrusleeping/gx-go
 
+path_check:
+	test "$(shell pwd)" = "$(GOPATH)/src/github.com/ipfs/go-ipfs" || (echo "go-ipfs must be built from within your \$$GOPATH directory." && false)
+
 gx_check:
 	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
 	@bin/check_gx_program "gx-go" "0.2" 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
@@ -44,7 +47,7 @@ vendor: godep
 install: build
 	cd cmd/ipfs && go install -ldflags=$(ldflags)
 
-build: deps
+build: deps path_check
 	cd cmd/ipfs && go build -i -ldflags=$(ldflags)
 
 nofuse: deps
