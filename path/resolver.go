@@ -111,33 +111,20 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 	// for each of the path components
 	for _, name := range names {
 
-		var nlink *merkledag.Link
-		// for each of the links in nd, the current object
-		for _, link := range nd.Links {
-			if link.Name == name {
-				nlink = link
-				break
-			}
-		}
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Minute)
+		defer cancel()
 
-		if nlink == nil || len(nlink.Hash) == 0 {
+		nextnode, err := nd.GetLinkedNode(ctx, s.DAG, name)
+		if err == merkledag.ErrLinkNotFound {
 			n, _ := nd.Multihash()
 			return result, ErrNoLink{Name: name, Node: n}
+		} else if err != nil {
+			return append(result, nextnode), err
 		}
 
-		if nlink.GetCachedNode() == nil {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, time.Minute)
-			defer cancel()
-		}
-
-		var err error
-		nd, err = nlink.GetNodeAndCache(ctx, s.DAG)
-		if err != nil {
-			return append(result, nd), err
-		}
-
-		result = append(result, nd)
+		nd = nextnode
+		result = append(result, nextnode)
 	}
 	return result, nil
 }

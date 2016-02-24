@@ -90,21 +90,6 @@ func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 	return serv.Get(ctx, key.Key(l.Hash))
 }
 
-// GetNodeAndCache return the MDAG Node that the link points to and store a
-// pointer to that node along with the link to speed up further retrivals. A
-// timeout is to be specified to avoid taking too much time.
-func (l *Link) GetNodeAndCache(ctx context.Context, serv DAGService) (*Node, error) {
-	if l.node == nil {
-		nd, err := serv.Get(ctx, key.Key(l.Hash))
-		if err != nil {
-			return nil, err
-		}
-		l.node = nd
-	}
-
-	return l.node, nil
-}
-
 // AddNodeLink adds a link to another node.
 func (n *Node) AddNodeLink(name string, that *Node) error {
 	n.encoded = nil
