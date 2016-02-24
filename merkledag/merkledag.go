@@ -77,8 +77,8 @@ func (n *dagService) AddRecursive(nd *Node) error {
 	}
 
 	for _, link := range nd.Links {
-		if link.Node != nil {
-			err := n.AddRecursive(link.Node)
+		if link.node != nil {
+			err := n.AddRecursive(link.node)
 			if err != nil {
 				return err
 			}
@@ -110,8 +110,8 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 // Remove deletes the given node and all of its children from the BlockService
 func (n *dagService) RemoveRecursive(nd *Node) error {
 	for _, l := range nd.Links {
-		if l.Node != nil {
-			n.RemoveRecursive(l.Node)
+		if l.node != nil {
+			n.RemoveRecursive(l.node)
 		}
 	}
 	k, err := nd.Key()

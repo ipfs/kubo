@@ -5,8 +5,8 @@ import (
 
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 )
 
 var ErrLinkNotFound = fmt.Errorf("no link by that name")
@@ -50,7 +50,7 @@ type Link struct {
 	Hash mh.Multihash
 
 	// a ptr to the actual node for graph manipulation
-	Node *Node
+	node *Node
 }
 
 type LinkSlice []*Link
@@ -78,13 +78,13 @@ func MakeLink(n *Node) (*Link, error) {
 
 // GetCachedNode returns the MDAG Node that was cached, or nil
 func (l *Link) GetCachedNode() *Node {
-	return l.Node
+	return l.node
 }
 
 // GetNode returns the MDAG Node that this link points to
 func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
-	if l.Node != nil {
-		return l.Node, nil
+	if l.node != nil {
+		return l.node, nil
 	}
 
 	return serv.Get(ctx, key.Key(l.Hash))
@@ -94,15 +94,15 @@ func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 // pointer to that node along with the link to speed up further retrivals. A
 // timeout is to be specified to avoid taking too much time.
 func (l *Link) GetNodeAndCache(ctx context.Context, serv DAGService) (*Node, error) {
-	if l.Node == nil {
+	if l.node == nil {
 		nd, err := serv.Get(ctx, key.Key(l.Hash))
 		if err != nil {
 			return nil, err
 		}
-		l.Node = nd
+		l.node = nd
 	}
 
-	return l.Node, nil
+	return l.node, nil
 }
 
 // AddNodeLink adds a link to another node.
@@ -112,7 +112,7 @@ func (n *Node) AddNodeLink(name string, that *Node) error {
 	lnk, err := MakeLink(that)
 
 	lnk.Name = name
-	lnk.Node = that
+	lnk.node = that
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (n *Node) AddRawLink(name string, l *Link) error {
 		Name: name,
 		Size: l.Size,
 		Hash: l.Hash,
-		Node: l.Node,
+		node: l.node,
 	})
 
 	return nil
@@ -178,7 +178,7 @@ func (n *Node) GetNodeLink(name string) (*Link, error) {
 				Name: l.Name,
 				Size: l.Size,
 				Hash: l.Hash,
-				Node: l.Node,
+				node: l.node,
 			}, nil
 		}
 	}
