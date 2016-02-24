@@ -29,7 +29,7 @@ gxgo_upgrade:
 	go get -u github.com/whyrusleeping/gx-go
 
 path_check:
-	test "$(shell pwd)" = "$(GOPATH)/src/github.com/ipfs/go-ipfs" || (echo "go-ipfs must be built from within your \$$GOPATH directory." && false)
+	@bin/check_go_path
 
 gx_check:
 	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'

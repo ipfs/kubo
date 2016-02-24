@@ -1,0 +1,20 @@
+#!/bin/sh
+
+if [ -z "$GOPATH" ]; then
+	echo "GOPATH not set, you must have go configured properly to install ipfs"
+	exit 1
+fi
+
+if ! type -f realpath > /dev/null; then
+	echo "program 'realpath' not found, it is required for this check"
+	exit 1
+fi
+
+PWD=$(pwd)
+REALPWD=$(realpath "$PWD")
+EXPECTED="$GOPATH/src/github.com/ipfs/go-ipfs"
+
+if [ "$REALPWD" != "$EXPECTED" ]; then
+	echo "go-ipfs must be built from within your \$GOPATH directory."
+	exit 1
+fi
