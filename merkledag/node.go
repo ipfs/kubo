@@ -76,11 +76,6 @@ func MakeLink(n *Node) (*Link, error) {
 	}, nil
 }
 
-// GetCachedNode returns the MDAG Node that was cached, or nil
-func (l *Link) GetCachedNode() *Node {
-	return l.node
-}
-
 // GetNode returns the MDAG Node that this link points to
 func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 	if l.node != nil {
