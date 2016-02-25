@@ -68,9 +68,9 @@ func (n *Node) getPBNode() *pb.PBNode {
 	return pbn
 }
 
-// Encoded returns the encoded raw data version of a Node instance.
+// EncodeProtobuf returns the encoded raw data version of a Node instance.
 // It may use a cached encoded version, unless the force flag is given.
-func (n *Node) Encoded(force bool) ([]byte, error) {
+func (n *Node) EncodeProtobuf(force bool) ([]byte, error) {
 	sort.Stable(LinkSlice(n.Links)) // keep links sorted
 	if n.encoded == nil || force {
 		var err error

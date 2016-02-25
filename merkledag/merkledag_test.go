@@ -64,7 +64,7 @@ func TestNode(t *testing.T) {
 			fmt.Println("-", l.Name, l.Size, l.Hash)
 		}
 
-		e, err := n.Encoded(false)
+		e, err := n.EncodeProtobuf(false)
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -96,9 +96,9 @@ func TestNode(t *testing.T) {
 }
 
 func SubtestNodeStat(t *testing.T, n *Node) {
-	enc, err := n.Encoded(true)
+	enc, err := n.EncodeProtobuf(true)
 	if err != nil {
-		t.Error("n.Encoded(true) failed")
+		t.Error("n.EncodeProtobuf(true) failed")
 		return
 	}
 

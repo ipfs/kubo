@@ -203,7 +203,7 @@ func (n *Node) UpdateNodeLink(name string, that *Node) (*Node, error) {
 // Size returns the total size of the data addressed by node,
 // including the total sizes of references.
 func (n *Node) Size() (uint64, error) {
-	b, err := n.Encoded(false)
+	b, err := n.EncodeProtobuf(false)
 	if err != nil {
 		return 0, err
 	}
@@ -217,7 +217,7 @@ func (n *Node) Size() (uint64, error) {
 
 // Stat returns statistics on the node.
 func (n *Node) Stat() (*NodeStat, error) {
-	enc, err := n.Encoded(false)
+	enc, err := n.EncodeProtobuf(false)
 	if err != nil {
 		return nil, err
 	}
@@ -244,8 +244,8 @@ func (n *Node) Stat() (*NodeStat, error) {
 
 // Multihash hashes the encoded data of this node.
 func (n *Node) Multihash() (mh.Multihash, error) {
-	// Note: Encoded generates the hash and puts it in n.cached.
-	_, err := n.Encoded(false)
+	// Note: EncodeProtobuf generates the hash and puts it in n.cached.
+	_, err := n.EncodeProtobuf(false)
 	if err != nil {
 		return nil, err
 	}

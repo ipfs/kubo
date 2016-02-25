@@ -258,7 +258,7 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 			node.Links[i].Hash = mh.Multihash(k)
 
 			// Recache serialized node
-			_, err = node.Encoded(true)
+			_, err = node.EncodeProtobuf(true)
 			if err != nil {
 				return "", false, err
 			}
@@ -489,7 +489,7 @@ func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGSer
 	nd.Data = d
 
 	// invalidate cache and recompute serialized data
-	_, err = nd.Encoded(true)
+	_, err = nd.EncodeProtobuf(true)
 	if err != nil {
 		return nil, err
 	}

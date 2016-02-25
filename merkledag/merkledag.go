@@ -49,7 +49,7 @@ func (n *dagService) Add(nd *Node) (key.Key, error) {
 		return "", fmt.Errorf("dagService is nil")
 	}
 
-	d, err := nd.Encoded(false)
+	d, err := nd.EncodeProtobuf(false)
 	if err != nil {
 		return "", err
 	}
@@ -313,7 +313,7 @@ type Batch struct {
 }
 
 func (t *Batch) Add(nd *Node) (key.Key, error) {
-	d, err := nd.Encoded(false)
+	d, err := nd.EncodeProtobuf(false)
 	if err != nil {
 		return "", err
 	}
