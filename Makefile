@@ -20,7 +20,7 @@ godep:
 toolkit_upgrade: gx_upgrade gxgo_upgrade
 
 go_check:
-	@bin/check_go_version "1.5.2"
+	@bin/check_go_version "1.5.1"
 
 gx_upgrade:
 	go get -u github.com/whyrusleeping/gx
