@@ -46,7 +46,7 @@ The canonical download instructions for IPFS are over at: http://ipfs.io/docs/in
 
 ### Install prebuilt packages
 
-We host prebuilt binaries over at our [distributions page](https://dist.ipfs.io#go-ipfs).
+We host prebuilt binaries over at our [distributions page](https://ipfs.io/ipns/dist.ipfs.io#go-ipfs).
 
 From there:
 - Click the blue "Download go-ipfs" on the right side of the page.
