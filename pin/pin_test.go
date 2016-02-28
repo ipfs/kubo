@@ -104,7 +104,11 @@ func TestPinnerBasic(t *testing.T) {
 	d.AddNodeLink("e", e)
 
 	// Must be in dagserv for unpin to work
-	err = dserv.AddRecursive(d)
+	_, err = dserv.Add(e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = dserv.Add(d)
 	if err != nil {
 		t.Fatal(err)
 	}

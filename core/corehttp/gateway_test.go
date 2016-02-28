@@ -181,7 +181,12 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = n.DAG.AddRecursive(dagn1)
+	_, err = n.DAG.Add(dagn2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = n.DAG.Add(dagn1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +271,15 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = n.DAG.AddRecursive(dagn1)
+	_, err = n.DAG.Add(dagn3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = n.DAG.Add(dagn2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = n.DAG.Add(dagn1)
 	if err != nil {
 		t.Fatal(err)
 	}

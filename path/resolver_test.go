@@ -39,9 +39,11 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dagService.AddRecursive(a)
-	if err != nil {
-		t.Fatal(err)
+	for _, n := range []*merkledag.Node{a, b, c} {
+		_, err = dagService.Add(n)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	aKey, err := a.Key()
