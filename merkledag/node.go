@@ -48,9 +48,6 @@ type Link struct {
 
 	// multihash of the target object
 	Hash mh.Multihash
-
-	// a ptr to the actual node for graph manipulation
-	node *Node
 }
 
 type LinkSlice []*Link
@@ -78,10 +75,6 @@ func MakeLink(n *Node) (*Link, error) {
 
 // GetNode returns the MDAG Node that this link points to
 func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
-	if l.node != nil {
-		return l.node, nil
-	}
-
 	return serv.Get(ctx, key.Key(l.Hash))
 }
 
@@ -92,7 +85,6 @@ func (n *Node) AddNodeLink(name string, that *Node) error {
 	lnk, err := MakeLink(that)
 
 	lnk.Name = name
-	lnk.node = that
 	if err != nil {
 		return err
 	}
@@ -122,7 +114,6 @@ func (n *Node) AddRawLink(name string, l *Link) error {
 		Name: name,
 		Size: l.Size,
 		Hash: l.Hash,
-		node: l.node,
 	})
 
 	return nil
@@ -158,7 +149,6 @@ func (n *Node) GetNodeLink(name string) (*Link, error) {
 				Name: l.Name,
 				Size: l.Size,
 				Hash: l.Hash,
-				node: l.node,
 			}, nil
 		}
 	}
