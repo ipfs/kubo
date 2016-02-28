@@ -2,6 +2,7 @@ package merkledag
 
 import (
 	"fmt"
+	"sort"
 
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
@@ -21,6 +22,8 @@ type Node struct {
 	encoded []byte
 
 	cached mh.Multihash
+
+	sorted bool
 }
 
 // NodeStat is a statistics object for a Node. Mostly sizes.
@@ -118,6 +121,7 @@ func (n *Node) AddNodeLinkClean(name string, that *Node) error {
 // AddRawLink adds a copy of a link to this node
 func (n *Node) AddRawLink(name string, l *Link) error {
 	n.encoded = nil
+	n.sorted = false
 	n.Links = append(n.Links, &Link{
 		Name: name,
 		Size: l.Size,
@@ -152,15 +156,21 @@ func (n *Node) RemoveNodeLink(name string) error {
 
 // Return a copy of the link with given name
 func (n *Node) GetNodeLink(name string) (*Link, error) {
-	for _, l := range n.Links {
-		if l.Name == name {
-			return &Link{
-				Name: l.Name,
-				Size: l.Size,
-				Hash: l.Hash,
-				Node: l.Node,
-			}, nil
-		}
+	if !n.sorted {
+		sort.Stable(LinkSlice(n.Links)) // keep links sorted
+		n.sorted = true
+	}
+	i := sort.Search(len(n.Links), func(i int) bool {
+		return n.Links[i].Name >= name
+	})
+	if i < len(n.Links) && n.Links[i].Name == name {
+		l := n.Links[i]
+		return &Link{
+			Name: l.Name,
+			Size: l.Size,
+			Hash: l.Hash,
+			Node: l.Node,
+		}, nil
 	}
 	return nil, ErrLinkNotFound
 }
