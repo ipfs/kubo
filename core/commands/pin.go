@@ -33,7 +33,7 @@ type PinOutput struct {
 
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Pins objects to local storage.",
+		Tagline:          "Pins objects to local storage.",
 		ShortDescription: "Stores an IPFS object(s) from a given path locally to disk.",
 	},
 
