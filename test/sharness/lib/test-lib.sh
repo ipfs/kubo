@@ -45,7 +45,9 @@ test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
 test "$TEST_NO_DOCKER" != 1 && type docker && test_set_prereq DOCKER
 
 TEST_OS=$(uname -s | tr [a-z] [A-Z])
-test expr "$TEST_OS" : "CYGWIN_NT" >/dev/null && test_set_prereq POSIX
+
+# Set a prereq as error messages are often different on Windows/Cygwin
+expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
 
 if test "$TEST_VERBOSE" = 1; then
 	echo '# TEST_VERBOSE='"$TEST_VERBOSE"
