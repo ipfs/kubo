@@ -1,0 +1,17 @@
+{
+  "name": "go-nat-pmp",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "gateway",
+      "hash": "Qma5KQppqMBmpdNeVUDuNtEkec1BRNWcS3dodUdiP9267q",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/jackpal/go-nat-pmp"
+  }
+}

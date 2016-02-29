@@ -1,0 +1,23 @@
+BenchmarkMul_1kb	 1000000	      1599 ns/op
+BenchmarkMul_10kb	   50000	     61533 ns/op
+BenchmarkMul_50kb	    2000	    833693 ns/op
+BenchmarkMul_100kb	    1000	   2567995 ns/op
+BenchmarkMul_1Mb	      20	 105237800 ns/op
+BenchmarkMul_5Mb	       1	1272947000 ns/op
+BenchmarkMul_10Mb	       1	3834354000 ns/op
+BenchmarkMul_20Mb	       1	11514488000 ns/op
+# these values are extrapolated using Karatsuba theoretical
+# complexity:
+# time(10Mb) = 3*time(5Mb)
+# time(20Mb) = 3*time(10Mb)
+# time(50Mb) = 4.27*time(20Mb)
+# time(100Mb) = 3*time(50Mb)
+BenchmarkMul_50Mb	       1        49199945000 ns/op
+BenchmarkMul_100Mb	       1	147599836000 ns/op
+
+BenchmarkMul_1x5Mb         20         507268000 ns/op
+BenchmarkMul_1x10Mb         1        1002801000 ns/op
+BenchmarkMul_1x20Mb         1        1988546000 ns/op
+BenchmarkMul_1x50Mb         1        4940572000 ns/op
+BenchmarkMul_5x20Mb         1        5011810000 ns/op
+BenchmarkMul_5x50Mb         1        12449508000 ns/op

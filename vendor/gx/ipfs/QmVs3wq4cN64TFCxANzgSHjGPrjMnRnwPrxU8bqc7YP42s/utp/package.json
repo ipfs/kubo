@@ -1,0 +1,37 @@
+{
+  "name": "utp",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "envpprof",
+      "hash": "QmazECKVXFsA3J6cHAqf8HeTDUB8zARjfo75nxE6o63AAp",
+      "version": "0.0.0"
+    },
+    {
+      "name": "missinggo",
+      "hash": "QmasvfgKKeuW9N22hB1NYHtjWPfHSbwHPpteYaQH619n17",
+      "version": "0.0.0"
+    },
+    {
+      "name": "iter",
+      "hash": "QmYWL7Pyx6QHHryhLq96wR6CWidApH2D2nbXeTJbAmusH9",
+      "version": "0.0.0"
+    },
+    {
+      "name": "testify",
+      "hash": "QmZwjfAKWe7vWZ8f48u7AGA1xYfzR1iCD9A2XSCYFRBWot",
+      "version": "0.0.0"
+    },
+    {
+      "name": "jitter",
+      "hash": "QmNs8UbKMyFxLHWiTSV3eDE73DuCPkbF5Ruh2WhfGThgBm",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/anacrolix/utp"
+  }
+}

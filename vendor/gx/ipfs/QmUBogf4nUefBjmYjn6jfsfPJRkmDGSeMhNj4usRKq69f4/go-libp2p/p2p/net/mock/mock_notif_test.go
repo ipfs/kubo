@@ -1,0 +1,224 @@
+package mocknet
+
+import (
+	"testing"
+	"time"
+
+	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
+	inet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+)
+
+func TestNotifications(t *testing.T) {
+
+	mn, err := FullMeshLinked(context.Background(), 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	timeout := 10 * time.Second
+
+	// signup notifs
+	nets := mn.Nets()
+	notifiees := make([]*netNotifiee, len(nets))
+	for i, pn := range nets {
+		n := newNetNotifiee()
+		pn.Notify(n)
+		notifiees[i] = n
+	}
+
+	// connect all but self
+	if err := mn.ConnectAllButSelf(); err != nil {
+		t.Fatal(err)
+	}
+
+	// test everyone got the correct connection opened calls
+	for i, s := range nets {
+		n := notifiees[i]
+		notifs := make(map[peer.ID][]inet.Conn)
+		for j, s2 := range nets {
+			if i == j {
+				continue
+			}
+
+			// this feels a little sketchy, but its probably okay
+			for len(s.ConnsToPeer(s2.LocalPeer())) != len(notifs[s2.LocalPeer()]) {
+				select {
+				case c := <-n.connected:
+					nfp := notifs[c.RemotePeer()]
+					notifs[c.RemotePeer()] = append(nfp, c)
+				case <-time.After(timeout):
+					t.Fatal("timeout")
+				}
+			}
+		}
+
+		for p, cons := range notifs {
+			expect := s.ConnsToPeer(p)
+			if len(expect) != len(cons) {
+				t.Fatal("got different number of connections")
+			}
+
+			for _, c := range cons {
+				var found bool
+				for _, c2 := range expect {
+					if c == c2 {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					t.Fatal("connection not found!")
+				}
+			}
+		}
+	}
+
+	complement := func(c inet.Conn) (inet.Network, *netNotifiee, *conn) {
+		for i, s := range nets {
+			for _, c2 := range s.Conns() {
+				if c2.(*conn).rconn == c {
+					return s, notifiees[i], c2.(*conn)
+				}
+			}
+		}
+		t.Fatal("complementary conn not found", c)
+		return nil, nil, nil
+	}
+
+	testOCStream := func(n *netNotifiee, s inet.Stream) {
+		var s2 inet.Stream
+		select {
+		case s2 = <-n.openedStream:
+			t.Log("got notif for opened stream")
+		case <-time.After(timeout):
+			t.Fatal("timeout")
+		}
+		if s != nil && s != s2 {
+			t.Fatalf("got incorrect stream %p %p", s, s2)
+		}
+
+		select {
+		case s2 = <-n.closedStream:
+			t.Log("got notif for closed stream")
+		case <-time.After(timeout):
+			t.Fatal("timeout")
+		}
+		if s != nil && s != s2 {
+			t.Fatalf("got incorrect stream %p %p", s, s2)
+		}
+	}
+
+	for _, s := range nets {
+		s.SetStreamHandler(func(s inet.Stream) {
+			s.Close()
+		})
+	}
+
+	// there's one stream per conn that we need to drain....
+	// unsure where these are coming from
+	for i := range nets {
+		n := notifiees[i]
+		for j := 0; j < len(nets)-1; j++ {
+			testOCStream(n, nil)
+		}
+	}
+
+	streams := make(chan inet.Stream)
+	for _, s := range nets {
+		s.SetStreamHandler(func(s inet.Stream) {
+			streams <- s
+			s.Close()
+		})
+	}
+
+	// open a streams in each conn
+	for i, s := range nets {
+		conns := s.Conns()
+		for _, c := range conns {
+			_, n2, c2 := complement(c)
+			st1, err := c.NewStream()
+			if err != nil {
+				t.Error(err)
+			} else {
+				t.Logf("%s %s <--%p--> %s %s", c.LocalPeer(), c.LocalMultiaddr(), st1, c.RemotePeer(), c.RemoteMultiaddr())
+				// st1.Write([]byte("hello"))
+				st1.Close()
+				st2 := <-streams
+				t.Logf("%s %s <--%p--> %s %s", c2.LocalPeer(), c2.LocalMultiaddr(), st2, c2.RemotePeer(), c2.RemoteMultiaddr())
+				testOCStream(notifiees[i], st1)
+				testOCStream(n2, st2)
+			}
+		}
+	}
+
+	// close conns
+	for i, s := range nets {
+		n := notifiees[i]
+		for _, c := range s.Conns() {
+			_, n2, c2 := complement(c)
+			c.(*conn).Close()
+			c2.Close()
+
+			var c3, c4 inet.Conn
+			select {
+			case c3 = <-n.disconnected:
+			case <-time.After(timeout):
+				t.Fatal("timeout")
+			}
+			if c != c3 {
+				t.Fatal("got incorrect conn", c, c3)
+			}
+
+			select {
+			case c4 = <-n2.disconnected:
+			case <-time.After(timeout):
+				t.Fatal("timeout")
+			}
+			if c2 != c4 {
+				t.Fatal("got incorrect conn", c, c2)
+			}
+		}
+	}
+}
+
+type netNotifiee struct {
+	listen       chan ma.Multiaddr
+	listenClose  chan ma.Multiaddr
+	connected    chan inet.Conn
+	disconnected chan inet.Conn
+	openedStream chan inet.Stream
+	closedStream chan inet.Stream
+}
+
+func newNetNotifiee() *netNotifiee {
+	return &netNotifiee{
+		listen:       make(chan ma.Multiaddr),
+		listenClose:  make(chan ma.Multiaddr),
+		connected:    make(chan inet.Conn),
+		disconnected: make(chan inet.Conn),
+		openedStream: make(chan inet.Stream),
+		closedStream: make(chan inet.Stream),
+	}
+}
+
+func (nn *netNotifiee) Listen(n inet.Network, a ma.Multiaddr) {
+	nn.listen <- a
+}
+func (nn *netNotifiee) ListenClose(n inet.Network, a ma.Multiaddr) {
+	nn.listenClose <- a
+}
+func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
+	nn.connected <- v
+}
+func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {
+	nn.disconnected <- v
+}
+func (nn *netNotifiee) OpenedStream(n inet.Network, v inet.Stream) {
+	nn.openedStream <- v
+}
+func (nn *netNotifiee) ClosedStream(n inet.Network, v inet.Stream) {
+	nn.closedStream <- v
+}

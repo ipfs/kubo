@@ -1,0 +1,22 @@
+{
+  "name": "go-ipfs-util",
+  "author": "whyrusleeping",
+  "version": "1.0.0",
+  "gxDependencies": [
+    {
+      "name": "go-base58",
+      "hash": "QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-multihash",
+      "hash": "QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/ipfs/go-ipfs-util"
+  }
+}

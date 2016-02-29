@@ -1,0 +1,32 @@
+{
+  "name": "missinggo",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "iter",
+      "hash": "QmYWL7Pyx6QHHryhLq96wR6CWidApH2D2nbXeTJbAmusH9",
+      "version": "0.0.0"
+    },
+    {
+      "name": "testify",
+      "hash": "QmZwjfAKWe7vWZ8f48u7AGA1xYfzR1iCD9A2XSCYFRBWot",
+      "version": "0.0.0"
+    },
+    {
+      "name": "docopt-go",
+      "hash": "QmX6b8k1xUczfzW93ktWkH3MjuTo6m7bANwhNTtRcBWXRG",
+      "version": "0.0.0"
+    },
+    {
+      "name": "b",
+      "hash": "QmVgtwPh2NNoZTSyYkr4Y3epaYACBKf26r8hV6EFA7xS6c",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/anacrolix/missinggo"
+  }
+}

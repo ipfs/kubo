@@ -1,0 +1,22 @@
+{
+  "name": "mdns",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "dns",
+      "hash": "QmWchsfMt9Re1CQaiHqPQC1DrZ9bkpa6n229dRYkGyLXNh",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-net",
+      "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/cryptix/mdns"
+  }
+}

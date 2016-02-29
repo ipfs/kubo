@@ -1,0 +1,32 @@
+{
+  "name": "go-log",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "go.uuid",
+      "hash": "QmPC2dW6jyNzzBKYuHLBhxzfWaUSkyC9qaGMz7ciytRSFM",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-logging",
+      "hash": "QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-net",
+      "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
+      "version": "0.0.0"
+    },
+    {
+      "name": "randbo",
+      "hash": "QmYvsG72GsfLgUeSojXArjnU6L4Wmwk7wuAxtNLuyXcc1T",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/ipfs/go-log"
+  }
+}

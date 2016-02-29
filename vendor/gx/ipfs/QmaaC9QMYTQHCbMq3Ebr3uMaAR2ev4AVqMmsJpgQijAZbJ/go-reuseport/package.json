@@ -1,0 +1,22 @@
+{
+  "name": "go-reuseport",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "go-sockaddr",
+      "hash": "QmcLqWSFsaQ8Ujh8Ys8i9JPHVy1CcdPoqV23M9S3ufdVbn",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-net-resolve-addr",
+      "hash": "Qma73Sqt13DzHzveZ667BBfraM7MuMrPepUXjmv812JhRS",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/jbenet/go-reuseport"
+  }
+}

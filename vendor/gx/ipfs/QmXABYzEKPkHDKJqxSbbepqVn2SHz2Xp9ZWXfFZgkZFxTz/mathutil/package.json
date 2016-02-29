@@ -1,0 +1,17 @@
+{
+  "name": "mathutil",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "bigfft",
+      "hash": "Qmf2iP2abgt2MW6nKghkgWcU9iYoaBJoyvhgidXqCTeN37",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/cznic/mathutil"
+  }
+}

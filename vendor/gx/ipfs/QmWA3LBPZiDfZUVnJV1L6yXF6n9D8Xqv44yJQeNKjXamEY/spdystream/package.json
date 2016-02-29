@@ -1,0 +1,17 @@
+{
+  "name": "spdystream",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "websocket",
+      "hash": "QmUe1Ljrtwz5NSKqJRw5mgjthSSfW7g94hkGRqiQs5aJna",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/docker/spdystream"
+  }
+}
