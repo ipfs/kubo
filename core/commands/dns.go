@@ -26,7 +26,7 @@ This command resolves those links to the referenced object.
 
 For example, with this DNS TXT record:
 
-  ipfs.io. TXT "dnslink=/ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy ..."
+  ipfs.io TXT "dnslink=/ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy ..."
 
 The resolver will give:
 
@@ -35,7 +35,7 @@ The resolver will give:
 
 And with this DNS TXT record:
 
-  ipfs.ipfs.io. TXT "dnslink=/dns/ipfs.io ..."
+  ipfs.ipfs.io TXT "dnslink=/dns/ipfs.io ..."
 
 The resolver will give:
 
