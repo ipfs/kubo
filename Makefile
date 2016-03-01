@@ -29,7 +29,7 @@ gxgo_upgrade:
 	go get -u github.com/whyrusleeping/gx-go
 
 path_check:
-	@bin/check_go_path
+	@bin/check_go_path $(realpath $(shell pwd))
 
 gx_check:
 	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
