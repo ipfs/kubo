@@ -11,6 +11,7 @@ MAKEFLAGS += --no-print-directory
 
 
 export IPFS_API = v04x.ipfs.io
+export GO15VENDOREXPERIMENT = 1
 
 all: help
 
