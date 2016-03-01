@@ -348,7 +348,7 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Offset to read from."),
+		cmds.IntOption("o", "offset", "Byte offset to begin reading from."),
 		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
