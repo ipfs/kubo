@@ -20,7 +20,7 @@ environment:
     BASH: C:\cygwin\bin\bash
   matrix:
   - GOARCH: amd64
-    GOVERSION: 1.5.1
+    GOVERSION: 1.5.2
     GOROOT: c:\go
     DOWNLOADPLATFORM: "x64"
   
