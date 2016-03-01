@@ -262,6 +262,10 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 		h.Set(channelHeader, "1")
 	}
 
+	if len(res.Request().Path()) == 2 && res.Request().Path()[0] == "cat" && res.Request().Path()[1] == "cat" {
+		mime = "application/x-tar"
+	}
+
 	// catch-all, set to text as default
 	if mime == "" {
 		mime = "text/plain"

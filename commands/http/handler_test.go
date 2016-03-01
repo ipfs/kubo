@@ -348,3 +348,15 @@ func TestAllowedMethod(t *testing.T) {
 		tc.test(t)
 	}
 }
+
+func TestTarThing(t *testing.T) {
+    tc := testCase{
+        Method: "POST",
+        Path:   "/tar/cat",
+        ResHeaders: map[string]string{
+            "Content-Type": "application/x-tar",
+        },
+    }
+
+    tc.test(t)
+}
