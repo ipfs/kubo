@@ -30,7 +30,7 @@ install:
   #- copy c:\MinGW\bin\mingw32-make.exe c:\MinGW\bin\make.exe
   - rmdir c:\go /s /q
   - appveyor DownloadFile https://storage.googleapis.com/golang/go1.5.2.windows-amd64.zip
-  - 7z x go1.6.windows-amd64.zip -y -oC:\ > NUL
+  - 7z x go1.5.2.windows-amd64.zip -y -oC:\ > NUL
   - go version
   - go env
   
