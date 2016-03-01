@@ -1,4 +1,4 @@
-# iptb test framework 
+# iptb test framework
 #
 # Copyright (c) 2014, 2016 Jeromy Johnson, Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
