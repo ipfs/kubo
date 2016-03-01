@@ -14,6 +14,7 @@ env:
   - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_sharness_expensive
 
 install:
+  - false
   - make toolkit_upgrade
   - make install
 
