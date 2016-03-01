@@ -516,9 +516,9 @@ Warning:
 		cmds.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Offset to write to."),
+		cmds.IntOption("o", "offset", "Byte offset to begin writing at."),
 		cmds.BoolOption("e", "create", "Create the file if it does not exist."),
-		cmds.BoolOption("t", "truncate", "Truncate the file before writing."),
+		cmds.BoolOption("t", "truncate", "Truncate the file to size zero before writing."),
 		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
