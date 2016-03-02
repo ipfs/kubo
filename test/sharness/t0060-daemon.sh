@@ -8,27 +8,8 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
-gwyport=8082
-apiport=5002
-swarmport=4003
 
-# TODO: randomize ports here once we add --config to ipfs daemon
-
-# this needs to be in a different test than "ipfs daemon" below
-test_expect_success "setup IPFS_PATH" '
-  IPFS_PATH="$(pwd)/.ipfs" &&
-  export IPFS_PATH
-'
-
-api_maddr="/ip4/0.0.0.0/tcp/$apiport"
-gway_maddr="/ip4/0.0.0.0/tcp/$gwyport"
-test_expect_success 'ipfs init & config' '
-  ipfs init &&
-  ipfs config Addresses.Gateway $gway_maddr &&
-  ipfs config Addresses.API $api_maddr &&
-  ipfs config --json=true Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/4003\"]"
-'
-
+test_init_ipfs
 test_launch_ipfs_daemon
 
 # this errors if we didn't --init $IPFS_PATH correctly
@@ -47,11 +28,11 @@ test_expect_success "ipfs peer id looks good" '
 # this is for checking SetAllowedOrigins race condition for the api and gateway
 # See https://github.com/ipfs/go-ipfs/pull/1966
 test_expect_success "ipfs API works with the correct allowed origin port" '
-  curl -s -X GET -H "Origin:http://localhost:$apiport" -I "http://localhost:$apiport/api/v0/version"
+  curl -s -X GET -H "Origin:http://localhost:$API_PORT" -I "http://$API_ADDR/api/v0/version"
 '
 
 test_expect_success "ipfs gateway works with the correct allowed origin port" '
-  curl -s -X GET -H "Origin:http://localhost:$gwyport" -I "http://localhost:$gwyport/api/v0/version"
+  curl -s -X GET -H "Origin:http://localhost:$GWAY_PORT" -I "http://$GWAY_ADDR/api/v0/version"
 '
 
 test_expect_success "ipfs daemon output looks good" '
@@ -100,14 +81,14 @@ test_expect_success "nc is available" '
 
 # check transport is encrypted
 test_expect_success "transport should be encrypted" '
-  nc -w 5 localhost '$swarmport' >swarmnc &&
+  nc -w 5 localhost $SWARM_PORT >swarmnc &&
   grep -q "AES-256,AES-128" swarmnc &&
   test_must_fail grep -q "/multistream/1.0.0" swarmnc ||
 	test_fsh cat swarmnc
 '
 
 test_expect_success "output from streaming commands works" '
-	test_expect_code 28 curl -m 2 http://localhost:'$apiport'/api/v0/stats/bw\?poll=true > statsout
+	test_expect_code 28 curl -m 2 http://localhost:$API_PORT/api/v0/stats/bw\?poll=true > statsout
 '
 
 test_expect_success "output looks good" '
@@ -128,7 +109,12 @@ test_expect_success "'ipfs daemon' can be killed" '
 '
 
 test_expect_success "'ipfs daemon' should be able to run with a pipe attached to stdin (issue #861)" '
-  yes | ipfs daemon --init >stdin_daemon_out 2>stdin_daemon_err &
+	yes | ipfs daemon >stdin_daemon_out 2>stdin_daemon_err &
+	test_wait_for_file 20 100ms "$IPFS_PATH/api" &&
+	test_set_address_vars stdin_daemon_out
+'
+
+test_expect_success "daemon with pipe eventually becomes live" '
   pollEndpoint -host='$API_MADDR' -ep=/version -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
   test_kill_repeat_10_sec $! ||
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr

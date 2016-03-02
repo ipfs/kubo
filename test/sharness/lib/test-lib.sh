@@ -181,6 +181,27 @@ test_wait_for_file() {
 	done
 }
 
+test_set_address_vars() {
+	daemon_output="$1"
+
+	test_expect_success "set up address variables" '
+		API_MADDR=$(cat "$IPFS_PATH/api") &&
+		API_ADDR=$(convert_tcp_maddr $API_MADDR) &&
+		API_PORT=$(port_from_maddr $API_MADDR) &&
+
+		GWAY_MADDR=$(sed -n "s/^Gateway (.*) server listening on //p" "$daemon_output") &&
+		GWAY_ADDR=$(convert_tcp_maddr $GWAY_MADDR) &&
+		GWAY_PORT=$(port_from_maddr $GWAY_MADDR)
+	'
+
+
+	test_expect_success "set swarm address vars" '
+		ipfs swarm addrs local > addrs_out &&
+		SWARM_MADDR=$(grep "127.0.0.1" addrs_out) &&
+		SWARM_PORT=$(port_from_maddr $SWARM_MADDR)
+	'
+}
+
 test_launch_ipfs_daemon() {
 
 	args="$@"
@@ -194,22 +215,7 @@ test_launch_ipfs_daemon() {
 		test_wait_for_file 20 100ms "$IPFS_PATH/api"
 	'
 
-	test_expect_success "set up address variables" '
-		API_MADDR=$(cat "$IPFS_PATH/api") &&
-		API_ADDR=$(convert_tcp_maddr $API_MADDR) &&
-		API_PORT=$(port_from_maddr $API_MADDR) &&
-
-		GWAY_MADDR=$(sed -n "s/^Gateway (.*) server listening on //p" actual_daemon) &&
-		GWAY_ADDR=$(convert_tcp_maddr $GWAY_MADDR) &&
-		GWAY_PORT=$(port_from_maddr $GWAY_MADDR)
-	'
-
-
-	test_expect_success "set swarm address vars" '
-		ipfs swarm addrs local > addrs_out &&
-		SWARM_MADDR=$(grep "127.0.0.1" addrs_out) &&
-		SWARM_PORT=$(port_from_maddr $SWARM_MADDR)
-	'
+	test_set_address_vars actual_daemon
 
 	# we say the daemon is ready when the API server is ready.
 	test_expect_success "'ipfs daemon' is ready" '
