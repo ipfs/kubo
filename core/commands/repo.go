@@ -3,21 +3,11 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"strings"
-
-	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	"io"
 )
-
-type RepoStat struct {
-	repoPath  string
-	repoSize  uint64 // size in bytes
-	numBlocks uint64
-}
 
 var RepoCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -108,59 +98,57 @@ order to reclaim hard disk space.
 
 var repoStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Print status of the local repo.",
-		ShortDescription: ``,
+		Tagline: "Get stats for the currently used repo.",
+		ShortDescription: `
+'ipfs repo stat' is a plumbing command that will scan the local
+set of stored objects and print repo statistics. It outputs to stdout:
+NumObjects      int number of objects in the local repo
+RepoSize        int size in bytes that the repo is currently taking
+RepoPath        string the path to the repo being currently used	
+`,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := req.Context()
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		usage, err := n.Repo.GetStorageUsage()
+		stat, err := corerepo.RepoStat(n, req.Context())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		allKeys, err := n.Blockstore.AllKeysChan(ctx)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		count := uint64(0)
-		for range allKeys {
-			count++
-		}
-
-		path, err := fsrepo.BestKnownPath()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&RepoStat{
-			repoPath:  path,
-			repoSize:  usage,
-			numBlocks: count,
-		})
+		res.SetOutput(stat)
 	},
-	Type: RepoStat{},
+	Options: []cmds.Option{
+		cmds.BoolOption("human", "Output RepoSize in MiB."),
+	},
+	Type: corerepo.Stat{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			stat, ok := res.Output().(*RepoStat)
+			stat, ok := res.Output().(*corerepo.Stat)
 			if !ok {
 				return nil, u.ErrCast()
 			}
 
-			out := fmt.Sprintf(
-				"Path: %s\nSize: %s\nBlocks: %d\n",
-				stat.repoPath, humanize.Bytes(stat.repoSize), stat.numBlocks)
+			human, _, err := res.Request().Option("human").Bool()
+			if err != nil {
+				return nil, err
+			}
 
-			return strings.NewReader(out), nil
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "NumObjects \t %d\n", stat.NumObjects)
+			sizeInMiB := stat.RepoSize / (1024 * 1024)
+			if human && sizeInMiB > 0 {
+				fmt.Fprintf(buf, "RepoSize (MiB) \t %d\n", sizeInMiB)
+			} else {
+				fmt.Fprintf(buf, "RepoSize \t %d\n", stat.RepoSize)
+			}
+			fmt.Fprintf(buf, "RepoPath \t %s\n", stat.RepoPath)
+
+			return buf, nil
 		},
 	},
 }
