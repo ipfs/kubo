@@ -17,6 +17,7 @@ import (
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
 	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	procctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
@@ -39,11 +40,21 @@ const (
 	sizeBatchRequestChan   = 32
 	// kMaxPriority is the max priority as defined by the bitswap protocol
 	kMaxPriority = math.MaxInt32
+)
 
+var (
 	HasBlockBufferSize    = 256
 	provideKeysBufferSize = 2048
 	provideWorkerMax      = 512
 )
+
+func init() {
+	if flags.LowMemMode {
+		HasBlockBufferSize = 64
+		provideKeysBufferSize = 512
+		provideWorkerMax = 16
+	}
+}
 
 var rebroadcastDelay = delay.Fixed(time.Second * 10)
 
