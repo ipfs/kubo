@@ -6,12 +6,14 @@ import (
 	"testing"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
+	mdagtest "github.com/ipfs/go-ipfs/merkledag/test"
 )
 
 func TestDFSPreNoSkip(t *testing.T) {
-	opts := Options{Order: DFSPre}
+	ds := mdagtest.Mock()
+	opts := Options{Order: DFSPre, DAG: ds}
 
-	testWalkOutputs(t, newFan(t), opts, []byte(`
+	testWalkOutputs(t, newFan(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 1 /a/ab
@@ -19,7 +21,7 @@ func TestDFSPreNoSkip(t *testing.T) {
 1 /a/ad
 `))
 
-	testWalkOutputs(t, newLinkedList(t), opts, []byte(`
+	testWalkOutputs(t, newLinkedList(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 2 /a/aa/aaa
@@ -27,7 +29,7 @@ func TestDFSPreNoSkip(t *testing.T) {
 4 /a/aa/aaa/aaaa/aaaaa
 `))
 
-	testWalkOutputs(t, newBinaryTree(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryTree(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 2 /a/aa/aaa
@@ -37,7 +39,7 @@ func TestDFSPreNoSkip(t *testing.T) {
 2 /a/ab/abb
 `))
 
-	testWalkOutputs(t, newBinaryDAG(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryDAG(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 2 /a/aa/aaa
@@ -73,9 +75,10 @@ func TestDFSPreNoSkip(t *testing.T) {
 }
 
 func TestDFSPreSkip(t *testing.T) {
-	opts := Options{Order: DFSPre, SkipDuplicates: true}
+	ds := mdagtest.Mock()
+	opts := Options{Order: DFSPre, SkipDuplicates: true, DAG: ds}
 
-	testWalkOutputs(t, newFan(t), opts, []byte(`
+	testWalkOutputs(t, newFan(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 1 /a/ab
@@ -83,7 +86,7 @@ func TestDFSPreSkip(t *testing.T) {
 1 /a/ad
 `))
 
-	testWalkOutputs(t, newLinkedList(t), opts, []byte(`
+	testWalkOutputs(t, newLinkedList(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 2 /a/aa/aaa
@@ -91,7 +94,7 @@ func TestDFSPreSkip(t *testing.T) {
 4 /a/aa/aaa/aaaa/aaaaa
 `))
 
-	testWalkOutputs(t, newBinaryTree(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryTree(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 2 /a/aa/aaa
@@ -101,7 +104,7 @@ func TestDFSPreSkip(t *testing.T) {
 2 /a/ab/abb
 `))
 
-	testWalkOutputs(t, newBinaryDAG(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryDAG(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 2 /a/aa/aaa
@@ -111,9 +114,10 @@ func TestDFSPreSkip(t *testing.T) {
 }
 
 func TestDFSPostNoSkip(t *testing.T) {
-	opts := Options{Order: DFSPost}
+	ds := mdagtest.Mock()
+	opts := Options{Order: DFSPost, DAG: ds}
 
-	testWalkOutputs(t, newFan(t), opts, []byte(`
+	testWalkOutputs(t, newFan(t, ds), opts, []byte(`
 1 /a/aa
 1 /a/ab
 1 /a/ac
@@ -121,7 +125,7 @@ func TestDFSPostNoSkip(t *testing.T) {
 0 /a
 `))
 
-	testWalkOutputs(t, newLinkedList(t), opts, []byte(`
+	testWalkOutputs(t, newLinkedList(t, ds), opts, []byte(`
 4 /a/aa/aaa/aaaa/aaaaa
 3 /a/aa/aaa/aaaa
 2 /a/aa/aaa
@@ -129,7 +133,7 @@ func TestDFSPostNoSkip(t *testing.T) {
 0 /a
 `))
 
-	testWalkOutputs(t, newBinaryTree(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryTree(t, ds), opts, []byte(`
 2 /a/aa/aaa
 2 /a/aa/aab
 1 /a/aa
@@ -139,7 +143,7 @@ func TestDFSPostNoSkip(t *testing.T) {
 0 /a
 `))
 
-	testWalkOutputs(t, newBinaryDAG(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryDAG(t, ds), opts, []byte(`
 4 /a/aa/aaa/aaaa/aaaaa
 4 /a/aa/aaa/aaaa/aaaaa
 3 /a/aa/aaa/aaaa
@@ -175,9 +179,10 @@ func TestDFSPostNoSkip(t *testing.T) {
 }
 
 func TestDFSPostSkip(t *testing.T) {
-	opts := Options{Order: DFSPost, SkipDuplicates: true}
+	ds := mdagtest.Mock()
+	opts := Options{Order: DFSPost, SkipDuplicates: true, DAG: ds}
 
-	testWalkOutputs(t, newFan(t), opts, []byte(`
+	testWalkOutputs(t, newFan(t, ds), opts, []byte(`
 1 /a/aa
 1 /a/ab
 1 /a/ac
@@ -185,7 +190,7 @@ func TestDFSPostSkip(t *testing.T) {
 0 /a
 `))
 
-	testWalkOutputs(t, newLinkedList(t), opts, []byte(`
+	testWalkOutputs(t, newLinkedList(t, ds), opts, []byte(`
 4 /a/aa/aaa/aaaa/aaaaa
 3 /a/aa/aaa/aaaa
 2 /a/aa/aaa
@@ -193,7 +198,7 @@ func TestDFSPostSkip(t *testing.T) {
 0 /a
 `))
 
-	testWalkOutputs(t, newBinaryTree(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryTree(t, ds), opts, []byte(`
 2 /a/aa/aaa
 2 /a/aa/aab
 1 /a/aa
@@ -203,7 +208,7 @@ func TestDFSPostSkip(t *testing.T) {
 0 /a
 `))
 
-	testWalkOutputs(t, newBinaryDAG(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryDAG(t, ds), opts, []byte(`
 4 /a/aa/aaa/aaaa/aaaaa
 3 /a/aa/aaa/aaaa
 2 /a/aa/aaa
@@ -213,9 +218,10 @@ func TestDFSPostSkip(t *testing.T) {
 }
 
 func TestBFSNoSkip(t *testing.T) {
-	opts := Options{Order: BFS}
+	ds := mdagtest.Mock()
+	opts := Options{Order: BFS, DAG: ds}
 
-	testWalkOutputs(t, newFan(t), opts, []byte(`
+	testWalkOutputs(t, newFan(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 1 /a/ab
@@ -223,7 +229,7 @@ func TestBFSNoSkip(t *testing.T) {
 1 /a/ad
 `))
 
-	testWalkOutputs(t, newLinkedList(t), opts, []byte(`
+	testWalkOutputs(t, newLinkedList(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 2 /a/aa/aaa
@@ -231,7 +237,7 @@ func TestBFSNoSkip(t *testing.T) {
 4 /a/aa/aaa/aaaa/aaaaa
 `))
 
-	testWalkOutputs(t, newBinaryTree(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryTree(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 1 /a/ab
@@ -241,7 +247,7 @@ func TestBFSNoSkip(t *testing.T) {
 2 /a/ab/abb
 `))
 
-	testWalkOutputs(t, newBinaryDAG(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryDAG(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 1 /a/aa
@@ -277,9 +283,10 @@ func TestBFSNoSkip(t *testing.T) {
 }
 
 func TestBFSSkip(t *testing.T) {
-	opts := Options{Order: BFS, SkipDuplicates: true}
+	ds := mdagtest.Mock()
+	opts := Options{Order: BFS, SkipDuplicates: true, DAG: ds}
 
-	testWalkOutputs(t, newFan(t), opts, []byte(`
+	testWalkOutputs(t, newFan(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 1 /a/ab
@@ -287,7 +294,7 @@ func TestBFSSkip(t *testing.T) {
 1 /a/ad
 `))
 
-	testWalkOutputs(t, newLinkedList(t), opts, []byte(`
+	testWalkOutputs(t, newLinkedList(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 2 /a/aa/aaa
@@ -295,7 +302,7 @@ func TestBFSSkip(t *testing.T) {
 4 /a/aa/aaa/aaaa/aaaaa
 `))
 
-	testWalkOutputs(t, newBinaryTree(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryTree(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 1 /a/ab
@@ -305,7 +312,7 @@ func TestBFSSkip(t *testing.T) {
 2 /a/ab/abb
 `))
 
-	testWalkOutputs(t, newBinaryDAG(t), opts, []byte(`
+	testWalkOutputs(t, newBinaryDAG(t, ds), opts, []byte(`
 0 /a
 1 /a/aa
 2 /a/aa/aaa
@@ -341,57 +348,68 @@ func testWalkOutputs(t *testing.T, root *mdag.Node, opts Options, expect []byte)
 	}
 }
 
-func newFan(t *testing.T) *mdag.Node {
+func newFan(t *testing.T, ds mdag.DAGService) *mdag.Node {
 	a := &mdag.Node{Data: []byte("/a")}
-	addChild(t, a, "aa")
-	addChild(t, a, "ab")
-	addChild(t, a, "ac")
-	addChild(t, a, "ad")
+	addLink(t, ds, a, child(t, ds, a, "aa"))
+	addLink(t, ds, a, child(t, ds, a, "ab"))
+	addLink(t, ds, a, child(t, ds, a, "ac"))
+	addLink(t, ds, a, child(t, ds, a, "ad"))
 	return a
 }
 
-func newLinkedList(t *testing.T) *mdag.Node {
+func newLinkedList(t *testing.T, ds mdag.DAGService) *mdag.Node {
 	a := &mdag.Node{Data: []byte("/a")}
-	aa := addChild(t, a, "aa")
-	aaa := addChild(t, aa, "aaa")
-	aaaa := addChild(t, aaa, "aaaa")
-	addChild(t, aaaa, "aaaaa")
+	aa := child(t, ds, a, "aa")
+	aaa := child(t, ds, aa, "aaa")
+	aaaa := child(t, ds, aaa, "aaaa")
+	aaaaa := child(t, ds, aaaa, "aaaaa")
+	addLink(t, ds, aaaa, aaaaa)
+	addLink(t, ds, aaa, aaaa)
+	addLink(t, ds, aa, aaa)
+	addLink(t, ds, a, aa)
 	return a
 }
 
-func newBinaryTree(t *testing.T) *mdag.Node {
+func newBinaryTree(t *testing.T, ds mdag.DAGService) *mdag.Node {
 	a := &mdag.Node{Data: []byte("/a")}
-	aa := addChild(t, a, "aa")
-	ab := addChild(t, a, "ab")
-	addChild(t, aa, "aaa")
-	addChild(t, aa, "aab")
-	addChild(t, ab, "aba")
-	addChild(t, ab, "abb")
+	aa := child(t, ds, a, "aa")
+	ab := child(t, ds, a, "ab")
+	addLink(t, ds, aa, child(t, ds, aa, "aaa"))
+	addLink(t, ds, aa, child(t, ds, aa, "aab"))
+	addLink(t, ds, ab, child(t, ds, ab, "aba"))
+	addLink(t, ds, ab, child(t, ds, ab, "abb"))
+	addLink(t, ds, a, aa)
+	addLink(t, ds, a, ab)
 	return a
 }
 
-func newBinaryDAG(t *testing.T) *mdag.Node {
+func newBinaryDAG(t *testing.T, ds mdag.DAGService) *mdag.Node {
 	a := &mdag.Node{Data: []byte("/a")}
-	aa := addChild(t, a, "aa")
-	aaa := addChild(t, aa, "aaa")
-	aaaa := addChild(t, aaa, "aaaa")
-	aaaaa := addChild(t, aaaa, "aaaaa")
-	addLink(t, a, aa)
-	addLink(t, aa, aaa)
-	addLink(t, aaa, aaaa)
-	addLink(t, aaaa, aaaaa)
+	aa := child(t, ds, a, "aa")
+	aaa := child(t, ds, aa, "aaa")
+	aaaa := child(t, ds, aaa, "aaaa")
+	aaaaa := child(t, ds, aaaa, "aaaaa")
+	addLink(t, ds, aaaa, aaaaa)
+	addLink(t, ds, aaaa, aaaaa)
+	addLink(t, ds, aaa, aaaa)
+	addLink(t, ds, aaa, aaaa)
+	addLink(t, ds, aa, aaa)
+	addLink(t, ds, aa, aaa)
+	addLink(t, ds, a, aa)
+	addLink(t, ds, a, aa)
 	return a
 }
 
-func addLink(t *testing.T, a, b *mdag.Node) {
+func addLink(t *testing.T, ds mdag.DAGService, a, b *mdag.Node) {
 	to := string(a.Data) + "2" + string(b.Data)
+	if _, err := ds.Add(b); err != nil {
+		t.Error(err)
+	}
 	if err := a.AddNodeLink(to, b); err != nil {
 		t.Error(err)
 	}
 }
 
-func addChild(t *testing.T, a *mdag.Node, name string) *mdag.Node {
-	c := &mdag.Node{Data: []byte(string(a.Data) + "/" + name)}
-	addLink(t, a, c)
-	return c
+func child(t *testing.T, ds mdag.DAGService, a *mdag.Node, name string) *mdag.Node {
+	return &mdag.Node{Data: []byte(string(a.Data) + "/" + name)}
 }
