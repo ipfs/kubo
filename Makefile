@@ -28,11 +28,14 @@ gx_upgrade:
 gxgo_upgrade:
 	go get -u github.com/whyrusleeping/gx-go
 
+path_check:
+	@bin/check_go_path $(realpath $(shell pwd))
+
 gx_check:
 	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
 	@bin/check_gx_program "gx-go" "0.2" 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
 
-deps: go_check gx_check
+deps: go_check gx_check path_check
 	gx --verbose install --global
 
 # saves/vendors third-party dependencies to Godeps/_workspace
