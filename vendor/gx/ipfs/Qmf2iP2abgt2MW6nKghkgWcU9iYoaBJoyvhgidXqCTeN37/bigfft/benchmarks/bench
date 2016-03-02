@@ -1,0 +1,17 @@
+# Benchmark of combined FFT and math/big (using threshold)
+BenchmarkMul_1kb	 1000000	      1500 ns/op
+BenchmarkMul_10kb	   50000	     50777 ns/op
+BenchmarkMul_50kb	    5000	    658534 ns/op
+BenchmarkMul_100kb	    1000	   2127534 ns/op
+BenchmarkMul_1Mb	     100	  22391830 ns/op
+BenchmarkMul_5Mb	      10	 133550600 ns/op
+BenchmarkMul_10Mb	       5	 318595800 ns/op
+BenchmarkMul_20Mb	       5	 671512800 ns/op
+BenchmarkMul_50Mb	       1	2451476000 ns/op
+BenchmarkMul_100Mb	       1	5228991000 ns/op
+BenchmarkMul_1x5Mb	      20	  78091550 ns/op
+BenchmarkMul_1x10Mb	      10	 164484500 ns/op
+BenchmarkMul_1x20Mb	       5	 366846400 ns/op
+BenchmarkMul_1x50Mb	       1	1040516000 ns/op
+BenchmarkMul_5x20Mb	       5	 457571200 ns/op
+BenchmarkMul_5x50Mb	       1	1040664000 ns/op

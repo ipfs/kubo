@@ -1,0 +1,17 @@
+{
+  "name": "strutil",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "mathutil",
+      "hash": "QmXABYzEKPkHDKJqxSbbepqVn2SHz2Xp9ZWXfFZgkZFxTz",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/cznic/strutil"
+  }
+}

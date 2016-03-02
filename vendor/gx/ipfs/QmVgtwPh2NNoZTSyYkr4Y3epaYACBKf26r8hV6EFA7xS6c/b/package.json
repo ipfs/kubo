@@ -1,0 +1,27 @@
+{
+  "name": "b",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "mathutil",
+      "hash": "QmXABYzEKPkHDKJqxSbbepqVn2SHz2Xp9ZWXfFZgkZFxTz",
+      "version": "0.0.0"
+    },
+    {
+      "name": "strutil",
+      "hash": "QmQUGGgGUxsvgaTR5iXrbFhQhM66mHUYfrrtTKNNap6fni",
+      "version": "0.0.0"
+    },
+    {
+      "name": "fileutil",
+      "hash": "QmUyVpKbaBTjRqvDao7gn1uTnAicPkRS3a4Hh37rX9ZPCh",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/cznic/b"
+  }
+}

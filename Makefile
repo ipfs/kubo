@@ -11,6 +11,7 @@ MAKEFLAGS += --no-print-directory
 
 
 export IPFS_API = v04x.ipfs.io
+export GO15VENDOREXPERIMENT = 1
 
 all: help
 
@@ -32,8 +33,7 @@ gx_check:
 	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
 	@bin/check_gx_program "gx-go" "0.2" 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
 
-deps: go_check gx_check
-	gx --verbose install --global
+deps: go_check # gx_check # for now, gx isnt required.
 
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
@@ -113,7 +113,7 @@ PHONY += test test_short test_expensive
 help:
 	@echo 'DEPENDENCY TARGETS:'
 	@echo ''
-	@echo '  deps         - Download dependencies using gx'
+	@echo '  deps         - Install and verify dependencies'
 	@echo '  vendor       - Create a Godep workspace of 3rd party dependencies'
 	@echo ''
 	@echo 'BUILD TARGETS:'

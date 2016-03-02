@@ -1,0 +1,16 @@
+os:
+  - linux
+  - osx
+
+language: go
+
+go:
+    - 1.5.1
+
+env:
+    - GO15VENDOREXPERIMENT=1
+
+install: true
+
+script:
+  - go test ./p2p/...

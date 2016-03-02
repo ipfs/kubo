@@ -1,0 +1,22 @@
+{
+  "name": "goprocess",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "go-net",
+      "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-cienv",
+      "hash": "QmZcUXuzsUSvxNj9pmU112V8L5kGUFMTYCdFcAbQ3Zj5cp",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/jbenet/goprocess"
+  }
+}
