@@ -79,10 +79,14 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 		if err == bserv.ErrNotFound {
 			return nil, ErrNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("Failed to get block for %s: %v", k.B58String(), err)
 	}
 
-	return DecodeProtobuf(b.Data)
+	res, err := DecodeProtobuf(b.Data)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
+	}
+	return res, nil
 }
 
 func (n *dagService) Remove(nd *Node) error {

@@ -27,7 +27,7 @@ func (n *Node) unmarshal(encoded []byte) error {
 		n.Links[i] = &Link{Name: l.GetName(), Size: l.GetTsize()}
 		h, err := mh.Cast(l.GetHash())
 		if err != nil {
-			return fmt.Errorf("Link hash is not valid multihash. %v", err)
+			return fmt.Errorf("Link hash #%d is not valid multihash. %v", i, err)
 		}
 		n.Links[i].Hash = h
 	}

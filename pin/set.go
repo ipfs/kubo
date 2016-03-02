@@ -271,12 +271,12 @@ func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node
 func loadMultiset(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node, name string, internalKeys keyObserver) (map[key.Key]uint64, error) {
 	l, err := root.GetNodeLink(name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to get link %s: %v", name, err)
 	}
 	internalKeys(key.Key(l.Hash))
 	n, err := l.GetNode(ctx, dag)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to get node from link %s: %v", name, err)
 	}
 
 	refcounts := make(map[key.Key]uint64)
