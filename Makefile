@@ -47,7 +47,7 @@ vendor: godep
 install: build
 	cd cmd/ipfs && go install -ldflags=$(ldflags)
 
-build: deps 
+build: deps
 	cd cmd/ipfs && go build -i -ldflags=$(ldflags)
 
 nofuse: deps
