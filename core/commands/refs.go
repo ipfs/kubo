@@ -39,7 +39,7 @@ Displays the link hashes an IPFS or IPNS object(s) contains, with the following 
 
   <link base58 hash>
 
-Note: List all referencess recursively by using the flag '-r'.
+Note: List all references recursively by using the flag '-r'.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
