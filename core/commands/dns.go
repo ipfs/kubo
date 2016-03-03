@@ -26,23 +26,20 @@ This command resolves those links to the referenced object.
 
 For example, with this DNS TXT record:
 
-  ipfs.io TXT "dnslink=/ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy ..."
+	> dig +short TXT ipfs.io
+	dnslink=/ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy
 
 The resolver will give:
 
-  > ipfs dns ipfs.io
-  /ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy
+	> ipfs dns ipfs.io
+	/ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy
 
-And with this DNS TXT record:
+The resolver can recursively resolve:
 
-  ipfs.ipfs.io TXT "dnslink=/dns/ipfs.io ..."
-
-The resolver will give:
-
-  > ipfs dns ipfs.io
-  /dns/ipfs.io
-  > ipfs dns --recursive
-  /ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy
+	> dig +short TXT recursive.ipfs.io
+	dnslink=/ipns/ipfs.io
+	> ipfs dns -r recursive.ipfs.io
+	/ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy
 `,
 	},
 
