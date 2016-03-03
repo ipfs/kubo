@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"html/template"
+	"net/url"
 	"path"
 	"strings"
 
@@ -45,6 +46,12 @@ func init() {
 		return "ipfs-" + ext[1:] // slice of the first dot
 	}
 
+	// custom template-escaping function to escape a full path, including '#' and '?'
+	urlEscape := func(rawUrl string) string {
+		pathUrl := url.URL{Path: rawUrl}
+		return pathUrl.String()
+	}
+
 	// Directory listing template
 	dirIndexBytes, err := assets.Asset(assetPath + "dir-index.html")
 	if err != nil {
@@ -53,5 +60,6 @@ func init() {
 
 	listingTemplate = template.Must(template.New("dir").Funcs(template.FuncMap{
 		"iconFromExt": iconFromExt,
+		"urlEscape":   urlEscape,
 	}).Parse(string(dirIndexBytes)))
 }

@@ -261,7 +261,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 	dagn2.AddNodeLink("bar", dagn3)
-	dagn1.AddNodeLink("foo", dagn2)
+	dagn1.AddNodeLink("foo? #<'", dagn2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +279,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
 
 	// make request to directory listing
-	req, err := http.NewRequest("GET", ts.URL+"/foo/", nil)
+	req, err := http.NewRequest("GET", ts.URL+"/foo%3F%20%23%3C%27/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,13 +298,13 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s := string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /foo/") {
+	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo/file.txt\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
 	}
 
@@ -339,7 +339,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// make request to directory listing
-	req, err = http.NewRequest("GET", ts.URL+"/foo/bar/", nil)
+	req, err = http.NewRequest("GET", ts.URL+"/foo%3F%20%23%3C%27/bar/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -358,13 +358,13 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /foo/bar/") {
+	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/bar/") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo/\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo/bar/file.txt\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
 	}
 
