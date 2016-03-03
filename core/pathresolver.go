@@ -18,8 +18,7 @@ var ErrNoNamesys = errors.New(
 
 // Resolve resolves the given path by parsing out protocol-specific
 // entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
-// entries and returning the final merkledag node.  Effectively
-// enables /ipns/, /dns/, etc. in commands.
+// entries and returning the final merkledag node.
 func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, error) {
 	if strings.HasPrefix(p.String(), "/ipns/") {
 		// resolve ipns paths
