@@ -51,7 +51,7 @@ sudo chown <username>:<groupname> /dev/fuse
 Note: `<groupname>` will usually be `fuse`. Typically, you add the authorized users to the `fuse` group:
 
 ```sh
-usermod -a -G fuse <username>
+sudo usermod -a -G fuse <username>
 ```
 
 ## Mounting IPFS
@@ -65,7 +65,7 @@ ipfs daemon --mount
 If you wish to allow other users to use the mount points, use the following:
 
 ```sh
-ipfs config Mounts.FuseAllowOther true
+ipfs config --json Mounts.FuseAllowOther true
 ipfs daemon --mount
 ```
 
