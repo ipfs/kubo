@@ -38,7 +38,7 @@
             <div class="ipfs-icon ipfs-_blank">&nbsp;</div>
           </td>
           <td class="padding">
-            <a href="{{.BackLink}}">..</a>
+            <a href="{{.BackLink | urlEscape}}">..</a>
           </td>
           <td></td>
         </tr>
@@ -48,7 +48,7 @@
             <div class="ipfs-icon {{iconFromExt .Name}}">&nbsp;</div>
           </td>
           <td>
-            <a href="{{ .Path }}">{{ .Name }}</a>
+            <a href="{{ .Path | urlEscape }}">{{ .Name }}</a>
           </td>
           <td>{{ .Size }}</td>
         </tr>
