@@ -8,7 +8,7 @@ import (
 	files "github.com/ipfs/go-ipfs/core/commands/files"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("core/commands")
@@ -24,7 +24,7 @@ const (
 
 var Root = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "global p2p merkle-dag filesystem",
+		Tagline: "Global p2p merkle-dag filesystem.",
 		Synopsis: `
 ipfs [<flags>] <command> [<arg>] ...
 `,
@@ -32,7 +32,7 @@ ipfs [<flags>] <command> [<arg>] ...
 BASIC COMMANDS
 
     init          Initialize ipfs local configuration
-    add <path>    Add an object to ipfs
+    add <path>    Add a file to ipfs
     cat <ref>     Show ipfs object data
     get <ref>     Download ipfs objects
     ls <ref>      List links from an object
@@ -59,7 +59,7 @@ NETWORK COMMANDS
     id            Show info about ipfs peers
     bootstrap     Add or remove bootstrap peers
     swarm         Manage connections to the p2p network
-    dht           Query the dht for values or peers
+    dht           Query the DHT for values or peers
     ping          Measure the latency of a connection
     diag          Print diagnostics
 
@@ -79,11 +79,11 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("config", "c", "Path to the configuration file to use"),
-		cmds.BoolOption("debug", "D", "Operate in debug mode"),
-		cmds.BoolOption("help", "Show the full command help text"),
-		cmds.BoolOption("h", "Show a short version of the command help text"),
-		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon"),
+		cmds.StringOption("config", "c", "Path to the configuration file to use."),
+		cmds.BoolOption("debug", "D", "Operate in debug mode."),
+		cmds.BoolOption("help", "Show the full command help text."),
+		cmds.BoolOption("h", "Show a short version of the command help text."),
+		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon."),
 		cmds.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 	},
 }
@@ -140,6 +140,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 	},
 	"cat":      CatCmd,
 	"commands": CommandsDaemonROCmd,
+	"dns":      DNSCmd,
 	"get":      GetCmd,
 	"ls":       LsCmd,
 	"name": &cmds.Command{
@@ -156,8 +157,8 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"patch": ocmd.ObjectPatchCmd,
 		},
 	},
-	"refs": RefsROCmd,
-	//"resolve": ResolveCmd,
+	"refs":    RefsROCmd,
+	"resolve": ResolveCmd,
 	"version": VersionCmd,
 }
 

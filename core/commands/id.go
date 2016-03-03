@@ -12,15 +12,17 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	ic "github.com/ipfs/go-ipfs/p2p/crypto"
-	"github.com/ipfs/go-ipfs/p2p/peer"
-	identify "github.com/ipfs/go-ipfs/p2p/protocol/identify"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	ic "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
+	"gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	identify "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/protocol/identify"
 )
 
-const offlineIdErrorMessage = `ID command fails when run without daemon, we are working to fix this.
-In the meantime, please run the daemon if you want to use 'ipfs id':
+const offlineIdErrorMessage = `'ipfs id' currently cannot query information on remote
+peers without a running daemon; we are working to fix this.
+In the meantime, if you want to query remote peers using 'ipfs id',
+please run the daemon:
 
     ipfs daemon &
     ipfs id QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
@@ -36,24 +38,28 @@ type IdOutput struct {
 
 var IDCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show IPFS Node ID info",
+		Tagline: "Show IPFS Node ID info.",
 		ShortDescription: `
-Prints out information about the specified peer,
-if no peer is specified, prints out local peers info.
+Prints out information about the specified peer.
+If no peer is specified, prints out information for local peers.
 
-ipfs id supports the format option for output with the following keys:
-<id> : the peers id
-<aver>: agent version
-<pver>: protocol version
-<pubkey>: public key
-<addrs>: addresses (newline delimited)
+'ipfs id' supports the format option for output with the following keys:
+<id> : The peers id.
+<aver>: Agent version.
+<pver>: Protocol version.
+<pubkey>: Public key.
+<addrs>: Addresses (newline delimited).
+
+EXAMPLE:
+
+    ipfs id Qmece2RkXhsKe5CRooNisBTh4SK119KrXXGmoK6V3kb8aH -f="<addrs>\n"
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerid", false, false, "peer.ID of node to look up").EnableStdin(),
+		cmds.StringArg("peerid", false, false, "Peer.ID of node to look up.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "f", "optional output format"),
+		cmds.StringOption("format", "f", "Optional output format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -133,6 +139,7 @@ ipfs id supports the format option for output with the following keys:
 				if err != nil {
 					return nil, err
 				}
+				marshaled = append(marshaled, byte('\n'))
 				return bytes.NewReader(marshaled), nil
 			}
 		},
@@ -198,7 +205,7 @@ func printSelf(node *core.IpfsNode) (interface{}, error) {
 			info.Addresses = append(info.Addresses, s)
 		}
 	}
-	info.ProtocolVersion = identify.IpfsVersion
+	info.ProtocolVersion = identify.LibP2PVersion
 	info.AgentVersion = identify.ClientVersion
 	return info, nil
 }

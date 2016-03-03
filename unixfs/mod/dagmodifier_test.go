@@ -18,10 +18,10 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 func getMockDagServ(t testing.TB) mdag.DAGService {
@@ -445,6 +445,20 @@ func TestDagTruncate(t *testing.T) {
 	}
 
 	if size != 10 {
+		t.Fatal("size was incorrect!")
+	}
+
+	err = dagmod.Truncate(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	size, err = dagmod.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if size != 0 {
 		t.Fatal("size was incorrect!")
 	}
 }

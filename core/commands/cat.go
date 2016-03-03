@@ -8,22 +8,19 @@ import (
 	"github.com/ipfs/go-ipfs/core/corerepo"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
 
 var CatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show IPFS object data",
-		ShortDescription: `
-Retrieves the object named by <ipfs-or-ipns-path> and outputs the data
-it contains.
-`,
+		Tagline: "Show IPFS object data.",
+		ShortDescription: "Displays the data contained by an IPFS or IPNS object(s) at the given path.",
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()

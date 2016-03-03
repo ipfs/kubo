@@ -13,7 +13,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/internal/iana"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/ipv6"
-	"golang.org/x/net/icmp"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/icmp"
 )
 
 func ExampleConn_markingTCP() {

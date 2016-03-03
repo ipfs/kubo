@@ -8,11 +8,11 @@ import (
 	"time"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/blocks/set"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("pin")
@@ -36,6 +36,7 @@ const (
 
 type Pinner interface {
 	IsPinned(key.Key) (string, bool, error)
+	IsPinnedWithType(key.Key, string) (string, bool, error)
 	Pin(context.Context, *mdag.Node, bool) error
 	Unpin(context.Context, key.Key, bool) error
 
@@ -122,16 +123,18 @@ func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
 	return nil
 }
 
+var ErrNotPinned = fmt.Errorf("not pinned")
+
 // Unpin a given key
 func (p *pinner) Unpin(ctx context.Context, k key.Key, recursive bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	reason, pinned, err := p.isPinned(k)
+	reason, pinned, err := p.isPinnedWithType(k, "all")
 	if err != nil {
 		return err
 	}
 	if !pinned {
-		return fmt.Errorf("%s is not pinned", k)
+		return ErrNotPinned
 	}
 	switch reason {
 	case "recursive":
@@ -159,22 +162,46 @@ func (p *pinner) isInternalPin(key key.Key) bool {
 func (p *pinner) IsPinned(k key.Key) (string, bool, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
-	return p.isPinned(k)
+	return p.isPinnedWithType(k, "all")
 }
 
-// isPinned is the implementation of IsPinned that does not lock.
+func (p *pinner) IsPinnedWithType(k key.Key, typeStr string) (string, bool, error) {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.isPinnedWithType(k, typeStr)
+}
+
+// isPinnedWithType is the implementation of IsPinnedWithType that does not lock.
 // intended for use by other pinned methods that already take locks
-func (p *pinner) isPinned(k key.Key) (string, bool, error) {
-	if p.recursePin.HasKey(k) {
+func (p *pinner) isPinnedWithType(k key.Key, typeStr string) (string, bool, error) {
+	switch typeStr {
+	case "all", "direct", "indirect", "recursive", "internal":
+	default:
+		err := fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, internal, all}", typeStr)
+		return "", false, err
+	}
+	if (typeStr == "recursive" || typeStr == "all") && p.recursePin.HasKey(k) {
 		return "recursive", true, nil
 	}
-	if p.directPin.HasKey(k) {
-		return "direct", true, nil
-	}
-	if p.isInternalPin(k) {
-		return "internal", true, nil
+	if typeStr == "recursive" {
+		return "", false, nil
 	}
 
+	if (typeStr == "direct" || typeStr == "all") && p.directPin.HasKey(k) {
+		return "direct", true, nil
+	}
+	if typeStr == "direct" {
+		return "", false, nil
+	}
+
+	if (typeStr == "internal" || typeStr == "all") && p.isInternalPin(k) {
+		return "internal", true, nil
+	}
+	if typeStr == "internal" {
+		return "", false, nil
+	}
+
+	// Default is "indirect"
 	for _, rk := range p.recursePin.GetKeys() {
 		rnd, err := p.dserv.Get(context.Background(), rk)
 		if err != nil {

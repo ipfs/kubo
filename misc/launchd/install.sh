@@ -23,7 +23,7 @@ if [ $? ]; then
 fi
 
 echo Loading ipfs-daemon
-if [[ `sw_vers -productVersion` == 10.1* ]]; then
+if (( `sw_vers -productVersion | cut -d'.' -f2` > 9 )); then
   sudo chown root "$dest_dir/$plist"
   sudo launchctl bootstrap system "$dest_dir/$plist"
 else

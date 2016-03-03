@@ -4,20 +4,21 @@ import (
 	"sync"
 	"time"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	engine "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type WantManager struct {
 	// sync channels for Run loop
 	incoming   chan []*bsmsg.Entry
-	connect    chan peer.ID // notification channel for new peers connecting
-	disconnect chan peer.ID // notification channel for peers disconnecting
+	connect    chan peer.ID        // notification channel for new peers connecting
+	disconnect chan peer.ID        // notification channel for peers disconnecting
+	peerReqs   chan chan []peer.ID // channel to request connected peers on
 
 	// synchronized by Run loop, only touch inside there
 	peers map[peer.ID]*msgQueue
@@ -32,6 +33,7 @@ func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantMana
 		incoming:   make(chan []*bsmsg.Entry, 10),
 		connect:    make(chan peer.ID, 10),
 		disconnect: make(chan peer.ID, 10),
+		peerReqs:   make(chan chan []peer.ID),
 		peers:      make(map[peer.ID]*msgQueue),
 		wl:         wantlist.NewThreadSafe(),
 		network:    network,
@@ -62,16 +64,16 @@ type msgQueue struct {
 	done chan struct{}
 }
 
-func (pm *WantManager) WantBlocks(ks []key.Key) {
+func (pm *WantManager) WantBlocks(ctx context.Context, ks []key.Key) {
 	log.Infof("want blocks: %s", ks)
-	pm.addEntries(ks, false)
+	pm.addEntries(ctx, ks, false)
 }
 
 func (pm *WantManager) CancelWants(ks []key.Key) {
-	pm.addEntries(ks, true)
+	pm.addEntries(context.TODO(), ks, true)
 }
 
-func (pm *WantManager) addEntries(ks []key.Key, cancel bool) {
+func (pm *WantManager) addEntries(ctx context.Context, ks []key.Key, cancel bool) {
 	var entries []*bsmsg.Entry
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
@@ -79,6 +81,7 @@ func (pm *WantManager) addEntries(ks []key.Key, cancel bool) {
 			Entry: wantlist.Entry{
 				Key:      k,
 				Priority: kMaxPriority - i,
+				Ctx:      ctx,
 			},
 		})
 	}
@@ -86,6 +89,12 @@ func (pm *WantManager) addEntries(ks []key.Key, cancel bool) {
 	case pm.incoming <- entries:
 	case <-pm.ctx.Done():
 	}
+}
+
+func (pm *WantManager) ConnectedPeers() []peer.ID {
+	resp := make(chan []peer.ID)
+	pm.peerReqs <- resp
+	return <-resp
 }
 
 func (pm *WantManager) SendBlock(ctx context.Context, env *engine.Envelope) {
@@ -216,7 +225,7 @@ func (pm *WantManager) Run() {
 				if e.Cancel {
 					pm.wl.Remove(e.Key)
 				} else {
-					pm.wl.Add(e.Key, e.Priority)
+					pm.wl.AddEntry(e.Entry)
 				}
 			}
 
@@ -229,6 +238,14 @@ func (pm *WantManager) Run() {
 			// resend entire wantlist every so often (REALLY SHOULDNT BE NECESSARY)
 			var es []*bsmsg.Entry
 			for _, e := range pm.wl.Entries() {
+				select {
+				case <-e.Ctx.Done():
+					// entry has been cancelled
+					// simply continue, the entry will be removed from the
+					// wantlist soon enough
+					continue
+				default:
+				}
 				es = append(es, &bsmsg.Entry{Entry: e})
 			}
 			for _, p := range pm.peers {
@@ -242,6 +259,12 @@ func (pm *WantManager) Run() {
 			pm.startPeerHandler(p)
 		case p := <-pm.disconnect:
 			pm.stopPeerHandler(p)
+		case req := <-pm.peerReqs:
+			var peers []peer.ID
+			for p := range pm.peers {
+				peers = append(peers, p)
+			}
+			req <- peers
 		case <-pm.ctx.Done():
 			return
 		}

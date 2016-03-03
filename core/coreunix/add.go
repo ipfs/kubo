@@ -10,7 +10,6 @@ import (
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -19,12 +18,14 @@ import (
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	"github.com/ipfs/go-ipfs/pin"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	"github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("coreunix")
@@ -100,7 +101,7 @@ type Adder struct {
 	Chunker  string
 	root     *dag.Node
 	mr       *mfs.Root
-	unlock   func()
+	unlocker bs.Unlocker
 	tempRoot key.Key
 }
 
@@ -225,8 +226,7 @@ func (adder *Adder) outputDirs(path string, nd *dag.Node) error {
 // Add builds a merkledag from the a reader, pinning all objects to the local
 // datastore. Returns a key representing the root node.
 func Add(n *core.IpfsNode, r io.Reader) (string, error) {
-	unlock := n.Blockstore.PinLock()
-	defer unlock()
+	defer n.Blockstore.PinLock().Unlock()
 
 	fileAdder, err := NewAdder(n.Context(), n, nil)
 	if err != nil {
@@ -247,8 +247,7 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 
 // AddR recursively adds files in |path|.
 func AddR(n *core.IpfsNode, root string) (key string, err error) {
-	unlock := n.Blockstore.PinLock()
-	defer unlock()
+	n.Blockstore.PinLock().Unlock()
 
 	stat, err := os.Lstat(root)
 	if err != nil {
@@ -296,8 +295,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 	}
 	fileAdder.Wrap = true
 
-	unlock := n.Blockstore.PinLock()
-	defer unlock()
+	defer n.Blockstore.PinLock().Unlock()
 
 	err = fileAdder.addFile(file)
 	if err != nil {
@@ -347,8 +345,10 @@ func (adder *Adder) addNode(node *dag.Node, path string) error {
 
 // Add the given file while respecting the adder.
 func (adder *Adder) AddFile(file files.File) error {
-	adder.unlock = adder.node.Blockstore.PinLock()
-	defer adder.unlock()
+	adder.unlocker = adder.node.Blockstore.PinLock()
+	defer func() {
+		adder.unlocker.Unlock()
+	}()
 
 	return adder.addFile(file)
 }
@@ -359,11 +359,7 @@ func (adder *Adder) addFile(file files.File) error {
 		return err
 	}
 
-	switch {
-	case files.IsHidden(file) && !adder.Hidden:
-		log.Infof("%s is hidden, skipping", file.FileName())
-		return &hiddenFileError{file.FileName()}
-	case file.IsDirectory():
+	if file.IsDirectory() {
 		return adder.addDir(file)
 	}
 
@@ -417,11 +413,13 @@ func (adder *Adder) addDir(dir files.File) error {
 			break
 		}
 
-		err = adder.addFile(file)
-		if _, ok := err.(*hiddenFileError); ok {
-			// hidden file error, skip file
+		// Skip hidden files when adding recursively, unless Hidden is enabled.
+		if files.IsHidden(file) && !adder.Hidden {
+			log.Infof("%s is hidden, skipping", file.FileName())
 			continue
-		} else if err != nil {
+		}
+		err = adder.addFile(file)
+		if err != nil {
 			return err
 		}
 	}
@@ -436,8 +434,8 @@ func (adder *Adder) maybePauseForGC() error {
 			return err
 		}
 
-		adder.unlock()
-		adder.unlock = adder.node.Blockstore.PinLock()
+		adder.unlocker.Unlock()
+		adder.unlocker = adder.node.Blockstore.PinLock()
 	}
 	return nil
 }

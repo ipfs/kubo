@@ -7,20 +7,20 @@ import (
 	"strings"
 	"time"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	crypto "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
+	crypto "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
 )
 
 var errNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")
 
 var PublishCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Publish an object to IPNS",
+		Tagline: "Publish an object to IPNS.",
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In publish, the
@@ -47,12 +47,16 @@ Publish an <ipfs-path> to another public key (not implemented):
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "IPFS path of the obejct to be published").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, false, "IPFS path of the obejct to be published.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("resolve", "resolve given path before publishing (default=true)"),
-		cmds.StringOption("lifetime", "t", "time duration that the record will be valid for (default: 24hrs)"),
-		cmds.StringOption("ttl", "time duration this record should be cached for (caution: experimental)"),
+		cmds.BoolOption("resolve", "Resolve given path before publishing (default=true)."),
+		cmds.StringOption("lifetime", "t", `Time duration that the record will be valid for. Default: 24h.
+
+    This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
+    "ns", "us" (or "µs"), "ms", "s", "m", "h".
+		`),
+		cmds.StringOption("ttl", "Time duration this record should be cached for (caution: experimental)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		log.Debug("Begin Publish")
@@ -68,6 +72,11 @@ Publish an <ipfs-path> to another public key (not implemented):
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
+		}
+
+		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
+			res.SetError(errors.New("You cannot manually publish while IPNS is mounted."), cmds.ErrNormal)
+			return
 		}
 
 		pstr := req.Arguments()[0]

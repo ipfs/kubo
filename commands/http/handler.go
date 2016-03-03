@@ -12,11 +12,11 @@ import (
 	"sync"
 
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/repo/config"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("commands/http")
@@ -96,9 +96,16 @@ func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) http.Ha
 		panic("must provide a valid ServerConfig")
 	}
 
+	// setup request logger
+	ctx.ReqLog = new(cmds.ReqLog)
+
 	// Wrap the internal handler with CORS handling-middleware.
 	// Create a handler for the API.
-	internal := internalHandler{ctx, root, cfg}
+	internal := internalHandler{
+		ctx:  ctx,
+		root: root,
+		cfg:  cfg,
+	}
 	c := cors.New(*cfg.cORSOpts)
 	return &Handler{internal, c.Handler(internal)}
 }
@@ -131,9 +138,10 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(node.Context())
 	defer cancel()
 	if cn, ok := w.(http.CloseNotifier); ok {
+		clientGone := cn.CloseNotify()
 		go func() {
 			select {
-			case <-cn.CloseNotify():
+			case <-clientGone:
 			case <-ctx.Done():
 			}
 			cancel()
@@ -157,6 +165,9 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
+
+	rlog := i.ctx.ReqLog.Add(req)
+	defer rlog.Finish()
 
 	//ps: take note of the name clash - commands.Context != context.Context
 	req.SetInvocContext(i.ctx)
@@ -199,6 +210,10 @@ func guessMimeType(res cmds.Response) (string, error) {
 }
 
 func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req cmds.Request) {
+	h := w.Header()
+	// Expose our agent to allow identification
+	h.Set("Server", "go-ipfs/"+config.CurrentVersionNumber)
+
 	mime, err := guessMimeType(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -221,8 +236,6 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	h := w.Header()
 
 	// Set up our potential trailer
 	h.Set("Trailer", StreamErrHeader)
@@ -332,7 +345,9 @@ func (cfg ServerConfig) AllowedOrigins() []string {
 func (cfg *ServerConfig) SetAllowedOrigins(origins ...string) {
 	cfg.cORSOptsRWMutex.Lock()
 	defer cfg.cORSOptsRWMutex.Unlock()
-	cfg.cORSOpts.AllowedOrigins = origins
+	o := make([]string, len(origins))
+	copy(o, origins)
+	cfg.cORSOpts.AllowedOrigins = o
 }
 
 func (cfg *ServerConfig) AppendAllowedOrigins(origins ...string) {

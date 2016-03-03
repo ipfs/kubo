@@ -10,7 +10,7 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 type BootstrapOutput struct {
@@ -21,7 +21,7 @@ var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multi
 
 var BootstrapCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show or edit the list of bootstrap peers",
+		Tagline: "Show or edit the list of bootstrap peers.",
 		Synopsis: `
 ipfs bootstrap list             - Show peers in the bootstrap list
 ipfs bootstrap add <peer>...    - Add peers to the bootstrap list
@@ -45,7 +45,7 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 
 var bootstrapAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add peers to the bootstrap list",
+		Tagline: "Add peers to the bootstrap list.",
 		ShortDescription: `Outputs a list of peers that were added (that weren't already
 in the bootstrap list).
 ` + bootstrapSecurityWarning,
@@ -56,7 +56,7 @@ in the bootstrap list).
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("default", "add default bootstrap nodes"),
+		cmds.BoolOption("default", "Add default bootstrap nodes."),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -128,7 +128,7 @@ in the bootstrap list).
 
 var bootstrapRemoveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes peers from the bootstrap list",
+		Tagline: "Removes peers from the bootstrap list.",
 		ShortDescription: `Outputs the list of peers that were removed.
 ` + bootstrapSecurityWarning,
 	},
@@ -194,7 +194,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 
 var bootstrapListCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Show peers in the bootstrap list",
+		Tagline:          "Show peers in the bootstrap list.",
 		ShortDescription: "Peers are output in the format '<multiaddr>/<peerID>'.",
 	},
 

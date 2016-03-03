@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/measure"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -19,8 +20,8 @@ import (
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
-	util "github.com/ipfs/go-ipfs/util"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("fsrepo")
@@ -156,7 +157,7 @@ func open(repoPath string) (repo.Repo, error) {
 }
 
 func newFSRepo(rpath string) (*FSRepo, error) {
-	expPath, err := util.TildeExpansion(filepath.Clean(rpath))
+	expPath, err := homedir.Expand(filepath.Clean(rpath))
 	if err != nil {
 		return nil, err
 	}
@@ -562,7 +563,13 @@ func (r *FSRepo) GetStorageUsage() (uint64, error) {
 
 	var du uint64
 	err = filepath.Walk(pth, func(p string, f os.FileInfo, err error) error {
-		du += uint64(f.Size())
+		if err != nil {
+			log.Debugf("filepath.Walk error: %s", err)
+			return nil
+		}
+		if f != nil {
+			du += uint64(f.Size())
+		}
 		return nil
 	})
 	return du, err

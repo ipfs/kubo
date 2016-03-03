@@ -12,8 +12,8 @@ import (
 	"sync"
 
 	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/codahale/metrics/runtime"
-	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
+	"gx/ipfs/QmYtzQmUwPFGxjCXctJ8e6GXS8sYfoXy2pdeMbS5SFWqRi/go-multiaddr-net"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -21,10 +21,11 @@ import (
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	"github.com/ipfs/go-ipfs/core/corerouting"
-	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	util "github.com/ipfs/go-ipfs/util"
+	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	conn "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/conn"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 )
 
 const (
@@ -44,7 +45,7 @@ const (
 
 var daemonCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a network-connected IPFS node",
+		Tagline: "Run a network-connected IPFS node.",
 		ShortDescription: `
 'ipfs daemon' runs a persistent IPFS daemon that can serve commands
 over the network. Most applications that use IPFS will do so by
@@ -91,14 +92,23 @@ CORS Headers (for API)
 
 You can setup CORS headers the same way:
 
-	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'
+	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["example.com"]'
 	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
 	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Credentials '["true"]'
 
 Shutdown
 
-To shutdown, kill, quit, or otherwise stop the daemon, send a SIGTERM signal.
-If it persists, send a second. This can be done by pressing Ctrl+C twice.
+To shutdown the daemon, send a SIGINT signal to it (e.g. by pressing 'Ctrl-C')
+or send a SIGTERM signal to it (e.g. with 'kill'). It may take a while for the
+daemon to shutdown gracefully, but it can be killed forcibly by sending a
+second signal.
+
+IPFS_PATH environment variable
+
+ipfs uses a repository in the local file system. By default, the repo is located
+at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+
+    export IPFS_PATH=/path/to/ipfsrepo
 
 DEPRECATION NOTICE
 
@@ -151,6 +161,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		select {
 		case <-req.Context().Done():
 			fmt.Println("Received interrupt signal, shutting down...")
+			fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 		}
 	}()
 
@@ -484,7 +495,7 @@ func mountFuse(req cmds.Request) error {
 		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
 	}
 
-	err = commands.Mount(node, fsdir, nsdir)
+	err = nodeMount.Mount(node, fsdir, nsdir)
 	if err != nil {
 		return err
 	}

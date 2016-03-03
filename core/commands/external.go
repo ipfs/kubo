@@ -14,7 +14,7 @@ import (
 func ExternalBinary() *cmds.Command {
 	return &cmds.Command{
 		Arguments: []cmds.Argument{
-			cmds.StringArg("args", false, true, "arguments for subcommand"),
+			cmds.StringArg("args", false, true, "Arguments for subcommand."),
 		},
 		External: true,
 		Run: func(req cmds.Request, res cmds.Response) {
@@ -33,7 +33,7 @@ func ExternalBinary() *cmds.Command {
 					}
 				}
 
-				res.SetError(fmt.Errorf("%s not installed."), cmds.ErrNormal)
+				res.SetError(fmt.Errorf("%s not installed.", binname), cmds.ErrNormal)
 				return
 			}
 

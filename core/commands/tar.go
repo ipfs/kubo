@@ -13,7 +13,7 @@ import (
 
 var TarCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "utility functions for tar files in ipfs",
+		Tagline: "Utility functions for tar files in IPFS.",
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -24,14 +24,14 @@ var TarCmd = &cmds.Command{
 
 var tarAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "import a tar file into ipfs",
+		Tagline: "Import a tar file into ipfs.",
 		ShortDescription: `
 'ipfs tar add' will parse a tar file and create a merkledag structure to represent it.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("file", true, false, "tar file to add").EnableStdin(),
+		cmds.FileArg("file", true, false, "Tar file to add.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -75,14 +75,14 @@ var tarAddCmd = &cmds.Command{
 
 var tarCatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "export a tar file from ipfs",
+		Tagline: "Export a tar file from IPFS.",
 		ShortDescription: `
-'ipfs tar cat' will export a tar file from a previously imported one in ipfs
+'ipfs tar cat' will export a tar file from a previously imported one in IPFS.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "ipfs path of archive to export").EnableStdin(),
+		cmds.StringArg("path", true, false, "IPFS path of archive to export.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

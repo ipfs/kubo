@@ -7,7 +7,7 @@ import (
 	"os"
 
 	reuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport"
-	resolve "github.com/jbenet/go-net-resolve-addr"
+	resolve "gx/ipfs/Qma73Sqt13DzHzveZ667BBfraM7MuMrPepUXjmv812JhRS/go-net-resolve-addr"
 )
 
 func main() {

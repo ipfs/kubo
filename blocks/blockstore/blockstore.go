@@ -10,11 +10,11 @@ import (
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	dsns "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/namespace"
 	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("blockstore")
@@ -43,13 +43,13 @@ type GCBlockstore interface {
 	// GCLock locks the blockstore for garbage collection. No operations
 	// that expect to finish with a pin should ocurr simultaneously.
 	// Reading during GC is safe, and requires no lock.
-	GCLock() func()
+	GCLock() Unlocker
 
 	// PinLock locks the blockstore for sequences of puts expected to finish
 	// with a pin (before GC). Multiple put->pin sequences can write through
 	// at the same time, but no GC should not happen simulatenously.
 	// Reading during Pinning is safe, and requires no lock.
-	PinLock() func()
+	PinLock() Unlocker
 
 	// GcRequested returns true if GCLock has been called and is waiting to
 	// take the lock
@@ -198,16 +198,29 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	return output, nil
 }
 
-func (bs *blockstore) GCLock() func() {
+type Unlocker interface {
+	Unlock()
+}
+
+type unlocker struct {
+	unlock func()
+}
+
+func (u *unlocker) Unlock() {
+	u.unlock()
+	u.unlock = nil // ensure its not called twice
+}
+
+func (bs *blockstore) GCLock() Unlocker {
 	atomic.AddInt32(&bs.gcreq, 1)
 	bs.lk.Lock()
 	atomic.AddInt32(&bs.gcreq, -1)
-	return bs.lk.Unlock
+	return &unlocker{bs.lk.Unlock}
 }
 
-func (bs *blockstore) PinLock() func() {
+func (bs *blockstore) PinLock() Unlocker {
 	bs.lk.RLock()
-	return bs.lk.RUnlock
+	return &unlocker{bs.lk.RUnlock}
 }
 
 func (bs *blockstore) GCRequested() bool {

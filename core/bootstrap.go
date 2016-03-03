@@ -8,18 +8,17 @@ import (
 	"sync"
 	"time"
 
-	host "github.com/ipfs/go-ipfs/p2p/host"
-	inet "github.com/ipfs/go-ipfs/p2p/net"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	config "github.com/ipfs/go-ipfs/repo/config"
+	lgbl "github.com/ipfs/go-ipfs/thirdparty/loggables"
 	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
-	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
+	host "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 
-	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	procctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
-	periodicproc "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
+	procctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	periodicproc "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/periodic"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 // ErrNotEnoughBootstrapPeers signals that we do not have enough bootstrap
@@ -203,24 +202,24 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.PeerInfo) 
 }
 
 func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
-	var peers []peer.PeerInfo
+	pinfos := make(map[peer.ID]*peer.PeerInfo)
 	for _, bootstrap := range bpeers {
-		peers = append(peers, toPeerInfo(bootstrap))
+		pinfo, ok := pinfos[bootstrap.ID()]
+		if !ok {
+			pinfo = new(peer.PeerInfo)
+			pinfos[bootstrap.ID()] = pinfo
+			pinfo.ID = bootstrap.ID()
+		}
+
+		pinfo.Addrs = append(pinfo.Addrs, bootstrap.Transport())
 	}
+
+	var peers []peer.PeerInfo
+	for _, pinfo := range pinfos {
+		peers = append(peers, *pinfo)
+	}
+
 	return peers
-}
-
-func toPeerInfo(bp config.BootstrapPeer) peer.PeerInfo {
-	// for now, we drop the "ipfs addr" part of the multiaddr. the rest
-	// of the codebase currently uses addresses without the peerid part.
-	m := bp.Multiaddr()
-	s := ma.Split(m)
-	m = ma.Join(s[:len(s)-1]...)
-
-	return peer.PeerInfo{
-		ID:    bp.ID(),
-		Addrs: []ma.Multiaddr{m},
-	}
 }
 
 func randomSubsetOfPeers(in []peer.PeerInfo, max int) []peer.PeerInfo {

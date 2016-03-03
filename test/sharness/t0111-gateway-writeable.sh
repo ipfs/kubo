@@ -9,18 +9,18 @@ test_description="Test HTTP Gateway (Writable)"
 . lib/test-lib.sh
 
 test_init_ipfs
-test_config_ipfs_gateway_writable $ADDR_GWAY
+test_config_ipfs_gateway_writable
 test_launch_ipfs_daemon
 
-port=$PORT_GWAY
+port=$GWAY_PORT
 
 test_expect_success "ipfs daemon up" '
-  pollEndpoint -host $ADDR_GWAY -ep=/version -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
+  pollEndpoint -host $GWAY_MADDR -ep=/version -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
   test_fsh cat poll_apierr || test_fsh cat poll_apiout
 '
 
 test_expect_success "HTTP gateway gives access to sample file" '
-  curl -s -o welcome "http://localhost:$PORT_GWAY/ipfs/$HASH_WELCOME_DOCS/readme" &&
+  curl -s -o welcome "http://$GWAY_ADDR/ipfs/$HASH_WELCOME_DOCS/readme" &&
   grep "Hello and Welcome to IPFS!" welcome
 '
 

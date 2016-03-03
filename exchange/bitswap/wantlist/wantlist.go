@@ -3,9 +3,12 @@
 package wantlist
 
 import (
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	"sort"
 	"sync"
+
+	key "github.com/ipfs/go-ipfs/blocks/key"
+
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type ThreadSafe struct {
@@ -16,7 +19,6 @@ type ThreadSafe struct {
 // not threadsafe
 type Wantlist struct {
 	set map[key.Key]Entry
-	// TODO provide O(1) len accessor if cost becomes an issue
 }
 
 type Entry struct {
@@ -24,6 +26,7 @@ type Entry struct {
 	// slices can be copied efficiently.
 	Key      key.Key
 	Priority int
+	Ctx      context.Context
 }
 
 type entrySlice []Entry
@@ -44,22 +47,25 @@ func New() *Wantlist {
 	}
 }
 
-func (w *ThreadSafe) Add(k key.Key, priority int) {
-	// TODO rm defer for perf
+func (w *ThreadSafe) Add(ctx context.Context, k key.Key, priority int) {
 	w.lk.Lock()
 	defer w.lk.Unlock()
-	w.Wantlist.Add(k, priority)
+	w.Wantlist.Add(ctx, k, priority)
+}
+
+func (w *ThreadSafe) AddEntry(e Entry) {
+	w.lk.Lock()
+	defer w.lk.Unlock()
+	w.Wantlist.AddEntry(e)
 }
 
 func (w *ThreadSafe) Remove(k key.Key) {
-	// TODO rm defer for perf
 	w.lk.Lock()
 	defer w.lk.Unlock()
 	w.Wantlist.Remove(k)
 }
 
 func (w *ThreadSafe) Contains(k key.Key) (Entry, bool) {
-	// TODO rm defer for perf
 	w.lk.RLock()
 	defer w.lk.RUnlock()
 	return w.Wantlist.Contains(k)
@@ -87,14 +93,22 @@ func (w *Wantlist) Len() int {
 	return len(w.set)
 }
 
-func (w *Wantlist) Add(k key.Key, priority int) {
+func (w *Wantlist) Add(ctx context.Context, k key.Key, priority int) {
 	if _, ok := w.set[k]; ok {
 		return
 	}
 	w.set[k] = Entry{
 		Key:      k,
 		Priority: priority,
+		Ctx:      ctx,
 	}
+}
+
+func (w *Wantlist) AddEntry(e Entry) {
+	if _, ok := w.set[e.Key]; ok {
+		return
+	}
+	w.set[e.Key] = e
 }
 
 func (w *Wantlist) Remove(k key.Key) {

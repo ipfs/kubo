@@ -7,7 +7,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 type ResolvedPath struct {
@@ -16,39 +16,39 @@ type ResolvedPath struct {
 
 var ResolveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Resolve the value of names to IPFS",
+		Tagline: "Resolve the value of names to IPFS.",
 		ShortDescription: `
 There are a number of mutable name protocols that can link among
-themselves and into IPNS.  This command accepts any of these
+themselves and into IPNS. This command accepts any of these
 identifiers and resolves them to the referenced item.
 `,
 		LongDescription: `
 There are a number of mutable name protocols that can link among
-themselves and into IPNS.  For example IPNS references can (currently)
-point at IPFS object, and DNS links can point at other DNS links, IPNS
-entries, or IPFS objects.  This command accepts any of these
+themselves and into IPNS. For example IPNS references can (currently)
+point at an IPFS object, and DNS links can point at other DNS links, IPNS
+entries, or IPFS objects. This command accepts any of these
 identifiers and resolves them to the referenced item.
 
-Examples:
+EXAMPLES
 
 Resolve the value of your identity:
 
-  > ipfs resolve /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  $ ipfs resolve /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   /ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj
 
 Resolve the value of another name:
 
-  > ipfs resolve /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
+  $ ipfs resolve /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
   /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
 Resolve the value of another name recursively:
 
-  > ipfs resolve -r /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
+  $ ipfs resolve -r /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
   /ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj
 
 Resolve the value of an IPFS DAG path:
 
-  > ipfs resolve /ipfs/QmeZy1fGbwgVSrqbfh9fKQrAWgeyRnj7h8fsHS1oy3k99x/beep/boop
+  $ ipfs resolve /ipfs/QmeZy1fGbwgVSrqbfh9fKQrAWgeyRnj7h8fsHS1oy3k99x/beep/boop
   /ipfs/QmYRMjyvAiHKN9UTi8Bzt1HUspmSRD8T8DwxfSMzLgBon1
 
 `,
@@ -58,7 +58,7 @@ Resolve the value of an IPFS DAG path:
 		cmds.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is an IPFS name"),
+		cmds.BoolOption("recursive", "r", "Resolve until the result is an IPFS name. Default: false."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

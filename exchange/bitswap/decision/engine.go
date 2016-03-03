@@ -4,13 +4,13 @@ package decision
 import (
 	"sync"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 // TODO consider taking responsibility for other types of requests. For
@@ -21,7 +21,8 @@ import (
 // batches/combines and takes all of these into consideration.
 //
 // Right now, messages go onto the network for four reasons:
-// 1. an initial `sendwantlist` message to a provider of the first key in a request
+// 1. an initial `sendwantlist` message to a provider of the first key in a
+//    request
 // 2. a periodic full sweep of `sendwantlist` messages to all providers
 // 3. upon receipt of blocks, a `cancel` message to all peers
 // 4. draining the priority queue of `blockrequests` from peers
@@ -34,9 +35,10 @@ import (
 // Some examples of what would be possible:
 //
 // * when sending out the wantlists, include `cancel` requests
-// * when handling `blockrequests`, include `sendwantlist` and `cancel` as appropriate
+// * when handling `blockrequests`, include `sendwantlist` and `cancel` as
+//   appropriate
 // * when handling `cancel`, if we recently received a wanted block from a
-// 	 peer, include a partial wantlist that contains a few other high priority
+//   peer, include a partial wantlist that contains a few other high priority
 //   blocks
 //
 // In a sense, if we treat the decision engine as a black box, it could do
@@ -215,7 +217,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 			e.peerRequestQueue.Remove(entry.Key, p)
 		} else {
 			log.Debugf("wants %s - %d", entry.Key, entry.Priority)
-			l.Wants(entry.Key, entry.Priority)
+			l.Wants(entry.Ctx, entry.Key, entry.Priority)
 			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
 				e.peerRequestQueue.Push(entry.Entry, p)
 				newWorkExists = true

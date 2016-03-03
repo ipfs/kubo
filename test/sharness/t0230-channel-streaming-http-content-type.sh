@@ -16,7 +16,7 @@ test_ls_cmd() {
 		mkdir -p testdir &&
 		echo "hello test" >testdir/test.txt &&
 		ipfs add -r testdir &&
-        curl -i "http://localhost:$PORT_API/api/v0/refs?arg=QmTcJAn3JP8ZMAKS6WS75q8sbTyojWKbxcUHgLYGWur4Ym&stream-channels=true&encoding=text" >actual_output
+        curl -i "http://$API_ADDR/api/v0/refs?arg=QmTcJAn3JP8ZMAKS6WS75q8sbTyojWKbxcUHgLYGWur4Ym&stream-channels=true&encoding=text" >actual_output
 	'
 
 	test_expect_success "Text encoded channel-streaming command output looks good" '
@@ -24,6 +24,7 @@ test_ls_cmd() {
 		printf "Access-Control-Allow-Headers: X-Stream-Output, X-Chunked-Output\r\n" >>expected_output &&
 		printf "Access-Control-Expose-Headers: X-Stream-Output, X-Chunked-Output\r\n" >>expected_output &&
 		printf "Content-Type: text/plain\r\n" >>expected_output &&
+		printf "Server: go-ipfs/%s\r\n" $(ipfs version -n) >>expected_output &&
 		printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
 		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "X-Chunked-Output: 1\r\n" >>expected_output &&
@@ -38,7 +39,7 @@ test_ls_cmd() {
 		mkdir -p testdir &&
 		echo "hello test" >testdir/test.txt &&
 		ipfs add -r testdir &&
-        curl -i "http://localhost:$PORT_API/api/v0/refs?arg=QmTcJAn3JP8ZMAKS6WS75q8sbTyojWKbxcUHgLYGWur4Ym&stream-channels=true&encoding=json" >actual_output
+        curl -i "http://$API_ADDR/api/v0/refs?arg=QmTcJAn3JP8ZMAKS6WS75q8sbTyojWKbxcUHgLYGWur4Ym&stream-channels=true&encoding=json" >actual_output
 	'
 
 	test_expect_success "JSON encoded channel-streaming command output looks good" '
@@ -46,6 +47,7 @@ test_ls_cmd() {
 		printf "Access-Control-Allow-Headers: X-Stream-Output, X-Chunked-Output\r\n" >>expected_output &&
 		printf "Access-Control-Expose-Headers: X-Stream-Output, X-Chunked-Output\r\n" >>expected_output &&
 		printf "Content-Type: application/json\r\n" >>expected_output &&
+		printf "Server: go-ipfs/%s\r\n" $(ipfs version -n) >>expected_output &&
 		printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
 		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "X-Chunked-Output: 1\r\n" >>expected_output &&

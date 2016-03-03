@@ -5,12 +5,12 @@ import (
 	"time"
 
 	ctxfrac "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-context/frac"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	ci "github.com/ipfs/go-ipfs/p2p/crypto"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
+	ci "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 // MaxRecordAge specifies the maximum time that any node will hold onto a record
@@ -42,7 +42,7 @@ func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, err
 	}
 
 	// last ditch effort: let's try the dht.
-	log.Debugf("pk for %s not in peerstore, and peer failed. trying dht.", p)
+	log.Debugf("pk for %s not in peerstore, and peer failed. Trying DHT.", p)
 	pkkey := routing.KeyForPublicKey(p)
 
 	val, err := dht.GetValue(ctxT, pkkey)
@@ -77,14 +77,14 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 	// node doesn't have key :(
 	record := pmes.GetRecord()
 	if record == nil {
-		return nil, fmt.Errorf("node not responding with its public key: %s", p)
+		return nil, fmt.Errorf("Node not responding with its public key: %s", p)
 	}
 
 	// Success! We were given the value. we don't need to check
 	// validity because a) we can't. b) we know the hash of the
 	// key we're looking for.
 	val := record.GetValue()
-	log.Debug("dht got a value from other peer.")
+	log.Debug("DHT got a value from other peer.")
 
 	pk, err = ci.UnmarshalPublicKey(val)
 	if err != nil {
@@ -100,7 +100,7 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 	}
 
 	// ok! it's valid. we got it!
-	log.Debugf("dht got public key from node itself.")
+	log.Debugf("DHT got public key from node itself.")
 	return pk, nil
 }
 

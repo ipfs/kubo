@@ -19,8 +19,16 @@ test_expect_success "ipfs init fails" '
 	test_must_fail ipfs init 2> init_fail_out
 '
 
+# Under Windows/Cygwin the error message is different,
+# so we use the STD_ERR_MSG prereq.
+if test_have_prereq STD_ERR_MSG; then
+	init_err_msg="Error: failed to take lock at $IPFS_PATH: permission denied"
+else
+	init_err_msg="Error: mkdir $IPFS_PATH: The system cannot find the path specified."
+fi
+
 test_expect_success "ipfs init output looks good" '
-	echo "Error: failed to take lock at $IPFS_PATH: permission denied" > init_fail_exp &&
+	echo "$init_err_msg" >init_fail_exp &&
 	test_cmp init_fail_exp init_fail_out
 '
 
@@ -39,14 +47,16 @@ test_expect_success "ipfs cat fails" '
 test_expect_success "ipfs cat no repo message looks good" '
     echo "Error: no ipfs repo found in $IPFS_PATH." > cat_fail_exp &&
     echo "please run: ipfs init" >> cat_fail_exp &&
-    test_cmp cat_fail_exp cat_fail_out
+    test_path_cmp cat_fail_exp cat_fail_out
 '
 
 # test that init succeeds
 test_expect_success "ipfs init succeeds" '
 	export IPFS_PATH="$(pwd)/.ipfs" &&
+	echo "IPFS_PATH: \"$IPFS_PATH\"" &&
 	BITS="2048" &&
-	ipfs init --bits="$BITS" >actual_init
+	ipfs init --bits="$BITS" >actual_init ||
+	test_fsh cat actual_init
 '
 
 test_expect_success ".ipfs/ has been created" '

@@ -5,18 +5,18 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	commands "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	metrics "github.com/ipfs/go-ipfs/metrics"
-	host "github.com/ipfs/go-ipfs/p2p/host"
-	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
-	testutil "github.com/ipfs/go-ipfs/util/testutil"
+	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
+	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
+	host "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/host"
+	metrics "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/metrics"
+	mocknet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/mock"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
 )
 
 // NewMockNode constructs an IpfsNode for use in tests.

@@ -51,6 +51,12 @@ test_files_api() {
 		ipfs files mkdir /cats
 	'
 
+	test_expect_success "'files ls' lists root by default" '
+		ipfs files ls >actual &&
+		echo "cats" >expected &&
+		test_cmp expected actual
+	'
+
 	test_expect_success "directory was created" '
 		verify_path_exists /cats
 	'
@@ -331,8 +337,13 @@ test_files_api() {
 	'
 
 	test_expect_success "root hash looks good" '
-		echo "QmcwKfTMCT7AaeiD92hWjnZn9b6eh9NxnhfSzN5x2vnDpt" > root_hash_exp &&
+		export EXP_ROOT_HASH="QmcwKfTMCT7AaeiD92hWjnZn9b6eh9NxnhfSzN5x2vnDpt" &&
+		echo $EXP_ROOT_HASH > root_hash_exp &&
 		test_cmp root_hash_exp root_hash
+	'
+
+	test_expect_success "flush root succeeds" '
+		ipfs files flush /
 	'
 
 	# test mv
@@ -351,6 +362,25 @@ test_files_api() {
 
 	test_expect_success "cleanup looks good" '
 		verify_dir_contents /
+	'
+
+	# test truncating
+	test_expect_success "create a new file" '
+		echo "some content" | ipfs files write --create /cats
+	'
+
+	test_expect_success "truncate and write over that file" '
+		echo "fish" | ipfs files write --truncate /cats
+	'
+
+	test_expect_success "output looks good" '
+		ipfs files read /cats > file_out &&
+		echo "fish" > file_exp &&
+		test_cmp file_out file_exp
+	'
+
+	test_expect_success "cleanup" '
+		ipfs files rm /cats
 	'
 
 	# test flush flags

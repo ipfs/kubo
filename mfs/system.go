@@ -18,8 +18,8 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var ErrNotExist = errors.New("no such rootfs")
@@ -29,7 +29,7 @@ var log = logging.Logger("mfs")
 var ErrIsDirectory = errors.New("error: is a directory")
 
 type childCloser interface {
-	closeChild(string, *dag.Node) error
+	closeChild(string, *dag.Node, bool) error
 }
 
 type NodeType int
@@ -42,9 +42,8 @@ const (
 // FSNode represents any node (directory, root, or file) in the mfs filesystem
 type FSNode interface {
 	GetNode() (*dag.Node, error)
+	Flush() error
 	Type() NodeType
-	Lock()
-	Unlock()
 }
 
 // Root represents the root of a filesystem tree
@@ -115,7 +114,7 @@ func (kr *Root) Flush() error {
 		return err
 	}
 
-	k, err := kr.dserv.Add(nd)
+	k, err := nd.Key()
 	if err != nil {
 		return err
 	}
@@ -128,7 +127,7 @@ func (kr *Root) Flush() error {
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
-func (kr *Root) closeChild(name string, nd *dag.Node) error {
+func (kr *Root) closeChild(name string, nd *dag.Node, sync bool) error {
 	k, err := kr.dserv.Add(nd)
 	if err != nil {
 		return err
@@ -146,7 +145,7 @@ func (kr *Root) Close() error {
 		return err
 	}
 
-	k, err := kr.dserv.Add(nd)
+	k, err := nd.Key()
 	if err != nil {
 		return err
 	}
@@ -165,7 +164,7 @@ type Republisher struct {
 	TimeoutShort time.Duration
 	Publish      chan struct{}
 	pubfunc      PubFunc
-	pubnowch     chan struct{}
+	pubnowch     chan chan struct{}
 
 	ctx    context.Context
 	cancel func()
@@ -190,7 +189,7 @@ func NewRepublisher(ctx context.Context, pf PubFunc, tshort, tlong time.Duration
 		TimeoutLong:  tlong,
 		Publish:      make(chan struct{}, 1),
 		pubfunc:      pf,
-		pubnowch:     make(chan struct{}),
+		pubnowch:     make(chan chan struct{}),
 		ctx:          ctx,
 		cancel:       cancel,
 	}
@@ -204,9 +203,22 @@ func (p *Republisher) setVal(k key.Key) {
 
 func (p *Republisher) pubNow() {
 	select {
-	case p.pubnowch <- struct{}{}:
+	case p.pubnowch <- nil:
 	default:
 	}
+}
+
+func (p *Republisher) WaitPub() {
+	p.lk.Lock()
+	consistent := p.lastpub == p.val
+	p.lk.Unlock()
+	if consistent {
+		return
+	}
+
+	wait := make(chan struct{})
+	p.pubnowch <- wait
+	<-wait
 }
 
 func (p *Republisher) Close() error {
@@ -235,6 +247,8 @@ func (np *Republisher) Run() {
 			longer := time.After(np.TimeoutLong)
 
 		wait:
+			var pubnowresp chan struct{}
+
 			select {
 			case <-np.ctx.Done():
 				return
@@ -243,10 +257,13 @@ func (np *Republisher) Run() {
 				goto wait
 			case <-quick:
 			case <-longer:
-			case <-np.pubnowch:
+			case pubnowresp = <-np.pubnowch:
 			}
 
 			err := np.publish(np.ctx)
+			if pubnowresp != nil {
+				pubnowresp <- struct{}{}
+			}
 			if err != nil {
 				log.Error("republishRoot error: %s", err)
 			}
@@ -262,7 +279,6 @@ func (np *Republisher) publish(ctx context.Context) error {
 	topub := np.val
 	np.lk.Unlock()
 
-	log.Info("Publishing Changes!")
 	err := np.pubfunc(ctx, topub)
 	if err != nil {
 		return err

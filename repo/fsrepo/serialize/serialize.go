@@ -10,8 +10,8 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/atomicfile"
 	"github.com/ipfs/go-ipfs/repo/config"
-	"github.com/ipfs/go-ipfs/util"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("fsrepo")

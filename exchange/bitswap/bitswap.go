@@ -8,9 +8,6 @@ import (
 	"sync"
 	"time"
 
-	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	procctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -20,9 +17,13 @@ import (
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
-	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
+	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
+	procctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("bitswap")
@@ -39,11 +40,21 @@ const (
 	sizeBatchRequestChan   = 32
 	// kMaxPriority is the max priority as defined by the bitswap protocol
 	kMaxPriority = math.MaxInt32
+)
 
+var (
 	HasBlockBufferSize    = 256
 	provideKeysBufferSize = 2048
 	provideWorkerMax      = 512
 )
+
+func init() {
+	if flags.LowMemMode {
+		HasBlockBufferSize = 64
+		provideKeysBufferSize = 512
+		provideWorkerMax = 16
+	}
+}
 
 var rebroadcastDelay = delay.Fixed(time.Second * 10)
 
@@ -75,7 +86,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
 		network:       network,
-		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
+		findKeys:      make(chan *wantlist.Entry, sizeBatchRequestChan),
 		process:       px,
 		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
 		provideKeys:   make(chan key.Key, provideKeysBufferSize),
@@ -118,7 +129,7 @@ type Bitswap struct {
 	notifications notifications.PubSub
 
 	// send keys to a worker to find and connect to providers for them
-	findKeys chan *blockRequest
+	findKeys chan *wantlist.Entry
 
 	engine *decision.Engine
 
@@ -135,8 +146,8 @@ type Bitswap struct {
 }
 
 type blockRequest struct {
-	keys []key.Key
-	ctx  context.Context
+	key key.Key
+	ctx context.Context
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
@@ -208,11 +219,14 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan *block
 		log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
 	}
 
-	bs.wm.WantBlocks(keys)
+	bs.wm.WantBlocks(ctx, keys)
 
-	req := &blockRequest{
-		keys: keys,
-		ctx:  ctx,
+	// NB: Optimization. Assumes that providers of key[0] are likely to
+	// be able to provide for all keys. This currently holds true in most
+	// every situation. Later, this assumption may not hold as true.
+	req := &wantlist.Entry{
+		Key: keys[0],
+		Ctx: ctx,
 	}
 	select {
 	case bs.findKeys <- req:
@@ -263,32 +277,6 @@ func (bs *Bitswap) tryPutBlock(blk *blocks.Block, attempts int) error {
 		time.Sleep(time.Millisecond * time.Duration(400*(i+1)))
 	}
 	return err
-}
-
-func (bs *Bitswap) connectToProviders(ctx context.Context, entries []wantlist.Entry) {
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	// Get providers for all entries in wantlist (could take a while)
-	wg := sync.WaitGroup{}
-	for _, e := range entries {
-		wg.Add(1)
-		go func(k key.Key) {
-			defer wg.Done()
-
-			child, cancel := context.WithTimeout(ctx, providerRequestTimeout)
-			defer cancel()
-			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
-			for prov := range providers {
-				go func(p peer.ID) {
-					bs.network.ConnectTo(ctx, p)
-				}(prov)
-			}
-		}(e.Key)
-	}
-
-	wg.Wait() // make sure all our children do finish.
 }
 
 func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) {

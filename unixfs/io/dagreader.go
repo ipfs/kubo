@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 
-	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -56,8 +56,8 @@ type ReadSeekCloser interface {
 	io.WriterTo
 }
 
-// NewDagReader creates a new reader object that reads the data represented by the given
-// node, using the passed in DAGService for data retreival
+// NewDagReader creates a new reader object that reads the data represented by
+// the given node, using the passed in DAGService for data retreival
 func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*DagReader, error) {
 	pb := new(ftpb.Data)
 	if err := proto.Unmarshal(n.Data, pb); err != nil {
@@ -90,7 +90,7 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 
 func NewDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv mdag.DAGService) *DagReader {
 	fctx, cancel := context.WithCancel(ctx)
-	promises := serv.GetDAG(fctx, n)
+	promises := mdag.GetDAG(fctx, serv, n)
 	return &DagReader{
 		node:     n,
 		serv:     serv,
@@ -102,8 +102,8 @@ func NewDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv md
 	}
 }
 
-// precalcNextBuf follows the next link in line and loads it from the DAGService,
-// setting the next buffer to read from
+// precalcNextBuf follows the next link in line and loads it from the
+// DAGService, setting the next buffer to read from
 func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 	dr.buf.Close() // Just to make sure
 	if dr.linkPosition >= len(dr.promises) {

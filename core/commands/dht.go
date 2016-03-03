@@ -10,17 +10,17 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	notif "github.com/ipfs/go-ipfs/notifications"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	path "github.com/ipfs/go-ipfs/path"
 	ipdht "github.com/ipfs/go-ipfs/routing/dht"
-	u "github.com/ipfs/go-ipfs/util"
+	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
 
 var DhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Issue commands directly through the DHT",
+		Tagline:          "Issue commands directly through the DHT.",
 		ShortDescription: ``,
 	},
 
@@ -35,15 +35,15 @@ var DhtCmd = &cmds.Command{
 
 var queryDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Run a 'findClosestPeers' query through the DHT",
+		Tagline:          "Find the closest peers to a given key by querying through the DHT.",
 		ShortDescription: ``,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerID", true, true, "The peerID to run the query against"),
+		cmds.StringArg("peerID", true, true, "The peerID to run the query against."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", "v", "Write extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -119,17 +119,17 @@ var queryDhtCmd = &cmds.Command{
 
 var findProvidersDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'FindProviders' query through the DHT",
+		Tagline: "Run a 'FindProviders' query through the DHT.",
 		ShortDescription: `
 FindProviders will return a list of peers who are able to provide the value requested.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, true, "The key to find providers for"),
+		cmds.StringArg("key", true, true, "The key to find providers for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", "v", "Write extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -222,12 +222,12 @@ FindProviders will return a list of peers who are able to provide the value requ
 
 var findPeerDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Run a 'FindPeer' query through the DHT",
+		Tagline:          "Run a 'FindPeer' query through the DHT.",
 		ShortDescription: ``,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerID", true, true, "The peer to search for"),
+		cmds.StringArg("peerID", true, true, "The peer to search for."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -317,17 +317,17 @@ var findPeerDhtCmd = &cmds.Command{
 
 var getValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'GetValue' query through the DHT",
+		Tagline: "Run a 'GetValue' query through the DHT.",
 		ShortDescription: `
-GetValue will return the value stored in the dht at the given key.
+GetValue will return the value stored in the DHT at the given key.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, true, "The key to find a value for"),
+		cmds.StringArg("key", true, true, "The key to find a value for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", "v", "Write extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -420,18 +420,18 @@ GetValue will return the value stored in the dht at the given key.
 
 var putValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'PutValue' query through the DHT",
+		Tagline: "Run a 'PutValue' query through the DHT.",
 		ShortDescription: `
-PutValue will store the given key value pair in the dht.
+PutValue will store the given key value pair in the DHT.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "The key to store the value at"),
-		cmds.StringArg("value", true, false, "The value to store").EnableStdin(),
+		cmds.StringArg("key", true, false, "The key to store the value at."),
+		cmds.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information"),
+		cmds.BoolOption("verbose", "v", "Write extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

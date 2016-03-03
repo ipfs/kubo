@@ -18,14 +18,14 @@ type VersionOutput struct {
 
 var VersionCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Shows ipfs version information",
+		Tagline:          "Shows ipfs version information.",
 		ShortDescription: "Returns the current version of ipfs and exits.",
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("number", "n", "Only show the version number"),
-		cmds.BoolOption("commit", "Show the commit hash"),
-		cmds.BoolOption("repo", "Show repo version"),
+		cmds.BoolOption("number", "n", "Only show the version number."),
+		cmds.BoolOption("commit", "Show the commit hash."),
+		cmds.BoolOption("repo", "Show repo version."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(&VersionOutput{

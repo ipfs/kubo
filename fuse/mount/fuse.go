@@ -4,20 +4,27 @@
 package mount
 
 import (
+	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+
+	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 )
+
+var ErrNotMounted = errors.New("not mounted")
 
 // mount implements go-ipfs/fuse/mount
 type mount struct {
 	mpoint   string
 	filesys  fs.FS
 	fuseConn *fuse.Conn
-	// closeErr error
+
+	active     bool
+	activeLock *sync.RWMutex
 
 	proc goprocess.Process
 }
@@ -39,10 +46,12 @@ func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allow_other bo
 	}
 
 	m := &mount{
-		mpoint:   mountpoint,
-		fuseConn: conn,
-		filesys:  fsys,
-		proc:     goprocess.WithParent(p), // link it to parent.
+		mpoint:     mountpoint,
+		fuseConn:   conn,
+		filesys:    fsys,
+		active:     false,
+		activeLock: &sync.RWMutex{},
+		proc:       goprocess.WithParent(p), // link it to parent.
 	}
 	m.proc.SetTeardown(m.unmount)
 
@@ -60,11 +69,14 @@ func (m *mount) mount() error {
 
 	errs := make(chan error, 1)
 	go func() {
+		// fs.Serve blocks until the filesystem is unmounted.
 		err := fs.Serve(m.fuseConn, m.filesys)
-		log.Debugf("Mounting %s -- fs.Serve returned (%s)", err)
+		log.Debugf("%s is unmounted", m.MountPoint())
 		if err != nil {
+			log.Debugf("fs.Serve returned (%s)", err)
 			errs <- err
 		}
+		m.setActive(false)
 	}()
 
 	// wait for the mount process to be done, or timed out.
@@ -81,6 +93,8 @@ func (m *mount) mount() error {
 		return err
 	}
 
+	m.setActive(true)
+
 	log.Infof("Mounted %s", m.MountPoint())
 	return nil
 }
@@ -95,6 +109,7 @@ func (m *mount) unmount() error {
 	// try unmounting with fuse lib
 	err := fuse.Unmount(m.MountPoint())
 	if err == nil {
+		m.setActive(false)
 		return nil
 	}
 	log.Warningf("fuse unmount err: %s", err)
@@ -102,11 +117,10 @@ func (m *mount) unmount() error {
 	// try closing the fuseConn
 	err = m.fuseConn.Close()
 	if err == nil {
+		m.setActive(false)
 		return nil
 	}
-	if err != nil {
-		log.Warningf("fuse conn error: %s", err)
-	}
+	log.Warningf("fuse conn error: %s", err)
 
 	// try mount.ForceUnmountManyTimes
 	if err := ForceUnmountManyTimes(m, 10); err != nil {
@@ -114,6 +128,7 @@ func (m *mount) unmount() error {
 	}
 
 	log.Infof("Seemingly unmounted %s", m.MountPoint())
+	m.setActive(false)
 	return nil
 }
 
@@ -126,6 +141,23 @@ func (m *mount) MountPoint() string {
 }
 
 func (m *mount) Unmount() error {
+	if !m.IsActive() {
+		return ErrNotMounted
+	}
+
 	// call Process Close(), which calls unmount() exactly once.
 	return m.proc.Close()
+}
+
+func (m *mount) IsActive() bool {
+	m.activeLock.RLock()
+	defer m.activeLock.RUnlock()
+
+	return m.active
+}
+
+func (m *mount) setActive(a bool) {
+	m.activeLock.Lock()
+	m.active = a
+	m.activeLock.Unlock()
 }

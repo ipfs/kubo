@@ -8,30 +8,23 @@ test_description="Test ipfs repo pinning"
 
 . lib/test-lib.sh
 
-
-
 test_pin_flag() {
 	object=$1
 	ptype=$2
 	expect=$3
 
-	echo "test_pin_flag" $@
+	echo "test_pin_flag" "$@"
 
-	ipfs-pin-stat "$object" | grep "$ptype"
-	actual=$?
-
-	if [ "$expect" = "true" ]; then
-		if [ "$actual" != "0" ]; then
-			echo "$object should be pinned $ptype ($actual)"
-			return 1
-		fi
+	if ipfs pin ls --type="$ptype" "$object" >actual
+	then
+	    test "$expect" = "true" && return
+	    test_fsh cat actual
+	    return
 	else
-		if [ "$actual" != "1" ]; then
-			echo "$object should NOT be pinned $ptype ($actual)"
-			return 1
-		fi
+	    test "$expect" = "false" && return
+	    test_fsh cat actual
+	    return
 	fi
-	return 0
 }
 
 test_pin() {
@@ -245,9 +238,9 @@ test_expect_success "some are no longer there" '
 '
 
 test_expect_success "recursive pin fails without objects" '
-	ipfs pin rm "$HASH_DIR1" &&
-	test_must_fail ipfs pin add -r "$HASH_DIR1" --timeout=500ms 2>err_expected8 &&
-	grep "context deadline exceeded" err_expected8 ||
+	ipfs pin rm -r=false "$HASH_DIR1" &&
+	test_must_fail ipfs pin add -r "$HASH_DIR1" 2>err_expected8 &&
+	grep "pin: failed to fetch all nodes" err_expected8 ||
 	test_fsh cat err_expected8
 '
 
@@ -278,6 +271,15 @@ test_expect_success "test add nopin dir" '
 	test_pin_flag "$HASH_NOPIN_FILE2" recursive false
 
 '
+
+FICTIONAL_HASH="QmXV4f9v8a56MxWKBhP3ETsz4EaafudU1cKfPaaJnenc48"
+test_launch_ipfs_daemon
+test_expect_success "test unpinning a hash that's not pinned" "
+  test_expect_code 1 ipfs pin rm $FICTIONAL_HASH --timeout=2s
+  test_expect_code 1 ipfs pin rm $FICTIONAL_HASH/a --timeout=2s
+  test_expect_code 1 ipfs pin rm $FICTIONAL_HASH/a/b --timeout=2s
+"
+test_kill_ipfs_daemon
 
 # test_kill_ipfs_daemon
 

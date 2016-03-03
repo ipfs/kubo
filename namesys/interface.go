@@ -33,9 +33,9 @@ import (
 	"errors"
 	"time"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
+	ci "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 const (
@@ -50,14 +50,14 @@ const (
 )
 
 // ErrResolveFailed signals an error when attempting to resolve.
-var ErrResolveFailed = errors.New("could not resolve name.")
+var ErrResolveFailed = errors.New("Could not resolve name.")
 
 // ErrResolveRecursion signals a recursion-depth limit.
 var ErrResolveRecursion = errors.New(
-	"could not resolve name (recursion limit exceeded).")
+	"Could not resolve name (recursion limit exceeded).")
 
 // ErrPublishFailed signals an error when attempting to publish.
-var ErrPublishFailed = errors.New("could not publish name.")
+var ErrPublishFailed = errors.New("Could not publish name.")
 
 // Namesys represents a cohesive name publishing and resolving system.
 //

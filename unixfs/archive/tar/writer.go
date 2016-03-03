@@ -6,8 +6,8 @@ import (
 	"path"
 	"time"
 
-	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
-	cxt "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	cxt "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -39,7 +39,7 @@ func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
 		return err
 	}
 
-	for i, ng := range w.Dag.GetDAG(w.ctx, nd) {
+	for i, ng := range mdag.GetDAG(w.ctx, w.Dag, nd) {
 		child, err := ng.Get(w.ctx)
 		if err != nil {
 			return err

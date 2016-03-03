@@ -16,7 +16,7 @@ There are multiple subpackages:
 - `path` - path resolution over merkledag data structure
 - `peer` - identity + addresses of local and remote peers
 - `routing` - the routing system
-- `routing/dht` - the dht default routing system implementation
+- `routing/dht` - the DHT default routing system implementation
 - `swarm` - connection multiplexing, many peers and many transports
 - `util` - various utilities
 

@@ -3,7 +3,7 @@ package missinggo
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"gx/ipfs/QmZwjfAKWe7vWZ8f48u7AGA1xYfzR1iCD9A2XSCYFRBWot/testify/assert"
 )
 
 func TestSplitHostPort(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/anacrolix/envpprof"
+	"gx/ipfs/QmazECKVXFsA3J6cHAqf8HeTDUB8zARjfo75nxE6o63AAp/envpprof"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/anacrolix/utp"
 )

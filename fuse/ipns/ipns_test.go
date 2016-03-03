@@ -14,13 +14,12 @@ import (
 	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
-	//mfs "github.com/ipfs/go-ipfs/mfs"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
-	u "github.com/ipfs/go-ipfs/util"
-	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	ci "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util/testutil/ci"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -89,7 +88,7 @@ func checkExists(t *testing.T, path string) {
 	}
 }
 
-func closeMount(mnt *fstest.Mount) {
+func closeMount(mnt *mountWrap) {
 	if err := recover(); err != nil {
 		log.Error("Recovered panic")
 		log.Error(err)
@@ -97,7 +96,18 @@ func closeMount(mnt *fstest.Mount) {
 	mnt.Close()
 }
 
-func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.Mount) {
+type mountWrap struct {
+	*fstest.Mount
+	Fs *FileSystem
+}
+
+func (m *mountWrap) Close() error {
+	m.Fs.Destroy()
+	m.Mount.Close()
+	return nil
+}
+
+func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWrap) {
 	maybeSkipFuseTests(t)
 
 	var err error
@@ -130,7 +140,10 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 		t.Fatal(err)
 	}
 
-	return node, mnt
+	return node, &mountWrap{
+		Mount: mnt,
+		Fs:    fs,
+	}
 }
 
 func TestIpnsLocalLink(t *testing.T) {
@@ -138,10 +151,7 @@ func TestIpnsLocalLink(t *testing.T) {
 	defer mnt.Close()
 	name := mnt.Dir + "/local"
 
-	_, err := os.Stat(name)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkExists(t, name)
 
 	linksto, err := os.Readlink(name)
 	if err != nil {
@@ -436,111 +446,6 @@ func TestFSThrash(t *testing.T) {
 		}
 	}
 }
-
-/*
-func TestFastRepublish(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-
-	// make timeout noticeable.
-	osrt := shortRepublishTimeout
-	shortRepublishTimeout = time.Millisecond * 100
-
-	olrt := longRepublishTimeout
-	longRepublishTimeout = time.Second
-
-	node, mnt := setupIpnsTest(t, nil)
-
-	h, err := node.PrivateKey.GetPublic().Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubkeyPath := "/ipns/" + u.Key(h).String()
-
-	// set them back
-	defer func() {
-		shortRepublishTimeout = osrt
-		longRepublishTimeout = olrt
-		mnt.Close()
-	}()
-
-	closed := make(chan struct{})
-	dataA := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	dataB := []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-
-	fname := mnt.Dir + "/local/file"
-
-	// get first resolved hash
-	log.Debug("publishing first hash")
-	writeFileData(t, dataA, fname) // random
-	<-time.After(shortRepublishTimeout * 2)
-	log.Debug("resolving first hash")
-	resolvedHash, err := node.Namesys.Resolve(context.Background(), pubkeyPath)
-	if err != nil {
-		t.Fatal("resolve err:", pubkeyPath, err)
-	}
-
-	// constantly keep writing to the file
-	go func(timeout time.Duration) {
-		for {
-			select {
-			case <-closed:
-				return
-
-			case <-time.After(timeout * 8 / 10):
-				writeFileData(t, dataB, fname)
-			}
-		}
-	}(shortRepublishTimeout)
-
-	hasPublished := func() bool {
-		res, err := node.Namesys.Resolve(context.Background(), pubkeyPath)
-		if err != nil {
-			t.Fatalf("resolve err: %v", err)
-		}
-		return res != resolvedHash
-	}
-
-	// test things
-
-	// at this point, should not have written dataA and not have written dataB
-	rbuf, err := ioutil.ReadFile(fname)
-	if err != nil || !bytes.Equal(rbuf, dataA) {
-		t.Fatalf("Data inconsistent! %v %v", err, string(rbuf))
-	}
-
-	if hasPublished() {
-		t.Fatal("published (wrote)")
-	}
-
-	<-time.After(shortRepublishTimeout * 11 / 10)
-
-	// at this point, should have written written dataB, but not published it
-	rbuf, err = ioutil.ReadFile(fname)
-	if err != nil || !bytes.Equal(rbuf, dataB) {
-		t.Fatalf("Data inconsistent! %v %v", err, string(rbuf))
-	}
-
-	if hasPublished() {
-		t.Fatal("published (wrote)")
-	}
-
-	<-time.After(longRepublishTimeout * 11 / 10)
-
-	// at this point, should have written written dataB, and published it
-	rbuf, err = ioutil.ReadFile(fname)
-	if err != nil || !bytes.Equal(rbuf, dataB) {
-		t.Fatalf("Data inconsistent! %v %v", err, string(rbuf))
-	}
-
-	if !hasPublished() {
-		t.Fatal("not published")
-	}
-
-	close(closed)
-}
-*/
 
 // Test writing a medium sized file one byte at a time
 func TestMultiWrite(t *testing.T) {

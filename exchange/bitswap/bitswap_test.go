@@ -7,16 +7,16 @@ import (
 	"time"
 
 	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	travis "github.com/ipfs/go-ipfs/util/testutil/ci/travis"
+	travis "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
-	p2ptestutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
+	p2ptestutil "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/test/util"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -157,6 +157,19 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	blocks := bg.Blocks(numBlocks)
 
 	t.Log("Give the blocks to the first instance")
+
+	nump := len(instances) - 1
+	// assert we're properly connected
+	for _, inst := range instances {
+		peers := inst.Exchange.wm.ConnectedPeers()
+		for i := 0; i < 10 && len(peers) != nump; i++ {
+			time.Sleep(time.Millisecond * 50)
+			peers = inst.Exchange.wm.ConnectedPeers()
+		}
+		if len(peers) != nump {
+			t.Fatal("not enough peers connected to instance")
+		}
+	}
 
 	var blkeys []key.Key
 	first := instances[0]

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
 )
 
 func newMultiaddr(t *testing.T, m string) ma.Multiaddr {

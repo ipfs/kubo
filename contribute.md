@@ -44,7 +44,7 @@ properly written. It checks the following:
   and with licensing the work under the [MIT license](docs/LICENSE).
 
   To help you automatically add these trailers, you can run the
-  [setup_commit_msg_hook.sh](dev/tools/hooks/setup_commit_msg_hook.sh)
+  [setup_commit_msg_hook.sh](https://github.com/ipfs/community/blob/master/dev/tools/hooks/setup_commit_msg_hook.sh)
   script which will setup a Git commit-msg hook that will add the above
   trailers to all the commit messages you write.
 
@@ -75,7 +75,7 @@ recover quickly. This led to gateways not bootstrapping peers
 fast enough.
 
 The approach taken here is to do what crypto/tls does:
-defer the handshake until Read/Write[1]. There are a number of
+defer the handshake until Read/Write[0]. There are a number of
 reasons why this is _the right thing to do_:
 - it delays handshaking until it is known to be necessary (doing io)
 - it "accepts" before the handshake, getting the handshake out of the
@@ -90,3 +90,8 @@ reasons why this is _the right thing to do_:
 License: MIT
 Signed-off-by: Juan Benet <juan@ipfs.io>
 ```
+
+### Each Commit Must Pass Tests
+
+All commits in a PR must pass tests. If they don't, fix the commits and/or [squash them](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History#Squashing-Commits) so that they do pass the tests. This should be done so that we can use git-bisect easily.
+

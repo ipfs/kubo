@@ -12,7 +12,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
-	u "github.com/ipfs/go-ipfs/util"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 // Parse parses the input commandline string (cmd, flags, and args).
@@ -297,10 +297,17 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 
 		var err error
 		if argDef.Type == cmds.ArgString {
-			if stdin == nil || !argDef.SupportsStdin {
+			if stdin == nil {
 				// add string values
 				stringArgs, inputs = appendString(stringArgs, inputs)
+			} else if !argDef.SupportsStdin {
+				if len(inputs) == 0 {
+					// failure case, we have stdin, but our current
+					// argument doesnt want stdin
+					break
+				}
 
+				stringArgs, inputs = appendString(stringArgs, inputs)
 			} else {
 				if len(inputs) > 0 {
 					// don't use stdin if we have inputs
