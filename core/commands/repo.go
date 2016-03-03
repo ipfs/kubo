@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"io"
 
+	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
+	"github.com/ipfs/go-ipfs/blocks/key"
+	"github.com/ipfs/go-ipfs/blocks/set"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"github.com/ipfs/go-ipfs/unixfs"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 var RepoCmd = &cmds.Command{
@@ -20,8 +23,8 @@ var RepoCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"gc": repoGcCmd,
-		"ls": repoLsCmd,
+		"gc":       repoGcCmd,
+		"ls-roots": repoLsRootsCmd,
 	},
 }
 
@@ -98,18 +101,20 @@ order to reclaim hard disk space.
 	},
 }
 
-type RepoLsOutput struct {
-	Hash string
-	Size uint64
-	Type string
+type RepoLsRootsOutput struct {
+	Hash   string
+	Size   uint64
+	Type   string
+	Pinned string
 }
 
-var repoLsCmd = &cmds.Command{
+var repoLsRootsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Totally need a documentation",
+		Tagline: "Display the top nodes stored locally",
 		ShortDescription: `
-		I might agree on that
-		`,
+'ipfs repo ls-roots' will display the top-level files or directory
+that are stored locally as well a some of their properties.
+`,
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -119,34 +124,87 @@ var repoLsCmd = &cmds.Command{
 			return
 		}
 
+		// Force pinner flush as we ask the blockstore directly
+		n.Pinning.Flush()
+
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
 
+		keychan, err := n.Blockstore.AllKeysChan(req.Context())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		go func() {
 			defer close(outChan)
-			for _, k := range n.Pinning.RecursiveKeys() {
+			roots := set.NewSimpleBlockSet()
+			childs := set.NewSimpleBlockSet()
+
+			// find the roots of the DAG
+		KeyLoop:
+			for k := range keychan {
+
+				// skip internal pinning node
+				for _, pinnedKey := range n.Pinning.InternalPins() {
+					if pinnedKey == k {
+						continue KeyLoop
+					}
+				}
+
 				node, err := n.DAG.Get(req.Context(), k)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
 
-				unixFSNode, err := unixfs.FromBytes(node.Data);
+				if !childs.HasKey(k) {
+					roots.AddBlock(k)
+				}
+
+				for _, child := range node.Links {
+					childKey := key.Key(child.Hash)
+					roots.RemoveBlock(childKey)
+					childs.AddBlock(childKey)
+				}
+			}
+
+			for _, k := range roots.GetKeys() {
+				node, err := n.DAG.Get(req.Context(), k)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
 
-				outChan <- &RepoLsOutput{
-					Hash: k.Pretty(),
-					Size: unixFSNode.GetFilesize(),
-					Type: unixFSNode.GetType().String(),
+				unixFSNode, err := unixfs.FromBytes(node.Data)
+				if err != nil {
+					// ignore nodes that are not unixFs
+					continue
+				}
+
+				pinned, _, err := n.Pinning.IsPinned(k)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+
+				size, err := node.Size()
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+
+				outChan <- &RepoLsRootsOutput{
+					Hash:   k.B58String(),
+					Size:   size,
+					Type:   unixFSNode.Type.String(),
+					Pinned: pinned,
 				}
 			}
 		}()
 	},
 
-	Type: RepoLsOutput{},
+	Type: RepoLsRootsOutput{},
 
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -156,14 +214,18 @@ var repoLsCmd = &cmds.Command{
 			}
 
 			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*RepoLsOutput)
+				obj, ok := v.(*RepoLsRootsOutput)
 				if !ok {
 					return nil, u.ErrCast()
 				}
 
 				buf := new(bytes.Buffer)
 
-				fmt.Fprintf(buf, "%s\t%s     \t%v\n", obj.Hash, obj.Type, obj.Size)
+				fmt.Fprintf(buf, "%s\t%s\t%s    \t%s\n",
+					obj.Hash,
+					humanize.Bytes(obj.Size),
+					obj.Type,
+					obj.Pinned)
 
 				return buf, nil
 			}
