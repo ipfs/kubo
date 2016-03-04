@@ -9,13 +9,6 @@ func TestOptionValueExtractBoolNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal("Found was false. Err should have been nil")
 	}
-
-	t.Log("ensure that no error is returned when value is not found (even if value exists)")
-	optval = &OptionValue{value: "wrong type: a string", found: false}
-	_, _, err = optval.Bool()
-	if err != nil {
-		t.Fatal("Found was false. Err should have been nil")
-	}
 }
 
 func TestOptionValueExtractWrongType(t *testing.T) {
