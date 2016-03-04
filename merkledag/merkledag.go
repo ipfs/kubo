@@ -18,10 +18,8 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
 	Add(*Node) (key.Key, error)
-	AddRecursive(*Node) error
 	Get(context.Context, key.Key) (*Node, error)
 	Remove(*Node) error
-	RemoveRecursive(*Node) error
 
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
@@ -49,7 +47,7 @@ func (n *dagService) Add(nd *Node) (key.Key, error) {
 		return "", fmt.Errorf("dagService is nil")
 	}
 
-	d, err := nd.Encoded(false)
+	d, err := nd.EncodeProtobuf(false)
 	if err != nil {
 		return "", err
 	}
@@ -68,26 +66,6 @@ func (n *dagService) Batch() *Batch {
 	return &Batch{ds: n, MaxSize: 8 * 1024 * 1024}
 }
 
-// AddRecursive adds the given node and all child nodes to the BlockService
-func (n *dagService) AddRecursive(nd *Node) error {
-	_, err := n.Add(nd)
-	if err != nil {
-		log.Info("AddRecursive Error: %s\n", err)
-		return err
-	}
-
-	for _, link := range nd.Links {
-		if link.Node != nil {
-			err := n.AddRecursive(link.Node)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 // Get retrieves a node from the dagService, fetching the block in the BlockService
 func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 	if n == nil {
@@ -101,24 +79,14 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 		if err == bserv.ErrNotFound {
 			return nil, ErrNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("Failed to get block for %s: %v", k.B58String(), err)
 	}
 
-	return Decoded(b.Data)
-}
-
-// Remove deletes the given node and all of its children from the BlockService
-func (n *dagService) RemoveRecursive(nd *Node) error {
-	for _, l := range nd.Links {
-		if l.Node != nil {
-			n.RemoveRecursive(l.Node)
-		}
-	}
-	k, err := nd.Key()
+	res, err := DecodeProtobuf(b.Data)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 	}
-	return n.Blocks.DeleteBlock(k)
+	return res, nil
 }
 
 func (n *dagService) Remove(nd *Node) error {
@@ -167,7 +135,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeO
 					}
 					return
 				}
-				nd, err := Decoded(b.Data)
+				nd, err := DecodeProtobuf(b.Data)
 				if err != nil {
 					out <- &NodeOption{Err: err}
 					return
@@ -313,7 +281,7 @@ type Batch struct {
 }
 
 func (t *Batch) Add(nd *Node) (key.Key, error) {
-	d, err := nd.Encoded(false)
+	d, err := nd.EncodeProtobuf(false)
 	if err != nil {
 		return "", err
 	}

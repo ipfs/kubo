@@ -64,7 +64,7 @@ func TestNode(t *testing.T) {
 			fmt.Println("-", l.Name, l.Size, l.Hash)
 		}
 
-		e, err := n.Encoded(false)
+		e, err := n.EncodeProtobuf(false)
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -96,9 +96,9 @@ func TestNode(t *testing.T) {
 }
 
 func SubtestNodeStat(t *testing.T, n *Node) {
-	enc, err := n.Encoded(true)
+	enc, err := n.EncodeProtobuf(true)
 	if err != nil {
-		t.Error("n.Encoded(true) failed")
+		t.Error("n.EncodeProtobuf(true) failed")
 		return
 	}
 
@@ -181,7 +181,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 		t.Fatal(err)
 	}
 
-	err = dagservs[0].AddRecursive(root)
+	_, err = dagservs[0].Add(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,45 +231,6 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 			t.Fatal(err)
 		}
 	}
-}
-func TestRecursiveAdd(t *testing.T) {
-	a := &Node{Data: []byte("A")}
-	b := &Node{Data: []byte("B")}
-	c := &Node{Data: []byte("C")}
-	d := &Node{Data: []byte("D")}
-	e := &Node{Data: []byte("E")}
-
-	err := a.AddNodeLink("blah", b)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = b.AddNodeLink("foo", c)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = b.AddNodeLink("bar", d)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = d.AddNodeLink("baz", e)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dsp := getDagservAndPinner(t)
-	err = dsp.ds.AddRecursive(a)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assertCanGet(t, dsp.ds, a)
-	assertCanGet(t, dsp.ds, b)
-	assertCanGet(t, dsp.ds, c)
-	assertCanGet(t, dsp.ds, d)
-	assertCanGet(t, dsp.ds, e)
 }
 
 func assertCanGet(t *testing.T, ds DAGService, n *Node) {
