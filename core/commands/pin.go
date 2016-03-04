@@ -41,7 +41,7 @@ var addPinCmd = &cmds.Command{
 		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)."),
+		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s).").Default(true),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -54,13 +54,10 @@ var addPinCmd = &cmds.Command{
 		defer n.Blockstore.PinLock().Unlock()
 
 		// set recursive flag
-		recursive, found, err := req.Option("recursive").Bool()
+		recursive, _, err := req.Option("recursive").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
-		}
-		if !found {
-			recursive = true
 		}
 
 		added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
@@ -108,7 +105,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)."),
+		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s).").Default(true),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -119,13 +116,10 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 		}
 
 		// set recursive flag
-		recursive, found, err := req.Option("recursive").Bool()
+		recursive, _, err := req.Option("recursive").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
-		}
-		if !found {
-			recursive = true // default
 		}
 
 		removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive)

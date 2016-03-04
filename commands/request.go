@@ -118,8 +118,7 @@ func (r *request) Option(name string) *OptionValue {
 		}
 	}
 
-	// MAYBE_TODO: use default value instead of nil
-	return &OptionValue{nil, false, option}
+	return &OptionValue{option.DefaultVal(), false, option}
 }
 
 // Options returns a copy of the option map
