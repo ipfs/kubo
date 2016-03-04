@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
+	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -49,10 +51,11 @@ Note: List all referencess recursively by using the flag '-r'.
 		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>."),
+		cmds.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname> <linksize>"),
 		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
 		cmds.BoolOption("unique", "u", "Omit duplicate refs from output."),
 		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes."),
+		cmds.BoolOption("cached", "List only links of child nodes cached locally"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
@@ -86,6 +89,12 @@ Note: List all referencess recursively by using the flag '-r'.
 			return
 		}
 
+		cached, _, err := req.Option("cached").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		objs, err := objectsForPaths(ctx, n, req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -99,13 +108,15 @@ Note: List all referencess recursively by using the flag '-r'.
 			defer close(out)
 
 			rw := RefWriter{
-				out:       out,
-				DAG:       n.DAG,
-				Ctx:       ctx,
-				Unique:    unique,
-				PrintEdge: edges,
-				PrintFmt:  format,
-				Recursive: recursive,
+				out:        out,
+				DAG:        n.DAG,
+				Ctx:        ctx,
+				Blockstore: n.Blockstore,
+				Unique:     unique,
+				PrintEdge:  edges,
+				PrintFmt:   format,
+				Recursive:  recursive,
+				Cached:     cached,
 			}
 
 			for _, o := range objs {
@@ -206,12 +217,14 @@ type RefWrapper struct {
 }
 
 type RefWriter struct {
-	out chan interface{}
-	DAG dag.DAGService
-	Ctx context.Context
+	out        chan interface{}
+	DAG        dag.DAGService
+	Ctx        context.Context
+	Blockstore blockstore.Blockstore
 
 	Unique    bool
 	Recursive bool
+	Cached    bool
 	PrintEdge bool
 	PrintFmt  string
 
@@ -233,27 +246,58 @@ func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
 	}
 
 	var count int
-	for i, ng := range rw.DAG.GetDAG(rw.Ctx, n) {
-		lk := key.Key(n.Links[i].Hash)
-		if rw.skip(lk) {
-			continue
-		}
 
-		if err := rw.WriteEdge(nkey, lk, n.Links[i].Name); err != nil {
-			return count, err
-		}
+	if rw.Cached {
+		for _, link := range n.Links {
+			lk := key.Key(link.Hash)
+			if rw.skip(lk) {
+				continue
+			}
 
-		nd, err := ng.Get(rw.Ctx)
-		if err != nil {
-			return count, err
-		}
+			block, _ := rw.Blockstore.Get(lk)
+			cached := (block != nil)
 
-		c, err := rw.writeRefsRecursive(nd)
-		count += c
-		if err != nil {
-			return count, err
+			if err := rw.WriteEdge(nkey, lk, link.Name, link.Size, cached); err != nil {
+				return count, err
+			}
+
+			if cached {
+				nd, err := dag.Decoded(block.Data)
+				if err != nil {
+					return count, err
+				}
+
+				c, err := rw.writeRefsRecursive(nd)
+				count += c
+				if err != nil {
+					return count, err
+				}
+			}
+		}
+	} else {
+		for i, ng := range rw.DAG.GetDAG(rw.Ctx, n) {
+			lk := key.Key(n.Links[i].Hash)
+			if rw.skip(lk) {
+				continue
+			}
+
+			if err := rw.WriteEdge(nkey, lk, n.Links[i].Name, n.Links[i].Size, true); err != nil {
+				return count, err
+			}
+
+			nd, err := ng.Get(rw.Ctx)
+			if err != nil {
+				return count, err
+			}
+
+			c, err := rw.writeRefsRecursive(nd)
+			count += c
+			if err != nil {
+				return count, err
+			}
 		}
 	}
+
 	return count, nil
 }
 
@@ -275,7 +319,7 @@ func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
 			continue
 		}
 
-		if err := rw.WriteEdge(nkey, lk, l.Name); err != nil {
+		if err := rw.WriteEdge(nkey, lk, l.Name, l.Size, true); err != nil {
 			return count, err
 		}
 		count++
@@ -301,7 +345,7 @@ func (rw *RefWriter) skip(k key.Key) bool {
 }
 
 // Write one edge
-func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
+func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string, linksize uint64, cached bool) error {
 	if rw.Ctx != nil {
 		select {
 		case <-rw.Ctx.Done(): // just in case.
@@ -317,6 +361,8 @@ func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
 		s = strings.Replace(s, "<src>", from.Pretty(), -1)
 		s = strings.Replace(s, "<dst>", to.Pretty(), -1)
 		s = strings.Replace(s, "<linkname>", linkname, -1)
+		s = strings.Replace(s, "<linksize>", strconv.FormatUint(linksize, 10), -1)
+		s = strings.Replace(s, "<cached>", strconv.FormatBool(cached), -1)
 	case rw.PrintEdge:
 		s = from.Pretty() + " -> " + to.Pretty()
 	default:
