@@ -51,7 +51,7 @@ sudo chown <username>:<groupname> /dev/fuse
 Note: `<groupname>` will usually be `fuse`. Typically, you add the authorized users to the `fuse` group:
 
 ```sh
-usermod -a -G fuse <username>
+sudo usermod -a -G fuse <username>
 ```
 
 ## Mounting IPFS
@@ -62,10 +62,23 @@ Once FUSE and the mountpoints have been created, issue the following command:
 ipfs daemon --mount
 ```
 
-If you wish to allow other users to use the mount points, use the following:
+If you wish to allow other users to use the mount points, edit /etc/fuse.conf to enable non-root users, i.e.:
 
 ```sh
-ipfs config Mounts.FuseAllowOther true
+# /etc/fuse.conf - Configuration file for Filesystem in Userspace (FUSE)
+
+# Set the maximum number of FUSE mounts allowed to non-root users.
+# The default is 1000.
+#mount_max = 1000
+
+# Allow non-root users to specify the allow_other or allow_root mount options.
+user_allow_other
+```
+
+and use the following:
+
+```sh
+ipfs config --json Mounts.FuseAllowOther true
 ipfs daemon --mount
 ```
 
