@@ -110,13 +110,14 @@ test_expect_success "'ipfs daemon' can be killed" '
 
 test_expect_success "'ipfs daemon' should be able to run with a pipe attached to stdin (issue #861)" '
 	yes | ipfs daemon >stdin_daemon_out 2>stdin_daemon_err &
+	DAEMON_PID=$!
 	test_wait_for_file 20 100ms "$IPFS_PATH/api" &&
 	test_set_address_vars stdin_daemon_out
 '
 
 test_expect_success "daemon with pipe eventually becomes live" '
   pollEndpoint -host='$API_MADDR' -ep=/version -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
-  test_kill_repeat_10_sec $! ||
+  test_kill_repeat_10_sec $DAEMON_PID ||
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
 
