@@ -5,7 +5,7 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	peer "gx/ipfs/QmR7tPYgkwZym7WLVLdhYr3jMnhWMtD2ovxosofpiU3BqZ/go-libp2p/p2p/peer"
 )
 
 // keySet is just a convenient alias for maps of keys, where we only care

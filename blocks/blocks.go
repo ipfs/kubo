@@ -7,11 +7,10 @@ import (
 	"fmt"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash" // Block is a singular block of data in ipfs
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
-// Block is a singular block of data in ipfs
 type Block struct {
 	Multihash mh.Multihash
 	Data      []byte

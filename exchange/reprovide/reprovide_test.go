@@ -7,11 +7,10 @@ import (
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	. "github.com/ipfs/go-ipfs/exchange/reprovide"
 	mock "github.com/ipfs/go-ipfs/routing/mock"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	. "github.com/ipfs/go-ipfs/exchange/reprovide"
 )
 
 func TestReprovide(t *testing.T) {
