@@ -46,7 +46,7 @@ const (
 	channelHeader          = "X-Chunked-Output"
 	uaHeader               = "User-Agent"
 	contentTypeHeader      = "Content-Type"
-	contentLengthHeader    = "Content-Length"
+	contentLengthHeader    = "X-Content-Length"
 	contentDispHeader      = "Content-Disposition"
 	transferEncodingHeader = "Transfer-Encoding"
 	applicationJson        = "application/json"
@@ -268,7 +268,6 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	}
 
 	h.Set(contentTypeHeader, mime)
-	h.Set(transferEncodingHeader, "chunked")
 
 	// set 'allowed' headers
 	h.Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
