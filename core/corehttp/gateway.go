@@ -61,7 +61,7 @@ func GatewayOption(writable bool, prefixes []string) ServeOption {
 func VersionOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Commit: %s\n", config.CurrentCommit)
+			fmt.Fprintf(w, "Full Version: %s\n", config.FullVersion)
 			fmt.Fprintf(w, "Client Version: %s\n", id.ClientVersion)
 			fmt.Fprintf(w, "Protocol Version: %s\n", id.LibP2PVersion)
 		})

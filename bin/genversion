@@ -1,0 +1,78 @@
+#!/bin/bash
+
+#
+# Calls git describe and extracts SemVer-compatible version and meta info
+# Assumes git tags are properly formatted: vX.Y.Z or vX.Y.Z-some-tag
+#
+# Examples:
+#
+#   $ genversion --version
+#   0.4.0-rc2
+#
+# or:
+#
+#   $ genversion --commit
+#   c148.91c6f0f.dirty
+#
+#   (148 commits ahead of the version 0.4.0-rc2, dirty workdir with HEAD at 91c6f0f)
+
+
+PRINT_VERSION=0
+PRINT_COMMIT=0
+
+test $# -ge 1 || PRINT_VERSION=1
+
+while test $# -gt 0; do
+    case "$1" in
+        "--version")
+            PRINT_VERSION=1
+            ;;
+        "--commit")
+            PRINT_COMMIT=1
+            ;;
+    esac
+    shift
+done
+
+
+string_join (){
+    local IFS="$1"
+    shift
+    echo "$*"
+}
+
+if [[ "$PRINT_VERSION" == "1" ]] || [[ "$PRINT_COMMIT" == "1" ]]; then
+    DESCRIBE=( $(git describe --always --tags --match 'v*' --dirty --long | tr '-' '\n') )
+
+    FIELDS=${#DESCRIBE[@]}
+    if [[ "${DESCRIBE[$FIELDS-1]}" == "dirty" ]]; then
+        DIRTY=1
+        FIELDS=$FIELDS-1
+    fi
+    COMMIT_HASH=${DESCRIBE[$FIELDS-1]}
+    COMMIT_NO=${DESCRIBE[$FIELDS-2]}
+    VERSION=$(string_join - ${DESCRIBE[@]:0:$FIELDS-2})
+    VERSION=${VERSION:1}
+    HASH=${DESCRIBE[$FIELDS-1]}
+    COMMIT=$(printf "c%s.%s" ${DESCRIBE[$FIELDS-2]} ${HASH:1})
+
+    if [[ "$DIRTY" == "1" ]]; then
+        COMMIT="$COMMIT.dirty"
+    fi
+
+fi
+
+if [[ "$PRINT_VERSION" == "1" ]]; then
+    printf $VERSION
+fi
+
+if [[ "$PRINT_VERSION" == "1" ]] && [[ "$PRINT_COMMIT" == "1" ]]; then
+    printf "+"
+fi
+
+if [[ "$PRINT_COMMIT" == "1" ]]; then
+    printf $COMMIT
+fi
+
+echo
+
