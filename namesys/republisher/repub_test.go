@@ -5,16 +5,15 @@ import (
 	"testing"
 	"time"
 
-	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	"github.com/ipfs/go-ipfs/core"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
-	mocknet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/mock"
-	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
+	mocknet "gx/ipfs/QmR7tPYgkwZym7WLVLdhYr3jMnhWMtD2ovxosofpiU3BqZ/go-libp2p/p2p/net/mock"
+	peer "gx/ipfs/QmR7tPYgkwZym7WLVLdhYr3jMnhWMtD2ovxosofpiU3BqZ/go-libp2p/p2p/peer"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 func TestRepublish(t *testing.T) {

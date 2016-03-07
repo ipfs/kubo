@@ -16,12 +16,11 @@ package corerepo
 import (
 	"fmt"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {

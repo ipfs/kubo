@@ -7,7 +7,7 @@ import (
 
 	tu "github.com/ipfs/go-ipfs/thirdparty/testutil"
 
-	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	peer "gx/ipfs/QmR7tPYgkwZym7WLVLdhYr3jMnhWMtD2ovxosofpiU3BqZ/go-libp2p/p2p/peer"
 )
 
 // Test basic features of the bucket struct

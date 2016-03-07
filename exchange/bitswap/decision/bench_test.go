@@ -7,7 +7,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
-	"gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	"gx/ipfs/QmR7tPYgkwZym7WLVLdhYr3jMnhWMtD2ovxosofpiU3BqZ/go-libp2p/p2p/peer"
 )
 
 // FWIW: At the time of this commit, including a timestamp in task increases

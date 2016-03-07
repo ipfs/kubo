@@ -10,21 +10,20 @@ import (
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	"github.com/ipfs/go-ipfs/commands/files"
+	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	importer "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	"github.com/ipfs/go-ipfs/pin"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
-	"github.com/ipfs/go-ipfs/commands/files"
-	core "github.com/ipfs/go-ipfs/core"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 

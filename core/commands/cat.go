@@ -15,7 +15,7 @@ const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8M
 
 var CatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show IPFS object data.",
+		Tagline:          "Show IPFS object data.",
 		ShortDescription: "Displays the data contained by an IPFS or IPNS object(s) at the given path.",
 	},
 

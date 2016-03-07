@@ -9,11 +9,10 @@ import (
 	"sync"
 	"time"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")

@@ -4,8 +4,6 @@ import (
 	"testing"
 	"time"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -14,6 +12,7 @@ import (
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 func randNode() (*mdag.Node, key.Key) {

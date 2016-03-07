@@ -4,9 +4,8 @@ package traverse
 import (
 	"errors"
 
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	mdag "github.com/ipfs/go-ipfs/merkledag"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 // Order is an identifier for traversal algorithm orders

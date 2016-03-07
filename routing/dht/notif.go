@@ -1,12 +1,10 @@
 package dht
 
 import (
-	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
-
-	inet "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net"
+	inet "gx/ipfs/QmR7tPYgkwZym7WLVLdhYr3jMnhWMtD2ovxosofpiU3BqZ/go-libp2p/p2p/net"
+	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr" // netNotifiee defines methods to be used with the IpfsDHT
 )
 
-// netNotifiee defines methods to be used with the IpfsDHT
 type netNotifiee IpfsDHT
 
 func (nn *netNotifiee) DHT() *IpfsDHT {

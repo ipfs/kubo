@@ -1,11 +1,10 @@
 package io
 
 import (
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type directoryBuilder struct {
