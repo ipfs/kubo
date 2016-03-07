@@ -113,7 +113,7 @@ var repoLsRootsCmd = &cmds.Command{
 		Tagline: "Display the top nodes stored locally",
 		ShortDescription: `
 'ipfs repo ls-roots' will display the top-level files or directory
-that are stored locally as well a some of their properties.
+that are stored locally as well as some of their properties.
 `,
 	},
 
