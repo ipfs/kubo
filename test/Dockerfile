@@ -42,12 +42,17 @@ RUN apk add --update musl go=$GO_VERSION git bash wget ca-certificates \
 
 COPY . $SRC_PATH
 
+# Change to ARG once travis gets updated docker (1.9+)
+ENV IPFS_VERSION=0.4.0-rc2
+
 RUN cd $SRC_PATH \
 	&& ref="$(cat .git/HEAD | cut -d' ' -f2)" \
 	&& commit="$(cat .git/$ref | head -c 7)" \
-	&& echo "ldflags=-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$commit" \
+	&& ldflags="-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$commit \
+		-X github.com/ipfs/go-ipfs/repo/config.CurrentVersionNumber=$IPFS_VERSION" \
+	&& echo "ldflags: $ldflags" \
 	&& cd $SRC_PATH/cmd/ipfs \
-	&& go build -ldflags "-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$commit" \
+	&& go build -ldflags "$ldflags" \
 	&& cp ipfs /usr/local/bin/ipfs \
 	&& cp $SRC_PATH/bin/container_daemon /usr/local/bin/start_ipfs \
 	&& chmod 755 /usr/local/bin/start_ipfs \
