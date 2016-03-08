@@ -55,7 +55,7 @@ Note: List all references recursively by using the flag '-r'.
 		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
 		cmds.BoolOption("unique", "u", "Omit duplicate refs from output."),
 		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes."),
-		cmds.BoolOption("cached", "List only links of child nodes cached locally"),
+		cmds.BoolOption("cached", "List only links of child nodes cached locally."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
