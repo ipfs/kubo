@@ -62,8 +62,11 @@ clean:
 uninstall:
 	cd cmd/ipfs && go clean -i -ldflags=$(ldflags)
 
+docker:
+	docker build --build-arg IPFS_VERSION=$(VERSION) .
+
 PHONY += all help godep toolkit_upgrade gx_upgrade gxgo_upgrade gx_check
-PHONY += go_check deps vendor install build nofuse clean uninstall
+PHONY += go_check deps vendor install build nofuse clean uninstall docker
 
 ##############################################################
 # tests targets

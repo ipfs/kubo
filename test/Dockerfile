@@ -42,8 +42,7 @@ RUN apk add --update musl go=$GO_VERSION git bash wget ca-certificates \
 
 COPY . $SRC_PATH
 
-# Change to ARG once travis gets updated docker (1.9+)
-ENV IPFS_VERSION=0.4.0-rc2
+ARG IPFS_VERSION
 
 RUN cd $SRC_PATH \
 	&& ref="$(cat .git/HEAD | cut -d' ' -f2)" \
