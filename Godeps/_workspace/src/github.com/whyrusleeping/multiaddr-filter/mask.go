@@ -6,7 +6,7 @@ import (
 	"net"
 	"strings"
 
-	manet "gx/ipfs/QmYtzQmUwPFGxjCXctJ8e6GXS8sYfoXy2pdeMbS5SFWqRi/go-multiaddr-net"
+	manet "gx/ipfs/QmQB7mNP3QE7b4zP2MQmsyJDqG5hzYE2CL8k1VyLWky2Ed/go-multiaddr-net"
 )
 
 var ErrInvalidFormat = errors.New("invalid multiaddr-filter format")
