@@ -44,7 +44,7 @@ deps: go_check gx_check path_check
 vendor: godep
 	godep save -r ./...
 
-install: build
+install: deps
 	cd cmd/ipfs && go install -ldflags=$(ldflags)
 
 build: deps
