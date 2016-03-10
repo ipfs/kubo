@@ -219,6 +219,15 @@ test_expect_success "'ipfs refs --unique --recursive (bigger)'" '
 	test_sort_cmp expected actual || test_fsh cat refs_output
 '
 
+test_expect_success "'ipfs repo ls-roots' succeeds" '
+    ipfs repo ls-roots > ls-roots
+'
+
+test_expect_success "'ipfs repo ls-roots' looks good" '
+    grep "$HASH_WELCOME_DOCS" ls-roots &&
+    grep "$EMPTY_DIR" ls-roots
+'
+
 test_kill_ipfs_daemon
 
 test_done

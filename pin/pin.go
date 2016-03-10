@@ -8,6 +8,7 @@ import (
 	"time"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/blocks/set"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
@@ -64,12 +65,14 @@ type pinner struct {
 	// Track the keys used for storing the pinning state, so gc does
 	// not delete them.
 	internalPin map[key.Key]struct{}
+	rootNode    *mdag.Node
 	dserv       mdag.DAGService
+	bstore      bs.Blockstore
 	dstore      ds.Datastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
-func NewPinner(dstore ds.Datastore, serv mdag.DAGService) Pinner {
+func NewPinner(dstore ds.Datastore, bstore bs.Blockstore, serv mdag.DAGService) Pinner {
 
 	// Load set from given datastore...
 	rcset := set.NewSimpleBlockSet()
@@ -80,6 +83,7 @@ func NewPinner(dstore ds.Datastore, serv mdag.DAGService) Pinner {
 		recursePin: rcset,
 		directPin:  dirset,
 		dserv:      serv,
+		bstore:     bstore,
 		dstore:     dstore,
 	}
 }
@@ -234,7 +238,7 @@ func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(d ds.Datastore, dserv mdag.DAGService) (Pinner, error) {
+func LoadPinner(d ds.Datastore, bstore bs.Blockstore, dserv mdag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	rootKeyI, err := d.Get(pinDatastoreKey)
@@ -279,10 +283,12 @@ func LoadPinner(d ds.Datastore, dserv mdag.DAGService) (Pinner, error) {
 		p.directPin = set.SimpleSetFromKeys(directKeys)
 	}
 
+	p.rootNode = root
 	p.internalPin = internalPin
 
 	// assign services
 	p.dserv = dserv
+	p.bstore = bstore
 	p.dstore = d
 
 	return p, nil
@@ -346,6 +352,18 @@ func (p *pinner) Flush() error {
 	if err := p.dstore.Put(pinDatastoreKey, []byte(k)); err != nil {
 		return fmt.Errorf("cannot store pin state: %v", err)
 	}
+
+	// cleanup old root node
+	if p.rootNode != nil {
+		for _, link := range p.rootNode.Links {
+			if child, err := link.GetNode(ctx, p.dserv); err == nil {
+				p.dserv.Remove(child)
+			}
+		}
+		p.dserv.Remove(p.rootNode)
+	}
+
+	p.rootNode = root
 	p.internalPin = internalPin
 	return nil
 }
