@@ -1,6 +1,7 @@
 #!/bin/sh
 
 PWD=$1
+EXPECTED=$2
 
 if [ -z "$PWD" ]; then
 	echo "must pass in your current working directory"
@@ -11,8 +12,6 @@ if [ -z "$GOPATH" ]; then
 	echo "GOPATH not set, you must have go configured properly to install ipfs"
 	exit 1
 fi
-
-EXPECTED="$GOPATH/src/github.com/ipfs/go-ipfs"
 
 if [ "$PWD" != "$EXPECTED" ]; then
 	echo "go-ipfs must be built from within your \$GOPATH directory."
