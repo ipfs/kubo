@@ -183,7 +183,7 @@ func (adder *Adder) Finalize() (*dag.Node, error) {
 	}
 
 	var name string
-	if !adder.Wrap {
+	if !adder.Wrap && len(rootNode.Links) == 1 {
 		name = rootNode.Links[0].Name
 
 		dir, ok := adder.mr.GetValue().(*mfs.Directory)
