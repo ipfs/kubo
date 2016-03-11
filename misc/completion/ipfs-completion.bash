@@ -299,7 +299,7 @@ _ipfs_refs_local()
 
 _ipfs_repo()
 {
-    _ipfs_comp "gc --help"
+    _ipfs_comp "gc stat --help"
 }
 
 _ipfs_repo_gc()

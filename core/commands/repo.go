@@ -4,11 +4,20 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
+
+type RepoStat struct {
+	repoPath  string
+	repoSize  uint64 // size in bytes
+	numBlocks uint64
+}
 
 var RepoCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -19,7 +28,8 @@ var RepoCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"gc": repoGcCmd,
+		"gc":   repoGcCmd,
+		"stat": repoStatCmd,
 	},
 }
 
@@ -92,6 +102,65 @@ order to reclaim hard disk space.
 				Marshaler: marshal,
 				Res:       res,
 			}, nil
+		},
+	},
+}
+
+var repoStatCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Print status of the local repo.",
+		ShortDescription: ``,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		ctx := req.Context()
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		usage, err := n.Repo.GetStorageUsage()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		allKeys, err := n.Blockstore.AllKeysChan(ctx)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		count := uint64(0)
+		for range allKeys {
+			count++
+		}
+
+		path, err := fsrepo.BestKnownPath()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&RepoStat{
+			repoPath:  path,
+			repoSize:  usage,
+			numBlocks: count,
+		})
+	},
+	Type: RepoStat{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			stat, ok := res.Output().(*RepoStat)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			out := fmt.Sprintf(
+				"Path: %s\nSize: %s\nBlocks: %d\n",
+				stat.repoPath, humanize.Bytes(stat.repoSize), stat.numBlocks)
+
+			return strings.NewReader(out), nil
 		},
 	},
 }
