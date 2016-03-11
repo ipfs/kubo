@@ -10,8 +10,10 @@ import (
 
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
@@ -95,6 +97,11 @@ Note: List all references recursively by using the flag '-r'.
 			return
 		}
 
+		ds := n.DAG
+		if cached {
+			ds = dag.NewDAGService(bserv.New(n.Blockstore, offline.Exchange(n.Blockstore)))
+		}
+
 		objs, err := objectsForPaths(ctx, n, req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -108,15 +115,15 @@ Note: List all references recursively by using the flag '-r'.
 			defer close(out)
 
 			rw := RefWriter{
-				out:        out,
-				DAG:        n.DAG,
-				Ctx:        ctx,
-				Blockstore: n.Blockstore,
-				Unique:     unique,
-				PrintEdge:  edges,
-				PrintFmt:   format,
-				Recursive:  recursive,
-				Cached:     cached,
+				out:       out,
+				DAG:       ds,
+				Ctx:       ctx,
+				Bstore:    n.Blockstore,
+				Unique:    unique,
+				PrintEdge: edges,
+				PrintFmt:  format,
+				Recursive: recursive,
+				Cached:    cached,
 			}
 
 			for _, o := range objs {
@@ -217,10 +224,10 @@ type RefWrapper struct {
 }
 
 type RefWriter struct {
-	out        chan interface{}
-	DAG        dag.DAGService
-	Ctx        context.Context
-	Blockstore blockstore.Blockstore
+	out    chan interface{}
+	DAG    dag.DAGService
+	Ctx    context.Context
+	Bstore blockstore.Blockstore
 
 	Unique    bool
 	Recursive bool
@@ -253,7 +260,7 @@ func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
 				continue
 			}
 
-			block, _ := rw.Blockstore.Get(lk)
+			block, _ := rw.Bstore.Get(lk)
 			cached := (block != nil)
 
 			if err := rw.WriteEdge(nkey, lk, link.Name, link.Size, cached); err != nil {
@@ -261,7 +268,7 @@ func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
 			}
 
 			if cached {
-				nd, err := dag.Decoded(block.Data)
+				nd, err := dag.DecodeProtobuf(block.Data)
 				if err != nil {
 					return count, err
 				}
