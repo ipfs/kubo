@@ -11,7 +11,7 @@ import (
 var CurrentCommit string
 
 // CurrentVersionNumber is the current application's version literal
-const CurrentVersionNumber = "0.4.0-dev"
+const CurrentVersionNumber = "0.4.0"
 
 const ApiVersion = "/go-ipfs/" + CurrentVersionNumber + "/"
 
