@@ -91,6 +91,16 @@ test_expect_success "log output looks good" '
 	grep "log API client connected" log_out
 '
 
+test_expect_success "GET /api/v0/version succeeds" '
+	curl -v "http://127.0.0.1:$apiport/api/v0/version" 2> version_out
+'
+
+test_expect_success "output only has one transfer encoding header" '
+	grep "Transfer-Encoding: chunked" version_out | wc -l > tecount_out &&
+	echo "       1" > tecount_exp &&
+	test_cmp tecount_out tecount_exp
+'
+
 test_expect_success "setup index hash" '
 	mkdir index &&
 	echo "<p></p>" > index/index.html &&
