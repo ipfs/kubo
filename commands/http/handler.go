@@ -41,19 +41,22 @@ var (
 )
 
 const (
-	StreamErrHeader        = "X-Stream-Error"
-	streamHeader           = "X-Stream-Output"
-	channelHeader          = "X-Chunked-Output"
-	uaHeader               = "User-Agent"
-	contentTypeHeader      = "Content-Type"
-	contentLengthHeader    = "Content-Length"
-	contentDispHeader      = "Content-Disposition"
-	transferEncodingHeader = "Transfer-Encoding"
-	applicationJson        = "application/json"
-	applicationOctetStream = "application/octet-stream"
-	plainText              = "text/plain"
-	originHeader           = "origin"
+	StreamErrHeader          = "X-Stream-Error"
+	streamHeader             = "X-Stream-Output"
+	channelHeader            = "X-Chunked-Output"
+	extraContentLengthHeader = "X-Content-Length"
+	uaHeader                 = "User-Agent"
+	contentTypeHeader        = "Content-Type"
+	contentDispHeader        = "Content-Disposition"
+	transferEncodingHeader   = "Transfer-Encoding"
+	applicationJson          = "application/json"
+	applicationOctetStream   = "application/octet-stream"
+	plainText                = "text/plain"
+	originHeader             = "origin"
 )
+
+var AllowedExposedHeadersArr = []string{streamHeader, channelHeader, extraContentLengthHeader}
+var AllowedExposedHeaders = strings.Join(AllowedExposedHeadersArr, ", ")
 
 const (
 	ACAOrigin      = "Access-Control-Allow-Origin"
@@ -241,7 +244,7 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	h.Set("Trailer", StreamErrHeader)
 
 	if res.Length() > 0 {
-		h.Set(contentLengthHeader, strconv.FormatUint(res.Length(), 10))
+		h.Set("X-Content-Length", strconv.FormatUint(res.Length(), 10))
 	}
 
 	if _, ok := res.Output().(io.Reader); ok {
@@ -268,12 +271,11 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	}
 
 	h.Set(contentTypeHeader, mime)
-	h.Set(transferEncodingHeader, "chunked")
 
 	// set 'allowed' headers
-	h.Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
+	h.Set("Access-Control-Allow-Headers", AllowedExposedHeaders)
 	// expose those headers
-	h.Set("Access-Control-Expose-Headers", "X-Stream-Output, X-Chunked-Output")
+	h.Set("Access-Control-Expose-Headers", AllowedExposedHeaders)
 
 	if r.Method == "HEAD" { // after all the headers.
 		return
