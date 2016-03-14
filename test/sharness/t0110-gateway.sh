@@ -96,8 +96,8 @@ test_expect_success "GET /api/v0/version succeeds" '
 '
 
 test_expect_success "output only has one transfer encoding header" '
-	grep "Transfer-Encoding: chunked" version_out | wc -l > tecount_out &&
-	echo "       1" > tecount_exp &&
+	grep "Transfer-Encoding: chunked" version_out | wc -l | xargs echo > tecount_out &&
+	echo "1" > tecount_exp &&
 	test_cmp tecount_out tecount_exp
 '
 
