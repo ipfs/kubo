@@ -35,6 +35,21 @@ type S3Datastore struct {
 	ACL    string `json:"acl"`
 }
 
+type FlatDS struct {
+	Path      string
+	PrefixLen int
+	Sync      bool
+}
+
+type LevelDB struct {
+	Path        string
+	Compression string
+}
+
+type MeasureDB struct {
+	Label string
+}
+
 // DataStorePath returns the default data store path given a configuration root
 // (set an empty string to have the default configuration root)
 func DataStorePath(configroot string) (string, error) {

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
@@ -20,6 +19,7 @@ import (
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	ma "gx/ipfs/QmSWLfmj5frN9xVLMMN846dMDriy5wN5jeghUm7aTW3DAG/go-multiaddr"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	util "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
@@ -355,13 +355,19 @@ func (r *FSRepo) openKeystore() error {
 func (r *FSRepo) openDatastore() error {
 	switch r.config.Datastore.Type {
 	case "default", "leveldb", "":
+		// TODO: This is for legacy configs, remove in the future
 		d, err := openDefaultDatastore(r)
 		if err != nil {
 			return err
 		}
 		r.ds = d
 	default:
-		return fmt.Errorf("unknown datastore type: %s", r.config.Datastore.Type)
+		d, err := openDatastore(r.config.Datastore.Type, r.config.Datastore.ParamData())
+		if err != nil {
+			return err
+		}
+
+		r.ds = d
 	}
 
 	// Wrap it with metrics gathering
