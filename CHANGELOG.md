@@ -17,7 +17,8 @@
   * Added command to view active api requests (@whyrusleeping)
   * Add flush command to ipfs files (@whyrusleeping)
   * Prevents 'ipfs name publish' when /ipns is mounted. (@noffle)
-  * introduce a low memory flag (@whyrusleeping)
+  * Introduce a low memory flag (@whyrusleeping)
+  * New version of the webui compatible with 0.4.0 (@dignifiedquire)
 * BugFixes
   * remove msgio double wrap (@jbenet)
   * buffer msgio (@whyrusleeping)
@@ -35,6 +36,7 @@
   * fix panic in cli arg parsing (@whyrusleeping)
   * Fixes range error by using > 0 length buffer. (@noffle)
   * Patch yamux hanging issue by increasing AcceptBacklog (@whyrusleeping)
+  * Fix double Transport-Encoding header bug (@whyrusleeping)
 * Tool Changes
   * Add a --pin option to `ipfs add` (allowing --pin=false) (@eminence)
   * ipfs files ls without -l is faster (@whyrusleeping)
