@@ -42,7 +42,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			Gateway:    "/ip4/127.0.0.1/tcp/8080",
 		},
 
-		Datastore: datastore,
+		Datastore: *datastore,
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
 		Identity:  identity,
 		Discovery: Discovery{MDNS{
@@ -79,19 +79,38 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	return conf, nil
 }
 
-func datastoreConfig() (Datastore, error) {
-	dspath, err := DataStorePath("")
-	if err != nil {
-		return Datastore{}, err
-	}
-	return Datastore{
-		Path:               dspath,
-		Type:               "leveldb",
+func datastoreConfig() (*Datastore, error) {
+	return &Datastore{
 		StorageMax:         "10GB",
 		StorageGCWatermark: 90, // 90%
 		GCPeriod:           "1h",
-		HashOnRead:         false,
 		BloomFilterSize:    0,
+		Spec: map[string]interface{}{
+			"type": "mount",
+			"mounts": []interface{}{
+				map[string]interface{}{
+					"mountpoint": "/blocks",
+					"type":       "measure",
+					"prefix":     "flatfs.datastore",
+					"child": map[string]interface{}{
+						"type":      "flatfs",
+						"path":      "blocks",
+						"nosync":    false,
+						"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+					},
+				},
+				map[string]interface{}{
+					"mountpoint": "/",
+					"type":       "measure",
+					"prefix":     "leveldb.datastore",
+					"child": map[string]interface{}{
+						"type":        "levelds",
+						"path":        "datastore",
+						"compression": "none",
+					},
+				},
+			},
+		},
 	}, nil
 }
 
