@@ -152,9 +152,15 @@ func defaultMux(path string) corehttp.ServeOption {
 	}
 }
 
+var fileDescriptorCheck = func() error { return nil }
+
 func daemonFunc(req cmds.Request, res cmds.Response) {
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
+
+	if err := fileDescriptorCheck(); err != nil {
+		log.Error("setting file descriptor limit: %s", err)
+	}
 
 	ctx := req.InvocContext()
 
