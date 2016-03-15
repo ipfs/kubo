@@ -28,7 +28,7 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pinned []key.Key
+	Pins []key.Key
 }
 
 var addPinCmd = &cmds.Command{
@@ -84,7 +84,7 @@ var addPinCmd = &cmds.Command{
 			}
 
 			buf := new(bytes.Buffer)
-			for _, k := range added.Pinned {
+			for _, k := range added.Pins {
 				fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
 			}
 			return buf, nil
@@ -138,7 +138,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 			}
 
 			buf := new(bytes.Buffer)
-			for _, k := range added.Pinned {
+			for _, k := range added.Pins {
 				fmt.Fprintf(buf, "unpinned %s\n", k)
 			}
 			return buf, nil
