@@ -31,14 +31,11 @@ func checkAndSetUlimit() error {
 	}
 
 	if rLimit.Cur < ipfsFileDescNum {
-		if rLimit.Max > ipfsFileDescNum {
-			fmt.Printf("Adjusting current ulimit to %d.\n", rLimit.Max)
-			rLimit.Cur = rLimit.Max
-		} else {
-			fmt.Printf("Adjusting current and maximum ulimit to %d.\n", ipfsFileDescNum)
-			rLimit.Cur = ipfsFileDescNum
+		if rLimit.Max < ipfsFileDescNum {
 			rLimit.Max = ipfsFileDescNum
 		}
+		fmt.Printf("Adjusting current ulimit to %d.\n", ipfsFileDescNum)
+		rLimit.Cur = ipfsFileDescNum
 	}
 
 	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
