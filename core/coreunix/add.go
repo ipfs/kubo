@@ -119,6 +119,7 @@ func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
 	)
 }
 
+// return the final root node of the added data
 func (adder *Adder) RootNode() (*dag.Node, error) {
 	// for memoizing
 	if adder.root != nil {
@@ -142,6 +143,7 @@ func (adder *Adder) RootNode() (*dag.Node, error) {
 	return root, err
 }
 
+// Pin or update the pinning of the root node
 func (adder *Adder) PinRoot() error {
 	root, err := adder.RootNode()
 	if err != nil {
@@ -205,6 +207,8 @@ func (adder *Adder) Finalize() (*dag.Node, error) {
 	return root.GetNode()
 }
 
+// outputDirs iterate over directories and sends dagnode info
+// over the output channel
 func (adder *Adder) outputDirs(path string, fs mfs.FSNode) error {
 	nd, err := fs.GetNode()
 	if err != nil {
@@ -257,7 +261,7 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 	return k.String(), nil
 }
 
-// AddR recursively adds files in |path|.
+// AddR recursively adds files in |root|.
 func AddR(n *core.IpfsNode, root string) (key string, err error) {
 	n.Blockstore.PinLock().Unlock()
 
@@ -327,6 +331,8 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 	return gopath.Join(k.String(), filename), dagnode, nil
 }
 
+// insert the node in the mutable fs
+// sends dagnode info over the output channel
 func (adder *Adder) addNode(node *dag.Node, path string) error {
 	// patch it into the root
 	if path == "" {
@@ -356,6 +362,7 @@ func (adder *Adder) addNode(node *dag.Node, path string) error {
 }
 
 // Add the given file while respecting the adder.
+// sends dagnode info over the output channel
 func (adder *Adder) AddFile(file files.File) error {
 	adder.unlocker = adder.node.Blockstore.PinLock()
 	defer func() {
@@ -365,6 +372,8 @@ func (adder *Adder) AddFile(file files.File) error {
 	return adder.addFile(file)
 }
 
+// store the file/dir in the datastore
+// sends dagnode info over the output channel
 func (adder *Adder) addFile(file files.File) error {
 	err := adder.maybePauseForGC()
 	if err != nil {
@@ -408,6 +417,8 @@ func (adder *Adder) addFile(file files.File) error {
 	return adder.addNode(dagnode, file.FileName())
 }
 
+// store the directory in the datastore throught the mutable fs
+// sends dagnode info over the output channel
 func (adder *Adder) addDir(dir files.File) error {
 	log.Infof("adding directory: %s", dir.FileName())
 
