@@ -41,7 +41,7 @@ trip latency information.
 		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("count", "n", "Number of ping messages to send."),
+		cmds.IntOption("count", "n", "Number of ping messages to send.").Default(10),
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -99,15 +99,10 @@ trip latency information.
 			n.Peerstore.AddAddr(peerID, addr, peer.TempAddrTTL) // temporary
 		}
 
-		// Set up number of pings
-		numPings := 10
-		val, found, err := req.Option("count").Int()
+		numPings, _, err := req.Option("count").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
-		}
-		if found {
-			numPings = val
 		}
 
 		outChan := pingPeer(ctx, n, peerID, numPings)

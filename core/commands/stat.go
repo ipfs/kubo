@@ -33,10 +33,10 @@ var statBwCmd = &cmds.Command{
 		ShortDescription: ``,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("peer", "p", "Specify a peer to print bandwidth for."),
-		cmds.StringOption("proto", "t", "Specify a protocol to print bandwidth for."),
-		cmds.BoolOption("poll", "Print bandwidth at an interval. Default: false."),
-		cmds.StringOption("interval", "i", "Time interval to wait between updating output, if 'poll' is true."),
+		cmds.StringOption("peer", "p", "Specify a peer to print bandwidth for. Defaults to overall bandwidth."),
+		cmds.StringOption("proto", "t", "Specify a protocol to print bandwidth for. Defaults to all protocols."),
+		cmds.BoolOption("poll", "Print bandwidth at an interval.").Default(false),
+		cmds.StringOption("interval", "i", "Time interval to wait between updating output, if 'poll' is true.").Default("1s"),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -79,19 +79,17 @@ var statBwCmd = &cmds.Command{
 		}
 
 		interval := time.Second
-		timeS, found, err := req.Option("interval").String()
+		timeS, _, err := req.Option("interval").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if found {
-			v, err := time.ParseDuration(timeS)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			interval = v
+		v, err := time.ParseDuration(timeS)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
+		interval = v
 
 		doPoll, _, err := req.Option("poll").Bool()
 		if err != nil {

@@ -43,7 +43,7 @@ var queryDhtCmd = &cmds.Command{
 		cmds.StringArg("peerID", true, true, "The peerID to run the query against."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write debug information."),
+		cmds.BoolOption("verbose", "v", "Write extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -135,7 +135,7 @@ var findProvidersDhtCmd = &cmds.Command{
 		cmds.StringArg("key", true, true, "The key to find providers for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write debug information."),
+		cmds.BoolOption("verbose", "v", "Write extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -339,7 +339,7 @@ There may be several different values for a given key stored in the DHT; in this
 		cmds.StringArg("key", true, true, "The key to find a value for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write debug information."),
+		cmds.BoolOption("verbose", "v", "Write extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -451,7 +451,7 @@ NOTE: a value may NOT exceed 2048 bytes.
 		cmds.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write debug information."),
+		cmds.BoolOption("verbose", "v", "Write extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

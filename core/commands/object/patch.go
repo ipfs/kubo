@@ -247,7 +247,7 @@ a file containing 'bar', and returns the hash of the new object.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "create", "Create intermediary nodes."),
+		cmds.BoolOption("p", "create", "Create intermediary nodes.").Default(false),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "The hash of the node to modify."),
