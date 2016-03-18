@@ -35,7 +35,6 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", fmt.Sprintf("Number of bits to use in the generated RSA private key (defaults to %d)", nBitsForKeypairDefault)),
-		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)."),
 		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage."),
 
 		// TODO need to decide whether to expose the override as a file or a
@@ -64,12 +63,6 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 			return
 		}
 
-		force, _, err := req.Option("f").Bool() // if !found, it's okay force == false
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
 		empty, _, err := req.Option("e").Bool() // if !empty, it's okay empty == false
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -86,7 +79,7 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, force, empty, nBitsForKeypair); err != nil {
+		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, empty, nBitsForKeypair); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -95,14 +88,13 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 
 var errRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
-(use -f to force overwrite)
 `)
 
 func initWithDefaults(out io.Writer, repoRoot string) error {
-	return doInit(out, repoRoot, false, false, nBitsForKeypairDefault)
+	return doInit(out, repoRoot, false, nBitsForKeypairDefault)
 }
 
-func doInit(out io.Writer, repoRoot string, force bool, empty bool, nBitsForKeypair int) error {
+func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int) error {
 	if _, err := fmt.Fprintf(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -111,19 +103,13 @@ func doInit(out io.Writer, repoRoot string, force bool, empty bool, nBitsForKeyp
 		return err
 	}
 
-	if fsrepo.IsInitialized(repoRoot) && !force {
+	if fsrepo.IsInitialized(repoRoot) {
 		return errRepoExists
 	}
 
 	conf, err := config.Init(out, nBitsForKeypair)
 	if err != nil {
 		return err
-	}
-
-	if fsrepo.IsInitialized(repoRoot) {
-		if err := fsrepo.Remove(repoRoot); err != nil {
-			return err
-		}
 	}
 
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
