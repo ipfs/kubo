@@ -143,7 +143,7 @@ func (m *Message) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"message": map[string]string{
 			"type": m.Type.String(),
-			"key":  key.Key(m.GetKey()).Pretty(),
+			"key":  key.Key(m.GetKey()).B58String(),
 		},
 	}
 }

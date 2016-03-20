@@ -241,7 +241,7 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			continue
 		}
 		ent := fuse.Dirent{
-			Name: key.Key(hash).Pretty(),
+			Name: key.Key(hash).B58String(),
 			Type: fuse.DT_Dir,
 		}
 		link := fuse.Dirent{

@@ -171,7 +171,7 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	// setup our logging event
 	lm := make(lgbl.DeferredMap)
 	lm["fs"] = "ipfs"
-	lm["key"] = func() interface{} { return k.Pretty() }
+	lm["key"] = func() interface{} { return k.B58String() }
 	lm["req_offset"] = req.Offset
 	lm["req_size"] = req.Size
 	defer log.EventBegin(ctx, "fuseRead", lm).Done()
