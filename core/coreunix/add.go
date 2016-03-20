@@ -323,7 +323,7 @@ func (adder *Adder) addNode(node *dag.Node, path string) error {
 			return err
 		}
 
-		path = key.Pretty()
+		path = key.B58String()
 	}
 
 	dir := gopath.Dir(path)
@@ -479,7 +479,7 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 	}
 
 	output := &Object{
-		Hash:  key.Pretty(),
+		Hash:  key.B58String(),
 		Links: make([]Link, len(dagnode.Links)),
 	}
 

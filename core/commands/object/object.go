@@ -550,7 +550,7 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 	}
 
 	output := &Object{
-		Hash:  key.Pretty(),
+		Hash:  key.B58String(),
 		Links: make([]Link, len(dagnode.Links)),
 	}
 

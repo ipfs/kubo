@@ -210,7 +210,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 	key := key.Key(pmes.GetKey())
-	lm["key"] = func() interface{} { return key.Pretty() }
+	lm["key"] = func() interface{} { return key.B58String() }
 
 	// debug logging niceness.
 	reqDesc := fmt.Sprintf("%s handleGetProviders(%s, %s): ", dht.self, p, key)
@@ -254,7 +254,7 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 
 	defer log.EventBegin(ctx, "handleAddProvider", lm).Done()
 	key := key.Key(pmes.GetKey())
-	lm["key"] = func() interface{} { return key.Pretty() }
+	lm["key"] = func() interface{} { return key.B58String() }
 
 	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, key)
 

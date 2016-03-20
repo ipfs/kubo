@@ -173,7 +173,7 @@ func (m *impl) ToNet(w io.Writer) error {
 func (m *impl) Loggable() map[string]interface{} {
 	var blocks []string
 	for _, v := range m.blocks {
-		blocks = append(blocks, v.Key().Pretty())
+		blocks = append(blocks, v.Key().B58String())
 	}
 	return map[string]interface{}{
 		"blocks": blocks,
