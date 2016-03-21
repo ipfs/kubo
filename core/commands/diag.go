@@ -62,7 +62,7 @@ connected peers and latencies between them.
 The given timeout will be decremented 2s at every network hop, 
 ensuring peers try to return their diagnostics before the initiator's 
 timeout. If the timeout is too small, some peers may not be reached.
-30s and 60s are reasonable timeout values, though network vary.
+30s and 60s are reasonable timeout values, though networks vary.
 The default timeout is 20 seconds.
 
 The 'vis' option may be used to change the output format.
