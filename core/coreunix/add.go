@@ -8,12 +8,7 @@ import (
 	"os"
 	gopath "path"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
-	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
-	"github.com/ipfs/go-ipfs/exchange/offline"
 	importer "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	mfs "github.com/ipfs/go-ipfs/mfs"
@@ -474,13 +469,6 @@ func outputDagnode(out chan interface{}, name string, dn *dag.Node) error {
 	}
 
 	return nil
-}
-
-func NewMemoryDagService() dag.DAGService {
-	// build mem-datastore for editor's intermediary nodes
-	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-	bsrv := bserv.New(bs, offline.Exchange(bs))
-	return dag.NewDAGService(bsrv)
 }
 
 // TODO: generalize this to more than unix-fs nodes.
