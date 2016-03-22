@@ -15,7 +15,7 @@ setup_iptb() {
 	bound=$(expr "$num_nodes" - 1)
 
 	test_expect_success "iptb init" '
-		iptb init -n$num_nodes --bootstrap none --port 0
+		iptb init -n $num_nodes --bootstrap none --port 0
 	'
 
 	for i in $(test_seq 0 "$bound")
