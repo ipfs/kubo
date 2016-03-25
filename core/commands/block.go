@@ -65,7 +65,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 		}
 
 		res.SetOutput(&BlockStat{
-			Key:  b.Key().Pretty(),
+			Key:  b.Key().B58String(),
 			Size: len(b.Data),
 		})
 	},
