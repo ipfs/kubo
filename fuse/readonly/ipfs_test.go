@@ -24,7 +24,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	ci "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util/testutil/ci"
+	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
