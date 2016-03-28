@@ -13,7 +13,7 @@ ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentVersionNumber=$(VERSI
 MAKEFLAGS += --no-print-directory
 
 
-export IPFS_API = v04x.ipfs.io
+export IPFS_API ?= v04x.ipfs.io
 
 all: help
 
