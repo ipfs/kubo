@@ -17,9 +17,10 @@ type Gateway struct {
 }
 
 type GatewayConfig struct {
-	Headers   map[string][]string
-	BlockList *BlockList
-	Writable  bool
+	Headers      map[string][]string
+	BlockList    *BlockList
+	Writable     bool
+	PathPrefixes []string
 }
 
 func NewGateway(conf GatewayConfig) *Gateway {
@@ -48,10 +49,11 @@ func (g *Gateway) ServeOption() ServeOption {
 	}
 }
 
-func GatewayOption(writable bool) ServeOption {
+func GatewayOption(writable bool, prefixes []string) ServeOption {
 	g := NewGateway(GatewayConfig{
-		Writable:  writable,
-		BlockList: &BlockList{},
+		Writable:     writable,
+		BlockList:    &BlockList{},
+		PathPrefixes: prefixes,
 	})
 	return g.ServeOption()
 }
