@@ -362,7 +362,7 @@ func (r *FSRepo) openDatastore() error {
 		}
 		r.ds = d
 	default:
-		d, err := openDatastore(r.config.Datastore.Type, r.config.Datastore.ParamData())
+		d, err := r.constructDatastore(r.config.Datastore.Type, r.config.Datastore.ParamData())
 		if err != nil {
 			return err
 		}
