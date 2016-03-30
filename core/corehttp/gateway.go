@@ -8,7 +8,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	id "gx/ipfs/QmNefBbWHR9JEiP3KDVqZsBLQVRmH3GBG2D2Ke24SsFqfW/go-libp2p/p2p/protocol/identify"
+	id "gx/ipfs/QmSN2ELGRp4T9kjqiSsSNJRUeR9JKXzQEgwe1HH3tdSGbC/go-libp2p/p2p/protocol/identify"
 )
 
 // Gateway should be instantiated using NewGateway
