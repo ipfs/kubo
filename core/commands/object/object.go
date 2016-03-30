@@ -216,16 +216,26 @@ This command outputs data in the following encodings:
 	Type: Node{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Protobuf: func(res cmds.Response) (io.Reader, error) {
-			node := res.Output().(*Node)
-			// deserialize the Data field as text as this was the standard behaviour
-			object, err := deserializeNode(node, "text")
-			if err != nil {
-				return nil, err
-			}
+			var marshaled []byte
 
-			marshaled, err := object.Marshal()
-			if err != nil {
-				return nil, err
+			if res.Error() != nil {
+				output, err := json.Marshal(res.Error())
+				if err != nil {
+					return nil, err
+				}
+				marshaled = append(output, '\n')
+			} else {
+				node := res.Output().(*Node)
+				// deserialize the Data field as text as this was the standard behaviour
+				object, err := deserializeNode(node, "text")
+				if err != nil {
+					return nil, err
+				}
+				output, err := object.Marshal()
+				if err != nil {
+					return nil, err
+				}
+				marshaled = output
 			}
 			return bytes.NewReader(marshaled), nil
 		},

@@ -71,6 +71,10 @@ var mimeTypes = map[string]string{
 	cmds.Text:     "text/plain",
 }
 
+var errorMimeTypes = map[string]string{
+	cmds.Protobuf: "application/json",
+}
+
 type ServerConfig struct {
 	// Headers is an optional map of headers that is written out.
 	Headers map[string][]string
@@ -204,6 +208,12 @@ func guessMimeType(res cmds.Response) (string, error) {
 	}
 	if !found {
 		return "", errors.New("no encoding option set")
+	}
+
+	if res.Error() != nil {
+		if m, ok := errorMimeTypes[enc]; ok {
+			return m, nil
+		}
 	}
 
 	if m, ok := mimeTypes[enc]; ok {
