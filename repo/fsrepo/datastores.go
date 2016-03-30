@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
 
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	mount "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/syncmount"
@@ -16,70 +15,40 @@ import (
 	"gx/ipfs/Qmbx2KUs8mUbDUiiESzC1ms7mdmh4pRu8X1V1tffC46M4n/go-ds-flatfs"
 )
 
-func (r *FSRepo) constructDatastore(kind string, params []byte) (repo.Datastore, error) {
-	switch kind {
+func (r *FSRepo) constructDatastore(params map[string]interface{}) (repo.Datastore, error) {
+	switch params["type"] {
 	case "mount":
-		var mounts []*mountConfig
-		if err := json.Unmarshal(params, &mounts); err != nil {
-			return nil, fmt.Errorf("datastore mount: %v", err)
+		mounts, ok := params["mounts"].([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("mounts field wasnt an array")
 		}
 
 		return r.openMountDatastore(mounts)
 	case "flatfs":
-		var flatfsparams config.FlatDS
-		if err := json.Unmarshal(params, &flatfsparams); err != nil {
-			return nil, fmt.Errorf("datastore flatfs: %v", err)
-		}
-
-		return r.openFlatfsDatastore(&flatfsparams)
+		return r.openFlatfsDatastore(params)
 	case "mem":
 		return ds.NewMapDatastore(), nil
 	case "log":
-		var cfg struct {
-			Name      string
-			ChildType string
-			Child     *json.RawMessage
-		}
-
-		if err := json.Unmarshal(params, &cfg); err != nil {
-			return nil, fmt.Errorf("datastore measure: %v", err)
-		}
-
-		child, err := r.constructDatastore(cfg.ChildType, []byte(*cfg.Child))
+		child, err := r.constructDatastore(params["child"].(map[string]interface{}))
 		if err != nil {
 			return nil, err
 		}
 
-		return ds.NewLogDatastore(child, cfg.Name), nil
-
+		return ds.NewLogDatastore(child, params["name"].(string)), nil
 	case "measure":
-		var measureOpts struct {
-			Prefix    string
-			ChildType string
-			Child     *json.RawMessage
-		}
-
-		if err := json.Unmarshal(params, &measureOpts); err != nil {
-			return nil, fmt.Errorf("datastore measure: %v", err)
-		}
-
-		child, err := r.constructDatastore(measureOpts.ChildType, []byte(*measureOpts.Child))
+		child, err := r.constructDatastore(params["child"].(map[string]interface{}))
 		if err != nil {
 			return nil, err
 		}
 
-		return r.openMeasureDB(measureOpts.Prefix, child)
+		prefix := params["prefix"].(string)
+
+		return r.openMeasureDB(prefix, child)
 
 	case "levelds":
-		var c config.LevelDB
-		if err := json.Unmarshal(params, &c); err != nil {
-			return nil, fmt.Errorf("datastore levelds: %v", err)
-		}
-
-		return r.openLeveldbDatastore(&c)
-
+		return r.openLeveldbDatastore(params)
 	default:
-		return nil, fmt.Errorf("unknown datastore type: %s", kind)
+		return nil, fmt.Errorf("unknown datastore type: %s", params["type"])
 	}
 }
 
@@ -89,40 +58,48 @@ type mountConfig struct {
 	Child     *json.RawMessage
 }
 
-func (r *FSRepo) openMountDatastore(mountcfg []*mountConfig) (repo.Datastore, error) {
+func (r *FSRepo) openMountDatastore(mountcfg []interface{}) (repo.Datastore, error) {
 	var mounts []mount.Mount
-	for _, cfg := range mountcfg {
+	for _, iface := range mountcfg {
+		cfg := iface.(map[string]interface{})
 
-		child, err := r.constructDatastore(cfg.ChildType, []byte(*cfg.Child))
+		child, err := r.constructDatastore(cfg)
 		if err != nil {
 			return nil, err
 		}
 
+		prefix, found := cfg["mountpoint"]
+		if !found {
+			return nil, fmt.Errorf("no 'mountpoint' on mount")
+		}
+
 		mounts = append(mounts, mount.Mount{
 			Datastore: child,
-			Prefix:    ds.NewKey(cfg.Path),
+			Prefix:    ds.NewKey(prefix.(string)),
 		})
 	}
 
 	return mount.New(mounts), nil
 }
 
-func (r *FSRepo) openFlatfsDatastore(params *config.FlatDS) (repo.Datastore, error) {
-	p := params.Path
+func (r *FSRepo) openFlatfsDatastore(params map[string]interface{}) (repo.Datastore, error) {
+	p := params["path"].(string)
 	if !filepath.IsAbs(p) {
 		p = filepath.Join(r.path, p)
 	}
-	return flatfs.New(p, params.PrefixLen, params.Sync)
+
+	plen := int(params["prefixLen"].(float64))
+	return flatfs.New(p, plen, params["nosync"].(bool))
 }
 
-func (r *FSRepo) openLeveldbDatastore(params *config.LevelDB) (repo.Datastore, error) {
-	p := params.Path
+func (r *FSRepo) openLeveldbDatastore(params map[string]interface{}) (repo.Datastore, error) {
+	p := params["path"].(string)
 	if !filepath.IsAbs(p) {
 		p = filepath.Join(r.path, p)
 	}
 
 	var c ldbopts.Compression
-	switch params.Compression {
+	switch params["compression"].(string) {
 	case "none":
 		c = ldbopts.NoCompression
 	case "snappy":

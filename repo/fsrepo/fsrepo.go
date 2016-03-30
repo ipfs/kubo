@@ -353,20 +353,19 @@ func (r *FSRepo) openKeystore() error {
 
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
-	switch r.config.Datastore.Type {
-	case "default", "leveldb", "":
+	if r.config.Datastore.Spec != nil {
+		d, err := r.constructDatastore(r.config.Datastore.Spec)
+		if err != nil {
+			return err
+		}
+
+		r.ds = d
+	} else {
 		// TODO: This is for legacy configs, remove in the future
 		d, err := openDefaultDatastore(r)
 		if err != nil {
 			return err
 		}
-		r.ds = d
-	default:
-		d, err := r.constructDatastore(r.config.Datastore.Type, r.config.Datastore.ParamData())
-		if err != nil {
-			return err
-		}
-
 		r.ds = d
 	}
 
