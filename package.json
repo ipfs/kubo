@@ -9,7 +9,7 @@
     },
     {
       "name": "go-libp2p",
-      "hash": "QmNefBbWHR9JEiP3KDVqZsBLQVRmH3GBG2D2Ke24SsFqfW",
+      "hash": "QmSN2ELGRp4T9kjqiSsSNJRUeR9JKXzQEgwe1HH3tdSGbC",
       "version": "1.0.0"
     },
     {
@@ -34,6 +34,7 @@
     }
   ],
   "language": "go",
-  "issues_url": "https://github.com/ipfs/go-ipfs",
-  "gx_version": "0.4.0"
+  "license": "",
+  "bugs": "",
+  "gxVersion": "0.4.0"
 }
