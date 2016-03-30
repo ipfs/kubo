@@ -36,9 +36,10 @@ type EncodingType string
 
 // Supported EncodingType constants.
 const (
-	JSON = "json"
-	XML  = "xml"
-	Text = "text"
+	JSON     = "json"
+	XML      = "xml"
+	Protobuf = "protobuf"
+	Text     = "text"
 	// TODO: support more encoding types
 )
 

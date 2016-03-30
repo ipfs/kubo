@@ -222,7 +222,7 @@ This command outputs data in the following encodings:
 	},
 	Type: Node{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.EncodingType("protobuf"): func(res cmds.Response) (io.Reader, error) {
+		cmds.Protobuf: func(res cmds.Response) (io.Reader, error) {
 			node := res.Output().(*Node)
 			object, err := deserializeNode(node)
 			if err != nil {

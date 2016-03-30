@@ -65,9 +65,10 @@ const (
 )
 
 var mimeTypes = map[string]string{
-	cmds.JSON: "application/json",
-	cmds.XML:  "application/xml",
-	cmds.Text: "text/plain",
+	cmds.Protobuf: "application/protobuf",
+	cmds.JSON:     "application/json",
+	cmds.XML:      "application/xml",
+	cmds.Text:     "text/plain",
 }
 
 type ServerConfig struct {
