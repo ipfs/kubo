@@ -13,11 +13,6 @@ import (
 
 var log = logging.Logger("core/commands")
 
-type TestOutput struct {
-	Foo string
-	Bar int
-}
-
 const (
 	ApiOption = "api"
 )
