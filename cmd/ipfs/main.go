@@ -455,10 +455,11 @@ func isClientError(err error) bool {
 }
 
 func getRepoPath(req cmds.Request) (string, error) {
-	repoOpt, found, err := req.Option("config").String()
+	repoOpt, found, err := req.Option("repo").String()
 	if err != nil {
 		return "", err
 	}
+
 	if found && repoOpt != "" {
 		return repoOpt, nil
 	}
@@ -467,6 +468,7 @@ func getRepoPath(req cmds.Request) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return repoPath, nil
 }
 

@@ -121,6 +121,26 @@ test_expect_success "clean up ipfs dir" '
 	rm -rf "$IPFS_PATH"
 '
 
+test_expect_success "'ipfs init --repo' succeeds" '
+	BITS="1024" &&
+	ipfs init --bits="$BITS" --repo="$(pwd)/.ipfs2" >actual_init
+'
+
+test_expect_success "'ipfs init --repo' output looks good" '
+  export IPFS_PATH=$(pwd)/.ipfs2 &&
+	PEERID=$(ipfs config Identity.PeerID) &&
+	echo "initializing ipfs node at $(pwd)/.ipfs2" >expected &&
+	echo "generating $BITS-bit RSA keypair...done" >>expected &&
+	echo "peer identity: $PEERID" >>expected &&
+	echo "to get started, enter:" >>expected &&
+	printf "\\n\\t$STARTFILE\\n\\n" >>expected &&
+	test_cmp expected actual_init
+'
+
+test_expect_success "clean up ipfs dir" '
+	rm -rf "$IPFS_PATH"
+'
+
 test_init_ipfs
 
 test_launch_ipfs_daemon
