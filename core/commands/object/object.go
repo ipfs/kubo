@@ -373,7 +373,7 @@ And then run:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		
+
 		output, err := objectPut(n, input, inputenc, datafieldenc)
 		if err != nil {
 			errType := cmds.ErrNormal
@@ -577,10 +577,13 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 // converts the Node object into a real dag.Node
 func deserializeNode(node *Node, dataFieldEncoding string) (*dag.Node, error) {
 	dagnode := new(dag.Node)
-	if dataFieldEncoding == "text" {
+	switch dataFieldEncoding {
+	case "text":
 		dagnode.Data = []byte(node.Data)
-	} else {
+	case "base64":
 		dagnode.Data, _ = base64.StdEncoding.DecodeString(node.Data)
+	default:
+		return nil, fmt.Errorf("Unkown data field encoding")
 	}
 
 	dagnode.Links = make([]*dag.Link, len(node.Links))
