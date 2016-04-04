@@ -65,6 +65,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		Gateway: Gateway{
 			RootRedirect: "",
 			Writable:     false,
+			PathPrefixes: []string{},
 		},
 	}
 

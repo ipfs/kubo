@@ -448,7 +448,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(writable),
+		corehttp.GatewayOption(writable, cfg.Gateway.PathPrefixes),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

@@ -98,7 +98,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, *core
 		ts.Listener,
 		VersionOption(),
 		IPNSHostnameOption(),
-		GatewayOption(false),
+		GatewayOption(false, []string{"/good-prefix"}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -227,7 +227,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Host = "example.net"
-	req.Header.Set("X-Ipfs-Gateway-Prefix", "/prefix")
+	req.Header.Set("X-Ipfs-Gateway-Prefix", "/good-prefix")
 
 	res, err = doWithoutRedirect(req)
 	if err != nil {
@@ -241,8 +241,8 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	hdr = res.Header["Location"]
 	if len(hdr) < 1 {
 		t.Errorf("location header not present")
-	} else if hdr[0] != "/prefix/foo/" {
-		t.Errorf("location header is %v, expected /prefix/foo/", hdr[0])
+	} else if hdr[0] != "/good-prefix/foo/" {
+		t.Errorf("location header is %v, expected /good-prefix/foo/", hdr[0])
 	}
 }
 
@@ -387,7 +387,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Host = "example.net"
-	req.Header.Set("X-Ipfs-Gateway-Prefix", "/prefix")
+	req.Header.Set("X-Ipfs-Gateway-Prefix", "/good-prefix")
 
 	res, err = doWithoutRedirect(req)
 	if err != nil {
@@ -402,13 +402,57 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /prefix") {
+	if !strings.Contains(s, "Index of /good-prefix") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/prefix/\">") {
+	if !strings.Contains(s, "<a href=\"/good-prefix/\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/prefix/file.txt\">") {
+	if !strings.Contains(s, "<a href=\"/good-prefix/file.txt\">") {
+		t.Fatalf("expected file in directory listing")
+	}
+
+	// make request to directory listing with illegal prefix
+	req, err = http.NewRequest("GET", ts.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+	req.Header.Set("X-Ipfs-Gateway-Prefix", "/bad-prefix")
+
+	res, err = doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// make request to directory listing with evil prefix
+	req, err = http.NewRequest("GET", ts.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+	req.Header.Set("X-Ipfs-Gateway-Prefix", "//good-prefix/foo")
+
+	res, err = doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// expect correct backlinks without illegal prefix
+	body, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("error reading response: %s", err)
+	}
+	s = string(body)
+	t.Logf("body: %s\n", string(body))
+
+	if !strings.Contains(s, "Index of /") {
+		t.Fatalf("expected a path in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/\">") {
+		t.Fatalf("expected backlink in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
 	}
 }
