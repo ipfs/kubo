@@ -344,7 +344,7 @@ And then run:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\"."),
-		cmds.StringOption("datafieldenc", "Encoding type of the data field, either \"text\" or \"base64\"."),
+		cmds.StringOption("datafieldenc", "Encoding type of the data field, either \"text\" or \"base64\".").Default("text"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -373,10 +373,7 @@ And then run:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if !found {
-			datafieldenc = "text"
-		}
-
+		
 		output, err := objectPut(n, input, inputenc, datafieldenc)
 		if err != nil {
 			errType := cmds.ErrNormal
