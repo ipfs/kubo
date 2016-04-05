@@ -5,8 +5,11 @@ else
   go_test=go test
 endif
 
-COMMIT := $(shell git rev-parse --short HEAD)
-ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
+VERSION := $(shell bin/genversion --version)
+COMMIT := $(shell bin/genversion --commit)
+ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentVersionNumber=$(VERSION) \
+-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
+
 MAKEFLAGS += --no-print-directory
 
 
@@ -59,8 +62,11 @@ clean:
 uninstall:
 	cd cmd/ipfs && go clean -i -ldflags=$(ldflags)
 
+docker:
+	docker build --build-arg IPFS_VERSION=$(VERSION) .
+
 PHONY += all help godep toolkit_upgrade gx_upgrade gxgo_upgrade gx_check
-PHONY += go_check deps vendor install build nofuse clean uninstall
+PHONY += go_check deps vendor install build nofuse clean uninstall docker
 
 ##############################################################
 # tests targets

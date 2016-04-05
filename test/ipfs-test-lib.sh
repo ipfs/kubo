@@ -48,7 +48,17 @@ shellquote() {
 
 # This takes a Dockerfile, and a build context directory
 docker_build() {
-    docker build --rm -f "$1" "$2"
+    ipfs_version=$($2/bin/genversion --version)
+
+    # Workaround for docker < 1.9
+    if test "$TRAVIS" = true
+    then
+        cat "$1" | sed "s/^ARG IPFS_VERSION.*/ENV IPFS_VERSION=$ipfs_version/" > "$1.travis"
+        docker build --rm -f "$1.travis" "$2"
+        rm "$1.travis"
+    else
+        docker build --rm --build-arg IPFS_VERSION=$ipfs_version -f "$1" "$2"
+    fi
 }
 
 # This takes an image as argument and writes a docker ID on stdout

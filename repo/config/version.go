@@ -7,13 +7,15 @@ import (
 	"time"
 )
 
+// CurrentVersionNumber and CurrentCommit are normally set via ldflags -X
+
 // CurrentCommit is the current git commit, this is set as a ldflag in the Makefile
 var CurrentCommit string
 
 // CurrentVersionNumber is the current application's version literal
-const CurrentVersionNumber = "0.4.0-dev"
+var CurrentVersionNumber = "0.0.0-dev"
 
-const ApiVersion = "/go-ipfs/" + CurrentVersionNumber + "/"
+var ApiVersion = "/go-ipfs/" + CurrentVersionNumber + "/"
 
 // Version regulates checking if the most recent version is run
 type Version struct {
