@@ -106,6 +106,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"swarm":     SwarmCmd,
 	"tar":       TarCmd,
 	"tour":      tourCmd,
+	"torch":     TorchCmd,
 	"file":      unixfs.UnixFSCmd,
 	"update":    ExternalBinary(),
 	"version":   VersionCmd,

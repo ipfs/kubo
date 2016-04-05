@@ -17,7 +17,9 @@ import (
 	"time"
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
+	pubsub "github.com/ipfs/go-libp2p-pubsub"
 	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	mamask "gx/ipfs/QmPwfFAHUmvWDucLHRS9Xz2Kb1TNX2cY4LJ7pQjg9kVcae/multiaddr-filter"
 	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
@@ -111,6 +113,7 @@ type IpfsNode struct {
 	Ping         *ping.PingService
 	Reprovider   *rp.Reprovider // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
+	PubSub       *pubsub.TopicManager
 
 	proc goprocess.Process
 	ctx  context.Context
@@ -162,6 +165,8 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	if err := n.startOnlineServicesWithHost(ctx, peerhost, routingOption); err != nil {
 		return err
 	}
+
+	n.PubSub = pubsub.NewTopicManager(peerhost)
 
 	// Ok, now we're ready to listen.
 	if err := startListening(ctx, n.PeerHost, cfg); err != nil {
