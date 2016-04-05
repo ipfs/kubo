@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"text/tabwriter"
+	"encoding/base64"
 
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 
@@ -224,7 +225,8 @@ This command outputs data in the following encodings:
 	Marshalers: cmds.MarshalerMap{
 		cmds.EncodingType("protobuf"): func(res cmds.Response) (io.Reader, error) {
 			node := res.Output().(*Node)
-			object, err := deserializeNode(node)
+			// deserialize the Data field as text as this was the standard behaviour
+			object, err := deserializeNode(node, "text")
 			if err != nil {
 				return nil, err
 			}
@@ -342,6 +344,7 @@ And then run:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\"."),
+		cmds.StringOption("datafieldenc", "Encoding type of the data field, either \"text\" or \"base64\".").Default("text"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -365,7 +368,13 @@ And then run:
 			inputenc = "json"
 		}
 
-		output, err := objectPut(n, input, inputenc)
+		datafieldenc, found, err := req.Option("datafieldenc").String()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		output, err := objectPut(n, input, inputenc, datafieldenc)
 		if err != nil {
 			errType := cmds.ErrNormal
 			if err == ErrUnknownObjectEnc {
@@ -454,7 +463,7 @@ func nodeFromTemplate(template string) (*dag.Node, error) {
 var ErrEmptyNode = errors.New("no data or links in this node")
 
 // objectPut takes a format option, serializes bytes from stdin and updates the dag with that data
-func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, error) {
+func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEncoding string) (*Object, error) {
 
 	data, err := ioutil.ReadAll(io.LimitReader(input, inputLimit+10))
 	if err != nil {
@@ -480,7 +489,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 			return nil, ErrEmptyNode
 		}
 
-		dagnode, err = deserializeNode(node)
+		dagnode, err = deserializeNode(node, dataFieldEncoding)
 		if err != nil {
 			return nil, err
 		}
@@ -501,7 +510,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 			return nil, ErrEmptyNode
 		}
 
-		dagnode, err = deserializeNode(node)
+		dagnode, err = deserializeNode(node, dataFieldEncoding)
 		if err != nil {
 			return nil, err
 		}
@@ -566,9 +575,17 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 }
 
 // converts the Node object into a real dag.Node
-func deserializeNode(node *Node) (*dag.Node, error) {
+func deserializeNode(node *Node, dataFieldEncoding string) (*dag.Node, error) {
 	dagnode := new(dag.Node)
-	dagnode.Data = []byte(node.Data)
+	switch dataFieldEncoding {
+	case "text":
+		dagnode.Data = []byte(node.Data)
+	case "base64":
+		dagnode.Data, _ = base64.StdEncoding.DecodeString(node.Data)
+	default:
+		return nil, fmt.Errorf("Unkown data field encoding")
+	}
+
 	dagnode.Links = make([]*dag.Link, len(node.Links))
 	for i, link := range node.Links {
 		hash, err := mh.FromB58String(link.Hash)
