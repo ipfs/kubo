@@ -72,8 +72,9 @@ TOOL COMMANDS
 
 Use 'ipfs <command> --help' to learn more about each command.
 
-ipfs uses a repository in the local file system. By default, the repo is located
-at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+This IPFS client uses a repository in the local file system. By default, the
+repo is located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
+environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
 `,
