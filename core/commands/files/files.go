@@ -650,7 +650,7 @@ Examples:
 			flush = true
 		}
 
-		err = mfs.Mkdir(n.FilesRoot, dirtomake, dashp, flush)
+		_, err = mfs.Mkdir(n.FilesRoot, dirtomake, dashp, flush)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

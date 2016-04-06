@@ -328,7 +328,7 @@ func (adder *Adder) addNode(node *dag.Node, path string) error {
 
 	dir := gopath.Dir(path)
 	if dir != "." {
-		if err := mfs.Mkdir(adder.mr, dir, true, false); err != nil {
+		if _, err := mfs.Mkdir(adder.mr, dir, true, false); err != nil {
 			return err
 		}
 	}
@@ -399,7 +399,7 @@ func (adder *Adder) addFile(file files.File) error {
 func (adder *Adder) addDir(dir files.File) error {
 	log.Infof("adding directory: %s", dir.FileName())
 
-	err := mfs.Mkdir(adder.mr, dir.FileName(), true, false)
+	_, err := mfs.Mkdir(adder.mr, dir.FileName(), true, false)
 	if err != nil {
 		return err
 	}

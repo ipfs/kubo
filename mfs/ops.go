@@ -100,9 +100,9 @@ func PutNode(r *Root, path string, nd *dag.Node) error {
 
 // Mkdir creates a directory at 'path' under the directory 'd', creating
 // intermediary directories as needed if 'mkparents' is set to true
-func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
+func Mkdir(r *Root, pth string, mkparents bool, flush bool) (*Directory, error) {
 	if pth == "" {
-		return nil
+		return nil, nil
 	}
 	parts := path.SplitList(pth)
 	if parts[0] == "" {
@@ -117,9 +117,9 @@ func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
 	if len(parts) == 0 {
 		// this will only happen on 'mkdir /'
 		if mkparents {
-			return nil
+			return nil, nil
 		}
-		return fmt.Errorf("cannot create directory '/': Already exists")
+		return nil, fmt.Errorf("cannot create directory '/': Already exists")
 	}
 
 	cur := r.GetValue().(*Directory)
@@ -128,16 +128,16 @@ func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
 		if err == os.ErrNotExist && mkparents {
 			mkd, err := cur.Mkdir(d)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			fsn = mkd
 		} else if err != nil {
-			return err
+			return nil, err
 		}
 
 		next, ok := fsn.(*Directory)
 		if !ok {
-			return fmt.Errorf("%s was not a directory", path.Join(parts[:i]))
+			return nil, fmt.Errorf("%s was not a directory", path.Join(parts[:i]))
 		}
 		cur = next
 	}
@@ -145,18 +145,18 @@ func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
 	final, err := cur.Mkdir(parts[len(parts)-1])
 	if err != nil {
 		if !mkparents || err != os.ErrExist || final == nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if flush {
 		err := final.Flush()
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return final, nil
 }
 
 func Lookup(r *Root, path string) (FSNode, error) {
