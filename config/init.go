@@ -21,6 +21,11 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		return nil, err
 	}
 
+	datastore, err := datastoreConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	conf := &Config{
 
 		// setup the node's default addresses.
@@ -35,6 +40,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			Gateway: "/ip4/127.0.0.1/tcp/8080",
 		},
 
+		Datastore: datastore,
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
 		Identity:  identity,
 		Discovery: Discovery{MDNS{
@@ -62,12 +68,12 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	return conf, nil
 }
 
-func datastoreConfig() (*Datastore, error) {
+func datastoreConfig() (Datastore, error) {
 	dspath, err := DataStorePath("")
 	if err != nil {
-		return nil, err
+		return Datastore{}, err
 	}
-	return &Datastore{
+	return Datastore{
 		Path:               dspath,
 		Type:               "leveldb",
 		StorageMax:         "10GB",
