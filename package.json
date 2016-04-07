@@ -9,7 +9,7 @@
     },
     {
       "name": "go-libp2p",
-      "hash": "QmSN2ELGRp4T9kjqiSsSNJRUeR9JKXzQEgwe1HH3tdSGbC",
+      "hash": "QmZMehXD2w81qeVJP6r1mmocxwsD7kqAvuzGm2QWDw1H88",
       "version": "1.0.0"
     },
     {
@@ -34,7 +34,6 @@
     }
   ],
   "language": "go",
-  "license": "",
-  "bugs": "",
-  "gxVersion": "0.4.0"
+  "issues_url": "",
+  "gx_version": "0.4.0"
 }
