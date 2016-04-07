@@ -173,21 +173,23 @@ func (adder *Adder) PinRoot() error {
 	return adder.node.Pinning.Flush()
 }
 
-func (adder *Adder) Finalize() (*dag.Node, error) {
+func (adder *Adder) Finalize(write bool) (*dag.Node, error) {
+	root := adder.mr.GetValue()
+
 	// cant just call adder.RootNode() here as we need the name for printing
-	root, err := adder.mr.GetValue().GetNode()
+	rootNode, err := root.GetNode()
 	if err != nil {
 		return nil, err
 	}
 
 	var name string
 	if !adder.Wrap {
-		name = root.Links[0].Name
-		child, err := root.Links[0].GetNode(adder.ctx, adder.node.DAG)
+		name = rootNode.Links[0].Name
+
+		root, err = adder.mr.GetValue().(*mfs.Directory).Child(name)
 		if err != nil {
 			return nil, err
 		}
-		root = child
 	}
 
 	err = adder.outputDirs(name, root)
@@ -195,26 +197,39 @@ func (adder *Adder) Finalize() (*dag.Node, error) {
 		return nil, err
 	}
 
-	err = adder.mr.Close()
+	if write {
+		err = adder.mr.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	rootNode, err = root.GetNode()
 	if err != nil {
 		return nil, err
 	}
-
-	return root, nil
+	return rootNode, nil
 }
 
-func (adder *Adder) outputDirs(path string, nd *dag.Node) error {
-	if !bytes.Equal(nd.Data, folderData) {
+func (adder *Adder) outputDirs(path string, fs mfs.FSNode) error {
+	nd, err := fs.GetNode()
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(nd.Data, folderData) || fs.Type() != mfs.TDir {
 		return nil
 	}
 
-	for _, l := range nd.Links {
-		child, err := l.GetNode(adder.ctx, adder.node.DAG)
+	dir := fs.(*mfs.Directory)
+
+	for _, name := range dir.ListNames() {
+		child, err := dir.Child(name)
 		if err != nil {
 			return err
 		}
 
-		err = adder.outputDirs(gopath.Join(path, l.Name), child)
+		err = adder.outputDirs(gopath.Join(path, name), child)
 		if err != nil {
 			return err
 		}
@@ -270,7 +285,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	nd, err := fileAdder.Finalize()
+	nd, err := fileAdder.Finalize(true)
 	if err != nil {
 		return "", err
 	}
@@ -302,7 +317,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 		return "", nil, err
 	}
 
-	dagnode, err := fileAdder.Finalize()
+	dagnode, err := fileAdder.Finalize(true)
 	if err != nil {
 		return "", nil, err
 	}

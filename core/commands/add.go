@@ -163,14 +163,14 @@ MerkleDAG.
 				}
 			}
 
-			if hash {
-				return nil
-			}
-
 			// copy intermediary nodes from editor to our actual dagservice
-			_, err := fileAdder.Finalize()
+			_, err := fileAdder.Finalize(hash)
 			if err != nil {
 				return err
+			}
+
+			if hash {
+				return nil
 			}
 
 			return fileAdder.PinRoot()
