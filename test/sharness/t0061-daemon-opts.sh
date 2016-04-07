@@ -27,7 +27,7 @@ test_expect_success 'api gateway should be unrestricted' '
 
 # Odd. this fails here, but the inverse works on t0060-daemon.
 test_expect_success 'transport should be unencrypted' '
-  nc -q 1 localhost $SWARM_PORT > swarmnc < ../t0060-data/mss-ls &&
+  nc -w 1 localhost $SWARM_PORT > swarmnc < ../t0060-data/mss-ls &&
   test_must_fail grep -q "/secio" swarmnc &&
   grep -q "/plaintext" swarmnc ||
   test_fsh cat swarmnc

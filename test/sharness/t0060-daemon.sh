@@ -81,7 +81,7 @@ test_expect_success "nc is available" '
 
 # check transport is encrypted
 test_expect_success "transport should be encrypted" '
-  nc -q1 localhost $SWARM_PORT > swarmnc < ../t0060-data/mss-ls &&
+  nc -w 1 localhost $SWARM_PORT > swarmnc < ../t0060-data/mss-ls &&
   grep -q "/secio" swarmnc &&
   test_must_fail grep -q "/plaintext/1.0.0" swarmnc ||
 	test_fsh cat swarmnc
