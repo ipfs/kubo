@@ -13,9 +13,6 @@ test_init_ipfs
 
 test_launch_ipfs_daemon --unrestricted-api --disable-transport-encryption
 
-test_expect_success "convert addresses from multiaddrs" '
-'
-
 gwyaddr=$GWAY_ADDR
 apiaddr=$API_ADDR
 
