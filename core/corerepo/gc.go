@@ -119,7 +119,6 @@ func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {
 	}
 
 	if cfg.Datastore.GCPeriod == "" {
-		node.Repo.SetConfigKey("Datastore.GCPeriod", "1h")
 		cfg.Datastore.GCPeriod = "1h"
 	}
 
