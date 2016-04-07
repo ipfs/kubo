@@ -1,12 +1,135 @@
 # go-ipfs changelog
 
-### 0.4.0 - 2016-01-31
+### 0.4.0 - 2016-04-05
 
-* Features
-  * add optional path arguments to 'ipfs pin ls' (@chriscool)
+This is a major release with plenty of new features and bugfixes.
+It also includes breaking changes which make it incompatible with v0.3.x
+on the networking layer.
 
+* Major Changes
+  * Multistream
+    * The addition of multistream is a breaking change on the networking layer,
+      but gives IPFS implementations the ability to mix and match different
+      stream multiplexers, e.g. yamux, spdystream, or muxado.
+      This adds a ton of flexibility on one of the lower layers of the protocol,
+      and will help us avoid further breaking protocol changes in the future.
+  * Files API
+    * The new `files` command and API allow a program to interact with IPFS
+      using familiar filesystem operations, namely: creating directories,
+      reading, writing, and deleting files, listing out different directories,
+      and so on. This feature enables any other application that uses a
+      filesystem-like backend for storage, to use IPFS as its storage driver
+      without having change the application logic at all.
+  * Gx
+    * go-ipfs now uses [gx](https://github.com/whyrusleeping/gx) to manage its
+      dependencies. This means that under the hood, go-ipfs's dependencies are
+      backed by IPFS itself! It also means that go-ipfs is no longer installed
+      using `go get`. Use `make install` instead.
+* New Features
+  * Web UI
+    * Update to new version which is compatible with 0.4.0. (@dignifiedquire)
+  * Networking
+    * Implement uTP transport. (@whyrusleeping)
+    * Allow multiple addresses per configured bootstrap node. (@whyrusleeping)
+  * IPNS
+    * Improve IPNS resolution performance. (@whyrusleeping)
+    * Have dnslink prefer `TXT _dnslink.example.com`, allows usage of CNAME records. (@Kubuxu)
+    * Prevent `ipfs name publish` when `/ipns` is mounted. (@noffle)
+  * Repo
+    * Improve performance of `ipfs add`. (@whyrusleeping)
+    * Add `Datastore.NoSync` config option for flatfs. (@rht)
+    * Implement mark-and-sweep GC. (@whyrusleeping)
+    * Allow for GC during `ipfs add`. (@whyrusleeping)
+    * Add `ipfs repo stat` command. (@tmg, @diasdavid)
+  * General
+    * Add support for HTTP OPTIONS requests. (@lidel)
+    * Add `ipfs diag cmds` to view active API requests (@whyrusleeping)
+    * Add an `IPFS_LOW_MEM` environment veriable which relaxes Bitswap's memory usage. (@whyrusleeping)
+    * The Docker image now lives at `ipfs/go-ipfs` and has been completely reworked. (@lgierth)
+* Security fixes
+  * The gateway path prefix added in v0.3.10 was vulnerable to cross-site
+    scripting attacks. This release introduces a configurable list of allowed
+    path prefixes. It's called `Gateway.PathPrefixes` and takes a list of
+    strings, e.g. `["/blog", "/foo/bar"]`. The v0.3.x line will not receive any
+    further updates, so please update to v0.4.0 as soon as possible. (@lgierth)
 * Incompatible Changes
-  * the default for '--type' in 'ipfs pin ls' is now "all" (@chriscool)
+  * Install using `make install` instead of `go get` (@whyrusleeping)
+  * Rewrite pinning to store pins in IPFS objects. (@tv42)
+  * Bump fs-repo version to 3. (@whyrusleeping)
+  * Use multistream muxer (@whyrusleeping)
+  * The default for `--type` in `ipfs pin ls` is now `all`. (@chriscool)
+* Bug Fixes
+  * Remove msgio double wrap. (@jbenet)
+  * Buffer msgio. (@whyrusleeping)
+  * Perform various fixes to the FUSE code. (@tv42)
+  * Compute `ipfs add` size in background to not stall add operation. (@whyrusleeping)
+  * Add option to have `ipfs add` include top-level hidden files. (@noffle)
+  * Fix CORS checks on the API. (@rht)
+  * Fix `ipfs update` error message. (@tomgg)
+  * Resolve paths in `ipfs pin rm` without network lookup. (@noffle)
+  * Detect FUSE unmounts and track mount state. (@noffle)
+  * Fix go1.6rc2 panic caused by CloseNotify being called from wrong goroutine. (@rwcarlsen)
+  * Bump DHT kvalue from 10 to 20. (@whyrusleeping)
+  * Put public key and IPNS entry to DHT in parallel. (@whyrusleeping)
+  * Fix panic in CLI argument parsing. (@whyrusleeping)
+  * Fix range error by using larger-than-zero-length buffer. (@noffle)
+  * Fix yamux hanging issue by increasing AcceptBacklog. (@whyrusleeping)
+  * Fix double Transport-Encoding header bug. (@whyrusleeping)
+  * Fix uTP panic and file descriptor leak. (@whyrusleeping)
+* Tool Changes
+  * Add `--pin` option to `ipfs add`, which defaults to `true` and allows `--pin=false`. (@eminence)
+  * Add arguments to `ipfs pin ls`. (@chriscool)
+  * Add `dns` and `resolve` commands to read-only API. (@Kubuxu)
+  * Add option to display headers for `ipfs object links`. (@palkeo)
+* General Codebase Changes
+  * Check Golang version in Makefile. (@chriscool)
+  * Improve Makefile. (@tomgg)
+  * Remove dead Jenkins CI code. (@lgierth)
+  * Add locking interface to blockstore. (@whyrusleeping)
+  * Add Merkledag FetchGraph and EnumerateChildren. (@whyrusleeping)
+  * Rename Lock/RLock to GCLock/PinLock. (@jbenet)
+  * Implement pluggable datastore types. (@tv42)
+  * Record datastore metrics for non-default datastores. (@tv42)
+  * Allow multistream to have zero-rtt stream opening. (@whyrusleeping)
+  * Refactor `ipnsfs` into a more generic and well tested `mfs`. (@whyrusleeping)
+  * Grab more peers if bucket doesn't contain enough. (@whyrusleeping)
+  * Use CloseNotify in gateway. (@whyrusleeping)
+  * Flatten multipart file transfers. (@whyrusleeping)
+  * Send updated DHT record fixes to peers who sent outdated records. (@whyrusleeping)
+  * Replace go-psutil with go-sysinfo. (@whyrusleeping)
+  * Use ServeContent for index.html. (@AtnNn)
+  * Refactor `object patch` API to not store data in URL. (@whyrusleeping)
+  * Use mfs for `ipfs add`. (@whyrusleeping)
+  * Add `Server` header to API responses. (@Kubuxu)
+  * Wire context directly into HTTP requests. (@rht)
+  * Wire context directly into GetDAG operations within GC. (@rht)
+  * Vendor libp2p using gx. (@whyrusleeping)
+  * Use gx vendored packages instead of Godeps. (@whyrusleeping)
+  * Simplify merkledag package interface to ease IPLD inclusion. (@mildred)
+  * Add default option value support to commands lib. (@whyrusleeping)
+  * Refactor merkledag fetching methods. (@whyrusleeping)
+  * Use net/url to escape paths within Web UI. (@noffle)
+  * Deprecated key.Pretty(). (@MichealMure)
+* Documentation
+  * Fix and update help text for **every** `ipfs` command. (@RichardLitt)
+  * Change sample API origin settings from wildcard (`*`) to `example.com`. (@Kubuxu)
+  * Improve documentation of installation process in README. (@whyrusleeping)
+  * Improve windows.md. (@chriscool)
+  * Clarify instructions for installing from source. (@noffle)
+  * Make version checking more robust. (@jedahan)
+  * Assert the source code is located within GOPATH. (@whyrusleeping)
+  * Remove mentions of `/dns` from `ipfs dns` command docs. (@lgierth)
+* Testing
+  * Refactor iptb tests. (@chriscool)
+  * Improve t0240 sharness test. (@chriscool)
+  * Make bitswap tests less flaky. (@whyrusleeping)
+  * Use TCP port zero for ipfs daemon in sharness tests. (@whyrusleeping)
+  * Improve sharness tests on AppVeyor. (@chriscool)
+  * Add a pause to fix timing on t0065. (@whyrusleeping)
+  * Add support for arbitrary TCP ports to t0060-daemon.sh. (@noffle)
+  * Make t0060 sharness test use TCP port zero. (@whyrusleeping)
+  * Randomized ipfs stress testing via randor (@dignifiedquire)
+  * Stress test pinning and migrations (@whyrusleeping)
 
 ### 0.3.11 - 2016-01-12
 
