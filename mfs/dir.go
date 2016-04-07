@@ -116,6 +116,11 @@ func (d *Directory) childNode(name string) (FSNode, error) {
 		return nil, err
 	}
 
+	return d.cacheNode(name, nd)
+}
+
+// cacheNode caches a node into d.childDirs or d.files and returns the FSNode.
+func (d *Directory) cacheNode(name string, nd *dag.Node) (FSNode, error) {
 	i, err := ft.FromBytes(nd.Data)
 	if err != nil {
 		return nil, err
@@ -333,6 +338,17 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	}
 
 	d.modTime = time.Now()
+
+	if len(nd.Links) == 0 {
+		nfi, err := NewFile(name, nd, d, d.dserv)
+		if err != nil {
+			return err
+		}
+		d.files[name] = nfi
+	} else {
+		ndir := NewDirectory(d.ctx, name, nd, d, d.dserv)
+		d.childDirs[name] = ndir
+	}
 
 	return nil
 }
