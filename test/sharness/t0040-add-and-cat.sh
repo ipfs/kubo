@@ -285,6 +285,23 @@ test_expect_success "'ipfs add -r' output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "'ipfs add -rn' succeeds" '
+	mkdir mountdir/moons &&
+	echo "Hello Europa!" >mountdir/moons/europa.txt &&
+	echo "Hello Titan!" >mountdir/moons/titan.txt &&
+	ipfs add -rn mountdir/moons >actual
+'
+
+test_expect_success "'ipfs add -rn' output looks good" '
+	MOONS="QmUzSf98B1y5Aw5UcaV5SnAEDNzsppxfigbKjciy57hNRv" &&
+	EUROPA="Qmbjg7zWdqdMaK2BucPncJQDxiALExph5k3NkQv5RHpccu" &&
+	TITAN="QmZzppb9WHn552rmRqpPfgU5FEiHH6gDwi3MrB9cTdPwdb" &&
+	echo "added $EUROPA moons/europa.txt" >expected &&
+	echo "added $TITAN moons/titan.txt" >>expected &&
+	echo "added $MOONS moons" >>expected &&
+	test_cmp expected actual
+'
+
 test_expect_success "ipfs cat accept many hashes from stdin" '
 	{ echo "$MARS"; echo "$VENUS"; } | ipfs cat >actual
 '
