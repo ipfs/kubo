@@ -128,6 +128,8 @@ on the networking layer.
   * Add a pause to fix timing on t0065. (@whyrusleeping)
   * Add support for arbitrary TCP ports to t0060-daemon.sh. (@noffle)
   * Make t0060 sharness test use TCP port zero. (@whyrusleeping)
+  * Randomized ipfs stress testing via randor (@dignifiedquire)
+  * Stress test pinning and migrations (@whyrusleeping)
 
 ### 0.3.11 - 2016-01-12
 
