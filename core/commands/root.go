@@ -23,7 +23,7 @@ var Root = &cmds.Command{
 		Synopsis: `
 ipfs [<flags>] <command> [<arg>] ...
 `,
-		ShortDescription: `
+		Subcommands: `
 BASIC COMMANDS
   init          Initialize ipfs local configuration
   add <path>    Add a file to ipfs
