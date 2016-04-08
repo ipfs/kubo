@@ -132,7 +132,7 @@ func main() {
 		if invoc.cmd != nil {
 			// we need a newline space.
 			fmt.Fprintf(os.Stderr, "\n")
-			printMetaHelp(os.Stderr)
+			printHelp(false, os.Stderr)
 		}
 		os.Exit(1)
 	}
