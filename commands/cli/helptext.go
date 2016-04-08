@@ -20,7 +20,7 @@ const (
 
 	whitespace = "\r\n\t "
 
-	indentStr = "    "
+	indentStr = "  "
 )
 
 type helpFields struct {
