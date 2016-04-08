@@ -186,7 +186,12 @@ func (adder *Adder) Finalize(write bool) (*dag.Node, error) {
 	if !adder.Wrap {
 		name = rootNode.Links[0].Name
 
-		root, err = adder.mr.GetValue().(*mfs.Directory).Child(name)
+		dir, ok := adder.mr.GetValue().(*mfs.Directory)
+		if !ok {
+			return nil, fmt.Errorf("root is not a directory")
+		}
+
+		root, err = dir.Child(name)
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +226,10 @@ func (adder *Adder) outputDirs(path string, fs mfs.FSNode) error {
 		return nil
 	}
 
-	dir := fs.(*mfs.Directory)
+	dir, ok := fs.(*mfs.Directory)
+	if !ok {
+		return fmt.Errorf("received FSNode of type TDir that was not a Directory")
+	}
 
 	for _, name := range dir.ListNames() {
 		child, err := dir.Child(name)

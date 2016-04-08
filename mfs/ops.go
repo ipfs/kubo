@@ -102,7 +102,7 @@ func PutNode(r *Root, path string, nd *dag.Node) error {
 // intermediary directories as needed if 'mkparents' is set to true
 func Mkdir(r *Root, pth string, mkparents bool, flush bool) (*Directory, error) {
 	if pth == "" {
-		return nil, nil
+		return nil, fmt.Errorf("no path given to Mkdir")
 	}
 	parts := path.SplitList(pth)
 	if parts[0] == "" {
