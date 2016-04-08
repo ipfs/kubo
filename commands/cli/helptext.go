@@ -102,6 +102,10 @@ const shortHelpFormat = `USAGE:
 {{.Indent}}{{template "usage" .}}
 {{if .Synopsis}}
 {{.Synopsis}}
+{{end}}
+{{if .Subcommands}}SUBCOMMANDS:
+{{.Subcommands}}
+
 {{end}}{{if .Description}}
 {{.Description}}
 {{end}}
@@ -193,8 +197,14 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 		Tagline:     cmd.Helptext.Tagline,
 		Synopsis:    cmd.Helptext.Synopsis,
 		Description: cmd.Helptext.ShortDescription,
+		Subcommands: cmd.Helptext.Subcommands,
 		Usage:       cmd.Helptext.Usage,
 		MoreHelp:    (cmd != root),
+	}
+
+	// autogen fields that are empty
+	if len(fields.Subcommands) == 0 {
+		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
 	}
 
 	// trim the extra newlines (see TrimNewlines doc)
