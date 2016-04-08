@@ -77,33 +77,33 @@ const usageFormat = "{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}} {{
 const longHelpFormat = `
 {{.Indent}}{{template "usage" .}}
 
-{{if .Arguments}}ARGUMENTS:
+{{if .Arguments}}ARGUMENTS
 
 {{.Arguments}}
 
-{{end}}{{if .Options}}OPTIONS:
+{{end}}{{if .Options}}OPTIONS
 
 {{.Options}}
 
-{{end}}{{if .Subcommands}}SUBCOMMANDS:
+{{end}}{{if .Subcommands}}SUBCOMMANDS
 
 {{.Subcommands}}
 
 {{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
 
-{{end}}{{if .Description}}DESCRIPTION:
+{{end}}{{if .Description}}DESCRIPTION
 
 {{.Description}}
 
 {{end}}
 `
-const shortHelpFormat = `USAGE:
+const shortHelpFormat = `USAGE
 
 {{.Indent}}{{template "usage" .}}
 {{if .Synopsis}}
 {{.Synopsis}}
 {{end}}
-{{if .Subcommands}}SUBCOMMANDS:
+{{if .Subcommands}}SUBCOMMANDS
 {{.Subcommands}}
 
 {{end}}{{if .Description}}
