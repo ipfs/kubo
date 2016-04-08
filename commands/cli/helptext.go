@@ -74,7 +74,7 @@ func (f *helpFields) IndentAll() {
 
 const usageFormat = "{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}} {{.ArgUsage}}{{end}} - {{.Tagline}}{{end}}"
 
-const longHelpFormat = `
+const longHelpFormat = `USAGE
 {{.Indent}}{{template "usage" .}}
 
 {{if .Arguments}}ARGUMENTS
@@ -86,7 +86,6 @@ const longHelpFormat = `
 {{.Options}}
 
 {{end}}{{if .Subcommands}}SUBCOMMANDS
-
 {{.Subcommands}}
 
 {{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
@@ -98,14 +97,12 @@ const longHelpFormat = `
 {{end}}
 `
 const shortHelpFormat = `USAGE
-
 {{.Indent}}{{template "usage" .}}
 {{if .Synopsis}}
 {{.Synopsis}}
 {{end}}
 {{if .Subcommands}}SUBCOMMANDS
 {{.Subcommands}}
-
 {{end}}{{if .Description}}
 {{.Description}}
 {{end}}
