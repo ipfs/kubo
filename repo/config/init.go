@@ -21,11 +21,6 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		return nil, err
 	}
 
-	snr, err := initSNRConfig()
-	if err != nil {
-		return nil, err
-	}
-
 	conf := &Config{
 
 		// setup the node's default addresses.
@@ -40,9 +35,8 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			Gateway: "/ip4/127.0.0.1/tcp/8080",
 		},
 
-		Bootstrap:        BootstrapPeerStrings(bootstrapPeers),
-		SupernodeRouting: *snr,
-		Identity:         identity,
+		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
+		Identity:  identity,
 		Discovery: Discovery{MDNS{
 			Enabled:  true,
 			Interval: 10,
@@ -57,10 +51,6 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		Ipns: Ipns{
 			ResolveCacheSize: 128,
 		},
-
-		// tracking ipfs version used to generate the init folder and adding
-		// update checker default setting.
-		Version: VersionDefaultValue(),
 
 		Gateway: Gateway{
 			RootRedirect: "",
