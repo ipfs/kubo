@@ -93,8 +93,6 @@ const longHelpFormat = `USAGE
 {{.Subcommands}}
 
 {{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
-
-
 {{end}}
 `
 const shortHelpFormat = `USAGE
