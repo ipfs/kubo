@@ -36,7 +36,6 @@ DATA STRUCTURE COMMANDS
   block         Interact with raw blocks in the datastore
   object        Interact with raw dag nodes
   files         Interact with objects as if they were a unix filesystem
-  file          Interact with Unix filesystem objects
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
