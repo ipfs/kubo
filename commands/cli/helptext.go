@@ -85,14 +85,15 @@ const longHelpFormat = `USAGE
 
 {{.Options}}
 
+{{end}}{{if .Description}}DESCRIPTION
+
+{{.Description}}
+
 {{end}}{{if .Subcommands}}SUBCOMMANDS
 {{.Subcommands}}
 
 {{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
 
-{{end}}{{if .Description}}DESCRIPTION
-
-{{.Description}}
 
 {{end}}
 `
@@ -100,11 +101,11 @@ const shortHelpFormat = `USAGE
 {{.Indent}}{{template "usage" .}}
 {{if .Synopsis}}
 {{.Synopsis}}
+{{end}}{{if .Description}}
+{{.Description}}
 {{end}}
 {{if .Subcommands}}SUBCOMMANDS
 {{.Subcommands}}
-{{end}}{{if .Description}}
-{{.Description}}
 {{end}}
 {{if .MoreHelp}}Use '{{.Path}} --help' for more information about this command.
 {{end}}
