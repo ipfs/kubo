@@ -28,13 +28,6 @@ type addrMap struct {
 var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Swarm inspection tool.",
-		Synopsis: `
-ipfs swarm addrs                - List known addresses. Useful for debugging.
-ipfs swarm connect <address>    - Open connection to a given address
-ipfs swarm disconnect <address> - Close connection to a given address
-ipfs swarm filters              - Manipulate filters addresses
-ipfs swarm peers                - List peers with open connections
-`,
 		ShortDescription: `
 'ipfs swarm' is a tool to manipulate the network swarm. The swarm is the
 component that opens, listens for, and maintains connections to other
