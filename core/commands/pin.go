@@ -94,7 +94,7 @@ var addPinCmd = &cmds.Command{
 
 var rmPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes the pinned object from local storage. (By default, recursively. Use -r=false for direct pins).",
+		Tagline: "Removes the pinned object from local storage.",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
 collected if needed. (By default, recursively. Use -r=false for direct pins)

@@ -35,7 +35,8 @@ var RefsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Lists links (references) from an object.",
 		ShortDescription: `
-Lists the hashes of all the links an IPFS or IPNS object(s) contains, with the following format:
+Lists the hashes of all the links an IPFS or IPNS object(s) contains,
+with the following format:
 
   <link base58 hash>
 
