@@ -104,8 +104,8 @@ const shortHelpFormat = `USAGE
 {{end}}{{if .Subcommands}}
 SUBCOMMANDS
 {{.Subcommands}}
-{{end}}
-{{if .MoreHelp}}Use '{{.Path}} --help' for more information about this command.
+{{end}}{{if .MoreHelp}}
+Use '{{.Path}} --help' for more information about this command.
 {{end}}
 `
 
