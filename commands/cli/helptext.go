@@ -100,8 +100,8 @@ const shortHelpFormat = `USAGE
 {{if .Synopsis}}
 {{.Synopsis}}
 {{end}}{{if .Description}}
-{{.Description}}{{end}}
-{{if .Subcommands}}
+{{.Description}}
+{{end}}{{if .Subcommands}}
 SUBCOMMANDS
 {{.Subcommands}}
 {{end}}
