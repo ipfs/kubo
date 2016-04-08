@@ -100,9 +100,9 @@ const shortHelpFormat = `USAGE
 {{if .Synopsis}}
 {{.Synopsis}}
 {{end}}{{if .Description}}
-{{.Description}}
-{{end}}
-{{if .Subcommands}}SUBCOMMANDS
+{{.Description}}{{end}}
+{{if .Subcommands}}
+SUBCOMMANDS
 {{.Subcommands}}
 {{end}}
 {{if .MoreHelp}}Use '{{.Path}} --help' for more information about this command.
