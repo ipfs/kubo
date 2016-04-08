@@ -173,7 +173,7 @@ func (adder *Adder) PinRoot() error {
 	return adder.node.Pinning.Flush()
 }
 
-func (adder *Adder) Finalize(write bool) (*dag.Node, error) {
+func (adder *Adder) Finalize() (*dag.Node, error) {
 	root := adder.mr.GetValue()
 
 	// cant just call adder.RootNode() here as we need the name for printing
@@ -202,11 +202,9 @@ func (adder *Adder) Finalize(write bool) (*dag.Node, error) {
 		return nil, err
 	}
 
-	if write {
-		err = adder.mr.Close()
-		if err != nil {
-			return nil, err
-		}
+	err = adder.mr.Close()
+	if err != nil {
+		return nil, err
 	}
 
 	rootNode, err = root.GetNode()
@@ -293,7 +291,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	nd, err := fileAdder.Finalize(true)
+	nd, err := fileAdder.Finalize()
 	if err != nil {
 		return "", err
 	}
@@ -325,7 +323,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 		return "", nil, err
 	}
 
-	dagnode, err := fileAdder.Finalize(true)
+	dagnode, err := fileAdder.Finalize()
 	if err != nil {
 		return "", nil, err
 	}

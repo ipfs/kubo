@@ -164,7 +164,7 @@ MerkleDAG.
 			}
 
 			// copy intermediary nodes from editor to our actual dagservice
-			_, err := fileAdder.Finalize(hash)
+			_, err := fileAdder.Finalize()
 			if err != nil {
 				return err
 			}
