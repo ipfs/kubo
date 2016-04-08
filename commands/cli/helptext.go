@@ -119,7 +119,7 @@ func init() {
 	shortHelpTemplate = template.Must(usageTemplate.New("shortHelp").Parse(shortHelpFormat))
 }
 
-// LongHelp returns a formatted CLI helptext string, generated for the given command
+// LongHelp writes a formatted CLI helptext string to a Writer for the given command
 func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
 	cmd, err := root.Get(path)
 	if err != nil {
@@ -169,7 +169,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 	return longHelpTemplate.Execute(out, fields)
 }
 
-// ShortHelp returns a formatted CLI helptext string, generated for the given command
+// ShortHelp writes a formatted CLI helptext string to a Writer for the given command
 func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
 	cmd, err := root.Get(path)
 	if err != nil {
