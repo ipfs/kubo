@@ -10,10 +10,6 @@ type IpnsEntry struct {
 var NameCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "IPFS namespace (IPNS) tool.",
-		Synopsis: `
-ipfs name publish [<name>] <ipfs-path> - Publish an object to IPNS
-ipfs name resolve [<name>]             - Gets the value currently published at an IPNS name
-`,
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In both publish
