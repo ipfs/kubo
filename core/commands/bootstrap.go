@@ -22,11 +22,6 @@ var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multi
 var BootstrapCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show or edit the list of bootstrap peers.",
-		Synopsis: `
-ipfs bootstrap list             - Show peers in the bootstrap list
-ipfs bootstrap add <peer>...    - Add peers to the bootstrap list
-ipfs bootstrap rm <peer>... - Removes peers from the bootstrap list
-`,
 		ShortDescription: `
 Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 ` + bootstrapSecurityWarning,
