@@ -2,6 +2,7 @@ package objectcmd
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -10,7 +11,6 @@ import (
 	"io/ioutil"
 	"strings"
 	"text/tabwriter"
-	"encoding/base64"
 
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 
