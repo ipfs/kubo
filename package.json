@@ -59,6 +59,11 @@
       "hash": "QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3",
       "name": "client_golang",
       "version": "0.0.0"
+    },
+    {
+      "name": "iptb",
+      "hash": "QmccSTNEUYSJsDSHZj3uKS3pPYCRXCNxr4X8Ub1TQyKPsZ",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",
