@@ -5,7 +5,7 @@ IPFS_CMD = ../cmd/ipfs
 RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
 RANDOM_FILES_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random-files
 MULTIHASH_SRC = ../../../../gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash
-IPTB_SRC = ./dependencies/iptb
+IPTB_SRC = ../../../../gx/ipfs/QmccSTNEUYSJsDSHZj3uKS3pPYCRXCNxr4X8Ub1TQyKPsZ/iptb
 POLLENDPOINT_SRC= ../thirdparty/pollEndpoint
 GOSLEEP_SRC = ./dependencies/go-sleep
 
