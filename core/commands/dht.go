@@ -12,8 +12,8 @@ import (
 	notif "github.com/ipfs/go-ipfs/notifications"
 	path "github.com/ipfs/go-ipfs/path"
 	ipdht "github.com/ipfs/go-ipfs/routing/dht"
-	peer "gx/ipfs/QmZMehXD2w81qeVJP6r1mmocxwsD7kqAvuzGm2QWDw1H88/go-libp2p/p2p/peer"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")

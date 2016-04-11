@@ -29,8 +29,8 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	unit "github.com/ipfs/go-ipfs/thirdparty/unit"
-	peer "gx/ipfs/QmZMehXD2w81qeVJP6r1mmocxwsD7kqAvuzGm2QWDw1H88/go-libp2p/p2p/peer"
 	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
 )
 
 var elog = logging.Logger("gc-client")
