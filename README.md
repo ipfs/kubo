@@ -147,7 +147,7 @@ SUBCOMMANDS
     name          Publish or resolve IPNS names
     dns           Resolve DNS links
     pin           Pin objects to local storage
-    repo gc       Garbage collect unpinned objects
+    repo          Manipulate an IPFS repository
 
   NETWORK COMMANDS
     id            Show info about ipfs peers
