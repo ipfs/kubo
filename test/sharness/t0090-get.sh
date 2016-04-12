@@ -113,8 +113,29 @@ test_get_cmd() {
 	'
 }
 
+test_get_fail() {
+	test_expect_success "create an object that has unresolveable links" '
+		cat <<-\EOF >bad_object &&
+{ "Links": [ { "Name": "foo", "Hash": "QmZzaC6ydNXiR65W8VjGA73ET9MZ6VFAqUT1ngYMXcpihn", "Size": 1897 }, { "Name": "bar", "Hash": "Qmd4mG6pDFDmDTn6p3hX1srP8qTbkyXKj5yjpEsiHDX3u8", "Size": 56 }, { "Name": "baz", "Hash": "QmUTjwRnG28dSrFFVTYgbr6LiDLsBmRr2SaUSTGheK2YqG", "Size": 24266 } ], "Data": "\b\u0001" }
+		EOF
+		cat bad_object | ipfs object put > put_out
+	'
+
+	test_expect_success "output looks good" '
+		echo "added QmaGidyrnX8FMbWJoxp8HVwZ1uRKwCyxBJzABnR1S2FVUr" > put_exp &&
+		test_cmp put_exp put_out
+	'
+
+	test_expect_success "ipfs get fails" '
+		test_expect_code 1 ipfs get QmaGidyrnX8FMbWJoxp8HVwZ1uRKwCyxBJzABnR1S2FVUr 
+	'
+}
+
 # should work offline
 test_get_cmd
+
+# only really works offline, will try and search network when online
+test_get_fail
 
 # should work online
 test_launch_ipfs_daemon
