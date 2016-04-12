@@ -30,6 +30,11 @@
       "hash": "QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV",
       "name": "gogo-protobuf",
       "version": "0.0.0"
+    },
+    {
+      "hash": "QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3",
+      "name": "client_golang",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",

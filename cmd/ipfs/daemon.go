@@ -27,6 +27,7 @@ import (
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	conn "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/net/conn"
 	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	prometheus "gx/ipfs/QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3/client_golang/prometheus"
 )
 
 const (
@@ -314,6 +315,10 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	// initialize metrics collector
+	prometheus.MustRegisterOrGet(&corehttp.IpfsNodeCollector{Node: node})
+	prometheus.EnableCollectChecks(true)
+
 	fmt.Printf("Daemon is ready\n")
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
@@ -376,15 +381,15 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		},
 	})
 	var opts = []corehttp.ServeOption{
-		corehttp.PrometheusCollectorOption("api"),
+		corehttp.MetricsCollectionOption("api"),
 		corehttp.CommandsOption(*req.InvocContext()),
 		corehttp.WebUIOption,
 		apiGw.ServeOption(),
 		corehttp.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
+		corehttp.MetricsScrapingOption("/debug/metrics/prometheus"),
 		corehttp.LogOption(),
-		corehttp.PrometheusOption("/debug/metrics/prometheus"),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
@@ -455,7 +460,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	}
 
 	var opts = []corehttp.ServeOption{
-		corehttp.PrometheusCollectorOption("gateway"),
+		corehttp.MetricsCollectionOption("gateway"),
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),

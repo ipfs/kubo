@@ -15,10 +15,6 @@
 			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
 		},
 		{
-			"ImportPath": "github.com/beorn7/perks/quantile",
-			"Rev": "b965b613227fddccbfffe13eae360ed3fa822f8d"
-		},
-		{
 			"ImportPath": "github.com/bren2010/proquint",
 			"Rev": "5958552242606512f714d2e93513b380f43f9991"
 		},
@@ -73,10 +69,6 @@
 		{
 			"ImportPath": "github.com/gogo/protobuf/proto",
 			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
-		},
-		{
-			"ImportPath": "github.com/golang/protobuf/proto",
-			"Rev": "aece6fb931241ad332956db4f62798dfbea944b3"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
@@ -159,30 +151,6 @@
 		{
 			"ImportPath": "github.com/olekukonko/ts",
 			"Rev": "ecf753e7c962639ab5a1fb46f7da627d4c0a04b8"
-		},
-		{
-			"ImportPath": "github.com/prometheus/client_golang/model",
-			"Comment": "0.6.0-15-g00e4c46",
-			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
-		},
-		{
-			"ImportPath": "github.com/prometheus/client_golang/prometheus",
-			"Comment": "0.6.0-15-g00e4c46",
-			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
-		},
-		{
-			"ImportPath": "github.com/prometheus/client_golang/text",
-			"Comment": "0.6.0-15-g00e4c46",
-			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
-		},
-		{
-			"ImportPath": "github.com/prometheus/client_model/go",
-			"Comment": "model-0.0.2-12-gfa8ad6f",
-			"Rev": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6"
-		},
-		{
-			"ImportPath": "github.com/prometheus/procfs",
-			"Rev": "c91d8eefde16bd047416409eb56353ea84a186e4"
 		},
 		{
 			"ImportPath": "github.com/rs/cors",
