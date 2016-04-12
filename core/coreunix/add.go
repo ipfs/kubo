@@ -207,11 +207,7 @@ func (adder *Adder) Finalize() (*dag.Node, error) {
 		return nil, err
 	}
 
-	rootNode, err = root.GetNode()
-	if err != nil {
-		return nil, err
-	}
-	return rootNode, nil
+	return root.GetNode()
 }
 
 func (adder *Adder) outputDirs(path string, fs mfs.FSNode) error {
