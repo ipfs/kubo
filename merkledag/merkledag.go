@@ -176,9 +176,8 @@ func GetNodes(ctx context.Context, ds DAGService, keys []key.Key) []NodeGetter {
 	}
 
 	promises := make([]NodeGetter, len(keys))
-	sendChans := make([]chan<- *Node, len(keys))
 	for i := range keys {
-		promises[i], sendChans[i] = newNodePromise(ctx)
+		promises[i] = newNodePromise(ctx)
 	}
 
 	dedupedKeys := dedupeKeys(keys)
@@ -192,11 +191,16 @@ func GetNodes(ctx context.Context, ds DAGService, keys []key.Key) []NodeGetter {
 			select {
 			case opt, ok := <-nodechan:
 				if !ok {
+					for _, p := range promises {
+						p.Fail(ErrNotFound)
+					}
 					return
 				}
 
 				if opt.Err != nil {
-					log.Error("error fetching: ", opt.Err)
+					for _, p := range promises {
+						p.Fail(opt.Err)
+					}
 					return
 				}
 
@@ -211,7 +215,7 @@ func GetNodes(ctx context.Context, ds DAGService, keys []key.Key) []NodeGetter {
 				is := FindLinks(keys, k, 0)
 				for _, i := range is {
 					count++
-					sendChans[i] <- nd
+					promises[i].Send(nd)
 				}
 			case <-ctx.Done():
 				return
@@ -234,18 +238,20 @@ func dedupeKeys(ks []key.Key) []key.Key {
 	return out
 }
 
-func newNodePromise(ctx context.Context) (NodeGetter, chan<- *Node) {
-	ch := make(chan *Node, 1)
+func newNodePromise(ctx context.Context) NodeGetter {
 	return &nodePromise{
-		recv: ch,
+		recv: make(chan *Node, 1),
 		ctx:  ctx,
-	}, ch
+		err:  make(chan error, 1),
+	}
 }
 
 type nodePromise struct {
 	cache *Node
-	recv  <-chan *Node
+	clk   sync.Mutex
+	recv  chan *Node
 	ctx   context.Context
+	err   chan error
 }
 
 // NodeGetter provides a promise like interface for a dag Node
@@ -254,22 +260,57 @@ type nodePromise struct {
 // cached node.
 type NodeGetter interface {
 	Get(context.Context) (*Node, error)
+	Fail(err error)
+	Send(*Node)
+}
+
+func (np *nodePromise) Fail(err error) {
+	np.clk.Lock()
+	v := np.cache
+	np.clk.Unlock()
+
+	// if promise has a value, don't fail it
+	if v != nil {
+		return
+	}
+
+	np.err <- err
+}
+
+func (np *nodePromise) Send(nd *Node) {
+	var already bool
+	np.clk.Lock()
+	if np.cache != nil {
+		already = true
+	}
+	np.cache = nd
+	np.clk.Unlock()
+
+	if already {
+		panic("sending twice to the same promise is an error!")
+	}
+
+	np.recv <- nd
 }
 
 func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
-	if np.cache != nil {
-		return np.cache, nil
+	np.clk.Lock()
+	c := np.cache
+	np.clk.Unlock()
+	if c != nil {
+		return c, nil
 	}
 
 	select {
-	case blk := <-np.recv:
-		np.cache = blk
+	case nd := <-np.recv:
+		return nd, nil
 	case <-np.ctx.Done():
 		return nil, np.ctx.Err()
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case err := <-np.err:
+		return nil, err
 	}
-	return np.cache, nil
 }
 
 type Batch struct {
