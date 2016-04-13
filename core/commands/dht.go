@@ -505,7 +505,7 @@ NOTE: a value may NOT exceed 2048 bytes.
 					}
 				},
 				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
-					fmt.Fprintf(out, "storing value at %s\n", obj.ID)
+					fmt.Fprintf(out, "%s\n", obj.ID.Pretty())
 				},
 			}
 
