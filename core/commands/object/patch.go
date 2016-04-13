@@ -110,7 +110,7 @@ the limit will not be respected by the network.
 
 var patchSetDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Set data field of an ipfs object.",
+		Tagline: "Set the data field of an ipfs object.",
 		ShortDescription: `
 Set the data of an ipfs object from stdin or with the contents of a file.
 
@@ -121,7 +121,7 @@ Example:
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "The hash of the node to modify."),
-		cmds.FileArg("data", true, false, "Data fill with.").EnableStdin(),
+		cmds.FileArg("data", true, false, "The data to set the object to.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
