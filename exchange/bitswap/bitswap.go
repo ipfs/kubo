@@ -161,15 +161,12 @@ func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (*blocks.Block, e
 	// when this context's cancel func is executed. This is difficult to
 	// enforce. May this comment keep you safe.
 
-	ctx, cancelFunc := context.WithCancel(parent)
+	ctx, cancel := context.WithCancel(parent)
 
 	ctx = logging.ContextWithLoggable(ctx, logging.Uuid("GetBlockRequest"))
 	log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
 	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
-
-	defer func() {
-		cancelFunc()
-	}()
+	defer cancel()
 
 	promise, err := bs.GetBlocks(ctx, []key.Key{k})
 	if err != nil {
@@ -220,17 +217,17 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan *block
 	}
 
 	bs.wm.WantBlocks(keys)
+	go func() {
+		<-ctx.Done()
+		bs.CancelWants(keys)
+	}()
 
 	req := &blockRequest{
 		keys: keys,
 		ctx:  ctx,
 	}
-	select {
-	case bs.findKeys <- req:
-		return promise, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	bs.findKeys <- req
+	return promise, nil
 }
 
 // CancelWant removes a given key from the wantlist
