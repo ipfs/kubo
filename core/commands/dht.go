@@ -222,12 +222,15 @@ FindProviders will return a list of peers who are able to provide the value requ
 
 var findPeerDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Run a 'FindPeer' query through the DHT.",
+		Tagline:          "Query the DHT for all of the multiaddresses associated with a Peer ID.",
 		ShortDescription: ``,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerID", true, true, "The peer to search for."),
+		cmds.StringArg("peerID", true, true, "The ID of the peer to search for."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "v", "Write extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -285,12 +288,13 @@ var findPeerDhtCmd = &cmds.Command{
 				return nil, u.ErrCast()
 			}
 
+			verbose, _, _ := res.Request().Option("v").Bool()
+
 			pfm := pfuncMap{
 				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
 					pi := obj.Responses[0]
-					fmt.Fprintf(out, "%s\n", pi.ID)
 					for _, a := range pi.Addrs {
-						fmt.Fprintf(out, "\t%s\n", a)
+						fmt.Fprintf(out, "%s\n", a)
 					}
 				},
 			}
@@ -301,7 +305,7 @@ var findPeerDhtCmd = &cmds.Command{
 				}
 
 				buf := new(bytes.Buffer)
-				printEvent(obj, buf, true, pfm)
+				printEvent(obj, buf, verbose, pfm)
 				return buf, nil
 			}
 
@@ -546,13 +550,17 @@ func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfu
 			fmt.Fprint(out, obj.Extra)
 		}
 	case notif.PeerResponse:
-		fmt.Fprintf(out, "* %s says use ", obj.ID)
-		for _, p := range obj.Responses {
-			fmt.Fprintf(out, "%s ", p.ID)
+		if verbose {
+			fmt.Fprintf(out, "* %s says use ", obj.ID)
+			for _, p := range obj.Responses {
+				fmt.Fprintf(out, "%s ", p.ID)
+			}
+			fmt.Fprintln(out)
 		}
-		fmt.Fprintln(out)
 	case notif.QueryError:
-		fmt.Fprintf(out, "error: %s\n", obj.Extra)
+		if verbose {
+			fmt.Fprintf(out, "error: %s\n", obj.Extra)
+		}
 	case notif.DialingPeer:
 		if verbose {
 			fmt.Fprintf(out, "dialing peer: %s\n", obj.ID)
@@ -562,7 +570,9 @@ func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfu
 			fmt.Fprintf(out, "adding peer to query: %s\n", obj.ID)
 		}
 	default:
-		fmt.Fprintf(out, "unrecognized event type: %d\n", obj.Type)
+		if verbose {
+			fmt.Fprintf(out, "unrecognized event type: %d\n", obj.Type)
+		}
 	}
 }
 
