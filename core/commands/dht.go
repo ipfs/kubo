@@ -585,6 +585,7 @@ func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfu
 		if verbose {
 			fmt.Fprintf(out, "adding peer to query: %s\n", obj.ID)
 		}
+	case notif.FinalPeer:
 	default:
 		if verbose {
 			fmt.Fprintf(out, "unrecognized event type: %d\n", obj.Type)
