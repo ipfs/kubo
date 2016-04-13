@@ -94,6 +94,14 @@ var queryDhtCmd = &cmds.Command{
 				return nil, u.ErrCast()
 			}
 
+			pfm := pfuncMap{
+				notif.PeerResponse: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					for _, p := range obj.Responses {
+						fmt.Fprintf(out, "%s\n", p.ID.Pretty())
+					}
+				},
+			}
+
 			marshal := func(v interface{}) (io.Reader, error) {
 				obj, ok := v.(*notif.QueryEvent)
 				if !ok {
@@ -103,7 +111,7 @@ var queryDhtCmd = &cmds.Command{
 				verbose, _, _ := res.Request().Option("v").Bool()
 
 				buf := new(bytes.Buffer)
-				printEvent(obj, buf, verbose, nil)
+				printEvent(obj, buf, verbose, pfm)
 				return buf, nil
 			}
 
