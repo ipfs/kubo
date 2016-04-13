@@ -424,9 +424,17 @@ GetValue will return the value stored in the DHT at the given key.
 
 var putValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'PutValue' query through the DHT.",
+		Tagline: "Write a key/value pair to the DHT.",
 		ShortDescription: `
-PutValue will store the given key value pair in the DHT.
+Given a key of the form /foo/bar and a value of any form, this will write that value to the DHT with that key.
+
+Keys have two parts: a keytype (foo) and the key name (bar). IPNS uses the /ipns keytype, and expects the key name to be a Peer ID. IPNS entries are specifically formatted (protocol buffer).
+
+You may only use keytypes that are supported in your ipfs binary: currently this is only /ipns. (READ: unless you know what you're doing, you're better off using 'ipfs name publish' instead of this.)
+
+Value is arbitrary text. Standard input can be used to provide value.
+
+NOTE: a value may NOT exceed 2048 bytes.
 `,
 	},
 
