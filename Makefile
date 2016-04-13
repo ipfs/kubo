@@ -116,8 +116,9 @@ PHONY += test test_short test_expensive
 help:
 	@echo 'DEPENDENCY TARGETS:'
 	@echo ''
-	@echo '  deps         - Download dependencies using gx'
-	@echo '  vendor       - Create a Godep workspace of 3rd party dependencies'
+	@echo '  toolkit_upgrade - Installs or upgrades gx'
+	@echo '  deps            - Download dependencies using gx'
+	@echo '  vendor          - Create a Godep workspace of 3rd party dependencies'
 	@echo ''
 	@echo 'BUILD TARGETS:'
 	@echo ''
