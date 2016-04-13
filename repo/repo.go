@@ -25,6 +25,8 @@ type Repo interface {
 	// SetAPIAddr sets the API address in the repo.
 	SetAPIAddr(addr string) error
 
+	GetAPIAddr() (string, error)
+
 	io.Closer
 }
 

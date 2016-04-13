@@ -86,6 +86,7 @@ func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
 		return nil, ValueTypeMismatch
 	}
 
+	log.Event(context.TODO(), "blockstore.Get", &k)
 	return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
 }
 

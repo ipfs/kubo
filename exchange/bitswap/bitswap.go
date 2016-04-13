@@ -247,6 +247,9 @@ func (bs *Bitswap) HasBlock(blk *blocks.Block) error {
 	default:
 	}
 
+	k := blk.Key()
+	log.Event(context.TODO(), "HasBlock", &k)
+
 	err := bs.tryPutBlock(blk, 4) // attempt to store block up to four times
 	if err != nil {
 		log.Errorf("Error writing block to datastore: %s", err)
@@ -322,7 +325,9 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 			log.Infof("received un-asked-for %s from %s", block, p)
 			continue
 		}
-		keys = append(keys, block.Key())
+		k := block.Key()
+		keys = append(keys, k)
+		log.Event(ctx, "receivedBlock", &k, &p)
 	}
 	bs.wm.CancelWants(keys)
 

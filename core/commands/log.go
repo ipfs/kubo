@@ -86,6 +86,7 @@ var logTailCmd = &cmds.Command{
 			<-ctx.Done()
 		}()
 		logging.WriterGroup.AddWriter(w)
+		log.Event(ctx, "log API client connected")
 		res.SetOutput(r)
 	},
 }

@@ -21,10 +21,9 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/matttproud/golang_protobuf_extensions/pbtest"
-
 	. "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/golang/protobuf/proto"
 	. "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
+	"gx/ipfs/QmUsh7scAkKe2erRhfGJpvxokArYL46ye2EJvFEp6XSbLr/golang_protobuf_extensions/pbtest"
 )
 
 func TestWriteDelimited(t *testing.T) {

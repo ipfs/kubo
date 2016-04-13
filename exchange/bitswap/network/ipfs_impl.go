@@ -123,6 +123,7 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k key.Key, max int) <
 		defer close(out)
 		providers := bsnet.routing.FindProvidersAsync(ctx, k, max)
 		for info := range providers {
+			log.Event(ctx, "gotProvider", &k, &info.ID)
 			if info.ID == bsnet.host.ID() {
 				continue // ignore self as provider
 			}
