@@ -35,15 +35,15 @@ var DhtCmd = &cmds.Command{
 
 var queryDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Find the closest peers to a given key by querying through the DHT.",
-		ShortDescription: ``,
+		Tagline:          "Find the closest Peer IDs to a given Peer ID by querying the DHT.",
+		ShortDescription: "Outputs a list of newline-delimited Peer IDs.",
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peerID", true, true, "The peerID to run the query against."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information."),
+		cmds.BoolOption("verbose", "v", "Write debug information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -127,17 +127,15 @@ var queryDhtCmd = &cmds.Command{
 
 var findProvidersDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'FindProviders' query through the DHT.",
-		ShortDescription: `
-FindProviders will return a list of peers who are able to provide the value requested.
-`,
+		Tagline:          "Find peers in the DHT that can provide a specific value, given a key.",
+		ShortDescription: "Outputs a list of newline-delimited provider Peer IDs.",
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, true, "The key to find providers for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information."),
+		cmds.BoolOption("verbose", "v", "Write debug information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -231,14 +229,14 @@ FindProviders will return a list of peers who are able to provide the value requ
 var findPeerDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Query the DHT for all of the multiaddresses associated with a Peer ID.",
-		ShortDescription: ``,
+		ShortDescription: "Outputs a list of newline-delimited multiaddresses.",
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peerID", true, true, "The ID of the peer to search for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information."),
+		cmds.BoolOption("verbose", "v", "Write debug information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -329,9 +327,11 @@ var findPeerDhtCmd = &cmds.Command{
 
 var getValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'GetValue' query through the DHT.",
+		Tagline: "Given a key, query the DHT for its best value.",
 		ShortDescription: `
-GetValue will return the value stored in the DHT at the given key.
+Outputs the best value for the given key.
+
+There may be several different values for a given key stored in the DHT, so this context 'best' means the record that is most desirable. There is no one metric for 'best': it depends entirely on the key type. For IPNS, 'best' is the record that is both valid and has the highest sequence number (freshest). Different key types can specify other 'best' rules.
 `,
 	},
 
@@ -339,7 +339,7 @@ GetValue will return the value stored in the DHT at the given key.
 		cmds.StringArg("key", true, true, "The key to find a value for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information."),
+		cmds.BoolOption("verbose", "v", "Write debug information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -451,7 +451,7 @@ NOTE: a value may NOT exceed 2048 bytes.
 		cmds.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information."),
+		cmds.BoolOption("verbose", "v", "Write debug information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
