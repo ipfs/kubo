@@ -168,9 +168,16 @@ test_object_cmd() {
 		test_cmp expected actual
 	'
 
+    test_expect_success "'ipfs object patch' should work (no unixfs-dir)" '
+		EMPTY_DIR=$(ipfs object new) &&
+		OUTPUT=$(ipfs object patch $EMPTY_DIR add-link foo $EMPTY_DIR) &&
+		ipfs object stat $OUTPUT
+	'
+
 	test_expect_success "'ipfs object patch' should work" '
 		EMPTY_DIR=$(ipfs object new unixfs-dir) &&
-		OUTPUT=$(ipfs object patch $EMPTY_DIR add-link foo $EMPTY_DIR)
+		OUTPUT=$(ipfs object patch $EMPTY_DIR add-link foo $EMPTY_DIR) &&
+		ipfs object stat $OUTPUT
 	'
 
 	test_expect_success "multilayer ipfs patch works" '
