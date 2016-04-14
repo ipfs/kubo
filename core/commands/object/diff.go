@@ -14,6 +14,24 @@ var ObjectDiffCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "takes a diff of the two given objects",
 		ShortDescription: `
+ipfs object diff is a command used to show the differences between
+two ipfs objects.
+
+Example:
+
+   $ ls foo
+   bar baz/ giraffe
+   $ ipfs add -r foo
+   ...
+   added QmegHcnrPgMwC7tBiMxChD54fgQMBUecNw9nE9UUU4x1bz foo
+   $ OBJ_A=QmegHcnrPgMwC7tBiMxChD54fgQMBUecNw9nE9UUU4x1bz
+   $ echo "different content" > foo/bar
+   $ ipfs add -r foo
+   ...
+   added QmcmRptkSPWhptCttgHg27QNDmnV33wAJyUkCnAvqD3eCD foo
+   $ OBJ_B=QmcmRptkSPWhptCttgHg27QNDmnV33wAJyUkCnAvqD3eCD
+   $ ipfs object diff $OBJ_A $OBJ_B
+   changed "bar" from QmNgd5cz2jNftnAHBhcRUGdtiaMzb5Rhjqd4etondHHST8 to QmRfFVsjSXkhFxrfWnLpMae2M4GBVsry6VAuYYcji5MiZb
 `,
 	},
 	Arguments: []cmds.Argument{
