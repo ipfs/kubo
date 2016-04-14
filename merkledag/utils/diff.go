@@ -75,17 +75,25 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.Node, cs []*Cha
 	return e.Finalize(ds)
 }
 
-func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.Node) []*Change {
+func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.Node) ([]*Change, error) {
 	if len(a.Links) == 0 && len(b.Links) == 0 {
-		ak, _ := a.Key()
-		bk, _ := b.Key()
+		ak, err := a.Key()
+		if err != nil {
+			return nil, err
+		}
+
+		bk, err := b.Key()
+		if err != nil {
+			return nil, err
+		}
+
 		return []*Change{
 			&Change{
 				Type:   Mod,
 				Before: ak,
 				After:  bk,
 			},
-		}
+		}, nil
 	}
 
 	var out []*Change
@@ -99,9 +107,20 @@ func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.Node) []*Change {
 			if bytes.Equal(l.Hash, lnk.Hash) {
 				// no change... ignore it
 			} else {
-				anode, _ := lnk.GetNode(ctx, ds)
-				bnode, _ := l.GetNode(ctx, ds)
-				sub := Diff(ctx, ds, anode, bnode)
+				anode, err := lnk.GetNode(ctx, ds)
+				if err != nil {
+					return nil, err
+				}
+
+				bnode, err := l.GetNode(ctx, ds)
+				if err != nil {
+					return nil, err
+				}
+
+				sub, err := Diff(ctx, ds, anode, bnode)
+				if err != nil {
+					return nil, err
+				}
 
 				for _, subc := range sub {
 					subc.Path = path.Join(lnk.Name, subc.Path)
@@ -128,7 +147,7 @@ func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.Node) []*Change {
 		})
 	}
 
-	return out
+	return out, nil
 }
 
 type Conflict struct {
