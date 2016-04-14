@@ -46,6 +46,7 @@ Resolve the value of another name:
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name."),
 		cmds.BoolOption("nocache", "n", "Do not used cached entries."),
+		cmds.BoolOption("local", "l", "Resolve name using local datastore information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
