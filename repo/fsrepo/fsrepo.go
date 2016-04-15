@@ -242,10 +242,6 @@ func Init(repoPath string, conf *config.Config) error {
 		return err
 	}
 
-	if err := dir.Writable(filepath.Join(repoPath, "logs")); err != nil {
-		return err
-	}
-
 	if err := mfsr.RepoPath(repoPath).WriteVersion(RepoVersion); err != nil {
 		return err
 	}

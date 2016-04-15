@@ -28,11 +28,5 @@
   ],
   "Tour": {
     "Last": ""
-  },
-  "Logs": {
-    "Filename": "/root/.ipfs/logs/events.log",
-    "MaxSizeMB": 0,
-    "MaxBackups": 0,
-    "MaxAgeDays": 0
   }
 }
