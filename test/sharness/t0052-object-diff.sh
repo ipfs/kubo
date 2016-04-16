@@ -37,12 +37,21 @@ test_expect_success "diff added link works" '
 '
 
 test_expect_success "diff added link looks right" '
+	echo + QmUSvcqzhdfYM1KLDbM76eLPdS9ANFtkJvFuPYeZt73d7A \"cat\" > diff_exp &&
+	test_cmp diff_exp diff_out
+'
+
+test_expect_success "verbose diff added link works" '
+	ipfs object diff -v $A $B > diff_out
+'
+
+test_expect_success "verbose diff added link looks right" '
 	echo added new link \"cat\" pointing to QmUSvcqzhdfYM1KLDbM76eLPdS9ANFtkJvFuPYeZt73d7A > diff_exp &&
 	test_cmp diff_exp diff_out
 '
 
 test_expect_success "diff removed link works" '
-	ipfs object diff $B $A > diff_out
+	ipfs object diff -v $B $A > diff_out
 '
 
 test_expect_success "diff removed link looks right" '
@@ -51,7 +60,7 @@ test_expect_success "diff removed link looks right" '
 '
 
 test_expect_success "diff nested add works" '
-	ipfs object diff $B $C > diff_out
+	ipfs object diff -v $B $C > diff_out
 '
 
 test_expect_success "diff looks right" '
@@ -60,7 +69,7 @@ test_expect_success "diff looks right" '
 '
 
 test_expect_success "diff changed link works" '
-	ipfs object diff $C $D > diff_out
+	ipfs object diff -v $C $D > diff_out
 '
 
 test_expect_success "diff looks right" '

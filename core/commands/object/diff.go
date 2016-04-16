@@ -15,6 +15,9 @@ var ObjectDiffCmd = &cmds.Command{
 		Tagline: "takes a diff of the two given objects",
 		ShortDescription: `
 ipfs object diff is a command used to show the differences between
+two ipfs objects.`,
+		LongDescription: `
+ipfs object diff is a command used to show the differences between
 two ipfs objects.
 
 Example:
@@ -37,6 +40,9 @@ Example:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("obj_a", true, false, "object to diff against"),
 		cmds.StringArg("obj_b", true, false, "object to diff"),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "v", "Produce verbose output"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -85,16 +91,28 @@ Example:
 	Type: []*dagutils.Change{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			verbose, _, _ := res.Request().Option("v").Bool()
 			changes := res.Output().([]*dagutils.Change)
 			buf := new(bytes.Buffer)
 			for _, change := range changes {
-				switch change.Type {
-				case dagutils.Add:
-					fmt.Fprintf(buf, "added new link %q pointing to %s\n", change.Path, change.After)
-				case dagutils.Mod:
-					fmt.Fprintf(buf, "changed %q from %s to %s\n", change.Path, change.Before, change.After)
-				case dagutils.Remove:
-					fmt.Fprintf(buf, "removed link %q (was %s)\n", change.Path, change.Before)
+				if verbose {
+					switch change.Type {
+					case dagutils.Add:
+						fmt.Fprintf(buf, "added new link %q pointing to %s\n", change.Path, change.After)
+					case dagutils.Mod:
+						fmt.Fprintf(buf, "changed %q from %s to %s\n", change.Path, change.Before, change.After)
+					case dagutils.Remove:
+						fmt.Fprintf(buf, "removed link %q (was %s)\n", change.Path, change.Before)
+					}
+				} else {
+					switch change.Type {
+					case dagutils.Add:
+						fmt.Fprintf(buf, "+ %s %q\n", change.After, change.Path)
+					case dagutils.Mod:
+						fmt.Fprintf(buf, "~ %s %s %q\n", change.Before, change.After, change.Path)
+					case dagutils.Remove:
+						fmt.Fprintf(buf, "- %s %q\n", change.Before, change.Path)
+					}
 				}
 			}
 			return buf, nil
