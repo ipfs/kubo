@@ -134,6 +134,7 @@ func TestOptionParsing(t *testing.T) {
 	test("-b test false", kvs{"b": true}, words{"false"})
 	test("-b --string foo test bar", kvs{"b": true, "string": "foo"}, words{"bar"})
 	test("-b=false --string bar", kvs{"b": false, "string": "bar"}, words{})
+	testFail("foo test")
 }
 
 func TestArgumentParsing(t *testing.T) {
