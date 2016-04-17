@@ -1,5 +1,7 @@
 {
-  "bugs": {},
+  "bugs": {
+    "url": "https://github.com/ipfs/go-ipfs"
+  },
   "gxDependencies": [
     {
       "hash": "Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH",
@@ -38,10 +40,12 @@
     }
   ],
   "gxVersion": "0.4.0",
-  "gx_version": "0.4.0",
-  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/ipfs/go-libp2p",
+    "goversion":"1.5.2"
+  },
   "language": "go",
-  "license": "",
+  "license": "MIT",
   "name": "go-ipfs",
   "version": "0.4.0"
 }
