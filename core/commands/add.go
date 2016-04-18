@@ -183,14 +183,14 @@ You can now refer to the added file in a gateway, like so:
 				}
 			}
 
-			if hash {
-				return nil
-			}
-
 			// copy intermediary nodes from editor to our actual dagservice
 			_, err := fileAdder.Finalize()
 			if err != nil {
 				return err
+			}
+
+			if hash {
+				return nil
 			}
 
 			return fileAdder.PinRoot()

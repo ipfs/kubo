@@ -285,6 +285,31 @@ test_expect_success "'ipfs add -r' output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "'ipfs add -rn' succeeds" '
+	mkdir -p mountdir/moons/jupiter &&
+	mkdir -p mountdir/moons/saturn &&
+	echo "Hello Europa!" >mountdir/moons/jupiter/europa.txt &&
+	echo "Hello Titan!" >mountdir/moons/saturn/titan.txt &&
+	echo "hey youre no moon!" >mountdir/moons/mercury.txt &&
+	ipfs add -rn mountdir/moons >actual
+'
+
+test_expect_success "'ipfs add -rn' output looks good" '
+	MOONS="QmVKvomp91nMih5j6hYBA8KjbiaYvEetU2Q7KvtZkLe9nQ" &&
+	EUROPA="Qmbjg7zWdqdMaK2BucPncJQDxiALExph5k3NkQv5RHpccu" &&
+  JUPITER="QmS5mZddhFPLWFX3w6FzAy9QxyYkaxvUpsWCtZ3r7jub9J" &&
+  SATURN="QmaMagZT4rTE7Nonw8KGSK4oe1bh533yhZrCo1HihSG8FK" &&
+	TITAN="QmZzppb9WHn552rmRqpPfgU5FEiHH6gDwi3MrB9cTdPwdb" &&
+	MERCURY="QmUJjVtnN8YEeYcS8VmUeWffTWhnMQAkk5DzZdKnPhqUdK" &&
+  echo "added $EUROPA moons/jupiter/europa.txt" >expected &&
+  echo "added $MERCURY moons/mercury.txt" >>expected &&
+  echo "added $TITAN moons/saturn/titan.txt" >>expected &&
+  echo "added $JUPITER moons/jupiter" >>expected &&
+  echo "added $SATURN moons/saturn" >>expected &&
+  echo "added $MOONS moons" >>expected &&
+	test_cmp expected actual
+'
+
 test_expect_success "ipfs cat accept many hashes from stdin" '
 	{ echo "$MARS"; echo "$VENUS"; } | ipfs cat >actual
 '
