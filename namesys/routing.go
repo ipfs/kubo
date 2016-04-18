@@ -2,6 +2,7 @@ package namesys
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	lru "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/hashicorp/golang-lru"
@@ -122,6 +123,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		return cached, nil
 	}
 
+	name = strings.TrimPrefix(name, "/ipns/")
 	hash, err := mh.FromB58String(name)
 	if err != nil {
 		// name should be a multihash. if it isn't, error out here.
