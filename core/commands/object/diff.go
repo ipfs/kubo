@@ -33,7 +33,7 @@ Example:
    ...
    added QmcmRptkSPWhptCttgHg27QNDmnV33wAJyUkCnAvqD3eCD foo
    $ OBJ_B=QmcmRptkSPWhptCttgHg27QNDmnV33wAJyUkCnAvqD3eCD
-   $ ipfs object diff $OBJ_A $OBJ_B
+   $ ipfs object diff -v $OBJ_A $OBJ_B
    changed "bar" from QmNgd5cz2jNftnAHBhcRUGdtiaMzb5Rhjqd4etondHHST8 to QmRfFVsjSXkhFxrfWnLpMae2M4GBVsry6VAuYYcji5MiZb
 `,
 	},
