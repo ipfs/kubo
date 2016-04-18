@@ -48,18 +48,20 @@ var ObjectCmd = &cmds.Command{
 'ipfs object' is a plumbing command used to manipulate DAG objects
 directly.`,
 		Synopsis: `
-ipfs object data <key>      - Outputs raw bytes in an object
-ipfs object get <key>       - Get the DAG node named by <key>
-ipfs object links <key>     - Outputs links pointed to by object
-ipfs object new <template>  - Create new ipfs objects
-ipfs object patch <args>    - Create new object from old ones
-ipfs object put <data>      - Stores input, outputs its key
-ipfs object stat <key>      - Outputs statistics of object
+ipfs object data <key>           - Outputs raw bytes in an object
+ipfs object diff <key1> <key2>   - Diffs two given objects
+ipfs object get <key>            - Get the DAG node named by <key>
+ipfs object links <key>          - Outputs links pointed to by object
+ipfs object new <template>       - Create new ipfs objects
+ipfs object patch <args>         - Create new object from old ones
+ipfs object put <data>           - Stores input, outputs its key
+ipfs object stat <key>           - Outputs statistics of object
 `,
 	},
 
 	Subcommands: map[string]*cmds.Command{
 		"data":  ObjectDataCmd,
+		"diff":  ObjectDiffCmd,
 		"get":   ObjectGetCmd,
 		"links": ObjectLinksCmd,
 		"new":   ObjectNewCmd,
