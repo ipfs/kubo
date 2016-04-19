@@ -36,7 +36,7 @@ var statBwCmd = &cmds.Command{
 		cmds.StringOption("peer", "p", "Specify a peer to print bandwidth for."),
 		cmds.StringOption("proto", "t", "Specify a protocol to print bandwidth for."),
 		cmds.BoolOption("poll", "Print bandwidth at an interval. Default: false."),
-		cmds.StringOption("interval", "i", "Time interval to wait between updating output."),
+		cmds.StringOption("interval", "i", "Time interval to wait between updating output, if 'poll' is true."),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
