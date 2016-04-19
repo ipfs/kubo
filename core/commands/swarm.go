@@ -29,7 +29,7 @@ var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Swarm inspection tool.",
 		Synopsis: `
-ipfs swarm addrs                - List known addresses. Useful to debug.
+ipfs swarm addrs                - List known addresses. Useful for debugging.
 ipfs swarm connect <address>    - Open connection to a given address
 ipfs swarm disconnect <address> - Close connection to a given address
 ipfs swarm filters              - Manipulate filters addresses
@@ -90,7 +90,7 @@ var swarmPeersCmd = &cmds.Command{
 
 var swarmAddrsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List known addresses. Useful to debug.",
+		Tagline: "List known addresses. Useful for debugging.",
 		ShortDescription: `
 'ipfs swarm addrs' lists all addresses this node is aware of.
 `,
