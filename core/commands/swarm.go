@@ -29,11 +29,11 @@ var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Swarm inspection tool.",
 		Synopsis: `
-ipfs swarm peers                - List peers with open connections
 ipfs swarm addrs                - List known addresses. Useful to debug.
 ipfs swarm connect <address>    - Open connection to a given address
 ipfs swarm disconnect <address> - Close connection to a given address
 ipfs swarm filters              - Manipulate filters addresses
+ipfs swarm peers                - List peers with open connections
 `,
 		ShortDescription: `
 'ipfs swarm' is a tool to manipulate the network swarm. The swarm is the
@@ -42,11 +42,11 @@ ipfs peers in the internet.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"peers":      swarmPeersCmd,
 		"addrs":      swarmAddrsCmd,
 		"connect":    swarmConnectCmd,
 		"disconnect": swarmDisconnectCmd,
 		"filters":    swarmFiltersCmd,
+		"peers":      swarmPeersCmd,
 	},
 }
 
