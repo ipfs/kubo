@@ -7,8 +7,6 @@ endif
 
 COMMIT := $(shell git rev-parse --short HEAD)
 ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
-MAKEFLAGS += --no-print-directory
-
 
 export IPFS_API ?= v04x.ipfs.io
 
@@ -45,19 +43,19 @@ vendor: godep
 	godep save -r ./...
 
 install: deps
-	cd cmd/ipfs && go install -ldflags=$(ldflags)
+	make -C cmd/ipfs install
 
 build: deps
-	cd cmd/ipfs && go build -i -ldflags=$(ldflags)
+	make -C cmd/ipfs build
 
 nofuse: deps
-	cd cmd/ipfs && go install -tags nofuse -ldflags=$(ldflags)
+	make -C cmd/ipfs nofuse
 
 clean:
-	cd cmd/ipfs && go clean -ldflags=$(ldflags)
+	make -C cmd/ipfs clean
 
 uninstall:
-	cd cmd/ipfs && go clean -i -ldflags=$(ldflags)
+	make -C cmd/ipfs uninstall
 
 PHONY += all help godep toolkit_upgrade gx_upgrade gxgo_upgrade gx_check
 PHONY += go_check deps vendor install build nofuse clean uninstall
