@@ -6,9 +6,14 @@ import (
 	"io"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	core "github.com/ipfs/go-ipfs/core"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 )
+
+type Changes struct {
+	Changes []*dagutils.Change
+}
 
 var ObjectDiffCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -68,13 +73,13 @@ Example:
 
 		ctx := req.Context()
 
-		obj_a, err := node.Resolver.ResolvePath(ctx, pa)
+		obj_a, err := core.Resolve(ctx, node, pa)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		obj_b, err := node.Resolver.ResolvePath(ctx, pb)
+		obj_b, err := core.Resolve(ctx, node, pb)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -86,15 +91,15 @@ Example:
 			return
 		}
 
-		res.SetOutput(changes)
+		res.SetOutput(&Changes{changes})
 	},
-	Type: []*dagutils.Change{},
+	Type: Changes{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			verbose, _, _ := res.Request().Option("v").Bool()
-			changes := res.Output().([]*dagutils.Change)
+			changes := res.Output().(*Changes)
 			buf := new(bytes.Buffer)
-			for _, change := range changes {
+			for _, change := range changes.Changes {
 				if verbose {
 					switch change.Type {
 					case dagutils.Add:
