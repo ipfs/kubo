@@ -34,7 +34,7 @@ test_expect_success 'findpeer' '
 test_expect_success 'put' '
   ipfsi 1 dht put planet pluto >actual &&
   PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
-  test $PEERS -gt 0 ||
+  [ -s actual ] ||
 	test_fsh cat actual
 '
 
@@ -42,7 +42,7 @@ test_expect_success 'put' '
 test_expect_success 'findprovs' '
   ipfsi 4 dht findprovs planet >actual &&
   PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
-  test $PEERS -gt 0 ||
+  [ -s actual ] ||
 	test_fsh cat actual
 '
 
@@ -62,7 +62,7 @@ test_expect_success 'query' '
   ipfsi 3 dht query apple >>actual &&
   ipfsi 3 dht query pear >>actual &&
   PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
-  test $PEERS -gt 0 ||
+  [ -s actual ] ||
 	test_fsh cat actual
 '
 
