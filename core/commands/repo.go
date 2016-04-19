@@ -102,9 +102,9 @@ var repoStatCmd = &cmds.Command{
 		ShortDescription: `
 'ipfs repo stat' is a plumbing command that will scan the local
 set of stored objects and print repo statistics. It outputs to stdout:
-NumObjects      int number of objects in the local repo
-RepoSize        int size in bytes that the repo is currently taking
-RepoPath        string the path to the repo being currently used	
+NumObjects      int Number of objects in the local repo.
+RepoPath        string The path to the repo being currently used.
+RepoSize        int Size in bytes that the repo is currently taking.
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
