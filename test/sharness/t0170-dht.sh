@@ -16,12 +16,6 @@ test_expect_success 'init iptb' '
 PEERID_0=$(ipfsi 0 id --format="<id>")
 PEERID_2=$(ipfsi 2 id --format="<id>")
 
-# publish
-#HASH=$(echo 'hello warld' | ipfsi 0 add -q)
-#test_expect_success "can publish before mounting /ipns" '
-#  ipfsi 0 name publish '$HASH'
-#'
-
 # ipfs dht findpeer <peerID>
 test_expect_success 'findpeer' '
   ipfsi 1 dht findpeer $PEERID_0 >actual &&
