@@ -102,6 +102,7 @@ if [ -z "$distname" ] || [ -z "$outpath" ] || [ -z "$version" ]; then
 fi
 
 if [ ${version:0:1} != "v" ]; then
+	echo "invalid version '$version'" >&2
 	die "versions must begin with 'v', for example: v0.4.0"
 fi
 
