@@ -13,7 +13,8 @@ test_expect_success 'init iptb' '
   startup_cluster $NUM_NODES
 '
 
-PEERID_0=$(ipfsi 0 id --format="<id>") &&
+PEERID_0=$(ipfsi 0 id --format="<id>")
+PEERID_2=$(ipfsi 2 id --format="<id>")
 
 # publish
 #HASH=$(echo 'hello warld' | ipfsi 0 add -q)
@@ -21,25 +22,52 @@ PEERID_0=$(ipfsi 0 id --format="<id>") &&
 #  ipfsi 0 name publish '$HASH'
 #'
 
-sleep 1
-
 # ipfs dht findpeer <peerID>
-test_expect_success 'query' '
-  touch expected &&
+test_expect_success 'findpeer' '
   ipfsi 1 dht findpeer $PEERID_0 >actual &&
 	egrep "/ip4/127.0.0.1/tcp/.*" actual >/dev/null &&
 	egrep "/ip4/.*/tcp/.*" actual >>/dev/null ||
 	test_fsh cat actual
 '
-  # PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
-  # test $PEERS -gt 0
-# ipfs dht query <peerID>
-# ipfs dht findprovs <key>
-# ipfs dht get <key>
-# ipfs dht put <key> <value>
 
-echo 'stopping..'
-iptb stop
-echo 'stopped!'
+# ipfs dht put <key> <value>
+test_expect_success 'put' '
+  ipfsi 1 dht put planet pluto >actual &&
+  PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
+  test $PEERS -gt 0 ||
+	test_fsh cat actual
+'
+
+# ipfs dht findprovs <key>
+test_expect_success 'findprovs' '
+  ipfsi 4 dht findprovs planet >actual &&
+  PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
+  test $PEERS -gt 0 ||
+	test_fsh cat actual
+'
+
+# ipfs dht get <key>
+test_expect_success 'get' '
+  ipfsi 0 dht put bar foo >actual &&
+  ipfsi 4 dht get -v bar >actual &&
+  egrep "error: record key does not have selectorfunc" actual > /dev//null ||
+	test_fsh cat actual
+'
+
+# ipfs dht query <peerID>
+## We query 3 different keys, to statisically lower the chance that the queryer
+## turns out to be the closest to what a key hashes to.
+test_expect_success 'query' '
+  ipfsi 3 dht query banana >actual &&
+  ipfsi 3 dht query apple >>actual &&
+  ipfsi 3 dht query pear >>actual &&
+  PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
+  test $PEERS -gt 0 ||
+	test_fsh cat actual
+'
+
+test_expect_success 'stop iptb' '
+  iptb stop
+'
 
 test_done
