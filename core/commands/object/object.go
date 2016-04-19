@@ -37,8 +37,8 @@ type Link struct {
 }
 
 type Object struct {
-	Hash  string
-	Links []Link
+	Hash  string `json:"Hash,omitempty"`
+	Links []Link `json:"Links,omitempty"`
 }
 
 var ObjectCmd = &cmds.Command{
