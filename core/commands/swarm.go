@@ -259,6 +259,8 @@ var swarmDisconnectCmd = &cmds.Command{
 is an ipfs multiaddr:
 
 ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+
+The disconnect is not permanent; if ipfs needs to talk to that address later, it will reconnect.
 `,
 	},
 	Arguments: []cmds.Argument{
