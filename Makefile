@@ -27,11 +27,11 @@ toolkit_upgrade: gx_upgrade gxgo_upgrade
 go_check:
 	@bin/check_go_version $(IPFS_MIN_GO_VERSION)
 
-bin/gx-%:
+bin/gx-v%:
 	@echo "installing gx $(@:bin/gx-%=%)"
 	@bin/dist_get gx $@ $(@:bin/gx-%=%)
 
-bin/gx-go-%:
+bin/gx-go-v%:
 	@echo "installing gx-go $(@:bin/gx-go-%=%)"
 	@bin/dist_get gx-go $@ $(@:bin/gx-go-%=%)
 	rm -f bin/gx-go
