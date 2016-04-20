@@ -4,8 +4,6 @@ test_description="Test dht command"
 
 . lib/test-lib.sh
 
-test_init_ipfs
-
 # start iptb + wait for peering
 NUM_NODES=5
 test_expect_success 'init iptb' '
