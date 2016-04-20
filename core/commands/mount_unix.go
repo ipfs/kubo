@@ -10,7 +10,9 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
+	namesys "github.com/ipfs/go-ipfs/namesys"
 	config "github.com/ipfs/go-ipfs/repo/config"
+	offroute "github.com/ipfs/go-ipfs/routing/offline"
 )
 
 var MountCmd = &cmds.Command{
@@ -112,6 +114,13 @@ baz
 		}
 		if !found {
 			nsdir = cfg.Mounts.IPNS // NB: be sure to not redeclare!
+		}
+
+		local, _, _ := req.Option("local").Bool()
+		if local {
+			node.Routing = offroute.NewOfflineRouter(node.Repo.Datastore(), node.PrivateKey)
+
+			node.Namesys = namesys.NewNameSystem(node.Routing, node.Repo.Datastore(), 128)
 		}
 
 		err = nodeMount.Mount(node, fsdir, nsdir)

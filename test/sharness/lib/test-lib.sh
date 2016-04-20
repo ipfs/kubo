@@ -239,7 +239,7 @@ test_mount_ipfs() {
 	test_expect_success FUSE "'ipfs mount' succeeds" '
 		do_umount "$(pwd)/ipfs" || true &&
 		do_umount "$(pwd)/ipns" || true &&
-		ipfs mount >actual
+		ipfs mount --local >actual
 	'
 
 	test_expect_success FUSE "'ipfs mount' output looks good" '
