@@ -5,8 +5,13 @@ import (
 	"fmt"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"io"
+	"os"
+	"path/filepath"
 )
 
 var RepoCmd = &cmds.Command{
@@ -20,6 +25,7 @@ var RepoCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"gc":   repoGcCmd,
 		"stat": repoStatCmd,
+		"fsck": repoFsckCmd,
 	},
 }
 
@@ -150,5 +156,51 @@ RepoPath        string the path to the repo being currently used
 
 			return buf, nil
 		},
+	},
+}
+
+var repoFsckCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Removes repo lockfiles",
+		ShortDescription: `
+'ipfs repo fsck' is a plumbing command that will remove repo and level db lockfiles
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+
+		configRoot := req.InvocContext().ConfigRoot
+
+		// acquire the repo lock before removing it
+		repo, err := fsrepo.Open(configRoot)
+		defer repo.Close()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		//TODO: acquire levelDB lock before removing it??
+
+		dsPath, err := config.DataStorePath(configRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		dsLockFile := filepath.Join(dsPath, "LOCK") // TODO: get this lockfile programmatically
+		repoLockFile := filepath.Join(configRoot, lockfile.LockFile)
+
+		log.Infof("Removing repo lockfile: %s", repoLockFile)
+		log.Infof("Removing datastore lockfile: %s", dsLockFile)
+
+		os.Remove(repoLockFile)
+		os.Remove(dsLockFile)
+
+		s := fmt.Sprintf("Lockfiles have been removed.")
+		log.Info(s)
+		res.SetOutput(&MessageOutput{s})
+	},
+	Type: MessageOutput{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: MessageTextMarshaler,
 	},
 }
