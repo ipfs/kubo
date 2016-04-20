@@ -33,7 +33,10 @@ aggregate: clean-test-results $(T)
 	@echo "*** $@ ***"
 	lib/test-aggregate-results.sh
 
-deps: $(SHARNESS) $(BINS) curl
+global-deps:
+	make -C ../.. deps
+
+deps: global-deps $(SHARNESS) $(BINS) curl
 
 $(SHARNESS): FORCE
 	@echo "*** checking $@ ***"
