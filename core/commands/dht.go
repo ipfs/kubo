@@ -438,7 +438,7 @@ Given a key of the form /foo/bar and a value of any form, this will write that v
 
 Keys have two parts: a keytype (foo) and the key name (bar). IPNS uses the /ipns keytype, and expects the key name to be a Peer ID. IPNS entries are specifically formatted (protocol buffer).
 
-You may only use keytypes that are supported in your ipfs binary: currently this is only /ipns. Unless you have a relatively deep understanding of go-ipfs' DHT internals, you likely want to be using 'ipfs name publish' instead of this.)
+You may only use keytypes that are supported in your ipfs binary: currently this is only /ipns. Unless you have a relatively deep understanding of go-ipfs' DHT internals, you likely want to be using 'ipfs name publish' instead of this.
 
 Value is arbitrary text. Standard input can be used to provide value.
 
