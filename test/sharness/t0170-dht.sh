@@ -7,12 +7,14 @@ test_description="Test dht command"
 # start iptb + wait for peering
 NUM_NODES=5
 test_expect_success 'init iptb' '
-  iptb init -n $NUM_NODES -f --bootstrap=none --port=0 &&
+  iptb init -n $NUM_NODES --bootstrap=none --port=0 &&
   startup_cluster $NUM_NODES
 '
 
-PEERID_0=$(ipfsi 0 id --format="<id>")
-PEERID_2=$(ipfsi 2 id --format="<id>")
+test_expect_success 'peer ids' '
+  PEERID_0=$(ipfsi 0 id --format="<id>") &&
+  PEERID_2=$(ipfsi 2 id --format="<id>")
+'
 
 # ipfs dht findpeer <peerID>
 test_expect_success 'findpeer' '
