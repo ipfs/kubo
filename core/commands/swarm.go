@@ -264,7 +264,7 @@ The disconnect is not permanent; if ipfs needs to talk to that address later, it
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("address", true, true, "Address of peer to connect to.").EnableStdin(),
+		cmds.StringArg("address", true, true, "Address of peer to disconnect from.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
