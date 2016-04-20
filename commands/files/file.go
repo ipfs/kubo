@@ -11,6 +11,35 @@ var (
 	ErrNotReader    = errors.New("This file is a directory, can't use Reader functions")
 )
 
+// An AdvReader is like a Reader but supports getting the current file
+// path and offset into the file when applicable.
+type AdvReader interface {
+	io.Reader
+	Offset() int64
+	FullPath() string
+}
+
+type advReaderAdapter struct {
+	io.Reader
+}
+
+func (advReaderAdapter) Offset() int64 {
+	return -1
+}
+
+func (advReaderAdapter) FullPath() string {
+	return ""
+}
+
+func AdvReaderAdapter(r io.Reader) AdvReader {
+	switch t := r.(type) {
+	case AdvReader:
+		return t
+	default:
+		return advReaderAdapter{r}
+	}
+}
+
 // File is an interface that provides functionality for handling
 // files/directories as values that can be supplied to commands. For
 // directories, child files are accessed serially by calling `NextFile()`.
@@ -18,6 +47,7 @@ type File interface {
 	// Files implement ReadCloser, but can only be read from or closed if
 	// they are not directories
 	io.ReadCloser
+	Offset() int64
 
 	// FileName returns a filename path associated with this file
 	FileName() string

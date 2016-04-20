@@ -48,3 +48,7 @@ func (f *Symlink) FullPath() string {
 func (f *Symlink) Read(b []byte) (int, error) {
 	return f.reader.Read(b)
 }
+
+func (f *Symlink) Offset() int64 {
+	return -1
+}

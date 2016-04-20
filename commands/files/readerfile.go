@@ -13,10 +13,11 @@ type ReaderFile struct {
 	fullpath string
 	reader   io.ReadCloser
 	stat     os.FileInfo
+	offset   int64
 }
 
 func NewReaderFile(filename, path string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
-	return &ReaderFile{filename, path, reader, stat}
+	return &ReaderFile{filename, path, reader, stat, 0}
 }
 
 func (f *ReaderFile) IsDirectory() bool {
@@ -36,7 +37,13 @@ func (f *ReaderFile) FullPath() string {
 }
 
 func (f *ReaderFile) Read(p []byte) (int, error) {
-	return f.reader.Read(p)
+	res, err := f.reader.Read(p)
+	f.offset += int64(res)
+	return res, err
+}
+
+func (f *ReaderFile) Offset() int64 {
+	return f.offset
 }
 
 func (f *ReaderFile) Close() error {

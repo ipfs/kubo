@@ -108,6 +108,10 @@ func (f *serialFile) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }
 
+func (f *serialFile) Offset() int64 {
+	return -1
+}
+
 func (f *serialFile) Close() error {
 	// close the current file if there is one
 	if f.current != nil {

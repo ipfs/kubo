@@ -12,8 +12,10 @@ type DagBuilderHelper struct {
 	spl      chunk.Splitter
 	recvdErr error
 	nextData []byte // the next item to return.
+	offset   int64  // offset of next data
 	maxlinks int
 	batch    *dag.Batch
+	filePath string
 }
 
 type DagBuilderParams struct {
@@ -32,6 +34,7 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		spl:      spl,
 		maxlinks: dbp.Maxlinks,
 		batch:    dbp.Dagserv.Batch(),
+		filePath: spl.FilePath(),
 	}
 }
 
@@ -45,7 +48,7 @@ func (db *DagBuilderHelper) prepareNext() {
 	}
 
 	// TODO: handle err (which wasn't handled either when the splitter was channeled)
-	db.nextData, _ = db.spl.NextBytes()
+	db.nextData, db.offset, _ = db.spl.NextBytes()
 }
 
 // Done returns whether or not we're done consuming the incoming data.
@@ -59,11 +62,11 @@ func (db *DagBuilderHelper) Done() bool {
 // Next returns the next chunk of data to be inserted into the dag
 // if it returns nil, that signifies that the stream is at an end, and
 // that the current building operation should finish
-func (db *DagBuilderHelper) Next() []byte {
+func (db *DagBuilderHelper) Next() ([]byte, int64) {
 	db.prepareNext() // idempotent
 	d := db.nextData
 	db.nextData = nil // signal we've consumed it
-	return d
+	return d, db.offset
 }
 
 // GetDagServ returns the dagservice object this Helper is using
@@ -93,7 +96,7 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 }
 
 func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
-	data := db.Next()
+	data, _ /*offset*/ := db.Next()
 	if data == nil { // we're done!
 		return nil
 	}

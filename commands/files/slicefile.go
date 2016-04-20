@@ -52,6 +52,10 @@ func (f *SliceFile) Peek(n int) File {
 	return f.files[n]
 }
 
+func (f *SliceFile) Offset() int64 {
+	return -1
+}
+
 func (f *SliceFile) Length() int {
 	return len(f.files)
 }
