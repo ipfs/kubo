@@ -11,7 +11,7 @@ test_description="Test add and cat commands"
 client_err_add() {
     printf "$@\n\n"
     echo 'USAGE
-  ipfs add <path>... - Add a file or directory hierarchy to ipfs.
+  ipfs add <path>... - Add a file or directory to ipfs.
 
   Adds contents of <path> to ipfs. Use -r to add directories (recursively).
 
