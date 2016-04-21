@@ -7,11 +7,16 @@ import (
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"io"
 	"os"
 	"path/filepath"
 )
+
+type RepoVersion struct {
+	Version string
+}
 
 var RepoCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -25,6 +30,7 @@ var RepoCmd = &cmds.Command{
 		"gc":   repoGcCmd,
 		"stat": repoStatCmd,
 		"fsck": RepoFsckCmd,
+		"version": repoVersionCmd,
 	},
 }
 
@@ -208,5 +214,40 @@ daemons are running.
 	Type: MessageOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: MessageTextMarshaler,
+var repoVersionCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Show the repo version.",
+		ShortDescription: `
+'ipfs repo version' returns the current repo version.
+`,
+	},
+
+	Options: []cmds.Option{
+		cmds.BoolOption("quiet", "q", "Write minimal output."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		res.SetOutput(&RepoVersion{
+			Version: fsrepo.RepoVersion,
+		})
+	},
+	Type: RepoVersion{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			response := res.Output().(*RepoVersion)
+
+			quiet, _, err := res.Request().Option("quiet").Bool()
+			if err != nil {
+				return nil, err
+			}
+
+			buf := new(bytes.Buffer)
+			if quiet {
+				buf = bytes.NewBufferString(fmt.Sprintf("fs-repo@%s\n", response.Version))
+			} else {
+				buf = bytes.NewBufferString(fmt.Sprintf("ipfs repo version fs-repo@%s\n", response.Version))
+			}
+			return buf, nil
+
+		},
 	},
 }
