@@ -2,6 +2,7 @@ package balanced
 
 import (
 	"errors"
+	//"fmt"
 
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -31,6 +32,7 @@ func BalancedLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
 		root = h.NewUnixfsNode()
 	}
 
+	db.SetAsRoot(root)
 	out, err := db.Add(root)
 	if err != nil {
 		return nil, err

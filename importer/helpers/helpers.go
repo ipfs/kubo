@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	//"runtime/debug"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -37,8 +38,10 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 // UnixfsNode is a struct created to aid in the generation
 // of unixfs DAG trees
 type UnixfsNode struct {
-	node *dag.Node
-	ufmt *ft.FSNode
+	node     *dag.Node
+	ufmt     *ft.FSNode
+	filePath string
+	offset   int64
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
@@ -118,14 +121,34 @@ func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
 }
+func (n *UnixfsNode) SetDataPtr(filePath string, offset int64) {
+	//fmt.Println("SetDataPtr: ", filePath, offset)
+	//debug.PrintStack()
+	n.filePath = filePath
+	n.offset = offset
+}
 
 // getDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
 func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
+	//fmt.Println("GetDagNode")
 	data, err := n.ufmt.GetBytes()
 	if err != nil {
 		return nil, err
 	}
 	n.node.Data = data
+	if n.filePath != "" {
+		if n.ufmt.NumChildren() == 0 && (n.ufmt.Type == ft.TFile || n.ufmt.Type == ft.TRaw) {
+			//fmt.Println("We have a block.")
+			// We have a block
+			d, _ := n.ufmt.GetBytesNoData()
+			n.node.DataPtr = &dag.DataPtr{d, n.filePath, uint64(n.offset), uint64(len(n.ufmt.Data))}
+		} else if n.ufmt.Type == ft.TFile {
+			//fmt.Println("We have a root.")
+			// We have a root
+			n.node.DataPtr = &dag.DataPtr{nil, n.filePath, 0, n.ufmt.FileSize()}
+		}
+	}
+
 	return n.node, nil
 }

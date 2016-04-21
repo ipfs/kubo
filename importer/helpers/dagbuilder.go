@@ -100,7 +100,7 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 }
 
 func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
-	data, _ /*offset*/ := db.Next()
+	data, offset := db.Next()
 	if data == nil { // we're done!
 		return nil
 	}
@@ -110,7 +110,18 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 	}
 
 	node.SetData(data)
+	if db.absPath != "" {
+		node.SetDataPtr(db.absPath, offset)
+	}
+
 	return nil
+}
+
+func (db *DagBuilderHelper) SetAsRoot(node *UnixfsNode) {
+	//fmt.Println("SetAsRoot!")
+	if db.absPath != "" {
+		node.SetDataPtr(db.absPath, 0)
+	}
 }
 
 func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {

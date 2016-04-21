@@ -65,6 +65,10 @@ func (n *dagService) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
 	if err != nil {
 		return "", err
 	}
+	b.DataPtr, err = nd.EncodeDataPtr()
+	if err != nil {
+		return "", err
+	}
 
 	return n.Blocks.AddBlock(b, addOpts)
 }
@@ -338,6 +342,10 @@ func (t *Batch) Add(nd *Node) (key.Key, error) {
 	b := new(blocks.Block)
 	b.Data = d
 	b.Multihash, err = nd.Multihash()
+	if err != nil {
+		return "", err
+	}
+	b.DataPtr, err = nd.EncodeDataPtr()
 	if err != nil {
 		return "", err
 	}

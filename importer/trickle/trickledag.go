@@ -8,6 +8,8 @@ import (
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	//ds2 "github.com/ipfs/go-ipfs/datastore"
 )
 
 // layerRepeat specifies how many times to append a child tree of a
@@ -32,6 +34,7 @@ func TrickleLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
 		}
 	}
 
+	db.SetAsRoot(root)
 	out, err := db.Add(root)
 	if err != nil {
 		return nil, err

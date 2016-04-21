@@ -15,6 +15,15 @@ import (
 type Block struct {
 	Multihash mh.Multihash
 	Data      []byte
+	DataPtr   *DataPtr
+}
+
+// This DataPtr had different AltData than the node DataPtr
+type DataPtr struct {
+	AltData  []byte
+	FilePath string
+	Offset   uint64
+	Size     uint64
 }
 
 // NewBlock creates a Block object from opaque data. It will hash the data.
