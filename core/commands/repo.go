@@ -24,7 +24,7 @@ var RepoCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"gc":   repoGcCmd,
 		"stat": repoStatCmd,
-		"fsck": repoFsckCmd,
+		"fsck": RepoFsckCmd,
 	},
 }
 
@@ -157,26 +157,15 @@ RepoPath        string the path to the repo being currently used
 	},
 }
 
-var repoFsckCmd = &cmds.Command{
+var RepoFsckCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Removes repo lockfiles",
 		ShortDescription: `
-'ipfs repo fsck' is a plumbing command that will remove repo and level db lockfiles.
+'ipfs repo fsck' is a plumbing command that will remove repo and level db
+lockfiles. This command can only run when no ipfs daemons are running.
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		// We should only delete locks if no daemon is running because a lock could
-		// be held otherwise
-		if n.OnlineMode() {
-			res.SetError(cmds.ErrNodeOnline, cmds.ErrNormal)
-			return
-		}
-
 		configRoot := req.InvocContext().ConfigRoot
 
 		dsPath, err := config.DataStorePath(configRoot)
