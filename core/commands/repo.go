@@ -191,7 +191,7 @@ lockfiles. This command can only run when no ipfs daemons are running.
 			return
 		}
 
-		s := "Lockfiles have been removed."
+		s := "Lockfiles have been removed.\n"
 		log.Info(s)
 		res.SetOutput(&MessageOutput{s})
 	},
