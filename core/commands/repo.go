@@ -170,8 +170,10 @@ var repoFsckCmd = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if !n.OnlineMode() {
-			res.SetError(cmds.ErrNodeOffline, cmds.ErrNormal)
+		// We should only delete locks if no daemon is running because a lock could
+		// be held otherwise
+		if n.OnlineMode() {
+			res.SetError(cmds.ErrNodeOnline, cmds.ErrNormal)
 			return
 		}
 
@@ -190,12 +192,12 @@ var repoFsckCmd = &cmds.Command{
 		log.Infof("Removing datastore lockfile: %s", dsLockFile)
 
 		err = os.Remove(repoLockFile)
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 		err = os.Remove(dsLockFile)
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
