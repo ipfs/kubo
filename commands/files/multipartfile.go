@@ -93,6 +93,10 @@ func (f *MultipartFile) FullPath() string {
 	return f.FileName()
 }
 
+func (f *MultipartFile) AbsPath() string {
+	return f.FileName()
+}
+
 func (f *MultipartFile) Read(p []byte) (int, error) {
 	if f.IsDirectory() {
 		return 0, ErrNotReader

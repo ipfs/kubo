@@ -16,7 +16,7 @@ var (
 type AdvReader interface {
 	io.Reader
 	Offset() int64
-	FullPath() string
+	AbsPath() string
 }
 
 type advReaderAdapter struct {
@@ -27,7 +27,7 @@ func (advReaderAdapter) Offset() int64 {
 	return -1
 }
 
-func (advReaderAdapter) FullPath() string {
+func (advReaderAdapter) AbsPath() string {
 	return ""
 }
 
@@ -54,6 +54,9 @@ type File interface {
 
 	// FullPath returns the full path in the os associated with this file
 	FullPath() string
+
+	// AbsPath returns the absolute path, not necessary unique
+	AbsPath() string
 
 	// IsDirectory returns true if the File is a directory (and therefore
 	// supports calling `NextFile`) and false if the File is a normal file

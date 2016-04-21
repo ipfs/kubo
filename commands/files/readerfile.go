@@ -11,13 +11,14 @@ import (
 type ReaderFile struct {
 	filename string
 	fullpath string
+	abspath  string
 	reader   io.ReadCloser
 	stat     os.FileInfo
 	offset   int64
 }
 
-func NewReaderFile(filename, path string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
-	return &ReaderFile{filename, path, reader, stat, 0}
+func NewReaderFile(filename, path, abspath string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
+	return &ReaderFile{filename, path, abspath, reader, stat, 0}
 }
 
 func (f *ReaderFile) IsDirectory() bool {
@@ -34,6 +35,10 @@ func (f *ReaderFile) FileName() string {
 
 func (f *ReaderFile) FullPath() string {
 	return f.fullpath
+}
+
+func (f *ReaderFile) AbsPath() string {
+	return f.abspath
 }
 
 func (f *ReaderFile) Read(p []byte) (int, error) {

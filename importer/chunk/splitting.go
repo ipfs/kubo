@@ -16,7 +16,7 @@ type Splitter interface {
 	// returns the data, an offset if applicable and, an error condition
 	NextBytes() ([]byte, int64, error)
 	// returns the full path to the file if applicable
-	FilePath() string
+	AbsPath() string
 }
 
 type SplitterGen func(r io.Reader) Splitter
@@ -83,6 +83,6 @@ func (ss *sizeSplitterv2) NextBytes() ([]byte, int64, error) {
 	return buf[:n], offset, nil
 }
 
-func (ss *sizeSplitterv2) FilePath() string {
-	return ss.r.FullPath()
+func (ss *sizeSplitterv2) AbsPath() string {
+	return ss.r.AbsPath()
 }

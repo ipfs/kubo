@@ -7,21 +7,23 @@ import (
 )
 
 type Symlink struct {
-	name   string
-	path   string
-	Target string
-	stat   os.FileInfo
+	name    string
+	path    string
+	abspath string
+	Target  string
+	stat    os.FileInfo
 
 	reader io.Reader
 }
 
-func NewLinkFile(name, path, target string, stat os.FileInfo) File {
+func NewLinkFile(name, path, abspath, target string, stat os.FileInfo) File {
 	return &Symlink{
-		name:   name,
-		path:   path,
-		Target: target,
-		stat:   stat,
-		reader: strings.NewReader(target),
+		name:    name,
+		path:    path,
+		abspath: abspath,
+		Target:  target,
+		stat:    stat,
+		reader:  strings.NewReader(target),
 	}
 }
 
@@ -43,6 +45,10 @@ func (f *Symlink) Close() error {
 
 func (f *Symlink) FullPath() string {
 	return f.path
+}
+
+func (f *Symlink) AbsPath() string {
+	return f.abspath
 }
 
 func (f *Symlink) Read(b []byte) (int, error) {

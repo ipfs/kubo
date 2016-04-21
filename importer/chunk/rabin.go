@@ -38,6 +38,6 @@ func (r *Rabin) NextBytes() ([]byte, int64, error) {
 	return ch.Data, -1, nil
 }
 
-func (r *Rabin) FilePath() string {
+func (r *Rabin) AbsPath() string {
 	return ""
 }

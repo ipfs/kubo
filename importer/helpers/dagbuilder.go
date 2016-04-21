@@ -15,7 +15,7 @@ type DagBuilderHelper struct {
 	offset   int64  // offset of next data
 	maxlinks int
 	batch    *dag.Batch
-	filePath string
+	absPath  string
 }
 
 type DagBuilderParams struct {
@@ -34,7 +34,7 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		spl:      spl,
 		maxlinks: dbp.Maxlinks,
 		batch:    dbp.Dagserv.Batch(),
-		filePath: spl.FilePath(),
+		absPath:  spl.AbsPath(),
 	}
 }
 
