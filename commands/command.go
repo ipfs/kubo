@@ -79,8 +79,6 @@ var ErrNoFormatter = ClientError("This command cannot be formatted to plain text
 
 var ErrIncorrectType = errors.New("The command returned a value with a different type than expected")
 
-var ErrNodeOnline = errors.New("This command can only be run when the node is offline")
-
 // Call invokes the command for the given Request
 func (c *Command) Call(req Request) Response {
 	res := NewResponse(req)
