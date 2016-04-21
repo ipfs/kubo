@@ -115,7 +115,7 @@ set of stored objects and print repo statistics. It outputs to stdout:
 NumObjects      int Number of objects in the local repo.
 RepoPath        string The path to the repo being currently used.
 RepoSize        int Size in bytes that the repo is currently taking.
-Version         string The repo version
+Version         string The repo version.
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
