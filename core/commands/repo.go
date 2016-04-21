@@ -163,7 +163,7 @@ var repoFsckCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Removes repo lockfiles",
 		ShortDescription: `
-'ipfs repo fsck' is a plumbing command that will remove repo and level db lockfiles
+'ipfs repo fsck' is a plumbing command that will remove repo and level db lockfiles.
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -192,8 +192,16 @@ var repoFsckCmd = &cmds.Command{
 		log.Infof("Removing repo lockfile: %s", repoLockFile)
 		log.Infof("Removing datastore lockfile: %s", dsLockFile)
 
-		os.Remove(repoLockFile)
-		os.Remove(dsLockFile)
+		err = os.Remove(repoLockFile)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		err = os.Remove(dsLockFile)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		s := fmt.Sprintf("Lockfiles have been removed.")
 		log.Info(s)
