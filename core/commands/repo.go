@@ -6,7 +6,6 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"io"
@@ -38,7 +37,6 @@ set of stored objects and remove ones that are not pinned in
 order to reclaim hard disk space.
 `,
 	},
-
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Write minimal output."),
 	},
@@ -167,18 +165,17 @@ var repoFsckCmd = &cmds.Command{
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-
-		configRoot := req.InvocContext().ConfigRoot
-
-		// acquire the repo lock before removing it
-		repo, err := fsrepo.Open(configRoot)
-		defer repo.Close()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		if !n.OnlineMode() {
+			res.SetError(cmds.ErrNodeOffline, cmds.ErrNormal)
+			return
+		}
 
-		//TODO: acquire levelDB lock before removing it??
+		configRoot := req.InvocContext().ConfigRoot
 
 		dsPath, err := config.DataStorePath(configRoot)
 		if err != nil {
@@ -203,7 +200,7 @@ var repoFsckCmd = &cmds.Command{
 			return
 		}
 
-		s := fmt.Sprintf("Lockfiles have been removed.")
+		s := "Lockfiles have been removed."
 		log.Info(s)
 		res.SetOutput(&MessageOutput{s})
 	},
