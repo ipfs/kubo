@@ -199,9 +199,9 @@ daemons are running.
 			return
 		}
 
-		s := "Lockfiles have been removed.\n"
+		s := "Lockfiles have been removed."
 		log.Info(s)
-		res.SetOutput(&MessageOutput{s})
+		res.SetOutput(&MessageOutput{s + "\n"})
 	},
 	Type: MessageOutput{},
 	Marshalers: cmds.MarshalerMap{
