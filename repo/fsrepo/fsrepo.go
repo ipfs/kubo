@@ -259,6 +259,9 @@ func Remove(repoPath string) error {
 // process. If true, then the repo cannot be opened by this process.
 func LockedByOtherProcess(repoPath string) (bool, error) {
 	repoPath = filepath.Clean(repoPath)
+	if locked, _ := lockfile.Locked(repoPath); locked {
+		log.Debugf("Lock is held at %s: %t", repoPath, locked)
+	}
 	// NB: the lock is only held when repos are Open
 	return lockfile.Locked(repoPath)
 }
@@ -360,7 +363,7 @@ func (r *FSRepo) Close() error {
 	}
 
 	err := os.Remove(filepath.Join(r.path, apiFile))
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		log.Warning("error removing api file: ", err)
 	}
 

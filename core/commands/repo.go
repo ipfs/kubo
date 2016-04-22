@@ -162,7 +162,8 @@ var RepoFsckCmd = &cmds.Command{
 		Tagline: "Removes repo lockfiles",
 		ShortDescription: `
 'ipfs repo fsck' is a plumbing command that will remove repo and level db
-lockfiles. This command can only run when no ipfs daemons are running.
+lockfiles, as well as the api file. This command can only run when no ipfs
+daemons are running.
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -176,9 +177,11 @@ lockfiles. This command can only run when no ipfs daemons are running.
 
 		dsLockFile := filepath.Join(dsPath, "LOCK") // TODO: get this lockfile programmatically
 		repoLockFile := filepath.Join(configRoot, lockfile.LockFile)
+		apiFile := filepath.Join(configRoot, "api") // TODO: get this programmatically
 
 		log.Infof("Removing repo lockfile: %s", repoLockFile)
 		log.Infof("Removing datastore lockfile: %s", dsLockFile)
+		log.Infof("Removing api file: %s", apiFile)
 
 		err = os.Remove(repoLockFile)
 		if err != nil && !os.IsNotExist(err) {
@@ -186,6 +189,11 @@ lockfiles. This command can only run when no ipfs daemons are running.
 			return
 		}
 		err = os.Remove(dsLockFile)
+		if err != nil && !os.IsNotExist(err) {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		err = os.Remove(apiFile)
 		if err != nil && !os.IsNotExist(err) {
 			res.SetError(err, cmds.ErrNormal)
 			return
