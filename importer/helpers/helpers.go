@@ -42,6 +42,7 @@ type UnixfsNode struct {
 	ufmt     *ft.FSNode
 	filePath string
 	offset   int64
+	fileRoot bool
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
@@ -127,6 +128,9 @@ func (n *UnixfsNode) SetDataPtr(filePath string, offset int64) {
 	n.filePath = filePath
 	n.offset = offset
 }
+func (n *UnixfsNode) SetAsRoot() {
+	n.fileRoot = true
+}
 
 // getDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
@@ -142,13 +146,22 @@ func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
 			//fmt.Println("We have a block.")
 			// We have a block
 			d, _ := n.ufmt.GetBytesNoData()
-			n.node.DataPtr = &dag.DataPtr{d, n.filePath, uint64(n.offset), uint64(len(n.ufmt.Data))}
-		} else if n.ufmt.Type == ft.TFile {
+			n.node.DataPtr = &dag.DataPtr{
+				AltData:  d,
+				FilePath: n.filePath,
+				Offset:   uint64(n.offset),
+				Size:     uint64(len(n.ufmt.Data))}
+		} else if n.ufmt.Type == ft.TFile && n.fileRoot {
 			//fmt.Println("We have a root.")
 			// We have a root
-			n.node.DataPtr = &dag.DataPtr{nil, n.filePath, 0, n.ufmt.FileSize()}
+			n.node.DataPtr = &dag.DataPtr{
+				AltData:  nil,
+				FilePath: n.filePath,
+				Offset:   0,
+				Size:     n.ufmt.FileSize()}
+		} else {
+			// We have something else, nothing to do
 		}
 	}
-
 	return n.node, nil
 }

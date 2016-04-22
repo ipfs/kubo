@@ -12,6 +12,7 @@ import (
 	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	"github.com/ipfs/go-ipfs/filestore"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
@@ -92,12 +93,11 @@ func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
 func (bs *blockstore) Put(block *blocks.Block, addOpts interface{}) error {
 	k := block.Key().DsKey()
 
-	// Has is cheaper than Put, so see if we already have it
-	exists, err := bs.datastore.Has(k)
-	if err == nil && exists {
-		return nil // already stored.
+	data := bs.prepareBlock(k, block, addOpts)
+	if data == nil {
+		return nil
 	}
-	return bs.datastore.Put(k, block.Data)
+	return bs.datastore.Put(k, data)
 }
 
 func (bs *blockstore) PutMany(blocks []*blocks.Block, addOpts interface{}) error {
@@ -107,17 +107,43 @@ func (bs *blockstore) PutMany(blocks []*blocks.Block, addOpts interface{}) error
 	}
 	for _, b := range blocks {
 		k := b.Key().DsKey()
-		exists, err := bs.datastore.Has(k)
-		if err == nil && exists {
+		data := bs.prepareBlock(k, b, addOpts)
+		if data == nil {
 			continue
 		}
-
-		err = t.Put(k, b.Data)
+		err = t.Put(k, data)
 		if err != nil {
 			return err
 		}
 	}
 	return t.Commit()
+}
+
+func (bs *blockstore) prepareBlock(k ds.Key, block *blocks.Block, addOpts interface{}) interface{} {
+	if block.DataPtr == nil || addOpts == nil {
+		// Has is cheaper than Put, so see if we already have it
+		exists, err := bs.datastore.Has(k)
+		if err == nil && exists {
+			return nil // already stored.
+		}
+		return block.Data
+	} else {
+		d := &filestore.DataObj{
+			FilePath: block.DataPtr.FilePath,
+			Offset:   block.DataPtr.Offset,
+			Size:     block.DataPtr.Size,
+		}
+		if block.DataPtr.AltData == nil {
+			d.WholeFile = true
+			d.FileRoot = true
+			d.Data = block.Data
+		} else {
+			d.NoBlockData = true
+			d.Data = block.DataPtr.AltData
+		}
+		return &filestore.DataWOpts{d, addOpts}
+	}
+
 }
 
 func (bs *blockstore) Has(k key.Key) (bool, error) {

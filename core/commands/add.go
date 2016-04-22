@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/filestore"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
@@ -28,14 +29,6 @@ const (
 	pinOptionName      = "pin"
 	nocopyOptionName   = "no-copy"
 	linkOptionName     = "link"
-)
-
-// Constants to indicate how the data should be added.  Temporary
-// located here for lack of a better place.  Will be moved to
-// a better location later.
-const (
-	AddNoCopy = 1
-	AddLink = 2
 )
 
 var AddCmd = &cmds.Command{
@@ -181,10 +174,10 @@ You can now refer to the added file in a gateway, like so:
 		fileAdder.Silent = silent
 
 		if nocopy {
-			fileAdder.AddOpts = AddNoCopy
+			fileAdder.AddOpts = filestore.AddNoCopy
 		}
 		if link {
-			fileAdder.AddOpts = AddLink
+			fileAdder.AddOpts = filestore.AddLink
 		}
 
 		addAllAndPin := func(f files.File) error {
