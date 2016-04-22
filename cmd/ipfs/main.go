@@ -417,9 +417,9 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 		return nil, err
 	}
 
-	if client != nil { // api file exists
 		if details.cannotRunOnDaemon {
 			// check if daemon locked. legacy error text, for now.
+			log.Debugf("Command cannot run on daemon. Checking if daemon is locked")
 			if daemonLocked, _ := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot); daemonLocked {
 				return nil, cmds.ClientError("ipfs daemon is running. please stop it to run this command")
 			}
