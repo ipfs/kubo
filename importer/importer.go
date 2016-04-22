@@ -19,7 +19,7 @@ var log = logging.Logger("importer")
 
 // Builds a DAG from the given file, writing created blocks to disk as they are
 // created
-func BuildDagFromFile(fpath string, ds dag.DAGService) (*dag.Node, error) {
+func BuildDagFromFile(fpath string, ds dag.DAGService, addOpts interface{}) (*dag.Node, error) {
 	stat, err := os.Lstat(fpath)
 	if err != nil {
 		return nil, err
@@ -35,22 +35,24 @@ func BuildDagFromFile(fpath string, ds dag.DAGService) (*dag.Node, error) {
 	}
 	defer f.Close()
 
-	return BuildDagFromReader(ds, chunk.NewSizeSplitter(f, chunk.DefaultBlockSize))
+	return BuildDagFromReader(ds, chunk.NewSizeSplitter(f, chunk.DefaultBlockSize), addOpts)
 }
 
-func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
+func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter, addOpts interface{}) (*dag.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
+		AddOpts:  addOpts,
 	}
 
 	return bal.BalancedLayout(dbp.New(spl))
 }
 
-func BuildTrickleDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
+func BuildTrickleDagFromReader(ds dag.DAGService, spl chunk.Splitter, addOpts interface{}) (*dag.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
+		AddOpts:  addOpts,
 	}
 
 	return trickle.TrickleLayout(dbp.New(spl))

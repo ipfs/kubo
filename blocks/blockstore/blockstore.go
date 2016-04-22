@@ -31,8 +31,8 @@ type Blockstore interface {
 	DeleteBlock(key.Key) error
 	Has(key.Key) (bool, error)
 	Get(key.Key) (*blocks.Block, error)
-	Put(*blocks.Block) error
-	PutMany([]*blocks.Block) error
+	Put(block *blocks.Block, addOpts interface{}) error
+	PutMany(blocks []*blocks.Block, addOpts interface{}) error
 
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
@@ -89,7 +89,7 @@ func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
 	return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
 }
 
-func (bs *blockstore) Put(block *blocks.Block) error {
+func (bs *blockstore) Put(block *blocks.Block, addOpts interface{}) error {
 	k := block.Key().DsKey()
 
 	// Has is cheaper than Put, so see if we already have it
@@ -100,7 +100,7 @@ func (bs *blockstore) Put(block *blocks.Block) error {
 	return bs.datastore.Put(k, block.Data)
 }
 
-func (bs *blockstore) PutMany(blocks []*blocks.Block) error {
+func (bs *blockstore) PutMany(blocks []*blocks.Block, addOpts interface{}) error {
 	t, err := bs.datastore.Batch()
 	if err != nil {
 		return err

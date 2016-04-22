@@ -103,6 +103,7 @@ type Adder struct {
 	mr       *mfs.Root
 	unlocker bs.Unlocker
 	tempRoot key.Key
+	AddOpts  interface{}
 }
 
 // Perform the actual add & pin locally, outputting results to reader
@@ -116,11 +117,13 @@ func (adder Adder) add(reader files.AdvReader) (*dag.Node, error) {
 		return importer.BuildTrickleDagFromReader(
 			adder.node.DAG,
 			chnk,
+			adder.AddOpts,
 		)
 	}
 	return importer.BuildDagFromReader(
 		adder.node.DAG,
 		chnk,
+		adder.AddOpts,
 	)
 }
 
@@ -538,7 +541,6 @@ func (i *progressReader) Read(p []byte) (int, error) {
 func (i *progressReader) Offset() int64 {
 	return i.file.Offset()
 }
-
 
 func (i *progressReader) AbsPath() string {
 	return i.file.AbsPath()

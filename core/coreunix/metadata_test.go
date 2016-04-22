@@ -36,7 +36,7 @@ func TestMetadata(t *testing.T) {
 	data := make([]byte, 1000)
 	u.NewTimeSeededRand().Read(data)
 	r := bytes.NewReader(data)
-	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r))
+	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

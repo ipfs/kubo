@@ -38,7 +38,7 @@ func (w *writecache) Get(k key.Key) (*blocks.Block, error) {
 	return w.blockstore.Get(k)
 }
 
-func (w *writecache) Put(b *blocks.Block) error {
+func (w *writecache) Put(b *blocks.Block, addOpts interface{}) error {
 	k := b.Key()
 	if _, ok := w.cache.Get(k); ok {
 		return nil
@@ -46,10 +46,10 @@ func (w *writecache) Put(b *blocks.Block) error {
 	defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
 
 	w.cache.Add(b.Key(), struct{}{})
-	return w.blockstore.Put(b)
+	return w.blockstore.Put(b, addOpts)
 }
 
-func (w *writecache) PutMany(bs []*blocks.Block) error {
+func (w *writecache) PutMany(bs []*blocks.Block, addOpts interface{}) error {
 	var good []*blocks.Block
 	for _, b := range bs {
 		if _, ok := w.cache.Get(b.Key()); !ok {
@@ -58,7 +58,7 @@ func (w *writecache) PutMany(bs []*blocks.Block) error {
 			defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
 		}
 	}
-	return w.blockstore.PutMany(good)
+	return w.blockstore.PutMany(good, addOpts)
 }
 
 func (w *writecache) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {

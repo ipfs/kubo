@@ -4,6 +4,7 @@
 package blockservice
 
 import (
+	//"fmt"
 	"errors"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
@@ -41,9 +42,9 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
-func (s *BlockService) AddBlock(b *blocks.Block) (key.Key, error) {
+func (s *BlockService) AddBlock(b *blocks.Block, addOpts interface{}) (key.Key, error) {
 	k := b.Key()
-	err := s.Blockstore.Put(b)
+	err := s.Blockstore.Put(b, addOpts)
 	if err != nil {
 		return k, err
 	}
@@ -53,8 +54,8 @@ func (s *BlockService) AddBlock(b *blocks.Block) (key.Key, error) {
 	return k, nil
 }
 
-func (s *BlockService) AddBlocks(bs []*blocks.Block) ([]key.Key, error) {
-	err := s.Blockstore.PutMany(bs)
+func (s *BlockService) AddBlocks(bs []*blocks.Block, addOpts interface{}) ([]key.Key, error) {
+	err := s.Blockstore.PutMany(bs, addOpts)
 	if err != nil {
 		return nil, err
 	}

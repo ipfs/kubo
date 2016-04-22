@@ -18,6 +18,7 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
 	Add(*Node) (key.Key, error)
+	AddWOpts(*Node, interface{}) (key.Key, error)
 	Get(context.Context, key.Key) (*Node, error)
 	Remove(*Node) error
 
@@ -25,7 +26,7 @@ type DAGService interface {
 	// nodes of the passed in node.
 	GetMany(context.Context, []key.Key) <-chan *NodeOption
 
-	Batch() *Batch
+	Batch(addOpts interface{}) *Batch
 }
 
 func NewDAGService(bs *bserv.BlockService) DAGService {
@@ -43,6 +44,12 @@ type dagService struct {
 
 // Add adds a node to the dagService, storing the block in the BlockService
 func (n *dagService) Add(nd *Node) (key.Key, error) {
+	return n.AddWOpts(nd, nil)
+}
+
+// Add a node that has data possible stored locally to the dagService,
+// storing the block in the BlockService
+func (n *dagService) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
 	if n == nil { // FIXME remove this assertion. protect with constructor invariant
 		return "", fmt.Errorf("dagService is nil")
 	}
@@ -59,11 +66,11 @@ func (n *dagService) Add(nd *Node) (key.Key, error) {
 		return "", err
 	}
 
-	return n.Blocks.AddBlock(b)
+	return n.Blocks.AddBlock(b, addOpts)
 }
 
-func (n *dagService) Batch() *Batch {
-	return &Batch{ds: n, MaxSize: 8 * 1024 * 1024}
+func (n *dagService) Batch(addOpts interface{}) *Batch {
+	return &Batch{ds: n, addOpts: addOpts, MaxSize: 8 * 1024 * 1024}
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
@@ -314,7 +321,8 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 }
 
 type Batch struct {
-	ds *dagService
+	ds      *dagService
+	addOpts interface{}
 
 	blocks  []*blocks.Block
 	size    int
@@ -345,7 +353,7 @@ func (t *Batch) Add(nd *Node) (key.Key, error) {
 }
 
 func (t *Batch) Commit() error {
-	_, err := t.ds.Blocks.AddBlocks(t.blocks)
+	_, err := t.ds.Blocks.AddBlocks(t.blocks, t.addOpts)
 	t.blocks = nil
 	t.size = 0
 	return err
