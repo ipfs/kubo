@@ -12,8 +12,8 @@ test_expect_success 'init iptb' '
 '
 
 test_expect_success 'peer ids' '
-  PEERID_0=$(ipfsi 0 id --format="<id>") &&
-  PEERID_2=$(ipfsi 2 id --format="<id>")
+  PEERID_0=$(iptb get id 0) &&
+  PEERID_2=$(iptb get id 2)
 '
 
 # ipfs dht findpeer <peerID>
