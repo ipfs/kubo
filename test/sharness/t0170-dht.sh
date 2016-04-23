@@ -19,9 +19,8 @@ test_expect_success 'peer ids' '
 # ipfs dht findpeer <peerID>
 test_expect_success 'findpeer' '
   ipfsi 1 dht findpeer $PEERID_0 >actual &&
-	egrep "/ip4/127.0.0.1/tcp/.*" actual >/dev/null &&
-	egrep "/ip4/.*/tcp/.*" actual >>/dev/null ||
-	test_fsh cat actual
+  echo "$(ipfsi 0 id -f "<addrs>" | cut -d / -f 1-5 >expected)"
+  test_cmp actual expected
 '
 
 # ipfs dht put <key> <value>
