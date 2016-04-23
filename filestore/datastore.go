@@ -8,14 +8,18 @@ import (
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
+	k "github.com/ipfs/go-ipfs/blocks/key"
+	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 type datastore struct {
-	ds ds.Datastore
+	ds           ds.Datastore
+	alwaysVerify bool
 }
 
 func New(d ds.Datastore, fileStorePath string) (ds.Datastore, error) {
-	return &datastore{d}, nil
+	return &datastore{d, true}, nil
 }
 
 func (d *datastore) Put(key ds.Key, value interface{}) (err error) {
@@ -81,7 +85,17 @@ func (d *datastore) Get(key ds.Key) (value interface{}, err error) {
 		if err != nil {
 			return nil, err
 		}
-		return reconstruct(val.Data, buf)
+		data, err := reconstruct(val.Data, buf)
+		if err != nil {
+			return nil, err
+		}
+		if d.alwaysVerify {
+			newKey := k.Key(u.Hash(data)).DsKey()
+			if newKey != key {
+				return nil, errors.New("Filestore: Block Verification Failed")
+			}
+		}
+		return data, nil
 	} else {
 		return val.Data, nil
 	}

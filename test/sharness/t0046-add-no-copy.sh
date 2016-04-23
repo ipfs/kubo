@@ -49,7 +49,7 @@ test_add_cat_file() {
     	test_must_fail ipfs cat "$HASH" >cat.output
     '
 
-    test_expect_failure "fail after file change, same size" '
+    test_expect_success "fail after file change, same size" '
         # note: filesize does not change
     	echo "HELLO WORLDS!" >mountdir/hello.txt &&
     	test_must_fail ipfs cat "$HASH" >cat.output
