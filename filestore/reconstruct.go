@@ -11,7 +11,7 @@ import (
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
-func reconstruct(data []byte, blockData []byte) (interface{}, error) {
+func reconstruct(data []byte, blockData []byte) ([]byte, error) {
 	// Decode data to merkledag protobuffer
 	var pbn dag.PBNode
 	err := pbn.Unmarshal(data)
