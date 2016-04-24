@@ -65,12 +65,34 @@ func (d *datastore) Get(key ds.Key) (value interface{}, err error) {
 	if err != nil {
 		return nil, err
 	}
-	data := dataObj.([]byte)
-	val := new(DataObj)
-	err = val.Unmarshal(data)
+	val, err := d.decode(dataObj)
 	if err != nil {
 		return nil, err
 	}
+	return d.GetData(key, val, d.alwaysVerify)
+}
+
+// Get the key as a DataObj
+func (d *datastore) GetDirect(key ds.Key) (*DataObj, error) {
+	dataObj, err := d.ds.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	return d.decode(dataObj)
+}
+
+func (d *datastore) decode(dataObj interface{}) (*DataObj, error) {
+	data := dataObj.([]byte)
+	val := new(DataObj)
+	err := val.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return val, nil
+}
+
+// Get the orignal data out of the DataObj
+func (d *datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, error) {
 	if val.NoBlockData {
 		file, err := os.Open(val.FilePath)
 		if err != nil {
@@ -89,7 +111,7 @@ func (d *datastore) Get(key ds.Key) (value interface{}, err error) {
 		if err != nil {
 			return nil, err
 		}
-		if d.alwaysVerify {
+		if verify {
 			newKey := k.Key(u.Hash(data)).DsKey()
 			if newKey != key {
 				return nil, errors.New("Filestore: Block Verification Failed")
@@ -109,9 +131,85 @@ func (d *datastore) Delete(key ds.Key) error {
 	return ds.ErrNotFound
 }
 
-func (d *datastore) Query(q query.Query) (query.Results, error) {
-	return nil, errors.New("queries not supported yet")
+func (d *datastore) DeleteDirect(key ds.Key) error {
+	return d.ds.Delete(key)
 }
+
+func (d *datastore) Query(q query.Query) (query.Results, error) {
+	res, err := d.ds.Query(q)
+	if err != nil {
+		return nil, err
+	}
+	if q.KeysOnly {
+		return res, nil
+	}
+	return nil, errors.New("filestore currently only supports keyonly queries")
+	// return &queryResult{res, func(r query.Result) query.Result {
+	// 	val, err := d.decode(r.Value)
+	// 	if err != nil {
+	// 		return query.Result{query.Entry{r.Key, nil}, err}
+	// 	}
+	// 	// Note: It should not be necessary to reclean the key
+	// 	// here (by calling ds.NewKey) just to convert the
+	// 	// string back to a ds.Key
+	// 	data, err := d.GetData(ds.NewKey(r.Key), val, d.alwaysVerify)
+	// 	if err != nil {
+	// 		return query.Result{query.Entry{r.Key, nil}, err}
+	// 	}
+	// 	return query.Result{query.Entry{r.Key, data}, r.Error}
+	// }}, nil
+}
+
+func (d *datastore) QueryDirect(q query.Query) (query.Results, error) {
+	res, err := d.ds.Query(q)
+	if err != nil {
+		return nil, err
+	}
+	if q.KeysOnly {
+		return res, nil
+	}
+	return nil, errors.New("filestore currently only supports keyonly queries")
+	// return &queryResult{res, func(r query.Result) query.Result {
+	// 	val, err := d.decode(r.Value)
+	// 	if err != nil {
+	// 		return query.Result{query.Entry{r.Key, nil}, err}
+	// 	}
+	// 	return query.Result{query.Entry{r.Key, val}, r.Error}
+	// }}, nil
+}
+
+// type queryResult struct {
+// 	query.Results
+// 	adjResult func(query.Result) query.Result
+// }
+
+// func (q *queryResult) Next() <-chan query.Result {
+// 	in := q.Results.Next()
+// 	out := make(chan query.Result)
+// 	go func() {
+// 		res := <-in
+// 		if res.Error == nil {
+// 			out <- res
+// 		}
+// 		out <- q.adjResult(res)
+// 	}()
+// 	return out
+// }
+
+// func (q *queryResult) Rest() ([]query.Entry, error) {
+// 	res, err := q.Results.Rest()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	for _, entry := range res {
+// 		newRes := q.adjResult(query.Result{entry, nil})
+// 		if newRes.Error != nil {
+// 			return nil, newRes.Error
+// 		}
+// 		entry.Value = newRes.Value
+// 	}
+// 	return res, nil
+// }
 
 func (d *datastore) Close() error {
 	c, ok := d.ds.(io.Closer)
