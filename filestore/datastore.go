@@ -13,16 +13,16 @@ import (
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
-type datastore struct {
+type Datastore struct {
 	ds           ds.Datastore
 	alwaysVerify bool
 }
 
-func New(d ds.Datastore, fileStorePath string) (ds.Datastore, error) {
-	return &datastore{d, true}, nil
+func New(d ds.Datastore, fileStorePath string) (*Datastore, error) {
+	return &Datastore{d, true}, nil
 }
 
-func (d *datastore) Put(key ds.Key, value interface{}) (err error) {
+func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 	val, ok := value.(*DataWOpts)
 	if !ok {
 		panic(ds.ErrInvalidType)
@@ -60,7 +60,7 @@ func (d *datastore) Put(key ds.Key, value interface{}) (err error) {
 	return d.ds.Put(key, data)
 }
 
-func (d *datastore) Get(key ds.Key) (value interface{}, err error) {
+func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
 	dataObj, err := d.ds.Get(key)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (d *datastore) Get(key ds.Key) (value interface{}, err error) {
 }
 
 // Get the key as a DataObj
-func (d *datastore) GetDirect(key ds.Key) (*DataObj, error) {
+func (d *Datastore) GetDirect(key ds.Key) (*DataObj, error) {
 	dataObj, err := d.ds.Get(key)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (d *datastore) GetDirect(key ds.Key) (*DataObj, error) {
 	return d.decode(dataObj)
 }
 
-func (d *datastore) decode(dataObj interface{}) (*DataObj, error) {
+func (d *Datastore) decode(dataObj interface{}) (*DataObj, error) {
 	data := dataObj.([]byte)
 	val := new(DataObj)
 	err := val.Unmarshal(data)
@@ -92,7 +92,7 @@ func (d *datastore) decode(dataObj interface{}) (*DataObj, error) {
 }
 
 // Get the orignal data out of the DataObj
-func (d *datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, error) {
+func (d *Datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, error) {
 	if val.NoBlockData {
 		file, err := os.Open(val.FilePath)
 		if err != nil {
@@ -114,7 +114,7 @@ func (d *datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, erro
 		if verify {
 			newKey := k.Key(u.Hash(data)).DsKey()
 			if newKey != key {
-				return nil, errors.New("Filestore: Block Verification Failed")
+				return nil, errors.New("Datastore: Block Verification Failed")
 			}
 		}
 		return data, nil
@@ -123,19 +123,19 @@ func (d *datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, erro
 	}
 }
 
-func (d *datastore) Has(key ds.Key) (exists bool, err error) {
+func (d *Datastore) Has(key ds.Key) (exists bool, err error) {
 	return d.ds.Has(key)
 }
 
-func (d *datastore) Delete(key ds.Key) error {
+func (d *Datastore) Delete(key ds.Key) error {
 	return ds.ErrNotFound
 }
 
-func (d *datastore) DeleteDirect(key ds.Key) error {
+func (d *Datastore) DeleteDirect(key ds.Key) error {
 	return d.ds.Delete(key)
 }
 
-func (d *datastore) Query(q query.Query) (query.Results, error) {
+func (d *Datastore) Query(q query.Query) (query.Results, error) {
 	res, err := d.ds.Query(q)
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (d *datastore) Query(q query.Query) (query.Results, error) {
 	// }}, nil
 }
 
-func (d *datastore) QueryDirect(q query.Query) (query.Results, error) {
+func (d *Datastore) QueryDirect(q query.Query) (query.Results, error) {
 	res, err := d.ds.Query(q)
 	if err != nil {
 		return nil, err
@@ -211,7 +211,7 @@ func (d *datastore) QueryDirect(q query.Query) (query.Results, error) {
 // 	return res, nil
 // }
 
-func (d *datastore) Close() error {
+func (d *Datastore) Close() error {
 	c, ok := d.ds.(io.Closer)
 	if ok {
 		return c.Close()
@@ -220,6 +220,6 @@ func (d *datastore) Close() error {
 	}
 }
 
-func (d *datastore) Batch() (ds.Batch, error) {
+func (d *Datastore) Batch() (ds.Batch, error) {
 	return ds.NewBasicBatch(d), nil
 }

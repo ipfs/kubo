@@ -29,7 +29,7 @@ const useFileStore = true
 
 var _ = io.EOF
 
-func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
+func openDefaultDatastore(r *FSRepo) (repo.Datastore, *filestore.Datastore, error) {
 	leveldbPath := path.Join(r.path, leveldbDirectory)
 
 	// save leveldb reference so it can be neatly closed afterward
@@ -37,7 +37,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to open leveldb datastore: %v", err)
+		return nil, nil, fmt.Errorf("unable to open leveldb datastore: %v", err)
 	}
 
 	// 4TB of 256kB objects ~=17M objects, splitting that 256-way
@@ -51,7 +51,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	syncfs := !r.config.Datastore.NoSync
 	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 4, syncfs)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
+		return nil, nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}
 
 	// Add our PeerID to metrics paths to keep them unique
@@ -69,15 +69,16 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 
 	var blocksStore ds.Datastore = metricsBlocks
 
+	var fileStore *filestore.Datastore
 	if useFileStore {
 		fileStorePath := path.Join(r.path, fileStoreDir)
 		fileStoreDB, err := levelds.NewDatastore(fileStorePath, &levelds.Options{
 			Compression: ldbopts.NoCompression,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("unable to open filestore: %v", err)
+			return nil, nil, fmt.Errorf("unable to open filestore: %v", err)
 		}
-		fileStore, _ := filestore.New(fileStoreDB, "")
+		fileStore, _ = filestore.New(fileStoreDB, "")
 		//fileStore.(io.Closer).Close()
 		blocksStore = multi.New(fileStore, metricsBlocks, nil, nil)
 	}
@@ -93,7 +94,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		},
 	})
 
-	return mountDS, nil
+	return mountDS, fileStore, nil
 }
 
 func initDefaultDatastore(repoPath string, conf *config.Config) error {
