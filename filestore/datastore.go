@@ -91,9 +91,17 @@ func (d *Datastore) decode(dataObj interface{}) (*DataObj, error) {
 	return val, nil
 }
 
+type InvalidBlock struct{}
+
+func (e InvalidBlock) Error() string {
+	return "Datastore: Block Verification Failed"
+}
+
 // Get the orignal data out of the DataObj
 func (d *Datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, error) {
-	if val.NoBlockData {
+	if val == nil {
+		return nil, errors.New("Nil DataObj")
+	} else if val.NoBlockData {
 		file, err := os.Open(val.FilePath)
 		if err != nil {
 			return nil, err
@@ -114,7 +122,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, erro
 		if verify {
 			newKey := k.Key(u.Hash(data)).DsKey()
 			if newKey != key {
-				return nil, errors.New("Datastore: Block Verification Failed")
+				return nil, InvalidBlock{}
 			}
 		}
 		return data, nil

@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"fmt"
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 )
 
@@ -32,6 +33,23 @@ type DataObj struct {
 	Offset   uint64
 	Size     uint64
 	Data     []byte
+}
+
+func (d *DataObj) StripData() DataObj {
+	return DataObj{
+		d.NoBlockData, d.WholeFile, d.FileRoot,
+		d.FilePath, d.Offset, d.Size, nil,
+	}
+}
+
+func (d *DataObj) Format() string {
+	if d.NoBlockData {
+		return fmt.Sprintf("block %s %d %d", d.FilePath, d.Offset, d.Size)
+	} else if d.FileRoot {
+		return fmt.Sprintf("root  %s %d %d", d.FilePath, d.Offset, d.Size)
+	} else {
+		return fmt.Sprintf("other %s %d %d", d.FilePath, d.Offset, d.Size)
+	}
 }
 
 func (d *DataObj) Marshal() ([]byte, error) {
