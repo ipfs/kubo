@@ -1,5 +1,56 @@
 # go-ipfs changelog
 
+### 0.4.1 - 2016-04-25
+
+This is a patch release that fixes a few bugs, and adds a few small (but not
+insignificant) features. The primary reason for this release is the listener
+hang bugfix that was shipped in the 0.4.0 release.
+
+* Features
+  * implementated ipfs object diff (@whyrusleeping)
+  * allow promises (used in get, refs) to fail (@whyrusleeping)
+
+* Tool changes
+  * Adds 'toolkit_upgrade' to the makefile help target (@achin)
+
+* General Codebase
+  * Use extracted go-libp2p-crypto, -secio, -peer packages (@lgierth)
+  * Update go-libp2p (@lgierth)
+  * Fix package manifest fields (@lgierth)
+  * remove incfusever dead-code (@whyrusleeping)
+  * remove a ton of unused godeps (@whyrusleeping)
+  * metrics: add prometheus back (@lgierth)
+  * clean up dead code and config fields (@whyrusleeping)
+  * Add log events when blocks are added/removed from the blockstore (@michealmure)
+
+* Bugfixes
+  * fixed ipfs name resolve --local multihash error (@pfista)
+  * ipfs patch commands won't return null links field anymore (@whyrusleeping)
+  * repo: don't create logs directory, not used any longer (@lgierth)
+  * Make non recursive resolve print the result (@kubuxu)
+  * Output dirs on ipfs add -rn (@noffle)
+  * update libp2p dep to fix hanging listeners problem (@whyrusleeping)
+  * fix dht command key escaping (@whyrusleeping)
+
+* Testing
+  * Adds tests to make sure 'object patch' writes. (@noffle)
+  * small sharness test for promise failure checking (@whyrusleeping)
+  * sharness/Makefile: clean all BINS when cleaning (@chriscool)
+
+* Documentation
+  * Fix disconnect argument description (@richardlitt)
+  * Added a note about swarm disconnect (@richardlitt)
+  * Also fixed syntax for comment (@richardlitt)
+  * Alphabetized swarm subcmds (@richardlitt)
+  * Added note to ipfs stats bw interval option (@richardlitt)
+  * Small syntax changes to repo stat man (@richardlitt)
+  * update log command help text (@pfista)
+  * Added a long description to add (@richardlitt)
+  * Edited object patch set-data doc (@richardlitt)
+  * add roadmap.md (@Jeromy)
+  * Adds files api cmd to helptext (@noffle)
+
+
 ### 0.4.0 - 2016-04-05
 
 This is a major release with plenty of new features and bugfixes.
