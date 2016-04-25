@@ -9,7 +9,6 @@ test_description="test http requests made by cli"
 . lib/test-lib.sh
 
 test_init_ipfs
-test_launch_ipfs_daemon
 
 test_expect_success "can make http request against nc server" '
 	go-sleep 0.5s | nc -l 5005 > nc_out &
@@ -27,7 +26,5 @@ test_expect_success "request looks good" '
 test_expect_success "api flag does not appear in request" '
 	test_expect_code 1 grep "api=/ip4" nc_out
 '
-
-test_kill_ipfs_daemon
 
 test_done

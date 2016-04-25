@@ -35,8 +35,8 @@ var DhtCmd = &cmds.Command{
 
 var queryDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Find the closest peers to a given key.",
-		ShortDescription: ``,
+		Tagline:          "Find the closest Peer IDs to a given Peer ID by querying the DHT.",
+		ShortDescription: "Outputs a list of newline-delimited Peer IDs.",
 	},
 
 	Arguments: []cmds.Argument{
