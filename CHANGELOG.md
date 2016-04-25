@@ -22,14 +22,15 @@ hang bugfix that was shipped in the 0.4.0 release.
   * metrics: add prometheus back (@lgierth)
   * clean up dead code and config fields (@whyrusleeping)
   * Add log events when blocks are added/removed from the blockstore (@michealmure)
+  * repo: don't create logs directory, not used any longer (@lgierth)
 
 * Bugfixes
   * fixed ipfs name resolve --local multihash error (@pfista)
   * ipfs patch commands won't return null links field anymore (@whyrusleeping)
-  * repo: don't create logs directory, not used any longer (@lgierth)
   * Make non recursive resolve print the result (@kubuxu)
   * Output dirs on ipfs add -rn (@noffle)
   * update libp2p dep to fix hanging listeners problem (@whyrusleeping)
+  * Fix Swarm.AddrFilters config setting with regard to `/ip6` addresses (@lgierth) 
   * fix dht command key escaping (@whyrusleeping)
 
 * Testing
