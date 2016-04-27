@@ -10,10 +10,10 @@ import (
 	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	metrics "gx/ipfs/QmYgaiNVVL7f2nydijAwpDRunRkmxfu3PoK87Y3pH84uAW/go-libp2p/p2p/metrics"
+	protocol "gx/ipfs/QmYgaiNVVL7f2nydijAwpDRunRkmxfu3PoK87Y3pH84uAW/go-libp2p/p2p/protocol"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	metrics "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/metrics"
-	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
-	protocol "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/protocol"
+	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
 )
 
 var StatsCmd = &cmds.Command{
@@ -36,7 +36,7 @@ var statBwCmd = &cmds.Command{
 		cmds.StringOption("peer", "p", "Specify a peer to print bandwidth for."),
 		cmds.StringOption("proto", "t", "Specify a protocol to print bandwidth for."),
 		cmds.BoolOption("poll", "Print bandwidth at an interval. Default: false."),
-		cmds.StringOption("interval", "i", "Time interval to wait between updating output."),
+		cmds.StringOption("interval", "i", "Time interval to wait between updating output, if 'poll' is true."),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {

@@ -36,6 +36,26 @@ Adds contents of <path> to ipfs. Use -r to add directories.
 Note that directories are added recursively, to form the ipfs
 MerkleDAG.
 `,
+		LongDescription: `
+Adds contents of <path> to ipfs. Use -r to add directories.
+Note that directories are added recursively, to form the ipfs
+MerkleDAG.
+
+The wrap option, '-w', wraps the file (or files, if using the
+recursive option) in a directory. This directory contains only
+the files which have been added, and means that the file retains
+its filename. For example:
+
+  > ipfs add example.jpg
+  added QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH example.jpg
+  > ipfs add example.jpg -w
+  added QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH example.jpg
+  added QmaG4FuMqEBnQNn3C8XJ5bpW8kLs7zq2ZXgHptJHbKDDVx
+
+You can now refer to the added file in a gateway, like so:
+
+  /ipfs/QmaG4FuMqEBnQNn3C8XJ5bpW8kLs7zq2ZXgHptJHbKDDVx/example.jpg
+`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -163,14 +183,14 @@ MerkleDAG.
 				}
 			}
 
-			if hash {
-				return nil
-			}
-
 			// copy intermediary nodes from editor to our actual dagservice
 			_, err := fileAdder.Finalize()
 			if err != nil {
 				return err
+			}
+
+			if hash {
+				return nil
 			}
 
 			return fileAdder.PinRoot()

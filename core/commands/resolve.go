@@ -6,6 +6,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
+	ns "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -82,7 +83,8 @@ Resolve the value of an IPFS DAG path:
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
 			p, err := n.Namesys.ResolveN(req.Context(), name, 1)
-			if err != nil {
+			// ErrResolveRecursion is fine
+			if err != nil && err != ns.ErrResolveRecursion {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	ci "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
-	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
+	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
@@ -21,7 +21,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		return nil, err
 	}
 
-	snr, err := initSNRConfig()
+	datastore, err := datastoreConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -40,9 +40,9 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			Gateway: "/ip4/127.0.0.1/tcp/8080",
 		},
 
-		Bootstrap:        BootstrapPeerStrings(bootstrapPeers),
-		SupernodeRouting: *snr,
-		Identity:         identity,
+		Datastore: datastore,
+		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
+		Identity:  identity,
 		Discovery: Discovery{MDNS{
 			Enabled:  true,
 			Interval: 10,
@@ -58,25 +58,22 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			ResolveCacheSize: 128,
 		},
 
-		// tracking ipfs version used to generate the init folder and adding
-		// update checker default setting.
-		Version: VersionDefaultValue(),
-
 		Gateway: Gateway{
 			RootRedirect: "",
 			Writable:     false,
+			PathPrefixes: []string{},
 		},
 	}
 
 	return conf, nil
 }
 
-func datastoreConfig() (*Datastore, error) {
+func datastoreConfig() (Datastore, error) {
 	dspath, err := DataStorePath("")
 	if err != nil {
-		return nil, err
+		return Datastore{}, err
 	}
-	return &Datastore{
+	return Datastore{
 		Path:               dspath,
 		Type:               "leveldb",
 		StorageMax:         "10GB",

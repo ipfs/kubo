@@ -12,8 +12,9 @@ import (
 	"sync"
 
 	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/codahale/metrics/runtime"
-	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
-	"gx/ipfs/QmYtzQmUwPFGxjCXctJ8e6GXS8sYfoXy2pdeMbS5SFWqRi/go-multiaddr-net"
+	"gx/ipfs/QmYVqhVfbK4BKvbW88Lhm26b3ud14sTBvcm1H7uWUx1Fkp/go-multiaddr-net"
+
+	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -23,9 +24,10 @@ import (
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	conn "gx/ipfs/QmYgaiNVVL7f2nydijAwpDRunRkmxfu3PoK87Y3pH84uAW/go-libp2p/p2p/net/conn"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	conn "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/conn"
-	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	prometheus "gx/ipfs/QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3/client_golang/prometheus"
 )
 
 const (
@@ -39,6 +41,7 @@ const (
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	enableGCKwd               = "enable-gc"
+	adjustFDLimitKwd          = "manage-fdlimit"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -131,6 +134,7 @@ future version, along with this notice. Please move to setting the HTTP Headers.
 		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
+		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed"),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -151,9 +155,18 @@ func defaultMux(path string) corehttp.ServeOption {
 	}
 }
 
+var fileDescriptorCheck = func() error { return nil }
+
 func daemonFunc(req cmds.Request, res cmds.Response) {
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
+
+	managefd, _, _ := req.Option(adjustFDLimitKwd).Bool()
+	if managefd {
+		if err := fileDescriptorCheck(); err != nil {
+			log.Error("setting file descriptor limit: %s", err)
+		}
+	}
 
 	ctx := req.InvocContext()
 
@@ -302,6 +315,10 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	// initialize metrics collector
+	prometheus.MustRegisterOrGet(&corehttp.IpfsNodeCollector{Node: node})
+	prometheus.EnableCollectChecks(true)
+
 	fmt.Printf("Daemon is ready\n")
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
@@ -364,15 +381,15 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		},
 	})
 	var opts = []corehttp.ServeOption{
-		corehttp.PrometheusCollectorOption("api"),
+		corehttp.MetricsCollectionOption("api"),
 		corehttp.CommandsOption(*req.InvocContext()),
 		corehttp.WebUIOption,
 		apiGw.ServeOption(),
 		corehttp.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
+		corehttp.MetricsScrapingOption("/debug/metrics/prometheus"),
 		corehttp.LogOption(),
-		corehttp.PrometheusOption("/debug/metrics/prometheus"),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
@@ -443,11 +460,11 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	}
 
 	var opts = []corehttp.ServeOption{
-		corehttp.PrometheusCollectorOption("gateway"),
+		corehttp.MetricsCollectionOption("gateway"),
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(writable),
+		corehttp.GatewayOption(writable, cfg.Gateway.PathPrefixes),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

@@ -8,7 +8,7 @@ version: "{build}"
 
 os: Windows Server 2012 R2
 
-clone_folder: c:\go\src\github.com\ipfs\go-ipfs
+clone_folder: c:\gopath\src\github.com\ipfs\go-ipfs
 
 environment:
   GOPATH: c:\gopath

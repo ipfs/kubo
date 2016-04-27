@@ -11,8 +11,6 @@ import (
 	coremock "github.com/ipfs/go-ipfs/core/mock"
 )
 
-const AllowedExposedHeaders = "X-Stream-Output, X-Chunked-Output"
-
 func assertHeaders(t *testing.T, resHeaders http.Header, reqHeaders map[string]string) {
 	for name, value := range reqHeaders {
 		if resHeaders.Get(name) != value {

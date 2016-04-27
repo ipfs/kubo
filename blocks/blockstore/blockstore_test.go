@@ -82,7 +82,7 @@ func TestAllKeysSimple(t *testing.T) {
 	keys2 := collect(ch)
 
 	// for _, k2 := range keys2 {
-	// 	t.Log("found ", k2.Pretty())
+	// 	t.Log("found ", k2.B58String())
 	// }
 
 	expectMatches(t, keys, keys2)

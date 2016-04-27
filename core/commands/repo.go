@@ -3,11 +3,10 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"io"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	"io"
 )
 
 var RepoCmd = &cmds.Command{
@@ -19,7 +18,8 @@ var RepoCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"gc": repoGcCmd,
+		"gc":   repoGcCmd,
+		"stat": repoStatCmd,
 	},
 }
 
@@ -92,6 +92,63 @@ order to reclaim hard disk space.
 				Marshaler: marshal,
 				Res:       res,
 			}, nil
+		},
+	},
+}
+
+var repoStatCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Get stats for the currently used repo.",
+		ShortDescription: `
+'ipfs repo stat' is a plumbing command that will scan the local
+set of stored objects and print repo statistics. It outputs to stdout:
+NumObjects      int Number of objects in the local repo.
+RepoPath        string The path to the repo being currently used.
+RepoSize        int Size in bytes that the repo is currently taking.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		stat, err := corerepo.RepoStat(n, req.Context())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(stat)
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("human", "Output RepoSize in MiB."),
+	},
+	Type: corerepo.Stat{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			stat, ok := res.Output().(*corerepo.Stat)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			human, _, err := res.Request().Option("human").Bool()
+			if err != nil {
+				return nil, err
+			}
+
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "NumObjects \t %d\n", stat.NumObjects)
+			sizeInMiB := stat.RepoSize / (1024 * 1024)
+			if human && sizeInMiB > 0 {
+				fmt.Fprintf(buf, "RepoSize (MiB) \t %d\n", sizeInMiB)
+			} else {
+				fmt.Fprintf(buf, "RepoSize \t %d\n", stat.RepoSize)
+			}
+			fmt.Fprintf(buf, "RepoPath \t %s\n", stat.RepoPath)
+
+			return buf, nil
 		},
 	},
 }

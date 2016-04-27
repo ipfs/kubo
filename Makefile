@@ -10,7 +10,7 @@ ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
 MAKEFLAGS += --no-print-directory
 
 
-export IPFS_API = v04x.ipfs.io
+export IPFS_API ?= v04x.ipfs.io
 
 all: help
 
@@ -29,7 +29,7 @@ gxgo_upgrade:
 	go get -u github.com/whyrusleeping/gx-go
 
 path_check:
-	@bin/check_go_path $(realpath $(shell pwd))
+	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(GOPATH)/src/github.com/ipfs/go-ipfs)
 
 gx_check:
 	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
@@ -44,7 +44,7 @@ deps: go_check gx_check path_check
 vendor: godep
 	godep save -r ./...
 
-install: build
+install: deps
 	cd cmd/ipfs && go install -ldflags=$(ldflags)
 
 build: deps
@@ -116,8 +116,9 @@ PHONY += test test_short test_expensive
 help:
 	@echo 'DEPENDENCY TARGETS:'
 	@echo ''
-	@echo '  deps         - Download dependencies using gx'
-	@echo '  vendor       - Create a Godep workspace of 3rd party dependencies'
+	@echo '  toolkit_upgrade - Installs or upgrades gx'
+	@echo '  deps            - Download dependencies using gx'
+	@echo '  vendor          - Create a Godep workspace of 3rd party dependencies'
 	@echo ''
 	@echo 'BUILD TARGETS:'
 	@echo ''

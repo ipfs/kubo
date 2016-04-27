@@ -219,6 +219,31 @@ test_expect_success "'ipfs refs --unique --recursive (bigger)'" '
 	test_sort_cmp expected actual || test_fsh cat refs_output
 '
 
+get_field_num() {
+  field=$1
+  file=$2
+  num=$(grep "$field" "$file" | awk '{ print $2 }')
+  echo $num
+}
+
+test_expect_success "'ipfs repo stat' succeeds" '
+  ipfs repo stat > repo-stats
+'
+test_expect_success "repo stats came out correct" '
+  grep "RepoPath" repo-stats &&
+  grep "RepoSize" repo-stats &&
+  grep "NumObjects" repo-stats
+'
+
+test_expect_success "'ipfs repo stat' after adding a file" '
+  ipfs add repo-stats &&
+  ipfs repo stat > repo-stats-2
+'
+
+test_expect_success "repo stats are updated correctly" '
+  test $(get_field_num "RepoSize" repo-stats-2) -ge $(get_field_num "RepoSize" repo-stats)
+'
+
 test_kill_ipfs_daemon
 
 test_done

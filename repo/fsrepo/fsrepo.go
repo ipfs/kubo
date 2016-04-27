@@ -1,7 +1,6 @@
 package fsrepo
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -243,10 +242,6 @@ func Init(repoPath string, conf *config.Config) error {
 		return err
 	}
 
-	if err := dir.Writable(filepath.Join(repoPath, "logs")); err != nil {
-		return err
-	}
-
 	if err := mfsr.RepoPath(repoPath).WriteVersion(RepoVersion); err != nil {
 		return err
 	}
@@ -334,18 +329,6 @@ func (r *FSRepo) openDatastore() error {
 			return err
 		}
 		r.ds = d
-	case "s3":
-		var dscfg config.S3Datastore
-		if err := json.Unmarshal(r.config.Datastore.ParamData(), &dscfg); err != nil {
-			return fmt.Errorf("datastore s3: %v", err)
-		}
-
-		ds, err := openS3Datastore(dscfg)
-		if err != nil {
-			return err
-		}
-
-		r.ds = ds
 	default:
 		return fmt.Errorf("unknown datastore type: %s", r.config.Datastore.Type)
 	}
@@ -593,13 +576,5 @@ func IsInitialized(path string) bool {
 // isInitializedUnsynced reports whether the repo is initialized. Caller must
 // hold the packageLock.
 func isInitializedUnsynced(repoPath string) bool {
-	if !configIsInitialized(repoPath) {
-		return false
-	}
-
-	if !util.FileExists(filepath.Join(repoPath, leveldbDirectory)) {
-		return false
-	}
-
-	return true
+	return configIsInitialized(repoPath)
 }

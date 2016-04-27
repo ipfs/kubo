@@ -159,7 +159,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	contentType := httpRes.Header.Get(contentTypeHeader)
 	contentType = strings.Split(contentType, ";")[0]
 
-	lengthHeader := httpRes.Header.Get(contentLengthHeader)
+	lengthHeader := httpRes.Header.Get(extraContentLengthHeader)
 	if len(lengthHeader) > 0 {
 		length, err := strconv.ParseUint(lengthHeader, 10, 64)
 		if err != nil {

@@ -50,9 +50,9 @@ Note: List all references recursively by using the flag '-r'.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>."),
-		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
-		cmds.BoolOption("unique", "u", "Omit duplicate refs from output."),
-		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes."),
+		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`.").Default(false),
+		cmds.BoolOption("unique", "u", "Omit duplicate refs from output.").Default(false),
+		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
@@ -176,7 +176,7 @@ Displays the hashes of all local objects.
 			defer pipew.Close()
 
 			for k := range allKeys {
-				s := k.Pretty() + "\n"
+				s := k.B58String() + "\n"
 				if _, err := pipew.Write([]byte(s)); err != nil {
 					log.Error("pipe write error: ", err)
 					return
@@ -314,13 +314,13 @@ func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
 	switch {
 	case rw.PrintFmt != "":
 		s = rw.PrintFmt
-		s = strings.Replace(s, "<src>", from.Pretty(), -1)
-		s = strings.Replace(s, "<dst>", to.Pretty(), -1)
+		s = strings.Replace(s, "<src>", from.B58String(), -1)
+		s = strings.Replace(s, "<dst>", to.B58String(), -1)
 		s = strings.Replace(s, "<linkname>", linkname, -1)
 	case rw.PrintEdge:
-		s = from.Pretty() + " -> " + to.Pretty()
+		s = from.B58String() + " -> " + to.B58String()
 	default:
-		s += to.Pretty()
+		s += to.B58String()
 	}
 
 	rw.out <- &RefWrapper{Ref: s}

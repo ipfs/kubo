@@ -15,39 +15,6 @@
 			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
 		},
 		{
-			"ImportPath": "github.com/alecthomas/kingpin",
-			"Comment": "v2.1.0-2-gaedd543",
-			"Rev": "aedd5430ecd39ba1396fee0c00308b494c552b1e"
-		},
-		{
-			"ImportPath": "github.com/alecthomas/template",
-			"Rev": "b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0"
-		},
-		{
-			"ImportPath": "github.com/alecthomas/units",
-			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
-		},
-		{
-			"ImportPath": "github.com/anacrolix/jitter",
-			"Rev": "2ea5c18645100745b24e9f5cfc9b3f6f7eac51ef"
-		},
-		{
-			"ImportPath": "github.com/anacrolix/missinggo",
-			"Rev": "4e1ca5963308863b56c31863f60c394a7365ec29"
-		},
-		{
-			"ImportPath": "github.com/anacrolix/utp",
-			"Rev": "0bb24de92c268452fb9106ca4fb9302442ca0dee"
-		},
-		{
-			"ImportPath": "github.com/beorn7/perks/quantile",
-			"Rev": "b965b613227fddccbfffe13eae360ed3fa822f8d"
-		},
-		{
-			"ImportPath": "github.com/bradfitz/iter",
-			"Rev": "454541ec3da2a73fc34fd049b19ee5777bf19345"
-		},
-		{
 			"ImportPath": "github.com/bren2010/proquint",
 			"Rev": "5958552242606512f714d2e93513b380f43f9991"
 		},
@@ -76,18 +43,6 @@
 			"Rev": "7c37910bc765e705301b159683480bdd44555c91"
 		},
 		{
-			"ImportPath": "github.com/coreos/go-semver/semver",
-			"Rev": "568e959cd89871e61434c1143528d9162da89ef2"
-		},
-		{
-			"ImportPath": "github.com/crowdmob/goamz/aws",
-			"Rev": "82345796204222aa56be89cf930c316b1297f906"
-		},
-		{
-			"ImportPath": "github.com/crowdmob/goamz/s3",
-			"Rev": "82345796204222aa56be89cf930c316b1297f906"
-		},
-		{
 			"ImportPath": "github.com/cryptix/mdns",
 			"Rev": "04ff72a32679d57d009c0ac0fc5c4cda10350bad"
 		},
@@ -108,10 +63,6 @@
 			"Rev": "6f117f2e7f224fb03eb5e5fba370eade6e2b90c8"
 		},
 		{
-			"ImportPath": "github.com/fd/go-nat",
-			"Rev": "50e7633d5f27d81490026a13e5b92d2e42d8c6bb"
-		},
-		{
 			"ImportPath": "github.com/gogo/protobuf/io",
 			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
 		},
@@ -120,28 +71,12 @@
 			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
 		},
 		{
-			"ImportPath": "github.com/golang/protobuf/proto",
-			"Rev": "aece6fb931241ad332956db4f62798dfbea944b3"
-		},
-		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
 		},
 		{
-			"ImportPath": "github.com/hashicorp/yamux",
-			"Rev": "9feabe6854fadca1abec9cd3bd2a613fe9a34000"
-		},
-		{
-			"ImportPath": "github.com/huin/goupnp",
-			"Rev": "223008361153d7d434c1f0ac990cd3fcae6931f5"
-		},
-		{
 			"ImportPath": "github.com/ipfs/go-datastore",
 			"Rev": "e63957b6da369d986ef3e7a3f249779ba3f56c7e"
-		},
-		{
-			"ImportPath": "github.com/jackpal/go-nat-pmp",
-			"Rev": "a45aa3d54aef73b504e15eb71bea0e5565b5e6e1"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-base58",
@@ -202,32 +137,8 @@
 			"Rev": "737479700b40b4b50e914e963ce8d9d44603e3c8"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-reuseport",
-			"Rev": "48959f1fad204b6cf2c0e8d086ef69f03f2de961"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-sockaddr/net",
-			"Rev": "da304f94eea1af8ba8d1faf184623e1f9d9777dc"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-stream-muxer",
-			"Rev": "e2e261765847234749629e0190fef193a4548303"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
-			"Rev": "aac704a3f4f27190b4ccc05f303a4931fd1241ff"
-		},
-		{
-			"ImportPath": "github.com/jbenet/goprocess",
-			"Rev": "64a8220330a485070813201cc05b0c6777f6a516"
-		},
-		{
 			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
 			"Rev": "fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a"
-		},
-		{
-			"ImportPath": "github.com/miekg/dns",
-			"Rev": "82ffc45b1f84ff71bd1cebed8b210118ce3d181e"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
@@ -240,30 +151,6 @@
 		{
 			"ImportPath": "github.com/olekukonko/ts",
 			"Rev": "ecf753e7c962639ab5a1fb46f7da627d4c0a04b8"
-		},
-		{
-			"ImportPath": "github.com/prometheus/client_golang/model",
-			"Comment": "0.6.0-15-g00e4c46",
-			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
-		},
-		{
-			"ImportPath": "github.com/prometheus/client_golang/prometheus",
-			"Comment": "0.6.0-15-g00e4c46",
-			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
-		},
-		{
-			"ImportPath": "github.com/prometheus/client_golang/text",
-			"Comment": "0.6.0-15-g00e4c46",
-			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
-		},
-		{
-			"ImportPath": "github.com/prometheus/client_model/go",
-			"Comment": "model-0.0.2-12-gfa8ad6f",
-			"Rev": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6"
-		},
-		{
-			"ImportPath": "github.com/prometheus/procfs",
-			"Rev": "c91d8eefde16bd047416409eb56353ea84a186e4"
 		},
 		{
 			"ImportPath": "github.com/rs/cors",
@@ -301,14 +188,6 @@
 		{
 			"ImportPath": "github.com/whyrusleeping/go-metrics",
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
-		},
-		{
-			"ImportPath": "github.com/whyrusleeping/go-multiplex",
-			"Rev": "474b9aebeb391746f304ddf7c764a5da12319857"
-		},
-		{
-			"ImportPath": "github.com/whyrusleeping/go-multistream",
-			"Rev": "31bb014803a6eba2261bda5593e42c016a5f33bb"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/go-sysinfo",

@@ -21,12 +21,11 @@ test_ls_cmd() {
 
 	test_expect_success "Text encoded channel-streaming command output looks good" '
 		printf "HTTP/1.1 200 OK\r\n" >expected_output &&
-		printf "Access-Control-Allow-Headers: X-Stream-Output, X-Chunked-Output\r\n" >>expected_output &&
-		printf "Access-Control-Expose-Headers: X-Stream-Output, X-Chunked-Output\r\n" >>expected_output &&
+		printf "Access-Control-Allow-Headers: X-Stream-Output, X-Chunked-Output, X-Content-Length\r\n" >>expected_output &&
+		printf "Access-Control-Expose-Headers: X-Stream-Output, X-Chunked-Output, X-Content-Length\r\n" >>expected_output &&
 		printf "Content-Type: text/plain\r\n" >>expected_output &&
 		printf "Server: go-ipfs/%s\r\n" $(ipfs version -n) >>expected_output &&
 		printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
-		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "X-Chunked-Output: 1\r\n" >>expected_output &&
 		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "\r\n" >>expected_output &&
@@ -44,12 +43,11 @@ test_ls_cmd() {
 
 	test_expect_success "JSON encoded channel-streaming command output looks good" '
 		printf "HTTP/1.1 200 OK\r\n" >expected_output &&
-		printf "Access-Control-Allow-Headers: X-Stream-Output, X-Chunked-Output\r\n" >>expected_output &&
-		printf "Access-Control-Expose-Headers: X-Stream-Output, X-Chunked-Output\r\n" >>expected_output &&
+		printf "Access-Control-Allow-Headers: X-Stream-Output, X-Chunked-Output, X-Content-Length\r\n" >>expected_output &&
+		printf "Access-Control-Expose-Headers: X-Stream-Output, X-Chunked-Output, X-Content-Length\r\n" >>expected_output &&
 		printf "Content-Type: application/json\r\n" >>expected_output &&
 		printf "Server: go-ipfs/%s\r\n" $(ipfs version -n) >>expected_output &&
 		printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
-		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "X-Chunked-Output: 1\r\n" >>expected_output &&
 		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "\r\n" >>expected_output &&

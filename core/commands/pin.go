@@ -28,7 +28,7 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pinned []key.Key
+	Pins []key.Key
 }
 
 var addPinCmd = &cmds.Command{
@@ -84,7 +84,7 @@ var addPinCmd = &cmds.Command{
 			}
 
 			buf := new(bytes.Buffer)
-			for _, k := range added.Pinned {
+			for _, k := range added.Pins {
 				fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
 			}
 			return buf, nil
@@ -138,7 +138,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 			}
 
 			buf := new(bytes.Buffer)
-			for _, k := range added.Pinned {
+			for _, k := range added.Pins {
 				fmt.Fprintf(buf, "unpinned %s\n", k)
 			}
 			return buf, nil
@@ -187,7 +187,7 @@ Example:
 		cmds.StringArg("ipfs-path", false, true, "Path to object(s) to be listed."),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"recursive\"."),
+		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").Default("all"),
 		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins."),
 		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
 	},
@@ -198,22 +198,18 @@ Example:
 			return
 		}
 
-		typeStr, typeStrFound, err := req.Option("type").String()
+		typeStr, _, err := req.Option("type").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		if typeStrFound {
-			switch typeStr {
-			case "all", "direct", "indirect", "recursive":
-			default:
-				err = fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-				res.SetError(err, cmds.ErrClient)
-				return
-			}
-		} else {
-			typeStr = "all"
+		switch typeStr {
+		case "all", "direct", "indirect", "recursive":
+		default:
+			err = fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+			res.SetError(err, cmds.ErrClient)
+			return
 		}
 
 		var keys map[string]RefKeyObject

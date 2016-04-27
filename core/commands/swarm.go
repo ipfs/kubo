@@ -10,11 +10,11 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
-	swarm "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/net/swarm"
-	peer "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/peer"
+	swarm "gx/ipfs/QmYgaiNVVL7f2nydijAwpDRunRkmxfu3PoK87Y3pH84uAW/go-libp2p/p2p/net/swarm"
+	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
 
-	mafilter "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
-	ma "gx/ipfs/QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV/go-multiaddr"
+	mafilter "gx/ipfs/QmPwfFAHUmvWDucLHRS9Xz2Kb1TNX2cY4LJ7pQjg9kVcae/multiaddr-filter"
+	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
 )
 
 type stringList struct {
@@ -29,11 +29,11 @@ var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Swarm inspection tool.",
 		Synopsis: `
-ipfs swarm peers                - List peers with open connections
-ipfs swarm addrs                - List known addresses. Useful to debug.
+ipfs swarm addrs                - List known addresses. Useful for debugging.
 ipfs swarm connect <address>    - Open connection to a given address
 ipfs swarm disconnect <address> - Close connection to a given address
 ipfs swarm filters              - Manipulate filters addresses
+ipfs swarm peers                - List peers with open connections
 `,
 		ShortDescription: `
 'ipfs swarm' is a tool to manipulate the network swarm. The swarm is the
@@ -42,11 +42,11 @@ ipfs peers in the internet.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"peers":      swarmPeersCmd,
 		"addrs":      swarmAddrsCmd,
 		"connect":    swarmConnectCmd,
 		"disconnect": swarmDisconnectCmd,
 		"filters":    swarmFiltersCmd,
+		"peers":      swarmPeersCmd,
 	},
 }
 
@@ -90,7 +90,7 @@ var swarmPeersCmd = &cmds.Command{
 
 var swarmAddrsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List known addresses. Useful to debug.",
+		Tagline: "List known addresses. Useful for debugging.",
 		ShortDescription: `
 'ipfs swarm addrs' lists all addresses this node is aware of.
 `,
@@ -259,10 +259,12 @@ var swarmDisconnectCmd = &cmds.Command{
 is an ipfs multiaddr:
 
 ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+
+The disconnect is not permanent; if ipfs needs to talk to that address later, it will reconnect.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("address", true, true, "Address of peer to connect to.").EnableStdin(),
+		cmds.StringArg("address", true, true, "Address of peer to disconnect from.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

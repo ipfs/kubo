@@ -21,7 +21,6 @@ type Config struct {
 	Datastore        Datastore             // local node's storage
 	Addresses        Addresses             // local node's addresses
 	Mounts           Mounts                // local node's mount points
-	Version          Version               // local node's version management
 	Discovery        Discovery             // local node's discovery mechanisms
 	Ipns             Ipns                  // Ipns settings
 	Bootstrap        []string              // local nodes's bootstrap peer addresses

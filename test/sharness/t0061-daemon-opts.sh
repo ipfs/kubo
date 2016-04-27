@@ -13,9 +13,6 @@ test_init_ipfs
 
 test_launch_ipfs_daemon --unrestricted-api --disable-transport-encryption
 
-test_expect_success "convert addresses from multiaddrs" '
-'
-
 gwyaddr=$GWAY_ADDR
 apiaddr=$API_ADDR
 
@@ -30,9 +27,9 @@ test_expect_success 'api gateway should be unrestricted' '
 
 # Odd. this fails here, but the inverse works on t0060-daemon.
 test_expect_success 'transport should be unencrypted' '
-  go-sleep 0.5s | nc localhost "$SWARM_PORT" >swarmnc &&
-  test_must_fail grep -q "AES-256,AES-128" swarmnc &&
-  grep -q "/multistream/1.0.0" swarmnc ||
+  nc -w 1 localhost $SWARM_PORT > swarmnc < ../t0060-data/mss-ls &&
+  test_must_fail grep -q "/secio" swarmnc &&
+  grep -q "/plaintext" swarmnc ||
   test_fsh cat swarmnc
 '
 

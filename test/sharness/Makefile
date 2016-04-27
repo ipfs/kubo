@@ -19,7 +19,7 @@ all: aggregate
 
 clean: clean-test-results
 	@echo "*** $@ ***"
-	-rm -rf bin/ipfs
+	-rm -rf $(BINS)
 
 clean-test-results:
 	@echo "*** $@ ***"

@@ -174,20 +174,27 @@ func (adder *Adder) PinRoot() error {
 }
 
 func (adder *Adder) Finalize() (*dag.Node, error) {
+	root := adder.mr.GetValue()
+
 	// cant just call adder.RootNode() here as we need the name for printing
-	root, err := adder.mr.GetValue().GetNode()
+	rootNode, err := root.GetNode()
 	if err != nil {
 		return nil, err
 	}
 
 	var name string
 	if !adder.Wrap {
-		name = root.Links[0].Name
-		child, err := root.Links[0].GetNode(adder.ctx, adder.node.DAG)
+		name = rootNode.Links[0].Name
+
+		dir, ok := adder.mr.GetValue().(*mfs.Directory)
+		if !ok {
+			return nil, fmt.Errorf("root is not a directory")
+		}
+
+		root, err = dir.Child(name)
 		if err != nil {
 			return nil, err
 		}
-		root = child
 	}
 
 	err = adder.outputDirs(name, root)
@@ -200,21 +207,31 @@ func (adder *Adder) Finalize() (*dag.Node, error) {
 		return nil, err
 	}
 
-	return root, nil
+	return root.GetNode()
 }
 
-func (adder *Adder) outputDirs(path string, nd *dag.Node) error {
-	if !bytes.Equal(nd.Data, folderData) {
+func (adder *Adder) outputDirs(path string, fs mfs.FSNode) error {
+	nd, err := fs.GetNode()
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(nd.Data, folderData) || fs.Type() != mfs.TDir {
 		return nil
 	}
 
-	for _, l := range nd.Links {
-		child, err := l.GetNode(adder.ctx, adder.node.DAG)
+	dir, ok := fs.(*mfs.Directory)
+	if !ok {
+		return fmt.Errorf("received FSNode of type TDir that was not a Directory")
+	}
+
+	for _, name := range dir.ListNames() {
+		child, err := dir.Child(name)
 		if err != nil {
 			return err
 		}
 
-		err = adder.outputDirs(gopath.Join(path, l.Name), child)
+		err = adder.outputDirs(gopath.Join(path, name), child)
 		if err != nil {
 			return err
 		}
@@ -323,7 +340,7 @@ func (adder *Adder) addNode(node *dag.Node, path string) error {
 			return err
 		}
 
-		path = key.Pretty()
+		path = key.B58String()
 	}
 
 	dir := gopath.Dir(path)
@@ -479,7 +496,7 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 	}
 
 	output := &Object{
-		Hash:  key.Pretty(),
+		Hash:  key.B58String(),
 		Links: make([]Link, len(dagnode.Links)),
 	}
 

@@ -20,7 +20,7 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	ci "gx/ipfs/QmUBogf4nUefBjmYjn6jfsfPJRkmDGSeMhNj4usRKq69f4/go-libp2p/p2p/crypto"
+	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
 )
 
 func init() {
@@ -241,7 +241,7 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			continue
 		}
 		ent := fuse.Dirent{
-			Name: key.Key(hash).Pretty(),
+			Name: key.Key(hash).B58String(),
 			Type: fuse.DT_Dir,
 		}
 		link := fuse.Dirent{

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 )
 
@@ -14,12 +14,6 @@ type Key string
 
 // String is utililty function for printing out keys as strings (Pretty).
 func (k Key) String() string {
-	return k.Pretty()
-}
-
-// Pretty returns Key in a b58 encoded string
-// TODO: deprecate Pretty. bad name.
-func (k Key) Pretty() string {
 	return k.B58String()
 }
 

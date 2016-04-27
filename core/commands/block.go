@@ -8,10 +8,10 @@ import (
 	"io/ioutil"
 	"strings"
 
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	"github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -65,7 +65,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 		}
 
 		res.SetOutput(&BlockStat{
-			Key:  b.Key().Pretty(),
+			Key:  b.Key().B58String(),
 			Size: len(b.Data),
 		})
 	},
