@@ -50,9 +50,9 @@ Note: List all references recursively by using the flag '-r'.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>."),
-		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
-		cmds.BoolOption("unique", "u", "Omit duplicate refs from output."),
-		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes."),
+		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`.").Default(false),
+		cmds.BoolOption("unique", "u", "Omit duplicate refs from output.").Default(false),
+		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
