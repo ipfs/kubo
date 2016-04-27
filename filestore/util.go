@@ -12,8 +12,8 @@ import (
 
 const (
 	StatusOk      = 1
-	StatusMissing = 2
-	StatusInvalid = 3
+	StatusChanged = 2
+	StatusMissing = 3
 	StatusError   = 4
 )
 
@@ -21,16 +21,16 @@ func statusStr(status int) string {
 	switch status {
 	case 0:
 		return ""
-	case 1:
-		return "ok      "
-	case 2:
-		return "missing "
-	case 3:
-		return "invalid "
-	case 4:
-		return "error   "
+	case StatusOk:
+		return "ok       "
+	case StatusChanged:
+		return "changed  "
+	case StatusMissing:
+		return "missing  "
+	case StatusError:
+		return "error    "
 	default:
-		return "??      "
+		return "??       "
 	}
 }
 
@@ -64,7 +64,7 @@ func list(d *Datastore, out chan<- *ListRes, verify bool) error {
 			} else if os.IsNotExist(err) {
 				status = StatusMissing
 			} else if _, ok := err.(InvalidBlock); ok || err == io.EOF || err == io.ErrUnexpectedEOF {
-				status = StatusInvalid
+				status = StatusChanged
 			} else {
 				status = StatusError
 			}
