@@ -263,7 +263,7 @@ file an issue of your own!
 
 ## Contributing
 
-Please see [Contribute.md](contribute.md)!
+Please see [CONTRIBUTING.md](CONTRIBUTING.md)!
 
 ## Todo
 
