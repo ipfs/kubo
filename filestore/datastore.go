@@ -47,11 +47,24 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 	}
 
 	// Make sure we can read the file as a sanity check
-	if file, err := os.Open(dataObj.FilePath); err != nil {
+	file, err := os.Open(dataObj.FilePath)
+	if err != nil {
 		return err
-	} else {
-		file.Close()
 	}
+
+	// See if we have the whole file in the block
+	if dataObj.Offset == 0 && !dataObj.WholeFile {
+		// Get the file size
+		info, err := file.Stat()
+		if err != nil {
+			return err
+		}
+		if dataObj.Size == uint64(info.Size()) {
+			dataObj.WholeFile = true
+		}
+	}
+
+	file.Close()
 
 	data, err := dataObj.Marshal()
 	if err != nil {
