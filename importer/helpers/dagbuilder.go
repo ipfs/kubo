@@ -118,9 +118,9 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 }
 
 func (db *DagBuilderHelper) SetAsRoot(node *UnixfsNode) {
-	//fmt.Println("SetAsRoot!")
 	if db.absPath != "" {
 		node.SetDataPtr(db.absPath, 0)
+		node.SetAsRoot()
 	}
 }
 
