@@ -51,6 +51,7 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 
 		log.Info("checking if daemon is running...")
 		if daemonLocked {
+			log.Debug("Ipfs daemon is running.")
 			e := "ipfs daemon is running. please stop it to run this command"
 			return cmds.ClientError(e)
 		}

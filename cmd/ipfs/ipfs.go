@@ -105,4 +105,5 @@ var cmdDetailsMap = map[*cmds.Command]cmdDetails{
 	commands.CommandsDaemonCmd: {doesNotUseRepo: true},
 	commands.VersionCmd:        {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
 	commands.LogCmd:            {cannotRunOnClient: true},
+	commands.RepoFsckCmd:       {cannotRunOnDaemon: true},
 }
