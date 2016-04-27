@@ -46,9 +46,11 @@ var FileStoreCmd = &cmds.Command{
 		Tagline: "Interact with filestore objects",
 	},
 	Subcommands: map[string]*cmds.Command{
-		"ls":                 lsFileStore,
-		"verify":             verifyFileStore,
-		"rm":                 rmFilestoreObjs,
+		"ls":         lsFileStore,
+		"verify":     verifyFileStore,
+		"rm":         rmFilestoreObjs,
+		"rm-invalid": rmInvalidObjs,
+		//"rm-incomplete":      rmIncompleteObjs,
 		"find-dangling-pins": findDanglingPins,
 	},
 }
@@ -112,11 +114,10 @@ var verifyFileStore = &cmds.Command{
 
 var rmFilestoreObjs = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove objects from the Filestore",
+		Tagline: "Remove objects from the filestore",
 	},
-
 	Arguments: []cmds.Argument{
-		cmds.StringArg("hash", true, true, "Multi-hashes to remove.").EnableStdin(),
+		cmds.StringArg("hash", true, true, "Multi-hashes to remove."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -129,7 +130,8 @@ var rmFilestoreObjs = &cmds.Command{
 		serr := res.Stderr()
 		numErrors := 0
 		for _, mhash := range hashes {
-			err = delFilestoreObj(req, node, fs, mhash)
+			key := k.B58KeyDecode(mhash)
+			err = delFilestoreObj(req, node, fs, key)
 			if err != nil {
 				fmt.Fprintf(serr, "Error deleting %s: %s\n", mhash, err.Error())
 				numErrors += 1
@@ -143,8 +145,108 @@ var rmFilestoreObjs = &cmds.Command{
 	},
 }
 
-func delFilestoreObj(req cmds.Request, node *core.IpfsNode, fs *filestore.Datastore, mhash string) error {
-	key := k.B58KeyDecode(mhash)
+var rmInvalidObjs = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove invalid objects from the filestore",
+		ShortDescription: `
+Removes objects that have become invalid from the Filestrore up to the
+reason specified in <level>.  If <level> is "changed" than remove any
+blocks that have become invalid due to the contents of the underlying
+file changing.  If <level> is "missing" also remove any blocks that
+have become invalid because the underlying file is no longer available
+due to a "No such file" or related error, but not if the file exists
+but is unreadable for some reason.  If <level> is "all" remove any
+blocks that fail to validate regardless of the reason.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("level", true, false, "one of changed, missing. or all").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("quiet", "q", "Produce less output."),
+		cmds.BoolOption("dry-run", "n", "Do everything except the actual delete."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, fs, err := extractFilestore(req)
+		_ = fs
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		args := req.Arguments()
+		if len(args) != 1 {
+			res.SetError(errors.New("invalid usage"), cmds.ErrNormal)
+			return
+		}
+		mode := req.Arguments()[0]
+		level := filestore.StatusMissing
+		switch mode {
+		case "changed":
+			level = filestore.StatusChanged
+		case "missing":
+			level = filestore.StatusMissing
+		case "all":
+			level = filestore.StatusError
+		default:
+			res.SetError(errors.New("level must be one of: changed missing all"), cmds.ErrNormal)
+		}
+		quiet, _, err := res.Request().Option("quiet").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		dryRun, _, err := res.Request().Option("dry-run").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		ch := make(chan *filestore.ListRes)
+		go func() {
+			defer close(ch)
+			filestore.Verify(fs, ch)
+		}()
+		rdr, wtr := io.Pipe()
+		go func() {
+			defer wtr.Close()
+			var toDel [][]byte
+			for r := range ch {
+				if r.Status >= level {
+					toDel = append(toDel, r.Key)
+					mhash := b58.Encode(r.Key)
+					if !quiet {
+						fmt.Fprintf(wtr, "will delete %s (part of %s)\n", mhash, r.FilePath)
+					}
+				}
+			}
+			if dryRun {
+				fmt.Fprintf(wtr, "Dry-run option specified.  Stopping.\n")
+				fmt.Fprintf(wtr, "Would of deleted %d invalid objects.\n", len(toDel))
+			} else {
+				for _, key := range toDel {
+					err = delFilestoreObj(req, node, fs, k.Key(key))
+					if err != nil {
+						mhash := b58.Encode(key)
+						msg := fmt.Sprintf("Could not delete %s: %s\n", mhash, err.Error())
+						res.SetError(errors.New(msg), cmds.ErrNormal)
+						return
+
+					}
+				}
+				fmt.Fprintf(wtr, "Deleted %d invalid objects.\n", len(toDel))
+			}
+		}()
+		res.SetOutput(rdr)
+		return
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
+	},
+}
+
+func delFilestoreObj(req cmds.Request, node *core.IpfsNode, fs *filestore.Datastore, key k.Key) error {
 	err := fs.DeleteDirect(key.DsKey())
 	if err != nil {
 		return err

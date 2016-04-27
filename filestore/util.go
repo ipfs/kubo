@@ -12,9 +12,9 @@ import (
 
 const (
 	StatusOk      = 1
-	StatusChanged = 2
+	StatusError   = 2
 	StatusMissing = 3
-	StatusError   = 4
+	StatusChanged = 4
 )
 
 func statusStr(status int) string {
@@ -23,12 +23,12 @@ func statusStr(status int) string {
 		return ""
 	case StatusOk:
 		return "ok       "
-	case StatusChanged:
-		return "changed  "
-	case StatusMissing:
-		return "missing  "
 	case StatusError:
 		return "error    "
+	case StatusMissing:
+		return "missing  "
+	case StatusChanged:
+		return "changed  "
 	default:
 		return "??       "
 	}
