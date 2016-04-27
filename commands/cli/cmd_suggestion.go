@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -68,4 +69,17 @@ func suggestUnknownCmd(args []string, root *cmds.Command) []string {
 		sFinal = append(sFinal, j.cmd)
 	}
 	return sFinal
+}
+
+func printSuggestions(inputs []string, root *cmds.Command) (err error) {
+
+	suggestions := suggestUnknownCmd(inputs, root)
+	if len(suggestions) > 1 {
+		err = fmt.Errorf("Unknown Command \"%s\"\n\nDid you mean any of these?\n\n\t%s", inputs[0], strings.Join(suggestions, "\n\t"))
+	} else if len(suggestions) > 0 {
+		err = fmt.Errorf("Unknown Command \"%s\"\n\nDid you mean this?\n\n\t%s", inputs[0], suggestions[0])
+	} else {
+		err = fmt.Errorf("Unknown Command \"%s\"\n", inputs[0])
+	}
+	return
 }

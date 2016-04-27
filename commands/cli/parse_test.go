@@ -78,6 +78,9 @@ func TestOptionParsing(t *testing.T) {
 	}
 
 	testHelper := func(args string, expectedOpts kvs, expectedWords words, expectErr bool) {
+		var opts map[string]interface{}
+		var input []string
+
 		_, opts, input, _, err := parseOpts(strings.Split(args, " "), cmd)
 		if expectErr {
 			if err == nil {
@@ -99,9 +102,8 @@ func TestOptionParsing(t *testing.T) {
 		testHelper(args, expectedOpts, expectedWords, false)
 	}
 
-	test("-", kvs{}, words{"-"})
+	test("test -", kvs{}, words{"-"})
 	testFail("-b -b")
-	test("beep boop", kvs{}, words{"beep", "boop"})
 	test("test beep boop", kvs{}, words{"beep", "boop"})
 	testFail("-s")
 	test("-s foo", kvs{"s": "foo"}, words{})
@@ -110,26 +112,29 @@ func TestOptionParsing(t *testing.T) {
 	test("-b", kvs{"b": true}, words{})
 	test("-bs foo", kvs{"b": true, "s": "foo"}, words{})
 	test("-sb", kvs{"s": "b"}, words{})
-	test("-b foo", kvs{"b": true}, words{"foo"})
-	test("--bool foo", kvs{"bool": true}, words{"foo"})
+	test("-b test foo", kvs{"b": true}, words{"foo"})
+	test("--bool test foo", kvs{"bool": true}, words{"foo"})
 	testFail("--bool=foo")
 	testFail("--string")
 	test("--string foo", kvs{"string": "foo"}, words{})
 	test("--string=foo", kvs{"string": "foo"}, words{})
 	test("-- -b", kvs{}, words{"-b"})
-	test("foo -b", kvs{"b": true}, words{"foo"})
+	test("test foo -b", kvs{"b": true}, words{"foo"})
 	test("-b=false", kvs{"b": false}, words{})
 	test("-b=true", kvs{"b": true}, words{})
-	test("-b=false foo", kvs{"b": false}, words{"foo"})
-	test("-b=true foo", kvs{"b": true}, words{"foo"})
-	test("--bool=true foo", kvs{"bool": true}, words{"foo"})
-	test("--bool=false foo", kvs{"bool": false}, words{"foo"})
-	test("-b=FaLsE foo", kvs{"b": false}, words{"foo"})
-	test("-b=TrUe foo", kvs{"b": true}, words{"foo"})
-	test("-b true", kvs{"b": true}, words{"true"})
-	test("-b false", kvs{"b": true}, words{"false"})
-	test("-b --string foo bar", kvs{"b": true, "string": "foo"}, words{"bar"})
+	test("-b=false test foo", kvs{"b": false}, words{"foo"})
+	test("-b=true test foo", kvs{"b": true}, words{"foo"})
+	test("--bool=true test foo", kvs{"bool": true}, words{"foo"})
+	test("--bool=false test foo", kvs{"bool": false}, words{"foo"})
+	test("-b test true", kvs{"b": true}, words{"true"})
+	test("-b test false", kvs{"b": true}, words{"false"})
+	test("-b=FaLsE test foo", kvs{"b": false}, words{"foo"})
+	test("-b=TrUe test foo", kvs{"b": true}, words{"foo"})
+	test("-b test true", kvs{"b": true}, words{"true"})
+	test("-b test false", kvs{"b": true}, words{"false"})
+	test("-b --string foo test bar", kvs{"b": true, "string": "foo"}, words{"bar"})
 	test("-b=false --string bar", kvs{"b": false, "string": "bar"}, words{})
+	testFail("foo test")
 }
 
 func TestArgumentParsing(t *testing.T) {

@@ -227,6 +227,11 @@ func parseOpts(args []string, root *cmds.Command) (
 				}
 			} else {
 				stringVals = append(stringVals, arg)
+				if len(path) == 0 {
+					// found a typo or early argument
+					err = printSuggestions(stringVals, root)
+					return
+				}
 			}
 		}
 	}
@@ -268,15 +273,8 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	// and the last arg definition is not variadic (or there are no definitions), return an error
 	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
 	if notVariadic && len(inputs) > len(argDefs) {
-		suggestions := suggestUnknownCmd(inputs, root)
-
-		if len(suggestions) > 1 {
-			return nil, nil, fmt.Errorf("Unknown Command \"%s\"\n\nDid you mean any of these?\n\n\t%s", inputs[0], strings.Join(suggestions, "\n\t"))
-		} else if len(suggestions) > 0 {
-			return nil, nil, fmt.Errorf("Unknown Command \"%s\"\n\nDid you mean this?\n\n\t%s", inputs[0], suggestions[0])
-		} else {
-			return nil, nil, fmt.Errorf("Unknown Command \"%s\"\n", inputs[0])
-		}
+		err := printSuggestions(inputs, root)
+		return nil, nil, err
 	}
 
 	stringArgs := make([]string, 0, numInputs)
