@@ -11,7 +11,7 @@ endif
 
 
 gx_bin=bin/gx-v0.6.0
-gx-go_bin=bin/gx-go-v1.1.0
+gx-go_bin=bin/gx-go-v1.2.0
 
 # use things in our bin before any other system binaries
 export PATH := bin:$(PATH)
