@@ -2,8 +2,11 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
+	k "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/filestore"
@@ -35,8 +38,9 @@ var FileStoreCmd = &cmds.Command{
 		Tagline: "Interact with filestore objects",
 	},
 	Subcommands: map[string]*cmds.Command{
-		"ls":     lsFileStore,
-		"verify": verifyFileStore,
+		"ls":                 lsFileStore,
+		"verify":             verifyFileStore,
+		"find-dangling-pins": findDanglingPins,
 	},
 }
 
@@ -102,4 +106,49 @@ func extractFilestore(req cmds.Request) (node *core.IpfsNode, fs *filestore.Data
 	}
 	fs = repo.Filestore()
 	return
+}
+
+var findDanglingPins = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List pinned objects that no longer exists",
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			return
+		}
+		r, w := io.Pipe()
+		go func() {
+			defer w.Close()
+			err := listDanglingPins(n.Pinning.DirectKeys(), w, n.Blockstore)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			err = listDanglingPins(n.Pinning.RecursiveKeys(), w, n.Blockstore)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}()
+		res.SetOutput(r)
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
+	},
+}
+
+func listDanglingPins(keys []k.Key, out io.Writer, d bs.Blockstore) error {
+	for _, k := range keys {
+		exists, err := d.Has(k)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			fmt.Fprintln(out, k.B58String())
+		}
+	}
+	return nil
 }
