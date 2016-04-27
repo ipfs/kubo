@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io"
 
+	//ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type chanWriter struct {
@@ -40,6 +42,7 @@ var FileStoreCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"ls":                 lsFileStore,
 		"verify":             verifyFileStore,
+		"rm":                 rmFilestoreObjs,
 		"find-dangling-pins": findDanglingPins,
 	},
 }
@@ -92,6 +95,76 @@ var verifyFileStore = &cmds.Command{
 			return res.(io.Reader), nil
 		},
 	},
+}
+
+var rmFilestoreObjs = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove objects from the Filestore",
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("hash", true, true, "Multi-hashes to remove.").EnableStdin(),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, fs, err := extractFilestore(req)
+		_ = fs
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		hashes := req.Arguments()
+		serr := res.Stderr()
+		numErrors := 0
+		for _, mhash := range hashes {
+			err = delFilestoreObj(req, node, fs, mhash)
+			if err != nil {
+				fmt.Fprintf(serr, "Error deleting %s: %s\n", mhash, err.Error())
+				numErrors += 1
+			}
+		}
+		if numErrors > 0 {
+			res.SetError(errors.New("Could not delete some keys"), cmds.ErrNormal)
+			return
+		}
+		return
+	},
+}
+
+func delFilestoreObj(req cmds.Request, node *core.IpfsNode, fs *filestore.Datastore, mhash string) error {
+	key := k.B58KeyDecode(mhash)
+	err := fs.DeleteDirect(key.DsKey())
+	if err != nil {
+		return err
+	}
+	stillExists, err := node.Blockstore.Has(key)
+	if err != nil {
+		return err
+	}
+	if stillExists {
+		return nil
+	}
+	_, pinned1, err := node.Pinning.IsPinnedWithType(key, "recursive")
+	if err != nil {
+		return err
+	}
+	_, pinned2, err := node.Pinning.IsPinnedWithType(key, "direct")
+	if err != nil {
+		return err
+	}
+	if pinned1 || pinned2 {
+		println("unpinning")
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		err = node.Pinning.Unpin(ctx, key, true)
+		if err != nil {
+			return err
+		}
+		err := node.Pinning.Flush()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func extractFilestore(req cmds.Request) (node *core.IpfsNode, fs *filestore.Datastore, err error) {
