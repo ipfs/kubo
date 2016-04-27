@@ -23,7 +23,7 @@ repo.lock" '
     mkdir -p $IPFS_PATH/datastore &&
     touch $IPFS_PATH/datastore/LOCK &&
     touch $IPFS_PATH/repo.lock &&
-    echo "/ip4/127.0.0.1/tcp/1111" >> $IPFS_PATH/api &&
+    printf "/ip4/127.0.0.1/tcp/5001" > $IPFS_PATH/api &&
     ipfs repo fsck > fsck_out_actual1
 '
 test_expect_success "'ipfs repo fsck' output looks good with no daemon" '
@@ -65,7 +65,7 @@ test_expect_success "'ipfs repo fsck' confirm file deletion" '
 
 # Try with locks api and datastore/LOCK
 test_expect_success "'ipfs repo fsck' succeeds partial lock" '
-    echo "/ip4/127.0.0.1/tcp/1111" >> $IPFS_PATH/api &&
+    printf  "/ip4/127.0.0.1/tcp/5001" > $IPFS_PATH/api &&
     touch $IPFS_PATH/datastore/LOCK &&
     ipfs repo fsck > fsck_out_actual2
 '
@@ -83,7 +83,7 @@ test_expect_success "'ipfs repo fsck' confirm file deletion" '
 
 # Try with locks api and repo.lock
 test_expect_success "'ipfs repo fsck' succeeds partial lock" '
-    echo "/ip4/127.0.0.1/tcp/1111" >> $IPFS_PATH/api &&
+    printf  "/ip4/127.0.0.1/tcp/5001" > $IPFS_PATH/api &&
     touch $IPFS_PATH/repo.lock &&
     ipfs repo fsck > fsck_out_actual3
 '
@@ -155,7 +155,7 @@ test_expect_success "'ipfs repo fsck' confirm file deletion" '
 
 # Try with single lock api
 test_expect_success "'ipfs repo fsck' succeeds partial lock" '
-  echo "/ip4/127.0.0.1/tcp/1111" > $IPFS_PATH/api &&
+  printf "/ip4/127.0.0.1/tcp/5001" > $IPFS_PATH/api &&
   ipfs repo fsck > fsck_out_actual7
 '
 
