@@ -264,12 +264,6 @@ func LockedByOtherProcess(repoPath string) (bool, error) {
 		log.Debugf("(%t)<->Lock is held at %s", locked, repoPath)
 	}
 	return locked, err
-
-	//if locked, _ := lockfile.Locked(repoPath); locked {
-	//log.Debugf("(%t)<->Lock is held at %s", locked, repoPath)
-	//}
-	//// NB: the lock is only held when repos are Open
-	//return lockfile.Locked(repoPath)
 }
 
 // APIAddr returns the registered API addr, according to the api file
