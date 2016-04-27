@@ -43,8 +43,7 @@ test_expect_success "'ipfs repo fsck' confirm file deletion" '
 test_expect_success "'ipfs repo fsck' succeeds with no daemon running non-zero
 repo.lock" '
     mkdir -p $IPFS_PATH &&
-    echo ":D" >> $IPFS_PATH/repo.lock &&
-    echo "/ip4/127.0.0.1/tcp/1111" >> $IPFS_PATH/api &&
+    printf ":D" > $IPFS_PATH/repo.lock &&
     touch $IPFS_PATH/datastore/LOCK &&
     ipfs repo fsck > fsck_out_actual1b
 '
@@ -177,9 +176,9 @@ test_expect_success "'ipfs repo fsck' confirm file deletion" '
 test_launch_ipfs_daemon
 
 # Daemon is running -> command doesn't run
-test_expect_failure "'ipfs repo fsck' fails with daemon running" '
-  echo "/ip4/127.0.0.1/tcp/1111" > $IPFS_PATH/api &&
-  ipfs repo fsck >fsck_out_actual8
+test_expect_success "'ipfs repo fsck' fails with daemon running" '
+  ! (ipfs repo fsck 2>fsck_out_actual8 )
+
 '
 
 test_expect_success "'ipfs repo fsck' output looks good with daemon" '
