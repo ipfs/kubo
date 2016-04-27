@@ -5,6 +5,7 @@ import (
 	"io"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 )
@@ -45,20 +46,15 @@ var lsFileStore = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+		_, fs, err := extractFilestore(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		fsrepo, ok := node.Repo.Self().(*fsrepo.FSRepo)
-		if !ok {
-			res.SetError(errors.New("Not a FSRepo"), cmds.ErrNormal)
 			return
 		}
 		ch := make(chan *filestore.ListRes)
 		go func() {
 			defer close(ch)
-			filestore.List(fsrepo.Filestore(), ch)
+			filestore.List(fs, ch)
 		}()
 		res.SetOutput(&chanWriter{ch, "", 0})
 	},
@@ -75,20 +71,15 @@ var verifyFileStore = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+		_, fs, err := extractFilestore(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		fsrepo, ok := node.Repo.Self().(*fsrepo.FSRepo)
-		if !ok {
-			res.SetError(errors.New("Not a FSRepo"), cmds.ErrNormal)
 			return
 		}
 		ch := make(chan *filestore.ListRes)
 		go func() {
 			defer close(ch)
-			filestore.Verify(fsrepo.Filestore(), ch)
+			filestore.Verify(fs, ch)
 		}()
 		res.SetOutput(&chanWriter{ch, "", 0})
 	},
@@ -97,4 +88,18 @@ var verifyFileStore = &cmds.Command{
 			return res.(io.Reader), nil
 		},
 	},
+}
+
+func extractFilestore(req cmds.Request) (node *core.IpfsNode, fs *filestore.Datastore, err error) {
+	node, err = req.InvocContext().GetNode()
+	if err != nil {
+		return
+	}
+	repo, ok := node.Repo.Self().(*fsrepo.FSRepo)
+	if !ok {
+		err = errors.New("Not a FSRepo")
+		return
+	}
+	fs = repo.Filestore()
+	return
 }
