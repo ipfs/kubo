@@ -65,11 +65,11 @@ PHONY += go_check deps vendor install build nofuse clean uninstall
 ##############################################################
 # tests targets
 
-test: test_expensive windows_build_check
+test: test_expensive
 
 test_short: build test_go_short test_sharness_short
 
-test_expensive: build test_go_expensive test_sharness_expensive
+test_expensive: build test_go_expensive test_sharness_expensive windows_build_check
 
 test_3node:
 	cd test/3nodetest && make
