@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 die() {
 	echo "$@" >&2
@@ -14,46 +14,48 @@ check_writeable() {
 }
 
 download() {
-	local url="$1"
-	local output="$2"
+	dl_url="$1"
+	dl_output="$2"
 
-	if [ -z "$url" ] || [ -z "$output" ]; then
-		die "download takes exactly two arguments. was given '$@'"
-	fi
+	test "$#" -eq "2" || die "download requires exactly two arguments, was given $@"
 
 	if ! check_writeable "$output"; then
 		die "download error: cannot write to $output"
 	fi
 
 	if have_binary wget; then
-		printf 'Using wget to download "%s" to "%s"\n' "$url" "$output"
+		printf '==> Using wget to download "%s" to "%s"\n' "$url" "$output"
 		wget "$url" -O "$output"
 	elif have_binary curl; then
-		printf 'Using curl to download "%s" to "%s"\n' "$url" "$output"
+		printf '==> Using curl to download "%s" to "%s"\n' "$url" "$output"
 		curl --silent "$url" > "$output"
 	elif have_binary fetch; then
-		printf 'Using fetch to download "%s" to "%s"\n' "$url" "$output"
+		printf '==> Using fetch to download "%s" to "%s"\n' "$url" "$output"
 		fetch "$url" -o "$output"
 	else
 		die "no binary found to download $url. exiting."
 	fi
+	if [ "$?" -ne 0 ]; then
+		return $?
+	fi
+	echo "==> download complete!"
 }
 
 unarchive() {
-	local archivetype="$1"
-	local infile="$2"
-	local outfile="$3"
-	local distname="$4"
+	ua_archivetype="$1"
+	ua_infile="$2"
+	ua_outfile="$3"
+	ua_distname="$4"
 
-	if ! check_writeable "$outfile"; then
-		die "unarchive error: cannot write to $outfile"
+	if ! check_writeable "$ua_outfile"; then
+		die "unarchive error: cannot write to $ua_outfile"
 	fi
 
-	case $archivetype in
+	case "$ua_archivetype" in
 		tar.gz)
 			if have_binary tar; then
 				echo "==> using 'tar' to extract binary from archive"
-				cat "$infile" | tar -O -z -x "$distname/$distname" > "$outfile"
+				cat "$ua_infile" | tar -O -z -x "$ua_distname/$ua_distname" > "$ua_outfile"
 			else
 				die "no binary on system for extracting tar files"
 			fi
@@ -61,16 +63,16 @@ unarchive() {
 		zip)
 			if have_binary unzip; then
 				echo "==> using 'unzip' to extract binary from archive"
-				unzip -p "$infile" "$distname/$distname" > "$outfile"
+				unzip -p "$ua_infile" "$ua_distname/$ua_distname" > "$ua_outfile"
 			else
 				die "no installed method for extracting .zip archives"
 			fi
 			;;
 		*)
-			die "unrecognized archive type '$archivetype'"
+			die "unrecognized archive type '$ua_archivetype'"
 	esac
 
-	chmod +x "$outfile"
+	chmod +x "$ua_outfile"
 }
 
 get_go_vars() {
@@ -142,5 +144,5 @@ fi
 
 unarchive "$archive" "$tmpfi" "$outpath" "$distname"
 if [ $? -ne 0 ]; then
-	die "failed to exract archive $tmpfi"
+	die "failed to extract archive $tmpfi"
 fi
