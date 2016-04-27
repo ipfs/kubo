@@ -12,13 +12,15 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type chanWriter struct {
-	ch     <-chan *filestore.ListRes
-	buf    string
-	offset int
+	ch       <-chan *filestore.ListRes
+	buf      string
+	offset   int
+	hashOnly bool
 }
 
 func (w *chanWriter) Read(p []byte) (int, error) {
@@ -28,7 +30,11 @@ func (w *chanWriter) Read(p []byte) (int, error) {
 		if !more {
 			return 0, io.EOF
 		}
-		w.buf = res.Format()
+		if w.hashOnly {
+			w.buf = b58.Encode(res.Key) + "\n"
+		} else {
+			w.buf = res.Format()
+		}
 	}
 	sz := copy(p, w.buf[w.offset:])
 	w.offset += sz
@@ -49,11 +55,18 @@ var FileStoreCmd = &cmds.Command{
 
 var lsFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List objects on filestore",
+		Tagline: "List objects in filestore",
 	},
-
+	Options: []cmds.Option{
+		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		_, fs, err := extractFilestore(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		quiet, _, err := res.Request().Option("quiet").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -63,7 +76,7 @@ var lsFileStore = &cmds.Command{
 			defer close(ch)
 			filestore.List(fs, ch)
 		}()
-		res.SetOutput(&chanWriter{ch, "", 0})
+		res.SetOutput(&chanWriter{ch, "", 0, quiet})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -88,7 +101,7 @@ var verifyFileStore = &cmds.Command{
 			defer close(ch)
 			filestore.Verify(fs, ch)
 		}()
-		res.SetOutput(&chanWriter{ch, "", 0})
+		res.SetOutput(&chanWriter{ch, "", 0, false})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
