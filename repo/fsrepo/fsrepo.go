@@ -259,11 +259,17 @@ func Remove(repoPath string) error {
 // process. If true, then the repo cannot be opened by this process.
 func LockedByOtherProcess(repoPath string) (bool, error) {
 	repoPath = filepath.Clean(repoPath)
-	if locked, _ := lockfile.Locked(repoPath); locked {
-		log.Debugf("Lock is held at %s: %t", repoPath, locked)
+	locked, err := lockfile.Locked(repoPath)
+	if locked {
+		log.Debugf("(%t)<->Lock is held at %s", locked, repoPath)
 	}
-	// NB: the lock is only held when repos are Open
-	return lockfile.Locked(repoPath)
+	return locked, err
+
+	//if locked, _ := lockfile.Locked(repoPath); locked {
+	//log.Debugf("(%t)<->Lock is held at %s", locked, repoPath)
+	//}
+	//// NB: the lock is only held when repos are Open
+	//return lockfile.Locked(repoPath)
 }
 
 // APIAddr returns the registered API addr, according to the api file

@@ -417,6 +417,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 		return nil, err
 	}
 
+	if client != nil {
 		if details.cannotRunOnDaemon {
 			// check if daemon locked. legacy error text, for now.
 			log.Debugf("Command cannot run on daemon. Checking if daemon is locked")
