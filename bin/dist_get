@@ -6,7 +6,7 @@ die() {
 }
 
 have_binary() {
-	type "$1" > /dev/null
+	type "$1" > /dev/null 2> /dev/null
 }
 
 check_writeable() {
@@ -25,12 +25,14 @@ download() {
 		die "download error: cannot write to $output"
 	fi
 
-	printf 'Downloading "%s" to "%s"\n' "$url" "$output"
 	if have_binary wget; then
+		printf 'Using wget to download "%s" to "%s"\n' "$url" "$output"
 		wget "$url" -O "$output"
 	elif have_binary curl; then
+		printf 'Using curl to download "%s" to "%s"\n' "$url" "$output"
 		curl --silent "$url" > "$output"
 	elif have_binary fetch; then
+		printf 'Using fetch to download "%s" to "%s"\n' "$url" "$output"
 		fetch "$url" -o "$output"
 	else
 		die "no binary found to download $url. exiting."
@@ -51,7 +53,7 @@ unarchive() {
 		tar.gz)
 			if have_binary tar; then
 				echo "==> using 'tar' to extract binary from archive"
-				tar -x "$distname/$distname" -f "$infile" -O > "$outfile"
+				cat "$infile" | tar -O -z -x "$distname/$distname" > "$outfile"
 			else
 				die "no binary on system for extracting tar files"
 			fi
