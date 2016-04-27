@@ -2,6 +2,10 @@
   "bugs": {
     "url": "https://github.com/ipfs/go-ipfs"
   },
+  "gx": {
+    "dvcsimport": "github.com/ipfs/go-libp2p",
+    "goversion": "1.5.2"
+  },
   "gxDependencies": [
     {
       "hash": "Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH",
@@ -9,26 +13,26 @@
       "version": "1.0.0"
     },
     {
-      "hash": "QmYgaiNVVL7f2nydijAwpDRunRkmxfu3PoK87Y3pH84uAW",
+      "hash": "QmXDvxcXUYn2DDnGKJwdQPxkJgG83jBTp5UmmNzeHzqbj5",
       "name": "go-libp2p",
-      "version": "3.0.0"
+      "version": "2.0.3"
     },
     {
       "author": "whyrusleeping",
-      "name": "go-libp2p-secio",
       "hash": "QmPKuU1ohMDaJRJHmatXewCqjZp5wKrD3CK6m9TnCK6XBe",
+      "name": "go-libp2p-secio",
       "version": "1.0.1"
     },
     {
       "author": "whyrusleeping",
-      "name": "go-libp2p-crypto",
       "hash": "QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY",
+      "name": "go-libp2p-crypto",
       "version": "1.0.2"
     },
     {
       "author": "whyrusleeping",
-      "name": "go-libp2p-peer",
       "hash": "QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt",
+      "name": "go-libp2p-peer",
       "version": "1.0.2"
     },
     {
@@ -58,10 +62,6 @@
     }
   ],
   "gxVersion": "0.4.0",
-  "gx": {
-    "dvcsimport": "github.com/ipfs/go-libp2p",
-    "goversion":"1.5.2"
-  },
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs",
