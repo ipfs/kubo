@@ -20,7 +20,7 @@ const (
 
 	whitespace = "\r\n\t "
 
-	indentStr = "    "
+	indentStr = "  "
 )
 
 type helpFields struct {
@@ -74,38 +74,38 @@ func (f *helpFields) IndentAll() {
 
 const usageFormat = "{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}} {{.ArgUsage}}{{end}} - {{.Tagline}}{{end}}"
 
-const longHelpFormat = `
+const longHelpFormat = `USAGE
 {{.Indent}}{{template "usage" .}}
 
-{{if .Arguments}}ARGUMENTS:
+{{if .Arguments}}ARGUMENTS
 
 {{.Arguments}}
 
-{{end}}{{if .Options}}OPTIONS:
+{{end}}{{if .Options}}OPTIONS
 
 {{.Options}}
 
-{{end}}{{if .Subcommands}}SUBCOMMANDS:
-
-{{.Subcommands}}
-
-{{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
-
-{{end}}{{if .Description}}DESCRIPTION:
+{{end}}{{if .Description}}DESCRIPTION
 
 {{.Description}}
 
+{{end}}{{if .Subcommands}}SUBCOMMANDS
+{{.Subcommands}}
+
+{{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
 {{end}}
 `
-const shortHelpFormat = `USAGE:
-
+const shortHelpFormat = `USAGE
 {{.Indent}}{{template "usage" .}}
 {{if .Synopsis}}
 {{.Synopsis}}
 {{end}}{{if .Description}}
 {{.Description}}
-{{end}}
-{{if .MoreHelp}}Use '{{.Path}} --help' for more information about this command.
+{{end}}{{if .Subcommands}}
+SUBCOMMANDS
+{{.Subcommands}}
+{{end}}{{if .MoreHelp}}
+Use '{{.Path}} --help' for more information about this command.
 {{end}}
 `
 
@@ -119,7 +119,7 @@ func init() {
 	shortHelpTemplate = template.Must(usageTemplate.New("shortHelp").Parse(shortHelpFormat))
 }
 
-// LongHelp returns a formatted CLI helptext string, generated for the given command
+// LongHelp writes a formatted CLI helptext string to a Writer for the given command
 func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
 	cmd, err := root.Get(path)
 	if err != nil {
@@ -169,7 +169,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 	return longHelpTemplate.Execute(out, fields)
 }
 
-// ShortHelp returns a formatted CLI helptext string, generated for the given command
+// ShortHelp writes a formatted CLI helptext string to a Writer for the given command
 func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
 	cmd, err := root.Get(path)
 	if err != nil {
@@ -193,8 +193,14 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 		Tagline:     cmd.Helptext.Tagline,
 		Synopsis:    cmd.Helptext.Synopsis,
 		Description: cmd.Helptext.ShortDescription,
+		Subcommands: cmd.Helptext.Subcommands,
 		Usage:       cmd.Helptext.Usage,
 		MoreHelp:    (cmd != root),
+	}
+
+	// autogen fields that are empty
+	if len(fields.Subcommands) == 0 {
+		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
 	}
 
 	// trim the extra newlines (see TrimNewlines doc)

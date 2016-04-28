@@ -30,11 +30,9 @@ const (
 
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add a file to ipfs.",
+		Tagline: "Add a file or directory to ipfs.",
 		ShortDescription: `
-Adds contents of <path> to ipfs. Use -r to add directories.
-Note that directories are added recursively, to form the ipfs
-MerkleDAG.
+Adds contents of <path> to ipfs. Use -r to add directories (recursively).
 `,
 		LongDescription: `
 Adds contents of <path> to ipfs. Use -r to add directories.

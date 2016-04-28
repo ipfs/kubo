@@ -10,9 +10,6 @@ var UnixFSCmd = &cmds.Command{
 by IPFS objects, which hides IPFS implementation details like layout
 objects (e.g. fanout and chunking).
 `,
-		Synopsis: `
-ipfs file ls <path>...  - List directory contents for <path>...
-`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
