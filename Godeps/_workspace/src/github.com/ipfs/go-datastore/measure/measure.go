@@ -179,10 +179,9 @@ func (m *measure) Batch() (datastore.Batch, error) {
 func (mt *measuredBatch) Put(key datastore.Key, val interface{}) error {
 	mt.puts++
 	valb, ok := val.([]byte)
-	if !ok {
-		return datastore.ErrInvalidType
+	if ok {
+		_ = mt.m.putSize.RecordValue(int64(len(valb)))
 	}
-	_ = mt.m.putSize.RecordValue(int64(len(valb)))
 	return mt.putts.Put(key, val)
 }
 

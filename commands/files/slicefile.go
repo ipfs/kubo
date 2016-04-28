@@ -11,12 +11,13 @@ import (
 type SliceFile struct {
 	filename string
 	path     string
+	abspath  string
 	files    []File
 	n        int
 }
 
-func NewSliceFile(filename, path string, files []File) *SliceFile {
-	return &SliceFile{filename, path, files, 0}
+func NewSliceFile(filename, path, abspath string, files []File) *SliceFile {
+	return &SliceFile{filename, path, abspath, files, 0}
 }
 
 func (f *SliceFile) IsDirectory() bool {
@@ -40,6 +41,10 @@ func (f *SliceFile) FullPath() string {
 	return f.path
 }
 
+func (f *SliceFile) AbsPath() string {
+	return f.abspath
+}
+
 func (f *SliceFile) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }
@@ -50,6 +55,10 @@ func (f *SliceFile) Close() error {
 
 func (f *SliceFile) Peek(n int) File {
 	return f.files[n]
+}
+
+func (f *SliceFile) Offset() int64 {
+	return -1
 }
 
 func (f *SliceFile) Length() int {

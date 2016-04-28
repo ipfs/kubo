@@ -34,28 +34,36 @@ func (w *writecache) Has(k key.Key) (bool, error) {
 	return w.blockstore.Has(k)
 }
 
-func (w *writecache) Get(k key.Key) (*blocks.Block, error) {
+func (w *writecache) Get(k key.Key) (blocks.Block, error) {
 	return w.blockstore.Get(k)
 }
 
-func (w *writecache) Put(b *blocks.Block) error {
-	k := b.Key()
-	if _, ok := w.cache.Get(k); ok {
-		return nil
-	}
-	defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
+func (w *writecache) Put(b blocks.Block) error {
+	// Don't cache "advance" blocks
+	if _, ok := b.(*blocks.BasicBlock); ok {
+		k := b.Key()
+		if _, ok := w.cache.Get(k); ok {
+			return nil
+		}
+		defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
 
-	w.cache.Add(b.Key(), struct{}{})
+		w.cache.Add(b.Key(), struct{}{})
+	}
 	return w.blockstore.Put(b)
 }
 
-func (w *writecache) PutMany(bs []*blocks.Block) error {
-	var good []*blocks.Block
+func (w *writecache) PutMany(bs []blocks.Block) error {
+	var good []blocks.Block
 	for _, b := range bs {
-		if _, ok := w.cache.Get(b.Key()); !ok {
+		// Don't cache "advance" blocks
+		if _, ok := b.(*blocks.BasicBlock); ok {
+			if _, ok := w.cache.Get(b.Key()); !ok {
+				good = append(good, b)
+				k := b.Key()
+				defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
+			}
+		} else {
 			good = append(good, b)
-			k := b.Key()
-			defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
 		}
 	}
 	return w.blockstore.PutMany(good)

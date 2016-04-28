@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/filestore"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
@@ -26,6 +27,8 @@ const (
 	onlyHashOptionName = "only-hash"
 	chunkerOptionName  = "chunker"
 	pinOptionName      = "pin"
+	nocopyOptionName   = "no-copy"
+	linkOptionName     = "link"
 )
 
 var AddCmd = &cmds.Command{
@@ -72,6 +75,8 @@ You can now refer to the added file in a gateway, like so:
 		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.  Default: true."),
+		cmds.BoolOption(nocopyOptionName, "Experts Only"),
+		cmds.BoolOption(linkOptionName, "Experts Only"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
@@ -132,6 +137,8 @@ You can now refer to the added file in a gateway, like so:
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, pin_found, _ := req.Option(pinOptionName).Bool()
+		nocopy, _, _ := req.Option(nocopyOptionName).Bool()
+		link, _, _ := req.Option(linkOptionName).Bool()
 
 		if !pin_found { // default
 			dopin = true
@@ -165,6 +172,13 @@ You can now refer to the added file in a gateway, like so:
 		fileAdder.Wrap = wrap
 		fileAdder.Pin = dopin
 		fileAdder.Silent = silent
+
+		if nocopy {
+			fileAdder.AddOpts = filestore.AddNoCopy
+		}
+		if link {
+			fileAdder.AddOpts = filestore.AddLink
+		}
 
 		addAllAndPin := func(f files.File) error {
 			// Iterate over each top-level file and add individually. Otherwise the

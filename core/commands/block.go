@@ -66,7 +66,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 
 		res.SetOutput(&BlockStat{
 			Key:  b.Key().B58String(),
-			Size: len(b.Data),
+			Size: len(b.Data()),
 		})
 	},
 	Type: BlockStat{},
@@ -97,7 +97,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 			return
 		}
 
-		res.SetOutput(bytes.NewReader(b.Data))
+		res.SetOutput(bytes.NewReader(b.Data()))
 	},
 }
 
@@ -161,7 +161,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 	Type: BlockStat{},
 }
 
-func getBlockForKey(req cmds.Request, skey string) (*blocks.Block, error) {
+func getBlockForKey(req cmds.Request, skey string) (blocks.Block, error) {
 	n, err := req.InvocContext().GetNode()
 	if err != nil {
 		return nil, err

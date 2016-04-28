@@ -69,7 +69,7 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 
 		if h.Size > 0 {
 			spl := chunk.NewRabin(tr, uint64(chunk.DefaultBlockSize))
-			nd, err := importer.BuildDagFromReader(ds, spl)
+			nd, err := importer.BuildDagFromReader(ds, spl, nil)
 			if err != nil {
 				return nil, err
 			}

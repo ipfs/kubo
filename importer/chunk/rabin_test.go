@@ -19,7 +19,7 @@ func TestRabinChunking(t *testing.T) {
 	var chunks [][]byte
 
 	for {
-		chunk, err := r.NextBytes()
+		chunk, _, err := r.NextBytes()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -39,13 +39,13 @@ func TestRabinChunking(t *testing.T) {
 	}
 }
 
-func chunkData(t *testing.T, data []byte) map[key.Key]*blocks.Block {
+func chunkData(t *testing.T, data []byte) map[key.Key]blocks.Block {
 	r := NewRabin(bytes.NewReader(data), 1024*256)
 
-	blkmap := make(map[key.Key]*blocks.Block)
+	blkmap := make(map[key.Key]blocks.Block)
 
 	for {
-		blk, err := r.NextBytes()
+		blk, _, err := r.NextBytes()
 		if err != nil {
 			if err == io.EOF {
 				break

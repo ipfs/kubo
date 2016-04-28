@@ -1,0 +1,13 @@
+package datastore.pb;
+
+message DataObj {
+        optional string FilePath = 1;
+        optional uint64 Offset = 2;
+        optional uint64 Size = 3;
+        optional bytes Data = 4;
+
+        optional bool NoBlockData = 5;
+        optional bool WholeFile = 6;
+        optional bool FileRoot = 7;
+}
+

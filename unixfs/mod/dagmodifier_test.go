@@ -43,7 +43,7 @@ func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlocks
 
 func getNode(t testing.TB, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
-	node, err := imp.BuildTrickleDagFromReader(dserv, sizeSplitterGen(500)(in))
+	node, err := imp.BuildTrickleDagFromReader(dserv, sizeSplitterGen(500)(in), 0)
 	if err != nil {
 		t.Fatal(err)
 	}

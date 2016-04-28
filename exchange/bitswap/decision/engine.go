@@ -58,7 +58,7 @@ type Envelope struct {
 	Peer peer.ID
 
 	// Block is the payload
-	Block *blocks.Block
+	Block blocks.Block
 
 	// A callback to notify the decision queue that the task is complete
 	Sent func()
@@ -226,8 +226,8 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	}
 
 	for _, block := range m.Blocks() {
-		log.Debugf("got block %s %d bytes", block.Key(), len(block.Data))
-		l.ReceivedBytes(len(block.Data))
+		log.Debugf("got block %s %d bytes", block.Key(), len(block.Data()))
+		l.ReceivedBytes(len(block.Data()))
 		for _, l := range e.ledgerMap {
 			if entry, ok := l.WantListContains(block.Key()); ok {
 				e.peerRequestQueue.Push(entry, l.Partner)
@@ -250,7 +250,7 @@ func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 	l := e.findOrCreate(p)
 	for _, block := range m.Blocks() {
-		l.SentBytes(len(block.Data))
+		l.SentBytes(len(block.Data()))
 		l.wantList.Remove(block.Key())
 		e.peerRequestQueue.Remove(block.Key(), p)
 	}

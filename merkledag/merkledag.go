@@ -18,6 +18,7 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
 	Add(*Node) (key.Key, error)
+	AddWOpts(*Node, interface{}) (key.Key, error)
 	Get(context.Context, key.Key) (*Node, error)
 	Remove(*Node) error
 
@@ -25,7 +26,7 @@ type DAGService interface {
 	// nodes of the passed in node.
 	GetMany(context.Context, []key.Key) <-chan *NodeOption
 
-	Batch() *Batch
+	Batch(addOpts interface{}) *Batch
 }
 
 func NewDAGService(bs *bserv.BlockService) DAGService {
@@ -43,6 +44,12 @@ type dagService struct {
 
 // Add adds a node to the dagService, storing the block in the BlockService
 func (n *dagService) Add(nd *Node) (key.Key, error) {
+	return n.AddWOpts(nd, nil)
+}
+
+// Add a node that has data possible stored locally to the dagService,
+// storing the block in the BlockService
+func (n *dagService) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
 	if n == nil { // FIXME remove this assertion. protect with constructor invariant
 		return "", fmt.Errorf("dagService is nil")
 	}
@@ -52,18 +59,34 @@ func (n *dagService) Add(nd *Node) (key.Key, error) {
 		return "", err
 	}
 
-	b := new(blocks.Block)
-	b.Data = d
-	b.Multihash, err = nd.Multihash()
+	mh, err := nd.Multihash()
 	if err != nil {
 		return "", err
+	}
+
+	b0, err := blocks.NewBlockWithHash(d, mh)
+	if err != nil {
+		return "", err
+	}
+
+	var dataPtr *blocks.DataPtr
+	if addOpts != nil {
+		dataPtr, err = nd.EncodeDataPtr()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	var b blocks.Block = b0
+	if dataPtr != nil {
+		b = &blocks.FilestoreBlock{*b0, dataPtr, addOpts}
 	}
 
 	return n.Blocks.AddBlock(b)
 }
 
-func (n *dagService) Batch() *Batch {
-	return &Batch{ds: n, MaxSize: 8 * 1024 * 1024}
+func (n *dagService) Batch(addOpts interface{}) *Batch {
+	return &Batch{ds: n, addOpts: addOpts, MaxSize: 8 * 1024 * 1024}
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
@@ -82,7 +105,7 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 		return nil, fmt.Errorf("Failed to get block for %s: %v", k.B58String(), err)
 	}
 
-	res, err := DecodeProtobuf(b.Data)
+	res, err := DecodeProtobuf(b.Data())
 	if err != nil {
 		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 	}
@@ -135,7 +158,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeO
 					}
 					return
 				}
-				nd, err := DecodeProtobuf(b.Data)
+				nd, err := DecodeProtobuf(b.Data())
 				if err != nil {
 					out <- &NodeOption{Err: err}
 					return
@@ -314,9 +337,10 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 }
 
 type Batch struct {
-	ds *dagService
+	ds      *dagService
+	addOpts interface{}
 
-	blocks  []*blocks.Block
+	blocks  []blocks.Block
 	size    int
 	MaxSize int
 }
@@ -327,17 +351,33 @@ func (t *Batch) Add(nd *Node) (key.Key, error) {
 		return "", err
 	}
 
-	b := new(blocks.Block)
-	b.Data = d
-	b.Multihash, err = nd.Multihash()
+	mh, err := nd.Multihash()
 	if err != nil {
 		return "", err
 	}
 
-	k := key.Key(b.Multihash)
+	b0, _ := blocks.NewBlockWithHash(d, mh)
+	if err != nil {
+		return "", err
+	}
+
+	var dataPtr *blocks.DataPtr
+	if t.addOpts != nil {
+		dataPtr, err = nd.EncodeDataPtr()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	var b blocks.Block = b0
+	if dataPtr != nil {
+		b = &blocks.FilestoreBlock{*b0, dataPtr, t.addOpts}
+	}
+
+	k := key.Key(mh)
 
 	t.blocks = append(t.blocks, b)
-	t.size += len(b.Data)
+	t.size += len(b.Data())
 	if t.size > t.MaxSize {
 		return k, t.Commit()
 	}

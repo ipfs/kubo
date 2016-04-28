@@ -61,7 +61,7 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	req.SetArguments(stringArgs)
 
 	if len(fileArgs) > 0 {
-		file := files.NewSliceFile("", "", fileArgs)
+		file := files.NewSliceFile("", "", "", fileArgs)
 		req.SetFiles(file)
 	}
 
@@ -335,7 +335,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 					stdin = nil
 				} else {
 					// if we have a stdin, create a file from it
-					fileArgs[""] = files.NewReaderFile("", "", stdin, nil)
+					fileArgs[""] = files.NewReaderFile("", "", "", stdin, nil)
 				}
 			}
 		}

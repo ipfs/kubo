@@ -12,8 +12,11 @@ type DagBuilderHelper struct {
 	spl      chunk.Splitter
 	recvdErr error
 	nextData []byte // the next item to return.
+	offset   int64  // offset of next data
 	maxlinks int
 	batch    *dag.Batch
+	absPath  string
+	addOpts  interface{}
 }
 
 type DagBuilderParams struct {
@@ -22,6 +25,8 @@ type DagBuilderParams struct {
 
 	// DAGService to write blocks to (required)
 	Dagserv dag.DAGService
+
+	AddOpts interface{}
 }
 
 // Generate a new DagBuilderHelper from the given params, which data source comes
@@ -31,7 +36,9 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		dserv:    dbp.Dagserv,
 		spl:      spl,
 		maxlinks: dbp.Maxlinks,
-		batch:    dbp.Dagserv.Batch(),
+		batch:    dbp.Dagserv.Batch(dbp.AddOpts),
+		absPath:  spl.AbsPath(),
+		addOpts:  dbp.AddOpts,
 	}
 }
 
@@ -45,7 +52,7 @@ func (db *DagBuilderHelper) prepareNext() {
 	}
 
 	// TODO: handle err (which wasn't handled either when the splitter was channeled)
-	db.nextData, _ = db.spl.NextBytes()
+	db.nextData, db.offset, _ = db.spl.NextBytes()
 }
 
 // Done returns whether or not we're done consuming the incoming data.
@@ -59,11 +66,11 @@ func (db *DagBuilderHelper) Done() bool {
 // Next returns the next chunk of data to be inserted into the dag
 // if it returns nil, that signifies that the stream is at an end, and
 // that the current building operation should finish
-func (db *DagBuilderHelper) Next() []byte {
+func (db *DagBuilderHelper) Next() ([]byte, int64) {
 	db.prepareNext() // idempotent
 	d := db.nextData
 	db.nextData = nil // signal we've consumed it
-	return d
+	return d, db.offset
 }
 
 // GetDagServ returns the dagservice object this Helper is using
@@ -93,7 +100,7 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 }
 
 func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
-	data := db.Next()
+	data, offset := db.Next()
 	if data == nil { // we're done!
 		return nil
 	}
@@ -103,7 +110,18 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 	}
 
 	node.SetData(data)
+	if db.absPath != "" {
+		node.SetDataPtr(db.absPath, offset)
+	}
+
 	return nil
+}
+
+func (db *DagBuilderHelper) SetAsRoot(node *UnixfsNode) {
+	if db.absPath != "" {
+		node.SetDataPtr(db.absPath, 0)
+		node.SetAsRoot()
+	}
 }
 
 func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
@@ -112,7 +130,7 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
 		return nil, err
 	}
 
-	_, err = db.dserv.Add(dn)
+	_, err = db.dserv.AddWOpts(dn, db.addOpts)
 	if err != nil {
 		return nil, err
 	}

@@ -103,10 +103,11 @@ type Adder struct {
 	mr       *mfs.Root
 	unlocker bs.Unlocker
 	tempRoot key.Key
+	AddOpts  interface{}
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
+func (adder Adder) add(reader files.AdvReader) (*dag.Node, error) {
 	chnk, err := chunk.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
@@ -116,11 +117,13 @@ func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
 		return importer.BuildTrickleDagFromReader(
 			adder.node.DAG,
 			chnk,
+			adder.AddOpts,
 		)
 	}
 	return importer.BuildDagFromReader(
 		adder.node.DAG,
 		chnk,
+		adder.AddOpts,
 	)
 }
 
@@ -250,7 +253,9 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 		return "", err
 	}
 
-	node, err := fileAdder.add(r)
+	ar := files.AdvReaderAdapter(r)
+
+	node, err := fileAdder.add(ar)
 	if err != nil {
 		return "", err
 	}
@@ -305,7 +310,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 // Returns the path of the added file ("<dir hash>/filename"), the DAG node of
 // the directory, and and error if any.
 func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.Node, error) {
-	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
+	file := files.NewReaderFile(filename, filename, filename, ioutil.NopCloser(r), nil)
 	fileAdder, err := NewAdder(n.Context(), n, nil)
 	if err != nil {
 		return "", nil, err
@@ -399,7 +404,7 @@ func (adder *Adder) addFile(file files.File) error {
 	// case for regular file
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
-	var reader io.Reader = file
+	var reader files.AdvReader = file
 	if adder.Progress {
 		reader = &progressReader{file: file, out: adder.out}
 	}
@@ -531,4 +536,12 @@ func (i *progressReader) Read(p []byte) (int, error) {
 	}
 
 	return n, err
+}
+
+func (i *progressReader) Offset() int64 {
+	return i.file.Offset()
+}
+
+func (i *progressReader) AbsPath() string {
+	return i.file.AbsPath()
 }

@@ -21,6 +21,15 @@ type Node struct {
 	encoded []byte
 
 	cached mh.Multihash
+
+	DataPtr *DataPtr
+}
+
+type DataPtr struct {
+	AltData  []byte
+	FilePath string
+	Offset   uint64
+	Size     uint64
 }
 
 // NodeStat is a statistics object for a Node. Mostly sizes.
