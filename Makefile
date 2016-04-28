@@ -5,6 +5,11 @@ else
   go_test=go test
 endif
 
+define go_clean_and_get
+	-@go clean $(1) 2> /dev/null || true
+	go get -u $(1)
+endef
+
 COMMIT := $(shell git rev-parse --short HEAD)
 ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
 MAKEFLAGS += --no-print-directory
@@ -23,10 +28,10 @@ go_check:
 	@bin/check_go_version "1.5.2"
 
 gx_upgrade:
-	go get -u github.com/whyrusleeping/gx
+	$(call go_clean_and_get,github.com/whyrusleeping/gx)
 
 gxgo_upgrade:
-	go get -u github.com/whyrusleeping/gx-go
+	$(call go_clean_and_get,github.com/whyrusleeping/gx-go)
 
 path_check:
 	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(GOPATH)/src/github.com/ipfs/go-ipfs)

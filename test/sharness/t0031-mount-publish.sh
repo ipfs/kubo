@@ -46,7 +46,7 @@ test_expect_success "cannot publish after mounting /ipns" '
 '
 
 test_expect_success "unmount /ipns out-of-band" '
-  fusermount -u "'"$IPNS_MOUNT_DIR"'"
+  do_umount "'"$IPNS_MOUNT_DIR"'"
 '
 
 test_expect_success "can publish after unmounting /ipns" '
@@ -55,7 +55,7 @@ test_expect_success "can publish after unmounting /ipns" '
 
 # clean-up ipfs
 test_expect_success "unmount /ipfs" '
-  fusermount -u "'"$IPFS_MOUNT_DIR"'"
+  do_umount "'"$IPFS_MOUNT_DIR"'"
 '
 iptb stop
 
