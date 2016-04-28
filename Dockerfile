@@ -26,6 +26,8 @@ EXPOSE 8080
 ENV GX_IPFS   ""
 # The IPFS fs-repo within the container
 ENV IPFS_PATH /data/ipfs
+# The default logging level
+ENV IPFS_LOGGING ""
 # Golang stuff
 ENV GO_VERSION 1.5.4-r0
 ENV GOPATH     /go
