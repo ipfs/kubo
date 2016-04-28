@@ -267,7 +267,7 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 func (bs *Bitswap) tryPutBlock(blk blocks.Block, attempts int) error {
 	var err error
 	for i := 0; i < attempts; i++ {
-		if err = bs.blockstore.Put(blk, nil); err == nil {
+		if err = bs.blockstore.Put(blk); err == nil {
 			break
 		}
 

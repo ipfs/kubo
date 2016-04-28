@@ -64,19 +64,25 @@ func (n *dagService) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
 		return "", err
 	}
 
-	dataPtr, err := nd.EncodeDataPtr()
+	b0, err := blocks.NewBlockWithHash(d, mh)
 	if err != nil {
 		return "", err
 	}
 
-	b, err := blocks.NewBlockWithHash(d, mh)
-	if err != nil {
-		return "", err
+	var dataPtr *blocks.DataPtr
+	if addOpts != nil {
+		dataPtr, err = nd.EncodeDataPtr()
+		if err != nil {
+			return "", err
+		}
 	}
 
-	b.DataPtr = dataPtr
+	var b blocks.Block = b0
+	if dataPtr != nil {
+		b = &blocks.FilestoreBlock{*b0, dataPtr, addOpts}
+	}
 
-	return n.Blocks.AddBlock(b, addOpts)
+	return n.Blocks.AddBlock(b)
 }
 
 func (n *dagService) Batch(addOpts interface{}) *Batch {
@@ -350,17 +356,23 @@ func (t *Batch) Add(nd *Node) (key.Key, error) {
 		return "", err
 	}
 
-	dataPtr, err := nd.EncodeDataPtr()
+	b0, _ := blocks.NewBlockWithHash(d, mh)
 	if err != nil {
 		return "", err
 	}
 
-	b, _ := blocks.NewBlockWithHash(d, mh)
-	if err != nil {
-		return "", err
+	var dataPtr *blocks.DataPtr
+	if t.addOpts != nil {
+		dataPtr, err = nd.EncodeDataPtr()
+		if err != nil {
+			return "", err
+		}
 	}
 
-	b.DataPtr = dataPtr
+	var b blocks.Block = b0
+	if dataPtr != nil {
+		b = &blocks.FilestoreBlock{*b0, dataPtr, t.addOpts}
+	}
 
 	k := key.Key(mh)
 
@@ -373,7 +385,7 @@ func (t *Batch) Add(nd *Node) (key.Key, error) {
 }
 
 func (t *Batch) Commit() error {
-	_, err := t.ds.Blocks.AddBlocks(t.blocks, t.addOpts)
+	_, err := t.ds.Blocks.AddBlocks(t.blocks)
 	t.blocks = nil
 	t.size = 0
 	return err

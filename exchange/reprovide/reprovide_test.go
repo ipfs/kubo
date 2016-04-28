@@ -29,7 +29,7 @@ func TestReprovide(t *testing.T) {
 	bstore := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
 
 	blk := blocks.NewBlock([]byte("this is a test"))
-	bstore.Put(blk, nil)
+	bstore.Put(blk)
 
 	reprov := NewReprovider(clA, bstore)
 	err := reprov.Reprovide(ctx)

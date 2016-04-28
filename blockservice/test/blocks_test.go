@@ -32,7 +32,7 @@ func TestBlocks(t *testing.T) {
 		t.Error("Block key and data multihash key not equal")
 	}
 
-	k, err := bs.AddBlock(b, nil)
+	k, err := bs.AddBlock(b)
 	if err != nil {
 		t.Error("failed to add block to BlockService", err)
 		return
@@ -70,7 +70,7 @@ func TestGetBlocksSequential(t *testing.T) {
 	var keys []key.Key
 	for _, blk := range blks {
 		keys = append(keys, blk.Key())
-		servs[0].AddBlock(blk, nil)
+		servs[0].AddBlock(blk)
 	}
 
 	t.Log("one instance at a time, get blocks concurrently")

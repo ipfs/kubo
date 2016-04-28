@@ -29,7 +29,7 @@ func (e *offlineExchange) GetBlock(_ context.Context, k key.Key) (blocks.Block, 
 
 // HasBlock always returns nil.
 func (e *offlineExchange) HasBlock(b blocks.Block) error {
-	return e.bs.Put(b, nil)
+	return e.bs.Put(b)
 }
 
 // Close always returns nil.

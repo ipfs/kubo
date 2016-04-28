@@ -26,7 +26,7 @@ func TestRemoveCacheEntryOnDelete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cachedbs.Put(b, nil)
+	cachedbs.Put(b)
 
 	writeHitTheDatastore := false
 	cd.SetFunc(func() {
@@ -34,7 +34,7 @@ func TestRemoveCacheEntryOnDelete(t *testing.T) {
 	})
 
 	cachedbs.DeleteBlock(b.Key())
-	cachedbs.Put(b, nil)
+	cachedbs.Put(b)
 	if !writeHitTheDatastore {
 		t.Fail()
 	}
@@ -50,11 +50,11 @@ func TestElideDuplicateWrite(t *testing.T) {
 
 	b1 := blocks.NewBlock([]byte("foo"))
 
-	cachedbs.Put(b1, nil)
+	cachedbs.Put(b1)
 	cd.SetFunc(func() {
 		t.Fatal("write hit the datastore")
 	})
-	cachedbs.Put(b1, nil)
+	cachedbs.Put(b1)
 }
 
 type callbackDatastore struct {

@@ -32,8 +32,8 @@ type Blockstore interface {
 	DeleteBlock(key.Key) error
 	Has(key.Key) (bool, error)
 	Get(key.Key) (blocks.Block, error)
-	Put(block blocks.Block, addOpts interface{}) error
-	PutMany(blocks []blocks.Block, addOpts interface{}) error
+	Put(block blocks.Block) error
+	PutMany(blocks []blocks.Block) error
 
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
@@ -90,24 +90,24 @@ func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
 	return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
 }
 
-func (bs *blockstore) Put(block blocks.Block, addOpts interface{}) error {
+func (bs *blockstore) Put(block blocks.Block) error {
 	k := block.Key().DsKey()
 
-	data := bs.prepareBlock(k, block, addOpts)
+	data := bs.prepareBlock(k, block)
 	if data == nil {
 		return nil
 	}
 	return bs.datastore.Put(k, data)
 }
 
-func (bs *blockstore) PutMany(blocks []blocks.Block, addOpts interface{}) error {
+func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	t, err := bs.datastore.Batch()
 	if err != nil {
 		return err
 	}
 	for _, b := range blocks {
 		k := b.Key().DsKey()
-		data := bs.prepareBlock(k, b, addOpts)
+		data := bs.prepareBlock(k, b)
 		if data == nil {
 			continue
 		}
@@ -119,9 +119,8 @@ func (bs *blockstore) PutMany(blocks []blocks.Block, addOpts interface{}) error 
 	return t.Commit()
 }
 
-func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block, addOpts interface{}) interface{} {
-	DataPtr := block.(*blocks.RawBlock).DataPtr // FIXME NOW
-	if DataPtr == nil || addOpts == nil {
+func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block) interface{} {
+	if fsBlock, ok := block.(*blocks.FilestoreBlock); !ok {
 		// Has is cheaper than Put, so see if we already have it
 		exists, err := bs.datastore.Has(k)
 		if err == nil && exists {
@@ -130,19 +129,19 @@ func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block, addOpts interfa
 		return block.Data()
 	} else {
 		d := &filestore.DataObj{
-			FilePath: DataPtr.FilePath,
-			Offset:   DataPtr.Offset,
-			Size:     DataPtr.Size,
+			FilePath: fsBlock.FilePath,
+			Offset:   fsBlock.Offset,
+			Size:     fsBlock.Size,
 		}
-		if DataPtr.AltData == nil {
+		if fsBlock.AltData == nil {
 			d.WholeFile = true
 			d.FileRoot = true
 			d.Data = block.Data()
 		} else {
 			d.NoBlockData = true
-			d.Data = DataPtr.AltData
+			d.Data = fsBlock.AltData
 		}
-		return &filestore.DataWOpts{d, addOpts}
+		return &filestore.DataWOpts{d, fsBlock.AddOpts}
 	}
 
 }

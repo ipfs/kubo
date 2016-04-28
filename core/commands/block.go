@@ -141,7 +141,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		b := blocks.NewBlock(data)
 		log.Debugf("BlockPut key: '%q'", b.Key())
 
-		k, err := n.Blocks.AddBlock(b, nil)
+		k, err := n.Blocks.AddBlock(b)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
