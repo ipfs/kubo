@@ -19,24 +19,21 @@ download() {
 
 	test "$#" -eq "2" || die "download requires exactly two arguments, was given $@"
 
-	if ! check_writeable "$output"; then
-		die "download error: cannot write to $output"
+	if ! check_writeable "$dl_output"; then
+		die "download error: cannot write to $dl_output"
 	fi
 
 	if have_binary wget; then
-		printf '==> Using wget to download "%s" to "%s"\n' "$url" "$output"
-		wget "$url" -O "$output"
+		printf '==> Using wget to download "%s" to "%s"\n' "$dl_url" "$dl_output"
+		wget "$dl_url" -O "$dl_output" || return
 	elif have_binary curl; then
-		printf '==> Using curl to download "%s" to "%s"\n' "$url" "$output"
-		curl --silent "$url" > "$output"
+		printf '==> Using curl to download "%s" to "%s"\n' "$dl_url" "$dl_output"
+		curl --silent "$dl_url" > "$dl_output" || return
 	elif have_binary fetch; then
-		printf '==> Using fetch to download "%s" to "%s"\n' "$url" "$output"
-		fetch "$url" -o "$output"
+		printf '==> Using fetch to download "%s" to "%s"\n' "$dl_url" "$dl_output"
+		fetch "$dl_url" -o "$dl_output" || return
 	else
-		die "no binary found to download $url. exiting."
-	fi
-	if [ "$?" -ne 0 ]; then
-		return $?
+		die "no binary found to download $dl_url. exiting."
 	fi
 	echo "==> download complete!"
 }
@@ -88,13 +85,12 @@ get_go_vars() {
 }
 
 mkurl() {
-	local name="$1"
-	local vers="$2"
-	local archive="$3"
+	m_name="$1"
+	m_vers="$2"
+	m_archive="$3"
+	m_govars=$(get_go_vars) || die "could not get go env vars"
 
-	local govars=$(get_go_vars)
-
-	echo "http://dist.ipfs.io/$name/$vers/${name}_${vers}_$govars.$archive"
+	echo "http://dist.ipfs.io/$m_name/$m_vers/${m_name}_${m_vers}_$m_govars.$m_archive"
 }
 
 distname="$1"
@@ -105,13 +101,18 @@ if [ -z "$distname" ] || [ -z "$outpath" ] || [ -z "$version" ]; then
 	die "usage: dist_get <distname> <outpath> <version>"
 fi
 
-if [ ${version:0:1} != "v" ]; then
-	echo "invalid version '$version'" >&2
-	die "versions must begin with 'v', for example: v0.4.0"
-fi
+case $version in
+	v*)
+		# correct input
+		;;
+	*)
+		echo "invalid version '$version'" >&2
+		die "versions must begin with 'v', for example: v0.4.0"
+		;;
+esac
 
 # TODO: don't depend on the go tool being installed to detect this
-goenv=$(get_go_vars)
+goenv=$(get_go_vars) || die "could not get go env vars"
 
 case $goenv in
 	linux-*)
