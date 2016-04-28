@@ -83,7 +83,7 @@ type Engine struct {
 
 	bs bstore.Blockstore
 
-	lock sync.RWMutex // protects the fields immediatly below
+	lock sync.Mutex // protects the fields immediatly below
 	// ledgerMap lists Ledgers by their Partner key.
 	ledgerMap map[peer.ID]*ledger
 }
@@ -178,8 +178,8 @@ func (e *Engine) Outbox() <-chan (<-chan *Envelope) {
 
 // Returns a slice of Peers with whom the local node has active sessions
 func (e *Engine) Peers() []peer.ID {
-	e.lock.RLock()
-	defer e.lock.RUnlock()
+	e.lock.Lock()
+	defer e.lock.Unlock()
 
 	response := make([]peer.ID, 0)
 	for _, ledger := range e.ledgerMap {
@@ -217,7 +217,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 			e.peerRequestQueue.Remove(entry.Key, p)
 		} else {
 			log.Debugf("wants %s - %d", entry.Key, entry.Priority)
-			l.Wants(entry.Ctx, entry.Key, entry.Priority)
+			l.Wants(entry.Key, entry.Priority)
 			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
 				e.peerRequestQueue.Push(entry.Entry, p)
 				newWorkExists = true
@@ -228,14 +228,30 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	for _, block := range m.Blocks() {
 		log.Debugf("got block %s %d bytes", block.Key(), len(block.Data))
 		l.ReceivedBytes(len(block.Data))
-		for _, l := range e.ledgerMap {
-			if entry, ok := l.WantListContains(block.Key()); ok {
-				e.peerRequestQueue.Push(entry, l.Partner)
-				newWorkExists = true
-			}
-		}
 	}
 	return nil
+}
+
+func (e *Engine) addBlock(block *blocks.Block) {
+	work := false
+
+	for _, l := range e.ledgerMap {
+		if entry, ok := l.WantListContains(block.Key()); ok {
+			e.peerRequestQueue.Push(entry, l.Partner)
+			work = true
+		}
+	}
+
+	if work {
+		e.signalNewWork()
+	}
+}
+
+func (e *Engine) AddBlock(block *blocks.Block) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	e.addBlock(block)
 }
 
 // TODO add contents of m.WantList() to my local wantlist? NB: could introduce

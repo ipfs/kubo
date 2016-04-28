@@ -22,11 +22,12 @@ type Wantlist struct {
 }
 
 type Entry struct {
-	// TODO consider making entries immutable so they can be shared safely and
-	// slices can be copied efficiently.
 	Key      key.Key
 	Priority int
-	Ctx      context.Context
+
+	Ctx    context.Context
+	cancel func()
+	RefCnt int
 }
 
 type entrySlice []Entry
@@ -47,10 +48,10 @@ func New() *Wantlist {
 	}
 }
 
-func (w *ThreadSafe) Add(ctx context.Context, k key.Key, priority int) {
+func (w *ThreadSafe) Add(k key.Key, priority int) {
 	w.lk.Lock()
 	defer w.lk.Unlock()
-	w.Wantlist.Add(ctx, k, priority)
+	w.Wantlist.Add(k, priority)
 }
 
 func (w *ThreadSafe) AddEntry(e Entry) {
@@ -93,14 +94,19 @@ func (w *Wantlist) Len() int {
 	return len(w.set)
 }
 
-func (w *Wantlist) Add(ctx context.Context, k key.Key, priority int) {
-	if _, ok := w.set[k]; ok {
+func (w *Wantlist) Add(k key.Key, priority int) {
+	if e, ok := w.set[k]; ok {
+		e.RefCnt++
 		return
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
 	w.set[k] = Entry{
 		Key:      k,
 		Priority: priority,
 		Ctx:      ctx,
+		cancel:   cancel,
+		RefCnt:   1,
 	}
 }
 
@@ -112,7 +118,18 @@ func (w *Wantlist) AddEntry(e Entry) {
 }
 
 func (w *Wantlist) Remove(k key.Key) {
-	delete(w.set, k)
+	e, ok := w.set[k]
+	if !ok {
+		return
+	}
+
+	e.RefCnt--
+	if e.RefCnt <= 0 {
+		delete(w.set, k)
+		if e.cancel != nil {
+			e.cancel()
+		}
+	}
 }
 
 func (w *Wantlist) Contains(k key.Key) (Entry, bool) {

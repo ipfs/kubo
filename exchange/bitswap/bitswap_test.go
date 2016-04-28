@@ -335,6 +335,8 @@ func TestDoubleGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// ensure both requests make it into the wantlist at the same time
+	time.Sleep(time.Millisecond * 100)
 	cancel1()
 
 	_, ok := <-blkch1

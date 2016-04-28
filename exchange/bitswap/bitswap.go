@@ -264,6 +264,8 @@ func (bs *Bitswap) HasBlock(blk *blocks.Block) error {
 
 	bs.notifications.Publish(blk)
 
+	bs.engine.AddBlock(blk)
+
 	select {
 	case bs.newBlocks <- blk:
 		// send block off to be reprovided
