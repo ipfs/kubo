@@ -159,7 +159,7 @@ RepoSize        int Size in bytes that the repo is currently taking.
 
 var RepoFsckCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes repo lockfiles",
+		Tagline: "Removes repo lockfiles.",
 		ShortDescription: `
 'ipfs repo fsck' is a plumbing command that will remove repo and level db
 lockfiles, as well as the api file. This command can only run when no ipfs
