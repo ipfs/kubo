@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -13,6 +14,14 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+)
+
+var (
+	tDirect    = "direct"
+	tIndirect  = "indirect"
+	tRecursive = "recursive"
+	tAll       = "all"
+	tLists     = []string{tDirect, tIndirect, tRecursive, tAll}
 )
 
 var PinCmd = &cmds.Command{
@@ -187,9 +196,9 @@ Example:
 		cmds.StringArg("ipfs-path", false, true, "Path to object(s) to be listed."),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").Default("all"),
+		cmds.StringOption("type", "t", "The type of pinned keys to list. One of: "+strings.Join(tLists, ", ")).Default("all"),
 		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins."),
-		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
+		cmds.BoolOption("quiet", "q", "Write just hashes of objects.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -207,7 +216,7 @@ Example:
 		switch typeStr {
 		case "all", "direct", "indirect", "recursive":
 		default:
-			err = fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+			err = fmt.Errorf("Invalid type '%s', must be one of {"+strings.Join(tLists, ", ")+"}", typeStr)
 			res.SetError(err, cmds.ErrClient)
 			return
 		}

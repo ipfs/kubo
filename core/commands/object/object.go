@@ -123,7 +123,7 @@ multihash.
 		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
+		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -345,7 +345,7 @@ And then run:
 		cmds.FileArg("data", true, false, "Data to be stored as a DAG object.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\"."),
+		cmds.StringOption("inputenc", "Encoding type of input data. One of: {\"protobuf\", \"json\"}.").Default("json"),
 		cmds.StringOption("datafieldenc", "Encoding type of the data field, either \"text\" or \"base64\".").Default("text"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -361,16 +361,13 @@ And then run:
 			return
 		}
 
-		inputenc, found, err := req.Option("inputenc").String()
+		inputenc, _, err := req.Option("inputenc").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if !found {
-			inputenc = "json"
-		}
 
-		datafieldenc, found, err := req.Option("datafieldenc").String()
+		datafieldenc, _, err := req.Option("datafieldenc").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

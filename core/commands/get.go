@@ -40,10 +40,10 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmds.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("output", "o", "The path where the output should be stored."),
-		cmds.BoolOption("archive", "a", "Output a TAR archive. Default: false."),
-		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression. Default: false."),
-		cmds.IntOption("compression-level", "l", "The level of compression (1-9). Default: -1."),
+		cmds.StringOption("output", "o", "The path where the output should be stored. Default: './<ipfs-path>.'"),
+		cmds.BoolOption("archive", "a", "Output a TAR archive.").Default(false),
+		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression.").Default(false),
+		cmds.IntOption("compression-level", "l", "The level of compression (1-9).").Default(-1),
 	},
 	PreRun: func(req cmds.Request) error {
 		_, err := getCompressOptions(req)

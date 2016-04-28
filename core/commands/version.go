@@ -23,9 +23,9 @@ var VersionCmd = &cmds.Command{
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("number", "n", "Only show the version number."),
-		cmds.BoolOption("commit", "Show the commit hash."),
-		cmds.BoolOption("repo", "Show repo version."),
+		cmds.BoolOption("number", "n", "Only show the version number.").Default(false),
+		cmds.BoolOption("commit", "Show the commit hash.").Default(false),
+		cmds.BoolOption("repo", "Show repo version.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(&VersionOutput{

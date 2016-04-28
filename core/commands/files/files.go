@@ -38,7 +38,7 @@ on the files in question, then data may be lost. This also applies to running
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("f", "flush", "Flush target and ancestors after write. Default: true."),
+		cmds.BoolOption("f", "flush", "Flush target and ancestors after write.").Default(true),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -252,7 +252,7 @@ Examples:
 		cmds.StringArg("path", false, false, "Path to show listing for. Defaults to '/'."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("l", "Use long listing format."),
+		cmds.BoolOption("l", "Use long listing format.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		var arg string
@@ -348,7 +348,7 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin reading from."),
+		cmds.IntOption("o", "offset", "Byte offset to begin reading from.").Default(false),
 		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -516,9 +516,9 @@ Warning:
 		cmds.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin writing at."),
-		cmds.BoolOption("e", "create", "Create the file if it does not exist."),
-		cmds.BoolOption("t", "truncate", "Truncate the file to size zero before writing."),
+		cmds.IntOption("o", "offset", "Byte offset to begin writing at.").Default(0),
+		cmds.BoolOption("e", "create", "Create the file if it does not exist.").Default(false),
+		cmds.BoolOption("t", "truncate", "Truncate the file to size zero before writing.").Default(false),
 		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -629,7 +629,7 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "parents", "No error if existing, make parent directories as needed."),
+		cmds.BoolOption("p", "parents", "No error if existing, make parent directories as needed.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -668,7 +668,7 @@ are run with the '--flush=false'.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", false, false, "Path to flush. Default: '/'."),
+		cmds.StringArg("path", false, false, "Path to flush. Defaults to '/'."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -709,7 +709,7 @@ Remove files or directories.
 		cmds.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("r", "recursive", "Recursively remove directories."),
+		cmds.BoolOption("r", "recursive", "Recursively remove directories.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
