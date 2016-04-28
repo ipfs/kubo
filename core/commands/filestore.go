@@ -58,6 +58,20 @@ var FileStoreCmd = &cmds.Command{
 var lsFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List objects in filestore",
+		ShortDescription: `
+List objects in the filestore.  If --quiet is specified only the
+hashes are printed, otherwise the fields are as follows:
+  <hash> <type> <filepath> <offset> <size>
+where <type> is one of"
+  leaf: to indicate a leaf node where the contents are stored
+        to in the file itself
+  root: to indicate a root node that represents the whole file
+  other: some other kind of node that represent part of a file
+and <filepath> is the part of the file the object represents.  The
+part represented starts at <offset> and continues for <size> bytes.
+If <offset> is the special value "-" than the "leaf" or "root" node
+represents the whole file.
+`,
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),

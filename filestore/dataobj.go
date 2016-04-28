@@ -43,12 +43,16 @@ func (d *DataObj) StripData() DataObj {
 }
 
 func (d *DataObj) Format() string {
+	offset := fmt.Sprintf("%d", d.Offset)
+	if d.WholeFile {
+		offset = "-"
+	}
 	if d.NoBlockData {
-		return fmt.Sprintf("block %s %d %d", d.FilePath, d.Offset, d.Size)
+		return fmt.Sprintf("leaf  %s %s %d", d.FilePath, offset, d.Size)
 	} else if d.FileRoot {
-		return fmt.Sprintf("root  %s %d %d", d.FilePath, d.Offset, d.Size)
+		return fmt.Sprintf("root  %s %s %d", d.FilePath, offset, d.Size)
 	} else {
-		return fmt.Sprintf("other %s %d %d", d.FilePath, d.Offset, d.Size)
+		return fmt.Sprintf("other %s %s %d", d.FilePath, offset, d.Size)
 	}
 }
 
