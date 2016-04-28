@@ -34,13 +34,13 @@ func (w *writecache) Has(k key.Key) (bool, error) {
 	return w.blockstore.Has(k)
 }
 
-func (w *writecache) Get(k key.Key) (*blocks.Block, error) {
+func (w *writecache) Get(k key.Key) (blocks.Block, error) {
 	return w.blockstore.Get(k)
 }
 
-func (w *writecache) Put(b *blocks.Block, addOpts interface{}) error {
+func (w *writecache) Put(b blocks.Block, addOpts interface{}) error {
 	// Don't cache "advance" blocks
-	if b.DataPtr == nil || addOpts == nil {
+	if b.(*blocks.RawBlock).DataPtr == nil || addOpts == nil {
 		k := b.Key()
 		if _, ok := w.cache.Get(k); ok {
 			return nil
@@ -52,11 +52,11 @@ func (w *writecache) Put(b *blocks.Block, addOpts interface{}) error {
 	return w.blockstore.Put(b, addOpts)
 }
 
-func (w *writecache) PutMany(bs []*blocks.Block, addOpts interface{}) error {
-	var good []*blocks.Block
+func (w *writecache) PutMany(bs []blocks.Block, addOpts interface{}) error {
+	var good []blocks.Block
 	for _, b := range bs {
 		// Don't cache "advance" blocks
-		if b.DataPtr == nil || addOpts == nil {
+		if b.(*blocks.RawBlock).DataPtr == nil || addOpts == nil {
 			if _, ok := w.cache.Get(b.Key()); !ok {
 				good = append(good, b)
 				k := b.Key()

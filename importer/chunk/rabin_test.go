@@ -39,10 +39,10 @@ func TestRabinChunking(t *testing.T) {
 	}
 }
 
-func chunkData(t *testing.T, data []byte) map[key.Key]*blocks.Block {
+func chunkData(t *testing.T, data []byte) map[key.Key]blocks.Block {
 	r := NewRabin(bytes.NewReader(data), 1024*256)
 
-	blkmap := make(map[key.Key]*blocks.Block)
+	blkmap := make(map[key.Key]blocks.Block)
 
 	for {
 		blk, _, err := r.NextBytes()

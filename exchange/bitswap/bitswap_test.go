@@ -85,7 +85,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 		t.Fatal("Expected to succeed")
 	}
 
-	if !bytes.Equal(block.Data, received.Data) {
+	if !bytes.Equal(block.Data(), received.Data()) {
 		t.Fatal("Data doesn't match")
 	}
 }
@@ -218,7 +218,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	}
 }
 
-func getOrFail(bitswap Instance, b *blocks.Block, t *testing.T, wg *sync.WaitGroup) {
+func getOrFail(bitswap Instance, b blocks.Block, t *testing.T, wg *sync.WaitGroup) {
 	if _, err := bitswap.Blockstore().Get(b.Key()); err != nil {
 		_, err := bitswap.Exchange.GetBlock(context.Background(), b.Key())
 		if err != nil {

@@ -22,7 +22,7 @@ type BitSwapMessage interface {
 	Wantlist() []Entry
 
 	// Blocks returns a slice of unique blocks
-	Blocks() []*blocks.Block
+	Blocks() []blocks.Block
 
 	// AddEntry adds an entry to the Wantlist.
 	AddEntry(key key.Key, priority int)
@@ -34,7 +34,7 @@ type BitSwapMessage interface {
 	// A full wantlist is an authoritative copy, a 'non-full' wantlist is a patch-set
 	Full() bool
 
-	AddBlock(*blocks.Block)
+	AddBlock(blocks.Block)
 	Exportable
 
 	Loggable() map[string]interface{}
@@ -48,7 +48,7 @@ type Exportable interface {
 type impl struct {
 	full     bool
 	wantlist map[key.Key]Entry
-	blocks   map[key.Key]*blocks.Block
+	blocks   map[key.Key]blocks.Block
 }
 
 func New(full bool) BitSwapMessage {
@@ -57,7 +57,7 @@ func New(full bool) BitSwapMessage {
 
 func newMsg(full bool) *impl {
 	return &impl{
-		blocks:   make(map[key.Key]*blocks.Block),
+		blocks:   make(map[key.Key]blocks.Block),
 		wantlist: make(map[key.Key]Entry),
 		full:     full,
 	}
@@ -96,8 +96,8 @@ func (m *impl) Wantlist() []Entry {
 	return out
 }
 
-func (m *impl) Blocks() []*blocks.Block {
-	bs := make([]*blocks.Block, 0, len(m.blocks))
+func (m *impl) Blocks() []blocks.Block {
+	bs := make([]blocks.Block, 0, len(m.blocks))
 	for _, block := range m.blocks {
 		bs = append(bs, block)
 	}
@@ -129,7 +129,7 @@ func (m *impl) addEntry(k key.Key, priority int, cancel bool) {
 	}
 }
 
-func (m *impl) AddBlock(b *blocks.Block) {
+func (m *impl) AddBlock(b blocks.Block) {
 	m.blocks[b.Key()] = b
 }
 
@@ -156,7 +156,7 @@ func (m *impl) ToProto() *pb.Message {
 		})
 	}
 	for _, b := range m.Blocks() {
-		pbm.Blocks = append(pbm.Blocks, b.Data)
+		pbm.Blocks = append(pbm.Blocks, b.Data())
 	}
 	return pbm
 }

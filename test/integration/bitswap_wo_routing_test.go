@@ -71,7 +71,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		b, err := n.Blocks.GetBlock(ctx, block0.Key())
 		if err != nil {
 			t.Error(err)
-		} else if !bytes.Equal(b.Data, block0.Data) {
+		} else if !bytes.Equal(b.Data(), block0.Data()) {
 			t.Error("byte comparison fail")
 		} else {
 			log.Debug("got block: %s", b.Key())
@@ -88,7 +88,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		b, err := n.Blocks.GetBlock(ctx, block1.Key())
 		if err != nil {
 			t.Error(err)
-		} else if !bytes.Equal(b.Data, block1.Data) {
+		} else if !bytes.Equal(b.Data(), block1.Data()) {
 			t.Error("byte comparison fail")
 		} else {
 			log.Debug("got block: %s", b.Key())

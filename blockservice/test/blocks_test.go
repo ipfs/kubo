@@ -24,7 +24,7 @@ func TestBlocks(t *testing.T) {
 
 	b := blocks.NewBlock([]byte("beep boop"))
 	h := u.Hash([]byte("beep boop"))
-	if !bytes.Equal(b.Multihash, h) {
+	if !bytes.Equal(b.Multihash(), h) {
 		t.Error("Block Multihash and data multihash not equal")
 	}
 
@@ -54,7 +54,7 @@ func TestBlocks(t *testing.T) {
 		t.Error("Block keys not equal.")
 	}
 
-	if !bytes.Equal(b.Data, b2.Data) {
+	if !bytes.Equal(b.Data(), b2.Data()) {
 		t.Error("Block data is not equal.")
 	}
 }
@@ -79,7 +79,7 @@ func TestGetBlocksSequential(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
 		defer cancel()
 		out := servs[i].GetBlocks(ctx, keys)
-		gotten := make(map[key.Key]*blocks.Block)
+		gotten := make(map[key.Key]blocks.Block)
 		for blk := range out {
 			if _, ok := gotten[blk.Key()]; ok {
 				t.Fatal("Got duplicate block!")

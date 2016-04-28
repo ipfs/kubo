@@ -31,9 +31,9 @@ var ErrNotFound = errors.New("blockstore: block not found")
 type Blockstore interface {
 	DeleteBlock(key.Key) error
 	Has(key.Key) (bool, error)
-	Get(key.Key) (*blocks.Block, error)
-	Put(block *blocks.Block, addOpts interface{}) error
-	PutMany(blocks []*blocks.Block, addOpts interface{}) error
+	Get(key.Key) (blocks.Block, error)
+	Put(block blocks.Block, addOpts interface{}) error
+	PutMany(blocks []blocks.Block, addOpts interface{}) error
 
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
@@ -74,7 +74,7 @@ type blockstore struct {
 	gcreqlk sync.Mutex
 }
 
-func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
+func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
 	maybeData, err := bs.datastore.Get(k.DsKey())
 	if err == ds.ErrNotFound {
 		return nil, ErrNotFound
@@ -90,7 +90,7 @@ func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
 	return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
 }
 
-func (bs *blockstore) Put(block *blocks.Block, addOpts interface{}) error {
+func (bs *blockstore) Put(block blocks.Block, addOpts interface{}) error {
 	k := block.Key().DsKey()
 
 	data := bs.prepareBlock(k, block, addOpts)
@@ -100,7 +100,7 @@ func (bs *blockstore) Put(block *blocks.Block, addOpts interface{}) error {
 	return bs.datastore.Put(k, data)
 }
 
-func (bs *blockstore) PutMany(blocks []*blocks.Block, addOpts interface{}) error {
+func (bs *blockstore) PutMany(blocks []blocks.Block, addOpts interface{}) error {
 	t, err := bs.datastore.Batch()
 	if err != nil {
 		return err
@@ -119,27 +119,28 @@ func (bs *blockstore) PutMany(blocks []*blocks.Block, addOpts interface{}) error
 	return t.Commit()
 }
 
-func (bs *blockstore) prepareBlock(k ds.Key, block *blocks.Block, addOpts interface{}) interface{} {
-	if block.DataPtr == nil || addOpts == nil {
+func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block, addOpts interface{}) interface{} {
+	DataPtr := block.(*blocks.RawBlock).DataPtr // FIXME NOW
+	if DataPtr == nil || addOpts == nil {
 		// Has is cheaper than Put, so see if we already have it
 		exists, err := bs.datastore.Has(k)
 		if err == nil && exists {
 			return nil // already stored.
 		}
-		return block.Data
+		return block.Data()
 	} else {
 		d := &filestore.DataObj{
-			FilePath: block.DataPtr.FilePath,
-			Offset:   block.DataPtr.Offset,
-			Size:     block.DataPtr.Size,
+			FilePath: DataPtr.FilePath,
+			Offset:   DataPtr.Offset,
+			Size:     DataPtr.Size,
 		}
-		if block.DataPtr.AltData == nil {
+		if DataPtr.AltData == nil {
 			d.WholeFile = true
 			d.FileRoot = true
-			d.Data = block.Data
+			d.Data = block.Data()
 		} else {
 			d.NoBlockData = true
-			d.Data = block.DataPtr.AltData
+			d.Data = DataPtr.AltData
 		}
 		return &filestore.DataWOpts{d, addOpts}
 	}

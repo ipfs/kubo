@@ -42,7 +42,7 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
-func (s *BlockService) AddBlock(b *blocks.Block, addOpts interface{}) (key.Key, error) {
+func (s *BlockService) AddBlock(b blocks.Block, addOpts interface{}) (key.Key, error) {
 	k := b.Key()
 	err := s.Blockstore.Put(b, addOpts)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *BlockService) AddBlock(b *blocks.Block, addOpts interface{}) (key.Key, 
 	return k, nil
 }
 
-func (s *BlockService) AddBlocks(bs []*blocks.Block, addOpts interface{}) ([]key.Key, error) {
+func (s *BlockService) AddBlocks(bs []blocks.Block, addOpts interface{}) ([]key.Key, error) {
 	err := s.Blockstore.PutMany(bs, addOpts)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (s *BlockService) AddBlocks(bs []*blocks.Block, addOpts interface{}) ([]key
 
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
-func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (*blocks.Block, error) {
+func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (blocks.Block, error) {
 	log.Debugf("BlockService GetBlock: '%s'", k)
 	block, err := s.Blockstore.Get(k)
 	if err == nil {
@@ -104,8 +104,8 @@ func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (*blocks.Block, 
 // GetBlocks gets a list of blocks asynchronously and returns through
 // the returned channel.
 // NB: No guarantees are made about order.
-func (s *BlockService) GetBlocks(ctx context.Context, ks []key.Key) <-chan *blocks.Block {
-	out := make(chan *blocks.Block, 0)
+func (s *BlockService) GetBlocks(ctx context.Context, ks []key.Key) <-chan blocks.Block {
+	out := make(chan blocks.Block, 0)
 	go func() {
 		defer close(out)
 		var misses []key.Key
