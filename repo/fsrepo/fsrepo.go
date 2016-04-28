@@ -249,12 +249,6 @@ func Init(repoPath string, conf *config.Config) error {
 	return nil
 }
 
-// Remove recursively removes the FSRepo at |path|.
-func Remove(repoPath string) error {
-	repoPath = filepath.Clean(repoPath)
-	return os.RemoveAll(repoPath)
-}
-
 // LockedByOtherProcess returns true if the FSRepo is locked by another
 // process. If true, then the repo cannot be opened by this process.
 func LockedByOtherProcess(repoPath string) (bool, error) {
