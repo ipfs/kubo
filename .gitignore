@@ -10,3 +10,5 @@
 *~
 
 .ipfs
+.idea/
+*.iml

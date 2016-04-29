@@ -22,6 +22,10 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	"github.com/ipfs/go-ipfs/namesys"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	pb "github.com/ipfs/go-ipfs/namesys/pb"
 )
 
 const (
@@ -122,6 +126,26 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			}
 			cancel()
 		}()
+	}
+
+	// If this is an ipns query let's check to see if it's using our own peer ID.
+	// If so let's resolve it locally instead of going out to the network.
+	var paths []string = strings.Split(r.URL.Path, "/")
+	if paths[1] == "ipns" && paths[2] == i.node.Identity.Pretty() {
+		id := i.node.Identity
+		_, ipnskey := namesys.IpnsKeysForID(id)
+		ival, _ := i.node.Repo.Datastore().Get(ipnskey.DsKey())
+		val := ival.([]byte)
+		dhtrec := new(dhtpb.Record)
+		proto.Unmarshal(val, dhtrec)
+		e := new(pb.IpnsEntry)
+		proto.Unmarshal(dhtrec.GetValue(), e)
+		pth := path.Path(e.Value).String()
+		pth = "/ipfs/" + pth
+		for _, p := range paths[3:] {
+			pth += "/" + p
+		}
+		r.URL.Path = pth
 	}
 
 	urlPath := r.URL.Path
