@@ -15,20 +15,33 @@ var (
 // path and offset into the file when applicable.
 type AdvReader interface {
 	io.Reader
+	ExtraInfo() ExtraInfo
+}
+
+type ExtraInfo interface {
 	Offset() int64
 	AbsPath() string
+}
+
+type PosInfo struct {
+	offset  int64
+	absPath string
+}
+
+func (i PosInfo) Offset() int64 { return i.offset }
+
+func (i PosInfo) AbsPath() string { return i.absPath }
+
+func NewPosInfo(offset int64, absPath string) PosInfo {
+	return PosInfo{offset, absPath}
 }
 
 type advReaderAdapter struct {
 	io.Reader
 }
 
-func (advReaderAdapter) Offset() int64 {
-	return -1
-}
-
-func (advReaderAdapter) AbsPath() string {
-	return ""
+func (advReaderAdapter) ExtraInfo() ExtraInfo {
+	return nil
 }
 
 func AdvReaderAdapter(r io.Reader) AdvReader {
@@ -47,7 +60,6 @@ type File interface {
 	// Files implement ReadCloser, but can only be read from or closed if
 	// they are not directories
 	io.ReadCloser
-	Offset() int64
 
 	// FileName returns a filename path associated with this file
 	FileName() string
@@ -55,8 +67,8 @@ type File interface {
 	// FullPath returns the full path in the os associated with this file
 	FullPath() string
 
-	// AbsPath returns the absolute path, not necessary unique
-	AbsPath() string
+	// File info returns additional information on the underlying file
+	ExtraInfo() ExtraInfo
 
 	// IsDirectory returns true if the File is a directory (and therefore
 	// supports calling `NextFile`) and false if the File is a normal file

@@ -37,8 +37,8 @@ func (f *ReaderFile) FullPath() string {
 	return f.fullpath
 }
 
-func (f *ReaderFile) AbsPath() string {
-	return f.abspath
+func (f *ReaderFile) ExtraInfo() ExtraInfo {
+	return NewPosInfo(f.offset, f.abspath)
 }
 
 func (f *ReaderFile) Read(p []byte) (int, error) {

@@ -93,8 +93,8 @@ func (f *MultipartFile) FullPath() string {
 	return f.FileName()
 }
 
-func (f *MultipartFile) AbsPath() string {
-	return f.FileName()
+func (f *MultipartFile) ExtraInfo() ExtraInfo {
+	return nil
 }
 
 func (f *MultipartFile) Read(p []byte) (int, error) {
@@ -104,13 +104,6 @@ func (f *MultipartFile) Read(p []byte) (int, error) {
 	res, err := f.Part.Read(p)
 	f.offset += int64(res)
 	return res, err
-}
-
-func (f *MultipartFile) Offset() int64 {
-	if f.IsDirectory() {
-		return -1
-	}
-	return f.offset
 }
 
 func (f *MultipartFile) Close() error {

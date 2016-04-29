@@ -109,16 +109,12 @@ func (f *serialFile) FullPath() string {
 	return f.path
 }
 
-func (f *serialFile) AbsPath() string {
-	return f.abspath
+func (f *serialFile) ExtraInfo() ExtraInfo {
+	return nil
 }
 
 func (f *serialFile) Read(p []byte) (int, error) {
 	return 0, io.EOF
-}
-
-func (f *serialFile) Offset() int64 {
-	return -1
 }
 
 func (f *serialFile) Close() error {

@@ -19,7 +19,7 @@ func TestRabinChunking(t *testing.T) {
 	var chunks [][]byte
 
 	for {
-		chunk, _, err := r.NextBytes()
+		chunk, err := r.NextBytes()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -27,7 +27,7 @@ func TestRabinChunking(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		chunks = append(chunks, chunk)
+		chunks = append(chunks, chunk.Data)
 	}
 
 	fmt.Printf("average block size: %d\n", len(data)/len(chunks))
@@ -45,7 +45,7 @@ func chunkData(t *testing.T, data []byte) map[key.Key]blocks.Block {
 	blkmap := make(map[key.Key]blocks.Block)
 
 	for {
-		blk, _, err := r.NextBytes()
+		blk, err := r.NextBytes()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -53,7 +53,7 @@ func chunkData(t *testing.T, data []byte) map[key.Key]blocks.Block {
 			t.Fatal(err)
 		}
 
-		b := blocks.NewBlock(blk)
+		b := blocks.NewBlock(blk.Data)
 		blkmap[b.Key()] = b
 	}
 

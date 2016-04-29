@@ -12,11 +12,13 @@ var log = logging.Logger("chunk")
 
 var DefaultBlockSize int64 = 1024 * 256
 
+type Bytes struct {
+	PosInfo files.ExtraInfo
+	Data    []byte
+}
+
 type Splitter interface {
-	// returns the data, an offset if applicable and, an error condition
-	NextBytes() ([]byte, int64, error)
-	// returns the full path to the file if applicable
-	AbsPath() string
+	NextBytes() (Bytes, error)
 }
 
 type SplitterGen func(r io.Reader) Splitter
@@ -40,13 +42,13 @@ func Chan(s Splitter) (<-chan []byte, <-chan error) {
 
 		// all-chunks loop (keep creating chunks)
 		for {
-			b, _, err := s.NextBytes()
+			b, err := s.NextBytes()
 			if err != nil {
 				errs <- err
 				return
 			}
 
-			out <- b
+			out <- b.Data
 		}
 	}()
 	return out, errs
@@ -65,24 +67,20 @@ func NewSizeSplitter(r io.Reader, size int64) Splitter {
 	}
 }
 
-func (ss *sizeSplitterv2) NextBytes() ([]byte, int64, error) {
+func (ss *sizeSplitterv2) NextBytes() (Bytes, error) {
+	posInfo := ss.r.ExtraInfo()
 	if ss.err != nil {
-		return nil, -1, ss.err
+		return Bytes{posInfo, nil}, ss.err
 	}
 	buf := make([]byte, ss.size)
-	offset := ss.r.Offset()
 	n, err := io.ReadFull(ss.r, buf)
 	if err == io.ErrUnexpectedEOF {
 		ss.err = io.EOF
 		err = nil
 	}
 	if err != nil {
-		return nil, -1, err
+		return Bytes{posInfo, nil}, err
 	}
 
-	return buf[:n], offset, nil
-}
-
-func (ss *sizeSplitterv2) AbsPath() string {
-	return ss.r.AbsPath()
+	return Bytes{posInfo, buf[:n]}, nil
 }

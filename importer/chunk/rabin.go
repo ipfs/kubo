@@ -29,15 +29,11 @@ func NewRabinMinMax(r io.Reader, min, avg, max uint64) *Rabin {
 	}
 }
 
-func (r *Rabin) NextBytes() ([]byte, int64, error) {
+func (r *Rabin) NextBytes() (Bytes, error) {
 	ch, err := r.r.Next()
 	if err != nil {
-		return nil, -1, err
+		return Bytes{}, err
 	}
 
-	return ch.Data, -1, nil
-}
-
-func (r *Rabin) AbsPath() string {
-	return ""
+	return Bytes{nil, ch.Data}, nil
 }

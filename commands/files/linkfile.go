@@ -47,14 +47,10 @@ func (f *Symlink) FullPath() string {
 	return f.path
 }
 
-func (f *Symlink) AbsPath() string {
-	return f.abspath
-}
-
 func (f *Symlink) Read(b []byte) (int, error) {
 	return f.reader.Read(b)
 }
 
-func (f *Symlink) Offset() int64 {
-	return -1
+func (f *Symlink) ExtraInfo() ExtraInfo {
+	return nil
 }

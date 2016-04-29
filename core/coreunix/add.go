@@ -538,10 +538,6 @@ func (i *progressReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func (i *progressReader) Offset() int64 {
-	return i.file.Offset()
-}
-
-func (i *progressReader) AbsPath() string {
-	return i.file.AbsPath()
+func (i *progressReader) ExtraInfo() files.ExtraInfo {
+	return i.file.ExtraInfo()
 }

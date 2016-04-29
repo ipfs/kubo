@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 )
@@ -12,10 +13,9 @@ type DagBuilderHelper struct {
 	spl      chunk.Splitter
 	recvdErr error
 	nextData []byte // the next item to return.
-	offset   int64  // offset of next data
+	posInfo  files.ExtraInfo
 	maxlinks int
 	batch    *dag.Batch
-	absPath  string
 	addOpts  interface{}
 }
 
@@ -37,7 +37,6 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		spl:      spl,
 		maxlinks: dbp.Maxlinks,
 		batch:    dbp.Dagserv.Batch(dbp.AddOpts),
-		absPath:  spl.AbsPath(),
 		addOpts:  dbp.AddOpts,
 	}
 }
@@ -52,7 +51,9 @@ func (db *DagBuilderHelper) prepareNext() {
 	}
 
 	// TODO: handle err (which wasn't handled either when the splitter was channeled)
-	db.nextData, db.offset, _ = db.spl.NextBytes()
+	nextData, _ := db.spl.NextBytes()
+	db.nextData = nextData.Data
+	db.posInfo = nextData.PosInfo
 }
 
 // Done returns whether or not we're done consuming the incoming data.
@@ -66,11 +67,11 @@ func (db *DagBuilderHelper) Done() bool {
 // Next returns the next chunk of data to be inserted into the dag
 // if it returns nil, that signifies that the stream is at an end, and
 // that the current building operation should finish
-func (db *DagBuilderHelper) Next() ([]byte, int64) {
+func (db *DagBuilderHelper) Next() []byte {
 	db.prepareNext() // idempotent
 	d := db.nextData
 	db.nextData = nil // signal we've consumed it
-	return d, db.offset
+	return d
 }
 
 // GetDagServ returns the dagservice object this Helper is using
@@ -100,7 +101,7 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 }
 
 func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
-	data, offset := db.Next()
+	data := db.Next()
 	if data == nil { // we're done!
 		return nil
 	}
@@ -110,16 +111,16 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 	}
 
 	node.SetData(data)
-	if db.absPath != "" {
-		node.SetDataPtr(db.absPath, offset)
+	if db.posInfo != nil {
+		node.SetDataPtr(db.posInfo.AbsPath(), db.posInfo.Offset())
 	}
 
 	return nil
 }
 
 func (db *DagBuilderHelper) SetAsRoot(node *UnixfsNode) {
-	if db.absPath != "" {
-		node.SetDataPtr(db.absPath, 0)
+	if db.posInfo != nil {
+		node.SetDataPtr(db.posInfo.AbsPath(), 0)
 		node.SetAsRoot()
 	}
 }
