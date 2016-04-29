@@ -442,7 +442,7 @@ You may only use keytypes that are supported in your ipfs binary: currently this
 
 Value is arbitrary text. Standard input can be used to provide value.
 
-NOTE: a value may NOT exceed 2048 bytes.
+NOTE: A value may not exceed 2048 bytes.
 `,
 	},
 
