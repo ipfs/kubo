@@ -58,6 +58,9 @@ func list(d *Datastore, out chan<- *ListRes, verify bool) error {
 		val, _ := d.GetDirect(key)
 		status := 0
 		if verify {
+			if !val.NoBlockData {
+				continue
+			}
 			_, err := d.GetData(key, val, true)
 			if err == nil {
 				status = StatusOk
@@ -74,6 +77,10 @@ func list(d *Datastore, out chan<- *ListRes, verify bool) error {
 	return nil
 }
 
-func List(d *Datastore, out chan<- *ListRes) error { return list(d, out, false) }
+func List(d *Datastore, out chan<- *ListRes) error {
+	return list(d, out, false)
+}
 
-func Verify(d *Datastore, out chan<- *ListRes) error { return list(d, out, true) }
+func Verify(d *Datastore, out chan<- *ListRes) error {
+	return list(d, out, true)
+}

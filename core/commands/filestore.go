@@ -104,8 +104,19 @@ represents the whole file.
 var verifyFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Verify objects in filestore",
+		ShortDescription: `
+Verify leaf nodes in the filestore, the output is:
+  <status> <type> <filepath> <offset> <size>
+where <type>, <filepath>, <offset> and <size> are the same as in the
+"ls" command and <status> is one of:
+  ok:      If the object is okay
+  changed: If the object is invalid becuase the contents of the file
+           have changed
+  missing: If the file can not be found
+  error:   If the file can be found but could not be read or some
+           other error
+`,
 	},
-
 	Run: func(req cmds.Request, res cmds.Response) {
 		_, fs, err := extractFilestore(req)
 		if err != nil {
