@@ -41,10 +41,6 @@ func (f *SliceFile) FullPath() string {
 	return f.path
 }
 
-func (f *SliceFile) ExtraInfo() ExtraInfo {
-	return nil
-}
-
 func (f *SliceFile) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }

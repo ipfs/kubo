@@ -16,6 +16,7 @@ var (
 type AdvReader interface {
 	io.Reader
 	ExtraInfo() ExtraInfo
+	SetExtraInfo(inf ExtraInfo)
 }
 
 type ExtraInfo interface {
@@ -44,9 +45,9 @@ type advReaderAdapter struct {
 	io.Reader
 }
 
-func (advReaderAdapter) ExtraInfo() ExtraInfo {
-	return nil
-}
+func (advReaderAdapter) ExtraInfo() ExtraInfo { return nil }
+
+func (advReaderAdapter) SetExtraInfo(_ ExtraInfo) {}
 
 func AdvReaderAdapter(r io.Reader) AdvReader {
 	switch t := r.(type) {
@@ -70,9 +71,6 @@ type File interface {
 
 	// FullPath returns the full path in the os associated with this file
 	FullPath() string
-
-	// File info returns additional information on the underlying file
-	ExtraInfo() ExtraInfo
 
 	// IsDirectory returns true if the File is a directory (and therefore
 	// supports calling `NextFile`) and false if the File is a normal file
@@ -105,30 +103,11 @@ type SizeFile interface {
 	Size() (int64, error)
 }
 
-type readerWaddOpts struct {
-	AdvReader
-	addOpts interface{}
-}
 type PosInfoWaddOpts struct {
 	ExtraInfo
 	AddOpts interface{}
 }
 
-func NewReaderWaddOpts(reader AdvReader, addOpts interface{}) AdvReader {
-	if addOpts == nil {
-		return reader
-	} else {
-		return &readerWaddOpts{reader, addOpts}
-	}
-}
-func (r *readerWaddOpts) ExtraInfo() ExtraInfo {
-	info := r.AdvReader.ExtraInfo()
-	if info != nil && r.addOpts != nil {
-		return PosInfoWaddOpts{info, r.addOpts}
-	} else {
-		return info
-	}
-}
 func (i PosInfoWaddOpts) Clone(offset int64) ExtraInfo {
 	return PosInfoWaddOpts{i.ExtraInfo.Clone(offset), i.AddOpts}
 }

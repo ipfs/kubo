@@ -109,10 +109,6 @@ func (f *serialFile) FullPath() string {
 	return f.path
 }
 
-func (f *serialFile) ExtraInfo() ExtraInfo {
-	return nil
-}
-
 func (f *serialFile) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }
