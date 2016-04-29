@@ -44,7 +44,7 @@ func getRandFile(t *testing.T, ds dag.DAGService, size int64) *dag.Node {
 }
 
 func fileNodeFromReader(t *testing.T, ds dag.DAGService, r io.Reader) *dag.Node {
-	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r), 0)
+	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r))
 	if err != nil {
 		t.Fatal(err)
 	}

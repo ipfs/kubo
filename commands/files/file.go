@@ -21,6 +21,8 @@ type AdvReader interface {
 type ExtraInfo interface {
 	Offset() int64
 	AbsPath() string
+	// Clone creates a copy with different offset
+	Clone(offset int64) ExtraInfo
 }
 
 type PosInfo struct {
@@ -31,6 +33,8 @@ type PosInfo struct {
 func (i PosInfo) Offset() int64 { return i.offset }
 
 func (i PosInfo) AbsPath() string { return i.absPath }
+
+func (i PosInfo) Clone(offset int64) ExtraInfo { return PosInfo{offset, i.absPath} }
 
 func NewPosInfo(offset int64, absPath string) PosInfo {
 	return PosInfo{offset, absPath}
@@ -99,4 +103,32 @@ type SizeFile interface {
 	File
 
 	Size() (int64, error)
+}
+
+type readerWaddOpts struct {
+	AdvReader
+	addOpts interface{}
+}
+type PosInfoWaddOpts struct {
+	ExtraInfo
+	AddOpts interface{}
+}
+
+func NewReaderWaddOpts(reader AdvReader, addOpts interface{}) AdvReader {
+	if addOpts == nil {
+		return reader
+	} else {
+		return &readerWaddOpts{reader, addOpts}
+	}
+}
+func (r *readerWaddOpts) ExtraInfo() ExtraInfo {
+	info := r.AdvReader.ExtraInfo()
+	if info != nil && r.addOpts != nil {
+		return PosInfoWaddOpts{info, r.addOpts}
+	} else {
+		return info
+	}
+}
+func (i PosInfoWaddOpts) Clone(offset int64) ExtraInfo {
+	return PosInfoWaddOpts{i.ExtraInfo.Clone(offset), i.AddOpts}
 }

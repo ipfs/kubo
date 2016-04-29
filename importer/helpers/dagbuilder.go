@@ -16,7 +16,14 @@ type DagBuilderHelper struct {
 	posInfo  files.ExtraInfo
 	maxlinks int
 	batch    *dag.Batch
-	addOpts  interface{}
+}
+
+func (db *DagBuilderHelper) addOpts() interface{} {
+	if inf, ok := db.posInfo.(files.PosInfoWaddOpts); ok {
+		return inf.AddOpts
+	} else {
+		return nil
+	}
 }
 
 type DagBuilderParams struct {
@@ -25,8 +32,6 @@ type DagBuilderParams struct {
 
 	// DAGService to write blocks to (required)
 	Dagserv dag.DAGService
-
-	AddOpts interface{}
 }
 
 // Generate a new DagBuilderHelper from the given params, which data source comes
@@ -36,8 +41,7 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		dserv:    dbp.Dagserv,
 		spl:      spl,
 		maxlinks: dbp.Maxlinks,
-		batch:    dbp.Dagserv.Batch(dbp.AddOpts),
-		addOpts:  dbp.AddOpts,
+		batch:    dbp.Dagserv.Batch(),
 	}
 }
 
@@ -131,7 +135,7 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
 		return nil, err
 	}
 
-	_, err = db.dserv.AddWOpts(dn, db.addOpts)
+	_, err = db.dserv.AddWOpts(dn, db.addOpts())
 	if err != nil {
 		return nil, err
 	}

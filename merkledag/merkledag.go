@@ -26,7 +26,7 @@ type DAGService interface {
 	// nodes of the passed in node.
 	GetMany(context.Context, []key.Key) <-chan *NodeOption
 
-	Batch(addOpts interface{}) *Batch
+	Batch() *Batch
 }
 
 func NewDAGService(bs *bserv.BlockService) DAGService {
@@ -85,8 +85,8 @@ func (n *dagService) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
 	return n.Blocks.AddBlock(b)
 }
 
-func (n *dagService) Batch(addOpts interface{}) *Batch {
-	return &Batch{ds: n, addOpts: addOpts, MaxSize: 8 * 1024 * 1024}
+func (n *dagService) Batch() *Batch {
+	return &Batch{ds: n, MaxSize: 8 * 1024 * 1024}
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
@@ -337,15 +337,18 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 }
 
 type Batch struct {
-	ds      *dagService
-	addOpts interface{}
+	ds *dagService
 
 	blocks  []blocks.Block
 	size    int
 	MaxSize int
 }
 
-func (t *Batch) Add(nd *Node) (key.Key, error) {
+//func (t *Batch) Add(nd *Node) (key.Key, error) {
+//	return t.AddWOpts(nd, nil)
+//}
+
+func (t *Batch) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
 	d, err := nd.EncodeProtobuf(false)
 	if err != nil {
 		return "", err
@@ -362,7 +365,7 @@ func (t *Batch) Add(nd *Node) (key.Key, error) {
 	}
 
 	var dataPtr *blocks.DataPtr
-	if t.addOpts != nil {
+	if addOpts != nil {
 		dataPtr, err = nd.EncodeDataPtr()
 		if err != nil {
 			return "", err
@@ -371,7 +374,7 @@ func (t *Batch) Add(nd *Node) (key.Key, error) {
 
 	var b blocks.Block = b0
 	if dataPtr != nil {
-		b = &blocks.FilestoreBlock{*b0, dataPtr, t.addOpts}
+		b = &blocks.FilestoreBlock{*b0, dataPtr, addOpts}
 	}
 
 	k := key.Key(mh)

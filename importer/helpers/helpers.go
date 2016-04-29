@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"fmt"
-	//"runtime/debug"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -105,7 +104,7 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 		return err
 	}
 
-	_, err = db.batch.Add(childnode)
+	_, err = db.batch.AddWOpts(childnode, db.addOpts())
 	if err != nil {
 		return err
 	}

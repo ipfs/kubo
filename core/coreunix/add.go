@@ -108,7 +108,7 @@ type Adder struct {
 
 // Perform the actual add & pin locally, outputting results to reader
 func (adder Adder) add(reader files.AdvReader) (*dag.Node, error) {
-	chnk, err := chunk.FromString(reader, adder.Chunker)
+	chnk, err := chunk.FromString(files.NewReaderWaddOpts(reader, adder.AddOpts), adder.Chunker)
 	if err != nil {
 		return nil, err
 	}
@@ -116,15 +116,11 @@ func (adder Adder) add(reader files.AdvReader) (*dag.Node, error) {
 	if adder.Trickle {
 		return importer.BuildTrickleDagFromReader(
 			adder.node.DAG,
-			chnk,
-			adder.AddOpts,
-		)
+			chnk)
 	}
 	return importer.BuildDagFromReader(
 		adder.node.DAG,
-		chnk,
-		adder.AddOpts,
-	)
+		chnk)
 }
 
 func (adder *Adder) RootNode() (*dag.Node, error) {
