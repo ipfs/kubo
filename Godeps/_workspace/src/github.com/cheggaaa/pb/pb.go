@@ -145,7 +145,7 @@ func (pb *ProgressBar) Postfix(postfix string) *ProgressBar {
 }
 
 // Set custom format for bar
-// Example: bar.Format("[=>_]")
+// EXAMPLE: bar.Format("[=>_]")
 func (pb *ProgressBar) Format(format string) *ProgressBar {
 	formatEntries := strings.Split(format, "")
 	if len(formatEntries) == 5 {

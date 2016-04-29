@@ -127,7 +127,7 @@ func (dht *IpfsDHT) checkLocalDatastore(k key.Key) (*pb.Record, error) {
 		recordIsBad = true
 	}
 
-	// NOTE: we do not verify the record here beyond checking these timestamps.
+	// NOTE: We do not verify the record here beyond checking these timestamps.
 	// we put the burden of checking the records on the requester as checking a record
 	// may be computationally expensive
 

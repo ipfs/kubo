@@ -29,7 +29,7 @@ var fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
 var errStrFuseRequired = `OSXFUSE not found.
 
 OSXFUSE is required to mount, please install it.
-Note: version 2.7.2 or higher required; prior versions are known to kernel panic!
+NOTE: Version 2.7.2 or higher required; prior versions are known to kernel panic!
 It is recommended you install it from the OSXFUSE website:
 
 	http://osxfuse.github.io/

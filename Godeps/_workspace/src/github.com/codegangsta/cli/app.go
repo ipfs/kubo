@@ -56,9 +56,9 @@ type App struct {
 	Authors []Author
 	// Copyright of the binary if any
 	Copyright string
-	// Name of Author (Note: Use App.Authors, this is deprecated)
+	// Name of Author (NOTE: Use App.Authors, this is deprecated)
 	Author string
-	// Email of Author (Note: Use App.Authors, this is deprecated)
+	// Email of Author (NOTE: Use App.Authors, this is deprecated)
 	Email string
 	// Writer writer to write output to
 	Writer io.Writer

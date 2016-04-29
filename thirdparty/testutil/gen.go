@@ -61,7 +61,7 @@ func RandPeerIDFatal(t testing.TB) peer.ID {
 // RandLocalTCPAddress returns a random multiaddr. it suppresses errors
 // for nice composability-- do check the address isn't nil.
 //
-// Note: for real network tests, use ZeroLocalTCPAddress so the kernel
+// NOTE: for real network tests, use ZeroLocalTCPAddress so the kernel
 // assigns an unused TCP port. otherwise you may get clashes. This
 // function remains here so that p2p/net/mock (which does not touch the
 // real network) can assign different addresses to peers.

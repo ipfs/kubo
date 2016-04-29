@@ -52,7 +52,7 @@ Example:
 
 	$ echo "hello" | ipfs object patch $HASH append-data
 
-Note: This does not append data to a file - it modifies the actual raw
+NOTE: This does not append data to a file - it modifies the actual raw
 data within an object. Objects have a max size of 1MB and objects larger than
 the limit will not be respected by the network.
 `,
