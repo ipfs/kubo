@@ -12,7 +12,7 @@ import (
 // PrefixTransform constructs a KeyTransform with a pair of functions that
 // add or remove the given prefix key.
 //
-// Warning: will panic if prefix not found when it should be there. This is
+// Warning: Will panic if prefix not found when it should be there. This is
 // to avoid insidious data inconsistency errors.
 func PrefixTransform(prefix ds.Key) ktds.KeyTransform {
 	return &ktds.Pair{

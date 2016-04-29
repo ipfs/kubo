@@ -283,7 +283,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, 
 	ps := pset.NewLimited(count)
 	provs := dht.providers.GetProviders(ctx, key)
 	for _, p := range provs {
-		// NOTE: assuming that this list of peers is unique
+		// NOTE: Assuming that this list of peers is unique
 		if ps.TryAdd(p) {
 			select {
 			case peerOut <- dht.peerstore.PeerInfo(p):

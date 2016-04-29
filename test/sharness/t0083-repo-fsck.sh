@@ -13,7 +13,7 @@ test_init_ipfs
 #############################
 # Test without daemon running
 ############################# 
-# Note: if api file isn't present we can assume the daemon isn't running
+# NOTE: if api file isn't present we can assume the daemon isn't running
 
 # Try with all lock files present: repo.lock, api, and datastore/LOCK with
 # repo.lock and datastore/LOCK being empty

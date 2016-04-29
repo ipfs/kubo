@@ -165,7 +165,7 @@ func (n *Node) GetLinkedNode(ctx context.Context, ds DAGService, name string) (*
 }
 
 // Copy returns a copy of the node.
-// NOTE: does not make copies of Node objects in the links.
+// NOTE: Does not make copies of Node objects in the links.
 func (n *Node) Copy() *Node {
 	nnode := new(Node)
 	if len(n.Data) > 0 {
@@ -234,7 +234,7 @@ func (n *Node) Stat() (*NodeStat, error) {
 
 // Multihash hashes the encoded data of this node.
 func (n *Node) Multihash() (mh.Multihash, error) {
-	// Note: EncodeProtobuf generates the hash and puts it in n.cached.
+	// NOTE: EncodeProtobuf generates the hash and puts it in n.cached.
 	_, err := n.EncodeProtobuf(false)
 	if err != nil {
 		return nil, err

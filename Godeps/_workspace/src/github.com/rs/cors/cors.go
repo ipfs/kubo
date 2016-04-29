@@ -93,7 +93,7 @@ func New(options Options) *Cors {
 	}
 
 	// Normalize options
-	// Note: for origins and methods matching, the spec requires a case-sensitive matching.
+	// NOTE: For origins and methods matching, the spec requires a case-sensitive matching.
 	// As it may error prone, we chose to ignore the spec here.
 
 	// Allowed Origins
