@@ -35,52 +35,66 @@ func statusStr(status int) string {
 }
 
 type ListRes struct {
-	Key []byte
-	DataObj
+	Key ds.Key
+	*DataObj
 	Status int
 }
 
+func (r *ListRes) MHash() string {
+	return b58.Encode(r.Key.Bytes()[1:])
+}
+
+func (r *ListRes) RawHash() []byte {
+	return r.Key.Bytes()[1:]
+}
+
 func (r *ListRes) Format() string {
-	mhash := b58.Encode(r.Key)
+	mhash := r.MHash()
 	return fmt.Sprintf("%s%s %s\n", statusStr(r.Status), mhash, r.DataObj.Format())
 }
 
-func list(d *Datastore, out chan<- *ListRes, verify bool) error {
+func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
 	qr, err := d.Query(query.Query{KeysOnly: true})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for r := range qr.Next() {
-		if r.Error != nil {
-			return r.Error
-		}
-		key := ds.NewKey(r.Key)
-		val, _ := d.GetDirect(key)
-		status := 0
-		if verify {
-			if !val.NoBlockData {
-				continue
+
+	bufSize := 128
+	if keysOnly {
+		bufSize = 1024
+	}
+	out := make (chan ListRes, bufSize)
+
+	go func() {
+		defer close(out)
+		for r := range qr.Next() {
+			if r.Error != nil {
+				return // FIXMEx
 			}
-			_, err := d.GetData(key, val, true)
-			if err == nil {
-				status = StatusOk
-			} else if os.IsNotExist(err) {
-				status = StatusMissing
-			} else if _, ok := err.(InvalidBlock); ok || err == io.EOF || err == io.ErrUnexpectedEOF {
-				status = StatusChanged
+			key := ds.NewKey(r.Key)
+			if (keysOnly) {
+				out <- ListRes{key, nil, 0}
 			} else {
-				status = StatusError
+				val, _ := d.GetDirect(key)
+				out <- ListRes{key, val, 0}
 			}
 		}
-		out <- &ListRes{key.Bytes()[1:], val.StripData(), status}
+	}()
+	return out, nil
+}
+
+func Verify(d *Datastore, key ds.Key, val *DataObj) int {
+	status := 0
+	_, err := d.GetData(key, val, true)
+	if err == nil {
+		status = StatusOk
+	} else if os.IsNotExist(err) {
+		status = StatusMissing
+	} else if _, ok := err.(InvalidBlock); ok || err == io.EOF || err == io.ErrUnexpectedEOF {
+		status = StatusChanged
+	} else {
+		status = StatusError
 	}
-	return nil
+	return status
 }
 
-func List(d *Datastore, out chan<- *ListRes) error {
-	return list(d, out, false)
-}
-
-func Verify(d *Datastore, out chan<- *ListRes) error {
-	return list(d, out, true)
-}

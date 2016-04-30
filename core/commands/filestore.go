@@ -16,31 +16,6 @@ import (
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
-type chanWriter struct {
-	ch       <-chan *filestore.ListRes
-	buf      string
-	offset   int
-	hashOnly bool
-}
-
-func (w *chanWriter) Read(p []byte) (int, error) {
-	if w.offset >= len(w.buf) {
-		w.offset = 0
-		res, more := <-w.ch
-		if !more {
-			return 0, io.EOF
-		}
-		if w.hashOnly {
-			w.buf = b58.Encode(res.Key) + "\n"
-		} else {
-			w.buf = res.Format()
-		}
-	}
-	sz := copy(p, w.buf[w.offset:])
-	w.offset += sz
-	return sz, nil
-}
-
 var FileStoreCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with filestore objects",
@@ -87,18 +62,38 @@ represents the whole file.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch := make(chan *filestore.ListRes)
-		go func() {
-			defer close(ch)
-			filestore.List(fs, ch)
-		}()
-		res.SetOutput(&chanWriter{ch, "", 0, quiet})
+		ch, _ := filestore.List(fs, quiet)
+		res.SetOutput(&chanWriter{ch, "", 0})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			return res.(io.Reader), nil
 		},
 	},
+}
+
+type chanWriter struct {
+	ch     <-chan filestore.ListRes
+	buf    string
+	offset int
+}
+
+func (w *chanWriter) Read(p []byte) (int, error) {
+	if w.offset >= len(w.buf) {
+		w.offset = 0
+		res, more := <-w.ch
+		if !more {
+			return 0, io.EOF
+		}
+		if res.DataObj == nil {
+			w.buf = res.MHash() + "\n"
+		} else {
+			w.buf = res.Format()
+		}
+	}
+	sz := copy(p, w.buf[w.offset:])
+	w.offset += sz
+	return sz, nil
 }
 
 var verifyFileStore = &cmds.Command{
@@ -123,12 +118,19 @@ where <type>, <filepath>, <offset> and <size> are the same as in the
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch := make(chan *filestore.ListRes)
+		ch,_ := filestore.List(fs, false)
+		rdr, wtr := io.Pipe()
 		go func() {
-			defer close(ch)
-			filestore.Verify(fs, ch)
+			defer wtr.Close()
+			for res := range ch {
+				if !res.NoBlockData {
+					continue
+				}
+				res.Status = filestore.Verify(fs, res.Key, res.DataObj)
+				wtr.Write([]byte(res.Format()))
+			}
 		}()
-		res.SetOutput(&chanWriter{ch, "", 0, false})
+		res.SetOutput(rdr)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -226,21 +228,20 @@ blocks that fail to validate regardless of the reason.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch := make(chan *filestore.ListRes)
-		go func() {
-			defer close(ch)
-			filestore.Verify(fs, ch)
-		}()
+		ch,_ := filestore.List(fs, false)
 		rdr, wtr := io.Pipe()
 		go func() {
 			defer wtr.Close()
 			var toDel [][]byte
 			for r := range ch {
+				if !r.NoBlockData {
+					continue
+				}
+				r.Status = filestore.Verify(fs, r.Key, r.DataObj)
 				if r.Status >= level {
-					toDel = append(toDel, r.Key)
-					mhash := b58.Encode(r.Key)
+					toDel = append(toDel, r.RawHash())
 					if !quiet {
-						fmt.Fprintf(wtr, "will delete %s (part of %s)\n", mhash, r.FilePath)
+						fmt.Fprintf(wtr, "will delete %s (part of %s)\n", r.MHash(), r.FilePath)
 					}
 				}
 			}
