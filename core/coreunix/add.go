@@ -109,7 +109,10 @@ type Adder struct {
 // Perform the actual add & pin locally, outputting results to reader
 func (adder Adder) add(reader files.AdvReader) (*dag.Node, error) {
 	if adder.AddOpts != nil {
-		reader.SetExtraInfo(files.PosInfoWaddOpts{reader.ExtraInfo(), adder.AddOpts})
+		err := reader.SetExtraInfo(files.PosInfoWaddOpts{reader.ExtraInfo(), adder.AddOpts})
+		if err != nil {
+			return nil, err
+		}
 	}
 	chnk, err := chunk.FromString(reader, adder.Chunker)
 	if err != nil {
@@ -542,6 +545,6 @@ func (i *progressReader) ExtraInfo() files.ExtraInfo {
 	return i.reader.ExtraInfo()
 }
 
-func (i *progressReader) SetExtraInfo(info files.ExtraInfo) {
-	i.reader.SetExtraInfo(info)
+func (i *progressReader) SetExtraInfo(info files.ExtraInfo) error {
+	return i.reader.SetExtraInfo(info)
 }

@@ -41,8 +41,9 @@ func (f *ReaderFile) ExtraInfo() ExtraInfo {
 	return f.baseInfo.Clone(f.offset)
 }
 
-func (f *ReaderFile) SetExtraInfo(info ExtraInfo) {
+func (f *ReaderFile) SetExtraInfo(info ExtraInfo) error {
 	f.baseInfo = info
+	return nil
 }
 
 func (f *ReaderFile) Read(p []byte) (int, error) {

@@ -16,7 +16,7 @@ var (
 type AdvReader interface {
 	io.Reader
 	ExtraInfo() ExtraInfo
-	SetExtraInfo(inf ExtraInfo)
+	SetExtraInfo(inf ExtraInfo) error
 }
 
 type ExtraInfo interface {
@@ -45,9 +45,13 @@ type advReaderAdapter struct {
 	io.Reader
 }
 
-func (advReaderAdapter) ExtraInfo() ExtraInfo { return nil }
+func (advReaderAdapter) ExtraInfo() ExtraInfo {
+	return nil
+}
 
-func (advReaderAdapter) SetExtraInfo(_ ExtraInfo) {}
+func (advReaderAdapter) SetExtraInfo(_ ExtraInfo) error {
+	return errors.New("Reader does not support setting ExtraInfo.")
+}
 
 func AdvReaderAdapter(r io.Reader) AdvReader {
 	switch t := r.(type) {
