@@ -14,7 +14,10 @@ GOFLAGS =
 
 all: deps
 
-deps: bins
+global-deps:
+	make -C .. deps
+
+deps: global-deps bins
 
 clean:
 	rm $(BINS)
