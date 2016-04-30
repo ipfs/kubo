@@ -61,8 +61,13 @@
       "version": "0.0.0"
     },
     {
-      "name": "iptb",
       "hash": "QmccSTNEUYSJsDSHZj3uKS3pPYCRXCNxr4X8Ub1TQyKPsZ",
+      "name": "iptb",
+      "version": "0.0.0"
+    },
+    {
+      "hash": "QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku",
+      "name": "go-multihash",
       "version": "0.0.0"
     }
   ],
