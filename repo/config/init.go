@@ -29,7 +29,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	conf := &Config{
 
 		// setup the node's default addresses.
-		// Note: two swarm listen addrs, one tcp, one utp.
+		// NOTE: two swarm listen addrs, one tcp, one utp.
 		Addresses: Addresses{
 			Swarm: []string{
 				"/ip4/0.0.0.0/tcp/4001",

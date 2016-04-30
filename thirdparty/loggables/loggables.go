@@ -2,7 +2,7 @@
 // commonplace/stdlib objects. This is boilerplate code that shouldn't change
 // much, and not sprinkled all over the place (i.e. gather it here).
 //
-// Note: it may make sense to put all stdlib Loggable functions in the eventlog
+// NOTE: it may make sense to put all stdlib Loggable functions in the eventlog
 // package. Putting it here for now in case we don't want to pollute it.
 package loggables
 

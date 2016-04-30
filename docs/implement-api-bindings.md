@@ -31,7 +31,7 @@ In the commandline, IPFS uses a traditional flag and arg-based mapping, where:
 - the rest are positional arguments - e.g. `ipfs object patch <hash1> add-link foo <hash2>`
 - files are specified by filename, or through stdin
 
-(NOTE: when go-ipfs runs the daemon, the CLI API is actually converted to HTTP calls. otherwise, they execute in the same process)
+(NOTE: When go-ipfs runs the daemon, the CLI API is actually converted to HTTP calls. otherwise, they execute in the same process)
 
 ### HTTP API Transport
 
@@ -47,7 +47,7 @@ In HTTP, our API layering uses a REST-like mapping, where:
 
 There is a "standard IPFS API" with a set of commands, which we are documenting clearly soon. But this is not yet extracted into its own document. Perhaps -- as part of this API Bindings effort -- we can document it all. It is currently defined as "all the commands exposed by the go-ipfs implementation". You can see [a listing here](https://github.com/ipfs/go-ipfs/blob/916f987de2c35db71815b54bbb9a0a71df829838/core/commands/root.go#L82-L111), or by running `ipfs commands` locally. **The good news is: we should be able to easily write a program that outputs a markdown API specification!**
 
-(Note: the go-ipfs [commands library](https://github.com/ipfs/go-ipfs/tree/916f987de2c35db71815b54bbb9a0a71df829838/commands) also makes sure to keep the CLI and the HTTP API exactly in sync.)
+(NOTE: The go-ipfs [commands library](https://github.com/ipfs/go-ipfs/tree/916f987de2c35db71815b54bbb9a0a71df829838/commands) also makes sure to keep the CLI and the HTTP API exactly in sync.)
 
 ## Implementing bindings for the HTTP API
 

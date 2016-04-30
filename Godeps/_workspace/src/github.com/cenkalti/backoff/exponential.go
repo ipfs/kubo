@@ -19,13 +19,13 @@ percentage below and above the retry interval. For example, using 2 seconds as t
 interval and 0.5 as the randomization factor, the actual back off period used in the next retry
 attempt will be between 1 and 3 seconds.
 
-Note: max_interval caps the retry_interval and not the randomized_interval.
+NOTE: max_interval caps the retry_interval and not the randomized_interval.
 
 If the time elapsed since an ExponentialBackOff instance is created goes past the
 max_elapsed_time then the method NextBackOff() starts returning backoff.Stop.
 The elapsed time can be reset by calling Reset().
 
-Example: The default retry_interval is .5 seconds, default randomization_factor is 0.5, default
+EXAMPLE: The default retry_interval is .5 seconds, default randomization_factor is 0.5, default
 multiplier is 1.5 and the default max_interval is 1 minute. For 10 tries the sequence will be
 (values in seconds) and assuming we go over the max_elapsed_time on the 10th try:
 

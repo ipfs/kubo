@@ -33,7 +33,7 @@ func NewDatastore(path string, opts *Options) (*datastore, error) {
 
 // Returns ErrInvalidType if value is not of type []byte.
 //
-// Note: using sync = false.
+// NOTE: Using sync = false.
 // see http://godoc.org/github.com/syndtr/goleveldb/leveldb/opt#WriteOptions
 func (d *datastore) Put(key ds.Key, value interface{}) (err error) {
 	val, ok := value.([]byte)

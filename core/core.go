@@ -323,7 +323,7 @@ func (n *IpfsNode) teardown() error {
 	// regardless of which constructor was used to add them to the node.
 	var closers []io.Closer
 
-	// NOTE: the order that objects are added(closed) matters, if an object
+	// NOTE: The order that objects are added(closed) matters, if an object
 	// needs to use another during its shutdown/cleanup process, it should be
 	// closed before that other object
 

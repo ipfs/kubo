@@ -40,7 +40,7 @@ with the following format:
 
   <link base58 hash>
 
-Note: List all references recursively by using the flag '-r'.
+NOTE: List all references recursively by using the flag '-r'.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{

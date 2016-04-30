@@ -154,7 +154,7 @@ var errInvalidRecord = errors.New("received invalid record")
 
 // getValueOrPeers queries a particular peer p for the value for
 // key. It returns either the value or a list of closer peers.
-// NOTE: it will update the dht's peerstore with any new addresses
+// NOTE: It will update the dht's peerstore with any new addresses
 // it finds for the given peer.
 func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 	key key.Key) (*pb.Record, []peer.PeerInfo, error) {
