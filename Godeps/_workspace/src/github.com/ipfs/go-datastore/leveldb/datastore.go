@@ -59,11 +59,17 @@ func (d *datastore) Has(key ds.Key) (exists bool, err error) {
 }
 
 func (d *datastore) Delete(key ds.Key) (err error) {
-	err = d.DB.Delete(key.Bytes(), nil)
-	if err == leveldb.ErrNotFound {
+	// leveldb Delete will not return an error if the key doesn't
+	// exist (see https://github.com/syndtr/goleveldb/issues/109),
+	// so check that the key exists first and if not return an
+	// error
+	exists, err := d.DB.Has(key.Bytes(), nil)
+	if !exists {
 		return ds.ErrNotFound
+	} else if err != nil {
+		return err
 	}
-	return err
+	return d.DB.Delete(key.Bytes(), nil)
 }
 
 func (d *datastore) Query(q dsq.Query) (dsq.Results, error) {
