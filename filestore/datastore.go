@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	//"bytes"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
@@ -110,6 +111,8 @@ func (e InvalidBlock) Error() string {
 	return "Datastore: Block Verification Failed"
 }
 
+const useFastReconstruct = true
+
 // Get the orignal data out of the DataObj
 func (d *Datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, error) {
 	if val == nil {
@@ -123,12 +126,17 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, erro
 		if err != nil {
 			return nil, err
 		}
-		buf := make([]byte, val.Size)
-		_, err = io.ReadFull(file, buf)
-		if err != nil {
-			return nil, err
+		var data []byte
+		if useFastReconstruct {
+			data, err = reconstructDirect(val.Data, file, val.Size)
+		} else {
+			buf := make([]byte, val.Size)
+			_, err = io.ReadFull(file, buf)
+			if err != nil {
+				return nil, err
+			}
+			data, err = reconstruct(val.Data, buf)
 		}
-		data, err := reconstruct(val.Data, buf)
 		if err != nil {
 			return nil, err
 		}
