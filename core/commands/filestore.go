@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	//ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -118,7 +119,7 @@ where <type>, <filepath>, <offset> and <size> are the same as in the
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch,_ := filestore.List(fs, false)
+		ch, _ := filestore.List(fs, false)
 		rdr, wtr := io.Pipe()
 		go func() {
 			defer wtr.Close()
@@ -146,6 +147,9 @@ var rmFilestoreObjs = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("hash", true, true, "Multi-hashes to remove."),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("quiet", "q", "Produce less output."),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
 		_ = fs
@@ -153,22 +157,40 @@ var rmFilestoreObjs = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		hashes := req.Arguments()
-		serr := res.Stderr()
-		numErrors := 0
-		for _, mhash := range hashes {
-			key := k.B58KeyDecode(mhash)
-			err = delFilestoreObj(req, node, fs, key)
-			if err != nil {
-				fmt.Fprintf(serr, "Error deleting %s: %s\n", mhash, err.Error())
-				numErrors += 1
-			}
-		}
-		if numErrors > 0 {
-			res.SetError(errors.New("Could not delete some keys"), cmds.ErrNormal)
+		quiet, _, err := res.Request().Option("quiet").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		hashes := req.Arguments()
+		rdr, wtr := io.Pipe()
+		var rmWtr io.Writer = wtr
+		if quiet {
+			rmWtr = ioutil.Discard
+		}
+		go func() {
+			numErrors := 0
+			for _, mhash := range hashes {
+				key := k.B58KeyDecode(mhash)
+				err = delFilestoreObj(req, rmWtr, node, fs, key)
+				if err != nil {
+					fmt.Fprintf(wtr, "Error deleting %s: %s\n", mhash, err.Error())
+					numErrors += 1
+				}
+			}
+			if numErrors > 0 {
+				wtr.CloseWithError(errors.New("Could not delete some keys."))
+				return
+			}
+			wtr.Close()
+		}()
+		res.SetOutput(rdr)
 		return
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
 	},
 }
 
@@ -228,10 +250,13 @@ blocks that fail to validate regardless of the reason.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch,_ := filestore.List(fs, false)
+		ch, _ := filestore.List(fs, false)
 		rdr, wtr := io.Pipe()
+		var rmWtr io.Writer = wtr
+		if quiet {
+			rmWtr = ioutil.Discard
+		}
 		go func() {
-			defer wtr.Close()
 			var toDel [][]byte
 			for r := range ch {
 				if !r.NoBlockData {
@@ -250,17 +275,18 @@ blocks that fail to validate regardless of the reason.
 				fmt.Fprintf(wtr, "Would of deleted %d invalid objects.\n", len(toDel))
 			} else {
 				for _, key := range toDel {
-					err = delFilestoreObj(req, node, fs, k.Key(key))
+					err = delFilestoreObj(req, rmWtr, node, fs, k.Key(key))
 					if err != nil {
 						mhash := b58.Encode(key)
 						msg := fmt.Sprintf("Could not delete %s: %s\n", mhash, err.Error())
-						res.SetError(errors.New(msg), cmds.ErrNormal)
+						wtr.CloseWithError(errors.New(msg))
 						return
 
 					}
 				}
 				fmt.Fprintf(wtr, "Deleted %d invalid objects.\n", len(toDel))
 			}
+			wtr.Close()
 		}()
 		res.SetOutput(rdr)
 		return
@@ -272,7 +298,7 @@ blocks that fail to validate regardless of the reason.
 	},
 }
 
-func delFilestoreObj(req cmds.Request, node *core.IpfsNode, fs *filestore.Datastore, key k.Key) error {
+func delFilestoreObj(req cmds.Request, out io.Writer, node *core.IpfsNode, fs *filestore.Datastore, key k.Key) error {
 	err := fs.DeleteDirect(key.DsKey())
 	if err != nil {
 		return err
@@ -281,6 +307,7 @@ func delFilestoreObj(req cmds.Request, node *core.IpfsNode, fs *filestore.Datast
 	if err != nil {
 		return err
 	}
+	fmt.Fprintf(out, "Deleted %s\n", key)
 	if stillExists {
 		return nil
 	}
@@ -293,7 +320,6 @@ func delFilestoreObj(req cmds.Request, node *core.IpfsNode, fs *filestore.Datast
 		return err
 	}
 	if pinned1 || pinned2 {
-		println("unpinning")
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		err = node.Pinning.Unpin(ctx, key, true)
@@ -304,6 +330,7 @@ func delFilestoreObj(req cmds.Request, node *core.IpfsNode, fs *filestore.Datast
 		if err != nil {
 			return err
 		}
+		fmt.Fprintf(out, "Unpinned %s\n", key)
 	}
 	return nil
 }
