@@ -6,8 +6,12 @@ message DataObj {
         optional uint64 Size = 3;
         optional bytes Data = 4;
 
+        // fields 5 - 7 are no longer used and may eventually be removed
         optional bool NoBlockData = 5;
         optional bool WholeFile = 6;
         optional bool FileRoot = 7;
+
+        optional uint64 Flags = 8;
+        optional double Modtime = 9;
 }
 

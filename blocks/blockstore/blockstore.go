@@ -138,11 +138,10 @@ func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block) interface{} {
 			Size:     fsBlock.Size,
 		}
 		if fsBlock.AltData == nil {
-			d.WholeFile = true
-			d.FileRoot = true
+			d.Flags |= filestore.WholeFile | filestore.FileRoot
 			d.Data = block.Data()
 		} else {
-			d.NoBlockData = true
+			d.Flags |= filestore.NoBlockData
 			d.Data = fsBlock.AltData
 		}
 		return &filestore.DataWOpts{d, fsBlock.AddOpts}

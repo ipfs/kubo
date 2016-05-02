@@ -124,7 +124,7 @@ where <type>, <filepath>, <offset> and <size> are the same as in the
 		go func() {
 			defer wtr.Close()
 			for res := range ch {
-				if !res.NoBlockData {
+				if !res.NoBlockData() {
 					continue
 				}
 				res.Status = filestore.Verify(fs, res.Key, res.DataObj)
@@ -259,7 +259,7 @@ blocks that fail to validate regardless of the reason.
 		go func() {
 			var toDel [][]byte
 			for r := range ch {
-				if !r.NoBlockData {
+				if !r.NoBlockData() {
 					continue
 				}
 				r.Status = filestore.Verify(fs, r.Key, r.DataObj)

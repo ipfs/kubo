@@ -18,38 +18,53 @@ const (
 	AddLink   = 2
 )
 
-type DataObj struct {
+const (
 	// If NoBlockData is true the Data is missing the Block data
 	// as that is provided by the underlying file
-	NoBlockData bool
+	NoBlockData = 1
 	// If WholeFile is true the Data object represents a complete
 	// file and Size is the size of the file
-	WholeFile bool
+	WholeFile = 2
 	// If the node represents the file root, implies WholeFile
-	FileRoot bool
+	FileRoot = 4
+	// If the block was determined to no longer be valid
+	Invalid = 8
+)
+
+type DataObj struct {
+	Flags uint64
 	// The path to the file that holds the data for the object, an
 	// empty string if there is no underlying file
 	FilePath string
 	Offset   uint64
 	Size     uint64
+	Modtime  float64
 	Data     []byte
 }
 
+func (d *DataObj) NoBlockData() bool { return d.Flags&NoBlockData != 0 }
+
+func (d *DataObj) WholeFile() bool { return d.Flags&WholeFile != 0 }
+
+func (d *DataObj) FileRoot() bool { return d.Flags&FileRoot != 0 }
+
+func (d *DataObj) Ivalid() bool { return d.Flags&Invalid != 0 }
+
+
 func (d *DataObj) StripData() DataObj {
 	return DataObj{
-		d.NoBlockData, d.WholeFile, d.FileRoot,
-		d.FilePath, d.Offset, d.Size, nil,
+		d.Flags, d.FilePath, d.Offset, d.Size, d.Modtime, nil,
 	}
 }
 
 func (d *DataObj) Format() string {
 	offset := fmt.Sprintf("%d", d.Offset)
-	if d.WholeFile {
+	if d.WholeFile() {
 		offset = "-"
 	}
-	if d.NoBlockData {
+	if d.NoBlockData() {
 		return fmt.Sprintf("leaf  %s %s %d", d.FilePath, offset, d.Size)
-	} else if d.FileRoot {
+	} else if d.FileRoot() {
 		return fmt.Sprintf("root  %s %s %d", d.FilePath, offset, d.Size)
 	} else {
 		return fmt.Sprintf("other %s %s %d", d.FilePath, offset, d.Size)
@@ -59,16 +74,8 @@ func (d *DataObj) Format() string {
 func (d *DataObj) Marshal() ([]byte, error) {
 	pd := new(pb.DataObj)
 
-	if d.NoBlockData {
-		pd.NoBlockData = &d.NoBlockData
-	}
-	if d.WholeFile {
-		pd.WholeFile = &d.WholeFile
-	}
-	if d.FileRoot {
-		pd.FileRoot = &d.FileRoot
-		pd.WholeFile = nil
-	}
+	pd.Flags = &d.Flags
+
 	if d.FilePath != "" {
 		pd.FilePath = &d.FilePath
 	}
@@ -82,6 +89,10 @@ func (d *DataObj) Marshal() ([]byte, error) {
 		pd.Data = d.Data
 	}
 
+	if d.Modtime != 0.0 {
+		pd.Modtime = &d.Modtime
+	}
+
 	return pd.Marshal()
 }
 
@@ -92,18 +103,21 @@ func (d *DataObj) Unmarshal(data []byte) error {
 		panic(err)
 	}
 
-	if pd.NoBlockData != nil {
-		d.NoBlockData = *pd.NoBlockData
+	if pd.Flags != nil {
+		d.Flags = *pd.Flags
 	}
-	if pd.WholeFile != nil {
-		d.WholeFile = *pd.WholeFile
+
+	if pd.NoBlockData != nil && *pd.NoBlockData {
+		d.Flags |= NoBlockData
 	}
-	if pd.FileRoot != nil {
-		d.FileRoot = *pd.FileRoot
-		if d.FileRoot {
-			d.WholeFile = true
-		}
+	if pd.WholeFile != nil && *pd.WholeFile {
+		d.Flags |= WholeFile
 	}
+	if pd.FileRoot != nil && *pd.FileRoot {
+		d.Flags |= FileRoot
+		d.Flags |= WholeFile
+	}
+	
 	if pd.FilePath != nil {
 		d.FilePath = *pd.FilePath
 	}
@@ -115,6 +129,10 @@ func (d *DataObj) Unmarshal(data []byte) error {
 	}
 	if pd.Data != nil {
 		d.Data = pd.Data
+	}
+
+	if pd.Modtime != nil {
+		d.Modtime = *pd.Modtime
 	}
 
 	return nil

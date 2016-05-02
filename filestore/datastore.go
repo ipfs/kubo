@@ -54,14 +54,14 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 	}
 
 	// See if we have the whole file in the block
-	if dataObj.Offset == 0 && !dataObj.WholeFile {
+	if dataObj.Offset == 0 && !dataObj.WholeFile() {
 		// Get the file size
 		info, err := file.Stat()
 		if err != nil {
 			return err
 		}
 		if dataObj.Size == uint64(info.Size()) {
-			dataObj.WholeFile = true
+			dataObj.Flags |= WholeFile
 		}
 	}
 
@@ -117,7 +117,7 @@ const useFastReconstruct = true
 func (d *Datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, error) {
 	if val == nil {
 		return nil, errors.New("Nil DataObj")
-	} else if val.NoBlockData {
+	} else if val.NoBlockData() {
 		file, err := os.Open(val.FilePath)
 		if err != nil {
 			return nil, err

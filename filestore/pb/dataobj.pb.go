@@ -25,14 +25,16 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 type DataObj struct {
-	FilePath         *string `protobuf:"bytes,1,opt,name=FilePath" json:"FilePath,omitempty"`
-	Offset           *uint64 `protobuf:"varint,2,opt,name=Offset" json:"Offset,omitempty"`
-	Size_            *uint64 `protobuf:"varint,3,opt,name=Size" json:"Size,omitempty"`
-	Data             []byte  `protobuf:"bytes,4,opt,name=Data" json:"Data,omitempty"`
-	NoBlockData      *bool   `protobuf:"varint,5,opt,name=NoBlockData" json:"NoBlockData,omitempty"`
-	WholeFile        *bool   `protobuf:"varint,6,opt,name=WholeFile" json:"WholeFile,omitempty"`
-	FileRoot         *bool   `protobuf:"varint,7,opt,name=FileRoot" json:"FileRoot,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	FilePath         *string  `protobuf:"bytes,1,opt,name=FilePath" json:"FilePath,omitempty"`
+	Offset           *uint64  `protobuf:"varint,2,opt,name=Offset" json:"Offset,omitempty"`
+	Size_            *uint64  `protobuf:"varint,3,opt,name=Size" json:"Size,omitempty"`
+	Data             []byte   `protobuf:"bytes,4,opt,name=Data" json:"Data,omitempty"`
+	NoBlockData      *bool    `protobuf:"varint,5,opt,name=NoBlockData" json:"NoBlockData,omitempty"`
+	WholeFile        *bool    `protobuf:"varint,6,opt,name=WholeFile" json:"WholeFile,omitempty"`
+	FileRoot         *bool    `protobuf:"varint,7,opt,name=FileRoot" json:"FileRoot,omitempty"`
+	Flags            *uint64  `protobuf:"varint,8,opt,name=Flags" json:"Flags,omitempty"`
+	Modtime          *float64 `protobuf:"fixed64,9,opt,name=Modtime" json:"Modtime,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
 }
 
 func (m *DataObj) Reset()         { *m = DataObj{} }
@@ -86,6 +88,20 @@ func (m *DataObj) GetFileRoot() bool {
 		return *m.FileRoot
 	}
 	return false
+}
+
+func (m *DataObj) GetFlags() uint64 {
+	if m != nil && m.Flags != nil {
+		return *m.Flags
+	}
+	return 0
+}
+
+func (m *DataObj) GetModtime() float64 {
+	if m != nil && m.Modtime != nil {
+		return *m.Modtime
+	}
+	return 0
 }
 
 func init() {
@@ -158,6 +174,16 @@ func (m *DataObj) MarshalTo(data []byte) (int, error) {
 		}
 		i++
 	}
+	if m.Flags != nil {
+		data[i] = 0x40
+		i++
+		i = encodeVarintDataobj(data, i, uint64(*m.Flags))
+	}
+	if m.Modtime != nil {
+		data[i] = 0x49
+		i++
+		i = encodeFixed64Dataobj(data, i, uint64(math.Float64bits(*m.Modtime)))
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}
@@ -216,6 +242,12 @@ func (m *DataObj) Size() (n int) {
 	}
 	if m.FileRoot != nil {
 		n += 2
+	}
+	if m.Flags != nil {
+		n += 1 + sovDataobj(uint64(*m.Flags))
+	}
+	if m.Modtime != nil {
+		n += 9
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -426,6 +458,45 @@ func (m *DataObj) Unmarshal(data []byte) error {
 			}
 			b := bool(v != 0)
 			m.FileRoot = &b
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Flags", wireType)
+			}
+			var v uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDataobj
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Flags = &v
+		case 9:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Modtime", wireType)
+			}
+			var v uint64
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += 8
+			v = uint64(data[iNdEx-8])
+			v |= uint64(data[iNdEx-7]) << 8
+			v |= uint64(data[iNdEx-6]) << 16
+			v |= uint64(data[iNdEx-5]) << 24
+			v |= uint64(data[iNdEx-4]) << 32
+			v |= uint64(data[iNdEx-3]) << 40
+			v |= uint64(data[iNdEx-2]) << 48
+			v |= uint64(data[iNdEx-1]) << 56
+			v2 := float64(math.Float64frombits(v))
+			m.Modtime = &v2
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDataobj(data[iNdEx:])
