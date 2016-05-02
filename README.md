@@ -55,7 +55,7 @@ From there:
 
 ### Build from Source
 
-There are separate instructions for [building from source on windows](https://gist.github.com/drwasho/ca224cbd4a21440f7cc1245e594398e4)
+There are separate instructions for [building from source on Windows](https://gist.github.com/drwasho/ca224cbd4a21440f7cc1245e594398e4).
 
 #### Install Go
 
