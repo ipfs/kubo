@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	//"bytes"
+	//"time"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
@@ -14,13 +15,19 @@ import (
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
+const (
+	VerifyNever     = 0
+	VerifyIfChanged = 1
+	VerifyAlways    = 2
+)
+
 type Datastore struct {
-	ds           ds.Datastore
-	alwaysVerify bool
+	ds     ds.Datastore
+	verify int
 }
 
 func New(d ds.Datastore, fileStorePath string) (*Datastore, error) {
-	return &Datastore{d, true}, nil
+	return &Datastore{d, VerifyIfChanged}, nil
 }
 
 func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
@@ -67,6 +74,10 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 
 	file.Close()
 
+	return d.put(key, dataObj)
+}
+
+func (d *Datastore) put(key ds.Key, dataObj *DataObj) (err error) {
 	data, err := dataObj.Marshal()
 	if err != nil {
 		return err
@@ -83,7 +94,7 @@ func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return d.GetData(key, val, d.alwaysVerify)
+	return d.GetData(key, val, d.verify, true)
 }
 
 // Get the key as a DataObj
@@ -114,7 +125,7 @@ func (e InvalidBlock) Error() string {
 const useFastReconstruct = true
 
 // Get the orignal data out of the DataObj
-func (d *Datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, error) {
+func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) ([]byte, error) {
 	if val == nil {
 		return nil, errors.New("Nil DataObj")
 	} else if val.NoBlockData() {
@@ -137,16 +148,36 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify bool) ([]byte, erro
 			}
 			data, err = reconstruct(val.Data, buf)
 		}
-		if err != nil {
+		if err != nil  && err != io.EOF && err != io.ErrUnexpectedEOF {
 			return nil, err
 		}
-		if verify {
-			newKey := k.Key(u.Hash(data)).DsKey()
-			if newKey != key {
-				return nil, InvalidBlock{}
+		modtime := val.ModTime
+		if update || verify == VerifyIfChanged {
+			fileInfo, err := file.Stat()
+			if err != nil {
+				return nil, err
 			}
+			modtime = FromTime(fileInfo.ModTime())
 		}
-		return data, nil
+		invalid := val.Invalid() || err != nil
+		if err == nil && (verify == VerifyAlways || (verify == VerifyIfChanged && modtime != val.ModTime)) {
+			//println("verifying")
+			newKey := k.Key(u.Hash(data)).DsKey()
+			invalid = newKey != key
+		}
+		if update && (invalid != val.Invalid() || modtime != val.ModTime) {
+			println("updating")
+			newVal := *val
+			newVal.SetInvalid(invalid)
+			newVal.ModTime = modtime
+			// ignore errors as they are nonfatal
+			_ = d.put(key, &newVal)
+		}
+		if invalid {
+			return nil, InvalidBlock{}
+		} else {
+			return data, nil
+		}
 	} else {
 		return val.Data, nil
 	}

@@ -85,7 +85,7 @@ func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
 
 func Verify(d *Datastore, key ds.Key, val *DataObj) int {
 	status := 0
-	_, err := d.GetData(key, val, true)
+	_, err := d.GetData(key, val, VerifyAlways, true)
 	if err == nil {
 		status = StatusOk
 	} else if os.IsNotExist(err) {

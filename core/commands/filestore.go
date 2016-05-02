@@ -37,12 +37,13 @@ var lsFileStore = &cmds.Command{
 		ShortDescription: `
 List objects in the filestore.  If --quiet is specified only the
 hashes are printed, otherwise the fields are as follows:
-  <hash> <type> <filepath> <offset> <size>
+  <hash> <type> <filepath> <offset> <size> <modtime>
 where <type> is one of"
   leaf: to indicate a leaf node where the contents are stored
         to in the file itself
   root: to indicate a root node that represents the whole file
   other: some other kind of node that represent part of a file
+  invld: a leaf node that has been found invalid
 and <filepath> is the part of the file the object represents.  The
 part represented starts at <offset> and continues for <size> bytes.
 If <offset> is the special value "-" than the "leaf" or "root" node
@@ -102,7 +103,7 @@ var verifyFileStore = &cmds.Command{
 		Tagline: "Verify objects in filestore",
 		ShortDescription: `
 Verify leaf nodes in the filestore, the output is:
-  <status> <type> <filepath> <offset> <size>
+  <status> <type> <filepath> <offset> <size> <modtime>
 where <type>, <filepath>, <offset> and <size> are the same as in the
 "ls" command and <status> is one of:
   ok:      If the object is okay

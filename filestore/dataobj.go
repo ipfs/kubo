@@ -3,6 +3,8 @@ package filestore
 import (
 	"fmt"
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
+	"math"
+	"time"
 )
 
 // A hack to get around the fact that the Datastore interface does not
@@ -38,7 +40,7 @@ type DataObj struct {
 	FilePath string
 	Offset   uint64
 	Size     uint64
-	Modtime  float64
+	ModTime  float64
 	Data     []byte
 }
 
@@ -48,12 +50,32 @@ func (d *DataObj) WholeFile() bool { return d.Flags&WholeFile != 0 }
 
 func (d *DataObj) FileRoot() bool { return d.Flags&FileRoot != 0 }
 
-func (d *DataObj) Ivalid() bool { return d.Flags&Invalid != 0 }
+func (d *DataObj) Invalid() bool { return d.Flags&Invalid != 0 }
 
+func (d *DataObj) SetInvalid(val bool) {
+	if val {
+		d.Flags |= Invalid
+	} else {
+		d.Flags &^= Invalid
+	}
+}
+
+func FromTime(t time.Time) float64 {
+	res := float64(t.Unix())
+	if res > 0 {
+		res += float64(t.Nanosecond()) / 1000000000.0
+	}
+	return res
+}
+
+func ToTime(t float64) time.Time {
+	sec, frac := math.Modf(t)
+	return time.Unix(int64(sec), int64(frac*1000000000.0))
+}
 
 func (d *DataObj) StripData() DataObj {
 	return DataObj{
-		d.Flags, d.FilePath, d.Offset, d.Size, d.Modtime, nil,
+		d.Flags, d.FilePath, d.Offset, d.Size, d.ModTime, nil,
 	}
 }
 
@@ -62,8 +84,11 @@ func (d *DataObj) Format() string {
 	if d.WholeFile() {
 		offset = "-"
 	}
-	if d.NoBlockData() {
-		return fmt.Sprintf("leaf  %s %s %d", d.FilePath, offset, d.Size)
+	date := ToTime(d.ModTime).Format("2006-01-02T15:04:05.000Z07:00")
+	if d.Invalid() && d.NoBlockData() {
+		return fmt.Sprintf("invld %s %s %d %s", d.FilePath, offset, d.Size, date)
+	} else if d.NoBlockData() {
+		return fmt.Sprintf("leaf  %s %s %d %s", d.FilePath, offset, d.Size, date)
 	} else if d.FileRoot() {
 		return fmt.Sprintf("root  %s %s %d", d.FilePath, offset, d.Size)
 	} else {
@@ -89,8 +114,8 @@ func (d *DataObj) Marshal() ([]byte, error) {
 		pd.Data = d.Data
 	}
 
-	if d.Modtime != 0.0 {
-		pd.Modtime = &d.Modtime
+	if d.ModTime != 0.0 {
+		pd.Modtime = &d.ModTime
 	}
 
 	return pd.Marshal()
@@ -117,7 +142,7 @@ func (d *DataObj) Unmarshal(data []byte) error {
 		d.Flags |= FileRoot
 		d.Flags |= WholeFile
 	}
-	
+
 	if pd.FilePath != nil {
 		d.FilePath = *pd.FilePath
 	}
@@ -132,7 +157,7 @@ func (d *DataObj) Unmarshal(data []byte) error {
 	}
 
 	if pd.Modtime != nil {
-		d.Modtime = *pd.Modtime
+		d.ModTime = *pd.Modtime
 	}
 
 	return nil
