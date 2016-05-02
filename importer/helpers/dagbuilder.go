@@ -19,7 +19,7 @@ type DagBuilderHelper struct {
 }
 
 func (db *DagBuilderHelper) addOpts() interface{} {
-	if inf, ok := db.posInfo.(files.PosInfoWaddOpts); ok {
+	if inf, ok := db.posInfo.(files.InfoForFilestore); ok {
 		return inf.AddOpts
 	} else {
 		return nil
@@ -115,16 +115,16 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 	}
 
 	node.SetData(data)
-	if db.posInfo != nil {
-		node.SetDataPtr(db.posInfo.AbsPath(), db.posInfo.Offset())
+	if posInfo, ok := db.posInfo.(files.InfoForFilestore); ok {
+		node.SetDataPtr(posInfo.AbsPath(), posInfo.Offset(), posInfo.ModTime)
 	}
 
 	return nil
 }
 
 func (db *DagBuilderHelper) SetAsRoot(node *UnixfsNode) {
-	if db.posInfo != nil {
-		node.SetDataPtr(db.posInfo.AbsPath(), 0)
+	if posInfo, ok := db.posInfo.(files.InfoForFilestore); ok {
+		node.SetDataPtr(posInfo.AbsPath(), 0, posInfo.ModTime)
 		node.SetAsRoot()
 	}
 }

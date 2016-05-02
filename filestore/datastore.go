@@ -166,7 +166,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 			invalid = newKey != key
 		}
 		if update && (invalid != val.Invalid() || modtime != val.ModTime) {
-			println("updating")
+			//println("updating")
 			newVal := *val
 			newVal.SetInvalid(invalid)
 			newVal.ModTime = modtime

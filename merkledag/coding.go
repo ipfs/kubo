@@ -111,7 +111,8 @@ func (n *Node) EncodeDataPtr() (*blocks.DataPtr, error) {
 	bl := &blocks.DataPtr{
 		FilePath: n.DataPtr.FilePath,
 		Offset:   n.DataPtr.Offset,
-		Size:     n.DataPtr.Size}
+		Size:     n.DataPtr.Size,
+		ModTime:  n.DataPtr.ModTime}
 	if n.DataPtr.AltData == nil {
 		return bl, nil
 	}

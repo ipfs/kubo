@@ -1,6 +1,7 @@
 package merkledag
 
 import (
+	"time"
 	"fmt"
 
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
@@ -30,6 +31,7 @@ type DataPtr struct {
 	FilePath string
 	Offset   uint64
 	Size     uint64
+	ModTime  time.Time
 }
 
 // NodeStat is a statistics object for a Node. Mostly sizes.

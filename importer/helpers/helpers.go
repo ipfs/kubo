@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"time"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -42,6 +43,7 @@ type UnixfsNode struct {
 	filePath string
 	offset   int64
 	fileRoot bool
+	modTime  time.Time
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
@@ -121,11 +123,12 @@ func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
 }
-func (n *UnixfsNode) SetDataPtr(filePath string, offset int64) {
+func (n *UnixfsNode) SetDataPtr(filePath string, offset int64, modTime time.Time) {
 	//fmt.Println("SetDataPtr: ", filePath, offset)
 	//debug.PrintStack()
 	n.filePath = filePath
 	n.offset = offset
+	n.modTime = modTime
 }
 func (n *UnixfsNode) SetAsRoot() {
 	n.fileRoot = true
@@ -149,7 +152,8 @@ func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
 				AltData:  d,
 				FilePath: n.filePath,
 				Offset:   uint64(n.offset),
-				Size:     uint64(len(n.ufmt.Data))}
+				Size:     uint64(len(n.ufmt.Data)),
+				ModTime:  n.modTime}
 		} else if n.ufmt.Type == ft.TFile && n.fileRoot {
 			//fmt.Println("We have a root.")
 			// We have a root
@@ -157,7 +161,8 @@ func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
 				AltData:  nil,
 				FilePath: n.filePath,
 				Offset:   0,
-				Size:     n.ufmt.FileSize()}
+				Size:     n.ufmt.FileSize(),
+				ModTime:  n.modTime}
 		} else {
 			// We have something else, nothing to do
 		}

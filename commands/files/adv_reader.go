@@ -3,6 +3,7 @@ package files
 import (
 	"errors"
 	"io"
+	"time"
 )
 
 // An AdvReader is like a Reader but supports getting the current file
@@ -56,11 +57,12 @@ func AdvReaderAdapter(r io.Reader) AdvReader {
 	}
 }
 
-type PosInfoWaddOpts struct {
+type InfoForFilestore struct {
 	ExtraInfo
 	AddOpts interface{}
+	ModTime time.Time
 }
 
-func (i PosInfoWaddOpts) Clone(offset int64) ExtraInfo {
-	return PosInfoWaddOpts{i.ExtraInfo.Clone(offset), i.AddOpts}
+func (i InfoForFilestore) Clone(offset int64) ExtraInfo {
+	return InfoForFilestore{i.ExtraInfo.Clone(offset), i.AddOpts, i.ModTime}
 }

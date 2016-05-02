@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"errors"
 	gopath "path"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
@@ -113,7 +114,18 @@ type Adder struct {
 // Perform the actual add & pin locally, outputting results to reader
 func (adder Adder) add(reader files.AdvReader) (*dag.Node, error) {
 	if adder.AddOpts != nil {
-		err := reader.SetExtraInfo(files.PosInfoWaddOpts{reader.ExtraInfo(), adder.AddOpts})
+		info := reader.ExtraInfo()
+		if info == nil {
+			return nil, errors.New("Reader does not support ExtraInfo.")
+		}
+		// We need to get the ModTime before any part of the
+		// file is read to catch the case when the file is
+		// modified as we are reading it
+		fileInfo, err := os.Stat(info.AbsPath())
+		if err != nil {
+			return nil, err
+		}
+		err = reader.SetExtraInfo(files.InfoForFilestore{info, adder.AddOpts, fileInfo.ModTime()})
 		if err != nil {
 			return nil, err
 		}

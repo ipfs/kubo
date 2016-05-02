@@ -136,6 +136,7 @@ func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block) interface{} {
 			FilePath: fsBlock.FilePath,
 			Offset:   fsBlock.Offset,
 			Size:     fsBlock.Size,
+			ModTime:  filestore.FromTime(fsBlock.ModTime),
 		}
 		if fsBlock.AltData == nil {
 			d.Flags |= filestore.WholeFile | filestore.FileRoot
