@@ -37,6 +37,12 @@ var torchCreateCmd = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		if !n.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
 		n.PubSub.NewTopic(context.Background(), req.Arguments()[0])
 	},
 }
@@ -52,6 +58,11 @@ var torchRmCmd = &cmds.Command{
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if !n.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
 			return
 		}
 
@@ -90,6 +101,11 @@ var torchPublishCmd = &cmds.Command{
 			return
 		}
 
+		if !n.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
 		topic, found, _ := req.Option("topic").String()
 		if !found {
 			res.SetError(fmt.Errorf("no topic specified (use -t)"), cmds.ErrNormal)
@@ -113,15 +129,31 @@ var torchPublishCmd = &cmds.Command{
 var torchWatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "watch for content from a given publisher",
+		ShortDescription: `
+'ipfs torch watch' watches for content from a given publisher/topic.
+Any content they publish to the selected topic will be output.
+
+Example:
+
+   $ ipfs torch watch Qmajxqssk9RtjifqS5NpAvdVT8iPvSxb4zDDRPCYQUUe8E/time
+   10:32:54
+   10:32:55
+   10:32:56
+`,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("id", true, false, ""),
+		cmds.StringArg("topicID", true, false, ""),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if !n.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
 			return
 		}
 
