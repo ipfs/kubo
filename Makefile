@@ -27,8 +27,8 @@ path_check:
 	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(GOPATH)/src/github.com/ipfs/go-ipfs)
 
 gx_check:
-	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
-	@bin/check_gx_program "gx-go" "0.2" 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
+	@bin/check_gx_program "gx" "0.6" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
+	@bin/check_gx_program "gx-go" "1.1" 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
 
 deps: go_check gx_check path_check
 	gx --verbose install --global
