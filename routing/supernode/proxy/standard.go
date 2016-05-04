@@ -14,6 +14,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kbucket "github.com/ipfs/go-ipfs/routing/kbucket"
+	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"
@@ -159,6 +160,7 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 		return nil, err
 	}
 	e.Append(logging.Pair("response", response))
+	e.Append(logging.Pair("uuid", loggables.Uuid("foo")))
 	return response, nil
 }
 

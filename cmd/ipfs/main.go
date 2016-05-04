@@ -32,6 +32,7 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
 )
 
 // log is the command logger
@@ -66,7 +67,7 @@ type cmdInvocation struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	runtime.GOMAXPROCS(3) // FIXME rm arbitrary choice for n
-	ctx := context.Background()
+	ctx := logging.ContextWithLoggable(context.Background(), loggables.Uuid("session"))
 	var err error
 	var invoc cmdInvocation
 	defer invoc.close()
