@@ -4,7 +4,7 @@ package set
 import (
 	"github.com/ipfs/go-ipfs/blocks/bloom"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("blockset")

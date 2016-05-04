@@ -5,7 +5,7 @@ import (
 	"io"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
