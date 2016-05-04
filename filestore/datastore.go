@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	//"runtime/debug"
 	//"bytes"
 	//"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 

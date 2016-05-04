@@ -1,9 +1,11 @@
-package filestore
+package filestore_util
 
 import (
 	"fmt"
 	"io"
 	"os"
+
+	. "github.com/ipfs/go-ipfs/filestore"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
@@ -63,7 +65,7 @@ func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
 	if keysOnly {
 		bufSize = 1024
 	}
-	out := make (chan ListRes, bufSize)
+	out := make(chan ListRes, bufSize)
 
 	go func() {
 		defer close(out)
@@ -72,7 +74,7 @@ func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
 				return // FIXMEx
 			}
 			key := ds.NewKey(r.Key)
-			if (keysOnly) {
+			if keysOnly {
 				out <- ListRes{key, nil, 0}
 			} else {
 				val, _ := d.GetDirect(key)
@@ -83,7 +85,7 @@ func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
 	return out, nil
 }
 
-func Verify(d *Datastore, key ds.Key, val *DataObj) int {
+func verify(d *Datastore, key ds.Key, val *DataObj) int {
 	status := 0
 	_, err := d.GetData(key, val, VerifyAlways, true)
 	if err == nil {
@@ -97,4 +99,3 @@ func Verify(d *Datastore, key ds.Key, val *DataObj) int {
 	}
 	return status
 }
-

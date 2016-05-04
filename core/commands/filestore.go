@@ -12,9 +12,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/filestore"
+	fsutil "github.com/ipfs/go-ipfs/filestore/util"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -64,7 +63,7 @@ represents the whole file.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch, _ := filestore.List(fs, quiet)
+		ch, _ := fsutil.List(fs, quiet)
 		res.SetOutput(&chanWriter{ch, "", 0})
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -75,7 +74,7 @@ represents the whole file.
 }
 
 type chanWriter struct {
-	ch     <-chan filestore.ListRes
+	ch     <-chan fsutil.ListRes
 	buf    string
 	offset int
 }
@@ -120,17 +119,10 @@ where <type>, <filepath>, <offset> and <size> are the same as in the
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch, _ := filestore.List(fs, false)
 		rdr, wtr := io.Pipe()
 		go func() {
-			defer wtr.Close()
-			for res := range ch {
-				if !res.NoBlockData() {
-					continue
-				}
-				res.Status = filestore.Verify(fs, res.Key, res.DataObj)
-				wtr.Write([]byte(res.Format()))
-			}
+			fsutil.VerifyBlocks(wtr, fs)
+			wtr.Close()
 		}()
 		res.SetOutput(rdr)
 	},
@@ -173,7 +165,7 @@ var rmFilestoreObjs = &cmds.Command{
 			numErrors := 0
 			for _, mhash := range hashes {
 				key := k.B58KeyDecode(mhash)
-				err = delFilestoreObj(req, rmWtr, node, fs, key)
+				err = fsutil.Delete(req, rmWtr, node, fs, key)
 				if err != nil {
 					fmt.Fprintf(wtr, "Error deleting %s: %s\n", mhash, err.Error())
 					numErrors += 1
@@ -230,17 +222,6 @@ blocks that fail to validate regardless of the reason.
 			return
 		}
 		mode := req.Arguments()[0]
-		level := filestore.StatusMissing
-		switch mode {
-		case "changed":
-			level = filestore.StatusChanged
-		case "missing":
-			level = filestore.StatusMissing
-		case "all":
-			level = filestore.StatusError
-		default:
-			res.SetError(errors.New("level must be one of: changed missing all"), cmds.ErrNormal)
-		}
 		quiet, _, err := res.Request().Option("quiet").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -251,44 +232,11 @@ blocks that fail to validate regardless of the reason.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch, _ := filestore.List(fs, false)
-		rdr, wtr := io.Pipe()
-		var rmWtr io.Writer = wtr
-		if quiet {
-			rmWtr = ioutil.Discard
+		rdr, err := fsutil.RmInvalid(req, node, fs, mode, quiet, dryRun)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
-		go func() {
-			var toDel [][]byte
-			for r := range ch {
-				if !r.NoBlockData() {
-					continue
-				}
-				r.Status = filestore.Verify(fs, r.Key, r.DataObj)
-				if r.Status >= level {
-					toDel = append(toDel, r.RawHash())
-					if !quiet {
-						fmt.Fprintf(wtr, "will delete %s (part of %s)\n", r.MHash(), r.FilePath)
-					}
-				}
-			}
-			if dryRun {
-				fmt.Fprintf(wtr, "Dry-run option specified.  Stopping.\n")
-				fmt.Fprintf(wtr, "Would of deleted %d invalid objects.\n", len(toDel))
-			} else {
-				for _, key := range toDel {
-					err = delFilestoreObj(req, rmWtr, node, fs, k.Key(key))
-					if err != nil {
-						mhash := b58.Encode(key)
-						msg := fmt.Sprintf("Could not delete %s: %s\n", mhash, err.Error())
-						wtr.CloseWithError(errors.New(msg))
-						return
-
-					}
-				}
-				fmt.Fprintf(wtr, "Deleted %d invalid objects.\n", len(toDel))
-			}
-			wtr.Close()
-		}()
 		res.SetOutput(rdr)
 		return
 	},
@@ -297,43 +245,6 @@ blocks that fail to validate regardless of the reason.
 			return res.(io.Reader), nil
 		},
 	},
-}
-
-func delFilestoreObj(req cmds.Request, out io.Writer, node *core.IpfsNode, fs *filestore.Datastore, key k.Key) error {
-	err := fs.DeleteDirect(key.DsKey())
-	if err != nil {
-		return err
-	}
-	stillExists, err := node.Blockstore.Has(key)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(out, "Deleted %s\n", key)
-	if stillExists {
-		return nil
-	}
-	_, pinned1, err := node.Pinning.IsPinnedWithType(key, "recursive")
-	if err != nil {
-		return err
-	}
-	_, pinned2, err := node.Pinning.IsPinnedWithType(key, "direct")
-	if err != nil {
-		return err
-	}
-	if pinned1 || pinned2 {
-		ctx, cancel := context.WithCancel(req.Context())
-		defer cancel()
-		err = node.Pinning.Unpin(ctx, key, true)
-		if err != nil {
-			return err
-		}
-		err := node.Pinning.Flush()
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "Unpinned %s\n", key)
-	}
-	return nil
 }
 
 func extractFilestore(req cmds.Request) (node *core.IpfsNode, fs *filestore.Datastore, err error) {
