@@ -1,3 +1,7 @@
+# Minimum version numbers for software required to build IPFS
+IPFS_MIN_GO_VERSION = 1.5.2
+IPFS_MIN_GX_VERSION = 0.6
+IPFS_MIN_GX_GO_VERSION = 1.1
 
 ifeq ($(TEST_NO_FUSE),1)
   go_test=go test -tags nofuse
@@ -15,7 +19,7 @@ godep:
 toolkit_upgrade: gx_upgrade gxgo_upgrade
 
 go_check:
-	@bin/check_go_version "1.5.2"
+	@bin/check_go_version $(IPFS_MIN_GO_VERSION)
 
 gx_upgrade:
 	go get -u github.com/whyrusleeping/gx
@@ -27,8 +31,8 @@ path_check:
 	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(GOPATH)/src/github.com/ipfs/go-ipfs)
 
 gx_check:
-	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
-	@bin/check_gx_program "gx-go" "0.2" 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
+	@bin/check_gx_program "gx" $(IPFS_MIN_GX_VERSION) 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
+	@bin/check_gx_program "gx-go" $(IPFS_MIN_GX_GO_VERSION) 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
 
 deps: go_check gx_check path_check
 	gx --verbose install --global
