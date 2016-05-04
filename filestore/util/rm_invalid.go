@@ -14,14 +14,14 @@ import (
 )
 
 func RmInvalid(req cmds.Request, node *core.IpfsNode, fs *Datastore, mode string, quiet bool, dryRun bool) (io.Reader, error) {
-	level := StatusMissing
+	level := StatusFileMissing
 	switch mode {
 	case "changed":
-		level = StatusChanged
+		level = StatusFileChanged
 	case "missing":
-		level = StatusMissing
+		level = StatusFileMissing
 	case "all":
-		level = StatusError
+		level = StatusFileError
 	default:
 		return nil, errors.New("level must be one of: changed missing all")
 	}
@@ -37,7 +37,7 @@ func RmInvalid(req cmds.Request, node *core.IpfsNode, fs *Datastore, mode string
 			if !r.NoBlockData() {
 				continue
 			}
-			r.Status = verify(fs, r.Key, r.DataObj)
+			r.Status = verify(fs, r.Key, r.DataObj, VerifyAlways)
 			if r.Status >= level {
 				toDel = append(toDel, r.RawHash())
 				if !quiet {

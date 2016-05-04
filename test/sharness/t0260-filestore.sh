@@ -127,10 +127,10 @@ test_expect_success "testing filestore ls" '
   ipfs filestore ls -q | LC_ALL=C sort > ls_actual &&
   test_cmp ls_expect ls_actual
 '
-test_expect_success "testing filestore verify" '
-  ipfs filestore verify > verify_actual &&
+test_expect_success "testing filestore verify --basic" '
+  test_must_fail ipfs filestore verify --basic > verify_actual &&
   grep -q "changed  QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" verify_actual &&
-  grep -q "missing  QmQ8jJxa1Ts9fKsyUXcdYRHHUkuhJ69f82CF8BNX14ovLT" verify_actual
+  grep -q "no-file  QmQ8jJxa1Ts9fKsyUXcdYRHHUkuhJ69f82CF8BNX14ovLT" verify_actual
 '
 
 test_expect_success "tesing re-adding file after change" '

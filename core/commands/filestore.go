@@ -36,7 +36,7 @@ var lsFileStore = &cmds.Command{
 		ShortDescription: `
 List objects in the filestore.  If --quiet is specified only the
 hashes are printed, otherwise the fields are as follows:
-  <hash> <type> <filepath> <offset> <size> <modtime>
+  <hash> <type> <filepath> <offset> <size> [<modtime>]
 where <type> is one of"
   leaf: to indicate a leaf node where the contents are stored
         to in the file itself
@@ -64,7 +64,7 @@ represents the whole file.
 			return
 		}
 		ch, _ := fsutil.List(fs, quiet)
-		res.SetOutput(&chanWriter{ch, "", 0})
+		res.SetOutput(&chanWriter{ch, "", 0, false})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -77,20 +77,21 @@ type chanWriter struct {
 	ch     <-chan fsutil.ListRes
 	buf    string
 	offset int
+	errors bool
 }
 
 func (w *chanWriter) Read(p []byte) (int, error) {
 	if w.offset >= len(w.buf) {
 		w.offset = 0
 		res, more := <-w.ch
-		if !more {
+		if !more && !w.errors {
 			return 0, io.EOF
+		} else if !more && w.errors {
+			return 0, errors.New("Some checks failed.")
+		} else if fsutil.AnError(res.Status) {
+			w.errors = true
 		}
-		if res.DataObj == nil {
-			w.buf = res.MHash() + "\n"
-		} else {
-			w.buf = res.Format()
-		}
+		w.buf = res.Format()
 	}
 	sz := copy(p, w.buf[w.offset:])
 	w.offset += sz
@@ -101,30 +102,96 @@ var verifyFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Verify objects in filestore",
 		ShortDescription: `
-Verify leaf nodes in the filestore, the output is:
-  <status> <type> <filepath> <offset> <size> <modtime>
-where <type>, <filepath>, <offset> and <size> are the same as in the
-"ls" command and <status> is one of:
-  ok:      If the object is okay
-  changed: If the object is invalid becuase the contents of the file
+Verify nodes in the filestore.  The output is:
+  <status> [<type> <filepath> <offset> <size> [<modtime>]]
+where <type>, <filepath>, <offset>, <size> and <modtime> are the same
+as in the "ls".  <status> is one of
+  ok:      If the original data can be reconstructed
+  complete: If all the blocks in the tree exists but no attempt was
+            made to reconstruct the original data
+
+  incomplete: Some of the blocks of the tree could not be read
+
+  changed: If the leaf node is invalid because the contents of the file
            have changed
-  missing: If the file can not be found
+  no-file: If the file can not be found
   error:   If the file can be found but could not be read or some
            other error
+
+  ERROR:   The block could not be read due to an internal error
+
+  found:   The child of another node was found outside the filestore
+  missing: The child of another node does not exist
+  <blank>: The child of another node node exists but no attempt was
+           made to verify it
+
+  appended: The node is still valid but the original file was appended
+
+  orphan: This node is a child of another node that was not found in
+          the filestore
+ 
+If --basic is specified then just scan leaf nodes to verify that they
+are still valid.  Otherwise attempt to reconstruct the contents of of
+all nodes and also check for orphan nodes (unless --skip-orphans is
+also specified).
+
+The --level option specifies how thorough the checks should be.  A
+current meaning of the levels are:
+  7-9: always check the contents
+  2-6: check the contents if the modification time differs
+  0-1: only check for the existence of blocks without verifying the
+       contents of leaf nodes
+
+The --verbose option specifies what to output.  The current values are:
+  7-9: show everything
+  5-6: don't show child nodes with a status of: ok, <blank>, or complete
+  3-4: don't show child nodes
+  0-2: don't child nodes and don't show root nodes with of: ok or complete
 `,
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("basic", "Perform a basic scan of leaf nodes only."),
+		cmds.IntOption("level", "l", "0-9, Verification level.").Default(6),
+		cmds.IntOption("verbose", "v", "0-9 Verbose level.").Default(6),
+		cmds.BoolOption("skip-orphans", "Skip check for orphans."),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		_, fs, err := extractFilestore(req)
+		node, fs, err := extractFilestore(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		rdr, wtr := io.Pipe()
-		go func() {
-			fsutil.VerifyBlocks(wtr, fs)
-			wtr.Close()
-		}()
-		res.SetOutput(rdr)
+		basic, _, err := res.Request().Option("basic").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		level, _, err := res.Request().Option("level").Int()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		verbose, _, err := res.Request().Option("verbose").Int()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if level < 0 || level > 9 {
+			res.SetError(errors.New("level must be between 0-9"), cmds.ErrNormal)
+			return
+		}
+		skipOrphans, _, err := res.Request().Option("skip-orphans").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if basic {
+			ch, _ := fsutil.VerifyBasic(fs, level, verbose)
+			res.SetOutput(&chanWriter{ch, "", 0, false})
+		} else {
+			ch, _ := fsutil.VerifyFull(node, fs, level, verbose, skipOrphans)
+			res.SetOutput(&chanWriter{ch, "", 0, false})
+		}
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

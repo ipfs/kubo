@@ -13,11 +13,33 @@ import (
 )
 
 const (
-	StatusOk      = 1
-	StatusError   = 2
-	StatusMissing = 3
-	StatusChanged = 4
+	StatusDefault     = 00 // 00 = default
+	StatusOk          = 01 // 0x means no error, but possible problem
+	StatusFound       = 02 // 02 = Found key, but not in filestore
+	StatusAppended    = 03
+	StatusOrphan      = 04
+	StatusFileError   = 10 // 1x means error with block
+	StatusFileMissing = 11
+	StatusFileChanged = 12
+	StatusIncomplete  = 20 // 2x means error with non-block node
+	StatusError       = 30 // 3x means error with database itself
+	StatusKeyNotFound = 31
+	StatusCorrupt     = 32
+	StatusUnchecked   = 90 // 9x means unchecked
+	StatusComplete    = 91
 )
+
+func AnInternalError(status int) bool {
+	return status == StatusError || status == StatusCorrupt
+}
+
+func AnError(status int) bool {
+	return 10 <= status && status < 90
+}
+
+func OfInterest(status int) bool {
+	return status != StatusOk && status != StatusUnchecked && status != StatusComplete
+}
 
 func statusStr(status int) string {
 	switch status {
@@ -25,12 +47,30 @@ func statusStr(status int) string {
 		return ""
 	case StatusOk:
 		return "ok       "
-	case StatusError:
+	case StatusFound:
+		return "found    "
+	case StatusAppended:
+		return "appended "
+	case StatusOrphan:
+		return "orphan   "
+	case StatusFileError:
 		return "error    "
-	case StatusMissing:
-		return "missing  "
-	case StatusChanged:
+	case StatusFileMissing:
+		return "no-file  "
+	case StatusFileChanged:
 		return "changed  "
+	case StatusIncomplete:
+		return "incomplete "
+	case StatusError:
+		return "ERROR    "
+	case StatusKeyNotFound:
+		return "missing  "
+	case StatusCorrupt:
+		return "ERROR    "
+	case StatusUnchecked:
+		return "         "
+	case StatusComplete:
+		return "complete "
 	default:
 		return "??       "
 	}
@@ -42,6 +82,8 @@ type ListRes struct {
 	Status int
 }
 
+var EmptyListRes = ListRes{ds.NewKey(""), nil, 0}
+
 func (r *ListRes) MHash() string {
 	return b58.Encode(r.Key.Bytes()[1:])
 }
@@ -51,8 +93,15 @@ func (r *ListRes) RawHash() []byte {
 }
 
 func (r *ListRes) Format() string {
+	if string(r.RawHash()) == "" {
+		return "\n"
+	}
 	mhash := r.MHash()
-	return fmt.Sprintf("%s%s %s\n", statusStr(r.Status), mhash, r.DataObj.Format())
+	if r.DataObj == nil {
+		return fmt.Sprintf("%s%s\n", statusStr(r.Status), mhash)
+	} else {
+		return fmt.Sprintf("%s%s %s\n", statusStr(r.Status), mhash, r.DataObj.Format())
+	}
 }
 
 func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
@@ -71,7 +120,7 @@ func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
 		defer close(out)
 		for r := range qr.Next() {
 			if r.Error != nil {
-				return // FIXMEx
+				return // FIXME
 			}
 			key := ds.NewKey(r.Key)
 			if keysOnly {
@@ -85,17 +134,17 @@ func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
 	return out, nil
 }
 
-func verify(d *Datastore, key ds.Key, val *DataObj) int {
+func verify(d *Datastore, key ds.Key, val *DataObj, level int) int {
 	status := 0
-	_, err := d.GetData(key, val, VerifyAlways, true)
+	_, err := d.GetData(key, val, level, true)
 	if err == nil {
 		status = StatusOk
 	} else if os.IsNotExist(err) {
-		status = StatusMissing
+		status = StatusFileMissing
 	} else if _, ok := err.(InvalidBlock); ok || err == io.EOF || err == io.ErrUnexpectedEOF {
-		status = StatusChanged
+		status = StatusFileChanged
 	} else {
-		status = StatusError
+		status = StatusFileError
 	}
 	return status
 }
