@@ -151,15 +151,15 @@ func TestDoesNotDeadLockIfContextCancelledBeforePublish(t *testing.T) {
 	t.Log("publishing the large number of blocks to the ignored channel must not deadlock")
 }
 
-func assertBlockChannelNil(t *testing.T, blockChannel <-chan *blocks.Block) {
+func assertBlockChannelNil(t *testing.T, blockChannel <-chan blocks.Block) {
 	_, ok := <-blockChannel
 	if ok {
 		t.Fail()
 	}
 }
 
-func assertBlocksEqual(t *testing.T, a, b *blocks.Block) {
-	if !bytes.Equal(a.Data, b.Data) {
+func assertBlocksEqual(t *testing.T, a, b blocks.Block) {
+	if !bytes.Equal(a.Data(), b.Data()) {
 		t.Fatal("blocks aren't equal")
 	}
 	if a.Key() != b.Key() {

@@ -34,11 +34,11 @@ func (w *writecache) Has(k key.Key) (bool, error) {
 	return w.blockstore.Has(k)
 }
 
-func (w *writecache) Get(k key.Key) (*blocks.Block, error) {
+func (w *writecache) Get(k key.Key) (blocks.Block, error) {
 	return w.blockstore.Get(k)
 }
 
-func (w *writecache) Put(b *blocks.Block) error {
+func (w *writecache) Put(b blocks.Block) error {
 	k := b.Key()
 	if _, ok := w.cache.Get(k); ok {
 		return nil
@@ -49,8 +49,8 @@ func (w *writecache) Put(b *blocks.Block) error {
 	return w.blockstore.Put(b)
 }
 
-func (w *writecache) PutMany(bs []*blocks.Block) error {
-	var good []*blocks.Block
+func (w *writecache) PutMany(bs []blocks.Block) error {
+	var good []blocks.Block
 	for _, b := range bs {
 		if _, ok := w.cache.Get(b.Key()); !ok {
 			good = append(good, b)

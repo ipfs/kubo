@@ -10,8 +10,8 @@ import (
 const bufferSize = 16
 
 type PubSub interface {
-	Publish(block *blocks.Block)
-	Subscribe(ctx context.Context, keys ...key.Key) <-chan *blocks.Block
+	Publish(block blocks.Block)
+	Subscribe(ctx context.Context, keys ...key.Key) <-chan blocks.Block
 	Shutdown()
 }
 
@@ -23,7 +23,7 @@ type impl struct {
 	wrapped pubsub.PubSub
 }
 
-func (ps *impl) Publish(block *blocks.Block) {
+func (ps *impl) Publish(block blocks.Block) {
 	topic := string(block.Key())
 	ps.wrapped.Pub(block, topic)
 }
@@ -35,9 +35,9 @@ func (ps *impl) Shutdown() {
 // Subscribe returns a channel of blocks for the given |keys|. |blockChannel|
 // is closed if the |ctx| times out or is cancelled, or after sending len(keys)
 // blocks.
-func (ps *impl) Subscribe(ctx context.Context, keys ...key.Key) <-chan *blocks.Block {
+func (ps *impl) Subscribe(ctx context.Context, keys ...key.Key) <-chan blocks.Block {
 
-	blocksCh := make(chan *blocks.Block, len(keys))
+	blocksCh := make(chan blocks.Block, len(keys))
 	valuesCh := make(chan interface{}, len(keys)) // provide our own channel to control buffer, prevent blocking
 	if len(keys) == 0 {
 		close(blocksCh)
@@ -55,7 +55,7 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...key.Key) <-chan *blocks.B
 				if !ok {
 					return
 				}
-				block, ok := val.(*blocks.Block)
+				block, ok := val.(blocks.Block)
 				if !ok {
 					return
 				}
