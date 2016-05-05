@@ -9,9 +9,11 @@ package loggables
 import (
 	"net"
 
+	uuid "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/satori/go.uuid"
+
 	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
 
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 
 	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
 )
@@ -28,6 +30,12 @@ func NetConn(c net.Conn) logging.Loggable {
 func Error(e error) logging.Loggable {
 	return logging.Metadata{
 		"error": e.Error(),
+	}
+}
+
+func Uuid(key string) logging.Metadata {
+	return logging.Metadata{
+		key: uuid.NewV4().String(),
 	}
 }
 

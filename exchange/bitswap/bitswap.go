@@ -8,6 +8,12 @@ import (
 	"sync"
 	"time"
 
+	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
+	procctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
+
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -19,11 +25,7 @@ import (
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
-	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
-	procctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
 )
 
 var log = logging.Logger("bitswap")
@@ -163,7 +165,7 @@ func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (*blocks.Block, e
 
 	ctx, cancelFunc := context.WithCancel(parent)
 
-	ctx = logging.ContextWithLoggable(ctx, logging.Uuid("GetBlockRequest"))
+	ctx = logging.ContextWithLoggable(ctx, loggables.Uuid("GetBlockRequest"))
 	log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
 	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
 

@@ -11,7 +11,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var TaskWorkerCount = 8

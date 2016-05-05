@@ -3,9 +3,11 @@ package commands
 import (
 	"fmt"
 	"io"
+	"strings"
+
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -25,6 +27,7 @@ output of a running daemon.
 
 	Subcommands: map[string]*cmds.Command{
 		"level": logLevelCmd,
+		"ls":    logLsCmd,
 		"tail":  logTailCmd,
 	},
 }
@@ -63,6 +66,24 @@ output of a running daemon.
 		s := fmt.Sprintf("Changed log level of '%s' to '%s'\n", subsystem, level)
 		log.Info(s)
 		res.SetOutput(&MessageOutput{s})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: MessageTextMarshaler,
+	},
+	Type: MessageOutput{},
+}
+
+var logLsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List the logging subsystems.",
+		ShortDescription: `
+'ipfs log ls' is a utility command used to list the logging
+subsystems of a running daemon.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		output := strings.Join(logging.GetSubsystems(), "\n")
+		res.SetOutput(&MessageOutput{output + "\n"})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: MessageTextMarshaler,
