@@ -21,11 +21,10 @@ var FileStoreCmd = &cmds.Command{
 		Tagline: "Interact with filestore objects",
 	},
 	Subcommands: map[string]*cmds.Command{
-		"ls":         lsFileStore,
-		"verify":     verifyFileStore,
-		"rm":         rmFilestoreObjs,
-		"rm-invalid": rmInvalidObjs,
-		//"rm-incomplete":      rmIncompleteObjs,
+		"ls":       lsFileStore,
+		"verify":   verifyFileStore,
+		"rm":       rmFilestoreObjs,
+		"clean":    cleanFileStore,
 		"find-dangling-pins": findDanglingPins,
 	},
 }
@@ -200,6 +199,62 @@ The --verbose option specifies what to output.  The current values are:
 	},
 }
 
+var cleanFileStore = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove invalid or orphan nodes from the filestore.",
+		ShortDescription: `
+Removes invalid or orphan nodes from the filestore as specified by
+<what>.  <what> is the status of a node reported by "verify", it can
+be any of "changed", "no-file", "error", "incomplete", or "orphan".
+"invalid" is an alias for "changed" and "no-file".  "full" is an alias
+for "invalid" "incomplete" and "orphan" (basically remove everything
+but "error").
+
+It does the removal in three passes.  If there is nothing specified to
+be removed in a pass that pass is skipped.  The first pass does a
+"verify --basic" and is used to remove any "changed", "no-file" or "error"
+leaf nodes.  The second pass does a "verify --level 0 --skip-orphans"
+and will is used to remove any "incomplete" nodes due to missing children (the
+"--level 0" only checks for the existence of leaf nodes, but does not
+try to read the content).  The final pass will do a "verify --level 0"
+and is used to remove any "orphan" nodes.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("what", true, true, "any of: changed no-file error incomplete orphan invalid full").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("quiet", "q", "Produce less output."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, fs, err := extractFilestore(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		quiet, _, err := res.Request().Option("quiet").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		//_ = node
+		//ch, err := fsutil.List(fs, quiet)
+		rdr, err := fsutil.Clean(req, node, fs, quiet, req.Arguments()...)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(rdr)
+		//res.SetOutput(&chanWriter{ch, "", 0, false})
+		return
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
+	},
+}
+
 var rmFilestoreObjs = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Remove objects from the filestore",
@@ -244,66 +299,6 @@ var rmFilestoreObjs = &cmds.Command{
 			}
 			wtr.Close()
 		}()
-		res.SetOutput(rdr)
-		return
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			return res.(io.Reader), nil
-		},
-	},
-}
-
-var rmInvalidObjs = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Remove invalid objects from the filestore",
-		ShortDescription: `
-Removes objects that have become invalid from the Filestrore up to the
-reason specified in <level>.  If <level> is "changed" than remove any
-blocks that have become invalid due to the contents of the underlying
-file changing.  If <level> is "missing" also remove any blocks that
-have become invalid because the underlying file is no longer available
-due to a "No such file" or related error, but not if the file exists
-but is unreadable for some reason.  If <level> is "all" remove any
-blocks that fail to validate regardless of the reason.
-`,
-	},
-
-	Arguments: []cmds.Argument{
-		cmds.StringArg("level", true, false, "one of changed, missing. or all").EnableStdin(),
-	},
-	Options: []cmds.Option{
-		cmds.BoolOption("quiet", "q", "Produce less output."),
-		cmds.BoolOption("dry-run", "n", "Do everything except the actual delete."),
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		node, fs, err := extractFilestore(req)
-		_ = fs
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		args := req.Arguments()
-		if len(args) != 1 {
-			res.SetError(errors.New("invalid usage"), cmds.ErrNormal)
-			return
-		}
-		mode := req.Arguments()[0]
-		quiet, _, err := res.Request().Option("quiet").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		dryRun, _, err := res.Request().Option("dry-run").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		rdr, err := fsutil.RmInvalid(req, node, fs, mode, quiet, dryRun)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
 		res.SetOutput(rdr)
 		return
 	},

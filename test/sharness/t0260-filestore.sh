@@ -143,8 +143,8 @@ QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb
 QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
 EOF
 
-test_expect_success "tesing filestore rm-invalid" '
-  ipfs filestore rm-invalid missing > rm-invalid-output &&
+test_expect_success "tesing filestore clean invalid" '
+  ipfs filestore clean invalid > rm-invalid-output &&
   ipfs filestore ls -q | LC_ALL=C sort > ls_actual &&
   test_cmp ls_expect ls_actual
 '
