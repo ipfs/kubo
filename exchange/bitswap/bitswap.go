@@ -90,7 +90,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		network:       network,
 		findKeys:      make(chan *wantlist.Entry, sizeBatchRequestChan),
 		process:       px,
-		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
+		newBlocks:     make(chan blocks.Block, HasBlockBufferSize),
 		provideKeys:   make(chan key.Key, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
 	}
@@ -137,7 +137,7 @@ type Bitswap struct {
 
 	process process.Process
 
-	newBlocks chan *blocks.Block
+	newBlocks chan blocks.Block
 
 	provideKeys chan key.Key
 
@@ -154,7 +154,7 @@ type blockRequest struct {
 
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
-func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (*blocks.Block, error) {
+func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (blocks.Block, error) {
 
 	// Any async work initiated by this function must end when this function
 	// returns. To ensure this, derive a new context. Note that it is okay to
@@ -209,9 +209,9 @@ func (bs *Bitswap) WantlistForPeer(p peer.ID) []key.Key {
 // NB: Your request remains open until the context expires. To conserve
 // resources, provide a context with a reasonably short deadline (ie. not one
 // that lasts throughout the lifetime of the server)
-func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan *blocks.Block, error) {
+func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks.Block, error) {
 	if len(keys) == 0 {
-		out := make(chan *blocks.Block)
+		out := make(chan blocks.Block)
 		close(out)
 		return out, nil
 	}
@@ -251,7 +251,7 @@ func (bs *Bitswap) CancelWants(ks []key.Key) {
 
 // HasBlock announces the existance of a block to this bitswap service. The
 // service will potentially notify its peers.
-func (bs *Bitswap) HasBlock(blk *blocks.Block) error {
+func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	select {
 	case <-bs.process.Closing():
 		return errors.New("bitswap is closed")
@@ -277,7 +277,7 @@ func (bs *Bitswap) HasBlock(blk *blocks.Block) error {
 	return nil
 }
 
-func (bs *Bitswap) tryPutBlock(blk *blocks.Block, attempts int) error {
+func (bs *Bitswap) tryPutBlock(blk blocks.Block, attempts int) error {
 	var err error
 	for i := 0; i < attempts; i++ {
 		if err = bs.blockstore.Put(blk); err == nil {
@@ -316,7 +316,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	wg := sync.WaitGroup{}
 	for _, block := range iblocks {
 		wg.Add(1)
-		go func(b *blocks.Block) {
+		go func(b blocks.Block) {
 			defer wg.Done()
 
 			if err := bs.updateReceiveCounters(b); err != nil {
@@ -337,7 +337,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 
 var ErrAlreadyHaveBlock = errors.New("already have block")
 
-func (bs *Bitswap) updateReceiveCounters(b *blocks.Block) error {
+func (bs *Bitswap) updateReceiveCounters(b blocks.Block) error {
 	bs.counterLk.Lock()
 	defer bs.counterLk.Unlock()
 	bs.blocksRecvd++
@@ -348,7 +348,7 @@ func (bs *Bitswap) updateReceiveCounters(b *blocks.Block) error {
 	}
 	if err == nil && has {
 		bs.dupBlocksRecvd++
-		bs.dupDataRecvd += uint64(len(b.Data))
+		bs.dupDataRecvd += uint64(len(b.Data()))
 	}
 
 	if has {

@@ -11,40 +11,56 @@ import (
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
+type Block interface {
+	Multihash() mh.Multihash
+	Data() []byte
+	Key() key.Key
+	String() string
+	Loggable() map[string]interface{}
+}
+
 // Block is a singular block of data in ipfs
-type Block struct {
-	Multihash mh.Multihash
-	Data      []byte
+type RawBlock struct {
+	multihash mh.Multihash
+	data      []byte
 }
 
 // NewBlock creates a Block object from opaque data. It will hash the data.
-func NewBlock(data []byte) *Block {
-	return &Block{Data: data, Multihash: u.Hash(data)}
+func NewBlock(data []byte) *RawBlock {
+	return &RawBlock{data: data, multihash: u.Hash(data)}
 }
 
 // NewBlockWithHash creates a new block when the hash of the data
 // is already known, this is used to save time in situations where
 // we are able to be confident that the data is correct
-func NewBlockWithHash(data []byte, h mh.Multihash) (*Block, error) {
+func NewBlockWithHash(data []byte, h mh.Multihash) (*RawBlock, error) {
 	if u.Debug {
 		chk := u.Hash(data)
 		if string(chk) != string(h) {
 			return nil, errors.New("Data did not match given hash!")
 		}
 	}
-	return &Block{Data: data, Multihash: h}, nil
+	return &RawBlock{data: data, multihash: h}, nil
+}
+
+func (b *RawBlock) Multihash() mh.Multihash {
+	return b.multihash
+}
+
+func (b *RawBlock) Data() []byte {
+	return b.data
 }
 
 // Key returns the block's Multihash as a Key value.
-func (b *Block) Key() key.Key {
-	return key.Key(b.Multihash)
+func (b *RawBlock) Key() key.Key {
+	return key.Key(b.multihash)
 }
 
-func (b *Block) String() string {
+func (b *RawBlock) String() string {
 	return fmt.Sprintf("[Block %s]", b.Key())
 }
 
-func (b *Block) Loggable() map[string]interface{} {
+func (b *RawBlock) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"block": b.Key().String(),
 	}
