@@ -107,10 +107,14 @@ type Adder struct {
 	mr         *mfs.Root
 	unlocker   bs.Unlocker
 	tempRoot   key.Key
+	AddOpts  interface{}
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
+func (adder Adder) add(reader files.AdvReader) (*dag.Node, error) {
+	if adder.AddOpts != nil {
+		reader.SetExtraInfo(files.PosInfoWaddOpts{reader.ExtraInfo(), adder.AddOpts})
+	}
 	chnk, err := chunk.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
@@ -119,13 +123,11 @@ func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
 	if adder.Trickle {
 		return importer.BuildTrickleDagFromReader(
 			adder.dagService,
-			chnk,
-		)
+			chnk)
 	}
 	return importer.BuildDagFromReader(
 		adder.dagService,
-		chnk,
-	)
+		chnk)
 }
 
 func (adder *Adder) RootNode() (*dag.Node, error) {

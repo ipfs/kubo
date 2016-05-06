@@ -11,6 +11,7 @@ import (
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
+// Block is a singular block of data in ipfs
 type Block interface {
 	Multihash() mh.Multihash
 	Data() []byte
@@ -19,10 +20,23 @@ type Block interface {
 	Loggable() map[string]interface{}
 }
 
-// Block is a singular block of data in ipfs
 type BasicBlock struct {
 	multihash mh.Multihash
 	data      []byte
+}
+
+type FilestoreBlock struct {
+	BasicBlock
+	*DataPtr
+	AddOpts interface{}
+}
+
+// This DataPtr had different AltData than the node DataPtr
+type DataPtr struct {
+	AltData  []byte
+	FilePath string
+	Offset   uint64
+	Size     uint64
 }
 
 // NewBlock creates a Block object from opaque data. It will hash the data.

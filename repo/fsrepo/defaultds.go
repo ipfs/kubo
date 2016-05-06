@@ -2,6 +2,7 @@ package fsrepo
 
 import (
 	"fmt"
+	"io"
 	"path"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
@@ -13,12 +14,20 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/dir"
+
+	multi "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/multi"
+	filestore "github.com/ipfs/go-ipfs/filestore"
 )
 
 const (
 	leveldbDirectory = "datastore"
 	flatfsDirectory  = "blocks"
+	fileStoreDir     = "filestore-db"
+	fileStoreDataDir = "filestore-data"
 )
+const useFileStore = true
+
+var _ = io.EOF
 
 func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	leveldbPath := path.Join(r.path, leveldbDirectory)
@@ -57,10 +66,26 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	prefix := "fsrepo." + id + ".datastore."
 	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
 	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
+
+	var blocksStore ds.Datastore = metricsBlocks
+
+	if useFileStore {
+		fileStorePath := path.Join(r.path, fileStoreDir)
+		fileStoreDB, err := levelds.NewDatastore(fileStorePath, &levelds.Options{
+			Compression: ldbopts.NoCompression,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("unable to open filestore: %v", err)
+		}
+		fileStore, _ := filestore.New(fileStoreDB, "")
+		//fileStore.(io.Closer).Close()
+		blocksStore = multi.New(fileStore, metricsBlocks, nil, nil)
+	}
+
 	mountDS := mount.New([]mount.Mount{
 		{
 			Prefix:    ds.NewKey("/blocks"),
-			Datastore: metricsBlocks,
+			Datastore: blocksStore,
 		},
 		{
 			Prefix:    ds.NewKey("/"),

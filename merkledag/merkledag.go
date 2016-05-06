@@ -18,6 +18,7 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
 	Add(*Node) (key.Key, error)
+	AddWOpts(*Node, interface{}) (key.Key, error)
 	Get(context.Context, key.Key) (*Node, error)
 	Remove(*Node) error
 
@@ -43,6 +44,12 @@ type dagService struct {
 
 // Add adds a node to the dagService, storing the block in the BlockService
 func (n *dagService) Add(nd *Node) (key.Key, error) {
+	return n.AddWOpts(nd, nil)
+}
+
+// Add a node that has data possible stored locally to the dagService,
+// storing the block in the BlockService
+func (n *dagService) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
 	if n == nil { // FIXME remove this assertion. protect with constructor invariant
 		return "", fmt.Errorf("dagService is nil")
 	}
@@ -57,7 +64,23 @@ func (n *dagService) Add(nd *Node) (key.Key, error) {
 		return "", err
 	}
 
-	b, _ := blocks.NewBlockWithHash(d, mh)
+	b0, err := blocks.NewBlockWithHash(d, mh)
+	if err != nil {
+		return "", err
+	}
+
+	var dataPtr *blocks.DataPtr
+	if addOpts != nil {
+		dataPtr, err = nd.EncodeDataPtr()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	var b blocks.Block = b0
+	if dataPtr != nil {
+		b = &blocks.FilestoreBlock{*b0, dataPtr, addOpts}
+	}
 
 	return n.Blocks.AddBlock(b)
 }
@@ -324,7 +347,11 @@ type Batch struct {
 	MaxSize int
 }
 
-func (t *Batch) Add(nd *Node) (key.Key, error) {
+//func (t *Batch) Add(nd *Node) (key.Key, error) {
+//	return t.AddWOpts(nd, nil)
+//}
+
+func (t *Batch) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
 	d, err := nd.EncodeProtobuf(false)
 	if err != nil {
 		return "", err
@@ -335,7 +362,20 @@ func (t *Batch) Add(nd *Node) (key.Key, error) {
 		return "", err
 	}
 
-	b, _ := blocks.NewBlockWithHash(d, mh)
+	b0, _ := blocks.NewBlockWithHash(d, mh)
+
+	var dataPtr *blocks.DataPtr
+	if addOpts != nil {
+		dataPtr, err = nd.EncodeDataPtr()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	var b blocks.Block = b0
+	if dataPtr != nil {
+		b = &blocks.FilestoreBlock{*b0, dataPtr, addOpts}
+	}
 
 	k := key.Key(mh)
 

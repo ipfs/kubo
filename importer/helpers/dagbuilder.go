@@ -18,6 +18,14 @@ type DagBuilderHelper struct {
 	batch    *dag.Batch
 }
 
+func (db *DagBuilderHelper) addOpts() interface{} {
+	if inf, ok := db.posInfo.(files.PosInfoWaddOpts); ok {
+		return inf.AddOpts
+	} else {
+		return nil
+	}
+}
+
 type DagBuilderParams struct {
 	// Maximum number of links per intermediate node
 	Maxlinks int
@@ -107,7 +115,18 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 	}
 
 	node.SetData(data)
+	if db.posInfo != nil {
+		node.SetDataPtr(db.posInfo.AbsPath(), db.posInfo.Offset())
+	}
+
 	return nil
+}
+
+func (db *DagBuilderHelper) SetAsRoot(node *UnixfsNode) {
+	if db.posInfo != nil {
+		node.SetDataPtr(db.posInfo.AbsPath(), 0)
+		node.SetAsRoot()
+	}
 }
 
 func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
@@ -116,7 +135,7 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
 		return nil, err
 	}
 
-	_, err = db.dserv.Add(dn)
+	_, err = db.dserv.AddWOpts(dn, db.addOpts())
 	if err != nil {
 		return nil, err
 	}

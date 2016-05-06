@@ -4,6 +4,7 @@
 package blockservice
 
 import (
+	//"fmt"
 	"errors"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"

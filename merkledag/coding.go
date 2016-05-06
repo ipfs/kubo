@@ -6,6 +6,7 @@ import (
 
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 
+	blocks "github.com/ipfs/go-ipfs/blocks"
 	pb "github.com/ipfs/go-ipfs/merkledag/pb"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -40,7 +41,7 @@ func (n *Node) unmarshal(encoded []byte) error {
 // Marshal encodes a *Node instance into a new byte slice.
 // The conversion uses an intermediate PBNode.
 func (n *Node) Marshal() ([]byte, error) {
-	pbn := n.getPBNode()
+	pbn := n.getPBNode(true)
 	data, err := pbn.Marshal()
 	if err != nil {
 		return data, fmt.Errorf("Marshal failed. %v", err)
@@ -48,7 +49,16 @@ func (n *Node) Marshal() ([]byte, error) {
 	return data, nil
 }
 
-func (n *Node) getPBNode() *pb.PBNode {
+func (n *Node) MarshalNoData() ([]byte, error) {
+	pbn := n.getPBNode(false)
+	data, err := pbn.Marshal()
+	if err != nil {
+		return data, fmt.Errorf("Marshal failed. %v", err)
+	}
+	return data, nil
+}
+
+func (n *Node) getPBNode(useData bool) *pb.PBNode {
 	pbn := &pb.PBNode{}
 	if len(n.Links) > 0 {
 		pbn.Links = make([]*pb.PBLink, len(n.Links))
@@ -62,8 +72,16 @@ func (n *Node) getPBNode() *pb.PBNode {
 		pbn.Links[i].Hash = []byte(l.Hash)
 	}
 
-	if len(n.Data) > 0 {
-		pbn.Data = n.Data
+	if useData {
+		if len(n.Data) > 0 {
+			pbn.Data = n.Data
+		}
+	} else {
+		if n.DataPtr != nil && len(n.DataPtr.AltData) > 0 {
+			pbn.Data = n.DataPtr.AltData
+		} else if len(n.Data) > 0 {
+			pbn.Data = n.Data
+		}
 	}
 	return pbn
 }
@@ -82,6 +100,27 @@ func (n *Node) EncodeProtobuf(force bool) ([]byte, error) {
 	}
 
 	return n.encoded, nil
+}
+
+// Converts the node DataPtr to a block DataPtr, must be called after
+// EncodeProtobuf
+func (n *Node) EncodeDataPtr() (*blocks.DataPtr, error) {
+	if n.DataPtr == nil {
+		return nil, nil
+	}
+	bl := &blocks.DataPtr{
+		FilePath: n.DataPtr.FilePath,
+		Offset:   n.DataPtr.Offset,
+		Size:     n.DataPtr.Size}
+	if n.DataPtr.AltData == nil {
+		return bl, nil
+	}
+	d, err := n.MarshalNoData()
+	if err != nil {
+		return nil, err
+	}
+	bl.AltData = d
+	return bl, nil
 }
 
 // Decoded decodes raw data and returns a new Node instance.

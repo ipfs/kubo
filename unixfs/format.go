@@ -160,12 +160,22 @@ func (n *FSNode) RemoveBlockSize(i int) {
 	n.blocksizes = append(n.blocksizes[:i], n.blocksizes[i+1:]...)
 }
 
-func (n *FSNode) GetBytes() ([]byte, error) {
+func (n *FSNode) newPB() *pb.Data {
 	pbn := new(pb.Data)
 	pbn.Type = &n.Type
 	pbn.Filesize = proto.Uint64(uint64(len(n.Data)) + n.subtotal)
 	pbn.Blocksizes = n.blocksizes
+	return pbn
+}
+
+func (n *FSNode) GetBytes() ([]byte, error) {
+	pbn := n.newPB()
 	pbn.Data = n.Data
+	return proto.Marshal(pbn)
+}
+
+func (n *FSNode) GetBytesNoData() ([]byte, error) {
+	pbn := n.newPB()
 	return proto.Marshal(pbn)
 }
 

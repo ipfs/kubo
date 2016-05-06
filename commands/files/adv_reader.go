@@ -51,3 +51,11 @@ func AdvReaderAdapter(r io.Reader) AdvReader {
 	}
 }
 
+type PosInfoWaddOpts struct {
+	ExtraInfo
+	AddOpts interface{}
+}
+
+func (i PosInfoWaddOpts) Clone(offset int64) ExtraInfo {
+	return PosInfoWaddOpts{i.ExtraInfo.Clone(offset), i.AddOpts}
+}
