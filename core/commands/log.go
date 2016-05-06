@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 
@@ -82,13 +81,12 @@ subsystems of a running daemon.
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		output := strings.Join(logging.GetSubsystems(), "\n")
-		res.SetOutput(&MessageOutput{output + "\n"})
+		res.SetOutput(&stringList{logging.GetSubsystems()})
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: MessageTextMarshaler,
+		cmds.Text: stringListMarshaler,
 	},
-	Type: MessageOutput{},
+	Type: stringList{},
 }
 
 var logTailCmd = &cmds.Command{
