@@ -20,7 +20,7 @@ test_expect_success 'peer ids' '
 # ipfs dht findpeer <peerID>
 test_expect_success 'findpeer' '
   ipfsi 1 dht findpeer $PEERID_0 | sort >actual &&
-  echo "$(ipfsi 0 id -f "<addrs>" | cut -d / -f 1-5 | sort >expected)"
+  ipfsi 0 id -f "<addrs>" | cut -d / -f 1-5 | sort >expected &&
   test_cmp actual expected
 '
 
