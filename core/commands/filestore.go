@@ -38,7 +38,7 @@ List objects in the filestore.  If --quiet is specified only the
 hashes are printed, otherwise the fields are as follows:
   <hash> <type> <filepath> <offset> <size> [<modtime>]
 where <type> is one of"
-  leaf: to indicate a leaf node where the contents are stored
+  leaf: to indicate a node where the contents are stored
         to in the file itself
   root: to indicate a root node that represents the whole file
   other: some other kind of node that represent part of a file
@@ -105,29 +105,28 @@ var verifyFileStore = &cmds.Command{
 Verify nodes in the filestore.  The output is:
   <status> [<type> <filepath> <offset> <size> [<modtime>]]
 where <type>, <filepath>, <offset>, <size> and <modtime> are the same
-as in the "ls".  <status> is one of
-  ok:      If the original data can be reconstructed
-  complete: If all the blocks in the tree exists but no attempt was
+as in the "ls" command and <status> is one of
+
+  ok:       the original data can be reconstructed
+  complete: all the blocks in the tree exists but no attempt was
             made to reconstruct the original data
 
-  incomplete: Some of the blocks of the tree could not be read
+  incomplete: some of the blocks of the tree could not be read
 
-  changed: If the leaf node is invalid because the contents of the file
-           have changed
-  no-file: If the file can not be found
-  error:   If the file can be found but could not be read or some
-           other error
+  changed: the contents of the backing file have changed
+  no-file: the backing file can not be found
+  error:   the backing file can be found but could not be read
 
-  ERROR:   The block could not be read due to an internal error
+  ERROR:   the block could not be read due to an internal error
 
-  found:   The child of another node was found outside the filestore
-  missing: The child of another node does not exist
-  <blank>: The child of another node node exists but no attempt was
+  found:   the child of another node was found outside the filestore
+  missing: the child of another node does not exist
+  <blank>: the child of another node node exists but no attempt was
            made to verify it
 
-  appended: The node is still valid but the original file was appended
+  appended: the node is still valid but the original file was appended
 
-  orphan: This node is a child of another node that was not found in
+  orphan: the node is a child of another node that was not found in
           the filestore
  
 If --basic is specified then just scan leaf nodes to verify that they
@@ -205,20 +204,20 @@ var cleanFileStore = &cmds.Command{
 		Tagline: "Remove invalid or orphan nodes from the filestore.",
 		ShortDescription: `
 Removes invalid or orphan nodes from the filestore as specified by
-<what>.  <what> is the status of a node reported by "verify", it can
-be any of "changed", "no-file", "error", "incomplete", or "orphan".
-"invalid" is an alias for "changed" and "no-file".  "full" is an alias
-for "invalid" "incomplete" and "orphan" (basically remove everything
-but "error").
+<what>.  <what> is the status of a node as reported by "verify", it
+can be any of "changed", "no-file", "error", "incomplete",
+"orphan", "invalid" or "full".  "invalid" is an alias for "changed"
+and "no-file" and "full" is an alias for "invalid" "incomplete" and
+"orphan" (basically remove everything but "error").
 
 It does the removal in three passes.  If there is nothing specified to
 be removed in a pass that pass is skipped.  The first pass does a
-"verify --basic" and is used to remove any "changed", "no-file" or "error"
-leaf nodes.  The second pass does a "verify --level 0 --skip-orphans"
-and will is used to remove any "incomplete" nodes due to missing children (the
-"--level 0" only checks for the existence of leaf nodes, but does not
-try to read the content).  The final pass will do a "verify --level 0"
-and is used to remove any "orphan" nodes.
+"verify --basic" and is used to remove any "changed", "no-file" or
+"error" nodes.  The second pass does a "verify --level 0
+--skip-orphans" and will is used to remove any "incomplete" nodes due
+to missing children (the "--level 0" only checks for the existence of
+leaf nodes, but does not try to read the content).  The final pass
+will do a "verify --level 0" and is used to remove any "orphan" nodes.
 `,
 	},
 	Arguments: []cmds.Argument{
