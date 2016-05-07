@@ -3,7 +3,6 @@ package filestore_util
 import (
 	"os"
 
-	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
@@ -202,29 +201,5 @@ func (p *verifyParams) verifyLeaf(key ds.Key, dataObj *DataObj) int {
 }
 
 func (p *verifyParams) get(key ds.Key) (*node.Node, *DataObj, int) {
-	dataObj, err := p.fs.GetDirect(key)
-	if err == nil {
-		//println("in filestore ", b58.Encode(key.Bytes()[1:]))
-		if dataObj.NoBlockData() {
-			return nil, dataObj, StatusUnchecked
-		} else {
-			node, err := node.DecodeProtobuf(dataObj.Data)
-			if err != nil {
-				return nil, nil, StatusCorrupt
-			}
-			return node, dataObj, StatusOk
-		}
-	}
-	//println("not in filestore ", b58.Encode(key.Bytes()[1:]))
-	block, err2 := p.node.Blockstore.Get(k.KeyFromDsKey(key))
-	if err == ds.ErrNotFound && err2 == bs.ErrNotFound {
-		return nil, nil, StatusKeyNotFound
-	} else if err2 != nil {
-		return nil, nil, StatusError
-	}
-	node, err := node.DecodeProtobuf(block.Data())
-	if err != nil {
-		return nil, nil, StatusCorrupt
-	}
-	return node, nil, StatusFound
+	return getNode(key, k.KeyFromDsKey(key), p.fs, p.node.Blockstore)
 }

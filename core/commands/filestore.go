@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 
 	//ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
+	//bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -25,7 +25,7 @@ var FileStoreCmd = &cmds.Command{
 		"verify":   verifyFileStore,
 		"rm":       rmFilestoreObjs,
 		"clean":    cleanFileStore,
-		"find-dangling-pins": findDanglingPins,
+		"fix-pins":           repairPins,
 	},
 }
 
@@ -323,28 +323,27 @@ func extractFilestore(req cmds.Request) (node *core.IpfsNode, fs *filestore.Data
 	return
 }
 
-var findDanglingPins = &cmds.Command{
+var repairPins = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List pinned objects that no longer exists",
+		Tagline: "Repair pins to non-existent or incomplete objects",
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("dry-run", "n", "Report on what will be done."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		node, fs, err := extractFilestore(req)
 		if err != nil {
+			return
+		}
+		dryRun, _, err := res.Request().Option("dry-run").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 		r, w := io.Pipe()
 		go func() {
 			defer w.Close()
-			err := listDanglingPins(n.Pinning.DirectKeys(), w, n.Blockstore)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			err = listDanglingPins(n.Pinning.RecursiveKeys(), w, n.Blockstore)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
+			fsutil.RepairPins(node, fs, w, dryRun)
 		}()
 		res.SetOutput(r)
 	},
@@ -353,17 +352,4 @@ var findDanglingPins = &cmds.Command{
 			return res.(io.Reader), nil
 		},
 	},
-}
-
-func listDanglingPins(keys []k.Key, out io.Writer, d bs.Blockstore) error {
-	for _, k := range keys {
-		exists, err := d.Has(k)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			fmt.Fprintln(out, k.B58String())
-		}
-	}
-	return nil
 }

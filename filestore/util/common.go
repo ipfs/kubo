@@ -9,6 +9,9 @@ import (
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
+	b "github.com/ipfs/go-ipfs/blocks/blockstore"
+	k "github.com/ipfs/go-ipfs/blocks/key"
+	node "github.com/ipfs/go-ipfs/merkledag"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 )
 
@@ -147,4 +150,30 @@ func verify(d *Datastore, key ds.Key, val *DataObj, level int) int {
 		status = StatusFileError
 	}
 	return status
+}
+
+func getNode(dsKey ds.Key, key k.Key, fs *Datastore, bs b.Blockstore) (*node.Node, *DataObj, int) {
+	dataObj, err := fs.GetDirect(dsKey)
+	if err == nil {
+		if dataObj.NoBlockData() {
+			return nil, dataObj, StatusUnchecked
+		} else {
+			node, err := node.DecodeProtobuf(dataObj.Data)
+			if err != nil {
+				return nil, nil, StatusCorrupt
+			}
+			return node, dataObj, StatusOk
+		}
+	}
+	block, err2 := bs.Get(key)
+	if err == ds.ErrNotFound && err2 == b.ErrNotFound {
+		return nil, nil, StatusKeyNotFound
+	} else if err2 != nil {
+		return nil, nil, StatusError
+	}
+	node, err := node.DecodeProtobuf(block.Data())
+	if err != nil {
+		return nil, nil, StatusCorrupt
+	}
+	return node, nil, StatusFound
 }
