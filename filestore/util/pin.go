@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"io"
 
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bk "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
+	node "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
-	//context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type ToFix struct {
@@ -133,3 +136,72 @@ func verifyRecPin(key bk.Key, good *[]bk.Key, fs *Datastore, bs b.Blockstore) (b
 	}
 }
 
+func Repin(ctx0 context.Context, n *core.IpfsNode, fs *Datastore, wtr io.Writer) error {
+	ls, err := List(fs, false)
+	if err != nil {
+		return err
+	}
+	unpinned := make(map[ds.Key]struct{})
+	for res := range ls {
+		if res.WholeFile() {
+			unpinned[res.Key] = struct{}{}
+		}
+	}
+	pinning := n.Pinning
+	bs := n.Blockstore
+	for _, k := range n.Pinning.DirectKeys() {
+		if _, ok := unpinned[k.DsKey()]; ok {
+			delete(unpinned, k.DsKey())
+		}
+	}
+	var checkIndirect func(key bk.Key) error
+	checkIndirect = func(key bk.Key) error {
+		n, _, status := getNode(key.DsKey(), key, fs, bs)
+		if AnError(status) {
+			return errors.New("Error when retrieving key")
+		} else if n == nil {
+			return nil
+		}
+		for _, link := range n.Links {
+			if _, ok := unpinned[ds.NewKey(string(link.Hash))]; ok {
+				delete(unpinned, ds.NewKey(string(link.Hash)))
+			}
+			checkIndirect(bk.Key(link.Hash))
+		}
+		return nil
+	}
+	for _, k := range pinning.RecursiveKeys() {
+		if _, ok := unpinned[k.DsKey()]; ok {
+			delete(unpinned, k.DsKey())
+		}
+		err = checkIndirect(k)
+		if err != nil {
+			return err
+		}
+	}
+
+	for key, _ := range unpinned {
+		fmt.Fprintf(wtr, "Pinning %s\n", b58.Encode(key.Bytes()[1:]))
+		bytes, err := fs.Get(key)
+		if err != nil {
+			return err
+		}
+		dagnode, err := node.DecodeProtobuf(bytes.([]byte))
+		if err != nil {
+			return err
+		}
+		ctx, cancel := context.WithCancel(ctx0)
+		defer cancel()
+		err = n.Pinning.Pin(ctx, dagnode, true)
+		if err != nil {
+			return err
+		}
+
+	}
+	err = n.Pinning.Flush()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -26,6 +26,7 @@ var FileStoreCmd = &cmds.Command{
 		"rm":       rmFilestoreObjs,
 		"clean":    cleanFileStore,
 		"fix-pins":           repairPins,
+		"repin":              repinFilestore,
 	},
 }
 
@@ -344,6 +345,29 @@ var repairPins = &cmds.Command{
 		go func() {
 			defer w.Close()
 			fsutil.RepairPins(node, fs, w, dryRun)
+		}()
+		res.SetOutput(r)
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
+	},
+}
+
+var repinFilestore = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Repin whole-file objects in filestore.",
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, fs, err := extractFilestore(req)
+		if err != nil {
+			return
+		}
+		r, w := io.Pipe()
+		go func() {
+			defer w.Close()
+			fsutil.Repin(req.Context(), node, fs, w)
 		}()
 		res.SetOutput(r)
 	},
