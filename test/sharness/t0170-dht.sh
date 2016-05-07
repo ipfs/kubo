@@ -7,9 +7,10 @@ test_description="Test dht command"
 # start iptb + wait for peering
 NUM_NODES=5
 test_expect_success 'init iptb' '
-  iptb init -n $NUM_NODES --bootstrap=none --port=0 &&
-  startup_cluster $NUM_NODES
+  iptb init -n $NUM_NODES --bootstrap=none --port=0
 '
+
+startup_cluster $NUM_NODES
 
 test_expect_success 'peer ids' '
   PEERID_0=$(iptb get id 0) &&
