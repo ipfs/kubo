@@ -2,7 +2,7 @@ package commands
 
 import (
 	"errors"
-	"fmt"
+	//"fmt"
 	"io"
 	"io/ioutil"
 
@@ -264,6 +264,9 @@ var rmFilestoreObjs = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Produce less output."),
+		cmds.BoolOption("force", "Do Not Abort in non-fatal erros."),
+		cmds.BoolOption("direct", "Delete individual blocks."),
+		cmds.BoolOption("ignore-pins", "Ignore pins"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -272,7 +275,23 @@ var rmFilestoreObjs = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		opts := fsutil.DeleteOpts{}
 		quiet, _, err := res.Request().Option("quiet").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		opts.Force, _, err = res.Request().Option("force").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		opts.Direct, _, err = res.Request().Option("direct").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		opts.IgnorePins, _, err = res.Request().Option("ignore-pins").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -284,17 +303,13 @@ var rmFilestoreObjs = &cmds.Command{
 			rmWtr = ioutil.Discard
 		}
 		go func() {
-			numErrors := 0
-			for _, mhash := range hashes {
-				key := k.B58KeyDecode(mhash)
-				err = fsutil.Delete(req, rmWtr, node, fs, key)
-				if err != nil {
-					fmt.Fprintf(wtr, "Error deleting %s: %s\n", mhash, err.Error())
-					numErrors += 1
-				}
+			keys := make([]k.Key, len(hashes))
+			for i, mhash := range hashes {
+				keys[i] = k.B58KeyDecode(mhash)
 			}
-			if numErrors > 0 {
-				wtr.CloseWithError(errors.New("Could not delete some keys."))
+			err = fsutil.Delete(req, rmWtr, node, fs, opts, keys...)
+			if err != nil {
+				wtr.CloseWithError(err)
 				return
 			}
 			wtr.Close()

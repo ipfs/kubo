@@ -10,7 +10,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 )
 
 func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, what ...string) (io.Reader, error) {
@@ -48,39 +48,45 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 	if quiet {
 		rmWtr = ioutil.Discard
 	}
-	do_stage := func(ch <-chan ListRes, err error) {
+	do_stage := func(ch <-chan ListRes, err error) error {
 		if err != nil {
 			wtr.CloseWithError(err)
-			return
+			return err
 		}
-		var toDel [][]byte
+		var toDel []k.Key
 		for r := range ch {
 			if to_remove[r.Status] {
-				toDel = append(toDel, r.RawHash())
+				toDel = append(toDel, k.KeyFromDsKey(r.Key))
 			}
 		}
-		for _, key := range toDel {
-			err := Delete(req, rmWtr, node, fs, k.Key(key))
-			if err != nil {
-				mhash := b58.Encode(key)
-				msg := fmt.Sprintf("Could not delete %s: %s\n", mhash, err.Error())
-				wtr.CloseWithError(errors.New(msg))
-				return
-			}
+		err = Delete(req, rmWtr, node, fs, DeleteOpts{Direct: true, Force: true}, toDel...)
+		if err != nil {
+			wtr.CloseWithError(err)
+			return err
 		}
+		return nil
 	}
 	go func() {
 		if stage1 {
 			fmt.Fprintf(rmWtr, "Scanning for invalid leaf nodes ('verify --basic -l6') ...\n")
-			do_stage(VerifyBasic(fs, 6, 1))
+			err := do_stage(VerifyBasic(fs, 6, 1))
+			if err != nil {
+				return
+			}
 		}
 		if stage2 {
 			fmt.Fprintf(rmWtr, "Scanning for incomplete nodes ('verify -l1 --skip-orphans') ...\n")
-		 	do_stage(VerifyFull(node, fs, 1, 1, true))
+		 	err := do_stage(VerifyFull(node, fs, 1, 1, true))
+			if err != nil {
+				return
+			}
 		}
 		if stage3 {
 			fmt.Fprintf(rmWtr, "Scanning for orphans ('verify -l1') ...\n")
-		 	do_stage(VerifyFull(node, fs, 1, 1, false))
+		 	err := do_stage(VerifyFull(node, fs, 1, 1, false))
+			if err != nil {
+				return
+			}
 		}
 		wtr.Close()
 	}()

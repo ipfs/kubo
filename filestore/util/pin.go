@@ -149,11 +149,12 @@ func Repin(ctx0 context.Context, n *core.IpfsNode, fs *Datastore, wtr io.Writer)
 		}
 	}
 
-	err = walkPins(n.Pinning, fs, n.Blockstore, func(key bk.Key, _ pin.PinMode) {
+	err = walkPins(n.Pinning, fs, n.Blockstore, func(key bk.Key, _ pin.PinMode) bool {
 		dskey := key.DsKey()
 		if _, ok := unpinned[dskey]; ok {
 			delete(unpinned, dskey)
 		}
+		return true
 	})
 	if err != nil {
 		return err
@@ -185,7 +186,12 @@ func Repin(ctx0 context.Context, n *core.IpfsNode, fs *Datastore, wtr io.Writer)
 	return nil
 }
 
-func walkPins(pinning pin.Pinner, fs *Datastore, bs b.Blockstore, mark func(bk.Key, pin.PinMode)) error {
+//
+// Walk the complete sets of pins and call mark on each run.  If mark
+// returns true and the pin is due to a recursive pin, then
+// recursively to check for indirect pins.
+//
+func walkPins(pinning pin.Pinner, fs *Datastore, bs b.Blockstore, mark func(bk.Key, pin.PinMode) bool) error {
 	for _, k := range pinning.DirectKeys() {
 		mark(k, pin.Direct)
 	}
@@ -193,22 +199,28 @@ func walkPins(pinning pin.Pinner, fs *Datastore, bs b.Blockstore, mark func(bk.K
 	checkIndirect = func(key bk.Key) error {
 		n, _, status := getNode(key.DsKey(), key, fs, bs)
 		if AnError(status) {
-			return errors.New("Error when retrieving key")
+			return errors.New("Error when retrieving key.")
 		} else if n == nil {
 			return nil
 		}
 		for _, link := range n.Links {
-			mark(bk.Key(link.Hash), pin.NotPinned)
-			checkIndirect(bk.Key(link.Hash))
+			if mark(bk.Key(link.Hash), pin.NotPinned) {
+				checkIndirect(bk.Key(link.Hash))
+			}
 		}
 		return nil
 	}
+	errors := false
 	for _, k := range pinning.RecursiveKeys() {
-		mark(k, pin.Recursive)
-		err := checkIndirect(k)
-		if err != nil {
-			return err
+		if mark(k, pin.Recursive) {
+			err := checkIndirect(k)
+			if err != nil {
+				errors = true
+			}
 		}
+	}
+	if errors {
+		return errs.New("Error when retrieving some keys.")
 	}
 	return nil
 }
