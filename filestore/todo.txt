@@ -1,0 +1,13 @@
+- Provide means of upgrading filestore
+
+- Don't enable filestore by default
+  - Note: Once enabled disabling it will cause problems
+
+- Make some parts of the filestore configurable, for example how
+  verification is handled: never, by timestamp, always
+
+- Figure out how to pass absolute path names when the server is
+  offline.
+
+- Make sure the filestore commands are safe to run when the node is
+  online.  Might need to do some locking.
