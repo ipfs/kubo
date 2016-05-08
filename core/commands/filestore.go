@@ -27,6 +27,7 @@ var FileStoreCmd = &cmds.Command{
 		"clean":    cleanFileStore,
 		"fix-pins":           repairPins,
 		"unpinned":           fsUnpinned,
+		"rm-dups":  rmDups,
 	},
 }
 
@@ -381,6 +382,33 @@ var fsUnpinned = &cmds.Command{
 		r, w := io.Pipe()
 		go func() {
 			err := fsutil.Unpinned(node, fs, w)
+			if err != nil {
+				w.CloseWithError(err)
+			} else {
+				w.Close()
+			}
+		}()
+		res.SetOutput(r)
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
+	},
+}
+
+var rmDups = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove duplicate blocks stored outside filestore.",
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, fs, err := extractFilestore(req)
+		if err != nil {
+			return
+		}
+		r, w := io.Pipe()
+		go func() {
+			err := fsutil.RmDups(w, fs, node.Blockstore)
 			if err != nil {
 				w.CloseWithError(err)
 			} else {
