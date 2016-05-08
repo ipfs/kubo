@@ -74,16 +74,19 @@ func Delete(req cmds.Request, out io.Writer, node *core.IpfsNode, fs *Datastore,
 				if mode == pin.NotPinned {
 					// an indirect pin
 					fmt.Fprintf(out, "%s: indirectly pinned\n", key)
-					if !opts.Force {
-						errors = true
-					}
+					errors = true
 					return true
 				} else {
 					pinned[key] = mode
 					return false
 				}
 			} else {
-				return true
+				if opts.Force {
+					// do not recurse and thus do not check indirect pins
+					return false
+				} else {
+					return true
+				}
 			}
 		})
 		if !opts.Force && errors {
