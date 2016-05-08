@@ -26,7 +26,7 @@ var FileStoreCmd = &cmds.Command{
 		"rm":       rmFilestoreObjs,
 		"clean":    cleanFileStore,
 		"fix-pins":           repairPins,
-		"repin":              repinFilestore,
+		"unpinned":           fsUnpinned,
 	},
 }
 
@@ -369,9 +369,9 @@ var repairPins = &cmds.Command{
 	},
 }
 
-var repinFilestore = &cmds.Command{
+var fsUnpinned = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Repin whole-file objects in filestore.",
+		Tagline: "List unpinned whole-file objects in filestore.",
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -380,8 +380,12 @@ var repinFilestore = &cmds.Command{
 		}
 		r, w := io.Pipe()
 		go func() {
-			defer w.Close()
-			fsutil.Repin(req.Context(), node, fs, w)
+			err := fsutil.Unpinned(node, fs, w)
+			if err != nil {
+				w.CloseWithError(err)
+			} else {
+				w.Close()
+			}
 		}()
 		res.SetOutput(r)
 	},

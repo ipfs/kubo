@@ -1,12 +1,9 @@
 package filestore_util
 
 import (
-	"errors"
+	errs "errors"
 	"fmt"
 	"io"
-
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -111,7 +108,7 @@ func verifyRecPin(key bk.Key, good *[]bk.Key, fs *Datastore, bs b.Blockstore) (b
 	if status == StatusKeyNotFound {
 		return false, nil
 	} else if AnError(status) {
-		return false, errors.New("Error when retrieving key")
+		return false, errs.New("Error when retrieving key")
 	} else if n == nil {
 		// A unchecked leaf
 		*good = append(*good, key)
@@ -137,7 +134,7 @@ func verifyRecPin(key bk.Key, good *[]bk.Key, fs *Datastore, bs b.Blockstore) (b
 	}
 }
 
-func Repin(ctx0 context.Context, n *core.IpfsNode, fs *Datastore, wtr io.Writer) error {
+func Unpinned(n *core.IpfsNode, fs *Datastore, wtr io.Writer) error {
 	ls, err := List(fs, false)
 	if err != nil {
 		return err
@@ -160,29 +157,30 @@ func Repin(ctx0 context.Context, n *core.IpfsNode, fs *Datastore, wtr io.Writer)
 		return err
 	}
 
+	errors := false
 	for key, _ := range unpinned {
-		fmt.Fprintf(wtr, "Pinning %s\n", b58.Encode(key.Bytes()[1:]))
+		// We must retrieve the node and recomplete its hash
+		// due to mangling of datastore keys
 		bytes, err := fs.Get(key)
 		if err != nil {
-			return err
+			errors = true
+			continue
 		}
 		dagnode, err := node.DecodeProtobuf(bytes.([]byte))
 		if err != nil {
-			return err
+			errors = true
+			continue
 		}
-		ctx, cancel := context.WithCancel(ctx0)
-		defer cancel()
-		err = n.Pinning.Pin(ctx, dagnode, true)
+		k, err := dagnode.Key()
 		if err != nil {
-			return err
+			errors = true
+			continue
 		}
-
+		fmt.Fprintf(wtr, "%s\n", k)
 	}
-	err = n.Pinning.Flush()
-	if err != nil {
-		return err
+	if errors {
+		return errs.New("Errors retrieving some keys, not all unpinned objects may be listed.")
 	}
-
 	return nil
 }
 
@@ -199,7 +197,7 @@ func walkPins(pinning pin.Pinner, fs *Datastore, bs b.Blockstore, mark func(bk.K
 	checkIndirect = func(key bk.Key) error {
 		n, _, status := getNode(key.DsKey(), key, fs, bs)
 		if AnError(status) {
-			return errors.New("Error when retrieving key.")
+			return errs.New("Error when retrieving key.")
 		} else if n == nil {
 			return nil
 		}
