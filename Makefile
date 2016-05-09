@@ -30,6 +30,8 @@ go_check:
 bin/gx-v%:
 	@echo "installing gx $(@:bin/gx-%=%)"
 	@bin/dist_get gx $@ $(@:bin/gx-%=%)
+	rm -f bin/gx
+	ln -s $(@:bin/%=%) bin/gx
 
 bin/gx-go-v%:
 	@echo "installing gx-go $(@:bin/gx-go-%=%)"

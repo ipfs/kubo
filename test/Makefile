@@ -9,6 +9,8 @@ GOSLEEP_SRC = ./dependencies/go-sleep
 
 GX_RELATIVE_PATH = ../../../../gx/ipfs
 
+export PATH := ../bin:${PATH}
+
 # User might want to override those on the command line
 GOFLAGS =
 
