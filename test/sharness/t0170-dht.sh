@@ -7,9 +7,10 @@ test_description="Test dht command"
 # start iptb + wait for peering
 NUM_NODES=5
 test_expect_success 'init iptb' '
-  iptb init -n $NUM_NODES --bootstrap=none --port=0 &&
-  startup_cluster $NUM_NODES
+  iptb init -n $NUM_NODES --bootstrap=none --port=0
 '
+
+startup_cluster $NUM_NODES
 
 test_expect_success 'peer ids' '
   PEERID_0=$(iptb get id 0) &&
@@ -19,7 +20,7 @@ test_expect_success 'peer ids' '
 # ipfs dht findpeer <peerID>
 test_expect_success 'findpeer' '
   ipfsi 1 dht findpeer $PEERID_0 | sort >actual &&
-  echo "$(ipfsi 0 id -f "<addrs>" | cut -d / -f 1-5 | sort >expected)"
+  ipfsi 0 id -f "<addrs>" | cut -d / -f 1-5 | sort >expected &&
   test_cmp actual expected
 '
 
