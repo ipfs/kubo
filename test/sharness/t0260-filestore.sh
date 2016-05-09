@@ -4,7 +4,7 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-test_description="Test add --no-copy"
+test_description="Test filestore"
 
 . lib/test-lib.sh
 
@@ -76,6 +76,7 @@ test_add_cat_5MB() {
     	echo "added $HASH bigfile" >expected &&
     	test_cmp expected actual
     '
+
     test_expect_success "'ipfs cat' succeeds" '
     	ipfs cat "$HASH" >actual
     '
@@ -127,10 +128,11 @@ test_expect_success "testing filestore ls" '
   ipfs filestore ls -q | LC_ALL=C sort > ls_actual &&
   test_cmp ls_expect ls_actual
 '
-test_expect_success "testing filestore verify --basic" '
-  test_must_fail ipfs filestore verify --basic > verify_actual &&
+test_expect_success "testing filestore verify" '
+  test_must_fail ipfs filestore verify > verify_actual &&
   grep -q "changed  QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" verify_actual &&
-  grep -q "no-file  QmQ8jJxa1Ts9fKsyUXcdYRHHUkuhJ69f82CF8BNX14ovLT" verify_actual
+  grep -q "no-file  QmQ8jJxa1Ts9fKsyUXcdYRHHUkuhJ69f82CF8BNX14ovLT" verify_actual &&
+  grep -q "incomplete QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" verify_actual
 '
 
 test_expect_success "tesing re-adding file after change" '
@@ -149,6 +151,16 @@ test_expect_success "tesing filestore clean invalid" '
   test_cmp ls_expect ls_actual
 '
 
+cat <<EOF > ls_expect
+QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
+EOF
+
+test_expect_success "tesing filestore clean incomplete" '
+  ipfs filestore clean incomplete > rm-invalid-output &&
+  ipfs filestore ls -q | LC_ALL=C sort > ls_actual &&
+  test_cmp ls_expect ls_actual
+'
+
 test_expect_success "re-added file still available" '
   ipfs cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected &&
   test_cmp expected mountdir/hello.txt
@@ -160,6 +172,80 @@ test_expect_success "testing filestore rm" '
 
 test_expect_success "testing file removed" '
   test_must_fail cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected
+'
+
+test_expect_success "testing filestore rm-dups" '
+  ipfs add mountdir/hello.txt > /dev/null &&
+  ipfs add --no-copy mountdir/hello.txt > /dev/null &&
+  ipfs filestore rm-dups > rm-dups-output &&
+  grep -q "duplicate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN" rm-dups-output &&
+  ipfs cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected &&
+  test_cmp expected mountdir/hello.txt
+'
+
+#
+# Pin related tests
+#
+
+clear_pins() {
+    test_expect_success "clearing all pins" '
+      ipfs pin ls -q -t recursive > pin_ls &&
+      ipfs pin ls -q -t direct >> pin_ls &&
+      cat pin_ls | xargs ipfs pin rm > pin_rm &&
+      ipfs pin ls -q > pin_ls &&
+      test -e pin_ls -a ! -s pin_ls
+    '
+}
+
+cat <<EOF > add_expect
+added QmQhAyoEzSg5JeAzGDCx63aPekjSGKeQaYs4iRf4y6Qm6w adir
+added QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb adir/file3
+added QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH adir/file1
+added QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN adir/file2
+EOF
+
+clear_pins
+
+test_expect_success "testing add -r --no-copy" '
+  mkdir adir &&
+  echo "Hello Worlds!" > adir/file1 &&
+  echo "HELLO WORLDS!" > adir/file2 &&
+  random 5242880 41 > adir/file3 &&
+  ipfs add --no-copy -r adir | LC_ALL=C sort > add_actual &&
+  test_cmp add_expect add_actual
+'
+
+test_expect_success "testing rm of indirect pinned file" '
+  test_must_fail ipfs filestore rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
+'
+
+test_expect_success "testing forced rm of indirect pinned file" '
+  ipfs filestore rm --force QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
+'
+
+
+cat <<EOF > pin_ls_expect
+QmQhAyoEzSg5JeAzGDCx63aPekjSGKeQaYs4iRf4y6Qm6w direct
+QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb recursive
+QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH recursive
+EOF
+
+test_expect_success "testing filestore fix-pins" '
+  ipfs filestore fix-pins > fix_pins_actual &&
+  ipfs pin ls | LC_ALL=C sort | grep -v " indirect" > pin_ls_actual &&
+  test_cmp pin_ls_expect pin_ls_actual
+'
+
+clear_pins
+
+cat <<EOF > unpinned_expect
+QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb
+QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
+EOF
+
+test_expect_success "testing filestore unpinned" '
+  ipfs filestore unpinned  > unpinned_actual &&
+  test_cmp unpinned_expect unpinned_actual
 '
 
 test_done
