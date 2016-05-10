@@ -10,3 +10,6 @@
 *~
 
 .ipfs
+bin/gx
+bin/gx*
+bin/tmp
