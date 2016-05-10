@@ -17,7 +17,9 @@ import (
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
-const nBitsForKeypairDefault = 2048
+const (
+	nBitsForKeypairDefault = 2048
+)
 
 var initCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -35,8 +37,8 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 		cmds.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("bits", "b", fmt.Sprintf("Number of bits to use in the generated RSA private key (defaults to %d)", nBitsForKeypairDefault)),
-		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage."),
+		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
+		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -64,20 +66,16 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 			return
 		}
 
-		empty, _, err := req.Option("e").Bool() // if !empty, it's okay empty == false
+		empty, _, err := req.Option("e").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		nBitsForKeypair, bitsOptFound, err := req.Option("b").Int()
+		nBitsForKeypair, _, err := req.Option("b").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
-		}
-
-		if !bitsOptFound {
-			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
 		var conf *config.Config
