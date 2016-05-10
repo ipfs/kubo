@@ -238,13 +238,28 @@ test_expect_success "testing filestore fix-pins" '
 
 clear_pins
 
+cat <<EOF > pin_ls_expect
+QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb recursive
+QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH recursive
+EOF
+
+test_expect_success "testing filestore fix-pins --skip-root" '
+  ipfs add --no-copy -r adir > add_actual &&
+  ipfs filestore rm --force QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > rm_actual
+  ipfs filestore fix-pins --skip-root > fix_pins_actual &&
+  ipfs pin ls | LC_ALL=C sort | grep -v " indirect" > pin_ls_actual &&
+  test_cmp pin_ls_expect pin_ls_actual
+'
+
+clear_pins
+
 cat <<EOF > unpinned_expect
 QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb
 QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
 EOF
 
 test_expect_success "testing filestore unpinned" '
-  ipfs filestore unpinned  > unpinned_actual &&
+  ipfs filestore unpinned  | LC_ALL=C sort > unpinned_actual &&
   test_cmp unpinned_expect unpinned_actual
 '
 

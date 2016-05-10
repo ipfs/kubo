@@ -19,7 +19,7 @@ type ToFix struct {
 	good []bk.Key
 }
 
-func RepairPins(n *core.IpfsNode, fs *Datastore, wtr io.Writer, dryRun bool) error {
+func RepairPins(n *core.IpfsNode, fs *Datastore, wtr io.Writer, dryRun bool, skipRoot bool) error {
 	pinning := n.Pinning
 	bs := n.Blockstore
 	rm_list := make([]bk.Key, 0)
@@ -77,7 +77,11 @@ func RepairPins(n *core.IpfsNode, fs *Datastore, wtr io.Writer, dryRun bool) err
 			for _, key := range to_fix.good {
 				fmt.Fprintf(wtr, "  adding pin %s\n", key)
 			}
-			fmt.Fprintf(wtr, "  and converting %s to a direct pin\n", to_fix.key)
+			if skipRoot {
+				fmt.Fprintf(wtr, "  and removing recursive pin %s\n", to_fix.key)
+			} else {
+				fmt.Fprintf(wtr, "  and converting %s to a direct pin\n", to_fix.key)
+			}
 		} else {
 			fmt.Fprintf(wtr, "Repairing recursive pin %s:\n", to_fix.key)
 			for _, key := range to_fix.good {
@@ -85,9 +89,14 @@ func RepairPins(n *core.IpfsNode, fs *Datastore, wtr io.Writer, dryRun bool) err
 				pinning.RemovePinWithMode(key, pin.Direct)
 				pinning.PinWithMode(key, pin.Recursive)
 			}
-			fmt.Fprintf(wtr, "  converting %s to a direct pin\n", to_fix.key)
-			pinning.RemovePinWithMode(to_fix.key, pin.Recursive)
-			pinning.PinWithMode(to_fix.key, pin.Direct)
+			if skipRoot {
+				fmt.Fprintf(wtr, "  removing recursive pin %s\n", to_fix.key)
+				pinning.RemovePinWithMode(to_fix.key, pin.Recursive)
+			} else {
+				fmt.Fprintf(wtr, "  converting %s to a direct pin\n", to_fix.key)
+				pinning.RemovePinWithMode(to_fix.key, pin.Recursive)
+				pinning.PinWithMode(to_fix.key, pin.Direct)
+			}
 		}
 	}
 	if !dryRun {

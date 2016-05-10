@@ -345,6 +345,7 @@ var repairPins = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("dry-run", "n", "Report on what will be done."),
+		cmds.BoolOption("skip-root", "Don't repin root in broken recursive pin."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -356,10 +357,15 @@ var repairPins = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		skipRoot, _, err := res.Request().Option("skip-root").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		r, w := io.Pipe()
 		go func() {
 			defer w.Close()
-			fsutil.RepairPins(node, fs, w, dryRun)
+			fsutil.RepairPins(node, fs, w, dryRun, skipRoot)
 		}()
 		res.SetOutput(r)
 	},
