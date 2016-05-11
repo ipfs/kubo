@@ -37,7 +37,7 @@ func randObj(t *testing.T, nd *core.IpfsNode, size int64) (*dag.Node, []byte) {
 	buf := make([]byte, size)
 	u.NewTimeSeededRand().Read(buf)
 	read := bytes.NewReader(buf)
-	obj, err := importer.BuildTrickleDagFromReader(nd.DAG, chunk.DefaultSplitter(read), nil)
+	obj, err := importer.BuildTrickleDagFromReader(nd.DAG, chunk.DefaultSplitter(read))
 	if err != nil {
 		t.Fatal(err)
 	}
