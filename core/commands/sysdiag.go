@@ -9,7 +9,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 
 	sysi "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-sysinfo"
-	manet "gx/ipfs/QmTrxSBY8Wqd5aBB4MeizeSzS5xFbK8dQBrYaMsiGnCBhb/go-multiaddr-net"
+	manet "gx/ipfs/QmUBa4w6CbHJUMeGJPDiMEDWsM93xToK1fTnFXnrC8Hksw/go-multiaddr-net"
 )
 
 var sysDiagCmd = &cmds.Command{

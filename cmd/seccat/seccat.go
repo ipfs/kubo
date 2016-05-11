@@ -18,9 +18,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	secio "gx/ipfs/QmPKuU1ohMDaJRJHmatXewCqjZp5wKrD3CK6m9TnCK6XBe/go-libp2p-secio"
+	secio "gx/ipfs/QmPDQHJHvzAp9Tver9VAoqzuzcS3uEjPYLYp2CMh89h5fC/go-libp2p-secio"
 	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	peer "gx/ipfs/QmZpD74pUj6vuxTp1o6LhA3JavC2Bvh9fsWPPVvHnD9sE7/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )

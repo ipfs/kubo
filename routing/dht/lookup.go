@@ -5,7 +5,7 @@ import (
 	notif "github.com/ipfs/go-ipfs/notifications"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	pset "github.com/ipfs/go-ipfs/thirdparty/peerset"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	peer "gx/ipfs/QmZpD74pUj6vuxTp1o6LhA3JavC2Bvh9fsWPPVvHnD9sE7/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
