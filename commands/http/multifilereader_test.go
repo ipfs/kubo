@@ -13,14 +13,14 @@ import (
 func TestOutput(t *testing.T) {
 	text := "Some text! :)"
 	fileset := []files.File{
-		files.NewReaderFile("file.txt", "file.txt", "file.txt", ioutil.NopCloser(strings.NewReader(text)), nil),
-		files.NewSliceFile("boop", "boop", "boop", []files.File{
-			files.NewReaderFile("boop/a.txt", "boop/a.txt", "boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep")), nil),
-			files.NewReaderFile("boop/b.txt", "boop/b.txt", "boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop")), nil),
+		files.NewReaderFile("file.txt", "file.txt", ioutil.NopCloser(strings.NewReader(text)), nil),
+		files.NewSliceFile("boop", "boop", []files.File{
+			files.NewReaderFile("boop/a.txt", "boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep")), nil),
+			files.NewReaderFile("boop/b.txt", "boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop")), nil),
 		}),
-		files.NewReaderFile("beep.txt", "beep.txt", "beep.txt", ioutil.NopCloser(strings.NewReader("beep")), nil),
+		files.NewReaderFile("beep.txt", "beep.txt", ioutil.NopCloser(strings.NewReader("beep")), nil),
 	}
-	sf := files.NewSliceFile("", "", "", fileset)
+	sf := files.NewSliceFile("", "", fileset)
 	buf := make([]byte, 20)
 
 	// testing output by reading it with the go stdlib "mime/multipart" Reader

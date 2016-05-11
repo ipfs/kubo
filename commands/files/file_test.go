@@ -11,13 +11,13 @@ import (
 func TestSliceFiles(t *testing.T) {
 	name := "testname"
 	files := []File{
-		NewReaderFile("file.txt", "file.txt", "file.txt", ioutil.NopCloser(strings.NewReader("Some text!\n")), nil),
-		NewReaderFile("beep.txt", "beep.txt", "beep.txt", ioutil.NopCloser(strings.NewReader("beep")), nil),
-		NewReaderFile("boop.txt", "boop.txt", "boop.txt", ioutil.NopCloser(strings.NewReader("boop")), nil),
+		NewReaderFile("file.txt", "file.txt", ioutil.NopCloser(strings.NewReader("Some text!\n")), nil),
+		NewReaderFile("beep.txt", "beep.txt", ioutil.NopCloser(strings.NewReader("beep")), nil),
+		NewReaderFile("boop.txt", "boop.txt", ioutil.NopCloser(strings.NewReader("boop")), nil),
 	}
 	buf := make([]byte, 20)
 
-	sf := NewSliceFile(name, name, name, files)
+	sf := NewSliceFile(name, name, files)
 
 	if !sf.IsDirectory() {
 		t.Fatal("SliceFile should always be a directory")
@@ -57,7 +57,7 @@ func TestSliceFiles(t *testing.T) {
 
 func TestReaderFiles(t *testing.T) {
 	message := "beep boop"
-	rf := NewReaderFile("file.txt", "file.txt", "file.txt", ioutil.NopCloser(strings.NewReader(message)), nil)
+	rf := NewReaderFile("file.txt", "file.txt", ioutil.NopCloser(strings.NewReader(message)), nil)
 	buf := make([]byte, len(message))
 
 	if rf.IsDirectory() {

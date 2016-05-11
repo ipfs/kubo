@@ -16,7 +16,6 @@ import (
 type serialFile struct {
 	name              string
 	path              string
-	abspath           string
 	files             []os.FileInfo
 	stat              os.FileInfo
 	current           *File
@@ -34,7 +33,7 @@ func NewSerialFile(name, path string, hidden bool, stat os.FileInfo) (File, erro
 		if err != nil {
 			return nil, err
 		}
-		return NewReaderFile(name, path, abspath, file, stat), nil
+		return NewReaderFile(name, abspath, file, stat), nil
 	case mode.IsDir():
 		// for directories, stat all of the contents first, so we know what files to
 		// open when NextFile() is called
@@ -42,13 +41,13 @@ func NewSerialFile(name, path string, hidden bool, stat os.FileInfo) (File, erro
 		if err != nil {
 			return nil, err
 		}
-		return &serialFile{name, path, abspath, contents, stat, nil, hidden}, nil
+		return &serialFile{name, abspath, contents, stat, nil, hidden}, nil
 	case mode&os.ModeSymlink != 0:
 		target, err := os.Readlink(path)
 		if err != nil {
 			return nil, err
 		}
-		return NewLinkFile(name, path, abspath, target, stat), nil
+		return NewLinkFile(name, abspath, target, stat), nil
 	default:
 		return nil, fmt.Errorf("Unrecognized file type for %s: %s", name, mode.String())
 	}

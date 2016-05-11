@@ -11,13 +11,12 @@ import (
 type SliceFile struct {
 	filename string
 	path     string
-	abspath  string
 	files    []File
 	n        int
 }
 
-func NewSliceFile(filename, path, abspath string, files []File) *SliceFile {
-	return &SliceFile{filename, path, abspath, files, 0}
+func NewSliceFile(filename, path string, files []File) *SliceFile {
+	return &SliceFile{filename, path, files, 0}
 }
 
 func (f *SliceFile) IsDirectory() bool {

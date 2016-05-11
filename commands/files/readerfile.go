@@ -17,8 +17,8 @@ type ReaderFile struct {
 	baseInfo ExtraInfo
 }
 
-func NewReaderFile(filename, path, abspath string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
-	return &ReaderFile{filename, path, reader, stat, 0, PosInfo{0, abspath}}
+func NewReaderFile(filename, path string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
+	return &ReaderFile{filename, path, reader, stat, 0, PosInfo{0, path}}
 }
 
 func (f *ReaderFile) IsDirectory() bool {
