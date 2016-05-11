@@ -73,7 +73,7 @@ var showWantlistCmd = &cmds.Command{
 Print out all blocks currently on the bitswap wantlist for the local peer.`,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("peer", "p", "Specify which peer to show wantlist for. Default: self."),
+		cmds.StringOption("peer", "p", "Specify which peer to show wantlist for.").Default("self"),
 	},
 	Type: KeyList{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -94,21 +94,17 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 			return
 		}
 
-		pstr, found, err := req.Option("peer").String()
+		pstr, _, err := req.Option("peer").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if found {
-			pid, err := peer.IDB58Decode(pstr)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&KeyList{bs.WantlistForPeer(pid)})
-		} else {
-			res.SetOutput(&KeyList{bs.GetWantlist()})
+		pid, err := peer.IDB58Decode(pstr)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
+		res.SetOutput(&KeyList{bs.WantlistForPeer(pid)})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: KeyListTextMarshaler,
