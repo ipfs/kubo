@@ -9,10 +9,10 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
 )
 
 type LsLink struct {
@@ -36,12 +36,30 @@ type LsOutput struct {
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List directory contents for Unix filesystem objects.",
+		Synopsis: "ipfs file ls <path>",
 		ShortDescription: `
-Displays the contents  of an IPFS or IPNS object(s) at the given path.
+Displays the contents of an IPFS or IPNS object(s) at the given path.
 
 The JSON output contains size information. For files, the child size
 is the total size of the file contents. For directories, the child
 size is the IPFS link size.
+`,
+		LongDescription: `
+Displays the contents of an IPFS or IPNS object(s) at the given path.
+
+The JSON output contains size information. For files, the child size
+is the total size of the file contents. For directories, the child
+size is the IPFS link size.
+
+The path can be a prefixless ref; in this case, we assume it to be an
+/ipfs ref and not /ipns.
+
+Example:
+
+    > ipfs file ls QmW2WQi7j6c7UgJTarActp7tDNikE4B2qXtFCfLPdsgaTQ
+    cat.jpg
+    > ipfs file ls /ipfs/QmW2WQi7j6c7UgJTarActp7tDNikE4B2qXtFCfLPdsgaTQ
+    cat.jpg
 `,
 	},
 
