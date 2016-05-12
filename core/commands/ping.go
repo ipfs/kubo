@@ -28,7 +28,7 @@ type PingResult struct {
 var PingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:  "Send echo request packets to IPFS hosts.",
-		Synopsis: "Send pings to a peer to verify connectivity and determine latency.",
+		Synopsis: "ipfs ping <peerId> [--count <int>| -n]",
 		ShortDescription: `
 'ipfs ping' is a tool to test sending data to other nodes. It finds nodes
 via the routing system, sends pings, waits for pongs, and prints out round-
