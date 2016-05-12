@@ -205,7 +205,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	modtime := time.Now()
 	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
 		w.Header().Set("Etag", etag)
-		w.Header().Set("Cache-Control", "public, max-age=29030400")
+		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 
 		// set modtime to a really long time ago, since files are immutable and should stay cached
 		modtime = time.Unix(1, 0)
