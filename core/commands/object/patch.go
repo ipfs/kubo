@@ -246,13 +246,13 @@ This takes an empty directory, and adds a link named 'foo' under it, pointing to
 a file containing 'bar', and returns the hash of the new object.
 `,
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption("p", "create", "Create intermediary nodes."),
-	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "The hash of the node to modify."),
 		cmds.StringArg("name", true, false, "Name of link to create."),
 		cmds.StringArg("ref", true, false, "IPFS object to add link to."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("p", "create", "Create intermediary nodes.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
