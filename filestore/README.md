@@ -7,19 +7,41 @@ without duplicating the content in the IPFS datastore
 
 ## Quick start
 
-To add a file to IPFS without copying the contents use `add --no-copy`
-or to add a directory use `add -r --no-copy`.  (Throughout this
-document all command are assumed to start with `ipfs` so `add
---no-copy` really mains `ipfs add --no-copy`)
-
-Note: For now the daemon running must currently be offline otherwise
-you will get an error: `Reader does not support setting ExtraInfo.`
+To add a file to IPFS without copying, first bring the daemon offline
+and then use `add --no-copy` or to add a directory use `add -r
+--no-copy`.  (Throughout this document all command are assumed to
+start with `ipfs` so `add --no-copy` really mains `ipfs add
+--no-copy`).  For example to add the file `hello.txt` use:
+```
+  ipfs add --no-copy hello.txt
+```
 
 The file or directory will then be added.  You can now bring the
 daemon online and try to retrieve it from another node such as the
 ipfs.io gateway.
 
-If the contents of an added file have changed the block will invalid.
+To add a file to IPFS without copying and the daemon online you must
+first enable API.ServerSideAdds using:
+```
+  ipfs config API.ServerSideAdds --bool true
+```
+This will enable adding files from the filesystem the server is on.
+*This option should be used with care since it will allow anyone with
+access to the API Server access to any files that the daemon has
+permission to read.* For security reasons it is probably best to only
+enable this on a single user system and to make sure the API server is
+configured to the default value of only binding to the localhost
+(`127.0.0.1`).
+
+With the API.ServerSideAdds option enabled you can add files using
+`add-ss --no-copy`.  Since the file will read by the daemon the
+absolute path must be specified.  For example, to add the file
+`hello.txt` in the local directory use something like:
+```
+  ipfs add-ss --no-copy "`pwd`"/hello.txt
+```
+
+If the contents of an added file have changed the block will become invalid.
 The filestore uses the modification-time to determine if a file has changed.
 If the mod-time of a file differs from what is expected the contents
 of the block are rechecked by recomputing the multihash and failing if
