@@ -83,6 +83,7 @@ var CommandsDaemonCmd = CommandsCmd(Root)
 
 var rootSubcommands = map[string]*cmds.Command{
 	"add":       AddCmd,
+	"add-ss":    AddCmdServerSide,
 	"block":     BlockCmd,
 	"bootstrap": BootstrapCmd,
 	"cat":       CatCmd,

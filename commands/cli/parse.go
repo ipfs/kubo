@@ -33,28 +33,7 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		return nil, cmd, path, err
 	}
 
-	// if -r is provided, and it is associated with the package builtin
-	// recursive path option, allow recursive file paths
-	recursiveOpt := req.Option(cmds.RecShort)
-	recursive := false
-	if recursiveOpt != nil && recursiveOpt.Definition() == cmds.OptionRecursivePath {
-		recursive, _, err = recursiveOpt.Bool()
-		if err != nil {
-			return req, nil, nil, u.ErrCast()
-		}
-	}
-
-	// if '--hidden' is provided, enumerate hidden paths
-	hiddenOpt := req.Option("hidden")
-	hidden := false
-	if hiddenOpt != nil {
-		hidden, _, err = hiddenOpt.Bool()
-		if err != nil {
-			return req, nil, nil, u.ErrCast()
-		}
-	}
-
-	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive, hidden, root)
+	stringArgs, fileArgs, err := ParseArgs(req, stringVals, stdin, cmd.Arguments, root)
 	if err != nil {
 		return req, cmd, path, err
 	}
@@ -71,6 +50,32 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	}
 
 	return req, cmd, path, nil
+}
+
+func ParseArgs(req cmds.Request, inputs []string, stdin *os.File, argDefs []cmds.Argument, root *cmds.Command) ([]string, []files.File, error) {
+	var err error
+	
+	// if -r is provided, and it is associated with the package builtin
+	// recursive path option, allow recursive file paths
+	recursiveOpt := req.Option(cmds.RecShort)
+	recursive := false
+	if recursiveOpt != nil && recursiveOpt.Definition() == cmds.OptionRecursivePath {
+		recursive, _, err = recursiveOpt.Bool()
+		if err != nil {
+			return nil, nil, u.ErrCast()
+		}
+	}
+
+	// if '--hidden' is provided, enumerate hidden paths
+	hiddenOpt := req.Option("hidden")
+	hidden := false
+	if hiddenOpt != nil {
+		hidden, _, err = hiddenOpt.Bool()
+		if err != nil {
+			return nil, nil, u.ErrCast()
+		}
+	}
+	return parseArgs(inputs, stdin, argDefs, recursive, hidden, root)
 }
 
 // Parse a command line made up of sub-commands, short arguments, long arguments and positional arguments
