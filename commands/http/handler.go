@@ -65,10 +65,30 @@ const (
 )
 
 var mimeTypes = map[string]string{
+	cmds.Gzip:     "application/gzip",
 	cmds.Protobuf: "application/protobuf",
 	cmds.JSON:     "application/json",
+	cmds.Tar:      "application/x-tar",
 	cmds.XML:      "application/xml",
 	cmds.Text:     "text/plain",
+}
+
+var xssSafeMimeTypes = []string{
+	mimeTypes[cmds.Gzip],
+	mimeTypes[cmds.JSON],
+	mimeTypes[cmds.Tar],
+	mimeTypes[cmds.Text],
+	mimeTypes[cmds.XML],
+	mimeTypes[cmds.Protobuf],
+}
+
+func xssSafeMimeType(mime string) bool {
+	for _, t := range xssSafeMimeTypes {
+		if t == mime {
+			return true
+		}
+	}
+	return false
 }
 
 type ServerConfig struct {
@@ -251,7 +271,9 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	if _, ok := res.Output().(io.Reader); ok {
 		// set streams output type to text to avoid issues with browsers rendering
 		// html pages on priveleged api ports
-		mime = "text/plain"
+		if !xssSafeMimeType(mime) {
+			mime = mimeTypes[cmds.Text]
+		}
 		h.Set(streamHeader, "1")
 	}
 

@@ -69,6 +69,12 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
+		// set the correct mime type for tar stream
+		req.SetOption(cmds.EncShort, cmds.Tar)
+		if cmplvl != gzip.NoCompression {
+			req.SetOption(cmds.EncShort, cmds.Gzip)
+		}
+
 		archive, _, _ := req.Option("archive").Bool()
 		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
 		if err != nil {
