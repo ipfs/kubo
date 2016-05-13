@@ -17,37 +17,37 @@ type Changes struct {
 
 var ObjectDiffCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "takes a diff of the two given objects",
+		Tagline: "Takes a diff of the two given objects.",
 		ShortDescription: `
-ipfs object diff is a command used to show the differences between
+'ipfs object diff' is a command used to show the differences between
 two ipfs objects.`,
 		LongDescription: `
-ipfs object diff is a command used to show the differences between
+'ipfs object diff' is a command used to show the differences between
 two ipfs objects.
 
 Example:
 
-   $ ls foo
+   > ls foo
    bar baz/ giraffe
-   $ ipfs add -r foo
+   > ipfs add -r foo
    ...
-   added QmegHcnrPgMwC7tBiMxChD54fgQMBUecNw9nE9UUU4x1bz foo
-   $ OBJ_A=QmegHcnrPgMwC7tBiMxChD54fgQMBUecNw9nE9UUU4x1bz
-   $ echo "different content" > foo/bar
-   $ ipfs add -r foo
+   Added QmegHcnrPgMwC7tBiMxChD54fgQMBUecNw9nE9UUU4x1bz foo
+   > OBJ_A=QmegHcnrPgMwC7tBiMxChD54fgQMBUecNw9nE9UUU4x1bz
+   > echo "different content" > foo/bar
+   > ipfs add -r foo
    ...
-   added QmcmRptkSPWhptCttgHg27QNDmnV33wAJyUkCnAvqD3eCD foo
-   $ OBJ_B=QmcmRptkSPWhptCttgHg27QNDmnV33wAJyUkCnAvqD3eCD
-   $ ipfs object diff -v $OBJ_A $OBJ_B
-   changed "bar" from QmNgd5cz2jNftnAHBhcRUGdtiaMzb5Rhjqd4etondHHST8 to QmRfFVsjSXkhFxrfWnLpMae2M4GBVsry6VAuYYcji5MiZb
+   Added QmcmRptkSPWhptCttgHg27QNDmnV33wAJyUkCnAvqD3eCD foo
+   > OBJ_B=QmcmRptkSPWhptCttgHg27QNDmnV33wAJyUkCnAvqD3eCD
+   > ipfs object diff -v $OBJ_A $OBJ_B
+   Changed "bar" from QmNgd5cz2jNftnAHBhcRUGdtiaMzb5Rhjqd4etondHHST8 to QmRfFVsjSXkhFxrfWnLpMae2M4GBVsry6VAuYYcji5MiZb.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("obj_a", true, false, "object to diff against"),
-		cmds.StringArg("obj_b", true, false, "object to diff"),
+		cmds.StringArg("obj_a", true, false, "Object to diff against."),
+		cmds.StringArg("obj_b", true, false, "Object to diff."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Produce verbose output"),
+		cmds.BoolOption("verbose", "v", "Produce verbose output."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -103,11 +103,11 @@ Example:
 				if verbose {
 					switch change.Type {
 					case dagutils.Add:
-						fmt.Fprintf(buf, "added new link %q pointing to %s\n", change.Path, change.After)
+						fmt.Fprintf(buf, "Added new link %q pointing to %s.\n", change.Path, change.After)
 					case dagutils.Mod:
-						fmt.Fprintf(buf, "changed %q from %s to %s\n", change.Path, change.Before, change.After)
+						fmt.Fprintf(buf, "Changed %q from %s to %s.\n", change.Path, change.Before, change.After)
 					case dagutils.Remove:
-						fmt.Fprintf(buf, "removed link %q (was %s)\n", change.Path, change.Before)
+						fmt.Fprintf(buf, "Removed link %q (was %s).\n", change.Path, change.Before)
 					}
 				} else {
 					switch change.Type {

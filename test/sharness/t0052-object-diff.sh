@@ -46,7 +46,7 @@ test_expect_success "verbose diff added link works" '
 '
 
 test_expect_success "verbose diff added link looks right" '
-	echo added new link \"cat\" pointing to QmUSvcqzhdfYM1KLDbM76eLPdS9ANFtkJvFuPYeZt73d7A > diff_exp &&
+	echo Added new link \"cat\" pointing to QmUSvcqzhdfYM1KLDbM76eLPdS9ANFtkJvFuPYeZt73d7A. > diff_exp &&
 	test_cmp diff_exp diff_out
 '
 
@@ -55,7 +55,7 @@ test_expect_success "diff removed link works" '
 '
 
 test_expect_success "diff removed link looks right" '
-	echo removed link \"cat\" \(was QmUSvcqzhdfYM1KLDbM76eLPdS9ANFtkJvFuPYeZt73d7A\) > diff_exp &&
+	echo Removed link \"cat\" \(was QmUSvcqzhdfYM1KLDbM76eLPdS9ANFtkJvFuPYeZt73d7A\). > diff_exp &&
 	test_cmp diff_exp diff_out
 '
 
@@ -64,7 +64,7 @@ test_expect_success "diff nested add works" '
 '
 
 test_expect_success "diff looks right" '
-	echo added new link \"baz/dog\" pointing to QmdNJQUTZuDpsUcec7YDuCfRfvw1w4J13DCm7YcU4VMZdS > diff_exp &&
+	echo Added new link \"baz/dog\" pointing to QmdNJQUTZuDpsUcec7YDuCfRfvw1w4J13DCm7YcU4VMZdS. > diff_exp &&
 	test_cmp diff_exp diff_out
 '
 
@@ -73,7 +73,7 @@ test_expect_success "diff changed link works" '
 '
 
 test_expect_success "diff looks right" '
-	echo changed \"bar\" from QmNgd5cz2jNftnAHBhcRUGdtiaMzb5Rhjqd4etondHHST8 to QmRfFVsjSXkhFxrfWnLpMae2M4GBVsry6VAuYYcji5MiZb > diff_exp &&
+	echo Changed \"bar\" from QmNgd5cz2jNftnAHBhcRUGdtiaMzb5Rhjqd4etondHHST8 to QmRfFVsjSXkhFxrfWnLpMae2M4GBVsry6VAuYYcji5MiZb. > diff_exp &&
 	test_cmp diff_exp diff_out
 '
 
