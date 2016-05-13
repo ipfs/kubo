@@ -19,7 +19,7 @@ test_expect_success "can create some files for testing" '
 	echo cats > stuff_test/a &&
 	echo dogs > stuff_test/b &&
 	echo giraffes > stuff_test/c &&
-	DIR1=$(ipfs add -q stuff_test | tail -n1)
+	DIR1=$(ipfs add -rq stuff_test | tail -n1)
 '
 
 verify_path_exists() {
@@ -446,9 +446,9 @@ test_expect_success "clean up objects from previous test run" '
 	ipfs repo gc
 '
 
-test_launch_ipfs_daemon
-
 ONLINE=1 # set online flag so tests can easily tell
+test_launch_ipfs_daemon
 test_files_api
 test_kill_ipfs_daemon
+
 test_done
