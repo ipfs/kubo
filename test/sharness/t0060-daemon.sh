@@ -88,7 +88,7 @@ test_expect_success "transport should be encrypted" '
 '
 
 test_expect_success "output from streaming commands works" '
-	test_expect_code 28 curl -m 2 http://localhost:$API_PORT/api/v0/stats/bw\?poll=true > statsout
+	test_expect_code 28 curl -m 5 http://localhost:$API_PORT/api/v0/stats/bw\?poll=true > statsout
 '
 
 test_expect_success "output looks good" '
