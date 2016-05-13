@@ -77,7 +77,11 @@ const usageFormat = "{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}} {{
 const longHelpFormat = `USAGE
 {{.Indent}}{{template "usage" .}}
 
-{{if .Arguments}}ARGUMENTS
+{{if .Synopsis}}SYNOPSIS
+
+{{.Synopsis}}
+
+{{end}}{{if .Arguments}}ARGUMENTS
 
 {{.Arguments}}
 
