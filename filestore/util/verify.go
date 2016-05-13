@@ -13,7 +13,7 @@ import (
 )
 
 func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) {
-	in, err := List(fs, false)
+	in, err := List(fs, func(r ListRes) bool { return r.NoBlockData() })
 	if err != nil {
 		return nil, err
 	}
@@ -25,9 +25,6 @@ func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) 
 	go func() {
 		defer close(out)
 		for res := range in {
-			if !res.NoBlockData() {
-				continue
-			}
 			res.Status = verify(fs, res.Key, res.DataObj, verifyWhat)
 			if verbose >= 3 || OfInterest(res.Status) {
 				out <- res
@@ -39,7 +36,7 @@ func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) 
 
 func VerifyFull(node *core.IpfsNode, fs *Datastore, level int, verbose int, skipOrphans bool) (<-chan ListRes, error) {
 	p := verifyParams{make(chan ListRes, 16), node, fs, level, verbose, skipOrphans, nil}
-	ch, err := List(p.fs, true)
+	ch, err := ListKeys(p.fs)
 	if err != nil {
 		return nil, err
 	}
@@ -85,10 +82,10 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 	unsafeToCont := false
 	for res := range ch {
 		dagNode, dataObj, r := p.get(res.Key)
-		res.DataObj = dataObj
 		if dataObj == nil {
 			r = StatusError
 		}
+		res.DataObj = dataObj
 		if AnError(r) {
 			/* nothing to do */
 		} else if res.FileRoot() {

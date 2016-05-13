@@ -107,17 +107,33 @@ func (r *ListRes) Format() string {
 	}
 }
 
-func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
+func ListKeys(d *Datastore) (<-chan ListRes, error) {
 	qr, err := d.Query(query.Query{KeysOnly: true})
 	if err != nil {
 		return nil, err
 	}
 
-	bufSize := 128
-	if keysOnly {
-		bufSize = 1024
+	out := make(chan ListRes, 1024)
+
+	go func() {
+		defer close(out)
+		for r := range qr.Next() {
+			if r.Error != nil {
+				return // FIXME
+			}
+			out <- ListRes{ds.NewKey(r.Key), nil, 0}
+		}
+	}()
+	return out, nil
+}
+
+func List(d *Datastore, filter func(ListRes) bool) (<-chan ListRes, error) {
+	qr, err := d.Query(query.Query{KeysOnly: true})
+	if err != nil {
+		return nil, err
 	}
-	out := make(chan ListRes, bufSize)
+
+	out := make(chan ListRes, 128)
 
 	go func() {
 		defer close(out)
@@ -126,15 +142,19 @@ func List(d *Datastore, keysOnly bool) (<-chan ListRes, error) {
 				return // FIXME
 			}
 			key := ds.NewKey(r.Key)
-			if keysOnly {
-				out <- ListRes{key, nil, 0}
-			} else {
-				val, _ := d.GetDirect(key)
-				out <- ListRes{key, val, 0}
-			}
+			val, _ := d.GetDirect(key)
+			out <- ListRes{key, val, 0}
 		}
 	}()
 	return out, nil
+}
+
+func ListAll(d *Datastore) (<-chan ListRes, error) {
+	return List(d, func(_ ListRes) bool { return true })
+}
+
+func ListWholeFile(d *Datastore) (<-chan ListRes, error) {
+	return List(d, func(r ListRes) bool { return r.WholeFile() })
 }
 
 func verify(d *Datastore, key ds.Key, val *DataObj, level int) int {

@@ -64,8 +64,13 @@ represents the whole file.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch, _ := fsutil.List(fs, quiet)
-		res.SetOutput(&chanWriter{ch, "", 0, false})
+		if (quiet) {
+			ch, _ := fsutil.ListKeys(fs)
+			res.SetOutput(&chanWriter{ch, "", 0, false})
+		} else {
+			ch, _ := fsutil.ListAll(fs)
+			res.SetOutput(&chanWriter{ch, "", 0, false})
+		}
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

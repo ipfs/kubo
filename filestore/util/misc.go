@@ -11,7 +11,7 @@ import (
 )
 
 func RmDups(wtr io.Writer, fs *Datastore, bs b.Blockstore) error {
-	ls, err := List(fs, true)
+	ls, err := ListKeys(fs)
 	if err != nil {return err}
 	for res := range ls {
 		key := k.KeyFromDsKey(res.Key)

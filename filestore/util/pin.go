@@ -144,7 +144,7 @@ func verifyRecPin(key bk.Key, good *[]bk.Key, fs *Datastore, bs b.Blockstore) (b
 }
 
 func Unpinned(n *core.IpfsNode, fs *Datastore, wtr io.Writer) error {
-	ls, err := List(fs, false)
+	ls, err := ListWholeFile(fs)
 	if err != nil {
 		return err
 	}
