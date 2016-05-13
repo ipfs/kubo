@@ -188,8 +188,7 @@ Example:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").Default("all"),
-		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins."),
-		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
+		cmds.BoolOption("quiet", "q", "Write just hashes of objects.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
