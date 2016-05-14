@@ -23,10 +23,17 @@ type DeleteOpts struct {
 	IgnorePins bool
 }
 
+type delInfo int
+
+const (
+	DirectlySpecified   delInfo = 1
+	IndirectlySpecified delInfo = 2
+)
+
 func Delete(req cmds.Request, out io.Writer, node *core.IpfsNode, fs *Datastore, opts DeleteOpts, keyList ...k.Key) error {
-	keys := make(map[k.Key]struct{})
+	keys := make(map[k.Key]delInfo)
 	for _, k := range keyList {
-		keys[k] = struct{}{}
+		keys[k] = DirectlySpecified
 	}
 
 	//
@@ -64,24 +71,30 @@ func Delete(req cmds.Request, out io.Writer, node *core.IpfsNode, fs *Datastore,
 	pinned := make(map[k.Key]pin.PinMode)
 	if !opts.IgnorePins {
 		walkPins(node.Pinning, fs, node.Blockstore, func(key k.Key, mode pin.PinMode) bool {
-			_, ok := keys[key]
+			dm, ok := keys[key]
 			if !ok {
 				// Hack to make sure mangled hashes are unpinned
 				// (see issue #2601)
-				_, ok = keys[k.KeyFromDsKey(key.DsKey())]
+				dm, ok = keys[k.KeyFromDsKey(key.DsKey())]
 			}
 			if ok {
-				if mode == pin.NotPinned {
+				if mode == pin.NotPinned && dm == DirectlySpecified {
 					// an indirect pin
 					fmt.Fprintf(out, "%s: indirectly pinned\n", key)
-					errors = true
+					if !opts.Force {
+						errors = true
+					}
+					return true
+				} else if mode == pin.NotPinned && dm == IndirectlySpecified {
+					fmt.Fprintf(out, "skipping indirectly pinned block: %s\n", key)
+					delete(keys, key)
 					return true
 				} else {
 					pinned[key] = mode
 					return false
 				}
 			} else {
-				if opts.Force {
+				if opts.Force && opts.Direct {
 					// do not recurse and thus do not check indirect pins
 					return false
 				} else {
@@ -130,7 +143,7 @@ func Delete(req cmds.Request, out io.Writer, node *core.IpfsNode, fs *Datastore,
 	return nil
 }
 
-func getChildren(out io.Writer, node *node.Node, fs *Datastore, bs b.Blockstore, keys map[k.Key]struct{}) error {
+func getChildren(out io.Writer, node *node.Node, fs *Datastore, bs b.Blockstore, keys map[k.Key]delInfo) error {
 	errors := false
 	for _, link := range node.Links {
 		key := k.Key(link.Hash)
@@ -142,7 +155,7 @@ func getChildren(out io.Writer, node *node.Node, fs *Datastore, bs b.Blockstore,
 			fmt.Fprintf(out, "%s: error retrieving key", key)
 			errors = true
 		}
-		keys[key] = struct{}{}
+		keys[key] = IndirectlySpecified
 		if n != nil {
 			err := getChildren(out, n, fs, bs, keys)
 			if err != nil {
