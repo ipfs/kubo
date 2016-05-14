@@ -155,3 +155,42 @@ func TestResolving(t *testing.T) {
 		t.Error("Returned command path is different than expected", cmds)
 	}
 }
+
+func TestWalking(t *testing.T) {
+	cmdA := &Command{
+		Subcommands: map[string]*Command{
+			"b": &Command{},
+			"B": &Command{},
+		},
+	}
+	i := 0
+	cmdA.Walk(func(c *Command) {
+		i = i + 1
+	})
+	if i != 3 {
+		t.Error("Command tree walk didn't work, expected 3 got:", i)
+	}
+}
+
+func TestHelpProcessing(t *testing.T) {
+	cmdB := &Command{
+		Helptext: HelpText{
+			ShortDescription: "This is other short",
+		},
+	}
+	cmdA := &Command{
+		Helptext: HelpText{
+			ShortDescription: "This is short",
+		},
+		Subcommands: map[string]*Command{
+			"a": cmdB,
+		},
+	}
+	cmdA.ProcessHelp()
+	if len(cmdA.Helptext.LongDescription) == 0 {
+		t.Error("LongDescription was not set on basis of ShortDescription")
+	}
+	if len(cmdB.Helptext.LongDescription) == 0 {
+		t.Error("LongDescription was not set on basis of ShortDescription")
+	}
+}

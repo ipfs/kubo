@@ -153,6 +153,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 }
 
 func init() {
+	Root.ProcessHelp()
 	*RootRO = *Root
 
 	// sanitize readonly refs command
