@@ -258,6 +258,25 @@ func (c *Command) Subcommand(id string) *Command {
 	return c.Subcommands[id]
 }
 
+type CommandVisitor func(*Command)
+
+// Walks tree of all subcommands (including this one)
+func (c *Command) Walk(visitor CommandVisitor) {
+	visitor(c)
+	for _, cm := range c.Subcommands {
+		cm.Walk(visitor)
+	}
+}
+
+func (c *Command) ProcessHelp() {
+	c.Walk(func(cm *Command) {
+		ht := &cm.Helptext
+		if len(ht.LongDescription) == 0 {
+			ht.LongDescription = ht.ShortDescription
+		}
+	})
+}
+
 // checkArgValue returns an error if a given arg value is not valid for the
 // given Argument
 func checkArgValue(v string, found bool, def Argument) error {
