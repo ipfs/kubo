@@ -379,4 +379,11 @@ test_expect_success "ipfs cat file fails" '
 
 test_add_named_pipe ""
 
+# Test daemon in offline mode
+test_launch_ipfs_daemon --offline
+
+test_add_cat_file
+
+test_kill_ipfs_daemon
+
 test_done
