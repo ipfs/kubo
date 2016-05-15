@@ -42,6 +42,7 @@ const (
 	unencryptTransportKwd     = "disable-transport-encryption"
 	enableGCKwd               = "enable-gc"
 	adjustFDLimitKwd          = "manage-fdlimit"
+	offlineKwd                = "offline"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -136,6 +137,7 @@ future version, along with this notice. Please move to setting the HTTP Headers.
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)").Default(false),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection").Default(false),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(false),
+		cmds.BoolOption(offlineKwd, "Run in offline. Do not connect with rest of the network but provide local API.").Default(false),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -226,9 +228,10 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
-		Online: true,
-		Repo:   repo,
+		Repo: repo,
 	}
+	offline, _, _ := req.Option(offlineKwd).Bool()
+	ncfg.Online = !offline
 
 	routingOption, _, err := req.Option(routingOptionKwd).String()
 	if err != nil {
@@ -416,6 +419,10 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 
 // printSwarmAddrs prints the addresses of the host
 func printSwarmAddrs(node *core.IpfsNode) {
+	if !node.OnlineMode() {
+		fmt.Println("Swarm not listening, running in offline mode.")
+		return
+	}
 	var addrs []string
 	for _, addr := range node.PeerHost.Addrs() {
 		addrs = append(addrs, addr.String())
