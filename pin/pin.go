@@ -22,8 +22,13 @@ var pinDatastoreKey = ds.NewKey("/local/pins")
 var emptyKey = key.B58KeyDecode("QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n")
 
 const (
-	linkDirect    = "direct"
 	linkRecursive = "recursive"
+	linkDirect    = "direct"
+	linkIndirect  = "indirect"
+	linkInternal  = "internal"
+	linkNotPinned = "not pinned"
+	linkAny       = "any"
+	linkAll       = "all"
 )
 
 type PinMode int
@@ -31,12 +36,42 @@ type PinMode int
 const (
 	Recursive PinMode = iota
 	Direct
+	Indirect
+	Internal
 	NotPinned
+	Any
 )
+
+func PinModeToString(mode PinMode) (string, bool) {
+	m := map[PinMode]string{
+		Recursive: linkRecursive,
+		Direct: linkDirect,
+		Indirect: linkIndirect,
+		Internal: linkInternal,
+		NotPinned: linkNotPinned,
+		Any: linkAny,
+	}
+	s, ok := m[mode]
+	return s, ok
+}
+
+func StringToPinMode(s string) (PinMode, bool) {
+	m := map[string]PinMode{
+		linkRecursive: Recursive,
+		linkDirect: Direct,
+		linkIndirect: Indirect,
+		linkInternal: Internal,
+		linkNotPinned: NotPinned,
+		linkAny: Any,
+		linkAll: Any, // "all" and "any" means the same thing
+	}
+	mode, ok := m[s]
+	return mode, ok
+}
 
 type Pinner interface {
 	IsPinned(key.Key) (string, bool, error)
-	IsPinnedWithType(key.Key, string) (string, bool, error)
+	IsPinnedWithType(key.Key, PinMode) (string, bool, error)
 	Pin(context.Context, *mdag.Node, bool) error
 	Unpin(context.Context, key.Key, bool) error
 
@@ -129,7 +164,7 @@ var ErrNotPinned = fmt.Errorf("not pinned")
 func (p *pinner) Unpin(ctx context.Context, k key.Key, recursive bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	reason, pinned, err := p.isPinnedWithType(k, "all")
+	reason, pinned, err := p.isPinnedWithType(k, Any)
 	if err != nil {
 		return err
 	}
@@ -162,46 +197,47 @@ func (p *pinner) isInternalPin(key key.Key) bool {
 func (p *pinner) IsPinned(k key.Key) (string, bool, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
-	return p.isPinnedWithType(k, "all")
+	return p.isPinnedWithType(k, Any)
 }
 
-func (p *pinner) IsPinnedWithType(k key.Key, typeStr string) (string, bool, error) {
+func (p *pinner) IsPinnedWithType(k key.Key, mode PinMode) (string, bool, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
-	return p.isPinnedWithType(k, typeStr)
+	return p.isPinnedWithType(k, mode)
 }
 
 // isPinnedWithType is the implementation of IsPinnedWithType that does not lock.
 // intended for use by other pinned methods that already take locks
-func (p *pinner) isPinnedWithType(k key.Key, typeStr string) (string, bool, error) {
-	switch typeStr {
-	case "all", "direct", "indirect", "recursive", "internal":
+func (p *pinner) isPinnedWithType(k key.Key, mode PinMode) (string, bool, error) {
+	switch mode {
+	case Any, Direct, Indirect, Recursive, Internal:
 	default:
-		err := fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, internal, all}", typeStr)
+		err := fmt.Errorf("Invalid Pin Mode '%d', must be one of {%d, %d, %d, %d, %d}",
+			mode, Direct, Indirect, Recursive, Internal, Any)
 		return "", false, err
 	}
-	if (typeStr == "recursive" || typeStr == "all") && p.recursePin.HasKey(k) {
-		return "recursive", true, nil
+	if (mode == Recursive || mode == Any) && p.recursePin.HasKey(k) {
+		return linkRecursive, true, nil
 	}
-	if typeStr == "recursive" {
+	if mode == Recursive {
 		return "", false, nil
 	}
 
-	if (typeStr == "direct" || typeStr == "all") && p.directPin.HasKey(k) {
-		return "direct", true, nil
+	if (mode == Direct || mode == Any) && p.directPin.HasKey(k) {
+		return linkDirect, true, nil
 	}
-	if typeStr == "direct" {
+	if mode == Direct {
 		return "", false, nil
 	}
 
-	if (typeStr == "internal" || typeStr == "all") && p.isInternalPin(k) {
-		return "internal", true, nil
+	if (mode == Internal || mode == Any) && p.isInternalPin(k) {
+		return linkInternal, true, nil
 	}
-	if typeStr == "internal" {
+	if mode == Internal {
 		return "", false, nil
 	}
 
-	// Default is "indirect"
+	// Default is Indirect
 	for _, rk := range p.recursePin.GetKeys() {
 		rnd, err := p.dserv.Get(context.Background(), rk)
 		if err != nil {

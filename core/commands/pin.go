@@ -11,6 +11,7 @@ import (
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	pin "github.com/ipfs/go-ipfs/pin"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
@@ -273,7 +274,12 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 			return nil, err
 		}
 
-		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, typeStr)
+		mode, ok := pin.StringToPinMode(typeStr)
+		if !ok {
+			return nil, fmt.Errorf("Invalid pin mode '%s'", typeStr)
+		}
+
+		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, mode)
 		if err != nil {
 			return nil, err
 		}
