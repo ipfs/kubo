@@ -22,8 +22,13 @@ var pinDatastoreKey = ds.NewKey("/local/pins")
 var emptyKey = key.B58KeyDecode("QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n")
 
 const (
-	linkDirect    = "direct"
 	linkRecursive = "recursive"
+	linkDirect    = "direct"
+	linkIndirect  = "indirect"
+	linkInternal  = "internal"
+	linkNotPinned = "not pinned"
+	linkAny       = "any"
+	linkAll       = "all"
 )
 
 type PinMode int
@@ -31,8 +36,38 @@ type PinMode int
 const (
 	Recursive PinMode = iota
 	Direct
+	Indirect
+	Internal
 	NotPinned
+	Any
 )
+
+func PinModeToString(mode PinMode) (string, bool) {
+	m := map[PinMode]string{
+		Recursive: linkRecursive,
+		Direct: linkDirect,
+		Indirect: linkIndirect,
+		Internal: linkInternal,
+		NotPinned: linkNotPinned,
+		Any: linkAny,
+	}
+	s, ok := m[mode]
+	return s, ok
+}
+
+func StringToPinMode(s string) (PinMode, bool) {
+	m := map[string]PinMode{
+		linkRecursive: Recursive,
+		linkDirect: Direct,
+		linkIndirect: Indirect,
+		linkInternal: Internal,
+		linkNotPinned: NotPinned,
+		linkAny: Any,
+		linkAll: Any, // "all" and "any" means the same thing
+	}
+	mode, ok := m[s]
+	return mode, ok
+}
 
 type Pinner interface {
 	IsPinned(key.Key) (string, bool, error)
