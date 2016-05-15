@@ -29,5 +29,6 @@ func checkHelptextRecursive(t *testing.T, name []string, c *cmds.Command) {
 }
 
 func TestHelptexts(t *testing.T) {
+	Root.ProcessHelp()
 	checkHelptextRecursive(t, []string{"ipfs"}, Root)
 }
