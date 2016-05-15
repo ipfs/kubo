@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"sort"
+	"time"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
@@ -15,6 +16,7 @@ import (
 
 	mafilter "gx/ipfs/QmUaRHbB7pUwj5mS9BS4CMvBiW48MpaH2wbGxeWfFhhHxK/multiaddr-filter"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type stringList struct {
@@ -50,7 +52,14 @@ var swarmPeersCmd = &cmds.Command{
 'ipfs swarm peers' lists the set of peers this node is connected to.
 `,
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "v",
+			`Also display latency along with peer information in the following form:
+        <peer address> <latency>
+        `),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
+		timeout := time.Duration(5) * time.Second
 
 		log.Debug("ipfs swarm peers")
 		n, err := req.InvocContext().GetNode()
@@ -64,12 +73,32 @@ var swarmPeersCmd = &cmds.Command{
 			return
 		}
 
+		verbose, _, _ := req.Option("verbose").Bool()
 		conns := n.PeerHost.Network().Conns()
 		addrs := make([]string, len(conns))
+		pingService := n.Ping
+
 		for i, c := range conns {
 			pid := c.RemotePeer()
 			addr := c.RemoteMultiaddr()
-			addrs[i] = fmt.Sprintf("%s/ipfs/%s", addr, pid.Pretty())
+
+			if verbose {
+				pContext, cancelFn := context.WithTimeout(req.Context(), timeout)
+				defer cancelFn()
+
+				ch, _ := pingService.Ping(pContext, pid)
+				duration := <-ch
+				var durStr string
+
+				if pContext.Err() != nil {
+					durStr = pContext.Err().Error()
+				} else {
+					durStr = duration.String()
+				}
+				addrs[i] = fmt.Sprintf("%s/ipfs/%s %s", addr, pid.Pretty(), durStr)
+			} else {
+				addrs[i] = fmt.Sprintf("%s/ipfs/%s", addr, pid.Pretty())
+			}
 		}
 
 		sort.Sort(sort.StringSlice(addrs))
