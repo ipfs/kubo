@@ -126,16 +126,16 @@ future version, along with this notice. Please move to setting the HTTP Headers.
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption(initOptionKwd, "Initialize IPFS with default settings if not already initialized"),
-		cmds.StringOption(routingOptionKwd, "Overrides the routing option (dht, supernode)"),
-		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
-		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
-		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
-		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount)"),
-		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
-		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
-		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
-		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed"),
+		cmds.BoolOption(initOptionKwd, "Initialize IPFS with default settings if not already initialized").Default(false),
+		cmds.StringOption(routingOptionKwd, "Overrides the routing option").Default("dht"),
+		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem").Default(false),
+		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)").Default(false),
+		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
+		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
+		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes").Default(false),
+		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)").Default(false),
+		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection").Default(false),
+		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(false),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
