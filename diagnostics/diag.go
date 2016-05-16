@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,7 +27,8 @@ import (
 var log = logging.Logger("diagnostics")
 
 // ProtocolDiag is the diagnostics protocol.ID
-var ProtocolDiag protocol.ID = "/ipfs/diagnostics"
+var ProtocolDiagOld protocol.ID = "/ipfs/diagnostics"
+var ProtocolDiag protocol.ID = "/ipfs/diag/net/1.0.0"
 
 var ErrAlreadyRunning = errors.New("diagnostic with that ID already running")
 
@@ -54,6 +56,7 @@ func NewDiagnostics(self peer.ID, h host.Host) *Diagnostics {
 	}
 
 	h.SetStreamHandler(ProtocolDiag, d.handleNewStream)
+	h.SetStreamHandler(ProtocolDiagOld, d.handleNewStream)
 	return d
 }
 
@@ -206,6 +209,18 @@ func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.ID, pmes
 	s, err := d.host.NewStream(ctx, ProtocolDiag, p)
 	if err != nil {
 		return nil, err
+	}
+
+	// TEMP: trigger the multistream handshake with a read so we can
+	// use the old protocol name if needed
+	// TODO: remove once the network has switched over to the new code ( >= ipfs 0.4.2)
+	_, err = s.Read(nil)
+	if err != nil {
+		if strings.Contains(err.Error(), "protocol mismatch") {
+			s, err = d.host.NewStream(ctx, ProtocolDiagOld, p)
+		} else {
+			return nil, err
+		}
 	}
 
 	cr := ctxio.NewReader(ctx, s) // ok to use. we defer close stream in this func
