@@ -4,8 +4,8 @@ import (
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	inet "gx/ipfs/QmUHrgorZ1F9yGkgF2His5fsQ9xtCzjdsPGjizmcEW94i5/go-libp2p/p2p/net"
 	peer "gx/ipfs/QmZpD74pUj6vuxTp1o6LhA3JavC2Bvh9fsWPPVvHnD9sE7/go-libp2p-peer"
-	inet "gx/ipfs/QmZpVD1kkRwoC67vNknvCrY72pjmVdtZ7txSk8mtCbuwd3/go-libp2p/p2p/net"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 

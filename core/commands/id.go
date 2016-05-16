@@ -14,9 +14,9 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	ic "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
+	identify "gx/ipfs/QmUHrgorZ1F9yGkgF2His5fsQ9xtCzjdsPGjizmcEW94i5/go-libp2p/p2p/protocol/identify"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmZpD74pUj6vuxTp1o6LhA3JavC2Bvh9fsWPPVvHnD9sE7/go-libp2p-peer"
-	identify "gx/ipfs/QmZpVD1kkRwoC67vNknvCrY72pjmVdtZ7txSk8mtCbuwd3/go-libp2p/p2p/protocol/identify"
 )
 
 const offlineIdErrorMessage = `'ipfs id' currently cannot query information on remote

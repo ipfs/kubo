@@ -15,9 +15,9 @@ import (
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	record "github.com/ipfs/go-ipfs/routing/record"
 	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
+	host "gx/ipfs/QmUHrgorZ1F9yGkgF2His5fsQ9xtCzjdsPGjizmcEW94i5/go-libp2p/p2p/host"
+	protocol "gx/ipfs/QmUHrgorZ1F9yGkgF2His5fsQ9xtCzjdsPGjizmcEW94i5/go-libp2p/p2p/protocol"
 	peer "gx/ipfs/QmZpD74pUj6vuxTp1o6LhA3JavC2Bvh9fsWPPVvHnD9sE7/go-libp2p-peer"
-	host "gx/ipfs/QmZpVD1kkRwoC67vNknvCrY72pjmVdtZ7txSk8mtCbuwd3/go-libp2p/p2p/host"
-	protocol "gx/ipfs/QmZpVD1kkRwoC67vNknvCrY72pjmVdtZ7txSk8mtCbuwd3/go-libp2p/p2p/protocol"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
