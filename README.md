@@ -72,8 +72,7 @@ export PATH=$PATH:$GOPATH/bin
 
 go-ipfs differs from the vanilla `go get` flow: it uses
 [gx](https://github.com/whyrusleeping/gx)/[gx-go](https://github.com/whyrusleeping/gx-go)
-for dependency management. This means you'll need to perform download and
-install steps separately.
+for dependency management.
 
 First download `go-ipfs` without installing:
 
@@ -83,13 +82,7 @@ $ go get -d github.com/ipfs/go-ipfs
 $ cd $GOPATH/src/github.com/ipfs/go-ipfs
 ```
 
-If you don't already have them on your system, install `gx` and `gx-go`:
-
-```sh
-$ make toolkit_upgrade
-```
-
-Finally, install `go-ipfs`:
+Then install `go-ipfs` and its dependencies, including `gx` and `gx-go`:
 
 ```
 $ make install
