@@ -127,23 +127,17 @@ Type: <type>`),
 	Type: Object{},
 }
 
+func moreThanOne(a, b, c bool) bool {
+	return a && b || b && c || a && c
+}
+
 func statGetFormatOptions(req cmds.Request) (string, error) {
 
 	hash, _, _ := req.Option("hash").Bool()
 	size, _, _ := req.Option("size").Bool()
 	formatSpecified := req.Option("format").Found()
 
-	count := 0
-	if hash {
-		count++
-	}
-	if size {
-		count++
-	}
-	if formatSpecified {
-		count++
-	}
-	if count > 1 {
+	if moreThanOne(hash, size, formatSpecified) {
 		return "", formatError
 	}
 
