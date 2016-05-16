@@ -22,8 +22,6 @@ all: help
 godep:
 	go get github.com/tools/godep
 
-toolkit_upgrade: gx_upgrade gxgo_upgrade
-
 go_check:
 	@bin/check_go_version $(IPFS_MIN_GO_VERSION)
 
@@ -68,7 +66,7 @@ clean:
 uninstall:
 	make -C cmd/ipfs uninstall
 
-PHONY += all help godep toolkit_upgrade gx_check
+PHONY += all help godep gx_check
 PHONY += go_check deps vendor install build nofuse clean uninstall
 
 ##############################################################
@@ -125,7 +123,7 @@ PHONY += test test_short test_expensive
 help:
 	@echo 'DEPENDENCY TARGETS:'
 	@echo ''
-	@echo '  toolkit_upgrade - Installs or upgrades gx'
+	@echo '  gx_check        - Installs or upgrades gx and gx-go'
 	@echo '  deps            - Download dependencies using gx'
 	@echo '  vendor          - Create a Godep workspace of 3rd party dependencies'
 	@echo ''
