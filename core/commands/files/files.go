@@ -53,6 +53,8 @@ on the files in question, then data may be lost. This also applies to running
 	},
 }
 
+var formatError = errors.New("Format was set by multiple options. Only one format option is allowed")
+
 var FilesStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Display file status.",
@@ -61,7 +63,24 @@ var FilesStatCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", true, false, "Path to node to stat."),
 	},
+	Options: []cmds.Option{
+		cmds.StringOption("format", "Print statistics in given format. Allowed tokens: "+
+			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").Default(
+			`<hash>
+Size: <size>
+CumulativeSize: <cumulsize>
+ChildBlocks: <childs>
+Type: <type>`),
+		cmds.BoolOption("hash", "Print only hash. Implies '--format=<hash>. Conflicts with other format options.").Default(false),
+		cmds.BoolOption("size", "Print only size. Implies '--format=<cumulsize>. Conflicts with other format options.").Default(false),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
+
+		_, err := statGetFormatOptions(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrClient)
+		}
+
 		node, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -90,17 +109,56 @@ var FilesStatCmd = &cmds.Command{
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+
 			out := res.Output().(*Object)
 			buf := new(bytes.Buffer)
-			fmt.Fprintln(buf, out.Hash)
-			fmt.Fprintf(buf, "Size: %d\n", out.Size)
-			fmt.Fprintf(buf, "CumulativeSize: %d\n", out.CumulativeSize)
-			fmt.Fprintf(buf, "ChildBlocks: %d\n", out.Blocks)
-			fmt.Fprintf(buf, "Type: %s\n", out.Type)
+
+			s, _ := statGetFormatOptions(res.Request())
+			s = strings.Replace(s, "<hash>", out.Hash, -1)
+			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
+			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
+			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
+			s = strings.Replace(s, "<type>", out.Type, -1)
+
+			fmt.Fprintln(buf, s)
 			return buf, nil
 		},
 	},
 	Type: Object{},
+}
+
+func statGetFormatOptions(req cmds.Request) (string, error) {
+
+	hash, _, _ := req.Option("hash").Bool()
+	size, _, _ := req.Option("size").Bool()
+	formatSpecified := req.Option("format").Found()
+
+	count := 0
+	if hash {
+		count++
+	}
+	if size {
+		count++
+	}
+	if formatSpecified {
+		count++
+	}
+	if count > 1 {
+		return "", formatError
+	}
+
+	format := ""
+	if hash {
+		format = "<hash>"
+	}
+	if size {
+		format = "<cumulsize>"
+	}
+	if len(format) == 0 {
+		format, _, _ = req.Option("format").String()
+	}
+
+	return format, nil
 }
 
 func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
