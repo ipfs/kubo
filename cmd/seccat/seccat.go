@@ -18,11 +18,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	secio "gx/ipfs/QmPDQHJHvzAp9Tver9VAoqzuzcS3uEjPYLYp2CMh89h5fC/go-libp2p-secio"
 	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
-	peer "gx/ipfs/QmZpD74pUj6vuxTp1o6LhA3JavC2Bvh9fsWPPVvHnD9sE7/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
+	secio "gx/ipfs/QmbuSYB51KtX8izgab1fSyBgsyMH2hTuCfBtXm77PeXWca/go-libp2p-secio"
+	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var verbose = false
