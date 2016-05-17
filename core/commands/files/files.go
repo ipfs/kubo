@@ -135,24 +135,19 @@ func statGetFormatOptions(req cmds.Request) (string, error) {
 
 	hash, _, _ := req.Option("hash").Bool()
 	size, _, _ := req.Option("size").Bool()
-	formatSpecified := req.Option("format").Found()
+	format, found, _ := req.Option("format").String()
 
-	if moreThanOne(hash, size, formatSpecified) {
+	if moreThanOne(hash, size, found) {
 		return "", formatError
 	}
 
-	format := ""
 	if hash {
-		format = "<hash>"
+		return "<hash>", nil
+	} else if size {
+		return "<cumulsize>", nil
+	} else {
+		return format, nil
 	}
-	if size {
-		format = "<cumulsize>"
-	}
-	if len(format) == 0 {
-		format, _, _ = req.Option("format").String()
-	}
-
-	return format, nil
 }
 
 func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
