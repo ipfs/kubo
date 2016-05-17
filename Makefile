@@ -10,6 +10,7 @@ else
 endif
 
 
+dist_root=/ipfs/QmXZQzBAFuoELw3NtjQZHkWSdA332PyQUj6pQjuhEukvg8
 gx_bin=bin/gx-v0.7.0
 gx-go_bin=bin/gx-go-v1.2.0
 
@@ -27,13 +28,13 @@ go_check:
 
 bin/gx-v%:
 	@echo "installing gx $(@:bin/gx-%=%)"
-	@bin/dist_get gx $@ $(@:bin/gx-%=%)
+	@bin/dist_get ${dist_root} gx $@ $(@:bin/gx-%=%)
 	rm -f bin/gx
 	ln -s $(@:bin/%=%) bin/gx
 
 bin/gx-go-v%:
 	@echo "installing gx-go $(@:bin/gx-go-%=%)"
-	@bin/dist_get gx-go $@ $(@:bin/gx-go-%=%)
+	@bin/dist_get ${dist_root} gx-go $@ $(@:bin/gx-go-%=%)
 	rm -f bin/gx-go
 	ln -s $(@:bin/%=%) bin/gx-go
 

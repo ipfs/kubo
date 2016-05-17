@@ -85,20 +85,22 @@ get_go_vars() {
 }
 
 mkurl() {
-	m_name="$1"
-	m_vers="$2"
-	m_archive="$3"
+	m_root="$1"
+	m_name="$2"
+	m_vers="$3"
+	m_archive="$4"
 	m_govars=$(get_go_vars) || die "could not get go env vars"
 
-	echo "http://dist.ipfs.io/$m_name/$m_vers/${m_name}_${m_vers}_$m_govars.$m_archive"
+	echo "https://ipfs.io$m_root/$m_name/$m_vers/${m_name}_${m_vers}_$m_govars.$m_archive"
 }
 
-distname="$1"
-outpath="$2"
-version="$3"
+distroot="$1"
+distname="$2"
+outpath="$3"
+version="$4"
 
-if [ -z "$distname" ] || [ -z "$outpath" ] || [ -z "$version" ]; then
-	die "usage: dist_get <distname> <outpath> <version>"
+if [ -z "$distroot" ] || [ -z "$distname" ] || [ -z "$outpath" ] || [ -z "$version" ]; then
+	die "usage: dist_get <distroot> <distname> <outpath> <version>"
 fi
 
 case $version in
@@ -135,7 +137,7 @@ esac
 
 mkdir -p bin/tmp
 
-url=$(mkurl "$distname" "$version" "$archive")
+url=$(mkurl "$distroot" "$distname" "$version" "$archive")
 tmpfi="bin/tmp/$distname.$archive"
 
 download "$url" "$tmpfi"
