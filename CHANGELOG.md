@@ -1,5 +1,67 @@
 # go-ipfs changelog
 
+### 0.4.2 - 2016-05-17
+
+This is a patch release which fixes perfomance and networking bugs in go-libp2p,
+You should see improvements in CPU and RAM usage, as well as speed of object lookups.
+There are also a few other nice improvements.
+
+* Notable Fixes
+  * Set a deadline for dialing attempts. This prevents a node from accumulating
+    failed connections. (@whyrusleeping)
+  * Avoid unneccessary string/byte conversions in go-multihash. (@whyrusleeping)
+  * Fix a deadlock around the yamux stream muxer. (@whyrusleeping)
+  * Fix a bug that left channels open, causing hangs. (@whyrusleeping)
+  * Fix a bug around yamux which caused connection hangs. (@whyrusleeping)
+  * Fix a crash caused by nil multiaddrs. (@whyrusleeping)
+
+* Enhancements
+  * Add NetBSD support. (@erde74)
+  * Set Cache-Control: immutable on /ipfs responses. (@kpcyrd)
+  * Have `ipfs init` optionally accept a default configuration from stdin. (@sivachandran)
+  * Add `ipfs log ls` command for listing logging subsystems. (@hsanjuan)
+  * Allow bitswap to read multiple messages per stream. (@whyrusleeping)
+  * Remove `make toolkit_upgrade` step. (@chriscool)
+
+* Documentation
+  * Add a debug-guidelines document. (@richardlitt)
+  * Update the contribute document. (@richardlitt)
+  * Fix documentation of many `ipfs` commands. (@richardlitt)
+  * Fall back to ShortDesc if LongDesc is missing. (@kubuxu)
+
+* Removals
+  * Remove -f option from `ipfs init` command. (@whyrusleeping)
+
+* Bugfixes
+  * Fix `ipfs object patch` argument handling and validation. (@jbenet)
+  * Fix `ipfs config edit` command by running it client-side. (@kubuxu)
+  * Set default value for `ipfs refs` arguments. (@richardlitt)
+  * Fix parsing of incorrect command and argument permutations. (@thomas-gardner)
+  * Update Dockerfile to latest go1.5.4-r0. (@chriscool)
+  * Allow passing IPFS_LOGGING to Docker image. (@lgierth)
+  * Fix dot path parsing on Windows. (@djdv)
+  * Fix formatting of `ipfs log ls` output. (@richardlitt)
+
+* General Codebase
+  * Refactor Makefile. (@kevina)
+  * Wire context into bitswap requests more deeply. (@whyrusleeping)
+  * Use gx for iptb. (@chriscool)
+  * Update gx and gx-go. (@chriscool)
+  * Make blocks.Block an interface. (@kevina)
+  * Silence check for Docker existance. (@chriscool)
+  * Add dist_get script for fetching tools from dist.ipfs.io. (@whyrusleeping)
+  * Add proper defaults to all `ipfs` commands. (@richardlitt)
+  * Remove dead `count` option from `ipfs pin ls`. (@richardlitt)
+  * Initialize pin mode strings only once. (@chriscool)
+  * Add changelog for v0.4.2. (@lgierth)
+  * Specify a dist.ipfs.io hash for tool downloads instead of trusting DNS. (@lgierth)
+
+* CI
+  * Fix t0170-dht sharness test. (@chriscool)
+  * Increase timeout in t0060-daemon sharness test. (@kubuxu)
+  * Have CircleCI use `make deps` instead of `gx` directly. (@whyrusleeping)
+
+
 ### 0.4.1 - 2016-04-25
 
 This is a patch release that fixes a few bugs, and adds a few small (but not
@@ -30,7 +92,7 @@ hang bugfix that was shipped in the 0.4.0 release.
   * Make non recursive resolve print the result (@kubuxu)
   * Output dirs on ipfs add -rn (@noffle)
   * update libp2p dep to fix hanging listeners problem (@whyrusleeping)
-  * Fix Swarm.AddrFilters config setting with regard to `/ip6` addresses (@lgierth) 
+  * Fix Swarm.AddrFilters config setting with regard to `/ip6` addresses (@lgierth)
   * fix dht command key escaping (@whyrusleeping)
 
 * Testing
