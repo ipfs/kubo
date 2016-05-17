@@ -2,7 +2,7 @@ package commands
 
 import (
 	"errors"
-	//"fmt"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -22,11 +22,12 @@ var FileStoreCmd = &cmds.Command{
 	},
 	Subcommands: map[string]*cmds.Command{
 		"ls":       lsFileStore,
+		"ls-files": lsFiles,
 		"verify":   verifyFileStore,
 		"rm":       rmFilestoreObjs,
 		"clean":    cleanFileStore,
-		"fix-pins":           repairPins,
-		"unpinned":           fsUnpinned,
+		"fix-pins": repairPins,
+		"unpinned": fsUnpinned,
 		"rm-dups":  rmDups,
 	},
 }
@@ -64,13 +65,46 @@ represents the whole file.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if (quiet) {
+		if quiet {
 			ch, _ := fsutil.ListKeys(fs)
 			res.SetOutput(&chanWriter{ch, "", 0, false})
 		} else {
 			ch, _ := fsutil.ListAll(fs)
 			res.SetOutput(&chanWriter{ch, "", 0, false})
 		}
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
+	},
+}
+
+var lsFiles = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List files in filestore",
+		ShortDescription: `
+Lis files in the filestore.  If --quiet is specified only the
+file names are printed, otherwise the fields are as follows:
+  <filepath> <hash> <size>
+`,
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("quiet", "q", "Write just filenames."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		_, fs, err := extractFilestore(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		quiet, _, err := res.Request().Option("quiet").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		ch, _ := fsutil.ListWholeFile(fs)
+		res.SetOutput(&chanWriterByFile{ch, "", 0, quiet})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -103,6 +137,32 @@ func (w *chanWriter) Read(p []byte) (int, error) {
 	w.offset += sz
 	return sz, nil
 }
+
+type chanWriterByFile struct {
+	ch     <-chan fsutil.ListRes
+	buf    string
+	offset int
+	quiet  bool
+}
+
+func (w *chanWriterByFile) Read(p []byte) (int, error) {
+	if w.offset >= len(w.buf) {
+		w.offset = 0
+		res, more := <-w.ch
+		if !more {
+			return 0, io.EOF
+		}
+		if w.quiet {
+			w.buf = fmt.Sprintf("%s\n", res.FilePath)
+		} else {
+			w.buf = fmt.Sprintf("%s %s %d\n", res.FilePath, res.MHash(), res.Size)
+		}
+	}
+	sz := copy(p, w.buf[w.offset:])
+	w.offset += sz
+	return sz, nil
+}
+
 
 var verifyFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
