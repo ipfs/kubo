@@ -107,14 +107,15 @@ func (m *Message_Peer) Addresses() []ma.Multiaddr {
 		return nil
 	}
 
-	var err error
-	maddrs := make([]ma.Multiaddr, len(m.Addrs))
-	for i, addr := range m.Addrs {
-		maddrs[i], err = ma.NewMultiaddrBytes(addr)
+	maddrs := make([]ma.Multiaddr, 0, len(m.Addrs))
+	for _, addr := range m.Addrs {
+		maddr, err := ma.NewMultiaddrBytes(addr)
 		if err != nil {
-			log.Debugf("error decoding Multiaddr for peer: %s", m.GetId())
+			log.Warningf("error decoding Multiaddr for peer: %s", m.GetId())
 			continue
 		}
+
+		maddrs = append(maddrs, maddr)
 	}
 	return maddrs
 }
