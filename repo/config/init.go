@@ -62,6 +62,11 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			RootRedirect: "",
 			Writable:     false,
 			PathPrefixes: []string{},
+			HTTPHeaders: map[string][]string{
+				"Access-Control-Allow-Origin":  []string{"*"},
+				"Access-Control-Allow-Methods": []string{"GET"},
+				"Access-Control-Allow-Headers": []string{"X-Requested-With"},
+			},
 		},
 	}
 
