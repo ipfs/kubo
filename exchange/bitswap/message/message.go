@@ -135,7 +135,10 @@ func (m *impl) AddBlock(b blocks.Block) {
 
 func FromNet(r io.Reader) (BitSwapMessage, error) {
 	pbr := ggio.NewDelimitedReader(r, inet.MessageSizeMax)
+	return FromPBReader(pbr)
+}
 
+func FromPBReader(pbr ggio.Reader) (BitSwapMessage, error) {
 	pb := new(pb.Message)
 	if err := pbr.ReadMsg(pb); err != nil {
 		return nil, err
