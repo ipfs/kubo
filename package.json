@@ -13,15 +13,15 @@
       "version": "1.1.0"
     },
     {
-      "hash": "QmUHrgorZ1F9yGkgF2His5fsQ9xtCzjdsPGjizmcEW94i5",
+      "hash": "QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm",
       "name": "go-libp2p",
-      "version": "3.2.1"
+      "version": "3.2.2"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmPDQHJHvzAp9Tver9VAoqzuzcS3uEjPYLYp2CMh89h5fC",
+      "hash": "QmbuSYB51KtX8izgab1fSyBgsyMH2hTuCfBtXm77PeXWca",
       "name": "go-libp2p-secio",
-      "version": "1.0.2"
+      "version": "1.0.4"
     },
     {
       "author": "whyrusleeping",
@@ -31,9 +31,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmZpD74pUj6vuxTp1o6LhA3JavC2Bvh9fsWPPVvHnD9sE7",
+      "hash": "QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4",
       "name": "go-libp2p-peer",
-      "version": "1.0.4"
+      "version": "1.0.6"
     },
     {
       "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
