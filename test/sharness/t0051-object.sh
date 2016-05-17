@@ -180,6 +180,22 @@ test_object_cmd() {
 		ipfs object stat $OUTPUT
 	'
 
+	test_expect_success "'ipfs object patch add-link' should work with paths" '
+		EMPTY_DIR=$(ipfs object new unixfs-dir) &&
+		N1=$(ipfs object patch $EMPTY_DIR add-link baz $EMPTY_DIR) &&
+		N2=$(ipfs object patch $EMPTY_DIR add-link bar $N1) &&
+		N3=$(ipfs object patch $EMPTY_DIR add-link foo /ipfs/$N2/bar) &&
+		ipfs object stat /ipfs/$N3 > /dev/null &&
+		ipfs object stat $N3/foo > /dev/null &&
+		ipfs object stat /ipfs/$N3/foo/baz > /dev/null
+	'
+
+	test_expect_success "object patch creation looks right" '
+		echo "QmPc73aWK9dgFBXe86P4PvQizHo9e5Qt7n7DAMXWuigFuG" > hash_exp &&
+		echo $N3 > hash_actual &&
+		test_cmp hash_exp hash_actual
+	'
+
 	test_expect_success "multilayer ipfs patch works" '
 		echo "hello world" > hwfile &&
 		FILE=$(ipfs add -q hwfile) &&

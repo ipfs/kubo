@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -273,8 +272,12 @@ a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
-		path := req.Arguments()[1]
-		childk := key.B58KeyDecode(req.Arguments()[2])
+		npath := req.Arguments()[1]
+		childp, err := path.ParsePath(req.Arguments()[2])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		create, _, err := req.Option("create").Bool()
 		if err != nil {
@@ -291,13 +294,13 @@ a file containing 'bar', and returns the hash of the new object.
 
 		e := dagutils.NewDagEditor(root, nd.DAG)
 
-		childnd, err := nd.DAG.Get(req.Context(), childk)
+		childnd, err := core.Resolve(req.Context(), nd, childp)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		err = e.InsertNodeAtPath(req.Context(), path, childnd, createfunc)
+		err = e.InsertNodeAtPath(req.Context(), npath, childnd, createfunc)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

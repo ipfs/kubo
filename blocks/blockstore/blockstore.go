@@ -74,6 +74,10 @@ type blockstore struct {
 }
 
 func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
+	if k == "" {
+		return nil, ErrNotFound
+	}
+
 	maybeData, err := bs.datastore.Get(k.DsKey())
 	if err == ds.ErrNotFound {
 		return nil, ErrNotFound

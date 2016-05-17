@@ -22,6 +22,11 @@ func TestBlocks(t *testing.T) {
 	bs := New(bstore, offline.Exchange(bstore))
 	defer bs.Close()
 
+	_, err := bs.GetBlock(context.Background(), key.Key(""))
+	if err != ErrNotFound {
+		t.Error("Empty String Key should error", err)
+	}
+
 	b := blocks.NewBlock([]byte("beep boop"))
 	h := u.Hash([]byte("beep boop"))
 	if !bytes.Equal(b.Multihash(), h) {
