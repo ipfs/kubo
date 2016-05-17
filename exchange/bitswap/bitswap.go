@@ -155,6 +155,9 @@ type blockRequest struct {
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
 func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (blocks.Block, error) {
+	if k == "" {
+		return nil, blockstore.ErrNotFound
+	}
 
 	// Any async work initiated by this function must end when this function
 	// returns. To ensure this, derive a new context. Note that it is okay to

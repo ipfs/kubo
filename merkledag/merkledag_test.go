@@ -32,6 +32,13 @@ type dagservAndPinner struct {
 	mp pin.Pinner
 }
 
+func getDagserv(t *testing.T) DAGService {
+	db := dssync.MutexWrap(ds.NewMapDatastore())
+	bs := bstore.NewBlockstore(db)
+	blockserv := bserv.New(bs, offline.Exchange(bs))
+	return NewDAGService(blockserv)
+}
+
 func getDagservAndPinner(t *testing.T) dagservAndPinner {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
@@ -242,6 +249,14 @@ func assertCanGet(t *testing.T, ds DAGService, n *Node) {
 
 	if _, err := ds.Get(context.Background(), k); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestEmptyKey(t *testing.T) {
+	ds := getDagserv(t)
+	_, err := ds.Get(context.Background(), key.Key(""))
+	if err != ErrNotFound {
+		t.Error("dag service should error when key is nil", err)
 	}
 }
 
