@@ -38,3 +38,7 @@ type S3Datastore struct {
 func DataStorePath(configroot string) (string, error) {
 	return Path(configroot, DefaultDataStoreDirectory)
 }
+
+type Filestore struct {
+	Verify string // one of "always", "ifchanged", "never"
+}

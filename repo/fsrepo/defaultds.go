@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"strings"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/flatfs"
@@ -71,15 +72,10 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, *filestore.Datastore, erro
 
 	var fileStore *filestore.Datastore
 	if useFileStore {
-		fileStorePath := path.Join(r.path, fileStoreDir)
-		fileStoreDB, err := levelds.NewDatastore(fileStorePath, &levelds.Options{
-			Compression: ldbopts.NoCompression,
-		})
+		fileStore, err = r.newFilestore()
 		if err != nil {
-			return nil, nil, fmt.Errorf("unable to open filestore: %v", err)
+			return nil, nil, err
 		}
-		fileStore, _ = filestore.New(fileStoreDB, "")
-		//fileStore.(io.Closer).Close()
 		blocksStore = multi.New(fileStore, metricsBlocks, nil, nil)
 	}
 
@@ -110,4 +106,28 @@ func initDefaultDatastore(repoPath string, conf *config.Config) error {
 		return fmt.Errorf("datastore: %s", err)
 	}
 	return nil
+}
+
+func (r *FSRepo) newFilestore() (*filestore.Datastore, error) {
+	fileStorePath := path.Join(r.path, fileStoreDir)
+	fileStoreDB, err := levelds.NewDatastore(fileStorePath, &levelds.Options{
+		Compression: ldbopts.NoCompression,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to open filestore: %v", err)
+	}
+	verify := filestore.VerifyIfChanged
+	switch strings.ToLower(r.config.Filestore.Verify) {
+	case "never":
+		verify = filestore.VerifyNever
+	case "":
+	case "ifchanged":
+	case "if changed":
+		verify = filestore.VerifyIfChanged
+	case "always":
+		verify = filestore.VerifyAlways
+	default:
+		return nil, fmt.Errorf("invalid value for Filestore.Verify: %s", r.config.Filestore.Verify)
+	}
+	return filestore.New(fileStoreDB, "", verify)
 }

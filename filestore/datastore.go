@@ -13,9 +13,12 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
-	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
+
+var log = logging.Logger("filestore")
 
 const (
 	VerifyNever     = 0
@@ -28,8 +31,8 @@ type Datastore struct {
 	verify int
 }
 
-func New(d ds.Datastore, fileStorePath string) (*Datastore, error) {
-	return &Datastore{d, VerifyIfChanged}, nil
+func New(d ds.Datastore, fileStorePath string, verify int) (*Datastore, error) {
+	return &Datastore{d, verify}, nil
 }
 
 func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
@@ -131,6 +134,9 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 	if val == nil {
 		return nil, errors.New("Nil DataObj")
 	} else if val.NoBlockData() {
+		if verify != VerifyIfChanged {
+			update = false
+		}
 		file, err := os.Open(val.FilePath)
 		if err != nil {
 			return nil, err
@@ -150,7 +156,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 			}
 			data, err = reconstruct(val.Data, buf)
 		}
-		if err != nil  && err != io.EOF && err != io.ErrUnexpectedEOF {
+		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 			return nil, err
 		}
 		modtime := val.ModTime
@@ -163,12 +169,12 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 		}
 		invalid := val.Invalid() || err != nil
 		if err == nil && (verify == VerifyAlways || (verify == VerifyIfChanged && modtime != val.ModTime)) {
-			//println("verifying")
+			log.Debugf("verifying block %s\n", b58.Encode(key.Bytes()[1:]))
 			newKey := k.Key(u.Hash(data)).DsKey()
 			invalid = newKey != key
 		}
 		if update && (invalid != val.Invalid() || modtime != val.ModTime) {
-			//println("updating")
+			log.Debugf("updating block %s\n", b58.Encode(key.Bytes()[1:]))
 			newVal := *val
 			newVal.SetInvalid(invalid)
 			newVal.ModTime = modtime
@@ -176,6 +182,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 			_ = d.put(key, &newVal)
 		}
 		if invalid {
+			log.Debugf("invalid block %s\n", b58.Encode(key.Bytes()[1:]))
 			return nil, InvalidBlock{}
 		} else {
 			return data, nil
