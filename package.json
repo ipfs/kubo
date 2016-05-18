@@ -81,6 +81,12 @@
       "hash": "QmeWQMDa5dSdP4n8WDeoY5z8L2EKVqF4ZvK4VEHsLqXsGu",
       "name": "hamming",
       "version": "0.0.10"
+	},
+	{
+      "author": "cenk",
+      "hash": "QmPJUtEJsm5YLUWhF6imvyCH8KZXRJa9Wup7FDMwTy5Ufz",
+      "name": "backoff",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",
