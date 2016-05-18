@@ -64,9 +64,39 @@ test_files_api() {
 	test_expect_success "directory is empty" '
 		verify_dir_contents /cats
 	'
+	# we do verification of stat formatting now as we depend on it
+
+	test_expect_success "stat works" '
+		ipfs files stat / >stat
+	'
+
+	test_expect_success "hash is first line of stat" '
+		ipfs ls $(head -1 stat) | grep "cats"
+	'
+
+	test_expect_success "stat --hash gives only hash" '
+		ipfs files stat --hash / >actual &&
+		head -n1 stat >expected &&
+		test_cmp expected actual
+	'
+
+	test_expect_success "stat with multiple format options should fail" '
+		test_must_fail ipfs files stat --hash --size /
+	'
+
+	test_expect_success "compare hash option with format" '
+		ipfs files stat --hash / >expected &&
+		ipfs files stat --format='"'"'<hash>'"'"' / >actual &&
+		test_cmp expected actual
+	'
+	test_expect_success "compare size option with format" '
+		ipfs files stat --size / >expected &&
+		ipfs files stat --format='"'"'<cumulsize>'"'"' / >actual &&
+		test_cmp expected actual
+	'
 
 	test_expect_success "check root hash" '
-		ipfs files stat / | head -n1 > roothash
+		ipfs files stat --hash / > roothash
 	'
 
 	test_expect_success "cannot mkdir /" '
@@ -74,7 +104,7 @@ test_files_api() {
 	'
 
 	test_expect_success "check root hash was not changed" '
-		ipfs files stat / | head -n1 > roothashafter &&
+		ipfs files stat --hash / > roothashafter &&
 		test_cmp roothash roothashafter
 	'
 
@@ -167,7 +197,7 @@ test_files_api() {
 	'
 
 	test_expect_success "check root hash" '
-		ipfs files stat / | head -n1 > roothash
+		ipfs files stat --hash / > roothash
 	'
 
 	test_expect_success "cannot remove root" '
@@ -175,7 +205,7 @@ test_files_api() {
 	'
 
 	test_expect_success "check root hash was not changed" '
-		ipfs files stat / | head -n1 > roothashafter &&
+		ipfs files stat --hash / > roothashafter &&
 		test_cmp roothash roothashafter
 	'
 
@@ -273,12 +303,12 @@ test_files_api() {
 	'
 
 	test_expect_success "cant write to negative offset" '
-		ipfs files stat /cats/ipfs | head -n1 > filehash &&
+		ipfs files stat --hash /cats/ipfs > filehash &&
 		test_expect_code 1 ipfs files write --offset -1 /cats/ipfs < output
 	'
 
 	test_expect_success "verify file was not changed" '
-		ipfs files stat /cats/ipfs | head -n1 > afterhash &&
+		ipfs files stat --hash /cats/ipfs > afterhash &&
 		test_cmp filehash afterhash
 	'
 
@@ -305,12 +335,12 @@ test_files_api() {
 	'
 
 	test_expect_success "cannot write to directory" '
-		ipfs files stat /cats | head -n1 > dirhash &&
+		ipfs files stat --hash /cats > dirhash &&
 		test_expect_code 1 ipfs files write /cats < output
 	'
 
 	test_expect_success "verify dir was not changed" '
-		ipfs files stat /cats | head -n1 > afterdirhash &&
+		ipfs files stat --hash /cats > afterdirhash &&
 		test_cmp dirhash afterdirhash
 	'
 
@@ -333,7 +363,7 @@ test_files_api() {
 	'
 
 	test_expect_success "changes bubbled up to root on inspection" '
-		ipfs files stat / | head -n1 > root_hash
+		ipfs files stat --hash / > root_hash
 	'
 
 	test_expect_success "root hash looks good" '
