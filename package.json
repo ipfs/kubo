@@ -69,6 +69,12 @@
       "hash": "QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku",
       "name": "go-multihash",
       "version": "0.0.0"
+    },
+    {
+      "author": "satori",
+      "hash": "QmcyaFHbyiZfoX5GTpcqqCPYmbjYNAhRDekXSJPFHdYNSV",
+      "name": "go.uuid",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",

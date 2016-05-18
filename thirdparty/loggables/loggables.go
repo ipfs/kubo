@@ -9,7 +9,7 @@ package loggables
 import (
 	"net"
 
-	uuid "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/satori/go.uuid"
+	uuid "gx/ipfs/QmcyaFHbyiZfoX5GTpcqqCPYmbjYNAhRDekXSJPFHdYNSV/go.uuid"
 
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 
