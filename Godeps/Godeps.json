@@ -157,10 +157,6 @@
 			"Rev": "5e4ce6bc0ecd3472f6f943666d84876691be2ced"
 		},
 		{
-			"ImportPath": "github.com/satori/go.uuid",
-			"Rev": "7c7f2020c4c9491594b85767967f4619c2fa75f9"
-		},
-		{
 			"ImportPath": "github.com/steakknife/hamming",
 			"Comment": "0.0.10",
 			"Rev": "8bad99011016569c05320e51be39c648679c5b73"

@@ -56,10 +56,6 @@
 			"Rev": "041b88c1fcf6489a5721ede24378ce1253b9159d"
 		},
 		{
-			"ImportPath": "github.com/satori/go.uuid",
-			"Rev": "7c7f2020c4c9491594b85767967f4619c2fa75f9"
-		},
-		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
 			"Rev": "871eee0a7546bb7d1b2795142e29c4534abc49b3"
 		},
