@@ -64,6 +64,36 @@ test_files_api() {
 	test_expect_success "directory is empty" '
 		verify_dir_contents /cats
 	'
+	# we do verification of stat formatting now as we depend on it
+
+	test_expect_success "stat works" '
+		ipfs files stat / >stat
+	'
+
+	test_expect_success "hash is first line of stat" '
+		ipfs ls $(head -1 stat) | grep "cats"
+	'
+
+	test_expect_success "stat --hash gives only hash" '
+		ipfs files stat --hash / >actual &&
+		head -1 stat >expected &&
+		test_cmp expected actual
+	'
+
+	test_expect_success "stat with multiple format options should fail" '
+		test_must_fail ipfs files stat --hash --size /
+	'
+
+	test_expect_success "compare hash option with format" '
+		ipfs files stat --hash / >expected &&
+		ipfs files stat --format='"'"'<hash>'"'"' / >actual &&
+		test_cmp expected actual
+	'
+	test_expect_success "compare size option with format" '
+		ipfs files stat --size / >expected &&
+		ipfs files stat --format='"'"'<cumulsize>'"'"' / >actual &&
+		test_cmp expected actual
+	'
 
 	test_expect_success "check root hash" '
 		ipfs files stat / | head -n1 > roothash
