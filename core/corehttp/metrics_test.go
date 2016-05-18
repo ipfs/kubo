@@ -39,8 +39,11 @@ func TestPeersTotal(t *testing.T) {
 
 	node := &core.IpfsNode{PeerHost: hosts[0]}
 	collector := IpfsNodeCollector{Node: node}
-	actual := collector.PeersTotalValue()
-	if actual != 3 {
-		t.Fatalf("expected 3 peers, got %d", int(actual))
+	actual := collector.PeersTotalValues()
+	if len(actual) != 1 {
+		t.Fatalf("expected 1 peers transport, got %d", len(actual))
+	}
+	if actual["/ip4/tcp"] != float64(3) {
+		t.Fatalf("expected 3 peers, got %s", actual["/ip4/tcp"])
 	}
 }
