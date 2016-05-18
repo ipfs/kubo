@@ -27,10 +27,6 @@
 			"Rev": "ae27720f340952636b826119b58130b9c1a847a0"
 		},
 		{
-			"ImportPath": "github.com/cenkalti/backoff",
-			"Rev": "9831e1e25c874e0a0601b6dc43641071414eec7a"
-		},
-		{
 			"ImportPath": "github.com/cheggaaa/pb",
 			"Rev": "d7729fd7ec1372c15b83db39834bf842bf2d69fb"
 		},
