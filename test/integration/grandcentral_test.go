@@ -73,6 +73,7 @@ func RunSupernodeBootstrappedAddCat(data []byte, conf testutil.LatencyConfig) er
 	if 0 != bytes.Compare(bufout.Bytes(), data) {
 		return errors.New("catted data does not match added data")
 	}
+	cancel()
 	return nil
 }
 
@@ -177,5 +178,6 @@ func RunSupernodePutRecordGetRecord(conf testutil.LatencyConfig) error {
 	if 0 != bytes.Compare(note, received) {
 		return errors.New("record doesn't match")
 	}
+	cancel()
 	return nil
 }

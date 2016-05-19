@@ -1,6 +1,7 @@
 package decision
 
 import (
+	"sync"
 	"time"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -44,6 +45,8 @@ type ledger struct {
 	// sentToPeer is a set of keys to ensure we dont send duplicate blocks
 	// to a given peer
 	sentToPeer map[key.Key]time.Time
+
+	lk sync.Mutex
 }
 
 type debtRatio struct {

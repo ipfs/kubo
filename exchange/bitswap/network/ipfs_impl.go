@@ -42,6 +42,27 @@ type impl struct {
 	receiver Receiver
 }
 
+type streamMessageSender struct {
+	s inet.Stream
+}
+
+func (s *streamMessageSender) Close() error {
+	return s.s.Close()
+}
+
+func (s *streamMessageSender) SendMsg(msg bsmsg.BitSwapMessage) error {
+	return msg.ToNet(s.s)
+}
+
+func (bsnet *impl) NewMessageSender(ctx context.Context, p peer.ID) (MessageSender, error) {
+	s, err := bsnet.newStreamToPeer(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return &streamMessageSender{s: s}, nil
+}
+
 func (bsnet *impl) newStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
 
 	// first, make sure we're connected.
