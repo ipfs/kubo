@@ -226,7 +226,7 @@ test_files_api() {
 	'
 
 	test_expect_success "cannot read negative count bytes" '
-		test_expect_code 1 ipfs read --count -1 /cats/file1
+		test_expect_code 1 ipfs files read --count -1 /cats/file1
 	'
 
 	test_expect_success "reading zero bytes prints nothing" '

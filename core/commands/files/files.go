@@ -38,7 +38,7 @@ on the files in question, then data may be lost. This also applies to running
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("f", "flush", "Flush target and ancestors after write. Default: true."),
+		cmds.BoolOption("f", "flush", "Flush target and ancestors after write.").Default(true),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -158,10 +158,7 @@ var FilesCpCmd = &cmds.Command{
 			return
 		}
 
-		flush, found, _ := req.Option("flush").Bool()
-		if !found {
-			flush = true
-		}
+		flush, _, _ := req.Option("flush").Bool()
 
 		src, err := checkPath(req.Arguments()[0])
 		if err != nil {
@@ -252,7 +249,7 @@ Examples:
 		cmds.StringArg("path", false, false, "Path to show listing for. Defaults to '/'."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("l", "Use long listing format."),
+		cmds.BoolOption("l", "Use long listing format.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		var arg string
@@ -348,7 +345,7 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin reading from."),
+		cmds.IntOption("o", "offset", "Byte offset to begin reading from.").Default(0),
 		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -417,11 +414,11 @@ Examples:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if found {
-			if count < 0 {
-				res.SetError(fmt.Errorf("Cannot specify negative 'count'."), cmds.ErrNormal)
-				return
-			}
+		if count < 0 {
+			res.SetError(fmt.Errorf("Cannot specify negative 'count'."), cmds.ErrNormal)
+			return
+		}
+		if found && count > 0 {
 			r = io.LimitReader(r, int64(count))
 		}
 
@@ -516,9 +513,9 @@ WARNING:
 		cmds.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin writing at."),
-		cmds.BoolOption("e", "create", "Create the file if it does not exist."),
-		cmds.BoolOption("t", "truncate", "Truncate the file to size zero before writing."),
+		cmds.IntOption("o", "offset", "Byte offset to begin writing at.").Default(0),
+		cmds.BoolOption("e", "create", "Create the file if it does not exist.").Default(false),
+		cmds.BoolOption("t", "truncate", "Truncate the file to size zero before writing.").Default(false),
 		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -530,10 +527,7 @@ WARNING:
 
 		create, _, _ := req.Option("create").Bool()
 		trunc, _, _ := req.Option("truncate").Bool()
-		flush, fset, _ := req.Option("flush").Bool()
-		if !fset {
-			flush = true
-		}
+		flush, _, _ := req.Option("flush").Bool()
 
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -572,12 +566,12 @@ WARNING:
 			}
 		}
 
-		count, countfound, err := req.Option("count").Int()
+		count, found, err := req.Option("count").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if countfound && count < 0 {
+		if found && count < 0 {
 			res.SetError(fmt.Errorf("cannot have negative byte count"), cmds.ErrNormal)
 			return
 		}
@@ -596,7 +590,7 @@ WARNING:
 		}
 
 		var r io.Reader = input
-		if countfound {
+		if count > 0 {
 			r = io.LimitReader(r, int64(count))
 		}
 
@@ -629,7 +623,7 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "parents", "No error if existing, make parent directories as needed."),
+		cmds.BoolOption("p", "parents", "No error if existing, make parent directories as needed.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -645,10 +639,7 @@ Examples:
 			return
 		}
 
-		flush, found, _ := req.Option("flush").Bool()
-		if !found {
-			flush = true
-		}
+		flush, _, _ := req.Option("flush").Bool()
 
 		err = mfs.Mkdir(n.FilesRoot, dirtomake, dashp, flush)
 		if err != nil {
@@ -709,7 +700,7 @@ Remove files or directories.
 		cmds.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("r", "recursive", "Recursively remove directories."),
+		cmds.BoolOption("r", "recursive", "Recursively remove directories.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
