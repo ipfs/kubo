@@ -176,10 +176,6 @@
 			"Rev": "9e26222151125ecd3fc1fd190179b6bdd55f5608"
 		},
 		{
-			"ImportPath": "golang.org/x/crypto/blowfish",
-			"Rev": "c84e1f8e3a7e322d497cd16c0e8a13c7e127baf3"
-		},
-		{
 			"ImportPath": "golang.org/x/crypto/sha3",
 			"Rev": "c84e1f8e3a7e322d497cd16c0e8a13c7e127baf3"
 		},
