@@ -10,11 +10,6 @@
 			"Rev": "e4fcc9a2c7567d1c42861deebeb483315d222262"
 		},
 		{
-			"ImportPath": "bitbucket.org/ww/goautoneg",
-			"Comment": "null-5",
-			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
-		},
-		{
 			"ImportPath": "github.com/bren2010/proquint",
 			"Rev": "5958552242606512f714d2e93513b380f43f9991"
 		},
