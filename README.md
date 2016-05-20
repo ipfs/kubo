@@ -57,7 +57,7 @@ From there:
 
 #### Install Go
 
-Build process of ipfs requires at least Go 1.5, but we strongly recommend using 1.6.2. If you don't have it: [Download Go 1.6.2+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.5+, but we strongly recommend using 1.6.2. If you don't have it: [Download Go 1.6.2+](https://golang.org/dl/).
 
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
