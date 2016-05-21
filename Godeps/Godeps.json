@@ -10,25 +10,12 @@
 			"Rev": "e4fcc9a2c7567d1c42861deebeb483315d222262"
 		},
 		{
-			"ImportPath": "bitbucket.org/ww/goautoneg",
-			"Comment": "null-5",
-			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
-		},
-		{
-			"ImportPath": "github.com/bren2010/proquint",
-			"Rev": "5958552242606512f714d2e93513b380f43f9991"
-		},
-		{
 			"ImportPath": "github.com/briantigerchow/pubsub",
 			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
 		},
 		{
 			"ImportPath": "github.com/camlistore/lock",
 			"Rev": "ae27720f340952636b826119b58130b9c1a847a0"
-		},
-		{
-			"ImportPath": "github.com/cenkalti/backoff",
-			"Rev": "9831e1e25c874e0a0601b6dc43641071414eec7a"
 		},
 		{
 			"ImportPath": "github.com/cheggaaa/pb",
@@ -157,11 +144,6 @@
 			"Rev": "5e4ce6bc0ecd3472f6f943666d84876691be2ced"
 		},
 		{
-			"ImportPath": "github.com/steakknife/hamming",
-			"Comment": "0.0.10",
-			"Rev": "8bad99011016569c05320e51be39c648679c5b73"
-		},
-		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
 			"Rev": "4875955338b0a434238a31165cb87255ab6e9e4a"
 		},
@@ -192,10 +174,6 @@
 		{
 			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",
 			"Rev": "9e26222151125ecd3fc1fd190179b6bdd55f5608"
-		},
-		{
-			"ImportPath": "golang.org/x/crypto/blowfish",
-			"Rev": "c84e1f8e3a7e322d497cd16c0e8a13c7e127baf3"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/sha3",
