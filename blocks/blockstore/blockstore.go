@@ -14,7 +14,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("blockstore")
@@ -30,9 +30,9 @@ var ErrNotFound = errors.New("blockstore: block not found")
 type Blockstore interface {
 	DeleteBlock(key.Key) error
 	Has(key.Key) (bool, error)
-	Get(key.Key) (*blocks.Block, error)
-	Put(*blocks.Block) error
-	PutMany([]*blocks.Block) error
+	Get(key.Key) (blocks.Block, error)
+	Put(blocks.Block) error
+	PutMany([]blocks.Block) error
 
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
@@ -73,7 +73,11 @@ type blockstore struct {
 	gcreqlk sync.Mutex
 }
 
-func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
+func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
+	if k == "" {
+		return nil, ErrNotFound
+	}
+
 	maybeData, err := bs.datastore.Get(k.DsKey())
 	if err == ds.ErrNotFound {
 		return nil, ErrNotFound
@@ -89,7 +93,7 @@ func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
 	return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
 }
 
-func (bs *blockstore) Put(block *blocks.Block) error {
+func (bs *blockstore) Put(block blocks.Block) error {
 	k := block.Key().DsKey()
 
 	// Has is cheaper than Put, so see if we already have it
@@ -97,10 +101,10 @@ func (bs *blockstore) Put(block *blocks.Block) error {
 	if err == nil && exists {
 		return nil // already stored.
 	}
-	return bs.datastore.Put(k, block.Data)
+	return bs.datastore.Put(k, block.Data())
 }
 
-func (bs *blockstore) PutMany(blocks []*blocks.Block) error {
+func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	t, err := bs.datastore.Batch()
 	if err != nil {
 		return err
@@ -112,7 +116,7 @@ func (bs *blockstore) PutMany(blocks []*blocks.Block) error {
 			continue
 		}
 
-		err = t.Put(k, b.Data)
+		err = t.Put(k, b.Data())
 		if err != nil {
 			return err
 		}

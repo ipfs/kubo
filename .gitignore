@@ -12,3 +12,6 @@
 .ipfs
 .idea/
 *.iml
+bin/gx
+bin/gx*
+bin/tmp

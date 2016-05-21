@@ -22,11 +22,6 @@ var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multi
 var BootstrapCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show or edit the list of bootstrap peers.",
-		Synopsis: `
-ipfs bootstrap list             - Show peers in the bootstrap list
-ipfs bootstrap add <peer>...    - Add peers to the bootstrap list
-ipfs bootstrap rm <peer>... - Removes peers from the bootstrap list
-`,
 		ShortDescription: `
 Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 ` + bootstrapSecurityWarning,
@@ -56,7 +51,7 @@ in the bootstrap list).
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("default", "Add default bootstrap nodes."),
+		cmds.BoolOption("default", "Add default bootstrap nodes.").Default(false),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -137,7 +132,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("all", "Remove all bootstrap peers."),
+		cmds.BoolOption("all", "Remove all bootstrap peers.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		input, err := config.ParseBootstrapPeers(req.Arguments())

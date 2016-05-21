@@ -13,7 +13,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ipdht "github.com/ipfs/go-ipfs/routing/dht"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
@@ -35,15 +35,15 @@ var DhtCmd = &cmds.Command{
 
 var queryDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Find the closest peers to a given key by querying through the DHT.",
-		ShortDescription: ``,
+		Tagline:          "Find the closest Peer IDs to a given Peer ID by querying the DHT.",
+		ShortDescription: "Outputs a list of newline-delimited Peer IDs.",
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peerID", true, true, "The peerID to run the query against."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information."),
+		cmds.BoolOption("verbose", "v", "Write extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -94,6 +94,14 @@ var queryDhtCmd = &cmds.Command{
 				return nil, u.ErrCast()
 			}
 
+			pfm := pfuncMap{
+				notif.PeerResponse: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					for _, p := range obj.Responses {
+						fmt.Fprintf(out, "%s\n", p.ID.Pretty())
+					}
+				},
+			}
+
 			marshal := func(v interface{}) (io.Reader, error) {
 				obj, ok := v.(*notif.QueryEvent)
 				if !ok {
@@ -103,7 +111,7 @@ var queryDhtCmd = &cmds.Command{
 				verbose, _, _ := res.Request().Option("v").Bool()
 
 				buf := new(bytes.Buffer)
-				printEvent(obj, buf, verbose, nil)
+				printEvent(obj, buf, verbose, pfm)
 				return buf, nil
 			}
 
@@ -119,17 +127,15 @@ var queryDhtCmd = &cmds.Command{
 
 var findProvidersDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'FindProviders' query through the DHT.",
-		ShortDescription: `
-FindProviders will return a list of peers who are able to provide the value requested.
-`,
+		Tagline:          "Find peers in the DHT that can provide a specific value, given a key.",
+		ShortDescription: "Outputs a list of newline-delimited provider Peer IDs.",
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, true, "The key to find providers for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information."),
+		cmds.BoolOption("verbose", "v", "Write extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -222,12 +228,15 @@ FindProviders will return a list of peers who are able to provide the value requ
 
 var findPeerDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Run a 'FindPeer' query through the DHT.",
-		ShortDescription: ``,
+		Tagline:          "Query the DHT for all of the multiaddresses associated with a Peer ID.",
+		ShortDescription: "Outputs a list of newline-delimited multiaddresses.",
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerID", true, true, "The peer to search for."),
+		cmds.StringArg("peerID", true, true, "The ID of the peer to search for."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "v", "Write extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -285,12 +294,13 @@ var findPeerDhtCmd = &cmds.Command{
 				return nil, u.ErrCast()
 			}
 
+			verbose, _, _ := res.Request().Option("v").Bool()
+
 			pfm := pfuncMap{
 				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
 					pi := obj.Responses[0]
-					fmt.Fprintf(out, "%s\n", pi.ID)
 					for _, a := range pi.Addrs {
-						fmt.Fprintf(out, "\t%s\n", a)
+						fmt.Fprintf(out, "%s\n", a)
 					}
 				},
 			}
@@ -301,7 +311,7 @@ var findPeerDhtCmd = &cmds.Command{
 				}
 
 				buf := new(bytes.Buffer)
-				printEvent(obj, buf, true, pfm)
+				printEvent(obj, buf, verbose, pfm)
 				return buf, nil
 			}
 
@@ -317,9 +327,11 @@ var findPeerDhtCmd = &cmds.Command{
 
 var getValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'GetValue' query through the DHT.",
+		Tagline: "Given a key, query the DHT for its best value.",
 		ShortDescription: `
-GetValue will return the value stored in the DHT at the given key.
+Outputs the best value for the given key.
+
+There may be several different values for a given key stored in the DHT; in this context 'best' means the record that is most desirable. There is no one metric for 'best': it depends entirely on the key type. For IPNS, 'best' is the record that is both valid and has the highest sequence number (freshest). Different key types can specify other 'best' rules.
 `,
 	},
 
@@ -327,7 +339,7 @@ GetValue will return the value stored in the DHT at the given key.
 		cmds.StringArg("key", true, true, "The key to find a value for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information."),
+		cmds.BoolOption("verbose", "v", "Write extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -420,9 +432,17 @@ GetValue will return the value stored in the DHT at the given key.
 
 var putValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a 'PutValue' query through the DHT.",
+		Tagline: "Write a key/value pair to the DHT.",
 		ShortDescription: `
-PutValue will store the given key value pair in the DHT.
+Given a key of the form /foo/bar and a value of any form, this will write that value to the DHT with that key.
+
+Keys have two parts: a keytype (foo) and the key name (bar). IPNS uses the /ipns keytype, and expects the key name to be a Peer ID. IPNS entries are specifically formatted (protocol buffer).
+
+You may only use keytypes that are supported in your ipfs binary: currently this is only /ipns. Unless you have a relatively deep understanding of the go-ipfs DHT internals, you likely want to be using 'ipfs name publish' instead of this.
+
+Value is arbitrary text. Standard input can be used to provide value.
+
+NOTE: A value may not exceed 2048 bytes.
 `,
 	},
 
@@ -431,7 +451,7 @@ PutValue will store the given key value pair in the DHT.
 		cmds.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Write extra information."),
+		cmds.BoolOption("verbose", "v", "Write extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -493,7 +513,7 @@ PutValue will store the given key value pair in the DHT.
 					}
 				},
 				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
-					fmt.Fprintf(out, "storing value at %s\n", obj.ID)
+					fmt.Fprintf(out, "%s\n", obj.ID.Pretty())
 				},
 			}
 
@@ -546,13 +566,17 @@ func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfu
 			fmt.Fprint(out, obj.Extra)
 		}
 	case notif.PeerResponse:
-		fmt.Fprintf(out, "* %s says use ", obj.ID)
-		for _, p := range obj.Responses {
-			fmt.Fprintf(out, "%s ", p.ID)
+		if verbose {
+			fmt.Fprintf(out, "* %s says use ", obj.ID)
+			for _, p := range obj.Responses {
+				fmt.Fprintf(out, "%s ", p.ID)
+			}
+			fmt.Fprintln(out)
 		}
-		fmt.Fprintln(out)
 	case notif.QueryError:
-		fmt.Fprintf(out, "error: %s\n", obj.Extra)
+		if verbose {
+			fmt.Fprintf(out, "error: %s\n", obj.Extra)
+		}
 	case notif.DialingPeer:
 		if verbose {
 			fmt.Fprintf(out, "dialing peer: %s\n", obj.ID)
@@ -561,8 +585,11 @@ func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfu
 		if verbose {
 			fmt.Fprintf(out, "adding peer to query: %s\n", obj.ID)
 		}
+	case notif.FinalPeer:
 	default:
-		fmt.Fprintf(out, "unrecognized event type: %d\n", obj.Type)
+		if verbose {
+			fmt.Fprintf(out, "unrecognized event type: %d\n", obj.Type)
+		}
 	}
 }
 

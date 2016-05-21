@@ -36,7 +36,7 @@ const (
 //  CI=true
 //  TRAVIS=true
 //
-// Note: cannot just check CI.
+// NOTE: cannot just check CI.
 func IsRunning() bool {
 	return Env(VarCI) == "true" && Env(VarTravis) == "true"
 }

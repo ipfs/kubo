@@ -9,7 +9,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("merkledag")
@@ -52,12 +52,12 @@ func (n *dagService) Add(nd *Node) (key.Key, error) {
 		return "", err
 	}
 
-	b := new(blocks.Block)
-	b.Data = d
-	b.Multihash, err = nd.Multihash()
+	mh, err := nd.Multihash()
 	if err != nil {
 		return "", err
 	}
+
+	b, _ := blocks.NewBlockWithHash(d, mh)
 
 	return n.Blocks.AddBlock(b)
 }
@@ -68,6 +68,9 @@ func (n *dagService) Batch() *Batch {
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
 func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
+	if k == "" {
+		return nil, ErrNotFound
+	}
 	if n == nil {
 		return nil, fmt.Errorf("dagService is nil")
 	}
@@ -82,7 +85,7 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 		return nil, fmt.Errorf("Failed to get block for %s: %v", k.B58String(), err)
 	}
 
-	res, err := DecodeProtobuf(b.Data)
+	res, err := DecodeProtobuf(b.Data())
 	if err != nil {
 		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 	}
@@ -135,7 +138,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeO
 					}
 					return
 				}
-				nd, err := DecodeProtobuf(b.Data)
+				nd, err := DecodeProtobuf(b.Data())
 				if err != nil {
 					out <- &NodeOption{Err: err}
 					return
@@ -316,7 +319,7 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 type Batch struct {
 	ds *dagService
 
-	blocks  []*blocks.Block
+	blocks  []blocks.Block
 	size    int
 	MaxSize int
 }
@@ -327,17 +330,17 @@ func (t *Batch) Add(nd *Node) (key.Key, error) {
 		return "", err
 	}
 
-	b := new(blocks.Block)
-	b.Data = d
-	b.Multihash, err = nd.Multihash()
+	mh, err := nd.Multihash()
 	if err != nil {
 		return "", err
 	}
 
-	k := key.Key(b.Multihash)
+	b, _ := blocks.NewBlockWithHash(d, mh)
+
+	k := key.Key(mh)
 
 	t.blocks = append(t.blocks, b)
-	t.size += len(b.Data)
+	t.size += len(b.Data())
 	if t.size > t.MaxSize {
 		return k, t.Commit()
 	}

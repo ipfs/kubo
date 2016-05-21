@@ -27,6 +27,14 @@ func TestGetWhenKeyNotPresent(t *testing.T) {
 	t.Fail()
 }
 
+func TestGetWhenKeyIsEmptyString(t *testing.T) {
+	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	_, err := bs.Get(key.Key(""))
+	if err != ErrNotFound {
+		t.Fail()
+	}
+}
+
 func TestPutThenGetBlock(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	block := blocks.NewBlock([]byte("some data"))
@@ -40,7 +48,7 @@ func TestPutThenGetBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(block.Data, blockFromBlockstore.Data) {
+	if !bytes.Equal(block.Data(), blockFromBlockstore.Data()) {
 		t.Fail()
 	}
 }

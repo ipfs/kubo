@@ -11,6 +11,7 @@ import (
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	pin "github.com/ipfs/go-ipfs/pin"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
@@ -94,7 +95,7 @@ var addPinCmd = &cmds.Command{
 
 var rmPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes the pinned object from local storage. (By default, recursively. Use -r=false for direct pins).",
+		Tagline: "Removes the pinned object from local storage.",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
 collected if needed. (By default, recursively. Use -r=false for direct pins)
@@ -188,8 +189,7 @@ Example:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").Default("all"),
-		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins."),
-		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
+		cmds.BoolOption("quiet", "q", "Write just hashes of objects.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -274,7 +274,12 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 			return nil, err
 		}
 
-		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, typeStr)
+		mode, ok := pin.StringToPinMode(typeStr)
+		if !ok {
+			return nil, fmt.Errorf("Invalid pin mode '%s'", typeStr)
+		}
+
+		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, mode)
 		if err != nil {
 			return nil, err
 		}

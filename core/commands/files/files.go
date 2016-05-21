@@ -17,7 +17,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("cmds/files")
@@ -28,7 +28,7 @@ var FilesCmd = &cmds.Command{
 		ShortDescription: `
 Files is an API for manipulating IPFS objects as if they were a unix filesystem.
 
-Note:
+NOTE:
 Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults to
 true. Use caution when setting this flag to false. It will improve performance
 for large numbers of file operations, but it does so at the cost of consistency
@@ -499,12 +499,12 @@ If the '--flush' option is set to false, changes will not be propogated to the
 merkledag root. This can make operations much faster when doing a large number
 of writes to a deeper directory structure.
 
-Example:
+EXAMPLE:
 
     echo "hello world" | ipfs files write --create /myfs/a/b/file
     echo "hello world" | ipfs files write --truncate /myfs/a/b/file
 
-Warning:
+WARNING:
 
     Usage of the '--flush=false' option does not guarantee data durability until
 	the tree has been flushed. This can be accomplished by running 'ipfs files stat'
@@ -616,7 +616,7 @@ var FilesMkdirCmd = &cmds.Command{
 		ShortDescription: `
 Create the directory if it does not already exist.
 
-Note: All paths must be absolute.
+NOTE: All paths must be absolute.
 
 Examples:
 

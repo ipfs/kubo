@@ -16,7 +16,8 @@ EXPOSE 8080
 
 ENV GX_IPFS   ""
 ENV IPFS_PATH /data/ipfs
-ENV GO_VERSION 1.5.3-r0
+ENV IPFS_LOGGING ""
+ENV GO_VERSION 1.5.4-r0
 ENV GOPATH     /go
 ENV PATH       /go/bin:$PATH
 ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs

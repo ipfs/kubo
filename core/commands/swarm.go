@@ -10,11 +10,11 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
-	swarm "gx/ipfs/QmYgaiNVVL7f2nydijAwpDRunRkmxfu3PoK87Y3pH84uAW/go-libp2p/p2p/net/swarm"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	swarm "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/net/swarm"
+	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 
-	mafilter "gx/ipfs/QmPwfFAHUmvWDucLHRS9Xz2Kb1TNX2cY4LJ7pQjg9kVcae/multiaddr-filter"
-	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
+	mafilter "gx/ipfs/QmUaRHbB7pUwj5mS9BS4CMvBiW48MpaH2wbGxeWfFhhHxK/multiaddr-filter"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 )
 
 type stringList struct {
@@ -28,13 +28,6 @@ type addrMap struct {
 var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Swarm inspection tool.",
-		Synopsis: `
-ipfs swarm addrs                - List known addresses. Useful for debugging.
-ipfs swarm connect <address>    - Open connection to a given address
-ipfs swarm disconnect <address> - Close connection to a given address
-ipfs swarm filters              - Manipulate filters addresses
-ipfs swarm peers                - List peers with open connections
-`,
 		ShortDescription: `
 'ipfs swarm' is a tool to manipulate the network swarm. The swarm is the
 component that opens, listens for, and maintains connections to other
@@ -159,7 +152,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("id", "Show peer ID in addresses."),
+		cmds.BoolOption("id", "Show peer ID in addresses.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

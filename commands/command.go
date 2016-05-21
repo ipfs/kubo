@@ -15,7 +15,7 @@ import (
 	"reflect"
 
 	"github.com/ipfs/go-ipfs/path"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("command")
@@ -256,6 +256,25 @@ func (c *Command) CheckArguments(req Request) error {
 // Subcommand returns the subcommand with the given id
 func (c *Command) Subcommand(id string) *Command {
 	return c.Subcommands[id]
+}
+
+type CommandVisitor func(*Command)
+
+// Walks tree of all subcommands (including this one)
+func (c *Command) Walk(visitor CommandVisitor) {
+	visitor(c)
+	for _, cm := range c.Subcommands {
+		cm.Walk(visitor)
+	}
+}
+
+func (c *Command) ProcessHelp() {
+	c.Walk(func(cm *Command) {
+		ht := &cm.Helptext
+		if len(ht.LongDescription) == 0 {
+			ht.LongDescription = ht.ShortDescription
+		}
+	})
 }
 
 // checkArgValue returns an error if a given arg value is not valid for the

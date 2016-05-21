@@ -13,13 +13,13 @@ import (
 // exchange protocol.
 type Interface interface { // type Exchanger interface
 	// GetBlock returns the block associated with a given key.
-	GetBlock(context.Context, key.Key) (*blocks.Block, error)
+	GetBlock(context.Context, key.Key) (blocks.Block, error)
 
-	GetBlocks(context.Context, []key.Key) (<-chan *blocks.Block, error)
+	GetBlocks(context.Context, []key.Key) (<-chan blocks.Block, error)
 
 	// TODO Should callers be concerned with whether the block was made
 	// available on the network?
-	HasBlock(*blocks.Block) error
+	HasBlock(blocks.Block) error
 
 	io.Closer
 }

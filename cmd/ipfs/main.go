@@ -17,8 +17,12 @@ import (
 	"syscall"
 	"time"
 
-	manet "gx/ipfs/QmYVqhVfbK4BKvbW88Lhm26b3ud14sTBvcm1H7uWUx1Fkp/go-multiaddr-net"
-	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
+	manet "gx/ipfs/QmUBa4w6CbHJUMeGJPDiMEDWsM93xToK1fTnFXnrC8Hksw/go-multiaddr-net"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	cmdsCli "github.com/ipfs/go-ipfs/commands/cli"
@@ -28,9 +32,7 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
 )
 
 // log is the command logger
@@ -65,7 +67,7 @@ type cmdInvocation struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	runtime.GOMAXPROCS(3) // FIXME rm arbitrary choice for n
-	ctx := logging.ContextWithLoggable(context.Background(), logging.Uuid("session"))
+	ctx := logging.ContextWithLoggable(context.Background(), loggables.Uuid("session"))
 	var err error
 	var invoc cmdInvocation
 	defer invoc.close()
@@ -132,7 +134,7 @@ func main() {
 		if invoc.cmd != nil {
 			// we need a newline space.
 			fmt.Fprintf(os.Stderr, "\n")
-			printMetaHelp(os.Stderr)
+			printHelp(false, os.Stderr)
 		}
 		os.Exit(1)
 	}
@@ -417,9 +419,10 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 		return nil, err
 	}
 
-	if client != nil { // api file exists
+	if client != nil {
 		if details.cannotRunOnDaemon {
 			// check if daemon locked. legacy error text, for now.
+			log.Debugf("Command cannot run on daemon. Checking if daemon is locked")
 			if daemonLocked, _ := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot); daemonLocked {
 				return nil, cmds.ClientError("ipfs daemon is running. please stop it to run this command")
 			}

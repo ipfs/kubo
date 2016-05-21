@@ -8,9 +8,9 @@ import (
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
+	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 // TODO consider taking responsibility for other types of requests. For
@@ -58,7 +58,7 @@ type Envelope struct {
 	Peer peer.ID
 
 	// Block is the payload
-	Block *blocks.Block
+	Block blocks.Block
 
 	// A callback to notify the decision queue that the task is complete
 	Sent func()
@@ -83,7 +83,7 @@ type Engine struct {
 
 	bs bstore.Blockstore
 
-	lock sync.RWMutex // protects the fields immediatly below
+	lock sync.Mutex // protects the fields immediatly below
 	// ledgerMap lists Ledgers by their Partner key.
 	ledgerMap map[peer.ID]*ledger
 }
@@ -178,8 +178,8 @@ func (e *Engine) Outbox() <-chan (<-chan *Envelope) {
 
 // Returns a slice of Peers with whom the local node has active sessions
 func (e *Engine) Peers() []peer.ID {
-	e.lock.RLock()
-	defer e.lock.RUnlock()
+	e.lock.Lock()
+	defer e.lock.Unlock()
 
 	response := make([]peer.ID, 0)
 	for _, ledger := range e.ledgerMap {
@@ -226,16 +226,32 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	}
 
 	for _, block := range m.Blocks() {
-		log.Debugf("got block %s %d bytes", block.Key(), len(block.Data))
-		l.ReceivedBytes(len(block.Data))
-		for _, l := range e.ledgerMap {
-			if entry, ok := l.WantListContains(block.Key()); ok {
-				e.peerRequestQueue.Push(entry, l.Partner)
-				newWorkExists = true
-			}
-		}
+		log.Debugf("got block %s %d bytes", block.Key(), len(block.Data()))
+		l.ReceivedBytes(len(block.Data()))
 	}
 	return nil
+}
+
+func (e *Engine) addBlock(block blocks.Block) {
+	work := false
+
+	for _, l := range e.ledgerMap {
+		if entry, ok := l.WantListContains(block.Key()); ok {
+			e.peerRequestQueue.Push(entry, l.Partner)
+			work = true
+		}
+	}
+
+	if work {
+		e.signalNewWork()
+	}
+}
+
+func (e *Engine) AddBlock(block blocks.Block) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	e.addBlock(block)
 }
 
 // TODO add contents of m.WantList() to my local wantlist? NB: could introduce
@@ -250,7 +266,7 @@ func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 	l := e.findOrCreate(p)
 	for _, block := range m.Blocks() {
-		l.SentBytes(len(block.Data))
+		l.SentBytes(len(block.Data()))
 		l.wantList.Remove(block.Key())
 		e.peerRequestQueue.Remove(block.Key(), p)
 	}

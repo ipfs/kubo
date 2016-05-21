@@ -241,7 +241,7 @@ func expand(src []byte, n int) []byte {
 }
 
 func benchWords(b *testing.B, n int, decode bool) {
-	// Note: the file is OS-language dependent so the resulting values are not
+	// NOTE: The file is OS-language dependent so the resulting values are not
 	// directly comparable for non-US-English OS installations.
 	data := expand(readFile(b, "/usr/share/dict/words"), n)
 	if decode {

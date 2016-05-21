@@ -7,7 +7,7 @@ import (
 	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/mock"
-	mocknet "gx/ipfs/QmYgaiNVVL7f2nydijAwpDRunRkmxfu3PoK87Y3pH84uAW/go-libp2p/p2p/net/mock"
+	mocknet "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/net/mock"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -71,7 +71,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		b, err := n.Blocks.GetBlock(ctx, block0.Key())
 		if err != nil {
 			t.Error(err)
-		} else if !bytes.Equal(b.Data, block0.Data) {
+		} else if !bytes.Equal(b.Data(), block0.Data()) {
 			t.Error("byte comparison fail")
 		} else {
 			log.Debug("got block: %s", b.Key())
@@ -88,7 +88,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		b, err := n.Blocks.GetBlock(ctx, block1.Key())
 		if err != nil {
 			t.Error(err)
-		} else if !bytes.Equal(b.Data, block1.Data) {
+		} else if !bytes.Equal(b.Data(), block1.Data()) {
 			t.Error("byte comparison fail")
 		} else {
 			log.Debug("got block: %s", b.Key())

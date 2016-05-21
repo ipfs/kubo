@@ -5,7 +5,7 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 // keySet is just a convenient alias for maps of keys, where we only care
@@ -67,7 +67,6 @@ func (l *ledger) ReceivedBytes(n int) {
 	l.Accounting.BytesRecv += uint64(n)
 }
 
-// TODO: this needs to be different. We need timeouts.
 func (l *ledger) Wants(k key.Key, priority int) {
 	log.Debugf("peer %s wants %s", l.Partner, k)
 	l.wantList.Add(k, priority)

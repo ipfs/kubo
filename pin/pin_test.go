@@ -213,7 +213,7 @@ func TestPinRecursiveFail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Note: this isnt a time based test, we expect the pin to fail
+	// NOTE: This isnt a time based test, we expect the pin to fail
 	mctx, _ := context.WithTimeout(ctx, time.Millisecond)
 	err = p.Pin(mctx, a, true)
 	if err == nil {

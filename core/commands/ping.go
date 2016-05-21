@@ -11,10 +11,10 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
 )
 
 const kPingTimeout = 10 * time.Second
@@ -27,10 +27,8 @@ type PingResult struct {
 
 var PingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Send echo request packets to IPFS hosts.",
-		Synopsis: `
-Send pings to a peer using the routing system to discover its address
-		`,
+		Tagline:  "Send echo request packets to IPFS hosts.",
+		Synopsis: "ipfs ping <peerId> [--count <int>| -n]",
 		ShortDescription: `
 'ipfs ping' is a tool to test sending data to other nodes. It finds nodes
 via the routing system, sends pings, waits for pongs, and prints out round-
@@ -41,7 +39,7 @@ trip latency information.
 		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("count", "n", "Number of ping messages to send."),
+		cmds.IntOption("count", "n", "Number of ping messages to send.").Default(10),
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -99,15 +97,10 @@ trip latency information.
 			n.Peerstore.AddAddr(peerID, addr, peer.TempAddrTTL) // temporary
 		}
 
-		// Set up number of pings
-		numPings := 10
-		val, found, err := req.Option("count").Int()
+		numPings, _, err := req.Option("count").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
-		}
-		if found {
-			numPings = val
 		}
 
 		outChan := pingPeer(ctx, n, peerID, numPings)

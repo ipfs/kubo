@@ -23,9 +23,9 @@ var VersionCmd = &cmds.Command{
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("number", "n", "Only show the version number."),
-		cmds.BoolOption("commit", "Show the commit hash."),
-		cmds.BoolOption("repo", "Show repo version."),
+		cmds.BoolOption("number", "n", "Only show the version number.").Default(false),
+		cmds.BoolOption("commit", "Show the commit hash.").Default(false),
+		cmds.BoolOption("repo", "Show repo version.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(&VersionOutput{
@@ -47,20 +47,20 @@ var VersionCmd = &cmds.Command{
 				return strings.NewReader(v.Repo + "\n"), nil
 			}
 
-			commit, found, err := res.Request().Option("commit").Bool()
+			commit, _, err := res.Request().Option("commit").Bool()
 			commitTxt := ""
 			if err != nil {
 				return nil, err
 			}
-			if found && commit {
+			if commit {
 				commitTxt = "-" + v.Commit
 			}
 
-			number, found, err := res.Request().Option("number").Bool()
+			number, _, err := res.Request().Option("number").Bool()
 			if err != nil {
 				return nil, err
 			}
-			if found && number {
+			if number {
 				return strings.NewReader(fmt.Sprintln(v.Version + commitTxt)), nil
 			}
 

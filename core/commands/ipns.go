@@ -30,12 +30,17 @@ Examples:
 Resolve the value of your identity:
 
   > ipfs name resolve
-  QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
 Resolve the value of another name:
 
-  > ipfs name resolve QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
-  QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  > ipfs name resolve QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+  /ipfs/QmSiTko9JZyabH56y2fussEt1A5oDqsFXB3CkvAqraFryz
+
+Resolve the value of a reference:
+
+  > ipfs name resolve ipfs.io
+  /ipfs/QmaBvfZooxWkrv7D3r8LS9moNjzD2o525XMZze69hhoxf5
 
 `,
 	},
@@ -44,8 +49,8 @@ Resolve the value of another name:
 		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name."),
-		cmds.BoolOption("nocache", "n", "Do not used cached entries."),
+		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name.").Default(false),
+		cmds.BoolOption("nocache", "n", "Do not used cached entries.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

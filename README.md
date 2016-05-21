@@ -72,8 +72,7 @@ export PATH=$PATH:$GOPATH/bin
 
 go-ipfs differs from the vanilla `go get` flow: it uses
 [gx](https://github.com/whyrusleeping/gx)/[gx-go](https://github.com/whyrusleeping/gx-go)
-for dependency management. This means you'll need to perform download and
-install steps separately.
+for dependency management.
 
 First download `go-ipfs` without installing:
 
@@ -83,13 +82,7 @@ $ go get -d github.com/ipfs/go-ipfs
 $ cd $GOPATH/src/github.com/ipfs/go-ipfs
 ```
 
-If you don't already have them on your system, install `gx` and `gx-go`:
-
-```sh
-$ make toolkit_upgrade
-```
-
-Finally, install `go-ipfs`:
+Then install `go-ipfs` and its dependencies, including `gx` and `gx-go`:
 
 ```
 $ make install
@@ -97,6 +90,7 @@ $ make install
 
 #### Troubleshooting
 
+* Separate [instructions are available for building on Windows](docs/windows.md).
 * `git` is required in order for `go get` to fetch all dependencies.
 * Package managers often contain out-of-date `golang` packages.
   Ensure that `go version` reports at least 1.5.2. See above for how to install go.
@@ -122,56 +116,53 @@ or install it from source with `go get -u github.com/ipfs/ipfs-update`.
 ## Usage
 
 ```
-USAGE:
+  ipfs - Global p2p merkle-dag filesystem.
 
-    ipfs - global p2p merkle-dag filesystem
+  ipfs [<flags>] <command> [<arg>] ...
 
-    ipfs [<flags>] <command> [<arg>] ...
+SUBCOMMANDS
+  BASIC COMMANDS
+    init          Initialize ipfs local configuration
+    add <path>    Add a file to ipfs
+    cat <ref>     Show ipfs object data
+    get <ref>     Download ipfs objects
+    ls <ref>      List links from an object
+    refs <ref>    List hashes of links from an object
 
-    BASIC COMMANDS
+  DATA STRUCTURE COMMANDS
+    block         Interact with raw blocks in the datastore
+    object        Interact with raw dag nodes
+    files         Interact with objects as if they were a unix filesystem
 
-        init          Initialize ipfs local configuration
-        add <path>    Add an object to ipfs
-        cat <ref>     Show ipfs object data
-        get <ref>     Download ipfs objects
-        ls <ref>      List links from an object
-        refs <ref>    List hashes of links from an object
+  ADVANCED COMMANDS
+    daemon        Start a long-running daemon process
+    mount         Mount an ipfs read-only mountpoint
+    resolve       Resolve any type of name
+    name          Publish or resolve IPNS names
+    dns           Resolve DNS links
+    pin           Pin objects to local storage
+    repo          Manipulate an IPFS repository
 
-    DATA STRUCTURE COMMANDS
+  NETWORK COMMANDS
+    id            Show info about ipfs peers
+    bootstrap     Add or remove bootstrap peers
+    swarm         Manage connections to the p2p network
+    dht           Query the DHT for values or peers
+    ping          Measure the latency of a connection
+    diag          Print diagnostics
 
-        block         Interact with raw blocks in the datastore
-        object        Interact with raw dag nodes
-        file          Interact with Unix filesystem objects
+  TOOL COMMANDS
+    config        Manage configuration
+    version       Show ipfs version information
+    update        Download and apply go-ipfs updates
+    commands      List all available commands
 
-    ADVANCED COMMANDS
+  Use 'ipfs <command> --help' to learn more about each command.
 
-        daemon        Start a long-running daemon process
-        mount         Mount an ipfs read-only mountpoint
-        resolve       Resolve any type of name
-        name          Publish or resolve IPNS names
-        dns           Resolve DNS links
-        pin           Pin objects to local storage
-        repo gc       Garbage collect unpinned objects
+  ipfs uses a repository in the local file system. By default, the repo is located
+  at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
 
-    NETWORK COMMANDS
-
-        id            Show info about ipfs peers
-        bootstrap     Add or remove bootstrap peers
-        swarm         Manage connections to the p2p network
-        dht           Query the DHT for values or peers
-        ping          Measure the latency of a connection
-        diag          Print diagnostics
-
-    TOOL COMMANDS
-
-        config        Manage configuration
-        version       Show ipfs version information
-        update        Download and apply go-ipfs updates
-        commands      List all available commands
-
-    Use 'ipfs <command> --help' to learn more about each command.
-
-
+    export IPFS_PATH=/path/to/ipfsrepo
 ```
 
 ## Getting Started

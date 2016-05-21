@@ -100,9 +100,11 @@ var cmdDetailsMap = map[*cmds.Command]cmdDetails{
 
 	// daemonCmd allows user to initialize the config. Thus, it may be called
 	// without using the config as input
-	daemonCmd:                  {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
-	commandsClientCmd:          {doesNotUseRepo: true},
-	commands.CommandsDaemonCmd: {doesNotUseRepo: true},
-	commands.VersionCmd:        {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
-	commands.LogCmd:            {cannotRunOnClient: true},
+	daemonCmd:                             {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
+	commandsClientCmd:                     {doesNotUseRepo: true},
+	commands.CommandsDaemonCmd:            {doesNotUseRepo: true},
+	commands.VersionCmd:                   {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
+	commands.LogCmd:                       {cannotRunOnClient: true},
+	commands.RepoFsckCmd:                  {cannotRunOnDaemon: true},
+	commands.ConfigCmd.Subcommand("edit"): {cannotRunOnDaemon: true, doesNotUseRepo: true},
 }

@@ -10,10 +10,6 @@ type IpnsEntry struct {
 var NameCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "IPFS namespace (IPNS) tool.",
-		Synopsis: `
-ipfs name publish [<name>] <ipfs-path> - Publish an object to IPNS
-ipfs name resolve [<name>]             - Gets the value currently published at an IPNS name
-`,
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In both publish
@@ -44,8 +40,13 @@ Resolve the value of your identity:
 
 Resolve the value of another name:
 
-  > ipfs name resolve QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
-  /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  > ipfs name resolve QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+  /ipfs/QmSiTko9JZyabH56y2fussEt1A5oDqsFXB3CkvAqraFryz
+
+Resolve the value of a reference:
+
+  > ipfs name resolve ipfs.io
+  /ipfs/QmaBvfZooxWkrv7D3r8LS9moNjzD2o525XMZze69hhoxf5
 
 `,
 	},

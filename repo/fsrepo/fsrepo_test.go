@@ -3,6 +3,8 @@ package fsrepo
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
@@ -27,10 +29,9 @@ func TestInitIdempotence(t *testing.T) {
 	}
 }
 
-func TestRemove(t *testing.T) {
-	t.Parallel()
-	path := testRepoPath("foo", t)
-	assert.Nil(Remove(path), t, "can remove a repository")
+func Remove(repoPath string) error {
+	repoPath = filepath.Clean(repoPath)
+	return os.RemoveAll(repoPath)
 }
 
 func TestCanManageReposIndependently(t *testing.T) {

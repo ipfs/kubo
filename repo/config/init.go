@@ -7,7 +7,7 @@ import (
 	"io"
 
 	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
+	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
@@ -29,7 +29,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	conf := &Config{
 
 		// setup the node's default addresses.
-		// Note: two swarm listen addrs, one tcp, one utp.
+		// NOTE: two swarm listen addrs, one tcp, one utp.
 		Addresses: Addresses{
 			Swarm: []string{
 				"/ip4/0.0.0.0/tcp/4001",

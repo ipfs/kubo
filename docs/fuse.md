@@ -48,7 +48,7 @@ You may also have to change `/dev/fuse`:
 sudo chown <username>:<groupname> /dev/fuse
 ```
 
-Note: `<groupname>` will usually be `fuse`. Typically, you add the authorized users to the `fuse` group:
+NOTE: `<groupname>` will usually be `fuse`. Typically, you add the authorized users to the `fuse` group:
 
 ```sh
 sudo usermod -a -G fuse <username>

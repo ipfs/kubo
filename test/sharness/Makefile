@@ -4,7 +4,7 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-# NOTE: run with TEST_VERBOSE=1 for verbose sharness tests.
+# NOTE: Run with TEST_VERBOSE=1 for verbose sharness tests.
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint \
@@ -33,7 +33,10 @@ aggregate: clean-test-results $(T)
 	@echo "*** $@ ***"
 	lib/test-aggregate-results.sh
 
-deps: $(SHARNESS) $(BINS) curl
+global-deps:
+	make -C ../.. deps
+
+deps: global-deps $(SHARNESS) $(BINS) curl
 
 $(SHARNESS): FORCE
 	@echo "*** checking $@ ***"

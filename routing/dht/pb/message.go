@@ -1,12 +1,12 @@
 package dht_pb
 
 import (
-	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	inet "gx/ipfs/QmYgaiNVVL7f2nydijAwpDRunRkmxfu3PoK87Y3pH84uAW/go-libp2p/p2p/net"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	inet "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/net"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
+	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var log = logging.Logger("dht.pb")
@@ -107,14 +107,15 @@ func (m *Message_Peer) Addresses() []ma.Multiaddr {
 		return nil
 	}
 
-	var err error
-	maddrs := make([]ma.Multiaddr, len(m.Addrs))
-	for i, addr := range m.Addrs {
-		maddrs[i], err = ma.NewMultiaddrBytes(addr)
+	maddrs := make([]ma.Multiaddr, 0, len(m.Addrs))
+	for _, addr := range m.Addrs {
+		maddr, err := ma.NewMultiaddrBytes(addr)
 		if err != nil {
-			log.Debugf("error decoding Multiaddr for peer: %s", m.GetId())
+			log.Warningf("error decoding Multiaddr for peer: %s", m.GetId())
 			continue
 		}
+
+		maddrs = append(maddrs, maddr)
 	}
 	return maddrs
 }

@@ -35,11 +35,12 @@ var RefsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Lists links (references) from an object.",
 		ShortDescription: `
-Displays the link hashes an IPFS or IPNS object(s) contains, with the following format:
+Lists the hashes of all the links an IPFS or IPNS object(s) contains,
+with the following format:
 
   <link base58 hash>
 
-Note: List all references recursively by using the flag '-r'.
+NOTE: List all references recursively by using the flag '-r'.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -49,10 +50,10 @@ Note: List all references recursively by using the flag '-r'.
 		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>."),
-		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
-		cmds.BoolOption("unique", "u", "Omit duplicate refs from output."),
-		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes."),
+		cmds.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").Default("<dst>"),
+		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`.").Default(false),
+		cmds.BoolOption("unique", "u", "Omit duplicate refs from output.").Default(false),
+		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()

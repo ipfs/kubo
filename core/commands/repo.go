@@ -5,8 +5,12 @@ import (
 	"fmt"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"io"
+	"os"
+	"path/filepath"
 )
 
 var RepoCmd = &cmds.Command{
@@ -20,6 +24,7 @@ var RepoCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"gc":   repoGcCmd,
 		"stat": repoStatCmd,
+		"fsck": RepoFsckCmd,
 	},
 }
 
@@ -32,9 +37,8 @@ set of stored objects and remove ones that are not pinned in
 order to reclaim hard disk space.
 `,
 	},
-
 	Options: []cmds.Option{
-		cmds.BoolOption("quiet", "q", "Write minimal output."),
+		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -123,7 +127,7 @@ RepoSize        int Size in bytes that the repo is currently taking.
 		res.SetOutput(stat)
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("human", "Output RepoSize in MiB."),
+		cmds.BoolOption("human", "Output RepoSize in MiB.").Default(false),
 	},
 	Type: corerepo.Stat{},
 	Marshalers: cmds.MarshalerMap{
@@ -150,5 +154,57 @@ RepoSize        int Size in bytes that the repo is currently taking.
 
 			return buf, nil
 		},
+	},
+}
+
+var RepoFsckCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Removes repo lockfiles.",
+		ShortDescription: `
+'ipfs repo fsck' is a plumbing command that will remove repo and level db
+lockfiles, as well as the api file. This command can only run when no ipfs
+daemons are running.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		configRoot := req.InvocContext().ConfigRoot
+
+		dsPath, err := config.DataStorePath(configRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		dsLockFile := filepath.Join(dsPath, "LOCK") // TODO: get this lockfile programmatically
+		repoLockFile := filepath.Join(configRoot, lockfile.LockFile)
+		apiFile := filepath.Join(configRoot, "api") // TODO: get this programmatically
+
+		log.Infof("Removing repo lockfile: %s", repoLockFile)
+		log.Infof("Removing datastore lockfile: %s", dsLockFile)
+		log.Infof("Removing api file: %s", apiFile)
+
+		err = os.Remove(repoLockFile)
+		if err != nil && !os.IsNotExist(err) {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		err = os.Remove(dsLockFile)
+		if err != nil && !os.IsNotExist(err) {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		err = os.Remove(apiFile)
+		if err != nil && !os.IsNotExist(err) {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		s := "Lockfiles have been removed."
+		log.Info(s)
+		res.SetOutput(&MessageOutput{s + "\n"})
+	},
+	Type: MessageOutput{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: MessageTextMarshaler,
 	},
 }

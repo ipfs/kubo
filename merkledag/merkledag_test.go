@@ -245,6 +245,14 @@ func assertCanGet(t *testing.T, ds DAGService, n *Node) {
 	}
 }
 
+func TestEmptyKey(t *testing.T) {
+	ds := dstest.Mock()
+	_, err := ds.Get(context.Background(), key.Key(""))
+	if err != ErrNotFound {
+		t.Error("dag service should error when key is nil", err)
+	}
+}
+
 func TestCantGet(t *testing.T) {
 	dsp := getDagservAndPinner(t)
 	a := &Node{Data: []byte("A")}

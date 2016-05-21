@@ -11,8 +11,8 @@ import (
 	lgbl "github.com/ipfs/go-ipfs/thirdparty/loggables"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	peer "gx/ipfs/QmZwZjMVGss5rqYsJVGy18gNbkTJffFyq2x1uJ4e4p3ZAt/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 // The number of closer peers to send on requests.
@@ -127,7 +127,7 @@ func (dht *IpfsDHT) checkLocalDatastore(k key.Key) (*pb.Record, error) {
 		recordIsBad = true
 	}
 
-	// NOTE: we do not verify the record here beyond checking these timestamps.
+	// NOTE: We do not verify the record here beyond checking these timestamps.
 	// we put the burden of checking the records on the requester as checking a record
 	// may be computationally expensive
 

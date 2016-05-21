@@ -20,7 +20,7 @@ import (
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("fsrepo")
@@ -249,18 +249,15 @@ func Init(repoPath string, conf *config.Config) error {
 	return nil
 }
 
-// Remove recursively removes the FSRepo at |path|.
-func Remove(repoPath string) error {
-	repoPath = filepath.Clean(repoPath)
-	return os.RemoveAll(repoPath)
-}
-
 // LockedByOtherProcess returns true if the FSRepo is locked by another
 // process. If true, then the repo cannot be opened by this process.
 func LockedByOtherProcess(repoPath string) (bool, error) {
 	repoPath = filepath.Clean(repoPath)
-	// NB: the lock is only held when repos are Open
-	return lockfile.Locked(repoPath)
+	locked, err := lockfile.Locked(repoPath)
+	if locked {
+		log.Debugf("(%t)<->Lock is held at %s", locked, repoPath)
+	}
+	return locked, err
 }
 
 // APIAddr returns the registered API addr, according to the api file
@@ -360,7 +357,7 @@ func (r *FSRepo) Close() error {
 	}
 
 	err := os.Remove(filepath.Join(r.path, apiFile))
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		log.Warning("error removing api file: ", err)
 	}
 
