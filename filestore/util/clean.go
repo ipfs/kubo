@@ -76,14 +76,14 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 		}
 		if stage2 {
 			fmt.Fprintf(rmWtr, "Scanning for incomplete nodes ('verify -l1 --skip-orphans') ...\n")
-		 	err := do_stage(VerifyFull(node, fs, 1, 1, true))
+			err := do_stage(VerifyFull(node, fs, 1, 1, true))
 			if err != nil {
 				return
 			}
 		}
 		if stage3 {
 			fmt.Fprintf(rmWtr, "Scanning for orphans ('verify -l1') ...\n")
-		 	err := do_stage(VerifyFull(node, fs, 1, 1, false))
+			err := do_stage(VerifyFull(node, fs, 1, 1, false))
 			if err != nil {
 				return
 			}

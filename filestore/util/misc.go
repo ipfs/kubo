@@ -1,8 +1,8 @@
 package filestore_util
 
 import (
-	"io"
 	"fmt"
+	"io"
 
 	. "github.com/ipfs/go-ipfs/filestore"
 
@@ -12,7 +12,9 @@ import (
 
 func RmDups(wtr io.Writer, fs *Datastore, bs b.Blockstore) error {
 	ls, err := ListKeys(fs)
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	for res := range ls {
 		key := k.KeyFromDsKey(res.Key)
 		// This is a quick and dirty hack.  Right now the

@@ -4,8 +4,8 @@ package chunk
 import (
 	"io"
 
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 	"github.com/ipfs/go-ipfs/commands/files"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("chunk")

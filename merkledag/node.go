@@ -1,8 +1,8 @@
 package merkledag
 
 import (
-	"time"
 	"fmt"
+	"time"
 
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 

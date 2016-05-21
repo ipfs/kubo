@@ -54,7 +54,7 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 
 func ParseArgs(req cmds.Request, inputs []string, stdin *os.File, argDefs []cmds.Argument, root *cmds.Command) ([]string, []files.File, error) {
 	var err error
-	
+
 	// if -r is provided, and it is associated with the package builtin
 	// recursive path option, allow recursive file paths
 	recursiveOpt := req.Option(cmds.RecShort)
