@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -45,9 +46,13 @@ func (o *option) Description() string {
 	if o.description[len(o.description)-1] != '.' {
 		o.description += "."
 	}
-
 	if o.defaultVal != nil {
-		return fmt.Sprintf("%s Default: %v.", o.description, o.defaultVal)
+		if strings.Contains(o.description, "<default>") {
+			return strings.Replace(o.description, "<default>",
+				fmt.Sprintf("Default: %v.", o.defaultVal), -1)
+		} else {
+			return fmt.Sprintf("%s Default: %v.", o.description, o.defaultVal)
+		}
 	}
 	return o.description
 }
