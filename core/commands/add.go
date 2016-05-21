@@ -222,14 +222,13 @@ You can now refer to the added file in a gateway, like so:
 			return
 		}
 
-		var showProgressBar bool
-		if !progress && !quiet && !silent {
-			showProgressBar = true
+		if !quiet && !silent {
+			progress = true
 		}
 
 		var bar *pb.ProgressBar
 		var terminalWidth int
-		if showProgressBar {
+		if progress {
 			bar = pb.New64(0).SetUnits(pb.U_BYTES)
 			bar.ManualUpdate = true
 			bar.Start()
@@ -264,7 +263,7 @@ You can now refer to the added file in a gateway, like so:
 				}
 				output := out.(*coreunix.AddedObject)
 				if len(output.Hash) > 0 {
-					if showProgressBar {
+					if progress {
 						// clear progress bar line before we print "added x" output
 						fmt.Fprintf(res.Stderr(), "\033[2K\r")
 					}
@@ -277,7 +276,7 @@ You can now refer to the added file in a gateway, like so:
 				} else {
 					log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
 
-					if !showProgressBar {
+					if !progress {
 						continue
 					}
 
@@ -293,11 +292,11 @@ You can now refer to the added file in a gateway, like so:
 					totalProgress = bar.Add64(delta)
 				}
 
-				if showProgressBar {
+				if progress {
 					bar.Update()
 				}
 			case size := <-sizeChan:
-				if showProgressBar {
+				if progress {
 					bar.Total = size
 					bar.ShowPercent = true
 					bar.ShowBar = true
