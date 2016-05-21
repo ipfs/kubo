@@ -39,31 +39,23 @@ func (w *writecache) Get(k key.Key) (blocks.Block, error) {
 }
 
 func (w *writecache) Put(b blocks.Block) error {
-	// Don't cache "advance" blocks
-	if _, ok := b.(*blocks.BasicBlock); ok {
-		k := b.Key()
-		if _, ok := w.cache.Get(k); ok {
-			return nil
-		}
-		defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
-
-		w.cache.Add(b.Key(), struct{}{})
+	k := b.Key()
+	if _, ok := w.cache.Get(k); ok {
+		return nil
 	}
+	defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
+
+	w.cache.Add(b.Key(), struct{}{})
 	return w.blockstore.Put(b)
 }
 
 func (w *writecache) PutMany(bs []blocks.Block) error {
 	var good []blocks.Block
 	for _, b := range bs {
-		// Don't cache "advance" blocks
-		if _, ok := b.(*blocks.BasicBlock); ok {
-			if _, ok := w.cache.Get(b.Key()); !ok {
-				good = append(good, b)
-				k := b.Key()
-				defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
-			}
-		} else {
+		if _, ok := w.cache.Get(b.Key()); !ok {
 			good = append(good, b)
+			k := b.Key()
+			defer log.EventBegin(context.TODO(), "writecache.BlockAdded", &k).Done()
 		}
 	}
 	return w.blockstore.PutMany(good)

@@ -9,11 +9,14 @@ import (
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	"github.com/ipfs/go-ipfs/filestore"
+	"github.com/ipfs/go-ipfs/filestore/support"
 
+	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	cli "github.com/ipfs/go-ipfs/commands/cli"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -150,11 +153,20 @@ You can now refer to the added file in a gateway, like so:
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
-		fileAdder, err := coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, n.DAG)
+		var fileAdder *coreunix.Adder
+		if nocopy || link {
+			blockstore := filestore_support.NewBlockstore(n.Blockstore, n.Repo.Datastore())
+			blockService := bserv.New(blockstore, n.Exchange)
+			dagService := dag.NewDAGService(blockService)
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService)
+		} else {
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, n.DAG)
+		}
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		
 
 		fileAdder.Out = outChan
 		fileAdder.Chunker = chunker
