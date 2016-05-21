@@ -27,6 +27,49 @@ test_add_cat_file() {
     '
 }
 
+test_post_add() {
+    cmd=$1
+    dir=$2
+    
+    test_expect_success "fail after file move" '
+        mv mountdir/hello.txt mountdir/hello2.txt
+        test_must_fail ipfs cat "$HASH" >/dev/null
+    '
+
+    test_expect_success "okay again after moving back" '
+        mv mountdir/hello2.txt mountdir/hello.txt &&
+        ipfs cat "$HASH" >/dev/null
+    '
+
+    test_expect_success "fail after file move" '
+        mv mountdir/hello.txt mountdir/hello2.txt
+        test_must_fail ipfs cat "$HASH" >/dev/null
+    '
+
+    test_expect_success "okay after re-adding under new name" '
+        ipfs $cmd "$dir"/mountdir/hello2.txt 2> add.output &&
+        ipfs cat "$HASH" >/dev/null
+    '
+
+    test_expect_success "restore state" '
+        mv mountdir/hello2.txt mountdir/hello.txt &&
+        ipfs $cmd "$dir"/mountdir/hello.txt 2> add.output &&
+        ipfs cat "$HASH" >/dev/null
+    '
+
+    test_expect_success "fail after file change" '
+        # note: filesize shrinks
+        echo "hello world!" >mountdir/hello.txt &&
+        test_must_fail ipfs cat "$HASH" >cat.output
+    '
+
+    test_expect_success "fail after file change, same size" '
+        # note: filesize does not change
+        echo "HELLO WORLDS!" >mountdir/hello.txt &&
+        test_must_fail ipfs cat "$HASH" >cat.output
+    '
+}
+
 test_add_cat_5MB() {
     cmd=$1
     dir=$2

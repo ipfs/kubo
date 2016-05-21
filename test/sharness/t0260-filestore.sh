@@ -13,28 +13,7 @@ test_init_ipfs
 
 test_add_cat_file "add --no-copy" "."
 
-test_expect_success "fail after file move" '
-    mv mountdir/hello.txt mountdir/hello2.txt
-    test_must_fail ipfs cat "$HASH" >/dev/null
-'
-
-test_expect_success "okay again after moving back" '
-    mv mountdir/hello2.txt mountdir/hello.txt
-    ipfs cat "$HASH" >/dev/null
-'
-
-test_expect_success "fail after file change" '
-    # note: filesize shrinks
-    echo "hello world!" >mountdir/hello.txt &&
-    test_must_fail ipfs cat "$HASH" >cat.output
-'
-
-test_expect_success "fail after file change, same size" '
-    # note: filesize does not change
-    echo "HELLO WORLDS!" >mountdir/hello.txt &&
-    test_must_fail ipfs cat "$HASH" >cat.output
-'
-
+test_post_add "add --no-copy" "."
 
 test_add_cat_5MB "add --no-copy" "."
 

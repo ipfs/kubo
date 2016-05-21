@@ -19,6 +19,8 @@ test_launch_ipfs_daemon
 
 test_add_cat_file "add-ss --no-copy" "`pwd`"
 
+test_post_add "add-ss --no-copy" "`pwd`"
+
 test_add_cat_5MB "add-ss --no-copy" "`pwd`"
 
 cat <<EOF > add_expect
