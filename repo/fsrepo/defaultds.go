@@ -76,7 +76,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, *filestore.Datastore, erro
 		if err != nil {
 			return nil, nil, err
 		}
-		blocksStore = multi.New(fileStore, metricsBlocks, nil, nil)
+		blocksStore = multi.New(metricsBlocks, fileStore)
 	}
 
 	mountDS := mount.New([]mount.Mount{

@@ -9,6 +9,7 @@ import (
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	"github.com/ipfs/go-ipfs/filestore/support"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -154,7 +155,13 @@ You can now refer to the added file in a gateway, like so:
 
 		var fileAdder *coreunix.Adder
 		if nocopy || link {
-			blockstore := filestore_support.NewBlockstore(n.Blockstore, n.Repo.Datastore())
+			repo, ok := n.Repo.Self().(*fsrepo.FSRepo)
+			if !ok {
+				err = errors.New("Not a FSRepo")
+				return
+			}
+			fs := repo.Filestore()
+			blockstore := filestore_support.NewBlockstore(n.Blockstore, n.Repo.Datastore(), fs)
 			blockService := bserv.New(blockstore, n.Exchange)
 			dagService := dag.NewDAGService(blockService)
 			dagService.NodeToBlock = filestore_support.NodeToBlock{}
