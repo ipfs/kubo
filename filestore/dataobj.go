@@ -14,8 +14,9 @@ const (
 	// If WholeFile is true the Data object represents a complete
 	// file and Size is the size of the file
 	WholeFile = 2
-	// If the node represents the file root, implies WholeFile
-	FileRoot = 4
+	// If the node represents an a file but is not a leaf
+	// If WholeFile is also true than it is the file's root node
+	Internal = 4
 	// If the block was determined to no longer be valid
 	Invalid = 8
 )
@@ -35,7 +36,7 @@ func (d *DataObj) NoBlockData() bool { return d.Flags&NoBlockData != 0 }
 
 func (d *DataObj) WholeFile() bool { return d.Flags&WholeFile != 0 }
 
-func (d *DataObj) FileRoot() bool { return d.Flags&FileRoot != 0 }
+func (d *DataObj) Internal() bool { return d.Flags&Internal != 0 }
 
 func (d *DataObj) Invalid() bool { return d.Flags&Invalid != 0 }
 
@@ -76,7 +77,7 @@ func (d *DataObj) Format() string {
 		return fmt.Sprintf("invld %s %s %d %s", d.FilePath, offset, d.Size, date)
 	} else if d.NoBlockData() {
 		return fmt.Sprintf("leaf  %s %s %d %s", d.FilePath, offset, d.Size, date)
-	} else if d.FileRoot() {
+	} else if d.Internal() && d.WholeFile() {
 		return fmt.Sprintf("root  %s %s %d", d.FilePath, offset, d.Size)
 	} else {
 		return fmt.Sprintf("other %s %s %d", d.FilePath, offset, d.Size)
@@ -126,7 +127,7 @@ func (d *DataObj) Unmarshal(data []byte) error {
 		d.Flags |= WholeFile
 	}
 	if pd.FileRoot != nil && *pd.FileRoot {
-		d.Flags |= FileRoot
+		d.Flags |= Internal
 		d.Flags |= WholeFile
 	}
 

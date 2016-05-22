@@ -65,7 +65,7 @@ func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block) interface{} {
 			ModTime:  fs.FromTime(fsBlock.Stat.ModTime()),
 		}
 		if fsBlock.AltData == nil {
-			d.Flags |= fs.WholeFile | fs.FileRoot
+			d.Flags |= fs.Internal
 			d.Data = block.Data()
 		} else {
 			d.Flags |= fs.NoBlockData

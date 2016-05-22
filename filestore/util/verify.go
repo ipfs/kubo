@@ -88,7 +88,7 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 		res.DataObj = dataObj
 		if AnError(r) {
 			/* nothing to do */
-		} else if res.FileRoot() {
+		} else if res.Internal() && res.WholeFile() {
 			if dagNode == nil {
 				// we expect a node, so even if the status is
 				// okay we should set it to an Error
