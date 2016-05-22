@@ -19,7 +19,7 @@ profiling information.
 - 30 second cpu profile
   - `curl localhost:5001/debug/pprof/profile > ipfs.cpuprof`
 - heap trace dump
-  - `curl localhost:5001/debug/pprof/heap > ipfs.stacks`
+  - `curl localhost:5001/debug/pprof/heap > ipfs.heap`
 - system information
   - `ipfs diag sys > ipfs.sysinfo`
 
