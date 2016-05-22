@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"os"
 	"fmt"
 
 	"github.com/ipfs/go-ipfs/commands/files"
@@ -41,7 +42,6 @@ type UnixfsNode struct {
 	node     *dag.Node
 	ufmt     *ft.FSNode
 	posInfo  *files.PosInfo
-	fileRoot bool
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
@@ -118,16 +118,16 @@ func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 	n.node.Links = append(n.node.Links[:index], n.node.Links[index+1:]...)
 }
 
-func (n *UnixfsNode) SetData(data chunk.Bytes) {
-	n.ufmt.Data = data.Data
-	n.posInfo = data.PosInfo
+func (n *UnixfsNode) FileSize() uint64 {
+	return n.ufmt.FileSize()
 }
 
-func (n *UnixfsNode) SetAsRoot(posInfo *files.PosInfo) {
-	if n.posInfo == nil {
-		n.posInfo = posInfo
-	}
-	n.fileRoot = true
+func (n *UnixfsNode) SetData(data []byte) {
+	n.ufmt.Data = data
+}
+
+func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
+	n.posInfo = &files.PosInfo{offset, fullPath, stat}
 }
 
 // getDagNode fills out the proper formatting for the unixfs node
@@ -146,22 +146,9 @@ func (n *UnixfsNode) GetDagNode(needAltData bool) (*dag.Node, error) {
 }
 
 func (n *UnixfsNode) getAltData() (*dag.DataPtr) {
+	dp := &dag.DataPtr{PosInfo: n.posInfo, Size: n.ufmt.FileSize()}
 	if n.ufmt.NumChildren() == 0 && (n.ufmt.Type == ft.TFile || n.ufmt.Type == ft.TRaw) {
-		//fmt.Println("We have a block.")
-		// We have a block
-		d, _ := n.ufmt.GetBytesNoData()
-		return &dag.DataPtr{
-			AltData:  d,
-			PosInfo:  *n.posInfo,
-			Size:     uint64(len(n.ufmt.Data))}
-	} else if n.ufmt.Type == ft.TFile && n.fileRoot {
-		//fmt.Println("We have a root.")
-		// We have a root
-		return &dag.DataPtr{
-			AltData:  nil,
-			PosInfo:  files.PosInfo{0, n.posInfo.FullPath, n.posInfo.Stat},
-			Size:     n.ufmt.FileSize()}
-	} else {
-		return nil;
+		dp.AltData,_ = n.ufmt.GetBytesNoData()
 	}
+	return dp
 }

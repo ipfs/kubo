@@ -32,7 +32,6 @@ func TrickleLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
 		}
 	}
 
-	db.SetAsRoot(root)
 	out, err := db.Add(root)
 	if err != nil {
 		return nil, err

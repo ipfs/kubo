@@ -28,7 +28,7 @@ type Node struct {
 
 type DataPtr struct {
 	AltData  []byte
-	files.PosInfo
+	*files.PosInfo
 	Size     uint64
 }
 

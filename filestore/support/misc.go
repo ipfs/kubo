@@ -10,7 +10,7 @@ import (
 type FilestoreBlock struct {
 	blocks.BasicBlock
 	AltData  []byte
-	files.PosInfo
+	*files.PosInfo
 	Size     uint64
 }
 

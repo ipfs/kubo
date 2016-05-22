@@ -111,7 +111,7 @@ type Adder struct {
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func (adder Adder) add(reader files.AdvReader) (*dag.Node, error) {
+func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
 	chnk, err := chunk.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
@@ -253,9 +253,7 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 		return "", err
 	}
 
-	ar := files.AdvReaderAdapter(r)
-
-	node, err := fileAdder.add(ar)
+	node, err := fileAdder.add(r)
 	if err != nil {
 		return "", err
 	}
@@ -404,9 +402,14 @@ func (adder *Adder) addFile(file files.File) error {
 	// case for regular file
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
-	reader := files.AdvReaderAdapter(file)
+	var reader io.Reader = file
 	if adder.Progress {
-		reader = &progressReader{reader: reader, filename: file.FileName(), out: adder.Out}
+		rdr := &progressReader{file: file, out: adder.Out}
+		if fi, ok := file.(files.FileInfo); ok {
+			reader = &progressReader2{rdr, fi}
+		} else {
+			reader = rdr
+		}
 	}
 
 	dagnode, err := adder.add(reader)
@@ -517,21 +520,20 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 }
 
 type progressReader struct {
-	reader       files.AdvReader
-	filename     string
+	file         files.File
 	out          chan interface{}
 	bytes        int64
 	lastProgress int64
 }
 
 func (i *progressReader) Read(p []byte) (int, error) {
-	n, err := i.reader.Read(p)
+	n, err := i.file.Read(p)
 
 	i.bytes += int64(n)
 	if i.bytes-i.lastProgress >= progressReaderIncrement || err == io.EOF {
 		i.lastProgress = i.bytes
 		i.out <- &AddedObject{
-			Name:  i.filename,
+			Name:  i.file.FileName(),
 			Bytes: i.bytes,
 		}
 	}
@@ -539,6 +541,7 @@ func (i *progressReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func (i *progressReader) PosInfo() *files.PosInfo {
-	return i.reader.PosInfo()
+type progressReader2 struct {
+	*progressReader
+	files.FileInfo
 }

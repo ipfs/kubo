@@ -188,4 +188,6 @@ test_expect_success "testing filestore unpinned" '
   test_cmp unpinned_expect unpinned_actual
 '
 
+test_add_cat_200MB "add --no-copy" "."
+
 test_done

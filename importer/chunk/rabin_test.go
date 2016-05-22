@@ -27,7 +27,7 @@ func TestRabinChunking(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		chunks = append(chunks, chunk.Data)
+		chunks = append(chunks, chunk)
 	}
 
 	fmt.Printf("average block size: %d\n", len(data)/len(chunks))
@@ -53,7 +53,7 @@ func chunkData(t *testing.T, data []byte) map[key.Key]blocks.Block {
 			t.Fatal(err)
 		}
 
-		b := blocks.NewBlock(blk.Data)
+		b := blocks.NewBlock(blk)
 		blkmap[b.Key()] = b
 	}
 

@@ -26,7 +26,6 @@ type MultipartFile struct {
 	Part      *multipart.Part
 	Reader    *multipart.Reader
 	Mediatype string
-	offset    int64
 }
 
 func NewFileFromPart(part *multipart.Part) (File, error) {
@@ -97,9 +96,7 @@ func (f *MultipartFile) Read(p []byte) (int, error) {
 	if f.IsDirectory() {
 		return 0, ErrNotReader
 	}
-	res, err := f.Part.Read(p)
-	f.offset += int64(res)
-	return res, err
+	return f.Part.Read(p)
 }
 
 func (f *MultipartFile) Close() error {

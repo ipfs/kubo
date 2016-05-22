@@ -102,3 +102,41 @@ test_add_cat_5MB() {
     	test_cmp mountdir/bigfile actual
     '
 }
+
+test_add_cat_200MB() {
+    cmd=$1
+    dir=$2
+    
+    test_expect_success "generate 200MB file using go-random" '
+    	random 209715200 41 >mountdir/hugefile
+    '
+
+    test_expect_success "sha1 of the file looks ok" '
+    	echo "11146a3985bff32699f1874517ad0585bbd280efc1de" >sha1_expected &&
+    	multihash -a=sha1 -e=hex mountdir/hugefile >sha1_actual &&
+    	test_cmp sha1_expected sha1_actual
+    '
+
+    test_expect_success "'ipfs add hugefile' succeeds" '
+    	ipfs $cmd "$dir"/mountdir/hugefile >actual
+    '
+
+    test_expect_success "'ipfs add hugefile' output looks good" '
+    	HASH="QmVbVLFLbz72tRSw3HMBh6ABKbRVavMQLoh2BzQ4dUSAYL" &&
+    	echo "added $HASH hugefile" >expected &&
+    	test_cmp expected actual
+    '
+
+    test_expect_success "'ipfs cat' succeeds" '
+    	ipfs cat "$HASH" >actual
+    '
+
+    test_expect_success "'ipfs cat' output looks good" '
+    	test_cmp mountdir/hugefile actual
+    '
+
+    test_expect_success "fail after file rm" '
+        rm mountdir/hugefile actual &&
+        test_must_fail ipfs cat "$HASH" >/dev/null
+    '
+}
