@@ -2,12 +2,12 @@ package merkledag
 
 import (
 	"fmt"
-	"time"
 
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	"github.com/ipfs/go-ipfs/commands/files"
 )
 
 var ErrLinkNotFound = fmt.Errorf("no link by that name")
@@ -28,10 +28,8 @@ type Node struct {
 
 type DataPtr struct {
 	AltData  []byte
-	FilePath string
-	Offset   uint64
+	files.PosInfo
 	Size     uint64
-	ModTime  time.Time
 }
 
 // NodeStat is a statistics object for a Node. Mostly sizes.

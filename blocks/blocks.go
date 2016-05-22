@@ -5,7 +5,6 @@ package blocks
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
@@ -24,21 +23,6 @@ type Block interface {
 type BasicBlock struct {
 	multihash mh.Multihash
 	data      []byte
-}
-
-type FilestoreBlock struct {
-	BasicBlock
-	*DataPtr
-	AddOpts interface{}
-}
-
-// This DataPtr has different AltData than the node DataPtr
-type DataPtr struct {
-	AltData  []byte
-	FilePath string
-	Offset   uint64
-	Size     uint64
-	ModTime  time.Time
 }
 
 // NewBlock creates a Block object from opaque data. It will hash the data.

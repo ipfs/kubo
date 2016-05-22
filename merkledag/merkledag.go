@@ -18,7 +18,6 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
 	Add(*Node) (key.Key, error)
-	AddWOpts(*Node, interface{}) (key.Key, error)
 	Get(context.Context, key.Key) (*Node, error)
 	Remove(*Node) error
 
@@ -27,70 +26,78 @@ type DAGService interface {
 	GetMany(context.Context, []key.Key) <-chan *NodeOption
 
 	Batch() *Batch
+
+	NeedAltData() bool
 }
 
-func NewDAGService(bs *bserv.BlockService) DAGService {
-	return &dagService{bs}
-}
 
 // dagService is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)
 // - stores nodes' data in a BlockService
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
-type dagService struct {
-	Blocks *bserv.BlockService
+type DefaultDagService struct {
+	Blocks      *bserv.BlockService
+	NodeToBlock NodeToBlock
 }
 
-// Add adds a node to the dagService, storing the block in the BlockService
-func (n *dagService) Add(nd *Node) (key.Key, error) {
-	return n.AddWOpts(nd, nil)
+func (n *DefaultDagService) NeedAltData() bool {
+	return n.NodeToBlock.NeedAltData()
 }
 
-// Add a node that has data possible stored locally to the dagService,
-// storing the block in the BlockService
-func (n *dagService) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
-	if n == nil { // FIXME remove this assertion. protect with constructor invariant
-		return "", fmt.Errorf("dagService is nil")
-	}
+type NodeToBlock interface {
+	CreateBlock(nd *Node) (blocks.Block, error)
+	NeedAltData() bool
+}
 
+type nodeToBlock struct{}
+
+func (nodeToBlock) CreateBlock(nd *Node) (blocks.Block, error) {
+	return CreateBasicBlock(nd)
+}
+
+func CreateBasicBlock(nd *Node) (*blocks.BasicBlock, error) {
 	d, err := nd.EncodeProtobuf(false)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	mh, err := nd.Multihash()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	b0, err := blocks.NewBlockWithHash(d, mh)
+	return blocks.NewBlockWithHash(d, mh)
+}
+
+func (nodeToBlock) NeedAltData() bool {
+	return false
+}
+
+func NewDAGService(bs *bserv.BlockService) *DefaultDagService {
+	return &DefaultDagService{bs, nodeToBlock{}}
+}
+
+// Add adds a node to the dagService, storing the block in the BlockService
+func (n *DefaultDagService) Add(nd *Node) (key.Key, error) {
+	if n == nil { // FIXME remove this assertion. protect with constructor invariant
+		return "", fmt.Errorf("dagService is nil")
+	}
+
+	b, err := n.NodeToBlock.CreateBlock(nd)
 	if err != nil {
 		return "", err
-	}
-
-	var dataPtr *blocks.DataPtr
-	if addOpts != nil {
-		dataPtr, err = nd.EncodeDataPtr()
-		if err != nil {
-			return "", err
-		}
-	}
-
-	var b blocks.Block = b0
-	if dataPtr != nil {
-		b = &blocks.FilestoreBlock{*b0, dataPtr, addOpts}
 	}
 
 	return n.Blocks.AddBlock(b)
 }
 
-func (n *dagService) Batch() *Batch {
+func (n *DefaultDagService) Batch() *Batch {
 	return &Batch{ds: n, MaxSize: 8 * 1024 * 1024}
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
-func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
+func (n *DefaultDagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 	if k == "" {
 		return nil, ErrNotFound
 	}
@@ -115,7 +122,7 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 	return res, nil
 }
 
-func (n *dagService) Remove(nd *Node) error {
+func (n *DefaultDagService) Remove(nd *Node) error {
 	k, err := nd.Key()
 	if err != nil {
 		return err
@@ -145,7 +152,7 @@ type NodeOption struct {
 	Err  error
 }
 
-func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeOption {
+func (ds *DefaultDagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeOption {
 	out := make(chan *NodeOption, len(keys))
 	blocks := ds.Blocks.GetBlocks(ctx, keys)
 	var count int
@@ -340,51 +347,25 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 }
 
 type Batch struct {
-	ds *dagService
+	ds *DefaultDagService
 
 	blocks  []blocks.Block
 	size    int
 	MaxSize int
 }
 
-//func (t *Batch) Add(nd *Node) (key.Key, error) {
-//	return t.AddWOpts(nd, nil)
-//}
-
-func (t *Batch) AddWOpts(nd *Node, addOpts interface{}) (key.Key, error) {
-	d, err := nd.EncodeProtobuf(false)
+func (t *Batch) Add(nd *Node) (key.Key, error) {
+	b, err := t.ds.NodeToBlock.CreateBlock(nd)
 	if err != nil {
 		return "", err
 	}
-
-	mh, err := nd.Multihash()
-	if err != nil {
-		return "", err
-	}
-
-	b0, _ := blocks.NewBlockWithHash(d, mh)
-
-	var dataPtr *blocks.DataPtr
-	if addOpts != nil {
-		dataPtr, err = nd.EncodeDataPtr()
-		if err != nil {
-			return "", err
-		}
-	}
-
-	var b blocks.Block = b0
-	if dataPtr != nil {
-		b = &blocks.FilestoreBlock{*b0, dataPtr, addOpts}
-	}
-
-	k := key.Key(mh)
 
 	t.blocks = append(t.blocks, b)
 	t.size += len(b.Data())
 	if t.size > t.MaxSize {
-		return k, t.Commit()
+		return b.Key(), t.Commit()
 	}
-	return k, nil
+	return b.Key(), nil
 }
 
 func (t *Batch) Commit() error {

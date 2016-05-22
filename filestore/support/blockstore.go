@@ -1,5 +1,3 @@
-// package blockstore implements a thin wrapper over a datastore, giving a
-// clean interface for Getting and Putting block objects.
 package filestore_support
 
 import (
@@ -22,7 +20,6 @@ func NewBlockstore(b bs.GCBlockstore, d ds.Batching) bs.GCBlockstore {
 
 func (bs *blockstore) Put(block blocks.Block) error {
 	k := block.Key().DsKey()
-	println("putting...")
 
 	data := bs.prepareBlock(k, block)
 	if data == nil {
@@ -32,7 +29,6 @@ func (bs *blockstore) Put(block blocks.Block) error {
 }
 
 func (bs *blockstore) PutMany(blocks []blocks.Block) error {
-	println("put many...")
 	t, err := bs.datastore.Batch()
 	if err != nil {
 		return err
@@ -52,7 +48,8 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 }
 
 func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block) interface{} {
-	if fsBlock, ok := block.(*blocks.FilestoreBlock); !ok {
+	if fsBlock, ok := block.(*FilestoreBlock); !ok {
+		//println("Non DataObj")
 		// Has is cheaper than Put, so see if we already have it
 		exists, err := bs.datastore.Has(k)
 		if err == nil && exists {
@@ -60,12 +57,12 @@ func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block) interface{} {
 		}
 		return block.Data()
 	} else {
-		println("DataObj")
+		//println("DataObj")
 		d := &fs.DataObj{
-			FilePath: fsBlock.FilePath,
+			FilePath: fsBlock.FullPath,
 			Offset:   fsBlock.Offset,
 			Size:     fsBlock.Size,
-			ModTime:  fs.FromTime(fsBlock.ModTime),
+			ModTime:  fs.FromTime(fsBlock.Stat.ModTime()),
 		}
 		if fsBlock.AltData == nil {
 			d.Flags |= fs.WholeFile | fs.FileRoot
@@ -74,7 +71,7 @@ func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block) interface{} {
 			d.Flags |= fs.NoBlockData
 			d.Data = fsBlock.AltData
 		}
-		return &fs.DataWOpts{d, fsBlock.AddOpts}
+		return d
 	}
 
 }

@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 )
@@ -12,18 +11,10 @@ type DagBuilderHelper struct {
 	dserv    dag.DAGService
 	spl      chunk.Splitter
 	recvdErr error
-	nextData []byte // the next item to return.
-	posInfo  files.ExtraInfo
+	nextData chunk.Bytes // the next item to return.
 	maxlinks int
+	needAltData bool
 	batch    *dag.Batch
-}
-
-func (db *DagBuilderHelper) addOpts() interface{} {
-	if inf, ok := db.posInfo.(files.InfoForFilestore); ok {
-		return inf.AddOpts
-	} else {
-		return nil
-	}
 }
 
 type DagBuilderParams struct {
@@ -41,6 +32,7 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		dserv:    dbp.Dagserv,
 		spl:      spl,
 		maxlinks: dbp.Maxlinks,
+		needAltData: dbp.Dagserv.NeedAltData(),
 		batch:    dbp.Dagserv.Batch(),
 	}
 }
@@ -50,14 +42,12 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 // it will do nothing.
 func (db *DagBuilderHelper) prepareNext() {
 	// if we already have data waiting to be consumed, we're ready
-	if db.nextData != nil {
+	if db.nextData.Data != nil {
 		return
 	}
 
 	// TODO: handle err (which wasn't handled either when the splitter was channeled)
-	nextData, _ := db.spl.NextBytes()
-	db.nextData = nextData.Data
-	db.posInfo = nextData.PosInfo
+	db.nextData, _ = db.spl.NextBytes()
 }
 
 // Done returns whether or not we're done consuming the incoming data.
@@ -65,16 +55,16 @@ func (db *DagBuilderHelper) Done() bool {
 	// ensure we have an accurate perspective on data
 	// as `done` this may be called before `next`.
 	db.prepareNext() // idempotent
-	return db.nextData == nil
+	return db.nextData.Data == nil
 }
 
 // Next returns the next chunk of data to be inserted into the dag
 // if it returns nil, that signifies that the stream is at an end, and
 // that the current building operation should finish
-func (db *DagBuilderHelper) Next() []byte {
+func (db *DagBuilderHelper) Next() chunk.Bytes {
 	db.prepareNext() // idempotent
 	d := db.nextData
-	db.nextData = nil // signal we've consumed it
+	db.nextData.Data = nil // signal we've consumed it
 	return d
 }
 
@@ -106,36 +96,35 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 
 func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 	data := db.Next()
-	if data == nil { // we're done!
+	if data.Data == nil { // we're done!
 		return nil
 	}
 
-	if len(data) > BlockSizeLimit {
+	if len(data.Data) > BlockSizeLimit {
 		return ErrSizeLimitExceeded
 	}
 
 	node.SetData(data)
-	if posInfo, ok := db.posInfo.(files.InfoForFilestore); ok {
-		node.SetDataPtr(posInfo.AbsPath(), posInfo.Offset(), posInfo.ModTime)
-	}
 
 	return nil
 }
 
 func (db *DagBuilderHelper) SetAsRoot(node *UnixfsNode) {
-	if posInfo, ok := db.posInfo.(files.InfoForFilestore); ok {
-		node.SetDataPtr(posInfo.AbsPath(), 0, posInfo.ModTime)
-		node.SetAsRoot()
-	}
+	node.SetAsRoot(db.nextData.PosInfo)
+//	if posInfo, ok := db.posInfo.(files.InfoForFilestore); ok {
+//		node.SetDataPtr(posInfo.AbsPath(), 0, posInfo.ModTime)
+//		node.SetAsRoot()
+//	}
 }
 
 func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
-	dn, err := node.GetDagNode()
+	//println("dag builder add")
+	dn, err := node.GetDagNode(db.needAltData)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = db.dserv.AddWOpts(dn, db.addOpts())
+	_, err = db.dserv.Add(dn)
 	if err != nil {
 		return nil, err
 	}

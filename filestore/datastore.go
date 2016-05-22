@@ -36,20 +36,7 @@ func New(d ds.Datastore, fileStorePath string, verify int) (*Datastore, error) {
 }
 
 func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
-	val, ok := value.(*DataWOpts)
-	if !ok {
-		panic(ds.ErrInvalidType)
-	}
-
-	addType, ok := val.AddOpts.(int)
-	if !ok {
-		panic(ds.ErrInvalidType)
-	}
-	if addType != AddNoCopy {
-		return errors.New("Only \"no-copy\" mode supported for now.")
-	}
-
-	dataObj, ok := val.DataObj.(*DataObj)
+	dataObj, ok := value.(*DataObj)
 	if !ok {
 		panic(ds.ErrInvalidType)
 	}
@@ -87,6 +74,7 @@ func (d *Datastore) put(key ds.Key, dataObj *DataObj) (err error) {
 	if err != nil {
 		return err
 	}
+	log.Debugf("adding block %s\n", b58.Encode(key.Bytes()[1:]))
 	return d.ds.Put(key, data)
 }
 
@@ -167,6 +155,9 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 			}
 			modtime = FromTime(fileInfo.ModTime())
 		}
+		if err != nil {
+			log.Debugf("invalid block: %s: %s\n", b58.Encode(key.Bytes()[1:]), err.Error())
+		}
 		invalid := val.Invalid() || err != nil
 		if err == nil && (verify == VerifyAlways || (verify == VerifyIfChanged && modtime != val.ModTime)) {
 			log.Debugf("verifying block %s\n", b58.Encode(key.Bytes()[1:]))
@@ -182,7 +173,11 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 			_ = d.put(key, &newVal)
 		}
 		if invalid {
-			log.Debugf("invalid block %s\n", b58.Encode(key.Bytes()[1:]))
+			if err != nil {
+				log.Debugf("invalid block %s: %s\n", b58.Encode(key.Bytes()[1:]), err.Error())
+			} else {
+				log.Debugf("invalid block %s\n", b58.Encode(key.Bytes()[1:]))
+			}
 			return nil, InvalidBlock{}
 		} else {
 			return data, nil

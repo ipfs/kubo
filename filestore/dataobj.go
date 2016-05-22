@@ -7,19 +7,6 @@ import (
 	"time"
 )
 
-// A hack to get around the fact that the Datastore interface does not
-// accept options
-type DataWOpts struct {
-	DataObj interface{}
-	AddOpts interface{}
-}
-
-// Constants to indicate how the data should be added.
-const (
-	AddNoCopy = 1
-	AddLink   = 2
-)
-
 const (
 	// If NoBlockData is true the Data is missing the Block data
 	// as that is provided by the underlying file

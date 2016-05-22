@@ -6,7 +6,6 @@ import (
 
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
 	pb "github.com/ipfs/go-ipfs/merkledag/pb"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -100,28 +99,6 @@ func (n *Node) EncodeProtobuf(force bool) ([]byte, error) {
 	}
 
 	return n.encoded, nil
-}
-
-// Converts the node DataPtr to a block DataPtr, must be called after
-// EncodeProtobuf
-func (n *Node) EncodeDataPtr() (*blocks.DataPtr, error) {
-	if n.DataPtr == nil {
-		return nil, nil
-	}
-	bl := &blocks.DataPtr{
-		FilePath: n.DataPtr.FilePath,
-		Offset:   n.DataPtr.Offset,
-		Size:     n.DataPtr.Size,
-		ModTime:  n.DataPtr.ModTime}
-	if n.DataPtr.AltData == nil {
-		return bl, nil
-	}
-	d, err := n.MarshalNoData()
-	if err != nil {
-		return nil, err
-	}
-	bl.AltData = d
-	return bl, nil
 }
 
 // Decoded decodes raw data and returns a new Node instance.

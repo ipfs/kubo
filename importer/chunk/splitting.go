@@ -13,7 +13,7 @@ var log = logging.Logger("chunk")
 var DefaultBlockSize int64 = 1024 * 256
 
 type Bytes struct {
-	PosInfo files.ExtraInfo
+	PosInfo *files.PosInfo
 	Data    []byte
 }
 
@@ -68,7 +68,7 @@ func NewSizeSplitter(r io.Reader, size int64) Splitter {
 }
 
 func (ss *sizeSplitterv2) NextBytes() (Bytes, error) {
-	posInfo := ss.r.ExtraInfo()
+	posInfo := ss.r.PosInfo()
 	if ss.err != nil {
 		return Bytes{posInfo, nil}, ss.err
 	}
