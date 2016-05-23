@@ -22,10 +22,10 @@ type Repo interface {
 	Datastore() Datastore
 	GetStorageUsage() (uint64, error)
 
+	SubDatastore(key string) Datastore
+
 	// SetAPIAddr sets the API address in the repo.
 	SetAPIAddr(addr string) error
-
-	Self() Repo
 
 	io.Closer
 }

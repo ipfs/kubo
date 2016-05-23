@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
+	//ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/measure"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
-	filestore "github.com/ipfs/go-ipfs/filestore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -87,8 +87,13 @@ type FSRepo struct {
 	lockfile io.Closer
 	config   *config.Config
 	ds       repo.Datastore
-	fs       *filestore.Datastore
+	subDss   map[string]repo.Datastore
 }
+
+const (
+	RepoCache = "cache"
+	RepoFilestore = "filestore"
+)
 
 var _ repo.Repo = (*FSRepo)(nil)
 
@@ -163,7 +168,7 @@ func newFSRepo(rpath string) (*FSRepo, error) {
 		return nil, err
 	}
 
-	return &FSRepo{path: expPath}, nil
+	return &FSRepo{path: expPath, subDss: make(map[string]repo.Datastore)}, nil
 }
 
 func checkInitialized(path string) error {
@@ -323,12 +328,11 @@ func (r *FSRepo) openConfig() error {
 func (r *FSRepo) openDatastore() error {
 	switch r.config.Datastore.Type {
 	case "default", "leveldb", "":
-		d, fs, err := openDefaultDatastore(r)
+		d, err := openDefaultDatastore(r)
 		if err != nil {
 			return err
 		}
 		r.ds = d
-		r.fs = fs
 	default:
 		return fmt.Errorf("unknown datastore type: %s", r.config.Datastore.Type)
 	}
@@ -539,9 +543,9 @@ func (r *FSRepo) Datastore() repo.Datastore {
 
 // Datastore returns a repo-owned filestore. If FSRepo is Closed, return value
 // is undefined.
-func (r *FSRepo) Filestore() *filestore.Datastore {
+func (r *FSRepo) SubDatastore(key string) repo.Datastore {
 	packageLock.Lock()
-	d := r.fs
+	d := r.subDss[key]
 	packageLock.Unlock()
 	return d
 }

@@ -390,18 +390,17 @@ var rmFilestoreObjs = &cmds.Command{
 	},
 }
 
-func extractFilestore(req cmds.Request) (node *core.IpfsNode, fs *filestore.Datastore, err error) {
-	node, err = req.InvocContext().GetNode()
+func extractFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Datastore, error) {
+	node, err := req.InvocContext().GetNode()
 	if err != nil {
-		return
+		return nil, nil, err
 	}
-	repo, ok := node.Repo.Self().(*fsrepo.FSRepo)
+	fs, ok := node.Repo.SubDatastore(fsrepo.RepoFilestore).(*filestore.Datastore)
 	if !ok {
-		err = errors.New("Not a FSRepo")
-		return
+		err := errors.New("Could not extract filestore")
+		return nil, nil, err
 	}
-	fs = repo.Filestore()
-	return
+	return node, fs, nil
 }
 
 var repairPins = &cmds.Command{
