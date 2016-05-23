@@ -104,9 +104,9 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	n := &IpfsNode{
 		mode:      offlineMode,
 		Repo:      cfg.Repo,
+		ctx:       ctx,
 		Peerstore: peer.NewPeerstore(),
 	}
-	n.ctx = ctx
 	if cfg.Online {
 		n.mode = onlineMode
 	}

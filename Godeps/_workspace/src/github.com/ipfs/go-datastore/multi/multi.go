@@ -89,4 +89,3 @@ func (d *Datastore) Batch() (ds.Batch, error) {
 		return nil, ds.ErrBatchUnsupported
 	}
 }
-

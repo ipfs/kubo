@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	"os"
 	"fmt"
+	"os"
 
 	"github.com/ipfs/go-ipfs/commands/files"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -39,9 +39,9 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 // UnixfsNode is a struct created to aid in the generation
 // of unixfs DAG trees
 type UnixfsNode struct {
-	node     *dag.Node
-	ufmt     *ft.FSNode
-	posInfo  *files.PosInfo
+	node    *dag.Node
+	ufmt    *ft.FSNode
+	posInfo *files.PosInfo
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
@@ -145,10 +145,10 @@ func (n *UnixfsNode) GetDagNode(needAltData bool) (*dag.Node, error) {
 	return n.node, nil
 }
 
-func (n *UnixfsNode) getAltData() (*dag.DataPtr) {
+func (n *UnixfsNode) getAltData() *dag.DataPtr {
 	dp := &dag.DataPtr{PosInfo: n.posInfo, Size: n.ufmt.FileSize()}
 	if n.ufmt.NumChildren() == 0 && (n.ufmt.Type == ft.TFile || n.ufmt.Type == ft.TRaw) {
-		dp.AltData,_ = n.ufmt.GetBytesNoData()
+		dp.AltData, _ = n.ufmt.GetBytesNoData()
 	}
 	return dp
 }

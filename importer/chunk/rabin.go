@@ -3,14 +3,14 @@ package chunk
 import (
 	"hash/fnv"
 	"io"
-	
+
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/chunker"
 )
 
 var IpfsRabinPoly = chunker.Pol(17437180132763653)
 
 type Rabin struct {
-	r *chunker.Chunker
+	r      *chunker.Chunker
 	reader io.Reader
 }
 
@@ -26,7 +26,7 @@ func NewRabinMinMax(r io.Reader, min, avg, max uint64) *Rabin {
 	ch := chunker.New(r, IpfsRabinPoly, h, avg, min, max)
 
 	return &Rabin{
-		r: ch,
+		r:      ch,
 		reader: r,
 	}
 }

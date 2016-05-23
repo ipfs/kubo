@@ -91,7 +91,7 @@ type FSRepo struct {
 }
 
 const (
-	RepoCache = "cache"
+	RepoCache     = "cache"
 	RepoFilestore = "filestore"
 )
 

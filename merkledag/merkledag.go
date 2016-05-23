@@ -30,7 +30,6 @@ type DAGService interface {
 	NeedAltData() bool
 }
 
-
 // dagService is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)
 // - stores nodes' data in a BlockService

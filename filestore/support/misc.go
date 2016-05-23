@@ -9,9 +9,9 @@ import (
 
 type FilestoreBlock struct {
 	blocks.BasicBlock
-	AltData  []byte
+	AltData []byte
 	*files.PosInfo
-	Size     uint64
+	Size uint64
 }
 
 type NodeToBlock struct{}
@@ -45,4 +45,3 @@ func (NodeToBlock) CreateBlock(nd *merkledag.Node) (blocks.Block, error) {
 func (NodeToBlock) NeedAltData() bool {
 	return true
 }
-

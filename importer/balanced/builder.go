@@ -2,7 +2,6 @@ package balanced
 
 import (
 	"errors"
-	//"fmt"
 
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -12,7 +11,7 @@ func BalancedLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
 	var offset uint64 = 0
 	var root *h.UnixfsNode
 	for level := 0; !db.Done(); level++ {
-		
+
 		nroot := h.NewUnixfsNode()
 		db.SetPosInfo(nroot, 0)
 
@@ -67,7 +66,7 @@ func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int, offset u
 	// while we have room AND we're not done
 	for node.NumChildren() < db.Maxlinks() && !db.Done() {
 		child := h.NewUnixfsNode()
-		db.SetPosInfo(child,offset)
+		db.SetPosInfo(child, offset)
 
 		if err := fillNodeRec(db, child, depth-1, offset); err != nil {
 			return err
