@@ -137,7 +137,7 @@ future version, along with this notice. Please move to setting the HTTP Headers.
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)").Default(false),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection").Default(false),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(false),
-		cmds.BoolOption(offlineKwd, "Run in offline. Do not connect with rest of the network but provide local API.").Default(false),
+		cmds.BoolOption(offlineKwd, "Run offline. Do not connect with rest of the network but provide local API.").Default(false),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
