@@ -42,14 +42,6 @@
 			"Rev": "e63957b6da369d986ef3e7a3f249779ba3f56c7e"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-context/frac",
-			"Rev": "d14ea06fba99483203c19d92cfcd13ebe73135f4"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-context/io",
-			"Rev": "d14ea06fba99483203c19d92cfcd13ebe73135f4"
-		},
-		{
 			"ImportPath": "github.com/jbenet/go-detect-race",
 			"Rev": "3463798d9574bd0b7eca275dccc530804ff5216f"
 		},

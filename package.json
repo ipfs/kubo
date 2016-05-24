@@ -99,6 +99,12 @@
       "hash": "QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs",
       "name": "pb",
       "version": "1.0.3"
+    },
+    {
+      "author": "jbenet",
+      "hash": "QmX6DhWrpBB5NtadXmPSXYNdVvuLfJXoFNMvUMoVvP5UJa",
+      "name": "go-context",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",
