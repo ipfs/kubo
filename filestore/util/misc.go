@@ -28,3 +28,20 @@ func RmDups(wtr io.Writer, fs *Datastore, bs b.Blockstore) error {
 	}
 	return nil
 }
+
+func Upgrade(wtr io.Writer, fs *Datastore) error {
+	ls, err := ListAll(fs)
+	if err != nil {
+		return err
+	}
+	cnt := 0
+	for res := range ls {
+		err := fs.PutDirect(res.Key, res.DataObj)
+		if err != nil {
+			return err
+		}
+		cnt++
+	}
+	fmt.Fprintf(wtr, "Upgraded %d entries.\n", cnt)
+	return nil
+}

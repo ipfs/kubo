@@ -162,3 +162,12 @@ Furthermore, since the block is likely to be pinned it will not be
 removed when `repo gc` in run.  This is nonoptimal and will eventually
 be fixed.  For now, you can remove duplicate blocks by running
 `filestore rm-dups`.
+
+## Upgrading the filestore
+
+As the filestore is a work in progress changes to the format of
+filestore repository will be made from time to time.  These changes
+will be temporary backwards compatible but not forwards compatible.
+Eventually support for the old format will be removed.  While both
+versions are supported the command "filestore upgrade" can be used to
+upgrade the repository to the new format.

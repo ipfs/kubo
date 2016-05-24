@@ -66,10 +66,10 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 
 	file.Close()
 
-	return d.put(key, dataObj)
+	return d.PutDirect(key, dataObj)
 }
 
-func (d *Datastore) put(key ds.Key, dataObj *DataObj) (err error) {
+func (d *Datastore) PutDirect(key ds.Key, dataObj *DataObj) (err error) {
 	data, err := dataObj.Marshal()
 	if err != nil {
 		return err
@@ -170,7 +170,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 			newVal.SetInvalid(invalid)
 			newVal.ModTime = modtime
 			// ignore errors as they are nonfatal
-			_ = d.put(key, &newVal)
+			_ = d.PutDirect(key, &newVal)
 		}
 		if invalid {
 			if err != nil {
