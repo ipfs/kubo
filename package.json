@@ -105,6 +105,12 @@
       "hash": "QmX6DhWrpBB5NtadXmPSXYNdVvuLfJXoFNMvUMoVvP5UJa",
       "name": "go-context",
       "version": "0.0.0"
+    },
+    {
+      "author": "rs",
+      "hash": "QmQzTLDsi3a37CJyMDBXnjiHKQpth3AGS1yqwU57FfLwfG",
+      "name": "cors",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",

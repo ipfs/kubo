@@ -70,10 +70,6 @@
 			"Rev": "5a816af6ef21ef401bff5e4b7dd255d63400f497"
 		},
 		{
-			"ImportPath": "github.com/rs/cors",
-			"Rev": "5e4ce6bc0ecd3472f6f943666d84876691be2ced"
-		},
-		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
 			"Rev": "4875955338b0a434238a31165cb87255ab6e9e4a"
 		},
