@@ -112,7 +112,7 @@ func (p *params) convertToFile(key bk.Key, root bool, offset uint64) (uint64, er
 			return 0, err
 		}
 		dataObj.Flags |= NoBlockData
-		pbnode := n.GetPBNode(true)
+		pbnode := n.GetPBNode()
 		pbnode.Data, err = fsnode.GetBytesNoData()
 		if err != nil {
 			return 0, err
