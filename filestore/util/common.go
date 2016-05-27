@@ -196,6 +196,7 @@ func getNode(dsKey ds.Key, key k.Key, fs *Datastore, bs b.Blockstore) (*node.Nod
 		} else {
 			node, err := node.DecodeProtobuf(dataObj.Data)
 			if err != nil {
+				Logger.Errorf("%s: %v", key, err)
 				return nil, nil, StatusCorrupt
 			}
 			return node, dataObj, StatusOk
@@ -205,10 +206,12 @@ func getNode(dsKey ds.Key, key k.Key, fs *Datastore, bs b.Blockstore) (*node.Nod
 	if err == ds.ErrNotFound && err2 == b.ErrNotFound {
 		return nil, nil, StatusKeyNotFound
 	} else if err2 != nil {
+		Logger.Errorf("%s: %v", key, err2)
 		return nil, nil, StatusError
 	}
 	node, err := node.DecodeProtobuf(block.Data())
 	if err != nil {
+		Logger.Errorf("%s: %v", key, err)
 		return nil, nil, StatusCorrupt
 	}
 	return node, nil, StatusFound

@@ -19,6 +19,7 @@ import (
 )
 
 var log = logging.Logger("filestore")
+var Logger = log
 
 const (
 	VerifyNever     = 0

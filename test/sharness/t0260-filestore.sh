@@ -188,6 +188,19 @@ test_expect_success "testing filestore unpinned" '
   test_cmp unpinned_expect unpinned_actual
 '
 
+test_expect_success "testing filestore mv" '
+  HASH=QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc &&
+  random 5242880 42 >mountdir/bigfile-42 &&
+  ipfs add mountdir/bigfile-42 &&
+  ipfs filestore mv $HASH mountdir/bigfile-42-also &&
+  test_cmp mountdir/bigfile-42 mountdir/bigfile-42-also
+'
+
+test_expect_success "testing filestore mv result" '
+  ipfs filestore verify -l9 > verify.out &&
+  grep -q "ok \+QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc " verify.out
+'
+
 test_add_cat_200MB "add --no-copy" "."
 
 test_done

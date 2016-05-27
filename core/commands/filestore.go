@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 
 	//ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	//bs "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -30,6 +31,7 @@ var FileStoreCmd = &cmds.Command{
 		"unpinned": fsUnpinned,
 		"rm-dups":  rmDups,
 		"upgrade":  fsUpgrade,
+		"mv":  moveIntoFilestore,
 	},
 }
 
@@ -514,6 +516,69 @@ var fsUpgrade = &cmds.Command{
 			}
 		}()
 		res.SetOutput(r)
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
+	},
+}
+
+var moveIntoFilestore = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Move a Node representing file into the filestore.",
+		ShortDescription: `
+Move a node representing a file into the filestore.  For now the old
+copy is not removed.  Use "filestore rm-dups" to remove the old copy.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("hash", true, false, "Multi-hash to move."),
+		cmds.StringArg("file", false, false, "File to store node's content in."),
+	},
+	Options: []cmds.Option{},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		offline := !node.OnlineMode()
+		args := req.Arguments()
+		if len(args) < 1 {
+			res.SetError(errors.New("Must specify hash."), cmds.ErrNormal)
+			return
+		}
+		if len(args) > 2 {
+			res.SetError(errors.New("Too many arguments."), cmds.ErrNormal)
+			return
+		}
+		mhash := args[0]
+		key := k.B58KeyDecode(mhash)
+		path := ""
+		if len(args) == 2 {
+			path = args[1]
+		} else {
+			path = mhash
+		}
+		if offline {
+			path,err = filepath.Abs(path)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
+		rdr, wtr := io.Pipe()
+		go func() {
+			err := fsutil.ConvertToFile(node, key, path)
+			if err != nil {
+				wtr.CloseWithError(err)
+				return
+			}
+			wtr.Close()
+		}()
+		res.SetOutput(rdr)
+		return
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

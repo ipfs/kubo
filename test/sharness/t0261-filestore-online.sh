@@ -11,6 +11,17 @@ test_description="Test filestore"
 
 test_init_ipfs
 
+test_launch_ipfs_daemon
+
+test_expect_success "filestore mv should fail" '
+  HASH=QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc &&
+  random 5242880 42 >mountdir/bigfile-42 &&
+  ipfs add mountdir/bigfile-42 &&
+  test_must_fail ipfs filestore mv $HASH "`pwd`/mountdir/bigfile-42-also"
+'
+
+test_kill_ipfs_daemon
+
 test_expect_success "enable API.ServerSideAdds" '
   ipfs config API.ServerSideAdds --bool true
 '
@@ -39,6 +50,12 @@ test_expect_success "testing add-ss -r --no-copy" '
   test_cmp add_expect add_actual &&
   ipfs cat QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > cat_actual
   test_cmp adir/file1 cat_actual
+'
+
+test_expect_success "filestore mv" '
+  HASH=QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc &&
+  test_must_fail ipfs filestore mv $HASH "mountdir/bigfile-42-also" &&
+  ipfs filestore mv $HASH "`pwd`/mountdir/bigfile-42-also"
 '
 
 test_kill_ipfs_daemon
