@@ -243,7 +243,10 @@ var verifyFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Verify objects in filestore",
 		ShortDescription: `
-Verify nodes in the filestore.  The output is:
+Verify <hash> nodes in the filestore.  If no hashes are specified then
+verify everything in the filestore.
+
+The output is:
   <status> [<type> <filepath> <offset> <size> [<modtime>]]
 where <type>, <filepath>, <offset>, <size> and <modtime> are the same
 as in the "ls" command and <status> is one of
@@ -255,8 +258,8 @@ as in the "ls" command and <status> is one of
   incomplete: some of the blocks of the tree could not be read
 
   changed: the contents of the backing file have changed
-  no-file: the backing file can not be found
-  error:   the backing file can be found but could not be read
+  no-file: the backing file could not be found
+  error:   the backing file was found but could not be read
 
   ERROR:   the block could not be read due to an internal error
 
@@ -271,9 +274,8 @@ as in the "ls" command and <status> is one of
           the filestore
  
 If --basic is specified then just scan leaf nodes to verify that they
-are still valid.  Otherwise attempt to reconstruct the contents of of
-all nodes and also check for orphan nodes (unless --skip-orphans is
-also specified).
+are still valid.  Otherwise attempt to reconstruct the contents of
+all nodes and check for orphan nodes if applicable.
 
 The --level option specifies how thorough the checks should be.  A
 current meaning of the levels are:
@@ -284,10 +286,13 @@ current meaning of the levels are:
 
 The --verbose option specifies what to output.  The current values are:
   7-9: show everything
-  5-6: don't show child nodes with a status of: ok, <blank>, or complete
+  5-6: don't show child nodes unless there is a problem
   3-4: don't show child nodes
-  0-2: don't child nodes and don't show root nodes with of: ok or complete
+  0-2: don't show root nodes unless there is a problem
 `,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("hash", false, true, "Hashs of nodes to verify."),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("basic", "Perform a basic scan of leaf nodes only."),
@@ -300,6 +305,11 @@ The --verbose option specifies what to output.  The current values are:
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+		args := req.Arguments()
+		keys := make([]k.Key, 0)
+		for _, key := range args {
+			keys = append(keys, k.B58KeyDecode(key))
 		}
 		basic, _, err := req.Option("basic").Bool()
 		if err != nil {
@@ -325,11 +335,18 @@ The --verbose option specifies what to output.  The current values are:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if basic {
+
+		if basic && len(keys) == 0 {
 			ch, _ := fsutil.VerifyBasic(fs, level, verbose)
 			res.SetOutput(&chanWriter{ch: ch})
-		} else {
+		} else if basic {
+			ch, _ := fsutil.VerifyKeys(keys, node, fs, level)
+			res.SetOutput(&chanWriter{ch: ch})
+		} else if len(keys) == 0 {
 			ch, _ := fsutil.VerifyFull(node, fs, level, verbose, skipOrphans)
+			res.SetOutput(&chanWriter{ch: ch})
+		} else {
+			ch, _ := fsutil.VerifyKeysFull(keys, node, fs, level, verbose)
 			res.SetOutput(&chanWriter{ch: ch})
 		}
 	},

@@ -3,6 +3,7 @@ package filestore_util
 import (
 	"os"
 
+	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
@@ -34,6 +35,42 @@ func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) 
 	return out, nil
 }
 
+func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int) (<-chan ListRes, error) {
+	out := make(chan ListRes, 16)
+	verifyWhat := VerifyAlways
+	if level <= 6 {
+		verifyWhat = VerifyIfChanged
+	}
+	go func() {
+		defer close(out)
+		for _, key := range keys {
+			out <- verifyKey(key, fs, node.Blockstore, verifyWhat)
+		}
+	}()
+	return out, nil
+}
+
+func verifyKey(key k.Key, fs *Datastore, bs b.Blockstore, verifyWhat int) ListRes {
+	dsKey := key.DsKey()
+	dataObj, err := fs.GetDirect(dsKey)
+	if err == nil && dataObj.NoBlockData() {
+		res := ListRes{dsKey, dataObj, 0}
+		res.Status = verify(fs, dsKey, dataObj, verifyWhat)
+		return res
+	} else if err == nil {
+		return ListRes{dsKey, dataObj, StatusUnchecked}
+	}
+	found, _ := bs.Has(key)
+	if found {
+		return ListRes{dsKey, nil, StatusFound}
+	} else if err == ds.ErrNotFound && !found {
+		return ListRes{dsKey, nil, StatusKeyNotFound}
+	} else {
+		Logger.Errorf("%s: %v", key, err)
+		return ListRes{dsKey, nil, StatusError}
+	}
+}
+
 func VerifyFull(node *core.IpfsNode, fs *Datastore, level int, verbose int, skipOrphans bool) (<-chan ListRes, error) {
 	p := verifyParams{make(chan ListRes, 16), node, fs, level, verbose, skipOrphans, nil}
 	ch, err := ListKeys(p.fs)
@@ -43,6 +80,15 @@ func VerifyFull(node *core.IpfsNode, fs *Datastore, level int, verbose int, skip
 	go func() {
 		defer close(p.out)
 		p.verify(ch)
+	}()
+	return p.out, nil
+}
+
+func VerifyKeysFull(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, verbose int) (<-chan ListRes, error) {
+	p := verifyParams{make(chan ListRes, 16), node, fs, level, verbose, true, nil}
+	go func() {
+		defer close(p.out)
+		p.verifyKeys(keys)
 	}()
 	return p.out, nil
 }
@@ -77,6 +123,25 @@ func (p *verifyParams) setStatus(dsKey ds.Key, status int) {
 	}
 }
 
+func (p *verifyParams) verifyKeys(keys []k.Key) {
+	p.skipOrphans = true 
+	for _, key := range keys {
+		dsKey := key.DsKey()
+		dagNode, dataObj, r := p.get(dsKey)
+		if dataObj == nil || AnError(r) {
+			/* nothing to do */
+		} else if dataObj.Internal() {
+			r = p.verifyNode(dagNode)
+		} else {
+			r = p.verifyLeaf(dsKey, dataObj)
+		}
+		res := ListRes{dsKey, dataObj, r}
+		res.Status = p.checkIfAppended(res)
+		p.out <- res
+		p.out <- EmptyListRes
+	}
+}
+
 func (p *verifyParams) verify(ch <-chan ListRes) {
 	p.seen = make(map[string]int)
 	unsafeToCont := false
@@ -89,15 +154,7 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 		if AnError(r) {
 			/* nothing to do */
 		} else if res.Internal() && res.WholeFile() {
-			if dagNode == nil {
-				// we expect a node, so even if the status is
-				// okay we should set it to an Error
-				if !AnError(r) {
-					r = StatusError
-				}
-			} else {
-				r = p.verifyNode(dagNode)
-			}
+			r = p.verifyNode(dagNode)
 		} else if res.WholeFile() {
 			r = p.verifyLeaf(res.Key, res.DataObj)
 		} else {
@@ -156,6 +213,9 @@ func (p *verifyParams) checkIfAppended(res ListRes) int {
 }
 
 func (p *verifyParams) verifyNode(n *node.Node) int {
+	if n == nil {
+		return StatusError
+	}
 	complete := true
 	for _, link := range n.Links {
 		key := k.Key(link.Hash).DsKey()
