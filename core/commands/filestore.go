@@ -77,12 +77,12 @@ If <offset> is the special value "-" indicates a file root.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		quiet, _, err := res.Request().Option("quiet").Bool()
+		quiet, _, err := req.Option("quiet").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		all, _, err := res.Request().Option("all").Bool()
+		all, _, err := req.Option("all").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -168,7 +168,7 @@ file names are printed, otherwise the fields are as follows:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		quiet, _, err := res.Request().Option("quiet").Bool()
+		quiet, _, err := req.Option("quiet").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -301,17 +301,17 @@ The --verbose option specifies what to output.  The current values are:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		basic, _, err := res.Request().Option("basic").Bool()
+		basic, _, err := req.Option("basic").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		level, _, err := res.Request().Option("level").Int()
+		level, _, err := req.Option("level").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		verbose, _, err := res.Request().Option("verbose").Int()
+		verbose, _, err := req.Option("verbose").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -320,7 +320,7 @@ The --verbose option specifies what to output.  The current values are:
 			res.SetError(errors.New("level must be between 0-9"), cmds.ErrNormal)
 			return
 		}
-		skipOrphans, _, err := res.Request().Option("skip-orphans").Bool()
+		skipOrphans, _, err := req.Option("skip-orphans").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -373,7 +373,7 @@ will do a "verify --level 0" and is used to remove any "orphan" nodes.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		quiet, _, err := res.Request().Option("quiet").Bool()
+		quiet, _, err := req.Option("quiet").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -417,22 +417,22 @@ var rmFilestoreObjs = &cmds.Command{
 			return
 		}
 		opts := fsutil.DeleteOpts{}
-		quiet, _, err := res.Request().Option("quiet").Bool()
+		quiet, _, err := req.Option("quiet").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		opts.Force, _, err = res.Request().Option("force").Bool()
+		opts.Force, _, err = req.Option("force").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		opts.Direct, _, err = res.Request().Option("direct").Bool()
+		opts.Direct, _, err = req.Option("direct").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		opts.IgnorePins, _, err = res.Request().Option("ignore-pins").Bool()
+		opts.IgnorePins, _, err = req.Option("ignore-pins").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -491,12 +491,12 @@ var repairPins = &cmds.Command{
 		if err != nil {
 			return
 		}
-		dryRun, _, err := res.Request().Option("dry-run").Bool()
+		dryRun, _, err := req.Option("dry-run").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		skipRoot, _, err := res.Request().Option("skip-root").Bool()
+		skipRoot, _, err := req.Option("skip-root").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
