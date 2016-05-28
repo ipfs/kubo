@@ -143,7 +143,11 @@ func List(d *Datastore, filter func(ListRes) bool) (<-chan ListRes, error) {
 			}
 			key := ds.NewKey(r.Key)
 			val, _ := d.GetDirect(key)
-			out <- ListRes{key, val, 0}
+			res := ListRes{key, val, 0}
+			keep := filter(res)
+			if keep {
+				out <- res
+			}
 		}
 	}()
 	return out, nil
@@ -155,6 +159,22 @@ func ListAll(d *Datastore) (<-chan ListRes, error) {
 
 func ListWholeFile(d *Datastore) (<-chan ListRes, error) {
 	return List(d, func(r ListRes) bool { return r.WholeFile() })
+}
+
+func ListByKey(fs *Datastore, keys []k.Key) (<-chan ListRes, error) {
+	out := make(chan ListRes, 128)
+
+	go func() {
+		defer close(out)
+		for _, key := range keys {
+			dsKey := key.DsKey()
+			dataObj, err := fs.GetDirect(dsKey)
+			if err == nil {
+				out <- ListRes{dsKey, dataObj, 0}
+			}
+		}
+	}()
+	return out, nil
 }
 
 func verify(d *Datastore, key ds.Key, val *DataObj, level int) int {

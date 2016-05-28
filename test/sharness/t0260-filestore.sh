@@ -24,7 +24,7 @@ test_expect_success "fail after file move" '
 
 # check "ipfs filestore " cmd by using state left by add commands
 
-cat <<EOF > ls_expect
+cat <<EOF > ls_expect_all
 QmQ8jJxa1Ts9fKsyUXcdYRHHUkuhJ69f82CF8BNX14ovLT
 QmQNcknfZjsABxg2bwxZQ9yqoUZW5dtAfCK3XY4eadjnxZ
 QmQnNhFzUjVRMHxafWaV2z7XZV8no9xJTdybMZbhgZ7776
@@ -49,7 +49,13 @@ QmfAGX7cH2G16Wb6tzVgVjwJtphCz3SeuRqvFmGuVY3C7D
 QmfYBbC153rBir5ECS2rzrKVUEer6rgqbRpriX2BviJHq1
 EOF
 
+cat <<EOF > ls_expect
+QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb
+QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
+EOF
+
 test_expect_success "testing filestore ls" '
+  ipfs filestore ls -q -a | LC_ALL=C sort > ls_actual_all &&
   ipfs filestore ls -q | LC_ALL=C sort > ls_actual &&
   test_cmp ls_expect ls_actual
 '
@@ -62,7 +68,7 @@ test_expect_success "testing filestore verify" '
 
 test_expect_success "tesing re-adding file after change" '
   ipfs add --no-copy mountdir/hello.txt &&
-  ipfs filestore ls -q | grep -q QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
+  ipfs filestore ls -q -a | grep -q QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
 '
 
 cat <<EOF > ls_expect
@@ -72,7 +78,7 @@ EOF
 
 test_expect_success "tesing filestore clean invalid" '
   ipfs filestore clean invalid > rm-invalid-output &&
-  ipfs filestore ls -q | LC_ALL=C sort > ls_actual &&
+  ipfs filestore ls -q -a | LC_ALL=C sort > ls_actual &&
   test_cmp ls_expect ls_actual
 '
 
@@ -82,7 +88,7 @@ EOF
 
 test_expect_success "tesing filestore clean incomplete" '
   ipfs filestore clean incomplete > rm-invalid-output &&
-  ipfs filestore ls -q | LC_ALL=C sort > ls_actual &&
+  ipfs filestore ls -q -a | LC_ALL=C sort > ls_actual &&
   test_cmp ls_expect ls_actual
 '
 

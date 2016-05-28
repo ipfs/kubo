@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 
 	//ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	//bs "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -31,7 +32,7 @@ var FileStoreCmd = &cmds.Command{
 		"unpinned": fsUnpinned,
 		"rm-dups":  rmDups,
 		"upgrade":  fsUpgrade,
-		"mv":  moveIntoFilestore,
+		"mv":       moveIntoFilestore,
 	},
 }
 
@@ -39,8 +40,18 @@ var lsFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List objects in filestore",
 		ShortDescription: `
-List objects in the filestore.  If --quiet is specified only the
-hashes are printed, otherwise the fields are as follows:
+List objects in the filestore.  If one or more <obj> is specified only
+list those specific objects, otherwise list all objects.  An <obj> can
+either be a multihash, or an absolute path.  If the path ends in '/'
+than it is assumed to be a directory and all paths with that directory
+are included.
+
+If --all is specified list all matching blocks are lists, otherwise
+only blocks representing the a file root is listed.  A file root is any
+block that represents a complete file.
+
+If --quiet is specified only the hashes are printed, otherwise the
+fields are as follows:
   <hash> <type> <filepath> <offset> <size> [<modtime>]
 where <type> is one of"
   leaf: to indicate a node where the contents are stored
@@ -50,12 +61,15 @@ where <type> is one of"
   invld: a leaf node that has been found invalid
 and <filepath> is the part of the file the object represents.  The
 part represented starts at <offset> and continues for <size> bytes.
-If <offset> is the special value "-" than the "leaf" or "root" node
-represents the whole file.
+If <offset> is the special value "-" indicates a file root.
 `,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("obj", false, true, "Hash or filename to list."),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
+		cmds.BoolOption("all", "a", "List everything, not just file roots."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		_, fs, err := extractFilestore(req)
@@ -68,12 +82,49 @@ represents the whole file.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if quiet {
-			ch, _ := fsutil.ListKeys(fs)
-			res.SetOutput(&chanWriter{ch, "", 0, false})
+		all, _, err := res.Request().Option("all").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		objs := req.Arguments()
+		keys := make([]k.Key, 0)
+		paths := make([]string, 0)
+		for _, obj := range objs {
+			if filepath.IsAbs(obj) {
+				paths = append(paths, obj)
+			} else {
+				keys = append(keys, k.B58KeyDecode(obj))
+			}
+		}
+		if len(keys) > 0 && len(paths) > 0 {
+			res.SetError(errors.New("Cannot specify both hashes and paths."), cmds.ErrNormal)
+			return
+		}
+
+		var ch <-chan fsutil.ListRes
+		if len(keys) > 0 {
+			ch, _ = fsutil.ListByKey(fs, keys)
+		} else if all && len(paths) == 0 && quiet {
+			ch, _ = fsutil.ListKeys(fs)
+		} else if all && len(paths) == 0 {
+			ch, _ = fsutil.ListAll(fs)
+		} else if !all && len(paths) == 0 {
+			ch, _ = fsutil.ListWholeFile(fs)
+		} else if all {
+			ch, _ = fsutil.List(fs, func(r fsutil.ListRes) bool {
+				return pathMatch(paths, r.FilePath)
+			})
 		} else {
-			ch, _ := fsutil.ListAll(fs)
-			res.SetOutput(&chanWriter{ch, "", 0, false})
+			ch, _ = fsutil.List(fs, func(r fsutil.ListRes) bool {
+				return r.WholeFile() && pathMatch(paths, r.FilePath)
+			})
+		}
+
+		if quiet {
+			res.SetOutput(&chanWriter{ch: ch, quiet: true})
+		} else {
+			res.SetOutput(&chanWriter{ch: ch})
 		}
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -81,6 +132,22 @@ represents the whole file.
 			return res.(io.Reader), nil
 		},
 	},
+}
+
+func pathMatch(match_list []string, path string) bool {
+	for _, to_match := range match_list {
+		if to_match[len(to_match)-1] == filepath.Separator {
+			if strings.HasPrefix(path, to_match) {
+				return true
+			}
+		} else {
+			if to_match == path {
+				return true
+			}
+		}
+	}
+	return false
+
 }
 
 var lsFiles = &cmds.Command{
@@ -121,6 +188,7 @@ type chanWriter struct {
 	buf    string
 	offset int
 	errors bool
+	quiet  bool
 }
 
 func (w *chanWriter) Read(p []byte) (int, error) {
@@ -134,7 +202,11 @@ func (w *chanWriter) Read(p []byte) (int, error) {
 		} else if fsutil.AnError(res.Status) {
 			w.errors = true
 		}
-		w.buf = res.Format()
+		if w.quiet {
+			w.buf = fmt.Sprintf("%s\n", res.MHash())
+		} else {
+			w.buf = res.Format()
+		}
 	}
 	sz := copy(p, w.buf[w.offset:])
 	w.offset += sz
@@ -255,10 +327,10 @@ The --verbose option specifies what to output.  The current values are:
 		}
 		if basic {
 			ch, _ := fsutil.VerifyBasic(fs, level, verbose)
-			res.SetOutput(&chanWriter{ch, "", 0, false})
+			res.SetOutput(&chanWriter{ch: ch})
 		} else {
 			ch, _ := fsutil.VerifyFull(node, fs, level, verbose, skipOrphans)
-			res.SetOutput(&chanWriter{ch, "", 0, false})
+			res.SetOutput(&chanWriter{ch: ch})
 		}
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -562,7 +634,7 @@ copy is not removed.  Use "filestore rm-dups" to remove the old copy.
 			path = mhash
 		}
 		if offline {
-			path,err = filepath.Abs(path)
+			path, err = filepath.Abs(path)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
