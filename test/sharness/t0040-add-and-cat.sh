@@ -11,9 +11,11 @@ test_description="Test add and cat commands"
 client_err_add() {
     printf "$@\n\n"
     echo 'USAGE
-  ipfs add <path>... - Add a file or directory to ipfs.
+  ipfs add <path>... - Add a file to ipfs.
 
-  Adds contents of <path> to ipfs. Use -r to add directories (recursively).
+  Adds contents of <path> to ipfs. Use -r to add directories.
+  Note that directories are added recursively, to form the ipfs
+  MerkleDAG.
 
 Use '"'"'ipfs add --help'"'"' for more information about this command.
 '
@@ -360,7 +362,7 @@ test_add_cat_5MB
 
 test_add_cat_expensive
 
-test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=true&r=true&stream-channels=true:"
+test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&r=true&stream-channels=true:"
 
 test_kill_ipfs_daemon
 
