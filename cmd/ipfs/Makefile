@@ -1,5 +1,7 @@
+VERSION := $(shell ../../bin/genversion --version --commit)
 COMMIT := $(shell git rev-parse --short HEAD)
-ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
+ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".FullVersion=$(VERSION) \
+-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
 
 all: install
 

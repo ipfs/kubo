@@ -458,7 +458,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	config.CurrentCommit = "theshortcommithash"
+	config.FullVersion = "ipfsfullversion"
 
 	ns := mockNamesys{}
 	ts, _ := newTestServerAndNode(t, ns)
@@ -480,7 +480,7 @@ func TestVersion(t *testing.T) {
 	}
 	s := string(body)
 
-	if !strings.Contains(s, "Commit: theshortcommithash") {
+	if !strings.Contains(s, "Full Version: ipfsfullversion") {
 		t.Fatalf("response doesn't contain commit:\n%s", s)
 	}
 
