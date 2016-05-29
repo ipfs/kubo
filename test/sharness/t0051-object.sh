@@ -289,12 +289,32 @@ test_object_cmd() {
 	'
 }
 
+test_object_content_type() {
+
+	  test_expect_success "'ipfs object get --encoding=protobuf' returns the correct content type" '
+    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=protobuf" | grep -q "^Content-Type: application/protobuf"
+  '
+
+	  test_expect_success "'ipfs object get --encoding=json' returns the correct content type" '
+    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=json" | grep -q "^Content-Type: application/json"
+  '
+
+	  test_expect_success "'ipfs object get --encoding=text' returns the correct content type" '
+    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=text" | grep -q "^Content-Type: text/plain"
+  '
+
+	  test_expect_success "'ipfs object get --encoding=xml' returns the correct content type" '
+  curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=xml" | grep -q "^Content-Type: application/xml"
+  '
+}
+
 # should work offline
 test_object_cmd
 
 # should work online
 test_launch_ipfs_daemon
 test_object_cmd
+test_object_content_type
 test_kill_ipfs_daemon
 
 test_done
