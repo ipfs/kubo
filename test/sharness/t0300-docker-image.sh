@@ -70,7 +70,7 @@ test_expect_success "version CurrentCommit is set" '
 	docker_exec "$DOC_ID" "wget --retry-connrefused --waitretry=1 --timeout=30 -t 30 \
 		-q -O - http://localhost:8080/version" | grep Commit | cut -d" " -f2 >actual &&
 	docker_exec "$DOC_ID" "ipfs version --commit" | cut -d- -f2 >expected &&
-	[ "$(cat expected | wc -c)" -gt "1" ] && # check there actually is a commit set
+	test -s expected && # check there actually is a commit set
 	test_cmp expected actual
 '
 
