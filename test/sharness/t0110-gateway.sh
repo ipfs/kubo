@@ -116,6 +116,11 @@ test_expect_success "output looks good" '
 	grep "Content-Type: text/html" indexout
 '
 
+test_expect_success "HEAD 'index.html' has no content" '
+	curl -X HEAD --max-time 1 http://127.0.0.1:$port/ipfs/$INDEXHASH/ > output;
+	[ ! -s output ]
+'
+
 # test ipfs readonly api
 
 test_curl_gateway_api() {
