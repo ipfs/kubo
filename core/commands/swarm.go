@@ -10,7 +10,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
-	swarm "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/net/swarm"
+	swarm "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net/swarm"
 	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 
 	mafilter "gx/ipfs/QmUaRHbB7pUwj5mS9BS4CMvBiW48MpaH2wbGxeWfFhhHxK/multiaddr-filter"
