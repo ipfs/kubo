@@ -35,7 +35,7 @@ func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) 
 	return out, nil
 }
 
-func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int) (<-chan ListRes, error) {
+func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, verbose int) (<-chan ListRes, error) {
 	out := make(chan ListRes, 16)
 	verifyWhat := VerifyAlways
 	if level <= 6 {
@@ -44,7 +44,13 @@ func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int) (<-
 	go func() {
 		defer close(out)
 		for _, key := range keys {
-			out <- verifyKey(key, fs, node.Blockstore, verifyWhat)
+			if key == "" {
+				continue
+			}
+			res := verifyKey(key, fs, node.Blockstore, verifyWhat)
+			if verbose > 1 || OfInterest(res.Status) {
+				out <- res
+			}
 		}
 	}()
 	return out, nil
@@ -124,8 +130,11 @@ func (p *verifyParams) setStatus(dsKey ds.Key, status int) {
 }
 
 func (p *verifyParams) verifyKeys(keys []k.Key) {
-	p.skipOrphans = true 
+	p.skipOrphans = true
 	for _, key := range keys {
+		if key == "" {
+			continue
+		}
 		dsKey := key.DsKey()
 		dagNode, dataObj, r := p.get(dsKey)
 		if dataObj == nil || AnError(r) {
@@ -137,8 +146,10 @@ func (p *verifyParams) verifyKeys(keys []k.Key) {
 		}
 		res := ListRes{dsKey, dataObj, r}
 		res.Status = p.checkIfAppended(res)
-		p.out <- res
-		p.out <- EmptyListRes
+		if p.verboseLevel > 1 || OfInterest(res.Status) {
+			p.out <- res
+			p.out <- EmptyListRes
+		}
 	}
 }
 

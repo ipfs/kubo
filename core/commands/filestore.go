@@ -383,7 +383,8 @@ The --verbose option specifies what to output.  The current values are:
   7-9: show everything
   5-6: don't show child nodes unless there is a problem
   3-4: don't show child nodes
-  0-2: don't show root nodes unless there is a problem
+    2: don't show uninteresting root nodes
+  0-1: don't show uninteresting specified hashes
 uninteresting means a status of 'ok' or '<blank>'
 
 If --porcelain is used us an alternative output is used that will not
@@ -454,7 +455,7 @@ returned) to avoid special cases when parsing the output.
 		if basic && len(keys) == 0 {
 			ch, _ = fsutil.VerifyBasic(fs, level, verbose)
 		} else if basic {
-			ch, _ = fsutil.VerifyKeys(keys, node, fs, level)
+			ch, _ = fsutil.VerifyKeys(keys, node, fs, level, verbose)
 		} else if len(keys) == 0 {
 			ch, _ = fsutil.VerifyFull(node, fs, level, verbose, skipOrphans)
 		} else {
