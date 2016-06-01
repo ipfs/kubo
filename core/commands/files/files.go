@@ -73,8 +73,8 @@ Size: <size>
 CumulativeSize: <cumulsize>
 ChildBlocks: <childs>
 Type: <type>`),
-		cmds.BoolOption("hash", "Print only hash. Implies '--format=<hash>. Conflicts with other format options.").Default(false),
-		cmds.BoolOption("size", "Print only size. Implies '--format=<cumulsize>. Conflicts with other format options.").Default(false),
+		cmds.BoolOption("hash", "Print only hash. Implies '--format=<hash>'. Conflicts with other format options.").Default(false),
+		cmds.BoolOption("size", "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
