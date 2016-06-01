@@ -26,15 +26,17 @@ var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Manipulate unixfs files.",
 		ShortDescription: `
-Files is an API for manipulating IPFS objects as if they were a unix filesystem.
+Files is an API for manipulating IPFS objects as if they were a unix
+filesystem.
 
 NOTE:
-Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults to
-true. Use caution when setting this flag to false. It will improve performance
-for large numbers of file operations, but it does so at the cost of consistency
-guarantees. If the daemon is unexpectedly killed before running 'ipfs files flush'
-on the files in question, then data may be lost. This also applies to running
-'ipfs repo gc' concurrently with '--flush=false' operations.
+Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults
+to true. Use caution when setting this flag to false. It will improve
+performance for large numbers of file operations, but it does so at the cost
+of consistency guarantees. If the daemon is unexpectedly killed before running
+'ipfs files flush' on the files in question, then data may be lost. This also
+applies to running 'ipfs repo gc' concurrently with '--flush=false'
+operations.
 `,
 	},
 	Options: []cmds.Option{
