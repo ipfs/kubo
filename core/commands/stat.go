@@ -20,8 +20,11 @@ var StatsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Query ipfs statistics.",
 		Synopsis:         "ipfs stats <command>",
-		ShortDescription: `'ipfs stats' is a set of commands to help look at statistics for your ipfs node.`,
-		LongDescription:  `'ipfs stats' is a set of commands to help look at statistics for your ipfs node.`,
+		ShortDescription: `'ipfs stats' is a set of commands to help look at statistics
+for your ipfs node.
+`,
+		LongDescription:  `'ipfs stats' is a set of commands to help look at statistics
+for your ipfs node.`,
 	},
 
 	Subcommands: map[string]*cmds.Command{

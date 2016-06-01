@@ -65,17 +65,15 @@ var ObjectDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the raw bytes in an IPFS object.",
 		ShortDescription: `
-'ipfs object data' is a plumbing command for retrieving the raw bytes stored in
-a DAG node. It outputs to stdout, and <key> is a base58 encoded
-multihash.
+'ipfs object data' is a plumbing command for retrieving the raw bytes stored
+in a DAG node. It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 		LongDescription: `
-'ipfs object data' is a plumbing command for retrieving the raw bytes stored in
-a DAG node. It outputs to stdout, and <key> is a base58 encoded
-multihash.
+'ipfs object data' is a plumbing command for retrieving the raw bytes stored
+in a DAG node. It outputs to stdout, and <key> is a base58 encoded multihash.
 
-Note that the "--encoding" option does not affect the output, since the
-output is the raw data of the object.
+Note that the "--encoding" option does not affect the output, since the output
+is the raw data of the object.
 `,
 	},
 
@@ -313,8 +311,8 @@ Examples:
 
 	$ echo '{ "Data": "abc" }' | ipfs object put
 
-This creates a node with the data 'abc' and no links. For an object with links,
-create a file named 'node.json' with the contents:
+This creates a node with the data 'abc' and no links. For an object with
+links, create a file named 'node.json' with the contents:
 
     {
         "Data": "another",

@@ -260,12 +260,13 @@ var swarmDisconnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Close connection to a given address.",
 		ShortDescription: `
-'ipfs swarm disconnect' closes a connection to a peer address. The address format
-is an ipfs multiaddr:
+'ipfs swarm disconnect' closes a connection to a peer address. The address
+format is an ipfs multiaddr:
 
 ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 
-The disconnect is not permanent; if ipfs needs to talk to that address later, it will reconnect.
+The disconnect is not permanent; if ipfs needs to talk to that address later,
+it will reconnect.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -373,10 +374,11 @@ var swarmFiltersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Manipulate address filters.",
 		ShortDescription: `
-'ipfs swarm filters' will list out currently applied filters. Its subcommands can be used
-to add or remove said filters. Filters are specified using the multiaddr-filter format:
+'ipfs swarm filters' will list out currently applied filters. Its subcommands
+can be used to add or remove said filters. Filters are specified using the
+multiaddr-filter format:
 
-example:
+Example:
 
     /ip4/192.168.0.0/ipcidr/16
 

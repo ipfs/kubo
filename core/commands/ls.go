@@ -33,7 +33,8 @@ var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List links from an object.",
 		ShortDescription: `
-Displays the links an IPFS or IPNS object(s) contains, with the following format:
+Displays the links an IPFS or IPNS object(s) contains, with the following
+format:
 
   <link base58 hash> <link size in bytes> <link name>
 `,
