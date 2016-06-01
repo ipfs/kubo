@@ -305,7 +305,7 @@ test_expect_success "'ipfs add -r' output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "'ipfs add -rn' succeeds" '
+test_expect_failure "'ipfs add -rn' succeeds" '
 	mkdir -p mountdir/moons/jupiter &&
 	mkdir -p mountdir/moons/saturn &&
 	echo "Hello Europa!" >mountdir/moons/jupiter/europa.txt &&
@@ -314,7 +314,7 @@ test_expect_success "'ipfs add -rn' succeeds" '
 	ipfs add -rn mountdir/moons >actual
 '
 
-test_expect_success "'ipfs add -rn' output looks good" '
+test_expect_failure "'ipfs add -rn' output looks good" '
 	MOONS="QmVKvomp91nMih5j6hYBA8KjbiaYvEetU2Q7KvtZkLe9nQ" &&
 	EUROPA="Qmbjg7zWdqdMaK2BucPncJQDxiALExph5k3NkQv5RHpccu" &&
   JUPITER="QmS5mZddhFPLWFX3w6FzAy9QxyYkaxvUpsWCtZ3r7jub9J" &&

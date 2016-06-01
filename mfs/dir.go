@@ -131,7 +131,7 @@ func (d *Directory) cacheNode(name string, nd *dag.Node) (FSNode, error) {
 		ndir := NewDirectory(d.ctx, name, nd, d, d.dserv)
 		d.childDirs[name] = ndir
 		return ndir, nil
-	case ufspb.Data_File, ufspb.Data_Raw:
+	case ufspb.Data_File, ufspb.Data_Raw, ufspb.Data_Symlink:
 		nfi, err := NewFile(name, nd, d, d.dserv)
 		if err != nil {
 			return nil, err
