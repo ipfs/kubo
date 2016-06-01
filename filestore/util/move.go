@@ -59,8 +59,8 @@ func (m fileNodes) add(key bk.Key) {
 
 func ConvertToFile(node *core.IpfsNode, key bk.Key, path string) error {
 	config, _ := node.Repo.Config()
-	if node.OnlineMode() && (config == nil || !config.API.ServerSideAdds) {
-		return errs.New("Node is online and server side adds are not enabled.")
+	if node.OnlineMode() && (config == nil || !config.Filestore.APIServerSidePaths) {
+		return errs.New("Node is online and server side paths are not enabled.")
 	}
 	if !filepath.IsAbs(path) {
 		return errs.New("absolute path required")

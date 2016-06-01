@@ -11,7 +11,7 @@ test_description="Test filestore"
 
 test_init_ipfs
 
-test_add_cat_file "add --no-copy" "."
+test_add_cat_file "filestore add" "."
 
 export IPFS_LOGGING=debug
 export IPFS_LOGGING_FMT=nocolor

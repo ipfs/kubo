@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path"
 
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 	"github.com/ipfs/go-ipfs/core/coreunix"
@@ -14,7 +13,6 @@ import (
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	cli "github.com/ipfs/go-ipfs/commands/cli"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -34,8 +32,6 @@ const (
 	onlyHashOptionName = "only-hash"
 	chunkerOptionName  = "chunker"
 	pinOptionName      = "pin"
-	nocopyOptionName   = "no-copy"
-	linkOptionName     = "link"
 )
 
 var AddCmd = &cmds.Command{
@@ -81,8 +77,6 @@ You can now refer to the added file in a gateway, like so:
 		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add.").Default(false),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
-		cmds.BoolOption(nocopyOptionName, "Experts Only"),
-		cmds.BoolOption(linkOptionName, "Experts Only"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
@@ -135,9 +129,9 @@ You can now refer to the added file in a gateway, like so:
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, _, _ := req.Option(pinOptionName).Bool()
-		nocopy, _, _ := req.Option(nocopyOptionName).Bool()
-		link, _, _ := req.Option(linkOptionName).Bool()
 		recursive, _, _ := req.Option(cmds.RecLong).Bool()
+
+		nocopy, _ := req.Values()["no-copy"].(bool)
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -157,7 +151,7 @@ You can now refer to the added file in a gateway, like so:
 
 		var fileAdder *coreunix.Adder
 		useRoot := wrap || recursive
-		if nocopy || link {
+		if nocopy {
 			fs, ok := n.Repo.SubDatastore(fsrepo.RepoFilestore).(*filestore.Datastore)
 			if !ok {
 				res.SetError(errors.New("Could not extract filestore"), cmds.ErrNormal)
@@ -339,49 +333,3 @@ You can now refer to the added file in a gateway, like so:
 	Type: coreunix.AddedObject{},
 }
 
-var AddCmdServerSide = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Like add but the file is read locally on the server.",
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, true, "The path to a file to be added to IPFS."),
-	},
-	Options: AddCmd.Options,
-
-	PreRun: func(req cmds.Request) error {
-		for _, fn := range req.Arguments() {
-			if !path.IsAbs(fn) {
-				return errors.New("File path must be absolute.")
-			}
-		}
-		return nil
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		config, _ := req.InvocContext().GetConfig()
-		if !config.API.ServerSideAdds {
-			res.SetError(errors.New("Server Side Adds not enabled."), cmds.ErrNormal)
-			return
-		}
-		inputs := req.Arguments()
-		// Double check paths to be safe
-		for _, fn := range inputs {
-			if !path.IsAbs(fn) {
-				res.SetError(errors.New("File path must be absolute."), cmds.ErrNormal)
-				return
-			}
-		}
-		req.SetArguments(nil)
-		_, fileArgs, err := cli.ParseArgs(req, inputs, nil, AddCmd.Arguments, nil)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		file := files.NewSliceFile("", "", fileArgs)
-		req.SetFiles(file)
-		AddCmd.Run(req, res)
-	},
-	PostRun: func(req cmds.Request, res cmds.Response) {
-		AddCmd.PostRun(req, res)
-	},
-	Type: AddCmd.Type,
-}

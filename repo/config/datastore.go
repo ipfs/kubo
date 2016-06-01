@@ -41,4 +41,5 @@ func DataStorePath(configroot string) (string, error) {
 
 type Filestore struct {
 	Verify string // one of "always", "ifchanged", "never"
+	APIServerSidePaths bool
 }

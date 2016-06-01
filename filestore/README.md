@@ -8,13 +8,15 @@ without duplicating the content in the IPFS datastore
 ## Quick start
 
 To add a file to IPFS without copying, first bring the daemon offline
-and then use `add --no-copy` or to add a directory use `add -r
---no-copy`.  (Throughout this document all command are assumed to
-start with `ipfs` so `add --no-copy` really mains `ipfs add
---no-copy`).  For example to add the file `hello.txt` use:
+and then use `filestore add` or to add a directory use `filestore add
+-r`.  (Throughout this document all command are assumed to start with
+`ipfs` so `filestore add` really mains `ipfs filestore add`).  For
+example to add the file `hello.txt` use:
 ```
-  ipfs add --no-copy hello.txt
+  ipfs filestore add "`pwd`"/hello.txt
 ```
+(Because the operating system idea of the current directory may differ
+from what you think it is, absolute paths are required.)
 
 The file or directory will then be added.  You can now bring the
 daemon online and try to retrieve it from another node such as the
@@ -23,7 +25,7 @@ ipfs.io gateway.
 To add a file to IPFS without copying and the daemon online you must
 first enable API.ServerSideAdds using:
 ```
-  ipfs config API.ServerSideAdds --bool true
+  ipfs config Filestore.APIServerSidePaths --bool true
 ```
 This will enable adding files from the filesystem the server is on.
 *This option should be used with care since it will allow anyone with
@@ -34,11 +36,11 @@ configured to the default value of only binding to the localhost
 (`127.0.0.1`).
 
 With the API.ServerSideAdds option enabled you can add files using
-`add-ss --no-copy`.  Since the file will read by the daemon the
+`filestore add-ss`.  Since the file will read by the daemon the
 absolute path must be specified.  For example, to add the file
 `hello.txt` in the local directory use something like:
 ```
-  ipfs add-ss --no-copy "`pwd`"/hello.txt
+  ipfs filestore add-ss "`pwd`"/hello.txt
 ```
 
 If the contents of an added file have changed the block will become invalid.
@@ -121,7 +123,7 @@ do not cause any problems, they just take up a small amount of space.
 
 When removing blocks `filestore clean` will generally remove any pins
 associated with the blocks.  However, it will not handle `indirect`
-pins.  For example if you add a directory using `add -r --no-copy` and
+pins.  For example if you add a directory using `filestore add -r` and
 some of the files become invalid the recursive pin will become invalid
 and needs to be fixed.
 
@@ -156,8 +158,8 @@ option.  Individual blocks can be removed with the `--direct` option.
 ## Duplicate blocks.
 
 If a block is already in the datastore when adding and then readded
-with `--no-copy` the block will be added to the filestore but the now
-duplicate block will still exists in the normal datastore.
+with `filestore add` the block will be added to the filestore but the
+now duplicate block will still exists in the normal datastore.
 Furthermore, since the block is likely to be pinned it will not be
 removed when `repo gc` in run.  This is nonoptimal and will eventually
 be fixed.  For now, you can remove duplicate blocks by running
