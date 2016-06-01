@@ -241,8 +241,8 @@ Example:
     $ BAR=$(echo "bar" | ipfs add -q)
     $ ipfs object patch $EMPTY_DIR add-link foo $BAR
 
-This takes an empty directory, and adds a link named 'foo' under it, pointing to
-a file containing 'bar', and returns the hash of the new object.
+This takes an empty directory, and adds a link named 'foo' under it, pointing
+to a file containing 'bar', and returns the hash of the new object.
 `,
 	},
 	Arguments: []cmds.Argument{

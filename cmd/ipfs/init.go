@@ -26,8 +26,9 @@ var initCmd = &cmds.Command{
 		ShortDescription: `
 Initializes IPFS configuration files and generates a new keypair.
 
-ipfs uses a repository in the local file system. By default, the repo is located
-at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+ipfs uses a repository in the local file system. By default, the repo is
+located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
+environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
 `,

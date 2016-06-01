@@ -26,8 +26,8 @@ var GetCmd = &cmds.Command{
 		ShortDescription: `
 Stores to disk the data contained an IPFS or IPNS object(s) at the given path.
 
-By default, the output will be stored at './<ipfs-path>', but an alternate path
-can be specified with '--output=<path>' or '-o=<path>'.
+By default, the output will be stored at './<ipfs-path>', but an alternate
+path can be specified with '--output=<path>' or '-o=<path>'.
 
 To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 

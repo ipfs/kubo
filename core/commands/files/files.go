@@ -381,8 +381,8 @@ var FilesReadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Read a file in a given mfs.",
 		ShortDescription: `
-Read a specified number of bytes from a file at a given offset. By default, will
-read the entire file similar to unix cat.
+Read a specified number of bytes from a file at a given offset. By default,
+will read the entire file similar to unix cat.
 
 Examples:
 
@@ -553,9 +553,9 @@ EXAMPLE:
 
 WARNING:
 
-    Usage of the '--flush=false' option does not guarantee data durability until
-	the tree has been flushed. This can be accomplished by running 'ipfs files stat'
-	on the file or any of its ancestors.
+Usage of the '--flush=false' option does not guarantee data durability until
+the tree has been flushed. This can be accomplished by running 'ipfs files
+stat' on the file or any of its ancestors.
 `,
 	},
 	Arguments: []cmds.Argument{

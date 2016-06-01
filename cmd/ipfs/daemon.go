@@ -110,8 +110,9 @@ second signal.
 
 IPFS_PATH environment variable
 
-ipfs uses a repository in the local file system. By default, the repo is located
-at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+ipfs uses a repository in the local file system. By default, the repo is
+located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
+environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
 
@@ -121,8 +122,9 @@ Previously, IPFS used an environment variable as seen below:
 
    export API_ORIGIN="http://localhost:8888/"
 
-This is deprecated. It is still honored in this version, but will be removed in a
-future version, along with this notice. Please move to setting the HTTP Headers.
+This is deprecated. It is still honored in this version, but will be removed
+in a future version, along with this notice. Please move to setting the HTTP
+Headers.
 `,
 	},
 
