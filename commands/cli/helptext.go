@@ -163,6 +163,9 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 	if len(fields.Subcommands) == 0 {
 		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
 	}
+	if len(fields.Synopsis) == 0 {
+		fields.Synopsis = generateSynopsis(cmd, pathStr)
+	}
 
 	// trim the extra newlines (see TrimNewlines doc)
 	fields.TrimNewlines()
@@ -206,6 +209,9 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 	if len(fields.Subcommands) == 0 {
 		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
 	}
+	if len(fields.Synopsis) == 0 {
+		fields.Synopsis = generateSynopsis(cmd, pathStr)
+	}
 
 	// trim the extra newlines (see TrimNewlines doc)
 	fields.TrimNewlines()
@@ -214,6 +220,44 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 	fields.IndentAll()
 
 	return shortHelpTemplate.Execute(out, fields)
+}
+
+func generateSynopsis(cmd *cmds.Command, path string) string {
+	res := path
+	for _, opt := range cmd.Options {
+		valopt, ok := cmd.Helptext.SynopsisOptionsValues[opt.Names()[0]]
+		if !ok {
+			valopt = opt.Names()[0]
+		}
+		sopt := ""
+		for i, n := range opt.Names() {
+			pre := "-"
+			if len(n) > 1 {
+				pre = "--"
+			}
+			if i == 0 {
+				sopt = fmt.Sprintf("%s%s=<%s>", pre, n, valopt)
+			} else {
+				sopt = fmt.Sprintf("%s | %s%s", sopt, pre, n)
+			}
+		}
+		res = fmt.Sprintf("%s [%s]", res, sopt)
+	}
+	if len(cmd.Arguments) > 0 {
+		res = fmt.Sprintf("%s [--]", res)
+	}
+	for _, arg := range cmd.Arguments {
+		sarg := fmt.Sprintf("<%s>", arg.Name)
+		if arg.Variadic {
+			sarg = sarg + "..."
+		}
+
+		if !arg.Required {
+			sarg = fmt.Sprintf("[%s]", sarg)
+		}
+		res = fmt.Sprintf("%s %s", res, sarg)
+	}
+	return strings.Trim(res, " ")
 }
 
 func argumentText(cmd *cmds.Command) []string {
