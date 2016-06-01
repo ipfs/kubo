@@ -32,18 +32,21 @@ var StatsCmd = &cmds.Command{
 var statBwCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:  "Print ipfs bandwidth information.",
-		Synopsis: "ipfs stats bw [--peer <peerId> | -p] [--proto <protocol> | -t] [--poll] [--interval <timeInterval> | -i]",
+		Synopsis: `ipfs stats bw [--peer <peerId> | -p] [--proto <protocol> | -t] [--poll]
+[--interval <timeInterval> | -i]
+		`,
 		ShortDescription: `'ipfs stats bw' prints bandwidth information for the ipfs daemon.
 It displays: TotalIn, TotalOut, RateIn, RateOut.
 		`,
 		LongDescription: `'ipfs stats bw' prints bandwidth information for the ipfs daemon.
 It displays: TotalIn, TotalOut, RateIn, RateOut.
 
-By default, overall bandwidth and all protocols are shown. To limit bandwidth to
-a particular peer, use the 'peer' option along with that peer's multihash id. To
-specify a specific protocol, use the 'proto' option. The 'peer' and 'proto'
-options cannot be specified simultaneously. The protocols that be queried using
-this method are outlined in the specification: https://github.com/ipfs/specs/blob/master/libp2p/7-properties.md#757-protocol-multicodecs
+By default, overall bandwidth and all protocols are shown. To limit bandwidth
+to a particular peer, use the 'peer' option along with that peer's multihash
+id. To specify a specific protocol, use the 'proto' option. The 'peer' and
+'proto' options cannot be specified simultaneously. The protocols that are
+queried using this method are outlined in the specification:
+https://github.com/ipfs/specs/blob/master/libp2p/7-properties.md#757-protocol-multicodecs
 
 Example protocol options:
   - /ipfs/id/1.0.0
