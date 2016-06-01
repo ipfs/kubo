@@ -7,10 +7,6 @@
 test_description="Test HTTP Gateway CORS Support"
 
 test_config_ipfs_cors_headers() {
-    ipfs config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin '["*"]'
-    ipfs config --json Gateway.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
-    ipfs config --json Gateway.HTTPHeaders.Access-Control-Allow-Headers '["X-Requested-With"]'
-
     ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'
     ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
     ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers '["X-Requested-With"]'
