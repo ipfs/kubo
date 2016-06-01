@@ -287,7 +287,7 @@ If <offset> is the special value "-" indicates a file root.
 		paths := make([]string, 0)
 		for _, obj := range objs {
 			if filepath.IsAbs(obj) {
-				paths = append(paths, obj)
+				paths = append(paths, filestore.CleanPath(obj))
 			} else {
 				keys = append(keys, k.B58KeyDecode(obj))
 			}

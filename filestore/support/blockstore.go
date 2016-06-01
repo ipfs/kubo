@@ -68,7 +68,7 @@ func (bs *blockstore) prepareBlock(k ds.Key, block blocks.Block) (int, interface
 	} else {
 		//println("DataObj")
 		d := &fs.DataObj{
-			FilePath: fsBlock.FullPath,
+			FilePath: fs.CleanPath(fsBlock.FullPath),
 			Offset:   fsBlock.Offset,
 			Size:     fsBlock.Size,
 			ModTime:  fs.FromTime(fsBlock.Stat.ModTime()),
