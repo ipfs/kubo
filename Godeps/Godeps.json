@@ -18,10 +18,6 @@
 			"Rev": "ae27720f340952636b826119b58130b9c1a847a0"
 		},
 		{
-			"ImportPath": "github.com/cheggaaa/pb",
-			"Rev": "d7729fd7ec1372c15b83db39834bf842bf2d69fb"
-		},
-		{
 			"ImportPath": "github.com/codahale/hdrhistogram",
 			"Rev": "5fd85ec0b4e2dd5d4158d257d943f2e586d86b62"
 		},
@@ -30,32 +26,12 @@
 			"Rev": "7c37910bc765e705301b159683480bdd44555c91"
 		},
 		{
-			"ImportPath": "github.com/cryptix/mdns",
-			"Rev": "04ff72a32679d57d009c0ac0fc5c4cda10350bad"
-		},
-		{
-			"ImportPath": "github.com/docker/spdystream",
-			"Rev": "e372247595b2edd26f6d022288e97eed793d70a2"
-		},
-		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "00897f070f09f194c26d65afae734ba4c32404e8"
 		},
 		{
-			"ImportPath": "github.com/dustin/randbo",
-			"Rev": "7f1b564ca7242d22bcc6e2128beb90d9fa38b9f0"
-		},
-		{
 			"ImportPath": "github.com/facebookgo/atomicfile",
 			"Rev": "6f117f2e7f224fb03eb5e5fba370eade6e2b90c8"
-		},
-		{
-			"ImportPath": "github.com/gogo/protobuf/io",
-			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
-		},
-		{
-			"ImportPath": "github.com/gogo/protobuf/proto",
-			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
@@ -66,54 +42,16 @@
 			"Rev": "e63957b6da369d986ef3e7a3f249779ba3f56c7e"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-base58",
-			"Rev": "6237cf65f3a6f7111cd8a42be3590df99a66bc7d"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-context/frac",
-			"Rev": "d14ea06fba99483203c19d92cfcd13ebe73135f4"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-context/io",
-			"Rev": "d14ea06fba99483203c19d92cfcd13ebe73135f4"
-		},
-		{
 			"ImportPath": "github.com/jbenet/go-detect-race",
 			"Rev": "3463798d9574bd0b7eca275dccc530804ff5216f"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-fuse-version",
-			"Rev": "b733dfc0597e1f6780510ee7afad8b6e3c7af3eb"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-is-domain",
 			"Rev": "93b717f2ae17838a265e30277275ee99ee7198d6"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-msgio",
-			"Rev": "9399b44f6bf265b30bedaf2af8c0604bbc8d5275"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-multiaddr",
-			"Comment": "0.1.2-38-gc13f11b",
-			"Rev": "c13f11bbfe6439771f4df7bfb330f686826144e8"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-multiaddr-net",
-			"Rev": "4a8bd8f8baf45afcf2bb385bbc17e5208d5d4c71"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-multihash",
-			"Comment": "0.1.0-39-ge8d2374",
-			"Rev": "e8d2374934f16a971d1e94a864514a21ac74bf7f"
-		},
-		{
 			"ImportPath": "github.com/jbenet/go-os-rename",
 			"Rev": "3ac97f61ef67a6b87b95c1282f6c317ed0e693c2"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-peerstream",
-			"Rev": "f3ab20739a88aa79306dc039c1b5a39e7afa45d6"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
@@ -124,24 +62,12 @@
 			"Rev": "737479700b40b4b50e914e963ce8d9d44603e3c8"
 		},
 		{
-			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
-			"Rev": "fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a"
-		},
-		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
 			"Rev": "1f6da4a72e57d4e7edd4a7295a585e0a3999a2d4"
 		},
 		{
 			"ImportPath": "github.com/mtchavez/jenkins",
 			"Rev": "5a816af6ef21ef401bff5e4b7dd255d63400f497"
-		},
-		{
-			"ImportPath": "github.com/olekukonko/ts",
-			"Rev": "ecf753e7c962639ab5a1fb46f7da627d4c0a04b8"
-		},
-		{
-			"ImportPath": "github.com/rs/cors",
-			"Rev": "5e4ce6bc0ecd3472f6f943666d84876691be2ced"
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
@@ -160,40 +86,8 @@
 			"Rev": "537e901819164627ca4bb5ce4e3faa8ce7956564"
 		},
 		{
-			"ImportPath": "github.com/whyrusleeping/go-logging",
-			"Rev": "128b9855511a4ea3ccbcf712695baf2bab72e134"
-		},
-		{
-			"ImportPath": "github.com/whyrusleeping/go-metrics",
-			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
-		},
-		{
 			"ImportPath": "github.com/whyrusleeping/go-sysinfo",
 			"Rev": "769b7c0b50e8030895abc74ba8107ac715e3162a"
-		},
-		{
-			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",
-			"Rev": "9e26222151125ecd3fc1fd190179b6bdd55f5608"
-		},
-		{
-			"ImportPath": "golang.org/x/crypto/sha3",
-			"Rev": "c84e1f8e3a7e322d497cd16c0e8a13c7e127baf3"
-		},
-		{
-			"ImportPath": "golang.org/x/net/context",
-			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
-		},
-		{
-			"ImportPath": "golang.org/x/net/internal/iana",
-			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
-		},
-		{
-			"ImportPath": "golang.org/x/net/ipv4",
-			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
-		},
-		{
-			"ImportPath": "golang.org/x/net/ipv6",
-			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
