@@ -5,14 +5,20 @@ import (
 	"io"
 
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
+	"github.com/ipfs/go-ipfs/commands/files"
 )
 
 var log = logging.Logger("chunk")
 
 var DefaultBlockSize int64 = 1024 * 256
 
+type Bytes struct {
+	PosInfo files.ExtraInfo
+	Data    []byte
+}
+
 type Splitter interface {
-	NextBytes() ([]byte, error)
+	NextBytes() (Bytes, error)
 }
 
 type SplitterGen func(r io.Reader) Splitter
@@ -42,28 +48,29 @@ func Chan(s Splitter) (<-chan []byte, <-chan error) {
 				return
 			}
 
-			out <- b
+			out <- b.Data
 		}
 	}()
 	return out, errs
 }
 
 type sizeSplitterv2 struct {
-	r    io.Reader
+	r    files.AdvReader
 	size int64
 	err  error
 }
 
 func NewSizeSplitter(r io.Reader, size int64) Splitter {
 	return &sizeSplitterv2{
-		r:    r,
+		r:    files.AdvReaderAdapter(r),
 		size: size,
 	}
 }
 
-func (ss *sizeSplitterv2) NextBytes() ([]byte, error) {
+func (ss *sizeSplitterv2) NextBytes() (Bytes, error) {
+	posInfo := ss.r.ExtraInfo()
 	if ss.err != nil {
-		return nil, ss.err
+		return Bytes{posInfo, nil}, ss.err
 	}
 	buf := make([]byte, ss.size)
 	n, err := io.ReadFull(ss.r, buf)
@@ -72,8 +79,8 @@ func (ss *sizeSplitterv2) NextBytes() ([]byte, error) {
 		err = nil
 	}
 	if err != nil {
-		return nil, err
+		return Bytes{posInfo, nil}, err
 	}
 
-	return buf[:n], nil
+	return Bytes{posInfo, buf[:n]}, nil
 }

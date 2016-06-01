@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 )
@@ -12,6 +13,7 @@ type DagBuilderHelper struct {
 	spl      chunk.Splitter
 	recvdErr error
 	nextData []byte // the next item to return.
+	posInfo  files.ExtraInfo
 	maxlinks int
 	batch    *dag.Batch
 }
@@ -45,7 +47,9 @@ func (db *DagBuilderHelper) prepareNext() {
 	}
 
 	// TODO: handle err (which wasn't handled either when the splitter was channeled)
-	db.nextData, _ = db.spl.NextBytes()
+	nextData, _ := db.spl.NextBytes()
+	db.nextData = nextData.Data
+	db.posInfo = nextData.PosInfo
 }
 
 // Done returns whether or not we're done consuming the incoming data.
