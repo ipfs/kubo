@@ -146,7 +146,7 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 		entry.Ttl = proto.Uint64(uint64(ttl.Nanoseconds()))
 	}
 
-	errs := make(chan error)
+	errs := make(chan error, 2)
 
 	go func() {
 		errs <- PublishEntry(ctx, r, ipnskey, entry)
