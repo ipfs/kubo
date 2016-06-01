@@ -9,9 +9,9 @@ import (
 	routing "github.com/ipfs/go-ipfs/routing"
 	supernode "github.com/ipfs/go-ipfs/routing/supernode"
 	gcproxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
-	"gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host"
+	"gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/host"
+	pstore "gx/ipfs/QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq/go-libp2p-peerstore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	"gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 // NB: DHT option is included in the core to avoid 1) because it's a sane
@@ -44,7 +44,7 @@ func SupernodeServer(recordSource ds.Datastore) core.RoutingOption {
 }
 
 // TODO doc
-func SupernodeClient(remotes ...peer.PeerInfo) core.RoutingOption {
+func SupernodeClient(remotes ...pstore.PeerInfo) core.RoutingOption {
 	return func(ctx context.Context, ph host.Host, dstore repo.Datastore) (routing.IpfsRouting, error) {
 		if len(remotes) < 1 {
 			return nil, errServersMissing

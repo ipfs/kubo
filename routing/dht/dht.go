@@ -14,17 +14,18 @@ import (
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	host "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host"
-	protocol "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/protocol"
-	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	host "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/host"
+	protocol "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/protocol"
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	pstore "gx/ipfs/QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq/go-libp2p-peerstore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("dht")
@@ -40,9 +41,9 @@ const NumBootstrapQueries = 5
 // IpfsDHT is an implementation of Kademlia with Coral and S/Kademlia modifications.
 // It is used to implement the base IpfsRouting module.
 type IpfsDHT struct {
-	host      host.Host      // the network services we need
-	self      peer.ID        // Local peer (yourself)
-	peerstore peer.Peerstore // Peer Registry
+	host      host.Host        // the network services we need
+	self      peer.ID          // Local peer (yourself)
+	peerstore pstore.Peerstore // Peer Registry
 
 	datastore ds.Datastore // Local data
 
@@ -127,7 +128,7 @@ func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
 func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, skey string) error {
 
 	// add self as the provider
-	pi := peer.PeerInfo{
+	pi := pstore.PeerInfo{
 		ID:    dht.self,
 		Addrs: dht.host.Addrs(),
 	}
@@ -140,7 +141,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, skey string) err
 	}
 
 	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, skey, 0)
-	pmes.ProviderPeers = pb.RawPeerInfosToPBPeers([]peer.PeerInfo{pi})
+	pmes.ProviderPeers = pb.RawPeerInfosToPBPeers([]pstore.PeerInfo{pi})
 	err := dht.sendMessage(ctx, p, pmes)
 	if err != nil {
 		return err
@@ -157,7 +158,7 @@ var errInvalidRecord = errors.New("received invalid record")
 // NOTE: It will update the dht's peerstore with any new addresses
 // it finds for the given peer.
 func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
-	key key.Key) (*pb.Record, []peer.PeerInfo, error) {
+	key key.Key) (*pb.Record, []pstore.PeerInfo, error) {
 
 	pmes, err := dht.getValueSingle(ctx, p, key)
 	if err != nil {
@@ -258,12 +259,12 @@ func (dht *IpfsDHT) Update(ctx context.Context, p peer.ID) {
 }
 
 // FindLocal looks for a peer with a given ID connected to this dht and returns the peer and the table it was found in.
-func (dht *IpfsDHT) FindLocal(id peer.ID) peer.PeerInfo {
+func (dht *IpfsDHT) FindLocal(id peer.ID) pstore.PeerInfo {
 	p := dht.routingTable.Find(id)
 	if p != "" {
 		return dht.peerstore.PeerInfo(p)
 	}
-	return peer.PeerInfo{}
+	return pstore.PeerInfo{}
 }
 
 // findPeerSingle asks peer 'p' if they know where the peer with id 'id' is

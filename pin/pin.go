@@ -45,11 +45,11 @@ const (
 func PinModeToString(mode PinMode) (string, bool) {
 	m := map[PinMode]string{
 		Recursive: linkRecursive,
-		Direct: linkDirect,
-		Indirect: linkIndirect,
-		Internal: linkInternal,
+		Direct:    linkDirect,
+		Indirect:  linkIndirect,
+		Internal:  linkInternal,
 		NotPinned: linkNotPinned,
-		Any: linkAny,
+		Any:       linkAny,
 	}
 	s, ok := m[mode]
 	return s, ok
@@ -58,12 +58,12 @@ func PinModeToString(mode PinMode) (string, bool) {
 func StringToPinMode(s string) (PinMode, bool) {
 	m := map[string]PinMode{
 		linkRecursive: Recursive,
-		linkDirect: Direct,
-		linkIndirect: Indirect,
-		linkInternal: Internal,
+		linkDirect:    Direct,
+		linkIndirect:  Indirect,
+		linkInternal:  Internal,
 		linkNotPinned: NotPinned,
-		linkAny: Any,
-		linkAll: Any, // "all" and "any" means the same thing
+		linkAny:       Any,
+		linkAll:       Any, // "all" and "any" means the same thing
 	}
 	mode, ok := m[s]
 	return mode, ok

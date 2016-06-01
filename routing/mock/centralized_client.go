@@ -9,12 +9,14 @@ import (
 	routing "github.com/ipfs/go-ipfs/routing"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	pstore "gx/ipfs/QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq/go-libp2p-peerstore"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var log = logging.Logger("mockrouter")
@@ -72,17 +74,17 @@ func (c *client) GetValues(ctx context.Context, key key.Key, count int) ([]routi
 	return []routing.RecvdVal{{Val: data, From: c.peer.ID()}}, nil
 }
 
-func (c *client) FindProviders(ctx context.Context, key key.Key) ([]peer.PeerInfo, error) {
+func (c *client) FindProviders(ctx context.Context, key key.Key) ([]pstore.PeerInfo, error) {
 	return c.server.Providers(key), nil
 }
 
-func (c *client) FindPeer(ctx context.Context, pid peer.ID) (peer.PeerInfo, error) {
+func (c *client) FindPeer(ctx context.Context, pid peer.ID) (pstore.PeerInfo, error) {
 	log.Debugf("FindPeer: %s", pid)
-	return peer.PeerInfo{}, nil
+	return pstore.PeerInfo{}, nil
 }
 
-func (c *client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.PeerInfo {
-	out := make(chan peer.PeerInfo)
+func (c *client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan pstore.PeerInfo {
+	out := make(chan pstore.PeerInfo)
 	go func() {
 		defer close(out)
 		for i, p := range c.server.Providers(k) {
@@ -102,7 +104,7 @@ func (c *client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-c
 // Provide returns once the message is on the network. Value is not necessarily
 // visible yet.
 func (c *client) Provide(_ context.Context, key key.Key) error {
-	info := peer.PeerInfo{
+	info := pstore.PeerInfo{
 		ID:    c.peer.ID(),
 		Addrs: []ma.Multiaddr{c.peer.Address()},
 	}
