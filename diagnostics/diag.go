@@ -12,15 +12,15 @@ import (
 	"time"
 
 	pb "github.com/ipfs/go-ipfs/diagnostics/pb"
-	host "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host"
-	inet "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net"
-	protocol "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/protocol"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	host "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/net"
+	protocol "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/protocol"
 	ctxio "gx/ipfs/QmX6DhWrpBB5NtadXmPSXYNdVvuLfJXoFNMvUMoVvP5UJa/go-context/io"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var log = logging.Logger("diagnostics")

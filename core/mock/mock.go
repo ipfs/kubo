@@ -13,10 +13,11 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	host "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host"
-	metrics "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/metrics"
-	mocknet "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net/mock"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	host "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/host"
+	metrics "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/metrics"
+	mocknet "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/net/mock"
+	pstore "gx/ipfs/QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq/go-libp2p-peerstore"
 )
 
 // NewMockNode constructs an IpfsNode for use in tests.
@@ -31,7 +32,7 @@ func NewMockNode() (*core.IpfsNode, error) {
 }
 
 func MockHostOption(mn mocknet.Mocknet) core.HostOption {
-	return func(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (host.Host, error) {
+	return func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (host.Host, error) {
 		return mn.AddPeerWithPeerstore(id, ps)
 	}
 }

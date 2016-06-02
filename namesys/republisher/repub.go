@@ -11,12 +11,13 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	gpctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	pstore "gx/ipfs/QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq/go-libp2p-peerstore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
@@ -32,7 +33,7 @@ const DefaultRecordLifetime = time.Hour * 24
 type Republisher struct {
 	r  routing.IpfsRouting
 	ds ds.Datastore
-	ps peer.Peerstore
+	ps pstore.Peerstore
 
 	Interval time.Duration
 
@@ -43,7 +44,7 @@ type Republisher struct {
 	entries   map[peer.ID]struct{}
 }
 
-func NewRepublisher(r routing.IpfsRouting, ds ds.Datastore, ps peer.Peerstore) *Republisher {
+func NewRepublisher(r routing.IpfsRouting, ds ds.Datastore, ps pstore.Peerstore) *Republisher {
 	return &Republisher{
 		r:              r,
 		ps:             ps,

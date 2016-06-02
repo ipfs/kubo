@@ -24,9 +24,9 @@ import (
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	conn "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net/conn"
+	conn "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/net/conn"
+	pstore "gx/ipfs/QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq/go-libp2p-peerstore"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 	prometheus "gx/ipfs/QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3/client_golang/prometheus"
 )
 
@@ -247,9 +247,9 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			repo.Close() // because ownership hasn't been transferred to the node
 			return
 		}
-		var infos []peer.PeerInfo
+		var infos []pstore.PeerInfo
 		for _, addr := range servers {
-			infos = append(infos, peer.PeerInfo{
+			infos = append(infos, pstore.PeerInfo{
 				ID:    addr.ID(),
 				Addrs: []ma.Multiaddr{addr.Transport()},
 			})

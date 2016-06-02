@@ -6,13 +6,15 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	routing "github.com/ipfs/go-ipfs/routing"
-	host "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host"
-	inet "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net"
+
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	host "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/net"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
+	pstore "gx/ipfs/QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq/go-libp2p-peerstore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var log = logging.Logger("bitswap_network")
@@ -45,7 +47,7 @@ func (bsnet *impl) newStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream,
 	// first, make sure we're connected.
 	// if this fails, we cannot connect to given peer.
 	//TODO(jbenet) move this into host.NewStream?
-	if err := bsnet.host.Connect(ctx, peer.PeerInfo{ID: p}); err != nil {
+	if err := bsnet.host.Connect(ctx, pstore.PeerInfo{ID: p}); err != nil {
 		return nil, err
 	}
 
@@ -101,7 +103,7 @@ func (bsnet *impl) SetDelegate(r Receiver) {
 }
 
 func (bsnet *impl) ConnectTo(ctx context.Context, p peer.ID) error {
-	return bsnet.host.Connect(ctx, peer.PeerInfo{ID: p})
+	return bsnet.host.Connect(ctx, pstore.PeerInfo{ID: p})
 }
 
 // FindProvidersAsync returns a channel of providers for the given key
@@ -129,7 +131,7 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k key.Key, max int) <
 			if info.ID == bsnet.host.ID() {
 				continue // ignore self as provider
 			}
-			bsnet.host.Peerstore().AddAddrs(info.ID, info.Addrs, peer.TempAddrTTL)
+			bsnet.host.Peerstore().AddAddrs(info.ID, info.Addrs, pstore.TempAddrTTL)
 			select {
 			case <-ctx.Done():
 				return

@@ -20,8 +20,8 @@ import (
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
-	mocknet "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net/mock"
-	"gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	mocknet "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/net/mock"
+	pstore "gx/ipfs/QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq/go-libp2p-peerstore"
 )
 
 func TestSupernodeBootstrappedAddCat(t *testing.T) {
@@ -103,7 +103,7 @@ func InitializeSupernodeNetwork(
 		servers = append(servers, bootstrap)
 	}
 
-	var bootstrapInfos []peer.PeerInfo
+	var bootstrapInfos []pstore.PeerInfo
 	for _, n := range servers {
 		info := n.Peerstore.PeerInfo(n.PeerHost.ID())
 		bootstrapInfos = append(bootstrapInfos, info)

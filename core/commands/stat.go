@@ -10,20 +10,20 @@ import (
 	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	metrics "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/metrics"
-	protocol "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/protocol"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	metrics "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/metrics"
+	protocol "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/protocol"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var StatsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Query ipfs statistics.",
-		Synopsis:         "ipfs stats <command>",
+		Tagline:  "Query ipfs statistics.",
+		Synopsis: "ipfs stats <command>",
 		ShortDescription: `'ipfs stats' is a set of commands to help look at statistics
 for your ipfs node.
 `,
-		LongDescription:  `'ipfs stats' is a set of commands to help look at statistics
+		LongDescription: `'ipfs stats' is a set of commands to help look at statistics
 for your ipfs node.`,
 	},
 
@@ -34,7 +34,7 @@ for your ipfs node.`,
 
 var statBwCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:  "Print ipfs bandwidth information.",
+		Tagline: "Print ipfs bandwidth information.",
 		Synopsis: `ipfs stats bw [--peer <peerId> | -p] [--proto <protocol> | -t] [--poll]
 [--interval <timeInterval> | -i]
 		`,

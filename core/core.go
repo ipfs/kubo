@@ -18,22 +18,23 @@ import (
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	diag "github.com/ipfs/go-ipfs/diagnostics"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	discovery "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/discovery"
+	p2phost "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/host"
+	p2pbhost "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/host/basic"
+	rhost "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/host/routed"
+	metrics "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/metrics"
+	swarm "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/net/swarm"
+	addrutil "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/net/swarm/addr"
+	ping "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/protocol/ping"
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
-	discovery "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/discovery"
-	p2phost "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host"
-	p2pbhost "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host/basic"
-	rhost "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host/routed"
-	metrics "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/metrics"
-	swarm "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net/swarm"
-	addrutil "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net/swarm/addr"
-	ping "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/protocol/ping"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	ic "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
 	mamask "gx/ipfs/QmUaRHbB7pUwj5mS9BS4CMvBiW48MpaH2wbGxeWfFhhHxK/multiaddr-filter"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+	pstore "gx/ipfs/QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq/go-libp2p-peerstore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 
 	routing "github.com/ipfs/go-ipfs/routing"
 	dht "github.com/ipfs/go-ipfs/routing/dht"
@@ -91,7 +92,7 @@ type IpfsNode struct {
 	PrivateKey ic.PrivKey // the local node's private Key
 
 	// Services
-	Peerstore  peer.Peerstore       // storage for other Peer instances
+	Peerstore  pstore.Peerstore     // storage for other Peer instances
 	Blockstore bstore.GCBlockstore  // the block store (lower level)
 	Blocks     *bserv.BlockService  // the block service, get/add blocks.
 	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
@@ -196,7 +197,7 @@ func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
 	return nil
 }
 
-func (n *IpfsNode) HandlePeerFound(p peer.PeerInfo) {
+func (n *IpfsNode) HandlePeerFound(p pstore.PeerInfo) {
 	log.Warning("trying peer info: ", p)
 	ctx, cancel := context.WithTimeout(n.Context(), discoveryConnTimeout)
 	defer cancel()
@@ -396,7 +397,7 @@ func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 	// if the caller did not specify a bootstrap peer function, get the
 	// freshest bootstrap peers from config. this responds to live changes.
 	if cfg.BootstrapPeers == nil {
-		cfg.BootstrapPeers = func() []peer.PeerInfo {
+		cfg.BootstrapPeers = func() []pstore.PeerInfo {
 			ps, err := n.loadBootstrapPeers()
 			if err != nil {
 				log.Warning("failed to parse bootstrap peers from config")
@@ -458,7 +459,7 @@ func (n *IpfsNode) LoadPrivateKey() error {
 	return nil
 }
 
-func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
+func (n *IpfsNode) loadBootstrapPeers() ([]pstore.PeerInfo, error) {
 	cfg, err := n.Repo.Config()
 	if err != nil {
 		return nil, err
@@ -562,12 +563,12 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 	return listen, nil
 }
 
-type HostOption func(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error)
+type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error)
 
 var DefaultHostOption HostOption = constructPeerHost
 
 // isolates the complex initialization steps
-func constructPeerHost(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error) {
+func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error) {
 
 	// no addresses to begin with. we'll start later.
 	network, err := swarm.NewNetwork(ctx, nil, id, ps, bwr)
