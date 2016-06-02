@@ -78,7 +78,6 @@ const longHelpFormat = `USAGE
 {{.Indent}}{{template "usage" .}}
 
 {{if .Synopsis}}SYNOPSIS
-
 {{.Synopsis}}
 
 {{end}}{{if .Arguments}}ARGUMENTS
