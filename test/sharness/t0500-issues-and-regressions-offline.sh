@@ -1,6 +1,6 @@
 #!/bin/sh
 
-test_description="Tests for various fxed issues and regressions."
+test_description="Tests for various fixed issues and regressions."
 
 . lib/test-lib.sh
 
