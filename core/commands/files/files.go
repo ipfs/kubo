@@ -40,7 +40,7 @@ operations.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("f", "flush", "Flush target and ancestors after write. Default: true."),
+		cmds.BoolOption("flush", "f", "Flush target and ancestors after write. Default: true."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -397,8 +397,8 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin reading from."),
-		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
+		cmds.IntOption("offset", "o", "Byte offset to begin reading from."),
+		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -565,10 +565,10 @@ stat' on the file or any of its ancestors.
 		cmds.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin writing at."),
-		cmds.BoolOption("e", "create", "Create the file if it does not exist."),
-		cmds.BoolOption("t", "truncate", "Truncate the file to size zero before writing."),
-		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
+		cmds.IntOption("offset", "o", "Byte offset to begin writing at."),
+		cmds.BoolOption("create", "e", "Create the file if it does not exist."),
+		cmds.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
+		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -678,7 +678,7 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "parents", "No error if existing, make parent directories as needed."),
+		cmds.BoolOption("parents", "p", "No error if existing, make parent directories as needed."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -758,7 +758,7 @@ Remove files or directories.
 		cmds.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("r", "recursive", "Recursively remove directories."),
+		cmds.BoolOption("recursive", "r", "Recursively remove directories."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
