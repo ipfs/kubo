@@ -244,6 +244,21 @@ test_expect_success "repo stats are updated correctly" '
   test $(get_field_num "RepoSize" repo-stats-2) -ge $(get_field_num "RepoSize" repo-stats)
 '
 
+test_expect_success "'ipfs repo version' succeeds" '
+  ipfs repo version > repo-version
+'
+
+test_expect_success "repo version came out correct" '
+	egrep "^ipfs repo version fs-repo@[0-9]" repo-version >/dev/null
+'
+
+test_expect_success "'ipfs repo version' succeeds" '
+  ipfs repo version -q > repo-version-q
+'
+test_expect_success "repo version came out correct" '
+	egrep "^fs-repo@[0-9]" repo-version-q >/dev/null
+'
+
 test_kill_ipfs_daemon
 
 test_done
