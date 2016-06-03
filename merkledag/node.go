@@ -211,10 +211,11 @@ func (n *Node) Stat() (*NodeStat, error) {
 	if err != nil {
 		return nil, err
 	}
+	bs := len(enc)
 
-	cumSize, err := n.Size()
-	if err != nil {
-		return nil, err
+	var ls int
+	for _, l := range n.Links {
+		ls += int(l.Size)
 	}
 
 	key, err := n.Key()
@@ -225,10 +226,10 @@ func (n *Node) Stat() (*NodeStat, error) {
 	return &NodeStat{
 		Hash:           key.B58String(),
 		NumLinks:       len(n.Links),
-		BlockSize:      len(enc),
-		LinksSize:      len(enc) - len(n.Data), // includes framing.
+		BlockSize:      bs,
+		LinksSize:      ls,
 		DataSize:       len(n.Data),
-		CumulativeSize: int(cumSize),
+		CumulativeSize: bs + ls,
 	}, nil
 }
 

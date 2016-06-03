@@ -103,10 +103,11 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 		return
 	}
 
-	cumSize, err := n.Size()
-	if err != nil {
-		t.Error("n.Size() failed")
-		return
+	bs := len(enc)
+
+	var ls int
+	for _, l := range n.Links {
+		ls += int(l.Size)
 	}
 
 	k, err := n.Key()
@@ -116,12 +117,12 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 	}
 
 	expected := NodeStat{
-		NumLinks:       len(n.Links),
-		BlockSize:      len(enc),
-		LinksSize:      len(enc) - len(n.Data), // includes framing.
-		DataSize:       len(n.Data),
-		CumulativeSize: int(cumSize),
 		Hash:           k.B58String(),
+		NumLinks:       len(n.Links),
+		BlockSize:      bs,
+		LinksSize:      ls,
+		DataSize:       len(n.Data),
+		CumulativeSize: bs + ls,
 	}
 
 	actual, err := n.Stat()
