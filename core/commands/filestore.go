@@ -27,7 +27,6 @@ var FileStoreCmd = &cmds.Command{
 	},
 	Subcommands: map[string]*cmds.Command{
 		"add":      addFileStore,
-		"add-ss":   addDirectFileStore,
 		"ls":       lsFileStore,
 		"ls-files": lsFiles,
 		"verify":   verifyFileStore,
@@ -49,11 +48,33 @@ Add contents of <path> to the filestore.  Most of the options are the
 same as for "ipfs add".
 `},
 	Arguments: []cmds.Argument{
-		cmds.FileArg("path", true, true, "The path to a file to be added.").EnableRecursive(),
+		cmds.StringArg("path", true, true, "The path to a file to be added."),
 	},
-	Options: AddCmd.Options,
-	PreRun:  AddCmd.PreRun,
+	Options: addFileStoreOpts(),
+	PreRun: func(req cmds.Request) error {
+		serverSide,_,_ := req.Option("server-side").Bool()
+		if !serverSide {
+			err := getFiles(req)
+			if err != nil {
+				return err
+			}
+		}
+		return AddCmd.PreRun(req)
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
+		config,_ := req.InvocContext().GetConfig()
+		serverSide,_,_ := req.Option("server-side").Bool()
+		if serverSide && !config.Filestore.APIServerSidePaths {
+		 	res.SetError(errors.New("Server Side Adds not enabled."), cmds.ErrNormal)
+			return
+		}
+		if serverSide {
+			err := getFiles(req)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
 		req.Values()["no-copy"] = true
 		AddCmd.Run(req, res)
 	},
@@ -61,50 +82,29 @@ same as for "ipfs add".
 	Type:    AddCmd.Type,
 }
 
-var addDirectFileStore = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Like add but the file is read locally on the server.",
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, true, "The path to a file to be added."),
-	},
-	Options:   addFileStore.Options,
-	PreRun: func(req cmds.Request) error {
-		for _, fn := range req.Arguments() {
-			if !path.IsAbs(fn) {
-				return errors.New("File path must be absolute.")
-			}
+func addFileStoreOpts() []cmds.Option {
+	var opts []cmds.Option
+	opts = append(opts, AddCmd.Options...)
+	opts = append(opts,
+		cmds.BoolOption("server-side", "S", "Read file on server."),
+	)
+	return opts
+}
+
+func getFiles(req cmds.Request) error {
+	inputs := req.Arguments()
+	for _, fn := range inputs {
+		if !path.IsAbs(fn) {
+			return errors.New("File path must be absolute.")
 		}
-		return nil
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		config, _ := req.InvocContext().GetConfig()
-		if !config.Filestore.APIServerSidePaths {
-			res.SetError(errors.New("Server Side Adds not enabled."), cmds.ErrNormal)
-			return
-		}
-		inputs := req.Arguments()
-		// Double check paths to be safe
-		for _, fn := range inputs {
-			if !path.IsAbs(fn) {
-				res.SetError(errors.New("File path must be absolute."), cmds.ErrNormal)
-				return
-			}
-		}
-		req.SetArguments(nil)
-		_, fileArgs, err := cli.ParseArgs(req, inputs, nil, addFileStore.Arguments, nil)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		file := files.NewSliceFile("", "", fileArgs)
-		req.SetFiles(file)
-		addFileStore.Run(req, res)
-	},
-	PostRun: func(req cmds.Request, res cmds.Response) {
-		addFileStore.PostRun(req, res)
-	},
-	Type: addFileStore.Type,
+	}
+	_, fileArgs, err := cli.ParseArgs(req, inputs, nil, AddCmd.Arguments, nil)
+	if err != nil {
+		return err
+	}
+	file := files.NewSliceFile("", "", fileArgs)
+	req.SetFiles(file)
+	return nil
 }
 
 var lsFileStore = &cmds.Command{

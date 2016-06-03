@@ -13,9 +13,14 @@ test_init_ipfs
 
 test_launch_ipfs_daemon
 
-test_expect_success "ipfs add-ss fails unless enable" '
+#test_expect_success "online add fails without add -S" '
+#  echo "Hello Worlds!" >mountdir/hello.txt &&
+#  test_must_fail ipfs filestore add "`pwd`"/mountdir/hello.txt >actual
+#'
+
+test_expect_success "ipfs add -S fails unless enable" '
   echo "Hello Worlds!" >mountdir/hello.txt &&
-  test_must_fail ipfs add-ss "`pwd`"/mountdir/hello.txt >actual
+  test_must_fail ipfs filestore add -S "`pwd`"/mountdir/hello.txt >actual
 '
 
 test_expect_success "filestore mv should fail" '
@@ -33,11 +38,11 @@ test_expect_success "enable Filestore.APIServerSidePaths" '
 
 test_launch_ipfs_daemon
 
-test_add_cat_file "filestore add-ss" "`pwd`"
+test_add_cat_file "filestore add -S" "`pwd`"
 
-test_post_add "filestore add-ss" "`pwd`"
+test_post_add "filestore add -S" "`pwd`"
 
-test_add_cat_5MB "filestore add-ss" "`pwd`"
+test_add_cat_5MB "filestore add -S" "`pwd`"
 
 cat <<EOF > add_expect
 added QmQhAyoEzSg5JeAzGDCx63aPekjSGKeQaYs4iRf4y6Qm6w adir
@@ -46,12 +51,12 @@ added QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH adir/file1
 added QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN adir/file2
 EOF
 
-test_expect_success "testing filestore add-ss -r" '
+test_expect_success "testing filestore add -S -r" '
   mkdir adir &&
   echo "Hello Worlds!" > adir/file1 &&
   echo "HELLO WORLDS!" > adir/file2 &&
   random 5242880 41 > adir/file3 &&
-  ipfs filestore add-ss -r "`pwd`/adir" | LC_ALL=C sort > add_actual &&
+  ipfs filestore add -S -r "`pwd`/adir" | LC_ALL=C sort > add_actual &&
   test_cmp add_expect add_actual &&
   ipfs cat QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > cat_actual
   test_cmp adir/file1 cat_actual

@@ -11,11 +11,11 @@ test_description="Test filestore"
 
 test_init_ipfs
 
-test_add_cat_file "filestore add" "."
+test_add_cat_file "filestore add" "`pwd`"
 
-test_post_add "filestore add" "."
+test_post_add "filestore add" "`pwd`"
 
-test_add_cat_5MB "filestore add" "."
+test_add_cat_5MB "filestore add" "`pwd`"
 
 test_expect_success "fail after file move" '
     mv mountdir/bigfile mountdir/bigfile2
@@ -67,7 +67,7 @@ test_expect_success "testing filestore verify" '
 '
 
 test_expect_success "tesing re-adding file after change" '
-  ipfs filestore add mountdir/hello.txt &&
+  ipfs filestore add "`pwd`"/mountdir/hello.txt &&
   ipfs filestore ls -q -a | grep -q QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
 '
 
@@ -107,7 +107,7 @@ test_expect_success "testing file removed" '
 
 test_expect_success "testing filestore rm-dups" '
   ipfs add mountdir/hello.txt > /dev/null &&
-  ipfs filestore add mountdir/hello.txt > /dev/null &&
+  ipfs filestore add "`pwd`"/mountdir/hello.txt > /dev/null &&
   ipfs filestore rm-dups > rm-dups-output &&
   grep -q "duplicate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN" rm-dups-output &&
   ipfs cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected &&
@@ -142,7 +142,7 @@ test_expect_success "testing filestore add -r" '
   echo "Hello Worlds!" > adir/file1 &&
   echo "HELLO WORLDS!" > adir/file2 &&
   random 5242880 41 > adir/file3 &&
-  ipfs filestore add -r adir | LC_ALL=C sort > add_actual &&
+  ipfs filestore add -r "`pwd`"/adir | LC_ALL=C sort > add_actual &&
   test_cmp add_expect add_actual
 '
 
@@ -175,7 +175,7 @@ QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH recursive
 EOF
 
 test_expect_success "testing filestore fix-pins --skip-root" '
-  ipfs filestore add -r adir > add_actual &&
+  ipfs filestore add -r "`pwd`"/adir > add_actual &&
   ipfs filestore rm --force QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > rm_actual
   ipfs filestore fix-pins --skip-root > fix_pins_actual &&
   ipfs pin ls | LC_ALL=C sort | grep -v " indirect" > pin_ls_actual &&
@@ -207,6 +207,6 @@ test_expect_success "testing filestore mv result" '
   grep -q "ok \+QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc " verify.out
 '
 
-test_add_cat_200MB "filestore add" "."
+test_add_cat_200MB "filestore add" "`pwd`"
 
 test_done
