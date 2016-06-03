@@ -1,7 +1,7 @@
 FROM alpine:3.3
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
-# There is a copy of this Dockerfile in test/sharness,
+# There is a copy of this Dockerfile called Dockerfile.fast,
 # which is optimized for build time, instead of image size.
 #
 # Please keep these two Dockerfiles in sync.

@@ -1,12 +1,10 @@
 FROM alpine:3.3
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
-# This is a copy of the root Dockerfile,
+# This is a copy of /Dockerfile,
 # except that we optimize for build time, instead of image size.
 #
 # Please keep these two Dockerfiles in sync.
-#
-# Only sections different from the root Dockerfile are commented.
 
 
 EXPOSE 4001
