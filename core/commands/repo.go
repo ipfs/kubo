@@ -6,8 +6,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"io"
 	"os"
@@ -27,9 +27,9 @@ var RepoCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"gc":   repoGcCmd,
-		"stat": repoStatCmd,
-		"fsck": RepoFsckCmd,
+		"gc":      repoGcCmd,
+		"stat":    repoStatCmd,
+		"fsck":    RepoFsckCmd,
 		"version": repoVersionCmd,
 	},
 }
@@ -214,6 +214,9 @@ daemons are running.
 	Type: MessageOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: MessageTextMarshaler,
+	},
+}
+
 var repoVersionCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show the repo version.",
