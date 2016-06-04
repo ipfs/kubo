@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -52,7 +54,7 @@ same as for "ipfs add".
 	},
 	Options: addFileStoreOpts(),
 	PreRun: func(req cmds.Request) error {
-		serverSide,_,_ := req.Option("server-side").Bool()
+		serverSide, _, _ := req.Option("server-side").Bool()
 		if !serverSide {
 			err := getFiles(req)
 			if err != nil {
@@ -62,10 +64,15 @@ same as for "ipfs add".
 		return AddCmd.PreRun(req)
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		config,_ := req.InvocContext().GetConfig()
-		serverSide,_,_ := req.Option("server-side").Bool()
+		node, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		config, _ := req.InvocContext().GetConfig()
+		serverSide, _, _ := req.Option("server-side").Bool()
 		if serverSide && !config.Filestore.APIServerSidePaths {
-		 	res.SetError(errors.New("Server Side Adds not enabled."), cmds.ErrNormal)
+			res.SetError(errors.New("Server Side Adds not enabled."), cmds.ErrNormal)
 			return
 		}
 		if serverSide {
@@ -74,6 +81,12 @@ same as for "ipfs add".
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
+		} else if node.OnlineMode() {
+			if !req.Files().IsDirectory() {
+				res.SetError(errors.New("expected directory object"), cmds.ErrNormal)
+				return
+			}
+			req.SetFiles(&fixPath{req.Arguments(), req.Files()})
 		}
 		req.Values()["no-copy"] = true
 		AddCmd.Run(req, res)
@@ -104,7 +117,118 @@ func getFiles(req cmds.Request) error {
 	}
 	file := files.NewSliceFile("", "", fileArgs)
 	req.SetFiles(file)
+	names := make([]string, len(fileArgs))
+	for i, f := range fileArgs {
+		names[i] = f.FullPath()
+	}
+	req.SetArguments(names)
 	return nil
+}
+
+type fixPath struct {
+	paths []string
+	orig  files.File
+}
+
+func (f *fixPath) IsDirectory() bool            { return true }
+func (f *fixPath) Read(res []byte) (int, error) { return 0, io.EOF }
+func (f *fixPath) FileName() string             { return f.orig.FileName() }
+func (f *fixPath) FullPath() string             { return f.orig.FullPath() }
+func (f *fixPath) Close() error                 { return f.orig.Close() }
+
+func (f *fixPath) NextFile() (files.File, error) {
+	f0, _ := f.orig.NextFile()
+	if f0 == nil {
+		return nil, io.EOF
+	}
+	if len(f.paths) == 0 {
+		return nil, errors.New("len(req.Files()) < len(req.Arguments())")
+	}
+	path := f.paths[0]
+	f.paths = f.paths[:1]
+	if f0.IsDirectory() {
+		return nil, errors.New("Online, directory add not supported, try '-S'")
+	} else {
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		stat, err := f.Stat()
+		if err != nil {
+			return nil, err
+		}
+		return &dualFile{
+			content: f0,
+			local:   files.NewReaderFile(f0.FileName(), path, f, stat),
+		}, nil
+	}
+}
+
+type dualFile struct {
+	content files.File
+	local   files.StatFile
+	buf     []byte
+}
+
+func (f *dualFile) IsDirectory() bool             { return false }
+func (f *dualFile) NextFile() (files.File, error) { return nil, files.ErrNotDirectory }
+func (f *dualFile) FileName() string              { return f.local.FileName() }
+func (f *dualFile) FullPath() string              { return f.local.FullPath() }
+func (f *dualFile) Stat() os.FileInfo             { return f.local.Stat() }
+func (f *dualFile) Size() (int64, error)          { return f.local.Stat().Size(), nil }
+
+func (f *dualFile) Read(res []byte) (int, error) {
+	// First read the content send from the client
+	n, err1 := f.content.Read(res)
+	if err1 == io.ErrUnexpectedEOF { // avoid this special case
+		err1 = io.EOF
+	}
+	if err1 != nil && err1 != io.EOF {
+		return 0, err1
+	}
+	res = res[:n]
+
+	// Next try to read the same amount of data from the local file
+	if n == 0 && err1 == io.EOF {
+		// Make sure we try to read at least one byte in order
+		// to get an EOF
+		n = 1
+	}
+	if cap(f.buf) < n {
+		f.buf = make([]byte, n)
+	} else {
+		f.buf = f.buf[:n]
+	}
+	n, err := io.ReadFull(f.local, f.buf)
+	if err == io.ErrUnexpectedEOF { // avoid this special case
+		err = io.EOF
+	}
+	if err != nil && err != io.EOF {
+		return 0, err
+	}
+	f.buf = f.buf[:n]
+
+	// Now compare the results and return an error if the contents
+	// sent from the client differ from the contents of the file
+	if len(res) == 0 && err1 == io.EOF {
+		if len(f.buf) == 0 && err == io.EOF {
+			return 0, io.EOF
+		} else {
+			return 0, errors.New("server side file is larger")
+		}
+	}
+	if !bytes.Equal(res, f.buf) {
+		return 0, errors.New("file contents differ")
+	}
+	return n, err1
+}
+
+func (f *dualFile) Close() error {
+	err := f.content.Close()
+	if err != nil {
+		return err
+	}
+	return f.local.Close()
 }
 
 var lsFileStore = &cmds.Command{
@@ -225,7 +349,7 @@ var lsFiles = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List files in filestore",
 		ShortDescription: `
-Lis files in the filestore.  If --quiet is specified only the
+List files in the filestore.  If --quiet is specified only the
 file names are printed, otherwise the fields are as follows:
   <filepath> <hash> <size>
 `,
@@ -272,7 +396,7 @@ func (w *chanWriter) Read(p []byte) (int, error) {
 	if w.offset >= len(w.buf) {
 		w.offset = 0
 		res, more := <-w.ch
-		
+
 		if !more {
 			if w.checksFailed {
 				w.errs = append(w.errs, "Some checks failed.")
@@ -309,7 +433,7 @@ func formatHash(res fsutil.ListRes) (string, error) {
 
 func formatPorcelain(res fsutil.ListRes) (string, error) {
 	if len(res.RawHash()) == 0 {
-		return "",nil
+		return "", nil
 	}
 	if res.DataObj == nil {
 		return "", fmt.Errorf("Key not found: %s.", res.MHash())
@@ -464,7 +588,7 @@ returned) to avoid special cases when parsing the output.
 		if porcelain {
 			res.SetOutput(&chanWriter{ch: ch, format: formatPorcelain, ignoreFailed: true})
 		} else {
-			res.SetOutput(&chanWriter{ch: ch, format:formatDefault})
+			res.SetOutput(&chanWriter{ch: ch, format: formatDefault})
 		}
 	},
 	Marshalers: cmds.MarshalerMap{

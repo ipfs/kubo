@@ -13,10 +13,11 @@ test_init_ipfs
 
 test_launch_ipfs_daemon
 
-#test_expect_success "online add fails without add -S" '
-#  echo "Hello Worlds!" >mountdir/hello.txt &&
-#  test_must_fail ipfs filestore add "`pwd`"/mountdir/hello.txt >actual
-#'
+test_add_cat_file "filestore add " "`pwd`"
+
+test_post_add "filestore add " "`pwd`"
+
+test_add_cat_5MB "filestore add " "`pwd`"
 
 test_expect_success "ipfs add -S fails unless enable" '
   echo "Hello Worlds!" >mountdir/hello.txt &&
@@ -31,6 +32,11 @@ test_expect_success "filestore mv should fail" '
 '
 
 test_kill_ipfs_daemon
+
+test_expect_success "clean filestore" '
+  ipfs filestore ls -q | xargs ipfs filestore rm &&
+  test -z "`ipfs filestore ls -q`"
+'
 
 test_expect_success "enable Filestore.APIServerSidePaths" '
   ipfs config Filestore.APIServerSidePaths --bool true
