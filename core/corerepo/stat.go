@@ -10,6 +10,7 @@ type Stat struct {
 	NumObjects uint64
 	RepoSize   uint64 // size in bytes
 	RepoPath   string
+	Version    string
 }
 
 func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
@@ -39,5 +40,6 @@ func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
 		NumObjects: count,
 		RepoSize:   usage,
 		RepoPath:   path,
+		Version:    "fs-repo@" + fsrepo.RepoVersion,
 	}, nil
 }

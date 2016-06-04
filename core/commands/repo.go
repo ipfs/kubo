@@ -6,12 +6,17 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	config "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"io"
 	"os"
 	"path/filepath"
 )
+
+type RepoVersion struct {
+	Version string
+}
 
 var RepoCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -22,9 +27,10 @@ var RepoCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"gc":   repoGcCmd,
-		"stat": repoStatCmd,
-		"fsck": RepoFsckCmd,
+		"gc":      repoGcCmd,
+		"stat":    repoStatCmd,
+		"fsck":    RepoFsckCmd,
+		"version": repoVersionCmd,
 	},
 }
 
@@ -109,6 +115,7 @@ set of stored objects and print repo statistics. It outputs to stdout:
 NumObjects      int Number of objects in the local repo.
 RepoPath        string The path to the repo being currently used.
 RepoSize        int Size in bytes that the repo is currently taking.
+Version         string The repo version.
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -151,6 +158,7 @@ RepoSize        int Size in bytes that the repo is currently taking.
 				fmt.Fprintf(buf, "RepoSize \t %d\n", stat.RepoSize)
 			}
 			fmt.Fprintf(buf, "RepoPath \t %s\n", stat.RepoPath)
+			fmt.Fprintf(buf, "Version \t %s\n", stat.Version)
 
 			return buf, nil
 		},
@@ -206,5 +214,43 @@ daemons are running.
 	Type: MessageOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: MessageTextMarshaler,
+	},
+}
+
+var repoVersionCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Show the repo version.",
+		ShortDescription: `
+'ipfs repo version' returns the current repo version.
+`,
+	},
+
+	Options: []cmds.Option{
+		cmds.BoolOption("quiet", "q", "Write minimal output."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		res.SetOutput(&RepoVersion{
+			Version: fsrepo.RepoVersion,
+		})
+	},
+	Type: RepoVersion{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			response := res.Output().(*RepoVersion)
+
+			quiet, _, err := res.Request().Option("quiet").Bool()
+			if err != nil {
+				return nil, err
+			}
+
+			buf := new(bytes.Buffer)
+			if quiet {
+				buf = bytes.NewBufferString(fmt.Sprintf("fs-repo@%s\n", response.Version))
+			} else {
+				buf = bytes.NewBufferString(fmt.Sprintf("ipfs repo version fs-repo@%s\n", response.Version))
+			}
+			return buf, nil
+
+		},
 	},
 }
