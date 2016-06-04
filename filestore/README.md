@@ -7,27 +7,54 @@ without duplicating the content in the IPFS datastore
 
 ## Quick start
 
-To add a file to IPFS without copying, first bring the daemon offline
-and then use `filestore add` or to add a directory use `filestore add
--r`.  (Throughout this document all command are assumed to start with
-`ipfs` so `filestore add` really mains `ipfs filestore add`).  For
-example to add the file `hello.txt` use:
+To add a file to IPFS without copying, use `filestore add -P` or to add a
+directory use `filestore add -P -r`.  (Throughout this document all
+command are assumed to start with `ipfs` so `filestore add` really
+mains `ipfs filestore add`).  For example to add the file `hello.txt`
+use:
 ```
-  ipfs filestore add "`pwd`"/hello.txt
+  ipfs filestore add -P hello.txt
 ```
-(Because the operating system idea of the current directory may differ
-from what you think it is, absolute paths are required.)
+The file or directory will then be added.  You can now try to retrieve
+it from another node such as the ipfs.io gateway.
 
-The file or directory will then be added.  You can now bring the
-daemon online and try to retrieve it from another node such as the
-ipfs.io gateway.
+Paths stores in the filestore must be absolute.  You can either
+provide an absolute path or use one of `-P` (`--physical`) or -l
+(`--logical`) to create one.  The `-P` (or `--physical`) means to make
+a absolute path from the physical working directory without any
+symbolic links in it; the -l (or `--logical`) means to use the `PWD`
+env. variable if possible.
 
-To add a file to IPFS without copying and the daemon online you must
-first enable API.ServerSideAdds using:
+If adding a file with the daemon online the same file must be
+accessible via the path provided by both the client and the server.
+Without extra options it is currently not possible to add directories
+with the daemon online.
+
+If the contents of an added file have changed the block will become
+invalid.  By default, the filestore uses the modification-time to
+determine if a file has changed.  If the mod-time of a file differs
+from what is expected the contents of the block are rechecked by
+recomputing the multihash and failing if the hash differs from what is
+expected.
+
+Adding files to the filestore will generally be faster than adding
+blocks normally as less data is copied around.  Retrieving blocks from
+the filestore takes about the same time when the hash is not
+recomputed, when it is retrieval is slower.
+
+## Server side adds
+
+When adding a file when the daemon is online.  The client sends both
+the file contents and path to the server, and the server will then
+verify that the same content is available via the specified path by
+reading the file again on the server side.  To avoid this extra
+overhead and allow directories to be added when the daemon is
+online server side paths can be used.
+
+To use this feature you must first enable API.ServerSideAdds using:
 ```
   ipfs config Filestore.APIServerSidePaths --bool true
 ```
-This will enable adding files from the filesystem the server is on.
 *This option should be used with care since it will allow anyone with
 access to the API Server access to any files that the daemon has
 permission to read.* For security reasons it is probably best to only
@@ -35,24 +62,12 @@ enable this on a single user system and to make sure the API server is
 configured to the default value of only binding to the localhost
 (`127.0.0.1`).
 
-With the API.ServerSideAdds option enabled you can add files using
-`filestore add-ss`.  Since the file will read by the daemon the
-absolute path must be specified.  For example, to add the file
-`hello.txt` in the local directory use something like:
+With the `Filestore.APIServerSidePaths` option enabled you can add
+files using `filestore add -S`.  For example, to add the file
+`hello.txt` in the current directory use:
 ```
-  ipfs filestore add-ss "`pwd`"/hello.txt
+  ipfs filestore add -S -P hello.txt
 ```
-
-If the contents of an added file have changed the block will become invalid.
-The filestore uses the modification-time to determine if a file has changed.
-If the mod-time of a file differs from what is expected the contents
-of the block are rechecked by recomputing the multihash and failing if
-the hash differs from what is expected.
-
-Adding files to the filestore will generally be faster than adding
-blocks normally as less data is copied around.  Retrieving blocks from
-the filestore takes about the same time when the hash is not
-recomputed, when it is retrieval is slower.
 
 ## Verifying blocks
 
