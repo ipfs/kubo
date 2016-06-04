@@ -23,7 +23,9 @@ func (NodeToBlock) CreateBlock(nd *merkledag.Node) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	if nd.DataPtr == nil {
+	// Empty blocks don't have PosInfo, so for now just don't add
+	// them to the filestore
+	if nd.DataPtr == nil || nd.DataPtr.Size == 0 {
 		return b0, nil
 	}
 	if nd.DataPtr.PosInfo == nil || nd.DataPtr.PosInfo.Stat == nil {

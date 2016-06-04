@@ -207,6 +207,20 @@ test_expect_success "testing filestore mv result" '
   grep -q "ok \+QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc " verify.out
 '
 
+#
+# Additional add tests
+#
+
+cat <<EOF > add_expect
+added QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH emptyfile
+EOF
+
+test_expect_success "testing adding of empty file" '
+  cat /dev/null > emptyfile
+  ipfs filestore add "`pwd`"/emptyfile > add_actual &&
+  test_cmp add_expect add_actual
+'
+
 test_add_cat_200MB "filestore add" "`pwd`"
 
 test_done
