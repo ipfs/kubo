@@ -55,6 +55,29 @@ same as for "ipfs add".
 	Options: addFileStoreOpts(),
 	PreRun: func(req cmds.Request) error {
 		serverSide, _, _ := req.Option("server-side").Bool()
+		logical, _, _ := req.Option("logical").Bool()
+		physical, _, _ := req.Option("physical").Bool()
+		if logical && physical {
+			return errors.New("Both --logical and --physical can not be specified.")
+		}
+		cwd := ""
+		var err error
+		if logical {
+			cwd, err = filestore.EnvWd()
+		}
+		if physical {
+			cwd, err = filestore.SystemWd()
+		}
+		if err != nil {
+			return err
+		}
+		if cwd != "" {
+			paths := req.Arguments()
+			for i, path := range paths {
+				paths[i] = filestore.AbsPath(cwd, path)
+			}
+			req.SetArguments(paths)
+		}
 		if !serverSide {
 			err := getFiles(req)
 			if err != nil {
@@ -100,6 +123,8 @@ func addFileStoreOpts() []cmds.Option {
 	opts = append(opts, AddCmd.Options...)
 	opts = append(opts,
 		cmds.BoolOption("server-side", "S", "Read file on server."),
+		cmds.BoolOption("l", "logical", "Create absolute path using the PWD from environment."),
+		cmds.BoolOption("P", "physical", "Create absolute path using the system call."),
 	)
 	return opts
 }
