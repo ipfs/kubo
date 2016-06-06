@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	. "github.com/ipfs/go-ipfs/filestore"
 
@@ -86,6 +87,23 @@ type ListRes struct {
 }
 
 var EmptyListRes = ListRes{ds.NewKey(""), nil, 0}
+
+func (r *ListRes) What() string {
+	if r.WholeFile() {
+		return "root"
+	} else {
+		return "leaf"
+	}
+}
+
+func (r *ListRes) StatusStr() string {
+	str := statusStr(r.Status)
+	str = strings.TrimRight(str, " ")
+	if str == "" {
+		str = "unchecked"
+	}
+	return str
+}
 
 func (r *ListRes) MHash() string {
 	return b58.Encode(r.Key.Bytes()[1:])

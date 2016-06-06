@@ -193,9 +193,9 @@ If <offset> is the special value "-" indicates a file root.
 		}
 
 		if quiet {
-			res.SetOutput(&chanWriter{ch: ch, quiet: true})
+			res.SetOutput(&chanWriter{ch: ch, format: formatHash})
 		} else {
-			res.SetOutput(&chanWriter{ch: ch})
+			res.SetOutput(&chanWriter{ch: ch, format: formatDefault})
 		}
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -245,7 +245,11 @@ file names are printed, otherwise the fields are as follows:
 			return
 		}
 		ch, _ := fsutil.ListWholeFile(fs)
-		res.SetOutput(&chanWriterByFile{ch, "", 0, quiet})
+		if quiet {
+			res.SetOutput(&chanWriter{ch: ch, format: formatFileName})
+		} else {
+			res.SetOutput(&chanWriter{ch: ch, format: formatByFile})
+		}
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -255,58 +259,77 @@ file names are printed, otherwise the fields are as follows:
 }
 
 type chanWriter struct {
-	ch     <-chan fsutil.ListRes
-	buf    string
-	offset int
-	errors bool
-	quiet  bool
+	ch           <-chan fsutil.ListRes
+	buf          string
+	offset       int
+	checksFailed bool
+	ignoreFailed bool
+	errs         []string
+	format       func(fsutil.ListRes) (string, error)
 }
 
 func (w *chanWriter) Read(p []byte) (int, error) {
 	if w.offset >= len(w.buf) {
 		w.offset = 0
 		res, more := <-w.ch
-		if !more && !w.errors {
-			return 0, io.EOF
-		} else if !more && w.errors {
-			return 0, errors.New("Some checks failed.")
-		} else if fsutil.AnError(res.Status) {
-			w.errors = true
-		}
-		if w.quiet {
-			w.buf = fmt.Sprintf("%s\n", res.MHash())
-		} else {
-			w.buf = res.Format()
-		}
-	}
-	sz := copy(p, w.buf[w.offset:])
-	w.offset += sz
-	return sz, nil
-}
-
-type chanWriterByFile struct {
-	ch     <-chan fsutil.ListRes
-	buf    string
-	offset int
-	quiet  bool
-}
-
-func (w *chanWriterByFile) Read(p []byte) (int, error) {
-	if w.offset >= len(w.buf) {
-		w.offset = 0
-		res, more := <-w.ch
+		
 		if !more {
-			return 0, io.EOF
+			if w.checksFailed {
+				w.errs = append(w.errs, "Some checks failed.")
+			}
+			if len(w.errs) == 0 {
+				return 0, io.EOF
+			} else {
+				return 0, errors.New(strings.Join(w.errs, "  "))
+			}
 		}
-		if w.quiet {
-			w.buf = fmt.Sprintf("%s\n", res.FilePath)
-		} else {
-			w.buf = fmt.Sprintf("%s %s %d\n", res.FilePath, res.MHash(), res.Size)
+
+		if !w.ignoreFailed && fsutil.AnError(res.Status) {
+			w.checksFailed = true
+		}
+
+		line, err := w.format(res)
+		w.buf = line
+		if err != nil {
+			w.errs = append(w.errs, fmt.Sprintf("%s: %s", res.MHash(), err.Error()))
 		}
 	}
 	sz := copy(p, w.buf[w.offset:])
 	w.offset += sz
 	return sz, nil
+}
+
+func formatDefault(res fsutil.ListRes) (string, error) {
+	return res.Format(), nil
+}
+
+func formatHash(res fsutil.ListRes) (string, error) {
+	return fmt.Sprintf("%s\n", res.MHash()), nil
+}
+
+func formatPorcelain(res fsutil.ListRes) (string, error) {
+	if len(res.RawHash()) == 0 {
+		return "",nil
+	}
+	if res.DataObj == nil {
+		return "", fmt.Errorf("Key not found: %s.", res.MHash())
+	}
+	pos := strings.IndexAny(res.FilePath, "\t\r\n")
+	if pos == -1 {
+		return fmt.Sprintf("%s\t%s\t%s\t%s\n", res.What(), res.StatusStr(), res.MHash(), res.FilePath), nil
+	} else {
+		str := fmt.Sprintf("%s\t%s\t%s\t%s\n", res.What(), res.StatusStr(), res.MHash(), "ERROR")
+		err := errors.New("Not displaying filename with tab or newline character.")
+		return str, err
+	}
+}
+
+func formatFileName(res fsutil.ListRes) (string, error) {
+	return fmt.Sprintf("%s\n", res.FilePath), nil
+}
+
+func formatByFile(res fsutil.ListRes) (string, error) {
+	return fmt.Sprintf("%s %s %d\n", res.FilePath, res.MHash(), res.Size), nil
 }
 
 var verifyFileStore = &cmds.Command{
@@ -316,10 +339,10 @@ var verifyFileStore = &cmds.Command{
 Verify <hash> nodes in the filestore.  If no hashes are specified then
 verify everything in the filestore.
 
-The output is:
-  <status> [<type> <filepath> <offset> <size> [<modtime>]]
-where <type>, <filepath>, <offset>, <size> and <modtime> are the same
-as in the "ls" command and <status> is one of
+The normal output is:
+  <status> <hash> [<type> <filepath> <offset> <size> [<modtime>]]
+where <hash> <type>, <filepath>, <offset>, <size> and <modtime>
+are the same as in the "ls" command and <status> is one of
 
   ok:       the original data can be reconstructed
   complete: all the blocks in the tree exists but no attempt was
@@ -342,12 +365,14 @@ as in the "ls" command and <status> is one of
 
   orphan: the node is a child of another node that was not found in
           the filestore
+
+If any checks failed than a non-zero exit status will be returned.
  
 If --basic is specified then just scan leaf nodes to verify that they
 are still valid.  Otherwise attempt to reconstruct the contents of
 all nodes and check for orphan nodes if applicable.
 
-The --level option specifies how thorough the checks should be.  A
+The --level option specifies how thorough the checks should be.  The
 current meaning of the levels are:
   7-9: always check the contents
   2-6: check the contents if the modification time differs
@@ -359,6 +384,19 @@ The --verbose option specifies what to output.  The current values are:
   5-6: don't show child nodes unless there is a problem
   3-4: don't show child nodes
   0-2: don't show root nodes unless there is a problem
+uninteresting means a status of 'ok' or '<blank>'
+
+If --porcelain is used us an alternative output is used that will not
+change between releases.  The output is:
+  <type0>\\t<status>\\t<hash>\\t<filename>
+where <type0> is either "root" for a file root or something else
+otherwise and \\t is a literal literal tab character.  <status> is the
+same as normal except that <blank> is spelled out as "unchecked".  In
+addition to the modified output a non-zero exit status will only be
+returned on an error condition and not just because of failed checks.
+In the event that <filename> contains a tab or newline character the
+filename will not be displayed (and a non-zero exit status will be
+returned) to avoid special cases when parsing the output.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -368,6 +406,7 @@ The --verbose option specifies what to output.  The current values are:
 		cmds.BoolOption("basic", "Perform a basic scan of leaf nodes only."),
 		cmds.IntOption("level", "l", "0-9, Verification level.").Default(6),
 		cmds.IntOption("verbose", "v", "0-9 Verbose level.").Default(6),
+		cmds.BoolOption("porcelain", "Porcelain output."),
 		cmds.BoolOption("skip-orphans", "Skip check for orphans."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -396,6 +435,11 @@ The --verbose option specifies what to output.  The current values are:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		porcelain, _, err := req.Option("porcelain").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		if level < 0 || level > 9 {
 			res.SetError(errors.New("level must be between 0-9"), cmds.ErrNormal)
 			return
@@ -406,18 +450,20 @@ The --verbose option specifies what to output.  The current values are:
 			return
 		}
 
+		var ch <-chan fsutil.ListRes
 		if basic && len(keys) == 0 {
-			ch, _ := fsutil.VerifyBasic(fs, level, verbose)
-			res.SetOutput(&chanWriter{ch: ch})
+			ch, _ = fsutil.VerifyBasic(fs, level, verbose)
 		} else if basic {
-			ch, _ := fsutil.VerifyKeys(keys, node, fs, level)
-			res.SetOutput(&chanWriter{ch: ch})
+			ch, _ = fsutil.VerifyKeys(keys, node, fs, level)
 		} else if len(keys) == 0 {
-			ch, _ := fsutil.VerifyFull(node, fs, level, verbose, skipOrphans)
-			res.SetOutput(&chanWriter{ch: ch})
+			ch, _ = fsutil.VerifyFull(node, fs, level, verbose, skipOrphans)
 		} else {
-			ch, _ := fsutil.VerifyKeysFull(keys, node, fs, level, verbose)
-			res.SetOutput(&chanWriter{ch: ch})
+			ch, _ = fsutil.VerifyKeysFull(keys, node, fs, level, verbose)
+		}
+		if porcelain {
+			res.SetOutput(&chanWriter{ch: ch, format: formatPorcelain, ignoreFailed: true})
+		} else {
+			res.SetOutput(&chanWriter{ch: ch, format:formatDefault})
 		}
 	},
 	Marshalers: cmds.MarshalerMap{
