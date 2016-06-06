@@ -111,7 +111,6 @@ type Adder struct {
 	mr         *mfs.Root
 	unlocker   bs.Unlocker
 	tempRoot   key.Key
-	AddOpts  interface{}
 }
 
 // Perform the actual add & pin locally, outputting results to reader
