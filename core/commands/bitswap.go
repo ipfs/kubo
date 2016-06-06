@@ -10,6 +10,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
+	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -23,6 +24,7 @@ var BitswapCmd = &cmds.Command{
 		"wantlist": showWantlistCmd,
 		"stat":     bitswapStatCmd,
 		"unwant":   unwantCmd,
+		"ledger":   bitswapLedgerCmd,
 	},
 }
 
@@ -167,6 +169,58 @@ var bitswapStatCmd = &cmds.Command{
 			for _, p := range out.Peers {
 				fmt.Fprintf(buf, "\t\t%s\n", p)
 			}
+			return buf, nil
+		},
+	},
+}
+
+var bitswapLedgerCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Displays ledger info for a peer.",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peer", true, false, "Specify which peer to show ledger info for."),
+	},
+	Type: decision.Ledger{},
+	Run: func(req cmds.Request, res cmds.Response) {
+		nd, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if !nd.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		bs, ok := nd.Exchange.(*bitswap.Bitswap)
+		if !ok {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
+		}
+
+		arg := req.Arguments()
+		pid, err := peer.IDB58Decode(arg[0])
+		fmt.Println(pid)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(bs.Engine.FindOrCreate(pid))
+
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			out, ok := res.Output().(*decision.Ledger)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			buf := new(bytes.Buffer)
+			fmt.Fprintln(buf, "ledger for peer")
+			fmt.Fprintf(buf, "\tpeer id: %s \n", out.Partner.Pretty())
+			fmt.Fprintf(buf, "\tdebt ratio: %f\n", out.Accounting.Value())
 			return buf, nil
 		},
 	},

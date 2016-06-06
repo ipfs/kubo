@@ -13,8 +13,8 @@ import (
 // access/lookups.
 type keySet map[key.Key]struct{}
 
-func newLedger(p peer.ID) *ledger {
-	return &ledger{
+func newLedger(p peer.ID) *Ledger {
+	return &Ledger{
 		wantList:   wl.New(),
 		Partner:    p,
 		sentToPeer: make(map[key.Key]time.Time),
@@ -23,7 +23,7 @@ func newLedger(p peer.ID) *ledger {
 
 // ledger stores the data exchange relationship between two peers.
 // NOT threadsafe
-type ledger struct {
+type Ledger struct {
 	// Partner is the remote Peer.
 	Partner peer.ID
 
@@ -58,31 +58,31 @@ func (dr *debtRatio) Value() float64 {
 	return float64(dr.BytesSent) / float64(dr.BytesRecv+1)
 }
 
-func (l *ledger) SentBytes(n int) {
+func (l *Ledger) SentBytes(n int) {
 	l.exchangeCount++
 	l.lastExchange = time.Now()
 	l.Accounting.BytesSent += uint64(n)
 }
 
-func (l *ledger) ReceivedBytes(n int) {
+func (l *Ledger) ReceivedBytes(n int) {
 	l.exchangeCount++
 	l.lastExchange = time.Now()
 	l.Accounting.BytesRecv += uint64(n)
 }
 
-func (l *ledger) Wants(k key.Key, priority int) {
+func (l *Ledger) Wants(k key.Key, priority int) {
 	log.Debugf("peer %s wants %s", l.Partner, k)
 	l.wantList.Add(k, priority)
 }
 
-func (l *ledger) CancelWant(k key.Key) {
+func (l *Ledger) CancelWant(k key.Key) {
 	l.wantList.Remove(k)
 }
 
-func (l *ledger) WantListContains(k key.Key) (wl.Entry, bool) {
+func (l *Ledger) WantListContains(k key.Key) (wl.Entry, bool) {
 	return l.wantList.Contains(k)
 }
 
-func (l *ledger) ExchangeCount() uint64 {
+func (l *Ledger) ExchangeCount() uint64 {
 	return l.exchangeCount
 }
