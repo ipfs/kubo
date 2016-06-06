@@ -10,8 +10,6 @@ import (
 	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	filescmds "github.com/ipfs/go-ipfs/core/commands/files"
-	objcmds "github.com/ipfs/go-ipfs/core/commands/object"
 	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	metrics "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/metrics"
 	protocol "gx/ipfs/QmQgQeBQxQmJdeUSaDagc8cr2ompDwGn13Cybjdtzfuaki/go-libp2p/p2p/protocol"
@@ -33,9 +31,6 @@ for your ipfs node.`,
 		"bw":      statBwCmd,
 		"repo":    repoStatCmd,
 		"bitswap": bitswapStatCmd,
-		"block":   blockStatCmd,
-		"files":   filescmds.FilesStatCmd,
-		"object":  objcmds.ObjectStatCmd,
 	},
 }
 
