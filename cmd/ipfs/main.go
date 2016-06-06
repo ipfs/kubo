@@ -343,7 +343,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		}
 
 		// Okay!!!!! NOW we can call the command.
-		res = root.Call(req)
+		res = root.Call(req, os.Stdout, os.Stderr)
 
 	}
 
@@ -604,7 +604,67 @@ func getApiClient(repoPath, apiAddrStr string) (cmdsHttp.Client, error) {
 		return nil, err
 	}
 
+<<<<<<< HEAD
 	return apiClientForAddr(addr)
+=======
+	client, err := apiClientForAddr(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	// make sure the api is actually running.
+	// this is slow, as it might mean an RTT to a remote server.
+	// TODO: optimize some way
+	if err := apiVersionMatches(client); err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+// apiVersionMatches checks whether the api server is running the
+// same version of go-ipfs. for now, only the exact same version of
+// client + server work. In the future, we should use semver for
+// proper API versioning! \o/
+func apiVersionMatches(client cmdsHttp.Client) (err error) {
+	ver, err := doVersionRequest(client)
+	if err != nil {
+		return err
+	}
+
+	currv := config.CurrentVersionNumber
+	if ver.Version != currv {
+		return fmt.Errorf("%s (%s != %s)", errApiVersionMismatch, ver.Version, currv)
+	}
+	return nil
+}
+
+func doVersionRequest(client cmdsHttp.Client) (*coreCmds.VersionOutput, error) {
+	cmd := coreCmds.VersionCmd
+	optDefs, err := cmd.GetOptions([]string{})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := cmds.NewRequest([]string{"version"}, nil, nil, nil, cmd, optDefs, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := client.Send(req)
+	if err != nil {
+		if isConnRefused(err) {
+			err = repo.ErrApiNotRunning
+		}
+		return nil, err
+	}
+
+	ver, ok := res.Output().(*coreCmds.VersionOutput)
+	if !ok {
+		return nil, errUnexpectedApiOutput
+	}
+	return ver, nil
+>>>>>>> atn/master
 }
 
 func apiClientForAddr(addr ma.Multiaddr) (cmdsHttp.Client, error) {

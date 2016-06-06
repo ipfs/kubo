@@ -28,7 +28,7 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		return nil, cmd, path, err
 	}
 
-	req, err := cmds.NewRequest(path, opts, nil, nil, cmd, optDefs)
+	req, err := cmds.NewRequest(path, opts, nil, nil, cmd, optDefs, nil)
 	if err != nil {
 		return nil, cmd, path, err
 	}

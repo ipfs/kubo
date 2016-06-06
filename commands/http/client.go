@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,11 +16,16 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
+<<<<<<< HEAD
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+=======
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	websocket "github.com/gorilla/websocket"
+>>>>>>> atn/master
 )
 
 const (
-	ApiUrlFormat = "http://%s%s/%s?%s"
+	ApiUrlFormat = "%s://%s%s/%s?%s"
 	ApiPath      = "/api/v0" // TODO: make configurable
 )
 
@@ -78,9 +84,20 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		reader = fileReader
 	}
 
+	var protocol string
+	if req.Command().Interact != nil {
+		protocol = "ws"
+	} else {
+		protocol = "http"
+	}
+	
 	path := strings.Join(req.Path(), "/")
-	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query)
+	url := fmt.Sprintf(ApiUrlFormat, protocol, c.serverAddress, ApiPath, path, query)
 
+	if req.Command().Interact != nil {
+		return streamingRequest(url, req)
+	}
+	
 	httpReq, err := http.NewRequest("POST", url, reader)
 	if err != nil {
 		return nil, err
@@ -116,6 +133,18 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	}
 
 	return res, nil
+}
+
+func streamingRequest(url string, req cmds.Request) (cmds.Response, error) {
+	conn, httpRes, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil { return nil, err }
+	wsio := NewWebsocketIO(conn)
+	defer wsio.Close()
+	err = req.Command().Interact(req, wsio)
+	if err != nil {
+		return nil, err
+	}
+	return getResponse(httpRes, req)
 }
 
 func getQuery(req cmds.Request) (string, error) {
@@ -154,7 +183,7 @@ func getQuery(req cmds.Request) (string, error) {
 // getResponse decodes a http.Response to create a cmds.Response
 func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error) {
 	var err error
-	res := cmds.NewResponse(req)
+	res := cmds.NewResponse(req, os.Stdout, os.Stderr)
 
 	contentType := httpRes.Header.Get(contentTypeHeader)
 	contentType = strings.Split(contentType, ";")[0]

@@ -118,7 +118,11 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		return nil, fmt.Errorf("File argument '%s' is required", requiredFile)
 	}
 
+<<<<<<< HEAD
 	req, err := cmds.NewRequest(pth, opts, args, f, cmd, optDefs)
+=======
+	req, err := cmds.NewRequest(path, opts, args, f, cmd, optDefs, nil)
+>>>>>>> atn/master
 	if err != nil {
 		return nil, err
 	}
