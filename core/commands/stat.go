@@ -28,7 +28,9 @@ for your ipfs node.`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"bw": statBwCmd,
+		"bw":      statBwCmd,
+		"repo":    repoStatCmd,
+		"bitswap": bitswapStatCmd,
 	},
 }
 
