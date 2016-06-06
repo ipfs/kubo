@@ -17,7 +17,7 @@ import (
 	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
 )
 
-const ProtocolSNR = "/ipfs/supernoderouting"
+const ProtocolSNR = "/openbazaar/supernoderouting"
 
 var log = logging.Logger("supernode/proxy")
 

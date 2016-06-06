@@ -8,7 +8,7 @@ import (
 	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
-var ProtocolBitswap protocol.ID = "/ipfs/bitswap"
+var ProtocolBitswap protocol.ID = "/openbazaar/bitswap"
 
 // BitSwapNetwork provides network connectivity for BitSwap sessions
 type BitSwapNetwork interface {

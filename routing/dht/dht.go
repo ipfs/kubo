@@ -29,7 +29,7 @@ import (
 
 var log = logging.Logger("dht")
 
-var ProtocolDHT protocol.ID = "/ipfs/dht"
+var ProtocolDHT protocol.ID = "/openbazaar/dht"
 
 // NumBootstrapQueries defines the number of random dht queries to do to
 // collect members of the routing table.
