@@ -48,6 +48,12 @@ type HelpText struct {
 	Subcommands     string // overrides SUBCOMMANDS section
 }
 
+type MessageIO interface {
+	Read(p []byte) (n int, err error)
+	Write(p []byte) (n int, err error)
+	ReadMessage() ([]byte, error)
+}
+
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
@@ -58,7 +64,7 @@ type Command struct {
 	PostRun    Function
 	Marshalers map[EncodingType]Marshaler
 	Helptext   HelpText
-	Interact   func(Request, io.ReadWriter) error
+	Interact   func(Request, MessageIO) error
 
 	// External denotes that a command is actually an external binary.
 	// fewer checks and validations will be performed on such commands.

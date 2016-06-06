@@ -8,29 +8,30 @@ import (
 )
 
 type WebsocketIO struct {
-	conn *websocket.Conn
+	conn   *websocket.Conn
 	reader io.Reader
 }
 
 func NewWebsocketIO(conn *websocket.Conn) WebsocketIO {
-	return WebsocketIO{conn, nil}
+	return WebsocketIO{
+		conn, nil,
+	}
 }
 
 func (wsio WebsocketIO) Read(buf []byte) (int, error) {
 	for {
 		if wsio.reader == nil {
 			_, reader, err := wsio.conn.NextReader()
-			closeError, ok := err.(*websocket.CloseError)
-			if ok && closeError.Code == 1000 {
-				return 0, io.EOF
-			}
 			if err != nil {
-				return 0, err 
+				if closeError, ok := err.(*websocket.CloseError); ok && closeError.Code == 1000 {
+					return 0, io.EOF
+				}
+				return 0, err
 			}
 			wsio.reader = reader
 		}
 		n, err := wsio.reader.Read(buf)
-		if (err != nil) {
+		if err != nil {
 			wsio.reader = nil
 			if n == 0 && err == io.EOF {
 				continue
@@ -38,6 +39,17 @@ func (wsio WebsocketIO) Read(buf []byte) (int, error) {
 		}
 		return n, err
 	}
+}
+
+func (wsio WebsocketIO) ReadMessage() ([]byte, error) {
+	_, r, err := wsio.conn.ReadMessage()
+	if err != nil {
+		if closeError, ok := err.(*websocket.CloseError); ok && closeError.Code == 1000 {
+			return nil, io.EOF
+		}
+		return nil, err
+	}
+	return r, err
 }
 
 func (wsio WebsocketIO) Write(buf []byte) (int, error) {
@@ -52,6 +64,6 @@ func (wsio WebsocketIO) Close() error {
 	_ = wsio.conn.WriteControl(
 		websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
-		time.Now().Add(2 * time.Second))
+		time.Now().Add(2*time.Second))
 	return wsio.conn.Close()
 }

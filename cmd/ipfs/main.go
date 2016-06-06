@@ -604,9 +604,6 @@ func getApiClient(repoPath, apiAddrStr string) (cmdsHttp.Client, error) {
 		return nil, err
 	}
 
-<<<<<<< HEAD
-	return apiClientForAddr(addr)
-=======
 	client, err := apiClientForAddr(addr)
 	if err != nil {
 		return nil, err
@@ -664,7 +661,6 @@ func doVersionRequest(client cmdsHttp.Client) (*coreCmds.VersionOutput, error) {
 		return nil, errUnexpectedApiOutput
 	}
 	return ver, nil
->>>>>>> atn/master
 }
 
 func apiClientForAddr(addr ma.Multiaddr) (cmdsHttp.Client, error) {

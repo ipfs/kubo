@@ -11,16 +11,11 @@ import (
 	"strings"
 	"sync"
 
-<<<<<<< HEAD
+	websocket "github.com/gorilla/websocket"
+
 	"github.com/ipfs/go-ipfs/repo/config"
 	cors "gx/ipfs/QmQzTLDsi3a37CJyMDBXnjiHKQpth3AGS1yqwU57FfLwfG/cors"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-=======
-	
-	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	websocket "github.com/gorilla/websocket"
->>>>>>> atn/master
+	/*context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"*/
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
@@ -151,18 +146,19 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(node.Context())
-	defer cancel()
-	if cn, ok := w.(http.CloseNotifier); ok {
-		clientGone := cn.CloseNotify()
-		go func() {
-			select {
-			case <-clientGone:
-			case <-ctx.Done():
-			}
-			cancel()
-		}()
-	}
+	ctx := node.Context()
+	/*ctx, cancel := context.WithCancel(node.Context())
+	  defer cancel()
+	  if cn, ok := w.(http.CloseNotifier); ok {
+	  	clientGone := cn.CloseNotify()
+	  	go func() {
+	  		select {
+	  		case <-clientGone:
+	  		case <-ctx.Done():
+	  		}
+	  		cancel()
+	  	}()
+	  }*/
 
 	if !allowOrigin(r, i.cfg) || !allowReferer(r, i.cfg) {
 		w.WriteHeader(http.StatusForbidden)
@@ -206,11 +202,8 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		req.SetStdin(wsio)
 		stdout = wsio
 		stderr = wsio
-	} else {	
-		stdout = nil
-		stderr = nil
 	}
-	
+
 	// call the command
 	res := i.root.Call(req, stdout, stderr)
 
@@ -221,7 +214,7 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.Header()[k] = v
 			}
 		}
-		
+
 		// now handle responding to the client properly
 		sendResponse(w, r, res, req)
 	}
