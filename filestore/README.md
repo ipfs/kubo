@@ -3,7 +3,11 @@
 The filestore is a work-in-progress datastore that stores the unixfs
 data component of blocks in files on the filesystem instead of in the
 block itself.  The main use of the datastore is to add content to IPFS
-without duplicating the content in the IPFS datastore
+without duplicating the content in the IPFS datastore.
+
+The filestore is developed on Debian (GNU/Linux) but should also work
+on MacOS X or other Unix like systems.  It might also work on Windows
+as long as absolute paths are used, but this is completely untested.
 
 ## Quick start
 
@@ -41,6 +45,20 @@ Adding files to the filestore will generally be faster than adding
 blocks normally as less data is copied around.  Retrieving blocks from
 the filestore takes about the same time when the hash is not
 recomputed, when it is retrieval is slower.
+
+## Adding all files in a directory
+
+The example script in filestore/examples/add-dir.sh can be used to add
+all files in a directly to the filestore and keep the filestore in
+sync with what is the directory.  Just specify the directory you want
+to add or update.  The first time it is run it will add all the files
+in the directory.  When run again it will readd any modified files.  A
+good use of this script is to add it to crontab to rerun the script
+periodically.
+
+The script is fairly basic but serves as an example of how to use the
+filestore.  A more sophisticated application could use i-notify or a
+similar interface to readd files as they are changed.
 
 ## Server side adds
 
