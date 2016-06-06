@@ -137,6 +137,7 @@ You can now refer to the added file in a gateway, like so:
 		dopin, _, _ := req.Option(pinOptionName).Bool()
 		nocopy, _, _ := req.Option(nocopyOptionName).Bool()
 		link, _, _ := req.Option(linkOptionName).Bool()
+		recursive, _, _ := req.Option(cmds.RecLong).Bool()
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -155,6 +156,7 @@ You can now refer to the added file in a gateway, like so:
 		res.SetOutput((<-chan interface{})(outChan))
 
 		var fileAdder *coreunix.Adder
+		useRoot := wrap || recursive
 		if nocopy || link {
 			fs, ok := n.Repo.SubDatastore(fsrepo.RepoFilestore).(*filestore.Datastore)
 			if !ok {
@@ -165,9 +167,9 @@ You can now refer to the added file in a gateway, like so:
 			blockService := bserv.New(blockstore, n.Exchange)
 			dagService := dag.NewDAGService(blockService)
 			dagService.NodeToBlock = filestore_support.NodeToBlock{}
-			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService)
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService, useRoot)
 		} else {
-			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, n.DAG)
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, n.DAG, useRoot)
 		}
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
