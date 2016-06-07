@@ -126,6 +126,8 @@ type messageSender struct {
 	lk  sync.Mutex
 	p   peer.ID
 	dht *IpfsDHT
+
+	singleMes int
 }
 
 func (dht *IpfsDHT) newMessageSender(p peer.ID) *messageSender {
@@ -156,11 +158,39 @@ func (ms *messageSender) SendMessage(ctx context.Context, pmes *pb.Message) erro
 		return err
 	}
 
-	err := ms.w.WriteMsg(pmes)
-	if err != nil {
+	if err := ms.writeMessage(pmes); err != nil {
+		return err
+	}
+
+	if ms.singleMes > 3 {
 		ms.s.Close()
 		ms.s = nil
-		return err
+	}
+
+	return nil
+}
+
+func (ms *messageSender) writeMessage(pmes *pb.Message) error {
+	err := ms.w.WriteMsg(pmes)
+	if err != nil {
+		// If the other side isnt expecting us to be reusing streams, we're gonna
+		// end up erroring here. To make sure things work seamlessly, lets retry once
+		// before continuing
+
+		log.Infof("error writing message: ", err)
+		ms.s.Close()
+		ms.s = nil
+		if err := ms.prep(); err != nil {
+			return err
+		}
+
+		if err := ms.w.WriteMsg(pmes); err != nil {
+			return err
+		}
+
+		// keep track of this happening. If it happens a few times, its
+		// likely we can assume the otherside will never support stream reuse
+		ms.singleMes++
 	}
 	return nil
 }
@@ -172,21 +202,22 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Message) (*pb
 		return nil, err
 	}
 
-	err := ms.w.WriteMsg(pmes)
-	if err != nil {
-		ms.s.Close()
-		ms.s = nil
+	if err := ms.writeMessage(pmes); err != nil {
 		return nil, err
 	}
 
 	log.Event(ctx, "dhtSentMessage", ms.dht.self, ms.p, pmes)
 
 	mes := new(pb.Message)
-	err = ms.r.ReadMsg(mes)
-	if err != nil {
+	if err := ms.r.ReadMsg(mes); err != nil {
 		ms.s.Close()
 		ms.s = nil
 		return nil, err
+	}
+
+	if ms.singleMes > 3 {
+		ms.s.Close()
+		ms.s = nil
 	}
 
 	return mes, nil
