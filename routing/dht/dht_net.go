@@ -151,6 +151,11 @@ func (ms *messageSender) prep() error {
 	return nil
 }
 
+// streamReuseTries is the number of times we will try to reuse a stream to a
+// given peer before giving up and reverting to the old one-message-per-stream
+// behaviour.
+const streamReuseTries = 3
+
 func (ms *messageSender) SendMessage(ctx context.Context, pmes *pb.Message) error {
 	ms.lk.Lock()
 	defer ms.lk.Unlock()
@@ -162,7 +167,7 @@ func (ms *messageSender) SendMessage(ctx context.Context, pmes *pb.Message) erro
 		return err
 	}
 
-	if ms.singleMes > 3 {
+	if ms.singleMes > streamReuseTries {
 		ms.s.Close()
 		ms.s = nil
 	}
@@ -215,7 +220,7 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Message) (*pb
 		return nil, err
 	}
 
-	if ms.singleMes > 3 {
+	if ms.singleMes > streamReuseTries {
 		ms.s.Close()
 		ms.s = nil
 	}
