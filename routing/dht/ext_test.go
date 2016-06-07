@@ -2,7 +2,6 @@ package dht
 
 import (
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"testing"
 	"time"
@@ -40,8 +39,7 @@ func TestGetFailures(t *testing.T) {
 
 	// Reply with failures to every message
 	hosts[1].SetStreamHandler(ProtocolDHT, func(s inet.Stream) {
-		defer s.Close()
-		io.Copy(ioutil.Discard, s)
+		s.Close()
 	})
 
 	// This one should time out
@@ -51,7 +49,7 @@ func TestGetFailures(t *testing.T) {
 			err = merr[0]
 		}
 
-		if err.Error() != "process closing" {
+		if err != io.EOF {
 			t.Fatal("Got different error than we expected", err)
 		}
 	} else {

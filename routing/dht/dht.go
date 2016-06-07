@@ -58,6 +58,9 @@ type IpfsDHT struct {
 
 	ctx  context.Context
 	proc goprocess.Process
+
+	strmap map[peer.ID]*messageSender
+	smlk   sync.Mutex
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
@@ -77,6 +80,7 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.Datastore) *IpfsDHT {
 		return nil
 	})
 
+	dht.strmap = make(map[peer.ID]*messageSender)
 	dht.ctx = ctx
 
 	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
