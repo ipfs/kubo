@@ -1,7 +1,6 @@
 package coreunix
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -68,7 +67,7 @@ type AddedObject struct {
 }
 
 func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds dag.DAGService) (*Adder, error) {
-	mr, err := mfs.NewRoot(ctx, ds, newDirNode(), nil)
+	mr, err := mfs.NewRoot(ctx, ds, NewDirNode(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +106,10 @@ type Adder struct {
 	mr         *mfs.Root
 	unlocker   bs.Unlocker
 	tempRoot   key.Key
+}
+
+func (adder *Adder) SetMfsRoot(r *mfs.Root) {
+	adder.mr = r
 }
 
 // Perform the actual add & pin locally, outputting results to reader
@@ -214,34 +217,32 @@ func (adder *Adder) Finalize() (*dag.Node, error) {
 	return root.GetNode()
 }
 
-func (adder *Adder) outputDirs(path string, fs mfs.FSNode) error {
-	nd, err := fs.GetNode()
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(nd.Data, folderData) || fs.Type() != mfs.TDir {
+func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
+	switch fsn := fsn.(type) {
+	case *mfs.File:
 		return nil
-	}
+	case *mfs.Directory:
+		for _, name := range fsn.ListNames() {
+			child, err := fsn.Child(name)
+			if err != nil {
+				return err
+			}
 
-	dir, ok := fs.(*mfs.Directory)
-	if !ok {
-		return fmt.Errorf("received FSNode of type TDir that was not a Directory")
-	}
-
-	for _, name := range dir.ListNames() {
-		child, err := dir.Child(name)
+			childpath := gopath.Join(path, name)
+			err = adder.outputDirs(childpath, child)
+			if err != nil {
+				return err
+			}
+		}
+		nd, err := fsn.GetNode()
 		if err != nil {
 			return err
 		}
 
-		err = adder.outputDirs(gopath.Join(path, name), child)
-		if err != nil {
-			return err
-		}
+		return outputDagnode(adder.Out, path, nd)
+	default:
+		return fmt.Errorf("unrecognized fsn type: %#v", fsn)
 	}
-
-	return outputDagnode(adder.Out, path, nd)
 }
 
 // Add builds a merkledag from the a reader, pinning all objects to the local
@@ -488,7 +489,7 @@ func NewMemoryDagService() dag.DAGService {
 }
 
 // TODO: generalize this to more than unix-fs nodes.
-func newDirNode() *dag.Node {
+func NewDirNode() *dag.Node {
 	return &dag.Node{Data: unixfs.FolderPBData()}
 }
 
