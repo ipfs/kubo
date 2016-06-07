@@ -261,12 +261,13 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 	// add provider should use the address given in the message
 	pinfos := pb.PBPeersToPeerInfos(pmes.GetProviderPeers())
 	for _, pi := range pinfos {
-		if pi.ID != p {
+		// We need to disable this check for OpenBazaar pointers to work
+		/*if pi.ID != p {
 			// we should ignore this provider reccord! not from originator.
 			// (we chould sign them and check signature later...)
 			log.Debugf("handleAddProvider received provider %s from %s. Ignore.", pi.ID, p)
 			continue
-		}
+		}*/
 
 		if len(pi.Addrs) < 1 {
 			log.Debugf("%s got no valid addresses for provider %s. Ignore.", dht.self, p)
@@ -274,7 +275,7 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 		}
 
 		log.Infof("received provider %s for %s (addrs: %s)", p, key, pi.Addrs)
-		if pi.ID != dht.self { // dont add own addrs.
+		if pi.ID != dht.self && pi.ID != dht.providers.magicID { // dont add own addrs or magic pointers.
 			// add the received addresses to our peerstore.
 			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, peer.ProviderAddrTTL)
 		}

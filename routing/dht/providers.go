@@ -93,9 +93,9 @@ func (pm *ProviderManager) run() {
 			for _, provs := range pm.providers {
 				var filtered []peer.ID
 				for p, t := range provs.set {
-					if time.Now().Sub(t) > time.Hour*24 && p.Pretty() != pm.magicID.Pretty() {
+					if time.Now().Sub(t) > time.Hour*24 && p != pm.magicID {
 						delete(provs.set, p)
-					} else if time.Now().Sub(t) > time.Hour*168 && p.Pretty() == pm.magicID.Pretty() {
+					} else if time.Now().Sub(t) > time.Hour*168 && p == pm.magicID {
 						delete(provs.set, p)
 					} else {
 						filtered = append(filtered, p)
