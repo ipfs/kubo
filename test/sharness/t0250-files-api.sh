@@ -19,7 +19,7 @@ test_expect_success "can create some files for testing" '
 	echo cats > stuff_test/a &&
 	echo dogs > stuff_test/b &&
 	echo giraffes > stuff_test/c &&
-	DIR1=$(ipfs add -q stuff_test | tail -n1)
+	DIR1=$(ipfs add -rq stuff_test | tail -n1)
 '
 
 verify_path_exists() {
@@ -437,6 +437,25 @@ test_files_api() {
 	test_expect_success "child dir looks right" '
 		verify_dir_contents /
 	'
+
+  # test for https://github.com/ipfs/go-ipfs/issues/2654
+	test_expect_success "create and remove dir" '
+    ipfs files mkdir /test_dir &&
+    ipfs files rm -r "/test_dir"
+	'
+	test_expect_success "create test file" '
+    echo "content" | ipfs files write -e "/test_file"
+  '
+	test_expect_success "copy test file onto test dir" '
+    ipfs files cp "/test_file" "/test_dir"
+  '
+  test_expect_success "test /test_dir" '
+    ipfs files stat "/test_dir" | grep -q "^Type: file"
+  '
+  test_expect_success "clean up /test_dir and /test_file" '
+    ipfs files rm -r /test_dir &&
+    ipfs files rm -r /test_file
+  '
 }
 
 # test offline and online
@@ -446,9 +465,9 @@ test_expect_success "clean up objects from previous test run" '
 	ipfs repo gc
 '
 
-test_launch_ipfs_daemon
-
 ONLINE=1 # set online flag so tests can easily tell
+test_launch_ipfs_daemon
 test_files_api
 test_kill_ipfs_daemon
+
 test_done

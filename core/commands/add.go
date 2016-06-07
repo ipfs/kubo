@@ -120,10 +120,18 @@ You can now refer to the added file in a gateway, like so:
 		trickle, _, _ := req.Option(trickleOptionName).Bool()
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
 		hash, _, _ := req.Option(onlyHashOptionName).Bool()
+		recursive, _, _ := req.Option("recursive").Bool()
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, _, _ := req.Option(pinOptionName).Bool()
+
+		// Temporarily disabled. See https://github.com/ipfs/go-ipfs/issues/2784
+		if hash && recursive {
+			err = fmt.Errorf("Recursive hash-only functionality temporarily disabled.\n\nSee https://github.com/ipfs/go-ipfs/issues/2784")
+			res.SetError(err, cmds.ErrClient)
+			return
+		}
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -173,14 +181,14 @@ You can now refer to the added file in a gateway, like so:
 				}
 			}
 
+			if hash {
+				return nil
+			}
+
 			// copy intermediary nodes from editor to our actual dagservice
 			_, err := fileAdder.Finalize()
 			if err != nil {
 				return err
-			}
-
-			if hash {
-				return nil
 			}
 
 			return fileAdder.PinRoot()
