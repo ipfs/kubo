@@ -8,7 +8,8 @@ import (
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
-var ProtocolBitswap protocol.ID = "/ipfs/bitswap"
+var ProtocolBitswapOld protocol.ID = "/ipfs/bitswap"
+var ProtocolBitswap protocol.ID = "/ipfs/bitswap/1.0.0"
 
 // BitSwapNetwork provides network connectivity for BitSwap sessions
 type BitSwapNetwork interface {

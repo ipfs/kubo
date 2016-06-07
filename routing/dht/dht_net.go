@@ -2,6 +2,7 @@ package dht
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
@@ -66,12 +67,29 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 	return
 }
 
+func (dht *IpfsDHT) streamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
+	s, err := dht.host.NewStream(ctx, ProtocolDHT, p)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.Read(nil)
+	if err != nil {
+		if strings.Contains(err.Error(), "protocol mismatch") {
+			return dht.host.NewStream(ctx, ProtocolDHTOld, p)
+		}
+		return nil, err
+	}
+
+	return s, nil
+}
+
 // sendRequest sends out a request, but also makes sure to
 // measure the RTT for latency measurements.
 func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 
 	log.Debugf("%s DHT starting stream", dht.self)
-	s, err := dht.host.NewStream(ctx, ProtocolDHT, p)
+	s, err := dht.streamToPeer(ctx, p)
 	if err != nil {
 		return nil, err
 	}
