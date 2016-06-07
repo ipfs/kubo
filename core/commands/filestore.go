@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -132,8 +131,8 @@ func addFileStoreOpts() []cmds.Option {
 func getFiles(req cmds.Request) error {
 	inputs := req.Arguments()
 	for _, fn := range inputs {
-		if !path.IsAbs(fn) {
-			return errors.New("File path must be absolute.")
+		if !filepath.IsAbs(fn) {
+			return fmt.Errorf("File path must be absolute: %s", fn)
 		}
 	}
 	_, fileArgs, err := cli.ParseArgs(req, inputs, nil, AddCmd.Arguments, nil)
