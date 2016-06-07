@@ -6,14 +6,6 @@
 #
 # Based on the Bash documentation example.
 
-# Hello Chet,
-# please find attached a "little easier"  :-)  to comprehend
-# time-out example.  If you find it suitable, feel free to include
-# anywhere: the very same logic as in the original examples/scripts, a
-# little more transparent implementation to my taste.
-#
-# Dmitry V Golovashkin <Dmitry.Golovashkin@sas.com>
-
 scriptName="${0##*/}"
 
 declare -i DEFAULT_TIMEOUT=9
