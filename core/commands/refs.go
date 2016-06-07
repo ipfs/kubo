@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 
@@ -169,7 +168,6 @@ var refsMarshallerMap = cmds.MarshalerMap{
 		marshal := func(v interface{}) (io.Reader, error) {
 			obj, ok := v.(*RefWrapper)
 			if !ok {
-				fmt.Println("%#v", v)
 				return nil, u.ErrCast()
 			}
 
