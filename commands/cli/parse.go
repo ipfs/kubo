@@ -244,15 +244,6 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		stdin = nil
 	}
 
-	// check if stdin is coming from terminal or is being piped in
-	if stdin != nil {
-		if term, err := isTerminal(stdin); err != nil {
-			return nil, nil, err
-		} else if term {
-			stdin = nil // set to nil so we ignore it
-		}
-	}
-
 	// count required argument definitions
 	numRequired := 0
 	for _, argDef := range argDefs {
@@ -293,9 +284,18 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 			numRequired--
 		}
 
+		fillingVariadic := argDefIndex+1 > len(argDefs)
+
 		var err error
 		if argDef.Type == cmds.ArgString {
-			if stdin == nil {
+			if len(inputs) > 0 {
+				// If argument is "-" use stdin
+				if inputs[0] == "-" && argDef.SupportsStdin {
+					stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
+					if err != nil {
+						return nil, nil, err
+					}
+				}
 				// add string values
 				stringArgs, inputs = appendString(stringArgs, inputs)
 			} else if !argDef.SupportsStdin {
@@ -307,35 +307,39 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 
 				stringArgs, inputs = appendString(stringArgs, inputs)
 			} else {
-				if len(inputs) > 0 {
-					// don't use stdin if we have inputs
-					stdin = nil
-				} else {
+				if stdin != nil && argDef.Required && !fillingVariadic {
 					// if we have a stdin, read it in and use the data as a string value
 					stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
 					if err != nil {
 						return nil, nil, err
 					}
+				} else {
+					break
 				}
 			}
 		} else if argDef.Type == cmds.ArgFile {
-			if stdin == nil || !argDef.SupportsStdin {
+			if len(inputs) > 0 {
 				// treat stringArg values as file paths
 				fpath := inputs[0]
 				inputs = inputs[1:]
-				file, err := appendFile(fpath, argDef, recursive, hidden)
+				var file files.File
+				var err error
+				if fpath == "-" {
+					file = files.NewReaderFile("", "", stdin, nil)
+				} else {
+					file, err = appendFile(fpath, argDef, recursive, hidden)
+				}
 				if err != nil {
 					return nil, nil, err
 				}
 
 				fileArgs[fpath] = file
 			} else {
-				if len(inputs) > 0 {
-					// don't use stdin if we have inputs
-					stdin = nil
-				} else {
-					// if we have a stdin, create a file from it
+				if stdin != nil && argDef.SupportsStdin &&
+					argDef.Required && !fillingVariadic {
 					fileArgs[""] = files.NewReaderFile("", "", stdin, nil)
+				} else {
+					break
 				}
 			}
 		}
@@ -430,17 +434,4 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 	}
 
 	return files.NewSerialFile(path.Base(fpath), fpath, hidden, stat)
-}
-
-// isTerminal returns true if stdin is a Stdin pipe (e.g. `cat file | ipfs`),
-// and false otherwise (e.g. nothing is being piped in, so stdin is
-// coming from the terminal)
-func isTerminal(stdin *os.File) (bool, error) {
-	stat, err := stdin.Stat()
-	if err != nil {
-		return false, err
-	}
-
-	// if stdin is a CharDevice, return true
-	return ((stat.Mode() & os.ModeCharDevice) != 0), nil
 }
