@@ -73,7 +73,7 @@ var swarmPeersCmd = &cmds.Command{
 		}
 
 		sort.Sort(sort.StringSlice(addrs))
-		res.SetOutput(&stringList{addrs})
+		res.SetOutput(addrs)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: stringListMarshaler,
