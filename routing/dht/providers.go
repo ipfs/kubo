@@ -7,12 +7,10 @@ import (
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
 	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
-	multihash "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	"encoding/hex"
 )
 
-const MAGIC string = "0000000000000000000000000000000000000000000000000000000000000000"
+const MAGIC string = "000000000000000000000000"
 
 type ProviderManager struct {
 	// all non channel fields are meant to be accessed only within
@@ -21,12 +19,11 @@ type ProviderManager struct {
 	local     map[key.Key]struct{}
 	lpeer     peer.ID
 
-	getlocal chan chan []key.Key
-	newprovs chan *addProv
-	getprovs chan *getProv
-	period   time.Duration
-	proc     goprocess.Process
-	magicID  peer.ID
+	getlocal     chan chan []key.Key
+	newprovs     chan *addProv
+	getprovs     chan *getProv
+	period       time.Duration
+	proc         goprocess.Process
 }
 
 type providerSet struct {
@@ -53,8 +50,6 @@ func NewProviderManager(ctx context.Context, local peer.ID) *ProviderManager {
 	pm.local = make(map[key.Key]struct{})
 	pm.proc = goprocessctx.WithContext(ctx)
 	pm.proc.Go(func(p goprocess.Process) { pm.run() })
-	mID, _ := getMagicID()
-	pm.magicID = mID
 	return pm
 }
 
@@ -93,9 +88,9 @@ func (pm *ProviderManager) run() {
 			for _, provs := range pm.providers {
 				var filtered []peer.ID
 				for p, t := range provs.set {
-					if time.Now().Sub(t) > time.Hour*24 && p != pm.magicID {
+					if time.Now().Sub(t) > time.Hour*24 && !isPointer(p) {
 						delete(provs.set, p)
-					} else if time.Now().Sub(t) > time.Hour*168 && p == pm.magicID {
+					} else if time.Now().Sub(t) > time.Hour*168 && isPointer(p) {
 						delete(provs.set, p)
 					} else {
 						filtered = append(filtered, p)
@@ -160,18 +155,7 @@ func (ps *providerSet) Add(p peer.ID) {
 	ps.set[p] = time.Now()
 }
 
-func getMagicID() (peer.ID, error){
-	magicBytes, err := hex.DecodeString(MAGIC)
-	if err != nil {
-		return "", err
-	}
-	h, err := multihash.Encode(magicBytes, multihash.SHA2_256)
-	if err != nil {
-		return "", err
-	}
-	id, err := peer.IDFromBytes(h)
-	if err != nil {
-		return "", err
-	}
-	return id, nil
+func isPointer(id peer.ID) bool {
+	hexID := peer.IDHexEncode(id)
+	return hexID[4:28] == MAGIC
 }
