@@ -1,3 +1,5 @@
+// +build !windows
+
 package filestore
 
 import (
@@ -56,9 +58,9 @@ func EnvWd() (string, error) {
 	return SystemWd()
 }
 
-func AbsPath(dir string, file string) string {
+func AbsPath(dir string, file string) (string,error) {
 	if file[0] == '/' {
-		return CleanPath(file)
+		return CleanPath(file), nil
 	}
-	return CleanPath(dir + "/" + file)
+	return CleanPath(dir + "/" + file), nil
 }

@@ -73,7 +73,11 @@ same as for "ipfs add".
 		if cwd != "" {
 			paths := req.Arguments()
 			for i, path := range paths {
-				paths[i] = filestore.AbsPath(cwd, path)
+				abspath, err := filestore.AbsPath(cwd, path)
+				if err != nil {
+					return err
+				}
+				paths[i] = abspath
 			}
 			req.SetArguments(paths)
 		}
