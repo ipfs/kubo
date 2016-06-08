@@ -96,16 +96,6 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.Datastore) *IpfsDHT {
 	return dht
 }
 
-// LocalPeer returns the peer.Peer of the dht.
-func (dht *IpfsDHT) LocalPeer() peer.ID {
-	return dht.self
-}
-
-// log returns the dht's logger
-func (dht *IpfsDHT) log() logging.EventLogger {
-	return log // TODO rm
-}
-
 // putValueToPeer stores the given key/value pair at the peer 'p'
 func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
 	key key.Key, rec *pb.Record) error {
