@@ -279,7 +279,7 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 			// add the received addresses to our peerstore.
 			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, peer.ProviderAddrTTL)
 		}
-		dht.providers.AddProvider(ctx, key, p)
+		dht.providers.AddProvider(ctx, key, pi.ID)
 	}
 
 	return nil, nil
