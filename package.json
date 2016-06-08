@@ -123,6 +123,12 @@
       "hash": "QmdYwCmx8pZRkzdcd8MhmLJqYVoVTC1aGsy5Q4reMGLNLg",
       "name": "atomicfile",
       "version": "0.0.0"
+    },
+    {
+      "author": "syndtr",
+      "hash": "QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g",
+      "name": "goleveldb",
+      "version": "0.0.1"
     }
   ],
   "gxVersion": "0.4.0",
