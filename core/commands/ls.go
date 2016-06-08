@@ -45,6 +45,7 @@ format:
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
+		cmds.BoolOption("resolve-type", "Resolve linked objects to find ouy their types").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -55,6 +56,12 @@ format:
 
 		// get options early -> exit early in case of error
 		if _, _, err := req.Option("headers").Bool(); err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		resolve, _, err := req.Option("resolve-type").Bool()
+		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -79,21 +86,27 @@ format:
 			}
 			for j, link := range dagnode.Links {
 				var linkNode *merkledag.Node
-				linkNode, err = link.GetNode(req.Context(), node.DAG)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-				d, err := unixfs.FromBytes(linkNode.Data)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
+				t := unixfspb.Data_DataType(-1)
+
+				if resolve {
+					linkNode, err = link.GetNode(req.Context(), node.DAG)
+					if err == nil {
+						d, err := unixfs.FromBytes(linkNode.Data)
+						if err != nil {
+							res.SetError(err, cmds.ErrNormal)
+							return
+						}
+						t = d.GetType()
+					} else {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
 				}
 				output[i].Links[j] = LsLink{
 					Name: link.Name,
 					Hash: link.Hash.B58String(),
 					Size: link.Size,
-					Type: d.GetType(),
+					Type: t,
 				}
 			}
 		}
