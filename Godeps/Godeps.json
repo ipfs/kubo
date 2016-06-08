@@ -26,10 +26,6 @@
 			"Rev": "7c37910bc765e705301b159683480bdd44555c91"
 		},
 		{
-			"ImportPath": "github.com/dustin/go-humanize",
-			"Rev": "00897f070f09f194c26d65afae734ba4c32404e8"
-		},
-		{
 			"ImportPath": "github.com/facebookgo/atomicfile",
 			"Rev": "6f117f2e7f224fb03eb5e5fba370eade6e2b90c8"
 		},
