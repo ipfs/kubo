@@ -129,6 +129,12 @@
       "hash": "QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g",
       "name": "goleveldb",
       "version": "0.0.1"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmZRjKbHa6DenStpQJFiaPcEwkZqrx7TH6xTf342LDU3qM",
+      "name": "go-sysinfo",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",
