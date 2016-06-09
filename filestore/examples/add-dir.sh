@@ -21,6 +21,35 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
+DIR="$1"
+
+#
+# Creating a tmp directory to store our scratch files
+#
+# Comment the trap to keep the directory around for debugging
+#
+WKDIR="`mktemp -d -t filestore.XXXXXX`"
+#echo $WKDIR
+trap "rm -r '$WKDIR'" EXIT
+
+cd "$WKDIR"
+
+#
+# A version of xargs that will do nothing if there is no output.  The
+# "_r" comes from the non-posix "-r" option from GNU xargs.
+#
+xargs_r () {
+    TMP="`mktemp`"
+    cat > "$TMP"
+    if [ -s "$TMP" ]
+    then
+        cat "$TMP" | xargs "$@"
+    fi
+    rm "$TMP"
+}
+
+#
+# This function will run "filestore verify" but only on the files
 # under "$DIR".
 #
 verify() {
