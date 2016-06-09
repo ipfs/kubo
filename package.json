@@ -135,6 +135,12 @@
       "hash": "QmZRjKbHa6DenStpQJFiaPcEwkZqrx7TH6xTf342LDU3qM",
       "name": "go-sysinfo",
       "version": "0.0.0"
+    },
+    {
+      "author": "kubuxu",
+      "hash": "QmczzCMvJ3HV57WBKDy8b4ucp7quT325JjDbixYRS5Pwvv",
+      "name": "fsnotify.v1",
+      "version": "1.3.0"
     }
   ],
   "gxVersion": "0.4.0",
