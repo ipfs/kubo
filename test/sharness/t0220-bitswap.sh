@@ -28,7 +28,7 @@ bitswap status
 	provides buffer: 0 / 256
 	blocks received: 0
 	dup blocks received: 0
-	dup data received: 0B
+	dup data received: 0 B
 	wantlist [1 keys]
 		$NONEXIST
 	partners [0]
@@ -68,7 +68,7 @@ bitswap status
 	provides buffer: 0 / 256
 	blocks received: 0
 	dup blocks received: 0
-	dup data received: 0B
+	dup data received: 0 B
 	wantlist [0 keys]
 	partners [0]
 EOF
