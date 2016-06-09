@@ -5,9 +5,8 @@ data component of blocks in files on the filesystem instead of in the
 block itself.  The main use of the datastore is to add content to IPFS
 without duplicating the content in the IPFS datastore.
 
-The filestore is developed on Debian (GNU/Linux) but should also work
-on MacOS X or other Unix like systems.  It might also work on Windows
-as long as absolute paths are used, but this is completely untested.
+The filestore is developed on Debian (GNU/Linux).  It has been tested on
+Windows and should work on MacOS X and other Unix like systems.
 
 ## Quick start
 
