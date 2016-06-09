@@ -8,9 +8,9 @@
   },
   "gxDependencies": [
     {
-      "hash": "QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8",
+      "hash": "QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv",
       "name": "go-log",
-      "version": "1.1.0"
+      "version": "1.1.1"
     },
     {
       "hash": "QmXJBB9U6e6ennAJPzk8E2rSaVGuHVR2jCxE9H9gPDtRrq",
