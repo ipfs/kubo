@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 
@@ -117,35 +116,8 @@ NOTE: List all references recursively by using the flag '-r'.
 			}
 		}()
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(<-chan interface{})
-			if !ok {
-				return nil, u.ErrCast()
-			}
-
-			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*RefWrapper)
-				if !ok {
-					fmt.Println("%#v", v)
-					return nil, u.ErrCast()
-				}
-
-				if obj.Err != "" {
-					return nil, errors.New(obj.Err)
-				}
-
-				return strings.NewReader(obj.Ref + "\n"), nil
-			}
-
-			return &cmds.ChannelMarshaler{
-				Channel:   outChan,
-				Marshaler: marshal,
-				Res:       res,
-			}, nil
-		},
-	},
-	Type: RefWrapper{},
+	Marshalers: refsMarshallerMap,
+	Type:       RefWrapper{},
 }
 
 var RefsLocalCmd = &cmds.Command{
@@ -171,21 +143,46 @@ Displays the hashes of all local objects.
 			return
 		}
 
-		piper, pipew := io.Pipe()
+		out := make(chan interface{})
+		res.SetOutput((<-chan interface{})(out))
 
 		go func() {
-			defer pipew.Close()
+			defer close(out)
 
 			for k := range allKeys {
-				s := k.B58String() + "\n"
-				if _, err := pipew.Write([]byte(s)); err != nil {
-					log.Error("pipe write error: ", err)
-					return
-				}
+				out <- &RefWrapper{Ref: k.B58String()}
 			}
 		}()
+	},
+	Marshalers: refsMarshallerMap,
+	Type:       RefWrapper{},
+}
 
-		res.SetOutput(piper)
+var refsMarshallerMap = cmds.MarshalerMap{
+	cmds.Text: func(res cmds.Response) (io.Reader, error) {
+		outChan, ok := res.Output().(<-chan interface{})
+		if !ok {
+			return nil, u.ErrCast()
+		}
+
+		marshal := func(v interface{}) (io.Reader, error) {
+			obj, ok := v.(*RefWrapper)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			if obj.Err != "" {
+				return nil, errors.New(obj.Err)
+			}
+
+			return strings.NewReader(obj.Ref + "\n"), nil
+		}
+
+		return &cmds.ChannelMarshaler{
+			Channel:   outChan,
+			Marshaler: marshal,
+			Res:       res,
+		}, nil
 	},
 }
 
