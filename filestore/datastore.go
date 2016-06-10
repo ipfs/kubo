@@ -143,7 +143,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 			if err != nil {
 				return nil, err
 			}
-			data, err = reconstruct(val.Data, buf)
+			data, _, err = Reconstruct(val.Data, buf)
 		}
 		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 			return nil, err

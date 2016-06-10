@@ -23,13 +23,7 @@ type Node struct {
 
 	cached mh.Multihash
 
-	DataPtr *DataPtr
-}
-
-type DataPtr struct {
-	AltData []byte
-	*files.PosInfo
-	Size uint64
+	PosInfo *files.PosInfo
 }
 
 // NodeStat is a statistics object for a Node. Mostly sizes.

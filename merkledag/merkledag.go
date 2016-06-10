@@ -26,8 +26,6 @@ type DAGService interface {
 	GetMany(context.Context, []key.Key) <-chan *NodeOption
 
 	Batch() *Batch
-
-	NeedAltData() bool
 }
 
 // dagService is an IPFS Merkle DAG service.
@@ -40,13 +38,8 @@ type DefaultDagService struct {
 	NodeToBlock NodeToBlock
 }
 
-func (n *DefaultDagService) NeedAltData() bool {
-	return n.NodeToBlock.NeedAltData()
-}
-
 type NodeToBlock interface {
 	CreateBlock(nd *Node) (blocks.Block, error)
-	NeedAltData() bool
 }
 
 type nodeToBlock struct{}
@@ -67,10 +60,6 @@ func CreateBasicBlock(nd *Node) (*blocks.BasicBlock, error) {
 	}
 
 	return blocks.NewBlockWithHash(d, mh)
-}
-
-func (nodeToBlock) NeedAltData() bool {
-	return false
 }
 
 func NewDAGService(bs *bserv.BlockService) *DefaultDagService {

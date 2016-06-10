@@ -92,7 +92,7 @@ func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*U
 func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	n.ufmt.AddBlockSize(child.ufmt.FileSize())
 
-	childnode, err := child.GetDagNode(db.needAltData)
+	childnode, err := child.GetDagNode()
 	if err != nil {
 		return err
 	}
@@ -132,23 +132,13 @@ func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo
 
 // getDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
-func (n *UnixfsNode) GetDagNode(needAltData bool) (*dag.Node, error) {
+func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
 	//fmt.Println("GetDagNode")
 	data, err := n.ufmt.GetBytes()
 	if err != nil {
 		return nil, err
 	}
 	n.node.Data = data
-	if needAltData {
-		n.node.DataPtr = n.getAltData()
-	}
+	n.node.PosInfo = n.posInfo
 	return n.node, nil
-}
-
-func (n *UnixfsNode) getAltData() *dag.DataPtr {
-	dp := &dag.DataPtr{PosInfo: n.posInfo, Size: n.ufmt.FileSize()}
-	if n.ufmt.NumChildren() == 0 && (n.ufmt.Type == ft.TFile || n.ufmt.Type == ft.TRaw) {
-		dp.AltData, _ = n.ufmt.GetBytesNoData()
-	}
-	return dp
 }

@@ -48,18 +48,6 @@ func (n *Node) Marshal() ([]byte, error) {
 	return data, nil
 }
 
-func (n *Node) MarshalNoData() ([]byte, error) {
-	pbn := n.GetPBNode()
-	if n.DataPtr != nil && len(n.DataPtr.AltData) > 0 {
-		pbn.Data = n.DataPtr.AltData
-	}
-	data, err := pbn.Marshal()
-	if err != nil {
-		return data, fmt.Errorf("Marshal failed. %v", err)
-	}
-	return data, nil
-}
-
 func (n *Node) GetPBNode() *pb.PBNode {
 	pbn := &pb.PBNode{}
 	if len(n.Links) > 0 {

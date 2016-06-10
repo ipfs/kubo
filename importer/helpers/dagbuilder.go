@@ -11,15 +11,14 @@ import (
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
-	dserv       dag.DAGService
-	spl         chunk.Splitter
-	recvdErr    error
-	nextData    []byte // the next item to return.
-	maxlinks    int
-	needAltData bool
-	batch       *dag.Batch
-	fullPath    string
-	stat        os.FileInfo
+	dserv    dag.DAGService
+	spl      chunk.Splitter
+	recvdErr error
+	nextData []byte // the next item to return.
+	maxlinks int
+	batch    *dag.Batch
+	fullPath string
+	stat     os.FileInfo
 }
 
 type DagBuilderParams struct {
@@ -34,11 +33,10 @@ type DagBuilderParams struct {
 // from chunks object
 func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 	db := &DagBuilderHelper{
-		dserv:       dbp.Dagserv,
-		spl:         spl,
-		maxlinks:    dbp.Maxlinks,
-		needAltData: dbp.Dagserv.NeedAltData(),
-		batch:       dbp.Dagserv.Batch(),
+		dserv:    dbp.Dagserv,
+		spl:      spl,
+		maxlinks: dbp.Maxlinks,
+		batch:    dbp.Dagserv.Batch(),
 	}
 	if fi, ok := spl.Reader().(files.FileInfo); ok {
 		db.fullPath = fi.FullPath()
@@ -140,7 +138,7 @@ func (db *DagBuilderHelper) SetPosInfo(node *UnixfsNode, offset uint64) {
 
 func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
 	//println("dag builder add")
-	dn, err := node.GetDagNode(db.needAltData)
+	dn, err := node.GetDagNode()
 	if err != nil {
 		return nil, err
 	}

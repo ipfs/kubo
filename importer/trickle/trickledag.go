@@ -90,7 +90,7 @@ func TrickleAppend(ctx context.Context, base *dag.Node, db *h.DagBuilderHelper) 
 		}
 
 		if db.Done() {
-			return ufsn.GetDagNode(false)
+			return ufsn.GetDagNode()
 		}
 
 		// If continuing, our depth has increased by one
@@ -123,7 +123,7 @@ func TrickleAppend(ctx context.Context, base *dag.Node, db *h.DagBuilderHelper) 
 		}
 	}
 
-	return ufsn.GetDagNode(false)
+	return ufsn.GetDagNode()
 }
 
 // appendFillLastChild will take in an incomplete trickledag node (uncomplete meaning, not full) and

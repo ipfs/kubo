@@ -9,7 +9,13 @@ import (
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
-func reconstruct(data []byte, blockData []byte) ([]byte, error) {
+type UnixFSInfo struct {
+	Type     fs.Data_DataType
+	Data     []byte
+	FileSize uint64
+}
+
+func Reconstruct(data []byte, blockData []byte) ([]byte, *UnixFSInfo, error) {
 	// Decode data to merkledag protobuffer
 	var pbn dag.PBNode
 	err := pbn.Unmarshal(data)
@@ -24,7 +30,18 @@ func reconstruct(data []byte, blockData []byte) ([]byte, error) {
 		panic(err)
 	}
 
-	// replace data
+	// gather some data about the unixfs object
+	fsinfo := &UnixFSInfo{Type: *fs_pbn.Type, Data: fs_pbn.Data}
+	if fs_pbn.Filesize != nil {
+		fsinfo.FileSize = *fs_pbn.Filesize
+	}
+
+	// if we won't be replasing anything no need to reencode, just
+	// return the original data
+	if fs_pbn.Data == nil && blockData == nil {
+		return data, fsinfo, nil
+	}
+
 	fs_pbn.Data = blockData
 
 	// Reencode unixfs protobuffer
@@ -34,7 +51,11 @@ func reconstruct(data []byte, blockData []byte) ([]byte, error) {
 	}
 
 	// Reencode merkledag protobuffer
-	return pbn.Marshal()
+	encoded, err := pbn.Marshal()
+	if err != nil {
+		return nil, fsinfo, err
+	}
+	return encoded, fsinfo, nil
 }
 
 type dualBuf struct {

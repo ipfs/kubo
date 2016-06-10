@@ -5,7 +5,9 @@ import (
 	//ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/commands/files"
+	. "github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/merkledag"
+	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
 type FilestoreBlock struct {
@@ -23,30 +25,23 @@ func (NodeToBlock) CreateBlock(nd *merkledag.Node) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Empty blocks don't have PosInfo, so for now just don't add
-	// them to the filestore
-	if nd.DataPtr == nil || nd.DataPtr.Size == 0 {
+
+	altData, fsInfo, err := Reconstruct(b0.Data(), nil, 0)
+
+	if (fsInfo.Type != fs_pb.Data_Raw && fsInfo.Type != fs_pb.Data_File) || fsInfo.FileSize == 0 {
 		return b0, nil
 	}
-	if nd.DataPtr.PosInfo == nil || nd.DataPtr.PosInfo.Stat == nil {
+	if nd.PosInfo == nil || nd.PosInfo.Stat == nil {
 		return nil, errors.New("no file information for block")
 	}
 	b := &FilestoreBlock{
 		BasicBlock: *b0,
-		PosInfo:    nd.DataPtr.PosInfo,
-		Size:       nd.DataPtr.Size}
+		PosInfo:    nd.PosInfo,
+		Size:       uint64(fsInfo.FileSize)}
 
-	if nd.DataPtr.AltData == nil {
+	if len(fsInfo.Data) == 0 {
 		return b, nil
 	}
-	d, err := nd.MarshalNoData()
-	if err != nil {
-		return nil, err
-	}
-	b.AltData = d
+	b.AltData = altData
 	return b, nil
-}
-
-func (NodeToBlock) NeedAltData() bool {
-	return true
 }
