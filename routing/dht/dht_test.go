@@ -56,10 +56,24 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 	dhts := make([]*IpfsDHT, n)
 	peers := make([]peer.ID, n)
 
+	sanityAddrsMap := make(map[string]struct{})
+	sanityPeersMap := make(map[string]struct{})
+
 	for i := 0; i < n; i++ {
 		dhts[i] = setupDHT(ctx, t)
 		peers[i] = dhts[i].self
 		addrs[i] = dhts[i].peerstore.Addrs(dhts[i].self)[0]
+
+		if _, lol := sanityAddrsMap[addrs[i].String()]; lol {
+			t.Fatal("While setting up DHTs address got duplicated.")
+		} else {
+			sanityAddrsMap[addrs[i].String()] = struct{}{}
+		}
+		if _, lol := sanityPeersMap[peers[i].String()]; lol {
+			t.Fatal("While setting up DHTs peerid got duplicated.")
+		} else {
+			sanityPeersMap[peers[i].String()] = struct{}{}
+		}
 	}
 
 	return addrs, peers, dhts
