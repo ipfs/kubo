@@ -115,8 +115,6 @@ func (e InvalidBlock) Error() string {
 	return "Datastore: Block Verification Failed"
 }
 
-const useFastReconstruct = true
-
 // Get the orignal data out of the DataObj
 func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) ([]byte, error) {
 	if val == nil {
@@ -134,17 +132,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 		if err != nil {
 			return nil, err
 		}
-		var data []byte
-		if useFastReconstruct {
-			data, err = reconstructDirect(val.Data, file, val.Size)
-		} else {
-			buf := make([]byte, val.Size)
-			_, err = io.ReadFull(file, buf)
-			if err != nil {
-				return nil, err
-			}
-			data, _, err = Reconstruct(val.Data, buf)
-		}
+		data, _, err := Reconstruct(val.Data, file, val.Size)
 		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 			return nil, err
 		}

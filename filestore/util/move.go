@@ -89,7 +89,7 @@ func (p *params) convertToFile(key bk.Key, root bool, offset uint64) (uint64, er
 	if err != nil {
 		return 0, err
 	}
-	altData, fsInfo, err := Reconstruct(block.Data(), nil)
+	altData, fsInfo, err := Reconstruct(block.Data(), nil, 0)
 	if err != nil {
 		return 0, err
 	}

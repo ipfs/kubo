@@ -15,7 +15,21 @@ type UnixFSInfo struct {
 	FileSize uint64
 }
 
-func Reconstruct(data []byte, blockData []byte) ([]byte, *UnixFSInfo, error) {
+const useFastReconstruct = false
+
+func Reconstruct(data []byte, in io.Reader, blockDataSize uint64) ([]byte, *UnixFSInfo, error) {
+	var blockData []byte
+	if blockDataSize > 0 {
+		blockData = make([]byte, blockDataSize)
+		_, err := io.ReadFull(in, blockData)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return reconstruct(data, blockData)
+}
+
+func reconstruct(data []byte, blockData []byte) ([]byte, *UnixFSInfo, error) {
 	// Decode data to merkledag protobuffer
 	var pbn dag.PBNode
 	err := pbn.Unmarshal(data)
