@@ -3,8 +3,8 @@ package bitswap
 import (
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	ds_sync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
+	ds "github.com/ipfs/go-datastore"
+	ds_sync "github.com/ipfs/go-datastore/sync"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	datastore2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"

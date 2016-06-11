@@ -5,7 +5,7 @@
 package mockrouting
 
 import (
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	ds "github.com/ipfs/go-datastore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	routing "github.com/ipfs/go-ipfs/routing"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"

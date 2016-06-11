@@ -1,8 +1,8 @@
 package testutil
 
 import (
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
+	"github.com/ipfs/go-datastore"
+	syncds "github.com/ipfs/go-datastore/sync"
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 )
 

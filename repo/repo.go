@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	ds "github.com/ipfs/go-datastore"
 	config "github.com/ipfs/go-ipfs/repo/config"
 )
 
