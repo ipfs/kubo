@@ -147,6 +147,12 @@
       "hash": "QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN",
       "name": "go-datastore",
       "version": "0.0.1"
+    },
+	{
+      "author": "codahale",
+      "hash": "QmV3NSS3A1kX5s28r7yLczhDsXzkgo65cqRgKFXYunWZmD",
+      "name": "metrics",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",
