@@ -52,6 +52,7 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	// See if we have the whole file in the block
 	if dataObj.Offset == 0 && !dataObj.WholeFile() {
@@ -64,8 +65,6 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 			dataObj.Flags |= WholeFile
 		}
 	}
-
-	file.Close()
 
 	return d.PutDirect(key, dataObj)
 }
@@ -130,6 +129,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 		if err != nil {
 			return nil, err
 		}
+		defer file.Close()
 		_, err = file.Seek(int64(val.Offset), 0)
 		if err != nil {
 			return nil, err
