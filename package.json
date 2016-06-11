@@ -13,9 +13,9 @@
       "version": "1.1.1"
     },
     {
-      "hash": "QmXJBB9U6e6ennAJPzk8E2rSaVGuHVR2jCxE9H9gPDtRrq",
+      "hash": "QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS",
       "name": "go-libp2p",
-      "version": "3.3.2"
+      "version": "3.3.3"
     },
     {
       "author": "whyrusleeping",
@@ -147,5 +147,5 @@
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs",
-  "version": "0.4.0"
+  "version": "0.4.2"
 }
