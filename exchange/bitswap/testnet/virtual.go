@@ -112,6 +112,30 @@ func (nc *networkClient) FindProvidersAsync(ctx context.Context, k key.Key, max 
 	return out
 }
 
+type messagePasser struct {
+	net    *network
+	target peer.ID
+	local  peer.ID
+	ctx    context.Context
+}
+
+func (mp *messagePasser) SendMsg(m bsmsg.BitSwapMessage) error {
+	return mp.net.SendMessage(mp.ctx, mp.local, mp.target, m)
+}
+
+func (mp *messagePasser) Close() error {
+	return nil
+}
+
+func (n *networkClient) NewMessageSender(ctx context.Context, p peer.ID) (bsnet.MessageSender, error) {
+	return &messagePasser{
+		net:    n.network,
+		target: p,
+		local:  n.local,
+		ctx:    ctx,
+	}, nil
+}
+
 // Provide provides the key to the network
 func (nc *networkClient) Provide(ctx context.Context, k key.Key) error {
 	return nc.routing.Provide(ctx, k)
