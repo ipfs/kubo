@@ -2,6 +2,7 @@ package dht
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 	"time"
 
@@ -243,13 +244,18 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key key.Key) error {
 		return err
 	}
 
+	mes, err := dht.makeProvRecord(key)
+	if err != nil {
+		return err
+	}
+
 	wg := sync.WaitGroup{}
 	for p := range peers {
 		wg.Add(1)
 		go func(p peer.ID) {
 			defer wg.Done()
 			log.Debugf("putProvider(%s, %s)", key, p)
-			err := dht.putProvider(ctx, p, string(key))
+			err := dht.sendMessage(ctx, p, mes)
 			if err != nil {
 				log.Debug(err)
 			}
@@ -257,6 +263,22 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key key.Key) error {
 	}
 	wg.Wait()
 	return nil
+}
+func (dht *IpfsDHT) makeProvRecord(skey key.Key) (*pb.Message, error) {
+	pi := pstore.PeerInfo{
+		ID:    dht.self,
+		Addrs: dht.host.Addrs(),
+	}
+
+	// // only share WAN-friendly addresses ??
+	// pi.Addrs = addrutil.WANShareableAddrs(pi.Addrs)
+	if len(pi.Addrs) < 1 {
+		return nil, fmt.Errorf("no known addresses for self. cannot put provider.")
+	}
+
+	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(skey), 0)
+	pmes.ProviderPeers = pb.RawPeerInfosToPBPeers([]pstore.PeerInfo{pi})
+	return pmes, nil
 }
 
 // FindProviders searches until the context expires.
