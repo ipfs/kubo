@@ -48,11 +48,11 @@ func NewRoutingTable(bucketsize int, localID ID, latency time.Duration, m pstore
 // Update adds or moves the given peer to the front of its respective bucket
 // If a peer gets removed from a bucket, it is returned
 func (rt *RoutingTable) Update(p peer.ID) {
-	rt.tabLock.Lock()
-	defer rt.tabLock.Unlock()
 	peerID := ConvertPeerID(p)
 	cpl := commonPrefixLen(peerID, rt.local)
 
+	rt.tabLock.Lock()
+	defer rt.tabLock.Unlock()
 	bucketID := cpl
 	if bucketID >= len(rt.Buckets) {
 		bucketID = len(rt.Buckets) - 1
