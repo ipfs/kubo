@@ -275,9 +275,12 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 		}
 
 		log.Infof("received provider %s for %s (addrs: %s)", p, key, pi.Addrs)
-		if pi.ID != dht.self { // dont add own addrs.
+		if pi.ID != dht.self && !isPointer(pi.ID){ // dont add own addrs.
 			// add the received addresses to our peerstore.
 			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, peer.ProviderAddrTTL)
+		} else if isPointer(pi.ID) {
+			// keep the address for this pointer around for a week
+			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, time.Hour * 24 * 7)
 		}
 		dht.providers.AddProvider(ctx, key, pi.ID)
 	}
