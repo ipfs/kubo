@@ -16,7 +16,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/dir"
 
-	multi "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/multi"
+	multi "github.com/ipfs/go-ipfs/repo/multi"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 )
 
