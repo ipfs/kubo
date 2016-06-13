@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	lgbl "github.com/ipfs/go-ipfs/thirdparty/loggables"
+	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
+
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 // The number of closer peers to send on requests.
@@ -63,7 +65,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	// Find closest peer on given cluster to desired key and reply with that info
 	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	if len(closer) > 0 {
-		closerinfos := peer.PeerInfos(dht.peerstore, closer)
+		closerinfos := pstore.PeerInfos(dht.peerstore, closer)
 		for _, pi := range closerinfos {
 			log.Debugf("handleGetValue returning closer peer: '%s'", pi.ID)
 			if len(pi.Addrs) < 1 {
@@ -190,8 +192,8 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 		return resp, nil
 	}
 
-	var withAddresses []peer.PeerInfo
-	closestinfos := peer.PeerInfos(dht.peerstore, closest)
+	var withAddresses []pstore.PeerInfo
+	closestinfos := pstore.PeerInfos(dht.peerstore, closest)
 	for _, pi := range closestinfos {
 		if len(pi.Addrs) > 0 {
 			withAddresses = append(withAddresses, pi)
@@ -232,7 +234,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	}
 
 	if providers != nil && len(providers) > 0 {
-		infos := peer.PeerInfos(dht.peerstore, providers)
+		infos := pstore.PeerInfos(dht.peerstore, providers)
 		resp.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
 		log.Debugf("%s have %d providers: %s", reqDesc, len(providers), infos)
 	}
@@ -240,7 +242,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	// Also send closer peers.
 	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	if closer != nil {
-		infos := peer.PeerInfos(dht.peerstore, closer)
+		infos := pstore.PeerInfos(dht.peerstore, closer)
 		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
 		log.Debugf("%s have %d closer peers: %s", reqDesc, len(closer), infos)
 	}
@@ -276,7 +278,7 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 		log.Infof("received provider %s for %s (addrs: %s)", p, key, pi.Addrs)
 		if pi.ID != dht.self { // dont add own addrs.
 			// add the received addresses to our peerstore.
-			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, peer.ProviderAddrTTL)
+			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, pstore.ProviderAddrTTL)
 		}
 		dht.providers.AddProvider(ctx, key, p)
 	}

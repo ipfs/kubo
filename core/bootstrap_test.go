@@ -6,11 +6,11 @@ import (
 
 	config "github.com/ipfs/go-ipfs/repo/config"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
 )
 
 func TestSubsetWhenMaxIsGreaterThanLengthOfSlice(t *testing.T) {
-	var ps []peer.PeerInfo
+	var ps []pstore.PeerInfo
 	sizeofSlice := 100
 	for i := 0; i < sizeofSlice; i++ {
 		pid, err := testutil.RandPeerID()
@@ -18,7 +18,7 @@ func TestSubsetWhenMaxIsGreaterThanLengthOfSlice(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		ps = append(ps, peer.PeerInfo{ID: pid})
+		ps = append(ps, pstore.PeerInfo{ID: pid})
 	}
 	out := randomSubsetOfPeers(ps, 2*sizeofSlice)
 	if len(out) != len(ps) {

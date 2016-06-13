@@ -16,6 +16,8 @@ import (
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
+	mfs "github.com/ipfs/go-ipfs/mfs"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -178,6 +180,17 @@ You can now refer to the added file in a gateway, like so:
 		fileAdder.Wrap = wrap
 		fileAdder.Pin = dopin
 		fileAdder.Silent = silent
+
+		if hash {
+			md := dagtest.Mock()
+			mr, err := mfs.NewRoot(req.Context(), md, coreunix.NewDirNode(), nil)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			fileAdder.SetMfsRoot(mr)
+		}
 
 		addAllAndPin := func(f files.File) error {
 			// Iterate over each top-level file and add individually. Otherwise the

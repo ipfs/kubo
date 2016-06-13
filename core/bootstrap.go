@@ -11,13 +11,14 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	lgbl "github.com/ipfs/go-ipfs/thirdparty/loggables"
 	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
-	host "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host"
-	inet "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	host "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/net"
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	procctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
 	periodicproc "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/periodic"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -49,7 +50,7 @@ type BootstrapConfig struct {
 	// BootstrapPeers is a function that returns a set of bootstrap peers
 	// for the bootstrap process to use. This makes it possible for clients
 	// to control the peers the process uses at any moment.
-	BootstrapPeers func() []peer.PeerInfo
+	BootstrapPeers func() []pstore.PeerInfo
 }
 
 // DefaultBootstrapConfig specifies default sane parameters for bootstrapping.
@@ -59,9 +60,9 @@ var DefaultBootstrapConfig = BootstrapConfig{
 	ConnectionTimeout: (30 * time.Second) / 3, // Perod / 3
 }
 
-func BootstrapConfigWithPeers(pis []peer.PeerInfo) BootstrapConfig {
+func BootstrapConfigWithPeers(pis []pstore.PeerInfo) BootstrapConfig {
 	cfg := DefaultBootstrapConfig
-	cfg.BootstrapPeers = func() []peer.PeerInfo {
+	cfg.BootstrapPeers = func() []pstore.PeerInfo {
 		return pis
 	}
 	return cfg
@@ -128,7 +129,7 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 	numToDial := cfg.MinPeerThreshold - len(connected)
 
 	// filter out bootstrap nodes we are already connected to
-	var notConnected []peer.PeerInfo
+	var notConnected []pstore.PeerInfo
 	for _, p := range peers {
 		if host.Network().Connectedness(p.ID) != inet.Connected {
 			notConnected = append(notConnected, p)
@@ -152,7 +153,7 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 	return nil
 }
 
-func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.PeerInfo) error {
+func bootstrapConnect(ctx context.Context, ph host.Host, peers []pstore.PeerInfo) error {
 	if len(peers) < 1 {
 		return ErrNotEnoughBootstrapPeers
 	}
@@ -167,12 +168,12 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.PeerInfo) 
 		// Also, performed asynchronously for dial speed.
 
 		wg.Add(1)
-		go func(p peer.PeerInfo) {
+		go func(p pstore.PeerInfo) {
 			defer wg.Done()
 			defer log.EventBegin(ctx, "bootstrapDial", ph.ID(), p.ID).Done()
 			log.Debugf("%s bootstrapping to %s", ph.ID(), p.ID)
 
-			ph.Peerstore().AddAddrs(p.ID, p.Addrs, peer.PermanentAddrTTL)
+			ph.Peerstore().AddAddrs(p.ID, p.Addrs, pstore.PermanentAddrTTL)
 			if err := ph.Connect(ctx, p); err != nil {
 				log.Event(ctx, "bootstrapDialFailed", p.ID)
 				log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
@@ -201,12 +202,12 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.PeerInfo) 
 	return nil
 }
 
-func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
-	pinfos := make(map[peer.ID]*peer.PeerInfo)
+func toPeerInfos(bpeers []config.BootstrapPeer) []pstore.PeerInfo {
+	pinfos := make(map[peer.ID]*pstore.PeerInfo)
 	for _, bootstrap := range bpeers {
 		pinfo, ok := pinfos[bootstrap.ID()]
 		if !ok {
-			pinfo = new(peer.PeerInfo)
+			pinfo = new(pstore.PeerInfo)
 			pinfos[bootstrap.ID()] = pinfo
 			pinfo.ID = bootstrap.ID()
 		}
@@ -214,7 +215,7 @@ func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
 		pinfo.Addrs = append(pinfo.Addrs, bootstrap.Transport())
 	}
 
-	var peers []peer.PeerInfo
+	var peers []pstore.PeerInfo
 	for _, pinfo := range pinfos {
 		peers = append(peers, *pinfo)
 	}
@@ -222,9 +223,9 @@ func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
 	return peers
 }
 
-func randomSubsetOfPeers(in []peer.PeerInfo, max int) []peer.PeerInfo {
+func randomSubsetOfPeers(in []pstore.PeerInfo, max int) []pstore.PeerInfo {
 	n := math2.IntMin(max, len(in))
-	var out []peer.PeerInfo
+	var out []pstore.PeerInfo
 	for _, val := range rand.Perm(len(in)) {
 		out = append(out, in[val])
 		if len(out) >= n {

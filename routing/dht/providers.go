@@ -4,12 +4,15 @@ import (
 	"time"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
+
+var ProvideValidity = time.Hour * 24
+var defaultCleanupInterval = time.Hour
 
 type ProviderManager struct {
 	// all non channel fields are meant to be accessed only within
@@ -23,6 +26,8 @@ type ProviderManager struct {
 	getprovs chan *getProv
 	period   time.Duration
 	proc     goprocess.Process
+
+	cleanupInterval time.Duration
 }
 
 type providerSet struct {
@@ -48,13 +53,14 @@ func NewProviderManager(ctx context.Context, local peer.ID) *ProviderManager {
 	pm.getlocal = make(chan chan []key.Key)
 	pm.local = make(map[key.Key]struct{})
 	pm.proc = goprocessctx.WithContext(ctx)
+	pm.cleanupInterval = defaultCleanupInterval
 	pm.proc.Go(func(p goprocess.Process) { pm.run() })
 
 	return pm
 }
 
 func (pm *ProviderManager) run() {
-	tick := time.NewTicker(time.Hour)
+	tick := time.NewTicker(pm.cleanupInterval)
 	for {
 		select {
 		case np := <-pm.newprovs:
@@ -85,16 +91,21 @@ func (pm *ProviderManager) run() {
 			lc <- keys
 
 		case <-tick.C:
-			for _, provs := range pm.providers {
+			for k, provs := range pm.providers {
 				var filtered []peer.ID
 				for p, t := range provs.set {
-					if time.Now().Sub(t) > time.Hour*24 {
+					if time.Now().Sub(t) > ProvideValidity {
 						delete(provs.set, p)
 					} else {
 						filtered = append(filtered, p)
 					}
 				}
-				provs.providers = filtered
+
+				if len(filtered) > 0 {
+					provs.providers = filtered
+				} else {
+					delete(pm.providers, k)
+				}
 			}
 
 		case <-pm.proc.Closing():

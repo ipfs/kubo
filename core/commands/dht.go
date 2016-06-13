@@ -12,8 +12,9 @@ import (
 	notif "github.com/ipfs/go-ipfs/notifications"
 	path "github.com/ipfs/go-ipfs/path"
 	ipdht "github.com/ipfs/go-ipfs/routing/dht"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
@@ -172,7 +173,7 @@ var findProvidersDhtCmd = &cmds.Command{
 				np := p
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:      notif.Provider,
-					Responses: []*peer.PeerInfo{&np},
+					Responses: []*pstore.PeerInfo{&np},
 				})
 			}
 		}()
@@ -283,7 +284,7 @@ var findPeerDhtCmd = &cmds.Command{
 
 			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 				Type:      notif.FinalPeer,
-				Responses: []*peer.PeerInfo{&pi},
+				Responses: []*pstore.PeerInfo{&pi},
 			})
 		}()
 	},

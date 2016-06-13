@@ -6,13 +6,15 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	routing "github.com/ipfs/go-ipfs/routing"
-	host "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host"
-	inet "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net"
+
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	host "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/net"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var log = logging.Logger("bitswap_network")
@@ -40,12 +42,33 @@ type impl struct {
 	receiver Receiver
 }
 
+type streamMessageSender struct {
+	s inet.Stream
+}
+
+func (s *streamMessageSender) Close() error {
+	return s.s.Close()
+}
+
+func (s *streamMessageSender) SendMsg(msg bsmsg.BitSwapMessage) error {
+	return msg.ToNet(s.s)
+}
+
+func (bsnet *impl) NewMessageSender(ctx context.Context, p peer.ID) (MessageSender, error) {
+	s, err := bsnet.newStreamToPeer(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return &streamMessageSender{s: s}, nil
+}
+
 func (bsnet *impl) newStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
 
 	// first, make sure we're connected.
 	// if this fails, we cannot connect to given peer.
 	//TODO(jbenet) move this into host.NewStream?
-	if err := bsnet.host.Connect(ctx, peer.PeerInfo{ID: p}); err != nil {
+	if err := bsnet.host.Connect(ctx, pstore.PeerInfo{ID: p}); err != nil {
 		return nil, err
 	}
 
@@ -101,7 +124,7 @@ func (bsnet *impl) SetDelegate(r Receiver) {
 }
 
 func (bsnet *impl) ConnectTo(ctx context.Context, p peer.ID) error {
-	return bsnet.host.Connect(ctx, peer.PeerInfo{ID: p})
+	return bsnet.host.Connect(ctx, pstore.PeerInfo{ID: p})
 }
 
 // FindProvidersAsync returns a channel of providers for the given key
@@ -129,7 +152,7 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k key.Key, max int) <
 			if info.ID == bsnet.host.ID() {
 				continue // ignore self as provider
 			}
-			bsnet.host.Peerstore().AddAddrs(info.ID, info.Addrs, peer.TempAddrTTL)
+			bsnet.host.Peerstore().AddAddrs(info.ID, info.Addrs, pstore.TempAddrTTL)
 			select {
 			case <-ctx.Done():
 				return

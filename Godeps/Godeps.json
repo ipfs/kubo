@@ -26,20 +26,8 @@
 			"Rev": "7c37910bc765e705301b159683480bdd44555c91"
 		},
 		{
-			"ImportPath": "github.com/dustin/go-humanize",
-			"Rev": "00897f070f09f194c26d65afae734ba4c32404e8"
-		},
-		{
-			"ImportPath": "github.com/facebookgo/atomicfile",
-			"Rev": "6f117f2e7f224fb03eb5e5fba370eade6e2b90c8"
-		},
-		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
-		},
-		{
-			"ImportPath": "github.com/ipfs/go-datastore",
-			"Rev": "e63957b6da369d986ef3e7a3f249779ba3f56c7e"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-detect-race",
@@ -70,10 +58,6 @@
 			"Rev": "5a816af6ef21ef401bff5e4b7dd255d63400f497"
 		},
 		{
-			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
-			"Rev": "4875955338b0a434238a31165cb87255ab6e9e4a"
-		},
-		{
 			"ImportPath": "github.com/syndtr/gosnappy/snappy",
 			"Rev": "156a073208e131d7d2e212cb749feae7c339e846"
 		},
@@ -84,15 +68,6 @@
 		{
 			"ImportPath": "github.com/whyrusleeping/chunker",
 			"Rev": "537e901819164627ca4bb5ce4e3faa8ce7956564"
-		},
-		{
-			"ImportPath": "github.com/whyrusleeping/go-sysinfo",
-			"Rev": "769b7c0b50e8030895abc74ba8107ac715e3162a"
-		},
-		{
-			"ImportPath": "gopkg.in/fsnotify.v1",
-			"Comment": "v1.2.0",
-			"Rev": "96c060f6a6b7e0d6f75fddd10efeaca3e5d1bcb0"
 		}
 	]
 }

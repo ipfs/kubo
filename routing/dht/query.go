@@ -8,13 +8,14 @@ import (
 	"github.com/ipfs/go-ipfs/routing"
 	pset "github.com/ipfs/go-ipfs/thirdparty/peerset"
 	todoctr "github.com/ipfs/go-ipfs/thirdparty/todocounter"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
-	queue "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer/queue"
 
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	ctxproc "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	queue "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore/queue"
+	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -28,10 +29,10 @@ type dhtQuery struct {
 }
 
 type dhtQueryResult struct {
-	value         []byte          // GetValue
-	peer          peer.PeerInfo   // FindPeer
-	providerPeers []peer.PeerInfo // GetProviders
-	closerPeers   []peer.PeerInfo // *
+	value         []byte            // GetValue
+	peer          pstore.PeerInfo   // FindPeer
+	providerPeers []pstore.PeerInfo // GetProviders
+	closerPeers   []pstore.PeerInfo // *
 	success       bool
 }
 
@@ -239,7 +240,7 @@ func (r *dhtQueryRunner) queryPeer(proc process.Process, p peer.ID) {
 		// forward progress during potentially very high latency dials.
 		r.rateLimit <- struct{}{}
 
-		pi := peer.PeerInfo{ID: p}
+		pi := pstore.PeerInfo{ID: p}
 
 		if err := r.query.dht.host.Connect(ctx, pi); err != nil {
 			log.Debugf("Error connecting: %s", err)
@@ -286,7 +287,7 @@ func (r *dhtQueryRunner) queryPeer(proc process.Process, p peer.ID) {
 			}
 
 			// add their addresses to the dialer's peerstore
-			r.query.dht.peerstore.AddAddrs(next.ID, next.Addrs, peer.TempAddrTTL)
+			r.query.dht.peerstore.AddAddrs(next.ID, next.Addrs, pstore.TempAddrTTL)
 			r.addPeerToQuery(next.ID)
 			log.Debugf("PEERS CLOSER -- worker for: %v added %v (%v)", p, next.ID, next.Addrs)
 		}

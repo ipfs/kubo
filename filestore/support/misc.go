@@ -2,7 +2,7 @@ package filestore_support
 
 import (
 	"errors"
-	//ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	//ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/merkledag"

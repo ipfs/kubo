@@ -5,9 +5,10 @@ import (
 	"errors"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 // ErrNotFound is returned when a search fails to find anything
@@ -16,7 +17,7 @@ var ErrNotFound = errors.New("routing: not found")
 // IpfsRouting is the routing module interface
 // It is implemented by things like DHTs, etc.
 type IpfsRouting interface {
-	FindProvidersAsync(context.Context, key.Key, int) <-chan peer.PeerInfo
+	FindProvidersAsync(context.Context, key.Key, int) <-chan pstore.PeerInfo
 
 	// Basic Put/Get
 
@@ -45,9 +46,9 @@ type IpfsRouting interface {
 	Provide(context.Context, key.Key) error
 
 	// Find specific Peer
-	// FindPeer searches for a peer with given ID, returns a peer.PeerInfo
+	// FindPeer searches for a peer with given ID, returns a pstore.PeerInfo
 	// with relevant addresses.
-	FindPeer(context.Context, peer.ID) (peer.PeerInfo, error)
+	FindPeer(context.Context, peer.ID) (pstore.PeerInfo, error)
 
 	// Bootstrap allows callers to hint to the routing system to get into a
 	// Boostrapped state

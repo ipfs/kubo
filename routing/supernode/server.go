@@ -4,27 +4,28 @@ import (
 	"errors"
 	"fmt"
 
-	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	datastore "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
+
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 // Server handles routing queries using a database backend
 type Server struct {
 	local           peer.ID
 	routingBackend  datastore.Datastore
-	peerstore       peer.Peerstore
+	peerstore       pstore.Peerstore
 	*proxy.Loopback // so server can be injected into client
 }
 
 // NewServer creates a new Supernode routing Server
-func NewServer(ds datastore.Datastore, ps peer.Peerstore, local peer.ID) (*Server, error) {
+func NewServer(ds datastore.Datastore, ps pstore.Peerstore, local peer.ID) (*Server, error) {
 	s := &Server{local, ds, ps, nil}
 	s.Loopback = &proxy.Loopback{
 		Handler: s,
@@ -169,7 +170,7 @@ func putRoutingProviders(ds datastore.Datastore, k key.Key, newRecords []*dhtpb.
 	return ds.Put(providerKey(k), data)
 }
 
-func storeProvidersToPeerstore(ps peer.Peerstore, p peer.ID, providers []*dhtpb.Message_Peer) {
+func storeProvidersToPeerstore(ps pstore.Peerstore, p peer.ID, providers []*dhtpb.Message_Peer) {
 	for _, provider := range providers {
 		providerID := peer.ID(provider.GetId())
 		if providerID != p {
@@ -178,7 +179,7 @@ func storeProvidersToPeerstore(ps peer.Peerstore, p peer.ID, providers []*dhtpb.
 		}
 		for _, maddr := range provider.Addresses() {
 			// as a router, we want to store addresses for peers who have provided
-			ps.AddAddr(p, maddr, peer.AddressTTL)
+			ps.AddAddr(p, maddr, pstore.AddressTTL)
 		}
 	}
 }
@@ -203,7 +204,7 @@ func providerKey(k key.Key) datastore.Key {
 	return datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
 }
 
-func verify(ps peer.Peerstore, r *dhtpb.Record) error {
+func verify(ps pstore.Peerstore, r *dhtpb.Record) error {
 	v := make(record.Validator)
 	v["pk"] = record.PublicKeyValidator
 	p := peer.ID(r.GetAuthor())

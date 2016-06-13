@@ -9,20 +9,20 @@ import (
 	"testing"
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	routing "github.com/ipfs/go-ipfs/routing"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	netutil "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/test/util"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
-
 	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
 	travisci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
+	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
+	dssync "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/sync"
+
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	netutil "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/test/util"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var testCaseValues = map[key.Key][]byte{}
@@ -56,10 +56,24 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 	dhts := make([]*IpfsDHT, n)
 	peers := make([]peer.ID, n)
 
+	sanityAddrsMap := make(map[string]struct{})
+	sanityPeersMap := make(map[string]struct{})
+
 	for i := 0; i < n; i++ {
 		dhts[i] = setupDHT(ctx, t)
 		peers[i] = dhts[i].self
 		addrs[i] = dhts[i].peerstore.Addrs(dhts[i].self)[0]
+
+		if _, lol := sanityAddrsMap[addrs[i].String()]; lol {
+			t.Fatal("While setting up DHTs address got duplicated.")
+		} else {
+			sanityAddrsMap[addrs[i].String()] = struct{}{}
+		}
+		if _, lol := sanityPeersMap[peers[i].String()]; lol {
+			t.Fatal("While setting up DHTs peerid got duplicated.")
+		} else {
+			sanityPeersMap[peers[i].String()] = struct{}{}
+		}
 	}
 
 	return addrs, peers, dhts
@@ -73,8 +87,8 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 		t.Fatal("peers setup incorrectly: no local address")
 	}
 
-	a.peerstore.AddAddrs(idB, addrB, peer.TempAddrTTL)
-	pi := peer.PeerInfo{ID: idB}
+	a.peerstore.AddAddrs(idB, addrB, pstore.TempAddrTTL)
+	pi := pstore.PeerInfo{ID: idB}
 	if err := a.host.Connect(ctx, pi); err != nil {
 		t.Fatal(err)
 	}
@@ -705,7 +719,7 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 	}
 
 	// shouldFind := []peer.ID{peers[1], peers[3]}
-	found := []peer.PeerInfo{}
+	var found []pstore.PeerInfo
 	for nextp := range pchan {
 		found = append(found, nextp)
 	}
@@ -776,14 +790,14 @@ func TestConnectCollision(t *testing.T) {
 
 		errs := make(chan error)
 		go func() {
-			dhtA.peerstore.AddAddr(peerB, addrB, peer.TempAddrTTL)
-			pi := peer.PeerInfo{ID: peerB}
+			dhtA.peerstore.AddAddr(peerB, addrB, pstore.TempAddrTTL)
+			pi := pstore.PeerInfo{ID: peerB}
 			err := dhtA.host.Connect(ctx, pi)
 			errs <- err
 		}()
 		go func() {
-			dhtB.peerstore.AddAddr(peerA, addrA, peer.TempAddrTTL)
-			pi := peer.PeerInfo{ID: peerA}
+			dhtB.peerstore.AddAddr(peerA, addrA, pstore.TempAddrTTL)
+			pi := pstore.PeerInfo{ID: peerA}
 			err := dhtB.host.Connect(ctx, pi)
 			errs <- err
 		}()

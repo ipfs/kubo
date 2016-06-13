@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
 )
 
 var log = logging.Logger("table")
@@ -23,7 +24,7 @@ type RoutingTable struct {
 	tabLock sync.RWMutex
 
 	// latency metrics
-	metrics peer.Metrics
+	metrics pstore.Metrics
 
 	// Maximum acceptable latency for peers in this cluster
 	maxLatency time.Duration
@@ -34,7 +35,7 @@ type RoutingTable struct {
 }
 
 // NewRoutingTable creates a new routing table with a given bucketsize, local ID, and latency tolerance.
-func NewRoutingTable(bucketsize int, localID ID, latency time.Duration, m peer.Metrics) *RoutingTable {
+func NewRoutingTable(bucketsize int, localID ID, latency time.Duration, m pstore.Metrics) *RoutingTable {
 	rt := new(RoutingTable)
 	rt.Buckets = []*Bucket{newBucket()}
 	rt.bucketsize = bucketsize
@@ -47,11 +48,11 @@ func NewRoutingTable(bucketsize int, localID ID, latency time.Duration, m peer.M
 // Update adds or moves the given peer to the front of its respective bucket
 // If a peer gets removed from a bucket, it is returned
 func (rt *RoutingTable) Update(p peer.ID) {
-	rt.tabLock.Lock()
-	defer rt.tabLock.Unlock()
 	peerID := ConvertPeerID(p)
 	cpl := commonPrefixLen(peerID, rt.local)
 
+	rt.tabLock.Lock()
+	defer rt.tabLock.Unlock()
 	bucketID := cpl
 	if bucketID >= len(rt.Buckets) {
 		bucketID = len(rt.Buckets) - 1
@@ -143,9 +144,9 @@ func (rt *RoutingTable) NearestPeer(id ID) peer.ID {
 
 // NearestPeers returns a list of the 'count' closest peers to the given ID
 func (rt *RoutingTable) NearestPeers(id ID, count int) []peer.ID {
-	rt.tabLock.RLock()
-	defer rt.tabLock.RUnlock()
 	cpl := commonPrefixLen(id, rt.local)
+
+	rt.tabLock.RLock()
 
 	// Get bucket at cpl index or last bucket
 	var bucket *Bucket
@@ -169,6 +170,7 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []peer.ID {
 			peerArr = copyPeersFromList(id, peerArr, plist)
 		}
 	}
+	rt.tabLock.RUnlock()
 
 	// Sort by distance to local peer
 	sort.Sort(peerArr)

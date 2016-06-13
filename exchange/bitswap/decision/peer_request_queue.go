@@ -7,7 +7,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	pq "github.com/ipfs/go-ipfs/thirdparty/pq"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 )
 
 type peerRequestQueue interface {
@@ -15,14 +15,16 @@ type peerRequestQueue interface {
 	Pop() *peerRequestTask
 	Push(entry wantlist.Entry, to peer.ID)
 	Remove(k key.Key, p peer.ID)
+
 	// NB: cannot expose simply expose taskQueue.Len because trashed elements
 	// may exist. These trashed elements should not contribute to the count.
 }
 
-func newPRQ() peerRequestQueue {
+func newPRQ() *prq {
 	return &prq{
 		taskMap:  make(map[string]*peerRequestTask),
 		partners: make(map[peer.ID]*activePartner),
+		frozen:   make(map[peer.ID]*activePartner),
 		pQueue:   pq.New(partnerCompare),
 	}
 }
@@ -38,6 +40,8 @@ type prq struct {
 	pQueue   pq.PQ
 	taskMap  map[string]*peerRequestTask
 	partners map[peer.ID]*activePartner
+
+	frozen map[peer.ID]*activePartner
 }
 
 // Push currently adds a new peerRequestTask to the end of the list
@@ -92,7 +96,7 @@ func (tl *prq) Pop() *peerRequestTask {
 	partner := tl.pQueue.Pop().(*activePartner)
 
 	var out *peerRequestTask
-	for partner.taskQueue.Len() > 0 {
+	for partner.taskQueue.Len() > 0 && partner.freezeVal == 0 {
 		out = partner.taskQueue.Pop().(*peerRequestTask)
 		delete(tl.taskMap, out.Key())
 		if out.trash {
@@ -120,9 +124,45 @@ func (tl *prq) Remove(k key.Key, p peer.ID) {
 		t.trash = true
 
 		// having canceled a block, we now account for that in the given partner
-		tl.partners[p].requests--
+		partner := tl.partners[p]
+		partner.requests--
+
+		// we now also 'freeze' that partner. If they sent us a cancel for a
+		// block we were about to send them, we should wait a short period of time
+		// to make sure we receive any other in-flight cancels before sending
+		// them a block they already potentially have
+		if partner.freezeVal == 0 {
+			tl.frozen[p] = partner
+		}
+
+		partner.freezeVal++
+		tl.pQueue.Update(partner.index)
 	}
 	tl.lock.Unlock()
+}
+
+func (tl *prq) fullThaw() {
+	tl.lock.Lock()
+	defer tl.lock.Unlock()
+
+	for id, partner := range tl.frozen {
+		partner.freezeVal = 0
+		delete(tl.frozen, id)
+		tl.pQueue.Update(partner.index)
+	}
+}
+
+func (tl *prq) thawRound() {
+	tl.lock.Lock()
+	defer tl.lock.Unlock()
+
+	for id, partner := range tl.frozen {
+		partner.freezeVal -= (partner.freezeVal + 1) / 2
+		if partner.freezeVal <= 0 {
+			delete(tl.frozen, id)
+		}
+		tl.pQueue.Update(partner.index)
+	}
 }
 
 type peerRequestTask struct {
@@ -196,6 +236,8 @@ type activePartner struct {
 	// for the PQ interface
 	index int
 
+	freezeVal int
+
 	// priority queue of tasks belonging to this peer
 	taskQueue pq.PQ
 }
@@ -208,6 +250,7 @@ func newActivePartner() *activePartner {
 }
 
 // partnerCompare implements pq.ElemComparator
+// returns true if peer 'a' has higher priority than peer 'b'
 func partnerCompare(a, b pq.Elem) bool {
 	pa := a.(*activePartner)
 	pb := b.(*activePartner)
@@ -220,6 +263,14 @@ func partnerCompare(a, b pq.Elem) bool {
 	if pb.requests == 0 {
 		return true
 	}
+
+	if pa.freezeVal > pb.freezeVal {
+		return false
+	}
+	if pa.freezeVal < pb.freezeVal {
+		return true
+	}
+
 	if pa.active == pb.active {
 		// sorting by taskQueue.Len() aids in cleaning out trash entries faster
 		// if we sorted instead by requests, one peer could potentially build up

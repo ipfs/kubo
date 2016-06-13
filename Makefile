@@ -41,7 +41,7 @@ bin/gx-go-v%:
 gx_check: ${gx_bin} ${gx-go_bin}
 
 path_check:
-	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(GOPATH)/src/github.com/ipfs/go-ipfs)
+	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst :, ,$(GOPATH))))
 
 deps: go_check gx_check path_check
 	${gx_bin} --verbose install --global

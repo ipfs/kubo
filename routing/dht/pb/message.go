@@ -4,15 +4,16 @@ import (
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	inet "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	inet "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/net"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
 )
 
 var log = logging.Logger("dht.pb")
 
 type PeerRoutingInfo struct {
-	peer.PeerInfo
+	pstore.PeerInfo
 	inet.Connectedness
 }
 
@@ -40,7 +41,7 @@ func peerRoutingInfoToPBPeer(p PeerRoutingInfo) *Message_Peer {
 	return pbp
 }
 
-func peerInfoToPBPeer(p peer.PeerInfo) *Message_Peer {
+func peerInfoToPBPeer(p pstore.PeerInfo) *Message_Peer {
 	pbp := new(Message_Peer)
 
 	pbp.Addrs = make([][]byte, len(p.Addrs))
@@ -52,9 +53,9 @@ func peerInfoToPBPeer(p peer.PeerInfo) *Message_Peer {
 	return pbp
 }
 
-// PBPeerToPeer turns a *Message_Peer into its peer.PeerInfo counterpart
-func PBPeerToPeerInfo(pbp *Message_Peer) peer.PeerInfo {
-	return peer.PeerInfo{
+// PBPeerToPeer turns a *Message_Peer into its pstore.PeerInfo counterpart
+func PBPeerToPeerInfo(pbp *Message_Peer) pstore.PeerInfo {
+	return pstore.PeerInfo{
 		ID:    peer.ID(pbp.GetId()),
 		Addrs: pbp.Addresses(),
 	}
@@ -62,7 +63,7 @@ func PBPeerToPeerInfo(pbp *Message_Peer) peer.PeerInfo {
 
 // RawPeerInfosToPBPeers converts a slice of Peers into a slice of *Message_Peers,
 // ready to go out on the wire.
-func RawPeerInfosToPBPeers(peers []peer.PeerInfo) []*Message_Peer {
+func RawPeerInfosToPBPeers(peers []pstore.PeerInfo) []*Message_Peer {
 	pbpeers := make([]*Message_Peer, len(peers))
 	for i, p := range peers {
 		pbpeers[i] = peerInfoToPBPeer(p)
@@ -74,7 +75,7 @@ func RawPeerInfosToPBPeers(peers []peer.PeerInfo) []*Message_Peer {
 // which can be written to a message and sent out. the key thing this function
 // does (in addition to PeersToPBPeers) is set the ConnectionType with
 // information from the given inet.Network.
-func PeerInfosToPBPeers(n inet.Network, peers []peer.PeerInfo) []*Message_Peer {
+func PeerInfosToPBPeers(n inet.Network, peers []pstore.PeerInfo) []*Message_Peer {
 	pbps := RawPeerInfosToPBPeers(peers)
 	for i, pbp := range pbps {
 		c := ConnectionType(n.Connectedness(peers[i].ID))
@@ -91,10 +92,10 @@ func PeerRoutingInfosToPBPeers(peers []PeerRoutingInfo) []*Message_Peer {
 	return pbpeers
 }
 
-// PBPeersToPeerInfos converts given []*Message_Peer into []peer.PeerInfo
+// PBPeersToPeerInfos converts given []*Message_Peer into []pstore.PeerInfo
 // Invalid addresses will be silently omitted.
-func PBPeersToPeerInfos(pbps []*Message_Peer) []peer.PeerInfo {
-	peers := make([]peer.PeerInfo, 0, len(pbps))
+func PBPeersToPeerInfos(pbps []*Message_Peer) []pstore.PeerInfo {
+	peers := make([]pstore.PeerInfo, 0, len(pbps))
 	for _, pbp := range pbps {
 		peers = append(peers, PBPeerToPeerInfo(pbp))
 	}

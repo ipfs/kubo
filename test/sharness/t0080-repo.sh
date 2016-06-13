@@ -227,6 +227,7 @@ test_expect_success "repo stats came out correct" '
   grep "RepoPath" repo-stats &&
   grep "RepoSize" repo-stats &&
   grep "NumObjects" repo-stats
+  grep "Version" repo-stats
 '
 
 test_expect_success "'ipfs repo stat' after adding a file" '
@@ -236,6 +237,21 @@ test_expect_success "'ipfs repo stat' after adding a file" '
 
 test_expect_success "repo stats are updated correctly" '
   test $(get_field_num "RepoSize" repo-stats-2) -ge $(get_field_num "RepoSize" repo-stats)
+'
+
+test_expect_success "'ipfs repo version' succeeds" '
+  ipfs repo version > repo-version
+'
+
+test_expect_success "repo version came out correct" '
+	egrep "^ipfs repo version fs-repo@[0-9]" repo-version >/dev/null
+'
+
+test_expect_success "'ipfs repo version -q' succeeds" '
+  ipfs repo version -q > repo-version-q
+'
+test_expect_success "repo version came out correct" '
+	egrep "^fs-repo@[0-9]" repo-version-q >/dev/null
 '
 
 test_kill_ipfs_daemon

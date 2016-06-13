@@ -6,10 +6,11 @@ import (
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	host "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/host"
-	inet "gx/ipfs/QmRW2xiYTpDLWTHb822ZYbPBoh3dGLJwaXLGS9tnPyWZpq/go-libp2p/p2p/net"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	host "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/net"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
@@ -31,11 +32,11 @@ type Proxy interface {
 type standard struct {
 	Host host.Host
 
-	remoteInfos []peer.PeerInfo // addr required for bootstrapping
-	remoteIDs   []peer.ID       // []ID is required for each req. here, cached for performance.
+	remoteInfos []pstore.PeerInfo // addr required for bootstrapping
+	remoteIDs   []peer.ID         // []ID is required for each req. here, cached for performance.
 }
 
-func Standard(h host.Host, remotes []peer.PeerInfo) Proxy {
+func Standard(h host.Host, remotes []pstore.PeerInfo) Proxy {
 	var ids []peer.ID
 	for _, remote := range remotes {
 		ids = append(ids, remote.ID)
@@ -44,7 +45,7 @@ func Standard(h host.Host, remotes []peer.PeerInfo) Proxy {
 }
 
 func (px *standard) Bootstrap(ctx context.Context) error {
-	var cxns []peer.PeerInfo
+	var cxns []pstore.PeerInfo
 	for _, info := range px.remoteInfos {
 		if err := px.Host.Connect(ctx, info); err != nil {
 			continue
@@ -97,7 +98,7 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 		}
 		e.Done()
 	}()
-	if err = px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
+	if err = px.Host.Connect(ctx, pstore.PeerInfo{ID: remote}); err != nil {
 		return err
 	}
 	s, err := px.Host.NewStream(ctx, ProtocolSNR, remote)
@@ -131,7 +132,7 @@ func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.M
 func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote peer.ID) (*dhtpb.Message, error) {
 	e := log.EventBegin(ctx, "sendRoutingRequest", px.Host.ID(), remote, logging.Pair("request", m))
 	defer e.Done()
-	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
+	if err := px.Host.Connect(ctx, pstore.PeerInfo{ID: remote}); err != nil {
 		e.SetError(err)
 		return nil, err
 	}

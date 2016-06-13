@@ -7,7 +7,8 @@ import (
 
 	tu "github.com/ipfs/go-ipfs/thirdparty/testutil"
 
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
 )
 
 // Test basic features of the bucket struct
@@ -51,7 +52,7 @@ func TestBucket(t *testing.T) {
 // Right now, this just makes sure that it doesnt hang or crash
 func TestTableUpdate(t *testing.T) {
 	local := tu.RandPeerIDFatal(t)
-	m := peer.NewMetrics()
+	m := pstore.NewMetrics()
 	rt := NewRoutingTable(10, ConvertPeerID(local), time.Hour, m)
 
 	peers := make([]peer.ID, 100)
@@ -75,7 +76,7 @@ func TestTableUpdate(t *testing.T) {
 
 func TestTableFind(t *testing.T) {
 	local := tu.RandPeerIDFatal(t)
-	m := peer.NewMetrics()
+	m := pstore.NewMetrics()
 	rt := NewRoutingTable(10, ConvertPeerID(local), time.Hour, m)
 
 	peers := make([]peer.ID, 100)
@@ -93,7 +94,7 @@ func TestTableFind(t *testing.T) {
 
 func TestTableFindMultiple(t *testing.T) {
 	local := tu.RandPeerIDFatal(t)
-	m := peer.NewMetrics()
+	m := pstore.NewMetrics()
 	rt := NewRoutingTable(20, ConvertPeerID(local), time.Hour, m)
 
 	peers := make([]peer.ID, 100)
@@ -114,7 +115,7 @@ func TestTableFindMultiple(t *testing.T) {
 // and set GOMAXPROCS above 1
 func TestTableMultithreaded(t *testing.T) {
 	local := peer.ID("localPeer")
-	m := peer.NewMetrics()
+	m := pstore.NewMetrics()
 	tab := NewRoutingTable(20, ConvertPeerID(local), time.Hour, m)
 	var peers []peer.ID
 	for i := 0; i < 500; i++ {
@@ -153,7 +154,7 @@ func TestTableMultithreaded(t *testing.T) {
 func BenchmarkUpdates(b *testing.B) {
 	b.StopTimer()
 	local := ConvertKey("localKey")
-	m := peer.NewMetrics()
+	m := pstore.NewMetrics()
 	tab := NewRoutingTable(20, local, time.Hour, m)
 
 	var peers []peer.ID
@@ -170,7 +171,7 @@ func BenchmarkUpdates(b *testing.B) {
 func BenchmarkFinds(b *testing.B) {
 	b.StopTimer()
 	local := ConvertKey("localKey")
-	m := peer.NewMetrics()
+	m := pstore.NewMetrics()
 	tab := NewRoutingTable(20, local, time.Hour, m)
 
 	var peers []peer.ID

@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	//"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	k "github.com/ipfs/go-ipfs/blocks/key"
-	//ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	//ds "github.com/ipfs/go-datastore"
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	node "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"

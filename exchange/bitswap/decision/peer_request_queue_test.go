@@ -47,6 +47,8 @@ func TestPushPop(t *testing.T) {
 		prq.Remove(key.Key(consonant), partner)
 	}
 
+	prq.fullThaw()
+
 	var out []string
 	for {
 		received := prq.Pop()

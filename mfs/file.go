@@ -45,6 +45,20 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 	node := fi.node
 	fi.nodelk.Unlock()
 
+	fsn, err := ft.FSNodeFromBytes(node.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	switch fsn.Type {
+	default:
+		return nil, fmt.Errorf("unsupported fsnode type for 'file'")
+	case ft.TSymlink:
+		return nil, fmt.Errorf("symlinks not yet supported")
+	case ft.TFile, ft.TRaw:
+		// OK case
+	}
+
 	switch flags {
 	case OpenReadOnly:
 		fi.desclock.RLock()
