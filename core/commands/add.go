@@ -162,7 +162,6 @@ You can now refer to the added file in a gateway, like so:
 			blockstore := filestore_support.NewBlockstore(n.Blockstore, n.Repo.Datastore(), fs)
 			blockService := bserv.New(blockstore, n.Exchange)
 			dagService := dag.NewDAGService(blockService)
-			dagService.NodeToBlock = filestore_support.NodeToBlock{}
 			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService, useRoot)
 		} else {
 			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, n.DAG, useRoot)

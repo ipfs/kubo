@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ipfs/go-ipfs/commands/files"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
@@ -15,6 +16,7 @@ import (
 type Block interface {
 	Multihash() mh.Multihash
 	Data() []byte
+	PosInfo() *files.PosInfo
 	Key() key.Key
 	String() string
 	Loggable() map[string]interface{}
@@ -23,6 +25,7 @@ type Block interface {
 type BasicBlock struct {
 	multihash mh.Multihash
 	data      []byte
+	posInfo   *files.PosInfo
 }
 
 // NewBlock creates a Block object from opaque data. It will hash the data.
@@ -49,6 +52,14 @@ func (b *BasicBlock) Multihash() mh.Multihash {
 
 func (b *BasicBlock) Data() []byte {
 	return b.data
+}
+
+func (b *BasicBlock) PosInfo() *files.PosInfo {
+	return b.posInfo
+}
+
+func (b *BasicBlock) SetPosInfo(posInfo *files.PosInfo) {
+	b.posInfo = posInfo
 }
 
 // Key returns the block's Multihash as a Key value.
