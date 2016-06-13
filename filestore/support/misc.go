@@ -27,7 +27,10 @@ func (NodeToBlock) CreateBlock(nd *merkledag.Node) (blocks.Block, error) {
 	}
 
 	altData, fsInfo, err := Reconstruct(b0.Data(), nil, 0)
-
+	if err != nil {
+		return nil, err
+	}
+	
 	if (fsInfo.Type != fs_pb.Data_Raw && fsInfo.Type != fs_pb.Data_File) || fsInfo.FileSize == 0 {
 		return b0, nil
 	}
