@@ -6,6 +6,7 @@ import (
 	"io"
 	"text/tabwriter"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
@@ -87,20 +88,35 @@ format:
 			for j, link := range dagnode.Links {
 				var linkNode *merkledag.Node
 				t := unixfspb.Data_DataType(-1)
-
-				if resolve {
-					linkNode, err = link.GetNode(req.Context(), node.DAG)
-					if err == nil {
-						d, err := unixfs.FromBytes(linkNode.Data)
-						if err != nil {
-							res.SetError(err, cmds.ErrNormal)
-							return
-						}
-						t = d.GetType()
-					} else {
+				linkKey := key.Key(link.Hash)
+				if ok, err := node.Blockstore.Has(linkKey); ok && err == nil {
+					b, err := node.Blockstore.Get(linkKey)
+					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
 					}
+					linkNode, err = merkledag.DecodeProtobuf(b.Data())
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
+				}
+
+				if linkNode == nil && resolve {
+					linkNode, err = link.GetNode(req.Context(), node.DAG)
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
+				}
+				if linkNode != nil {
+					d, err := unixfs.FromBytes(linkNode.Data)
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
+
+					t = d.GetType()
 				}
 				output[i].Links[j] = LsLink{
 					Name: link.Name,
