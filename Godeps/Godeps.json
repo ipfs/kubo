@@ -30,10 +30,6 @@
 			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
 		},
 		{
-			"ImportPath": "github.com/ipfs/go-datastore",
-			"Rev": "e63957b6da369d986ef3e7a3f249779ba3f56c7e"
-		},
-		{
 			"ImportPath": "github.com/jbenet/go-detect-race",
 			"Rev": "3463798d9574bd0b7eca275dccc530804ff5216f"
 		},
