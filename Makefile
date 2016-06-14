@@ -4,9 +4,9 @@ IPFS_MIN_GX_VERSION = 0.6
 IPFS_MIN_GX_GO_VERSION = 1.1
 
 ifeq ($(TEST_NO_FUSE),1)
-  go_test=go test -tags nofuse
+  go_test=IPFS_REUSEPORT=false go test -tags nofuse
 else
-  go_test=go test
+  go_test=IPFS_REUSEPORT=false go test
 endif
 
 
@@ -92,10 +92,10 @@ test_go_race:
 	$(go_test) ./... -race
 
 test_sharness_short:
-	cd test/sharness/ && make
+	make -C test/sharness/
 
 test_sharness_expensive:
-	cd test/sharness/ && TEST_EXPENSIVE=1 make
+	TEST_EXPENSIVE=1 make -C test/sharness/
 
 test_all_commits:
 	@echo "testing all commits between origin/master..HEAD"
