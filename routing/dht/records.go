@@ -84,7 +84,7 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 	// validity because a) we can't. b) we know the hash of the
 	// key we're looking for.
 	val := record.GetValue()
-	log.Debug("DHT got a value from other peer.")
+	log.Debug("DHT got a value from other peer")
 
 	pk, err = ci.UnmarshalPublicKey(val)
 	if err != nil {

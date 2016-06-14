@@ -51,7 +51,7 @@ environment variable:
 
 		log.Info("checking if daemon is running...")
 		if daemonLocked {
-			log.Debug("Ipfs daemon is running.")
+			log.Debug("ipfs daemon is running")
 			e := "ipfs daemon is running. please stop it to run this command"
 			return cmds.ClientError(e)
 		}

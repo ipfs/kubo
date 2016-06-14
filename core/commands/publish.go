@@ -58,7 +58,7 @@ Publish an <ipfs-path> to another public key (not implemented):
 		cmds.StringOption("ttl", "Time duration this record should be cached for (caution: experimental)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		log.Debug("Begin Publish")
+		log.Debug("begin publish")
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)

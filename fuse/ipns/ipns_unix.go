@@ -55,7 +55,7 @@ func NewFileSystem(ipfs *core.IpfsNode, sk ci.PrivKey, ipfspath, ipnspath string
 
 // Root constructs the Root of the filesystem, a Root object.
 func (f *FileSystem) Root() (fs.Node, error) {
-	log.Debug("Filesystem, get root")
+	log.Debug("filesystem, get root")
 	return f.RootNode, nil
 }
 
@@ -417,7 +417,7 @@ func (fi *FileNode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 func (fi *File) Forget() {
 	err := fi.fi.Sync()
 	if err != nil {
-		log.Debug("Forget file error: ", err)
+		log.Debug("forget file error: ", err)
 	}
 }
 

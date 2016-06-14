@@ -120,11 +120,11 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Debug("Incoming API request: ", r.URL)
+	log.Debug("incoming API request: ", r.URL)
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("A panic has occurred in the commands handler!")
+			log.Error("a panic has occurred in the commands handler!")
 			log.Error(r)
 
 			debug.PrintStack()

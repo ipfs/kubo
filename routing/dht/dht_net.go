@@ -54,7 +54,7 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 
 		// if nil response, return it before serializing
 		if rpmes == nil {
-			log.Debug("Got back nil response from request.")
+			log.Debug("got back nil response from request")
 			continue
 		}
 

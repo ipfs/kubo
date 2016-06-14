@@ -86,7 +86,7 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]*me
 		return nil, err
 	}
 
-	log.Debug("Resolve dag get.")
+	log.Debug("resolve dag get")
 	nd, err := s.DAG.Get(ctx, key.Key(h))
 	if err != nil {
 		return nil, err

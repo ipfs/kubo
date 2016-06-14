@@ -46,7 +46,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key key.Key, value []byte) err
 
 	rec, err := record.MakePutRecord(sk, key, value, sign)
 	if err != nil {
-		log.Debug("Creation of record failed!")
+		log.Debug("creation of record failed!")
 		return err
 	}
 
@@ -346,7 +346,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, 
 				select {
 				case peerOut <- prov:
 				case <-ctx.Done():
-					log.Debug("Context timed out sending more providers")
+					log.Debug("context timed out sending more providers")
 					return nil, ctx.Err()
 				}
 			}
@@ -397,7 +397,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (pstore.PeerInfo, 
 	// Sanity...
 	for _, p := range peers {
 		if p == id {
-			log.Debug("Found target peer in list of closest peers...")
+			log.Debug("found target peer in list of closest peers...")
 			return dht.peerstore.PeerInfo(p), nil
 		}
 	}

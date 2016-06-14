@@ -135,7 +135,7 @@ func newID() string {
 
 // GetDiagnostic runs a diagnostics request across the entire network
 func (d *Diagnostics) GetDiagnostic(ctx context.Context, timeout time.Duration) ([]*DiagInfo, error) {
-	log.Debug("Getting diagnostic.")
+	log.Debug("getting diagnostic")
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -144,7 +144,7 @@ func (d *Diagnostics) GetDiagnostic(ctx context.Context, timeout time.Duration) 
 	d.diagMap[diagID] = time.Now()
 	d.diagLock.Unlock()
 
-	log.Debug("Begin Diagnostic")
+	log.Debug("begin diagnostic")
 
 	peers := d.getPeers()
 	log.Debugf("Sending diagnostic request to %d peers.", len(peers))
@@ -236,7 +236,7 @@ func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.ID, pmes
 				return
 			}
 			if rpmes == nil {
-				log.Debug("Got no response back from diag request.")
+				log.Debug("got no response back from diag request")
 				return
 			}
 
