@@ -159,7 +159,7 @@ You can now refer to the added file in a gateway, like so:
 				res.SetError(errors.New("Could not extract filestore"), cmds.ErrNormal)
 				return
 			}
-			blockstore := filestore_support.NewBlockstore(n.Blockstore, n.Repo.Datastore(), fs)
+			blockstore := filestore_support.NewBlockstore(n.Blockstore, fs)
 			blockService := bserv.New(blockstore, n.Exchange)
 			dagService := dag.NewDAGService(blockService)
 			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService, useRoot)
