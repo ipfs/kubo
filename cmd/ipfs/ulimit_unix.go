@@ -15,7 +15,7 @@ func init() {
 	if val := os.Getenv("IPFS_FD_MAX"); val != "" {
 		n, err := strconv.Atoi(val)
 		if err != nil {
-			log.Error("bad value for IPFS_FD_MAX: %s", err)
+			log.Errorf("bad value for IPFS_FD_MAX: %s", err)
 		} else {
 			ipfsFileDescNum = uint64(n)
 		}

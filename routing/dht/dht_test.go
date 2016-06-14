@@ -214,7 +214,7 @@ func TestProvides(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !bytes.Equal(bits.GetValue(), v) {
-			t.Fatal("didn't store the right bits (%s, %s)", k, v)
+			t.Fatalf("didn't store the right bits (%s, %s)", k, v)
 		}
 	}
 
@@ -289,7 +289,7 @@ func waitForWellFormedTables(t *testing.T, dhts []*IpfsDHT, minPeers, avgPeers i
 
 func printRoutingTables(dhts []*IpfsDHT) {
 	// the routing tables should be full now. let's inspect them.
-	fmt.Println("checking routing table of %d", len(dhts))
+	fmt.Printf("checking routing table of %d\n", len(dhts))
 	for _, dht := range dhts {
 		fmt.Printf("checking routing table of %s\n", dht.self)
 		dht.routingTable.Print()
@@ -487,7 +487,7 @@ func TestProvidesMany(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !bytes.Equal(bits.GetValue(), v) {
-			t.Fatal("didn't store the right bits (%s, %s)", k, v)
+			t.Fatalf("didn't store the right bits (%s, %s)", k, v)
 		}
 
 		t.Logf("announcing provider for %s", k)

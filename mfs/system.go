@@ -265,7 +265,7 @@ func (np *Republisher) Run() {
 				pubnowresp <- struct{}{}
 			}
 			if err != nil {
-				log.Error("republishRoot error: %s", err)
+				log.Errorf("republishRoot error: %s", err)
 			}
 
 		case <-np.ctx.Done():

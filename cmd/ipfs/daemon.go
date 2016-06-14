@@ -169,7 +169,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	managefd, _, _ := req.Option(adjustFDLimitKwd).Bool()
 	if managefd {
 		if err := fileDescriptorCheck(); err != nil {
-			log.Error("setting file descriptor limit: %s", err)
+			log.Errorf("setting file descriptor limit: %s", err)
 		}
 	}
 

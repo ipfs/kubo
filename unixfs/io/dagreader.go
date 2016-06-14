@@ -279,7 +279,6 @@ func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 	default:
 		return 0, errors.New("invalid whence")
 	}
-	return 0, nil
 }
 
 // readSeekNopCloser wraps a bytes.Reader to implement ReadSeekCloser

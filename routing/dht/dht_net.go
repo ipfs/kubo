@@ -64,8 +64,6 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 			return
 		}
 	}
-
-	return
 }
 
 // sendRequest sends out a request, but also makes sure to
