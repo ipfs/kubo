@@ -571,10 +571,6 @@ func (r *FSRepo) GetStorageUsage() (uint64, error) {
 	return du, err
 }
 
-func (r *FSRepo) Self() repo.Repo {
-	return r
-}
-
 var _ io.Closer = &FSRepo{}
 var _ repo.Repo = &FSRepo{}
 
