@@ -162,7 +162,7 @@ func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
 func Lookup(r *Root, path string) (FSNode, error) {
 	dir, ok := r.GetValue().(*Directory)
 	if !ok {
-		log.Error("root not a dir: %#v", r.GetValue())
+		log.Errorf("root not a dir: %#v", r.GetValue())
 		return nil, errors.New("root was not a directory")
 	}
 
