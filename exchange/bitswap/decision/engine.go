@@ -312,8 +312,13 @@ type LedgerSnapshot struct {
 }
 
 func (e *Engine) LedgerSnapshot(p peer.ID) *LedgerSnapshot {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	l := e.findOrCreate(p)
+
 	snapshot := &LedgerSnapshot{
-		DebtRatio:     e.findOrCreate(p).Accounting.Value(),
+		DebtRatio:     l.Accounting.Value(),
 		BytesSent:     e.numBytesSentTo(p),
 		BytesReceived: e.numBytesReceivedFrom(p),
 	}
