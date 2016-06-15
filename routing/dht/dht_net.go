@@ -228,9 +228,9 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Message) (*pb
 
 func (ms *messageSender) ctxReadMsg(ctx context.Context, mes *pb.Message) error {
 	errc := make(chan error, 1)
-	go func() {
-		errc <- ms.r.ReadMsg(mes)
-	}()
+	go func(r ggio.ReadCloser) {
+		errc <- r.ReadMsg(mes)
+	}(ms.r)
 
 	select {
 	case err := <-errc:
