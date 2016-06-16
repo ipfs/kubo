@@ -15,3 +15,4 @@ This fork is currently based on IPFS v0.4.2 with the following changes:
 - Accept providers whose peer ID does not match the ID of the sender. This, again, is needed for the messaging system.
 - Change the `swarm` `peers` output to []string from a private struct. The access control on the struct made the return unusable otherwise.
 - Resolve IPNS queries locally if the query is for our own peer ID. This will make browsing one's own OpenBazaar page much faster.
+- Increase MaxRecordAge to 7 days to match the message TTL.
