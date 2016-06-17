@@ -109,7 +109,7 @@ func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	switch err {
 	case ErrReadTimeout:
-		log.Errorf("read timeout: %s %s", p, key)
+		log.Warningf("read timeout: %s %s", p.Pretty(), key)
 		fallthrough
 	default:
 		return err
@@ -179,7 +179,7 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
 	case nil:
 		return resp, nil
 	case ErrReadTimeout:
-		log.Errorf("read timeout: %s %s", p, key)
+		log.Warningf("read timeout: %s %s", p.Pretty(), key)
 		fallthrough
 	default:
 		return nil, err
@@ -262,7 +262,7 @@ func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.ID, id peer.ID) (
 	case nil:
 		return resp, nil
 	case ErrReadTimeout:
-		log.Errorf("read timeout: %s %s", p, id)
+		log.Warningf("read timeout: %s %s", p.Pretty(), id)
 		fallthrough
 	default:
 		return nil, err
@@ -278,7 +278,7 @@ func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key key.
 	case nil:
 		return resp, nil
 	case ErrReadTimeout:
-		log.Errorf("read timeout: %s %s", p, key)
+		log.Warningf("read timeout: %s %s", p.Pretty(), key)
 		fallthrough
 	default:
 		return nil, err
