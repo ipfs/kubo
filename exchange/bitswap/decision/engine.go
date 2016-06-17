@@ -93,7 +93,7 @@ type Engine struct {
 
 func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 	e := &Engine{
-		ledgerMap:        make(map[peer.ID]*ledger),
+		ledgerMap:        make(map[peer.ID]*Ledger),
 		bs:               bs,
 		peerRequestQueue: newPRQ(),
 		outbox:           make(chan (<-chan *Envelope), outboxChanBuffer),
@@ -285,12 +285,12 @@ func (e *Engine) PeerDisconnected(p peer.ID) {
 
 func (e *Engine) numBytesSentTo(p peer.ID) uint64 {
 	// NB not threadsafe
-	return e.findOrCreate(p).Accounting.BytesSent
+	return e.FindOrCreate(p).Accounting.BytesSent
 }
 
 func (e *Engine) numBytesReceivedFrom(p peer.ID) uint64 {
 	// NB not threadsafe
-	return e.findOrCreate(p).Accounting.BytesRecv
+	return e.FindOrCreate(p).Accounting.BytesRecv
 }
 
 // ledger lazily instantiates a ledger
