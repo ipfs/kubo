@@ -10,7 +10,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
-	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
+	engine "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -181,7 +181,7 @@ var bitswapLedgerCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peer", true, false, "Specify which peer to show ledger info for."),
 	},
-	Type: decision.Ledger{},
+	Type: engine.LedgerSnapshot{},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -202,25 +202,25 @@ var bitswapLedgerCmd = &cmds.Command{
 
 		arg := req.Arguments()
 		pid, err := peer.IDB58Decode(arg[0])
-		fmt.Println(pid)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(bs.Engine.FindOrCreate(pid))
+		res.SetOutput(bs.Engine.LedgerSnapshot(pid))
 
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			out, ok := res.Output().(*decision.Ledger)
+			out, ok := res.Output().(*engine.LedgerSnapshot)
 			if !ok {
 				return nil, u.ErrCast()
 			}
 
 			buf := new(bytes.Buffer)
 			fmt.Fprintln(buf, "ledger for peer")
-			fmt.Fprintf(buf, "\tpeer id: %s \n", out.Partner.Pretty())
-			fmt.Fprintf(buf, "\tdebt ratio: %f\n", out.Accounting.Value())
+			fmt.Fprintf(buf, "\tdebt ratio: %f\n", out.DebtRatio)
+			fmt.Fprintf(buf, "\tbytes sent: %d\n", out.BytesSent)
+			fmt.Fprintf(buf, "\tbytes received: %d\n", out.BytesReceived)
 			return buf, nil
 		},
 	},

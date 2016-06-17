@@ -93,7 +93,7 @@ type Engine struct {
 
 func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 	e := &Engine{
-		ledgerMap:        make(map[peer.ID]*Ledger),
+		ledgerMap:        make(map[peer.ID]*ledger),
 		bs:               bs,
 		peerRequestQueue: newPRQ(),
 		outbox:           make(chan (<-chan *Envelope), outboxChanBuffer),
@@ -285,12 +285,12 @@ func (e *Engine) PeerDisconnected(p peer.ID) {
 
 func (e *Engine) numBytesSentTo(p peer.ID) uint64 {
 	// NB not threadsafe
-	return e.FindOrCreate(p).Accounting.BytesSent
+	return e.findOrCreate(p).Accounting.BytesSent
 }
 
 func (e *Engine) numBytesReceivedFrom(p peer.ID) uint64 {
 	// NB not threadsafe
-	return e.FindOrCreate(p).Accounting.BytesRecv
+	return e.findOrCreate(p).Accounting.BytesRecv
 }
 
 // ledger lazily instantiates a ledger
@@ -303,6 +303,22 @@ func (e *Engine) findOrCreate(p peer.ID) *ledger {
 	}
 	e.lock.Unlock()
 	return l
+}
+
+type LedgerSnapshot struct {
+	DebtRatio     float64
+	BytesSent     uint64
+	BytesReceived uint64
+}
+
+func (e *Engine) LedgerSnapshot(p peer.ID) *LedgerSnapshot {
+	snapshot := &LedgerSnapshot{
+		DebtRatio:     e.findOrCreate(p).Accounting.Value(),
+		BytesSent:     e.numBytesSentTo(p),
+		BytesReceived: e.numBytesReceivedFrom(p),
+	}
+
+	return snapshot
 }
 
 func (e *Engine) signalNewWork() {
