@@ -107,6 +107,16 @@ func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
 	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
 	pmes.Record = rec
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
+	switch err {
+	case ErrReadTimeout:
+		log.Errorf("read timeout: %s %s", p, key)
+		fallthrough
+	default:
+		return err
+	case nil:
+		break
+	}
+
 	if err != nil {
 		return err
 	}
@@ -164,7 +174,16 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
 	defer log.EventBegin(ctx, "getValueSingle", p, &key).Done()
 
 	pmes := pb.NewMessage(pb.Message_GET_VALUE, string(key), 0)
-	return dht.sendRequest(ctx, p, pmes)
+	resp, err := dht.sendRequest(ctx, p, pmes)
+	switch err {
+	case nil:
+		return resp, nil
+	case ErrReadTimeout:
+		log.Errorf("read timeout: %s %s", p, key)
+		fallthrough
+	default:
+		return nil, err
+	}
 }
 
 // getLocal attempts to retrieve the value from the datastore
@@ -238,14 +257,32 @@ func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.ID, id peer.ID) (
 	defer log.EventBegin(ctx, "findPeerSingle", p, id).Done()
 
 	pmes := pb.NewMessage(pb.Message_FIND_NODE, string(id), 0)
-	return dht.sendRequest(ctx, p, pmes)
+	resp, err := dht.sendRequest(ctx, p, pmes)
+	switch err {
+	case nil:
+		return resp, nil
+	case ErrReadTimeout:
+		log.Errorf("read timeout: %s %s", p, id)
+		fallthrough
+	default:
+		return nil, err
+	}
 }
 
 func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key key.Key) (*pb.Message, error) {
 	defer log.EventBegin(ctx, "findProvidersSingle", p, &key).Done()
 
 	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, string(key), 0)
-	return dht.sendRequest(ctx, p, pmes)
+	resp, err := dht.sendRequest(ctx, p, pmes)
+	switch err {
+	case nil:
+		return resp, nil
+	case ErrReadTimeout:
+		log.Errorf("read timeout: %s %s", p, key)
+		fallthrough
+	default:
+		return nil, err
+	}
 }
 
 // nearestPeersToQuery returns the routing tables closest peers.
