@@ -81,10 +81,16 @@ func run(ipfsPath, watchPath string) error {
 	}
 	defer node.Close()
 
+	cfg, err := node.Repo.Config()
+	if err != nil {
+		return err
+	}
+	cfg.Gateway.Writable = true
+
 	if *http {
 		addr := "/ip4/127.0.0.1/tcp/5001"
 		var opts = []corehttp.ServeOption{
-			corehttp.GatewayOption(true, nil),
+			corehttp.GatewayOption("/ipfs", "/ipns"),
 			corehttp.WebUIOption,
 			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
 		}

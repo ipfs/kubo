@@ -104,7 +104,7 @@ _ipfs_config_show()
 _ipfs_daemon()
 {
     _ipfs_comp "--init --routing= --mount --writable --mount-ipfs= \
-        --mount-ipns= --unrestricted-api --disable-transport-encryption \
+        --mount-ipns= --disable-transport-encryption \
         --help"
 }
 
@@ -314,7 +314,7 @@ _ipfs_resolve()
 
 _ipfs_stats()
 {
-    _ipfs_comp "bw --help" 
+    _ipfs_comp "bw --help"
 }
 
 _ipfs_stats_bw()
@@ -401,17 +401,17 @@ _ipfs()
 {
     COMPREPLY=()
     local word="${COMP_WORDS[COMP_CWORD]}"
-    
+
     case "${COMP_CWORD}" in
-        1)  
+        1)
             local opts="add bitswap block bootstrap cat commands config daemon dht \
                         diag dns file get id init log ls mount name object pin ping \
                         refs repo stats swarm tour update version"
             COMPREPLY=( $(compgen -W "${opts}" -- ${word}) );;
-        2)  
+        2)
             local command="${COMP_WORDS[1]}"
             eval "_ipfs_$command" 2> /dev/null ;;
-        *)  
+        *)
             local command="${COMP_WORDS[1]}"
             local subcommand="${COMP_WORDS[2]}"
             eval "_ipfs_${command}_${subcommand}" 2> /dev/null && return
