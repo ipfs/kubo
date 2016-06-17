@@ -234,10 +234,20 @@ func generateSynopsis(cmd *cmds.Command, path string) string {
 			if len(n) > 1 {
 				pre = "--"
 			}
-			if i == 0 {
-				sopt = fmt.Sprintf("%s%s=<%s>", pre, n, valopt)
+			if opt.Type() == cmds.Bool && opt.DefaultVal() == true {
+				pre = "--"
+				sopt = fmt.Sprintf("%s%s=false", pre, n)
+				break
 			} else {
-				sopt = fmt.Sprintf("%s | %s%s", sopt, pre, n)
+				if i == 0 {
+					if opt.Type() == cmds.Bool {
+						sopt = fmt.Sprintf("%s%s", pre, n)
+					} else {
+						sopt = fmt.Sprintf("%s%s=<%s>", pre, n, valopt)
+					}
+				} else {
+					sopt = fmt.Sprintf("%s | %s%s", sopt, pre, n)
+				}
 			}
 		}
 		res = fmt.Sprintf("%s [%s]", res, sopt)
