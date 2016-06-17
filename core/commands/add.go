@@ -156,7 +156,7 @@ You can now refer to the added file in a gateway, like so:
 		if nocopy {
 			fs, ok := n.Repo.SubDatastore(fsrepo.RepoFilestore).(*filestore.Datastore)
 			if !ok {
-				res.SetError(errors.New("Could not extract filestore"), cmds.ErrNormal)
+				res.SetError(errors.New("could not extract filestore"), cmds.ErrNormal)
 				return
 			}
 			blockstore := filestore_support.NewBlockstore(n.Blockstore, fs)

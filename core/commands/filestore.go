@@ -24,7 +24,7 @@ import (
 
 var FileStoreCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with filestore objects",
+		Tagline: "Interact with filestore objects.",
 	},
 	Subcommands: map[string]*cmds.Command{
 		"add":      addFileStore,
@@ -57,7 +57,7 @@ same as for "ipfs add".
 		logical, _, _ := req.Option("logical").Bool()
 		physical, _, _ := req.Option("physical").Bool()
 		if logical && physical {
-			return errors.New("Both --logical and --physical can not be specified.")
+			return errors.New("both --logical and --physical can not be specified")
 		}
 		cwd := ""
 		var err error
@@ -98,7 +98,7 @@ same as for "ipfs add".
 		config, _ := req.InvocContext().GetConfig()
 		serverSide, _, _ := req.Option("server-side").Bool()
 		if serverSide && !config.Filestore.APIServerSidePaths {
-			res.SetError(errors.New("Server Side Adds not enabled."), cmds.ErrNormal)
+			res.SetError(errors.New("server side paths not enabled"), cmds.ErrNormal)
 			return
 		}
 		if serverSide {
@@ -126,8 +126,8 @@ func addFileStoreOpts() []cmds.Option {
 	opts = append(opts, AddCmd.Options...)
 	opts = append(opts,
 		cmds.BoolOption("server-side", "S", "Read file on server."),
-		cmds.BoolOption("l", "logical", "Create absolute path using the PWD from environment."),
-		cmds.BoolOption("P", "physical", "Create absolute path using the system call."),
+		cmds.BoolOption("l", "logical", "Create absolute path using PWD from environment."),
+		cmds.BoolOption("P", "physical", "Create absolute path using a system call."),
 	)
 	return opts
 }
@@ -136,7 +136,7 @@ func getFiles(req cmds.Request) error {
 	inputs := req.Arguments()
 	for _, fn := range inputs {
 		if !filepath.IsAbs(fn) {
-			return fmt.Errorf("File path must be absolute: %s", fn)
+			return fmt.Errorf("file path must be absolute: %s", fn)
 		}
 	}
 	_, fileArgs, err := cli.ParseArgs(req, inputs, nil, AddCmd.Arguments, nil)
@@ -175,7 +175,7 @@ func (f *fixPath) NextFile() (files.File, error) {
 	path := f.paths[0]
 	f.paths = f.paths[:1]
 	if f0.IsDirectory() {
-		return nil, errors.New("Online, directory add not supported, try '-S'")
+		return nil, errors.New("online directory add not supported, try '-S'")
 	} else {
 		f, err := os.Open(path)
 		if err != nil {
@@ -261,7 +261,7 @@ func (f *dualFile) Close() error {
 
 var lsFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List objects in filestore",
+		Tagline: "List objects in filestore.",
 		ShortDescription: `
 List objects in the filestore.  If one or more <obj> is specified only
 list those specific objects, otherwise list all objects.  An <obj> can
@@ -321,7 +321,7 @@ If <offset> is the special value "-" indicates a file root.
 			}
 		}
 		if len(keys) > 0 && len(paths) > 0 {
-			res.SetError(errors.New("Cannot specify both hashes and paths."), cmds.ErrNormal)
+			res.SetError(errors.New("cannot specify both hashes and paths"), cmds.ErrNormal)
 			return
 		}
 
@@ -375,7 +375,7 @@ func pathMatch(match_list []string, path string) bool {
 
 var lsFiles = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List files in filestore",
+		Tagline: "List files in filestore.",
 		ShortDescription: `
 List files in the filestore.  If --quiet is specified only the
 file names are printed, otherwise the fields are as follows:
@@ -464,14 +464,14 @@ func formatPorcelain(res fsutil.ListRes) (string, error) {
 		return "", nil
 	}
 	if res.DataObj == nil {
-		return "", fmt.Errorf("Key not found: %s.", res.MHash())
+		return "", fmt.Errorf("key not found: %s.", res.MHash())
 	}
 	pos := strings.IndexAny(res.FilePath, "\t\r\n")
 	if pos == -1 {
 		return fmt.Sprintf("%s\t%s\t%s\t%s\n", res.What(), res.StatusStr(), res.MHash(), res.FilePath), nil
 	} else {
 		str := fmt.Sprintf("%s\t%s\t%s\t%s\n", res.What(), res.StatusStr(), res.MHash(), "ERROR")
-		err := errors.New("Not displaying filename with tab or newline character.")
+		err := errors.New("not displaying filename with tab or newline character")
 		return str, err
 	}
 }
@@ -486,7 +486,7 @@ func formatByFile(res fsutil.ListRes) (string, error) {
 
 var verifyFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Verify objects in filestore",
+		Tagline: "Verify objects in filestore.",
 		ShortDescription: `
 Verify <hash> nodes in the filestore.  If no hashes are specified then
 verify everything in the filestore.
@@ -684,7 +684,7 @@ will do a "verify --level 0" and is used to remove any "orphan" nodes.
 
 var rmFilestoreObjs = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove objects from the filestore",
+		Tagline: "Remove objects from the filestore.",
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("hash", true, true, "Multi-hashes to remove."),
@@ -693,7 +693,7 @@ var rmFilestoreObjs = &cmds.Command{
 		cmds.BoolOption("quiet", "q", "Produce less output."),
 		cmds.BoolOption("force", "Do Not Abort in non-fatal erros."),
 		cmds.BoolOption("direct", "Delete individual blocks."),
-		cmds.BoolOption("ignore-pins", "Ignore pins"),
+		cmds.BoolOption("ignore-pins", "Ignore pins."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -758,7 +758,7 @@ func extractFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Datastore, e
 	}
 	fs, ok := node.Repo.SubDatastore(fsrepo.RepoFilestore).(*filestore.Datastore)
 	if !ok {
-		err := errors.New("Could not extract filestore")
+		err := errors.New("could not extract filestore")
 		return nil, nil, err
 	}
 	return node, fs, nil
@@ -766,7 +766,7 @@ func extractFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Datastore, e
 
 var repairPins = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Repair pins to non-existent or incomplete objects",
+		Tagline: "Repair pins to non-existent or incomplete objects.",
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("dry-run", "n", "Report on what will be done."),
@@ -904,11 +904,11 @@ copy is not removed.  Use "filestore rm-dups" to remove the old copy.
 		offline := !node.OnlineMode()
 		args := req.Arguments()
 		if len(args) < 1 {
-			res.SetError(errors.New("Must specify hash."), cmds.ErrNormal)
+			res.SetError(errors.New("must specify hash"), cmds.ErrNormal)
 			return
 		}
 		if len(args) > 2 {
-			res.SetError(errors.New("Too many arguments."), cmds.ErrNormal)
+			res.SetError(errors.New("too many arguments"), cmds.ErrNormal)
 			return
 		}
 		mhash := args[0]
