@@ -267,7 +267,7 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) [
 	// == to self? thats bad
 	for _, p := range closer {
 		if p == dht.self {
-			log.Debug("Attempted to return self! this shouldnt happen...")
+			log.Debug("attempted to return self! this shouldn't happen...")
 			return nil
 		}
 	}

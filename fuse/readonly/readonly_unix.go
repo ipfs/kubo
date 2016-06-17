@@ -70,7 +70,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 // ReadDirAll reads a particular directory. Disallowed for root.
 func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	log.Debug("Read Root.")
+	log.Debug("read Root")
 	return nil, fuse.EPERM
 }
 
@@ -89,7 +89,7 @@ func (s *Node) loadData() error {
 
 // Attr returns the attributes of a given node.
 func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
-	log.Debug("Node attr.")
+	log.Debug("Node attr")
 	if s.cached == nil {
 		if err := s.loadData(); err != nil {
 			return fmt.Errorf("readonly: loadData() failed: %s", err)

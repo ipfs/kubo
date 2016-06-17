@@ -288,7 +288,7 @@ func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
 func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Request, root *cmds.Command) error {
 
 	log.Event(ctx, "callPreCommandHooks", &details)
-	log.Debug("Calling pre-command hooks...")
+	log.Debug("calling pre-command hooks...")
 
 	return nil
 }
@@ -325,7 +325,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 	}
 
 	if client != nil && !cmd.External {
-		log.Debug("Executing command via API")
+		log.Debug("executing command via API")
 		res, err = client.Send(req)
 		if err != nil {
 			if isConnRefused(err) {
@@ -335,7 +335,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		}
 
 	} else {
-		log.Debug("Executing command locally")
+		log.Debug("executing command locally")
 
 		err := req.SetRootContext(ctx)
 		if err != nil {
