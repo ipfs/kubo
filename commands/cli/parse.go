@@ -289,15 +289,18 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		var err error
 		if argDef.Type == cmds.ArgString {
 			if len(inputs) > 0 {
-				// If argument is "-" use stdin
+				// If argument is "-", replace with stdin
 				if inputs[0] == "-" && argDef.SupportsStdin {
 					stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
 					if err != nil {
 						return nil, nil, err
 					}
+					inputs = inputs[1:]
 				}
 				// add string values
-				stringArgs, inputs = appendString(stringArgs, inputs)
+				if len(inputs) > 0 {
+					stringArgs, inputs = appendString(stringArgs, inputs)
+				}
 			} else if !argDef.SupportsStdin {
 				if len(inputs) == 0 {
 					// failure case, we have stdin, but our current
@@ -308,6 +311,12 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				stringArgs, inputs = appendString(stringArgs, inputs)
 			} else {
 				if stdin != nil && argDef.Required && !fillingVariadic {
+					// ensure that stdin is a FIFO
+					stdInfo, _ := stdin.Stat()
+					if (stdInfo.Mode() & os.ModeNamedPipe) == 0 {
+						return nil, nil, err
+					}
+
 					// if we have a stdin, read it in and use the data as a string value
 					stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
 					if err != nil {

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
@@ -203,11 +202,7 @@ func TestArgumentParsing(t *testing.T) {
 	}
 
 	test := func(cmd words, f *os.File, res words) {
-		if f != nil {
-			if _, err := f.Seek(0, os.SEEK_SET); err != nil {
-				t.Fatal(err)
-			}
-		}
+		defer f.Close()
 		req, _, _, err := Parse(cmd, f, rootCmd)
 		if err != nil {
 			t.Errorf("Command '%v' should have passed parsing: %v", cmd, err)
@@ -255,15 +250,18 @@ func TestArgumentParsing(t *testing.T) {
 
 	// Use a temp file to simulate stdin
 	fileToSimulateStdin := func(t *testing.T, content string) *os.File {
-		fstdin, err := ioutil.TempFile("", "")
+		fstdin, w, err := os.Pipe()
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer os.Remove(fstdin.Name())
 
-		if _, err := io.WriteString(fstdin, content); err != nil {
-			t.Fatal(err)
-		}
+		go func() {
+			defer w.Close()
+			if _, err := io.WriteString(w, content); err != nil {
+				t.Fatal(err)
+			}
+		}()
+
 		return fstdin
 	}
 
