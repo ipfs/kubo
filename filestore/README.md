@@ -22,10 +22,10 @@ The file or directory will then be added.  You can now try to retrieve
 it from another node such as the ipfs.io gateway.
 
 Paths stores in the filestore must be absolute.  You can either
-provide an absolute path or use one of `-P` (`--physical`) or -l
+provide an absolute path or use one of `-P` (`--physical`) or `-l`
 (`--logical`) to create one.  The `-P` (or `--physical`) means to make
-a absolute path from the physical working directory without any
-symbolic links in it; the -l (or `--logical`) means to use the `PWD`
+an absolute path from the physical working directory without any
+symbolic links in it; the `-l` (or `--logical`) means to use the `PWD`
 env. variable if possible.
 
 If adding a file with the daemon online the same file must be
@@ -51,13 +51,13 @@ The example script in filestore/examples/add-dir.sh can be used to add
 all files in a directly to the filestore and keep the filestore in
 sync with what is the directory.  Just specify the directory you want
 to add or update.  The first time it is run it will add all the files
-in the directory.  When run again it will readd any modified files.  A
+in the directory.  When run again it will re-add any modified files.  A
 good use of this script is to add it to crontab to rerun the script
 periodically.
 
 The script is fairly basic but serves as an example of how to use the
 filestore.  A more sophisticated application could use i-notify or a
-similar interface to readd files as they are changed.
+similar interface to re-add files as they are changed.
 
 ## Server side adds
 

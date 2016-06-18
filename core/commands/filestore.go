@@ -46,7 +46,7 @@ var addFileStore = &cmds.Command{
 		Tagline: "Add files to the filestore.",
 		ShortDescription: `
 Add contents of <path> to the filestore.  Most of the options are the
-same as for "ipfs add".
+same as for 'ipfs add'.
 `},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", true, true, "The path to a file to be added."),
@@ -276,7 +276,7 @@ block that represents a complete file.
 If --quiet is specified only the hashes are printed, otherwise the
 fields are as follows:
   <hash> <type> <filepath> <offset> <size> [<modtime>]
-where <type> is one of"
+where <type> is one of:"
   leaf: to indicate a node where the contents are stored
         to in the file itself
   root: to indicate a root node that represents the whole file
@@ -427,12 +427,12 @@ func (w *chanWriter) Read(p []byte) (int, error) {
 
 		if !more {
 			if w.checksFailed {
-				w.errs = append(w.errs, "Some checks failed.")
+				w.errs = append(w.errs, "some checks failed")
 			}
 			if len(w.errs) == 0 {
 				return 0, io.EOF
 			} else {
-				return 0, errors.New(strings.Join(w.errs, "  "))
+				return 0, errors.New(strings.Join(w.errs, ".  "))
 			}
 		}
 
@@ -464,7 +464,7 @@ func formatPorcelain(res fsutil.ListRes) (string, error) {
 		return "", nil
 	}
 	if res.DataObj == nil {
-		return "", fmt.Errorf("key not found: %s.", res.MHash())
+		return "", fmt.Errorf("key not found: %s", res.MHash())
 	}
 	pos := strings.IndexAny(res.FilePath, "\t\r\n")
 	if pos == -1 {
@@ -494,7 +494,7 @@ verify everything in the filestore.
 The normal output is:
   <status> <hash> [<type> <filepath> <offset> <size> [<modtime>]]
 where <hash> <type>, <filepath>, <offset>, <size> and <modtime>
-are the same as in the "ls" command and <status> is one of
+are the same as in the 'ls' command and <status> is one of:
 
   ok:       the original data can be reconstructed
   complete: all the blocks in the tree exists but no attempt was
@@ -691,7 +691,7 @@ var rmFilestoreObjs = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Produce less output."),
-		cmds.BoolOption("force", "Do Not Abort in non-fatal erros."),
+		cmds.BoolOption("force", "Do not abort in non-fatal erros."),
 		cmds.BoolOption("direct", "Delete individual blocks."),
 		cmds.BoolOption("ignore-pins", "Ignore pins."),
 	},
