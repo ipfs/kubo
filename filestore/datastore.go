@@ -112,7 +112,7 @@ func (d *Datastore) decode(dataObj interface{}) (*DataObj, error) {
 type InvalidBlock struct{}
 
 func (e InvalidBlock) Error() string {
-	return "Datastore: Block Verification Failed"
+	return "datastore: block verification failed"
 }
 
 // Get the orignal data out of the DataObj

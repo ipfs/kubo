@@ -183,10 +183,10 @@ func reconstructDirect(data []byte, blockData io.Reader, blockDataSize uint64) (
 
 	fsinfo := new(UnixFSInfo)
 	if len(fs.fields()) == 0 {
-		return nil, nil, errors.New("No UnixFS data")
+		return nil, nil, errors.New("no UnixFS data")
 	}
 	if fs.field(0).id != unixfsTypeField {
-		return nil, nil, errors.New("Unexpected field order")
+		return nil, nil, errors.New("unexpected field order")
 	} else {
 		fsinfo.Type = fs_pb.Data_DataType(fs.field(0).val)
 	}
@@ -194,7 +194,7 @@ func reconstructDirect(data []byte, blockData io.Reader, blockDataSize uint64) (
 	for i, fld := range fs.fields() {
 		if fld.id == unixfsDataField {
 			if i != 1 {
-				return nil, nil, errors.New("Unexpected field order")
+				return nil, nil, errors.New("unexpected field order")
 			}
 			continue
 		}
@@ -233,7 +233,7 @@ func reconstructDirect(data []byte, blockData io.Reader, blockDataSize uint64) (
 	}
 
 	if dagSz != len(out) {
-		return nil, nil, fmt.Errorf("Verification Failed: computed-size(%d) != actual-size(%d)", dagSz, len(out))
+		return nil, nil, fmt.Errorf("verification Failed: computed-size(%d) != actual-size(%d)", dagSz, len(out))
 	}
 	return out, fsinfo, nil
 }
@@ -290,7 +290,7 @@ func decodePB(data []byte, keep func(int32) bool) (fields, error) {
 		offset = newOffset
 	}
 	if offset != len(data) {
-		return fields{}, fmt.Errorf("Protocol buffer sanity check failed.")
+		return fields{}, fmt.Errorf("protocol buffer sanity check failed")
 	}
 	// insert dummy field with the final offset
 	res = append(res, field{offset: offset})
@@ -327,7 +327,7 @@ func getField(data []byte, offset0 int) (hdr header, offset int, err error) {
 	case 5: // 32 bit
 		offset += 4
 	default:
-		err = errors.New("Unhandled wire type")
+		err = errors.New("unhandled wire type")
 		return
 	}
 	return
