@@ -648,7 +648,7 @@ will do a "verify --level 0" and is used to remove any "orphan" nodes.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("what", true, true, "any of: changed no-file error incomplete orphan invalid full").EnableStdin(),
+		cmds.StringArg("what", true, true, "any of: changed no-file error incomplete orphan invalid full"),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Produce less output."),
