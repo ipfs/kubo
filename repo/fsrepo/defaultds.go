@@ -112,12 +112,6 @@ func initDefaultDatastore(repoPath string, conf *config.Config) error {
 
 func (r *FSRepo) newFilestore() (*filestore.Datastore, error) {
 	fileStorePath := path.Join(r.path, fileStoreDir)
-	fileStoreDB, err := levelds.NewDatastore(fileStorePath, &levelds.Options{
-		Compression: ldbopts.NoCompression,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("unable to open filestore: %v", err)
-	}
 	verify := filestore.VerifyIfChanged
 	switch strings.ToLower(r.config.Filestore.Verify) {
 	case "never":
@@ -131,5 +125,5 @@ func (r *FSRepo) newFilestore() (*filestore.Datastore, error) {
 	default:
 		return nil, fmt.Errorf("invalid value for Filestore.Verify: %s", r.config.Filestore.Verify)
 	}
-	return filestore.New(fileStoreDB, "", verify)
+	return filestore.New(fileStorePath, verify)
 }

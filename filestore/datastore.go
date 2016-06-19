@@ -13,9 +13,14 @@ import (
 	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
 	"gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/query"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	"gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	dsq "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/query"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb"
+	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
+	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/util"
 )
 
 var log = logging.Logger("filestore")
@@ -28,12 +33,22 @@ const (
 )
 
 type Datastore struct {
-	ds     ds.Datastore
+	db     *leveldb.DB
 	verify int
 }
 
-func New(d ds.Datastore, fileStorePath string, verify int) (*Datastore, error) {
-	return &Datastore{d, verify}, nil
+func (d *Datastore) DB() *leveldb.DB {
+	return d.db
+}
+
+func New(path string, verify int) (*Datastore, error) {
+	db, err := leveldb.OpenFile(path, &opt.Options{
+		Compression: opt.NoCompression,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Datastore{db, verify}, nil
 }
 
 func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
@@ -74,16 +89,13 @@ func (d *Datastore) PutDirect(key ds.Key, dataObj *DataObj) (err error) {
 	if err != nil {
 		return err
 	}
-	log.Debugf("adding block %s\n", b58.Encode(key.Bytes()[1:]))
-	return d.ds.Put(key, data)
+	keyBytes := key.Bytes()
+	log.Debugf("adding block %s\n", b58.Encode(keyBytes[1:]))
+	return d.db.Put(keyBytes, data, nil)
 }
 
 func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
-	dataObj, err := d.ds.Get(key)
-	if err != nil {
-		return nil, err
-	}
-	val, err := d.decode(dataObj)
+	val, err := d.GetDirect(key)
 	if err != nil {
 		return nil, err
 	}
@@ -92,15 +104,17 @@ func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
 
 // Get the key as a DataObj
 func (d *Datastore) GetDirect(key ds.Key) (*DataObj, error) {
-	dataObj, err := d.ds.Get(key)
+	val, err := d.db.Get(key.Bytes(), nil)
 	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return nil, ds.ErrNotFound
+		}
 		return nil, err
 	}
-	return d.decode(dataObj)
+	return Decode(val)
 }
 
-func (d *Datastore) decode(dataObj interface{}) (*DataObj, error) {
-	data := dataObj.([]byte)
+func Decode(data []byte) (*DataObj, error) {
 	val := new(DataObj)
 	err := val.Unmarshal(data)
 	if err != nil {
@@ -177,7 +191,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 }
 
 func (d *Datastore) Has(key ds.Key) (exists bool, err error) {
-	return d.ds.Has(key)
+	return d.db.Has(key.Bytes(), nil)
 }
 
 func (d *Datastore) Delete(key ds.Key) error {
@@ -185,92 +199,59 @@ func (d *Datastore) Delete(key ds.Key) error {
 }
 
 func (d *Datastore) DeleteDirect(key ds.Key) error {
-	return d.ds.Delete(key)
+	// leveldb Delete will not return an error if the key doesn't
+	// exist (see https://github.com/syndtr/goleveldb/issues/109),
+	// so check that the key exists first and if not return an
+	// error
+	keyBytes := key.Bytes()
+	exists, err := d.db.Has(keyBytes, nil)
+	if !exists {
+		return ds.ErrNotFound
+	} else if err != nil {
+		return err
+	}
+	return d.db.Delete(keyBytes, nil)
 }
 
 func (d *Datastore) Query(q query.Query) (query.Results, error) {
-	res, err := d.ds.Query(q)
-	if err != nil {
-		return nil, err
+	if (q.Prefix != "" && q.Prefix != "/") ||
+		len(q.Filters) > 0 ||
+		len(q.Orders) > 0 ||
+		q.Limit > 0 ||
+		q.Offset > 0 ||
+		!q.KeysOnly {
+		// TODO this is overly simplistic, but the only caller is
+		// `ipfs refs local` for now, and this gets us moving.
+		return nil, errors.New("filestore only supports listing all keys in random order")
 	}
-	if q.KeysOnly {
-		return res, nil
-	}
-	return nil, errors.New("filestore currently only supports keyonly queries")
-	// return &queryResult{res, func(r query.Result) query.Result {
-	// 	val, err := d.decode(r.Value)
-	// 	if err != nil {
-	// 		return query.Result{query.Entry{r.Key, nil}, err}
-	// 	}
-	// 	// Note: It should not be necessary to reclean the key
-	// 	// here (by calling ds.NewKey) just to convert the
-	// 	// string back to a ds.Key
-	// 	data, err := d.GetData(ds.NewKey(r.Key), val, d.alwaysVerify)
-	// 	if err != nil {
-	// 		return query.Result{query.Entry{r.Key, nil}, err}
-	// 	}
-	// 	return query.Result{query.Entry{r.Key, data}, r.Error}
-	// }}, nil
+	qrb := dsq.NewResultBuilder(q)
+	qrb.Process.Go(func(worker goprocess.Process) {
+		var rnge *util.Range
+		i := d.db.NewIterator(rnge, nil)
+		defer i.Release()
+		for i.Next() {
+			k := ds.NewKey(string(i.Key())).String()
+			e := dsq.Entry{Key: k}
+			select {
+			case qrb.Output <- dsq.Result{Entry: e}: // we sent it out
+			case <-worker.Closing(): // client told us to end early.
+				break
+			}
+		}
+		if err := i.Error(); err != nil {
+			select {
+			case qrb.Output <- dsq.Result{Error: err}: // client read our error
+			case <-worker.Closing(): // client told us to end.
+				return
+			}
+		}
+	})
+	go qrb.Process.CloseAfterChildren()
+	return qrb.Results(), nil
 }
-
-func (d *Datastore) QueryDirect(q query.Query) (query.Results, error) {
-	res, err := d.ds.Query(q)
-	if err != nil {
-		return nil, err
-	}
-	if q.KeysOnly {
-		return res, nil
-	}
-	return nil, errors.New("filestore currently only supports keyonly queries")
-	// return &queryResult{res, func(r query.Result) query.Result {
-	// 	val, err := d.decode(r.Value)
-	// 	if err != nil {
-	// 		return query.Result{query.Entry{r.Key, nil}, err}
-	// 	}
-	// 	return query.Result{query.Entry{r.Key, val}, r.Error}
-	// }}, nil
-}
-
-// type queryResult struct {
-// 	query.Results
-// 	adjResult func(query.Result) query.Result
-// }
-
-// func (q *queryResult) Next() <-chan query.Result {
-// 	in := q.Results.Next()
-// 	out := make(chan query.Result)
-// 	go func() {
-// 		res := <-in
-// 		if res.Error == nil {
-// 			out <- res
-// 		}
-// 		out <- q.adjResult(res)
-// 	}()
-// 	return out
-// }
-
-// func (q *queryResult) Rest() ([]query.Entry, error) {
-// 	res, err := q.Results.Rest()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	for _, entry := range res {
-// 		newRes := q.adjResult(query.Result{entry, nil})
-// 		if newRes.Error != nil {
-// 			return nil, newRes.Error
-// 		}
-// 		entry.Value = newRes.Value
-// 	}
-// 	return res, nil
-// }
 
 func (d *Datastore) Close() error {
-	c, ok := d.ds.(io.Closer)
-	if ok {
-		return c.Close()
-	} else {
-		return nil
-	}
+	return d.db.Close()
 }
 
 func (d *Datastore) Batch() (ds.Batch, error) {

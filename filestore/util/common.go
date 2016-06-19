@@ -13,7 +13,7 @@ import (
 	node "github.com/ipfs/go-ipfs/merkledag"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
-	"gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/query"
+	//"gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/query"
 )
 
 const (
@@ -126,41 +126,29 @@ func (r *ListRes) Format() string {
 }
 
 func ListKeys(d *Datastore) (<-chan ListRes, error) {
-	qr, err := d.Query(query.Query{KeysOnly: true})
-	if err != nil {
-		return nil, err
-	}
+	iter := d.DB().NewIterator(nil, nil)
 
 	out := make(chan ListRes, 1024)
 
 	go func() {
 		defer close(out)
-		for r := range qr.Next() {
-			if r.Error != nil {
-				return // FIXME
-			}
-			out <- ListRes{ds.NewKey(r.Key), nil, 0}
+		for iter.Next() {
+			out <- ListRes{ds.NewKey(string(iter.Key())), nil, 0}
 		}
 	}()
 	return out, nil
 }
 
 func List(d *Datastore, filter func(ListRes) bool) (<-chan ListRes, error) {
-	qr, err := d.Query(query.Query{KeysOnly: true})
-	if err != nil {
-		return nil, err
-	}
+	iter := d.DB().NewIterator(nil, nil)
 
 	out := make(chan ListRes, 128)
 
 	go func() {
 		defer close(out)
-		for r := range qr.Next() {
-			if r.Error != nil {
-				return // FIXME
-			}
-			key := ds.NewKey(r.Key)
-			val, _ := d.GetDirect(key)
+		for iter.Next() {
+			key := ds.NewKey(string(iter.Key()))
+			val, _ := Decode(iter.Value())
 			res := ListRes{key, val, 0}
 			keep := filter(res)
 			if keep {
