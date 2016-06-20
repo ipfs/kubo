@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -11,6 +12,9 @@ import (
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	inet "gx/ipfs/QmdBpVuSYuTGDA8Kn66CbKvEThXqKUh2nTANZEhzSxqrmJ/go-libp2p/p2p/net"
 )
+
+var dhtReadMessageTimeout = time.Minute
+var ErrReadTimeout = fmt.Errorf("timed out reading response")
 
 // handleNewStream implements the inet.StreamHandler
 func (dht *IpfsDHT) handleNewStream(s inet.Stream) {
@@ -232,10 +236,15 @@ func (ms *messageSender) ctxReadMsg(ctx context.Context, mes *pb.Message) error 
 		errc <- r.ReadMsg(mes)
 	}(ms.r)
 
+	t := time.NewTimer(dhtReadMessageTimeout)
+	defer t.Stop()
+
 	select {
 	case err := <-errc:
 		return err
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-t.C:
+		return ErrReadTimeout
 	}
 }
