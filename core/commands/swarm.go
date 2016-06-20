@@ -497,6 +497,10 @@ add your filters to the ipfs config file.
 
 		res.SetOutput(&stringList{added})
 	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+	Type: stringList{},
 }
 
 var swarmFiltersRmCmd = &cmds.Command{
@@ -529,11 +533,32 @@ remove your filters from the ipfs config file.
 			return
 		}
 
+		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		defer r.Close()
+		cfg, err := r.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		if req.Arguments()[0] == "all" || req.Arguments()[0] == "*" {
 			fs := snet.Filters.Filters()
 			for _, f := range fs {
 				snet.Filters.Remove(f)
 			}
+
+			removed, err := filtersRemoveAll(r, cfg)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			res.SetOutput(&stringList{removed})
+
 			return
 		}
 
@@ -546,7 +571,15 @@ remove your filters from the ipfs config file.
 
 			snet.Filters.Remove(mask)
 		}
+
+		removed, err := filtersRemove(r, cfg, req.Arguments())
+
+		res.SetOutput(&stringList{removed})
 	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+	Type: stringList{},
 }
 
 func filtersAdd(r repo.Repo, cfg *config.Config, filters []string) ([]string, error) {
@@ -583,4 +616,44 @@ func filtersAdd(r repo.Repo, cfg *config.Config, filters []string) ([]string, er
 	}
 
 	return addedList, nil
+}
+
+func filtersRemoveAll(r repo.Repo, cfg *config.Config) ([]string, error) {
+	removed := cfg.Swarm.AddrFilters
+	cfg.Swarm.AddrFilters = nil
+
+	if err := r.SetConfig(cfg); err != nil {
+		return nil, err
+	}
+
+	return removed, nil
+}
+
+func filtersRemove(r repo.Repo, cfg *config.Config, toRemoveFilters []string) ([]string, error) {
+	removed := make([]string, 0, len(toRemoveFilters))
+	keep := make([]string, 0, len(cfg.Swarm.AddrFilters))
+
+	oldFilters := cfg.Swarm.AddrFilters
+
+	for _, oldFilter := range oldFilters {
+		found := false
+		for _, toRemoveFilter := range toRemoveFilters {
+			if oldFilter == toRemoveFilter {
+				found = true
+				removed = append(removed, toRemoveFilter)
+				break
+			}
+		}
+
+		if !found {
+			keep = append(keep, oldFilter)
+		}
+	}
+	cfg.Swarm.AddrFilters = keep
+
+	if err := r.SetConfig(cfg); err != nil {
+		return nil, err
+	}
+
+	return removed, nil
 }
