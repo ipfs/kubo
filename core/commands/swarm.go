@@ -461,6 +461,11 @@ add your filters to the ipfs config file.
 			return
 		}
 
+		if len(req.Arguments()) == 0 {
+			res.SetError(errors.New("no filters to add"), cmds.ErrClient)
+			return
+		}
+
 		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -470,11 +475,6 @@ add your filters to the ipfs config file.
 		cfg, err := r.Config()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if len(req.Arguments()) == 0 {
-			res.SetError(errors.New("no filters to add"), cmds.ErrClient)
 			return
 		}
 
