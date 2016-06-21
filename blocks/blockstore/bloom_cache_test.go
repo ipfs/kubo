@@ -1,28 +1,32 @@
 package blockstore
 
 import (
-	"testing"
-
+	"fmt"
 	"github.com/ipfs/go-ipfs/blocks"
 	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
 	dsq "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/query"
 	syncds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
+	"testing"
+	"time"
 )
 
 func TestReturnsErrorWhenSizeNegative(t *testing.T) {
 	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-	_, err := WriteCached(bs, -1)
-	if err != nil {
-		return
+	_, err := BloomCached(bs, 100, -1)
+	if err == nil {
+		t.Fail()
 	}
-	t.Fail()
+	_, err = BloomCached(bs, -1, 100)
+	if err == nil {
+		t.Fail()
+	}
 }
 
 func TestRemoveCacheEntryOnDelete(t *testing.T) {
 	b := blocks.NewBlock([]byte("foo"))
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
 	bs := NewBlockstore(syncds.MutexWrap(cd))
-	cachedbs, err := WriteCached(bs, 1)
+	cachedbs, err := BloomCached(bs, 1, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +47,7 @@ func TestRemoveCacheEntryOnDelete(t *testing.T) {
 func TestElideDuplicateWrite(t *testing.T) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
 	bs := NewBlockstore(syncds.MutexWrap(cd))
-	cachedbs, err := WriteCached(bs, 1)
+	cachedbs, err := BloomCached(bs, 1, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,6 +59,37 @@ func TestElideDuplicateWrite(t *testing.T) {
 		t.Fatal("write hit the datastore")
 	})
 	cachedbs.Put(b1)
+}
+func TestHasIsBloomCached(t *testing.T) {
+	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
+	bs := NewBlockstore(syncds.MutexWrap(cd))
+
+	for i := 0; i < 1000; i++ {
+		bs.Put(blocks.NewBlock([]byte(fmt.Sprintf("data: %d", i))))
+	}
+	cachedbs, err := BloomCached(bs, 256*1024, 128)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-cachedbs.rebuildChan:
+	case <-time.After(1 * time.Second):
+		t.Fatalf("Timeout wating for rebuild: %d", cachedbs.bloom.ElementsAdded())
+	}
+
+	cacheFails := 0
+	cd.SetFunc(func() {
+		cacheFails++
+	})
+
+	for i := 0; i < 1000; i++ {
+		cachedbs.Has(blocks.NewBlock([]byte(fmt.Sprintf("data: %d", i+2000))).Key())
+	}
+
+	if float64(cacheFails)/float64(1000) > float64(0.05) {
+		t.Fatal("Bloom filter has cache miss rate of more than 5%")
+	}
 }
 
 type callbackDatastore struct {
