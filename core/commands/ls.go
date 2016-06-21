@@ -46,7 +46,7 @@ format:
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
-		cmds.BoolOption("resolve-type", "Resolve linked objects to find ouy their types").Default(false),
+		cmds.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
