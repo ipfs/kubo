@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-var ipfsFileDescNum = uint64(2048)
+var ipfsFileDescNum = uint64(1024)
 
 func init() {
 	if val := os.Getenv("IPFS_FD_MAX"); val != "" {
