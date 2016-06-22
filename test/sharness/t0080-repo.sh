@@ -108,14 +108,14 @@ test_expect_success "'ipfs repo gc' removes file" '
 	grep "removed $PATCH_ROOT" actual7
 '
 
-# TODO: there seems to be a serious bug with leveldb not returning a key.
-test_expect_failure "'ipfs refs local' no longer shows file" '
+test_expect_success "'ipfs refs local' no longer shows file" '
 	EMPTY_DIR=QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn &&
-	echo "$EMPTY_DIR" >expected8 &&
-	echo "$HASH_WELCOME_DOCS" >>expected8 &&
-	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected8 &&
 	ipfs refs local >actual8 &&
-	test_sort_cmp expected8 actual8
+	grep "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y" actual8 &&
+	grep "$EMPTY_DIR" actual8 &&
+	grep "$HASH_WELCOME_DOCS" actual8 &&
+	test_must_fail grep "$HASH" actual8 &&
+	test_must_fail grep "$PATCH_ROOT" actual8
 '
 
 test_expect_success "adding multiblock random file succeeds" '
