@@ -3,6 +3,7 @@ package merkledag
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
@@ -87,6 +88,9 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 
 	res, err := DecodeProtobuf(b.Data())
 	if err != nil {
+		if strings.Contains(err.Error(), "Unmarshal failed") {
+			return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", k)
+		}
 		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 	}
 	return res, nil
