@@ -11,9 +11,10 @@ test_description="Test add -w"
 test_expect_success "creating files succeeds" '
 	mkdir -p files/foo &&
 	mkdir -p files/bar &&
+	mkdir -p files/badin
 	echo "some text" > files/foo/baz &&
-	ln -s files/foo/baz files/bar/baz &&
-	ln -s files/does/not/exist files/bad
+	ln -s ../foo/baz files/bar/baz &&
+	ln -s files/does/not/exist files/badin/bad
 '
 
 test_add_symlinks() {
@@ -23,21 +24,21 @@ test_add_symlinks() {
 	'
 
 	test_expect_success "output looks good" '
-		echo QmWdiHKoeSW8G1u7ATCgpx4yMoUhYaJBQGkyPLkS9goYZ8 > filehash_exp &&
+		echo QmQRgZT6xVFKJLVVpJDu3WcPkw2iqQ1jqK1F9jmdeq9zAv > filehash_exp &&
 		test_cmp filehash_exp filehash_out
 	'
 
-	test_expect_success "adding a symlink adds the link itself" '
+	test_expect_success "adding a symlink adds the file itself" '
 		ipfs add -q files/bar/baz > goodlink_out
 	'
 
 	test_expect_success "output looks good" '
-		echo "QmdocmZeF7qwPT9Z8SiVhMSyKA2KKoA2J7jToW6z6WBmxR" > goodlink_exp &&
+		echo QmcPNXE5zjkWkM24xQ7Bi3VAm8fRxiaNp88jFsij7kSQF1 > goodlink_exp &&
 		test_cmp goodlink_exp goodlink_out
 	'
 
 	test_expect_success "adding a broken symlink works" '
-		ipfs add -q files/bad > badlink_out
+		ipfs add -qr files/badin | head -1 > badlink_out
 	'
 
 	test_expect_success "output looks good" '
