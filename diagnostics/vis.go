@@ -6,7 +6,7 @@ import (
 	"io"
 
 	rtable "github.com/ipfs/go-ipfs/routing/kbucket"
-	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
+	peer "gx/ipfs/QmTLeWzYxCE3G4TpArXpHSaa8xJqjm6JnxJdNSSDedJ2if/go-libp2p-peer"
 )
 
 type node struct {

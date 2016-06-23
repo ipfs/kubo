@@ -31,9 +31,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC",
+      "hash": "QmTLeWzYxCE3G4TpArXpHSaa8xJqjm6JnxJdNSSDedJ2if",
       "name": "go-libp2p-peer",
-      "version": "2.0.0"
+      "version": "1.0.7"
     },
     {
       "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
