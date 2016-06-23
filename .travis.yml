@@ -1,5 +1,8 @@
 # dist: trusty # KVM Setup
 
+notifications:
+  email: false
+
 os:
   - linux
   - osx
