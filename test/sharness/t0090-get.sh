@@ -131,6 +131,10 @@ test_get_fail() {
 	'
 }
 
+test_expect_success "ipfs get response has the correct content-type" '
+	curl -I "http://localhost:$PORT_API/api/v0/get?arg=$HASH" | grep "^Content-Type: application/x-tar"
+'
+
 # should work offline
 test_get_cmd
 

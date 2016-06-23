@@ -36,11 +36,12 @@ type EncodingType string
 
 // Supported EncodingType constants.
 const (
+	Gzip     = "gzip"
 	JSON     = "json"
-	XML      = "xml"
 	Protobuf = "protobuf"
+	Tar      = "tar"
 	Text     = "text"
-	// TODO: support more encoding types
+	XML      = "xml"
 )
 
 func marshalJson(value interface{}) (io.Reader, error) {
