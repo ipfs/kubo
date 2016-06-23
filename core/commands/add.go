@@ -308,6 +308,9 @@ You can now refer to the added file in a gateway, like so:
 					bar.ShowBar = true
 					bar.ShowTimeLeft = true
 				}
+			case <-req.Context().Done():
+				res.SetError(req.Context().Err(), cmds.ErrNormal)
+				return
 			}
 		}
 	},
