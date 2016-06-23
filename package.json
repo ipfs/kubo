@@ -165,6 +165,12 @@
       "hash": "QmWi28zbQG6B1xfaaWx5cYoLn3kBFU6pQ6GWQNRV5P6dNe",
       "name": "lock",
       "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "Qmax7ca82J81QamkGgEG2zqWj35B9QHrDgywzKb8nm8Twp",
+      "name": "go-libp2p-peerstore",
+      "version": "1.1.1"
     }
   ],
   "gxVersion": "0.4.0",
