@@ -5,9 +5,9 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	inet "gx/ipfs/QmQGXmfLoXHxw8CBH2EBxiicWHNwMw9qXQdsRDd9UejMB4/go-libp2p/p2p/net"
 	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
-	inet "gx/ipfs/QmdBpVuSYuTGDA8Kn66CbKvEThXqKUh2nTANZEhzSxqrmJ/go-libp2p/p2p/net"
 )
 
 var log = logging.Logger("dht.pb")

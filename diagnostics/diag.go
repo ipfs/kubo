@@ -13,14 +13,14 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/diagnostics/pb"
 	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	host "gx/ipfs/QmQGXmfLoXHxw8CBH2EBxiicWHNwMw9qXQdsRDd9UejMB4/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmQGXmfLoXHxw8CBH2EBxiicWHNwMw9qXQdsRDd9UejMB4/go-libp2p/p2p/net"
+	protocol "gx/ipfs/QmQGXmfLoXHxw8CBH2EBxiicWHNwMw9qXQdsRDd9UejMB4/go-libp2p/p2p/protocol"
 	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
 	ctxio "gx/ipfs/QmX6DhWrpBB5NtadXmPSXYNdVvuLfJXoFNMvUMoVvP5UJa/go-context/io"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	host "gx/ipfs/QmdBpVuSYuTGDA8Kn66CbKvEThXqKUh2nTANZEhzSxqrmJ/go-libp2p/p2p/host"
-	inet "gx/ipfs/QmdBpVuSYuTGDA8Kn66CbKvEThXqKUh2nTANZEhzSxqrmJ/go-libp2p/p2p/net"
-	protocol "gx/ipfs/QmdBpVuSYuTGDA8Kn66CbKvEThXqKUh2nTANZEhzSxqrmJ/go-libp2p/p2p/protocol"
 )
 
 var log = logging.Logger("diagnostics")
