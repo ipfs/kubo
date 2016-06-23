@@ -168,9 +168,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmax7ca82J81QamkGgEG2zqWj35B9QHrDgywzKb8nm8Twp",
+      "hash": "QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P",
       "name": "go-libp2p-peerstore",
-      "version": "1.1.1"
+      "version": "1.1.2"
     }
   ],
   "gxVersion": "0.4.0",
