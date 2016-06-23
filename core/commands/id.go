@@ -58,7 +58,7 @@ EXAMPLE:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerid", false, false, "Peer.ID of node to look up.").EnableStdin(),
+		cmds.StringArg("peerid", false, false, "Peer.ID of node to look up."),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("format", "f", "Optional output format."),

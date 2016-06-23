@@ -177,26 +177,14 @@ func TestArgumentParsing(t *testing.T) {
 					commands.StringArg("b", true, false, "another arg"),
 				},
 			},
-			"stdinenabled": {
+			"FileArg": {
 				Arguments: []commands.Argument{
-					commands.StringArg("a", true, true, "some arg").EnableStdin(),
+					commands.FileArg("a", false, false, "some arg"),
 				},
 			},
-			"stdinenabled2args": &commands.Command{
+			"FileArg+Stdin": {
 				Arguments: []commands.Argument{
-					commands.StringArg("a", true, false, "some arg"),
-					commands.StringArg("b", true, true, "another arg").EnableStdin(),
-				},
-			},
-			"stdinenablednotvariadic": &commands.Command{
-				Arguments: []commands.Argument{
-					commands.StringArg("a", true, false, "some arg").EnableStdin(),
-				},
-			},
-			"stdinenablednotvariadic2args": &commands.Command{
-				Arguments: []commands.Argument{
-					commands.StringArg("a", true, false, "some arg"),
-					commands.StringArg("b", true, false, "another arg").EnableStdin(),
+					commands.FileArg("a", true, true, "some arg").EnableStdin(),
 				},
 			},
 		},
@@ -259,53 +247,17 @@ func TestArgumentParsing(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer os.Remove(fstdin.Name())
 
 		if _, err := io.WriteString(fstdin, content); err != nil {
 			t.Fatal(err)
 		}
 		return fstdin
 	}
-
-	test([]string{"stdinenabled", "value1", "value2"}, nil, []string{"value1", "value2"})
-
 	fstdin := fileToSimulateStdin(t, "stdin1")
-	test([]string{"stdinenabled"}, fstdin, []string{"stdin1"})
-	test([]string{"stdinenabled", "value1"}, fstdin, []string{"value1"})
-	test([]string{"stdinenabled", "value1", "value2"}, fstdin, []string{"value1", "value2"})
+	defer os.Remove(fstdin.Name())
 
-	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2")
-	test([]string{"stdinenabled"}, fstdin, []string{"stdin1", "stdin2"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2\nstdin3")
-	test([]string{"stdinenabled"}, fstdin, []string{"stdin1", "stdin2", "stdin3"})
-
-	test([]string{"stdinenabled2args", "value1", "value2"}, nil, []string{"value1", "value2"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
-	test([]string{"stdinenabled2args", "value1"}, fstdin, []string{"value1", "stdin1"})
-	test([]string{"stdinenabled2args", "value1", "value2"}, fstdin, []string{"value1", "value2"})
-	test([]string{"stdinenabled2args", "value1", "value2", "value3"}, fstdin, []string{"value1", "value2", "value3"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2")
-	test([]string{"stdinenabled2args", "value1"}, fstdin, []string{"value1", "stdin1", "stdin2"})
-
-	test([]string{"stdinenablednotvariadic", "value1"}, nil, []string{"value1"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
-	test([]string{"stdinenablednotvariadic"}, fstdin, []string{"stdin1"})
-	test([]string{"stdinenablednotvariadic", "value1"}, fstdin, []string{"value1"})
-
-	test([]string{"stdinenablednotvariadic2args", "value1", "value2"}, nil, []string{"value1", "value2"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
-	test([]string{"stdinenablednotvariadic2args", "value1"}, fstdin, []string{"value1", "stdin1"})
-	test([]string{"stdinenablednotvariadic2args", "value1", "value2"}, fstdin, []string{"value1", "value2"})
-	testFail([]string{"stdinenablednotvariadic2args"}, fstdin, "cant use stdin for non stdin arg")
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
 	test([]string{"noarg"}, fstdin, []string{})
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
-	test([]string{"optionalsecond", "value1", "value2"}, fstdin, []string{"value1", "value2"})
+	test([]string{"FileArg", fstdin.Name()}, nil, []string{})
+	test([]string{"FileArg+Stdin"}, fstdin, []string{})
+	test([]string{"FileArg+Stdin", "-"}, fstdin, []string{})
 }
