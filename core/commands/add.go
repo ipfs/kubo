@@ -242,22 +242,13 @@ You can now refer to the added file in a gateway, like so:
 		}
 
 		var bar *pb.ProgressBar
-		var terminalWidth int
 		if progress {
 			bar = pb.New64(0).SetUnits(pb.U_BYTES)
 			bar.ManualUpdate = true
+			bar.ShowTimeLeft = false
+			bar.ShowPercent = false
+			bar.Output = res.Stderr()
 			bar.Start()
-
-			// the progress bar lib doesn't give us a way to get the width of the output,
-			// so as a hack we just use a callback to measure the output, then git rid of it
-			terminalWidth = 0
-			bar.Callback = func(line string) {
-				terminalWidth = len(line)
-				bar.Callback = nil
-				bar.Output = res.Stderr()
-				log.Infof("terminal width: %v\n", terminalWidth)
-			}
-			bar.Update()
 		}
 
 		var sizeChan chan int64
