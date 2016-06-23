@@ -19,9 +19,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmdoLuUA9M7gjchqQkEB6igF8KYVcPPFScp9Xfp6oS7L4A",
+      "hash": "QmVjz1uf6U3sVQ5DbWWj7ktTtDd4GgsptYc7FBp33nWE53",
       "name": "go-libp2p-secio",
-      "version": "1.0.7"
+      "version": "1.0.8"
     },
     {
       "author": "whyrusleeping",

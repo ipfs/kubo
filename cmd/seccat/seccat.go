@@ -22,8 +22,8 @@ import (
 	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
+	secio "gx/ipfs/QmVjz1uf6U3sVQ5DbWWj7ktTtDd4GgsptYc7FBp33nWE53/go-libp2p-secio"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	secio "gx/ipfs/QmdoLuUA9M7gjchqQkEB6igF8KYVcPPFScp9Xfp6oS7L4A/go-libp2p-secio"
 )
 
 var verbose = false
