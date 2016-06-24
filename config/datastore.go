@@ -15,8 +15,9 @@ type Datastore struct {
 	StorageGCWatermark int64  // in percentage to multiply on StorageMax
 	GCPeriod           string // in ns, us, ms, s, m, h
 
-	Params *json.RawMessage
-	NoSync bool
+	Params     *json.RawMessage
+	NoSync     bool
+	HashOnRead bool
 }
 
 func (d *Datastore) ParamData() []byte {
