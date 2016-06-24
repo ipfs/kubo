@@ -1,4 +1,4 @@
-FROM alpine:3.3
+FROM alpine:3.4
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # There is a copy of this Dockerfile called Dockerfile.fast,
@@ -29,7 +29,7 @@ ENV IPFS_PATH /data/ipfs
 # The default logging level
 ENV IPFS_LOGGING ""
 # Golang stuff
-ENV GO_VERSION 1.5.4-r0
+ENV GO_VERSION 1.6.2-r2
 ENV GOPATH     /go
 ENV PATH       /go/bin:$PATH
 ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
