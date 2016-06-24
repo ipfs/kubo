@@ -130,16 +130,22 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	var err error
-	n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Repo.Datastore()), kSizeBlockstoreWriteCache)
+	bs := bstore.NewBlockstore(n.Repo.Datastore())
+	n.Blockstore, err = bstore.WriteCached(bs, kSizeBlockstoreWriteCache)
 	if err != nil {
 		return err
 	}
 
+	rcfg, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+
+	if rcfg.Datastore.HashOnRead {
+		bs.RuntimeHashing(true)
+	}
+
 	if cfg.Online {
-		rcfg, err := n.Repo.Config()
-		if err != nil {
-			return err
-		}
 		do := setupDiscoveryOption(rcfg.Discovery)
 		if err := n.startOnlineServices(ctx, cfg.Routing, cfg.Host, do); err != nil {
 			return err
