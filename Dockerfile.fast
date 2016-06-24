@@ -1,4 +1,4 @@
-FROM alpine:3.3
+FROM alpine:3.4
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # This is a copy of /Dockerfile,
@@ -15,7 +15,7 @@ EXPOSE 8080
 ENV GX_IPFS   ""
 ENV IPFS_PATH /data/ipfs
 ENV IPFS_LOGGING ""
-ENV GO_VERSION 1.5.4-r0
+ENV GO_VERSION 1.6.2-r2
 ENV GOPATH     /go
 ENV PATH       /go/bin:$PATH
 ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
