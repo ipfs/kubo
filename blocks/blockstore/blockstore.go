@@ -22,7 +22,8 @@ var log = logging.Logger("blockstore")
 // BlockPrefix namespaces blockstore datastores
 var BlockPrefix = ds.NewKey("blocks")
 
-var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
+var ValueTypeMismatch = errors.New("the retrieved value is not a Block")
+var ErrHashMismatch = errors.New("block in storage has different hash than requested")
 
 var ErrNotFound = errors.New("blockstore: block not found")
 
@@ -71,6 +72,12 @@ type blockstore struct {
 	lk      sync.RWMutex
 	gcreq   int32
 	gcreqlk sync.Mutex
+
+	rehash bool
+}
+
+func (bs *blockstore) RuntimeHashing(enabled bool) {
+	bs.rehash = enabled
 }
 
 func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
@@ -90,7 +97,16 @@ func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
 		return nil, ValueTypeMismatch
 	}
 
-	return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
+	if bs.rehash {
+		rb := blocks.NewBlock(bdata)
+		if rb.Key() != k {
+			return nil, ErrHashMismatch
+		} else {
+			return rb, nil
+		}
+	} else {
+		return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
+	}
 }
 
 func (bs *blockstore) Put(block blocks.Block) error {
