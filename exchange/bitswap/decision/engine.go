@@ -305,6 +305,26 @@ func (e *Engine) findOrCreate(p peer.ID) *ledger {
 	return l
 }
 
+type LedgerSnapshot struct {
+	DebtRatio     float64
+	BytesSent     uint64
+	BytesReceived uint64
+}
+
+func (e *Engine) LedgerSnapshot(p peer.ID) *LedgerSnapshot {
+	l := e.findOrCreate(p)
+	l.lk.Lock()
+	defer l.lk.Unlock()
+
+	snapshot := &LedgerSnapshot{
+		DebtRatio:     l.Accounting.Value(),
+		BytesSent:     e.numBytesSentTo(p),
+		BytesReceived: e.numBytesReceivedFrom(p),
+	}
+
+	return snapshot
+}
+
 func (e *Engine) signalNewWork() {
 	// Signal task generation to restart (if stopped!)
 	select {

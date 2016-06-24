@@ -52,7 +52,7 @@ func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 	for {
 		log.Event(ctx, "Bitswap.TaskWorker.Loop", idmap)
 		select {
-		case nextEnvelope := <-bs.engine.Outbox():
+		case nextEnvelope := <-bs.Engine.Outbox():
 			select {
 			case envelope, ok := <-nextEnvelope:
 				if !ok {

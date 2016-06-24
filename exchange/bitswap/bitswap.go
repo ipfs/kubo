@@ -86,7 +86,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		self:          p,
 		blockstore:    bstore,
 		notifications: notif,
-		engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
+		Engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
 		network:       network,
 		findKeys:      make(chan *wantlist.Entry, sizeBatchRequestChan),
 		process:       px,
@@ -133,7 +133,7 @@ type Bitswap struct {
 	// send keys to a worker to find and connect to providers for them
 	findKeys chan *wantlist.Entry
 
-	engine *decision.Engine
+	Engine *decision.Engine
 
 	process process.Process
 
@@ -199,7 +199,7 @@ func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (blocks.Block, er
 
 func (bs *Bitswap) WantlistForPeer(p peer.ID) []key.Key {
 	var out []key.Key
-	for _, e := range bs.engine.WantlistForPeer(p) {
+	for _, e := range bs.Engine.WantlistForPeer(p) {
 		out = append(out, e.Key)
 	}
 	return out
@@ -269,7 +269,7 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 
 	bs.notifications.Publish(blk)
 
-	bs.engine.AddBlock(blk)
+	bs.Engine.AddBlock(blk)
 
 	select {
 	case bs.newBlocks <- blk:
@@ -295,7 +295,7 @@ func (bs *Bitswap) tryPutBlock(blk blocks.Block, attempts int) error {
 func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) {
 	// This call records changes to wantlists, blocks received,
 	// and number of bytes transfered.
-	bs.engine.MessageReceived(p, incoming)
+	bs.Engine.MessageReceived(p, incoming)
 	// TODO: this is bad, and could be easily abused.
 	// Should only track *useful* messages in ledger
 
@@ -368,7 +368,7 @@ func (bs *Bitswap) PeerConnected(p peer.ID) {
 // Connected/Disconnected warns bitswap about peer connections
 func (bs *Bitswap) PeerDisconnected(p peer.ID) {
 	bs.wm.Disconnected(p)
-	bs.engine.PeerDisconnected(p)
+	bs.Engine.PeerDisconnected(p)
 }
 
 func (bs *Bitswap) ReceiveError(err error) {

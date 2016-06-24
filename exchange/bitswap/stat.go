@@ -24,7 +24,7 @@ func (bs *Bitswap) Stat() (*Stat, error) {
 	st.DupDataReceived = bs.dupDataRecvd
 	bs.counterLk.Unlock()
 
-	for _, p := range bs.engine.Peers() {
+	for _, p := range bs.Engine.Peers() {
 		st.Peers = append(st.Peers, p.Pretty())
 	}
 	sort.Strings(st.Peers)
