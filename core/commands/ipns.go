@@ -50,7 +50,7 @@ Resolve the value of a reference:
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name.").Default(false),
-		cmds.BoolOption("nocache", "n", "Do not used cached entries.").Default(false),
+		cmds.BoolOption("nocache", "n", "Do not use cached entries.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
