@@ -109,7 +109,7 @@ func (pm *WantManager) SendBlock(ctx context.Context, env *engine.Envelope) {
 
 	msg := bsmsg.New(false)
 	msg.AddBlock(env.Block)
-	log.Infof("Sending block %s to %s", env.Peer, env.Block)
+	log.Infof("Sending block %s to %s", env.Block, env.Peer)
 	err := pm.network.SendMessage(ctx, env.Peer, msg)
 	if err != nil {
 		log.Infof("sendblock error: %s", err)
