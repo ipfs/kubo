@@ -11,8 +11,8 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 var log = logging.Logger("commands/cli")
@@ -305,7 +305,8 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				var err error
 				if fpath == "-" {
 					if err = printReadInfo(stdin, msgStdinInfo); err == nil {
-						file = files.NewReaderFile("", "", stdin, nil)
+						fpath = stdin.Name()
+						file = files.NewReaderFile("", fpath, stdin, nil)
 					}
 				} else {
 					file, err = appendFile(fpath, argDef, recursive, hidden)
@@ -321,7 +322,8 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 					if err := printReadInfo(stdin, msgStdinInfo); err != nil {
 						return nil, nil, err
 					}
-					fileArgs[""] = files.NewReaderFile("", "", stdin, nil)
+					fpath := stdin.Name()
+					fileArgs[fpath] = files.NewReaderFile("", fpath, stdin, nil)
 				} else {
 					break
 				}
