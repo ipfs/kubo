@@ -11,7 +11,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
