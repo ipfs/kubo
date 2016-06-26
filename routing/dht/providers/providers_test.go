@@ -58,10 +58,17 @@ func TestProvidersSerialization(t *testing.T) {
 	dstore := ds.NewMapDatastore()
 
 	k := key.Key("my key!")
-	p := peer.ID("my peer")
-	pt := time.Now()
+	p1 := peer.ID("peer one")
+	p2 := peer.ID("peer two")
+	pt1 := time.Now()
+	pt2 := pt1.Add(time.Hour)
 
-	err := writeProviderEntry(dstore, k, p, pt)
+	err := writeProviderEntry(dstore, k, p1, pt1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = writeProviderEntry(dstore, k, p2, pt2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,12 +78,21 @@ func TestProvidersSerialization(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lt, ok := pset.set[p]
+	lt1, ok := pset.set[p1]
 	if !ok {
 		t.Fatal("failed to load set correctly")
 	}
 
-	if pt != lt {
+	if pt1 != lt1 {
+		t.Fatal("time wasnt serialized correctly")
+	}
+
+	lt2, ok := pset.set[p2]
+	if !ok {
+		t.Fatal("failed to load set correctly")
+	}
+
+	if pt2 != lt2 {
 		t.Fatal("time wasnt serialized correctly")
 	}
 }
