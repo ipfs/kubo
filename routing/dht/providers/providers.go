@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"encoding/base32"
 	"encoding/binary"
 	"fmt"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
 	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
 	dsq "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/query"
+	base32 "gx/ipfs/Qmb1DA2A9LS2wR4FFweB4uEDomFsdmnw1VLawLE1yQzudj/base32"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 
@@ -81,7 +81,7 @@ func NewProviderManager(ctx context.Context, local peer.ID, dstore ds.Datastore)
 const providersKeyPrefix = "/providers/"
 
 func mkProvKey(k key.Key) ds.Key {
-	return ds.NewKey(providersKeyPrefix + base32.StdEncoding.EncodeToString([]byte(k)))
+	return ds.NewKey(providersKeyPrefix + base32.RawStdEncoding.EncodeToString([]byte(k)))
 }
 
 func (pm *ProviderManager) Process() goprocess.Process {
@@ -132,7 +132,7 @@ func loadProvSet(dstore ds.Datastore, k key.Key) (*providerSet, error) {
 			continue
 		}
 
-		decstr, err := base32.StdEncoding.DecodeString(parts[len(parts)-1])
+		decstr, err := base32.RawStdEncoding.DecodeString(parts[len(parts)-1])
 		if err != nil {
 			log.Error("base32 decoding error: ", err)
 			continue
@@ -177,7 +177,7 @@ func (pm *ProviderManager) addProv(k key.Key, p peer.ID) error {
 }
 
 func writeProviderEntry(dstore ds.Datastore, k key.Key, p peer.ID, t time.Time) error {
-	dsk := mkProvKey(k).ChildString(base32.StdEncoding.EncodeToString([]byte(p)))
+	dsk := mkProvKey(k).ChildString(base32.RawStdEncoding.EncodeToString([]byte(p)))
 
 	buf := make([]byte, 16)
 	n := binary.PutVarint(buf, t.UnixNano())
@@ -230,7 +230,7 @@ func (pm *ProviderManager) getAllProvKeys() ([]key.Key, error) {
 			log.Warning("incorrectly formatted provider entry in datastore")
 			continue
 		}
-		decoded, err := base32.StdEncoding.DecodeString(parts[2])
+		decoded, err := base32.RawStdEncoding.DecodeString(parts[2])
 		if err != nil {
 			log.Warning("error decoding base32 provider key")
 			continue

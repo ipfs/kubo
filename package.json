@@ -171,6 +171,12 @@
       "hash": "QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P",
       "name": "go-libp2p-peerstore",
       "version": "1.1.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "Qmb1DA2A9LS2wR4FFweB4uEDomFsdmnw1VLawLE1yQzudj",
+      "name": "base32",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",
