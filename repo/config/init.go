@@ -84,6 +84,7 @@ func datastoreConfig() (Datastore, error) {
 		StorageMax:         "10GB",
 		StorageGCWatermark: 90, // 90%
 		GCPeriod:           "1h",
+		HashOnRead:         false,
 	}, nil
 }
 
