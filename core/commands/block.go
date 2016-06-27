@@ -28,7 +28,7 @@ var BlockCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with raw IPFS blocks.",
 		ShortDescription: `
-'ipfs block' is a plumbing command used to manipulate raw ipfs blocks.
+'ipfs block' is a plumbing command used to manipulate raw IPFS blocks.
 Reads from stdin or writes to stdout, and <key> is a base58 encoded
 multihash.
 `,
@@ -44,10 +44,10 @@ multihash.
 
 var blockStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Print information of a raw IPFS block.",
+		Tagline: "Print information of a raw ipfs block.",
 		ShortDescription: `
 'ipfs block stat' is a plumbing command for retrieving information
-on raw ipfs blocks. It outputs the following to stdout:
+on raw IPFS blocks. It outputs the following to stdout:
 
 	Key  - the base58 encoded multihash
 	Size - the size of the block in bytes
@@ -81,9 +81,9 @@ on raw ipfs blocks. It outputs the following to stdout:
 
 var blockGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get a raw IPFS block.",
+		Tagline: "Get a raw ipfs block.",
 		ShortDescription: `
-'ipfs block get' is a plumbing command for retrieving raw ipfs blocks.
+'ipfs block get' is a plumbing command for retrieving raw IPFS blocks.
 It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 	},
@@ -106,7 +106,7 @@ var blockPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Store input as an IPFS block.",
 		ShortDescription: `
-'ipfs block put' is a plumbing command for storing raw ipfs blocks.
+'ipfs block put' is a plumbing command for storing raw IPFS blocks.
 It reads from stdin, and <key> is a base58 encoded multihash.
 `,
 	},

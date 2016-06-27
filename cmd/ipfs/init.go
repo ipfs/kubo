@@ -23,9 +23,9 @@ const (
 
 var initCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Initializes IPFS config file.",
+		Tagline: "Initializes ipfs config file.",
 		ShortDescription: `
-Initializes IPFS configuration files and generates a new keypair.
+Initializes ipfs configuration files and generates a new keypair.
 
 ipfs uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH

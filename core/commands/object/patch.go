@@ -115,9 +115,9 @@ the limit will not be respected by the network.
 
 var patchSetDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Set the data field of an ipfs object.",
+		Tagline: "Set the data field of an IPFS object.",
 		ShortDescription: `
-Set the data of an ipfs object from stdin or with the contents of a file.
+Set the data of an IPFS object from stdin or with the contents of a file.
 
 Example:
 

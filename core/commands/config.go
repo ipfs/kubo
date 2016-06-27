@@ -26,15 +26,15 @@ type ConfigField struct {
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get and set IPFS config values.",
+		Tagline: "Get and set ipfs config values.",
 		ShortDescription: `
 'ipfs config' controls configuration variables. It works like 'git config'.
-The configuration values are stored in a config file inside your IPFS
+The configuration values are stored in a config file inside your ipfs
 repository.`,
 		LongDescription: `
 'ipfs config' controls configuration variables. It works
 much like 'git config'. The configuration values are stored in a config
-file inside your IPFS repository.
+file inside your ipfs repository.
 
 Examples:
 

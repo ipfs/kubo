@@ -15,10 +15,10 @@ import (
 
 var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Mount IPFS to the filesystem (read-only).",
+		Tagline: "Mounts ipfs to the filesystem (read-only).",
 		ShortDescription: `
 Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
-All ipfs objects will be accessible under that directory. Note that the
+All IPFS objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
 You may have to create /ipfs and /ipns before using 'ipfs mount':
@@ -31,7 +31,7 @@ You may have to create /ipfs and /ipns before using 'ipfs mount':
 		LongDescription: `
 Mount ipfs at a read-only mountpoint on the OS. The default, /ipfs and /ipns,
 are set in the configutation file, but can be overriden by the options.
-All ipfs objects will be accessible under this directory. Note that the
+All IPFS objects will be accessible under this directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
 You may have to create /ipfs and /ipns before using 'ipfs mount':
@@ -71,7 +71,7 @@ baz
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("ipfs-path", "f", "The path where IPFS should be mounted."),
+		cmds.StringOption("ipfs-path", "f", "The path where ipfs should be mounted."),
 		cmds.StringOption("ipns-path", "n", "The path where IPNS should be mounted."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
