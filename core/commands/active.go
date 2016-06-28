@@ -22,7 +22,7 @@ Lists running and recently run commands.
 		res.SetOutput(req.InvocContext().ReqLog.Report())
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("v", "verbose", "Print extra information.").Default(false),
+		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"clear":    clearInactiveCmd,

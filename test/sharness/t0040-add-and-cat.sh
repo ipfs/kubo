@@ -8,19 +8,6 @@ test_description="Test add and cat commands"
 
 . lib/test-lib.sh
 
-client_err_add() {
-    printf "$@\n\n"
-    echo 'USAGE
-  ipfs add <path>... - Add a file to ipfs.
-
-  Adds contents of <path> to ipfs. Use -r to add directories.
-  Note that directories are added recursively, to form the ipfs
-  MerkleDAG.
-
-Use '"'"'ipfs add --help'"'"' for more information about this command.
-'
-}
-
 test_add_cat_file() {
     test_expect_success "ipfs add succeeds" '
     	echo "Hello Worlds!" >mountdir/hello.txt &&
@@ -176,9 +163,10 @@ test_add_named_pipe() {
     test_expect_success "useful error message when adding a named pipe" '
         mkfifo named-pipe &&
 	    test_expect_code 1 ipfs add named-pipe 2>actual &&
-        client_err_add "Error: Unrecognized file type for named-pipe: $(generic_stat named-pipe)" >expected &&
         rm named-pipe &&
-	    test_cmp expected actual
+        grep "Error: Unrecognized file type for named-pipe: $(generic_stat named-pipe)" actual &&
+        grep USAGE actual &&
+        grep "ipfs add" actual
     '
 
     test_expect_success "useful error message when recursively adding a named pipe" '

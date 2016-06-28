@@ -18,8 +18,7 @@ import (
 
 var StatsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:  "Query ipfs statistics.",
-		Synopsis: "ipfs stats <command>",
+		Tagline: "Query ipfs statistics.",
 		ShortDescription: `'ipfs stats' is a set of commands to help look at statistics
 for your ipfs node.
 `,
@@ -37,9 +36,6 @@ for your ipfs node.`,
 var statBwCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Print ipfs bandwidth information.",
-		Synopsis: `ipfs stats bw [--peer <peerId> | -p] [--proto <protocol> | -t] [--poll]
-[--interval <timeInterval> | -i]
-		`,
 		ShortDescription: `'ipfs stats bw' prints bandwidth information for the ipfs daemon.
 It displays: TotalIn, TotalOut, RateIn, RateOut.
 		`,
