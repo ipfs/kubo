@@ -56,7 +56,7 @@ Resolve the value of an IPFS DAG path:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
+		cmds.StringArg("name", true, false, "The name to resolve."),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Resolve until the result is an IPFS name.").Default(false),

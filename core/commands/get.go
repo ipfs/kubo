@@ -37,7 +37,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted."),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("output", "o", "The path where the output should be stored."),

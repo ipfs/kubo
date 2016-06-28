@@ -177,32 +177,49 @@ func TestArgumentParsing(t *testing.T) {
 					commands.StringArg("b", true, false, "another arg"),
 				},
 			},
-			"stdinenabled": {
+			"FileArg": {
 				Arguments: []commands.Argument{
-					commands.StringArg("a", true, true, "some arg").EnableStdin(),
+					commands.FileArg("a", true, false, "some arg"),
 				},
 			},
-			"stdinenabled2args": &commands.Command{
+			"FileArg+Variadic": {
+				Arguments: []commands.Argument{
+					commands.FileArg("a", true, true, "some arg"),
+				},
+			},
+			"FileArg+Stdin": {
+				Arguments: []commands.Argument{
+					commands.FileArg("a", true, true, "some arg").EnableStdin(),
+				},
+			},
+			"StringArg+FileArg": {
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg"),
-					commands.StringArg("b", true, true, "another arg").EnableStdin(),
+					commands.FileArg("a", true, false, "some arg"),
 				},
 			},
-			"stdinenablednotvariadic": &commands.Command{
-				Arguments: []commands.Argument{
-					commands.StringArg("a", true, false, "some arg").EnableStdin(),
-				},
-			},
-			"stdinenablednotvariadic2args": &commands.Command{
+			"StringArg+FileArg+Stdin": {
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg"),
-					commands.StringArg("b", true, false, "another arg").EnableStdin(),
+					commands.FileArg("a", true, true, "some arg").EnableStdin(),
+				},
+			},
+			"StringArg+FileArg+Variadic": {
+				Arguments: []commands.Argument{
+					commands.StringArg("a", true, false, "some arg"),
+					commands.FileArg("a", true, true, "some arg"),
+				},
+			},
+			"StringArg+FileArg+Variadic+Stdin": {
+				Arguments: []commands.Argument{
+					commands.StringArg("a", true, false, "some arg"),
+					commands.FileArg("a", true, true, "some arg"),
 				},
 			},
 		},
 	}
 
-	test := func(cmd words, f *os.File, res words) {
+	test := func(cmd words, f *os.File, exp words) {
 		if f != nil {
 			if _, err := f.Seek(0, os.SEEK_SET); err != nil {
 				t.Fatal(err)
@@ -212,8 +229,18 @@ func TestArgumentParsing(t *testing.T) {
 		if err != nil {
 			t.Errorf("Command '%v' should have passed parsing: %v", cmd, err)
 		}
-		if !sameWords(req.Arguments(), res) {
-			t.Errorf("Arguments parsed from '%v' are '%v' instead of '%v'", cmd, req.Arguments(), res)
+
+		parsedWords := make([]string, len(req.Arguments()))
+		copy(parsedWords, req.Arguments())
+
+		if files := req.Files(); files != nil {
+			for file, err := files.NextFile(); err != io.EOF; file, err = files.NextFile() {
+				parsedWords = append(parsedWords, file.FullPath())
+			}
+		}
+
+		if !sameWords(parsedWords, exp) {
+			t.Errorf("Arguments parsed from '%v' are '%v' instead of '%v'", cmd, parsedWords, exp)
 		}
 	}
 
@@ -253,59 +280,43 @@ func TestArgumentParsing(t *testing.T) {
 	testFail([]string{"reversedoptional"}, nil, "didn't provide any args, 1 required")
 	testFail([]string{"reversedoptional", "value1", "value2", "value3"}, nil, "provided too many args, only takes 1")
 
-	// Use a temp file to simulate stdin
-	fileToSimulateStdin := func(t *testing.T, content string) *os.File {
-		fstdin, err := ioutil.TempFile("", "")
+	// Since FileArgs are presently stored ordered by Path, the enum string
+	// is used to construct a predictably ordered sequence of filenames.
+	tmpFile := func(t *testing.T, enum string) *os.File {
+		f, err := ioutil.TempFile("", enum)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer os.Remove(fstdin.Name())
 
-		if _, err := io.WriteString(fstdin, content); err != nil {
-			t.Fatal(err)
-		}
-		return fstdin
+		return f
 	}
+	file1 := tmpFile(t, "1")
+	file2 := tmpFile(t, "2")
+	file3 := tmpFile(t, "3")
+	defer os.Remove(file3.Name())
+	defer os.Remove(file2.Name())
+	defer os.Remove(file1.Name())
 
-	test([]string{"stdinenabled", "value1", "value2"}, nil, []string{"value1", "value2"})
-
-	fstdin := fileToSimulateStdin(t, "stdin1")
-	test([]string{"stdinenabled"}, fstdin, []string{"stdin1"})
-	test([]string{"stdinenabled", "value1"}, fstdin, []string{"value1"})
-	test([]string{"stdinenabled", "value1", "value2"}, fstdin, []string{"value1", "value2"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2")
-	test([]string{"stdinenabled"}, fstdin, []string{"stdin1", "stdin2"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2\nstdin3")
-	test([]string{"stdinenabled"}, fstdin, []string{"stdin1", "stdin2", "stdin3"})
-
-	test([]string{"stdinenabled2args", "value1", "value2"}, nil, []string{"value1", "value2"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
-	test([]string{"stdinenabled2args", "value1"}, fstdin, []string{"value1", "stdin1"})
-	test([]string{"stdinenabled2args", "value1", "value2"}, fstdin, []string{"value1", "value2"})
-	test([]string{"stdinenabled2args", "value1", "value2", "value3"}, fstdin, []string{"value1", "value2", "value3"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2")
-	test([]string{"stdinenabled2args", "value1"}, fstdin, []string{"value1", "stdin1", "stdin2"})
-
-	test([]string{"stdinenablednotvariadic", "value1"}, nil, []string{"value1"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
-	test([]string{"stdinenablednotvariadic"}, fstdin, []string{"stdin1"})
-	test([]string{"stdinenablednotvariadic", "value1"}, fstdin, []string{"value1"})
-
-	test([]string{"stdinenablednotvariadic2args", "value1", "value2"}, nil, []string{"value1", "value2"})
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
-	test([]string{"stdinenablednotvariadic2args", "value1"}, fstdin, []string{"value1", "stdin1"})
-	test([]string{"stdinenablednotvariadic2args", "value1", "value2"}, fstdin, []string{"value1", "value2"})
-	testFail([]string{"stdinenablednotvariadic2args"}, fstdin, "cant use stdin for non stdin arg")
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
-	test([]string{"noarg"}, fstdin, []string{})
-
-	fstdin = fileToSimulateStdin(t, "stdin1")
-	test([]string{"optionalsecond", "value1", "value2"}, fstdin, []string{"value1", "value2"})
+	test([]string{"noarg"}, file1, []string{})
+	test([]string{"FileArg", file1.Name()}, nil, []string{file1.Name()})
+	test([]string{"FileArg+Variadic", file1.Name(), file2.Name()}, nil,
+		[]string{file1.Name(), file2.Name()})
+	test([]string{"FileArg+Stdin"}, file1, []string{file1.Name()})
+	test([]string{"FileArg+Stdin", "-"}, file1, []string{file1.Name()})
+	test([]string{"FileArg+Stdin", file1.Name(), "-"}, file2,
+		[]string{file1.Name(), file2.Name()})
+	test([]string{"StringArg+FileArg",
+		"foo", file1.Name()}, nil, []string{"foo", file1.Name()})
+	test([]string{"StringArg+FileArg+Variadic",
+		"foo", file1.Name(), file2.Name()}, nil,
+		[]string{"foo", file1.Name(), file2.Name()})
+	test([]string{"StringArg+FileArg+Stdin",
+		"foo", file1.Name(), "-"}, file2,
+		[]string{"foo", file1.Name(), file2.Name()})
+	test([]string{"StringArg+FileArg+Variadic+Stdin",
+		"foo", file1.Name(), file2.Name()}, file3,
+		[]string{"foo", file1.Name(), file2.Name()})
+	test([]string{"StringArg+FileArg+Variadic+Stdin",
+		"foo", file1.Name(), file2.Name(), "-"}, file3,
+		[]string{"foo", file1.Name(), file2.Name(), file3.Name()})
 }

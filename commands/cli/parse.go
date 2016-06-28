@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path"
@@ -12,8 +11,11 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
+
+var log = logging.Logger("commands/cli")
 
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
@@ -238,6 +240,8 @@ func parseOpts(args []string, root *cmds.Command) (
 	return
 }
 
+const msgStdinInfo = "ipfs: Reading from %s; send Ctrl-d to stop.\n"
+
 func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive, hidden bool, root *cmds.Command) ([]string, []files.File, error) {
 	// ignore stdin on Windows
 	if runtime.GOOS == "windows" {
@@ -286,36 +290,11 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 
 		fillingVariadic := argDefIndex+1 > len(argDefs)
 
-		var err error
 		if argDef.Type == cmds.ArgString {
 			if len(inputs) > 0 {
-				// If argument is "-" use stdin
-				if inputs[0] == "-" && argDef.SupportsStdin {
-					stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
-					if err != nil {
-						return nil, nil, err
-					}
-				}
-				// add string values
-				stringArgs, inputs = appendString(stringArgs, inputs)
-			} else if !argDef.SupportsStdin {
-				if len(inputs) == 0 {
-					// failure case, we have stdin, but our current
-					// argument doesnt want stdin
-					break
-				}
-
-				stringArgs, inputs = appendString(stringArgs, inputs)
+				stringArgs, inputs = append(stringArgs, inputs[0]), inputs[1:]
 			} else {
-				if stdin != nil && argDef.Required && !fillingVariadic {
-					// if we have a stdin, read it in and use the data as a string value
-					stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
-					if err != nil {
-						return nil, nil, err
-					}
-				} else {
-					break
-				}
+				break
 			}
 		} else if argDef.Type == cmds.ArgFile {
 			if len(inputs) > 0 {
@@ -325,7 +304,10 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				var file files.File
 				var err error
 				if fpath == "-" {
-					file = files.NewReaderFile("", "", stdin, nil)
+					if err = printReadInfo(stdin, msgStdinInfo); err == nil {
+						fpath = stdin.Name()
+						file = files.NewReaderFile("", fpath, stdin, nil)
+					}
 				} else {
 					file, err = appendFile(fpath, argDef, recursive, hidden)
 				}
@@ -337,7 +319,11 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 			} else {
 				if stdin != nil && argDef.SupportsStdin &&
 					argDef.Required && !fillingVariadic {
-					fileArgs[""] = files.NewReaderFile("", "", stdin, nil)
+					if err := printReadInfo(stdin, msgStdinInfo); err != nil {
+						return nil, nil, err
+					}
+					fpath := stdin.Name()
+					fileArgs[fpath] = files.NewReaderFile("", fpath, stdin, nil)
 				} else {
 					break
 				}
@@ -389,22 +375,6 @@ func getArgDef(i int, argDefs []cmds.Argument) *cmds.Argument {
 	return nil
 }
 
-func appendString(args, inputs []string) ([]string, []string) {
-	return append(args, inputs[0]), inputs[1:]
-}
-
-func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, error) {
-	buf := new(bytes.Buffer)
-
-	_, err := buf.ReadFrom(stdin)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	input := strings.TrimSpace(buf.String())
-	return append(args, strings.Split(input, "\n")...), nil, nil
-}
-
 const notRecursiveFmtStr = "'%s' is a directory, use the '-%s' flag to specify directories"
 const dirNotSupportedFmtStr = "Invalid path '%s', argument '%s' does not support directories"
 
@@ -434,4 +404,19 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 	}
 
 	return files.NewSerialFile(path.Base(fpath), fpath, hidden, stat)
+}
+
+// Inform the user if a file is waiting on input
+func printReadInfo(f *os.File, msg string) error {
+	fInfo, err := f.Stat()
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	if (fInfo.Mode() & os.ModeCharDevice) != 0 {
+		fmt.Fprintf(os.Stderr, msg, f.Name())
+	}
+
+	return nil
 }

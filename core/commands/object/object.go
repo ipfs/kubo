@@ -78,7 +78,7 @@ is the raw data of the object.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -108,7 +108,7 @@ multihash.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format."),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
@@ -179,7 +179,7 @@ This command outputs data in the following encodings:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -246,7 +246,7 @@ var ObjectStatCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
