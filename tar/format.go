@@ -204,7 +204,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 
 func ExportTar(ctx context.Context, root *dag.ProtoNode, ds dag.DAGService) (io.Reader, error) {
 	if string(root.Data()) != "ipfs/tar" {
-		return nil, errors.New("not an ipfs tarchive")
+		return nil, errors.New("not an IPFS tarchive")
 	}
 	return &tarReader{
 		links: root.Links(),

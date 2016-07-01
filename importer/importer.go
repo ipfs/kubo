@@ -1,4 +1,4 @@
-// package importer implements utilities used to create ipfs DAGs from files
+// package importer implements utilities used to create IPFS DAGs from files
 // and readers
 package importer
 

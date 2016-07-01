@@ -34,7 +34,7 @@ repository.`,
 		LongDescription: `
 'ipfs config' controls configuration variables. It works
 much like 'git config'. The configuration values are stored in a config
-file inside your ipfs repository.
+file inside your IPFS repository.
 
 Examples:
 

@@ -1,4 +1,4 @@
-// package merkledag implements the ipfs Merkle DAG datastructures.
+// package merkledag implements the IPFS Merkle DAG datastructures.
 package merkledag
 
 import (

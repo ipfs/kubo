@@ -54,7 +54,7 @@ const (
 
 var daemonCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Run a network-connected ipfs node.",
+		Tagline: "Run a network-connected IPFS node.",
 		ShortDescription: `
 'ipfs daemon' runs a persistent ipfs daemon that can serve commands
 over the network. Most applications that use IPFS will do so by
@@ -147,9 +147,9 @@ Headers.
 	Options: []cmds.Option{
 		cmds.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized").Default(false),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").Default("dht"),
-		cmds.BoolOption(mountKwd, "Mounts ipfs to the filesystem").Default(false),
+		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem").Default(false),
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)").Default(false),
-		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for ipfs (if using --mount). Defaults to config setting."),
+		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes").Default(false),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)").Default(false),

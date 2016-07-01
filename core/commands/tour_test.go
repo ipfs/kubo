@@ -11,7 +11,7 @@ func TestParseTourTemplate(t *testing.T) {
 	topic := &tour.Topic{
 		ID: "42",
 		Content: tour.Content{
-			Title: "IPFS CLI test files",
+			Title: "ipfs CLI test files",
 			Text: `
 Welcome to the ipfs test files
 This is where we test our beautiful command line interfaces

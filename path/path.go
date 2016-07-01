@@ -9,7 +9,7 @@ import (
 )
 
 // ErrBadPath is returned when a given path is incorrectly formatted
-var ErrBadPath = errors.New("invalid ipfs ref path")
+var ErrBadPath = errors.New("invalid 'ipfs ref' path")
 
 // TODO: debate making this a private struct wrapped in a public interface
 // would allow us to control creation, and cache segments.

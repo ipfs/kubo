@@ -24,7 +24,7 @@ var Root = &cmds.Command{
 		Subcommands: `
 BASIC COMMANDS
   init          Initialize ipfs local configuration
-  add <path>    Add a file to ipfs
+  add <path>    Add a file to IPFS
   cat <ref>     Show IPFS object data
   get <ref>     Download IPFS objects
   ls <ref>      List links from an object
@@ -37,7 +37,7 @@ DATA STRUCTURE COMMANDS
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
-  mount         Mount an ipfs read-only mountpoint
+  mount         Mount an IPFS read-only mountpoint
   resolve       Resolve any type of name
   name          Publish or resolve IPNS names
   dns           Resolve DNS links
@@ -45,7 +45,7 @@ ADVANCED COMMANDS
   repo          Manipulate the IPFS repository
 
 NETWORK COMMANDS
-  id            Show info about ipfs peers
+  id            Show info about IPFS peers
   bootstrap     Add or remove bootstrap peers
   swarm         Manage connections to the p2p network
   dht           Query the DHT for values or peers

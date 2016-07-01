@@ -182,11 +182,11 @@ var NodeBasicsInit = Content{
 
 	// TODO touch on PKI
 	//
-	// This is somewhat relevant at ipfs init since the generated key pair is the
+	// This is somewhat relevant at 'ipfs init' since the generated key pair is the
 	// basis for the node's identity in the network. A cursory nod may be
 	// sufficient at that stage, and goes a long way in explaining init's raison
 	// d'être.
-	// NB: user is introduced to ipfs init before ipfs add.
+	// NB: user is introduced to 'ipfs init' before 'ipfs add'.
 	Text: `
 	`,
 }

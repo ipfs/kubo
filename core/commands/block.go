@@ -44,7 +44,7 @@ multihash.
 
 var blockStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Print information of a raw ipfs block.",
+		Tagline: "Print information of a raw IPFS block.",
 		ShortDescription: `
 'ipfs block stat' is a plumbing command for retrieving information
 on raw IPFS blocks. It outputs the following to stdout:
@@ -81,7 +81,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 
 var blockGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get a raw ipfs block.",
+		Tagline: "Get a raw IPFS block.",
 		ShortDescription: `
 'ipfs block get' is a plumbing command for retrieving raw IPFS blocks.
 It outputs to stdout, and <key> is a base58 encoded multihash.
