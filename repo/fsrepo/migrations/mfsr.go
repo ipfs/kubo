@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -16,27 +17,26 @@ func (rp RepoPath) VersionFile() string {
 	return path.Join(string(rp), VersionFile)
 }
 
-func (rp RepoPath) Version() (string, error) {
+func (rp RepoPath) Version() (int, error) {
 	if rp == "" {
-		return "", fmt.Errorf("invalid repo path \"%s\"", rp)
+		return 0, fmt.Errorf("invalid repo path \"%s\"", rp)
 	}
 
 	fn := rp.VersionFile()
 	if _, err := os.Stat(fn); os.IsNotExist(err) {
-		return "", VersionFileNotFound(rp)
+		return 0, VersionFileNotFound(rp)
 	}
 
 	c, err := ioutil.ReadFile(fn)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
-	s := string(c)
-	s = strings.TrimSpace(s)
-	return s, nil
+	s := strings.TrimSpace(string(c))
+	return strconv.Atoi(s)
 }
 
-func (rp RepoPath) CheckVersion(version string) error {
+func (rp RepoPath) CheckVersion(version int) error {
 	v, err := rp.Version()
 	if err != nil {
 		return err
@@ -49,13 +49,36 @@ func (rp RepoPath) CheckVersion(version string) error {
 	return nil
 }
 
-func (rp RepoPath) WriteVersion(version string) error {
+func (rp RepoPath) WriteVersion(version int) error {
 	fn := rp.VersionFile()
-	return ioutil.WriteFile(fn, []byte(version+"\n"), 0644)
+	return ioutil.WriteFile(fn, []byte(fmt.Sprintf("%d\n", version)), 0644)
 }
 
 type VersionFileNotFound string
 
 func (v VersionFileNotFound) Error() string {
 	return "no version file in repo at " + string(v)
+}
+
+func TryMigrating(tovers int) error {
+	if !YesNoPrompt("run migrations automatically? [y/n]") {
+		return fmt.Errorf("please run the migrations manually")
+	}
+
+	return RunMigration(tovers)
+}
+
+func YesNoPrompt(prompt string) bool {
+	var s string
+	for {
+		fmt.Printf("%s ", prompt)
+		fmt.Scanf("%s", &s)
+		switch s {
+		case "y", "Y":
+			return true
+		case "n", "N":
+			return false
+		}
+		fmt.Println("Please press either 'y' or 'n'")
+	}
 }

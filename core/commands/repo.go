@@ -320,7 +320,7 @@ var repoVersionCmd = &cmds.Command{
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(&RepoVersion{
-			Version: fsrepo.RepoVersion,
+			Version: fmt.Sprint(fsrepo.RepoVersion),
 		})
 	},
 	Type: RepoVersion{},

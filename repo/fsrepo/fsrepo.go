@@ -26,7 +26,7 @@ import (
 var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
-var RepoVersion = "4"
+var RepoVersion = 4
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -35,6 +35,12 @@ var errIncorrectRepoFmt = `Repo has incorrect version: %s
 Program version is: %s
 Please run the ipfs migration tool before continuing.
 ` + migrationInstructions
+
+var programTooLowMessage = `Your programs version (%d) is lower than your repos (%d).
+Please update ipfs to a version that supports the existing repo, or run
+a migration in reverse.
+
+See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md for details.`
 
 var (
 	ErrNoVersion = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
@@ -134,8 +140,22 @@ func open(repoPath string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	if ver != RepoVersion {
-		return nil, fmt.Errorf(errIncorrectRepoFmt, ver, RepoVersion)
+	if RepoVersion > ver {
+		r.lockfile.Close()
+
+		err := mfsr.TryMigrating(RepoVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		r.lockfile, err = lockfile.Lock(r.path)
+		if err != nil {
+			return nil, fmt.Errorf("reacquiring lock: %s", err)
+		}
+
+	} else if ver > RepoVersion {
+		// program version too low for existing repo
+		return nil, fmt.Errorf(programTooLowMessage, RepoVersion, ver)
 	}
 
 	// check repo path, then check all constituent parts.
