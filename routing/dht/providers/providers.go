@@ -123,7 +123,7 @@ func loadProvSet(dstore ds.Datastore, k key.Key) (*providerSet, error) {
 	out := newProviderSet()
 	for e := range res.Next() {
 		if e.Error != nil {
-			log.Error("got an error: ", err)
+			log.Error("got an error: ", e.Error)
 			continue
 		}
 		parts := strings.Split(e.Key, "/")
