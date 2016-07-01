@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -284,6 +285,15 @@ func TestArgumentParsing(t *testing.T) {
 	// is used to construct a predictably ordered sequence of filenames.
 	tmpFile := func(t *testing.T, enum string) *os.File {
 		f, err := ioutil.TempFile("", enum)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fn, err := filepath.EvalSymlinks(f.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+		f, err = os.Create(fn)
 		if err != nil {
 			t.Fatal(err)
 		}
