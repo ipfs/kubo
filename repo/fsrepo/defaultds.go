@@ -7,12 +7,12 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/dir"
-	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
-	"gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/flatfs"
-	levelds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/leveldb"
-	"gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/measure"
-	mount "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/syncmount"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
+	ds "gx/ipfs/QmbCg24DeRKaRDLHbzzSVj7xndmWCPanBLkAM7Lx2nbrFs/go-datastore"
+	"gx/ipfs/QmbCg24DeRKaRDLHbzzSVj7xndmWCPanBLkAM7Lx2nbrFs/go-datastore/flatfs"
+	levelds "gx/ipfs/QmbCg24DeRKaRDLHbzzSVj7xndmWCPanBLkAM7Lx2nbrFs/go-datastore/leveldb"
+	"gx/ipfs/QmbCg24DeRKaRDLHbzzSVj7xndmWCPanBLkAM7Lx2nbrFs/go-datastore/measure"
+	mount "gx/ipfs/QmbCg24DeRKaRDLHbzzSVj7xndmWCPanBLkAM7Lx2nbrFs/go-datastore/syncmount"
 )
 
 const (
@@ -31,16 +31,10 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		return nil, fmt.Errorf("unable to open leveldb datastore: %v", err)
 	}
 
-	// 4TB of 256kB objects ~=17M objects, splitting that 256-way
-	// leads to ~66k objects per dir, splitting 256*256-way leads to
-	// only 256.
-	//
-	// The keys seen by the block store have predictable prefixes,
-	// including "/" from datastore.Key and 2 bytes from multihash. To
-	// reach a uniform 256-way split, we need approximately 4 bytes of
-	// prefix.
 	syncfs := !r.config.Datastore.NoSync
-	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 4, syncfs)
+	// 5 bytes of prefix gives us 25 bits of freedom, 16 of which are taken by
+	// by the Qm prefix. Leaving us with 9 bits, or 512 way sharding
+	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 5, syncfs)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}

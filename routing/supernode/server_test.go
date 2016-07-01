@@ -5,7 +5,7 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	datastore "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
+	datastore "gx/ipfs/QmbCg24DeRKaRDLHbzzSVj7xndmWCPanBLkAM7Lx2nbrFs/go-datastore"
 )
 
 func TestPutProviderDoesntResultInDuplicates(t *testing.T) {
