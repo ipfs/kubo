@@ -15,7 +15,7 @@ import (
 
 var log = logging.Logger("config")
 
-// Config is used to load IPFS config files.
+// Config is used to load ipfs config files.
 type Config struct {
 	Identity         Identity              // local node's peer identity
 	Datastore        Datastore             // local node's storage
