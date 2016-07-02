@@ -144,9 +144,9 @@
     },
     {
       "author": "jbenet",
-      "hash": "QmbCg24DeRKaRDLHbzzSVj7xndmWCPanBLkAM7Lx2nbrFs",
+      "hash": "QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o",
       "name": "go-datastore",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "codahale",
