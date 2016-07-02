@@ -9,7 +9,7 @@ test_description="Test ipfs repo operations"
 . lib/test-lib.sh
 
 test_init_ipfs
-test_launch_ipfs_daemon
+test_launch_ipfs_daemon --offline
 
 test_expect_success "'ipfs repo gc' succeeds" '
 	ipfs repo gc >gc_out_actual
