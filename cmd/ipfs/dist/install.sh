@@ -85,7 +85,7 @@ if [ -z "$best" ]; then
     exit 5
   else
     echo "Using /bin as location..."
-    best="/bin"
+    best="'/bin'"
   fi
 fi
 
