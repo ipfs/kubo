@@ -29,9 +29,12 @@ move() {
 }
 e="'" #escape
 
+# Split and escape $PATH
 for p in $e${PATH//":"/"' '"}$e; do
+  # Check if the path is valid
   case $p in
     $e[a-z/]*$e)
+      # Check if it is a directory
       if [ -d ${p//"'"/""} ]; then
         valid="$valid $p"
       else
@@ -46,6 +49,7 @@ done
 
 findbest() {
   for v in $valid; do
+    # Set rating for the path
     case $v in
       $e/usr/bin$e) # /usr/bin
         l=9
@@ -69,10 +73,12 @@ findbest() {
         l=1
         ;;
     esac
+    # Print path and rating
     echo $l $v
   done
 }
 
+# Execute the "findbest" function, order results by rating, get result with the highest number
 best=`findbest | sort -n | tail -n 1`
 best=${best//" "/"
 "}
@@ -89,5 +95,5 @@ if [ -z "$best" ]; then
   fi
 fi
 
-binpath=${best//"'"/""} #unescape
+binpath=${best//"'"/""} # Remove ' ' from the path
 move
