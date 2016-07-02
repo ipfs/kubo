@@ -81,7 +81,7 @@ best=`echo "$best" | tail -n 1`
 if [ -z "$best" ]; then
   echo "No valid location in \$PATH found"
   if [ -z "$PATH" ]; then
-    echo "$PATH is not set"
+    echo "\$PATH is not set"
     exit 5
   else
     echo "Using /bin as location..."
