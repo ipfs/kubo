@@ -123,6 +123,8 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	return n, nil
 }
 
+var dagCacheSize = 64
+
 func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	// setup local peer ID (private key is loaded in online setup)
 	if err := n.loadID(); err != nil {
@@ -155,7 +157,12 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	n.Blocks = bserv.New(n.Blockstore, n.Exchange)
-	n.DAG = dag.NewDAGService(n.Blocks)
+	dagService := dag.NewDAGService(n.Blocks)
+	cached, err := dag.NewDAGCache(dagService, dagCacheSize)
+	if err != nil {
+		return err
+	}
+	n.DAG = cached
 	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG)
 	if err != nil {
 		// TODO: we should move towards only running 'NewPinner' explicity on
