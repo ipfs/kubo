@@ -7,7 +7,7 @@ RANDOM_FILES_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random-files
 POLLENDPOINT_SRC= ../thirdparty/pollEndpoint
 GOSLEEP_SRC = ./dependencies/go-sleep
 
-GX_RELATIVE_PATH = ../../../../gx/ipfs
+GX_RELATIVE_PATH = gx/ipfs
 
 export PATH := ../bin:${PATH}
 
