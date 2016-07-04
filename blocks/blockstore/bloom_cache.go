@@ -7,6 +7,8 @@ import (
 	bloom "gx/ipfs/QmWQ2SJisXwcCLsUXLwYCKSfyExXjFRW2WbBH5sqCUnwX5/bbloom"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
+
+	"sync/atomic"
 )
 
 // BloomCached returns Blockstore that caches Has requests using Bloom filter
@@ -29,7 +31,7 @@ func BloomCached(bs Blockstore, bloomSize, lruSize int) (*bloomcache, error) {
 
 type bloomcache struct {
 	bloom  *bloom.Bloom
-	active bool
+	active int32
 
 	arc *lru.ARCCache
 	// This chan is only used for testing to wait for bloom to enable
@@ -43,11 +45,11 @@ type bloomcache struct {
 
 func (b *bloomcache) Invalidate() {
 	b.rebuildChan = make(chan struct{})
-	b.active = false
+	atomic.StoreInt32(&b.active, 0)
 }
 
 func (b *bloomcache) BloomActive() bool {
-	return b.active
+	return atomic.LoadInt32(&b.active) != 0
 }
 
 func (b *bloomcache) Rebuild() {
@@ -64,7 +66,7 @@ func (b *bloomcache) Rebuild() {
 		b.bloom.AddTS([]byte(key)) // Use binary key, the more compact the better
 	}
 	close(b.rebuildChan)
-	b.active = true
+	atomic.StoreInt32(&b.active, 1)
 }
 
 func (b *bloomcache) DeleteBlock(k key.Key) error {
@@ -89,7 +91,7 @@ func (b *bloomcache) hasCached(k key.Key) (has bool, ok bool) {
 	if k == "" {
 		return true, true
 	}
-	if b.active {
+	if b.BloomActive() {
 		blr := b.bloom.HasTS([]byte(k))
 		if blr == false { // not contained in bloom is only conclusive answer bloom gives
 			return blr, true
