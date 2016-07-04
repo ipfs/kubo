@@ -233,6 +233,14 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 			return
 		}
 
+		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		if !ok {
+			res.SetError(fmt.Errorf("peerhost network was not swarm"), cmds.ErrNormal)
+			return
+		}
+
+		swrm := snet.Swarm()
+
 		pis, err := peersWithAddresses(addrs)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -241,6 +249,8 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 		output := make([]string, len(pis))
 		for i, pi := range pis {
+			swrm.Backoff().Clear(pi.ID)
+
 			output[i] = "connect " + pi.ID.Pretty()
 
 			err := n.PeerHost.Connect(ctx, pi)
