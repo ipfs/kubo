@@ -2,12 +2,15 @@ package blockstore
 
 import (
 	"fmt"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/ipfs/go-ipfs/blocks"
+
 	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
 	dsq "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/query"
 	syncds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
-	"testing"
-	"time"
 )
 
 func TestReturnsErrorWhenSizeNegative(t *testing.T) {
@@ -32,7 +35,10 @@ func TestRemoveCacheEntryOnDelete(t *testing.T) {
 	}
 	cachedbs.Put(b)
 
+	cd.Lock()
 	writeHitTheDatastore := false
+	cd.Unlock()
+
 	cd.SetFunc(func() {
 		writeHitTheDatastore = true
 	})
@@ -93,34 +99,45 @@ func TestHasIsBloomCached(t *testing.T) {
 }
 
 type callbackDatastore struct {
+	sync.Mutex
 	f  func()
 	ds ds.Datastore
 }
 
-func (c *callbackDatastore) SetFunc(f func()) { c.f = f }
+func (c *callbackDatastore) SetFunc(f func()) {
+	c.Lock()
+	defer c.Unlock()
+	c.f = f
+}
+
+func (c *callbackDatastore) CallF() {
+	c.Lock()
+	defer c.Unlock()
+	c.f()
+}
 
 func (c *callbackDatastore) Put(key ds.Key, value interface{}) (err error) {
-	c.f()
+	c.CallF()
 	return c.ds.Put(key, value)
 }
 
 func (c *callbackDatastore) Get(key ds.Key) (value interface{}, err error) {
-	c.f()
+	c.CallF()
 	return c.ds.Get(key)
 }
 
 func (c *callbackDatastore) Has(key ds.Key) (exists bool, err error) {
-	c.f()
+	c.CallF()
 	return c.ds.Has(key)
 }
 
 func (c *callbackDatastore) Delete(key ds.Key) (err error) {
-	c.f()
+	c.CallF()
 	return c.ds.Delete(key)
 }
 
 func (c *callbackDatastore) Query(q dsq.Query) (dsq.Results, error) {
-	c.f()
+	c.CallF()
 	return c.ds.Query(q)
 }
 
