@@ -87,12 +87,13 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // just a much better idea.
 func Session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
 	bsdelay := delay.Fixed(0)
+	const bloomSize = 512
 	const writeCacheElems = 100
 
 	adapter := net.Adapter(p)
 	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
 
-	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)), writeCacheElems)
+	bstore, err := blockstore.BloomCached(blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)), bloomSize, writeCacheElems)
 	if err != nil {
 		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}
