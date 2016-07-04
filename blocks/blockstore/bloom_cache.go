@@ -76,32 +76,36 @@ func (b *bloomcache) DeleteBlock(k key.Key) error {
 
 	b.arc.Remove(k) // Invalidate cache before deleting.
 	err := b.blockstore.DeleteBlock(k)
-	if err == nil {
+	switch err {
+	case nil:
 		b.arc.Add(k, false)
-	} else if err == ds.ErrNotFound || err == ErrNotFound {
+	case ds.ErrNotFound, ErrNotFound:
 		b.arc.Add(k, false)
-		return ErrNotFound
+	default:
+		return err
 	}
-	return err
+	return nil
 }
 
 // if ok == false has is inconclusive
 // if ok == true then has respons to question: is it contained
 func (b *bloomcache) hasCached(k key.Key) (has bool, ok bool) {
 	if k == "" {
-		return true, true
+		// Return cache invalid so call to blockstore
+		// in case of invalid key is forwarded deeper
+		return false, false
 	}
 	if b.BloomActive() {
 		blr := b.bloom.HasTS([]byte(k))
 		if blr == false { // not contained in bloom is only conclusive answer bloom gives
-			return blr, true
+			return false, true
 		}
 	}
 	h, ok := b.arc.Get(k)
 	if ok {
 		return h.(bool), ok
 	} else {
-		return false, ok
+		return false, false
 	}
 }
 
