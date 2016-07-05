@@ -169,6 +169,7 @@ func (b *bloomcache) PutMany(bs []blocks.Block) error {
 	if err == nil {
 		for _, block := range bs {
 			b.bloom.AddTS([]byte(block.Key()))
+			b.arc.Add(block.Key(), true)
 		}
 	}
 	return err
