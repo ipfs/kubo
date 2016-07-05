@@ -14,7 +14,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
 	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	swarm "gx/ipfs/QmZ8bCZpMWDbFSh6h2zgTYwrhnjrGM5c9WCzw72SU8p63b/go-libp2p/p2p/net/swarm"
+	swarm "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/swarm"
 
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
@@ -233,6 +233,14 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 			return
 		}
 
+		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		if !ok {
+			res.SetError(fmt.Errorf("peerhost network was not swarm"), cmds.ErrNormal)
+			return
+		}
+
+		swrm := snet.Swarm()
+
 		pis, err := peersWithAddresses(addrs)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -241,6 +249,8 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 		output := make([]string, len(pis))
 		for i, pi := range pis {
+			swrm.Backoff().Clear(pi.ID)
+
 			output[i] = "connect " + pi.ID.Pretty()
 
 			err := n.PeerHost.Connect(ctx, pi)

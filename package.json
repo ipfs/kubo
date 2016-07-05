@@ -13,9 +13,9 @@
       "version": "1.1.2"
     },
     {
-      "hash": "QmZ8bCZpMWDbFSh6h2zgTYwrhnjrGM5c9WCzw72SU8p63b",
+      "hash": "QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms",
       "name": "go-libp2p",
-      "version": "3.3.6"
+      "version": "3.3.7"
     },
     {
       "author": "whyrusleeping",
