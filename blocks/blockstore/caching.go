@@ -28,6 +28,7 @@ func CachedBlockstore(bs GCBlockstore,
 	if ctx == nil {
 		ctx = context.TODO() // For tests
 	}
+	cbs = bs
 
 	if opts.HasBloomFilterSize < 0 || opts.HasBloomFilterHashes < 0 ||
 		opts.HasARCCacheSize < 0 || opts.BlockARCCacheSize < 0 {
@@ -37,8 +38,10 @@ func CachedBlockstore(bs GCBlockstore,
 	if opts.HasBloomFilterSize != 0 && opts.HasBloomFilterHashes == 0 {
 		return nil, errors.New("bloom filter hash count can't be 0 when there is size set")
 	}
-	cbs, err = bloomCached(bs, ctx, opts.HasBloomFilterSize, opts.HasBloomFilterHashes,
-		opts.HasARCCacheSize)
+	if opts.HasBloomFilterSize != 0 {
+		cbs, err = bloomCached(cbs, ctx, opts.HasBloomFilterSize, opts.HasBloomFilterHashes,
+			opts.HasARCCacheSize)
+	}
 
 	return cbs, err
 }
