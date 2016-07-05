@@ -73,13 +73,19 @@ func (v Validator) IsSigned(k key.Key) (bool, error) {
 // verifies that the passed in record value is the PublicKey
 // that matches the passed in key.
 func ValidatePublicKeyRecord(k key.Key, val []byte) error {
-	keyparts := bytes.Split([]byte(k), []byte("/"))
-	if len(keyparts) < 3 {
-		return errors.New("invalid key")
+	if len(k) != 38 {
+		return errors.New("invalid public key record key")
 	}
 
+	prefix := string(k[:4])
+	if prefix != "/pk/" {
+		return errors.New("key was not prefixed with /pk/")
+	}
+
+	keyhash := []byte(k[4:])
+
 	pkh := u.Hash(val)
-	if !bytes.Equal(keyparts[2], pkh) {
+	if !bytes.Equal(keyhash, pkh) {
 		return errors.New("public key does not match storage key")
 	}
 	return nil

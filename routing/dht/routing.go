@@ -122,6 +122,13 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 		// if someone sent us a different 'less-valid' record, lets correct them
 		if !bytes.Equal(v.Val, best) {
 			go func(v routing.RecvdVal) {
+				if v.From == dht.self {
+					err := dht.putLocal(key, fixupRec)
+					if err != nil {
+						log.Error("Error correcting local dht entry:", err)
+					}
+					return
+				}
 				ctx, cancel := context.WithTimeout(dht.Context(), time.Second*30)
 				defer cancel()
 				err := dht.putValueToPeer(ctx, v.From, key, fixupRec)
