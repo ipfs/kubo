@@ -34,4 +34,9 @@ test_expect_success 'getting modified block fails' '
 	grep "block in storage has different hash than requested" err_msg
 '
 
+test_expect_success "block shows up in repo verify" '
+	test_expect_code 1 ipfs repo verify > verify_out &&
+	grep "$H_BLOCK2" verify_out
+'
+
 test_done

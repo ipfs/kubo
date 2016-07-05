@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -263,6 +264,8 @@ var repoVerifyCmd = &cmds.Command{
 			}
 			if fails == 0 {
 				out <- &VerifyProgress{Message: "verify complete, all blocks validated."}
+			} else {
+				out <- &VerifyProgress{Message: "verify complete, some blocks were corrupt."}
 			}
 		}()
 
@@ -280,6 +283,9 @@ var repoVerifyCmd = &cmds.Command{
 
 				buf := new(bytes.Buffer)
 				if obj.Message != "" {
+					if strings.Contains(obj.Message, "blocks were corrupt") {
+						return nil, fmt.Errorf(obj.Message)
+					}
 					if len(obj.Message) < 20 {
 						obj.Message += "             "
 					}
