@@ -16,7 +16,7 @@ type CacheOpts struct {
 
 func DefaultCacheOpts() CacheOpts {
 	return CacheOpts{
-		256 * 1024,
+		512 * 8 * 1024,
 		7,
 		64 * 1024,
 		16,
