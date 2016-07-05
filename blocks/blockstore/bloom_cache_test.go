@@ -16,7 +16,7 @@ import (
 
 func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) {
 	opts := DefaultCacheOpts()
-	opts.BlockARCCacheSize = 0
+	opts.GetARCCacheSize = 0
 	bbs, err := CachedBlockstore(bs, ctx, opts)
 	if err == nil {
 		return bbs.(*bloomcache), nil

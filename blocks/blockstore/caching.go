@@ -11,7 +11,7 @@ type CacheOpts struct {
 	HasBloomFilterSize   int // 1 bit
 	HasBloomFilterHashes int // No size, 7 is usually best, consult bloom papers
 	HasARCCacheSize      int // 32 bytes
-	BlockARCCacheSize    int // 512KiB max
+	GetARCCacheSize      int // 512KiB max
 }
 
 func DefaultCacheOpts() CacheOpts {
@@ -31,14 +31,21 @@ func CachedBlockstore(bs GCBlockstore,
 	cbs = bs
 
 	if opts.HasBloomFilterSize < 0 || opts.HasBloomFilterHashes < 0 ||
-		opts.HasARCCacheSize < 0 || opts.BlockARCCacheSize < 0 {
+		opts.HasARCCacheSize < 0 || opts.GetARCCacheSize < 0 {
 		return nil, errors.New("all options for cache need to be greater than zero")
 	}
 
-	if opts.HasBloomFilterSize != 0 && opts.HasBloomFilterHashes == 0 {
+	if opts.GetARCCacheSize > 0 {
+		cbs, err = blockCached(cbs, opts.GetARCCacheSize)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if opts.HasBloomFilterSize > 0 && opts.HasBloomFilterHashes == 0 {
 		return nil, errors.New("bloom filter hash count can't be 0 when there is size set")
 	}
-	if opts.HasBloomFilterSize != 0 {
+	if opts.HasBloomFilterSize > 0 {
 		cbs, err = bloomCached(cbs, ctx, opts.HasBloomFilterSize, opts.HasBloomFilterHashes,
 			opts.HasARCCacheSize)
 	}
