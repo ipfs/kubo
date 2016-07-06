@@ -16,6 +16,12 @@ import (
 
 var DistPath = "https://ipfs.io/ipns/dist.ipfs.io"
 
+func init() {
+	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
+		DistPath = dist
+	}
+}
+
 const migrations = "fs-repo-migrations"
 
 func RunMigration(newv int) error {
