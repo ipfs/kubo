@@ -225,6 +225,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	case fsrepo.ErrNeedMigration:
 		domigrate, found, _ := req.Option(migrateKwd).Bool()
+		fmt.Println("Found old repo version, migrations need to be run.")
 
 		if !found {
 			err = migrate.TryMigrating(fsrepo.RepoVersion)

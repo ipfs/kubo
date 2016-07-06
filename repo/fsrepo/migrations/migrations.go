@@ -27,7 +27,9 @@ const migrations = "fs-repo-migrations"
 func RunMigration(newv int) error {
 	migrateBin := "fs-repo-migrations"
 	fmt.Println("  => checking for migrations binary...")
-	_, err := exec.LookPath(migrateBin)
+
+	var err error
+	migrateBin, err = exec.LookPath(migrateBin)
 	if err == nil {
 		// check to make sure migrations binary supports our target version
 		err = verifyMigrationSupportsVersion(migrateBin, newv)
