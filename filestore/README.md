@@ -21,7 +21,7 @@ use:
 The file or directory will then be added.  You can now try to retrieve
 it from another node such as the ipfs.io gateway.
 
-Paths stores in the filestore must be absolute.  You can either
+Paths stored in the filestore must be absolute.  You can either
 provide an absolute path or use one of `-P` (`--physical`) or `-l`
 (`--logical`) to create one.  The `-P` (or `--physical`) means to make
 an absolute path from the physical working directory without any
@@ -43,7 +43,7 @@ expected.
 Adding files to the filestore will generally be faster than adding
 blocks normally as less data is copied around.  Retrieving blocks from
 the filestore takes about the same time when the hash is not
-recomputed, when it is retrieval is slower.
+recomputed, when it is, retrieval is slower.
 
 ## Adding all files in a directory
 
@@ -160,7 +160,7 @@ some of the files become invalid the recursive pin will become invalid
 and needs to be fixed.
 
 One way to fix this is to use `filestore fix-pins`.  This will
-remove any pines pointing to invalid non-existent blocks and also
+remove any pins pointing to invalid non-existent blocks and also
 repair recursive pins by making the recursive pin a direct pin and
 pinning any children still valid.  
 
@@ -189,13 +189,13 @@ option.  Individual blocks can be removed with the `--direct` option.
 
 ## Duplicate blocks.
 
-If a block is already in the datastore when adding and then readded
-with `filestore add` the block will be added to the filestore but the
-now duplicate block will still exists in the normal datastore.
-Furthermore, since the block is likely to be pinned it will not be
-removed when `repo gc` in run.  This is nonoptimal and will eventually
-be fixed.  For now, you can remove duplicate blocks by running
-`filestore rm-dups`.
+If a block has already been added to the datastore, adding it
+again with `filestore add` will add the block to the filestore
+but the now duplicate block will still exists in the normal
+datastore. Furthermore, since the block is likely to be pinned
+it will not be removed when `repo gc` in run.  This is nonoptimal
+and will eventually be fixed.  For now, you can remove duplicate
+blocks by running `filestore rm-dups`.
 
 ## Upgrading the filestore
 
