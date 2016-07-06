@@ -367,7 +367,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		corehttp.MetricsCollectionOption("api"),
 		corehttp.CommandsOption(*req.InvocContext()),
 		corehttp.WebUIOption,
-		corehttp.GatewayOption("/ipfs", "/ipns"),
+		corehttp.GatewayOption(corehttp.WebUIPaths...),
 		corehttp.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
