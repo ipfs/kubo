@@ -29,11 +29,11 @@ func CloneNode(nd * Node) *Node {
 
 func (ds *dagCache) Add(node *Node) (key.Key, error) {
 	key, err := ds.DAGService.Add(node)
-	if err != nil {
+	if err == nil && len(node.Links) > 0 {
+		ds.cache.Add(key, CloneNode(node))
+		//println("cache add", key.String())
 		return key, err
 	}
-	ds.cache.Add(key, CloneNode(node))
-	//println("cache add", key.String())
 	return key, err
 }
 
@@ -44,13 +44,12 @@ func (ds *dagCache) Get(ctx context.Context, k key.Key) (*Node, error) {
 		//println("cache hit", k.String())
 		return CloneNode(node.(*Node)), nil
 	}
-	//println("cache miss", k.String())
 	node, err := ds.DAGService.Get(ctx, k)
-	if err != nil {
-		return nil, err
+	if err == nil && len(node.Links) > 0 {	
+		//println("cache miss", k.String())
+		ds.cache.Add(k, CloneNode(node))
 	}
-	ds.cache.Add(k, CloneNode(node))
-	return node, nil
+	return node, err
 }
 
 func (ds *dagCache) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeOption {
@@ -75,7 +74,7 @@ func (ds *dagCache) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeOpt
 		for n := range dags {
 			if n.Err == nil && n.Node != nil {
 				key, err := n.Node.Key()
-				if err == nil {
+				if err == nil && len(n.Node.Links) > 0 {
 					ds.cache.Add(key, CloneNode(n.Node))
 				}
 			}
