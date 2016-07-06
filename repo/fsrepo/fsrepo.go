@@ -43,8 +43,9 @@ a migration in reverse.
 See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md for details.`
 
 var (
-	ErrNoVersion = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
-	ErrOldRepo   = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
+	ErrNoVersion     = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
+	ErrOldRepo       = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
+	ErrNeedMigration = errors.New("ipfs repo needs migration.")
 )
 
 type NoRepoError struct {
@@ -141,18 +142,7 @@ func open(repoPath string) (repo.Repo, error) {
 	}
 
 	if RepoVersion > ver {
-		r.lockfile.Close()
-
-		err := mfsr.TryMigrating(RepoVersion)
-		if err != nil {
-			return nil, err
-		}
-
-		r.lockfile, err = lockfile.Lock(r.path)
-		if err != nil {
-			return nil, fmt.Errorf("reacquiring lock: %s", err)
-		}
-
+		return nil, ErrNeedMigration
 	} else if ver > RepoVersion {
 		// program version too low for existing repo
 		return nil, fmt.Errorf(programTooLowMessage, RepoVersion, ver)

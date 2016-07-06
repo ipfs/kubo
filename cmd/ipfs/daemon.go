@@ -23,6 +23,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	conn "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/conn"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
@@ -30,18 +31,19 @@ import (
 )
 
 const (
+	adjustFDLimitKwd          = "manage-fdlimit"
+	enableGCKwd               = "enable-gc"
 	initOptionKwd             = "init"
-	routingOptionKwd          = "routing"
-	routingOptionSupernodeKwd = "supernode"
-	mountKwd                  = "mount"
-	writableKwd               = "writable"
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
-	unrestrictedApiAccessKwd  = "unrestricted-api"
-	unencryptTransportKwd     = "disable-transport-encryption"
-	enableGCKwd               = "enable-gc"
-	adjustFDLimitKwd          = "manage-fdlimit"
+	migrateKwd                = "migrate"
+	mountKwd                  = "mount"
 	offlineKwd                = "offline"
+	routingOptionKwd          = "routing"
+	routingOptionSupernodeKwd = "supernode"
+	unencryptTransportKwd     = "disable-transport-encryption"
+	unrestrictedApiAccessKwd  = "unrestricted-api"
+	writableKwd               = "writable"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -139,6 +141,7 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection").Default(false),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(true),
 		cmds.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API.").Default(false),
+		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -216,9 +219,30 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
 	repo, err := fsrepo.Open(req.InvocContext().ConfigRoot)
-	if err != nil {
+	switch err {
+	default:
 		res.SetError(err, cmds.ErrNormal)
 		return
+	case fsrepo.ErrNeedMigration:
+		domigrate, found, _ := req.Option(migrateKwd).Bool()
+
+		if !found {
+			err = migrate.TryMigrating(fsrepo.RepoVersion)
+		} else if domigrate {
+			err = migrate.RunMigration(fsrepo.RepoVersion)
+		}
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		repo, err = fsrepo.Open(req.InvocContext().ConfigRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+	case nil:
+		break
 	}
 
 	cfg, err := ctx.GetConfig()
