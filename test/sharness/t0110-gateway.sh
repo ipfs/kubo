@@ -32,6 +32,10 @@ test_expect_success "GET IPFS path output looks good" '
   rm actual
 '
 
+test_expect_success "GET IPFS path on API unavailable" '
+  test_curl_resp_http_code "http://127.0.0.1:$apiport/ipfs/$HASH" "HTTP/1.1 404 Not Found"
+'
+
 test_expect_success "GET IPFS directory path succeeds" '
   mkdir dir &&
   echo "12345" >dir/test &&
