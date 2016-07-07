@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -39,7 +40,7 @@ var addPinCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned."),
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s).").Default(true),
@@ -61,21 +62,40 @@ var addPinCmd = &cmds.Command{
 			return
 		}
 
-		added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		if len(req.Arguments()) > 0 {
+			added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 
-		res.SetOutput(&PinOutput{added})
+			res.SetOutput(&PinOutput{added})
+		} else {
+			fi, err := req.Files().NextFile()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			out := make(chan interface{})
+			go func(ctx context.Context) {
+				defer close(out)
+				scan := bufio.NewScanner(fi)
+				for scan.Scan() {
+					added, err := corerepo.Pin(n, ctx, []string{scan.Text()}, recursive)
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
+
+					out <- &PinOutput{added}
+				}
+			}(req.Context())
+			res.SetOutput((<-chan interface{})(out))
+		}
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			added, ok := res.Output().(*PinOutput)
-			if !ok {
-				return nil, u.ErrCast()
-			}
-
 			var pintype string
 			rec, found, _ := res.Request().Option("recursive").Bool()
 			if rec || !found {
@@ -84,11 +104,31 @@ var addPinCmd = &cmds.Command{
 				pintype = "directly"
 			}
 
-			buf := new(bytes.Buffer)
-			for _, k := range added.Pins {
-				fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
+			marshalPinOutput := func(po *PinOutput) io.Reader {
+				buf := new(bytes.Buffer)
+				for _, k := range po.Pins {
+					fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
+				}
+				return buf
 			}
-			return buf, nil
+
+			switch out := res.Output().(type) {
+			case *PinOutput:
+				return marshalPinOutput(out), nil
+			case <-chan interface{}:
+
+				marshal := func(i interface{}) (io.Reader, error) {
+					return marshalPinOutput(i.(*PinOutput)), nil
+				}
+
+				return &cmds.ChannelMarshaler{
+					Res:       res,
+					Marshaler: marshal,
+					Channel:   out,
+				}, nil
+			default:
+				return nil, u.ErrCast()
+			}
 		},
 	},
 }

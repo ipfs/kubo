@@ -276,6 +276,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 
 	fileArgs := make(map[string]files.File)
 	argDefIndex := 0 // the index of the current argument definition
+
 	for i := 0; i < numInputs; i++ {
 		argDef := getArgDef(argDefIndex, argDefs)
 
@@ -289,14 +290,19 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		}
 
 		fillingVariadic := argDefIndex+1 > len(argDefs)
-
-		if argDef.Type == cmds.ArgString {
+		switch argDef.Type {
+		case cmds.ArgString:
 			if len(inputs) > 0 {
 				stringArgs, inputs = append(stringArgs, inputs[0]), inputs[1:]
 			} else {
-				break
+				if stdin != nil && argDef.SupportsStdin && !fillingVariadic {
+					if err := printReadInfo(stdin, msgStdinInfo); err == nil {
+						fileArgs[stdin.Name()] = files.NewReaderFile("", stdin.Name(), stdin, nil)
+						stdin = nil
+					}
+				}
 			}
-		} else if argDef.Type == cmds.ArgFile {
+		case cmds.ArgFile:
 			if len(inputs) > 0 {
 				// treat stringArg values as file paths
 				fpath := inputs[0]

@@ -281,6 +281,10 @@ func (c *Command) ProcessHelp() {
 // checkArgValue returns an error if a given arg value is not valid for the
 // given Argument
 func checkArgValue(v string, found bool, def Argument) error {
+	if def.Variadic && def.SupportsStdin {
+		return nil
+	}
+
 	if !found && def.Required {
 		return fmt.Errorf("Argument '%s' is required", def.Name)
 	}

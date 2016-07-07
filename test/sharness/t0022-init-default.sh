@@ -48,7 +48,7 @@ test_expect_success "ipfs config output looks good" '
 	test_cmp expected actual
 '
 
-test_launch_ipfs_daemon
+test_launch_ipfs_daemon --offline
 
 test_kill_ipfs_daemon
 
