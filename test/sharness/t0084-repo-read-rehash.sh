@@ -29,14 +29,22 @@ test_expect_success 'blocks are swapped' '
 
 ipfs config --bool Datastore.HashOnRead true
 
-test_expect_success 'getting modified block fails' '
-	(test_must_fail ipfs cat $H_BLOCK2 2> err_msg) &&
-	grep "block in storage has different hash than requested" err_msg
-'
+test_check_bad_blocks() {
+	test_expect_success 'getting modified block fails' '
+		(test_must_fail ipfs cat $H_BLOCK2 2> err_msg) &&
+		grep "block in storage has different hash than requested" err_msg
+	'
 
-test_expect_success "block shows up in repo verify" '
-	test_expect_code 1 ipfs repo verify > verify_out &&
-	grep "$H_BLOCK2" verify_out
-'
+	test_expect_success "block shows up in repo verify" '
+		test_expect_code 1 ipfs repo verify > verify_out &&
+		grep "$H_BLOCK2" verify_out
+	'
+}
+
+test_check_bad_blocks
+
+test_launch_ipfs_daemon
+test_check_bad_blocks
+test_kill_ipfs_daemon
 
 test_done
