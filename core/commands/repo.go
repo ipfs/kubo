@@ -271,6 +271,7 @@ var repoVerifyCmd = &cmds.Command{
 
 		res.SetOutput((<-chan interface{})(out))
 	},
+	Type: VerifyProgress{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			out := res.Output().(<-chan interface{})
