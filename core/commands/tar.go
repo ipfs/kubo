@@ -83,7 +83,7 @@ var tarCatCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "IPFS path of archive to export."),
+		cmds.StringArg("path", true, false, "IPFS path of archive to export.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

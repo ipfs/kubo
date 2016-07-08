@@ -71,6 +71,11 @@ var addPinCmd = &cmds.Command{
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			added, ok := res.Output().(*PinOutput)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
 			var pintype string
 			rec, found, _ := res.Request().Option("recursive").Bool()
 			if rec || !found {
@@ -79,17 +84,11 @@ var addPinCmd = &cmds.Command{
 				pintype = "directly"
 			}
 
-			po, ok := res.Output().(*PinOutput)
-			if !ok {
-				return nil, u.ErrCast()
-			}
-
 			buf := new(bytes.Buffer)
-			for _, k := range po.Pins {
+			for _, k := range added.Pins {
 				fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
 			}
 			return buf, nil
-
 		},
 	},
 }

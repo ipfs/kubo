@@ -212,7 +212,7 @@ test_expect_success "ipfs cat output looks good" '
 '
 
 test_expect_success "ipfs cat accept hash from built input" '
-	echo "$HASH" | xargs ipfs cat >actual
+	echo "$HASH" | ipfs cat >actual
 '
 
 test_expect_success "ipfs cat output looks good" '
@@ -268,7 +268,7 @@ test_expect_success "'ipfs add' output looks good" '
 '
 
 test_expect_success "'ipfs cat' with built input succeeds" '
-	echo "$HASH" | xargs ipfs cat >actual
+	echo "$HASH" | ipfs cat >actual
 '
 
 test_expect_success "ipfs cat with built input output looks good" '
@@ -319,7 +319,7 @@ test_expect_success "'ipfs add -rn' output looks good" '
 '
 
 test_expect_success "ipfs cat accept many hashes from built input" '
-	{ echo "$MARS"; echo "$VENUS"; } | xargs ipfs cat >actual
+	{ echo "$MARS"; echo "$VENUS"; } | ipfs cat >actual
 '
 
 test_expect_success "ipfs cat output looks good" '
@@ -335,28 +335,9 @@ test_expect_success "ipfs cat output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "ipfs cat with both arg and built input" '
-	echo "$MARS" | xargs ipfs cat "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/venus.txt mountdir/planets/mars.txt >expected &&
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs cat with two args and built input" '
-	echo "$MARS" | xargs ipfs cat "$VENUS" "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/venus.txt mountdir/planets/venus.txt \
-		mountdir/planets/mars.txt >expected &&
-	test_cmp expected actual
-'
-
 test_expect_success "go-random is installed" '
-    	type random
-    '
+    type random
+'
 
 test_add_cat_5MB
 

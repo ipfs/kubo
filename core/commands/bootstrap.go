@@ -132,13 +132,13 @@ var bootstrapRemoveCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer", false, true, peerOptionDesc),
+		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("all", "Remove all bootstrap peers.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		input, err := config.ParseBootstrapPeers(req.Arguments())
+		all, _, err := req.Option("all").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -156,16 +156,16 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return
 		}
 
-		all, _, err := req.Option("all").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
 		var removed []config.BootstrapPeer
 		if all {
 			removed, err = bootstrapRemoveAll(r, cfg)
 		} else {
+			input, perr := config.ParseBootstrapPeers(req.Arguments())
+			if perr != nil {
+				res.SetError(perr, cmds.ErrNormal)
+				return
+			}
+
 			removed, err = bootstrapRemove(r, cfg, input)
 		}
 		if err != nil {
