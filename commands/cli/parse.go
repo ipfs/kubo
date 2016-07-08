@@ -17,6 +17,11 @@ import (
 
 var log = logging.Logger("commands/cli")
 
+// stdinSpecialName is a name applied to the 'stdin' file so we can differentiate
+// it from potential 'real' files being passed in. The '*' character is invalid in
+// path names and won't appear otherwise.
+const stdinSpecialName = "*stdin*"
+
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
 func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *cmds.Command, []string, error) {
@@ -302,7 +307,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 						return nil, nil, err
 					}
 					if istty {
-						fname = "*stdin*"
+						fname = stdinSpecialName
 					}
 
 					fileArgs[stdin.Name()] = files.NewReaderFile(fname, "", stdin, nil)

@@ -200,8 +200,8 @@ func (r *request) Context() context.Context {
 }
 
 func (r *request) haveVarArgsFromStdin() bool {
-	// we expect varargs if we have a variadic required argument and no arguments to
-	// fill it
+	// we expect varargs if we have a string argument that supports stdin
+	// and not arguments to satisfy it
 	if len(r.cmd.Arguments) == 0 {
 		return false
 	}
@@ -214,16 +214,8 @@ func (r *request) haveVarArgsFromStdin() bool {
 // VarArgs can be used when you want string arguments as input
 // and also want to be able to handle them in a streaming fashion
 func (r *request) VarArgs(f func(string) error) error {
-	var i int
-	for i = 0; i < len(r.cmd.Arguments); i++ {
-		if r.cmd.Arguments[i].Variadic || r.cmd.Arguments[i].SupportsStdin {
-			break
-		}
-	}
-
-	args := r.arguments[i:]
-	if len(args) > 0 {
-		for _, arg := range args {
+	if len(r.arguments) >= len(r.cmd.Arguments) {
+		for _, arg := range r.arguments[len(r.cmd.Arguments)-1:] {
 			err := f(arg)
 			if err != nil {
 				return err
@@ -231,29 +223,29 @@ func (r *request) VarArgs(f func(string) error) error {
 		}
 
 		return nil
-	} else {
-		if r.files != nil {
-			fi, err := r.files.NextFile()
-			if err != nil {
-				return err
-			}
+	}
 
-			if fi.FileName() == "*stdin*" {
-				fmt.Fprintln(os.Stderr, "ipfs: Reading from stdin; send Ctrl-d to stop.")
-			}
+	if r.files == nil {
+		return fmt.Errorf("expected more arguments from stdin")
+	}
 
-			scan := bufio.NewScanner(fi)
-			for scan.Scan() {
-				err := f(scan.Text())
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		} else {
-			return fmt.Errorf("expected more arguments from stdin")
+	fi, err := r.files.NextFile()
+	if err != nil {
+		return err
+	}
+
+	if fi.FileName() == "*stdin*" {
+		fmt.Fprintln(os.Stderr, "ipfs: Reading from stdin; send Ctrl-d to stop.")
+	}
+
+	scan := bufio.NewScanner(fi)
+	for scan.Scan() {
+		err := f(scan.Text())
+		if err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 func getContext(base context.Context, req Request) (context.Context, error) {
