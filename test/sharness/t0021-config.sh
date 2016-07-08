@@ -77,16 +77,28 @@ test_config_cmd() {
   '
 
   test_expect_success "output looks good" '
-       echo "Error: cannot show private key through API" > ident_exp &&
+       echo "Error: cannot show or change private key through API" > ident_exp &&
        test_cmp ident_exp ident_out
   '
 
+  # SECURITY
+  # Those tests are here to prevent exposing the PrivKey on the network
   test_expect_success "'ipfs config Identity.PrivKey' fails" '
        test_expect_code 1 ipfs config Identity.PrivKey 2> ident_out
   '
 
   test_expect_success "output looks good" '
        test_cmp ident_exp ident_out
+  '
+
+  test_expect_success "'ipfs config show' doesn't include privkey" '
+       ipfs config show > show_config &&
+       grep PrivKey show_config | grep "\"PrivKey\": null"
+  '
+
+  test_expect_success "'ipfs config replace' injects privkey back" '
+       ipfs config replace show_config &&
+	   grep PrivKey "$IPFS_PATH/config" | grep -v ": null" >/dev/null
   '
 }
 
