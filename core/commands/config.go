@@ -58,6 +58,14 @@ Set the value of the 'datastore.path' key:
 		args := req.Arguments()
 		key := args[0]
 
+		// This is a temporary fix until we move the private key out of the config file
+		switch key {
+		case "Identity", "Identity.PrivKey":
+			res.SetError(fmt.Errorf("cannot show or change private key through API"), cmds.ErrNormal)
+			return
+		default:
+		}
+
 		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -134,18 +142,34 @@ included in the output of this command.
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		filename, err := config.Filename(req.InvocContext().ConfigRoot)
+		fname, err := config.Filename(req.InvocContext().ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		output, err := showConfig(filename)
+		data, err := ioutil.ReadFile(fname)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(output)
+
+		var cfg map[string]interface{}
+		err = json.Unmarshal(data, &cfg)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		cfg["Identity"].(map[string]interface{})["PrivKey"] = nil
+
+		output, err := config.HumanOutput(cfg)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(bytes.NewReader(output))
 	},
 }
 
@@ -219,22 +243,20 @@ func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 }
 
 func setConfig(r repo.Repo, key string, value interface{}) (*ConfigField, error) {
-	err := r.SetConfigKey(key, value)
+	keyF, err := getConfig(r, "Identity.PrivKey")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get PrivKey")
+	}
+	privkey := keyF.Value
+	err = r.SetConfigKey(key, value)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set config value: %s (maybe use --json?)", err)
 	}
-	return getConfig(r, key)
-}
-
-func showConfig(filename string) (io.Reader, error) {
-	// TODO maybe we should omit privkey so we don't accidentally leak it?
-
-	data, err := ioutil.ReadFile(filename)
+	err = r.SetConfigKey("Identity.PrivKey", privkey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to set PrivKey")
 	}
-
-	return bytes.NewReader(data), nil
+	return getConfig(r, key)
 }
 
 func editConfig(filename string) error {
@@ -253,6 +275,12 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
 		return errors.New("Failed to decode file as config")
 	}
+
+	keyF, err := getConfig(r, "Identity.PrivKey")
+	if err != nil {
+		return fmt.Errorf("Failed to get PrivKey")
+	}
+	cfg.Identity.PrivKey = keyF.Value.(string)
 
 	return r.SetConfig(&cfg)
 }

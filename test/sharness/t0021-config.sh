@@ -71,6 +71,23 @@ test_config_cmd() {
     grep "\"beep2\": false," actual &&
     grep "\"beep3\": false," actual
   '
+
+  test_expect_success "'ipfs config Identity' fails" '
+       test_expect_code 1 ipfs config Identity 2> ident_out
+  '
+
+  test_expect_success "output looks good" '
+       echo "Error: cannot show private key through API" > ident_exp &&
+       test_cmp ident_exp ident_out
+  '
+
+  test_expect_success "'ipfs config Identity.PrivKey' fails" '
+       test_expect_code 1 ipfs config Identity.PrivKey 2> ident_out
+  '
+
+  test_expect_success "output looks good" '
+       test_cmp ident_exp ident_out
+  '
 }
 
 test_init_ipfs
