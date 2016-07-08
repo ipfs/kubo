@@ -211,6 +211,8 @@ func (r *request) haveVarArgsFromStdin() bool {
 		len(r.arguments) < len(r.cmd.Arguments)
 }
 
+// VarArgs can be used when you want string arguments as input
+// and also want to be able to handle them in a streaming fashion
 func (r *request) VarArgs(f func(string) error) error {
 	var i int
 	for i = 0; i < len(r.cmd.Arguments); i++ {
