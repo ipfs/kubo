@@ -296,10 +296,17 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				stringArgs, inputs = append(stringArgs, inputs[0]), inputs[1:]
 			} else {
 				if stdin != nil && argDef.SupportsStdin && !fillingVariadic {
-					if err := printReadInfo(stdin, msgStdinInfo); err == nil {
-						fileArgs[stdin.Name()] = files.NewReaderFile("", stdin.Name(), stdin, nil)
-						stdin = nil
+					fname := ""
+					istty, err := isTty(stdin)
+					if err != nil {
+						return nil, nil, err
 					}
+					if istty {
+						fname = "*stdin*"
+					}
+
+					fileArgs[stdin.Name()] = files.NewReaderFile(fname, "", stdin, nil)
+					stdin = nil
 				}
 			}
 		case cmds.ArgFile:
@@ -417,15 +424,24 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 
 // Inform the user if a file is waiting on input
 func printReadInfo(f *os.File, msg string) error {
-	fInfo, err := f.Stat()
+	isTty, err := isTty(f)
 	if err != nil {
-		log.Error(err)
 		return err
 	}
 
-	if (fInfo.Mode() & os.ModeCharDevice) != 0 {
+	if isTty {
 		fmt.Fprintf(os.Stderr, msg, f.Name())
 	}
 
 	return nil
+}
+
+func isTty(f *os.File) (bool, error) {
+	fInfo, err := f.Stat()
+	if err != nil {
+		log.Error(err)
+		return false, err
+	}
+
+	return (fInfo.Mode() & os.ModeCharDevice) != 0, nil
 }

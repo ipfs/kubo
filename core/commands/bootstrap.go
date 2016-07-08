@@ -47,7 +47,7 @@ in the bootstrap list).
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer", false, true, peerOptionDesc),
+		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 
 	Options: []cmds.Option{
@@ -55,9 +55,34 @@ in the bootstrap list).
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		inputPeers, err := config.ParseBootstrapPeers(req.Arguments())
+		deflt, _, err := req.Option("default").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		var inputPeers []config.BootstrapPeer
+		if deflt {
+			// parse separately for meaningful, correct error.
+			defltPeers, err := config.DefaultBootstrapPeers()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			inputPeers = defltPeers
+		} else {
+			parsedPeers, err := config.ParseBootstrapPeers(req.Arguments())
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			inputPeers = parsedPeers
+		}
+
+		if len(inputPeers) == 0 {
+			res.SetError(errors.New("no bootstrap peers to add"), cmds.ErrClient)
 			return
 		}
 
@@ -70,28 +95,6 @@ in the bootstrap list).
 		cfg, err := r.Config()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		deflt, _, err := req.Option("default").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if deflt {
-			// parse separately for meaningful, correct error.
-			defltPeers, err := config.DefaultBootstrapPeers()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			inputPeers = append(inputPeers, defltPeers...)
-		}
-
-		if len(inputPeers) == 0 {
-			res.SetError(errors.New("no bootstrap peers to add"), cmds.ErrClient)
 			return
 		}
 

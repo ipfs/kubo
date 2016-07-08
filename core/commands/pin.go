@@ -61,25 +61,13 @@ var addPinCmd = &cmds.Command{
 			return
 		}
 
-		out := make(chan interface{})
-		go func(ctx context.Context) {
-			defer close(out)
-			err := req.VarArgs(func(arg string) error {
-				added, err := corerepo.Pin(n, ctx, []string{arg}, recursive)
-				if err != nil {
-					return err
-				}
+		added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
-				out <- &PinOutput{added}
-				return nil
-			})
-
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-		}(req.Context())
-		res.SetOutput((<-chan interface{})(out))
+		res.SetOutput(&PinOutput{added})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -91,28 +79,17 @@ var addPinCmd = &cmds.Command{
 				pintype = "directly"
 			}
 
-			marshalPinOutput := func(po *PinOutput) io.Reader {
-				buf := new(bytes.Buffer)
-				for _, k := range po.Pins {
-					fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
-				}
-				return buf
-			}
-
-			out, ok := res.Output().(<-chan interface{})
+			po, ok := res.Output().(*PinOutput)
 			if !ok {
 				return nil, u.ErrCast()
 			}
 
-			marshal := func(i interface{}) (io.Reader, error) {
-				return marshalPinOutput(i.(*PinOutput)), nil
+			buf := new(bytes.Buffer)
+			for _, k := range po.Pins {
+				fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
 			}
+			return buf, nil
 
-			return &cmds.ChannelMarshaler{
-				Res:       res,
-				Marshaler: marshal,
-				Channel:   out,
-			}, nil
 		},
 	},
 }
@@ -147,47 +124,26 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 			return
 		}
 
-		out := make(chan interface{})
-		go func() {
-			defer close(out)
-			err = req.VarArgs(func(arg string) error {
-				removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive)
-				if err != nil {
-					return err
-				}
+		removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
-				out <- &PinOutput{removed}
-				return nil
-			})
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-		}()
-
-		res.SetOutput((<-chan interface{})(out))
+		res.SetOutput(&PinOutput{removed})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outch, ok := res.Output().(<-chan interface{})
+			added, ok := res.Output().(*PinOutput)
 			if !ok {
 				return nil, u.ErrCast()
 			}
 
-			marshal := func(i interface{}) (io.Reader, error) {
-				added := i.(*PinOutput)
-				buf := new(bytes.Buffer)
-				for _, k := range added.Pins {
-					fmt.Fprintf(buf, "unpinned %s\n", k)
-				}
-				return buf, nil
+			buf := new(bytes.Buffer)
+			for _, k := range added.Pins {
+				fmt.Fprintf(buf, "unpinned %s\n", k)
 			}
-
-			return &cmds.ChannelMarshaler{
-				Res:       res,
-				Marshaler: marshal,
-				Channel:   outch,
-			}, nil
+			return buf, nil
 		},
 	},
 }

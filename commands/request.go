@@ -170,6 +170,16 @@ func (r *request) SetOptions(opts OptMap) error {
 
 // Arguments returns the arguments slice
 func (r *request) Arguments() []string {
+	if r.haveVarArgsFromStdin() {
+		err := r.VarArgs(func(s string) error {
+			r.arguments = append(r.arguments, s)
+			return nil
+		})
+		if err != nil && err != io.EOF {
+			log.Error(err)
+		}
+	}
+
 	return r.arguments
 }
 
@@ -189,10 +199,22 @@ func (r *request) Context() context.Context {
 	return r.rctx
 }
 
+func (r *request) haveVarArgsFromStdin() bool {
+	// we expect varargs if we have a variadic required argument and no arguments to
+	// fill it
+	if len(r.cmd.Arguments) == 0 {
+		return false
+	}
+
+	last := r.cmd.Arguments[len(r.cmd.Arguments)-1]
+	return last.SupportsStdin && last.Type == ArgString &&
+		len(r.arguments) < len(r.cmd.Arguments)
+}
+
 func (r *request) VarArgs(f func(string) error) error {
 	var i int
 	for i = 0; i < len(r.cmd.Arguments); i++ {
-		if r.cmd.Arguments[i].Variadic {
+		if r.cmd.Arguments[i].Variadic || r.cmd.Arguments[i].SupportsStdin {
 			break
 		}
 	}
@@ -208,19 +230,27 @@ func (r *request) VarArgs(f func(string) error) error {
 
 		return nil
 	} else {
-		fi, err := r.files.NextFile()
-		if err != nil {
-			return err
-		}
-
-		scan := bufio.NewScanner(fi)
-		for scan.Scan() {
-			err := f(scan.Text())
+		if r.files != nil {
+			fi, err := r.files.NextFile()
 			if err != nil {
 				return err
 			}
+
+			if fi.FileName() == "*stdin*" {
+				fmt.Fprintln(os.Stderr, "ipfs: Reading from stdin; send Ctrl-d to stop.")
+			}
+
+			scan := bufio.NewScanner(fi)
+			for scan.Scan() {
+				err := f(scan.Text())
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		} else {
+			return fmt.Errorf("expected more arguments from stdin")
 		}
-		return nil
 	}
 }
 
