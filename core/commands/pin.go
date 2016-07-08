@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -62,37 +61,25 @@ var addPinCmd = &cmds.Command{
 			return
 		}
 
-		if len(req.Arguments()) > 0 {
-			added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			res.SetOutput(&PinOutput{added})
-		} else {
-			fi, err := req.Files().NextFile()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			out := make(chan interface{})
-			go func(ctx context.Context) {
-				defer close(out)
-				scan := bufio.NewScanner(fi)
-				for scan.Scan() {
-					added, err := corerepo.Pin(n, ctx, []string{scan.Text()}, recursive)
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
-
-					out <- &PinOutput{added}
+		out := make(chan interface{})
+		go func(ctx context.Context) {
+			defer close(out)
+			err := req.VarArgs(func(arg string) error {
+				added, err := corerepo.Pin(n, ctx, []string{arg}, recursive)
+				if err != nil {
+					return err
 				}
-			}(req.Context())
-			res.SetOutput((<-chan interface{})(out))
-		}
+
+				out <- &PinOutput{added}
+				return nil
+			})
+
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}(req.Context())
+		res.SetOutput((<-chan interface{})(out))
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -112,23 +99,20 @@ var addPinCmd = &cmds.Command{
 				return buf
 			}
 
-			switch out := res.Output().(type) {
-			case *PinOutput:
-				return marshalPinOutput(out), nil
-			case <-chan interface{}:
-
-				marshal := func(i interface{}) (io.Reader, error) {
-					return marshalPinOutput(i.(*PinOutput)), nil
-				}
-
-				return &cmds.ChannelMarshaler{
-					Res:       res,
-					Marshaler: marshal,
-					Channel:   out,
-				}, nil
-			default:
+			out, ok := res.Output().(<-chan interface{})
+			if !ok {
 				return nil, u.ErrCast()
 			}
+
+			marshal := func(i interface{}) (io.Reader, error) {
+				return marshalPinOutput(i.(*PinOutput)), nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Res:       res,
+				Marshaler: marshal,
+				Channel:   out,
+			}, nil
 		},
 	},
 }
@@ -143,7 +127,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned."),
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s).").Default(true),
@@ -163,26 +147,47 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 			return
 		}
 
-		removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		out := make(chan interface{})
+		go func() {
+			defer close(out)
+			err = req.VarArgs(func(arg string) error {
+				removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive)
+				if err != nil {
+					return err
+				}
 
-		res.SetOutput(&PinOutput{removed})
+				out <- &PinOutput{removed}
+				return nil
+			})
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}()
+
+		res.SetOutput((<-chan interface{})(out))
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			added, ok := res.Output().(*PinOutput)
+			outch, ok := res.Output().(<-chan interface{})
 			if !ok {
 				return nil, u.ErrCast()
 			}
 
-			buf := new(bytes.Buffer)
-			for _, k := range added.Pins {
-				fmt.Fprintf(buf, "unpinned %s\n", k)
+			marshal := func(i interface{}) (io.Reader, error) {
+				added := i.(*PinOutput)
+				buf := new(bytes.Buffer)
+				for _, k := range added.Pins {
+					fmt.Fprintf(buf, "unpinned %s\n", k)
+				}
+				return buf, nil
 			}
-			return buf, nil
+
+			return &cmds.ChannelMarshaler{
+				Res:       res,
+				Marshaler: marshal,
+				Channel:   outch,
+			}, nil
 		},
 	},
 }

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -80,6 +81,7 @@ type Request interface {
 	Command() *Command
 	Values() map[string]interface{}
 	Stdin() io.Reader
+	VarArgs(func(string) error) error
 
 	ConvertOptions() error
 }
@@ -185,6 +187,41 @@ func (r *request) SetFiles(f files.File) {
 
 func (r *request) Context() context.Context {
 	return r.rctx
+}
+
+func (r *request) VarArgs(f func(string) error) error {
+	var i int
+	for i = 0; i < len(r.cmd.Arguments); i++ {
+		if r.cmd.Arguments[i].Variadic {
+			break
+		}
+	}
+
+	args := r.arguments[i:]
+	if len(args) > 0 {
+		for _, arg := range args {
+			err := f(arg)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	} else {
+		fi, err := r.files.NextFile()
+		if err != nil {
+			return err
+		}
+
+		scan := bufio.NewScanner(fi)
+		for scan.Scan() {
+			err := f(scan.Text())
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 func getContext(base context.Context, req Request) (context.Context, error) {
