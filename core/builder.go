@@ -27,6 +27,10 @@ type BuildCfg struct {
 	// If online is set, the node will have networking enabled
 	Online bool
 
+	// If permament then node should run more expensive processes
+	// that will improve performance in long run
+	Permament bool
+
 	// If NilRepo is set, a repo backed by a nil datastore will be constructed
 	NilRepo bool
 
@@ -131,7 +135,12 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 
 	var err error
 	bs := bstore.NewBlockstore(n.Repo.Datastore())
-	n.Blockstore, err = bstore.CachedBlockstore(bs, ctx, bstore.DefaultCacheOpts())
+	opts := bstore.DefaultCacheOpts()
+	if !cfg.Permament {
+		opts.HasBloomFilterSize = 0
+	}
+
+	n.Blockstore, err = bstore.CachedBlockstore(bs, ctx, opts)
 	if err != nil {
 		return err
 	}
