@@ -273,7 +273,10 @@ func editConfig(filename string) error {
 func replaceConfig(r repo.Repo, file io.Reader) error {
 	var cfg config.Config
 	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
-		return errors.New("Failed to decode file as config")
+		return errors.New("failed to decode file as config")
+	}
+	if len(cfg.Identity.PrivKey) != 0 {
+		return errors.New("setting private key with API is not supported")
 	}
 
 	keyF, err := getConfig(r, "Identity.PrivKey")

@@ -100,6 +100,17 @@ test_config_cmd() {
        ipfs config replace show_config &&
 	   grep PrivKey "$IPFS_PATH/config" | grep -v ": null" >/dev/null
   '
+
+  test_expect_success "'ipfs config replace' with privkey erors out" '
+       cp "$IPFS_PATH/config" real_config &&
+       test_expect_code 1 ipfs config replace - < real_config 2> replace_out
+  '
+
+  test_expect_success "output looks good" '
+       echo "Error: setting private key with API is not supported" > replace_expected
+       test_cmp replace_out replace_expected
+  '
+
 }
 
 test_init_ipfs
