@@ -161,7 +161,7 @@ included in the output of this command.
 			return
 		}
 
-		cfg["Identity"].(map[string]interface{})["PrivKey"] = nil
+		delete(cfg["Identity"].(map[string]interface{}), "PrivKey")
 
 		output, err := config.HumanOutput(cfg)
 		if err != nil {

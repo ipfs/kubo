@@ -93,12 +93,12 @@ test_config_cmd() {
 
   test_expect_success "'ipfs config show' doesn't include privkey" '
        ipfs config show > show_config &&
-       grep PrivKey show_config | grep "\"PrivKey\": null"
+       test_expect_code 1 grep PrivKey show_config
   '
 
   test_expect_success "'ipfs config replace' injects privkey back" '
        ipfs config replace show_config &&
-	   grep PrivKey "$IPFS_PATH/config" | grep -v ": null" >/dev/null
+	   grep "\"PrivKey\":" "$IPFS_PATH/config" | grep -e ": \".*\"" >/dev/null
   '
 
   test_expect_success "'ipfs config replace' with privkey erors out" '
