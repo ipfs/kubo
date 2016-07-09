@@ -304,12 +304,10 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		case cmds.ArgString:
 			if len(inputs) > 0 {
 				stringArgs, inputs = append(stringArgs, inputs[0]), inputs[1:]
-			} else {
-				if stdin != nil && argDef.SupportsStdin && !fillingVariadic {
-					if err := printReadInfo(stdin, msgStdinInfo); err == nil {
-						fileArgs[stdin.Name()] = files.NewReaderFile("stdin", "", stdin, nil)
-						stdin = nil
-					}
+			} else if stdin != nil && argDef.SupportsStdin && !fillingVariadic {
+				if err := printReadInfo(stdin, msgStdinInfo); err == nil {
+					fileArgs[stdin.Name()] = files.NewReaderFile("stdin", "", stdin, nil)
+					stdin = nil
 				}
 			}
 		case cmds.ArgFile:
@@ -332,17 +330,13 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				}
 
 				fileArgs[fpath] = file
-			} else {
-				if stdin != nil && argDef.SupportsStdin &&
-					argDef.Required && !fillingVariadic {
-					if err := printReadInfo(stdin, msgStdinInfo); err != nil {
-						return nil, nil, err
-					}
-					fpath := stdin.Name()
-					fileArgs[fpath] = files.NewReaderFile("", fpath, stdin, nil)
-				} else {
-					break
+			} else if stdin != nil && argDef.SupportsStdin &&
+				argDef.Required && !fillingVariadic {
+				if err := printReadInfo(stdin, msgStdinInfo); err != nil {
+					return nil, nil, err
 				}
+				fpath := stdin.Name()
+				fileArgs[fpath] = files.NewReaderFile("", fpath, stdin, nil)
 			}
 		}
 
