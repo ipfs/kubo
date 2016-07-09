@@ -61,6 +61,16 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		}
 	}
 
+	// This is an ugly hack to maintain our current CLI interface while fixing
+	// other stdin usage bugs. Let this serve as a warning, be careful about the
+	// choices you make, they will haunt you forever.
+	if len(path) == 2 && path[0] == "bootstrap" {
+		if (path[1] == "add" && opts["default"] == true) ||
+			(path[1] == "rm" && opts["all"] == true) {
+			stdin = nil
+		}
+	}
+
 	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive, hidden, root)
 	if err != nil {
 		return req, cmd, path, err
@@ -301,17 +311,10 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				stringArgs, inputs = append(stringArgs, inputs[0]), inputs[1:]
 			} else {
 				if stdin != nil && argDef.SupportsStdin && !fillingVariadic {
-					fname := ""
-					istty, err := isTty(stdin)
-					if err != nil {
-						return nil, nil, err
+					if err := printReadInfo(stdin, msgStdinInfo); err == nil {
+						fileArgs[stdin.Name()] = files.NewReaderFile(stdinSpecialName, "", stdin, nil)
+						stdin = nil
 					}
-					if istty {
-						fname = stdinSpecialName
-					}
-
-					fileArgs[stdin.Name()] = files.NewReaderFile(fname, "", stdin, nil)
-					stdin = nil
 				}
 			}
 		case cmds.ArgFile:

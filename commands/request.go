@@ -71,6 +71,7 @@ type Request interface {
 	SetOption(name string, val interface{})
 	SetOptions(opts OptMap) error
 	Arguments() []string
+	StringArguments() []string
 	SetArguments([]string)
 	Files() files.File
 	SetFiles(files.File)
@@ -168,6 +169,10 @@ func (r *request) SetOptions(opts OptMap) error {
 	return r.ConvertOptions()
 }
 
+func (r *request) StringArguments() []string {
+	return r.arguments
+}
+
 // Arguments returns the arguments slice
 func (r *request) Arguments() []string {
 	if r.haveVarArgsFromStdin() {
@@ -207,7 +212,7 @@ func (r *request) haveVarArgsFromStdin() bool {
 	}
 
 	last := r.cmd.Arguments[len(r.cmd.Arguments)-1]
-	return last.SupportsStdin && last.Type == ArgString &&
+	return last.SupportsStdin && last.Type == ArgString && (last.Required || last.Variadic) &&
 		len(r.arguments) < len(r.cmd.Arguments)
 }
 
@@ -232,10 +237,6 @@ func (r *request) VarArgs(f func(string) error) error {
 	fi, err := r.files.NextFile()
 	if err != nil {
 		return err
-	}
-
-	if fi.FileName() == "*stdin*" {
-		fmt.Fprintln(os.Stderr, "ipfs: Reading from stdin; send Ctrl-d to stop.")
 	}
 
 	scan := bufio.NewScanner(fi)
