@@ -84,7 +84,7 @@ type Node struct {
 
 func (s *Node) loadData() error {
 	s.cached = new(ftpb.Data)
-	return proto.Unmarshal(s.Nd.Data, s.cached)
+	return proto.Unmarshal(s.Nd.Data(), s.cached)
 }
 
 // Attr returns the attributes of a given node.

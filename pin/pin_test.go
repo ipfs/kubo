@@ -18,8 +18,8 @@ import (
 
 func randNode() (*mdag.Node, key.Key) {
 	nd := new(mdag.Node)
-	nd.Data = make([]byte, 32)
-	util.NewTimeSeededRand().Read(nd.Data)
+	nd.SetData(make([]byte, 32))
+	util.NewTimeSeededRand().Read(nd.Data())
 	k, _ := nd.Key()
 	return nd, k
 }

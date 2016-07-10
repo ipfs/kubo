@@ -241,7 +241,7 @@ func verifyTDagRec(nd *dag.Node, depth, direct, layerRepeat int, ds dag.DAGServi
 			return errors.New("expected direct block")
 		}
 
-		pbn, err := ft.FromBytes(nd.Data)
+		pbn, err := ft.FromBytes(nd.Data())
 		if err != nil {
 			return err
 		}
@@ -253,7 +253,7 @@ func verifyTDagRec(nd *dag.Node, depth, direct, layerRepeat int, ds dag.DAGServi
 	}
 
 	// Verify this is a branch node
-	pbn, err := ft.FromBytes(nd.Data)
+	pbn, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		return err
 	}

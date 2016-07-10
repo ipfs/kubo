@@ -156,7 +156,7 @@ func TestDagModifierBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	size, err := ft.DataSize(node.Data)
+	size, err := ft.DataSize(node.Data())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -590,7 +590,7 @@ func arrComp(a, b []byte) error {
 }
 
 func printDag(nd *mdag.Node, ds mdag.DAGService, indent int) {
-	pbd, err := ft.FromBytes(nd.Data)
+	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		panic(err)
 	}

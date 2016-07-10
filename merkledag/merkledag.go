@@ -93,6 +93,9 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 		}
 		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 	}
+
+	res.cached = k.ToMultihash()
+
 	return res, nil
 }
 
@@ -147,6 +150,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeO
 					out <- &NodeOption{Err: err}
 					return
 				}
+				nd.cached = b.Key().ToMultihash()
 
 				// buffered, no need to select
 				out <- &NodeOption{Node: nd}

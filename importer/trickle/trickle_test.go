@@ -524,7 +524,7 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 	data := []byte("AB")
 
 	nd := new(merkledag.Node)
-	nd.Data = ft.FilePBData(nil, 0)
+	nd.SetData(ft.FilePBData(nil, 0))
 
 	dbp := &h.DagBuilderParams{
 		Dagserv:  ds,
@@ -562,7 +562,7 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 }
 
 func printDag(nd *merkledag.Node, ds merkledag.DAGService, indent int) {
-	pbd, err := ft.FromBytes(nd.Data)
+	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		panic(err)
 	}
