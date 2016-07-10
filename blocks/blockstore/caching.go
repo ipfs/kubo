@@ -23,9 +23,6 @@ func DefaultCacheOpts() CacheOpts {
 
 func CachedBlockstore(bs GCBlockstore,
 	ctx context.Context, opts CacheOpts) (cbs GCBlockstore, err error) {
-	if ctx == nil {
-		ctx = context.TODO() // For tests
-	}
 	cbs = bs
 
 	if opts.HasBloomFilterSize < 0 || opts.HasBloomFilterHashes < 0 ||

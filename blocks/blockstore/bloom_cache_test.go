@@ -15,6 +15,9 @@ import (
 )
 
 func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) {
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	opts := DefaultCacheOpts()
 	bbs, err := CachedBlockstore(bs, ctx, opts)
 	if err == nil {
@@ -26,11 +29,11 @@ func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) 
 
 func TestReturnsErrorWhenSizeNegative(t *testing.T) {
 	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-	_, err := bloomCached(bs, nil, 100, 1, -1)
+	_, err := bloomCached(bs, context.TODO(), 100, 1, -1)
 	if err == nil {
 		t.Fail()
 	}
-	_, err = bloomCached(bs, nil, -1, 1, 100)
+	_, err = bloomCached(bs, context.TODO(), -1, 1, 100)
 	if err == nil {
 		t.Fail()
 	}
