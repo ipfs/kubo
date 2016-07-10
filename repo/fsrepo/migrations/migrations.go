@@ -2,6 +2,7 @@ package mfsr
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -44,7 +45,7 @@ func RunMigration(newv int) error {
 
 		err = verifyMigrationSupportsVersion(loc, newv)
 		if err != nil {
-			return fmt.Errorf("could not find migrations binary that supports version %d", newv)
+			return fmt.Errorf("no migration binary found that supports version %d - %s", newv, err)
 		}
 
 		migrateBin = loc
@@ -104,7 +105,7 @@ func verifyMigrationSupportsVersion(fsrbin string, vn int) error {
 		return nil
 	}
 
-	return fmt.Errorf("migrations binary doesnt support version %d", vn)
+	return fmt.Errorf("migrations binary doesnt support version %d: %s", vn, fsrbin)
 }
 
 func migrationsVersion(bin string) (int, error) {
@@ -204,7 +205,11 @@ func GetBinaryForVersion(distname, binnom, root, vers, out string) error {
 	default:
 		archive = "tar.gz"
 	}
-	finame := fmt.Sprintf("%s_%s_%s-%s.%s", distname, vers, runtime.GOOS, runtime.GOARCH, archive)
+	osv, err := osWithVariant()
+	if err != nil {
+		return err
+	}
+	finame := fmt.Sprintf("%s_%s_%s-%s.%s", distname, vers, osv, runtime.GOARCH, archive)
 	distpath := fmt.Sprintf("%s/%s/%s/%s", root, distname, vers, finame)
 
 	data, err := httpFetch(distpath)
@@ -225,4 +230,32 @@ func GetBinaryForVersion(distname, binnom, root, vers, out string) error {
 	fi.Close()
 
 	return unpackArchive(distname, binnom, arcpath, out, archive)
+}
+
+func osWithVariant() (string, error) {
+	if runtime.GOOS != "linux" {
+		return runtime.GOOS, nil
+	}
+
+	bin, err := exec.LookPath(filepath.Base(os.Args[0]))
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve go-ipfs: %s", err)
+	}
+
+	cmd := exec.Command("ldd", bin)
+	buf := new(bytes.Buffer)
+	cmd.Stdout = buf
+	err = cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("failed to run ldd: %s", err)
+	}
+
+	scan := bufio.NewScanner(buf)
+	for scan.Scan() {
+		if strings.Contains(scan.Text(), "libc") && strings.Contains(scan.Text(), "musl") {
+			return "linux-musl", nil
+		}
+	}
+
+	return "linux", nil
 }
