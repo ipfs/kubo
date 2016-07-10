@@ -11,10 +11,10 @@ import (
 	"sync/atomic"
 )
 
-// BloomCached returns Blockstore that caches Has requests using Bloom filter
+// bloomCached returns Blockstore that caches Has requests using Bloom filter
 // Size is size of bloom filter in bytes
-func BloomCached(bs Blockstore, bloomSize, lruSize int) (*bloomcache, error) {
-	bl, err := bloom.New(float64(bloomSize), float64(7))
+func bloomCached(bs Blockstore, ctx context.Context, bloomSize, hashCount, lruSize int) (*bloomcache, error) {
+	bl, err := bloom.New(float64(bloomSize), float64(hashCount))
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func BloomCached(bs Blockstore, bloomSize, lruSize int) (*bloomcache, error) {
 	}
 	bc := &bloomcache{blockstore: bs, bloom: bl, arc: arc}
 	bc.Invalidate()
-	go bc.Rebuild()
+	go bc.Rebuild(ctx)
 
 	return bc, nil
 }
@@ -52,8 +52,7 @@ func (b *bloomcache) BloomActive() bool {
 	return atomic.LoadInt32(&b.active) != 0
 }
 
-func (b *bloomcache) Rebuild() {
-	ctx := context.TODO()
+func (b *bloomcache) Rebuild(ctx context.Context) {
 	evt := log.EventBegin(ctx, "bloomcache.Rebuild")
 	defer evt.Done()
 
@@ -62,8 +61,19 @@ func (b *bloomcache) Rebuild() {
 		log.Errorf("AllKeysChan failed in bloomcache rebuild with: %v", err)
 		return
 	}
-	for key := range ch {
-		b.bloom.AddTS([]byte(key)) // Use binary key, the more compact the better
+	finish := false
+	for !finish {
+		select {
+		case key, ok := <-ch:
+			if ok {
+				b.bloom.AddTS([]byte(key)) // Use binary key, the more compact the better
+			} else {
+				finish = true
+			}
+		case <-ctx.Done():
+			log.Warning("Cache rebuild closed by context finishing.")
+			return
+		}
 	}
 	close(b.rebuildChan)
 	atomic.StoreInt32(&b.active, 1)
@@ -159,6 +169,7 @@ func (b *bloomcache) PutMany(bs []blocks.Block) error {
 	if err == nil {
 		for _, block := range bs {
 			b.bloom.AddTS([]byte(block.Key()))
+			b.arc.Add(block.Key(), true)
 		}
 	}
 	return err

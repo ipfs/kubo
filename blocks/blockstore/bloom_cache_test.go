@@ -8,18 +8,32 @@ import (
 
 	"github.com/ipfs/go-ipfs/blocks"
 
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
 	dsq "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/query"
 	syncds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
 )
 
+func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) {
+	if ctx == nil {
+		ctx = context.TODO()
+	}
+	opts := DefaultCacheOpts()
+	bbs, err := CachedBlockstore(bs, ctx, opts)
+	if err == nil {
+		return bbs.(*bloomcache), nil
+	} else {
+		return nil, err
+	}
+}
+
 func TestReturnsErrorWhenSizeNegative(t *testing.T) {
 	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-	_, err := BloomCached(bs, 100, -1)
+	_, err := bloomCached(bs, context.TODO(), 100, 1, -1)
 	if err == nil {
 		t.Fail()
 	}
-	_, err = BloomCached(bs, -1, 100)
+	_, err = bloomCached(bs, context.TODO(), -1, 1, 100)
 	if err == nil {
 		t.Fail()
 	}
@@ -29,7 +43,7 @@ func TestRemoveCacheEntryOnDelete(t *testing.T) {
 	b := blocks.NewBlock([]byte("foo"))
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
 	bs := NewBlockstore(syncds.MutexWrap(cd))
-	cachedbs, err := BloomCached(bs, 1, 1)
+	cachedbs, err := testBloomCached(bs, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +67,7 @@ func TestRemoveCacheEntryOnDelete(t *testing.T) {
 func TestElideDuplicateWrite(t *testing.T) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
 	bs := NewBlockstore(syncds.MutexWrap(cd))
-	cachedbs, err := BloomCached(bs, 1, 1)
+	cachedbs, err := testBloomCached(bs, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,14 +87,15 @@ func TestHasIsBloomCached(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		bs.Put(blocks.NewBlock([]byte(fmt.Sprintf("data: %d", i))))
 	}
-	cachedbs, err := BloomCached(bs, 256*1024, 128)
+	ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+	cachedbs, err := testBloomCached(bs, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	select {
 	case <-cachedbs.rebuildChan:
-	case <-time.After(1 * time.Second):
+	case <-ctx.Done():
 		t.Fatalf("Timeout wating for rebuild: %d", cachedbs.bloom.ElementsAdded())
 	}
 

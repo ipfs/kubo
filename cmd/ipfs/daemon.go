@@ -229,7 +229,9 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
-		Repo: repo,
+		Repo:      repo,
+		Permament: true, // It is temporary way to signify that node is permament
+		//TODO(Kubuxu): refactor Online vs Offline by adding Permement vs Epthemeral
 	}
 	offline, _, _ := req.Option(offlineKwd).Bool()
 	ncfg.Online = !offline
