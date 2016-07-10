@@ -196,7 +196,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 		}
 	}
 
-	output := make(chan key.Key)
+	output := make(chan key.Key, dsq.KeysOnlyBufSize)
 	go func() {
 		defer func() {
 			res.Process().Close() // ensure exit (signals early exit, too)
