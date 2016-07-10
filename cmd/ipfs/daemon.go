@@ -134,7 +134,7 @@ Headers.
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)").Default(false),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
-		cmds.BoolOption(unrestrictedApiAccessKwd, "This option has no effect since v0.4.3").Default(false),
+		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes").Default(false),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)").Default(false),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection").Default(false),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(true),
@@ -363,11 +363,24 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 	apiMaddr = apiLis.Multiaddr()
 	fmt.Printf("API server listening on %s\n", apiMaddr)
 
+	// by default, we don't let you load arbitrary ipfs objects through the api,
+	// because this would open up the api to scripting vulnerabilities.
+	// only the webui objects are allowed.
+	// if you know what you're doing, go ahead and pass --unrestricted-api.
+	unrestricted, _, err := req.Option(unrestrictedApiAccessKwd).Bool()
+	if err != nil {
+		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
+	}
+	gatewayOpt := corehttp.GatewayOption(corehttp.WebUIPaths...)
+	if unrestricted {
+		gatewayOpt = corehttp.GatewayOption("/ipfs", "/ipns")
+	}
+
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("api"),
 		corehttp.CommandsOption(*req.InvocContext()),
 		corehttp.WebUIOption,
-		corehttp.GatewayOption(corehttp.WebUIPaths...),
+		gatewayOpt,
 		corehttp.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
