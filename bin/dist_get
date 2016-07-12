@@ -129,6 +129,9 @@ case $goenv in
 	freebsd-*)
 		archive="tar.gz"
 		;;
+	openbsd-*)
+		archive="tar.gz"
+		;;
 	*)
 		echo "unrecognized system environment: $goenv" >&2
 		die "currently only linux, darwin, windows and freebsd are supported by this script"
