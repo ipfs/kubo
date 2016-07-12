@@ -1,4 +1,4 @@
-// +build linux darwin freebsd netbsd
+// +build linux darwin freebsd netbsd openbsd
 // +build nofuse
 
 package commands
