@@ -87,8 +87,17 @@ test_config_cmd() {
        test_expect_code 1 ipfs config Identity.PrivKey 2> ident_out
   '
 
+  test_expect_success "lower cased PrivKey" '
+       sed -i -e '\''s/PrivKey/privkey/'\'' "$IPFS_PATH/config" &&
+       test_expect_code 1 ipfs config Identity.privkey 2> ident_out
+  '
+
   test_expect_success "output looks good" '
        test_cmp ident_exp ident_out
+  '
+
+  test_expect_success "fix it back" '
+       sed -i -e '\''s/privkey/PrivKey/'\'' "$IPFS_PATH/config"
   '
 
   test_expect_success "'ipfs config show' doesn't include privkey" '

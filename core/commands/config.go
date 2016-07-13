@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	repo "github.com/ipfs/go-ipfs/repo"
@@ -59,8 +60,8 @@ Set the value of the 'datastore.path' key:
 		key := args[0]
 
 		// This is a temporary fix until we move the private key out of the config file
-		switch key {
-		case "Identity", "Identity.PrivKey":
+		switch strings.ToLower(key) {
+		case "identity", "identity.privkey":
 			res.SetError(fmt.Errorf("cannot show or change private key through API"), cmds.ErrNormal)
 			return
 		default:
