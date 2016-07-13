@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/blocks"
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/pin"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -38,6 +40,7 @@ multihash.
 		"stat": blockStatCmd,
 		"get":  blockGetCmd,
 		"put":  blockPutCmd,
+		"rm":   blockRmCmd,
 	},
 }
 
@@ -184,4 +187,100 @@ func getBlockForKey(req cmds.Request, skey string) (blocks.Block, error) {
 
 	log.Debugf("ipfs block: got block with key: %q", b.Key())
 	return b, nil
+}
+
+var blockRmCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove IPFS block(s).",
+		ShortDescription: `
+'ipfs block rm' is a plumbing command for removing raw ipfs blocks.
+It takes a list of base58 encoded multihashs to remove.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to remove."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("ignore-pins", "Ignore pins.").Default(false),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		ignorePins, _, err := req.Option("ignore-pins").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		hashes := req.Arguments()
+		keys := make([]key.Key, 0, len(hashes))
+		for _, hash := range hashes {
+			k := key.B58KeyDecode(hash)
+			keys = append(keys, k)
+		}
+		rdr, wtr := io.Pipe()
+		go func() {
+			pinning := n.Pinning
+			if ignorePins {
+				pinning = nil
+			}
+			err := rmBlocks(n.Blockstore, pinning, wtr, keys)
+			if err != nil {
+				wtr.CloseWithError(fmt.Errorf("Some blocks not deleted: %s", err))
+			} else {
+				wtr.Close()
+			}
+		}()
+		res.SetOutput(rdr)
+		return
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
+	},
+}
+
+// pins may be nil
+func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out io.Writer, keys []key.Key) error {
+	var unlocker bs.Unlocker
+	defer func() {
+		if unlocker != nil {
+			unlocker.Unlock()
+		}
+	}()
+	if pins != nil {
+		// Need to make sure that some operation that is
+		// finishing with a pin is ocurr simultaneously.
+		unlocker = blocks.GCLock()
+		err := checkIfPinned(pins, keys)
+		if err != nil {
+			return err
+		}
+	}
+	for _, k := range keys {
+		err := blocks.DeleteBlock(k)
+		if err != nil {
+			return fmt.Errorf("%s: %s", k, err)
+		}
+		if out != nil {
+			fmt.Fprintf(out, "deleted %s\n", k)
+		}
+	}
+	return nil
+}
+
+func checkIfPinned(pins pin.Pinner, keys []key.Key) error {
+	for _, k := range keys {
+		reason, pinned, err := pins.IsPinned(k)
+		if err != nil {
+			return err
+		}
+		if pinned {
+			return fmt.Errorf("%s pinned via %s", k, reason)
+		}
+	}
+	return nil
 }

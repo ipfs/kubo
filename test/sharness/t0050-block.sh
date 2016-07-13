@@ -33,10 +33,77 @@ test_expect_success "'ipfs block stat' succeeds" '
   ipfs block stat $HASH >actual_stat
 '
 
-test_expect_success "'ipfs block get' output looks good" '
+test_expect_success "'ipfs block stat' output looks good" '
   echo "Key: $HASH" >expected_stat &&
   echo "Size: 12" >>expected_stat &&
   test_cmp expected_stat actual_stat
+'
+
+test_expect_success "'ipfs block rm' succeeds" '
+  ipfs block rm $HASH >actual_rm
+'
+
+test_expect_success "'ipfs block rm' output looks good" '
+  echo "deleted $HASH" > expected_rm &&
+  test_cmp expected_rm actual_rm
+'
+
+test_expect_success "'ipfs block rm' block actually removed" '
+  test_must_fail ipfs block stat $HASH
+'
+
+DIRHASH=QmdWmVmM6W2abTgkEfpbtA1CJyTWS2rhuUB9uP1xV8Uwtf
+FILE1HASH=Qmae3RedM7SNkWGsdzYzsr6svmsFdsva4WoTvYYsWhUSVz
+FILE2HASH=QmUtkGLvPf63NwVzLPKPUYgwhn8ZYPWF6vKWN3fZ2amfJF
+FILE3HASH=Qmesmmf1EEG1orJb6XdK6DabxexsseJnCfw8pqWgonbkoj
+
+test_expect_success "add and pin directory" '
+  mkdir adir &&
+  echo "file1" > adir/file1 &&
+  echo "file2" > adir/file2 &&
+  echo "file3" > adir/file3 &&
+  ipfs add -r adir
+  ipfs pin add -r $DIRHASH
+'
+
+test_expect_success "can't remove pinned block" '
+  test_must_fail ipfs block rm $DIRHASH 2> block_rm_err
+'
+
+test_expect_success "can't remove pinned block: output looks good" '
+  grep -q "$DIRHASH pinned via recursive" block_rm_err 
+'
+
+test_expect_success "can't remove indirectly pinned block" '
+  test_must_fail ipfs block rm $FILE1HASH 2> block_rm_err
+'
+
+test_expect_success "can't remove indirectly pinned block: output looks good" '
+  grep -q "$FILE1HASH pinned via $DIRHASH" block_rm_err 
+'
+
+test_expect_success "multi-block 'ipfs block rm --ignore-pins' succeeds" '
+  ipfs block rm --ignore-pins $DIRHASH >actual_rm
+'
+
+test_expect_success "multi-block 'ipfs block rm --ignore-pins' output looks good" '
+  echo "deleted $DIRHASH" > expected_rm &&
+  test_cmp expected_rm actual_rm
+'
+
+test_expect_success "fix up pins" '
+  ipfs pin rm -r $DIRHASH
+'
+
+test_expect_success "multi-block 'ipfs block rm' succeeds" '
+  ipfs block rm $FILE1HASH $FILE2HASH $FILE3HASH > actual_rm
+'
+
+test_expect_success "multi-block 'ipfs block rm' output looks good" '
+  echo "deleted $FILE1HASH" > expected_rm &&
+  echo "deleted $FILE2HASH" >> expected_rm &&
+  echo "deleted $FILE3HASH" >> expected_rm &&
+  test_cmp expected_rm actual_rm
 '
 
 test_expect_success "'ipfs block stat' with nothing from stdin doesnt crash" '
