@@ -72,11 +72,11 @@ It is important to understand that, if any trusted peer uses default configurati
 
 ### PluginTrustManager
 
-```PluginTrustManager``` allows plugging in a custom ```TrustManager```, without changing and recompiling IPFS code. This allows one to develop a ```Trustmanager``` that is more secure and feature rich than ```DefaultTrustManager```. For example, trusted network could be managed by a dedicated server, and the peers would trust only the peers registered with the management server, with issued security token, and so on.
+```PluginTrustManager``` allows plugging in a custom ```TrustManager```, without changing and recompiling IPFS code. This allows one to develop a ```Trustmanager``` that is more secure and feature rich than ```SimpleTrustManager```. For example, trusted network could be managed by a dedicated server, and the peers would trust only the peers registered with the management server, with issued security token, and so on.
 
 As golang currently doesn't support dynamic linking, golang plugins cannot execute within the main process (IPFS in this case). ```PluginTrustManager``` uses Hashicorp's go-plugin (https://github.com/hashicorp/go-plugin) to start a custom ```TrustManager``` in a subprocess. IPFS communicates with the plugin over RPC.
 
-To use SimpleTrustManager, put the following lines in IPFS configuration:
+To use PluginTrustManager, put the following lines in IPFS configuration:
 
 ```
 "TrustManagerType": "PluginTrustManager",
