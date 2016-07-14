@@ -246,16 +246,16 @@ func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 func setConfig(r repo.Repo, key string, value interface{}) (*ConfigField, error) {
 	keyF, err := getConfig(r, "Identity.PrivKey")
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get PrivKey")
+		return nil, errors.New("failed to get PrivKey")
 	}
 	privkey := keyF.Value
 	err = r.SetConfigKey(key, value)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to set config value: %s (maybe use --json?)", err)
+		return nil, fmt.Errorf("failed to set config value: %s (maybe use --json?)", err)
 	}
 	err = r.SetConfigKey("Identity.PrivKey", privkey)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to set PrivKey")
+		return nil, errors.New("failed to set PrivKey")
 	}
 	return getConfig(r, key)
 }
