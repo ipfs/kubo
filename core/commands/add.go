@@ -12,6 +12,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
 	mfs "github.com/ipfs/go-ipfs/mfs"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -160,7 +161,7 @@ You can now refer to the added file in a gateway, like so:
 
 		if hash {
 			md := dagtest.Mock()
-			mr, err := mfs.NewRoot(req.Context(), md, coreunix.NewDirNode(), nil)
+			mr, err := mfs.NewRoot(req.Context(), md, ft.EmptyDirNode(), nil)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return

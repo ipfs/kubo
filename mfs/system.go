@@ -83,7 +83,7 @@ func NewRoot(parent context.Context, ds dag.DAGService, node *dag.Node, pf PubFu
 		dserv: ds,
 	}
 
-	pbn, err := ft.FromBytes(node.Data)
+	pbn, err := ft.FromBytes(node.Data())
 	if err != nil {
 		log.Error("IPNS pointer was not unixfs node")
 		return nil, err

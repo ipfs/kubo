@@ -110,7 +110,7 @@ format:
 					}
 				}
 				if linkNode != nil {
-					d, err := unixfs.FromBytes(linkNode.Data)
+					d, err := unixfs.FromBytes(linkNode.Data())
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return

@@ -163,7 +163,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 		return nil, err
 	}
 
-	d, err := ft.FromBytes(nd.Data)
+	d, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -871,7 +871,7 @@ func getFileHandle(r *mfs.Root, path string, create bool) (*mfs.File, error) {
 			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
 
-		nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
 		err = pdir.AddChild(fname, nd)
 		if err != nil {
 			return nil, err

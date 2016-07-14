@@ -481,7 +481,7 @@ func (fi *File) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 
 func (dir *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	// New 'empty' file
-	nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+	nd := dag.NodeWithData(ft.FilePBData(nil, 0))
 	err := dir.dir.AddChild(req.Name, nd)
 	if err != nil {
 		return nil, nil, err

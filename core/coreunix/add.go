@@ -29,8 +29,6 @@ import (
 
 var log = logging.Logger("coreunix")
 
-var folderData = unixfs.FolderPBData()
-
 // how many bytes of progress to wait before sending a progress update message
 const progressReaderIncrement = 1024 * 256
 
@@ -67,7 +65,7 @@ type AddedObject struct {
 }
 
 func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds dag.DAGService) (*Adder, error) {
-	mr, err := mfs.NewRoot(ctx, ds, NewDirNode(), nil)
+	mr, err := mfs.NewRoot(ctx, ds, unixfs.EmptyDirNode(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +390,7 @@ func (adder *Adder) addFile(file files.File) error {
 			return err
 		}
 
-		dagnode := &dag.Node{Data: sdata}
+		dagnode := dag.NodeWithData(sdata)
 		_, err = adder.dagService.Add(dagnode)
 		if err != nil {
 			return err
@@ -486,11 +484,6 @@ func NewMemoryDagService() dag.DAGService {
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	bsrv := bserv.New(bs, offline.Exchange(bs))
 	return dag.NewDAGService(bsrv)
-}
-
-// TODO: generalize this to more than unix-fs nodes.
-func NewDirNode() *dag.Node {
-	return &dag.Node{Data: unixfs.FolderPBData()}
 }
 
 // from core/commands/object.go

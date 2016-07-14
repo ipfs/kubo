@@ -391,7 +391,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	case nil:
 		// object set-data case
-		rnode.Data = newnode.Data
+		rnode.SetData(newnode.Data())
 
 		newkey, err = i.node.DAG.Add(rnode)
 		if err != nil {

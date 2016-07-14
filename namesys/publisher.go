@@ -330,7 +330,7 @@ func ValidateIpnsRecord(k key.Key, val []byte) error {
 // point to an empty directory.
 // TODO: this doesnt feel like it belongs here
 func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
-	emptyDir := &dag.Node{Data: ft.FolderPBData()}
+	emptyDir := ft.EmptyDirNode()
 	nodek, err := ds.Add(emptyDir)
 	if err != nil {
 		return err

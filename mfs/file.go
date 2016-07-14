@@ -45,7 +45,7 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 	node := fi.node
 	fi.nodelk.Unlock()
 
-	fsn, err := ft.FSNodeFromBytes(node.Data)
+	fsn, err := ft.FSNodeFromBytes(node.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 func (fi *File) Size() (int64, error) {
 	fi.nodelk.Lock()
 	defer fi.nodelk.Unlock()
-	pbd, err := ft.FromBytes(fi.node.Data)
+	pbd, err := ft.FromBytes(fi.node.Data())
 	if err != nil {
 		return 0, err
 	}
