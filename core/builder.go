@@ -136,6 +136,12 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	var err error
 	bs := bstore.NewBlockstore(n.Repo.Datastore())
 	opts := bstore.DefaultCacheOpts()
+	conf, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+
+	opts.HasBloomFilterSize = conf.Datastore.BloomFilterSize
 	if !cfg.Permament {
 		opts.HasBloomFilterSize = 0
 	}
