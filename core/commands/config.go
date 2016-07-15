@@ -162,7 +162,13 @@ included in the output of this command.
 			return
 		}
 
-		delete(cfg["Identity"].(map[string]interface{}), "PrivKey")
+		idmap, ok := cfg["Identity"].(map[string]interface{})
+		if !ok {
+			res.SetError(fmt.Errorf("config has no identity"), cmds.ErrNormal)
+			return
+		}
+
+		delete(idmap, "PrivKey")
 
 		output, err := config.HumanOutput(cfg)
 		if err != nil {
