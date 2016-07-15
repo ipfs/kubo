@@ -290,7 +290,13 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("Failed to get PrivKey")
 	}
-	cfg.Identity.PrivKey = keyF.Value.(string)
+
+	pkstr, ok := keyF.Value.(string)
+	if !ok {
+		return fmt.Errorf("private key in config was not a string")
+	}
+
+	cfg.Identity.PrivKey = pkstr
 
 	return r.SetConfig(&cfg)
 }
