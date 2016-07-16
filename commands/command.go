@@ -206,7 +206,7 @@ func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 }
 
 func (c *Command) CheckArguments(req Request) error {
-	args := req.Arguments()
+	args := req.(*request).arguments
 
 	// count required argument definitions
 	numRequired := 0
@@ -218,7 +218,7 @@ func (c *Command) CheckArguments(req Request) error {
 
 	// iterate over the arg definitions
 	valueIndex := 0 // the index of the current value (in `args`)
-	for _, argDef := range c.Arguments {
+	for i, argDef := range c.Arguments {
 		// skip optional argument definitions if there aren't
 		// sufficient remaining values
 		if len(args)-valueIndex <= numRequired && !argDef.Required ||
@@ -233,6 +233,11 @@ func (c *Command) CheckArguments(req Request) error {
 			v = args[valueIndex]
 			found = true
 			valueIndex++
+		}
+
+		// in the case of a non-variadic required argument that supports stdin
+		if !found && len(c.Arguments)-1 == i && argDef.SupportsStdin {
+			found = true
 		}
 
 		err := checkArgValue(v, found, argDef)
@@ -281,6 +286,10 @@ func (c *Command) ProcessHelp() {
 // checkArgValue returns an error if a given arg value is not valid for the
 // given Argument
 func checkArgValue(v string, found bool, def Argument) error {
+	if def.Variadic && def.SupportsStdin {
+		return nil
+	}
+
 	if !found && def.Required {
 		return fmt.Errorf("Argument '%s' is required", def.Name)
 	}

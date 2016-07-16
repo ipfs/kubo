@@ -56,6 +56,16 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		}
 	}
 
+	// This is an ugly hack to maintain our current CLI interface while fixing
+	// other stdin usage bugs. Let this serve as a warning, be careful about the
+	// choices you make, they will haunt you forever.
+	if len(path) == 2 && path[0] == "bootstrap" {
+		if (path[1] == "add" && opts["default"] == true) ||
+			(path[1] == "rm" && opts["all"] == true) {
+			stdin = nil
+		}
+	}
+
 	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive, hidden, root)
 	if err != nil {
 		return req, cmd, path, err
@@ -276,6 +286,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 
 	fileArgs := make(map[string]files.File)
 	argDefIndex := 0 // the index of the current argument definition
+
 	for i := 0; i < numInputs; i++ {
 		argDef := getArgDef(argDefIndex, argDefs)
 
@@ -289,14 +300,17 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		}
 
 		fillingVariadic := argDefIndex+1 > len(argDefs)
-
-		if argDef.Type == cmds.ArgString {
+		switch argDef.Type {
+		case cmds.ArgString:
 			if len(inputs) > 0 {
 				stringArgs, inputs = append(stringArgs, inputs[0]), inputs[1:]
-			} else {
-				break
+			} else if stdin != nil && argDef.SupportsStdin && !fillingVariadic {
+				if err := printReadInfo(stdin, msgStdinInfo); err == nil {
+					fileArgs[stdin.Name()] = files.NewReaderFile("stdin", "", stdin, nil)
+					stdin = nil
+				}
 			}
-		} else if argDef.Type == cmds.ArgFile {
+		case cmds.ArgFile:
 			if len(inputs) > 0 {
 				// treat stringArg values as file paths
 				fpath := inputs[0]
@@ -316,17 +330,13 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				}
 
 				fileArgs[fpath] = file
-			} else {
-				if stdin != nil && argDef.SupportsStdin &&
-					argDef.Required && !fillingVariadic {
-					if err := printReadInfo(stdin, msgStdinInfo); err != nil {
-						return nil, nil, err
-					}
-					fpath := stdin.Name()
-					fileArgs[fpath] = files.NewReaderFile("", fpath, stdin, nil)
-				} else {
-					break
+			} else if stdin != nil && argDef.SupportsStdin &&
+				argDef.Required && !fillingVariadic {
+				if err := printReadInfo(stdin, msgStdinInfo); err != nil {
+					return nil, nil, err
 				}
+				fpath := stdin.Name()
+				fileArgs[fpath] = files.NewReaderFile("", fpath, stdin, nil)
 			}
 		}
 
@@ -411,15 +421,24 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 
 // Inform the user if a file is waiting on input
 func printReadInfo(f *os.File, msg string) error {
-	fInfo, err := f.Stat()
+	isTty, err := isTty(f)
 	if err != nil {
-		log.Error(err)
 		return err
 	}
 
-	if (fInfo.Mode() & os.ModeCharDevice) != 0 {
+	if isTty {
 		fmt.Fprintf(os.Stderr, msg, f.Name())
 	}
 
 	return nil
+}
+
+func isTty(f *os.File) (bool, error) {
+	fInfo, err := f.Stat()
+	if err != nil {
+		log.Error(err)
+		return false, err
+	}
+
+	return (fInfo.Mode() & os.ModeCharDevice) != 0, nil
 }

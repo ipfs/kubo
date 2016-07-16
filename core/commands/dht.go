@@ -459,7 +459,7 @@ NOTE: A value may not exceed 2048 bytes.
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The key to store the value at."),
-		cmds.StringArg("value", true, false, "The value to store."),
+		cmds.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),

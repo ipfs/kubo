@@ -42,9 +42,6 @@ func FileArg(name string, required, variadic bool, description string) Argument 
 //       (`FileArg("file", ArgRequired, ArgStdin, ArgRecursive)`)
 
 func (a Argument) EnableStdin() Argument {
-	if a.Type == ArgString {
-		panic("Only FileArgs can be read from Stdin")
-	}
 	a.SupportsStdin = true
 	return a
 }

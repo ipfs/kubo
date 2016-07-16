@@ -31,7 +31,7 @@ var unwantCmd = &cmds.Command{
 		Tagline: "Remove a given block from your wantlist.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, true, "Key(s) to remove from your wantlist."),
+		cmds.StringArg("key", true, true, "Key(s) to remove from your wantlist.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

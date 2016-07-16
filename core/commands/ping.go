@@ -36,7 +36,7 @@ trip latency information.
 		`,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged."),
+		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.IntOption("count", "n", "Number of ping messages to send.").Default(10),
