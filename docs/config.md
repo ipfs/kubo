@@ -6,17 +6,17 @@ a running daemon do not read the config file at runtime.
 ## `Addresses`
 Contains information about various listener addresses to be used by this node.
 
-### `API`
+- `API`
 Multiaddr describing the address to serve the local http api on.
 
 Default: `/ip4/127.0.0.1/tcp/4001`
 
-### `Gateway`
+- `Gateway`
 Multiaddr describing the address to serve the local gateway on.
 
 Default: `/ip4/127.0.0.1/tcp/8080`
 
-### `Swarm`
+- `Swarm`
 Array of multiaddrs describing which addresses to listen on for p2p swarm connections.
 
 Default:
@@ -30,7 +30,7 @@ Default:
 ## `API`
 Contains information used by the api gateway.
 
-### `HTTPHeaders`
+- `HTTPHeaders`
 Map of http headers to set on responses from the API http server.
 
 Example:
@@ -52,56 +52,64 @@ Default: The ipfs.io bootstrap nodes
 Contains information related to the construction and operation of the on-disk
 storage system.
 
-### `Type`
+- `Type`
 Denotes overall datastore type. The only currently valid option is `leveldb`.
 
 Default: `leveldb`
 
-### `Path`
+- `Path`
 Path to the leveldb datastore directory. Set during init to either `$IPFS_PATH/datastore`, or `$HOME/.ipfs/datastore` if `$IPFS_PATH` is unset.
 
-### `StorageMax`
+- `StorageMax`
 An upper limit on the total size of the ipfs repository's datastore. Writes to the datastore will begin to fail once this limit is reached.
 
 Default: `10GB`
 
-### `StorageGCWatermark`
+- `StorageGCWatermark`
 The percentage of the `StorageMax` value at which a garbage collection will be triggered automatically if the daemon was run with automatic gc enabled (that option defaults to false currently).
 
 Default: `90`
 
-### `GCPeriod`
+- `GCPeriod`
 A time duration specifying how frequently to run a garbage collection. Only used if automatic gc is enabled.
 
 Default: `1h`
 
-### `NoSync` *!*
+- `NoSync` *!*
 A boolean value denoting whether or not to disable sanity syncing in the flatfs datastore code. Setting this to true may significantly improve performance, but be careful using it as if the daemon is killed before a write is synchronized to disk, there is a chance of data loss.
 
 Default: `false`
 
-### `Params`
+- `HashOnRead`
+A boolean value. If set to true, all block reads from disk will be hashed and verified. This will cause increased CPU utilization.
+
+- `BloomFilterSize`
+A number representing the size in bits of the blockstore's bloom filter. A value of zero represents the feature being disabled.
+
+Default: `0` 
+
+- `Params`
 Extra parameters for datastore construction, not currently used.
 
 ## `Discovery`
 Contains options for configuring ipfs node discovery mechanisms.
 
-### `MDNS`
+- `MDNS`
 Options for multicast dns peer discovery.
 
-#### `Enabled`
+  - `Enabled`
 A boolean value for whether or not mdns should be active.
 
 Default: `true`
 
-#### `Interval`
+  -  `Interval`
 A number of seconds to wait between discovery checks.
 
 
 ## `Gateway`
 Options for the http gateway.
 
-### `HTTPHeaders`
+- `HTTPHeaders`
 Headers to set on gateway responses.
 
 Default:
@@ -119,39 +127,39 @@ Default:
 }
 ```
 
-### `RootRedirect`
+- `RootRedirect`
 A url to redirect requests for `/` to.
 
 Default: `""`
 
-### `Writeable`
+- `Writeable`
 A boolean to configure whether the gateway is writeable or not.
 
 Default: `false`
 
-### `PathPrefixes`
+- `PathPrefixes`
 TODO
 
 Default: `[]`
 
 ## `Identity`
 
-### `PeerID`
+- `PeerID`
 The unique PKI identity label for this configs peer. Set on init and never read, its merely here for convenience. Ipfs will always generate the peerID from its keypair at runtime.
 
-### `PrivKey`
+- `PrivKey`
 The base64 encoded protobuf describing (and containing) the nodes private key.
 
 ## `Ipns`
 
-### `RepublishPeriod`
+- `RepublishPeriod`
 A time duration specifying how frequently to republish ipns records to ensure they stay fresh on the network. If unset, we default to 12 hours.
 
-### `RecordLifetime`
+- `RecordLifetime`
 A time duration specifying the value to set on ipns records for their validity lifetime.
 If unset, we default to 24 hours.
 
-### `ResolveCacheSize`
+- `ResolveCacheSize`
 The number of entries to store in an LRU cache of resolved ipns entries. Entries will be kept cached until their lifetime is expired.
 
 Default: `128`
@@ -159,13 +167,13 @@ Default: `128`
 ## `Mounts`
 Fuse mount point configuration options.
 
-### `IPFS`
+- `IPFS`
 Mountpoint for `/ipfs/`.
 
-### `IPNS`
+- `IPNS`
 Mountpoint for `/ipns/`.
 
-### `FuseAllowOther`
+- `FuseAllowOther`
 Sets the fuse allow other option on the mountpoint.
 
 ## `SupernodeRouting`
@@ -174,7 +182,7 @@ Deprecated.
 ## `Swarm`
 Options for configuring the swarm.
 
-### `AddrFilters`
+- `AddrFilters`
 An array of address filters (multiaddr netmasks) to filter dials to.
 See https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604 for more information.
 
