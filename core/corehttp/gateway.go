@@ -9,6 +9,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	id "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/protocol/identify"
+	bc "github.com/OpenBazaar/go-blockstackclient"
 )
 
 // Gateway should be instantiated using NewGateway
@@ -21,6 +22,7 @@ type GatewayConfig struct {
 	BlockList    *BlockList
 	Writable     bool
 	PathPrefixes []string
+	Resolver     *bc.BlockstackClient
 }
 
 func NewGateway(conf GatewayConfig) *Gateway {
@@ -49,11 +51,12 @@ func (g *Gateway) ServeOption() ServeOption {
 	}
 }
 
-func GatewayOption(writable bool, prefixes []string) ServeOption {
+func GatewayOption(writable bool, prefixes []string, resolver *bc.BlockstackClient) ServeOption {
 	g := NewGateway(GatewayConfig{
 		Writable:     writable,
 		BlockList:    &BlockList{},
 		PathPrefixes: prefixes,
+		Resolver:     resolver,
 	})
 	return g.ServeOption()
 }

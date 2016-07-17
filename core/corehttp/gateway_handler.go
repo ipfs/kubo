@@ -128,9 +128,20 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}()
 	}
 
+	// If this is an ipns query and the user passed in a blockchain ID handle, let's resolve it into a peer ID.
+	var paths []string = strings.Split(r.URL.Path, "/")
+	if paths[1] == "ipns" && paths[2][0:1] == "@" {
+		peerID, err := i.config.Resolver.Resolve(paths[2])
+		if err != nil {
+			webError(w, "Path Resolve error", err, http.StatusBadRequest)
+			return
+		}
+		r.URL.Path = strings.Replace(r.URL.Path, paths[2], peerID, 1)
+	}
+
+
 	// If this is an ipns query let's check to see if it's using our own peer ID.
 	// If so let's resolve it locally instead of going out to the network.
-	var paths []string = strings.Split(r.URL.Path, "/")
 	if paths[1] == "ipns" && paths[2] == i.node.Identity.Pretty() {
 		id := i.node.Identity
 		_, ipnskey := namesys.IpnsKeysForID(id)

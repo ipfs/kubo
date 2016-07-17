@@ -16,3 +16,4 @@ This fork is currently based on IPFS v0.4.2 with the following changes:
 - Change the `swarm` `peers` output to []string from a private struct. The access control on the struct made the return unusable otherwise.
 - Resolve IPNS queries locally if the query is for our own peer ID. This will make browsing one's own OpenBazaar page much faster.
 - Increase MaxRecordAge to 7 days to match the message TTL.
+- Accept gateway IPNS queries using a blockchainID. Resolves names to a peer ID.
