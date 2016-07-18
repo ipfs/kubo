@@ -9,6 +9,11 @@ else
   go_test=IPFS_REUSEPORT=false go test
 endif
 
+ifeq ($(OS),Windows_NT)
+  GOPATH_DELIMITER = ;
+else
+  GOPATH_DELIMITER = :
+endif
 
 dist_root=/ipfs/QmXZQzBAFuoELw3NtjQZHkWSdA332PyQUj6pQjuhEukvg8
 gx_bin=bin/gx-v0.7.0
@@ -41,7 +46,7 @@ bin/gx-go-v%:
 gx_check: ${gx_bin} ${gx-go_bin}
 
 path_check:
-	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(GOPATH)/src/github.com/ipfs/go-ipfs)
+	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(GOPATH_DELIMITER), ,$(GOPATH))))
 
 deps: go_check gx_check path_check
 	${gx_bin} --verbose install --global
