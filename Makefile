@@ -15,9 +15,9 @@ else
   GOPATH_DELIMITER = :
 endif
 
-dist_root=/ipfs/QmXZQzBAFuoELw3NtjQZHkWSdA332PyQUj6pQjuhEukvg8
-gx_bin=bin/gx-v0.7.0
-gx-go_bin=bin/gx-go-v1.2.0
+dist_root=/ipfs/QmUnvqDuRyfe7HJuiMMHv77AMUFnjGyAU28LFPeTYwGmFF
+gx_bin=bin/gx-v0.8.0
+gx-go_bin=bin/gx-go-v1.2.1
 
 # use things in our bin before any other system binaries
 export PATH := bin:$(PATH)
