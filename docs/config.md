@@ -1,13 +1,29 @@
 # The go-ipfs config file
+
 The go-ipfs config file is a json document. It is read once at node instantiation,
 either for an offline command, or for starting the daemon. Commands that execute on
 a running daemon do not read the config file at runtime.
+
+## Table of Contents
+
+- [`Addresses`](#addresses)
+- [`API`](#api)
+- [`Bootstrap`](#bootstrap)
+- [`Datastore`](#datastore)
+- [`Discovery`](#discovery)
+- [`Gateway`](#gateway)
+- [`Identity`](#identity)
+- [`Ipns`](#ipns)
+- [`Mounts`](#mounts)
+- [`SupernodeRouting`](#supernoderouting)
+- [`Swarm`](#swarm)
+- [`Tour`](#tour)
 
 ## `Addresses`
 Contains information about various listener addresses to be used by this node.
 
 - `API`
-Multiaddr describing the address to serve the local http api on.
+Multiaddr describing the address to serve the local HTTP API on.
 
 Default: `/ip4/127.0.0.1/tcp/4001`
 
@@ -28,10 +44,10 @@ Default:
 ```
 
 ## `API`
-Contains information used by the api gateway.
+Contains information used by the API gateway.
 
 - `HTTPHeaders`
-Map of http headers to set on responses from the API http server.
+Map of HTTP headers to set on responses from the API HTTP server.
 
 Example:
 ```json
@@ -107,7 +123,7 @@ A number of seconds to wait between discovery checks.
 
 
 ## `Gateway`
-Options for the http gateway.
+Options for the HTTP gateway.
 
 - `HTTPHeaders`
 Headers to set on gateway responses.
@@ -165,7 +181,7 @@ The number of entries to store in an LRU cache of resolved ipns entries. Entries
 Default: `128`
 
 ## `Mounts`
-Fuse mount point configuration options.
+FUSE mount point configuration options.
 
 - `IPFS`
 Mountpoint for `/ipfs/`.
@@ -174,7 +190,7 @@ Mountpoint for `/ipfs/`.
 Mountpoint for `/ipns/`.
 
 - `FuseAllowOther`
-Sets the fuse allow other option on the mountpoint.
+Sets the FUSE allow other option on the mountpoint.
 
 ## `SupernodeRouting`
 Deprecated.
