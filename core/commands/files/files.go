@@ -217,10 +217,16 @@ var FilesCpCmd = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		src = strings.TrimRight(src, "/")
+
 		dst, err := checkPath(req.Arguments()[1])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+
+		if dst[len(dst)-1] == '/' {
+			dst += gopath.Base(src)
 		}
 
 		nd, err := getNodeFromPath(req.Context(), node, src)

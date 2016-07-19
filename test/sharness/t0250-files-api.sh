@@ -460,6 +460,24 @@ test_files_api() {
 		ipfs files rm -r /test_dir &&
 		ipfs files rm -r /test_file
 	'
+
+	test_expect_success "make a directory and a file" '
+		ipfs files mkdir /adir &&
+		echo "blah" | ipfs files write --create /foobar
+	'
+
+	test_expect_success "copy a file into a directory" '
+		ipfs files cp /foobar /adir/
+	'
+
+	test_expect_success "file made it into directory" '
+		ipfs files ls /adir | grep foobar
+	'
+
+	test_expect_success "clean up" '
+		ipfs files rm -r /foobar &&
+		ipfs files rm -r /adir
+	'
 }
 
 # test offline and online
