@@ -59,30 +59,3 @@ type VersionFileNotFound string
 func (v VersionFileNotFound) Error() string {
 	return "no version file in repo at " + string(v)
 }
-
-func TryMigrating(tovers int) error {
-	if !YesNoPrompt("Run migrations automatically? [y/N]") {
-		return fmt.Errorf("please run the migrations manually")
-	}
-
-	return RunMigration(tovers)
-}
-
-func YesNoPrompt(prompt string) bool {
-	var s string
-	for i := 0; i < 3; i++ {
-		fmt.Printf("%s ", prompt)
-		fmt.Scanf("%s", &s)
-		switch s {
-		case "y", "Y":
-			return true
-		case "n", "N":
-			return false
-		case "":
-			return false
-		}
-		fmt.Println("Please press either 'y' or 'n'")
-	}
-
-	return false
-}

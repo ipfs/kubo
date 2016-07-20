@@ -228,10 +228,15 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		fmt.Println("Found old repo version, migrations need to be run.")
 
 		if !found {
-			err = migrate.TryMigrating(fsrepo.RepoVersion)
-		} else if domigrate {
-			err = migrate.RunMigration(fsrepo.RepoVersion)
+			domigrate = YesNoPrompt("Run migrations automatically? [y/N]")
 		}
+
+		if !domigrate {
+			res.SetError(fmt.Errorf("please run the migrations manually"), cmds.ErrNormal)
+			return
+		}
+
+		err = migrate.RunMigration(fsrepo.RepoVersion)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -593,4 +598,23 @@ func merge(cs ...<-chan error) <-chan error {
 		close(out)
 	}()
 	return out
+}
+
+func YesNoPrompt(prompt string) bool {
+	var s string
+	for i := 0; i < 3; i++ {
+		fmt.Printf("%s ", prompt)
+		fmt.Scanf("%s", &s)
+		switch s {
+		case "y", "Y":
+			return true
+		case "n", "N":
+			return false
+		case "":
+			return false
+		}
+		fmt.Println("Please press either 'y' or 'n'")
+	}
+
+	return false
 }

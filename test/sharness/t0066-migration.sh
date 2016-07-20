@@ -27,7 +27,7 @@ test_expect_success "ipfs daemon --migrate=false fails" '
 '
 
 test_expect_success "output looks good" '
-	grep "ipfs repo needs migration" false_out
+	grep "please run the migrations manually" false_out
 '
 
 test_expect_success "ipfs daemon --migrate=true runs migration" '
