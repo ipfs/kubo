@@ -21,10 +21,10 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
-// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
-var ErrObjectTooLarge = errors.New("input object was too large. limit is 512kbytes")
+// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
+var ErrObjectTooLarge = errors.New("input object was too large. limit is 2mbytes")
 
-const inputLimit = 512 * 1024
+const inputLimit = 2 << 20
 
 type Node struct {
 	Links []Link
