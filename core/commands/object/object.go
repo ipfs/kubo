@@ -24,7 +24,7 @@ import (
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
 var ErrObjectTooLarge = errors.New("input object was too large. limit is 2mbytes")
 
-const inputLimit = 2 * 1024 * 1024
+const inputLimit = 2 << 20
 
 type Node struct {
 	Links []Link
