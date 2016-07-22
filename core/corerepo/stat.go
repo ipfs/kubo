@@ -1,6 +1,8 @@
 package corerepo
 
 import (
+	"fmt"
+
 	"github.com/ipfs/go-ipfs/core"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
@@ -40,6 +42,6 @@ func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
 		NumObjects: count,
 		RepoSize:   usage,
 		RepoPath:   path,
-		Version:    "fs-repo@" + fsrepo.RepoVersion,
+		Version:    fmt.Sprintf("fs-repo@%d", fsrepo.RepoVersion),
 	}, nil
 }
