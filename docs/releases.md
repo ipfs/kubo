@@ -12,9 +12,10 @@ will be allowed up to release day.
 - [ ] all tests pass (no exceptions)
 - [ ] webui works (for most definitions of 'works')
 - [ ] CHANGELOG.md has been updated
-  - use `git log --pretty=short vLAST..master`
+  - use `LAST=v0.4.2 for n in $(git log --oneline --merges --reverse -n-1 $LAST...master | cut -d'#' -f2 | cut -d' ' -f1); do echo https://github.com/ipfs/go-ipfs/pull/$n; done`
 - [ ] version string in `repo/config/version.go` has been updated
 - [ ] tag commit with vX.Y.Z
+- [ ] bump version string in `repo/config/version.go` to `vX.Y.Z-dev`
 - [ ] update release branch to point to release commit
-- [ ] ensure version is built in gobuilder
+- [ ] publish dist.ipfs.io
 - [ ] publish next version to https://github.com/ipfs/npm-go-ipfs
