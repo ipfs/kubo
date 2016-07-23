@@ -238,7 +238,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// and only if it's /ipfs!
 	// TODO: break this out when we split /ipfs /ipns routes.
 	modtime := time.Now()
-	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
+	if paths[1] != "ipns" {
 		w.Header().Set("Etag", etag)
 		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 
