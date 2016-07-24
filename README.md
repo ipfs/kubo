@@ -124,8 +124,7 @@ If you make changes to the protocol buffers, you will need to install the [proto
 
 IPFS has an updating tool that can be accessed through `ipfs update`. The tool is
 not installed alongside IPFS in order to keep that logic independent of the main
-codebase. To install `ipfs update`, either [download it here](https://gobuilder.me/github.com/ipfs/ipfs-update)
-or install it from source with `go get -u github.com/ipfs/ipfs-update`.
+codebase. To install `ipfs update`, [download it here](https://ipfs.io/ipns/dist.ipfs.io/#ipfs-update).
 
 ## Usage
 
