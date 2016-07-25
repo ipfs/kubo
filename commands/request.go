@@ -231,7 +231,8 @@ func (r *request) VarArgs(f func(string) error) error {
 	}
 
 	if r.files == nil {
-		return fmt.Errorf("expected more arguments from stdin")
+		log.Warning("expected more arguments from stdin")
+		return nil
 	}
 
 	fi, err := r.files.NextFile()
