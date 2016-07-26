@@ -103,9 +103,13 @@ func main() {
 	}
 
 	// Handle `ipfs help'
-	if len(os.Args) == 2 && os.Args[1] == "help" {
-		printHelp(false, os.Stdout)
-		os.Exit(0)
+	if len(os.Args) == 2 {
+		if os.Args[1] == "help" {
+			printHelp(false, os.Stdout)
+			os.Exit(0)
+		} else if os.Args[1] == "--version" {
+			os.Args[1] = "version"
+		}
 	}
 
 	// parse the commandline into a command invocation
