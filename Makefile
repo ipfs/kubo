@@ -97,10 +97,10 @@ test_go_race:
 	$(go_test) ./... -race
 
 test_sharness_short:
-	make -C test/sharness/
+	make -j1 -C test/sharness/
 
 test_sharness_expensive:
-	TEST_EXPENSIVE=1 make -C test/sharness/
+	TEST_EXPENSIVE=1 make -j1 -C test/sharness/
 
 test_all_commits:
 	@echo "testing all commits between origin/master..HEAD"
