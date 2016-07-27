@@ -3,9 +3,9 @@ package supernode
 import (
 	"testing"
 
-	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	datastore "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
 )
 
 func TestPutProviderDoesntResultInDuplicates(t *testing.T) {

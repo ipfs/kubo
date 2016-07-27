@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	ci "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/crypto"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
@@ -29,7 +29,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	conf := &Config{
 
 		// setup the node's default addresses.
-		// Note: two swarm listen addrs, one tcp, one utp.
+		// NOTE: two swarm listen addrs, one tcp, one utp.
 		Addresses: Addresses{
 			Swarm: []string{
 				"/ip4/0.0.0.0/tcp/4001",
@@ -62,6 +62,11 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			RootRedirect: "",
 			Writable:     false,
 			PathPrefixes: []string{},
+			HTTPHeaders: map[string][]string{
+				"Access-Control-Allow-Origin":  []string{"*"},
+				"Access-Control-Allow-Methods": []string{"GET"},
+				"Access-Control-Allow-Headers": []string{"X-Requested-With"},
+			},
 		},
 	}
 
@@ -79,6 +84,8 @@ func datastoreConfig() (Datastore, error) {
 		StorageMax:         "10GB",
 		StorageGCWatermark: 90, // 90%
 		GCPeriod:           "1h",
+		HashOnRead:         false,
+		BloomFilterSize:    0,
 	}, nil
 }
 

@@ -10,8 +10,8 @@ import (
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	exchange "github.com/ipfs/go-ipfs/exchange"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("blockservice")
@@ -41,7 +41,7 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
-func (s *BlockService) AddBlock(b *blocks.Block) (key.Key, error) {
+func (s *BlockService) AddBlock(b blocks.Block) (key.Key, error) {
 	k := b.Key()
 	err := s.Blockstore.Put(b)
 	if err != nil {
@@ -53,7 +53,7 @@ func (s *BlockService) AddBlock(b *blocks.Block) (key.Key, error) {
 	return k, nil
 }
 
-func (s *BlockService) AddBlocks(bs []*blocks.Block) ([]key.Key, error) {
+func (s *BlockService) AddBlocks(bs []blocks.Block) ([]key.Key, error) {
 	err := s.Blockstore.PutMany(bs)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,12 @@ func (s *BlockService) AddBlocks(bs []*blocks.Block) ([]key.Key, error) {
 
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
-func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (*blocks.Block, error) {
+func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (blocks.Block, error) {
+	if k == "" {
+		log.Debug("BlockService GetBlock: Nil Key")
+		return nil, ErrNotFound
+	}
+
 	log.Debugf("BlockService GetBlock: '%s'", k)
 	block, err := s.Blockstore.Get(k)
 	if err == nil {
@@ -81,7 +86,7 @@ func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (*blocks.Block, 
 	if err == blockstore.ErrNotFound && s.Exchange != nil {
 		// TODO be careful checking ErrNotFound. If the underlying
 		// implementation changes, this will break.
-		log.Debug("Blockservice: Searching bitswap.")
+		log.Debug("Blockservice: Searching bitswap")
 		blk, err := s.Exchange.GetBlock(ctx, k)
 		if err != nil {
 			if err == blockstore.ErrNotFound {
@@ -92,7 +97,7 @@ func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (*blocks.Block, 
 		return blk, nil
 	}
 
-	log.Debug("Blockservice GetBlock: Not found.")
+	log.Debug("Blockservice GetBlock: Not found")
 	if err == blockstore.ErrNotFound {
 		return nil, ErrNotFound
 	}
@@ -103,8 +108,8 @@ func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (*blocks.Block, 
 // GetBlocks gets a list of blocks asynchronously and returns through
 // the returned channel.
 // NB: No guarantees are made about order.
-func (s *BlockService) GetBlocks(ctx context.Context, ks []key.Key) <-chan *blocks.Block {
-	out := make(chan *blocks.Block, 0)
+func (s *BlockService) GetBlocks(ctx context.Context, ks []key.Key) <-chan blocks.Block {
+	out := make(chan blocks.Block, 0)
 	go func() {
 		defer close(out)
 		var misses []key.Key
@@ -114,12 +119,16 @@ func (s *BlockService) GetBlocks(ctx context.Context, ks []key.Key) <-chan *bloc
 				misses = append(misses, k)
 				continue
 			}
-			log.Debug("Blockservice: Got data in datastore.")
+			log.Debug("Blockservice: Got data in datastore")
 			select {
 			case out <- hit:
 			case <-ctx.Done():
 				return
 			}
+		}
+
+		if len(misses) == 0 {
+			return
 		}
 
 		rblocks, err := s.Exchange.GetBlocks(ctx, misses)

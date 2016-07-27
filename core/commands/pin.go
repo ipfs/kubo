@@ -11,6 +11,7 @@ import (
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	pin "github.com/ipfs/go-ipfs/pin"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
@@ -94,7 +95,7 @@ var addPinCmd = &cmds.Command{
 
 var rmPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes the pinned object from local storage. (By default, recursively. Use -r=false for direct pins).",
+		Tagline: "Removes the pinned object from local storage.",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
 collected if needed. (By default, recursively. Use -r=false for direct pins)
@@ -151,20 +152,27 @@ var listPinCmd = &cmds.Command{
 		Tagline: "List objects pinned to local storage.",
 		ShortDescription: `
 Returns a list of objects that are pinned locally.
-By default, all pinned objects are returned, but the '--type' flag or arguments can restrict that to a specific pin type or to some specific objects respectively.
+By default, all pinned objects are returned, but the '--type' flag or
+arguments can restrict that to a specific pin type or to some specific objects
+respectively.
 `,
 		LongDescription: `
 Returns a list of objects that are pinned locally.
-By default, all pinned objects are returned, but the '--type' flag or arguments can restrict that to a specific pin type or to some specific objects respectively.
+By default, all pinned objects are returned, but the '--type' flag or
+arguments can restrict that to a specific pin type or to some specific objects
+respectively.
 
-Use --type=<type> to specify the type of pinned keys to list. Valid values are:
+Use --type=<type> to specify the type of pinned keys to list.
+Valid values are:
     * "direct": pin that specific object.
-    * "recursive": pin that specific object, and indirectly pin all its decendants
+    * "recursive": pin that specific object, and indirectly pin all its
+    	descendants
     * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
 
-With arguments, the command fails if any of the arguments is not a pinned object.
-And if --type=<type> is additionally used, the command will also fail if any of the arguments is not of the specified type.
+With arguments, the command fails if any of the arguments is not a pinned
+object. And if --type=<type> is additionally used, the command will also fail
+if any of the arguments is not of the specified type.
 
 Example:
 	$ echo "hello" | ipfs add -q
@@ -188,8 +196,7 @@ Example:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").Default("all"),
-		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins."),
-		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
+		cmds.BoolOption("quiet", "q", "Write just hashes of objects.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -274,7 +281,12 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 			return nil, err
 		}
 
-		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, typeStr)
+		mode, ok := pin.StringToPinMode(typeStr)
+		if !ok {
+			return nil, fmt.Errorf("Invalid pin mode '%s'", typeStr)
+		}
+
+		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, mode)
 		if err != nil {
 			return nil, err
 		}
@@ -318,7 +330,7 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 			if err != nil {
 				return nil, err
 			}
-			err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks)
+			err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks, false)
 			if err != nil {
 				return nil, err
 			}

@@ -2,9 +2,10 @@ package namesys
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
-	lru "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/hashicorp/golang-lru"
+	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
@@ -13,9 +14,9 @@ import (
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	routing "github.com/ipfs/go-ipfs/routing"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
-	ci "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/crypto"
 )
 
 var log = logging.Logger("namesys")
@@ -122,6 +123,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		return cached, nil
 	}
 
+	name = strings.TrimPrefix(name, "/ipns/")
 	hash, err := mh.FromB58String(name)
 	if err != nil {
 		// name should be a multihash. if it isn't, error out here.

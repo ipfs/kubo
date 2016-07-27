@@ -7,7 +7,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	inet "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/net"
+	inet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
 
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
@@ -22,7 +22,7 @@ type BitSwapMessage interface {
 	Wantlist() []Entry
 
 	// Blocks returns a slice of unique blocks
-	Blocks() []*blocks.Block
+	Blocks() []blocks.Block
 
 	// AddEntry adds an entry to the Wantlist.
 	AddEntry(key key.Key, priority int)
@@ -34,7 +34,7 @@ type BitSwapMessage interface {
 	// A full wantlist is an authoritative copy, a 'non-full' wantlist is a patch-set
 	Full() bool
 
-	AddBlock(*blocks.Block)
+	AddBlock(blocks.Block)
 	Exportable
 
 	Loggable() map[string]interface{}
@@ -48,7 +48,7 @@ type Exportable interface {
 type impl struct {
 	full     bool
 	wantlist map[key.Key]Entry
-	blocks   map[key.Key]*blocks.Block
+	blocks   map[key.Key]blocks.Block
 }
 
 func New(full bool) BitSwapMessage {
@@ -57,7 +57,7 @@ func New(full bool) BitSwapMessage {
 
 func newMsg(full bool) *impl {
 	return &impl{
-		blocks:   make(map[key.Key]*blocks.Block),
+		blocks:   make(map[key.Key]blocks.Block),
 		wantlist: make(map[key.Key]Entry),
 		full:     full,
 	}
@@ -96,8 +96,8 @@ func (m *impl) Wantlist() []Entry {
 	return out
 }
 
-func (m *impl) Blocks() []*blocks.Block {
-	bs := make([]*blocks.Block, 0, len(m.blocks))
+func (m *impl) Blocks() []blocks.Block {
+	bs := make([]blocks.Block, 0, len(m.blocks))
 	for _, block := range m.blocks {
 		bs = append(bs, block)
 	}
@@ -129,13 +129,16 @@ func (m *impl) addEntry(k key.Key, priority int, cancel bool) {
 	}
 }
 
-func (m *impl) AddBlock(b *blocks.Block) {
+func (m *impl) AddBlock(b blocks.Block) {
 	m.blocks[b.Key()] = b
 }
 
 func FromNet(r io.Reader) (BitSwapMessage, error) {
 	pbr := ggio.NewDelimitedReader(r, inet.MessageSizeMax)
+	return FromPBReader(pbr)
+}
 
+func FromPBReader(pbr ggio.Reader) (BitSwapMessage, error) {
 	pb := new(pb.Message)
 	if err := pbr.ReadMsg(pb); err != nil {
 		return nil, err
@@ -156,7 +159,7 @@ func (m *impl) ToProto() *pb.Message {
 		})
 	}
 	for _, b := range m.Blocks() {
-		pbm.Blocks = append(pbm.Blocks, b.Data)
+		pbm.Blocks = append(pbm.Blocks, b.Data())
 	}
 	return pbm
 }

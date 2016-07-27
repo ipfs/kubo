@@ -1,5 +1,15 @@
-# IPFS implementation in Go
-[![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs) [![Build Status](https://travis-ci.org/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs)
+# go-ipfs
+
+![banner](https://ipfs.io/ipfs/QmVk7srrwahXLNmcDYvyUEJptyoxpndnRa57YJ11L4jV26/ipfs.go.png)
+
+[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
+[![](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](http://ipfs.io/)
+[![](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
+[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
+[![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs)
+[![Build Status](https://travis-ci.org/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs)
+
+> IPFS implementation in Go
 
 IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from
 Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm,
@@ -10,7 +20,7 @@ For more info see: https://github.com/ipfs/ipfs.
 
 Please put all issues regarding IPFS _design_ in the
 [ipfs repo issues](https://github.com/ipfs/ipfs/issues).
-Please put all issues regarding Go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
+Please put all issues regarding the Go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
 
 ## Table of Contents
 
@@ -18,18 +28,20 @@ Please put all issues regarding Go IPFS _implementation_ in [this repo](https://
 - [Install](#install)
   - [Install prebuilt packages](#install-prebuilt-packages)
   - [Build from Source](#build-from-source)
-  - [Prerequisite: Install Go](#prerequisite-install-go)
-  - [Download + Compile IPFS](#download--compile-ipfs)
+    - [Install Go](#install-go)
+    - [Download and Compile IPFS](#download-and-compile-ipfs)
+    - [Troubleshooting](#troubleshooting)
   - [Development Dependencies](#development-dependencies)
-- [Updating](#updating)
+  - [Updating](#updating)
 - [Usage](#usage)
 - [Getting Started](#getting-started)
   - [Some things to try](#some-things-to-try)
   - [Docker usage](#docker-usage)
     - [Docker usage with VirtualBox/boot2docker (OSX and Windows)](#docker-usage-with-virtualboxboot2docker-osx-and-windows)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+  - [Troubleshooting](#troubleshooting-1)
 - [Todo](#todo)
+- [Contributing](#contributing)
+  - [Want to hack on IPFS?](#want-to-hack-on-ipfs)
 - [License](#license)
 
 ## Security Issues
@@ -57,7 +69,8 @@ From there:
 
 #### Install Go
 
-First, you'll need Go. If you don't have it: [Download Go 1.5.2+](https://golang.org/dl/). **Go 1.6 is not yet supported.**
+The build process for ipfs requires Go 1.5+, but we strongly recommend using 1.6.2. If you don't have it: [Download Go 1.6.2+](https://golang.org/dl/).
+
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
@@ -68,12 +81,11 @@ export PATH=$PATH:$GOPATH/bin
 
 (If you run into trouble, see the [Go install instructions](https://golang.org/doc/install)).
 
-#### Download + Compile IPFS
+#### Download and Compile IPFS
 
 go-ipfs differs from the vanilla `go get` flow: it uses
 [gx](https://github.com/whyrusleeping/gx)/[gx-go](https://github.com/whyrusleeping/gx-go)
-for dependency management. This means you'll need to perform download and
-install steps separately.
+for dependency management.
 
 First download `go-ipfs` without installing:
 
@@ -83,13 +95,7 @@ $ go get -d github.com/ipfs/go-ipfs
 $ cd $GOPATH/src/github.com/ipfs/go-ipfs
 ```
 
-If you don't already have them on your system, install `gx` and `gx-go`:
-
-```sh
-$ make toolkit_upgrade
-```
-
-Finally, install `go-ipfs`:
+Then install `go-ipfs` and its dependencies, including `gx` and `gx-go`:
 
 ```
 $ make install
@@ -97,6 +103,7 @@ $ make install
 
 #### Troubleshooting
 
+* Separate [instructions are available for building on Windows](docs/windows.md).
 * `git` is required in order for `go get` to fetch all dependencies.
 * Package managers often contain out-of-date `golang` packages.
   Ensure that `go version` reports at least 1.5.2. See above for how to install go.
@@ -113,65 +120,62 @@ dependencies as well.
 
 If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
 
-## Updating
+### Updating
+
 IPFS has an updating tool that can be accessed through `ipfs update`. The tool is
 not installed alongside IPFS in order to keep that logic independent of the main
-codebase. To install `ipfs update`, either [download it here](https://gobuilder.me/github.com/ipfs/ipfs-update)
-or install it from source with `go get -u github.com/ipfs/ipfs-update`.
+codebase. To install `ipfs update`, [download it here](https://ipfs.io/ipns/dist.ipfs.io/#ipfs-update).
 
 ## Usage
 
 ```
-USAGE:
+  ipfs - Global p2p merkle-dag filesystem.
 
-    ipfs - global p2p merkle-dag filesystem
+  ipfs [<flags>] <command> [<arg>] ...
 
-    ipfs [<flags>] <command> [<arg>] ...
+SUBCOMMANDS
+  BASIC COMMANDS
+    init          Initialize ipfs local configuration
+    add <path>    Add a file to ipfs
+    cat <ref>     Show ipfs object data
+    get <ref>     Download ipfs objects
+    ls <ref>      List links from an object
+    refs <ref>    List hashes of links from an object
 
-    BASIC COMMANDS
+  DATA STRUCTURE COMMANDS
+    block         Interact with raw blocks in the datastore
+    object        Interact with raw dag nodes
+    files         Interact with objects as if they were a unix filesystem
 
-        init          Initialize ipfs local configuration
-        add <path>    Add an object to ipfs
-        cat <ref>     Show ipfs object data
-        get <ref>     Download ipfs objects
-        ls <ref>      List links from an object
-        refs <ref>    List hashes of links from an object
+  ADVANCED COMMANDS
+    daemon        Start a long-running daemon process
+    mount         Mount an ipfs read-only mountpoint
+    resolve       Resolve any type of name
+    name          Publish or resolve IPNS names
+    dns           Resolve DNS links
+    pin           Pin objects to local storage
+    repo          Manipulate an IPFS repository
 
-    DATA STRUCTURE COMMANDS
+  NETWORK COMMANDS
+    id            Show info about ipfs peers
+    bootstrap     Add or remove bootstrap peers
+    swarm         Manage connections to the p2p network
+    dht           Query the DHT for values or peers
+    ping          Measure the latency of a connection
+    diag          Print diagnostics
 
-        block         Interact with raw blocks in the datastore
-        object        Interact with raw dag nodes
-        file          Interact with Unix filesystem objects
+  TOOL COMMANDS
+    config        Manage configuration
+    version       Show ipfs version information
+    update        Download and apply go-ipfs updates
+    commands      List all available commands
 
-    ADVANCED COMMANDS
+  Use 'ipfs <command> --help' to learn more about each command.
 
-        daemon        Start a long-running daemon process
-        mount         Mount an ipfs read-only mountpoint
-        resolve       Resolve any type of name
-        name          Publish or resolve IPNS names
-        dns           Resolve DNS links
-        pin           Pin objects to local storage
-        repo gc       Garbage collect unpinned objects
+  ipfs uses a repository in the local file system. By default, the repo is located
+  at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
 
-    NETWORK COMMANDS
-
-        id            Show info about ipfs peers
-        bootstrap     Add or remove bootstrap peers
-        swarm         Manage connections to the p2p network
-        dht           Query the DHT for values or peers
-        ping          Measure the latency of a connection
-        diag          Print diagnostics
-
-    TOOL COMMANDS
-
-        config        Manage configuration
-        version       Show ipfs version information
-        update        Download and apply go-ipfs updates
-        commands      List all available commands
-
-    Use 'ipfs <command> --help' to learn more about each command.
-
-
+    export IPFS_PATH=/path/to/ipfsrepo
 ```
 
 ## Getting Started
@@ -261,13 +265,19 @@ For any other problems, check the [issues list](https://github.com/ipfs/go-ipfs/
 and if you dont see your problem there, either come talk to us on irc (freenode #ipfs) or
 file an issue of your own!
 
+## Todo
+
+An IPFS alpha version has been released in February 2015. Things left to be done are all marked as [issues](https://github.com/ipfs/go-ipfs/issues).
+
 ## Contributing
 
 Please see [Contribute.md](contribute.md)!
 
-## Todo
+This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
-An IPFS alpha version has been released in February 2015. Things left to be done are all marked as [issues](https://github.com/ipfs/go-ipfs/issues).
+### Want to hack on IPFS?
+
+[![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/contributing.md)
 
 ## License
 

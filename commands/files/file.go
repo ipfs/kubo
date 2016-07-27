@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ErrNotDirectory = errors.New("Couln't call NextFile(), this isn't a directory")
+	ErrNotDirectory = errors.New("Couldn't call NextFile(), this isn't a directory")
 	ErrNotReader    = errors.New("This file is a directory, can't use Reader functions")
 )
 

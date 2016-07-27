@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"io"
 
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+
 	cmds "github.com/ipfs/go-ipfs/commands"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -25,6 +26,7 @@ output of a running daemon.
 
 	Subcommands: map[string]*cmds.Command{
 		"level": logLevelCmd,
+		"ls":    logLsCmd,
 		"tail":  logTailCmd,
 	},
 }
@@ -42,8 +44,8 @@ output of a running daemon.
 		// TODO use a different keyword for 'all' because all can theoretically
 		// clash with a subsystem name
 		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
-		cmds.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'panic' the least verbose.
-			One of: debug, info, warning, error, fatal, panic.
+		cmds.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'critical' the least verbose.
+			One of: debug, info, notice, warning, error, critical.
 		`),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -68,6 +70,23 @@ output of a running daemon.
 		cmds.Text: MessageTextMarshaler,
 	},
 	Type: MessageOutput{},
+}
+
+var logLsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List the logging subsystems.",
+		ShortDescription: `
+'ipfs log ls' is a utility command used to list the logging
+subsystems of a running daemon.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		res.SetOutput(&stringList{logging.GetSubsystems()})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+	Type: stringList{},
 }
 
 var logTailCmd = &cmds.Command{

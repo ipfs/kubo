@@ -18,10 +18,6 @@
     </dict>
     <key>RunAtLoad</key>
     <true/>
-    <key>StandardErrorPath</key>
-    <string>{{IPFS_PATH}}/logs/stderr.log</string>
-    <key>StandardOutPath</key>
-    <string>{{IPFS_PATH}}/logs/stdout.log</string>
   </dict>
 </plist>
 

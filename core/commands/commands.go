@@ -17,8 +17,11 @@ import (
 type Command struct {
 	Name        string
 	Subcommands []Command
-	Options     []cmds.Option
-	ShowOptions bool
+	Options     []Option
+}
+
+type Option struct {
+	Names []string
 }
 
 const (
@@ -34,18 +37,18 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 			ShortDescription: `Lists all available commands (and subcommands) and exits.`,
 		},
 		Options: []cmds.Option{
-			cmds.BoolOption(flagsOptionName, "f", "Show command flags"),
+			cmds.BoolOption(flagsOptionName, "f", "Show command flags").Default(false),
 		},
 		Run: func(req cmds.Request, res cmds.Response) {
-			showOptions, _, _ := req.Option(flagsOptionName).Bool()
-			rootCmd := cmd2outputCmd("ipfs", root, showOptions)
+			rootCmd := cmd2outputCmd("ipfs", root)
 			res.SetOutput(&rootCmd)
 		},
 		Marshalers: cmds.MarshalerMap{
 			cmds.Text: func(res cmds.Response) (io.Reader, error) {
 				v := res.Output().(*Command)
+				showOptions, _, _ := res.Request().Option(flagsOptionName).Bool()
 				buf := new(bytes.Buffer)
-				for _, s := range cmdPathStrings(v) {
+				for _, s := range cmdPathStrings(v, showOptions) {
 					buf.Write([]byte(s + "\n"))
 				}
 				return buf, nil
@@ -55,35 +58,38 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 	}
 }
 
-func cmd2outputCmd(name string, cmd *cmds.Command, showOptions bool) Command {
+func cmd2outputCmd(name string, cmd *cmds.Command) Command {
+	opts := make([]Option, len(cmd.Options))
+	for i, opt := range cmd.Options {
+		opts[i] = Option{opt.Names()}
+	}
+
 	output := Command{
 		Name:        name,
 		Subcommands: make([]Command, len(cmd.Subcommands)),
-		Options:     cmd.Options,
-		ShowOptions: showOptions,
+		Options:     opts,
 	}
 
 	i := 0
 	for name, sub := range cmd.Subcommands {
-		output.Subcommands[i] = cmd2outputCmd(name, sub, showOptions)
+		output.Subcommands[i] = cmd2outputCmd(name, sub)
 		i++
 	}
 
 	return output
 }
 
-func cmdPathStrings(cmd *Command) []string {
+func cmdPathStrings(cmd *Command, showOptions bool) []string {
 	var cmds []string
 
 	var recurse func(prefix string, cmd *Command)
 	recurse = func(prefix string, cmd *Command) {
 		newPrefix := prefix + cmd.Name
 		cmds = append(cmds, newPrefix)
-		if prefix != "" && cmd.ShowOptions {
-			for _, option := range cmd.Options {
-				names := option.Names()
+		if prefix != "" && showOptions {
+			for _, options := range cmd.Options {
 				var cmdOpts []string
-				for _, flag := range names {
+				for _, flag := range options.Names {
 					if len(flag) == 1 {
 						flag = "-" + flag
 					} else {

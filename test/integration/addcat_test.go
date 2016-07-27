@@ -18,9 +18,9 @@ import (
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
-	mocknet "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/net/mock"
-	"gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	mocknet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/mock"
 )
 
 var log = logging.Logger("epictest")
@@ -123,8 +123,8 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	bs1 := []peer.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)}
-	bs2 := []peer.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)}
+	bs1 := []pstore.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)}
+	bs2 := []pstore.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)}
 
 	if err := catter.Bootstrap(core.BootstrapConfigWithPeers(bs1)); err != nil {
 		return err
@@ -149,6 +149,8 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	if 0 != bytes.Compare(bufout.Bytes(), data) {
 		return errors.New("catted data does not match added data")
 	}
+
+	cancel()
 	return nil
 }
 

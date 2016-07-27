@@ -6,13 +6,16 @@ import (
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	host "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
+
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kbucket "github.com/ipfs/go-ipfs/routing/kbucket"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
-	host "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/host"
-	inet "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/net"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"
@@ -29,11 +32,11 @@ type Proxy interface {
 type standard struct {
 	Host host.Host
 
-	remoteInfos []peer.PeerInfo // addr required for bootstrapping
-	remoteIDs   []peer.ID       // []ID is required for each req. here, cached for performance.
+	remoteInfos []pstore.PeerInfo // addr required for bootstrapping
+	remoteIDs   []peer.ID         // []ID is required for each req. here, cached for performance.
 }
 
-func Standard(h host.Host, remotes []peer.PeerInfo) Proxy {
+func Standard(h host.Host, remotes []pstore.PeerInfo) Proxy {
 	var ids []peer.ID
 	for _, remote := range remotes {
 		ids = append(ids, remote.ID)
@@ -42,7 +45,7 @@ func Standard(h host.Host, remotes []peer.PeerInfo) Proxy {
 }
 
 func (px *standard) Bootstrap(ctx context.Context) error {
-	var cxns []peer.PeerInfo
+	var cxns []pstore.PeerInfo
 	for _, info := range px.remoteInfos {
 		if err := px.Host.Connect(ctx, info); err != nil {
 			continue
@@ -95,7 +98,7 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 		}
 		e.Done()
 	}()
-	if err = px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
+	if err = px.Host.Connect(ctx, pstore.PeerInfo{ID: remote}); err != nil {
 		return err
 	}
 	s, err := px.Host.NewStream(ctx, ProtocolSNR, remote)
@@ -129,7 +132,7 @@ func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.M
 func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote peer.ID) (*dhtpb.Message, error) {
 	e := log.EventBegin(ctx, "sendRoutingRequest", px.Host.ID(), remote, logging.Pair("request", m))
 	defer e.Done()
-	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
+	if err := px.Host.Connect(ctx, pstore.PeerInfo{ID: remote}); err != nil {
 		e.SetError(err)
 		return nil, err
 	}
@@ -158,7 +161,7 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 		return nil, err
 	}
 	e.Append(logging.Pair("response", response))
-	e.Append(logging.Pair("uuid", logging.Uuid("foo")))
+	e.Append(logging.Pair("uuid", loggables.Uuid("foo")))
 	return response, nil
 }
 

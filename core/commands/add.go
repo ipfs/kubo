@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"github.com/ipfs/go-ipfs/core/coreunix"
+	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
+	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
+	mfs "github.com/ipfs/go-ipfs/mfs"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -63,28 +66,20 @@ You can now refer to the added file in a gateway, like so:
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
-		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
-		cmds.BoolOption(silentOptionName, "Write no output."),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
-		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
-		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
-		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
+		cmds.BoolOption(quietOptionName, "q", "Write minimal output.").Default(false),
+		cmds.BoolOption(silentOptionName, "Write no output.").Default(false),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data.").Default(true),
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation.").Default(false),
+		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk.").Default(false),
+		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object.").Default(false),
+		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add.").Default(false),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
-		cmds.BoolOption(pinOptionName, "Pin this object when adding.  Default: true."),
+		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
 			return nil
 		}
-
-		// ipfs cli progress bar defaults to true
-		progress, found, _ := req.Option(progressOptionName).Bool()
-		if !found {
-			progress = true
-		}
-
-		req.SetOption(progressOptionName, progress)
 
 		sizeFile, ok := req.Files().(files.SizeFile)
 		if !ok {
@@ -131,11 +126,7 @@ You can now refer to the added file in a gateway, like so:
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
-		dopin, pin_found, _ := req.Option(pinOptionName).Bool()
-
-		if !pin_found { // default
-			dopin = true
-		}
+		dopin, _, _ := req.Option(pinOptionName).Bool()
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -153,11 +144,13 @@ You can now refer to the added file in a gateway, like so:
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
-		fileAdder, err := coreunix.NewAdder(req.Context(), n, outChan)
+		fileAdder, err := coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, n.DAG)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		fileAdder.Out = outChan
 		fileAdder.Chunker = chunker
 		fileAdder.Progress = progress
 		fileAdder.Hidden = hidden
@@ -165,6 +158,17 @@ You can now refer to the added file in a gateway, like so:
 		fileAdder.Wrap = wrap
 		fileAdder.Pin = dopin
 		fileAdder.Silent = silent
+
+		if hash {
+			md := dagtest.Mock()
+			mr, err := mfs.NewRoot(req.Context(), md, ft.EmptyDirNode(), nil)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			fileAdder.SetMfsRoot(mr)
+		}
 
 		addAllAndPin := func(f files.File) error {
 			// Iterate over each top-level file and add individually. Otherwise the
@@ -183,14 +187,14 @@ You can now refer to the added file in a gateway, like so:
 				}
 			}
 
-			if hash {
-				return nil
-			}
-
 			// copy intermediary nodes from editor to our actual dagservice
 			_, err := fileAdder.Finalize()
 			if err != nil {
 				return err
+			}
+
+			if hash {
+				return nil
 			}
 
 			return fileAdder.PinRoot()
@@ -222,7 +226,7 @@ You can now refer to the added file in a gateway, like so:
 			return
 		}
 
-		progress, prgFound, err := req.Option(progressOptionName).Bool()
+		progress, _, err := req.Option(progressOptionName).Bool()
 		if err != nil {
 			res.SetError(u.ErrCast(), cmds.ErrNormal)
 			return
@@ -234,30 +238,18 @@ You can now refer to the added file in a gateway, like so:
 			return
 		}
 
-		var showProgressBar bool
-		if prgFound {
-			showProgressBar = progress
-		} else if !quiet && !silent {
-			showProgressBar = true
+		if !quiet && !silent {
+			progress = true
 		}
 
 		var bar *pb.ProgressBar
-		var terminalWidth int
-		if showProgressBar {
+		if progress {
 			bar = pb.New64(0).SetUnits(pb.U_BYTES)
 			bar.ManualUpdate = true
+			bar.ShowTimeLeft = false
+			bar.ShowPercent = false
+			bar.Output = res.Stderr()
 			bar.Start()
-
-			// the progress bar lib doesn't give us a way to get the width of the output,
-			// so as a hack we just use a callback to measure the output, then git rid of it
-			terminalWidth = 0
-			bar.Callback = func(line string) {
-				terminalWidth = len(line)
-				bar.Callback = nil
-				bar.Output = res.Stderr()
-				log.Infof("terminal width: %v\n", terminalWidth)
-			}
-			bar.Update()
 		}
 
 		var sizeChan chan int64
@@ -278,7 +270,7 @@ You can now refer to the added file in a gateway, like so:
 				}
 				output := out.(*coreunix.AddedObject)
 				if len(output.Hash) > 0 {
-					if showProgressBar {
+					if progress {
 						// clear progress bar line before we print "added x" output
 						fmt.Fprintf(res.Stderr(), "\033[2K\r")
 					}
@@ -291,7 +283,7 @@ You can now refer to the added file in a gateway, like so:
 				} else {
 					log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
 
-					if !showProgressBar {
+					if !progress {
 						continue
 					}
 
@@ -307,16 +299,19 @@ You can now refer to the added file in a gateway, like so:
 					totalProgress = bar.Add64(delta)
 				}
 
-				if showProgressBar {
+				if progress {
 					bar.Update()
 				}
 			case size := <-sizeChan:
-				if showProgressBar {
+				if progress {
 					bar.Total = size
 					bar.ShowPercent = true
 					bar.ShowBar = true
 					bar.ShowTimeLeft = true
 				}
+			case <-req.Context().Done():
+				res.SetError(req.Context().Err(), cmds.ErrNormal)
+				return
 			}
 		}
 	},

@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/path"
 	randbo "gx/ipfs/QmYvsG72GsfLgUeSojXArjnU6L4Wmwk7wuAxtNLuyXcc1T/randbo"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
+	dssync "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -30,6 +30,10 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
+
+func emptyDirNode() *dag.Node {
+	return dag.NodeWithData(ft.FolderPBData())
+}
 
 func getDagserv(t *testing.T) dag.DAGService {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
@@ -183,7 +187,7 @@ func catNode(ds dag.DAGService, nd *dag.Node) ([]byte, error) {
 func setupRoot(ctx context.Context, t *testing.T) (dag.DAGService, *Root) {
 	ds := getDagserv(t)
 
-	root := &dag.Node{Data: ft.FolderPBData()}
+	root := emptyDirNode()
 	rt, err := NewRoot(ctx, ds, root, func(ctx context.Context, k key.Key) error {
 		fmt.Println("PUBLISHED: ", k)
 		return nil
@@ -282,7 +286,7 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dir := &dag.Node{Data: ft.FolderPBData()}
+	dir := emptyDirNode()
 	_, err = ds.Add(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -293,17 +297,15 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	top := &dag.Node{
-		Data: ft.FolderPBData(),
-		Links: []*dag.Link{
-			&dag.Link{
-				Name: "a",
-				Hash: fihash,
-			},
-			&dag.Link{
-				Name: "b",
-				Hash: dirhash,
-			},
+	top := emptyDirNode()
+	top.Links = []*dag.Link{
+		&dag.Link{
+			Name: "a",
+			Hash: fihash,
+		},
+		&dag.Link{
+			Name: "b",
+			Hash: dirhash,
 		},
 	}
 
@@ -540,7 +542,7 @@ func actorMakeFile(d *Directory) error {
 	}
 
 	name := randomName()
-	f, err := NewFile(name, &dag.Node{Data: ft.FilePBData(nil, 0)}, d, d.dserv)
+	f, err := NewFile(name, dag.NodeWithData(ft.FilePBData(nil, 0)), d, d.dserv)
 	if err != nil {
 		return err
 	}
@@ -756,7 +758,7 @@ func TestFlushing(t *testing.T) {
 	e := mkdirP(t, dir, "a/b/e")
 
 	data := []byte("this is a test\n")
-	nd1 := &dag.Node{Data: ft.FilePBData(data, uint64(len(data)))}
+	nd1 := dag.NodeWithData(ft.FilePBData(data, uint64(len(data))))
 
 	if err := c.AddChild("TEST", nd1); err != nil {
 		t.Fatal(err)
@@ -792,7 +794,7 @@ func TestFlushing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fsnode, err := ft.FSNodeFromBytes(rnd.Data)
+	fsnode, err := ft.FSNodeFromBytes(rnd.Data())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -897,7 +899,7 @@ func TestFileDescriptors(t *testing.T) {
 	ds, rt := setupRoot(ctx, t)
 	dir := rt.GetValue().(*Directory)
 
-	nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+	nd := dag.NodeWithData(ft.FilePBData(nil, 0))
 	fi, err := NewFile("test", nd, dir, ds)
 	if err != nil {
 		t.Fatal(err)

@@ -13,10 +13,12 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
+
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	"gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	ic "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
+	identify "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/protocol/identify"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	ic "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/crypto"
-	"gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
-	identify "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/protocol/identify"
 )
 
 const offlineIdErrorMessage = `'ipfs id' currently cannot query information on remote
@@ -56,7 +58,7 @@ EXAMPLE:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerid", false, false, "Peer.ID of node to look up.").EnableStdin(),
+		cmds.StringArg("peerid", false, false, "Peer.ID of node to look up."),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("format", "f", "Optional output format."),
@@ -147,7 +149,7 @@ EXAMPLE:
 	Type: IdOutput{},
 }
 
-func printPeer(ps peer.Peerstore, p peer.ID) (interface{}, error) {
+func printPeer(ps pstore.Peerstore, p peer.ID) (interface{}, error) {
 	if p == "" {
 		return nil, errors.New("Attempted to print nil peer!")
 	}

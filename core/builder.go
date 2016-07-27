@@ -5,8 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	dsync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -16,15 +14,22 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
+	dsync "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
+
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	ci "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/crypto"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
 )
 
 type BuildCfg struct {
 	// If online is set, the node will have networking enabled
 	Online bool
+
+	// If permament then node should run more expensive processes
+	// that will improve performance in long run
+	Permament bool
 
 	// If NilRepo is set, a repo backed by a nil datastore will be constructed
 	NilRepo bool
@@ -105,7 +110,7 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		mode:      offlineMode,
 		Repo:      cfg.Repo,
 		ctx:       ctx,
-		Peerstore: peer.NewPeerstore(),
+		Peerstore: pstore.NewPeerstore(),
 	}
 	if cfg.Online {
 		n.mode = onlineMode
@@ -129,16 +134,33 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	var err error
-	n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Repo.Datastore()), kSizeBlockstoreWriteCache)
+	bs := bstore.NewBlockstore(n.Repo.Datastore())
+	opts := bstore.DefaultCacheOpts()
+	conf, err := n.Repo.Config()
 	if err != nil {
 		return err
 	}
 
+	opts.HasBloomFilterSize = conf.Datastore.BloomFilterSize
+	if !cfg.Permament {
+		opts.HasBloomFilterSize = 0
+	}
+
+	n.Blockstore, err = bstore.CachedBlockstore(bs, ctx, opts)
+	if err != nil {
+		return err
+	}
+
+	rcfg, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+
+	if rcfg.Datastore.HashOnRead {
+		bs.RuntimeHashing(true)
+	}
+
 	if cfg.Online {
-		rcfg, err := n.Repo.Config()
-		if err != nil {
-			return err
-		}
 		do := setupDiscoveryOption(rcfg.Discovery)
 		if err := n.startOnlineServices(ctx, cfg.Routing, cfg.Host, do); err != nil {
 			return err

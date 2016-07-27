@@ -13,8 +13,8 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
-	mocknet "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/net/mock"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	mocknet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/mock"
 )
 
 func TestRepublish(t *testing.T) {
@@ -44,7 +44,7 @@ func TestRepublish(t *testing.T) {
 	mn.LinkAll()
 
 	bsinf := core.BootstrapConfigWithPeers(
-		[]peer.PeerInfo{
+		[]pstore.PeerInfo{
 			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
 		},
 	)

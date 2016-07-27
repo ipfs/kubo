@@ -6,7 +6,7 @@ import (
 	"errors"
 	// Non crypto hash, because speed
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mtchavez/jenkins"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/steakknife/hamming"
+	"gx/ipfs/QmeWQMDa5dSdP4n8WDeoY5z8L2EKVqF4ZvK4VEHsLqXsGu/hamming"
 	"hash"
 )
 

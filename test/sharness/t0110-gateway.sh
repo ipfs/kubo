@@ -32,10 +32,6 @@ test_expect_success "GET IPFS path output looks good" '
   rm actual
 '
 
-test_expect_success "GET IPFS path on API forbidden" '
-  test_curl_resp_http_code "http://127.0.0.1:$apiport/ipfs/$HASH" "HTTP/1.1 403 Forbidden"
-'
-
 test_expect_success "GET IPFS directory path succeeds" '
   mkdir dir &&
   echo "12345" >dir/test &&
@@ -114,6 +110,11 @@ test_expect_success "GET 'index.html' has correct content type" '
 
 test_expect_success "output looks good" '
 	grep "Content-Type: text/html" indexout
+'
+
+test_expect_success "HEAD 'index.html' has no content" '
+	curl -X HEAD --max-time 1 http://127.0.0.1:$port/ipfs/$INDEXHASH/ > output;
+	[ ! -s output ]
 '
 
 # test ipfs readonly api

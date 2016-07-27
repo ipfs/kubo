@@ -11,7 +11,7 @@ import (
 // for ipfs. they are nodes run by the ipfs team. docs on these later.
 // As with all p2p networks, bootstrap is an important security concern.
 //
-// Note: this is here -- and not inside cmd/ipfs/init.go -- because of an
+// NOTE: This is here -- and not inside cmd/ipfs/init.go -- because of an
 // import dependency issue. TODO: move this into a config/default/ package.
 var DefaultBootstrapAddresses = []string{
 	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",  // mars.i.ipfs.io

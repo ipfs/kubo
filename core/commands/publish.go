@@ -13,7 +13,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
-	crypto "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/crypto"
+	crypto "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 )
 
 var errNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")
@@ -47,19 +47,18 @@ Publish an <ipfs-path> to another public key (not implemented):
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "IPFS path of the obejct to be published.").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, false, "IPFS path of the object to be published.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("resolve", "Resolve given path before publishing (default=true)."),
-		cmds.StringOption("lifetime", "t", `Time duration that the record will be valid for. Default: 24h.
-
+		cmds.BoolOption("resolve", "Resolve given path before publishing.").Default(true),
+		cmds.StringOption("lifetime", "t",
+			`Time duration that the record will be valid for. <default>
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
-    "ns", "us" (or "µs"), "ms", "s", "m", "h".
-		`),
+    "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("24h"),
 		cmds.StringOption("ttl", "Time duration this record should be cached for (caution: experimental)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		log.Debug("Begin Publish")
+		log.Debug("begin publish")
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -86,25 +85,18 @@ Publish an <ipfs-path> to another public key (not implemented):
 			return
 		}
 
-		popts := &publishOpts{
-			verifyExists: true,
-			pubValidTime: time.Hour * 24,
+		popts := new(publishOpts)
+
+		popts.verifyExists, _, _ = req.Option("resolve").Bool()
+
+		validtime, _, _ := req.Option("lifetime").String()
+		d, err := time.ParseDuration(validtime)
+		if err != nil {
+			res.SetError(fmt.Errorf("error parsing lifetime option: %s", err), cmds.ErrNormal)
+			return
 		}
 
-		verif, found, _ := req.Option("resolve").Bool()
-		if found {
-			popts.verifyExists = verif
-		}
-		validtime, found, _ := req.Option("lifetime").String()
-		if found {
-			d, err := time.ParseDuration(validtime)
-			if err != nil {
-				res.SetError(fmt.Errorf("error parsing lifetime option: %s", err), cmds.ErrNormal)
-				return
-			}
-
-			popts.pubValidTime = d
-		}
+		popts.pubValidTime = d
 
 		ctx := req.Context()
 		if ttl, found, _ := req.Option("ttl").String(); found {

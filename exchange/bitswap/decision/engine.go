@@ -3,14 +3,15 @@ package decision
 
 import (
 	"sync"
+	"time"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
 )
 
 // TODO consider taking responsibility for other types of requests. For
@@ -58,7 +59,7 @@ type Envelope struct {
 	Peer peer.ID
 
 	// Block is the payload
-	Block *blocks.Block
+	Block blocks.Block
 
 	// A callback to notify the decision queue that the task is complete
 	Sent func()
@@ -68,7 +69,7 @@ type Engine struct {
 	// peerRequestQueue is a priority queue of requests received from peers.
 	// Requests are popped from the queue, packaged up, and placed in the
 	// outbox.
-	peerRequestQueue peerRequestQueue
+	peerRequestQueue *prq
 
 	// FIXME it's a bit odd for the client and the worker to both share memory
 	// (both modify the peerRequestQueue) and also to communicate over the
@@ -83,9 +84,11 @@ type Engine struct {
 
 	bs bstore.Blockstore
 
-	lock sync.RWMutex // protects the fields immediatly below
+	lock sync.Mutex // protects the fields immediatly below
 	// ledgerMap lists Ledgers by their Partner key.
 	ledgerMap map[peer.ID]*ledger
+
+	ticker *time.Ticker
 }
 
 func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
@@ -95,6 +98,7 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 		peerRequestQueue: newPRQ(),
 		outbox:           make(chan (<-chan *Envelope), outboxChanBuffer),
 		workSignal:       make(chan struct{}, 1),
+		ticker:           time.NewTicker(time.Millisecond * 100),
 	}
 	go e.taskWorker(ctx)
 	return e
@@ -142,6 +146,9 @@ func (e *Engine) nextEnvelope(ctx context.Context) (*Envelope, error) {
 				return nil, ctx.Err()
 			case <-e.workSignal:
 				nextTask = e.peerRequestQueue.Pop()
+			case <-e.ticker.C:
+				e.peerRequestQueue.thawRound()
+				nextTask = e.peerRequestQueue.Pop()
 			}
 		}
 
@@ -178,8 +185,8 @@ func (e *Engine) Outbox() <-chan (<-chan *Envelope) {
 
 // Returns a slice of Peers with whom the local node has active sessions
 func (e *Engine) Peers() []peer.ID {
-	e.lock.RLock()
-	defer e.lock.RUnlock()
+	e.lock.Lock()
+	defer e.lock.Unlock()
 
 	response := make([]peer.ID, 0)
 	for _, ledger := range e.ledgerMap {
@@ -191,9 +198,6 @@ func (e *Engine) Peers() []peer.ID {
 // MessageReceived performs book-keeping. Returns error if passed invalid
 // arguments.
 func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
-	e.lock.Lock()
-	defer e.lock.Unlock()
-
 	if len(m.Wantlist()) == 0 && len(m.Blocks()) == 0 {
 		log.Debugf("received empty message from %s", p)
 	}
@@ -206,6 +210,8 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	}()
 
 	l := e.findOrCreate(p)
+	l.lk.Lock()
+	defer l.lk.Unlock()
 	if m.Full() {
 		l.wantList = wl.New()
 	}
@@ -226,16 +232,34 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	}
 
 	for _, block := range m.Blocks() {
-		log.Debugf("got block %s %d bytes", block.Key(), len(block.Data))
-		l.ReceivedBytes(len(block.Data))
-		for _, l := range e.ledgerMap {
-			if entry, ok := l.WantListContains(block.Key()); ok {
-				e.peerRequestQueue.Push(entry, l.Partner)
-				newWorkExists = true
-			}
-		}
+		log.Debugf("got block %s %d bytes", block.Key(), len(block.Data()))
+		l.ReceivedBytes(len(block.Data()))
 	}
 	return nil
+}
+
+func (e *Engine) addBlock(block blocks.Block) {
+	work := false
+
+	for _, l := range e.ledgerMap {
+		l.lk.Lock()
+		if entry, ok := l.WantListContains(block.Key()); ok {
+			e.peerRequestQueue.Push(entry, l.Partner)
+			work = true
+		}
+		l.lk.Unlock()
+	}
+
+	if work {
+		e.signalNewWork()
+	}
+}
+
+func (e *Engine) AddBlock(block blocks.Block) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	e.addBlock(block)
 }
 
 // TODO add contents of m.WantList() to my local wantlist? NB: could introduce
@@ -245,12 +269,9 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 // send happen atomically
 
 func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
-	e.lock.Lock()
-	defer e.lock.Unlock()
-
 	l := e.findOrCreate(p)
 	for _, block := range m.Blocks() {
-		l.SentBytes(len(block.Data))
+		l.SentBytes(len(block.Data()))
 		l.wantList.Remove(block.Key())
 		e.peerRequestQueue.Remove(block.Key(), p)
 	}
@@ -274,11 +295,13 @@ func (e *Engine) numBytesReceivedFrom(p peer.ID) uint64 {
 
 // ledger lazily instantiates a ledger
 func (e *Engine) findOrCreate(p peer.ID) *ledger {
+	e.lock.Lock()
 	l, ok := e.ledgerMap[p]
 	if !ok {
 		l = newLedger(p)
 		e.ledgerMap[p] = l
 	}
+	e.lock.Unlock()
 	return l
 }
 

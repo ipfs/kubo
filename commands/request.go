@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -70,6 +71,7 @@ type Request interface {
 	SetOption(name string, val interface{})
 	SetOptions(opts OptMap) error
 	Arguments() []string
+	StringArguments() []string
 	SetArguments([]string)
 	Files() files.File
 	SetFiles(files.File)
@@ -80,6 +82,7 @@ type Request interface {
 	Command() *Command
 	Values() map[string]interface{}
 	Stdin() io.Reader
+	VarArgs(func(string) error) error
 
 	ConvertOptions() error
 }
@@ -166,8 +169,22 @@ func (r *request) SetOptions(opts OptMap) error {
 	return r.ConvertOptions()
 }
 
+func (r *request) StringArguments() []string {
+	return r.arguments
+}
+
 // Arguments returns the arguments slice
 func (r *request) Arguments() []string {
+	if r.haveVarArgsFromStdin() {
+		err := r.VarArgs(func(s string) error {
+			r.arguments = append(r.arguments, s)
+			return nil
+		})
+		if err != nil && err != io.EOF {
+			log.Error(err)
+		}
+	}
+
 	return r.arguments
 }
 
@@ -185,6 +202,52 @@ func (r *request) SetFiles(f files.File) {
 
 func (r *request) Context() context.Context {
 	return r.rctx
+}
+
+func (r *request) haveVarArgsFromStdin() bool {
+	// we expect varargs if we have a string argument that supports stdin
+	// and not arguments to satisfy it
+	if len(r.cmd.Arguments) == 0 {
+		return false
+	}
+
+	last := r.cmd.Arguments[len(r.cmd.Arguments)-1]
+	return last.SupportsStdin && last.Type == ArgString && (last.Required || last.Variadic) &&
+		len(r.arguments) < len(r.cmd.Arguments)
+}
+
+// VarArgs can be used when you want string arguments as input
+// and also want to be able to handle them in a streaming fashion
+func (r *request) VarArgs(f func(string) error) error {
+	if len(r.arguments) >= len(r.cmd.Arguments) {
+		for _, arg := range r.arguments[len(r.cmd.Arguments)-1:] {
+			err := f(arg)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	if r.files == nil {
+		log.Warning("expected more arguments from stdin")
+		return nil
+	}
+
+	fi, err := r.files.NextFile()
+	if err != nil {
+		return err
+	}
+
+	scan := bufio.NewScanner(fi)
+	for scan.Scan() {
+		err := f(scan.Text())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func getContext(base context.Context, req Request) (context.Context, error) {

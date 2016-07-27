@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
@@ -15,6 +13,8 @@ import (
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
+	dssync "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
 )
 
 func TestBlocks(t *testing.T) {
@@ -22,9 +22,14 @@ func TestBlocks(t *testing.T) {
 	bs := New(bstore, offline.Exchange(bstore))
 	defer bs.Close()
 
+	_, err := bs.GetBlock(context.Background(), key.Key(""))
+	if err != ErrNotFound {
+		t.Error("Empty String Key should error", err)
+	}
+
 	b := blocks.NewBlock([]byte("beep boop"))
 	h := u.Hash([]byte("beep boop"))
-	if !bytes.Equal(b.Multihash, h) {
+	if !bytes.Equal(b.Multihash(), h) {
 		t.Error("Block Multihash and data multihash not equal")
 	}
 
@@ -54,7 +59,7 @@ func TestBlocks(t *testing.T) {
 		t.Error("Block keys not equal.")
 	}
 
-	if !bytes.Equal(b.Data, b2.Data) {
+	if !bytes.Equal(b.Data(), b2.Data()) {
 		t.Error("Block data is not equal.")
 	}
 }
@@ -79,7 +84,7 @@ func TestGetBlocksSequential(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
 		defer cancel()
 		out := servs[i].GetBlocks(ctx, keys)
-		gotten := make(map[key.Key]*blocks.Block)
+		gotten := make(map[key.Key]blocks.Block)
 		for blk := range out {
 			if _, ok := gotten[blk.Key()]; ok {
 				t.Fatal("Got duplicate block!")

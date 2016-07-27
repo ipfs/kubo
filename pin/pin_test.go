@@ -6,20 +6,20 @@ import (
 
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bs "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
+	dssync "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
 )
 
 func randNode() (*mdag.Node, key.Key) {
 	nd := new(mdag.Node)
-	nd.Data = make([]byte, 32)
-	util.NewTimeSeededRand().Read(nd.Data)
+	nd.SetData(make([]byte, 32))
+	util.NewTimeSeededRand().Read(nd.Data())
 	k, _ := nd.Key()
 	return nd, k
 }
@@ -213,7 +213,7 @@ func TestPinRecursiveFail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Note: this isnt a time based test, we expect the pin to fail
+	// NOTE: This isnt a time based test, we expect the pin to fail
 	mctx, _ := context.WithTimeout(ctx, time.Millisecond)
 	err = p.Pin(mctx, a, true)
 	if err == nil {

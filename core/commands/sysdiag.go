@@ -8,8 +8,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
-	sysi "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-sysinfo"
-	manet "gx/ipfs/QmYVqhVfbK4BKvbW88Lhm26b3ud14sTBvcm1H7uWUx1Fkp/go-multiaddr-net"
+	manet "gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
+	sysi "gx/ipfs/QmZRjKbHa6DenStpQJFiaPcEwkZqrx7TH6xTf342LDU3qM/go-sysinfo"
 )
 
 var sysDiagCmd = &cmds.Command{
@@ -44,8 +44,13 @@ Prints out information about your computer to aid in easier debugging.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		node, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
-		err = netInfo(info)
+		err = netInfo(node.OnlineMode(), info)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -117,7 +122,7 @@ func memInfo(out map[string]interface{}) error {
 	return nil
 }
 
-func netInfo(out map[string]interface{}) error {
+func netInfo(online bool, out map[string]interface{}) error {
 	n := make(map[string]interface{})
 	addrs, err := manet.InterfaceMultiaddrs()
 	if err != nil {
@@ -130,6 +135,7 @@ func netInfo(out map[string]interface{}) error {
 	}
 
 	n["interface_addresses"] = straddrs
+	n["online"] = online
 	out["net"] = n
 	return nil
 }

@@ -10,8 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -25,6 +23,8 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
+	dssync "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
 )
 
 type dagservAndPinner struct {
@@ -46,9 +46,9 @@ func getDagservAndPinner(t *testing.T) dagservAndPinner {
 
 func TestNode(t *testing.T) {
 
-	n1 := &Node{Data: []byte("beep")}
-	n2 := &Node{Data: []byte("boop")}
-	n3 := &Node{Data: []byte("beep boop")}
+	n1 := NodeWithData([]byte("beep"))
+	n2 := NodeWithData([]byte("boop"))
+	n3 := NodeWithData([]byte("beep boop"))
 	if err := n3.AddNodeLink("beep-link", n1); err != nil {
 		t.Error(err)
 	}
@@ -58,7 +58,7 @@ func TestNode(t *testing.T) {
 
 	printn := func(name string, n *Node) {
 		fmt.Println(">", name)
-		fmt.Println("data:", string(n.Data))
+		fmt.Println("data:", string(n.Data()))
 
 		fmt.Println("links:")
 		for _, l := range n.Links {
@@ -118,8 +118,8 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 	expected := NodeStat{
 		NumLinks:       len(n.Links),
 		BlockSize:      len(enc),
-		LinksSize:      len(enc) - len(n.Data), // includes framing.
-		DataSize:       len(n.Data),
+		LinksSize:      len(enc) - len(n.Data()), // includes framing.
+		DataSize:       len(n.Data()),
 		CumulativeSize: int(cumSize),
 		Hash:           k.B58String(),
 	}
@@ -131,7 +131,7 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 	}
 
 	if expected != *actual {
-		t.Error("n.Stat incorrect.\nexpect: %s\nactual: %s", expected, actual)
+		t.Errorf("n.Stat incorrect.\nexpect: %s\nactual: %s", expected, actual)
 	} else {
 		fmt.Printf("n.Stat correct: %s\n", actual)
 	}
@@ -245,9 +245,17 @@ func assertCanGet(t *testing.T, ds DAGService, n *Node) {
 	}
 }
 
+func TestEmptyKey(t *testing.T) {
+	ds := dstest.Mock()
+	_, err := ds.Get(context.Background(), key.Key(""))
+	if err != ErrNotFound {
+		t.Error("dag service should error when key is nil", err)
+	}
+}
+
 func TestCantGet(t *testing.T) {
 	dsp := getDagservAndPinner(t)
-	a := &Node{Data: []byte("A")}
+	a := NodeWithData([]byte("A"))
 
 	k, err := a.Key()
 	if err != nil {
@@ -284,7 +292,7 @@ func TestFetchGraph(t *testing.T) {
 	offline_ds := NewDAGService(bs)
 	ks := key.NewKeySet()
 
-	err = EnumerateChildren(context.Background(), offline_ds, root, ks)
+	err = EnumerateChildren(context.Background(), offline_ds, root, ks, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +309,7 @@ func TestEnumerateChildren(t *testing.T) {
 	}
 
 	ks := key.NewKeySet()
-	err = EnumerateChildren(context.Background(), ds, root, ks)
+	err = EnumerateChildren(context.Background(), ds, root, ks, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +339,7 @@ func TestFetchFailure(t *testing.T) {
 
 	top := new(Node)
 	for i := 0; i < 10; i++ {
-		nd := &Node{Data: []byte{byte('a' + i)}}
+		nd := NodeWithData([]byte{byte('a' + i)})
 		_, err := ds.Add(nd)
 		if err != nil {
 			t.Fatal(err)
@@ -344,7 +352,7 @@ func TestFetchFailure(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-		nd := &Node{Data: []byte{'f', 'a' + byte(i)}}
+		nd := NodeWithData([]byte{'f', 'a' + byte(i)})
 		_, err := ds_bad.Add(nd)
 		if err != nil {
 			t.Fatal(err)

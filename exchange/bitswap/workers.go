@@ -1,6 +1,7 @@
 package bitswap
 
 import (
+	"sync"
 	"time"
 
 	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
@@ -8,7 +9,9 @@ import (
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 )
 
 var TaskWorkerCount = 8
@@ -16,7 +19,7 @@ var TaskWorkerCount = 8
 func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// Start up a worker to handle block requests this node is making
 	px.Go(func(px process.Process) {
-		bs.providerConnector(ctx)
+		bs.providerQueryManager(ctx)
 	})
 
 	// Start up workers to handle requests from other nodes for the data on this node
@@ -58,7 +61,7 @@ func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 				log.Event(ctx, "Bitswap.TaskWorker.Work", logging.LoggableMap{
 					"ID":     id,
 					"Target": envelope.Peer.Pretty(),
-					"Block":  envelope.Block.Multihash.B58String(),
+					"Block":  envelope.Block.Multihash().B58String(),
 				})
 
 				bs.wm.SendBlock(ctx, envelope)
@@ -149,37 +152,6 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 	}
 }
 
-// connects to providers for the given keys
-func (bs *Bitswap) providerConnector(parent context.Context) {
-	defer log.Info("bitswap client worker shutting down...")
-
-	for {
-		log.Event(parent, "Bitswap.ProviderConnector.Loop")
-		select {
-		case req := <-bs.findKeys:
-			keys := req.keys
-			if len(keys) == 0 {
-				log.Warning("Received batch request for zero blocks")
-				continue
-			}
-			log.Event(parent, "Bitswap.ProviderConnector.Work", logging.LoggableMap{"Keys": keys})
-
-			// NB: Optimization. Assumes that providers of key[0] are likely to
-			// be able to provide for all keys. This currently holds true in most
-			// every situation. Later, this assumption may not hold as true.
-			child, cancel := context.WithTimeout(req.ctx, providerRequestTimeout)
-			providers := bs.network.FindProvidersAsync(child, keys[0], maxProvidersPerRequest)
-			for p := range providers {
-				go bs.network.ConnectTo(req.ctx, p)
-			}
-			cancel()
-
-		case <-parent.Done():
-			return
-		}
-	}
-}
-
 func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
@@ -200,11 +172,48 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 			}
 		case <-broadcastSignal.C: // resend unfulfilled wantlist keys
 			log.Event(ctx, "Bitswap.Rebroadcast.active")
-			entries := bs.wm.wl.Entries()
-			if len(entries) > 0 {
-				bs.connectToProviders(ctx, entries)
+			for _, e := range bs.wm.wl.Entries() {
+				bs.findKeys <- &e
 			}
 		case <-parent.Done():
+			return
+		}
+	}
+}
+
+func (bs *Bitswap) providerQueryManager(ctx context.Context) {
+	var activeLk sync.Mutex
+	active := make(map[key.Key]*wantlist.Entry)
+
+	for {
+		select {
+		case e := <-bs.findKeys:
+			activeLk.Lock()
+			if _, ok := active[e.Key]; ok {
+				activeLk.Unlock()
+				continue
+			}
+			active[e.Key] = e
+			activeLk.Unlock()
+
+			go func(e *wantlist.Entry) {
+				child, cancel := context.WithTimeout(e.Ctx, providerRequestTimeout)
+				defer cancel()
+				providers := bs.network.FindProvidersAsync(child, e.Key, maxProvidersPerRequest)
+				for p := range providers {
+					go func(p peer.ID) {
+						err := bs.network.ConnectTo(child, p)
+						if err != nil {
+							log.Debug("failed to connect to provider %s: %s", p, err)
+						}
+					}(p)
+				}
+				activeLk.Lock()
+				delete(active, e.Key)
+				activeLk.Unlock()
+			}(e)
+
+		case <-ctx.Done():
 			return
 		}
 	}

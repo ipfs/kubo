@@ -15,8 +15,8 @@ import (
 
 func randNode() (*merkledag.Node, key.Key) {
 	node := new(merkledag.Node)
-	node.Data = make([]byte, 32)
-	util.NewTimeSeededRand().Read(node.Data)
+	node.SetData(make([]byte, 32))
+	util.NewTimeSeededRand().Read(node.Data())
 	k, _ := node.Key()
 	return node, k
 }

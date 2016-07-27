@@ -93,7 +93,6 @@ test_expect_success "set up utp testbed" '
 	iptb init -n 5 -p 0 -f --bootstrap=none --utp
 '
 
-# currently have issues with utp running the advanced tests
-run_basic_test
+run_advanced_test
 
 test_done

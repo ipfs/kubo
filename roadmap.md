@@ -1,5 +1,5 @@
 # go-ipfs Q2 roadmap
-Note: no specific order is implied in this list
+NOTE: No specific order is implied in this list.
 
 - [ ] fix random test failures
   - check issues for label 'test_failure'

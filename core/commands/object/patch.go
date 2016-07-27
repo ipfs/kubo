@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -52,7 +51,7 @@ Example:
 
 	$ echo "hello" | ipfs object patch $HASH append-data
 
-Note: This does not append data to a file - it modifies the actual raw
+NOTE: This does not append data to a file - it modifies the actual raw
 data within an object. Objects have a max size of 1MB and objects larger than
 the limit will not be respected by the network.
 `,
@@ -92,7 +91,7 @@ the limit will not be respected by the network.
 			return
 		}
 
-		rootnd.Data = append(rootnd.Data, data...)
+		rootnd.SetData(append(rootnd.Data(), data...))
 
 		newkey, err := nd.DAG.Add(rootnd)
 		if err != nil {
@@ -154,7 +153,7 @@ Example:
 			return
 		}
 
-		root.Data = data
+		root.SetData(data)
 
 		newkey, err := nd.DAG.Add(root)
 		if err != nil {
@@ -242,17 +241,17 @@ Example:
     $ BAR=$(echo "bar" | ipfs add -q)
     $ ipfs object patch $EMPTY_DIR add-link foo $BAR
 
-This takes an empty directory, and adds a link named 'foo' under it, pointing to
-a file containing 'bar', and returns the hash of the new object.
+This takes an empty directory, and adds a link named 'foo' under it, pointing
+to a file containing 'bar', and returns the hash of the new object.
 `,
-	},
-	Options: []cmds.Option{
-		cmds.BoolOption("p", "create", "Create intermediary nodes."),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "The hash of the node to modify."),
 		cmds.StringArg("name", true, false, "Name of link to create."),
 		cmds.StringArg("ref", true, false, "IPFS object to add link to."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("create", "p", "Create intermediary nodes.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -273,8 +272,12 @@ a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
-		path := req.Arguments()[1]
-		childk := key.B58KeyDecode(req.Arguments()[2])
+		npath := req.Arguments()[1]
+		childp, err := path.ParsePath(req.Arguments()[2])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		create, _, err := req.Option("create").Bool()
 		if err != nil {
@@ -284,20 +287,18 @@ a file containing 'bar', and returns the hash of the new object.
 
 		var createfunc func() *dag.Node
 		if create {
-			createfunc = func() *dag.Node {
-				return &dag.Node{Data: ft.FolderPBData()}
-			}
+			createfunc = ft.EmptyDirNode
 		}
 
 		e := dagutils.NewDagEditor(root, nd.DAG)
 
-		childnd, err := nd.DAG.Get(req.Context(), childk)
+		childnd, err := core.Resolve(req.Context(), nd, childp)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		err = e.InsertNodeAtPath(req.Context(), path, childnd, createfunc)
+		err = e.InsertNodeAtPath(req.Context(), npath, childnd, createfunc)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

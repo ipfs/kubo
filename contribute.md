@@ -4,6 +4,9 @@ go-ipfs is MIT licensed open source software. We welcome contributions big and
 small! Take a look at the [community contributing notes](https://github.com/ipfs/community/blob/master/contributing.md). Please make sure to check the [issues](https://github.com/ipfs/go-ipfs/issues). Search the closed ones
 before reporting things, and help us with the open ones.
 
+If you're looking to help out, head to the [captain's log](https://github.com/ipfs/go-ipfs/issues/2247) and
+try picking up an issue from there.
+
 ## Go Guidelines:
 
 Please look and conform to our [Go Contribution Guidelines](https://github.com/ipfs/community/blob/master/go-contribution-guidelines.md).
@@ -18,6 +21,12 @@ Please look and conform to our [Go Contribution Guidelines](https://github.com/i
 - Have fun!
 
 ## Repository specific guidelines:
+
+### Each Commit Must Pass Tests
+
+All commits in a PR must pass tests. If they don't, fix the commits and/or [squash them](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History#Squashing-Commits) so that they do pass the tests. This should be done so that we can use git-bisect easily.
+
+We use CI tests which run when you push to your branch. To run the tests locally, you can run any of these: `make build`, `make install`, `make test`, `go test ./...`, depending on what youre looking to do. Generally `go test ./...` is your best bet.
 
 ### Commit messages
 
@@ -44,7 +53,7 @@ properly written. It checks the following:
   and with licensing the work under the [MIT license](docs/LICENSE).
 
   To help you automatically add these trailers, you can run the
-  [setup_commit_msg_hook.sh](https://github.com/ipfs/community/blob/master/dev/tools/hooks/setup_commit_msg_hook.sh)
+  [setup_commit_msg_hook.sh](https://raw.githubusercontent.com/ipfs/community/master/dev/tools/hooks/setup_commit_msg_hook.sh)
   script which will setup a Git commit-msg hook that will add the above
   trailers to all the commit messages you write.
 
@@ -90,8 +99,3 @@ reasons why this is _the right thing to do_:
 License: MIT
 Signed-off-by: Juan Benet <juan@ipfs.io>
 ```
-
-### Each Commit Must Pass Tests
-
-All commits in a PR must pass tests. If they don't, fix the commits and/or [squash them](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History#Squashing-Commits) so that they do pass the tests. This should be done so that we can use git-bisect easily.
-

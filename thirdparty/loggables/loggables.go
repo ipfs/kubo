@@ -2,18 +2,20 @@
 // commonplace/stdlib objects. This is boilerplate code that shouldn't change
 // much, and not sprinkled all over the place (i.e. gather it here).
 //
-// Note: it may make sense to put all stdlib Loggable functions in the eventlog
+// NOTE: it may make sense to put all stdlib Loggable functions in the eventlog
 // package. Putting it here for now in case we don't want to pollute it.
 package loggables
 
 import (
 	"net"
 
-	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
+	uuid "gx/ipfs/QmcyaFHbyiZfoX5GTpcqqCPYmbjYNAhRDekXSJPFHdYNSV/go.uuid"
 
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 )
 
 // NetConn returns an eventlog.Metadata with the conn addresses
@@ -28,6 +30,12 @@ func NetConn(c net.Conn) logging.Loggable {
 func Error(e error) logging.Loggable {
 	return logging.Metadata{
 		"error": e.Error(),
+	}
+}
+
+func Uuid(key string) logging.Metadata {
+	return logging.Metadata{
+		key: uuid.NewV4().String(),
 	}
 }
 

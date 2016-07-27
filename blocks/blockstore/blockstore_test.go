@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/query"
-	ds_sync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
+	dsq "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/query"
+	ds_sync "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -27,6 +27,14 @@ func TestGetWhenKeyNotPresent(t *testing.T) {
 	t.Fail()
 }
 
+func TestGetWhenKeyIsEmptyString(t *testing.T) {
+	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	_, err := bs.Get(key.Key(""))
+	if err != ErrNotFound {
+		t.Fail()
+	}
+}
+
 func TestPutThenGetBlock(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	block := blocks.NewBlock([]byte("some data"))
@@ -40,8 +48,24 @@ func TestPutThenGetBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(block.Data, blockFromBlockstore.Data) {
+	if !bytes.Equal(block.Data(), blockFromBlockstore.Data()) {
 		t.Fail()
+	}
+}
+
+func TestRuntimeHashing(t *testing.T) {
+	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	bl := blocks.NewBlock([]byte("some data"))
+	blBad, err := blocks.NewBlockWithHash([]byte("some other data"), bl.Key().ToMultihash())
+	if err != nil {
+		t.Fatal("Debug is enabled")
+	}
+
+	bs.Put(blBad)
+	bs.RuntimeHashing(true)
+
+	if _, err := bs.Get(bl.Key()); err != ErrHashMismatch {
+		t.Fatalf("Expected '%v' got '%v'\n", ErrHashMismatch, err)
 	}
 }
 
@@ -109,97 +133,42 @@ func TestAllKeysRespectsContext(t *testing.T) {
 		errors <- nil // a nil one to signal break
 	}
 
-	// Once without context, to make sure it all works
-	{
-		var results dsq.Results
-		var resultsmu = make(chan struct{})
-		resultChan := make(chan dsq.Result)
-		d.SetFunc(func(q dsq.Query) (dsq.Results, error) {
-			results = dsq.ResultsWithChan(q, resultChan)
-			resultsmu <- struct{}{}
-			return results, nil
-		})
+	var results dsq.Results
+	var resultsmu = make(chan struct{})
+	resultChan := make(chan dsq.Result)
+	d.SetFunc(func(q dsq.Query) (dsq.Results, error) {
+		results = dsq.ResultsWithChan(q, resultChan)
+		resultsmu <- struct{}{}
+		return results, nil
+	})
 
-		go getKeys(context.Background())
+	go getKeys(context.Background())
 
-		// make sure it's waiting.
-		<-started
-		<-resultsmu
-		select {
-		case <-done:
-			t.Fatal("sync is wrong")
-		case <-results.Process().Closing():
-			t.Fatal("should not be closing")
-		case <-results.Process().Closed():
-			t.Fatal("should not be closed")
-		default:
-		}
-
-		e := dsq.Entry{Key: BlockPrefix.ChildString("foo").String()}
-		resultChan <- dsq.Result{Entry: e} // let it go.
-		close(resultChan)
-		<-done                       // should be done now.
-		<-results.Process().Closed() // should be closed now
-
-		// print any errors
-		for err := range errors {
-			if err == nil {
-				break
-			}
-			t.Error(err)
-		}
+	// make sure it's waiting.
+	<-started
+	<-resultsmu
+	select {
+	case <-done:
+		t.Fatal("sync is wrong")
+	case <-results.Process().Closing():
+		t.Fatal("should not be closing")
+	case <-results.Process().Closed():
+		t.Fatal("should not be closed")
+	default:
 	}
 
-	// Once with
-	{
-		var results dsq.Results
-		var resultsmu = make(chan struct{})
-		resultChan := make(chan dsq.Result)
-		d.SetFunc(func(q dsq.Query) (dsq.Results, error) {
-			results = dsq.ResultsWithChan(q, resultChan)
-			resultsmu <- struct{}{}
-			return results, nil
-		})
+	e := dsq.Entry{Key: BlockPrefix.ChildString("foo").String()}
+	resultChan <- dsq.Result{Entry: e} // let it go.
+	close(resultChan)
+	<-done                       // should be done now.
+	<-results.Process().Closed() // should be closed now
 
-		ctx, cancel := context.WithCancel(context.Background())
-		go getKeys(ctx)
-
-		// make sure it's waiting.
-		<-started
-		<-resultsmu
-		select {
-		case <-done:
-			t.Fatal("sync is wrong")
-		case <-results.Process().Closing():
-			t.Fatal("should not be closing")
-		case <-results.Process().Closed():
-			t.Fatal("should not be closed")
-		default:
+	// print any errors
+	for err := range errors {
+		if err == nil {
+			break
 		}
-
-		cancel() // let it go.
-
-		select {
-		case <-done:
-			t.Fatal("sync is wrong")
-		case <-results.Process().Closed():
-			t.Fatal("should not be closed") // should not be closed yet.
-		case <-results.Process().Closing():
-			// should be closing now!
-			t.Log("closing correctly at this point.")
-		}
-
-		close(resultChan)
-		<-done                       // should be done now.
-		<-results.Process().Closed() // should be closed now
-
-		// print any errors
-		for err := range errors {
-			if err == nil {
-				break
-			}
-			t.Error(err)
-		}
+		t.Error(err)
 	}
 
 }

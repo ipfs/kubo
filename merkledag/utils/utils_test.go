@@ -13,9 +13,7 @@ import (
 
 func TestAddLink(t *testing.T) {
 	ds := mdtest.Mock()
-	fishnode := &dag.Node{
-		Data: []byte("fishcakes!"),
-	}
+	fishnode := dag.NodeWithData([]byte("fishcakes!"))
 
 	fk, err := ds.Add(fishnode)
 	if err != nil {
@@ -90,7 +88,7 @@ func TestInsertNode(t *testing.T) {
 }
 
 func testInsert(t *testing.T, e *Editor, path, data string, create bool, experr string) {
-	child := &dag.Node{Data: []byte(data)}
+	child := dag.NodeWithData([]byte(data))
 	ck, err := e.tmp.Add(child)
 	if err != nil {
 		t.Fatal(err)

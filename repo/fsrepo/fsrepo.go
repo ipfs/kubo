@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/measure"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
@@ -19,14 +18,15 @@ import (
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	"gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/measure"
 )
 
 var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
-var RepoVersion = "3"
+var RepoVersion = 4
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -36,9 +36,16 @@ Program version is: %s
 Please run the ipfs migration tool before continuing.
 ` + migrationInstructions
 
+var programTooLowMessage = `Your programs version (%d) is lower than your repos (%d).
+Please update ipfs to a version that supports the existing repo, or run
+a migration in reverse.
+
+See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md for details.`
+
 var (
-	ErrNoVersion = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
-	ErrOldRepo   = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
+	ErrNoVersion     = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
+	ErrOldRepo       = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
+	ErrNeedMigration = errors.New("ipfs repo needs migration.")
 )
 
 type NoRepoError struct {
@@ -134,8 +141,11 @@ func open(repoPath string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	if ver != RepoVersion {
-		return nil, fmt.Errorf(errIncorrectRepoFmt, ver, RepoVersion)
+	if RepoVersion > ver {
+		return nil, ErrNeedMigration
+	} else if ver > RepoVersion {
+		// program version too low for existing repo
+		return nil, fmt.Errorf(programTooLowMessage, RepoVersion, ver)
 	}
 
 	// check repo path, then check all constituent parts.
@@ -242,10 +252,6 @@ func Init(repoPath string, conf *config.Config) error {
 		return err
 	}
 
-	if err := dir.Writable(filepath.Join(repoPath, "logs")); err != nil {
-		return err
-	}
-
 	if err := mfsr.RepoPath(repoPath).WriteVersion(RepoVersion); err != nil {
 		return err
 	}
@@ -253,18 +259,15 @@ func Init(repoPath string, conf *config.Config) error {
 	return nil
 }
 
-// Remove recursively removes the FSRepo at |path|.
-func Remove(repoPath string) error {
-	repoPath = filepath.Clean(repoPath)
-	return os.RemoveAll(repoPath)
-}
-
 // LockedByOtherProcess returns true if the FSRepo is locked by another
 // process. If true, then the repo cannot be opened by this process.
 func LockedByOtherProcess(repoPath string) (bool, error) {
 	repoPath = filepath.Clean(repoPath)
-	// NB: the lock is only held when repos are Open
-	return lockfile.Locked(repoPath)
+	locked, err := lockfile.Locked(repoPath)
+	if locked {
+		log.Debugf("(%t)<->Lock is held at %s", locked, repoPath)
+	}
+	return locked, err
 }
 
 // APIAddr returns the registered API addr, according to the api file
@@ -364,7 +367,7 @@ func (r *FSRepo) Close() error {
 	}
 
 	err := os.Remove(filepath.Join(r.path, apiFile))
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		log.Warning("error removing api file: ", err)
 	}
 

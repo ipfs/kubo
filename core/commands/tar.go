@@ -26,7 +26,8 @@ var tarAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Import a tar file into ipfs.",
 		ShortDescription: `
-'ipfs tar add' will parse a tar file and create a merkledag structure to represent it.
+'ipfs tar add' will parse a tar file and create a merkledag structure to
+represent it.
 `,
 	},
 

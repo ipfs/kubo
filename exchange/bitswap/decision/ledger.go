@@ -1,11 +1,12 @@
 package decision
 
 import (
+	"sync"
 	"time"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 )
 
 // keySet is just a convenient alias for maps of keys, where we only care
@@ -44,6 +45,8 @@ type ledger struct {
 	// sentToPeer is a set of keys to ensure we dont send duplicate blocks
 	// to a given peer
 	sentToPeer map[key.Key]time.Time
+
+	lk sync.Mutex
 }
 
 type debtRatio struct {
@@ -67,7 +70,6 @@ func (l *ledger) ReceivedBytes(n int) {
 	l.Accounting.BytesRecv += uint64(n)
 }
 
-// TODO: this needs to be different. We need timeouts.
 func (l *ledger) Wants(k key.Key, priority int) {
 	log.Debugf("peer %s wants %s", l.Partner, k)
 	l.wantList.Add(k, priority)

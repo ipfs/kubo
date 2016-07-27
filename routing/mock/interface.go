@@ -5,13 +5,14 @@
 package mockrouting
 
 import (
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	routing "github.com/ipfs/go-ipfs/routing"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
 )
 
 // Server provides mockrouting Clients
@@ -22,7 +23,7 @@ type Server interface {
 
 // Client implements IpfsRouting
 type Client interface {
-	FindProviders(context.Context, key.Key) ([]peer.PeerInfo, error)
+	FindProviders(context.Context, key.Key) ([]pstore.PeerInfo, error)
 	routing.IpfsRouting
 }
 

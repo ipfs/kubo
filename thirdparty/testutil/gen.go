@@ -8,11 +8,11 @@ import (
 	"sync"
 	"testing"
 
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	ci "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/crypto"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
 
-	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 )
 
 // ZeroLocalTCPAddress is the "zero" tcp local multiaddr. This means:
@@ -61,7 +61,7 @@ func RandPeerIDFatal(t testing.TB) peer.ID {
 // RandLocalTCPAddress returns a random multiaddr. it suppresses errors
 // for nice composability-- do check the address isn't nil.
 //
-// Note: for real network tests, use ZeroLocalTCPAddress so the kernel
+// NOTE: for real network tests, use ZeroLocalTCPAddress so the kernel
 // assigns an unused TCP port. otherwise you may get clashes. This
 // function remains here so that p2p/net/mock (which does not touch the
 // real network) can assign different addresses to peers.

@@ -8,9 +8,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	"gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
+	syncds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
@@ -20,8 +20,8 @@ import (
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
-	mocknet "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/net/mock"
-	"gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	mocknet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/mock"
 )
 
 func TestSupernodeBootstrappedAddCat(t *testing.T) {
@@ -73,6 +73,7 @@ func RunSupernodeBootstrappedAddCat(data []byte, conf testutil.LatencyConfig) er
 	if 0 != bytes.Compare(bufout.Bytes(), data) {
 		return errors.New("catted data does not match added data")
 	}
+	cancel()
 	return nil
 }
 
@@ -103,7 +104,7 @@ func InitializeSupernodeNetwork(
 		servers = append(servers, bootstrap)
 	}
 
-	var bootstrapInfos []peer.PeerInfo
+	var bootstrapInfos []pstore.PeerInfo
 	for _, n := range servers {
 		info := n.Peerstore.PeerInfo(n.PeerHost.ID())
 		bootstrapInfos = append(bootstrapInfos, info)
@@ -177,5 +178,6 @@ func RunSupernodePutRecordGetRecord(conf testutil.LatencyConfig) error {
 	if 0 != bytes.Compare(note, received) {
 		return errors.New("record doesn't match")
 	}
+	cancel()
 	return nil
 }

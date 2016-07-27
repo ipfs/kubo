@@ -29,7 +29,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 var (
 	peersTotalMetric = prometheus.NewDesc(
 		prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
-		"Number of connected peers", nil, nil)
+		"Number of connected peers", []string{"transport"}, nil)
 )
 
 type IpfsNodeCollector struct {
@@ -41,13 +41,24 @@ func (_ IpfsNodeCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c IpfsNodeCollector) Collect(ch chan<- prometheus.Metric) {
-	ch <- prometheus.MustNewConstMetric(
-		peersTotalMetric,
-		prometheus.GaugeValue,
-		c.PeersTotalValue(),
-	)
+	for tr, val := range c.PeersTotalValues() {
+		ch <- prometheus.MustNewConstMetric(
+			peersTotalMetric,
+			prometheus.GaugeValue,
+			val,
+			tr,
+		)
+	}
 }
 
-func (c IpfsNodeCollector) PeersTotalValue() float64 {
-	return float64(len(c.Node.PeerHost.Network().Conns()))
+func (c IpfsNodeCollector) PeersTotalValues() map[string]float64 {
+	vals := make(map[string]float64)
+	for _, conn := range c.Node.PeerHost.Network().Conns() {
+		tr := ""
+		for _, proto := range conn.RemoteMultiaddr().Protocols() {
+			tr = tr + "/" + proto.Name
+		}
+		vals[tr] = vals[tr] + 1
+	}
+	return vals
 }

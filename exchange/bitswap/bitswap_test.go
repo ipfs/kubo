@@ -11,12 +11,13 @@ import (
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
+	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	p2ptestutil "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/test/util"
+	p2ptestutil "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/test/util"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -85,7 +86,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 		t.Fatal("Expected to succeed")
 	}
 
-	if !bytes.Equal(block.Data, received.Data) {
+	if !bytes.Equal(block.Data(), received.Data()) {
 		t.Fatal("Data doesn't match")
 	}
 }
@@ -218,7 +219,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	}
 }
 
-func getOrFail(bitswap Instance, b *blocks.Block, t *testing.T, wg *sync.WaitGroup) {
+func getOrFail(bitswap Instance, b blocks.Block, t *testing.T, wg *sync.WaitGroup) {
 	if _, err := bitswap.Blockstore().Get(b.Key()); err != nil {
 		_, err := bitswap.Exchange.GetBlock(context.Background(), b.Key())
 		if err != nil {
@@ -278,6 +279,18 @@ func TestSendToWantingPeer(t *testing.T) {
 
 }
 
+func TestEmptyKey(t *testing.T) {
+	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	sg := NewTestSessionGenerator(net)
+	defer sg.Close()
+	bs := sg.Instances(1)[0].Exchange
+
+	_, err := bs.GetBlock(context.Background(), key.Key(""))
+	if err != blockstore.ErrNotFound {
+		t.Error("empty str key should return ErrNotFound")
+	}
+}
+
 func TestBasicBitswap(t *testing.T) {
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
 	sg := NewTestSessionGenerator(net)
@@ -301,6 +314,60 @@ func TestBasicBitswap(t *testing.T) {
 	}
 
 	t.Log(blk)
+	for _, inst := range instances {
+		err := inst.Exchange.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestDoubleGet(t *testing.T) {
+	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	sg := NewTestSessionGenerator(net)
+	defer sg.Close()
+	bg := blocksutil.NewBlockGenerator()
+
+	t.Log("Test a one node trying to get one block from another")
+
+	instances := sg.Instances(2)
+	blocks := bg.Blocks(1)
+
+	ctx1, cancel1 := context.WithCancel(context.Background())
+
+	blkch1, err := instances[1].Exchange.GetBlocks(ctx1, []key.Key{blocks[0].Key()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	defer cancel2()
+
+	blkch2, err := instances[1].Exchange.GetBlocks(ctx2, []key.Key{blocks[0].Key()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// ensure both requests make it into the wantlist at the same time
+	time.Sleep(time.Millisecond * 100)
+	cancel1()
+
+	_, ok := <-blkch1
+	if ok {
+		t.Fatal("expected channel to be closed")
+	}
+
+	err = instances[0].Exchange.HasBlock(blocks[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	blk, ok := <-blkch2
+	if !ok {
+		t.Fatal("expected to get the block here")
+	}
+	t.Log(blk)
+
 	for _, inst := range instances {
 		err := inst.Exchange.Close()
 		if err != nil {

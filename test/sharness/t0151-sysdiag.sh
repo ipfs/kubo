@@ -17,7 +17,8 @@ test_expect_success "ipfs diag sys succeeds" '
 test_expect_success "output contains some expected keys" '
 	grep "virt" output &&
 	grep "interface_addresses" output &&
-	grep "arch" output
+	grep "arch" output &&
+	grep "online" output
 '
 
 test_expect_success "uname succeeds" '

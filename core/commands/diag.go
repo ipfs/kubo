@@ -22,7 +22,8 @@ type DiagnosticConnection struct {
 var (
 	visD3   = "d3"
 	visDot  = "dot"
-	visFmts = []string{visD3, visDot}
+	visText = "text"
+	visFmts = []string{visD3, visDot, visText}
 )
 
 type DiagnosticPeer struct {
@@ -66,8 +67,8 @@ timeout. If the timeout is too small, some peers may not be reached.
 The default timeout is 20 seconds.
 
 The 'vis' option may be used to change the output format.
-Four formats are supported:
- * plain text - Easy to read. Default.
+Three formats are supported:
+ * text - Easy to read. Default.
  * d3 - json ready to be fed into d3view
  * dot - graphviz format
 
@@ -81,13 +82,13 @@ open the following link:
 
 	http://gateway.ipfs.io/ipfs/QmbesKpGyQGd5jtJFUGEB1ByPjNFpukhnKZDnkfxUiKn38/chord#<your hash>
 
-The dot format can be fed into graphviz and other programs
+The 'dot' format can be fed into graphviz and other programs
 that consume the dot format to generate graphs of the network.
 `,
 	},
 
 	Options: []cmds.Option{
-		cmds.StringOption("vis", "Output vis. One of: "+strings.Join(visFmts, ", ")),
+		cmds.StringOption("vis", "Output format. One of: "+strings.Join(visFmts, ", ")).Default(visText),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -141,13 +142,16 @@ that consume the dot format to generate graphs of the network.
 				return
 			}
 			res.SetOutput(io.Reader(buf))
-		default:
+		case visText:
 			output, err := stdDiagOutputMarshal(standardDiagOutput(info))
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 			res.SetOutput(output)
+		default:
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 	},
 }

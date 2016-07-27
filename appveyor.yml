@@ -40,7 +40,7 @@ install:
 # default file handles. Ensure a dummy file descriptor is opened with 'exec'.
 #  
 build_script:
-  - '%BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; export PATH=$GOPATH/bin:$PATH; make toolkit_upgrade; make nofuse"'
+  - '%BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; export PATH=$GOPATH/bin:$PATH; make nofuse"'
   
 test_script:
   - '%BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; export PATH=$GOPATH/bin:$PATH; export GOFLAGS=''-tags nofuse''; export TEST_NO_FUSE=1; export TEST_VERBOSE=1; export TEST_SUITE=test_sharness_expensive; make $TEST_SUITE"'

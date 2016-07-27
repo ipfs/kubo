@@ -33,7 +33,7 @@ TEST_TESTS_DIR=$(dirname "$TEST_SCRIPTS_DIR")
 APP_ROOT_DIR=$(dirname "$TEST_TESTS_DIR")
 
 test_expect_success "docker image build succeeds" '
-	docker_build "$TEST_TESTS_DIR/Dockerfile" "$APP_ROOT_DIR" >actual ||
+	docker_build "$TEST_TESTS_DIR/../Dockerfile.fast" "$APP_ROOT_DIR" >actual ||
 	test_fsh echo "TEST_TESTS_DIR: $TEST_TESTS_DIR" ||
 	test_fsh echo "APP_ROOT_DIR : $APP_ROOT_DIR" ||
 	test_fsh cat actual
@@ -65,6 +65,17 @@ test_expect_success "simple ipfs add/cat can be run in docker container" '
 	docker_exec "$DOC_ID" "ipfs cat $HASH" >actual &&
 	test_cmp expected actual
 '
+
+read testcode <<EOF
+	docker exec -i "$DOC_ID" wget --retry-connrefused --waitretry=1 --timeout=30 -t 30 \
+		-q -O - http://localhost:8080/version | grep Commit | cut -d" " -f2 >actual ; \
+	test -s actual ; \
+	docker exec -i "$DOC_ID" ipfs version --enc json \
+		| sed 's/^.*"Commit":"\\\([^"]*\\\)".*$/\\\1/g' >expected ; \
+	test -s expected ; \
+	test_cmp expected actual
+EOF
+test_expect_success "version CurrentCommit is set" "$testcode"
 
 test_expect_success "stop docker container" '
 	docker_stop "$DOC_ID"

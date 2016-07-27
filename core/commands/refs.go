@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 
@@ -35,11 +34,12 @@ var RefsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Lists links (references) from an object.",
 		ShortDescription: `
-Displays the link hashes an IPFS or IPNS object(s) contains, with the following format:
+Lists the hashes of all the links an IPFS or IPNS object(s) contains,
+with the following format:
 
   <link base58 hash>
 
-Note: List all references recursively by using the flag '-r'.
+NOTE: List all references recursively by using the flag '-r'.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -49,10 +49,10 @@ Note: List all references recursively by using the flag '-r'.
 		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>."),
-		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
-		cmds.BoolOption("unique", "u", "Omit duplicate refs from output."),
-		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes."),
+		cmds.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").Default("<dst>"),
+		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`.").Default(false),
+		cmds.BoolOption("unique", "u", "Omit duplicate refs from output.").Default(false),
+		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
@@ -116,35 +116,8 @@ Note: List all references recursively by using the flag '-r'.
 			}
 		}()
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(<-chan interface{})
-			if !ok {
-				return nil, u.ErrCast()
-			}
-
-			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*RefWrapper)
-				if !ok {
-					fmt.Println("%#v", v)
-					return nil, u.ErrCast()
-				}
-
-				if obj.Err != "" {
-					return nil, errors.New(obj.Err)
-				}
-
-				return strings.NewReader(obj.Ref + "\n"), nil
-			}
-
-			return &cmds.ChannelMarshaler{
-				Channel:   outChan,
-				Marshaler: marshal,
-				Res:       res,
-			}, nil
-		},
-	},
-	Type: RefWrapper{},
+	Marshalers: refsMarshallerMap,
+	Type:       RefWrapper{},
 }
 
 var RefsLocalCmd = &cmds.Command{
@@ -170,21 +143,46 @@ Displays the hashes of all local objects.
 			return
 		}
 
-		piper, pipew := io.Pipe()
+		out := make(chan interface{})
+		res.SetOutput((<-chan interface{})(out))
 
 		go func() {
-			defer pipew.Close()
+			defer close(out)
 
 			for k := range allKeys {
-				s := k.B58String() + "\n"
-				if _, err := pipew.Write([]byte(s)); err != nil {
-					log.Error("pipe write error: ", err)
-					return
-				}
+				out <- &RefWrapper{Ref: k.B58String()}
 			}
 		}()
+	},
+	Marshalers: refsMarshallerMap,
+	Type:       RefWrapper{},
+}
 
-		res.SetOutput(piper)
+var refsMarshallerMap = cmds.MarshalerMap{
+	cmds.Text: func(res cmds.Response) (io.Reader, error) {
+		outChan, ok := res.Output().(<-chan interface{})
+		if !ok {
+			return nil, u.ErrCast()
+		}
+
+		marshal := func(v interface{}) (io.Reader, error) {
+			obj, ok := v.(*RefWrapper)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			if obj.Err != "" {
+				return nil, errors.New(obj.Err)
+			}
+
+			return strings.NewReader(obj.Ref + "\n"), nil
+		}
+
+		return &cmds.ChannelMarshaler{
+			Channel:   outChan,
+			Marshaler: marshal,
+			Res:       res,
+		}, nil
 	},
 }
 

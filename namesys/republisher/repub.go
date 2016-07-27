@@ -11,14 +11,15 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	gpctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
 )
 
 var errNoEntry = errors.New("no previous entry")
@@ -32,7 +33,7 @@ const DefaultRecordLifetime = time.Hour * 24
 type Republisher struct {
 	r  routing.IpfsRouting
 	ds ds.Datastore
-	ps peer.Peerstore
+	ps pstore.Peerstore
 
 	Interval time.Duration
 
@@ -43,7 +44,7 @@ type Republisher struct {
 	entries   map[peer.ID]struct{}
 }
 
-func NewRepublisher(r routing.IpfsRouting, ds ds.Datastore, ps peer.Peerstore) *Republisher {
+func NewRepublisher(r routing.IpfsRouting, ds ds.Datastore, ps pstore.Peerstore) *Republisher {
 	return &Republisher{
 		r:              r,
 		ps:             ps,

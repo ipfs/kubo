@@ -5,29 +5,31 @@ import (
 	"errors"
 	"time"
 
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
-	"gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/host"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
+	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
+
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	"gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/host"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var log = logging.Logger("supernode")
 
 type Client struct {
 	peerhost  host.Host
-	peerstore peer.Peerstore
+	peerstore pstore.Peerstore
 	proxy     proxy.Proxy
 	local     peer.ID
 }
 
 // TODO take in datastore/cache
-func NewClient(px proxy.Proxy, h host.Host, ps peer.Peerstore, local peer.ID) (*Client, error) {
+func NewClient(px proxy.Proxy, h host.Host, ps pstore.Peerstore, local peer.ID) (*Client, error) {
 	return &Client{
 		proxy:     px,
 		local:     local,
@@ -36,10 +38,10 @@ func NewClient(px proxy.Proxy, h host.Host, ps peer.Peerstore, local peer.ID) (*
 	}, nil
 }
 
-func (c *Client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.PeerInfo {
-	ctx = logging.ContextWithLoggable(ctx, logging.Uuid("findProviders"))
+func (c *Client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan pstore.PeerInfo {
+	logging.ContextWithLoggable(ctx, loggables.Uuid("findProviders"))
 	defer log.EventBegin(ctx, "findProviders", &k).Done()
-	ch := make(chan peer.PeerInfo)
+	ch := make(chan pstore.PeerInfo)
 	go func() {
 		defer close(ch)
 		request := pb.NewMessage(pb.Message_GET_PROVIDERS, string(k), 0)
@@ -103,7 +105,7 @@ func (c *Client) Provide(ctx context.Context, k key.Key) error {
 	// FIXME how is connectedness defined for the local node
 	pri := []pb.PeerRoutingInfo{
 		{
-			PeerInfo: peer.PeerInfo{
+			PeerInfo: pstore.PeerInfo{
 				ID:    c.local,
 				Addrs: c.peerhost.Addrs(),
 			},
@@ -113,23 +115,23 @@ func (c *Client) Provide(ctx context.Context, k key.Key) error {
 	return c.proxy.SendMessage(ctx, msg) // TODO wrap to hide remote
 }
 
-func (c *Client) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, error) {
+func (c *Client) FindPeer(ctx context.Context, id peer.ID) (pstore.PeerInfo, error) {
 	defer log.EventBegin(ctx, "findPeer", id).Done()
 	request := pb.NewMessage(pb.Message_FIND_NODE, string(id), 0)
 	response, err := c.proxy.SendRequest(ctx, request) // hide remote
 	if err != nil {
-		return peer.PeerInfo{}, err
+		return pstore.PeerInfo{}, err
 	}
 	for _, p := range pb.PBPeersToPeerInfos(response.GetCloserPeers()) {
 		if p.ID == id {
 			return p, nil
 		}
 	}
-	return peer.PeerInfo{}, errors.New("could not find peer")
+	return pstore.PeerInfo{}, errors.New("could not find peer")
 }
 
 // creates and signs a record for the given key/value pair
-func makeRecord(ps peer.Peerstore, p peer.ID, k key.Key, v []byte) (*pb.Record, error) {
+func makeRecord(ps pstore.Peerstore, p peer.ID, k key.Key, v []byte) (*pb.Record, error) {
 	blob := bytes.Join([][]byte{[]byte(k), v, []byte(p)}, []byte{})
 	sig, err := ps.PrivKey(p).Sign(blob)
 	if err != nil {

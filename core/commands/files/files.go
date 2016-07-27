@@ -16,8 +16,8 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 )
 
 var log = logging.Logger("cmds/files")
@@ -26,19 +26,21 @@ var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Manipulate unixfs files.",
 		ShortDescription: `
-Files is an API for manipulating IPFS objects as if they were a unix filesystem.
+Files is an API for manipulating IPFS objects as if they were a unix
+filesystem.
 
-Note:
-Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults to
-true. Use caution when setting this flag to false. It will improve performance
-for large numbers of file operations, but it does so at the cost of consistency
-guarantees. If the daemon is unexpectedly killed before running 'ipfs files flush'
-on the files in question, then data may be lost. This also applies to running
-'ipfs repo gc' concurrently with '--flush=false' operations.
+NOTE:
+Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults
+to true. Use caution when setting this flag to false. It will improve
+performance for large numbers of file operations, but it does so at the cost
+of consistency guarantees. If the daemon is unexpectedly killed before running
+'ipfs files flush' on the files in question, then data may be lost. This also
+applies to running 'ipfs repo gc' concurrently with '--flush=false'
+operations.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("f", "flush", "Flush target and ancestors after write. Default: true."),
+		cmds.BoolOption("flush", "f", "Flush target and ancestors after write. Default: true."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -53,6 +55,8 @@ on the files in question, then data may be lost. This also applies to running
 	},
 }
 
+var formatError = errors.New("Format was set by multiple options. Only one format option is allowed")
+
 var FilesStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Display file status.",
@@ -61,7 +65,24 @@ var FilesStatCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", true, false, "Path to node to stat."),
 	},
+	Options: []cmds.Option{
+		cmds.StringOption("format", "Print statistics in given format. Allowed tokens: "+
+			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").Default(
+			`<hash>
+Size: <size>
+CumulativeSize: <cumulsize>
+ChildBlocks: <childs>
+Type: <type>`),
+		cmds.BoolOption("hash", "Print only hash. Implies '--format=<hash>'. Conflicts with other format options.").Default(false),
+		cmds.BoolOption("size", "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options.").Default(false),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
+
+		_, err := statGetFormatOptions(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrClient)
+		}
+
 		node, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -90,17 +111,45 @@ var FilesStatCmd = &cmds.Command{
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+
 			out := res.Output().(*Object)
 			buf := new(bytes.Buffer)
-			fmt.Fprintln(buf, out.Hash)
-			fmt.Fprintf(buf, "Size: %d\n", out.Size)
-			fmt.Fprintf(buf, "CumulativeSize: %d\n", out.CumulativeSize)
-			fmt.Fprintf(buf, "ChildBlocks: %d\n", out.Blocks)
-			fmt.Fprintf(buf, "Type: %s\n", out.Type)
+
+			s, _ := statGetFormatOptions(res.Request())
+			s = strings.Replace(s, "<hash>", out.Hash, -1)
+			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
+			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
+			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
+			s = strings.Replace(s, "<type>", out.Type, -1)
+
+			fmt.Fprintln(buf, s)
 			return buf, nil
 		},
 	},
 	Type: Object{},
+}
+
+func moreThanOne(a, b, c bool) bool {
+	return a && b || b && c || a && c
+}
+
+func statGetFormatOptions(req cmds.Request) (string, error) {
+
+	hash, _, _ := req.Option("hash").Bool()
+	size, _, _ := req.Option("size").Bool()
+	format, found, _ := req.Option("format").String()
+
+	if moreThanOne(hash, size, found) {
+		return "", formatError
+	}
+
+	if hash {
+		return "<hash>", nil
+	} else if size {
+		return "<cumulsize>", nil
+	} else {
+		return format, nil
+	}
 }
 
 func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
@@ -114,7 +163,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 		return nil, err
 	}
 
-	d, err := ft.FromBytes(nd.Data)
+	d, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -168,10 +217,16 @@ var FilesCpCmd = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		src = strings.TrimRight(src, "/")
+
 		dst, err := checkPath(req.Arguments()[1])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+
+		if dst[len(dst)-1] == '/' {
+			dst += gopath.Base(src)
 		}
 
 		nd, err := getNodeFromPath(req.Context(), node, src)
@@ -334,8 +389,8 @@ var FilesReadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Read a file in a given mfs.",
 		ShortDescription: `
-Read a specified number of bytes from a file at a given offset. By default, will
-read the entire file similar to unix cat.
+Read a specified number of bytes from a file at a given offset. By default,
+will read the entire file similar to unix cat.
 
 Examples:
 
@@ -348,8 +403,8 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin reading from."),
-		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
+		cmds.IntOption("offset", "o", "Byte offset to begin reading from."),
+		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -499,16 +554,16 @@ If the '--flush' option is set to false, changes will not be propogated to the
 merkledag root. This can make operations much faster when doing a large number
 of writes to a deeper directory structure.
 
-Example:
+EXAMPLE:
 
     echo "hello world" | ipfs files write --create /myfs/a/b/file
     echo "hello world" | ipfs files write --truncate /myfs/a/b/file
 
-Warning:
+WARNING:
 
-    Usage of the '--flush=false' option does not guarantee data durability until
-	the tree has been flushed. This can be accomplished by running 'ipfs files stat'
-	on the file or any of its ancestors.
+Usage of the '--flush=false' option does not guarantee data durability until
+the tree has been flushed. This can be accomplished by running 'ipfs files
+stat' on the file or any of its ancestors.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -516,10 +571,10 @@ Warning:
 		cmds.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin writing at."),
-		cmds.BoolOption("e", "create", "Create the file if it does not exist."),
-		cmds.BoolOption("t", "truncate", "Truncate the file to size zero before writing."),
-		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
+		cmds.IntOption("offset", "o", "Byte offset to begin writing at."),
+		cmds.BoolOption("create", "e", "Create the file if it does not exist."),
+		cmds.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
+		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -616,7 +671,7 @@ var FilesMkdirCmd = &cmds.Command{
 		ShortDescription: `
 Create the directory if it does not already exist.
 
-Note: All paths must be absolute.
+NOTE: All paths must be absolute.
 
 Examples:
 
@@ -629,7 +684,7 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "parents", "No error if existing, make parent directories as needed."),
+		cmds.BoolOption("parents", "p", "No error if existing, make parent directories as needed."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -709,7 +764,7 @@ Remove files or directories.
 		cmds.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("r", "recursive", "Recursively remove directories."),
+		cmds.BoolOption("recursive", "r", "Recursively remove directories."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -822,7 +877,7 @@ func getFileHandle(r *mfs.Root, path string, create bool) (*mfs.File, error) {
 			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
 
-		nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
 		err = pdir.AddChild(fname, nd)
 		if err != nil {
 			return nil, err

@@ -3,16 +3,16 @@ package bitswap
 import (
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	ds_sync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	datastore2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	p2ptestutil "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/test/util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
-	p2ptestutil "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/test/util"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
+	ds_sync "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/sync"
 )
 
 // WARNING: this uses RandTestBogusIdentity DO NOT USE for NON TESTS!
@@ -87,12 +87,14 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // just a much better idea.
 func Session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
 	bsdelay := delay.Fixed(0)
+	const bloomSize = 512
 	const writeCacheElems = 100
 
 	adapter := net.Adapter(p)
 	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
 
-	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)), writeCacheElems)
+	bstore, err := blockstore.CachedBlockstore(blockstore.NewBlockstore(
+		ds_sync.MutexWrap(dstore)), ctx, blockstore.DefaultCacheOpts())
 	if err != nil {
 		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}

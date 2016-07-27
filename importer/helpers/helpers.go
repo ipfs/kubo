@@ -59,7 +59,7 @@ func NewUnixfsBlock() *UnixfsNode {
 
 // NewUnixfsNodeFromDag reconstructs a Unixfs node from a given dag node
 func NewUnixfsNodeFromDag(nd *dag.Node) (*UnixfsNode, error) {
-	mb, err := ft.FSNodeFromBytes(nd.Data)
+	mb, err := ft.FSNodeFromBytes(nd.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +126,6 @@ func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	n.node.Data = data
+	n.node.SetData(data)
 	return n.node, nil
 }

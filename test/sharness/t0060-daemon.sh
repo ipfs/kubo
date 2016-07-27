@@ -69,7 +69,7 @@ test_expect_success "ipfs help succeeds" '
 '
 
 test_expect_success "ipfs help output looks good" '
-	egrep -i "^Usage:" help.txt >/dev/null &&
+	egrep -i "^Usage" help.txt >/dev/null &&
 	egrep "ipfs .* <command>" help.txt >/dev/null ||
 	test_fsh cat help.txt
 '
@@ -88,7 +88,7 @@ test_expect_success "transport should be encrypted" '
 '
 
 test_expect_success "output from streaming commands works" '
-	test_expect_code 28 curl -m 2 http://localhost:$API_PORT/api/v0/stats/bw\?poll=true > statsout
+	test_expect_code 28 curl -m 5 http://localhost:$API_PORT/api/v0/stats/bw\?poll=true > statsout
 '
 
 test_expect_success "output looks good" '
@@ -120,5 +120,15 @@ test_expect_success "daemon with pipe eventually becomes live" '
   test_kill_repeat_10_sec $DAEMON_PID ||
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
+
+ulimit -n 512
+TEST_ULIMIT_PRESET=1
+test_launch_ipfs_daemon
+
+test_expect_success "daemon raised its fd limit" '
+	grep "ulimit" actual_daemon > /dev/null
+'
+
+test_kill_ipfs_daemon
 
 test_done

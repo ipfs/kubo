@@ -8,10 +8,6 @@ test_description="Test add and cat commands"
 
 . lib/test-lib.sh
 
-client_err() {
-    printf "$@\n\nUse 'ipfs add --help' for information about this command\n"
-}
-
 test_add_cat_file() {
     test_expect_success "ipfs add succeeds" '
     	echo "Hello Worlds!" >mountdir/hello.txt &&
@@ -66,6 +62,17 @@ test_add_cat_file() {
     test_expect_success "ipfs add --chunker size-32 output looks good" '
     	HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
         echo "added $HASH hello.txt" >expected &&
+        test_cmp expected actual
+    '
+
+    test_expect_success "ipfs add on hidden file succeeds" '
+        echo "Hello Worlds!" >mountdir/.hello.txt &&
+        ipfs add mountdir/.hello.txt >actual
+    '
+
+    test_expect_success "ipfs add on hidden file output looks good" '
+        HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
+        echo "added $HASH .hello.txt" >expected &&
         test_cmp expected actual
     '
 }
@@ -156,9 +163,10 @@ test_add_named_pipe() {
     test_expect_success "useful error message when adding a named pipe" '
         mkfifo named-pipe &&
 	    test_expect_code 1 ipfs add named-pipe 2>actual &&
-        client_err "Error: Unrecognized file type for named-pipe: $(generic_stat named-pipe)" >expected &&
         rm named-pipe &&
-	    test_cmp expected actual
+        grep "Error: Unrecognized file type for named-pipe: $(generic_stat named-pipe)" actual &&
+        grep USAGE actual &&
+        grep "ipfs add" actual
     '
 
     test_expect_success "useful error message when recursively adding a named pipe" '
@@ -203,7 +211,7 @@ test_expect_success "ipfs cat output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "ipfs cat accept hash from stdin" '
+test_expect_success "ipfs cat accept hash from built input" '
 	echo "$HASH" | ipfs cat >actual
 '
 
@@ -259,11 +267,11 @@ test_expect_success "'ipfs add' output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "'ipfs cat' with stdin input succeeds" '
+test_expect_success "'ipfs cat' with built input succeeds" '
 	echo "$HASH" | ipfs cat >actual
 '
 
-test_expect_success "ipfs cat with stdin input output looks good" '
+test_expect_success "ipfs cat with built input output looks good" '
 	printf "Hello Neptune!\nHello Pluton!" >expected &&
 	test_cmp expected actual
 '
@@ -285,7 +293,32 @@ test_expect_success "'ipfs add -r' output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "ipfs cat accept many hashes from stdin" '
+test_expect_success "'ipfs add -rn' succeeds" '
+	mkdir -p mountdir/moons/jupiter &&
+	mkdir -p mountdir/moons/saturn &&
+	echo "Hello Europa!" >mountdir/moons/jupiter/europa.txt &&
+	echo "Hello Titan!" >mountdir/moons/saturn/titan.txt &&
+	echo "hey youre no moon!" >mountdir/moons/mercury.txt &&
+	ipfs add -rn mountdir/moons >actual
+'
+
+test_expect_success "'ipfs add -rn' output looks good" '
+	MOONS="QmVKvomp91nMih5j6hYBA8KjbiaYvEetU2Q7KvtZkLe9nQ" &&
+	EUROPA="Qmbjg7zWdqdMaK2BucPncJQDxiALExph5k3NkQv5RHpccu" &&
+  JUPITER="QmS5mZddhFPLWFX3w6FzAy9QxyYkaxvUpsWCtZ3r7jub9J" &&
+  SATURN="QmaMagZT4rTE7Nonw8KGSK4oe1bh533yhZrCo1HihSG8FK" &&
+	TITAN="QmZzppb9WHn552rmRqpPfgU5FEiHH6gDwi3MrB9cTdPwdb" &&
+	MERCURY="QmUJjVtnN8YEeYcS8VmUeWffTWhnMQAkk5DzZdKnPhqUdK" &&
+  echo "added $EUROPA moons/jupiter/europa.txt" >expected &&
+  echo "added $MERCURY moons/mercury.txt" >>expected &&
+  echo "added $TITAN moons/saturn/titan.txt" >>expected &&
+  echo "added $JUPITER moons/jupiter" >>expected &&
+  echo "added $SATURN moons/saturn" >>expected &&
+  echo "added $MOONS moons" >>expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs cat accept many hashes from built input" '
 	{ echo "$MARS"; echo "$VENUS"; } | ipfs cat >actual
 '
 
@@ -302,33 +335,15 @@ test_expect_success "ipfs cat output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "ipfs cat with both arg and stdin" '
-	echo "$MARS" | ipfs cat "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/venus.txt >expected &&
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs cat with two args and stdin" '
-	echo "$MARS" | ipfs cat "$VENUS" "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/venus.txt mountdir/planets/venus.txt >expected &&
-	test_cmp expected actual
-'
-
 test_expect_success "go-random is installed" '
-    	type random
-    '
+    type random
+'
 
 test_add_cat_5MB
 
 test_add_cat_expensive
 
-test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=true&r=true&stream-channels=true:"
+test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&r=true&stream-channels=true:"
 
 test_kill_ipfs_daemon
 
@@ -346,5 +361,12 @@ test_expect_success "ipfs cat file fails" '
 '
 
 test_add_named_pipe ""
+
+# Test daemon in offline mode
+test_launch_ipfs_daemon --offline
+
+test_add_cat_file
+
+test_kill_ipfs_daemon
 
 test_done

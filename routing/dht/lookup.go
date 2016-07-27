@@ -5,13 +5,15 @@ import (
 	notif "github.com/ipfs/go-ipfs/notifications"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	pset "github.com/ipfs/go-ipfs/thirdparty/peerset"
+
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
 )
 
 // Required in order for proper JSON marshaling
-func pointerizePeerInfos(pis []peer.PeerInfo) []*peer.PeerInfo {
-	out := make([]*peer.PeerInfo, len(pis))
+func pointerizePeerInfos(pis []pstore.PeerInfo) []*pstore.PeerInfo {
+	out := make([]*pstore.PeerInfo, len(pis))
 	for i, p := range pis {
 		np := p
 		out[i] = &np
@@ -56,7 +58,7 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key key.Key) (<-chan pe
 			return nil, err
 		}
 
-		var filtered []peer.PeerInfo
+		var filtered []pstore.PeerInfo
 		for _, clp := range closer {
 			if kb.Closer(clp, dht.self, key) && peerset.TryAdd(clp) {
 				select {
@@ -101,7 +103,7 @@ func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key key.Key, p peer.I
 	for _, pbp := range pmes.GetCloserPeers() {
 		pid := peer.ID(pbp.GetId())
 		if pid != dht.self { // dont add self
-			dht.peerstore.AddAddrs(pid, pbp.Addresses(), peer.TempAddrTTL)
+			dht.peerstore.AddAddrs(pid, pbp.Addresses(), pstore.TempAddrTTL)
 			out = append(out, pid)
 		}
 	}

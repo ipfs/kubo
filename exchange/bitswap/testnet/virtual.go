@@ -10,8 +10,8 @@ import (
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
 )
 
 func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
@@ -110,6 +110,30 @@ func (nc *networkClient) FindProvidersAsync(ctx context.Context, k key.Key, max 
 		}
 	}()
 	return out
+}
+
+type messagePasser struct {
+	net    *network
+	target peer.ID
+	local  peer.ID
+	ctx    context.Context
+}
+
+func (mp *messagePasser) SendMsg(m bsmsg.BitSwapMessage) error {
+	return mp.net.SendMessage(mp.ctx, mp.local, mp.target, m)
+}
+
+func (mp *messagePasser) Close() error {
+	return nil
+}
+
+func (n *networkClient) NewMessageSender(ctx context.Context, p peer.ID) (bsnet.MessageSender, error) {
+	return &messagePasser{
+		net:    n.network,
+		target: p,
+		local:  n.local,
+		ctx:    ctx,
+	}, nil
 }
 
 // Provide provides the key to the network

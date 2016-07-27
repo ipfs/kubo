@@ -1,15 +1,26 @@
+# Minimum version numbers for software required to build IPFS
+IPFS_MIN_GO_VERSION = 1.5.2
+IPFS_MIN_GX_VERSION = 0.6
+IPFS_MIN_GX_GO_VERSION = 1.1
 
 ifeq ($(TEST_NO_FUSE),1)
-  go_test=go test -tags nofuse
+  go_test=IPFS_REUSEPORT=false go test -tags nofuse
 else
-  go_test=go test
+  go_test=IPFS_REUSEPORT=false go test
 endif
 
-COMMIT := $(shell git rev-parse --short HEAD)
-ldflags = "-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(COMMIT)"
-MAKEFLAGS += --no-print-directory
+ifeq ($(OS),Windows_NT)
+  GOPATH_DELIMITER = ;
+else
+  GOPATH_DELIMITER = :
+endif
 
+dist_root=/ipfs/QmUnvqDuRyfe7HJuiMMHv77AMUFnjGyAU28LFPeTYwGmFF
+gx_bin=bin/gx-v0.8.0
+gx-go_bin=bin/gx-go-v1.2.1
 
+# use things in our bin before any other system binaries
+export PATH := bin:$(PATH)
 export IPFS_API ?= v04x.ipfs.io
 
 all: help
@@ -17,26 +28,28 @@ all: help
 godep:
 	go get github.com/tools/godep
 
-toolkit_upgrade: gx_upgrade gxgo_upgrade
-
 go_check:
-	@bin/check_go_version "1.5.2"
+	@bin/check_go_version $(IPFS_MIN_GO_VERSION)
 
-gx_upgrade:
-	go get -u github.com/whyrusleeping/gx
+bin/gx-v%:
+	@echo "installing gx $(@:bin/gx-%=%)"
+	@bin/dist_get ${dist_root} gx $@ $(@:bin/gx-%=%)
+	rm -f bin/gx
+	ln -s $(@:bin/%=%) bin/gx
 
-gxgo_upgrade:
-	go get -u github.com/whyrusleeping/gx-go
+bin/gx-go-v%:
+	@echo "installing gx-go $(@:bin/gx-go-%=%)"
+	@bin/dist_get ${dist_root} gx-go $@ $(@:bin/gx-go-%=%)
+	rm -f bin/gx-go
+	ln -s $(@:bin/%=%) bin/gx-go
+
+gx_check: ${gx_bin} ${gx-go_bin}
 
 path_check:
-	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(GOPATH)/src/github.com/ipfs/go-ipfs)
-
-gx_check:
-	@bin/check_gx_program "gx" "0.3" 'Upgrade or install gx using your package manager or run `make gx_upgrade`'
-	@bin/check_gx_program "gx-go" "0.2" 'Upgrade or install gx-go using your package manager or run `make gxgo_upgrade`'
+	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(GOPATH_DELIMITER), ,$(GOPATH))))
 
 deps: go_check gx_check path_check
-	gx --verbose install --global
+	${gx_bin} --verbose install --global
 
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
@@ -45,31 +58,31 @@ vendor: godep
 	godep save -r ./...
 
 install: deps
-	cd cmd/ipfs && go install -ldflags=$(ldflags)
+	make -C cmd/ipfs install
 
 build: deps
-	cd cmd/ipfs && go build -i -ldflags=$(ldflags)
+	make -C cmd/ipfs build
 
 nofuse: deps
-	cd cmd/ipfs && go install -tags nofuse -ldflags=$(ldflags)
+	make -C cmd/ipfs nofuse
 
 clean:
-	cd cmd/ipfs && go clean -ldflags=$(ldflags)
+	make -C cmd/ipfs clean
 
 uninstall:
-	cd cmd/ipfs && go clean -i -ldflags=$(ldflags)
+	make -C cmd/ipfs uninstall
 
-PHONY += all help godep toolkit_upgrade gx_upgrade gxgo_upgrade gx_check
+PHONY += all help godep gx_check
 PHONY += go_check deps vendor install build nofuse clean uninstall
 
 ##############################################################
 # tests targets
 
-test: test_expensive windows_build_check
+test: test_expensive
 
 test_short: build test_go_short test_sharness_short
 
-test_expensive: build test_go_expensive test_sharness_expensive
+test_expensive: build test_go_expensive test_sharness_expensive windows_build_check
 
 test_3node:
 	cd test/3nodetest && make
@@ -84,10 +97,10 @@ test_go_race:
 	$(go_test) ./... -race
 
 test_sharness_short:
-	cd test/sharness/ && make
+	make -C test/sharness/
 
 test_sharness_expensive:
-	cd test/sharness/ && TEST_EXPENSIVE=1 make
+	TEST_EXPENSIVE=1 make -C test/sharness/
 
 test_all_commits:
 	@echo "testing all commits between origin/master..HEAD"
@@ -116,7 +129,7 @@ PHONY += test test_short test_expensive
 help:
 	@echo 'DEPENDENCY TARGETS:'
 	@echo ''
-	@echo '  toolkit_upgrade - Installs or upgrades gx'
+	@echo '  gx_check        - Installs or upgrades gx and gx-go'
 	@echo '  deps            - Download dependencies using gx'
 	@echo '  vendor          - Create a Godep workspace of 3rd party dependencies'
 	@echo ''

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -19,9 +19,9 @@ import (
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	ci "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/crypto"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
 )
 
 // ErrExpiredRecord should be returned when an ipns record is
@@ -135,6 +135,9 @@ func checkCtxTTL(ctx context.Context) (time.Duration, bool) {
 }
 
 func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqnum uint64, eol time.Time, r routing.IpfsRouting, id peer.ID) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	namekey, ipnskey := IpnsKeysForID(id)
 	entry, err := CreateRoutingEntryData(k, value, seqnum, eol)
 	if err != nil {
@@ -146,7 +149,7 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 		entry.Ttl = proto.Uint64(uint64(ttl.Nanoseconds()))
 	}
 
-	errs := make(chan error)
+	errs := make(chan error, 2)
 
 	go func() {
 		errs <- PublishEntry(ctx, r, ipnskey, entry)
@@ -311,7 +314,7 @@ func ValidateIpnsRecord(k key.Key, val []byte) error {
 	case pb.IpnsEntry_EOL:
 		t, err := u.ParseRFC3339(string(entry.GetValidity()))
 		if err != nil {
-			log.Debug("Failed parsing time for ipns record EOL")
+			log.Debug("failed parsing time for ipns record EOL")
 			return err
 		}
 		if time.Now().After(t) {
@@ -327,7 +330,7 @@ func ValidateIpnsRecord(k key.Key, val []byte) error {
 // point to an empty directory.
 // TODO: this doesnt feel like it belongs here
 func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
-	emptyDir := &dag.Node{Data: ft.FolderPBData()}
+	emptyDir := ft.EmptyDirNode()
 	nodek, err := ds.Add(emptyDir)
 	if err != nil {
 		return err

@@ -54,10 +54,11 @@ func TestAddGCLive(t *testing.T) {
 
 	errs := make(chan error)
 	out := make(chan interface{})
-	adder, err := NewAdder(context.Background(), node, out)
+	adder, err := NewAdder(context.Background(), node.Pinning, node.Blockstore, node.DAG)
 	if err != nil {
 		t.Fatal(err)
 	}
+	adder.Out = out
 
 	dataa := ioutil.NopCloser(bytes.NewBufferString("testfileA"))
 	rfa := files.NewReaderFile("a", "a", dataa, nil)
@@ -95,7 +96,7 @@ func TestAddGCLive(t *testing.T) {
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcchan, err := gc.GC(context.Background(), node.Blockstore, node.Pinning)
+		gcchan, err := gc.GC(context.Background(), node.Blockstore, node.Pinning, nil)
 		if err != nil {
 			log.Error("GC ERROR:", err)
 			errs <- err
@@ -154,7 +155,7 @@ func TestAddGCLive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dag.EnumerateChildren(ctx, node.DAG, root, key.NewKeySet())
+	err = dag.EnumerateChildren(ctx, node.DAG, root, key.NewKeySet(), false)
 	if err != nil {
 		t.Fatal(err)
 	}

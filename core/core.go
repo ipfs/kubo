@@ -16,24 +16,25 @@ import (
 	"net"
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	diag "github.com/ipfs/go-ipfs/diagnostics"
-	mamask "gx/ipfs/QmPwfFAHUmvWDucLHRS9Xz2Kb1TNX2cY4LJ7pQjg9kVcae/multiaddr-filter"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	ic "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
+	discovery "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/discovery"
+	p2phost "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/host"
+	p2pbhost "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/host/basic"
+	rhost "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/host/routed"
+	metrics "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/metrics"
+	swarm "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/swarm"
+	addrutil "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/swarm/addr"
+	ping "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/protocol/ping"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
-	ic "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/crypto"
-	discovery "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/discovery"
-	p2phost "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/host"
-	p2pbhost "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/host/basic"
-	rhost "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/host/routed"
-	metrics "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/metrics"
-	swarm "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/net/swarm"
-	addrutil "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/net/swarm/addr"
-	peer "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/peer"
-	ping "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/protocol/ping"
-	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
+	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
 
 	routing "github.com/ipfs/go-ipfs/routing"
 	dht "github.com/ipfs/go-ipfs/routing/dht"
@@ -91,7 +92,7 @@ type IpfsNode struct {
 	PrivateKey ic.PrivKey // the local node's private Key
 
 	// Services
-	Peerstore  peer.Peerstore       // storage for other Peer instances
+	Peerstore  pstore.Peerstore     // storage for other Peer instances
 	Blockstore bstore.GCBlockstore  // the block store (lower level)
 	Blocks     *bserv.BlockService  // the block service, get/add blocks.
 	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
@@ -196,7 +197,7 @@ func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
 	return nil
 }
 
-func (n *IpfsNode) HandlePeerFound(p peer.PeerInfo) {
+func (n *IpfsNode) HandlePeerFound(p pstore.PeerInfo) {
 	log.Warning("trying peer info: ", p)
 	ctx, cancel := context.WithTimeout(n.Context(), discoveryConnTimeout)
 	defer cancel()
@@ -323,7 +324,7 @@ func (n *IpfsNode) teardown() error {
 	// regardless of which constructor was used to add them to the node.
 	var closers []io.Closer
 
-	// NOTE: the order that objects are added(closed) matters, if an object
+	// NOTE: The order that objects are added(closed) matters, if an object
 	// needs to use another during its shutdown/cleanup process, it should be
 	// closed before that other object
 
@@ -396,7 +397,7 @@ func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 	// if the caller did not specify a bootstrap peer function, get the
 	// freshest bootstrap peers from config. this responds to live changes.
 	if cfg.BootstrapPeers == nil {
-		cfg.BootstrapPeers = func() []peer.PeerInfo {
+		cfg.BootstrapPeers = func() []pstore.PeerInfo {
 			ps, err := n.loadBootstrapPeers()
 			if err != nil {
 				log.Warning("failed to parse bootstrap peers from config")
@@ -458,7 +459,7 @@ func (n *IpfsNode) LoadPrivateKey() error {
 	return nil
 }
 
-func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
+func (n *IpfsNode) loadBootstrapPeers() ([]pstore.PeerInfo, error) {
 	cfg, err := n.Repo.Config()
 	if err != nil {
 		return nil, err
@@ -510,6 +511,10 @@ func (n *IpfsNode) loadFilesRoot() error {
 // uses it to instantiate a routing system in offline mode.
 // This is primarily used for offline ipns modifications.
 func (n *IpfsNode) SetupOfflineRouting() error {
+	if n.Routing != nil {
+		// Routing was already set up
+		return nil
+	}
 	err := n.LoadPrivateKey()
 	if err != nil {
 		return err
@@ -558,12 +563,12 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 	return listen, nil
 }
 
-type HostOption func(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error)
+type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error)
 
 var DefaultHostOption HostOption = constructPeerHost
 
 // isolates the complex initialization steps
-func constructPeerHost(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error) {
+func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error) {
 
 	// no addresses to begin with. we'll start later.
 	network, err := swarm.NewNetwork(ctx, nil, id, ps, bwr)

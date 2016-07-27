@@ -2,13 +2,13 @@ package config
 
 import (
 	"encoding/base64"
-	ic "gx/ipfs/QmccGfZs3rzku8Bv6sTPH3bMUKD1EVod8srgRjt5csdmva/go-libp2p/p2p/crypto"
+	ic "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 )
 
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {
 	PeerID  string
-	PrivKey string
+	PrivKey string `json:",omitempty"`
 }
 
 // DecodePrivateKey is a helper to decode the users PrivateKey
