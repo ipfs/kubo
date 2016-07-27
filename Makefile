@@ -68,6 +68,7 @@ nofuse: deps
 
 clean:
 	$(MAKE) -C cmd/ipfs clean
+	$(MAKE) -C test clean
 
 uninstall:
 	$(MAKE) -C cmd/ipfs uninstall
