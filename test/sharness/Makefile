@@ -34,7 +34,7 @@ aggregate: clean-test-results $(T)
 	lib/test-aggregate-results.sh
 
 global-deps:
-	make -C ../.. deps
+	$(MAKE) -C ../.. deps
 
 deps: global-deps $(SHARNESS) $(BINS) curl
 
@@ -43,10 +43,10 @@ $(SHARNESS): FORCE
 	lib/install-sharness.sh
 
 bin/%: FORCE
-	make -C .. GOFLAGS=$(GOFLAGS) $@
+	$(MAKE) -C .. GOFLAGS=$(GOFLAGS) $@
 
 race:
-	make GOFLAGS=-race all
+	$(MAKE) GOFLAGS=-race all
 
 .PHONY: all clean $(T) aggregate FORCE
 

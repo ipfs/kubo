@@ -15,7 +15,7 @@ GOFLAGS =
 all: deps
 
 global-deps:
-	make -C .. deps
+	$(MAKE) -C .. deps
 
 deps: global-deps bins
 
@@ -71,18 +71,18 @@ bin/iptb: iptb_src $(call find_go_files, $(IPTB_SRC)) IPFS-BUILD-OPTIONS
 test: test_expensive
 
 test_expensive: verify_gofmt
-	make -C sharness TEST_EXPENSIVE=1
-	make -C 3nodetest
-	make -C dependencies
+	$(MAKE) -C sharness TEST_EXPENSIVE=1
+	$(MAKE) -C 3nodetest
+	$(MAKE) -C dependencies
 
 test_cheap: verify_gofmt
-	make -C sharness
-	make -C 3nodetest
+	$(MAKE) -C sharness
+	$(MAKE) -C 3nodetest
 
 test_race: verify_gofmt
-	make -C sharness GOFLAGS=-race TEST_EXPENSIVE=1
-	make -C 3nodetest GOFLAGS=-race
-	make -C dependencies GOFLAGS=-race
+	$(MAKE) -C sharness GOFLAGS=-race TEST_EXPENSIVE=1
+	$(MAKE) -C 3nodetest GOFLAGS=-race
+	$(MAKE) -C dependencies GOFLAGS=-race
 
 # Misc
 
