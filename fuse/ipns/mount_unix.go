@@ -17,6 +17,12 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 
 	allow_other := cfg.Mounts.FuseAllowOther
 
+	if ipfs.PrivateKey == nil {
+		if err = ipfs.LoadPrivateKey(); err == nil {
+			return nil, err
+		}
+	}
+
 	fsys, err := NewFileSystem(ipfs, ipfs.PrivateKey, ipfsmp, ipnsmp)
 	if err != nil {
 		return nil, err
