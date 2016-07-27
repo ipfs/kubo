@@ -43,7 +43,7 @@ $(SHARNESS): FORCE
 	lib/install-sharness.sh
 
 bin/%: FORCE
-	cd .. && make GOFLAGS=$(GOFLAGS) $@
+	make -C .. GOFLAGS=$(GOFLAGS) $@
 
 race:
 	make GOFLAGS=-race all

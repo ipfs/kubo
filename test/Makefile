@@ -71,18 +71,18 @@ bin/iptb: iptb_src $(call find_go_files, $(IPTB_SRC)) IPFS-BUILD-OPTIONS
 test: test_expensive
 
 test_expensive: verify_gofmt
-	cd sharness && make TEST_EXPENSIVE=1
-	cd 3nodetest && make
-	cd dependencies && make
+	make -C sharness TEST_EXPENSIVE=1
+	make -C 3nodetest
+	make -C dependencies
 
 test_cheap: verify_gofmt
-	cd sharness && make
-	cd 3nodetest && make
+	make -C sharness
+	make -C 3nodetest
 
 test_race: verify_gofmt
-	cd sharness && make GOFLAGS=-race TEST_EXPENSIVE=1
-	cd 3nodetest && make GOFLAGS=-race
-	cd dependencies && make GOFLAGS=-race
+	make -C sharness GOFLAGS=-race TEST_EXPENSIVE=1
+	make -C 3nodetest GOFLAGS=-race
+	make -C dependencies GOFLAGS=-race
 
 # Misc
 
