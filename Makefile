@@ -57,14 +57,8 @@ deps: go_check gx_check path_check
 vendor: godep
 	godep save -r ./...
 
-install: deps
-	$(MAKE) -C cmd/ipfs install
-
-build: deps
-	$(MAKE) -C cmd/ipfs build
-
-nofuse: deps
-	$(MAKE) -C cmd/ipfs nofuse
+install build nofuse: deps
+	$(MAKE) -C cmd/ipfs $@
 
 clean:
 	$(MAKE) -C cmd/ipfs clean
