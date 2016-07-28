@@ -23,6 +23,7 @@ import (
 	"github.com/ipfs/go-ipfs/routing"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
 const (
@@ -190,21 +191,24 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		pathRoot := strings.SplitN(urlPath, "/", 4)[2]
 		w.Header().Set("Suborigin", pathRoot)
 	}
-serve:
 	pb := new(ftpb.Data)
+	
+serve:
 	if err := proto.Unmarshal(nd.Data(), pb); err != nil {
-		return nil, err
+		internalWebError(w, err)
+		return
 	}
-	switch pb.getType() {
+	switch pb.GetType() {
 	case ftpb.Data_Symlink:
 		// follow symlink
-		nd, err := core.Resolve(ctx, i.node, path.Path(
+		nd, err = core.Resolve(ctx, i.node, path.Path(
 			urlPath+"/../"+
 			string(pb.GetData())))
 		if err != nil {
 			internalWebError(w, err)
 			return
 		}
+
 		goto serve
 	case ftpb.Data_Directory:
 		// storage for directory listing
@@ -222,7 +226,7 @@ serve:
 				}
 
 				// return index page instead.
-				nd, err := core.Resolve(ctx, i.node, path.Path(urlPath+"/index.html"))
+				nd, err = core.Resolve(ctx, i.node, path.Path(urlPath+"/index.html"))
 				if err != nil {
 					internalWebError(w, err)
 					return
