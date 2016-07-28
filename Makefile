@@ -16,8 +16,8 @@ else
 endif
 
 dist_root=/ipfs/QmUnvqDuRyfe7HJuiMMHv77AMUFnjGyAU28LFPeTYwGmFF
-gx_bin=bin/gx-v0.8.0
-gx-go_bin=bin/gx-go-v1.2.1
+gx_bin=$(GOPATH)/bin/gx
+gx-go_bin=$(GOPATH)/bin/gx-go
 
 # use things in our bin before any other system binaries
 export PATH := bin:$(PATH)
@@ -31,22 +31,16 @@ godep:
 go_check:
 	@bin/check_go_version $(IPFS_MIN_GO_VERSION)
 
-bin/gx-v%:
-	@echo "installing gx $(@:bin/gx-%=%)"
-	@bin/dist_get ${dist_root} gx $@ $(@:bin/gx-%=%)
-	rm -f bin/gx
-	ln -s $(@:bin/%=%) bin/gx
-
-bin/gx-go-v%:
-	@echo "installing gx-go $(@:bin/gx-go-%=%)"
-	@bin/dist_get ${dist_root} gx-go $@ $(@:bin/gx-go-%=%)
-	rm -f bin/gx-go
-	ln -s $(@:bin/%=%) bin/gx-go
-
 gx_check: ${gx_bin} ${gx-go_bin}
 
 path_check:
 	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(GOPATH_DELIMITER), ,$(GOPATH))))
+
+$(gx_bin):
+	go get github.com/whyrusleeping/gx
+
+$(gx-go_bin):
+	go get github.com/whyrusleeping/gx-go
 
 deps: go_check gx_check path_check
 	${gx_bin} --verbose install --global
