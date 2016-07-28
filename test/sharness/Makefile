@@ -19,11 +19,11 @@ all: aggregate
 
 clean: clean-test-results
 	@echo "*** $@ ***"
-	-rm -rf $(BINS)
+	rm -rf $(BINS)
 
 clean-test-results:
 	@echo "*** $@ ***"
-	-rm -rf test-results
+	rm -rf test-results
 
 $(T): clean-test-results deps
 	@echo "*** $@ ***"

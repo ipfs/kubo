@@ -21,7 +21,7 @@ deps: global-deps bins
 
 clean:
 	$(MAKE) -C sharness clean
-	-rm -rf $(BINS)
+	rm -rf $(BINS)
 
 bins: $(BINS)
 
