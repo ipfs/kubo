@@ -10,15 +10,25 @@ import (
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
 	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+	dsq "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
+	autobatch "gx/ipfs/QmVvJ27GcLaLSXvcB4auk3Gn3xuWK5ti5ENkZ2pCoJEYW4/autobatch"
 	base32 "gx/ipfs/Qmb1DA2A9LS2wR4FFweB4uEDomFsdmnw1VLawLE1yQzudj/base32"
-	ds "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore"
-	dsq "gx/ipfs/QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o/go-datastore/query"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	flags "github.com/ipfs/go-ipfs/flags"
 
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
+
+var batchBufferSize = 256
+
+func init() {
+	if flags.LowMemMode {
+		batchBufferSize = 8
+	}
+}
 
 var log = logging.Logger("providers")
 
@@ -30,11 +40,9 @@ type ProviderManager struct {
 	// all non channel fields are meant to be accessed only within
 	// the run method
 	providers *lru.Cache
-	local     map[key.Key]struct{}
 	lpeer     peer.ID
 	dstore    ds.Datastore
 
-	getlocal chan chan []key.Key
 	newprovs chan *addProv
 	getprovs chan *getProv
 	period   time.Duration
@@ -58,19 +66,17 @@ type getProv struct {
 	resp chan []peer.ID
 }
 
-func NewProviderManager(ctx context.Context, local peer.ID, dstore ds.Datastore) *ProviderManager {
+func NewProviderManager(ctx context.Context, local peer.ID, dstore ds.Batching) *ProviderManager {
 	pm := new(ProviderManager)
 	pm.getprovs = make(chan *getProv)
 	pm.newprovs = make(chan *addProv)
-	pm.dstore = dstore
+	pm.dstore = autobatch.NewAutoBatching(dstore, batchBufferSize)
 	cache, err := lru.New(lruCacheSize)
 	if err != nil {
 		panic(err) //only happens if negative value is passed to lru constructor
 	}
 	pm.providers = cache
 
-	pm.getlocal = make(chan chan []key.Key)
-	pm.local = make(map[key.Key]struct{})
 	pm.proc = goprocessctx.WithContext(ctx)
 	pm.cleanupInterval = defaultCleanupInterval
 	pm.proc.Go(func(p goprocess.Process) { pm.run() })
@@ -251,9 +257,6 @@ func (pm *ProviderManager) run() {
 	for {
 		select {
 		case np := <-pm.newprovs:
-			if np.val == pm.lpeer {
-				pm.local[np.k] = struct{}{}
-			}
 			err := pm.addProv(np.k, np.val)
 			if err != nil {
 				log.Error("error adding new providers: ", err)
@@ -265,13 +268,6 @@ func (pm *ProviderManager) run() {
 			}
 
 			gp.resp <- provs
-		case lc := <-pm.getlocal:
-			var keys []key.Key
-			for k := range pm.local {
-				keys = append(keys, k)
-			}
-			lc <- keys
-
 		case <-tick.C:
 			keys, err := pm.getAllProvKeys()
 			if err != nil {
@@ -335,12 +331,6 @@ func (pm *ProviderManager) GetProviders(ctx context.Context, k key.Key) []peer.I
 	case peers := <-gp.resp:
 		return peers
 	}
-}
-
-func (pm *ProviderManager) GetLocal() []key.Key {
-	resp := make(chan []key.Key)
-	pm.getlocal <- resp
-	return <-resp
 }
 
 func newProviderSet() *providerSet {

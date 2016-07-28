@@ -144,9 +144,9 @@
     },
     {
       "author": "jbenet",
-      "hash": "QmfQzVugPq1w5shWRcLWSeiHF4a2meBX7yVD8Vw7GWJM9o",
+      "hash": "QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk",
       "name": "go-datastore",
-      "version": "0.1.2"
+      "version": "0.2.0"
     },
     {
       "author": "codahale",
@@ -183,6 +183,12 @@
       "hash": "QmWQ2SJisXwcCLsUXLwYCKSfyExXjFRW2WbBH5sqCUnwX5",
       "name": "bbloom",
       "version": "0.0.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmVvJ27GcLaLSXvcB4auk3Gn3xuWK5ti5ENkZ2pCoJEYW4",
+      "name": "autobatch",
+      "version": "0.2.0"
     }
   ],
   "gxVersion": "0.4.0",
