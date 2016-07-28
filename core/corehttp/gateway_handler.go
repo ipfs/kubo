@@ -22,6 +22,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
 const (
@@ -189,74 +190,55 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		pathRoot := strings.SplitN(urlPath, "/", 4)[2]
 		w.Header().Set("Suborigin", pathRoot)
 	}
-
-	dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
-	if err != nil && err != uio.ErrIsDir {
-		// not a directory and still an error
-		internalWebError(w, err)
-		return
+serve:
+	pb := new(ftpb.Data)
+	if err := proto.Unmarshal(nd.Data(), pb); err != nil {
+		return nil, err
 	}
+	switch pb.getType() {
+	case ftpb.Data_Symlink:
+		// follow symlink
+		nd, err := core.Resolve(ctx, i.node, path.Path(
+			urlPath+"/../"+
+			string(pb.GetData())))
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+		goto serve
+	case ftpb.Data_Directory:
+		// storage for directory listing
+		var dirListing []directoryItem
+		// loop through files
+		for _, link := range nd.Links {
+			if link.Name == "index.html" {
+				log.Debugf("found index.html link for %s", urlPath)
 
-	// set these headers _after_ the error, for we may just not have it
-	// and dont want the client to cache a 500 response...
-	// and only if it's /ipfs!
-	// TODO: break this out when we split /ipfs /ipns routes.
-	modtime := time.Now()
-	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
-		w.Header().Set("Etag", etag)
-		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
+				if urlPath[len(urlPath)-1] != '/' {
+					// See comment above where originalUrlPath is declared.
+					http.Redirect(w, r, originalUrlPath+"/", 302)
+					log.Debugf("redirect to %s", originalUrlPath+"/")
+					return
+				}
 
-		// set modtime to a really long time ago, since files are immutable and should stay cached
-		modtime = time.Unix(1, 0)
-	}
-
-	if err == nil {
-		defer dr.Close()
-		name := gopath.Base(urlPath)
-		http.ServeContent(w, r, name, modtime, dr)
-		return
-	}
-
-	// storage for directory listing
-	var dirListing []directoryItem
-	// loop through files
-	foundIndex := false
-	for _, link := range nd.Links {
-		if link.Name == "index.html" {
-			log.Debugf("found index.html link for %s", urlPath)
-			foundIndex = true
-
-			if urlPath[len(urlPath)-1] != '/' {
-				// See comment above where originalUrlPath is declared.
-				http.Redirect(w, r, originalUrlPath+"/", 302)
-				log.Debugf("redirect to %s", originalUrlPath+"/")
-				return
+				// return index page instead.
+				nd, err := core.Resolve(ctx, i.node, path.Path(urlPath+"/index.html"))
+				if err != nil {
+					internalWebError(w, err)
+					return
+				}
+				// assume index.html is not itself a directory? or a symlink?
+				// nah
+				goto serve
 			}
+			
 
-			// return index page instead.
-			nd, err := core.Resolve(ctx, i.node, path.Path(urlPath+"/index.html"))
-			if err != nil {
-				internalWebError(w, err)
-				return
-			}
-			dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
-			if err != nil {
-				internalWebError(w, err)
-				return
-			}
-			defer dr.Close()
-
-			// write to request
-			http.ServeContent(w, r, "index.html", modtime, dr)
-			break
+			// See comment above where originalUrlPath is declared.
+			di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalUrlPath, link.Name)}
+			dirListing = append(dirListing, di)
 		}
 
-		// See comment above where originalUrlPath is declared.
-		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalUrlPath, link.Name)}
-		dirListing = append(dirListing, di)
-	}
-
-	if !foundIndex {
+		// if we get here, we haven't found the index, so render the listing.
 		if r.Method != "HEAD" {
 			// construct the correct back link
 			// https://github.com/ipfs/go-ipfs/issues/1365
@@ -265,13 +247,13 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			// don't go further up than /ipfs/$hash/
 			pathSplit := path.SplitList(backLink)
 			switch {
-			// keep backlink
+				// keep backlink
 			case len(pathSplit) == 3: // url: /ipfs/$hash
 
-			// keep backlink
+				// keep backlink
 			case len(pathSplit) == 4 && pathSplit[3] == "": // url: /ipfs/$hash/
 
-			// add the correct link depending on wether the path ends with a slash
+				// add the correct link depending on wether the path ends with a slash
 			default:
 				if strings.HasSuffix(backLink, "/") {
 					backLink += "./.."
@@ -302,6 +284,30 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				return
 			}
 		}
+		return;
+	default:
+		// could be a file, or raw, or unrecognized.
+		dr, err := uio.NewDagReaderBuf(ctx, nd, pb, i.node.DAG)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+		defer dr.Close()
+		// set these headers _after_ any errors, for we may just not have it
+		// if we only have part of the file, we can't tell until headers have
+		// been sent, and the file's stalled out while streaming
+		// TODO: break this out when we split /ipfs /ipns routes.
+		modtime := time.Now()
+		if strings.HasPrefix(urlPath, ipfsPathPrefix) {
+			w.Header().Set("Etag", etag)
+			w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
+			
+			// /ipfs/, so set modtime to a really long time ago, since files are immutable and should stay cached
+			modtime = time.Unix(1, 0)
+		}
+		
+		name := gopath.Base(urlPath)
+		http.ServeContent(w, r, name, modtime, dr)
 	}
 }
 
