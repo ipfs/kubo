@@ -24,7 +24,7 @@ var log = logging.Logger("cmds/files")
 
 var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate unixfs files.",
+		Tagline: "Manipulates unixfs files.",
 		ShortDescription: `
 Files is an API for manipulating IPFS objects as if they were a unix
 filesystem.
@@ -40,7 +40,7 @@ operations.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("flush", "f", "Flush target and ancestors after write. Default: true."),
+		cmds.BoolOption("flush", "f", "Flushes target and ancestors after writing. Default: true."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -59,22 +59,22 @@ var formatError = errors.New("Format was set by multiple options. Only one forma
 
 var FilesStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Display file status.",
+		Tagline: "Displays file status.",
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", true, false, "Path to node to stat."),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "Print statistics in given format. Allowed tokens: "+
+		cmds.StringOption("format", "Prints statistics in the given format. Allowed tokens: "+
 			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").Default(
 			`<hash>
 Size: <size>
 CumulativeSize: <cumulsize>
 ChildBlocks: <childs>
 Type: <type>`),
-		cmds.BoolOption("hash", "Print only hash. Implies '--format=<hash>'. Conflicts with other format options.").Default(false),
-		cmds.BoolOption("size", "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options.").Default(false),
+		cmds.BoolOption("hash", "Prints only hash. Equivalent to '--format=<hash>'. Conflicts with other format options.").Default(false),
+		cmds.BoolOption("size", "Prints only size. Equivalent to '--format=<cumulsize>'. Conflicts with other format options.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -194,7 +194,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 
 var FilesCpCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Copy files into mfs.",
+		Tagline: "Copies files into mfs.",
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("source", true, false, "Source object to copy."),
@@ -284,7 +284,7 @@ type FilesLsOutput struct {
 
 var FilesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directories.",
+		Tagline: "Lists directories.",
 		ShortDescription: `
 List directories.
 
@@ -307,7 +307,7 @@ Examples:
 		cmds.StringArg("path", false, false, "Path to show listing for. Defaults to '/'."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("l", "Use long listing format."),
+		cmds.BoolOption("l", "Uses long listing format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		var arg string
@@ -387,7 +387,7 @@ Examples:
 
 var FilesReadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Read a file in a given mfs.",
+		Tagline: "Reads a file in a given mfs.",
 		ShortDescription: `
 Read a specified number of bytes from a file at a given offset. By default,
 will read the entire file similar to unix cat.
@@ -499,7 +499,7 @@ func (crw *contextReaderWrapper) Read(b []byte) (int, error) {
 
 var FilesMvCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Move files.",
+		Tagline: "Moves files.",
 		ShortDescription: `
 Move files around. Just like traditional unix mv.
 
@@ -542,7 +542,7 @@ Example:
 
 var FilesWriteCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Write to a mutable file in a given filesystem.",
+		Tagline: "Writes to a mutable file in a given filesystem.",
 		ShortDescription: `
 Write data to a file in a given filesystem. This command allows you to specify
 a beginning offset to write to. The entire length of the input will be written.
@@ -572,8 +572,8 @@ stat' on the file or any of its ancestors.
 	},
 	Options: []cmds.Option{
 		cmds.IntOption("offset", "o", "Byte offset to begin writing at."),
-		cmds.BoolOption("create", "e", "Create the file if it does not exist."),
-		cmds.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
+		cmds.BoolOption("create", "e", "Creates the file if it does not exist."),
+		cmds.BoolOption("truncate", "t", "Truncates the file to size zero before writing."),
 		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -667,7 +667,7 @@ stat' on the file or any of its ancestors.
 
 var FilesMkdirCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Make directories.",
+		Tagline: "Makes directories.",
 		ShortDescription: `
 Create the directory if it does not already exist.
 
@@ -684,7 +684,7 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("parents", "p", "No error if existing, make parent directories as needed."),
+		cmds.BoolOption("parents", "p", "No error if existing, makes parent directories as needed."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -716,7 +716,7 @@ Examples:
 
 var FilesFlushCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Flush a given path's data to disk.",
+		Tagline: "Flushes a given path's data to disk.",
 		ShortDescription: `
 Flush a given path to disk. This is only useful when other commands
 are run with the '--flush=false'.
@@ -747,7 +747,7 @@ are run with the '--flush=false'.
 
 var FilesRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove a file.",
+		Tagline: "Removes a file.",
 		ShortDescription: `
 Remove files or directories.
 
@@ -764,7 +764,7 @@ Remove files or directories.
 		cmds.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Recursively remove directories."),
+		cmds.BoolOption("recursive", "r", "Recursively removes directories."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

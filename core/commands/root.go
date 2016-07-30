@@ -32,7 +32,7 @@ BASIC COMMANDS
 
 DATA STRUCTURE COMMANDS
   block         Interact with raw blocks in the datastore
-  object        Interact with raw dag nodes
+  object        Interact with raw DAG nodes
   files         Interact with objects as if they were a unix filesystem
 
 ADVANCED COMMANDS
@@ -68,10 +68,10 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("config", "c", "Path to the configuration file to use."),
-		cmds.BoolOption("debug", "D", "Operate in debug mode.").Default(false),
-		cmds.BoolOption("help", "Show the full command help text.").Default(false),
-		cmds.BoolOption("h", "Show a short version of the command help text.").Default(false),
-		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon.").Default(false),
+		cmds.BoolOption("debug", "D", "Operates in debug mode.").Default(false),
+		cmds.BoolOption("help", "Shows the full command help text.").Default(false),
+		cmds.BoolOption("h", "Shows a short version of the command help text.").Default(false),
+		cmds.BoolOption("local", "L", "Runs the command locally, instead of using the daemon.").Default(false),
 		cmds.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 	},
 }

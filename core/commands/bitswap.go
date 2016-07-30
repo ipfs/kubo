@@ -16,7 +16,7 @@ import (
 
 var BitswapCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "A set of commands to manipulate the bitswap agent.",
+		Tagline:          "Interacts with the bitswap agent.",
 		ShortDescription: ``,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -28,7 +28,7 @@ var BitswapCmd = &cmds.Command{
 
 var unwantCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove a given block from your wantlist.",
+		Tagline: "Removes a given block from your wantlist.",
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, true, "Key(s) to remove from your wantlist.").EnableStdin(),
@@ -68,12 +68,12 @@ var unwantCmd = &cmds.Command{
 
 var showWantlistCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show blocks currently on the wantlist.",
+		Tagline: "Shows the blocks currently on your wantlist.",
 		ShortDescription: `
-Print out all blocks currently on the bitswap wantlist for the local peer.`,
+Prints out all blocks currently on the bitswap wantlist for the local peer.`,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("peer", "p", "Specify which peer to show wantlist for. Default: self."),
+		cmds.StringOption("peer", "p", "Peer to show wantlist for. Default: self."),
 	},
 	Type: KeyList{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -117,7 +117,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 
 var bitswapStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Show some diagnostic information on the bitswap agent.",
+		Tagline:          "Shows some diagnostic information on the bitswap agent.",
 		ShortDescription: ``,
 	},
 	Type: bitswap.Stat{},

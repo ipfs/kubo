@@ -17,7 +17,7 @@ var logAllKeyword = "all"
 
 var LogCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with the daemon log output.",
+		Tagline: "Interacts with the daemon's log output.",
 		ShortDescription: `
 'ipfs log' contains utility commands to affect or read the logging
 output of a running daemon.
@@ -33,7 +33,7 @@ output of a running daemon.
 
 var logLevelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Change the logging level.",
+		Tagline: "Changes the logging level.",
 		ShortDescription: `
 'ipfs log level' is a utility command used to change the logging
 output of a running daemon.
@@ -74,7 +74,7 @@ output of a running daemon.
 
 var logLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List the logging subsystems.",
+		Tagline: "Lists the logging subsystems.",
 		ShortDescription: `
 'ipfs log ls' is a utility command used to list the logging
 subsystems of a running daemon.
@@ -91,7 +91,7 @@ subsystems of a running daemon.
 
 var logTailCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Read the logs.",
+		Tagline: "Prints the logs.",
 		ShortDescription: `
 'ipfs log tail' is a utility command used to read log output as it is written.
 `,

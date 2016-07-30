@@ -49,7 +49,7 @@ Resolve the value of a reference:
 		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name.").Default(false),
+		cmds.BoolOption("recursive", "r", "Resolves until the result is not an IPNS name.").Default(false),
 		cmds.BoolOption("nocache", "n", "Do not use cached entries.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {

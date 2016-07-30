@@ -33,7 +33,7 @@ const (
 
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add a file to ipfs.",
+		Tagline: "Adds a file to ipfs.",
 		ShortDescription: `
 Adds contents of <path> to ipfs. Use -r to add directories.
 Note that directories are added recursively, to form the ipfs
@@ -66,15 +66,15 @@ You can now refer to the added file in a gateway, like so:
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
-		cmds.BoolOption(quietOptionName, "q", "Write minimal output.").Default(false),
-		cmds.BoolOption(silentOptionName, "Write no output.").Default(false),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data.").Default(true),
-		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation.").Default(false),
-		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk.").Default(false),
-		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object.").Default(false),
-		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add.").Default(false),
+		cmds.BoolOption(quietOptionName, "q", "Writes minimal output.").Default(false),
+		cmds.BoolOption(silentOptionName, "Writes no output.").Default(false),
+		cmds.BoolOption(progressOptionName, "p", "Streams progress data.").Default(true),
+		cmds.BoolOption(trickleOptionName, "t", "Uses trickle-dag format for dag generation.").Default(false),
+		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - does not write to disk.").Default(false),
+		cmds.BoolOption(wrapOptionName, "w", "Wraps files with a directory object.").Default(false),
+		cmds.BoolOption(hiddenOptionName, "H", "Includes files that are hidden. Only takes effect on recursive add.").Default(false),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
-		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
+		cmds.BoolOption(pinOptionName, "Pins the added object(s).").Default(true),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {

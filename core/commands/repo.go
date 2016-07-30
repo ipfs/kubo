@@ -24,7 +24,7 @@ type RepoVersion struct {
 
 var RepoCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate the IPFS repo.",
+		Tagline: "Interacts with the IPFS repo.",
 		ShortDescription: `
 'ipfs repo' is a plumbing command used to manipulate the repo.
 `,
@@ -41,7 +41,7 @@ var RepoCmd = &cmds.Command{
 
 var repoGcCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Perform a garbage collection sweep on the repo.",
+		Tagline: "Performs a garbage collection sweep on the repo.",
 		ShortDescription: `
 'ipfs repo gc' is a plumbing command that will sweep the local
 set of stored objects and remove ones that are not pinned in
@@ -49,7 +49,7 @@ order to reclaim hard disk space.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
+		cmds.BoolOption("quiet", "q", "Writes minimal output.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -113,7 +113,7 @@ order to reclaim hard disk space.
 
 var repoStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get stats for the currently used repo.",
+		Tagline: "Gets stats for the currently used repo.",
 		ShortDescription: `
 'ipfs repo stat' is a plumbing command that will scan the local
 set of stored objects and print repo statistics. It outputs to stdout:
@@ -139,7 +139,7 @@ Version         string The repo version.
 		res.SetOutput(stat)
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("human", "Output RepoSize in MiB.").Default(false),
+		cmds.BoolOption("human", "Outputs RepoSize in MiB.").Default(false),
 	},
 	Type: corerepo.Stat{},
 	Marshalers: cmds.MarshalerMap{
@@ -227,7 +227,7 @@ type VerifyProgress struct {
 
 var repoVerifyCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Verify all blocks in repo are not corrupted.",
+		Tagline: "Checks all the blocks in the repo for corruption.",
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -309,14 +309,14 @@ var repoVerifyCmd = &cmds.Command{
 
 var repoVersionCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show the repo version.",
+		Tagline: "Shows the repo version.",
 		ShortDescription: `
 'ipfs repo version' returns the current repo version.
 `,
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("quiet", "q", "Write minimal output."),
+		cmds.BoolOption("quiet", "q", "Writes minimal output."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(&RepoVersion{

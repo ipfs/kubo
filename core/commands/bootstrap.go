@@ -21,7 +21,7 @@ var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multi
 
 var BootstrapCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show or edit the list of bootstrap peers.",
+		Tagline: "Interacts with the list of bootstrap peers.",
 		ShortDescription: `
 Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 ` + bootstrapSecurityWarning,
@@ -40,7 +40,7 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 
 var bootstrapAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add peers to the bootstrap list.",
+		Tagline: "Adds peers to the bootstrap list.",
 		ShortDescription: `Outputs a list of peers that were added (that weren't already
 in the bootstrap list).
 ` + bootstrapSecurityWarning,
@@ -51,7 +51,7 @@ in the bootstrap list).
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("default", "Add default bootstrap nodes. (Deprecated, use 'default' subcommand instead)"),
+		cmds.BoolOption("default", "Adds default bootstrap nodes. (Deprecated, use 'default' subcommand instead)"),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"default": bootstrapAddDefaultCmd,
@@ -129,7 +129,7 @@ in the bootstrap list).
 
 var bootstrapAddDefaultCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add default peers to the bootstrap list.",
+		Tagline: "Adds default peers to the bootstrap list.",
 		ShortDescription: `Outputs a list of peers that were added (that weren't already
 in the bootstrap list).`,
 	},
@@ -190,7 +190,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("all", "Remove all bootstrap peers. (Deprecated, use 'all' subcommand)"),
+		cmds.BoolOption("all", "Removes all bootstrap peers. (Deprecated, use 'all' subcommand)"),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"all": bootstrapRemoveAllCmd,
@@ -292,7 +292,7 @@ var bootstrapRemoveAllCmd = &cmds.Command{
 
 var bootstrapListCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Show peers in the bootstrap list.",
+		Tagline:          "Prints the peers in the bootstrap list.",
 		ShortDescription: "Peers are output in the format '<multiaddr>/<peerID>'.",
 	},
 

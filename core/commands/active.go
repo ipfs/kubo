@@ -13,7 +13,7 @@ import (
 
 var ActiveReqsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List commands run on this ipfs node.",
+		Tagline: "Lists commands run on this ipfs node.",
 		ShortDescription: `
 Lists running and recently run commands.
 `,
@@ -22,7 +22,7 @@ Lists running and recently run commands.
 		res.SetOutput(req.InvocContext().ReqLog.Report())
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.BoolOption("verbose", "v", "Prints extra information.").Default(false),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"clear":    clearInactiveCmd,
@@ -87,7 +87,7 @@ Lists running and recently run commands.
 
 var clearInactiveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Clear inactive requests from the log.",
+		Tagline: "Clears inactive requests from the log.",
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		req.InvocContext().ReqLog.ClearInactive()
@@ -96,7 +96,7 @@ var clearInactiveCmd = &cmds.Command{
 
 var setRequestClearCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Set how long to keep inactive requests in the log.",
+		Tagline: "Sets how long to keep inactive requests in the log.",
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("time", true, false, "Time to keep inactive requests in log."),

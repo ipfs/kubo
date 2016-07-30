@@ -18,7 +18,7 @@ import (
 
 var StatsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Query ipfs statistics.",
+		Tagline: "Displays ipfs statistics.",
 		ShortDescription: `'ipfs stats' is a set of commands to help look at statistics
 for your ipfs node.
 `,
@@ -35,7 +35,7 @@ for your ipfs node.`,
 
 var statBwCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Print ipfs bandwidth information.",
+		Tagline: "Prints ipfs bandwidth information.",
 		ShortDescription: `'ipfs stats bw' prints bandwidth information for the ipfs daemon.
 It displays: TotalIn, TotalOut, RateIn, RateOut.
 		`,
@@ -71,9 +71,9 @@ Example:
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("peer", "p", "Specify a peer to print bandwidth for."),
-		cmds.StringOption("proto", "t", "Specify a protocol to print bandwidth for."),
-		cmds.BoolOption("poll", "Print bandwidth at an interval.").Default(false),
+		cmds.StringOption("peer", "p", "Peer to print bandwidth for."),
+		cmds.StringOption("proto", "t", "Protocol to print bandwidth for."),
+		cmds.BoolOption("poll", "Prints bandwidth at an interval.").Default(false),
 		cmds.StringOption("interval", "i", `Time interval to wait between updating output, if 'poll' is true.
 
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are:

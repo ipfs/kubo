@@ -25,7 +25,7 @@ type ConfigField struct {
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get and set IPFS config values.",
+		Tagline: "Gets and sets IPFS config values.",
 		ShortDescription: `
 'ipfs config' controls configuration variables. It works like 'git config'.
 The configuration values are stored in a config file inside your IPFS
@@ -52,8 +52,8 @@ Set the value of the 'datastore.path' key:
 		cmds.StringArg("value", false, false, "The value to set the config entry to."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("bool", "Set a boolean value.").Default(false),
-		cmds.BoolOption("json", "Parse stringified JSON.").Default(false),
+		cmds.BoolOption("bool", "Sets a boolean value.").Default(false),
+		cmds.BoolOption("json", "Parses stringified JSON.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
