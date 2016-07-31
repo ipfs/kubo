@@ -18,7 +18,7 @@ import (
 
 var PinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Pin (and unpin) objects to local storage.",
+		Tagline: "Pins (and unpins) objects in local storage.",
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -34,7 +34,7 @@ type PinOutput struct {
 
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Pins objects to local storage.",
+		Tagline:          "Pins objects in local storage.",
 		ShortDescription: "Stores an IPFS object(s) from a given path locally to disk.",
 	},
 
@@ -42,7 +42,7 @@ var addPinCmd = &cmds.Command{
 		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s).").Default(true),
+		cmds.BoolOption("recursive", "r", "Recursively pin the objects linked to by the specified object(s).").Default(true),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -106,7 +106,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s).").Default(true),
+		cmds.BoolOption("recursive", "r", "Recursively unpins the objects linked to by the specified object(s).").Default(true),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -149,7 +149,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins)
 
 var listPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List objects pinned to local storage.",
+		Tagline: "Lists objects pinned to local storage.",
 		ShortDescription: `
 Returns a list of objects that are pinned locally.
 By default, all pinned objects are returned, but the '--type' flag or
@@ -196,7 +196,7 @@ Example:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").Default("all"),
-		cmds.BoolOption("quiet", "q", "Write just hashes of objects.").Default(false),
+		cmds.BoolOption("quiet", "q", "Writes just hashes of objects.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

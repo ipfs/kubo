@@ -30,7 +30,7 @@ type addrMap struct {
 
 var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Swarm inspection tool.",
+		Tagline: "Interacts with the network swarm.",
 		ShortDescription: `
 'ipfs swarm' is a tool to manipulate the network swarm. The swarm is the
 component that opens, listens for, and maintains connections to other
@@ -48,7 +48,7 @@ ipfs peers in the internet.
 
 var swarmPeersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List peers with open connections.",
+		Tagline: "Lists peers with open connections.",
 		ShortDescription: `
 'ipfs swarm peers' lists the set of peers this node is connected to.
 `,
@@ -98,7 +98,7 @@ var swarmPeersCmd = &cmds.Command{
 
 var swarmAddrsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List known addresses. Useful for debugging.",
+		Tagline: "Lists known addresses. Useful for debugging.",
 		ShortDescription: `
 'ipfs swarm addrs' lists all addresses this node is aware of.
 `,
@@ -161,13 +161,13 @@ var swarmAddrsCmd = &cmds.Command{
 
 var swarmAddrsLocalCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List local addresses.",
+		Tagline: "Lists local addresses.",
 		ShortDescription: `
 'ipfs swarm addrs local' lists all local addresses the node is listening on.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("id", "Show peer ID in addresses.").Default(false),
+		cmds.BoolOption("id", "Shows peer ID in addresses.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -205,7 +205,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 
 var swarmConnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Open connection to a given address.",
+		Tagline: "Opens a connection to the given address.",
 		ShortDescription: `
 'ipfs swarm connect' opens a new direct connection to a peer address.
 
@@ -271,7 +271,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 var swarmDisconnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Close connection to a given address.",
+		Tagline: "Closes a connection to the given address.",
 		ShortDescription: `
 'ipfs swarm disconnect' closes a connection to a peer address. The address
 format is an ipfs multiaddr:
@@ -385,7 +385,7 @@ func peersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
 
 var swarmFiltersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate address filters.",
+		Tagline: "Manipulates address filters.",
 		ShortDescription: `
 'ipfs swarm filters' will list out currently applied filters. Its subcommands
 can be used to add or remove said filters. Filters are specified using the
@@ -443,7 +443,7 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 
 var swarmFiltersAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add an address filter.",
+		Tagline: "Adds an address filter.",
 		ShortDescription: `
 'ipfs swarm filters add' will add an address filter to the daemons swarm.
 Filters applied this way will not persist daemon reboots, to achieve that,
@@ -515,7 +515,7 @@ add your filters to the ipfs config file.
 
 var swarmFiltersRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove an address filter.",
+		Tagline: "Removes an address filter.",
 		ShortDescription: `
 'ipfs swarm filters rm' will remove an address filter from the daemons swarm.
 Filters removed this way will not persist daemon reboots, to achieve that,

@@ -22,7 +22,7 @@ var ErrInvalidCompressionLevel = errors.New("Compression level must be between 1
 
 var GetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Download IPFS objects.",
+		Tagline: "Downloads IPFS objects.",
 		ShortDescription: `
 Stores to disk the data contained an IPFS or IPNS object(s) at the given path.
 
@@ -41,8 +41,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("output", "o", "The path where the output should be stored."),
-		cmds.BoolOption("archive", "a", "Output a TAR archive.").Default(false),
-		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression.").Default(false),
+		cmds.BoolOption("archive", "a", "Outputs a TAR archive.").Default(false),
+		cmds.BoolOption("compress", "C", "Compresses the output with GZIP compression.").Default(false),
 		cmds.IntOption("compression-level", "l", "The level of compression (1-9).").Default(-1),
 	},
 	PreRun: func(req cmds.Request) error {

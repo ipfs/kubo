@@ -16,7 +16,7 @@ import (
 
 var ObjectPatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create a new merkledag object based on an existing one.",
+		Tagline: "Creates a new merkledag object based on an existing one.",
 		ShortDescription: `
 'ipfs object patch <root> <cmd> <args>' is a plumbing command used to
 build custom DAG objects. It mutates objects, creating new objects as a
@@ -43,7 +43,7 @@ func objectMarshaler(res cmds.Response) (io.Reader, error) {
 
 var patchAppendDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Append data to the data segment of a dag node.",
+		Tagline: "Appends data to the data segment of a DAG node.",
 		ShortDescription: `
 Append data to what already exists in the data segment in the given object.
 
@@ -109,7 +109,7 @@ the limit will not be respected by the network.
 
 var patchSetDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Set the data field of an ipfs object.",
+		Tagline: "Sets the data field of an ipfs object.",
 		ShortDescription: `
 Set the data of an ipfs object from stdin or with the contents of a file.
 
@@ -171,7 +171,7 @@ Example:
 
 var patchRmLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove a link from an object.",
+		Tagline: "Removes a link from an object.",
 		ShortDescription: `
 Removes a link by the given name from root.
 `,
@@ -231,7 +231,7 @@ Removes a link by the given name from root.
 
 var patchAddLinkCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add a link to a given object.",
+		Tagline: "Adds a link to an object.",
 		ShortDescription: `
 Add a Merkle-link to the given object and return the hash of the result.
 
@@ -251,7 +251,7 @@ to a file containing 'bar', and returns the hash of the new object.
 		cmds.StringArg("ref", true, false, "IPFS object to add link to."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("create", "p", "Create intermediary nodes.").Default(false),
+		cmds.BoolOption("create", "p", "Creates intermediary nodes.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

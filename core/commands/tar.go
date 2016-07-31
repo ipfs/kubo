@@ -24,7 +24,7 @@ var TarCmd = &cmds.Command{
 
 var tarAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Import a tar file into ipfs.",
+		Tagline: "Imports a tar file into ipfs.",
 		ShortDescription: `
 'ipfs tar add' will parse a tar file and create a merkledag structure to
 represent it.
@@ -76,7 +76,7 @@ represent it.
 
 var tarCatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Export a tar file from IPFS.",
+		Tagline: "Exports a tar file from IPFS.",
 		ShortDescription: `
 'ipfs tar cat' will export a tar file from a previously imported one in IPFS.
 `,

@@ -26,7 +26,7 @@ func (bs BlockStat) String() string {
 
 var BlockCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate raw IPFS blocks.",
+		Tagline: "Manipulates raw IPFS blocks.",
 		ShortDescription: `
 'ipfs block' is a plumbing command used to manipulate raw ipfs blocks.
 Reads from stdin or writes to stdout, and <key> is a base58 encoded
@@ -43,7 +43,7 @@ multihash.
 
 var blockStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Print information of a raw IPFS block.",
+		Tagline: "Prints information about a raw IPFS block.",
 		ShortDescription: `
 'ipfs block stat' is a plumbing command for retrieving information
 on raw ipfs blocks. It outputs the following to stdout:
@@ -80,7 +80,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 
 var blockGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get a raw IPFS block.",
+		Tagline: "Gets a raw IPFS block.",
 		ShortDescription: `
 'ipfs block get' is a plumbing command for retrieving raw ipfs blocks.
 It outputs to stdout, and <key> is a base58 encoded multihash.
@@ -103,7 +103,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 
 var blockPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Stores input as an IPFS block.",
+		Tagline: "Stores input as a raw IPFS block.",
 		ShortDescription: `
 'ipfs block put' is a plumbing command for storing raw ipfs blocks.
 It reads from stdin, and <key> is a base58 encoded multihash.

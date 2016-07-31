@@ -47,7 +47,7 @@ Example:
 		cmds.StringArg("obj_b", true, false, "Object to diff."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Print extra information."),
+		cmds.BoolOption("verbose", "v", "Prints extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()

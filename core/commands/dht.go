@@ -21,7 +21,7 @@ var ErrNotDHT = errors.New("routing service is not a DHT")
 
 var DhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Issue commands directly through the DHT.",
+		Tagline:          "Issues commands directly through the DHT.",
 		ShortDescription: ``,
 	},
 
@@ -36,7 +36,7 @@ var DhtCmd = &cmds.Command{
 
 var queryDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Find the closest Peer IDs to a given Peer ID by querying the DHT.",
+		Tagline:          "Finds the closest Peer IDs to a given Peer ID by querying the DHT.",
 		ShortDescription: "Outputs a list of newline-delimited Peer IDs.",
 	},
 
@@ -44,7 +44,7 @@ var queryDhtCmd = &cmds.Command{
 		cmds.StringArg("peerID", true, true, "The peerID to run the query against."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.BoolOption("verbose", "v", "Prints extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -128,7 +128,7 @@ var queryDhtCmd = &cmds.Command{
 
 var findProvidersDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Find peers in the DHT that can provide a specific value, given a key.",
+		Tagline:          "Finds peers in the DHT that can provide a specific value, given a key.",
 		ShortDescription: "Outputs a list of newline-delimited provider Peer IDs.",
 	},
 
@@ -136,7 +136,7 @@ var findProvidersDhtCmd = &cmds.Command{
 		cmds.StringArg("key", true, true, "The key to find providers for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.BoolOption("verbose", "v", "Prints extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -229,7 +229,7 @@ var findProvidersDhtCmd = &cmds.Command{
 
 var findPeerDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Query the DHT for all of the multiaddresses associated with a Peer ID.",
+		Tagline:          "Queries the DHT for all of the multiaddresses associated with a Peer ID.",
 		ShortDescription: "Outputs a list of newline-delimited multiaddresses.",
 	},
 
@@ -237,7 +237,7 @@ var findPeerDhtCmd = &cmds.Command{
 		cmds.StringArg("peerID", true, true, "The ID of the peer to search for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.BoolOption("verbose", "v", "Prints extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -328,7 +328,7 @@ var findPeerDhtCmd = &cmds.Command{
 
 var getValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Given a key, query the DHT for its best value.",
+		Tagline: "Given a key, queries the DHT for its best value.",
 		ShortDescription: `
 Outputs the best value for the given key.
 
@@ -344,7 +344,7 @@ Different key types can specify other 'best' rules.
 		cmds.StringArg("key", true, true, "The key to find a value for."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.BoolOption("verbose", "v", "Prints extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -437,7 +437,7 @@ Different key types can specify other 'best' rules.
 
 var putValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Write a key/value pair to the DHT.",
+		Tagline: "Writes a key/value pair to the DHT.",
 		ShortDescription: `
 Given a key of the form /foo/bar and a value of any form, this will write that
 value to the DHT with that key.
@@ -462,7 +462,7 @@ NOTE: A value may not exceed 2048 bytes.
 		cmds.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.BoolOption("verbose", "v", "Prints extra information.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

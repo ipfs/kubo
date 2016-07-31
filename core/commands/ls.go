@@ -32,7 +32,7 @@ type LsOutput struct {
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List links from an object.",
+		Tagline: "Lists links from an object.",
 		ShortDescription: `
 Displays the links an IPFS or IPNS object(s) contains, with the following
 format:
@@ -45,8 +45,8 @@ format:
 		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
-		cmds.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
+		cmds.BoolOption("headers", "v", "Prints table headers (Hash, Size, Name).").Default(false),
+		cmds.BoolOption("resolve-type", "Resolves linked objects to find out their types.").Default(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
