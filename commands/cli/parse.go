@@ -9,10 +9,11 @@ import (
 	"sort"
 	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	files "github.com/ipfs/go-ipfs/commands/files"
 	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+
+	cmds "github.com/ipfs/go-ipfs/commands"
+	files "github.com/ipfs/go-ipfs/commands/files"
 )
 
 var log = logging.Logger("commands/cli")
@@ -416,7 +417,7 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 		}
 	}
 
-	return files.NewSerialFile(path.Base(fpath), fpath, hidden, stat)
+	return files.NewSerialFile(path.Base(filepath.ToSlash(fpath)), fpath, hidden, stat)
 }
 
 // Inform the user if a file is waiting on input
