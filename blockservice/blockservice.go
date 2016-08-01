@@ -43,7 +43,15 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
 func (s *BlockService) AddBlock(b blocks.Block) (key.Key, error) {
 	k := b.Key()
-	err := s.Blockstore.Put(b)
+	has, err := s.Blockstore.Has(k)
+	if err != nil {
+		return "", err
+	}
+	if has {
+		return k, nil
+	}
+
+	err = s.Blockstore.Put(b)
 	if err != nil {
 		return k, err
 	}
