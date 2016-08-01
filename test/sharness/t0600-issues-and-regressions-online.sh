@@ -24,7 +24,7 @@ test_expect_success "args expecting stdin dont crash when not given" '
 '
 
 test_expect_success "no panic traces on daemon" '
-	test_expect_failure grep "nil pointer dereference" daemon_err
+	test_must_fail grep "nil pointer dereference" daemon_err
 '
 
 test_kill_ipfs_daemon
