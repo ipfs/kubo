@@ -10,6 +10,8 @@ between 0.4.2 and 0.4.3-rc1.
   (@whyrusleeping, [ipfs/go-ipfs#2989](https://github.com/ipfs/go-ipfs/pull/2989))
   - Fix `ipfs refs` with `edges` option not printing edges.
   (@Kubuxu, [ipfs/go-ipfs#3007](https://github.com/ipfs/go-ipfs/pull/3007))
+  - Fix progress option for `ipfs add` defaulting to true on http API.
+  (@whyrusleeping, [ipfs/go-ipfs#3025](https://github.com/ipfs/go-ipfs/pull/3025))
 
 ### 0.4.3-rc1 - 2016-07-23
 
