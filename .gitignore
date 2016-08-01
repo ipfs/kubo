@@ -3,12 +3,12 @@
 *.memprof
 
 *.swp
+.project
 .ipfsconfig
 *.out
 *.test
 *.orig
 *~
-
 .ipfs
 bin/gx
 bin/gx*
