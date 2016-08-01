@@ -29,13 +29,6 @@ var CatCmd = &cmds.Command{
 			return
 		}
 
-		if !node.OnlineMode() {
-			if err := node.SetupOfflineRouting(); err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-		}
-
 		readers, length, err := cat(req.Context(), node, req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)

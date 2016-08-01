@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"strings"
 
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
@@ -11,11 +10,6 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 )
 
-// ErrNoNamesys is an explicit error for when an IPFS node doesn't
-// (yet) have a name system
-var ErrNoNamesys = errors.New(
-	"core/resolve: no Namesys on IpfsNode - can't resolve ipns entry")
-
 // Resolve resolves the given path by parsing out protocol-specific
 // entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
 // entries and returning the final merkledag node.
@@ -23,9 +17,10 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, er
 	if strings.HasPrefix(p.String(), "/ipns/") {
 		// resolve ipns paths
 
-		// TODO(cryptix): we sould be able to query the local cache for the path
-		if n.Namesys == nil {
-			return nil, ErrNoNamesys
+		if n.Namesys == nil && !n.OnlineMode() {
+			if err := n.SetupOfflineRouting(); err != nil {
+				return nil, err
+			}
 		}
 
 		seg := p.Segments()
