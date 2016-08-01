@@ -340,7 +340,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 	if mount && offline {
-		res.SetError(errors.New("mount is not supported in offline mode"),
+		res.SetError(errors.New("mount is not currently supported in offline mode"),
 			cmds.ErrClient)
 		return
 	}
