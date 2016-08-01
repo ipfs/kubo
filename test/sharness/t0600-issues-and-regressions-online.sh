@@ -29,5 +29,10 @@ test_expect_success "no panic traces on daemon" '
 
 test_kill_ipfs_daemon
 
+test_expect_success "ipfs daemon --offline --mount fails - #2995" '
+	(test_must_fail ipfs daemon --offline --mount 2>daemon_err) &&
+	grep "mount is not supported in offline mode" daemon_err
+'
+
 test_done
 
