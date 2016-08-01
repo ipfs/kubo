@@ -87,7 +87,7 @@ func unpackZip(dist, binnom, path, out string) error {
 
 	var bin io.ReadCloser
 	for _, fis := range zipr.File {
-		if fis.Name == dist+"/"+binnom+".exe" {
+		if fis.Name == dist+"/"+binnom {
 			rc, err := fis.Open()
 			if err != nil {
 				return fmt.Errorf("error extracting binary from archive: %s", err)
