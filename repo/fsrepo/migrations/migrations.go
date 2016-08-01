@@ -25,8 +25,18 @@ func init() {
 
 const migrations = "fs-repo-migrations"
 
+func migrationsBinName() string {
+	switch runtime.GOOS {
+	case "windows":
+		return migrations + ".exe"
+	default:
+		return migrations
+	}
+}
+
 func RunMigration(newv int) error {
-	migrateBin := "fs-repo-migrations"
+	migrateBin := migrationsBinName()
+
 	fmt.Println("  => checking for migrations binary...")
 
 	var err error
@@ -78,7 +88,7 @@ func GetMigrations() (string, error) {
 		return "", fmt.Errorf("tempdir: %s", err)
 	}
 
-	out := filepath.Join(dir, migrations)
+	out := filepath.Join(dir, migrationsBinName())
 
 	err = GetBinaryForVersion(migrations, migrations, DistPath, latest, out)
 	if err != nil {
@@ -202,6 +212,7 @@ func GetBinaryForVersion(distname, binnom, root, vers, out string) error {
 	switch runtime.GOOS {
 	case "windows":
 		archive = "zip"
+		binnom += ".exe"
 	default:
 		archive = "tar.gz"
 	}
