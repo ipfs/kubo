@@ -68,7 +68,7 @@ You can now refer to the added file in a gateway, like so:
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output.").Default(false),
 		cmds.BoolOption(silentOptionName, "Write no output.").Default(false),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data.").Default(true),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation.").Default(false),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk.").Default(false),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object.").Default(false),
@@ -79,6 +79,11 @@ You can now refer to the added file in a gateway, like so:
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
 			return nil
+		}
+
+		_, found, _ := req.Option(progressOptionName).Bool()
+		if !found {
+			req.SetOption(progressOptionName, true)
 		}
 
 		sizeFile, ok := req.Files().(files.SizeFile)

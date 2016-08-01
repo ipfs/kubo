@@ -343,7 +343,7 @@ test_add_cat_5MB
 
 test_add_cat_expensive
 
-test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&r=true&stream-channels=true:"
+test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=true&r=true&stream-channels=true:"
 
 test_kill_ipfs_daemon
 
