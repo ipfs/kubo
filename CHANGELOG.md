@@ -1,5 +1,16 @@
 # go-ipfs changelog
 
+### 0.4.3-rc2 - TODO
+
+This release includes bugfixes and fixes for regressions that were introduced
+between 0.4.2 and 0.4.3-rc1.
+
+- Regressions
+  - Fix daemon panic when there is no multipart input provided with over HTTP API.
+  (@whyrusleeping, [ipfs/go-ipfs#2989](https://github.com/ipfs/go-ipfs/pull/2989))
+  - Fix `ipfs refs` with `edges` option not printing edges.
+  (@Kubuxu, [ipfs/go-ipfs#3007](https://github.com/ipfs/go-ipfs/pull/3007))
+
 ### 0.4.3-rc1 - 2016-07-23
 
 This is a maintenance release which comes with a couple of nice enhancements, and improves the performance of Storage, Bitswap, as well as Content and Peer Routing. It also introduces a handful of new commands and options, and fixes a good bunch of bugs.
