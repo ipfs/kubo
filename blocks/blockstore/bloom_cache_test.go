@@ -19,6 +19,7 @@ func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) 
 		ctx = context.TODO()
 	}
 	opts := DefaultCacheOpts()
+	opts.HasARCCacheSize = 0
 	bbs, err := CachedBlockstore(bs, ctx, opts)
 	if err == nil {
 		return bbs.(*bloomcache), nil
@@ -29,56 +30,10 @@ func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) 
 
 func TestReturnsErrorWhenSizeNegative(t *testing.T) {
 	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-	_, err := bloomCached(bs, context.TODO(), 100, 1, -1)
+	_, err := bloomCached(bs, context.TODO(), -1, 1)
 	if err == nil {
 		t.Fail()
 	}
-	_, err = bloomCached(bs, context.TODO(), -1, 1, 100)
-	if err == nil {
-		t.Fail()
-	}
-}
-
-func TestRemoveCacheEntryOnDelete(t *testing.T) {
-	b := blocks.NewBlock([]byte("foo"))
-	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
-	bs := NewBlockstore(syncds.MutexWrap(cd))
-	cachedbs, err := testBloomCached(bs, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cachedbs.Put(b)
-
-	cd.Lock()
-	writeHitTheDatastore := false
-	cd.Unlock()
-
-	cd.SetFunc(func() {
-		writeHitTheDatastore = true
-	})
-
-	cachedbs.DeleteBlock(b.Key())
-	cachedbs.Put(b)
-	if !writeHitTheDatastore {
-		t.Fail()
-	}
-}
-
-func TestElideDuplicateWrite(t *testing.T) {
-	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
-	bs := NewBlockstore(syncds.MutexWrap(cd))
-	cachedbs, err := testBloomCached(bs, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	b1 := blocks.NewBlock([]byte("foo"))
-
-	cachedbs.Put(b1)
-	cd.SetFunc(func() {
-		t.Fatal("write hit the datastore")
-	})
-	cachedbs.Put(b1)
 }
 func TestHasIsBloomCached(t *testing.T) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
