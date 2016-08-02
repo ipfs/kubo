@@ -102,12 +102,13 @@ func (b *arccache) PutMany(bs []blocks.Block) error {
 		}
 	}
 	err := b.blockstore.PutMany(bs)
-	if err == nil {
-		for _, block := range bs {
-			b.arc.Add(block.Key(), true)
-		}
+	if err != nil {
+		return err
 	}
-	return err
+	for _, block := range bs {
+		b.arc.Add(block.Key(), true)
+	}
+	return nil
 }
 
 func (b *arccache) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
