@@ -24,10 +24,15 @@ test_expect_success "args expecting stdin dont crash when not given" '
 '
 
 test_expect_success "no panic traces on daemon" '
-	test_expect_failure grep "nil pointer dereference" daemon_err
+	test_must_fail grep "nil pointer dereference" daemon_err
 '
 
 test_kill_ipfs_daemon
+
+test_expect_success "ipfs daemon --offline --mount fails - #2995" '
+	test_expect_code 1 ipfs daemon --offline --mount 2>daemon_err &&
+	grep "mount is not currently supported in offline mode" daemon_err
+'
 
 test_done
 

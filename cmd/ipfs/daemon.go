@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	_ "expvar"
 	"fmt"
 	"net"
@@ -336,6 +337,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	mount, _, err := req.Option(mountKwd).Bool()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	if mount && offline {
+		res.SetError(errors.New("mount is not currently supported in offline mode"),
+			cmds.ErrClient)
 		return
 	}
 	if mount {
