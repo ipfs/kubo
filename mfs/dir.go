@@ -152,6 +152,13 @@ func (d *Directory) Child(name string) (FSNode, error) {
 	return d.childUnsync(name)
 }
 
+func (d *Directory) Uncache(name string) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	delete(d.files, name)
+	delete(d.childDirs, name)
+}
+
 // childFromDag searches through this directories dag node for a child link
 // with the given name
 func (d *Directory) childFromDag(name string) (*dag.Node, error) {

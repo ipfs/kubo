@@ -231,6 +231,8 @@ func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
 			if err != nil {
 				return err
 			}
+
+			fsn.Uncache(name)
 		}
 		nd, err := fsn.GetNode()
 		if err != nil {
