@@ -30,30 +30,28 @@ func (b *arccache) DeleteBlock(k key.Key) error {
 	b.arc.Remove(k) // Invalidate cache before deleting.
 	err := b.blockstore.DeleteBlock(k)
 	switch err {
-	case nil:
+	case nil, ds.ErrNotFound, ErrNotFound:
 		b.arc.Add(k, false)
-	case ds.ErrNotFound, ErrNotFound:
-		b.arc.Add(k, false)
+		return nil
 	default:
 		return err
 	}
-	return nil
 }
 
 // if ok == false has is inconclusive
 // if ok == true then has respons to question: is it contained
 func (b *arccache) hasCached(k key.Key) (has bool, ok bool) {
 	if k == "" {
-		// Return cache invalid so call to blockstore
-		// in case of invalid key is forwarded deeper
+		// Return cache invalid so the call to blockstore happens
+		// in case of invalid key and correct error is created.
 		return false, false
 	}
+
 	h, ok := b.arc.Get(k)
 	if ok {
-		return h.(bool), ok
-	} else {
-		return false, false
+		return h.(bool), true
 	}
+	return false, false
 }
 
 func (b *arccache) Has(k key.Key) (bool, error) {
