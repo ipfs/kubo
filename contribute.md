@@ -28,6 +28,23 @@ All commits in a PR must pass tests. If they don't, fix the commits and/or [squa
 
 We use CI tests which run when you push to your branch. To run the tests locally, you can run any of these: `make build`, `make install`, `make test`, `go test ./...`, depending on what youre looking to do. Generally `go test ./...` is your best bet.
 
+### Branch Names
+
+If you are working on a new feature, prefix your branch name with `feat/`. If you are fixing an issue, `fix/`. If you are simply adding tests, `test/`. If you are adding documentation, `doc/`. If your changeset doesn't fall into one of these categories, use your best judgement and come up with your own short prefix.
+
+After that, try to signal what part of the codebase this branch is working on. For example, if you are adding a new test to the DHT that tests for nil providers being returned, then `test/dht/nil-provs` would be acceptable. If your changes don't fall cleanly in a single module, you can use a more general descriptor, or leave it off in favor of a slightly more wordy description.
+
+Please also try to keep branch names around or under 20 characters. It keeps things a little cleaner overall. Also try to avoid putting issue numbers in branch names, it takes up space without providing any immediately relevant context about the changeset.
+
+A few examples of good branch names:
+
+- `feat/cmds/object-diff`
+  - For a Pull Request that adds an `ipfs object diff` command.
+- `test/dag/cache-invalid`
+  - For adding tests around the merkledag's cache invalidation code.
+- `doc/unixfs/pkg-desc`
+  - For a branch that adds or improves the package description in unixfs.
+
 ### Commit messages
 
 Commit messages must start with a short subject line, followed by an optional, 
