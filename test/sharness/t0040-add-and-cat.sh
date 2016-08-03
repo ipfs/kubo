@@ -9,6 +9,15 @@ test_description="Test add and cat commands"
 . lib/test-lib.sh
 
 test_add_cat_file() {
+	test_expect_success "ipfs add --help works" '
+		ipfs add --help 2> add_help_err > /dev/null
+	'
+
+	test_expect_success "stdin reading message doesnt show up" '
+		test_expect_code 1 grep "ipfs: Reading from" add_help_err &&
+		test_expect_code 1 grep "send Ctrl-d to stop." add_help_err
+	'
+
     test_expect_success "ipfs add succeeds" '
     	echo "Hello Worlds!" >mountdir/hello.txt &&
         ipfs add mountdir/hello.txt >actual
