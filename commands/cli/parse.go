@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -305,8 +306,8 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 			if len(inputs) > 0 {
 				stringArgs, inputs = append(stringArgs, inputs[0]), inputs[1:]
 			} else if stdin != nil && argDef.SupportsStdin && !fillingVariadic {
-				if err := printReadInfo(stdin, msgStdinInfo); err == nil {
-					fileArgs[stdin.Name()] = files.NewReaderFile("stdin", "", stdin, nil)
+				if r, err := maybeWrapStdin(stdin, msgStdinInfo); err == nil {
+					fileArgs[stdin.Name()] = files.NewReaderFile("stdin", "", r, nil)
 					stdin = nil
 				}
 			}
@@ -316,27 +317,33 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				fpath := inputs[0]
 				inputs = inputs[1:]
 				var file files.File
-				var err error
 				if fpath == "-" {
-					if err = printReadInfo(stdin, msgStdinInfo); err == nil {
-						fpath = stdin.Name()
-						file = files.NewReaderFile("", fpath, stdin, nil)
+					r, err := maybeWrapStdin(stdin, msgStdinInfo)
+					if err != nil {
+						return nil, nil, err
 					}
+
+					fpath = stdin.Name()
+					file = files.NewReaderFile("", fpath, r, nil)
 				} else {
-					file, err = appendFile(fpath, argDef, recursive, hidden)
-				}
-				if err != nil {
-					return nil, nil, err
+					nf, err := appendFile(fpath, argDef, recursive, hidden)
+					if err != nil {
+						return nil, nil, err
+					}
+
+					file = nf
 				}
 
 				fileArgs[fpath] = file
 			} else if stdin != nil && argDef.SupportsStdin &&
 				argDef.Required && !fillingVariadic {
-				if err := printReadInfo(stdin, msgStdinInfo); err != nil {
+				r, err := maybeWrapStdin(stdin, msgStdinInfo)
+				if err != nil {
 					return nil, nil, err
 				}
+
 				fpath := stdin.Name()
-				fileArgs[fpath] = files.NewReaderFile("", fpath, stdin, nil)
+				fileArgs[fpath] = files.NewReaderFile("", fpath, r, nil)
 			}
 		}
 
@@ -423,17 +430,17 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 }
 
 // Inform the user if a file is waiting on input
-func printReadInfo(f *os.File, msg string) error {
+func maybeWrapStdin(f *os.File, msg string) (io.ReadCloser, error) {
 	isTty, err := isTty(f)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if isTty {
-		fmt.Fprintf(os.Stderr, msg, f.Name())
+		return newMessageReader(f, fmt.Sprintf(msg, f.Name())), nil
 	}
 
-	return nil
+	return f, nil
 }
 
 func isTty(f *os.File) (bool, error) {
@@ -444,4 +451,29 @@ func isTty(f *os.File) (bool, error) {
 	}
 
 	return (fInfo.Mode() & os.ModeCharDevice) != 0, nil
+}
+
+type messageReader struct {
+	r       io.ReadCloser
+	done    bool
+	message string
+}
+
+func newMessageReader(r io.ReadCloser, msg string) io.ReadCloser {
+	return &messageReader{
+		r:       r,
+		message: msg,
+	}
+}
+
+func (r *messageReader) Read(b []byte) (int, error) {
+	if !r.done {
+		fmt.Fprintln(os.Stderr, r.message)
+	}
+
+	return r.r.Read(b)
+}
+
+func (r *messageReader) Close() error {
+	return r.r.Close()
 }
