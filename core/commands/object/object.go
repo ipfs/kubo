@@ -175,7 +175,7 @@ This command outputs data in the following encodings:
   * "protobuf"
   * "json"
   * "xml"
-(Specified by the "--encoding" or "-enc" flag)`,
+(Specified by the "--encoding" or "--enc" flag)`,
 	},
 
 	Arguments: []cmds.Argument{
