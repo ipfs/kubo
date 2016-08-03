@@ -1,17 +1,26 @@
 # go-ipfs changelog
 
-### 0.4.3-rc2 - TODO
+### 0.4.3-rc2 - 2016-07-23
 
 This release includes bugfixes and fixes for regressions that were introduced
 between 0.4.2 and 0.4.3-rc1.
 
 - Regressions
-  - Fix daemon panic when there is no multipart input provided with over HTTP API.
+  - Fix daemon panic when there is no multipart input provided over the HTTP API.
   (@whyrusleeping, [ipfs/go-ipfs#2989](https://github.com/ipfs/go-ipfs/pull/2989))
-  - Fix `ipfs refs` with `edges` option not printing edges.
+  - Fix `ipfs refs --edges` not printing edges.
   (@Kubuxu, [ipfs/go-ipfs#3007](https://github.com/ipfs/go-ipfs/pull/3007))
-  - Fix progress option for `ipfs add` defaulting to true on http API.
+  - Fix progress option for `ipfs add` defaulting to true on the HTTP API.
   (@whyrusleeping, [ipfs/go-ipfs#3025](https://github.com/ipfs/go-ipfs/pull/3025))
+  - Fix erroneous printing of stdin reading message.
+  (@whyrusleeping, [ipfs/go-ipfs#3033](https://github.com/ipfs/go-ipfs/pull/3033))
+  - Fix panic caused by passing `--mount` and `--offline` flags to `ipfs daemon`.
+  (@Kubuxu, [ipfs/go-ipfs#3022](https://github.com/ipfs/go-ipfs/pull/3022))
+  - Fix symlink path resolution on windows.
+  (@Kubuxu, [ipfs/go-ipfs#3023](https://github.com/ipfs/go-ipfs/pull/3023))
+  - Add in code to prevent issue 3032 from crashing the daemon.
+  (@whyrusleeping, [ipfs/go-ipfs#3037](https://github.com/ipfs/go-ipfs/pull/3037))
+
 
 ### 0.4.3-rc1 - 2016-07-23
 
