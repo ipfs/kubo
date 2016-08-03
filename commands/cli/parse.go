@@ -397,11 +397,14 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 		fpath = cwd
 	}
 
-	fpath = filepath.ToSlash(filepath.Clean(fpath))
+	fpath = filepath.Clean(fpath)
 	fpath, err := filepath.EvalSymlinks(fpath)
 	if err != nil {
 		return nil, err
 	}
+	// Repeat ToSlash after EvalSymlinks as it turns path to platform specific
+	fpath = filepath.ToSlash(fpath)
+
 	stat, err := os.Lstat(fpath)
 	if err != nil {
 		return nil, err
