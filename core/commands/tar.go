@@ -13,7 +13,7 @@ import (
 
 var TarCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Utility functions for tar files in IPFS.",
+		Tagline: "Interact with tar files in IPFS.",
 	},
 
 	Subcommands: map[string]*cmds.Command{

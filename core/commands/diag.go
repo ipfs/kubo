@@ -42,7 +42,7 @@ var DefaultDiagnosticTimeout = time.Second * 20
 
 var DiagCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Generates diagnostic reports.",
+		Tagline: "Generate diagnostic reports.",
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -54,7 +54,7 @@ var DiagCmd = &cmds.Command{
 
 var diagNetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Generates a network diagnostics report.",
+		Tagline: "Generate a network diagnostics report.",
 		ShortDescription: `
 Sends out a message to each node in the network recursively
 requesting a listing of data about them including number of

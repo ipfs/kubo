@@ -13,7 +13,7 @@ import (
 
 var IpnsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Gets the value currently published at an IPNS name.",
+		Tagline: "Get the value currently published at an IPNS name.",
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In resolve, the
