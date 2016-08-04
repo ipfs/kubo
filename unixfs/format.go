@@ -17,6 +17,7 @@ const (
 	TDirectory = pb.Data_Directory
 	TMetadata  = pb.Data_Metadata
 	TSymlink   = pb.Data_Symlink
+	THAMTShard = pb.Data_HAMTShard
 )
 
 var ErrMalformedFileFormat = errors.New("malformed data in file format")

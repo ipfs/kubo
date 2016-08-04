@@ -228,7 +228,12 @@ func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
 	case *mfs.File:
 		return nil
 	case *mfs.Directory:
-		for _, name := range fsn.ListNames() {
+		names, err := fsn.ListNames()
+		if err != nil {
+			return err
+		}
+
+		for _, name := range names {
 			child, err := fsn.Child(name)
 			if err != nil {
 				return err

@@ -46,6 +46,33 @@ verify_dir_contents() {
 	'
 }
 
+test_sharding() {
+	test_expect_success "make a directory" '
+		ipfs files mkdir /foo
+	'
+
+	test_expect_success "can make 1100 files in a directory" '
+		printf "" > list_exp_raw
+		for i in `seq 1100`
+		do
+			echo $i | ipfs files write --create /foo/file$i
+			echo file$i >> list_exp_raw
+		done
+	'
+
+	test_expect_success "listing works" '
+		ipfs files ls /foo |sort > list_out &&
+		sort list_exp_raw > list_exp &&
+		test_cmp list_exp list_out
+	'
+
+	test_expect_success "can read a file from sharded directory" '
+		ipfs files read /foo/file65 > file_out &&
+		echo "65" > file_exp &&
+		test_cmp file_out file_exp
+	'
+}
+
 test_files_api() {
 	test_expect_success "can mkdir in root" '
 		ipfs files mkdir /cats
@@ -491,5 +518,6 @@ test_launch_ipfs_daemon
 
 ONLINE=1 # set online flag so tests can easily tell
 test_files_api
+test_sharding
 test_kill_ipfs_daemon
 test_done

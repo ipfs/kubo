@@ -300,6 +300,12 @@
       "hash": "QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9",
       "name": "fuse",
       "version": "0.1.3"
+	},
+    {
+      "author": "whyrusleeping",
+      "hash": "QmfJHywXQu98UeZtGJBQrPAR6AtmDjjbe3qjTo9piXHPnx",
+      "name": "murmur3",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.10.0",
