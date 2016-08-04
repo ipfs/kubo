@@ -195,5 +195,5 @@
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs",
-  "version": "0.4.2"
+  "version": "0.4.3-rc2"
 }
