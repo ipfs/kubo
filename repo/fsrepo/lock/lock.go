@@ -8,8 +8,8 @@ import (
 	"strings"
 	"syscall"
 
-	lock "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	lock "gx/ipfs/QmWi28zbQG6B1xfaaWx5cYoLn3kBFU6pQ6GWQNRV5P6dNe/lock"
 	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -25,8 +25,7 @@ func errPerm(path string) error {
 }
 
 func Lock(confdir string) (io.Closer, error) {
-	c, err := lock.Lock(path.Join(confdir, LockFile))
-	return c, err
+	return lock.Lock(path.Join(confdir, LockFile))
 }
 
 func Locked(confdir string) (bool, error) {
@@ -41,7 +40,7 @@ func Locked(confdir string) (bool, error) {
 			log.Debugf("Someone else has the lock: %s", path.Join(confdir, LockFile))
 			return true, nil
 		}
-		if strings.Contains(err.Error(), "can't Lock file") {
+		if strings.Contains(err.Error(), "resource temporarily unavailable") {
 			log.Debugf("Can't lock file: %s.\n reason: %s", path.Join(confdir, LockFile), err.Error())
 			return true, nil
 		}

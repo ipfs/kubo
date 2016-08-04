@@ -14,9 +14,9 @@ import (
 	record "github.com/ipfs/go-ipfs/routing/record"
 	pset "github.com/ipfs/go-ipfs/thirdparty/peerset"
 
-	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
-	inet "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/net"
-	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	inet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -46,7 +46,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key key.Key, value []byte) err
 
 	rec, err := record.MakePutRecord(sk, key, value, sign)
 	if err != nil {
-		log.Debug("Creation of record failed!")
+		log.Debug("creation of record failed!")
 		return err
 	}
 
@@ -122,6 +122,13 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 		// if someone sent us a different 'less-valid' record, lets correct them
 		if !bytes.Equal(v.Val, best) {
 			go func(v routing.RecvdVal) {
+				if v.From == dht.self {
+					err := dht.putLocal(key, fixupRec)
+					if err != nil {
+						log.Error("Error correcting local dht entry:", err)
+					}
+					return
+				}
 				ctx, cancel := context.WithTimeout(dht.Context(), time.Second*30)
 				defer cancel()
 				err := dht.putValueToPeer(ctx, v.From, key, fixupRec)
@@ -346,7 +353,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, 
 				select {
 				case peerOut <- prov:
 				case <-ctx.Done():
-					log.Debug("Context timed out sending more providers")
+					log.Debug("context timed out sending more providers")
 					return nil, ctx.Err()
 				}
 			}
@@ -397,7 +404,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (pstore.PeerInfo, 
 	// Sanity...
 	for _, p := range peers {
 		if p == id {
-			log.Debug("Found target peer in list of closest peers...")
+			log.Debug("found target peer in list of closest peers...")
 			return dht.peerstore.PeerInfo(p), nil
 		}
 	}

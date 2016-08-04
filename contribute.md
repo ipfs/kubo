@@ -4,6 +4,9 @@ go-ipfs is MIT licensed open source software. We welcome contributions big and
 small! Take a look at the [community contributing notes](https://github.com/ipfs/community/blob/master/contributing.md). Please make sure to check the [issues](https://github.com/ipfs/go-ipfs/issues). Search the closed ones
 before reporting things, and help us with the open ones.
 
+If you're looking to help out, head to the [captain's log](https://github.com/ipfs/go-ipfs/issues/2247) and
+try picking up an issue from there.
+
 ## Go Guidelines:
 
 Please look and conform to our [Go Contribution Guidelines](https://github.com/ipfs/community/blob/master/go-contribution-guidelines.md).

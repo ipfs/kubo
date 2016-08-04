@@ -16,8 +16,8 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	id "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/protocol/identify"
-	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
+	id "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/protocol/identify"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -89,6 +89,12 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, *core
 		t.Fatal(err)
 	}
 
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Gateway.PathPrefixes = []string{"/good-prefix"}
+
 	// need this variable here since we need to construct handler with
 	// listener, and server with handler. yay cycles.
 	dh := &delegatedHandler{}
@@ -98,7 +104,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, *core
 		ts.Listener,
 		VersionOption(),
 		IPNSHostnameOption(),
-		GatewayOption(false, []string{"/good-prefix"}),
+		GatewayOption("/ipfs", "/ipns"),
 	)
 	if err != nil {
 		t.Fatal(err)

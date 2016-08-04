@@ -5,8 +5,9 @@ import (
 	"fmt"
 
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
-	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
+	base32 "gx/ipfs/Qmb1DA2A9LS2wR4FFweB4uEDomFsdmnw1VLawLE1yQzudj/base32"
 )
 
 // Key is a string representation of multihash for use with maps.
@@ -38,7 +39,7 @@ func B58KeyEncode(k Key) string {
 
 // DsKey returns a Datastore key
 func (k Key) DsKey() ds.Key {
-	return ds.NewKey(string(k))
+	return ds.NewKey(base32.RawStdEncoding.EncodeToString([]byte(k)))
 }
 
 // UnmarshalJSON returns a JSON-encoded Key (string)
@@ -68,36 +69,13 @@ func (k *Key) Loggable() map[string]interface{} {
 }
 
 // KeyFromDsKey returns a Datastore key
-func KeyFromDsKey(dsk ds.Key) Key {
-	return Key(dsk.String()[1:])
-}
-
-// B58KeyConverter -- for KeyTransform datastores
-// (static as only one obj needed)
-var B58KeyConverter = b58KeyConverter{}
-
-type b58KeyConverter struct{}
-
-// ConvertKey returns a B58 encoded Datastore key
-// TODO: this is hacky because it encodes every path component. some
-// path components may be proper strings already...
-func (b58KeyConverter) ConvertKey(dsk ds.Key) ds.Key {
-	k := ds.NewKey("/")
-	for _, n := range dsk.Namespaces() {
-		k = k.ChildString(b58.Encode([]byte(n)))
+func KeyFromDsKey(dsk ds.Key) (Key, error) {
+	dec, err := base32.RawStdEncoding.DecodeString(dsk.String()[1:])
+	if err != nil {
+		return "", err
 	}
-	return k
-}
 
-// InvertKey returns a b58 decoded Datastore key
-// TODO: this is hacky because it encodes every path component. some
-// path components may be proper strings already...
-func (b58KeyConverter) InvertKey(dsk ds.Key) ds.Key {
-	k := ds.NewKey("/")
-	for _, n := range dsk.Namespaces() {
-		k = k.ChildString(string(b58.Decode(n)))
-	}
-	return k
+	return Key(dec), nil
 }
 
 // KeySlice is used for sorting Keys

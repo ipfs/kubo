@@ -10,13 +10,13 @@ import (
 	//"time"
 
 	k "github.com/ipfs/go-ipfs/blocks/key"
-	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
-	"gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/query"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+	"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	"gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
-	dsq "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/query"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	dsq "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
@@ -159,16 +159,16 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 			modtime = FromTime(fileInfo.ModTime())
 		}
 		if err != nil {
-			log.Debugf("invalid block: %s: %s\n", b58.Encode(key.Bytes()[1:]), err.Error())
+			log.Debugf("invalid block: %s: %s\n", asMHash(key), err.Error())
 		}
 		invalid := val.Invalid() || err != nil
 		if err == nil && (verify == VerifyAlways || (verify == VerifyIfChanged && modtime != val.ModTime)) {
-			log.Debugf("verifying block %s\n", b58.Encode(key.Bytes()[1:]))
+			log.Debugf("verifying block %s\n", asMHash(key))
 			newKey := k.Key(u.Hash(data)).DsKey()
 			invalid = newKey != key
 		}
 		if update && (invalid != val.Invalid() || modtime != val.ModTime) {
-			log.Debugf("updating block %s\n", b58.Encode(key.Bytes()[1:]))
+			log.Debugf("updating block %s\n", asMHash(key))
 			newVal := *val
 			newVal.SetInvalid(invalid)
 			newVal.ModTime = modtime
@@ -177,9 +177,9 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 		}
 		if invalid {
 			if err != nil {
-				log.Debugf("invalid block %s: %s\n", b58.Encode(key.Bytes()[1:]), err.Error())
+				log.Debugf("invalid block %s: %s\n", asMHash(key), err.Error())
 			} else {
-				log.Debugf("invalid block %s\n", b58.Encode(key.Bytes()[1:]))
+				log.Debugf("invalid block %s\n", asMHash(key))
 			}
 			return nil, InvalidBlock{}
 		} else {
@@ -188,6 +188,14 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) (
 	} else {
 		return val.Data, nil
 	}
+}
+
+func asMHash(dsKey ds.Key) string{
+	key, err := k.KeyFromDsKey(dsKey)
+	if err != nil {
+		return "??????????????????????????????????????????????"
+	}
+	return key.B58String()
 }
 
 func (d *Datastore) Has(key ds.Key) (exists bool, err error) {

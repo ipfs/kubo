@@ -16,12 +16,15 @@ func RmDups(wtr io.Writer, fs *Datastore, bs b.Blockstore) error {
 		return err
 	}
 	for res := range ls {
-		key := k.KeyFromDsKey(res.Key)
+		key, err := k.KeyFromDsKey(res.Key)
+		if err != nil {
+			return err
+		}
 		// This is a quick and dirty hack.  Right now the
 		// filestore ignores normal delete requests so
 		// deleting a block from the blockstore will delete it
 		// form the normal datastore but form the filestore
-		err := bs.DeleteBlock(key)
+		err = bs.DeleteBlock(key)
 		if err == nil {
 			fmt.Fprintf(wtr, "deleted duplicate %s\n", key)
 		}

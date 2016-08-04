@@ -15,7 +15,7 @@ import (
 	"reflect"
 
 	"github.com/ipfs/go-ipfs/path"
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 )
 
 var log = logging.Logger("command")
@@ -36,9 +36,9 @@ type MarshalerMap map[EncodingType]Marshaler
 // text follows formats similar to man pages, but not exactly the same.
 type HelpText struct {
 	// required
-	Tagline          string // used in <cmd usage>
-	ShortDescription string // used in DESCRIPTION
-	Synopsis         string // showcasing the cmd
+	Tagline               string            // used in <cmd usage>
+	ShortDescription      string            // used in DESCRIPTION
+	SynopsisOptionsValues map[string]string // mappings for synopsis generator
 
 	// optional - whole section overrides
 	Usage           string // overrides USAGE section
@@ -46,6 +46,7 @@ type HelpText struct {
 	Options         string // overrides OPTIONS section
 	Arguments       string // overrides ARGUMENTS section
 	Subcommands     string // overrides SUBCOMMANDS section
+	Synopsis        string // overrides SYNOPSIS field
 }
 
 // Command is a runnable command, with input arguments and options (flags).
@@ -205,7 +206,7 @@ func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 }
 
 func (c *Command) CheckArguments(req Request) error {
-	args := req.Arguments()
+	args := req.(*request).arguments
 
 	// count required argument definitions
 	numRequired := 0
@@ -217,7 +218,7 @@ func (c *Command) CheckArguments(req Request) error {
 
 	// iterate over the arg definitions
 	valueIndex := 0 // the index of the current value (in `args`)
-	for _, argDef := range c.Arguments {
+	for i, argDef := range c.Arguments {
 		// skip optional argument definitions if there aren't
 		// sufficient remaining values
 		if len(args)-valueIndex <= numRequired && !argDef.Required ||
@@ -232,6 +233,11 @@ func (c *Command) CheckArguments(req Request) error {
 			v = args[valueIndex]
 			found = true
 			valueIndex++
+		}
+
+		// in the case of a non-variadic required argument that supports stdin
+		if !found && len(c.Arguments)-1 == i && argDef.SupportsStdin {
+			found = true
 		}
 
 		err := checkArgValue(v, found, argDef)
@@ -280,6 +286,10 @@ func (c *Command) ProcessHelp() {
 // checkArgValue returns an error if a given arg value is not valid for the
 // given Argument
 func checkArgValue(v string, found bool, def Argument) error {
+	if def.Variadic && def.SupportsStdin {
+		return nil
+	}
+
 	if !found && def.Required {
 		return fmt.Errorf("Argument '%s' is required", def.Name)
 	}

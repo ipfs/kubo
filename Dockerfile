@@ -1,4 +1,4 @@
-FROM alpine:3.3
+FROM alpine:3.4
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # There is a copy of this Dockerfile called Dockerfile.fast,
@@ -29,7 +29,6 @@ ENV IPFS_PATH /data/ipfs
 # The default logging level
 ENV IPFS_LOGGING ""
 # Golang stuff
-ENV GO_VERSION 1.5.4-r0
 ENV GOPATH     /go
 ENV PATH       /go/bin:$PATH
 ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
@@ -37,7 +36,7 @@ ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
 # Get the go-ipfs sourcecode
 COPY . $SRC_PATH
 
-RUN apk add --update musl go=$GO_VERSION git bash wget ca-certificates \
+RUN apk add --update musl go git bash wget ca-certificates \
 	# Setup user and fs-repo directory
 	&& mkdir -p $IPFS_PATH \
 	&& adduser -D -h $IPFS_PATH -u 1000 ipfs \

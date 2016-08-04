@@ -11,7 +11,7 @@ import (
 
 	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -20,7 +20,7 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 )
 
 func init() {
@@ -55,7 +55,7 @@ func NewFileSystem(ipfs *core.IpfsNode, sk ci.PrivKey, ipfspath, ipnspath string
 
 // Root constructs the Root of the filesystem, a Root object.
 func (f *FileSystem) Root() (fs.Node, error) {
-	log.Debug("Filesystem, get root")
+	log.Debug("filesystem, get root")
 	return f.RootNode, nil
 }
 
@@ -417,7 +417,7 @@ func (fi *FileNode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 func (fi *File) Forget() {
 	err := fi.fi.Sync()
 	if err != nil {
-		log.Debug("Forget file error: ", err)
+		log.Debug("forget file error: ", err)
 	}
 }
 
@@ -481,7 +481,7 @@ func (fi *File) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 
 func (dir *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	// New 'empty' file
-	nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+	nd := dag.NodeWithData(ft.FilePBData(nil, 0))
 	err := dir.dir.AddChild(req.Name, nd)
 	if err != nil {
 		return nil, nil, err

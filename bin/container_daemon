@@ -19,4 +19,4 @@ else
   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 fi
 
-exec ipfs daemon --enable-gc
+exec ipfs daemon "$@"

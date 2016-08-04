@@ -91,7 +91,7 @@ the limit will not be respected by the network.
 			return
 		}
 
-		rootnd.Data = append(rootnd.Data, data...)
+		rootnd.SetData(append(rootnd.Data(), data...))
 
 		newkey, err := nd.DAG.Add(rootnd)
 		if err != nil {
@@ -153,7 +153,7 @@ Example:
 			return
 		}
 
-		root.Data = data
+		root.SetData(data)
 
 		newkey, err := nd.DAG.Add(root)
 		if err != nil {
@@ -251,7 +251,7 @@ to a file containing 'bar', and returns the hash of the new object.
 		cmds.StringArg("ref", true, false, "IPFS object to add link to."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "create", "Create intermediary nodes.").Default(false),
+		cmds.BoolOption("create", "p", "Create intermediary nodes.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -287,9 +287,7 @@ to a file containing 'bar', and returns the hash of the new object.
 
 		var createfunc func() *dag.Node
 		if create {
-			createfunc = func() *dag.Node {
-				return &dag.Node{Data: ft.FolderPBData()}
-			}
+			createfunc = ft.EmptyDirNode
 		}
 
 		e := dagutils.NewDagEditor(root, nd.DAG)

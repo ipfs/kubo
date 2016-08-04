@@ -74,16 +74,25 @@ NOTE: List all references recursively by using the flag '-r'.
 			return
 		}
 
-		edges, _, err := req.Option("edges").Bool()
+		format, _, err := req.Option("format").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		format, _, err := req.Option("format").String()
+		edges, _, err := req.Option("edges").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+		if edges {
+			if format != "<dst>" {
+				res.SetError(errors.New("using format arguement with edges is not allowed"),
+					cmds.ErrClient)
+				return
+			}
+
+			format = "<src> -> <dst>"
 		}
 
 		objs, err := objectsForPaths(ctx, n, req.Arguments())
@@ -103,7 +112,6 @@ NOTE: List all references recursively by using the flag '-r'.
 				DAG:       n.DAG,
 				Ctx:       ctx,
 				Unique:    unique,
-				PrintEdge: edges,
 				PrintFmt:  format,
 				Recursive: recursive,
 			}
@@ -210,7 +218,6 @@ type RefWriter struct {
 
 	Unique    bool
 	Recursive bool
-	PrintEdge bool
 	PrintFmt  string
 
 	seen map[key.Key]struct{}
@@ -315,8 +322,6 @@ func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
 		s = strings.Replace(s, "<src>", from.B58String(), -1)
 		s = strings.Replace(s, "<dst>", to.B58String(), -1)
 		s = strings.Replace(s, "<linkname>", linkname, -1)
-	case rw.PrintEdge:
-		s = from.B58String() + " -> " + to.B58String()
 	default:
 		s += to.B58String()
 	}

@@ -56,7 +56,12 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 		var toDel []k.Key
 		for r := range ch {
 			if to_remove[r.Status] {
-				toDel = append(toDel, k.KeyFromDsKey(r.Key))
+				dsKey, err := k.KeyFromDsKey(r.Key)
+				if err != nil {
+					wtr.CloseWithError(err)
+					return err
+				}
+				toDel = append(toDel, dsKey)
 			}
 		}
 		err = Delete(req, rmWtr, node, fs, DeleteOpts{Direct: true, Force: true}, toDel...)

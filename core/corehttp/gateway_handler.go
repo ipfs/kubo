@@ -36,12 +36,12 @@ type gatewayHandler struct {
 	config GatewayConfig
 }
 
-func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) (*gatewayHandler, error) {
+func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) *gatewayHandler {
 	i := &gatewayHandler{
 		node:   node,
 		config: conf,
 	}
-	return i, nil
+	return i
 }
 
 // TODO(cryptix):  find these helpers somewhere else
@@ -150,12 +150,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	if hdr := r.Header["X-Ipns-Original-Path"]; len(hdr) > 0 {
 		originalUrlPath = prefix + hdr[0]
 		ipnsHostname = true
-	}
-
-	if i.config.BlockList != nil && i.config.BlockList.ShouldBlock(urlPath) {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - Forbidden"))
-		return
 	}
 
 	nd, err := core.Resolve(ctx, i.node, path.Path(urlPath))
@@ -397,7 +391,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	case nil:
 		// object set-data case
-		rnode.Data = newnode.Data
+		rnode.SetData(newnode.Data())
 
 		newkey, err = i.node.DAG.Add(rnode)
 		if err != nil {

@@ -51,13 +51,41 @@ in the bootstrap list).
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("default", "Add default bootstrap nodes.").Default(false),
+		cmds.BoolOption("default", "Add default bootstrap nodes. (Deprecated, use 'default' subcommand instead)"),
+	},
+	Subcommands: map[string]*cmds.Command{
+		"default": bootstrapAddDefaultCmd,
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		inputPeers, err := config.ParseBootstrapPeers(req.Arguments())
+		deflt, _, err := req.Option("default").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		var inputPeers []config.BootstrapPeer
+		if deflt {
+			// parse separately for meaningful, correct error.
+			defltPeers, err := config.DefaultBootstrapPeers()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			inputPeers = defltPeers
+		} else {
+			parsedPeers, err := config.ParseBootstrapPeers(req.Arguments())
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			inputPeers = parsedPeers
+		}
+
+		if len(inputPeers) == 0 {
+			res.SetError(errors.New("no bootstrap peers to add"), cmds.ErrClient)
 			return
 		}
 
@@ -73,29 +101,59 @@ in the bootstrap list).
 			return
 		}
 
-		deflt, _, err := req.Option("default").Bool()
+		added, err := bootstrapAdd(r, cfg, inputPeers)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		if deflt {
-			// parse separately for meaningful, correct error.
-			defltPeers, err := config.DefaultBootstrapPeers()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
+		res.SetOutput(&BootstrapOutput{config.BootstrapPeerStrings(added)})
+	},
+	Type: BootstrapOutput{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			v, ok := res.Output().(*BootstrapOutput)
+			if !ok {
+				return nil, u.ErrCast()
 			}
 
-			inputPeers = append(inputPeers, defltPeers...)
-		}
+			buf := new(bytes.Buffer)
+			if err := bootstrapWritePeers(buf, "added ", v.Peers); err != nil {
+				return nil, err
+			}
 
-		if len(inputPeers) == 0 {
-			res.SetError(errors.New("no bootstrap peers to add"), cmds.ErrClient)
+			return buf, nil
+		},
+	},
+}
+
+var bootstrapAddDefaultCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Add default peers to the bootstrap list.",
+		ShortDescription: `Outputs a list of peers that were added (that weren't already
+in the bootstrap list).`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		defltPeers, err := config.DefaultBootstrapPeers()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		added, err := bootstrapAdd(r, cfg, inputPeers)
+		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		defer r.Close()
+		cfg, err := r.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		added, err := bootstrapAdd(r, cfg, defltPeers)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -132,10 +190,13 @@ var bootstrapRemoveCmd = &cmds.Command{
 		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("all", "Remove all bootstrap peers.").Default(false),
+		cmds.BoolOption("all", "Remove all bootstrap peers. (Deprecated, use 'all' subcommand)"),
+	},
+	Subcommands: map[string]*cmds.Command{
+		"all": bootstrapRemoveAllCmd,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		input, err := config.ParseBootstrapPeers(req.Arguments())
+		all, _, err := req.Option("all").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -153,18 +214,60 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return
 		}
 
-		all, _, err := req.Option("all").Bool()
+		var removed []config.BootstrapPeer
+		if all {
+			removed, err = bootstrapRemoveAll(r, cfg)
+		} else {
+			input, perr := config.ParseBootstrapPeers(req.Arguments())
+			if perr != nil {
+				res.SetError(perr, cmds.ErrNormal)
+				return
+			}
+
+			removed, err = bootstrapRemove(r, cfg, input)
+		}
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		var removed []config.BootstrapPeer
-		if all {
-			removed, err = bootstrapRemoveAll(r, cfg)
-		} else {
-			removed, err = bootstrapRemove(r, cfg, input)
+		res.SetOutput(&BootstrapOutput{config.BootstrapPeerStrings(removed)})
+	},
+	Type: BootstrapOutput{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			v, ok := res.Output().(*BootstrapOutput)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			buf := new(bytes.Buffer)
+			err := bootstrapWritePeers(buf, "removed ", v.Peers)
+			return buf, err
+		},
+	},
+}
+
+var bootstrapRemoveAllCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Removes all peers from the bootstrap list.",
+		ShortDescription: `Outputs the list of peers that were removed.`,
+	},
+
+	Run: func(req cmds.Request, res cmds.Response) {
+		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
+		defer r.Close()
+		cfg, err := r.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		removed, err := bootstrapRemoveAll(r, cfg)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

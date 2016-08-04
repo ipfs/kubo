@@ -128,7 +128,7 @@ func getQuery(req cmds.Request) (string, error) {
 		query.Set(k, str)
 	}
 
-	args := req.Arguments()
+	args := req.StringArguments()
 	argDefs := req.Command().Arguments
 
 	argDefIndex := 0

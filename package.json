@@ -8,32 +8,32 @@
   },
   "gxDependencies": [
     {
-      "hash": "QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv",
+      "hash": "QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR",
       "name": "go-log",
-      "version": "1.1.1"
+      "version": "1.1.2"
     },
     {
-      "hash": "QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS",
+      "hash": "QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms",
       "name": "go-libp2p",
-      "version": "3.3.3"
+      "version": "3.3.7"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUmvxT1NTXjk4v9ucPHgC5NHd7s2nHXrVvFbs68NrGuZC",
+      "hash": "QmVjz1uf6U3sVQ5DbWWj7ktTtDd4GgsptYc7FBp33nWE53",
       "name": "go-libp2p-secio",
-      "version": "1.0.6"
+      "version": "1.0.8"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY",
+      "hash": "QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP",
       "name": "go-libp2p-crypto",
-      "version": "1.0.2"
+      "version": "1.0.3"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC",
+      "hash": "QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs",
       "name": "go-libp2p-peer",
-      "version": "2.0.0"
+      "version": "1.0.8"
     },
     {
       "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
@@ -144,11 +144,11 @@
     },
     {
       "author": "jbenet",
-      "hash": "QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN",
+      "hash": "QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk",
       "name": "go-datastore",
-      "version": "0.0.1"
+      "version": "0.2.0"
     },
-	{
+    {
       "author": "codahale",
       "hash": "QmV3NSS3A1kX5s28r7yLczhDsXzkgo65cqRgKFXYunWZmD",
       "name": "metrics",
@@ -159,6 +159,36 @@
       "hash": "QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy",
       "name": "golang-lru",
       "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmWi28zbQG6B1xfaaWx5cYoLn3kBFU6pQ6GWQNRV5P6dNe",
+      "name": "lock",
+      "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P",
+      "name": "go-libp2p-peerstore",
+      "version": "1.1.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "Qmb1DA2A9LS2wR4FFweB4uEDomFsdmnw1VLawLE1yQzudj",
+      "name": "base32",
+      "version": "0.0.0"
+    },
+    {
+      "author": "kubuxu",
+      "hash": "QmWQ2SJisXwcCLsUXLwYCKSfyExXjFRW2WbBH5sqCUnwX5",
+      "name": "bbloom",
+      "version": "0.0.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmVvJ27GcLaLSXvcB4auk3Gn3xuWK5ti5ENkZ2pCoJEYW4",
+      "name": "autobatch",
+      "version": "0.2.0"
     }
   ],
   "gxVersion": "0.4.0",

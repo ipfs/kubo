@@ -14,7 +14,7 @@ import (
 	dagutil "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
@@ -45,7 +45,7 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 	tr := tar.NewReader(r)
 
 	root := new(dag.Node)
-	root.Data = []byte("ipfs/tar")
+	root.SetData([]byte("ipfs/tar"))
 
 	e := dagutil.NewDagEditor(root, ds)
 
@@ -65,7 +65,7 @@ func ImportTar(r io.Reader, ds dag.DAGService) (*dag.Node, error) {
 			return nil, err
 		}
 
-		header.Data = headerBytes
+		header.SetData(headerBytes)
 
 		if h.Size > 0 {
 			spl := chunk.NewRabin(tr, uint64(chunk.DefaultBlockSize))
@@ -170,7 +170,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 		return 0, err
 	}
 
-	tr.hdrBuf = bytes.NewReader(headerNd.Data)
+	tr.hdrBuf = bytes.NewReader(headerNd.Data())
 
 	dataNd, err := headerNd.GetLinkedNode(tr.ctx, tr.ds, "data")
 	if err != nil && err != dag.ErrLinkNotFound {
@@ -197,7 +197,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 }
 
 func ExportTar(ctx context.Context, root *dag.Node, ds dag.DAGService) (io.Reader, error) {
-	if string(root.Data) != "ipfs/tar" {
+	if string(root.Data()) != "ipfs/tar" {
 		return nil, errors.New("not an ipfs tarchive")
 	}
 	return &tarReader{

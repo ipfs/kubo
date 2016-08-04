@@ -16,7 +16,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -40,7 +40,7 @@ operations.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("f", "flush", "Flush target and ancestors after write. Default: true."),
+		cmds.BoolOption("flush", "f", "Flush target and ancestors after write. Default: true."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -163,7 +163,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 		return nil, err
 	}
 
-	d, err := ft.FromBytes(nd.Data)
+	d, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -217,10 +217,16 @@ var FilesCpCmd = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		src = strings.TrimRight(src, "/")
+
 		dst, err := checkPath(req.Arguments()[1])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+
+		if dst[len(dst)-1] == '/' {
+			dst += gopath.Base(src)
 		}
 
 		nd, err := getNodeFromPath(req.Context(), node, src)
@@ -397,8 +403,8 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin reading from."),
-		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
+		cmds.IntOption("offset", "o", "Byte offset to begin reading from."),
+		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -565,10 +571,10 @@ stat' on the file or any of its ancestors.
 		cmds.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("o", "offset", "Byte offset to begin writing at."),
-		cmds.BoolOption("e", "create", "Create the file if it does not exist."),
-		cmds.BoolOption("t", "truncate", "Truncate the file to size zero before writing."),
-		cmds.IntOption("n", "count", "Maximum number of bytes to read."),
+		cmds.IntOption("offset", "o", "Byte offset to begin writing at."),
+		cmds.BoolOption("create", "e", "Create the file if it does not exist."),
+		cmds.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
+		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -678,7 +684,7 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("p", "parents", "No error if existing, make parent directories as needed."),
+		cmds.BoolOption("parents", "p", "No error if existing, make parent directories as needed."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -758,7 +764,7 @@ Remove files or directories.
 		cmds.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("r", "recursive", "Recursively remove directories."),
+		cmds.BoolOption("recursive", "r", "Recursively remove directories."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -871,7 +877,7 @@ func getFileHandle(r *mfs.Root, path string, create bool) (*mfs.File, error) {
 			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
 
-		nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
 		err = pdir.AddChild(fname, nd)
 		if err != nil {
 			return nil, err

@@ -17,7 +17,7 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
@@ -139,7 +139,7 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 }
 
 func (dm *DagModifier) Size() (int64, error) {
-	pbn, err := ft.FromBytes(dm.curNode.Data)
+	pbn, err := ft.FromBytes(dm.curNode.Data())
 	if err != nil {
 		return 0, err
 	}
@@ -207,7 +207,7 @@ func (dm *DagModifier) Sync() error {
 // returns the new key of the passed in node and whether or not all the data in the reader
 // has been consumed.
 func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (key.Key, bool, error) {
-	f, err := ft.FromBytes(node.Data)
+	f, err := ft.FromBytes(node.Data())
 	if err != nil {
 		return "", false, err
 	}
@@ -225,7 +225,8 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 			return "", false, err
 		}
 
-		nd := &mdag.Node{Data: b}
+		nd := new(mdag.Node)
+		nd.SetData(b)
 		k, err := dm.dagserv.Add(nd)
 		if err != nil {
 			return "", false, err
@@ -429,12 +430,12 @@ func (dm *DagModifier) Truncate(size int64) error {
 func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, error) {
 	if len(nd.Links) == 0 {
 		// TODO: this can likely be done without marshaling and remarshaling
-		pbn, err := ft.FromBytes(nd.Data)
+		pbn, err := ft.FromBytes(nd.Data())
 		if err != nil {
 			return nil, err
 		}
 
-		nd.Data = ft.WrapData(pbn.Data[:size])
+		nd.SetData(ft.WrapData(pbn.Data[:size]))
 		return nd, nil
 	}
 
@@ -448,7 +449,7 @@ func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGSer
 			return nil, err
 		}
 
-		childsize, err := ft.DataSize(child.Data)
+		childsize, err := ft.DataSize(child.Data())
 		if err != nil {
 			return nil, err
 		}
@@ -486,7 +487,7 @@ func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGSer
 		return nil, err
 	}
 
-	nd.Data = d
+	nd.SetData(d)
 
 	// invalidate cache and recompute serialized data
 	_, err = nd.EncodeProtobuf(true)

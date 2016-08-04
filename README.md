@@ -1,7 +1,15 @@
-![](https://ipfs.io/ipfs/QmVk7srrwahXLNmcDYvyUEJptyoxpndnRa57YJ11L4jV26/ipfs.go.png)
+# go-ipfs
 
-# IPFS implementation in Go
-[![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs) [![Build Status](https://travis-ci.org/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs)
+![banner](https://ipfs.io/ipfs/QmVk7srrwahXLNmcDYvyUEJptyoxpndnRa57YJ11L4jV26/ipfs.go.png)
+
+[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
+[![](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](http://ipfs.io/)
+[![](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
+[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
+[![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs)
+[![Build Status](https://travis-ci.org/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs)
+
+> IPFS implementation in Go
 
 IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from
 Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm,
@@ -12,7 +20,7 @@ For more info see: https://github.com/ipfs/ipfs.
 
 Please put all issues regarding IPFS _design_ in the
 [ipfs repo issues](https://github.com/ipfs/ipfs/issues).
-Please put all issues regarding Go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
+Please put all issues regarding the Go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
 
 ## Table of Contents
 
@@ -20,18 +28,20 @@ Please put all issues regarding Go IPFS _implementation_ in [this repo](https://
 - [Install](#install)
   - [Install prebuilt packages](#install-prebuilt-packages)
   - [Build from Source](#build-from-source)
-  - [Prerequisite: Install Go](#prerequisite-install-go)
-  - [Download + Compile IPFS](#download--compile-ipfs)
+    - [Install Go](#install-go)
+    - [Download and Compile IPFS](#download-and-compile-ipfs)
+    - [Troubleshooting](#troubleshooting)
   - [Development Dependencies](#development-dependencies)
-- [Updating](#updating)
+  - [Updating](#updating)
 - [Usage](#usage)
 - [Getting Started](#getting-started)
   - [Some things to try](#some-things-to-try)
   - [Docker usage](#docker-usage)
     - [Docker usage with VirtualBox/boot2docker (OSX and Windows)](#docker-usage-with-virtualboxboot2docker-osx-and-windows)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+  - [Troubleshooting](#troubleshooting-1)
 - [Todo](#todo)
+- [Contributing](#contributing)
+  - [Want to hack on IPFS?](#want-to-hack-on-ipfs)
 - [License](#license)
 
 ## Security Issues
@@ -71,7 +81,7 @@ export PATH=$PATH:$GOPATH/bin
 
 (If you run into trouble, see the [Go install instructions](https://golang.org/doc/install)).
 
-#### Download + Compile IPFS
+#### Download and Compile IPFS
 
 go-ipfs differs from the vanilla `go get` flow: it uses
 [gx](https://github.com/whyrusleeping/gx)/[gx-go](https://github.com/whyrusleeping/gx-go)
@@ -110,11 +120,11 @@ dependencies as well.
 
 If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
 
-## Updating
+### Updating
+
 IPFS has an updating tool that can be accessed through `ipfs update`. The tool is
 not installed alongside IPFS in order to keep that logic independent of the main
-codebase. To install `ipfs update`, either [download it here](https://gobuilder.me/github.com/ipfs/ipfs-update)
-or install it from source with `go get -u github.com/ipfs/ipfs-update`.
+codebase. To install `ipfs update`, [download it here](https://ipfs.io/ipns/dist.ipfs.io/#ipfs-update).
 
 ## Usage
 
@@ -255,13 +265,19 @@ For any other problems, check the [issues list](https://github.com/ipfs/go-ipfs/
 and if you dont see your problem there, either come talk to us on irc (freenode #ipfs) or
 file an issue of your own!
 
+## Todo
+
+An IPFS alpha version has been released in February 2015. Things left to be done are all marked as [issues](https://github.com/ipfs/go-ipfs/issues).
+
 ## Contributing
 
 Please see [Contribute.md](contribute.md)!
 
-## Todo
+This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
-An IPFS alpha version has been released in February 2015. Things left to be done are all marked as [issues](https://github.com/ipfs/go-ipfs/issues).
+### Want to hack on IPFS?
+
+[![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/contributing.md)
 
 ## License
 

@@ -1,4 +1,4 @@
-FROM alpine:3.3
+FROM alpine:3.4
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # This is a copy of /Dockerfile,
@@ -15,7 +15,6 @@ EXPOSE 8080
 ENV GX_IPFS   ""
 ENV IPFS_PATH /data/ipfs
 ENV IPFS_LOGGING ""
-ENV GO_VERSION 1.5.4-r0
 ENV GOPATH     /go
 ENV PATH       /go/bin:$PATH
 ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
@@ -29,7 +28,7 @@ ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
 # and trigger a re-run of all following commands.
 COPY ./package.json $SRC_PATH/package.json
 
-RUN apk add --update musl go=$GO_VERSION git bash wget ca-certificates \
+RUN apk add --update musl go git bash wget ca-certificates \
 	&& mkdir -p $IPFS_PATH \
 	&& adduser -D -h $IPFS_PATH -u 1000 ipfs \
 	&& chown ipfs:ipfs $IPFS_PATH && chmod 755 $IPFS_PATH \

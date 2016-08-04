@@ -9,9 +9,12 @@ import (
 	"sort"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	repo "github.com/ipfs/go-ipfs/repo"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
-	swarm "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/net/swarm"
-	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	swarm "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/swarm"
 
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
@@ -230,6 +233,14 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 			return
 		}
 
+		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		if !ok {
+			res.SetError(fmt.Errorf("peerhost network was not swarm"), cmds.ErrNormal)
+			return
+		}
+
+		swrm := snet.Swarm()
+
 		pis, err := peersWithAddresses(addrs)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -238,6 +249,8 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 		output := make([]string, len(pis))
 		for i, pi := range pis {
+			swrm.Backoff().Clear(pi.ID)
+
 			output[i] = "connect " + pi.ID.Pretty()
 
 			err := n.PeerHost.Connect(ctx, pi)
@@ -458,6 +471,23 @@ add your filters to the ipfs config file.
 			return
 		}
 
+		if len(req.Arguments()) == 0 {
+			res.SetError(errors.New("no filters to add"), cmds.ErrClient)
+			return
+		}
+
+		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		defer r.Close()
+		cfg, err := r.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		for _, arg := range req.Arguments() {
 			mask, err := mafilter.NewMask(arg)
 			if err != nil {
@@ -467,7 +497,20 @@ add your filters to the ipfs config file.
 
 			snet.Filters.AddDialFilter(mask)
 		}
+
+		added, err := filtersAdd(r, cfg, req.Arguments())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+
+		}
+
+		res.SetOutput(&stringList{added})
 	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+	Type: stringList{},
 }
 
 var swarmFiltersRmCmd = &cmds.Command{
@@ -500,11 +543,32 @@ remove your filters from the ipfs config file.
 			return
 		}
 
+		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		defer r.Close()
+		cfg, err := r.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		if req.Arguments()[0] == "all" || req.Arguments()[0] == "*" {
 			fs := snet.Filters.Filters()
 			for _, f := range fs {
 				snet.Filters.Remove(f)
 			}
+
+			removed, err := filtersRemoveAll(r, cfg)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			res.SetOutput(&stringList{removed})
+
 			return
 		}
 
@@ -517,5 +581,89 @@ remove your filters from the ipfs config file.
 
 			snet.Filters.Remove(mask)
 		}
+
+		removed, err := filtersRemove(r, cfg, req.Arguments())
+
+		res.SetOutput(&stringList{removed})
 	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+	Type: stringList{},
+}
+
+func filtersAdd(r repo.Repo, cfg *config.Config, filters []string) ([]string, error) {
+	addedMap := map[string]struct{}{}
+	addedList := make([]string, 0, len(filters))
+
+	// re-add cfg swarm filters to rm dupes
+	oldFilters := cfg.Swarm.AddrFilters
+	cfg.Swarm.AddrFilters = nil
+
+	// add new filters
+	for _, filter := range filters {
+		if _, found := addedMap[filter]; found {
+			continue
+		}
+
+		cfg.Swarm.AddrFilters = append(cfg.Swarm.AddrFilters, filter)
+		addedList = append(addedList, filter)
+		addedMap[filter] = struct{}{}
+	}
+
+	// add back original filters. in this order so that we output them.
+	for _, filter := range oldFilters {
+		if _, found := addedMap[filter]; found {
+			continue
+		}
+
+		cfg.Swarm.AddrFilters = append(cfg.Swarm.AddrFilters, filter)
+		addedMap[filter] = struct{}{}
+	}
+
+	if err := r.SetConfig(cfg); err != nil {
+		return nil, err
+	}
+
+	return addedList, nil
+}
+
+func filtersRemoveAll(r repo.Repo, cfg *config.Config) ([]string, error) {
+	removed := cfg.Swarm.AddrFilters
+	cfg.Swarm.AddrFilters = nil
+
+	if err := r.SetConfig(cfg); err != nil {
+		return nil, err
+	}
+
+	return removed, nil
+}
+
+func filtersRemove(r repo.Repo, cfg *config.Config, toRemoveFilters []string) ([]string, error) {
+	removed := make([]string, 0, len(toRemoveFilters))
+	keep := make([]string, 0, len(cfg.Swarm.AddrFilters))
+
+	oldFilters := cfg.Swarm.AddrFilters
+
+	for _, oldFilter := range oldFilters {
+		found := false
+		for _, toRemoveFilter := range toRemoveFilters {
+			if oldFilter == toRemoveFilter {
+				found = true
+				removed = append(removed, toRemoveFilter)
+				break
+			}
+		}
+
+		if !found {
+			keep = append(keep, oldFilter)
+		}
+	}
+	cfg.Swarm.AddrFilters = keep
+
+	if err := r.SetConfig(cfg); err != nil {
+		return nil, err
+	}
+
+	return removed, nil
 }

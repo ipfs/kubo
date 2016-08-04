@@ -330,7 +330,7 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 			if err != nil {
 				return nil, err
 			}
-			err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks)
+			err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks, false)
 			if err != nil {
 				return nil, err
 			}

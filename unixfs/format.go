@@ -6,6 +6,7 @@ package unixfs
 import (
 	"errors"
 
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	pb "github.com/ipfs/go-ipfs/unixfs/pb"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
@@ -221,4 +222,8 @@ func BytesForMetadata(m *Metadata) ([]byte, error) {
 
 	pbd.Data = mdd
 	return proto.Marshal(pbd)
+}
+
+func EmptyDirNode() *dag.Node {
+	return dag.NodeWithData(FolderPBData())
 }

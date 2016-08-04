@@ -11,9 +11,8 @@ import (
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	node "github.com/ipfs/go-ipfs/merkledag"
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
-	//"gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore/query"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+	//"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 )
 
 const (
@@ -105,8 +104,12 @@ func (r *ListRes) StatusStr() string {
 	return str
 }
 
-func (r *ListRes) MHash() string {
-	return b58.Encode(r.Key.Bytes()[1:])
+func (r *ListRes) MHash() string{
+	key, err := k.KeyFromDsKey(r.Key)
+	if err != nil {
+		return "??????????????????????????????????????????????"
+	}
+	return key.B58String()
 }
 
 func (r *ListRes) RawHash() []byte {

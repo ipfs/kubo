@@ -72,11 +72,6 @@ func Delete(req cmds.Request, out io.Writer, node *core.IpfsNode, fs *Datastore,
 	if !opts.IgnorePins {
 		walkPins(node.Pinning, fs, node.Blockstore, func(key k.Key, mode pin.PinMode) bool {
 			dm, ok := keys[key]
-			if !ok {
-				// Hack to make sure mangled hashes are unpinned
-				// (see issue #2601)
-				dm, ok = keys[k.KeyFromDsKey(key.DsKey())]
-			}
 			if ok {
 				if mode == pin.NotPinned && dm == DirectlySpecified {
 					// an indirect pin

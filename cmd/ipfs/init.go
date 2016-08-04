@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -33,7 +34,9 @@ environment variable:
     export IPFS_PATH=/path/to/ipfsrepo
 `,
 	},
-
+	Arguments: []cmds.Argument{
+		cmds.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
+	},
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
 		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
@@ -51,7 +54,7 @@ environment variable:
 
 		log.Info("checking if daemon is running...")
 		if daemonLocked {
-			log.Debug("Ipfs daemon is running.")
+			log.Debug("ipfs daemon is running")
 			e := "ipfs daemon is running. please stop it to run this command"
 			return cmds.ClientError(e)
 		}
@@ -76,7 +79,24 @@ environment variable:
 			return
 		}
 
-		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, empty, nBitsForKeypair); err != nil {
+		var conf *config.Config
+
+		f := req.Files()
+		if f != nil {
+			confFile, err := f.NextFile()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			conf = &config.Config{}
+			if err := json.NewDecoder(confFile).Decode(conf); err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
+
+		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, empty, nBitsForKeypair, conf); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -88,10 +108,10 @@ Reinitializing would overwrite your keys.
 `)
 
 func initWithDefaults(out io.Writer, repoRoot string) error {
-	return doInit(out, repoRoot, false, nBitsForKeypairDefault)
+	return doInit(out, repoRoot, false, nBitsForKeypairDefault, nil)
 }
 
-func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int) error {
+func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, conf *config.Config) error {
 	if _, err := fmt.Fprintf(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -104,9 +124,12 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int) err
 		return errRepoExists
 	}
 
-	conf, err := config.Init(out, nBitsForKeypair)
-	if err != nil {
-		return err
+	if conf == nil {
+		var err error
+		conf, err = config.Init(out, nBitsForKeypair)
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := fsrepo.Init(repoRoot, conf); err != nil {

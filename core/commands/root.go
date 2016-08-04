@@ -8,7 +8,7 @@ import (
 	files "github.com/ipfs/go-ipfs/core/commands/files"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 )
 
 var log = logging.Logger("core/commands")
@@ -19,10 +19,8 @@ const (
 
 var Root = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Global p2p merkle-dag filesystem.",
-		Synopsis: `
-ipfs [<flags>] <command> [<arg>] ...
-`,
+		Tagline:  "Global p2p merkle-dag filesystem.",
+		Synopsis: "ipfs [--config=<config> | -c] [--debug=<debug> | -D] [--help=<help>] [-h=<h>] [--local=<local> | -L] [--api=<api>] <command> ...",
 		Subcommands: `
 BASIC COMMANDS
   init          Initialize ipfs local configuration

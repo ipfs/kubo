@@ -4,15 +4,20 @@ IPFS_MIN_GX_VERSION = 0.6
 IPFS_MIN_GX_GO_VERSION = 1.1
 
 ifeq ($(TEST_NO_FUSE),1)
-  go_test=go test -tags nofuse
+  go_test=IPFS_REUSEPORT=false go test -tags nofuse
 else
-  go_test=go test
+  go_test=IPFS_REUSEPORT=false go test
 endif
 
+ifeq ($(OS),Windows_NT)
+  GOPATH_DELIMITER = ;
+else
+  GOPATH_DELIMITER = :
+endif
 
-dist_root=/ipfs/QmXZQzBAFuoELw3NtjQZHkWSdA332PyQUj6pQjuhEukvg8
-gx_bin=bin/gx-v0.7.0
-gx-go_bin=bin/gx-go-v1.2.0
+dist_root=/ipfs/QmUnvqDuRyfe7HJuiMMHv77AMUFnjGyAU28LFPeTYwGmFF
+gx_bin=bin/gx-v0.8.0
+gx-go_bin=bin/gx-go-v1.2.1
 
 # use things in our bin before any other system binaries
 export PATH := bin:$(PATH)
@@ -41,7 +46,7 @@ bin/gx-go-v%:
 gx_check: ${gx_bin} ${gx-go_bin}
 
 path_check:
-	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst :, ,$(GOPATH))))
+	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(GOPATH_DELIMITER), ,$(GOPATH))))
 
 deps: go_check gx_check path_check
 	${gx_bin} --verbose install --global
@@ -92,10 +97,10 @@ test_go_race:
 	$(go_test) ./... -race
 
 test_sharness_short:
-	cd test/sharness/ && make
+	make -C test/sharness/
 
 test_sharness_expensive:
-	cd test/sharness/ && TEST_EXPENSIVE=1 make
+	TEST_EXPENSIVE=1 make -C test/sharness/
 
 test_all_commits:
 	@echo "testing all commits between origin/master..HEAD"

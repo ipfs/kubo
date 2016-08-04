@@ -35,7 +35,7 @@ var VersionCmd = &cmds.Command{
 		res.SetOutput(&VersionOutput{
 			Version: config.CurrentVersionNumber,
 			Commit:  config.CurrentCommit,
-			Repo:    fsrepo.RepoVersion,
+			Repo:    fmt.Sprint(fsrepo.RepoVersion),
 			System:  runtime.GOARCH + "/" + runtime.GOOS, //TODO: Precise version here
 			Golang:  runtime.Version(),
 		})

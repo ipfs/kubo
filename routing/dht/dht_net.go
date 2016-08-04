@@ -1,16 +1,20 @@
 package dht
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	peer "gx/ipfs/QmQGwpJy9P4yXZySmqkZEXCmbBpJUb8xntCv8Ca4taZwDC/go-libp2p-peer"
-	inet "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/net"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	inet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
 	ctxio "gx/ipfs/QmX6DhWrpBB5NtadXmPSXYNdVvuLfJXoFNMvUMoVvP5UJa/go-context/io"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
+
+var dhtReadMessageTimeout = time.Minute
+var ErrReadTimeout = fmt.Errorf("timed out reading response")
 
 // handleNewStream implements the inet.StreamHandler
 func (dht *IpfsDHT) handleNewStream(s inet.Stream) {
@@ -54,7 +58,7 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 
 		// if nil response, return it before serializing
 		if rpmes == nil {
-			log.Debug("Got back nil response from request.")
+			log.Debug("got back nil response from request")
 			continue
 		}
 
@@ -64,8 +68,6 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 			return
 		}
 	}
-
-	return
 }
 
 // sendRequest sends out a request, but also makes sure to
@@ -230,14 +232,19 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Message) (*pb
 
 func (ms *messageSender) ctxReadMsg(ctx context.Context, mes *pb.Message) error {
 	errc := make(chan error, 1)
-	go func() {
-		errc <- ms.r.ReadMsg(mes)
-	}()
+	go func(r ggio.ReadCloser) {
+		errc <- r.ReadMsg(mes)
+	}(ms.r)
+
+	t := time.NewTimer(dhtReadMessageTimeout)
+	defer t.Stop()
 
 	select {
 	case err := <-errc:
 		return err
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-t.C:
+		return ErrReadTimeout
 	}
 }

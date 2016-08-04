@@ -16,7 +16,7 @@ var ErrLinkNotFound = fmt.Errorf("no link by that name")
 // nodes have opaque data and a set of navigable links.
 type Node struct {
 	Links []*Link
-	Data  []byte
+	data  []byte
 
 	// cache encoded/marshaled value
 	encoded []byte
@@ -79,6 +79,10 @@ func MakeLink(n *Node) (*Link, error) {
 // GetNode returns the MDAG Node that this link points to
 func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 	return serv.Get(ctx, key.Key(l.Hash))
+}
+
+func NodeWithData(d []byte) *Node {
+	return &Node{data: d}
 }
 
 // AddNodeLink adds a link to another node.
@@ -171,9 +175,9 @@ func (n *Node) GetLinkedNode(ctx context.Context, ds DAGService, name string) (*
 // NOTE: Does not make copies of Node objects in the links.
 func (n *Node) Copy() *Node {
 	nnode := new(Node)
-	if len(n.Data) > 0 {
-		nnode.Data = make([]byte, len(n.Data))
-		copy(nnode.Data, n.Data)
+	if len(n.data) > 0 {
+		nnode.data = make([]byte, len(n.data))
+		copy(nnode.data, n.data)
 	}
 
 	if len(n.Links) > 0 {
@@ -181,6 +185,16 @@ func (n *Node) Copy() *Node {
 		copy(nnode.Links, n.Links)
 	}
 	return nnode
+}
+
+func (n *Node) Data() []byte {
+	return n.data
+}
+
+func (n *Node) SetData(d []byte) {
+	n.encoded = nil
+	n.cached = nil
+	n.data = d
 }
 
 // UpdateNodeLink return a copy of the node with the link name set to point to
@@ -229,8 +243,8 @@ func (n *Node) Stat() (*NodeStat, error) {
 		Hash:           key.B58String(),
 		NumLinks:       len(n.Links),
 		BlockSize:      len(enc),
-		LinksSize:      len(enc) - len(n.Data), // includes framing.
-		DataSize:       len(n.Data),
+		LinksSize:      len(enc) - len(n.data), // includes framing.
+		DataSize:       len(n.data),
 		CumulativeSize: int(cumSize),
 	}, nil
 }

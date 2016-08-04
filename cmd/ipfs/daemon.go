@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	_ "expvar"
 	"fmt"
 	"net"
@@ -8,7 +9,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"sort"
-	"strings"
 	"sync"
 
 	"gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
@@ -24,25 +24,27 @@ import (
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	conn "gx/ipfs/QmQkQP7WmeT9FRJDsEzAaGYDparttDiB6mCpVBrq2MuWQS/go-libp2p/p2p/net/conn"
-	pstore "gx/ipfs/QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j/go-libp2p-peerstore"
+	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	conn "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/conn"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	prometheus "gx/ipfs/QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3/client_golang/prometheus"
 )
 
 const (
+	adjustFDLimitKwd          = "manage-fdlimit"
+	enableGCKwd               = "enable-gc"
 	initOptionKwd             = "init"
-	routingOptionKwd          = "routing"
-	routingOptionSupernodeKwd = "supernode"
-	mountKwd                  = "mount"
-	writableKwd               = "writable"
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
-	unrestrictedApiAccessKwd  = "unrestricted-api"
-	unencryptTransportKwd     = "disable-transport-encryption"
-	enableGCKwd               = "enable-gc"
-	adjustFDLimitKwd          = "manage-fdlimit"
+	migrateKwd                = "migrate"
+	mountKwd                  = "mount"
 	offlineKwd                = "offline"
+	routingOptionKwd          = "routing"
+	routingOptionSupernodeKwd = "supernode"
+	unencryptTransportKwd     = "disable-transport-encryption"
+	unrestrictedApiAccessKwd  = "unrestricted-api"
+	writableKwd               = "writable"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -138,8 +140,9 @@ Headers.
 		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes").Default(false),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)").Default(false),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection").Default(false),
-		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(false),
+		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(true),
 		cmds.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API.").Default(false),
+		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -169,7 +172,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	managefd, _, _ := req.Option(adjustFDLimitKwd).Bool()
 	if managefd {
 		if err := fileDescriptorCheck(); err != nil {
-			log.Error("setting file descriptor limit: %s", err)
+			log.Errorf("setting file descriptor limit: %s", err)
 		}
 	}
 
@@ -217,9 +220,36 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
 	repo, err := fsrepo.Open(req.InvocContext().ConfigRoot)
-	if err != nil {
+	switch err {
+	default:
 		res.SetError(err, cmds.ErrNormal)
 		return
+	case fsrepo.ErrNeedMigration:
+		domigrate, found, _ := req.Option(migrateKwd).Bool()
+		fmt.Println("Found old repo version, migrations need to be run.")
+
+		if !found {
+			domigrate = YesNoPrompt("Run migrations automatically? [y/N]")
+		}
+
+		if !domigrate {
+			res.SetError(fmt.Errorf("please run the migrations manually"), cmds.ErrNormal)
+			return
+		}
+
+		err = migrate.RunMigration(fsrepo.RepoVersion)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		repo, err = fsrepo.Open(req.InvocContext().ConfigRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+	case nil:
+		break
 	}
 
 	cfg, err := ctx.GetConfig()
@@ -230,7 +260,9 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
-		Repo: repo,
+		Repo:      repo,
+		Permament: true, // It is temporary way to signify that node is permament
+		//TODO(Kubuxu): refactor Online vs Offline by adding Permement vs Epthemeral
 	}
 	offline, _, _ := req.Option(offlineKwd).Bool()
 	ncfg.Online = !offline
@@ -307,6 +339,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
+	if mount && offline {
+		res.SetError(errors.New("mount is not currently supported in offline mode"),
+			cmds.ErrClient)
+		return
+	}
 	if mount {
 		if err := mountFuse(req); err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -364,33 +401,24 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 	apiMaddr = apiLis.Multiaddr()
 	fmt.Printf("API server listening on %s\n", apiMaddr)
 
+	// by default, we don't let you load arbitrary ipfs objects through the api,
+	// because this would open up the api to scripting vulnerabilities.
+	// only the webui objects are allowed.
+	// if you know what you're doing, go ahead and pass --unrestricted-api.
 	unrestricted, _, err := req.Option(unrestrictedApiAccessKwd).Bool()
 	if err != nil {
 		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
 	}
+	gatewayOpt := corehttp.GatewayOption(corehttp.WebUIPaths...)
+	if unrestricted {
+		gatewayOpt = corehttp.GatewayOption("/ipfs", "/ipns")
+	}
 
-	apiGw := corehttp.NewGateway(corehttp.GatewayConfig{
-		Writable: true,
-		BlockList: &corehttp.BlockList{
-			Decider: func(s string) bool {
-				if unrestricted {
-					return true
-				}
-				// for now, only allow paths in the WebUI path
-				for _, webuipath := range corehttp.WebUIPaths {
-					if strings.HasPrefix(s, webuipath) {
-						return true
-					}
-				}
-				return false
-			},
-		},
-	})
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("api"),
 		corehttp.CommandsOption(*req.InvocContext()),
 		corehttp.WebUIOption,
-		apiGw.ServeOption(),
+		gatewayOpt,
 		corehttp.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
@@ -452,8 +480,8 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	if err != nil {
 		return fmt.Errorf("serveHTTPGateway: req.Option(%s) failed: %s", writableKwd, err), nil
 	}
-	if !writableOptionFound {
-		writable = cfg.Gateway.Writable
+	if writableOptionFound {
+		cfg.Gateway.Writable = writable
 	}
 
 	gwLis, err := manet.Listen(gatewayMaddr)
@@ -474,7 +502,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(writable, cfg.Gateway.PathPrefixes),
+		corehttp.GatewayOption("/ipfs", "/ipns"),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
@@ -576,4 +604,23 @@ func merge(cs ...<-chan error) <-chan error {
 		close(out)
 	}()
 	return out
+}
+
+func YesNoPrompt(prompt string) bool {
+	var s string
+	for i := 0; i < 3; i++ {
+		fmt.Printf("%s ", prompt)
+		fmt.Scanf("%s", &s)
+		switch s {
+		case "y", "Y":
+			return true
+		case "n", "N":
+			return false
+		case "":
+			return false
+		}
+		fmt.Println("Please press either 'y' or 'n'")
+	}
+
+	return false
 }

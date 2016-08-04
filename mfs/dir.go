@@ -121,7 +121,7 @@ func (d *Directory) childNode(name string) (FSNode, error) {
 
 // cacheNode caches a node into d.childDirs or d.files and returns the FSNode.
 func (d *Directory) cacheNode(name string, nd *dag.Node) (FSNode, error) {
-	i, err := ft.FromBytes(nd.Data)
+	i, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -150,6 +150,13 @@ func (d *Directory) Child(name string) (FSNode, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	return d.childUnsync(name)
+}
+
+func (d *Directory) Uncache(name string) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	delete(d.files, name)
+	delete(d.childDirs, name)
 }
 
 // childFromDag searches through this directories dag node for a child link
@@ -268,7 +275,8 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 		}
 	}
 
-	ndir := &dag.Node{Data: ft.FolderPBData()}
+	ndir := new(dag.Node)
+	ndir.SetData(ft.FolderPBData())
 
 	_, err = d.dserv.Add(ndir)
 	if err != nil {

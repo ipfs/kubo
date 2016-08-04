@@ -20,7 +20,7 @@ import (
 	manet "gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 
-	logging "gx/ipfs/QmYtB7Qge8cJpXc4irsEp8zRqfnZMBeB7aTrMEkPk67DRv/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
@@ -288,7 +288,7 @@ func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
 func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Request, root *cmds.Command) error {
 
 	log.Event(ctx, "callPreCommandHooks", &details)
-	log.Debug("Calling pre-command hooks...")
+	log.Debug("calling pre-command hooks...")
 
 	return nil
 }
@@ -325,7 +325,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 	}
 
 	if client != nil && !cmd.External {
-		log.Debug("Executing command via API")
+		log.Debug("executing command via API")
 		res, err = client.Send(req)
 		if err != nil {
 			if isConnRefused(err) {
@@ -335,7 +335,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		}
 
 	} else {
-		log.Debug("Executing command locally")
+		log.Debug("executing command locally")
 
 		err := req.SetRootContext(ctx)
 		if err != nil {

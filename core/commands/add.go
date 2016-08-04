@@ -18,6 +18,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
 	mfs "github.com/ipfs/go-ipfs/mfs"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -72,7 +73,7 @@ You can now refer to the added file in a gateway, like so:
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output.").Default(false),
 		cmds.BoolOption(silentOptionName, "Write no output.").Default(false),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data.").Default(true),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation.").Default(false),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk.").Default(false),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object.").Default(false),
@@ -83,6 +84,11 @@ You can now refer to the added file in a gateway, like so:
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
 			return nil
+		}
+
+		_, found, _ := req.Option(progressOptionName).Bool()
+		if !found {
+			req.SetOption(progressOptionName, true)
 		}
 
 		sizeFile, ok := req.Files().(files.SizeFile)
@@ -182,7 +188,7 @@ You can now refer to the added file in a gateway, like so:
 
 		if hash {
 			md := dagtest.Mock()
-			mr, err := mfs.NewRoot(req.Context(), md, coreunix.NewDirNode(), nil)
+			mr, err := mfs.NewRoot(req.Context(), md, ft.EmptyDirNode(), nil)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -264,22 +270,13 @@ You can now refer to the added file in a gateway, like so:
 		}
 
 		var bar *pb.ProgressBar
-		var terminalWidth int
 		if progress {
 			bar = pb.New64(0).SetUnits(pb.U_BYTES)
 			bar.ManualUpdate = true
+			bar.ShowTimeLeft = false
+			bar.ShowPercent = false
+			bar.Output = res.Stderr()
 			bar.Start()
-
-			// the progress bar lib doesn't give us a way to get the width of the output,
-			// so as a hack we just use a callback to measure the output, then git rid of it
-			terminalWidth = 0
-			bar.Callback = func(line string) {
-				terminalWidth = len(line)
-				bar.Callback = nil
-				bar.Output = res.Stderr()
-				log.Infof("terminal width: %v\n", terminalWidth)
-			}
-			bar.Update()
 		}
 
 		var sizeChan chan int64
@@ -339,6 +336,9 @@ You can now refer to the added file in a gateway, like so:
 					bar.ShowBar = true
 					bar.ShowTimeLeft = true
 				}
+			case <-req.Context().Done():
+				res.SetError(req.Context().Err(), cmds.ErrNormal)
+				return
 			}
 		}
 	},

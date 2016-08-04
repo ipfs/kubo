@@ -10,7 +10,7 @@ import (
 	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	node "github.com/ipfs/go-ipfs/merkledag"
-	ds "gx/ipfs/QmZ6A6P6AMo8SR3jXAwzTuSU6B9R2Y4eqW2yW9VvfUayDN/go-datastore"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 )
 
 func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) {
@@ -269,5 +269,9 @@ func (p *verifyParams) verifyLeaf(key ds.Key, dataObj *DataObj) int {
 }
 
 func (p *verifyParams) get(key ds.Key) (*node.Node, *DataObj, int) {
-	return getNode(key, k.KeyFromDsKey(key), p.fs, p.node.Blockstore)
+	dsKey, err := k.KeyFromDsKey(key)
+	if err != nil {
+		return nil, nil, StatusCorrupt
+	}
+	return getNode(key, dsKey, p.fs, p.node.Blockstore)
 }
