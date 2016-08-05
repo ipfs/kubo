@@ -114,6 +114,21 @@ func (e *Engine) WantlistForPeer(p peer.ID) (out []wl.Entry) {
 	return out
 }
 
+func (e *Engine) LedgerForPeer(p peer.ID) *Receipt {
+	ledger := e.findOrCreate(p)
+
+	ledger.lk.Lock()
+	defer ledger.lk.Unlock()
+
+	return &Receipt{
+		Peer:      ledger.Partner.String(),
+		Value:     ledger.Accounting.Value(),
+		Sent:      ledger.Accounting.BytesSent,
+		Recv:      ledger.Accounting.BytesRecv,
+		Exchanged: ledger.ExchangeCount(),
+	}
+}
+
 func (e *Engine) taskWorker(ctx context.Context) {
 	defer close(e.outbox) // because taskWorker uses the channel exclusively
 	for {

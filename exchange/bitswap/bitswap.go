@@ -205,6 +205,10 @@ func (bs *Bitswap) WantlistForPeer(p peer.ID) []key.Key {
 	return out
 }
 
+func (bs *Bitswap) LedgerForPeer(p peer.ID) *decision.Receipt {
+	return bs.engine.LedgerForPeer(p)
+}
+
 // GetBlocks returns a channel where the caller may receive blocks that
 // correspond to the provided |keys|. Returns an error if BitSwap is unable to
 // begin this request within the deadline enforced by the context.

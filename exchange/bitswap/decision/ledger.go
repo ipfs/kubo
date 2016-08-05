@@ -49,6 +49,14 @@ type ledger struct {
 	lk sync.Mutex
 }
 
+type Receipt struct {
+	Peer      string
+	Value     float64
+	Sent      uint64
+	Recv      uint64
+	Exchanged uint64
+}
+
 type debtRatio struct {
 	BytesSent uint64
 	BytesRecv uint64
