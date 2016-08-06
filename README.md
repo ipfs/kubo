@@ -37,7 +37,6 @@ Please put all issues regarding the Go IPFS _implementation_ in [this repo](http
 - [Getting Started](#getting-started)
   - [Some things to try](#some-things-to-try)
   - [Docker usage](#docker-usage)
-    - [Docker usage with VirtualBox/boot2docker (OSX and Windows)](#docker-usage-with-virtualboxboot2docker-osx-and-windows)
   - [Troubleshooting](#troubleshooting-1)
 - [Todo](#todo)
 - [Contributing](#contributing)
@@ -245,14 +244,6 @@ Add files:
 Stop the running container:
 
     docker stop ipfs_host
-
-#### Docker usage with VirtualBox/boot2docker (OSX and Windows)
-
-Since docker is running in the boot2docker VM, you need to forward
-relevant ports from the VM to your host for IPFS to act normally. This is
-accomplished with the following command:
-
-    boot2docker ssh -L 5001:localhost:5001 -L 4001:localhost:4001 -L 8080:localhost:8080 -fN
 
 ### Troubleshooting
 If you have previously installed IPFS before and you are running into
