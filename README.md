@@ -101,6 +101,23 @@ Then install `go-ipfs` and its dependencies, including `gx` and `gx-go`:
 $ make install
 ```
 
+#### Building on less common systems
+
+If your operating system isn't officially supported, but you still want to try
+building ipfs anyways (It should work fine in most cases). You can do the
+following:
+
+- install gx: `go get github.com/whyrusleeping/gx`
+- install gx-go: `go get github.com/whyrusleeping/gx-go`
+- fetch ipfs source: `go get -d github.com/ipfs/go-ipfs 2> /dev/null`
+- enter source directory: `cd $GOPATH/src/github.com/ipfs/go-ipfs`
+- install deps: `gx install`
+- install ipfs: `go install ./cmd/ipfs`
+
+Note: This process may break if gx or any of its dependencies break as `go get`
+will always select the latest code for every dependency, often resulting in
+mismatched APIs.
+
 #### Troubleshooting
 
 * Separate [instructions are available for building on Windows](docs/windows.md).
