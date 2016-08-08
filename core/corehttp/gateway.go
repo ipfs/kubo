@@ -18,7 +18,7 @@ type GatewayConfig struct {
 	Resolver     *bc.BlockstackClient
 }
 
-func GatewayOption(paths ...string) ServeOption {
+func GatewayOption(resolver *bc.BlockstackClient, paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		cfg, err := n.Repo.Config()
 		if err != nil {
@@ -29,6 +29,7 @@ func GatewayOption(paths ...string) ServeOption {
 			Headers:      cfg.Gateway.HTTPHeaders,
 			Writable:     cfg.Gateway.Writable,
 			PathPrefixes: cfg.Gateway.PathPrefixes,
+			Resolver: resolver,
 		})
 
 		for _, p := range paths {
