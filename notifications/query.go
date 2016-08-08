@@ -3,8 +3,9 @@ package notifications
 import (
 	"encoding/json"
 
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 const RoutingQueryKey = "RoutingQueryEvent"
@@ -25,7 +26,7 @@ const (
 type QueryEvent struct {
 	ID        peer.ID
 	Type      QueryEventType
-	Responses []*peer.PeerInfo
+	Responses []*pstore.PeerInfo
 	Extra     string
 }
 
@@ -63,7 +64,7 @@ func (qe *QueryEvent) UnmarshalJSON(b []byte) error {
 	temp := struct {
 		ID        string
 		Type      int
-		Responses []*peer.PeerInfo
+		Responses []*pstore.PeerInfo
 		Extra     string
 	}{}
 	err := json.Unmarshal(b, &temp)

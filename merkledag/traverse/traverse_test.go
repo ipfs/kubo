@@ -326,7 +326,7 @@ func testWalkOutputs(t *testing.T, root *mdag.Node, opts Options, expect []byte)
 
 	buf := new(bytes.Buffer)
 	walk := func(current State) error {
-		s := fmt.Sprintf("%d %s\n", current.Depth, current.Node.Data)
+		s := fmt.Sprintf("%d %s\n", current.Depth, current.Node.Data())
 		t.Logf("walk: %s", s)
 		buf.Write([]byte(s))
 		return nil
@@ -349,7 +349,7 @@ func testWalkOutputs(t *testing.T, root *mdag.Node, opts Options, expect []byte)
 }
 
 func newFan(t *testing.T, ds mdag.DAGService) *mdag.Node {
-	a := &mdag.Node{Data: []byte("/a")}
+	a := mdag.NodeWithData([]byte("/a"))
 	addLink(t, ds, a, child(t, ds, a, "aa"))
 	addLink(t, ds, a, child(t, ds, a, "ab"))
 	addLink(t, ds, a, child(t, ds, a, "ac"))
@@ -358,7 +358,7 @@ func newFan(t *testing.T, ds mdag.DAGService) *mdag.Node {
 }
 
 func newLinkedList(t *testing.T, ds mdag.DAGService) *mdag.Node {
-	a := &mdag.Node{Data: []byte("/a")}
+	a := mdag.NodeWithData([]byte("/a"))
 	aa := child(t, ds, a, "aa")
 	aaa := child(t, ds, aa, "aaa")
 	aaaa := child(t, ds, aaa, "aaaa")
@@ -371,7 +371,7 @@ func newLinkedList(t *testing.T, ds mdag.DAGService) *mdag.Node {
 }
 
 func newBinaryTree(t *testing.T, ds mdag.DAGService) *mdag.Node {
-	a := &mdag.Node{Data: []byte("/a")}
+	a := mdag.NodeWithData([]byte("/a"))
 	aa := child(t, ds, a, "aa")
 	ab := child(t, ds, a, "ab")
 	addLink(t, ds, aa, child(t, ds, aa, "aaa"))
@@ -384,7 +384,7 @@ func newBinaryTree(t *testing.T, ds mdag.DAGService) *mdag.Node {
 }
 
 func newBinaryDAG(t *testing.T, ds mdag.DAGService) *mdag.Node {
-	a := &mdag.Node{Data: []byte("/a")}
+	a := mdag.NodeWithData([]byte("/a"))
 	aa := child(t, ds, a, "aa")
 	aaa := child(t, ds, aa, "aaa")
 	aaaa := child(t, ds, aaa, "aaaa")
@@ -401,7 +401,7 @@ func newBinaryDAG(t *testing.T, ds mdag.DAGService) *mdag.Node {
 }
 
 func addLink(t *testing.T, ds mdag.DAGService, a, b *mdag.Node) {
-	to := string(a.Data) + "2" + string(b.Data)
+	to := string(a.Data()) + "2" + string(b.Data())
 	if _, err := ds.Add(b); err != nil {
 		t.Error(err)
 	}
@@ -411,5 +411,5 @@ func addLink(t *testing.T, ds mdag.DAGService, a, b *mdag.Node) {
 }
 
 func child(t *testing.T, ds mdag.DAGService, a *mdag.Node, name string) *mdag.Node {
-	return &mdag.Node{Data: []byte(string(a.Data) + "/" + name)}
+	return mdag.NodeWithData([]byte(string(a.Data()) + "/" + name))
 }

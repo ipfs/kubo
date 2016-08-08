@@ -18,8 +18,8 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var ErrNotExist = errors.New("no such rootfs")
@@ -83,7 +83,7 @@ func NewRoot(parent context.Context, ds dag.DAGService, node *dag.Node, pf PubFu
 		dserv: ds,
 	}
 
-	pbn, err := ft.FromBytes(node.Data)
+	pbn, err := ft.FromBytes(node.Data())
 	if err != nil {
 		log.Error("IPNS pointer was not unixfs node")
 		return nil, err
@@ -265,7 +265,7 @@ func (np *Republisher) Run() {
 				pubnowresp <- struct{}{}
 			}
 			if err != nil {
-				log.Error("republishRoot error: %s", err)
+				log.Errorf("republishRoot error: %s", err)
 			}
 
 		case <-np.ctx.Done():

@@ -1,15 +1,20 @@
 package network
 
 import (
+	"io"
+
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	routing "github.com/ipfs/go-ipfs/routing"
-	host "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/host"
-	inet "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/net"
+
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	host "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var log = logging.Logger("bitswap_network")
@@ -37,12 +42,33 @@ type impl struct {
 	receiver Receiver
 }
 
+type streamMessageSender struct {
+	s inet.Stream
+}
+
+func (s *streamMessageSender) Close() error {
+	return s.s.Close()
+}
+
+func (s *streamMessageSender) SendMsg(msg bsmsg.BitSwapMessage) error {
+	return msg.ToNet(s.s)
+}
+
+func (bsnet *impl) NewMessageSender(ctx context.Context, p peer.ID) (MessageSender, error) {
+	s, err := bsnet.newStreamToPeer(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return &streamMessageSender{s: s}, nil
+}
+
 func (bsnet *impl) newStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
 
 	// first, make sure we're connected.
 	// if this fails, we cannot connect to given peer.
 	//TODO(jbenet) move this into host.NewStream?
-	if err := bsnet.host.Connect(ctx, peer.PeerInfo{ID: p}); err != nil {
+	if err := bsnet.host.Connect(ctx, pstore.PeerInfo{ID: p}); err != nil {
 		return nil, err
 	}
 
@@ -98,7 +124,7 @@ func (bsnet *impl) SetDelegate(r Receiver) {
 }
 
 func (bsnet *impl) ConnectTo(ctx context.Context, p peer.ID) error {
-	return bsnet.host.Connect(ctx, peer.PeerInfo{ID: p})
+	return bsnet.host.Connect(ctx, pstore.PeerInfo{ID: p})
 }
 
 // FindProvidersAsync returns a channel of providers for the given key
@@ -126,7 +152,7 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k key.Key, max int) <
 			if info.ID == bsnet.host.ID() {
 				continue // ignore self as provider
 			}
-			bsnet.host.Peerstore().AddAddrs(info.ID, info.Addrs, peer.TempAddrTTL)
+			bsnet.host.Peerstore().AddAddrs(info.ID, info.Addrs, pstore.TempAddrTTL)
 			select {
 			case <-ctx.Done():
 				return
@@ -150,11 +176,14 @@ func (bsnet *impl) handleNewStream(s inet.Stream) {
 		return
 	}
 
+	reader := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	for {
-		received, err := bsmsg.FromNet(s)
+		received, err := bsmsg.FromPBReader(reader)
 		if err != nil {
-			go bsnet.receiver.ReceiveError(err)
-			log.Debugf("bitswap net handleNewStream from %s error: %s", s.Conn().RemotePeer(), err)
+			if err != io.EOF {
+				go bsnet.receiver.ReceiveError(err)
+				log.Debugf("bitswap net handleNewStream from %s error: %s", s.Conn().RemotePeer(), err)
+			}
 			return
 		}
 

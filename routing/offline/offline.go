@@ -4,16 +4,18 @@ import (
 	"errors"
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	"gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	"gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var log = logging.Logger("offlinerouting")
@@ -88,16 +90,16 @@ func (c *offlineRouting) GetValues(ctx context.Context, key key.Key, _ int) ([]r
 	}, nil
 }
 
-func (c *offlineRouting) FindProviders(ctx context.Context, key key.Key) ([]peer.PeerInfo, error) {
+func (c *offlineRouting) FindProviders(ctx context.Context, key key.Key) ([]pstore.PeerInfo, error) {
 	return nil, ErrOffline
 }
 
-func (c *offlineRouting) FindPeer(ctx context.Context, pid peer.ID) (peer.PeerInfo, error) {
-	return peer.PeerInfo{}, ErrOffline
+func (c *offlineRouting) FindPeer(ctx context.Context, pid peer.ID) (pstore.PeerInfo, error) {
+	return pstore.PeerInfo{}, ErrOffline
 }
 
-func (c *offlineRouting) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.PeerInfo {
-	out := make(chan peer.PeerInfo)
+func (c *offlineRouting) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan pstore.PeerInfo {
+	out := make(chan pstore.PeerInfo)
 	close(out)
 	return out
 }

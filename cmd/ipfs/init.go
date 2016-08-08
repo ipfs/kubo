@@ -27,8 +27,9 @@ var initCmd = &cmds.Command{
 		ShortDescription: `
 Initializes IPFS configuration files and generates a new keypair.
 
-ipfs uses a repository in the local file system. By default, the repo is located
-at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+ipfs uses a repository in the local file system. By default, the repo is
+located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
+environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
 `,
@@ -53,7 +54,7 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 
 		log.Info("checking if daemon is running...")
 		if daemonLocked {
-			log.Debug("Ipfs daemon is running.")
+			log.Debug("ipfs daemon is running")
 			e := "ipfs daemon is running. please stop it to run this command"
 			return cmds.ClientError(e)
 		}

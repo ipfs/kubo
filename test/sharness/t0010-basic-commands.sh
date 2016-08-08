@@ -21,13 +21,21 @@ test_expect_success "ipfs version output looks good" '
 	test_fsh cat version.txt
 '
 
+test_expect_success "ipfs version --all has all required fields" '
+	ipfs version --all > version_all.txt &&
+	grep "go-ipfs version" version_all.txt &&
+	grep "Repo version" version_all.txt &&
+	grep "System version" version_all.txt &&
+	grep "Golang version" version_all.txt
+'
+
 test_expect_success "ipfs help succeeds" '
 	ipfs help >help.txt
 '
 
 test_expect_success "ipfs help output looks good" '
 	egrep -i "^Usage" help.txt >/dev/null &&
-	egrep "ipfs .* <command>" help.txt >/dev/null ||
+	egrep "ipfs <command>" help.txt >/dev/null ||
 	test_fsh cat help.txt
 '
 

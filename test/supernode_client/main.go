@@ -13,12 +13,6 @@ import (
 	"time"
 
 	random "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
-	"github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	commands "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
@@ -28,9 +22,15 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
+	"github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
 	unit "github.com/ipfs/go-ipfs/thirdparty/unit"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
+	"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+	syncds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
+
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var elog = logging.Logger("gc-client")
@@ -89,9 +89,9 @@ func run() error {
 		addrs = append(addrs, addr)
 	}
 
-	var infos []peer.PeerInfo
+	var infos []pstore.PeerInfo
 	for _, addr := range addrs {
-		infos = append(infos, peer.PeerInfo{
+		infos = append(infos, pstore.PeerInfo{
 			ID:    addr.ID(),
 			Addrs: []ma.Multiaddr{addr.Transport()},
 		})
@@ -109,7 +109,7 @@ func run() error {
 
 	opts := []corehttp.ServeOption{
 		corehttp.CommandsOption(cmdCtx(node, repoPath)),
-		corehttp.GatewayOption(false, nil),
+		corehttp.GatewayOption(),
 	}
 
 	if *cat {
@@ -233,8 +233,8 @@ func runFileCattingWorker(ctx context.Context, n *core.IpfsNode) error {
 	return nil
 }
 
-func toPeerInfos(bpeers []config.BootstrapPeer) ([]peer.PeerInfo, error) {
-	var peers []peer.PeerInfo
+func toPeerInfos(bpeers []config.BootstrapPeer) ([]pstore.PeerInfo, error) {
+	var peers []pstore.PeerInfo
 	for _, bootstrap := range bpeers {
 		p, err := toPeerInfo(bootstrap)
 		if err != nil {
@@ -245,8 +245,8 @@ func toPeerInfos(bpeers []config.BootstrapPeer) ([]peer.PeerInfo, error) {
 	return peers, nil
 }
 
-func toPeerInfo(bootstrap config.BootstrapPeer) (p peer.PeerInfo, err error) {
-	p = peer.PeerInfo{
+func toPeerInfo(bootstrap config.BootstrapPeer) (p pstore.PeerInfo, err error) {
+	p = pstore.PeerInfo{
 		ID:    bootstrap.ID(),
 		Addrs: []ma.Multiaddr{bootstrap.Multiaddr()},
 	}

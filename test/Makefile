@@ -7,8 +7,6 @@ RANDOM_FILES_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random-files
 POLLENDPOINT_SRC= ../thirdparty/pollEndpoint
 GOSLEEP_SRC = ./dependencies/go-sleep
 
-GX_RELATIVE_PATH = ../../../../gx/ipfs
-
 export PATH := ../bin:${PATH}
 
 # User might want to override those on the command line
@@ -53,16 +51,16 @@ bin/go-sleep: $(call find_go_files, $(GOSLEEP_SRC)) IPFS-BUILD-OPTIONS
 # gx dependencies
 
 multihash_src:
-	$(eval MULTIHASH_HASH := $(shell cd .. && gx deps find go-multihash))
-	$(eval MULTIHASH_SRC := $(GX_RELATIVE_PATH)/$(MULTIHASH_HASH)/go-multihash)
+	$(eval MULTIHASH_HASH := $(shell cd .. && bin/gx deps find go-multihash))
+	$(eval MULTIHASH_SRC := gx/ipfs/$(MULTIHASH_HASH)/go-multihash)
 
 bin/multihash: multihash_src $(call find_go_files, $(MULTIHASH_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/multihash $(MULTIHASH_SRC)/multihash
 
 iptb_src:
-	$(eval IPTB_HASH := $(shell cd .. && gx deps find iptb))
-	$(eval IPTB_SRC := $(GX_RELATIVE_PATH)/$(IPTB_HASH)/iptb)
+	$(eval IPTB_HASH := $(shell cd .. && bin/gx deps find iptb))
+	$(eval IPTB_SRC := gx/ipfs/$(IPTB_HASH)/iptb)
 
 bin/iptb: iptb_src $(call find_go_files, $(IPTB_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"

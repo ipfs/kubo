@@ -6,6 +6,7 @@ import (
 	"io"
 	"text/tabwriter"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
@@ -33,7 +34,8 @@ var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List links from an object.",
 		ShortDescription: `
-Displays the links an IPFS or IPNS object(s) contains, with the following format:
+Displays the links an IPFS or IPNS object(s) contains, with the following
+format:
 
   <link base58 hash> <link size in bytes> <link name>
 `,
@@ -44,6 +46,7 @@ Displays the links an IPFS or IPNS object(s) contains, with the following format
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
+		cmds.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -54,6 +57,12 @@ Displays the links an IPFS or IPNS object(s) contains, with the following format
 
 		// get options early -> exit early in case of error
 		if _, _, err := req.Option("headers").Bool(); err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		resolve, _, err := req.Option("resolve-type").Bool()
+		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -78,21 +87,42 @@ Displays the links an IPFS or IPNS object(s) contains, with the following format
 			}
 			for j, link := range dagnode.Links {
 				var linkNode *merkledag.Node
-				linkNode, err = link.GetNode(req.Context(), node.DAG)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
+				t := unixfspb.Data_DataType(-1)
+				linkKey := key.Key(link.Hash)
+				if ok, err := node.Blockstore.Has(linkKey); ok && err == nil {
+					b, err := node.Blockstore.Get(linkKey)
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
+					linkNode, err = merkledag.DecodeProtobuf(b.Data())
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
 				}
-				d, err := unixfs.FromBytes(linkNode.Data)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
+
+				if linkNode == nil && resolve {
+					linkNode, err = link.GetNode(req.Context(), node.DAG)
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
+				}
+				if linkNode != nil {
+					d, err := unixfs.FromBytes(linkNode.Data())
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
+
+					t = d.GetType()
 				}
 				output[i].Links[j] = LsLink{
 					Name: link.Name,
 					Hash: link.Hash.B58String(),
 					Size: link.Size,
-					Type: d.GetType(),
+					Type: t,
 				}
 			}
 		}

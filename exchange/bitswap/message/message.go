@@ -7,7 +7,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	inet "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/net"
+	inet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
 
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
@@ -135,7 +135,10 @@ func (m *impl) AddBlock(b blocks.Block) {
 
 func FromNet(r io.Reader) (BitSwapMessage, error) {
 	pbr := ggio.NewDelimitedReader(r, inet.MessageSizeMax)
+	return FromPBReader(pbr)
+}
 
+func FromPBReader(pbr ggio.Reader) (BitSwapMessage, error) {
 	pb := new(pb.Message)
 	if err := pbr.ReadMsg(pb); err != nil {
 		return nil, err

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
-	bhost "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/host/basic"
-	inet "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/net"
-	testutil "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/test/util"
+	bhost "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/host/basic"
+	inet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
+	testutil "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/test/util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -39,8 +39,11 @@ func TestPeersTotal(t *testing.T) {
 
 	node := &core.IpfsNode{PeerHost: hosts[0]}
 	collector := IpfsNodeCollector{Node: node}
-	actual := collector.PeersTotalValue()
-	if actual != 3 {
-		t.Fatalf("expected 3 peers, got %d", int(actual))
+	actual := collector.PeersTotalValues()
+	if len(actual) != 1 {
+		t.Fatalf("expected 1 peers transport, got %d", len(actual))
+	}
+	if actual["/ip4/tcp"] != float64(3) {
+		t.Fatalf("expected 3 peers, got %s", actual["/ip4/tcp"])
 	}
 }

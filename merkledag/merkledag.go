@@ -3,13 +3,14 @@ package merkledag
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("merkledag")
@@ -87,8 +88,14 @@ func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 
 	res, err := DecodeProtobuf(b.Data())
 	if err != nil {
+		if strings.Contains(err.Error(), "Unmarshal failed") {
+			return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", k)
+		}
 		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 	}
+
+	res.cached = k.ToMultihash()
+
 	return res, nil
 }
 
@@ -143,6 +150,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeO
 					out <- &NodeOption{Err: err}
 					return
 				}
+				nd.cached = b.Key().ToMultihash()
 
 				// buffered, no need to select
 				out <- &NodeOption{Node: nd}
@@ -357,16 +365,20 @@ func (t *Batch) Commit() error {
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
-func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, set key.KeySet) error {
+func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, set key.KeySet, bestEffort bool) error {
 	for _, lnk := range root.Links {
 		k := key.Key(lnk.Hash)
 		if !set.Has(k) {
 			set.Add(k)
 			child, err := ds.Get(ctx, k)
 			if err != nil {
-				return err
+				if bestEffort && err == ErrNotFound {
+					continue
+				} else {
+					return err
+				}
 			}
-			err = EnumerateChildren(ctx, ds, child, set)
+			err = EnumerateChildren(ctx, ds, child, set, bestEffort)
 			if err != nil {
 				return err
 			}

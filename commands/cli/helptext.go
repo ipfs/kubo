@@ -78,7 +78,6 @@ const longHelpFormat = `USAGE
 {{.Indent}}{{template "usage" .}}
 
 {{if .Synopsis}}SYNOPSIS
-
 {{.Synopsis}}
 
 {{end}}{{if .Arguments}}ARGUMENTS
@@ -163,6 +162,9 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 	if len(fields.Subcommands) == 0 {
 		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
 	}
+	if len(fields.Synopsis) == 0 {
+		fields.Synopsis = generateSynopsis(cmd, pathStr)
+	}
 
 	// trim the extra newlines (see TrimNewlines doc)
 	fields.TrimNewlines()
@@ -206,6 +208,9 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 	if len(fields.Subcommands) == 0 {
 		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
 	}
+	if len(fields.Synopsis) == 0 {
+		fields.Synopsis = generateSynopsis(cmd, pathStr)
+	}
 
 	// trim the extra newlines (see TrimNewlines doc)
 	fields.TrimNewlines()
@@ -214,6 +219,54 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 	fields.IndentAll()
 
 	return shortHelpTemplate.Execute(out, fields)
+}
+
+func generateSynopsis(cmd *cmds.Command, path string) string {
+	res := path
+	for _, opt := range cmd.Options {
+		valopt, ok := cmd.Helptext.SynopsisOptionsValues[opt.Names()[0]]
+		if !ok {
+			valopt = opt.Names()[0]
+		}
+		sopt := ""
+		for i, n := range opt.Names() {
+			pre := "-"
+			if len(n) > 1 {
+				pre = "--"
+			}
+			if opt.Type() == cmds.Bool && opt.DefaultVal() == true {
+				pre = "--"
+				sopt = fmt.Sprintf("%s%s=false", pre, n)
+				break
+			} else {
+				if i == 0 {
+					if opt.Type() == cmds.Bool {
+						sopt = fmt.Sprintf("%s%s", pre, n)
+					} else {
+						sopt = fmt.Sprintf("%s%s=<%s>", pre, n, valopt)
+					}
+				} else {
+					sopt = fmt.Sprintf("%s | %s%s", sopt, pre, n)
+				}
+			}
+		}
+		res = fmt.Sprintf("%s [%s]", res, sopt)
+	}
+	if len(cmd.Arguments) > 0 {
+		res = fmt.Sprintf("%s [--]", res)
+	}
+	for _, arg := range cmd.Arguments {
+		sarg := fmt.Sprintf("<%s>", arg.Name)
+		if arg.Variadic {
+			sarg = sarg + "..."
+		}
+
+		if !arg.Required {
+			sarg = fmt.Sprintf("[%s]", sarg)
+		}
+		res = fmt.Sprintf("%s %s", res, sarg)
+	}
+	return strings.Trim(res, " ")
 }
 
 func argumentText(cmd *cmds.Command) []string {
@@ -298,18 +351,25 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 	if len(path) > 0 {
 		prefix += " "
 	}
+
+	// Sorting fixes changing order bug #2981.
+	sortedNames := make([]string, 0)
+	for name := range cmd.Subcommands {
+		sortedNames = append(sortedNames, name)
+	}
+	sort.Strings(sortedNames)
+
 	subcmds := make([]*cmds.Command, len(cmd.Subcommands))
 	lines := make([]string, len(cmd.Subcommands))
 
-	i := 0
-	for name, sub := range cmd.Subcommands {
+	for i, name := range sortedNames {
+		sub := cmd.Subcommands[name]
 		usage := usageText(sub)
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
 		lines[i] = prefix + name + usage
 		subcmds[i] = sub
-		i++
 	}
 
 	lines = align(lines)

@@ -9,7 +9,7 @@ test_description="Test ipfs repo operations"
 . lib/test-lib.sh
 
 test_init_ipfs
-test_launch_ipfs_daemon
+test_launch_ipfs_daemon --offline
 
 test_expect_success "'ipfs repo gc' succeeds" '
 	ipfs repo gc >gc_out_actual
@@ -108,14 +108,14 @@ test_expect_success "'ipfs repo gc' removes file" '
 	grep "removed $PATCH_ROOT" actual7
 '
 
-# TODO: there seems to be a serious bug with leveldb not returning a key.
-test_expect_failure "'ipfs refs local' no longer shows file" '
+test_expect_success "'ipfs refs local' no longer shows file" '
 	EMPTY_DIR=QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn &&
-	echo "$EMPTY_DIR" >expected8 &&
-	echo "$HASH_WELCOME_DOCS" >>expected8 &&
-	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected8 &&
 	ipfs refs local >actual8 &&
-	test_sort_cmp expected8 actual8
+	grep "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y" actual8 &&
+	grep "$EMPTY_DIR" actual8 &&
+	grep "$HASH_WELCOME_DOCS" actual8 &&
+	test_must_fail grep "$HASH" actual8 &&
+	test_must_fail grep "$PATCH_ROOT" actual8
 '
 
 test_expect_success "adding multiblock random file succeeds" '
@@ -233,6 +233,7 @@ test_expect_success "repo stats came out correct" '
   grep "RepoPath" repo-stats &&
   grep "RepoSize" repo-stats &&
   grep "NumObjects" repo-stats
+  grep "Version" repo-stats
 '
 
 test_expect_success "'ipfs repo stat' after adding a file" '
@@ -242,6 +243,21 @@ test_expect_success "'ipfs repo stat' after adding a file" '
 
 test_expect_success "repo stats are updated correctly" '
   test $(get_field_num "RepoSize" repo-stats-2) -ge $(get_field_num "RepoSize" repo-stats)
+'
+
+test_expect_success "'ipfs repo version' succeeds" '
+  ipfs repo version > repo-version
+'
+
+test_expect_success "repo version came out correct" '
+	egrep "^ipfs repo version fs-repo@[0-9]" repo-version >/dev/null
+'
+
+test_expect_success "'ipfs repo version -q' succeeds" '
+  ipfs repo version -q > repo-version-q
+'
+test_expect_success "repo version came out correct" '
+	egrep "^fs-repo@[0-9]" repo-version-q >/dev/null
 '
 
 test_kill_ipfs_daemon

@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 
@@ -75,16 +74,25 @@ NOTE: List all references recursively by using the flag '-r'.
 			return
 		}
 
-		edges, _, err := req.Option("edges").Bool()
+		format, _, err := req.Option("format").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		format, _, err := req.Option("format").String()
+		edges, _, err := req.Option("edges").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+		if edges {
+			if format != "<dst>" {
+				res.SetError(errors.New("using format arguement with edges is not allowed"),
+					cmds.ErrClient)
+				return
+			}
+
+			format = "<src> -> <dst>"
 		}
 
 		objs, err := objectsForPaths(ctx, n, req.Arguments())
@@ -104,7 +112,6 @@ NOTE: List all references recursively by using the flag '-r'.
 				DAG:       n.DAG,
 				Ctx:       ctx,
 				Unique:    unique,
-				PrintEdge: edges,
 				PrintFmt:  format,
 				Recursive: recursive,
 			}
@@ -117,35 +124,8 @@ NOTE: List all references recursively by using the flag '-r'.
 			}
 		}()
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(<-chan interface{})
-			if !ok {
-				return nil, u.ErrCast()
-			}
-
-			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*RefWrapper)
-				if !ok {
-					fmt.Println("%#v", v)
-					return nil, u.ErrCast()
-				}
-
-				if obj.Err != "" {
-					return nil, errors.New(obj.Err)
-				}
-
-				return strings.NewReader(obj.Ref + "\n"), nil
-			}
-
-			return &cmds.ChannelMarshaler{
-				Channel:   outChan,
-				Marshaler: marshal,
-				Res:       res,
-			}, nil
-		},
-	},
-	Type: RefWrapper{},
+	Marshalers: refsMarshallerMap,
+	Type:       RefWrapper{},
 }
 
 var RefsLocalCmd = &cmds.Command{
@@ -171,21 +151,46 @@ Displays the hashes of all local objects.
 			return
 		}
 
-		piper, pipew := io.Pipe()
+		out := make(chan interface{})
+		res.SetOutput((<-chan interface{})(out))
 
 		go func() {
-			defer pipew.Close()
+			defer close(out)
 
 			for k := range allKeys {
-				s := k.B58String() + "\n"
-				if _, err := pipew.Write([]byte(s)); err != nil {
-					log.Error("pipe write error: ", err)
-					return
-				}
+				out <- &RefWrapper{Ref: k.B58String()}
 			}
 		}()
+	},
+	Marshalers: refsMarshallerMap,
+	Type:       RefWrapper{},
+}
 
-		res.SetOutput(piper)
+var refsMarshallerMap = cmds.MarshalerMap{
+	cmds.Text: func(res cmds.Response) (io.Reader, error) {
+		outChan, ok := res.Output().(<-chan interface{})
+		if !ok {
+			return nil, u.ErrCast()
+		}
+
+		marshal := func(v interface{}) (io.Reader, error) {
+			obj, ok := v.(*RefWrapper)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			if obj.Err != "" {
+				return nil, errors.New(obj.Err)
+			}
+
+			return strings.NewReader(obj.Ref + "\n"), nil
+		}
+
+		return &cmds.ChannelMarshaler{
+			Channel:   outChan,
+			Marshaler: marshal,
+			Res:       res,
+		}, nil
 	},
 }
 
@@ -213,7 +218,6 @@ type RefWriter struct {
 
 	Unique    bool
 	Recursive bool
-	PrintEdge bool
 	PrintFmt  string
 
 	seen map[key.Key]struct{}
@@ -318,8 +322,6 @@ func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
 		s = strings.Replace(s, "<src>", from.B58String(), -1)
 		s = strings.Replace(s, "<dst>", to.B58String(), -1)
 		s = strings.Replace(s, "<linkname>", linkname, -1)
-	case rw.PrintEdge:
-		s = from.B58String() + " -> " + to.B58String()
 	default:
 		s += to.B58String()
 	}

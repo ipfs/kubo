@@ -3,15 +3,24 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	cmds "github.com/ipfs/go-ipfs/commands"
-	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	config "github.com/ipfs/go-ipfs/repo/config"
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+
+	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
+
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
+
+type RepoVersion struct {
+	Version string
+}
 
 var RepoCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -22,9 +31,11 @@ var RepoCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"gc":   repoGcCmd,
-		"stat": repoStatCmd,
-		"fsck": RepoFsckCmd,
+		"gc":      repoGcCmd,
+		"stat":    repoStatCmd,
+		"fsck":    RepoFsckCmd,
+		"version": repoVersionCmd,
+		"verify":  repoVerifyCmd,
 	},
 }
 
@@ -109,6 +120,7 @@ set of stored objects and print repo statistics. It outputs to stdout:
 NumObjects      int Number of objects in the local repo.
 RepoPath        string The path to the repo being currently used.
 RepoSize        int Size in bytes that the repo is currently taking.
+Version         string The repo version.
 `,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -151,6 +163,7 @@ RepoSize        int Size in bytes that the repo is currently taking.
 				fmt.Fprintf(buf, "RepoSize \t %d\n", stat.RepoSize)
 			}
 			fmt.Fprintf(buf, "RepoPath \t %s\n", stat.RepoPath)
+			fmt.Fprintf(buf, "Version \t %s\n", stat.Version)
 
 			return buf, nil
 		},
@@ -199,12 +212,135 @@ daemons are running.
 			return
 		}
 
-		s := "Lockfiles have been removed."
-		log.Info(s)
-		res.SetOutput(&MessageOutput{s + "\n"})
+		res.SetOutput(&MessageOutput{"Lockfiles have been removed.\n"})
 	},
 	Type: MessageOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: MessageTextMarshaler,
+	},
+}
+
+type VerifyProgress struct {
+	Message  string
+	Progress int
+}
+
+var repoVerifyCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Verify all blocks in repo are not corrupted.",
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		nd, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		out := make(chan interface{})
+		go func() {
+			defer close(out)
+			bs := bstore.NewBlockstore(nd.Repo.Datastore())
+
+			bs.RuntimeHashing(true)
+
+			keys, err := bs.AllKeysChan(req.Context())
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			var fails int
+			var i int
+			for k := range keys {
+				_, err := bs.Get(k)
+				if err != nil {
+					out <- &VerifyProgress{
+						Message: fmt.Sprintf("block %s was corrupt (%s)", k, err),
+					}
+					fails++
+				}
+				i++
+				out <- &VerifyProgress{Progress: i}
+			}
+			if fails == 0 {
+				out <- &VerifyProgress{Message: "verify complete, all blocks validated."}
+			} else {
+				out <- &VerifyProgress{Message: "verify complete, some blocks were corrupt."}
+			}
+		}()
+
+		res.SetOutput((<-chan interface{})(out))
+	},
+	Type: VerifyProgress{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			out := res.Output().(<-chan interface{})
+
+			marshal := func(v interface{}) (io.Reader, error) {
+				obj, ok := v.(*VerifyProgress)
+				if !ok {
+					return nil, u.ErrCast()
+				}
+
+				buf := new(bytes.Buffer)
+				if obj.Message != "" {
+					if strings.Contains(obj.Message, "blocks were corrupt") {
+						return nil, fmt.Errorf(obj.Message)
+					}
+					if len(obj.Message) < 20 {
+						obj.Message += "             "
+					}
+					fmt.Fprintln(buf, obj.Message)
+					return buf, nil
+				}
+
+				fmt.Fprintf(buf, "%d blocks processed.\r", obj.Progress)
+				return buf, nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Channel:   out,
+				Marshaler: marshal,
+				Res:       res,
+			}, nil
+		},
+	},
+}
+
+var repoVersionCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Show the repo version.",
+		ShortDescription: `
+'ipfs repo version' returns the current repo version.
+`,
+	},
+
+	Options: []cmds.Option{
+		cmds.BoolOption("quiet", "q", "Write minimal output."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		res.SetOutput(&RepoVersion{
+			Version: fmt.Sprint(fsrepo.RepoVersion),
+		})
+	},
+	Type: RepoVersion{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			response := res.Output().(*RepoVersion)
+
+			quiet, _, err := res.Request().Option("quiet").Bool()
+			if err != nil {
+				return nil, err
+			}
+
+			buf := new(bytes.Buffer)
+			if quiet {
+				buf = bytes.NewBufferString(fmt.Sprintf("fs-repo@%s\n", response.Version))
+			} else {
+				buf = bytes.NewBufferString(fmt.Sprintf("ipfs repo version fs-repo@%s\n", response.Version))
+			}
+			return buf, nil
+
+		},
 	},
 }

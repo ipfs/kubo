@@ -152,20 +152,27 @@ var listPinCmd = &cmds.Command{
 		Tagline: "List objects pinned to local storage.",
 		ShortDescription: `
 Returns a list of objects that are pinned locally.
-By default, all pinned objects are returned, but the '--type' flag or arguments can restrict that to a specific pin type or to some specific objects respectively.
+By default, all pinned objects are returned, but the '--type' flag or
+arguments can restrict that to a specific pin type or to some specific objects
+respectively.
 `,
 		LongDescription: `
 Returns a list of objects that are pinned locally.
-By default, all pinned objects are returned, but the '--type' flag or arguments can restrict that to a specific pin type or to some specific objects respectively.
+By default, all pinned objects are returned, but the '--type' flag or
+arguments can restrict that to a specific pin type or to some specific objects
+respectively.
 
-Use --type=<type> to specify the type of pinned keys to list. Valid values are:
+Use --type=<type> to specify the type of pinned keys to list.
+Valid values are:
     * "direct": pin that specific object.
-    * "recursive": pin that specific object, and indirectly pin all its decendants
+    * "recursive": pin that specific object, and indirectly pin all its
+    	descendants
     * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
 
-With arguments, the command fails if any of the arguments is not a pinned object.
-And if --type=<type> is additionally used, the command will also fail if any of the arguments is not of the specified type.
+With arguments, the command fails if any of the arguments is not a pinned
+object. And if --type=<type> is additionally used, the command will also fail
+if any of the arguments is not of the specified type.
 
 Example:
 	$ echo "hello" | ipfs add -q
@@ -323,7 +330,7 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 			if err != nil {
 				return nil, err
 			}
-			err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks)
+			err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks, false)
 			if err != nil {
 				return nil, err
 			}

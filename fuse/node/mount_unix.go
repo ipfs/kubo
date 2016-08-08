@@ -1,4 +1,4 @@
-// +build linux darwin freebsd netbsd
+// +build linux darwin freebsd netbsd openbsd
 // +build !nofuse
 
 package node
@@ -13,7 +13,7 @@ import (
 	ipns "github.com/ipfs/go-ipfs/fuse/ipns"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
 	rofs "github.com/ipfs/go-ipfs/fuse/readonly"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 )
 
 var log = logging.Logger("node")

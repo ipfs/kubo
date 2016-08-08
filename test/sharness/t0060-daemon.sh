@@ -121,4 +121,14 @@ test_expect_success "daemon with pipe eventually becomes live" '
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
 
+ulimit -n 512
+TEST_ULIMIT_PRESET=1
+test_launch_ipfs_daemon
+
+test_expect_success "daemon raised its fd limit" '
+	grep "ulimit" actual_daemon > /dev/null
+'
+
+test_kill_ipfs_daemon
+
 test_done

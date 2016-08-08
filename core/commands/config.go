@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	repo "github.com/ipfs/go-ipfs/repo"
@@ -57,6 +58,14 @@ Set the value of the 'datastore.path' key:
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
 		key := args[0]
+
+		// This is a temporary fix until we move the private key out of the config file
+		switch strings.ToLower(key) {
+		case "identity", "identity.privkey":
+			res.SetError(fmt.Errorf("cannot show or change private key through API"), cmds.ErrNormal)
+			return
+		default:
+		}
 
 		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
 		if err != nil {
@@ -134,18 +143,40 @@ included in the output of this command.
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		filename, err := config.Filename(req.InvocContext().ConfigRoot)
+		fname, err := config.Filename(req.InvocContext().ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		output, err := showConfig(filename)
+		data, err := ioutil.ReadFile(fname)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(output)
+
+		var cfg map[string]interface{}
+		err = json.Unmarshal(data, &cfg)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		idmap, ok := cfg["Identity"].(map[string]interface{})
+		if !ok {
+			res.SetError(fmt.Errorf("config has no identity"), cmds.ErrNormal)
+			return
+		}
+
+		delete(idmap, "PrivKey")
+
+		output, err := config.HumanOutput(cfg)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(bytes.NewReader(output))
 	},
 }
 
@@ -219,22 +250,20 @@ func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 }
 
 func setConfig(r repo.Repo, key string, value interface{}) (*ConfigField, error) {
-	err := r.SetConfigKey(key, value)
+	keyF, err := getConfig(r, "Identity.PrivKey")
 	if err != nil {
-		return nil, fmt.Errorf("Failed to set config value: %s (maybe use --json?)", err)
+		return nil, errors.New("failed to get PrivKey")
+	}
+	privkey := keyF.Value
+	err = r.SetConfigKey(key, value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set config value: %s (maybe use --json?)", err)
+	}
+	err = r.SetConfigKey("Identity.PrivKey", privkey)
+	if err != nil {
+		return nil, errors.New("failed to set PrivKey")
 	}
 	return getConfig(r, key)
-}
-
-func showConfig(filename string) (io.Reader, error) {
-	// TODO maybe we should omit privkey so we don't accidentally leak it?
-
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes.NewReader(data), nil
 }
 
 func editConfig(filename string) error {
@@ -251,8 +280,23 @@ func editConfig(filename string) error {
 func replaceConfig(r repo.Repo, file io.Reader) error {
 	var cfg config.Config
 	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
-		return errors.New("Failed to decode file as config")
+		return errors.New("failed to decode file as config")
 	}
+	if len(cfg.Identity.PrivKey) != 0 {
+		return errors.New("setting private key with API is not supported")
+	}
+
+	keyF, err := getConfig(r, "Identity.PrivKey")
+	if err != nil {
+		return fmt.Errorf("Failed to get PrivKey")
+	}
+
+	pkstr, ok := keyF.Value.(string)
+	if !ok {
+		return fmt.Errorf("private key in config was not a string")
+	}
+
+	cfg.Identity.PrivKey = pkstr
 
 	return r.SetConfig(&cfg)
 }

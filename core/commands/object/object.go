@@ -21,10 +21,10 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
-// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
-var ErrObjectTooLarge = errors.New("input object was too large. limit is 512kbytes")
+// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
+var ErrObjectTooLarge = errors.New("input object was too large. limit is 2mbytes")
 
-const inputLimit = 512 * 1024
+const inputLimit = 2 << 20
 
 type Node struct {
 	Links []Link
@@ -65,17 +65,15 @@ var ObjectDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the raw bytes in an IPFS object.",
 		ShortDescription: `
-'ipfs object data' is a plumbing command for retrieving the raw bytes stored in
-a DAG node. It outputs to stdout, and <key> is a base58 encoded
-multihash.
+'ipfs object data' is a plumbing command for retrieving the raw bytes stored
+in a DAG node. It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 		LongDescription: `
-'ipfs object data' is a plumbing command for retrieving the raw bytes stored in
-a DAG node. It outputs to stdout, and <key> is a base58 encoded
-multihash.
+'ipfs object data' is a plumbing command for retrieving the raw bytes stored
+in a DAG node. It outputs to stdout, and <key> is a base58 encoded multihash.
 
-Note that the "--encoding" option does not affect the output, since the
-output is the raw data of the object.
+Note that the "--encoding" option does not affect the output, since the output
+is the raw data of the object.
 `,
 	},
 
@@ -95,7 +93,7 @@ output is the raw data of the object.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(bytes.NewReader(node.Data))
+		res.SetOutput(bytes.NewReader(node.Data()))
 	},
 }
 
@@ -177,7 +175,7 @@ This command outputs data in the following encodings:
   * "protobuf"
   * "json"
   * "xml"
-(Specified by the "--encoding" or "-enc" flag)`,
+(Specified by the "--encoding" or "--enc" flag)`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -200,7 +198,7 @@ This command outputs data in the following encodings:
 
 		node := &Node{
 			Links: make([]Link, len(object.Links)),
-			Data:  string(object.Data),
+			Data:  string(object.Data()),
 		}
 
 		for i, link := range object.Links {
@@ -215,7 +213,7 @@ This command outputs data in the following encodings:
 	},
 	Type: Node{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.EncodingType("protobuf"): func(res cmds.Response) (io.Reader, error) {
+		cmds.Protobuf: func(res cmds.Response) (io.Reader, error) {
 			node := res.Output().(*Node)
 			// deserialize the Data field as text as this was the standard behaviour
 			object, err := deserializeNode(node, "text")
@@ -313,8 +311,8 @@ Examples:
 
 	$ echo '{ "Data": "abc" }' | ipfs object put
 
-This creates a node with the data 'abc' and no links. For an object with links,
-create a file named 'node.json' with the contents:
+This creates a node with the data 'abc' and no links. For an object with
+links, create a file named 'node.json' with the contents:
 
     {
         "Data": "another",
@@ -440,9 +438,7 @@ Available templates:
 func nodeFromTemplate(template string) (*dag.Node, error) {
 	switch template {
 	case "unixfs-dir":
-		nd := new(dag.Node)
-		nd.Data = ft.FolderPBData()
-		return nd, nil
+		return ft.EmptyDirNode(), nil
 	default:
 		return nil, fmt.Errorf("template '%s' not found", template)
 	}
@@ -568,9 +564,10 @@ func deserializeNode(node *Node, dataFieldEncoding string) (*dag.Node, error) {
 	dagnode := new(dag.Node)
 	switch dataFieldEncoding {
 	case "text":
-		dagnode.Data = []byte(node.Data)
+		dagnode.SetData([]byte(node.Data))
 	case "base64":
-		dagnode.Data, _ = base64.StdEncoding.DecodeString(node.Data)
+		data, _ := base64.StdEncoding.DecodeString(node.Data)
+		dagnode.SetData(data)
 	default:
 		return nil, fmt.Errorf("Unkown data field encoding")
 	}

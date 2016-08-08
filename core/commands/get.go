@@ -9,7 +9,7 @@ import (
 	gopath "path"
 	"strings"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
+	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
@@ -26,8 +26,8 @@ var GetCmd = &cmds.Command{
 		ShortDescription: `
 Stores to disk the data contained an IPFS or IPNS object(s) at the given path.
 
-By default, the output will be stored at './<ipfs-path>', but an alternate path
-can be specified with '--output=<path>' or '-o=<path>'.
+By default, the output will be stored at './<ipfs-path>', but an alternate
+path can be specified with '--output=<path>' or '-o=<path>'.
 
 To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 
@@ -69,6 +69,14 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
+		size, err := dn.Size()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetLength(size)
+
 		archive, _, _ := req.Option("archive").Bool()
 		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
 		if err != nil {
@@ -103,6 +111,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			Err:         os.Stderr,
 			Archive:     archive,
 			Compression: cmplvl,
+			Size:        int64(res.Length()),
 		}
 
 		if err := gw.Write(outReader, outPath); err != nil {
@@ -149,6 +158,7 @@ type getWriter struct {
 
 	Archive     bool
 	Compression int
+	Size        int64
 }
 
 func (gw *getWriter) Write(r io.Reader, fpath string) error {
@@ -181,7 +191,7 @@ func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
 	defer file.Close()
 
 	fmt.Fprintf(gw.Out, "Saving archive to %s\n", fpath)
-	bar, barR := progressBarForReader(gw.Err, r, 0)
+	bar, barR := progressBarForReader(gw.Err, r, gw.Size)
 	bar.Start()
 	defer bar.Finish()
 
@@ -191,7 +201,7 @@ func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
 
 func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	fmt.Fprintf(gw.Out, "Saving file(s) to %s\n", fpath)
-	bar, barR := progressBarForReader(gw.Err, r, 0)
+	bar, barR := progressBarForReader(gw.Err, r, gw.Size)
 	bar.Start()
 	defer bar.Finish()
 

@@ -15,7 +15,9 @@ type directoryBuilder struct {
 
 // NewEmptyDirectory returns an empty merkledag Node with a folder Data chunk
 func NewEmptyDirectory() *mdag.Node {
-	return &mdag.Node{Data: format.FolderPBData()}
+	nd := new(mdag.Node)
+	nd.SetData(format.FolderPBData())
+	return nd
 }
 
 // NewDirectory returns a directoryBuilder. It needs a DAGService to add the Children

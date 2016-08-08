@@ -4,13 +4,14 @@ import (
 	"errors"
 	"time"
 
-	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
+	mfs "github.com/ipfs/go-ipfs/mfs"
 	gc "github.com/ipfs/go-ipfs/pin/gc"
 	repo "github.com/ipfs/go-ipfs/repo"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("corerepo")
@@ -71,10 +72,26 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 	}, nil
 }
 
+func BestEffortRoots(filesRoot *mfs.Root) ([]key.Key, error) {
+	rootDag, err := filesRoot.GetValue().GetNode()
+	if err != nil {
+		return nil, err
+	}
+	rootKey, err := rootDag.Key()
+	if err != nil {
+		return nil, err
+	}
+	return []key.Key{rootKey}, nil
+}
+
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel() // in case error occurs during operation
-	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning)
+	roots, err := BestEffortRoots(n.FilesRoot)
+	if err != nil {
+		return err
+	}
+	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning, roots)
 	if err != nil {
 		return err
 	}
@@ -93,7 +110,11 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 }
 
 func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, error) {
-	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning)
+	roots, err := BestEffortRoots(n.FilesRoot)
+	if err != nil {
+		return nil, err
+	}
+	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning, roots)
 	if err != nil {
 		return nil, err
 	}
