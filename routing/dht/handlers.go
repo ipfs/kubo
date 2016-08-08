@@ -17,6 +17,8 @@ import (
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
+const MAGIC string = "000000000000000000000000"
+
 // The number of closer peers to send on requests.
 var CloserPeerCount = KValue
 
