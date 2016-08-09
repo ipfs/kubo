@@ -28,7 +28,7 @@ var log = logging.Logger("ipns-repub")
 
 var DefaultRebroadcastInterval = time.Hour * 4
 
-const DefaultRecordLifetime = time.Hour * 24
+const DefaultRecordLifetime = time.Hour * 24 * 7
 
 type Republisher struct {
 	r  routing.IpfsRouting
