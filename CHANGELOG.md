@@ -1,5 +1,10 @@
 # go-ipfs changelog
 
+### 0.4.3-rc3 - 2016-08-09
+
+This release candidate fixes a panic that occurs when input from stdin was
+expected, but none was given: [ipfs/go-ipfs#3050](https://github.com/ipfs/go-ipfs/pull/3050)
+
 ### 0.4.3-rc2 - 2016-07-23
 
 This release includes bugfixes and fixes for regressions that were introduced
