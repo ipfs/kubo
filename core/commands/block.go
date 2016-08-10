@@ -220,67 +220,91 @@ It takes a list of base58 encoded multihashs to remove.
 			k := key.B58KeyDecode(hash)
 			keys = append(keys, k)
 		}
-		rdr, wtr := io.Pipe()
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
 		go func() {
+			defer close(outChan)
 			pinning := n.Pinning
 			if ignorePins {
 				pinning = nil
 			}
-			err := rmBlocks(n.Blockstore, pinning, wtr, keys)
-			if err != nil {
-				wtr.CloseWithError(fmt.Errorf("Some blocks not deleted: %s", err))
-			} else {
-				wtr.Close()
-			}
+			rmBlocks(n.Blockstore, pinning, outChan, keys)
 		}()
-		res.SetOutput(rdr)
 		return
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			return res.(io.Reader), nil
-		},
+	PostRun: func(req cmds.Request, res cmds.Response) {
+		if res.Error() != nil {
+			return
+		}
+		outChan, ok := res.Output().(<-chan interface{})
+		if !ok {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(nil)
+
+		someFailed := false
+		for out := range outChan {
+			o := out.(*RemovedBlock)
+			if o.Error != "" {
+				someFailed = true
+				fmt.Fprintf(res.Stderr(), "cannot remove %s: %s\n", o.Hash, o.Error)
+			} else {
+				fmt.Fprintf(res.Stdout(), "removed %s\n", o.Hash)
+			}
+		}
+		if someFailed {
+			res.SetError(fmt.Errorf("some blocks not removed"), cmds.ErrNormal)
+		}
 	},
+	Type: RemovedBlock{},
+}
+
+type RemovedBlock struct {
+	Hash string
+	Error string `json:",omitempty"`
 }
 
 // pins may be nil
-func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out io.Writer, keys []key.Key) error {
+func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key) {
 	var unlocker bs.Unlocker
 	defer func() {
 		if unlocker != nil {
 			unlocker.Unlock()
 		}
 	}()
+	stillOkay := keys
 	if pins != nil {
 		// Need to make sure that some operation that is
 		// finishing with a pin is ocurr simultaneously.
 		unlocker = blocks.GCLock()
-		err := checkIfPinned(pins, keys)
-		if err != nil {
-			return err
-		}
+		stillOkay = checkIfPinned(pins, keys, out)
 	}
-	for _, k := range keys {
+	for _, k := range stillOkay {
 		err := blocks.DeleteBlock(k)
 		if err != nil {
-			return fmt.Errorf("%s: %s", k, err)
-		}
-		if out != nil {
-			fmt.Fprintf(out, "deleted %s\n", k)
+			out <- &RemovedBlock{ Hash: k.String(), Error: err.Error()}
+		} else {
+			out <- &RemovedBlock{ Hash: k.String() }
 		}
 	}
-	return nil
 }
 
-func checkIfPinned(pins pin.Pinner, keys []key.Key) error {
+func checkIfPinned(pins pin.Pinner, keys []key.Key, out chan<- interface{}) []key.Key {
+	stillOkay := make([]key.Key, 0, len(keys))
 	for _, k := range keys {
 		reason, pinned, err := pins.IsPinned(k)
 		if err != nil {
-			return err
-		}
-		if pinned {
-			return fmt.Errorf("%s pinned via %s", k, reason)
+			out <- &RemovedBlock {
+				Hash: k.String(),
+				Error: fmt.Sprintf("pin check failed %s", err.Error()) }
+		} else if pinned {
+			out <- &RemovedBlock {
+				Hash: k.String(),
+				Error: fmt.Sprintf("pinned via %s", reason) }
+		} else {
+			stillOkay = append(stillOkay, k)
 		}
 	}
-	return nil
+	return stillOkay
 }
