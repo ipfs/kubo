@@ -142,6 +142,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	// If this is an ipns query let's check to see if it's using our own peer ID.
 	// If so let's resolve it locally instead of going out to the network.
+	var ownID bool = false
 	if paths[1] == "ipns" && paths[2] == i.node.Identity.Pretty() {
 		id := i.node.Identity
 		_, ipnskey := namesys.IpnsKeysForID(id)
@@ -157,6 +158,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			pth += "/" + p
 		}
 		r.URL.Path = pth
+		ownID = true
 	}
 
 	urlPath := r.URL.Path
@@ -243,6 +245,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 		// set modtime to a really long time ago, since files are immutable and should stay cached
 		modtime = time.Unix(1, 0)
+	} else if paths[1] == "ipns" && !ownID { // cache ipns returns for 10 minutes
+		w.Header().Set("Etag", etag)
+		w.Header().Set("Cache-Control", "public, max-age=600, immutable")
 	}
 
 	if err == nil {
