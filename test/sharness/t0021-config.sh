@@ -72,6 +72,19 @@ test_config_cmd() {
     grep "\"beep3\": false," actual
   '
 
+  test_expect_success "'ipfs config replace' works" '
+    cp "$IPFS_PATH/config" newconfig.json &&
+	sed -i -e /PrivKey/d -e s/10GB/11GB/ newconfig.json &&
+	sed -i '"'"'/PeerID/ { s/,$// } '"'"' newconfig.json &&
+	ipfs config replace - < newconfig.json &&
+	sed -e /PrivKey/d "$IPFS_PATH/config" > replconfig.json &&
+	sed -i -e'"'"'/PeerID/ { s/,$// } '"'"' replconfig.json &&
+	test_cmp replconfig.json newconfig.json
+  '
+
+  # SECURITY
+  # Those tests are here to prevent exposing the PrivKey on the network
+
   test_expect_success "'ipfs config Identity' fails" '
        test_expect_code 1 ipfs config Identity 2> ident_out
   '
@@ -81,8 +94,6 @@ test_config_cmd() {
        test_cmp ident_exp ident_out
   '
 
-  # SECURITY
-  # Those tests are here to prevent exposing the PrivKey on the network
   test_expect_success "'ipfs config Identity.PrivKey' fails" '
        test_expect_code 1 ipfs config Identity.PrivKey 2> ident_out
   '
