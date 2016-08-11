@@ -66,6 +66,31 @@ func TestHasIsBloomCached(t *testing.T) {
 	if float64(cacheFails)/float64(1000) > float64(0.05) {
 		t.Fatal("Bloom filter has cache miss rate of more than 5%")
 	}
+
+	cacheFails = 0
+	block := blocks.NewBlock([]byte("newBlock"))
+
+	cachedbs.PutMany([]blocks.Block{block})
+	if cacheFails != 2 {
+		t.Fatalf("expected two datastore hits: %d", cacheFails)
+	}
+	cachedbs.Put(block)
+	if cacheFails != 3 {
+		t.Fatalf("expected datastore hit: %d", cacheFails)
+	}
+
+	if has, err := cachedbs.Has(block.Key()); !has || err != nil {
+		t.Fatal("has gave wrong response")
+	}
+
+	bl, err := cachedbs.Get(block.Key())
+	if bl.String() != block.String() {
+		t.Fatal("block data doesn't match")
+	}
+
+	if err != nil {
+		t.Fatal("there should't be an error")
+	}
 }
 
 type callbackDatastore struct {

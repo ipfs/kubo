@@ -57,15 +57,20 @@ func TestRuntimeHashing(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	bl := blocks.NewBlock([]byte("some data"))
 	blBad, err := blocks.NewBlockWithHash([]byte("some other data"), bl.Key().ToMultihash())
+	bl2 := blocks.NewBlock([]byte("some other data"))
 	if err != nil {
 		t.Fatal("Debug is enabled")
 	}
-
 	bs.Put(blBad)
+	bs.Put(bl2)
 	bs.RuntimeHashing(true)
 
 	if _, err := bs.Get(bl.Key()); err != ErrHashMismatch {
 		t.Fatalf("Expected '%v' got '%v'\n", ErrHashMismatch, err)
+	}
+
+	if b, err := bs.Get(bl2.Key()); err != nil || b.String() != bl2.String() {
+		t.Fatal("got wrong blocks")
 	}
 }
 
