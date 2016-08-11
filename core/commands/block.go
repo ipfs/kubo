@@ -228,7 +228,10 @@ It takes a list of base58 encoded multihashs to remove.
 			if ignorePins {
 				pinning = nil
 			}
-			rmBlocks(n.Blockstore, pinning, outChan, keys)
+			err := rmBlocks(n.Blockstore, pinning, outChan, keys)
+			if err != nil {
+				outChan <- &RemovedBlock{Error: err.Error()}
+			}
 		}()
 		return
 	},
@@ -246,7 +249,10 @@ It takes a list of base58 encoded multihashs to remove.
 		someFailed := false
 		for out := range outChan {
 			o := out.(*RemovedBlock)
-			if o.Error != "" {
+			if o.Hash == "" && o.Error != "" {
+				res.SetError(fmt.Errorf("aborted: %s", o.Error), cmds.ErrNormal)
+				return
+			} else if o.Error != "" {
 				someFailed = true
 				fmt.Fprintf(res.Stderr(), "cannot remove %s: %s\n", o.Hash, o.Error)
 			} else {
@@ -261,12 +267,12 @@ It takes a list of base58 encoded multihashs to remove.
 }
 
 type RemovedBlock struct {
-	Hash string
+	Hash  string `json:",omitempty"`
 	Error string `json:",omitempty"`
 }
 
 // pins may be nil
-func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key) {
+func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key) error {
 	var unlocker bs.Unlocker
 	defer func() {
 		if unlocker != nil {
@@ -278,33 +284,44 @@ func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, k
 		// Need to make sure that some operation that is
 		// finishing with a pin is ocurr simultaneously.
 		unlocker = blocks.GCLock()
-		stillOkay = checkIfPinned(pins, keys, out)
+		var err error
+		stillOkay, err = checkIfPinned(pins, keys, out)
+		if err != nil {
+			return fmt.Errorf("pin check failed: %s", err)
+		}
 	}
 	for _, k := range stillOkay {
 		err := blocks.DeleteBlock(k)
 		if err != nil {
-			out <- &RemovedBlock{ Hash: k.String(), Error: err.Error()}
+			out <- &RemovedBlock{Hash: k.String(), Error: err.Error()}
 		} else {
-			out <- &RemovedBlock{ Hash: k.String() }
+			out <- &RemovedBlock{Hash: k.String()}
 		}
 	}
+	return nil
 }
 
-func checkIfPinned(pins pin.Pinner, keys []key.Key, out chan<- interface{}) []key.Key {
+func checkIfPinned(pins pin.Pinner, keys []key.Key, out chan<- interface{}) ([]key.Key, error) {
 	stillOkay := make([]key.Key, 0, len(keys))
-	for _, k := range keys {
-		reason, pinned, err := pins.IsPinned(k)
-		if err != nil {
-			out <- &RemovedBlock {
-				Hash: k.String(),
-				Error: fmt.Sprintf("pin check failed %s", err.Error()) }
-		} else if pinned {
-			out <- &RemovedBlock {
-				Hash: k.String(),
-				Error: fmt.Sprintf("pinned via %s", reason) }
-		} else {
-			stillOkay = append(stillOkay, k)
+	res, err := pins.CheckIfPinned(keys...)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range res {
+		switch r.Mode {
+		case pin.NotPinned:
+			stillOkay = append(stillOkay, r.Key)
+		case pin.Indirect:
+			out <- &RemovedBlock{
+				Hash:  r.Key.String(),
+				Error: fmt.Sprintf("pinned via %s", r.Via)}
+		default:
+			modeStr, _ := pin.PinModeToString(r.Mode)
+			out <- &RemovedBlock{
+				Hash:  r.Key.String(),
+				Error: fmt.Sprintf("pinned: %s", modeStr)}
+
 		}
 	}
-	return stillOkay
+	return stillOkay, nil
 }

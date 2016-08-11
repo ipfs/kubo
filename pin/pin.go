@@ -75,6 +75,10 @@ type Pinner interface {
 	Pin(context.Context, *mdag.Node, bool) error
 	Unpin(context.Context, key.Key, bool) error
 
+	// Check if a set of keys are pinned, more efficient than
+	// calling IsPinned for each key
+	CheckIfPinned(keys ...key.Key) ([]Pinned, error)
+
 	// PinWithMode is for manually editing the pin structure. Use with
 	// care! If used improperly, garbage collection may not be
 	// successful.
@@ -88,6 +92,12 @@ type Pinner interface {
 	DirectKeys() []key.Key
 	RecursiveKeys() []key.Key
 	InternalPins() []key.Key
+}
+
+type Pinned struct {
+	Key  key.Key
+	Mode PinMode
+	Via  key.Key
 }
 
 // pinner implements the Pinner interface
@@ -253,6 +263,70 @@ func (p *pinner) isPinnedWithType(k key.Key, mode PinMode) (string, bool, error)
 		}
 	}
 	return "", false, nil
+}
+
+func (p *pinner) CheckIfPinned(keys ...key.Key) ([]Pinned, error) {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	pinned := make([]Pinned, 0, len(keys))
+	toCheck := make(map[key.Key]struct{})
+
+	// First check for non-Indirect pins directly
+	for _, k := range keys {
+		if p.recursePin.HasKey(k) {
+			pinned = append(pinned, Pinned{Key: k, Mode: Recursive})
+		} else if p.directPin.HasKey(k) {
+			pinned = append(pinned, Pinned{Key: k, Mode: Direct})
+		} else if p.isInternalPin(k) {
+			pinned = append(pinned, Pinned{Key: k, Mode: Internal})
+		} else {
+			toCheck[k] = struct{}{}
+		}
+	}
+
+	// Now walk all recursive pins to check for indirect pins
+	var checkChildren func(key.Key, key.Key) error
+	checkChildren = func(rk key.Key, parentKey key.Key) error {
+		parent, err := p.dserv.Get(context.Background(), parentKey)
+		if err != nil {
+			return err
+		}
+		for _, lnk := range parent.Links {
+			k := key.Key(lnk.Hash)
+
+			if _, found := toCheck[k]; found {
+				pinned = append(pinned,
+					Pinned{Key: k, Mode: Indirect, Via: rk})
+				delete(toCheck, k)
+			}
+
+			err := checkChildren(rk, k)
+			if err != nil {
+				return err
+			}
+
+			if len(toCheck) == 0 {
+				return nil
+			}
+		}
+		return nil
+	}
+	for _, rk := range p.recursePin.GetKeys() {
+		err := checkChildren(rk, rk)
+		if err != nil {
+			return nil, err
+		}
+		if len(toCheck) == 0 {
+			break
+		}
+	}
+
+	// Anything left in toCheck is not pinned
+	for k, _ := range toCheck {
+		pinned = append(pinned, Pinned{Key: k, Mode: NotPinned})
+	}
+
+	return pinned, nil
 }
 
 func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {

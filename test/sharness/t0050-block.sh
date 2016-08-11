@@ -71,7 +71,7 @@ test_expect_success "can't remove pinned block" '
 '
 
 test_expect_success "can't remove pinned block: output looks good" '
-  grep -q "$DIRHASH: pinned via recursive" block_rm_err 
+  grep -q "$DIRHASH: pinned: recursive" block_rm_err
 '
 
 test_expect_success "can't remove indirectly pinned block" '
@@ -79,7 +79,7 @@ test_expect_success "can't remove indirectly pinned block" '
 '
 
 test_expect_success "can't remove indirectly pinned block: output looks good" '
-  grep -q "$FILE1HASH: pinned via $DIRHASH" block_rm_err 
+  grep -q "$FILE1HASH: pinned via $DIRHASH" block_rm_err
 '
 
 test_expect_success "multi-block 'ipfs block rm --ignore-pins' succeeds" '
@@ -100,10 +100,9 @@ test_expect_success "multi-block 'ipfs block rm' succeeds" '
 '
 
 test_expect_success "multi-block 'ipfs block rm' output looks good" '
-  echo "removed $FILE1HASH" > expected_rm &&
-  echo "removed $FILE2HASH" >> expected_rm &&
-  echo "removed $FILE3HASH" >> expected_rm &&
-  test_cmp expected_rm actual_rm
+  grep -F -q "removed $FILE1HASH" actual_rm &&
+  grep -F -q "removed $FILE2HASH" actual_rm &&
+  grep -F -q "removed $FILE3HASH" actual_rm
 '
 
 test_expect_success "'ipfs block stat' with nothing from stdin doesnt crash" '
