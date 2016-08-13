@@ -284,9 +284,9 @@ type FilesLsOutput struct {
 
 var FilesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directories.",
+		Tagline: "List directories in the local mutable namespace.",
 		ShortDescription: `
-List directories.
+List directories in the local mutable namespace.
 
 Examples:
 
