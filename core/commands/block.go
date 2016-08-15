@@ -200,15 +200,7 @@ It takes a list of base58 encoded multihashs to remove.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to remove."),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption("ignore-pins", "Ignore pins.").Default(false),
-	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		ignorePins, _, err := req.Option("ignore-pins").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -225,9 +217,6 @@ It takes a list of base58 encoded multihashs to remove.
 		go func() {
 			defer close(outChan)
 			pinning := n.Pinning
-			if ignorePins {
-				pinning = nil
-			}
 			err := rmBlocks(n.Blockstore, pinning, outChan, keys)
 			if err != nil {
 				outChan <- &RemovedBlock{Error: err.Error()}
@@ -271,25 +260,15 @@ type RemovedBlock struct {
 	Error string `json:",omitempty"`
 }
 
-// pins may be nil
 func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key) error {
-	var unlocker bs.Unlocker
-	defer func() {
-		if unlocker != nil {
-			unlocker.Unlock()
-		}
-	}()
-	stillOkay := keys
-	if pins != nil {
-		// Need to make sure that some operation that is
-		// finishing with a pin is ocurr simultaneously.
-		unlocker = blocks.GCLock()
-		var err error
-		stillOkay, err = checkIfPinned(pins, keys, out)
-		if err != nil {
-			return fmt.Errorf("pin check failed: %s", err)
-		}
+	unlocker := blocks.GCLock()
+	defer unlocker.Unlock()
+
+	stillOkay, err := checkIfPinned(pins, keys, out)
+	if err != nil {
+		return fmt.Errorf("pin check failed: %s", err)
 	}
+
 	for _, k := range stillOkay {
 		err := blocks.DeleteBlock(k)
 		if err != nil {

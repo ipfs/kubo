@@ -82,16 +82,7 @@ test_expect_success "can't remove indirectly pinned block: output looks good" '
   grep -q "$FILE1HASH: pinned via $DIRHASH" block_rm_err
 '
 
-test_expect_success "multi-block 'ipfs block rm --ignore-pins' succeeds" '
-  ipfs block rm --ignore-pins $DIRHASH >actual_rm
-'
-
-test_expect_success "multi-block 'ipfs block rm --ignore-pins' output looks good" '
-  echo "removed $DIRHASH" > expected_rm &&
-  test_cmp expected_rm actual_rm
-'
-
-test_expect_success "fix up pins" '
+test_expect_success "remove pin" '
   ipfs pin rm -r $DIRHASH
 '
 
