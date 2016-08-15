@@ -98,7 +98,7 @@ var rmPinCmd = &cmds.Command{
 		Tagline: "Removes the pinned object from local storage.",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
-collected if needed. (By default, recursively. Use -r=false for direct pins)
+collected if needed. (By default, recursively. Use -r=false for direct pins.)
 `,
 	},
 
