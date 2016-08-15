@@ -89,7 +89,7 @@ func TestManualHash(t *testing.T) {
 	u.Debug = true
 
 	block, err = NewBlockWithHash(data, hash)
-	if err == nil {
+	if err != errWrongHash {
 		t.Fatal(err)
 	}
 
