@@ -265,7 +265,7 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	default:
 	}
 
-	err := bs.tryPutBlock(blk, 4) // attempt to store block up to four times
+	err := bs.blockstore.Put(blk)
 	if err != nil {
 		log.Errorf("Error writing block to datastore: %s", err)
 		return err
@@ -282,18 +282,6 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 		return bs.process.Close()
 	}
 	return nil
-}
-
-func (bs *Bitswap) tryPutBlock(blk blocks.Block, attempts int) error {
-	var err error
-	for i := 0; i < attempts; i++ {
-		if err = bs.blockstore.Put(blk); err == nil {
-			break
-		}
-
-		time.Sleep(time.Millisecond * time.Duration(400*(i+1)))
-	}
-	return err
 }
 
 func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) {

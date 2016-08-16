@@ -4,6 +4,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"os"
+	"syscall"
+	"time"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -14,12 +17,13 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dsync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
 
 	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+	dsync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
 	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
+	retry "gx/ipfs/QmY6UVhgS2ZxhbM5qU23Fnz3daJwfyAuNErd3StmVofnAU/retry-datastore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -127,14 +131,30 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	return n, nil
 }
 
+func isTooManyFDError(err error) bool {
+	perr, ok := err.(*os.PathError)
+	if ok && perr.Err == syscall.EMFILE {
+		return true
+	}
+
+	return false
+}
+
 func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	// setup local peer ID (private key is loaded in online setup)
 	if err := n.loadID(); err != nil {
 		return err
 	}
 
+	rds := &retry.Datastore{
+		Batching:    n.Repo.Datastore(),
+		Delay:       time.Millisecond * 200,
+		Retries:     6,
+		TempErrFunc: isTooManyFDError,
+	}
+
 	var err error
-	bs := bstore.NewBlockstore(n.Repo.Datastore())
+	bs := bstore.NewBlockstore(rds)
 	opts := bstore.DefaultCacheOpts()
 	conf, err := n.Repo.Config()
 	if err != nil {
