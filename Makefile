@@ -57,20 +57,15 @@ deps: go_check gx_check path_check
 vendor: godep
 	godep save -r ./...
 
-install: deps
-	make -C cmd/ipfs install
-
-build: deps
-	make -C cmd/ipfs build
-
-nofuse: deps
-	make -C cmd/ipfs nofuse
+install build nofuse: deps
+	$(MAKE) -C cmd/ipfs $@
 
 clean:
-	make -C cmd/ipfs clean
+	$(MAKE) -C cmd/ipfs clean
+	$(MAKE) -C test clean
 
 uninstall:
-	make -C cmd/ipfs uninstall
+	$(MAKE) -C cmd/ipfs uninstall
 
 PHONY += all help godep gx_check
 PHONY += go_check deps vendor install build nofuse clean uninstall
@@ -97,16 +92,16 @@ test_go_race:
 	$(go_test) ./... -race
 
 test_sharness_short:
-	make -C test/sharness/
+	$(MAKE) -j1 -C test/sharness/
 
 test_sharness_expensive:
-	TEST_EXPENSIVE=1 make -C test/sharness/
+	TEST_EXPENSIVE=1 $(MAKE) -j1 -C test/sharness/
 
 test_all_commits:
 	@echo "testing all commits between origin/master..HEAD"
 	@echo "WARNING: this will 'git rebase --exec'."
 	@test/bin/continueyn
-	GIT_EDITOR=true git rebase -i --exec "make test" origin/master
+	GIT_EDITOR=true git rebase -i --exec "$(MAKE) test" origin/master
 
 test_all_commits_travis:
 	# these are needed because travis.
@@ -114,12 +109,12 @@ test_all_commits_travis:
 	git config --global user.email "nemo@ipfs.io"
 	git config --global user.name "IPFS BOT"
 	git fetch origin master:master
-	GIT_EDITOR=true git rebase -i --exec "make test" master
+	GIT_EDITOR=true git rebase -i --exec "$(MAKE) test" master
 
 # since we have CI for osx and linux but not windows, this should help
 windows_build_check:
 	GOOS=windows GOARCH=amd64 go build -o .test.ipfs.exe ./cmd/ipfs
-	rm .test.ipfs.exe
+	rm -f .test.ipfs.exe
 
 PHONY += test test_short test_expensive
 
