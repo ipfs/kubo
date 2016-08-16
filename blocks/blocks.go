@@ -11,7 +11,7 @@ import (
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
-var errWrongHash = errors.New("Data did not match given hash!")
+var ErrWrongHash = errors.New("Data did not match given hash!")
 
 type Block interface {
 	Multihash() mh.Multihash
@@ -39,7 +39,7 @@ func NewBlockWithHash(data []byte, h mh.Multihash) (*BasicBlock, error) {
 	if u.Debug {
 		chk := u.Hash(data)
 		if string(chk) != string(h) {
-			return nil, errWrongHash
+			return nil, ErrWrongHash
 		}
 	}
 	return &BasicBlock{data: data, multihash: h}, nil
