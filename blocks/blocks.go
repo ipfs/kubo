@@ -11,7 +11,7 @@ import (
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
-var ErrWrongHash = errors.New("Data did not match given hash!")
+var ErrWrongHash = errors.New("data did not match given hash!")
 
 type Block interface {
 	Multihash() mh.Multihash
