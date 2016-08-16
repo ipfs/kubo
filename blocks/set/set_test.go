@@ -7,6 +7,12 @@ import (
 	k "github.com/ipfs/go-ipfs/blocks/key"
 )
 
+const (
+	tAdd int = 1 << iota
+	tRemove
+	tReAdd
+)
+
 func exampleKeys() []k.Key {
 	res := make([]k.Key, 1<<8)
 	gen := bu.NewBlockGenerator()
@@ -17,15 +23,15 @@ func exampleKeys() []k.Key {
 }
 func checkSet(set BlockSet, keySlice []k.Key, t *testing.T) {
 	for i, key := range keySlice {
-		if i&(1<<2) == 0 {
+		if i&tReAdd == 0 {
 			if set.HasKey(key) == false {
 				t.Error("key should be in the set")
 			}
-		} else if i&(1<<1) == 0 {
+		} else if i&tRemove == 0 {
 			if set.HasKey(key) == true {
 				t.Error("key shouldn't be in the set")
 			}
-		} else if i&(1<<0) == 0 {
+		} else if i&tAdd == 0 {
 			if set.HasKey(key) == false {
 				t.Error("key should be in the set")
 			}
@@ -38,17 +44,17 @@ func TestSetWorks(t *testing.T) {
 	keys := exampleKeys()
 
 	for i, key := range keys {
-		if i&(1<<0) == 0 {
+		if i&tAdd == 0 {
 			set.AddBlock(key)
 		}
 	}
 	for i, key := range keys {
-		if i&(1<<1) == 0 {
+		if i&tRemove == 0 {
 			set.RemoveBlock(key)
 		}
 	}
 	for i, key := range keys {
-		if (i)&(1<<2) == 0 {
+		if i&tReAdd == 0 {
 			set.AddBlock(key)
 		}
 	}
