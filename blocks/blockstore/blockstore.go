@@ -20,7 +20,8 @@ import (
 var log = logging.Logger("blockstore")
 
 // BlockPrefix namespaces blockstore datastores
-var BlockPrefix = ds.NewKey("blocks")
+const DefaultPrefix = "/blocks"
+var blockPrefix = ds.NewKey(DefaultPrefix)
 
 var ValueTypeMismatch = errors.New("the retrieved value is not a Block")
 var ErrHashMismatch = errors.New("block in storage has different hash than requested")
@@ -38,9 +39,7 @@ type Blockstore interface {
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
 
-type GCBlockstore interface {
-	Blockstore
-
+type GCLocker interface {
 	// GCLock locks the blockstore for garbage collection. No operations
 	// that expect to finish with a pin should ocurr simultaneously.
 	// Reading during GC is safe, and requires no lock.
@@ -57,21 +56,32 @@ type GCBlockstore interface {
 	GCRequested() bool
 }
 
+type GCBlockstore interface {
+	Blockstore
+	GCLocker
+}
+
 func NewBlockstore(d ds.Batching) *blockstore {
+	return NewBlockstoreWPrefix(d, "")
+}
+
+func NewBlockstoreWPrefix(d ds.Batching, prefix string) *blockstore {
+	if prefix == "" {
+		prefix = DefaultPrefix
+	}
 	var dsb ds.Batching
-	dd := dsns.Wrap(d, BlockPrefix)
+	prefixKey := ds.NewKey(prefix)
+	dd := dsns.Wrap(d, prefixKey)
 	dsb = dd
 	return &blockstore{
 		datastore: dsb,
+		prefix:    prefixKey,
 	}
 }
 
 type blockstore struct {
 	datastore ds.Batching
-
-	lk      sync.RWMutex
-	gcreq   int32
-	gcreqlk sync.Mutex
+	prefix    ds.Key
 
 	rehash bool
 }
@@ -112,11 +122,8 @@ func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
 func (bs *blockstore) Put(block blocks.Block) error {
 	k := block.Key().DsKey()
 
-	// Has is cheaper than Put, so see if we already have it
-	exists, err := bs.datastore.Has(k)
-	if err == nil && exists {
-		return nil // already stored.
-	}
+	// Note: The Has Check is now done by the MultiBlockstore
+
 	return bs.datastore.Put(k, block.Data())
 }
 
@@ -127,11 +134,6 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	}
 	for _, b := range blocks {
 		k := b.Key().DsKey()
-		exists, err := bs.datastore.Has(k)
-		if err == nil && exists {
-			continue
-		}
-
 		err = t.Put(k, b.Data())
 		if err != nil {
 			return err
@@ -157,7 +159,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true}
 	// datastore/namespace does *NOT* fix up Query.Prefix
-	q.Prefix = BlockPrefix.String()
+	q.Prefix = bs.prefix.String()
 	res, err := bs.datastore.Query(q)
 	if err != nil {
 		return nil, err
@@ -223,6 +225,12 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	return output, nil
 }
 
+type gclocker struct {
+	lk      sync.RWMutex
+	gcreq   int32
+	gcreqlk sync.Mutex
+}
+
 type Unlocker interface {
 	Unlock()
 }
@@ -236,18 +244,18 @@ func (u *unlocker) Unlock() {
 	u.unlock = nil // ensure its not called twice
 }
 
-func (bs *blockstore) GCLock() Unlocker {
+func (bs *gclocker) GCLock() Unlocker {
 	atomic.AddInt32(&bs.gcreq, 1)
 	bs.lk.Lock()
 	atomic.AddInt32(&bs.gcreq, -1)
 	return &unlocker{bs.lk.Unlock}
 }
 
-func (bs *blockstore) PinLock() Unlocker {
+func (bs *gclocker) PinLock() Unlocker {
 	bs.lk.RLock()
 	return &unlocker{bs.lk.RUnlock}
 }
 
-func (bs *blockstore) GCRequested() bool {
+func (bs *gclocker) GCRequested() bool {
 	return atomic.LoadInt32(&bs.gcreq) > 0
 }

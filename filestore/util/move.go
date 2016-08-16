@@ -68,7 +68,7 @@ func ConvertToFile(node *core.IpfsNode, key bk.Key, path string) error {
 	if err != nil {
 		return err
 	}
-	fs, ok := node.Repo.SubDatastore(fsrepo.RepoFilestore).(*Datastore)
+	fs, ok := node.Repo.DirectMount(fsrepo.FilestoreMount).(*Datastore)
 	if !ok {
 		return errs.New("Could not extract filestore.")
 	}

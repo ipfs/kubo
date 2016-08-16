@@ -32,7 +32,7 @@ func getMockDagServ(t testing.TB) mdag.DAGService {
 	return mdag.NewDAGService(bserv)
 }
 
-func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlockstore) {
+func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.Blockstore) {
 	dstore := ds.NewMapDatastore()
 	tsds := sync.MutexWrap(dstore)
 	bstore := blockstore.NewBlockstore(tsds)

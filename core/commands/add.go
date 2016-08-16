@@ -160,7 +160,7 @@ You can now refer to the added file in a gateway, like so:
 		var fileAdder *coreunix.Adder
 		useRoot := wrap || recursive
 		if nocopy {
-			fs, ok := n.Repo.SubDatastore(fsrepo.RepoFilestore).(*filestore.Datastore)
+			fs, ok := n.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore)
 			if !ok {
 				res.SetError(errors.New("could not extract filestore"), cmds.ErrNormal)
 				return

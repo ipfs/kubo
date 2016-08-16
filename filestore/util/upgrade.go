@@ -25,7 +25,7 @@ func Upgrade(wtr io.Writer, fs *Datastore) error {
 			dsKey = key.DsKey()
 		}
 		if len(dsKey.String()) != 56 {
-			data, err := fs.GetData(r.Key, r.DataObj, VerifyNever, false);
+			data, err := fs.GetData(r.Key, r.DataObj, VerifyNever, true);
 			if err != nil {
 				fmt.Fprintf(wtr, "error: could not fix invalid key %s: %s\n",
 					key.String(), err.Error())

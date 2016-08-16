@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	//ds "github.com/ipfs/go-datastore"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
@@ -94,13 +94,13 @@ type FSRepo struct {
 	lockfile io.Closer
 	config   *config.Config
 	ds       repo.Datastore
-	subDss   map[string]repo.Datastore
+	mounts   []Mount
 }
 
-const (
-	RepoCache     = "cache"
-	RepoFilestore = "filestore"
-)
+type Mount struct {
+	prefix  string
+	dstore  ds.Datastore
+}
 
 var _ repo.Repo = (*FSRepo)(nil)
 
@@ -178,7 +178,7 @@ func newFSRepo(rpath string) (*FSRepo, error) {
 		return nil, err
 	}
 
-	return &FSRepo{path: expPath, subDss: make(map[string]repo.Datastore)}, nil
+	return &FSRepo{path: expPath}, nil
 }
 
 func checkInitialized(path string) error {
@@ -338,11 +338,12 @@ func (r *FSRepo) openConfig() error {
 func (r *FSRepo) openDatastore() error {
 	switch r.config.Datastore.Type {
 	case "default", "leveldb", "":
-		d, err := openDefaultDatastore(r)
+		d, m, err := openDefaultDatastore(r)
 		if err != nil {
 			return err
 		}
 		r.ds = d
+		r.mounts = m
 	default:
 		return fmt.Errorf("unknown datastore type: %s", r.config.Datastore.Type)
 	}
@@ -551,14 +552,31 @@ func (r *FSRepo) Datastore() repo.Datastore {
 	return d
 }
 
-// Datastore returns a repo-owned filestore. If FSRepo is Closed, return value
+// Datastore returns a repo-owned datastore. If FSRepo is Closed, return value
 // is undefined.
-func (r *FSRepo) SubDatastore(key string) repo.Datastore {
+func (r *FSRepo) DirectMount(prefix string) ds.Datastore {
 	packageLock.Lock()
-	d := r.subDss[key]
-	packageLock.Unlock()
-	return d
+	defer packageLock.Unlock()
+	for _, m := range r.mounts {
+		if prefix == m.prefix {
+			return m.dstore
+		}
+	}
+	return nil
 }
+
+// Datastore returns a repo-owned datastore. If FSRepo is Closed, return value
+// is undefined.
+func (r *FSRepo) Mounts() []string {
+	packageLock.Lock()
+	mounts := make([]string, 0, len(r.mounts))
+	for _, m := range r.mounts {
+		mounts = append(mounts, m.prefix)
+	}
+	packageLock.Unlock()
+	return mounts
+}
+
 
 // GetStorageUsage computes the storage space taken by the repo in bytes
 func (r *FSRepo) GetStorageUsage() (uint64, error) {

@@ -13,6 +13,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
 	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	dsync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
@@ -134,7 +135,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	var err error
-	bs := bstore.NewBlockstore(n.Repo.Datastore())
+	bs := bstore.NewBlockstoreWPrefix(n.Repo.Datastore(), fsrepo.CacheMount)
 	opts := bstore.DefaultCacheOpts()
 	conf, err := n.Repo.Config()
 	if err != nil {
@@ -146,10 +147,19 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		opts.HasBloomFilterSize = 0
 	}
 
-	n.Blockstore, err = bstore.CachedBlockstore(bs, ctx, opts)
+	cbs, err := bstore.CachedBlockstore(bs, ctx, opts)
 	if err != nil {
 		return err
 	}
+
+	mounts := []bstore.Mount{{fsrepo.CacheMount, cbs}}
+	
+	if n.Repo.DirectMount(fsrepo.FilestoreMount) != nil {
+		fs := bstore.NewBlockstoreWPrefix(n.Repo.Datastore(), fsrepo.FilestoreMount)
+		mounts = append(mounts, bstore.Mount{fsrepo.FilestoreMount, fs})
+	}
+
+	n.Blockstore = bstore.NewMultiBlockstore(mounts...)
 
 	rcfg, err := n.Repo.Config()
 	if err != nil {

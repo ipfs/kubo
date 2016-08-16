@@ -10,8 +10,8 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/dir"
 
-	multi "github.com/ipfs/go-ipfs/repo/multi"
 	filestore "github.com/ipfs/go-ipfs/filestore"
+	//multi "github.com/ipfs/go-ipfs/repo/multi"
 	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/flatfs"
 	levelds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/leveldb"
@@ -26,11 +26,18 @@ const (
 	fileStoreDir     = "filestore-db"
 	fileStoreDataDir = "filestore-data"
 )
+
+const (
+	RootMount      = "/"
+	CacheMount     = "/blocks"    // needs to be the same as blockstore.DefaultPrefix
+	FilestoreMount = "/filestore"
+)
+
 const useFileStore = true
 
 var _ = io.EOF
 
-func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
+func openDefaultDatastore(r *FSRepo) (repo.Datastore, []Mount, error) {
 	leveldbPath := path.Join(r.path, leveldbDirectory)
 
 	// save leveldb reference so it can be neatly closed afterward
@@ -38,7 +45,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to open leveldb datastore: %v", err)
+		return nil, nil, fmt.Errorf("unable to open leveldb datastore: %v", err)
 	}
 
 	syncfs := !r.config.Datastore.NoSync
@@ -46,7 +53,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	// by the Qm prefix. Leaving us with 9 bits, or 512 way sharding
 	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 5, syncfs)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
+		return nil, nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}
 
 	// Add our PeerID to metrics paths to keep them unique
@@ -61,32 +68,37 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	prefix := "fsrepo." + id + ".datastore."
 	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
 	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
-
-	r.subDss[RepoCache] = metricsBlocks
-
-	var blocksStore ds.Datastore = metricsBlocks
+	
+	var mounts []mount.Mount
+	var directMounts []Mount
+	
+	mounts = append(mounts, mount.Mount{
+		Prefix:    ds.NewKey(CacheMount),
+		Datastore: metricsBlocks,
+	})
+	directMounts = append(directMounts, Mount{CacheMount, blocksDS})
 
 	if useFileStore {
 		fileStore, err := r.newFilestore()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		r.subDss[RepoFilestore] = fileStore
-		blocksStore = multi.New(metricsBlocks, fileStore)
+		mounts = append(mounts, mount.Mount{
+			Prefix:    ds.NewKey(FilestoreMount),
+			Datastore: fileStore,
+		})
+		directMounts = append(directMounts, Mount{FilestoreMount, fileStore})
 	}
 
-	mountDS := mount.New([]mount.Mount{
-		{
-			Prefix:    ds.NewKey("/blocks"),
-			Datastore: blocksStore,
-		},
-		{
-			Prefix:    ds.NewKey("/"),
-			Datastore: metricsLevelDB,
-		},
+	mounts = append(mounts, mount.Mount{
+		Prefix:    ds.NewKey(RootMount),
+		Datastore: metricsLevelDB,
 	})
+	directMounts = append(directMounts, Mount{RootMount, leveldbDS})
 
-	return mountDS, nil
+	mountDS := mount.New(mounts)
+
+	return mountDS, directMounts, nil
 }
 
 func initDefaultDatastore(repoPath string, conf *config.Config) error {

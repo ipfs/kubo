@@ -756,7 +756,7 @@ func extractFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Datastore, e
 	if err != nil {
 		return nil, nil, err
 	}
-	fs, ok := node.Repo.SubDatastore(fsrepo.RepoFilestore).(*filestore.Datastore)
+	fs, ok := node.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore)
 	if !ok {
 		err := errors.New("could not extract filestore")
 		return nil, nil, err

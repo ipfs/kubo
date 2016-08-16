@@ -21,8 +21,8 @@ func DefaultCacheOpts() CacheOpts {
 	}
 }
 
-func CachedBlockstore(bs GCBlockstore,
-	ctx context.Context, opts CacheOpts) (cbs GCBlockstore, err error) {
+func CachedBlockstore(bs Blockstore,
+	ctx context.Context, opts CacheOpts) (cbs Blockstore, err error) {
 	cbs = bs
 
 	if opts.HasBloomFilterSize < 0 || opts.HasBloomFilterHashes < 0 ||
