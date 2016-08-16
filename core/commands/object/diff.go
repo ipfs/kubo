@@ -17,7 +17,7 @@ type Changes struct {
 
 var ObjectDiffCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Takes a diff of the two given objects.",
+		Tagline: "Display the diff between two ipfs objects.",
 		ShortDescription: `
 'ipfs object diff' is a command used to show the differences between
 two ipfs objects.`,

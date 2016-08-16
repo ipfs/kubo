@@ -14,7 +14,7 @@ import (
 
 var tourCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "An introduction to IPFS.",
+		Tagline: "Provide an introduction to IPFS.",
 		ShortDescription: `
 This is a tour that takes you through various IPFS concepts,
 features, and tools to make sure you get up to speed with

@@ -9,7 +9,7 @@ type IpnsEntry struct {
 
 var NameCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "IPFS namespace (IPNS) tool.",
+		Tagline: "Interact with the IPFS namespace (IPNS).",
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In both publish

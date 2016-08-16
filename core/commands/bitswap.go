@@ -16,7 +16,7 @@ import (
 
 var BitswapCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "A set of commands to manipulate the bitswap agent.",
+		Tagline:          "Interact with the bitswap agent.",
 		ShortDescription: ``,
 	},
 	Subcommands: map[string]*cmds.Command{
