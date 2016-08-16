@@ -10,13 +10,14 @@ test_description="Test block command"
 
 test_init_ipfs
 
+HASH="QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk"
+
 test_expect_success "'ipfs block put' succeeds" '
 	echo "Hello Mars!" >expected_in &&
 	ipfs block put <expected_in >actual_out
 '
 
 test_expect_success "'ipfs block put' output looks good" '
-	HASH="QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk" &&
 	echo "$HASH" >expected_out &&
 	test_cmp expected_out actual_out
 '
@@ -94,6 +95,38 @@ test_expect_success "multi-block 'ipfs block rm' output looks good" '
   grep -F -q "removed $FILE1HASH" actual_rm &&
   grep -F -q "removed $FILE2HASH" actual_rm &&
   grep -F -q "removed $FILE3HASH" actual_rm
+'
+
+test_expect_success "'add some blocks' succeeds" '
+        echo "Hello Mars!" | ipfs block put &&
+        echo "Hello Venus!" | ipfs block put
+'
+
+test_expect_success "add and pin directory" '
+  ipfs add -r adir
+  ipfs pin add -r $DIRHASH
+'
+
+HASH=QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk
+HASH2=QmdnpnsaEj69isdw5sNzp3h3HkaDz7xKq7BmvFFBzNr5e7
+RANDOMHASH=QRmKqGMAM6EbngbZjSqrvYzq5Qd8b1bSWymjSUY9zQSNDq
+
+test_expect_success "multi-block 'ipfs block rm' mixed" '
+  test_must_fail ipfs block rm $FILE1HASH $DIRHASH $HASH $FILE3HASH $RANDOMHASH $HASH2 2> block_rm_err
+'
+
+test_expect_success "pinned block not removed" '
+  ipfs block stat $FILE1HASH &&
+  ipfs block stat $FILE3HASH
+'
+
+test_expect_success "non-pinned blocks removed" '
+  test_must_fail ipfs block stat $HASH &&
+  test_must_fail ipfs block stat $HASH2
+'
+
+test_expect_success "error reported on removing non-existent block" '
+  grep -q "cannot remove $RANDOMHASH" block_rm_err
 '
 
 test_expect_success "'ipfs block stat' with nothing from stdin doesnt crash" '
