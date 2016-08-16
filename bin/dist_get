@@ -75,9 +75,7 @@ unarchive() {
 get_go_vars() {
 	if [ ! -z "$GOOS" ] && [ ! -z "$GOARCH" ]; then
 		printf "%s-%s" "$GOOS" "$GOARCH"
-	fi
-
-	if have_binary go; then
+	elif have_binary go; then
 		printf "%s-%s" "$(go env GOOS)" "$(go env GOARCH)"
 	else
 		die "no way of determining system GOOS and GOARCH\nPlease manually set GOOS and GOARCH then retry."
