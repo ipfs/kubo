@@ -12,6 +12,10 @@ test_init_ipfs
 
 HASH="QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk"
 
+#
+# "block put tests"
+#
+
 test_expect_success "'ipfs block put' succeeds" '
 	echo "Hello Mars!" >expected_in &&
 	ipfs block put <expected_in >actual_out
@@ -22,6 +26,10 @@ test_expect_success "'ipfs block put' output looks good" '
 	test_cmp expected_out actual_out
 '
 
+#
+# "block get" tests
+#
+
 test_expect_success "'ipfs block get' succeeds" '
 	ipfs block get $HASH >actual_in
 '
@@ -29,6 +37,10 @@ test_expect_success "'ipfs block get' succeeds" '
 test_expect_success "'ipfs block get' output looks good" '
 	test_cmp expected_in actual_in
 '
+
+#
+# "block stat" tests
+#
 
 test_expect_success "'ipfs block stat' succeeds" '
   ipfs block stat $HASH >actual_stat
@@ -39,6 +51,10 @@ test_expect_success "'ipfs block stat' output looks good" '
   echo "Size: 12" >>expected_stat &&
   test_cmp expected_stat actual_stat
 '
+
+#
+# "block rm" tests
+#
 
 test_expect_success "'ipfs block rm' succeeds" '
   ipfs block rm $HASH >actual_rm
@@ -128,6 +144,34 @@ test_expect_success "non-pinned blocks removed" '
 test_expect_success "error reported on removing non-existent block" '
   grep -q "cannot remove $RANDOMHASH" block_rm_err
 '
+
+test_expect_success "'add some blocks' succeeds" '
+        echo "Hello Mars!" | ipfs block put &&
+        echo "Hello Venus!" | ipfs block put
+'
+
+test_expect_success "multi-block 'ipfs block rm -f' with non existent blocks succeed" '
+  ipfs block rm -f $HASH $RANDOMHASH $HASH2
+'
+
+test_expect_success "existent blocks removed" '
+  test_must_fail ipfs block stat $HASH &&
+  test_must_fail ipfs block stat $HASH2
+'
+
+test_expect_success "'add some blocks' succeeds" '
+        echo "Hello Mars!" | ipfs block put &&
+        echo "Hello Venus!" | ipfs block put
+'
+
+test_expect_success "multi-block 'ipfs block rm -q' produces no output" '
+  ipfs block rm -q $HASH $HASH2 > block_rm_out &&
+  test ! -s block_rm_out
+'
+
+#
+# Misc tests
+#
 
 test_expect_success "'ipfs block stat' with nothing from stdin doesnt crash" '
 	test_expect_code 1 ipfs block stat < /dev/null 2> stat_out

@@ -13,6 +13,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/pin"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -200,6 +201,10 @@ It takes a list of base58 encoded multihashs to remove.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to remove."),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("force", "f", "Ignore nonexistent blocks.").Default(false),
+		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -207,6 +212,8 @@ It takes a list of base58 encoded multihashs to remove.
 			return
 		}
 		hashes := req.Arguments()
+		force, _, _ := req.Option("force").Bool()
+		quiet, _, _ := req.Option("quiet").Bool()
 		keys := make([]key.Key, 0, len(hashes))
 		for _, hash := range hashes {
 			k := key.B58KeyDecode(hash)
@@ -217,7 +224,10 @@ It takes a list of base58 encoded multihashs to remove.
 		go func() {
 			defer close(outChan)
 			pinning := n.Pinning
-			err := rmBlocks(n.Blockstore, pinning, outChan, keys)
+			err := rmBlocks(n.Blockstore, pinning, outChan, keys, rmBlocksOpts{
+				quiet: quiet,
+				force: force,
+			})
 			if err != nil {
 				outChan <- &RemovedBlock{Error: err.Error()}
 			}
@@ -260,7 +270,12 @@ type RemovedBlock struct {
 	Error string `json:",omitempty"`
 }
 
-func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key) error {
+type rmBlocksOpts struct {
+	quiet bool
+	force bool	
+}
+
+func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key, opts rmBlocksOpts) error {
 	unlocker := blocks.GCLock()
 	defer unlocker.Unlock()
 
@@ -271,9 +286,11 @@ func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, k
 
 	for _, k := range stillOkay {
 		err := blocks.DeleteBlock(k)
-		if err != nil {
+		if err != nil && opts.force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
+			// ignore non-existent blocks
+		} else if err != nil {
 			out <- &RemovedBlock{Hash: k.String(), Error: err.Error()}
-		} else {
+		} else if !opts.quiet {
 			out <- &RemovedBlock{Hash: k.String()}
 		}
 	}
