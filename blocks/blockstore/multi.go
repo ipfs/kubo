@@ -10,6 +10,7 @@ import (
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	dsq "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
 )
 
 type MultiBlockstore interface {
@@ -102,7 +103,9 @@ func (bs *multiblockstore) Put(blk blocks.Block) error {
 
 func (bs *multiblockstore) PutMany(blks []blocks.Block) error {
 	stilladd := make([]blocks.Block, 0, len(blks))
-	// Has is cheaper than Put, so if we already have it then skip
+	// First call Has() to make sure the block doesn't exist in any of
+	// the sub-blockstores, otherwise we could end with data being
+	// duplicated in two blockstores.
 	for _, blk := range blks {
 		exists, err := bs.Has(blk.Cid())
 		if err == nil && exists {
@@ -117,6 +120,24 @@ func (bs *multiblockstore) PutMany(blks []blocks.Block) error {
 }
 
 func (bs *multiblockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
-	return bs.mounts[0].Blocks.AllKeysChan(ctx)
+	//return bs.mounts[0].Blocks.AllKeysChan(ctx)
 	//return nil, errors.New("Unimplemented")
+	in := make([]<-chan *cid.Cid, 0, len(bs.mounts))
+	for _, m := range bs.mounts {
+		ch, err := m.Blocks.AllKeysChan(ctx)
+		if err != nil {
+			return nil, err
+		}
+		in = append(in, ch)
+	}
+	out := make(chan *cid.Cid, dsq.KeysOnlyBufSize)
+	go func() {
+		defer close(out)
+		for _, in0 := range in {
+			for key := range in0 {
+				out <- key
+			}
+		}
+	}()
+	return out, nil
 }
