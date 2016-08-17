@@ -9,6 +9,7 @@ import (
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	dsq "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -115,6 +116,24 @@ func (bs *multiblockstore) PutMany(blks []blocks.Block) error {
 }
 
 func (bs *multiblockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
-	return bs.mounts[0].Blocks.AllKeysChan(ctx)
+	//return bs.mounts[0].Blocks.AllKeysChan(ctx)
 	//return nil, errors.New("Unimplemented")
+	in := make([]<-chan key.Key, 0, len(bs.mounts))
+	for _, m := range bs.mounts {
+		ch, err := m.Blocks.AllKeysChan(ctx)
+		if err != nil {
+			return nil, err
+		}
+		in = append(in, ch)
+	}
+	out := make(chan key.Key, dsq.KeysOnlyBufSize)
+	go func() {
+		defer close(out)
+		for _, in0 := range in {
+			for key := range in0 {
+				out <- key
+			}
+		}
+	}()
+	return out, nil
 }
