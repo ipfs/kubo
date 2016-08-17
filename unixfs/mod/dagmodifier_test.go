@@ -629,6 +629,70 @@ func TestEndSeek(t *testing.T) {
 	}
 }
 
+func TestReadAndSeek(t *testing.T) {
+	dserv := getMockDagServ(t)
+
+	_, n := getNode(t, dserv, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	writeBuf := []byte{0, 1, 2, 3, 4, 5, 6, 7}
+	dagmod.Write(writeBuf)
+
+	readBuf := make([]byte, 4)
+	offset, err := dagmod.Seek(0, os.SEEK_SET)
+	if offset != 0 {
+		t.Fatal("expected offset to be 0")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// read 0,1,2,3
+	c, err := dagmod.Read(readBuf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c != 4 {
+		t.Fatalf("expected length of 4 got %d", c)
+	}
+
+	for i := byte(0); i < 4; i++ {
+		if readBuf[i] != i {
+			t.Fatalf("wrong value %d [at index %d]", readBuf[i], i)
+		}
+	}
+
+	// skip 4
+	_, err = dagmod.Seek(1, os.SEEK_CUR)
+	if err != nil {
+		t.Fatalf("error: %s, offset %d, reader offset %d", err, dagmod.curWrOff, dagmod.read.Offset())
+	}
+
+	//read 5,6,7
+	readBuf = make([]byte, 3)
+	c, err = dagmod.Read(readBuf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c != 3 {
+		t.Fatalf("expected length of 3 got %d", c)
+	}
+
+	for i := byte(0); i < 3; i++ {
+		if readBuf[i] != i+5 {
+			t.Fatalf("wrong value %d [at index %d]", readBuf[i], i)
+		}
+
+	}
+
+}
+
 func BenchmarkDagmodWrite(b *testing.B) {
 	b.StopTimer()
 	dserv := getMockDagServ(b)

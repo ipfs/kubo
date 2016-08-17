@@ -210,6 +210,10 @@ func (dr *DagReader) Close() error {
 	return nil
 }
 
+func (dr *DagReader) Offset() int64 {
+	return dr.offset
+}
+
 // Seek implements io.Seeker, and will seek to a given offset in the file
 // interface matches standard unix seek
 // TODO: check if we can do relative seeks, to reduce the amount of dagreader
