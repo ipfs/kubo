@@ -578,6 +578,57 @@ func TestRelativeSeek(t *testing.T) {
 	}
 }
 
+func TestInvalidSeek(t *testing.T) {
+	dserv := getMockDagServ(t)
+
+	_, n := getNode(t, dserv, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = dagmod.Seek(10, -10)
+
+	if err != ErrUnrecognizedWhence {
+		t.Fatal(err)
+	}
+}
+
+func TestEndSeek(t *testing.T) {
+	dserv := getMockDagServ(t)
+
+	_, n := getNode(t, dserv, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dagmod.Write(make([]byte, 100))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	offset, err := dagmod.Seek(0, os.SEEK_CUR)
+	if offset != 100 {
+		t.Fatal("expected the relative seek 0 to return current location")
+	}
+
+	offset, err = dagmod.Seek(0, os.SEEK_SET)
+	if offset != 0 {
+		t.Fatal("expected the absolute seek to set offset at 0")
+	}
+
+	offset, err = dagmod.Seek(0, os.SEEK_END)
+	if offset != 100 {
+		t.Fatal("expected the end seek to set offset at end")
+	}
+}
+
 func BenchmarkDagmodWrite(b *testing.B) {
 	b.StopTimer()
 	dserv := getMockDagServ(b)
