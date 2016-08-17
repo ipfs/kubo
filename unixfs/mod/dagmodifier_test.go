@@ -548,6 +548,36 @@ func TestSeekPastEndWrite(t *testing.T) {
 	}
 }
 
+func TestRelativeSeek(t *testing.T) {
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 64; i++ {
+		dagmod.Write([]byte{byte(i)})
+		if _, err := dagmod.Seek(1, os.SEEK_CUR); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	out, err := ioutil.ReadAll(dagmod)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, v := range out {
+		if v != 0 && i/2 != int(v) {
+			t.Errorf("expected %d, at index %d, got %d", i/2, i, v)
+		}
+	}
+}
+
 func BenchmarkDagmodWrite(b *testing.B) {
 	b.StopTimer()
 	dserv := getMockDagServ(b)

@@ -377,8 +377,8 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 		return 0, ErrUnrecognizedWhence
 	}
 
-	if offset > fisize {
-		if err := dm.expandSparse(offset - fisize); err != nil {
+	if int64(newoffset) > fisize {
+		if err := dm.expandSparse(int64(newoffset) - fisize); err != nil {
 			return 0, err
 		}
 	}
