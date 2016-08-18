@@ -1,9 +1,10 @@
 package blockstore
 
 import (
+	"testing"
+
 	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/blocks/key"
-	"testing"
 
 	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	syncds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
@@ -122,7 +123,7 @@ func TestGetFillsCache(t *testing.T) {
 	}
 }
 
-func TestGetAndDeleteFalseShortCirciot(t *testing.T) {
+func TestGetAndDeleteFalseShortCircuit(t *testing.T) {
 	arc, _, cd := createStores(t)
 
 	arc.Has(exampleBlock.Key())
