@@ -7,26 +7,14 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/blocks/blockstore"
-	bs "github.com/ipfs/go-ipfs/blockservice"
-	"github.com/ipfs/go-ipfs/exchange/offline"
 	imp "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
+	mdagmock "github.com/ipfs/go-ipfs/merkledag/test"
 
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
-
-func getMockDagServ(t testing.TB) mdag.DAGService {
-	dstore := ds.NewMapDatastore()
-	tsds := sync.MutexWrap(dstore)
-	bstore := blockstore.NewBlockstore(tsds)
-	bserv := bs.New(bstore, offline.Exchange(bstore))
-	return mdag.NewDAGService(bserv)
-}
 
 func sizeSplitterGen(size int64) chunk.SplitterGen {
 	return func(r io.Reader) chunk.Splitter {
@@ -68,7 +56,7 @@ func arrComp(a, b []byte) error {
 }
 
 func TestBasicRead(t *testing.T) {
-	dserv := getMockDagServ(t)
+	dserv := mdagmock.Mock()
 	inbuf, node := getRandomNode(t, dserv, 1024)
 	ctx, closer := context.WithCancel(context.Background())
 	defer closer()
