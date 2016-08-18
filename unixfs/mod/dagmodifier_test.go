@@ -644,6 +644,10 @@ func TestReadAndSeek(t *testing.T) {
 	writeBuf := []byte{0, 1, 2, 3, 4, 5, 6, 7}
 	dagmod.Write(writeBuf)
 
+	if !dagmod.HasChanges() {
+		t.Fatal("there are changes, this should be true")
+	}
+
 	readBuf := make([]byte, 4)
 	offset, err := dagmod.Seek(0, os.SEEK_SET)
 	if offset != 0 {
@@ -691,6 +695,37 @@ func TestReadAndSeek(t *testing.T) {
 
 	}
 
+}
+
+func TestCtxRead(t *testing.T) {
+	dserv := getMockDagServ(t)
+
+	_, n := getNode(t, dserv, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dagmod.Write([]byte{0, 1, 2, 3, 4, 5, 6, 7})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dagmod.Seek(0, os.SEEK_SET)
+
+	readBuf := make([]byte, 4)
+	_, err = dagmod.CtxReadFull(ctx, readBuf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = arrComp(readBuf, []byte{0, 1, 2, 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// TODO(Kubuxu): context cancel case, I will do it after I figure out dagreader tests,
+	// because this is exacelly the same.
 }
 
 func BenchmarkDagmodWrite(b *testing.B) {
