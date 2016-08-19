@@ -169,7 +169,20 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
-	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
+
+	if cfg.Reprovider.Interval != "0" {
+		interval := kReprovideFrequency
+		if cfg.Reprovider.Interval != "" {
+			dur, err := time.ParseDuration(cfg.Reprovider.Interval)
+			if err != nil {
+				return err
+			}
+
+			interval = dur
+		}
+
+		go n.Reprovider.ProvideEvery(ctx, interval)
+	}
 
 	// setup local discovery
 	if do != nil {

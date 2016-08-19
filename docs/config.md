@@ -15,6 +15,7 @@ a running daemon do not read the config file at runtime.
 - [`Identity`](#identity)
 - [`Ipns`](#ipns)
 - [`Mounts`](#mounts)
+- [`ReproviderInterval`](#reproviderinterval)
 - [`SupernodeRouting`](#supernoderouting)
 - [`Swarm`](#swarm)
 - [`Tour`](#tour)
@@ -191,6 +192,9 @@ Mountpoint for `/ipns/`.
 
 - `FuseAllowOther`
 Sets the FUSE allow other option on the mountpoint.
+
+## `ReproviderInterval`
+Sets the time between rounds of reproviding local content to the routing system. If unset, it defaults to 12 hours. If set to the value `"0"` it will disable content reproviding.
 
 ## `SupernodeRouting`
 Deprecated.
