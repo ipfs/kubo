@@ -23,6 +23,10 @@ type DAGService interface {
 	Get(context.Context, *cid.Cid) (*Node, error)
 	Remove(*Node) error
 
+	// Return all links for a node, may be more effect than
+	// calling Get
+	GetLinks(context.Context, *cid.Cid) ([]*Link, error)
+
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
 	GetMany(context.Context, []*cid.Cid) <-chan *NodeOption
@@ -30,8 +34,14 @@ type DAGService interface {
 	Batch() *Batch
 }
 
-func NewDAGService(bs *bserv.BlockService) DAGService {
-	return &dagService{bs}
+// A LinkService returns the links for a node if they are available
+// locally without having to retrieve the block from the datastore.
+type LinkService interface {
+	Get(*cid.Cid) ([]*Link, error)
+}
+
+func NewDAGService(bs *bserv.BlockService) *dagService {
+	return &dagService{Blocks: bs}
 }
 
 // dagService is an IPFS Merkle DAG service.
@@ -40,7 +50,8 @@ func NewDAGService(bs *bserv.BlockService) DAGService {
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
 type dagService struct {
-	Blocks *bserv.BlockService
+	Blocks      *bserv.BlockService
+	LinkService LinkService
 }
 
 // Add adds a node to the dagService, storing the block in the BlockService
@@ -91,6 +102,20 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (*Node, error) {
 	res.cached = c
 
 	return res, nil
+}
+
+func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*Link, error) {
+	if n.LinkService != nil {
+		links, err := n.LinkService.Get(c)
+		if err == nil {
+			return links, nil
+		}
+	}
+	node, err := n.Get(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	return node.Links, nil
 }
 
 func (n *dagService) Remove(nd *Node) error {
@@ -366,11 +391,11 @@ func legacyCidFromLink(lnk *Link) *cid.Cid {
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
-func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, visit func(*cid.Cid) bool, bestEffort bool) error {
-	for _, lnk := range root.Links {
+func EnumerateChildren(ctx context.Context, ds DAGService, links []*Link, visit func(*cid.Cid) bool, bestEffort bool) error {
+	for _, lnk := range links {
 		c := legacyCidFromLink(lnk)
 		if visit(c) {
-			child, err := ds.Get(ctx, c)
+			children, err := ds.GetLinks(ctx, c)
 			if err != nil {
 				if bestEffort && err == ErrNotFound {
 					continue
@@ -378,7 +403,7 @@ func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, visit fun
 					return err
 				}
 			}
-			err = EnumerateChildren(ctx, ds, child, visit, bestEffort)
+			err = EnumerateChildren(ctx, ds, children, visit, bestEffort)
 			if err != nil {
 				return err
 			}

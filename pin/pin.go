@@ -279,12 +279,12 @@ func (p *pinner) isPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error
 
 	// Default is Indirect
 	for _, rc := range p.recursePin.Keys() {
-		rnd, err := p.dserv.Get(context.Background(), rc)
+		links, err := p.dserv.GetLinks(context.Background(), rc)
 		if err != nil {
 			return "", false, err
 		}
 
-		has, err := hasChild(p.dserv, rnd, k)
+		has, err := hasChild(p.dserv, links, k)
 		if err != nil {
 			return "", false, err
 		}
@@ -317,11 +317,11 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	// Now walk all recursive pins to check for indirect pins
 	var checkChildren func(*cid.Cid, *cid.Cid) error
 	checkChildren = func(rk, parentKey *cid.Cid) error {
-		parent, err := p.dserv.Get(context.Background(), parentKey)
+		links, err := p.dserv.GetLinks(context.Background(), parentKey)
 		if err != nil {
 			return err
 		}
-		for _, lnk := range parent.Links {
+		for _, lnk := range links {
 			c := cid.NewCidV0(lnk.Hash)
 
 			if toCheck.Has(c) {
@@ -521,19 +521,19 @@ func (p *pinner) PinWithMode(c *cid.Cid, mode PinMode) {
 	}
 }
 
-func hasChild(ds mdag.DAGService, root *mdag.Node, child key.Key) (bool, error) {
-	for _, lnk := range root.Links {
+func hasChild(ds mdag.DAGService, links []*mdag.Link, child key.Key) (bool, error) {
+	for _, lnk := range links {
 		c := cid.NewCidV0(lnk.Hash)
 		if key.Key(c.Hash()) == child {
 			return true, nil
 		}
 
-		nd, err := ds.Get(context.Background(), c)
+		children, err := ds.GetLinks(context.Background(), c)
 		if err != nil {
 			return false, err
 		}
 
-		has, err := hasChild(ds, nd, child)
+		has, err := hasChild(ds, children, child)
 		if err != nil {
 			return false, err
 		}
