@@ -173,6 +173,7 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 		case <-broadcastSignal.C: // resend unfulfilled wantlist keys
 			log.Event(ctx, "Bitswap.Rebroadcast.active")
 			for _, e := range bs.wm.wl.Entries() {
+				e := e
 				bs.findKeys <- &e
 			}
 		case <-parent.Done():

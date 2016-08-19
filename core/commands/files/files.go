@@ -24,7 +24,7 @@ var log = logging.Logger("cmds/files")
 
 var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate unixfs files.",
+		Tagline: "Interact with unixfs files.",
 		ShortDescription: `
 Files is an API for manipulating IPFS objects as if they were a unix
 filesystem.
@@ -284,9 +284,9 @@ type FilesLsOutput struct {
 
 var FilesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directories.",
+		Tagline: "List directories in the local mutable namespace.",
 		ShortDescription: `
-List directories.
+List directories in the local mutable namespace.
 
 Examples:
 

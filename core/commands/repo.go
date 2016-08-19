@@ -24,7 +24,7 @@ type RepoVersion struct {
 
 var RepoCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate the IPFS repo.",
+		Tagline: "Interact with the IPFS repo.",
 		ShortDescription: `
 'ipfs repo' is a plumbing command used to manipulate the repo.
 `,
@@ -172,7 +172,7 @@ Version         string The repo version.
 
 var RepoFsckCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes repo lockfiles.",
+		Tagline: "Remove repo lockfiles.",
 		ShortDescription: `
 'ipfs repo fsck' is a plumbing command that will remove repo and level db
 lockfiles, as well as the api file. This command can only run when no ipfs

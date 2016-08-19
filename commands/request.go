@@ -240,13 +240,19 @@ func (r *request) VarArgs(f func(string) error) error {
 		return err
 	}
 
+	var any bool
 	scan := bufio.NewScanner(fi)
 	for scan.Scan() {
+		any = true
 		err := f(scan.Text())
 		if err != nil {
 			return err
 		}
 	}
+	if !any {
+		return f("")
+	}
+
 	return nil
 }
 

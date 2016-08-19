@@ -34,10 +34,6 @@
 			"Rev": "3463798d9574bd0b7eca275dccc530804ff5216f"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-is-domain",
-			"Rev": "93b717f2ae17838a265e30277275ee99ee7198d6"
-		},
-		{
 			"ImportPath": "github.com/jbenet/go-os-rename",
 			"Rev": "3ac97f61ef67a6b87b95c1282f6c317ed0e693c2"
 		},

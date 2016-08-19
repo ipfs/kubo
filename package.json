@@ -189,11 +189,17 @@
       "hash": "QmVvJ27GcLaLSXvcB4auk3Gn3xuWK5ti5ENkZ2pCoJEYW4",
       "name": "autobatch",
       "version": "0.2.0"
+    },
+    {
+      "author": "jbenet",
+      "hash": "QmaeHSCBd9XjXxmgHEiKkHtLcMCb2eZsPLKT7bHgBfBkqw",
+      "name": "go-is-domain",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs",
-  "version": "0.4.2"
+  "version": "0.4.4-dev"
 }

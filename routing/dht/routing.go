@@ -3,6 +3,7 @@ package dht
 import (
 	"bytes"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -380,6 +381,16 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, 
 	_, err := query.Run(ctx, peers)
 	if err != nil {
 		log.Debugf("Query error: %s", err)
+		// Special handling for issue: https://github.com/ipfs/go-ipfs/issues/3032
+		if fmt.Sprint(err) == "<nil>" {
+			log.Error("reproduced bug 3032:")
+			log.Errorf("Errors type information: %#v", err)
+			log.Errorf("go version: %s", runtime.Version())
+			log.Error("please report this information to: https://github.com/ipfs/go-ipfs/issues/3032")
+
+			// replace problematic error with something that won't crash the daemon
+			err = fmt.Errorf("<nil>")
+		}
 		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 			Type:  notif.QueryError,
 			Extra: err.Error(),

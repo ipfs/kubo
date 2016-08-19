@@ -1,10 +1,23 @@
 # Generic test functions for go-ipfs
 
+# Quote arguments for sh eval
+shellquote() {
+	_space=''
+	for _arg
+	do
+		# On Mac OS, sed adds a newline character.
+		# With a printf wrapper the extra newline is removed.
+		printf "$_space'%s'" "$(printf "%s" "$_arg" | sed -e "s/'/'\\\\''/g;")"
+		_space=' '
+	done
+	printf '\n'
+}
+
 # Echo the args, run the cmd, and then also fail,
 # making sure a test case fails.
 test_fsh() {
     echo "> $@"
-    eval "$@"
+    eval $(shellquote "$@")
     echo ""
     false
 }
@@ -29,19 +42,6 @@ test_path_cmp() {
 	sed -e "s/\\\\/\//g" "$1" >"$1_std" &&
 	sed -e "s/\\\\/\//g" "$2" >"$2_std" &&
 	test_cmp "$1_std" "$2_std"
-}
-
-# Quote arguments for sh eval
-shellquote() {
-	_space=''
-	for _arg
-	do
-		# On Mac OS, sed adds a newline character.
-		# With a printf wrapper the extra newline is removed.
-		printf "$_space'%s'" "$(printf "%s" "$_arg" | sed -e "s/'/'\\\\''/g;")"
-		_space=' '
-	done
-	printf '\n'
 }
 
 # Docker

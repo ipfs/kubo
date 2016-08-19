@@ -37,7 +37,6 @@ Please put all issues regarding the Go IPFS _implementation_ in [this repo](http
 - [Getting Started](#getting-started)
   - [Some things to try](#some-things-to-try)
   - [Docker usage](#docker-usage)
-    - [Docker usage with VirtualBox/boot2docker (OSX and Windows)](#docker-usage-with-virtualboxboot2docker-osx-and-windows)
   - [Troubleshooting](#troubleshooting-1)
 - [Todo](#todo)
 - [Contributing](#contributing)
@@ -100,6 +99,23 @@ Then install `go-ipfs` and its dependencies, including `gx` and `gx-go`:
 ```
 $ make install
 ```
+
+#### Building on less common systems
+
+If your operating system isn't officially supported, but you still want to try
+building ipfs anyways (it should work fine in most cases), you can do the
+following:
+
+- Install gx: `go get github.com/whyrusleeping/gx`
+- Install gx-go: `go get github.com/whyrusleeping/gx-go`
+- Fetch ipfs source: `go get -d github.com/ipfs/go-ipfs 2> /dev/null`
+- Enter source directory: `cd $GOPATH/src/github.com/ipfs/go-ipfs`
+- Install deps: `gx install`
+- Install ipfs: `go install ./cmd/ipfs`
+
+Note: This process may break if [gx](https://github.com/whyrusleeping/gx) or any of its dependencies break as `go get`
+will always select the latest code for every dependency, often resulting in
+mismatched APIs.
 
 #### Troubleshooting
 
@@ -245,14 +261,6 @@ Add files:
 Stop the running container:
 
     docker stop ipfs_host
-
-#### Docker usage with VirtualBox/boot2docker (OSX and Windows)
-
-Since docker is running in the boot2docker VM, you need to forward
-relevant ports from the VM to your host for IPFS to act normally. This is
-accomplished with the following command:
-
-    boot2docker ssh -L 5001:localhost:5001 -L 4001:localhost:4001 -L 8080:localhost:8080 -fN
 
 ### Troubleshooting
 If you have previously installed IPFS before and you are running into

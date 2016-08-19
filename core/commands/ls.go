@@ -32,12 +32,14 @@ type LsOutput struct {
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List links from an object.",
+		Tagline: "List directory contents for Unix filesystem objects.",
 		ShortDescription: `
-Displays the links an IPFS or IPNS object(s) contains, with the following
-format:
+Displays the contents of an IPFS or IPNS object(s) at the given path, with
+the following format:
 
   <link base58 hash> <link size in bytes> <link name>
+
+The JSON output contains type information.
 `,
 	},
 

@@ -181,7 +181,7 @@ in the bootstrap list).`,
 
 var bootstrapRemoveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes peers from the bootstrap list.",
+		Tagline: "Remove peers from the bootstrap list.",
 		ShortDescription: `Outputs the list of peers that were removed.
 ` + bootstrapSecurityWarning,
 	},
@@ -250,7 +250,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 
 var bootstrapRemoveAllCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Removes all peers from the bootstrap list.",
+		Tagline:          "Remove all peers from the bootstrap list.",
 		ShortDescription: `Outputs the list of peers that were removed.`,
 	},
 

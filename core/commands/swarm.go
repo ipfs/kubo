@@ -30,7 +30,7 @@ type addrMap struct {
 
 var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Swarm inspection tool.",
+		Tagline: "Interact with the swarm.",
 		ShortDescription: `
 'ipfs swarm' is a tool to manipulate the network swarm. The swarm is the
 component that opens, listens for, and maintains connections to other

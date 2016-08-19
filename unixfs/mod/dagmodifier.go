@@ -6,10 +6,6 @@ import (
 	"io"
 	"os"
 
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
@@ -17,11 +13,14 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+
 	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
-var ErrSeekEndNotImpl = errors.New("SEEK_END currently not implemented")
 var ErrUnrecognizedWhence = errors.New("unrecognized whence")
 
 // 2MB
@@ -378,8 +377,8 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 		return 0, ErrUnrecognizedWhence
 	}
 
-	if offset > fisize {
-		if err := dm.expandSparse(offset - fisize); err != nil {
+	if int64(newoffset) > fisize {
+		if err := dm.expandSparse(int64(newoffset) - fisize); err != nil {
 			return 0, err
 		}
 	}

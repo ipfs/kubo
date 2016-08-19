@@ -8,23 +8,23 @@ import (
 	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	dsq "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 	ds_sync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 )
 
-// TODO(brian): TestGetReturnsNil
-
 func TestGetWhenKeyNotPresent(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
-	_, err := bs.Get(key.Key("not present"))
+	bl, err := bs.Get(key.Key("not present"))
 
-	if err != nil {
-		t.Log("As expected, block is not present")
-		return
+	if bl != nil {
+		t.Error("nil block expected")
 	}
-	t.Fail()
+	if err == nil {
+		t.Error("error expected, got nil")
+	}
 }
 
 func TestGetWhenKeyIsEmptyString(t *testing.T) {
@@ -54,18 +54,29 @@ func TestPutThenGetBlock(t *testing.T) {
 }
 
 func TestRuntimeHashing(t *testing.T) {
+	orginalDebug := u.Debug
+	defer (func() {
+		u.Debug = orginalDebug
+	})()
+	u.Debug = false
+
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	bl := blocks.NewBlock([]byte("some data"))
 	blBad, err := blocks.NewBlockWithHash([]byte("some other data"), bl.Key().ToMultihash())
 	if err != nil {
-		t.Fatal("Debug is enabled")
+		t.Fatal("debug is off, still got an error")
 	}
-
+	bl2 := blocks.NewBlock([]byte("some other data"))
 	bs.Put(blBad)
+	bs.Put(bl2)
 	bs.RuntimeHashing(true)
 
 	if _, err := bs.Get(bl.Key()); err != ErrHashMismatch {
-		t.Fatalf("Expected '%v' got '%v'\n", ErrHashMismatch, err)
+		t.Fatalf("expected '%v' got '%v'\n", ErrHashMismatch, err)
+	}
+
+	if b, err := bs.Get(bl2.Key()); err != nil || b.String() != bl2.String() {
+		t.Fatal("got wrong blocks")
 	}
 }
 

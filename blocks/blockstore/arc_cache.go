@@ -32,7 +32,7 @@ func (b *arccache) DeleteBlock(k key.Key) error {
 	switch err {
 	case nil, ds.ErrNotFound, ErrNotFound:
 		b.arc.Add(k, false)
-		return nil
+		return err
 	default:
 		return err
 	}

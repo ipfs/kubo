@@ -34,7 +34,7 @@ type PinOutput struct {
 
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Pins objects to local storage.",
+		Tagline:          "Pin objects to local storage.",
 		ShortDescription: "Stores an IPFS object(s) from a given path locally to disk.",
 	},
 
@@ -95,10 +95,10 @@ var addPinCmd = &cmds.Command{
 
 var rmPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes the pinned object from local storage.",
+		Tagline: "Remove pinned objects from local storage.",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
-collected if needed. (By default, recursively. Use -r=false for direct pins)
+collected if needed. (By default, recursively. Use -r=false for direct pins.)
 `,
 	},
 

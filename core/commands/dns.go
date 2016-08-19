@@ -11,7 +11,7 @@ import (
 
 var DNSCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "DNS link resolver.",
+		Tagline: "Resolve DNS links.",
 		ShortDescription: `
 Multihashes are hard to remember, but domain names are usually easy to
 remember.  To create memorable aliases for multihashes, DNS TXT
@@ -26,7 +26,7 @@ This command resolves those links to the referenced object.
 
 For example, with this DNS TXT record:
 
-	> dig +short TXT ipfs.io
+	> dig +short TXT _dnslink.ipfs.io
 	dnslink=/ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy
 
 The resolver will give:
