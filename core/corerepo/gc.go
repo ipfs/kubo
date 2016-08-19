@@ -91,7 +91,7 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning, roots)
+	rmed, err := gc.GC(ctx, n.Blockstore, n.LinkService, n.Pinning, roots)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemo
 	if err != nil {
 		return nil, err
 	}
-	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning, roots)
+	rmed, err := gc.GC(ctx, n.Blockstore, n.LinkService, n.Pinning, roots)
 	if err != nil {
 		return nil, err
 	}

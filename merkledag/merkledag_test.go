@@ -292,7 +292,7 @@ func TestFetchGraph(t *testing.T) {
 	offline_ds := NewDAGService(bs)
 	ks := key.NewKeySet()
 
-	err = EnumerateChildren(context.Background(), offline_ds, root, ks, false)
+	err = EnumerateChildren(context.Background(), offline_ds, root.Links, ks, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestEnumerateChildren(t *testing.T) {
 	}
 
 	ks := key.NewKeySet()
-	err = EnumerateChildren(context.Background(), ds, root, ks, false)
+	err = EnumerateChildren(context.Background(), ds, root.Links, ks, false)
 	if err != nil {
 		t.Fatal(err)
 	}

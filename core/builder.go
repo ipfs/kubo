@@ -22,6 +22,9 @@ import (
 	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
 	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	"github.com/ipfs/go-ipfs/filestore"
+	"github.com/ipfs/go-ipfs/filestore/support"
 )
 
 type BuildCfg struct {
@@ -180,7 +183,12 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	n.Blocks = bserv.New(n.Blockstore, n.Exchange)
-	n.DAG = dag.NewDAGService(n.Blocks)
+	dag := dag.NewDAGService(n.Blocks)
+	if fs,ok :=  n.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore); ok {
+		n.LinkService = filestore_support.NewLinkService(fs)
+		dag.LinkService = n.LinkService
+	}
+	n.DAG = dag
 	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG)
 	if err != nil {
 		// TODO: we should move towards only running 'NewPinner' explicity on

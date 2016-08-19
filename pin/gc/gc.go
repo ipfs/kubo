@@ -23,11 +23,12 @@ var log = logging.Logger("gc")
 //
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
-func GC(ctx context.Context, bs bstore.MultiBlockstore, pn pin.Pinner, bestEffortRoots []key.Key) (<-chan key.Key, error) {
+func GC(ctx context.Context, bs bstore.MultiBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []key.Key) (<-chan key.Key, error) {
 	unlocker := bs.GCLock()
 
 	bsrv := bserv.New(bs, offline.Exchange(bs))
 	ds := dag.NewDAGService(bsrv)
+	ds.LinkService = ls
 
 	gcs, err := ColoredSet(ctx, pn, ds, bestEffortRoots)
 	if err != nil {
@@ -74,13 +75,13 @@ func GC(ctx context.Context, bs bstore.MultiBlockstore, pn pin.Pinner, bestEffor
 func Descendants(ctx context.Context, ds dag.DAGService, set key.KeySet, roots []key.Key, bestEffort bool) error {
 	for _, k := range roots {
 		set.Add(k)
-		nd, err := ds.Get(ctx, k)
+		links, err := ds.GetLinks(ctx, k)
 		if err != nil {
 			return err
 		}
 
 		// EnumerateChildren recursively walks the dag and adds the keys to the given set
-		err = dag.EnumerateChildren(ctx, ds, nd, set, bestEffort)
+		err = dag.EnumerateChildren(ctx, ds, links, set, bestEffort)
 		if err != nil {
 			return err
 		}

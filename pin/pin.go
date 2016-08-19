@@ -249,12 +249,12 @@ func (p *pinner) isPinnedWithType(k key.Key, mode PinMode) (string, bool, error)
 
 	// Default is Indirect
 	for _, rk := range p.recursePin.GetKeys() {
-		rnd, err := p.dserv.Get(context.Background(), rk)
+		links, err := p.dserv.GetLinks(context.Background(), rk)
 		if err != nil {
 			return "", false, err
 		}
 
-		has, err := hasChild(p.dserv, rnd, k)
+		has, err := hasChild(p.dserv, links, k)
 		if err != nil {
 			return "", false, err
 		}
@@ -483,19 +483,19 @@ func (p *pinner) PinWithMode(k key.Key, mode PinMode) {
 	}
 }
 
-func hasChild(ds mdag.DAGService, root *mdag.Node, child key.Key) (bool, error) {
-	for _, lnk := range root.Links {
+func hasChild(ds mdag.DAGService, links []*mdag.Link, child key.Key) (bool, error) {
+	for _, lnk := range links {
 		k := key.Key(lnk.Hash)
 		if k == child {
 			return true, nil
 		}
 
-		nd, err := ds.Get(context.Background(), k)
+		children, err := ds.GetLinks(context.Background(), k)
 		if err != nil {
 			return false, err
 		}
 
-		has, err := hasChild(ds, nd, child)
+		has, err := hasChild(ds, children, child)
 		if err != nil {
 			return false, err
 		}
