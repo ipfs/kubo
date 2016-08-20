@@ -133,6 +133,7 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 				log.Debug("newBlocks channel closed")
 				return
 			}
+
 			if keysOut == nil {
 				nextKey = blk.Key()
 				keysOut = bs.provideKeys
