@@ -23,7 +23,7 @@ var log = logging.Logger("namesys")
 
 // routingResolver implements NSResolver for the main IPFS SFS-like naming
 type routingResolver struct {
-	routing routing.IpfsRouting
+	routing routing.ValueStore
 
 	cache *lru.Cache
 }
@@ -88,7 +88,7 @@ type cacheEntry struct {
 // to implement SFS-like naming on top.
 // cachesize is the limit of the number of entries in the lru cache. Setting it
 // to '0' will disable caching.
-func NewRoutingResolver(route routing.IpfsRouting, cachesize int) *routingResolver {
+func NewRoutingResolver(route routing.ValueStore, cachesize int) *routingResolver {
 	if route == nil {
 		panic("attempt to create resolver with nil routing system")
 	}

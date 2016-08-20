@@ -14,11 +14,27 @@ import (
 // ErrNotFound is returned when a search fails to find anything
 var ErrNotFound = errors.New("routing: not found")
 
-// IpfsRouting is the routing module interface
-// It is implemented by things like DHTs, etc.
-type IpfsRouting interface {
-	FindProvidersAsync(context.Context, key.Key, int) <-chan pstore.PeerInfo
+// ContentRouting is a value provider layer of indirection. It is used to find
+// information about who has what content.
+type ContentRouting interface {
+	// Announce that this node can provide value for given key
+	Provide(context.Context, key.Key) error
 
+	// Search for peers who are able to provide a given key
+	FindProvidersAsync(context.Context, key.Key, int) <-chan pstore.PeerInfo
+}
+
+// PeerRouting is a way to find information about certain peers.
+// This can be implemented by a simple lookup table, a tracking server,
+// or even a DHT.
+type PeerRouting interface {
+	// Find specific Peer
+	// FindPeer searches for a peer with given ID, returns a pstore.PeerInfo
+	// with relevant addresses.
+	FindPeer(context.Context, peer.ID) (pstore.PeerInfo, error)
+}
+
+type ValueStore interface {
 	// Basic Put/Get
 
 	// PutValue adds value corresponding to given Key.
@@ -38,17 +54,15 @@ type IpfsRouting interface {
 	// As a result, a value of '1' is mostly useful for cases where the record
 	// in question has only one valid value (such as public keys)
 	GetValues(c context.Context, k key.Key, count int) ([]RecvdVal, error)
+}
 
-	// Value provider layer of indirection.
-	// This is what DSHTs (Coral and MainlineDHT) do to store large values in a DHT.
-
-	// Announce that this node can provide value for given key
-	Provide(context.Context, key.Key) error
-
-	// Find specific Peer
-	// FindPeer searches for a peer with given ID, returns a pstore.PeerInfo
-	// with relevant addresses.
-	FindPeer(context.Context, peer.ID) (pstore.PeerInfo, error)
+// IpfsRouting is the combination of different routing types that ipfs
+// uses. It can be satisfied by a single item (such as a DHT) or multiple
+// different pieces that are more optimized to each task.
+type IpfsRouting interface {
+	ContentRouting
+	PeerRouting
+	ValueStore
 
 	// Bootstrap allows callers to hint to the routing system to get into a
 	// Boostrapped state
@@ -74,7 +88,7 @@ func KeyForPublicKey(id peer.ID) key.Key {
 	return key.Key("/pk/" + string(id))
 }
 
-func GetPublicKey(r IpfsRouting, ctx context.Context, pkhash []byte) (ci.PubKey, error) {
+func GetPublicKey(r ValueStore, ctx context.Context, pkhash []byte) (ci.PubKey, error) {
 	if dht, ok := r.(PubKeyFetcher); ok {
 		// If we have a DHT as our routing system, use optimized fetcher
 		return dht.GetPublicKey(ctx, peer.ID(pkhash))
