@@ -131,7 +131,7 @@ func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 		dr.buf = NewRSNCFromBytes(pb.GetData())
 		return nil
 	case ftpb.Data_Metadata:
-		return errors.New("Shouldnt have had metadata object inside file")
+		return errors.New("shouldnt have had metadata object inside file")
 	case ftpb.Data_Symlink:
 		return errors.New("shouldnt have had symlink inside file")
 	default:

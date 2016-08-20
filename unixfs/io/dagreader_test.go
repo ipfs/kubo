@@ -144,6 +144,19 @@ func TestTypeFailures(t *testing.T) {
 	}
 }
 
+func TestBadPBData(t *testing.T) {
+	dserv := testu.GetDAGServ()
+	ctx, closer := context.WithCancel(context.Background())
+	defer closer()
+
+	node := mdag.NodeWithData([]byte{42})
+	_, err := NewDagReader(ctx, node, dserv)
+	if err == nil {
+		t.Fatal("excepted error, got nil")
+	}
+
+}
+
 func readByte(t testing.TB, reader *DagReader) byte {
 	out := make([]byte, 1)
 	c, err := reader.Read(out)
