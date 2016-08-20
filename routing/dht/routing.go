@@ -263,6 +263,10 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key key.Key) error {
 		go func(p peer.ID) {
 			defer wg.Done()
 			log.Debugf("putProvider(%s, %s)", key, p)
+			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+				Type: notif.FinalPeer,
+				ID:   p,
+			})
 			err := dht.sendMessage(ctx, p, mes)
 			if err != nil {
 				log.Debug(err)
@@ -272,6 +276,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key key.Key) error {
 	wg.Wait()
 	return nil
 }
+
 func (dht *IpfsDHT) makeProvRecord(skey key.Key) (*pb.Message, error) {
 	pi := pstore.PeerInfo{
 		ID:    dht.self,
