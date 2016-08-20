@@ -123,11 +123,24 @@ same as for 'ipfs add'.
 
 func addFileStoreOpts() []cmds.Option {
 	var opts []cmds.Option
-	opts = append(opts, AddCmd.Options...)
+
+	foundPinOpt := false
+	for _, opt := range AddCmd.Options {
+		if opt.Names()[0] == pinOptionName {
+			opts = append(opts, cmds.BoolOption(pinOptionName, opt.Description()).Default(false))
+			foundPinOpt = true
+		} else {
+			opts = append(opts, opt)
+		}
+	}
+	if !foundPinOpt {
+		panic("internal error: foundPinOpt is false")
+	}
+
 	opts = append(opts,
 		cmds.BoolOption("server-side", "S", "Read file on server."),
-		cmds.BoolOption("l", "logical", "Create absolute path using PWD from environment."),
-		cmds.BoolOption("P", "physical", "Create absolute path using a system call."),
+		cmds.BoolOption("logical", "l", "Create absolute path using PWD from environment."),
+		cmds.BoolOption("physical", "P", "Create absolute path using a system call."),
 	)
 	return opts
 }

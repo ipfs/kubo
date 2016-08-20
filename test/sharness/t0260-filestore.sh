@@ -137,12 +137,12 @@ EOF
 
 clear_pins
 
-test_expect_success "testing filestore add -r" '
+test_expect_success "testing filestore add -r --pin" '
   mkdir adir &&
   echo "Hello Worlds!" > adir/file1 &&
   echo "HELLO WORLDS!" > adir/file2 &&
   random 5242880 41 > adir/file3 &&
-  ipfs filestore add -r "`pwd`"/adir | LC_ALL=C sort > add_actual &&
+  ipfs filestore add -r --pin "`pwd`"/adir | LC_ALL=C sort > add_actual &&
   test_cmp add_expect add_actual
 '
 
@@ -175,7 +175,7 @@ QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH recursive
 EOF
 
 test_expect_success "testing filestore fix-pins --skip-root" '
-  ipfs filestore add -r "`pwd`"/adir > add_actual &&
+  ipfs filestore add --pin -r "`pwd`"/adir > add_actual &&
   ipfs filestore rm --force QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > rm_actual
   ipfs filestore fix-pins --skip-root > fix_pins_actual &&
   ipfs pin ls | LC_ALL=C sort | grep -v " indirect" > pin_ls_actual &&
