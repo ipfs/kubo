@@ -68,6 +68,9 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 				"Access-Control-Allow-Headers": []string{"X-Requested-With"},
 			},
 		},
+		Reprovider: Reprovider{
+			Interval: "12h",
+		},
 	}
 
 	return conf, nil
