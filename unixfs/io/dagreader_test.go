@@ -5,6 +5,9 @@ import (
 	"os"
 	"testing"
 
+	mdag "github.com/ipfs/go-ipfs/merkledag"
+	"github.com/ipfs/go-ipfs/unixfs"
+
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	testu "github.com/ipfs/go-ipfs/unixfs/test"
@@ -118,6 +121,27 @@ func TestRelativeSeek(t *testing.T) {
 		reader.Seek(-5, os.SEEK_CUR) // seek 4 bytes but we read one byte every time so 5 bytes
 	}
 
+}
+
+func TestTypeFailures(t *testing.T) {
+	dserv := testu.GetDAGServ()
+	ctx, closer := context.WithCancel(context.Background())
+	defer closer()
+
+	node := unixfs.EmptyDirNode()
+	if _, err := NewDagReader(ctx, node, dserv); err != ErrIsDir {
+		t.Fatalf("excepted to get %v, got %v", ErrIsDir, err)
+	}
+
+	data, err := unixfs.SymlinkData("/somelink")
+	if err != nil {
+		t.Fatal(err)
+	}
+	node = mdag.NodeWithData(data)
+
+	if _, err := NewDagReader(ctx, node, dserv); err != ErrCantReadSymlinks {
+		t.Fatalf("excepted to get %v, got %v", ErrCantReadSymlinks, err)
+	}
 }
 
 func readByte(t testing.TB, reader *DagReader) byte {
