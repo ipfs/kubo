@@ -77,6 +77,8 @@ func TestRelativeSeek(t *testing.T) {
 	for i := 0; i < 256; i++ {
 		inbuf[i*4] = byte(i)
 	}
+
+	inbuf[1023] = 1 // force the reader to be 1024 bytes
 	node := testu.GetNode(t, dserv, inbuf)
 
 	reader, err := NewDagReader(ctx, node, dserv)
@@ -85,11 +87,35 @@ func TestRelativeSeek(t *testing.T) {
 	}
 
 	for i := 0; i < 256; i++ {
+		if reader.Offset() != int64(i*4) {
+			t.Fatalf("offset should be %d, was %d", i*4, reader.Offset())
+		}
 		out := readByte(t, reader)
 		if int(out) != i {
-			t.Fatalf("expected to read: %d at %d, read %d", i, reader.Offset(), out)
+			t.Fatalf("expected to read: %d at %d, read %d", i, reader.Offset()-1, out)
 		}
-		reader.Seek(3, os.SEEK_CUR)
+		if i != 255 {
+			_, err := reader.Seek(3, os.SEEK_CUR)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	_, err = reader.Seek(4, os.SEEK_END)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 256; i++ {
+		if reader.Offset() != int64(1020-i*4) {
+			t.Fatalf("offset should be %d, was %d", 1020-i*4, reader.Offset())
+		}
+		out := readByte(t, reader)
+		if int(out) != 255-i {
+			t.Fatalf("expected to read: %d at %d, read %d", 255-i, reader.Offset()-1, out)
+		}
+		reader.Seek(-5, os.SEEK_CUR) // seek 4 bytes but we read one byte every time so 5 bytes
 	}
 
 }
