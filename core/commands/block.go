@@ -305,19 +305,13 @@ func checkIfPinned(pins pin.Pinner, keys []key.Key, out chan<- interface{}) ([]k
 		return nil, err
 	}
 	for _, r := range res {
-		switch r.Mode {
-		case pin.NotPinned:
+		if !r.Pinned() {
 			stillOkay = append(stillOkay, r.Key)
-		case pin.Indirect:
+		} else {
 			out <- &RemovedBlock{
 				Hash:  r.Key.String(),
-				Error: fmt.Sprintf("pinned via %s", r.Via)}
-		default:
-			modeStr, _ := pin.PinModeToString(r.Mode)
-			out <- &RemovedBlock{
-				Hash:  r.Key.String(),
-				Error: fmt.Sprintf("pinned: %s", modeStr)}
-
+				Error: r.String(),
+			}
 		}
 	}
 	return stillOkay, nil
