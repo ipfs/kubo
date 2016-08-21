@@ -15,13 +15,13 @@ var log = logging.Logger("reprovider")
 
 type Reprovider struct {
 	// The routing system to provide values through
-	rsys routing.IpfsRouting
+	rsys routing.ContentRouting
 
 	// The backing store for blocks to be provided
 	bstore blocks.Blockstore
 }
 
-func NewReprovider(rsys routing.IpfsRouting, bstore blocks.Blockstore) *Reprovider {
+func NewReprovider(rsys routing.ContentRouting, bstore blocks.Blockstore) *Reprovider {
 	return &Reprovider{
 		rsys:   rsys,
 		bstore: bstore,

@@ -31,7 +31,7 @@ var DefaultRebroadcastInterval = time.Hour * 4
 const DefaultRecordLifetime = time.Hour * 24
 
 type Republisher struct {
-	r  routing.IpfsRouting
+	r  routing.ValueStore
 	ds ds.Datastore
 	ps pstore.Peerstore
 
@@ -44,7 +44,7 @@ type Republisher struct {
 	entries   map[peer.ID]struct{}
 }
 
-func NewRepublisher(r routing.IpfsRouting, ds ds.Datastore, ps pstore.Peerstore) *Republisher {
+func NewRepublisher(r routing.ValueStore, ds ds.Datastore, ps pstore.Peerstore) *Republisher {
 	return &Republisher{
 		r:              r,
 		ps:             ps,

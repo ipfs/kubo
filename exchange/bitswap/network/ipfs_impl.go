@@ -20,7 +20,7 @@ import (
 var log = logging.Logger("bitswap_network")
 
 // NewFromIpfsHost returns a BitSwapNetwork supported by underlying IPFS host
-func NewFromIpfsHost(host host.Host, r routing.IpfsRouting) BitSwapNetwork {
+func NewFromIpfsHost(host host.Host, r routing.ContentRouting) BitSwapNetwork {
 	bitswapNetwork := impl{
 		host:    host,
 		routing: r,
@@ -36,7 +36,7 @@ func NewFromIpfsHost(host host.Host, r routing.IpfsRouting) BitSwapNetwork {
 // NetMessage objects, into the bitswap network interface.
 type impl struct {
 	host    host.Host
-	routing routing.IpfsRouting
+	routing routing.ContentRouting
 
 	// inbound messages from the network are forwarded to the receiver
 	receiver Receiver
