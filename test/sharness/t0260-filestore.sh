@@ -105,13 +105,36 @@ test_expect_success "testing file removed" '
   test_must_fail cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected
 '
 
-test_expect_success "testing filestore rm-dups" '
+test_expect_success "create duplicate blocks" '
   ipfs add mountdir/hello.txt > /dev/null &&
-  ipfs filestore add "`pwd`"/mountdir/hello.txt > /dev/null &&
+  ipfs filestore add "`pwd`"/mountdir/hello.txt > /dev/null
+'
+
+cat <<EOF > locate_expect0
+QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN /blocks found
+QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN /filestore found
+EOF
+
+test_expect_success "ipfs block locate" '
+  ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual0
+  test_cmp locate_expect0 locate_actual0
+'
+
+test_expect_success "testing filestore rm-dups" '
   ipfs filestore rm-dups > rm-dups-output &&
   grep -q "duplicate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN" rm-dups-output &&
   ipfs cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected &&
   test_cmp expected mountdir/hello.txt
+'
+
+cat <<EOF > locate_expect1
+QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN /blocks error  blockstore: block not found
+QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN /filestore found
+EOF
+
+test_expect_success "ipfs block locate" '
+  ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual1
+  test_cmp locate_expect1 locate_actual1
 '
 
 #

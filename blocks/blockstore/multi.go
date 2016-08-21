@@ -13,12 +13,18 @@ import (
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
+type LocateInfo struct {
+	Prefix string
+	Error  error
+}
+
 type MultiBlockstore interface {
 	Blockstore
 	GCLocker
 	FirstMount() Blockstore
 	Mounts() []string
 	Mount(prefix string) Blockstore
+	Locate(key key.Key) []LocateInfo
 }
 
 type Mount struct {
@@ -88,6 +94,15 @@ func (bs *multiblockstore) Get(key key.Key) (blocks.Block, error) {
 		}
 	}
 	return nil, firstErr
+}
+
+func (bs *multiblockstore) Locate(key key.Key) []LocateInfo {
+	res := make([]LocateInfo, 0, len(bs.mounts))
+	for _, m := range bs.mounts {
+		_, err := m.Blocks.Get(key)
+		res = append(res, LocateInfo{m.Prefix, err})
+	}
+	return res
 }
 
 func (bs *multiblockstore) Put(blk blocks.Block) error {
