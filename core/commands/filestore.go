@@ -33,8 +33,6 @@ var FileStoreCmd = &cmds.Command{
 		"verify":   verifyFileStore,
 		"rm":       rmFilestoreObjs,
 		"clean":    cleanFileStore,
-		"fix-pins": repairPins,
-		"unpinned": fsUnpinned,
 		"rm-dups":  rmDups,
 		"upgrade":  fsUpgrade,
 		"mv":       moveIntoFilestore,
@@ -704,9 +702,8 @@ var rmFilestoreObjs = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Produce less output."),
-		cmds.BoolOption("force", "Do not abort in non-fatal erros."),
+		cmds.BoolOption("continue", "Continue and delete what is possible even if pre-check fails."),
 		cmds.BoolOption("direct", "Delete individual blocks."),
-		cmds.BoolOption("ignore-pins", "Ignore pins."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -721,17 +718,12 @@ var rmFilestoreObjs = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		opts.Force, _, err = req.Option("force").Bool()
+		opts.Continue, _, err = req.Option("continue").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 		opts.Direct, _, err = req.Option("direct").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		opts.IgnorePins, _, err = req.Option("ignore-pins").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -775,70 +767,6 @@ func extractFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Datastore, e
 		return nil, nil, err
 	}
 	return node, fs, nil
-}
-
-var repairPins = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Repair pins to non-existent or incomplete objects.",
-	},
-	Options: []cmds.Option{
-		cmds.BoolOption("dry-run", "n", "Report on what will be done."),
-		cmds.BoolOption("skip-root", "Don't repin root in broken recursive pin."),
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		node, fs, err := extractFilestore(req)
-		if err != nil {
-			return
-		}
-		dryRun, _, err := req.Option("dry-run").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		skipRoot, _, err := req.Option("skip-root").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		r, w := io.Pipe()
-		go func() {
-			defer w.Close()
-			fsutil.RepairPins(node, fs, w, dryRun, skipRoot)
-		}()
-		res.SetOutput(r)
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			return res.(io.Reader), nil
-		},
-	},
-}
-
-var fsUnpinned = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "List unpinned whole-file objects in filestore.",
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		node, fs, err := extractFilestore(req)
-		if err != nil {
-			return
-		}
-		r, w := io.Pipe()
-		go func() {
-			err := fsutil.Unpinned(node, fs, w)
-			if err != nil {
-				w.CloseWithError(err)
-			} else {
-				w.Close()
-			}
-		}()
-		res.SetOutput(r)
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			return res.(io.Reader), nil
-		},
-	},
 }
 
 var rmDups = &cmds.Command{

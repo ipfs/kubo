@@ -14,13 +14,12 @@ import (
 	//ds "github.com/ipfs/go-datastore"
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	node "github.com/ipfs/go-ipfs/merkledag"
-	"github.com/ipfs/go-ipfs/pin"
+	//"github.com/ipfs/go-ipfs/pin"
 )
 
 type DeleteOpts struct {
 	Direct     bool
-	Force      bool
-	IgnorePins bool
+	Continue   bool
 }
 
 type delInfo int
@@ -61,46 +60,41 @@ func Delete(req cmds.Request, out io.Writer, node *core.IpfsNode, fs *Datastore,
 			}
 		}
 	}
-	if !opts.Force && errors {
+	if !opts.Continue && errors {
 		return errs.New("Errors during precheck.")
 	}
 
 	//
 	// Now check pins
 	//
-	pinned := make(map[k.Key]pin.PinMode)
-	if !opts.IgnorePins {
-		walkPins(node.Pinning, fs, node.Blockstore, func(key k.Key, mode pin.PinMode) bool {
-			dm, ok := keys[key]
-			if ok {
-				if mode == pin.NotPinned && dm == DirectlySpecified {
-					// an indirect pin
-					fmt.Fprintf(out, "%s: indirectly pinned\n", key)
-					if !opts.Force {
-						errors = true
-					}
-					return true
-				} else if mode == pin.NotPinned && dm == IndirectlySpecified {
-					fmt.Fprintf(out, "skipping indirectly pinned block: %s\n", key)
-					delete(keys, key)
-					return true
-				} else {
-					pinned[key] = mode
-					return false
-				}
-			} else {
-				if opts.Force && opts.Direct {
-					// do not recurse and thus do not check indirect pins
-					return false
-				} else {
-					return true
-				}
-			}
-		})
-		if !opts.Force && errors {
-			return errs.New("Errors during pin-check.")
+
+	// First get the set of pinned blocks
+	keysKeys := make([]k.Key, 0, len(keys))
+	for key, _ := range keys {
+		keysKeys = append(keysKeys, key)
+	}
+	pinned, err := node.Pinning.CheckIfPinned(keysKeys...)
+	if err != nil {
+		return err
+	}
+	// Now check if removing any of the pinned blocks are stored
+	// elsewhere if so, no problem and continue
+	//for _, key := range pinned {
+	//	
+	//}
+	stillPinned := pinned
+	pinned = nil // save some space
+	for _,inf := range stillPinned {
+		if inf.Pinned() {
+			fmt.Fprintf(out, "%s: %s\n", inf.Key, inf)
+			errors = true
+			delete(keys, inf.Key)
 		}
 	}
+	if !opts.Continue && errors {
+		return errs.New("Errors during pin check.")
+	}
+	stillPinned = nil // save some space
 
 	//
 	//
@@ -111,25 +105,6 @@ func Delete(req cmds.Request, out io.Writer, node *core.IpfsNode, fs *Datastore,
 			fmt.Fprintf(out, "%s: %s\n", key, err.Error())
 		}
 		fmt.Fprintf(out, "deleted %s\n", key)
-	}
-
-	for key, mode := range pinned {
-		stillExists, err := node.Blockstore.Has(key)
-		if err != nil {
-			fmt.Fprintf(out, "skipping pin %s: %s\n", err.Error())
-			continue
-		} else if stillExists {
-			fmt.Fprintf(out, "skipping pin %s: object still exists outside filestore\n", key)
-			continue
-		}
-		node.Pinning.RemovePinWithMode(key, mode)
-		fmt.Fprintf(out, "unpinned %s\n", key)
-	}
-	if len(pinned) > 0 {
-		err := node.Pinning.Flush()
-		if err != nil {
-			return err
-		}
 	}
 
 	if errors {

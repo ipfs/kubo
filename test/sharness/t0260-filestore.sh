@@ -173,49 +173,7 @@ test_expect_success "testing rm of indirect pinned file" '
   test_must_fail ipfs filestore rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
 '
 
-test_expect_success "testing forced rm of indirect pinned file" '
-  ipfs filestore rm --force QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
-'
-
-
-cat <<EOF > pin_ls_expect
-QmQhAyoEzSg5JeAzGDCx63aPekjSGKeQaYs4iRf4y6Qm6w direct
-QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb recursive
-QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH recursive
-EOF
-
-test_expect_success "testing filestore fix-pins" '
-  ipfs filestore fix-pins > fix_pins_actual &&
-  ipfs pin ls | LC_ALL=C sort | grep -v " indirect" > pin_ls_actual &&
-  test_cmp pin_ls_expect pin_ls_actual
-'
-
 clear_pins
-
-cat <<EOF > pin_ls_expect
-QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb recursive
-QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH recursive
-EOF
-
-test_expect_success "testing filestore fix-pins --skip-root" '
-  ipfs filestore add --pin -r "`pwd`"/adir > add_actual &&
-  ipfs filestore rm --force QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > rm_actual
-  ipfs filestore fix-pins --skip-root > fix_pins_actual &&
-  ipfs pin ls | LC_ALL=C sort | grep -v " indirect" > pin_ls_actual &&
-  test_cmp pin_ls_expect pin_ls_actual
-'
-
-clear_pins
-
-cat <<EOF > unpinned_expect
-QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb
-QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
-EOF
-
-test_expect_success "testing filestore unpinned" '
-  ipfs filestore unpinned  | LC_ALL=C sort > unpinned_actual &&
-  test_cmp unpinned_expect unpinned_actual
-'
 
 test_expect_success "testing filestore mv" '
   HASH=QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc &&

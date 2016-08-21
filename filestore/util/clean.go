@@ -64,7 +64,7 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 				toDel = append(toDel, dsKey)
 			}
 		}
-		err = Delete(req, rmWtr, node, fs, DeleteOpts{Direct: true, Force: true}, toDel...)
+		err = Delete(req, rmWtr, node, fs, DeleteOpts{Direct: true, Continue: true}, toDel...)
 		if err != nil {
 			wtr.CloseWithError(err)
 			return err
