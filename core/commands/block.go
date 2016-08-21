@@ -10,10 +10,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/blocks"
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
+	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/pin"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -221,19 +220,15 @@ It takes a list of base58 encoded multihashs to remove.
 			keys = append(keys, k)
 		}
 		outChan := make(chan interface{})
+		err = util.RmBlocks(n.Blockstore, n.Pinning, outChan, keys, util.RmBlocksOpts{
+			Quiet: quiet,
+			Force: force,
+		})
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		res.SetOutput((<-chan interface{})(outChan))
-		go func() {
-			defer close(outChan)
-			pinning := n.Pinning
-			err := rmBlocks(n.Blockstore, pinning, outChan, keys, rmBlocksOpts{
-				quiet: quiet,
-				force: force,
-			})
-			if err != nil {
-				outChan <- &RemovedBlock{Error: err.Error()}
-			}
-		}()
-		return
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
 		if res.Error() != nil {
@@ -246,75 +241,12 @@ It takes a list of base58 encoded multihashs to remove.
 		}
 		res.SetOutput(nil)
 
-		someFailed := false
-		for out := range outChan {
-			o := out.(*RemovedBlock)
-			if o.Hash == "" && o.Error != "" {
-				res.SetError(fmt.Errorf("aborted: %s", o.Error), cmds.ErrNormal)
-				return
-			} else if o.Error != "" {
-				someFailed = true
-				fmt.Fprintf(res.Stderr(), "cannot remove %s: %s\n", o.Hash, o.Error)
-			} else {
-				fmt.Fprintf(res.Stdout(), "removed %s\n", o.Hash)
-			}
-		}
-		if someFailed {
-			res.SetError(fmt.Errorf("some blocks not removed"), cmds.ErrNormal)
+		err := util.ProcRmOutput(outChan, res.Stdout(), res.Stderr())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 		}
 	},
-	Type: RemovedBlock{},
-}
-
-type RemovedBlock struct {
-	Hash  string `json:",omitempty"`
-	Error string `json:",omitempty"`
-}
-
-type rmBlocksOpts struct {
-	quiet bool
-	force bool
-}
-
-func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key, opts rmBlocksOpts) error {
-	unlocker := blocks.GCLock()
-	defer unlocker.Unlock()
-
-	stillOkay, err := checkIfPinned(pins, keys, out)
-	if err != nil {
-		return fmt.Errorf("pin check failed: %s", err)
-	}
-
-	for _, k := range stillOkay {
-		err := blocks.DeleteBlock(k)
-		if err != nil && opts.force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
-			// ignore non-existent blocks
-		} else if err != nil {
-			out <- &RemovedBlock{Hash: k.String(), Error: err.Error()}
-		} else if !opts.quiet {
-			out <- &RemovedBlock{Hash: k.String()}
-		}
-	}
-	return nil
-}
-
-func checkIfPinned(pins pin.Pinner, keys []key.Key, out chan<- interface{}) ([]key.Key, error) {
-	stillOkay := make([]key.Key, 0, len(keys))
-	res, err := pins.CheckIfPinned(keys...)
-	if err != nil {
-		return nil, err
-	}
-	for _, r := range res {
-		if !r.Pinned() {
-			stillOkay = append(stillOkay, r.Key)
-		} else {
-			out <- &RemovedBlock{
-				Hash:  r.Key.String(),
-				Error: r.String(),
-			}
-		}
-	}
-	return stillOkay, nil
+	Type: util.RemovedBlock{},
 }
 
 type BlockLocateRes struct {
