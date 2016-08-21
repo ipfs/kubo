@@ -13,12 +13,18 @@ import (
 	dsq "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
 )
 
+type LocateInfo struct {
+	Prefix string
+	Error  error
+}
+
 type MultiBlockstore interface {
 	Blockstore
 	GCLocker
 	FirstMount() Blockstore
 	Mounts() []string
 	Mount(prefix string) Blockstore
+	Locate(*cid.Cid) []LocateInfo
 }
 
 type Mount struct {
@@ -88,6 +94,15 @@ func (bs *multiblockstore) Get(c *cid.Cid) (blocks.Block, error) {
 		}
 	}
 	return nil, firstErr
+}
+
+func (bs *multiblockstore) Locate(c *cid.Cid) []LocateInfo {
+	res := make([]LocateInfo, 0, len(bs.mounts))
+	for _, m := range bs.mounts {
+		_, err := m.Blocks.Get(c)
+		res = append(res, LocateInfo{m.Prefix, err})
+	}
+	return res
 }
 
 func (bs *multiblockstore) Put(blk blocks.Block) error {
