@@ -109,7 +109,7 @@ trying to run these checks with:
 [3]: %s
 `
 
-var errStrFixConfig = `config key invalid: %s %s
+var errStrFixConfig = `config key invalid: %s %v
 You may be able to get this error to go away by setting it again:
 
 	ipfs config %s true
@@ -221,12 +221,15 @@ func userAskedToSkipFuseCheck(node *core.IpfsNode) (skip bool, err error) {
 	if err != nil {
 		return false, nil // failed to get config value. dont skip check.
 	}
-	s, ok := val.(string)
-	if !ok {
+
+	switch val := val.(type) {
+	case string:
+		return val == "true", nil
+	case bool:
+		return val, nil
+	default:
 		// got config value, but it's invalid... dont skip check, ask the user to fix it...
 		return false, fmt.Errorf(errStrFixConfig, dontCheckOSXFUSEConfigKey, val,
 			dontCheckOSXFUSEConfigKey)
 	}
-	// only "true" counts as telling us to skip.
-	return s == "true", nil
 }
