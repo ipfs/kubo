@@ -63,7 +63,9 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 	if err := proto.Unmarshal(n.Data(), pb); err != nil {
 		return nil, err
 	}
-
+	return NewDagReaderBuf(ctx, n, pb, serv);
+}
+func NewDagReaderBuf(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv mdag.DAGService) (*DagReader, error) {
 	switch pb.GetType() {
 	case ftpb.Data_Directory:
 		// Dont allow reading directories
