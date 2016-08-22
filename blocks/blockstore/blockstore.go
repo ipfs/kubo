@@ -61,6 +61,15 @@ type GCBlockstore interface {
 	GCLocker
 }
 
+func NewGCBlockstore (bs Blockstore, gcl GCLocker) GCBlockstore {
+	return gcBlockstore {bs,gcl}
+}
+
+type gcBlockstore struct {
+	Blockstore
+	GCLocker
+}
+
 func NewBlockstore(d ds.Batching) *blockstore {
 	return NewBlockstoreWPrefix(d, "")
 }

@@ -145,14 +145,12 @@ test_expect_success "ipfs block locate" '
 # Duplicate block with pinning testing
 #
 
-test_expect_success "clean up from last test" '
-  ipfs pin rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN &&
-  ipfs filestore rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
+test_expect_success "add duplicate block with --allow-dup" '
+  ipfs filestore ls QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN &&
+  ipfs add --allow-dup mountdir/hello.txt
 '
 
-test_expect_success "create duplicate blocks" '
-  ipfs add mountdir/hello.txt &&
-  ipfs filestore add "`pwd`"/mountdir/hello.txt &&
+test_expect_success "check state after add with --allow-dup" '
   ipfs pin ls QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN &&
   ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual0 &&
   test_cmp locate_expect0 locate_actual0
