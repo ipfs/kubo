@@ -195,6 +195,18 @@
       "hash": "QmaeHSCBd9XjXxmgHEiKkHtLcMCb2eZsPLKT7bHgBfBkqw",
       "name": "go-is-domain",
       "version": "1.0.0"
+    },
+	{
+      "author": "whyrusleeping",
+      "hash": "QmY6UVhgS2ZxhbM5qU23Fnz3daJwfyAuNErd3StmVofnAU",
+      "name": "retry-datastore",
+      "version": "1.1.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmdjfJJFxgqqR9skVZDmgiGrbKomSqxpaw12rjLNim5NYR",
+      "name": "failstore",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",

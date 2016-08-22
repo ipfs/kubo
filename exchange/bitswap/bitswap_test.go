@@ -24,8 +24,12 @@ import (
 // well under varying conditions
 const kNetworkDelay = 0 * time.Millisecond
 
+func getVirtualNetwork() tn.Network {
+	return tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+}
+
 func TestClose(t *testing.T) {
-	vnet := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	vnet := getVirtualNetwork()
 	sesgen := NewTestSessionGenerator(vnet)
 	defer sesgen.Close()
 	bgen := blocksutil.NewBlockGenerator()
