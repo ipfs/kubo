@@ -43,10 +43,21 @@ func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, k
 		unlocker := mbs.GCLock()
 		defer unlocker.Unlock()
 
-		stillOkay, err := checkIfPinned(pins, keys, out)
+		stillOkay := make([]key.Key, 0, len(keys))
+		res, err := pins.CheckIfPinned(keys...)
 		if err != nil {
 			out <- &RemovedBlock{Error: fmt.Sprintf("pin check failed: %s", err)}
 			return
+		}
+		for _, r := range res {
+			if !r.Pinned() || availableElsewhere(mbs, prefix, r.Key) {
+				stillOkay = append(stillOkay, r.Key)
+			} else {
+				out <- &RemovedBlock{
+					Hash:  r.Key.String(),
+					Error: r.String(),
+				}
+			}
 		}
 
 		for _, k := range stillOkay {
@@ -63,23 +74,14 @@ func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, k
 	return nil
 }
 
-func checkIfPinned(pins pin.Pinner, keys []key.Key, out chan<- interface{}) ([]key.Key, error) {
-	stillOkay := make([]key.Key, 0, len(keys))
-	res, err := pins.CheckIfPinned(keys...)
-	if err != nil {
-		return nil, err
-	}
-	for _, r := range res {
-		if !r.Pinned() {
-			stillOkay = append(stillOkay, r.Key)
-		} else {
-			out <- &RemovedBlock{
-				Hash:  r.Key.String(),
-				Error: r.String(),
-			}
+func availableElsewhere(mbs bs.MultiBlockstore, prefix string, key key.Key) bool {
+	locations := mbs.Locate(key)
+	for _, loc := range locations {
+		if loc.Error == nil && loc.Prefix != prefix {
+			return true
 		}
 	}
-	return stillOkay, nil
+	return false
 }
 
 type RmError struct {

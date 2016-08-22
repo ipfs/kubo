@@ -105,9 +105,13 @@ test_expect_success "testing file removed" '
   test_must_fail cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected
 '
 
+#
+# Duplicate block testing
+#
+
 test_expect_success "create duplicate blocks" '
-  ipfs add mountdir/hello.txt > /dev/null &&
-  ipfs filestore add "`pwd`"/mountdir/hello.txt > /dev/null
+  ipfs add mountdir/hello.txt &&
+  ipfs filestore add "`pwd`"/mountdir/hello.txt
 '
 
 cat <<EOF > locate_expect0
@@ -116,7 +120,7 @@ QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN /filestore found
 EOF
 
 test_expect_success "ipfs block locate" '
-  ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual0
+  ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual0 &&
   test_cmp locate_expect0 locate_actual0
 '
 
@@ -135,6 +139,36 @@ EOF
 test_expect_success "ipfs block locate" '
   ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual1
   test_cmp locate_expect1 locate_actual1
+'
+
+#
+# Duplicate block with pinning testing
+#
+
+test_expect_success "clean up from last test" '
+  ipfs pin rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN &&
+  ipfs filestore rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
+'
+
+test_expect_success "create duplicate blocks" '
+  ipfs add mountdir/hello.txt &&
+  ipfs filestore add "`pwd`"/mountdir/hello.txt &&
+  ipfs pin ls QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN &&
+  ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual0 &&
+  test_cmp locate_expect0 locate_actual0
+'
+
+test_expect_success "ipfs block rm pinned but duplciate block" '
+  ipfs block rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
+'
+
+test_expect_success "ipfs block locate" '
+  ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual1
+  test_cmp locate_expect1 locate_actual1
+'
+
+test_expect_success "ipfs filestore rm pinned block fails" '
+  test_must_fail ipfs filestore rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
 '
 
 #
