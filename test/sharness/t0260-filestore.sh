@@ -102,16 +102,32 @@ test_expect_success "testing filestore rm" '
 '
 
 test_expect_success "testing file removed" '
-  test_must_fail cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected
+  test_must_fail ipfs cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected
 '
 
 #
-# Duplicate block testing
+# Duplicate block and pin testing
 #
 
-test_expect_success "create duplicate blocks" '
-  ipfs add mountdir/hello.txt &&
-  ipfs filestore add "`pwd`"/mountdir/hello.txt
+test_expect_success "make sure block doesn't exist" '
+  test_must_fail ipfs cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN &&
+  ipfs filestore ls QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > res &&
+  test ! -s res
+'
+
+test_expect_success "create filestore block" '
+  ipfs filestore add --logical mountdir/hello.txt &&
+  ipfs cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
+'
+
+test_expect_success "add duplicate block with --allow-dup" '
+   ipfs add --allow-dup mountdir/hello.txt
+'
+
+test_expect_success "add unpinned duplicate block" '
+  echo "Hello Mars!" > mountdir/hello2.txt &&
+  ipfs add --pin=false mountdir/hello2.txt &&
+  ipfs filestore add --logical mountdir/hello2.txt
 '
 
 cat <<EOF > locate_expect0
@@ -124,41 +140,32 @@ test_expect_success "ipfs block locate" '
   test_cmp locate_expect0 locate_actual0
 '
 
-test_expect_success "testing filestore rm-dups" '
-  ipfs filestore rm-dups > rm-dups-output &&
-  grep -q "duplicate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN" rm-dups-output &&
-  ipfs cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected &&
-  test_cmp expected mountdir/hello.txt
+test_expect_success "testing filestore dups pinned" '
+  ipfs filestore dups pinned > dups-actual &&
+  echo QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > dups-expected &&
+  test_cmp dups-actual dups-expected
+'
+
+test_expect_success "testing filestore dups unpinned" '
+  ipfs filestore dups unpinned > dups-actual &&
+  echo QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN > dups-expected &&
+  test_cmp dups-actual dups-expected
+'
+
+test_expect_success "testing filestore dups" '
+  ipfs filestore dups > dups-out &&
+  grep QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN dups-out &&
+  grep QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN dups-out
+'
+
+test_expect_success "ipfs block rm pinned but duplicate block" '
+  ipfs block rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
 '
 
 cat <<EOF > locate_expect1
 QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN /blocks error  blockstore: block not found
 QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN /filestore found
 EOF
-
-test_expect_success "ipfs block locate" '
-  ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual1
-  test_cmp locate_expect1 locate_actual1
-'
-
-#
-# Duplicate block with pinning testing
-#
-
-test_expect_success "add duplicate block with --allow-dup" '
-  ipfs filestore ls QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN &&
-  ipfs add --allow-dup mountdir/hello.txt
-'
-
-test_expect_success "check state after add with --allow-dup" '
-  ipfs pin ls QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN &&
-  ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual0 &&
-  test_cmp locate_expect0 locate_actual0
-'
-
-test_expect_success "ipfs block rm pinned but duplciate block" '
-  ipfs block rm QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
-'
 
 test_expect_success "ipfs block locate" '
   ipfs block locate QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > locate_actual1

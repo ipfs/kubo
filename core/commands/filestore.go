@@ -33,7 +33,7 @@ var FileStoreCmd = &cmds.Command{
 		"verify":   verifyFileStore,
 		"rm":       rmFilestoreObjs,
 		"clean":    cleanFileStore,
-		"rm-dups":  rmDups,
+		"dups":     fsDups,
 		"upgrade":  fsUpgrade,
 		"mv":       moveIntoFilestore,
 	},
@@ -719,9 +719,12 @@ func extractFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Datastore, e
 	return node, fs, nil
 }
 
-var rmDups = &cmds.Command{
+var fsDups = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove duplicate blocks stored outside filestore.",
+		Tagline: "List duplicate blocks stored outside filestore.",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("what", false, true, "any of: pinned unpinned"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -730,7 +733,7 @@ var rmDups = &cmds.Command{
 		}
 		r, w := io.Pipe()
 		go func() {
-			err := fsutil.RmDups(w, fs, node.Blockstore)
+			err := fsutil.Dups(w, fs, node.Blockstore, node.Pinning, req.Arguments()...)
 			if err != nil {
 				w.CloseWithError(err)
 			} else {

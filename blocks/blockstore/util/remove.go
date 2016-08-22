@@ -50,7 +50,7 @@ func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, k
 			return
 		}
 		for _, r := range res {
-			if !r.Pinned() || availableElsewhere(mbs, prefix, r.Key) {
+			if !r.Pinned() || AvailableElsewhere(mbs, prefix, r.Key) {
 				stillOkay = append(stillOkay, r.Key)
 			} else {
 				out <- &RemovedBlock{
@@ -74,7 +74,7 @@ func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, k
 	return nil
 }
 
-func availableElsewhere(mbs bs.MultiBlockstore, prefix string, key key.Key) bool {
+func AvailableElsewhere(mbs bs.MultiBlockstore, prefix string, key key.Key) bool {
 	locations := mbs.Locate(key)
 	for _, loc := range locations {
 		if loc.Error == nil && loc.Prefix != prefix {
