@@ -143,16 +143,15 @@ Removing `error` blocks runs the risk of removing blocks to files that
 are not available due to transient or easily correctable (such as
 permission problems) errors.
 
-Removing `incomplete` blocks is generally a good thing to do to avoid
-problems with some of the other ipfs maintenance commands such as the
-pinner.  However, note that there is nothing wrong with the block
-itself, so if the missing blocks are still available elsewhere
-removing `incomplete` blocks is immature and might lead to lose of
-data.
+Removing `incomplete` or blocks is generally safe as the interior node
+is basically useless without the children.  However, there is nothing
+wrong with the block itself, so if the missing children are still
+available elsewhere removing `incomplete` blocks is immature and might
+lead to lose of data.
 
-Removing `orphan` blocks like `incomplete` blocks runs the risk of
-data lose if the root node is found elsewhere.  Also `orphan` blocks
-do not cause any problems, they just take up a small amount of space.
+Removing `orphan` blocks like blocks runs the risk of data lose if the
+root node is found elsewhere.  Also `orphan` blocks may still be
+useful and only take up a small amount of space.
 
 ## Pinning and removing blocks manually.
 
@@ -173,13 +172,24 @@ are shared with another file.
 
 ## Duplicate blocks.
 
-If a block has already been added to the datastore, adding it
-again with `filestore add` will add the block to the filestore
-but the now duplicate block will still exists in the normal
-datastore. Furthermore, since the block is likely to be pinned
-it will not be removed when `repo gc` in run.  This is nonoptimal
-and will eventually be fixed.  For now, you can remove duplicate
-blocks by running `filestore rm-dups`.
+If a block has already been added to the datastore, adding it again
+with `filestore add` will add the block to the filestore but the now
+duplicate block will still exists in the normal datastore.  If the
+block is not pinned it will be removed from the normal datastore when
+garbage collected.  If the block is pinned it will exist in both
+locations.  Removing the duplicate may not always be the most
+desirable thing to do as filestore blocks are less stable.
+
+The command "filestore dups" will list duplicate blocks.  "block rm"
+can then be used to remove the blocks.  It is okay to remove a
+duplicate pinned block as long as at least one copy is still around.
+
+Once a file is in the filestore it will not be added to the normal
+datastore, the option "--allow-dup" will override this behavior and
+add the file anyway.  This is useful for testing and to make a more
+stable copy of an important peace of data.
+
+To determine the location of a block use "block locate".
 
 ## Upgrading the filestore
 
