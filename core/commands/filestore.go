@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	//"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -695,65 +695,15 @@ will do a "verify --level 0" and is used to remove any "orphan" nodes.
 
 var rmFilestoreObjs = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove objects from the filestore.",
+		Tagline: "Remove blocks from the filestore.",
 	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("hash", true, true, "Multi-hashes to remove."),
-	},
-	Options: []cmds.Option{
-		cmds.BoolOption("quiet", "q", "Produce less output."),
-		cmds.BoolOption("continue", "Continue and delete what is possible even if pre-check fails."),
-		cmds.BoolOption("direct", "Delete individual blocks."),
-	},
+	Arguments: blockRmCmd.Arguments,
+	Options:   blockRmCmd.Options,
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, fs, err := extractFilestore(req)
-		_ = fs
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		opts := fsutil.DeleteOpts{}
-		quiet, _, err := req.Option("quiet").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		opts.Continue, _, err = req.Option("continue").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		opts.Direct, _, err = req.Option("direct").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		hashes := req.Arguments()
-		rdr, wtr := io.Pipe()
-		var rmWtr io.Writer = wtr
-		if quiet {
-			rmWtr = ioutil.Discard
-		}
-		go func() {
-			keys := make([]k.Key, len(hashes))
-			for i, mhash := range hashes {
-				keys[i] = k.B58KeyDecode(mhash)
-			}
-			err = fsutil.Delete(req, rmWtr, node, fs, opts, keys...)
-			if err != nil {
-				wtr.CloseWithError(err)
-				return
-			}
-			wtr.Close()
-		}()
-		res.SetOutput(rdr)
-		return
+		blockRmRun(req, res, fsrepo.FilestoreMount)
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			return res.(io.Reader), nil
-		},
-	},
+	PostRun: blockRmCmd.PostRun,
+	Type:    blockRmCmd.Type,
 }
 
 func extractFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Datastore, error) {

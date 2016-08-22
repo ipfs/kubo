@@ -162,13 +162,14 @@ also not be pinned (as that will indirectly pin filestore objects) and
 hense the directory object might be gargage collected as it is not
 stored in the filestore.
 
-To manually remove blocks use `filestore rm`.  By default only blocks
-representing whole files can be removed and the removal will be
-recursive.  `filestore rm` will abort if any pins detected or other
-problems are discovered, to continue and remove what is possible use
-`--continue`.
-
-Individual blocks can be removed with the `--direct` option.
+To manually remove blocks use `filestore rm`.  The syntax for the
+command is the same as for `block rm` except that filestore blocks
+will be removed rather than blocks in cache.  The best way to remove
+all blocks associated with a file is to remove the root node and then
+do a `filestore clean orphan` to remove the children.  An alternative
+way is to parse `ipfs filestore ls` for all blocks associated with a
+file.  Note through, that by doing this you might remove blocks that
+are shared with another file.
 
 ## Duplicate blocks.
 

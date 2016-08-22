@@ -6,10 +6,12 @@ import (
 	"io"
 	"io/ioutil"
 
+	butil "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 )
 
@@ -64,11 +66,19 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 				toDel = append(toDel, dsKey)
 			}
 		}
-		err = Delete(req, rmWtr, node, fs, DeleteOpts{Direct: true, Continue: true}, toDel...)
+		ch2 := make(chan interface{}, 16)
+		err = butil.RmBlocks(node.Blockstore, node.Pinning, ch2, toDel,
+			butil.RmBlocksOpts{Prefix: fsrepo.FilestoreMount})
 		if err != nil {
 			wtr.CloseWithError(err)
 			return err
 		}
+		err2 := butil.ProcRmOutput(ch2, rmWtr, wtr)
+		if err2 != nil && err2.Fatal {
+			wtr.CloseWithError(err2)
+			return err2
+		}
+		//err = Delete(req, rmWtr, node, fs, DeleteOpts{Direct: true, Continue: true}, toDel...)
 		return nil
 	}
 	go func() {

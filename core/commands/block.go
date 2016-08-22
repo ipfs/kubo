@@ -206,29 +206,7 @@ It takes a list of base58 encoded multihashs to remove.
 		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		hashes := req.Arguments()
-		force, _, _ := req.Option("force").Bool()
-		quiet, _, _ := req.Option("quiet").Bool()
-		keys := make([]key.Key, 0, len(hashes))
-		for _, hash := range hashes {
-			k := key.B58KeyDecode(hash)
-			keys = append(keys, k)
-		}
-		outChan := make(chan interface{})
-		err = util.RmBlocks(n.Blockstore, n.Pinning, outChan, keys, util.RmBlocksOpts{
-			Quiet: quiet,
-			Force: force,
-		})
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		res.SetOutput((<-chan interface{})(outChan))
+		blockRmRun(req, res, "")
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
 		if res.Error() != nil {
@@ -247,6 +225,33 @@ It takes a list of base58 encoded multihashs to remove.
 		}
 	},
 	Type: util.RemovedBlock{},
+}
+
+func blockRmRun(req cmds.Request, res cmds.Response, prefix string) {
+	n, err := req.InvocContext().GetNode()
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	hashes := req.Arguments()
+	force, _, _ := req.Option("force").Bool()
+	quiet, _, _ := req.Option("quiet").Bool()
+	keys := make([]key.Key, 0, len(hashes))
+	for _, hash := range hashes {
+		k := key.B58KeyDecode(hash)
+		keys = append(keys, k)
+	}
+	outChan := make(chan interface{})
+	err = util.RmBlocks(n.Blockstore, n.Pinning, outChan, keys, util.RmBlocksOpts{
+		Quiet:  quiet,
+		Force:  force,
+		Prefix: prefix,
+	})
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	res.SetOutput((<-chan interface{})(outChan))
 }
 
 type BlockLocateRes struct {

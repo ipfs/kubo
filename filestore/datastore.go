@@ -203,10 +203,6 @@ func (d *Datastore) Has(key ds.Key) (exists bool, err error) {
 }
 
 func (d *Datastore) Delete(key ds.Key) error {
-	return ds.ErrNotFound
-}
-
-func (d *Datastore) DeleteDirect(key ds.Key) error {
 	// leveldb Delete will not return an error if the key doesn't
 	// exist (see https://github.com/syndtr/goleveldb/issues/109),
 	// so check that the key exists first and if not return an

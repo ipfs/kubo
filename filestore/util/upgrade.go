@@ -40,7 +40,7 @@ func Upgrade(wtr io.Writer, fs *Datastore) error {
 			return err
 		}
 		if !dsKey.Equal(r.Key) {
-			err = fs.DeleteDirect(r.Key)
+			err = fs.Delete(r.Key)
 			if err != nil {
 				return err
 			}
