@@ -143,15 +143,15 @@ Removing `error` blocks runs the risk of removing blocks to files that
 are not available due to transient or easily correctable (such as
 permission problems) errors.
 
-Removing `incomplete` or blocks is generally safe as the interior node
+Removing `incomplete` blocks is generally safe as the interior node
 is basically useless without the children.  However, there is nothing
 wrong with the block itself, so if the missing children are still
 available elsewhere removing `incomplete` blocks is immature and might
-lead to lose of data.
+lead to the lose of data.
 
-Removing `orphan` blocks like blocks runs the risk of data lose if the
-root node is found elsewhere.  Also `orphan` blocks may still be
-useful and only take up a small amount of space.
+Removing `orphan` blocks, like `incomplete` blocks, runs the risk of data
+lose if the root node is found elsewhere.  Also `orphan` blocks may still be
+useful and they only take up a small amount of space.
 
 ## Pinning and removing blocks manually.
 
