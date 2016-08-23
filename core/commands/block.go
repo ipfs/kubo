@@ -13,7 +13,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/pin"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
@@ -272,7 +272,7 @@ type RemovedBlock struct {
 
 type rmBlocksOpts struct {
 	quiet bool
-	force bool	
+	force bool
 }
 
 func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key, opts rmBlocksOpts) error {
