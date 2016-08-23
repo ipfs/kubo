@@ -1,5 +1,5 @@
 # Minimum version numbers for software required to build IPFS
-IPFS_MIN_GO_VERSION = 1.5.2
+IPFS_MIN_GO_VERSION = 1.7
 IPFS_MIN_GX_VERSION = 0.6
 IPFS_MIN_GX_GO_VERSION = 1.1
 

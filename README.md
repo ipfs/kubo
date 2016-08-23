@@ -68,7 +68,7 @@ From there:
 
 #### Install Go
 
-The build process for ipfs requires Go 1.5+, but we strongly recommend using 1.6.2. If you don't have it: [Download Go 1.6.2+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.7 or higher. If you don't have it: [Download Go 1.7+](https://golang.org/dl/).
 
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
@@ -122,7 +122,7 @@ mismatched APIs.
 * Separate [instructions are available for building on Windows](docs/windows.md).
 * `git` is required in order for `go get` to fetch all dependencies.
 * Package managers often contain out-of-date `golang` packages.
-  Ensure that `go version` reports at least 1.5.2. See above for how to install go.
+  Ensure that `go version` reports at least 1.7. See above for how to install go.
 * If you are interested in development, please install the development
 dependencies as well.
 * *WARNING: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
