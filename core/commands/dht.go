@@ -9,12 +9,15 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	notif "github.com/ipfs/go-ipfs/notifications"
 	path "github.com/ipfs/go-ipfs/path"
+	routing "github.com/ipfs/go-ipfs/routing"
 	ipdht "github.com/ipfs/go-ipfs/routing/dht"
 	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
@@ -238,6 +241,7 @@ var provideRefDhtCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.BoolOption("recursive", "r", "Recursively provide entire graph.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -246,11 +250,12 @@ var provideRefDhtCmd = &cmds.Command{
 			return
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmds.ErrNormal)
+		if n.Routing == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
 			return
 		}
+
+		rec, _, _ := req.Option("recursive").Bool()
 
 		var keys []key.Key
 		for _, arg := range req.Arguments() {
@@ -288,16 +293,11 @@ var provideRefDhtCmd = &cmds.Command{
 		}()
 
 		go func() {
-			defer close(outChan)
-			for _, k := range keys {
-				err := dht.Provide(ctx, k)
-				if err != nil {
-					notif.PublishQueryEvent(ctx, &notif.QueryEvent{
-						Type:  notif.QueryError,
-						Extra: err.Error(),
-					})
-					return
-				}
+			defer close(events)
+			if rec {
+				provideKeysRec(ctx, n.Routing, n.DAG, keys)
+			} else {
+				provideKeys(ctx, n.Routing, keys)
 			}
 		}()
 	},
@@ -336,6 +336,52 @@ var provideRefDhtCmd = &cmds.Command{
 		},
 	},
 	Type: notif.QueryEvent{},
+}
+
+func provideKeys(ctx context.Context, r routing.IpfsRouting, keys []key.Key) {
+	for _, k := range keys {
+		err := r.Provide(ctx, k)
+		if err != nil {
+			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+				Type:  notif.QueryError,
+				Extra: err.Error(),
+			})
+			return
+		}
+	}
+}
+
+func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGService, keys []key.Key) {
+	for _, k := range keys {
+		kset := key.NewKeySet()
+		node, err := dserv.Get(ctx, k)
+		if err != nil {
+			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+				Type:  notif.QueryError,
+				Extra: err.Error(),
+			})
+		}
+
+		err = dag.EnumerateChildrenAsync(ctx, dserv, node, kset)
+		if err != nil {
+			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+				Type:  notif.QueryError,
+				Extra: err.Error(),
+			})
+		}
+
+		for _, k := range kset.Keys() {
+			err = r.Provide(ctx, k)
+			if err != nil {
+				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+					Type:  notif.QueryError,
+					Extra: err.Error(),
+				})
+				return
+			}
+		}
+	}
+
 }
 
 var findPeerDhtCmd = &cmds.Command{
