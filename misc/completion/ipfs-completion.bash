@@ -179,8 +179,10 @@ _ipfs_diag_cmds()
 {
     if [[ ${prev} == "clear" ]] ; then
         return 0
+    elif [[ $var =~ ^-?[0-9]+$ ]] ; then
+        _ipfs_comp "ns us µs ms s m h"
     elif [[ ${prev} == "set-time" ]] ; then
-        return 0 # TODO: Set time, which format?
+        _ipfs_help_only
     elif [[ ${word} == -* ]] ; then
         _ipfs_comp "--verbose --help"
     else
