@@ -13,8 +13,8 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	mocknet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/mock"
+	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
+	mocknet "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/net/mock"
 )
 
 func TestRepublish(t *testing.T) {
