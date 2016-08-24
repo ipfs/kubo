@@ -237,7 +237,7 @@ var provideRefDhtCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, true, "The key to find providers for.").EnableStdin(),
+		cmds.StringArg("key", true, true, "The key[s] to send provide records for.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
@@ -294,10 +294,17 @@ var provideRefDhtCmd = &cmds.Command{
 
 		go func() {
 			defer close(events)
+			var err error
 			if rec {
-				provideKeysRec(ctx, n.Routing, n.DAG, keys)
+				err = provideKeysRec(ctx, n.Routing, n.DAG, keys)
 			} else {
-				provideKeys(ctx, n.Routing, keys)
+				err = provideKeys(ctx, n.Routing, keys)
+			}
+			if err != nil {
+				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+					Type:  notif.QueryError,
+					Extra: err.Error(),
+				})
 			}
 		}()
 	},
@@ -338,37 +345,28 @@ var provideRefDhtCmd = &cmds.Command{
 	Type: notif.QueryEvent{},
 }
 
-func provideKeys(ctx context.Context, r routing.IpfsRouting, keys []key.Key) {
+func provideKeys(ctx context.Context, r routing.IpfsRouting, keys []key.Key) error {
 	for _, k := range keys {
 		err := r.Provide(ctx, k)
 		if err != nil {
-			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
-				Type:  notif.QueryError,
-				Extra: err.Error(),
-			})
-			return
+			return err
 		}
 	}
+	return nil
 }
 
-func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGService, keys []key.Key) {
+func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGService, keys []key.Key) error {
 	provided := make(map[key.Key]struct{})
 	for _, k := range keys {
 		kset := key.NewKeySet()
 		node, err := dserv.Get(ctx, k)
 		if err != nil {
-			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
-				Type:  notif.QueryError,
-				Extra: err.Error(),
-			})
+			return err
 		}
 
 		err = dag.EnumerateChildrenAsync(ctx, dserv, node, kset)
 		if err != nil {
-			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
-				Type:  notif.QueryError,
-				Extra: err.Error(),
-			})
+			return err
 		}
 
 		for _, k := range kset.Keys() {
@@ -378,16 +376,13 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGSer
 
 			err = r.Provide(ctx, k)
 			if err != nil {
-				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
-					Type:  notif.QueryError,
-					Extra: err.Error(),
-				})
-				return
+				return err
 			}
 			provided[k] = struct{}{}
 		}
 	}
 
+	return nil
 }
 
 var findPeerDhtCmd = &cmds.Command{
