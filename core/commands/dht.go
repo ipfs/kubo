@@ -352,6 +352,7 @@ func provideKeys(ctx context.Context, r routing.IpfsRouting, keys []key.Key) {
 }
 
 func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGService, keys []key.Key) {
+	provided := make(map[key.Key]struct{})
 	for _, k := range keys {
 		kset := key.NewKeySet()
 		node, err := dserv.Get(ctx, k)
@@ -371,6 +372,10 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGSer
 		}
 
 		for _, k := range kset.Keys() {
+			if _, ok := provided[k]; ok {
+				continue
+			}
+
 			err = r.Provide(ctx, k)
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -379,6 +384,7 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGSer
 				})
 				return
 			}
+			provided[k] = struct{}{}
 		}
 	}
 
