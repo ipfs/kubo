@@ -17,6 +17,7 @@ import (
 	imp "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	. "github.com/ipfs/go-ipfs/merkledag"
+	mdpb "github.com/ipfs/go-ipfs/merkledag/pb"
 	dstest "github.com/ipfs/go-ipfs/merkledag/test"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
@@ -353,4 +354,28 @@ func TestFetchFailure(t *testing.T) {
 			t.Fatal("should have failed request")
 		}
 	}
+}
+
+func TestUnmarshalFailure(t *testing.T) {
+	badData := []byte("hello world")
+
+	_, err := DecodeProtobuf(badData)
+	if err == nil {
+		t.Fatal("shouldnt succeed to parse this")
+	}
+
+	// now with a bad link
+	pbn := &mdpb.PBNode{Links: []*mdpb.PBLink{{Hash: []byte("not a multihash")}}}
+	badlink, err := pbn.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = DecodeProtobuf(badlink)
+	if err == nil {
+		t.Fatal("should have failed to parse node with bad link")
+	}
+
+	n := &Node{}
+	n.Marshal()
 }
