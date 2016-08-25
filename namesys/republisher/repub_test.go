@@ -14,7 +14,7 @@ import (
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
 	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
-	mocknet "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/net/mock"
+	mocknet "gx/ipfs/QmTeAquFxV9nraSkw3NPzEkkQaSx5RSqDMFYrAYC4nCRFX/go-libp2p/p2p/net/mock"
 )
 
 func TestRepublish(t *testing.T) {

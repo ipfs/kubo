@@ -17,7 +17,7 @@ import (
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	p2ptestutil "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/test/util"
+	p2ptestutil "gx/ipfs/QmTeAquFxV9nraSkw3NPzEkkQaSx5RSqDMFYrAYC4nCRFX/go-libp2p/p2p/test/util"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
