@@ -1,4 +1,4 @@
-FROM alpine:3.4
+FROM alpine:edge
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # There is a copy of this Dockerfile called Dockerfile.fast,
@@ -36,7 +36,7 @@ ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
 # Get the go-ipfs sourcecode
 COPY . $SRC_PATH
 
-RUN apk add --update musl go git bash wget ca-certificates \
+RUN apk add --update musl-dev gcc go git bash wget ca-certificates \
 	# Setup user and fs-repo directory
 	&& mkdir -p $IPFS_PATH \
 	&& adduser -D -h $IPFS_PATH -u 1000 ipfs \
@@ -58,7 +58,7 @@ RUN apk add --update musl go git bash wget ca-certificates \
 	&& cp $SRC_PATH/bin/container_daemon /usr/local/bin/start_ipfs \
 	&& chmod 755 /usr/local/bin/start_ipfs \
 	# Remove all build-time dependencies
-	&& apk del --purge musl go git && rm -rf $GOPATH && rm -vf $IPFS_PATH/api
+	&& apk del --purge musl-dev gcc go git && rm -rf $GOPATH && rm -vf $IPFS_PATH/api
 
 # Call uid 1000 "ipfs"
 USER ipfs
