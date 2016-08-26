@@ -31,7 +31,8 @@ import (
 
 var log = logging.Logger("dht")
 
-var ProtocolDHT protocol.ID = "/ipfs/dht"
+var ProtocolDHT protocol.ID = "/ipfs/kad/1.0.0"
+var ProtocolDHTOld protocol.ID = "/ipfs/dht"
 
 // NumBootstrapQueries defines the number of random dht queries to do to
 // collect members of the routing table.
@@ -85,6 +86,7 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.Batching) *IpfsDHT {
 	dht.ctx = ctx
 
 	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
+	h.SetStreamHandler(ProtocolDHTOld, dht.handleNewStream)
 	dht.providers = providers.NewProviderManager(dht.ctx, dht.self, dstore)
 	dht.proc.AddChild(dht.providers.Process())
 	goprocessctx.CloseAfterContext(dht.proc, ctx)

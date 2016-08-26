@@ -26,7 +26,8 @@ import (
 var log = logging.Logger("diagnostics")
 
 // ProtocolDiag is the diagnostics protocol.ID
-var ProtocolDiag protocol.ID = "/ipfs/diagnostics"
+var ProtocolDiag protocol.ID = "/ipfs/diag/net/1.0.0"
+var ProtocolDiagOld protocol.ID = "/ipfs/diagnostics"
 
 var ErrAlreadyRunning = errors.New("diagnostic with that ID already running")
 
@@ -54,6 +55,7 @@ func NewDiagnostics(self peer.ID, h host.Host) *Diagnostics {
 	}
 
 	h.SetStreamHandler(ProtocolDiag, d.handleNewStream)
+	h.SetStreamHandler(ProtocolDiagOld, d.handleNewStream)
 	return d
 }
 
@@ -203,7 +205,7 @@ func (d *Diagnostics) getDiagnosticFromPeers(ctx context.Context, peers map[peer
 }
 
 func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.ID, pmes *pb.Message) (<-chan *DiagInfo, error) {
-	s, err := d.host.NewStream(ctx, p, ProtocolDiag)
+	s, err := d.host.NewStream(ctx, p, ProtocolDiag, ProtocolDiagOld)
 	if err != nil {
 		return nil, err
 	}
