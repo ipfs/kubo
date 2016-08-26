@@ -250,14 +250,14 @@ test_expect_success "'ipfs repo version' succeeds" '
 '
 
 test_expect_success "repo version came out correct" '
-	egrep "^ipfs repo version fs-repo@[0-9]" repo-version >/dev/null
+	egrep "^ipfs repo version fs-repo@[0-9]+" repo-version >/dev/null
 '
 
 test_expect_success "'ipfs repo version -q' succeeds" '
   ipfs repo version -q > repo-version-q
 '
 test_expect_success "repo version came out correct" '
-	egrep "^fs-repo@[0-9]" repo-version-q >/dev/null
+	egrep "^fs-repo@[0-9]+" repo-version-q >/dev/null
 '
 
 test_kill_ipfs_daemon
