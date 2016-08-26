@@ -52,7 +52,7 @@ Publish an <ipfs-path> to another public key (not implemented):
 	Options: []cmds.Option{
 		cmds.BoolOption("resolve", "Resolve given path before publishing.").Default(true),
 		cmds.StringOption("lifetime", "t",
-			`Time duration that the record will be valid for. <default>
+			`Time duration that the record will be valid for. <<default>>
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("24h"),
 		cmds.StringOption("ttl", "Time duration this record should be cached for (caution: experimental)."),

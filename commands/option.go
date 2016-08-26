@@ -47,8 +47,8 @@ func (o *option) Description() string {
 		o.description += "."
 	}
 	if o.defaultVal != nil {
-		if strings.Contains(o.description, "<default>") {
-			return strings.Replace(o.description, "<default>",
+		if strings.Contains(o.description, "<<default>>") {
+			return strings.Replace(o.description, "<<default>>",
 				fmt.Sprintf("Default: %v.", o.defaultVal), -1)
 		} else {
 			return fmt.Sprintf("%s Default: %v.", o.description, o.defaultVal)
