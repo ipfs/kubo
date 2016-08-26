@@ -91,16 +91,6 @@ files using `filestore add -S`.  For example, to add the file
 To list the contents of the filestore use the command `filestore ls`.
 See `--help` for additional information.
 
-Note that due to a known bug, datastore keys are sometimes mangled
-(see [go-ipfs issue #2601][1]).  Do not be alarmed if you see keys
-like `6PKtDkh6GvBeJZ5Zo3v8mtXajfR4s7mgvueESBKTu5RRy`.  The block is
-still valid and can be retrieved by the unreported correct hash.
-(Filestore maintenance operations will still function on the mangled
-hash, although operations outside the filestore might complain of an
-`invalid ipfs ref path`).
-
-[1]: https://github.com/ipfs/go-ipfs/issues/2601
-
 To verify the contents of the filestore use `filestore verify`.
 See `--help` for additional info.
 
