@@ -270,16 +270,19 @@ func (f *dualFile) Close() error {
 	return f.local.Close()
 }
 
+const listingCommonText = `
+If one or more <obj> is specified only list those specific objects,
+otherwise list all objects.  An <obj> can either be a multihash, or an
+absolute path.  If the path ends in '/' than it is assumed to be a
+directory and all paths with that directory are included.
+`
+
 var lsFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List objects in filestore.",
 		ShortDescription: `
-List objects in the filestore.  If one or more <obj> is specified only
-list those specific objects, otherwise list all objects.  An <obj> can
-either be a multihash, or an absolute path.  If the path ends in '/'
-than it is assumed to be a directory and all paths with that directory
-are included.
-
+List objects in the filestore.
+` + listingCommonText + `
 If --all is specified list all matching blocks are lists, otherwise
 only blocks representing the a file root is listed.  A file root is any
 block that represents a complete file.
@@ -299,7 +302,7 @@ If <offset> is the special value "-" indicates a file root.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("obj", false, true, "Hash or filename to list."),
+		cmds.StringArg("obj", false, true, "Hash(es) or filename(s) to list."),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
@@ -321,38 +324,12 @@ If <offset> is the special value "-" indicates a file root.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		objs := req.Arguments()
-		keys := make([]k.Key, 0)
-		paths := make([]string, 0)
-		for _, obj := range objs {
-			if filepath.IsAbs(obj) {
-				paths = append(paths, filestore.CleanPath(obj))
-			} else {
-				keys = append(keys, k.B58KeyDecode(obj))
-			}
-		}
-		if len(keys) > 0 && len(paths) > 0 {
-			res.SetError(errors.New("cannot specify both hashes and paths"), cmds.ErrNormal)
-			return
-		}
 
-		var ch <-chan fsutil.ListRes
-		if len(keys) > 0 {
-			ch, _ = fsutil.ListByKey(fs, keys)
-		} else if all && len(paths) == 0 && quiet {
-			ch, _ = fsutil.ListKeys(fs)
-		} else if all && len(paths) == 0 {
-			ch, _ = fsutil.ListAll(fs)
-		} else if !all && len(paths) == 0 {
-			ch, _ = fsutil.ListWholeFile(fs)
-		} else if all {
-			ch, _ = fsutil.List(fs, func(r fsutil.ListRes) bool {
-				return pathMatch(paths, r.FilePath)
-			})
-		} else {
-			ch, _ = fsutil.List(fs, func(r fsutil.ListRes) bool {
-				return r.WholeFile() && pathMatch(paths, r.FilePath)
-			})
+		ch, err := getListing(fs, req.Arguments(), all, quiet)
+
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		if quiet {
@@ -368,6 +345,41 @@ If <offset> is the special value "-" indicates a file root.
 	},
 }
 
+func getListing(fs *filestore.Datastore, objs []string, all bool, keysOnly bool) (<-chan fsutil.ListRes, error) {
+	keys := make([]k.Key, 0)
+	paths := make([]string, 0)
+	for _, obj := range objs {
+		if filepath.IsAbs(obj) {
+			paths = append(paths, filestore.CleanPath(obj))
+		} else {
+			keys = append(keys, k.B58KeyDecode(obj))
+		}
+	}
+	if len(keys) > 0 && len(paths) > 0 {
+		return nil, errors.New("cannot specify both hashes and paths")
+	}
+
+	var ch <-chan fsutil.ListRes
+	if len(keys) > 0 {
+		ch, _ = fsutil.ListByKey(fs, keys)
+	} else if all && len(paths) == 0 && keysOnly {
+		ch, _ = fsutil.ListKeys(fs)
+	} else if all && len(paths) == 0 {
+		ch, _ = fsutil.ListAll(fs)
+	} else if !all && len(paths) == 0 {
+		ch, _ = fsutil.ListWholeFile(fs)
+	} else if all {
+		ch, _ = fsutil.List(fs, func(r fsutil.ListRes) bool {
+			return pathMatch(paths, r.FilePath)
+		})
+	} else {
+		ch, _ = fsutil.List(fs, func(r fsutil.ListRes) bool {
+			return r.WholeFile() && pathMatch(paths, r.FilePath)
+		})
+	}
+	return ch, nil
+}
+
 func pathMatch(match_list []string, path string) bool {
 	for _, to_match := range match_list {
 		if to_match[len(to_match)-1] == filepath.Separator {
@@ -381,18 +393,20 @@ func pathMatch(match_list []string, path string) bool {
 		}
 	}
 	return false
-
 }
 
 var lsFiles = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List files in filestore.",
 		ShortDescription: `
-List files in the filestore.  If --quiet is specified only the
-file names are printed, otherwise the fields are as follows:
+List files in the filestore.
+` + listingCommonText + `
+If --quiet is specified only the file names are printed, otherwise the
+fields are as follows:
   <filepath> <hash> <size>
 `,
 	},
+	Arguments: lsFileStore.Arguments,
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Write just filenames."),
 	},
@@ -407,7 +421,11 @@ file names are printed, otherwise the fields are as follows:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		ch, _ := fsutil.ListWholeFile(fs)
+		ch, err := getListing(fs, req.Arguments(), false, false)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		if quiet {
 			res.SetOutput(&chanWriter{ch: ch, format: formatFileName})
 		} else {

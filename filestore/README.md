@@ -86,10 +86,10 @@ files using `filestore add -S`.  For example, to add the file
   ipfs filestore add -S -P hello.txt
 ```
 
-## Verifying blocks
+## Listing and verifying blocks
 
-To list the contents of the filestore use the command `filestore ls`.
-See `--help` for additional information.
+To list the contents of the filestore use the command `filestore ls`,
+or `filestore ls-files`.  See `--help` for additional information.
 
 To verify the contents of the filestore use `filestore verify`.
 See `--help` for additional info.
