@@ -173,6 +173,7 @@ You can now refer to the added file in a gateway, like so:
 			blockService := bserv.New(blockstore, n.Exchange)
 			dagService := dag.NewDAGService(blockService)
 			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService, useRoot)
+			fileAdder.FullName = true
 		} else if allowDup {
 			// add directly to the first mount bypassing
 			// the Has() check of the multi-blockstore

@@ -54,9 +54,9 @@ test_add_cat_5MB "filestore add -S" "`pwd`"
 
 cat <<EOF > add_expect
 added QmQhAyoEzSg5JeAzGDCx63aPekjSGKeQaYs4iRf4y6Qm6w adir
-added QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb adir/file3
-added QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH adir/file1
-added QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN adir/file2
+added QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb `pwd`/adir/file3
+added QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH `pwd`/adir/file1
+added QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN `pwd`/adir/file2
 EOF
 
 test_expect_success "testing filestore add -S -r" '

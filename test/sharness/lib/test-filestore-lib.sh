@@ -13,7 +13,7 @@ test_add_cat_file() {
 
     test_expect_success "ipfs add output looks good" '
     	HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
-        echo "added $HASH hello.txt" >expected &&
+        echo "added $HASH "$dir"/mountdir/hello.txt" >expected &&
     	test_cmp expected actual
     '
 
@@ -90,7 +90,7 @@ test_add_cat_5MB() {
 
     test_expect_success "'ipfs add bigfile' output looks good" '
     	HASH="QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" &&
-    	echo "added $HASH bigfile" >expected &&
+    	echo "added $HASH "$dir"/mountdir/bigfile" >expected &&
     	test_cmp expected actual
     '
 
@@ -123,7 +123,7 @@ test_add_cat_200MB() {
 
     test_expect_success "'ipfs add hugefile' output looks good" '
     	HASH="QmVbVLFLbz72tRSw3HMBh6ABKbRVavMQLoh2BzQ4dUSAYL" &&
-    	echo "added $HASH hugefile" >expected &&
+    	echo "added $HASH "$dir"/mountdir/hugefile" >expected &&
     	test_cmp expected actual
     '
 
