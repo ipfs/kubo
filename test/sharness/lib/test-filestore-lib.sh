@@ -150,7 +150,7 @@ filestore_test_exact_paths() {
       echo "Hello Worlds!" > dirlink/hello.txt
     '
 
-    test_expect_failure "ipfs filestore add $opts adds under the expected path name (with symbolic links)" '
+    test_expect_success "ipfs filestore add $opts adds under the expected path name (with symbolic links)" '
       FILEPATH="`pwd`/dirlink/hello.txt" &&
       ipfs filestore add $opt "$FILEPATH" &&
       echo "$FILEPATH" > ls-expected &&
@@ -158,7 +158,7 @@ filestore_test_exact_paths() {
       test_cmp ls-expected ls-actual
     '
 
-    test_expect_failure "ipfs filestore ls dirlink/ works as expected" '
+    test_expect_success "ipfs filestore ls dirlink/ works as expected" '
       echo "QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" > ls-expected
       ipfs filestore ls -q "`pwd`/dirlink/" > ls-actual
       test_cmp ls-expected ls-actual
@@ -174,7 +174,7 @@ filestore_test_exact_paths() {
         test_cmp ls-expected ls-actual )
     '
 
-    test_expect_failure "ipfs filestore add $opts --logical works as expected" '
+    test_expect_success "ipfs filestore add $opts --logical works as expected" '
       ipfs filestore rm QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH &&
       ( cd dirlink &&
         ipfs filestore add $opt --logical hello.txt
