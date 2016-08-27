@@ -140,3 +140,52 @@ test_add_cat_200MB() {
         test_must_fail ipfs cat "$HASH" >/dev/null
     '
 }
+
+filestore_test_exact_paths() {
+    opt=$1
+
+    test_expect_success "prep for path checks" '
+      mkdir mydir &&
+      ln -s mydir dirlink &&
+      echo "Hello Worlds!" > dirlink/hello.txt
+    '
+
+    test_expect_failure "ipfs filestore add $opts adds under the expected path name (with symbolic links)" '
+      FILEPATH="`pwd`/dirlink/hello.txt" &&
+      ipfs filestore add $opt "$FILEPATH" &&
+      echo "$FILEPATH" > ls-expected &&
+      ipfs filestore ls-files -q QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > ls-actual &&
+      test_cmp ls-expected ls-actual
+    '
+
+    test_expect_failure "ipfs filestore ls dirlink/ works as expected" '
+      echo "QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" > ls-expected
+      ipfs filestore ls -q "`pwd`/dirlink/" > ls-actual
+      test_cmp ls-expected ls-actual
+    '
+
+    test_expect_success "ipfs filestore add $opts --physical works as expected" '
+      ipfs filestore rm QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH &&
+      ( cd dirlink &&
+        ipfs filestore add $opt --physical hello.txt
+        FILEPATH="`pwd -P`/hello.txt" &&
+        echo "$FILEPATH" > ls-expected &&
+        ipfs filestore ls-files -q QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > ls-actual &&
+        test_cmp ls-expected ls-actual )
+    '
+
+    test_expect_failure "ipfs filestore add $opts --logical works as expected" '
+      ipfs filestore rm QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH &&
+      ( cd dirlink &&
+        ipfs filestore add $opt --logical hello.txt
+        FILEPATH="`pwd -L`/hello.txt" &&
+        echo "$FILEPATH" > ls-expected &&
+        ipfs filestore ls-files -q QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > ls-actual &&
+        test_cmp ls-expected ls-actual )
+    '
+
+    test_expect_success "cleanup from path checks" '
+      ipfs filestore rm QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH &&
+      rm -rf mydir
+    '
+}

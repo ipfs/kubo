@@ -106,6 +106,12 @@ test_expect_success "testing file removed" '
 '
 
 #
+# filestore_test_exact_paths
+#
+
+filestore_test_exact_paths
+
+#
 # Duplicate block and pin testing
 #
 

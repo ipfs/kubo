@@ -19,6 +19,8 @@ test_post_add "filestore add " "`pwd`"
 
 test_add_cat_5MB "filestore add " "`pwd`"
 
+filestore_test_exact_paths
+
 test_expect_success "ipfs add -S fails unless enable" '
   echo "Hello Worlds!" >mountdir/hello.txt &&
   test_must_fail ipfs filestore add -S "`pwd`"/mountdir/hello.txt >actual
@@ -73,6 +75,8 @@ test_expect_success "filestore mv" '
   test_must_fail ipfs filestore mv $HASH "mountdir/bigfile-42-also" &&
   ipfs filestore mv $HASH "`pwd`/mountdir/bigfile-42-also"
 '
+
+filestore_test_exact_paths '-S'
 
 test_kill_ipfs_daemon
 
