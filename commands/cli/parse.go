@@ -401,6 +401,10 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 		if err != nil {
 			return nil, err
 		}
+		cwd, err = filepath.EvalSymlinks(cwd)
+		if err != nil {
+			return nil, err
+		}
 		fpath = cwd
 	}
 
