@@ -9,7 +9,6 @@ import (
 	manet "gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
 	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var CorenetCmd = &cmds.Command{
@@ -74,17 +73,8 @@ var listenCmd = &cmds.Command{
 				return
 			}
 
-			go func() {
-				defer remote.Close()
-				defer local.Close()
-				_, err = io.Copy(local, remote)
-			}()
-
-			go func() {
-				defer remote.Close()
-				defer local.Close()
-				_, err = io.Copy(remote, local)
-			}()
+			go proxyStream(local, remote)
+			go proxyStream(remote, local)
 		}
 	},
 }
@@ -99,7 +89,6 @@ var dialCmd = &cmds.Command{
 		cmds.StringArg("Protocol", true, false, "Protocol name"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := req.Context()
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -127,21 +116,7 @@ var dialCmd = &cmds.Command{
 			n.Peerstore.AddAddr(peerID, addr, pstore.TempAddrTTL) // temporary
 		}
 
-		if len(n.Peerstore.Addrs(peerID)) == 0 {
-			// Make sure we can find the node in question
-
-			ctx, cancel := context.WithTimeout(ctx, kPingTimeout)
-			defer cancel()
-			p, err := n.Routing.FindPeer(ctx, peerID)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			n.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
-		}
-
 		remote, err := corenet.Dial(n, peerID, "/app/"+req.Arguments()[2])
-
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -149,8 +124,8 @@ var dialCmd = &cmds.Command{
 
 		local, err := manet.Dial(malocal)
 		if err != nil {
-			err := remote.Close()
-			if err != nil {
+			err2 := remote.Close()
+			if err2 != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
@@ -158,19 +133,13 @@ var dialCmd = &cmds.Command{
 			return
 		}
 
-		go func() {
-			defer remote.Close()
-			defer local.Close()
-			_, err = io.Copy(local, remote)
-		}()
-
-		defer remote.Close()
-		defer local.Close()
-		_, err = io.Copy(remote, local)
-
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		go proxyStream(local, remote)
+		go proxyStream(remote, local)
 	},
+}
+
+func proxyStream(dst io.WriteCloser, src io.ReadCloser) {
+	defer dst.Close()
+	defer src.Close()
+	io.Copy(dst, src)
 }
