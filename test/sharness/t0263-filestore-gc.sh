@@ -61,16 +61,20 @@ test_expect_success "make sure the gc will still run" '
   ipfs repo gc
 '
 
-test_expect_success "make sure pinned block got removed after gc" '
+test_expect_success "make sure pinned block still available after gc" '
    ipfs cat $FILE1
 '
 
-test_expect_success "make sure un-pinned block still exists" '
+test_expect_success "make sure un-pinned block got removed" '
    test_must_fail ipfs cat $FILE2
 '
 
 test_expect_success "make sure unpinned filestore block did not get removed" '
   ipfs cat $FILE5
+'
+
+test_expect_success "check that we can remove an un-pinned filestore block" '
+  ipfs filestore rm $FILE5
 '
 
 test_done

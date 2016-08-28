@@ -307,11 +307,11 @@ func (p *pinner) CheckIfPinned(keys ...key.Key) ([]Pinned, error) {
 	// Now walk all recursive pins to check for indirect pins
 	var checkChildren func(key.Key, key.Key) error
 	checkChildren = func(rk key.Key, parentKey key.Key) error {
-		parent, err := p.dserv.Get(context.Background(), parentKey)
+		links, err := p.dserv.GetLinks(context.Background(), parentKey)
 		if err != nil {
 			return err
 		}
-		for _, lnk := range parent.Links {
+		for _, lnk := range links {
 			k := key.Key(lnk.Hash)
 
 			if _, found := toCheck[k]; found {
