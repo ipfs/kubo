@@ -47,17 +47,32 @@ recomputed, when it is, retrieval is slower.
 
 ## Adding all files in a directory
 
-The example script in filestore/examples/add-dir.sh can be used to add
-all files in a directly to the filestore and keep the filestore in
-sync with what is the directory.  Just specify the directory you want
-to add or update.  The first time it is run it will add all the files
-in the directory.  When run again it will re-add any modified files.  A
-good use of this script is to add it to crontab to rerun the script
-periodically.
+If the directory is static than you can just use `filestore add -r`.
 
-The script is fairly basic but serves as an example of how to use the
-filestore.  A more sophisticated application could use i-notify or a
-similar interface to re-add files as they are changed.
+If the directory is not static and files might change than two example
+scripts are provided to aid with the task.
+
+The first is a shell script in filestore/examples/add-dir-simple.sh.
+It can be used to add all files in a directly to the filestore and
+keep the filestore in sync with what is the directory.  Just specify
+the directory you want to add or update.  The first time it is run it
+will add all the files in the directory.  When run again it will
+re-add any modified files.  This script has the limitation that if two
+files are identical this script will always re-add one of them.
+
+The second is a python3 script in filestore/examples/add-dir.py.  This
+script is like the first but keeps track of added files itself rather
+than using the information in the filestore to avoid the problem of
+readding files with identical content.  Note, that unlike the shell
+script it does to clean out invalid entries from the filestore.
+
+A good use of either of these scripts is to add it to crontab to rerun
+the script periodically.  If the second script is used "ipfs filestore
+clean full" should likely also be run periodically.
+
+Both scripts are fairly basic but serves as an example of how to use
+the filestore.  A more sophisticated application could use i-notify or
+a similar interface to re-add files as they are changed.
 
 ## Server side adds
 
