@@ -30,12 +30,18 @@ var listenCmd = &cmds.Command{
 		cmds.StringArg("Handler", true, false, "Address of application handling the connections"),
 		cmds.StringArg("Protocol", true, false, "Protocol name"),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("address", "a", "Report peer address at beginning of stream").Default(false),
+		cmds.BoolOption("address-string", "s", "Make reported peer address human readable").Default(false),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		reportAddress, _, _ := req.Option("address").Bool()
 
 		if !n.OnlineMode() {
 			res.SetError(errNotOnline, cmds.ErrClient)
@@ -69,8 +75,33 @@ var listenCmd = &cmds.Command{
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
+
 				res.SetError(err, cmds.ErrNormal)
 				return
+			}
+
+			if reportAddress {
+				mremote, err := ma.NewMultiaddr("/ipfs/" + remote.Conn().RemotePeer().Pretty())
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					closePair(local, remote)
+					return
+				}
+
+				var address []byte = nil
+				addressHuman, _, _ := req.Option("address-string").Bool()
+				if addressHuman {
+					address = []byte(mremote.String() + "\n")
+				} else {
+					address = mremote.Bytes()
+				}
+
+				_, err = local.Write(address)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					closePair(local, remote)
+					return
+				}
 			}
 
 			go proxyStream(local, remote)
@@ -139,7 +170,11 @@ var dialCmd = &cmds.Command{
 }
 
 func proxyStream(dst io.WriteCloser, src io.ReadCloser) {
-	defer dst.Close()
-	defer src.Close()
+	defer closePair(dst, src)
 	io.Copy(dst, src)
+}
+
+func closePair(a io.Closer, b io.Closer) {
+	a.Close()
+	b.Close()
 }
