@@ -72,8 +72,8 @@ What your issue refers to. Multiple items are OK.
 
 ### Priority
 
-- "P0 - Operations Functioning"
-- "P1 - Operations Sort of Functioning"
+- "P0 - Operations on Fire (critical bug affecting release)"
+- "P1 - Operations Foobar (critical bug affecting master)"
 - "P2 - Operations Not Functioning"
-- "P3 - Operations Foobar (critical bug affecting master)"
-- "P4 - Operations on Fire (critical bug affecting release)"
+- "P3 - Operations Sort of Functioning"
+- "P4 - Operations Functioning"
