@@ -15,6 +15,7 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -164,11 +165,25 @@ included in the output of this command.
 
 		idmap, ok := cfg["Identity"].(map[string]interface{})
 		if !ok {
-			res.SetError(fmt.Errorf("config has no identity"), cmds.ErrNormal)
+			res.SetError(errors.New("config has no identity"), cmds.ErrNormal)
 			return
 		}
 
-		delete(idmap, "PrivKey")
+		privKeyKey := "" // make sure we both find the name of privkey and we delete it
+		for key, _ := range idmap {
+			if strings.ToLower(key) == "privkey" {
+				if privKeyKey != "" {
+					res.SetError(errors.New("found multiple PrivKey keys"), cmds.ErrNormal)
+					return
+				}
+				privKeyKey = key
+			}
+		}
+		if privKeyKey == "" {
+			res.SetError(errors.New("haven't found PriveKey key"), cmds.ErrNormal)
+		}
+
+		delete(idmap, privKeyKey)
 
 		output, err := config.HumanOutput(cfg)
 		if err != nil {
