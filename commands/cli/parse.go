@@ -251,7 +251,7 @@ func parseOpts(args []string, root *cmds.Command) (
 	return
 }
 
-const msgStdinInfo = "ipfs: Reading from %s; send Ctrl-d to stop.\n"
+const msgStdinInfo = "ipfs: Reading from %s; send Ctrl-d to stop."
 
 func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive, hidden bool, root *cmds.Command) ([]string, []files.File, error) {
 	// ignore stdin on Windows
@@ -469,6 +469,7 @@ func newMessageReader(r io.ReadCloser, msg string) io.ReadCloser {
 func (r *messageReader) Read(b []byte) (int, error) {
 	if !r.done {
 		fmt.Fprintln(os.Stderr, r.message)
+		r.done = true
 	}
 
 	return r.r.Read(b)
