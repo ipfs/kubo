@@ -53,7 +53,7 @@ func TestPutThenGetBlock(t *testing.T) {
 	}
 }
 
-func TestRuntimeHashing(t *testing.T) {
+func TestHashOnRead(t *testing.T) {
 	orginalDebug := u.Debug
 	defer (func() {
 		u.Debug = orginalDebug
@@ -69,7 +69,7 @@ func TestRuntimeHashing(t *testing.T) {
 	bl2 := blocks.NewBlock([]byte("some other data"))
 	bs.Put(blBad)
 	bs.Put(bl2)
-	bs.RuntimeHashing(true)
+	bs.HashOnRead(true)
 
 	if _, err := bs.Get(bl.Key()); err != ErrHashMismatch {
 		t.Fatalf("expected '%v' got '%v'\n", ErrHashMismatch, err)

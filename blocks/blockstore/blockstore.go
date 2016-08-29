@@ -76,7 +76,7 @@ type blockstore struct {
 	rehash bool
 }
 
-func (bs *blockstore) RuntimeHashing(enabled bool) {
+func (bs *blockstore) HashOnRead(enabled bool) {
 	bs.rehash = enabled
 }
 

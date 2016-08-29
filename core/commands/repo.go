@@ -241,7 +241,7 @@ var repoVerifyCmd = &cmds.Command{
 			defer close(out)
 			bs := bstore.NewBlockstore(nd.Repo.Datastore())
 
-			bs.RuntimeHashing(true)
+			bs.HashOnRead(true)
 
 			keys, err := bs.AllKeysChan(req.Context())
 			if err != nil {
