@@ -55,7 +55,7 @@ func RunMigration(newv int) error {
 
 		err = verifyMigrationSupportsVersion(loc, newv)
 		if err != nil {
-			return fmt.Errorf("no migration binary found that supports version %d - %s", newv, err)
+			return fmt.Errorf("no migration binary found that supports version %d - %s\nPlease check https://dist.ipfs.io for the latest binary\nor check https://github.com/ipfs/fs-repo-migrations to build it from source.", newv, err)
 		}
 
 		migrateBin = loc
