@@ -17,6 +17,8 @@ import (
 
 var DistPath = "https://ipfs.io/ipfs/QmUnvqDuRyfe7HJuiMMHv77AMUFnjGyAU28LFPeTYwGmFF"
 
+const otherOptions = "Please check https://dist.ipfs.io for the latest binary\nor go to https://github.com/ipfs/fs-repo-migrations to build it from source."
+
 func init() {
 	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
 		DistPath = dist
@@ -55,7 +57,7 @@ func RunMigration(newv int) error {
 
 		err = verifyMigrationSupportsVersion(loc, newv)
 		if err != nil {
-			return fmt.Errorf("no migration binary found that supports version %d - %s", newv, err)
+			return fmt.Errorf("no migration binary found that supports version %d - %s\n%s\n", newv, err, otherOptions)
 		}
 
 		migrateBin = loc
@@ -94,6 +96,7 @@ func GetMigrations() (string, error) {
 	if err != nil {
 		fmt.Printf("  => error getting migrations binary: %s\n", err)
 		fmt.Println("  => could not find or install fs-repo-migrations, please manually install it")
+		fmt.Println(otherOptions)
 		return "", fmt.Errorf("failed to find migrations binary")
 	}
 
