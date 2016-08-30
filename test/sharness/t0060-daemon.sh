@@ -121,13 +121,29 @@ test_expect_success "daemon with pipe eventually becomes live" '
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
 
-ulimit -n 512
+ulimit -S -n 512
 TEST_ULIMIT_PRESET=1
 test_launch_ipfs_daemon
 
 test_expect_success "daemon raised its fd limit" '
-	grep "ulimit" actual_daemon > /dev/null
+	grep "raised file descriptor limit to 1024." actual_daemon > /dev/null
 '
+
+get_col_four() {
+	awk '{ print $4 }' $1
+}
+
+if [ `uname` == "Linux" ]; then
+	test_expect_success "get fd limit through /proc" '
+		cat /proc/$IPFS_PID/limits > limits &&
+		grep "Max open files" limits > fd_limits_line &&
+		limit=$(get_col_four fd_limits_line)
+	'
+
+	test_expect_success "limit from system looks good" '
+		test "$limit" -eq 1024
+	'
+fi
 
 test_kill_ipfs_daemon
 
