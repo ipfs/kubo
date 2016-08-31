@@ -35,8 +35,7 @@ var logLevelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Change the logging level.",
 		ShortDescription: `
-'ipfs log level' is a utility command used to change the logging
-output of a running daemon.
+Change the verbosity of one or all subsystems log output. Does NOT affect the event log.
 `,
 	},
 
@@ -91,9 +90,9 @@ subsystems of a running daemon.
 
 var logTailCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Read the logs.",
+		Tagline: "Read the event log.",
 		ShortDescription: `
-'ipfs log tail' is a utility command used to read log output as it is written.
+Outputs event log messages (NOT other log messages) as they are generated.
 `,
 	},
 
