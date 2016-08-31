@@ -175,4 +175,10 @@ func TestPutManyCaches(t *testing.T) {
 
 	trap("has hit datastore", cd, t)
 	arc.Has(exampleBlock.Key())
+	untrap(cd)
+	arc.DeleteBlock(exampleBlock.Key())
+
+	arc.Put(exampleBlock)
+	trap("PunMany has hit datastore", cd, t)
+	arc.PutMany([]blocks.Block{exampleBlock})
 }
