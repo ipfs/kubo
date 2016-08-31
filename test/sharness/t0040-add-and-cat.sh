@@ -344,6 +344,25 @@ test_expect_success "ipfs cat output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "ipfs cat with both arg and stdin" '
+	echo "$MARS" | ipfs cat "$VENUS" >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	cat mountdir/planets/venus.txt >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs cat with two args and stdin" '
+	echo "$MARS" | ipfs cat "$VENUS" "$VENUS" >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	cat mountdir/planets/venus.txt mountdir/planets/venus.txt >expected &&
+	test_cmp expected actual
+'
+
+
 test_expect_success "go-random is installed" '
     type random
 '
