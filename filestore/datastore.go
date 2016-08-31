@@ -26,22 +26,23 @@ import (
 var log = logging.Logger("filestore")
 var Logger = log
 
+type VerifyWhen int
 const (
-	VerifyNever     = 0
-	VerifyIfChanged = 1
-	VerifyAlways    = 2
+	VerifyNever VerifyWhen = iota
+	VerifyIfChanged
+	VerifyAlways   
 )
 
 type Datastore struct {
 	db     *leveldb.DB
-	verify int
+	verify VerifyWhen
 }
 
 func (d *Datastore) DB() *leveldb.DB {
 	return d.db
 }
 
-func New(path string, verify int) (*Datastore, error) {
+func New(path string, verify VerifyWhen) (*Datastore, error) {
 	db, err := leveldb.OpenFile(path, &opt.Options{
 		Compression: opt.NoCompression,
 	})
@@ -126,67 +127,117 @@ func Decode(data []byte) (*DataObj, error) {
 type InvalidBlock struct{}
 
 func (e InvalidBlock) Error() string {
-	return "datastore: block verification failed"
+	return "filestore: block verification failed"
+}
+
+// Verify as much as possible without opening the file, the result is
+// a best-guess.
+func (d *Datastore) VerifyFast(key ds.Key, val *DataObj) error {
+	// There is backing file, nothing to check
+	if val.HaveBlockData() {
+		return nil
+	}
+
+	// block already marked invalid
+	if val.Invalid() {
+		return InvalidBlock{}
+	}
+
+	// get the file's metadata, return on error
+	fileInfo, err := os.Stat(val.FilePath)
+	if err != nil {
+		return err
+	}
+
+	// the file has shrunk, the block invalid
+	if val.Offset + val.Size > uint64(fileInfo.Size()) {
+		return InvalidBlock{}
+	}
+
+	// the file mtime has changes, the block is _likely_ invalid
+	modtime := FromTime(fileInfo.ModTime())
+	if modtime != val.ModTime {
+		return InvalidBlock{}
+	}
+
+	// the block _seams_ ok
+	return nil
 }
 
 // Get the orignal data out of the DataObj
-func (d *Datastore) GetData(key ds.Key, val *DataObj, verify int, update bool) ([]byte, error) {
+func (d *Datastore) GetData(key ds.Key, val *DataObj, verify VerifyWhen, update bool) ([]byte, error) {
 	if val == nil {
 		return nil, errors.New("Nil DataObj")
-	} else if val.NoBlockData() {
-		if verify != VerifyIfChanged {
-			update = false
-		}
-		file, err := os.Open(val.FilePath)
-		if err != nil {
-			return nil, err
-		}
-		defer file.Close()
-		_, err = file.Seek(int64(val.Offset), 0)
-		if err != nil {
-			return nil, err
-		}
-		data, _, err := Reconstruct(val.Data, file, val.Size)
-		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-			return nil, err
-		}
-		modtime := val.ModTime
-		if update || verify == VerifyIfChanged {
-			fileInfo, err := file.Stat()
-			if err != nil {
-				return nil, err
-			}
-			modtime = FromTime(fileInfo.ModTime())
-		}
-		if err != nil {
-			log.Debugf("invalid block: %s: %s\n", asMHash(key), err.Error())
-		}
-		invalid := val.Invalid() || err != nil
-		if err == nil && (verify == VerifyAlways || (verify == VerifyIfChanged && modtime != val.ModTime)) {
-			log.Debugf("verifying block %s\n", asMHash(key))
-			newKey := k.Key(u.Hash(data)).DsKey()
-			invalid = newKey != key
-		}
-		if update && (invalid != val.Invalid() || modtime != val.ModTime) {
-			log.Debugf("updating block %s\n", asMHash(key))
-			newVal := *val
-			newVal.SetInvalid(invalid)
-			newVal.ModTime = modtime
-			// ignore errors as they are nonfatal
-			_ = d.PutDirect(key, &newVal)
-		}
-		if invalid {
-			if err != nil {
-				log.Debugf("invalid block %s: %s\n", asMHash(key), err.Error())
-			} else {
-				log.Debugf("invalid block %s\n", asMHash(key))
-			}
-			return nil, InvalidBlock{}
-		} else {
-			return data, nil
-		}
-	} else {
+	}
+
+	// If there is no data to get from a backing file then there
+	// is nothing more to do so just return the block data
+	if val.HaveBlockData() {
 		return val.Data, nil
+	}
+
+	if verify != VerifyIfChanged {
+		update = false
+	}
+	
+	invalid := val.Invalid()		
+
+	// Open the file and seek to the correct position
+	file, err := os.Open(val.FilePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	_, err = file.Seek(int64(val.Offset), 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Reconstruct the original block, if we get an EOF
+	// than the file shrunk and the block is invalid
+	data, _, err := Reconstruct(val.Data, file, val.Size)
+	reconstructOk := true
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return nil, err
+	} else if err != nil {
+		log.Debugf("invalid block: %s: %s\n", asMHash(key), err.Error())
+		reconstructOk = false
+		invalid = true
+	}
+	
+	// get the new modtime if needed
+	modtime := val.ModTime
+	if update || verify == VerifyIfChanged {
+		fileInfo, err := file.Stat()
+		if err != nil {
+			return nil, err
+		}
+		modtime = FromTime(fileInfo.ModTime())
+	}
+
+	// Verify the block contents if required
+	if reconstructOk && (verify == VerifyAlways || (verify == VerifyIfChanged && modtime != val.ModTime)) {
+		log.Debugf("verifying block %s\n", asMHash(key))
+		newKey := k.Key(u.Hash(data)).DsKey()
+		invalid = newKey != key
+	}
+
+	// Update the block if the metadata has changed
+	if update && (invalid != val.Invalid() || modtime != val.ModTime) {
+		log.Debugf("updating block %s\n", asMHash(key))
+		newVal := *val
+		newVal.SetInvalid(invalid)
+		newVal.ModTime = modtime
+		// ignore errors as they are nonfatal
+		_ = d.PutDirect(key, &newVal)
+	}
+
+	// Finally return the result
+	if invalid {
+		log.Debugf("invalid block %s\n", asMHash(key))
+		return nil, InvalidBlock{}
+	} else {
+		return data, nil
 	}
 }
 

@@ -556,7 +556,8 @@ all nodes and check for orphan nodes if applicable.
 The --level option specifies how thorough the checks should be.  The
 current meaning of the levels are:
   7-9: always check the contents
-  2-6: check the contents if the modification time differs
+  4-6: check the contents if the modification time differs
+  2-3: report changed if the modification time differs
   0-1: only check for the existence of blocks without verifying the
        contents of leaf nodes
 

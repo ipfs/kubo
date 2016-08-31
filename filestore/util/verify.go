@@ -18,15 +18,15 @@ func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) 
 	if err != nil {
 		return nil, err
 	}
-	verifyWhat := VerifyAlways
-	out := make(chan ListRes, 16)
-	if level <= 6 {
-		verifyWhat = VerifyIfChanged
+	verifyLevel, err := VerifyLevelFromNum(level)
+	if err != nil {
+		return nil, err
 	}
+	out := make(chan ListRes, 16)
 	go func() {
 		defer close(out)
 		for res := range in {
-			res.Status = verify(fs, res.Key, res.DataObj, verifyWhat)
+			res.Status = verify(fs, res.Key, res.DataObj, verifyLevel)
 			if verbose >= 3 || OfInterest(res.Status) {
 				out <- res
 			}
@@ -37,9 +37,9 @@ func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) 
 
 func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, verbose int) (<-chan ListRes, error) {
 	out := make(chan ListRes, 16)
-	verifyWhat := VerifyAlways
-	if level <= 6 {
-		verifyWhat = VerifyIfChanged
+	verifyLevel, err := VerifyLevelFromNum(level)
+	if err != nil {
+		return nil, err
 	}
 	go func() {
 		defer close(out)
@@ -47,7 +47,7 @@ func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, ver
 			if key == "" {
 				continue
 			}
-			res := verifyKey(key, fs, node.Blockstore, verifyWhat)
+			res := verifyKey(key, fs, node.Blockstore, verifyLevel)
 			if verbose > 1 || OfInterest(res.Status) {
 				out <- res
 			}
@@ -56,12 +56,12 @@ func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, ver
 	return out, nil
 }
 
-func verifyKey(key k.Key, fs *Datastore, bs b.Blockstore, verifyWhat int) ListRes {
+func verifyKey(key k.Key, fs *Datastore, bs b.Blockstore, verifyLevel VerifyLevel) ListRes {
 	dsKey := key.DsKey()
 	dataObj, err := fs.GetDirect(dsKey)
 	if err == nil && dataObj.NoBlockData() {
 		res := ListRes{dsKey, dataObj, 0}
-		res.Status = verify(fs, dsKey, dataObj, verifyWhat)
+		res.Status = verify(fs, dsKey, dataObj, verifyLevel)
 		return res
 	} else if err == nil {
 		return ListRes{dsKey, dataObj, StatusUnchecked}
@@ -78,7 +78,11 @@ func verifyKey(key k.Key, fs *Datastore, bs b.Blockstore, verifyWhat int) ListRe
 }
 
 func VerifyFull(node *core.IpfsNode, fs *Datastore, level int, verbose int, skipOrphans bool) (<-chan ListRes, error) {
-	p := verifyParams{make(chan ListRes, 16), node, fs, level, verbose, skipOrphans, nil}
+	verifyLevel, err := VerifyLevelFromNum(level)
+	if err != nil {
+		return nil, err
+	}
+	p := verifyParams{make(chan ListRes, 16), node, fs, verifyLevel, verbose, skipOrphans, nil}
 	ch, err := ListKeys(p.fs)
 	if err != nil {
 		return nil, err
@@ -91,7 +95,11 @@ func VerifyFull(node *core.IpfsNode, fs *Datastore, level int, verbose int, skip
 }
 
 func VerifyKeysFull(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, verbose int) (<-chan ListRes, error) {
-	p := verifyParams{make(chan ListRes, 16), node, fs, level, verbose, true, nil}
+	verifyLevel, err := VerifyLevelFromNum(level)
+	if err != nil {
+		return nil, err
+	}
+	p := verifyParams{make(chan ListRes, 16), node, fs, verifyLevel, verbose, true, nil}
 	go func() {
 		defer close(p.out)
 		p.verifyKeys(keys)
@@ -100,15 +108,10 @@ func VerifyKeysFull(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int,
 }
 
 type verifyParams struct {
-	out  chan ListRes
-	node *core.IpfsNode
-	fs   *Datastore
-	// level 0-1 means do not verify leaf nodes
-	// level 2-6 means to verify based on time stamp
-	// level 7-9 means to always verify
-	// other levels may be added in the future, the larger the
-	// number the more expensive the checks are
-	verifyLevel int
+	out         chan ListRes
+	node        *core.IpfsNode
+	fs          *Datastore
+	verifyLevel VerifyLevel
 	// level 7-9 show everything
 	//       5-6 don't show child nodes with a status of StatusOk, StatusUnchecked, or StatusComplete
 	//       3-4 don't show child nodes
@@ -249,7 +252,7 @@ func (p *verifyParams) verifyNode(n *node.Node) int {
 			complete = false
 		}
 	}
-	if complete && p.verifyLevel <= 1 {
+	if complete && p.verifyLevel <= CheckExists {
 		return StatusComplete
 	} else if complete {
 		return StatusOk
@@ -259,13 +262,7 @@ func (p *verifyParams) verifyNode(n *node.Node) int {
 }
 
 func (p *verifyParams) verifyLeaf(key ds.Key, dataObj *DataObj) int {
-	if p.verifyLevel <= 1 {
-		return StatusUnchecked
-	} else if p.verifyLevel <= 6 {
-		return verify(p.fs, key, dataObj, VerifyIfChanged)
-	} else {
-		return verify(p.fs, key, dataObj, VerifyAlways)
-	}
+	return verify(p.fs, key, dataObj, p.verifyLevel)
 }
 
 func (p *verifyParams) get(key ds.Key) (*node.Node, *DataObj, int) {

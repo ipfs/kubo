@@ -15,6 +15,30 @@ import (
 	//"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 )
 
+type VerifyLevel int
+
+const (
+	CheckExists VerifyLevel = iota
+	CheckFast
+	CheckIfChanged
+	CheckAlways
+)
+
+func VerifyLevelFromNum(level int) (VerifyLevel, error) {
+	switch level {
+	case 0, 1:
+		return CheckExists, nil
+	case 2, 3:
+		return CheckFast, nil
+	case 4, 5, 6:
+		return CheckIfChanged, nil
+	case 7, 8, 9:
+		return CheckAlways, nil
+	default:
+		return -1, fmt.Errorf("verify level must be between 0-9: %d", level)
+	}
+}
+
 const (
 	StatusDefault     = 00 // 00 = default
 	StatusOk          = 01 // 0x means no error, but possible problem
@@ -104,7 +128,7 @@ func (r *ListRes) StatusStr() string {
 	return str
 }
 
-func (r *ListRes) MHash() string{
+func (r *ListRes) MHash() string {
 	key, err := k.KeyFromDsKey(r.Key)
 	if err != nil {
 		return "??????????????????????????????????????????????"
@@ -186,19 +210,30 @@ func ListByKey(fs *Datastore, keys []k.Key) (<-chan ListRes, error) {
 	return out, nil
 }
 
-func verify(d *Datastore, key ds.Key, val *DataObj, level int) int {
-	status := 0
-	_, err := d.GetData(key, val, level, true)
-	if err == nil {
-		status = StatusOk
-	} else if os.IsNotExist(err) {
-		status = StatusFileMissing
-	} else if _, ok := err.(InvalidBlock); ok || err == io.EOF || err == io.ErrUnexpectedEOF {
-		status = StatusFileChanged
-	} else {
-		status = StatusFileError
+func verify(d *Datastore, key ds.Key, val *DataObj, level VerifyLevel) int {
+	var err error
+	switch level {
+	case CheckExists:
+		return StatusUnchecked
+	case CheckFast:
+		err = d.VerifyFast(key, val)
+	case CheckIfChanged:
+		_, err = d.GetData(key, val, VerifyIfChanged, true)
+	case CheckAlways:
+		_, err = d.GetData(key, val, VerifyAlways, true)
+	default:
+		return StatusError
 	}
-	return status
+
+	if err == nil {
+		return StatusOk
+	} else if os.IsNotExist(err) {
+		return StatusFileMissing
+	} else if _, ok := err.(InvalidBlock); ok || err == io.EOF || err == io.ErrUnexpectedEOF {
+		return StatusFileChanged
+	} else {
+		return StatusFileError
+	}
 }
 
 func fsGetNode(dsKey ds.Key, fs *Datastore) (*node.Node, *DataObj, error) {

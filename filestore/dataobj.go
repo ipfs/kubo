@@ -33,6 +33,7 @@ type DataObj struct {
 }
 
 func (d *DataObj) NoBlockData() bool { return d.Flags&NoBlockData != 0 }
+func (d *DataObj) HaveBlockData() bool { return !d.NoBlockData() }
 
 func (d *DataObj) WholeFile() bool { return d.Flags&WholeFile != 0 }
 
