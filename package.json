@@ -8,7 +8,7 @@
     "goversion": "1.5.2"
   },
   "gxDependencies": [],
-  "version": "1.0.2",
+  "version": "1.0.3",
   "language": "go",
   "license": "MIT",
   "name": "dir-index-html"
