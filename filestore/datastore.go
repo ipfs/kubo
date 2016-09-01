@@ -42,6 +42,10 @@ func (d *Datastore) DB() *leveldb.DB {
 	return d.db
 }
 
+func (d *Datastore) Update() bool {
+	return d.verify == VerifyIfChanged
+}
+
 func New(path string, verify VerifyWhen) (*Datastore, error) {
 	db, err := leveldb.OpenFile(path, &opt.Options{
 		Compression: opt.NoCompression,
@@ -176,8 +180,8 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify VerifyWhen, update 
 		return val.Data, nil
 	}
 
-	if verify != VerifyIfChanged {
-		update = false
+	if update {
+		update = d.Update()
 	}
 	
 	invalid := val.Invalid()		
