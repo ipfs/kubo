@@ -40,7 +40,7 @@ operations.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("flush", "f", "Flush target and ancestors after write. Default: true."),
+		cmds.BoolOption("f", "flush", "Flush target and ancestors after write.").Default(true),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -207,10 +207,7 @@ var FilesCpCmd = &cmds.Command{
 			return
 		}
 
-		flush, found, _ := req.Option("flush").Bool()
-		if !found {
-			flush = true
-		}
+		flush, _, _ := req.Option("flush").Bool()
 
 		src, err := checkPath(req.Arguments()[0])
 		if err != nil {
@@ -585,10 +582,7 @@ stat' on the file or any of its ancestors.
 
 		create, _, _ := req.Option("create").Bool()
 		trunc, _, _ := req.Option("truncate").Bool()
-		flush, fset, _ := req.Option("flush").Bool()
-		if !fset {
-			flush = true
-		}
+		flush, _, _ := req.Option("flush").Bool()
 
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -700,10 +694,7 @@ Examples:
 			return
 		}
 
-		flush, found, _ := req.Option("flush").Bool()
-		if !found {
-			flush = true
-		}
+		flush, _, _ := req.Option("flush").Bool()
 
 		err = mfs.Mkdir(n.FilesRoot, dirtomake, dashp, flush)
 		if err != nil {
