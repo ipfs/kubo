@@ -397,8 +397,8 @@ Examples:
 		cmds.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("offset", "o", "Byte offset to begin reading from."),
-		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
+		cmds.IntOption("n", "count", "Maximum number of bytes to read.").Default(-1),
+		cmds.IntOption("o", "offset", "Byte offset to begin reading from.").Default(0),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -461,16 +461,16 @@ Examples:
 		}
 
 		var r io.Reader = &contextReaderWrapper{R: rfd, ctx: req.Context()}
-		count, found, err := req.Option("count").Int()
+		count, _, err := req.Option("count").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if found {
-			if count < 0 {
-				res.SetError(fmt.Errorf("Cannot specify negative 'count'."), cmds.ErrNormal)
-				return
-			}
+		if count < 0 {
+			res.SetError(fmt.Errorf("Cannot specify negative 'count'."), cmds.ErrNormal)
+			return
+		}
+		if count > 0 {
 			r = io.LimitReader(r, int64(count))
 		}
 
@@ -565,10 +565,10 @@ stat' on the file or any of its ancestors.
 		cmds.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("offset", "o", "Byte offset to begin writing at."),
 		cmds.BoolOption("create", "e", "Create the file if it does not exist."),
 		cmds.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
-		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
+		cmds.IntOption("n", "count", "Maximum number of bytes to read.").Default(-1),
+		cmds.IntOption("o", "offset", "Byte offset to begin writing at.").Default(0),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -618,12 +618,12 @@ stat' on the file or any of its ancestors.
 			}
 		}
 
-		count, countfound, err := req.Option("count").Int()
+		count, _, err := req.Option("count").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if countfound && count < 0 {
+		if count < 0 {
 			res.SetError(fmt.Errorf("cannot have negative byte count"), cmds.ErrNormal)
 			return
 		}
@@ -642,7 +642,7 @@ stat' on the file or any of its ancestors.
 		}
 
 		var r io.Reader = input
-		if countfound {
+		if count > 0 {
 			r = io.LimitReader(r, int64(count))
 		}
 
