@@ -493,13 +493,13 @@ func formatPorcelain(res fsutil.ListRes) (string, error) {
 		return "", nil
 	}
 	if res.DataObj == nil {
-		return "", fmt.Errorf("key not found: %s", res.MHash())
+		return fmt.Sprintf("%s\t%s\t%s\t%s\n", "block", res.StatusStr(), res.MHash(), ""), nil
 	}
 	pos := strings.IndexAny(res.FilePath, "\t\r\n")
 	if pos == -1 {
 		return fmt.Sprintf("%s\t%s\t%s\t%s\n", res.What(), res.StatusStr(), res.MHash(), res.FilePath), nil
 	} else {
-		str := fmt.Sprintf("%s\t%s\t%s\t%s\n", res.What(), res.StatusStr(), res.MHash(), "ERROR")
+		str := fmt.Sprintf("%s\t%s\t%s\t%s\n", res.What(), res.StatusStr(), res.MHash(), "")
 		err := errors.New("not displaying filename with tab or newline character")
 		return str, err
 	}
