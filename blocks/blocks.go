@@ -7,15 +7,17 @@ import (
 	"fmt"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
+
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var ErrWrongHash = errors.New("data did not match given hash!")
 
 type Block interface {
 	Multihash() mh.Multihash
-	Data() []byte
+	RawData() []byte
 	Key() key.Key
 	String() string
 	Loggable() map[string]interface{}
@@ -49,8 +51,12 @@ func (b *BasicBlock) Multihash() mh.Multihash {
 	return b.multihash
 }
 
-func (b *BasicBlock) Data() []byte {
+func (b *BasicBlock) RawData() []byte {
 	return b.data
+}
+
+func (b *BasicBlock) Cid() *cid.Cid {
+	return cid.NewCidV0(b.multihash)
 }
 
 // Key returns the block's Multihash as a Key value.

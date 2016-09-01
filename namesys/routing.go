@@ -14,9 +14,11 @@ import (
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	routing "github.com/ipfs/go-ipfs/routing"
+
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ci "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var log = logging.Logger("namesys")
@@ -196,7 +198,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 	} else {
 		// Its an old style multihash record
 		log.Warning("Detected old style multihash record")
-		p := path.FromKey(key.Key(valh))
+		p := path.FromCid(cid.NewCidV0(valh))
 		r.cacheSet(name, p, entry)
 		return p, nil
 	}

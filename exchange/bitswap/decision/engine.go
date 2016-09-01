@@ -247,8 +247,8 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	}
 
 	for _, block := range m.Blocks() {
-		log.Debugf("got block %s %d bytes", block.Key(), len(block.Data()))
-		l.ReceivedBytes(len(block.Data()))
+		log.Debugf("got block %s %d bytes", block, len(block.RawData()))
+		l.ReceivedBytes(len(block.RawData()))
 	}
 	return nil
 }
@@ -286,7 +286,7 @@ func (e *Engine) AddBlock(block blocks.Block) {
 func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 	l := e.findOrCreate(p)
 	for _, block := range m.Blocks() {
-		l.SentBytes(len(block.Data()))
+		l.SentBytes(len(block.RawData()))
 		l.wantList.Remove(block.Key())
 		e.peerRequestQueue.Remove(block.Key(), p)
 	}

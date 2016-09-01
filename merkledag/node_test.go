@@ -67,9 +67,9 @@ func TestFindLink(t *testing.T) {
 
 	nd := &Node{
 		Links: []*Link{
-			&Link{Name: "a", Hash: k.ToMultihash()},
-			&Link{Name: "c", Hash: k.ToMultihash()},
-			&Link{Name: "b", Hash: k.ToMultihash()},
+			&Link{Name: "a", Hash: k.Hash()},
+			&Link{Name: "c", Hash: k.Hash()},
+			&Link{Name: "b", Hash: k.Hash()},
 		},
 	}
 
@@ -107,7 +107,7 @@ func TestFindLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if olnk.Hash.B58String() == k.B58String() {
+	if olnk.Hash.B58String() == k.String() {
 		t.Fatal("new link should have different hash")
 	}
 }

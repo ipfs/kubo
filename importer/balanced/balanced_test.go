@@ -15,6 +15,7 @@ import (
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	pin "github.com/ipfs/go-ipfs/pin"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
@@ -76,6 +77,30 @@ func testFileConsistency(t *testing.T, nbytes int64, blksize int64) {
 
 func TestBuilderConsistency(t *testing.T) {
 	testFileConsistency(t, 100000, chunk.DefaultBlockSize)
+}
+
+func TestNoChunking(t *testing.T) {
+	ds := mdtest.Mock()
+
+	nd, should := getTestDag(t, ds, 1000, 2000)
+	r, err := uio.NewDagReader(context.Background(), nd, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dagrArrComp(t, r, should)
+}
+
+func TestTwoChunks(t *testing.T) {
+	ds := mdtest.Mock()
+
+	nd, should := getTestDag(t, ds, 2000, 1000)
+	r, err := uio.NewDagReader(context.Background(), nd, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dagrArrComp(t, r, should)
 }
 
 func arrComp(a, b []byte) error {

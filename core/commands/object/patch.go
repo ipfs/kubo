@@ -99,7 +99,7 @@ the limit will not be respected by the network.
 			return
 		}
 
-		res.SetOutput(&Object{Hash: newkey.B58String()})
+		res.SetOutput(&Object{Hash: newkey.String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{
@@ -161,7 +161,7 @@ Example:
 			return
 		}
 
-		res.SetOutput(&Object{Hash: newkey.B58String()})
+		res.SetOutput(&Object{Hash: newkey.String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{
@@ -215,13 +215,9 @@ Removes a link by the given name from root.
 			return
 		}
 
-		nk, err := nnode.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		nc := nnode.Cid()
 
-		res.SetOutput(&Object{Hash: nk.B58String()})
+		res.SetOutput(&Object{Hash: nc.String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{
@@ -310,13 +306,9 @@ to a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
-		nk, err := nnode.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		nc := nnode.Cid()
 
-		res.SetOutput(&Object{Hash: nk.B58String()})
+		res.SetOutput(&Object{Hash: nc.String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{

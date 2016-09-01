@@ -158,10 +158,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 		return nil, err
 	}
 
-	k, err := nd.Key()
-	if err != nil {
-		return nil, err
-	}
+	c := nd.Cid()
 
 	d, err := ft.FromBytes(nd.Data())
 	if err != nil {
@@ -184,7 +181,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 	}
 
 	return &Object{
-		Hash:           k.B58String(),
+		Hash:           c.String(),
 		Blocks:         len(nd.Links),
 		Size:           d.GetFilesize(),
 		CumulativeSize: cumulsize,

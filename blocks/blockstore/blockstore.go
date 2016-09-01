@@ -117,7 +117,7 @@ func (bs *blockstore) Put(block blocks.Block) error {
 	if err == nil && exists {
 		return nil // already stored.
 	}
-	return bs.datastore.Put(k, block.Data())
+	return bs.datastore.Put(k, block.RawData())
 }
 
 func (bs *blockstore) PutMany(blocks []blocks.Block) error {
@@ -132,7 +132,7 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 			continue
 		}
 
-		err = t.Put(k, b.Data())
+		err = t.Put(k, b.RawData())
 		if err != nil {
 			return err
 		}

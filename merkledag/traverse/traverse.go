@@ -41,11 +41,7 @@ type traversal struct {
 
 func (t *traversal) shouldSkip(n *mdag.Node) (bool, error) {
 	if t.opts.SkipDuplicates {
-		k, err := n.Key()
-		if err != nil {
-			return true, err
-		}
-
+		k := n.Key()
 		if _, found := t.seen[string(k)]; found {
 			return true, nil
 		}

@@ -14,8 +14,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/pin"
 	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 type BlockStat struct {
@@ -70,7 +70,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 
 		res.SetOutput(&BlockStat{
 			Key:  b.Key().B58String(),
-			Size: len(b.Data()),
+			Size: len(b.RawData()),
 		})
 	},
 	Type: BlockStat{},
@@ -101,7 +101,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 			return
 		}
 
-		res.SetOutput(bytes.NewReader(b.Data()))
+		res.SetOutput(bytes.NewReader(b.RawData()))
 	},
 }
 
@@ -145,7 +145,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		b := blocks.NewBlock(data)
 		log.Debugf("BlockPut key: '%q'", b.Key())
 
-		k, err := n.Blocks.AddBlock(b)
+		k, err := n.Blocks.AddObject(b)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -175,13 +175,12 @@ func getBlockForKey(req cmds.Request, skey string) (blocks.Block, error) {
 		return nil, errors.New("Not a valid hash")
 	}
 
-	h, err := mh.FromB58String(skey)
+	c, err := cid.Decode(skey)
 	if err != nil {
 		return nil, err
 	}
 
-	k := key.Key(h)
-	b, err := n.Blocks.GetBlock(req.Context(), k)
+	b, err := n.Blocks.GetBlock(req.Context(), c)
 	if err != nil {
 		return nil, err
 	}
@@ -214,17 +213,22 @@ It takes a list of base58 encoded multihashs to remove.
 		hashes := req.Arguments()
 		force, _, _ := req.Option("force").Bool()
 		quiet, _, _ := req.Option("quiet").Bool()
-		keys := make([]key.Key, 0, len(hashes))
+		cids := make([]*cid.Cid, 0, len(hashes))
 		for _, hash := range hashes {
-			k := key.B58KeyDecode(hash)
-			keys = append(keys, k)
+			c, err := cid.Decode(hash)
+			if err != nil {
+				res.SetError(fmt.Errorf("invalid content id: %s (%s)", hash, err), cmds.ErrNormal)
+				return
+			}
+
+			cids = append(cids, c)
 		}
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
 		go func() {
 			defer close(outChan)
 			pinning := n.Pinning
-			err := rmBlocks(n.Blockstore, pinning, outChan, keys, rmBlocksOpts{
+			err := rmBlocks(n.Blockstore, pinning, outChan, cids, rmBlocksOpts{
 				quiet: quiet,
 				force: force,
 			})
@@ -275,31 +279,31 @@ type rmBlocksOpts struct {
 	force bool
 }
 
-func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key, opts rmBlocksOpts) error {
+func rmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, cids []*cid.Cid, opts rmBlocksOpts) error {
 	unlocker := blocks.GCLock()
 	defer unlocker.Unlock()
 
-	stillOkay, err := checkIfPinned(pins, keys, out)
+	stillOkay, err := checkIfPinned(pins, cids, out)
 	if err != nil {
 		return fmt.Errorf("pin check failed: %s", err)
 	}
 
-	for _, k := range stillOkay {
-		err := blocks.DeleteBlock(k)
+	for _, c := range stillOkay {
+		err := blocks.DeleteBlock(key.Key(c.Hash()))
 		if err != nil && opts.force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
 			// ignore non-existent blocks
 		} else if err != nil {
-			out <- &RemovedBlock{Hash: k.String(), Error: err.Error()}
+			out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
 		} else if !opts.quiet {
-			out <- &RemovedBlock{Hash: k.String()}
+			out <- &RemovedBlock{Hash: c.String()}
 		}
 	}
 	return nil
 }
 
-func checkIfPinned(pins pin.Pinner, keys []key.Key, out chan<- interface{}) ([]key.Key, error) {
-	stillOkay := make([]key.Key, 0, len(keys))
-	res, err := pins.CheckIfPinned(keys...)
+func checkIfPinned(pins pin.Pinner, cids []*cid.Cid, out chan<- interface{}) ([]*cid.Cid, error) {
+	stillOkay := make([]*cid.Cid, 0, len(cids))
+	res, err := pins.CheckIfPinned(cids...)
 	if err != nil {
 		return nil, err
 	}

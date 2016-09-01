@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
 
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 func TestRepublisher(t *testing.T) {
@@ -19,7 +19,7 @@ func TestRepublisher(t *testing.T) {
 
 	pub := make(chan struct{})
 
-	pf := func(ctx context.Context, k key.Key) error {
+	pf := func(ctx context.Context, c *cid.Cid) error {
 		pub <- struct{}{}
 		return nil
 	}
@@ -30,7 +30,7 @@ func TestRepublisher(t *testing.T) {
 	rp := NewRepublisher(ctx, pf, tshort, tlong)
 	go rp.Run()
 
-	rp.Update("test")
+	rp.Update(nil)
 
 	// should hit short timeout
 	select {
@@ -43,7 +43,7 @@ func TestRepublisher(t *testing.T) {
 
 	go func() {
 		for {
-			rp.Update("a")
+			rp.Update(nil)
 			time.Sleep(time.Millisecond * 10)
 			select {
 			case <-cctx.Done():

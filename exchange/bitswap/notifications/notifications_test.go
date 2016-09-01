@@ -159,7 +159,7 @@ func assertBlockChannelNil(t *testing.T, blockChannel <-chan blocks.Block) {
 }
 
 func assertBlocksEqual(t *testing.T, a, b blocks.Block) {
-	if !bytes.Equal(a.Data(), b.Data()) {
+	if !bytes.Equal(a.RawData(), b.RawData()) {
 		t.Fatal("blocks aren't equal")
 	}
 	if a.Key() != b.Key() {
