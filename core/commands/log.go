@@ -35,7 +35,7 @@ var logLevelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Change the logging level.",
 		ShortDescription: `
-Change the verbosity of one or all subsystems log output. Does NOT affect the event log.
+Change the verbosity of one or all subsystems log output. This does not affect the event log.
 `,
 	},
 
@@ -92,7 +92,7 @@ var logTailCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Read the event log.",
 		ShortDescription: `
-Outputs event log messages (NOT other log messages) as they are generated.
+Outputs event log messages (not other log messages) as they are generated.
 `,
 	},
 
