@@ -129,21 +129,13 @@ test_expect_success "daemon raised its fd limit" '
 	grep "raised file descriptor limit to 1024." actual_daemon > /dev/null
 '
 
-get_col_four() {
-	awk '{ print $4 }' $1
-}
+test_expect_success "daemon actually can handle 1024 file descriptors" '
+	hang-fds -hold=2s 1000 '$API_MADDR'
+'
 
-if [ `uname` == "Linux" ]; then
-	test_expect_success "get fd limit through /proc" '
-		cat /proc/$IPFS_PID/limits > limits &&
-		grep "Max open files" limits > fd_limits_line &&
-		limit=$(get_col_four fd_limits_line)
-	'
-
-	test_expect_success "limit from system looks good" '
-		test "$limit" -eq 1024
-	'
-fi
+test_expect_success "daemon didnt throw any errors" '
+	test_expect_code 1 grep "too many open files" daemon_err
+'
 
 test_kill_ipfs_daemon
 

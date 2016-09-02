@@ -189,6 +189,12 @@
       "hash": "QmVvJ27GcLaLSXvcB4auk3Gn3xuWK5ti5ENkZ2pCoJEYW4",
       "name": "autobatch",
       "version": "0.2.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmdCL8M8DXJdSRnwhpDhukX5r8ydjxnzPJpaKrFudDA8yn",
+      "name": "hang-fds",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",

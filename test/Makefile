@@ -60,9 +60,17 @@ multihash_src:
 	$(eval MULTIHASH_HASH := $(shell cd .. && bin/gx deps find go-multihash))
 	$(eval MULTIHASH_SRC := gx/ipfs/$(MULTIHASH_HASH)/go-multihash)
 
+hang-fds_src:
+	$(eval HANG_FDS_HASH := $(shell cd .. && bin/gx deps find hang-fds))
+	$(eval HANG_FDS_SRC := gx/ipfs/$(HANG_FDS_HASH)/hang-fds)
+
 bin/multihash: multihash_src $(call find_go_files, $(MULTIHASH_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/multihash $(MULTIHASH_SRC)/multihash
+
+bin/hang-fds: hang-fds_src $(call find_go_files, $(HANG_FDS_SRC)) IPFS-BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o bin/hang-fds $(HANG_FDS_SRC)
 
 iptb_src:
 	$(eval IPTB_HASH := $(shell cd .. && bin/gx deps find iptb))
