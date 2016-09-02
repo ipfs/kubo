@@ -227,6 +227,7 @@ func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.Ipf
 		if err != nil {
 			return nil, err
 		}
+		n.SetLocal(true)
 		i.node = n
 		return i.node, nil
 	}
