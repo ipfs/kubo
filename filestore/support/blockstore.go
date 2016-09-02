@@ -1,7 +1,7 @@
 package filestore_support
 
 import (
-	"errors"
+	"fmt"
 	b "github.com/ipfs/go-ipfs/blocks"
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	. "github.com/ipfs/go-ipfs/filestore"
@@ -80,8 +80,10 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 		return nil, nil
 	} else {
 		posInfo := block.PosInfo()
-		if posInfo == nil || posInfo.Stat == nil {
-			return nil, errors.New("no file information for block")
+		if posInfo == nil {
+			return nil, fmt.Errorf("%s: no file information for block", block.Key())
+		} else if posInfo.Stat == nil {
+			return nil, fmt.Errorf("%s: %s: no stat information for file", block.Key(), posInfo.FullPath)
 		}
 		d := &DataObj{
 			FilePath: CleanPath(posInfo.FullPath),

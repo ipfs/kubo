@@ -105,7 +105,7 @@ same as for 'ipfs add'.
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-		} else if node.OnlineMode() {
+		} else if !node.LocalMode() {
 			if !req.Files().IsDirectory() {
 				res.SetError(errors.New("expected directory object"), cmds.ErrNormal)
 				return
@@ -814,7 +814,7 @@ copy is not removed.  Use "filestore rm-dups" to remove the old copy.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		offline := !node.OnlineMode()
+		local := node.LocalMode()
 		args := req.Arguments()
 		if len(args) < 1 {
 			res.SetError(errors.New("must specify hash"), cmds.ErrNormal)
@@ -832,7 +832,7 @@ copy is not removed.  Use "filestore rm-dups" to remove the old copy.
 		} else {
 			path = mhash
 		}
-		if offline {
+		if local {
 			path, err = filepath.Abs(path)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)

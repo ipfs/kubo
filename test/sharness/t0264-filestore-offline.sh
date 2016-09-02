@@ -9,6 +9,6 @@ test_description="Test filestore"
 . lib/test-filestore-lib.sh
 . lib/test-lib.sh
 
-filestore_test_w_daemon
+filestore_test_w_daemon --offline
 
 test_done
