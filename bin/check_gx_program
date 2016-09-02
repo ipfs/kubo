@@ -29,7 +29,7 @@ UPGRADE_MSG="$3"
 
 # Get path to the directory containing this file
 # If $0 has no slashes, uses "./"
-PREFIX=$(expr $0 : "\(.*\/\)") || PREFIX='./'
+PREFIX=$(expr "$0" : "\(.*\/\)") || PREFIX='./'
 # Include the 'check_at_least_version' function
 . ${PREFIX}check_version
 
