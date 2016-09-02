@@ -532,7 +532,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	}
 
 	// replace private key, in case it was overwritten.
-	if err := common.MapSetKV(mapconf, "Identity.PrivKey", pkval); err != nil {
+	if err := common.MapSetKV(mapconf, config.PrivKeySelector, pkval); err != nil {
 		return err
 	}
 
