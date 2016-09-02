@@ -169,7 +169,7 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 		case <-tick.C:
 			n := bs.wm.wl.Len()
 			if n > 0 {
-				log.Debug(n, "keys in bitswap wantlist")
+				log.Debug(n, " keys in bitswap wantlist")
 			}
 		case <-broadcastSignal.C: // resend unfulfilled wantlist keys
 			log.Event(ctx, "Bitswap.Rebroadcast.active")
