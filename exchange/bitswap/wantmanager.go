@@ -75,6 +75,7 @@ func (pm *WantManager) WantBlocks(ctx context.Context, ks []key.Key) {
 }
 
 func (pm *WantManager) CancelWants(ks []key.Key) {
+	log.Infof("cancel wants: %s", ks)
 	pm.addEntries(context.TODO(), ks, true)
 }
 
@@ -83,16 +84,17 @@ func (pm *WantManager) addEntries(ctx context.Context, ks []key.Key, cancel bool
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
 			Cancel: cancel,
-			Entry: wantlist.Entry{
+			Entry: &wantlist.Entry{
 				Key:      k,
 				Priority: kMaxPriority - i,
-				Ctx:      ctx,
+				RefCnt:   1,
 			},
 		})
 	}
 	select {
 	case pm.incoming <- entries:
 	case <-pm.ctx.Done():
+	case <-ctx.Done():
 	}
 }
 
@@ -241,33 +243,31 @@ func (pm *WantManager) Run() {
 		case entries := <-pm.incoming:
 
 			// add changes to our wantlist
+			var filtered []*bsmsg.Entry
 			for _, e := range entries {
 				if e.Cancel {
-					pm.wl.Remove(e.Key)
+					if pm.wl.Remove(e.Key) {
+						filtered = append(filtered, e)
+					}
 				} else {
-					pm.wl.AddEntry(e.Entry)
+					if pm.wl.AddEntry(e.Entry) {
+						filtered = append(filtered, e)
+					}
 				}
 			}
 
 			// broadcast those wantlist changes
 			for _, p := range pm.peers {
-				p.addMessage(entries)
+				p.addMessage(filtered)
 			}
 
 		case <-tock.C:
 			// resend entire wantlist every so often (REALLY SHOULDNT BE NECESSARY)
 			var es []*bsmsg.Entry
 			for _, e := range pm.wl.Entries() {
-				select {
-				case <-e.Ctx.Done():
-					// entry has been cancelled
-					// simply continue, the entry will be removed from the
-					// wantlist soon enough
-					continue
-				default:
-				}
 				es = append(es, &bsmsg.Entry{Entry: e})
 			}
+
 			for _, p := range pm.peers {
 				p.outlk.Lock()
 				p.out = bsmsg.New(true)

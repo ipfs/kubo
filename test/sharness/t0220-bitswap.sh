@@ -11,13 +11,6 @@ test_description="test bitswap commands"
 test_init_ipfs
 test_launch_ipfs_daemon
 
-test_expect_success "'ipfs block get' adds hash to wantlist" '
-	export NONEXIST=QmeXxaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa &&
-	test_expect_code 1 ipfs block get $NONEXIST --timeout=10ms &&
-	ipfs bitswap wantlist >wantlist_out &&
-	grep $NONEXIST wantlist_out
-'
-
 test_expect_success "'ipfs bitswap stat' succeeds" '
 	ipfs bitswap stat >stat_out
 '
@@ -29,8 +22,7 @@ bitswap status
 	blocks received: 0
 	dup blocks received: 0
 	dup data received: 0 B
-	wantlist [1 keys]
-		$NONEXIST
+	wantlist [0 keys]
 	partners [0]
 EOF
 	test_cmp expected stat_out
@@ -45,12 +37,8 @@ test_expect_success "'ipfs bitswap wantlist -p' works" '
 	ipfs bitswap wantlist -p "$PEERID" >wantlist_p_out
 '
 
-test_expect_failure "'ipfs bitswap wantlist -p' output looks good" '
-	test_cmp wantlist_out wantlist_p_out
-'
-
-test_expect_success "'ipfs bitswap unwant' succeeds" '
-	ipfs bitswap unwant $NONEXIST
+test_expect_success "'ipfs bitswap wantlist -p' output looks good" '
+	test_must_be_empty wantlist_p_out
 '
 
 test_expect_success "hash was removed from wantlist" '

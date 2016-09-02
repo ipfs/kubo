@@ -41,7 +41,7 @@ func TestPushPop(t *testing.T) {
 	for _, index := range rand.Perm(len(alphabet)) { // add blocks for all letters
 		letter := alphabet[index]
 		t.Log(partner.String())
-		prq.Push(wantlist.Entry{Key: key.Key(letter), Priority: math.MaxInt32 - index}, partner)
+		prq.Push(&wantlist.Entry{Key: key.Key(letter), Priority: math.MaxInt32 - index}, partner)
 	}
 	for _, consonant := range consonants {
 		prq.Remove(key.Key(consonant), partner)
@@ -78,10 +78,10 @@ func TestPeerRepeats(t *testing.T) {
 	// Have each push some blocks
 
 	for i := 0; i < 5; i++ {
-		prq.Push(wantlist.Entry{Key: key.Key(i)}, a)
-		prq.Push(wantlist.Entry{Key: key.Key(i)}, b)
-		prq.Push(wantlist.Entry{Key: key.Key(i)}, c)
-		prq.Push(wantlist.Entry{Key: key.Key(i)}, d)
+		prq.Push(&wantlist.Entry{Key: key.Key(i)}, a)
+		prq.Push(&wantlist.Entry{Key: key.Key(i)}, b)
+		prq.Push(&wantlist.Entry{Key: key.Key(i)}, c)
+		prq.Push(&wantlist.Entry{Key: key.Key(i)}, d)
 	}
 
 	// now, pop off four entries, there should be one from each
