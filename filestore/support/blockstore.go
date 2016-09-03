@@ -72,12 +72,23 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 		return nil, err
 	}
 
-	if (fsInfo.Type != fs_pb.Data_Raw && fsInfo.Type != fs_pb.Data_File) || fsInfo.FileSize == 0 {
+	if (fsInfo.Type != fs_pb.Data_Raw && fsInfo.Type != fs_pb.Data_File) {
 		// If the node does not contain file data store using
 		// the normal datastore and not the filestore.
 		// Also don't use the filestore if the filesize is 0
 		// (i.e. an empty file) as posInfo might be nil.
 		return nil, nil
+	} else if fsInfo.FileSize == 0 {
+		// Special case for empty files as the block doesn't
+		// have any file information associated with it
+		return &DataObj{
+			FilePath: "",
+			Offset: 0,
+			Size: 0,
+			ModTime: 0,
+			Flags: Internal|WholeFile,
+			Data: block.Data(),
+		}, nil
 	} else {
 		posInfo := block.PosInfo()
 		if posInfo == nil {

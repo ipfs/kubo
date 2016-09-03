@@ -72,7 +72,7 @@ func verifyKey(key k.Key, fs *Datastore, bs b.Blockstore, verifyLevel VerifyLeve
 	} else if err == ds.ErrNotFound && !found {
 		return ListRes{dsKey, nil, StatusKeyNotFound}
 	} else {
-		Logger.Errorf("%s: %v", key, err)
+		Logger.Errorf("%s: verifyKey: %v", key, err)
 		return ListRes{dsKey, nil, StatusError}
 	}
 }
@@ -162,6 +162,7 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 	for res := range ch {
 		dagNode, dataObj, r := p.get(res.Key)
 		if dataObj == nil {
+			Logger.Errorf("%s: verify: no DataObj", res.MHash())
 			r = StatusError
 		}
 		res.DataObj = dataObj
@@ -199,6 +200,7 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 		var err error
 		res.DataObj, err = p.fs.GetDirect(res.Key)
 		if err != nil {
+			Logger.Errorf("%s: verify: %v", res.MHash(), err)
 			res.Status = StatusError
 		} else if res.NoBlockData() {
 			res.Status = p.verifyLeaf(res.Key, res.DataObj)
@@ -213,11 +215,12 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 }
 
 func (p *verifyParams) checkIfAppended(res ListRes) int {
-	if res.Status != StatusOk || !res.WholeFile() {
+	if res.Status != StatusOk || !res.WholeFile() || res.FilePath == "" {
 		return res.Status
 	}
 	info, err := os.Stat(res.FilePath)
 	if err != nil {
+		Logger.Errorf("%s: checkIfAppended: %v", res.MHash(), err)
 		return StatusError
 	}
 	if uint64(info.Size()) > res.Size {
@@ -265,10 +268,11 @@ func (p *verifyParams) verifyLeaf(key ds.Key, dataObj *DataObj) int {
 	return verify(p.fs, key, dataObj, p.verifyLevel)
 }
 
-func (p *verifyParams) get(key ds.Key) (*node.Node, *DataObj, int) {
-	dsKey, err := k.KeyFromDsKey(key)
+func (p *verifyParams) get(dsKey ds.Key) (*node.Node, *DataObj, int) {
+	key, err := k.KeyFromDsKey(dsKey)
 	if err != nil {
+		Logger.Errorf("%s: get: %v", key, err)
 		return nil, nil, StatusCorrupt
 	}
-	return getNode(key, dsKey, p.fs, p.node.Blockstore)
+	return getNode(dsKey, key, p.fs, p.node.Blockstore)
 }

@@ -62,6 +62,10 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 		panic(ds.ErrInvalidType)
 	}
 
+	if dataObj.FilePath == "" {
+		return d.PutDirect(key, dataObj)
+	}
+
 	// Make sure the filename is an absolute path
 	if !filepath.IsAbs(dataObj.FilePath) {
 		return errors.New("datastore put: non-absolute filename: " + dataObj.FilePath)

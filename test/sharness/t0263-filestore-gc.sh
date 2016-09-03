@@ -48,6 +48,17 @@ test_expect_success "make sure filestore block is really not pinned" '
   test_must_fail ipfs pin ls $FILE5
 '
 
+FILE6=QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
+test_expect_success "add a unpinned empty file to the filestore" '
+   cat /dev/null > file6 &&
+   ipfs filestore add --logical --pin=false file6 &&
+   ipfs cat $FILE6 | cmp file6
+'
+
+test_expect_success "make sure empty filestore block is really not pinned" '
+  test_must_fail ipfs pin ls $FILE6
+'
+
 test_expect_success "remove one of the backing files" '
   rm adir/file3 &&
   test_must_fail ipfs cat $FILE3
@@ -75,6 +86,14 @@ test_expect_success "make sure unpinned filestore block did not get removed" '
 
 test_expect_success "check that we can remove an un-pinned filestore block" '
   ipfs filestore rm $FILE5
+'
+
+test_expect_success "make sure unpinned empty filestore block did not get removed" '
+  ipfs cat $FILE6
+'
+
+test_expect_success "check that we can remove an empty un-pinned filestore block" '
+  ipfs filestore rm $FILE6
 '
 
 test_done
