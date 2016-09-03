@@ -76,7 +76,7 @@ def main():
             try:
                 new_mtime = "%.6f" % os.path.getmtime(path)
             except OSError as e:
-                print_err("skipping", path)
+                print_err("skipping:", path, ":", e.strerror)
                 continue
             before.append((hash,mtime,path),)
             if mtime != new_mtime:
