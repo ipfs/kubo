@@ -209,14 +209,18 @@ func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 				child, cancel := context.WithTimeout(e.Ctx, providerRequestTimeout)
 				defer cancel()
 				providers := bs.network.FindProvidersAsync(child, e.Key, maxProvidersPerRequest)
+				wg := &sync.WaitGroup{}
 				for p := range providers {
+					wg.Add(1)
 					go func(p peer.ID) {
+						defer wg.Done()
 						err := bs.network.ConnectTo(child, p)
 						if err != nil {
 							log.Debug("failed to connect to provider %s: %s", p, err)
 						}
 					}(p)
 				}
+				wg.Wait()
 				activeLk.Lock()
 				kset.Remove(e.Key)
 				activeLk.Unlock()
