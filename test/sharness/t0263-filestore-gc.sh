@@ -6,9 +6,12 @@
 
 test_description="Test filestore"
 
+. lib/test-filestore-lib.sh
 . lib/test-lib.sh
 
 test_init_ipfs
+
+test_enable_filestore
 
 # add block
 # add filestore block / rm file

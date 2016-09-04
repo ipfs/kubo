@@ -2,6 +2,13 @@ client_err() {
     printf "$@\n\nUse 'ipfs add --help' for information about this command\n"
 }
 
+
+test_enable_filestore() {
+    test_expect_success "enable filestore" '
+        ipfs filestore enable
+    '
+}
+
 test_add_cat_file() {
     cmd=$1
     dir=$2
@@ -221,6 +228,16 @@ filestore_test_w_daemon() {
     opt=$1
 
     test_init_ipfs
+
+    test_launch_ipfs_daemon $opt
+
+    test_expect_success "can't enable filestore while daemon is running" '
+        test_must_fail ipfs filestore enable
+    '
+
+    test_kill_ipfs_daemon
+
+    test_enable_filestore
 
     test_launch_ipfs_daemon $opt
 

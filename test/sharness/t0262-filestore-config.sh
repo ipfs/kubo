@@ -11,6 +11,8 @@ test_description="Test filestore"
 
 test_init_ipfs
 
+test_enable_filestore
+
 test_add_cat_file "filestore add" "`pwd`"
 
 export IPFS_LOGGING=debug

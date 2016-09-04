@@ -46,9 +46,21 @@ func (d *Datastore) Update() bool {
 	return d.verify == VerifyIfChanged
 }
 
+func Init(path string) error {
+	db, err := leveldb.OpenFile(path, &opt.Options{
+		Compression: opt.NoCompression,
+	})
+	if err != nil {
+		return err
+	}
+	db.Close()
+	return nil
+}
+
 func New(path string, verify VerifyWhen) (*Datastore, error) {
 	db, err := leveldb.OpenFile(path, &opt.Options{
 		Compression: opt.NoCompression,
+		ErrorIfMissing: true,
 	})
 	if err != nil {
 		return nil, err

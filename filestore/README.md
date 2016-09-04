@@ -10,6 +10,11 @@ Windows and should work on MacOS X and other Unix like systems.
 
 ## Quick start
 
+Before the filestore can be used it must be enabled with
+```
+  ipfs filestore enable
+```
+
 To add a file to IPFS without copying, use `filestore add -P` or to add a
 directory use `filestore add -P -r`.  (Throughout this document all
 command are assumed to start with `ipfs` so `filestore add` really

@@ -11,6 +11,12 @@ test_description="Test filestore"
 
 test_init_ipfs
 
+test_expect_success "can't use filestore unless it is enabled" '
+  test_must_fail ipfs filestore ls
+'
+
+test_enable_filestore
+
 test_add_cat_file "filestore add" "`pwd`"
 
 test_post_add "filestore add" "`pwd`"

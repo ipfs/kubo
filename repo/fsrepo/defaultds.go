@@ -3,6 +3,7 @@ package fsrepo
 import (
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"strings"
 
@@ -29,11 +30,9 @@ const (
 
 const (
 	RootMount      = "/"
-	CacheMount     = "/blocks"    // needs to be the same as blockstore.DefaultPrefix
+	CacheMount     = "/blocks" // needs to be the same as blockstore.DefaultPrefix
 	FilestoreMount = "/filestore"
 )
-
-const useFileStore = true
 
 var _ = io.EOF
 
@@ -68,21 +67,21 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, []Mount, error) {
 	prefix := "fsrepo." + id + ".datastore."
 	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
 	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
-	
+
 	var mounts []mount.Mount
 	var directMounts []Mount
-	
+
 	mounts = append(mounts, mount.Mount{
 		Prefix:    ds.NewKey(CacheMount),
 		Datastore: metricsBlocks,
 	})
 	directMounts = append(directMounts, Mount{CacheMount, blocksDS})
 
-	if useFileStore {
-		fileStore, err := r.newFilestore()
-		if err != nil {
-			return nil, nil, err
-		}
+	fileStore, err := r.newFilestore()
+	if err != nil {
+		return nil, nil, err
+	}
+	if fileStore != nil {
 		mounts = append(mounts, mount.Mount{
 			Prefix:    ds.NewKey(FilestoreMount),
 			Datastore: fileStore,
@@ -116,8 +115,17 @@ func initDefaultDatastore(repoPath string, conf *config.Config) error {
 	return nil
 }
 
+func InitFilestore(repoPath string) error {
+	fileStorePath := path.Join(repoPath, fileStoreDir)
+	return filestore.Init(fileStorePath)
+}
+
+// will return nil, nil if the filestore is not enabled
 func (r *FSRepo) newFilestore() (*filestore.Datastore, error) {
 	fileStorePath := path.Join(r.path, fileStoreDir)
+	if _, err := os.Stat(fileStorePath); os.IsNotExist(err) {
+		return nil, nil
+	}
 	verify := filestore.VerifyIfChanged
 	switch strings.ToLower(r.config.Filestore.Verify) {
 	case "never":

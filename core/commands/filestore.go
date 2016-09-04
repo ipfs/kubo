@@ -36,6 +36,8 @@ var FileStoreCmd = &cmds.Command{
 		"dups":     fsDups,
 		"upgrade":  fsUpgrade,
 		"mv":       moveIntoFilestore,
+		"enable":   FilestoreEnable,
+		"disable":  FilestoreDisable,
 	},
 }
 
@@ -732,7 +734,7 @@ func extractFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Datastore, e
 	}
 	fs, ok := node.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore)
 	if !ok {
-		err := errors.New("could not extract filestore")
+		err := errors.New("filestore not enabled")
 		return nil, nil, err
 	}
 	return node, fs, nil
@@ -855,5 +857,35 @@ copy is not removed.  Use "filestore rm-dups" to remove the old copy.
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			return res.(io.Reader), nil
 		},
+	},
+}
+
+var FilestoreEnable = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Enable the filestore.",
+		ShortDescription: `
+Enable the filestore.  A noop if the filestore is already enabled.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		rootDir := req.InvocContext().ConfigRoot
+		err := fsrepo.InitFilestore(rootDir)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+	},
+}
+
+var FilestoreDisable = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Disable an empty filestore.",
+		ShortDescription: `
+Disable the filestore if it is empty.  A noop if the filestore does
+not exist.  An error if the filestore is not empty.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		res.SetError(errors.New("unimplemented"), cmds.ErrNormal)
 	},
 }
