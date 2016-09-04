@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	"github.com/ipfs/go-key"
+	"gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 // initDocPaths lists the paths for the docs we want to seed during --init

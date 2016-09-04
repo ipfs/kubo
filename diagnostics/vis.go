@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	peer "github.com/ipfs/go-libp2p-peer"
-	rtable "github.com/libp2p/go-libp2p-kbucket"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	rtable "gx/ipfs/Qmc5r13R4j3V75ucMkGzHimsQDgkg4aUanX5upcUWns7XM/go-libp2p-kbucket"
 )
 
 type node struct {

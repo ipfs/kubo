@@ -8,11 +8,11 @@ import (
 	"sync"
 	"testing"
 
-	u "github.com/ipfs/go-ipfs-util"
-	ci "github.com/ipfs/go-libp2p-crypto"
-	peer "github.com/ipfs/go-libp2p-peer"
+	ci "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 
-	ma "github.com/jbenet/go-multiaddr"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 )
 
 // ZeroLocalTCPAddress is the "zero" tcp local multiaddr. This means:

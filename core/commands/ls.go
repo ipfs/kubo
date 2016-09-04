@@ -12,7 +12,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
-	key "github.com/ipfs/go-key"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 type LsLink struct {

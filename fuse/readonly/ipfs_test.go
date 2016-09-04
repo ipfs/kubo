@@ -15,7 +15,6 @@ import (
 
 	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
 
-	u "github.com/ipfs/go-ipfs-util"
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
@@ -23,8 +22,9 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	key "github.com/ipfs/go-key"
-	ci "github.com/libp2p/go-testutil/ci"
+	ci "gx/ipfs/QmYpVUnnedgGrp6cX2pBii5HRQgcSr778FiKVe7o7nF5Z3/go-testutil/ci"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 func maybeSkipFuseTests(t *testing.T) {

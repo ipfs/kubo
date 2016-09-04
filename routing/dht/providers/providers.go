@@ -6,20 +6,20 @@ import (
 	"strings"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
-	ds "github.com/ipfs/go-datastore"
-	dsq "github.com/ipfs/go-datastore/query"
-	peer "github.com/ipfs/go-libp2p-peer"
-	logging "github.com/ipfs/go-log"
-	goprocess "github.com/jbenet/goprocess"
-	goprocessctx "github.com/jbenet/goprocess/context"
-	autobatch "github.com/whyrusleeping/autobatch"
-	base32 "github.com/whyrusleeping/base32"
+	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	goprocessctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
+	autobatch "gx/ipfs/QmSp3diFRRv4zR25nHU4MWNCdhT4R6cxrTPLx12MCi1TZb/autobatch"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	base32 "gx/ipfs/Qmb1DA2A9LS2wR4FFweB4uEDomFsdmnw1VLawLE1yQzudj/base32"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	dsq "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	flags "github.com/ipfs/go-ipfs/flags"
 
-	context "golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var batchBufferSize = 256

@@ -8,14 +8,14 @@ import (
 	"io/ioutil"
 	"strings"
 
-	ds "github.com/ipfs/go-datastore"
-	u "github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-ipfs/blocks"
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/pin"
-	key "github.com/ipfs/go-key"
-	mh "github.com/jbenet/go-multihash"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 type BlockStat struct {

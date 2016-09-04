@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	key "github.com/ipfs/go-key"
-	ci "github.com/libp2p/go-testutil/ci"
+	ci "gx/ipfs/QmYpVUnnedgGrp6cX2pBii5HRQgcSr778FiKVe7o7nF5Z3/go-testutil/ci"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
-	"golang.org/x/net/context"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 func TestRepublisher(t *testing.T) {

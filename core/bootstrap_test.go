@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	config "github.com/ipfs/go-ipfs/repo/config"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	testutil "github.com/libp2p/go-testutil"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
+	testutil "gx/ipfs/QmYpVUnnedgGrp6cX2pBii5HRQgcSr778FiKVe7o7nF5Z3/go-testutil"
 )
 
 func TestSubsetWhenMaxIsGreaterThanLengthOfSlice(t *testing.T) {

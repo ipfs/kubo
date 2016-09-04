@@ -6,8 +6,8 @@ package notifier
 import (
 	"sync"
 
-	process "github.com/jbenet/goprocess"
-	ratelimit "github.com/jbenet/goprocess/ratelimit"
+	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	ratelimit "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/ratelimit"
 )
 
 // Notifiee is a generic interface. Clients implement

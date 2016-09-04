@@ -6,11 +6,11 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	key "github.com/ipfs/go-key"
-	inet "github.com/libp2p/go-libp2p/p2p/net"
+	inet "gx/ipfs/QmUEtj7KAkoLULwUHm4KA4pbRAcziPLHpHDRQsvn9g1i6t/go-libp2p/p2p/net"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
-	ggio "github.com/gogo/protobuf/io"
-	proto "github.com/gogo/protobuf/proto"
+	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
 // TODO move message.go into the bitswap package

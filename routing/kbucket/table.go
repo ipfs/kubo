@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	peer "github.com/ipfs/go-libp2p-peer"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	logging "github.com/ipfs/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
 )
 
 var log = logging.Logger("table")

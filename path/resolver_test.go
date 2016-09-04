@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	context "golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	util "github.com/ipfs/go-ipfs-util"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	dagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	path "github.com/ipfs/go-ipfs/path"
-	key "github.com/ipfs/go-key"
+	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 func randNode() (*merkledag.Node, key.Key) {

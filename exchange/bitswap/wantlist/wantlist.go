@@ -6,9 +6,9 @@ import (
 	"sort"
 	"sync"
 
-	key "github.com/ipfs/go-key"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
-	"golang.org/x/net/context"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type ThreadSafe struct {

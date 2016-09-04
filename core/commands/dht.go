@@ -7,17 +7,17 @@ import (
 	"io"
 	"time"
 
-	u "github.com/ipfs/go-ipfs-util"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	key "github.com/ipfs/go-key"
-	peer "github.com/ipfs/go-libp2p-peer"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	ipdht "github.com/libp2p/go-libp2p-kad-dht"
-	routing "github.com/libp2p/go-libp2p-routing"
-	notif "github.com/libp2p/go-libp2p-routing/notifications"
-	"golang.org/x/net/context"
+	ipdht "gx/ipfs/QmSXEMQ9yXxVm84YNXXyyDzu5gyHa3K8FYSfwzPjNXSfHq/go-libp2p-kad-dht"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
+	routing "gx/ipfs/QmYQadj3iegqmRPWjaWMRc8DG52hZa2HMkmyPkto5chDvs/go-libp2p-routing"
+	notif "gx/ipfs/QmYQadj3iegqmRPWjaWMRc8DG52hZa2HMkmyPkto5chDvs/go-libp2p-routing/notifications"
+	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")

@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	key "github.com/ipfs/go-key"
-	"github.com/ipfs/go-libp2p-peer"
-	"github.com/libp2p/go-testutil"
+	"gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	"gx/ipfs/QmYpVUnnedgGrp6cX2pBii5HRQgcSr778FiKVe7o7nF5Z3/go-testutil"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 // FWIW: At the time of this commit, including a timestamp in task increases

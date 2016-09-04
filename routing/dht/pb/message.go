@@ -1,13 +1,13 @@
 package dht_pb
 
 import (
-	ma "github.com/jbenet/go-multiaddr"
+	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	peer "github.com/ipfs/go-libp2p-peer"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	logging "github.com/ipfs/go-log"
-	inet "github.com/libp2p/go-libp2p/p2p/net"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	inet "gx/ipfs/QmUEtj7KAkoLULwUHm4KA4pbRAcziPLHpHDRQsvn9g1i6t/go-libp2p/p2p/net"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
 )
 
 var log = logging.Logger("dht.pb")

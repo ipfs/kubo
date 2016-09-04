@@ -10,16 +10,16 @@ import (
 
 	config "github.com/ipfs/go-ipfs/repo/config"
 	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
-	lgbl "github.com/ipfs/go-libp2p-loggables"
+	lgbl "gx/ipfs/QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7/go-libp2p-loggables"
 
-	peer "github.com/ipfs/go-libp2p-peer"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	goprocess "github.com/jbenet/goprocess"
-	procctx "github.com/jbenet/goprocess/context"
-	periodicproc "github.com/jbenet/goprocess/periodic"
-	host "github.com/libp2p/go-libp2p/p2p/host"
-	inet "github.com/libp2p/go-libp2p/p2p/net"
-	context "golang.org/x/net/context"
+	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
+	periodicproc "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/periodic"
+	host "gx/ipfs/QmUEtj7KAkoLULwUHm4KA4pbRAcziPLHpHDRQsvn9g1i6t/go-libp2p/p2p/host"
+	inet "gx/ipfs/QmUEtj7KAkoLULwUHm4KA4pbRAcziPLHpHDRQsvn9g1i6t/go-libp2p/p2p/net"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 // ErrNotEnoughBootstrapPeers signals that we do not have enough bootstrap

@@ -5,16 +5,16 @@ import (
 	"testing"
 	"time"
 
-	goprocess "github.com/jbenet/goprocess"
-	context "golang.org/x/net/context"
+	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	"github.com/ipfs/go-ipfs/core"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+	mocknet "gx/ipfs/QmUEtj7KAkoLULwUHm4KA4pbRAcziPLHpHDRQsvn9g1i6t/go-libp2p/p2p/net/mock"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
 )
 
 func TestRepublish(t *testing.T) {

@@ -4,14 +4,14 @@ import (
 	"sync"
 	"time"
 
-	process "github.com/jbenet/goprocess"
-	procctx "github.com/jbenet/goprocess/context"
-	context "golang.org/x/net/context"
+	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	key "github.com/ipfs/go-key"
-	peer "github.com/ipfs/go-libp2p-peer"
-	logging "github.com/ipfs/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 var TaskWorkerCount = 8

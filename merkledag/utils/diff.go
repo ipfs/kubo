@@ -6,8 +6,8 @@ import (
 	"path"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	key "github.com/ipfs/go-key"
-	context "golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 const (

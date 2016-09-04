@@ -4,18 +4,18 @@ import (
 	"errors"
 	"time"
 
-	ds "github.com/ipfs/go-datastore"
-	key "github.com/ipfs/go-key"
-	record "github.com/libp2p/go-libp2p-record"
-	pb "github.com/libp2p/go-libp2p-record/pb"
-	routing "github.com/libp2p/go-libp2p-routing"
+	routing "gx/ipfs/QmYQadj3iegqmRPWjaWMRc8DG52hZa2HMkmyPkto5chDvs/go-libp2p-routing"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
+	record "gx/ipfs/Qme7D9iKHYxwq28p6PzCymywsYSRBx9uyGzW7qNB3s9VbC/go-libp2p-record"
+	pb "gx/ipfs/Qme7D9iKHYxwq28p6PzCymywsYSRBx9uyGzW7qNB3s9VbC/go-libp2p-record/pb"
 
-	proto "github.com/gogo/protobuf/proto"
-	ci "github.com/ipfs/go-libp2p-crypto"
-	"github.com/ipfs/go-libp2p-peer"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	logging "github.com/ipfs/go-log"
-	context "golang.org/x/net/context"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	ci "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
+	"gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var log = logging.Logger("offlinerouting")

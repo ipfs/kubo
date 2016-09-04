@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-ipfs/blocks"
-	"github.com/ipfs/go-key"
+	"gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
-	ds "github.com/ipfs/go-datastore"
-	syncds "github.com/ipfs/go-datastore/sync"
-	context "golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
 var exampleBlock = blocks.NewBlock([]byte("foo"))

@@ -12,11 +12,11 @@ import (
 	"sync"
 
 	"github.com/ipfs/go-ipfs/repo/config"
-	cors "github.com/rs/cors"
-	context "golang.org/x/net/context"
+	cors "gx/ipfs/QmQzTLDsi3a37CJyMDBXnjiHKQpth3AGS1yqwU57FfLwfG/cors"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	logging "github.com/ipfs/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 var log = logging.Logger("commands/http")

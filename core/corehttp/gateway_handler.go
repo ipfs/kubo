@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	humanize "github.com/dustin/go-humanize"
-	"golang.org/x/net/context"
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/importer"
@@ -20,8 +20,8 @@ import (
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	key "github.com/ipfs/go-key"
-	"github.com/libp2p/go-libp2p-routing"
+	"gx/ipfs/QmYQadj3iegqmRPWjaWMRc8DG52hZa2HMkmyPkto5chDvs/go-libp2p-routing"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 const (

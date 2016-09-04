@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	core "github.com/ipfs/go-ipfs/core"
-	logging "github.com/ipfs/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 type writeErrNotifier struct {

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
-	ds "github.com/ipfs/go-datastore"
 	config "github.com/ipfs/go-ipfs/repo/config"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
 var (

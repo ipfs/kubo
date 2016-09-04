@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	ds "github.com/ipfs/go-datastore"
-	b58 "github.com/jbenet/go-base58"
-	mh "github.com/jbenet/go-multihash"
-	base32 "github.com/whyrusleeping/base32"
+	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	base32 "gx/ipfs/Qmb1DA2A9LS2wR4FFweB4uEDomFsdmnw1VLawLE1yQzudj/base32"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
 // Key is a string representation of multihash for use with maps.

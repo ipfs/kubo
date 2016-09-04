@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/blocks/set"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
-	key "github.com/ipfs/go-key"
-	logging "github.com/ipfs/go-log"
-	context "golang.org/x/net/context"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 var log = logging.Logger("pin")

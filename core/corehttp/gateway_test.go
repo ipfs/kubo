@@ -16,9 +16,9 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	datastore2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
-	ci "github.com/ipfs/go-libp2p-crypto"
-	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	context "golang.org/x/net/context"
+	id "gx/ipfs/QmUEtj7KAkoLULwUHm4KA4pbRAcziPLHpHDRQsvn9g1i6t/go-libp2p/p2p/protocol/identify"
+	ci "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type mockNamesys map[string]path.Path

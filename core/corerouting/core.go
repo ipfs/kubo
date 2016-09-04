@@ -3,15 +3,15 @@ package corerouting
 import (
 	"errors"
 
-	ds "github.com/ipfs/go-datastore"
 	core "github.com/ipfs/go-ipfs/core"
 	repo "github.com/ipfs/go-ipfs/repo"
 	supernode "github.com/ipfs/go-ipfs/routing/supernode"
 	gcproxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	routing "github.com/libp2p/go-libp2p-routing"
-	"github.com/libp2p/go-libp2p/p2p/host"
-	context "golang.org/x/net/context"
+	"gx/ipfs/QmUEtj7KAkoLULwUHm4KA4pbRAcziPLHpHDRQsvn9g1i6t/go-libp2p/p2p/host"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
+	routing "gx/ipfs/QmYQadj3iegqmRPWjaWMRc8DG52hZa2HMkmyPkto5chDvs/go-libp2p-routing"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
 // NB: DHT option is included in the core to avoid 1) because it's a sane

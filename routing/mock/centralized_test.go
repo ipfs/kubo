@@ -5,11 +5,11 @@ import (
 	"time"
 
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	key "github.com/ipfs/go-key"
-	"github.com/libp2p/go-testutil"
+	"gx/ipfs/QmYpVUnnedgGrp6cX2pBii5HRQgcSr778FiKVe7o7nF5Z3/go-testutil"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	context "golang.org/x/net/context"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 func TestKeyNotFound(t *testing.T) {

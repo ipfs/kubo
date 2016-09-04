@@ -8,9 +8,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/ipfs/go-datastore"
-	syncds "github.com/ipfs/go-datastore/sync"
-	context "golang.org/x/net/context"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerouting"
@@ -18,10 +18,10 @@ import (
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
-	key "github.com/ipfs/go-key"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
-	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	testutil "github.com/libp2p/go-testutil"
+	mocknet "gx/ipfs/QmUEtj7KAkoLULwUHm4KA4pbRAcziPLHpHDRQsvn9g1i6t/go-libp2p/p2p/net/mock"
+	pstore "gx/ipfs/QmXhhVSpXMUjpf9XgQDyePxug2iHm8ZvZD99aA9N6kuqMN/go-libp2p-peerstore"
+	testutil "gx/ipfs/QmYpVUnnedgGrp6cX2pBii5HRQgcSr778FiKVe7o7nF5Z3/go-testutil"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 func TestSupernodeBootstrappedAddCat(t *testing.T) {

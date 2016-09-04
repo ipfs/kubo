@@ -3,8 +3,8 @@ package datastore2
 import (
 	"io"
 
-	"github.com/ipfs/go-datastore"
-	syncds "github.com/ipfs/go-datastore/sync"
+	"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
 type ThreadSafeDatastoreCloser interface {
