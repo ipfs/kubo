@@ -9,7 +9,6 @@ import (
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 )
@@ -172,10 +171,19 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 			}
 		case <-broadcastSignal.C: // resend unfulfilled wantlist keys
 			log.Event(ctx, "Bitswap.Rebroadcast.active")
+			entries := bs.wm.wl.Entries()
+			if len(entries) == 0 {
+				continue
+			}
+			tctx, cancel := context.WithTimeout(ctx, providerRequestTimeout)
 			for _, e := range bs.wm.wl.Entries() {
 				e := e
-				bs.findKeys <- &e
+				bs.findKeys <- &blockRequest{
+					Key: e.Key,
+					Ctx: tctx,
+				}
 			}
+			cancel()
 		case <-parent.Done():
 			return
 		}
@@ -184,20 +192,20 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 
 func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 	var activeLk sync.Mutex
-	active := make(map[key.Key]*wantlist.Entry)
+	kset := key.NewKeySet()
 
 	for {
 		select {
 		case e := <-bs.findKeys:
 			activeLk.Lock()
-			if _, ok := active[e.Key]; ok {
+			if kset.Has(e.Key) {
 				activeLk.Unlock()
 				continue
 			}
-			active[e.Key] = e
+			kset.Add(e.Key)
 			activeLk.Unlock()
 
-			go func(e *wantlist.Entry) {
+			go func(e *blockRequest) {
 				child, cancel := context.WithTimeout(e.Ctx, providerRequestTimeout)
 				defer cancel()
 				providers := bs.network.FindProvidersAsync(child, e.Key, maxProvidersPerRequest)
@@ -210,7 +218,7 @@ func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 					}(p)
 				}
 				activeLk.Lock()
-				delete(active, e.Key)
+				kset.Remove(e.Key)
 				activeLk.Unlock()
 			}(e)
 
