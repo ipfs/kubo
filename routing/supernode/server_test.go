@@ -3,8 +3,8 @@ package supernode
 import (
 	"testing"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	key "github.com/ipfs/go-key"
+	dhtpb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	datastore "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 )
 

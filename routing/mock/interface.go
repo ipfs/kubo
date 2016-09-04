@@ -5,10 +5,10 @@
 package mockrouting
 
 import (
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	routing "github.com/ipfs/go-ipfs/routing"
+	key "github.com/ipfs/go-key"
+	routing "github.com/libp2p/go-libp2p-routing"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+	"github.com/libp2p/go-testutil"
 	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
 	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"

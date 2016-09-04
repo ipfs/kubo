@@ -32,7 +32,7 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
+	loggables "github.com/ipfs/go-libp2p-loggables"
 )
 
 // log is the command logger

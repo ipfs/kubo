@@ -4,10 +4,10 @@ import (
 	"errors"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	routing "github.com/ipfs/go-ipfs/routing"
-	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	record "github.com/ipfs/go-ipfs/routing/record"
+	key "github.com/ipfs/go-key"
+	routing "github.com/libp2p/go-libp2p-routing"
+	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
+	record "github.com/libp2p/go-libp2p-record"
 	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 
 	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"

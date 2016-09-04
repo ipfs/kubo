@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	config "github.com/ipfs/go-ipfs/repo/config"
-	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
+	testutil "github.com/libp2p/go-testutil"
 	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
 )
 

@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	routing "github.com/ipfs/go-ipfs/routing"
-	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	key "github.com/ipfs/go-key"
+	routing "github.com/libp2p/go-libp2p-routing"
+	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
-	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
+	loggables "github.com/ipfs/go-libp2p-loggables"
 
 	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

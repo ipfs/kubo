@@ -16,7 +16,7 @@ import (
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-key"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
@@ -25,7 +25,7 @@ import (
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
-	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
+	loggables "github.com/ipfs/go-libp2p-loggables"
 )
 
 var log = logging.Logger("bitswap")

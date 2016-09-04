@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	record "github.com/ipfs/go-ipfs/routing/record"
+	key "github.com/ipfs/go-key"
+	dhtpb "github.com/libp2p/go-libp2p-kad-dht/pb"
+	record "github.com/libp2p/go-libp2p-record"
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 	datastore "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 

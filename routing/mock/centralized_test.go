@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-key"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+	"github.com/libp2p/go-testutil"
 
 	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"

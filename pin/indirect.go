@@ -1,7 +1,7 @@
 package pin
 
 import (
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-key"
 )
 
 type indirectPin struct {

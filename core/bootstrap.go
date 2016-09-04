@@ -9,7 +9,7 @@ import (
 	"time"
 
 	config "github.com/ipfs/go-ipfs/repo/config"
-	lgbl "github.com/ipfs/go-ipfs/thirdparty/loggables"
+	lgbl "github.com/ipfs/go-libp2p-loggables"
 	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
 
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"

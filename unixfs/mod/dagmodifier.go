@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-key"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"

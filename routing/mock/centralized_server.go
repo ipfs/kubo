@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+	key "github.com/ipfs/go-key"
+	"github.com/libp2p/go-testutil"
 	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 	dssync "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
 

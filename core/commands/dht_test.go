@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-ipfs/namesys"
-	tu "github.com/ipfs/go-ipfs/thirdparty/testutil"
+	tu "github.com/libp2p/go-testutil"
 )
 
 func TestKeyTranslation(t *testing.T) {

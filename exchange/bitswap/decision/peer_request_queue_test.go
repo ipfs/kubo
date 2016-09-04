@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-key"
 	"github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+	"github.com/libp2p/go-testutil"
 )
 
 func TestPushPop(t *testing.T) {

@@ -3,7 +3,7 @@ package set
 
 import (
 	"github.com/ipfs/go-ipfs/blocks/bloom"
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-key"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 

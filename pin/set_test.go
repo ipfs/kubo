@@ -5,7 +5,7 @@ import (
 	"testing/quick"
 
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
-	"github.com/ipfs/go-ipfs/blocks/key"
+	"github.com/ipfs/go-key"
 	"github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	"github.com/ipfs/go-ipfs/merkledag"

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
