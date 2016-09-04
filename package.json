@@ -25,12 +25,6 @@
       "version": "1.0.4"
     },
     {
-      "author": "whyrusleeping",
-      "hash": "QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p",
-      "name": "go-libp2p-peer",
-      "version": "2.0.4"
-    },
-    {
       "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
       "name": "go-net",
       "version": "0.0.0"
@@ -257,6 +251,24 @@
       "hash": "Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew",
       "name": "go-key",
       "version": "1.0.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmU4VzzKNLJXJ72SedXBQKyf5Jo8W89iWpbWQjHn9qef8N",
+      "name": "go-ds-flatfs",
+      "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmeqtHtxGfcsfXiou7wqHJARWPKUTUcPdtSfSYYHp48dtQ",
+      "name": "go-ds-measure",
+      "version": "1.0.1"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmUHmMGmcwCrjHQHcYhBnqGCSWs5pBSMbGZmfwavETR1gg",
+      "name": "go-ds-leveldb",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",

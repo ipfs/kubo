@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	path "github.com/ipfs/go-ipfs/path"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+	peer "github.com/ipfs/go-libp2p-peer"
+	ma "github.com/jbenet/go-multiaddr"
 )
 
 var good = []string{

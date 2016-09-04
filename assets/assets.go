@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ipfs/go-key"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	"github.com/ipfs/go-key"
 )
 
 // initDocPaths lists the paths for the docs we want to seed during --init

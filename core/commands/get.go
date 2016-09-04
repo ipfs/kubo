@@ -9,7 +9,7 @@ import (
 	gopath "path"
 	"strings"
 
-	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
+	"github.com/cheggaaa/pb"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"

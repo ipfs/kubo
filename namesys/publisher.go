@@ -6,22 +6,22 @@ import (
 	"fmt"
 	"time"
 
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	proto "github.com/gogo/protobuf/proto"
+	ds "github.com/ipfs/go-datastore"
+	context "golang.org/x/net/context"
 
-	key "github.com/ipfs/go-key"
+	u "github.com/ipfs/go-ipfs-util"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
-	routing "github.com/libp2p/go-libp2p-routing"
-	dhtpb "github.com/libp2p/go-libp2p-kad-dht/pb"
-	record "github.com/libp2p/go-libp2p-record"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	ci "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	key "github.com/ipfs/go-key"
+	ci "github.com/ipfs/go-libp2p-crypto"
+	peer "github.com/ipfs/go-libp2p-peer"
+	record "github.com/libp2p/go-libp2p-record"
+	recpb "github.com/libp2p/go-libp2p-record/pb"
+	routing "github.com/libp2p/go-libp2p-routing"
 )
 
 // ErrExpiredRecord should be returned when an ipns record is
@@ -91,7 +91,7 @@ func (p *ipnsPublisher) getPreviousSeqNo(ctx context.Context, ipnskey key.Key) (
 		if !ok {
 			return 0, fmt.Errorf("unexpected type returned from datastore: %#v", prevrec)
 		}
-		dhtrec := new(dhtpb.Record)
+		dhtrec := new(recpb.Record)
 		err := proto.Unmarshal(prbytes, dhtrec)
 		if err != nil {
 			return 0, err

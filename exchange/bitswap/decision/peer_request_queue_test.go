@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	key "github.com/ipfs/go-key"
 	"github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	key "github.com/ipfs/go-key"
 	"github.com/libp2p/go-testutil"
 )
 

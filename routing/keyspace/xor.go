@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"math/big"
 
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	u "github.com/ipfs/go-ipfs-util"
 )
 
 // XORKeySpace is a KeySpace which:

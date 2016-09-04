@@ -6,13 +6,13 @@ import (
 	"io"
 	"text/tabwriter"
 
-	key "github.com/ipfs/go-key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
+	key "github.com/ipfs/go-key"
 )
 
 type LsLink struct {

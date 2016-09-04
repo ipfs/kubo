@@ -14,9 +14,9 @@ import (
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	fsnotify "gx/ipfs/QmczzCMvJ3HV57WBKDy8b4ucp7quT325JjDbixYRS5Pwvv/fsnotify.v1"
+	process "github.com/jbenet/goprocess"
+	context "golang.org/x/net/context"
+	fsnotify "gopkg.in/fsnotify.v1"
 )
 
 var http = flag.Bool("http", false, "expose IPFS HTTP API")

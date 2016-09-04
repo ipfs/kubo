@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
+	u "github.com/ipfs/go-ipfs-util"
 	key "github.com/ipfs/go-key"
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	mh "github.com/jbenet/go-multihash"
 )
 
 var ErrWrongHash = errors.New("data did not match given hash!")

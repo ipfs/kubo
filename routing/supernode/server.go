@@ -4,16 +4,17 @@ import (
 	"errors"
 	"fmt"
 
+	datastore "github.com/ipfs/go-datastore"
+	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 	key "github.com/ipfs/go-key"
 	dhtpb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	record "github.com/libp2p/go-libp2p-record"
-	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
-	datastore "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
+	recpb "github.com/libp2p/go-libp2p-record/pb"
 
-	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	proto "github.com/gogo/protobuf/proto"
+	peer "github.com/ipfs/go-libp2p-peer"
+	pstore "github.com/ipfs/go-libp2p-peerstore"
+	context "golang.org/x/net/context"
 )
 
 // Server handles routing queries using a database backend
@@ -115,7 +116,7 @@ func (s *Server) handleMessage(
 var _ proxy.RequestHandler = &Server{}
 var _ proxy.Proxy = &Server{}
 
-func getRoutingRecord(ds datastore.Datastore, k key.Key) (*dhtpb.Record, error) {
+func getRoutingRecord(ds datastore.Datastore, k key.Key) (*recpb.Record, error) {
 	dskey := k.DsKey()
 	val, err := ds.Get(dskey)
 	if err != nil {
@@ -125,14 +126,14 @@ func getRoutingRecord(ds datastore.Datastore, k key.Key) (*dhtpb.Record, error) 
 	if !ok {
 		return nil, fmt.Errorf("datastore had non byte-slice value for %v", dskey)
 	}
-	var record dhtpb.Record
+	var record recpb.Record
 	if err := proto.Unmarshal(recordBytes, &record); err != nil {
 		return nil, errors.New("failed to unmarshal dht record from datastore")
 	}
 	return &record, nil
 }
 
-func putRoutingRecord(ds datastore.Datastore, k key.Key, value *dhtpb.Record) error {
+func putRoutingRecord(ds datastore.Datastore, k key.Key, value *recpb.Record) error {
 	data, err := proto.Marshal(value)
 	if err != nil {
 		return err
@@ -204,7 +205,7 @@ func providerKey(k key.Key) datastore.Key {
 	return datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
 }
 
-func verify(ps pstore.Peerstore, r *dhtpb.Record) error {
+func verify(ps pstore.Peerstore, r *recpb.Record) error {
 	v := make(record.Validator)
 	v["pk"] = record.PublicKeyValidator
 	p := peer.ID(r.GetAuthor())

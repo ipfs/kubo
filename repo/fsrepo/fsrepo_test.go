@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	datastore "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/assert"
-	datastore "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 )
 
 // swap arg order

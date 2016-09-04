@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"testing"
 
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
-	key "github.com/ipfs/go-key"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
+	key "github.com/ipfs/go-key"
 )
 
 func TestAppendWanted(t *testing.T) {

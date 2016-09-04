@@ -4,11 +4,11 @@ import (
 	"errors"
 	"strings"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	context "golang.org/x/net/context"
 
-	key "github.com/ipfs/go-key"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	key "github.com/ipfs/go-key"
 )
 
 // ErrNoNamesys is an explicit error for when an IPFS node doesn't

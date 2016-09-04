@@ -3,9 +3,9 @@ package chunk
 import (
 	"bytes"
 	"fmt"
+	"github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-key"
-	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"io"
 	"testing"
 )

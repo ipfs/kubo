@@ -3,7 +3,7 @@ package unixfs
 import (
 	"testing"
 
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
 
 	pb "github.com/ipfs/go-ipfs/unixfs/pb"
 )

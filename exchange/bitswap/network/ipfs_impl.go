@@ -3,18 +3,18 @@ package network
 import (
 	"io"
 
-	key "github.com/ipfs/go-key"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+	key "github.com/ipfs/go-key"
 	routing "github.com/libp2p/go-libp2p-routing"
 
-	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
-	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	host "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/host"
-	inet "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/net"
+	ggio "github.com/gogo/protobuf/io"
+	peer "github.com/ipfs/go-libp2p-peer"
+	pstore "github.com/ipfs/go-libp2p-peerstore"
+	logging "github.com/ipfs/go-log"
+	ma "github.com/jbenet/go-multiaddr"
+	host "github.com/libp2p/go-libp2p/p2p/host"
+	inet "github.com/libp2p/go-libp2p/p2p/net"
+	context "golang.org/x/net/context"
 )
 
 var log = logging.Logger("bitswap_network")

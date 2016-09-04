@@ -1,11 +1,11 @@
 package blockstore
 
 import (
+	lru "github.com/hashicorp/golang-lru"
+	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-key"
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	context "golang.org/x/net/context"
 )
 
 type arccache struct {

@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
-	key "github.com/ipfs/go-key"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
+	key "github.com/ipfs/go-key"
+	peer "github.com/ipfs/go-libp2p-peer"
 )
 
 // keySet is just a convenient alias for maps of keys, where we only care

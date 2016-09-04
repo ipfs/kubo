@@ -6,7 +6,7 @@ package syscallx
 // the right stuff in golang.org/x/sys/unix.
 
 import (
-	"gx/ipfs/QmXPKMT5cT8ajqamSD1YaeEpfeaHvs9AU4MQzte4Bkr6V4/sys/unix"
+	"golang.org/x/sys/unix"
 )
 
 func Getxattr(path string, attr string, dest []byte) (sz int, err error) {
