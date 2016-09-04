@@ -43,6 +43,7 @@ ADVANCED COMMANDS
   dns           Resolve DNS links
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
+  exp           Experimental commands
 
 NETWORK COMMANDS
   id            Show info about ipfs peers
@@ -89,6 +90,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
 	"dns":       DNSCmd,
+	"exp":       ExpCmd,
 	"files":     files.FilesCmd,
 	"get":       GetCmd,
 	"id":        IDCmd,
@@ -110,7 +112,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"update":    ExternalBinary(),
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
-	"corenet":   CorenetCmd,
 }
 
 // RootRO is the readonly version of Root

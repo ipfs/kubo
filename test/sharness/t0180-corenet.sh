@@ -36,13 +36,13 @@ test_expect_success 'start netcat listeners' '
 '
 
 test_expect_success 'start ipfs listener' '
-  ipfsi 0 corenet listen /ip4/127.0.0.1/tcp/10001 corenet-test &
+  ipfsi 0 exp corenet listen /ip4/127.0.0.1/tcp/10001 corenet-test &
   LISTENER_PID_PID=$!
   kill -0 $LISTENER_PID_PID
 '
 
 test_expect_success 'Dial for server to client' '
-  ipfsi 1 corenet dial $PEERID_0 /ip4/127.0.0.1/tcp/10002 corenet-test
+  ipfsi 1 exp corenet dial $PEERID_0 /ip4/127.0.0.1/tcp/10002 corenet-test
 '
 
 
@@ -51,7 +51,7 @@ test_expect_success 'wait for server to client test' '
   wait $NC_SERVER_PID $NC_CLIENT_PID
 '
 
-test_expect_success 'server to client' '
+test_expect_success 'server to client output looks good' '
   test_cmp client.out corenet0.bin
 '
 
@@ -65,13 +65,13 @@ test_expect_success 'start netcat listeners' '
 '
 
 test_expect_success 'start ipfs listener' '
-  ipfsi 0 corenet listen /ip4/127.0.0.1/tcp/10001 corenet-test &
+  ipfsi 0 exp corenet listen /ip4/127.0.0.1/tcp/10001 corenet-test &
   LISTENER_PID_PID=$!
   kill -0 $LISTENER_PID_PID
 '
 
 test_expect_success 'Dial for client to server' '
-  ipfsi 1 corenet dial $PEERID_0 /ip4/127.0.0.1/tcp/10002 corenet-test
+  ipfsi 1 exp corenet dial $PEERID_0 /ip4/127.0.0.1/tcp/10002 corenet-test
 '
 
 test_expect_success 'wait for client to server test' '
@@ -79,7 +79,7 @@ test_expect_success 'wait for client to server test' '
   wait $NC_SERVER_PID $NC_CLIENT_PID
 '
 
-test_expect_success 'client to server' '
+test_expect_success 'client to server output looks good' '
   test_cmp server.out corenet1.bin
 '
 
