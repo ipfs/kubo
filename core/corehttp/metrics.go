@@ -4,9 +4,9 @@ import (
 	"net"
 	"net/http"
 
-	prometheus "gx/ipfs/QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3/client_golang/prometheus"
-
 	core "github.com/ipfs/go-ipfs/core"
+
+	prometheus "gx/ipfs/QmR3KwhXCRLTNZB59vELb2HhEWrGy9nuychepxFtj3wWYa/client_golang/prometheus"
 )
 
 // This adds the scraping endpoint which Prometheus uses to fetch metrics.
