@@ -3,6 +3,7 @@ package blockstore
 import (
 	"errors"
 
+	"gx/ipfs/QmVWBQQAz4Cd2XgW9KgQoqXXrU8KJoCb9WCrhWRFVBKvFe/go-metrics-interface"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -33,11 +34,14 @@ func CachedBlockstore(bs GCBlockstore,
 	if opts.HasBloomFilterSize != 0 && opts.HasBloomFilterHashes == 0 {
 		return nil, errors.New("bloom filter hash count can't be 0 when there is size set")
 	}
+
+	ctx = metrics.CtxSubScope(ctx, "bs.cache")
+
 	if opts.HasBloomFilterSize != 0 {
 		cbs, err = bloomCached(cbs, ctx, opts.HasBloomFilterSize, opts.HasBloomFilterHashes)
 	}
 	if opts.HasARCCacheSize > 0 {
-		cbs, err = arcCached(cbs, opts.HasARCCacheSize)
+		cbs, err = newARCCachedBS(cbs, ctx, opts.HasARCCacheSize)
 	}
 
 	return cbs, err
