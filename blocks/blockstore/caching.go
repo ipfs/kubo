@@ -8,16 +8,16 @@ import (
 
 // Next to each option is it aproximate memory usage per unit
 type CacheOpts struct {
-	HasBloomFilterSize   int // 1 bit
+	HasBloomFilterSize   int // 1 byte
 	HasBloomFilterHashes int // No size, 7 is usually best, consult bloom papers
 	HasARCCacheSize      int // 32 bytes
 }
 
 func DefaultCacheOpts() CacheOpts {
 	return CacheOpts{
-		HasBloomFilterSize:   512 * 8 * 1024,
+		HasBloomFilterSize:   512 << 10,
 		HasBloomFilterHashes: 7,
-		HasARCCacheSize:      64 * 1024,
+		HasARCCacheSize:      64 << 10,
 	}
 }
 
@@ -34,7 +34,8 @@ func CachedBlockstore(bs GCBlockstore,
 		return nil, errors.New("bloom filter hash count can't be 0 when there is size set")
 	}
 	if opts.HasBloomFilterSize != 0 {
-		cbs, err = bloomCached(cbs, ctx, opts.HasBloomFilterSize, opts.HasBloomFilterHashes)
+		// *8 because of bytes to bits conversion
+		cbs, err = bloomCached(cbs, ctx, opts.HasBloomFilterSize*8, opts.HasBloomFilterHashes)
 	}
 	if opts.HasARCCacheSize > 0 {
 		cbs, err = arcCached(cbs, opts.HasARCCacheSize)
