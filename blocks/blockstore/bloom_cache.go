@@ -2,6 +2,7 @@ package blockstore
 
 import (
 	"sync/atomic"
+	"time"
 
 	"github.com/ipfs/go-ipfs/blocks"
 	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
@@ -23,9 +24,25 @@ func bloomCached(bs Blockstore, ctx context.Context, bloomSize, hashCount int) (
 		"Number of cache hits in bloom cache").Counter()
 	bc.total = metrics.NewCtx(ctx, "bloom_total",
 		"Total number of requests to bloom cache").Counter()
+
+	fill := metrics.NewCtx(ctx, "bloom_fill_ratio",
+		"Ratio of bloom filter fullnes, (updated once a minute)").Gauge()
+
 	bc.Invalidate()
 	go bc.Rebuild(ctx)
-
+	go func() {
+		<-bc.rebuildChan
+		t := time.NewTicker(1 * time.Minute)
+		for {
+			select {
+			case <-ctx.Done():
+				t.Stop()
+				return
+			case <-t.C:
+				fill.Set(bc.bloom.FillRatio())
+			}
+		}
+	}()
 	return bc, nil
 }
 
