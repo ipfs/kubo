@@ -38,7 +38,7 @@ func CachedBlockstore(bs GCBlockstore,
 	ctx = metrics.CtxSubScope(ctx, "bs.cache")
 
 	if opts.HasARCCacheSize > 0 {
-		cbs, err = newARCCachedBS(cbs, ctx, opts.HasARCCacheSize)
+		cbs, err = newARCCachedBS(ctx, cbs, opts.HasARCCacheSize)
 	}
 	if opts.HasBloomFilterSize != 0 {
 		cbs, err = bloomCached(cbs, ctx, opts.HasBloomFilterSize, opts.HasBloomFilterHashes)
