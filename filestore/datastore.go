@@ -1,21 +1,22 @@
 package filestore
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	//"runtime/debug"
-	//"bytes"
 	//"time"
 
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	"gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	dsq "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb"
@@ -27,22 +28,24 @@ var log = logging.Logger("filestore")
 var Logger = log
 
 type VerifyWhen int
+
 const (
 	VerifyNever VerifyWhen = iota
 	VerifyIfChanged
-	VerifyAlways   
+	VerifyAlways
 )
 
 type Datastore struct {
-	db     *leveldb.DB
-	verify VerifyWhen
+	db         *leveldb.DB
+	verify     VerifyWhen
+	updateLock sync.Mutex
 }
 
 func (d *Datastore) DB() *leveldb.DB {
 	return d.db
 }
 
-func (d *Datastore) Update() bool {
+func (d *Datastore) updateOnGet() bool {
 	return d.verify == VerifyIfChanged
 }
 
@@ -59,13 +62,13 @@ func Init(path string) error {
 
 func New(path string, verify VerifyWhen) (*Datastore, error) {
 	db, err := leveldb.OpenFile(path, &opt.Options{
-		Compression: opt.NoCompression,
+		Compression:    opt.NoCompression,
 		ErrorIfMissing: true,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &Datastore{db, verify}, nil
+	return &Datastore{db: db, verify: verify}, nil
 }
 
 func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
@@ -75,7 +78,8 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 	}
 
 	if dataObj.FilePath == "" {
-		return d.PutDirect(key, dataObj)
+		_, err := d.Update(key, nil, dataObj)
+		return err
 	}
 
 	// Make sure the filename is an absolute path
@@ -102,46 +106,76 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 		}
 	}
 
-	return d.PutDirect(key, dataObj)
+	_, err = d.Update(key, nil, dataObj)
+	return err
 }
 
-func (d *Datastore) PutDirect(key ds.Key, dataObj *DataObj) (err error) {
-	data, err := dataObj.Marshal()
-	if err != nil {
-		return err
-	}
+// Prevent race condations up update a key while holding a lock, if
+// origData is defined and the current value in datastore is not the
+// same return false and abort the update, otherwise update the key if
+// newData is defined, if it is nil than delete the key.  If an error
+// is returned than the return value is undefined.
+func (d *Datastore) Update(key ds.Key, origData []byte, newData *DataObj) (bool, error) {
+	d.updateLock.Lock()
+	defer d.updateLock.Unlock()
 	keyBytes := key.Bytes()
-	log.Debugf("adding block %s\n", b58.Encode(keyBytes[1:]))
-	return d.db.Put(keyBytes, data, nil)
+	if origData != nil {
+		val, err := d.db.Get(keyBytes, nil)
+		if err != nil {
+			return false, err
+		}
+		if !bytes.Equal(val, origData) {
+			// FIXME: This should really be at the Notice
+			// level if that level ever becomes available
+			log.Debugf("skipping update of block %s\n", b58.Encode(keyBytes[1:]))
+			
+			return false, nil
+		}
+	}
+	if newData == nil {
+		log.Debugf("deleting block %s\n", b58.Encode(keyBytes[1:]))
+		return true, d.db.Delete(keyBytes, nil)
+	} else {
+		data, err := newData.Marshal()
+		if err != nil {
+			return false, err
+		}
+		if origData == nil {
+			log.Debugf("adding block %s\n", b58.Encode(keyBytes[1:]))
+		} else {
+			log.Debugf("updating block %s\n", b58.Encode(keyBytes[1:]))
+		}
+		return true, d.db.Put(keyBytes, data, nil)
+	}
 }
 
 func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
-	val, err := d.GetDirect(key)
+	data, val, err := d.GetDirect(key)
 	if err != nil {
 		return nil, err
 	}
-	return d.GetData(key, val, d.verify, true)
+	return d.GetData(key, data, val, d.verify, true)
 }
 
 // Get the key as a DataObj
-func (d *Datastore) GetDirect(key ds.Key) (*DataObj, error) {
+func (d *Datastore) GetDirect(key ds.Key) ([]byte, *DataObj, error) {
 	val, err := d.db.Get(key.Bytes(), nil)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
-			return nil, ds.ErrNotFound
+			return nil, nil, ds.ErrNotFound
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	return Decode(val)
 }
 
-func Decode(data []byte) (*DataObj, error) {
+func Decode(data []byte) ([]byte, *DataObj, error) {
 	val := new(DataObj)
 	err := val.Unmarshal(data)
 	if err != nil {
-		return nil, err
+		return data, nil, err
 	}
-	return val, nil
+	return data, val, nil
 }
 
 type InvalidBlock struct{}
@@ -170,7 +204,7 @@ func (d *Datastore) VerifyFast(key ds.Key, val *DataObj) error {
 	}
 
 	// the file has shrunk, the block invalid
-	if val.Offset + val.Size > uint64(fileInfo.Size()) {
+	if val.Offset+val.Size > uint64(fileInfo.Size()) {
 		return InvalidBlock{}
 	}
 
@@ -185,7 +219,7 @@ func (d *Datastore) VerifyFast(key ds.Key, val *DataObj) error {
 }
 
 // Get the orignal data out of the DataObj
-func (d *Datastore) GetData(key ds.Key, val *DataObj, verify VerifyWhen, update bool) ([]byte, error) {
+func (d *Datastore) GetData(key ds.Key, origData []byte, val *DataObj, verify VerifyWhen, update bool) ([]byte, error) {
 	if val == nil {
 		return nil, errors.New("Nil DataObj")
 	}
@@ -197,10 +231,10 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify VerifyWhen, update 
 	}
 
 	if update {
-		update = d.Update()
+		update = d.updateOnGet()
 	}
-	
-	invalid := val.Invalid()		
+
+	invalid := val.Invalid()
 
 	// Open the file and seek to the correct position
 	file, err := os.Open(val.FilePath)
@@ -224,7 +258,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify VerifyWhen, update 
 		reconstructOk = false
 		invalid = true
 	}
-	
+
 	// get the new modtime if needed
 	modtime := val.ModTime
 	if update || verify == VerifyIfChanged {
@@ -243,13 +277,13 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify VerifyWhen, update 
 	}
 
 	// Update the block if the metadata has changed
-	if update && (invalid != val.Invalid() || modtime != val.ModTime) {
+	if update && (invalid != val.Invalid() || modtime != val.ModTime) && origData != nil {
 		log.Debugf("updating block %s\n", asMHash(key))
 		newVal := *val
 		newVal.SetInvalid(invalid)
 		newVal.ModTime = modtime
 		// ignore errors as they are nonfatal
-		_ = d.PutDirect(key, &newVal)
+		_,_ = d.Update(key, origData, &newVal)
 	}
 
 	// Finally return the result
@@ -261,7 +295,7 @@ func (d *Datastore) GetData(key ds.Key, val *DataObj, verify VerifyWhen, update 
 	}
 }
 
-func asMHash(dsKey ds.Key) string{
+func asMHash(dsKey ds.Key) string {
 	key, err := k.KeyFromDsKey(dsKey)
 	if err != nil {
 		return "??????????????????????????????????????????????"
@@ -278,14 +312,14 @@ func (d *Datastore) Delete(key ds.Key) error {
 	// exist (see https://github.com/syndtr/goleveldb/issues/109),
 	// so check that the key exists first and if not return an
 	// error
-	keyBytes := key.Bytes()
-	exists, err := d.db.Has(keyBytes, nil)
+	exists, err := d.db.Has(key.Bytes(), nil)
 	if !exists {
 		return ds.ErrNotFound
 	} else if err != nil {
 		return err
 	}
-	return d.db.Delete(keyBytes, nil)
+	_, err = d.Update(key, nil, nil)
+	return err
 }
 
 func (d *Datastore) Query(q query.Query) (query.Results, error) {

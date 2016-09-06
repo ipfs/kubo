@@ -105,11 +105,12 @@ func statusStr(status int) string {
 
 type ListRes struct {
 	Key ds.Key
+	OrigData []byte
 	*DataObj
 	Status int
 }
 
-var EmptyListRes = ListRes{ds.NewKey(""), nil, 0}
+var EmptyListRes = ListRes{ds.NewKey(""), nil, nil, 0}
 
 func (r *ListRes) What() string {
 	if r.WholeFile() {
@@ -160,7 +161,7 @@ func ListKeys(d *Datastore) (<-chan ListRes, error) {
 	go func() {
 		defer close(out)
 		for iter.Next() {
-			out <- ListRes{ds.NewKey(string(iter.Key())), nil, 0}
+			out <- ListRes{ds.NewKey(string(iter.Key())), nil, nil, 0}
 		}
 	}()
 	return out, nil
@@ -175,8 +176,8 @@ func List(d *Datastore, filter func(ListRes) bool) (<-chan ListRes, error) {
 		defer close(out)
 		for iter.Next() {
 			key := ds.NewKey(string(iter.Key()))
-			val, _ := Decode(iter.Value())
-			res := ListRes{key, val, 0}
+			_, val, _ := Decode(iter.Value())
+			res := ListRes{key, iter.Value(), val, 0}
 			keep := filter(res)
 			if keep {
 				out <- res
@@ -201,16 +202,16 @@ func ListByKey(fs *Datastore, keys []k.Key) (<-chan ListRes, error) {
 		defer close(out)
 		for _, key := range keys {
 			dsKey := key.DsKey()
-			dataObj, err := fs.GetDirect(dsKey)
+			origData, dataObj, err := fs.GetDirect(dsKey)
 			if err == nil {
-				out <- ListRes{dsKey, dataObj, 0}
+				out <- ListRes{dsKey, origData, dataObj, 0}
 			}
 		}
 	}()
 	return out, nil
 }
 
-func verify(d *Datastore, key ds.Key, val *DataObj, level VerifyLevel) int {
+func verify(d *Datastore, key ds.Key, origData []byte, val *DataObj, level VerifyLevel) int {
 	var err error
 	switch level {
 	case CheckExists:
@@ -218,9 +219,9 @@ func verify(d *Datastore, key ds.Key, val *DataObj, level VerifyLevel) int {
 	case CheckFast:
 		err = d.VerifyFast(key, val)
 	case CheckIfChanged:
-		_, err = d.GetData(key, val, VerifyIfChanged, true)
+		_, err = d.GetData(key, origData, val, VerifyIfChanged, true)
 	case CheckAlways:
-		_, err = d.GetData(key, val, VerifyAlways, true)
+		_, err = d.GetData(key, origData, val, VerifyAlways, true)
 	default:
 		return StatusError
 	}
@@ -237,7 +238,7 @@ func verify(d *Datastore, key ds.Key, val *DataObj, level VerifyLevel) int {
 }
 
 func fsGetNode(dsKey ds.Key, fs *Datastore) (*node.Node, *DataObj, error) {
-	dataObj, err := fs.GetDirect(dsKey)
+	_, dataObj, err := fs.GetDirect(dsKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -252,31 +253,31 @@ func fsGetNode(dsKey ds.Key, fs *Datastore) (*node.Node, *DataObj, error) {
 	}
 }
 
-func getNode(dsKey ds.Key, key k.Key, fs *Datastore, bs b.Blockstore) (*node.Node, *DataObj, int) {
-	dataObj, err := fs.GetDirect(dsKey)
+func getNode(dsKey ds.Key, key k.Key, fs *Datastore, bs b.Blockstore) (*node.Node, []byte, *DataObj, int) {
+	origData, dataObj, err := fs.GetDirect(dsKey)
 	if err == nil {
 		if dataObj.NoBlockData() {
-			return nil, dataObj, StatusUnchecked
+			return nil, origData, dataObj, StatusUnchecked
 		} else {
 			node, err := node.DecodeProtobuf(dataObj.Data)
 			if err != nil {
 				Logger.Errorf("%s: %v", key, err)
-				return nil, nil, StatusCorrupt
+				return nil, origData, nil, StatusCorrupt
 			}
-			return node, dataObj, StatusOk
+			return node, origData, dataObj, StatusOk
 		}
 	}
 	block, err2 := bs.Get(key)
 	if err == ds.ErrNotFound && err2 == b.ErrNotFound {
-		return nil, nil, StatusKeyNotFound
+		return nil, nil, nil, StatusKeyNotFound
 	} else if err2 != nil {
 		Logger.Errorf("%s: %v", key, err2)
-		return nil, nil, StatusError
+		return nil, nil, nil, StatusError
 	}
 	node, err := node.DecodeProtobuf(block.Data())
 	if err != nil {
 		Logger.Errorf("%s: %v", key, err)
-		return nil, nil, StatusCorrupt
+		return nil, nil, nil, StatusCorrupt
 	}
-	return node, nil, StatusFound
+	return node, nil, nil, StatusFound
 }

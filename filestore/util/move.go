@@ -111,11 +111,11 @@ func (p *params) convertToFile(key bk.Key, root bool, offset uint64) (uint64, er
 		}
 		dataObj.Flags |= NoBlockData
 		dataObj.Data = altData
-		p.fs.PutDirect(key.DsKey(), dataObj)
+		p.fs.Update(key.DsKey(), nil, dataObj)
 	} else {
 		dataObj.Flags |= Internal
 		dataObj.Data = block.Data()
-		p.fs.PutDirect(key.DsKey(), dataObj)
+		p.fs.Update(key.DsKey(), nil, dataObj)
 		n, err := dag.DecodeProtobuf(block.Data())
 		if err != nil {
 			return 0, err

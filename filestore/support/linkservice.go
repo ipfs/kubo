@@ -17,7 +17,7 @@ type linkservice struct {
 
 func (ls *linkservice) Get(key key.Key) ([]*dag.Link, error) {
 	dsKey := key.DsKey()
-	dataObj, err := ls.fs.GetDirect(dsKey)
+	_, dataObj, err := ls.fs.GetDirect(dsKey)
 	if err == ds.ErrNotFound {
 		return nil, dag.ErrNotFound
 	} else if err != nil {

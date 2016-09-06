@@ -26,7 +26,7 @@ func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) 
 	go func() {
 		defer close(out)
 		for res := range in {
-			res.Status = verify(fs, res.Key, res.DataObj, verifyLevel)
+			res.Status = verify(fs, res.Key, res.OrigData, res.DataObj, verifyLevel)
 			if verbose >= 3 || OfInterest(res.Status) {
 				out <- res
 			}
@@ -58,22 +58,22 @@ func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, ver
 
 func verifyKey(key k.Key, fs *Datastore, bs b.Blockstore, verifyLevel VerifyLevel) ListRes {
 	dsKey := key.DsKey()
-	dataObj, err := fs.GetDirect(dsKey)
+	origData, dataObj, err := fs.GetDirect(dsKey)
 	if err == nil && dataObj.NoBlockData() {
-		res := ListRes{dsKey, dataObj, 0}
-		res.Status = verify(fs, dsKey, dataObj, verifyLevel)
+		res := ListRes{dsKey, origData, dataObj, 0}
+		res.Status = verify(fs, dsKey, origData, dataObj, verifyLevel)
 		return res
 	} else if err == nil {
-		return ListRes{dsKey, dataObj, StatusUnchecked}
+		return ListRes{dsKey, origData, dataObj, StatusUnchecked}
 	}
 	found, _ := bs.Has(key)
 	if found {
-		return ListRes{dsKey, nil, StatusFound}
+		return ListRes{dsKey, nil, nil, StatusFound}
 	} else if err == ds.ErrNotFound && !found {
-		return ListRes{dsKey, nil, StatusKeyNotFound}
+		return ListRes{dsKey, nil, nil, StatusKeyNotFound}
 	} else {
 		Logger.Errorf("%s: verifyKey: %v", key, err)
-		return ListRes{dsKey, nil, StatusError}
+		return ListRes{dsKey, nil, nil, StatusError}
 	}
 }
 
@@ -139,15 +139,15 @@ func (p *verifyParams) verifyKeys(keys []k.Key) {
 			continue
 		}
 		dsKey := key.DsKey()
-		dagNode, dataObj, r := p.get(dsKey)
+		dagNode, origData, dataObj, r := p.get(dsKey)
 		if dataObj == nil || AnError(r) {
 			/* nothing to do */
 		} else if dataObj.Internal() {
 			r = p.verifyNode(dagNode)
 		} else {
-			r = p.verifyLeaf(dsKey, dataObj)
+			r = p.verifyLeaf(dsKey, origData, dataObj)
 		}
-		res := ListRes{dsKey, dataObj, r}
+		res := ListRes{dsKey, origData, dataObj, r}
 		res.Status = p.checkIfAppended(res)
 		if p.verboseLevel > 1 || OfInterest(res.Status) {
 			p.out <- res
@@ -160,7 +160,7 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 	p.seen = make(map[string]int)
 	unsafeToCont := false
 	for res := range ch {
-		dagNode, dataObj, r := p.get(res.Key)
+		dagNode, origData, dataObj, r := p.get(res.Key)
 		if dataObj == nil {
 			Logger.Errorf("%s: verify: no DataObj", res.MHash())
 			r = StatusError
@@ -171,7 +171,7 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 		} else if res.Internal() && res.WholeFile() {
 			r = p.verifyNode(dagNode)
 		} else if res.WholeFile() {
-			r = p.verifyLeaf(res.Key, res.DataObj)
+			r = p.verifyLeaf(res.Key, origData, res.DataObj)
 		} else {
 			p.setStatus(res.Key, 0)
 			continue
@@ -198,12 +198,12 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 		}
 		res := ListRes{Key: ds.NewKey(key)}
 		var err error
-		res.DataObj, err = p.fs.GetDirect(res.Key)
+		res.OrigData, res.DataObj, err = p.fs.GetDirect(res.Key)
 		if err != nil {
 			Logger.Errorf("%s: verify: %v", res.MHash(), err)
 			res.Status = StatusError
 		} else if res.NoBlockData() {
-			res.Status = p.verifyLeaf(res.Key, res.DataObj)
+			res.Status = p.verifyLeaf(res.Key, res.OrigData, res.DataObj)
 			if !AnError(res.Status) {
 				res.Status = StatusOrphan
 			}
@@ -236,16 +236,16 @@ func (p *verifyParams) verifyNode(n *node.Node) int {
 	complete := true
 	for _, link := range n.Links {
 		key := k.Key(link.Hash).DsKey()
-		dagNode, dataObj, r := p.get(key)
+		dagNode, origData, dataObj, r := p.get(key)
 		if AnError(r) || (dagNode != nil && len(dagNode.Links) == 0) {
 			/* nothing to do */
 		} else if dagNode != nil {
 			r = p.verifyNode(dagNode)
 		} else {
-			r = p.verifyLeaf(key, dataObj)
+			r = p.verifyLeaf(key, origData, dataObj)
 		}
 		p.setStatus(key, r)
-		res := ListRes{key, dataObj, r}
+		res := ListRes{key, origData, dataObj, r}
 		if p.verboseLevel >= 7 || (p.verboseLevel >= 4 && OfInterest(r)) {
 			p.out <- res
 		}
@@ -264,15 +264,15 @@ func (p *verifyParams) verifyNode(n *node.Node) int {
 	}
 }
 
-func (p *verifyParams) verifyLeaf(key ds.Key, dataObj *DataObj) int {
-	return verify(p.fs, key, dataObj, p.verifyLevel)
+func (p *verifyParams) verifyLeaf(key ds.Key, origData []byte, dataObj *DataObj) int {
+	return verify(p.fs, key, origData, dataObj, p.verifyLevel)
 }
 
-func (p *verifyParams) get(dsKey ds.Key) (*node.Node, *DataObj, int) {
+func (p *verifyParams) get(dsKey ds.Key) (*node.Node, []byte, *DataObj, int) {
 	key, err := k.KeyFromDsKey(dsKey)
 	if err != nil {
 		Logger.Errorf("%s: get: %v", key, err)
-		return nil, nil, StatusCorrupt
+		return nil, nil, nil, StatusCorrupt
 	}
 	return getNode(dsKey, key, p.fs, p.node.Blockstore)
 }
