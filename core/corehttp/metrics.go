@@ -53,6 +53,9 @@ func (c IpfsNodeCollector) Collect(ch chan<- prometheus.Metric) {
 
 func (c IpfsNodeCollector) PeersTotalValues() map[string]float64 {
 	vals := make(map[string]float64)
+	if c.Node.PeerHost == nil {
+		return vals
+	}
 	for _, conn := range c.Node.PeerHost.Network().Conns() {
 		tr := ""
 		for _, proto := range conn.RemoteMultiaddr().Protocols() {
