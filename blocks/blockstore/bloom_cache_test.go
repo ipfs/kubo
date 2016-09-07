@@ -28,6 +28,39 @@ func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) 
 	}
 }
 
+func TestPutManyAddsToBloom(t *testing.T) {
+	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
+
+	ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+	cachedbs, err := testBloomCached(bs, ctx)
+
+	select {
+	case <-cachedbs.rebuildChan:
+	case <-ctx.Done():
+		t.Fatalf("Timeout wating for rebuild: %d", cachedbs.bloom.ElementsAdded())
+	}
+
+	block1 := blocks.NewBlock([]byte("foo"))
+	block2 := blocks.NewBlock([]byte("bar"))
+
+	cachedbs.PutMany([]blocks.Block{block1})
+	has, err := cachedbs.Has(block1.Key())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if has == false {
+		t.Fatal("added block is reported missing")
+	}
+
+	has, err = cachedbs.Has(block2.Key())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if has == true {
+		t.Fatal("not added block is reported to be in blockstore")
+	}
+}
+
 func TestReturnsErrorWhenSizeNegative(t *testing.T) {
 	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	_, err := bloomCached(bs, context.TODO(), -1, 1)

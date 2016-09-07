@@ -3,6 +3,7 @@ package blockstore
 import (
 	"github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
+
 	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
@@ -95,15 +96,17 @@ func (b *arccache) Put(bl blocks.Block) error {
 func (b *arccache) PutMany(bs []blocks.Block) error {
 	var good []blocks.Block
 	for _, block := range bs {
+		// call put on block if result is inconclusive or we are sure that
+		// the block isn't in storage
 		if has, ok := b.hasCached(block.Key()); !ok || (ok && !has) {
 			good = append(good, block)
 		}
 	}
-	err := b.blockstore.PutMany(bs)
+	err := b.blockstore.PutMany(good)
 	if err != nil {
 		return err
 	}
-	for _, block := range bs {
+	for _, block := range good {
 		b.arc.Add(block.Key(), true)
 	}
 	return nil
