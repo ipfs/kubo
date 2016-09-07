@@ -119,6 +119,12 @@ type NodeOption struct {
 	Err  error
 }
 
+// TODO: this is a mid-term hack to get around the fact that blocks don't
+// have full CIDs and potentially (though we don't know of any such scenario)
+// may have the same block with multiple different encodings.
+// We have discussed the possiblity of using CIDs as datastore keys
+// in the future. This would be a much larger changeset than i want to make
+// right now.
 func cidsToKeyMapping(cids []*cid.Cid) map[key.Key]*cid.Cid {
 	mapping := make(map[key.Key]*cid.Cid)
 	for _, c := range cids {

@@ -119,7 +119,6 @@ func (s *BlockService) AddObjects(bs []Object) ([]*cid.Cid, error) {
 func (s *BlockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
 	log.Debugf("BlockService GetBlock: '%s'", c)
 
-	// TODO: blockstore shouldnt care about Cids, need an easier way to strip the abstraction
 	block, err := s.Blockstore.Get(key.Key(c.Hash()))
 	if err == nil {
 		return block, nil
@@ -199,12 +198,4 @@ func (s *BlockService) DeleteObject(o Object) error {
 func (s *BlockService) Close() error {
 	log.Debug("blockservice is shutting down...")
 	return s.Exchange.Close()
-}
-
-type RawBlockObject struct {
-	blocks.Block
-}
-
-func (rob *RawBlockObject) Cid() *cid.Cid {
-	return cid.NewCidV0(rob.Block.Multihash())
 }
