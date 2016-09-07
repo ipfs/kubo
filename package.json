@@ -242,15 +242,15 @@
     },
     {
       "author": "ipfs",
-      "hash": "QmWTHakXvEmW44Muyy1wGGzoWA4tntuuvd8BhBbmLYBzSx",
+      "hash": "QmSd7rE8qjihopcQpg7VXzcPX8X4FJ5XkXVkUQggmmWyvG",
       "name": "go-metrics-prometheus",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "ipfs",
-      "hash": "QmVWBQQAz4Cd2XgW9KgQoqXXrU8KJoCb9WCrhWRFVBKvFe",
+      "hash": "QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5",
       "name": "go-metrics-interface",
-      "version": "0.1.1"
+      "version": "0.1.2"
     }
   ],
   "gxVersion": "0.4.0",

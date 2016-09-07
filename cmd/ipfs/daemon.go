@@ -28,8 +28,8 @@ import (
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
 
+	_ "gx/ipfs/QmSd7rE8qjihopcQpg7VXzcPX8X4FJ5XkXVkUQggmmWyvG/go-metrics-prometheus"
 	_ "gx/ipfs/QmV3NSS3A1kX5s28r7yLczhDsXzkgo65cqRgKFXYunWZmD/metrics/runtime"
-	_ "gx/ipfs/QmWTHakXvEmW44Muyy1wGGzoWA4tntuuvd8BhBbmLYBzSx/go-metrics-prometheus"
 )
 
 const (
