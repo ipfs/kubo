@@ -25,24 +25,26 @@ func bloomCached(bs Blockstore, ctx context.Context, bloomSize, hashCount int) (
 	bc.total = metrics.NewCtx(ctx, "bloom_total",
 		"Total number of requests to bloom cache").Counter()
 
-	fill := metrics.NewCtx(ctx, "bloom_fill_ratio",
-		"Ratio of bloom filter fullnes, (updated once a minute)").Gauge()
-
 	bc.Invalidate()
 	go bc.Rebuild(ctx)
-	go func() {
-		<-bc.rebuildChan
-		t := time.NewTicker(1 * time.Minute)
-		for {
-			select {
-			case <-ctx.Done():
-				t.Stop()
-				return
-			case <-t.C:
-				fill.Set(bc.bloom.FillRatio())
+	if metrics.Active() {
+		go func() {
+			fill := metrics.NewCtx(ctx, "bloom_fill_ratio",
+				"Ratio of bloom filter fullnes, (updated once a minute)").Gauge()
+
+			<-bc.rebuildChan
+			t := time.NewTicker(1 * time.Minute)
+			for {
+				select {
+				case <-ctx.Done():
+					t.Stop()
+					return
+				case <-t.C:
+					fill.Set(bc.bloom.FillRatio())
+				}
 			}
-		}
-	}()
+		}()
+	}
 	return bc, nil
 }
 
