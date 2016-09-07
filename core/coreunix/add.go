@@ -349,9 +349,13 @@ func (adder *Adder) addNode(node *dag.Node, path string) error {
 
 // Add the given file while respecting the adder.
 func (adder *Adder) AddFile(file files.File) error {
-	adder.unlocker = adder.blockstore.PinLock()
+	if adder.Pin {
+		adder.unlocker = adder.blockstore.PinLock()
+	}
 	defer func() {
-		adder.unlocker.Unlock()
+		if adder.unlocker != nil {
+			adder.unlocker.Unlock()
+		}
 	}()
 
 	return adder.addFile(file)
@@ -432,7 +436,7 @@ func (adder *Adder) addDir(dir files.File) error {
 }
 
 func (adder *Adder) maybePauseForGC() error {
-	if adder.blockstore.GCRequested() {
+	if adder.unlocker != nil && adder.blockstore.GCRequested() {
 		err := adder.PinRoot()
 		if err != nil {
 			return err
