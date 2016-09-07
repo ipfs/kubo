@@ -9,7 +9,7 @@ binpaths="/usr/local/bin /usr/bin"
 
 for binpath in $binpaths; do
   if [ -d "$binpath" ]; then
-    mv "$bin" "$binpath/$bin"
+    mv -t "$binpath" "$bin"
     echo "installed $binpath/$bin"
     exit 0
   fi
