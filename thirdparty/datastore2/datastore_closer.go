@@ -3,7 +3,8 @@ package datastore2
 import (
 	"io"
 
-	"gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
+	"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
 type ThreadSafeDatastoreCloser interface {
@@ -32,4 +33,9 @@ func (w *datastoreCloserWrapper) Batch() (datastore.Batch, error) {
 	}
 
 	return bds.Batch()
+}
+
+// TODO(geoah) Move to ./testutils or somewhere else
+func ThreadSafeCloserMapDatastore() ThreadSafeDatastoreCloser {
+	return CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore()))
 }
