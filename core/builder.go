@@ -177,7 +177,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	if rcfg.Datastore.HashOnRead {
-		bs.RuntimeHashing(true)
+		bs.HashOnRead(true)
 	}
 
 	if cfg.Online {
