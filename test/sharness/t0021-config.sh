@@ -72,11 +72,17 @@ test_config_cmd() {
     grep "\"beep3\": false," actual
   '
 
-  test_expect_success "'ipfs config replace' works" '
+  test_expect_success "setup for config replace test" '
     cp "$IPFS_PATH/config" newconfig.json &&
 	sed -i -e /PrivKey/d -e s/10GB/11GB/ newconfig.json &&
-	sed -i '"'"'/PeerID/ { s/,$// } '"'"' newconfig.json &&
-	ipfs config replace - < newconfig.json &&
+	sed -i '"'"'/PeerID/ { s/,$// } '"'"' newconfig.json
+  '
+
+  test_expect_success "run 'ipfs config replace'" '
+	ipfs config replace - < newconfig.json
+  '
+
+  test_expect_success "check resulting config after 'ipfs config replace'" '
 	sed -e /PrivKey/d "$IPFS_PATH/config" > replconfig.json &&
 	sed -i -e'"'"'/PeerID/ { s/,$// } '"'"' replconfig.json &&
 	test_cmp replconfig.json newconfig.json
