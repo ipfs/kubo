@@ -1,6 +1,7 @@
 package io
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -194,6 +195,44 @@ func TestMetadataNode(t *testing.T) {
 	}
 	if err := testu.ArrComp(rdata, readdata); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestWriteTo(t *testing.T) {
+	dserv := testu.GetDAGServ()
+	inbuf, node := testu.GetRandomNode(t, dserv, 1024)
+	ctx, closer := context.WithCancel(context.Background())
+	defer closer()
+
+	reader, err := NewDagReader(ctx, node, dserv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	outbuf := new(bytes.Buffer)
+	reader.WriteTo(outbuf)
+
+	err = testu.ArrComp(inbuf, outbuf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+func TestReaderSzie(t *testing.T) {
+	dserv := testu.GetDAGServ()
+	size := int64(1024)
+	_, node := testu.GetRandomNode(t, dserv, size)
+	ctx, closer := context.WithCancel(context.Background())
+	defer closer()
+
+	reader, err := NewDagReader(ctx, node, dserv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if reader.Size() != uint64(size) {
+		t.Fatal("wrong reader size")
 	}
 }
 
