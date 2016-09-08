@@ -160,22 +160,29 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	dr, err := i.api.Cat(ctx, urlPath)
 	dir := false
-	if err == coreiface.ErrIsDir {
+	switch err {
+	case nil:
+		// core.Resolve worked
+		defer dr.Close()
+	case coreiface.ErrIsDir:
 		dir = true
-	} else if err == coreiface.ErrOffline {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
-		return
-	} else if err == namesys.ErrResolveFailed {
+	case namesys.ErrResolveFailed:
 		// Don't log that error as it is just noise
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Path Resolve error: %s", err.Error())
+		log.Info("Path Resolve error: %s", err.Error())
 		return
-	} else if err != nil {
+	case coreiface.ErrOffline:
+		if !i.node.OnlineMode() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
+			return
+		}
+		fallthrough
+	default:
+		// all other erros
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
 		return
-	} else {
-		defer dr.Close()
 	}
 
 	etag := gopath.Base(urlPath)
