@@ -1,4 +1,7 @@
 #!/bin/sh
+#
+# Installation script for ipfs. It tries to move $bin in one of the
+# directories stored in $binpaths.
 
 bin=ipfs
 binpaths="/usr/local/bin /usr/bin"
@@ -6,10 +9,6 @@ binpaths="/usr/local/bin /usr/bin"
 # This variable contains a nonzero length string in case the script fails
 # because of missing write permissions.
 is_write_perm_missing=""
-
-# this script is currently brain dead.
-# it merely tries two locations.
-# in the future maybe use value of $PATH.
 
 for binpath in $binpaths; do
   if mv -t "$binpath" "$bin" 2> /dev/null; then
