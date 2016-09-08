@@ -107,6 +107,10 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 // verifyRecordLocally attempts to verify a record. if we do not have the public
 // key, we fail. we do not search the dht.
 func (dht *IpfsDHT) verifyRecordLocally(r *pb.Record) error {
+	if r == nil {
+		log.Error("nil record passed into verifyRecordLocally")
+		return fmt.Errorf("nil record")
+	}
 
 	if len(r.Signature) > 0 {
 		// First, validate the signature
