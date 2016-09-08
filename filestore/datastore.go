@@ -121,14 +121,19 @@ func (d *Datastore) Update(key ds.Key, origData []byte, newData *DataObj) (bool,
 	keyBytes := key.Bytes()
 	if origData != nil {
 		val, err := d.db.Get(keyBytes, nil)
-		if err != nil {
+		if err != leveldb.ErrNotFound && err != nil {
 			return false, err
 		}
-		if !bytes.Equal(val, origData) {
-			// FIXME: This should really be at the Notice
-			// level if that level ever becomes available
-			log.Debugf("skipping update of block %s\n", b58.Encode(keyBytes[1:]))
-			
+		if err == leveldb.ErrNotFound && newData == nil {
+			// Deleting block already deleted, nothing to
+			// worry about.
+			log.Debugf("skipping delete of already deleted block %s\n", b58.Encode(keyBytes[1:]))
+			return true, nil
+		}
+		if err == leveldb.ErrNotFound || !bytes.Equal(val, origData) {
+			// FIXME: This maybe should at the notice
+			// level but there is no "Noticef"!
+			log.Infof("skipping update/delete of block %s\n", b58.Encode(keyBytes[1:]))
 			return false, nil
 		}
 	}
