@@ -14,7 +14,6 @@ import (
 	"time"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	importer "github.com/ipfs/go-ipfs/importer"
@@ -28,6 +27,7 @@ import (
 	dssync "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 func emptyDirNode() *dag.Node {
@@ -187,8 +187,8 @@ func setupRoot(ctx context.Context, t *testing.T) (dag.DAGService, *Root) {
 	ds := getDagserv(t)
 
 	root := emptyDirNode()
-	rt, err := NewRoot(ctx, ds, root, func(ctx context.Context, k key.Key) error {
-		fmt.Println("PUBLISHED: ", k)
+	rt, err := NewRoot(ctx, ds, root, func(ctx context.Context, c *cid.Cid) error {
+		fmt.Println("PUBLISHED: ", c)
 		return nil
 	})
 
@@ -280,10 +280,7 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fihash, err := nd.Multihash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	fihash := nd.Multihash()
 
 	dir := emptyDirNode()
 	_, err = ds.Add(dir)
@@ -291,10 +288,7 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dirhash, err := dir.Multihash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	dirhash := dir.Multihash()
 
 	top := emptyDirNode()
 	top.Links = []*dag.Link{
@@ -803,11 +797,7 @@ func TestFlushing(t *testing.T) {
 		t.Fatal("root wasnt a directory")
 	}
 
-	rnk, err := rnd.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	rnk := rnd.Key()
 	exp := "QmWMVyhTuyxUrXX3ynz171jq76yY3PktfY9Bxiph7b9ikr"
 	if rnk.B58String() != exp {
 		t.Fatalf("dag looks wrong, expected %s, but got %s", exp, rnk.B58String())

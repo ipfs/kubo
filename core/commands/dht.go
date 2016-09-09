@@ -14,10 +14,12 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	routing "github.com/ipfs/go-ipfs/routing"
 	ipdht "github.com/ipfs/go-ipfs/routing/dht"
+
 	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
 	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
@@ -257,26 +259,26 @@ var provideRefDhtCmd = &cmds.Command{
 
 		rec, _, _ := req.Option("recursive").Bool()
 
-		var keys []key.Key
+		var cids []*cid.Cid
 		for _, arg := range req.Arguments() {
-			k := key.B58KeyDecode(arg)
-			if k == "" {
-				res.SetError(fmt.Errorf("incorrectly formatted key: ", arg), cmds.ErrNormal)
+			c, err := cid.Decode(arg)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 
-			has, err := n.Blockstore.Has(k)
+			has, err := n.Blockstore.Has(key.Key(c.Hash()))
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 
 			if !has {
-				res.SetError(fmt.Errorf("block %s not found locally, cannot provide", k), cmds.ErrNormal)
+				res.SetError(fmt.Errorf("block %s not found locally, cannot provide", c), cmds.ErrNormal)
 				return
 			}
 
-			keys = append(keys, k)
+			cids = append(cids, c)
 		}
 
 		outChan := make(chan interface{})
@@ -296,9 +298,9 @@ var provideRefDhtCmd = &cmds.Command{
 			defer close(events)
 			var err error
 			if rec {
-				err = provideKeysRec(ctx, n.Routing, n.DAG, keys)
+				err = provideKeysRec(ctx, n.Routing, n.DAG, cids)
 			} else {
-				err = provideKeys(ctx, n.Routing, keys)
+				err = provideKeys(ctx, n.Routing, cids)
 			}
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -345,9 +347,9 @@ var provideRefDhtCmd = &cmds.Command{
 	Type: notif.QueryEvent{},
 }
 
-func provideKeys(ctx context.Context, r routing.IpfsRouting, keys []key.Key) error {
-	for _, k := range keys {
-		err := r.Provide(ctx, k)
+func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []*cid.Cid) error {
+	for _, c := range cids {
+		err := r.Provide(ctx, key.Key(c.Hash()))
 		if err != nil {
 			return err
 		}
@@ -355,16 +357,23 @@ func provideKeys(ctx context.Context, r routing.IpfsRouting, keys []key.Key) err
 	return nil
 }
 
-func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGService, keys []key.Key) error {
+func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGService, cids []*cid.Cid) error {
 	provided := make(map[key.Key]struct{})
-	for _, k := range keys {
+	for _, c := range cids {
 		kset := key.NewKeySet()
-		node, err := dserv.Get(ctx, k)
+		node, err := dserv.Get(ctx, c)
 		if err != nil {
 			return err
 		}
 
-		err = dag.EnumerateChildrenAsync(ctx, dserv, node, kset)
+		err = dag.EnumerateChildrenAsync(ctx, dserv, node, func(c *cid.Cid) bool {
+			k := key.Key(c.Hash())
+			if kset.Has(k) {
+				kset.Add(k)
+				return true
+			}
+			return false
+		})
 		if err != nil {
 			return err
 		}

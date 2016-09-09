@@ -1,16 +1,19 @@
 package coreunix
 
 import (
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error) {
-	ukey := key.B58KeyDecode(skey)
+	c, err := cid.Decode(skey)
+	if err != nil {
+		return "", err
+	}
 
-	nd, err := n.DAG.Get(n.Context(), ukey)
+	nd, err := n.DAG.Get(n.Context(), c)
 	if err != nil {
 		return "", err
 	}
@@ -31,13 +34,16 @@ func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error
 		return "", err
 	}
 
-	return nk.B58String(), nil
+	return nk.String(), nil
 }
 
 func Metadata(n *core.IpfsNode, skey string) (*ft.Metadata, error) {
-	ukey := key.B58KeyDecode(skey)
+	c, err := cid.Decode(skey)
+	if err != nil {
+		return nil, err
+	}
 
-	nd, err := n.DAG.Get(n.Context(), ukey)
+	nd, err := n.DAG.Get(n.Context(), c)
 	if err != nil {
 		return nil, err
 	}

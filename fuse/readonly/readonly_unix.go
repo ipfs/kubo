@@ -163,15 +163,12 @@ func (s *Node) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string,
 
 func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 
-	k, err := s.Nd.Key()
-	if err != nil {
-		return err
-	}
+	c := s.Nd.Cid()
 
 	// setup our logging event
 	lm := make(lgbl.DeferredMap)
 	lm["fs"] = "ipfs"
-	lm["key"] = func() interface{} { return k.B58String() }
+	lm["key"] = func() interface{} { return c.String() }
 	lm["req_offset"] = req.Offset
 	lm["req_size"] = req.Size
 	defer log.EventBegin(ctx, "fuseRead", lm).Done()

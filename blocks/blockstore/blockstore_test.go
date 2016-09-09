@@ -48,7 +48,7 @@ func TestPutThenGetBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(block.Data(), blockFromBlockstore.Data()) {
+	if !bytes.Equal(block.RawData(), blockFromBlockstore.RawData()) {
 		t.Fail()
 	}
 }

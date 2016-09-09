@@ -6,11 +6,12 @@ import (
 	"strings"
 	"sync"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var log = logging.Logger("merkledag")
@@ -18,13 +19,13 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
-	Add(*Node) (key.Key, error)
-	Get(context.Context, key.Key) (*Node, error)
+	Add(*Node) (*cid.Cid, error)
+	Get(context.Context, *cid.Cid) (*Node, error)
 	Remove(*Node) error
 
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
-	GetMany(context.Context, []key.Key) <-chan *NodeOption
+	GetMany(context.Context, []*cid.Cid) <-chan *NodeOption
 
 	Batch() *Batch
 }
@@ -43,24 +44,12 @@ type dagService struct {
 }
 
 // Add adds a node to the dagService, storing the block in the BlockService
-func (n *dagService) Add(nd *Node) (key.Key, error) {
+func (n *dagService) Add(nd *Node) (*cid.Cid, error) {
 	if n == nil { // FIXME remove this assertion. protect with constructor invariant
-		return "", fmt.Errorf("dagService is nil")
+		return nil, fmt.Errorf("dagService is nil")
 	}
 
-	d, err := nd.EncodeProtobuf(false)
-	if err != nil {
-		return "", err
-	}
-
-	mh, err := nd.Multihash()
-	if err != nil {
-		return "", err
-	}
-
-	b, _ := blocks.NewBlockWithHash(d, mh)
-
-	return n.Blocks.AddBlock(b)
+	return n.Blocks.AddObject(nd)
 }
 
 func (n *dagService) Batch() *Batch {
@@ -68,56 +57,57 @@ func (n *dagService) Batch() *Batch {
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
-func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
-	if k == "" {
-		return nil, ErrNotFound
-	}
+func (n *dagService) Get(ctx context.Context, c *cid.Cid) (*Node, error) {
 	if n == nil {
 		return nil, fmt.Errorf("dagService is nil")
 	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	b, err := n.Blocks.GetBlock(ctx, k)
+	b, err := n.Blocks.GetBlock(ctx, c)
 	if err != nil {
 		if err == bserv.ErrNotFound {
 			return nil, ErrNotFound
 		}
-		return nil, fmt.Errorf("Failed to get block for %s: %v", k.B58String(), err)
+		return nil, fmt.Errorf("Failed to get block for %s: %v", c, err)
 	}
 
-	res, err := DecodeProtobuf(b.Data())
-	if err != nil {
-		if strings.Contains(err.Error(), "Unmarshal failed") {
-			return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", k)
+	var res *Node
+	switch c.Type() {
+	case cid.Protobuf:
+		out, err := DecodeProtobuf(b.RawData())
+		if err != nil {
+			if strings.Contains(err.Error(), "Unmarshal failed") {
+				return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", c)
+			}
+			return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 		}
-		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
+		res = out
+	default:
+		return nil, fmt.Errorf("unrecognized formatting type")
 	}
 
-	res.cached = k.ToMultihash()
+	res.cached = c
 
 	return res, nil
 }
 
 func (n *dagService) Remove(nd *Node) error {
-	k, err := nd.Key()
-	if err != nil {
-		return err
-	}
-	return n.Blocks.DeleteBlock(k)
+	return n.Blocks.DeleteObject(nd)
 }
 
 // FetchGraph fetches all nodes that are children of the given node
 func FetchGraph(ctx context.Context, root *Node, serv DAGService) error {
-	return EnumerateChildrenAsync(ctx, serv, root, key.NewKeySet())
+	return EnumerateChildrenAsync(ctx, serv, root, cid.NewSet().Visit)
 }
 
 // FindLinks searches this nodes links for the given key,
 // returns the indexes of any links pointing to it
-func FindLinks(links []key.Key, k key.Key, start int) []int {
+func FindLinks(links []*cid.Cid, c *cid.Cid, start int) []int {
 	var out []int
-	for i, lnk_k := range links[start:] {
-		if k == lnk_k {
+	for i, lnk_c := range links[start:] {
+		if c.Equals(lnk_c) {
 			out = append(out, i+start)
 		}
 	}
@@ -129,10 +119,26 @@ type NodeOption struct {
 	Err  error
 }
 
-func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeOption {
+// TODO: this is a mid-term hack to get around the fact that blocks don't
+// have full CIDs and potentially (though we don't know of any such scenario)
+// may have the same block with multiple different encodings.
+// We have discussed the possiblity of using CIDs as datastore keys
+// in the future. This would be a much larger changeset than i want to make
+// right now.
+func cidsToKeyMapping(cids []*cid.Cid) map[key.Key]*cid.Cid {
+	mapping := make(map[key.Key]*cid.Cid)
+	for _, c := range cids {
+		mapping[key.Key(c.Hash())] = c
+	}
+	return mapping
+}
+
+func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *NodeOption {
 	out := make(chan *NodeOption, len(keys))
 	blocks := ds.Blocks.GetBlocks(ctx, keys)
 	var count int
+
+	mapping := cidsToKeyMapping(keys)
 
 	go func() {
 		defer close(out)
@@ -145,12 +151,23 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeO
 					}
 					return
 				}
-				nd, err := DecodeProtobuf(b.Data())
-				if err != nil {
-					out <- &NodeOption{Err: err}
+
+				c := mapping[b.Key()]
+
+				var nd *Node
+				switch c.Type() {
+				case cid.Protobuf:
+					decnd, err := DecodeProtobuf(b.RawData())
+					if err != nil {
+						out <- &NodeOption{Err: err}
+						return
+					}
+					decnd.cached = cid.NewCidV0(b.Multihash())
+					nd = decnd
+				default:
+					out <- &NodeOption{Err: fmt.Errorf("unrecognized object type: %s", c.Type())}
 					return
 				}
-				nd.cached = b.Key().ToMultihash()
 
 				// buffered, no need to select
 				out <- &NodeOption{Node: nd}
@@ -169,17 +186,17 @@ func (ds *dagService) GetMany(ctx context.Context, keys []key.Key) <-chan *NodeO
 // It returns a channel of nodes, which the caller can receive
 // all the child nodes of 'root' on, in proper order.
 func GetDAG(ctx context.Context, ds DAGService, root *Node) []NodeGetter {
-	var keys []key.Key
+	var cids []*cid.Cid
 	for _, lnk := range root.Links {
-		keys = append(keys, key.Key(lnk.Hash))
+		cids = append(cids, cid.NewCidV0(lnk.Hash))
 	}
 
-	return GetNodes(ctx, ds, keys)
+	return GetNodes(ctx, ds, cids)
 }
 
 // GetNodes returns an array of 'NodeGetter' promises, with each corresponding
 // to the key with the same index as the passed in keys
-func GetNodes(ctx context.Context, ds DAGService, keys []key.Key) []NodeGetter {
+func GetNodes(ctx context.Context, ds DAGService, keys []*cid.Cid) []NodeGetter {
 
 	// Early out if no work to do
 	if len(keys) == 0 {
@@ -216,14 +233,7 @@ func GetNodes(ctx context.Context, ds DAGService, keys []key.Key) []NodeGetter {
 				}
 
 				nd := opt.Node
-
-				k, err := nd.Key()
-				if err != nil {
-					log.Error("Failed to get node key: ", err)
-					continue
-				}
-
-				is := FindLinks(keys, k, 0)
+				is := FindLinks(keys, nd.Cid(), 0)
 				for _, i := range is {
 					count++
 					promises[i].Send(nd)
@@ -237,16 +247,12 @@ func GetNodes(ctx context.Context, ds DAGService, keys []key.Key) []NodeGetter {
 }
 
 // Remove duplicates from a list of keys
-func dedupeKeys(ks []key.Key) []key.Key {
-	kmap := make(map[key.Key]struct{})
-	var out []key.Key
-	for _, k := range ks {
-		if _, ok := kmap[k]; !ok {
-			kmap[k] = struct{}{}
-			out = append(out, k)
-		}
+func dedupeKeys(cids []*cid.Cid) []*cid.Cid {
+	set := cid.NewSet()
+	for _, c := range cids {
+		set.Add(c)
 	}
-	return out
+	return set.Keys()
 }
 
 func newNodePromise(ctx context.Context) NodeGetter {
@@ -327,50 +333,44 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 type Batch struct {
 	ds *dagService
 
-	blocks  []blocks.Block
+	objects []bserv.Object
 	size    int
 	MaxSize int
 }
 
-func (t *Batch) Add(nd *Node) (key.Key, error) {
+func (t *Batch) Add(nd *Node) (*cid.Cid, error) {
 	d, err := nd.EncodeProtobuf(false)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	mh, err := nd.Multihash()
-	if err != nil {
-		return "", err
-	}
-
-	b, _ := blocks.NewBlockWithHash(d, mh)
-
-	k := key.Key(mh)
-
-	t.blocks = append(t.blocks, b)
-	t.size += len(b.Data())
+	t.objects = append(t.objects, nd)
+	t.size += len(d)
 	if t.size > t.MaxSize {
-		return k, t.Commit()
+		return nd.Cid(), t.Commit()
 	}
-	return k, nil
+	return nd.Cid(), nil
 }
 
 func (t *Batch) Commit() error {
-	_, err := t.ds.Blocks.AddBlocks(t.blocks)
-	t.blocks = nil
+	_, err := t.ds.Blocks.AddObjects(t.objects)
+	t.objects = nil
 	t.size = 0
 	return err
+}
+
+func legacyCidFromLink(lnk *Link) *cid.Cid {
+	return cid.NewCidV0(lnk.Hash)
 }
 
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
-func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, set key.KeySet, bestEffort bool) error {
+func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, visit func(*cid.Cid) bool, bestEffort bool) error {
 	for _, lnk := range root.Links {
-		k := key.Key(lnk.Hash)
-		if !set.Has(k) {
-			set.Add(k)
-			child, err := ds.Get(ctx, k)
+		c := legacyCidFromLink(lnk)
+		if visit(c) {
+			child, err := ds.Get(ctx, c)
 			if err != nil {
 				if bestEffort && err == ErrNotFound {
 					continue
@@ -378,7 +378,7 @@ func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, set key.K
 					return err
 				}
 			}
-			err = EnumerateChildren(ctx, ds, child, set, bestEffort)
+			err = EnumerateChildren(ctx, ds, child, visit, bestEffort)
 			if err != nil {
 				return err
 			}
@@ -387,8 +387,8 @@ func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, set key.K
 	return nil
 }
 
-func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, set key.KeySet) error {
-	toprocess := make(chan []key.Key, 8)
+func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, visit func(*cid.Cid) bool) error {
+	toprocess := make(chan []*cid.Cid, 8)
 	nodes := make(chan *NodeOption, 8)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -416,13 +416,12 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, set 
 			// a node has been fetched
 			live--
 
-			var keys []key.Key
+			var cids []*cid.Cid
 			for _, lnk := range nd.Links {
-				k := key.Key(lnk.Hash)
-				if !set.Has(k) {
-					set.Add(k)
+				c := legacyCidFromLink(lnk)
+				if visit(c) {
 					live++
-					keys = append(keys, k)
+					cids = append(cids, c)
 				}
 			}
 
@@ -430,9 +429,9 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, set 
 				return nil
 			}
 
-			if len(keys) > 0 {
+			if len(cids) > 0 {
 				select {
-				case toprocess <- keys:
+				case toprocess <- cids:
 				case <-ctx.Done():
 					return ctx.Err()
 				}
@@ -443,7 +442,7 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, set 
 	}
 }
 
-func fetchNodes(ctx context.Context, ds DAGService, in <-chan []key.Key, out chan<- *NodeOption) {
+func fetchNodes(ctx context.Context, ds DAGService, in <-chan []*cid.Cid, out chan<- *NodeOption) {
 	var wg sync.WaitGroup
 	defer func() {
 		// wait for all 'get' calls to complete so we don't accidentally send
@@ -452,7 +451,7 @@ func fetchNodes(ctx context.Context, ds DAGService, in <-chan []key.Key, out cha
 		close(out)
 	}()
 
-	get := func(ks []key.Key) {
+	get := func(ks []*cid.Cid) {
 		defer wg.Done()
 		nodes := ds.GetMany(ctx, ks)
 		for opt := range nodes {

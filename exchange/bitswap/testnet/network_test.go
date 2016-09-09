@@ -44,7 +44,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 		// TODO assert that this came from the correct peer and that the message contents are as expected
 		ok := false
 		for _, b := range msgFromResponder.Blocks() {
-			if string(b.Data()) == expectedStr {
+			if string(b.RawData()) == expectedStr {
 				wg.Done()
 				ok = true
 			}

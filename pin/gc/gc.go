@@ -10,6 +10,7 @@ import (
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var log = logging.Logger("gc")
@@ -23,7 +24,7 @@ var log = logging.Logger("gc")
 //
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
-func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner, bestEffortRoots []key.Key) (<-chan key.Key, error) {
+func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner, bestEffortRoots []*cid.Cid) (<-chan key.Key, error) {
 	unlocker := bs.GCLock()
 
 	bsrv := bserv.New(bs, offline.Exchange(bs))
@@ -70,16 +71,24 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner, bestEffortRo
 	return output, nil
 }
 
-func Descendants(ctx context.Context, ds dag.DAGService, set key.KeySet, roots []key.Key, bestEffort bool) error {
-	for _, k := range roots {
-		set.Add(k)
-		nd, err := ds.Get(ctx, k)
+func Descendants(ctx context.Context, ds dag.DAGService, set key.KeySet, roots []*cid.Cid, bestEffort bool) error {
+	for _, c := range roots {
+		set.Add(key.Key(c.Hash()))
+		nd, err := ds.Get(ctx, c)
 		if err != nil {
 			return err
 		}
 
 		// EnumerateChildren recursively walks the dag and adds the keys to the given set
-		err = dag.EnumerateChildren(ctx, ds, nd, set, bestEffort)
+		err = dag.EnumerateChildren(ctx, ds, nd, func(c *cid.Cid) bool {
+			k := key.Key(c.Hash())
+			seen := set.Has(k)
+			if seen {
+				return false
+			}
+			set.Add(k)
+			return true
+		}, bestEffort)
 		if err != nil {
 			return err
 		}
@@ -88,7 +97,7 @@ func Descendants(ctx context.Context, ds dag.DAGService, set key.KeySet, roots [
 	return nil
 }
 
-func ColoredSet(ctx context.Context, pn pin.Pinner, ds dag.DAGService, bestEffortRoots []key.Key) (key.KeySet, error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ds dag.DAGService, bestEffortRoots []*cid.Cid) (key.KeySet, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	gcs := key.NewKeySet()
@@ -103,7 +112,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ds dag.DAGService, bestEffor
 	}
 
 	for _, k := range pn.DirectKeys() {
-		gcs.Add(k)
+		gcs.Add(key.Key(k.Hash()))
 	}
 
 	err = Descendants(ctx, ds, gcs, pn.InternalPins(), false)

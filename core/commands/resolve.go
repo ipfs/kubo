@@ -105,13 +105,9 @@ Resolve the value of an IPFS DAG path:
 			return
 		}
 
-		key, err := node.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		c := node.Cid()
 
-		res.SetOutput(&ResolvedPath{path.FromKey(key)})
+		res.SetOutput(&ResolvedPath{path.FromCid(c)})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

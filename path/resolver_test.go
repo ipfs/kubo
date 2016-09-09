@@ -17,7 +17,7 @@ func randNode() (*merkledag.Node, key.Key) {
 	node := new(merkledag.Node)
 	node.SetData(make([]byte, 32))
 	util.NewTimeSeededRand().Read(node.Data())
-	k, _ := node.Key()
+	k := node.Key()
 	return node, k
 }
 
@@ -46,10 +46,7 @@ func TestRecurivePathResolution(t *testing.T) {
 		}
 	}
 
-	aKey, err := a.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	aKey := a.Key()
 
 	segments := []string{aKey.String(), "child", "grandchild"}
 	p, err := path.FromSegments("/ipfs/", segments...)
@@ -63,10 +60,7 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	key, err := node.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	key := node.Key()
 	if key.String() != cKey.String() {
 		t.Fatal(fmt.Errorf(
 			"recursive path resolution failed for %s: %s != %s",

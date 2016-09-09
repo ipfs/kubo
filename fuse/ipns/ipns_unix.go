@@ -21,6 +21,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ci "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 func init() {
@@ -81,8 +82,8 @@ type Root struct {
 }
 
 func ipnsPubFunc(ipfs *core.IpfsNode, k ci.PrivKey) mfs.PubFunc {
-	return func(ctx context.Context, key key.Key) error {
-		return ipfs.Namesys.Publish(ctx, k, path.FromKey(key))
+	return func(ctx context.Context, c *cid.Cid) error {
+		return ipfs.Namesys.Publish(ctx, k, path.FromCid(c))
 	}
 }
 

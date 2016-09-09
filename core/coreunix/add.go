@@ -7,24 +7,24 @@ import (
 	"os"
 	gopath "path"
 
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	"github.com/ipfs/go-ipfs/commands/files"
+	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	importer "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	"github.com/ipfs/go-ipfs/pin"
+	unixfs "github.com/ipfs/go-ipfs/unixfs"
+
 	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 	syncds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
-	"github.com/ipfs/go-ipfs/commands/files"
-	core "github.com/ipfs/go-ipfs/core"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var log = logging.Logger("coreunix")
@@ -103,7 +103,7 @@ type Adder struct {
 	root       *dag.Node
 	mr         *mfs.Root
 	unlocker   bs.Unlocker
-	tempRoot   key.Key
+	tempRoot   *cid.Cid
 }
 
 func (adder *Adder) SetMfsRoot(r *mfs.Root) {
@@ -166,7 +166,7 @@ func (adder *Adder) PinRoot() error {
 		return err
 	}
 
-	if adder.tempRoot != "" {
+	if adder.tempRoot != nil {
 		err := adder.pinning.Unpin(adder.ctx, adder.tempRoot, true)
 		if err != nil {
 			return err
@@ -259,12 +259,8 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	k, err := node.Key()
-	if err != nil {
-		return "", err
-	}
 
-	return k.String(), nil
+	return node.Cid().String(), nil
 }
 
 // AddR recursively adds files in |path|.
@@ -297,12 +293,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	k, err := nd.Key()
-	if err != nil {
-		return "", err
-	}
-
-	return k.String(), nil
+	return nd.String(), nil
 }
 
 // AddWrapped adds data from a reader, and wraps it with a directory object
@@ -329,23 +320,14 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 		return "", nil, err
 	}
 
-	k, err := dagnode.Key()
-	if err != nil {
-		return "", nil, err
-	}
-
-	return gopath.Join(k.String(), filename), dagnode, nil
+	c := dagnode.Cid()
+	return gopath.Join(c.String(), filename), dagnode, nil
 }
 
 func (adder *Adder) addNode(node *dag.Node, path string) error {
 	// patch it into the root
 	if path == "" {
-		key, err := node.Key()
-		if err != nil {
-			return err
-		}
-
-		path = key.B58String()
+		path = node.Cid().String()
 	}
 
 	dir := gopath.Dir(path)
@@ -490,13 +472,10 @@ func NewMemoryDagService() dag.DAGService {
 
 // from core/commands/object.go
 func getOutput(dagnode *dag.Node) (*Object, error) {
-	key, err := dagnode.Key()
-	if err != nil {
-		return nil, err
-	}
+	c := dagnode.Cid()
 
 	output := &Object{
-		Hash:  key.B58String(),
+		Hash:  c.String(),
 		Links: make([]Link, len(dagnode.Links)),
 	}
 

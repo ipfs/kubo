@@ -197,10 +197,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	k, err := dagn1.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	k := dagn1.Key()
 	t.Logf("k: %s\n", k)
 	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
 
@@ -290,10 +287,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	k, err := dagn1.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	k := dagn1.Key()
 	t.Logf("k: %s\n", k)
 	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
 

@@ -90,7 +90,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 		t.Fatal("Expected to succeed")
 	}
 
-	if !bytes.Equal(block.Data(), received.Data()) {
+	if !bytes.Equal(block.RawData(), received.RawData()) {
 		t.Fatal("Data doesn't match")
 	}
 }
@@ -289,7 +289,10 @@ func TestEmptyKey(t *testing.T) {
 	defer sg.Close()
 	bs := sg.Instances(1)[0].Exchange
 
-	_, err := bs.GetBlock(context.Background(), key.Key(""))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	_, err := bs.GetBlock(ctx, key.Key(""))
 	if err != blockstore.ErrNotFound {
 		t.Error("empty str key should return ErrNotFound")
 	}

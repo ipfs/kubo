@@ -7,6 +7,7 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var ErrLinkNotFound = fmt.Errorf("no link by that name")
@@ -20,7 +21,7 @@ type Node struct {
 	// cache encoded/marshaled value
 	encoded []byte
 
-	cached mh.Multihash
+	cached *cid.Cid
 }
 
 // NodeStat is a statistics object for a Node. Mostly sizes.
@@ -63,10 +64,8 @@ func MakeLink(n *Node) (*Link, error) {
 		return nil, err
 	}
 
-	h, err := n.Multihash()
-	if err != nil {
-		return nil, err
-	}
+	h := n.Multihash()
+
 	return &Link{
 		Size: s,
 		Hash: h,
@@ -75,7 +74,7 @@ func MakeLink(n *Node) (*Link, error) {
 
 // GetNode returns the MDAG Node that this link points to
 func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
-	return serv.Get(ctx, key.Key(l.Hash))
+	return serv.Get(ctx, legacyCidFromLink(l))
 }
 
 func NodeWithData(d []byte) *Node {
@@ -184,6 +183,11 @@ func (n *Node) Copy() *Node {
 	return nnode
 }
 
+func (n *Node) RawData() []byte {
+	out, _ := n.EncodeProtobuf(false)
+	return out
+}
+
 func (n *Node) Data() []byte {
 	return n.data
 }
@@ -231,13 +235,8 @@ func (n *Node) Stat() (*NodeStat, error) {
 		return nil, err
 	}
 
-	key, err := n.Key()
-	if err != nil {
-		return nil, err
-	}
-
 	return &NodeStat{
-		Hash:           key.B58String(),
+		Hash:           n.Key().B58String(),
 		NumLinks:       len(n.Links),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.data), // includes framing.
@@ -246,19 +245,34 @@ func (n *Node) Stat() (*NodeStat, error) {
 	}, nil
 }
 
+func (n *Node) Key() key.Key {
+	return key.Key(n.Multihash())
+}
+
+func (n *Node) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"node": n.String(),
+	}
+}
+
+func (n *Node) Cid() *cid.Cid {
+	h := n.Multihash()
+
+	return cid.NewCidV0(h)
+}
+
+func (n *Node) String() string {
+	return n.Cid().String()
+}
+
 // Multihash hashes the encoded data of this node.
-func (n *Node) Multihash() (mh.Multihash, error) {
+func (n *Node) Multihash() mh.Multihash {
 	// NOTE: EncodeProtobuf generates the hash and puts it in n.cached.
 	_, err := n.EncodeProtobuf(false)
 	if err != nil {
-		return nil, err
+		// Note: no possibility exists for an error to be returned through here
+		panic(err)
 	}
 
-	return n.cached, nil
-}
-
-// Key returns the Multihash as a key, for maps.
-func (n *Node) Key() (key.Key, error) {
-	h, err := n.Multihash()
-	return key.Key(h), err
+	return n.cached.Hash()
 }

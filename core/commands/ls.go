@@ -97,7 +97,7 @@ The JSON output contains type information.
 						res.SetError(err, cmds.ErrNormal)
 						return
 					}
-					linkNode, err = merkledag.DecodeProtobuf(b.Data())
+					linkNode, err = merkledag.DecodeProtobuf(b.RawData())
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return

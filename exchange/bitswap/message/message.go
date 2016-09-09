@@ -159,7 +159,7 @@ func (m *impl) ToProto() *pb.Message {
 		})
 	}
 	for _, b := range m.Blocks() {
-		pbm.Blocks = append(pbm.Blocks, b.Data())
+		pbm.Blocks = append(pbm.Blocks, b.RawData())
 	}
 	return pbm
 }

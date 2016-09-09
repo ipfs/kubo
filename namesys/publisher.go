@@ -348,7 +348,7 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 		return err
 	}
 
-	err = pub.Publish(ctx, key, path.FromKey(nodek))
+	err = pub.Publish(ctx, key, path.FromCid(nodek))
 	if err != nil {
 		return err
 	}

@@ -203,6 +203,12 @@
       "hash": "Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS",
       "name": "go-libp2p",
       "version": "3.4.1"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp",
+      "name": "go-cid",
+      "version": "0.1.0"
     }
   ],
   "gxVersion": "0.4.0",

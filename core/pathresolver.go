@@ -6,9 +6,9 @@ import (
 
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 // ErrNoNamesys is an explicit error for when an IPFS node doesn't
@@ -61,31 +61,31 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, er
 // It first checks if the path is already in the form of just a key (<key> or
 // /ipfs/<key>) and returns immediately if so. Otherwise, it falls back onto
 // Resolve to perform resolution of the dagnode being referenced.
-func ResolveToKey(ctx context.Context, n *IpfsNode, p path.Path) (key.Key, error) {
+func ResolveToCid(ctx context.Context, n *IpfsNode, p path.Path) (*cid.Cid, error) {
 
 	// If the path is simply a key, parse and return it. Parsed paths are already
 	// normalized (read: prepended with /ipfs/ if needed), so segment[1] should
 	// always be the key.
 	if p.IsJustAKey() {
-		return key.B58KeyDecode(p.Segments()[1]), nil
+		return cid.Decode(p.Segments()[1])
 	}
 
 	// Fall back onto regular dagnode resolution. Retrieve the second-to-last
 	// segment of the path and resolve its link to the last segment.
 	head, tail, err := p.PopLastSegment()
 	if err != nil {
-		return key.Key(""), err
+		return nil, err
 	}
 	dagnode, err := Resolve(ctx, n, head)
 	if err != nil {
-		return key.Key(""), err
+		return nil, err
 	}
 
 	// Extract and return the key of the link to the target dag node.
 	link, err := dagnode.GetNodeLink(tail)
 	if err != nil {
-		return key.Key(""), err
+		return nil, err
 	}
 
-	return key.Key(link.Hash), nil
+	return cid.NewCidV0(link.Hash), nil
 }
