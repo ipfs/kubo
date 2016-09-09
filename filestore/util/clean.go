@@ -92,21 +92,21 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 	go func() {
 		if stage1 {
 			fmt.Fprintf(rmWtr, "Scanning for invalid leaf nodes ('verify --basic -l6') ...\n")
-			err := do_stage(VerifyBasic(snapshot, 6, 1))
+			err := do_stage(VerifyBasic(snapshot, nil, 6, 1))
 			if err != nil {
 				return
 			}
 		}
 		if stage2 {
 			fmt.Fprintf(rmWtr, "Scanning for incomplete nodes ('verify -l1 --skip-orphans') ...\n")
-			err := do_stage(VerifyFull(node, snapshot, 1, 1, true))
+			err := do_stage(VerifyFull(node, snapshot, nil, 1, 1, true))
 			if err != nil {
 				return
 			}
 		}
 		if stage3 {
 			fmt.Fprintf(rmWtr, "Scanning for orphans ('verify -l1') ...\n")
-			err := do_stage(VerifyFull(node, snapshot, 1, 1, false))
+			err := do_stage(VerifyFull(node, snapshot, nil, 1, 1, false))
 			if err != nil {
 				return
 			}

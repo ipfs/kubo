@@ -347,8 +347,7 @@ If <offset> is the special value "-" indicates a file root.
 	},
 }
 
-func getListing(ds *filestore.Datastore, objs []string, all bool, keysOnly bool) (<-chan fsutil.ListRes, error) {
-	fs := ds.AsBasic()
+func procListArgs(objs []string) ([]k.Key, fsutil.ListFilter, error) {
 	keys := make([]k.Key, 0)
 	paths := make([]string, 0)
 	for _, obj := range objs {
@@ -359,28 +358,44 @@ func getListing(ds *filestore.Datastore, objs []string, all bool, keysOnly bool)
 		}
 	}
 	if len(keys) > 0 && len(paths) > 0 {
-		return nil, errors.New("cannot specify both hashes and paths")
+		return nil, nil, errors.New("cannot specify both hashes and paths")
+	}
+	if len(keys) > 0 {
+		return keys, nil, nil
+	} else if len(paths) > 0 {
+		return nil, func(r *filestore.DataObj) bool {
+			return pathMatch(paths, r.FilePath)
+		}, nil
+	} else {
+		return nil, nil, nil
+	}
+}
+
+func getListing(ds *filestore.Datastore, objs []string, all bool, keysOnly bool) (<-chan fsutil.ListRes, error) {
+	keys, listFilter, err := procListArgs(objs)
+	if err != nil {
+		return nil, err
 	}
 
-	var ch <-chan fsutil.ListRes
+	fs := ds.AsBasic()
+
 	if len(keys) > 0 {
-		ch, _ = fsutil.ListByKey(fs, keys)
-	} else if all && len(paths) == 0 && keysOnly {
-		ch, _ = fsutil.ListKeys(fs)
-	} else if all && len(paths) == 0 {
-		ch, _ = fsutil.List(fs, fsutil.ListFilterAll)
-	} else if !all && len(paths) == 0 {
-		ch, _ = fsutil.List(fs, fsutil.ListFilterWholeFile)
-	} else if all {
-		ch, _ = fsutil.List(fs, func(r *filestore.DataObj) bool {
-			return pathMatch(paths, r.FilePath)
-		})
-	} else {
-		ch, _ = fsutil.List(fs, func(r *filestore.DataObj) bool {
-			return fsutil.ListFilterWholeFile(r) && pathMatch(paths, r.FilePath)
-		})
+		return fsutil.ListByKey(fs, keys)
 	}
-	return ch, nil
+
+	// Add filter filters if necessary
+	if !all {
+		if listFilter == nil {
+			listFilter = fsutil.ListFilterWholeFile
+		} else {
+			origFilter := listFilter
+			listFilter = func(r *filestore.DataObj) bool {
+				return fsutil.ListFilterWholeFile(r) && origFilter(r)
+			}
+		}
+	}
+	
+	return fsutil.List(fs, listFilter, keysOnly)
 }
 
 func pathMatch(match_list []string, path string) bool {
@@ -602,9 +617,10 @@ returned) to avoid special cases when parsing the output.
 			return
 		}
 		args := req.Arguments()
-		keys := make([]k.Key, 0)
-		for _, key := range args {
-			keys = append(keys, k.B58KeyDecode(key))
+		keys, filter, err := procListArgs(args)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		basic, _, err := req.Option("basic").Bool()
 		if err != nil {
@@ -643,7 +659,7 @@ returned) to avoid special cases when parsing the output.
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			ch, _ = fsutil.VerifyBasic(snapshot, level, verbose)
+			ch, _ = fsutil.VerifyBasic(snapshot, filter, level, verbose)
 		} else if basic {
 			ch, _ = fsutil.VerifyKeys(keys, node, fs.AsBasic(), level, verbose)
 		} else if len(keys) == 0 {
@@ -652,7 +668,7 @@ returned) to avoid special cases when parsing the output.
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			ch, _ = fsutil.VerifyFull(node, snapshot, level, verbose, skipOrphans)
+			ch, _ = fsutil.VerifyFull(node, snapshot, filter, level, verbose, skipOrphans)
 		} else {
 			ch, _ = fsutil.VerifyKeysFull(keys, node, fs.AsBasic(), level, verbose)
 		}

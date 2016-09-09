@@ -15,10 +15,12 @@ import (
 	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 )
 
-func VerifyBasic(fs Snapshot, level int, verbose int) (<-chan ListRes, error) {
-	iter := ListIterator{
-		Iterator: fs.NewIterator(),
-		Filter: func(r *DataObj) bool { return r.NoBlockData() },
+func VerifyBasic(fs Snapshot, filter ListFilter, level int, verbose int) (<-chan ListRes, error) {
+	iter := ListIterator{ Iterator: fs.NewIterator() }
+	if filter == nil {
+		iter.Filter = func(r *DataObj) bool { return r.NoBlockData() }
+	} else {
+		iter.Filter = func(r *DataObj) bool { return r.NoBlockData() && filter(r) }
 	}
 	verifyLevel, err := VerifyLevelFromNum(level)
 	if err != nil {
@@ -84,13 +86,16 @@ func verifyKey(key k.Key, fs *Basic, bs b.Blockstore, verifyLevel VerifyLevel) L
 	}
 }
 
-func VerifyFull(node *core.IpfsNode, fs Snapshot, level int, verbose int, skipOrphans bool) (<-chan ListRes, error) {
+func VerifyFull(node *core.IpfsNode, fs Snapshot, filter ListFilter, level int, verbose int, skipOrphans bool) (<-chan ListRes, error) {
 	verifyLevel, err := VerifyLevelFromNum(level)
 	if err != nil {
 		return nil, err
 	}
+	if filter != nil {
+		skipOrphans = true
+	}
 	p := verifyParams{make(chan ListRes, 16), node, fs.Basic, verifyLevel, verbose, skipOrphans, nil}
-	iter := ListIterator{fs.NewIterator(), ListFilterAll}
+	iter := ListIterator{fs.NewIterator(), filter}
 	go func() {
 		defer close(p.out)
 		p.verify(iter)
@@ -136,7 +141,6 @@ func (p *verifyParams) setStatus(dsKey ds.Key, status int) {
 	}
 }
 
-// FIXME: Unify this with verifyNode?
 func (p *verifyParams) verifyKeys(keys []k.Key) {
 	p.skipOrphans = true
 	for _, key := range keys {

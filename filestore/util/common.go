@@ -157,37 +157,40 @@ func (r *ListRes) Format() string {
 	}
 }
 
-func ListKeys(d *Basic) (<-chan ListRes, error) {
-	iter := d.NewIterator()
-
-	out := make(chan ListRes, 1024)
-
-	go func() {
-		defer close(out)
-		for iter.Next() {
-			out <- ListRes{iter.Key(), nil, 0}
-		}
-	}()
-	return out, nil
+func ListKeys(d *Basic) <-chan ListRes {
+	ch, _ := List(d, nil, true)
+	return ch
 }
 
-func List(d *Basic, filter func(*DataObj) bool) (<-chan ListRes, error) {
+type ListFilter func(*DataObj) bool
+
+func List(d *Basic, filter ListFilter, keysOnly bool) (<-chan ListRes, error) {
 	iter := ListIterator{d.NewIterator(), filter}
 
-	out := make(chan ListRes, 128)
-
-	go func() {
-		defer close(out)
-		for iter.Next() {
-			res := ListRes{iter.Key(), nil, 0}
-			_, res.DataObj, _ = iter.Value()
-			out <- res
-		}
-	}()
-	return out, nil
+	if keysOnly {
+		out := make(chan ListRes, 1024)
+		go func() {
+			defer close(out)
+			for iter.Next() {
+				out <- ListRes{Key: iter.Key()}
+			}
+		}()
+		return out, nil
+	} else {
+		out := make(chan ListRes, 128)
+		go func() {
+			defer close(out)
+			for iter.Next() {
+				res := ListRes{Key: iter.Key()}
+				_, res.DataObj, _ = iter.Value()
+				out <- res
+			}
+		}()
+		return out, nil
+	}
 }
 
-func ListFilterAll(_ *DataObj) bool {return true}
+var ListFilterAll ListFilter = nil
 
 func ListFilterWholeFile(r *DataObj) bool {return r.WholeFile()}
 
@@ -209,13 +212,17 @@ func ListByKey(fs *Basic, keys []k.Key) (<-chan ListRes, error) {
 
 type ListIterator struct {
 	*Iterator
-	Filter func(*DataObj) bool
+	Filter ListFilter
 }
 
 func (itr ListIterator) Next() bool {
 	for itr.Iterator.Next() {
+		if itr.Filter == nil {
+			return true
+		}
 		_, val, _ := itr.Value()
 		if val == nil {
+			// an error ...
 			return true
 		}
 		keep := itr.Filter(val)
