@@ -134,9 +134,9 @@
     },
     {
       "author": "jbenet",
-      "hash": "QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp",
+      "hash": "QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU",
       "name": "go-datastore",
-      "version": "0.2.1"
+      "version": "1.0.0"
     },
     {
       "author": "codahale",
@@ -176,9 +176,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcRHLm2aqDabkpcto1NzLad7YQhH99MGDHSWWvwMxKiZw",
+      "hash": "QmSp3diFRRv4zR25nHU4MWNCdhT4R6cxrTPLx12MCi1TZb",
       "name": "autobatch",
-      "version": "0.2.1"
+      "version": "0.2.2"
     },
     {
       "author": "jbenet",
@@ -188,15 +188,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmV71dCdjYivZwta22a7YvNmeS86r1EpnBjq9XAD21rBV9",
+      "hash": "QmPF5kxTYFkzhaY5LmkExood7aTTZBHWQC6cjdDQBuGrjp",
       "name": "retry-datastore",
-      "version": "1.1.1"
+      "version": "1.1.2"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQzoB7kvw15FiCBpsYhu96wyweGTwCSNXcaNtwUefy9kE",
+      "hash": "QmUtQ7vagCwHfEaCssxWzSShgrk6uA3Rx5t2E4R5aoLckg",
       "name": "failstore",
-      "version": "1.0.1"
+      "version": "1.0.2"
     },
     {
       "author": "whyrusleeping",
@@ -209,6 +209,30 @@
       "hash": "QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp",
       "name": "go-cid",
       "version": "0.1.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew",
+      "name": "go-key",
+      "version": "1.0.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmU4VzzKNLJXJ72SedXBQKyf5Jo8W89iWpbWQjHn9qef8N",
+      "name": "go-ds-flatfs",
+      "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmeqtHtxGfcsfXiou7wqHJARWPKUTUcPdtSfSYYHp48dtQ",
+      "name": "go-ds-measure",
+      "version": "1.0.1"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmUHmMGmcwCrjHQHcYhBnqGCSWs5pBSMbGZmfwavETR1gg",
+      "name": "go-ds-leveldb",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",
