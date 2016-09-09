@@ -175,6 +175,32 @@ test_add_cat_200MB() {
     '
 }
 
+test_add_mulpl_files() {
+    cmd=$1
+
+    test_expect_success "generate directory with several files" '
+        mkdir adir &&
+        echo "file1" > adir/file1 &&
+        echo "file2" > adir/file2 &&
+        echo "file3" > adir/file3
+    '
+
+    dir="`pwd`"/adir
+    test_expect_success "add files by listing them all on command line" '
+        ipfs $cmd "$dir"/file1 "$dir"/file2 "$dir"/file3 > add-expect
+    '
+
+    test_expect_success "all files added" '
+        grep file1 add-expect &&
+        grep file2 add-expect &&
+        grep file3 add-expect
+    '
+
+    test_expect_success "cleanup" '
+        rm -r adir
+    '
+}
+
 filestore_test_exact_paths() {
     opt=$1
 
@@ -249,6 +275,8 @@ filestore_test_w_daemon() {
 
     test_add_cat_5MB "filestore add " "`pwd`"
 
+    test_add_mulpl_files "filestore add "
+
     filestore_test_exact_paths
 
     test_expect_success "ipfs add -S fails unless enable" '
@@ -283,6 +311,8 @@ filestore_test_w_daemon() {
     test_add_empty_file "filestore add -S" "`pwd`"
 
     test_add_cat_5MB "filestore add -S" "`pwd`"
+
+    test_add_mulpl_files "filestore add -S"
 
     cat <<EOF > add_expect
 added QmQhAyoEzSg5JeAzGDCx63aPekjSGKeQaYs4iRf4y6Qm6w adir

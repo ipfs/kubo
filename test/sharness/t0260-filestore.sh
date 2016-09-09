@@ -25,6 +25,8 @@ test_add_empty_file "filestore add" "`pwd`"
 
 test_add_cat_5MB "filestore add" "`pwd`"
 
+test_add_mulpl_files "filestore add"
+
 test_expect_success "fail after file move" '
     mv mountdir/bigfile mountdir/bigfile2
     test_must_fail ipfs cat "$HASH" >/dev/null
@@ -59,8 +61,11 @@ EOF
 
 cat <<EOF > ls_expect
 QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb
+QmUtkGLvPf63NwVzLPKPUYgwhn8ZYPWF6vKWN3fZ2amfJF
 QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
+Qmae3RedM7SNkWGsdzYzsr6svmsFdsva4WoTvYYsWhUSVz
 QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
+Qmesmmf1EEG1orJb6XdK6DabxexsseJnCfw8pqWgonbkoj
 EOF
 
 test_expect_success "testing filestore ls" '

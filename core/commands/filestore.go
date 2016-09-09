@@ -186,7 +186,7 @@ func (f *fixPath) NextFile() (files.File, error) {
 		return nil, errors.New("len(req.Files()) < len(req.Arguments())")
 	}
 	path := f.paths[0]
-	f.paths = f.paths[:1]
+	f.paths = f.paths[1:]
 	if f0.IsDirectory() {
 		return nil, errors.New("online directory add not supported, try '-S'")
 	} else {
@@ -255,11 +255,11 @@ func (f *dualFile) Read(res []byte) (int, error) {
 		if len(f.buf) == 0 && err == io.EOF {
 			return 0, io.EOF
 		} else {
-			return 0, errors.New("server side file is larger")
+			return 0, fmt.Errorf("%s: server side file is larger", f.FullPath())
 		}
 	}
 	if !bytes.Equal(res, f.buf) {
-		return 0, errors.New("file contents differ")
+		return 0, fmt.Errorf("%s: %s: server side file contents differ", f.content.FullPath(), f.local.FullPath())
 	}
 	return n, err1
 }
