@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-### 0.4.3-rc4 - 2016-09-06
+### 0.4.3-rc4 - 2016-09-09
 
 This release candidate fixes issues in Bitswap and the `ipfs add` command, and improves testing.
 We plan for this to be the last release candidate before the release of go-ipfs v0.4.3.
