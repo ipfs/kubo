@@ -150,12 +150,16 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	defer log.EventBegin(ctx, "handlePutValue", p).Done()
 	dskey := key.Key(pmes.GetKey()).DsKey()
 
-	if err := dht.verifyRecordLocally(pmes.GetRecord()); err != nil {
+	rec := pmes.GetRecord()
+	if rec == nil {
+		log.Infof("Got nil record from: %s", p.Pretty())
+		return nil, errors.New("nil record")
+	}
+
+	if err := dht.verifyRecordLocally(rec); err != nil {
 		log.Warningf("Bad dht record in PUT from: %s. %s", key.Key(pmes.GetRecord().GetAuthor()), err)
 		return nil, err
 	}
-
-	rec := pmes.GetRecord()
 
 	// record the time we receive every record
 	rec.TimeReceived = proto.String(u.FormatRFC3339(time.Now()))
