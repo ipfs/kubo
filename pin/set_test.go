@@ -1,6 +1,6 @@
 package pin
 
-import "github.com/ipfs/go-ipfs/blocks/key"
+import "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
 func ignoreKeys(key.Key) {}
 
