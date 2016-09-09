@@ -368,16 +368,16 @@ func getListing(ds *filestore.Datastore, objs []string, all bool, keysOnly bool)
 	} else if all && len(paths) == 0 && keysOnly {
 		ch, _ = fsutil.ListKeys(fs)
 	} else if all && len(paths) == 0 {
-		ch, _ = fsutil.ListAll(fs)
+		ch, _ = fsutil.List(fs, fsutil.ListFilterAll)
 	} else if !all && len(paths) == 0 {
-		ch, _ = fsutil.ListWholeFile(fs)
+		ch, _ = fsutil.List(fs, fsutil.ListFilterWholeFile)
 	} else if all {
-		ch, _ = fsutil.List(fs, func(r fsutil.ListRes) bool {
+		ch, _ = fsutil.List(fs, func(r *filestore.DataObj) bool {
 			return pathMatch(paths, r.FilePath)
 		})
 	} else {
-		ch, _ = fsutil.List(fs, func(r fsutil.ListRes) bool {
-			return r.WholeFile() && pathMatch(paths, r.FilePath)
+		ch, _ = fsutil.List(fs, func(r *filestore.DataObj) bool {
+			return fsutil.ListFilterWholeFile(r) && pathMatch(paths, r.FilePath)
 		})
 	}
 	return ch, nil

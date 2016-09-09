@@ -105,12 +105,11 @@ func statusStr(status int) string {
 
 type ListRes struct {
 	Key ds.Key
-	OrigData []byte
 	*DataObj
 	Status int
 }
 
-var EmptyListRes = ListRes{ds.NewKey(""), nil, nil, 0}
+var EmptyListRes = ListRes{ds.NewKey(""), nil, 0}
 
 func (r *ListRes) What() string {
 	if r.WholeFile() {
@@ -129,12 +128,16 @@ func (r *ListRes) StatusStr() string {
 	return str
 }
 
-func (r *ListRes) MHash() string {
-	key, err := k.KeyFromDsKey(r.Key)
+func MHash(dsKey ds.Key) string {
+	key, err := k.KeyFromDsKey(dsKey)
 	if err != nil {
 		return "??????????????????????????????????????????????"
 	}
 	return key.B58String()
+}
+
+func (r *ListRes) MHash() string {
+	return MHash(r.Key)
 }
 
 func (r *ListRes) RawHash() []byte {
@@ -154,46 +157,38 @@ func (r *ListRes) Format() string {
 }
 
 func ListKeys(d *Basic) (<-chan ListRes, error) {
-	iter := d.DB().NewIterator(nil, nil)
+	iter := d.NewIterator()
 
 	out := make(chan ListRes, 1024)
 
 	go func() {
 		defer close(out)
 		for iter.Next() {
-			out <- ListRes{ds.NewKey(string(iter.Key())), nil, nil, 0}
+			out <- ListRes{iter.Key(), nil, 0}
 		}
 	}()
 	return out, nil
 }
 
-func List(d *Basic, filter func(ListRes) bool) (<-chan ListRes, error) {
-	iter := d.DB().NewIterator(nil, nil)
+func List(d *Basic, filter func(*DataObj) bool) (<-chan ListRes, error) {
+	iter := ListIterator{d.NewIterator(), filter}
 
 	out := make(chan ListRes, 128)
 
 	go func() {
 		defer close(out)
 		for iter.Next() {
-			key := ds.NewKey(string(iter.Key()))
-			_, val, _ := Decode(iter.Value())
-			res := ListRes{key, iter.Value(), val, 0}
-			keep := filter(res)
-			if keep {
-				out <- res
-			}
+			res := ListRes{iter.Key(), nil, 0}
+			_, res.DataObj, _ = iter.Value()
+			out <- res
 		}
 	}()
 	return out, nil
 }
 
-func ListAll(d *Basic) (<-chan ListRes, error) {
-	return List(d, func(_ ListRes) bool { return true })
-}
+func ListFilterAll(_ *DataObj) bool {return true}
 
-func ListWholeFile(d *Basic) (<-chan ListRes, error) {
-	return List(d, func(r ListRes) bool { return r.WholeFile() })
-}
+func ListFilterWholeFile(r *DataObj) bool {return r.WholeFile()}
 
 func ListByKey(fs *Basic, keys []k.Key) (<-chan ListRes, error) {
 	out := make(chan ListRes, 128)
@@ -202,13 +197,33 @@ func ListByKey(fs *Basic, keys []k.Key) (<-chan ListRes, error) {
 		defer close(out)
 		for _, key := range keys {
 			dsKey := key.DsKey()
-			origData, dataObj, err := fs.GetDirect(dsKey)
+			_, dataObj, err := fs.GetDirect(dsKey)
 			if err == nil {
-				out <- ListRes{dsKey, origData, dataObj, 0}
+				out <- ListRes{dsKey, dataObj, 0}
 			}
 		}
 	}()
 	return out, nil
+}
+
+type ListIterator struct {
+	*Iterator
+	Filter func(*DataObj) bool
+}
+
+func (itr ListIterator) Next() bool {
+	for itr.Iterator.Next() {
+		_, val, _ := itr.Value()
+		if val == nil {
+			return true
+		}
+		keep := itr.Filter(val)
+		if keep {
+			return true
+		}
+		// else continue to next value
+	}
+	return false
 }
 
 func verify(d *Basic, key ds.Key, origData []byte, val *DataObj, level VerifyLevel) int {

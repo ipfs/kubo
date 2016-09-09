@@ -223,11 +223,11 @@ func (d *Datastore) Update(keyBytes []byte, origData []byte, newData *DataObj) (
 }
 
 func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
-	data, val, err := d.GetDirect(key)
+	bytes, val, err := d.GetDirect(key)
 	if err != nil {
 		return nil, err
 	}
-	return GetData(d, key, data, val, d.verify)
+	return GetData(d, key, bytes, val, d.verify)
 }
 
 func (d *Datastore) GetDirect(key ds.Key) ([]byte, *DataObj, error) {
@@ -246,13 +246,13 @@ func (d *Basic) GetDirect(key ds.Key) ([]byte, *DataObj, error) {
 	return Decode(val)
 }
 
-func Decode(data []byte) ([]byte, *DataObj, error) {
+func Decode(bytes []byte) ([]byte, *DataObj, error) {
 	val := new(DataObj)
-	err := val.Unmarshal(data)
+	err := val.Unmarshal(bytes)
 	if err != nil {
-		return data, nil, err
+		return bytes, nil, err
 	}
-	return data, val, nil
+	return bytes, val, nil
 }
 
 type InvalidBlock struct{}
@@ -436,6 +436,61 @@ func (d *Datastore) Query(q query.Query) (query.Results, error) {
 	})
 	go qrb.Process.CloseAfterChildren()
 	return qrb.Results(), nil
+}
+
+type Iterator struct {
+	key       ds.Key
+	keyBytes  []byte
+	value     *DataObj
+	bytes     []byte
+	iter      iterator.Iterator
+}
+
+var emptyDsKey = ds.NewKey("")
+
+func (d *Basic) NewIterator() *Iterator {
+	return &Iterator{iter: d.db.NewIterator(nil, nil)}
+}
+
+func (d *Datastore) NewIterator() *Iterator {
+	return &Iterator{iter: d.db.NewIterator(nil, nil)}
+}
+
+func (itr *Iterator) Next() bool {
+	itr.keyBytes = nil
+	itr.value = nil
+	return itr.iter.Next()
+}
+
+func (itr *Iterator) Key() ds.Key {
+	if itr.keyBytes != nil {
+		return itr.key
+	}
+	itr.keyBytes = itr.iter.Key()
+	itr.key = ds.NewKey(string(itr.keyBytes))
+	return itr.key
+}
+
+func (itr *Iterator) KeyBytes() []byte {
+	itr.Key()
+	return itr.keyBytes
+}
+
+func (itr *Iterator) Value() ([]byte, *DataObj, error) {
+	if itr.value != nil {
+		return itr.bytes, itr.value, nil
+	}
+	itr.bytes = itr.iter.Value()
+	if itr.bytes == nil {
+		return nil, nil, nil
+	}
+	var err error
+	_, itr.value, err = Decode(itr.bytes)
+	return itr.bytes, itr.value, err
+}
+
+func (itr *Iterator) Release() {
+	itr.iter.Release()
 }
 
 func (d *Datastore) Close() error {

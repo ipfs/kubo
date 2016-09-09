@@ -15,9 +15,9 @@ import (
 )
 
 func VerifyBasic(fs Snapshot, level int, verbose int) (<-chan ListRes, error) {
-	in, err := List(fs.Basic, func(r ListRes) bool { return r.NoBlockData() })
-	if err != nil {
-		return nil, err
+	iter := ListIterator{
+		Iterator: fs.NewIterator(),
+		Filter: func(r *DataObj) bool { return r.NoBlockData() },
 	}
 	verifyLevel, err := VerifyLevelFromNum(level)
 	if err != nil {
@@ -26,10 +26,15 @@ func VerifyBasic(fs Snapshot, level int, verbose int) (<-chan ListRes, error) {
 	out := make(chan ListRes, 16)
 	go func() {
 		defer close(out)
-		for res := range in {
-			res.Status = verify(fs.Basic, res.Key, res.OrigData, res.DataObj, verifyLevel)
-			if verbose >= 3 || OfInterest(res.Status) {
-				out <- res
+		for iter.Next() {
+			key := iter.Key()
+			bytes, dataObj, err := iter.Value()
+			if err != nil {
+				out <- ListRes{key, nil, StatusCorrupt}
+			}
+			status := verify(fs.Basic, key, bytes, dataObj, verifyLevel)
+			if verbose >= 3 || OfInterest(status) {
+				out <- ListRes{key, dataObj, status}
 			}
 		}
 	}()
@@ -61,20 +66,20 @@ func verifyKey(key k.Key, fs *Basic, bs b.Blockstore, verifyLevel VerifyLevel) L
 	dsKey := key.DsKey()
 	origData, dataObj, err := fs.GetDirect(dsKey)
 	if err == nil && dataObj.NoBlockData() {
-		res := ListRes{dsKey, origData, dataObj, 0}
+		res := ListRes{dsKey, dataObj, 0}
 		res.Status = verify(fs, dsKey, origData, dataObj, verifyLevel)
 		return res
 	} else if err == nil {
-		return ListRes{dsKey, origData, dataObj, StatusUnchecked}
+		return ListRes{dsKey, dataObj, StatusUnchecked}
 	}
 	found, _ := bs.Has(key)
 	if found {
-		return ListRes{dsKey, nil, nil, StatusFound}
+		return ListRes{dsKey, nil, StatusFound}
 	} else if err == ds.ErrNotFound && !found {
-		return ListRes{dsKey, nil, nil, StatusKeyNotFound}
+		return ListRes{dsKey, nil, StatusKeyNotFound}
 	} else {
 		Logger.Errorf("%s: verifyKey: %v", key, err)
-		return ListRes{dsKey, nil, nil, StatusError}
+		return ListRes{dsKey, nil, StatusError}
 	}
 }
 
@@ -148,7 +153,7 @@ func (p *verifyParams) verifyKeys(keys []k.Key) {
 		} else {
 			r = p.verifyLeaf(dsKey, origData, dataObj)
 		}
-		res := ListRes{dsKey, origData, dataObj, r}
+		res := ListRes{dsKey, dataObj, r}
 		res.Status = p.checkIfAppended(res)
 		if p.verboseLevel > 1 || OfInterest(res.Status) {
 			p.out <- res
@@ -197,21 +202,21 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 		if status != 0 {
 			continue
 		}
-		res := ListRes{Key: ds.NewKey(key)}
-		var err error
-		res.OrigData, res.DataObj, err = p.fs.GetDirect(res.Key)
+		dsKey := ds.NewKey(key)
+		bytes, val, err := p.fs.GetDirect(dsKey)
+		status := StatusUnchecked
 		if err != nil {
-			Logger.Errorf("%s: verify: %v", res.MHash(), err)
-			res.Status = StatusError
-		} else if res.NoBlockData() {
-			res.Status = p.verifyLeaf(res.Key, res.OrigData, res.DataObj)
-			if !AnError(res.Status) {
-				res.Status = StatusOrphan
+			Logger.Errorf("%s: verify: %v", MHash(dsKey), err)
+			status = StatusError
+		} else if val.NoBlockData() {
+			status = p.verifyLeaf(dsKey, bytes, val)
+			if !AnError(status) {
+				status = StatusOrphan
 			}
 		} else {
-			res.Status = StatusOrphan
+			status = StatusOrphan
 		}
-		p.out <- res
+		p.out <- ListRes{dsKey, val, status}
 	}
 }
 
@@ -246,7 +251,7 @@ func (p *verifyParams) verifyNode(n *node.Node) int {
 			r = p.verifyLeaf(key, origData, dataObj)
 		}
 		p.setStatus(key, r)
-		res := ListRes{key, origData, dataObj, r}
+		res := ListRes{key, dataObj, r}
 		if p.verboseLevel >= 7 || (p.verboseLevel >= 4 && OfInterest(r)) {
 			p.out <- res
 		}
