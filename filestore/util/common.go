@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	. "github.com/ipfs/go-ipfs/filestore"
+	. "github.com/ipfs/go-ipfs/filestore/support"
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	k "github.com/ipfs/go-ipfs/blocks/key"
@@ -268,19 +269,24 @@ func fsGetNode(dsKey ds.Key, fs *Datastore) (*node.Node, *DataObj, error) {
 	}
 }
 
-func getNode(dsKey ds.Key, key k.Key, fs *Basic, bs b.Blockstore) (*node.Node, []byte, *DataObj, int) {
+func getNode(dsKey ds.Key, fs *Basic, bs b.Blockstore) ([]byte, *DataObj, []*node.Link, int) {
 	origData, dataObj, err := fs.GetDirect(dsKey)
 	if err == nil {
 		if dataObj.NoBlockData() {
-			return nil, origData, dataObj, StatusUnchecked
+			return origData, dataObj, nil, StatusUnchecked
 		} else {
-			node, err := node.DecodeProtobuf(dataObj.Data)
+			links, err := GetLinks(dataObj)
 			if err != nil {
-				Logger.Errorf("%s: %v", key, err)
-				return nil, origData, nil, StatusCorrupt
+				Logger.Errorf("%s: %v", MHash(dsKey), err)
+				return origData, nil, nil, StatusCorrupt
 			}
-			return node, origData, dataObj, StatusOk
+			return origData, dataObj, links, StatusOk
 		}
+	}
+	key, err2 := k.KeyFromDsKey(dsKey)
+	if err2 != nil {
+		Logger.Errorf("%s: %v", key, err2)
+		return nil, nil, nil, StatusError
 	}
 	block, err2 := bs.Get(key)
 	if err == ds.ErrNotFound && err2 == b.ErrNotFound {
@@ -294,5 +300,5 @@ func getNode(dsKey ds.Key, key k.Key, fs *Basic, bs b.Blockstore) (*node.Node, [
 		Logger.Errorf("%s: %v", key, err)
 		return nil, nil, nil, StatusCorrupt
 	}
-	return node, nil, nil, StatusFound
+	return nil, nil, node.Links, StatusFound
 }

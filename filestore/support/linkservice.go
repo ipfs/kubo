@@ -15,6 +15,14 @@ type linkservice struct {
 	fs *Datastore
 }
 
+func GetLinks(dataObj *DataObj) ([]*dag.Link, error) {
+	res, err := dag.DecodeProtobuf(dataObj.Data)
+	if err != nil {
+		return nil, err
+	}
+	return res.Links, nil
+}
+
 func (ls *linkservice) Get(key key.Key) ([]*dag.Link, error) {
 	dsKey := key.DsKey()
 	_, dataObj, err := ls.fs.GetDirect(dsKey)
@@ -23,9 +31,5 @@ func (ls *linkservice) Get(key key.Key) ([]*dag.Link, error) {
 	} else if err != nil {
 		return nil, err
 	}
-	res, err := dag.DecodeProtobuf(dataObj.Data)
-	if err != nil {
-		return nil, err
-	}
-	return res.Links, nil
+	return GetLinks(dataObj)
 }

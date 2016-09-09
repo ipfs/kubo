@@ -8,6 +8,7 @@ import (
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
+	. "github.com/ipfs/go-ipfs/filestore/support"
 	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	node "github.com/ipfs/go-ipfs/merkledag"
@@ -89,13 +90,10 @@ func VerifyFull(node *core.IpfsNode, fs Snapshot, level int, verbose int, skipOr
 		return nil, err
 	}
 	p := verifyParams{make(chan ListRes, 16), node, fs.Basic, verifyLevel, verbose, skipOrphans, nil}
-	ch, err := ListKeys(p.fs)
-	if err != nil {
-		return nil, err
-	}
+	iter := ListIterator{fs.NewIterator(), ListFilterAll}
 	go func() {
 		defer close(p.out)
-		p.verify(ch)
+		p.verify(iter)
 	}()
 	return p.out, nil
 }
@@ -138,6 +136,7 @@ func (p *verifyParams) setStatus(dsKey ds.Key, status int) {
 	}
 }
 
+// FIXME: Unify this with verifyNode?
 func (p *verifyParams) verifyKeys(keys []k.Key) {
 	p.skipOrphans = true
 	for _, key := range keys {
@@ -145,11 +144,11 @@ func (p *verifyParams) verifyKeys(keys []k.Key) {
 			continue
 		}
 		dsKey := key.DsKey()
-		dagNode, origData, dataObj, r := p.get(dsKey)
+		origData, dataObj, children, r := p.get(dsKey)
 		if dataObj == nil || AnError(r) {
 			/* nothing to do */
 		} else if dataObj.Internal() {
-			r = p.verifyNode(dagNode)
+			r = p.verifyNode(children)
 		} else {
 			r = p.verifyLeaf(dsKey, origData, dataObj)
 		}
@@ -162,20 +161,26 @@ func (p *verifyParams) verifyKeys(keys []k.Key) {
 	}
 }
 
-func (p *verifyParams) verify(ch <-chan ListRes) {
+func (p *verifyParams) verify(iter ListIterator) {
 	p.seen = make(map[string]int)
 	unsafeToCont := false
-	for res := range ch {
-		dagNode, origData, dataObj, r := p.get(res.Key)
-		if dataObj == nil {
-			Logger.Errorf("%s: verify: no DataObj", res.MHash())
-			r = StatusError
+	for iter.Next() {
+		res := ListRes{iter.Key(), nil, 0}
+		r := StatusUnchecked
+		origData, dataObj, err := iter.Value()
+		if err != nil {
+			r = StatusCorrupt
 		}
 		res.DataObj = dataObj
 		if AnError(r) {
 			/* nothing to do */
 		} else if res.Internal() && res.WholeFile() {
-			r = p.verifyNode(dagNode)
+			children, err := GetLinks(dataObj)
+			if err != nil {
+				r = StatusCorrupt
+			} else {
+				r = p.verifyNode(children)
+			}
 		} else if res.WholeFile() {
 			r = p.verifyLeaf(res.Key, origData, res.DataObj)
 		} else {
@@ -193,11 +198,12 @@ func (p *verifyParams) verify(ch <-chan ListRes) {
 			p.out <- EmptyListRes
 		}
 	}
-	// If we get an internal error we may incorrect mark nodes
-	// some nodes orphans, so exit early
+	// If we get an internal error we may incorrectly mark nodes
+	// some nodes as orphans, so exit early
 	if unsafeToCont {
 		return
 	}
+	// Now check the orphans
 	for key, status := range p.seen {
 		if status != 0 {
 			continue
@@ -235,19 +241,16 @@ func (p *verifyParams) checkIfAppended(res ListRes) int {
 	return res.Status
 }
 
-func (p *verifyParams) verifyNode(n *node.Node) int {
-	if n == nil {
-		return StatusError
-	}
+func (p *verifyParams) verifyNode(links []*node.Link) int {
 	complete := true
-	for _, link := range n.Links {
+	for _, link := range links {
 		key := k.Key(link.Hash).DsKey()
-		dagNode, origData, dataObj, r := p.get(key)
-		if AnError(r) || (dagNode != nil && len(dagNode.Links) == 0) {
+		origData, dataObj, children, r := p.get(key)
+		if AnError(r) {
 			/* nothing to do */
-		} else if dagNode != nil {
-			r = p.verifyNode(dagNode)
-		} else {
+		} else if len(children) > 0 {
+			r = p.verifyNode(children)
+		} else if dataObj != nil {
 			r = p.verifyLeaf(key, origData, dataObj)
 		}
 		p.setStatus(key, r)
@@ -274,11 +277,6 @@ func (p *verifyParams) verifyLeaf(key ds.Key, origData []byte, dataObj *DataObj)
 	return verify(p.fs, key, origData, dataObj, p.verifyLevel)
 }
 
-func (p *verifyParams) get(dsKey ds.Key) (*node.Node, []byte, *DataObj, int) {
-	key, err := k.KeyFromDsKey(dsKey)
-	if err != nil {
-		Logger.Errorf("%s: get: %v", key, err)
-		return nil, nil, nil, StatusCorrupt
-	}
-	return getNode(dsKey, key, p.fs, p.node.Blockstore)
+func (p *verifyParams) get(dsKey ds.Key) ([]byte, *DataObj, []*node.Link, int) {
+	return getNode(dsKey, p.fs, p.node.Blockstore)
 }
