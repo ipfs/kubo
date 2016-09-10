@@ -14,6 +14,7 @@
 import sys
 import os.path
 import subprocess as sp
+import stat
 
 #
 # Maximum length of command line, this may need to be lowerd on
@@ -22,31 +23,44 @@ import subprocess as sp
 
 MAX_CMD_LEN = 120 * 1024
 
+def print_err(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def usage():
+    print_err("Usage: ", sys.argv[0], "[--scan] DIR [CACHE]")
+    sys.exit(1)
 
 def main():
+    global scan,dir,cache
     #
     # Parse command line arguments
     #
+    i = 1
 
-    def print_err(*args, **kwargs):
-        print(*args, file=sys.stderr, **kwargs)
+    if i >= len(sys.argv): usage()
+    if sys.argv[i] == "--scan":
+        scan = True
+        i += 1
+    else:
+        scan = False
 
-    if len(sys.argv) != 3:
-        print_err("Usage: ", sys.argv[0], "DIR CACHE")
-        sys.exit(1)
-
-    dir = sys.argv[1]
+    if i >= len(sys.argv): usage()
+    dir = sys.argv[i]
     if not os.path.isabs(dir):
         print_err("directory name must be absolute:", dir)
         sys.exit(1)
+    i += 1
 
-    cache = sys.argv[2]
-    if not os.path.isabs(cache):
-        print_err("cache file name must be absolute:", dir)
-        sys.exit(1)
+    if i < len(sys.argv):
+        cache = sys.argv[i]
+        if not os.path.isabs(cache):
+            print_err("cache file name must be absolute:", dir)
+            sys.exit(1)
+    else:
+        cache = None
 
     #
-    # Global variables
+    # State variables
     #
 
     before = [] # list of (hash mtime path) -- from data file
@@ -57,68 +71,32 @@ def main():
     already_have = set()
     toadd = {}
 
-
     #
-    # Read in cache (if it exists) and determine any files that have modified
-    #
-
-    print("checking for modified files...")
-    if os.path.exists(cache):
-
-        try:
-            f = open(cache)
-        except OSError as e:
-            print_err("count not open cache file: ", e)
-            sys.exit(1)
-
-        for line in f:
-            hash,mtime,path = line.rstrip('\n').split(' ', 2)
-            try:
-                new_mtime = "%.6f" % os.path.getmtime(path)
-            except OSError as e:
-                print_err("skipping:", path, ":", e.strerror)
-                continue
-            before.append((hash,mtime,path),)
-            if mtime != new_mtime:
-                print("file modified:", path)
-                file_modified.add(path)
-            hash_ok[hash] = None
-
-        del f
-
-    #
-    # Determine any hashes that have become invalid.  All files with
-    # that hash will then be readded in an attempt to fix it.
+    # Initialization
     #
 
-    print("checking for invalid hashes...")
-    for line in Xargs(['ipfs', 'filestore', 'verify', '-v2', '-l3', '--porcelain'], list(hash_ok.keys())):
-        line = line.rstrip('\n')
-        _, status, hash, path = line.split('\t')
-        hash_ok[hash] = status == "ok" or status == "appended" or status == "found"
-        if not hash_ok[hash]:
-            print("hash not ok:", status,hash,path)
-
-    for hash,val in hash_ok.items():
-        if val == None:
-            print_err("WARNING: hash status unknown: ", hash)
+    if cache != None and os.path.exists(cache):
+        load_cache(before,hash_ok,file_modified)
+        os.rename(cache, cache+".old")
+    elif scan:
+        init_cache(before,hash_ok)
 
     #
     # Open the new cache file for writing
     #
 
-    if os.path.exists(cache):
-        os.rename(cache, cache+".old")
-
-    try:
-        f = open(cache, 'w')
-    except OSError as e:
-        print_err("count not write to cache file: ", e)
+    if cache == None:
+        f = open(os.devnull, 'w')
+    else:
         try:
-            os.rename(cache+".old", cache)
-        except OSError:
-            pass
-        sys.exit(1)
+            f = open(cache, 'w')
+        except OSError as e:
+            print_err("count not write to cache file: ", e)
+            try:
+                os.rename(cache+".old", cache)
+            except OSError:
+                pass
+            sys.exit(1)
 
     #
     # Figure out what files don't need to be readded and write them
@@ -152,7 +130,10 @@ def main():
                     if not os.access(path, os.R_OK):
                         print_err("SKIPPING", path, ":", "R_OK access check failed")
                         continue
-                    mtime = "%.6f" % os.path.getmtime(path)
+                    finf = os.stat(path, follow_symlinks=False)
+                    if not stat.S_ISREG(finf.st_mode):
+                        continue
+                    mtime = "%.3f" % finf.st_mtime
                     #print("will add", path)
                     toadd[path] = mtime
             except OSError as e:
@@ -184,9 +165,17 @@ def main():
             print_err("WARNING: problem when adding: ", path, ":", e)
             # don't abort, non-fatal error
 
-    for path in toadd.keys():
+    if len(toadd) != 0:
         errors = True
-        print_err("WARNING: ", path, "not added.")
+        i = 0
+        limit = 10
+        for path in toadd.keys():
+            print_err("WARNING:", path, "not added.")
+            i += 1
+            if i == limit: break
+        if i == limit:
+            print_err("WARNING:", len(toadd)-limit, "additional paths(s) not added.")
+
 
     #
     # Cleanup
@@ -196,7 +185,64 @@ def main():
 
     if errors:
         sys.exit(1)
-    
+
+def load_cache(before, hash_ok, file_modified):
+    #
+    # Read in cache (if it exists) and determine any files that have modified
+    #
+    print("checking for modified files...")
+    try:
+        f = open(cache)
+    except OSError as e:
+        print_err("count not open cache file: ", e)
+        sys.exit(1)
+    for line in f:
+        hash,mtime,path = line.rstrip('\n').split(' ', 2)
+        try:
+            new_mtime = "%.3f" % os.path.getmtime(path)
+        except OSError as e:
+            print_err("skipping:", path, ":", e.strerror)
+            continue
+        before.append((hash,mtime,path),)
+        if mtime != new_mtime:
+            print("file modified:", path)
+            file_modified.add(path)
+        hash_ok[hash] = None
+    del f
+
+    #
+    # Determine any hashes that have become invalid.  All files with
+    # that hash will then be readded in an attempt to fix it.
+    #
+    print("checking for invalid hashes...")
+    for line in Xargs(['ipfs', 'filestore', 'verify', '-v2', '-l3', '--porcelain'], list(hash_ok.keys())):
+        line = line.rstrip('\n')
+        _, status, hash, path = line.split('\t')
+        hash_ok[hash] = status == "ok" or status == "appended" or status == "found"
+        if not hash_ok[hash]:
+            print("hash not ok:", status,hash,path)
+
+    for hash,val in hash_ok.items():
+        if val == None:
+            print_err("WARNING: hash status unknown: ", hash)
+
+def init_cache(before, hash_ok):
+    #
+    # Use what is in the filestore already to initialize the cache file
+    #
+    print("scanning filestore for files already added...")
+    for line in Xargs(['ipfs', 'filestore', 'verify', '-v2', '-l3', '--porcelain'], [os.path.join(dir,'')]):
+        line = line.rstrip('\n')
+        what, status, hash, path = line.split('\t')
+        if what == "root" and status == "ok":
+            try:
+                mtime = "%.3f" % os.path.getmtime(path)
+            except OSError as e:
+                print_err("skipping:", path, ":", e.strerror)
+                continue
+            hash_ok[hash] = True
+            before.append((hash,mtime,path),)
+
 class Xargs:
     def __init__(self, cmd, args):
         self.cmd = cmd
