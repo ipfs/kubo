@@ -130,10 +130,10 @@ manage the filestore.
 Before performing maintenance any invalid pinned blocks need to be
 manually unpinned.  The maintenance commands will skip pinned blocks.
 
-All maintenance commands should currently be run with the daemon
-offline.  Running them with the daemon online is untested, in
-particular the code has not been properly audited to make sure all the
-correct locks are being held.
+Maintenance commands are safe to run with the daemon running, however
+if other filestore modification operations are running in parallel
+they may not be complete.  Most maintenance commands will operate on a
+snapshot of the database when it was last in a consistent state.
 
 ## Removing Invalid blocks
 

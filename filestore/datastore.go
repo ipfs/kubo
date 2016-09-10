@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	//"runtime"
 	//"runtime/debug"
 	//"time"
 
@@ -20,6 +21,7 @@ import (
 	dsq "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb"
+	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/iterator"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/util"
 )
@@ -35,14 +37,79 @@ const (
 	VerifyAlways
 )
 
-type Datastore struct {
-	db         *leveldb.DB
-	verify     VerifyWhen
-	updateLock sync.Mutex
+type readonly interface {
+	Get(key []byte, ro *opt.ReadOptions) (value []byte, err error)
+	Has(key []byte, ro *opt.ReadOptions) (ret bool, err error)
+	NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator
 }
 
-func (d *Datastore) DB() *leveldb.DB {
-	return d.db
+type Basic struct {
+	db readonly
+	ds *Datastore
+}
+
+type Snapshot struct {
+	*Basic
+}
+
+func (ss *Snapshot) Defined() bool { return ss.Basic != nil }
+
+type Datastore struct {
+	db     *leveldb.DB
+	verify VerifyWhen
+
+	// updateLock is designed to only be held for a very short
+	// period of time.  It, as it names suggests, is designed to
+	// avoid a race condataion when updating a DataObj and is only
+	// used by the Update function, which all functions that
+	// modify the DB use
+	updateLock sync.Mutex
+
+	// A snapshot of the DB the last time it was in a consistent
+	// state, if null than there are no outstanding adds
+	snapshot Snapshot
+	// If the snapshot was used, if not true than Release() can be
+	// called to help save space
+	snapshotUsed bool
+
+	addLocker addLocker
+
+	// maintenanceLock is designed to be help for a longer period
+	// of time.  It, as it names suggests, is designed to be avoid
+	// race conditions during maintenance.  Operations that add
+	// blocks are expected to already be holding the "read" lock.
+	// Maintaince operations will hold an exclusive lock.
+	//maintLock  sync.RWMutex
+}
+
+func (d *Basic) DB() readonly { return d.db }
+
+func (d *Datastore) DB() *leveldb.DB { return d.db }
+
+func (d *Datastore) AsBasic() *Basic { return &Basic{d.db, d} }
+
+func (d *Basic) AsFull() *Datastore { return d.ds }
+
+func (d *Datastore) GetSnapshot() (Snapshot, error) {
+	if d.snapshot.Defined() {
+		d.snapshotUsed = true
+		return d.snapshot, nil
+	}
+	ss, err := d.db.GetSnapshot()
+	if err != nil {
+		return Snapshot{}, err
+	}
+	return Snapshot{&Basic{ss, d}}, nil
+}
+
+func (d *Datastore) releaseSnapshot() {
+	if !d.snapshot.Defined() {
+		return
+	}
+	if !d.snapshotUsed {
+		d.snapshot.db.(*leveldb.Snapshot).Release()
+	}
+	d.snapshot = Snapshot{}
 }
 
 func (d *Datastore) updateOnGet() bool {
@@ -68,7 +135,9 @@ func New(path string, verify VerifyWhen) (*Datastore, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Datastore{db: db, verify: verify}, nil
+	ds := &Datastore{db: db, verify: verify}
+	ds.addLocker.ds = ds
+	return ds, nil
 }
 
 func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
@@ -78,7 +147,7 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 	}
 
 	if dataObj.FilePath == "" {
-		_, err := d.Update(key, nil, dataObj)
+		_, err := d.Update(key.Bytes(), nil, dataObj)
 		return err
 	}
 
@@ -106,7 +175,7 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 		}
 	}
 
-	_, err = d.Update(key, nil, dataObj)
+	_, err = d.Update(key.Bytes(), nil, dataObj)
 	return err
 }
 
@@ -115,10 +184,9 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 // same return false and abort the update, otherwise update the key if
 // newData is defined, if it is nil than delete the key.  If an error
 // is returned than the return value is undefined.
-func (d *Datastore) Update(key ds.Key, origData []byte, newData *DataObj) (bool, error) {
+func (d *Datastore) Update(keyBytes []byte, origData []byte, newData *DataObj) (bool, error) {
 	d.updateLock.Lock()
 	defer d.updateLock.Unlock()
-	keyBytes := key.Bytes()
 	if origData != nil {
 		val, err := d.db.Get(keyBytes, nil)
 		if err != leveldb.ErrNotFound && err != nil {
@@ -159,11 +227,15 @@ func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return d.GetData(key, data, val, d.verify, true)
+	return GetData(d, key, data, val, d.verify)
+}
+
+func (d *Datastore) GetDirect(key ds.Key) ([]byte, *DataObj, error) {
+	return d.AsBasic().GetDirect(key)
 }
 
 // Get the key as a DataObj
-func (d *Datastore) GetDirect(key ds.Key) ([]byte, *DataObj, error) {
+func (d *Basic) GetDirect(key ds.Key) ([]byte, *DataObj, error) {
 	val, err := d.db.Get(key.Bytes(), nil)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
@@ -190,8 +262,8 @@ func (e InvalidBlock) Error() string {
 }
 
 // Verify as much as possible without opening the file, the result is
-// a best-guess.
-func (d *Datastore) VerifyFast(key ds.Key, val *DataObj) error {
+// a best guess.
+func VerifyFast(key ds.Key, val *DataObj) error {
 	// There is backing file, nothing to check
 	if val.HaveBlockData() {
 		return nil
@@ -224,7 +296,7 @@ func (d *Datastore) VerifyFast(key ds.Key, val *DataObj) error {
 }
 
 // Get the orignal data out of the DataObj
-func (d *Datastore) GetData(key ds.Key, origData []byte, val *DataObj, verify VerifyWhen, update bool) ([]byte, error) {
+func GetData(d *Datastore, key ds.Key, origData []byte, val *DataObj, verify VerifyWhen) ([]byte, error) {
 	if val == nil {
 		return nil, errors.New("Nil DataObj")
 	}
@@ -235,7 +307,8 @@ func (d *Datastore) GetData(key ds.Key, origData []byte, val *DataObj, verify Ve
 		return val.Data, nil
 	}
 
-	if update {
+	update := false
+	if d != nil {
 		update = d.updateOnGet()
 	}
 
@@ -288,7 +361,7 @@ func (d *Datastore) GetData(key ds.Key, origData []byte, val *DataObj, verify Ve
 		newVal.SetInvalid(invalid)
 		newVal.ModTime = modtime
 		// ignore errors as they are nonfatal
-		_,_ = d.Update(key, origData, &newVal)
+		_, _ = d.Update(key.Bytes(), origData, &newVal)
 	}
 
 	// Finally return the result
@@ -317,13 +390,14 @@ func (d *Datastore) Delete(key ds.Key) error {
 	// exist (see https://github.com/syndtr/goleveldb/issues/109),
 	// so check that the key exists first and if not return an
 	// error
-	exists, err := d.db.Has(key.Bytes(), nil)
+	keyBytes := key.Bytes()
+	exists, err := d.db.Has(keyBytes, nil)
 	if !exists {
 		return ds.ErrNotFound
 	} else if err != nil {
 		return err
 	}
-	_, err = d.Update(key, nil, nil)
+	_, err = d.Update(keyBytes, nil, nil)
 	return err
 }
 
@@ -370,4 +444,45 @@ func (d *Datastore) Close() error {
 
 func (d *Datastore) Batch() (ds.Batch, error) {
 	return ds.NewBasicBatch(d), nil
+}
+
+func NoOpLocker() sync.Locker {
+	return noopLocker{}
+}
+
+type noopLocker struct{}
+
+func (l noopLocker) Lock() {}
+
+func (l noopLocker) Unlock() {}
+
+type addLocker struct {
+	adders int
+	lock   sync.Mutex
+	ds     *Datastore
+}
+
+func (l *addLocker) Lock() {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	if l.adders == 0 {
+		l.ds.releaseSnapshot()
+		l.ds.snapshot, _ = l.ds.GetSnapshot()
+	}
+	l.adders += 1
+	log.Debugf("acquired add-lock refcnt now %d\n", l.adders)
+}
+
+func (l *addLocker) Unlock() {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	l.adders -= 1
+	if l.adders == 0 {
+		l.ds.releaseSnapshot()
+	}
+	log.Debugf("released add-lock refcnt now %d\n", l.adders)
+}
+
+func (d *Datastore) AddLocker() sync.Locker {
+	return &d.addLocker
 }

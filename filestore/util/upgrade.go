@@ -12,7 +12,7 @@ import (
 )
 
 func Upgrade(wtr io.Writer, fs *Datastore) error {
-	ls, err := ListAll(fs)
+	ls, err := ListAll(fs.AsBasic())
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func Upgrade(wtr io.Writer, fs *Datastore) error {
 			dsKey = key.DsKey()
 		}
 		if len(dsKey.String()) != 56 {
-			data, err := fs.GetData(r.Key, r.OrigData, r.DataObj, VerifyNever, false);
+			data, err := GetData(nil, r.Key, r.OrigData, r.DataObj, VerifyNever);
 			if err != nil {
 				fmt.Fprintf(wtr, "error: could not fix invalid key %s: %s\n",
 					key.String(), err.Error())
@@ -35,7 +35,7 @@ func Upgrade(wtr io.Writer, fs *Datastore) error {
 			}
 				
 		}
-		_, err = fs.Update(dsKey, r.OrigData, r.DataObj)
+		_, err = fs.Update(dsKey.Bytes(), r.OrigData, r.DataObj)
 		if err != nil {
 			return err
 		}

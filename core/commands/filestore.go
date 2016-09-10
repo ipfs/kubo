@@ -347,7 +347,8 @@ If <offset> is the special value "-" indicates a file root.
 	},
 }
 
-func getListing(fs *filestore.Datastore, objs []string, all bool, keysOnly bool) (<-chan fsutil.ListRes, error) {
+func getListing(ds *filestore.Datastore, objs []string, all bool, keysOnly bool) (<-chan fsutil.ListRes, error) {
+	fs := ds.AsBasic()
 	keys := make([]k.Key, 0)
 	paths := make([]string, 0)
 	for _, obj := range objs {
@@ -637,13 +638,23 @@ returned) to avoid special cases when parsing the output.
 
 		var ch <-chan fsutil.ListRes
 		if basic && len(keys) == 0 {
-			ch, _ = fsutil.VerifyBasic(fs, level, verbose)
+			snapshot, err := fs.GetSnapshot()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			ch, _ = fsutil.VerifyBasic(snapshot, level, verbose)
 		} else if basic {
-			ch, _ = fsutil.VerifyKeys(keys, node, fs, level, verbose)
+			ch, _ = fsutil.VerifyKeys(keys, node, fs.AsBasic(), level, verbose)
 		} else if len(keys) == 0 {
-			ch, _ = fsutil.VerifyFull(node, fs, level, verbose, skipOrphans)
+			snapshot, err := fs.GetSnapshot()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			ch, _ = fsutil.VerifyFull(node, snapshot, level, verbose, skipOrphans)
 		} else {
-			ch, _ = fsutil.VerifyKeysFull(keys, node, fs, level, verbose)
+			ch, _ = fsutil.VerifyKeysFull(keys, node, fs.AsBasic(), level, verbose)
 		}
 		if porcelain {
 			res.SetOutput(&chanWriter{ch: ch, format: formatPorcelain, ignoreFailed: true})
@@ -754,7 +765,7 @@ var fsDups = &cmds.Command{
 		}
 		r, w := io.Pipe()
 		go func() {
-			err := fsutil.Dups(w, fs, node.Blockstore, node.Pinning, req.Arguments()...)
+			err := fsutil.Dups(w, fs.AsBasic(), node.Blockstore, node.Pinning, req.Arguments()...)
 			if err != nil {
 				w.CloseWithError(err)
 			} else {

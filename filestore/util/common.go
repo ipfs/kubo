@@ -153,7 +153,7 @@ func (r *ListRes) Format() string {
 	}
 }
 
-func ListKeys(d *Datastore) (<-chan ListRes, error) {
+func ListKeys(d *Basic) (<-chan ListRes, error) {
 	iter := d.DB().NewIterator(nil, nil)
 
 	out := make(chan ListRes, 1024)
@@ -167,7 +167,7 @@ func ListKeys(d *Datastore) (<-chan ListRes, error) {
 	return out, nil
 }
 
-func List(d *Datastore, filter func(ListRes) bool) (<-chan ListRes, error) {
+func List(d *Basic, filter func(ListRes) bool) (<-chan ListRes, error) {
 	iter := d.DB().NewIterator(nil, nil)
 
 	out := make(chan ListRes, 128)
@@ -187,15 +187,15 @@ func List(d *Datastore, filter func(ListRes) bool) (<-chan ListRes, error) {
 	return out, nil
 }
 
-func ListAll(d *Datastore) (<-chan ListRes, error) {
+func ListAll(d *Basic) (<-chan ListRes, error) {
 	return List(d, func(_ ListRes) bool { return true })
 }
 
-func ListWholeFile(d *Datastore) (<-chan ListRes, error) {
+func ListWholeFile(d *Basic) (<-chan ListRes, error) {
 	return List(d, func(r ListRes) bool { return r.WholeFile() })
 }
 
-func ListByKey(fs *Datastore, keys []k.Key) (<-chan ListRes, error) {
+func ListByKey(fs *Basic, keys []k.Key) (<-chan ListRes, error) {
 	out := make(chan ListRes, 128)
 
 	go func() {
@@ -211,17 +211,17 @@ func ListByKey(fs *Datastore, keys []k.Key) (<-chan ListRes, error) {
 	return out, nil
 }
 
-func verify(d *Datastore, key ds.Key, origData []byte, val *DataObj, level VerifyLevel) int {
+func verify(d *Basic, key ds.Key, origData []byte, val *DataObj, level VerifyLevel) int {
 	var err error
 	switch level {
 	case CheckExists:
 		return StatusUnchecked
 	case CheckFast:
-		err = d.VerifyFast(key, val)
+		err = VerifyFast(key, val)
 	case CheckIfChanged:
-		_, err = d.GetData(key, origData, val, VerifyIfChanged, true)
+		_, err = GetData(d.AsFull(), key, origData, val, VerifyIfChanged)
 	case CheckAlways:
-		_, err = d.GetData(key, origData, val, VerifyAlways, true)
+		_, err = GetData(d.AsFull(), key, origData, val, VerifyAlways)
 	default:
 		return StatusError
 	}
@@ -253,7 +253,7 @@ func fsGetNode(dsKey ds.Key, fs *Datastore) (*node.Node, *DataObj, error) {
 	}
 }
 
-func getNode(dsKey ds.Key, key k.Key, fs *Datastore, bs b.Blockstore) (*node.Node, []byte, *DataObj, int) {
+func getNode(dsKey ds.Key, key k.Key, fs *Basic, bs b.Blockstore) (*node.Node, []byte, *DataObj, int) {
 	origData, dataObj, err := fs.GetDirect(dsKey)
 	if err == nil {
 		if dataObj.NoBlockData() {

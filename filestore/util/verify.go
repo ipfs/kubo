@@ -2,6 +2,7 @@ package filestore_util
 
 import (
 	"os"
+	//"sync"
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	k "github.com/ipfs/go-ipfs/blocks/key"
@@ -13,8 +14,8 @@ import (
 	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 )
 
-func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) {
-	in, err := List(fs, func(r ListRes) bool { return r.NoBlockData() })
+func VerifyBasic(fs Snapshot, level int, verbose int) (<-chan ListRes, error) {
+	in, err := List(fs.Basic, func(r ListRes) bool { return r.NoBlockData() })
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +27,7 @@ func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) 
 	go func() {
 		defer close(out)
 		for res := range in {
-			res.Status = verify(fs, res.Key, res.OrigData, res.DataObj, verifyLevel)
+			res.Status = verify(fs.Basic, res.Key, res.OrigData, res.DataObj, verifyLevel)
 			if verbose >= 3 || OfInterest(res.Status) {
 				out <- res
 			}
@@ -35,7 +36,7 @@ func VerifyBasic(fs *Datastore, level int, verbose int) (<-chan ListRes, error) 
 	return out, nil
 }
 
-func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, verbose int) (<-chan ListRes, error) {
+func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Basic, level int, verbose int) (<-chan ListRes, error) {
 	out := make(chan ListRes, 16)
 	verifyLevel, err := VerifyLevelFromNum(level)
 	if err != nil {
@@ -56,7 +57,7 @@ func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, ver
 	return out, nil
 }
 
-func verifyKey(key k.Key, fs *Datastore, bs b.Blockstore, verifyLevel VerifyLevel) ListRes {
+func verifyKey(key k.Key, fs *Basic, bs b.Blockstore, verifyLevel VerifyLevel) ListRes {
 	dsKey := key.DsKey()
 	origData, dataObj, err := fs.GetDirect(dsKey)
 	if err == nil && dataObj.NoBlockData() {
@@ -77,12 +78,12 @@ func verifyKey(key k.Key, fs *Datastore, bs b.Blockstore, verifyLevel VerifyLeve
 	}
 }
 
-func VerifyFull(node *core.IpfsNode, fs *Datastore, level int, verbose int, skipOrphans bool) (<-chan ListRes, error) {
+func VerifyFull(node *core.IpfsNode, fs Snapshot, level int, verbose int, skipOrphans bool) (<-chan ListRes, error) {
 	verifyLevel, err := VerifyLevelFromNum(level)
 	if err != nil {
 		return nil, err
 	}
-	p := verifyParams{make(chan ListRes, 16), node, fs, verifyLevel, verbose, skipOrphans, nil}
+	p := verifyParams{make(chan ListRes, 16), node, fs.Basic, verifyLevel, verbose, skipOrphans, nil}
 	ch, err := ListKeys(p.fs)
 	if err != nil {
 		return nil, err
@@ -94,7 +95,7 @@ func VerifyFull(node *core.IpfsNode, fs *Datastore, level int, verbose int, skip
 	return p.out, nil
 }
 
-func VerifyKeysFull(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int, verbose int) (<-chan ListRes, error) {
+func VerifyKeysFull(keys []k.Key, node *core.IpfsNode, fs *Basic, level int, verbose int) (<-chan ListRes, error) {
 	verifyLevel, err := VerifyLevelFromNum(level)
 	if err != nil {
 		return nil, err
@@ -110,7 +111,7 @@ func VerifyKeysFull(keys []k.Key, node *core.IpfsNode, fs *Datastore, level int,
 type verifyParams struct {
 	out         chan ListRes
 	node        *core.IpfsNode
-	fs          *Datastore
+	fs          *Basic
 	verifyLevel VerifyLevel
 	// level 7-9 show everything
 	//       5-6 don't show child nodes with a status of StatusOk, StatusUnchecked, or StatusComplete

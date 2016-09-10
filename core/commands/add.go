@@ -163,6 +163,7 @@ You can now refer to the added file in a gateway, like so:
 
 		var fileAdder *coreunix.Adder
 		useRoot := wrap || recursive
+		perFileLocker := filestore.NoOpLocker()
 		if nocopy {
 			fs, ok := n.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore)
 			if !ok {
@@ -174,6 +175,7 @@ You can now refer to the added file in a gateway, like so:
 			dagService := dag.NewDAGService(blockService)
 			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService, useRoot)
 			fileAdder.FullName = true
+			perFileLocker = fs.AddLocker()
 		} else if allowDup {
 			// add directly to the first mount bypassing
 			// the Has() check of the multi-blockstore
@@ -221,6 +223,8 @@ You can now refer to the added file in a gateway, like so:
 				} else if err != nil {
 					return err
 				}
+				perFileLocker.Lock()
+				defer perFileLocker.Unlock()
 				if err := fileAdder.AddFile(file); err != nil {
 					return err
 				}

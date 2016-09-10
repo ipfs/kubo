@@ -13,7 +13,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 
-func Dups(wtr io.Writer, fs *Datastore, bs b.MultiBlockstore, pins pin.Pinner, args ...string) error {
+func Dups(wtr io.Writer, fs *Basic, bs b.MultiBlockstore, pins pin.Pinner, args ...string) error {
 	showPinned, showUnpinned := false, false
 	if len(args) == 0 {
 		showPinned, showUnpinned = true, true
