@@ -36,7 +36,7 @@ func VerifyBasic(fs Snapshot, filter ListFilter, level int, verbose int) (<-chan
 				out <- ListRes{key, nil, StatusCorrupt}
 			}
 			status := verify(fs.Basic, key, bytes, dataObj, verifyLevel)
-			if verbose >= 3 || OfInterest(status) {
+			if verbose >= ShowTopLevel || OfInterest(status) {
 				out <- ListRes{key, dataObj, status}
 			}
 		}
@@ -57,7 +57,7 @@ func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Basic, level int, verbose
 				continue
 			}
 			res := verifyKey(key, fs, node.Blockstore, verifyLevel)
-			if verbose > 1 || OfInterest(res.Status) {
+			if verbose >= ShowSpecified || OfInterest(res.Status) {
 				out <- res
 			}
 		}
@@ -120,15 +120,22 @@ type verifyParams struct {
 	out         chan ListRes
 	node        *core.IpfsNode
 	fs          *Basic
-	verifyLevel VerifyLevel
-	// level 7-9 show everything
-	//       5-6 don't show child nodes with a status of StatusOk, StatusUnchecked, or StatusComplete
-	//       3-4 don't show child nodes
-	//       0-2 don't show child nodes and don't show root nodes with of StatusOk, or StatusComplete
+	verifyLevel VerifyLevel // see help text for meaning
 	verboseLevel int
 	skipOrphans  bool // don't check for orphans
 	seen         map[string]int
 }
+
+// func (p *verifyParams) updateStatus(key ds.Key, val *DataObj, status int) {
+// 	if p.skipOrphans {
+// 		return
+// 	}
+// 	key := string(dsKey.Bytes()[1:])
+// 	_, ok := p.seen[key]
+// 	if !ok || status > 0 {
+// 		p.seen[key] = status
+// 	}
+// }
 
 func (p *verifyParams) setStatus(dsKey ds.Key, status int) {
 	if p.skipOrphans {
@@ -158,7 +165,7 @@ func (p *verifyParams) verifyKeys(keys []k.Key) {
 		}
 		res := ListRes{dsKey, dataObj, r}
 		res.Status = p.checkIfAppended(res)
-		if p.verboseLevel > 1 || OfInterest(res.Status) {
+		if p.verboseLevel >= ShowSpecified || OfInterest(res.Status) {
 			p.out <- res
 			p.out <- EmptyListRes
 		}
@@ -169,35 +176,34 @@ func (p *verifyParams) verify(iter ListIterator) {
 	p.seen = make(map[string]int)
 	unsafeToCont := false
 	for iter.Next() {
-		res := ListRes{iter.Key(), nil, 0}
+		key := iter.Key()
 		r := StatusUnchecked
-		origData, dataObj, err := iter.Value()
+		origData, val, err := iter.Value()
 		if err != nil {
 			r = StatusCorrupt
 		}
-		res.DataObj = dataObj
 		if AnError(r) {
 			/* nothing to do */
-		} else if res.Internal() && res.WholeFile() {
-			children, err := GetLinks(dataObj)
+		} else if val.Internal() && val.WholeFile() {
+			children, err := GetLinks(val)
 			if err != nil {
 				r = StatusCorrupt
 			} else {
 				r = p.verifyNode(children)
 			}
-		} else if res.WholeFile() {
-			r = p.verifyLeaf(res.Key, origData, res.DataObj)
+		} else if val.WholeFile() {
+			r = p.verifyLeaf(key, origData, val)
 		} else {
-			p.setStatus(res.Key, 0)
+			p.setStatus(key, 0)
 			continue
 		}
 		if AnInternalError(r) {
 			unsafeToCont = true
 		}
-		res.Status = r
+		p.setStatus(key, r)
+		res := ListRes{key, val, r}
 		res.Status = p.checkIfAppended(res)
-		p.setStatus(res.Key, r)
-		if p.verboseLevel >= 2 || OfInterest(res.Status) {
+		if p.verboseLevel >= ShowTopLevel || OfInterest(res.Status) {
 			p.out <- res
 			p.out <- EmptyListRes
 		}
@@ -259,7 +265,7 @@ func (p *verifyParams) verifyNode(links []*node.Link) int {
 		}
 		p.setStatus(key, r)
 		res := ListRes{key, dataObj, r}
-		if p.verboseLevel >= 7 || (p.verboseLevel >= 4 && OfInterest(r)) {
+		if p.verboseLevel >= ShowChildren || (p.verboseLevel >= ShowProblemChildren && OfInterest(r)) {
 			p.out <- res
 		}
 		if AnInternalError(r) {

@@ -580,12 +580,11 @@ current meaning of the levels are:
        contents of leaf nodes
 
 The --verbose option specifies what to output.  The current values are:
-  7-9: show everything
-  5-6: don't show child nodes unless there is a problem
-  3-4: don't show child nodes
-    2: don't show uninteresting root nodes
-  0-1: don't show uninteresting specified hashes
-uninteresting means a status of 'ok' or '<blank>'
+  0-1: show top-level nodes when status is not 'ok', 'complete' or '<blank>
+    2: in addition, show all nodes specified on command line
+  3-4: in addition, show all top-level nodes
+  5-6: in addition, show problem children
+  7-9: in addition, show all children
 
 If --porcelain is used us an alternative output is used that will not
 change between releases.  The output is:

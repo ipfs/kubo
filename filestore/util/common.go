@@ -41,6 +41,13 @@ func VerifyLevelFromNum(level int) (VerifyLevel, error) {
 }
 
 const (
+	ShowSpecified = 2
+	ShowTopLevel = 3
+	ShowProblemChildren = 5
+	ShowChildren = 7
+)
+
+const (
 	StatusDefault     = 00 // 00 = default
 	StatusOk          = 01 // 0x means no error, but possible problem
 	StatusFound       = 02 // 02 = Found key, but not in filestore
