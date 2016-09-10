@@ -233,6 +233,12 @@
       "hash": "QmUHmMGmcwCrjHQHcYhBnqGCSWs5pBSMbGZmfwavETR1gg",
       "name": "go-ds-leveldb",
       "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7",
+      "name": "go-libp2p-loggables",
+      "version": "1.0.11"
     }
   ],
   "gxVersion": "0.4.0",
