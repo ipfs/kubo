@@ -17,7 +17,8 @@ import (
 	"time"
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
-	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
+	floodsub "gx/ipfs/QmQriRMW5cCJyLrzDnXi7fZ5mVbetiEZjPjbqoJhuSL94m/floodsub"
+	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
@@ -112,6 +113,8 @@ type IpfsNode struct {
 	Reprovider   *rp.Reprovider // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
 
+	Floodsub *floodsub.PubSub
+
 	proc goprocess.Process
 	ctx  context.Context
 
@@ -183,6 +186,8 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 		go n.Reprovider.ProvideEvery(ctx, interval)
 	}
+
+	n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
 
 	// setup local discovery
 	if do != nil {

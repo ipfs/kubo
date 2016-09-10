@@ -105,6 +105,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"stats":     StatsCmd,
 	"swarm":     SwarmCmd,
 	"tar":       TarCmd,
+	"pubsub":    PubsubCmd,
 	"tour":      tourCmd,
 	"file":      unixfs.UnixFSCmd,
 	"update":    ExternalBinary(),
