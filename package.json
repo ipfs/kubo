@@ -239,6 +239,12 @@
       "hash": "QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7",
       "name": "go-libp2p-loggables",
       "version": "1.0.11"
+	},
+	{
+      "author": "whyrusleeping",
+      "hash": "QmQriRMW5cCJyLrzDnXi7fZ5mVbetiEZjPjbqoJhuSL94m",
+      "name": "floodsub",
+      "version": "0.3.0"
     }
   ],
   "gxVersion": "0.4.0",
