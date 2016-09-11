@@ -16,9 +16,10 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
+
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	routing "gx/ipfs/QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc/go-libp2p-routing"
@@ -36,12 +37,14 @@ const (
 type gatewayHandler struct {
 	node   *core.IpfsNode
 	config GatewayConfig
+	api    coreiface.UnixfsAPI
 }
 
-func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) *gatewayHandler {
+func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.UnixfsAPI) *gatewayHandler {
 	i := &gatewayHandler{
-		node:   node,
-		config: conf,
+		node:   n,
+		config: c,
+		api:    api,
 	}
 	return i
 }
@@ -154,27 +157,19 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		ipnsHostname = true
 	}
 
-	p, err := path.ParsePath(urlPath)
-	if err != nil {
-		webError(w, "Invalid Path Error", err, http.StatusBadRequest)
-		return
-	}
-
-	nd, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, p)
-	// If node is in offline mode the error code and message should be different
-	if err == core.ErrNoNamesys && !i.node.OnlineMode() {
+	dr, err := i.api.Cat(ctx, urlPath)
+	dir := false
+	if err == coreiface.ErrIsDir {
+		dir = true
+	} else if err == coreiface.ErrOffline {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
 		return
 	} else if err != nil {
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
 		return
-	}
-
-	pbnd, ok := nd.(*dag.ProtoNode)
-	if !ok {
-		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-		return
+	} else {
+		defer dr.Close()
 	}
 
 	etag := gopath.Base(urlPath)
@@ -204,13 +199,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		w.Header().Set("Suborigin", pathRoot)
 	}
 
-	dr, err := uio.NewDagReader(ctx, pbnd, i.node.DAG)
-	if err != nil && err != uio.ErrIsDir {
-		// not a directory and still an error
-		internalWebError(w, err)
-		return
-	}
-
 	// set these headers _after_ the error, for we may just not have it
 	// and dont want the client to cache a 500 response...
 	// and only if it's /ipfs!
@@ -224,10 +212,15 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		modtime = time.Unix(1, 0)
 	}
 
-	if err == nil {
-		defer dr.Close()
+	if !dir {
 		name := gopath.Base(urlPath)
 		http.ServeContent(w, r, name, modtime, dr)
+		return
+	}
+
+	links, err := i.api.Ls(ctx, urlPath)
+	if err != nil {
+		internalWebError(w, err)
 		return
 	}
 
@@ -235,7 +228,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	var dirListing []directoryItem
 	// loop through files
 	foundIndex := false
-	for _, link := range nd.Links() {
+	for _, link := range links {
 		if link.Name == "index.html" {
 			log.Debugf("found index.html link for %s", urlPath)
 			foundIndex = true
@@ -254,19 +247,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			}
 
 			// return index page instead.
-			nd, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, p)
-			if err != nil {
-				internalWebError(w, err)
-				return
-			}
-
-			pbnd, ok := nd.(*dag.ProtoNode)
-			if !ok {
-				internalWebError(w, dag.ErrNotProtobuf)
-				return
-			}
-
-			dr, err := uio.NewDagReader(ctx, pbnd, i.node.DAG)
+			dr, err := i.api.Cat(ctx, p.String())
 			if err != nil {
 				internalWebError(w, err)
 				return
