@@ -14,9 +14,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmbP93111oShRbdjoWvP3NZCUApTLkaPXgaNDaXZPfHQHR",
+      "hash": "QmbnPJidHfeekkdLkoboBooA56KB92cT8csDmJwCc2bQJ1",
       "name": "go-libp2p-secio",
-      "version": "1.0.11"
+      "version": "1.0.12"
     },
     {
       "author": "whyrusleeping",
@@ -26,9 +26,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8",
+      "hash": "QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p",
       "name": "go-libp2p-peer",
-      "version": "2.0.3"
+      "version": "2.0.4"
     },
     {
       "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
@@ -158,9 +158,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d",
+      "hash": "QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2",
       "name": "go-libp2p-peerstore",
-      "version": "1.2.2"
+      "version": "1.2.4"
     },
     {
       "author": "whyrusleeping",
@@ -200,9 +200,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS",
+      "hash": "QmXnaDLonE9YBTVDdWBM6Jb5YxxmW1MHMkXzgsnu1jTEmK",
       "name": "go-libp2p",
-      "version": "3.4.1"
+      "version": "3.4.3"
     },
     {
       "author": "whyrusleeping",
@@ -233,6 +233,12 @@
       "hash": "QmUHmMGmcwCrjHQHcYhBnqGCSWs5pBSMbGZmfwavETR1gg",
       "name": "go-ds-leveldb",
       "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7",
+      "name": "go-libp2p-loggables",
+      "version": "1.0.11"
     }
   ],
   "gxVersion": "0.4.0",
