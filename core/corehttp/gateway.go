@@ -16,7 +16,7 @@ type GatewayConfig struct {
 	PathPrefixes []string
 }
 
-func GatewayOption(paths ...string) ServeOption {
+func GatewayOption(writable bool, paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		cfg, err := n.Repo.Config()
 		if err != nil {
@@ -25,7 +25,7 @@ func GatewayOption(paths ...string) ServeOption {
 
 		gateway := newGatewayHandler(n, GatewayConfig{
 			Headers:      cfg.Gateway.HTTPHeaders,
-			Writable:     cfg.Gateway.Writable,
+			Writable:     writable,
 			PathPrefixes: cfg.Gateway.PathPrefixes,
 		})
 
