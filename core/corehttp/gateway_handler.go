@@ -48,15 +48,6 @@ func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, opt apiOption) *gatewa
 	return i
 }
 
-// TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
-	// TODO(cryptix): change and remove this helper once PR1136 is merged
-	// return ufs.AddFromReader(i.node, r.Body)
-	return importer.BuildDagFromReader(
-		i.node.DAG,
-		chunk.DefaultSplitter(r))
-}
-
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
@@ -72,7 +63,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if i.config.Writable {
 		switch r.Method {
 		case "POST":
-			i.postHandler(w, r)
+			i.postHandler(w, r, api)
 			return
 		case "PUT":
 			i.putHandler(w, r)
@@ -308,14 +299,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	nd, err := i.newDagFromReader(r.Body)
-	if err != nil {
-		internalWebError(w, err)
-		return
-	}
-
-	k, err := i.node.DAG.Add(nd)
+func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request, api coreiface.UnixfsAPI) {
+	k, err := api.Add(r.Body)
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -324,6 +309,15 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", k.String())
 	http.Redirect(w, r, ipfsPathPrefix+k.String(), http.StatusCreated)
+}
+
+// TODO(cryptix):  find these helpers somewhere else
+func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
+	// TODO(cryptix): change and remove this helper once PR1136 is merged
+	// return ufs.AddFromReader(i.node, r.Body)
+	return importer.BuildDagFromReader(
+		i.node.DAG,
+		chunk.DefaultSplitter(r))
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {

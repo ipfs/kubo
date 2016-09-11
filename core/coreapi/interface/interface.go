@@ -19,11 +19,12 @@ type Link struct {
 }
 
 type Reader interface {
-	io.ReadSeeker
-	io.Closer
+	io.ReadCloser
+	io.Seeker
 }
 
 type UnixfsAPI interface {
+	Add(io.Reader) (*cid.Cid, error)
 	Cat(string) (Reader, error)
 	Ls(string) ([]*Link, error)
 }

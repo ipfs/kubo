@@ -19,7 +19,8 @@ import (
 // `ipfs object new unixfs-dir`
 var emptyUnixfsDir = "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
 
-// `echo -n | ipfs add`
+// echo -n | ipfs add
+// curl -X POST localhost:8080/ipfs/
 var emptyUnixfsFile = "QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
 
 func makeAPI(ctx context.Context) (*core.IpfsNode, *coreapi.UnixfsAPI, error) {
@@ -37,6 +38,14 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, *coreapi.UnixfsAPI, error) {
 	}
 	api := &coreapi.UnixfsAPI{Node: node, Context: ctx}
 	return node, api, nil
+}
+
+func testAddBasic(t *testing.T) {
+	t.Skip("TODO: implement me")
+}
+
+func TestAddEmpty(t *testing.T) {
+	t.Skip("TODO: implement me")
 }
 
 func TestCatBasic(t *testing.T) {

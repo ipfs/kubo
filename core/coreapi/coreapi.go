@@ -2,9 +2,11 @@ package coreapi
 
 import (
 	"context"
+	"io"
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
@@ -29,6 +31,14 @@ func (api *UnixfsAPI) resolve(p string) (*dag.Node, error) {
 		return nil, err
 	}
 	return dagnode, nil
+}
+
+func (api *UnixfsAPI) Add(r io.Reader) (*cid.Cid, error) {
+	k, err := coreunix.Add(api.Node, r)
+	if err != nil {
+		return nil, err
+	}
+	return cid.Decode(k)
 }
 
 func (api *UnixfsAPI) Cat(p string) (coreiface.Reader, error) {
