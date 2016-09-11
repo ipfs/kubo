@@ -267,22 +267,6 @@ func verify(d *Basic, key ds.Key, origData []byte, val *DataObj, level VerifyLev
 	}
 }
 
-func fsGetNode(dsKey ds.Key, fs *Datastore) (*node.Node, *DataObj, error) {
-	_, dataObj, err := fs.GetDirect(dsKey)
-	if err != nil {
-		return nil, nil, err
-	}
-	if dataObj.NoBlockData() {
-		return nil, dataObj, nil
-	} else {
-		node, err := node.DecodeProtobuf(dataObj.Data)
-		if err != nil {
-			return nil, nil, err
-		}
-		return node, dataObj, nil
-	}
-}
-
 func getNode(dsKey ds.Key, fs *Basic, bs b.Blockstore) ([]byte, *DataObj, []*node.Link, int) {
 	origData, dataObj, err := fs.GetDirect(dsKey)
 	if err == nil {
