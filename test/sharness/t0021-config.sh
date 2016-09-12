@@ -74,8 +74,8 @@ test_config_cmd() {
 
   test_expect_success "setup for config replace test" '
     cp "$IPFS_PATH/config" newconfig.json &&
-	sed -e /PrivKey/d -e s/10GB/11GB/ -i  newconfig.json &&
-	sed -e '"'"'/PeerID/ { s/,$// } '"'"' -i newconfig.json
+	</dev/null sed -e /PrivKey/d -e s/10GB/11GB/ -i  newconfig.json &&
+	</dev/null sed -e '"'"'/PeerID/ { s/,$// } '"'"' -i newconfig.json
   '
 
   test_expect_success "run 'ipfs config replace'" '
