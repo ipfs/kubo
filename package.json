@@ -200,9 +200,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmXnaDLonE9YBTVDdWBM6Jb5YxxmW1MHMkXzgsnu1jTEmK",
+      "hash": "QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di",
       "name": "go-libp2p",
-      "version": "3.4.3"
+      "version": "3.5.2"
     },
     {
       "author": "whyrusleeping",
