@@ -82,7 +82,6 @@ to be used in a production environment.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: getPsMsgMarshaler(func(m *floodsub.Message) (io.Reader, error) {
-			log.Error("FROM: ", m.GetFrom())
 			return bytes.NewReader(m.Data), nil
 		}),
 		"ndpayload": getPsMsgMarshaler(func(m *floodsub.Message) (io.Reader, error) {
