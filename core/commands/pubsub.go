@@ -7,7 +7,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 
-	floodsub "gx/ipfs/QmQriRMW5cCJyLrzDnXi7fZ5mVbetiEZjPjbqoJhuSL94m/floodsub"
+	floodsub "gx/ipfs/QmSWp1Yx7Z5pbpeCbUy6tfFj2DrHUe7tGQqyYC2vspbXH1/floodsub"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
