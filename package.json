@@ -242,9 +242,9 @@
     },
     {
       "author": "ipfs",
-      "hash": "QmSd7rE8qjihopcQpg7VXzcPX8X4FJ5XkXVkUQggmmWyvG",
+      "hash": "QmXWro6iddJRbGWUoZDpTu6tjo5EXX4xJHHR9VczeoGZbw",
       "name": "go-metrics-prometheus",
-      "version": "0.1.2"
+      "version": "0.3.0"
     },
     {
       "author": "ipfs",

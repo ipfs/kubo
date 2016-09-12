@@ -23,12 +23,13 @@ import (
 
 	"gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
 	"gx/ipfs/QmR3KwhXCRLTNZB59vELb2HhEWrGy9nuychepxFtj3wWYa/client_golang/prometheus"
+
 	conn "gx/ipfs/QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di/go-libp2p/p2p/net/conn"
+	mprome "gx/ipfs/QmXWro6iddJRbGWUoZDpTu6tjo5EXX4xJHHR9VczeoGZbw/go-metrics-prometheus"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
 
-	_ "gx/ipfs/QmSd7rE8qjihopcQpg7VXzcPX8X4FJ5XkXVkUQggmmWyvG/go-metrics-prometheus"
 	_ "gx/ipfs/QmV3NSS3A1kX5s28r7yLczhDsXzkgo65cqRgKFXYunWZmD/metrics/runtime"
 )
 
@@ -360,6 +361,10 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 
 	// initialize metrics collector
+	err = mprome.Inject()
+	if err != nil {
+		log.Warningf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
+	}
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	fmt.Printf("Daemon is ready\n")
