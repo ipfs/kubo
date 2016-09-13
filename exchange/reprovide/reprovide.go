@@ -5,10 +5,10 @@ import (
 	"time"
 
 	blocks "github.com/ipfs/go-ipfs/blocks/blockstore"
-	routing "github.com/ipfs/go-ipfs/routing"
 	backoff "gx/ipfs/QmPJUtEJsm5YLUWhF6imvyCH8KZXRJa9Wup7FDMwTy5Ufz/backoff"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	routing "gx/ipfs/QmcoQiBzRaaVv1DZbbXoDWiEtvDN94Ca1DcwnQKK2tP92s/go-libp2p-routing"
 )
 
 var log = logging.Logger("reprovider")

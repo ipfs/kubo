@@ -251,6 +251,11 @@
       "hash": "QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5",
       "name": "go-metrics-interface",
       "version": "0.1.2"
+    },
+	{
+      "hash": "QmYvLYkYiVEi5LBHP2uFqiUaHqH7zWnEuRqoNEuGLNG6JB",
+      "name": "go-libp2p-kad-dht",
+      "version": "1.1.0"
     }
   ],
   "gxVersion": "0.4.0",
