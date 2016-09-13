@@ -14,9 +14,9 @@ import (
 
 	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
-	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	kbucket "github.com/ipfs/go-ipfs/routing/kbucket"
+	kbucket "gx/ipfs/QmTZsN8hysGnbakvK6mS8rwDQ9uwokxmWFBv94pig6zGd1/go-libp2p-kbucket"
 	loggables "gx/ipfs/QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7/go-libp2p-loggables"
+	dhtpb "gx/ipfs/QmYvLYkYiVEi5LBHP2uFqiUaHqH7zWnEuRqoNEuGLNG6JB/go-libp2p-kad-dht/pb"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"

@@ -239,6 +239,11 @@
       "hash": "QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7",
       "name": "go-libp2p-loggables",
       "version": "1.0.11"
+    },
+    {
+      "hash": "QmYvLYkYiVEi5LBHP2uFqiUaHqH7zWnEuRqoNEuGLNG6JB",
+      "name": "go-libp2p-kad-dht",
+      "version": "1.1.0"
     }
   ],
   "gxVersion": "0.4.0",
