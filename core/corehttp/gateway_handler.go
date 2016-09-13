@@ -67,6 +67,20 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	if i.config.Authenticated {
+		cookie, err := r.Cookie("OpenBazaar_Auth_Cookie")
+		if err != nil {
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(w, "403 - Forbidden")
+			return
+		}
+		if i.config.Cookie.Value != cookie.Value {
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(w, "403 - Forbidden")
+			return
+		}
+	}
+
 	if i.config.Writable {
 		switch r.Method {
 		case "POST":
