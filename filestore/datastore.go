@@ -439,11 +439,11 @@ func (d *Datastore) Query(q query.Query) (query.Results, error) {
 }
 
 type Iterator struct {
-	key       ds.Key
-	keyBytes  []byte
-	value     *DataObj
-	bytes     []byte
-	iter      iterator.Iterator
+	key      ds.Key
+	keyBytes []byte
+	value    *DataObj
+	bytes    []byte
+	iter     iterator.Iterator
 }
 
 var emptyDsKey = ds.NewKey("")

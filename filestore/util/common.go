@@ -41,27 +41,32 @@ func VerifyLevelFromNum(level int) (VerifyLevel, error) {
 }
 
 const (
+	//ShowOrphans = 1
 	ShowSpecified = 2
 	ShowTopLevel = 3
+	//ShowFirstProblem = unimplemented
 	ShowProblemChildren = 5
 	ShowChildren = 7
 )
 
 const (
-	StatusDefault     = 00 // 00 = default
-	StatusOk          = 01 // 0x means no error, but possible problem
-	StatusFound       = 02 // 02 = Found key, but not in filestore
-	StatusAppended    = 03
-	StatusOrphan      = 04
+	StatusDefault     =  0 // 00 = default
+	StatusOk          =  1 // 01 = leaf node okay
+	StatusAllPartsOk  =  2 // 02 = all children have "ok" status
+	StatusFound       =  5 // 05 = Found key, but not in filestore
+	StatusOrphan      =  8
+	StatusAppended    =  9
 	StatusFileError   = 10 // 1x means error with block
 	StatusFileMissing = 11
 	StatusFileChanged = 12
 	StatusIncomplete  = 20 // 2x means error with non-block node
+	StatusProblem     = 21 // 21 if some children exist but could not be read
 	StatusError       = 30 // 3x means error with database itself
 	StatusKeyNotFound = 31
 	StatusCorrupt     = 32
-	StatusUnchecked   = 90 // 9x means unchecked
-	StatusComplete    = 91
+	StatusUnchecked   = 80 // 8x means unchecked
+	StatusComplete    = 82 // 82 = All parts found
+	StatusMarked      = 90 // 9x is for internal use
 )
 
 func AnInternalError(status int) bool {
@@ -69,18 +74,31 @@ func AnInternalError(status int) bool {
 }
 
 func AnError(status int) bool {
-	return 10 <= status && status < 90
+	return 10 <= status && status < 80
+}
+
+func IsOk(status int) bool {
+	return status == StatusOk || status == StatusAllPartsOk
+}
+
+func Unchecked(status int) bool {
+	return status == StatusUnchecked || status == StatusComplete
+}
+
+func InternalNode(status int) bool {
+	return status == StatusAllPartsOk || status == StatusIncomplete ||
+		status == StatusProblem || status == StatusComplete 
 }
 
 func OfInterest(status int) bool {
-	return status != StatusOk && status != StatusUnchecked && status != StatusComplete
+	return !IsOk(status) && !Unchecked(status)
 }
 
 func statusStr(status int) string {
 	switch status {
 	case 0:
 		return ""
-	case StatusOk:
+	case StatusOk, StatusAllPartsOk:
 		return "ok       "
 	case StatusFound:
 		return "found    "
@@ -96,6 +114,8 @@ func statusStr(status int) string {
 		return "changed  "
 	case StatusIncomplete:
 		return "incomplete "
+	case StatusProblem:
+		return "problem  "
 	case StatusError:
 		return "ERROR    "
 	case StatusKeyNotFound:
@@ -107,7 +127,7 @@ func statusStr(status int) string {
 	case StatusComplete:
 		return "complete "
 	default:
-		return "??       "
+		return fmt.Sprintf("?%02d      ", status)
 	}
 }
 

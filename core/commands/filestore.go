@@ -38,6 +38,8 @@ var FileStoreCmd = &cmds.Command{
 		"mv":       moveIntoFilestore,
 		"enable":   FilestoreEnable,
 		"disable":  FilestoreDisable,
+
+		"verify-post-orphan": verifyPostOrphan,
 	},
 }
 
@@ -394,7 +396,7 @@ func getListing(ds *filestore.Datastore, objs []string, all bool, keysOnly bool)
 			}
 		}
 	}
-	
+
 	return fsutil.List(fs, listFilter, keysOnly)
 }
 
@@ -547,7 +549,8 @@ are the same as in the 'ls' command and <status> is one of:
   complete: all the blocks in the tree exists but no attempt was
             made to reconstruct the original data
 
-  incomplete: some of the blocks of the tree could not be read
+  problem: some of the blocks of the tree could not be read
+  incomplete: some of the blocks of the tree are missing
 
   changed: the contents of the backing file have changed
   no-file: the backing file could not be found
@@ -567,9 +570,15 @@ are the same as in the 'ls' command and <status> is one of:
 
 If any checks failed than a non-zero exit status will be returned.
  
-If --basic is specified then just scan leaf nodes to verify that they
-are still valid.  Otherwise attempt to reconstruct the contents of
-all nodes and check for orphan nodes if applicable.
+If --basic is specified linearly scan the leaf nodes to verify that they
+are still valid.  Otherwise attempt to reconstruct the contents of all
+nodes and check for orphan nodes if applicable.
+
+Otherwise, the nodes are recursively visited from the root node.  If
+--skip-orphans is not specified than the results are cached in memory in
+order to detect the orphans.  The cache is also used to avoid visiting
+the same node more than once.  Cached results are printed without any
+object info.
 
 The --level option specifies how thorough the checks should be.  The
 current meaning of the levels are:
@@ -588,9 +597,9 @@ The --verbose option specifies what to output.  The current values are:
 
 If --porcelain is used us an alternative output is used that will not
 change between releases.  The output is:
-  <type0>\\t<status>\\t<hash>\\t<filename>
+  <type0>\t<status>\t<hash>\t<filename>
 where <type0> is either "root" for a file root or something else
-otherwise and \\t is a literal literal tab character.  <status> is the
+otherwise and \t is a literal literal tab character.  <status> is the
 same as normal except that <blank> is spelled out as "unchecked".  In
 addition to the modified output a non-zero exit status will only be
 returned on an error condition and not just because of failed checks.
@@ -608,6 +617,8 @@ returned) to avoid special cases when parsing the output.
 		cmds.IntOption("verbose", "v", "0-9 Verbose level.").Default(6),
 		cmds.BoolOption("porcelain", "Porcelain output."),
 		cmds.BoolOption("skip-orphans", "Skip check for orphans."),
+		cmds.BoolOption("no-obj-info", "q", "Just print the status and the hash."),
+		cmds.StringOption("incomplete-when", "Internal option."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -621,61 +632,94 @@ returned) to avoid special cases when parsing the output.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		basic, _, err := req.Option("basic").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		level, _, err := req.Option("level").Int()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		verbose, _, err := req.Option("verbose").Int()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		porcelain, _, err := req.Option("porcelain").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		if level < 0 || level > 9 {
-			res.SetError(errors.New("level must be between 0-9"), cmds.ErrNormal)
-			return
-		}
-		skipOrphans, _, err := req.Option("skip-orphans").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		basic, _, _ := req.Option("basic").Bool()
+		porcelain, _, _ := req.Option("porcelain").Bool()
+
+		params := fsutil.VerifyParams{Filter: filter}
+		params.Level, _, _ = req.Option("level").Int()
+		params.Verbose, _, _ = req.Option("verbose").Int()
+		params.SkipOrphans, _, _ = req.Option("skip-orphans").Bool()
+		params.NoObjInfo, _, _ = req.Option("no-obj-info").Bool()
+		params.IncompleteWhen = getIncompleteWhenOpt(req)
 
 		var ch <-chan fsutil.ListRes
 		if basic && len(keys) == 0 {
-			snapshot, err := fs.GetSnapshot()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			ch, _ = fsutil.VerifyBasic(snapshot, filter, level, verbose)
+			ch, err = fsutil.VerifyBasic(fs.AsBasic(), &params)
 		} else if basic {
-			ch, _ = fsutil.VerifyKeys(keys, node, fs.AsBasic(), level, verbose)
+			ch, err = fsutil.VerifyKeys(keys, node, fs.AsBasic(), &params)
 		} else if len(keys) == 0 {
-			snapshot, err := fs.GetSnapshot()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+			snapshot, err0 := fs.GetSnapshot()
+			if err0 != nil {
+				res.SetError(err0, cmds.ErrNormal)
 				return
 			}
-			ch, _ = fsutil.VerifyFull(node, snapshot, filter, level, verbose, skipOrphans)
+			ch, err = fsutil.VerifyFull(node, snapshot, &params)
 		} else {
-			ch, _ = fsutil.VerifyKeysFull(keys, node, fs.AsBasic(), level, verbose)
+			ch, err = fsutil.VerifyKeysFull(keys, node, fs.AsBasic(), &params)
+		}
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if porcelain {
 			res.SetOutput(&chanWriter{ch: ch, format: formatPorcelain, ignoreFailed: true})
 		} else {
 			res.SetOutput(&chanWriter{ch: ch, format: formatDefault})
 		}
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			return res.(io.Reader), nil
+		},
+	},
+}
+
+func getIncompleteWhenOpt(req cmds.Request) []string {
+	str, _, _ := req.Option("incomplete-when").String()
+	if str == "" {
+		return nil
+	} else {
+		return strings.Split(str, ",")
+	}
+}
+
+var verifyPostOrphan = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Verify objects in filestore and check for would be orphans.",
+		ShortDescription: `
+Like "verify" but perform an extra scan to check for would be orphans if
+"incomplete" blocks are removed.  Becuase of how it operates only the status
+and hashes are returned and the order in which blocks are reported in not
+stable.
+
+This is the method normally used by "clean".
+`,
+	},
+	Options: []cmds.Option{
+		cmds.IntOption("level", "l", "0-9, Verification level.").Default(6),
+		cmds.StringOption("incomplete-when", "Internal option."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, fs, err := extractFilestore(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		level, _, _ := req.Option("level").Int()
+		incompleteWhen := getIncompleteWhenOpt(req)
+
+		snapshot, err := fs.GetSnapshot()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		ch, err := fsutil.VerifyPostOrphan(node, snapshot, level, incompleteWhen)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(&chanWriter{ch: ch, format: formatDefault})
+		return
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -695,14 +739,14 @@ can be any of "changed", "no-file", "error", "incomplete",
 and "no-file" and "full" is an alias for "invalid" "incomplete" and
 "orphan" (basically remove everything but "error").
 
-It does the removal in three passes.  If there is nothing specified to
-be removed in a pass that pass is skipped.  The first pass does a
-"verify --basic" and is used to remove any "changed", "no-file" or
-"error" nodes.  The second pass does a "verify --level 0
---skip-orphans" and will is used to remove any "incomplete" nodes due
-to missing children (the "--level 0" only checks for the existence of
-leaf nodes, but does not try to read the content).  The final pass
-will do a "verify --level 0" and is used to remove any "orphan" nodes.
+If incomplete is specified in combination with "changed", "no-file", or
+"error" than any nodes that will become incomplete, after the invalid leafs
+are removed, are also removed.  Similarly if "orphan" is specified in
+combination with "incomplete" any would be orphans are also removed.
+
+If the command is run with the daemon is running the check is done on a
+snapshot of the filestore and then blocks are only removed if they have not
+changed since the snapshot has taken.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -733,11 +777,11 @@ will do a "verify --level 0" and is used to remove any "orphan" nodes.
 		//res.SetOutput(&chanWriter{ch, "", 0, false})
 		return
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			return res.(io.Reader), nil
-		},
-	},
+	//Marshalers: cmds.MarshalerMap{
+	//	cmds.Text: func(res cmds.Response) (io.Reader, error) {
+	//		return res.(io.Reader), nil
+	//	},
+	//},
 }
 
 var rmFilestoreObjs = &cmds.Command{

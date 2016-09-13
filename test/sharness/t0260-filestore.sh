@@ -77,7 +77,7 @@ test_expect_success "testing filestore verify" '
   test_must_fail ipfs filestore verify > verify_actual &&
   grep -q "changed  QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" verify_actual &&
   grep -q "no-file  QmQ8jJxa1Ts9fKsyUXcdYRHHUkuhJ69f82CF8BNX14ovLT" verify_actual &&
-  grep -q "incomplete QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" verify_actual &&
+  grep -q "problem  QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" verify_actual &&
   grep -q "ok       $EMPTY_HASH" verify_actual
 '
 
