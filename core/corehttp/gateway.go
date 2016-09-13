@@ -18,9 +18,11 @@ type GatewayConfig struct {
 	Resolver     *bc.BlockstackClient
 	Authenticated bool
 	Cookie        http.Cookie
+	Username      string
+	Password      string
 }
 
-func GatewayOption(resolver *bc.BlockstackClient, authenticated bool, authCookie http.Cookie, paths ...string) ServeOption {
+func GatewayOption(resolver *bc.BlockstackClient, authenticated bool, authCookie http.Cookie, username, password string, paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		cfg, err := n.Repo.Config()
 		if err != nil {
@@ -34,6 +36,8 @@ func GatewayOption(resolver *bc.BlockstackClient, authenticated bool, authCookie
 			Resolver:      resolver,
 			Authenticated: authenticated,
 			Cookie:        authCookie,
+			Username:      username,
+			Password:      password,
 		})
 
 		for _, p := range paths {
