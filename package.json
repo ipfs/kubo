@@ -3,7 +3,7 @@
     "url": "https://github.com/ipfs/go-ipfs"
   },
   "gx": {
-    "dvcsimport": "github.com/ipfs/go-libp2p",
+    "dvcsimport": "github.com/ipfs/go-ipfs",
     "goversion": "1.7"
   },
   "gxDependencies": [
