@@ -17,9 +17,9 @@ import (
 	"time"
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
+	floodsub "gx/ipfs/QmQtsU1T46uxjFMd5r5PfyaY1HdV5jcxZbvvHbAVRL52hc/floodsub"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
-	floodsub "gx/ipfs/QmSWp1Yx7Z5pbpeCbUy6tfFj2DrHUe7tGQqyYC2vspbXH1/floodsub"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	ic "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
