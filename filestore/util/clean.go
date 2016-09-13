@@ -6,8 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 	"strings"
+	"time"
 
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	butil "github.com/ipfs/go-ipfs/blocks/blockstore/util"
@@ -53,7 +53,7 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 			return nil, errors.New("invalid arg: " + what[i])
 		}
 	}
-	incompleteWhenStr := strings.Join(incompleteWhen,",")
+	incompleteWhenStr := strings.Join(incompleteWhen, ",")
 
 	rdr, wtr := io.Pipe()
 	var rmWtr io.Writer = wtr
@@ -82,18 +82,18 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 		case 0100:
 			fmt.Fprintf(rmWtr, "performing verify --basic --level=6\n")
 			ch, err = VerifyBasic(snapshot.Basic, &VerifyParams{
-				Level:   6,
-				Verbose: 1,
+				Level:     6,
+				Verbose:   1,
 				NoObjInfo: true,
 			})
 		case 0120, 0103, 0003:
 			fmt.Fprintf(rmWtr, "performing verify --level=6 --incomplete-when=%s\n",
 				incompleteWhenStr)
 			ch, err = VerifyFull(node, snapshot, &VerifyParams{
-				Level:   6,
-				Verbose: 6,
+				Level:          6,
+				Verbose:        6,
 				IncompleteWhen: incompleteWhen,
-				NoObjInfo: true,
+				NoObjInfo:      true,
 			})
 		case 0020:
 			fmt.Fprintf(rmWtr, "performing verify --skip-orphans --level=1\n")
@@ -101,7 +101,7 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 				SkipOrphans: true,
 				Level:       1,
 				Verbose:     6,
-				NoObjInfo: true,
+				NoObjInfo:   true,
 			})
 		case 0123, 0023:
 			fmt.Fprintf(rmWtr, "performing verify-post-orphan --level=6 --incomplete-when=%s\n",
@@ -119,7 +119,7 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 		var toDel []k.Key
 		for r := range ch {
 			if to_remove[r.Status] {
- 				key, err := k.KeyFromDsKey(r.Key)
+				key, err := k.KeyFromDsKey(r.Key)
 				if err != nil {
 					wtr.CloseWithError(err)
 					return
@@ -127,11 +127,11 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 				toDel = append(toDel, key)
 			}
 		}
-		ch2 := make(chan interface{}, 16)
+		var ch2 <-chan interface{}
 		if exclusiveMode {
-			rmBlocks(node.Blockstore, node.Pinning, ch2, toDel, Snapshot{}, fs)
+			ch2 = rmBlocks(node.Blockstore, node.Pinning, toDel, Snapshot{}, fs)
 		} else {
-			rmBlocks(node.Blockstore, node.Pinning, ch2, toDel, snapshot, fs)
+			ch2 = rmBlocks(node.Blockstore, node.Pinning, toDel, snapshot, fs)
 		}
 		err2 := butil.ProcRmOutput(ch2, rmWtr, wtr)
 		if err2 != nil {
@@ -144,8 +144,11 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 	return rdr, nil
 }
 
-func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, keys []k.Key,
-	snap Snapshot, fs *Datastore) {
+func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, keys []k.Key, snap Snapshot, fs *Datastore) <-chan interface{} {
+
+	// make the channel large enough to hold any result to avoid
+	// blocking while holding the GCLock
+	out := make(chan interface{}, len(keys))
 
 	debugCleanRmDelay()
 
@@ -187,6 +190,8 @@ func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, k
 			}
 		}
 	}()
+
+	return out
 }
 
 // this function is used for testing in order to test for race
