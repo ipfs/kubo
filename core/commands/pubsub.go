@@ -2,13 +2,21 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"io"
+	"sync"
+	"time"
 
+	blocks "github.com/ipfs/go-ipfs/blocks"
 	cmds "github.com/ipfs/go-ipfs/commands"
+	core "github.com/ipfs/go-ipfs/core"
 
-	floodsub "gx/ipfs/QmSWp1Yx7Z5pbpeCbUy6tfFj2DrHUe7tGQqyYC2vspbXH1/floodsub"
+	floodsub "gx/ipfs/QmQtsU1T46uxjFMd5r5PfyaY1HdV5jcxZbvvHbAVRL52hc/floodsub"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
+	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var PubsubCmd = &cmds.Command{
@@ -40,6 +48,9 @@ to be used in a production environment.
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("topic", true, false, "String name of topic to subscribe to."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("discover", "try to discover other peers subscribed to the same topic"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -79,6 +90,18 @@ to be used in a production environment.
 				}
 			}
 		}()
+
+		discover, _, _ := req.Option("discover").Bool()
+		if discover {
+			blk := blocks.NewBlock([]byte("floodsub:" + topic))
+			cid, err := n.Blocks.AddObject(blk)
+			if err != nil {
+				log.Error("pubsub discovery: ", err)
+				return
+			}
+
+			connectToPubSubPeers(req.Context(), n, cid)
+		}
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: getPsMsgMarshaler(func(m *floodsub.Message) (io.Reader, error) {
@@ -95,6 +118,30 @@ to be used in a production environment.
 		}),
 	},
 	Type: floodsub.Message{},
+}
+
+func connectToPubSubPeers(ctx context.Context, n *core.IpfsNode, cid *cid.Cid) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	provs := n.Routing.FindProvidersAsync(ctx, key.Key(cid.Hash()), 10)
+	wg := &sync.WaitGroup{}
+	for p := range provs {
+		wg.Add(1)
+		go func(pi pstore.PeerInfo) {
+			defer wg.Done()
+			ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+			defer cancel()
+			err := n.PeerHost.Connect(ctx, pi)
+			if err != nil {
+				log.Info("pubsub discover: ", err)
+				return
+			}
+			log.Info("connected to pubsub peer:", pi.ID)
+		}(p)
+	}
+
+	wg.Wait()
 }
 
 func getPsMsgMarshaler(f func(m *floodsub.Message) (io.Reader, error)) func(cmds.Response) (io.Reader, error) {
