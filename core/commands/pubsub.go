@@ -13,7 +13,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 
-	floodsub "gx/ipfs/QmQtsU1T46uxjFMd5r5PfyaY1HdV5jcxZbvvHbAVRL52hc/floodsub"
+	floodsub "gx/ipfs/QmXzEtq2W7rGCF9RYXL79zQvLsKZxAmT9QFtEC5FYfQYc5/floodsub"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
@@ -36,6 +36,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 	Subcommands: map[string]*cmds.Command{
 		"pub": PubsubPubCmd,
 		"sub": PubsubSubCmd,
+		"ls":  PubsubLsCmd,
 	},
 }
 
@@ -76,7 +77,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		}
 
 		topic := req.Arguments()[0]
-		msgs, err := n.Floodsub.Subscribe(topic)
+		msgs, err := n.Floodsub.Subscribe(req.Context(), topic)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -194,7 +195,6 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		cmds.StringArg("topic", true, false, "Topic to publish to."),
 		cmds.StringArg("data", true, true, "Payload of message to publish.").EnableStdin(),
 	},
-	Options: []cmds.Option{},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -221,5 +221,43 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 				return
 			}
 		}
+	},
+}
+
+var PubsubLsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List subscribed topics by name.",
+		ShortDescription: `
+ipfs pubsub ls lists out the names of topics you are currently subscribed to.
+
+This is an experimental feature. It is not intended in its current state
+to be used in a production environment.
+
+To use, the daemon must be run with '--enable-pubsub-experiment'.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		// Must be online!
+		if !n.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		if n.Floodsub == nil {
+			res.SetError(fmt.Errorf("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use."), cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&stringList{n.Floodsub.GetTopics()})
+	},
+	Type: stringList{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
 	},
 }
