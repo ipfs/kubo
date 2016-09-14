@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -28,6 +29,8 @@ subscribe to new messages on a given topic.
 
 This is an experimental feature. It is not intended in its current state
 to be used in a production environment.
+
+To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -44,6 +47,8 @@ ipfs pubsub sub subscribes to messages on a given topic.
 
 This is an experimental feature. It is not intended in its current state
 to be used in a production environment.
+
+To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -62,6 +67,11 @@ to be used in a production environment.
 		// Must be online!
 		if !n.OnlineMode() {
 			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		if n.Floodsub == nil {
+			res.SetError(fmt.Errorf("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use."), cmds.ErrNormal)
 			return
 		}
 
@@ -176,6 +186,8 @@ ipfs pubsub pub publishes a message to a specified topic.
 
 This is an experimental feature. It is not intended in its current state
 to be used in a production environment.
+
+To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -193,6 +205,11 @@ to be used in a production environment.
 		// Must be online!
 		if !n.OnlineMode() {
 			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		if n.Floodsub == nil {
+			res.SetError(fmt.Errorf("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use."), cmds.ErrNormal)
 			return
 		}
 

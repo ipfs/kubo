@@ -129,7 +129,7 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub bool) error {
 
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
@@ -187,7 +187,9 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		go n.Reprovider.ProvideEvery(ctx, interval)
 	}
 
-	n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
+	if pubsub {
+		n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
+	}
 
 	// setup local discovery
 	if do != nil {
