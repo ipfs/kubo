@@ -23,7 +23,7 @@ import (
 
 	"gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
 	"gx/ipfs/QmR3KwhXCRLTNZB59vELb2HhEWrGy9nuychepxFtj3wWYa/client_golang/prometheus"
-
+	conn "gx/ipfs/QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di/go-libp2p/p2p/net/conn"
 	mprome "gx/ipfs/QmXWro6iddJRbGWUoZDpTu6tjo5EXX4xJHHR9VczeoGZbw/go-metrics-prometheus"
 	pstore "gx/ipfs/QmYkwVGkwoPbMVQEbf6LonZg4SsCxGP3H7PBEtdNCNRyxD/go-libp2p-peerstore"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
@@ -47,6 +47,7 @@ const (
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
+	enableFloodSubKwd         = "enable-pubsub-experiment"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -145,6 +146,7 @@ Headers.
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(true),
 		cmds.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API.").Default(false),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
+		cmds.BoolOption(enableFloodSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -266,14 +268,19 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	offline, _, _ := req.Option(offlineKwd).Bool()
+	pubsub, _, _ := req.Option(enableFloodSubKwd).Bool()
+
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
 		Repo:      repo,
 		Permament: true, // It is temporary way to signify that node is permament
-		//TODO(Kubuxu): refactor Online vs Offline by adding Permement vs Epthemeral
+		Online:    !offline,
+		ExtraOpts: map[string]bool{
+			"pubsub": pubsub,
+		},
+		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
-	offline, _, _ := req.Option(offlineKwd).Bool()
-	ncfg.Online = !offline
 
 	routingOption, _, err := req.Option(routingOptionKwd).String()
 	if err != nil {
