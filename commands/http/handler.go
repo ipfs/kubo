@@ -11,9 +11,11 @@ import (
 	"strings"
 	"sync"
 
+	websocket "github.com/gorilla/websocket"
+
 	"github.com/ipfs/go-ipfs/repo/config"
 	cors "gx/ipfs/QmQzTLDsi3a37CJyMDBXnjiHKQpth3AGS1yqwU57FfLwfG/cors"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	/*context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"*/
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -69,6 +71,11 @@ var mimeTypes = map[string]string{
 	cmds.JSON:     "application/json",
 	cmds.XML:      "application/xml",
 	cmds.Text:     "text/plain",
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 }
 
 type ServerConfig struct {
@@ -139,18 +146,19 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(node.Context())
-	defer cancel()
-	if cn, ok := w.(http.CloseNotifier); ok {
-		clientGone := cn.CloseNotify()
-		go func() {
-			select {
-			case <-clientGone:
-			case <-ctx.Done():
-			}
-			cancel()
-		}()
-	}
+	ctx := node.Context()
+	/*ctx, cancel := context.WithCancel(node.Context())
+	  defer cancel()
+	  if cn, ok := w.(http.CloseNotifier); ok {
+	  	clientGone := cn.CloseNotify()
+	  	go func() {
+	  		select {
+	  		case <-clientGone:
+	  		case <-ctx.Done():
+	  		}
+	  		cancel()
+	  	}()
+	  }*/
 
 	if !allowOrigin(r, i.cfg) || !allowReferer(r, i.cfg) {
 		w.WriteHeader(http.StatusForbidden)
@@ -182,18 +190,34 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// call the command
-	res := i.root.Call(req)
-
-	// set user's headers first.
-	for k, v := range i.cfg.Headers {
-		if !skipAPIHeader(k) {
-			w.Header()[k] = v
+	var stdout, stderr io.Writer
+	if req.Command().Interact != nil {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		wsio := NewWebsocketIO(conn)
+		defer wsio.Close()
+		req.SetStdin(wsio)
+		stdout = wsio
+		stderr = wsio
 	}
 
-	// now handle responding to the client properly
-	sendResponse(w, r, res, req)
+	// call the command
+	res := i.root.Call(req, stdout, stderr)
+
+	if req.Command().Interact == nil {
+		// set user's headers first.
+		for k, v := range i.cfg.Headers {
+			if !skipAPIHeader(k) {
+				w.Header()[k] = v
+			}
+		}
+
+		// now handle responding to the client properly
+		sendResponse(w, r, res, req)
+	}
 }
 
 func guessMimeType(res cmds.Response) (string, error) {

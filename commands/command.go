@@ -49,6 +49,12 @@ type HelpText struct {
 	Synopsis        string // overrides SYNOPSIS field
 }
 
+type MessageIO interface {
+	Read(p []byte) (n int, err error)
+	Write(p []byte) (n int, err error)
+	ReadMessage() ([]byte, error)
+}
+
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
@@ -59,6 +65,7 @@ type Command struct {
 	PostRun    Function
 	Marshalers map[EncodingType]Marshaler
 	Helptext   HelpText
+	Interact   func(Request, MessageIO) error
 
 	// External denotes that a command is actually an external binary.
 	// fewer checks and validations will be performed on such commands.
@@ -81,8 +88,8 @@ var ErrNoFormatter = ClientError("This command cannot be formatted to plain text
 var ErrIncorrectType = errors.New("The command returned a value with a different type than expected")
 
 // Call invokes the command for the given Request
-func (c *Command) Call(req Request) Response {
-	res := NewResponse(req)
+func (c *Command) Call(req Request, stdout, stderr io.Writer) Response {
+	res := NewResponse(req, stdout, stderr)
 
 	cmds, err := c.Resolve(req.Path())
 	if err != nil {

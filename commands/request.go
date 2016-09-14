@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -81,6 +80,7 @@ type Request interface {
 	SetInvocContext(Context)
 	Command() *Command
 	Values() map[string]interface{}
+	SetStdin(io.Reader)
 	Stdin() io.Reader
 	VarArgs(func(string) error) error
 
@@ -322,6 +322,10 @@ func (r *request) Values() map[string]interface{} {
 	return r.values
 }
 
+func (r *request) SetStdin(stdin io.Reader) {
+	r.stdin = stdin
+}
+
 func (r *request) Stdin() io.Reader {
 	return r.stdin
 }
@@ -373,12 +377,12 @@ func (r *request) ConvertOptions() error {
 
 // NewEmptyRequest initializes an empty request
 func NewEmptyRequest() (Request, error) {
-	return NewRequest(nil, nil, nil, nil, nil, nil)
+	return NewRequest(nil, nil, nil, nil, nil, nil, nil)
 }
 
 // NewRequest returns a request initialized with given arguments
 // An non-nil error will be returned if the provided option values are invalid
-func NewRequest(path []string, opts OptMap, args []string, file files.File, cmd *Command, optDefs map[string]Option) (Request, error) {
+func NewRequest(path []string, opts OptMap, args []string, file files.File, cmd *Command, optDefs map[string]Option, stdin io.Reader) (Request, error) {
 	if opts == nil {
 		opts = make(OptMap)
 	}
@@ -397,7 +401,7 @@ func NewRequest(path []string, opts OptMap, args []string, file files.File, cmd 
 		ctx:        ctx,
 		optionDefs: optDefs,
 		values:     values,
-		stdin:      os.Stdin,
+		stdin:      stdin,
 	}
 	err := req.ConvertOptions()
 	if err != nil {
