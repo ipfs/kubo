@@ -109,7 +109,7 @@ func run() error {
 
 	opts := []corehttp.ServeOption{
 		corehttp.CommandsOption(cmdCtx(node, repoPath)),
-		corehttp.GatewayOption(),
+		corehttp.GatewayOption(false),
 	}
 
 	if *cat {

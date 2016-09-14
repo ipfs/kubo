@@ -104,7 +104,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, *core
 		ts.Listener,
 		VersionOption(),
 		IPNSHostnameOption(),
-		GatewayOption("/ipfs", "/ipns"),
+		GatewayOption(false, "/ipfs", "/ipns"),
 	)
 	if err != nil {
 		t.Fatal(err)
