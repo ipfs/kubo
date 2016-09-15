@@ -13,7 +13,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 
-	floodsub "gx/ipfs/QmXzEtq2W7rGCF9RYXL79zQvLsKZxAmT9QFtEC5FYfQYc5/floodsub"
+	floodsub "gx/ipfs/QmZ3zAKL7KkPdnd5dWrkiEgC2H22kaa7QBiYSAhM2xQhb4/floodsub"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
@@ -34,9 +34,10 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"pub": PubsubPubCmd,
-		"sub": PubsubSubCmd,
-		"ls":  PubsubLsCmd,
+		"pub":   PubsubPubCmd,
+		"sub":   PubsubSubCmd,
+		"ls":    PubsubLsCmd,
+		"peers": PubsubPeersCmd,
 	},
 }
 
@@ -255,6 +256,48 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		}
 
 		res.SetOutput(&stringList{n.Floodsub.GetTopics()})
+	},
+	Type: stringList{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+}
+
+var PubsubPeersCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List all peers we are currently pubsubbing with.",
+		ShortDescription: `
+ipfs pubsub peers lists out the pubsub peers you are currently connected to.
+
+This is an experimental feature. It is not intended in its current state
+to be used in a production environment.
+
+To use, the daemon must be run with '--enable-pubsub-experiment'.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		// Must be online!
+		if !n.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		if n.Floodsub == nil {
+			res.SetError(fmt.Errorf("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use."), cmds.ErrNormal)
+			return
+		}
+
+		var out []string
+		for _, p := range n.Floodsub.ListPeers() {
+			out = append(out, p.Pretty())
+		}
+		res.SetOutput(&stringList{out})
 	},
 	Type: stringList{},
 	Marshalers: cmds.MarshalerMap{
