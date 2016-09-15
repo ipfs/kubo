@@ -1,21 +1,21 @@
 package blockstore_util
 
 import (
-	//"errors"
 	"fmt"
 	"io"
-	//"io/ioutil"
-	//"strings"
 
-	//"github.com/ipfs/go-ipfs/blocks"
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/pin"
 	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
-	//u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
+// RemovedBlock is used to respresent the result of removing a block.
+// If a block was removed successfully than the Error string will be
+// empty.  If a block could not be removed than Error will contain the
+// reason the block could not be removed.  If the removal was aborted
+// due to a fatal error Hash will be be empty, Error will contain the
+// reason, and no more results will be sent.
 type RemovedBlock struct {
 	Hash  string `json:",omitempty"`
 	Error string `json:",omitempty"`
@@ -43,7 +43,7 @@ func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, k
 		unlocker := mbs.GCLock()
 		defer unlocker.Unlock()
 
-		stillOkay := CheckPins(mbs, pins, out, keys, prefix)
+		stillOkay := FilterPinned(mbs, pins, out, keys, prefix)
 
 		for _, k := range stillOkay {
 			err := blocks.DeleteBlock(k)
@@ -59,7 +59,7 @@ func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, k
 	return nil
 }
 
-func CheckPins(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key, prefix string) []key.Key {
+func FilterPinned(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key, prefix string) []key.Key {
 	stillOkay := make([]key.Key, 0, len(keys))
 	res, err := pins.CheckIfPinned(keys...)
 	if err != nil {

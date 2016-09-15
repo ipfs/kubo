@@ -166,7 +166,7 @@ func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, keys []k.Key, snap Snapsh
 		unlocker := mbs.GCLock()
 		defer unlocker.Unlock()
 
-		stillOkay := butil.CheckPins(mbs, pins, out, keys, prefix)
+		stillOkay := butil.FilterPinned(mbs, pins, out, keys, prefix)
 
 		for _, k := range stillOkay {
 			keyBytes := k.DsKey().Bytes()
