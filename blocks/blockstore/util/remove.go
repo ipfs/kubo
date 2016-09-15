@@ -89,22 +89,12 @@ func AvailableElsewhere(mbs bs.MultiBlockstore, prefix string, key key.Key) bool
 	return false
 }
 
-type RmError struct {
-	Fatal bool
-	Msg   string
-}
-
-func (err RmError) Error() string { return err.Msg }
-
-func ProcRmOutput(in <-chan interface{}, sout io.Writer, serr io.Writer) *RmError {
+func ProcRmOutput(in <-chan interface{}, sout io.Writer, serr io.Writer) error {
 	someFailed := false
 	for res := range in {
 		r := res.(*RemovedBlock)
 		if r.Hash == "" && r.Error != "" {
-			return &RmError{
-				Fatal: true,
-				Msg:   fmt.Sprintf("aborted: %s", r.Error),
-			}
+			return fmt.Errorf("aborted: %s", r.Error)
 		} else if r.Error != "" {
 			someFailed = true
 			fmt.Fprintf(serr, "cannot remove %s: %s\n", r.Hash, r.Error)
@@ -113,9 +103,7 @@ func ProcRmOutput(in <-chan interface{}, sout io.Writer, serr io.Writer) *RmErro
 		}
 	}
 	if someFailed {
-		return &RmError{
-			Msg: fmt.Sprintf("some blocks not removed"),
-		}
+		return fmt.Errorf("some blocks not removed")
 	}
 	return nil
 }
