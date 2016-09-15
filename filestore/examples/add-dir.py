@@ -231,7 +231,7 @@ def init_cache(before, hash_ok):
     # Use what is in the filestore already to initialize the cache file
     #
     print("scanning filestore for files already added...")
-    for line in Xargs(['ipfs', 'filestore', 'verify', '-v2', '-l3', '--porcelain'], [os.path.join(dir,'')]):
+    for line in Xargs(['ipfs', 'filestore', 'verify', '-v4', '-l3', '--porcelain'], [os.path.join(dir,'')]):
         line = line.rstrip('\n')
         what, status, hash, path = line.split('\t')
         if what == "root" and status == "ok":
