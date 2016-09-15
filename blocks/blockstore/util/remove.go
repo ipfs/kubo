@@ -11,6 +11,12 @@ import (
 	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
+// RemovedBlock is used to respresent the result of removing a block.
+// If a block was removed successfully than the Error string will be
+// empty.  If a block could not be removed than Error will contain the
+// reason the block could not be removed.  If the removal was aborted
+// due to a fatal error Hash will be be empty, Error will contain the
+// reason, and no more results will be sent.
 type RemovedBlock struct {
 	Hash  string `json:",omitempty"`
 	Error string `json:",omitempty"`
@@ -29,11 +35,7 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, c
 		unlocker := blocks.GCLock()
 		defer unlocker.Unlock()
 
-		stillOkay, err := checkIfPinned(pins, cids, out)
-		if err != nil {
-			out <- &RemovedBlock{Error: fmt.Sprintf("pin check failed: %s", err)}
-			return
-		}
+		stillOkay := FilterPinned(pins, out, cids)
 
 		for _, c := range stillOkay {
 			err := blocks.DeleteBlock(key.Key(c.Hash()))
@@ -49,11 +51,12 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, c
 	return nil
 }
 
-func checkIfPinned(pins pin.Pinner, cids []*cid.Cid, out chan<- interface{}) ([]*cid.Cid, error) {
+func FilterPinned(pins pin.Pinner, out chan<- interface{}, cids []*cid.Cid) []*cid.Cid {
 	stillOkay := make([]*cid.Cid, 0, len(cids))
 	res, err := pins.CheckIfPinned(cids...)
 	if err != nil {
-		return nil, err
+		out <- &RemovedBlock{Error: fmt.Sprintf("pin check failed: %s", err)}
+		return nil
 	}
 	for _, r := range res {
 		if !r.Pinned() {
@@ -65,7 +68,7 @@ func checkIfPinned(pins pin.Pinner, cids []*cid.Cid, out chan<- interface{}) ([]
 			}
 		}
 	}
-	return stillOkay, nil
+	return stillOkay
 }
 
 func ProcRmOutput(in <-chan interface{}, sout io.Writer, serr io.Writer) error {
