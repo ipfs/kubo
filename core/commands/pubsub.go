@@ -105,14 +105,16 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 
 		discover, _, _ := req.Option("discover").Bool()
 		if discover {
-			blk := blocks.NewBlock([]byte("floodsub:" + topic))
-			cid, err := n.Blocks.AddObject(blk)
-			if err != nil {
-				log.Error("pubsub discovery: ", err)
-				return
-			}
+			go func() {
+				blk := blocks.NewBlock([]byte("floodsub:" + topic))
+				cid, err := n.Blocks.AddObject(blk)
+				if err != nil {
+					log.Error("pubsub discovery: ", err)
+					return
+				}
 
-			connectToPubSubPeers(req.Context(), n, cid)
+				connectToPubSubPeers(req.Context(), n, cid)
+			}()
 		}
 	},
 	Marshalers: cmds.MarshalerMap{
