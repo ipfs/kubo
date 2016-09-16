@@ -190,7 +190,9 @@ func (f *fixPath) NextFile() (files.File, error) {
 	path := f.paths[0]
 	f.paths = f.paths[1:]
 	if f0.IsDirectory() {
-		return nil, errors.New("online directory add not supported, try '-S'")
+		return nil, fmt.Errorf("online directory add not supported, try '-S': %s", path)
+	} else if _, ok := f0.(*files.MultipartFile) ; !ok {
+		return nil, fmt.Errorf("online adding of special files not supported, try '-S': %s", path)
 	} else {
 		f, err := os.Open(path)
 		if err != nil {

@@ -250,6 +250,74 @@ filestore_test_exact_paths() {
     '
 }
 
+test_add_symlinks() {
+    opt=$1
+
+    test_expect_success "creating files with symbolic links succeeds" '
+        rm -rf files &&
+        mkdir -p files/foo &&
+        mkdir -p files/bar &&
+        echo "some text" > files/foo/baz &&
+        ln -s files/foo/baz files/bar/baz &&
+        ln -s files/does/not/exist files/bad
+    '
+
+    test_expect_success "adding a symlink adds the link itself" '
+        ipfs filestore add --logical -q $opt files/bar/baz > goodlink_out
+    '
+
+    test_expect_success "output looks good" '
+        echo "QmdocmZeF7qwPT9Z8SiVhMSyKA2KKoA2J7jToW6z6WBmxR" > goodlink_exp &&
+        test_cmp goodlink_exp goodlink_out
+    '
+
+    test_expect_success "adding a broken symlink works" '
+        ipfs filestore add --logical -q  $opt files/bad > badlink_out
+    '
+
+    test_expect_success "output looks good" '
+        echo "QmWYN8SEXCgNT2PSjB6BnxAx6NJQtazWoBkTRH9GRfPFFQ" > badlink_exp &&
+        test_cmp badlink_exp badlink_out
+    '
+}
+
+test_add_symlinks_fails_cleanly() {
+    opt=$1
+
+    test_expect_success "creating files with symbolic links succeeds" '
+        rm -rf files &&
+        mkdir -p files/foo &&
+        mkdir -p files/bar &&
+        echo "some text" > files/foo/baz &&
+        ln -s files/foo/baz files/bar/baz &&
+        ln -s files/does/not/exist files/bad
+    '
+
+    test_expect_success "adding a symlink fails cleanly" '
+        test_must_fail ipfs filestore add --logical -q $opt files/bar/baz > goodlink_out
+    '
+
+	test_expect_success "ipfs daemon did not crash" '
+		kill -0 $IPFS_PID
+	'
+
+    test_expect_success "adding a broken link fails cleanly" '
+        test_must_fail ipfs filestore add --logical -q  $opt files/bad > badlink_out
+    '
+
+	test_expect_success "ipfs daemon did not crash" '
+		kill -0 $IPFS_PID
+	'
+}
+
+test_add_dir_w_symlinks() {
+    opt=$1
+
+    test_expect_success "adding directory with symlinks in it works" '
+        ipfs filestore add --logical -q -r $opt files/ > dirlink_out
+    '
+}
+
 filestore_test_w_daemon() {
     opt=$1
 
@@ -276,6 +344,17 @@ filestore_test_w_daemon() {
     test_add_cat_5MB "filestore add " "`pwd`"
 
     test_add_mulpl_files "filestore add "
+
+    test_expect_success "testing filestore add -r should fail" '
+      mkdir adir &&
+      echo "Hello Worlds!" > adir/file1 &&
+      echo "HELLO WORLDS!" > adir/file2 &&
+      random 5242880 41 > adir/file3 &&
+      test_must_fail ipfs filestore add -r "`pwd`/adir"
+    '
+    rm -rf adir
+
+    test_add_symlinks_fails_cleanly
 
     filestore_test_exact_paths
 
@@ -339,6 +418,10 @@ EOF
     '
 
     filestore_test_exact_paths '-S'
+
+    test_add_symlinks '-S'
+
+    test_add_dir_w_symlinks '-S'
 
     test_kill_ipfs_daemon
 

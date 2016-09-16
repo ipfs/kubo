@@ -254,6 +254,10 @@ test_expect_success "testing filestore mv result" '
 # Additional add tests
 #
 
+test_add_symlinks
+
+test_add_dir_w_symlinks
+
 test_add_cat_200MB "filestore add" "`pwd`"
 
 test_done
