@@ -211,7 +211,7 @@ You can now refer to the added file in a gateway, like so:
 			fileAdder.SetMfsRoot(mr)
 		}
 
-		addAllAndPin := func(f files.File) error {
+		addAllAndPin := func(f files.File) {
 			// Iterate over each top-level file and add individually. Otherwise the
 			// single files.File f is treated as a directory, affecting hidden file
 			// semantics.
@@ -221,35 +221,38 @@ You can now refer to the added file in a gateway, like so:
 					// Finished the list of files.
 					break
 				} else if err != nil {
-					return err
+					outChan <- &coreunix.AddedObject{Name: f.FullPath(), Error: err.Error()}
+					return
 				}
 				perFileLocker.Lock()
 				defer perFileLocker.Unlock()
 				if err := fileAdder.AddFile(file); err != nil {
-					return err
+					outChan <- &coreunix.AddedObject{Name: f.FullPath(), Error: err.Error()}
+					return
 				}
 			}
 
 			// copy intermediary nodes from editor to our actual dagservice
 			_, err := fileAdder.Finalize()
 			if err != nil {
-				return err
+				outChan <- &coreunix.AddedObject{Error: err.Error()}
+				return
 			}
 
 			if hash {
-				return nil
+				return
 			}
 
-			return fileAdder.PinRoot()
+			err = fileAdder.PinRoot()
+			if err != nil {
+				outChan <- &coreunix.AddedObject{Error: err.Error()}
+				return
+			}
 		}
 
 		go func() {
 			defer close(outChan)
-			if err := addAllAndPin(req.Files()); err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
+			addAllAndPin(req.Files())
 		}()
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
@@ -312,7 +315,10 @@ You can now refer to the added file in a gateway, like so:
 					break LOOP
 				}
 				output := out.(*coreunix.AddedObject)
-				if len(output.Hash) > 0 {
+				if len(output.Error) > 0 {
+					res.SetError(errors.New(output.Error), cmds.ErrNormal)
+					return
+				} else if len(output.Hash) > 0 {
 					if progress {
 						// clear progress bar line before we print "added x" output
 						fmt.Fprintf(res.Stderr(), "\033[2K\r")
