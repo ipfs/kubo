@@ -251,7 +251,7 @@ func parseOpts(args []string, root *cmds.Command) (
 	return
 }
 
-const msgStdinInfo = "ipfs: Reading from %s; send Ctrl-d to stop.\n"
+const msgStdinInfo = "ipfs: Reading from %s; send Ctrl-d to stop."
 
 func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive, hidden bool, root *cmds.Command) ([]string, []files.File, error) {
 	// ignore stdin on Windows
@@ -401,16 +401,14 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 		if err != nil {
 			return nil, err
 		}
+		cwd, err = filepath.EvalSymlinks(cwd)
+		if err != nil {
+			return nil, err
+		}
 		fpath = cwd
 	}
 
-	fpath = filepath.Clean(fpath)
-	fpath, err := filepath.EvalSymlinks(fpath)
-	if err != nil {
-		return nil, err
-	}
-	// Repeat ToSlash after EvalSymlinks as it turns path to platform specific
-	fpath = filepath.ToSlash(fpath)
+	fpath = filepath.ToSlash(filepath.Clean(fpath))
 
 	stat, err := os.Lstat(fpath)
 	if err != nil {
@@ -469,6 +467,7 @@ func newMessageReader(r io.ReadCloser, msg string) io.ReadCloser {
 func (r *messageReader) Read(b []byte) (int, error) {
 	if !r.done {
 		fmt.Fprintln(os.Stderr, r.message)
+		r.done = true
 	}
 
 	return r.r.Read(b)

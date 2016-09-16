@@ -4,7 +4,7 @@
   },
   "gx": {
     "dvcsimport": "github.com/ipfs/go-libp2p",
-    "goversion": "1.5.2"
+    "goversion": "1.7"
   },
   "gxDependencies": [
     {
@@ -189,11 +189,17 @@
       "hash": "QmVvJ27GcLaLSXvcB4auk3Gn3xuWK5ti5ENkZ2pCoJEYW4",
       "name": "autobatch",
       "version": "0.2.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmdCL8M8DXJdSRnwhpDhukX5r8ydjxnzPJpaKrFudDA8yn",
+      "name": "hang-fds",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs",
-  "version": "0.4.3-rc2"
+  "version": "0.4.3-rc4"
 }

@@ -579,7 +579,6 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 	for _, f := range fs {
 		network.Swarm().Filters.AddDialFilter(f)
 	}
-
 	host := p2pbhost.New(network, p2pbhost.NATPortMap, bwr)
 
 	return host, nil

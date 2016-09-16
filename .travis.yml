@@ -10,7 +10,7 @@ os:
 language: go
 
 go:
-    - 1.5.2
+    - 1.7
 
 env:
   - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_go_expensive

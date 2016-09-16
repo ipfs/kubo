@@ -37,7 +37,7 @@ func migrationsBinName() string {
 func RunMigration(newv int) error {
 	migrateBin := migrationsBinName()
 
-	fmt.Println("  => checking for migrations binary...")
+	fmt.Println("  => Looking for suitable fs-repo-migrations binary.")
 
 	var err error
 	migrateBin, err = exec.LookPath(migrateBin)
@@ -47,15 +47,17 @@ func RunMigration(newv int) error {
 	}
 
 	if err != nil {
-		fmt.Println("  => usable migrations not found on system, fetching...")
+		fmt.Println("  => None found, downloading.")
+
 		loc, err := GetMigrations()
 		if err != nil {
+			fmt.Println("  => Failed to download fs-repo-migrations.")
 			return err
 		}
 
 		err = verifyMigrationSupportsVersion(loc, newv)
 		if err != nil {
-			return fmt.Errorf("no migration binary found that supports version %d - %s", newv, err)
+			return fmt.Errorf("no fs-repo-migration binary found for version %d: %s", newv, err)
 		}
 
 		migrateBin = loc
@@ -65,14 +67,15 @@ func RunMigration(newv int) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	fmt.Printf("  => running migration: '%s -to %d -y'\n\n", migrateBin, newv)
+	fmt.Printf("  => Running: %s -to %d -y\n", migrateBin, newv)
 
 	err = cmd.Run()
 	if err != nil {
+		fmt.Printf("  => Failed: %s -to %d -y\n", migrateBin, newv)
 		return fmt.Errorf("migration failed: %s", err)
 	}
 
-	fmt.Println("  => migrations binary completed successfully")
+	fmt.Printf("  => Success: fs-repo has been migrated to version %d.\n", newv)
 
 	return nil
 }
@@ -80,21 +83,19 @@ func RunMigration(newv int) error {
 func GetMigrations() (string, error) {
 	latest, err := GetLatestVersion(DistPath, migrations)
 	if err != nil {
-		return "", fmt.Errorf("getting latest version of fs-repo-migrations: %s", err)
+		return "", fmt.Errorf("failed to find latest fs-repo-migrations: %s", err)
 	}
 
 	dir, err := ioutil.TempDir("", "go-ipfs-migrate")
 	if err != nil {
-		return "", fmt.Errorf("tempdir: %s", err)
+		return "", fmt.Errorf("failed to create fs-repo-migrations tempdir: %s", err)
 	}
 
 	out := filepath.Join(dir, migrationsBinName())
 
 	err = GetBinaryForVersion(migrations, migrations, DistPath, latest, out)
 	if err != nil {
-		fmt.Printf("  => error getting migrations binary: %s\n", err)
-		fmt.Println("  => could not find or install fs-repo-migrations, please manually install it")
-		return "", fmt.Errorf("failed to find migrations binary")
+		return "", fmt.Errorf("failed to download latest fs-repo-migrations: %s", err)
 	}
 
 	err = os.Chmod(out, 0755)
@@ -184,7 +185,6 @@ func httpGet(url string) (*http.Response, error) {
 }
 
 func httpFetch(url string) (io.ReadCloser, error) {
-	fmt.Printf("fetching url: %s\n", url)
 	resp, err := httpGet(url)
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func httpFetch(url string) (io.ReadCloser, error) {
 			return nil, fmt.Errorf("error reading error body: %s", err)
 		}
 
-		return nil, fmt.Errorf("%s: %s", resp.Status, string(mes))
+		return nil, fmt.Errorf("GET %s error: %s: %s", url, resp.Status, string(mes))
 	}
 
 	return resp.Body, nil

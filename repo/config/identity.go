@@ -5,6 +5,10 @@ import (
 	ic "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
 )
 
+const IdentityTag = "Identity"
+const PrivKeyTag = "PrivKey"
+const PrivKeySelector = IdentityTag + "." + PrivKeyTag
+
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {
 	PeerID  string

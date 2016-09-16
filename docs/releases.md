@@ -12,7 +12,7 @@ will be allowed up to release day.
 - [ ] all tests pass (no exceptions)
 - [ ] webui works (for most definitions of 'works')
 - [ ] CHANGELOG.md has been updated
-  - use `LAST=v0.4.2 for n in $(git log --oneline --merges --reverse -n-1 $LAST...master | cut -d'#' -f2 | cut -d' ' -f1); do echo https://github.com/ipfs/go-ipfs/pull/$n; done`
+  - use `LAST=v0.4.2 ; for n in $(git log --oneline --merges --reverse -n-1 $LAST...master | cut -d'#' -f2 | cut -d' ' -f1); do echo https://github.com/ipfs/go-ipfs/pull/$n; done`
 - [ ] version string in `repo/config/version.go` has been updated
 - [ ] tag commit with vX.Y.Z
 - [ ] bump version string in `repo/config/version.go` to `vX.Y.Z-dev`
