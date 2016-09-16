@@ -60,6 +60,7 @@ func (e *ignoreFileError) Error() string {
 
 type AddedObject struct {
 	Name  string
+	Error string `json:",omitempty"`
 	Hash  string `json:",omitempty"`
 	Bytes int64  `json:",omitempty"`
 }
