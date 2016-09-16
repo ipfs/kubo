@@ -13,3 +13,4 @@
 bin/gx
 bin/gx*
 bin/tmp
+.deps.time

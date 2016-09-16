@@ -51,13 +51,17 @@ path_check:
 deps: go_check gx_check path_check
 	${gx_bin} --verbose install --global
 
+.deps.time: package.json
+	$(MAKE) deps
+	touch .deps.time
+
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
 # ./... performs operation on all packages in tree
 vendor: godep
 	godep save -r ./...
 
-install build nofuse: deps
+install build nofuse: .deps.time
 	$(MAKE) -C cmd/ipfs $@
 
 clean:
