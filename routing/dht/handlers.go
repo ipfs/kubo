@@ -8,8 +8,9 @@ import (
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
-	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	lgbl "gx/ipfs/QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7/go-libp2p-loggables"
+
+	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 
 	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
@@ -70,7 +71,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 		for _, pi := range closerinfos {
 			log.Debugf("handleGetValue returning closer peer: '%s'", pi.ID)
 			if len(pi.Addrs) < 1 {
-				log.Errorf(`no addresses on peer being sent!
+				log.Warning(`no addresses on peer being sent!
 					[local:%s]
 					[sending:%s]
 					[remote:%s]`, dht.self, pi.ID, p)
