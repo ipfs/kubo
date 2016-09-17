@@ -18,3 +18,4 @@ This fork is currently based on IPFS v0.4.3-rc2 with the following changes:
 - Increase MaxRecordAge to 7 days to match the message TTL.
 - Accept gateway IPNS queries using a blockchainID. Resolves names to a peer ID.
 - Added optional cookie and basic authentication to gateway
+- Remove private key check from config initialization as OpenBazaar doesn't store the private key in the config
