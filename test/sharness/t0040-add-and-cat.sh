@@ -98,7 +98,8 @@ test_add_cat_5MB() {
     '
 
     test_expect_success "'ipfs add bigfile' succeeds" '
-    	ipfs add mountdir/bigfile >actual
+    	ipfs add mountdir/bigfile >actual ||
+		test_fsh cat daemon_err
     '
 
     test_expect_success "'ipfs add bigfile' output looks good" '
