@@ -106,8 +106,8 @@ If your operating system isn't officially supported, but you still want to try
 building ipfs anyways (it should work fine in most cases), you can do the
 following:
 
-- Install gx: `go get github.com/whyrusleeping/gx`
-- Install gx-go: `go get github.com/whyrusleeping/gx-go`
+- Install gx: `go get -u github.com/whyrusleeping/gx`
+- Install gx-go: `go get -u github.com/whyrusleeping/gx-go`
 - Fetch ipfs source: `go get -d github.com/ipfs/go-ipfs 2> /dev/null`
 - Enter source directory: `cd $GOPATH/src/github.com/ipfs/go-ipfs`
 - Install deps: `gx install`
