@@ -111,6 +111,26 @@ type Pinned struct {
 	Via  *cid.Cid
 }
 
+func (p Pinned) Pinned() bool {
+	if p.Mode == NotPinned {
+		return false
+	} else {
+		return true
+	}
+}
+
+func (p Pinned) String() string {
+	switch p.Mode {
+	case NotPinned:
+		return "not pinned"
+	case Indirect:
+		return fmt.Sprintf("pinned via %s", p.Via)
+	default:
+		modeStr, _ := PinModeToString(p.Mode)
+		return fmt.Sprintf("pinned: %s", modeStr)
+	}
+}
+
 // pinner implements the Pinner interface
 type pinner struct {
 	lock       sync.RWMutex
