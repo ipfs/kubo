@@ -86,7 +86,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if i.config.Writable {
 		switch r.Method {
 		case "POST":
-			i.postHandler(w, r)
+			i.postHandler(ctx, w, r)
 			return
 		case "PUT":
 			i.putHandler(w, r)
@@ -314,14 +314,8 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	}
 }
 
-func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	nd, err := i.newDagFromReader(r.Body)
-	if err != nil {
-		internalWebError(w, err)
-		return
-	}
-
-	k, err := i.node.DAG.Add(nd)
+func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	k, err := i.api.Add(ctx, r.Body)
 	if err != nil {
 		internalWebError(w, err)
 		return
