@@ -140,7 +140,7 @@ func TestGetAndDeleteFalseShortCircuit(t *testing.T) {
 }
 
 func TestArcCreationFailure(t *testing.T) {
-	if arc, err := arcCached(nil, -1); arc != nil || err == nil {
+	if arc, err := newARCCachedBS(context.TODO(), nil, -1); arc != nil || err == nil {
 		t.Fatal("expected error and no cache")
 	}
 }

@@ -46,9 +46,9 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3",
+      "hash": "QmR3KwhXCRLTNZB59vELb2HhEWrGy9nuychepxFtj3wWYa",
       "name": "client_golang",
-      "version": "0.0.0"
+      "version": "0.1.0"
     },
     {
       "hash": "Qma1FrGRasghpuETfCtsKdFtXKQffpNnakv3wG3QaMwCVi",
@@ -170,9 +170,9 @@
     },
     {
       "author": "kubuxu",
-      "hash": "QmWQ2SJisXwcCLsUXLwYCKSfyExXjFRW2WbBH5sqCUnwX5",
+      "hash": "QmeiMCBkYHxkDkDfnDadzz4YxY5ruL5Pj499essE4vRsGM",
       "name": "bbloom",
-      "version": "0.0.2"
+      "version": "0.1.0"
     },
     {
       "author": "whyrusleeping",
@@ -239,6 +239,18 @@
       "hash": "QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7",
       "name": "go-libp2p-loggables",
       "version": "1.0.11"
+    },
+    {
+      "author": "ipfs",
+      "hash": "QmXWro6iddJRbGWUoZDpTu6tjo5EXX4xJHHR9VczeoGZbw",
+      "name": "go-metrics-prometheus",
+      "version": "0.3.0"
+    },
+    {
+      "author": "ipfs",
+      "hash": "QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5",
+      "name": "go-metrics-interface",
+      "version": "0.1.2"
     }
   ],
   "gxVersion": "0.4.0",
