@@ -25,6 +25,7 @@ type Reader interface {
 }
 
 type UnixfsAPI interface {
+	Add(context.Context, io.Reader) (*cid.Cid, error)
 	Cat(context.Context, string) (Reader, error)
 	Ls(context.Context, string) ([]*Link, error)
 }

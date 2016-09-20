@@ -18,6 +18,10 @@ import (
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 )
 
+// `echo -n 'hello, world!' | ipfs add`
+var hello = "QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
+var helloStr = "hello, world!"
+
 // `ipfs object new unixfs-dir`
 var emptyUnixfsDir = "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
 
@@ -41,6 +45,56 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.UnixfsAPI, error) {
 	return node, api, nil
 }
 
+func TestAdd(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	str := strings.NewReader(helloStr)
+	c, err := api.Add(ctx, str)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if c.String() != hello {
+		t.Fatalf("expected CID %s, got: %s", hello, c)
+	}
+
+	r, err := api.Cat(ctx, hello)
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, len(helloStr))
+	_, err = io.ReadFull(r, buf)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(buf) != helloStr {
+		t.Fatalf("expected [%s], got [%s] [err=%s]", helloStr, string(buf), err)
+	}
+}
+
+func TestAddEmptyFile(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	str := strings.NewReader("")
+	c, err := api.Add(ctx, str)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if c.String() != emptyUnixfsFile {
+		t.Fatalf("expected CID %s, got: %s", hello, c)
+	}
+}
+
 func TestCatBasic(t *testing.T) {
 	ctx := context.Background()
 	node, api, err := makeAPI(ctx)
@@ -48,11 +102,14 @@ func TestCatBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hello := "hello, world!"
-	hr := strings.NewReader(hello)
+	hr := strings.NewReader(helloStr)
 	k, err := coreunix.Add(node, hr)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if k != hello {
+		t.Fatalf("expected CID %s, got: %s", hello, k)
 	}
 
 	r, err := api.Cat(ctx, k)
@@ -60,13 +117,13 @@ func TestCatBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	buf := make([]byte, len(hello))
-	n, err := io.ReadFull(r, buf)
-	if err != nil && err != io.EOF {
+	buf := make([]byte, len(helloStr))
+	_, err = io.ReadFull(r, buf)
+	if err != nil {
 		t.Error(err)
 	}
-	if string(buf) != hello {
-		t.Fatalf("expected [hello, world!], got [%s] [err=%s]", string(buf), n, err)
+	if string(buf) != helloStr {
+		t.Fatalf("expected [%s], got [%s] [err=%s]", helloStr, string(buf), err)
 	}
 }
 
