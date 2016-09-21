@@ -7,8 +7,6 @@ import (
 	"sync"
 
 	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type ThreadSafe struct {
@@ -18,19 +16,17 @@ type ThreadSafe struct {
 
 // not threadsafe
 type Wantlist struct {
-	set map[key.Key]Entry
+	set map[key.Key]*Entry
 }
 
 type Entry struct {
 	Key      key.Key
 	Priority int
 
-	Ctx    context.Context
-	cancel func()
 	RefCnt int
 }
 
-type entrySlice []Entry
+type entrySlice []*Entry
 
 func (es entrySlice) Len() int           { return len(es) }
 func (es entrySlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
@@ -44,41 +40,41 @@ func NewThreadSafe() *ThreadSafe {
 
 func New() *Wantlist {
 	return &Wantlist{
-		set: make(map[key.Key]Entry),
+		set: make(map[key.Key]*Entry),
 	}
 }
 
-func (w *ThreadSafe) Add(k key.Key, priority int) {
+func (w *ThreadSafe) Add(k key.Key, priority int) bool {
 	w.lk.Lock()
 	defer w.lk.Unlock()
-	w.Wantlist.Add(k, priority)
+	return w.Wantlist.Add(k, priority)
 }
 
-func (w *ThreadSafe) AddEntry(e Entry) {
+func (w *ThreadSafe) AddEntry(e *Entry) bool {
 	w.lk.Lock()
 	defer w.lk.Unlock()
-	w.Wantlist.AddEntry(e)
+	return w.Wantlist.AddEntry(e)
 }
 
-func (w *ThreadSafe) Remove(k key.Key) {
+func (w *ThreadSafe) Remove(k key.Key) bool {
 	w.lk.Lock()
 	defer w.lk.Unlock()
-	w.Wantlist.Remove(k)
+	return w.Wantlist.Remove(k)
 }
 
-func (w *ThreadSafe) Contains(k key.Key) (Entry, bool) {
+func (w *ThreadSafe) Contains(k key.Key) (*Entry, bool) {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
 	return w.Wantlist.Contains(k)
 }
 
-func (w *ThreadSafe) Entries() []Entry {
+func (w *ThreadSafe) Entries() []*Entry {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
 	return w.Wantlist.Entries()
 }
 
-func (w *ThreadSafe) SortedEntries() []Entry {
+func (w *ThreadSafe) SortedEntries() []*Entry {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
 	return w.Wantlist.SortedEntries()
@@ -94,50 +90,50 @@ func (w *Wantlist) Len() int {
 	return len(w.set)
 }
 
-func (w *Wantlist) Add(k key.Key, priority int) {
+func (w *Wantlist) Add(k key.Key, priority int) bool {
 	if e, ok := w.set[k]; ok {
 		e.RefCnt++
-		return
+		return false
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	w.set[k] = Entry{
+	w.set[k] = &Entry{
 		Key:      k,
 		Priority: priority,
-		Ctx:      ctx,
-		cancel:   cancel,
 		RefCnt:   1,
 	}
+
+	return true
 }
 
-func (w *Wantlist) AddEntry(e Entry) {
-	if _, ok := w.set[e.Key]; ok {
-		return
+func (w *Wantlist) AddEntry(e *Entry) bool {
+	if ex, ok := w.set[e.Key]; ok {
+		ex.RefCnt++
+		return false
 	}
 	w.set[e.Key] = e
+	return true
 }
 
-func (w *Wantlist) Remove(k key.Key) {
+func (w *Wantlist) Remove(k key.Key) bool {
 	e, ok := w.set[k]
 	if !ok {
-		return
+		return false
 	}
 
 	e.RefCnt--
 	if e.RefCnt <= 0 {
 		delete(w.set, k)
-		if e.cancel != nil {
-			e.cancel()
-		}
+		return true
 	}
+	return false
 }
 
-func (w *Wantlist) Contains(k key.Key) (Entry, bool) {
+func (w *Wantlist) Contains(k key.Key) (*Entry, bool) {
 	e, ok := w.set[k]
 	return e, ok
 }
 
-func (w *Wantlist) Entries() []Entry {
+func (w *Wantlist) Entries() []*Entry {
 	var es entrySlice
 	for _, e := range w.set {
 		es = append(es, e)
@@ -145,7 +141,7 @@ func (w *Wantlist) Entries() []Entry {
 	return es
 }
 
-func (w *Wantlist) SortedEntries() []Entry {
+func (w *Wantlist) SortedEntries() []*Entry {
 	var es entrySlice
 	for _, e := range w.set {
 		es = append(es, e)

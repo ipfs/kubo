@@ -104,7 +104,7 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 	return e
 }
 
-func (e *Engine) WantlistForPeer(p peer.ID) (out []wl.Entry) {
+func (e *Engine) WantlistForPeer(p peer.ID) (out []*wl.Entry) {
 	e.lock.Lock()
 	partner, ok := e.ledgerMap[p]
 	if ok {
@@ -233,7 +233,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 	for _, entry := range m.Wantlist() {
 		if entry.Cancel {
-			log.Debugf("cancel %s", entry.Key)
+			log.Debugf("%s cancel %s", p, entry.Key)
 			l.CancelWant(entry.Key)
 			e.peerRequestQueue.Remove(entry.Key, p)
 		} else {

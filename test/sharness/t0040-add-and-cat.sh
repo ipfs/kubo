@@ -189,6 +189,18 @@ test_add_named_pipe() {
     '
 }
 
+test_add_pwd_is_symlink() {
+    test_expect_success "ipfs add -r adds directory content when ./ is symlink" '
+      mkdir hellodir &&
+      echo "World" > hellodir/world &&
+      ln -s hellodir hellolink &&
+      ( cd hellolink &&
+        ipfs add -r . > ../actual ) &&
+      grep "added Qma9CyFdG5ffrZCcYSin2uAETygB25cswVwEYYzwfQuhTe" actual &&
+      rm -r hellodir
+    '
+}
+
 test_launch_ipfs_daemon_and_mount
 
 test_expect_success "'ipfs add --help' succeeds" '
@@ -344,6 +356,25 @@ test_expect_success "ipfs cat output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "ipfs cat with both arg and stdin" '
+	echo "$MARS" | ipfs cat "$VENUS" >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	cat mountdir/planets/venus.txt >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs cat with two args and stdin" '
+	echo "$MARS" | ipfs cat "$VENUS" "$VENUS" >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	cat mountdir/planets/venus.txt mountdir/planets/venus.txt >expected &&
+	test_cmp expected actual
+'
+
+
 test_expect_success "go-random is installed" '
     type random
 '
@@ -353,6 +384,8 @@ test_add_cat_5MB
 test_add_cat_expensive
 
 test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=true&r=true&stream-channels=true:"
+
+test_add_pwd_is_symlink
 
 test_kill_ipfs_daemon
 
@@ -370,6 +403,8 @@ test_expect_success "ipfs cat file fails" '
 '
 
 test_add_named_pipe ""
+
+test_add_pwd_is_symlink
 
 # Test daemon in offline mode
 test_launch_ipfs_daemon --offline
