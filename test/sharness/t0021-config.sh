@@ -111,10 +111,10 @@ test_config_cmd() {
 
   test_expect_success "'ipfs config replace' injects privkey back" '
        ipfs config replace show_config &&
-	   grep "\"PrivKey\":" "$IPFS_PATH/config" | grep -e ": \".\+\"" >/dev/null
+       grep "\"PrivKey\":" "$IPFS_PATH/config" | grep -e ": \".\+\"" >/dev/null
   '
 
-  test_expect_success "'ipfs config replace' with privkey erors out" '
+  test_expect_success "'ipfs config replace' with privkey errors out" '
        cp "$IPFS_PATH/config" real_config &&
        test_expect_code 1 ipfs config replace - < real_config 2> replace_out
   '
@@ -124,6 +124,16 @@ test_config_cmd() {
        test_cmp replace_out replace_expected
   '
 
+  test_expect_success "'ipfs config replace' with lower case privkey errors out" '
+       cp "$IPFS_PATH/config" real_config &&
+       sed -i -e '\''s/PrivKey/privkey/'\'' real_config &&
+       test_expect_code 1 ipfs config replace - < real_config 2> replace_out
+  '
+
+  test_expect_success "output looks good" '
+       echo "Error: setting private key with API is not supported" > replace_expected
+       test_cmp replace_out replace_expected
+  '
 }
 
 test_init_ipfs

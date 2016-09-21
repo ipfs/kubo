@@ -8,17 +8,17 @@ test_description="Tests for various fixed issues and regressions."
 
 test_expect_success "ipfs init with occupied input works - #2748" '
 	export IPFS_PATH="ipfs_path"
-	echo "" | time-out ipfs init &&
+	echo "" | go-timeout 10 ipfs init &&
 	rm -rf ipfs_path
 '
 test_init_ipfs
 
-test_expect_success "ipfs cat --help succeeds with no input" '
- 	time-out ipfs cat --help
+test_expect_success "ipfs cat --help succeeds when input remains open" '
+	yes | go-timeout 1 ipfs cat --help
 '
 
-test_expect_success "ipfs pin ls --help succeeds with no input" '
- 	time-out ipfs pin ls --help
+test_expect_success "ipfs pin ls --help succeeds when input remains open" '
+	yes | go-timeout 1 ipfs pin ls --help
 '
 
 test_expect_success "ipfs add on 1MB from stdin woks" '

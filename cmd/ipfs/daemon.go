@@ -228,19 +228,25 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	case fsrepo.ErrNeedMigration:
 		domigrate, found, _ := req.Option(migrateKwd).Bool()
-		fmt.Println("Found old repo version, migrations need to be run.")
+		fmt.Println("Found outdated fs-repo, migrations need to be run.")
 
 		if !found {
-			domigrate = YesNoPrompt("Run migrations automatically? [y/N]")
+			domigrate = YesNoPrompt("Run migrations now? [y/N]")
 		}
 
 		if !domigrate {
-			res.SetError(fmt.Errorf("please run the migrations manually"), cmds.ErrNormal)
+			fmt.Println("Not running migrations of fs-repo now.")
+			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.io")
+			res.SetError(fmt.Errorf("fs-repo requires migration"), cmds.ErrNormal)
 			return
 		}
 
 		err = migrate.RunMigration(fsrepo.RepoVersion)
 		if err != nil {
+			fmt.Println("The migrations of fs-repo failed:")
+			fmt.Printf("  %s\n", err)
+			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
+			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
