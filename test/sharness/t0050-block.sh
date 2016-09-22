@@ -125,7 +125,7 @@ test_expect_success "add and pin directory" '
 
 HASH=QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk
 HASH2=QmdnpnsaEj69isdw5sNzp3h3HkaDz7xKq7BmvFFBzNr5e7
-RANDOMHASH=QRmKqGMAM6EbngbZjSqrvYzq5Qd8b1bSWymjSUY9zQSNDq
+RANDOMHASH=QmRKqGMAM6EbngbZjSqrvYzq5Qd8b1bSWymjSUY9zQSNDq
 
 test_expect_success "multi-block 'ipfs block rm' mixed" '
   test_must_fail ipfs block rm $FILE1HASH $DIRHASH $HASH $FILE3HASH $RANDOMHASH $HASH2 2> block_rm_err

@@ -9,12 +9,15 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	notif "github.com/ipfs/go-ipfs/notifications"
 	path "github.com/ipfs/go-ipfs/path"
+	routing "github.com/ipfs/go-ipfs/routing"
 	ipdht "github.com/ipfs/go-ipfs/routing/dht"
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
+	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
@@ -31,6 +34,7 @@ var DhtCmd = &cmds.Command{
 		"findpeer":  findPeerDhtCmd,
 		"get":       getValueDhtCmd,
 		"put":       putValueDhtCmd,
+		"provide":   provideRefDhtCmd,
 	},
 }
 
@@ -225,6 +229,160 @@ var findProvidersDhtCmd = &cmds.Command{
 		},
 	},
 	Type: notif.QueryEvent{},
+}
+
+var provideRefDhtCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Announce to the network that you are providing given values.",
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, true, "The key[s] to send provide records for.").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.BoolOption("recursive", "r", "Recursively provide entire graph.").Default(false),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if n.Routing == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
+			return
+		}
+
+		rec, _, _ := req.Option("recursive").Bool()
+
+		var keys []key.Key
+		for _, arg := range req.Arguments() {
+			k := key.B58KeyDecode(arg)
+			if k == "" {
+				res.SetError(fmt.Errorf("incorrectly formatted key: ", arg), cmds.ErrNormal)
+				return
+			}
+
+			has, err := n.Blockstore.Has(k)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			if !has {
+				res.SetError(fmt.Errorf("block %s not found locally, cannot provide", k), cmds.ErrNormal)
+				return
+			}
+
+			keys = append(keys, k)
+		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
+		events := make(chan *notif.QueryEvent)
+		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+
+		go func() {
+			defer close(outChan)
+			for e := range events {
+				outChan <- e
+			}
+		}()
+
+		go func() {
+			defer close(events)
+			var err error
+			if rec {
+				err = provideKeysRec(ctx, n.Routing, n.DAG, keys)
+			} else {
+				err = provideKeys(ctx, n.Routing, keys)
+			}
+			if err != nil {
+				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+					Type:  notif.QueryError,
+					Extra: err.Error(),
+				})
+			}
+		}()
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			verbose, _, _ := res.Request().Option("v").Bool()
+			pfm := pfuncMap{
+				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					if verbose {
+						fmt.Fprintf(out, "sending provider record to peer %s\n", obj.ID)
+					}
+				},
+			}
+
+			marshal := func(v interface{}) (io.Reader, error) {
+				obj, ok := v.(*notif.QueryEvent)
+				if !ok {
+					return nil, u.ErrCast()
+				}
+
+				buf := new(bytes.Buffer)
+				printEvent(obj, buf, verbose, pfm)
+				return buf, nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Channel:   outChan,
+				Marshaler: marshal,
+				Res:       res,
+			}, nil
+		},
+	},
+	Type: notif.QueryEvent{},
+}
+
+func provideKeys(ctx context.Context, r routing.IpfsRouting, keys []key.Key) error {
+	for _, k := range keys {
+		err := r.Provide(ctx, k)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGService, keys []key.Key) error {
+	provided := make(map[key.Key]struct{})
+	for _, k := range keys {
+		kset := key.NewKeySet()
+		node, err := dserv.Get(ctx, k)
+		if err != nil {
+			return err
+		}
+
+		err = dag.EnumerateChildrenAsync(ctx, dserv, node, kset)
+		if err != nil {
+			return err
+		}
+
+		for _, k := range kset.Keys() {
+			if _, ok := provided[k]; ok {
+				continue
+			}
+
+			err = r.Provide(ctx, k)
+			if err != nil {
+				return err
+			}
+			provided[k] = struct{}{}
+		}
+	}
+
+	return nil
 }
 
 var findPeerDhtCmd = &cmds.Command{

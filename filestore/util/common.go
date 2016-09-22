@@ -12,8 +12,8 @@ import (
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	k "github.com/ipfs/go-ipfs/blocks/key"
 	node "github.com/ipfs/go-ipfs/merkledag"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	//"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
+	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
+	//"gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/query"
 )
 
 type VerifyLevel int

@@ -10,8 +10,8 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
 )
 
 var TaskWorkerCount = 8
@@ -133,6 +133,7 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 				log.Debug("newBlocks channel closed")
 				return
 			}
+
 			if keysOut == nil {
 				nextKey = blk.Key()
 				keysOut = bs.provideKeys
@@ -168,7 +169,7 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 		case <-tick.C:
 			n := bs.wm.wl.Len()
 			if n > 0 {
-				log.Debug(n, "keys in bitswap wantlist")
+				log.Debug(n, " keys in bitswap wantlist")
 			}
 		case <-broadcastSignal.C: // resend unfulfilled wantlist keys
 			log.Event(ctx, "Bitswap.Rebroadcast.active")

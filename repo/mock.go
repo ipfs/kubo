@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/ipfs/go-ipfs/repo/config"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 )
 
 var errTODO = errors.New("TODO: mock repo")

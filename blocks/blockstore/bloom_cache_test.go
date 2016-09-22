@@ -8,9 +8,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/blocks"
 
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dsq "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
-	syncds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
+	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
+	dsq "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/query"
+	syncds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -25,6 +25,39 @@ func testBloomCached(bs Blockstore, ctx context.Context) (*bloomcache, error) {
 		return bbs.(*bloomcache), nil
 	} else {
 		return nil, err
+	}
+}
+
+func TestPutManyAddsToBloom(t *testing.T) {
+	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
+
+	ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+	cachedbs, err := testBloomCached(bs, ctx)
+
+	select {
+	case <-cachedbs.rebuildChan:
+	case <-ctx.Done():
+		t.Fatalf("Timeout wating for rebuild: %d", cachedbs.bloom.ElementsAdded())
+	}
+
+	block1 := blocks.NewBlock([]byte("foo"))
+	block2 := blocks.NewBlock([]byte("bar"))
+
+	cachedbs.PutMany([]blocks.Block{block1})
+	has, err := cachedbs.Has(block1.Key())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if has == false {
+		t.Fatal("added block is reported missing")
+	}
+
+	has, err = cachedbs.Has(block2.Key())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if has == true {
+		t.Fatal("not added block is reported to be in blockstore")
 	}
 }
 

@@ -6,8 +6,8 @@ import (
 	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/blocks/key"
 
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	syncds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
+	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
+	syncds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -175,4 +175,10 @@ func TestPutManyCaches(t *testing.T) {
 
 	trap("has hit datastore", cd, t)
 	arc.Has(exampleBlock.Key())
+	untrap(cd)
+	arc.DeleteBlock(exampleBlock.Key())
+
+	arc.Put(exampleBlock)
+	trap("PunMany has hit datastore", cd, t)
+	arc.PutMany([]blocks.Block{exampleBlock})
 }

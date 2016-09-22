@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	exchange "github.com/ipfs/go-ipfs/exchange"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
@@ -43,7 +43,15 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
 func (s *BlockService) AddBlock(b blocks.Block) (key.Key, error) {
 	k := b.Key()
-	err := s.Blockstore.Put(b)
+	has, err := s.Blockstore.Has(k)
+	if err != nil {
+		return k, err
+	}
+	if has {
+		return k, nil
+	}
+
+	err = s.Blockstore.Put(b)
 	if err != nil {
 		return k, err
 	}
@@ -54,13 +62,27 @@ func (s *BlockService) AddBlock(b blocks.Block) (key.Key, error) {
 }
 
 func (s *BlockService) AddBlocks(bs []blocks.Block) ([]key.Key, error) {
-	err := s.Blockstore.PutMany(bs)
+	var toput []blocks.Block
+	for _, b := range bs {
+		has, err := s.Blockstore.Has(b.Key())
+		if err != nil {
+			return nil, err
+		}
+
+		if has {
+			continue
+		}
+
+		toput = append(toput, b)
+	}
+
+	err := s.Blockstore.PutMany(toput)
 	if err != nil {
 		return nil, err
 	}
 
 	var ks []key.Key
-	for _, b := range bs {
+	for _, b := range toput {
 		if err := s.Exchange.HasBlock(b); err != nil {
 			return nil, errors.New("blockservice is closed")
 		}

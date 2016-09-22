@@ -1,5 +1,5 @@
 # Minimum version numbers for software required to build IPFS
-IPFS_MIN_GO_VERSION = 1.5.2
+IPFS_MIN_GO_VERSION = 1.7
 IPFS_MIN_GX_VERSION = 0.6
 IPFS_MIN_GX_GO_VERSION = 1.1
 
@@ -15,9 +15,9 @@ else
   GOPATH_DELIMITER = :
 endif
 
-dist_root=/ipfs/QmUnvqDuRyfe7HJuiMMHv77AMUFnjGyAU28LFPeTYwGmFF
-gx_bin=bin/gx-v0.8.0
-gx-go_bin=bin/gx-go-v1.2.1
+dist_root=/ipfs/QmNZL8wNsvAGdVYr8uGeUE9aGfHjFpHegAWywQFEdSaJbp
+gx_bin=bin/gx-v0.9.0
+gx-go_bin=bin/gx-go-v1.3.0
 
 # use things in our bin before any other system binaries
 export PATH := bin:$(PATH)

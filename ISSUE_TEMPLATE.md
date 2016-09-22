@@ -4,7 +4,7 @@ Version/Platform/Processor information (from `ipfs version --all`):
 
 Type (bug, feature, meta, test failure, question):
 Area (api, commands, daemon, fuse, etc):
-Priority (from P0: functioning, to P4: operations on fire):
+Priority (from P0: operations on fire, to P4: functioning):
 
 Description:
 

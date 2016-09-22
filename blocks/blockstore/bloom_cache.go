@@ -1,12 +1,13 @@
 package blockstore
 
 import (
+	"sync/atomic"
+
 	"github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
+
 	bloom "gx/ipfs/QmWQ2SJisXwcCLsUXLwYCKSfyExXjFRW2WbBH5sqCUnwX5/bbloom"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	"sync/atomic"
 )
 
 // bloomCached returns Blockstore that caches Has requests using Bloom filter
@@ -126,19 +127,18 @@ func (b *bloomcache) Put(bl blocks.Block) error {
 }
 
 func (b *bloomcache) PutMany(bs []blocks.Block) error {
-	var good []blocks.Block
-	for _, block := range bs {
-		if has, ok := b.hasCached(block.Key()); !ok || (ok && !has) {
-			good = append(good, block)
-		}
-	}
+	// bloom cache gives only conclusive resulty if key is not contained
+	// to reduce number of puts we need conclusive infomration if block is contained
+	// this means that PutMany can't be improved with bloom cache so we just
+	// just do a passthrough.
 	err := b.blockstore.PutMany(bs)
-	if err == nil {
-		for _, block := range bs {
-			b.bloom.AddTS([]byte(block.Key()))
-		}
+	if err != nil {
+		return err
 	}
-	return err
+	for _, bl := range bs {
+		b.bloom.AddTS([]byte(bl.Key()))
+	}
+	return nil
 }
 
 func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
