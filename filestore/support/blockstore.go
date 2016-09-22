@@ -18,31 +18,32 @@ func NewBlockstore(b bs.GCBlockstore, fs *Datastore) bs.GCBlockstore {
 	return &blockstore{b, fs}
 }
 
-func (bs *blockstore) Put(block b.Block) error {
+func (bs *blockstore) Put(block b.Block) (error, b.Block)  {
 	k := block.Key().DsKey()
 
 	data, err := bs.prepareBlock(k, block)
 	if err != nil {
-		return err
+		return err, nil
 	} else if data == nil {
 		return bs.GCBlockstore.Put(block)
 	}
-	return bs.filestore.Put(k, data)
+	return bs.filestore.Put(k, data), block
 }
 
-func (bs *blockstore) PutMany(blocks []b.Block) error {
+func (bs *blockstore) PutMany(blocks []b.Block) (error, []b.Block)  {
 	var nonFilestore []b.Block
 
 	t, err := bs.filestore.Batch()
 	if err != nil {
-		return err
+		return err, nil
 	}
 
+	added := make([]b.Block, 0, len(blocks))
 	for _, b := range blocks {
 		k := b.Key().DsKey()
 		data, err := bs.prepareBlock(k, b)
 		if err != nil {
-			return err
+			return err, nil
 		} else if data == nil {
 			nonFilestore = append(nonFilestore, b)
 			continue
@@ -50,19 +51,22 @@ func (bs *blockstore) PutMany(blocks []b.Block) error {
 
 		err = t.Put(k, data)
 		if err != nil {
-			return err
+			return err, nil
 		}
+		added = append(added, b)
 	}
 
 	err = t.Commit()
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	if len(nonFilestore) > 0 {
-		return bs.GCBlockstore.PutMany(nonFilestore)
+		err, alsoAdded := bs.GCBlockstore.PutMany(nonFilestore)
+		if err != nil {return err, added}
+		return nil, append(added, alsoAdded...)
 	} else {
-		return nil
+		return nil, added
 	}
 }
 

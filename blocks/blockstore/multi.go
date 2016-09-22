@@ -105,16 +105,16 @@ func (bs *multiblockstore) Locate(key key.Key) []LocateInfo {
 	return res
 }
 
-func (bs *multiblockstore) Put(blk blocks.Block) error {
+func (bs *multiblockstore) Put(blk blocks.Block) (error, blocks.Block) {
 	// Has is cheaper than Put, so see if we already have it
 	exists, err := bs.Has(blk.Key())
 	if err == nil && exists {
-		return nil // already stored
+		return nil, nil // already stored
 	}
 	return bs.mounts[0].Blocks.Put(blk)
 }
 
-func (bs *multiblockstore) PutMany(blks []blocks.Block) error {
+func (bs *multiblockstore) PutMany(blks []blocks.Block) (error, []blocks.Block) {
 	stilladd := make([]blocks.Block, 0, len(blks))
 	// Has is cheaper than Put, so if we already have it then skip
 	for _, blk := range blks {
@@ -125,7 +125,7 @@ func (bs *multiblockstore) PutMany(blks []blocks.Block) error {
 		stilladd = append(stilladd, blk)
 	}
 	if len(stilladd) == 0 {
-		return nil
+		return nil, nil
 	}
 	return bs.mounts[0].Blocks.PutMany(stilladd)
 }

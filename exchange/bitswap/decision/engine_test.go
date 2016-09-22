@@ -139,7 +139,7 @@ func TestPartnerWantsThenCancels(t *testing.T) {
 	bs := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
 	for _, letter := range alphabet {
 		block := blocks.NewBlock([]byte(letter))
-		if err := bs.Put(block); err != nil {
+		if err, _ := bs.Put(block); err != nil {
 			t.Fatal(err)
 		}
 	}
