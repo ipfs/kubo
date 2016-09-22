@@ -16,6 +16,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
 	mfs "github.com/ipfs/go-ipfs/mfs"
@@ -158,10 +159,18 @@ You can now refer to the added file in a gateway, like so:
 			n = nilnode
 		}
 
+		exchange := n.Exchange
+		local, _, _ := req.Option("local").Bool()
+		if local {
+			exchange = offline.Exchange(n.Blockstore)
+		}
+
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
 		var fileAdder *coreunix.Adder
+		//FIXME NOW: with local code...
+		//fileAdder, err := coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dserv)
 		useRoot := wrap || recursive
 		perFileLocker := filestore.NoOpLocker()
 		if nocopy {
@@ -171,7 +180,7 @@ You can now refer to the added file in a gateway, like so:
 				return
 			}
 			blockstore := filestore_support.NewBlockstore(n.Blockstore, fs)
-			blockService := bserv.New(blockstore, n.Exchange)
+			blockService := bserv.New(blockstore, exchange)
 			dagService := dag.NewDAGService(blockService)
 			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService, useRoot)
 			fileAdder.FullName = true
@@ -180,9 +189,13 @@ You can now refer to the added file in a gateway, like so:
 			// add directly to the first mount bypassing
 			// the Has() check of the multi-blockstore
 			blockstore := bs.NewGCBlockstore(n.Blockstore.FirstMount(), n.Blockstore)
-			blockService := bserv.New(blockstore, n.Exchange)
+			blockService := bserv.New(blockstore, exchange)
 			dagService := dag.NewDAGService(blockService)
 			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService, useRoot)
+		} else if exchange != n.Exchange {
+			blockService := bserv.New(n.Blockstore, exchange)
+			dagService := dag.NewDAGService(blockService)
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dagService, useRoot)
 		} else {
 			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, n.DAG, useRoot)
 		}
