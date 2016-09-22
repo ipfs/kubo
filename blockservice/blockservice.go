@@ -42,47 +42,27 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
 func (s *BlockService) AddBlock(b blocks.Block) (key.Key, error) {
-	k := b.Key()
-	has, err := s.Blockstore.Has(k)
+	err, added := s.Blockstore.Put(b)
 	if err != nil {
-		return k, err
+		return b.Key(), err
 	}
-	if has {
-		return k, nil
-	}
-
-	err = s.Blockstore.Put(b)
-	if err != nil {
-		return k, err
+	if added == nil {
+		return b.Key(), nil
 	}
 	if err := s.Exchange.HasBlock(b); err != nil {
 		return "", errors.New("blockservice is closed")
 	}
-	return k, nil
+	return b.Key(), nil
 }
 
 func (s *BlockService) AddBlocks(bs []blocks.Block) ([]key.Key, error) {
-	var toput []blocks.Block
-	for _, b := range bs {
-		has, err := s.Blockstore.Has(b.Key())
-		if err != nil {
-			return nil, err
-		}
-
-		if has {
-			continue
-		}
-
-		toput = append(toput, b)
-	}
-
-	err := s.Blockstore.PutMany(toput)
+	err, added := s.Blockstore.PutMany(bs)
 	if err != nil {
 		return nil, err
 	}
 
 	var ks []key.Key
-	for _, b := range toput {
+	for _, b := range added {
 		if err := s.Exchange.HasBlock(b); err != nil {
 			return nil, errors.New("blockservice is closed")
 		}
