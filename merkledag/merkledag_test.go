@@ -10,7 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	bstest "github.com/ipfs/go-ipfs/blockservice/test"
@@ -19,30 +18,10 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	. "github.com/ipfs/go-ipfs/merkledag"
 	dstest "github.com/ipfs/go-ipfs/merkledag/test"
-	"github.com/ipfs/go-ipfs/pin"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dssync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
-
-type dagservAndPinner struct {
-	ds DAGService
-	mp pin.Pinner
-}
-
-func getDagservAndPinner(t *testing.T) dagservAndPinner {
-	db := dssync.MutexWrap(ds.NewMapDatastore())
-	bs := bstore.NewBlockstore(db)
-	blockserv := bserv.New(bs, offline.Exchange(bs))
-	dserv := NewDAGService(blockserv)
-	mpin := pin.NewPinner(db, dserv)
-	return dagservAndPinner{
-		ds: dserv,
-		mp: mpin,
-	}
-}
 
 func TestNode(t *testing.T) {
 
@@ -254,7 +233,7 @@ func TestEmptyKey(t *testing.T) {
 }
 
 func TestCantGet(t *testing.T) {
-	dsp := getDagservAndPinner(t)
+	ds := dstest.Mock()
 	a := NodeWithData([]byte("A"))
 
 	k, err := a.Key()
@@ -262,7 +241,7 @@ func TestCantGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = dsp.ds.Get(context.Background(), k)
+	_, err = ds.Get(context.Background(), k)
 	if !strings.Contains(err.Error(), "not found") {
 		t.Fatal("expected err not found, got: ", err)
 	}
