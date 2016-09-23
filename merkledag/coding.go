@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"sort"
 
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
-
 	pb "github.com/ipfs/go-ipfs/merkledag/pb"
+
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 // for now, we use a PBNode intermediate thing.
@@ -83,7 +84,7 @@ func (n *Node) EncodeProtobuf(force bool) ([]byte, error) {
 	}
 
 	if n.cached == nil {
-		n.cached = u.Hash(n.encoded)
+		n.cached = cid.NewCidV0(u.Hash(n.encoded))
 	}
 
 	return n.encoded, nil

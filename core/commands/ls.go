@@ -6,13 +6,13 @@ import (
 	"io"
 	"text/tabwriter"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 type LsLink struct {
@@ -97,7 +97,7 @@ The JSON output contains type information.
 						res.SetError(err, cmds.ErrNormal)
 						return
 					}
-					linkNode, err = merkledag.DecodeProtobuf(b.Data())
+					linkNode, err = merkledag.DecodeProtobuf(b.RawData())
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return

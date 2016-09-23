@@ -2,7 +2,6 @@ package mod
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -10,27 +9,18 @@ import (
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	bs "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
-	imp "github.com/ipfs/go-ipfs/importer"
-	"github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	testu "github.com/ipfs/go-ipfs/unixfs/test"
 
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	"gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
-
-func getMockDagServ(t testing.TB) mdag.DAGService {
-	dstore := ds.NewMapDatastore()
-	tsds := sync.MutexWrap(dstore)
-	bstore := blockstore.NewBlockstore(tsds)
-	bserv := bs.New(bstore, offline.Exchange(bstore))
-	return mdag.NewDAGService(bserv)
-}
 
 func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlockstore) {
 	dstore := ds.NewMapDatastore()
@@ -39,26 +29,6 @@ func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlocks
 	bserv := bs.New(bstore, offline.Exchange(bstore))
 	dserv := mdag.NewDAGService(bserv)
 	return dserv, bstore
-}
-
-func getNode(t testing.TB, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
-	in := io.LimitReader(u.NewTimeSeededRand(), size)
-	node, err := imp.BuildTrickleDagFromReader(dserv, sizeSplitterGen(500)(in))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dr, err := uio.NewDagReader(context.Background(), node, dserv)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	b, err := ioutil.ReadAll(dr)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return b, node
 }
 
 func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) []byte {
@@ -100,26 +70,20 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 		t.Fatal(err)
 	}
 
-	err = arrComp(after, orig)
+	err = testu.ArrComp(after, orig)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return orig
 }
 
-func sizeSplitterGen(size int64) chunk.SplitterGen {
-	return func(r io.Reader) chunk.Splitter {
-		return chunk.NewSizeSplitter(r, size)
-	}
-}
-
 func TestDagModifierBasic(t *testing.T) {
-	dserv := getMockDagServ(t)
-	b, n := getNode(t, dserv, 50000)
+	dserv := testu.GetDAGServ()
+	b, n := testu.GetRandomNode(t, dserv, 50000)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,13 +132,13 @@ func TestDagModifierBasic(t *testing.T) {
 }
 
 func TestMultiWrite(t *testing.T) {
-	dserv := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(t, dserv)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,20 +178,20 @@ func TestMultiWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = arrComp(rbuf, data)
+	err = testu.ArrComp(rbuf, data)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestMultiWriteAndFlush(t *testing.T) {
-	dserv := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(t, dserv)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,20 +226,20 @@ func TestMultiWriteAndFlush(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = arrComp(rbuf, data)
+	err = testu.ArrComp(rbuf, data)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestWriteNewFile(t *testing.T) {
-	dserv := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(t, dserv)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,19 +270,19 @@ func TestWriteNewFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := arrComp(data, towrite); err != nil {
+	if err := testu.ArrComp(data, towrite); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestMultiWriteCoal(t *testing.T) {
-	dserv := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(t, dserv)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,20 +315,20 @@ func TestMultiWriteCoal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = arrComp(rbuf, data)
+	err = testu.ArrComp(rbuf, data)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestLargeWriteChunks(t *testing.T) {
-	dserv := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(t, dserv)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,19 +354,19 @@ func TestLargeWriteChunks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = arrComp(out, data); err != nil {
+	if err = testu.ArrComp(out, data); err != nil {
 		t.Fatal(err)
 	}
 
 }
 
 func TestDagTruncate(t *testing.T) {
-	dserv := getMockDagServ(t)
-	b, n := getNode(t, dserv, 50000)
+	dserv := testu.GetDAGServ()
+	b, n := testu.GetRandomNode(t, dserv, 50000)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -430,7 +394,7 @@ func TestDagTruncate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = arrComp(out, b[:12345]); err != nil {
+	if err = testu.ArrComp(out, b[:12345]); err != nil {
 		t.Fatal(err)
 	}
 
@@ -464,12 +428,12 @@ func TestDagTruncate(t *testing.T) {
 }
 
 func TestSparseWrite(t *testing.T) {
-	dserv := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(t, dserv)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -496,18 +460,18 @@ func TestSparseWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = arrComp(out, buf); err != nil {
+	if err = testu.ArrComp(out, buf); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestSeekPastEndWrite(t *testing.T) {
-	dserv := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(t, dserv)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -543,18 +507,18 @@ func TestSeekPastEndWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = arrComp(out, buf); err != nil {
+	if err = testu.ArrComp(out, buf); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestRelativeSeek(t *testing.T) {
-	dserv := getMockDagServ(t)
-	_, n := getNode(t, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(t, dserv)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -579,13 +543,12 @@ func TestRelativeSeek(t *testing.T) {
 }
 
 func TestInvalidSeek(t *testing.T) {
-	dserv := getMockDagServ(t)
-
-	_, n := getNode(t, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(t, dserv)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -597,13 +560,13 @@ func TestInvalidSeek(t *testing.T) {
 }
 
 func TestEndSeek(t *testing.T) {
-	dserv := getMockDagServ(t)
+	dserv := testu.GetDAGServ()
 
-	_, n := getNode(t, dserv, 0)
+	n := testu.GetEmptyNode(t, dserv)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -630,13 +593,13 @@ func TestEndSeek(t *testing.T) {
 }
 
 func TestReadAndSeek(t *testing.T) {
-	dserv := getMockDagServ(t)
+	dserv := testu.GetDAGServ()
 
-	_, n := getNode(t, dserv, 0)
+	n := testu.GetEmptyNode(t, dserv)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -698,13 +661,13 @@ func TestReadAndSeek(t *testing.T) {
 }
 
 func TestCtxRead(t *testing.T) {
-	dserv := getMockDagServ(t)
+	dserv := testu.GetDAGServ()
 
-	_, n := getNode(t, dserv, 0)
+	n := testu.GetEmptyNode(t, dserv)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -720,7 +683,7 @@ func TestCtxRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = arrComp(readBuf, []byte{0, 1, 2, 3})
+	err = testu.ArrComp(readBuf, []byte{0, 1, 2, 3})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -730,14 +693,14 @@ func TestCtxRead(t *testing.T) {
 
 func BenchmarkDagmodWrite(b *testing.B) {
 	b.StopTimer()
-	dserv := getMockDagServ(b)
-	_, n := getNode(b, dserv, 0)
+	dserv := testu.GetDAGServ()
+	n := testu.GetEmptyNode(b, dserv)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	wrsize := 4096
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, sizeSplitterGen(512))
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -755,44 +718,4 @@ func BenchmarkDagmodWrite(b *testing.B) {
 			b.Fatal("Wrote bad size")
 		}
 	}
-}
-
-func arrComp(a, b []byte) error {
-	if len(a) != len(b) {
-		return fmt.Errorf("Arrays differ in length. %d != %d", len(a), len(b))
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return fmt.Errorf("Arrays differ at index: %d", i)
-		}
-	}
-	return nil
-}
-
-func printDag(nd *mdag.Node, ds mdag.DAGService, indent int) {
-	pbd, err := ft.FromBytes(nd.Data())
-	if err != nil {
-		panic(err)
-	}
-
-	for i := 0; i < indent; i++ {
-		fmt.Print(" ")
-	}
-	fmt.Printf("{size = %d, type = %s, children = %d", pbd.GetFilesize(), pbd.GetType().String(), len(pbd.GetBlocksizes()))
-	if len(nd.Links) > 0 {
-		fmt.Println()
-	}
-	for _, lnk := range nd.Links {
-		child, err := lnk.GetNode(context.Background(), ds)
-		if err != nil {
-			panic(err)
-		}
-		printDag(child, ds, indent+1)
-	}
-	if len(nd.Links) > 0 {
-		for i := 0; i < indent; i++ {
-			fmt.Print(" ")
-		}
-	}
-	fmt.Println("}")
 }

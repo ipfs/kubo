@@ -3,9 +3,9 @@ package io
 import (
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 type directoryBuilder struct {
@@ -29,8 +29,8 @@ func NewDirectory(dserv mdag.DAGService) *directoryBuilder {
 }
 
 // AddChild adds a (name, key)-pair to the root node.
-func (d *directoryBuilder) AddChild(ctx context.Context, name string, k key.Key) error {
-	cnode, err := d.dserv.Get(ctx, k)
+func (d *directoryBuilder) AddChild(ctx context.Context, name string, c *cid.Cid) error {
+	cnode, err := d.dserv.Get(ctx, c)
 	if err != nil {
 		return err
 	}

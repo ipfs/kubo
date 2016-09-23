@@ -1,7 +1,7 @@
 package bitswap
 
 import (
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	"sort"
 )
 

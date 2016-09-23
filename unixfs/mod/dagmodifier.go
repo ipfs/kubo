@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
@@ -15,9 +14,9 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
@@ -169,12 +168,12 @@ func (dm *DagModifier) Sync() error {
 	buflen := dm.wrBuf.Len()
 
 	// overwrite existing dag nodes
-	thisk, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
+	thisc, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
 	if err != nil {
 		return err
 	}
 
-	nd, err := dm.dagserv.Get(dm.ctx, thisk)
+	nd, err := dm.dagserv.Get(dm.ctx, thisc)
 	if err != nil {
 		return err
 	}
@@ -188,7 +187,7 @@ func (dm *DagModifier) Sync() error {
 			return err
 		}
 
-		thisk, err = dm.dagserv.Add(nd)
+		_, err = dm.dagserv.Add(nd)
 		if err != nil {
 			return err
 		}
@@ -205,30 +204,30 @@ func (dm *DagModifier) Sync() error {
 // modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
 // returns the new key of the passed in node and whether or not all the data in the reader
 // has been consumed.
-func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (key.Key, bool, error) {
+func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (*cid.Cid, bool, error) {
 	f, err := ft.FromBytes(node.Data())
 	if err != nil {
-		return "", false, err
+		return nil, false, err
 	}
 
 	// If we've reached a leaf node.
 	if len(node.Links) == 0 {
 		n, err := data.Read(f.Data[offset:])
 		if err != nil && err != io.EOF {
-			return "", false, err
+			return nil, false, err
 		}
 
 		// Update newly written node..
 		b, err := proto.Marshal(f)
 		if err != nil {
-			return "", false, err
+			return nil, false, err
 		}
 
 		nd := new(mdag.Node)
 		nd.SetData(b)
 		k, err := dm.dagserv.Add(nd)
 		if err != nil {
-			return "", false, err
+			return nil, false, err
 		}
 
 		// Hey look! we're done!
@@ -247,20 +246,20 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 		if cur+bs > offset {
 			child, err := node.Links[i].GetNode(dm.ctx, dm.dagserv)
 			if err != nil {
-				return "", false, err
+				return nil, false, err
 			}
 			k, sdone, err := dm.modifyDag(child, offset-cur, data)
 			if err != nil {
-				return "", false, err
+				return nil, false, err
 			}
 
 			offset += bs
-			node.Links[i].Hash = mh.Multihash(k)
+			node.Links[i].Hash = k.Hash()
 
 			// Recache serialized node
 			_, err = node.EncodeProtobuf(true)
 			if err != nil {
-				return "", false, err
+				return nil, false, err
 			}
 
 			if sdone {

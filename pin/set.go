@@ -7,15 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"io"
 	"sort"
 	"unsafe"
 
-	"github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin/internal/pb"
 	"gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	"gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 const (
@@ -31,18 +31,18 @@ func randomSeed() (uint32, error) {
 	return binary.LittleEndian.Uint32(buf[:]), nil
 }
 
-func hash(seed uint32, k key.Key) uint32 {
+func hash(seed uint32, c *cid.Cid) uint32 {
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], seed)
 	h := fnv.New32a()
 	_, _ = h.Write(buf[:])
-	_, _ = io.WriteString(h, string(k))
+	_, _ = h.Write(c.Bytes())
 	return h.Sum32()
 }
 
-type itemIterator func() (k key.Key, data []byte, ok bool)
+type itemIterator func() (c *cid.Cid, data []byte, ok bool)
 
-type keyObserver func(key.Key)
+type keyObserver func(*cid.Cid)
 
 // refcount is the marshaled format of refcounts. It may change
 // between versions; this is valid for version 1. Changing it may
@@ -100,7 +100,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 		Links: make([]*merkledag.Link, 0, defaultFanout+maxItems),
 	}
 	for i := 0; i < defaultFanout; i++ {
-		n.Links = append(n.Links, &merkledag.Link{Hash: emptyKey.ToMultihash()})
+		n.Links = append(n.Links, &merkledag.Link{Hash: emptyKey.Hash()})
 	}
 	internalKeys(emptyKey)
 	hdr := &pb.Set{
@@ -121,7 +121,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 				// all done
 				break
 			}
-			n.Links = append(n.Links, &merkledag.Link{Hash: k.ToMultihash()})
+			n.Links = append(n.Links, &merkledag.Link{Hash: k.Hash()})
 			n.SetData(append(n.Data(), data...))
 		}
 		// sort by hash, also swap item Data
@@ -134,7 +134,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 
 	// wasteful but simple
 	type item struct {
-		k    key.Key
+		c    *cid.Cid
 		data []byte
 	}
 	hashed := make(map[uint32][]item)
@@ -147,13 +147,13 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 		hashed[h] = append(hashed[h], item{k, data})
 	}
 	for h, items := range hashed {
-		childIter := func() (k key.Key, data []byte, ok bool) {
+		childIter := func() (c *cid.Cid, data []byte, ok bool) {
 			if len(items) == 0 {
-				return "", nil, false
+				return nil, nil, false
 			}
 			first := items[0]
 			items = items[1:]
-			return first.k, first.data, true
+			return first.c, first.data, true
 		}
 		child, err := storeItems(ctx, dag, uint64(len(items)), childIter, internalKeys)
 		if err != nil {
@@ -170,7 +170,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 		internalKeys(childKey)
 		l := &merkledag.Link{
 			Name: "",
-			Hash: childKey.ToMultihash(),
+			Hash: childKey.Hash(),
 			Size: size,
 		}
 		n.Links[int(h%defaultFanout)] = l
@@ -231,8 +231,9 @@ func walkItems(ctx context.Context, dag merkledag.DAGService, n *merkledag.Node,
 		}
 	}
 	for _, l := range n.Links[:fanout] {
-		children(key.Key(l.Hash))
-		if key.Key(l.Hash) == emptyKey {
+		c := cid.NewCidV0(l.Hash)
+		children(c)
+		if c.Equals(emptyKey) {
 			continue
 		}
 		subtree, err := l.GetNode(ctx, dag)
@@ -246,20 +247,23 @@ func walkItems(ctx context.Context, dag merkledag.DAGService, n *merkledag.Node,
 	return nil
 }
 
-func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node, name string, internalKeys keyObserver) ([]key.Key, error) {
+func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node, name string, internalKeys keyObserver) ([]*cid.Cid, error) {
 	l, err := root.GetNodeLink(name)
 	if err != nil {
 		return nil, err
 	}
-	internalKeys(key.Key(l.Hash))
+
+	lnkc := cid.NewCidV0(l.Hash)
+	internalKeys(lnkc)
+
 	n, err := l.GetNode(ctx, dag)
 	if err != nil {
 		return nil, err
 	}
 
-	var res []key.Key
+	var res []*cid.Cid
 	walk := func(buf []byte, idx int, link *merkledag.Link) error {
-		res = append(res, key.Key(link.Hash))
+		res = append(res, cid.NewCidV0(link.Hash))
 		return nil
 	}
 	if err := walkItems(ctx, dag, n, walk, internalKeys); err != nil {
@@ -273,7 +277,8 @@ func loadMultiset(ctx context.Context, dag merkledag.DAGService, root *merkledag
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get link %s: %v", name, err)
 	}
-	internalKeys(key.Key(l.Hash))
+	c := cid.NewCidV0(l.Hash)
+	internalKeys(c)
 	n, err := l.GetNode(ctx, dag)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get node from link %s: %v", name, err)
@@ -292,24 +297,24 @@ func loadMultiset(ctx context.Context, dag merkledag.DAGService, root *merkledag
 	return refcounts, nil
 }
 
-func storeSet(ctx context.Context, dag merkledag.DAGService, keys []key.Key, internalKeys keyObserver) (*merkledag.Node, error) {
-	iter := func() (k key.Key, data []byte, ok bool) {
-		if len(keys) == 0 {
-			return "", nil, false
+func storeSet(ctx context.Context, dag merkledag.DAGService, cids []*cid.Cid, internalKeys keyObserver) (*merkledag.Node, error) {
+	iter := func() (c *cid.Cid, data []byte, ok bool) {
+		if len(cids) == 0 {
+			return nil, nil, false
 		}
-		first := keys[0]
-		keys = keys[1:]
+		first := cids[0]
+		cids = cids[1:]
 		return first, nil, true
 	}
-	n, err := storeItems(ctx, dag, uint64(len(keys)), iter, internalKeys)
+	n, err := storeItems(ctx, dag, uint64(len(cids)), iter, internalKeys)
 	if err != nil {
 		return nil, err
 	}
-	k, err := dag.Add(n)
+	c, err := dag.Add(n)
 	if err != nil {
 		return nil, err
 	}
-	internalKeys(k)
+	internalKeys(c)
 	return n, nil
 }
 
@@ -319,47 +324,4 @@ func copyRefcounts(orig map[key.Key]uint64) map[key.Key]uint64 {
 		r[k] = v
 	}
 	return r
-}
-
-func storeMultiset(ctx context.Context, dag merkledag.DAGService, refcounts map[key.Key]uint64, internalKeys keyObserver) (*merkledag.Node, error) {
-	// make a working copy of the refcounts
-	refcounts = copyRefcounts(refcounts)
-
-	iter := func() (k key.Key, data []byte, ok bool) {
-		// Every call of this function returns the next refcount item.
-		//
-		// This function splits out the uint64 reference counts as
-		// smaller increments, as fits in type refcount. Most of the
-		// time the refcount will fit inside just one, so this saves
-		// space.
-		//
-		// We use range here to pick an arbitrary item in the map, but
-		// not really iterate the map.
-		for k, refs := range refcounts {
-			// Max value a single multiset item can store
-			num := ^refcount(0)
-			if refs <= uint64(num) {
-				// Remaining count fits in a single item; remove the
-				// key from the map.
-				num = refcount(refs)
-				delete(refcounts, k)
-			} else {
-				// Count is too large to fit in one item, the key will
-				// repeat in some later call.
-				refcounts[k] -= uint64(num)
-			}
-			return k, num.Bytes(), true
-		}
-		return "", nil, false
-	}
-	n, err := storeItems(ctx, dag, uint64(len(refcounts)), iter, internalKeys)
-	if err != nil {
-		return nil, err
-	}
-	k, err := dag.Add(n)
-	if err != nil {
-		return nil, err
-	}
-	internalKeys(k)
-	return n, nil
 }

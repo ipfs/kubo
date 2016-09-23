@@ -25,7 +25,7 @@ func TestData(t *testing.T) {
 	data := []byte("some data")
 	block := NewBlock(data)
 
-	if !bytes.Equal(block.Data(), data) {
+	if !bytes.Equal(block.RawData(), data) {
 		t.Error("data is wrong")
 	}
 }

@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 // initDocPaths lists the paths for the docs we want to seed during --init
@@ -25,7 +25,7 @@ var initDocPaths = []string{
 }
 
 // SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key
-func SeedInitDocs(nd *core.IpfsNode) (*key.Key, error) {
+func SeedInitDocs(nd *core.IpfsNode) (*cid.Cid, error) {
 	return addAssetList(nd, initDocPaths)
 }
 
@@ -34,11 +34,11 @@ var initDirIndex = []string{
 	filepath.Join("..", "vendor", "dir-index-html-v1.0.0", "dir-index.html"),
 }
 
-func SeedInitDirIndex(nd *core.IpfsNode) (*key.Key, error) {
+func SeedInitDirIndex(nd *core.IpfsNode) (*cid.Cid, error) {
 	return addAssetList(nd, initDirIndex)
 }
 
-func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {
+func addAssetList(nd *core.IpfsNode, l []string) (*cid.Cid, error) {
 	dirb := uio.NewDirectory(nd.DAG)
 
 	for _, p := range l {
@@ -53,14 +53,18 @@ func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {
 		}
 
 		fname := filepath.Base(p)
-		k := key.B58KeyDecode(s)
-		if err := dirb.AddChild(nd.Context(), fname, k); err != nil {
+		c, err := cid.Decode(s)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := dirb.AddChild(nd.Context(), fname, c); err != nil {
 			return nil, fmt.Errorf("assets: could not add '%s' as a child: %s", fname, err)
 		}
 	}
 
 	dir := dirb.GetNode()
-	dkey, err := nd.DAG.Add(dir)
+	dcid, err := nd.DAG.Add(dir)
 	if err != nil {
 		return nil, fmt.Errorf("assets: DAG.Add(dir) failed: %s", err)
 	}
@@ -73,5 +77,5 @@ func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {
 		return nil, fmt.Errorf("assets: Pinning flush failed: %s", err)
 	}
 
-	return &dkey, nil
+	return dcid, nil
 }

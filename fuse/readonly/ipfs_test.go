@@ -13,9 +13,6 @@ import (
 	"sync"
 	"testing"
 
-	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
-
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
@@ -24,7 +21,10 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+
+	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -74,11 +74,7 @@ func TestIpfsBasicRead(t *testing.T) {
 	defer mnt.Close()
 
 	fi, data := randObj(t, nd, 10000)
-	k, err := fi.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	k := fi.Key()
 	fname := path.Join(mnt.Dir, k.String())
 	rbuf, err := ioutil.ReadFile(fname)
 	if err != nil {
@@ -114,7 +110,7 @@ func TestIpfsStressRead(t *testing.T) {
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
-	var ks []key.Key
+	var ks []*cid.Cid
 	var paths []string
 
 	nobj := 50
@@ -123,13 +119,9 @@ func TestIpfsStressRead(t *testing.T) {
 	// Make a bunch of objects
 	for i := 0; i < nobj; i++ {
 		fi, _ := randObj(t, nd, rand.Int63n(50000))
-		k, err := fi.Key()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		ks = append(ks, k)
-		paths = append(paths, k.String())
+		c := fi.Cid()
+		ks = append(ks, c)
+		paths = append(paths, c.String())
 	}
 
 	// Now make a bunch of dirs
@@ -209,14 +201,11 @@ func TestIpfsBasicDirRead(t *testing.T) {
 
 	// Make a 'file'
 	fi, data := randObj(t, nd, 10000)
-	k, err := fi.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	k := fi.Cid()
 
 	// Make a directory and put that file in it
 	db := uio.NewDirectory(nd.DAG)
-	err = db.AddChild(nd.Context(), "actual", k)
+	err := db.AddChild(nd.Context(), "actual", k)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,10 +248,7 @@ func TestFileSizeReporting(t *testing.T) {
 	defer mnt.Close()
 
 	fi, data := randObj(t, nd, 10000)
-	k, err := fi.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	k := fi.Key()
 
 	fname := path.Join(mnt.Dir, k.String())
 

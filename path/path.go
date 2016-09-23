@@ -5,10 +5,7 @@ import (
 	"path"
 	"strings"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 // ErrBadPath is returned when a given path is incorrectly formatted
@@ -23,9 +20,9 @@ func FromString(s string) Path {
 	return Path(s)
 }
 
-// FromKey safely converts a Key type to a Path type
-func FromKey(k key.Key) Path {
-	return Path("/ipfs/" + k.String())
+// FromCid safely converts a cid.Cid type to a Path type
+func FromCid(c *cid.Cid) Path {
+	return Path("/ipfs/" + c.String())
 }
 
 func (p Path) Segments() []string {
@@ -75,7 +72,7 @@ func FromSegments(prefix string, seg ...string) (Path, error) {
 func ParsePath(txt string) (Path, error) {
 	parts := strings.Split(txt, "/")
 	if len(parts) == 1 {
-		kp, err := ParseKeyToPath(txt)
+		kp, err := ParseCidToPath(txt)
 		if err == nil {
 			return kp, nil
 		}
@@ -84,7 +81,7 @@ func ParsePath(txt string) (Path, error) {
 	// if the path doesnt being with a '/'
 	// we expect this to start with a hash, and be an 'ipfs' path
 	if parts[0] != "" {
-		if _, err := ParseKeyToPath(parts[0]); err != nil {
+		if _, err := ParseCidToPath(parts[0]); err != nil {
 			return "", ErrBadPath
 		}
 		// The case when the path starts with hash without a protocol prefix
@@ -96,7 +93,7 @@ func ParsePath(txt string) (Path, error) {
 	}
 
 	if parts[1] == "ipfs" {
-		if _, err := ParseKeyToPath(parts[2]); err != nil {
+		if _, err := ParseCidToPath(parts[2]); err != nil {
 			return "", err
 		}
 	} else if parts[1] != "ipns" {
@@ -106,20 +103,17 @@ func ParsePath(txt string) (Path, error) {
 	return Path(txt), nil
 }
 
-func ParseKeyToPath(txt string) (Path, error) {
+func ParseCidToPath(txt string) (Path, error) {
 	if txt == "" {
 		return "", ErrNoComponents
 	}
 
-	chk := b58.Decode(txt)
-	if len(chk) == 0 {
-		return "", errors.New("not a key")
-	}
-
-	if _, err := mh.Cast(chk); err != nil {
+	c, err := cid.Decode(txt)
+	if err != nil {
 		return "", err
 	}
-	return FromKey(key.Key(chk)), nil
+
+	return FromCid(c), nil
 }
 
 func (p *Path) IsValid() error {
