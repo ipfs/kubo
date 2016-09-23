@@ -32,8 +32,12 @@ type Blockstore interface {
 	DeleteBlock(key.Key) error
 	Has(key.Key) (bool, error)
 	Get(key.Key) (blocks.Block, error)
-	Put(blocks.Block) error
-	PutMany([]blocks.Block) error
+
+	// Put and PutMany return the blocks(s) actually added to the
+	// blockstore.  If a block already exists it will not be returned.
+
+	Put(blocks.Block) (error, blocks.Block)
+	PutMany([]blocks.Block) (error, []blocks.Block)
 
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
@@ -109,23 +113,24 @@ func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
 	}
 }
 
-func (bs *blockstore) Put(block blocks.Block) error {
+func (bs *blockstore) Put(block blocks.Block) (error, blocks.Block) {
 	k := block.Key().DsKey()
 
 	// Has is cheaper than Put, so see if we already have it
 	exists, err := bs.datastore.Has(k)
 	if err == nil && exists {
-		return nil // already stored.
+		return nil, nil // already stored.
 	}
-	return bs.datastore.Put(k, block.RawData())
+	return bs.datastore.Put(k, block.RawData()), block
 }
 
-func (bs *blockstore) PutMany(blocks []blocks.Block) error {
+func (bs *blockstore) PutMany(blks []blocks.Block) (error, []blocks.Block) {
 	t, err := bs.datastore.Batch()
 	if err != nil {
-		return err
+		return err, nil
 	}
-	for _, b := range blocks {
+	added := make([]blocks.Block, 0, len(blks))
+	for _, b := range blks {
 		k := b.Key().DsKey()
 		exists, err := bs.datastore.Has(k)
 		if err == nil && exists {
@@ -134,10 +139,11 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 
 		err = t.Put(k, b.RawData())
 		if err != nil {
-			return err
+			return err, nil
 		}
+		added = append(added, b)
 	}
-	return t.Commit()
+	return t.Commit(), added
 }
 
 func (bs *blockstore) Has(k key.Key) (bool, error) {

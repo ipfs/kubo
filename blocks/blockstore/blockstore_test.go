@@ -39,7 +39,7 @@ func TestPutThenGetBlock(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	block := blocks.NewBlock([]byte("some data"))
 
-	err := bs.Put(block)
+	err, _ := bs.Put(block)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []k
 	keys := make([]key.Key, N)
 	for i := 0; i < N; i++ {
 		block := blocks.NewBlock([]byte(fmt.Sprintf("some data %d", i)))
-		err := bs.Put(block)
+		err, _ := bs.Put(block)
 		if err != nil {
 			t.Fatal(err)
 		}

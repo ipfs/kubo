@@ -91,19 +91,19 @@ func (b *arccache) Get(k key.Key) (blocks.Block, error) {
 	return bl, err
 }
 
-func (b *arccache) Put(bl blocks.Block) error {
+func (b *arccache) Put(bl blocks.Block) (error, blocks.Block) {
 	if has, ok := b.hasCached(bl.Key()); ok && has {
-		return nil
+		return nil, nil
 	}
 
-	err := b.blockstore.Put(bl)
+	err, added := b.blockstore.Put(bl)
 	if err == nil {
 		b.arc.Add(bl.Key(), true)
 	}
-	return err
+	return err, added
 }
 
-func (b *arccache) PutMany(bs []blocks.Block) error {
+func (b *arccache) PutMany(bs []blocks.Block) (error, []blocks.Block) {
 	var good []blocks.Block
 	for _, block := range bs {
 		// call put on block if result is inconclusive or we are sure that
@@ -112,14 +112,14 @@ func (b *arccache) PutMany(bs []blocks.Block) error {
 			good = append(good, block)
 		}
 	}
-	err := b.blockstore.PutMany(good)
+	err, added := b.blockstore.PutMany(good)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	for _, block := range good {
 		b.arc.Add(block.Key(), true)
 	}
-	return nil
+	return nil, added
 }
 
 func (b *arccache) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {

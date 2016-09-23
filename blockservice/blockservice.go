@@ -5,7 +5,6 @@ package blockservice
 
 import (
 	"errors"
-	"fmt"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -51,67 +50,40 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
 func (s *BlockService) AddObject(o Object) (*cid.Cid, error) {
-	// TODO: while this is a great optimization, we should think about the
-	// possibility of streaming writes directly to disk. If we can pass this object
-	// all the way down to the datastore without having to 'buffer' its data,
-	// we could implement a `WriteTo` method on it that could do a streaming write
-	// of the content, saving us (probably) considerable memory.
-	c := o.Cid()
-	has, err := s.Blockstore.Has(key.Key(c.Hash()))
+	err, added := s.Blockstore.Put(o)
 	if err != nil {
 		return nil, err
 	}
-
-	if has {
-		return c, nil
-	}
-
-	err = s.Blockstore.Put(o)
-	if err != nil {
-		return nil, err
+	if added == nil {
+		return o.Cid(), nil
 	}
 
 	if err := s.Exchange.HasBlock(o); err != nil {
 		return nil, errors.New("blockservice is closed")
 	}
 
-	return c, nil
+	return o.Cid(), nil
 }
 
 func (s *BlockService) AddObjects(bs []Object) ([]*cid.Cid, error) {
-	var toput []blocks.Block
-	var toputcids []*cid.Cid
+	cids := make([]*cid.Cid, 0, len(bs))
+	blks := make([]blocks.Block, 0, len(bs))
 	for _, b := range bs {
-		c := b.Cid()
-
-		has, err := s.Blockstore.Has(key.Key(c.Hash()))
-		if err != nil {
-			return nil, err
-		}
-
-		if has {
-			continue
-		}
-
-		toput = append(toput, b)
-		toputcids = append(toputcids, c)
+		cids = append(cids, b.Cid())
+		blks = append(blks, b)
 	}
 
-	err := s.Blockstore.PutMany(toput)
+	err, added := s.Blockstore.PutMany(blks)
 	if err != nil {
 		return nil, err
 	}
 
-	var ks []*cid.Cid
-	for _, o := range toput {
+	for _, o := range added {
 		if err := s.Exchange.HasBlock(o); err != nil {
-			return nil, fmt.Errorf("blockservice is closed (%s)", err)
+			return nil, errors.New("blockservice is closed")
 		}
-
-		c := o.(Object).Cid() // cast is safe, we created these
-		ks = append(ks, c)
 	}
-	return ks, nil
+	return cids, nil
 }
 
 // GetBlock retrieves a particular block from the service,
