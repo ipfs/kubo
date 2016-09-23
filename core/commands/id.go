@@ -14,7 +14,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	kb "gx/ipfs/QmTZsN8hysGnbakvK6mS8rwDQ9uwokxmWFBv94pig6zGd1/go-libp2p-kbucket"
 
-	identify "gx/ipfs/QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di/go-libp2p/p2p/protocol/identify"
+	identify "gx/ipfs/QmR61Ut9oN9mEacVUDWpvvhRPYXSxHEAZVbZkiLy9tKmdr/go-libp2p/p2p/protocol/identify"
 	ic "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
 	"gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
