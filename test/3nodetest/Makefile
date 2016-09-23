@@ -25,7 +25,7 @@ bin/random: $(RANDOMSRC)/**/*.go
 # just build it every time... this part isn't
 # even the lengthy part, and it decreases pain.
 docker_ipfs_image:
-	docker build -t $(IMAGE_NAME) -f test/Dockerfile .
+	docker build -t $(IMAGE_NAME) -f Dockerfile.fast .
 	docker images | grep $(IMAGE_NAME)
 
 clean:

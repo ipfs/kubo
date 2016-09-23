@@ -5,18 +5,20 @@ import (
 	"sync"
 	"time"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore"
-	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/sync"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+	dssync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
+
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 // server is the mockrouting.Client's private interface to the routing server
 type server interface {
-	Announce(peer.PeerInfo, key.Key) error
-	Providers(key.Key) []peer.PeerInfo
+	Announce(pstore.PeerInfo, key.Key) error
+	Providers(key.Key) []pstore.PeerInfo
 
 	Server
 }
@@ -30,11 +32,11 @@ type s struct {
 }
 
 type providerRecord struct {
-	Peer    peer.PeerInfo
+	Peer    pstore.PeerInfo
 	Created time.Time
 }
 
-func (rs *s) Announce(p peer.PeerInfo, k key.Key) error {
+func (rs *s) Announce(p pstore.PeerInfo, k key.Key) error {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 
@@ -49,13 +51,13 @@ func (rs *s) Announce(p peer.PeerInfo, k key.Key) error {
 	return nil
 }
 
-func (rs *s) Providers(k key.Key) []peer.PeerInfo {
+func (rs *s) Providers(k key.Key) []pstore.PeerInfo {
 	rs.delayConf.Query.Wait() // before locking
 
 	rs.lock.RLock()
 	defer rs.lock.RUnlock()
 
-	var ret []peer.PeerInfo
+	var ret []pstore.PeerInfo
 	records, ok := rs.providers[k]
 	if !ok {
 		return ret

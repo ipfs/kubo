@@ -89,6 +89,9 @@ func lookupDir(r *Root, path string) (*Directory, error) {
 // PutNode inserts 'nd' at 'path' in the given mfs
 func PutNode(r *Root, path string, nd *dag.Node) error {
 	dirp, filename := gopath.Split(path)
+	if filename == "" {
+		return fmt.Errorf("cannot create file with empty name")
+	}
 
 	pdir, err := lookupDir(r, dirp)
 	if err != nil {
@@ -162,7 +165,7 @@ func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
 func Lookup(r *Root, path string) (FSNode, error) {
 	dir, ok := r.GetValue().(*Directory)
 	if !ok {
-		log.Error("root not a dir: %#v", r.GetValue())
+		log.Errorf("root not a dir: %#v", r.GetValue())
 		return nil, errors.New("root was not a directory")
 	}
 

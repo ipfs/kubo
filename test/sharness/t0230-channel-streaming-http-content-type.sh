@@ -26,6 +26,7 @@ test_ls_cmd() {
 		printf "Content-Type: text/plain\r\n" >>expected_output &&
 		printf "Server: go-ipfs/%s\r\n" $(ipfs version -n) >>expected_output &&
 		printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
+		printf "Vary: Origin\r\n" >>expected_output &&
 		printf "X-Chunked-Output: 1\r\n" >>expected_output &&
 		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "\r\n" >>expected_output &&
@@ -48,6 +49,7 @@ test_ls_cmd() {
 		printf "Content-Type: application/json\r\n" >>expected_output &&
 		printf "Server: go-ipfs/%s\r\n" $(ipfs version -n) >>expected_output &&
 		printf "Trailer: X-Stream-Error\r\n" >>expected_output &&
+		printf "Vary: Origin\r\n" >>expected_output &&
 		printf "X-Chunked-Output: 1\r\n" >>expected_output &&
 		printf "Transfer-Encoding: chunked\r\n" >>expected_output &&
 		printf "\r\n" >>expected_output &&

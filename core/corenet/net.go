@@ -4,10 +4,11 @@ import (
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
-	net "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/net"
-	pro "gx/ipfs/QmVL44QeoQDTYK8RVdpkyja7uYcK3WDNoBNHVLonf9YDtm/go-libp2p/p2p/protocol"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	net "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
+	pro "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/protocol"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 type ipfsListener struct {
@@ -56,7 +57,7 @@ func Listen(nd *core.IpfsNode, protocol string) (*ipfsListener, error) {
 func Dial(nd *core.IpfsNode, p peer.ID, protocol string) (net.Stream, error) {
 	ctx, cancel := context.WithTimeout(nd.Context(), time.Second*30)
 	defer cancel()
-	err := nd.PeerHost.Connect(ctx, peer.PeerInfo{ID: p})
+	err := nd.PeerHost.Connect(ctx, pstore.PeerInfo{ID: p})
 	if err != nil {
 		return nil, err
 	}

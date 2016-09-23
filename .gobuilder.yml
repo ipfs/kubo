@@ -1,4 +1,0 @@
----
-triggers:
-  - github.com/ipfs/go-ipfs/cmd/ipfs
-no_go_fmt: true

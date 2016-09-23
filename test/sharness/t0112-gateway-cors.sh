@@ -7,10 +7,6 @@
 test_description="Test HTTP Gateway CORS Support"
 
 test_config_ipfs_cors_headers() {
-    ipfs config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin '["*"]'
-    ipfs config --json Gateway.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
-    ipfs config --json Gateway.HTTPHeaders.Access-Control-Allow-Headers '["X-Requested-With"]'
-
     ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'
     ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
     ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers '["X-Requested-With"]'
@@ -32,10 +28,12 @@ thash='QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn'
 test_expect_success "GET to Gateway succeeds" '
     curl -svX GET "http://127.0.0.1:$gwport/ipfs/$thash" 2>curl_output
 '
+
+cat curl_output
 # GET Response from Gateway should contain CORS headers
 test_expect_success "GET response for Gateway resource looks good" '
-    grep "Access-Control-Allow-Origin:" curl_output &&
-    grep "Access-Control-Allow-Methods:" curl_output &&
+    grep "Access-Control-Allow-Origin:" curl_output | grep "\*"  &&
+    grep "Access-Control-Allow-Methods:" curl_output | grep " GET\b" &&
     grep "Access-Control-Allow-Headers:" curl_output
 '
 
@@ -45,8 +43,8 @@ test_expect_success "OPTIONS to Gateway succeeds" '
 '
 # OPTION Response from Gateway should contain CORS headers
 test_expect_success "OPTIONS response for Gateway resource looks good" '
-    grep "Access-Control-Allow-Origin:" curl_output &&
-    grep "Access-Control-Allow-Methods:" curl_output &&
+    grep "Access-Control-Allow-Origin:" curl_output | grep "\*"  &&
+    grep "Access-Control-Allow-Methods:" curl_output | grep " GET\b" &&
     grep "Access-Control-Allow-Headers:" curl_output
 '
 

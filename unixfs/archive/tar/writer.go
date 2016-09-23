@@ -69,7 +69,7 @@ func (w *Writer) writeFile(nd *mdag.Node, pb *upb.Data, fpath string) error {
 
 func (w *Writer) WriteNode(nd *mdag.Node, fpath string) error {
 	pb := new(upb.Data)
-	if err := proto.Unmarshal(nd.Data, pb); err != nil {
+	if err := proto.Unmarshal(nd.Data(), pb); err != nil {
 		return err
 	}
 

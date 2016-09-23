@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	procctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -22,7 +22,6 @@ import (
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
-	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
 	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
@@ -88,7 +87,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
 		network:       network,
-		findKeys:      make(chan *wantlist.Entry, sizeBatchRequestChan),
+		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
 		newBlocks:     make(chan blocks.Block, HasBlockBufferSize),
 		provideKeys:   make(chan key.Key, provideKeysBufferSize),
@@ -131,7 +130,7 @@ type Bitswap struct {
 	notifications notifications.PubSub
 
 	// send keys to a worker to find and connect to providers for them
-	findKeys chan *wantlist.Entry
+	findKeys chan *blockRequest
 
 	engine *decision.Engine
 
@@ -148,8 +147,8 @@ type Bitswap struct {
 }
 
 type blockRequest struct {
-	key key.Key
-	ctx context.Context
+	Key key.Key
+	Ctx context.Context
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
@@ -235,13 +234,50 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 	// NB: Optimization. Assumes that providers of key[0] are likely to
 	// be able to provide for all keys. This currently holds true in most
 	// every situation. Later, this assumption may not hold as true.
-	req := &wantlist.Entry{
+	req := &blockRequest{
 		Key: keys[0],
 		Ctx: ctx,
 	}
+
+	remaining := make(map[key.Key]struct{})
+	for _, k := range keys {
+		remaining[k] = struct{}{}
+	}
+
+	out := make(chan blocks.Block)
+	go func() {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		defer close(out)
+		defer func() {
+			var toCancel []key.Key
+			for k, _ := range remaining {
+				toCancel = append(toCancel, k)
+			}
+			bs.CancelWants(toCancel)
+		}()
+		for {
+			select {
+			case blk, ok := <-promise:
+				if !ok {
+					return
+				}
+
+				delete(remaining, blk.Key())
+				select {
+				case out <- blk:
+				case <-ctx.Done():
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	select {
 	case bs.findKeys <- req:
-		return promise, nil
+		return out, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}

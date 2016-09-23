@@ -1,4 +1,4 @@
-// +build linux darwin freebsd netbsd
+// +build linux darwin freebsd netbsd openbsd
 // +build !nofuse
 
 package commands
@@ -16,9 +16,6 @@ import (
 var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only).",
-		Synopsis: `
-ipfs mount [-f <ipfs mount path>] [-n <ipns mount path>]
-`,
 		ShortDescription: `
 Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
 All ipfs objects will be accessible under that directory. Note that the

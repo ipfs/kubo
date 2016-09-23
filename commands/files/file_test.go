@@ -175,7 +175,7 @@ anotherfile
 		t.Fatalf("expected to be able to read 12 bytes from file: %s (got %d)", err, n)
 	}
 	if err := mpf.Close(); err != nil {
-		t.Fatal("should be able to close file: %s", err)
+		t.Fatalf("should be able to close file: %s", err)
 	}
 
 	// test properties of symlink created from fourth part (symlink)

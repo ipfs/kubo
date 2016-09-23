@@ -60,7 +60,7 @@ type ReadSeekCloser interface {
 // the given node, using the passed in DAGService for data retreival
 func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*DagReader, error) {
 	pb := new(ftpb.Data)
-	if err := proto.Unmarshal(n.Data, pb); err != nil {
+	if err := proto.Unmarshal(n.Data(), pb); err != nil {
 		return nil, err
 	}
 
@@ -117,7 +117,7 @@ func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 	dr.linkPosition++
 
 	pb := new(ftpb.Data)
-	err = proto.Unmarshal(nxt.Data, pb)
+	err = proto.Unmarshal(nxt.Data(), pb)
 	if err != nil {
 		return fmt.Errorf("incorrectly formatted protobuf: %s", err)
 	}
@@ -279,7 +279,6 @@ func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 	default:
 		return 0, errors.New("invalid whence")
 	}
-	return 0, nil
 }
 
 // readSeekNopCloser wraps a bytes.Reader to implement ReadSeekCloser

@@ -55,7 +55,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
+		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to stat.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		b, err := getBlockForKey(req, req.Arguments()[0])

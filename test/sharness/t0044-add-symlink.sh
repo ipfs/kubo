@@ -44,6 +44,16 @@ test_add_symlinks() {
 		echo "QmWYN8SEXCgNT2PSjB6BnxAx6NJQtazWoBkTRH9GRfPFFQ" > badlink_exp &&
 		test_cmp badlink_exp badlink_out
 	'
+
+	test_expect_success "adding with symlink in middle of path is same as\
+adding with no symlink" '
+		mkdir -p files2/a/b/c &&
+		echo "some other text" > files2/a/b/c/foo &&
+		ln -s b files2/a/d
+		ipfs add -rq files2/a/b/c > no_sym &&
+		ipfs add -rq files2/a/d/c > sym &&
+		test_cmp no_sym sym
+	'
 }
 
 test_init_ipfs

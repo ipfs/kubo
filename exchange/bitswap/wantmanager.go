@@ -9,8 +9,8 @@ import (
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 type WantManager struct {
@@ -26,9 +26,11 @@ type WantManager struct {
 
 	network bsnet.BitSwapNetwork
 	ctx     context.Context
+	cancel  func()
 }
 
 func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantManager {
+	ctx, cancel := context.WithCancel(ctx)
 	return &WantManager{
 		incoming:   make(chan []*bsmsg.Entry, 10),
 		connect:    make(chan peer.ID, 10),
@@ -38,6 +40,7 @@ func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantMana
 		wl:         wantlist.NewThreadSafe(),
 		network:    network,
 		ctx:        ctx,
+		cancel:     cancel,
 	}
 }
 
@@ -58,6 +61,8 @@ type msgQueue struct {
 	out     bsmsg.BitSwapMessage
 	network bsnet.BitSwapNetwork
 
+	sender bsnet.MessageSender
+
 	refcnt int
 
 	work chan struct{}
@@ -70,6 +75,7 @@ func (pm *WantManager) WantBlocks(ctx context.Context, ks []key.Key) {
 }
 
 func (pm *WantManager) CancelWants(ks []key.Key) {
+	log.Infof("cancel wants: %s", ks)
 	pm.addEntries(context.TODO(), ks, true)
 }
 
@@ -78,16 +84,17 @@ func (pm *WantManager) addEntries(ctx context.Context, ks []key.Key, cancel bool
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
 			Cancel: cancel,
-			Entry: wantlist.Entry{
+			Entry: &wantlist.Entry{
 				Key:      k,
 				Priority: kMaxPriority - i,
-				Ctx:      ctx,
+				RefCnt:   1,
 			},
 		})
 	}
 	select {
 	case pm.incoming <- entries:
 	case <-pm.ctx.Done():
+	case <-ctx.Done():
 	}
 }
 
@@ -104,7 +111,7 @@ func (pm *WantManager) SendBlock(ctx context.Context, env *engine.Envelope) {
 
 	msg := bsmsg.New(false)
 	msg.AddBlock(env.Block)
-	log.Infof("Sending block %s to %s", env.Peer, env.Block)
+	log.Infof("Sending block %s to %s", env.Block, env.Peer)
 	err := pm.network.SendMessage(ctx, env.Peer, msg)
 	if err != nil {
 		log.Infof("sendblock error: %s", err)
@@ -150,6 +157,11 @@ func (pm *WantManager) stopPeerHandler(p peer.ID) {
 }
 
 func (mq *msgQueue) runQueue(ctx context.Context) {
+	defer func() {
+		if mq.sender != nil {
+			mq.sender.Close()
+		}
+	}()
 	for {
 		select {
 		case <-mq.work: // there is work to be done
@@ -166,14 +178,25 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 	// allow ten minutes for connections
 	// this includes looking them up in the dht
 	// dialing them, and handshaking
-	conctx, cancel := context.WithTimeout(ctx, time.Minute*10)
-	defer cancel()
+	if mq.sender == nil {
+		conctx, cancel := context.WithTimeout(ctx, time.Minute*10)
+		defer cancel()
 
-	err := mq.network.ConnectTo(conctx, mq.p)
-	if err != nil {
-		log.Infof("cant connect to peer %s: %s", mq.p, err)
-		// TODO: cant connect, what now?
-		return
+		err := mq.network.ConnectTo(conctx, mq.p)
+		if err != nil {
+			log.Infof("cant connect to peer %s: %s", mq.p, err)
+			// TODO: cant connect, what now?
+			return
+		}
+
+		nsender, err := mq.network.NewMessageSender(ctx, mq.p)
+		if err != nil {
+			log.Infof("cant open new stream to peer %s: %s", mq.p, err)
+			// TODO: cant open stream, what now?
+			return
+		}
+
+		mq.sender = nsender
 	}
 
 	// grab outgoing message
@@ -186,13 +209,12 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 	mq.out = nil
 	mq.outlk.Unlock()
 
-	sendctx, cancel := context.WithTimeout(ctx, time.Minute*5)
-	defer cancel()
-
 	// send wantlist updates
-	err = mq.network.SendMessage(sendctx, mq.p, wlm)
+	err := mq.sender.SendMsg(wlm)
 	if err != nil {
 		log.Infof("bitswap send error: %s", err)
+		mq.sender.Close()
+		mq.sender = nil
 		// TODO: what do we do if this fails?
 		return
 	}
@@ -221,33 +243,31 @@ func (pm *WantManager) Run() {
 		case entries := <-pm.incoming:
 
 			// add changes to our wantlist
+			var filtered []*bsmsg.Entry
 			for _, e := range entries {
 				if e.Cancel {
-					pm.wl.Remove(e.Key)
+					if pm.wl.Remove(e.Key) {
+						filtered = append(filtered, e)
+					}
 				} else {
-					pm.wl.AddEntry(e.Entry)
+					if pm.wl.AddEntry(e.Entry) {
+						filtered = append(filtered, e)
+					}
 				}
 			}
 
 			// broadcast those wantlist changes
 			for _, p := range pm.peers {
-				p.addMessage(entries)
+				p.addMessage(filtered)
 			}
 
 		case <-tock.C:
 			// resend entire wantlist every so often (REALLY SHOULDNT BE NECESSARY)
 			var es []*bsmsg.Entry
 			for _, e := range pm.wl.Entries() {
-				select {
-				case <-e.Ctx.Done():
-					// entry has been cancelled
-					// simply continue, the entry will be removed from the
-					// wantlist soon enough
-					continue
-				default:
-				}
 				es = append(es, &bsmsg.Entry{Entry: e})
 			}
+
 			for _, p := range pm.peers {
 				p.outlk.Lock()
 				p.out = bsmsg.New(true)

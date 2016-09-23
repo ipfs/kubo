@@ -9,11 +9,13 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -57,6 +59,14 @@ Set the value of the 'datastore.path' key:
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
 		key := args[0]
+
+		// This is a temporary fix until we move the private key out of the config file
+		switch strings.ToLower(key) {
+		case "identity", "identity.privkey":
+			res.SetError(fmt.Errorf("cannot show or change private key through API"), cmds.ErrNormal)
+			return
+		default:
+		}
 
 		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
 		if err != nil {
@@ -134,19 +144,80 @@ included in the output of this command.
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		filename, err := config.Filename(req.InvocContext().ConfigRoot)
+		fname, err := config.Filename(req.InvocContext().ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		output, err := showConfig(filename)
+		data, err := ioutil.ReadFile(fname)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(output)
+
+		var cfg map[string]interface{}
+		err = json.Unmarshal(data, &cfg)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		output, err := config.HumanOutput(cfg)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(bytes.NewReader(output))
 	},
+}
+
+func scrubValue(m map[string]interface{}, key []string) error {
+	find := func(m map[string]interface{}, k string) (string, interface{}, bool) {
+		lckey := strings.ToLower(k)
+		for mkey, val := range m {
+			lcmkey := strings.ToLower(mkey)
+			if lckey == lcmkey {
+				return mkey, val, true
+			}
+		}
+		return "", nil, false
+	}
+
+	cur := m
+	for _, k := range key[:len(key)-1] {
+		foundk, val, ok := find(cur, k)
+		if !ok {
+			return fmt.Errorf("failed to find specified key")
+		}
+
+		if foundk != k {
+			// case mismatch, calling this an error
+			return fmt.Errorf("case mismatch in config, expected %q but got %q", k, foundk)
+		}
+
+		mval, mok := val.(map[string]interface{})
+		if !mok {
+			return fmt.Errorf("%s was not a map", foundk)
+		}
+
+		cur = mval
+	}
+
+	todel, _, ok := find(cur, key[len(key)-1])
+	if !ok {
+		return fmt.Errorf("%s, not found", strings.Join(key, "."))
+	}
+
+	delete(cur, todel)
+	return nil
 }
 
 var configEditCmd = &cmds.Command{
@@ -221,20 +292,9 @@ func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 func setConfig(r repo.Repo, key string, value interface{}) (*ConfigField, error) {
 	err := r.SetConfigKey(key, value)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to set config value: %s (maybe use --json?)", err)
+		return nil, fmt.Errorf("failed to set config value: %s (maybe use --json?)", err)
 	}
 	return getConfig(r, key)
-}
-
-func showConfig(filename string) (io.Reader, error) {
-	// TODO maybe we should omit privkey so we don't accidentally leak it?
-
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes.NewReader(data), nil
 }
 
 func editConfig(filename string) error {
@@ -251,8 +311,23 @@ func editConfig(filename string) error {
 func replaceConfig(r repo.Repo, file io.Reader) error {
 	var cfg config.Config
 	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
-		return errors.New("Failed to decode file as config")
+		return errors.New("failed to decode file as config")
 	}
+	if len(cfg.Identity.PrivKey) != 0 {
+		return errors.New("setting private key with API is not supported")
+	}
+
+	keyF, err := getConfig(r, config.PrivKeySelector)
+	if err != nil {
+		return fmt.Errorf("Failed to get PrivKey")
+	}
+
+	pkstr, ok := keyF.Value.(string)
+	if !ok {
+		return fmt.Errorf("private key in config was not a string")
+	}
+
+	cfg.Identity.PrivKey = pkstr
 
 	return r.SetConfig(&cfg)
 }

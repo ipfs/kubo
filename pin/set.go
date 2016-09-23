@@ -111,7 +111,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 	if err := writeHdr(n, hdr); err != nil {
 		return nil, err
 	}
-	hdrLen := len(n.Data)
+	hdrLen := len(n.Data())
 
 	if estimatedLen < maxItems {
 		// it'll probably fit
@@ -122,12 +122,12 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 				break
 			}
 			n.Links = append(n.Links, &merkledag.Link{Hash: k.ToMultihash()})
-			n.Data = append(n.Data, data...)
+			n.SetData(append(n.Data(), data...))
 		}
 		// sort by hash, also swap item Data
 		s := sortByHash{
 			links: n.Links[defaultFanout:],
-			data:  n.Data[hdrLen:],
+			data:  n.Data()[hdrLen:],
 		}
 		sort.Stable(s)
 	}
@@ -179,11 +179,11 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 }
 
 func readHdr(n *merkledag.Node) (*pb.Set, []byte, error) {
-	hdrLenRaw, consumed := binary.Uvarint(n.Data)
+	hdrLenRaw, consumed := binary.Uvarint(n.Data())
 	if consumed <= 0 {
 		return nil, nil, errors.New("invalid Set header length")
 	}
-	buf := n.Data[consumed:]
+	buf := n.Data()[consumed:]
 	if hdrLenRaw > uint64(len(buf)) {
 		return nil, nil, errors.New("impossibly large Set header length")
 	}
@@ -209,10 +209,10 @@ func writeHdr(n *merkledag.Node, hdr *pb.Set) error {
 	if err != nil {
 		return err
 	}
-	n.Data = make([]byte, binary.MaxVarintLen64, binary.MaxVarintLen64+len(hdrData))
-	written := binary.PutUvarint(n.Data, uint64(len(hdrData)))
-	n.Data = n.Data[:written]
-	n.Data = append(n.Data, hdrData...)
+	n.SetData(make([]byte, binary.MaxVarintLen64, binary.MaxVarintLen64+len(hdrData)))
+	written := binary.PutUvarint(n.Data(), uint64(len(hdrData)))
+	n.SetData(n.Data()[:written])
+	n.SetData(append(n.Data(), hdrData...))
 	return nil
 }
 

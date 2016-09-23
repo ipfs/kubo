@@ -21,7 +21,7 @@ func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error
 		return "", err
 	}
 
-	mdnode.Data = mdata
+	mdnode.SetData(mdata)
 	if err := mdnode.AddNodeLinkClean("file", nd); err != nil {
 		return "", err
 	}
@@ -42,5 +42,5 @@ func Metadata(n *core.IpfsNode, skey string) (*ft.Metadata, error) {
 		return nil, err
 	}
 
-	return ft.MetadataFromBytes(nd.Data)
+	return ft.MetadataFromBytes(nd.Data())
 }

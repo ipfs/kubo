@@ -6,7 +6,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/config"
 )
 
-var errTODO = errors.New("TODO")
+var errTODO = errors.New("TODO: mock repo")
 
 // Mock is not thread-safe
 type Mock struct {

@@ -36,7 +36,6 @@ type LsOutput struct {
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List directory contents for Unix filesystem objects.",
-		Synopsis: "ipfs file ls <path>",
 		ShortDescription: `
 Displays the contents of an IPFS or IPNS object(s) at the given path.
 
@@ -102,7 +101,7 @@ Example:
 				continue
 			}
 
-			unixFSNode, err := unixfs.FromBytes(merkleNode.Data)
+			unixFSNode, err := unixfs.FromBytes(merkleNode.Data())
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -129,7 +128,7 @@ Example:
 						res.SetError(err, cmds.ErrNormal)
 						return
 					}
-					d, err := unixfs.FromBytes(linkNode.Data)
+					d, err := unixfs.FromBytes(linkNode.Data())
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return

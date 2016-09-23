@@ -38,6 +38,15 @@ test_expect_success "output looks good" '
 	grep PublicKey output
 '
 
+addr="/ip4/127.0.0.1/tcp/9898/ipfs/QmUWKoHbjsqsSMesRC2Zoscs8edyFz6F77auBB1YBBhgpX"
+
+test_expect_success "cant trigger a dial backoff with swarm connect" '
+	test_expect_code 1 ipfs swarm connect $addr 2> connect_out
+	test_expect_code 1 ipfs swarm connect $addr 2>> connect_out
+	test_expect_code 1 ipfs swarm connect $addr 2>> connect_out
+	test_expect_code 1 grep "backoff" connect_out
+'
+
 test_kill_ipfs_daemon
 
 test_done

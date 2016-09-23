@@ -131,11 +131,16 @@ func (f *serialFile) Size() (int64, error) {
 	}
 
 	var du int64
-	err := filepath.Walk(f.FileName(), func(p string, fi os.FileInfo, err error) error {
+	err := filepath.Walk(f.FullPath(), func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if fi != nil && fi.Mode()&(os.ModeSymlink|os.ModeNamedPipe) == 0 {
 			du += fi.Size()
 		}
 		return nil
 	})
+
 	return du, err
 }

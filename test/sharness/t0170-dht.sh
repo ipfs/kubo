@@ -50,7 +50,8 @@ test_expect_success 'get' '
 # ipfs dht query <peerID>
 ## We query 3 different keys, to statisically lower the chance that the queryer
 ## turns out to be the closest to what a key hashes to.
-test_expect_success 'query' '
+# TODO: flaky. tracked by https://github.com/ipfs/go-ipfs/issues/2620
+test_expect_failure 'query' '
   ipfsi 3 dht query banana >actual &&
   ipfsi 3 dht query apple >>actual &&
   ipfsi 3 dht query pear >>actual &&

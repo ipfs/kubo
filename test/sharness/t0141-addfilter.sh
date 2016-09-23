@@ -31,14 +31,42 @@ test_swarm_filter_cmd() {
 	'
 }
 
+test_config_swarm_addrfilters_cmd() {
+	printf "" > list_expected
+	for AF in "$@"
+	do
+		echo "$AF" >>list_expected
+	done
+
+	test_expect_success "'ipfs config Swarm.AddrFilters' succeeds" '
+		ipfs config Swarm.AddrFilters > list_actual
+	'
+
+	printf "" > list_actual_cleaned
+	if [ "$( cat list_actual )" != "[]" -a "$( cat list_actual )" != "null" ];
+	then
+		grep -v "^\]" list_actual |
+		grep -v "^\[" |
+		tr -d '" ,' > list_actual_cleaned
+	fi
+
+	test_expect_success "'ipfs config Swarm.AddrFilters' output looks good" '
+		test_sort_cmp list_expected list_actual_cleaned
+	'
+}
+
 test_swarm_filters() {
 
 	# expect first address from config
 	test_swarm_filter_cmd $AF1 $AF4
 
+	test_config_swarm_addrfilters_cmd $AF1 $AF4
+
 	ipfs swarm filters rm all
 
 	test_swarm_filter_cmd
+
+	test_config_swarm_addrfilters_cmd
 
 	test_expect_success "'ipfs swarm filter add' succeeds" '
 		ipfs swarm filters add $AF1 $AF2 $AF3
@@ -46,11 +74,15 @@ test_swarm_filters() {
 
 	test_swarm_filter_cmd $AF1 $AF2 $AF3
 
+	test_config_swarm_addrfilters_cmd $AF1 $AF2 $AF3
+
 	test_expect_success "'ipfs swarm filter rm' succeeds" '
 		ipfs swarm filters rm $AF2 $AF3
 	'
 
 	test_swarm_filter_cmd $AF1
+
+	test_config_swarm_addrfilters_cmd $AF1
 
 	test_expect_success "'ipfs swarm filter add' succeeds" '
 		ipfs swarm filters add $AF4 $AF2
@@ -58,11 +90,15 @@ test_swarm_filters() {
 
 	test_swarm_filter_cmd $AF1 $AF2 $AF4
 
+	test_config_swarm_addrfilters_cmd $AF1 $AF2 $AF4
+
 	test_expect_success "'ipfs swarm filter rm' succeeds" '
 		ipfs swarm filters rm $AF1 $AF2 $AF4
 	'
 
 	test_swarm_filter_cmd
+
+	test_config_swarm_addrfilters_cmd
 }
 
 test_expect_success "init without any filters" '

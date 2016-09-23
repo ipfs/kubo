@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	humanize "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
@@ -36,12 +36,12 @@ type gatewayHandler struct {
 	config GatewayConfig
 }
 
-func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) (*gatewayHandler, error) {
+func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) *gatewayHandler {
 	i := &gatewayHandler{
 		node:   node,
 		config: conf,
 	}
-	return i, nil
+	return i
 }
 
 // TODO(cryptix):  find these helpers somewhere else
@@ -152,14 +152,13 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		ipnsHostname = true
 	}
 
-	if i.config.BlockList != nil && i.config.BlockList.ShouldBlock(urlPath) {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - Forbidden"))
-		return
-	}
-
 	nd, err := core.Resolve(ctx, i.node, path.Path(urlPath))
-	if err != nil {
+	// If node is in offline mode the error code and message should be different
+	if err == core.ErrNoNamesys && !i.node.OnlineMode() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
+		return
+	} else if err != nil {
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
 		return
 	}
@@ -392,7 +391,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	case nil:
 		// object set-data case
-		rnode.Data = newnode.Data
+		rnode.SetData(newnode.Data())
 
 		newkey, err = i.node.DAG.Add(rnode)
 		if err != nil {

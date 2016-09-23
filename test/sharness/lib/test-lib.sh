@@ -194,17 +194,20 @@ test_set_address_vars() {
 		GWAY_PORT=$(port_from_maddr $GWAY_MADDR)
 	'
 
-
-	test_expect_success "set swarm address vars" '
+	if ipfs swarm addrs local >/dev/null 2>&1; then
+		test_expect_success "set swarm address vars" '
 		ipfs swarm addrs local > addrs_out &&
-		SWARM_MADDR=$(grep "127.0.0.1" addrs_out) &&
-		SWARM_PORT=$(port_from_maddr $SWARM_MADDR)
-	'
+			SWARM_MADDR=$(grep "127.0.0.1" addrs_out) &&
+			SWARM_PORT=$(port_from_maddr $SWARM_MADDR)
+		'
+	fi
 }
 
 test_launch_ipfs_daemon() {
 
 	args="$@"
+
+	test "$TEST_ULIMIT_PRESET" != 1 && ulimit -n 1024
 
 	test_expect_success "'ipfs daemon' succeeds" '
 		ipfs daemon $args >actual_daemon 2>daemon_err &

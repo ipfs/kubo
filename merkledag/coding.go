@@ -33,7 +33,8 @@ func (n *Node) unmarshal(encoded []byte) error {
 	}
 	sort.Stable(LinkSlice(n.Links)) // keep links sorted
 
-	n.Data = pbn.GetData()
+	n.data = pbn.GetData()
+	n.encoded = encoded
 	return nil
 }
 
@@ -62,8 +63,8 @@ func (n *Node) getPBNode() *pb.PBNode {
 		pbn.Links[i].Hash = []byte(l.Hash)
 	}
 
-	if len(n.Data) > 0 {
-		pbn.Data = n.Data
+	if len(n.data) > 0 {
+		pbn.Data = n.data
 	}
 	return pbn
 }
@@ -73,11 +74,15 @@ func (n *Node) getPBNode() *pb.PBNode {
 func (n *Node) EncodeProtobuf(force bool) ([]byte, error) {
 	sort.Stable(LinkSlice(n.Links)) // keep links sorted
 	if n.encoded == nil || force {
+		n.cached = nil
 		var err error
 		n.encoded, err = n.Marshal()
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if n.cached == nil {
 		n.cached = u.Hash(n.encoded)
 	}
 

@@ -48,7 +48,7 @@ func (a Argument) EnableStdin() Argument {
 
 func (a Argument) EnableRecursive() Argument {
 	if a.Type != ArgFile {
-		panic("Only ArgFile arguments can enable recursive")
+		panic("Only FileArgs can enable recursive")
 	}
 
 	a.Recursive = true

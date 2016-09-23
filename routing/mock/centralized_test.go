@@ -7,8 +7,9 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 func TestKeyNotFound(t *testing.T) {
@@ -150,7 +151,7 @@ func TestValidAfter(t *testing.T) {
 
 	rs.Client(pi).Provide(ctx, key)
 
-	var providers []peer.PeerInfo
+	var providers []pstore.PeerInfo
 	providers, err := rs.Client(pi).FindProviders(ctx, key)
 	if err != nil {
 		t.Fatal(err)

@@ -1,7 +1,7 @@
-FROM alpine:3.3
+FROM alpine:edge
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
-# There is a copy of this Dockerfile in test/sharness,
+# There is a copy of this Dockerfile called Dockerfile.fast,
 # which is optimized for build time, instead of image size.
 #
 # Please keep these two Dockerfiles in sync.
@@ -29,7 +29,6 @@ ENV IPFS_PATH /data/ipfs
 # The default logging level
 ENV IPFS_LOGGING ""
 # Golang stuff
-ENV GO_VERSION 1.5.4-r0
 ENV GOPATH     /go
 ENV PATH       /go/bin:$PATH
 ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
@@ -37,7 +36,7 @@ ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
 # Get the go-ipfs sourcecode
 COPY . $SRC_PATH
 
-RUN apk add --update musl go=$GO_VERSION git bash wget ca-certificates \
+RUN apk add --update musl-dev gcc go git bash wget ca-certificates \
 	# Setup user and fs-repo directory
 	&& mkdir -p $IPFS_PATH \
 	&& adduser -D -h $IPFS_PATH -u 1000 ipfs \
@@ -50,11 +49,7 @@ RUN apk add --update musl go=$GO_VERSION git bash wget ca-certificates \
 	# Invoke gx
 	&& cd $SRC_PATH \
 	&& gx --verbose install --global \
-	# We get the current commit using this hack,
-	# so that we don't have to copy all of .git/ into the build context.
-	# This saves us quite a bit of image size.
-	&& ref="$(cat .git/HEAD | cut -d' ' -f2)" \
-	&& commit="$(cat .git/$ref | head -c 7)" \
+	&& mkdir .git/objects && commit=$(git rev-parse --short HEAD) \
 	&& echo "ldflags=-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$commit" \
 	# Build and install IPFS and entrypoint script
 	&& cd $SRC_PATH/cmd/ipfs \
@@ -63,7 +58,7 @@ RUN apk add --update musl go=$GO_VERSION git bash wget ca-certificates \
 	&& cp $SRC_PATH/bin/container_daemon /usr/local/bin/start_ipfs \
 	&& chmod 755 /usr/local/bin/start_ipfs \
 	# Remove all build-time dependencies
-	&& apk del --purge musl go git && rm -rf $GOPATH && rm -vf $IPFS_PATH/api
+	&& apk del --purge musl-dev gcc go git && rm -rf $GOPATH && rm -vf $IPFS_PATH/api
 
 # Call uid 1000 "ipfs"
 USER ipfs

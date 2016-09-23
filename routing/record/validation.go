@@ -3,11 +3,13 @@ package record
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	path "github.com/ipfs/go-ipfs/path"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
+	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
@@ -73,13 +75,22 @@ func (v Validator) IsSigned(k key.Key) (bool, error) {
 // verifies that the passed in record value is the PublicKey
 // that matches the passed in key.
 func ValidatePublicKeyRecord(k key.Key, val []byte) error {
-	keyparts := bytes.Split([]byte(k), []byte("/"))
-	if len(keyparts) < 3 {
-		return errors.New("invalid key")
+	if len(k) < 5 {
+		return errors.New("invalid public key record key")
+	}
+
+	prefix := string(k[:4])
+	if prefix != "/pk/" {
+		return errors.New("key was not prefixed with /pk/")
+	}
+
+	keyhash := []byte(k[4:])
+	if _, err := mh.Cast(keyhash); err != nil {
+		return fmt.Errorf("key did not contain valid multihash: %s", err)
 	}
 
 	pkh := u.Hash(val)
-	if !bytes.Equal(keyparts[2], pkh) {
+	if !bytes.Equal(keyhash, pkh) {
 		return errors.New("public key does not match storage key")
 	}
 	return nil

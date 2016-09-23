@@ -1,13 +1,13 @@
 
 BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint bin/iptb bin/go-sleep
+BINS += bin/go-timeout
 IPFS_ROOT = ../
 IPFS_CMD = ../cmd/ipfs
 RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
 RANDOM_FILES_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random-files
 POLLENDPOINT_SRC= ../thirdparty/pollEndpoint
 GOSLEEP_SRC = ./dependencies/go-sleep
-
-GX_RELATIVE_PATH = ../../../../gx/ipfs
+GOTIMEOUT_SRC = ./dependencies/go-timeout
 
 export PATH := ../bin:${PATH}
 
@@ -50,19 +50,31 @@ bin/go-sleep: $(call find_go_files, $(GOSLEEP_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/go-sleep $(GOSLEEP_SRC)
 
+bin/go-timeout: $(call find_go_files, $(GOTIMEOUT_SRC)) IPFS-BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o bin/go-timeout $(GOTIMEOUT_SRC)
+
 # gx dependencies
 
 multihash_src:
-	$(eval MULTIHASH_HASH := $(shell cd .. && gx deps find go-multihash))
-	$(eval MULTIHASH_SRC := $(GX_RELATIVE_PATH)/$(MULTIHASH_HASH)/go-multihash)
+	$(eval MULTIHASH_HASH := $(shell cd .. && bin/gx deps find go-multihash))
+	$(eval MULTIHASH_SRC := gx/ipfs/$(MULTIHASH_HASH)/go-multihash)
+
+hang-fds_src:
+	$(eval HANG_FDS_HASH := $(shell cd .. && bin/gx deps find hang-fds))
+	$(eval HANG_FDS_SRC := gx/ipfs/$(HANG_FDS_HASH)/hang-fds)
 
 bin/multihash: multihash_src $(call find_go_files, $(MULTIHASH_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/multihash $(MULTIHASH_SRC)/multihash
 
+bin/hang-fds: hang-fds_src $(call find_go_files, $(HANG_FDS_SRC)) IPFS-BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o bin/hang-fds $(HANG_FDS_SRC)
+
 iptb_src:
-	$(eval IPTB_HASH := $(shell cd .. && gx deps find iptb))
-	$(eval IPTB_SRC := $(GX_RELATIVE_PATH)/$(IPTB_HASH)/iptb)
+	$(eval IPTB_HASH := $(shell cd .. && bin/gx deps find iptb))
+	$(eval IPTB_SRC := gx/ipfs/$(IPTB_HASH)/iptb)
 
 bin/iptb: iptb_src $(call find_go_files, $(IPTB_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-datastore/measure"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
@@ -19,14 +18,15 @@ import (
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/measure"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
 )
 
 var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
-var RepoVersion = "3"
+var RepoVersion = 4
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -36,9 +36,16 @@ Program version is: %s
 Please run the ipfs migration tool before continuing.
 ` + migrationInstructions
 
+var programTooLowMessage = `Your programs version (%d) is lower than your repos (%d).
+Please update ipfs to a version that supports the existing repo, or run
+a migration in reverse.
+
+See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md for details.`
+
 var (
-	ErrNoVersion = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
-	ErrOldRepo   = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
+	ErrNoVersion     = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
+	ErrOldRepo       = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
+	ErrNeedMigration = errors.New("ipfs repo needs migration.")
 )
 
 type NoRepoError struct {
@@ -134,8 +141,11 @@ func open(repoPath string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	if ver != RepoVersion {
-		return nil, fmt.Errorf(errIncorrectRepoFmt, ver, RepoVersion)
+	if RepoVersion > ver {
+		return nil, ErrNeedMigration
+	} else if ver > RepoVersion {
+		// program version too low for existing repo
+		return nil, fmt.Errorf(programTooLowMessage, RepoVersion, ver)
 	}
 
 	// check repo path, then check all constituent parts.
@@ -472,6 +482,14 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return err
 	}
 
+	// Load private key to guard against it being overwritten.
+	// NOTE: this is a temporary measure to secure this field until we move
+	// keys out of the config file.
+	pkval, err := common.MapGetKV(mapconf, config.PrivKeySelector)
+	if err != nil {
+		return err
+	}
+
 	// Get the type of the value associated with the key
 	oldValue, err := common.MapGetKV(mapconf, key)
 	ok := true
@@ -510,6 +528,11 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	}
 
 	if err := common.MapSetKV(mapconf, key, value); err != nil {
+		return err
+	}
+
+	// replace private key, in case it was overwritten.
+	if err := common.MapSetKV(mapconf, config.PrivKeySelector, pkval); err != nil {
 		return err
 	}
 

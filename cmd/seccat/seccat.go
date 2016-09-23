@@ -18,11 +18,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	ci "gx/ipfs/QmUEUu1CM8bxBJxc3ZLojAi8evhTr4byQogWstABet79oY/go-libp2p-crypto"
+	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
+	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
+	secio "gx/ipfs/QmVjz1uf6U3sVQ5DbWWj7ktTtDd4GgsptYc7FBp33nWE53/go-libp2p-secio"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/QmaDNZ4QMdBdku1YZWBysufYyoQt1negQGNav6PLYarbY8/go-log"
-	secio "gx/ipfs/QmbuSYB51KtX8izgab1fSyBgsyMH2hTuCfBtXm77PeXWca/go-libp2p-secio"
-	peer "gx/ipfs/QmbyvM8zRFDkbFdYyt1MnevUMJ62SiSGbfDFZ3Z8nkrzr4/go-libp2p-peer"
 )
 
 var verbose = false
@@ -110,7 +111,7 @@ func main() {
 	}
 }
 
-func setupPeer(a args) (peer.ID, peer.Peerstore, error) {
+func setupPeer(a args) (peer.ID, pstore.Peerstore, error) {
 	if a.keybits < 1024 {
 		return "", nil, errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
@@ -126,7 +127,7 @@ func setupPeer(a args) (peer.ID, peer.Peerstore, error) {
 		return "", nil, err
 	}
 
-	ps := peer.NewPeerstore()
+	ps := pstore.NewPeerstore()
 	ps.AddPrivKey(p, sk)
 	ps.AddPubKey(p, pk)
 
