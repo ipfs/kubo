@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"io"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
+
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var PinCmd = &cmds.Command{
@@ -29,7 +30,7 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pins []key.Key
+	Pins []*cid.Cid
 }
 
 var addPinCmd = &cmds.Command{
@@ -271,12 +272,12 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 	keys := make(map[string]RefKeyObject)
 
 	for _, p := range args {
-		dagNode, err := core.Resolve(ctx, n, path.Path(p))
+		pth, err := path.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
 
-		k, err := dagNode.Key()
+		dagNode, err := core.Resolve(ctx, n, pth)
 		if err != nil {
 			return nil, err
 		}
@@ -286,7 +287,8 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 			return nil, fmt.Errorf("Invalid pin mode '%s'", typeStr)
 		}
 
-		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, mode)
+		c := dagNode.Cid()
+		pinType, pinned, err := n.Pinning.IsPinnedWithType(c, mode)
 		if err != nil {
 			return nil, err
 		}
@@ -300,7 +302,7 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 		default:
 			pinType = "indirect through " + pinType
 		}
-		keys[k.B58String()] = RefKeyObject{
+		keys[c.String()] = RefKeyObject{
 			Type: pinType,
 		}
 	}
@@ -312,9 +314,9 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 
 	keys := make(map[string]RefKeyObject)
 
-	AddToResultKeys := func(keyList []key.Key, typeStr string) {
-		for _, k := range keyList {
-			keys[k.B58String()] = RefKeyObject{
+	AddToResultKeys := func(keyList []*cid.Cid, typeStr string) {
+		for _, c := range keyList {
+			keys[c.String()] = RefKeyObject{
 				Type: typeStr,
 			}
 		}
@@ -324,18 +326,18 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 		AddToResultKeys(n.Pinning.DirectKeys(), "direct")
 	}
 	if typeStr == "indirect" || typeStr == "all" {
-		ks := key.NewKeySet()
+		set := cid.NewSet()
 		for _, k := range n.Pinning.RecursiveKeys() {
 			links, err := n.DAG.GetLinks(ctx, k)
 			if err != nil {
 				return nil, err
 			}
-			err = dag.EnumerateChildren(n.Context(), n.DAG, links, ks, false)
+			err = dag.EnumerateChildren(n.Context(), n.DAG, links, set.Visit, false)
 			if err != nil {
 				return nil, err
 			}
 		}
-		AddToResultKeys(ks.Keys(), "indirect")
+		AddToResultKeys(set.Keys(), "indirect")
 	}
 	if typeStr == "recursive" || typeStr == "all" {
 		AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")

@@ -10,10 +10,11 @@ import (
 	. "github.com/ipfs/go-ipfs/filestore/support"
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
-	k "github.com/ipfs/go-ipfs/blocks/key"
+	k "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
+	//cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 	node "github.com/ipfs/go-ipfs/merkledag"
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	//"gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/query"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	//"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
 )
 
 type VerifyLevel int
@@ -313,7 +314,7 @@ func getNode(dsKey ds.Key, fs *Basic, bs b.Blockstore) ([]byte, *DataObj, []*nod
 		Logger.Errorf("%s: %v", key, err2)
 		return nil, nil, nil, StatusError
 	}
-	node, err := node.DecodeProtobuf(block.Data())
+	node, err := node.DecodeProtobuf(block.RawData())
 	if err != nil {
 		Logger.Errorf("%s: %v", key, err)
 		return nil, nil, nil, StatusCorrupt

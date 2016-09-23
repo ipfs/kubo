@@ -12,7 +12,7 @@ import (
 
 	//ds "github.com/ipfs/go-datastore"
 	//bs "github.com/ipfs/go-ipfs/blocks/blockstore"
-	k "github.com/ipfs/go-ipfs/blocks/key"
+	k "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	cli "github.com/ipfs/go-ipfs/commands/cli"
 	files "github.com/ipfs/go-ipfs/commands/files"

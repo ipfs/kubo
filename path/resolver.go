@@ -9,9 +9,9 @@ import (
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var log = logging.Logger("path")
@@ -38,7 +38,7 @@ type Resolver struct {
 
 // SplitAbsPath clean up and split fpath. It extracts the first component (which
 // must be a Multihash) and return it separately.
-func SplitAbsPath(fpath Path) (mh.Multihash, []string, error) {
+func SplitAbsPath(fpath Path) (*cid.Cid, []string, error) {
 
 	log.Debugf("Resolve: '%s'", fpath)
 
@@ -52,14 +52,12 @@ func SplitAbsPath(fpath Path) (mh.Multihash, []string, error) {
 		return nil, nil, ErrNoComponents
 	}
 
-	// first element in the path is a b58 hash (for now)
-	h, err := mh.FromB58String(parts[0])
+	c, err := cid.Decode(parts[0])
 	if err != nil {
-		log.Debug("given path element is not a base58 string.\n")
 		return nil, nil, err
 	}
 
-	return h, parts[1:], nil
+	return c, parts[1:], nil
 }
 
 // ResolvePath fetches the node for given path. It returns the last item
@@ -87,7 +85,7 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]*me
 	}
 
 	log.Debug("resolve dag get")
-	nd, err := s.DAG.Get(ctx, key.Key(h))
+	nd, err := s.DAG.Get(ctx, h)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +115,7 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 
 		nextnode, err := nd.GetLinkedNode(ctx, s.DAG, name)
 		if err == merkledag.ErrLinkNotFound {
-			n, _ := nd.Multihash()
+			n := nd.Multihash()
 			return result, ErrNoLink{Name: name, Node: n}
 		} else if err != nil {
 			return append(result, nextnode), err

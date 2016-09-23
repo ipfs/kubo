@@ -7,9 +7,11 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-ipfs/commands/files"
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
+
 	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var ErrWrongHash = errors.New("data did not match given hash!")
@@ -18,7 +20,7 @@ var ErrWrongHash = errors.New("data did not match given hash!")
 
 type Block interface {
 	Multihash() mh.Multihash
-	Data() []byte
+	RawData() []byte
 	PosInfo() *files.PosInfo
 	Key() key.Key
 	String() string
@@ -53,8 +55,12 @@ func (b *BasicBlock) Multihash() mh.Multihash {
 	return b.multihash
 }
 
-func (b *BasicBlock) Data() []byte {
+func (b *BasicBlock) RawData() []byte {
 	return b.data
+}
+
+func (b *BasicBlock) Cid() *cid.Cid {
+	return cid.NewCidV0(b.multihash)
 }
 
 func (b *BasicBlock) PosInfo() *files.PosInfo {

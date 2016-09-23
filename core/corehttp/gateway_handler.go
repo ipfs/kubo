@@ -12,8 +12,8 @@ import (
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -357,14 +357,20 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		newPath = path.Join(rsegs[2:])
 	}
 
-	var newkey key.Key
+	var newcid *cid.Cid
 	rnode, err := core.Resolve(ctx, i.node, rootPath)
 	switch ev := err.(type) {
 	case path.ErrNoLink:
 		// ev.Node < node where resolve failed
 		// ev.Name < new link
 		// but we need to patch from the root
-		rnode, err := i.node.DAG.Get(ctx, key.B58KeyDecode(rsegs[1]))
+		c, err := cid.Decode(rsegs[1])
+		if err != nil {
+			webError(w, "putHandler: bad input path", err, http.StatusBadRequest)
+			return
+		}
+
+		rnode, err := i.node.DAG.Get(ctx, c)
 		if err != nil {
 			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
 			return
@@ -383,21 +389,17 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		newkey, err = nnode.Key()
-		if err != nil {
-			webError(w, "putHandler: could not get key of edited node", err, http.StatusInternalServerError)
-			return
-		}
+		newcid = nnode.Cid()
 
 	case nil:
 		// object set-data case
 		rnode.SetData(newnode.Data())
 
-		newkey, err = i.node.DAG.Add(rnode)
+		newcid, err = i.node.DAG.Add(rnode)
 		if err != nil {
-			nnk, _ := newnode.Key()
-			rk, _ := rnode.Key()
-			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.B58String(), rk.B58String()), err, http.StatusInternalServerError)
+			nnk := newnode.Cid()
+			rk := rnode.Cid()
+			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), rk.String()), err, http.StatusInternalServerError)
 			return
 		}
 	default:
@@ -407,8 +409,8 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", newkey.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newkey.String(), newPath), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", newcid.String())
+	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newcid.String(), newPath), http.StatusCreated)
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -416,20 +418,13 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
-	ipfsNode, err := core.Resolve(ctx, i.node, path.Path(urlPath))
+	p, err := path.ParsePath(urlPath)
 	if err != nil {
-		// FIXME HTTP error code
-		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
+		webError(w, "failed to parse path", err, http.StatusBadRequest)
 		return
 	}
 
-	k, err := ipfsNode.Key()
-	if err != nil {
-		webError(w, "Could not get key from resolved node", err, http.StatusInternalServerError)
-		return
-	}
-
-	h, components, err := path.SplitAbsPath(path.FromKey(k))
+	c, components, err := path.SplitAbsPath(p)
 	if err != nil {
 		webError(w, "Could not split path", err, http.StatusInternalServerError)
 		return
@@ -437,7 +432,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	tctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, key.Key(h))
+	rootnd, err := i.node.Resolver.DAG.Get(tctx, c)
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return
@@ -475,15 +470,11 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Redirect to new path
-	key, err := newnode.Key()
-	if err != nil {
-		webError(w, "Could not get key of new node", err, http.StatusInternalServerError)
-		return
-	}
+	ncid := newnode.Cid()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+key.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", ncid.String())
+	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {

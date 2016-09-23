@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ipfs/go-ipfs/blocks"
-	"github.com/ipfs/go-ipfs/blocks/key"
 	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	"gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	"io"
 	"testing"
 )

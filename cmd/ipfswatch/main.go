@@ -14,7 +14,7 @@ import (
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
+	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	fsnotify "gx/ipfs/QmczzCMvJ3HV57WBKDy8b4ucp7quT325JjDbixYRS5Pwvv/fsnotify.v1"
 )
@@ -81,16 +81,10 @@ func run(ipfsPath, watchPath string) error {
 	}
 	defer node.Close()
 
-	cfg, err := node.Repo.Config()
-	if err != nil {
-		return err
-	}
-	cfg.Gateway.Writable = true
-
 	if *http {
 		addr := "/ip4/127.0.0.1/tcp/5001"
 		var opts = []corehttp.ServeOption{
-			corehttp.GatewayOption("/ipfs", "/ipns"),
+			corehttp.GatewayOption(true, "/ipfs", "/ipns"),
 			corehttp.WebUIOption,
 			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
 		}

@@ -11,7 +11,8 @@ import (
 
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	butil "github.com/ipfs/go-ipfs/blocks/blockstore/util"
-	k "github.com/ipfs/go-ipfs/blocks/key"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
@@ -116,15 +117,16 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 			return
 		}
 
-		var toDel []k.Key
+		var toDel []*cid.Cid
 		for r := range ch {
 			if to_remove[r.Status] {
-				key, err := k.KeyFromDsKey(r.Key)
+				key, err := key.KeyFromDsKey(r.Key)
 				if err != nil {
 					wtr.CloseWithError(err)
 					return
 				}
-				toDel = append(toDel, key)
+				c := cid.NewCidV0(key.ToMultihash())
+				toDel = append(toDel, c)
 			}
 		}
 		var ch2 <-chan interface{}
@@ -144,7 +146,7 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 	return rdr, nil
 }
 
-func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, keys []k.Key, snap Snapshot, fs *Datastore) <-chan interface{} {
+func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, keys []*cid.Cid, snap Snapshot, fs *Datastore) <-chan interface{} {
 
 	// make the channel large enough to hold any result to avoid
 	// blocking while holding the GCLock
@@ -169,7 +171,7 @@ func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, keys []k.Key, snap Snapsh
 		stillOkay := butil.FilterPinned(mbs, pins, out, keys, prefix)
 
 		for _, k := range stillOkay {
-			keyBytes := k.DsKey().Bytes()
+			keyBytes := key.Key(k.Hash()).DsKey().Bytes()
 			var origVal []byte
 			if snap.Defined() {
 				var err error

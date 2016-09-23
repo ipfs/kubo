@@ -87,7 +87,12 @@ is the raw data of the object.
 			return
 		}
 
-		fpath := path.Path(req.Arguments()[0])
+		fpath, err := path.ParsePath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		node, err := core.Resolve(req.Context(), n, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -424,7 +429,7 @@ Available templates:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(&Object{Hash: k.B58String()})
+		res.SetOutput(&Object{Hash: k.String()})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -538,13 +543,9 @@ func getObjectEnc(o interface{}) objectEncoding {
 }
 
 func getOutput(dagnode *dag.Node) (*Object, error) {
-	key, err := dagnode.Key()
-	if err != nil {
-		return nil, err
-	}
-
+	c := dagnode.Cid()
 	output := &Object{
-		Hash:  key.B58String(),
+		Hash:  c.String(),
 		Links: make([]Link, len(dagnode.Links)),
 	}
 

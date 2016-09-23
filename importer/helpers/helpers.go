@@ -139,6 +139,6 @@ func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
 		return nil, err
 	}
 	n.node.SetData(data)
-	n.node.PosInfo = n.posInfo
+	n.node.SetPosInfo(n.posInfo)
 	return n.node, nil
 }

@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"io"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 var BitswapCmd = &cmds.Command{
@@ -55,13 +56,13 @@ var unwantCmd = &cmds.Command{
 
 		var ks []key.Key
 		for _, arg := range req.Arguments() {
-			dec := key.B58KeyDecode(arg)
-			if dec == "" {
-				res.SetError(fmt.Errorf("Incorrectly formatted key: %s", arg), cmds.ErrNormal)
+			c, err := cid.Decode(arg)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 
-			ks = append(ks, dec)
+			ks = append(ks, key.Key(c.Hash()))
 		}
 
 		bs.CancelWants(ks)

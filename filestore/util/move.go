@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/go-ipfs/unixfs"
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
-	bk "github.com/ipfs/go-ipfs/blocks/key"
+	bk "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 )
 
@@ -89,7 +89,7 @@ func (p *params) convertToFile(key bk.Key, root bool, offset uint64) (uint64, er
 	if err != nil {
 		return 0, err
 	}
-	altData, fsInfo, err := Reconstruct(block.Data(), nil, 0)
+	altData, fsInfo, err := Reconstruct(block.RawData(), nil, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -114,9 +114,9 @@ func (p *params) convertToFile(key bk.Key, root bool, offset uint64) (uint64, er
 		p.fs.Update(key.DsKey().Bytes(), nil, dataObj)
 	} else {
 		dataObj.Flags |= Internal
-		dataObj.Data = block.Data()
+		dataObj.Data = block.RawData()
 		p.fs.Update(key.DsKey().Bytes(), nil, dataObj)
-		n, err := dag.DecodeProtobuf(block.Data())
+		n, err := dag.DecodeProtobuf(block.RawData())
 		if err != nil {
 			return 0, err
 		}

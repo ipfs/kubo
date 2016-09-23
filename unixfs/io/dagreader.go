@@ -68,9 +68,7 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 	case ftpb.Data_Directory:
 		// Dont allow reading directories
 		return nil, ErrIsDir
-	case ftpb.Data_Raw:
-		fallthrough
-	case ftpb.Data_File:
+	case ftpb.Data_File, ftpb.Data_Raw:
 		return NewDataFileReader(ctx, n, pb, serv), nil
 	case ftpb.Data_Metadata:
 		if len(n.Links) == 0 {
@@ -133,7 +131,7 @@ func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 		dr.buf = NewRSNCFromBytes(pb.GetData())
 		return nil
 	case ftpb.Data_Metadata:
-		return errors.New("Shouldnt have had metadata object inside file")
+		return errors.New("shouldnt have had metadata object inside file")
 	case ftpb.Data_Symlink:
 		return errors.New("shouldnt have had symlink inside file")
 	default:

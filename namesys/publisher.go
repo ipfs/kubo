@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
@@ -20,8 +19,9 @@ import (
 	record "github.com/ipfs/go-ipfs/routing/record"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ci "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
+	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 // ErrExpiredRecord should be returned when an ipns record is
@@ -348,7 +348,7 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 		return err
 	}
 
-	err = pub.Publish(ctx, key, path.FromKey(nodek))
+	err = pub.Publish(ctx, key, path.FromCid(nodek))
 	if err != nil {
 		return err
 	}

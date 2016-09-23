@@ -93,13 +93,9 @@ possible, please use 'ipfs ls' instead.
 				return
 			}
 
-			key, err := merkleNode.Key()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
+			c := merkleNode.Cid()
 
-			hash := key.B58String()
+			hash := c.String()
 			output.Arguments[fpath] = hash
 
 			if _, ok := output.Objects[hash]; ok {
@@ -116,7 +112,7 @@ possible, please use 'ipfs ls' instead.
 			t := unixFSNode.GetType()
 
 			output.Objects[hash] = &LsObject{
-				Hash: key.String(),
+				Hash: c.String(),
 				Type: t.String(),
 				Size: unixFSNode.GetFilesize(),
 			}

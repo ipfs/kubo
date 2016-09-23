@@ -8,14 +8,14 @@ import (
 	//"strings"
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
-	k "github.com/ipfs/go-ipfs/blocks/key"
+	k "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
 	. "github.com/ipfs/go-ipfs/filestore/support"
 	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	node "github.com/ipfs/go-ipfs/merkledag"
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
 type VerifyParams struct {

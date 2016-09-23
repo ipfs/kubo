@@ -246,12 +246,7 @@ func (d *Directory) List() ([]NodeListing, error) {
 			return nil, err
 		}
 
-		k, err := nd.Key()
-		if err != nil {
-			return nil, err
-		}
-
-		child.Hash = k.B58String()
+		child.Hash = nd.Key().B58String()
 
 		out = append(out, child)
 	}

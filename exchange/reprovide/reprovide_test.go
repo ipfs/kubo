@@ -7,9 +7,9 @@ import (
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	mock "github.com/ipfs/go-ipfs/routing/mock"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	dssync "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	dssync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 
 	. "github.com/ipfs/go-ipfs/exchange/reprovide"
 )

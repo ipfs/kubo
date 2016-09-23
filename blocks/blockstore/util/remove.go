@@ -5,9 +5,10 @@ import (
 	"io"
 
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/pin"
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
+	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 // RemovedBlock is used to respresent the result of removing a block.
@@ -27,7 +28,7 @@ type RmBlocksOpts struct {
 	Force  bool
 }
 
-func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key, opts RmBlocksOpts) error {
+func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, cids []*cid.Cid, opts RmBlocksOpts) error {
 	prefix := opts.Prefix
 	if prefix == "" {
 		prefix = mbs.Mounts()[0]
@@ -43,25 +44,25 @@ func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, k
 		unlocker := mbs.GCLock()
 		defer unlocker.Unlock()
 
-		stillOkay := FilterPinned(mbs, pins, out, keys, prefix)
+		stillOkay := FilterPinned(mbs, pins, out, cids, prefix)
 
-		for _, k := range stillOkay {
-			err := blocks.DeleteBlock(k)
+		for _, c := range stillOkay {
+			err := blocks.DeleteBlock(key.Key(c.Hash()))
 			if err != nil && opts.Force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
 				// ignore non-existent blocks
 			} else if err != nil {
-				out <- &RemovedBlock{Hash: k.String(), Error: err.Error()}
+				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
 			} else if !opts.Quiet {
-				out <- &RemovedBlock{Hash: k.String()}
+				out <- &RemovedBlock{Hash: c.String()}
 			}
 		}
 	}()
 	return nil
 }
 
-func FilterPinned(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, keys []key.Key, prefix string) []key.Key {
-	stillOkay := make([]key.Key, 0, len(keys))
-	res, err := pins.CheckIfPinned(keys...)
+func FilterPinned(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, cids []*cid.Cid, prefix string) []*cid.Cid {
+	stillOkay := make([]*cid.Cid, 0, len(cids))
+	res, err := pins.CheckIfPinned(cids...)
 	if err != nil {
 		out <- &RemovedBlock{Error: fmt.Sprintf("pin check failed: %s", err)}
 		return nil
@@ -79,8 +80,8 @@ func FilterPinned(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{
 	return stillOkay
 }
 
-func AvailableElsewhere(mbs bs.MultiBlockstore, prefix string, key key.Key) bool {
-	locations := mbs.Locate(key)
+func AvailableElsewhere(mbs bs.MultiBlockstore, prefix string, cids *cid.Cid) bool {
+	locations := mbs.Locate(key.Key(cids.Hash()))
 	for _, loc := range locations {
 		if loc.Error == nil && loc.Prefix != prefix {
 			return true

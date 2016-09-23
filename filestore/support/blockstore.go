@@ -6,7 +6,7 @@ import (
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	. "github.com/ipfs/go-ipfs/filestore"
 	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
 type blockstore struct {
@@ -71,7 +71,7 @@ func (bs *blockstore) PutMany(blocks []b.Block) (error, []b.Block)  {
 }
 
 func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
-	altData, fsInfo, err := Reconstruct(block.Data(), nil, 0)
+	altData, fsInfo, err := Reconstruct(block.RawData(), nil, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 			Size: 0,
 			ModTime: 0,
 			Flags: Internal|WholeFile,
-			Data: block.Data(),
+			Data: block.RawData(),
 		}, nil
 	} else {
 		posInfo := block.PosInfo()
@@ -108,7 +108,7 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 		}
 		if len(fsInfo.Data) == 0 {
 			d.Flags |= Internal
-			d.Data = block.Data()
+			d.Data = block.RawData()
 		} else {
 			d.Flags |= NoBlockData
 			d.Data = altData
