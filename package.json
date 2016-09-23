@@ -200,9 +200,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di",
+      "hash": "QmR61Ut9oN9mEacVUDWpvvhRPYXSxHEAZVbZkiLy9tKmdr",
       "name": "go-libp2p",
-      "version": "3.5.2"
+      "version": "3.5.3"
     },
     {
       "author": "whyrusleeping",
@@ -252,10 +252,10 @@
       "name": "go-metrics-interface",
       "version": "0.1.2"
     },
-	{
-      "hash": "QmYvLYkYiVEi5LBHP2uFqiUaHqH7zWnEuRqoNEuGLNG6JB",
+    {
+      "hash": "QmW487vxcgiEZkkdc3tBBvXF8Y1R8vq39A3YA2x26CoJqi",
       "name": "go-libp2p-kad-dht",
-      "version": "1.1.0"
+      "version": "1.1.1"
     },
     {
       "author": "whyrusleeping",
@@ -270,3 +270,4 @@
   "name": "go-ipfs",
   "version": "0.4.4-dev"
 }
+
