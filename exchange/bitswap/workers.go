@@ -1,16 +1,15 @@
 package bitswap
 
 import (
+	"math/rand"
 	"sync"
 	"time"
 
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
@@ -173,9 +172,17 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 			}
 		case <-broadcastSignal.C: // resend unfulfilled wantlist keys
 			log.Event(ctx, "Bitswap.Rebroadcast.active")
-			for _, e := range bs.wm.wl.Entries() {
-				e := e
-				bs.findKeys <- &e
+			entries := bs.wm.wl.Entries()
+			if len(entries) == 0 {
+				continue
+			}
+
+			// TODO: come up with a better strategy for determining when to search
+			// for new providers for blocks.
+			i := rand.Intn(len(entries))
+			bs.findKeys <- &blockRequest{
+				Key: entries[i].Key,
+				Ctx: ctx,
 			}
 		case <-parent.Done():
 			return
@@ -185,33 +192,37 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 
 func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 	var activeLk sync.Mutex
-	active := make(map[key.Key]*wantlist.Entry)
+	kset := key.NewKeySet()
 
 	for {
 		select {
 		case e := <-bs.findKeys:
 			activeLk.Lock()
-			if _, ok := active[e.Key]; ok {
+			if kset.Has(e.Key) {
 				activeLk.Unlock()
 				continue
 			}
-			active[e.Key] = e
+			kset.Add(e.Key)
 			activeLk.Unlock()
 
-			go func(e *wantlist.Entry) {
+			go func(e *blockRequest) {
 				child, cancel := context.WithTimeout(e.Ctx, providerRequestTimeout)
 				defer cancel()
 				providers := bs.network.FindProvidersAsync(child, e.Key, maxProvidersPerRequest)
+				wg := &sync.WaitGroup{}
 				for p := range providers {
+					wg.Add(1)
 					go func(p peer.ID) {
+						defer wg.Done()
 						err := bs.network.ConnectTo(child, p)
 						if err != nil {
 							log.Debug("failed to connect to provider %s: %s", p, err)
 						}
 					}(p)
 				}
+				wg.Wait()
 				activeLk.Lock()
-				delete(active, e.Key)
+				kset.Remove(e.Key)
 				activeLk.Unlock()
 			}(e)
 

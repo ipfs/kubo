@@ -121,12 +121,20 @@ test_expect_success "daemon with pipe eventually becomes live" '
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
 
-ulimit -n 512
+ulimit -S -n 512
 TEST_ULIMIT_PRESET=1
 test_launch_ipfs_daemon
 
 test_expect_success "daemon raised its fd limit" '
-	grep "ulimit" actual_daemon > /dev/null
+	grep "raised file descriptor limit to 1024." actual_daemon > /dev/null
+'
+
+test_expect_success "daemon actually can handle 1024 file descriptors" '
+	hang-fds -hold=2s 1000 '$API_MADDR'
+'
+
+test_expect_success "daemon didnt throw any errors" '
+	test_expect_code 1 grep "too many open files" daemon_err
 '
 
 test_kill_ipfs_daemon
