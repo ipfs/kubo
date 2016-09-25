@@ -72,7 +72,7 @@ func (s *BlockService) AddObjects(bs []Object) ([]*cid.Cid, error) {
 		cids = append(cids, b.Cid())
 		blks = append(blks, b)
 	}
-	
+
 	err, added := s.Blockstore.PutMany(blks)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (s *BlockService) AddObjects(bs []Object) ([]*cid.Cid, error) {
 // Getting it from the datastore using the key (hash).
 func (s *BlockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
 	log.Debugf("BlockService GetBlock: '%s'", c)
-	
+
 	block, err := s.Blockstore.Get(key.Key(c.Hash()))
 	if err == nil {
 		return block, nil

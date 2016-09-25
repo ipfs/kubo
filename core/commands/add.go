@@ -69,6 +69,7 @@ You can now refer to the added file in a gateway, like so:
   /ipfs/QmaG4FuMqEBnQNn3C8XJ5bpW8kLs7zq2ZXgHptJHbKDDVx/example.jpg
 `,
 	},
+
 	Arguments: []cmds.Argument{
 		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS.").EnableRecursive().EnableStdin(),
 	},
@@ -169,8 +170,6 @@ You can now refer to the added file in a gateway, like so:
 		res.SetOutput((<-chan interface{})(outChan))
 
 		var fileAdder *coreunix.Adder
-		//FIXME NOW: with local code...
-		//fileAdder, err := coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dserv)
 		useRoot := wrap || recursive
 		perFileLocker := filestore.NoOpLocker()
 		if nocopy {

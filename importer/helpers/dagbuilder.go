@@ -131,13 +131,11 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 
 func (db *DagBuilderHelper) SetPosInfo(node *UnixfsNode, offset uint64) {
 	if db.stat != nil {
-		//println("set pos info ", offset, db.fullPath, db.stat)
 		node.SetPosInfo(offset, db.fullPath, db.stat)
 	}
 }
 
 func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
-	//println("dag builder add")
 	dn, err := node.GetDagNode()
 	if err != nil {
 		return nil, err

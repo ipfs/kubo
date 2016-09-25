@@ -21,6 +21,7 @@ var log = logging.Logger("blockstore")
 
 // BlockPrefix namespaces blockstore datastores
 const DefaultPrefix = "/blocks"
+
 var blockPrefix = ds.NewKey(DefaultPrefix)
 
 var ValueTypeMismatch = errors.New("the retrieved value is not a Block")
@@ -36,8 +37,8 @@ type Blockstore interface {
 
 	// Put and PutMany return the blocks(s) actually added to the
 	// blockstore.  If a block already exists it will not be returned.
-	
-	Put(blocks.Block) (error, blocks.Block) 
+
+	Put(blocks.Block) (error, blocks.Block)
 	PutMany([]blocks.Block) (error, []blocks.Block)
 
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
@@ -65,8 +66,8 @@ type GCBlockstore interface {
 	GCLocker
 }
 
-func NewGCBlockstore (bs Blockstore, gcl GCLocker) GCBlockstore {
-	return gcBlockstore {bs,gcl}
+func NewGCBlockstore(bs Blockstore, gcl GCLocker) GCBlockstore {
+	return gcBlockstore{bs, gcl}
 }
 
 type gcBlockstore struct {

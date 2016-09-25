@@ -126,11 +126,13 @@ func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
 	if adder.Trickle {
 		return importer.BuildTrickleDagFromReader(
 			adder.dagService,
-			chnk)
+			chnk,
+		)
 	}
 	return importer.BuildDagFromReader(
 		adder.dagService,
-		chnk)
+		chnk,
+	)
 }
 
 func (adder *Adder) RootNode() (*dag.Node, error) {

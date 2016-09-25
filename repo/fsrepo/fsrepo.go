@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
@@ -21,6 +20,7 @@ import (
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	"gx/ipfs/QmeqtHtxGfcsfXiou7wqHJARWPKUTUcPdtSfSYYHp48dtQ/go-ds-measure"
 )
 
@@ -98,8 +98,8 @@ type FSRepo struct {
 }
 
 type Mount struct {
-	prefix  string
-	dstore  ds.Datastore
+	prefix string
+	dstore ds.Datastore
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -565,8 +565,6 @@ func (r *FSRepo) Datastore() repo.Datastore {
 	return d
 }
 
-// Datastore returns a repo-owned datastore. If FSRepo is Closed, return value
-// is undefined.
 func (r *FSRepo) DirectMount(prefix string) ds.Datastore {
 	packageLock.Lock()
 	defer packageLock.Unlock()
@@ -578,8 +576,6 @@ func (r *FSRepo) DirectMount(prefix string) ds.Datastore {
 	return nil
 }
 
-// Datastore returns a repo-owned datastore. If FSRepo is Closed, return value
-// is undefined.
 func (r *FSRepo) Mounts() []string {
 	packageLock.Lock()
 	mounts := make([]string, 0, len(r.mounts))
@@ -589,7 +585,6 @@ func (r *FSRepo) Mounts() []string {
 	packageLock.Unlock()
 	return mounts
 }
-
 
 // GetStorageUsage computes the storage space taken by the repo in bytes
 func (r *FSRepo) GetStorageUsage() (uint64, error) {

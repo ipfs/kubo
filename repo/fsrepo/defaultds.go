@@ -2,7 +2,6 @@ package fsrepo
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"strings"
@@ -33,8 +32,6 @@ const (
 	CacheMount     = "/blocks" // needs to be the same as blockstore.DefaultPrefix
 	FilestoreMount = "/filestore"
 )
-
-var _ = io.EOF
 
 func openDefaultDatastore(r *FSRepo) (repo.Datastore, []Mount, error) {
 	leveldbPath := path.Join(r.path, leveldbDirectory)

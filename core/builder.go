@@ -15,8 +15,8 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	retry "gx/ipfs/QmPF5kxTYFkzhaY5LmkExood7aTTZBHWQC6cjdDQBuGrjp/retry-datastore"
 	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
@@ -178,7 +178,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	mounts := []bstore.Mount{{fsrepo.CacheMount, cbs}}
-	
+
 	if n.Repo.DirectMount(fsrepo.FilestoreMount) != nil {
 		fs := bstore.NewBlockstoreWPrefix(n.Repo.Datastore(), fsrepo.FilestoreMount)
 		mounts = append(mounts, bstore.Mount{fsrepo.FilestoreMount, fs})
@@ -206,13 +206,13 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 
 	n.Blocks = bserv.New(n.Blockstore, n.Exchange)
 	d := dag.NewDAGService(n.Blocks)
-	if fs,ok :=  n.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore); ok {
+	if fs, ok := n.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore); ok {
 		n.LinkService = filestore_support.NewLinkService(fs)
 		d.LinkService = n.LinkService
 
 	}
 	n.DAG = d
-	
+
 	internalDag := dag.NewDAGService(bserv.New(n.Blockstore, offline.Exchange(n.Blockstore)))
 	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG, internalDag)
 
