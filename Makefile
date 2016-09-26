@@ -80,7 +80,7 @@ test_short: build test_go_short test_sharness_short
 test_expensive: build test_go_expensive test_sharness_expensive windows_build_check
 
 test_3node:
-	cd test/3nodetest && make
+	$(MAKE) -C test/3nodetest
 
 test_go_short:
 	$(go_test) -test.short ./...
