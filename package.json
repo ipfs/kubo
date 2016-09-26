@@ -159,9 +159,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2",
+      "hash": "QmYkwVGkwoPbMVQEbf6LonZg4SsCxGP3H7PBEtdNCNRyxD",
       "name": "go-libp2p-peerstore",
-      "version": "1.2.4"
+      "version": "1.2.5"
     },
     {
       "author": "whyrusleeping",
@@ -201,9 +201,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di",
+      "hash": "QmbiRCGZqhfcSjnm9icGz3oNQQdPLAnLWnKHXixaEWXVCN",
       "name": "go-libp2p",
-      "version": "3.5.2"
+      "version": "3.5.4"
     },
     {
       "author": "whyrusleeping",
@@ -253,10 +253,10 @@
       "name": "go-metrics-interface",
       "version": "0.1.2"
     },
-	{
-      "hash": "QmYvLYkYiVEi5LBHP2uFqiUaHqH7zWnEuRqoNEuGLNG6JB",
+    {
+      "hash": "QmXVWh4XWRaRGdcGeFtBp3hx7H3mzYgVRpVN7LwtTaYv2E",
       "name": "go-libp2p-kad-dht",
-      "version": "1.1.0"
+      "version": "1.2.0"
     },
     {
       "author": "whyrusleeping",
@@ -271,3 +271,4 @@
   "name": "go-ipfs",
   "version": "0.4.4-dev"
 }
+

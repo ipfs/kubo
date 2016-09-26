@@ -89,10 +89,4 @@ test_expect_success "set up tcp testbed" '
 
 run_advanced_test
 
-test_expect_success "set up utp testbed" '
-	iptb init -n 5 -p 0 -f --bootstrap=none --utp
-'
-
-run_advanced_test
-
 test_done

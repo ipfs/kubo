@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	rtable "gx/ipfs/QmTZsN8hysGnbakvK6mS8rwDQ9uwokxmWFBv94pig6zGd1/go-libp2p-kbucket"
+	rtable "gx/ipfs/QmVsCNFD32GzZ6Q5XD1TVGPRviNYqDdoNvgq853TU9hhzP/go-libp2p-kbucket"
 	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
 )
 
