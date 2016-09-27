@@ -638,9 +638,17 @@ func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore repo.Dat
 	return dhtRouting, nil
 }
 
+func constructClientDHTRouting(ctx context.Context, host p2phost.Host, dstore repo.Datastore) (routing.IpfsRouting, error) {
+	dhtRouting := dht.NewDHTClient(ctx, host, dstore)
+	dhtRouting.Validator[IpnsValidatorTag] = namesys.IpnsRecordValidator
+	dhtRouting.Selector[IpnsValidatorTag] = namesys.IpnsSelectorFunc
+	return dhtRouting, nil
+}
+
 type RoutingOption func(context.Context, p2phost.Host, repo.Datastore) (routing.IpfsRouting, error)
 
 type DiscoveryOption func(context.Context, p2phost.Host) (discovery.Service, error)
 
 var DHTOption RoutingOption = constructDHTRouting
+var DHTClientOption RoutingOption = constructClientDHTRouting
 var NilRouterOption RoutingOption = nilrouting.ConstructNilRouting

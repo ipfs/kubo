@@ -44,6 +44,7 @@ const (
 	offlineKwd                = "offline"
 	routingOptionKwd          = "routing"
 	routingOptionSupernodeKwd = "supernode"
+	routingOptionDHTClientKwd = "dhtclient"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
@@ -280,7 +281,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
-	if routingOption == routingOptionSupernodeKwd {
+	switch routingOption {
+	case routingOptionSupernodeKwd:
 		servers, err := cfg.SupernodeRouting.ServerIPFSAddrs()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -296,6 +298,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 
 		ncfg.Routing = corerouting.SupernodeClient(infos...)
+	case routingOptionDHTClientKwd:
+		ncfg.Routing = core.DHTClientOption
 	}
 
 	node, err := core.NewNode(req.Context(), ncfg)
