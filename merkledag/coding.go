@@ -58,7 +58,7 @@ func (n *Node) getPBNode() *pb.PBNode {
 
 	sort.Stable(LinkSlice(n.Links)) // keep links sorted
 	for i, l := range n.Links {
-		pbn.Links[i] = &pb.PBLink{}
+		pbn.Links = append(pbn.Links, &pb.PBLink{})
 		pbn.Links[i].Name = &l.Name
 		pbn.Links[i].Tsize = &l.Size
 		pbn.Links[i].Hash = []byte(l.Hash)
