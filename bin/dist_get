@@ -52,7 +52,7 @@ unarchive() {
 		tar.gz)
 			if have_binary tar; then
 				echo "==> using 'tar' to extract binary from archive"
-				cat "$ua_infile" | tar -O -z -x "$ua_distname/$ua_distname" > "$ua_outfile"
+				cat "$ua_infile" | tar -O -z -x -f - "$ua_distname/$ua_distname" > "$ua_outfile"
 			else
 				die "no binary on system for extracting tar files"
 			fi
