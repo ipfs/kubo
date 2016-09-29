@@ -127,17 +127,17 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 
 	for {
 		select {
-		case blk, ok := <-bs.newBlocks:
+		case blkey, ok := <-bs.newBlocks:
 			if !ok {
 				log.Debug("newBlocks channel closed")
 				return
 			}
 
 			if keysOut == nil {
-				nextKey = blk.Key()
+				nextKey = blkey
 				keysOut = bs.provideKeys
 			} else {
-				toProvide = append(toProvide, blk.Key())
+				toProvide = append(toProvide, blkey)
 			}
 		case keysOut <- nextKey:
 			if len(toProvide) > 0 {
