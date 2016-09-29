@@ -180,7 +180,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 		// if output is coming from a channel, decode each chunk
 		outChan := make(chan interface{})
 
-		go readStreamedJson(req, rr, outChan)
+		go readStreamedJson(req, rr, outChan, res)
 
 		res.SetOutput((<-chan interface{})(outChan))
 		return res, nil
@@ -233,7 +233,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 
 // read json objects off of the given stream, and write the objects out to
 // the 'out' channel
-func readStreamedJson(req cmds.Request, rr io.Reader, out chan<- interface{}) {
+func readStreamedJson(req cmds.Request, rr io.Reader, out chan<- interface{}, resp cmds.Response) {
 	defer close(out)
 	dec := json.NewDecoder(rr)
 	outputType := reflect.TypeOf(req.Command().Type)
@@ -245,6 +245,7 @@ func readStreamedJson(req cmds.Request, rr io.Reader, out chan<- interface{}) {
 		if err != nil {
 			if err != io.EOF {
 				log.Error(err)
+				resp.SetError(err,  cmds.ErrNormal)
 			}
 			return
 		}
