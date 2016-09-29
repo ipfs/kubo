@@ -52,9 +52,7 @@ func (n *Node) Marshal() ([]byte, error) {
 
 func (n *Node) getPBNode() *pb.PBNode {
 	pbn := &pb.PBNode{}
-	if len(n.Links) > 0 {
-		pbn.Links = make([]*pb.PBLink, len(n.Links))
-	}
+	pbn.Links = make([]*pb.PBLink, 0, len(n.Links))
 
 	sort.Stable(LinkSlice(n.Links)) // keep links sorted
 	for i, l := range n.Links {
