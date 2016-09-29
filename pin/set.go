@@ -132,12 +132,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 		sort.Stable(s)
 	}
 
-	// wasteful but simple
-	type item struct {
-		c    *cid.Cid
-		data []byte
-	}
-	hashed := make(map[uint32][]item)
+	hashed := make([][]*cid.Cid, defaultFanout)
 	for {
 		// This loop essentially enumerates every single item in the set
 		// and maps them all into a set of buckets. Each bucket will be recursively
@@ -152,41 +147,49 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 		// and losing pins. The fix (a few lines down from this comment), is to
 		// map the hash value down to the 8 bit keyspace here while creating the
 		// buckets. This way, we avoid any overlapping later on.
-		k, data, ok := iter()
+		k, _, ok := iter()
 		if !ok {
 			break
 		}
 		h := hash(seed, k) % defaultFanout
-		hashed[h] = append(hashed[h], item{k, data})
+		hashed[h] = append(hashed[h], k)
 	}
+
 	for h, items := range hashed {
+		if len(items) == 0 {
+			// recursion base case
+			continue
+		}
+
 		childIter := func() (c *cid.Cid, data []byte, ok bool) {
 			if len(items) == 0 {
 				return nil, nil, false
 			}
 			first := items[0]
 			items = items[1:]
-			return first.c, first.data, true
+			return first, nil, true
 		}
+
 		child, err := storeItems(ctx, dag, uint64(len(items)), childIter, internalKeys)
 		if err != nil {
 			return nil, err
 		}
+
 		size, err := child.Size()
 		if err != nil {
 			return nil, err
 		}
+
 		childKey, err := dag.Add(child)
 		if err != nil {
 			return nil, err
 		}
+
 		internalKeys(childKey)
-		l := &merkledag.Link{
-			Name: "",
+		n.Links[int(h)] = &merkledag.Link{
 			Hash: childKey.Hash(),
 			Size: size,
 		}
-		n.Links[int(h%defaultFanout)] = l
 	}
 	return n, nil
 }
