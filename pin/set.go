@@ -139,6 +139,19 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 	}
 	hashed := make(map[uint32][]item)
 	for {
+		// This loop essentially enumerates every single item in the set
+		// and maps them all into a set of buckets. Each bucket will be recursively
+		// turned into its own sub-set, and so on down the chain. Each sub-set
+		// gets added to the dagservice, and put into its place in a set nodes
+		// links array.
+		//
+		// Previously, the bucket was selected by taking an int32 from the hash of
+		// the input key + seed. This was erroneous as we would later be assigning
+		// the created sub-sets into an array of length 256 by the modulus of the
+		// int32 hash value with 256. This resulted in overwriting existing sub-sets
+		// and losing pins. The fix (a few lines down from this comment), is to
+		// map the hash value down to the 8 bit keyspace here while creating the
+		// buckets. This way, we avoid any overlapping later on.
 		k, data, ok := iter()
 		if !ok {
 			break
