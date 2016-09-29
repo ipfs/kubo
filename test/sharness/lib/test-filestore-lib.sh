@@ -293,7 +293,7 @@ test_add_symlinks_fails_cleanly() {
         ln -s files/does/not/exist files/bad
     '
 
-    test_expect_success "adding a symlink fails cleanly" '
+    test_expect_failure "adding a symlink fails cleanly" '
         test_must_fail ipfs filestore add --logical -q $opt files/bar/baz > goodlink_out
     '
 
@@ -301,7 +301,7 @@ test_add_symlinks_fails_cleanly() {
 		kill -0 $IPFS_PID
 	'
 
-    test_expect_success "adding a broken link fails cleanly" '
+    test_expect_failure "adding a broken link fails cleanly" '
         test_must_fail ipfs filestore add --logical -q  $opt files/bad > badlink_out
     '
 
@@ -345,7 +345,7 @@ filestore_test_w_daemon() {
 
     test_add_mulpl_files "filestore add "
 
-    test_expect_success "testing filestore add -r should fail" '
+    test_expect_failure "testing filestore add -r should fail" '
       mkdir adir &&
       echo "Hello Worlds!" > adir/file1 &&
       echo "HELLO WORLDS!" > adir/file2 &&
