@@ -90,7 +90,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		network:       network,
 		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
-		newBlocks:     make(chan blocks.Block, HasBlockBufferSize),
+		newBlocks:     make(chan key.Key, HasBlockBufferSize),
 		provideKeys:   make(chan key.Key, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
 	}
@@ -137,7 +137,7 @@ type Bitswap struct {
 
 	process process.Process
 
-	newBlocks chan blocks.Block
+	newBlocks chan key.Key
 
 	provideKeys chan key.Key
 
@@ -308,12 +308,17 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 		return err
 	}
 
+	// NOTE: There exists the possiblity for a race condition here.  If a user
+	// creates a node, then adds it to the dagservice while another goroutine
+	// is waiting on a GetBlock for that object, they will receive a reference
+	// to the same node. We should address this soon, but i'm not going to do
+	// it now as it requires more thought and isnt causing immediate problems.
 	bs.notifications.Publish(blk)
 
 	bs.engine.AddBlock(blk)
 
 	select {
-	case bs.newBlocks <- blk:
+	case bs.newBlocks <- blk.Key():
 		// send block off to be reprovided
 	case <-bs.process.Closing():
 		return bs.process.Close()
