@@ -263,12 +263,12 @@
       "hash": "QmdCL8M8DXJdSRnwhpDhukX5r8ydjxnzPJpaKrFudDA8yn",
       "name": "hang-fds",
       "version": "0.0.0"
-	},
-	{
+    },
+    {
       "author": "whyrusleeping",
-      "hash": "QmfJB3xnvaoHcB5Qy3w9AnpwZf6bx5WMmTc7n5U59zbpth",
+      "hash": "QmaUewj1HPiCX5mjNHmevQiNWr4eeAn7HBfHcGVbRyafdo",
       "name": "floodsub",
-      "version": "0.6.1"
+      "version": "0.6.2"
     }
   ],
   "gxVersion": "0.4.0",
