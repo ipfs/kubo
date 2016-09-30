@@ -521,7 +521,7 @@ func (p *pinner) PinWithMode(c *cid.Cid, mode PinMode) {
 	}
 }
 
-func hasChild(ds mdag.DAGService, links []*mdag.Link, child key.Key) (bool, error) {
+func hasChild(ds mdag.LinkService, links []*mdag.Link, child key.Key) (bool, error) {
 	for _, lnk := range links {
 		c := cid.NewCidV0(lnk.Hash)
 		if key.Key(c.Hash()) == child {

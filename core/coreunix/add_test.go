@@ -98,7 +98,7 @@ func TestAddGCLive(t *testing.T) {
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcchan, err := gc.GC(context.Background(), node.Blockstore, node.LinkService, node.Pinning, nil)
+		gcchan, err := gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
 		if err != nil {
 			log.Error("GC ERROR:", err)
 			errs <- err
