@@ -22,21 +22,17 @@ check_file_fetch() {
 	'
 }
 
-check_dir_fetch() {
-	node=$1
-	ref=$2
-
-	test_expect_success "node can fetch all refs for dir" '
-		ipfsi $node refs -r $ref > /dev/null
-	'
-}
-
 run_single_file_test() {
 	test_expect_success "add a file on node1" '
 		random 1000000 > filea &&
 		FILEA_HASH=$(ipfsi 1 add -q filea)
 	'
 
+	check_file_fetch 9 $FILEA_HASH filea
+	check_file_fetch 8 $FILEA_HASH filea
+	check_file_fetch 7 $FILEA_HASH filea
+	check_file_fetch 6 $FILEA_HASH filea
+	check_file_fetch 5 $FILEA_HASH filea
 	check_file_fetch 4 $FILEA_HASH filea
 	check_file_fetch 3 $FILEA_HASH filea
 	check_file_fetch 2 $FILEA_HASH filea
@@ -44,35 +40,10 @@ run_single_file_test() {
 	check_file_fetch 0 $FILEA_HASH filea
 }
 
-run_random_dir_test() {
-	test_expect_success "create a bunch of random files" '
-		random-files -depth=4 -dirs=5 -files=8 foobar > /dev/null
-	'
-
-	test_expect_success "add those on node 2" '
-		DIR_HASH=$(ipfsi 2 add -r -q foobar | tail -n1)
-	'
-
-	check_dir_fetch 0 $DIR_HASH
-	check_dir_fetch 1 $DIR_HASH
-	check_dir_fetch 2 $DIR_HASH
-	check_dir_fetch 3 $DIR_HASH
-	check_dir_fetch 4 $DIR_HASH
-}
-
-run_advanced_test() {
-
-	run_single_file_test
-
-	run_random_dir_test
-
-	test_expect_success "shut down nodes" '
-		iptb stop
-	'
-}
+NNODES=10
 
 test_expect_success "set up testbed" '
-	iptb init -n 10 -p 0 -f --bootstrap=none
+	iptb init -n $NNODES -p 0 -f --bootstrap=none
 '
 
 test_expect_success "start up nodes" '
@@ -93,6 +64,10 @@ test_expect_success "retrieve that file on a client mode node" '
 	check_file_fetch 9 $FILE_HASH filea
 '
 
-run_advanced_test
+run_single_file_test
+
+test_expect_success "shut down nodes" '
+	iptb stop
+'
 
 test_done
