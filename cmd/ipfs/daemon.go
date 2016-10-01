@@ -43,6 +43,7 @@ const (
 	offlineKwd                = "offline"
 	routingOptionKwd          = "routing"
 	routingOptionSupernodeKwd = "supernode"
+	routingOptionDHTClientKwd = "dhtclient"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
@@ -119,6 +120,17 @@ located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
 environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
+
+Routing
+
+IPFS by default will use a DHT for content routing. There is a highly
+experimental alternative that operates the DHT in a 'client only' mode that can
+be enabled by running the daemon as:
+
+    ipfs daemon --routing=dhtclient
+
+This will later be transitioned into a config option once it gets out of the
+'experimental' stage.
 
 DEPRECATION NOTICE
 
@@ -286,7 +298,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
-	if routingOption == routingOptionSupernodeKwd {
+	switch routingOption {
+	case routingOptionSupernodeKwd:
 		servers, err := cfg.SupernodeRouting.ServerIPFSAddrs()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -302,6 +315,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 
 		ncfg.Routing = corerouting.SupernodeClient(infos...)
+	case routingOptionDHTClientKwd:
+		ncfg.Routing = core.DHTClientOption
 	}
 
 	node, err := core.NewNode(req.Context(), ncfg)
