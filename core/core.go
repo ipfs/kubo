@@ -17,6 +17,7 @@ import (
 	"time"
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
+
 	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -26,6 +27,7 @@ import (
 	pstore "gx/ipfs/QmYkwVGkwoPbMVQEbf6LonZg4SsCxGP3H7PBEtdNCNRyxD/go-libp2p-peerstore"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	floodsub "gx/ipfs/QmaUewj1HPiCX5mjNHmevQiNWr4eeAn7HBfHcGVbRyafdo/floodsub"
 	discovery "gx/ipfs/QmbiRCGZqhfcSjnm9icGz3oNQQdPLAnLWnKHXixaEWXVCN/go-libp2p/p2p/discovery"
 	p2phost "gx/ipfs/QmbiRCGZqhfcSjnm9icGz3oNQQdPLAnLWnKHXixaEWXVCN/go-libp2p/p2p/host"
 	p2pbhost "gx/ipfs/QmbiRCGZqhfcSjnm9icGz3oNQQdPLAnLWnKHXixaEWXVCN/go-libp2p/p2p/host/basic"
@@ -112,6 +114,8 @@ type IpfsNode struct {
 	Reprovider   *rp.Reprovider // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
 
+	Floodsub *floodsub.PubSub
+
 	proc goprocess.Process
 	ctx  context.Context
 
@@ -126,7 +130,7 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub bool) error {
 
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
@@ -182,6 +186,10 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		}
 
 		go n.Reprovider.ProvideEvery(ctx, interval)
+	}
+
+	if pubsub {
+		n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
 	}
 
 	// setup local discovery

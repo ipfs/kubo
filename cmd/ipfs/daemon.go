@@ -21,10 +21,9 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
-	"gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
 	"gx/ipfs/QmR3KwhXCRLTNZB59vELb2HhEWrGy9nuychepxFtj3wWYa/client_golang/prometheus"
-
 	mprome "gx/ipfs/QmXWro6iddJRbGWUoZDpTu6tjo5EXX4xJHHR9VczeoGZbw/go-metrics-prometheus"
+	"gx/ipfs/QmY83KqqnQ286ZWbV2x7ixpeemH3cBpk8R54egS619WYff/go-multiaddr-net"
 	pstore "gx/ipfs/QmYkwVGkwoPbMVQEbf6LonZg4SsCxGP3H7PBEtdNCNRyxD/go-libp2p-peerstore"
 	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
 	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
@@ -47,6 +46,7 @@ const (
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
+	enableFloodSubKwd         = "enable-pubsub-experiment"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -145,6 +145,7 @@ Headers.
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(true),
 		cmds.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API.").Default(false),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
+		cmds.BoolOption(enableFloodSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -266,14 +267,19 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	offline, _, _ := req.Option(offlineKwd).Bool()
+	pubsub, _, _ := req.Option(enableFloodSubKwd).Bool()
+
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
 		Repo:      repo,
 		Permament: true, // It is temporary way to signify that node is permament
-		//TODO(Kubuxu): refactor Online vs Offline by adding Permement vs Epthemeral
+		Online:    !offline,
+		ExtraOpts: map[string]bool{
+			"pubsub": pubsub,
+		},
+		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
-	offline, _, _ := req.Option(offlineKwd).Bool()
-	ncfg.Online = !offline
 
 	routingOption, _, err := req.Option(routingOptionKwd).String()
 	if err != nil {
