@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
@@ -23,21 +23,21 @@ type DAGService interface {
 	Get(context.Context, *cid.Cid) (*Node, error)
 	Remove(*Node) error
 
-	// Return all links for a node, may be more effect than
-	// calling Get
-	GetLinks(context.Context, *cid.Cid) ([]*Link, error)
-
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
 	GetMany(context.Context, []*cid.Cid) <-chan *NodeOption
 
 	Batch() *Batch
+
+	LinkService
 }
 
-// A LinkService returns the links for a node if they are available
-// locally without having to retrieve the block from the datastore.
 type LinkService interface {
-	Get(*cid.Cid) ([]*Link, error)
+	// Return all links for a node, may be more effect than
+	// calling Get
+	GetLinks(context.Context, *cid.Cid) ([]*Link, error)
+
+	GetOfflineLinkService() LinkService
 }
 
 func NewDAGService(bs *bserv.BlockService) *dagService {
@@ -50,8 +50,7 @@ func NewDAGService(bs *bserv.BlockService) *dagService {
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
 type dagService struct {
-	Blocks      *bserv.BlockService
-	LinkService LinkService
+	Blocks *bserv.BlockService
 }
 
 // Add adds a node to the dagService, storing the block in the BlockService
@@ -105,17 +104,20 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (*Node, error) {
 }
 
 func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*Link, error) {
-	if n.LinkService != nil {
-		links, err := n.LinkService.Get(c)
-		if err == nil {
-			return links, nil
-		}
-	}
 	node, err := n.Get(ctx, c)
 	if err != nil {
 		return nil, err
 	}
 	return node.Links, nil
+}
+
+func (n *dagService) GetOfflineLinkService() LinkService {
+	if n.Blocks.Exchange.IsOnline() {
+		bsrv := bserv.New(n.Blocks.Blockstore, offline.Exchange(n.Blocks.Blockstore))
+		return NewDAGService(bsrv)
+	} else {
+		return n
+	}
 }
 
 func (n *dagService) Remove(nd *Node) error {
@@ -391,7 +393,7 @@ func legacyCidFromLink(lnk *Link) *cid.Cid {
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
-func EnumerateChildren(ctx context.Context, ds DAGService, links []*Link, visit func(*cid.Cid) bool, bestEffort bool) error {
+func EnumerateChildren(ctx context.Context, ds LinkService, links []*Link, visit func(*cid.Cid) bool, bestEffort bool) error {
 	for _, lnk := range links {
 		c := legacyCidFromLink(lnk)
 		if visit(c) {

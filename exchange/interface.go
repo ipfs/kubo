@@ -22,5 +22,7 @@ type Interface interface { // type Exchanger interface
 	// available on the network?
 	HasBlock(blocks.Block) error
 
+	IsOnline() bool
+
 	io.Closer
 }

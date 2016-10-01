@@ -205,13 +205,10 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	n.Blocks = bserv.New(n.Blockstore, n.Exchange)
-	d := dag.NewDAGService(n.Blocks)
+	n.DAG = dag.NewDAGService(n.Blocks)
 	if fs, ok := n.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore); ok {
-		n.LinkService = filestore_support.NewLinkService(fs)
-		d.LinkService = n.LinkService
-
+		n.DAG = filestore_support.NewDAGService(fs, n.DAG)
 	}
-	n.DAG = d
 
 	internalDag := dag.NewDAGService(bserv.New(n.Blockstore, offline.Exchange(n.Blockstore)))
 	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG, internalDag)

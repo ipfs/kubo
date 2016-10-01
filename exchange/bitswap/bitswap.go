@@ -417,3 +417,7 @@ func (bs *Bitswap) GetWantlist() []key.Key {
 	}
 	return out
 }
+
+func (bs *Bitswap) IsOnline() bool {
+	return true
+}

@@ -68,3 +68,7 @@ func (e *offlineExchange) GetBlocks(ctx context.Context, ks []key.Key) (<-chan b
 	}()
 	return out, nil
 }
+
+func (e *offlineExchange) IsOnline() bool {
+	return false
+}
