@@ -285,7 +285,7 @@ test_expect_success "'ipfs add' with stdin input succeeds" '
 
 test_expect_success "'ipfs add' output looks good" '
 	HASH="QmZDhWpi8NvKrekaYYhxKCdNVGWsFFe1CREnAjP1QbPaB3" &&
-	echo "added $HASH $HASH" >expected &&
+	echo "added $HASH " >expected &&
 	test_cmp expected actual
 '
 

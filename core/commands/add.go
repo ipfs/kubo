@@ -135,6 +135,7 @@ You can now refer to the added file in a gateway, like so:
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, _, _ := req.Option(pinOptionName).Bool()
+		recursive, _, _ := req.Option(cmds.RecLong).Bool()
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -160,7 +161,8 @@ You can now refer to the added file in a gateway, like so:
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
-		fileAdder, err := coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dserv)
+		useRoot := wrap || recursive
+		fileAdder, err := coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dserv, useRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

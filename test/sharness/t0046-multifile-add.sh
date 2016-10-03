@@ -20,11 +20,11 @@ test_expect_success "add files all at once" '
 	ipfs add -q fileA fileB fileC > hashes
 '
 
-test_expect_failure "unpin one of the files" '
+test_expect_success "unpin one of the files" '
 	ipfs pin rm `head -1 hashes` > pin-out
 '
 
-test_expect_failure "unpin output looks good" '
+test_expect_success "unpin output looks good" '
 	echo "unpinned `head -1 hashes`" > pin-expect
 	test_cmp pin-expect pin-out
 '
@@ -36,8 +36,18 @@ test_expect_success "create files with same name but in different directories" '
 	echo BA > dirB/fileA
 '
 
-test_expect_failure "add files with same name but in different directories" '
+test_expect_success "add files with same name but in different directories" '
 	ipfs add -q dirA/fileA dirB/fileA > hashes
+'
+
+cat <<EOF | LC_ALL=C sort > cat-expected
+AA
+BA
+EOF
+
+test_expect_success "check that both files are added" '
+	cat hashes | xargs ipfs cat | LC_ALL=C sort > cat-actual
+	test_cmp cat-expected cat-actual
 '
 
 test_done
