@@ -29,5 +29,15 @@ test_expect_failure "unpin output looks good" '
 	test_cmp pin-expect pin-out
 '
 
+test_expect_success "create files with same name but in different directories" '
+	mkdir dirA &&
+	mkdir dirB &&
+	echo AA > dirA/fileA &&
+	echo BA > dirB/fileA
+'
+
+test_expect_failure "add files with same name but in different directories" '
+	ipfs add -q dirA/fileA dirB/fileA > hashes
+'
 
 test_done
