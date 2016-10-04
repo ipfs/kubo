@@ -73,13 +73,10 @@ type gcBlockstore struct {
 }
 
 func NewBlockstore(d ds.Batching) *blockstore {
-	return NewBlockstoreWPrefix(d, "")
+	return NewBlockstoreWPrefix(d, DefaultPrefix)
 }
 
 func NewBlockstoreWPrefix(d ds.Batching, prefix string) *blockstore {
-	if prefix == "" {
-		prefix = DefaultPrefix
-	}
 	var dsb ds.Batching
 	prefixKey := ds.NewKey(prefix)
 	dd := dsns.Wrap(d, prefixKey)
