@@ -168,7 +168,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		dir = true
 	case namesys.ErrResolveFailed:
 		// Don't log that error as it is just noise
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Path Resolve error: %s", err.Error())
 		log.Info("Path Resolve error: %s", err.Error())
 		return
