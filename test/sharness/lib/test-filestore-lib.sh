@@ -377,52 +377,52 @@ filestore_test_w_daemon() {
       test -z "`ipfs filestore ls -q`"
     '
 
-    test_expect_success "enable Filestore.APIServerSidePaths" '
-      ipfs config Filestore.APIServerSidePaths --bool true
-    '
+#     test_expect_success "enable Filestore.APIServerSidePaths" '
+#       ipfs config Filestore.APIServerSidePaths --bool true
+#     '
 
-    test_launch_ipfs_daemon $opt
+#     test_launch_ipfs_daemon $opt
 
-    test_add_cat_file "filestore add -S" "`pwd`"
+#     test_add_cat_file "filestore add -S" "`pwd`"
 
-    test_post_add "filestore add -S" "`pwd`"
+#     test_post_add "filestore add -S" "`pwd`"
 
-    test_add_empty_file "filestore add -S" "`pwd`"
+#     test_add_empty_file "filestore add -S" "`pwd`"
 
-    test_add_cat_5MB "filestore add -S" "`pwd`"
+#     test_add_cat_5MB "filestore add -S" "`pwd`"
 
-    test_add_mulpl_files "filestore add -S"
+#     test_add_mulpl_files "filestore add -S"
 
-    cat <<EOF > add_expect
-added QmQhAyoEzSg5JeAzGDCx63aPekjSGKeQaYs4iRf4y6Qm6w adir
-added QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb `pwd`/adir/file3
-added QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH `pwd`/adir/file1
-added QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN `pwd`/adir/file2
-EOF
+#     cat <<EOF > add_expect
+# added QmQhAyoEzSg5JeAzGDCx63aPekjSGKeQaYs4iRf4y6Qm6w adir
+# added QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb `pwd`/adir/file3
+# added QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH `pwd`/adir/file1
+# added QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN `pwd`/adir/file2
+# EOF
 
-    test_expect_success "testing filestore add -S -r" '
-      mkdir adir &&
-      echo "Hello Worlds!" > adir/file1 &&
-      echo "HELLO WORLDS!" > adir/file2 &&
-      random 5242880 41 > adir/file3 &&
-      ipfs filestore add -S -r "`pwd`/adir" | LC_ALL=C sort > add_actual &&
-      test_cmp add_expect add_actual &&
-      ipfs cat QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > cat_actual
-      test_cmp adir/file1 cat_actual
-    '
+#     test_expect_success "testing filestore add -S -r" '
+#       mkdir adir &&
+#       echo "Hello Worlds!" > adir/file1 &&
+#       echo "HELLO WORLDS!" > adir/file2 &&
+#       random 5242880 41 > adir/file3 &&
+#       ipfs filestore add -S -r "`pwd`/adir" | LC_ALL=C sort > add_actual &&
+#       test_cmp add_expect add_actual &&
+#       ipfs cat QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > cat_actual
+#       test_cmp adir/file1 cat_actual
+#     '
 
-    test_expect_success "filestore mv" '
-      HASH=QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc &&
-      test_must_fail ipfs filestore mv $HASH "mountdir/bigfile-42-also" &&
-      ipfs filestore mv $HASH "`pwd`/mountdir/bigfile-42-also"
-    '
+#     test_expect_success "filestore mv" '
+#       HASH=QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc &&
+#       test_must_fail ipfs filestore mv $HASH "mountdir/bigfile-42-also" &&
+#       ipfs filestore mv $HASH "`pwd`/mountdir/bigfile-42-also"
+#     '
 
-    filestore_test_exact_paths '-S'
+#     filestore_test_exact_paths '-S'
 
-    test_add_symlinks '-S'
+#     test_add_symlinks '-S'
 
-    test_add_dir_w_symlinks '-S'
+#     test_add_dir_w_symlinks '-S'
 
-    test_kill_ipfs_daemon
+#     test_kill_ipfs_daemon
 
 }

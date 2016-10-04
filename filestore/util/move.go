@@ -58,7 +58,7 @@ import (
 
 func ConvertToFile(node *core.IpfsNode, k *cid.Cid, path string) error {
 	config, _ := node.Repo.Config()
-	if !node.LocalMode() && (config == nil || !config.Filestore.APIServerSidePaths) {
+	if !node.LocalMode() && (config == nil || !config.Filestore.APIServerSidePathsEnabled()) {
 		return errs.New("Daemon is running and server side paths are not enabled.")
 	}
 	if !filepath.IsAbs(path) {
