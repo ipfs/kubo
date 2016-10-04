@@ -72,13 +72,9 @@ func GC(ctx context.Context, bs bstore.MultiBlockstore, ls dag.LinkService, pn p
 func Descendants(ctx context.Context, ls dag.LinkService, set key.KeySet, roots []*cid.Cid, bestEffort bool) error {
 	for _, c := range roots {
 		set.Add(key.Key(c.Hash()))
-		links, err := ls.GetLinks(ctx, c)
-		if err != nil {
-			return err
-		}
 
 		// EnumerateChildren recursively walks the dag and adls the keys to the given set
-		err = dag.EnumerateChildren(ctx, ls, links, func(c *cid.Cid) bool {
+		err := dag.EnumerateChildren(ctx, ls, c, func(c *cid.Cid) bool {
 			k := key.Key(c.Hash())
 			seen := set.Has(k)
 			if seen {

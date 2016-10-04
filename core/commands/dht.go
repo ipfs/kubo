@@ -361,12 +361,8 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGSer
 	provided := make(map[key.Key]struct{})
 	for _, c := range cids {
 		kset := key.NewKeySet()
-		node, err := dserv.Get(ctx, c)
-		if err != nil {
-			return err
-		}
 
-		err = dag.EnumerateChildrenAsync(ctx, dserv, node, func(c *cid.Cid) bool {
+		err := dag.EnumerateChildrenAsync(ctx, dserv, c, func(c *cid.Cid) bool {
 			k := key.Key(c.Hash())
 			if kset.Has(k) {
 				kset.Add(k)
