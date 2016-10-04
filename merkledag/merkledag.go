@@ -126,8 +126,8 @@ func (n *dagService) Remove(nd *Node) error {
 }
 
 // FetchGraph fetches all nodes that are children of the given node
-func FetchGraph(ctx context.Context, root *Node, serv DAGService) error {
-	return EnumerateChildrenAsync(ctx, serv, root, cid.NewSet().Visit)
+func FetchGraph(ctx context.Context, c *cid.Cid, serv DAGService) error {
+	return EnumerateChildrenAsync(ctx, serv, c, cid.NewSet().Visit)
 }
 
 // FindLinks searches this nodes links for the given key,
@@ -394,19 +394,17 @@ func legacyCidFromLink(lnk *Link) *cid.Cid {
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
-func EnumerateChildren(ctx context.Context, ds LinkService, links []*Link, visit func(*cid.Cid) bool, bestEffort bool) error {
+func EnumerateChildren(ctx context.Context, ds LinkService, root *cid.Cid, visit func(*cid.Cid) bool, bestEffort bool) error {
+	links, err := ds.GetLinks(ctx, root)
+	if bestEffort && err == ErrNotFound {
+		return nil
+	} else if err != nil {
+		return err
+	}
 	for _, lnk := range links {
 		c := legacyCidFromLink(lnk)
 		if visit(c) {
-			children, err := ds.GetLinks(ctx, c)
-			if err != nil {
-				if bestEffort && err == ErrNotFound {
-					continue
-				} else {
-					return err
-				}
-			}
-			err = EnumerateChildren(ctx, ds, children, visit, bestEffort)
+			err = EnumerateChildren(ctx, ds, c, visit, bestEffort)
 			if err != nil {
 				return err
 			}
@@ -415,7 +413,7 @@ func EnumerateChildren(ctx context.Context, ds LinkService, links []*Link, visit
 	return nil
 }
 
-func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, visit func(*cid.Cid) bool) error {
+func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visit func(*cid.Cid) bool) error {
 	toprocess := make(chan []*cid.Cid, 8)
 	nodes := make(chan *NodeOption, 8)
 
@@ -424,6 +422,11 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, visi
 	defer close(toprocess)
 
 	go fetchNodes(ctx, ds, toprocess, nodes)
+
+	root, err := ds.Get(ctx, c)
+	if err != nil {
+		return err
+	}
 
 	nodes <- &NodeOption{Node: root}
 	live := 1

@@ -156,13 +156,9 @@ func TestAddGCLive(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	root, err := node.DAG.Get(ctx, last)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	set := cid.NewSet()
-	err = dag.EnumerateChildren(ctx, node.DAG, root.Links, set.Visit, false)
+	err = dag.EnumerateChildren(ctx, node.DAG, last, set.Visit, false)
 	if err != nil {
 		t.Fatal(err)
 	}
