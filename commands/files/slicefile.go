@@ -23,6 +23,10 @@ func (f *SliceFile) IsDirectory() bool {
 	return true
 }
 
+func (f *SliceFile) NumFiles() int {
+	return len(f.files)
+}
+
 func (f *SliceFile) NextFile() (File, error) {
 	if f.n >= len(f.files) {
 		return nil, io.EOF
