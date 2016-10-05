@@ -26,6 +26,7 @@ var initDocPaths = []string{
 	filepath.Join("init-doc", "contact"),
 	filepath.Join("init-doc", "security-notes"),
 	filepath.Join("init-doc", "quick-start"),
+	filepath.Join("init-doc", "ping"),
 }
 
 // SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key
