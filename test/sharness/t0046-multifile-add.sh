@@ -50,4 +50,13 @@ test_expect_success "check that both files are added" '
 	test_cmp cat-expected cat-actual
 '
 
+test_expect_success "adding multiple directories fails cleanly" '
+	test_must_fail ipfs add -q -r dirA dirB
+'
+
+test_expect_success "adding multiple directories with -w is okay" '
+	ipfs add -q -r -w dirA dirB > hashes &&
+	ipfs ls `tail -1 hashes` > ls-res
+'
+
 test_done

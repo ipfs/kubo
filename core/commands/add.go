@@ -80,6 +80,16 @@ You can now refer to the added file in a gateway, like so:
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
 	},
 	PreRun: func(req cmds.Request) error {
+		wrap, _, _ := req.Option(wrapOptionName).Bool()
+		recursive, _, _ := req.Option(cmds.RecLong).Bool()
+		sliceFile, ok := req.Files().(*files.SliceFile)
+		if !ok {
+			return fmt.Errorf("type assertion failed: req.Files().(*files.SliceFile)")
+		}
+		if !wrap && recursive && sliceFile.NumFiles() > 1 {
+			return fmt.Errorf("adding multiple directories without '-w' unsupported")
+		}
+
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
 			return nil
 		}
