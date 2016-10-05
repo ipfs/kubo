@@ -10,7 +10,7 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/unixfs"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	context "context"
 
 	testu "github.com/ipfs/go-ipfs/unixfs/test"
 )

@@ -15,7 +15,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	context "context"
 )
 
 const (
@@ -245,7 +245,7 @@ func readStreamedJson(req cmds.Request, rr io.Reader, out chan<- interface{}, re
 		if err != nil {
 			if err != io.EOF {
 				log.Error(err)
-				resp.SetError(err,  cmds.ErrNormal)
+				resp.SetError(err, cmds.ErrNormal)
 			}
 			return
 		}

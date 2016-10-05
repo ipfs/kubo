@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	bu "github.com/ipfs/go-ipfs/blocks/blocksutil"
-	k "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
+	k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 )
 
 const (
