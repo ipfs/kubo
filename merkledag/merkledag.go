@@ -41,7 +41,7 @@ type LinkService interface {
 	GetOfflineLinkService() LinkService
 }
 
-func NewDAGService(bs *bserv.BlockService) *dagService {
+func NewDAGService(bs bserv.BlockService) *dagService {
 	return &dagService{Blocks: bs}
 }
 
@@ -51,7 +51,7 @@ func NewDAGService(bs *bserv.BlockService) *dagService {
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
 type dagService struct {
-	Blocks *bserv.BlockService
+	Blocks bserv.BlockService
 }
 
 // Add adds a node to the dagService, storing the block in the BlockService
@@ -113,8 +113,8 @@ func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*Link, error) 
 }
 
 func (n *dagService) GetOfflineLinkService() LinkService {
-	if n.Blocks.Exchange.IsOnline() {
-		bsrv := bserv.New(n.Blocks.Blockstore, offline.Exchange(n.Blocks.Blockstore))
+	if n.Blocks.Exchange().IsOnline() {
+		bsrv := bserv.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
 		return NewDAGService(bsrv)
 	} else {
 		return n
