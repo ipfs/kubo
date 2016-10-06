@@ -77,7 +77,7 @@ properly written. It checks the following:
   script which will setup a Git commit-msg hook that will add the above
   trailers to all the commit messages you write.
 
-See the [documentation about amending commits](docs/amending-commits.md)
+See the [documentation about amending commits](https://github.com/ipfs/community/blob/master/docs/amending-commits.md)
 for explanation about how you can rework commit messages.
   
 Some example commit messages:
