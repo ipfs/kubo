@@ -5,7 +5,7 @@ import (
 	"net"
 	"strings"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	context "context"
 	isd "gx/ipfs/QmaeHSCBd9XjXxmgHEiKkHtLcMCb2eZsPLKT7bHgBfBkqw/go-is-domain"
 
 	path "github.com/ipfs/go-ipfs/path"

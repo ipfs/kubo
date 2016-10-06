@@ -1,6 +1,7 @@
 package bitswap
 
 import (
+	"context"
 	"errors"
 
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
@@ -8,10 +9,10 @@ import (
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-	routing "gx/ipfs/QmemZcG8WprPbnVX3AM43GhhSUiA3V6NjcTLAguvWzkdpQ/go-libp2p-routing"
+	routing "gx/ipfs/QmXKuGUzLcgoQvp8M6ZEJzupWUNmx8NoqXEbYLMDjL4rjj/go-libp2p-routing"
+	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
@@ -98,10 +99,11 @@ func (nc *networkClient) FindProvidersAsync(ctx context.Context, k key.Key, max 
 	// deprecated once the ipfsnet.Mock is added. The code below is only
 	// temporary.
 
+	c := cid.NewCidV0(k.ToMultihash())
 	out := make(chan peer.ID)
 	go func() {
 		defer close(out)
-		providers := nc.routing.FindProvidersAsync(ctx, k, max)
+		providers := nc.routing.FindProvidersAsync(ctx, c, max)
 		for info := range providers {
 			select {
 			case <-ctx.Done():
@@ -138,7 +140,8 @@ func (n *networkClient) NewMessageSender(ctx context.Context, p peer.ID) (bsnet.
 
 // Provide provides the key to the network
 func (nc *networkClient) Provide(ctx context.Context, k key.Key) error {
-	return nc.routing.Provide(ctx, k)
+	c := cid.NewCidV0(k.ToMultihash())
+	return nc.routing.Provide(ctx, c)
 }
 
 func (nc *networkClient) SetDelegate(r bsnet.Receiver) {
