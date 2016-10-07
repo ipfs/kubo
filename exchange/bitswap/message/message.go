@@ -1,16 +1,17 @@
 package message
 
 import (
+	"fmt"
 	"io"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
-	inet "gx/ipfs/QmdXimY9QHaasZmw6hWojWnCJvfgxETjZQfg9g6ZrA9wMX/go-libp2p-net"
 
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
+	inet "gx/ipfs/QmdXimY9QHaasZmw6hWojWnCJvfgxETjZQfg9g6ZrA9wMX/go-libp2p-net"
 )
 
 // TODO move message.go into the bitswap package
@@ -25,9 +26,9 @@ type BitSwapMessage interface {
 	Blocks() []blocks.Block
 
 	// AddEntry adds an entry to the Wantlist.
-	AddEntry(key key.Key, priority int)
+	AddEntry(key *cid.Cid, priority int)
 
-	Cancel(key key.Key)
+	Cancel(key *cid.Cid)
 
 	Empty() bool
 
@@ -47,8 +48,8 @@ type Exportable interface {
 
 type impl struct {
 	full     bool
-	wantlist map[key.Key]Entry
-	blocks   map[key.Key]blocks.Block
+	wantlist map[string]Entry
+	blocks   map[string]blocks.Block
 }
 
 func New(full bool) BitSwapMessage {
@@ -57,8 +58,8 @@ func New(full bool) BitSwapMessage {
 
 func newMsg(full bool) *impl {
 	return &impl{
-		blocks:   make(map[key.Key]blocks.Block),
-		wantlist: make(map[key.Key]Entry),
+		blocks:   make(map[string]blocks.Block),
+		wantlist: make(map[string]Entry),
 		full:     full,
 	}
 }
@@ -68,16 +69,20 @@ type Entry struct {
 	Cancel bool
 }
 
-func newMessageFromProto(pbm pb.Message) BitSwapMessage {
+func newMessageFromProto(pbm pb.Message) (BitSwapMessage, error) {
 	m := newMsg(pbm.GetWantlist().GetFull())
 	for _, e := range pbm.GetWantlist().GetEntries() {
-		m.addEntry(key.Key(e.GetBlock()), int(e.GetPriority()), e.GetCancel())
+		c, err := cid.Cast([]byte(e.GetBlock()))
+		if err != nil {
+			return nil, fmt.Errorf("incorrectly formatted cid in wantlist: %s", err)
+		}
+		m.addEntry(c, int(e.GetPriority()), e.GetCancel())
 	}
 	for _, d := range pbm.GetBlocks() {
 		b := blocks.NewBlock(d)
 		m.AddBlock(b)
 	}
-	return m
+	return m, nil
 }
 
 func (m *impl) Full() bool {
@@ -104,16 +109,17 @@ func (m *impl) Blocks() []blocks.Block {
 	return bs
 }
 
-func (m *impl) Cancel(k key.Key) {
-	delete(m.wantlist, k)
+func (m *impl) Cancel(k *cid.Cid) {
+	delete(m.wantlist, k.KeyString())
 	m.addEntry(k, 0, true)
 }
 
-func (m *impl) AddEntry(k key.Key, priority int) {
+func (m *impl) AddEntry(k *cid.Cid, priority int) {
 	m.addEntry(k, priority, false)
 }
 
-func (m *impl) addEntry(k key.Key, priority int, cancel bool) {
+func (m *impl) addEntry(c *cid.Cid, priority int, cancel bool) {
+	k := c.KeyString()
 	e, exists := m.wantlist[k]
 	if exists {
 		e.Priority = priority
@@ -121,7 +127,7 @@ func (m *impl) addEntry(k key.Key, priority int, cancel bool) {
 	} else {
 		m.wantlist[k] = Entry{
 			Entry: &wantlist.Entry{
-				Key:      k,
+				Cid:      c,
 				Priority: priority,
 			},
 			Cancel: cancel,
@@ -130,7 +136,7 @@ func (m *impl) addEntry(k key.Key, priority int, cancel bool) {
 }
 
 func (m *impl) AddBlock(b blocks.Block) {
-	m.blocks[b.Key()] = b
+	m.blocks[b.Cid().KeyString()] = b
 }
 
 func FromNet(r io.Reader) (BitSwapMessage, error) {
@@ -144,8 +150,7 @@ func FromPBReader(pbr ggio.Reader) (BitSwapMessage, error) {
 		return nil, err
 	}
 
-	m := newMessageFromProto(*pb)
-	return m, nil
+	return newMessageFromProto(*pb)
 }
 
 func (m *impl) ToProto() *pb.Message {
@@ -153,7 +158,7 @@ func (m *impl) ToProto() *pb.Message {
 	pbm.Wantlist = new(pb.Message_Wantlist)
 	for _, e := range m.wantlist {
 		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
-			Block:    proto.String(string(e.Key)),
+			Block:    proto.String(e.Cid.KeyString()),
 			Priority: proto.Int32(int32(e.Priority)),
 			Cancel:   proto.Bool(e.Cancel),
 		})
@@ -176,7 +181,7 @@ func (m *impl) ToNet(w io.Writer) error {
 func (m *impl) Loggable() map[string]interface{} {
 	var blocks []string
 	for _, v := range m.blocks {
-		blocks = append(blocks, v.Key().B58String())
+		blocks = append(blocks, v.Cid().String())
 	}
 	return map[string]interface{}{
 		"blocks": blocks,

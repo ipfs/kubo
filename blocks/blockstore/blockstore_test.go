@@ -2,22 +2,24 @@ package blockstore
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
-	context "context"
+	blocks "github.com/ipfs/go-ipfs/blocks"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
+
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	dsq "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
 	ds_sync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
-
-	blocks "github.com/ipfs/go-ipfs/blocks"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 )
 
 func TestGetWhenKeyNotPresent(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
-	bl, err := bs.Get(key.Key("not present"))
+	c := cid.NewCidV0(u.Hash([]byte("stuff")))
+	bl, err := bs.Get(c)
 
 	if bl != nil {
 		t.Error("nil block expected")
@@ -27,9 +29,9 @@ func TestGetWhenKeyNotPresent(t *testing.T) {
 	}
 }
 
-func TestGetWhenKeyIsEmptyString(t *testing.T) {
+func TestGetWhenKeyIsNil(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
-	_, err := bs.Get(key.Key(""))
+	_, err := bs.Get(nil)
 	if err != ErrNotFound {
 		t.Fail()
 	}
@@ -44,7 +46,7 @@ func TestPutThenGetBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	blockFromBlockstore, err := bs.Get(block.Key())
+	blockFromBlockstore, err := bs.Get(block.Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +64,7 @@ func TestHashOnRead(t *testing.T) {
 
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	bl := blocks.NewBlock([]byte("some data"))
-	blBad, err := blocks.NewBlockWithHash([]byte("some other data"), bl.Key().ToMultihash())
+	blBad, err := blocks.NewBlockWithCid([]byte("some other data"), bl.Cid())
 	if err != nil {
 		t.Fatal("debug is off, still got an error")
 	}
@@ -71,35 +73,35 @@ func TestHashOnRead(t *testing.T) {
 	bs.Put(bl2)
 	bs.HashOnRead(true)
 
-	if _, err := bs.Get(bl.Key()); err != ErrHashMismatch {
+	if _, err := bs.Get(bl.Cid()); err != ErrHashMismatch {
 		t.Fatalf("expected '%v' got '%v'\n", ErrHashMismatch, err)
 	}
 
-	if b, err := bs.Get(bl2.Key()); err != nil || b.String() != bl2.String() {
+	if b, err := bs.Get(bl2.Cid()); err != nil || b.String() != bl2.String() {
 		t.Fatal("got wrong blocks")
 	}
 }
 
-func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []key.Key) {
+func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []*cid.Cid) {
 	if d == nil {
 		d = ds.NewMapDatastore()
 	}
 	bs := NewBlockstore(ds_sync.MutexWrap(d))
 
-	keys := make([]key.Key, N)
+	keys := make([]*cid.Cid, N)
 	for i := 0; i < N; i++ {
 		block := blocks.NewBlock([]byte(fmt.Sprintf("some data %d", i)))
 		err := bs.Put(block)
 		if err != nil {
 			t.Fatal(err)
 		}
-		keys[i] = block.Key()
+		keys[i] = block.Cid()
 	}
 	return bs, keys
 }
 
-func collect(ch <-chan key.Key) []key.Key {
-	var keys []key.Key
+func collect(ch <-chan *cid.Cid) []*cid.Cid {
+	var keys []*cid.Cid
 	for k := range ch {
 		keys = append(keys, k)
 	}
@@ -188,18 +190,18 @@ func TestValueTypeMismatch(t *testing.T) {
 	block := blocks.NewBlock([]byte("some data"))
 
 	datastore := ds.NewMapDatastore()
-	k := BlockPrefix.Child(block.Key().DsKey())
+	k := BlockPrefix.Child(dshelp.NewKeyFromBinary(block.Cid().KeyString()))
 	datastore.Put(k, "data that isn't a block!")
 
 	blockstore := NewBlockstore(ds_sync.MutexWrap(datastore))
 
-	_, err := blockstore.Get(block.Key())
+	_, err := blockstore.Get(block.Cid())
 	if err != ValueTypeMismatch {
 		t.Fatal(err)
 	}
 }
 
-func expectMatches(t *testing.T, expect, actual []key.Key) {
+func expectMatches(t *testing.T, expect, actual []*cid.Cid) {
 
 	if len(expect) != len(actual) {
 		t.Errorf("expect and actual differ: %d != %d", len(expect), len(actual))
@@ -207,7 +209,7 @@ func expectMatches(t *testing.T, expect, actual []key.Key) {
 	for _, ek := range expect {
 		found := false
 		for _, ak := range actual {
-			if ek == ak {
+			if ek.Equals(ak) {
 				found = true
 			}
 		}

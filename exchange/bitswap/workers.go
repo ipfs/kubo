@@ -1,15 +1,15 @@
 package bitswap
 
 import (
+	"context"
 	"math/rand"
 	"sync"
 	"time"
 
-	context "context"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
@@ -77,7 +77,7 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 
 	limit := make(chan struct{}, provideWorkerMax)
 
-	limitedGoProvide := func(k key.Key, wid int) {
+	limitedGoProvide := func(k *cid.Cid, wid int) {
 		defer func() {
 			// replace token when done
 			<-limit
@@ -85,7 +85,7 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 		ev := logging.LoggableMap{"ID": wid}
 
 		ctx := procctx.OnClosingContext(px) // derive ctx from px
-		defer log.EventBegin(ctx, "Bitswap.ProvideWorker.Work", ev, &k).Done()
+		defer log.EventBegin(ctx, "Bitswap.ProvideWorker.Work", ev, k).Done()
 
 		ctx, cancel := context.WithTimeout(ctx, provideTimeout) // timeout ctx
 		defer cancel()
@@ -121,9 +121,9 @@ func (bs *Bitswap) provideWorker(px process.Process) {
 
 func (bs *Bitswap) provideCollector(ctx context.Context) {
 	defer close(bs.provideKeys)
-	var toProvide []key.Key
-	var nextKey key.Key
-	var keysOut chan key.Key
+	var toProvide []*cid.Cid
+	var nextKey *cid.Cid
+	var keysOut chan *cid.Cid
 
 	for {
 		select {
@@ -181,7 +181,7 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 			// for new providers for blocks.
 			i := rand.Intn(len(entries))
 			bs.findKeys <- &blockRequest{
-				Key: entries[i].Key,
+				Cid: entries[i].Cid,
 				Ctx: ctx,
 			}
 		case <-parent.Done():
@@ -192,23 +192,23 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 
 func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 	var activeLk sync.Mutex
-	kset := key.NewKeySet()
+	kset := cid.NewSet()
 
 	for {
 		select {
 		case e := <-bs.findKeys:
 			activeLk.Lock()
-			if kset.Has(e.Key) {
+			if kset.Has(e.Cid) {
 				activeLk.Unlock()
 				continue
 			}
-			kset.Add(e.Key)
+			kset.Add(e.Cid)
 			activeLk.Unlock()
 
 			go func(e *blockRequest) {
 				child, cancel := context.WithTimeout(e.Ctx, providerRequestTimeout)
 				defer cancel()
-				providers := bs.network.FindProvidersAsync(child, e.Key, maxProvidersPerRequest)
+				providers := bs.network.FindProvidersAsync(child, e.Cid, maxProvidersPerRequest)
 				wg := &sync.WaitGroup{}
 				for p := range providers {
 					wg.Add(1)
@@ -222,7 +222,7 @@ func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 				}
 				wg.Wait()
 				activeLk.Lock()
-				kset.Remove(e.Key)
+				kset.Remove(e.Cid)
 				activeLk.Unlock()
 			}(e)
 

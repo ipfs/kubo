@@ -609,7 +609,12 @@ stat' on the file or any of its ancestors.
 			return
 		}
 
-		defer wfd.Close()
+		defer func() {
+			err := wfd.Close()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+			}
+		}()
 
 		if trunc {
 			if err := wfd.Truncate(0); err != nil {

@@ -95,7 +95,7 @@ order to reclaim hard disk space.
 
 				buf := new(bytes.Buffer)
 				if quiet {
-					buf = bytes.NewBufferString(string(obj.Key) + "\n")
+					buf = bytes.NewBufferString(obj.Key.String() + "\n")
 				} else {
 					buf = bytes.NewBufferString(fmt.Sprintf("removed %s\n", obj.Key))
 				}

@@ -2,6 +2,7 @@ package bstest
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -10,9 +11,7 @@ import (
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	. "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
-	"context"
 	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
@@ -44,11 +43,11 @@ func TestBlocks(t *testing.T) {
 		t.Error("Block Multihash and data multihash not equal")
 	}
 
-	if o.Key() != key.Key(h) {
+	if !o.Cid().Equals(cid.NewCidV0(h)) {
 		t.Error("Block key and data multihash key not equal")
 	}
 
-	k, err := bs.AddObject(o)
+	k, err := bs.AddBlock(o)
 	if err != nil {
 		t.Error("failed to add block to BlockService", err)
 		return
@@ -66,7 +65,7 @@ func TestBlocks(t *testing.T) {
 		return
 	}
 
-	if o.Key() != b2.Key() {
+	if !o.Cid().Equals(b2.Cid()) {
 		t.Error("Block keys not equal.")
 	}
 
@@ -93,7 +92,7 @@ func TestGetBlocksSequential(t *testing.T) {
 	var cids []*cid.Cid
 	for _, o := range objs {
 		cids = append(cids, o.Cid())
-		servs[0].AddObject(o)
+		servs[0].AddBlock(o)
 	}
 
 	t.Log("one instance at a time, get blocks concurrently")
@@ -102,12 +101,12 @@ func TestGetBlocksSequential(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
 		defer cancel()
 		out := servs[i].GetBlocks(ctx, cids)
-		gotten := make(map[key.Key]blocks.Block)
+		gotten := make(map[string]blocks.Block)
 		for blk := range out {
-			if _, ok := gotten[blk.Key()]; ok {
+			if _, ok := gotten[blk.Cid().KeyString()]; ok {
 				t.Fatal("Got duplicate block!")
 			}
-			gotten[blk.Key()] = blk
+			gotten[blk.Cid().KeyString()] = blk
 		}
 		if len(gotten) != len(objs) {
 			t.Fatalf("Didnt get enough blocks back: %d/%d", len(gotten), len(objs))

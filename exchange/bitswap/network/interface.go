@@ -1,10 +1,11 @@
 package network
 
 import (
-	context "context"
+	"context"
+
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
@@ -52,8 +53,8 @@ type Receiver interface {
 
 type Routing interface {
 	// FindProvidersAsync returns a channel of providers for the given key
-	FindProvidersAsync(context.Context, key.Key, int) <-chan peer.ID
+	FindProvidersAsync(context.Context, *cid.Cid, int) <-chan peer.ID
 
 	// Provide provides the key to the network
-	Provide(context.Context, key.Key) error
+	Provide(context.Context, *cid.Cid) error
 }

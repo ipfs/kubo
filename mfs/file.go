@@ -1,6 +1,7 @@
 package mfs
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -8,8 +9,6 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	mod "github.com/ipfs/go-ipfs/unixfs/mod"
-
-	context "context"
 )
 
 type File struct {

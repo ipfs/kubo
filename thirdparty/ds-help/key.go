@@ -9,3 +9,7 @@ import (
 func NewKeyFromBinary(s string) ds.Key {
 	return ds.NewKey(base32.RawStdEncoding.EncodeToString([]byte(s)))
 }
+
+func BinaryFromDsKey(k ds.Key) ([]byte, error) {
+	return base32.RawStdEncoding.DecodeString(k.String()[1:])
+}

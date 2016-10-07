@@ -66,7 +66,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 		}
 
 		res.SetOutput(&BlockStat{
-			Key:  b.Key().B58String(),
+			Key:  b.Cid().String(),
 			Size: len(b.RawData()),
 		})
 	},
@@ -140,9 +140,9 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		}
 
 		b := blocks.NewBlock(data)
-		log.Debugf("BlockPut key: '%q'", b.Key())
+		log.Debugf("BlockPut key: '%q'", b.Cid())
 
-		k, err := n.Blocks.AddObject(b)
+		k, err := n.Blocks.AddBlock(b)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -182,7 +182,7 @@ func getBlockForKey(req cmds.Request, skey string) (blocks.Block, error) {
 		return nil, err
 	}
 
-	log.Debugf("ipfs block: got block with key: %q", b.Key())
+	log.Debugf("ipfs block: got block with key: %s", b.Cid())
 	return b, nil
 }
 

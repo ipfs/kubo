@@ -10,7 +10,6 @@ import (
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	routing "gx/ipfs/QmXKuGUzLcgoQvp8M6ZEJzupWUNmx8NoqXEbYLMDjL4rjj/go-libp2p-routing"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
@@ -92,18 +91,17 @@ func (nc *networkClient) SendMessage(
 }
 
 // FindProvidersAsync returns a channel of providers for the given key
-func (nc *networkClient) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.ID {
+func (nc *networkClient) FindProvidersAsync(ctx context.Context, k *cid.Cid, max int) <-chan peer.ID {
 
 	// NB: this function duplicates the PeerInfo -> ID transformation in the
 	// bitswap network adapter. Not to worry. This network client will be
 	// deprecated once the ipfsnet.Mock is added. The code below is only
 	// temporary.
 
-	c := cid.NewCidV0(k.ToMultihash())
 	out := make(chan peer.ID)
 	go func() {
 		defer close(out)
-		providers := nc.routing.FindProvidersAsync(ctx, c, max)
+		providers := nc.routing.FindProvidersAsync(ctx, k, max)
 		for info := range providers {
 			select {
 			case <-ctx.Done():
@@ -139,9 +137,8 @@ func (n *networkClient) NewMessageSender(ctx context.Context, p peer.ID) (bsnet.
 }
 
 // Provide provides the key to the network
-func (nc *networkClient) Provide(ctx context.Context, k key.Key) error {
-	c := cid.NewCidV0(k.ToMultihash())
-	return nc.routing.Provide(ctx, c)
+func (nc *networkClient) Provide(ctx context.Context, k *cid.Cid) error {
+	return nc.routing.Provide(ctx, k)
 }
 
 func (nc *networkClient) SetDelegate(r bsnet.Receiver) {

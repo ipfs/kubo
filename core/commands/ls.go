@@ -12,7 +12,8 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 )
 
 type LsLink struct {
@@ -90,7 +91,7 @@ The JSON output contains type information.
 			for j, link := range dagnode.Links {
 				var linkNode *merkledag.Node
 				t := unixfspb.Data_DataType(-1)
-				linkKey := key.Key(link.Hash)
+				linkKey := cid.NewCidV0(link.Hash)
 				if ok, err := node.Blockstore.Has(linkKey); ok && err == nil {
 					b, err := node.Blockstore.Get(linkKey)
 					if err != nil {

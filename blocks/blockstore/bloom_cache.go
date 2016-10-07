@@ -1,14 +1,14 @@
 package blockstore
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
 	"github.com/ipfs/go-ipfs/blocks"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
-	context "context"
 	"gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	bloom "gx/ipfs/QmeiMCBkYHxkDkDfnDadzz4YxY5ruL5Pj499essE4vRsGM/bbloom"
 )
 
@@ -84,7 +84,7 @@ func (b *bloomcache) Rebuild(ctx context.Context) {
 		select {
 		case key, ok := <-ch:
 			if ok {
-				b.bloom.AddTS([]byte(key)) // Use binary key, the more compact the better
+				b.bloom.AddTS(key.Bytes()) // Use binary key, the more compact the better
 			} else {
 				finish = true
 			}
@@ -97,7 +97,7 @@ func (b *bloomcache) Rebuild(ctx context.Context) {
 	atomic.StoreInt32(&b.active, 1)
 }
 
-func (b *bloomcache) DeleteBlock(k key.Key) error {
+func (b *bloomcache) DeleteBlock(k *cid.Cid) error {
 	if has, ok := b.hasCached(k); ok && !has {
 		return ErrNotFound
 	}
@@ -107,15 +107,16 @@ func (b *bloomcache) DeleteBlock(k key.Key) error {
 
 // if ok == false has is inconclusive
 // if ok == true then has respons to question: is it contained
-func (b *bloomcache) hasCached(k key.Key) (has bool, ok bool) {
+func (b *bloomcache) hasCached(k *cid.Cid) (has bool, ok bool) {
 	b.total.Inc()
-	if k == "" {
+	if k == nil {
+		log.Error("nil cid in bloom cache")
 		// Return cache invalid so call to blockstore
 		// in case of invalid key is forwarded deeper
 		return false, false
 	}
 	if b.BloomActive() {
-		blr := b.bloom.HasTS([]byte(k))
+		blr := b.bloom.HasTS(k.Bytes())
 		if blr == false { // not contained in bloom is only conclusive answer bloom gives
 			b.hits.Inc()
 			return false, true
@@ -124,7 +125,7 @@ func (b *bloomcache) hasCached(k key.Key) (has bool, ok bool) {
 	return false, false
 }
 
-func (b *bloomcache) Has(k key.Key) (bool, error) {
+func (b *bloomcache) Has(k *cid.Cid) (bool, error) {
 	if has, ok := b.hasCached(k); ok {
 		return has, nil
 	}
@@ -132,7 +133,7 @@ func (b *bloomcache) Has(k key.Key) (bool, error) {
 	return b.blockstore.Has(k)
 }
 
-func (b *bloomcache) Get(k key.Key) (blocks.Block, error) {
+func (b *bloomcache) Get(k *cid.Cid) (blocks.Block, error) {
 	if has, ok := b.hasCached(k); ok && !has {
 		return nil, ErrNotFound
 	}
@@ -141,13 +142,13 @@ func (b *bloomcache) Get(k key.Key) (blocks.Block, error) {
 }
 
 func (b *bloomcache) Put(bl blocks.Block) error {
-	if has, ok := b.hasCached(bl.Key()); ok && has {
+	if has, ok := b.hasCached(bl.Cid()); ok && has {
 		return nil
 	}
 
 	err := b.blockstore.Put(bl)
 	if err == nil {
-		b.bloom.AddTS([]byte(bl.Key()))
+		b.bloom.AddTS(bl.Cid().Bytes())
 	}
 	return err
 }
@@ -162,12 +163,12 @@ func (b *bloomcache) PutMany(bs []blocks.Block) error {
 		return err
 	}
 	for _, bl := range bs {
-		b.bloom.AddTS([]byte(bl.Key()))
+		b.bloom.AddTS(bl.Cid().Bytes())
 	}
 	return nil
 }
 
-func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
+func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 	return b.blockstore.AllKeysChan(ctx)
 }
 

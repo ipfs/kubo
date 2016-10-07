@@ -3,12 +3,11 @@
 package bitswap
 
 import (
+	"context"
 	"errors"
 	"math"
 	"sync"
 	"time"
-
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -19,12 +18,12 @@ import (
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
 	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
-	loggables "gx/ipfs/QmTMy4hVSY28DdwJ9kBz6y7q6MuioFzPcpM3Ma3aPjo1i3/go-libp2p-loggables"
 
-	context "context"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	loggables "gx/ipfs/QmTMy4hVSY28DdwJ9kBz6y7q6MuioFzPcpM3Ma3aPjo1i3/go-libp2p-loggables"
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
@@ -90,8 +89,8 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		network:       network,
 		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
-		newBlocks:     make(chan key.Key, HasBlockBufferSize),
-		provideKeys:   make(chan key.Key, provideKeysBufferSize),
+		newBlocks:     make(chan *cid.Cid, HasBlockBufferSize),
+		provideKeys:   make(chan *cid.Cid, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
 	}
 	go bs.wm.Run()
@@ -137,9 +136,9 @@ type Bitswap struct {
 
 	process process.Process
 
-	newBlocks chan key.Key
+	newBlocks chan *cid.Cid
 
-	provideKeys chan key.Key
+	provideKeys chan *cid.Cid
 
 	counterLk      sync.Mutex
 	blocksRecvd    int
@@ -148,14 +147,15 @@ type Bitswap struct {
 }
 
 type blockRequest struct {
-	Key key.Key
+	Cid *cid.Cid
 	Ctx context.Context
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
-func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (blocks.Block, error) {
-	if k == "" {
+func (bs *Bitswap) GetBlock(parent context.Context, k *cid.Cid) (blocks.Block, error) {
+	if k == nil {
+		log.Error("nil cid in GetBlock")
 		return nil, blockstore.ErrNotFound
 	}
 
@@ -165,18 +165,17 @@ func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (blocks.Block, er
 	// functions called by this one. Otherwise those functions won't return
 	// when this context's cancel func is executed. This is difficult to
 	// enforce. May this comment keep you safe.
-
 	ctx, cancelFunc := context.WithCancel(parent)
 
 	ctx = logging.ContextWithLoggable(ctx, loggables.Uuid("GetBlockRequest"))
-	log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
-	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
+	log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
+	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
 
 	defer func() {
 		cancelFunc()
 	}()
 
-	promise, err := bs.GetBlocks(ctx, []key.Key{k})
+	promise, err := bs.GetBlocks(ctx, []*cid.Cid{k})
 	if err != nil {
 		return nil, err
 	}
@@ -197,10 +196,10 @@ func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (blocks.Block, er
 	}
 }
 
-func (bs *Bitswap) WantlistForPeer(p peer.ID) []key.Key {
-	var out []key.Key
+func (bs *Bitswap) WantlistForPeer(p peer.ID) []*cid.Cid {
+	var out []*cid.Cid
 	for _, e := range bs.engine.WantlistForPeer(p) {
-		out = append(out, e.Key)
+		out = append(out, e.Cid)
 	}
 	return out
 }
@@ -216,7 +215,7 @@ func (bs *Bitswap) LedgerForPeer(p peer.ID) *decision.Receipt {
 // NB: Your request remains open until the context expires. To conserve
 // resources, provide a context with a reasonably short deadline (ie. not one
 // that lasts throughout the lifetime of the server)
-func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks.Block, error) {
+func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan blocks.Block, error) {
 	if len(keys) == 0 {
 		out := make(chan blocks.Block)
 		close(out)
@@ -231,7 +230,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 	promise := bs.notifications.Subscribe(ctx, keys...)
 
 	for _, k := range keys {
-		log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
+		log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
 	}
 
 	bs.wm.WantBlocks(ctx, keys)
@@ -240,13 +239,13 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 	// be able to provide for all keys. This currently holds true in most
 	// every situation. Later, this assumption may not hold as true.
 	req := &blockRequest{
-		Key: keys[0],
+		Cid: keys[0],
 		Ctx: ctx,
 	}
 
-	remaining := make(map[key.Key]struct{})
+	remaining := cid.NewSet()
 	for _, k := range keys {
-		remaining[k] = struct{}{}
+		remaining.Add(k)
 	}
 
 	out := make(chan blocks.Block)
@@ -255,11 +254,8 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 		defer cancel()
 		defer close(out)
 		defer func() {
-			var toCancel []key.Key
-			for k, _ := range remaining {
-				toCancel = append(toCancel, k)
-			}
-			bs.CancelWants(toCancel)
+			// can't just defer this call on its own, arguments are resolved *when* the defer is created
+			bs.CancelWants(remaining.Keys())
 		}()
 		for {
 			select {
@@ -268,7 +264,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 					return
 				}
 
-				delete(remaining, blk.Key())
+				remaining.Remove(blk.Cid())
 				select {
 				case out <- blk:
 				case <-ctx.Done():
@@ -289,8 +285,8 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 }
 
 // CancelWant removes a given key from the wantlist
-func (bs *Bitswap) CancelWants(keys []key.Key) {
-	bs.wm.CancelWants(keys)
+func (bs *Bitswap) CancelWants(cids []*cid.Cid) {
+	bs.wm.CancelWants(cids)
 }
 
 // HasBlock announces the existance of a block to this bitswap service. The
@@ -318,7 +314,7 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	bs.engine.AddBlock(blk)
 
 	select {
-	case bs.newBlocks <- blk.Key():
+	case bs.newBlocks <- blk.Cid():
 		// send block off to be reprovided
 	case <-bs.process.Closing():
 		return bs.process.Close()
@@ -340,13 +336,13 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	}
 
 	// quickly send out cancels, reduces chances of duplicate block receives
-	var keys []key.Key
+	var keys []*cid.Cid
 	for _, block := range iblocks {
-		if _, found := bs.wm.wl.Contains(block.Key()); !found {
+		if _, found := bs.wm.wl.Contains(block.Cid()); !found {
 			log.Infof("received un-asked-for %s from %s", block, p)
 			continue
 		}
-		keys = append(keys, block.Key())
+		keys = append(keys, block.Cid())
 	}
 	bs.wm.CancelWants(keys)
 
@@ -360,8 +356,8 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 				return // ignore error, is either logged previously, or ErrAlreadyHaveBlock
 			}
 
-			k := b.Key()
-			log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
+			k := b.Cid()
+			log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
 
 			log.Debugf("got block %s from %s", b, p)
 			if err := bs.HasBlock(b); err != nil {
@@ -378,7 +374,7 @@ func (bs *Bitswap) updateReceiveCounters(b blocks.Block) error {
 	bs.counterLk.Lock()
 	defer bs.counterLk.Unlock()
 	bs.blocksRecvd++
-	has, err := bs.blockstore.Has(b.Key())
+	has, err := bs.blockstore.Has(b.Cid())
 	if err != nil {
 		log.Infof("blockstore.Has error: %s", err)
 		return err
@@ -415,10 +411,10 @@ func (bs *Bitswap) Close() error {
 	return bs.process.Close()
 }
 
-func (bs *Bitswap) GetWantlist() []key.Key {
-	var out []key.Key
+func (bs *Bitswap) GetWantlist() []*cid.Cid {
+	var out []*cid.Cid
 	for _, e := range bs.wm.wl.Entries() {
-		out = append(out, e.Key)
+		out = append(out, e.Cid)
 	}
 	return out
 }
