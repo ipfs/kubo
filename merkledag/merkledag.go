@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
 	"context"
@@ -28,10 +29,20 @@ type DAGService interface {
 	GetMany(context.Context, []*cid.Cid) <-chan *NodeOption
 
 	Batch() *Batch
+
+	LinkService
 }
 
-func NewDAGService(bs *bserv.BlockService) DAGService {
-	return &dagService{bs}
+type LinkService interface {
+	// Return all links for a node, may be more effect than
+	// calling Get in DAGService
+	GetLinks(context.Context, *cid.Cid) ([]*Link, error)
+
+	GetOfflineLinkService() LinkService
+}
+
+func NewDAGService(bs *bserv.BlockService) *dagService {
+	return &dagService{Blocks: bs}
 }
 
 // dagService is an IPFS Merkle DAG service.
@@ -93,13 +104,30 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (*Node, error) {
 	return res, nil
 }
 
+func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*Link, error) {
+	node, err := n.Get(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	return node.Links, nil
+}
+
+func (n *dagService) GetOfflineLinkService() LinkService {
+	if n.Blocks.Exchange.IsOnline() {
+		bsrv := bserv.New(n.Blocks.Blockstore, offline.Exchange(n.Blocks.Blockstore))
+		return NewDAGService(bsrv)
+	} else {
+		return n
+	}
+}
+
 func (n *dagService) Remove(nd *Node) error {
 	return n.Blocks.DeleteObject(nd)
 }
 
 // FetchGraph fetches all nodes that are children of the given node
-func FetchGraph(ctx context.Context, root *Node, serv DAGService) error {
-	return EnumerateChildrenAsync(ctx, serv, root, cid.NewSet().Visit)
+func FetchGraph(ctx context.Context, c *cid.Cid, serv DAGService) error {
+	return EnumerateChildrenAsync(ctx, serv, c, cid.NewSet().Visit)
 }
 
 // FindLinks searches this nodes links for the given key,
@@ -366,19 +394,17 @@ func legacyCidFromLink(lnk *Link) *cid.Cid {
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
-func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, visit func(*cid.Cid) bool, bestEffort bool) error {
-	for _, lnk := range root.Links {
+func EnumerateChildren(ctx context.Context, ds LinkService, root *cid.Cid, visit func(*cid.Cid) bool, bestEffort bool) error {
+	links, err := ds.GetLinks(ctx, root)
+	if bestEffort && err == ErrNotFound {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	for _, lnk := range links {
 		c := legacyCidFromLink(lnk)
 		if visit(c) {
-			child, err := ds.Get(ctx, c)
-			if err != nil {
-				if bestEffort && err == ErrNotFound {
-					continue
-				} else {
-					return err
-				}
-			}
-			err = EnumerateChildren(ctx, ds, child, visit, bestEffort)
+			err = EnumerateChildren(ctx, ds, c, visit, bestEffort)
 			if err != nil {
 				return err
 			}
@@ -387,7 +413,7 @@ func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, visit fun
 	return nil
 }
 
-func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, visit func(*cid.Cid) bool) error {
+func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visit func(*cid.Cid) bool) error {
 	toprocess := make(chan []*cid.Cid, 8)
 	nodes := make(chan *NodeOption, 8)
 
@@ -396,6 +422,11 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, visi
 	defer close(toprocess)
 
 	go fetchNodes(ctx, ds, toprocess, nodes)
+
+	root, err := ds.Get(ctx, c)
+	if err != nil {
+		return err
+	}
 
 	nodes <- &NodeOption{Node: root}
 	live := 1

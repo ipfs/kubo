@@ -231,7 +231,7 @@ func TestFetchGraph(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = FetchGraph(context.TODO(), root, dservs[1])
+	err = FetchGraph(context.TODO(), root.Cid(), dservs[1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestFetchGraph(t *testing.T) {
 
 	offline_ds := NewDAGService(bs)
 
-	err = EnumerateChildren(context.Background(), offline_ds, root, func(_ *cid.Cid) bool { return true }, false)
+	err = EnumerateChildren(context.Background(), offline_ds, root.Cid(), func(_ *cid.Cid) bool { return true }, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +258,7 @@ func TestEnumerateChildren(t *testing.T) {
 	}
 
 	set := cid.NewSet()
-	err = EnumerateChildren(context.Background(), ds, root, set.Visit, false)
+	err = EnumerateChildren(context.Background(), ds, root.Cid(), set.Visit, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestEnumerateChildren(t *testing.T) {
 		for _, lnk := range n.Links {
 			c := cid.NewCidV0(lnk.Hash)
 			if !set.Has(c) {
-				t.Fatal("missing key in set!")
+				t.Fatal("missing key in set! ", lnk.Hash.B58String())
 			}
 			child, err := ds.Get(context.Background(), c)
 			if err != nil {

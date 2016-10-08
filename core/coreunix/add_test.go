@@ -98,7 +98,7 @@ func TestAddGCLive(t *testing.T) {
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcchan, err := gc.GC(context.Background(), node.Blockstore, node.Pinning, nil)
+		gcchan, err := gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
 		if err != nil {
 			log.Error("GC ERROR:", err)
 			errs <- err
@@ -156,13 +156,9 @@ func TestAddGCLive(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	root, err := node.DAG.Get(ctx, last)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	set := cid.NewSet()
-	err = dag.EnumerateChildren(ctx, node.DAG, root, set.Visit, false)
+	err = dag.EnumerateChildren(ctx, node.DAG, last, set.Visit, false)
 	if err != nil {
 		t.Fatal(err)
 	}

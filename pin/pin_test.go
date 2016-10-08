@@ -225,6 +225,11 @@ func TestPinRecursiveFail(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	_, err = dserv.Add(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// this one is time based... but shouldnt cause any issues
 	mctx, _ = context.WithTimeout(ctx, time.Second)
 	err = p.Pin(mctx, a, true)
