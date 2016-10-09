@@ -106,7 +106,7 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 	return nil
 }
 
-func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
+func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.ProtoNode, error) {
 	dn, err := node.GetDagNode()
 	if err != nil {
 		return nil, err

@@ -100,7 +100,7 @@ type Adder struct {
 	Silent     bool
 	Wrap       bool
 	Chunker    string
-	root       *dag.Node
+	root       *dag.ProtoNode
 	mr         *mfs.Root
 	unlocker   bs.Unlocker
 	tempRoot   *cid.Cid
@@ -111,7 +111,7 @@ func (adder *Adder) SetMfsRoot(r *mfs.Root) {
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
+func (adder Adder) add(reader io.Reader) (*dag.ProtoNode, error) {
 	chnk, err := chunk.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (adder Adder) add(reader io.Reader) (*dag.Node, error) {
 	)
 }
 
-func (adder *Adder) RootNode() (*dag.Node, error) {
+func (adder *Adder) RootNode() (*dag.ProtoNode, error) {
 	// for memoizing
 	if adder.root != nil {
 		return adder.root, nil
@@ -141,11 +141,18 @@ func (adder *Adder) RootNode() (*dag.Node, error) {
 	}
 
 	// if not wrapping, AND one root file, use that hash as root.
-	if !adder.Wrap && len(root.Links) == 1 {
-		root, err = root.Links[0].GetNode(adder.ctx, adder.dagService)
+	if !adder.Wrap && len(root.Links()) == 1 {
+		nd, err := root.Links()[0].GetNode(adder.ctx, adder.dagService)
 		if err != nil {
 			return nil, err
 		}
+
+		pbnd, ok := nd.(*dag.ProtoNode)
+		if !ok {
+			return nil, dag.ErrNotProtobuf
+		}
+
+		root = pbnd
 	}
 
 	adder.root = root
@@ -178,7 +185,7 @@ func (adder *Adder) PinRoot() error {
 	return adder.pinning.Flush()
 }
 
-func (adder *Adder) Finalize() (*dag.Node, error) {
+func (adder *Adder) Finalize() (*dag.ProtoNode, error) {
 	root := adder.mr.GetValue()
 
 	// cant just call adder.RootNode() here as we need the name for printing
@@ -189,7 +196,7 @@ func (adder *Adder) Finalize() (*dag.Node, error) {
 
 	var name string
 	if !adder.Wrap {
-		name = rootNode.Links[0].Name
+		name = rootNode.Links()[0].Name
 
 		dir, ok := adder.mr.GetValue().(*mfs.Directory)
 		if !ok {
@@ -300,7 +307,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 // to preserve the filename.
 // Returns the path of the added file ("<dir hash>/filename"), the DAG node of
 // the directory, and and error if any.
-func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.Node, error) {
+func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.ProtoNode, error) {
 	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
 	fileAdder, err := NewAdder(n.Context(), n.Pinning, n.Blockstore, n.DAG)
 	if err != nil {
@@ -324,7 +331,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 	return gopath.Join(c.String(), filename), dagnode, nil
 }
 
-func (adder *Adder) addNode(node *dag.Node, path string) error {
+func (adder *Adder) addNode(node *dag.ProtoNode, path string) error {
 	// patch it into the root
 	if path == "" {
 		path = node.Cid().String()
@@ -449,7 +456,7 @@ func (adder *Adder) maybePauseForGC() error {
 }
 
 // outputDagnode sends dagnode info over the output channel
-func outputDagnode(out chan interface{}, name string, dn *dag.Node) error {
+func outputDagnode(out chan interface{}, name string, dn *dag.ProtoNode) error {
 	if out == nil {
 		return nil
 	}
@@ -475,18 +482,17 @@ func NewMemoryDagService() dag.DAGService {
 }
 
 // from core/commands/object.go
-func getOutput(dagnode *dag.Node) (*Object, error) {
+func getOutput(dagnode *dag.ProtoNode) (*Object, error) {
 	c := dagnode.Cid()
 
 	output := &Object{
 		Hash:  c.String(),
-		Links: make([]Link, len(dagnode.Links)),
+		Links: make([]Link, len(dagnode.Links())),
 	}
 
-	for i, link := range dagnode.Links {
+	for i, link := range dagnode.Links() {
 		output.Links[i] = Link{
 			Name: link.Name,
-			//Hash: link.Hash.B58String(),
 			Size: link.Size,
 		}
 	}

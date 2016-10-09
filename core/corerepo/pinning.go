@@ -25,7 +25,7 @@ import (
 )
 
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
-	dagnodes := make([]*merkledag.Node, 0)
+	dagnodes := make([]merkledag.Node, 0)
 	for _, fpath := range paths {
 		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
 		if err != nil {

@@ -19,12 +19,12 @@ type File struct {
 	desclock sync.RWMutex
 
 	dserv  dag.DAGService
-	node   *dag.Node
+	node   *dag.ProtoNode
 	nodelk sync.Mutex
 }
 
 // NewFile returns a NewFile object with the given parameters
-func NewFile(name string, node *dag.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
+func NewFile(name string, node *dag.ProtoNode, parent childCloser, dserv dag.DAGService) (*File, error) {
 	return &File{
 		dserv:  dserv,
 		parent: parent,
@@ -94,7 +94,7 @@ func (fi *File) Size() (int64, error) {
 }
 
 // GetNode returns the dag node associated with this file
-func (fi *File) GetNode() (*dag.Node, error) {
+func (fi *File) GetNode() (*dag.ProtoNode, error) {
 	fi.nodelk.Lock()
 	defer fi.nodelk.Unlock()
 	return fi.node, nil

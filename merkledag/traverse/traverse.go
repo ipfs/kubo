@@ -30,7 +30,7 @@ type Options struct {
 
 // State is a current traversal state
 type State struct {
-	Node  *mdag.Node
+	Node  mdag.Node
 	Depth int
 }
 
@@ -39,13 +39,13 @@ type traversal struct {
 	seen map[string]struct{}
 }
 
-func (t *traversal) shouldSkip(n *mdag.Node) (bool, error) {
+func (t *traversal) shouldSkip(n mdag.Node) (bool, error) {
 	if t.opts.SkipDuplicates {
-		k := n.Key()
-		if _, found := t.seen[string(k)]; found {
+		k := n.Cid()
+		if _, found := t.seen[k.KeyString()]; found {
 			return true, nil
 		}
-		t.seen[string(k)] = struct{}{}
+		t.seen[k.KeyString()] = struct{}{}
 	}
 
 	return false, nil
@@ -59,9 +59,9 @@ func (t *traversal) callFunc(next State) error {
 // stop processing. if it returns a nil node, just skip it.
 //
 // the error handling is a little complicated.
-func (t *traversal) getNode(link *mdag.Link) (*mdag.Node, error) {
+func (t *traversal) getNode(link *mdag.Link) (mdag.Node, error) {
 
-	getNode := func(l *mdag.Link) (*mdag.Node, error) {
+	getNode := func(l *mdag.Link) (mdag.Node, error) {
 		next, err := l.GetNode(context.TODO(), t.opts.DAG)
 		if err != nil {
 			return nil, err
@@ -99,7 +99,7 @@ type Func func(current State) error
 //
 type ErrFunc func(err error) error
 
-func Traverse(root *mdag.Node, o Options) error {
+func Traverse(root mdag.Node, o Options) error {
 	t := traversal{
 		opts: o,
 		seen: map[string]struct{}{},
@@ -145,7 +145,7 @@ func dfsPostTraverse(state State, t *traversal) error {
 }
 
 func dfsDescend(df dfsFunc, curr State, t *traversal) error {
-	for _, l := range curr.Node.Links {
+	for _, l := range curr.Node.Links() {
 		node, err := t.getNode(l)
 		if err != nil {
 			return err
@@ -184,7 +184,7 @@ func bfsTraverse(root State, t *traversal) error {
 			return err
 		}
 
-		for _, l := range curr.Node.Links {
+		for _, l := range curr.Node.Links() {
 			node, err := t.getNode(l)
 			if err != nil {
 				return err

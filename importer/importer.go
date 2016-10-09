@@ -19,7 +19,7 @@ var log = logging.Logger("importer")
 
 // Builds a DAG from the given file, writing created blocks to disk as they are
 // created
-func BuildDagFromFile(fpath string, ds dag.DAGService) (*dag.Node, error) {
+func BuildDagFromFile(fpath string, ds dag.DAGService) (*dag.ProtoNode, error) {
 	stat, err := os.Lstat(fpath)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func BuildDagFromFile(fpath string, ds dag.DAGService) (*dag.Node, error) {
 	return BuildDagFromReader(ds, chunk.NewSizeSplitter(f, chunk.DefaultBlockSize))
 }
 
-func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
+func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
@@ -47,7 +47,7 @@ func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error
 	return bal.BalancedLayout(dbp.New(spl))
 }
 
-func BuildTrickleDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
+func BuildTrickleDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,

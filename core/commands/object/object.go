@@ -12,13 +12,13 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
@@ -98,7 +98,14 @@ is the raw data of the object.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(bytes.NewReader(node.Data()))
+
+		pbnode, ok := node.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(bytes.NewReader(pbnode.Data()))
 	},
 }
 
@@ -137,6 +144,7 @@ multihash.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
 		output, err := getOutput(node)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -201,14 +209,20 @@ This command outputs data in the following encodings:
 			return
 		}
 
-		node := &Node{
-			Links: make([]Link, len(object.Links)),
-			Data:  string(object.Data()),
+		pbo, ok := object.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
 		}
 
-		for i, link := range object.Links {
+		node := &Node{
+			Links: make([]Link, len(object.Links())),
+			Data:  string(pbo.Data()),
+		}
+
+		for i, link := range object.Links() {
 			node.Links[i] = Link{
-				Hash: link.Hash.B58String(),
+				Hash: link.Cid.String(),
 				Name: link.Name,
 				Size: link.Size,
 			}
@@ -413,7 +427,7 @@ Available templates:
 			return
 		}
 
-		node := new(dag.Node)
+		node := new(dag.ProtoNode)
 		if len(req.Arguments()) == 1 {
 			template := req.Arguments()[0]
 			var err error
@@ -440,7 +454,7 @@ Available templates:
 	Type: Object{},
 }
 
-func nodeFromTemplate(template string) (*dag.Node, error) {
+func nodeFromTemplate(template string) (*dag.ProtoNode, error) {
 	switch template {
 	case "unixfs-dir":
 		return ft.EmptyDirNode(), nil
@@ -464,7 +478,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEnco
 		return nil, ErrObjectTooLarge
 	}
 
-	var dagnode *dag.Node
+	var dagnode *dag.ProtoNode
 	switch getObjectEnc(encoding) {
 	case objectEncodingJSON:
 		node := new(Node)
@@ -542,17 +556,17 @@ func getObjectEnc(o interface{}) objectEncoding {
 	return objectEncoding(v)
 }
 
-func getOutput(dagnode *dag.Node) (*Object, error) {
+func getOutput(dagnode dag.Node) (*Object, error) {
 	c := dagnode.Cid()
 	output := &Object{
 		Hash:  c.String(),
-		Links: make([]Link, len(dagnode.Links)),
+		Links: make([]Link, len(dagnode.Links())),
 	}
 
-	for i, link := range dagnode.Links {
+	for i, link := range dagnode.Links() {
 		output.Links[i] = Link{
 			Name: link.Name,
-			Hash: link.Hash.B58String(),
+			Hash: link.Cid.String(),
 			Size: link.Size,
 		}
 	}
@@ -560,9 +574,9 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 	return output, nil
 }
 
-// converts the Node object into a real dag.Node
-func deserializeNode(node *Node, dataFieldEncoding string) (*dag.Node, error) {
-	dagnode := new(dag.Node)
+// converts the Node object into a real dag.ProtoNode
+func deserializeNode(node *Node, dataFieldEncoding string) (*dag.ProtoNode, error) {
+	dagnode := new(dag.ProtoNode)
 	switch dataFieldEncoding {
 	case "text":
 		dagnode.SetData([]byte(node.Data))
@@ -573,16 +587,16 @@ func deserializeNode(node *Node, dataFieldEncoding string) (*dag.Node, error) {
 		return nil, fmt.Errorf("Unkown data field encoding")
 	}
 
-	dagnode.Links = make([]*dag.Link, len(node.Links))
+	dagnode.SetLinks(make([]*dag.Link, len(node.Links)))
 	for i, link := range node.Links {
-		hash, err := mh.FromB58String(link.Hash)
+		c, err := cid.Decode(link.Hash)
 		if err != nil {
 			return nil, err
 		}
-		dagnode.Links[i] = &dag.Link{
+		dagnode.Links()[i] = &dag.Link{
 			Name: link.Name,
 			Size: link.Size,
-			Hash: hash,
+			Cid:  c,
 		}
 	}
 

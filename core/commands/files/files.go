@@ -182,7 +182,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 
 	return &Object{
 		Hash:           c.String(),
-		Blocks:         len(nd.Links),
+		Blocks:         len(nd.Links()),
 		Size:           d.GetFilesize(),
 		CumulativeSize: cumulsize,
 		Type:           ndtype,
@@ -245,7 +245,7 @@ var FilesCpCmd = &cmds.Command{
 	},
 }
 
-func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (*dag.Node, error) {
+func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (*dag.ProtoNode, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
 		np, err := path.ParsePath(p)
@@ -253,7 +253,17 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (*dag.N
 			return nil, err
 		}
 
-		return core.Resolve(ctx, node, np)
+		nd, err := core.Resolve(ctx, node, np)
+		if err != nil {
+			return nil, err
+		}
+
+		pbnd, ok := nd.(*dag.ProtoNode)
+		if !ok {
+			return nil, dag.ErrNotProtobuf
+		}
+
+		return pbnd, nil
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {

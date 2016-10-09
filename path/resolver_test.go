@@ -13,8 +13,8 @@ import (
 	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
-func randNode() (*merkledag.Node, key.Key) {
-	node := new(merkledag.Node)
+func randNode() (*merkledag.ProtoNode, key.Key) {
+	node := new(merkledag.ProtoNode)
 	node.SetData(make([]byte, 32))
 	util.NewTimeSeededRand().Read(node.Data())
 	k := node.Key()
@@ -39,7 +39,7 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, n := range []*merkledag.Node{a, b, c} {
+	for _, n := range []merkledag.Node{a, b, c} {
 		_, err = dagService.Add(n)
 		if err != nil {
 			t.Fatal(err)
@@ -60,7 +60,7 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	key := node.Key()
+	key := node.Cid()
 	if key.String() != cKey.String() {
 		t.Fatal(fmt.Errorf(
 			"recursive path resolution failed for %s: %s != %s",

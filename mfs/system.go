@@ -29,7 +29,7 @@ var log = logging.Logger("mfs")
 var ErrIsDirectory = errors.New("error: is a directory")
 
 type childCloser interface {
-	closeChild(string, *dag.Node, bool) error
+	closeChild(string, *dag.ProtoNode, bool) error
 }
 
 type NodeType int
@@ -41,7 +41,7 @@ const (
 
 // FSNode represents any node (directory, root, or file) in the mfs filesystem
 type FSNode interface {
-	GetNode() (*dag.Node, error)
+	GetNode() (*dag.ProtoNode, error)
 	Flush() error
 	Type() NodeType
 }
@@ -49,7 +49,7 @@ type FSNode interface {
 // Root represents the root of a filesystem tree
 type Root struct {
 	// node is the merkledag root
-	node *dag.Node
+	node *dag.ProtoNode
 
 	// val represents the node. It can either be a File or a Directory
 	val FSNode
@@ -64,7 +64,7 @@ type Root struct {
 type PubFunc func(context.Context, *cid.Cid) error
 
 // newRoot creates a new Root and starts up a republisher routine for it
-func NewRoot(parent context.Context, ds dag.DAGService, node *dag.Node, pf PubFunc) (*Root, error) {
+func NewRoot(parent context.Context, ds dag.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
 
 	var repub *Republisher
 	if pf != nil {
@@ -118,7 +118,7 @@ func (kr *Root) Flush() error {
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
-func (kr *Root) closeChild(name string, nd *dag.Node, sync bool) error {
+func (kr *Root) closeChild(name string, nd *dag.ProtoNode, sync bool) error {
 	c, err := kr.dserv.Add(nd)
 	if err != nil {
 		return err

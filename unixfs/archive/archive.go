@@ -30,7 +30,7 @@ func (i *identityWriteCloser) Close() error {
 }
 
 // DagArchive is equivalent to `ipfs getdag $hash | maybe_tar | maybe_gzip`
-func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService, archive bool, compression int) (io.Reader, error) {
+func DagArchive(ctx cxt.Context, nd *mdag.ProtoNode, name string, dag mdag.DAGService, archive bool, compression int) (io.Reader, error) {
 
 	_, filename := path.Split(name)
 

@@ -321,12 +321,12 @@ func TestBFSSkip(t *testing.T) {
 `))
 }
 
-func testWalkOutputs(t *testing.T, root *mdag.Node, opts Options, expect []byte) {
+func testWalkOutputs(t *testing.T, root mdag.Node, opts Options, expect []byte) {
 	expect = bytes.TrimLeft(expect, "\n")
 
 	buf := new(bytes.Buffer)
 	walk := func(current State) error {
-		s := fmt.Sprintf("%d %s\n", current.Depth, current.Node.Data())
+		s := fmt.Sprintf("%d %s\n", current.Depth, current.Node.(*mdag.ProtoNode).Data())
 		t.Logf("walk: %s", s)
 		buf.Write([]byte(s))
 		return nil
@@ -348,7 +348,7 @@ func testWalkOutputs(t *testing.T, root *mdag.Node, opts Options, expect []byte)
 	}
 }
 
-func newFan(t *testing.T, ds mdag.DAGService) *mdag.Node {
+func newFan(t *testing.T, ds mdag.DAGService) mdag.Node {
 	a := mdag.NodeWithData([]byte("/a"))
 	addLink(t, ds, a, child(t, ds, a, "aa"))
 	addLink(t, ds, a, child(t, ds, a, "ab"))
@@ -357,7 +357,7 @@ func newFan(t *testing.T, ds mdag.DAGService) *mdag.Node {
 	return a
 }
 
-func newLinkedList(t *testing.T, ds mdag.DAGService) *mdag.Node {
+func newLinkedList(t *testing.T, ds mdag.DAGService) mdag.Node {
 	a := mdag.NodeWithData([]byte("/a"))
 	aa := child(t, ds, a, "aa")
 	aaa := child(t, ds, aa, "aaa")
@@ -370,7 +370,7 @@ func newLinkedList(t *testing.T, ds mdag.DAGService) *mdag.Node {
 	return a
 }
 
-func newBinaryTree(t *testing.T, ds mdag.DAGService) *mdag.Node {
+func newBinaryTree(t *testing.T, ds mdag.DAGService) mdag.Node {
 	a := mdag.NodeWithData([]byte("/a"))
 	aa := child(t, ds, a, "aa")
 	ab := child(t, ds, a, "ab")
@@ -383,7 +383,7 @@ func newBinaryTree(t *testing.T, ds mdag.DAGService) *mdag.Node {
 	return a
 }
 
-func newBinaryDAG(t *testing.T, ds mdag.DAGService) *mdag.Node {
+func newBinaryDAG(t *testing.T, ds mdag.DAGService) mdag.Node {
 	a := mdag.NodeWithData([]byte("/a"))
 	aa := child(t, ds, a, "aa")
 	aaa := child(t, ds, aa, "aaa")
@@ -400,16 +400,16 @@ func newBinaryDAG(t *testing.T, ds mdag.DAGService) *mdag.Node {
 	return a
 }
 
-func addLink(t *testing.T, ds mdag.DAGService, a, b *mdag.Node) {
-	to := string(a.Data()) + "2" + string(b.Data())
+func addLink(t *testing.T, ds mdag.DAGService, a, b mdag.Node) {
+	to := string(a.(*mdag.ProtoNode).Data()) + "2" + string(b.(*mdag.ProtoNode).Data())
 	if _, err := ds.Add(b); err != nil {
 		t.Error(err)
 	}
-	if err := a.AddNodeLink(to, b); err != nil {
+	if err := a.(*mdag.ProtoNode).AddNodeLink(to, b.(*mdag.ProtoNode)); err != nil {
 		t.Error(err)
 	}
 }
 
-func child(t *testing.T, ds mdag.DAGService, a *mdag.Node, name string) *mdag.Node {
-	return mdag.NodeWithData([]byte(string(a.Data()) + "/" + name))
+func child(t *testing.T, ds mdag.DAGService, a mdag.Node, name string) mdag.Node {
+	return mdag.NodeWithData([]byte(string(a.(*mdag.ProtoNode).Data()) + "/" + name))
 }

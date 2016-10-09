@@ -10,12 +10,12 @@ import (
 
 type directoryBuilder struct {
 	dserv   mdag.DAGService
-	dirnode *mdag.Node
+	dirnode *mdag.ProtoNode
 }
 
 // NewEmptyDirectory returns an empty merkledag Node with a folder Data chunk
-func NewEmptyDirectory() *mdag.Node {
-	nd := new(mdag.Node)
+func NewEmptyDirectory() *mdag.ProtoNode {
+	nd := new(mdag.ProtoNode)
 	nd.SetData(format.FolderPBData())
 	return nd
 }
@@ -35,10 +35,15 @@ func (d *directoryBuilder) AddChild(ctx context.Context, name string, c *cid.Cid
 		return err
 	}
 
-	return d.dirnode.AddNodeLinkClean(name, cnode)
+	cnpb, ok := cnode.(*mdag.ProtoNode)
+	if !ok {
+		return mdag.ErrNotProtobuf
+	}
+
+	return d.dirnode.AddNodeLinkClean(name, cnpb)
 }
 
 // GetNode returns the root of this directoryBuilder
-func (d *directoryBuilder) GetNode() *mdag.Node {
+func (d *directoryBuilder) GetNode() *mdag.ProtoNode {
 	return d.dirnode
 }

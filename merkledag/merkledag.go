@@ -20,9 +20,9 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
-	Add(*Node) (*cid.Cid, error)
-	Get(context.Context, *cid.Cid) (*Node, error)
-	Remove(*Node) error
+	Add(Node) (*cid.Cid, error)
+	Get(context.Context, *cid.Cid) (Node, error)
+	Remove(Node) error
 
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
@@ -45,6 +45,19 @@ func NewDAGService(bs bserv.BlockService) *dagService {
 	return &dagService{Blocks: bs}
 }
 
+type Node interface {
+	Resolve(path []string) (*Link, []string, error)
+	Links() []*Link
+	Tree() []string
+
+	Stat() (*NodeStat, error)
+	Size() (uint64, error)
+	Cid() *cid.Cid
+	Loggable() map[string]interface{}
+	RawData() []byte
+	String() string
+}
+
 // dagService is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)
 // - stores nodes' data in a BlockService
@@ -55,7 +68,7 @@ type dagService struct {
 }
 
 // Add adds a node to the dagService, storing the block in the BlockService
-func (n *dagService) Add(nd *Node) (*cid.Cid, error) {
+func (n *dagService) Add(nd Node) (*cid.Cid, error) {
 	if n == nil { // FIXME remove this assertion. protect with constructor invariant
 		return nil, fmt.Errorf("dagService is nil")
 	}
@@ -68,7 +81,7 @@ func (n *dagService) Batch() *Batch {
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
-func (n *dagService) Get(ctx context.Context, c *cid.Cid) (*Node, error) {
+func (n *dagService) Get(ctx context.Context, c *cid.Cid) (Node, error) {
 	if n == nil {
 		return nil, fmt.Errorf("dagService is nil")
 	}
@@ -84,7 +97,7 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (*Node, error) {
 		return nil, fmt.Errorf("Failed to get block for %s: %v", c, err)
 	}
 
-	var res *Node
+	var res Node
 	switch c.Type() {
 	case cid.Protobuf:
 		out, err := DecodeProtobuf(b.RawData())
@@ -94,12 +107,11 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (*Node, error) {
 			}
 			return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 		}
+		out.cached = c
 		res = out
 	default:
 		return nil, fmt.Errorf("unrecognized formatting type")
 	}
-
-	res.cached = c
 
 	return res, nil
 }
@@ -109,7 +121,7 @@ func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*Link, error) 
 	if err != nil {
 		return nil, err
 	}
-	return node.Links, nil
+	return node.Links(), nil
 }
 
 func (n *dagService) GetOfflineLinkService() LinkService {
@@ -121,7 +133,7 @@ func (n *dagService) GetOfflineLinkService() LinkService {
 	}
 }
 
-func (n *dagService) Remove(nd *Node) error {
+func (n *dagService) Remove(nd Node) error {
 	return n.Blocks.DeleteBlock(nd)
 }
 
@@ -143,7 +155,7 @@ func FindLinks(links []*cid.Cid, c *cid.Cid, start int) []int {
 }
 
 type NodeOption struct {
-	Node *Node
+	Node Node
 	Err  error
 }
 
@@ -166,7 +178,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 
 				c := b.Cid()
 
-				var nd *Node
+				var nd Node
 				switch c.Type() {
 				case cid.Protobuf:
 					decnd, err := DecodeProtobuf(b.RawData())
@@ -174,7 +186,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 						out <- &NodeOption{Err: err}
 						return
 					}
-					decnd.cached = cid.NewCidV0(b.Multihash())
+					decnd.cached = b.Cid()
 					nd = decnd
 				default:
 					out <- &NodeOption{Err: fmt.Errorf("unrecognized object type: %s", c.Type())}
@@ -197,10 +209,10 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 // GetDAG will fill out all of the links of the given Node.
 // It returns a channel of nodes, which the caller can receive
 // all the child nodes of 'root' on, in proper order.
-func GetDAG(ctx context.Context, ds DAGService, root *Node) []NodeGetter {
+func GetDAG(ctx context.Context, ds DAGService, root Node) []NodeGetter {
 	var cids []*cid.Cid
-	for _, lnk := range root.Links {
-		cids = append(cids, cid.NewCidV0(lnk.Hash))
+	for _, lnk := range root.Links() {
+		cids = append(cids, lnk.Cid)
 	}
 
 	return GetNodes(ctx, ds, cids)
@@ -269,16 +281,16 @@ func dedupeKeys(cids []*cid.Cid) []*cid.Cid {
 
 func newNodePromise(ctx context.Context) NodeGetter {
 	return &nodePromise{
-		recv: make(chan *Node, 1),
+		recv: make(chan Node, 1),
 		ctx:  ctx,
 		err:  make(chan error, 1),
 	}
 }
 
 type nodePromise struct {
-	cache *Node
+	cache Node
 	clk   sync.Mutex
-	recv  chan *Node
+	recv  chan Node
 	ctx   context.Context
 	err   chan error
 }
@@ -288,9 +300,9 @@ type nodePromise struct {
 // from its internal channels, subsequent calls will return the
 // cached node.
 type NodeGetter interface {
-	Get(context.Context) (*Node, error)
+	Get(context.Context) (Node, error)
 	Fail(err error)
-	Send(*Node)
+	Send(Node)
 }
 
 func (np *nodePromise) Fail(err error) {
@@ -306,7 +318,7 @@ func (np *nodePromise) Fail(err error) {
 	np.err <- err
 }
 
-func (np *nodePromise) Send(nd *Node) {
+func (np *nodePromise) Send(nd Node) {
 	var already bool
 	np.clk.Lock()
 	if np.cache != nil {
@@ -322,7 +334,7 @@ func (np *nodePromise) Send(nd *Node) {
 	np.recv <- nd
 }
 
-func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
+func (np *nodePromise) Get(ctx context.Context) (Node, error) {
 	np.clk.Lock()
 	c := np.cache
 	np.clk.Unlock()
@@ -350,14 +362,9 @@ type Batch struct {
 	MaxSize int
 }
 
-func (t *Batch) Add(nd *Node) (*cid.Cid, error) {
-	d, err := nd.EncodeProtobuf(false)
-	if err != nil {
-		return nil, err
-	}
-
+func (t *Batch) Add(nd Node) (*cid.Cid, error) {
 	t.blocks = append(t.blocks, nd)
-	t.size += len(d)
+	t.size += len(nd.RawData())
 	if t.size > t.MaxSize {
 		return nd.Cid(), t.Commit()
 	}
@@ -371,10 +378,6 @@ func (t *Batch) Commit() error {
 	return err
 }
 
-func legacyCidFromLink(lnk *Link) *cid.Cid {
-	return cid.NewCidV0(lnk.Hash)
-}
-
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
@@ -386,7 +389,7 @@ func EnumerateChildren(ctx context.Context, ds LinkService, root *cid.Cid, visit
 		return err
 	}
 	for _, lnk := range links {
-		c := legacyCidFromLink(lnk)
+		c := lnk.Cid
 		if visit(c) {
 			err = EnumerateChildren(ctx, ds, c, visit, bestEffort)
 			if err != nil {
@@ -432,8 +435,8 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visi
 			live--
 
 			var cids []*cid.Cid
-			for _, lnk := range nd.Links {
-				c := legacyCidFromLink(lnk)
+			for _, lnk := range nd.Links() {
+				c := lnk.Cid
 				if visit(c) {
 					live++
 					cids = append(cids, c)
