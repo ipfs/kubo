@@ -8,7 +8,7 @@ import (
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
-	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -21,10 +21,9 @@ func TestAppendWanted(t *testing.T) {
 	m := New(true)
 	m.AddEntry(str, 1)
 
-	if !wantlistContains(m.ToProto().GetWantlist(), str) {
+	if !wantlistContains(m.ToProtoV0().GetWantlist(), str) {
 		t.Fail()
 	}
-	m.ToProto().GetWantlist().GetEntries()
 }
 
 func TestNewMessageFromProto(t *testing.T) {
@@ -42,7 +41,7 @@ func TestNewMessageFromProto(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !wantlistContains(m.ToProto().GetWantlist(), str) {
+	if !wantlistContains(m.ToProtoV0().GetWantlist(), str) {
 		t.Fail()
 	}
 }
@@ -60,7 +59,7 @@ func TestAppendBlock(t *testing.T) {
 	}
 
 	// assert strings are in proto message
-	for _, blockbytes := range m.ToProto().GetBlocks() {
+	for _, blockbytes := range m.ToProtoV0().GetBlocks() {
 		s := bytes.NewBuffer(blockbytes).String()
 		if !contains(strs, s) {
 			t.Fail()
@@ -94,7 +93,7 @@ func TestWantlist(t *testing.T) {
 func TestCopyProtoByValue(t *testing.T) {
 	str := mkFakeCid("foo")
 	m := New(true)
-	protoBeforeAppend := m.ToProto()
+	protoBeforeAppend := m.ToProtoV0()
 	m.AddEntry(str, 1)
 	if wantlistContains(protoBeforeAppend.GetWantlist(), str) {
 		t.Fail()
@@ -110,7 +109,7 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original.AddEntry(mkFakeCid("F"), 1)
 
 	buf := new(bytes.Buffer)
-	if err := original.ToNet(buf); err != nil {
+	if err := original.ToNetV1(buf); err != nil {
 		t.Fatal(err)
 	}
 
@@ -140,7 +139,7 @@ func TestToAndFromNetMessage(t *testing.T) {
 	original.AddBlock(blocks.NewBlock([]byte("M")))
 
 	buf := new(bytes.Buffer)
-	if err := original.ToNet(buf); err != nil {
+	if err := original.ToNetV1(buf); err != nil {
 		t.Fatal(err)
 	}
 

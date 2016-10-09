@@ -7,7 +7,7 @@ import (
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	pq "github.com/ipfs/go-ipfs/thirdparty/pq"
 
-	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
