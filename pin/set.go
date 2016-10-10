@@ -143,7 +143,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 		if !ok {
 			break
 		}
-		h := hash(seed, k)
+		h := hash(seed, k) % defaultFanout
 		hashed[h] = append(hashed[h], item{k, data})
 	}
 	for h, items := range hashed {
