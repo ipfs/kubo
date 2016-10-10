@@ -1,5 +1,9 @@
 # go-ipfs changelog
 
+### 0.4.4 - 2016-10-10
+
+This is a hotfix release that adds a patch for [the pinsets bug](https://github.com/ipfs/go-ipfs/pull/3273). 
+
 ### 0.4.3-rc4 - 2016-09-09
 
 This release candidate fixes issues in Bitswap and the `ipfs add` command, and improves testing.
