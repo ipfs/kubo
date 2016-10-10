@@ -6,7 +6,6 @@ import (
 
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	"github.com/ipfs/go-ipfs/pin"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
@@ -38,7 +37,7 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, out chan<- interface{}, c
 		stillOkay := FilterPinned(pins, out, cids)
 
 		for _, c := range stillOkay {
-			err := blocks.DeleteBlock(key.Key(c.Hash()))
+			err := blocks.DeleteBlock(c)
 			if err != nil && opts.Force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
 				// ignore non-existent blocks
 			} else if err != nil {

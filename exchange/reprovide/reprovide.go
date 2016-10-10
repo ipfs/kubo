@@ -9,7 +9,6 @@ import (
 	backoff "gx/ipfs/QmPJUtEJsm5YLUWhF6imvyCH8KZXRJa9Wup7FDMwTy5Ufz/backoff"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	routing "gx/ipfs/QmXKuGUzLcgoQvp8M6ZEJzupWUNmx8NoqXEbYLMDjL4rjj/go-libp2p-routing"
-	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 )
 
 var log = logging.Logger("reprovider")
@@ -53,8 +52,7 @@ func (rp *Reprovider) Reprovide(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("Failed to get key chan from blockstore: %s", err)
 	}
-	for k := range keychan {
-		c := cid.NewCidV0(k.ToMultihash())
+	for c := range keychan {
 		op := func() error {
 			err := rp.rsys.Provide(ctx, c)
 			if err != nil {

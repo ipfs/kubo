@@ -10,7 +10,6 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	exchange "github.com/ipfs/go-ipfs/exchange"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
 	context "context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -30,12 +29,6 @@ type BlockService struct {
 	Exchange   exchange.Interface
 }
 
-// an Object is simply a typed block
-type Object interface {
-	Cid() *cid.Cid
-	blocks.Block
-}
-
 // NewBlockService creates a BlockService with given datastore instance.
 func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 	if rem == nil {
@@ -50,14 +43,14 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
 
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
-func (s *BlockService) AddObject(o Object) (*cid.Cid, error) {
+func (s *BlockService) AddBlock(o blocks.Block) (*cid.Cid, error) {
 	// TODO: while this is a great optimization, we should think about the
 	// possibility of streaming writes directly to disk. If we can pass this object
 	// all the way down to the datastore without having to 'buffer' its data,
 	// we could implement a `WriteTo` method on it that could do a streaming write
 	// of the content, saving us (probably) considerable memory.
 	c := o.Cid()
-	has, err := s.Blockstore.Has(key.Key(c.Hash()))
+	has, err := s.Blockstore.Has(c)
 	if err != nil {
 		return nil, err
 	}
@@ -78,13 +71,10 @@ func (s *BlockService) AddObject(o Object) (*cid.Cid, error) {
 	return c, nil
 }
 
-func (s *BlockService) AddObjects(bs []Object) ([]*cid.Cid, error) {
+func (s *BlockService) AddBlocks(bs []blocks.Block) ([]*cid.Cid, error) {
 	var toput []blocks.Block
-	var toputcids []*cid.Cid
 	for _, b := range bs {
-		c := b.Cid()
-
-		has, err := s.Blockstore.Has(key.Key(c.Hash()))
+		has, err := s.Blockstore.Has(b.Cid())
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +84,6 @@ func (s *BlockService) AddObjects(bs []Object) ([]*cid.Cid, error) {
 		}
 
 		toput = append(toput, b)
-		toputcids = append(toputcids, c)
 	}
 
 	err := s.Blockstore.PutMany(toput)
@@ -108,8 +97,7 @@ func (s *BlockService) AddObjects(bs []Object) ([]*cid.Cid, error) {
 			return nil, fmt.Errorf("blockservice is closed (%s)", err)
 		}
 
-		c := o.(Object).Cid() // cast is safe, we created these
-		ks = append(ks, c)
+		ks = append(ks, o.Cid())
 	}
 	return ks, nil
 }
@@ -119,7 +107,7 @@ func (s *BlockService) AddObjects(bs []Object) ([]*cid.Cid, error) {
 func (s *BlockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
 	log.Debugf("BlockService GetBlock: '%s'", c)
 
-	block, err := s.Blockstore.Get(key.Key(c.Hash()))
+	block, err := s.Blockstore.Get(c)
 	if err == nil {
 		return block, nil
 	}
@@ -128,7 +116,7 @@ func (s *BlockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, 
 		// TODO be careful checking ErrNotFound. If the underlying
 		// implementation changes, this will break.
 		log.Debug("Blockservice: Searching bitswap")
-		blk, err := s.Exchange.GetBlock(ctx, key.Key(c.Hash()))
+		blk, err := s.Exchange.GetBlock(ctx, c)
 		if err != nil {
 			if err == blockstore.ErrNotFound {
 				return nil, ErrNotFound
@@ -153,12 +141,11 @@ func (s *BlockService) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan bloc
 	out := make(chan blocks.Block, 0)
 	go func() {
 		defer close(out)
-		var misses []key.Key
+		var misses []*cid.Cid
 		for _, c := range ks {
-			k := key.Key(c.Hash())
-			hit, err := s.Blockstore.Get(k)
+			hit, err := s.Blockstore.Get(c)
 			if err != nil {
-				misses = append(misses, k)
+				misses = append(misses, c)
 				continue
 			}
 			log.Debug("Blockservice: Got data in datastore")
@@ -191,8 +178,8 @@ func (s *BlockService) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan bloc
 }
 
 // DeleteBlock deletes a block in the blockservice from the datastore
-func (s *BlockService) DeleteObject(o Object) error {
-	return s.Blockstore.DeleteBlock(o.Key())
+func (s *BlockService) DeleteBlock(o blocks.Block) error {
+	return s.Blockstore.DeleteBlock(o.Cid())
 }
 
 func (s *BlockService) Close() error {

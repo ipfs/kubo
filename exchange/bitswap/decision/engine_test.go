@@ -167,7 +167,7 @@ func partnerWants(e *Engine, keys []string, partner peer.ID) {
 	add := message.New(false)
 	for i, letter := range keys {
 		block := blocks.NewBlock([]byte(letter))
-		add.AddEntry(block.Key(), math.MaxInt32-i)
+		add.AddEntry(block.Cid(), math.MaxInt32-i)
 	}
 	e.MessageReceived(partner, add)
 }
@@ -176,7 +176,7 @@ func partnerCancels(e *Engine, keys []string, partner peer.ID) {
 	cancels := message.New(false)
 	for _, k := range keys {
 		block := blocks.NewBlock([]byte(k))
-		cancels.Cancel(block.Key())
+		cancels.Cancel(block.Cid())
 	}
 	e.MessageReceived(partner, cancels)
 }
@@ -187,7 +187,7 @@ func checkHandledInOrder(t *testing.T, e *Engine, keys []string) error {
 		envelope := <-next
 		received := envelope.Block
 		expected := blocks.NewBlock([]byte(k))
-		if received.Key() != expected.Key() {
+		if !received.Cid().Equals(expected.Cid()) {
 			return errors.New(fmt.Sprintln("received", string(received.RawData()), "expected", string(expected.RawData())))
 		}
 	}

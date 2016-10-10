@@ -106,7 +106,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		if discover {
 			go func() {
 				blk := blocks.NewBlock([]byte("floodsub:" + topic))
-				cid, err := n.Blocks.AddObject(blk)
+				cid, err := n.Blocks.AddBlock(blk)
 				if err != nil {
 					log.Error("pubsub discovery: ", err)
 					return

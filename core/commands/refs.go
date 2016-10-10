@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"strings"
@@ -10,16 +11,14 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
-	context "context"
 	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 // KeyList is a general type for outputting lists of keys
 type KeyList struct {
-	Keys []key.Key
+	Keys []*cid.Cid
 }
 
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
@@ -27,7 +26,7 @@ func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
 	output := res.Output().(*KeyList)
 	buf := new(bytes.Buffer)
 	for _, key := range output.Keys {
-		buf.WriteString(key.B58String() + "\n")
+		buf.WriteString(key.String() + "\n")
 	}
 	return buf, nil
 }
@@ -160,7 +159,7 @@ Displays the hashes of all local objects.
 			defer close(out)
 
 			for k := range allKeys {
-				out <- &RefWrapper{Ref: k.B58String()}
+				out <- &RefWrapper{Ref: k.String()}
 			}
 		}()
 	},

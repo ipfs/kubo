@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -44,12 +45,12 @@ func TestHash(t *testing.T) {
 	}
 }
 
-func TestKey(t *testing.T) {
+func TestCid(t *testing.T) {
 	data := []byte("yet another data")
 	block := NewBlock(data)
-	key := block.Key()
+	c := block.Cid()
 
-	if !bytes.Equal(block.Multihash(), key.ToMultihash()) {
+	if !bytes.Equal(block.Multihash(), c.Hash()) {
 		t.Error("key contains wrong data")
 	}
 }
@@ -66,8 +67,10 @@ func TestManualHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	c := cid.NewCidV0(hash)
+
 	u.Debug = false
-	block, err := NewBlockWithHash(data, hash)
+	block, err := NewBlockWithCid(data, c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +80,7 @@ func TestManualHash(t *testing.T) {
 	}
 
 	data[5] = byte((uint32(data[5]) + 5) % 256) // Transfrom hash to be different
-	block, err = NewBlockWithHash(data, hash)
+	block, err = NewBlockWithCid(data, c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +91,7 @@ func TestManualHash(t *testing.T) {
 
 	u.Debug = true
 
-	block, err = NewBlockWithHash(data, hash)
+	block, err = NewBlockWithCid(data, c)
 	if err != ErrWrongHash {
 		t.Fatal(err)
 	}

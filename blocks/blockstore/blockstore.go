@@ -3,15 +3,16 @@
 package blockstore
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"sync/atomic"
 
-	context "context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
+
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	dsns "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/namespace"
 	dsq "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
@@ -29,13 +30,13 @@ var ErrNotFound = errors.New("blockstore: block not found")
 
 // Blockstore wraps a Datastore
 type Blockstore interface {
-	DeleteBlock(key.Key) error
-	Has(key.Key) (bool, error)
-	Get(key.Key) (blocks.Block, error)
+	DeleteBlock(*cid.Cid) error
+	Has(*cid.Cid) (bool, error)
+	Get(*cid.Cid) (blocks.Block, error)
 	Put(blocks.Block) error
 	PutMany([]blocks.Block) error
 
-	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
+	AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error)
 }
 
 type GCBlockstore interface {
@@ -80,12 +81,13 @@ func (bs *blockstore) HashOnRead(enabled bool) {
 	bs.rehash = enabled
 }
 
-func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
-	if k == "" {
+func (bs *blockstore) Get(k *cid.Cid) (blocks.Block, error) {
+	if k == nil {
+		log.Error("nil cid in blockstore")
 		return nil, ErrNotFound
 	}
 
-	maybeData, err := bs.datastore.Get(k.DsKey())
+	maybeData, err := bs.datastore.Get(dshelp.NewKeyFromBinary(k.KeyString()))
 	if err == ds.ErrNotFound {
 		return nil, ErrNotFound
 	}
@@ -99,18 +101,18 @@ func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
 
 	if bs.rehash {
 		rb := blocks.NewBlock(bdata)
-		if rb.Key() != k {
+		if !rb.Cid().Equals(k) {
 			return nil, ErrHashMismatch
 		} else {
 			return rb, nil
 		}
 	} else {
-		return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
+		return blocks.NewBlockWithCid(bdata, k)
 	}
 }
 
 func (bs *blockstore) Put(block blocks.Block) error {
-	k := block.Key().DsKey()
+	k := dshelp.NewKeyFromBinary(block.Cid().KeyString())
 
 	// Has is cheaper than Put, so see if we already have it
 	exists, err := bs.datastore.Has(k)
@@ -126,7 +128,7 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 		return err
 	}
 	for _, b := range blocks {
-		k := b.Key().DsKey()
+		k := dshelp.NewKeyFromBinary(b.Cid().KeyString())
 		exists, err := bs.datastore.Has(k)
 		if err == nil && exists {
 			continue
@@ -140,19 +142,19 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	return t.Commit()
 }
 
-func (bs *blockstore) Has(k key.Key) (bool, error) {
-	return bs.datastore.Has(k.DsKey())
+func (bs *blockstore) Has(k *cid.Cid) (bool, error) {
+	return bs.datastore.Has(dshelp.NewKeyFromBinary(k.KeyString()))
 }
 
-func (s *blockstore) DeleteBlock(k key.Key) error {
-	return s.datastore.Delete(k.DsKey())
+func (s *blockstore) DeleteBlock(k *cid.Cid) error {
+	return s.datastore.Delete(dshelp.NewKeyFromBinary(k.KeyString()))
 }
 
 // AllKeysChan runs a query for keys from the blockstore.
 // this is very simplistic, in the future, take dsq.Query as a param?
 //
 // AllKeysChan respects context
-func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
+func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true}
@@ -164,39 +166,38 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	}
 
 	// this function is here to compartmentalize
-	get := func() (key.Key, bool) {
+	get := func() (*cid.Cid, bool) {
 		select {
 		case <-ctx.Done():
-			return "", false
+			return nil, false
 		case e, more := <-res.Next():
 			if !more {
-				return "", false
+				return nil, false
 			}
 			if e.Error != nil {
 				log.Debug("blockstore.AllKeysChan got err:", e.Error)
-				return "", false
+				return nil, false
 			}
 
 			// need to convert to key.Key using key.KeyFromDsKey.
-			k, err := key.KeyFromDsKey(ds.NewKey(e.Key))
+			kb, err := dshelp.BinaryFromDsKey(ds.NewKey(e.Key)) // TODO: calling NewKey isnt free
 			if err != nil {
 				log.Warningf("error parsing key from DsKey: ", err)
-				return "", true
+				return nil, true
 			}
-			log.Debug("blockstore: query got key", k)
 
-			// key must be a multihash. else ignore it.
-			_, err = mh.Cast([]byte(k))
+			c, err := cid.Cast(kb)
 			if err != nil {
-				log.Warningf("key from datastore was not a multihash: ", err)
-				return "", true
+				log.Warning("error parsing cid from decoded DsKey: ", err)
+				return nil, true
 			}
+			log.Debug("blockstore: query got key", c)
 
-			return k, true
+			return c, true
 		}
 	}
 
-	output := make(chan key.Key, dsq.KeysOnlyBufSize)
+	output := make(chan *cid.Cid, dsq.KeysOnlyBufSize)
 	go func() {
 		defer func() {
 			res.Process().Close() // ensure exit (signals early exit, too)
@@ -208,7 +209,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 			if !ok {
 				return
 			}
-			if k == "" {
+			if k == nil {
 				continue
 			}
 

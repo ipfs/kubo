@@ -76,7 +76,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		} else if !bytes.Equal(b.RawData(), block0.RawData()) {
 			t.Error("byte comparison fail")
 		} else {
-			log.Debug("got block: %s", b.Key())
+			log.Debug("got block: %s", b.Cid())
 		}
 	}
 
@@ -93,7 +93,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		} else if !bytes.Equal(b.RawData(), block1.RawData()) {
 			t.Error("byte comparison fail")
 		} else {
-			log.Debug("got block: %s", b.Key())
+			log.Debug("got block: %s", b.Cid())
 		}
 	}
 }

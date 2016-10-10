@@ -8,7 +8,6 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
@@ -54,7 +53,7 @@ var unwantCmd = &cmds.Command{
 			return
 		}
 
-		var ks []key.Key
+		var ks []*cid.Cid
 		for _, arg := range req.Arguments() {
 			c, err := cid.Decode(arg)
 			if err != nil {
@@ -62,7 +61,7 @@ var unwantCmd = &cmds.Command{
 				return
 			}
 
-			ks = append(ks, key.Key(c.Hash()))
+			ks = append(ks, c)
 		}
 
 		bs.CancelWants(ks)
@@ -164,7 +163,7 @@ var bitswapStatCmd = &cmds.Command{
 			fmt.Fprintf(buf, "\tdup data received: %s\n", humanize.Bytes(out.DupDataReceived))
 			fmt.Fprintf(buf, "\twantlist [%d keys]\n", len(out.Wantlist))
 			for _, k := range out.Wantlist {
-				fmt.Fprintf(buf, "\t\t%s\n", k.B58String())
+				fmt.Fprintf(buf, "\t\t%s\n", k.String())
 			}
 			fmt.Fprintf(buf, "\tpartners [%d]\n", len(out.Peers))
 			for _, p := range out.Peers {

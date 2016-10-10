@@ -14,7 +14,6 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
-	"gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
 	"context"
 	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
@@ -94,7 +93,7 @@ func TestAddGCLive(t *testing.T) {
 		t.Fatal("add shouldnt complete yet")
 	}
 
-	var gcout <-chan key.Key
+	var gcout <-chan *cid.Cid
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
@@ -139,7 +138,7 @@ func TestAddGCLive(t *testing.T) {
 	}
 
 	for k := range gcout {
-		if _, ok := addedHashes[k.B58String()]; ok {
+		if _, ok := addedHashes[k.String()]; ok {
 			t.Fatal("gc'ed a hash we just added")
 		}
 	}
