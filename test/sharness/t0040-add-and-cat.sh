@@ -306,12 +306,14 @@ test_expect_success "'ipfs add -r' succeeds" '
 '
 
 test_expect_success "'ipfs add -r' output looks good" '
+	MOUNTDIR="QmcgF3bEc3q9G9YfxCXWYaV5H7bDyDD1CrsmUDgSQPdY4n" &&
 	PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY" &&
 	MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
 	VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
-	echo "added $MARS planets/mars.txt" >expected &&
-	echo "added $VENUS planets/venus.txt" >>expected &&
-	echo "added $PLANETS planets" >>expected &&
+	echo "added $MARS mountdir/planets/mars.txt" >expected &&
+	echo "added $VENUS mountdir/planets/venus.txt" >>expected &&
+	echo "added $PLANETS mountdir/planets" >>expected &&
+	echo "added $MOUNTDIR mountdir" >>expected &&
 	test_cmp expected actual
 '
 
@@ -325,18 +327,20 @@ test_expect_success "'ipfs add -rn' succeeds" '
 '
 
 test_expect_success "'ipfs add -rn' output looks good" '
+	MDMOONS="QmT8p74vZ2WUmN5bV6DThsEvVkiCESz5ZTT4xoFuF9r1My" &&
 	MOONS="QmVKvomp91nMih5j6hYBA8KjbiaYvEetU2Q7KvtZkLe9nQ" &&
 	EUROPA="Qmbjg7zWdqdMaK2BucPncJQDxiALExph5k3NkQv5RHpccu" &&
   JUPITER="QmS5mZddhFPLWFX3w6FzAy9QxyYkaxvUpsWCtZ3r7jub9J" &&
   SATURN="QmaMagZT4rTE7Nonw8KGSK4oe1bh533yhZrCo1HihSG8FK" &&
 	TITAN="QmZzppb9WHn552rmRqpPfgU5FEiHH6gDwi3MrB9cTdPwdb" &&
 	MERCURY="QmUJjVtnN8YEeYcS8VmUeWffTWhnMQAkk5DzZdKnPhqUdK" &&
-  echo "added $EUROPA moons/jupiter/europa.txt" >expected &&
-  echo "added $MERCURY moons/mercury.txt" >>expected &&
-  echo "added $TITAN moons/saturn/titan.txt" >>expected &&
-  echo "added $JUPITER moons/jupiter" >>expected &&
-  echo "added $SATURN moons/saturn" >>expected &&
-  echo "added $MOONS moons" >>expected &&
+  echo "added $EUROPA mountdir/moons/jupiter/europa.txt" >expected &&
+  echo "added $MERCURY mountdir/moons/mercury.txt" >>expected &&
+  echo "added $TITAN mountdir/moons/saturn/titan.txt" >>expected &&
+  echo "added $JUPITER mountdir/moons/jupiter" >>expected &&
+  echo "added $SATURN mountdir/moons/saturn" >>expected &&
+  echo "added $MOONS mountdir/moons" >>expected &&
+  echo "added $MDMOONS mountdir" >>expected &&
 	test_cmp expected actual
 '
 

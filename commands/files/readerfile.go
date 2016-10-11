@@ -13,10 +13,16 @@ type ReaderFile struct {
 	fullpath string
 	reader   io.ReadCloser
 	stat     os.FileInfo
+	root     bool
 }
 
 func NewReaderFile(filename, path string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
-	return &ReaderFile{filename, path, reader, stat}
+	return &ReaderFile{
+		filename: filename,
+		fullpath: path,
+		reader:   reader,
+		stat:     stat,
+	}
 }
 
 func (f *ReaderFile) IsDirectory() bool {
@@ -52,4 +58,8 @@ func (f *ReaderFile) Size() (int64, error) {
 		return 0, errors.New("File size unknown")
 	}
 	return f.stat.Size(), nil
+}
+
+func (f *ReaderFile) IsRoot() bool {
+	return f.root
 }

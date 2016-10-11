@@ -13,10 +13,15 @@ type SliceFile struct {
 	path     string
 	files    []File
 	n        int
+	root     bool
 }
 
 func NewSliceFile(filename, path string, files []File) *SliceFile {
-	return &SliceFile{filename, path, files, 0}
+	return &SliceFile{
+		filename: filename,
+		path:     path,
+		files:    files,
+	}
 }
 
 func (f *SliceFile) IsDirectory() bool {
@@ -73,4 +78,8 @@ func (f *SliceFile) Size() (int64, error) {
 	}
 
 	return size, nil
+}
+
+func (f *SliceFile) IsRoot() bool {
+	return f.root
 }

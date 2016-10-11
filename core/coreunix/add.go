@@ -187,24 +187,30 @@ func (adder *Adder) Finalize() (*dag.Node, error) {
 		return nil, err
 	}
 
-	var name string
-	if !adder.Wrap {
-		name = rootNode.Links[0].Name
-
-		dir, ok := adder.mr.GetValue().(*mfs.Directory)
-		if !ok {
-			return nil, fmt.Errorf("root is not a directory")
-		}
-
-		root, err = dir.Child(name)
+	if adder.Wrap {
+		err = adder.outputDirs("", root)
 		if err != nil {
 			return nil, err
 		}
-	}
+	} else {
+		for _, lnk := range rootNode.Links {
+			name := lnk.Name
 
-	err = adder.outputDirs(name, root)
-	if err != nil {
-		return nil, err
+			dir, ok := adder.mr.GetValue().(*mfs.Directory)
+			if !ok {
+				return nil, fmt.Errorf("root is not a directory")
+			}
+
+			root, err = dir.Child(name)
+			if err != nil {
+				return nil, err
+			}
+
+			err = adder.outputDirs(name, root)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	err = adder.mr.Close()
@@ -272,7 +278,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	f, err := files.NewSerialFile(root, root, false, stat)
+	f, err := files.NewSerialFile(root, root, false, true, stat)
 	if err != nil {
 		return "", err
 	}

@@ -11,11 +11,12 @@ type Symlink struct {
 	path   string
 	Target string
 	stat   os.FileInfo
+	root   bool
 
 	reader io.Reader
 }
 
-func NewLinkFile(name, path, target string, stat os.FileInfo) File {
+func NewLinkFile(name, path, target string, stat os.FileInfo) *Symlink {
 	return &Symlink{
 		name:   name,
 		path:   path,
@@ -47,4 +48,8 @@ func (f *Symlink) FullPath() string {
 
 func (f *Symlink) Read(b []byte) (int, error) {
 	return f.reader.Read(b)
+}
+
+func (f *Symlink) IsRoot() bool {
+	return f.root
 }

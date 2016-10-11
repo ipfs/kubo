@@ -20,16 +20,22 @@ type serialFile struct {
 	stat              os.FileInfo
 	current           *File
 	handleHiddenFiles bool
+	root              bool
 }
 
-func NewSerialFile(name, path string, hidden bool, stat os.FileInfo) (File, error) {
+func NewSerialFile(name, path string, hidden, root bool, stat os.FileInfo) (File, error) {
+	if root {
+		name = path
+	}
 	switch mode := stat.Mode(); {
 	case mode.IsRegular():
 		file, err := os.Open(path)
 		if err != nil {
 			return nil, err
 		}
-		return NewReaderFile(name, path, file, stat), nil
+		rf := NewReaderFile(name, path, file, stat)
+		rf.root = root
+		return rf, nil
 	case mode.IsDir():
 		// for directories, stat all of the contents first, so we know what files to
 		// open when NextFile() is called
@@ -37,13 +43,16 @@ func NewSerialFile(name, path string, hidden bool, stat os.FileInfo) (File, erro
 		if err != nil {
 			return nil, err
 		}
-		return &serialFile{name, path, contents, stat, nil, hidden}, nil
+		return &serialFile{name, path, contents, stat, nil, hidden, root}, nil
 	case mode&os.ModeSymlink != 0:
 		target, err := os.Readlink(path)
 		if err != nil {
 			return nil, err
 		}
-		return NewLinkFile(name, path, target, stat), nil
+
+		lf := NewLinkFile(name, path, target, stat)
+		lf.root = root
+		return lf, nil
 	default:
 		return nil, fmt.Errorf("Unrecognized file type for %s: %s", name, mode.String())
 	}
@@ -53,6 +62,10 @@ func (f *serialFile) IsDirectory() bool {
 	// non-directories get created as a ReaderFile, so serialFiles should only
 	// represent directories
 	return true
+}
+
+func (f *serialFile) IsRoot() bool {
+	return f.root
 }
 
 func (f *serialFile) NextFile() (File, error) {
@@ -86,7 +99,7 @@ func (f *serialFile) NextFile() (File, error) {
 	// recursively call the constructor on the next file
 	// if it's a regular file, we will open it as a ReaderFile
 	// if it's a directory, files in it will be opened serially
-	sf, err := NewSerialFile(fileName, filePath, f.handleHiddenFiles, stat)
+	sf, err := NewSerialFile(fileName, filePath, f.handleHiddenFiles, false, stat)
 	if err != nil {
 		return nil, err
 	}
