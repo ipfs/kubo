@@ -26,6 +26,7 @@ type MultipartFile struct {
 	Part      *multipart.Part
 	Reader    *multipart.Reader
 	Mediatype string
+	Root      bool
 }
 
 func NewFileFromPart(part *multipart.Part) (File, error) {
@@ -104,4 +105,8 @@ func (f *MultipartFile) Close() error {
 		return ErrNotReader
 	}
 	return f.Part.Close()
+}
+
+func (f *MultipartFile) IsRoot() bool {
+	return f.Root
 }

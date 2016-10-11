@@ -30,6 +30,10 @@ type File interface {
 	// (and therefor supports calling `Read` and `Close`)
 	IsDirectory() bool
 
+	// IsRoot returns whether or not this file (or directory) is the 'root' of
+	// a given operation.
+	IsRoot() bool
+
 	// NextFile returns the next child file available (if the File is a
 	// directory). It will return (nil, io.EOF) if no more files are
 	// available. If the file is a regular file (not a directory), NextFile
