@@ -118,7 +118,7 @@ func (s *blockService) AddBlocks(bs []blocks.Block) ([]*cid.Cid, error) {
 			toput = append(toput, b)
 		}
 	} else {
-		toput = bs;
+		toput = bs
 	}
 
 	err := s.blockstore.PutMany(toput)

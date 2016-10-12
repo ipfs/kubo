@@ -8,13 +8,13 @@ import (
 	"os"
 	"path"
 
+	context "context"
 	assets "github.com/ipfs/go-ipfs/assets"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	context "context"
 )
 
 const (

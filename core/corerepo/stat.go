@@ -3,9 +3,9 @@ package corerepo
 import (
 	"fmt"
 
+	context "context"
 	"github.com/ipfs/go-ipfs/core"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	context "context"
 )
 
 type Stat struct {
