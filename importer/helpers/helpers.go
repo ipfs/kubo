@@ -3,10 +3,10 @@ package helpers
 import (
 	"fmt"
 
+	"context"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	"context"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
