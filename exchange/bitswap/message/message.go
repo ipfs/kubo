@@ -8,9 +8,9 @@ import (
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	inet "gx/ipfs/QmdXimY9QHaasZmw6hWojWnCJvfgxETjZQfg9g6ZrA9wMX/go-libp2p-net"
 )
 
@@ -42,8 +42,10 @@ type BitSwapMessage interface {
 }
 
 type Exportable interface {
-	ToProto() *pb.Message
-	ToNet(w io.Writer) error
+	ToProtoV0() *pb.Message
+	ToProtoV1() *pb.Message
+	ToNetV0(w io.Writer) error
+	ToNetV1(w io.Writer) error
 }
 
 type impl struct {
@@ -78,10 +80,34 @@ func newMessageFromProto(pbm pb.Message) (BitSwapMessage, error) {
 		}
 		m.addEntry(c, int(e.GetPriority()), e.GetCancel())
 	}
+
+	// deprecated
 	for _, d := range pbm.GetBlocks() {
+		// CIDv0, sha256, protobuf only
 		b := blocks.NewBlock(d)
 		m.AddBlock(b)
 	}
+	//
+
+	for _, b := range pbm.GetPayload() {
+		pref, err := cid.PrefixFromBytes(b.GetPrefix())
+		if err != nil {
+			return nil, err
+		}
+
+		c, err := pref.Sum(b.GetData())
+		if err != nil {
+			return nil, err
+		}
+
+		blk, err := blocks.NewBlockWithCid(b.GetData(), c)
+		if err != nil {
+			return nil, err
+		}
+
+		m.AddBlock(blk)
+	}
+
 	return m, nil
 }
 
@@ -153,7 +179,7 @@ func FromPBReader(pbr ggio.Reader) (BitSwapMessage, error) {
 	return newMessageFromProto(*pb)
 }
 
-func (m *impl) ToProto() *pb.Message {
+func (m *impl) ToProtoV0() *pb.Message {
 	pbm := new(pb.Message)
 	pbm.Wantlist = new(pb.Message_Wantlist)
 	for _, e := range m.wantlist {
@@ -169,10 +195,39 @@ func (m *impl) ToProto() *pb.Message {
 	return pbm
 }
 
-func (m *impl) ToNet(w io.Writer) error {
+func (m *impl) ToProtoV1() *pb.Message {
+	pbm := new(pb.Message)
+	pbm.Wantlist = new(pb.Message_Wantlist)
+	for _, e := range m.wantlist {
+		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
+			Block:    proto.String(e.Cid.KeyString()),
+			Priority: proto.Int32(int32(e.Priority)),
+			Cancel:   proto.Bool(e.Cancel),
+		})
+	}
+	for _, b := range m.Blocks() {
+		blk := &pb.Message_Block{
+			Data:   b.RawData(),
+			Prefix: b.Cid().Prefix().Bytes(),
+		}
+		pbm.Payload = append(pbm.Payload, blk)
+	}
+	return pbm
+}
+
+func (m *impl) ToNetV0(w io.Writer) error {
 	pbw := ggio.NewDelimitedWriter(w)
 
-	if err := pbw.WriteMsg(m.ToProto()); err != nil {
+	if err := pbw.WriteMsg(m.ToProtoV0()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *impl) ToNetV1(w io.Writer) error {
+	pbw := ggio.NewDelimitedWriter(w)
+
+	if err := pbw.WriteMsg(m.ToProtoV1()); err != nil {
 		return err
 	}
 	return nil

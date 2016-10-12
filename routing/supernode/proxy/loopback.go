@@ -2,7 +2,7 @@ package proxy
 
 import (
 	context "context"
-	dhtpb "gx/ipfs/QmRDMP3Y9E6hZtJwcFii8F6RTUSDn67Hi2o5VFTBXNRioo/go-libp2p-kad-dht/pb"
+	dhtpb "gx/ipfs/QmWHiyk5y2EKgxHogFJ4Zt1xTqKeVsBc4zcBke8ie9C2Bn/go-libp2p-kad-dht/pb"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	inet "gx/ipfs/QmdXimY9QHaasZmw6hWojWnCJvfgxETjZQfg9g6ZrA9wMX/go-libp2p-net"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"

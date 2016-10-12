@@ -4,13 +4,18 @@ import (
 	"context"
 
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	cid "gx/ipfs/QmakyCk6Vnn16WEKjbkxieZmM2YLTzkFWizbmGowoYPjro/go-cid"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
-var ProtocolBitswap protocol.ID = "/ipfs/bitswap/1.0.0"
-var ProtocolBitswapOld protocol.ID = "/ipfs/bitswap"
+var (
+	// These two are equivalent, legacy
+	ProtocolBitswapOne    protocol.ID = "/ipfs/bitswap/1.0.0"
+	ProtocolBitswapNoVers protocol.ID = "/ipfs/bitswap"
+
+	ProtocolBitswap protocol.ID = "/ipfs/bitswap/1.1.0"
+)
 
 // BitSwapNetwork provides network connectivity for BitSwap sessions
 type BitSwapNetwork interface {
