@@ -34,12 +34,8 @@ type Blockstore interface {
 	DeleteBlock(key.Key) error
 	Has(key.Key) (bool, error)
 	Get(key.Key) (blocks.Block, error)
-
-	// Put and PutMany return the blocks(s) actually added to the
-	// blockstore.  If a block already exists it will not be returned.
-
-	Put(blocks.Block) (error, blocks.Block)
-	PutMany([]blocks.Block) (error, []blocks.Block)
+	Put(blocks.Block) error
+	PutMany([]blocks.Block) error
 
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
@@ -133,29 +129,27 @@ func (bs *blockstore) Get(k key.Key) (blocks.Block, error) {
 	}
 }
 
-func (bs *blockstore) Put(block blocks.Block) (error, blocks.Block) {
+func (bs *blockstore) Put(block blocks.Block) error {
 	k := block.Key().DsKey()
 
 	// Note: The Has Check is now done by the MultiBlockstore
 
-	return bs.datastore.Put(k, block.RawData()), block
+	return bs.datastore.Put(k, block.RawData())
 }
 
-func (bs *blockstore) PutMany(blks []blocks.Block) (error, []blocks.Block) {
+func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	t, err := bs.datastore.Batch()
 	if err != nil {
-		return err, nil
+		return err
 	}
-	added := make([]blocks.Block, 0, len(blks))
-	for _, b := range blks {
+	for _, b := range blocks {
 		k := b.Key().DsKey()
 		err = t.Put(k, b.RawData())
 		if err != nil {
-			return err, nil
+			return err
 		}
-		added = append(added, b)
 	}
-	return t.Commit(), added
+	return t.Commit()
 }
 
 func (bs *blockstore) Has(k key.Key) (bool, error) {

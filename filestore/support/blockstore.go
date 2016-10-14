@@ -18,55 +18,55 @@ func NewBlockstore(b bs.GCBlockstore, fs *Datastore) bs.GCBlockstore {
 	return &blockstore{b, fs}
 }
 
-func (bs *blockstore) Put(block b.Block) (error, b.Block)  {
+func (bs *blockstore) Put(block b.Block) error {
 	k := block.Key().DsKey()
 
 	data, err := bs.prepareBlock(k, block)
 	if err != nil {
-		return err, nil
+		return err
 	} else if data == nil {
 		return bs.GCBlockstore.Put(block)
 	}
-	return bs.filestore.Put(k, data), block
+	return bs.filestore.Put(k, data)
 }
 
-func (bs *blockstore) PutMany(blocks []b.Block) (error, []b.Block)  {
+func (bs *blockstore) PutMany(blocks []b.Block) error {
 	var nonFilestore []b.Block
 
 	t, err := bs.filestore.Batch()
 	if err != nil {
-		return err, nil
+		return err
 	}
 
-	added := make([]b.Block, 0, len(blocks))
 	for _, b := range blocks {
 		k := b.Key().DsKey()
 		data, err := bs.prepareBlock(k, b)
 		if err != nil {
-			return err, nil
+			return err
 		} else if data == nil {
 			nonFilestore = append(nonFilestore, b)
 			continue
-		} 
+		}
 
 		err = t.Put(k, data)
 		if err != nil {
-			return err, nil
+			return err
 		}
-		added = append(added, b)
 	}
 
 	err = t.Commit()
 	if err != nil {
-		return err, nil
+		return err
 	}
 
 	if len(nonFilestore) > 0 {
-		err, alsoAdded := bs.GCBlockstore.PutMany(nonFilestore)
-		if err != nil {return err, added}
-		return nil, append(added, alsoAdded...)
+		err := bs.GCBlockstore.PutMany(nonFilestore)
+		if err != nil {
+			return err
+		}
+		return nil
 	} else {
-		return nil, added
+		return nil
 	}
 }
 
@@ -76,7 +76,7 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 		return nil, err
 	}
 
-	if (fsInfo.Type != fs_pb.Data_Raw && fsInfo.Type != fs_pb.Data_File) {
+	if fsInfo.Type != fs_pb.Data_Raw && fsInfo.Type != fs_pb.Data_File {
 		// If the node does not contain file data store using
 		// the normal datastore and not the filestore.
 		// Also don't use the filestore if the filesize is 0
@@ -87,11 +87,11 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 		// have any file information associated with it
 		return &DataObj{
 			FilePath: "",
-			Offset: 0,
-			Size: 0,
-			ModTime: 0,
-			Flags: Internal|WholeFile,
-			Data: block.RawData(),
+			Offset:   0,
+			Size:     0,
+			ModTime:  0,
+			Flags:    Internal | WholeFile,
+			Data:     block.RawData(),
 		}, nil
 	} else {
 		posInfo := block.PosInfo()

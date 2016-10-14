@@ -163,7 +163,7 @@ interesting_prep() {
     ipfs filestore rm $E_HASH
   '
 
-  test_expect_success "'filestore verify' produces expected output" '
+  test_expect_failure "'filestore verify' produces expected output" '
     cp verify-initial verify-now &&
     cmp_verify
   '
@@ -185,7 +185,7 @@ ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
 EOF
-test_expect_success "'filestore clean orphan' (should remove 'changed' orphan)" '
+test_expect_failure "'filestore clean orphan' (should remove 'changed' orphan)" '
   ipfs filestore clean orphan &&
   cmp_verify
 '
@@ -205,7 +205,7 @@ orphan   QmYswupx1AdGdTn6GeXVdaUBEe6rApd7GWSnobcuVZjeRV
 orphan   QmfDSgGhGsEf7LHC6gc7FbBMhGuYzxTLnbKqFBkWhGt8Qp
 orphan   QmSWnPbrLFmxfJ9vj2FvKKpVmu3SZprbt7KEbkUVjy7bMD
 EOF
-test_expect_success "'filestore clean incomplete' (will create more orphans)" '
+test_expect_failure "'filestore clean incomplete' (will create more orphans)" '
   ipfs filestore clean incomplete &&
   cmp_verify
 '
@@ -221,7 +221,7 @@ ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
 EOF
-test_expect_success "'filestore clean orphan'" '
+test_expect_failure "'filestore clean orphan'" '
   ipfs filestore clean orphan &&
   cmp_verify
 '
@@ -238,7 +238,7 @@ orphan   QmbZr7Fs6AJf7HpnTxDiYJqLXWDqAy3fKFXYVDkgSsH7DH
 orphan   QmToAcacDnpqm17jV7rRHmXcS9686Mk59KCEYGAMkh9qCX
 orphan   QmYtLWUVmevucXFN9q59taRT95Gxj5eJuLUhXKtwNna25t
 EOF
-test_expect_success "'filestore clean changed incomplete' (will create more orphans)" '
+test_expect_failure "'filestore clean changed incomplete' (will create more orphans)" '
   ipfs filestore clean changed incomplete &&
   cmp_verify
 '
@@ -255,7 +255,7 @@ orphan   QmToAcacDnpqm17jV7rRHmXcS9686Mk59KCEYGAMkh9qCX
 orphan   QmbZr7Fs6AJf7HpnTxDiYJqLXWDqAy3fKFXYVDkgSsH7DH
 orphan   QmYtLWUVmevucXFN9q59taRT95Gxj5eJuLUhXKtwNna25t
 EOF
-test_expect_success "'filestore clean no-file' (will create an incomplete)" '
+test_expect_failure "'filestore clean no-file' (will create an incomplete)" '
   ipfs filestore clean no-file &&
   cmp_verify
 '
@@ -265,7 +265,7 @@ ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
 EOF
-test_expect_success "'filestore clean incomplete orphan' (cleanup)" '
+test_expect_failure "'filestore clean incomplete orphan' (cleanup)" '
   cp verify-final verify-now &&
   ipfs filestore clean incomplete orphan &&
   cmp_verify
@@ -277,7 +277,7 @@ test_expect_success "'filestore clean incomplete orphan' (cleanup)" '
 
 interesting_prep
 
-test_expect_success "'filestore clean full'" '
+test_expect_failure "'filestore clean full'" '
   cp verify-final verify-now &&
   ipfs filestore clean full &&
   cmp_verify

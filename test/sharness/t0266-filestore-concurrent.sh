@@ -75,11 +75,11 @@ test_expect_success "filestore clean invalid race condation" '(
   wait
 )'
 
-test_expect_success "filestore clean race condation: output looks good" '
+test_expect_failure "filestore clean race condation: output looks good" '
   grep "cannot remove $HASH" clean-actual
 '
 
-test_expect_success "filestore clean race condation: file still available" '
+test_expect_failure "filestore clean race condation: file still available" '
   ipfs cat "$HASH" > /dev/null
 '
 

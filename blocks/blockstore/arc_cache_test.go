@@ -85,7 +85,7 @@ func TestHasRequestTriggersCache(t *testing.T) {
 	}
 
 	untrap(cd)
-	err, _ := arc.Put(exampleBlock)
+	err := arc.Put(exampleBlock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestGetFillsCache(t *testing.T) {
 
 	untrap(cd)
 
-	if err, _ := arc.Put(exampleBlock); err != nil {
+	if err := arc.Put(exampleBlock); err != nil {
 		t.Fatal(err)
 	}
 

@@ -140,31 +140,31 @@ func (b *bloomcache) Get(k key.Key) (blocks.Block, error) {
 	return b.blockstore.Get(k)
 }
 
-func (b *bloomcache) Put(bl blocks.Block) (error, blocks.Block) {
+func (b *bloomcache) Put(bl blocks.Block) error {
 	if has, ok := b.hasCached(bl.Key()); ok && has {
-		return nil, nil
+		return nil
 	}
 
-	err, added := b.blockstore.Put(bl)
+	err := b.blockstore.Put(bl)
 	if err == nil {
 		b.bloom.AddTS([]byte(bl.Key()))
 	}
-	return err, added
+	return err
 }
 
-func (b *bloomcache) PutMany(bs []blocks.Block) (error, []blocks.Block) {
+func (b *bloomcache) PutMany(bs []blocks.Block) error {
 	// bloom cache gives only conclusive resulty if key is not contained
 	// to reduce number of puts we need conclusive infomration if block is contained
 	// this means that PutMany can't be improved with bloom cache so we just
 	// just do a passthrough.
-	err, added := b.blockstore.PutMany(bs)
+	err := b.blockstore.PutMany(bs)
 	if err != nil {
-		return err, nil
+		return err
 	}
 	for _, bl := range bs {
 		b.bloom.AddTS([]byte(bl.Key()))
 	}
-	return nil, added
+	return nil
 }
 
 func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
