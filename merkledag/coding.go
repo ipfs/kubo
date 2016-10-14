@@ -7,6 +7,7 @@ import (
 	pb "github.com/ipfs/go-ipfs/merkledag/pb"
 
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -22,9 +23,9 @@ func (n *ProtoNode) unmarshal(encoded []byte) error {
 	}
 
 	pbnl := pbn.GetLinks()
-	n.links = make([]*Link, len(pbnl))
+	n.links = make([]*node.Link, len(pbnl))
 	for i, l := range pbnl {
-		n.links[i] = &Link{Name: l.GetName(), Size: l.GetTsize()}
+		n.links[i] = &node.Link{Name: l.GetName(), Size: l.GetTsize()}
 		c, err := cid.Cast(l.GetHash())
 		if err != nil {
 			return fmt.Errorf("Link hash #%d is not valid multihash. %v", i, err)

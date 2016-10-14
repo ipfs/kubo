@@ -12,9 +12,11 @@ import (
 
 	"github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin/internal/pb"
+
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	"gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	"gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 const (
@@ -47,7 +49,7 @@ type itemIterator func() (c *cid.Cid, ok bool)
 type keyObserver func(*cid.Cid)
 
 type sortByHash struct {
-	links []*merkledag.Link
+	links []*node.Link
 }
 
 func (s sortByHash) Len() int {
@@ -67,9 +69,9 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 	if err != nil {
 		return nil, err
 	}
-	links := make([]*merkledag.Link, 0, defaultFanout+maxItems)
+	links := make([]*node.Link, 0, defaultFanout+maxItems)
 	for i := 0; i < defaultFanout; i++ {
-		links = append(links, &merkledag.Link{Cid: emptyKey})
+		links = append(links, &node.Link{Cid: emptyKey})
 	}
 
 	// add emptyKey to our set of internal pinset objects
@@ -97,7 +99,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 				break
 			}
 
-			links = append(links, &merkledag.Link{Cid: k})
+			links = append(links, &node.Link{Cid: k})
 		}
 
 		n.SetLinks(links)
@@ -159,7 +161,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 		internalKeys(childKey)
 
 		// overwrite the 'empty key' in the existing links array
-		n.Links()[h] = &merkledag.Link{
+		n.Links()[h] = &node.Link{
 			Cid:  childKey,
 			Size: size,
 		}
@@ -212,7 +214,7 @@ func writeHdr(n *merkledag.ProtoNode, hdr *pb.Set) error {
 	return nil
 }
 
-type walkerFunc func(idx int, link *merkledag.Link) error
+type walkerFunc func(idx int, link *node.Link) error
 
 func walkItems(ctx context.Context, dag merkledag.DAGService, n *merkledag.ProtoNode, fn walkerFunc, children keyObserver) error {
 	hdr, err := readHdr(n)
@@ -269,7 +271,7 @@ func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.Prot
 	}
 
 	var res []*cid.Cid
-	walk := func(idx int, link *merkledag.Link) error {
+	walk := func(idx int, link *node.Link) error {
 		res = append(res, link.Cid)
 		return nil
 	}

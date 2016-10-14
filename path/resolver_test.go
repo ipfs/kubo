@@ -1,15 +1,16 @@
 package path_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
-
-	context "context"
 
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	dagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	path "github.com/ipfs/go-ipfs/path"
+
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -39,7 +40,7 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, n := range []merkledag.Node{a, b, c} {
+	for _, n := range []node.Node{a, b, c} {
 		_, err = dagService.Add(n)
 		if err != nil {
 			t.Fatal(err)

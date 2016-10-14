@@ -19,6 +19,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
@@ -290,10 +291,10 @@ var ObjectStatCmd = &cmds.Command{
 
 		res.SetOutput(ns)
 	},
-	Type: dag.NodeStat{},
+	Type: node.NodeStat{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			ns := res.Output().(*dag.NodeStat)
+			ns := res.Output().(*node.NodeStat)
 
 			buf := new(bytes.Buffer)
 			w := func(s string, n int) {
@@ -556,7 +557,7 @@ func getObjectEnc(o interface{}) objectEncoding {
 	return objectEncoding(v)
 }
 
-func getOutput(dagnode dag.Node) (*Object, error) {
+func getOutput(dagnode node.Node) (*Object, error) {
 	c := dagnode.Cid()
 	output := &Object{
 		Hash:  c.String(),
@@ -575,25 +576,25 @@ func getOutput(dagnode dag.Node) (*Object, error) {
 }
 
 // converts the Node object into a real dag.ProtoNode
-func deserializeNode(node *Node, dataFieldEncoding string) (*dag.ProtoNode, error) {
+func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error) {
 	dagnode := new(dag.ProtoNode)
 	switch dataFieldEncoding {
 	case "text":
-		dagnode.SetData([]byte(node.Data))
+		dagnode.SetData([]byte(nd.Data))
 	case "base64":
-		data, _ := base64.StdEncoding.DecodeString(node.Data)
+		data, _ := base64.StdEncoding.DecodeString(nd.Data)
 		dagnode.SetData(data)
 	default:
 		return nil, fmt.Errorf("Unkown data field encoding")
 	}
 
-	dagnode.SetLinks(make([]*dag.Link, len(node.Links)))
-	for i, link := range node.Links {
+	dagnode.SetLinks(make([]*node.Link, len(nd.Links)))
+	for i, link := range nd.Links {
 		c, err := cid.Decode(link.Hash)
 		if err != nil {
 			return nil, err
 		}
-		dagnode.Links()[i] = &dag.Link{
+		dagnode.Links()[i] = &node.Link{
 			Name: link.Name,
 			Size: link.Size,
 			Cid:  c,

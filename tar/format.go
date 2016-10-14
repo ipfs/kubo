@@ -3,6 +3,7 @@ package tarfmt
 import (
 	"archive/tar"
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -14,9 +15,9 @@ import (
 	dagutil "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 
-	context "context"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 var log = logging.Logger("tarfmt")
@@ -106,7 +107,7 @@ func escapePath(pth string) string {
 }
 
 type tarReader struct {
-	links []*dag.Link
+	links []*node.Link
 	ds    dag.DAGService
 
 	childRead *tarReader

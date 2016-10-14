@@ -269,6 +269,12 @@
       "hash": "QmTgcWwxttM74AY7UYA6qMP9WpzfBEjbZntx7ZWLttRMJJ",
       "name": "floodsub",
       "version": "0.7.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB",
+      "name": "go-ipld-node",
+      "version": "0.1.0"
     }
   ],
   "gxVersion": "0.4.0",

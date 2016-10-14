@@ -2,6 +2,7 @@ package mfs
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -23,8 +24,8 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	"context"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	dssync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
@@ -291,12 +292,12 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 	dirhash := dir.Cid()
 
 	top := emptyDirNode()
-	top.SetLinks([]*dag.Link{
-		&dag.Link{
+	top.SetLinks([]*node.Link{
+		{
 			Name: "a",
 			Cid:  fihash,
 		},
-		&dag.Link{
+		{
 			Name: "b",
 			Cid:  dirhash,
 		},

@@ -3,17 +3,17 @@
 package pin
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
 	"time"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
-	context "context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
@@ -83,7 +83,7 @@ func StringToPinMode(s string) (PinMode, bool) {
 type Pinner interface {
 	IsPinned(*cid.Cid) (string, bool, error)
 	IsPinnedWithType(*cid.Cid, PinMode) (string, bool, error)
-	Pin(context.Context, mdag.Node, bool) error
+	Pin(context.Context, node.Node, bool) error
 	Unpin(context.Context, *cid.Cid, bool) error
 
 	// Check if a set of keys are pinned, more efficient than
@@ -162,11 +162,10 @@ func NewPinner(dstore ds.Datastore, serv, internal mdag.DAGService) Pinner {
 }
 
 // Pin the given node, optionally recursive
-func (p *pinner) Pin(ctx context.Context, node mdag.Node, recurse bool) error {
+func (p *pinner) Pin(ctx context.Context, node node.Node, recurse bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	c := node.Cid()
-	k := key.Key(c.Hash())
 
 	if recurse {
 		if p.recursePin.Has(c) {
@@ -190,7 +189,7 @@ func (p *pinner) Pin(ctx context.Context, node mdag.Node, recurse bool) error {
 		}
 
 		if p.recursePin.Has(c) {
-			return fmt.Errorf("%s already pinned recursively", k.B58String())
+			return fmt.Errorf("%s already pinned recursively", c.String())
 		}
 
 		p.directPin.Add(c)
@@ -248,7 +247,6 @@ func (p *pinner) IsPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error
 // isPinnedWithType is the implementation of IsPinnedWithType that does not lock.
 // intended for use by other pinned methods that already take locks
 func (p *pinner) isPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error) {
-	k := key.Key(c.Hash())
 	switch mode {
 	case Any, Direct, Indirect, Recursive, Internal:
 	default:
@@ -279,7 +277,7 @@ func (p *pinner) isPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error
 
 	// Default is Indirect
 	for _, rc := range p.recursePin.Keys() {
-		has, err := hasChild(p.dserv, rc, k)
+		has, err := hasChild(p.dserv, rc, c)
 		if err != nil {
 			return "", false, err
 		}
@@ -521,14 +519,14 @@ func (p *pinner) PinWithMode(c *cid.Cid, mode PinMode) {
 	}
 }
 
-func hasChild(ds mdag.LinkService, root *cid.Cid, child key.Key) (bool, error) {
+func hasChild(ds mdag.LinkService, root *cid.Cid, child *cid.Cid) (bool, error) {
 	links, err := ds.GetLinks(context.Background(), root)
 	if err != nil {
 		return false, err
 	}
 	for _, lnk := range links {
 		c := lnk.Cid
-		if key.Key(c.Hash()) == child {
+		if lnk.Cid.Equals(child) {
 			return true, nil
 		}
 

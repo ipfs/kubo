@@ -12,6 +12,8 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
+
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 type LsLink struct {
@@ -50,7 +52,7 @@ The JSON output contains type information.
 		cmds.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -70,9 +72,9 @@ The JSON output contains type information.
 
 		paths := req.Arguments()
 
-		var dagnodes []merkledag.Node
+		var dagnodes []node.Node
 		for _, fpath := range paths {
-			dagnode, err := core.Resolve(req.Context(), node, path.Path(fpath))
+			dagnode, err := core.Resolve(req.Context(), nd, path.Path(fpath))
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -90,8 +92,8 @@ The JSON output contains type information.
 				var linkNode *merkledag.ProtoNode
 				t := unixfspb.Data_DataType(-1)
 				linkKey := link.Cid
-				if ok, err := node.Blockstore.Has(linkKey); ok && err == nil {
-					b, err := node.Blockstore.Get(linkKey)
+				if ok, err := nd.Blockstore.Has(linkKey); ok && err == nil {
+					b, err := nd.Blockstore.Get(linkKey)
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
@@ -104,7 +106,7 @@ The JSON output contains type information.
 				}
 
 				if linkNode == nil && resolve {
-					nd, err := link.GetNode(req.Context(), node.DAG)
+					nd, err := link.GetNode(req.Context(), nd.DAG)
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return

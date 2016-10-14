@@ -11,6 +11,7 @@ import (
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 var log = logging.Logger("path")
@@ -61,7 +62,7 @@ func SplitAbsPath(fpath Path) (*cid.Cid, []string, error) {
 
 // ResolvePath fetches the node for given path. It returns the last item
 // returned by ResolvePathComponents.
-func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (merkledag.Node, error) {
+func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (node.Node, error) {
 	// validate path
 	if err := fpath.IsValid(); err != nil {
 		return nil, err
@@ -77,7 +78,7 @@ func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (merkledag.Node,
 // ResolvePathComponents fetches the nodes for each segment of the given path.
 // It uses the first path component as a hash (key) of the first node, then
 // resolves all other components walking the links, with ResolveLinks.
-func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]merkledag.Node, error) {
+func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]node.Node, error) {
 	h, parts, err := SplitAbsPath(fpath)
 	if err != nil {
 		return nil, err
@@ -99,9 +100,9 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]mer
 //
 // ResolveLinks(nd, []string{"foo", "bar", "baz"})
 // would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
-func (s *Resolver) ResolveLinks(ctx context.Context, ndd merkledag.Node, names []string) ([]merkledag.Node, error) {
+func (s *Resolver) ResolveLinks(ctx context.Context, ndd node.Node, names []string) ([]node.Node, error) {
 
-	result := make([]merkledag.Node, 0, len(names)+1)
+	result := make([]node.Node, 0, len(names)+1)
 	result = append(result, ndd)
 	nd := ndd // dup arg workaround
 

@@ -1,23 +1,24 @@
 package merkledag_test
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 
-	"context"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 func TestRemoveLink(t *testing.T) {
 	nd := &ProtoNode{}
-	nd.SetLinks([]*Link{
-		&Link{Name: "a"},
-		&Link{Name: "b"},
-		&Link{Name: "a"},
-		&Link{Name: "a"},
-		&Link{Name: "c"},
-		&Link{Name: "a"},
+	nd.SetLinks([]*node.Link{
+		{Name: "a"},
+		{Name: "b"},
+		{Name: "a"},
+		{Name: "a"},
+		{Name: "c"},
+		{Name: "a"},
 	})
 
 	err := nd.RemoveNodeLink("a")
@@ -65,10 +66,10 @@ func TestFindLink(t *testing.T) {
 	}
 
 	nd := &ProtoNode{}
-	nd.SetLinks([]*Link{
-		&Link{Name: "a", Cid: k},
-		&Link{Name: "c", Cid: k},
-		&Link{Name: "b", Cid: k},
+	nd.SetLinks([]*node.Link{
+		{Name: "a", Cid: k},
+		{Name: "c", Cid: k},
+		{Name: "b", Cid: k},
 	})
 
 	_, err = ds.Add(nd)
@@ -112,10 +113,10 @@ func TestFindLink(t *testing.T) {
 
 func TestNodeCopy(t *testing.T) {
 	nd := &ProtoNode{}
-	nd.SetLinks([]*Link{
-		&Link{Name: "a"},
-		&Link{Name: "c"},
-		&Link{Name: "b"},
+	nd.SetLinks([]*node.Link{
+		{Name: "a"},
+		{Name: "c"},
+		{Name: "b"},
 	})
 
 	nd.SetData([]byte("testing"))

@@ -2,6 +2,7 @@ package merkledag_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,10 +20,10 @@ import (
 	mdpb "github.com/ipfs/go-ipfs/merkledag/pb"
 	dstest "github.com/ipfs/go-ipfs/merkledag/test"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
-	"context"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -85,7 +86,7 @@ func SubtestNodeStat(t *testing.T, n *ProtoNode) {
 
 	k := n.Key()
 
-	expected := NodeStat{
+	expected := node.NodeStat{
 		NumLinks:       len(n.Links()),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.Data()), // includes framing.
@@ -206,7 +207,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 	}
 }
 
-func assertCanGet(t *testing.T, ds DAGService, n Node) {
+func assertCanGet(t *testing.T, ds DAGService, n node.Node) {
 	if _, err := ds.Get(context.Background(), n.Cid()); err != nil {
 		t.Fatal(err)
 	}
@@ -268,8 +269,8 @@ func TestEnumerateChildren(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var traverse func(n Node)
-	traverse = func(n Node) {
+	var traverse func(n node.Node)
+	traverse = func(n node.Node) {
 		// traverse dag and check
 		for _, lnk := range n.Links() {
 			c := lnk.Cid
