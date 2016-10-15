@@ -298,6 +298,9 @@ func flushCopy(w io.Writer, r io.Reader) error {
 		return err
 	}
 	for {
+		// flush to send header when r is not ready yet
+		f.Flush()
+
 		n, err := r.Read(buf)
 		switch err {
 		case io.EOF:
