@@ -299,12 +299,21 @@ func flushCopy(w io.Writer, r io.Reader) error {
 	}
 	for {
 		// flush to send header when r is not ready yet
-		f.Flush()
+		err = f.Flush()
+		if err != nil {
+			return err
+		}
 
 		n, err := r.Read(buf)
 		switch err {
 		case io.EOF:
 			if n <= 0 {
+				// flush when reader is drained
+				err = f.Flush()
+				if err != nil {
+					return err
+				}
+
 				return nil
 			}
 			// if data was returned alongside the EOF, pretend we didnt
@@ -323,8 +332,6 @@ func flushCopy(w io.Writer, r io.Reader) error {
 		if nw != n {
 			return fmt.Errorf("http write failed to write full amount: %d != %d", nw, n)
 		}
-
-		f.Flush()
 	}
 	return nil
 }
