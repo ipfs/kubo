@@ -89,7 +89,7 @@ for dependency management.
 First download `go-ipfs` without installing:
 
 ```
-$ go get -d github.com/ipfs/go-ipfs
+$ go get -u -d github.com/ipfs/go-ipfs
 
 $ cd $GOPATH/src/github.com/ipfs/go-ipfs
 ```
