@@ -30,6 +30,10 @@ func (s suggestionSlice) Less(i, j int) bool {
 }
 
 func suggestUnknownCmd(args []string, root *cmds.Command) []string {
+	if root == nil {
+		return nil
+	}
+
 	arg := args[0]
 	var suggestions []string
 	sortableSuggestions := make(suggestionSlice, 0)
