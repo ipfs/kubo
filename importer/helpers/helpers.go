@@ -1,12 +1,14 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 
-	"context"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -37,8 +39,10 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 // UnixfsNode is a struct created to aid in the generation
 // of unixfs DAG trees
 type UnixfsNode struct {
-	node *dag.ProtoNode
-	ufmt *ft.FSNode
+	raw     bool
+	rawnode *dag.RawNode
+	node    *dag.ProtoNode
+	ufmt    *ft.FSNode
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
@@ -72,6 +76,15 @@ func NewUnixfsNodeFromDag(nd *dag.ProtoNode) (*UnixfsNode, error) {
 
 func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
+}
+
+func (n *UnixfsNode) Set(other *UnixfsNode) {
+	n.node = other.node
+	n.raw = other.raw
+	n.rawnode = other.rawnode
+	if other.ufmt != nil {
+		n.ufmt.Data = other.ufmt.Data
+	}
 }
 
 func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*UnixfsNode, error) {
@@ -126,7 +139,11 @@ func (n *UnixfsNode) SetData(data []byte) {
 
 // getDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
-func (n *UnixfsNode) GetDagNode() (*dag.ProtoNode, error) {
+func (n *UnixfsNode) GetDagNode() (node.Node, error) {
+	if n.raw {
+		return n.rawnode, nil
+	}
+
 	data, err := n.ufmt.GetBytes()
 	if err != nil {
 		return nil, err

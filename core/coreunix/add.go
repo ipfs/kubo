@@ -1,6 +1,7 @@
 package coreunix
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,16 +14,18 @@ import (
 	"github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/exchange/offline"
-	importer "github.com/ipfs/go-ipfs/importer"
+	balanced "github.com/ipfs/go-ipfs/importer/balanced"
 	"github.com/ipfs/go-ipfs/importer/chunk"
+	ihelper "github.com/ipfs/go-ipfs/importer/helpers"
+	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	"github.com/ipfs/go-ipfs/pin"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 
-	context "context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
@@ -97,6 +100,7 @@ type Adder struct {
 	Hidden     bool
 	Pin        bool
 	Trickle    bool
+	RawLeaves  bool
 	Silent     bool
 	Wrap       bool
 	Chunker    string
@@ -111,22 +115,22 @@ func (adder *Adder) SetMfsRoot(r *mfs.Root) {
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func (adder Adder) add(reader io.Reader) (*dag.ProtoNode, error) {
+func (adder Adder) add(reader io.Reader) (node.Node, error) {
 	chnk, err := chunk.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
 	}
+	params := ihelper.DagBuilderParams{
+		Dagserv:   adder.dagService,
+		RawLeaves: adder.RawLeaves,
+		Maxlinks:  ihelper.DefaultLinksPerBlock,
+	}
 
 	if adder.Trickle {
-		return importer.BuildTrickleDagFromReader(
-			adder.dagService,
-			chnk,
-		)
+		return trickle.TrickleLayout(params.New(chnk))
 	}
-	return importer.BuildDagFromReader(
-		adder.dagService,
-		chnk,
-	)
+
+	return balanced.BalancedLayout(params.New(chnk))
 }
 
 func (adder *Adder) RootNode() (*dag.ProtoNode, error) {
@@ -331,7 +335,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.Pr
 	return gopath.Join(c.String(), filename), dagnode, nil
 }
 
-func (adder *Adder) addNode(node *dag.ProtoNode, path string) error {
+func (adder *Adder) addNode(node node.Node, path string) error {
 	// patch it into the root
 	if path == "" {
 		path = node.Cid().String()
@@ -456,7 +460,7 @@ func (adder *Adder) maybePauseForGC() error {
 }
 
 // outputDagnode sends dagnode info over the output channel
-func outputDagnode(out chan interface{}, name string, dn *dag.ProtoNode) error {
+func outputDagnode(out chan interface{}, name string, dn node.Node) error {
 	if out == nil {
 		return nil
 	}
@@ -482,7 +486,7 @@ func NewMemoryDagService() dag.DAGService {
 }
 
 // from core/commands/object.go
-func getOutput(dagnode *dag.ProtoNode) (*Object, error) {
+func getOutput(dagnode node.Node) (*Object, error) {
 	c := dagnode.Cid()
 
 	output := &Object{

@@ -2,6 +2,7 @@ package mod
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"os"
@@ -13,10 +14,10 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	context "context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
@@ -45,9 +46,14 @@ type DagModifier struct {
 	read *uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from *mdag.ProtoNode, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+	pbn, ok := from.(*mdag.ProtoNode)
+	if !ok {
+		return nil, mdag.ErrNotProtobuf
+	}
+
 	return &DagModifier{
-		curNode:  from.Copy(),
+		curNode:  pbn.Copy(),
 		dagserv:  serv,
 		splitter: spl,
 		ctx:      ctx,
@@ -109,7 +115,13 @@ func (dm *DagModifier) expandSparse(size int64) error {
 	if err != nil {
 		return err
 	}
-	dm.curNode = nnode
+
+	pbnnode, ok := nnode.(*mdag.ProtoNode)
+	if !ok {
+		return mdag.ErrNotProtobuf
+	}
+
+	dm.curNode = pbnnode
 	return nil
 }
 
@@ -197,7 +209,12 @@ func (dm *DagModifier) Sync() error {
 			return err
 		}
 
-		dm.curNode = nd
+		pbnode, ok := nd.(*mdag.ProtoNode)
+		if !ok {
+			return mdag.ErrNotProtobuf
+		}
+
+		dm.curNode = pbnode
 	}
 
 	dm.writeStart += uint64(buflen)
@@ -288,7 +305,7 @@ func (dm *DagModifier) modifyDag(node *mdag.ProtoNode, offset uint64, data io.Re
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(node *mdag.ProtoNode, spl chunk.Splitter) (*mdag.ProtoNode, error) {
+func (dm *DagModifier) appendData(node *mdag.ProtoNode, spl chunk.Splitter) (node.Node, error) {
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,

@@ -23,15 +23,16 @@ import (
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 const (
-	quietOptionName    = "quiet"
-	silentOptionName   = "silent"
-	progressOptionName = "progress"
-	trickleOptionName  = "trickle"
-	wrapOptionName     = "wrap-with-directory"
-	hiddenOptionName   = "hidden"
-	onlyHashOptionName = "only-hash"
-	chunkerOptionName  = "chunker"
-	pinOptionName      = "pin"
+	quietOptionName     = "quiet"
+	silentOptionName    = "silent"
+	progressOptionName  = "progress"
+	trickleOptionName   = "trickle"
+	wrapOptionName      = "wrap-with-directory"
+	hiddenOptionName    = "hidden"
+	onlyHashOptionName  = "only-hash"
+	chunkerOptionName   = "chunker"
+	pinOptionName       = "pin"
+	rawLeavesOptionName = "raw-leaves"
 )
 
 var AddCmd = &cmds.Command{
@@ -78,6 +79,7 @@ You can now refer to the added file in a gateway, like so:
 		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add.").Default(false),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
+		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
@@ -135,6 +137,7 @@ You can now refer to the added file in a gateway, like so:
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, _, _ := req.Option(pinOptionName).Bool()
+		rawblks, _, _ := req.Option(rawLeavesOptionName).Bool()
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -174,6 +177,7 @@ You can now refer to the added file in a gateway, like so:
 		fileAdder.Wrap = wrap
 		fileAdder.Pin = dopin
 		fileAdder.Silent = silent
+		fileAdder.RawLeaves = rawblks
 
 		if hash {
 			md := dagtest.Mock()

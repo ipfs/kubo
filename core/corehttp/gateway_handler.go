@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -18,10 +19,10 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	"context"
 	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 const (
@@ -45,7 +46,7 @@ func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) *gatewayHandler 
 }
 
 // TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.ProtoNode, error) {
+func (i *gatewayHandler) newDagFromReader(r io.Reader) (node.Node, error) {
 	// TODO(cryptix): change and remove this helper once PR1136 is merged
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
@@ -353,7 +354,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newnode *dag.ProtoNode
+	var newnode node.Node
 	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
 		newnode = uio.NewEmptyDirectory()
 	} else {
@@ -417,8 +418,14 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		pbnewnode, ok := newnode.(*dag.ProtoNode)
+		if !ok {
+			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+			return
+		}
+
 		// object set-data case
-		pbnd.SetData(newnode.Data())
+		pbnd.SetData(pbnewnode.Data())
 
 		newcid, err = i.node.DAG.Add(pbnd)
 		if err != nil {

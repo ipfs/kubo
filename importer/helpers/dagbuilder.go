@@ -3,22 +3,29 @@ package helpers
 import (
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
-	dserv    dag.DAGService
-	spl      chunk.Splitter
-	recvdErr error
-	nextData []byte // the next item to return.
-	maxlinks int
-	batch    *dag.Batch
+	dserv     dag.DAGService
+	spl       chunk.Splitter
+	recvdErr  error
+	rawLeaves bool
+	nextData  []byte // the next item to return.
+	maxlinks  int
+	batch     *dag.Batch
 }
 
 type DagBuilderParams struct {
 	// Maximum number of links per intermediate node
 	Maxlinks int
+
+	// RawLeaves signifies that the importer should use raw ipld nodes as leaves
+	// instead of using the unixfs TRaw type
+	RawLeaves bool
 
 	// DAGService to write blocks to (required)
 	Dagserv dag.DAGService
@@ -28,10 +35,11 @@ type DagBuilderParams struct {
 // from chunks object
 func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 	return &DagBuilderHelper{
-		dserv:    dbp.Dagserv,
-		spl:      spl,
-		maxlinks: dbp.Maxlinks,
-		batch:    dbp.Dagserv.Batch(),
+		dserv:     dbp.Dagserv,
+		spl:       spl,
+		rawLeaves: dbp.RawLeaves,
+		maxlinks:  dbp.Maxlinks,
+		batch:     dbp.Dagserv.Batch(),
 	}
 }
 
@@ -78,9 +86,8 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 
 	// while we have room AND we're not done
 	for node.NumChildren() < db.maxlinks && !db.Done() {
-		child := NewUnixfsBlock()
-
-		if err := db.FillNodeWithData(child); err != nil {
+		child, err := db.GetNextDataNode()
+		if err != nil {
 			return err
 		}
 
@@ -92,21 +99,29 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 	return nil
 }
 
-func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
+func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 	data := db.Next()
 	if data == nil { // we're done!
-		return nil
+		return nil, nil
 	}
 
 	if len(data) > BlockSizeLimit {
-		return ErrSizeLimitExceeded
+		return nil, ErrSizeLimitExceeded
 	}
 
-	node.SetData(data)
-	return nil
+	if db.rawLeaves {
+		return &UnixfsNode{
+			rawnode: dag.NewRawNode(data),
+			raw:     true,
+		}, nil
+	} else {
+		blk := NewUnixfsBlock()
+		blk.SetData(data)
+		return blk, nil
+	}
 }
 
-func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.ProtoNode, error) {
+func (db *DagBuilderHelper) Add(node *UnixfsNode) (node.Node, error) {
 	dn, err := node.GetDagNode()
 	if err != nil {
 		return nil, err

@@ -85,23 +85,29 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 		return nil, fmt.Errorf("Failed to get block for %s: %v", c, err)
 	}
 
-	var res node.Node
+	return decodeBlock(b)
+}
+
+func decodeBlock(b blocks.Block) (node.Node, error) {
+	c := b.Cid()
+
 	switch c.Type() {
 	case cid.Protobuf:
-		out, err := DecodeProtobuf(b.RawData())
+		decnd, err := DecodeProtobuf(b.RawData())
 		if err != nil {
 			if strings.Contains(err.Error(), "Unmarshal failed") {
 				return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", c)
 			}
 			return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 		}
-		out.cached = c
-		res = out
-	default:
-		return nil, fmt.Errorf("unrecognized formatting type")
-	}
 
-	return res, nil
+		decnd.cached = b.Cid()
+		return decnd, nil
+	case cid.Raw:
+		return NewRawNode(b.RawData()), nil
+	default:
+		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
+	}
 }
 
 func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
@@ -164,24 +170,12 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 					return
 				}
 
-				c := b.Cid()
-
-				var nd node.Node
-				switch c.Type() {
-				case cid.Protobuf:
-					decnd, err := DecodeProtobuf(b.RawData())
-					if err != nil {
-						out <- &NodeOption{Err: err}
-						return
-					}
-					decnd.cached = b.Cid()
-					nd = decnd
-				default:
-					out <- &NodeOption{Err: fmt.Errorf("unrecognized object type: %s", c.Type())}
+				nd, err := decodeBlock(b)
+				if err != nil {
+					out <- &NodeOption{Err: err}
 					return
 				}
 
-				// buffered, no need to select
 				out <- &NodeOption{Node: nd}
 				count++
 

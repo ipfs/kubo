@@ -1,6 +1,7 @@
 package mfs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -9,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	context "context"
-
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
+
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
@@ -323,7 +324,7 @@ func (d *Directory) Flush() error {
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
-func (d *Directory) AddChild(name string, nd *dag.ProtoNode) error {
+func (d *Directory) AddChild(name string, nd node.Node) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
