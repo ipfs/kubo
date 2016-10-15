@@ -288,6 +288,7 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 		log.Error("err: ", err)
 		w.Header().Set(StreamErrHeader, sanitizedErrStr(err))
 	}
+
 }
 
 func flushCopy(w io.Writer, r io.Reader) error {
@@ -305,9 +306,6 @@ func flushCopy(w io.Writer, r io.Reader) error {
 		switch err {
 		case io.EOF:
 			if n <= 0 {
-				// flush when reader is drained
-				f.Flush()
-
 				return nil
 			}
 			// if data was returned alongside the EOF, pretend we didnt
