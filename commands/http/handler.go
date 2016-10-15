@@ -299,20 +299,14 @@ func flushCopy(w io.Writer, r io.Reader) error {
 	}
 	for {
 		// flush to send header when r is not ready yet
-		err = f.Flush()
-		if err != nil {
-			return err
-		}
+		f.Flush()
 
 		n, err := r.Read(buf)
 		switch err {
 		case io.EOF:
 			if n <= 0 {
 				// flush when reader is drained
-				err = f.Flush()
-				if err != nil {
-					return err
-				}
+				f.Flush()
 
 				return nil
 			}
