@@ -2,16 +2,16 @@
 package merkledag
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
 
+	blocks "github.com/ipfs/go-ipfs/blocks"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
 
 var log = logging.Logger("merkledag")
@@ -34,13 +34,13 @@ type DAGService interface {
 
 type LinkService interface {
 	// Return all links for a node, may be more effect than
-	// calling Get
+	// calling Get in DAGService
 	GetLinks(context.Context, *cid.Cid) ([]*Link, error)
 
 	GetOfflineLinkService() LinkService
 }
 
-func NewDAGService(bs *bserv.BlockService) *dagService {
+func NewDAGService(bs bserv.BlockService) *dagService {
 	return &dagService{Blocks: bs}
 }
 
@@ -50,7 +50,7 @@ func NewDAGService(bs *bserv.BlockService) *dagService {
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
 type dagService struct {
-	Blocks *bserv.BlockService
+	Blocks bserv.BlockService
 }
 
 // Add adds a node to the dagService, storing the block in the BlockService
@@ -59,7 +59,7 @@ func (n *dagService) Add(nd *Node) (*cid.Cid, error) {
 		return nil, fmt.Errorf("dagService is nil")
 	}
 
-	return n.Blocks.AddObject(nd)
+	return n.Blocks.AddBlock(nd)
 }
 
 func (n *dagService) Batch() *Batch {
@@ -112,8 +112,8 @@ func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*Link, error) 
 }
 
 func (n *dagService) GetOfflineLinkService() LinkService {
-	if n.Blocks.Exchange.IsOnline() {
-		bsrv := bserv.New(n.Blocks.Blockstore, offline.Exchange(n.Blocks.Blockstore))
+	if n.Blocks.Exchange().IsOnline() {
+		bsrv := bserv.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
 		return NewDAGService(bsrv)
 	} else {
 		return n
@@ -121,7 +121,7 @@ func (n *dagService) GetOfflineLinkService() LinkService {
 }
 
 func (n *dagService) Remove(nd *Node) error {
-	return n.Blocks.DeleteObject(nd)
+	return n.Blocks.DeleteBlock(nd)
 }
 
 // FetchGraph fetches all nodes that are children of the given node
@@ -146,26 +146,10 @@ type NodeOption struct {
 	Err  error
 }
 
-// TODO: this is a mid-term hack to get around the fact that blocks don't
-// have full CIDs and potentially (though we don't know of any such scenario)
-// may have the same block with multiple different encodings.
-// We have discussed the possiblity of using CIDs as datastore keys
-// in the future. This would be a much larger changeset than i want to make
-// right now.
-func cidsToKeyMapping(cids []*cid.Cid) map[key.Key]*cid.Cid {
-	mapping := make(map[key.Key]*cid.Cid)
-	for _, c := range cids {
-		mapping[key.Key(c.Hash())] = c
-	}
-	return mapping
-}
-
 func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *NodeOption {
 	out := make(chan *NodeOption, len(keys))
 	blocks := ds.Blocks.GetBlocks(ctx, keys)
 	var count int
-
-	mapping := cidsToKeyMapping(keys)
 
 	go func() {
 		defer close(out)
@@ -179,7 +163,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 					return
 				}
 
-				c := mapping[b.Key()]
+				c := b.Cid()
 
 				var nd *Node
 				switch c.Type() {
@@ -360,7 +344,7 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 type Batch struct {
 	ds *dagService
 
-	objects []bserv.Object
+	blocks  []blocks.Block
 	size    int
 	MaxSize int
 }
@@ -371,7 +355,7 @@ func (t *Batch) Add(nd *Node) (*cid.Cid, error) {
 		return nil, err
 	}
 
-	t.objects = append(t.objects, nd)
+	t.blocks = append(t.blocks, nd)
 	t.size += len(d)
 	if t.size > t.MaxSize {
 		return nd.Cid(), t.Commit()
@@ -380,8 +364,8 @@ func (t *Batch) Add(nd *Node) (*cid.Cid, error) {
 }
 
 func (t *Batch) Commit() error {
-	_, err := t.ds.Blocks.AddObjects(t.objects)
-	t.objects = nil
+	_, err := t.ds.Blocks.AddBlocks(t.blocks)
+	t.blocks = nil
 	t.size = 0
 	return err
 }

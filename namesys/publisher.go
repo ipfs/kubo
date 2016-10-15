@@ -2,6 +2,7 @@ package namesys
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -10,18 +11,17 @@ import (
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	ci "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
-	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-	routing "gx/ipfs/QmcoQiBzRaaVv1DZbbXoDWiEtvDN94Ca1DcwnQKK2tP92s/go-libp2p-routing"
-	record "gx/ipfs/Qme7D9iKHYxwq28p6PzCymywsYSRBx9uyGzW7qNB3s9VbC/go-libp2p-record"
-	dhtpb "gx/ipfs/Qme7D9iKHYxwq28p6PzCymywsYSRBx9uyGzW7qNB3s9VbC/go-libp2p-record/pb"
+	record "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record"
+	dhtpb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
 // ErrExpiredRecord should be returned when an ipns record is
@@ -79,8 +79,8 @@ func (p *ipnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value 
 	return PutRecordToRouting(ctx, k, value, seqnum, eol, p.routing, id)
 }
 
-func (p *ipnsPublisher) getPreviousSeqNo(ctx context.Context, ipnskey key.Key) (uint64, error) {
-	prevrec, err := p.ds.Get(ipnskey.DsKey())
+func (p *ipnsPublisher) getPreviousSeqNo(ctx context.Context, ipnskey string) (uint64, error) {
+	prevrec, err := p.ds.Get(dshelp.NewKeyFromBinary(ipnskey))
 	if err != nil && err != ds.ErrNotFound {
 		// None found, lets start at zero!
 		return 0, err
@@ -181,7 +181,7 @@ func waitOnErrChan(ctx context.Context, errs chan error) error {
 	}
 }
 
-func PublishPublicKey(ctx context.Context, r routing.ValueStore, k key.Key, pubk ci.PubKey) error {
+func PublishPublicKey(ctx context.Context, r routing.ValueStore, k string, pubk ci.PubKey) error {
 	log.Debugf("Storing pubkey at: %s", k)
 	pkbytes, err := pubk.Bytes()
 	if err != nil {
@@ -199,7 +199,7 @@ func PublishPublicKey(ctx context.Context, r routing.ValueStore, k key.Key, pubk
 	return nil
 }
 
-func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey key.Key, rec *pb.IpnsEntry) error {
+func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec *pb.IpnsEntry) error {
 	timectx, cancel := context.WithTimeout(ctx, PublishPutValTimeout)
 	defer cancel()
 
@@ -248,7 +248,7 @@ var IpnsRecordValidator = &record.ValidChecker{
 	Sign: true,
 }
 
-func IpnsSelectorFunc(k key.Key, vals [][]byte) (int, error) {
+func IpnsSelectorFunc(k string, vals [][]byte) (int, error) {
 	var recs []*pb.IpnsEntry
 	for _, v := range vals {
 		e := new(pb.IpnsEntry)
@@ -304,7 +304,7 @@ func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
 
 // ValidateIpnsRecord implements ValidatorFunc and verifies that the
 // given 'val' is an IpnsEntry and that that entry is valid.
-func ValidateIpnsRecord(k key.Key, val []byte) error {
+func ValidateIpnsRecord(k string, val []byte) error {
 	entry := new(pb.IpnsEntry)
 	err := proto.Unmarshal(val, entry)
 	if err != nil {
@@ -356,9 +356,9 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 	return nil
 }
 
-func IpnsKeysForID(id peer.ID) (name, ipns key.Key) {
-	namekey := key.Key("/pk/" + id)
-	ipnskey := key.Key("/ipns/" + id)
+func IpnsKeysForID(id peer.ID) (name, ipns string) {
+	namekey := "/pk/" + string(id)
+	ipnskey := "/ipns/" + string(id)
 
 	return namekey, ipnskey
 }

@@ -8,9 +8,9 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/mock"
 
-	mocknet "gx/ipfs/QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di/go-libp2p/p2p/net/mock"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
+	context "context"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	mocknet "gx/ipfs/QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum/go-libp2p/p2p/net/mock"
 )
 
 func TestBitswapWithoutRouting(t *testing.T) {
@@ -76,7 +76,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		} else if !bytes.Equal(b.RawData(), block0.RawData()) {
 			t.Error("byte comparison fail")
 		} else {
-			log.Debug("got block: %s", b.Key())
+			log.Debug("got block: %s", b.Cid())
 		}
 	}
 
@@ -93,7 +93,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		} else if !bytes.Equal(b.RawData(), block1.RawData()) {
 			t.Error("byte comparison fail")
 		} else {
-			log.Debug("got block: %s", b.Key())
+			log.Debug("got block: %s", b.Cid())
 		}
 	}
 }

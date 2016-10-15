@@ -16,8 +16,8 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	context "context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var log = logging.Logger("cmds/files")
@@ -609,7 +609,12 @@ stat' on the file or any of its ancestors.
 			return
 		}
 
-		defer wfd.Close()
+		defer func() {
+			err := wfd.Close()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+			}
+		}()
 
 		if trunc {
 			if err := wfd.Truncate(0); err != nil {

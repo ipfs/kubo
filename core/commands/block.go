@@ -12,9 +12,8 @@ import (
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 type BlockStat struct {
@@ -69,7 +68,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 		}
 
 		res.SetOutput(&BlockStat{
-			Key:  b.Key().B58String(),
+			Key:  b.Cid().String(),
 			Size: len(b.RawData()),
 		})
 	},
@@ -143,9 +142,9 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		}
 
 		b := blocks.NewBlock(data)
-		log.Debugf("BlockPut key: '%q'", b.Key())
+		log.Debugf("BlockPut key: '%q'", b.Cid())
 
-		k, err := n.Blocks.AddObject(b)
+		k, err := n.Blocks.AddBlock(b)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -185,7 +184,7 @@ func getBlockForKey(req cmds.Request, skey string) (blocks.Block, error) {
 		return nil, err
 	}
 
-	log.Debugf("ipfs block: got block with key: %q", b.Key())
+	log.Debugf("ipfs block: got block with key: %s", b.Cid())
 	return b, nil
 }
 
@@ -288,7 +287,10 @@ sub-datastores block(s) are located in.
 		go func() {
 			defer close(outChan)
 			for _, hash := range hashes {
-				key := key.B58KeyDecode(hash)
+				key, err := cid.Decode(hash)
+				if err != nil {
+					panic(err) // FIXME 
+				}
 				ret := n.Blockstore.Locate(key)
 				outChan <- &BlockLocateRes{hash, ret}
 			}

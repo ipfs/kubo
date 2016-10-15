@@ -10,8 +10,8 @@ import (
 	. "github.com/ipfs/go-ipfs/filestore/support"
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
-	k "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-	//cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
+	k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	node "github.com/ipfs/go-ipfs/merkledag"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	//"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
@@ -44,19 +44,19 @@ func VerifyLevelFromNum(level int) (VerifyLevel, error) {
 const (
 	//ShowOrphans = 1
 	ShowSpecified = 2
-	ShowTopLevel = 3
+	ShowTopLevel  = 3
 	//ShowFirstProblem = unimplemented
 	ShowProblemChildren = 5
-	ShowChildren = 7
+	ShowChildren        = 7
 )
 
 const (
-	StatusDefault     =  0 // 00 = default
-	StatusOk          =  1 // 01 = leaf node okay
-	StatusAllPartsOk  =  2 // 02 = all children have "ok" status
-	StatusFound       =  5 // 05 = Found key, but not in filestore
-	StatusOrphan      =  8
-	StatusAppended    =  9
+	StatusDefault     = 0 // 00 = default
+	StatusOk          = 1 // 01 = leaf node okay
+	StatusAllPartsOk  = 2 // 02 = all children have "ok" status
+	StatusFound       = 5 // 05 = Found key, but not in filestore
+	StatusOrphan      = 8
+	StatusAppended    = 9
 	StatusFileError   = 10 // 1x means error with block
 	StatusFileMissing = 11
 	StatusFileChanged = 12
@@ -88,7 +88,7 @@ func Unchecked(status int) bool {
 
 func InternalNode(status int) bool {
 	return status == StatusAllPartsOk || status == StatusIncomplete ||
-		status == StatusProblem || status == StatusComplete 
+		status == StatusProblem || status == StatusComplete
 }
 
 func OfInterest(status int) bool {
@@ -220,15 +220,15 @@ func List(d *Basic, filter ListFilter, keysOnly bool) (<-chan ListRes, error) {
 
 var ListFilterAll ListFilter = nil
 
-func ListFilterWholeFile(r *DataObj) bool {return r.WholeFile()}
+func ListFilterWholeFile(r *DataObj) bool { return r.WholeFile() }
 
-func ListByKey(fs *Basic, keys []k.Key) (<-chan ListRes, error) {
+func ListByKey(fs *Basic, ks []*cid.Cid) (<-chan ListRes, error) {
 	out := make(chan ListRes, 128)
 
 	go func() {
 		defer close(out)
-		for _, key := range keys {
-			dsKey := key.DsKey()
+		for _, k := range ks {
+			dsKey := b.CidToDsKey(k)
 			_, dataObj, err := fs.GetDirect(dsKey)
 			if err == nil {
 				out <- ListRes{dsKey, dataObj, 0}
@@ -302,21 +302,20 @@ func getNode(dsKey ds.Key, fs *Basic, bs b.Blockstore) ([]byte, *DataObj, []*nod
 			return origData, dataObj, links, StatusOk
 		}
 	}
-	key, err2 := k.KeyFromDsKey(dsKey)
+	k, err2 := b.DsKeyToCid(dsKey)
 	if err2 != nil {
-		Logger.Errorf("%s: %v", key, err2)
 		return nil, nil, nil, StatusError
 	}
-	block, err2 := bs.Get(key)
+	block, err2 := bs.Get(k)
 	if err == ds.ErrNotFound && err2 == b.ErrNotFound {
 		return nil, nil, nil, StatusKeyNotFound
 	} else if err2 != nil {
-		Logger.Errorf("%s: %v", key, err2)
+		Logger.Errorf("%s: %v", k, err2)
 		return nil, nil, nil, StatusError
 	}
 	node, err := node.DecodeProtobuf(block.RawData())
 	if err != nil {
-		Logger.Errorf("%s: %v", key, err)
+		Logger.Errorf("%s: %v", k, err)
 		return nil, nil, nil, StatusCorrupt
 	}
 	return nil, nil, node.Links, StatusFound

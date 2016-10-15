@@ -2,22 +2,22 @@ package supernode
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"time"
 
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 
+	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	"gx/ipfs/QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di/go-libp2p/p2p/host"
-	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
-	loggables "gx/ipfs/QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7/go-libp2p-loggables"
-	dhtpb "gx/ipfs/QmYvLYkYiVEi5LBHP2uFqiUaHqH7zWnEuRqoNEuGLNG6JB/go-libp2p-kad-dht/pb"
+	loggables "gx/ipfs/QmTMy4hVSY28DdwJ9kBz6y7q6MuioFzPcpM3Ma3aPjo1i3/go-libp2p-loggables"
+	dhtpb "gx/ipfs/QmWHiyk5y2EKgxHogFJ4Zt1xTqKeVsBc4zcBke8ie9C2Bn/go-libp2p-kad-dht/pb"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-	routing "gx/ipfs/QmcoQiBzRaaVv1DZbbXoDWiEtvDN94Ca1DcwnQKK2tP92s/go-libp2p-routing"
-	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
-	pb "gx/ipfs/Qme7D9iKHYxwq28p6PzCymywsYSRBx9uyGzW7qNB3s9VbC/go-libp2p-record/pb"
+	pb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
+	"gx/ipfs/QmdML3R42PRSwnt46jSuEts9bHSqLctVYEjJqMR3UYV8ki/go-libp2p-host"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 var log = logging.Logger("supernode")
@@ -39,13 +39,13 @@ func NewClient(px proxy.Proxy, h host.Host, ps pstore.Peerstore, local peer.ID) 
 	}, nil
 }
 
-func (c *Client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan pstore.PeerInfo {
+func (c *Client) FindProvidersAsync(ctx context.Context, k *cid.Cid, max int) <-chan pstore.PeerInfo {
 	logging.ContextWithLoggable(ctx, loggables.Uuid("findProviders"))
-	defer log.EventBegin(ctx, "findProviders", &k).Done()
+	defer log.EventBegin(ctx, "findProviders", k).Done()
 	ch := make(chan pstore.PeerInfo)
 	go func() {
 		defer close(ch)
-		request := dhtpb.NewMessage(dhtpb.Message_GET_PROVIDERS, string(k), 0)
+		request := dhtpb.NewMessage(dhtpb.Message_GET_PROVIDERS, k.KeyString(), 0)
 		response, err := c.proxy.SendRequest(ctx, request)
 		if err != nil {
 			log.Debug(err)
@@ -63,8 +63,8 @@ func (c *Client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-c
 	return ch
 }
 
-func (c *Client) PutValue(ctx context.Context, k key.Key, v []byte) error {
-	defer log.EventBegin(ctx, "putValue", &k).Done()
+func (c *Client) PutValue(ctx context.Context, k string, v []byte) error {
+	defer log.EventBegin(ctx, "putValue").Done()
 	r, err := makeRecord(c.peerstore, c.local, k, v)
 	if err != nil {
 		return err
@@ -74,8 +74,8 @@ func (c *Client) PutValue(ctx context.Context, k key.Key, v []byte) error {
 	return c.proxy.SendMessage(ctx, pmes) // wrap to hide the remote
 }
 
-func (c *Client) GetValue(ctx context.Context, k key.Key) ([]byte, error) {
-	defer log.EventBegin(ctx, "getValue", &k).Done()
+func (c *Client) GetValue(ctx context.Context, k string) ([]byte, error) {
+	defer log.EventBegin(ctx, "getValue").Done()
 	msg := dhtpb.NewMessage(dhtpb.Message_GET_VALUE, string(k), 0)
 	response, err := c.proxy.SendRequest(ctx, msg) // TODO wrap to hide the remote
 	if err != nil {
@@ -84,8 +84,8 @@ func (c *Client) GetValue(ctx context.Context, k key.Key) ([]byte, error) {
 	return response.Record.GetValue(), nil
 }
 
-func (c *Client) GetValues(ctx context.Context, k key.Key, _ int) ([]routing.RecvdVal, error) {
-	defer log.EventBegin(ctx, "getValue", &k).Done()
+func (c *Client) GetValues(ctx context.Context, k string, _ int) ([]routing.RecvdVal, error) {
+	defer log.EventBegin(ctx, "getValue").Done()
 	msg := dhtpb.NewMessage(dhtpb.Message_GET_VALUE, string(k), 0)
 	response, err := c.proxy.SendRequest(ctx, msg) // TODO wrap to hide the remote
 	if err != nil {
@@ -100,9 +100,9 @@ func (c *Client) GetValues(ctx context.Context, k key.Key, _ int) ([]routing.Rec
 	}, nil
 }
 
-func (c *Client) Provide(ctx context.Context, k key.Key) error {
-	defer log.EventBegin(ctx, "provide", &k).Done()
-	msg := dhtpb.NewMessage(dhtpb.Message_ADD_PROVIDER, string(k), 0)
+func (c *Client) Provide(ctx context.Context, k *cid.Cid) error {
+	defer log.EventBegin(ctx, "provide", k).Done()
+	msg := dhtpb.NewMessage(dhtpb.Message_ADD_PROVIDER, k.KeyString(), 0)
 	// FIXME how is connectedness defined for the local node
 	pri := []dhtpb.PeerRoutingInfo{
 		{
@@ -132,7 +132,7 @@ func (c *Client) FindPeer(ctx context.Context, id peer.ID) (pstore.PeerInfo, err
 }
 
 // creates and signs a record for the given key/value pair
-func makeRecord(ps pstore.Peerstore, p peer.ID, k key.Key, v []byte) (*pb.Record, error) {
+func makeRecord(ps pstore.Peerstore, p peer.ID, k string, v []byte) (*pb.Record, error) {
 	blob := bytes.Join([][]byte{[]byte(k), v, []byte(p)}, []byte{})
 	sig, err := ps.PrivKey(p).Sign(blob)
 	if err != nil {

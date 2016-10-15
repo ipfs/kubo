@@ -6,9 +6,8 @@ import (
 
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	"github.com/ipfs/go-ipfs/pin"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
 )
 
 // RemovedBlock is used to respresent the result of removing a block.
@@ -47,7 +46,7 @@ func RmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{}, c
 		stillOkay := FilterPinned(mbs, pins, out, cids, prefix)
 
 		for _, c := range stillOkay {
-			err := blocks.DeleteBlock(key.Key(c.Hash()))
+			err := blocks.DeleteBlock(c)
 			if err != nil && opts.Force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
 				// ignore non-existent blocks
 			} else if err != nil {
@@ -80,8 +79,8 @@ func FilterPinned(mbs bs.MultiBlockstore, pins pin.Pinner, out chan<- interface{
 	return stillOkay
 }
 
-func AvailableElsewhere(mbs bs.MultiBlockstore, prefix string, cids *cid.Cid) bool {
-	locations := mbs.Locate(key.Key(cids.Hash()))
+func AvailableElsewhere(mbs bs.MultiBlockstore, prefix string, c *cid.Cid) bool {
+	locations := mbs.Locate(c)
 	for _, loc := range locations {
 		if loc.Error == nil && loc.Prefix != prefix {
 			return true

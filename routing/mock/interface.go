@@ -5,15 +5,16 @@
 package mockrouting
 
 import (
+	"context"
+
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
 
-	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-	routing "gx/ipfs/QmcoQiBzRaaVv1DZbbXoDWiEtvDN94Ca1DcwnQKK2tP92s/go-libp2p-routing"
-	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 // Server provides mockrouting Clients
@@ -24,7 +25,7 @@ type Server interface {
 
 // Client implements IpfsRouting
 type Client interface {
-	FindProviders(context.Context, key.Key) ([]pstore.PeerInfo, error)
+	FindProviders(context.Context, *cid.Cid) ([]pstore.PeerInfo, error)
 	routing.IpfsRouting
 }
 
@@ -39,7 +40,7 @@ func NewServer() Server {
 // NewServerWithDelay returns a mockrouting Server with a delay!
 func NewServerWithDelay(conf DelayConfig) Server {
 	return &s{
-		providers: make(map[key.Key]map[peer.ID]providerRecord),
+		providers: make(map[string]map[peer.ID]providerRecord),
 		delayConf: conf,
 	}
 }

@@ -4,8 +4,8 @@ import (
 	//"bytes"
 	//"encoding/hex"
 	"errors"
-	"io"
 	"fmt"
+	"io"
 
 	dag_pb "github.com/ipfs/go-ipfs/merkledag/pb"
 	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
@@ -100,13 +100,13 @@ func reconstruct(data []byte, blockData []byte) ([]byte, *UnixFSInfo, error) {
 }
 
 type header struct {
-	id   int32
+	id int32
 	// An "id" of 0 indicates a message we don't care about the
 	// value.  As we don't care about the value multiple
 	// fields may be concatenated into one.
 	wire int32
 	// "wire" is the Protocol Buffer wire format
-	val  uint64
+	val uint64
 	// The exact meaning of "val" depends on the wire format:
 	// if a varint (wire format 0) then val is the value of the
 	// variable int; if length-delimited (wire format 2)

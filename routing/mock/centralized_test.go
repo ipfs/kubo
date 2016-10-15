@@ -1,21 +1,22 @@
 package mockrouting
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 func TestKeyNotFound(t *testing.T) {
 
 	var pi = testutil.RandIdentityOrFatal(t)
-	var key = key.Key("mock key")
+	var key = cid.NewCidV0(u.Hash([]byte("mock key")))
 	var ctx = context.Background()
 
 	rs := NewServer()
@@ -31,7 +32,7 @@ func TestClientFindProviders(t *testing.T) {
 	rs := NewServer()
 	client := rs.Client(pi)
 
-	k := key.Key("hello")
+	k := cid.NewCidV0(u.Hash([]byte("hello")))
 	err := client.Provide(context.Background(), k)
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +42,7 @@ func TestClientFindProviders(t *testing.T) {
 	time.Sleep(time.Millisecond * 300)
 	max := 100
 
-	providersFromClient := client.FindProvidersAsync(context.Background(), key.Key("hello"), max)
+	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
 	isInClient := false
 	for pi := range providersFromClient {
 		if pi.ID == pi.ID {
@@ -55,7 +56,7 @@ func TestClientFindProviders(t *testing.T) {
 
 func TestClientOverMax(t *testing.T) {
 	rs := NewServer()
-	k := key.Key("hello")
+	k := cid.NewCidV0(u.Hash([]byte("hello")))
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
 		pi := testutil.RandIdentityOrFatal(t)
@@ -82,7 +83,7 @@ func TestClientOverMax(t *testing.T) {
 // TODO does dht ensure won't receive self as a provider? probably not.
 func TestCanceledContext(t *testing.T) {
 	rs := NewServer()
-	k := key.Key("hello")
+	k := cid.NewCidV0(u.Hash([]byte("hello")))
 
 	// avoid leaking goroutine, without using the context to signal
 	// (we want the goroutine to keep trying to publish on a
@@ -138,10 +139,11 @@ func TestCanceledContext(t *testing.T) {
 }
 
 func TestValidAfter(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	pi := testutil.RandIdentityOrFatal(t)
-	var key = key.Key("mock key")
-	var ctx = context.Background()
+	key := cid.NewCidV0(u.Hash([]byte("mock key")))
 	conf := DelayConfig{
 		ValueVisibility: delay.Fixed(1 * time.Hour),
 		Query:           delay.Fixed(0),

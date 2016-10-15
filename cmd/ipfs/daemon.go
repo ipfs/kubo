@@ -21,14 +21,13 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
-	"gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
+	iconn "gx/ipfs/QmNxScD426NivSWRNJdLVfXLrzVdtNWxW74EnXAWJvgGwh/go-libp2p-interface-conn"
 	"gx/ipfs/QmR3KwhXCRLTNZB59vELb2HhEWrGy9nuychepxFtj3wWYa/client_golang/prometheus"
-
-	conn "gx/ipfs/QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di/go-libp2p/p2p/net/conn"
+	"gx/ipfs/QmT6Cp31887FpAc25z25YHgpFJohZedrYLWPPspRtj1Brp/go-multiaddr-net"
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 	mprome "gx/ipfs/QmXWro6iddJRbGWUoZDpTu6tjo5EXX4xJHHR9VczeoGZbw/go-metrics-prometheus"
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
-	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
+	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
+	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 
 	_ "gx/ipfs/QmV3NSS3A1kX5s28r7yLczhDsXzkgo65cqRgKFXYunWZmD/metrics/runtime"
 )
@@ -44,9 +43,11 @@ const (
 	offlineKwd                = "offline"
 	routingOptionKwd          = "routing"
 	routingOptionSupernodeKwd = "supernode"
+	routingOptionDHTClientKwd = "dhtclient"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
+	enableFloodSubKwd         = "enable-pubsub-experiment"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -120,6 +121,17 @@ environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
 
+Routing
+
+IPFS by default will use a DHT for content routing. There is a highly
+experimental alternative that operates the DHT in a 'client only' mode that can
+be enabled by running the daemon as:
+
+    ipfs daemon --routing=dhtclient
+
+This will later be transitioned into a config option once it gets out of the
+'experimental' stage.
+
 DEPRECATION NOTICE
 
 Previously, IPFS used an environment variable as seen below:
@@ -145,6 +157,7 @@ Headers.
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(true),
 		cmds.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API.").Default(false),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
+		cmds.BoolOption(enableFloodSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -193,7 +206,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	if unencrypted {
 		log.Warningf(`Running with --%s: All connections are UNENCRYPTED.
 		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
-		conn.EncryptConnections = false
+		iconn.EncryptConnections = false
 	}
 
 	// first, whether user has provided the initialization flag. we may be
@@ -266,21 +279,27 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	offline, _, _ := req.Option(offlineKwd).Bool()
+	pubsub, _, _ := req.Option(enableFloodSubKwd).Bool()
+
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
 		Repo:      repo,
 		Permament: true, // It is temporary way to signify that node is permament
-		//TODO(Kubuxu): refactor Online vs Offline by adding Permement vs Epthemeral
+		Online:    !offline,
+		ExtraOpts: map[string]bool{
+			"pubsub": pubsub,
+		},
+		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
-	offline, _, _ := req.Option(offlineKwd).Bool()
-	ncfg.Online = !offline
 
 	routingOption, _, err := req.Option(routingOptionKwd).String()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
-	if routingOption == routingOptionSupernodeKwd {
+	switch routingOption {
+	case routingOptionSupernodeKwd:
 		servers, err := cfg.SupernodeRouting.ServerIPFSAddrs()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -296,6 +315,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 
 		ncfg.Routing = corerouting.SupernodeClient(infos...)
+	case routingOptionDHTClientKwd:
+		ncfg.Routing = core.DHTClientOption
 	}
 
 	node, err := core.NewNode(req.Context(), ncfg)

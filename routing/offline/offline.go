@@ -1,21 +1,22 @@
 package offline
 
 import (
+	"context"
 	"errors"
 	"time"
 
-	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
-	routing "gx/ipfs/QmcoQiBzRaaVv1DZbbXoDWiEtvDN94Ca1DcwnQKK2tP92s/go-libp2p-routing"
-	record "gx/ipfs/Qme7D9iKHYxwq28p6PzCymywsYSRBx9uyGzW7qNB3s9VbC/go-libp2p-record"
-	pb "gx/ipfs/Qme7D9iKHYxwq28p6PzCymywsYSRBx9uyGzW7qNB3s9VbC/go-libp2p-record/pb"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
+	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	ci "gx/ipfs/QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ/go-libp2p-crypto"
-	"gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	pstore "gx/ipfs/QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2/go-libp2p-peerstore"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	record "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record"
+	pb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
+	"gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
 var log = logging.Logger("offlinerouting")
@@ -37,7 +38,7 @@ type offlineRouting struct {
 	sk        ci.PrivKey
 }
 
-func (c *offlineRouting) PutValue(ctx context.Context, key key.Key, val []byte) error {
+func (c *offlineRouting) PutValue(ctx context.Context, key string, val []byte) error {
 	rec, err := record.MakePutRecord(c.sk, key, val, false)
 	if err != nil {
 		return err
@@ -47,11 +48,11 @@ func (c *offlineRouting) PutValue(ctx context.Context, key key.Key, val []byte) 
 		return err
 	}
 
-	return c.datastore.Put(key.DsKey(), data)
+	return c.datastore.Put(dshelp.NewKeyFromBinary(key), data)
 }
 
-func (c *offlineRouting) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
-	v, err := c.datastore.Get(key.DsKey())
+func (c *offlineRouting) GetValue(ctx context.Context, key string) ([]byte, error) {
+	v, err := c.datastore.Get(dshelp.NewKeyFromBinary(key))
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +70,8 @@ func (c *offlineRouting) GetValue(ctx context.Context, key key.Key) ([]byte, err
 	return rec.GetValue(), nil
 }
 
-func (c *offlineRouting) GetValues(ctx context.Context, key key.Key, _ int) ([]routing.RecvdVal, error) {
-	v, err := c.datastore.Get(key.DsKey())
+func (c *offlineRouting) GetValues(ctx context.Context, key string, _ int) ([]routing.RecvdVal, error) {
+	v, err := c.datastore.Get(dshelp.NewKeyFromBinary(key))
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func (c *offlineRouting) GetValues(ctx context.Context, key key.Key, _ int) ([]r
 	}, nil
 }
 
-func (c *offlineRouting) FindProviders(ctx context.Context, key key.Key) ([]pstore.PeerInfo, error) {
+func (c *offlineRouting) FindProviders(ctx context.Context, key *cid.Cid) ([]pstore.PeerInfo, error) {
 	return nil, ErrOffline
 }
 
@@ -98,13 +99,13 @@ func (c *offlineRouting) FindPeer(ctx context.Context, pid peer.ID) (pstore.Peer
 	return pstore.PeerInfo{}, ErrOffline
 }
 
-func (c *offlineRouting) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan pstore.PeerInfo {
+func (c *offlineRouting) FindProvidersAsync(ctx context.Context, k *cid.Cid, max int) <-chan pstore.PeerInfo {
 	out := make(chan pstore.PeerInfo)
 	close(out)
 	return out
 }
 
-func (c *offlineRouting) Provide(_ context.Context, key key.Key) error {
+func (c *offlineRouting) Provide(_ context.Context, k *cid.Cid) error {
 	return ErrOffline
 }
 

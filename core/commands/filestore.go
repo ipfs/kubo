@@ -12,7 +12,6 @@ import (
 
 	//ds "github.com/ipfs/go-datastore"
 	//bs "github.com/ipfs/go-ipfs/blocks/blockstore"
-	k "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	cli "github.com/ipfs/go-ipfs/commands/cli"
 	files "github.com/ipfs/go-ipfs/commands/files"
@@ -20,6 +19,7 @@ import (
 	"github.com/ipfs/go-ipfs/filestore"
 	fsutil "github.com/ipfs/go-ipfs/filestore/util"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -191,7 +191,7 @@ func (f *fixPath) NextFile() (files.File, error) {
 	f.paths = f.paths[1:]
 	if f0.IsDirectory() {
 		return nil, fmt.Errorf("online directory add not supported, try '-S': %s", path)
-	} else if _, ok := f0.(*files.MultipartFile) ; !ok {
+	} else if _, ok := f0.(*files.MultipartFile); !ok {
 		return nil, fmt.Errorf("online adding of special files not supported, try '-S': %s", path)
 	} else {
 		f, err := os.Open(path)
@@ -351,14 +351,18 @@ If <offset> is the special value "-" indicates a file root.
 	},
 }
 
-func procListArgs(objs []string) ([]k.Key, fsutil.ListFilter, error) {
-	keys := make([]k.Key, 0)
+func procListArgs(objs []string) ([]*cid.Cid, fsutil.ListFilter, error) {
+	keys := make([]*cid.Cid, 0)
 	paths := make([]string, 0)
 	for _, obj := range objs {
 		if filepath.IsAbs(obj) {
 			paths = append(paths, filestore.CleanPath(obj))
 		} else {
-			keys = append(keys, k.B58KeyDecode(obj))
+			key, err := cid.Decode(obj)
+			if err != nil {
+				return nil, nil, err
+			}
+			keys = append(keys, key)
 		}
 	}
 	if len(keys) > 0 && len(paths) > 0 {
@@ -899,7 +903,11 @@ copy is not removed.  Use "filestore rm-dups" to remove the old copy.
 			return
 		}
 		mhash := args[0]
-		key := k.B58KeyDecode(mhash)
+		k, err := cid.Decode(mhash)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		path := ""
 		if len(args) == 2 {
 			path = args[1]
@@ -915,7 +923,7 @@ copy is not removed.  Use "filestore rm-dups" to remove the old copy.
 		}
 		rdr, wtr := io.Pipe()
 		go func() {
-			err := fsutil.ConvertToFile(node, key, path)
+			err := fsutil.ConvertToFile(node, k, path)
 			if err != nil {
 				wtr.CloseWithError(err)
 				return

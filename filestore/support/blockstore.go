@@ -3,23 +3,24 @@ package filestore_support
 import (
 	"fmt"
 	b "github.com/ipfs/go-ipfs/blocks"
-	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
+	BS "github.com/ipfs/go-ipfs/blocks/blockstore"
 	. "github.com/ipfs/go-ipfs/filestore"
 	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
+	//cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
 type blockstore struct {
-	bs.GCBlockstore
+	BS.GCBlockstore
 	filestore *Datastore
 }
 
-func NewBlockstore(b bs.GCBlockstore, fs *Datastore) bs.GCBlockstore {
+func NewBlockstore(b BS.GCBlockstore, fs *Datastore) BS.GCBlockstore {
 	return &blockstore{b, fs}
 }
 
 func (bs *blockstore) Put(block b.Block) error {
-	k := block.Key().DsKey()
+	k := BS.CidToDsKey(block.Cid())
 
 	data, err := bs.prepareBlock(k, block)
 	if err != nil {
@@ -39,7 +40,7 @@ func (bs *blockstore) PutMany(blocks []b.Block) error {
 	}
 
 	for _, b := range blocks {
-		k := b.Key().DsKey()
+		k := BS.CidToDsKey(b.Cid())
 		data, err := bs.prepareBlock(k, b)
 		if err != nil {
 			return err
@@ -96,9 +97,9 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 	} else {
 		posInfo := block.PosInfo()
 		if posInfo == nil {
-			return nil, fmt.Errorf("%s: no file information for block", block.Key())
+			return nil, fmt.Errorf("%s: no file information for block", block.Cid())
 		} else if posInfo.Stat == nil {
-			return nil, fmt.Errorf("%s: %s: no stat information for file", block.Key(), posInfo.FullPath)
+			return nil, fmt.Errorf("%s: %s: no stat information for file", block.Cid(), posInfo.FullPath)
 		}
 		d := &DataObj{
 			FilePath: CleanPath(posInfo.FullPath),

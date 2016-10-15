@@ -99,6 +99,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"object":    ocmd.ObjectCmd,
 	"pin":       PinCmd,
 	"ping":      PingCmd,
+	"pubsub":    PubsubCmd,
 	"refs":      RefsCmd,
 	"repo":      RepoCmd,
 	"resolve":   ResolveCmd,

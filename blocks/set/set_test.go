@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	bu "github.com/ipfs/go-ipfs/blocks/blocksutil"
-	k "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
+
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
 
 const (
@@ -13,15 +14,15 @@ const (
 	tReAdd
 )
 
-func exampleKeys() []k.Key {
-	res := make([]k.Key, 1<<8)
+func exampleKeys() []*cid.Cid {
+	res := make([]*cid.Cid, 1<<8)
 	gen := bu.NewBlockGenerator()
 	for i := uint64(0); i < 1<<8; i++ {
-		res[i] = gen.Next().Key()
+		res[i] = gen.Next().Cid()
 	}
 	return res
 }
-func checkSet(set BlockSet, keySlice []k.Key, t *testing.T) {
+func checkSet(set BlockSet, keySlice []*cid.Cid, t *testing.T) {
 	for i, key := range keySlice {
 		if i&tReAdd == 0 {
 			if set.HasKey(key) == false {
@@ -69,7 +70,7 @@ func TestSetWorks(t *testing.T) {
 	bloom := set.GetBloomFilter()
 
 	for _, key := range addedKeys {
-		if bloom.Find([]byte(key)) == false {
+		if bloom.Find(key.Bytes()) == false {
 			t.Error("bloom doesn't contain expected key")
 		}
 	}

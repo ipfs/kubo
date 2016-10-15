@@ -6,11 +6,11 @@ package blockstore
 
 import (
 	//"errors"
+	"context"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	dsq "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 )
 
 type LocateInfo struct {
@@ -24,7 +24,7 @@ type MultiBlockstore interface {
 	FirstMount() Blockstore
 	Mounts() []string
 	Mount(prefix string) Blockstore
-	Locate(key key.Key) []LocateInfo
+	Locate(*cid.Cid) []LocateInfo
 }
 
 type Mount struct {
@@ -64,14 +64,14 @@ func (bs *multiblockstore) Mount(prefix string) Blockstore {
 	return nil
 }
 
-func (bs *multiblockstore) DeleteBlock(key key.Key) error {
+func (bs *multiblockstore) DeleteBlock(key *cid.Cid) error {
 	return bs.mounts[0].Blocks.DeleteBlock(key)
 }
 
-func (bs *multiblockstore) Has(key key.Key) (bool, error) {
+func (bs *multiblockstore) Has(c *cid.Cid) (bool, error) {
 	var firstErr error
 	for _, m := range bs.mounts {
-		have, err := m.Blocks.Has(key)
+		have, err := m.Blocks.Has(c)
 		if have && err == nil {
 			return have, nil
 		}
@@ -82,10 +82,10 @@ func (bs *multiblockstore) Has(key key.Key) (bool, error) {
 	return false, firstErr
 }
 
-func (bs *multiblockstore) Get(key key.Key) (blocks.Block, error) {
+func (bs *multiblockstore) Get(c *cid.Cid) (blocks.Block, error) {
 	var firstErr error
 	for _, m := range bs.mounts {
-		blk, err := m.Blocks.Get(key)
+		blk, err := m.Blocks.Get(c)
 		if err == nil {
 			return blk, nil
 		}
@@ -96,10 +96,10 @@ func (bs *multiblockstore) Get(key key.Key) (blocks.Block, error) {
 	return nil, firstErr
 }
 
-func (bs *multiblockstore) Locate(key key.Key) []LocateInfo {
+func (bs *multiblockstore) Locate(c *cid.Cid) []LocateInfo {
 	res := make([]LocateInfo, 0, len(bs.mounts))
 	for _, m := range bs.mounts {
-		_, err := m.Blocks.Get(key)
+		_, err := m.Blocks.Get(c)
 		res = append(res, LocateInfo{m.Prefix, err})
 	}
 	return res
@@ -109,7 +109,7 @@ func (bs *multiblockstore) Put(blk blocks.Block) error {
 	// First call Has() to make sure the block doesn't exist in any of
 	// the sub-blockstores, otherwise we could end with data being
 	// duplicated in two blockstores.
-	exists, err := bs.Has(blk.Key())
+	exists, err := bs.Has(blk.Cid())
 	if err == nil && exists {
 		return nil // already stored
 	}
@@ -120,7 +120,7 @@ func (bs *multiblockstore) PutMany(blks []blocks.Block) error {
 	stilladd := make([]blocks.Block, 0, len(blks))
 	// Has is cheaper than Put, so if we already have it then skip
 	for _, blk := range blks {
-		exists, err := bs.Has(blk.Key())
+		exists, err := bs.Has(blk.Cid())
 		if err == nil && exists {
 			continue // already stored
 		}
@@ -132,10 +132,10 @@ func (bs *multiblockstore) PutMany(blks []blocks.Block) error {
 	return bs.mounts[0].Blocks.PutMany(stilladd)
 }
 
-func (bs *multiblockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
+func (bs *multiblockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 	//return bs.mounts[0].Blocks.AllKeysChan(ctx)
 	//return nil, errors.New("Unimplemented")
-	in := make([]<-chan key.Key, 0, len(bs.mounts))
+	in := make([]<-chan *cid.Cid, 0, len(bs.mounts))
 	for _, m := range bs.mounts {
 		ch, err := m.Blocks.AllKeysChan(ctx)
 		if err != nil {
@@ -143,7 +143,7 @@ func (bs *multiblockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, err
 		}
 		in = append(in, ch)
 	}
-	out := make(chan key.Key, dsq.KeysOnlyBufSize)
+	out := make(chan *cid.Cid, dsq.KeysOnlyBufSize)
 	go func() {
 		defer close(out)
 		for _, in0 := range in {

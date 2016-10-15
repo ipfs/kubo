@@ -8,12 +8,11 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
-	key "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	peer "gx/ipfs/QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p/go-libp2p-peer"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 var BitswapCmd = &cmds.Command{
@@ -54,7 +53,7 @@ var unwantCmd = &cmds.Command{
 			return
 		}
 
-		var ks []key.Key
+		var ks []*cid.Cid
 		for _, arg := range req.Arguments() {
 			c, err := cid.Decode(arg)
 			if err != nil {
@@ -62,7 +61,7 @@ var unwantCmd = &cmds.Command{
 				return
 			}
 
-			ks = append(ks, key.Key(c.Hash()))
+			ks = append(ks, c)
 		}
 
 		bs.CancelWants(ks)
@@ -164,7 +163,7 @@ var bitswapStatCmd = &cmds.Command{
 			fmt.Fprintf(buf, "\tdup data received: %s\n", humanize.Bytes(out.DupDataReceived))
 			fmt.Fprintf(buf, "\twantlist [%d keys]\n", len(out.Wantlist))
 			for _, k := range out.Wantlist {
-				fmt.Fprintf(buf, "\t\t%s\n", k.B58String())
+				fmt.Fprintf(buf, "\t\t%s\n", k.String())
 			}
 			fmt.Fprintf(buf, "\tpartners [%d]\n", len(out.Peers))
 			for _, p := range out.Peers {

@@ -12,20 +12,20 @@ import (
 	"github.com/ipfs/go-ipfs/unixfs"
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
-	bk "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
 
-type fileNodes map[bk.Key]struct{}
+// type fileNodes map[bk.Key]struct{}
 
-func (m fileNodes) have(key bk.Key) bool {
-	_, ok := m[key]
-	return ok
-}
+// func (m fileNodes) have(key bk.Key) bool {
+//	_, ok := m[key]
+//	return ok
+//}
 
-func (m fileNodes) add(key bk.Key) {
-	m[key] = struct{}{}
-}
+//func (m fileNodes) add(key bk.Key) {
+//	m[key] = struct{}{}
+//}
 
 // func extractFiles(key bk.Key, fs *Datastore, bs b.Blockservice, res *fileNodes) error {
 // 	n, dataObj, status := getNode(key.DsKey(), key, fs, bs)
@@ -56,7 +56,7 @@ func (m fileNodes) add(key bk.Key) {
 // 	return nil
 // }
 
-func ConvertToFile(node *core.IpfsNode, key bk.Key, path string) error {
+func ConvertToFile(node *core.IpfsNode, k *cid.Cid, path string) error {
 	config, _ := node.Repo.Config()
 	if !node.LocalMode() && (config == nil || !config.Filestore.APIServerSidePaths) {
 		return errs.New("Daemon is running and server side paths are not enabled.")
@@ -73,7 +73,7 @@ func ConvertToFile(node *core.IpfsNode, key bk.Key, path string) error {
 		return errs.New("Could not extract filestore.")
 	}
 	p := params{node.Blockstore, fs, path, wtr}
-	_, err = p.convertToFile(key, true, 0)
+	_, err = p.convertToFile(k, true, 0)
 	return err
 }
 
@@ -84,8 +84,8 @@ type params struct {
 	out  io.Writer
 }
 
-func (p *params) convertToFile(key bk.Key, root bool, offset uint64) (uint64, error) {
-	block, err := p.bs.Get(key)
+func (p *params) convertToFile(k *cid.Cid, root bool, offset uint64) (uint64, error) {
+	block, err := p.bs.Get(k)
 	if err != nil {
 		return 0, err
 	}
@@ -111,17 +111,17 @@ func (p *params) convertToFile(key bk.Key, root bool, offset uint64) (uint64, er
 		}
 		dataObj.Flags |= NoBlockData
 		dataObj.Data = altData
-		p.fs.Update(key.DsKey().Bytes(), nil, dataObj)
+		p.fs.Update(b.CidToDsKey(k).Bytes(), nil, dataObj)
 	} else {
 		dataObj.Flags |= Internal
 		dataObj.Data = block.RawData()
-		p.fs.Update(key.DsKey().Bytes(), nil, dataObj)
+		p.fs.Update(b.CidToDsKey(k).Bytes(), nil, dataObj)
 		n, err := dag.DecodeProtobuf(block.RawData())
 		if err != nil {
 			return 0, err
 		}
 		for _, link := range n.Links {
-			size, err := p.convertToFile(bk.Key(link.Hash), false, offset)
+			size, err := p.convertToFile(cid.NewCidV0(link.Hash), false, offset)
 			if err != nil {
 				return 0, err
 			}

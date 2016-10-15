@@ -14,21 +14,21 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmbnPJidHfeekkdLkoboBooA56KB92cT8csDmJwCc2bQJ1",
+      "hash": "QmfDU2uJQkxXP6nDTfSPSx4rQt4S4fU4XMRoQA5DzYGWfe",
       "name": "go-libp2p-secio",
-      "version": "1.0.12"
+      "version": "1.1.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmVoi5es8D5fNHZDqoW6DgDAEPEV5hQp8GBz161vZXiwpQ",
+      "hash": "QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46",
       "name": "go-libp2p-crypto",
-      "version": "1.0.4"
+      "version": "1.3.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmWXjJo15p4pzT7cayEwZi2sWgJqLnGDof6ZGMh9xBgU1p",
+      "hash": "QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC",
       "name": "go-libp2p-peer",
-      "version": "2.0.4"
+      "version": "2.1.0"
     },
     {
       "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
@@ -52,14 +52,14 @@
       "version": "0.1.0"
     },
     {
-      "hash": "Qma1FrGRasghpuETfCtsKdFtXKQffpNnakv3wG3QaMwCVi",
+      "hash": "QmQF3y5N5RcMaGUbSunmbnjhaFHP7uGDismvngkn8HJ1Xa",
       "name": "iptb",
-      "version": "1.0.0"
+      "version": "1.1.1"
     },
     {
-      "hash": "QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku",
+      "hash": "QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J",
       "name": "go-multihash",
-      "version": "0.0.0"
+      "version": "1.0.0"
     },
     {
       "author": "satori",
@@ -93,9 +93,9 @@
     },
     {
       "author": "jbenet",
-      "hash": "QmX6DhWrpBB5NtadXmPSXYNdVvuLfJXoFNMvUMoVvP5UJa",
+      "hash": "QmTKsRYeY4simJyf37K93juSq75Lo8MVCDJ7owjmf46u8W",
       "name": "go-context",
-      "version": "0.0.0"
+      "version": "1.0.0"
     },
     {
       "author": "rs",
@@ -159,9 +159,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2",
+      "hash": "QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo",
       "name": "go-libp2p-peerstore",
-      "version": "1.2.4"
+      "version": "1.3.0"
     },
     {
       "author": "whyrusleeping",
@@ -201,21 +201,21 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUuwQUJmtvC6ReYcu7xaYKEUM3pD46H18dFn3LBhVt2Di",
+      "hash": "QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum",
       "name": "go-libp2p",
-      "version": "3.5.2"
+      "version": "4.0.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp",
+      "hash": "QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z",
       "name": "go-cid",
-      "version": "0.1.0"
+      "version": "0.6.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew",
+      "hash": "QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9",
       "name": "go-key",
-      "version": "1.0.2"
+      "version": "1.0.3"
     },
     {
       "author": "whyrusleeping",
@@ -237,9 +237,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYrv4LgCC8FhG2Ab4bwuq5DqBdwMtx3hMb3KKJDZcr2d7",
+      "hash": "QmTMy4hVSY28DdwJ9kBz6y7q6MuioFzPcpM3Ma3aPjo1i3",
       "name": "go-libp2p-loggables",
-      "version": "1.0.11"
+      "version": "1.1.1"
     },
     {
       "author": "ipfs",
@@ -253,21 +253,28 @@
       "name": "go-metrics-interface",
       "version": "0.1.2"
     },
-	{
-      "hash": "QmYvLYkYiVEi5LBHP2uFqiUaHqH7zWnEuRqoNEuGLNG6JB",
+    {
+      "hash": "QmWHiyk5y2EKgxHogFJ4Zt1xTqKeVsBc4zcBke8ie9C2Bn",
       "name": "go-libp2p-kad-dht",
-      "version": "1.1.0"
+      "version": "2.2.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmdCL8M8DXJdSRnwhpDhukX5r8ydjxnzPJpaKrFudDA8yn",
+      "hash": "QmPRYAPKG9MhfJLrDT659SGhBsY7V7zHq84cngi8EHudHQ",
       "name": "hang-fds",
-      "version": "0.0.0"
+      "version": "0.0.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmTgcWwxttM74AY7UYA6qMP9WpzfBEjbZntx7ZWLttRMJJ",
+      "name": "floodsub",
+      "version": "0.7.0"
     }
   ],
   "gxVersion": "0.4.0",
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs",
-  "version": "0.4.4-dev"
+  "version": "0.4.5-dev"
 }
+

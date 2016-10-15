@@ -14,10 +14,9 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
-	"gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	cid "gx/ipfs/QmfSc2xehWmWLnwwYR91Y8QF4xdASypTFVknutoKQS3GHp/go-cid"
+	"context"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
 
 func TestAddRecursive(t *testing.T) {
@@ -94,7 +93,7 @@ func TestAddGCLive(t *testing.T) {
 		t.Fatal("add shouldnt complete yet")
 	}
 
-	var gcout <-chan key.Key
+	var gcout <-chan *cid.Cid
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
@@ -139,7 +138,7 @@ func TestAddGCLive(t *testing.T) {
 	}
 
 	for k := range gcout {
-		if _, ok := addedHashes[k.B58String()]; ok {
+		if _, ok := addedHashes[k.String()]; ok {
 			t.Fatal("gc'ed a hash we just added")
 		}
 	}

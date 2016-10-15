@@ -8,14 +8,15 @@ import (
 	//"strings"
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
-	k "gx/ipfs/Qmce4Y4zg3sYr7xKM5UueS67vhNni6EeWgCRnb7MbLJMew/go-key"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
 	. "github.com/ipfs/go-ipfs/filestore/support"
+	k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	node "github.com/ipfs/go-ipfs/merkledag"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
 
 type VerifyParams struct {
@@ -103,7 +104,7 @@ func VerifyBasic(fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
 	return out.ch, nil
 }
 
-func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
+func VerifyKeys(ks []*cid.Cid, node *core.IpfsNode, fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
 	out := reporter{make(chan ListRes, 16), params.NoObjInfo}
 	verifyLevel, verbose, err := CheckParamsBasic(params)
 	if err != nil {
@@ -111,11 +112,11 @@ func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Basic, params *VerifyPara
 	}
 	go func() {
 		defer out.close()
-		for _, key := range keys {
-			if key == "" {
-				continue
-			}
-			res := verifyKey(key, fs, node.Blockstore, verifyLevel)
+		for _, k := range ks {
+			//if key == "" {
+			//	continue
+			//}
+			res := verifyKey(k, fs, node.Blockstore, verifyLevel)
 			if verbose >= ShowSpecified || OfInterest(res.Status) {
 				out.send(res)
 			}
@@ -124,8 +125,8 @@ func VerifyKeys(keys []k.Key, node *core.IpfsNode, fs *Basic, params *VerifyPara
 	return out.ch, nil
 }
 
-func verifyKey(key k.Key, fs *Basic, bs b.Blockstore, verifyLevel VerifyLevel) ListRes {
-	dsKey := key.DsKey()
+func verifyKey(k *cid.Cid, fs *Basic, bs b.Blockstore, verifyLevel VerifyLevel) ListRes {
+	dsKey := b.CidToDsKey(k)
 	origData, dataObj, err := fs.GetDirect(dsKey)
 	if err == nil && dataObj.NoBlockData() {
 		res := ListRes{dsKey, dataObj, 0}
@@ -134,13 +135,13 @@ func verifyKey(key k.Key, fs *Basic, bs b.Blockstore, verifyLevel VerifyLevel) L
 	} else if err == nil {
 		return ListRes{dsKey, dataObj, StatusUnchecked}
 	}
-	found, _ := bs.Has(key)
+	found, _ := bs.Has(k)
 	if found {
 		return ListRes{dsKey, nil, StatusFound}
 	} else if err == ds.ErrNotFound && !found {
 		return ListRes{dsKey, nil, StatusKeyNotFound}
 	} else {
-		Logger.Errorf("%s: verifyKey: %v", key, err)
+		Logger.Errorf("%s: verifyKey: %v", k, err)
 		return ListRes{dsKey, nil, StatusError}
 	}
 }
@@ -177,7 +178,7 @@ func VerifyFull(node *core.IpfsNode, fs Snapshot, params *VerifyParams) (<-chan 
 	return p.out.ch, nil
 }
 
-func VerifyKeysFull(keys []k.Key, node *core.IpfsNode, fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
+func VerifyKeysFull(ks []*cid.Cid, node *core.IpfsNode, fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
 	verifyLevel, verbose, err := CheckParamsBasic(params)
 	if err != nil {
 		return nil, err
@@ -195,7 +196,7 @@ func VerifyKeysFull(keys []k.Key, node *core.IpfsNode, fs *Basic, params *Verify
 	}
 	go func() {
 		defer p.out.close()
-		p.verifyKeys(keys)
+		p.verifyKeys(ks)
 	}()
 	return p.out.ch, nil
 }
@@ -263,12 +264,12 @@ func (p *verifyParams) setStatus(key ds.Key, val *DataObj, status int) ListRes {
 	return ListRes{key, val, status}
 }
 
-func (p *verifyParams) verifyKeys(keys []k.Key) {
-	for _, key := range keys {
-		if key == "" {
-			continue
-		}
-		dsKey := key.DsKey()
+func (p *verifyParams) verifyKeys(ks []*cid.Cid) {
+	for _, k := range ks {
+		//if key == "" {
+		//	continue
+		//}
+		dsKey := b.CidToDsKey(k)
 		origData, dataObj, children, r := p.get(dsKey)
 		if dataObj == nil || AnError(r) {
 			/* nothing to do */
