@@ -134,7 +134,6 @@ func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo
 // getDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
 func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
-	//fmt.Println("GetDagNode")
 	data, err := n.ufmt.GetBytes()
 	if err != nil {
 		return nil, err
