@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
-	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
@@ -104,7 +103,7 @@ func (bs *blockstore) Get(k *cid.Cid) (blocks.Block, error) {
 		return nil, ErrNotFound
 	}
 
-	maybeData, err := bs.datastore.Get(dshelp.NewKeyFromBinary(k.KeyString()))
+	maybeData, err := bs.datastore.Get(CidToDsKey(k))
 	if err == ds.ErrNotFound {
 		return nil, ErrNotFound
 	}
@@ -129,7 +128,7 @@ func (bs *blockstore) Get(k *cid.Cid) (blocks.Block, error) {
 }
 
 func (bs *blockstore) Put(block blocks.Block) error {
-	k := dshelp.NewKeyFromBinary(block.Cid().KeyString())
+	k := CidToDsKey(block.Cid())
 
 	// Note: The Has Check is now done by the MultiBlockstore
 
@@ -142,7 +141,7 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 		return err
 	}
 	for _, b := range blocks {
-		k := dshelp.NewKeyFromBinary(b.Cid().KeyString())
+		k := CidToDsKey(b.Cid())
 		err = t.Put(k, b.RawData())
 		if err != nil {
 			return err
@@ -152,11 +151,11 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 }
 
 func (bs *blockstore) Has(k *cid.Cid) (bool, error) {
-	return bs.datastore.Has(dshelp.NewKeyFromBinary(k.KeyString()))
+	return bs.datastore.Has(CidToDsKey(k))
 }
 
 func (s *blockstore) DeleteBlock(k *cid.Cid) error {
-	return s.datastore.Delete(dshelp.NewKeyFromBinary(k.KeyString()))
+	return s.datastore.Delete(CidToDsKey(k))
 }
 
 // AllKeysChan runs a query for keys from the blockstore.
@@ -189,17 +188,12 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 			}
 
 			// need to convert to key.Key using key.KeyFromDsKey.
-			kb, err := dshelp.BinaryFromDsKey(ds.NewKey(e.Key)) // TODO: calling NewKey isnt free
+			c, err := DsKeyToCid(ds.NewKey(e.Key)) // TODO: calling NewKey isnt free
 			if err != nil {
 				log.Warningf("error parsing key from DsKey: ", err)
 				return nil, true
 			}
 
-			c, err := cid.Cast(kb)
-			if err != nil {
-				log.Warning("error parsing cid from decoded DsKey: ", err)
-				return nil, true
-			}
 			log.Debug("blockstore: query got key", c)
 
 			return c, true

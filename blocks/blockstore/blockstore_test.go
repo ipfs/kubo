@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
-	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
@@ -190,7 +189,7 @@ func TestValueTypeMismatch(t *testing.T) {
 	block := blocks.NewBlock([]byte("some data"))
 
 	datastore := ds.NewMapDatastore()
-	k := blockPrefix.Child(dshelp.NewKeyFromBinary(block.Cid().KeyString()))
+	k := blockPrefix.Child(CidToDsKey(block.Cid()))
 	datastore.Put(k, "data that isn't a block!")
 
 	blockstore := NewBlockstore(ds_sync.MutexWrap(datastore))
