@@ -240,34 +240,7 @@ It takes a list of base58 encoded multihashs to remove.
 		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		hashes := req.Arguments()
-		force, _, _ := req.Option("force").Bool()
-		quiet, _, _ := req.Option("quiet").Bool()
-		cids := make([]*cid.Cid, 0, len(hashes))
-		for _, hash := range hashes {
-			c, err := cid.Decode(hash)
-			if err != nil {
-				res.SetError(fmt.Errorf("invalid content id: %s (%s)", hash, err), cmds.ErrNormal)
-				return
-			}
-
-			cids = append(cids, c)
-		}
-		outChan := make(chan interface{})
-		err = util.RmBlocks(n.Blockstore, n.Pinning, outChan, cids, util.RmBlocksOpts{
-			Quiet: quiet,
-			Force: force,
-		})
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		res.SetOutput((<-chan interface{})(outChan))
+		blockRmRun(req, res, "")
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
 		if res.Error() != nil {
@@ -286,6 +259,37 @@ It takes a list of base58 encoded multihashs to remove.
 		}
 	},
 	Type: util.RemovedBlock{},
+}
+
+func blockRmRun(req cmds.Request, res cmds.Response, prefix string) {
+	n, err := req.InvocContext().GetNode()
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	hashes := req.Arguments()
+	force, _, _ := req.Option("force").Bool()
+	quiet, _, _ := req.Option("quiet").Bool()
+	cids := make([]*cid.Cid, 0, len(hashes))
+	for _, hash := range hashes {
+		c, err := cid.Decode(hash)
+		if err != nil {
+			res.SetError(fmt.Errorf("invalid content id: %s (%s)", hash, err), cmds.ErrNormal)
+			return
+		}
+		cids = append(cids, c)
+	}
+	outChan := make(chan interface{})
+	err = util.RmBlocks(n.Blockstore, n.Pinning, outChan, cids, util.RmBlocksOpts{
+		Quiet:  quiet,
+		Force:  force,
+		Prefix: prefix,
+	})
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	res.SetOutput((<-chan interface{})(outChan))
 }
 
 type BlockLocateRes struct {
