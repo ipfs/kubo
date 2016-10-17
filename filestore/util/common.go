@@ -26,14 +26,20 @@ const (
 	CheckAlways
 )
 
-func VerifyLevelFromNum(level int) (VerifyLevel, error) {
+func VerifyLevelFromNum(fs *Basic, level int) (VerifyLevel, error) {
 	switch level {
 	case 0, 1:
 		return CheckExists, nil
 	case 2, 3:
 		return CheckFast, nil
-	case 4, 5, 6:
+	case 4, 5:
 		return CheckIfChanged, nil
+	case 6:
+		if fs.Verify() <= VerifyIfChanged {
+			return CheckIfChanged, nil
+		} else {
+			return CheckAlways, nil
+		}
 	case 7, 8, 9:
 		return CheckAlways, nil
 	default:

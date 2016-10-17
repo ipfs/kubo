@@ -82,6 +82,8 @@ type Datastore struct {
 	//maintLock  sync.RWMutex
 }
 
+func (b *Basic) Verify() VerifyWhen {return b.ds.verify}
+
 func (d *Basic) DB() readonly { return d.db }
 
 func (d *Datastore) DB() *leveldb.DB { return d.db }

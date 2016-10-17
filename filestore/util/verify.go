@@ -28,8 +28,8 @@ type VerifyParams struct {
 	IncompleteWhen []string
 }
 
-func CheckParamsBasic(params *VerifyParams) (VerifyLevel, int, error) {
-	level, err := VerifyLevelFromNum(params.Level)
+func CheckParamsBasic(fs *Basic, params *VerifyParams) (VerifyLevel, int, error) {
+	level, err := VerifyLevelFromNum(fs, params.Level)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -82,7 +82,7 @@ func VerifyBasic(fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
 	} else {
 		iter.Filter = func(r *DataObj) bool { return r.NoBlockData() && params.Filter(r) }
 	}
-	verifyLevel, verbose, err := CheckParamsBasic(params)
+	verifyLevel, verbose, err := CheckParamsBasic(fs, params)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func VerifyBasic(fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
 
 func VerifyKeys(ks []*cid.Cid, node *core.IpfsNode, fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
 	out := reporter{make(chan ListRes, 16), params.NoObjInfo}
-	verifyLevel, verbose, err := CheckParamsBasic(params)
+	verifyLevel, verbose, err := CheckParamsBasic(fs, params)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func verifyKey(k *cid.Cid, fs *Basic, bs b.Blockstore, verifyLevel VerifyLevel) 
 }
 
 func VerifyFull(node *core.IpfsNode, fs Snapshot, params *VerifyParams) (<-chan ListRes, error) {
-	verifyLevel, verbose, err := CheckParamsBasic(params)
+	verifyLevel, verbose, err := CheckParamsBasic(fs.Basic, params)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func VerifyFull(node *core.IpfsNode, fs Snapshot, params *VerifyParams) (<-chan 
 }
 
 func VerifyKeysFull(ks []*cid.Cid, node *core.IpfsNode, fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
-	verifyLevel, verbose, err := CheckParamsBasic(params)
+	verifyLevel, verbose, err := CheckParamsBasic(fs, params)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func VerifyKeysFull(ks []*cid.Cid, node *core.IpfsNode, fs *Basic, params *Verif
 }
 
 func VerifyPostOrphan(node *core.IpfsNode, fs Snapshot, level int, incompleteWhen []string) (<-chan ListRes, error) {
-	verifyLevel, err := VerifyLevelFromNum(level)
+	verifyLevel, err := VerifyLevelFromNum(fs.Basic, level)
 	if err != nil {
 		return nil, err
 	}

@@ -589,7 +589,8 @@ object info.
 The --level option specifies how thorough the checks should be.  The
 current meaning of the levels are:
   7-9: always check the contents
-  4-6: check the contents if the modification time differs
+    6: check the contents based on the setting of Filestore.Verify
+  4-5: check the contents if the modification time differs
   2-3: report changed if the modification time differs
   0-1: only check for the existence of blocks without verifying the
        contents of leaf nodes
