@@ -5,6 +5,8 @@ import (
 
 	"context"
 
+	"github.com/ipfs/go-ipfs/commands/files"
+
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
@@ -22,6 +24,8 @@ type Node struct {
 	encoded []byte
 
 	cached *cid.Cid
+
+	posInfo *files.PosInfo
 }
 
 // NodeStat is a statistics object for a Node. Mostly sizes.
@@ -188,6 +192,10 @@ func (n *Node) RawData() []byte {
 	return out
 }
 
+func (n *Node) PosInfo() *files.PosInfo {
+	return n.posInfo
+}
+
 func (n *Node) Data() []byte {
 	return n.data
 }
@@ -196,6 +204,10 @@ func (n *Node) SetData(d []byte) {
 	n.encoded = nil
 	n.cached = nil
 	n.data = d
+}
+
+func (n *Node) SetPosInfo(pi *files.PosInfo) {
+	n.posInfo = pi
 }
 
 // UpdateNodeLink return a copy of the node with the link name set to point to
