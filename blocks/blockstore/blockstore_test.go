@@ -190,7 +190,7 @@ func TestValueTypeMismatch(t *testing.T) {
 	block := blocks.NewBlock([]byte("some data"))
 
 	datastore := ds.NewMapDatastore()
-	k := BlockPrefix.Child(dshelp.NewKeyFromBinary(block.Cid().KeyString()))
+	k := BlockPrefix.Child(dshelp.CidToDsKey(block.Cid()))
 	datastore.Put(k, "data that isn't a block!")
 
 	blockstore := NewBlockstore(ds_sync.MutexWrap(datastore))
