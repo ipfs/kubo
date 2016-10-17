@@ -29,6 +29,7 @@ test_expect_success "file always checked" '
 
 test_expect_success "file checked after change" '
   ipfs config Filestore.Verify ifchanged 2> log &&
+  sleep 2 && # to accommodate systems without sub-second mod-times
   echo "HELLO WORLDS!" >mountdir/hello.txt &&
   test_must_fail ipfs cat "$HASH" 2> log &&
   grep -q "verifying block $HASH" log &&
