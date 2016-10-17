@@ -181,11 +181,11 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 	return err
 }
 
-// Prevent race condations up update a key while holding a lock, if
-// origData is defined and the current value in datastore is not the
-// same return false and abort the update, otherwise update the key if
-// newData is defined, if it is nil than delete the key.  If an error
-// is returned than the return value is undefined.
+// Update a key in a way that avoids race condations.  If origData is
+// defined and the current value in the datastore is not the same
+// return false and abort the update, otherwise update the key to the
+// value of newData; if newData is nil then delete the key.  If an
+// error is returned than the return value is undefined.
 func (d *Datastore) Update(keyBytes []byte, origData []byte, newData *DataObj) (bool, error) {
 	d.updateLock.Lock()
 	defer d.updateLock.Unlock()
