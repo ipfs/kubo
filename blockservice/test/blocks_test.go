@@ -18,18 +18,8 @@ import (
 	dssync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
-func newObject(data []byte) *testObject {
-	return &testObject{
-		Block: blocks.NewBlock(data),
-	}
-}
-
-type testObject struct {
-	blocks.Block
-}
-
-func (o *testObject) Cid() *cid.Cid {
-	return cid.NewCidV0(o.Block.Multihash())
+func newObject(data []byte) blocks.Block {
+	return blocks.NewBlock(data)
 }
 
 func TestBlocks(t *testing.T) {
@@ -38,12 +28,8 @@ func TestBlocks(t *testing.T) {
 	defer bs.Close()
 
 	o := newObject([]byte("beep boop"))
-	h := u.Hash([]byte("beep boop"))
-	if !bytes.Equal(o.Multihash(), h) {
-		t.Error("Block Multihash and data multihash not equal")
-	}
-
-	if !o.Cid().Equals(cid.NewCidV0(h)) {
+	h := cid.NewCidV0(u.Hash([]byte("beep boop")))
+	if !o.Cid().Equals(h) {
 		t.Error("Block key and data multihash key not equal")
 	}
 
@@ -74,8 +60,8 @@ func TestBlocks(t *testing.T) {
 	}
 }
 
-func makeObjects(n int) []*testObject {
-	var out []*testObject
+func makeObjects(n int) []blocks.Block {
+	var out []blocks.Block
 	for i := 0; i < n; i++ {
 		out = append(out, newObject([]byte(fmt.Sprintf("object %d", i))))
 	}

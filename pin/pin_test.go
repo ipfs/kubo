@@ -16,8 +16,8 @@ import (
 	dssync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
-func randNode() (*mdag.Node, *cid.Cid) {
-	nd := new(mdag.Node)
+func randNode() (*mdag.ProtoNode, *cid.Cid) {
+	nd := new(mdag.ProtoNode)
 	nd.SetData(make([]byte, 32))
 	util.NewTimeSeededRand().Read(nd.Data())
 	k := nd.Cid()

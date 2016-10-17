@@ -2,6 +2,7 @@ package merkledag_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,10 +20,10 @@ import (
 	mdpb "github.com/ipfs/go-ipfs/merkledag/pb"
 	dstest "github.com/ipfs/go-ipfs/merkledag/test"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
-	"context"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -38,13 +39,13 @@ func TestNode(t *testing.T) {
 		t.Error(err)
 	}
 
-	printn := func(name string, n *Node) {
+	printn := func(name string, n *ProtoNode) {
 		fmt.Println(">", name)
 		fmt.Println("data:", string(n.Data()))
 
 		fmt.Println("links:")
-		for _, l := range n.Links {
-			fmt.Println("-", l.Name, l.Size, l.Hash)
+		for _, l := range n.Links() {
+			fmt.Println("-", l.Name, l.Size, l.Cid)
 		}
 
 		e, err := n.EncodeProtobuf(false)
@@ -70,7 +71,7 @@ func TestNode(t *testing.T) {
 	printn("beep boop", n3)
 }
 
-func SubtestNodeStat(t *testing.T, n *Node) {
+func SubtestNodeStat(t *testing.T, n *ProtoNode) {
 	enc, err := n.EncodeProtobuf(true)
 	if err != nil {
 		t.Error("n.EncodeProtobuf(true) failed")
@@ -85,8 +86,8 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 
 	k := n.Key()
 
-	expected := NodeStat{
-		NumLinks:       len(n.Links),
+	expected := node.NodeStat{
+		NumLinks:       len(n.Links()),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.Data()), // includes framing.
 		DataSize:       len(n.Data()),
@@ -174,7 +175,12 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 			}
 			fmt.Println("Got first node back.")
 
-			read, err := uio.NewDagReader(ctx, first, dagservs[i])
+			firstpb, ok := first.(*ProtoNode)
+			if !ok {
+				errs <- ErrNotProtobuf
+			}
+
+			read, err := uio.NewDagReader(ctx, firstpb, dagservs[i])
 			if err != nil {
 				errs <- err
 			}
@@ -201,7 +207,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 	}
 }
 
-func assertCanGet(t *testing.T, ds DAGService, n *Node) {
+func assertCanGet(t *testing.T, ds DAGService, n node.Node) {
 	if _, err := ds.Get(context.Background(), n.Cid()); err != nil {
 		t.Fatal(err)
 	}
@@ -263,13 +269,13 @@ func TestEnumerateChildren(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var traverse func(n *Node)
-	traverse = func(n *Node) {
+	var traverse func(n node.Node)
+	traverse = func(n node.Node) {
 		// traverse dag and check
-		for _, lnk := range n.Links {
-			c := cid.NewCidV0(lnk.Hash)
+		for _, lnk := range n.Links() {
+			c := lnk.Cid
 			if !set.Has(c) {
-				t.Fatal("missing key in set! ", lnk.Hash.B58String())
+				t.Fatal("missing key in set! ", lnk.Cid.String())
 			}
 			child, err := ds.Get(context.Background(), c)
 			if err != nil {
@@ -286,7 +292,7 @@ func TestFetchFailure(t *testing.T) {
 	ds := dstest.Mock()
 	ds_bad := dstest.Mock()
 
-	top := new(Node)
+	top := new(ProtoNode)
 	for i := 0; i < 10; i++ {
 		nd := NodeWithData([]byte{byte('a' + i)})
 		_, err := ds.Add(nd)
@@ -345,13 +351,13 @@ func TestUnmarshalFailure(t *testing.T) {
 		t.Fatal("should have failed to parse node with bad link")
 	}
 
-	n := &Node{}
+	n := &ProtoNode{}
 	n.Marshal()
 }
 
 func TestBasicAddGet(t *testing.T) {
 	ds := dstest.Mock()
-	nd := new(Node)
+	nd := new(ProtoNode)
 
 	c, err := ds.Add(nd)
 	if err != nil {

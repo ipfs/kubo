@@ -66,7 +66,13 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	return &Node{Ipfs: s.Ipfs, Nd: nd}, nil
+	pbnd, ok := nd.(*mdag.ProtoNode)
+	if !ok {
+		log.Error("fuse node was not a protobuf node")
+		return nil, fuse.ENOTSUP
+	}
+
+	return &Node{Ipfs: s.Ipfs, Nd: pbnd}, nil
 }
 
 // ReadDirAll reads a particular directory. Disallowed for root.
@@ -78,7 +84,7 @@ func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 // Node is the core object representing a filesystem tree node.
 type Node struct {
 	Ipfs   *core.IpfsNode
-	Nd     *mdag.Node
+	Nd     *mdag.ProtoNode
 	fd     *uio.DagReader
 	cached *ftpb.Data
 }
@@ -105,13 +111,13 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 		size := s.cached.GetFilesize()
 		a.Mode = 0444
 		a.Size = uint64(size)
-		a.Blocks = uint64(len(s.Nd.Links))
+		a.Blocks = uint64(len(s.Nd.Links()))
 		a.Uid = uint32(os.Getuid())
 		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_Raw:
 		a.Mode = 0444
 		a.Size = uint64(len(s.cached.GetData()))
-		a.Blocks = uint64(len(s.Nd.Links))
+		a.Blocks = uint64(len(s.Nd.Links()))
 		a.Uid = uint32(os.Getuid())
 		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_Symlink:
@@ -134,17 +140,23 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	return &Node{Ipfs: s.Ipfs, Nd: nodes[len(nodes)-1]}, nil
+	pbnd, ok := nodes[len(nodes)-1].(*mdag.ProtoNode)
+	if !ok {
+		log.Error("fuse lookup got non-protobuf node")
+		return nil, fuse.ENOTSUP
+	}
+
+	return &Node{Ipfs: s.Ipfs, Nd: pbnd}, nil
 }
 
 // ReadDirAll reads the link structure as directory entries
 func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Node ReadDir")
-	entries := make([]fuse.Dirent, len(s.Nd.Links))
-	for i, link := range s.Nd.Links {
+	entries := make([]fuse.Dirent, len(s.Nd.Links()))
+	for i, link := range s.Nd.Links() {
 		n := link.Name
 		if len(n) == 0 {
-			n = link.Hash.B58String()
+			n = link.Cid.String()
 		}
 		entries[i] = fuse.Dirent{Name: n, Type: fuse.DT_File}
 	}

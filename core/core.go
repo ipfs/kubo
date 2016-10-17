@@ -499,7 +499,7 @@ func (n *IpfsNode) loadFilesRoot() error {
 		return n.Repo.Datastore().Put(dsk, c.Bytes())
 	}
 
-	var nd *merkledag.Node
+	var nd *merkledag.ProtoNode
 	val, err := n.Repo.Datastore().Get(dsk)
 
 	switch {
@@ -515,10 +515,17 @@ func (n *IpfsNode) loadFilesRoot() error {
 			return err
 		}
 
-		nd, err = n.DAG.Get(n.Context(), c)
+		rnd, err := n.DAG.Get(n.Context(), c)
 		if err != nil {
 			return fmt.Errorf("error loading filesroot from DAG: %s", err)
 		}
+
+		pbnd, ok := rnd.(*merkledag.ProtoNode)
+		if !ok {
+			return merkledag.ErrNotProtobuf
+		}
+
+		nd = pbnd
 	default:
 		return err
 	}

@@ -60,7 +60,7 @@ func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 				log.Event(ctx, "Bitswap.TaskWorker.Work", logging.LoggableMap{
 					"ID":     id,
 					"Target": envelope.Peer.Pretty(),
-					"Block":  envelope.Block.Multihash().B58String(),
+					"Block":  envelope.Block.Cid().String(),
 				})
 
 				bs.wm.SendBlock(ctx, envelope)

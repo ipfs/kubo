@@ -7,7 +7,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 )
 
-func BalancedLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
+func BalancedLayout(db *h.DagBuilderHelper) (*dag.ProtoNode, error) {
 	var root *h.UnixfsNode
 	for level := 0; !db.Done(); level++ {
 

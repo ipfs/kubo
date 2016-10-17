@@ -20,7 +20,7 @@ func TestAddLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nd := new(dag.Node)
+	nd := new(dag.ProtoNode)
 	nnode, err := addLink(context.Background(), ds, nd, "fish", fishnode)
 	if err != nil {
 		t.Fatal(err)
@@ -37,11 +37,11 @@ func TestAddLink(t *testing.T) {
 	}
 }
 
-func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.Node, pth string, exp *cid.Cid) {
+func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.ProtoNode, pth string, exp *cid.Cid) {
 	parts := path.SplitList(pth)
 	cur := root
 	for _, e := range parts {
-		nxt, err := cur.GetLinkedNode(context.Background(), ds, e)
+		nxt, err := cur.GetLinkedProtoNode(context.Background(), ds, e)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -56,7 +56,7 @@ func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.Node, pth strin
 }
 
 func TestInsertNode(t *testing.T) {
-	root := new(dag.Node)
+	root := new(dag.ProtoNode)
 	e := NewDagEditor(root, nil)
 
 	testInsert(t, e, "a", "anodefortesting", false, "")
@@ -83,10 +83,10 @@ func testInsert(t *testing.T, e *Editor, path, data string, create bool, experr 
 		t.Fatal(err)
 	}
 
-	var c func() *dag.Node
+	var c func() *dag.ProtoNode
 	if create {
-		c = func() *dag.Node {
-			return &dag.Node{}
+		c = func() *dag.ProtoNode {
+			return &dag.ProtoNode{}
 		}
 	}
 

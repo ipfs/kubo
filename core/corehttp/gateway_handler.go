@@ -45,7 +45,7 @@ func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) *gatewayHandler 
 }
 
 // TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
+func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.ProtoNode, error) {
 	// TODO(cryptix): change and remove this helper once PR1136 is merged
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
@@ -163,6 +163,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	pbnd, ok := nd.(*dag.ProtoNode)
+	if !ok {
+		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		return
+	}
+
 	etag := gopath.Base(urlPath)
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
@@ -190,7 +196,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		w.Header().Set("Suborigin", pathRoot)
 	}
 
-	dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
+	dr, err := uio.NewDagReader(ctx, pbnd, i.node.DAG)
 	if err != nil && err != uio.ErrIsDir {
 		// not a directory and still an error
 		internalWebError(w, err)
@@ -221,7 +227,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	var dirListing []directoryItem
 	// loop through files
 	foundIndex := false
-	for _, link := range nd.Links {
+	for _, link := range nd.Links() {
 		if link.Name == "index.html" {
 			log.Debugf("found index.html link for %s", urlPath)
 			foundIndex = true
@@ -239,7 +245,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				internalWebError(w, err)
 				return
 			}
-			dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
+
+			pbnd, ok := nd.(*dag.ProtoNode)
+			if !ok {
+				internalWebError(w, dag.ErrNotProtobuf)
+				return
+			}
+
+			dr, err := uio.NewDagReader(ctx, pbnd, i.node.DAG)
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -340,7 +353,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newnode *dag.Node
+	var newnode *dag.ProtoNode
 	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
 		newnode = uio.NewEmptyDirectory()
 	} else {
@@ -376,7 +389,13 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		e := dagutils.NewDagEditor(rnode, i.node.DAG)
+		pbnd, ok := rnode.(*dag.ProtoNode)
+		if !ok {
+			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+			return
+		}
+
+		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
 		err = e.InsertNodeAtPath(ctx, newPath, newnode, uio.NewEmptyDirectory)
 		if err != nil {
 			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
@@ -392,13 +411,19 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		newcid = nnode.Cid()
 
 	case nil:
-		// object set-data case
-		rnode.SetData(newnode.Data())
+		pbnd, ok := rnode.(*dag.ProtoNode)
+		if !ok {
+			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+			return
+		}
 
-		newcid, err = i.node.DAG.Add(rnode)
+		// object set-data case
+		pbnd.SetData(newnode.Data())
+
+		newcid, err = i.node.DAG.Add(pbnd)
 		if err != nil {
 			nnk := newnode.Cid()
-			rk := rnode.Cid()
+			rk := pbnd.Cid()
 			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), rk.String()), err, http.StatusInternalServerError)
 			return
 		}
@@ -444,20 +469,33 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pbnd, ok := pathNodes[len(pathNodes)-1].(*dag.ProtoNode)
+	if !ok {
+		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		return
+	}
+
 	// TODO(cyrptix): assumes len(pathNodes) > 1 - not found is an error above?
-	err = pathNodes[len(pathNodes)-1].RemoveNodeLink(components[len(components)-1])
+	err = pbnd.RemoveNodeLink(components[len(components)-1])
 	if err != nil {
 		webError(w, "Could not delete link", err, http.StatusBadRequest)
 		return
 	}
 
-	newnode := pathNodes[len(pathNodes)-1]
+	var newnode *dag.ProtoNode = pbnd
 	for j := len(pathNodes) - 2; j >= 0; j-- {
 		if _, err := i.node.DAG.Add(newnode); err != nil {
 			webError(w, "Could not add node", err, http.StatusInternalServerError)
 			return
 		}
-		newnode, err = pathNodes[j].UpdateNodeLink(components[j], newnode)
+
+		pathpb, ok := pathNodes[j].(*dag.ProtoNode)
+		if !ok {
+			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+			return
+		}
+
+		newnode, err = pathpb.UpdateNodeLink(components[j], newnode)
 		if err != nil {
 			webError(w, "Could not update node links", err, http.StatusInternalServerError)
 			return

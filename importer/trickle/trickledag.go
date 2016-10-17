@@ -1,9 +1,9 @@
 package trickle
 
 import (
+	"context"
 	"errors"
-
-	context "context"
+	"fmt"
 
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -15,7 +15,7 @@ import (
 // improves seek speeds.
 const layerRepeat = 4
 
-func TrickleLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
+func TrickleLayout(db *h.DagBuilderHelper) (*dag.ProtoNode, error) {
 	root := h.NewUnixfsNode()
 	if err := db.FillNodeLayer(root); err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error
 }
 
 // TrickleAppend appends the data in `db` to the dag, using the Trickledag format
-func TrickleAppend(ctx context.Context, base *dag.Node, db *h.DagBuilderHelper) (out *dag.Node, err_out error) {
+func TrickleAppend(ctx context.Context, base *dag.ProtoNode, db *h.DagBuilderHelper) (out *dag.ProtoNode, err_out error) {
 	defer func() {
 		if err_out == nil {
 			if err := db.Close(); err != nil {
@@ -229,15 +229,15 @@ func trickleDepthInfo(node *h.UnixfsNode, maxlinks int) (int, int) {
 
 // VerifyTrickleDagStructure checks that the given dag matches exactly the trickle dag datastructure
 // layout
-func VerifyTrickleDagStructure(nd *dag.Node, ds dag.DAGService, direct int, layerRepeat int) error {
+func VerifyTrickleDagStructure(nd *dag.ProtoNode, ds dag.DAGService, direct int, layerRepeat int) error {
 	return verifyTDagRec(nd, -1, direct, layerRepeat, ds)
 }
 
 // Recursive call for verifying the structure of a trickledag
-func verifyTDagRec(nd *dag.Node, depth, direct, layerRepeat int, ds dag.DAGService) error {
+func verifyTDagRec(nd *dag.ProtoNode, depth, direct, layerRepeat int, ds dag.DAGService) error {
 	if depth == 0 {
 		// zero depth dag is raw data block
-		if len(nd.Links) > 0 {
+		if len(nd.Links()) > 0 {
 			return errors.New("expected direct block")
 		}
 
@@ -259,22 +259,27 @@ func verifyTDagRec(nd *dag.Node, depth, direct, layerRepeat int, ds dag.DAGServi
 	}
 
 	if pbn.GetType() != ft.TFile {
-		return errors.New("expected file as branch node")
+		return fmt.Errorf("expected file as branch node, got: %s", pbn.GetType())
 	}
 
 	if len(pbn.Data) > 0 {
 		return errors.New("branch node should not have data")
 	}
 
-	for i := 0; i < len(nd.Links); i++ {
-		child, err := nd.Links[i].GetNode(context.TODO(), ds)
+	for i := 0; i < len(nd.Links()); i++ {
+		childi, err := nd.Links()[i].GetNode(context.TODO(), ds)
 		if err != nil {
 			return err
 		}
 
+		childpb, ok := childi.(*dag.ProtoNode)
+		if !ok {
+			return fmt.Errorf("cannot operate on non-protobuf nodes")
+		}
+
 		if i < direct {
 			// Direct blocks
-			err := verifyTDagRec(child, 0, direct, layerRepeat, ds)
+			err := verifyTDagRec(childpb, 0, direct, layerRepeat, ds)
 			if err != nil {
 				return err
 			}
@@ -284,7 +289,7 @@ func verifyTDagRec(nd *dag.Node, depth, direct, layerRepeat int, ds dag.DAGServi
 			if rdepth >= depth && depth > 0 {
 				return errors.New("Child dag was too deep!")
 			}
-			err := verifyTDagRec(child, rdepth, direct, layerRepeat, ds)
+			err := verifyTDagRec(childpb, rdepth, direct, layerRepeat, ds)
 			if err != nil {
 				return err
 			}

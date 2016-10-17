@@ -103,7 +103,13 @@ possible, please use 'ipfs ls' instead.
 				continue
 			}
 
-			unixFSNode, err := unixfs.FromBytes(merkleNode.Data())
+			ndpb, ok := merkleNode.(*merkledag.ProtoNode)
+			if !ok {
+				res.SetError(merkledag.ErrNotProtobuf, cmds.ErrNormal)
+				return
+			}
+
+			unixFSNode, err := unixfs.FromBytes(ndpb.Data())
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -121,16 +127,21 @@ possible, please use 'ipfs ls' instead.
 			case unixfspb.Data_File:
 				break
 			case unixfspb.Data_Directory:
-				links := make([]LsLink, len(merkleNode.Links))
+				links := make([]LsLink, len(merkleNode.Links()))
 				output.Objects[hash].Links = links
-				for i, link := range merkleNode.Links {
-					var linkNode *merkledag.Node
-					linkNode, err = link.GetNode(ctx, node.DAG)
+				for i, link := range merkleNode.Links() {
+					linkNode, err := link.GetNode(ctx, node.DAG)
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
 					}
-					d, err := unixfs.FromBytes(linkNode.Data())
+					lnpb, ok := linkNode.(*merkledag.ProtoNode)
+					if !ok {
+						res.SetError(merkledag.ErrNotProtobuf, cmds.ErrNormal)
+						return
+					}
+
+					d, err := unixfs.FromBytes(lnpb.Data())
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
@@ -138,7 +149,7 @@ possible, please use 'ipfs ls' instead.
 					t := d.GetType()
 					lsLink := LsLink{
 						Name: link.Name,
-						Hash: link.Hash.B58String(),
+						Hash: link.Cid.String(),
 						Type: t.String(),
 					}
 					if t == unixfspb.Data_File {

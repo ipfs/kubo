@@ -33,7 +33,7 @@ func maybeSkipFuseTests(t *testing.T) {
 	}
 }
 
-func randObj(t *testing.T, nd *core.IpfsNode, size int64) (*dag.Node, []byte) {
+func randObj(t *testing.T, nd *core.IpfsNode, size int64) (*dag.ProtoNode, []byte) {
 	buf := make([]byte, size)
 	u.NewTimeSeededRand().Read(buf)
 	read := bytes.NewReader(buf)
@@ -86,17 +86,23 @@ func TestIpfsBasicRead(t *testing.T) {
 	}
 }
 
-func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.Node) []string {
-	if len(n.Links) == 0 {
+func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) []string {
+	if len(n.Links()) == 0 {
 		return []string{name}
 	}
 	var out []string
-	for _, lnk := range n.Links {
+	for _, lnk := range n.Links() {
 		child, err := lnk.GetNode(ipfs.Context(), ipfs.DAG)
 		if err != nil {
 			t.Fatal(err)
 		}
-		sub := getPaths(t, ipfs, path.Join(name, lnk.Name), child)
+
+		childpb, ok := child.(*dag.ProtoNode)
+		if !ok {
+			t.Fatal(dag.ErrNotProtobuf)
+		}
+
+		sub := getPaths(t, ipfs, path.Join(name, lnk.Name), childpb)
 		out = append(out, sub...)
 	}
 	return out

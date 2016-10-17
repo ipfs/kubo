@@ -38,7 +38,7 @@ func TestSet(t *testing.T) {
 
 	// weird wrapper node because loadSet expects us to pass an
 	// object pointing to multiple named sets
-	setroot := &dag.Node{}
+	setroot := &dag.ProtoNode{}
 	err = setroot.AddNodeLinkClean("foo", out)
 	if err != nil {
 		t.Fatal(err)

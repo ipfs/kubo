@@ -14,7 +14,6 @@ import (
 var ErrWrongHash = errors.New("data did not match given hash!")
 
 type Block interface {
-	Multihash() mh.Multihash
 	RawData() []byte
 	Cid() *cid.Cid
 	String() string
