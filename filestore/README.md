@@ -37,12 +37,10 @@ accessible via the path provided by both the client and the server.
 Without extra options it is currently not possible to add directories
 with the daemon online.
 
-If the contents of an added file have changed the block will become
-invalid.  By default, the filestore uses the modification-time to
-determine if a file has changed.  If the mod-time of a file differs
-from what is expected the contents of the block are rechecked by
-recomputing the multihash and failing if the hash differs from what is
-expected.
+By default, the contents of the file are always verified by
+recomputing the hash.  The setting `Filestore.Verify` can be used to
+change this to never recompute the hash (not recommended) or to only
+recompute the hash when the modification-time has changed.
 
 Adding files to the filestore will generally be faster than adding
 blocks normally as less data is copied around.  Retrieving blocks from
@@ -188,13 +186,13 @@ To determine the location of a block use "block locate".
 ## Controlling when blocks are verified.
 
 The config variable `Filestore.Verify` can be used to customize when
-blocks from the filestore are verified.  The default value `IfChanged`
-will verify a block if the modification time of the backing file has
-changed.  This default works well in most cases, but can miss some
-changes, espacally if the filesystem only tracks file modification
-times with a resolution of one second (HFS+, used by OS X) or less
-(FAT32).  A value of `Always`, always checks blocks, and the value of
-`Never`, never checks blocks.
+blocks from the filestore are verified.  The default value `Always`
+will always verify blocks.  A value of `IfChanged.  will verify a
+block if the modification time of the backing file has changed.  This
+value works well in most cases, but can miss some changes, espacally
+if the filesystem only tracks file modification times with a
+resolution of one second (HFS+, used by OS X) or less (FAT32).  A
+value of `Never`, never checks blocks.
 
 ## Upgrading the filestore
 
