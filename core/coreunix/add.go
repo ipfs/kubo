@@ -346,6 +346,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.No
 
 func (adder *Adder) pinOrAddNode(node *dag.Node, file files.File) error {
 	path := file.FileName()
+	
 	if adder.Pin && adder.mr == nil {
 
 		adder.pinning.PinWithMode(node.Cid(), pin.Recursive)
@@ -443,7 +444,7 @@ func (adder *Adder) addFile(file files.File) error {
 
 func (adder *Adder) addDir(dir files.File) error {
 	if adder.mr == nil {
-		return errors.New("Cananot add directories without mfs root")
+		return errors.New("cannot add directories without mfs root")
 	}
 
 	log.Infof("adding directory: %s", dir.FileName())
