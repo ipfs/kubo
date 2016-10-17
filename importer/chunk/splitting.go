@@ -12,6 +12,7 @@ var log = logging.Logger("chunk")
 var DefaultBlockSize int64 = 1024 * 256
 
 type Splitter interface {
+	Reader() io.Reader
 	NextBytes() ([]byte, error)
 }
 
@@ -76,4 +77,8 @@ func (ss *sizeSplitterv2) NextBytes() ([]byte, error) {
 	}
 
 	return buf[:n], nil
+}
+
+func (ss *sizeSplitterv2) Reader() io.Reader {
+	return ss.r
 }

@@ -2,8 +2,11 @@ package helpers
 
 import (
 	"fmt"
+	"os"
 
 	"context"
+
+	files "github.com/ipfs/go-ipfs/commands/files"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -37,8 +40,9 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 // UnixfsNode is a struct created to aid in the generation
 // of unixfs DAG trees
 type UnixfsNode struct {
-	node *dag.Node
-	ufmt *ft.FSNode
+	node    *dag.Node
+	ufmt    *ft.FSNode
+	posInfo *files.PosInfo
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
@@ -115,8 +119,16 @@ func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 	n.node.Links = append(n.node.Links[:index], n.node.Links[index+1:]...)
 }
 
+func (n *UnixfsNode) FileSize() uint64 {
+	return n.ufmt.FileSize()
+}
+
 func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
+}
+
+func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
+	n.posInfo = &files.PosInfo{offset, fullPath, stat}
 }
 
 // getDagNode fills out the proper formatting for the unixfs node
@@ -127,5 +139,6 @@ func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
 		return nil, err
 	}
 	n.node.SetData(data)
+	n.node.SetPosInfo(n.posInfo)
 	return n.node, nil
 }

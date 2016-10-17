@@ -1,8 +1,11 @@
 package helpers
 
 import (
+	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	"io"
+	"os"
 )
 
 // DagBuilderHelper wraps together a bunch of objects needed to
@@ -14,6 +17,8 @@ type DagBuilderHelper struct {
 	nextData []byte // the next item to return.
 	maxlinks int
 	batch    *dag.Batch
+	fullPath string
+	stat     os.FileInfo
 }
 
 type DagBuilderParams struct {
@@ -27,12 +32,17 @@ type DagBuilderParams struct {
 // Generate a new DagBuilderHelper from the given params, which data source comes
 // from chunks object
 func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
-	return &DagBuilderHelper{
+	db := &DagBuilderHelper{
 		dserv:    dbp.Dagserv,
 		spl:      spl,
 		maxlinks: dbp.Maxlinks,
 		batch:    dbp.Dagserv.Batch(),
 	}
+	if fi, ok := spl.Reader().(files.FileInfo); ok {
+		db.fullPath = fi.FullPath()
+		db.stat = fi.Stat()
+	}
+	return db
 }
 
 // prepareNext consumes the next item from the splitter and puts it
@@ -40,12 +50,14 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 // it will do nothing.
 func (db *DagBuilderHelper) prepareNext() {
 	// if we already have data waiting to be consumed, we're ready
-	if db.nextData != nil {
+	if db.nextData != nil || db.recvdErr != nil {
 		return
 	}
 
-	// TODO: handle err (which wasn't handled either when the splitter was channeled)
-	db.nextData, _ = db.spl.NextBytes()
+	db.nextData, db.recvdErr = db.spl.NextBytes()
+	if db.recvdErr == io.EOF {
+		db.recvdErr = nil
+	}
 }
 
 // Done returns whether or not we're done consuming the incoming data.
@@ -53,17 +65,24 @@ func (db *DagBuilderHelper) Done() bool {
 	// ensure we have an accurate perspective on data
 	// as `done` this may be called before `next`.
 	db.prepareNext() // idempotent
+	if db.recvdErr != nil {
+		return false
+	}
 	return db.nextData == nil
 }
 
 // Next returns the next chunk of data to be inserted into the dag
 // if it returns nil, that signifies that the stream is at an end, and
 // that the current building operation should finish
-func (db *DagBuilderHelper) Next() []byte {
+func (db *DagBuilderHelper) Next() ([]byte, error) {
 	db.prepareNext() // idempotent
 	d := db.nextData
 	db.nextData = nil // signal we've consumed it
-	return d
+	if db.recvdErr != nil {
+		return nil, db.recvdErr
+	} else {
+		return d, nil
+	}
 }
 
 // GetDagServ returns the dagservice object this Helper is using
@@ -93,7 +112,10 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 }
 
 func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
-	data := db.Next()
+	data, err := db.Next()
+	if err != nil {
+		return err
+	}
 	if data == nil { // we're done!
 		return nil
 	}
@@ -103,7 +125,14 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 	}
 
 	node.SetData(data)
+
 	return nil
+}
+
+func (db *DagBuilderHelper) SetPosInfo(node *UnixfsNode, offset uint64) {
+	if db.stat != nil {
+		node.SetPosInfo(offset, db.fullPath, db.stat)
+	}
 }
 
 func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
