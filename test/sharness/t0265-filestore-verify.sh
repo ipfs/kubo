@@ -152,14 +152,14 @@ interesting_prep() {
     # removing the backing file for a
     rm a &&
     # remove the root to b
-    ipfs filestore rm $B_HASH
+    ipfs filestore rm $B_HASH &&
     # remove a block in c
-    ipfs filestore rm QmQVwjbNQZRpNoeTYwDwtA3CEEXHBeuboPgShqspGn822N
+    ipfs filestore rm QmQVwjbNQZRpNoeTYwDwtA3CEEXHBeuboPgShqspGn822N &&
     # modify d
-    dd conv=notrunc if=/dev/zero of=d count=1
+    dd conv=notrunc if=/dev/zero of=d count=1 &&
     # modify e amd remove the root from the filestore creating a block
     # that is both an orphan and "changed"
-    dd conv=notrunc if=/dev/zero of=e count=1
+    dd conv=notrunc if=/dev/zero of=e count=1 &&
     ipfs filestore rm $E_HASH
   '
 
