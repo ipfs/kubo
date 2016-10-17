@@ -398,7 +398,12 @@ func (adder *Adder) addFile(file files.File) error {
 	// progress updates to the client (over the output channel)
 	var reader io.Reader = file
 	if adder.Progress {
-		reader = &progressReader{file: file, out: adder.Out}
+		rdr := &progressReader{file: file, out: adder.Out}
+		if fi, ok := file.(files.FileInfo); ok {
+			reader = &progressReader2{rdr, fi}
+		} else {
+			reader = rdr
+		}
 	}
 
 	dagnode, err := adder.add(reader)
@@ -519,4 +524,9 @@ func (i *progressReader) Read(p []byte) (int, error) {
 	}
 
 	return n, err
+}
+
+type progressReader2 struct {
+	*progressReader
+	files.FileInfo
 }

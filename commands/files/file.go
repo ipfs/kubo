@@ -55,3 +55,8 @@ type SizeFile interface {
 
 	Size() (int64, error)
 }
+
+type FileInfo interface {
+	FullPath() string
+	Stat() os.FileInfo
+}

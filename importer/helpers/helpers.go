@@ -3,9 +3,11 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"os"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
@@ -43,6 +45,7 @@ type UnixfsNode struct {
 	rawnode *dag.RawNode
 	node    *dag.ProtoNode
 	ufmt    *ft.FSNode
+	posInfo *pi.PosInfo
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
@@ -144,9 +147,29 @@ func (n *UnixfsNode) FileSize() uint64 {
 	return n.ufmt.FileSize()
 }
 
+func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
+	n.posInfo = &pi.PosInfo{offset, fullPath, stat}
+}
+
 // getDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
 func (n *UnixfsNode) GetDagNode() (node.Node, error) {
+	nd, err := n.getBaseDagNode()
+	if err != nil {
+		return nil, err
+	}
+
+	if n.posInfo != nil {
+		return &pi.FilestoreNode{
+			Node:    nd,
+			PosInfo: n.posInfo,
+		}, nil
+	}
+
+	return nd, nil
+}
+
+func (n *UnixfsNode) getBaseDagNode() (node.Node, error) {
 	if n.raw {
 		return n.rawnode, nil
 	}
