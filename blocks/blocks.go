@@ -23,8 +23,8 @@ type Block interface {
 }
 
 type BasicBlock struct {
-	cid     *cid.Cid
-	data    []byte
+	cid  *cid.Cid
+	data []byte
 }
 
 // NewBlock creates a Block object from opaque data. It will hash the data.

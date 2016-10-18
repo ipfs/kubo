@@ -60,4 +60,3 @@ type FileInfo interface {
 	FullPath() string
 	Stat() os.FileInfo
 }
-
