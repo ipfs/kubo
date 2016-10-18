@@ -100,12 +100,16 @@ func (bs *blockstore) Get(k *cid.Cid) (blocks.Block, error) {
 	}
 
 	if bs.rehash {
-		rb := blocks.NewBlock(bdata)
-		if !rb.Cid().Equals(k) {
-			return nil, ErrHashMismatch
-		} else {
-			return rb, nil
+		rbcid, err := k.Prefix().Sum(bdata)
+		if err != nil {
+			return nil, err
 		}
+
+		if !rbcid.Equals(k) {
+			return nil, ErrHashMismatch
+		}
+
+		return blocks.NewBlockWithCid(bdata, rbcid)
 	} else {
 		return blocks.NewBlockWithCid(bdata, k)
 	}

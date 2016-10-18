@@ -43,6 +43,11 @@ test_check_bad_blocks() {
 
 test_check_bad_blocks
 
+test_expect_success "can add and cat a raw-leaf file" '
+	HASH=$(echo "stuff" | ipfs add -q --raw-leaves) &&
+	ipfs cat $HASH > /dev/null
+'
+
 test_launch_ipfs_daemon
 test_check_bad_blocks
 test_kill_ipfs_daemon
