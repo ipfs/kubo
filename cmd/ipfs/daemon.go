@@ -185,7 +185,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	err := mprome.Inject()
 	if err != nil {
-		log.Warningf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
+		log.Errorf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
 	}
 
 	// let the user know we're going.
