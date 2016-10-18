@@ -87,6 +87,9 @@ test_add_cat_file() {
 }
 
 test_add_cat_5MB() {
+	ADD_FLAGS="$1"
+	EXP_HASH="$2"
+
     test_expect_success "generate 5MB file using go-random" '
     	random 5242880 41 >mountdir/bigfile
     '
@@ -98,17 +101,16 @@ test_add_cat_5MB() {
     '
 
     test_expect_success "'ipfs add bigfile' succeeds" '
-    	ipfs add mountdir/bigfile >actual ||
+    	ipfs add $ADD_FLAGS mountdir/bigfile >actual ||
 		test_fsh cat daemon_err
     '
 
     test_expect_success "'ipfs add bigfile' output looks good" '
-    	HASH="QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" &&
-    	echo "added $HASH bigfile" >expected &&
+    	echo "added $EXP_HASH bigfile" >expected &&
     	test_cmp expected actual
     '
     test_expect_success "'ipfs cat' succeeds" '
-    	ipfs cat "$HASH" >actual
+    	ipfs cat "$EXP_HASH" >actual
     '
 
     test_expect_success "'ipfs cat' output looks good" '
@@ -116,7 +118,7 @@ test_add_cat_5MB() {
     '
 
     test_expect_success FUSE "cat ipfs/bigfile succeeds" '
-    	cat "ipfs/$HASH" >actual
+    	cat "ipfs/$EXP_HASH" >actual
     '
 
     test_expect_success FUSE "cat ipfs/bigfile looks good" '
@@ -380,7 +382,9 @@ test_expect_success "go-random is installed" '
     type random
 '
 
-test_add_cat_5MB
+test_add_cat_5MB "" "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
+
+test_add_cat_5MB --raw-leaves "QmefsDaD3YVphd86mxjJfPLceKv8by98aB6J6sJxK13xS2"
 
 test_add_cat_expensive
 

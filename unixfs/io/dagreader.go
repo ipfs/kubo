@@ -129,33 +129,36 @@ func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 	}
 	dr.linkPosition++
 
-	nxtpb, ok := nxt.(*mdag.ProtoNode)
-	if !ok {
-		return mdag.ErrNotProtobuf
-	}
+	switch nxt := nxt.(type) {
+	case *mdag.ProtoNode:
+		pb := new(ftpb.Data)
+		err = proto.Unmarshal(nxt.Data(), pb)
+		if err != nil {
+			return fmt.Errorf("incorrectly formatted protobuf: %s", err)
+		}
 
-	pb := new(ftpb.Data)
-	err = proto.Unmarshal(nxtpb.Data(), pb)
-	if err != nil {
-		return fmt.Errorf("incorrectly formatted protobuf: %s", err)
-	}
-
-	switch pb.GetType() {
-	case ftpb.Data_Directory:
-		// A directory should not exist within a file
-		return ft.ErrInvalidDirLocation
-	case ftpb.Data_File:
-		dr.buf = NewDataFileReader(dr.ctx, nxtpb, pb, dr.serv)
+		switch pb.GetType() {
+		case ftpb.Data_Directory:
+			// A directory should not exist within a file
+			return ft.ErrInvalidDirLocation
+		case ftpb.Data_File:
+			dr.buf = NewDataFileReader(dr.ctx, nxt, pb, dr.serv)
+			return nil
+		case ftpb.Data_Raw:
+			dr.buf = NewRSNCFromBytes(pb.GetData())
+			return nil
+		case ftpb.Data_Metadata:
+			return errors.New("shouldnt have had metadata object inside file")
+		case ftpb.Data_Symlink:
+			return errors.New("shouldnt have had symlink inside file")
+		default:
+			return ft.ErrUnrecognizedType
+		}
+	case *mdag.RawNode:
+		dr.buf = NewRSNCFromBytes(nxt.RawData())
 		return nil
-	case ftpb.Data_Raw:
-		dr.buf = NewRSNCFromBytes(pb.GetData())
-		return nil
-	case ftpb.Data_Metadata:
-		return errors.New("shouldnt have had metadata object inside file")
-	case ftpb.Data_Symlink:
-		return errors.New("shouldnt have had symlink inside file")
 	default:
-		return ft.ErrUnrecognizedType
+		return errors.New("unrecognized node type in DagReader")
 	}
 }
 
