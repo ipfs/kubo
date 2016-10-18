@@ -794,7 +794,12 @@ func TestFlushing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fsnode, err := ft.FSNodeFromBytes(rnd.Data())
+	pbrnd, ok := rnd.(*dag.ProtoNode)
+	if !ok {
+		t.Fatal(dag.ErrNotProtobuf)
+	}
+
+	fsnode, err := ft.FSNodeFromBytes(pbrnd.Data())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -803,10 +808,10 @@ func TestFlushing(t *testing.T) {
 		t.Fatal("root wasnt a directory")
 	}
 
-	rnk := rnd.Key()
+	rnk := rnd.Cid()
 	exp := "QmWMVyhTuyxUrXX3ynz171jq76yY3PktfY9Bxiph7b9ikr"
-	if rnk.B58String() != exp {
-		t.Fatalf("dag looks wrong, expected %s, but got %s", exp, rnk.B58String())
+	if rnk.String() != exp {
+		t.Fatalf("dag looks wrong, expected %s, but got %s", exp, rnk.String())
 	}
 }
 

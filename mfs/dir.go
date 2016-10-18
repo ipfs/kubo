@@ -89,7 +89,7 @@ func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
 	return d.node.Copy(), nil
 }
 
-func (d *Directory) updateChild(name string, nd *dag.ProtoNode) error {
+func (d *Directory) updateChild(name string, nd node.Node) error {
 	err := d.node.RemoveNodeLink(name)
 	if err != nil && err != dag.ErrNotFound {
 		return err
@@ -121,28 +121,40 @@ func (d *Directory) childNode(name string) (FSNode, error) {
 }
 
 // cacheNode caches a node into d.childDirs or d.files and returns the FSNode.
-func (d *Directory) cacheNode(name string, nd *dag.ProtoNode) (FSNode, error) {
-	i, err := ft.FromBytes(nd.Data())
-	if err != nil {
-		return nil, err
-	}
+func (d *Directory) cacheNode(name string, nd node.Node) (FSNode, error) {
+	switch nd := nd.(type) {
+	case *dag.ProtoNode:
+		i, err := ft.FromBytes(nd.Data())
+		if err != nil {
+			return nil, err
+		}
 
-	switch i.GetType() {
-	case ufspb.Data_Directory:
-		ndir := NewDirectory(d.ctx, name, nd, d, d.dserv)
-		d.childDirs[name] = ndir
-		return ndir, nil
-	case ufspb.Data_File, ufspb.Data_Raw, ufspb.Data_Symlink:
+		switch i.GetType() {
+		case ufspb.Data_Directory:
+			ndir := NewDirectory(d.ctx, name, nd, d, d.dserv)
+			d.childDirs[name] = ndir
+			return ndir, nil
+		case ufspb.Data_File, ufspb.Data_Raw, ufspb.Data_Symlink:
+			nfi, err := NewFile(name, nd, d, d.dserv)
+			if err != nil {
+				return nil, err
+			}
+			d.files[name] = nfi
+			return nfi, nil
+		case ufspb.Data_Metadata:
+			return nil, ErrNotYetImplemented
+		default:
+			return nil, ErrInvalidChild
+		}
+	case *dag.RawNode:
 		nfi, err := NewFile(name, nd, d, d.dserv)
 		if err != nil {
 			return nil, err
 		}
 		d.files[name] = nfi
 		return nfi, nil
-	case ufspb.Data_Metadata:
-		return nil, ErrNotYetImplemented
 	default:
-		return nil, ErrInvalidChild
+		return nil, fmt.Errorf("unrecognized node type in cache node")
 	}
 }
 
@@ -162,8 +174,8 @@ func (d *Directory) Uncache(name string) {
 
 // childFromDag searches through this directories dag node for a child link
 // with the given name
-func (d *Directory) childFromDag(name string) (*dag.ProtoNode, error) {
-	pbn, err := d.node.GetLinkedProtoNode(d.ctx, d.dserv, name)
+func (d *Directory) childFromDag(name string) (node.Node, error) {
+	pbn, err := d.node.GetLinkedNode(d.ctx, d.dserv, name)
 	switch err {
 	case nil:
 		return pbn, nil
@@ -249,7 +261,7 @@ func (d *Directory) List() ([]NodeListing, error) {
 			return nil, err
 		}
 
-		child.Hash = nd.Key().B58String()
+		child.Hash = nd.Cid().String()
 
 		out = append(out, child)
 	}
@@ -385,7 +397,7 @@ func (d *Directory) Path() string {
 	return out
 }
 
-func (d *Directory) GetNode() (*dag.ProtoNode, error) {
+func (d *Directory) GetNode() (node.Node, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 

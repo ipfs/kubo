@@ -104,7 +104,7 @@ type Adder struct {
 	Silent     bool
 	Wrap       bool
 	Chunker    string
-	root       *dag.ProtoNode
+	root       node.Node
 	mr         *mfs.Root
 	unlocker   bs.Unlocker
 	tempRoot   *cid.Cid
@@ -133,7 +133,7 @@ func (adder Adder) add(reader io.Reader) (node.Node, error) {
 	return balanced.BalancedLayout(params.New(chnk))
 }
 
-func (adder *Adder) RootNode() (*dag.ProtoNode, error) {
+func (adder *Adder) RootNode() (node.Node, error) {
 	// for memoizing
 	if adder.root != nil {
 		return adder.root, nil
@@ -151,12 +151,7 @@ func (adder *Adder) RootNode() (*dag.ProtoNode, error) {
 			return nil, err
 		}
 
-		pbnd, ok := nd.(*dag.ProtoNode)
-		if !ok {
-			return nil, dag.ErrNotProtobuf
-		}
-
-		root = pbnd
+		root = nd
 	}
 
 	adder.root = root
@@ -189,7 +184,7 @@ func (adder *Adder) PinRoot() error {
 	return adder.pinning.Flush()
 }
 
-func (adder *Adder) Finalize() (*dag.ProtoNode, error) {
+func (adder *Adder) Finalize() (node.Node, error) {
 	root := adder.mr.GetValue()
 
 	// cant just call adder.RootNode() here as we need the name for printing
@@ -311,7 +306,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 // to preserve the filename.
 // Returns the path of the added file ("<dir hash>/filename"), the DAG node of
 // the directory, and and error if any.
-func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *dag.ProtoNode, error) {
+func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, node.Node, error) {
 	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
 	fileAdder, err := NewAdder(n.Context(), n.Pinning, n.Blockstore, n.DAG)
 	if err != nil {

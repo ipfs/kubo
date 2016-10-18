@@ -126,6 +126,21 @@ test_add_cat_5MB() {
     '
 }
 
+test_add_cat_raw() {
+	test_expect_success "add a small file with raw-leaves" '
+		echo "foobar" > afile &&
+		HASH=$(ipfs add -q --raw-leaves afile)
+	'
+
+	test_expect_success "cat that small file" '
+		ipfs cat $HASH > afile_out
+	'
+
+	test_expect_success "make sure it looks good" '
+		test_cmp afile afile_out
+	'
+}
+
 test_add_cat_expensive() {
     test_expect_success EXPENSIVE "generate 100MB file using go-random" '
     	random 104857600 42 >mountdir/bigfile
@@ -392,17 +407,21 @@ test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=tr
 
 test_add_pwd_is_symlink
 
+test_add_cat_raw
+
 test_kill_ipfs_daemon
 
 # should work offline
 
 test_add_cat_file
 
+test_add_cat_raw
+
 test_expect_success "ipfs add --only-hash succeeds" '
     echo "unknown content for only-hash" | ipfs add --only-hash -q > oh_hash
 '
 
-#TODO: this doesn't work when online hence separated out from test_add_cat_file
+#TODO: this doesnt work when online hence separated out from test_add_cat_file
 test_expect_success "ipfs cat file fails" '
     test_must_fail ipfs cat $(cat oh_hash)
 '

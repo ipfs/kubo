@@ -10,6 +10,7 @@
 package mfs
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -17,9 +18,9 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	context "context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 var ErrNotExist = errors.New("no such rootfs")
@@ -41,7 +42,7 @@ const (
 
 // FSNode represents any node (directory, root, or file) in the mfs filesystem
 type FSNode interface {
-	GetNode() (*dag.ProtoNode, error)
+	GetNode() (node.Node, error)
 	Flush() error
 	Type() NodeType
 }
