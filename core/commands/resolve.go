@@ -99,7 +99,7 @@ Resolve the value of an IPFS DAG path:
 			return
 		}
 
-		node, err := core.Resolve(req.Context(), n, p)
+		node, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

@@ -135,7 +135,7 @@ func publish(ctx context.Context, n *core.IpfsNode, k crypto.PrivKey, ref path.P
 
 	if opts.verifyExists {
 		// verify the path exists
-		_, err := core.Resolve(ctx, n, ref)
+		_, err := core.Resolve(ctx, n.Namesys, n.Resolver, ref)
 		if err != nil {
 			return nil, err
 		}

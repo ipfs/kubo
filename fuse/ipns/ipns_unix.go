@@ -94,7 +94,7 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 		return nil, err
 	}
 
-	node, err := core.Resolve(ctx, ipfs, p)
+	node, err := core.Resolve(ctx, ipfs.Namesys, ipfs.Resolver, p)
 	if err != nil {
 		log.Errorf("looking up %s: %s", p, err)
 		return nil, err

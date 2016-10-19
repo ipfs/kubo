@@ -60,7 +60,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -504,7 +504,7 @@ func (n *IpfsNode) loadFilesRoot() error {
 
 	switch {
 	case err == ds.ErrNotFound || val == nil:
-		nd = uio.NewEmptyDirectory()
+		nd = ft.EmptyDirNode()
 		_, err := n.DAG.Add(nd)
 		if err != nil {
 			return fmt.Errorf("failure writing to dagstore: %s", err)

@@ -74,13 +74,13 @@ Example:
 
 		ctx := req.Context()
 
-		obj_a, err := core.Resolve(ctx, node, pa)
+		obj_a, err := core.Resolve(ctx, node.Namesys, node.Resolver, pa)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		obj_b, err := core.Resolve(ctx, node, pb)
+		obj_b, err := core.Resolve(ctx, node.Namesys, node.Resolver, pb)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
