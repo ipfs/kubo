@@ -28,17 +28,17 @@ test_expect_success "nc is available" '
 
 # Test sending data from server to client
 test_expect_success 'start netcat listeners' '
-  nc -l -v -p 10001 < corenet0.bin &
+  dd if=corenet0.bin | nc -l -v -p 10001 &
   NC_SERVER_PID=$!
-  nc -l -v -p 10002 > client.out &
+  nc -l -v -p 10002 | dd of=client.out &
   NC_CLIENT_PID=$!
   kill -0 $NC_SERVER_PID $NC_CLIENT_PID
 '
 
 test_expect_success 'start ipfs listener' '
   ipfsi 0 exp corenet listen /ip4/127.0.0.1/tcp/10001 corenet-test &
-  LISTENER_PID_PID=$!
-  kill -0 $LISTENER_PID_PID
+  LISTENER_PID=$!
+  kill -0 $LISTENER_PID
 '
 
 test_expect_success 'Dial for server to client' '
@@ -47,8 +47,8 @@ test_expect_success 'Dial for server to client' '
 
 
 test_expect_success 'wait for server to client test' '
-  kill $LISTENER_PID_PID &&
-  wait $NC_SERVER_PID $NC_CLIENT_PID
+  wait $NC_SERVER_PID $NC_CLIENT_PID &&
+  kill $LISTENER_PID
 '
 
 test_expect_success 'server to client output looks good' '
@@ -57,17 +57,17 @@ test_expect_success 'server to client output looks good' '
 
 # Test sending data from client to server
 test_expect_success 'start netcat listeners' '
-  nc -l -v -p 10001 > server.out &
+  nc -l -v -p 10001 | dd of=server.out &
   NC_SERVER_PID=$!
-  nc -l -v -p 10002 < corenet1.bin &
+  dd if=corenet1.bin | nc -l -v -p 10002 &
   NC_CLIENT_PID=$!
   kill -0 $NC_SERVER_PID $NC_CLIENT_PID
 '
 
 test_expect_success 'start ipfs listener' '
   ipfsi 0 exp corenet listen /ip4/127.0.0.1/tcp/10001 corenet-test &
-  LISTENER_PID_PID=$!
-  kill -0 $LISTENER_PID_PID
+  LISTENER_PID=$!
+  kill -0 $LISTENER_PID
 '
 
 test_expect_success 'Dial for client to server' '
@@ -75,8 +75,8 @@ test_expect_success 'Dial for client to server' '
 '
 
 test_expect_success 'wait for client to server test' '
-  kill $LISTENER_PID_PID &&
-  wait $NC_SERVER_PID $NC_CLIENT_PID
+  wait $NC_SERVER_PID $NC_CLIENT_PID &&
+  kill $LISTENER_PID
 '
 
 test_expect_success 'client to server output looks good' '
