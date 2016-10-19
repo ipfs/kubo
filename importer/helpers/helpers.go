@@ -105,7 +105,7 @@ func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*U
 // the passed in DagBuilderHelper is used to store the child node an
 // pin it locally so it doesnt get lost
 func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
-	n.ufmt.AddBlockSize(child.DataSize())
+	n.ufmt.AddBlockSize(child.FileSize())
 
 	childnode, err := child.GetDagNode()
 	if err != nil {
@@ -137,7 +137,7 @@ func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
 }
 
-func (n *UnixfsNode) DataSize() uint64 {
+func (n *UnixfsNode) FileSize() uint64 {
 	if n.raw {
 		return uint64(len(n.rawnode.RawData()))
 	}
