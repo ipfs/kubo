@@ -7,10 +7,10 @@ This is the [ipfs](http://ipfs.io) commandline tool. It contains a full ipfs nod
 To install it, move the binary somewhere in your `$PATH`:
 
 ```sh
-mv ipfs /usr/local/bin/ipfs
+sudo mv ipfs /usr/local/bin/ipfs
 ```
 
-Or run `install.sh` which does this for you.
+Or run `sudo install.sh` which does this for you.
 
 ## Usage
 

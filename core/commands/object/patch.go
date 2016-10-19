@@ -11,7 +11,7 @@ import (
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 var ObjectPatchCmd = &cmds.Command{
@@ -79,6 +79,12 @@ the limit will not be respected by the network.
 			return
 		}
 
+		rtpb, ok := rootnd.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
 		fi, err := req.Files().NextFile()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -91,15 +97,15 @@ the limit will not be respected by the network.
 			return
 		}
 
-		rootnd.SetData(append(rootnd.Data(), data...))
+		rtpb.SetData(append(rtpb.Data(), data...))
 
-		newkey, err := nd.DAG.Add(rootnd)
+		newkey, err := nd.DAG.Add(rtpb)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		res.SetOutput(&Object{Hash: newkey.B58String()})
+		res.SetOutput(&Object{Hash: newkey.String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{
@@ -141,6 +147,12 @@ Example:
 			return
 		}
 
+		rtpb, ok := root.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
 		fi, err := req.Files().NextFile()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -153,15 +165,15 @@ Example:
 			return
 		}
 
-		root.SetData(data)
+		rtpb.SetData(data)
 
-		newkey, err := nd.DAG.Add(root)
+		newkey, err := nd.DAG.Add(rtpb)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		res.SetOutput(&Object{Hash: newkey.B58String()})
+		res.SetOutput(&Object{Hash: newkey.String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{
@@ -199,9 +211,15 @@ Removes a link by the given name from root.
 			return
 		}
 
+		rtpb, ok := root.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
 		path := req.Arguments()[1]
 
-		e := dagutils.NewDagEditor(root, nd.DAG)
+		e := dagutils.NewDagEditor(rtpb, nd.DAG)
 
 		err = e.RmLink(req.Context(), path)
 		if err != nil {
@@ -215,13 +233,9 @@ Removes a link by the given name from root.
 			return
 		}
 
-		nk, err := nnode.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		nc := nnode.Cid()
 
-		res.SetOutput(&Object{Hash: nk.B58String()})
+		res.SetOutput(&Object{Hash: nc.String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{
@@ -272,6 +286,12 @@ to a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
+		rtpb, ok := root.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
 		npath := req.Arguments()[1]
 		childp, err := path.ParsePath(req.Arguments()[2])
 		if err != nil {
@@ -285,12 +305,12 @@ to a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
-		var createfunc func() *dag.Node
+		var createfunc func() *dag.ProtoNode
 		if create {
 			createfunc = ft.EmptyDirNode
 		}
 
-		e := dagutils.NewDagEditor(root, nd.DAG)
+		e := dagutils.NewDagEditor(rtpb, nd.DAG)
 
 		childnd, err := core.Resolve(req.Context(), nd, childp)
 		if err != nil {
@@ -298,7 +318,13 @@ to a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
-		err = e.InsertNodeAtPath(req.Context(), npath, childnd, createfunc)
+		chpb, ok := childnd.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
+		err = e.InsertNodeAtPath(req.Context(), npath, chpb, createfunc)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -310,13 +336,9 @@ to a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
-		nk, err := nnode.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		nc := nnode.Cid()
 
-		res.SetOutput(&Object{Hash: nk.B58String()})
+		res.SetOutput(&Object{Hash: nc.String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{

@@ -1,14 +1,14 @@
 package blockstore
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ipfs/go-ipfs/blocks"
-	"github.com/ipfs/go-ipfs/blocks/key"
 
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	syncds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
 var exampleBlock = blocks.NewBlock([]byte("foo"))
@@ -60,7 +60,7 @@ func TestRemoveCacheEntryOnDelete(t *testing.T) {
 		writeHitTheDatastore = true
 	})
 
-	arc.DeleteBlock(exampleBlock.Key())
+	arc.DeleteBlock(exampleBlock.Cid())
 	arc.Put(exampleBlock)
 	if !writeHitTheDatastore {
 		t.Fail()
@@ -78,9 +78,9 @@ func TestElideDuplicateWrite(t *testing.T) {
 func TestHasRequestTriggersCache(t *testing.T) {
 	arc, _, cd := createStores(t)
 
-	arc.Has(exampleBlock.Key())
+	arc.Has(exampleBlock.Cid())
 	trap("has hit datastore", cd, t)
-	if has, err := arc.Has(exampleBlock.Key()); has || err != nil {
+	if has, err := arc.Has(exampleBlock.Cid()); has || err != nil {
 		t.Fatal("has was true but there is no such block")
 	}
 
@@ -92,7 +92,7 @@ func TestHasRequestTriggersCache(t *testing.T) {
 
 	trap("has hit datastore", cd, t)
 
-	if has, err := arc.Has(exampleBlock.Key()); !has || err != nil {
+	if has, err := arc.Has(exampleBlock.Cid()); !has || err != nil {
 		t.Fatal("has returned invalid result")
 	}
 }
@@ -100,13 +100,13 @@ func TestHasRequestTriggersCache(t *testing.T) {
 func TestGetFillsCache(t *testing.T) {
 	arc, _, cd := createStores(t)
 
-	if bl, err := arc.Get(exampleBlock.Key()); bl != nil || err == nil {
+	if bl, err := arc.Get(exampleBlock.Cid()); bl != nil || err == nil {
 		t.Fatal("block was found or there was no error")
 	}
 
 	trap("has hit datastore", cd, t)
 
-	if has, err := arc.Has(exampleBlock.Key()); has || err != nil {
+	if has, err := arc.Has(exampleBlock.Cid()); has || err != nil {
 		t.Fatal("has was true but there is no such block")
 	}
 
@@ -118,7 +118,7 @@ func TestGetFillsCache(t *testing.T) {
 
 	trap("has hit datastore", cd, t)
 
-	if has, err := arc.Has(exampleBlock.Key()); !has || err != nil {
+	if has, err := arc.Has(exampleBlock.Cid()); !has || err != nil {
 		t.Fatal("has returned invalid result")
 	}
 }
@@ -126,21 +126,21 @@ func TestGetFillsCache(t *testing.T) {
 func TestGetAndDeleteFalseShortCircuit(t *testing.T) {
 	arc, _, cd := createStores(t)
 
-	arc.Has(exampleBlock.Key())
+	arc.Has(exampleBlock.Cid())
 
 	trap("get hit datastore", cd, t)
 
-	if bl, err := arc.Get(exampleBlock.Key()); bl != nil || err != ErrNotFound {
+	if bl, err := arc.Get(exampleBlock.Cid()); bl != nil || err != ErrNotFound {
 		t.Fatal("get returned invalid result")
 	}
 
-	if arc.DeleteBlock(exampleBlock.Key()) != ErrNotFound {
+	if arc.DeleteBlock(exampleBlock.Cid()) != ErrNotFound {
 		t.Fatal("expected ErrNotFound error")
 	}
 }
 
 func TestArcCreationFailure(t *testing.T) {
-	if arc, err := arcCached(nil, -1); arc != nil || err == nil {
+	if arc, err := newARCCachedBS(context.TODO(), nil, -1); arc != nil || err == nil {
 		t.Fatal("expected error and no cache")
 	}
 }
@@ -148,7 +148,7 @@ func TestArcCreationFailure(t *testing.T) {
 func TestInvalidKey(t *testing.T) {
 	arc, _, _ := createStores(t)
 
-	bl, err := arc.Get(key.Key(""))
+	bl, err := arc.Get(nil)
 
 	if bl != nil {
 		t.Fatal("blocks should be nil")
@@ -163,10 +163,28 @@ func TestHasAfterSucessfulGetIsCached(t *testing.T) {
 
 	bs.Put(exampleBlock)
 
-	arc.Get(exampleBlock.Key())
+	arc.Get(exampleBlock.Cid())
 
 	trap("has hit datastore", cd, t)
-	arc.Has(exampleBlock.Key())
+	arc.Has(exampleBlock.Cid())
+}
+
+func TestDifferentKeyObjectsWork(t *testing.T) {
+	arc, bs, cd := createStores(t)
+
+	bs.Put(exampleBlock)
+
+	arc.Get(exampleBlock.Cid())
+
+	trap("has hit datastore", cd, t)
+	cidstr := exampleBlock.Cid().String()
+
+	ncid, err := cid.Decode(cidstr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	arc.Has(ncid)
 }
 
 func TestPutManyCaches(t *testing.T) {
@@ -174,5 +192,11 @@ func TestPutManyCaches(t *testing.T) {
 	arc.PutMany([]blocks.Block{exampleBlock})
 
 	trap("has hit datastore", cd, t)
-	arc.Has(exampleBlock.Key())
+	arc.Has(exampleBlock.Cid())
+	untrap(cd)
+	arc.DeleteBlock(exampleBlock.Cid())
+
+	arc.Put(exampleBlock)
+	trap("PunMany has hit datastore", cd, t)
+	arc.PutMany([]blocks.Block{exampleBlock})
 }

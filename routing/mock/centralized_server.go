@@ -1,24 +1,24 @@
 package mockrouting
 
 import (
+	"context"
 	"math/rand"
 	"sync"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	dssync "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
 
-	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	dssync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 // server is the mockrouting.Client's private interface to the routing server
 type server interface {
-	Announce(pstore.PeerInfo, key.Key) error
-	Providers(key.Key) []pstore.PeerInfo
+	Announce(pstore.PeerInfo, *cid.Cid) error
+	Providers(*cid.Cid) []pstore.PeerInfo
 
 	Server
 }
@@ -28,7 +28,7 @@ type s struct {
 	delayConf DelayConfig
 
 	lock      sync.RWMutex
-	providers map[key.Key]map[peer.ID]providerRecord
+	providers map[string]map[peer.ID]providerRecord
 }
 
 type providerRecord struct {
@@ -36,9 +36,11 @@ type providerRecord struct {
 	Created time.Time
 }
 
-func (rs *s) Announce(p pstore.PeerInfo, k key.Key) error {
+func (rs *s) Announce(p pstore.PeerInfo, c *cid.Cid) error {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
+
+	k := c.KeyString()
 
 	_, ok := rs.providers[k]
 	if !ok {
@@ -51,11 +53,12 @@ func (rs *s) Announce(p pstore.PeerInfo, k key.Key) error {
 	return nil
 }
 
-func (rs *s) Providers(k key.Key) []pstore.PeerInfo {
+func (rs *s) Providers(c *cid.Cid) []pstore.PeerInfo {
 	rs.delayConf.Query.Wait() // before locking
 
 	rs.lock.RLock()
 	defer rs.lock.RUnlock()
+	k := c.KeyString()
 
 	var ret []pstore.PeerInfo
 	records, ok := rs.providers[k]

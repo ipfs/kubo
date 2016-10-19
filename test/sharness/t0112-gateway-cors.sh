@@ -28,10 +28,12 @@ thash='QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn'
 test_expect_success "GET to Gateway succeeds" '
     curl -svX GET "http://127.0.0.1:$gwport/ipfs/$thash" 2>curl_output
 '
+
+cat curl_output
 # GET Response from Gateway should contain CORS headers
 test_expect_success "GET response for Gateway resource looks good" '
-    grep "Access-Control-Allow-Origin:" curl_output &&
-    grep "Access-Control-Allow-Methods:" curl_output &&
+    grep "Access-Control-Allow-Origin:" curl_output | grep "\*"  &&
+    grep "Access-Control-Allow-Methods:" curl_output | grep " GET\b" &&
     grep "Access-Control-Allow-Headers:" curl_output
 '
 
@@ -41,8 +43,8 @@ test_expect_success "OPTIONS to Gateway succeeds" '
 '
 # OPTION Response from Gateway should contain CORS headers
 test_expect_success "OPTIONS response for Gateway resource looks good" '
-    grep "Access-Control-Allow-Origin:" curl_output &&
-    grep "Access-Control-Allow-Methods:" curl_output &&
+    grep "Access-Control-Allow-Origin:" curl_output | grep "\*"  &&
+    grep "Access-Control-Allow-Methods:" curl_output | grep " GET\b" &&
     grep "Access-Control-Allow-Headers:" curl_output
 '
 

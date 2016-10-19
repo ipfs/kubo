@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
@@ -14,10 +13,10 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
+	context "context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
@@ -33,7 +32,7 @@ var log = logging.Logger("dagio")
 // Dear god, please rename this to something more pleasant
 type DagModifier struct {
 	dagserv mdag.DAGService
-	curNode *mdag.Node
+	curNode *mdag.ProtoNode
 
 	splitter   chunk.SplitterGen
 	ctx        context.Context
@@ -46,7 +45,7 @@ type DagModifier struct {
 	read *uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from *mdag.ProtoNode, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
 	return &DagModifier{
 		curNode:  from.Copy(),
 		dagserv:  serv,
@@ -169,26 +168,31 @@ func (dm *DagModifier) Sync() error {
 	buflen := dm.wrBuf.Len()
 
 	// overwrite existing dag nodes
-	thisk, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
+	thisc, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
 	if err != nil {
 		return err
 	}
 
-	nd, err := dm.dagserv.Get(dm.ctx, thisk)
+	nd, err := dm.dagserv.Get(dm.ctx, thisc)
 	if err != nil {
 		return err
 	}
 
-	dm.curNode = nd
+	pbnd, ok := nd.(*mdag.ProtoNode)
+	if !ok {
+		return mdag.ErrNotProtobuf
+	}
+
+	dm.curNode = pbnd
 
 	// need to write past end of current dag
 	if !done {
-		nd, err = dm.appendData(dm.curNode, dm.splitter(dm.wrBuf))
+		nd, err := dm.appendData(dm.curNode, dm.splitter(dm.wrBuf))
 		if err != nil {
 			return err
 		}
 
-		thisk, err = dm.dagserv.Add(nd)
+		_, err = dm.dagserv.Add(nd)
 		if err != nil {
 			return err
 		}
@@ -205,30 +209,30 @@ func (dm *DagModifier) Sync() error {
 // modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
 // returns the new key of the passed in node and whether or not all the data in the reader
 // has been consumed.
-func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (key.Key, bool, error) {
+func (dm *DagModifier) modifyDag(node *mdag.ProtoNode, offset uint64, data io.Reader) (*cid.Cid, bool, error) {
 	f, err := ft.FromBytes(node.Data())
 	if err != nil {
-		return "", false, err
+		return nil, false, err
 	}
 
 	// If we've reached a leaf node.
-	if len(node.Links) == 0 {
+	if len(node.Links()) == 0 {
 		n, err := data.Read(f.Data[offset:])
 		if err != nil && err != io.EOF {
-			return "", false, err
+			return nil, false, err
 		}
 
 		// Update newly written node..
 		b, err := proto.Marshal(f)
 		if err != nil {
-			return "", false, err
+			return nil, false, err
 		}
 
-		nd := new(mdag.Node)
+		nd := new(mdag.ProtoNode)
 		nd.SetData(b)
 		k, err := dm.dagserv.Add(nd)
 		if err != nil {
-			return "", false, err
+			return nil, false, err
 		}
 
 		// Hey look! we're done!
@@ -245,22 +249,28 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 	for i, bs := range f.GetBlocksizes() {
 		// We found the correct child to write into
 		if cur+bs > offset {
-			child, err := node.Links[i].GetNode(dm.ctx, dm.dagserv)
+			child, err := node.Links()[i].GetNode(dm.ctx, dm.dagserv)
 			if err != nil {
-				return "", false, err
+				return nil, false, err
 			}
-			k, sdone, err := dm.modifyDag(child, offset-cur, data)
+
+			childpb, ok := child.(*mdag.ProtoNode)
+			if !ok {
+				return nil, false, mdag.ErrNotProtobuf
+			}
+
+			k, sdone, err := dm.modifyDag(childpb, offset-cur, data)
 			if err != nil {
-				return "", false, err
+				return nil, false, err
 			}
 
 			offset += bs
-			node.Links[i].Hash = mh.Multihash(k)
+			node.Links()[i].Cid = k
 
 			// Recache serialized node
 			_, err = node.EncodeProtobuf(true)
 			if err != nil {
-				return "", false, err
+				return nil, false, err
 			}
 
 			if sdone {
@@ -278,7 +288,7 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(node *mdag.Node, spl chunk.Splitter) (*mdag.Node, error) {
+func (dm *DagModifier) appendData(node *mdag.ProtoNode, spl chunk.Splitter) (*mdag.ProtoNode, error) {
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,
@@ -341,7 +351,7 @@ func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 }
 
 // GetNode gets the modified DAG Node
-func (dm *DagModifier) GetNode() (*mdag.Node, error) {
+func (dm *DagModifier) GetNode() (*mdag.ProtoNode, error) {
 	err := dm.Sync()
 	if err != nil {
 		return nil, err
@@ -426,8 +436,8 @@ func (dm *DagModifier) Truncate(size int64) error {
 }
 
 // dagTruncate truncates the given node to 'size' and returns the modified Node
-func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, error) {
-	if len(nd.Links) == 0 {
+func dagTruncate(ctx context.Context, nd *mdag.ProtoNode, size uint64, ds mdag.DAGService) (*mdag.ProtoNode, error) {
+	if len(nd.Links()) == 0 {
 		// TODO: this can likely be done without marshaling and remarshaling
 		pbn, err := ft.FromBytes(nd.Data())
 		if err != nil {
@@ -440,22 +450,27 @@ func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGSer
 
 	var cur uint64
 	end := 0
-	var modified *mdag.Node
+	var modified *mdag.ProtoNode
 	ndata := new(ft.FSNode)
-	for i, lnk := range nd.Links {
+	for i, lnk := range nd.Links() {
 		child, err := lnk.GetNode(ctx, ds)
 		if err != nil {
 			return nil, err
 		}
 
-		childsize, err := ft.DataSize(child.Data())
+		childpb, ok := child.(*mdag.ProtoNode)
+		if !ok {
+			return nil, err
+		}
+
+		childsize, err := ft.DataSize(childpb.Data())
 		if err != nil {
 			return nil, err
 		}
 
 		// found the child we want to cut
 		if size < cur+childsize {
-			nchild, err := dagTruncate(ctx, child, size-cur, ds)
+			nchild, err := dagTruncate(ctx, childpb, size-cur, ds)
 			if err != nil {
 				return nil, err
 			}
@@ -475,7 +490,7 @@ func dagTruncate(ctx context.Context, nd *mdag.Node, size uint64, ds mdag.DAGSer
 		return nil, err
 	}
 
-	nd.Links = nd.Links[:end]
+	nd.SetLinks(nd.Links()[:end])
 	err = nd.AddNodeLinkClean("", modified)
 	if err != nil {
 		return nil, err

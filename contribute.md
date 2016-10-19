@@ -1,8 +1,11 @@
 # Contribute
 
 go-ipfs is MIT licensed open source software. We welcome contributions big and
-small! Take a look at the [community contributing notes](https://github.com/ipfs/community/blob/master/contributing.md). Please make sure to check the [issues](https://github.com/ipfs/go-ipfs/issues). Search the closed ones
-before reporting things, and help us with the open ones.
+small! Take a look at the [community contributing notes](https://github.com/ipfs/community/blob/master/contributing.md). 
+
+Please make sure to check out the [issues](https://github.com/ipfs/go-ipfs/issues). Search the closed ones before reporting things, and (if you can!) help us with open ones.
+
+Please note that the go-ipfs issues are only for bug reports and directly actionable features. Check [the IPFS Community guide on reporting issues](https://github.com/ipfs/community/blob/master/contributing.md#reporting-issues) if your question doesn't fit as a bug report or an actionable feature, and our [guide on opening issues](https://github.com/ipfs/go-ipfs/blob/master/docs/github-issue-guide.md) if you are not sure how to make an issue here.
 
 If you're looking to help out, head to the [captain's log](https://github.com/ipfs/go-ipfs/issues/2247) and
 try picking up an issue from there.
@@ -74,7 +77,7 @@ properly written. It checks the following:
   script which will setup a Git commit-msg hook that will add the above
   trailers to all the commit messages you write.
 
-See the [documentation about amending commits](docs/amending-commits.md)
+See the [documentation about amending commits](https://github.com/ipfs/community/blob/master/docs/amending-commits.md)
 for explanation about how you can rework commit messages.
   
 Some example commit messages:

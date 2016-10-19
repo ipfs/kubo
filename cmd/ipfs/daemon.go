@@ -11,11 +11,6 @@ import (
 	"sort"
 	"sync"
 
-	"gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
-	_ "gx/ipfs/QmV3NSS3A1kX5s28r7yLczhDsXzkgo65cqRgKFXYunWZmD/metrics/runtime"
-
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
@@ -25,10 +20,16 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
-	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	prometheus "gx/ipfs/QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3/client_golang/prometheus"
-	conn "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/net/conn"
+
+	iconn "gx/ipfs/QmNxScD426NivSWRNJdLVfXLrzVdtNWxW74EnXAWJvgGwh/go-libp2p-interface-conn"
+	"gx/ipfs/QmR3KwhXCRLTNZB59vELb2HhEWrGy9nuychepxFtj3wWYa/client_golang/prometheus"
+	"gx/ipfs/QmT6Cp31887FpAc25z25YHgpFJohZedrYLWPPspRtj1Brp/go-multiaddr-net"
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
+	mprome "gx/ipfs/QmXWro6iddJRbGWUoZDpTu6tjo5EXX4xJHHR9VczeoGZbw/go-metrics-prometheus"
+	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
+	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+
+	_ "gx/ipfs/QmV3NSS3A1kX5s28r7yLczhDsXzkgo65cqRgKFXYunWZmD/metrics/runtime"
 )
 
 const (
@@ -42,9 +43,11 @@ const (
 	offlineKwd                = "offline"
 	routingOptionKwd          = "routing"
 	routingOptionSupernodeKwd = "supernode"
+	routingOptionDHTClientKwd = "dhtclient"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
+	enableFloodSubKwd         = "enable-pubsub-experiment"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -118,6 +121,17 @@ environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
 
+Routing
+
+IPFS by default will use a DHT for content routing. There is a highly
+experimental alternative that operates the DHT in a 'client only' mode that can
+be enabled by running the daemon as:
+
+    ipfs daemon --routing=dhtclient
+
+This will later be transitioned into a config option once it gets out of the
+'experimental' stage.
+
 DEPRECATION NOTICE
 
 Previously, IPFS used an environment variable as seen below:
@@ -143,6 +157,7 @@ Headers.
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(true),
 		cmds.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API.").Default(false),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
+		cmds.BoolOption(enableFloodSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -166,6 +181,13 @@ func defaultMux(path string) corehttp.ServeOption {
 var fileDescriptorCheck = func() error { return nil }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
+	// Inject metrics before we do anything
+
+	err := mprome.Inject()
+	if err != nil {
+		log.Errorf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
+	}
+
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
 
@@ -191,7 +213,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	if unencrypted {
 		log.Warningf(`Running with --%s: All connections are UNENCRYPTED.
 		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
-		conn.EncryptConnections = false
+		iconn.EncryptConnections = false
 	}
 
 	// first, whether user has provided the initialization flag. we may be
@@ -226,19 +248,25 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	case fsrepo.ErrNeedMigration:
 		domigrate, found, _ := req.Option(migrateKwd).Bool()
-		fmt.Println("Found old repo version, migrations need to be run.")
+		fmt.Println("Found outdated fs-repo, migrations need to be run.")
 
 		if !found {
-			domigrate = YesNoPrompt("Run migrations automatically? [y/N]")
+			domigrate = YesNoPrompt("Run migrations now? [y/N]")
 		}
 
 		if !domigrate {
-			res.SetError(fmt.Errorf("please run the migrations manually"), cmds.ErrNormal)
+			fmt.Println("Not running migrations of fs-repo now.")
+			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.io")
+			res.SetError(fmt.Errorf("fs-repo requires migration"), cmds.ErrNormal)
 			return
 		}
 
 		err = migrate.RunMigration(fsrepo.RepoVersion)
 		if err != nil {
+			fmt.Println("The migrations of fs-repo failed:")
+			fmt.Printf("  %s\n", err)
+			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
+			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -258,21 +286,27 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	offline, _, _ := req.Option(offlineKwd).Bool()
+	pubsub, _, _ := req.Option(enableFloodSubKwd).Bool()
+
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
 		Repo:      repo,
 		Permament: true, // It is temporary way to signify that node is permament
-		//TODO(Kubuxu): refactor Online vs Offline by adding Permement vs Epthemeral
+		Online:    !offline,
+		ExtraOpts: map[string]bool{
+			"pubsub": pubsub,
+		},
+		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
-	offline, _, _ := req.Option(offlineKwd).Bool()
-	ncfg.Online = !offline
 
 	routingOption, _, err := req.Option(routingOptionKwd).String()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
-	if routingOption == routingOptionSupernodeKwd {
+	switch routingOption {
+	case routingOptionSupernodeKwd:
 		servers, err := cfg.SupernodeRouting.ServerIPFSAddrs()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -288,6 +322,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 
 		ncfg.Routing = corerouting.SupernodeClient(infos...)
+	case routingOptionDHTClientKwd:
+		ncfg.Routing = core.DHTClientOption
 	}
 
 	node, err := core.NewNode(req.Context(), ncfg)
@@ -359,8 +395,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 
 	// initialize metrics collector
-	prometheus.MustRegisterOrGet(&corehttp.IpfsNodeCollector{Node: node})
-	prometheus.EnableCollectChecks(true)
+	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	fmt.Printf("Daemon is ready\n")
 	// collect long-running errors and block for shutdown
@@ -409,9 +444,9 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 	if err != nil {
 		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
 	}
-	gatewayOpt := corehttp.GatewayOption(corehttp.WebUIPaths...)
+	gatewayOpt := corehttp.GatewayOption(false, corehttp.WebUIPaths...)
 	if unrestricted {
-		gatewayOpt = corehttp.GatewayOption("/ipfs", "/ipns")
+		gatewayOpt = corehttp.GatewayOption(true, "/ipfs", "/ipns")
 	}
 
 	var opts = []corehttp.ServeOption{
@@ -480,8 +515,8 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	if err != nil {
 		return fmt.Errorf("serveHTTPGateway: req.Option(%s) failed: %s", writableKwd, err), nil
 	}
-	if writableOptionFound {
-		cfg.Gateway.Writable = writable
+	if !writableOptionFound {
+		writable = cfg.Gateway.Writable
 	}
 
 	gwLis, err := manet.Listen(gatewayMaddr)
@@ -502,7 +537,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption("/ipfs", "/ipns"),
+		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

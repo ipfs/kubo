@@ -7,6 +7,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	tar "github.com/ipfs/go-ipfs/tar"
 )
@@ -53,16 +54,12 @@ represent it.
 			return
 		}
 
-		k, err := node.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		c := node.Cid()
 
 		fi.FileName()
 		res.SetOutput(&coreunix.AddedObject{
 			Name: fi.FileName(),
-			Hash: k.B58String(),
+			Hash: c.String(),
 		})
 	},
 	Type: coreunix.AddedObject{},
@@ -104,7 +101,13 @@ var tarCatCmd = &cmds.Command{
 			return
 		}
 
-		r, err := tar.ExportTar(req.Context(), root, nd.DAG)
+		rootpb, ok := root.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
+		r, err := tar.ExportTar(req.Context(), rootpb, nd.DAG)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

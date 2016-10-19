@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"io"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 var BitswapCmd = &cmds.Command{
@@ -53,15 +53,15 @@ var unwantCmd = &cmds.Command{
 			return
 		}
 
-		var ks []key.Key
+		var ks []*cid.Cid
 		for _, arg := range req.Arguments() {
-			dec := key.B58KeyDecode(arg)
-			if dec == "" {
-				res.SetError(fmt.Errorf("Incorrectly formatted key: %s", arg), cmds.ErrNormal)
+			c, err := cid.Decode(arg)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 
-			ks = append(ks, dec)
+			ks = append(ks, c)
 		}
 
 		bs.CancelWants(ks)
@@ -163,7 +163,7 @@ var bitswapStatCmd = &cmds.Command{
 			fmt.Fprintf(buf, "\tdup data received: %s\n", humanize.Bytes(out.DupDataReceived))
 			fmt.Fprintf(buf, "\twantlist [%d keys]\n", len(out.Wantlist))
 			for _, k := range out.Wantlist {
-				fmt.Fprintf(buf, "\t\t%s\n", k.B58String())
+				fmt.Fprintf(buf, "\t\t%s\n", k.String())
 			}
 			fmt.Fprintf(buf, "\tpartners [%d]\n", len(out.Peers))
 			for _, p := range out.Peers {

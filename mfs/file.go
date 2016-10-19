@@ -1,6 +1,7 @@
 package mfs
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -8,8 +9,6 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	mod "github.com/ipfs/go-ipfs/unixfs/mod"
-
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 type File struct {
@@ -20,12 +19,12 @@ type File struct {
 	desclock sync.RWMutex
 
 	dserv  dag.DAGService
-	node   *dag.Node
+	node   *dag.ProtoNode
 	nodelk sync.Mutex
 }
 
 // NewFile returns a NewFile object with the given parameters
-func NewFile(name string, node *dag.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
+func NewFile(name string, node *dag.ProtoNode, parent childCloser, dserv dag.DAGService) (*File, error) {
 	return &File{
 		dserv:  dserv,
 		parent: parent,
@@ -95,7 +94,7 @@ func (fi *File) Size() (int64, error) {
 }
 
 // GetNode returns the dag node associated with this file
-func (fi *File) GetNode() (*dag.Node, error) {
+func (fi *File) GetNode() (*dag.ProtoNode, error) {
 	fi.nodelk.Lock()
 	defer fi.nodelk.Unlock()
 	return fi.node, nil

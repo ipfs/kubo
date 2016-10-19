@@ -2,22 +2,24 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"strings"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 // KeyList is a general type for outputting lists of keys
 type KeyList struct {
-	Keys []key.Key
+	Keys []*cid.Cid
 }
 
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
@@ -25,7 +27,7 @@ func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
 	output := res.Output().(*KeyList)
 	buf := new(bytes.Buffer)
 	for _, key := range output.Keys {
-		buf.WriteString(key.B58String() + "\n")
+		buf.WriteString(key.String() + "\n")
 	}
 	return buf, nil
 }
@@ -158,7 +160,7 @@ Displays the hashes of all local objects.
 			defer close(out)
 
 			for k := range allKeys {
-				out <- &RefWrapper{Ref: k.B58String()}
+				out <- &RefWrapper{Ref: k.String()}
 			}
 		}()
 	},
@@ -194,8 +196,8 @@ var refsMarshallerMap = cmds.MarshalerMap{
 	},
 }
 
-func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]*dag.Node, error) {
-	objects := make([]*dag.Node, len(paths))
+func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]node.Node, error) {
+	objects := make([]node.Node, len(paths))
 	for i, p := range paths {
 		o, err := core.Resolve(ctx, n, path.Path(p))
 		if err != nil {
@@ -220,31 +222,28 @@ type RefWriter struct {
 	Recursive bool
 	PrintFmt  string
 
-	seen map[key.Key]struct{}
+	seen *cid.Set
 }
 
 // WriteRefs writes refs of the given object to the underlying writer.
-func (rw *RefWriter) WriteRefs(n *dag.Node) (int, error) {
+func (rw *RefWriter) WriteRefs(n node.Node) (int, error) {
 	if rw.Recursive {
 		return rw.writeRefsRecursive(n)
 	}
 	return rw.writeRefsSingle(n)
 }
 
-func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
-	nkey, err := n.Key()
-	if err != nil {
-		return 0, err
-	}
+func (rw *RefWriter) writeRefsRecursive(n node.Node) (int, error) {
+	nc := n.Cid()
 
 	var count int
 	for i, ng := range dag.GetDAG(rw.Ctx, rw.DAG, n) {
-		lk := key.Key(n.Links[i].Hash)
-		if rw.skip(lk) {
+		lc := n.Links()[i].Cid
+		if rw.skip(lc) {
 			continue
 		}
 
-		if err := rw.WriteEdge(nkey, lk, n.Links[i].Name); err != nil {
+		if err := rw.WriteEdge(nc, lc, n.Links()[i].Name); err != nil {
 			return count, err
 		}
 
@@ -262,25 +261,21 @@ func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
 	return count, nil
 }
 
-func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
-	nkey, err := n.Key()
-	if err != nil {
-		return 0, err
-	}
+func (rw *RefWriter) writeRefsSingle(n node.Node) (int, error) {
+	c := n.Cid()
 
-	if rw.skip(nkey) {
+	if rw.skip(c) {
 		return 0, nil
 	}
 
 	count := 0
-	for _, l := range n.Links {
-		lk := key.Key(l.Hash)
-
-		if rw.skip(lk) {
+	for _, l := range n.Links() {
+		lc := l.Cid
+		if rw.skip(lc) {
 			continue
 		}
 
-		if err := rw.WriteEdge(nkey, lk, l.Name); err != nil {
+		if err := rw.WriteEdge(c, lc, l.Name); err != nil {
 			return count, err
 		}
 		count++
@@ -288,25 +283,25 @@ func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
 	return count, nil
 }
 
-// skip returns whether to skip a key
-func (rw *RefWriter) skip(k key.Key) bool {
+// skip returns whether to skip a cid
+func (rw *RefWriter) skip(c *cid.Cid) bool {
 	if !rw.Unique {
 		return false
 	}
 
 	if rw.seen == nil {
-		rw.seen = make(map[key.Key]struct{})
+		rw.seen = cid.NewSet()
 	}
 
-	_, found := rw.seen[k]
-	if !found {
-		rw.seen[k] = struct{}{}
+	has := rw.seen.Has(c)
+	if !has {
+		rw.seen.Add(c)
 	}
-	return found
+	return has
 }
 
 // Write one edge
-func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
+func (rw *RefWriter) WriteEdge(from, to *cid.Cid, linkname string) error {
 	if rw.Ctx != nil {
 		select {
 		case <-rw.Ctx.Done(): // just in case.
@@ -319,11 +314,11 @@ func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
 	switch {
 	case rw.PrintFmt != "":
 		s = rw.PrintFmt
-		s = strings.Replace(s, "<src>", from.B58String(), -1)
-		s = strings.Replace(s, "<dst>", to.B58String(), -1)
+		s = strings.Replace(s, "<src>", from.String(), -1)
+		s = strings.Replace(s, "<dst>", to.String(), -1)
 		s = strings.Replace(s, "<linkname>", linkname, -1)
 	default:
-		s += to.B58String()
+		s += to.String()
 	}
 
 	rw.out <- &RefWrapper{Ref: s}

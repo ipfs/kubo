@@ -11,22 +11,23 @@ import (
 	"sync"
 	"time"
 
+	context "context"
 	pb "github.com/ipfs/go-ipfs/diagnostics/pb"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
-	ctxio "gx/ipfs/QmX6DhWrpBB5NtadXmPSXYNdVvuLfJXoFNMvUMoVvP5UJa/go-context/io"
+	ctxio "gx/ipfs/QmTKsRYeY4simJyf37K93juSq75Lo8MVCDJ7owjmf46u8W/go-context/io"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	host "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/host"
-	inet "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/net"
-	protocol "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/protocol"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	host "gx/ipfs/QmdML3R42PRSwnt46jSuEts9bHSqLctVYEjJqMR3UYV8ki/go-libp2p-host"
+	inet "gx/ipfs/QmdXimY9QHaasZmw6hWojWnCJvfgxETjZQfg9g6ZrA9wMX/go-libp2p-net"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 var log = logging.Logger("diagnostics")
 
 // ProtocolDiag is the diagnostics protocol.ID
-var ProtocolDiag protocol.ID = "/ipfs/diagnostics"
+var ProtocolDiag protocol.ID = "/ipfs/diag/net/1.0.0"
+var ProtocolDiagOld protocol.ID = "/ipfs/diagnostics"
 
 var ErrAlreadyRunning = errors.New("diagnostic with that ID already running")
 
@@ -54,6 +55,7 @@ func NewDiagnostics(self peer.ID, h host.Host) *Diagnostics {
 	}
 
 	h.SetStreamHandler(ProtocolDiag, d.handleNewStream)
+	h.SetStreamHandler(ProtocolDiagOld, d.handleNewStream)
 	return d
 }
 
@@ -203,7 +205,7 @@ func (d *Diagnostics) getDiagnosticFromPeers(ctx context.Context, peers map[peer
 }
 
 func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.ID, pmes *pb.Message) (<-chan *DiagInfo, error) {
-	s, err := d.host.NewStream(ctx, p, ProtocolDiag)
+	s, err := d.host.NewStream(ctx, p, ProtocolDiag, ProtocolDiagOld)
 	if err != nil {
 		return nil, err
 	}

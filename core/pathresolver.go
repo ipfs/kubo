@@ -1,14 +1,14 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"strings"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 // ErrNoNamesys is an explicit error for when an IPFS node doesn't
@@ -19,7 +19,7 @@ var ErrNoNamesys = errors.New(
 // Resolve resolves the given path by parsing out protocol-specific
 // entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
 // entries and returning the final merkledag node.
-func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, error) {
+func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (node.Node, error) {
 	if strings.HasPrefix(p.String(), "/ipns/") {
 		// resolve ipns paths
 
@@ -61,31 +61,31 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, er
 // It first checks if the path is already in the form of just a key (<key> or
 // /ipfs/<key>) and returns immediately if so. Otherwise, it falls back onto
 // Resolve to perform resolution of the dagnode being referenced.
-func ResolveToKey(ctx context.Context, n *IpfsNode, p path.Path) (key.Key, error) {
+func ResolveToCid(ctx context.Context, n *IpfsNode, p path.Path) (*cid.Cid, error) {
 
 	// If the path is simply a key, parse and return it. Parsed paths are already
 	// normalized (read: prepended with /ipfs/ if needed), so segment[1] should
 	// always be the key.
 	if p.IsJustAKey() {
-		return key.B58KeyDecode(p.Segments()[1]), nil
+		return cid.Decode(p.Segments()[1])
 	}
 
 	// Fall back onto regular dagnode resolution. Retrieve the second-to-last
 	// segment of the path and resolve its link to the last segment.
 	head, tail, err := p.PopLastSegment()
 	if err != nil {
-		return key.Key(""), err
+		return nil, err
 	}
 	dagnode, err := Resolve(ctx, n, head)
 	if err != nil {
-		return key.Key(""), err
+		return nil, err
 	}
 
 	// Extract and return the key of the link to the target dag node.
-	link, err := dagnode.GetNodeLink(tail)
+	link, _, err := dagnode.Resolve([]string{tail})
 	if err != nil {
-		return key.Key(""), err
+		return nil, err
 	}
 
-	return key.Key(link.Hash), nil
+	return link.Cid, nil
 }

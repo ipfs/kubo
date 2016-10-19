@@ -10,18 +10,18 @@ import (
 	"strings"
 	"time"
 
-	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
-	"github.com/ipfs/go-ipfs/routing"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+
+	"context"
+	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
 
 const (
@@ -45,7 +45,7 @@ func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) *gatewayHandler 
 }
 
 // TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
+func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.ProtoNode, error) {
 	// TODO(cryptix): change and remove this helper once PR1136 is merged
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
@@ -163,6 +163,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	pbnd, ok := nd.(*dag.ProtoNode)
+	if !ok {
+		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		return
+	}
+
 	etag := gopath.Base(urlPath)
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
@@ -190,7 +196,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		w.Header().Set("Suborigin", pathRoot)
 	}
 
-	dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
+	dr, err := uio.NewDagReader(ctx, pbnd, i.node.DAG)
 	if err != nil && err != uio.ErrIsDir {
 		// not a directory and still an error
 		internalWebError(w, err)
@@ -221,7 +227,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	var dirListing []directoryItem
 	// loop through files
 	foundIndex := false
-	for _, link := range nd.Links {
+	for _, link := range nd.Links() {
 		if link.Name == "index.html" {
 			log.Debugf("found index.html link for %s", urlPath)
 			foundIndex = true
@@ -239,7 +245,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				internalWebError(w, err)
 				return
 			}
-			dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
+
+			pbnd, ok := nd.(*dag.ProtoNode)
+			if !ok {
+				internalWebError(w, dag.ErrNotProtobuf)
+				return
+			}
+
+			dr, err := uio.NewDagReader(ctx, pbnd, i.node.DAG)
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -340,7 +353,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newnode *dag.Node
+	var newnode *dag.ProtoNode
 	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
 		newnode = uio.NewEmptyDirectory()
 	} else {
@@ -357,20 +370,32 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		newPath = path.Join(rsegs[2:])
 	}
 
-	var newkey key.Key
+	var newcid *cid.Cid
 	rnode, err := core.Resolve(ctx, i.node, rootPath)
 	switch ev := err.(type) {
 	case path.ErrNoLink:
 		// ev.Node < node where resolve failed
 		// ev.Name < new link
 		// but we need to patch from the root
-		rnode, err := i.node.DAG.Get(ctx, key.B58KeyDecode(rsegs[1]))
+		c, err := cid.Decode(rsegs[1])
+		if err != nil {
+			webError(w, "putHandler: bad input path", err, http.StatusBadRequest)
+			return
+		}
+
+		rnode, err := i.node.DAG.Get(ctx, c)
 		if err != nil {
 			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
 			return
 		}
 
-		e := dagutils.NewDagEditor(rnode, i.node.DAG)
+		pbnd, ok := rnode.(*dag.ProtoNode)
+		if !ok {
+			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+			return
+		}
+
+		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
 		err = e.InsertNodeAtPath(ctx, newPath, newnode, uio.NewEmptyDirectory)
 		if err != nil {
 			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
@@ -383,21 +408,23 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		newkey, err = nnode.Key()
-		if err != nil {
-			webError(w, "putHandler: could not get key of edited node", err, http.StatusInternalServerError)
+		newcid = nnode.Cid()
+
+	case nil:
+		pbnd, ok := rnode.(*dag.ProtoNode)
+		if !ok {
+			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
 			return
 		}
 
-	case nil:
 		// object set-data case
-		rnode.SetData(newnode.Data())
+		pbnd.SetData(newnode.Data())
 
-		newkey, err = i.node.DAG.Add(rnode)
+		newcid, err = i.node.DAG.Add(pbnd)
 		if err != nil {
-			nnk, _ := newnode.Key()
-			rk, _ := rnode.Key()
-			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.B58String(), rk.B58String()), err, http.StatusInternalServerError)
+			nnk := newnode.Cid()
+			rk := pbnd.Cid()
+			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), rk.String()), err, http.StatusInternalServerError)
 			return
 		}
 	default:
@@ -407,8 +434,8 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", newkey.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newkey.String(), newPath), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", newcid.String())
+	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newcid.String(), newPath), http.StatusCreated)
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -416,20 +443,13 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
-	ipfsNode, err := core.Resolve(ctx, i.node, path.Path(urlPath))
+	p, err := path.ParsePath(urlPath)
 	if err != nil {
-		// FIXME HTTP error code
-		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
+		webError(w, "failed to parse path", err, http.StatusBadRequest)
 		return
 	}
 
-	k, err := ipfsNode.Key()
-	if err != nil {
-		webError(w, "Could not get key from resolved node", err, http.StatusInternalServerError)
-		return
-	}
-
-	h, components, err := path.SplitAbsPath(path.FromKey(k))
+	c, components, err := path.SplitAbsPath(p)
 	if err != nil {
 		webError(w, "Could not split path", err, http.StatusInternalServerError)
 		return
@@ -437,7 +457,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	tctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, key.Key(h))
+	rootnd, err := i.node.Resolver.DAG.Get(tctx, c)
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return
@@ -449,20 +469,33 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pbnd, ok := pathNodes[len(pathNodes)-1].(*dag.ProtoNode)
+	if !ok {
+		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		return
+	}
+
 	// TODO(cyrptix): assumes len(pathNodes) > 1 - not found is an error above?
-	err = pathNodes[len(pathNodes)-1].RemoveNodeLink(components[len(components)-1])
+	err = pbnd.RemoveNodeLink(components[len(components)-1])
 	if err != nil {
 		webError(w, "Could not delete link", err, http.StatusBadRequest)
 		return
 	}
 
-	newnode := pathNodes[len(pathNodes)-1]
+	var newnode *dag.ProtoNode = pbnd
 	for j := len(pathNodes) - 2; j >= 0; j-- {
 		if _, err := i.node.DAG.Add(newnode); err != nil {
 			webError(w, "Could not add node", err, http.StatusInternalServerError)
 			return
 		}
-		newnode, err = pathNodes[j].UpdateNodeLink(components[j], newnode)
+
+		pathpb, ok := pathNodes[j].(*dag.ProtoNode)
+		if !ok {
+			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+			return
+		}
+
+		newnode, err = pathpb.UpdateNodeLink(components[j], newnode)
 		if err != nil {
 			webError(w, "Could not update node links", err, http.StatusInternalServerError)
 			return
@@ -475,15 +508,11 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Redirect to new path
-	key, err := newnode.Key()
-	if err != nil {
-		webError(w, "Could not get key of new node", err, http.StatusInternalServerError)
-		return
-	}
+	ncid := newnode.Cid()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+key.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", ncid.String())
+	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {

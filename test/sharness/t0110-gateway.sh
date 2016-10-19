@@ -21,9 +21,13 @@ apiport=$API_PORT
 # define a function to test a gateway, and do so for each port.
 # for now we check 5001 here as 5002 will be checked in gateway-writable.
 
-test_expect_success "GET IPFS path succeeds" '
+test_expect_success "Make a file to test with" '
   echo "Hello Worlds!" >expected &&
-  HASH=$(ipfs add -q expected) &&
+  HASH=$(ipfs add -q expected) ||
+	test_fsh cat daemon_err
+'
+
+test_expect_success "GET IPFS path succeeds" '
   curl -sfo actual "http://127.0.0.1:$port/ipfs/$HASH"
 '
 

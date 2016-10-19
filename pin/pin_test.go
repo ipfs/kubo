@@ -4,28 +4,28 @@ import (
 	"testing"
 	"time"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	bs "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	dssync "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
-	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+
+	context "context"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	"gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	dssync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
-func randNode() (*mdag.Node, key.Key) {
-	nd := new(mdag.Node)
+func randNode() (*mdag.ProtoNode, *cid.Cid) {
+	nd := new(mdag.ProtoNode)
 	nd.SetData(make([]byte, 32))
 	util.NewTimeSeededRand().Read(nd.Data())
-	k, _ := nd.Key()
+	k := nd.Cid()
 	return nd, k
 }
 
-func assertPinned(t *testing.T, p Pinner, k key.Key, failmsg string) {
-	_, pinned, err := p.IsPinned(k)
+func assertPinned(t *testing.T, p Pinner, c *cid.Cid, failmsg string) {
+	_, pinned, err := p.IsPinned(c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestPinnerBasic(t *testing.T) {
 
 	assertPinned(t, p, ck, "child of recursively pinned node not found")
 
-	bk, _ := b.Key()
+	bk := b.Cid()
 	assertPinned(t, p, bk, "Recursively pinned node not found..")
 
 	d, _ := randNode()
@@ -119,7 +119,7 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dk, _ := d.Key()
+	dk := d.Cid()
 	assertPinned(t, p, dk, "pinned node not found.")
 
 	// Test recursive unpin
@@ -221,6 +221,11 @@ func TestPinRecursiveFail(t *testing.T) {
 	}
 
 	_, err = dserv.Add(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dserv.Add(a)
 	if err != nil {
 		t.Fatal(err)
 	}

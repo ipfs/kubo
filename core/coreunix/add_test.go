@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -15,7 +14,9 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	"context"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
 
 func TestAddRecursive(t *testing.T) {
@@ -92,11 +93,11 @@ func TestAddGCLive(t *testing.T) {
 		t.Fatal("add shouldnt complete yet")
 	}
 
-	var gcout <-chan key.Key
+	var gcout <-chan *cid.Cid
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcchan, err := gc.GC(context.Background(), node.Blockstore, node.Pinning, nil)
+		gcchan, err := gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
 		if err != nil {
 			log.Error("GC ERROR:", err)
 			errs <- err
@@ -137,25 +138,26 @@ func TestAddGCLive(t *testing.T) {
 	}
 
 	for k := range gcout {
-		if _, ok := addedHashes[k.B58String()]; ok {
+		if _, ok := addedHashes[k.String()]; ok {
 			t.Fatal("gc'ed a hash we just added")
 		}
 	}
 
-	var last key.Key
+	var last *cid.Cid
 	for a := range out {
 		// wait for it to finish
-		last = key.B58KeyDecode(a.(*AddedObject).Hash)
+		c, err := cid.Decode(a.(*AddedObject).Hash)
+		if err != nil {
+			t.Fatal(err)
+		}
+		last = c
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	root, err := node.DAG.Get(ctx, last)
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	err = dag.EnumerateChildren(ctx, node.DAG, root, key.NewKeySet(), false)
+	set := cid.NewSet()
+	err = dag.EnumerateChildren(ctx, node.DAG, last, set.Visit, false)
 	if err != nil {
 		t.Fatal(err)
 	}

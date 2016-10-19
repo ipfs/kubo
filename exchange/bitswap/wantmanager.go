@@ -1,16 +1,16 @@
 package bitswap
 
 import (
+	"context"
 	"sync"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	engine "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 type WantManager struct {
@@ -51,7 +51,7 @@ type msgPair struct {
 
 type cancellation struct {
 	who peer.ID
-	blk key.Key
+	blk *cid.Cid
 }
 
 type msgQueue struct {
@@ -69,30 +69,32 @@ type msgQueue struct {
 	done chan struct{}
 }
 
-func (pm *WantManager) WantBlocks(ctx context.Context, ks []key.Key) {
+func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid) {
 	log.Infof("want blocks: %s", ks)
 	pm.addEntries(ctx, ks, false)
 }
 
-func (pm *WantManager) CancelWants(ks []key.Key) {
+func (pm *WantManager) CancelWants(ks []*cid.Cid) {
+	log.Infof("cancel wants: %s", ks)
 	pm.addEntries(context.TODO(), ks, true)
 }
 
-func (pm *WantManager) addEntries(ctx context.Context, ks []key.Key, cancel bool) {
+func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, cancel bool) {
 	var entries []*bsmsg.Entry
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
 			Cancel: cancel,
-			Entry: wantlist.Entry{
-				Key:      k,
+			Entry: &wantlist.Entry{
+				Cid:      k,
 				Priority: kMaxPriority - i,
-				Ctx:      ctx,
+				RefCnt:   1,
 			},
 		})
 	}
 	select {
 	case pm.incoming <- entries:
 	case <-pm.ctx.Done():
+	case <-ctx.Done():
 	}
 }
 
@@ -128,7 +130,7 @@ func (pm *WantManager) startPeerHandler(p peer.ID) *msgQueue {
 	// new peer, we will want to give them our full wantlist
 	fullwantlist := bsmsg.New(true)
 	for _, e := range pm.wl.Entries() {
-		fullwantlist.AddEntry(e.Key, e.Priority)
+		fullwantlist.AddEntry(e.Cid, e.Priority)
 	}
 	mq.out = fullwantlist
 	mq.work <- struct{}{}
@@ -241,33 +243,31 @@ func (pm *WantManager) Run() {
 		case entries := <-pm.incoming:
 
 			// add changes to our wantlist
+			var filtered []*bsmsg.Entry
 			for _, e := range entries {
 				if e.Cancel {
-					pm.wl.Remove(e.Key)
+					if pm.wl.Remove(e.Cid) {
+						filtered = append(filtered, e)
+					}
 				} else {
-					pm.wl.AddEntry(e.Entry)
+					if pm.wl.AddEntry(e.Entry) {
+						filtered = append(filtered, e)
+					}
 				}
 			}
 
 			// broadcast those wantlist changes
 			for _, p := range pm.peers {
-				p.addMessage(entries)
+				p.addMessage(filtered)
 			}
 
 		case <-tock.C:
 			// resend entire wantlist every so often (REALLY SHOULDNT BE NECESSARY)
 			var es []*bsmsg.Entry
 			for _, e := range pm.wl.Entries() {
-				select {
-				case <-e.Ctx.Done():
-					// entry has been cancelled
-					// simply continue, the entry will be removed from the
-					// wantlist soon enough
-					continue
-				default:
-				}
 				es = append(es, &bsmsg.Entry{Entry: e})
 			}
+
 			for _, p := range pm.peers {
 				p.outlk.Lock()
 				p.out = bsmsg.New(true)
@@ -323,9 +323,9 @@ func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
 	// one passed in
 	for _, e := range entries {
 		if e.Cancel {
-			mq.out.Cancel(e.Key)
+			mq.out.Cancel(e.Cid)
 		} else {
-			mq.out.AddEntry(e.Key, e.Priority)
+			mq.out.AddEntry(e.Cid, e.Priority)
 		}
 	}
 }

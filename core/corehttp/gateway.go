@@ -7,7 +7,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	id "gx/ipfs/Qmf4ETeAWXuThBfWwonVyFqGFSgTWepUDEr1txcctvpTXS/go-libp2p/p2p/protocol/identify"
+	id "gx/ipfs/QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum/go-libp2p/p2p/protocol/identify"
 )
 
 type GatewayConfig struct {
@@ -16,7 +16,7 @@ type GatewayConfig struct {
 	PathPrefixes []string
 }
 
-func GatewayOption(paths ...string) ServeOption {
+func GatewayOption(writable bool, paths ...string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		cfg, err := n.Repo.Config()
 		if err != nil {
@@ -25,7 +25,7 @@ func GatewayOption(paths ...string) ServeOption {
 
 		gateway := newGatewayHandler(n, GatewayConfig{
 			Headers:      cfg.Gateway.HTTPHeaders,
-			Writable:     cfg.Gateway.Writable,
+			Writable:     writable,
 			PathPrefixes: cfg.Gateway.PathPrefixes,
 		})
 

@@ -8,10 +8,10 @@ import (
 
 	"github.com/ipfs/go-ipfs/blocks"
 
-	ds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
-	dsq "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/query"
-	syncds "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore/sync"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	context "context"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	dsq "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
+	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
 func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) {
@@ -25,6 +25,39 @@ func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) 
 		return bbs.(*bloomcache), nil
 	} else {
 		return nil, err
+	}
+}
+
+func TestPutManyAddsToBloom(t *testing.T) {
+	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
+
+	ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+	cachedbs, err := testBloomCached(bs, ctx)
+
+	select {
+	case <-cachedbs.rebuildChan:
+	case <-ctx.Done():
+		t.Fatalf("Timeout wating for rebuild: %d", cachedbs.bloom.ElementsAdded())
+	}
+
+	block1 := blocks.NewBlock([]byte("foo"))
+	block2 := blocks.NewBlock([]byte("bar"))
+
+	cachedbs.PutMany([]blocks.Block{block1})
+	has, err := cachedbs.Has(block1.Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if has == false {
+		t.Fatal("added block is reported missing")
+	}
+
+	has, err = cachedbs.Has(block2.Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if has == true {
+		t.Fatal("not added block is reported to be in blockstore")
 	}
 }
 
@@ -60,7 +93,7 @@ func TestHasIsBloomCached(t *testing.T) {
 	})
 
 	for i := 0; i < 1000; i++ {
-		cachedbs.Has(blocks.NewBlock([]byte(fmt.Sprintf("data: %d", i+2000))).Key())
+		cachedbs.Has(blocks.NewBlock([]byte(fmt.Sprintf("data: %d", i+2000))).Cid())
 	}
 
 	if float64(cacheFails)/float64(1000) > float64(0.05) {
@@ -79,11 +112,11 @@ func TestHasIsBloomCached(t *testing.T) {
 		t.Fatalf("expected datastore hit: %d", cacheFails)
 	}
 
-	if has, err := cachedbs.Has(block.Key()); !has || err != nil {
+	if has, err := cachedbs.Has(block.Cid()); !has || err != nil {
 		t.Fatal("has gave wrong response")
 	}
 
-	bl, err := cachedbs.Get(block.Key())
+	bl, err := cachedbs.Get(block.Cid())
 	if bl.String() != block.String() {
 		t.Fatal("block data doesn't match")
 	}

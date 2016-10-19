@@ -87,7 +87,7 @@ func lookupDir(r *Root, path string) (*Directory, error) {
 }
 
 // PutNode inserts 'nd' at 'path' in the given mfs
-func PutNode(r *Root, path string, nd *dag.Node) error {
+func PutNode(r *Root, path string, nd *dag.ProtoNode) error {
 	dirp, filename := gopath.Split(path)
 	if filename == "" {
 		return fmt.Errorf("cannot create file with empty name")

@@ -104,7 +104,7 @@ _ipfs_config_show()
 _ipfs_daemon()
 {
     _ipfs_comp "--init --routing= --mount --writable --mount-ipfs= \
-        --mount-ipns= --disable-transport-encryption \
+        --mount-ipns= --unrestricted-api --disable-transport-encryption \
         --help"
 }
 

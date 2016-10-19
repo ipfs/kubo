@@ -4,16 +4,17 @@ import (
 	"errors"
 	"fmt"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	record "github.com/ipfs/go-ipfs/routing/record"
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
-	datastore "gx/ipfs/QmNgqJarToRiq2GBaPJhkmW4B5BxS5B74E1rkGvv2JoaTp/go-datastore"
 
-	pstore "gx/ipfs/QmSZi9ygLohBUGyHMqE5N6eToPwqcg7bZQTULeVLFu7Q6d/go-libp2p-peerstore"
-	peer "gx/ipfs/QmWtbQU15LaB5B1JC2F7TV9P4K88vD3PpA4AJrwfCjhML8/go-libp2p-peer"
+	context "context"
+	dhtpb "gx/ipfs/QmWHiyk5y2EKgxHogFJ4Zt1xTqKeVsBc4zcBke8ie9C2Bn/go-libp2p-kad-dht/pb"
+	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
+	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	datastore "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	record "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record"
+	pb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 // Server handles routing queries using a database backend
@@ -115,7 +116,7 @@ func (s *Server) handleMessage(
 var _ proxy.RequestHandler = &Server{}
 var _ proxy.Proxy = &Server{}
 
-func getRoutingRecord(ds datastore.Datastore, k key.Key) (*dhtpb.Record, error) {
+func getRoutingRecord(ds datastore.Datastore, k key.Key) (*pb.Record, error) {
 	dskey := k.DsKey()
 	val, err := ds.Get(dskey)
 	if err != nil {
@@ -125,14 +126,14 @@ func getRoutingRecord(ds datastore.Datastore, k key.Key) (*dhtpb.Record, error) 
 	if !ok {
 		return nil, fmt.Errorf("datastore had non byte-slice value for %v", dskey)
 	}
-	var record dhtpb.Record
+	var record pb.Record
 	if err := proto.Unmarshal(recordBytes, &record); err != nil {
 		return nil, errors.New("failed to unmarshal dht record from datastore")
 	}
 	return &record, nil
 }
 
-func putRoutingRecord(ds datastore.Datastore, k key.Key, value *dhtpb.Record) error {
+func putRoutingRecord(ds datastore.Datastore, k key.Key, value *pb.Record) error {
 	data, err := proto.Marshal(value)
 	if err != nil {
 		return err
@@ -204,7 +205,7 @@ func providerKey(k key.Key) datastore.Key {
 	return datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
 }
 
-func verify(ps pstore.Peerstore, r *dhtpb.Record) error {
+func verify(ps pstore.Peerstore, r *pb.Record) error {
 	v := make(record.Validator)
 	v["pk"] = record.PublicKeyValidator
 	p := peer.ID(r.GetAuthor())
