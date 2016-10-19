@@ -5,9 +5,9 @@ import (
 	b "github.com/ipfs/go-ipfs/blocks"
 	BS "github.com/ipfs/go-ipfs/blocks/blockstore"
 	. "github.com/ipfs/go-ipfs/filestore"
-	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
-	//cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
+	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
+	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
@@ -73,18 +73,23 @@ func (bs *blockstore) PutMany(blocks []b.Block) error {
 }
 
 func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
-	altData, fsInfo, err := Reconstruct(block.RawData(), nil, 0)
+	altData, fsInfo, err := decode(block)
 	if err != nil {
 		return nil, err
 	}
 
-	if fsInfo.Type != fs_pb.Data_Raw && fsInfo.Type != fs_pb.Data_File {
+	var fileSize uint64
+	if fsInfo == nil {
+		fileSize = uint64(len(block.RawData()))
+	} else {
+		fileSize = fsInfo.FileSize
+	}
+
+	if fsInfo != nil && fsInfo.Type != fs_pb.Data_Raw && fsInfo.Type != fs_pb.Data_File {
 		// If the node does not contain file data store using
 		// the normal datastore and not the filestore.
-		// Also don't use the filestore if the filesize is 0
-		// (i.e. an empty file) as posInfo might be nil.
 		return nil, nil
-	} else if fsInfo.FileSize == 0 {
+	} else if fileSize == 0 {
 		// Special case for empty files as the block doesn't
 		// have any file information associated with it
 		return &DataObj{
@@ -107,10 +112,13 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 		d := &DataObj{
 			FilePath: CleanPath(posInfo.FullPath),
 			Offset:   posInfo.Offset,
-			Size:     uint64(fsInfo.FileSize),
+			Size:     uint64(fileSize),
 			ModTime:  FromTime(posInfo.Stat.ModTime()),
 		}
-		if len(fsInfo.Data) == 0 {
+		if fsInfo == nil {
+			d.Flags |= NoBlockData
+			d.Data = nil
+		} else if len(fsInfo.Data) == 0 {
 			d.Flags |= Internal
 			d.Data = block.RawData()
 		} else {
@@ -120,4 +128,15 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 		return d, nil
 	}
 
+}
+
+func decode(block b.Block) ([]byte, *UnixFSInfo, error) {
+	switch block.Cid().Type() {
+	case cid.Protobuf:
+		return Reconstruct(block.RawData(), nil, 0)
+	case cid.Raw:
+		return nil, nil, nil
+	default:
+		return nil, nil, fmt.Errorf("unsupported block type")
+	}
 }

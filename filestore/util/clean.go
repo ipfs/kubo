@@ -16,9 +16,8 @@ import (
 	. "github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/pin"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
-	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 )
 
 func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, what ...string) (io.Reader, error) {
@@ -120,12 +119,11 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 		var toDel []*cid.Cid
 		for r := range ch {
 			if to_remove[r.Status] {
-				key, err := key.KeyFromDsKey(r.Key)
+				c, err := dshelp.DsKeyToCid(r.Key)
 				if err != nil {
 					wtr.CloseWithError(err)
 					return
 				}
-				c := cid.NewCidV0(key.ToMultihash())
 				toDel = append(toDel, c)
 			}
 		}
@@ -171,7 +169,7 @@ func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, keys []*cid.Cid, snap Sna
 		stillOkay := butil.FilterPinned(mbs, pins, out, keys, prefix)
 
 		for _, k := range stillOkay {
-			keyBytes := key.Key(k.Hash()).DsKey().Bytes()
+			keyBytes := dshelp.CidToDsKey(k).Bytes()
 			var origVal []byte
 			if snap.Defined() {
 				var err error

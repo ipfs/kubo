@@ -41,19 +41,33 @@ func Reconstruct(data []byte, in io.Reader, blockDataSize uint64) ([]byte, *Unix
 	// 	}
 	// 	return res2, fsinfo2, err2
 	// }
-	if useFastReconstruct {
+	if data == nil { // we have a raw node
+		blockData, err := readFromFile(in, blockDataSize)
+		if err != nil {
+			println(err)
+		}
+		return blockData, nil, err
+	} else if useFastReconstruct {
 		return reconstructDirect(data, in, blockDataSize)
 	} else {
-		var blockData []byte
-		if blockDataSize > 0 {
-			blockData = make([]byte, blockDataSize)
-			_, err := io.ReadFull(in, blockData)
-			if err != nil {
-				return nil, nil, err
-			}
+		blockData, err := readFromFile(in, blockDataSize)
+		if err != nil {
+			return nil, nil, err
 		}
 		return reconstruct(data, blockData)
 	}
+}
+
+func readFromFile(in io.Reader, blockDataSize uint64) ([]byte, error) {
+	var blockData []byte
+	if blockDataSize > 0 {
+		blockData = make([]byte, blockDataSize)
+		_, err := io.ReadFull(in, blockData)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return blockData, nil
 }
 
 func reconstruct(data []byte, blockData []byte) ([]byte, *UnixFSInfo, error) {

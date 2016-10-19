@@ -12,6 +12,7 @@ test_enable_filestore() {
 test_add_cat_file() {
     cmd=$1
     dir=$2
+    HASH=$3 # QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
     
     test_expect_success "ipfs add succeeds" '
     	echo "Hello Worlds!" >mountdir/hello.txt &&
@@ -19,7 +20,6 @@ test_add_cat_file() {
     '
 
     test_expect_success "ipfs add output looks good" '
-    	HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
         echo "added $HASH "$dir"/mountdir/hello.txt" >expected &&
     	test_cmp expected actual
     '
@@ -107,6 +107,7 @@ test_post_add() {
 test_add_cat_5MB() {
     cmd=$1
     dir=$2
+    HASH=$3 # "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
     
     test_expect_success "generate 5MB file using go-random" '
     	random 5242880 41 >mountdir/bigfile
@@ -118,12 +119,11 @@ test_add_cat_5MB() {
     	test_cmp sha1_expected sha1_actual
     '
 
-    test_expect_success "'ipfs add bigfile' succeeds" '
+    test_expect_success "'ipfs $cmd bigfile' succeeds" '
     	ipfs $cmd "$dir"/mountdir/bigfile >actual
     '
 
-    test_expect_success "'ipfs add bigfile' output looks good" '
-    	HASH="QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" &&
+    test_expect_success "'ipfs $cmd bigfile' output looks good" '
     	echo "added $HASH "$dir"/mountdir/bigfile" >expected &&
     	test_cmp expected actual
     '
@@ -140,6 +140,7 @@ test_add_cat_5MB() {
 test_add_cat_200MB() {
     cmd=$1
     dir=$2
+    HASH=$3 #"QmVbVLFLbz72tRSw3HMBh6ABKbRVavMQLoh2BzQ4dUSAYL"
     
     test_expect_success "generate 200MB file using go-random" '
     	random 209715200 41 >mountdir/hugefile
@@ -156,7 +157,6 @@ test_add_cat_200MB() {
     '
 
     test_expect_success "'ipfs add hugefile' output looks good" '
-    	HASH="QmVbVLFLbz72tRSw3HMBh6ABKbRVavMQLoh2BzQ4dUSAYL" &&
     	echo "added $HASH "$dir"/mountdir/hugefile" >expected &&
     	test_cmp expected actual
     '
@@ -335,13 +335,13 @@ filestore_test_w_daemon() {
 
     test_launch_ipfs_daemon $opt
 
-    test_add_cat_file "filestore add " "`pwd`"
+    test_add_cat_file "filestore add " "`pwd`" "QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH"
 
     test_post_add "filestore add " "`pwd`"
 
     test_add_empty_file "filestore add " "`pwd`"
 
-    test_add_cat_5MB "filestore add " "`pwd`"
+    test_add_cat_5MB "filestore add " "`pwd`" "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
 
     test_add_mulpl_files "filestore add "
 

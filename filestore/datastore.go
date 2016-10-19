@@ -7,22 +7,16 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	//"runtime"
-	//"runtime/debug"
-	//"time"
 
-	k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
-	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
-	"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
-	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	"gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/iterator"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/util"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
 	dsq "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
 )
 
@@ -82,7 +76,7 @@ type Datastore struct {
 	//maintLock  sync.RWMutex
 }
 
-func (b *Basic) Verify() VerifyWhen {return b.ds.verify}
+func (b *Basic) Verify() VerifyWhen { return b.ds.verify }
 
 func (d *Basic) DB() readonly { return d.db }
 
@@ -197,18 +191,18 @@ func (d *Datastore) Update(keyBytes []byte, origData []byte, newData *DataObj) (
 		if err == leveldb.ErrNotFound && newData == nil {
 			// Deleting block already deleted, nothing to
 			// worry about.
-			log.Debugf("skipping delete of already deleted block %s\n", b58.Encode(keyBytes[1:]))
+			log.Debugf("skipping delete of already deleted block %s", MHashB(keyBytes))
 			return true, nil
 		}
 		if err == leveldb.ErrNotFound || !bytes.Equal(val, origData) {
 			// FIXME: This maybe should at the notice
 			// level but there is no "Noticef"!
-			log.Infof("skipping update/delete of block %s\n", b58.Encode(keyBytes[1:]))
+			log.Infof("skipping update/delete of block %s", MHashB(keyBytes))
 			return false, nil
 		}
 	}
 	if newData == nil {
-		log.Debugf("deleting block %s\n", b58.Encode(keyBytes[1:]))
+		log.Debugf("deleting block %s", MHashB(keyBytes))
 		return true, d.db.Delete(keyBytes, nil)
 	} else {
 		data, err := newData.Marshal()
@@ -216,9 +210,9 @@ func (d *Datastore) Update(keyBytes []byte, origData []byte, newData *DataObj) (
 			return false, err
 		}
 		if origData == nil {
-			log.Debugf("adding block %s\n", b58.Encode(keyBytes[1:]))
+			log.Debugf("adding block %s", MHashB(keyBytes))
 		} else {
-			log.Debugf("updating block %s\n", b58.Encode(keyBytes[1:]))
+			log.Debugf("updating block %s", MHashB(keyBytes))
 		}
 		return true, d.db.Put(keyBytes, data, nil)
 	}
@@ -334,7 +328,7 @@ func GetData(d *Datastore, key ds.Key, origData []byte, val *DataObj, verify Ver
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		return nil, err
 	} else if err != nil {
-		log.Debugf("invalid block: %s: %s\n", asMHash(key), err.Error())
+		log.Debugf("invalid block: %s: %s\n", MHash(key), err.Error())
 		reconstructOk = false
 		invalid = true
 	}
@@ -351,14 +345,15 @@ func GetData(d *Datastore, key ds.Key, origData []byte, val *DataObj, verify Ver
 
 	// Verify the block contents if required
 	if reconstructOk && (verify == VerifyAlways || (verify == VerifyIfChanged && modtime != val.ModTime)) {
-		log.Debugf("verifying block %s\n", asMHash(key))
-		newKey := k.Key(u.Hash(data)).DsKey()
-		invalid = newKey != key
+		log.Debugf("verifying block %s\n", MHash(key))
+		origKey, _ := dshelp.DsKeyToCid(key)
+		newKey, _ := origKey.Prefix().Sum(data)
+		invalid = !origKey.Equals(newKey)
 	}
 
 	// Update the block if the metadata has changed
 	if update && (invalid != val.Invalid() || modtime != val.ModTime) && origData != nil {
-		log.Debugf("updating block %s\n", asMHash(key))
+		log.Debugf("updating block %s\n", MHash(key))
 		newVal := *val
 		newVal.SetInvalid(invalid)
 		newVal.ModTime = modtime
@@ -368,19 +363,23 @@ func GetData(d *Datastore, key ds.Key, origData []byte, val *DataObj, verify Ver
 
 	// Finally return the result
 	if invalid {
-		log.Debugf("invalid block %s\n", asMHash(key))
+		log.Debugf("invalid block %s\n", MHash(key))
 		return nil, InvalidBlock{}
 	} else {
 		return data, nil
 	}
 }
 
-func asMHash(dsKey ds.Key) string {
-	key, err := k.KeyFromDsKey(dsKey)
+func MHashB(dsKey []byte) string {
+	return MHash(ds.NewKey(string(dsKey)))
+}
+
+func MHash(dsKey ds.Key) string {
+	key, err := dshelp.DsKeyToCid(dsKey)
 	if err != nil {
 		return "??????????????????????????????????????????????"
 	}
-	return key.B58String()
+	return key.String()
 }
 
 func (d *Datastore) Has(key ds.Key) (exists bool, err error) {

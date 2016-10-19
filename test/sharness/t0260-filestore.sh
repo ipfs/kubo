@@ -17,13 +17,19 @@ test_expect_success "can't use filestore unless it is enabled" '
 
 test_enable_filestore
 
-test_add_cat_file "filestore add" "`pwd`"
+test_add_cat_file "filestore add" "`pwd`" "QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH"
 
 test_post_add "filestore add" "`pwd`"
 
+test_add_cat_file "filestore add --raw-leaves" "`pwd`" "zdvgqC4vX1j7higiYBR1HApkcjVMAFHwJyPL8jnKK6sVMqd1v"
+
+test_post_add "filestore add --raw-leaves" "`pwd`"
+
 test_add_empty_file "filestore add" "`pwd`"
 
-test_add_cat_5MB "filestore add" "`pwd`"
+test_add_cat_5MB "filestore add" "`pwd`" "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
+
+test_add_cat_5MB "filestore add  --raw-leaves" "`pwd`" "QmefsDaD3YVphd86mxjJfPLceKv8by98aB6J6sJxK13xS2"
 
 test_add_mulpl_files "filestore add"
 
@@ -65,7 +71,9 @@ QmUtkGLvPf63NwVzLPKPUYgwhn8ZYPWF6vKWN3fZ2amfJF
 QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
 Qmae3RedM7SNkWGsdzYzsr6svmsFdsva4WoTvYYsWhUSVz
 QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
+QmefsDaD3YVphd86mxjJfPLceKv8by98aB6J6sJxK13xS2
 Qmesmmf1EEG1orJb6XdK6DabxexsseJnCfw8pqWgonbkoj
+zdvgqC4vX1j7higiYBR1HApkcjVMAFHwJyPL8jnKK6sVMqd1v
 EOF
 
 test_expect_success "testing filestore ls" '
@@ -90,9 +98,10 @@ cat <<EOF > ls_expect
 QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb
 QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
 QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
+QmefsDaD3YVphd86mxjJfPLceKv8by98aB6J6sJxK13xS2
 EOF
 
-test_expect_success "tesing filestore clean invalid" '
+test_expect_success "testing filestore clean invalid" '
   ipfs filestore clean invalid > rm-invalid-output &&
   ipfs filestore ls -q -a | LC_ALL=C sort > ls_actual &&
   test_cmp ls_expect ls_actual
@@ -103,7 +112,7 @@ QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN
 QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
 EOF
 
-test_expect_success "tesing filestore clean incomplete" '
+test_expect_success "testing filestore clean incomplete" '
   ipfs filestore clean incomplete > rm-invalid-output &&
   ipfs filestore ls -q -a | LC_ALL=C sort > ls_actual &&
   test_cmp ls_expect ls_actual
@@ -258,6 +267,8 @@ test_add_symlinks
 
 test_add_dir_w_symlinks
 
-test_add_cat_200MB "filestore add" "`pwd`"
+test_add_cat_200MB "filestore add" "`pwd`" "QmVbVLFLbz72tRSw3HMBh6ABKbRVavMQLoh2BzQ4dUSAYL"
+
+test_add_cat_200MB "filestore add --raw-leaves" "`pwd`" "QmYJWknpk2HUjVCkTDFMcTtxEJB4XbUpFRYW4BCAEfDN6t"
 
 test_done

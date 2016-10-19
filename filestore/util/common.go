@@ -10,7 +10,6 @@ import (
 	. "github.com/ipfs/go-ipfs/filestore/support"
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
-	k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
@@ -162,14 +161,6 @@ func (r *ListRes) StatusStr() string {
 		str = "unchecked"
 	}
 	return str
-}
-
-func MHash(dsKey ds.Key) string {
-	key, err := k.KeyFromDsKey(dsKey)
-	if err != nil {
-		return "??????????????????????????????????????????????"
-	}
-	return key.B58String()
 }
 
 func (r *ListRes) MHash() string {
