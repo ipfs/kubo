@@ -9,6 +9,8 @@ import (
 	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+
+	"gx/ipfs/QmRpAnJ1Mvd2wCtwoFevW8pbLTivUqmFxynptG6uvp1jzC/safepath"
 )
 
 type blockstore struct {
@@ -110,7 +112,7 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 			return nil, fmt.Errorf("%s: %s: no stat information for file", block.Cid(), posInfo.FullPath)
 		}
 		d := &DataObj{
-			FilePath: CleanPath(posInfo.FullPath),
+			FilePath: safepath.Clean(posInfo.FullPath),
 			Offset:   posInfo.Offset,
 			Size:     uint64(fileSize),
 			ModTime:  FromTime(posInfo.Stat.ModTime()),

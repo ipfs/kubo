@@ -20,6 +20,7 @@ import (
 	fsutil "github.com/ipfs/go-ipfs/filestore/util"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	"gx/ipfs/QmRpAnJ1Mvd2wCtwoFevW8pbLTivUqmFxynptG6uvp1jzC/safepath"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -64,10 +65,10 @@ same as for 'ipfs add'.
 		cwd := ""
 		var err error
 		if logical {
-			cwd, err = filestore.EnvWd()
+			cwd, err = safepath.EnvWd()
 		}
 		if physical {
-			cwd, err = filestore.SystemWd()
+			cwd, err = safepath.SystemWd()
 		}
 		if err != nil {
 			return err
@@ -75,7 +76,7 @@ same as for 'ipfs add'.
 		if cwd != "" {
 			paths := req.Arguments()
 			for i, path := range paths {
-				abspath, err := filestore.AbsPath(cwd, path)
+				abspath, err := safepath.AbsPath(cwd, path)
 				if err != nil {
 					return err
 				}
@@ -356,7 +357,7 @@ func procListArgs(objs []string) ([]*cid.Cid, fsutil.ListFilter, error) {
 	paths := make([]string, 0)
 	for _, obj := range objs {
 		if filepath.IsAbs(obj) {
-			paths = append(paths, filestore.CleanPath(obj))
+			paths = append(paths, safepath.Clean(obj))
 		} else {
 			key, err := cid.Decode(obj)
 			if err != nil {

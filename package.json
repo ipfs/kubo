@@ -277,6 +277,12 @@
       "version": "0.3.2"
     },
     {
+      "author": "kevina",
+      "hash": "QmRpAnJ1Mvd2wCtwoFevW8pbLTivUqmFxynptG6uvp1jzC",
+      "name": "safepath",
+      "version": "0.0.1"
+    },
+    {
       "author": "whyrusleeping",
       "hash": "QmRcAVqrbY5wryx7hfNLtiUZbCcstzaJL7YJFBboitcqWF",
       "name": "go-ipld-cbor",
@@ -296,4 +302,3 @@
   "name": "go-ipfs",
   "version": "0.4.5-dev"
 }
-
