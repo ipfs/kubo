@@ -45,9 +45,10 @@ type Filestore struct {
 	Verify string // one of "always", "ifchanged", "never"
 	// Note: APIServerSidePath Disabled due to security concerns
 	//APIServerSidePaths bool
+	NoDBCompression bool
 }
 
 func (c *Filestore) APIServerSidePathsEnabled() bool {
 	//return c.APIServerSidePaths
-	return false;
+	return false
 }

@@ -135,5 +135,5 @@ func (r *FSRepo) newFilestore() (*filestore.Datastore, error) {
 		return nil, fmt.Errorf("invalid value for Filestore.Verify: %s", r.config.Filestore.Verify)
 	}
 	println(verify)
-	return filestore.New(fileStorePath, verify)
+	return filestore.New(fileStorePath, verify, r.config.Filestore.NoDBCompression)
 }

@@ -123,11 +123,12 @@ func Init(path string) error {
 	return nil
 }
 
-func New(path string, verify VerifyWhen) (*Datastore, error) {
-	db, err := leveldb.OpenFile(path, &opt.Options{
-		Compression:    opt.NoCompression,
-		ErrorIfMissing: true,
-	})
+func New(path string, verify VerifyWhen, noCompression bool) (*Datastore, error) {
+	dbOpts := &opt.Options{ErrorIfMissing: true}
+	if noCompression {
+		dbOpts.Compression = opt.NoCompression
+	}
+	db, err := leveldb.OpenFile(path, dbOpts)
 	if err != nil {
 		return nil, err
 	}
