@@ -121,17 +121,6 @@ func (d *DataObj) Unmarshal(data []byte) error {
 		d.Flags = *pd.Flags
 	}
 
-	if pd.NoBlockData != nil && *pd.NoBlockData {
-		d.Flags |= NoBlockData
-	}
-	if pd.WholeFile != nil && *pd.WholeFile {
-		d.Flags |= WholeFile
-	}
-	if pd.FileRoot != nil && *pd.FileRoot {
-		d.Flags |= Internal
-		d.Flags |= WholeFile
-	}
-
 	if pd.FilePath != nil {
 		d.FilePath = *pd.FilePath
 	}

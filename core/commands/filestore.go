@@ -35,7 +35,6 @@ var FileStoreCmd = &cmds.Command{
 		"rm":       rmFilestoreObjs,
 		"clean":    cleanFileStore,
 		"dups":     fsDups,
-		"upgrade":  fsUpgrade,
 		"mv":       moveIntoFilestore,
 		"enable":   FilestoreEnable,
 		"disable":  FilestoreDisable,
@@ -833,33 +832,6 @@ var fsDups = &cmds.Command{
 		r, w := io.Pipe()
 		go func() {
 			err := fsutil.Dups(w, fs.AsBasic(), node.Blockstore, node.Pinning, req.Arguments()...)
-			if err != nil {
-				w.CloseWithError(err)
-			} else {
-				w.Close()
-			}
-		}()
-		res.SetOutput(r)
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			return res.(io.Reader), nil
-		},
-	},
-}
-
-var fsUpgrade = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Upgrade filestore to most recent format.",
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		_, fs, err := extractFilestore(req)
-		if err != nil {
-			return
-		}
-		r, w := io.Pipe()
-		go func() {
-			err := fsutil.Upgrade(w, fs)
 			if err != nil {
 				w.CloseWithError(err)
 			} else {
