@@ -140,12 +140,12 @@ func statusStr(status int) string {
 }
 
 type ListRes struct {
-	Key ds.Key
+	Key Key
 	*DataObj
 	Status int
 }
 
-var EmptyListRes = ListRes{ds.NewKey(""), nil, 0}
+var EmptyListRes = ListRes{Key{"", "", -1}, nil, 0}
 
 func (r *ListRes) What() string {
 	if r.WholeFile() {
@@ -168,12 +168,12 @@ func (r *ListRes) MHash() string {
 	return MHash(r.Key)
 }
 
-func (r *ListRes) RawHash() []byte {
-	return r.Key.Bytes()[1:]
-}
+//func (r *ListRes) RawHash() []byte {
+//	return r.Key.Bytes()[1:]
+//}
 
 func (r *ListRes) Format() string {
-	if string(r.RawHash()) == "" {
+	if r.Key.Hash == "" {
 		return "\n"
 	}
 	mhash := r.MHash()
@@ -192,14 +192,14 @@ func ListKeys(d *Basic) <-chan ListRes {
 type ListFilter func(*DataObj) bool
 
 func List(d *Basic, filter ListFilter, keysOnly bool) (<-chan ListRes, error) {
-	iter := ListIterator{d.NewIterator(), filter}
+	iter := ListIterator{d.DB().NewIterator(), filter}
 
 	if keysOnly {
 		out := make(chan ListRes, 1024)
 		go func() {
 			defer close(out)
 			for iter.Next() {
-				out <- ListRes{Key: iter.Key()}
+				out <- ListRes{Key: iter.Key().Key}
 			}
 		}()
 		return out, nil
@@ -208,8 +208,8 @@ func List(d *Basic, filter ListFilter, keysOnly bool) (<-chan ListRes, error) {
 		go func() {
 			defer close(out)
 			for iter.Next() {
-				res := ListRes{Key: iter.Key()}
-				_, res.DataObj, _ = iter.Value()
+				res := ListRes{Key: iter.Key().Key}
+				res.DataObj, _ = iter.Value()
 				out <- res
 			}
 		}()
@@ -227,10 +227,10 @@ func ListByKey(fs *Basic, ks []*cid.Cid) (<-chan ListRes, error) {
 	go func() {
 		defer close(out)
 		for _, k := range ks {
-			dsKey := dshelp.CidToDsKey(k)
-			_, dataObj, err := fs.GetDirect(dsKey)
+			dbKey := NewDbKey(dshelp.CidToDsKey(k).String(), "", -1, k)
+			_, dataObj, err := fs.GetDirect(dbKey)
 			if err == nil {
-				out <- ListRes{dsKey, dataObj, 0}
+				out <- ListRes{dbKey.Key, dataObj, 0}
 			}
 		}
 	}()
@@ -247,7 +247,7 @@ func (itr ListIterator) Next() bool {
 		if itr.Filter == nil {
 			return true
 		}
-		_, val, _ := itr.Value()
+		val, _ := itr.Value()
 		if val == nil {
 			// an error ...
 			return true
@@ -261,17 +261,17 @@ func (itr ListIterator) Next() bool {
 	return false
 }
 
-func verify(d *Basic, key ds.Key, origData []byte, val *DataObj, level VerifyLevel) int {
+func verify(d *Basic, key *DbKey, val *DataObj, level VerifyLevel) int {
 	var err error
 	switch level {
 	case CheckExists:
 		return StatusUnchecked
 	case CheckFast:
-		err = VerifyFast(key, val)
+		err = VerifyFast(val)
 	case CheckIfChanged:
-		_, err = GetData(d.AsFull(), key, origData, val, VerifyIfChanged)
+		_, err = GetData(d.AsFull(), key, val, VerifyIfChanged)
 	case CheckAlways:
-		_, err = GetData(d.AsFull(), key, origData, val, VerifyAlways)
+		_, err = GetData(d.AsFull(), key, val, VerifyAlways)
 	default:
 		return StatusError
 	}
@@ -280,42 +280,42 @@ func verify(d *Basic, key ds.Key, origData []byte, val *DataObj, level VerifyLev
 		return StatusOk
 	} else if os.IsNotExist(err) {
 		return StatusFileMissing
-	} else if _, ok := err.(InvalidBlock); ok || err == io.EOF || err == io.ErrUnexpectedEOF {
+	} else if err == InvalidBlock || err == io.EOF || err == io.ErrUnexpectedEOF {
 		return StatusFileChanged
 	} else {
 		return StatusFileError
 	}
 }
 
-func getNode(dsKey ds.Key, fs *Basic, bs b.Blockstore) ([]byte, *DataObj, []*node.Link, int) {
-	origData, dataObj, err := fs.GetDirect(dsKey)
+func getNode(key *DbKey, fs *Basic, bs b.Blockstore) (*DataObj, []*node.Link, int) {
+	_, dataObj, err := fs.GetDirect(key)
 	if err == nil {
 		if dataObj.NoBlockData() {
-			return origData, dataObj, nil, StatusUnchecked
+			return dataObj, nil, StatusUnchecked
 		} else {
 			links, err := GetLinks(dataObj)
 			if err != nil {
-				Logger.Errorf("%s: %v", MHash(dsKey), err)
-				return origData, nil, nil, StatusCorrupt
+				Logger.Errorf("%s: %v", MHash(key), err)
+				return nil, nil, StatusCorrupt
 			}
-			return origData, dataObj, links, StatusOk
+			return dataObj, links, StatusOk
 		}
 	}
-	k, err2 := dshelp.DsKeyToCid(dsKey)
+	k, err2 := key.Cid()
 	if err2 != nil {
-		return nil, nil, nil, StatusError
+		return nil, nil, StatusError
 	}
 	block, err2 := bs.Get(k)
 	if err == ds.ErrNotFound && err2 == b.ErrNotFound {
-		return nil, nil, nil, StatusKeyNotFound
+		return nil, nil, StatusKeyNotFound
 	} else if err2 != nil {
 		Logger.Errorf("%s: %v", k, err2)
-		return nil, nil, nil, StatusError
+		return nil, nil, StatusError
 	}
 	node, err := dag.DecodeProtobuf(block.RawData())
 	if err != nil {
 		Logger.Errorf("%s: %v", k, err)
-		return nil, nil, nil, StatusCorrupt
+		return nil, nil, StatusCorrupt
 	}
-	return nil, nil, node.Links(), StatusFound
+	return nil, node.Links(), StatusFound
 }

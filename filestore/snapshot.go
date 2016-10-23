@@ -10,15 +10,15 @@ type Snapshot struct {
 	*Basic
 }
 
-func (ss *Snapshot) Defined() bool { return ss.Basic != nil }
+func (ss Snapshot) Defined() bool { return ss.Basic != nil }
 
 func (b *Basic) Verify() VerifyWhen { return b.ds.verify }
 
-func (d *Basic) DB() readonly { return d.db }
+func (d *Basic) DB() dbread { return d.db }
 
-func (d *Datastore) DB() *leveldb.DB { return d.db }
+func (d *Datastore) DB() dbwrap { return d.db }
 
-func (d *Datastore) AsBasic() *Basic { return &Basic{d.db, d} }
+func (d *Datastore) AsBasic() *Basic { return &Basic{d.db.dbread, d} }
 
 func (d *Basic) AsFull() *Datastore { return d.ds }
 
@@ -27,11 +27,11 @@ func (d *Datastore) GetSnapshot() (Snapshot, error) {
 		d.snapshotUsed = true
 		return d.snapshot, nil
 	}
-	ss, err := d.db.GetSnapshot()
+	ss, err := d.db.db.GetSnapshot()
 	if err != nil {
 		return Snapshot{}, err
 	}
-	return Snapshot{&Basic{ss, d}}, nil
+	return Snapshot{&Basic{dbread{ss}, d}}, nil
 }
 
 func (d *Datastore) releaseSnapshot() {
@@ -39,7 +39,7 @@ func (d *Datastore) releaseSnapshot() {
 		return
 	}
 	if !d.snapshotUsed {
-		d.snapshot.db.(*leveldb.Snapshot).Release()
+		d.snapshot.db.db.(*leveldb.Snapshot).Release()
 	}
 	d.snapshot = Snapshot{}
 }

@@ -74,7 +74,7 @@ func (out *reporter) close() {
 }
 
 func VerifyBasic(fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
-	iter := ListIterator{Iterator: fs.NewIterator()}
+	iter := ListIterator{Iterator: fs.DB().NewIterator()}
 	if params.Filter == nil {
 		iter.Filter = func(r *DataObj) bool { return r.NoBlockData() }
 	} else {
@@ -89,13 +89,13 @@ func VerifyBasic(fs *Basic, params *VerifyParams) (<-chan ListRes, error) {
 		defer out.close()
 		for iter.Next() {
 			key := iter.Key()
-			bytes, dataObj, err := iter.Value()
+			dataObj, err := iter.Value()
 			if err != nil {
-				out.send(ListRes{key, nil, StatusCorrupt})
+				out.send(ListRes{key.Key, nil, StatusCorrupt})
 			}
-			status := verify(fs, key, bytes, dataObj, verifyLevel)
+			status := verify(fs, key, dataObj, verifyLevel)
 			if verbose >= ShowTopLevel || OfInterest(status) {
-				out.send(ListRes{key, dataObj, status})
+				out.send(ListRes{key.Key, dataObj, status})
 			}
 		}
 	}()
@@ -124,23 +124,23 @@ func VerifyKeys(ks []*cid.Cid, node *core.IpfsNode, fs *Basic, params *VerifyPar
 }
 
 func verifyKey(k *cid.Cid, fs *Basic, bs b.Blockstore, verifyLevel VerifyLevel) ListRes {
-	dsKey := dshelp.CidToDsKey(k)
-	origData, dataObj, err := fs.GetDirect(dsKey)
+	dsKey := NewDbKey(dshelp.CidToDsKey(k).String(), "", -1, k)
+	_, dataObj, err := fs.GetDirect(dsKey)
 	if err == nil && dataObj.NoBlockData() {
-		res := ListRes{dsKey, dataObj, 0}
-		res.Status = verify(fs, dsKey, origData, dataObj, verifyLevel)
+		res := ListRes{dsKey.Key, dataObj, 0}
+		res.Status = verify(fs, dsKey, dataObj, verifyLevel)
 		return res
 	} else if err == nil {
-		return ListRes{dsKey, dataObj, StatusUnchecked}
+		return ListRes{dsKey.Key, dataObj, StatusUnchecked}
 	}
 	found, _ := bs.Has(k)
 	if found {
-		return ListRes{dsKey, nil, StatusFound}
+		return ListRes{dsKey.Key, nil, StatusFound}
 	} else if err == ds.ErrNotFound && !found {
-		return ListRes{dsKey, nil, StatusKeyNotFound}
+		return ListRes{dsKey.Key, nil, StatusKeyNotFound}
 	} else {
 		Logger.Errorf("%s: verifyKey: %v", k, err)
-		return ListRes{dsKey, nil, StatusError}
+		return ListRes{dsKey.Key, nil, StatusError}
 	}
 }
 
@@ -164,7 +164,7 @@ func VerifyFull(node *core.IpfsNode, fs Snapshot, params *VerifyParams) (<-chan 
 	if err != nil {
 		return nil, err
 	}
-	iter := ListIterator{fs.NewIterator(), params.Filter}
+	iter := ListIterator{fs.DB().NewIterator(), params.Filter}
 	go func() {
 		defer p.out.close()
 		if skipOrphans {
@@ -214,7 +214,7 @@ func VerifyPostOrphan(node *core.IpfsNode, fs Snapshot, level int, incompleteWhe
 	if err != nil {
 		return nil, err
 	}
-	iter := ListIterator{fs.NewIterator(), nil}
+	iter := ListIterator{fs.DB().NewIterator(), nil}
 	go func() {
 		defer p.out.close()
 		p.verifyPostOrphan(iter)
@@ -230,18 +230,20 @@ func VerifyPostOrphan(node *core.IpfsNode, fs Snapshot, level int, incompleteWhe
 // 	PostOrphan
 // )
 
+type Hash string
+
 type verifyParams struct {
 	out            reporter
 	node           *core.IpfsNode
 	fs             *Basic
 	verifyLevel    VerifyLevel
 	verboseLevel   int // see help text for meaning
-	seen           map[ds.Key]int
-	roots          []ds.Key
+	seen           map[string]int
+	roots          []string
 	incompleteWhen []bool
 }
 
-func (p *verifyParams) getStatus(key ds.Key) int {
+func (p *verifyParams) getStatus(key string) int {
 	if p.seen == nil {
 		return 0
 	} else {
@@ -249,17 +251,17 @@ func (p *verifyParams) getStatus(key ds.Key) int {
 	}
 }
 
-func (p *verifyParams) setStatus(key ds.Key, val *DataObj, status int) ListRes {
+func (p *verifyParams) setStatus(key *DbKey, val *DataObj, status int) ListRes {
 	if p.seen != nil {
-		_, ok := p.seen[key]
+		_, ok := p.seen[key.Hash]
 		if !ok || status > 0 {
-			p.seen[key] = status
+			p.seen[key.Hash] = status
 		}
 	}
 	if p.roots != nil && val != nil && val.WholeFile() {
-		p.roots = append(p.roots, key)
+		p.roots = append(p.roots, key.Hash)
 	}
-	return ListRes{key, val, status}
+	return ListRes{key.Key, val, status}
 }
 
 func (p *verifyParams) verifyKeys(ks []*cid.Cid) {
@@ -267,16 +269,16 @@ func (p *verifyParams) verifyKeys(ks []*cid.Cid) {
 		//if key == "" {
 		//	continue
 		//}
-		dsKey := dshelp.CidToDsKey(k)
-		origData, dataObj, children, r := p.get(dsKey)
+		dsKey := CidToKey(k)
+		dataObj, children, r := p.get(dsKey)
 		if dataObj == nil || AnError(r) {
 			/* nothing to do */
 		} else if dataObj.Internal() {
 			r = p.verifyNode(children)
 		} else {
-			r = p.verifyLeaf(dsKey, origData, dataObj)
+			r = p.verifyLeaf(dsKey, dataObj)
 		}
-		res := ListRes{dsKey, dataObj, r}
+		res := ListRes{dsKey.Key, dataObj, r}
 		res.Status = p.checkIfAppended(res)
 		if p.verboseLevel >= ShowSpecified || OfInterest(res.Status) {
 			p.out.send(res)
@@ -290,7 +292,7 @@ func (p *verifyParams) verifyRecursive(iter ListIterator) {
 }
 
 func (p *verifyParams) verifyFull(iter ListIterator) error {
-	p.seen = make(map[ds.Key]int)
+	p.seen = make(map[string]int)
 
 	err := p.verifyTopLevel(iter)
 	// An error indicates an internal error that might mark some nodes
@@ -305,8 +307,8 @@ func (p *verifyParams) verifyFull(iter ListIterator) error {
 }
 
 func (p *verifyParams) verifyPostOrphan(iter ListIterator) error {
-	p.seen = make(map[ds.Key]int)
-	p.roots = make([]ds.Key, 0)
+	p.seen = make(map[string]int)
+	p.roots = make([]string, 0)
 
 	p.verboseLevel = -1
 	reportErr := p.verifyTopLevel(iter)
@@ -331,7 +333,7 @@ func (p *verifyParams) verifyTopLevel(iter ListIterator) error {
 	for iter.Next() {
 		key := iter.Key()
 		r := StatusUnchecked
-		origData, val, err := iter.Value()
+		val, err := iter.Value()
 		if err != nil {
 			r = StatusCorrupt
 		}
@@ -345,7 +347,7 @@ func (p *verifyParams) verifyTopLevel(iter ListIterator) error {
 				r = p.verifyNode(children)
 			}
 		} else if val.WholeFile() {
-			r = p.verifyLeaf(key, origData, val)
+			r = p.verifyLeaf(key, val)
 		} else {
 			p.setStatus(key, val, 0)
 			continue
@@ -368,21 +370,22 @@ func (p *verifyParams) verifyTopLevel(iter ListIterator) error {
 }
 
 func (p *verifyParams) checkOrphans() {
-	for key, status := range p.seen {
+	for k, status := range p.seen {
 		if status != 0 {
 			continue
 		}
-		bytes, val, err := p.fs.GetDirect(key)
+		key := HashToKey(k)
+		_, val, err := p.fs.GetDirect(key)
 		if err != nil {
 			Logger.Errorf("%s: verify: %v", MHash(key), err)
-			p.out.send(ListRes{key, val, StatusError})
+			p.out.send(ListRes{key.Key, val, StatusError})
 		} else if val.NoBlockData() {
-			status = p.verifyLeaf(key, bytes, val)
+			status = p.verifyLeaf(key, val)
 			if AnError(status) {
-				p.out.send(ListRes{key, val, status})
+				p.out.send(ListRes{key.Key, val, status})
 			}
 		}
-		p.out.send(ListRes{key, val, StatusOrphan})
+		p.out.send(ListRes{key.Key, val, StatusOrphan})
 	}
 }
 
@@ -402,61 +405,62 @@ func (p *verifyParams) checkIfAppended(res ListRes) int {
 	return res.Status
 }
 
-func (p *verifyParams) markReachable(keys []ds.Key) error {
-	for _, key := range keys {
-		r := p.seen[key]
+func (p *verifyParams) markReachable(keys []string) error {
+	for _, hash := range keys {
+		r := p.seen[hash]
 		if r == StatusMarked {
 			continue
 		}
-		if AnInternalError(r) { // not stricly necessary, but lets me extra safe
+		if AnInternalError(r) { // not stricly necessary, but lets be extra safe
 			return InternalError
 		}
 		if InternalNode(r) && r != StatusIncomplete {
+			key := HashToKey(hash)
 			_, val, err := p.fs.GetDirect(key)
 			if err != nil {
 				return err
 			}
 			links, err := GetLinks(val)
-			children := make([]ds.Key, 0, len(links))
+			children := make([]string, 0, len(links))
 			for _, link := range links {
-				children = append(children, dshelp.CidToDsKey(link.Cid))
+				children = append(children, dshelp.CidToDsKey(link.Cid).String())
 			}
 			p.markReachable(children)
 		}
 		if OfInterest(r) {
-			p.out.send(ListRes{key, nil, r})
+			p.out.send(ListRes{Key{hash, "", -1}, nil, r})
 		}
-		p.seen[key] = StatusMarked
+		p.seen[hash] = StatusMarked
 	}
 	return nil
 }
 
 func (p *verifyParams) markFutureOrphans() {
-	for key, status := range p.seen {
+	for hash, status := range p.seen {
 		if status == StatusMarked || status == 0 {
 			continue
 		}
 		if AnError(status) {
-			p.out.send(ListRes{key, nil, status})
+			p.out.send(ListRes{Key{hash, "", -1}, nil, status})
 		}
-		p.out.send(ListRes{key, nil, StatusOrphan})
+		p.out.send(ListRes{Key{hash, "", -1}, nil, StatusOrphan})
 	}
 }
 
 func (p *verifyParams) verifyNode(links []*node.Link) int {
 	finalStatus := StatusComplete
 	for _, link := range links {
-		key := dshelp.CidToDsKey(link.Cid)
-		res := ListRes{Key: key}
-		res.Status = p.getStatus(key)
+		key := CidToKey(link.Cid)
+		res := ListRes{Key: key.Key}
+		res.Status = p.getStatus(key.Hash)
 		if res.Status == 0 {
-			origData, dataObj, children, r := p.get(key)
+			dataObj, children, r := p.get(key)
 			if AnError(r) {
 				/* nothing to do */
 			} else if len(children) > 0 {
 				r = p.verifyNode(children)
 			} else if dataObj != nil {
-				r = p.verifyLeaf(key, origData, dataObj)
+				r = p.verifyLeaf(key, dataObj)
 			}
 			res = p.setStatus(key, dataObj, r)
 		}
@@ -477,10 +481,10 @@ func (p *verifyParams) verifyNode(links []*node.Link) int {
 	return finalStatus
 }
 
-func (p *verifyParams) verifyLeaf(key ds.Key, origData []byte, dataObj *DataObj) int {
-	return verify(p.fs, key, origData, dataObj, p.verifyLevel)
+func (p *verifyParams) verifyLeaf(key *DbKey, dataObj *DataObj) int {
+	return verify(p.fs, key, dataObj, p.verifyLevel)
 }
 
-func (p *verifyParams) get(dsKey ds.Key) ([]byte, *DataObj, []*node.Link, int) {
-	return getNode(dsKey, p.fs, p.node.Blockstore)
+func (p *verifyParams) get(k *DbKey) (*DataObj, []*node.Link, int) {
+	return getNode(k, p.fs, p.node.Blockstore)
 }

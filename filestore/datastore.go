@@ -1,18 +1,17 @@
 package filestore
 
 import (
-	"bytes"
+	//"runtime/debug"
+	//"bytes"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
 
-	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	"gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb"
-	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/iterator"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 	"gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/util"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
@@ -32,14 +31,13 @@ const (
 )
 
 type Datastore struct {
-	db     *leveldb.DB
+	db     dbwrap
 	verify VerifyWhen
 
-	// updateLock is designed to only be held for a very short
-	// period of time.  It, as it names suggests, is designed to
-	// avoid a race condataion when updating a DataObj and is only
-	// used by the Update function, which all functions that
-	// modify the DB use
+	// updateLock should be held whenever updating the database.  It
+	// is designed to only be held for a very short period of time and
+	// should not be held when doing potentially expensive operations
+	// such as computing a hash or any sort of I/O.
 	updateLock sync.Mutex
 
 	// A snapshot of the DB the last time it was in a consistent
@@ -59,19 +57,9 @@ type Datastore struct {
 	//maintLock  sync.RWMutex
 }
 
-type readonly interface {
-	Get(key []byte, ro *opt.ReadOptions) (value []byte, err error)
-	Has(key []byte, ro *opt.ReadOptions) (ret bool, err error)
-	NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator
-}
-
 type Basic struct {
-	db readonly
+	db dbread
 	ds *Datastore
-}
-
-func (d *Datastore) updateOnGet() bool {
-	return d.verify == VerifyIfChanged
 }
 
 func Init(path string) error {
@@ -94,20 +82,22 @@ func New(path string, verify VerifyWhen, noCompression bool) (*Datastore, error)
 	if err != nil {
 		return nil, err
 	}
-	ds := &Datastore{db: db, verify: verify}
+	ds := &Datastore{db: dbwrap{dbread{db}, db}, verify: verify}
 	ds.addLocker.ds = ds
 	return ds, nil
 }
 
-func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
+func (d *Datastore) Put(key ds.Key, value interface{}) error {
 	dataObj, ok := value.(*DataObj)
 	if !ok {
-		panic(ds.ErrInvalidType)
+		return ds.ErrInvalidType
 	}
 
-	if dataObj.FilePath == "" {
-		_, err := d.Update(key.Bytes(), nil, dataObj)
-		return err
+	if dataObj.FilePath == "" && dataObj.Size == 0 {
+		// special case to handle empty files
+		d.updateLock.Lock()
+		defer d.updateLock.Unlock()
+		return d.db.Put(HashToKey(key.String()), dataObj)
 	}
 
 	// Make sure the filename is an absolute path
@@ -134,95 +124,168 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 		}
 	}
 
-	_, err = d.Update(key.Bytes(), nil, dataObj)
-	return err
-}
+	hash := HashToKey(key.String())
 
-// Update a key in a way that avoids race condations.  If origData is
-// defined and the current value in the datastore is not the same
-// return false and abort the update, otherwise update the key to the
-// value of newData; if newData is nil then delete the key.  If an
-// error is returned than the return value is undefined.
-func (d *Datastore) Update(keyBytes []byte, origData []byte, newData *DataObj) (bool, error) {
 	d.updateLock.Lock()
 	defer d.updateLock.Unlock()
-	if origData != nil {
-		val, err := d.db.Get(keyBytes, nil)
-		if err != leveldb.ErrNotFound && err != nil {
-			return false, err
-		}
-		if err == leveldb.ErrNotFound && newData == nil {
-			// Deleting block already deleted, nothing to
-			// worry about.
-			log.Debugf("skipping delete of already deleted block %s", MHashB(keyBytes))
-			return true, nil
-		}
-		if err == leveldb.ErrNotFound || !bytes.Equal(val, origData) {
-			// FIXME: This maybe should at the notice
-			// level but there is no "Noticef"!
-			log.Infof("skipping update/delete of block %s", MHashB(keyBytes))
-			return false, nil
-		}
-	}
-	if newData == nil {
-		log.Debugf("deleting block %s", MHashB(keyBytes))
-		return true, d.db.Delete(keyBytes, nil)
-	} else {
-		data, err := newData.Marshal()
-		if err != nil {
-			return false, err
-		}
-		if origData == nil {
-			log.Debugf("adding block %s", MHashB(keyBytes))
-		} else {
-			log.Debugf("updating block %s", MHashB(keyBytes))
-		}
-		return true, d.db.Put(keyBytes, data, nil)
-	}
+	return d.db.Put(hash, dataObj)
+
+	//dbKey := NewDbKey(key.String(), dataObj.FilePath, dataObj.Offset, nil)
+
+	//
+	// if d.db.Have(hash)
+
+	// foundKey, _, err := d.GetDirect(dbKey)
+	// if err != nil && err != ds.ErrNotFound {
+	// 	return err
+	// }
+
+	// // File already stored, just update the value
+	// if err == nil {
+	// 	return d.db.Put(foundKey, dataObj)
+	// }
+
+	// // File not stored
+	// if
+
+	// Check if entry already exists
 }
 
-func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
-	bytes, val, err := d.GetDirect(key)
+// Might modify the DataObj
+// func (d *Datastore) PutDataObj(key Key, dataObj *DataObj) error {
+// 	if key.FilePath != "" {
+// 		if key.Offset == -1 {
+// 			//erro
+// 		}
+// 		dataObj.FilePath = ""
+// 		dataObj.Offset = 0
+// 	}
+// 	// now store normally
+// }
+
+// func (d *Datastore) UpdateGood(key Key, dataObj *DataObj) {
+// 	d.updateLock.Lock()
+// 	defer d.updateLock.Unlock()
+// 	_,bad,err := GetHash(key.Hash)
+// 	if err == nil {
+// 		return
+// 	}
+// 	badKey := Key{key.Hash, bad.FilePath, bad.Offset}
+// 	_,good,err := GetKey(key)
+// 	if err == nil {
+// 		return
+// 	}
+// 	// FIXME: Use batching here
+// 	Put(Key{key.Hash,"",-1}, good)
+// 	Put(badKey, bad)
+// 	d.db.Delete(key.String())
+// }
+
+func (d *Datastore) Get(dsKey ds.Key) (value interface{}, err error) {
+	key := NewDbKey(dsKey.String(), "", -1, nil)
+	_, val, err := d.GetDirect(key)
 	if err != nil {
 		return nil, err
 	}
-	return GetData(d, key, bytes, val, d.verify)
+	data, err := GetData(d, key, val, d.verify)
+	if err == nil {
+		return data, nil
+	}
+	if err != InvalidBlock {
+		return nil, err
+	}
+
+	return nil, err
+	// The block failed to validate, check for other blocks
+
+	//UpdateGood(fsKey, dataObj) // ignore errors
+
+	//return val, nil
 }
 
-func (d *Datastore) GetDirect(key ds.Key) ([]byte, *DataObj, error) {
+func (d *Datastore) GetDirect(key *DbKey) (*DbKey, *DataObj, error) {
 	return d.AsBasic().GetDirect(key)
 }
 
-// Get the key as a DataObj
-func (d *Basic) GetDirect(key ds.Key) ([]byte, *DataObj, error) {
-	val, err := d.db.Get(key.Bytes(), nil)
-	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil, ds.ErrNotFound
-		}
+// Get the key as a DataObj. To handle multiple DataObj per Hash a
+// block can be retrieved by either by just the hash or the hash
+// combined with filename and offset.
+//
+// In addition to the date GteDirect will return the key the block was
+// found under.
+func (d *Basic) GetDirect(key *DbKey) (*DbKey, *DataObj, error) {
+	if string(key.Bytes) != key.String() {
+		panic(string(key.Bytes) + " != " + key.String())
+	}
+	val, err := d.db.Get(key)
+	if err != leveldb.ErrNotFound { // includes the case when err == nil
+		return key, val, err
+	}
+
+	if key.FilePath == "" {
+		return nil, nil, ds.ErrNotFound
+	}
+
+	hash := HashToKey(key.Hash)
+	return d.getIndirect(hash, key)
+}
+
+// We have a key with filename and offset that was not found directly.
+// Check to see it it was stored just using the hash.
+func (d *Basic) getIndirect(hash *DbKey, key *DbKey) (*DbKey, *DataObj, error) {
+	val, err := d.db.GetHash(hash.Bytes)
+	if err == leveldb.ErrNotFound {
+		return nil, nil, ds.ErrNotFound
+	} else if err != nil {
 		return nil, nil, err
 	}
-	return Decode(val)
-}
 
-func Decode(bytes []byte) ([]byte, *DataObj, error) {
-	val := new(DataObj)
-	err := val.Unmarshal(bytes)
-	if err != nil {
-		return bytes, nil, err
+	if key.FilePath != val.FilePath || uint64(key.Offset) != val.Offset {
+		return nil, nil, ds.ErrNotFound
 	}
-	return bytes, val, nil
+
+	return hash, val, nil
 }
 
-type InvalidBlock struct{}
-
-func (e InvalidBlock) Error() string {
-	return "filestore: block verification failed"
+func (d *Datastore) DelDirect(key *DbKey) error {
+	if key.FilePath == "" {
+		return errors.New("Cannot delete with hash only key")
+	}
+	d.updateLock.Lock()
+	defer d.updateLock.Unlock()
+	found, err := d.db.Has(key)
+	if err != nil {
+		return err
+	}
+	if found {
+		return d.db.Delete(key.Bytes)
+	}
+	hash := NewDbKey(key.Hash, "", -1, nil)
+	_, _, err = d.AsBasic().getIndirect(hash, key)
+	if err != nil {
+		return err
+	}
+	return d.db.Delete(hash.Bytes)
 }
+
+func (d *Datastore) Update(key *DbKey, val *DataObj) {
+	if key.FilePath == "" {
+		key = NewDbKey(key.Hash, val.FilePath, int64(val.Offset), nil)
+	}
+	d.updateLock.Lock()
+	defer d.updateLock.Unlock()
+	foundKey, _, err := d.GetDirect(key)
+	if err != nil {
+		return
+	}
+	d.db.Put(foundKey, val)
+}
+
+var InvalidBlock = errors.New("filestore: block verification failed")
 
 // Verify as much as possible without opening the file, the result is
 // a best guess.
-func VerifyFast(key ds.Key, val *DataObj) error {
+func VerifyFast(val *DataObj) error {
 	// There is backing file, nothing to check
 	if val.HaveBlockData() {
 		return nil
@@ -230,7 +293,7 @@ func VerifyFast(key ds.Key, val *DataObj) error {
 
 	// block already marked invalid
 	if val.Invalid() {
-		return InvalidBlock{}
+		return InvalidBlock
 	}
 
 	// get the file's metadata, return on error
@@ -241,13 +304,13 @@ func VerifyFast(key ds.Key, val *DataObj) error {
 
 	// the file has shrunk, the block invalid
 	if val.Offset+val.Size > uint64(fileInfo.Size()) {
-		return InvalidBlock{}
+		return InvalidBlock
 	}
 
 	// the file mtime has changes, the block is _likely_ invalid
 	modtime := FromTime(fileInfo.ModTime())
 	if modtime != val.ModTime {
-		return InvalidBlock{}
+		return InvalidBlock
 	}
 
 	// the block _seams_ ok
@@ -255,7 +318,7 @@ func VerifyFast(key ds.Key, val *DataObj) error {
 }
 
 // Get the orignal data out of the DataObj
-func GetData(d *Datastore, key ds.Key, origData []byte, val *DataObj, verify VerifyWhen) ([]byte, error) {
+func GetData(d *Datastore, key *DbKey, val *DataObj, verify VerifyWhen) ([]byte, error) {
 	if val == nil {
 		return nil, errors.New("Nil DataObj")
 	}
@@ -264,11 +327,6 @@ func GetData(d *Datastore, key ds.Key, origData []byte, val *DataObj, verify Ver
 	// is nothing more to do so just return the block data
 	if val.HaveBlockData() {
 		return val.Data, nil
-	}
-
-	update := false
-	if d != nil {
-		update = d.updateOnGet()
 	}
 
 	invalid := val.Invalid()
@@ -296,73 +354,58 @@ func GetData(d *Datastore, key ds.Key, origData []byte, val *DataObj, verify Ver
 		invalid = true
 	}
 
-	// get the new modtime if needed
-	modtime := val.ModTime
-	if update || verify == VerifyIfChanged {
-		fileInfo, err := file.Stat()
-		if err != nil {
-			return nil, err
+	if verify == VerifyNever {
+		if invalid {
+			return nil, InvalidBlock
+		} else {
+			return data, nil
 		}
-		modtime = FromTime(fileInfo.ModTime())
 	}
 
+	// get the new modtime
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	modtime := FromTime(fileInfo.ModTime())
+
 	// Verify the block contents if required
-	if reconstructOk && (verify == VerifyAlways || (verify == VerifyIfChanged && modtime != val.ModTime)) {
+	if reconstructOk && (verify == VerifyAlways || modtime != val.ModTime) {
 		log.Debugf("verifying block %s\n", MHash(key))
-		origKey, _ := dshelp.DsKeyToCid(key)
+		origKey, _ := key.Cid()
 		newKey, _ := origKey.Prefix().Sum(data)
 		invalid = !origKey.Equals(newKey)
 	}
 
 	// Update the block if the metadata has changed
-	if update && (invalid != val.Invalid() || modtime != val.ModTime) && origData != nil {
+	if invalid != val.Invalid() || modtime != val.ModTime {
 		log.Debugf("updating block %s\n", MHash(key))
 		newVal := *val
 		newVal.SetInvalid(invalid)
 		newVal.ModTime = modtime
 		// ignore errors as they are nonfatal
-		_, _ = d.Update(key.Bytes(), origData, &newVal)
+		d.Update(key, &newVal)
 	}
 
 	// Finally return the result
 	if invalid {
 		log.Debugf("invalid block %s\n", MHash(key))
-		return nil, InvalidBlock{}
+		return nil, InvalidBlock
 	} else {
 		return data, nil
 	}
 }
 
-func MHashB(dsKey []byte) string {
-	return MHash(ds.NewKey(string(dsKey)))
-}
-
-func MHash(dsKey ds.Key) string {
-	key, err := dshelp.DsKeyToCid(dsKey)
-	if err != nil {
-		return "??????????????????????????????????????????????"
-	}
-	return key.String()
-}
-
 func (d *Datastore) Has(key ds.Key) (exists bool, err error) {
-	return d.db.Has(key.Bytes(), nil)
+	// FIXME: This is too simple
+	return d.db.HasHash(key.Bytes())
 }
 
 func (d *Datastore) Delete(key ds.Key) error {
-	// leveldb Delete will not return an error if the key doesn't
-	// exist (see https://github.com/syndtr/goleveldb/issues/109),
-	// so check that the key exists first and if not return an
-	// error
-	keyBytes := key.Bytes()
-	exists, err := d.db.Has(keyBytes, nil)
-	if !exists {
-		return ds.ErrNotFound
-	} else if err != nil {
-		return err
-	}
-	_, err = d.Update(keyBytes, nil, nil)
-	return err
+	d.updateLock.Lock()
+	defer d.updateLock.Unlock()
+	return d.db.Delete(key.Bytes())
+	//return errors.New("Deleting filestore blocks by hash only is unsupported.")
 }
 
 func (d *Datastore) Query(q query.Query) (query.Results, error) {
@@ -379,7 +422,7 @@ func (d *Datastore) Query(q query.Query) (query.Results, error) {
 	qrb := dsq.NewResultBuilder(q)
 	qrb.Process.Go(func(worker goprocess.Process) {
 		var rnge *util.Range
-		i := d.db.NewIterator(rnge, nil)
+		i := d.db.db.NewIterator(rnge, nil)
 		defer i.Release()
 		for i.Next() {
 			k := ds.NewKey(string(i.Key())).String()
@@ -402,63 +445,8 @@ func (d *Datastore) Query(q query.Query) (query.Results, error) {
 	return qrb.Results(), nil
 }
 
-type Iterator struct {
-	key      ds.Key
-	keyBytes []byte
-	value    *DataObj
-	bytes    []byte
-	iter     iterator.Iterator
-}
-
-var emptyDsKey = ds.NewKey("")
-
-func (d *Basic) NewIterator() *Iterator {
-	return &Iterator{iter: d.db.NewIterator(nil, nil)}
-}
-
-func (d *Datastore) NewIterator() *Iterator {
-	return &Iterator{iter: d.db.NewIterator(nil, nil)}
-}
-
-func (itr *Iterator) Next() bool {
-	itr.keyBytes = nil
-	itr.value = nil
-	return itr.iter.Next()
-}
-
-func (itr *Iterator) Key() ds.Key {
-	if itr.keyBytes != nil {
-		return itr.key
-	}
-	itr.keyBytes = itr.iter.Key()
-	itr.key = ds.NewKey(string(itr.keyBytes))
-	return itr.key
-}
-
-func (itr *Iterator) KeyBytes() []byte {
-	itr.Key()
-	return itr.keyBytes
-}
-
-func (itr *Iterator) Value() ([]byte, *DataObj, error) {
-	if itr.value != nil {
-		return itr.bytes, itr.value, nil
-	}
-	itr.bytes = itr.iter.Value()
-	if itr.bytes == nil {
-		return nil, nil, nil
-	}
-	var err error
-	_, itr.value, err = Decode(itr.bytes)
-	return itr.bytes, itr.value, err
-}
-
-func (itr *Iterator) Release() {
-	itr.iter.Release()
-}
-
 func (d *Datastore) Close() error {
-	return d.db.Close()
+	return d.db.db.Close()
 }
 
 func (d *Datastore) Batch() (ds.Batch, error) {

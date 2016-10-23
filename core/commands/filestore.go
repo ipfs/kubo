@@ -19,8 +19,8 @@ import (
 	"github.com/ipfs/go-ipfs/filestore"
 	fsutil "github.com/ipfs/go-ipfs/filestore/util"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	"gx/ipfs/QmRpAnJ1Mvd2wCtwoFevW8pbLTivUqmFxynptG6uvp1jzC/safepath"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -515,7 +515,7 @@ func formatHash(res fsutil.ListRes) (string, error) {
 }
 
 func formatPorcelain(res fsutil.ListRes) (string, error) {
-	if len(res.RawHash()) == 0 {
+	if res.Key.Hash == "" {
 		return "", nil
 	}
 	if res.DataObj == nil {

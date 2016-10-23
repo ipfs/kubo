@@ -119,7 +119,7 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 		var toDel []*cid.Cid
 		for r := range ch {
 			if to_remove[r.Status] {
-				c, err := dshelp.DsKeyToCid(r.Key)
+				c, err := r.Key.Cid()
 				if err != nil {
 					wtr.CloseWithError(err)
 					return
@@ -169,24 +169,24 @@ func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, keys []*cid.Cid, snap Sna
 		stillOkay := butil.FilterPinned(mbs, pins, out, keys, prefix)
 
 		for _, k := range stillOkay {
-			keyBytes := dshelp.CidToDsKey(k).Bytes()
-			var origVal []byte
+			dbKey := NewDbKey(dshelp.CidToDsKey(k).String(), "", -1, k)
+			var err error
 			if snap.Defined() {
-				var err error
-				origVal, err = snap.DB().Get(keyBytes, nil)
-				if err != nil {
-					out <- &butil.RemovedBlock{Hash: k.String(), Error: err.Error()}
+				origVal, err0 := snap.DB().Get(dbKey)
+				if err0 != nil {
+					out <- &butil.RemovedBlock{Hash: dbKey.Format(), Error: err.Error()}
 					continue
 				}
-			}
-			ok, err := fs.Update(keyBytes, origVal, nil)
-			// Update does not return an error if the key no longer exist
-			if err != nil {
-				out <- &butil.RemovedBlock{Hash: k.String(), Error: err.Error()}
-			} else if !ok {
-				out <- &butil.RemovedBlock{Hash: k.String(), Error: "value changed"}
+				dbKey = NewDbKey(dbKey.Hash, origVal.FilePath, int64(origVal.Offset), k)
+				err = fs.DelDirect(dbKey)
 			} else {
-				out <- &butil.RemovedBlock{Hash: k.String()}
+				// we have an exclusive lock
+				err = fs.DB().Delete(dbKey.Bytes)
+			}
+			if err != nil {
+				out <- &butil.RemovedBlock{Hash: dbKey.Format(), Error: err.Error()}
+			} else {
+				out <- &butil.RemovedBlock{Hash: dbKey.Format()}
 			}
 		}
 	}()

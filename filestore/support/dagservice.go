@@ -30,7 +30,8 @@ func GetLinks(dataObj *DataObj) ([]*node.Link, error) {
 
 func (ds *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
 	dsKey := dshelp.CidToDsKey(c)
-	_, dataObj, err := ds.fs.GetDirect(dsKey)
+	key := NewDbKey(dsKey.String(), "", -1, nil)
+	_, dataObj, err := ds.fs.GetDirect(key)
 	if err != nil {
 		return ds.DAGService.GetLinks(ctx, c)
 	}

@@ -246,7 +246,7 @@ test_expect_success "testing rm of indirect pinned file" '
 
 clear_pins
 
-test_expect_success "testing filestore mv" '
+test_expect_failure "testing filestore mv" '
   HASH=QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc &&
   random 5242880 42 >mountdir/bigfile-42 &&
   ipfs add mountdir/bigfile-42 &&
@@ -254,7 +254,7 @@ test_expect_success "testing filestore mv" '
   test_cmp mountdir/bigfile-42 mountdir/bigfile-42-also
 '
 
-test_expect_success "testing filestore mv result" '
+test_expect_failure "testing filestore mv result" '
   ipfs filestore verify -l9 QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc > verify.out &&
   grep -q "ok \+QmQHRQ7EU8mUXLXkvqKWPubZqtxYPbwaqYo6NXSfS9zdCc " verify.out
 '

@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
-	k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+	//k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 )
 
 func Dups(wtr io.Writer, fs *Basic, bs b.MultiBlockstore, pins pin.Pinner, args ...string) error {
@@ -32,11 +32,10 @@ func Dups(wtr io.Writer, fs *Basic, bs b.MultiBlockstore, pins pin.Pinner, args 
 	ls := ListKeys(fs)
 	dups := make([]*cid.Cid, 0)
 	for res := range ls {
-		key, err := k.KeyFromDsKey(res.Key)
+		c, err := res.Key.Cid()
 		if err != nil {
 			return err
 		}
-		c := cid.NewCidV0(key.ToMultihash())
 		if butil.AvailableElsewhere(bs, fsrepo.FilestoreMount, c) {
 			dups = append(dups, c)
 		}
