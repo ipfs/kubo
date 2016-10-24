@@ -8,6 +8,8 @@ import (
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 // layerRepeat specifies how many times to append a child tree of a
@@ -15,7 +17,7 @@ import (
 // improves seek speeds.
 const layerRepeat = 4
 
-func TrickleLayout(db *h.DagBuilderHelper) (*dag.ProtoNode, error) {
+func TrickleLayout(db *h.DagBuilderHelper) (node.Node, error) {
 	root := h.NewUnixfsNode()
 	if err := db.FillNodeLayer(root); err != nil {
 		return nil, err
@@ -66,7 +68,12 @@ func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error
 }
 
 // TrickleAppend appends the data in `db` to the dag, using the Trickledag format
-func TrickleAppend(ctx context.Context, base *dag.ProtoNode, db *h.DagBuilderHelper) (out *dag.ProtoNode, err_out error) {
+func TrickleAppend(ctx context.Context, basen node.Node, db *h.DagBuilderHelper) (out node.Node, err_out error) {
+	base, ok := basen.(*dag.ProtoNode)
+	if !ok {
+		return nil, dag.ErrNotProtobuf
+	}
+
 	defer func() {
 		if err_out == nil {
 			if err := db.Close(); err != nil {
@@ -229,8 +236,13 @@ func trickleDepthInfo(node *h.UnixfsNode, maxlinks int) (int, int) {
 
 // VerifyTrickleDagStructure checks that the given dag matches exactly the trickle dag datastructure
 // layout
-func VerifyTrickleDagStructure(nd *dag.ProtoNode, ds dag.DAGService, direct int, layerRepeat int) error {
-	return verifyTDagRec(nd, -1, direct, layerRepeat, ds)
+func VerifyTrickleDagStructure(nd node.Node, ds dag.DAGService, direct int, layerRepeat int) error {
+	pbnd, ok := nd.(*dag.ProtoNode)
+	if !ok {
+		return dag.ErrNotProtobuf
+	}
+
+	return verifyTDagRec(pbnd, -1, direct, layerRepeat, ds)
 }
 
 // Recursive call for verifying the structure of a trickledag

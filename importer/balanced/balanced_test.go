@@ -28,7 +28,12 @@ func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.ProtoNode, error)
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return BalancedLayout(dbp.New(spl))
+	nd, err := BalancedLayout(dbp.New(spl))
+	if err != nil {
+		return nil, err
+	}
+
+	return nd.(*dag.ProtoNode), nil
 }
 
 func getTestDag(t *testing.T, ds dag.DAGService, size int64, blksize int64) (*dag.ProtoNode, []byte) {

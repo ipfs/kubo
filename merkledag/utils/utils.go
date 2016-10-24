@@ -1,17 +1,18 @@
 package dagutils
 
 import (
+	"context"
 	"errors"
-
-	context "context"
-	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
-	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
 type Editor struct {
@@ -50,7 +51,7 @@ func (e *Editor) GetDagService() dag.DAGService {
 	return e.tmp
 }
 
-func addLink(ctx context.Context, ds dag.DAGService, root *dag.ProtoNode, childname string, childnd *dag.ProtoNode) (*dag.ProtoNode, error) {
+func addLink(ctx context.Context, ds dag.DAGService, root *dag.ProtoNode, childname string, childnd node.Node) (*dag.ProtoNode, error) {
 	if childname == "" {
 		return nil, errors.New("cannot create link with no name!")
 	}
@@ -76,7 +77,7 @@ func addLink(ctx context.Context, ds dag.DAGService, root *dag.ProtoNode, childn
 	return root, nil
 }
 
-func (e *Editor) InsertNodeAtPath(ctx context.Context, pth string, toinsert *dag.ProtoNode, create func() *dag.ProtoNode) error {
+func (e *Editor) InsertNodeAtPath(ctx context.Context, pth string, toinsert node.Node, create func() *dag.ProtoNode) error {
 	splpath := path.SplitList(pth)
 	nd, err := e.insertNodeAtPath(ctx, e.root, splpath, toinsert, create)
 	if err != nil {
@@ -86,7 +87,7 @@ func (e *Editor) InsertNodeAtPath(ctx context.Context, pth string, toinsert *dag
 	return nil
 }
 
-func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path []string, toinsert *dag.ProtoNode, create func() *dag.ProtoNode) (*dag.ProtoNode, error) {
+func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path []string, toinsert node.Node, create func() *dag.ProtoNode) (*dag.ProtoNode, error) {
 	if len(path) == 1 {
 		return addLink(ctx, e.tmp, root, path[0], toinsert)
 	}

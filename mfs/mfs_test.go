@@ -42,12 +42,12 @@ func getDagserv(t *testing.T) dag.DAGService {
 	return dag.NewDAGService(blockserv)
 }
 
-func getRandFile(t *testing.T, ds dag.DAGService, size int64) *dag.ProtoNode {
+func getRandFile(t *testing.T, ds dag.DAGService, size int64) node.Node {
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
 	return fileNodeFromReader(t, ds, r)
 }
 
-func fileNodeFromReader(t *testing.T, ds dag.DAGService, r io.Reader) *dag.ProtoNode {
+func fileNodeFromReader(t *testing.T, ds dag.DAGService, r io.Reader) node.Node {
 	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r))
 	if err != nil {
 		t.Fatal(err)
@@ -125,7 +125,12 @@ func compStrArrs(a, b []string) bool {
 	return true
 }
 
-func assertFileAtPath(ds dag.DAGService, root *Directory, exp *dag.ProtoNode, pth string) error {
+func assertFileAtPath(ds dag.DAGService, root *Directory, expn node.Node, pth string) error {
+	exp, ok := expn.(*dag.ProtoNode)
+	if !ok {
+		return dag.ErrNotProtobuf
+	}
+
 	parts := path.SplitList(pth)
 	cur := root
 	for i, d := range parts[:len(parts)-1] {
@@ -789,7 +794,12 @@ func TestFlushing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fsnode, err := ft.FSNodeFromBytes(rnd.Data())
+	pbrnd, ok := rnd.(*dag.ProtoNode)
+	if !ok {
+		t.Fatal(dag.ErrNotProtobuf)
+	}
+
+	fsnode, err := ft.FSNodeFromBytes(pbrnd.Data())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -798,10 +808,10 @@ func TestFlushing(t *testing.T) {
 		t.Fatal("root wasnt a directory")
 	}
 
-	rnk := rnd.Key()
+	rnk := rnd.Cid()
 	exp := "QmWMVyhTuyxUrXX3ynz171jq76yY3PktfY9Bxiph7b9ikr"
-	if rnk.B58String() != exp {
-		t.Fatalf("dag looks wrong, expected %s, but got %s", exp, rnk.B58String())
+	if rnk.String() != exp {
+		t.Fatalf("dag looks wrong, expected %s, but got %s", exp, rnk.String())
 	}
 }
 

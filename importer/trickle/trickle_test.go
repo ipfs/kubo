@@ -2,6 +2,7 @@ package trickle
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,7 +10,6 @@ import (
 	"os"
 	"testing"
 
-	"context"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
@@ -17,6 +17,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -31,7 +32,12 @@ func buildTestDag(ds merkledag.DAGService, spl chunk.Splitter) (*merkledag.Proto
 		return nil, err
 	}
 
-	return nd, VerifyTrickleDagStructure(nd, ds, dbp.Maxlinks, layerRepeat)
+	pbnd, ok := nd.(*merkledag.ProtoNode)
+	if !ok {
+		return nil, merkledag.ErrNotProtobuf
+	}
+
+	return pbnd, VerifyTrickleDagStructure(pbnd, ds, dbp.Maxlinks, layerRepeat)
 }
 
 //Test where calls to read are smaller than the chunk size

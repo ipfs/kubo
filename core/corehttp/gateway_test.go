@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -9,14 +10,15 @@ import (
 	"testing"
 	"time"
 
-	context "context"
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
+
 	id "gx/ipfs/QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum/go-libp2p/p2p/protocol/identify"
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
@@ -178,11 +180,13 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	_, dagn2, err := coreunix.AddWrapped(n, strings.NewReader("_"), "index.html")
 	if err != nil {
 		t.Fatal(err)
 	}
-	dagn1.AddNodeLink("foo", dagn2)
+
+	dagn1.(*dag.ProtoNode).AddNodeLink("foo", dagn2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +201,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	k := dagn1.Key()
+	k := dagn1.Cid()
 	t.Logf("k: %s\n", k)
 	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
 
@@ -268,8 +272,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dagn2.AddNodeLink("bar", dagn3)
-	dagn1.AddNodeLink("foo? #<'", dagn2)
+	dagn2.(*dag.ProtoNode).AddNodeLink("bar", dagn3)
+	dagn1.(*dag.ProtoNode).AddNodeLink("foo? #<'", dagn2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +291,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	k := dagn1.Key()
+	k := dagn1.Cid()
 	t.Logf("k: %s\n", k)
 	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
 

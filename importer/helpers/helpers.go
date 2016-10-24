@@ -1,12 +1,14 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 
-	"context"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -37,8 +39,10 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 // UnixfsNode is a struct created to aid in the generation
 // of unixfs DAG trees
 type UnixfsNode struct {
-	node *dag.ProtoNode
-	ufmt *ft.FSNode
+	raw     bool
+	rawnode *dag.RawNode
+	node    *dag.ProtoNode
+	ufmt    *ft.FSNode
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
@@ -74,6 +78,15 @@ func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
 
+func (n *UnixfsNode) Set(other *UnixfsNode) {
+	n.node = other.node
+	n.raw = other.raw
+	n.rawnode = other.rawnode
+	if other.ufmt != nil {
+		n.ufmt.Data = other.ufmt.Data
+	}
+}
+
 func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
 	if err != nil {
@@ -92,7 +105,7 @@ func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*U
 // the passed in DagBuilderHelper is used to store the child node an
 // pin it locally so it doesnt get lost
 func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
-	n.ufmt.AddBlockSize(child.ufmt.FileSize())
+	n.ufmt.AddBlockSize(child.FileSize())
 
 	childnode, err := child.GetDagNode()
 	if err != nil {
@@ -124,9 +137,20 @@ func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
 }
 
+func (n *UnixfsNode) FileSize() uint64 {
+	if n.raw {
+		return uint64(len(n.rawnode.RawData()))
+	}
+	return n.ufmt.FileSize()
+}
+
 // getDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
-func (n *UnixfsNode) GetDagNode() (*dag.ProtoNode, error) {
+func (n *UnixfsNode) GetDagNode() (node.Node, error) {
+	if n.raw {
+		return n.rawnode, nil
+	}
+
 	data, err := n.ufmt.GetBytes()
 	if err != nil {
 		return nil, err

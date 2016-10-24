@@ -36,7 +36,7 @@ func NodeWithData(d []byte) *ProtoNode {
 }
 
 // AddNodeLink adds a link to another node.
-func (n *ProtoNode) AddNodeLink(name string, that *ProtoNode) error {
+func (n *ProtoNode) AddNodeLink(name string, that node.Node) error {
 	n.encoded = nil
 
 	lnk, err := node.MakeLink(that)

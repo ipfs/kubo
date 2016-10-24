@@ -37,8 +37,11 @@ func NewBlock(data []byte) *BasicBlock {
 // we are able to be confident that the data is correct
 func NewBlockWithCid(data []byte, c *cid.Cid) (*BasicBlock, error) {
 	if u.Debug {
-		// TODO: fix assumptions
-		chkc := cid.NewCidV0(u.Hash(data))
+		chkc, err := c.Prefix().Sum(data)
+		if err != nil {
+			return nil, err
+		}
+
 		if !chkc.Equals(c) {
 			return nil, ErrWrongHash
 		}

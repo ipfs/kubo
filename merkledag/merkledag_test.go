@@ -373,3 +373,81 @@ func TestBasicAddGet(t *testing.T) {
 		t.Fatal("output didnt match input")
 	}
 }
+
+func TestGetRawNodes(t *testing.T) {
+	rn := NewRawNode([]byte("test"))
+
+	ds := dstest.Mock()
+
+	c, err := ds.Add(rn)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !c.Equals(rn.Cid()) {
+		t.Fatal("output cids didnt match")
+	}
+
+	out, err := ds.Get(context.TODO(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(out.RawData(), []byte("test")) {
+		t.Fatal("raw block should match input data")
+	}
+
+	if out.Links() != nil {
+		t.Fatal("raw blocks shouldnt have links")
+	}
+
+	if out.Tree() != nil {
+		t.Fatal("tree should return no paths in a raw block")
+	}
+
+	size, err := out.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if size != 4 {
+		t.Fatal("expected size to be 4")
+	}
+
+	ns, err := out.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ns.DataSize != 4 {
+		t.Fatal("expected size to be 4, got: ", ns.DataSize)
+	}
+
+	_, _, err = out.Resolve([]string{"foo"})
+	if err != ErrLinkNotFound {
+		t.Fatal("shouldnt find links under raw blocks")
+	}
+}
+
+func TestProtoNodeResolve(t *testing.T) {
+
+	nd := new(ProtoNode)
+	nd.SetLinks([]*node.Link{{Name: "foo"}})
+
+	lnk, left, err := nd.Resolve([]string{"foo", "bar"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(left) != 1 || left[0] != "bar" {
+		t.Fatal("expected the single path element 'bar' to remain")
+	}
+
+	if lnk.Name != "foo" {
+		t.Fatal("how did we get anything else?")
+	}
+
+	tvals := nd.Tree()
+	if len(tvals) != 1 || tvals[0] != "foo" {
+		t.Fatal("expected tree to return []{\"foo\"}")
+	}
+}
