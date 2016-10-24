@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -166,10 +165,6 @@ func getBlockForKey(req cmds.Request, skey string) (blocks.Block, error) {
 	n, err := req.InvocContext().GetNode()
 	if err != nil {
 		return nil, err
-	}
-
-	if !u.IsValidHash(skey) {
-		return nil, errors.New("Not a valid hash")
 	}
 
 	c, err := cid.Decode(skey)
