@@ -207,9 +207,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z",
+      "hash": "QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY",
       "name": "go-cid",
-      "version": "0.6.0"
+      "version": "0.7.3"
     },
     {
       "author": "whyrusleeping",
@@ -254,9 +254,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmWHiyk5y2EKgxHogFJ4Zt1xTqKeVsBc4zcBke8ie9C2Bn",
+      "hash": "QmTyXZijAwx3ptKzQkzq7BWBhmSJhjxLpDKF2Fp95WUd13",
       "name": "go-libp2p-kad-dht",
-      "version": "2.2.0"
+      "version": "2.3.2"
     },
     {
       "author": "whyrusleeping",
@@ -272,9 +272,14 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB",
+      "hash": "QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g",
       "name": "go-ipld-node",
-      "version": "0.1.0"
+      "version": "0.3.2"
+    },
+    {
+      "hash": "QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc",
+      "name": "go-libp2p-routing",
+      "version": "2.2.2"
     }
   ],
   "gxVersion": "0.4.0",

@@ -22,7 +22,7 @@ import (
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
 
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
 func TestAddRecursive(t *testing.T) {
@@ -226,7 +226,6 @@ func TestAddWPosInfo(t *testing.T) {
 func TestAddWPosInfoAndRawLeafs(t *testing.T) {
 	testAddWPosInfo(t, true)
 }
-
 
 type testBlockstore struct {
 	blockstore.GCBlockstore
