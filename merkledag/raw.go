@@ -3,8 +3,8 @@ package merkledag
 import (
 	"github.com/ipfs/go-ipfs/blocks"
 
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
-	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
+	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -24,7 +24,11 @@ func (rn *RawNode) Links() []*node.Link {
 	return nil
 }
 
-func (rn *RawNode) Resolve(path []string) (*node.Link, []string, error) {
+func (rn *RawNode) ResolveLink(path []string) (*node.Link, []string, error) {
+	return nil, nil, ErrLinkNotFound
+}
+
+func (rn *RawNode) Resolve(path []string) (interface{}, []string, error) {
 	return nil, nil, ErrLinkNotFound
 }
 
