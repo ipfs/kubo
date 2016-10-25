@@ -9,10 +9,12 @@ import (
 )
 
 func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
+	var offset uint64 = 0
 	var root *h.UnixfsNode
 	for level := 0; !db.Done(); level++ {
 
 		nroot := h.NewUnixfsNode()
+		db.SetPosInfo(nroot, 0)
 
 		// add our old root as a child of the new root.
 		if root != nil { // nil if it's the first node.
@@ -22,11 +24,13 @@ func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
 		}
 
 		// fill it up.
-		if err := fillNodeRec(db, nroot, level); err != nil {
+		if err := fillNodeRec(db, nroot, level, offset); err != nil {
 			return nil, err
 		}
 
+		offset = nroot.FileSize()
 		root = nroot
+
 	}
 	if root == nil {
 		root = h.NewUnixfsNode()
@@ -50,7 +54,7 @@ func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
 // it returns the total dataSize of the node, and a potential error
 //
 // warning: **children** pinned indirectly, but input node IS NOT pinned.
-func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error {
+func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int, offset uint64) error {
 	if depth < 0 {
 		return errors.New("attempt to fillNode at depth < 0")
 	}
@@ -69,8 +73,9 @@ func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error {
 	// while we have room AND we're not done
 	for node.NumChildren() < db.Maxlinks() && !db.Done() {
 		child := h.NewUnixfsNode()
+		db.SetPosInfo(child, offset)
 
-		err := fillNodeRec(db, child, depth-1)
+		err := fillNodeRec(db, child, depth-1, offset)
 		if err != nil {
 			return err
 		}
@@ -78,6 +83,7 @@ func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error {
 		if err := node.AddChild(child, db); err != nil {
 			return err
 		}
+		offset += child.FileSize()
 	}
 
 	return nil
