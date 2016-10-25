@@ -508,7 +508,7 @@ test_files_api() {
 }
 
 # test offline and online
-test_files_api
+#test_files_api
 
 test_expect_success "clean up objects from previous test run" '
 	ipfs repo gc
