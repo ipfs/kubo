@@ -12,10 +12,10 @@ import (
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
-	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
+	//cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	//"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
-	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
+	//dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 )
 
 type VerifyLevel int
@@ -168,19 +168,22 @@ func (r *ListRes) MHash() string {
 	return MHash(r.Key)
 }
 
-//func (r *ListRes) RawHash() []byte {
-//	return r.Key.Bytes()[1:]
-//}
+const (
+	LsHashOnly = 1
+	LsKeyOnly  = 2
+	LsDefault  = 3
+	LsWithType = 4
+	LsLong     = 5
+)
 
 func (r *ListRes) Format() string {
 	if r.Key.Hash == "" {
 		return "\n"
 	}
-	mhash := r.MHash()
 	if r.DataObj == nil {
-		return fmt.Sprintf("%s%s\n", statusStr(r.Status), mhash)
+		return fmt.Sprintf("%s%s\n", statusStr(r.Status), r.Key.Format())
 	} else {
-		return fmt.Sprintf("%s%s %s\n", statusStr(r.Status), mhash, r.DataObj.Format())
+		return fmt.Sprintf("%s%s\n", statusStr(r.Status), r.DataObj.KeyStr(r.Key))
 	}
 }
 
@@ -221,20 +224,40 @@ var ListFilterAll ListFilter = nil
 
 func ListFilterWholeFile(r *DataObj) bool { return r.WholeFile() }
 
-func ListByKey(fs *Basic, ks []*cid.Cid) (<-chan ListRes, error) {
+func ListByKey(fs *Basic, ks []*DbKey) (<-chan ListRes, error) {
 	out := make(chan ListRes, 128)
 
 	go func() {
 		defer close(out)
 		for _, k := range ks {
-			dbKey := NewDbKey(dshelp.CidToDsKey(k).String(), "", -1, k)
-			_, dataObj, err := fs.GetDirect(dbKey)
-			if err == nil {
-				out <- ListRes{dbKey.Key, dataObj, 0}
+			hash := k.HashOnly()
+			dataObj, err := fs.DB().GetHash(hash.Bytes)
+			if err != nil {
+				continue
+			}
+			if haveMatch(k, dataObj) {
+				out <- ListRes{hash.Key, dataObj, 0}
+			}
+			itr := fs.DB().GetAlternatives(hash.Bytes)
+			for itr.Next() {
+				dataObj, err = itr.Value()
+				if err != nil {
+					continue
+				}
+				if haveMatch(k, dataObj) {
+					out <- ListRes{itr.Key().Key, dataObj, 0}
+				}
 			}
 		}
 	}()
 	return out, nil
+}
+
+func haveMatch(k *DbKey, dataObj *DataObj) bool {
+	if (k.FilePath != "" && k.FilePath != dataObj.FilePath) || (k.Offset != -1 && uint64(k.Offset) != dataObj.Offset) {
+		return false
+	}
+	return true
 }
 
 type ListIterator struct {
@@ -309,7 +332,9 @@ func getNode(key *DbKey, fs *Basic, bs b.Blockstore) (*DataObj, []*node.Link, in
 	if err == ds.ErrNotFound && err2 == b.ErrNotFound {
 		return nil, nil, StatusKeyNotFound
 	} else if err2 != nil {
+		Logger.Errorf("%s: %v", k, err)
 		Logger.Errorf("%s: %v", k, err2)
+		panic(err2)
 		return nil, nil, StatusError
 	}
 	node, err := dag.DecodeProtobuf(block.RawData())

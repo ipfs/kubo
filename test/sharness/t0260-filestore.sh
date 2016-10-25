@@ -69,10 +69,12 @@ cat <<EOF > ls_expect
 QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb
 QmUtkGLvPf63NwVzLPKPUYgwhn8ZYPWF6vKWN3fZ2amfJF
 QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
+QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
 Qmae3RedM7SNkWGsdzYzsr6svmsFdsva4WoTvYYsWhUSVz
 QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
 QmefsDaD3YVphd86mxjJfPLceKv8by98aB6J6sJxK13xS2
 Qmesmmf1EEG1orJb6XdK6DabxexsseJnCfw8pqWgonbkoj
+zdvgqC4vX1j7higiYBR1HApkcjVMAFHwJyPL8jnKK6sVMqd1v
 zdvgqC4vX1j7higiYBR1HApkcjVMAFHwJyPL8jnKK6sVMqd1v
 EOF
 
@@ -229,6 +231,7 @@ added QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH `pwd`/adir/file1
 added QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN `pwd`/adir/file2
 EOF
 
+reset_filestore
 clear_pins
 
 test_expect_success "testing filestore add -r --pin" '

@@ -351,14 +351,14 @@ If <offset> is the special value "-" indicates a file root.
 	},
 }
 
-func procListArgs(objs []string) ([]*cid.Cid, fsutil.ListFilter, error) {
-	keys := make([]*cid.Cid, 0)
+func procListArgs(objs []string) ([]*filestore.DbKey, fsutil.ListFilter, error) {
+	keys := make([]*filestore.DbKey, 0)
 	paths := make([]string, 0)
 	for _, obj := range objs {
 		if filepath.IsAbs(obj) {
 			paths = append(paths, safepath.Clean(obj))
 		} else {
-			key, err := cid.Decode(obj)
+			key, err := filestore.ParseKey(obj)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -795,10 +795,38 @@ var rmFilestoreObjs = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Remove blocks from the filestore.",
 	},
-	Arguments: blockRmCmd.Arguments,
-	Options:   blockRmCmd.Options,
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, true, "Objects to remove."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("force", "f", "Ignore nonexistent blocks.").Default(false),
+		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		blockRmRun(req, res, fsrepo.FilestoreMount)
+		n, fs, err := extractFilestore(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		hashes := req.Arguments()
+		//force, _, _ := req.Option("force").Bool()
+		//quiet, _, _ := req.Option("quiet").Bool()
+		keys := make([]*filestore.DbKey, 0, len(hashes))
+		for _, hash := range hashes {
+			k, err := filestore.ParseKey(hash)
+			if err != nil {
+				res.SetError(fmt.Errorf("invalid filestore key: %s (%s)", hash, err), cmds.ErrNormal)
+				return
+			}
+			keys = append(keys, k)
+		}
+		outChan := make(chan interface{})
+		err = fsutil.RmBlocks(fs, n.Blockstore, n.Pinning, outChan, keys)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput((<-chan interface{})(outChan))
 	},
 	PostRun: blockRmCmd.PostRun,
 	Type:    blockRmCmd.Type,

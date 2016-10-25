@@ -9,19 +9,19 @@ import (
 	"strings"
 	"time"
 
-	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
+	//bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	butil "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
-	"github.com/ipfs/go-ipfs/pin"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
-	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	//"github.com/ipfs/go-ipfs/pin"
+	//fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	//dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
+	//cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
 func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, what ...string) (io.Reader, error) {
-	exclusiveMode := node.LocalMode()
+	//exclusiveMode := node.LocalMode()
 	stages := 0
 	to_remove := make([]bool, 100)
 	incompleteWhen := make([]string, 0)
@@ -116,24 +116,29 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 			return
 		}
 
-		var toDel []*cid.Cid
-		for r := range ch {
-			if to_remove[r.Status] {
-				c, err := r.Key.Cid()
-				if err != nil {
-					wtr.CloseWithError(err)
-					return
+		remover := NewFilestoreRemover(snapshot)
+
+		ch2 := make(chan interface{}, 16)
+		go func() {
+			defer close(ch2)
+			for r := range ch {
+				if to_remove[r.Status] {
+					r2 := remover.Delete(KeyToKey(r.Key))
+					if r2 != nil {
+						ch2 <- r2
+					}
 				}
-				toDel = append(toDel, c)
 			}
-		}
-		var ch2 <-chan interface{}
-		if exclusiveMode {
-			ch2 = rmBlocks(node.Blockstore, node.Pinning, toDel, Snapshot{}, fs)
-		} else {
-			ch2 = rmBlocks(node.Blockstore, node.Pinning, toDel, snapshot, fs)
-		}
+		}()
 		err2 := butil.ProcRmOutput(ch2, rmWtr, wtr)
+		if err2 != nil {
+			wtr.CloseWithError(err2)
+			return
+		}
+		debugCleanRmDelay()
+		Logger.Debugf("Removing invalid blocks after clean.  Online Mode.")
+		ch3 := remover.Finish(node.Blockstore, node.Pinning)
+		err2 = butil.ProcRmOutput(ch3, rmWtr, wtr)
 		if err2 != nil {
 			wtr.CloseWithError(err2)
 			return
@@ -144,55 +149,55 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 	return rdr, nil
 }
 
-func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, keys []*cid.Cid, snap Snapshot, fs *Datastore) <-chan interface{} {
+// func rmBlocks(mbs bs.MultiBlockstore, pins pin.Pinner, keys []*cid.Cid, snap Snapshot, fs *Datastore) <-chan interface{} {
 
-	// make the channel large enough to hold any result to avoid
-	// blocking while holding the GCLock
-	out := make(chan interface{}, len(keys))
+// 	// make the channel large enough to hold any result to avoid
+// 	// blocking while holding the GCLock
+// 	out := make(chan interface{}, len(keys))
 
-	debugCleanRmDelay()
+// 	debugCleanRmDelay()
 
-	if snap.Defined() {
-		Logger.Debugf("Removing invalid blocks after clean.  Online Mode.")
-	} else {
-		Logger.Debugf("Removing invalid blocks after clean.  Exclusive Mode.")
-	}
+// 	if snap.Defined() {
+// 		Logger.Debugf("Removing invalid blocks after clean.  Online Mode.")
+// 	} else {
+// 		Logger.Debugf("Removing invalid blocks after clean.  Exclusive Mode.")
+// 	}
 
-	prefix := fsrepo.FilestoreMount
+// 	prefix := fsrepo.FilestoreMount
 
-	go func() {
-		defer close(out)
+// 	go func() {
+// 		defer close(out)
 
-		unlocker := mbs.GCLock()
-		defer unlocker.Unlock()
+// 		unlocker := mbs.GCLock()
+// 		defer unlocker.Unlock()
 
-		stillOkay := butil.FilterPinned(mbs, pins, out, keys, prefix)
+// 		stillOkay := butil.FilterPinned(mbs, pins, out, keys, prefix)
 
-		for _, k := range stillOkay {
-			dbKey := NewDbKey(dshelp.CidToDsKey(k).String(), "", -1, k)
-			var err error
-			if snap.Defined() {
-				origVal, err0 := snap.DB().Get(dbKey)
-				if err0 != nil {
-					out <- &butil.RemovedBlock{Hash: dbKey.Format(), Error: err.Error()}
-					continue
-				}
-				dbKey = NewDbKey(dbKey.Hash, origVal.FilePath, int64(origVal.Offset), k)
-				err = fs.DelDirect(dbKey)
-			} else {
-				// we have an exclusive lock
-				err = fs.DB().Delete(dbKey.Bytes)
-			}
-			if err != nil {
-				out <- &butil.RemovedBlock{Hash: dbKey.Format(), Error: err.Error()}
-			} else {
-				out <- &butil.RemovedBlock{Hash: dbKey.Format()}
-			}
-		}
-	}()
+// 		for _, k := range stillOkay {
+// 			dbKey := NewDbKey(dshelp.CidToDsKey(k).String(), "", -1, k)
+// 			var err error
+// 			if snap.Defined() {
+// 				origVal, err0 := snap.DB().Get(dbKey)
+// 				if err0 != nil {
+// 					out <- &butil.RemovedBlock{Hash: dbKey.Format(), Error: err.Error()}
+// 					continue
+// 				}
+// 				dbKey = NewDbKey(dbKey.Hash, origVal.FilePath, int64(origVal.Offset), k)
+// 				err = fs.DelDirect(dbKey, NotPinned)
+// 			} else {
+// 				// we have an exclusive lock
+// 				err = fs.DB().Delete(dbKey.Bytes)
+// 			}
+// 			if err != nil {
+// 				out <- &butil.RemovedBlock{Hash: dbKey.Format(), Error: err.Error()}
+// 			} else {
+// 				out <- &butil.RemovedBlock{Hash: dbKey.Format()}
+// 			}
+// 		}
+// 	}()
 
-	return out
-}
+// 	return out
+// }
 
 // this function is used for testing in order to test for race
 // conditions

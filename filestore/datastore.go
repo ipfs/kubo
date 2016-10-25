@@ -124,87 +124,106 @@ func (d *Datastore) Put(key ds.Key, value interface{}) error {
 		}
 	}
 
-	hash := HashToKey(key.String())
-
 	d.updateLock.Lock()
 	defer d.updateLock.Unlock()
-	return d.db.Put(hash, dataObj)
 
-	//dbKey := NewDbKey(key.String(), dataObj.FilePath, dataObj.Offset, nil)
+	hash := HashToKey(key.String())
+	have, err := d.db.Has(hash)
+	if err != nil {
+		return err
+	}
+	if !have {
+		// First the easy case, the hash doesn't exist yet so just
+		// insert the data object as is
+		return d.db.Put(hash, dataObj)
+	}
 
-	//
-	// if d.db.Have(hash)
+	// okay so the hash exists, see if we already have this DataObj
+	dbKey := NewDbKey(key.String(), dataObj.FilePath, int64(dataObj.Offset), nil)
+	foundKey, _, err := d.GetDirect(dbKey)
+	if err != nil && err != ds.ErrNotFound {
+		return err
+	}
 
-	// foundKey, _, err := d.GetDirect(dbKey)
-	// if err != nil && err != ds.ErrNotFound {
-	// 	return err
-	// }
+	if err == nil {
+		// the DataObj already exists so just replace it
+		return d.db.Put(foundKey, dataObj)
+	}
 
-	// // File already stored, just update the value
-	// if err == nil {
-	// 	return d.db.Put(foundKey, dataObj)
-	// }
-
-	// // File not stored
-	// if
-
-	// Check if entry already exists
+	// the DataObj does not exist so insert it using the full key to
+	// avoid overwritting the existing entry
+	return d.db.Put(dbKey, dataObj)
 }
 
-// Might modify the DataObj
-// func (d *Datastore) PutDataObj(key Key, dataObj *DataObj) error {
-// 	if key.FilePath != "" {
-// 		if key.Offset == -1 {
-// 			//erro
-// 		}
-// 		dataObj.FilePath = ""
-// 		dataObj.Offset = 0
-// 	}
-// 	// now store normally
-// }
-
-// func (d *Datastore) UpdateGood(key Key, dataObj *DataObj) {
-// 	d.updateLock.Lock()
-// 	defer d.updateLock.Unlock()
-// 	_,bad,err := GetHash(key.Hash)
-// 	if err == nil {
-// 		return
-// 	}
-// 	badKey := Key{key.Hash, bad.FilePath, bad.Offset}
-// 	_,good,err := GetKey(key)
-// 	if err == nil {
-// 		return
-// 	}
-// 	// FIXME: Use batching here
-// 	Put(Key{key.Hash,"",-1}, good)
-// 	Put(badKey, bad)
-// 	d.db.Delete(key.String())
-// }
-
 func (d *Datastore) Get(dsKey ds.Key) (value interface{}, err error) {
-	key := NewDbKey(dsKey.String(), "", -1, nil)
-	_, val, err := d.GetDirect(key)
+	hash := HashToKey(dsKey.String())
+
+	// we need a consistent view of the database so take a snapshot
+	ss0, err := d.db.db.GetSnapshot()
 	if err != nil {
 		return nil, err
 	}
-	data, err := GetData(d, key, val, d.verify)
+	defer ss0.Release()
+	ss := dbread{ss0}
+
+	val, err := ss.GetHash(hash.Bytes)
+	if err == leveldb.ErrNotFound {
+		return nil, ds.ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	data, err := GetData(d, hash, val, d.verify)
 	if err == nil {
 		return data, nil
 	}
-	if err != InvalidBlock {
-		return nil, err
+
+	//println("GET TRYING ALTERNATIVES")
+
+	// See if we have any other DataObj's for the same hash that are
+	// valid
+	itr := ss.GetAlternatives(hash.Bytes)
+	for itr.Next() {
+		key := itr.Key()
+		val, err := itr.Value()
+		if err != nil {
+			return nil, err
+		}
+		data, err = GetData(d, key, val, d.verify)
+		if err == nil {
+			// we found one
+			d.updateGood(hash, key, val)
+			return data, nil
+		}
+		if err != InvalidBlock {
+			return nil, err
+		}
 	}
 
 	return nil, err
-	// The block failed to validate, check for other blocks
-
-	//UpdateGood(fsKey, dataObj) // ignore errors
-
-	//return val, nil
 }
 
-func (d *Datastore) GetDirect(key *DbKey) (*DbKey, *DataObj, error) {
-	return d.AsBasic().GetDirect(key)
+func (d *Datastore) updateGood(hash *DbKey, key *DbKey, dataObj *DataObj) {
+	d.updateLock.Lock()
+	defer d.updateLock.Unlock()
+	bad, err := d.db.GetHash(hash.Bytes)
+	if err != nil {
+		log.Warningf("%s: updateGood: %s", key, err)
+	}
+	badKey := NewDbKey(hash.Hash, bad.FilePath, int64(bad.Offset), nil)
+	good, err := d.db.Get(key)
+	if err != nil {
+		log.Warningf("%s: updateGood: %s", key, err)
+	}
+	// use batching as this needs to be done in a single atomic
+	// operation, to avoid problems with partial failures
+	batch := NewBatch()
+	batch.Put(hash, good)
+	batch.Put(badKey, bad)
+	batch.Delete(key.Bytes)
+	err = d.db.Write(batch)
+	if err != nil {
+		log.Warningf("%s: updateGood: %s", key, err)
+	}
 }
 
 // Get the key as a DataObj. To handle multiple DataObj per Hash a
@@ -247,8 +266,61 @@ func (d *Basic) getIndirect(hash *DbKey, key *DbKey) (*DbKey, *DataObj, error) {
 	return hash, val, nil
 }
 
-func (d *Datastore) DelDirect(key *DbKey) error {
-	if key.FilePath == "" {
+func (d *Datastore) GetDirect(key *DbKey) (*DbKey, *DataObj, error) {
+	return d.AsBasic().GetDirect(key)
+}
+
+func (d *Basic) GetAll(hash []byte) ([]*DataObj, error) {
+	val, err := d.db.GetHash(hash)
+	if err == leveldb.ErrNotFound {
+		return nil, ds.ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	res := []*DataObj{val}
+	itr := d.db.GetAlternatives(hash)
+	for itr.Next() {
+		val, err := itr.Value()
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, val)
+	}
+	return res, nil
+}
+
+type IsPinned int
+
+const (
+	NotPinned   = 1
+	MaybePinned = 2
+)
+
+var RequirePinCheck = errors.New("Will delete last DataObj for hash, pin check required.")
+
+// Delete a single DataObj
+// FIXME: Needs testing!
+func (d *Datastore) DelSingle(key *DbKey, isPinned IsPinned) error {
+	if key.FilePath != "" {
+		return d.DelDirect(key, isPinned)
+	}
+	d.updateLock.Lock()
+	defer d.updateLock.Unlock()
+	found, err := d.db.Has(key)
+	if err != nil {
+		return err
+	} else if !found {
+		return ds.ErrNotFound
+	}
+
+	return d.doDelete(key, isPinned)
+}
+
+// Directly delete a single DataObj based on the full key
+// FIXME: Needs testing!
+func (d *Datastore) DelDirect(key *DbKey, isPinned IsPinned) error {
+	if key.FilePath == "" && key.Offset == -1 {
+		panic("Cannot delete with hash only key")
 		return errors.New("Cannot delete with hash only key")
 	}
 	d.updateLock.Lock()
@@ -261,11 +333,35 @@ func (d *Datastore) DelDirect(key *DbKey) error {
 		return d.db.Delete(key.Bytes)
 	}
 	hash := NewDbKey(key.Hash, "", -1, nil)
+
 	_, _, err = d.AsBasic().getIndirect(hash, key)
 	if err != nil {
 		return err
 	}
-	return d.db.Delete(hash.Bytes)
+
+	return d.doDelete(hash, isPinned)
+}
+
+func (d *Datastore) doDelete(hash *DbKey, isPinned IsPinned) error {
+	itr := d.db.GetAlternatives(hash.Bytes)
+	haveAlt := itr.Next()
+
+	if isPinned == MaybePinned && !haveAlt {
+		return RequirePinCheck
+	}
+
+	batch := NewBatch()
+
+	batch.Delete(hash.Bytes)
+	if haveAlt {
+		val, err := itr.Value()
+		if err != nil {
+			return err
+		}
+		batch.Put(hash, val)
+		batch.Delete(itr.Key().Bytes)
+	}
+	return d.db.Write(batch)
 }
 
 func (d *Datastore) Update(key *DbKey, val *DataObj) {
@@ -402,10 +498,10 @@ func (d *Datastore) Has(key ds.Key) (exists bool, err error) {
 }
 
 func (d *Datastore) Delete(key ds.Key) error {
-	d.updateLock.Lock()
-	defer d.updateLock.Unlock()
-	return d.db.Delete(key.Bytes())
-	//return errors.New("Deleting filestore blocks by hash only is unsupported.")
+	//d.updateLock.Lock()
+	//defer d.updateLock.Unlock()
+	//return d.db.Delete(key.Bytes())
+	return errors.New("Deleting filestore blocks via Delete() method is unsupported.")
 }
 
 func (d *Datastore) Query(q query.Query) (query.Results, error) {

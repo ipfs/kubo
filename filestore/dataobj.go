@@ -68,6 +68,39 @@ func (d *DataObj) StripData() DataObj {
 	}
 }
 
+func (d *DataObj) KeyStr(key Key) string {
+	if key.FilePath == "" {
+		res := key.Format()
+		res += " /"
+		res += d.FilePath
+		res += "//"
+		res += fmt.Sprintf("%d", d.Offset)
+		return res
+	} else {
+		return key.Format()
+	}
+}
+
+func (d *DataObj) TypeStr() string {
+	if d.Invalid() && d.NoBlockData() {
+		return "invld"
+	} else if d.NoBlockData() {
+		return "leaf"
+	} else if d.Internal() && d.WholeFile() {
+		return "root"
+	} else {
+		return "other"
+	}
+}
+
+func (d *DataObj) DataStr() string {
+	if d.NoBlockData() {
+		return ToTime(d.ModTime).Format("2006-01-02T15:04:05.000Z07:00")
+	} else {
+		return ""
+	}
+}
+
 func (d *DataObj) Format() string {
 	offset := fmt.Sprintf("%d", d.Offset)
 	if d.WholeFile() {

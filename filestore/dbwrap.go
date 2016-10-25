@@ -66,6 +66,44 @@ func (d dbread) GetAlternatives(key []byte) *Iterator {
 	return &Iterator{iter: d.db.NewIterator(&util.Range{start, stop}, nil)}
 }
 
+// func (d dbread) GetAll(hash []byte) (*DataObj, *Iterator, error) {
+// 	// First get an iterator with a range that starts with the bare hash and
+// 	// ends with the last alternative key (if any), an example if the hash
+// 	// was D4G674, the keys in the iterator range might be
+// 	// sequence might be
+// 	//    D4G674
+// 	//   (D4G674B)
+// 	//   (D4G674B//file/0)
+// 	//    D4G674//afile/0
+// 	//    D4G674//bfile/0
+// 	// where the keys is () are not related to this hash and need to
+// 	// be skipped over
+// 	stop := make([]byte, 0, len(key)+1)
+// 	stop = append(stop, key...)
+// 	stop = append(stop, byte('/') + 1)
+// 	itr := &Iterator{iter: d.db.NewIterator(&util.Range{hash, stop}, nil)}
+
+// 	// first extract the bare hash if it exists
+// 	any := itr.Next()
+// 	if !any {
+// 		return nil, nil, leveldb.ErrNotFound
+// 	}
+// 	first := itr.iter.Key()
+// 	if !bytes.Equal(hash,first) {
+// 		return nil, nil, leveldb.ErrNotFound
+// 	}
+// 	dataObj, err := Decode(itr.iter.Value())
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
+
+// 	// now skip to the first alternative
+// 	altStart := make([]byte, 0, len(key)+1)
+// 	altStart = append(stop, key...)
+// 	altStart = append(stop, byte('/'))
+// 	itr.iter.Seek(altStart)
+// }
+
 func (w dbread) HasHash(key []byte) (bool, error) {
 	return w.db.Has(key, nil)
 }
@@ -94,12 +132,16 @@ func (w dbwrap) Delete(key []byte) error {
 	return w.db.Delete(key, nil)
 }
 
-func (w dbwrap) Write(b *dbbatch) error {
+func (w dbwrap) Write(b dbbatch) error {
 	return w.db.Write(b.batch, nil)
 }
 
 type dbbatch struct {
 	batch *leveldb.Batch
+}
+
+func NewBatch() dbbatch {
+	return dbbatch{new(leveldb.Batch)}
 }
 
 func (b dbbatch) Put(key *DbKey, val *DataObj) error {

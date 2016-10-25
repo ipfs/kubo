@@ -207,45 +207,45 @@ filestore_test_exact_paths() {
     test_expect_success "prep for path checks" '
       mkdir mydir &&
       ln -s mydir dirlink &&
-      echo "Hello Worlds!" > dirlink/hello.txt
+      echo "Hello Worlds!!" > dirlink/hello.txt
     '
 
     test_expect_success "ipfs filestore add $opts adds under the expected path name (with symbolic links)" '
       FILEPATH="`pwd`/dirlink/hello.txt" &&
-      ipfs filestore add $opt "$FILEPATH" &&
+      HASH=`ipfs filestore add $opt "$FILEPATH" -q` &&
       echo "$FILEPATH" > ls-expected &&
-      ipfs filestore ls-files -q QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > ls-actual &&
+      ipfs filestore ls-files -q $HASH > ls-actual &&
       test_cmp ls-expected ls-actual
     '
 
     test_expect_success "ipfs filestore ls dirlink/ works as expected" '
-      echo "QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" > ls-expected
+      echo "$HASH" > ls-expected
       ipfs filestore ls -q "`pwd`/dirlink/" > ls-actual
       test_cmp ls-expected ls-actual
     '
 
     test_expect_success "ipfs filestore add $opts --physical works as expected" '
-      ipfs filestore rm QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH &&
+      ipfs filestore rm $HASH &&
       ( cd dirlink &&
         ipfs filestore add $opt --physical hello.txt
         FILEPATH="`pwd -P`/hello.txt" &&
         echo "$FILEPATH" > ls-expected &&
-        ipfs filestore ls-files -q QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > ls-actual &&
+        ipfs filestore ls-files -q $HASH > ls-actual &&
         test_cmp ls-expected ls-actual )
     '
 
     test_expect_success "ipfs filestore add $opts --logical works as expected" '
-      ipfs filestore rm QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH &&
+      ipfs filestore rm $HASH &&
       ( cd dirlink &&
         ipfs filestore add $opt --logical hello.txt
         FILEPATH="`pwd -L`/hello.txt" &&
         echo "$FILEPATH" > ls-expected &&
-        ipfs filestore ls-files -q QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH > ls-actual &&
+        ipfs filestore ls-files -q $HASH > ls-actual &&
         test_cmp ls-expected ls-actual )
     '
 
     test_expect_success "cleanup from path checks" '
-      ipfs filestore rm QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH &&
+      ipfs filestore rm $HASH &&
       rm -rf mydir
     '
 }
@@ -318,6 +318,14 @@ test_add_dir_w_symlinks() {
     '
 }
 
+# must do with the daemon offline
+reset_filestore() {
+    test_expect_success "resting filestore" '
+      rm -r .ipfs/filestore-db &&
+      ipfs filestore enable
+    '
+}
+
 filestore_test_w_daemon() {
     opt=$1
 
@@ -372,11 +380,17 @@ filestore_test_w_daemon() {
 
     test_kill_ipfs_daemon
 
-    test_expect_success "clean filestore" '
-      ipfs filestore ls -q | xargs ipfs filestore rm &&
-      test -z "`ipfs filestore ls -q`"
-    '
+    reset_filestore
 
+    #test_expect_success "clean filestore" '
+    #  ipfs filestore ls -q | xargs ipfs filestore rm &&
+    #  test -z "`ipfs filestore ls -q`"
+    #'
+
+# 
+# DO NOT REMOVE THIS CODE, Testing feature disable at compile time
+#
+    
 #     test_expect_success "enable Filestore.APIServerSidePaths" '
 #       ipfs config Filestore.APIServerSidePaths --bool true
 #     '
@@ -426,3 +440,4 @@ filestore_test_w_daemon() {
 #     test_kill_ipfs_daemon
 
 }
+

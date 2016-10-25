@@ -38,6 +38,7 @@ func ParseKey(str string) (*DbKey, error) {
 	}
 	str = str[idx+1:]
 	parseRest(&key.Key, str)
+	key.Bytes = key.Key.Bytes()
 	return key, nil
 }
 
@@ -119,12 +120,24 @@ func NewDbKey(hash string, filePath string, offset int64, cid *cid.Cid) *DbKey {
 	return key
 }
 
+func KeyToKey(key Key) *DbKey {
+	return &DbKey{key, key.Bytes(), nil}
+}
+
 func HashToKey(hash string) *DbKey {
 	return NewDbKey(hash, "", -1, nil)
 }
 
 func CidToKey(c *cid.Cid) *DbKey {
 	return NewDbKey(dshelp.CidToDsKey(c).String(), "", -1, c)
+}
+
+func (k *DbKey) HashOnly() *DbKey {
+	if k.cid != nil {
+		return CidToKey(k.cid)
+	} else {
+		return HashToKey(k.Hash)
+	}
 }
 
 func (k *DbKey) Cid() (*cid.Cid, error) {
@@ -166,4 +179,9 @@ func (k *DbKey) Format() string {
 		return mhash
 	}
 	return Key{mhash, k.FilePath, k.Offset}.String()
+}
+
+func (k *DbKey) MakeFull(dataObj *DataObj) *DbKey {
+	newKey := Key{k.Hash, dataObj.FilePath, int64(dataObj.Offset)}
+	return &DbKey{newKey, newKey.Bytes(), k.cid}
 }
