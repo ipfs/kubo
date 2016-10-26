@@ -55,7 +55,7 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resolver := &path.Resolver{DAG: dagService}
+	resolver := path.NewBasicResolver(dagService)
 	node, err := resolver.ResolvePath(ctx, p)
 	if err != nil {
 		t.Fatal(err)

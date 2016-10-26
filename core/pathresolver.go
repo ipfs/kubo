@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 
 	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
@@ -18,13 +19,13 @@ var ErrNoNamesys = errors.New(
 
 // Resolve resolves the given path by parsing out protocol-specific
 // entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
-// entries and returning the final merkledag node.
-func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (node.Node, error) {
+// entries and returning the final node.
+func Resolve(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p path.Path) (node.Node, error) {
 	if strings.HasPrefix(p.String(), "/ipns/") {
 		// resolve ipns paths
 
 		// TODO(cryptix): we sould be able to query the local cache for the path
-		if n.Namesys == nil {
+		if nsys == nil {
 			return nil, ErrNoNamesys
 		}
 
@@ -40,7 +41,7 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (node.Node, error) {
 			return nil, err
 		}
 
-		respath, err := n.Namesys.Resolve(ctx, resolvable.String())
+		respath, err := nsys.Resolve(ctx, resolvable.String())
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +54,7 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (node.Node, error) {
 	}
 
 	// ok, we have an ipfs path now (or what we'll treat as one)
-	return n.Resolver.ResolvePath(ctx, p)
+	return r.ResolvePath(ctx, p)
 }
 
 // ResolveToKey resolves a path to a key.
@@ -76,7 +77,7 @@ func ResolveToCid(ctx context.Context, n *IpfsNode, p path.Path) (*cid.Cid, erro
 	if err != nil {
 		return nil, err
 	}
-	dagnode, err := Resolve(ctx, n, head)
+	dagnode, err := Resolve(ctx, n.Namesys, n.Resolver, head)
 	if err != nil {
 		return nil, err
 	}

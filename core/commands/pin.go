@@ -277,7 +277,7 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 			return nil, err
 		}
 
-		dagNode, err := core.Resolve(ctx, n, pth)
+		dagNode, err := core.Resolve(ctx, n.Namesys, n.Resolver, pth)
 		if err != nil {
 			return nil, err
 		}

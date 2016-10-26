@@ -198,8 +198,13 @@ var refsMarshallerMap = cmds.MarshalerMap{
 
 func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]node.Node, error) {
 	objects := make([]node.Node, len(paths))
-	for i, p := range paths {
-		o, err := core.Resolve(ctx, n, path.Path(p))
+	for i, sp := range paths {
+		p, err := path.ParsePath(sp)
+		if err != nil {
+			return nil, err
+		}
+
+		o, err := core.Resolve(ctx, n.Namesys, n.Resolver, p)
 		if err != nil {
 			return nil, err
 		}

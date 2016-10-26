@@ -64,7 +64,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		}
 		p := path.Path(req.Arguments()[0])
 		ctx := req.Context()
-		dn, err := core.Resolve(ctx, node, p)
+		dn, err := core.Resolve(ctx, node.Namesys, node.Resolver, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

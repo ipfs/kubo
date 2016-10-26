@@ -95,7 +95,7 @@ var tarCatCmd = &cmds.Command{
 			return
 		}
 
-		root, err := core.Resolve(req.Context(), nd, p)
+		root, err := core.Resolve(req.Context(), nd.Namesys, nd.Resolver, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
