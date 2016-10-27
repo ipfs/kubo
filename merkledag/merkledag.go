@@ -14,7 +14,7 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
-	ipldcbor "gx/ipfs/QmYRzW9YDHVNCDbfFzbS7TEXAG1swE1yjq1basZ5WnJYH4/go-ipld-cbor"
+	ipldcbor "gx/ipfs/QmY7L2aEa1rHjkSSbXJB8oC7825JTpUUvDygmM2JPQeqhr/go-ipld-cbor"
 )
 
 var log = logging.Logger("merkledag")
@@ -108,10 +108,6 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 		return NewRawNode(b.RawData()), nil
 	case cid.CBOR:
 		return ipldcbor.Decode(b.RawData())
-		/*
-			case cid.Bitcoin:
-				return ipldbtc.DecodeBlock(b.RawData())
-		*/
 	default:
 		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
 	}

@@ -10,7 +10,7 @@ import (
 
 	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
-	ipldcbor "gx/ipfs/QmYRzW9YDHVNCDbfFzbS7TEXAG1swE1yjq1basZ5WnJYH4/go-ipld-cbor"
+	ipldcbor "gx/ipfs/QmY7L2aEa1rHjkSSbXJB8oC7825JTpUUvDygmM2JPQeqhr/go-ipld-cbor"
 )
 
 var DagCmd = &cmds.Command{
@@ -37,8 +37,8 @@ var DagPutCmd = &cmds.Command{
 		cmds.FileArg("object data", true, false, "The object to put").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("format", "f", "Format that the object will be.").Default("cbor"),
-		cmds.StringOption("input-enc", "Format that the object will be.").Default("json"),
+		cmds.StringOption("format", "f", "Format that the object will be added as.").Default("cbor"),
+		cmds.StringOption("input-enc", "Format that the input object will be.").Default("json"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -55,17 +55,10 @@ var DagPutCmd = &cmds.Command{
 
 		ienc, _, _ := req.Option("input-enc").String()
 		format, _, _ := req.Option("format").String()
-		_ = format
+
 		switch ienc {
 		case "json":
-			var obj map[string]interface{}
-			err := json.NewDecoder(fi).Decode(&obj)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			nd, err := convertJsonToType(obj, format)
+			nd, err := convertJsonToType(fi, format)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -79,29 +72,9 @@ var DagPutCmd = &cmds.Command{
 
 			res.SetOutput(&OutputObject{Cid: c})
 			return
-			/*
-				case "btc":
-					data, err := ioutil.ReadAll(fi)
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
-
-					blk, err := ipldbtc.DecodeBlock(data)
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
-
-					c, err := n.DAG.Add(blk)
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
-
-					res.SetOutput(&OutputObject{Cid: c})
-					return
-			*/
+		default:
+			res.SetError(fmt.Errorf("unrecognized input encoding: %s", ienc), cmds.ErrNormal)
+			return
 		}
 	},
 	Type: OutputObject{},
@@ -147,7 +120,13 @@ var DagGetCmd = &cmds.Command{
 	},
 }
 
-func convertJsonToType(obj map[string]interface{}, format string) (node.Node, error) {
+func convertJsonToType(r io.Reader, format string) (node.Node, error) {
+	var obj map[string]interface{}
+	err := json.NewDecoder(r).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
+
 	switch format {
 	case "cbor", "dag-cbor":
 		return convertJsonToCbor(obj)
@@ -166,6 +145,7 @@ func convertJsonToCbor(from map[string]interface{}) (*ipldcbor.Node, error) {
 
 	return ipldcbor.WrapMap(out)
 }
+
 func convertMapSIToCbor(from map[string]interface{}) (map[interface{}]interface{}, error) {
 	to := make(map[interface{}]interface{})
 	for k, v := range from {
