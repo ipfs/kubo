@@ -21,6 +21,22 @@ type FilestoreRemover struct {
 	ReportAlreadyDeleted bool
 }
 
+// Batch removal of filestore blocks works on a snapshot of the
+// database and is done in two passes.
+
+// In the first pass a DataObj is deleted if it can be done so without
+// requiring a pin check.  If a pin check is required than the hash is
+// appened to the tocheck for the pin check.
+//
+// By definition if a hash in in tocheck there is only one DataObj for
+// that hash left at the time the snapshot was taken.
+//
+// In the second pass the pincheck is done and any unpinned hashes are
+// deleted.  In the case that there is multiple DataObjs in the
+// snapshot all but one will have already been removed; however we
+// can't easily tell which one so just re-delete all the keys present
+// in the snapshot.
+
 func NewFilestoreRemover(ss Snapshot) *FilestoreRemover {
 	return &FilestoreRemover{ss: ss, ReportFound: true, ReportNotFound: true}
 }
@@ -80,11 +96,12 @@ func (r *FilestoreRemover) Finish(mbs bs.MultiBlockstore, pins pin.Pinner) <-cha
 
 		for _, c := range stillOkay {
 			k := CidToKey(c)
-			todel, err := r.ss.GetAll(k.Bytes)
+			todel, err := r.ss.GetAll(k)
 			if err != nil {
 				out <- &u.RemovedBlock{Hash: k.Format(), Error: err.Error()}
 			}
-			for _, dataObj := range todel {
+			for _, kv := range todel {
+				dataObj := kv.Val
 				dbKey := k.MakeFull(dataObj)
 				err = r.ss.AsFull().DelDirect(dbKey, NotPinned)
 				if err == ds.ErrNotFound {
@@ -127,31 +144,3 @@ func RmBlocks(fs *Datastore, mbs bs.MultiBlockstore, pins pin.Pinner, out chan<-
 	return nil
 }
 
-// 	go func() {
-// 		defer close(out)
-
-// 		// First get a snapshot
-
-// 		tocheck := ...
-// 		for _, k := range keys {
-// 			RmBlockPrePinCheck(...)
-// 		}
-
-// 		unlocker := mbs.GCLock()
-// 		defer unlocker.Unlock()
-
-// 		stillOkay := FilterPinned(mbs, pins, out, tocheck, prefix)
-
-// 		for _, c := range stillOkay {
-// 			err := blocks.DeleteBlock(c)
-// 			if err != nil && opts.Force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
-// 				// ignore non-existent blocks
-// 			} else if err != nil {
-// 				out <- &u.RemovedBlock{Hash: c.String(), Error: err.Error()}
-// 			} else if !opts.Quiet {
-// 				out <- &u.RemovedBlock{Hash: c.String()}
-// 			}
-// 		}
-// 	}()
-// 	return nil
-// }

@@ -93,7 +93,7 @@ func (d *DataObj) TypeStr() string {
 	}
 }
 
-func (d *DataObj) DataStr() string {
+func (d *DataObj) DateStr() string {
 	if d.NoBlockData() {
 		return ToTime(d.ModTime).Format("2006-01-02T15:04:05.000Z07:00")
 	} else {

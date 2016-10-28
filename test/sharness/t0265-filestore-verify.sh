@@ -86,14 +86,15 @@ test_expect_success "ipfs verify produces expected output" '
   test_verify_cmp verify-expect verify-actual
 '
 
+test_expect_success "ipfs verify-post-orphan produces expected output" '
+  ipfs filestore verify-post-orphan > verify-actual || true &&
+  test_verify_cmp verify-expect verify-actual
+'
+
 test_expect_success "'filestore clean full' is complete" '
     ipfs filestore clean full > clean-res &&
     filestore_is_empty
 '
-
-test_done
-
-## FIXME NOW: Fix filestore clean and these test so they work
 
 #########
 #
@@ -110,33 +111,48 @@ cat <<EOF > verify-initial
 changed  QmWZsU9wAHbaJHgCqFsDPRKomEcKZHei4rGNDrbjzjbmiJ
 problem  QmSLmxiETLJXJQxHBHwYd3BckDEqoZ3aZEnVGkb9EmbGcJ
 
+no-file  QmXsjgFej1F7p6oKh4LSCscG9sBE8oBvV8foeC5791Goof
+no-file  QmXdpFugYKSCcXrRpWpqNPX9htvfYD81w38VcHyeMCD2gt
+no-file  QmepFjJy8jMuFs8bGbjPSUwnBD2542Hchwh44dvcfBdNi1
 no-file  QmXWr5Td85uXqKhyL17uAsZ7aJZSvtXs3aMGTZ4wHvwubP
 problem  QmW6QuzoYEpwASzZktbc5G5Fkq3XeBbUfRCrrUEByYm6Pi
 
 missing  QmQVwjbNQZRpNoeTYwDwtA3CEEXHBeuboPgShqspGn822N
 incomplete QmWRhUdTruDSjcdeiFjkGFA6Qd2JXfmVLNMM4KKjJ84jSD
 
+no-file  QmXmiSYiAMd5vv1BgLnCVrgmqserFDAqcKGCBXmdWFHtcR
+no-file  QmNN38uhkUknjUAfWjYHg4E2TPjYaHuecTQTvT1gnUT3Je
+no-file  QmV5MfoytVQi4uGeATfpJvvzofXUe9MQ2Ymm5y3F3ZpqUc
+no-file  QmWThuQjx96vq9RphjwAqDQFndjTo1hFYXZwEJbcUjbo37
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
 ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
 
+orphan   QmWuBmMUbJBjfoG8BgPAdVLuvtk8ysZuMrAYEFk18M9gvR
+orphan   Qmctvse35eQ8cEgUEsBxJYi7e4uNz3gnUqYYj8JTvZNY2A
+orphan   QmeoJhPxZ5tQoCXR2aMno63L6kJDbCJ3fZH4gcqjD65aKR
 orphan   QmVBGAJY8ghCXomPmttGs7oUZkQQUAKG3Db5StwneJtxwq
 changed  QmPSxQ4mNyq2b1gGu7Crsf3sbdSnYnFB3spSVETSLhD5RW
 orphan   QmPSxQ4mNyq2b1gGu7Crsf3sbdSnYnFB3spSVETSLhD5RW
-orphan   Qmctvse35eQ8cEgUEsBxJYi7e4uNz3gnUqYYj8JTvZNY2A
-orphan   QmWuBmMUbJBjfoG8BgPAdVLuvtk8ysZuMrAYEFk18M9gvR
-orphan   QmeoJhPxZ5tQoCXR2aMno63L6kJDbCJ3fZH4gcqjD65aKR
 EOF
 
 interesting_prep() {
+  reset_filestore
+    
   test_expect_success "generate a bunch of file with some block sharing" '
     random 1000000 1 > a &&
     random 1000000 2 > b &&
     random 1000000 3 > c &&
     random 1000000 4 > d &&
     random 1000000 5 > e &&
+    random 1000000 6 > f &&
     cat a b > ab &&
-    cat b c > bc
+    cat b c > bc &&
+    cp f f2 
   '
 
   test_expect_success "add files with overlapping blocks" '
@@ -146,7 +162,9 @@ interesting_prep() {
     B_HASH=$(ipfs filestore add --logical -q b) &&
     C_HASH=$(ipfs filestore add --logical -q c) && # note blocks of C not shared due to alignment
     D_HASH=$(ipfs filestore add --logical -q d) &&
-    E_HASH=$(ipfs filestore add --logical -q e)
+    E_HASH=$(ipfs filestore add --logical -q e) &&
+    F_HASH=$(ipfs filestore add --logical -q f) &&
+    ipfs filestore add --logical -q f2
   '
 
   test_expect_success "create various problems" '
@@ -162,6 +180,8 @@ interesting_prep() {
     # that is both an orphan and "changed"
     dd conv=notrunc if=/dev/zero of=e count=1 &&
     ipfs filestore rm $E_HASH
+    # remove the backing file for f
+    rm f
   '
 
   test_expect_success "'filestore verify' produces expected output" '
@@ -176,11 +196,22 @@ cat <<EOF > verify-now
 changed  QmWZsU9wAHbaJHgCqFsDPRKomEcKZHei4rGNDrbjzjbmiJ
 problem  QmSLmxiETLJXJQxHBHwYd3BckDEqoZ3aZEnVGkb9EmbGcJ
 
+no-file  QmXsjgFej1F7p6oKh4LSCscG9sBE8oBvV8foeC5791Goof
+no-file  QmXdpFugYKSCcXrRpWpqNPX9htvfYD81w38VcHyeMCD2gt
+no-file  QmepFjJy8jMuFs8bGbjPSUwnBD2542Hchwh44dvcfBdNi1
 no-file  QmXWr5Td85uXqKhyL17uAsZ7aJZSvtXs3aMGTZ4wHvwubP
 problem  QmW6QuzoYEpwASzZktbc5G5Fkq3XeBbUfRCrrUEByYm6Pi
 
 missing  QmQVwjbNQZRpNoeTYwDwtA3CEEXHBeuboPgShqspGn822N
 incomplete QmWRhUdTruDSjcdeiFjkGFA6Qd2JXfmVLNMM4KKjJ84jSD
+
+no-file  QmXmiSYiAMd5vv1BgLnCVrgmqserFDAqcKGCBXmdWFHtcR
+no-file  QmNN38uhkUknjUAfWjYHg4E2TPjYaHuecTQTvT1gnUT3Je
+no-file  QmV5MfoytVQi4uGeATfpJvvzofXUe9MQ2Ymm5y3F3ZpqUc
+no-file  QmWThuQjx96vq9RphjwAqDQFndjTo1hFYXZwEJbcUjbo37
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 
 ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
@@ -195,8 +226,19 @@ cat <<EOF > verify-now
 changed  QmWZsU9wAHbaJHgCqFsDPRKomEcKZHei4rGNDrbjzjbmiJ
 problem  QmSLmxiETLJXJQxHBHwYd3BckDEqoZ3aZEnVGkb9EmbGcJ
 
+no-file  QmXsjgFej1F7p6oKh4LSCscG9sBE8oBvV8foeC5791Goof
+no-file  QmXdpFugYKSCcXrRpWpqNPX9htvfYD81w38VcHyeMCD2gt
+no-file  QmepFjJy8jMuFs8bGbjPSUwnBD2542Hchwh44dvcfBdNi1
 no-file  QmXWr5Td85uXqKhyL17uAsZ7aJZSvtXs3aMGTZ4wHvwubP
 problem  QmW6QuzoYEpwASzZktbc5G5Fkq3XeBbUfRCrrUEByYm6Pi
+
+no-file  QmXmiSYiAMd5vv1BgLnCVrgmqserFDAqcKGCBXmdWFHtcR
+no-file  QmNN38uhkUknjUAfWjYHg4E2TPjYaHuecTQTvT1gnUT3Je
+no-file  QmV5MfoytVQi4uGeATfpJvvzofXUe9MQ2Ymm5y3F3ZpqUc
+no-file  QmWThuQjx96vq9RphjwAqDQFndjTo1hFYXZwEJbcUjbo37
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 
 ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
@@ -215,12 +257,23 @@ cat <<EOF > verify-now
 changed  QmWZsU9wAHbaJHgCqFsDPRKomEcKZHei4rGNDrbjzjbmiJ
 problem  QmSLmxiETLJXJQxHBHwYd3BckDEqoZ3aZEnVGkb9EmbGcJ
 
+no-file  QmXsjgFej1F7p6oKh4LSCscG9sBE8oBvV8foeC5791Goof
+no-file  QmXdpFugYKSCcXrRpWpqNPX9htvfYD81w38VcHyeMCD2gt
+no-file  QmepFjJy8jMuFs8bGbjPSUwnBD2542Hchwh44dvcfBdNi1
 no-file  QmXWr5Td85uXqKhyL17uAsZ7aJZSvtXs3aMGTZ4wHvwubP
 problem  QmW6QuzoYEpwASzZktbc5G5Fkq3XeBbUfRCrrUEByYm6Pi
 
 ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
+
+no-file  QmXmiSYiAMd5vv1BgLnCVrgmqserFDAqcKGCBXmdWFHtcR
+no-file  QmNN38uhkUknjUAfWjYHg4E2TPjYaHuecTQTvT1gnUT3Je
+no-file  QmV5MfoytVQi4uGeATfpJvvzofXUe9MQ2Ymm5y3F3ZpqUc
+no-file  QmWThuQjx96vq9RphjwAqDQFndjTo1hFYXZwEJbcUjbo37
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 EOF
 test_expect_success "'filestore clean orphan'" '
   ipfs filestore clean orphan &&
@@ -228,12 +281,23 @@ test_expect_success "'filestore clean orphan'" '
 '
 
 cat <<EOF > verify-now
+no-file  QmXsjgFej1F7p6oKh4LSCscG9sBE8oBvV8foeC5791Goof
+no-file  QmXdpFugYKSCcXrRpWpqNPX9htvfYD81w38VcHyeMCD2gt
+no-file  QmepFjJy8jMuFs8bGbjPSUwnBD2542Hchwh44dvcfBdNi1
 no-file  QmXWr5Td85uXqKhyL17uAsZ7aJZSvtXs3aMGTZ4wHvwubP
 problem  QmW6QuzoYEpwASzZktbc5G5Fkq3XeBbUfRCrrUEByYm6Pi
 
 ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
+
+no-file  QmXmiSYiAMd5vv1BgLnCVrgmqserFDAqcKGCBXmdWFHtcR
+no-file  QmNN38uhkUknjUAfWjYHg4E2TPjYaHuecTQTvT1gnUT3Je
+no-file  QmV5MfoytVQi4uGeATfpJvvzofXUe9MQ2Ymm5y3F3ZpqUc
+no-file  QmWThuQjx96vq9RphjwAqDQFndjTo1hFYXZwEJbcUjbo37
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 
 orphan   QmbZr7Fs6AJf7HpnTxDiYJqLXWDqAy3fKFXYVDkgSsH7DH
 orphan   QmToAcacDnpqm17jV7rRHmXcS9686Mk59KCEYGAMkh9qCX
@@ -252,6 +316,10 @@ ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
 
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
 orphan   QmToAcacDnpqm17jV7rRHmXcS9686Mk59KCEYGAMkh9qCX
 orphan   QmbZr7Fs6AJf7HpnTxDiYJqLXWDqAy3fKFXYVDkgSsH7DH
 orphan   QmYtLWUVmevucXFN9q59taRT95Gxj5eJuLUhXKtwNna25t
@@ -265,6 +333,10 @@ cat <<EOF > verify-final
 ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
+
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
+ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 EOF
 test_expect_success "'filestore clean incomplete orphan' (cleanup)" '
   cp verify-final verify-now &&
@@ -284,11 +356,15 @@ test_expect_success "'filestore clean full'" '
   cmp_verify
 '
 
+test_expect_success "remove f from filestore" '
+  ipfs filestore ls-files QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ -q | grep "/f$" > filename &&
+  ipfs filestore rm QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ/"$(cat filename)//0"
+'
+
 test_expect_success "make sure clean does not remove shared and valid blocks" '
   ipfs cat $AB_HASH > /dev/null
   ipfs cat $BC_HASH > /dev/null
+  ipfs cat $F_HASH > /dev/null
 '
-
-
 
 test_done

@@ -232,36 +232,44 @@ func VerifyPostOrphan(node *core.IpfsNode, fs Snapshot, level int, incompleteWhe
 
 type Hash string
 
+type seen struct {
+	status    Status
+	reachable bool
+}
+
 type verifyParams struct {
 	out            reporter
 	node           *core.IpfsNode
 	fs             *Basic
 	verifyLevel    VerifyLevel
 	verboseLevel   int // see help text for meaning
-	seen           map[string]int
+	seen           map[string]seen
 	roots          []string
 	incompleteWhen []bool
 }
 
-func (p *verifyParams) getStatus(key string) int {
+func (p *verifyParams) getStatus(key string) seen {
 	if p.seen == nil {
-		return 0
+		return seen{0, false}
 	} else {
 		return p.seen[key]
 	}
 }
 
-func (p *verifyParams) setStatus(key *DbKey, val *DataObj, status int) ListRes {
+func (p *verifyParams) setStatus(key *DbKey, val *DataObj, status Status, reachable bool) {
 	if p.seen != nil {
-		_, ok := p.seen[key.Hash]
-		if !ok || status > 0 {
-			p.seen[key.Hash] = status
+		val, ok := p.seen[key.Hash]
+		if status > 0 && !ok {
+			p.seen[key.Hash] = seen{status, reachable}
+		} else {
+			if status > 0 {val.status = status}
+			if reachable {val.reachable = true}
+			p.seen[key.Hash] = val
 		}
 	}
 	if p.roots != nil && val != nil && val.WholeFile() {
 		p.roots = append(p.roots, key.Hash)
 	}
-	return ListRes{key.Key, val, status}
 }
 
 func (p *verifyParams) verifyKeys(ks []*DbKey) {
@@ -269,20 +277,28 @@ func (p *verifyParams) verifyKeys(ks []*DbKey) {
 		//if key == "" {
 		//	continue
 		//}
-		dataObj, children, r := p.get(dsKey)
-		if dataObj == nil || AnError(r) {
+		res, children, r := p.get(dsKey)
+		if res == nil || AnError(r) {
 			/* nothing to do */
-		} else if dataObj.Internal() {
+		} else if res[0].Val.Internal() {
+			kv := res[0]
 			r = p.verifyNode(children)
-		} else {
-			r = p.verifyLeaf(dsKey, dataObj)
+			p.verifyPostTopLevel(kv.Key, kv.Val, r)
+			return
 		}
-		res := ListRes{dsKey.Key, dataObj, r}
-		res.Status = p.checkIfAppended(res)
-		if p.verboseLevel >= ShowSpecified || OfInterest(res.Status) {
-			p.out.send(res)
-			p.out.ch <- EmptyListRes
+		for _, kv := range res {
+			r = p.verifyLeaf(kv.Key, kv.Val)
+			p.verifyPostTopLevel(kv.Key, kv.Val, r)
 		}
+	}
+}
+
+func (p *verifyParams) verifyPostTopLevel(dsKey *DbKey, dataObj *DataObj, r Status) {
+	res := ListRes{dsKey.Key, dataObj, r}
+	res.Status = p.checkIfAppended(res)
+	if p.verboseLevel >= ShowSpecified || OfInterest(res.Status) {
+		p.out.send(res)
+		p.out.ch <- EmptyListRes
 	}
 }
 
@@ -291,7 +307,7 @@ func (p *verifyParams) verifyRecursive(iter ListIterator) {
 }
 
 func (p *verifyParams) verifyFull(iter ListIterator) error {
-	p.seen = make(map[string]int)
+	p.seen = make(map[string]seen)
 
 	err := p.verifyTopLevel(iter)
 	// An error indicates an internal error that might mark some nodes
@@ -306,10 +322,10 @@ func (p *verifyParams) verifyFull(iter ListIterator) error {
 }
 
 func (p *verifyParams) verifyPostOrphan(iter ListIterator) error {
-	p.seen = make(map[string]int)
+	p.seen = make(map[string]seen)
 	p.roots = make([]string, 0)
-
-	p.verboseLevel = -1
+	p.verboseLevel = 6
+	
 	reportErr := p.verifyTopLevel(iter)
 
 	err := p.markReachable(p.roots)
@@ -318,7 +334,7 @@ func (p *verifyParams) verifyPostOrphan(iter ListIterator) error {
 		return InternalError
 	}
 
-	p.markFutureOrphans()
+	p.outputFutureOrphans()
 
 	p.checkOrphans()
 
@@ -337,7 +353,7 @@ func (p *verifyParams) verifyTopLevel(iter ListIterator) error {
 			r = StatusCorrupt
 		}
 		if AnError(r) {
-			/* nothing to do */
+			p.reportTopLevel(key, val, r)
 		} else if val.Internal() && val.WholeFile() {
 			children, err := GetLinks(val)
 			if err != nil {
@@ -345,20 +361,21 @@ func (p *verifyParams) verifyTopLevel(iter ListIterator) error {
 			} else {
 				r = p.verifyNode(children)
 			}
+			p.reportTopLevel(key, val, r)
+			p.setStatus(key, val, r, false)
 		} else if val.WholeFile() {
 			r = p.verifyLeaf(key, val)
+			p.reportTopLevel(key, val, r)
+			// mark the node as seen, but do not cache the status as
+			// that status might be incomplete
+			p.setStatus(key, val, StatusUnchecked, false)
 		} else {
-			p.setStatus(key, val, 0)
+			// FIXME: Is this doing anything useful?
+			p.setStatus(key, val, 0, false)
 			continue
 		}
 		if AnInternalError(r) {
 			unsafeToCont = true
-		}
-		res := p.setStatus(key, val, r)
-		res.Status = p.checkIfAppended(res)
-		if p.verboseLevel >= ShowTopLevel || (p.verboseLevel >= 0 && OfInterest(res.Status)) {
-			p.out.send(res)
-			p.out.ch <- EmptyListRes
 		}
 	}
 	if unsafeToCont {
@@ -368,35 +385,36 @@ func (p *verifyParams) verifyTopLevel(iter ListIterator) error {
 	}
 }
 
-func (p *verifyParams) checkOrphans() {
-	for k, status := range p.seen {
-		if status != 0 {
-			continue
-		}
-		key := HashToKey(k)
-		_, val, err := p.fs.GetDirect(key)
-		if err != nil {
-			Logger.Errorf("%s: verify: %v", MHash(key), err)
-			p.out.send(ListRes{key.Key, val, StatusError})
-		} else if val.NoBlockData() {
-			status = p.verifyLeaf(key, val)
-			if AnError(status) {
-				p.out.send(ListRes{key.Key, val, status})
-			}
-		}
-		p.out.send(ListRes{key.Key, val, StatusOrphan})
+func (p *verifyParams) reportTopLevel(key *DbKey, val *DataObj, status Status) {
+	res := ListRes{key.Key, val, status}
+	res.Status = p.checkIfAppended(res)
+	if p.verboseLevel >= ShowTopLevel || (p.verboseLevel >= 0 && OfInterest(res.Status)) {
+		p.out.send(res)
+		p.out.ch <- EmptyListRes
 	}
 }
 
-func (p *verifyParams) checkIfAppended(res ListRes) int {
+func (p *verifyParams) checkOrphans() {
+	for k, v := range p.seen {
+		if v.reachable {
+			continue
+		}
+		p.outputOrphans(k, v.status)
+	}
+}
+
+func (p *verifyParams) checkIfAppended(res ListRes) Status {
+	//println("checkIfAppened:", res.FormatDefault())
 	if p.verifyLevel <= CheckExists || p.verboseLevel < 0 ||
 		!IsOk(res.Status) || !res.WholeFile() || res.FilePath == "" {
+		//println("checkIfAppened no go", res.FormatDefault())
 		return res.Status
 	}
+	//println("checkIfAppened no checking", res.FormatDefault())
 	info, err := os.Stat(res.FilePath)
 	if err != nil {
-		Logger.Errorf("%s: checkIfAppended: %v", res.MHash(), err)
-		return StatusError
+		Logger.Warningf("%s: checkIfAppended: %v", res.MHash(), err)
+		return res.Status
 	}
 	if uint64(info.Size()) > res.Size {
 		return StatusAppended
@@ -404,19 +422,25 @@ func (p *verifyParams) checkIfAppended(res ListRes) int {
 	return res.Status
 }
 
+var depth = 0
+
 func (p *verifyParams) markReachable(keys []string) error {
+	depth += 1
 	for _, hash := range keys {
-		r := p.seen[hash]
+		v := p.seen[hash]
+		r := v.status
 		if r == StatusMarked {
 			continue
 		}
 		if AnInternalError(r) { // not stricly necessary, but lets be extra safe
 			return InternalError
 		}
+		//println("status", HashToKey(hash).Format(), r)
 		if InternalNode(r) && r != StatusIncomplete {
 			key := HashToKey(hash)
 			_, val, err := p.fs.GetDirect(key)
 			if err != nil {
+				//println("um an error")
 				return err
 			}
 			links, err := GetLinks(val)
@@ -424,53 +448,82 @@ func (p *verifyParams) markReachable(keys []string) error {
 			for _, link := range links {
 				children = append(children, dshelp.CidToDsKey(link.Cid).String())
 			}
+			//println("recurse", depth, HashToKey(hash).Format(), "count", len(children))
 			p.markReachable(children)
 		}
-		if OfInterest(r) {
-			p.out.send(ListRes{Key{hash, "", -1}, nil, r})
-		}
-		p.seen[hash] = StatusMarked
+		//println("seen", depth, HashToKey(hash).Format())
+		v.status = StatusMarked
+		p.seen[hash] = v
 	}
+	depth -= 1
 	return nil
 }
 
-func (p *verifyParams) markFutureOrphans() {
-	for hash, status := range p.seen {
-		if status == StatusMarked || status == 0 {
+func (p *verifyParams) outputFutureOrphans() {
+	for hash, v := range p.seen {
+		if v.status == StatusMarked || v.status == StatusNone {
 			continue
 		}
-		if AnError(status) {
-			p.out.send(ListRes{Key{hash, "", -1}, nil, status})
-		}
-		p.out.send(ListRes{Key{hash, "", -1}, nil, StatusOrphan})
+		p.outputOrphans(hash, v.status)
 	}
 }
 
-func (p *verifyParams) verifyNode(links []*node.Link) int {
+func (p *verifyParams) outputOrphans(hashStr string, status Status) {
+	hash := HashToKey(hashStr)
+	kvs, err := p.fs.GetAll(hash)
+	if err != nil {
+		Logger.Errorf("%s: verify: %v", MHash(hash), err)
+		p.out.send(ListRes{hash.Key, nil, StatusError})
+	}
+	for _, kv := range kvs {
+		if kv.Val.WholeFile() {
+			continue
+		}
+		if status == StatusNone && kv.Val.NoBlockData() {
+			r := p.verifyLeaf(kv.Key, kv.Val)
+			if AnError(r) {
+				p.out.send(ListRes{kv.Key.Key, kv.Val, r})
+			}
+		}
+		p.out.send(ListRes{kv.Key.Key, kv.Val, StatusOrphan})
+	}
+}
+
+func (p *verifyParams) verifyNode(links []*node.Link) Status {
 	finalStatus := StatusComplete
 	for _, link := range links {
-		key := CidToKey(link.Cid)
-		res := ListRes{Key: key.Key}
-		res.Status = p.getStatus(key.Hash)
-		if res.Status == 0 {
-			dataObj, children, r := p.get(key)
+		hash := CidToKey(link.Cid)
+		v := p.getStatus(hash.Hash)
+		if v.status == 0 {
+			objs, children, r := p.get(hash)
+			var dataObj *DataObj
+			if objs != nil {
+				dataObj = objs[0].Val
+			}
 			if AnError(r) {
-				/* nothing to do */
+				p.reportNodeStatus(hash, dataObj, r)
 			} else if len(children) > 0 {
 				r = p.verifyNode(children)
-			} else if dataObj != nil {
-				r = p.verifyLeaf(key, dataObj)
+				p.reportNodeStatus(hash, dataObj, r)
+				p.setStatus(hash, dataObj, r, true)
+			} else if objs != nil {
+				r = StatusNone
+				for _, kv := range objs {
+					r0 := p.verifyLeaf(kv.Key, kv.Val)
+					p.reportNodeStatus(kv.Key, kv.Val, r0)
+					if p.rank(r0) < p.rank(r) {
+						r = r0
+					}
+				}
+				p.setStatus(hash, dataObj, r, true)
 			}
-			res = p.setStatus(key, dataObj, r)
+			v.status = r
 		}
-		if p.verboseLevel >= ShowChildren || (p.verboseLevel >= ShowProblemChildren && OfInterest(res.Status)) {
-			p.out.send(res)
-		}
-		if AnInternalError(res.Status) {
+		if AnInternalError(v.status) {
 			return StatusError
-		} else if p.incompleteWhen[res.Status] {
+		} else if p.incompleteWhen[v.status] {
 			finalStatus = StatusIncomplete
-		} else if !IsOk(res.Status) && !Unchecked(res.Status) {
+		} else if !IsOk(v.status) && !Unchecked(v.status) {
 			finalStatus = StatusProblem
 		}
 	}
@@ -480,10 +533,40 @@ func (p *verifyParams) verifyNode(links []*node.Link) int {
 	return finalStatus
 }
 
-func (p *verifyParams) verifyLeaf(key *DbKey, dataObj *DataObj) int {
+func (p *verifyParams) reportNodeStatus(key *DbKey, val *DataObj, status Status) {
+	if p.verboseLevel >= ShowChildren || (p.verboseLevel >= ShowProblemChildren && OfInterest(status)) {
+		p.out.send(ListRes{key.Key, val, status})
+	}
+}
+
+// determine the rank of the status indicator if multiple entries have
+// the same hash and differnt status, the one with the lowest rank
+// will be used
+func (p *verifyParams) rank(r Status) int {
+	category := r - r%10
+	switch {
+	case r == 0:
+		return 999
+	case category == CategoryOk:
+		return int(r)
+	case category == CategoryUnchecked:
+		return 100 + int(r)
+	case category == CategoryBlockErr && !p.incompleteWhen[r]:
+		return 200 + int(r)
+	case category == CategoryBlockErr && p.incompleteWhen[r]:
+		return 400 + int(r)
+	case category == CategoryOtherErr:
+		return 500 + int(r)
+	default:
+		// should not really happen
+		return 600 + int(r)
+	}
+}
+
+func (p *verifyParams) verifyLeaf(key *DbKey, dataObj *DataObj) Status {
 	return verify(p.fs, key, dataObj, p.verifyLevel)
 }
 
-func (p *verifyParams) get(k *DbKey) (*DataObj, []*node.Link, int) {
-	return getNode(k, p.fs, p.node.Blockstore)
+func (p *verifyParams) get(k *DbKey) ([]KeyVal, []*node.Link, Status) {
+	return getNodes(k, p.fs, p.node.Blockstore)
 }

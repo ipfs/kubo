@@ -270,23 +270,46 @@ func (d *Datastore) GetDirect(key *DbKey) (*DbKey, *DataObj, error) {
 	return d.AsBasic().GetDirect(key)
 }
 
-func (d *Basic) GetAll(hash []byte) ([]*DataObj, error) {
-	val, err := d.db.GetHash(hash)
+type KeyVal struct {
+	Key *DbKey
+	Val *DataObj
+}
+
+func (d *Basic) GetAll(k *DbKey) ([]KeyVal, error) {
+	//println("GetAll:", k.Format())
+	hash := k.HashOnly()
+	dataObj, err := d.db.GetHash(hash.Bytes)
 	if err == leveldb.ErrNotFound {
 		return nil, ds.ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
-	res := []*DataObj{val}
-	itr := d.db.GetAlternatives(hash)
+	//println("GetAll", k.Format(), "finding matches...")
+	var res []KeyVal
+	if haveMatch(k, dataObj) {
+		//println("GetAll match <0>", hash.Format(), k.Format())
+		res = append(res, KeyVal{hash, dataObj})
+	}
+	itr := d.db.GetAlternatives(hash.Bytes)
 	for itr.Next() {
-		val, err := itr.Value()
+		dataObj, err = itr.Value()
 		if err != nil {
 			return nil, err
 		}
-		res = append(res, val)
+		//println("GetAll match ???", itr.Key().Format())
+		if haveMatch(k, dataObj) {
+			//println("GetAll match <1>", itr.Key().Format(), k.Format())
+			res = append(res, KeyVal{itr.Key(), dataObj})
+		}
 	}
 	return res, nil
+}
+
+func haveMatch(k *DbKey, dataObj *DataObj) bool {
+	if (k.FilePath != "" && k.FilePath != dataObj.FilePath) || (k.Offset != -1 && uint64(k.Offset) != dataObj.Offset) {
+		return false
+	}
+	return true
 }
 
 type IsPinned int
@@ -378,6 +401,7 @@ func (d *Datastore) Update(key *DbKey, val *DataObj) {
 }
 
 var InvalidBlock = errors.New("filestore: block verification failed")
+var TouchedBlock = errors.New("filestore: modtimes differ, contents may be invalid")
 
 // Verify as much as possible without opening the file, the result is
 // a best guess.
@@ -385,11 +409,6 @@ func VerifyFast(val *DataObj) error {
 	// There is backing file, nothing to check
 	if val.HaveBlockData() {
 		return nil
-	}
-
-	// block already marked invalid
-	if val.Invalid() {
-		return InvalidBlock
 	}
 
 	// get the file's metadata, return on error
@@ -406,6 +425,11 @@ func VerifyFast(val *DataObj) error {
 	// the file mtime has changes, the block is _likely_ invalid
 	modtime := FromTime(fileInfo.ModTime())
 	if modtime != val.ModTime {
+		return TouchedBlock
+	}
+
+	// block already marked invalid
+	if val.Invalid() {
 		return InvalidBlock
 	}
 

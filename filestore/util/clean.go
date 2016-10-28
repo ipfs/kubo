@@ -20,7 +20,7 @@ import (
 	//cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
-func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, what ...string) (io.Reader, error) {
+func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, level int, what ...string) (io.Reader, error) {
 	//exclusiveMode := node.LocalMode()
 	stages := 0
 	to_remove := make([]bool, 100)
@@ -80,17 +80,17 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 		var ch <-chan ListRes
 		switch stages {
 		case 0100:
-			fmt.Fprintf(rmWtr, "performing verify --basic --level=6\n")
+			fmt.Fprintf(rmWtr, "performing verify --basic --level=%d\n", level)
 			ch, err = VerifyBasic(snapshot.Basic, &VerifyParams{
-				Level:     6,
+				Level:     level,
 				Verbose:   1,
 				NoObjInfo: true,
 			})
 		case 0120, 0103, 0003:
-			fmt.Fprintf(rmWtr, "performing verify --level=6 --incomplete-when=%s\n",
-				incompleteWhenStr)
+			fmt.Fprintf(rmWtr, "performing verify --level=%d --incomplete-when=%s\n",
+				level, incompleteWhenStr)
 			ch, err = VerifyFull(node, snapshot, &VerifyParams{
-				Level:          6,
+				Level:          level,
 				Verbose:        6,
 				IncompleteWhen: incompleteWhen,
 				NoObjInfo:      true,
@@ -100,13 +100,13 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, wha
 			ch, err = VerifyFull(node, snapshot, &VerifyParams{
 				SkipOrphans: true,
 				Level:       1,
-				Verbose:     6,
+				Verbose:     level,
 				NoObjInfo:   true,
 			})
 		case 0123, 0023:
-			fmt.Fprintf(rmWtr, "performing verify-post-orphan --level=6 --incomplete-when=%s\n",
-				incompleteWhenStr)
-			ch, err = VerifyPostOrphan(node, snapshot, 6, incompleteWhen)
+			fmt.Fprintf(rmWtr, "performing verify-post-orphan --level=%d --incomplete-when=%s\n",
+				level, incompleteWhenStr)
+			ch, err = VerifyPostOrphan(node, snapshot, level, incompleteWhen)
 		default:
 			// programmer error
 			panic(fmt.Errorf("invalid stage string %d", stages))

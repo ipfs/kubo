@@ -293,26 +293,36 @@ If --all is specified list all matching blocks are lists, otherwise
 only blocks representing the a file root is listed.  A file root is any
 block that represents a complete file.
 
-If --quiet is specified only the hashes are printed, otherwise the
-fields are as follows:
-  <hash> <type> <filepath> <offset> <size> [<modtime>]
-where <type> is one of:"
+The default output format normally is:
+  <hash> /<filepath>/<offset>
+for most entries, if there are multiple files with the same content
+then the first file will be as above and the others will be displayed
+without the space between the <hash> and '/' to form a unique key that
+can be used to reference that particular entry.  
+
+If --format is "hash" than only the hash will be displayed.  
+
+If --format is "key" than the full key will be displayed.
+
+If --format is "w/type" then the type of the entry is also given
+before the hash.  Type is one of:
   leaf: to indicate a node where the contents are stored
         to in the file itself
   root: to indicate a root node that represents the whole file
   other: some other kind of node that represent part of a file
   invld: a leaf node that has been found invalid
-and <filepath> is the part of the file the object represents.  The
-part represented starts at <offset> and continues for <size> bytes.
-If <offset> is the special value "-" indicates a file root.
+
+If --format is "long" then the format is:
+  <type> <size> [<modtime>] <hash>[ ]/<filepath>/<offset>
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("obj", false, true, "Hash(es) or filename(s) to list."),
+		cmds.StringArg("obj", false, true, "Hash(es), filename(s), or filestore keys to list."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("quiet", "q", "Write just hashes of objects."),
+		cmds.BoolOption("quiet", "q", "Alias for --format=hash."),
 		cmds.BoolOption("all", "a", "List everything, not just file roots."),
+		cmds.StringOption("format", "f", "Format of listing, one of: hash key default w/type long").Default("default"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		_, fs, err := extractFilestore(req)
@@ -320,29 +330,33 @@ If <offset> is the special value "-" indicates a file root.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		quiet, _, err := req.Option("quiet").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		all, _, err := req.Option("all").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		ch, err := getListing(fs, req.Arguments(), all, quiet)
-
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		format, _, _ := req.Option("format").String()
+		quiet, _, _ := req.Option("quiet").Bool()
+		all, _, _ := req.Option("all").Bool()
 
 		if quiet {
-			res.SetOutput(&chanWriter{ch: ch, format: formatHash})
-		} else {
-			res.SetOutput(&chanWriter{ch: ch, format: formatDefault})
+			format = "hash"
 		}
+
+		formatFun, err := fsutil.StrToFormatFun(format)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		ch, err := getListing(fs, req.Arguments(), all, format == "hash" || format == "key")
+
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&chanWriter{
+			ch: ch,
+			format: func(r *fsutil.ListRes) (string,error) {
+				return formatFun(r),nil
+			},
+		})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -472,7 +486,7 @@ type chanWriter struct {
 	checksFailed bool
 	ignoreFailed bool
 	errs         []string
-	format       func(fsutil.ListRes) (string, error)
+	format       func(*fsutil.ListRes) (string,error)
 }
 
 func (w *chanWriter) Read(p []byte) (int, error) {
@@ -495,7 +509,7 @@ func (w *chanWriter) Read(p []byte) (int, error) {
 			w.checksFailed = true
 		}
 
-		line, err := w.format(res)
+		line, err := w.format(&res)
 		w.buf = line
 		if err != nil {
 			w.errs = append(w.errs, fmt.Sprintf("%s: %s", res.MHash(), err.Error()))
@@ -506,15 +520,15 @@ func (w *chanWriter) Read(p []byte) (int, error) {
 	return sz, nil
 }
 
-func formatDefault(res fsutil.ListRes) (string, error) {
-	return res.Format(), nil
+func formatDefault(res *fsutil.ListRes) (string, error) {
+	return res.FormatDefault(), nil
 }
 
-func formatHash(res fsutil.ListRes) (string, error) {
-	return fmt.Sprintf("%s\n", res.MHash()), nil
+func formatHash(res *fsutil.ListRes) (string, error) {
+	return res.FormatHashOnly(), nil
 }
 
-func formatPorcelain(res fsutil.ListRes) (string, error) {
+func formatPorcelain(res *fsutil.ListRes) (string, error) {
 	if res.Key.Hash == "" {
 		return "", nil
 	}
@@ -531,11 +545,11 @@ func formatPorcelain(res fsutil.ListRes) (string, error) {
 	}
 }
 
-func formatFileName(res fsutil.ListRes) (string, error) {
+func formatFileName(res *fsutil.ListRes) (string, error) {
 	return fmt.Sprintf("%s\n", res.FilePath), nil
 }
 
-func formatByFile(res fsutil.ListRes) (string, error) {
+func formatByFile(res *fsutil.ListRes) (string, error) {
 	return fmt.Sprintf("%s %s %d\n", res.FilePath, res.MHash(), res.Size), nil
 }
 
@@ -547,9 +561,9 @@ Verify <hash> nodes in the filestore.  If no hashes are specified then
 verify everything in the filestore.
 
 The normal output is:
-  <status> <hash> [<type> <filepath> <offset> <size> [<modtime>]]
-where <hash> <type>, <filepath>, <offset>, <size> and <modtime>
-are the same as in the 'ls' command and <status> is one of:
+  <status> <hash> /<filepath>//<offset>
+where <hash> <type>, <filepath> are the same as in the 'ls' command
+and <status> is one of:
 
   ok:       the original data can be reconstructed
   complete: all the blocks in the tree exists but no attempt was
@@ -561,6 +575,8 @@ are the same as in the 'ls' command and <status> is one of:
   changed: the contents of the backing file have changed
   no-file: the backing file could not be found
   error:   the backing file was found but could not be read
+
+  touched: the modtimes differ but the contents where not rechecked
 
   ERROR:   the block could not be read due to an internal error
 
@@ -591,12 +607,12 @@ current meaning of the levels are:
   7-9: always check the contents
     6: check the contents based on the setting of Filestore.Verify
   4-5: check the contents if the modification time differs
-  2-3: report changed if the modification time differs
+  2-3: report if the modification time differs
   0-1: only check for the existence of blocks without verifying the
        contents of leaf nodes
 
 The --verbose option specifies what to output.  The current values are:
-  0-1: show top-level nodes when status is not 'ok', 'complete' or '<blank>
+  0-1: show top-level nodes when status is not 'ok', 'complete' or '<blank>'
     2: in addition, show all nodes specified on command line
   3-4: in addition, show all top-level nodes
   5-6: in addition, show problem children
@@ -670,6 +686,8 @@ returned) to avoid special cases when parsing the output.
 		}
 		if porcelain {
 			res.SetOutput(&chanWriter{ch: ch, format: formatPorcelain, ignoreFailed: true})
+		} else if params.NoObjInfo {
+			res.SetOutput(&chanWriter{ch: ch, format: formatHash})			
 		} else {
 			res.SetOutput(&chanWriter{ch: ch, format: formatDefault})
 		}
@@ -752,8 +770,7 @@ are removed, are also removed.  Similarly if "orphan" is specified in
 combination with "incomplete" any would be orphans are also removed.
 
 If the command is run with the daemon is running the check is done on a
-snapshot of the filestore and then blocks are only removed if they have not
-changed since the snapshot has taken.
+snapshot of the filestore when it is in a consistent state.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -761,6 +778,7 @@ changed since the snapshot has taken.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Produce less output."),
+		cmds.IntOption("level", "l", "0-9, Verification level.").Default(6),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -769,13 +787,14 @@ changed since the snapshot has taken.
 			return
 		}
 		quiet, _, err := req.Option("quiet").Bool()
+		level, _, _ := req.Option("level").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 		//_ = node
 		//ch, err := fsutil.List(fs, quiet)
-		rdr, err := fsutil.Clean(req, node, fs, quiet, req.Arguments()...)
+		rdr, err := fsutil.Clean(req, node, fs, quiet, level, req.Arguments()...)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -793,7 +812,7 @@ changed since the snapshot has taken.
 
 var rmFilestoreObjs = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove blocks from the filestore.",
+		Tagline: "Remove entries from the filestore.",
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, true, "Objects to remove."),
