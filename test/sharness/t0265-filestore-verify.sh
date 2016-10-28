@@ -86,8 +86,8 @@ test_expect_success "ipfs verify produces expected output" '
   test_verify_cmp verify-expect verify-actual
 '
 
-test_expect_success "ipfs verify-post-orphan produces expected output" '
-  ipfs filestore verify-post-orphan > verify-actual || true &&
+test_expect_success "ipfs verify --post-orphan produces expected output" '
+  ipfs filestore verify --post-orphan -q > verify-actual || true &&
   test_verify_cmp verify-expect verify-actual
 '
 

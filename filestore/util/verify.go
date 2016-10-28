@@ -23,6 +23,7 @@ type VerifyParams struct {
 	Verbose        int
 	NoObjInfo      bool
 	SkipOrphans    bool
+	PostOrphan     bool
 	IncompleteWhen []string
 }
 
@@ -150,8 +151,13 @@ func VerifyFull(node *core.IpfsNode, fs Snapshot, params *VerifyParams) (<-chan 
 		return nil, err
 	}
 	skipOrphans := params.SkipOrphans
+	postOrphan := params.PostOrphan
+	if skipOrphans && postOrphan {
+		return nil, fmt.Errorf("cannot specify both skip-orphans and post-orphan")
+	}
 	if params.Filter != nil {
 		skipOrphans = true
+		postOrphan = false
 	}
 	p := verifyParams{
 		out:          reporter{make(chan ListRes, 16), params.NoObjInfo},
@@ -167,9 +173,12 @@ func VerifyFull(node *core.IpfsNode, fs Snapshot, params *VerifyParams) (<-chan 
 	iter := ListIterator{fs.DB().NewIterator(), params.Filter}
 	go func() {
 		defer p.out.close()
-		if skipOrphans {
+		switch {
+		case skipOrphans:
 			p.verifyRecursive(iter)
-		} else {
+		case postOrphan:
+			p.verifyPostOrphan(iter)
+		default:
 			p.verifyFull(iter)
 		}
 	}()
@@ -195,29 +204,6 @@ func VerifyKeysFull(ks []*DbKey, node *core.IpfsNode, fs *Basic, params *VerifyP
 	go func() {
 		defer p.out.close()
 		p.verifyKeys(ks)
-	}()
-	return p.out.ch, nil
-}
-
-func VerifyPostOrphan(node *core.IpfsNode, fs Snapshot, level int, incompleteWhen []string) (<-chan ListRes, error) {
-	verifyLevel, err := VerifyLevelFromNum(fs.Basic, level)
-	if err != nil {
-		return nil, err
-	}
-	p := verifyParams{
-		out:         reporter{make(chan ListRes, 16), true},
-		node:        node,
-		fs:          fs.Basic,
-		verifyLevel: verifyLevel,
-	}
-	p.incompleteWhen, err = ParseIncompleteWhen(incompleteWhen)
-	if err != nil {
-		return nil, err
-	}
-	iter := ListIterator{fs.DB().NewIterator(), nil}
-	go func() {
-		defer p.out.close()
-		p.verifyPostOrphan(iter)
 	}()
 	return p.out.ch, nil
 }
@@ -324,7 +310,6 @@ func (p *verifyParams) verifyFull(iter ListIterator) error {
 func (p *verifyParams) verifyPostOrphan(iter ListIterator) error {
 	p.seen = make(map[string]seen)
 	p.roots = make([]string, 0)
-	p.verboseLevel = 6
 	
 	reportErr := p.verifyTopLevel(iter)
 

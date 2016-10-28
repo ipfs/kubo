@@ -99,14 +99,20 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, lev
 			fmt.Fprintf(rmWtr, "performing verify --skip-orphans --level=1\n")
 			ch, err = VerifyFull(node, snapshot, &VerifyParams{
 				SkipOrphans: true,
-				Level:       1,
-				Verbose:     level,
+				Level:       level,
+				Verbose:     6,
 				NoObjInfo:   true,
 			})
 		case 0123, 0023:
-			fmt.Fprintf(rmWtr, "performing verify-post-orphan --level=%d --incomplete-when=%s\n",
+			fmt.Fprintf(rmWtr, "performing verify --post-orphans --level=%d --incomplete-when=%s\n",
 				level, incompleteWhenStr)
-			ch, err = VerifyPostOrphan(node, snapshot, level, incompleteWhen)
+			ch, err = VerifyFull(node, snapshot, &VerifyParams{
+				Level:          level,
+				Verbose:        6,
+				IncompleteWhen: incompleteWhen,
+				PostOrphan:     true,
+				NoObjInfo:      true,
+			})
 		default:
 			// programmer error
 			panic(fmt.Errorf("invalid stage string %d", stages))

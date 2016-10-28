@@ -38,8 +38,6 @@ var FileStoreCmd = &cmds.Command{
 		"mv":       moveIntoFilestore,
 		"enable":   FilestoreEnable,
 		"disable":  FilestoreDisable,
-
-		"verify-post-orphan": verifyPostOrphan,
 	},
 }
 
@@ -642,6 +640,7 @@ returned) to avoid special cases when parsing the output.
 		cmds.BoolOption("skip-orphans", "Skip check for orphans."),
 		cmds.BoolOption("no-obj-info", "q", "Just print the status and the hash."),
 		cmds.StringOption("incomplete-when", "Internal option."),
+		cmds.BoolOption("post-orphan", "Internal option: Report would-be orphans."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
@@ -664,6 +663,7 @@ returned) to avoid special cases when parsing the output.
 		params.SkipOrphans, _, _ = req.Option("skip-orphans").Bool()
 		params.NoObjInfo, _, _ = req.Option("no-obj-info").Bool()
 		params.IncompleteWhen = getIncompleteWhenOpt(req)
+		params.PostOrphan, _, _ = req.Option("post-orphan").Bool()
 
 		var ch <-chan fsutil.ListRes
 		if basic && len(keys) == 0 {
@@ -706,51 +706,6 @@ func getIncompleteWhenOpt(req cmds.Request) []string {
 	} else {
 		return strings.Split(str, ",")
 	}
-}
-
-var verifyPostOrphan = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Verify objects in filestore and check for would be orphans.",
-		ShortDescription: `
-Like "verify" but perform an extra scan to check for would be orphans if
-"incomplete" blocks are removed.  Becuase of how it operates only the status
-and hashes are returned and the order in which blocks are reported in not
-stable.
-
-This is the method normally used by "clean".
-`,
-	},
-	Options: []cmds.Option{
-		cmds.IntOption("level", "l", "0-9, Verification level.").Default(6),
-		cmds.StringOption("incomplete-when", "Internal option."),
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		node, fs, err := extractFilestore(req)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		level, _, _ := req.Option("level").Int()
-		incompleteWhen := getIncompleteWhenOpt(req)
-
-		snapshot, err := fs.GetSnapshot()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		ch, err := fsutil.VerifyPostOrphan(node, snapshot, level, incompleteWhen)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		res.SetOutput(&chanWriter{ch: ch, format: formatDefault})
-		return
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			return res.(io.Reader), nil
-		},
-	},
 }
 
 var cleanFileStore = &cmds.Command{
