@@ -1,16 +1,15 @@
 package dagcmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 
+	ipldcbor "gx/ipfs/QmRcAVqrbY5wryx7hfNLtiUZbCcstzaJL7YJFBboitcqWF/go-ipld-cbor"
 	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
-	ipldcbor "gx/ipfs/QmY7L2aEa1rHjkSSbXJB8oC7825JTpUUvDygmM2JPQeqhr/go-ipld-cbor"
 )
 
 var DagCmd = &cmds.Command{
@@ -18,7 +17,6 @@ var DagCmd = &cmds.Command{
 		Tagline:          "Interact with ipld dag objects.",
 		ShortDescription: ``,
 	},
-
 	Subcommands: map[string]*cmds.Command{
 		"put": DagPutCmd,
 		"get": DagGetCmd,
@@ -121,76 +119,12 @@ var DagGetCmd = &cmds.Command{
 }
 
 func convertJsonToType(r io.Reader, format string) (node.Node, error) {
-	var obj map[string]interface{}
-	err := json.NewDecoder(r).Decode(&obj)
-	if err != nil {
-		return nil, err
-	}
-
 	switch format {
 	case "cbor", "dag-cbor":
-		return convertJsonToCbor(obj)
+		return ipldcbor.FromJson(r)
 	case "dag-pb", "protobuf":
 		return nil, fmt.Errorf("protobuf handling in 'dag' command not yet implemented")
 	default:
 		return nil, fmt.Errorf("unknown target format: %s", format)
-	}
-}
-
-func convertJsonToCbor(from map[string]interface{}) (*ipldcbor.Node, error) {
-	out, err := convertMapSIToCbor(from)
-	if err != nil {
-		return nil, err
-	}
-
-	return ipldcbor.WrapMap(out)
-}
-
-func convertMapSIToCbor(from map[string]interface{}) (map[interface{}]interface{}, error) {
-	to := make(map[interface{}]interface{})
-	for k, v := range from {
-		out, err := convertToCborIshObj(v)
-		if err != nil {
-			return nil, err
-		}
-		to[k] = out
-	}
-
-	return to, nil
-}
-
-func convertToCborIshObj(i interface{}) (interface{}, error) {
-	switch v := i.(type) {
-	case map[string]interface{}:
-		if lnk, ok := v["/"]; ok && len(v) == 1 {
-			// special case for links
-			vstr, ok := lnk.(string)
-			if !ok {
-				return nil, fmt.Errorf("link should have been a string")
-			}
-
-			c, err := cid.Decode(vstr)
-			if err != nil {
-				return nil, err
-			}
-
-			return &ipldcbor.Link{Target: c}, nil
-		}
-
-		return convertMapSIToCbor(v)
-	case []interface{}:
-		var out []interface{}
-		for _, o := range v {
-			obj, err := convertToCborIshObj(o)
-			if err != nil {
-				return nil, err
-			}
-
-			out = append(out, obj)
-		}
-
-		return out, nil
-	default:
-		return v, nil
 	}
 }
