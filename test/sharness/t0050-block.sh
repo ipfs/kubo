@@ -169,6 +169,21 @@ test_expect_success "multi-block 'ipfs block rm -q' produces no output" '
   test ! -s block_rm_out
 '
 
+test_expect_success "can set cid format on block put" '
+	HASH=$(ipfs block put --format=protobuf ../t0051-object-data/testPut.pb)
+'
+
+test_expect_success "created an object correctly!" '
+	ipfs object get $HASH > obj_out &&
+	echo "{\"Links\":[],\"Data\":\"test json for sharness test\"}" > obj_exp &&
+	test_cmp obj_out obj_exp
+'
+
+test_expect_success "block get output looks right" '
+	ipfs block get $HASH > pb_block_out &&
+	test_cmp pb_block_out ../t0051-object-data/testPut.pb
+'
+
 #
 # Misc tests
 #
