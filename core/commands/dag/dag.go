@@ -14,8 +14,13 @@ import (
 
 var DagCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Interact with ipld dag objects.",
-		ShortDescription: ``,
+		Tagline: "Interact with ipld dag objects.",
+		ShortDescription: `
+'ipfs dag' is used for creating and manipulating dag objects.
+
+This subcommand is currently an experimental feature, but it is intended
+to deprecate and replace the existing 'ipfs object' command moving forward.
+		`,
 	},
 	Subcommands: map[string]*cmds.Command{
 		"put": DagPutCmd,
@@ -30,6 +35,10 @@ type OutputObject struct {
 var DagPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add a dag node to ipfs.",
+		ShortDescription: `
+'ipfs dag put' accepts input from a file or stdin and parses it
+into an object of the specified format.
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.FileArg("object data", true, false, "The object to put").EnableStdin(),
@@ -91,6 +100,9 @@ var DagPutCmd = &cmds.Command{
 var DagGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get a dag node from ipfs.",
+		ShortDescription: `
+'ipfs dag get' fetches a dag node from ipfs and prints it out in the specifed format.
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("cid", true, false, "The cid of the object to get").EnableStdin(),
