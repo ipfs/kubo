@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 
+	ipld "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
@@ -13,11 +14,7 @@ import (
 // 	Version() CoreVersion
 // }
 
-type Link struct {
-	Name string
-	Size uint64
-	Cid  *cid.Cid
-}
+type Link ipld.Link
 
 type Reader interface {
 	io.ReadSeeker
