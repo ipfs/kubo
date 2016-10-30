@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	importer "github.com/ipfs/go-ipfs/importer"
@@ -36,13 +35,6 @@ func marshalHeader(h *tar.Header) ([]byte, error) {
 }
 
 func ImportTar(r io.Reader, ds dag.DAGService) (*dag.ProtoNode, error) {
-	rall, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	r = bytes.NewReader(rall)
-
 	tr := tar.NewReader(r)
 
 	root := new(dag.ProtoNode)
