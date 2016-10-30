@@ -277,9 +277,10 @@
       "version": "0.3.2"
     },
     {
-      "hash": "QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc",
-      "name": "go-libp2p-routing",
-      "version": "2.2.2"
+      "author": "whyrusleeping",
+      "hash": "QmRcAVqrbY5wryx7hfNLtiUZbCcstzaJL7YJFBboitcqWF",
+      "name": "go-ipld-cbor",
+      "version": "0.3.0"
     }
   ],
   "gxVersion": "0.4.0",

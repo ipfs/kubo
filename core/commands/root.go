@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	dag "github.com/ipfs/go-ipfs/core/commands/dag"
 	files "github.com/ipfs/go-ipfs/core/commands/files"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
@@ -86,6 +87,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"cat":       CatCmd,
 	"commands":  CommandsDaemonCmd,
 	"config":    ConfigCmd,
+	"dag":       dag.DagCmd,
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
 	"dns":       DNSCmd,

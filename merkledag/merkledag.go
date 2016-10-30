@@ -11,6 +11,7 @@ import (
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 
+	ipldcbor "gx/ipfs/QmRcAVqrbY5wryx7hfNLtiUZbCcstzaJL7YJFBboitcqWF/go-ipld-cbor"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
@@ -105,6 +106,8 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 		return decnd, nil
 	case cid.Raw:
 		return NewRawNode(b.RawData()), nil
+	case cid.CBOR:
+		return ipldcbor.Decode(b.RawData())
 	default:
 		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
 	}
