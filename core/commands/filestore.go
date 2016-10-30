@@ -317,33 +317,24 @@ If --format is "long" then the format is:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("obj", false, true, "Hash(es), filename(s), or filestore keys to list."),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption("quiet", "q", "Alias for --format=hash."),
+	Options: append(formatOpts,
 		cmds.BoolOption("all", "a", "List everything, not just file roots."),
-		cmds.StringOption("format", "f", "Format of listing, one of: hash key default w/type long").Default("default"),
-	},
+	),
 	Run: func(req cmds.Request, res cmds.Response) {
 		_, fs, err := extractFilestore(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		format, _, _ := req.Option("format").String()
-		quiet, _, _ := req.Option("quiet").Bool()
 		all, _, _ := req.Option("all").Bool()
 
-		if quiet {
-			format = "hash"
-		}
-
-		formatFun, err := fsutil.StrToFormatFun(format)
+		formatFun, noObjInfo, err := procFormatOpts(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		ch, err := getListing(fs, req.Arguments(), all, format == "hash" || format == "key")
-
+		ch, err := getListing(fs, req.Arguments(), all, noObjInfo)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -351,9 +342,7 @@ If --format is "long" then the format is:
 
 		res.SetOutput(&chanWriter{
 			ch: ch,
-			format: func(r *fsutil.ListRes) (string,error) {
-				return formatFun(r),nil
-			},
+			format: formatFun,
 		})
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -361,6 +350,29 @@ If --format is "long" then the format is:
 			return res.(io.Reader), nil
 		},
 	},
+}
+
+var formatOpts = []cmds.Option{
+	cmds.BoolOption("quiet", "q", "Alias for --format=hash."),
+	cmds.BoolOption("full-key", "Display each entry using the full key when possible."),
+	cmds.StringOption("format", "f", "Format of listing, one of: hash key default w/type long").Default("default"),
+}
+
+func procFormatOpts(req cmds.Request) (func(*fsutil.ListRes) (string,error), bool, error) {
+	format, _, _ := req.Option("format").String()
+	quiet, _, _ := req.Option("quiet").Bool()
+	fullKey, _, _ := req.Option("full-key").Bool()
+	
+	if quiet {
+		format = "hash"
+	}
+	
+	formatFun, err := fsutil.StrToFormatFun(format, fullKey)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return formatFun, format == "hash" || format == "key", nil
 }
 
 func procListArgs(objs []string) ([]*filestore.DbKey, fsutil.ListFilter, error) {
@@ -519,7 +531,7 @@ func (w *chanWriter) Read(p []byte) (int, error) {
 }
 
 func formatDefault(res *fsutil.ListRes) (string, error) {
-	return res.FormatDefault(), nil
+	return res.FormatDefault(false), nil
 }
 
 func formatHash(res *fsutil.ListRes) (string, error) {
@@ -531,13 +543,13 @@ func formatPorcelain(res *fsutil.ListRes) (string, error) {
 		return "", nil
 	}
 	if res.DataObj == nil {
-		return fmt.Sprintf("%s\t%s\t%s\t%s\n", "block", res.StatusStr(), res.MHash(), ""), nil
+		return fmt.Sprintf("%s\t%s\t%s\t%s\t%s\n", "block", res.StatusStr(), res.MHash(), "", ""), nil
 	}
 	pos := strings.IndexAny(res.FilePath, "\t\r\n")
 	if pos == -1 {
-		return fmt.Sprintf("%s\t%s\t%s\t%s\n", res.What(), res.StatusStr(), res.MHash(), res.FilePath), nil
+		return fmt.Sprintf("%s\t%s\t%s\t%s\t%d\n", res.What(), res.StatusStr(), res.MHash(), res.FilePath, res.Offset), nil
 	} else {
-		str := fmt.Sprintf("%s\t%s\t%s\t%s\n", res.What(), res.StatusStr(), res.MHash(), "")
+		str := fmt.Sprintf("%s\t%s\t%s\t%s\t%d\n", res.What(), res.StatusStr(), res.MHash(), "", res.Offset)
 		err := errors.New("not displaying filename with tab or newline character")
 		return str, err
 	}
@@ -616,9 +628,9 @@ The --verbose option specifies what to output.  The current values are:
   5-6: in addition, show problem children
   7-9: in addition, show all children
 
-If --porcelain is used us an alternative output is used that will not
+If --porcelain is used used an alternative output is used that will not
 change between releases.  The output is:
-  <type0>\t<status>\t<hash>\t<filename>
+  <type0>\t<status>\t<hash>\t<filename>\t<offset>
 where <type0> is either "root" for a file root or something else
 otherwise and \t is a literal literal tab character.  <status> is the
 same as normal except that <blank> is spelled out as "unchecked".  In
@@ -630,18 +642,17 @@ returned) to avoid special cases when parsing the output.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("hash", false, true, "Hashs of nodes to verify."),
+		cmds.StringArg("obj", false, true, "Hash(es), filename(s), or filestore keys to verify."),
 	},
-	Options: []cmds.Option{
+	Options: append(formatOpts,
 		cmds.BoolOption("basic", "Perform a basic scan of leaf nodes only."),
 		cmds.IntOption("level", "l", "0-9, Verification level.").Default(6),
 		cmds.IntOption("verbose", "v", "0-9 Verbose level.").Default(6),
 		cmds.BoolOption("porcelain", "Porcelain output."),
 		cmds.BoolOption("skip-orphans", "Skip check for orphans."),
-		cmds.BoolOption("no-obj-info", "q", "Just print the status and the hash."),
 		cmds.StringOption("incomplete-when", "Internal option."),
 		cmds.BoolOption("post-orphan", "Internal option: Report would-be orphans."),
-	},
+	),
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, fs, err := extractFilestore(req)
 		if err != nil {
@@ -654,14 +665,20 @@ returned) to avoid special cases when parsing the output.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		formatFun, noObjInfo, err := procFormatOpts(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		basic, _, _ := req.Option("basic").Bool()
 		porcelain, _, _ := req.Option("porcelain").Bool()
-
-		params := fsutil.VerifyParams{Filter: filter}
+		
+		params := fsutil.VerifyParams{Filter: filter, NoObjInfo: noObjInfo}
 		params.Level, _, _ = req.Option("level").Int()
 		params.Verbose, _, _ = req.Option("verbose").Int()
 		params.SkipOrphans, _, _ = req.Option("skip-orphans").Bool()
-		params.NoObjInfo, _, _ = req.Option("no-obj-info").Bool()
 		params.IncompleteWhen = getIncompleteWhenOpt(req)
 		params.PostOrphan, _, _ = req.Option("post-orphan").Bool()
 
@@ -686,10 +703,8 @@ returned) to avoid special cases when parsing the output.
 		}
 		if porcelain {
 			res.SetOutput(&chanWriter{ch: ch, format: formatPorcelain, ignoreFailed: true})
-		} else if params.NoObjInfo {
-			res.SetOutput(&chanWriter{ch: ch, format: formatHash})			
 		} else {
-			res.SetOutput(&chanWriter{ch: ch, format: formatDefault})
+			res.SetOutput(&chanWriter{ch: ch, format: formatFun})
 		}
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -747,8 +762,6 @@ snapshot of the filestore when it is in a consistent state.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		//_ = node
-		//ch, err := fsutil.List(fs, quiet)
 		rdr, err := fsutil.Clean(req, node, fs, quiet, level, req.Arguments()...)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)

@@ -22,7 +22,10 @@ import (
 
 func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, level int, what ...string) (io.Reader, error) {
 	//exclusiveMode := node.LocalMode()
-	stages := 0
+	stages := 0 // represented as a 3 digit octodecimal
+	// stage 0100: remove bad blocks
+	//       0020: remove incomplete nodes
+	//       0003: remove orphan nodes
 	to_remove := make([]bool, 100)
 	incompleteWhen := make([]string, 0)
 	for i := 0; i < len(what); i++ {

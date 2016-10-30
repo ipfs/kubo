@@ -68,10 +68,14 @@ func (d *DataObj) StripData() DataObj {
 	}
 }
 
-func (d *DataObj) KeyStr(key Key) string {
+func (d *DataObj) KeyStr(key Key, asKey bool) string {
 	if key.FilePath == "" {
 		res := key.Format()
-		res += " /"
+		if asKey {
+			res += "/"
+		} else {
+			res += " /"
+		}
 		res += d.FilePath
 		res += "//"
 		res += fmt.Sprintf("%d", d.Offset)

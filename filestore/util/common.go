@@ -201,50 +201,60 @@ func (r *ListRes) FormatKeyOnly() string {
 	}
 }
 
-func (r *ListRes) FormatDefault() string {
+func (r *ListRes) FormatDefault(fullKey bool) string {
 	if r.Key.Hash == "" {
 		return "\n"
 	} else if r.DataObj == nil {
 		return fmt.Sprintf("%s%s\n", statusStr(r.Status), r.Key.Format())
 	} else {
-		return fmt.Sprintf("%s%s\n", statusStr(r.Status), r.DataObj.KeyStr(r.Key))
+		return fmt.Sprintf("%s%s\n", statusStr(r.Status), r.DataObj.KeyStr(r.Key, fullKey))
 	}
 }
 
-func (r *ListRes) FormatWithType() string {
+func (r *ListRes) FormatWithType(fullKey bool) string {
 	if r.Key.Hash == "" {
 		return "\n"
 	} else if r.DataObj == nil {
 		return fmt.Sprintf("%s      %s\n", statusStr(r.Status), r.Key.Format())
 	} else {
-		return fmt.Sprintf("%s%-5s %s\n", statusStr(r.Status), r.TypeStr(), r.DataObj.KeyStr(r.Key))
+		return fmt.Sprintf("%s%-5s %s\n", statusStr(r.Status), r.TypeStr(), r.DataObj.KeyStr(r.Key, fullKey))
 	}
 }
 
-func (r *ListRes) FormatLong() string {
+func (r *ListRes) FormatLong(fullKey bool) string {
 	if r.Key.Hash == "" {
 		return "\n"
 	} else if r.DataObj == nil {
 		return fmt.Sprintf("%s%49s  %s\n", statusStr(r.Status), "", r.Key.Format())
 	} else if r.NoBlockData() {
-		return fmt.Sprintf("%s%-5s %12d %30s  %s\n", statusStr(r.Status), r.TypeStr(), r.Size, r.DateStr(), r.DataObj.KeyStr(r.Key))
+		return fmt.Sprintf("%s%-5s %12d %30s  %s\n", statusStr(r.Status), r.TypeStr(), r.Size, r.DateStr(), r.DataObj.KeyStr(r.Key, fullKey))
 	} else {
-		return fmt.Sprintf("%s%-5s %12d %30s  %s\n", statusStr(r.Status), r.TypeStr(), r.Size, "", r.DataObj.KeyStr(r.Key))
+		return fmt.Sprintf("%s%-5s %12d %30s  %s\n", statusStr(r.Status), r.TypeStr(), r.Size, "", r.DataObj.KeyStr(r.Key, fullKey))
 	}
 }
 
-func StrToFormatFun(str string) (func(*ListRes) string, error) {
+func StrToFormatFun(str string, fullKey bool) (func(*ListRes) (string,error), error) {
 	switch str {
 	case "hash":
-		return (*ListRes).FormatHashOnly, nil
+		return func(r *ListRes) (string,error) {
+			return r.FormatHashOnly(), nil
+		}, nil
 	case "key":
-		return (*ListRes).FormatKeyOnly, nil
+		return func(r *ListRes) (string,error) {
+			return r.FormatKeyOnly(), nil
+		}, nil
 	case "default", "":
-		return (*ListRes).FormatDefault, nil
+		return func(r *ListRes) (string,error) {
+			return r.FormatDefault(fullKey), nil
+		}, nil
 	case "w/type":
-		return (*ListRes).FormatWithType, nil
+		return func(r *ListRes) (string,error) {
+			return r.FormatWithType(fullKey), nil
+		}, nil
 	case "long":
-		return (*ListRes).FormatLong, nil
+		return func(r *ListRes) (string,error) {
+			return r.FormatLong(fullKey), nil
+		}, nil
 	default:
 		return nil, fmt.Errorf("invalid format type: %s", str)
 	}
