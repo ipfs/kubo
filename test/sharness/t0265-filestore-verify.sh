@@ -132,6 +132,12 @@ ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
 
+ok       QmcSqqZ9CPrtf19jWM39geC5S1nqUtwytFt9dQ478hTkzt
+
+ok       QmcTnu1vxYsCdbVjwpMQBr1cK1grmHNxG2bM17E1d4swpf
+
+ok       QmeVzg9KFp8FswVxUN68xq8pHVXPR7wBcXXzNPLyqwzcxh
+
 orphan   QmWuBmMUbJBjfoG8BgPAdVLuvtk8ysZuMrAYEFk18M9gvR
 orphan   Qmctvse35eQ8cEgUEsBxJYi7e4uNz3gnUqYYj8JTvZNY2A
 orphan   QmeoJhPxZ5tQoCXR2aMno63L6kJDbCJ3fZH4gcqjD65aKR
@@ -140,7 +146,7 @@ changed  QmPSxQ4mNyq2b1gGu7Crsf3sbdSnYnFB3spSVETSLhD5RW
 orphan   QmPSxQ4mNyq2b1gGu7Crsf3sbdSnYnFB3spSVETSLhD5RW
 EOF
 
-interesting_prep() {
+overlap_prep() {
   reset_filestore
     
   test_expect_success "generate a bunch of file with some block sharing" '
@@ -152,7 +158,10 @@ interesting_prep() {
     random 1000000 6 > f &&
     cat a b > ab &&
     cat b c > bc &&
-    cp f f2 
+    cp f f2 &&
+    random 262144 10 > a1 && # a single block
+    random 262144 11 > a2 && # a single block
+    cat a1 a2 > a3           # when added will use the same block from a1 and a2
   '
 
   test_expect_success "add files with overlapping blocks" '
@@ -164,22 +173,29 @@ interesting_prep() {
     D_HASH=$(ipfs filestore add --logical -q d) &&
     E_HASH=$(ipfs filestore add --logical -q e) &&
     F_HASH=$(ipfs filestore add --logical -q f) &&
-    ipfs filestore add --logical -q f2
+    ipfs filestore add --logical -q f2 &&
+    A1_HASH=$(ipfs filestore add --logical -q a1) &&
+    A2_HASH=$(ipfs filestore add --logical -q a2) &&
+    A3_HASH=$(ipfs filestore add --logical -q a3)
   '
+}
 
+interesting_prep() {
+  overlap_prep
+    
   test_expect_success "create various problems" '
     # removing the backing file for a
     rm a &&
     # remove the root to b
     ipfs filestore rm $B_HASH &&
     # remove a block in c
-    ipfs filestore rm QmQVwjbNQZRpNoeTYwDwtA3CEEXHBeuboPgShqspGn822N &&
+    ipfs filestore rm --allow-non-roots QmQVwjbNQZRpNoeTYwDwtA3CEEXHBeuboPgShqspGn822N &&
     # modify d
     dd conv=notrunc if=/dev/zero of=d count=1 &&
     # modify e amd remove the root from the filestore creating a block
     # that is both an orphan and "changed"
     dd conv=notrunc if=/dev/zero of=e count=1 &&
-    ipfs filestore rm $E_HASH
+    ipfs filestore rm $E_HASH &&
     # remove the backing file for f
     rm f
   '
@@ -216,6 +232,12 @@ ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
+
+ok       QmcSqqZ9CPrtf19jWM39geC5S1nqUtwytFt9dQ478hTkzt
+
+ok       QmcTnu1vxYsCdbVjwpMQBr1cK1grmHNxG2bM17E1d4swpf
+
+ok       QmeVzg9KFp8FswVxUN68xq8pHVXPR7wBcXXzNPLyqwzcxh
 EOF
 test_expect_success "'filestore clean orphan' (should remove 'changed' orphan)" '
   ipfs filestore clean orphan &&
@@ -243,6 +265,12 @@ ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 ok       QmaVeSKhGmPYxRyqA236Y4N5e4Rn6LGZKdCgaYUarEo5Nu
 
 ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
+
+ok       QmcSqqZ9CPrtf19jWM39geC5S1nqUtwytFt9dQ478hTkzt
+
+ok       QmcTnu1vxYsCdbVjwpMQBr1cK1grmHNxG2bM17E1d4swpf
+
+ok       QmeVzg9KFp8FswVxUN68xq8pHVXPR7wBcXXzNPLyqwzcxh
 
 orphan   QmYswupx1AdGdTn6GeXVdaUBEe6rApd7GWSnobcuVZjeRV
 orphan   QmfDSgGhGsEf7LHC6gc7FbBMhGuYzxTLnbKqFBkWhGt8Qp
@@ -274,6 +302,12 @@ no-file  QmWThuQjx96vq9RphjwAqDQFndjTo1hFYXZwEJbcUjbo37
 ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 
 ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
+ok       QmcSqqZ9CPrtf19jWM39geC5S1nqUtwytFt9dQ478hTkzt
+
+ok       QmcTnu1vxYsCdbVjwpMQBr1cK1grmHNxG2bM17E1d4swpf
+
+ok       QmeVzg9KFp8FswVxUN68xq8pHVXPR7wBcXXzNPLyqwzcxh
 EOF
 test_expect_success "'filestore clean orphan'" '
   ipfs filestore clean orphan &&
@@ -299,6 +333,12 @@ ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 
 ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 
+ok       QmcSqqZ9CPrtf19jWM39geC5S1nqUtwytFt9dQ478hTkzt
+
+ok       QmcTnu1vxYsCdbVjwpMQBr1cK1grmHNxG2bM17E1d4swpf
+
+ok       QmeVzg9KFp8FswVxUN68xq8pHVXPR7wBcXXzNPLyqwzcxh
+
 orphan   QmbZr7Fs6AJf7HpnTxDiYJqLXWDqAy3fKFXYVDkgSsH7DH
 orphan   QmToAcacDnpqm17jV7rRHmXcS9686Mk59KCEYGAMkh9qCX
 orphan   QmYtLWUVmevucXFN9q59taRT95Gxj5eJuLUhXKtwNna25t
@@ -320,6 +360,12 @@ ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 
 ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 
+ok       QmcSqqZ9CPrtf19jWM39geC5S1nqUtwytFt9dQ478hTkzt
+
+ok       QmcTnu1vxYsCdbVjwpMQBr1cK1grmHNxG2bM17E1d4swpf
+
+ok       QmeVzg9KFp8FswVxUN68xq8pHVXPR7wBcXXzNPLyqwzcxh
+
 orphan   QmToAcacDnpqm17jV7rRHmXcS9686Mk59KCEYGAMkh9qCX
 orphan   QmbZr7Fs6AJf7HpnTxDiYJqLXWDqAy3fKFXYVDkgSsH7DH
 orphan   QmYtLWUVmevucXFN9q59taRT95Gxj5eJuLUhXKtwNna25t
@@ -337,6 +383,12 @@ ok       QmcAkMdfBPYVzDCM6Fkrz1h8WXcprH8BLF6DmjNUGhXAnm
 ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
 
 ok       QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ
+
+ok       QmcSqqZ9CPrtf19jWM39geC5S1nqUtwytFt9dQ478hTkzt
+
+ok       QmcTnu1vxYsCdbVjwpMQBr1cK1grmHNxG2bM17E1d4swpf
+
+ok       QmeVzg9KFp8FswVxUN68xq8pHVXPR7wBcXXzNPLyqwzcxh
 EOF
 test_expect_success "'filestore clean incomplete orphan' (cleanup)" '
   cp verify-final verify-now &&
@@ -357,8 +409,8 @@ test_expect_success "'filestore clean full'" '
 '
 
 test_expect_success "remove f from filestore" '
-  ipfs filestore ls-files QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ -q | grep "/f$" > filename &&
-  ipfs filestore rm QmZcUeeYQEjDzbuEBhce8e7gTibUwotg3EvmSJ35gBxnZQ/"$(cat filename)//0"
+  ipfs filestore ls-files $F_HASH -q | grep "/f$" > filename &&
+  ipfs filestore rm $F_HASH/"$(cat filename)//0"
 '
 
 test_expect_success "make sure clean does not remove shared and valid blocks" '
@@ -367,4 +419,45 @@ test_expect_success "make sure clean does not remove shared and valid blocks" '
   ipfs cat $F_HASH > /dev/null
 '
 
+#
+# Now reset and test "filestore rm -r" with overlapping files
+#
+
+overlap_prep
+
+test_expect_success "remove bc, make sure b is still ok" '
+  ipfs filestore rm -r $BC_HASH &&
+  ipfs cat $B_HASH > /dev/null
+'
+
+test_expect_success "remove a, make sure ab is still ok" '
+  ipfs filestore rm -r $A_HASH &&
+  ipfs cat $AB_HASH > /dev/null
+'
+
+test_expect_success "remove just f, make sure f2 is still ok" '
+  ipfs filestore ls-files $F_HASH -q | grep "/f$" > filename &&
+  ipfs filestore rm -r $F_HASH/"$(cat filename)"
+  ipfs cat $F_HASH > /dev/null
+'
+
+test_expect_success "add back f" '
+  ipfs filestore add --logical f
+'
+
+test_expect_success "completly remove f hash" '
+  ipfs filestore rm -r $F_HASH > rm_actual &&
+  grep "removed $F_HASH//.\+/f//0" rm_actual &&
+  grep "removed $F_HASH//.\+/f2//0" rm_actual
+'
+
+test_expect_success "remove a1 and a2" '
+  test_must_fail ipfs filestore rm $A1_HASH $A2_HASH >  rm_actual &&
+  grep "removed $A1_HASH//.\+/a1//0" rm_actual &&
+  grep "removed $A2_HASH//.\+/a2//0" rm_actual
+'
+
+test_expect_success "a3 still okay" '
+  ipfs cat $A3_HASH > /dev/null
+'
 test_done

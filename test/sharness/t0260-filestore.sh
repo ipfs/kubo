@@ -133,6 +133,21 @@ test_expect_success "testing file removed" '
   test_must_fail ipfs cat QmZm53sWMaAQ59x56tFox8X9exJFELWC33NLjK6m8H7CpN > expected
 '
 
+test_add_cat_5MB "filestore add" "`pwd`" "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
+
+test_expect_success "testing filestore rm -r" '
+  ipfs filestore rm -r QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb > rm_actual
+'
+
+cat <<EOF > ls_expect
+QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
+EOF
+
+test_expect_success "testing file removed" '
+  ipfs filestore ls -q -a | LC_ALL=C sort > ls_actual &&
+  test_cmp ls_expect ls_actual
+'
+
 #
 # filestore_test_exact_paths
 #

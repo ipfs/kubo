@@ -21,6 +21,9 @@ type dagService struct {
 }
 
 func GetLinks(dataObj *DataObj) ([]*node.Link, error) {
+	if !dataObj.Internal() {
+		return nil, nil
+	}
 	res, err := dag.DecodeProtobuf(dataObj.Data)
 	if err != nil {
 		return nil, err

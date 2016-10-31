@@ -306,10 +306,8 @@ func (d *Basic) GetAll(k *DbKey) ([]KeyVal, error) {
 }
 
 func haveMatch(k *DbKey, dataObj *DataObj) bool {
-	if (k.FilePath != "" && k.FilePath != dataObj.FilePath) || (k.Offset != -1 && uint64(k.Offset) != dataObj.Offset) {
-		return false
-	}
-	return true
+	return ((k.FilePath == "" || k.FilePath == dataObj.FilePath) &&
+		(k.Offset == -1 || uint64(k.Offset) == dataObj.Offset))
 }
 
 type IsPinned int

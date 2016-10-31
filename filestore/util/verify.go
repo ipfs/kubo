@@ -479,9 +479,9 @@ func (p *verifyParams) verifyNode(links []*node.Link) Status {
 	for _, link := range links {
 		hash := CidToKey(link.Cid)
 		v := p.getStatus(hash.Hash)
+		var dataObj *DataObj
 		if v.status == 0 {
 			objs, children, r := p.get(hash)
-			var dataObj *DataObj
 			if objs != nil {
 				dataObj = objs[0].Val
 			}
@@ -490,7 +490,6 @@ func (p *verifyParams) verifyNode(links []*node.Link) Status {
 			} else if len(children) > 0 {
 				r = p.verifyNode(children)
 				p.reportNodeStatus(hash, dataObj, r)
-				p.setStatus(hash, dataObj, r, true)
 			} else if objs != nil {
 				r = StatusNone
 				for _, kv := range objs {
@@ -500,10 +499,10 @@ func (p *verifyParams) verifyNode(links []*node.Link) Status {
 						r = r0
 					}
 				}
-				p.setStatus(hash, dataObj, r, true)
 			}
 			v.status = r
 		}
+		p.setStatus(hash, dataObj, v.status, true)
 		if AnInternalError(v.status) {
 			return StatusError
 		} else if p.incompleteWhen[v.status] {

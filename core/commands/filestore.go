@@ -21,6 +21,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"gx/ipfs/QmRpAnJ1Mvd2wCtwoFevW8pbLTivUqmFxynptG6uvp1jzC/safepath"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	butil "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -341,7 +342,7 @@ If --format is "long" then the format is:
 		}
 
 		res.SetOutput(&chanWriter{
-			ch: ch,
+			ch:     ch,
 			format: formatFun,
 		})
 	},
@@ -358,15 +359,15 @@ var formatOpts = []cmds.Option{
 	cmds.StringOption("format", "f", "Format of listing, one of: hash key default w/type long").Default("default"),
 }
 
-func procFormatOpts(req cmds.Request) (func(*fsutil.ListRes) (string,error), bool, error) {
+func procFormatOpts(req cmds.Request) (func(*fsutil.ListRes) (string, error), bool, error) {
 	format, _, _ := req.Option("format").String()
 	quiet, _, _ := req.Option("quiet").Bool()
 	fullKey, _, _ := req.Option("full-key").Bool()
-	
+
 	if quiet {
 		format = "hash"
 	}
-	
+
 	formatFun, err := fsutil.StrToFormatFun(format, fullKey)
 	if err != nil {
 		return nil, false, err
@@ -496,7 +497,7 @@ type chanWriter struct {
 	checksFailed bool
 	ignoreFailed bool
 	errs         []string
-	format       func(*fsutil.ListRes) (string,error)
+	format       func(*fsutil.ListRes) (string, error)
 }
 
 func (w *chanWriter) Read(p []byte) (int, error) {
@@ -674,7 +675,7 @@ returned) to avoid special cases when parsing the output.
 
 		basic, _, _ := req.Option("basic").Bool()
 		porcelain, _, _ := req.Option("porcelain").Bool()
-		
+
 		params := fsutil.VerifyParams{Filter: filter, NoObjInfo: noObjInfo}
 		params.Level, _, _ = req.Option("level").Int()
 		params.Verbose, _, _ = req.Option("verbose").Int()
@@ -786,8 +787,10 @@ var rmFilestoreObjs = &cmds.Command{
 		cmds.StringArg("key", true, true, "Objects to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("force", "f", "Ignore nonexistent blocks.").Default(false),
-		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
+		cmds.BoolOption("ignore", "Ignore nonexistent blocks."),
+		cmds.BoolOption("quiet", "q", "Write minimal output."),
+		cmds.BoolOption("recursive", "r", "Delete children."),
+		cmds.BoolOption("allow-non-roots", "Allow removal of non-root nodes when only the hash is specified."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, fs, err := extractFilestore(req)
@@ -795,25 +798,37 @@ var rmFilestoreObjs = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		hashes := req.Arguments()
-		//force, _, _ := req.Option("force").Bool()
-		//quiet, _, _ := req.Option("quiet").Bool()
-		keys := make([]*filestore.DbKey, 0, len(hashes))
-		for _, hash := range hashes {
-			k, err := filestore.ParseKey(hash)
-			if err != nil {
-				res.SetError(fmt.Errorf("invalid filestore key: %s (%s)", hash, err), cmds.ErrNormal)
-				return
-			}
-			keys = append(keys, k)
-		}
-		outChan := make(chan interface{})
-		err = fsutil.RmBlocks(fs, n.Blockstore, n.Pinning, outChan, keys)
+		args := req.Arguments()
+
+		ss, err := fs.GetSnapshot()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput((<-chan interface{})(outChan))
+		r := fsutil.NewFilestoreRemover(ss)
+		quiet, _, _ := req.Option("quiet").Bool()
+		r.ReportFound = !quiet
+		ignore, _, _ := req.Option("ignore").Bool()
+		r.ReportNotFound = !ignore
+		r.Recursive, _, _ = req.Option("recursive").Bool()
+		r.AllowNonRoots, _, _ = req.Option("allow-non-roots").Bool()
+		out := make(chan interface{}, 16)
+		go func() {
+			defer close(out)
+			for _, hash := range args {
+				k, err := filestore.ParseKey(hash)
+				if err != nil {
+					out <- &butil.RemovedBlock{Hash: hash, Error: "invalid filestore key"}
+					continue
+				}
+				r.DeleteAll(k, out)
+			}
+			out2 := r.Finish(n.Blockstore, n.Pinning)
+			for res := range out2 {
+				out <- res
+			}
+		}()
+		res.SetOutput((<-chan interface{})(out))
 	},
 	PostRun: blockRmCmd.PostRun,
 	Type:    blockRmCmd.Type,

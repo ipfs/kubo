@@ -132,7 +132,7 @@ func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, lev
 			defer close(ch2)
 			for r := range ch {
 				if to_remove[r.Status] {
-					r2 := remover.Delete(KeyToKey(r.Key))
+					r2 := remover.Delete(KeyToKey(r.Key), nil)
 					if r2 != nil {
 						ch2 <- r2
 					}
