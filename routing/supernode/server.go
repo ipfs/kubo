@@ -7,7 +7,7 @@ import (
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 
 	context "context"
-	dhtpb "gx/ipfs/QmTyXZijAwx3ptKzQkzq7BWBhmSJhjxLpDKF2Fp95WUd13/go-libp2p-kad-dht/pb"
+	dhtpb "gx/ipfs/QmSb1SYG4dxsuiscd8dyNvn4UuT6gKU8HzQCwa5jtGgGMR/go-libp2p-kad-dht/pb"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
