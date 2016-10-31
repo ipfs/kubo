@@ -782,6 +782,22 @@ snapshot of the filestore when it is in a consistent state.
 var rmFilestoreObjs = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Remove entries from the filestore.",
+		ShortDescription: `
+Remove matching entries from the filestore.  Entries can be specified
+using any of the following formats:
+  <hash>
+  <hash>/<filepath>
+  <hash>/<filepath>//<offset>
+
+To prevent accidentally removing a block that is part of an unrelated
+file, only roots will be removed unless either "--allow-non-roots" is
+also specified or a key with a <filepath> is provided.
+
+To remove all blocks associated with a file use "-r" to remove the
+children, in addition to the root.  The "-r" option is safe to use
+even if blocks are shared between files, as it will only remove
+children that have the same backing file.
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, true, "Objects to remove."),

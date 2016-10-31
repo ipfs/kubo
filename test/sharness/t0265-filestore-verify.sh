@@ -178,6 +178,9 @@ overlap_prep() {
     A2_HASH=$(ipfs filestore add --logical -q a2) &&
     A3_HASH=$(ipfs filestore add --logical -q a3)
   '
+  # Note: $A1_HASH and $A2_HASH are both have two entries, one of them
+  # in the root for the file a1 and a2 respectively and the other is a
+  # leaf for the file a3.
 }
 
 interesting_prep() {
@@ -457,7 +460,7 @@ test_expect_success "remove a1 and a2" '
   grep "removed $A2_HASH//.\+/a2//0" rm_actual
 '
 
-test_expect_success "a3 still okay" '
+test_expect_success "make sure a3 is still okay" '
   ipfs cat $A3_HASH > /dev/null
 '
 test_done
