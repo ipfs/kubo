@@ -13,7 +13,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 
-	floodsub "gx/ipfs/QmTgcWwxttM74AY7UYA6qMP9WpzfBEjbZntx7ZWLttRMJJ/floodsub"
+	floodsub "gx/ipfs/QmVxGRDh6aKFYKwiW8WMMD2dsQnAuaZfBjF9Q7HQNuEk5G/floodsub"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
@@ -295,7 +295,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		}
 
 		var out []string
-		for _, p := range n.Floodsub.ListPeers() {
+		for _, p := range n.Floodsub.ListPeers("") {
 			out = append(out, p.Pretty())
 		}
 		res.SetOutput(&stringList{out})

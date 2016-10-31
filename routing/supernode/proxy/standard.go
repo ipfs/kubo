@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
+	dhtpb "gx/ipfs/QmSb1SYG4dxsuiscd8dyNvn4UuT6gKU8HzQCwa5jtGgGMR/go-libp2p-kad-dht/pb"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	loggables "gx/ipfs/QmTMy4hVSY28DdwJ9kBz6y7q6MuioFzPcpM3Ma3aPjo1i3/go-libp2p-loggables"
-	dhtpb "gx/ipfs/QmTyXZijAwx3ptKzQkzq7BWBhmSJhjxLpDKF2Fp95WUd13/go-libp2p-kad-dht/pb"
 	kbucket "gx/ipfs/QmUKePKcUEXwdvJENZJ6z8mJjPaxLsDZ3V9CZjPPtyawPm/go-libp2p-kbucket"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"

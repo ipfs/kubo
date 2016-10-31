@@ -3,7 +3,7 @@ package supernode
 import (
 	"testing"
 
-	dhtpb "gx/ipfs/QmTyXZijAwx3ptKzQkzq7BWBhmSJhjxLpDKF2Fp95WUd13/go-libp2p-kad-dht/pb"
+	dhtpb "gx/ipfs/QmSb1SYG4dxsuiscd8dyNvn4UuT6gKU8HzQCwa5jtGgGMR/go-libp2p-kad-dht/pb"
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	datastore "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
