@@ -22,6 +22,9 @@ install:
 script:
   - make $TEST_SUITE
 
+after_success:
+  - docker run -v $(pwd):/cwd snapcore/snapcraft sh -c 'cd /cwd; snapcraft'
+
 # For docker containers
 
 sudo: required
