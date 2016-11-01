@@ -17,6 +17,12 @@ env:
   - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_sharness_expensive
   - BUILD=1
 
+matrix:
+  exclude:
+    # Do not build the snap in macOS.
+    - os: osx
+      env: BUILD=1
+
 install:
   - make install
 
@@ -24,7 +30,7 @@ script:
   # Run the tests.
   - if [ -z "$BUILD" ]; then make $TEST_SUITE; fi
   # Build the snap.
-  - if [ ! -z "$BUILD" ]; then docker run -v $(pwd):/cwd snapcore/snapcraft sh -c 'cd /cwd; snapcraft'; fi
+  - if [ ! -z "$BUILD" ]; then docker run -v $(pwd):/cwd snapcore/snapcraft sh -c 'add-apt-repository -y ppa:gophers/archive && apt update && cd /cwd; snapcraft'; fi
 
 # For docker containers.
 
