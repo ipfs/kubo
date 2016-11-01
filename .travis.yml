@@ -30,7 +30,7 @@ script:
   # Run the tests.
   - if [ -z "$BUILD" ]; then make $TEST_SUITE; fi
   # Build the snap.
-  - if [ ! -z "$BUILD" ]; then docker run -v $(pwd):/cwd snapcore/snapcraft sh -c 'add-apt-repository -y ppa:gophers/archive && apt update && cd /cwd; snapcraft'; fi
+  - if [ ! -z "$BUILD" ]; then docker run -v $(pwd):/cwd snapcore/snapcraft sh -c 'apt install software-properties-common -y && add-apt-repository -y ppa:gophers/archive && apt update && cd /cwd && snapcraft'; fi
 
 # For docker containers.
 
