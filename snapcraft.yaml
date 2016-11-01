@@ -7,7 +7,6 @@ description: |
   an interface as simple as the HTTP web, but with permanence built in. You
   can also mount the world at /ipfs.
 
-grade: devel
 confinement: strict
 
 apps:
