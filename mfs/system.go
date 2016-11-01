@@ -58,8 +58,6 @@ type Root struct {
 	repub *Republisher
 
 	dserv dag.DAGService
-
-	Type string
 }
 
 type PubFunc func(context.Context, *cid.Cid) error
