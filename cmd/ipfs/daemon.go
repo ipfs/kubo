@@ -332,6 +332,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
+	node.SetLocal(false)
 
 	printSwarmAddrs(node)
 
