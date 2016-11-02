@@ -445,10 +445,10 @@ func (n *IpfsNode) loadID() error {
 
 	cid := cfg.Identity.PeerID
 	if cid == "" {
-		return errors.New("Identity was not set in config (was ipfs init run?)")
+		return errors.New("identity was not set in config (was 'ipfs init' run?)")
 	}
 	if len(cid) == 0 {
-		return errors.New("No peer ID in config! (was ipfs init run?)")
+		return errors.New("no peer ID in config! (was 'ipfs init' run?)")
 	}
 
 	n.Identity = peer.ID(b58.Decode(cid))

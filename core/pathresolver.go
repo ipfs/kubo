@@ -53,7 +53,7 @@ func Resolve(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p p
 		}
 	}
 
-	// ok, we have an ipfs path now (or what we'll treat as one)
+	// ok, we have an IPFS path now (or what we'll treat as one)
 	return r.ResolvePath(ctx, p)
 }
 

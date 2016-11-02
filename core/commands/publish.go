@@ -47,7 +47,7 @@ Publish an <ipfs-path> to another public key (not implemented):
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "IPFS path of the object to be published.").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, false, "ipfs path of the object to be published.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("resolve", "Resolve given path before publishing.").Default(true),

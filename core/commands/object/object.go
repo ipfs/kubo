@@ -44,7 +44,7 @@ type Object struct {
 
 var ObjectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with ipfs objects.",
+		Tagline: "Interact with IPFS objects.",
 		ShortDescription: `
 'ipfs object' is a plumbing command used to manipulate DAG objects
 directly.`,

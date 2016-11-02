@@ -357,7 +357,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	rootPath, err := path.ParsePath(r.URL.Path)
 	if err != nil {
-		webError(w, "putHandler: ipfs path not valid", err, http.StatusBadRequest)
+		webError(w, "putHandler: IPFS path not valid", err, http.StatusBadRequest)
 		return
 	}
 

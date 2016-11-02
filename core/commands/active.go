@@ -13,7 +13,7 @@ import (
 
 var ActiveReqsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List commands run on this ipfs node.",
+		Tagline: "List commands run on this IPFS node.",
 		ShortDescription: `
 Lists running and recently run commands.
 `,

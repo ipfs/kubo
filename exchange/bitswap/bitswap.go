@@ -1,4 +1,4 @@
-// package bitswap implements the IPFS Exchange interface with the BitSwap
+// package bitswap implements the IPFS exchange interface with the BitSwap
 // bilateral exchange protocol.
 package bitswap
 
@@ -68,7 +68,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 
 	// important to use provided parent context (since it may include important
 	// loggable data). It's probably not a good idea to allow bitswap to be
-	// coupled to the concerns of the IPFS daemon in this way.
+	// coupled to the concerns of the ipfs daemon in this way.
 	//
 	// FIXME(btc) Now that bitswap manages itself using a process, it probably
 	// shouldn't accept a context anymore. Clients should probably use Close()

@@ -1,4 +1,4 @@
-// Package commands implements the IPFS command interface
+// Package commands implements the ipfs command interface
 //
 // Using github.com/ipfs/go-ipfs/commands to define the command line and HTTP
 // APIs.  This is the interface available to folks using IPFS from outside of

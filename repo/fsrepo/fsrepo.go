@@ -55,7 +55,7 @@ type NoRepoError struct {
 var _ error = NoRepoError{}
 
 func (err NoRepoError) Error() string {
-	return fmt.Sprintf("no ipfs repo found in %s.\nplease run: ipfs init", err.Path)
+	return fmt.Sprintf("no IPFS repo found in %s.\nplease run: 'ipfs init'", err.Path)
 }
 
 const apiFile = "api"

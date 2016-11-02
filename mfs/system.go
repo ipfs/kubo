@@ -1,4 +1,4 @@
-// package mfs implements an in memory model of a mutable ipfs filesystem.
+// package mfs implements an in memory model of a mutable IPFS filesystem.
 //
 // It consists of four main structs:
 // 1) The Filesystem

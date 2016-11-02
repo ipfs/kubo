@@ -12,8 +12,8 @@ import (
 
 var log = logging.Logger("ipfsaddr")
 
-// ErrInvalidAddr signals an address is not a valid ipfs address.
-var ErrInvalidAddr = errors.New("invalid ipfs address")
+// ErrInvalidAddr signals an address is not a valid IPFS address.
+var ErrInvalidAddr = errors.New("invalid IPFS address")
 
 type IPFSAddr interface {
 	ID() peer.ID
@@ -83,7 +83,7 @@ func ParseMultiaddr(m ma.Multiaddr) (a IPFSAddr, err error) {
 		return nil, ErrInvalidAddr
 	}
 
-	// make sure it's an ipfs addr
+	// make sure it's an IPFS addr
 	parts := ma.Split(m)
 	if len(parts) < 1 {
 		return nil, ErrInvalidAddr
@@ -93,7 +93,7 @@ func ParseMultiaddr(m ma.Multiaddr) (a IPFSAddr, err error) {
 		return nil, ErrInvalidAddr
 	}
 
-	// make sure ipfs id parses as a peer.ID
+	// make sure 'ipfs id' parses as a peer.ID
 	peerIdParts := path.SplitList(ipfspart.String())
 	peerIdStr := peerIdParts[len(peerIdParts)-1]
 	id, err := peer.IDB58Decode(peerIdStr)

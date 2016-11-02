@@ -24,7 +24,7 @@ type RepoVersion struct {
 
 var RepoCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with the IPFS repo.",
+		Tagline: "Manipulate the IPFS repo.",
 		ShortDescription: `
 'ipfs repo' is a plumbing command used to manipulate the repo.
 `,

@@ -18,12 +18,12 @@ import (
 
 var StatsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Query ipfs statistics.",
+		Tagline: "Query IPFS statistics.",
 		ShortDescription: `'ipfs stats' is a set of commands to help look at statistics
-for your ipfs node.
+for your IPFS node.
 `,
 		LongDescription: `'ipfs stats' is a set of commands to help look at statistics
-for your ipfs node.`,
+for your IPFS node.`,
 	},
 
 	Subcommands: map[string]*cmds.Command{

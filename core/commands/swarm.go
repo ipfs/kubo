@@ -209,7 +209,7 @@ var swarmConnectCmd = &cmds.Command{
 		ShortDescription: `
 'ipfs swarm connect' opens a new direct connection to a peer address.
 
-The address format is an ipfs multiaddr:
+The address format is an IPFS multiaddr:
 
 ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 `,
@@ -274,7 +274,7 @@ var swarmDisconnectCmd = &cmds.Command{
 		Tagline: "Close connection to a given address.",
 		ShortDescription: `
 'ipfs swarm disconnect' closes a connection to a peer address. The address
-format is an ipfs multiaddr:
+format is an IPFS multiaddr:
 
 ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 
