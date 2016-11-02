@@ -254,9 +254,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmSb1SYG4dxsuiscd8dyNvn4UuT6gKU8HzQCwa5jtGgGMR",
+      "hash": "QmaWzyiqs7sUayh2G1EaovupWrA1qdKXqRMYA97ruU1xS5",
       "name": "go-libp2p-kad-dht",
-      "version": "2.3.3"
+      "version": "2.4.0"
     },
     {
       "author": "whyrusleeping",

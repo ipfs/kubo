@@ -14,10 +14,10 @@ import (
 
 	routing "gx/ipfs/QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc/go-libp2p-routing"
 	notif "gx/ipfs/QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc/go-libp2p-routing/notifications"
-	ipdht "gx/ipfs/QmSb1SYG4dxsuiscd8dyNvn4UuT6gKU8HzQCwa5jtGgGMR/go-libp2p-kad-dht"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	ipdht "gx/ipfs/QmaWzyiqs7sUayh2G1EaovupWrA1qdKXqRMYA97ruU1xS5/go-libp2p-kad-dht"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )

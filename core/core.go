@@ -42,7 +42,7 @@ import (
 	nilrouting "github.com/ipfs/go-ipfs/routing/none"
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	routing "gx/ipfs/QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc/go-libp2p-routing"
-	dht "gx/ipfs/QmSb1SYG4dxsuiscd8dyNvn4UuT6gKU8HzQCwa5jtGgGMR/go-libp2p-kad-dht"
+	dht "gx/ipfs/QmaWzyiqs7sUayh2G1EaovupWrA1qdKXqRMYA97ruU1xS5/go-libp2p-kad-dht"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
