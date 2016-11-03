@@ -36,14 +36,14 @@ func TestWriteThroughWorks(t *testing.T) {
 	}
 }
 
-var _ blockstore.GCBlockstore = (*PutCountingBlockstore)(nil)
+var _ blockstore.Blockstore = (*PutCountingBlockstore)(nil)
 
 type PutCountingBlockstore struct {
-	blockstore.GCBlockstore
+	blockstore.Blockstore
 	PutCounter int
 }
 
 func (bs *PutCountingBlockstore) Put(block blocks.Block) error {
 	bs.PutCounter++
-	return bs.GCBlockstore.Put(block)
+	return bs.Blockstore.Put(block)
 }

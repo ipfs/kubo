@@ -14,7 +14,7 @@ import (
 	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
-func testBloomCached(bs GCBlockstore, ctx context.Context) (*bloomcache, error) {
+func testBloomCached(bs Blockstore, ctx context.Context) (*bloomcache, error) {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
