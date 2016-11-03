@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -17,7 +18,6 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
 
-	context "context"
 	retry "gx/ipfs/QmPF5kxTYFkzhaY5LmkExood7aTTZBHWQC6cjdDQBuGrjp/retry-datastore"
 	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	goprocessctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
@@ -42,9 +42,10 @@ type BuildCfg struct {
 	// If NilRepo is set, a repo backed by a nil datastore will be constructed
 	NilRepo bool
 
-	Routing RoutingOption
-	Host    HostOption
-	Repo    repo.Repo
+	Blockstore BlockstoreOption
+	Routing    RoutingOption
+	Host       HostOption
+	Repo       repo.Repo
 }
 
 func (cfg *BuildCfg) getOpt(key string) bool {
@@ -58,6 +59,10 @@ func (cfg *BuildCfg) getOpt(key string) bool {
 func (cfg *BuildCfg) fillDefaults() error {
 	if cfg.Repo != nil && cfg.NilRepo {
 		return errors.New("cannot set a repo and specify nilrepo at the same time")
+	}
+
+	if cfg.Blockstore == nil {
+		cfg.Blockstore = SetupBlockstore
 	}
 
 	if cfg.Repo == nil {
@@ -153,6 +158,24 @@ func isTooManyFDError(err error) bool {
 	return false
 }
 
+type BlockstoreOption func(ctx context.Context, d ds.Batching, rcfg *cfg.Config, permanent bool) (bstore.Blockstore, error)
+
+func SetupBlockstore(ctx context.Context, d ds.Batching, rcfg *cfg.Config, permanent bool) (bstore.Blockstore, error) {
+	bs := bstore.NewBlockstore(d)
+	opts := bstore.DefaultCacheOpts()
+
+	opts.HasBloomFilterSize = rcfg.Datastore.BloomFilterSize
+	if !permanent {
+		opts.HasBloomFilterSize = 0
+	}
+
+	if rcfg.Datastore.HashOnRead {
+		bs.HashOnRead(true)
+	}
+
+	return bstore.CachedBlockstore(bs, ctx, opts)
+}
+
 func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	// setup local peer ID (private key is loaded in online setup)
 	if err := n.loadID(); err != nil {
@@ -166,34 +189,17 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		TempErrFunc: isTooManyFDError,
 	}
 
-	var err error
-	bs := bstore.NewBlockstore(rds)
-	opts := bstore.DefaultCacheOpts()
-	conf, err := n.Repo.Config()
-	if err != nil {
-		return err
-	}
-
-	opts.HasBloomFilterSize = conf.Datastore.BloomFilterSize
-	if !cfg.Permament {
-		opts.HasBloomFilterSize = 0
-	}
-
-	cbs, err := bstore.CachedBlockstore(bs, ctx, opts)
-	if err != nil {
-		return err
-	}
-
-	n.Blockstore = bstore.NewGCBlockstore(cbs, bstore.NewGCLocker())
-
 	rcfg, err := n.Repo.Config()
 	if err != nil {
 		return err
 	}
 
-	if rcfg.Datastore.HashOnRead {
-		bs.HashOnRead(true)
+	bs, err := cfg.Blockstore(ctx, rds, rcfg, cfg.Permament)
+	if err != nil {
+		return err
 	}
+
+	n.Blockstore = bstore.NewGCBlockstore(bs, bstore.NewGCLocker())
 
 	if cfg.Online {
 		do := setupDiscoveryOption(rcfg.Discovery)
