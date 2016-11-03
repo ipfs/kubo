@@ -13,7 +13,7 @@ import (
 
 var exampleBlock = blocks.NewBlock([]byte("foo"))
 
-func testArcCached(bs GCBlockstore, ctx context.Context) (*arccache, error) {
+func testArcCached(bs Blockstore, ctx context.Context) (*arccache, error) {
 	if ctx == nil {
 		ctx = context.TODO()
 	}

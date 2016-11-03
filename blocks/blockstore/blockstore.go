@@ -39,9 +39,7 @@ type Blockstore interface {
 	AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error)
 }
 
-type GCBlockstore interface {
-	Blockstore
-
+type GCLocker interface {
 	// GCLock locks the blockstore for garbage collection. No operations
 	// that expect to finish with a pin should ocurr simultaneously.
 	// Reading during GC is safe, and requires no lock.
@@ -56,6 +54,20 @@ type GCBlockstore interface {
 	// GcRequested returns true if GCLock has been called and is waiting to
 	// take the lock
 	GCRequested() bool
+}
+
+type GCBlockstore interface {
+	Blockstore
+	GCLocker
+}
+
+func NewGCBlockstore(bs Blockstore, gcl GCLocker) GCBlockstore {
+	return gcBlockstore{bs, gcl}
+}
+
+type gcBlockstore struct {
+	Blockstore
+	GCLocker
 }
 
 func NewBlockstore(d ds.Batching) *blockstore {
@@ -223,6 +235,16 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 	return output, nil
 }
 
+func NewGCLocker() *gclocker {
+	return &gclocker{}
+}
+
+type gclocker struct {
+	lk      sync.RWMutex
+	gcreq   int32
+	gcreqlk sync.Mutex
+}
+
 type Unlocker interface {
 	Unlock()
 }
@@ -236,18 +258,18 @@ func (u *unlocker) Unlock() {
 	u.unlock = nil // ensure its not called twice
 }
 
-func (bs *blockstore) GCLock() Unlocker {
+func (bs *gclocker) GCLock() Unlocker {
 	atomic.AddInt32(&bs.gcreq, 1)
 	bs.lk.Lock()
 	atomic.AddInt32(&bs.gcreq, -1)
 	return &unlocker{bs.lk.Unlock}
 }
 
-func (bs *blockstore) PinLock() Unlocker {
+func (bs *gclocker) PinLock() Unlocker {
 	bs.lk.RLock()
 	return &unlocker{bs.lk.RUnlock}
 }
 
-func (bs *blockstore) GCRequested() bool {
+func (bs *gclocker) GCRequested() bool {
 	return atomic.LoadInt32(&bs.gcreq) > 0
 }

@@ -179,10 +179,12 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		opts.HasBloomFilterSize = 0
 	}
 
-	n.Blockstore, err = bstore.CachedBlockstore(bs, ctx, opts)
+	cbs, err := bstore.CachedBlockstore(bs, ctx, opts)
 	if err != nil {
 		return err
 	}
+
+	n.Blockstore = bstore.NewGCBlockstore(cbs, bstore.NewGCLocker())
 
 	rcfg, err := n.Repo.Config()
 	if err != nil {

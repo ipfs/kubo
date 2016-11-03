@@ -22,7 +22,7 @@ import (
 	"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
 
-func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlockstore) {
+func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.Blockstore) {
 	dstore := ds.NewMapDatastore()
 	tsds := sync.MutexWrap(dstore)
 	bstore := blockstore.NewBlockstore(tsds)
