@@ -191,7 +191,11 @@ func (d *Diagnostics) getDiagnosticFromPeers(ctx context.Context, peers map[peer
 				return
 			}
 			for d := range out {
-				respdata <- d
+				select {
+				case respdata <- d:
+				case <-ctx.Done():
+					return
+				}
 			}
 		}(p)
 	}
