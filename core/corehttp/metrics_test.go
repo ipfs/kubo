@@ -6,9 +6,9 @@ import (
 
 	context "context"
 	core "github.com/ipfs/go-ipfs/core"
-	bhost "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/host/basic"
-	testutil "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/test/util"
-	inet "gx/ipfs/QmdXimY9QHaasZmw6hWojWnCJvfgxETjZQfg9g6ZrA9wMX/go-libp2p-net"
+	bhost "gx/ipfs/QmVN76ekoYakYa8WVDwhkUsnjt2MYuFpQs1uuU57T5KMD8/go-libp2p/p2p/host/basic"
+	testutil "gx/ipfs/QmVN76ekoYakYa8WVDwhkUsnjt2MYuFpQs1uuU57T5KMD8/go-libp2p/p2p/test/util"
+	inet "gx/ipfs/QmdysBu77i3YaagNtMAjiCJdeWWvds18ho5XEB784guQ41/go-libp2p-net"
 )
 
 // This test is based on go-libp2p/p2p/net/swarm.TestConnectednessCorrect

@@ -19,30 +19,30 @@ import (
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
 
-	discovery "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/discovery"
-	p2pbhost "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/host/basic"
-	rhost "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/host/routed"
-	ping "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/protocol/ping"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	swarm "gx/ipfs/QmTsTADtVpWhp2CYpAqDJWYSK94gMzhE77mQKbp18oC4PK/go-libp2p-swarm"
 	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 	addrutil "gx/ipfs/QmVDnc2zvyQm8LhT72n22THcshvH7j3qPMnhvjerQER62T/go-addr-util"
-	floodsub "gx/ipfs/QmVxGRDh6aKFYKwiW8WMMD2dsQnAuaZfBjF9Q7HQNuEk5G/floodsub"
-	metrics "gx/ipfs/QmWpTXhTkpoCDEm9twJd5Rc9jFwy61emzxneeJzrVMfjGF/go-libp2p-metrics"
+	floodsub "gx/ipfs/QmVKSASNfeVhcWqfWD7fGvr5Fm9cRJZbpf5DtCZA8d7mus/floodsub"
+	discovery "gx/ipfs/QmVN76ekoYakYa8WVDwhkUsnjt2MYuFpQs1uuU57T5KMD8/go-libp2p/p2p/discovery"
+	p2pbhost "gx/ipfs/QmVN76ekoYakYa8WVDwhkUsnjt2MYuFpQs1uuU57T5KMD8/go-libp2p/p2p/host/basic"
+	rhost "gx/ipfs/QmVN76ekoYakYa8WVDwhkUsnjt2MYuFpQs1uuU57T5KMD8/go-libp2p/p2p/host/routed"
+	ping "gx/ipfs/QmVN76ekoYakYa8WVDwhkUsnjt2MYuFpQs1uuU57T5KMD8/go-libp2p/p2p/protocol/ping"
+	metrics "gx/ipfs/QmVcNzHewFvmVah1CGqg8NV7nHHsPu19U43YE5b2oqWyBp/go-libp2p-metrics"
+	p2phost "gx/ipfs/QmWf338UyG5DKyemvoFiomDPtkVNHLsw3GAt9XXHX5ZtsM/go-libp2p-host"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	swarm "gx/ipfs/QmYe8b7yWBaaE4bxoG9UB1pvSYkcXnNAMP664iJfnvH4i5/go-libp2p-swarm"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
-	p2phost "gx/ipfs/QmdML3R42PRSwnt46jSuEts9bHSqLctVYEjJqMR3UYV8ki/go-libp2p-host"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 	ic "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 
 	nilrouting "github.com/ipfs/go-ipfs/routing/none"
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	routing "gx/ipfs/QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc/go-libp2p-routing"
-	dht "gx/ipfs/QmaWzyiqs7sUayh2G1EaovupWrA1qdKXqRMYA97ruU1xS5/go-libp2p-kad-dht"
+	dht "gx/ipfs/Qmct31kwWeGYkbwGmKPvUVp4BGsydhtkk69iM6NSGiJkfR/go-libp2p-kad-dht"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -120,7 +120,7 @@ type IpfsNode struct {
 	proc goprocess.Process
 	ctx  context.Context
 
-	mode mode
+	mode         mode
 	localModeSet bool
 }
 
