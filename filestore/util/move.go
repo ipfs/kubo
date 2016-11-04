@@ -13,6 +13,7 @@ import (
 
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
@@ -111,11 +112,11 @@ func (p *params) convertToFile(k *cid.Cid, root bool, offset uint64) (uint64, er
 		}
 		dataObj.Flags |= NoBlockData
 		dataObj.Data = altData
-		p.fs.Update(b.CidToDsKey(k).Bytes(), nil, dataObj)
+		p.fs.Update(dshelp.CidToDsKey(k).Bytes(), nil, dataObj)
 	} else {
 		dataObj.Flags |= Internal
 		dataObj.Data = block.RawData()
-		p.fs.Update(b.CidToDsKey(k).Bytes(), nil, dataObj)
+		p.fs.Update(dshelp.CidToDsKey(k).Bytes(), nil, dataObj)
 		n, err := dag.DecodeProtobuf(block.RawData())
 		if err != nil {
 			return 0, err

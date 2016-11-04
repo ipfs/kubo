@@ -15,6 +15,7 @@ import (
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	//"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 )
 
 type VerifyLevel int
@@ -226,7 +227,7 @@ func ListByKey(fs *Basic, ks []*cid.Cid) (<-chan ListRes, error) {
 	go func() {
 		defer close(out)
 		for _, k := range ks {
-			dsKey := b.CidToDsKey(k)
+			dsKey := dshelp.CidToDsKey(k)
 			_, dataObj, err := fs.GetDirect(dsKey)
 			if err == nil {
 				out <- ListRes{dsKey, dataObj, 0}
@@ -300,7 +301,7 @@ func getNode(dsKey ds.Key, fs *Basic, bs b.Blockstore) ([]byte, *DataObj, []*nod
 			return origData, dataObj, links, StatusOk
 		}
 	}
-	k, err2 := b.DsKeyToCid(dsKey)
+	k, err2 := dshelp.DsKeyToCid(dsKey)
 	if err2 != nil {
 		return nil, nil, nil, StatusError
 	}

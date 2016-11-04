@@ -5,6 +5,7 @@ import (
 	b "github.com/ipfs/go-ipfs/blocks"
 	BS "github.com/ipfs/go-ipfs/blocks/blockstore"
 	. "github.com/ipfs/go-ipfs/filestore"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
@@ -23,7 +24,7 @@ func NewBlockstore(b BS.GCBlockstore, fs *Datastore) BS.GCBlockstore {
 }
 
 func (bs *blockstore) Put(block b.Block) error {
-	k := BS.CidToDsKey(block.Cid())
+	k := dshelp.CidToDsKey(block.Cid())
 
 	data, err := bs.prepareBlock(k, block)
 	if err != nil {
@@ -43,7 +44,7 @@ func (bs *blockstore) PutMany(blocks []b.Block) error {
 	}
 
 	for _, b := range blocks {
-		k := BS.CidToDsKey(b.Cid())
+		k := dshelp.CidToDsKey(b.Cid())
 		data, err := bs.prepareBlock(k, b)
 		if err != nil {
 			return err

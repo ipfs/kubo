@@ -5,8 +5,8 @@ import (
 
 	. "github.com/ipfs/go-ipfs/filestore"
 
-	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
 	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
@@ -29,7 +29,7 @@ func GetLinks(dataObj *DataObj) ([]*node.Link, error) {
 }
 
 func (ds *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
-	dsKey := b.CidToDsKey(c)
+	dsKey := dshelp.CidToDsKey(c)
 	_, dataObj, err := ds.fs.GetDirect(dsKey)
 	if err != nil {
 		return ds.DAGService.GetLinks(ctx, c)
