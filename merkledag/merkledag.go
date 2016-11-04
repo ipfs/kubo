@@ -114,6 +114,9 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 }
 
 func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
+	if c.Type() == cid.Raw {
+		return nil, nil
+	}
 	node, err := n.Get(ctx, c)
 	if err != nil {
 		return nil, err
