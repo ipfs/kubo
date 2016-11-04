@@ -22,16 +22,21 @@ import (
 
 // TODO: extract these tests and more as a generic layout test suite
 
-func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
+func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return BalancedLayout(dbp.New(spl))
+	nd, err := BalancedLayout(dbp.New(spl))
+	if err != nil {
+		return nil, err
+	}
+
+	return nd.(*dag.ProtoNode), nil
 }
 
-func getTestDag(t *testing.T, ds dag.DAGService, size int64, blksize int64) (*dag.Node, []byte) {
+func getTestDag(t *testing.T, ds dag.DAGService, size int64, blksize int64) (*dag.ProtoNode, []byte) {
 	data := make([]byte, size)
 	u.NewTimeSeededRand().Read(data)
 	r := bytes.NewReader(data)

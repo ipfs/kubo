@@ -288,6 +288,7 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 		log.Error("err: ", err)
 		w.Header().Set(StreamErrHeader, sanitizedErrStr(err))
 	}
+
 }
 
 func flushCopy(w io.Writer, r io.Reader) error {
@@ -298,6 +299,9 @@ func flushCopy(w io.Writer, r io.Reader) error {
 		return err
 	}
 	for {
+		// flush to send header when r is not ready yet
+		f.Flush()
+
 		n, err := r.Read(buf)
 		switch err {
 		case io.EOF:
@@ -320,8 +324,6 @@ func flushCopy(w io.Writer, r io.Reader) error {
 		if nw != n {
 			return fmt.Errorf("http write failed to write full amount: %d != %d", nw, n)
 		}
-
-		f.Flush()
 	}
 	return nil
 }

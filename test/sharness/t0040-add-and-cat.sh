@@ -87,6 +87,9 @@ test_add_cat_file() {
 }
 
 test_add_cat_5MB() {
+	ADD_FLAGS="$1"
+	EXP_HASH="$2"
+
     test_expect_success "generate 5MB file using go-random" '
     	random 5242880 41 >mountdir/bigfile
     '
@@ -98,17 +101,16 @@ test_add_cat_5MB() {
     '
 
     test_expect_success "'ipfs add bigfile' succeeds" '
-    	ipfs add mountdir/bigfile >actual ||
+    	ipfs add $ADD_FLAGS mountdir/bigfile >actual ||
 		test_fsh cat daemon_err
     '
 
     test_expect_success "'ipfs add bigfile' output looks good" '
-    	HASH="QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" &&
-    	echo "added $HASH bigfile" >expected &&
+    	echo "added $EXP_HASH bigfile" >expected &&
     	test_cmp expected actual
     '
     test_expect_success "'ipfs cat' succeeds" '
-    	ipfs cat "$HASH" >actual
+    	ipfs cat "$EXP_HASH" >actual
     '
 
     test_expect_success "'ipfs cat' output looks good" '
@@ -116,12 +118,27 @@ test_add_cat_5MB() {
     '
 
     test_expect_success FUSE "cat ipfs/bigfile succeeds" '
-    	cat "ipfs/$HASH" >actual
+    	cat "ipfs/$EXP_HASH" >actual
     '
 
     test_expect_success FUSE "cat ipfs/bigfile looks good" '
     	test_cmp mountdir/bigfile actual
     '
+}
+
+test_add_cat_raw() {
+	test_expect_success "add a small file with raw-leaves" '
+		echo "foobar" > afile &&
+		HASH=$(ipfs add -q --raw-leaves afile)
+	'
+
+	test_expect_success "cat that small file" '
+		ipfs cat $HASH > afile_out
+	'
+
+	test_expect_success "make sure it looks good" '
+		test_cmp afile afile_out
+	'
 }
 
 test_add_cat_expensive() {
@@ -380,7 +397,9 @@ test_expect_success "go-random is installed" '
     type random
 '
 
-test_add_cat_5MB
+test_add_cat_5MB "" "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
+
+test_add_cat_5MB --raw-leaves "QmefsDaD3YVphd86mxjJfPLceKv8by98aB6J6sJxK13xS2"
 
 test_add_cat_expensive
 
@@ -388,17 +407,21 @@ test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=tr
 
 test_add_pwd_is_symlink
 
+test_add_cat_raw
+
 test_kill_ipfs_daemon
 
 # should work offline
 
 test_add_cat_file
 
+test_add_cat_raw
+
 test_expect_success "ipfs add --only-hash succeeds" '
     echo "unknown content for only-hash" | ipfs add --only-hash -q > oh_hash
 '
 
-#TODO: this doesn't work when online hence separated out from test_add_cat_file
+#TODO: this doesnt work when online hence separated out from test_add_cat_file
 test_expect_success "ipfs cat file fails" '
     test_must_fail ipfs cat $(cat oh_hash)
 '

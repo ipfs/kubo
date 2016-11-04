@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
@@ -103,7 +104,7 @@ func (bs *blockstore) Get(k *cid.Cid) (blocks.Block, error) {
 		return nil, ErrNotFound
 	}
 
-	maybeData, err := bs.datastore.Get(CidToDsKey(k))
+	maybeData, err := bs.datastore.Get(dshelp.CidToDsKey(k))
 	if err == ds.ErrNotFound {
 		return nil, ErrNotFound
 	}
@@ -116,19 +117,23 @@ func (bs *blockstore) Get(k *cid.Cid) (blocks.Block, error) {
 	}
 
 	if bs.rehash {
-		rb := blocks.NewBlock(bdata)
-		if !rb.Cid().Equals(k) {
-			return nil, ErrHashMismatch
-		} else {
-			return rb, nil
+		rbcid, err := k.Prefix().Sum(bdata)
+		if err != nil {
+			return nil, err
 		}
+
+		if !rbcid.Equals(k) {
+			return nil, ErrHashMismatch
+		}
+
+		return blocks.NewBlockWithCid(bdata, rbcid)
 	} else {
 		return blocks.NewBlockWithCid(bdata, k)
 	}
 }
 
 func (bs *blockstore) Put(block blocks.Block) error {
-	k := CidToDsKey(block.Cid())
+	k := dshelp.CidToDsKey(block.Cid())
 
 	// Note: The Has Check is now done by the MultiBlockstore
 
@@ -141,7 +146,7 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 		return err
 	}
 	for _, b := range blocks {
-		k := CidToDsKey(b.Cid())
+		k := dshelp.CidToDsKey(b.Cid())
 		err = t.Put(k, b.RawData())
 		if err != nil {
 			return err
@@ -151,11 +156,11 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 }
 
 func (bs *blockstore) Has(k *cid.Cid) (bool, error) {
-	return bs.datastore.Has(CidToDsKey(k))
+	return bs.datastore.Has(dshelp.CidToDsKey(k))
 }
 
 func (s *blockstore) DeleteBlock(k *cid.Cid) error {
-	return s.datastore.Delete(CidToDsKey(k))
+	return s.datastore.Delete(dshelp.CidToDsKey(k))
 }
 
 // AllKeysChan runs a query for keys from the blockstore.
@@ -188,7 +193,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 			}
 
 			// need to convert to key.Key using key.KeyFromDsKey.
-			c, err := DsKeyToCid(ds.NewKey(e.Key)) // TODO: calling NewKey isnt free
+			c, err := dshelp.DsKeyToCid(ds.NewKey(e.Key)) // TODO: calling NewKey isnt free
 			if err != nil {
 				log.Warningf("error parsing key from DsKey: ", err)
 				return nil, true

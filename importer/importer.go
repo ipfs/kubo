@@ -12,14 +12,16 @@ import (
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 var log = logging.Logger("importer")
 
 // Builds a DAG from the given file, writing created blocks to disk as they are
 // created
-func BuildDagFromFile(fpath string, ds dag.DAGService) (*dag.Node, error) {
+func BuildDagFromFile(fpath string, ds dag.DAGService) (node.Node, error) {
 	stat, err := os.Lstat(fpath)
 	if err != nil {
 		return nil, err
@@ -38,7 +40,7 @@ func BuildDagFromFile(fpath string, ds dag.DAGService) (*dag.Node, error) {
 	return BuildDagFromReader(ds, chunk.NewSizeSplitter(f, chunk.DefaultBlockSize))
 }
 
-func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
+func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (node.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
@@ -47,7 +49,7 @@ func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error
 	return bal.BalancedLayout(dbp.New(spl))
 }
 
-func BuildTrickleDagFromReader(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
+func BuildTrickleDagFromReader(ds dag.DAGService, spl chunk.Splitter) (node.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,

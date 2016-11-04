@@ -14,18 +14,18 @@ objects.
 package corerepo
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 
-	context "context"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
-	dagnodes := make([]*merkledag.Node, 0)
+	dagnodes := make([]node.Node, 0)
 	for _, fpath := range paths {
 		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
 		if err != nil {

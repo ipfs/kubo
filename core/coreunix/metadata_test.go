@@ -72,7 +72,12 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ndr, err := uio.NewDagReader(ctx, retnode, ds)
+	rtnpb, ok := retnode.(*merkledag.ProtoNode)
+	if !ok {
+		t.Fatal("expected protobuf node")
+	}
+
+	ndr, err := uio.NewDagReader(ctx, rtnpb, ds)
 	if err != nil {
 		t.Fatal(err)
 	}

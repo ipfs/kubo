@@ -13,6 +13,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	tar "github.com/ipfs/go-ipfs/thirdparty/tar"
 	uarchive "github.com/ipfs/go-ipfs/unixfs/archive"
@@ -69,6 +70,12 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
+		pbnd, ok := dn.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		size, err := dn.Size()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -78,7 +85,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		res.SetLength(size)
 
 		archive, _, _ := req.Option("archive").Bool()
-		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
+		reader, err := uarchive.DagArchive(ctx, pbnd, p.String(), node.DAG, archive, cmplvl)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

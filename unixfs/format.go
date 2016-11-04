@@ -224,6 +224,6 @@ func BytesForMetadata(m *Metadata) ([]byte, error) {
 	return proto.Marshal(pbd)
 }
 
-func EmptyDirNode() *dag.Node {
+func EmptyDirNode() *dag.ProtoNode {
 	return dag.NodeWithData(FolderPBData())
 }

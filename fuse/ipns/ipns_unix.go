@@ -100,7 +100,12 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 		return nil, err
 	}
 
-	root, err := mfs.NewRoot(ctx, ipfs.DAG, node, ipnsPubFunc(ipfs, rt.k))
+	pbnode, ok := node.(*dag.ProtoNode)
+	if !ok {
+		return nil, dag.ErrNotProtobuf
+	}
+
+	root, err := mfs.NewRoot(ctx, ipfs.DAG, pbnode, ipnsPubFunc(ipfs, rt.k))
 	if err != nil {
 		return nil, err
 	}

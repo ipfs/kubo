@@ -7,6 +7,7 @@ import (
 	. "github.com/ipfs/go-ipfs/filestore"
 	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
 	//cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
@@ -95,10 +96,12 @@ func (bs *blockstore) prepareBlock(k ds.Key, block b.Block) (*DataObj, error) {
 			Data:     block.RawData(),
 		}, nil
 	} else {
-		posInfo := block.PosInfo()
-		if posInfo == nil {
+		fsn, ok := block.(*pi.FilestoreNode)
+		if !ok {
 			return nil, fmt.Errorf("%s: no file information for block", block.Cid())
-		} else if posInfo.Stat == nil {
+		}
+		posInfo := fsn.PosInfo
+		if posInfo.Stat == nil {
 			return nil, fmt.Errorf("%s: %s: no stat information for file", block.Cid(), posInfo.FullPath)
 		}
 		d := &DataObj{

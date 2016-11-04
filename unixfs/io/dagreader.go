@@ -2,17 +2,18 @@ package io
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 
-	"context"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
+
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 var ErrIsDir = errors.New("this dag node is a directory")
@@ -24,7 +25,7 @@ type DagReader struct {
 	serv mdag.DAGService
 
 	// the node being read
-	node *mdag.Node
+	node *mdag.ProtoNode
 
 	// cached protobuf structure from node.Data
 	pbdata *ftpb.Data
@@ -58,35 +59,49 @@ type ReadSeekCloser interface {
 
 // NewDagReader creates a new reader object that reads the data represented by
 // the given node, using the passed in DAGService for data retreival
-func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*DagReader, error) {
-	pb := new(ftpb.Data)
-	if err := proto.Unmarshal(n.Data(), pb); err != nil {
-		return nil, err
-	}
-
-	switch pb.GetType() {
-	case ftpb.Data_Directory:
-		// Dont allow reading directories
-		return nil, ErrIsDir
-	case ftpb.Data_File, ftpb.Data_Raw:
-		return NewDataFileReader(ctx, n, pb, serv), nil
-	case ftpb.Data_Metadata:
-		if len(n.Links) == 0 {
-			return nil, errors.New("incorrectly formatted metadata object")
-		}
-		child, err := n.Links[0].GetNode(ctx, serv)
-		if err != nil {
+func NewDagReader(ctx context.Context, n node.Node, serv mdag.DAGService) (*DagReader, error) {
+	switch n := n.(type) {
+	case *mdag.RawNode:
+		return &DagReader{
+			buf: NewRSNCFromBytes(n.RawData()),
+		}, nil
+	case *mdag.ProtoNode:
+		pb := new(ftpb.Data)
+		if err := proto.Unmarshal(n.Data(), pb); err != nil {
 			return nil, err
 		}
-		return NewDagReader(ctx, child, serv)
-	case ftpb.Data_Symlink:
-		return nil, ErrCantReadSymlinks
+
+		switch pb.GetType() {
+		case ftpb.Data_Directory:
+			// Dont allow reading directories
+			return nil, ErrIsDir
+		case ftpb.Data_File, ftpb.Data_Raw:
+			return NewDataFileReader(ctx, n, pb, serv), nil
+		case ftpb.Data_Metadata:
+			if len(n.Links()) == 0 {
+				return nil, errors.New("incorrectly formatted metadata object")
+			}
+			child, err := n.Links()[0].GetNode(ctx, serv)
+			if err != nil {
+				return nil, err
+			}
+
+			childpb, ok := child.(*mdag.ProtoNode)
+			if !ok {
+				return nil, mdag.ErrNotProtobuf
+			}
+			return NewDagReader(ctx, childpb, serv)
+		case ftpb.Data_Symlink:
+			return nil, ErrCantReadSymlinks
+		default:
+			return nil, ft.ErrUnrecognizedType
+		}
 	default:
-		return nil, ft.ErrUnrecognizedType
+		return nil, fmt.Errorf("unrecognized node type")
 	}
 }
 
-func NewDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv mdag.DAGService) *DagReader {
+func NewDataFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv mdag.DAGService) *DagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	promises := mdag.GetDAG(fctx, serv, n)
 	return &DagReader{
@@ -114,28 +129,36 @@ func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 	}
 	dr.linkPosition++
 
-	pb := new(ftpb.Data)
-	err = proto.Unmarshal(nxt.Data(), pb)
-	if err != nil {
-		return fmt.Errorf("incorrectly formatted protobuf: %s", err)
-	}
+	switch nxt := nxt.(type) {
+	case *mdag.ProtoNode:
+		pb := new(ftpb.Data)
+		err = proto.Unmarshal(nxt.Data(), pb)
+		if err != nil {
+			return fmt.Errorf("incorrectly formatted protobuf: %s", err)
+		}
 
-	switch pb.GetType() {
-	case ftpb.Data_Directory:
-		// A directory should not exist within a file
-		return ft.ErrInvalidDirLocation
-	case ftpb.Data_File:
-		dr.buf = NewDataFileReader(dr.ctx, nxt, pb, dr.serv)
+		switch pb.GetType() {
+		case ftpb.Data_Directory:
+			// A directory should not exist within a file
+			return ft.ErrInvalidDirLocation
+		case ftpb.Data_File:
+			dr.buf = NewDataFileReader(dr.ctx, nxt, pb, dr.serv)
+			return nil
+		case ftpb.Data_Raw:
+			dr.buf = NewRSNCFromBytes(pb.GetData())
+			return nil
+		case ftpb.Data_Metadata:
+			return errors.New("shouldnt have had metadata object inside file")
+		case ftpb.Data_Symlink:
+			return errors.New("shouldnt have had symlink inside file")
+		default:
+			return ft.ErrUnrecognizedType
+		}
+	case *mdag.RawNode:
+		dr.buf = NewRSNCFromBytes(nxt.RawData())
 		return nil
-	case ftpb.Data_Raw:
-		dr.buf = NewRSNCFromBytes(pb.GetData())
-		return nil
-	case ftpb.Data_Metadata:
-		return errors.New("shouldnt have had metadata object inside file")
-	case ftpb.Data_Symlink:
-		return errors.New("shouldnt have had symlink inside file")
 	default:
-		return ft.ErrUnrecognizedType
+		return errors.New("unrecognized node type in DagReader")
 	}
 }
 

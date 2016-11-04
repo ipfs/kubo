@@ -34,7 +34,7 @@ func NewWriter(ctx cxt.Context, dag mdag.DAGService, archive bool, compression i
 	}, nil
 }
 
-func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
+func (w *Writer) writeDir(nd *mdag.ProtoNode, fpath string) error {
 	if err := writeDirHeader(w.TarW, fpath); err != nil {
 		return err
 	}
@@ -45,8 +45,13 @@ func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
 			return err
 		}
 
-		npath := path.Join(fpath, nd.Links[i].Name)
-		if err := w.WriteNode(child, npath); err != nil {
+		childpb, ok := child.(*mdag.ProtoNode)
+		if !ok {
+			return mdag.ErrNotProtobuf
+		}
+
+		npath := path.Join(fpath, nd.Links()[i].Name)
+		if err := w.WriteNode(childpb, npath); err != nil {
 			return err
 		}
 	}
@@ -54,7 +59,7 @@ func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
 	return nil
 }
 
-func (w *Writer) writeFile(nd *mdag.Node, pb *upb.Data, fpath string) error {
+func (w *Writer) writeFile(nd *mdag.ProtoNode, pb *upb.Data, fpath string) error {
 	if err := writeFileHeader(w.TarW, fpath, pb.GetFilesize()); err != nil {
 		return err
 	}
@@ -67,7 +72,7 @@ func (w *Writer) writeFile(nd *mdag.Node, pb *upb.Data, fpath string) error {
 	return nil
 }
 
-func (w *Writer) WriteNode(nd *mdag.Node, fpath string) error {
+func (w *Writer) WriteNode(nd *mdag.ProtoNode, fpath string) error {
 	pb := new(upb.Data)
 	if err := proto.Unmarshal(nd.Data(), pb); err != nil {
 		return err

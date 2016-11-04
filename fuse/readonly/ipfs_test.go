@@ -24,6 +24,7 @@ import (
 
 	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -33,7 +34,7 @@ func maybeSkipFuseTests(t *testing.T) {
 	}
 }
 
-func randObj(t *testing.T, nd *core.IpfsNode, size int64) (*dag.Node, []byte) {
+func randObj(t *testing.T, nd *core.IpfsNode, size int64) (node.Node, []byte) {
 	buf := make([]byte, size)
 	u.NewTimeSeededRand().Read(buf)
 	read := bytes.NewReader(buf)
@@ -74,7 +75,7 @@ func TestIpfsBasicRead(t *testing.T) {
 	defer mnt.Close()
 
 	fi, data := randObj(t, nd, 10000)
-	k := fi.Key()
+	k := fi.Cid()
 	fname := path.Join(mnt.Dir, k.String())
 	rbuf, err := ioutil.ReadFile(fname)
 	if err != nil {
@@ -86,17 +87,23 @@ func TestIpfsBasicRead(t *testing.T) {
 	}
 }
 
-func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.Node) []string {
-	if len(n.Links) == 0 {
+func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) []string {
+	if len(n.Links()) == 0 {
 		return []string{name}
 	}
 	var out []string
-	for _, lnk := range n.Links {
+	for _, lnk := range n.Links() {
 		child, err := lnk.GetNode(ipfs.Context(), ipfs.DAG)
 		if err != nil {
 			t.Fatal(err)
 		}
-		sub := getPaths(t, ipfs, path.Join(name, lnk.Name), child)
+
+		childpb, ok := child.(*dag.ProtoNode)
+		if !ok {
+			t.Fatal(dag.ErrNotProtobuf)
+		}
+
+		sub := getPaths(t, ipfs, path.Join(name, lnk.Name), childpb)
 		out = append(out, sub...)
 	}
 	return out
@@ -248,7 +255,7 @@ func TestFileSizeReporting(t *testing.T) {
 	defer mnt.Close()
 
 	fi, data := randObj(t, nd, 10000)
-	k := fi.Key()
+	k := fi.Cid()
 
 	fname := path.Join(mnt.Dir, k.String())
 

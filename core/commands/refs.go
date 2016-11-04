@@ -13,6 +13,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -195,8 +196,8 @@ var refsMarshallerMap = cmds.MarshalerMap{
 	},
 }
 
-func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]*dag.Node, error) {
-	objects := make([]*dag.Node, len(paths))
+func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]node.Node, error) {
+	objects := make([]node.Node, len(paths))
 	for i, p := range paths {
 		o, err := core.Resolve(ctx, n, path.Path(p))
 		if err != nil {
@@ -225,24 +226,24 @@ type RefWriter struct {
 }
 
 // WriteRefs writes refs of the given object to the underlying writer.
-func (rw *RefWriter) WriteRefs(n *dag.Node) (int, error) {
+func (rw *RefWriter) WriteRefs(n node.Node) (int, error) {
 	if rw.Recursive {
 		return rw.writeRefsRecursive(n)
 	}
 	return rw.writeRefsSingle(n)
 }
 
-func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
+func (rw *RefWriter) writeRefsRecursive(n node.Node) (int, error) {
 	nc := n.Cid()
 
 	var count int
 	for i, ng := range dag.GetDAG(rw.Ctx, rw.DAG, n) {
-		lc := cid.NewCidV0(n.Links[i].Hash)
+		lc := n.Links()[i].Cid
 		if rw.skip(lc) {
 			continue
 		}
 
-		if err := rw.WriteEdge(nc, lc, n.Links[i].Name); err != nil {
+		if err := rw.WriteEdge(nc, lc, n.Links()[i].Name); err != nil {
 			return count, err
 		}
 
@@ -260,7 +261,7 @@ func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
 	return count, nil
 }
 
-func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
+func (rw *RefWriter) writeRefsSingle(n node.Node) (int, error) {
 	c := n.Cid()
 
 	if rw.skip(c) {
@@ -268,9 +269,8 @@ func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
 	}
 
 	count := 0
-	for _, l := range n.Links {
-		lc := cid.NewCidV0(l.Hash)
-
+	for _, l := range n.Links() {
+		lc := l.Cid
 		if rw.skip(lc) {
 			continue
 		}

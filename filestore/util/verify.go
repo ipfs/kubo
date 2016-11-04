@@ -11,10 +11,9 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	. "github.com/ipfs/go-ipfs/filestore"
 	. "github.com/ipfs/go-ipfs/filestore/support"
-	k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	//b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	//mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
-	node "github.com/ipfs/go-ipfs/merkledag"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 )
@@ -421,7 +420,7 @@ func (p *verifyParams) markReachable(keys []ds.Key) error {
 			links, err := GetLinks(val)
 			children := make([]ds.Key, 0, len(links))
 			for _, link := range links {
-				children = append(children, k.Key(link.Hash).DsKey())
+				children = append(children, b.CidToDsKey(link.Cid))
 			}
 			p.markReachable(children)
 		}
@@ -448,7 +447,7 @@ func (p *verifyParams) markFutureOrphans() {
 func (p *verifyParams) verifyNode(links []*node.Link) int {
 	finalStatus := StatusComplete
 	for _, link := range links {
-		key := k.Key(link.Hash).DsKey()
+		key := b.CidToDsKey(link.Cid)
 		res := ListRes{Key: key}
 		res.Status = p.getStatus(key)
 		if res.Status == 0 {

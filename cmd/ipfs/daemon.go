@@ -181,6 +181,13 @@ func defaultMux(path string) corehttp.ServeOption {
 var fileDescriptorCheck = func() error { return nil }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
+	// Inject metrics before we do anything
+
+	err := mprome.Inject()
+	if err != nil {
+		log.Errorf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
+	}
+
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
 
@@ -389,10 +396,6 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 
 	// initialize metrics collector
-	err = mprome.Inject()
-	if err != nil {
-		log.Warningf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
-	}
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	fmt.Printf("Daemon is ready\n")

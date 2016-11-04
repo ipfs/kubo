@@ -1,7 +1,6 @@
 package dagutils
 
 import (
-	"bytes"
 	"fmt"
 	"path"
 
@@ -37,7 +36,7 @@ func (c *Change) String() string {
 	}
 }
 
-func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.Node, cs []*Change) (*dag.Node, error) {
+func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.ProtoNode, cs []*Change) (*dag.ProtoNode, error) {
 	e := NewDagEditor(nd, ds)
 	for _, c := range cs {
 		switch c.Type {
@@ -46,7 +45,13 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.Node, cs []*Cha
 			if err != nil {
 				return nil, err
 			}
-			err = e.InsertNodeAtPath(ctx, c.Path, child, nil)
+
+			childpb, ok := child.(*dag.ProtoNode)
+			if !ok {
+				return nil, dag.ErrNotProtobuf
+			}
+
+			err = e.InsertNodeAtPath(ctx, c.Path, childpb, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -66,7 +71,13 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.Node, cs []*Cha
 			if err != nil {
 				return nil, err
 			}
-			err = e.InsertNodeAtPath(ctx, c.Path, child, nil)
+
+			childpb, ok := child.(*dag.ProtoNode)
+			if !ok {
+				return nil, dag.ErrNotProtobuf
+			}
+
+			err = e.InsertNodeAtPath(ctx, c.Path, childpb, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -76,8 +87,8 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.Node, cs []*Cha
 	return e.Finalize(ds)
 }
 
-func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.Node) ([]*Change, error) {
-	if len(a.Links) == 0 && len(b.Links) == 0 {
+func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.ProtoNode) ([]*Change, error) {
+	if len(a.Links()) == 0 && len(b.Links()) == 0 {
 		return []*Change{
 			&Change{
 				Type:   Mod,
@@ -92,10 +103,10 @@ func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.Node) ([]*Change, er
 	clean_b := b.Copy()
 
 	// strip out unchanged stuff
-	for _, lnk := range a.Links {
+	for _, lnk := range a.Links() {
 		l, err := b.GetNodeLink(lnk.Name)
 		if err == nil {
-			if bytes.Equal(l.Hash, lnk.Hash) {
+			if l.Cid.Equals(lnk.Cid) {
 				// no change... ignore it
 			} else {
 				anode, err := lnk.GetNode(ctx, ds)
@@ -108,7 +119,17 @@ func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.Node) ([]*Change, er
 					return nil, err
 				}
 
-				sub, err := Diff(ctx, ds, anode, bnode)
+				anodepb, ok := anode.(*dag.ProtoNode)
+				if !ok {
+					return nil, dag.ErrNotProtobuf
+				}
+
+				bnodepb, ok := bnode.(*dag.ProtoNode)
+				if !ok {
+					return nil, dag.ErrNotProtobuf
+				}
+
+				sub, err := Diff(ctx, ds, anodepb, bnodepb)
 				if err != nil {
 					return nil, err
 				}
@@ -123,18 +144,18 @@ func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.Node) ([]*Change, er
 		}
 	}
 
-	for _, lnk := range clean_a.Links {
+	for _, lnk := range clean_a.Links() {
 		out = append(out, &Change{
 			Type:   Remove,
 			Path:   lnk.Name,
-			Before: cid.NewCidV0(lnk.Hash),
+			Before: lnk.Cid,
 		})
 	}
-	for _, lnk := range clean_b.Links {
+	for _, lnk := range clean_b.Links() {
 		out = append(out, &Change{
 			Type:  Add,
 			Path:  lnk.Name,
-			After: cid.NewCidV0(lnk.Hash),
+			After: lnk.Cid,
 		})
 	}
 

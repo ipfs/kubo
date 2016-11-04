@@ -2,6 +2,7 @@ package testu
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +14,7 @@ import (
 	mdagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	context "context"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -27,7 +28,7 @@ func GetDAGServ() mdag.DAGService {
 	return mdagmock.Mock()
 }
 
-func GetNode(t testing.TB, dserv mdag.DAGService, data []byte) *mdag.Node {
+func GetNode(t testing.TB, dserv mdag.DAGService, data []byte) node.Node {
 	in := bytes.NewReader(data)
 	node, err := imp.BuildTrickleDagFromReader(dserv, SizeSplitterGen(500)(in))
 	if err != nil {
@@ -37,11 +38,11 @@ func GetNode(t testing.TB, dserv mdag.DAGService, data []byte) *mdag.Node {
 	return node
 }
 
-func GetEmptyNode(t testing.TB, dserv mdag.DAGService) *mdag.Node {
+func GetEmptyNode(t testing.TB, dserv mdag.DAGService) node.Node {
 	return GetNode(t, dserv, []byte{})
 }
 
-func GetRandomNode(t testing.TB, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
+func GetRandomNode(t testing.TB, dserv mdag.DAGService, size int64) ([]byte, node.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {
@@ -64,7 +65,7 @@ func ArrComp(a, b []byte) error {
 	return nil
 }
 
-func PrintDag(nd *mdag.Node, ds mdag.DAGService, indent int) {
+func PrintDag(nd *mdag.ProtoNode, ds mdag.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		panic(err)
@@ -74,17 +75,17 @@ func PrintDag(nd *mdag.Node, ds mdag.DAGService, indent int) {
 		fmt.Print(" ")
 	}
 	fmt.Printf("{size = %d, type = %s, children = %d", pbd.GetFilesize(), pbd.GetType().String(), len(pbd.GetBlocksizes()))
-	if len(nd.Links) > 0 {
+	if len(nd.Links()) > 0 {
 		fmt.Println()
 	}
-	for _, lnk := range nd.Links {
+	for _, lnk := range nd.Links() {
 		child, err := lnk.GetNode(context.Background(), ds)
 		if err != nil {
 			panic(err)
 		}
-		PrintDag(child, ds, indent+1)
+		PrintDag(child.(*mdag.ProtoNode), ds, indent+1)
 	}
-	if len(nd.Links) > 0 {
+	if len(nd.Links()) > 0 {
 		for i := 0; i < indent; i++ {
 			fmt.Print(" ")
 		}

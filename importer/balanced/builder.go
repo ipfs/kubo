@@ -4,10 +4,11 @@ import (
 	"errors"
 
 	h "github.com/ipfs/go-ipfs/importer/helpers"
-	dag "github.com/ipfs/go-ipfs/merkledag"
+
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
-func BalancedLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
+func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
 	var offset uint64 = 0
 	var root *h.UnixfsNode
 	for level := 0; !db.Done(); level++ {
@@ -60,7 +61,13 @@ func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int, offset u
 
 	// Base case
 	if depth <= 0 { // catch accidental -1's in case error above is removed.
-		return db.FillNodeWithData(node)
+		child, err := db.GetNextDataNode()
+		if err != nil {
+			return err
+		}
+
+		node.Set(child)
+		return nil
 	}
 
 	// while we have room AND we're not done
@@ -68,7 +75,8 @@ func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int, offset u
 		child := h.NewUnixfsNode()
 		db.SetPosInfo(child, offset)
 
-		if err := fillNodeRec(db, child, depth-1, offset); err != nil {
+		err := fillNodeRec(db, child, depth-1, offset)
+		if err != nil {
 			return err
 		}
 

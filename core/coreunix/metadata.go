@@ -18,7 +18,7 @@ func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error
 		return "", err
 	}
 
-	mdnode := new(dag.Node)
+	mdnode := new(dag.ProtoNode)
 	mdata, err := ft.BytesForMetadata(m)
 	if err != nil {
 		return "", err
@@ -48,5 +48,10 @@ func Metadata(n *core.IpfsNode, skey string) (*ft.Metadata, error) {
 		return nil, err
 	}
 
-	return ft.MetadataFromBytes(nd.Data())
+	pbnd, ok := nd.(*dag.ProtoNode)
+	if !ok {
+		return nil, dag.ErrNotProtobuf
+	}
+
+	return ft.MetadataFromBytes(pbnd.Data())
 }

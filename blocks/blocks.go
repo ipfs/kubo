@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ipfs/go-ipfs/commands/files"
-
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
@@ -18,9 +16,7 @@ var ErrWrongHash = errors.New("data did not match given hash!")
 // Block is a singular block of data in ipfs
 
 type Block interface {
-	Multihash() mh.Multihash
 	RawData() []byte
-	PosInfo() *files.PosInfo
 	Cid() *cid.Cid
 	String() string
 	Loggable() map[string]interface{}
@@ -29,7 +25,6 @@ type Block interface {
 type BasicBlock struct {
 	cid     *cid.Cid
 	data    []byte
-	posInfo *files.PosInfo
 }
 
 // NewBlock creates a Block object from opaque data. It will hash the data.
@@ -43,8 +38,11 @@ func NewBlock(data []byte) *BasicBlock {
 // we are able to be confident that the data is correct
 func NewBlockWithCid(data []byte, c *cid.Cid) (*BasicBlock, error) {
 	if u.Debug {
-		// TODO: fix assumptions
-		chkc := cid.NewCidV0(u.Hash(data))
+		chkc, err := c.Prefix().Sum(data)
+		if err != nil {
+			return nil, err
+		}
+
 		if !chkc.Equals(c) {
 			return nil, ErrWrongHash
 		}
@@ -62,14 +60,6 @@ func (b *BasicBlock) RawData() []byte {
 
 func (b *BasicBlock) Cid() *cid.Cid {
 	return b.cid
-}
-
-func (b *BasicBlock) PosInfo() *files.PosInfo {
-	return b.posInfo
-}
-
-func (b *BasicBlock) SetPosInfo(posInfo *files.PosInfo) {
-	b.posInfo = posInfo
 }
 
 func (b *BasicBlock) String() string {

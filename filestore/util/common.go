@@ -12,7 +12,8 @@ import (
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
-	node "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	//"gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/query"
 )
@@ -319,10 +320,10 @@ func getNode(dsKey ds.Key, fs *Basic, bs b.Blockstore) ([]byte, *DataObj, []*nod
 		Logger.Errorf("%s: %v", k, err2)
 		return nil, nil, nil, StatusError
 	}
-	node, err := node.DecodeProtobuf(block.RawData())
+	node, err := dag.DecodeProtobuf(block.RawData())
 	if err != nil {
 		Logger.Errorf("%s: %v", k, err)
 		return nil, nil, nil, StatusCorrupt
 	}
-	return nil, nil, node.Links, StatusFound
+	return nil, nil, node.Links(), StatusFound
 }

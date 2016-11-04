@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -16,8 +17,8 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	context "context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 var log = logging.Logger("cmds/files")
@@ -160,7 +161,12 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 
 	c := nd.Cid()
 
-	d, err := ft.FromBytes(nd.Data())
+	pbnd, ok := nd.(*dag.ProtoNode)
+	if !ok {
+		return nil, dag.ErrNotProtobuf
+	}
+
+	d, err := ft.FromBytes(pbnd.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +188,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 
 	return &Object{
 		Hash:           c.String(),
-		Blocks:         len(nd.Links),
+		Blocks:         len(nd.Links()),
 		Size:           d.GetFilesize(),
 		CumulativeSize: cumulsize,
 		Type:           ndtype,
@@ -245,7 +251,7 @@ var FilesCpCmd = &cmds.Command{
 	},
 }
 
-func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (*dag.Node, error) {
+func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (node.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
 		np, err := path.ParsePath(p)
@@ -253,7 +259,17 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (*dag.N
 			return nil, err
 		}
 
-		return core.Resolve(ctx, node, np)
+		nd, err := core.Resolve(ctx, node, np)
+		if err != nil {
+			return nil, err
+		}
+
+		pbnd, ok := nd.(*dag.ProtoNode)
+		if !ok {
+			return nil, dag.ErrNotProtobuf
+		}
+
+		return pbnd, nil
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {

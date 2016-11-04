@@ -120,8 +120,8 @@ func (p *params) convertToFile(k *cid.Cid, root bool, offset uint64) (uint64, er
 		if err != nil {
 			return 0, err
 		}
-		for _, link := range n.Links {
-			size, err := p.convertToFile(cid.NewCidV0(link.Hash), false, offset)
+		for _, link := range n.Links() {
+			size, err := p.convertToFile(link.Cid, false, offset)
 			if err != nil {
 				return 0, err
 			}

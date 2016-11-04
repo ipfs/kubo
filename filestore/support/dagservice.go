@@ -4,6 +4,8 @@ import (
 	"context"
 
 	. "github.com/ipfs/go-ipfs/filestore"
+	
+	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	b "github.com/ipfs/go-ipfs/blocks/blockstore"
 	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"	
@@ -18,15 +20,15 @@ type dagService struct {
 	dag.DAGService
 }
 
-func GetLinks(dataObj *DataObj) ([]*dag.Link, error) {
+func GetLinks(dataObj *DataObj) ([]*node.Link, error) {
 	res, err := dag.DecodeProtobuf(dataObj.Data)
 	if err != nil {
 		return nil, err
 	}
-	return res.Links, nil
+	return res.Links(), nil
 }
 
-func (ds *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*dag.Link, error) {
+func (ds *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
 	dsKey := b.CidToDsKey(c)
 	_, dataObj, err := ds.fs.GetDirect(dsKey)
 	if err != nil {

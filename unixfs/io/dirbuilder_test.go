@@ -10,7 +10,7 @@ import (
 
 func TestEmptyNode(t *testing.T) {
 	n := NewEmptyDirectory()
-	if len(n.Links) != 0 {
+	if len(n.Links()) != 0 {
 		t.Fatal("empty node should have 0 links")
 	}
 }
@@ -27,7 +27,7 @@ func TestDirBuilder(t *testing.T) {
 	b.AddChild(ctx, "random", key)
 
 	dir := b.GetNode()
-	outn, err := dir.GetLinkedNode(ctx, dserv, "random")
+	outn, err := dir.GetLinkedProtoNode(ctx, dserv, "random")
 	if err != nil {
 		t.Fatal(err)
 	}
