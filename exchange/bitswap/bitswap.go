@@ -1,4 +1,4 @@
-// package bitswap implements the IPFS Exchange interface with the BitSwap
+// package bitswap implements the IPFS exchange interface with the BitSwap
 // bilateral exchange protocol.
 package bitswap
 
@@ -23,7 +23,7 @@ import (
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	loggables "gx/ipfs/QmTMy4hVSY28DdwJ9kBz6y7q6MuioFzPcpM3Ma3aPjo1i3/go-libp2p-loggables"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
@@ -68,7 +68,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 
 	// important to use provided parent context (since it may include important
 	// loggable data). It's probably not a good idea to allow bitswap to be
-	// coupled to the concerns of the IPFS daemon in this way.
+	// coupled to the concerns of the ipfs daemon in this way.
 	//
 	// FIXME(btc) Now that bitswap manages itself using a process, it probably
 	// shouldn't accept a context anymore. Clients should probably use Close()

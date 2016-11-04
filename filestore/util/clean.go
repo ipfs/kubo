@@ -17,7 +17,7 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
 func Clean(req cmds.Request, node *core.IpfsNode, fs *Datastore, quiet bool, what ...string) (io.Reader, error) {

@@ -12,11 +12,11 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
-	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
+	routing "gx/ipfs/QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc/go-libp2p-routing"
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
@@ -147,13 +147,16 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		if err != nil {
 			log.Warning("RoutingResolve get failed.")
 			resp <- err
+			return
 		}
 
 		entry = new(pb.IpnsEntry)
 		err = proto.Unmarshal(val, entry)
 		if err != nil {
 			resp <- err
+			return
 		}
+
 		resp <- nil
 	}()
 
@@ -162,7 +165,9 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		pubk, err := routing.GetPublicKey(r.routing, ctx, hash)
 		if err != nil {
 			resp <- err
+			return
 		}
+
 		pubkey = pubk
 		resp <- nil
 	}()

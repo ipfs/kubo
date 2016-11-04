@@ -16,9 +16,10 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
+	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
 )
 
 var log = logging.Logger("cmds/files")
@@ -259,11 +260,15 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (node.N
 			return nil, err
 		}
 
-		nd, err := core.Resolve(ctx, node, np)
+		resolver := &path.Resolver{
+			DAG:         node.DAG,
+			ResolveOnce: uio.ResolveUnixfsOnce,
+		}
+
+		nd, err := core.Resolve(ctx, node.Namesys, resolver, np)
 		if err != nil {
 			return nil, err
 		}
-
 		pbnd, ok := nd.(*dag.ProtoNode)
 		if !ok {
 			return nil, dag.ErrNotProtobuf

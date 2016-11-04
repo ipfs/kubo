@@ -17,12 +17,13 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
-	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
+	routing "gx/ipfs/QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc/go-libp2p-routing"
+	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
 const (
@@ -153,7 +154,13 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		ipnsHostname = true
 	}
 
-	nd, err := core.Resolve(ctx, i.node, path.Path(urlPath))
+	p, err := path.ParsePath(urlPath)
+	if err != nil {
+		webError(w, "Invalid Path Error", err, http.StatusBadRequest)
+		return
+	}
+
+	nd, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, p)
 	// If node is in offline mode the error code and message should be different
 	if err == core.ErrNoNamesys && !i.node.OnlineMode() {
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -240,8 +247,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				return
 			}
 
+			p, err := path.ParsePath(urlPath + "/index.html")
+			if err != nil {
+				internalWebError(w, err)
+				return
+			}
+
 			// return index page instead.
-			nd, err := core.Resolve(ctx, i.node, path.Path(urlPath+"/index.html"))
+			nd, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, p)
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -344,7 +357,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	rootPath, err := path.ParsePath(r.URL.Path)
 	if err != nil {
-		webError(w, "putHandler: ipfs path not valid", err, http.StatusBadRequest)
+		webError(w, "putHandler: IPFS path not valid", err, http.StatusBadRequest)
 		return
 	}
 
@@ -356,7 +369,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newnode node.Node
 	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
-		newnode = uio.NewEmptyDirectory()
+		newnode = ft.EmptyDirNode()
 	} else {
 		putNode, err := i.newDagFromReader(r.Body)
 		if err != nil {
@@ -372,7 +385,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newcid *cid.Cid
-	rnode, err := core.Resolve(ctx, i.node, rootPath)
+	rnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
 	switch ev := err.(type) {
 	case path.ErrNoLink:
 		// ev.Node < node where resolve failed
@@ -397,7 +410,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
-		err = e.InsertNodeAtPath(ctx, newPath, newnode, uio.NewEmptyDirectory)
+		err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
 		if err != nil {
 			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
 			return

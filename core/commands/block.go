@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,7 +11,9 @@ import (
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -29,7 +30,7 @@ var BlockCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with raw IPFS blocks.",
 		ShortDescription: `
-'ipfs block' is a plumbing command used to manipulate raw ipfs blocks.
+'ipfs block' is a plumbing command used to manipulate raw IPFS blocks.
 Reads from stdin or writes to stdout, and <key> is a base58 encoded
 multihash.
 `,
@@ -49,7 +50,7 @@ var blockStatCmd = &cmds.Command{
 		Tagline: "Print information of a raw IPFS block.",
 		ShortDescription: `
 'ipfs block stat' is a plumbing command for retrieving information
-on raw ipfs blocks. It outputs the following to stdout:
+on raw IPFS blocks. It outputs the following to stdout:
 
 	Key  - the base58 encoded multihash
 	Size - the size of the block in bytes
@@ -85,7 +86,7 @@ var blockGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get a raw IPFS block.",
 		ShortDescription: `
-'ipfs block get' is a plumbing command for retrieving raw ipfs blocks.
+'ipfs block get' is a plumbing command for retrieving raw IPFS blocks.
 It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 	},
@@ -108,13 +109,16 @@ var blockPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Store input as an IPFS block.",
 		ShortDescription: `
-'ipfs block put' is a plumbing command for storing raw ipfs blocks.
+'ipfs block put' is a plumbing command for storing raw IPFS blocks.
 It reads from stdin, and <key> is a base58 encoded multihash.
 `,
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block.").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("format", "f", "cid format for blocks to be created with.").Default("v0"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -141,7 +145,39 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			return
 		}
 
-		b := blocks.NewBlock(data)
+		format, _, _ := req.Option("format").String()
+		var pref cid.Prefix
+		pref.MhType = mh.SHA2_256
+		pref.MhLength = -1
+		pref.Version = 1
+		switch format {
+		case "cbor":
+			pref.Codec = cid.CBOR
+		case "json":
+			pref.Codec = cid.JSON
+		case "protobuf":
+			pref.Codec = cid.Protobuf
+		case "raw":
+			pref.Codec = cid.Raw
+		case "v0":
+			pref.Version = 0
+			pref.Codec = cid.Protobuf
+		default:
+			res.SetError(fmt.Errorf("unrecognized format: %s", format), cmds.ErrNormal)
+			return
+		}
+
+		bcid, err := pref.Sum(data)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		b, err := blocks.NewBlockWithCid(data, bcid)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		log.Debugf("BlockPut key: '%q'", b.Cid())
 
 		k, err := n.Blocks.AddBlock(b)
@@ -165,13 +201,13 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 }
 
 func getBlockForKey(req cmds.Request, skey string) (blocks.Block, error) {
+	if len(skey) == 0 {
+		return nil, fmt.Errorf("zero length cid invalid")
+	}
+
 	n, err := req.InvocContext().GetNode()
 	if err != nil {
 		return nil, err
-	}
-
-	if !u.IsValidHash(skey) {
-		return nil, errors.New("Not a valid hash")
 	}
 
 	c, err := cid.Decode(skey)
@@ -289,7 +325,7 @@ sub-datastores block(s) are located in.
 			for _, hash := range hashes {
 				key, err := cid.Decode(hash)
 				if err != nil {
-					panic(err) // FIXME 
+					panic(err) // FIXME
 				}
 				ret := n.Blockstore.Locate(key)
 				outChan <- &BlockLocateRes{hash, ret}

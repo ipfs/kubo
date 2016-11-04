@@ -5,11 +5,11 @@ import (
 	"path"
 	"strings"
 
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
 // ErrBadPath is returned when a given path is incorrectly formatted
-var ErrBadPath = errors.New("invalid ipfs ref path")
+var ErrBadPath = errors.New("invalid 'ipfs ref' path")
 
 // TODO: debate making this a private struct wrapped in a public interface
 // would allow us to control creation, and cache segments.

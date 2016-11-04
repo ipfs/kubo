@@ -382,7 +382,7 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 }
 
 // commandShouldRunOnDaemon determines, from commmand details, whether a
-// command ought to be executed on an IPFS daemon.
+// command ought to be executed on an ipfs daemon.
 //
 // It returns a client if the command should be executed on a daemon and nil if
 // it should be executed on a client. It returns an error if the command must

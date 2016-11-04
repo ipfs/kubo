@@ -10,7 +10,7 @@ import (
 	butil "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	k "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 )
 

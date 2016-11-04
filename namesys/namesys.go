@@ -6,7 +6,7 @@ import (
 
 	context "context"
 	path "github.com/ipfs/go-ipfs/path"
-	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
+	routing "gx/ipfs/QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc/go-libp2p-routing"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
@@ -14,11 +14,11 @@ import (
 // mpns (a multi-protocol NameSystem) implements generic IPFS naming.
 //
 // Uses several Resolvers:
-// (a) ipfs routing naming: SFS-like PKI names.
+// (a) IPFS routing naming: SFS-like PKI names.
 // (b) dns domains: resolves using links in DNS TXT records
 // (c) proquints: interprets string as the raw byte data.
 //
-// It can only publish to: (a) ipfs routing naming.
+// It can only publish to: (a) IPFS routing naming.
 //
 type mpns struct {
 	resolvers  map[string]resolver

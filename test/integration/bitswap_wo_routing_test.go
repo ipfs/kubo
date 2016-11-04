@@ -9,8 +9,8 @@ import (
 	"github.com/ipfs/go-ipfs/core/mock"
 
 	context "context"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
-	mocknet "gx/ipfs/QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum/go-libp2p/p2p/net/mock"
+	mocknet "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/net/mock"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
 func TestBitswapWithoutRouting(t *testing.T) {

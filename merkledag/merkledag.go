@@ -1,4 +1,4 @@
-// package merkledag implements the ipfs Merkle DAG datastructures.
+// package merkledag implements the IPFS Merkle DAG datastructures.
 package merkledag
 
 import (
@@ -11,9 +11,10 @@ import (
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 
+	ipldcbor "gx/ipfs/QmRcAVqrbY5wryx7hfNLtiUZbCcstzaJL7YJFBboitcqWF/go-ipld-cbor"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
-	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
+	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 )
 
 var log = logging.Logger("merkledag")
@@ -105,12 +106,17 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 		return decnd, nil
 	case cid.Raw:
 		return NewRawNode(b.RawData()), nil
+	case cid.CBOR:
+		return ipldcbor.Decode(b.RawData())
 	default:
 		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
 	}
 }
 
 func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
+	if c.Type() == cid.Raw {
+		return nil, nil
+	}
 	node, err := n.Get(ctx, c)
 	if err != nil {
 		return nil, err

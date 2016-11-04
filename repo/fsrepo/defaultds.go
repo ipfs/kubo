@@ -127,9 +127,9 @@ func (r *FSRepo) newFilestore() (*filestore.Datastore, error) {
 	switch strings.ToLower(r.config.Filestore.Verify) {
 	case "never":
 		verify = filestore.VerifyNever
-	case "ifchanged","if changed":
+	case "ifchanged", "if changed":
 		verify = filestore.VerifyIfChanged
-	case "","always":
+	case "", "always":
 		verify = filestore.VerifyAlways
 	default:
 		return nil, fmt.Errorf("invalid value for Filestore.Verify: %s", r.config.Filestore.Verify)

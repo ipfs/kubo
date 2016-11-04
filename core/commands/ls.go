@@ -11,9 +11,10 @@ import (
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
+	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
 )
 
 type LsLink struct {
@@ -74,7 +75,18 @@ The JSON output contains type information.
 
 		var dagnodes []node.Node
 		for _, fpath := range paths {
-			dagnode, err := core.Resolve(req.Context(), nd, path.Path(fpath))
+			p, err := path.ParsePath(fpath)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			r := &path.Resolver{
+				DAG:         nd.DAG,
+				ResolveOnce: uio.ResolveUnixfsOnce,
+			}
+
+			dagnode, err := core.Resolve(req.Context(), nd.Namesys, r, p)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return

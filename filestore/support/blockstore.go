@@ -7,7 +7,7 @@ import (
 	. "github.com/ipfs/go-ipfs/filestore"
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	fs_pb "github.com/ipfs/go-ipfs/unixfs/pb"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 

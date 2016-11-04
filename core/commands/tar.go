@@ -14,7 +14,7 @@ import (
 
 var TarCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with tar files in IPFS.",
+		Tagline: "Utility functions for tar files in ipfs.",
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -80,7 +80,7 @@ var tarCatCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "IPFS path of archive to export.").EnableStdin(),
+		cmds.StringArg("path", true, false, "ipfs path of archive to export.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -95,7 +95,7 @@ var tarCatCmd = &cmds.Command{
 			return
 		}
 
-		root, err := core.Resolve(req.Context(), nd, p)
+		root, err := core.Resolve(req.Context(), nd.Namesys, nd.Resolver, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

@@ -9,7 +9,7 @@ import (
 )
 
 func Cat(ctx context.Context, n *core.IpfsNode, pstr string) (*uio.DagReader, error) {
-	dagNode, err := core.Resolve(ctx, n, path.Path(pstr))
+	dagNode, err := core.Resolve(ctx, n.Namesys, n.Resolver, path.Path(pstr))
 	if err != nil {
 		return nil, err
 	}

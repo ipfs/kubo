@@ -25,8 +25,7 @@ type directoryItem struct {
 var listingTemplate *template.Template
 
 func init() {
-	assetPath := "../vendor/dir-index-html-v1.0.0/"
-	knownIconsBytes, err := assets.Asset(assetPath + "knownIcons.txt")
+	knownIconsBytes, err := assets.Asset("dir-index-html/knownIcons.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -53,7 +52,7 @@ func init() {
 	}
 
 	// Directory listing template
-	dirIndexBytes, err := assets.Asset(assetPath + "dir-index.html")
+	dirIndexBytes, err := assets.Asset("dir-index-html/dir-index.html")
 	if err != nil {
 		panic(err)
 	}

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	dag "github.com/ipfs/go-ipfs/core/commands/dag"
 	files "github.com/ipfs/go-ipfs/core/commands/files"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
@@ -24,9 +25,9 @@ var Root = &cmds.Command{
 		Subcommands: `
 BASIC COMMANDS
   init          Initialize ipfs local configuration
-  add <path>    Add a file to ipfs
-  cat <ref>     Show ipfs object data
-  get <ref>     Download ipfs objects
+  add <path>    Add a file to IPFS
+  cat <ref>     Show IPFS object data
+  get <ref>     Download IPFS objects
   ls <ref>      List links from an object
   refs <ref>    List hashes of links from an object
 
@@ -37,7 +38,7 @@ DATA STRUCTURE COMMANDS
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
-  mount         Mount an ipfs read-only mountpoint
+  mount         Mount an IPFS read-only mountpoint
   resolve       Resolve any type of name
   name          Publish or resolve IPNS names
   dns           Resolve DNS links
@@ -45,7 +46,7 @@ ADVANCED COMMANDS
   repo          Manipulate the IPFS repository
 
 NETWORK COMMANDS
-  id            Show info about ipfs peers
+  id            Show info about IPFS peers
   bootstrap     Add or remove bootstrap peers
   swarm         Manage connections to the p2p network
   dht           Query the DHT for values or peers
@@ -64,6 +65,13 @@ ipfs uses a repository in the local file system. By default, the repo is located
 at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
 
   export IPFS_PATH=/path/to/ipfsrepo
+
+EXIT STATUS
+
+The CLI will exits with one of the following values:
+
+0     Successful execution.
+1     Failed executions.
 `,
 	},
 	Options: []cmds.Option{
@@ -86,6 +94,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"cat":       CatCmd,
 	"commands":  CommandsDaemonCmd,
 	"config":    ConfigCmd,
+	"dag":       dag.DagCmd,
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
 	"dns":       DNSCmd,

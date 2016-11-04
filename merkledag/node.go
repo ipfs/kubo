@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
-	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
 )
 
 var ErrNotProtobuf = fmt.Errorf("expected protobuf dag node")
@@ -253,7 +253,11 @@ func (n *ProtoNode) SetLinks(links []*node.Link) {
 	n.links = links
 }
 
-func (n *ProtoNode) Resolve(path []string) (*node.Link, []string, error) {
+func (n *ProtoNode) Resolve(path []string) (interface{}, []string, error) {
+	return n.ResolveLink(path)
+}
+
+func (n *ProtoNode) ResolveLink(path []string) (*node.Link, []string, error) {
 	if len(path) == 0 {
 		return nil, nil, fmt.Errorf("end of path, no more links to resolve")
 	}

@@ -72,7 +72,7 @@ You can now refer to the added file in a gateway, like so:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS.").EnableRecursive().EnableStdin(),
+		cmds.FileArg("path", true, true, "The path to a file to be added to ipfs.").EnableRecursive().EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)

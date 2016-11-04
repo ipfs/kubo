@@ -1,4 +1,4 @@
-// package blocks contains the lowest level of ipfs data structures,
+// package blocks contains the lowest level of IPFS data structures,
 // the raw block with a checksum.
 package blocks
 
@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )

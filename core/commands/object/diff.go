@@ -21,10 +21,10 @@ var ObjectDiffCmd = &cmds.Command{
 		Tagline: "Display the diff between two ipfs objects.",
 		ShortDescription: `
 'ipfs object diff' is a command used to show the differences between
-two ipfs objects.`,
+two IPFS objects.`,
 		LongDescription: `
 'ipfs object diff' is a command used to show the differences between
-two ipfs objects.
+two IPFS objects.
 
 Example:
 
@@ -74,13 +74,13 @@ Example:
 
 		ctx := req.Context()
 
-		obj_a, err := core.Resolve(ctx, node, pa)
+		obj_a, err := core.Resolve(ctx, node.Namesys, node.Resolver, pa)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		obj_b, err := core.Resolve(ctx, node, pb)
+		obj_b, err := core.Resolve(ctx, node.Namesys, node.Resolver, pb)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

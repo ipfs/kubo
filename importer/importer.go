@@ -1,4 +1,4 @@
-// package importer implements utilities used to create ipfs DAGs from files
+// package importer implements utilities used to create IPFS DAGs from files
 // and readers
 package importer
 
@@ -14,7 +14,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	node "gx/ipfs/QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB/go-ipld-node"
+	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
 )
 
 var log = logging.Logger("importer")

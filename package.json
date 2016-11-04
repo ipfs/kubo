@@ -201,15 +201,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum",
+      "hash": "QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG",
       "name": "go-libp2p",
-      "version": "4.0.1"
+      "version": "4.0.2"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z",
+      "hash": "QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY",
       "name": "go-cid",
-      "version": "0.6.0"
+      "version": "0.7.3"
     },
     {
       "author": "whyrusleeping",
@@ -254,9 +254,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmWHiyk5y2EKgxHogFJ4Zt1xTqKeVsBc4zcBke8ie9C2Bn",
+      "hash": "QmaWzyiqs7sUayh2G1EaovupWrA1qdKXqRMYA97ruU1xS5",
       "name": "go-libp2p-kad-dht",
-      "version": "2.2.0"
+      "version": "2.4.0"
     },
     {
       "author": "whyrusleeping",
@@ -266,15 +266,28 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmTgcWwxttM74AY7UYA6qMP9WpzfBEjbZntx7ZWLttRMJJ",
+      "hash": "QmVxGRDh6aKFYKwiW8WMMD2dsQnAuaZfBjF9Q7HQNuEk5G",
       "name": "floodsub",
-      "version": "0.7.0"
+      "version": "0.7.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmZx42H5khbVQhV5odp66TApShV4XCujYazcvYduZ4TroB",
+      "hash": "QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g",
       "name": "go-ipld-node",
-      "version": "0.1.0"
+      "version": "0.3.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmRcAVqrbY5wryx7hfNLtiUZbCcstzaJL7YJFBboitcqWF",
+      "name": "go-ipld-cbor",
+      "version": "0.3.0"
+    },
+    {
+      "author": "lgierth",
+      "hash": "QmQfeKxQtBN721pekQh6Jq24adFUjnU65YdY3GNczfuG2T",
+      "name": "dir-index-html",
+      "version": "1.0.3",
+      "comment": "This one needs code updates in assets/assets.go too."
     }
   ],
   "gxVersion": "0.4.0",

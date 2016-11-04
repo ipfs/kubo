@@ -47,7 +47,7 @@ Publish an <ipfs-path> to another public key (not implemented):
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "IPFS path of the object to be published.").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, false, "ipfs path of the object to be published.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("resolve", "Resolve given path before publishing.").Default(true),
@@ -135,7 +135,7 @@ func publish(ctx context.Context, n *core.IpfsNode, k crypto.PrivKey, ref path.P
 
 	if opts.verifyExists {
 		// verify the path exists
-		_, err := core.Resolve(ctx, n, ref)
+		_, err := core.Resolve(ctx, n.Namesys, n.Resolver, ref)
 		if err != nil {
 			return nil, err
 		}

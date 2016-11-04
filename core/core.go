@@ -10,6 +10,7 @@ interfaces and how core/... fits into the bigger IPFS picture, see:
 package core
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -18,31 +19,30 @@ import (
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
 
-	context "context"
+	discovery "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/discovery"
+	p2pbhost "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/host/basic"
+	rhost "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/host/routed"
+	ping "gx/ipfs/QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG/go-libp2p/p2p/protocol/ping"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	floodsub "gx/ipfs/QmTgcWwxttM74AY7UYA6qMP9WpzfBEjbZntx7ZWLttRMJJ/floodsub"
+	swarm "gx/ipfs/QmTsTADtVpWhp2CYpAqDJWYSK94gMzhE77mQKbp18oC4PK/go-libp2p-swarm"
 	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 	addrutil "gx/ipfs/QmVDnc2zvyQm8LhT72n22THcshvH7j3qPMnhvjerQER62T/go-addr-util"
+	floodsub "gx/ipfs/QmVxGRDh6aKFYKwiW8WMMD2dsQnAuaZfBjF9Q7HQNuEk5G/floodsub"
 	metrics "gx/ipfs/QmWpTXhTkpoCDEm9twJd5Rc9jFwy61emzxneeJzrVMfjGF/go-libp2p-metrics"
-	cid "gx/ipfs/QmXUuRadqDq5BuFWzVU6VuKaSjTcNm1gNCtLvvP1TJCW4z/go-cid"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
+	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
-	discovery "gx/ipfs/QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum/go-libp2p/p2p/discovery"
-	p2pbhost "gx/ipfs/QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum/go-libp2p/p2p/host/basic"
-	rhost "gx/ipfs/QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum/go-libp2p/p2p/host/routed"
-	ping "gx/ipfs/QmcRa2qn6iCmap9bjp8jAwkvYAq13AUfxdY3rrYiaJbLum/go-libp2p/p2p/protocol/ping"
 	p2phost "gx/ipfs/QmdML3R42PRSwnt46jSuEts9bHSqLctVYEjJqMR3UYV8ki/go-libp2p-host"
-	swarm "gx/ipfs/QmeAfPWBWDQq9qjQ5oiWhaFs7oEsfB6FyEj5VxNdc2r34q/go-libp2p-swarm"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 	ic "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 
 	nilrouting "github.com/ipfs/go-ipfs/routing/none"
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
-	routing "gx/ipfs/QmNUgVQTYnXQVrGT2rajZYsuKV8GYdiL91cdZSQDKNPNgE/go-libp2p-routing"
-	dht "gx/ipfs/QmWHiyk5y2EKgxHogFJ4Zt1xTqKeVsBc4zcBke8ie9C2Bn/go-libp2p-kad-dht"
+	routing "gx/ipfs/QmQKEgGgYCDyk8VNY6A65FpuE4YwbspvjXHco1rdb75PVc/go-libp2p-routing"
+	dht "gx/ipfs/QmaWzyiqs7sUayh2G1EaovupWrA1qdKXqRMYA97ruU1xS5/go-libp2p-kad-dht"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -60,7 +60,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
@@ -467,10 +467,10 @@ func (n *IpfsNode) loadID() error {
 
 	cid := cfg.Identity.PeerID
 	if cid == "" {
-		return errors.New("Identity was not set in config (was ipfs init run?)")
+		return errors.New("identity was not set in config (was 'ipfs init' run?)")
 	}
 	if len(cid) == 0 {
-		return errors.New("No peer ID in config! (was ipfs init run?)")
+		return errors.New("no peer ID in config! (was 'ipfs init' run?)")
 	}
 
 	n.Identity = peer.ID(b58.Decode(cid))
@@ -526,7 +526,7 @@ func (n *IpfsNode) loadFilesRoot() error {
 
 	switch {
 	case err == ds.ErrNotFound || val == nil:
-		nd = uio.NewEmptyDirectory()
+		nd = ft.EmptyDirNode()
 		_, err := n.DAG.Add(nd)
 		if err != nil {
 			return fmt.Errorf("failure writing to dagstore: %s", err)
