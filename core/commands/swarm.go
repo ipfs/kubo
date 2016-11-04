@@ -88,6 +88,11 @@ var swarmPeersCmd = &cmds.Command{
 				Peer: pid.Pretty(),
 			}
 
+			swcon, ok := c.(*swarm.Conn)
+			if ok {
+				ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
+			}
+
 			if verbose || latency {
 				ci.Latency = n.Peerstore.LatencyEWMA(pid).String()
 			}
@@ -147,6 +152,7 @@ type connInfo struct {
 	Addr    string
 	Peer    string
 	Latency string
+	Muxer   string
 	Streams []streamInfo
 }
 
