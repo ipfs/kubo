@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"github.com/ipfs/go-ipfs/repo/config"
+
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 )
 
 var errTODO = errors.New("TODO: mock repo")
@@ -37,4 +39,4 @@ func (m *Mock) GetStorageUsage() (uint64, error) { return 0, nil }
 
 func (m *Mock) Close() error { return errTODO }
 
-func (m *Mock) SetAPIAddr(addr string) error { return errTODO }
+func (m *Mock) SetAPIAddr(addr ma.Multiaddr) error { return errTODO }

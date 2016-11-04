@@ -18,7 +18,9 @@ import (
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
+
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	"gx/ipfs/QmeqtHtxGfcsfXiou7wqHJARWPKUTUcPdtSfSYYHp48dtQ/go-ds-measure"
 )
@@ -274,7 +276,7 @@ func LockedByOtherProcess(repoPath string) (bool, error) {
 // in the fsrepo. This is a concurrent operation, meaning that any
 // process may read this file. modifying this file, therefore, should
 // use "mv" to replace the whole file and avoid interleaved read/writes.
-func APIAddr(repoPath string) (string, error) {
+func APIAddr(repoPath string) (ma.Multiaddr, error) {
 	repoPath = filepath.Clean(repoPath)
 	apiFilePath := filepath.Join(repoPath, apiFile)
 
@@ -282,9 +284,9 @@ func APIAddr(repoPath string) (string, error) {
 	f, err := os.Open(apiFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", repo.ErrApiNotRunning
+			return nil, repo.ErrApiNotRunning
 		}
-		return "", err
+		return nil, err
 	}
 	defer f.Close()
 
@@ -293,23 +295,23 @@ func APIAddr(repoPath string) (string, error) {
 	buf := make([]byte, 2048)
 	n, err := f.Read(buf)
 	if err != nil && err != io.EOF {
-		return "", err
+		return nil, err
 	}
 
 	s := string(buf[:n])
 	s = strings.TrimSpace(s)
-	return s, nil
+	return ma.NewMultiaddr(s)
 }
 
 // SetAPIAddr writes the API Addr to the /api file.
-func (r *FSRepo) SetAPIAddr(addr string) error {
+func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	f, err := os.Create(filepath.Join(r.path, apiFile))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, err = f.WriteString(addr)
+	_, err = f.WriteString(addr.String())
 	return err
 }
 

@@ -5,6 +5,8 @@ import (
 	"io"
 
 	config "github.com/ipfs/go-ipfs/repo/config"
+
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
@@ -23,7 +25,7 @@ type Repo interface {
 	GetStorageUsage() (uint64, error)
 
 	// SetAPIAddr sets the API address in the repo.
-	SetAPIAddr(addr string) error
+	SetAPIAddr(addr ma.Multiaddr) error
 
 	io.Closer
 }
