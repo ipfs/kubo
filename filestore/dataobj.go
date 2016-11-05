@@ -86,15 +86,22 @@ func (d *DataObj) KeyStr(key Key, asKey bool) string {
 }
 
 func (d *DataObj) TypeStr() string {
-	if d.Invalid() && d.NoBlockData() {
-		return "invld"
-	} else if d.NoBlockData() {
-		return "leaf"
-	} else if d.Internal() && d.WholeFile() {
-		return "root"
+	str := "";
+	if d.WholeFile() {
+		str += "ROOT "
+	} else if d.Internal() {
+		str += "other";
 	} else {
-		return "other"
+		str += "leaf ";
 	}
+	if d.Invalid() && d.NoBlockData() {
+		str += " invld";
+	} else if d.NoBlockData() {
+		str += " extrn";
+	} else {
+		str += "      ";
+	}
+	return str
 }
 
 func (d *DataObj) DateStr() string {

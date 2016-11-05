@@ -7,8 +7,7 @@
 # any modified or new files.  Invalid blocks due to changed or removed
 # files will be cleaned out.
 #
-# NOTE: Zero length files will always be readded.  Files with the same
-# content will also take turns being being readded.
+# NOTE: Zero length files will always be readded.
 #
 
 # Exit on any error
@@ -53,13 +52,13 @@ xargs_r () {
 # under "$DIR".
 #
 verify() {
-    ipfs filestore ls -q "$DIR"/ | xargs_r ipfs filestore verify --porcelain "$@"
+    ipfs filestore verify --porcelain "$@" "$DIR"/
 }
 
 #
 # First figure out what we already have in the filestore
 #
-verify -v2 > verify.res 2> verify.err
+verify --level=2 > verify.res 2> verify.err
 
 # Get a list of files that need to be updated
 cat verify.res | awk -F'\t' '$2 != "ok" {print $4}' | sort -u > verify.notok

@@ -3,9 +3,8 @@
 #
 # This script will add or update files in a directly (recursively)
 # without copying the data into the datastore.  Unlike
-# add-dir-simply.py it will use it's own file to keep track of what
-# files are added to avoid the problem with duplicate files being
-# re-added.
+# add-dir-simplyy it will use it's own file to keep track of what
+# files are added
 #
 # This script will not clean out invalid entries from the filestore,
 # for that you should use "filestore clean full" from time to time.

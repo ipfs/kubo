@@ -277,9 +277,9 @@ func (f *dualFile) Close() error {
 
 const listingCommonText = `
 If one or more <obj> is specified only list those specific objects,
-otherwise list all objects.  An <obj> can either be a multihash, or an
-absolute path.  If the path ends in '/' than it is assumed to be a
-directory and all paths with that directory are included.
+otherwise list all objects.  An <obj> can either be a filestore key,
+or an absolute path.  If the path ends in '/' than it is assumed to be
+a directory and all paths with that directory are included.
 `
 
 var lsFileStore = &cmds.Command{
@@ -288,8 +288,8 @@ var lsFileStore = &cmds.Command{
 		ShortDescription: `
 List objects in the filestore.
 ` + listingCommonText + `
-If --all is specified list all matching blocks are lists, otherwise
-only blocks representing the a file root is listed.  A file root is any
+If --all is specified then all matching blocks are listed, otherwise
+only blocks representing a file root are listed.  A file root is any
 block that represents a complete file.
 
 The default output format normally is:
@@ -303,13 +303,16 @@ If --format is "hash" than only the hash will be displayed.
 
 If --format is "key" than the full key will be displayed.
 
-If --format is "w/type" then the type of the entry is also given
-before the hash.  Type is one of:
-  leaf: to indicate a node where the contents are stored
-        to in the file itself
-  root: to indicate a root node that represents the whole file
-  other: some other kind of node that represent part of a file
-  invld: a leaf node that has been found invalid
+If --format is "w/type" then additional information on the type of the
+object is given, in the form of:
+  <tree-type> <block-type>
+where tree-type is one of:
+  ROOT: to indicate a root node that represents the whole file
+  leaf: to indicate a leaf node
+  other: to indicate some other type of node
+and block-type is either blank or one of:
+  extrn:   to indicate the data for the node is in a file
+  invld:   to indicate the node is invalid due to the file changing
 
 If --format is "long" then the format is:
   <type> <size> [<modtime>] <hash>[ ]/<filepath>/<offset>

@@ -217,7 +217,7 @@ func (r *ListRes) FormatWithType(fullKey bool) string {
 	} else if r.DataObj == nil {
 		return fmt.Sprintf("%s      %s\n", statusStr(r.Status), r.Key.Format())
 	} else {
-		return fmt.Sprintf("%s%-5s %s\n", statusStr(r.Status), r.TypeStr(), r.DataObj.KeyStr(r.Key, fullKey))
+		return fmt.Sprintf("%s%s %s\n", statusStr(r.Status), r.TypeStr(), r.DataObj.KeyStr(r.Key, fullKey))
 	}
 }
 
@@ -227,9 +227,9 @@ func (r *ListRes) FormatLong(fullKey bool) string {
 	} else if r.DataObj == nil {
 		return fmt.Sprintf("%s%49s  %s\n", statusStr(r.Status), "", r.Key.Format())
 	} else if r.NoBlockData() {
-		return fmt.Sprintf("%s%-5s %12d %30s  %s\n", statusStr(r.Status), r.TypeStr(), r.Size, r.DateStr(), r.DataObj.KeyStr(r.Key, fullKey))
+		return fmt.Sprintf("%s%s %12d %30s  %s\n", statusStr(r.Status), r.TypeStr(), r.Size, r.DateStr(), r.DataObj.KeyStr(r.Key, fullKey))
 	} else {
-		return fmt.Sprintf("%s%-5s %12d %30s  %s\n", statusStr(r.Status), r.TypeStr(), r.Size, "", r.DataObj.KeyStr(r.Key, fullKey))
+		return fmt.Sprintf("%s%s %12d %30s  %s\n", statusStr(r.Status), r.TypeStr(), r.Size, "", r.DataObj.KeyStr(r.Key, fullKey))
 	}
 }
 
