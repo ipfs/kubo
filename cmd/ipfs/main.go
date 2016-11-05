@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"runtime"
 	"runtime/pprof"
 	"strings"
 	"sync"
@@ -66,7 +65,6 @@ type cmdInvocation struct {
 // - if anything fails, print error, maybe with help
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	runtime.GOMAXPROCS(3) // FIXME rm arbitrary choice for n
 	ctx := logging.ContextWithLoggable(context.Background(), loggables.Uuid("session"))
 	var err error
 	var invoc cmdInvocation
