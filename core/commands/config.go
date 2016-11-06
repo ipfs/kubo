@@ -38,13 +38,13 @@ file inside your IPFS repository.
 
 Examples:
 
-Get the value of the 'datastore.path' key:
+Get the value of the 'Datastore.Path' key:
 
-  $ ipfs config datastore.path
+  $ ipfs config Datastore.Path
 
-Set the value of the 'datastore.path' key:
+Set the value of the 'Datastore.Path' key:
 
-  $ ipfs config datastore.path ~/.ipfs/datastore
+  $ ipfs config Datastore.Path ~/.ipfs/datastore
 `,
 	},
 
