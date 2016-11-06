@@ -7,7 +7,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	id "gx/ipfs/QmVN76ekoYakYa8WVDwhkUsnjt2MYuFpQs1uuU57T5KMD8/go-libp2p/p2p/protocol/identify"
+	id "gx/ipfs/QmQfvKShQ2v7nkfCE4ygisxpcSBFvBYaorQ54SibY6PGXV/go-libp2p/p2p/protocol/identify"
 )
 
 type GatewayConfig struct {
