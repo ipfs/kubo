@@ -13,8 +13,8 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
-	swarm "gx/ipfs/QmTsTADtVpWhp2CYpAqDJWYSK94gMzhE77mQKbp18oC4PK/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
+	swarm "gx/ipfs/QmYe8b7yWBaaE4bxoG9UB1pvSYkcXnNAMP664iJfnvH4i5/go-libp2p-swarm"
 
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
@@ -54,9 +54,9 @@ var swarmPeersCmd = &cmds.Command{
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v",
-			"Also display latency along with peer information in the following form: "+
-				"<peer address> <latency>"),
+		cmds.BoolOption("verbose", "v", "display all extra information"),
+		cmds.BoolOption("streams", "Also list information about open streams for each peer"),
+		cmds.BoolOption("latency", "Also list information about latency to each peer"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -73,27 +73,115 @@ var swarmPeersCmd = &cmds.Command{
 		}
 
 		verbose, _, _ := req.Option("verbose").Bool()
-		conns := n.PeerHost.Network().Conns()
-		addrs := make([]string, len(conns))
+		latency, _, _ := req.Option("latency").Bool()
+		streams, _, _ := req.Option("streams").Bool()
 
-		for i, c := range conns {
+		conns := n.PeerHost.Network().Conns()
+
+		var out connInfos
+		for _, c := range conns {
 			pid := c.RemotePeer()
 			addr := c.RemoteMultiaddr()
 
-			if verbose {
-				addrs[i] = fmt.Sprintf("%s/ipfs/%s %s", addr, pid.Pretty(), n.Peerstore.LatencyEWMA(pid))
-			} else {
-				addrs[i] = fmt.Sprintf("%s/ipfs/%s", addr, pid.Pretty())
+			ci := connInfo{
+				Addr: addr.String(),
+				Peer: pid.Pretty(),
 			}
+
+			swcon, ok := c.(*swarm.Conn)
+			if ok {
+				ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
+			}
+
+			if verbose || latency {
+				ci.Latency = n.Peerstore.LatencyEWMA(pid).String()
+			}
+			if verbose || streams {
+				strs, err := c.GetStreams()
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+
+				for _, s := range strs {
+					ci.Streams = append(ci.Streams, streamInfo{Protocol: string(s.Protocol())})
+				}
+			}
+			sort.Sort(&ci)
+			out.Peers = append(out.Peers, ci)
 		}
 
-		sort.Sort(sort.StringSlice(addrs))
-		res.SetOutput(&stringList{addrs})
+		sort.Sort(&out)
+		res.SetOutput(&out)
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: stringListMarshaler,
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			ci, ok := res.Output().(*connInfos)
+			if !ok {
+				return nil, fmt.Errorf("expected output type to be connInfos")
+			}
+
+			buf := new(bytes.Buffer)
+			for _, info := range ci.Peers {
+				fmt.Fprintf(buf, "%s/ipfs/%s", info.Addr, info.Peer)
+				if info.Latency != "" {
+					fmt.Fprintf(buf, " %s", info.Latency)
+				}
+				fmt.Fprintln(buf)
+
+				for _, s := range info.Streams {
+					if s.Protocol == "" {
+						s.Protocol = "<no protocol name>"
+					}
+
+					fmt.Fprintf(buf, "  %s\n", s.Protocol)
+				}
+			}
+
+			return buf, nil
+		},
 	},
-	Type: stringList{},
+	Type: connInfos{},
+}
+
+type streamInfo struct {
+	Protocol string
+}
+
+type connInfo struct {
+	Addr    string
+	Peer    string
+	Latency string
+	Muxer   string
+	Streams []streamInfo
+}
+
+func (ci *connInfo) Less(i, j int) bool {
+	return ci.Streams[i].Protocol < ci.Streams[j].Protocol
+}
+
+func (ci *connInfo) Len() int {
+	return len(ci.Streams)
+}
+
+func (ci *connInfo) Swap(i, j int) {
+	ci.Streams[i], ci.Streams[j] = ci.Streams[j], ci.Streams[i]
+}
+
+type connInfos struct {
+	Peers []connInfo
+}
+
+func (ci connInfos) Less(i, j int) bool {
+	return ci.Peers[i].Addr < ci.Peers[j].Addr
+}
+
+func (ci connInfos) Len() int {
+	return len(ci.Peers)
+}
+
+func (ci connInfos) Swap(i, j int) {
+	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
 }
 
 var swarmAddrsCmd = &cmds.Command{

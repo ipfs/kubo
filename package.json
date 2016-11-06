@@ -52,9 +52,9 @@
       "version": "0.1.0"
     },
     {
-      "hash": "QmQF3y5N5RcMaGUbSunmbnjhaFHP7uGDismvngkn8HJ1Xa",
+      "hash": "QmU6FqHBr1W5ajRrj4cr2SfGq1w8gq2LpS42JWRysEb3BK",
       "name": "iptb",
-      "version": "1.1.1"
+      "version": "1.1.2"
     },
     {
       "hash": "QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J",
@@ -201,9 +201,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQ7iWUfqrLEoJwsoNdrZu4625bKyhZCi4Sh6MfjywEfbG",
+      "hash": "QmVN76ekoYakYa8WVDwhkUsnjt2MYuFpQs1uuU57T5KMD8",
       "name": "go-libp2p",
-      "version": "4.0.2"
+      "version": "4.0.3"
     },
     {
       "author": "whyrusleeping",
@@ -254,9 +254,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmaWzyiqs7sUayh2G1EaovupWrA1qdKXqRMYA97ruU1xS5",
+      "hash": "Qmct31kwWeGYkbwGmKPvUVp4BGsydhtkk69iM6NSGiJkfR",
       "name": "go-libp2p-kad-dht",
-      "version": "2.4.0"
+      "version": "2.4.1"
     },
     {
       "author": "whyrusleeping",
@@ -266,9 +266,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmVxGRDh6aKFYKwiW8WMMD2dsQnAuaZfBjF9Q7HQNuEk5G",
+      "hash": "QmVKSASNfeVhcWqfWD7fGvr5Fm9cRJZbpf5DtCZA8d7mus",
       "name": "floodsub",
-      "version": "0.7.1"
+      "version": "0.7.2"
     },
     {
       "author": "whyrusleeping",
@@ -286,8 +286,7 @@
       "author": "lgierth",
       "hash": "QmQfeKxQtBN721pekQh6Jq24adFUjnU65YdY3GNczfuG2T",
       "name": "dir-index-html",
-      "version": "1.0.3",
-      "comment": "This one needs code updates in assets/assets.go too."
+      "version": "1.0.3"
     }
   ],
   "gxVersion": "0.4.0",
