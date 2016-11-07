@@ -14,12 +14,12 @@ test_add_cat_file() {
     dir=$2
     HASH=$3 # QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH
     
-    test_expect_success "ipfs add succeeds" '
+    test_expect_success "ipfs $cmd succeeds" '
     	echo "Hello Worlds!" >mountdir/hello.txt &&
         ipfs $cmd "$dir"/mountdir/hello.txt >actual
     '
 
-    test_expect_success "ipfs add output looks good" '
+    test_expect_success "ipfs $cmd output looks good" '
         echo "added $HASH "$dir"/mountdir/hello.txt" >expected &&
     	test_cmp expected actual
     '
@@ -40,13 +40,13 @@ test_add_empty_file() {
 
     EMPTY_HASH="QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
 
-    test_expect_success "ipfs add on empty file succeeds" '
+    test_expect_success "ipfs $cmd on empty file succeeds" '
         ipfs block rm -f $EMPTY_HASH &&
         cat /dev/null >mountdir/empty.txt &&
         ipfs $cmd "$dir"/mountdir/empty.txt >actual
     '
 
-    test_expect_success "ipfs add on empty file output looks good" '
+    test_expect_success "ipfs $cmd on empty file output looks good" '
         echo "added $EMPTY_HASH "$dir"/mountdir/empty.txt" >expected &&
         test_cmp expected actual
     '
@@ -152,11 +152,11 @@ test_add_cat_200MB() {
     	test_cmp sha1_expected sha1_actual
     '
 
-    test_expect_success "'ipfs add hugefile' succeeds" '
+    test_expect_success "'ipfs $cmd hugefile' succeeds" '
     	ipfs $cmd "$dir"/mountdir/hugefile >actual
     '
 
-    test_expect_success "'ipfs add hugefile' output looks good" '
+    test_expect_success "'ipfs $cmd hugefile' output looks good" '
     	echo "added $HASH "$dir"/mountdir/hugefile" >expected &&
     	test_cmp expected actual
     '
