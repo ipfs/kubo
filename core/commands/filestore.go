@@ -98,7 +98,7 @@ same as for 'ipfs add'.
 		}
 		config, _ := req.InvocContext().GetConfig()
 		serverSide, _, _ := req.Option("server-side").Bool()
-		if serverSide && !config.Filestore.APIServerSidePathsEnabled() {
+		if serverSide && !config.Filestore.APIServerSidePaths {
 			res.SetError(errors.New("server side paths not enabled"), cmds.ErrNormal)
 			return
 		}

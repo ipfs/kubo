@@ -92,10 +92,7 @@ You can now refer to the added file in a gateway, like so:
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
 		recursive, _, _ := req.Option(cmds.RecLong).Bool()
 		sliceFile, ok := req.Files().(*files.SliceFile)
-		if !ok {
-			return fmt.Errorf("type assertion failed: req.Files().(*files.SliceFile)")
-		}
-		if !wrap && recursive && sliceFile.NumFiles() > 1 {
+		if ok && !wrap && recursive && sliceFile.NumFiles() > 1 {
 			return fmt.Errorf("adding multiple directories without '-w' unsupported")
 		}
 
