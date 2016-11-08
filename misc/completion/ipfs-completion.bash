@@ -314,12 +314,22 @@ _ipfs_resolve()
 
 _ipfs_stats()
 {
-    _ipfs_comp "bw --help"
+    _ipfs_comp "bitswap bw repo --help"
+}
+
+_ipfs_stats_bitswap()
+{
+    _ipfs_help_only
 }
 
 _ipfs_stats_bw()
 {
     _ipfs_comp "--peer= --proto= --poll --interval= --help"
+}
+
+_ipfs_stats_repo()
+{
+    _ipfs_comp "--human="
 }
 
 _ipfs_swarm()
