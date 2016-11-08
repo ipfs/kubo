@@ -170,7 +170,7 @@ func TestAllKeysRespectsContext(t *testing.T) {
 	default:
 	}
 
-	e := dsq.Entry{Key: BlockPrefix.ChildString("foo").String()}
+	e := dsq.Entry{Key: blockPrefix.ChildString("foo").String()}
 	resultChan <- dsq.Result{Entry: e} // let it go.
 	close(resultChan)
 	<-done                       // should be done now.
@@ -190,7 +190,7 @@ func TestValueTypeMismatch(t *testing.T) {
 	block := blocks.NewBlock([]byte("some data"))
 
 	datastore := ds.NewMapDatastore()
-	k := BlockPrefix.Child(dshelp.CidToDsKey(block.Cid()))
+	k := blockPrefix.Child(dshelp.CidToDsKey(block.Cid()))
 	datastore.Put(k, "data that isn't a block!")
 
 	blockstore := NewBlockstore(ds_sync.MutexWrap(datastore))

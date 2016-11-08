@@ -120,7 +120,7 @@ type IpfsNode struct {
 	proc goprocess.Process
 	ctx  context.Context
 
-	mode mode
+	mode         mode
 	localModeSet bool
 }
 

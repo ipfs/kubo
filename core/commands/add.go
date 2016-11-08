@@ -1,13 +1,18 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/filestore"
+	"github.com/ipfs/go-ipfs/filestore/support"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
+	//bs "github.com/ipfs/go-ipfs/blocks/blockstore"
+	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
@@ -33,6 +38,7 @@ const (
 	chunkerOptionName   = "chunker"
 	pinOptionName       = "pin"
 	rawLeavesOptionName = "raw-leaves"
+	noCopyName          = "no-copy"
 )
 
 var AddCmd = &cmds.Command{
@@ -80,6 +86,7 @@ You can now refer to the added file in a gateway, like so:
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
+		cmds.BoolOption(noCopyName, "Don't copy file contents. (experimental)"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
@@ -138,6 +145,7 @@ You can now refer to the added file in a gateway, like so:
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, _, _ := req.Option(pinOptionName).Bool()
 		rawblks, _, _ := req.Option(rawLeavesOptionName).Bool()
+		nocopy, _, _ := req.Option(noCopyName).Bool()
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -152,18 +160,33 @@ You can now refer to the added file in a gateway, like so:
 			n = nilnode
 		}
 
-		dserv := n.DAG
+		exchange := n.Exchange
 		local, _, _ := req.Option("local").Bool()
 		if local {
-			offlineexch := offline.Exchange(n.Blockstore)
-			bserv := blockservice.New(n.Blockstore, offlineexch)
-			dserv = dag.NewDAGService(bserv)
+			exchange = offline.Exchange(n.Blockstore)
 		}
 
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
-		fileAdder, err := coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dserv)
+		var fileAdder *coreunix.Adder
+		if nocopy {
+			fs, ok := n.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore)
+			if !ok {
+				res.SetError(errors.New("filestore not enabled"), cmds.ErrNormal)
+				return
+			}
+			blockstore := filestore_support.NewBlockstore(n.Blockstore, fs)
+			blockService := bserv.NewWriteThrough(blockstore, exchange)
+			dagService := dag.NewDAGService(blockService)
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService)
+		} else if exchange != n.Exchange {
+			blockService := bserv.New(n.Blockstore, exchange)
+			dagService := dag.NewDAGService(blockService)
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dagService)
+		} else {
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, n.DAG)
+		}
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
