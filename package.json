@@ -201,9 +201,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQfvKShQ2v7nkfCE4ygisxpcSBFvBYaorQ54SibY6PGXV",
+      "hash": "QmUYzZRJcuUxLSnSzF1bSyw1jYbNAULkBrbS6rnr7F72uK",
       "name": "go-libp2p",
-      "version": "4.0.4"
+      "version": "4.1.0"
     },
     {
       "author": "whyrusleeping",
@@ -254,9 +254,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmTmmre42AYNbLX7N9nt7qo3DHVmRZ6ZoGisrYcCsBYuVw",
+      "hash": "QmaQrN5Gi5jz2ViKuJ5PU2LXV79D6vGuH7eVQnwxpoRqrd",
       "name": "go-libp2p-kad-dht",
-      "version": "2.4.2"
+      "version": "2.4.3"
     },
     {
       "author": "whyrusleeping",
@@ -266,9 +266,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUei446CG8bCVmy6LTnhqs1b3pfofTsSvM7a6hUjzwdNM",
+      "hash": "Qmd6gKBjErWcfJLJ22wDJu1z2EqbFKb4wheNobZJtSxf8M",
       "name": "floodsub",
-      "version": "0.7.3"
+      "version": "0.7.4"
     },
     {
       "author": "whyrusleeping",
