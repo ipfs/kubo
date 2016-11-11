@@ -213,5 +213,10 @@ Options for configuring the swarm.
 An array of address filters (multiaddr netmasks) to filter dials to.
 See https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604 for more information.
 
+- `DisableBandwidthMetrics`
+A boolean value that when set to true, will cause ipfs to not keep track of
+bandwidth metrics. Disabling bandwidth metrics can lead to a slight performance
+improvement, as well as a reduction in memory usage. 
+
 ## `Tour`
 Unused.

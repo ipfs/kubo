@@ -93,6 +93,11 @@ Example:
 			return
 		}
 
+		if nd.Reporter == nil {
+			res.SetError(fmt.Errorf("bandwidth reporter disabled in config"), cmds.ErrNormal)
+			return
+		}
+
 		pstr, pfound, err := req.Option("peer").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)

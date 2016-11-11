@@ -1,5 +1,6 @@
 package config
 
 type SwarmConfig struct {
-	AddrFilters []string
+	AddrFilters             []string
+	DisableBandwidthMetrics bool
 }

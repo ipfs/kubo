@@ -143,9 +143,6 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return err
 	}
 
-	// Set reporter
-	n.Reporter = metrics.NewBandwidthCounter()
-
 	// get undialable addrs from config
 	cfg, err := n.Repo.Config()
 	if err != nil {
@@ -158,6 +155,11 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 			return fmt.Errorf("incorrectly formatted address filter in config: %s", s)
 		}
 		addrfilter = append(addrfilter, f)
+	}
+
+	if !cfg.Swarm.DisableBandwidthMetrics {
+		// Set reporter
+		n.Reporter = metrics.NewBandwidthCounter()
 	}
 
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter, addrfilter)
