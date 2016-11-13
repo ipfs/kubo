@@ -1,6 +1,10 @@
 _ipfs_comp()
 {
     COMPREPLY=( $(compgen -W "$1" -- ${word}) )
+    if [[ ${#COMPREPLY[@]} == 1 && ${COMPREPLY[0]} == "--"*"=" ]] ; then
+        # If there's only one option, with =, then discard space
+        compopt -o nospace
+    fi
 }
 
 _ipfs_help_only()
@@ -10,10 +14,12 @@ _ipfs_help_only()
 
 _ipfs_add()
 {
-    if [ "${prev}" == "--chunker" ] ; then
-        _ipfs_comp "placeholder1 placeholder2 placeholder3" # TODO: Give real options
+    if [[ "${prev}" == "--chunker" ]] ; then
+        _ipfs_comp "placeholder1 placeholder2 placeholder3" # TODO: a) Give real options, b) Solve autocomplete bug for "="
+    elif [ "${prev}" == "--pin" ] ; then
+        _ipfs_comp "true false"
     elif [[ ${word} == -* ]] ; then
-        _ipfs_comp "--recursive --quiet --silent --progress --trickle --only-hash --wrap-with-directory --hidden --chunker --pin"
+        _ipfs_comp "--recursive --quiet --silent --progress --trickle --only-hash --wrap-with-directory --hidden --chunker= --pin= --raw-leaves --help "
     else
         _ipfs_filesystem_complete
     fi
@@ -21,10 +27,20 @@ _ipfs_add()
 
 _ipfs_bitswap()
 {
-    ipfs_comp "stat wantlist --help"
+    ipfs_comp "ledger stat unwant wantlist --help"
+}
+
+_ipfs_bitswap_ledger()
+{
+    _ipfs_help_only
 }
 
 _ipfs_bitswap_stat()
+{
+    _ipfs_help_only
+}
+
+_ipfs_bitswap_unwant()
 {
     _ipfs_help_only
 }
@@ -41,7 +57,7 @@ _ipfs_bitswap_unwant()
 
 _ipfs_block()
 {
-    _ipfs_comp "get put stat --help"
+    _ipfs_comp "get put rm stat --help"
 }
 
 _ipfs_block_get()
@@ -51,7 +67,22 @@ _ipfs_block_get()
 
 _ipfs_block_put()
 {
-    _ipfs_filesystem_complete
+    if [ "${prev}" == "--format" ] ; then
+        _ipfs_comp "v0 placeholder2 placeholder3" # TODO: a) Give real options, b) Solve autocomplete bug for "="
+    elif [[ ${word} == -* ]] ; then
+        _ipfs_comp "--format= --help"
+    else
+        _ipfs_filesystem_complete
+    fi
+}
+
+_ipfs_block_rm()
+{
+    if [[ ${word} == -* ]] ; then
+        _ipfs_comp "--force --quiet --help"
+    else
+        _ipfs_hash_complete
+    fi
 }
 
 _ipfs_block_stat()
@@ -66,7 +97,7 @@ _ipfs_bootstrap()
 
 _ipfs_bootstrap_add()
 {
-    _ipfs_comp "--default --help"
+    _ipfs_comp "default --help"
 }
 
 _ipfs_bootstrap_list()
@@ -76,7 +107,7 @@ _ipfs_bootstrap_list()
 
 _ipfs_bootstrap_rm()
 {
-    _ipfs_comp "--all --help"
+    _ipfs_comp "all --help"
 }
 
 _ipfs_cat()
@@ -99,15 +130,10 @@ _ipfs_config()
 {
     if [[ ${word} == -* ]] ; then
         _ipfs_comp "--bool --json"
-        COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
-    elif [[ ${prev} == "show" ]] || [[ ${prev} == "edit" ]] ; then
-        COMPREPLY=()
-    elif [[ ${prev} == "replace" ]] ; then
-        _ipfs_filesystem_complete
+    elif [[ ${prev} == *.* ]] ; then
+        COMPREPLY=() # Only one subheader of the config can be shown or edited.
     else
-        _ipfs_comp "show edit replace
-        Addresses.API" # TODO: Which configruation values is valid, add them?
-        COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
+        _ipfs_comp "show edit replace"
     fi
 }
 
@@ -118,8 +144,11 @@ _ipfs_config_edit()
 
 _ipfs_config_replace()
 {
-    # TODO: auto-complete with a filename
-    _ipfs_help_only
+    if [[ ${word} == -* ]] ; then
+        _ipfs_comp "--help"
+    else
+        _ipfs_filesystem_complete
+    fi
 }
 
 _ipfs_config_show()
@@ -130,24 +159,47 @@ _ipfs_config_show()
 _ipfs_daemon()
 {
     if [[ ${prev} == "--routing" ]] ; then
-        _ipfs_comp "dht supernode"
-    elif [[ ${prev} == "--mount-ipfs" ]] || [[ ${prev} == "--mount-ipns" ]] ; then
+        _ipfs_comp "dht supernode" # TODO: Solve autocomplete bug for "="
+    elif [[ ${prev} == "--mount-ipfs" ]] || [[ ${prev} == "--mount-ipns" ]] || [[ ${prev} == "=" ]]; then
         _ipfs_filesystem_complete
     elif [[ ${word} == -* ]] ; then
         _ipfs_comp "--init --routing= --mount --writable --mount-ipfs= \
             --mount-ipns= --unrestricted-api --disable-transport-encryption \
-            --help"
+            -- enable-gc --manage-fdlimit --offline --migrate --help"
+    fi
+}
+
+_ipfs_dag()
+{
+    _ipfs_comp "get put --help"
+}
+
+_ipfs_dag_get()
+{
+    _ipfs_help_only
+}
+
+_ipfs_dag_put()
+{
+    if [[ ${prev} == "--format" ]] ; then
+        _ipfs_comp "cbor placeholder1" # TODO: a) Which format more then cbor is valid? b) Solve autocomplete bug for "="
+    elif [[ ${prev} == "--input-enc" ]] ; then
+        _ipfs_comp "json placeholder1" # TODO: a) Which format more then json is valid? b) Solve autocomplete bug for "="
+    elif [[ ${word} == -* ]] ; then
+        _ipfs_comp "--format= --input-enc= --help"
+    else
+        _ipfs_filesystem_complete
     fi
 }
 
 _ipfs_dht()
 {
-    _ipfs_comp "findpeer findprovs get put query --help"
+    _ipfs_comp "findpeer findprovs get provide put query --help"
 }
 
 _ipfs_dht_findpeer()
 {
-    _ipfs_help_only
+    _ipfs_comp "--verbose --help"
 }
 
 _ipfs_dht_findprovs()
@@ -158,6 +210,11 @@ _ipfs_dht_findprovs()
 _ipfs_dht_get()
 {
     _ipfs_comp "--verbose --help"
+}
+
+_ipfs_dht_provide()
+{
+    _ipfs_comp "--recursive --verbose --help"
 }
 
 _ipfs_dht_put()
@@ -179,8 +236,8 @@ _ipfs_diag_cmds()
 {
     if [[ ${prev} == "clear" ]] ; then
         return 0
-    elif [[ $var =~ ^-?[0-9]+$ ]] ; then
-        _ipfs_comp "ns us µs ms s m h"
+    elif [[ ${prev} =~ ^-?[0-9]+$ ]] ; then
+        _ipfs_comp "ns us µs ms s m h" # TODO: Trigger with out space, eg. "ipfs diag set-time 10ns" not "... set-time 10 ns"
     elif [[ ${prev} == "set-time" ]] ; then
         _ipfs_help_only
     elif [[ ${word} == -* ]] ; then
@@ -197,12 +254,10 @@ _ipfs_diag_sys()
 
 _ipfs_diag_net()
 {
-    if [[ ${prev} == "--vis=" ]] ; then
-        opts="d3 dot"
-        COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
+    if [[ ${prev} == "--vis" ]] ; then
+        _ipfs_comp "d3 dot text" # TODO: Solve autocomplete bug for "="
     elif [[ ${word} == -* ]] ; then
         _ipfs_comp "--timeout= --vis= --help"
-        COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
     fi
 }
 
@@ -256,7 +311,7 @@ _ipfs_files_read()
     if [[ ${prev} == "--count" ]] || [[ ${prev} == "--offset" ]] ; then
         COMPREPLY=() # Numbers, just keep it empty
     elif [[ ${word} == -* ]] ; then
-        _ipfs_comp "--offset --count"
+        _ipfs_comp "--offset --count --help"
     elif [[ ${word} == /* ]] ; then
         _ipfs_files_complete
     else
@@ -270,7 +325,7 @@ _ipfs_files_write()
     if [[ ${prev} == "--count" ]] || [[ ${prev} == "--offset" ]] ; then # Dirty check
         COMPREPLY=() # Numbers, just keep it empty
     elif [[ ${word} == -* ]] ; then
-        _ipfs_comp "--offset --count --create --truncate"
+        _ipfs_comp "--offset --count --create --truncate --help"
     elif [[ ${prev} == /* ]] ; then
         _ipfs_filesystem_complete
     elif [[ ${word} == /* ]] ; then
@@ -294,7 +349,7 @@ _ipfs_files_cp()
 _ipfs_files_ls()
 {
     if [[ ${word} == -* ]] ; then
-        _ipfs_comp "-l"
+        _ipfs_comp "-l --help"
     elif [[ ${prev} == /* ]] ; then
         COMPREPLY=() # Path exist
     elif [[ ${word} == /* ]] ; then
@@ -308,7 +363,7 @@ _ipfs_files_ls()
 _ipfs_files_mkdir()
 {
     if [[ ${word} == -* ]] ; then
-        _ipfs_comp "--parents"
+        _ipfs_comp "--parents --help"
 
     elif [[ ${prev} == /* ]] ; then
         COMPREPLY=() # Path exist
@@ -352,8 +407,7 @@ _ipfs_get()
         compopt -o default # Re-enable default file read
         COMPREPLY=()
     elif [ "${prev}" == "--compression-level" ] ; then
-        opts="-1 1 2 3 4 5 6 7 8 9"
-        COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
+        _ipfs_comp "-1 1 2 3 4 5 6 7 8 9" # TODO: Solve autocomplete bug for "="
     elif [[ ${word} == -* ]] ; then
         _ipfs_comp "--output= --archive --compress --compression-level= --help"
     else
@@ -370,18 +424,23 @@ _ipfs_id()
 
 _ipfs_init()
 {
-    _ipfs_comp "--bits --force --empty-repo"
+    _ipfs_comp "--bits --force --empty-repo --help"
 }
 
 _ipfs_log()
 {
-    _ipfs_comp "tail level --help"
+    _ipfs_comp "level ls tail --help"
 }
 
 _ipfs_log_level()
 {
     # TODO: auto-complete subsystem and level
-    _ipfs_comp "--help"
+    _ipfs_help_only
+}
+
+_ipfs_log_ls()
+{
+    _ipfs_help_only
 }
 
 _ipfs_log_tail()
@@ -392,8 +451,7 @@ _ipfs_log_tail()
 _ipfs_ls()
 {
     if [[ ${word} == -* ]] ; then
-            opts="--headers --help"
-            COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
+        _ipfs_comp "--headers --resolve-type=false --help"
     else
         _ipfs_hash_complete
     fi
@@ -401,7 +459,7 @@ _ipfs_ls()
 
 _ipfs_mount()
 {
-    if [[ ${prev} == "--ipfs-path" ]] || [[ ${prev} == "--ipns-path" ]] ; then
+    if [[ ${prev} == "--ipfs-path" ]] || [[ ${prev} == "--ipns-path" ]] || [[ ${prev} == "=" ]] ; then
         _ipfs_filesystem_complete
     elif [[ ${word} == -* ]] ; then
         _ipfs_comp "--ipfs-path= --ipns-path= --help"
@@ -415,11 +473,12 @@ _ipfs_name()
 
 _ipfs_name_publish()
 {
-    if [[ ${word} == "--lifetime" ]] || [[ ${word} == "--ttl" ]] ; then
-        COMPREPLY=()
+    if [[ ${prev} == "--lifetime" ]] || [[ ${prev} == "--ttl" ]] ; then
+        COMPREPLY=() # Accept only numbers
+    elif [[ ${prev} =~ ^-?[0-9]+$ ]] ; then
+        _ipfs_comp "ns us µs ms s m h" # TODO: Trigger without space, eg. "ipfs diag set-time 10ns" not "... set-time 10 ns"
     elif [[ ${word} == -* ]] ; then
-        opts="--resolve --lifetime --ttl --help"
-        COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
+        _ipfs_comp "--resolve --lifetime --ttl --help"
     elif [[ ${word} == */ ]]; then
         _ipfs_hash_complete
     else
@@ -430,7 +489,7 @@ _ipfs_name_publish()
 _ipfs_name_resolve()
 {
     if [[ ${word} == -* ]] ; then
-        _ipfs_comp "--recursive --help"
+        _ipfs_comp "--recursive --nocache --help"
     fi
 }
 
@@ -446,7 +505,11 @@ _ipfs_object_data()
 
 _ipfs_object_diff()
 {
-    _ipfs_hash_complete
+  if [[ ${word} == -* ]] ; then
+      _ipfs_comp "--verbose --help"
+  else
+      _ipfs_hash_complete
+  fi
 }
 
 
@@ -534,7 +597,7 @@ _ipfs_pin()
 _ipfs_pin_add()
 {
     if [[ ${word} == -* ]] ; then
-        _ipfs_comp "--recursive  --help"
+        _ipfs_comp "--recursive=  --help"
     elif [[ ${word} == */ ]] && [[ ${word} != "/ipfs/" ]] ; then
         _ipfs_hash_complete
     fi
@@ -543,7 +606,7 @@ _ipfs_pin_add()
 _ipfs_pin_ls()
 {
     if [[ ${prev} == "--type" ]] || [[ ${prev} == "-t" ]] ; then
-        _ipfs_comp "direct indirect recursive all"
+        _ipfs_comp "direct indirect recursive all" # TODO: Solve autocomplete bug for
     elif [[ ${word} == -* ]] ; then
         _ipfs_comp "--count --quiet --type= --help"
     elif [[ ${word} == */ ]] && [[ ${word} != "/ipfs/" ]] ; then
@@ -563,6 +626,31 @@ _ipfs_pin_rm()
 _ipfs_ping()
 {
     _ipfs_comp "--count=  --help"
+}
+
+_ipfs_pubsub()
+{
+    _ipfs_comp "ls peers pub sub --help"
+}
+
+_ipfs_pubsub_ls()
+{
+    _ipfs_help_only
+}
+
+_ipfs_pubsub_peers()
+{
+    _ipfs_help_only
+}
+
+_ipfs_pubsub_pub()
+{
+    _ipfs_help_only
+}
+
+_ipfs_pubsub_sub()
+{
+    _ipfs_comp "--discover --help"
 }
 
 _ipfs_refs()
@@ -638,6 +726,7 @@ _ipfs_stats_bitswap()
 
 _ipfs_stats_bw()
 {
+    # TODO: Which protocol is valid?
     _ipfs_comp "--peer= --proto= --poll --interval= --help"
 }
 
@@ -873,9 +962,9 @@ _ipfs()
 
     case "${COMP_CWORD}" in
         1)
-            local opts="add bitswap block bootstrap cat commands config daemon dht \
-                        diag dns file files get id init log ls mount name object pin ping \
-                        refs repo stats swarm tar tour update version"
+            local opts="add bitswap block bootstrap cat commands config daemon dag dht \
+                        diag dns file files get id init log ls mount name object pin ping pubsub \
+                        refs repo resolve stats swarm tar tour update version"
             COMPREPLY=( $(compgen -W "${opts}" -- ${word}) );;
         2)
             local command="${COMP_WORDS[1]}"
