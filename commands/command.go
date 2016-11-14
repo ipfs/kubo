@@ -52,9 +52,14 @@ type HelpText struct {
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
-	Options    []Option
-	Arguments  []Argument
-	PreRun     func(req Request) error
+	Options   []Option
+	Arguments []Argument
+	PreRun    func(req Request) error
+
+	// Run is the function that processes the request to generate a response.
+	// Note that when executing the command over the HTTP API you can only read
+	// after writing when using multipart requests. The request body will not be
+	// available for reading after the HTTP connection has been written to.
 	Run        Function
 	PostRun    Function
 	Marshalers map[EncodingType]Marshaler
