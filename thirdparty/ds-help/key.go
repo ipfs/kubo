@@ -26,3 +26,11 @@ func DsKeyToCid(dsKey ds.Key) (*cid.Cid, error) {
 	}
 	return cid.Cast(kb)
 }
+
+func DsKeyStringToCid(dsKey string) (*cid.Cid, error) {
+	kb, err := base32.RawStdEncoding.DecodeString(dsKey[1:])
+	if err != nil {
+		return nil, err
+	}
+	return cid.Cast(kb)
+}
