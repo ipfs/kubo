@@ -202,8 +202,6 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 				return nil, true
 			}
 
-			log.Debug("blockstore: query got key", c)
-
 			return c, true
 		}
 	}
