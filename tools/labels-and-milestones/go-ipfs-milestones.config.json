@@ -1,0 +1,79 @@
+[
+  {
+    "repositories": [
+      "ipfs/go-ipfs",
+      "ipfs/go-cid",
+      "ipfs/go-datastore",
+      "ipfs/go-ds-flatfs",
+      "ipfs/go-ds-measure",
+      "ipfs/go-ipfs-api",
+      "ipfs/go-ipfs-util",
+      "ipfs/go-key",
+      "ipfs/go-log",
+      "libp2p/go-libp2p",
+      "libp2p/go-libp2p-crypto",
+      "libp2p/go-libp2p-loggable",
+      "libp2p/go-libp2p-peer",
+      "libp2p/go-libp2p-peerstore",
+      "libp2p/go-libp2p-secio",
+      "libp2p/go-libp2p-transport",
+      "whyrusleeping/go-libp2p-pubsub"
+    ],
+    "milestones": [
+      {
+        "title": "ipld integration",
+        "state": "open",
+        "description": "integration of the ipld data format into go-ipfs",
+        "due_on": "2016-10-29"
+      },
+      {
+        "title": "IPFS Core API",
+        "state": "open",
+        "description": "This milestone's goal is to extract the gateway code into its own tool. This will facilitate the implementation of the Core API in go-ipfs. In the past months we've established a core set of commands that IPFS nodes can support. The JS implementation (js-ipfs and js-ipfs-api) is already compliant, and this milestone is all about starting to make the Go implementation (go-ipfs and go-ipfs-api) compliant. Check out https://github.com/ipfs/interface-ipfs-core",
+        "due_on": "2016-10-31"
+      },
+      {
+        "title": "Directory Sharding",
+        "state": "open",
+        "description": "ipfs unixfs currently can't handle large directories. We need to shard directories after they get to a certain size.",
+        "due_on": "2016-11-08"
+      },
+      {
+        "title": "ipfs 0.4.5",
+        "state": "open",
+        "description": "Release version 0.4.5 of go-ipfs",
+        "due_on": "2016-11-19"
+      },
+      {
+        "title": "Filestore implementation",
+        "state": "open",
+        "description": "",
+        "due_on": "2016-12-05"
+      },
+      {
+        "title": "Dont Kill Routers",
+        "state": "open",
+        "description": "Ipfs should strive not to kill peoples home internet connection. This milestone is for tracking router killer issues beyond the normal bandwidth problems.",
+        "due_on": "2016-12-12"
+      },
+      {
+        "title": "Reduce Resource Consumption",
+        "state": "open",
+        "description": "A milestone for reducing resource consumption down to a reasonable level within a fixed time scale (Q4 2016)",
+        "due_on": "2017-01-02"
+      },
+      {
+        "title": "Improve Developer Experience",
+        "state": "open",
+        "description": "We want to significantly improve the experience developers have using ipfs. This includes making the codebase more approachable, making tutorials, and making our tooling as perfect as we can get it.",
+        "due_on": "2017-01-02"
+      },
+      {
+        "title": "Improve Performance",
+        "state": "open",
+        "description": "IPFS is decently fast, but its nowhere near where we want it. This milestore is to get us to speed things up a bit.",
+        "due_on": "2017-01-09"
+      }
+    ]
+  }
+]
