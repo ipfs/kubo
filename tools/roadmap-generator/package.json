@@ -1,0 +1,15 @@
+{
+  "name": "go-ipfs-roadmap-generator",
+  "version": "1.0.0",
+  "description": "Roadmap generator for go-ipfs project",
+  "main": "index.js",
+  "scripts": {
+    "roadmap": "node ./node_modules/.bin/roadmap-generator go-ipfs-roadmap.conf.js -s > ROADMAP.md",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Haad",
+  "license": "MIT",
+  "dependencies": {
+    "roadmap-generator": "0.0.3"
+  }
+}
