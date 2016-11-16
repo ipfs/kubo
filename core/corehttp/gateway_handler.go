@@ -12,12 +12,12 @@ import (
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
-
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
@@ -160,17 +160,29 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	dr, err := i.api.Cat(ctx, urlPath)
 	dir := false
-	if err == coreiface.ErrIsDir {
+	switch err {
+	case nil:
+		// core.Resolve worked
+		defer dr.Close()
+	case coreiface.ErrIsDir:
 		dir = true
-	} else if err == coreiface.ErrOffline {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
+	case namesys.ErrResolveFailed:
+		// Don't log that error as it is just noise
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Path Resolve error: %s", err.Error())
+		log.Info("Path Resolve error: %s", err.Error())
 		return
-	} else if err != nil {
+	case coreiface.ErrOffline:
+		if !i.node.OnlineMode() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
+			return
+		}
+		fallthrough
+	default:
+		// all other erros
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
 		return
-	} else {
-		defer dr.Close()
 	}
 
 	etag := gopath.Base(urlPath)
@@ -531,7 +543,8 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
 	w.WriteHeader(code)
-	log.Errorf("%s: %s", message, err) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
+
+	log.Errorf("%s: %s", message, err) // TODO(cryptix): log until we have a better way to expose these (counter metrics maybe)
 	fmt.Fprintf(w, "%s: %s", message, err)
 }
 
