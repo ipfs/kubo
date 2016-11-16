@@ -41,7 +41,7 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.UnixfsAPI, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	api := coreapi.NewUnixfsAPI(node)
+	api := coreapi.NewCoreAPI(node).Unixfs()
 	return node, api, nil
 }
 

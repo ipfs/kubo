@@ -9,16 +9,15 @@ import (
 	ipld "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
 )
 
-// type CoreAPI interface {
-// 	ID() CoreID
-// 	Version() CoreVersion
-// }
-
 type Link ipld.Link
 
 type Reader interface {
 	io.ReadSeeker
 	io.Closer
+}
+
+type CoreAPI interface {
+	Unixfs() UnixfsAPI
 }
 
 type UnixfsAPI interface {

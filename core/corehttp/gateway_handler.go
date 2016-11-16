@@ -37,10 +37,10 @@ const (
 type gatewayHandler struct {
 	node   *core.IpfsNode
 	config GatewayConfig
-	api    coreiface.UnixfsAPI
+	api    coreiface.CoreAPI
 }
 
-func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.UnixfsAPI) *gatewayHandler {
+func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 	i := &gatewayHandler{
 		node:   n,
 		config: c,
@@ -158,7 +158,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		ipnsHostname = true
 	}
 
-	dr, err := i.api.Cat(ctx, urlPath)
+	dr, err := i.api.Unixfs().Cat(ctx, urlPath)
 	dir := false
 	switch err {
 	case nil:
@@ -218,7 +218,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	links, err := i.api.Ls(ctx, urlPath)
+	links, err := i.api.Unixfs().Ls(ctx, urlPath)
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -247,7 +247,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 			}
 
 			// return index page instead.
-			dr, err := i.api.Cat(ctx, p.String())
+			dr, err := i.api.Unixfs().Cat(ctx, p.String())
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -314,7 +314,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 }
 
 func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	k, err := i.api.Add(ctx, r.Body)
+	k, err := i.api.Unixfs().Add(ctx, r.Body)
 	if err != nil {
 		internalWebError(w, err)
 		return
