@@ -15,9 +15,9 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
-	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
@@ -53,7 +53,7 @@ func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, s
 	}
 
 	return &DagModifier{
-		curNode:  pbn.Copy(),
+		curNode:  pbn.Copy().(*mdag.ProtoNode),
 		dagserv:  serv,
 		splitter: spl,
 		ctx:      ctx,
@@ -373,7 +373,7 @@ func (dm *DagModifier) GetNode() (*mdag.ProtoNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	return dm.curNode.Copy(), nil
+	return dm.curNode.Copy().(*mdag.ProtoNode), nil
 }
 
 // HasChanges returned whether or not there are unflushed changes to this dag

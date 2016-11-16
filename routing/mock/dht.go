@@ -4,7 +4,7 @@ import (
 	context "context"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
 	mocknet "gx/ipfs/QmUYzZRJcuUxLSnSzF1bSyw1jYbNAULkBrbS6rnr7F72uK/go-libp2p/p2p/net/mock"
-	dht "gx/ipfs/QmaQrN5Gi5jz2ViKuJ5PU2LXV79D6vGuH7eVQnwxpoRqrd/go-libp2p-kad-dht"
+	dht "gx/ipfs/Qmap6Qnt8RRvQ1BawQw4HZKHaSJAZC5VybyapizCXGdfUK/go-libp2p-kad-dht"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	sync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )

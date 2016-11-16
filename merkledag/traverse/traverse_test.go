@@ -8,7 +8,7 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	mdagtest "github.com/ipfs/go-ipfs/merkledag/test"
 
-	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
+	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 )
 
 func TestDFSPreNoSkip(t *testing.T) {
