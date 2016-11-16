@@ -102,6 +102,19 @@ func (d *Directory) switchToSharding(ctx context.Context) error {
 	return nil
 }
 
+func (d *Directory) ForEachLink(f func(*node.Link) error) error {
+	if d.shard == nil {
+		for _, l := range d.dirnode.Links() {
+			if err := f(l); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	return d.shard.ForEachLink(f)
+}
+
 func (d *Directory) Links() ([]*node.Link, error) {
 	if d.shard == nil {
 		return d.dirnode.Links(), nil

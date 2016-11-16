@@ -221,71 +221,59 @@ func (d *Directory) ListNames() ([]string, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	names := make(map[string]struct{})
-	for n, _ := range d.childDirs {
-		names[n] = struct{}{}
-	}
-	for n, _ := range d.files {
-		names[n] = struct{}{}
-	}
-
-	links, err := d.dirbuilder.Links()
+	var out []string
+	err := d.dirbuilder.ForEachLink(func(l *node.Link) error {
+		out = append(out, l.Name)
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, l := range links {
-		names[l.Name] = struct{}{}
-	}
-
-	var out []string
-	for n, _ := range names {
-		out = append(out, n)
-	}
 	sort.Strings(out)
 
 	return out, nil
 }
 
 func (d *Directory) List() ([]NodeListing, error) {
+	var out []NodeListing
+	err := d.ForEachEntry(context.TODO(), func(nl NodeListing) error {
+		out = append(out, nl)
+		return nil
+	})
+	return out, err
+}
+
+func (d *Directory) ForEachEntry(ctx context.Context, f func(NodeListing) error) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-
-	var out []NodeListing
-
-	links, err := d.dirbuilder.Links()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, l := range links {
-		child := NodeListing{}
-		child.Name = l.Name
-
+	return d.dirbuilder.ForEachLink(func(l *node.Link) error {
 		c, err := d.childUnsync(l.Name)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		child.Type = int(c.Type())
+		nd, err := c.GetNode()
+		if err != nil {
+			return err
+		}
+
+		child := NodeListing{
+			Name: l.Name,
+			Type: int(c.Type()),
+			Hash: nd.Cid().String(),
+		}
+
 		if c, ok := c.(*File); ok {
 			size, err := c.Size()
 			if err != nil {
-				return nil, err
+				return err
 			}
 			child.Size = size
 		}
-		nd, err := c.GetNode()
-		if err != nil {
-			return nil, err
-		}
 
-		child.Hash = nd.Cid().String()
-
-		out = append(out, child)
-	}
-
-	return out, nil
+		return f(child)
+	})
 }
 
 func (d *Directory) Mkdir(name string) (*Directory, error) {
@@ -433,5 +421,5 @@ func (d *Directory) GetNode() (node.Node, error) {
 		return nil, err
 	}
 
-	return nd, err
+	return nd.Copy(), err
 }
