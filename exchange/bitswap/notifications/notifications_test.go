@@ -8,7 +8,7 @@ import (
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
-	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
 
 func TestDuplicates(t *testing.T) {

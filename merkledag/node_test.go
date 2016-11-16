@@ -7,7 +7,7 @@ import (
 	. "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 
-	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
+	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 )
 
 func TestRemoveLink(t *testing.T) {
@@ -121,7 +121,7 @@ func TestNodeCopy(t *testing.T) {
 
 	nd.SetData([]byte("testing"))
 
-	ond := nd.Copy()
+	ond := nd.Copy().(*ProtoNode)
 	ond.SetData(nil)
 
 	if nd.Data() == nil {

@@ -14,7 +14,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
+	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
@@ -86,7 +86,7 @@ func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
 		return nil, err
 	}
 
-	return d.node.Copy(), nil
+	return d.node.Copy().(*dag.ProtoNode), nil
 }
 
 func (d *Directory) updateChild(name string, nd node.Node) error {
@@ -411,5 +411,5 @@ func (d *Directory) GetNode() (node.Node, error) {
 		return nil, err
 	}
 
-	return d.node.Copy(), nil
+	return d.node.Copy().(*dag.ProtoNode), nil
 }

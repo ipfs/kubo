@@ -3,9 +3,9 @@ package merkledag
 import (
 	"github.com/ipfs/go-ipfs/blocks"
 
-	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
-	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
 
 type RawNode struct {
@@ -32,8 +32,20 @@ func (rn *RawNode) Resolve(path []string) (interface{}, []string, error) {
 	return nil, nil, ErrLinkNotFound
 }
 
-func (rn *RawNode) Tree() []string {
+func (rn *RawNode) Tree(p string, depth int) []string {
 	return nil
+}
+
+func (rn *RawNode) Copy() node.Node {
+	copybuf := make([]byte, len(rn.RawData()))
+	copy(copybuf, rn.RawData())
+	nblk, err := blocks.NewBlockWithCid(rn.RawData(), rn.Cid())
+	if err != nil {
+		// programmer error
+		panic("failure attempting to clone raw block: " + err.Error())
+	}
+
+	return &RawNode{nblk}
 }
 
 func (rn *RawNode) Size() (uint64, error) {

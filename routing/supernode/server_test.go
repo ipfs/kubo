@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
-	dhtpb "gx/ipfs/QmaQrN5Gi5jz2ViKuJ5PU2LXV79D6vGuH7eVQnwxpoRqrd/go-libp2p-kad-dht/pb"
+	dhtpb "gx/ipfs/Qmap6Qnt8RRvQ1BawQw4HZKHaSJAZC5VybyapizCXGdfUK/go-libp2p-kad-dht/pb"
 	datastore "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 

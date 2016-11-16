@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
-	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
 
 var ErrNotProtobuf = fmt.Errorf("expected protobuf dag node")
@@ -137,7 +137,7 @@ func (n *ProtoNode) GetLinkedNode(ctx context.Context, ds DAGService, name strin
 
 // Copy returns a copy of the node.
 // NOTE: Does not make copies of Node objects in the links.
-func (n *ProtoNode) Copy() *ProtoNode {
+func (n *ProtoNode) Copy() node.Node {
 	nnode := new(ProtoNode)
 	if len(n.data) > 0 {
 		nnode.data = make([]byte, len(n.data))
@@ -169,7 +169,7 @@ func (n *ProtoNode) SetData(d []byte) {
 // UpdateNodeLink return a copy of the node with the link name set to point to
 // that. If a link of the same name existed, it is removed.
 func (n *ProtoNode) UpdateNodeLink(name string, that *ProtoNode) (*ProtoNode, error) {
-	newnode := n.Copy()
+	newnode := n.Copy().(*ProtoNode)
 	err := newnode.RemoveNodeLink(name)
 	err = nil // ignore error
 	err = newnode.AddNodeLink(name, that)
@@ -270,7 +270,13 @@ func (n *ProtoNode) ResolveLink(path []string) (*node.Link, []string, error) {
 	return lnk, path[1:], nil
 }
 
-func (n *ProtoNode) Tree() []string {
+func (n *ProtoNode) Tree(p string, depth int) []string {
+	// ProtoNodes are only ever one path deep, anything below that results in
+	// nothing
+	if p != "" {
+		return nil
+	}
+
 	out := make([]string, 0, len(n.links))
 	for _, lnk := range n.links {
 		out = append(out, lnk.Name)

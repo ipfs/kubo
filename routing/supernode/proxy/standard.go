@@ -10,7 +10,7 @@ import (
 	kbucket "gx/ipfs/QmUKePKcUEXwdvJENZJ6z8mJjPaxLsDZ3V9CZjPPtyawPm/go-libp2p-kbucket"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
-	dhtpb "gx/ipfs/QmaQrN5Gi5jz2ViKuJ5PU2LXV79D6vGuH7eVQnwxpoRqrd/go-libp2p-kad-dht/pb"
+	dhtpb "gx/ipfs/Qmap6Qnt8RRvQ1BawQw4HZKHaSJAZC5VybyapizCXGdfUK/go-libp2p-kad-dht/pb"
 	host "gx/ipfs/Qmb6UFbVu1grhv5o5KnouvtZ6cqdrjXj6zLejAHWunxgCt/go-libp2p-host"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )

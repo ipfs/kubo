@@ -10,7 +10,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 
-	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
+	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	syncds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )
@@ -44,7 +44,7 @@ func NewDagEditor(root *dag.ProtoNode, source dag.DAGService) *Editor {
 }
 
 func (e *Editor) GetNode() *dag.ProtoNode {
-	return e.root.Copy()
+	return e.root.Copy().(*dag.ProtoNode)
 }
 
 func (e *Editor) GetDagService() dag.DAGService {

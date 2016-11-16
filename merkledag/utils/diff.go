@@ -7,7 +7,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
 	context "context"
-	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
 
 const (
@@ -99,8 +99,8 @@ func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.ProtoNode) ([]*Chang
 	}
 
 	var out []*Change
-	clean_a := a.Copy()
-	clean_b := b.Copy()
+	clean_a := a.Copy().(*dag.ProtoNode)
+	clean_b := b.Copy().(*dag.ProtoNode)
 
 	// strip out unchanged stuff
 	for _, lnk := range a.Links() {

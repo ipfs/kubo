@@ -21,10 +21,10 @@ import (
 	dstest "github.com/ipfs/go-ipfs/merkledag/test"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	node "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
-	cid "gx/ipfs/QmXfiyr2RWEXpVDdaYnD2HNiBk6UBddsvEP4RPfXb6nGqY/go-cid"
+	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
 
 func TestNode(t *testing.T) {
@@ -401,7 +401,7 @@ func TestGetRawNodes(t *testing.T) {
 		t.Fatal("raw blocks shouldnt have links")
 	}
 
-	if out.Tree() != nil {
+	if out.Tree("", -1) != nil {
 		t.Fatal("tree should return no paths in a raw block")
 	}
 
@@ -446,7 +446,7 @@ func TestProtoNodeResolve(t *testing.T) {
 		t.Fatal("how did we get anything else?")
 	}
 
-	tvals := nd.Tree()
+	tvals := nd.Tree("", -1)
 	if len(tvals) != 1 || tvals[0] != "foo" {
 		t.Fatal("expected tree to return []{\"foo\"}")
 	}

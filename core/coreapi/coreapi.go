@@ -7,7 +7,7 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	path "github.com/ipfs/go-ipfs/path"
 
-	ipld "gx/ipfs/QmU7bFWQ793qmvNy7outdCaMfSDNk8uqhx4VNrxYj5fj5g/go-ipld-node"
+	ipld "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 )
 
 func resolve(ctx context.Context, n *core.IpfsNode, p string) (ipld.Node, error) {
