@@ -3,8 +3,8 @@ package mockrouting
 import (
 	context "context"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
-	mocknet "gx/ipfs/QmUYzZRJcuUxLSnSzF1bSyw1jYbNAULkBrbS6rnr7F72uK/go-libp2p/p2p/net/mock"
-	dht "gx/ipfs/Qmap6Qnt8RRvQ1BawQw4HZKHaSJAZC5VybyapizCXGdfUK/go-libp2p-kad-dht"
+	mocknet "gx/ipfs/QmZyBJGpRnbQ7oUstoGNZbhXC4HJuFUCgpp8pmsVTUwdS3/go-libp2p/p2p/net/mock"
+	dht "gx/ipfs/QmaMRCpeKL34rdT7t3bEndrENbVdD6gcCZr3YdkDUk6jue/go-libp2p-kad-dht"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	sync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 )

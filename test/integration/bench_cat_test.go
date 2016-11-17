@@ -13,8 +13,8 @@ import (
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
-	mocknet "gx/ipfs/QmUYzZRJcuUxLSnSzF1bSyw1jYbNAULkBrbS6rnr7F72uK/go-libp2p/p2p/net/mock"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
+	mocknet "gx/ipfs/QmZyBJGpRnbQ7oUstoGNZbhXC4HJuFUCgpp8pmsVTUwdS3/go-libp2p/p2p/net/mock"
 )
 
 func BenchmarkCat1MB(b *testing.B) { benchmarkVarCat(b, unit.MB*1) }

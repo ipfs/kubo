@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/mock"
 
 	context "context"
-	mocknet "gx/ipfs/QmUYzZRJcuUxLSnSzF1bSyw1jYbNAULkBrbS6rnr7F72uK/go-libp2p/p2p/net/mock"
+	mocknet "gx/ipfs/QmZyBJGpRnbQ7oUstoGNZbhXC4HJuFUCgpp8pmsVTUwdS3/go-libp2p/p2p/net/mock"
 	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
 
