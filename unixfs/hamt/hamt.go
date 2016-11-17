@@ -1,3 +1,23 @@
+// Package hamt implements a Hash Array Mapped Trie over ipfs merkledag nodes.
+// It is implemented mostly as described in the wikipedia article on HAMTs,
+// however the table size is variable (usually 256 in our usages) as opposed to
+// 32 as suggested in the article.  The hash function used is currently
+// Murmur3, but this value is configurable (the datastructure reports which
+// hash function its using).
+//
+// The one algorithmic change we implement that is not mentioned in the
+// wikipedia article is the collapsing of empty shards.
+// Given the following tree: ( '[' = shards, '{' = values )
+// [ 'A' ] -> [ 'B' ] -> { "ABC" }
+//    |       L-> { "ABD" }
+//    L-> { "ASDF" }
+// If we simply removed "ABC", we would end up with a tree where shard 'B' only
+// has a single child.  This causes two issues, the first, is that now we have
+// an extra lookup required to get to "ABD".  The second issue is that now we
+// have a tree that contains only "ABD", but is not the same tree that we would
+// get by simply inserting "ABD" into a new tree.  To address this, we always
+// check for empty shard nodes upon deletion and prune them to maintain a
+// consistent tree, independent of insertion order.
 package hamt
 
 import (
@@ -450,10 +470,15 @@ func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, 
 	}
 }
 
+// indexForBitPos returns the index within the collapsed array corresponding to
+// the given bit in the bitset.  The collapsed array contains only one entry
+// per bit set in the bitfield, and this function is used to map the indices.
 func (ds *HamtShard) indexForBitPos(bp int) int {
 	// TODO: an optimization could reuse the same 'mask' here and change the size
 	//       as needed. This isnt yet done as the bitset package doesnt make it easy
 	//       to do.
+
+	// make a bitmask (all bits set) 'bp' bits long
 	mask := new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(bp)), nil), big.NewInt(1))
 	mask.And(mask, ds.bitfield)
 

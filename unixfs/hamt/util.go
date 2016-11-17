@@ -4,6 +4,7 @@ import (
 	"math/big"
 )
 
+// hashBits is a helper that allows the reading of the 'next n bits' as an integer.
 type hashBits struct {
 	b        []byte
 	consumed int
@@ -13,6 +14,7 @@ func mkmask(n int) byte {
 	return (1 << uint(n)) - 1
 }
 
+// Next returns the next 'i' bits of the hashBits value as an integer
 func (hb *hashBits) Next(i int) int {
 	curbi := hb.consumed / 8
 	leftb := 8 - (hb.consumed % 8)
