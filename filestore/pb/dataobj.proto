@@ -1,0 +1,14 @@
+package datastore.pb;
+
+message DataObj {
+        optional string FilePath = 1;
+        optional uint64 Offset = 2;
+        optional uint64 Size = 3;
+        optional bytes Data = 4;
+
+        // fields 5 - 7 where used in the dev. version, best not to resuse them
+
+        optional uint64 Flags = 8;
+        optional double Modtime = 9;
+}
+

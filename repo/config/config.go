@@ -19,6 +19,7 @@ var log = logging.Logger("config")
 type Config struct {
 	Identity         Identity              // local node's peer identity
 	Datastore        Datastore             // local node's storage
+	Filestore        Filestore             // local node's filestore
 	Addresses        Addresses             // local node's addresses
 	Mounts           Mounts                // local node's mount points
 	Discovery        Discovery             // local node's discovery mechanisms

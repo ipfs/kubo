@@ -13,6 +13,8 @@ import (
 
 var ErrWrongHash = errors.New("data did not match given hash!")
 
+// Block is a singular block of data in ipfs
+
 type Block interface {
 	RawData() []byte
 	Cid() *cid.Cid
@@ -20,7 +22,6 @@ type Block interface {
 	Loggable() map[string]interface{}
 }
 
-// Block is a singular block of data in ipfs
 type BasicBlock struct {
 	cid  *cid.Cid
 	data []byte

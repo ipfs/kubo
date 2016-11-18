@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/blocks"
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	cmds "github.com/ipfs/go-ipfs/commands"
 
@@ -36,10 +37,11 @@ multihash.
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"stat": blockStatCmd,
-		"get":  blockGetCmd,
-		"put":  blockPutCmd,
-		"rm":   blockRmCmd,
+		"stat":   blockStatCmd,
+		"get":    blockGetCmd,
+		"put":    blockPutCmd,
+		"rm":     blockRmCmd,
+		"locate": blockLocateCmd,
 	},
 }
 
@@ -238,34 +240,7 @@ It takes a list of base58 encoded multihashs to remove.
 		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		hashes := req.Arguments()
-		force, _, _ := req.Option("force").Bool()
-		quiet, _, _ := req.Option("quiet").Bool()
-		cids := make([]*cid.Cid, 0, len(hashes))
-		for _, hash := range hashes {
-			c, err := cid.Decode(hash)
-			if err != nil {
-				res.SetError(fmt.Errorf("invalid content id: %s (%s)", hash, err), cmds.ErrNormal)
-				return
-			}
-
-			cids = append(cids, c)
-		}
-		outChan := make(chan interface{})
-		err = util.RmBlocks(n.Blockstore, n.Pinning, outChan, cids, util.RmBlocksOpts{
-			Quiet: quiet,
-			Force: force,
-		})
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		res.SetOutput((<-chan interface{})(outChan))
+		blockRmRun(req, res, "")
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
 		if res.Error() != nil {
@@ -284,4 +259,104 @@ It takes a list of base58 encoded multihashs to remove.
 		}
 	},
 	Type: util.RemovedBlock{},
+}
+
+func blockRmRun(req cmds.Request, res cmds.Response, prefix string) {
+	n, err := req.InvocContext().GetNode()
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	hashes := req.Arguments()
+	force, _, _ := req.Option("force").Bool()
+	quiet, _, _ := req.Option("quiet").Bool()
+	cids := make([]*cid.Cid, 0, len(hashes))
+	for _, hash := range hashes {
+		c, err := cid.Decode(hash)
+		if err != nil {
+			res.SetError(fmt.Errorf("invalid content id: %s (%s)", hash, err), cmds.ErrNormal)
+			return
+		}
+		cids = append(cids, c)
+	}
+	outChan := make(chan interface{})
+	err = util.RmBlocks(n.Blockstore, n.Pinning, outChan, cids, util.RmBlocksOpts{
+		Quiet:  quiet,
+		Force:  force,
+		Prefix: prefix,
+	})
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	res.SetOutput((<-chan interface{})(outChan))
+}
+
+type BlockLocateRes struct {
+	Key string
+	Res []bs.LocateInfo
+}
+
+var blockLocateCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Locate an IPFS block.",
+		ShortDescription: `
+'ipfs block rm' is a plumbing command for locating which
+sub-datastores block(s) are located in.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to check."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		hashes := req.Arguments()
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+		go func() {
+			defer close(outChan)
+			for _, hash := range hashes {
+				key, err := cid.Decode(hash)
+				if err != nil {
+					panic(err) // FIXME
+				}
+				ret := n.Blockstore.Locate(key)
+				outChan <- &BlockLocateRes{hash, ret}
+			}
+		}()
+		return
+	},
+	PostRun: func(req cmds.Request, res cmds.Response) {
+		if res.Error() != nil {
+			return
+		}
+		quiet, _, _ := req.Option("quiet").Bool()
+		outChan, ok := res.Output().(<-chan interface{})
+		if !ok {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(nil)
+
+		for out := range outChan {
+			ret := out.(*BlockLocateRes)
+			for _, inf := range ret.Res {
+				if quiet && inf.Error == nil {
+					fmt.Fprintf(res.Stdout(), "%s %s\n", ret.Key, inf.Prefix)
+				} else if !quiet && inf.Error == nil {
+					fmt.Fprintf(res.Stdout(), "%s %s found\n", ret.Key, inf.Prefix)
+				} else if !quiet {
+					fmt.Fprintf(res.Stdout(), "%s %s error  %s\n", ret.Key, inf.Prefix, inf.Error.Error())
+				}
+			}
+		}
+	},
+	Type: BlockLocateRes{},
 }

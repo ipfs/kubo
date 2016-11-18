@@ -108,4 +108,6 @@ var cmdDetailsMap = map[*cmds.Command]cmdDetails{
 	commands.ActiveReqsCmd:                {cannotRunOnClient: true},
 	commands.RepoFsckCmd:                  {cannotRunOnDaemon: true},
 	commands.ConfigCmd.Subcommand("edit"): {cannotRunOnDaemon: true, doesNotUseRepo: true},
+	commands.FilestoreEnable:              {cannotRunOnDaemon: true},
+	commands.FilestoreDisable:             {cannotRunOnDaemon: true},
 }

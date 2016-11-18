@@ -21,7 +21,9 @@ import (
 var log = logging.Logger("blockstore")
 
 // BlockPrefix namespaces blockstore datastores
-var BlockPrefix = ds.NewKey("blocks")
+const DefaultPrefix = "/blocks"
+
+var blockPrefix = ds.NewKey(DefaultPrefix)
 
 var ValueTypeMismatch = errors.New("the retrieved value is not a Block")
 var ErrHashMismatch = errors.New("block in storage has different hash than requested")
@@ -71,20 +73,23 @@ type gcBlockstore struct {
 }
 
 func NewBlockstore(d ds.Batching) *blockstore {
+	return NewBlockstoreWPrefix(d, DefaultPrefix)
+}
+
+func NewBlockstoreWPrefix(d ds.Batching, prefix string) *blockstore {
 	var dsb ds.Batching
-	dd := dsns.Wrap(d, BlockPrefix)
+	prefixKey := ds.NewKey(prefix)
+	dd := dsns.Wrap(d, prefixKey)
 	dsb = dd
 	return &blockstore{
 		datastore: dsb,
+		prefix:    prefixKey,
 	}
 }
 
 type blockstore struct {
 	datastore ds.Batching
-
-	lk      sync.RWMutex
-	gcreq   int32
-	gcreqlk sync.Mutex
+	prefix    ds.Key
 
 	rehash bool
 }
@@ -130,11 +135,8 @@ func (bs *blockstore) Get(k *cid.Cid) (blocks.Block, error) {
 func (bs *blockstore) Put(block blocks.Block) error {
 	k := dshelp.CidToDsKey(block.Cid())
 
-	// Has is cheaper than Put, so see if we already have it
-	exists, err := bs.datastore.Has(k)
-	if err == nil && exists {
-		return nil // already stored.
-	}
+	// Note: The Has Check is now done by the MultiBlockstore
+
 	return bs.datastore.Put(k, block.RawData())
 }
 
@@ -145,11 +147,6 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	}
 	for _, b := range blocks {
 		k := dshelp.CidToDsKey(b.Cid())
-		exists, err := bs.datastore.Has(k)
-		if err == nil && exists {
-			continue
-		}
-
 		err = t.Put(k, b.RawData())
 		if err != nil {
 			return err
@@ -175,7 +172,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true}
 	// datastore/namespace does *NOT* fix up Query.Prefix
-	q.Prefix = BlockPrefix.String()
+	q.Prefix = bs.prefix.String()
 	res, err := bs.datastore.Query(q)
 	if err != nil {
 		return nil, err

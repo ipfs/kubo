@@ -2,13 +2,18 @@ package fsrepo
 
 import (
 	"fmt"
+	"os"
 	"path"
+	"strings"
 
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/dir"
+
+	filestore "github.com/ipfs/go-ipfs/filestore"
 	"gx/ipfs/QmU4VzzKNLJXJ72SedXBQKyf5Jo8W89iWpbWQjHn9qef8N/go-ds-flatfs"
 	levelds "gx/ipfs/QmUHmMGmcwCrjHQHcYhBnqGCSWs5pBSMbGZmfwavETR1gg/go-ds-leveldb"
+	//multi "github.com/ipfs/go-ipfs/repo/multi"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	mount "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/syncmount"
@@ -18,9 +23,17 @@ import (
 const (
 	leveldbDirectory = "datastore"
 	flatfsDirectory  = "blocks"
+	fileStoreDir     = "filestore-db"
+	fileStoreDataDir = "filestore-data"
 )
 
-func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
+const (
+	RootMount      = "/"
+	CacheMount     = "/blocks" // needs to be the same as blockstore.DefaultPrefix
+	FilestoreMount = "/filestore"
+)
+
+func openDefaultDatastore(r *FSRepo) (repo.Datastore, []Mount, error) {
 	leveldbPath := path.Join(r.path, leveldbDirectory)
 
 	// save leveldb reference so it can be neatly closed afterward
@@ -28,7 +41,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to open leveldb datastore: %v", err)
+		return nil, nil, fmt.Errorf("unable to open leveldb datastore: %v", err)
 	}
 
 	syncfs := !r.config.Datastore.NoSync
@@ -36,7 +49,7 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	// by the Qm prefix. Leaving us with 9 bits, or 512 way sharding
 	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 5, syncfs)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
+		return nil, nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}
 
 	// Add our PeerID to metrics paths to keep them unique
@@ -51,18 +64,37 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	prefix := "fsrepo." + id + ".datastore."
 	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
 	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
-	mountDS := mount.New([]mount.Mount{
-		{
-			Prefix:    ds.NewKey("/blocks"),
-			Datastore: metricsBlocks,
-		},
-		{
-			Prefix:    ds.NewKey("/"),
-			Datastore: metricsLevelDB,
-		},
-	})
 
-	return mountDS, nil
+	var mounts []mount.Mount
+	var directMounts []Mount
+
+	mounts = append(mounts, mount.Mount{
+		Prefix:    ds.NewKey(CacheMount),
+		Datastore: metricsBlocks,
+	})
+	directMounts = append(directMounts, Mount{CacheMount, blocksDS})
+
+	fileStore, err := r.newFilestore()
+	if err != nil {
+		return nil, nil, err
+	}
+	if fileStore != nil {
+		mounts = append(mounts, mount.Mount{
+			Prefix:    ds.NewKey(FilestoreMount),
+			Datastore: fileStore,
+		})
+		directMounts = append(directMounts, Mount{FilestoreMount, fileStore})
+	}
+
+	mounts = append(mounts, mount.Mount{
+		Prefix:    ds.NewKey(RootMount),
+		Datastore: metricsLevelDB,
+	})
+	directMounts = append(directMounts, Mount{RootMount, leveldbDS})
+
+	mountDS := mount.New(mounts)
+
+	return mountDS, directMounts, nil
 }
 
 func initDefaultDatastore(repoPath string, conf *config.Config) error {
@@ -78,4 +110,30 @@ func initDefaultDatastore(repoPath string, conf *config.Config) error {
 		return fmt.Errorf("datastore: %s", err)
 	}
 	return nil
+}
+
+func InitFilestore(repoPath string) error {
+	fileStorePath := path.Join(repoPath, fileStoreDir)
+	return filestore.Init(fileStorePath)
+}
+
+// will return nil, nil if the filestore is not enabled
+func (r *FSRepo) newFilestore() (*filestore.Datastore, error) {
+	fileStorePath := path.Join(r.path, fileStoreDir)
+	if _, err := os.Stat(fileStorePath); os.IsNotExist(err) {
+		return nil, nil
+	}
+	verify := filestore.VerifyAlways
+	switch strings.ToLower(r.config.Filestore.Verify) {
+	case "never":
+		verify = filestore.VerifyNever
+	case "ifchanged", "if changed":
+		verify = filestore.VerifyIfChanged
+	case "", "always":
+		verify = filestore.VerifyAlways
+	default:
+		return nil, fmt.Errorf("invalid value for Filestore.Verify: %s", r.config.Filestore.Verify)
+	}
+	println(verify)
+	return filestore.New(fileStorePath, verify, r.config.Filestore.NoDBCompression)
 }

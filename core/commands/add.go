@@ -1,13 +1,18 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/filestore"
+	"github.com/ipfs/go-ipfs/filestore/support"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
+	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
@@ -33,6 +38,7 @@ const (
 	chunkerOptionName   = "chunker"
 	pinOptionName       = "pin"
 	rawLeavesOptionName = "raw-leaves"
+	allowDupName        = "allow-dup"
 )
 
 var AddCmd = &cmds.Command{
@@ -80,8 +86,16 @@ You can now refer to the added file in a gateway, like so:
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
+		cmds.BoolOption(allowDupName, "Add even if blocks are in non-cache blockstore.").Default(false),
 	},
 	PreRun: func(req cmds.Request) error {
+		wrap, _, _ := req.Option(wrapOptionName).Bool()
+		recursive, _, _ := req.Option(cmds.RecLong).Bool()
+		sliceFile, ok := req.Files().(*files.SliceFile)
+		if ok && !wrap && recursive && sliceFile.NumFiles() > 1 {
+			return fmt.Errorf("adding multiple directories without '-w' unsupported")
+		}
+
 		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
 			return nil
 		}
@@ -138,6 +152,10 @@ You can now refer to the added file in a gateway, like so:
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, _, _ := req.Option(pinOptionName).Bool()
 		rawblks, _, _ := req.Option(rawLeavesOptionName).Bool()
+		recursive, _, _ := req.Option(cmds.RecLong).Bool()
+		allowDup, _, _ := req.Option(allowDupName).Bool()
+
+		nocopy, _ := req.Values()["no-copy"].(bool)
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -152,18 +170,44 @@ You can now refer to the added file in a gateway, like so:
 			n = nilnode
 		}
 
-		dserv := n.DAG
+		exchange := n.Exchange
 		local, _, _ := req.Option("local").Bool()
 		if local {
-			offlineexch := offline.Exchange(n.Blockstore)
-			bserv := blockservice.New(n.Blockstore, offlineexch)
-			dserv = dag.NewDAGService(bserv)
+			exchange = offline.Exchange(n.Blockstore)
 		}
 
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
-		fileAdder, err := coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dserv)
+		var fileAdder *coreunix.Adder
+		useRoot := wrap || recursive
+		perFileLocker := filestore.NoOpLocker()
+		if nocopy {
+			fs, ok := n.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore)
+			if !ok {
+				res.SetError(errors.New("filestore not enabled"), cmds.ErrNormal)
+				return
+			}
+			blockstore := filestore_support.NewBlockstore(n.Blockstore, fs)
+			blockService := bserv.NewWriteThrough(blockstore, exchange)
+			dagService := dag.NewDAGService(blockService)
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService, useRoot)
+			fileAdder.FullName = true
+			perFileLocker = fs.AddLocker()
+		} else if allowDup {
+			// add directly to the first mount bypassing
+			// the Has() check of the multi-blockstore
+			blockstore := bs.NewGCBlockstore(n.Blockstore.FirstMount(), n.Blockstore)
+			blockService := bserv.NewWriteThrough(blockstore, exchange)
+			dagService := dag.NewDAGService(blockService)
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, blockstore, dagService, useRoot)
+		} else if exchange != n.Exchange {
+			blockService := bserv.New(n.Blockstore, exchange)
+			dagService := dag.NewDAGService(blockService)
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dagService, useRoot)
+		} else {
+			fileAdder, err = coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, n.DAG, useRoot)
+		}
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -202,6 +246,8 @@ You can now refer to the added file in a gateway, like so:
 				} else if err != nil {
 					return err
 				}
+				perFileLocker.Lock()
+				defer perFileLocker.Unlock()
 				if err := fileAdder.AddFile(file); err != nil {
 					return err
 				}

@@ -22,7 +22,7 @@ var log = logging.Logger("gc")
 //
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
-func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) (<-chan *cid.Cid, error) {
+func GC(ctx context.Context, bs bstore.MultiBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) (<-chan *cid.Cid, error) {
 	unlocker := bs.GCLock()
 
 	ls = ls.GetOfflineLinkService()
@@ -32,7 +32,8 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 		return nil, err
 	}
 
-	keychan, err := bs.AllKeysChan(ctx)
+	// only delete blocks in the first (cache) mount
+	keychan, err := bs.FirstMount().AllKeysChan(ctx)
 	if err != nil {
 		return nil, err
 	}

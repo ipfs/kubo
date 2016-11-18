@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/ipfs/go-ipfs/repo/config"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 )
 
 var errTODO = errors.New("TODO: mock repo")
@@ -32,6 +33,18 @@ func (m *Mock) GetConfigKey(key string) (interface{}, error) {
 }
 
 func (m *Mock) Datastore() Datastore { return m.D }
+
+func (m *Mock) DirectMount(prefix string) ds.Datastore {
+	if prefix == "/" {
+		return m.D
+	} else {
+		return nil
+	}
+}
+
+func (m *Mock) Mounts() []string {
+	return []string{"/"}
+}
 
 func (m *Mock) GetStorageUsage() (uint64, error) { return 0, nil }
 

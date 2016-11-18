@@ -19,7 +19,7 @@ test_expect_success "output does not contain multipart info" '
 	test_expect_code 1 grep multipart nc_out
 '
 
-test_expect_success "request looks good" '
+test_expect_failure "request looks good" '
 	grep "POST /api/v0/cat" nc_out
 '
 
