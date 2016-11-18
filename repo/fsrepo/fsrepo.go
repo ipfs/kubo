@@ -20,6 +20,7 @@ import (
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	"gx/ipfs/QmeqtHtxGfcsfXiou7wqHJARWPKUTUcPdtSfSYYHp48dtQ/go-ds-measure"
 )
 
@@ -93,6 +94,12 @@ type FSRepo struct {
 	lockfile io.Closer
 	config   *config.Config
 	ds       repo.Datastore
+	mounts   []Mount
+}
+
+type Mount struct {
+	prefix string
+	dstore ds.Datastore
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -331,11 +338,12 @@ func (r *FSRepo) openConfig() error {
 func (r *FSRepo) openDatastore() error {
 	switch r.config.Datastore.Type {
 	case "default", "leveldb", "":
-		d, err := openDefaultDatastore(r)
+		d, m, err := openDefaultDatastore(r)
 		if err != nil {
 			return err
 		}
 		r.ds = d
+		r.mounts = m
 	default:
 		return fmt.Errorf("unknown datastore type: %s", r.config.Datastore.Type)
 	}
@@ -555,6 +563,27 @@ func (r *FSRepo) Datastore() repo.Datastore {
 	d := r.ds
 	packageLock.Unlock()
 	return d
+}
+
+func (r *FSRepo) DirectMount(prefix string) ds.Datastore {
+	packageLock.Lock()
+	defer packageLock.Unlock()
+	for _, m := range r.mounts {
+		if prefix == m.prefix {
+			return m.dstore
+		}
+	}
+	return nil
+}
+
+func (r *FSRepo) Mounts() []string {
+	packageLock.Lock()
+	mounts := make([]string, 0, len(r.mounts))
+	for _, m := range r.mounts {
+		mounts = append(mounts, m.prefix)
+	}
+	packageLock.Unlock()
+	return mounts
 }
 
 // GetStorageUsage computes the storage space taken by the repo in bytes

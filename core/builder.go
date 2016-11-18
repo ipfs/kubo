@@ -16,6 +16,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	context "context"
 	retry "gx/ipfs/QmPF5kxTYFkzhaY5LmkExood7aTTZBHWQC6cjdDQBuGrjp/retry-datastore"
@@ -26,6 +27,9 @@ import (
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	dsync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
+
+	"github.com/ipfs/go-ipfs/filestore"
+	"github.com/ipfs/go-ipfs/filestore/support"
 )
 
 type BuildCfg struct {
@@ -184,7 +188,14 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		return err
 	}
 
-	n.Blockstore = bstore.NewGCBlockstore(cbs, bstore.NewGCLocker())
+	var mbs bstore.Blockstore = cbs
+
+	if n.Repo.DirectMount(fsrepo.FilestoreMount) != nil {
+		fs := bstore.NewBlockstoreWPrefix(n.Repo.Datastore(), fsrepo.FilestoreMount)
+		mbs = filestore_support.NewMultiBlockstore(cbs, fs)
+	}
+
+	n.Blockstore = bstore.NewGCBlockstore(mbs, bstore.NewGCLocker())
 
 	rcfg, err := n.Repo.Config()
 	if err != nil {
@@ -206,9 +217,13 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 
 	n.Blocks = bserv.New(n.Blockstore, n.Exchange)
 	n.DAG = dag.NewDAGService(n.Blocks)
+	if fs, ok := n.Repo.DirectMount(fsrepo.FilestoreMount).(*filestore.Datastore); ok {
+		n.DAG = filestore_support.NewDAGService(fs, n.DAG)
+	}
 
 	internalDag := dag.NewDAGService(bserv.New(n.Blockstore, offline.Exchange(n.Blockstore)))
 	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG, internalDag)
+
 	if err != nil {
 		// TODO: we should move towards only running 'NewPinner' explicity on
 		// node init instead of implicitly here as a result of the pinner keys

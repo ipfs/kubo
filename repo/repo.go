@@ -22,6 +22,14 @@ type Repo interface {
 	Datastore() Datastore
 	GetStorageUsage() (uint64, error)
 
+	// DirectMount provides direct access to a datastore mounted
+	// under prefix in order to perform low-level operations.  The
+	// datastore returned is guaranteed not be a proxy (such as a
+	// go-datastore/measure) normal operations should go through
+	// Datastore()
+	DirectMount(prefix string) ds.Datastore
+	Mounts() []string
+
 	// SetAPIAddr sets the API address in the repo.
 	SetAPIAddr(addr string) error
 
