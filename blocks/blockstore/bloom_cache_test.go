@@ -104,11 +104,11 @@ func TestHasIsBloomCached(t *testing.T) {
 	block := blocks.NewBlock([]byte("newBlock"))
 
 	cachedbs.PutMany([]blocks.Block{block})
-	if cacheFails != 2 {
-		t.Fatalf("expected two datastore hits: %d", cacheFails)
+	if cacheFails != 1 {
+		t.Fatalf("expected datastore hits: %d", cacheFails)
 	}
 	cachedbs.Put(block)
-	if cacheFails != 3 {
+	if cacheFails != 2 {
 		t.Fatalf("expected datastore hit: %d", cacheFails)
 	}
 

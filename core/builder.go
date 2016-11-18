@@ -16,6 +16,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	context "context"
 	retry "gx/ipfs/QmPF5kxTYFkzhaY5LmkExood7aTTZBHWQC6cjdDQBuGrjp/retry-datastore"
@@ -167,7 +168,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	var err error
-	bs := bstore.NewBlockstore(rds)
+	bs := bstore.NewBlockstoreWPrefix(rds, fsrepo.CacheMount)
 	opts := bstore.DefaultCacheOpts()
 	conf, err := n.Repo.Config()
 	if err != nil {
@@ -184,7 +185,9 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		return err
 	}
 
-	n.Blockstore = bstore.NewGCBlockstore(cbs, bstore.NewGCLocker())
+	mounts := []bstore.Mount{{fsrepo.CacheMount, cbs}}
+
+	n.Blockstore = bstore.NewMultiBlockstore(mounts...)
 
 	rcfg, err := n.Repo.Config()
 	if err != nil {
