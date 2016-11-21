@@ -145,6 +145,16 @@ for cmd in "add" "block/put" "bootstrap" "config" "dht" "diag" "dns" "get" "id" 
   done
 '
 
+test_expect_success "create raw-leaves node" '
+  echo "This is RAW!" > rfile &&
+  echo "This is RAW!" | ipfs add --raw-leaves -q > rhash
+'
+
+test_expect_success "try fetching it from gateway" '
+  curl http://127.0.0.1:$port/ipfs/$(cat rhash) > ffile &&
+  test_cmp rfile ffile
+'
+
 test_kill_ipfs_daemon
 
 test_done
