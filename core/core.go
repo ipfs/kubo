@@ -38,6 +38,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	swarm "gx/ipfs/QmNafAGBU21iQmLudMT2z1kqgEGhjUrNoK9a3v4azd8ei4/go-libp2p-swarm"
+	floodsub "gx/ipfs/QmRJs5veT3gnuYpLAagC3NbzixbkgwjSdUXTKfh3hMo6XM/floodsub"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -45,7 +46,6 @@ import (
 	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 	routing "gx/ipfs/QmUrCwTDvJgmBbJVHu1HGEyqDaod3dR6sEkZkpxZk4u47c/go-libp2p-routing"
 	addrutil "gx/ipfs/QmVDnc2zvyQm8LhT72n22THcshvH7j3qPMnhvjerQER62T/go-addr-util"
-	floodsub "gx/ipfs/QmWiLbk7eE1jGePDAuS26E2A9bMK3e3PMH3dcSeRY3MEBR/floodsub"
 	metrics "gx/ipfs/QmX4j1JhubdEt4EB1JY1mMKTvJwPZSRzTv3uwh5zaDqyAi/go-libp2p-metrics"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	discovery "gx/ipfs/QmZyBJGpRnbQ7oUstoGNZbhXC4HJuFUCgpp8pmsVTUwdS3/go-libp2p/p2p/discovery"
