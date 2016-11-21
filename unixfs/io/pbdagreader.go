@@ -45,6 +45,8 @@ type pbDagReader struct {
 	cancel func()
 }
 
+var _ DagReader = (*pbDagReader)(nil)
+
 func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv mdag.DAGService) *pbDagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	promises := mdag.GetDAG(fctx, serv, n)
