@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -16,13 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	manet "gx/ipfs/QmT6Cp31887FpAc25z25YHgpFJohZedrYLWPPspRtj1Brp/go-multiaddr-net"
-	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
-
-	context "context"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	cmdsCli "github.com/ipfs/go-ipfs/commands/cli"
 	cmdsHttp "github.com/ipfs/go-ipfs/commands/http"
@@ -31,7 +25,13 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	manet "gx/ipfs/QmT6Cp31887FpAc25z25YHgpFJohZedrYLWPPspRtj1Brp/go-multiaddr-net"
 	loggables "gx/ipfs/QmTMy4hVSY28DdwJ9kBz6y7q6MuioFzPcpM3Ma3aPjo1i3/go-libp2p-loggables"
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
+	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 // log is the command logger
@@ -590,23 +590,51 @@ func profileIfEnabled() (func(), error) {
 	return func() {}, nil
 }
 
+var apiFileErrorFmt string = `Failed to parse '%[1]s/api' file.
+	error: %[2]s
+If you're sure go-ipfs isn't running, you can just delete it.
+Otherwise check:
+`
+var checkIPFSUnixFmt = "\tps aux | grep ipfs"
+var checkIPFSWinFmt = "\ttasklist | findstr ipfs"
+
 // getApiClient checks the repo, and the given options, checking for
 // a running API service. if there is one, it returns a client.
 // otherwise, it returns errApiNotRunning, or another error.
 func getApiClient(repoPath, apiAddrStr string) (cmdsHttp.Client, error) {
+	var apiErrorFmt string
+	switch {
+	case osh.IsUnix():
+		apiErrorFmt = apiFileErrorFmt + checkIPFSUnixFmt
+	case osh.IsWindows():
+		apiErrorFmt = apiFileErrorFmt + checkIPFSWinFmt
+	default:
+		apiErrorFmt = apiFileErrorFmt
+	}
 
-	if apiAddrStr == "" {
-		var err error
-		if apiAddrStr, err = fsrepo.APIAddr(repoPath); err != nil {
+	var addr ma.Multiaddr
+	var err error
+	if len(apiAddrStr) != 0 {
+		addr, err = ma.NewMultiaddr(apiAddrStr)
+		if err != nil {
 			return nil, err
 		}
-	}
+		if len(addr.Protocols()) == 0 {
+			return nil, fmt.Errorf("mulitaddr doesn't provide any protocols")
+		}
+	} else {
+		addr, err = fsrepo.APIAddr(repoPath)
+		if err == repo.ErrApiNotRunning {
+			return nil, err
+		}
 
-	addr, err := ma.NewMultiaddr(apiAddrStr)
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, fmt.Errorf(apiErrorFmt, repoPath, err.Error())
+		}
 	}
-
+	if len(addr.Protocols()) == 0 {
+		return nil, fmt.Errorf(apiErrorFmt, repoPath, "multiaddr doesn't provide any protocols")
+	}
 	return apiClientForAddr(addr)
 }
 

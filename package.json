@@ -287,6 +287,12 @@
       "hash": "QmQfeKxQtBN721pekQh6Jq24adFUjnU65YdY3GNczfuG2T",
       "name": "dir-index-html",
       "version": "1.0.3"
+    },
+    {
+      "author": "Kubuxu",
+      "hash": "QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93",
+      "name": "go-os-helper",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",
@@ -295,4 +301,3 @@
   "name": "go-ipfs",
   "version": "0.4.5-dev"
 }
-
