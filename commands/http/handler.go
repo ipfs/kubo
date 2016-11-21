@@ -147,6 +147,7 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			select {
 			case <-clientGone:
 			case <-ctx.Done():
+				log.Debug("connection closed: %s", r.URL)
 			}
 			cancel()
 		}()

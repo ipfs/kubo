@@ -16,7 +16,7 @@ import (
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
-	floodsub "gx/ipfs/Qmd6gKBjErWcfJLJ22wDJu1z2EqbFKb4wheNobZJtSxf8M/floodsub"
+	floodsub "gx/ipfs/QmTJmZrciNELFZ9byA4bqHdtUas1LV9NqM1w37tBTtbvU5/floodsub"
 )
 
 var PubsubCmd = &cmds.Command{
@@ -35,6 +35,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 	Subcommands: map[string]*cmds.Command{
 		"pub":   PubsubPubCmd,
 		"sub":   PubsubSubCmd,
+		"unsub": PubsubUnsubCmd,
 		"ls":    PubsubLsCmd,
 		"peers": PubsubPeersCmd,
 	},
@@ -87,16 +88,22 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		res.SetOutput((<-chan interface{})(out))
 
 		ctx := req.Context()
+		var counter = 0
 		go func() {
 			defer close(out)
+			log.Debug("Starting pubsub/sub stream")
+			out <- string("{}")
 			for {
 				select {
 				case msg, ok := <-msgs:
+					counter ++
 					if !ok {
 						return
 					}
+					log.Debug("pubsub/sub messages: %d", counter)
 					out <- msg
 				case <-ctx.Done():
+					log.Debug("Closed pubsub/sub stream")
 					n.Floodsub.Unsub(topic)
 				}
 			}
@@ -301,6 +308,54 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		res.SetOutput(&stringList{out})
 	},
 	Type: stringList{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+}
+
+var PubsubUnsubCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Unsubscribe from a topic.",
+		ShortDescription: `
+ipfs pubsub unsub unsubscribes from a topic you are currently subscribed to.
+
+This is an experimental feature. It is not intended in its current state
+to be used in a production environment.
+
+To use, the daemon must be run with '--enable-pubsub-experiment'.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("topic", true, false, "String name of topic to unsubscribe from."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		// Must be online!
+		if !n.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		if n.Floodsub == nil {
+			res.SetError(fmt.Errorf("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use."), cmds.ErrNormal)
+			return
+		}
+
+		topic := req.Arguments()[0]
+		ok, err := n.Floodsub.Unsub(topic)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(ok)
+	},
+	// Type: stringList{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: stringListMarshaler,
 	},
