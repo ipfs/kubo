@@ -16,7 +16,7 @@ import (
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
-	floodsub "gx/ipfs/QmV6wterKiFaRLnprAE4vLu1C86iJA7mBy4bFnz5Q7UujG/floodsub"
+	floodsub "gx/ipfs/QmTJmZrciNELFZ9byA4bqHdtUas1LV9NqM1w37tBTtbvU5/floodsub"
 )
 
 var PubsubCmd = &cmds.Command{
