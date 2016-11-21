@@ -68,7 +68,7 @@ at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable
 
 EXIT STATUS
 
-The CLI will exits with one of the following values:
+The CLI will exit with one of the following values:
 
 0     Successful execution.
 1     Failed executions.
