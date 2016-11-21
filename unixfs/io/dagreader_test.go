@@ -236,7 +236,7 @@ func TestReaderSzie(t *testing.T) {
 	}
 }
 
-func readByte(t testing.TB, reader *DagReader) byte {
+func readByte(t testing.TB, reader DagReader) byte {
 	out := make([]byte, 1)
 	c, err := reader.Read(out)
 
