@@ -30,6 +30,8 @@ type Repo interface {
 	// SetAPIAddr sets the API address in the repo.
 	SetAPIAddr(addr ma.Multiaddr) error
 
+	SwarmKey() ([]byte, error)
+
 	io.Closer
 }
 
