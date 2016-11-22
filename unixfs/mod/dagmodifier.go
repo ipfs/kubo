@@ -43,7 +43,7 @@ type DagModifier struct {
 	curWrOff   uint64
 	wrBuf      *bytes.Buffer
 
-	read *uio.DagReader
+	read uio.DagReader
 }
 
 func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
