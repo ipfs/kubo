@@ -1,7 +1,6 @@
 package io
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -53,7 +52,7 @@ func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv
 	return &pbDagReader{
 		node:     n,
 		serv:     serv,
-		buf:      NewRSNCFromBytes(pb.GetData()),
+		buf:      NewBufDagReader(pb.GetData()),
 		promises: promises,
 		ctx:      fctx,
 		cancel:   cancel,
@@ -91,7 +90,7 @@ func (dr *pbDagReader) precalcNextBuf(ctx context.Context) error {
 			dr.buf = NewPBFileReader(dr.ctx, nxt, pb, dr.serv)
 			return nil
 		case ftpb.Data_Raw:
-			dr.buf = NewRSNCFromBytes(pb.GetData())
+			dr.buf = NewBufDagReader(pb.GetData())
 			return nil
 		case ftpb.Data_Metadata:
 			return errors.New("shouldnt have had metadata object inside file")
@@ -100,11 +99,10 @@ func (dr *pbDagReader) precalcNextBuf(ctx context.Context) error {
 		default:
 			return ft.ErrUnrecognizedType
 		}
-	case *mdag.RawNode:
-		dr.buf = NewRSNCFromBytes(nxt.RawData())
-		return nil
 	default:
-		return errors.New("unrecognized node type in pbDagReader")
+		var err error
+		dr.buf, err = NewDagReader(ctx, nxt, dr.serv)
+		return err
 	}
 }
 
@@ -200,7 +198,7 @@ func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
 		if int64(len(pb.Data)) >= offset {
 			// Close current buf to close potential child dagreader
 			dr.buf.Close()
-			dr.buf = NewRSNCFromBytes(pb.GetData()[offset:])
+			dr.buf = NewBufDagReader(pb.GetData()[offset:])
 
 			// start reading links from the beginning
 			dr.linkPosition = 0
@@ -252,13 +250,3 @@ func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
 	}
 }
 
-// readSeekNopCloser wraps a bytes.Reader to implement ReadSeekCloser
-type readSeekNopCloser struct {
-	*bytes.Reader
-}
-
-func NewRSNCFromBytes(b []byte) ReadSeekCloser {
-	return &readSeekNopCloser{bytes.NewReader(b)}
-}
-
-func (r *readSeekNopCloser) Close() error { return nil }
