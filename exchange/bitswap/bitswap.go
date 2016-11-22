@@ -82,7 +82,6 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 	})
 
 	bs := &Bitswap{
-		self:          p,
 		blockstore:    bstore,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
@@ -112,34 +111,36 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 
 // Bitswap instances implement the bitswap protocol.
 type Bitswap struct {
-
-	// the ID of the peer to act on behalf of
-	self peer.ID
-
-	// network delivers messages on behalf of the session
-	network bsnet.BitSwapNetwork
-
 	// the peermanager manages sending messages to peers in a way that
 	// wont block bitswap operation
 	wm *WantManager
+
+	// the engine is the bit of logic that decides who to send which blocks to
+	engine *decision.Engine
+
+	// network delivers messages on behalf of the session
+	network bsnet.BitSwapNetwork
 
 	// blockstore is the local database
 	// NB: ensure threadsafety
 	blockstore blockstore.Blockstore
 
+	// notifications engine for receiving new blocks and routing them to the
+	// appropriate user requests
 	notifications notifications.PubSub
 
-	// send keys to a worker to find and connect to providers for them
+	// findKeys sends keys to a worker to find and connect to providers for them
 	findKeys chan *blockRequest
-
-	engine *decision.Engine
+	// newBlocks is a channel for newly added blocks to be provided to the
+	// network.  blocks pushed down this channel get buffered and fed to the
+	// provideKeys channel later on to avoid too much network activity
+	newBlocks chan *cid.Cid
+	// provideKeys directly feeds provide workers
+	provideKeys chan *cid.Cid
 
 	process process.Process
 
-	newBlocks chan *cid.Cid
-
-	provideKeys chan *cid.Cid
-
+	// Counters for various statistics
 	counterLk      sync.Mutex
 	blocksRecvd    int
 	dupBlocksRecvd int
@@ -167,13 +168,12 @@ func (bs *Bitswap) GetBlock(parent context.Context, k *cid.Cid) (blocks.Block, e
 	// enforce. May this comment keep you safe.
 	ctx, cancelFunc := context.WithCancel(parent)
 
+	// TODO: this request ID should come in from a higher layer so we can track
+	// across multiple 'GetBlock' invocations
 	ctx = logging.ContextWithLoggable(ctx, loggables.Uuid("GetBlockRequest"))
 	log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
 	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
-
-	defer func() {
-		cancelFunc()
-	}()
+	defer cancelFunc()
 
 	promise, err := bs.GetBlocks(ctx, []*cid.Cid{k})
 	if err != nil {

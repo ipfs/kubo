@@ -197,6 +197,12 @@ func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 	for {
 		select {
 		case e := <-bs.findKeys:
+			select { // make sure its not already cancelled
+			case <-e.Ctx.Done():
+				continue
+			default:
+			}
+
 			activeLk.Lock()
 			if kset.Has(e.Cid) {
 				activeLk.Unlock()
