@@ -1,12 +1,12 @@
 package record
 
 import (
+	"context"
 	"sync"
 	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	"context"
 )
 
 type nothing struct{}

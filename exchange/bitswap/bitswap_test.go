@@ -16,7 +16,8 @@ import (
 	travis "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
 
 	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
-	p2ptestutil "gx/ipfs/QmUYzZRJcuUxLSnSzF1bSyw1jYbNAULkBrbS6rnr7F72uK/go-libp2p/p2p/test/util"
+
+	p2ptestutil "gx/ipfs/QmcDTquYLTYirqj71RRWKUWEEw3nJt11Awzun5ep8kfY7W/go-libp2p-netutil"
 	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
 
