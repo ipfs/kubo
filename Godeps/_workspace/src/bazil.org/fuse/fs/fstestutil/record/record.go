@@ -1,12 +1,12 @@
 package record
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	"context"
 )
 
 // Writes gathers data from FUSE Write calls.

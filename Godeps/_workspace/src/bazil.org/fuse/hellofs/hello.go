@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -10,7 +11,6 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
-	"context"
 )
 
 var Usage = func() {
