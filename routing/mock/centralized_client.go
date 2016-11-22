@@ -40,13 +40,13 @@ func (c *client) PutValue(ctx context.Context, key string, val []byte) error {
 		return err
 	}
 
-	return c.datastore.Put(dshelp.NewKeyFromBinary(key), data)
+	return c.datastore.Put(dshelp.NewKeyFromBinary([]byte(key)), data)
 }
 
 // FIXME(brian): is this method meant to simulate getting a value from the network?
 func (c *client) GetValue(ctx context.Context, key string) ([]byte, error) {
 	log.Debugf("GetValue: %s", key)
-	v, err := c.datastore.Get(dshelp.NewKeyFromBinary(key))
+	v, err := c.datastore.Get(dshelp.NewKeyFromBinary([]byte(key)))
 	if err != nil {
 		return nil, err
 	}

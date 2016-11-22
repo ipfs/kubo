@@ -80,7 +80,7 @@ func (p *ipnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value 
 }
 
 func (p *ipnsPublisher) getPreviousSeqNo(ctx context.Context, ipnskey string) (uint64, error) {
-	prevrec, err := p.ds.Get(dshelp.NewKeyFromBinary(ipnskey))
+	prevrec, err := p.ds.Get(dshelp.NewKeyFromBinary([]byte(ipnskey)))
 	if err != nil && err != ds.ErrNotFound {
 		// None found, lets start at zero!
 		return 0, err

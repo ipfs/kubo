@@ -48,11 +48,11 @@ func (c *offlineRouting) PutValue(ctx context.Context, key string, val []byte) e
 		return err
 	}
 
-	return c.datastore.Put(dshelp.NewKeyFromBinary(key), data)
+	return c.datastore.Put(dshelp.NewKeyFromBinary([]byte(key)), data)
 }
 
 func (c *offlineRouting) GetValue(ctx context.Context, key string) ([]byte, error) {
-	v, err := c.datastore.Get(dshelp.NewKeyFromBinary(key))
+	v, err := c.datastore.Get(dshelp.NewKeyFromBinary([]byte(key)))
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (c *offlineRouting) GetValue(ctx context.Context, key string) ([]byte, erro
 }
 
 func (c *offlineRouting) GetValues(ctx context.Context, key string, _ int) ([]routing.RecvdVal, error) {
-	v, err := c.datastore.Get(dshelp.NewKeyFromBinary(key))
+	v, err := c.datastore.Get(dshelp.NewKeyFromBinary([]byte(key)))
 	if err != nil {
 		return nil, err
 	}
