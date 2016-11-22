@@ -11,6 +11,8 @@ import (
 	"syscall"
 
 	core "github.com/ipfs/go-ipfs/core"
+
+	"gx/ipfs/QmU1N5xVAUXgo3XRTt6GhJ2SuJEbxj2zRgMS7FpjSR2U83/semver"
 )
 
 func init() {
@@ -138,11 +140,17 @@ func darwinFuseCheckVersion(node *core.IpfsNode) error {
 	}
 
 	log.Debug("mount: osxfuse version:", ov)
-	if strings.HasPrefix(ov, "2.7.") || strings.HasPrefix(ov, "2.8.") {
-		return nil
+
+	min := semver.MustParse("2.7.2")
+	curr, err := semver.Make(ov)
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf(errStrUpgradeFuse, ov)
+	if curr.LT(min) {
+		return fmt.Errorf(errStrUpgradeFuse, ov)
+	}
+	return nil
 }
 
 func tryGFV() (string, error) {
