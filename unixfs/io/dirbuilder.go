@@ -85,7 +85,12 @@ func (d *Directory) AddChild(ctx context.Context, name string, nd node.Node) err
 }
 
 func (d *Directory) switchToSharding(ctx context.Context) error {
-	d.shard = hamt.NewHamtShard(d.dserv, DefaultShardWidth)
+	s, err := hamt.NewHamtShard(d.dserv, DefaultShardWidth)
+	if err != nil {
+		return err
+	}
+
+	d.shard = s
 	for _, lnk := range d.dirnode.Links() {
 		cnd, err := d.dserv.Get(ctx, lnk.Cid)
 		if err != nil {

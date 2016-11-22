@@ -117,7 +117,11 @@ func validateOpSetCompletion(t *testing.T, s *HamtShard, keep, temp []string) er
 
 func executeOpSet(t *testing.T, ds dag.DAGService, width int, ops []testOp) (*HamtShard, error) {
 	ctx := context.TODO()
-	s := NewHamtShard(ds, width)
+	s, err := NewHamtShard(ds, width)
+	if err != nil {
+		return nil, err
+	}
+
 	e := ft.EmptyDirNode()
 	ds.Add(e)
 
@@ -188,7 +192,11 @@ func genOpSet(seed int64, keep, temp []string) []testOp {
 
 // executes the given op set with a repl to allow easier debugging
 func debugExecuteOpSet(ds dag.DAGService, width int, ops []testOp) (*HamtShard, error) {
-	s := NewHamtShard(ds, width)
+	s, err := NewHamtShard(ds, width)
+	if err != nil {
+		return nil, err
+	}
+
 	e := ft.EmptyDirNode()
 	ds.Add(e)
 	ctx := context.TODO()
@@ -236,7 +244,11 @@ mainloop:
 					}
 				}
 			case "restart":
-				s = NewHamtShard(ds, width)
+				var err error
+				s, err = NewHamtShard(ds, width)
+				if err != nil {
+					panic(err)
+				}
 				i = -1
 				continue mainloop
 			case "print":

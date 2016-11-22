@@ -30,7 +30,7 @@ func makeDir(ds dag.DAGService, size int) ([]string, *HamtShard, error) {
 }
 
 func makeDirWidth(ds dag.DAGService, size, width int) ([]string, *HamtShard, error) {
-	s := NewHamtShard(ds, width)
+	s, _ := NewHamtShard(ds, width)
 
 	var dirs []string
 	for i := 0; i < size; i++ {
@@ -136,7 +136,7 @@ func TestBasicSet(t *testing.T) {
 
 func TestDirBuilding(t *testing.T) {
 	ds := mdtest.Mock()
-	s := NewHamtShard(ds, 256)
+	s, _ := NewHamtShard(ds, 256)
 
 	_, s, err := makeDir(ds, 200)
 	if err != nil {
@@ -159,7 +159,7 @@ func TestDirBuilding(t *testing.T) {
 
 func TestShardReload(t *testing.T) {
 	ds := mdtest.Mock()
-	s := NewHamtShard(ds, 256)
+	s, _ := NewHamtShard(ds, 256)
 	ctx := context.Background()
 
 	_, s, err := makeDir(ds, 200)
@@ -287,7 +287,7 @@ func TestSetAfterMarshal(t *testing.T) {
 
 func TestDuplicateAddShard(t *testing.T) {
 	ds := mdtest.Mock()
-	dir := NewHamtShard(ds, 256)
+	dir, _ := NewHamtShard(ds, 256)
 	nd := new(dag.ProtoNode)
 	ctx := context.Background()
 
@@ -410,7 +410,7 @@ func TestRemoveElemsAfterMarshal(t *testing.T) {
 
 func TestBitfieldIndexing(t *testing.T) {
 	ds := mdtest.Mock()
-	s := NewHamtShard(ds, 256)
+	s, _ := NewHamtShard(ds, 256)
 
 	set := func(i int) {
 		s.bitfield.SetBit(s.bitfield, i, 1)
@@ -444,7 +444,7 @@ func TestBitfieldIndexing(t *testing.T) {
 // itself.
 func TestSetHamtChild(t *testing.T) {
 	ds := mdtest.Mock()
-	s := NewHamtShard(ds, 256)
+	s, _ := NewHamtShard(ds, 256)
 	ctx := context.Background()
 
 	e := ft.EmptyDirNode()
@@ -519,7 +519,7 @@ func printDiff(ds dag.DAGService, a, b *dag.ProtoNode) {
 
 func BenchmarkHAMTSet(b *testing.B) {
 	ds := mdtest.Mock()
-	sh := NewHamtShard(ds, 256)
+	sh, _ := NewHamtShard(ds, 256)
 	nd, err := sh.Node()
 	if err != nil {
 		b.Fatal(err)
@@ -548,5 +548,12 @@ func BenchmarkHAMTSet(b *testing.B) {
 		}
 
 		nd = out
+	}
+}
+
+func TestHamtBadSize(t *testing.T) {
+	_, err := NewHamtShard(nil, 7)
+	if err == nil {
+		t.Fatal("should have failed to construct hamt with bad size")
 	}
 }

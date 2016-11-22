@@ -64,23 +64,31 @@ type child interface {
 	Label() string
 }
 
-func NewHamtShard(dserv dag.DAGService, size int) *HamtShard {
-	ds := makeHamtShard(dserv, size)
+func NewHamtShard(dserv dag.DAGService, size int) (*HamtShard, error) {
+	ds, err := makeHamtShard(dserv, size)
+	if err != nil {
+		return nil, err
+	}
+
 	ds.bitfield = big.NewInt(0)
 	ds.nd = new(dag.ProtoNode)
 	ds.hashFunc = HashMurmur3
-	return ds
+	return ds, nil
 }
 
-func makeHamtShard(ds dag.DAGService, size int) *HamtShard {
+func makeHamtShard(ds dag.DAGService, size int) (*HamtShard, error) {
+	lg2s := int(math.Log2(float64(size)))
+	if 1<<uint(lg2s) != size {
+		return nil, fmt.Errorf("hamt size should be a power of two")
+	}
 	maxpadding := fmt.Sprintf("%X", size-1)
 	return &HamtShard{
-		tableSizeLg2: int(math.Log2(float64(size))),
+		tableSizeLg2: lg2s,
 		prefixPadStr: fmt.Sprintf("%%0%dX", len(maxpadding)),
 		maxpadlen:    len(maxpadding),
 		tableSize:    size,
 		dserv:        ds,
-	}
+	}, nil
 }
 
 func NewHamtFromDag(dserv dag.DAGService, nd node.Node) (*HamtShard, error) {
@@ -102,7 +110,11 @@ func NewHamtFromDag(dserv dag.DAGService, nd node.Node) (*HamtShard, error) {
 		return nil, fmt.Errorf("only murmur3 supported as hash function")
 	}
 
-	ds := makeHamtShard(dserv, int(pbd.GetFanout()))
+	ds, err := makeHamtShard(dserv, int(pbd.GetFanout()))
+	if err != nil {
+		return nil, err
+	}
+
 	ds.nd = pbnd.Copy().(*dag.ProtoNode)
 	ds.children = make([]child, len(pbnd.Links()))
 	ds.bitfield = new(big.Int).SetBytes(pbd.GetData())
@@ -446,13 +458,16 @@ func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, 
 			return nil
 
 		default: // replace value with another shard, one level deeper
-			ns := NewHamtShard(ds.dserv, ds.tableSize)
+			ns, err := NewHamtShard(ds.dserv, ds.tableSize)
+			if err != nil {
+				return err
+			}
 			chhv := &hashBits{
 				b:        hash([]byte(child.key)),
 				consumed: hv.consumed,
 			}
 
-			err := ns.modifyValue(ctx, hv, key, val)
+			err = ns.modifyValue(ctx, hv, key, val)
 			if err != nil {
 				return err
 			}
