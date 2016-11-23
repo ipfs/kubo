@@ -17,8 +17,7 @@ import (
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
 
-	racedet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
-
+	racedet "gx/ipfs/QmSsEjZVtM49rDWFa1sNumNmw3rhihcqCRRtyaqyN92mTf/go-detect-race"
 	fstest "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs/fstestutil"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )

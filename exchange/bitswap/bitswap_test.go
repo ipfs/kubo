@@ -15,8 +15,7 @@ import (
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	travis "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
 
-	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
-
+	detectrace "gx/ipfs/QmSsEjZVtM49rDWFa1sNumNmw3rhihcqCRRtyaqyN92mTf/go-detect-race"
 	p2ptestutil "gx/ipfs/QmWdGJY4fcsfhLHucEfivw8J71yUqNUFbzdU1jnJBnN5Xh/go-libp2p-netutil"
 	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
