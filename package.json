@@ -329,6 +329,12 @@
       "hash": "QmYoHyjLUqquHyobUMpzPKSaDcEuZnTtedDZXuC8aUqfoW",
       "name": "jenkins",
       "version": "0.0.0"
+    },
+    {
+      "author": "texttheater",
+      "hash": "QmTVvctiHWZzSDZdyU5wdnXh7VF3kprHSyQFwVChos5qKu",
+      "name": "golang-levenshtein",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",
