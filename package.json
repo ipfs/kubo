@@ -299,6 +299,30 @@
       "hash": "QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9",
       "name": "fuse",
       "version": "0.1.3"
+    },
+    {
+      "author": "jbenet",
+      "hash": "QmVeTQJruz98RkXfsJPzKWJcTFzFk3S8ZnoWQdYijuha34",
+      "name": "go-random",
+      "version": "1.0.0"
+    },
+    {
+      "author": "mitchellh",
+      "hash": "QmdcULN1WCzgoQmcCaUAmEhwcxHYsDrbZ2LvRJKCL8dMrK",
+      "name": "go-homedir",
+      "version": "1.0.0"
+    },
+    {
+      "author": "jbenet",
+      "hash": "QmSsEjZVtM49rDWFa1sNumNmw3rhihcqCRRtyaqyN92mTf",
+      "name": "go-detect-race",
+      "version": "1.0.0"
+    },
+    {
+      "author": "jbenet",
+      "hash": "QmY4r4SdwZCBfWn4wFkDshVG59Qt2ApcPB63Bcyb9HseEm",
+      "name": "go-random-files",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",
