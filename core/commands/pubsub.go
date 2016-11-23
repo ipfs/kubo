@@ -13,7 +13,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 
-	floodsub "gx/ipfs/QmWiLbk7eE1jGePDAuS26E2A9bMK3e3PMH3dcSeRY3MEBR/floodsub"
+	floodsub "gx/ipfs/QmRJs5veT3gnuYpLAagC3NbzixbkgwjSdUXTKfh3hMo6XM/floodsub"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
@@ -77,7 +77,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		}
 
 		topic := req.Arguments()[0]
-		msgs, err := n.Floodsub.Subscribe(req.Context(), topic)
+		sub, err := n.Floodsub.Subscribe(topic)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -86,19 +86,19 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		out := make(chan interface{})
 		res.SetOutput((<-chan interface{})(out))
 
-		ctx := req.Context()
 		go func() {
+			defer sub.Cancel()
 			defer close(out)
 			for {
-				select {
-				case msg, ok := <-msgs:
-					if !ok {
-						return
-					}
-					out <- msg
-				case <-ctx.Done():
-					n.Floodsub.Unsub(topic)
+				msg, err := sub.Next(req.Context())
+				if err == io.EOF || err == context.Canceled {
+					break
+				} else if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
 				}
+
+				out <- msg
 			}
 		}()
 
