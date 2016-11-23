@@ -323,6 +323,12 @@
       "hash": "QmY4r4SdwZCBfWn4wFkDshVG59Qt2ApcPB63Bcyb9HseEm",
       "name": "go-random-files",
       "version": "1.0.0"
+    },
+    {
+      "author": "mtchavez",
+      "hash": "QmYoHyjLUqquHyobUMpzPKSaDcEuZnTtedDZXuC8aUqfoW",
+      "name": "jenkins",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",
