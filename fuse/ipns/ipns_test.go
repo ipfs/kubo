@@ -4,6 +4,7 @@ package ipns
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	mrand "math/rand"
@@ -11,14 +12,14 @@ import (
 	"sync"
 	"testing"
 
-	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
-	racedet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
-
-	context "context"
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
+
+	racedet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
+
+	fstest "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs/fstestutil"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 

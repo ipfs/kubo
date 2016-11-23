@@ -3,11 +3,11 @@
 package ipns
 
 import (
+	"context"
 	"os"
 
-	"context"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+	"gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse"
+	"gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs"
 )
 
 type Link struct {
