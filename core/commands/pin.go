@@ -271,7 +271,7 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 
 	mode, ok := pin.StringToPinMode(typeStr)
 	if !ok {
-		return nil, fmt.Errorf("Invalid pin mode '%s'", typeStr)
+		return nil, fmt.Errorf("invalid pin mode '%s'", typeStr)
 	}
 
 	keys := make(map[string]RefKeyObject)
@@ -293,7 +293,7 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 		}
 
 		if !pinned {
-			return nil, fmt.Errorf("Path '%s' is not pinned", p)
+			return nil, fmt.Errorf("path '%s' is not pinned", p)
 		}
 
 		switch pinType {
