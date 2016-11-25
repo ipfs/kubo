@@ -44,6 +44,7 @@ ADVANCED COMMANDS
   dns           Resolve DNS links
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
+  exp           Experimental commands
 
 NETWORK COMMANDS
   id            Show info about IPFS peers
@@ -98,6 +99,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
 	"dns":       DNSCmd,
+	"exp":       ExpCmd,
 	"files":     files.FilesCmd,
 	"get":       GetCmd,
 	"id":        IDCmd,
