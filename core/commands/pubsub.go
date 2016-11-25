@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 
@@ -89,10 +90,13 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		go func() {
 			defer sub.Cancel()
 			defer close(out)
+
+			out <- floodsub.Message{}
+
 			for {
 				msg, err := sub.Next(req.Context())
 				if err == io.EOF || err == context.Canceled {
-					break
+					return
 				} else if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
@@ -118,16 +122,30 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: getPsMsgMarshaler(func(m *floodsub.Message) (io.Reader, error) {
+			if m.Message == nil {
+				return strings.NewReader(""), nil
+			}
+
 			return bytes.NewReader(m.Data), nil
 		}),
 		"ndpayload": getPsMsgMarshaler(func(m *floodsub.Message) (io.Reader, error) {
+			if m.Message == nil {
+				return strings.NewReader("\n"), nil
+			}
+
 			m.Data = append(m.Data, '\n')
 			return bytes.NewReader(m.Data), nil
 		}),
 		"lenpayload": getPsMsgMarshaler(func(m *floodsub.Message) (io.Reader, error) {
 			buf := make([]byte, 8)
-			n := binary.PutUvarint(buf, uint64(len(m.Data)))
-			return io.MultiReader(bytes.NewReader(buf[:n]), bytes.NewReader(m.Data)), nil
+
+			var data []byte
+			if m.Message != nil {
+				data = m.Data
+			}
+
+			n := binary.PutUvarint(buf, uint64(len(data)))
+			return io.MultiReader(bytes.NewReader(buf[:n]), bytes.NewReader(data)), nil
 		}),
 	},
 	Type: floodsub.Message{},
