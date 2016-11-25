@@ -269,6 +269,11 @@ type RefKeyList struct {
 
 func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsNode) (map[string]RefKeyObject, error) {
 
+	mode, ok := pin.StringToPinMode(typeStr)
+	if !ok {
+		return nil, fmt.Errorf("invalid pin mode '%s'", typeStr)
+	}
+
 	keys := make(map[string]RefKeyObject)
 
 	for _, p := range args {
@@ -277,24 +282,18 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 			return nil, err
 		}
 
-		dagNode, err := core.Resolve(ctx, n.Namesys, n.Resolver, pth)
+		c, err := core.ResolveToCid(ctx, n, pth)
 		if err != nil {
 			return nil, err
 		}
 
-		mode, ok := pin.StringToPinMode(typeStr)
-		if !ok {
-			return nil, fmt.Errorf("Invalid pin mode '%s'", typeStr)
-		}
-
-		c := dagNode.Cid()
 		pinType, pinned, err := n.Pinning.IsPinnedWithType(c, mode)
 		if err != nil {
 			return nil, err
 		}
 
 		if !pinned {
-			return nil, fmt.Errorf("Path '%s' is not pinned", p)
+			return nil, fmt.Errorf("path '%s' is not pinned", p)
 		}
 
 		switch pinType {
