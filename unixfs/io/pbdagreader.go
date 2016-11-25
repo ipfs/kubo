@@ -249,4 +249,3 @@ func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
 		return 0, errors.New("invalid whence")
 	}
 }
-
