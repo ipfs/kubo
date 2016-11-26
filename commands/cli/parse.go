@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -260,7 +259,7 @@ const msgStdinInfo = "ipfs: Reading from %s; send Ctrl-d to stop."
 
 func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive, hidden bool, root *cmds.Command) ([]string, []files.File, error) {
 	// ignore stdin on Windows
-	if runtime.GOOS == "windows" {
+	if osh.IsWindows() {
 		stdin = nil
 	}
 
