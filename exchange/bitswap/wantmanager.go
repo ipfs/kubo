@@ -175,28 +175,13 @@ func (mq *msgQueue) runQueue(ctx context.Context) {
 }
 
 func (mq *msgQueue) doWork(ctx context.Context) {
-	// allow ten minutes for connections
-	// this includes looking them up in the dht
-	// dialing them, and handshaking
 	if mq.sender == nil {
-		conctx, cancel := context.WithTimeout(ctx, time.Minute*10)
-		defer cancel()
-
-		err := mq.network.ConnectTo(conctx, mq.p)
+		err := mq.openSender(ctx)
 		if err != nil {
-			log.Infof("cant connect to peer %s: %s", mq.p, err)
+			log.Infof("cant open message sender to peer %s: %s", mq.p, err)
 			// TODO: cant connect, what now?
 			return
 		}
-
-		nsender, err := mq.network.NewMessageSender(ctx, mq.p)
-		if err != nil {
-			log.Infof("cant open new stream to peer %s: %s", mq.p, err)
-			// TODO: cant open stream, what now?
-			return
-		}
-
-		mq.sender = nsender
 	}
 
 	// grab outgoing message
@@ -210,14 +195,64 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 	mq.outlk.Unlock()
 
 	// send wantlist updates
-	err := mq.sender.SendMsg(wlm)
-	if err != nil {
+	for { // try to send this message until we fail.
+		err := mq.sender.SendMsg(wlm)
+		if err == nil {
+			return
+		}
+
 		log.Infof("bitswap send error: %s", err)
 		mq.sender.Close()
 		mq.sender = nil
-		// TODO: what do we do if this fails?
-		return
+
+		select {
+		case <-mq.done:
+			return
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Millisecond * 100):
+			// wait 100ms in case disconnect notifications are still propogating
+			log.Warning("SendMsg errored but neither 'done' nor context.Done() were set")
+		}
+
+		err = mq.openSender(ctx)
+		if err != nil {
+			log.Error("couldnt open sender again after SendMsg(%s) failed: %s", mq.p, err)
+			// TODO(why): what do we do now?
+			// I think the *right* answer is to probably put the message we're
+			// trying to send back, and then return to waiting for new work or
+			// a disconnect.
+			return
+		}
+
+		// TODO: Is this the same instance for the remote peer?
+		// If its not, we should resend our entire wantlist to them
+		/*
+			if mq.sender.InstanceID() != mq.lastSeenInstanceID {
+				wlm = mq.getFullWantlistMessage()
+			}
+		*/
 	}
+}
+
+func (mq *msgQueue) openSender(ctx context.Context) error {
+	// allow ten minutes for connections this includes looking them up in the
+	// dht dialing them, and handshaking
+	conctx, cancel := context.WithTimeout(ctx, time.Minute*10)
+	defer cancel()
+
+	err := mq.network.ConnectTo(conctx, mq.p)
+	if err != nil {
+		return err
+	}
+
+	nsender, err := mq.network.NewMessageSender(ctx, mq.p)
+	if err != nil {
+		return err
+	}
+
+	mq.sender = nsender
+	return nil
 }
 
 func (pm *WantManager) Connected(p peer.ID) {
@@ -292,14 +327,13 @@ func (pm *WantManager) Run() {
 }
 
 func (wm *WantManager) newMsgQueue(p peer.ID) *msgQueue {
-	mq := new(msgQueue)
-	mq.done = make(chan struct{})
-	mq.work = make(chan struct{}, 1)
-	mq.network = wm.network
-	mq.p = p
-	mq.refcnt = 1
-
-	return mq
+	return &msgQueue{
+		done:    make(chan struct{}),
+		work:    make(chan struct{}, 1),
+		network: wm.network,
+		p:       p,
+		refcnt:  1,
+	}
 }
 
 func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
@@ -312,8 +346,7 @@ func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
 		}
 	}()
 
-	// if we have no message held, or the one we are given is full
-	// overwrite the one we are holding
+	// if we have no message held allocate a new one
 	if mq.out == nil {
 		mq.out = bsmsg.New(false)
 	}
