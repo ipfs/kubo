@@ -217,7 +217,7 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 
 		err = mq.openSender(ctx)
 		if err != nil {
-			log.Error("couldnt open sender again after SendMsg(%s) failed: %s", mq.p, err)
+			log.Errorf("couldnt open sender again after SendMsg(%s) failed: %s", mq.p, err)
 			// TODO(why): what do we do now?
 			// I think the *right* answer is to probably put the message we're
 			// trying to send back, and then return to waiting for new work or
