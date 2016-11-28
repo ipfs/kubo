@@ -21,9 +21,15 @@ startup_cluster() {
 	num_nodes="$1"
 	bound=$(expr "$num_nodes" - 1)
 
-	test_expect_success "start up nodes" '
-		iptb start
-	'
+	if [ "$2" = "--enable-pubsub-experiment" ]; then
+		test_expect_success "start up nodes with pubsub enabled" '
+			iptb start --args --enable-pubsub-experiment
+		'
+	else
+		test_expect_success "start up nodes" '
+			iptb start
+		'
+	fi
 
 	test_expect_success "connect nodes to eachother" '
 		iptb connect [1-$bound] 0
