@@ -1,16 +1,15 @@
 package namesys
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
-	context "context"
 	path "github.com/ipfs/go-ipfs/path"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
-	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+
 	ds "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
 	dssync "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore/sync"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
@@ -36,13 +35,12 @@ func TestRoutingResolve(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pubkb, err := pubk.Bytes()
+	pid, err := peer.IDFromPublicKey(pubk)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pkhash := u.Hash(pubkb)
-	res, err := resolver.Resolve(context.Background(), key.Key(pkhash).B58String())
+	res, err := resolver.Resolve(context.Background(), pid.Pretty())
 	if err != nil {
 		t.Fatal(err)
 	}

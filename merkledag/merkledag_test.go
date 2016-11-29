@@ -22,7 +22,6 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
@@ -56,8 +55,8 @@ func TestNode(t *testing.T) {
 		}
 
 		h := n.Multihash()
-		k := n.Key()
-		if k != key.Key(h) {
+		k := n.Cid().Hash()
+		if k.String() != h.String() {
 			t.Error("Key is not equivalent to multihash")
 		} else {
 			fmt.Println("key: ", k)
@@ -84,7 +83,7 @@ func SubtestNodeStat(t *testing.T, n *ProtoNode) {
 		return
 	}
 
-	k := n.Key()
+	k := n.Cid()
 
 	expected := node.NodeStat{
 		NumLinks:       len(n.Links()),
@@ -92,7 +91,7 @@ func SubtestNodeStat(t *testing.T, n *ProtoNode) {
 		LinksSize:      len(enc) - len(n.Data()), // includes framing.
 		DataSize:       len(n.Data()),
 		CumulativeSize: int(cumSize),
-		Hash:           k.B58String(),
+		Hash:           k.String(),
 	}
 
 	actual, err := n.Stat()

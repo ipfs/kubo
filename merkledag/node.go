@@ -6,7 +6,6 @@ import (
 
 	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
 	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
 
@@ -204,17 +203,13 @@ func (n *ProtoNode) Stat() (*node.NodeStat, error) {
 	}
 
 	return &node.NodeStat{
-		Hash:           n.Key().B58String(),
+		Hash:           n.Cid().String(),
 		NumLinks:       len(n.links),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.data), // includes framing.
 		DataSize:       len(n.data),
 		CumulativeSize: int(cumSize),
 	}, nil
-}
-
-func (n *ProtoNode) Key() key.Key {
-	return key.Key(n.Multihash())
 }
 
 func (n *ProtoNode) Loggable() map[string]interface{} {

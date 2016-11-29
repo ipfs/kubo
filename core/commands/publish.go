@@ -1,18 +1,18 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"time"
 
-	context "context"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 	crypto "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
@@ -147,13 +147,13 @@ func publish(ctx context.Context, n *core.IpfsNode, k crypto.PrivKey, ref path.P
 		return nil, err
 	}
 
-	hash, err := k.GetPublic().Hash()
+	pid, err := peer.IDFromPrivateKey(k)
 	if err != nil {
 		return nil, err
 	}
 
 	return &IpnsEntry{
-		Name:  key.Key(hash).String(),
+		Name:  pid.Pretty(),
 		Value: ref.String(),
 	}, nil
 }

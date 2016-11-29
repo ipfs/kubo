@@ -10,25 +10,23 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
-func randNode() (*merkledag.ProtoNode, key.Key) {
+func randNode() *merkledag.ProtoNode {
 	node := new(merkledag.ProtoNode)
 	node.SetData(make([]byte, 32))
 	util.NewTimeSeededRand().Read(node.Data())
-	k := node.Key()
-	return node, k
+	return node
 }
 
 func TestRecurivePathResolution(t *testing.T) {
 	ctx := context.Background()
 	dagService := dagmock.Mock()
 
-	a, _ := randNode()
-	b, _ := randNode()
-	c, cKey := randNode()
+	a := randNode()
+	b := randNode()
+	c := randNode()
 
 	err := b.AddNodeLink("grandchild", c)
 	if err != nil {
@@ -47,7 +45,7 @@ func TestRecurivePathResolution(t *testing.T) {
 		}
 	}
 
-	aKey := a.Key()
+	aKey := a.Cid()
 
 	segments := []string{aKey.String(), "child", "grandchild"}
 	p, err := path.FromSegments("/ipfs/", segments...)
@@ -61,6 +59,7 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	cKey := c.Cid()
 	key := node.Cid()
 	if key.String() != cKey.String() {
 		t.Fatal(fmt.Errorf(
