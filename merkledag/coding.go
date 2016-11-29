@@ -7,7 +7,7 @@ import (
 	pb "github.com/ipfs/go-ipfs/merkledag/pb"
 
 	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
-	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
 	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
@@ -84,7 +84,18 @@ func (n *ProtoNode) EncodeProtobuf(force bool) ([]byte, error) {
 	}
 
 	if n.cached == nil {
-		n.cached = cid.NewCidV0(u.Hash(n.encoded))
+		if n.prefix.MhType == 0 { // unset
+			n.prefix.Codec = cid.DagProtobuf
+			n.prefix.MhLength = -1
+			n.prefix.MhType = mh.SHA2_256
+			n.prefix.Version = 0
+		}
+		c, err := n.prefix.Sum(n.encoded)
+		if err != nil {
+			return nil, err
+		}
+
+		n.cached = c
 	}
 
 	return n.encoded, nil

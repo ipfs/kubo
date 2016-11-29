@@ -22,6 +22,9 @@ type ProtoNode struct {
 	encoded []byte
 
 	cached *cid.Cid
+
+	// prefix specifies cid version and hashing function
+	prefix cid.Prefix
 }
 
 type LinkSlice []*node.Link
