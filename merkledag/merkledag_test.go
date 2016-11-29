@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	blocks "github.com/ipfs/go-ipfs/blocks"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	bstest "github.com/ipfs/go-ipfs/blockservice/test"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
@@ -448,5 +449,39 @@ func TestProtoNodeResolve(t *testing.T) {
 	tvals := nd.Tree("", -1)
 	if len(tvals) != 1 || tvals[0] != "foo" {
 		t.Fatal("expected tree to return []{\"foo\"}")
+	}
+}
+
+func TestCidRetention(t *testing.T) {
+	nd := new(ProtoNode)
+	nd.SetData([]byte("fooooo"))
+
+	pref := nd.Cid().Prefix()
+	pref.Version = 1
+
+	c2, err := pref.Sum(nd.RawData())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	blk, err := blocks.NewBlockWithCid(nd.RawData(), c2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bs := dstest.Bserv()
+	_, err = bs.AddBlock(blk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ds := NewDAGService(bs)
+	out, err := ds.Get(context.Background(), c2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !out.Cid().Equals(c2) {
+		t.Fatal("output cid didnt match")
 	}
 }

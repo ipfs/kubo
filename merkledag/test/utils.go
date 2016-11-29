@@ -10,7 +10,10 @@ import (
 )
 
 func Mock() dag.DAGService {
+	return dag.NewDAGService(Bserv())
+}
+
+func Bserv() bsrv.BlockService {
 	bstore := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
-	bserv := bsrv.New(bstore, offline.Exchange(bstore))
-	return dag.NewDAGService(bserv)
+	return bsrv.New(bstore, offline.Exchange(bstore))
 }
