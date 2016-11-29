@@ -399,7 +399,7 @@ test_expect_success "go-random is installed" '
 
 test_add_cat_5MB "" "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
 
-test_add_cat_5MB --raw-leaves "QmefsDaD3YVphd86mxjJfPLceKv8by98aB6J6sJxK13xS2"
+test_add_cat_5MB --raw-leaves "QmbdLHCmdi48eM8T7D67oXjA1S2Puo8eMfngdHhdPukFd6"
 
 test_add_cat_expensive
 

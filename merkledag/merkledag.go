@@ -11,10 +11,10 @@ import (
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
-	ipldcbor "gx/ipfs/QmVVfh9urmDSL1upPtAKKMxFUwW1R6hYr95uCuJUP8RhUu/go-ipld-cbor"
-	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
+	ipldcbor "gx/ipfs/QmbuuwTd9x4NReZ7sxtiKk7wFcfDUo54MfWBdtF5MRCPGR/go-ipld-cbor"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 var log = logging.Logger("merkledag")
@@ -93,7 +93,7 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 	c := b.Cid()
 
 	switch c.Type() {
-	case cid.Protobuf:
+	case cid.DagProtobuf:
 		decnd, err := DecodeProtobuf(b.RawData())
 		if err != nil {
 			if strings.Contains(err.Error(), "Unmarshal failed") {
@@ -106,7 +106,7 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 		return decnd, nil
 	case cid.Raw:
 		return NewRawNode(b.RawData()), nil
-	case cid.CBOR:
+	case cid.DagCBOR:
 		return ipldcbor.Decode(b.RawData())
 	default:
 		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
