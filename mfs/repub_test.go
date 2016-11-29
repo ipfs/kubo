@@ -7,7 +7,7 @@ import (
 	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
 
 	"context"
-	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 func TestRepublisher(t *testing.T) {
