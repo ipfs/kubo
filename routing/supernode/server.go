@@ -1,14 +1,14 @@
 package supernode
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
-	context "context"
 	pstore "gx/ipfs/QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo/go-libp2p-peerstore"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	dhtpb "gx/ipfs/QmaMRCpeKL34rdT7t3bEndrENbVdD6gcCZr3YdkDUk6jue/go-libp2p-kad-dht/pb"
 	datastore "gx/ipfs/QmbzuUusHqaLLoNTDEVLcSF6vZDHZDLPC7p4bztRvvkXxU/go-datastore"
@@ -55,7 +55,7 @@ func (s *Server) handleMessage(
 	switch req.GetType() {
 
 	case dhtpb.Message_GET_VALUE:
-		rawRecord, err := getRoutingRecord(s.routingBackend, key.Key(req.GetKey()))
+		rawRecord, err := getRoutingRecord(s.routingBackend, req.GetKey())
 		if err != nil {
 			return "", nil
 		}
@@ -69,7 +69,7 @@ func (s *Server) handleMessage(
 		// 	log.Event(ctx, "validationFailed", req, p)
 		// 	return "", nil
 		// }
-		putRoutingRecord(s.routingBackend, key.Key(req.GetKey()), req.GetRecord())
+		putRoutingRecord(s.routingBackend, req.GetKey(), req.GetRecord())
 		return p, req
 
 	case dhtpb.Message_FIND_NODE:
@@ -89,7 +89,7 @@ func (s *Server) handleMessage(
 			if providerID == p {
 				store := []*dhtpb.Message_Peer{provider}
 				storeProvidersToPeerstore(s.peerstore, p, store)
-				if err := putRoutingProviders(s.routingBackend, key.Key(req.GetKey()), store); err != nil {
+				if err := putRoutingProviders(s.routingBackend, req.GetKey(), store); err != nil {
 					return "", nil
 				}
 			} else {
@@ -99,7 +99,7 @@ func (s *Server) handleMessage(
 		return "", nil
 
 	case dhtpb.Message_GET_PROVIDERS:
-		providers, err := getRoutingProviders(s.routingBackend, key.Key(req.GetKey()))
+		providers, err := getRoutingProviders(s.routingBackend, req.GetKey())
 		if err != nil {
 			return "", nil
 		}
@@ -116,8 +116,8 @@ func (s *Server) handleMessage(
 var _ proxy.RequestHandler = &Server{}
 var _ proxy.Proxy = &Server{}
 
-func getRoutingRecord(ds datastore.Datastore, k key.Key) (*pb.Record, error) {
-	dskey := k.DsKey()
+func getRoutingRecord(ds datastore.Datastore, k string) (*pb.Record, error) {
+	dskey := dshelp.NewKeyFromBinary(k)
 	val, err := ds.Get(dskey)
 	if err != nil {
 		return nil, err
@@ -133,12 +133,12 @@ func getRoutingRecord(ds datastore.Datastore, k key.Key) (*pb.Record, error) {
 	return &record, nil
 }
 
-func putRoutingRecord(ds datastore.Datastore, k key.Key, value *pb.Record) error {
+func putRoutingRecord(ds datastore.Datastore, k string, value *pb.Record) error {
 	data, err := proto.Marshal(value)
 	if err != nil {
 		return err
 	}
-	dskey := k.DsKey()
+	dskey := dshelp.NewKeyFromBinary(k)
 	// TODO namespace
 	if err := ds.Put(dskey, data); err != nil {
 		return err
@@ -146,8 +146,8 @@ func putRoutingRecord(ds datastore.Datastore, k key.Key, value *pb.Record) error
 	return nil
 }
 
-func putRoutingProviders(ds datastore.Datastore, k key.Key, newRecords []*dhtpb.Message_Peer) error {
-	log.Event(context.Background(), "putRoutingProviders", &k)
+func putRoutingProviders(ds datastore.Datastore, k string, newRecords []*dhtpb.Message_Peer) error {
+	log.Event(context.Background(), "putRoutingProviders")
 	oldRecords, err := getRoutingProviders(ds, k)
 	if err != nil {
 		return err
@@ -185,8 +185,8 @@ func storeProvidersToPeerstore(ps pstore.Peerstore, p peer.ID, providers []*dhtp
 	}
 }
 
-func getRoutingProviders(ds datastore.Datastore, k key.Key) ([]*dhtpb.Message_Peer, error) {
-	e := log.EventBegin(context.Background(), "getProviders", &k)
+func getRoutingProviders(ds datastore.Datastore, k string) ([]*dhtpb.Message_Peer, error) {
+	e := log.EventBegin(context.Background(), "getProviders")
 	defer e.Done()
 	var providers []*dhtpb.Message_Peer
 	if v, err := ds.Get(providerKey(k)); err == nil {
@@ -201,8 +201,8 @@ func getRoutingProviders(ds datastore.Datastore, k key.Key) ([]*dhtpb.Message_Pe
 	return providers, nil
 }
 
-func providerKey(k key.Key) datastore.Key {
-	return datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
+func providerKey(k string) datastore.Key {
+	return datastore.KeyWithNamespaces([]string{"routing", "providers", k})
 }
 
 func verify(ps pstore.Peerstore, r *pb.Record) error {

@@ -14,7 +14,6 @@ import (
 	"github.com/ipfs/go-ipfs/pin/internal/pb"
 
 	node "gx/ipfs/QmUsVJ7AEnGyjX8YWnrwq9vmECVGwBQNAKPpgz5KSg8dcq/go-ipld-node"
-	"gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
 	"gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
 )
@@ -307,12 +306,4 @@ func storeSet(ctx context.Context, dag merkledag.DAGService, cids []*cid.Cid, in
 	}
 	internalKeys(c)
 	return n, nil
-}
-
-func copyRefcounts(orig map[key.Key]uint64) map[key.Key]uint64 {
-	r := make(map[key.Key]uint64, len(orig))
-	for k, v := range orig {
-		r[k] = v
-	}
-	return r
 }

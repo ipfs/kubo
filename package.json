@@ -213,12 +213,6 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9",
-      "name": "go-key",
-      "version": "1.0.3"
-    },
-    {
-      "author": "whyrusleeping",
       "hash": "QmU4VzzKNLJXJ72SedXBQKyf5Jo8W89iWpbWQjHn9qef8N",
       "name": "go-ds-flatfs",
       "version": "1.0.0"

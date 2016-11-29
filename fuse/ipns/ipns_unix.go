@@ -5,22 +5,23 @@
 package ipns
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 
-	"context"
 	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	key "gx/ipfs/QmYEoKZXHoAToWfhGF3vryhMn3WWhE1o2MasQ8uzY5iDi9/go-key"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmcEcrBAMrwMyhSjXt4yfyPpzgSuV8HLHavnfmiKCSRqZU/go-cid"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
@@ -135,11 +136,11 @@ func CreateRoot(ipfs *core.IpfsNode, keys map[string]ci.PrivKey, ipfspath, ipnsp
 	roots := make(map[string]*keyRoot)
 	links := make(map[string]*Link)
 	for alias, k := range keys {
-		pkh, err := k.GetPublic().Hash()
+		pid, err := peer.IDFromPrivateKey(k)
 		if err != nil {
 			return nil, err
 		}
-		name := key.Key(pkh).B58String()
+		name := pid.Pretty()
 
 		kr := &keyRoot{k: k, alias: alias}
 		fsn, err := loadRoot(ipfs.Context(), kr, ipfs, name)
@@ -241,13 +242,12 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 	var listing []fuse.Dirent
 	for alias, k := range r.Keys {
-		pub := k.GetPublic()
-		hash, err := pub.Hash()
+		pid, err := peer.IDFromPrivateKey(k)
 		if err != nil {
 			continue
 		}
 		ent := fuse.Dirent{
-			Name: key.Key(hash).B58String(),
+			Name: pid.Pretty(),
 			Type: fuse.DT_Dir,
 		}
 		link := fuse.Dirent{
