@@ -8,6 +8,7 @@ os:
   - osx
 
 language: go
+go_import_path: github.com/ipfs/go-ipfs
 
 go:
     - 1.7

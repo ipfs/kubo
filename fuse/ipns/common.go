@@ -12,6 +12,7 @@ import (
 
 // InitializeKeyspace sets the ipns record for the given key to
 // point to an empty directory.
+// TODO: compare to github.com/ipfs/go-ipfs/namesys/publisher.go
 func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 	emptyDir := ft.EmptyDirNode()
 	nodek, err := n.DAG.Add(emptyDir)

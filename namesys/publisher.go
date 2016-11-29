@@ -24,6 +24,8 @@ import (
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
+var errInvalidEntry = errors.New("invalid previous entry")
+
 // ErrExpiredRecord should be returned when an ipns record is
 // invalid due to being too old
 var ErrExpiredRecord = errors.New("expired record")
@@ -59,67 +61,151 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Pa
 
 // PublishWithEOL is a temporary stand in for the ipns records implementation
 // see here for more details: https://github.com/ipfs/specs/tree/master/records
-func (p *ipnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time) error {
-
-	id, err := peer.IDFromPrivateKey(k)
+func (p *ipnsPublisher) PublishWithEOL(ctx context.Context, pk ci.PrivKey, path path.Path, eol time.Time) error {
+	id, err := peer.IDFromPrivateKey(pk)
 	if err != nil {
 		return err
 	}
 
-	_, ipnskey := IpnsKeysForID(id)
-
 	// get previous records sequence number
-	seqnum, err := p.getPreviousSeqNo(ctx, ipnskey)
+	rec, err := p.tryLocalThenRemote(ctx, IpnsKeyForID(id))
+	if err != nil {
+		return err
+	}
+
+	_, seq, err := p.parseIpnsRecord(rec)
 	if err != nil {
 		return err
 	}
 
 	// increment it
-	seqnum++
+	seq++
 
-	return PutRecordToRouting(ctx, k, value, seqnum, eol, p.routing, id)
+	return PutRecordToRouting(ctx, pk, path, seq, eol, p.routing, id)
 }
 
-func (p *ipnsPublisher) getPreviousSeqNo(ctx context.Context, ipnskey string) (uint64, error) {
-	prevrec, err := p.ds.Get(dshelp.NewKeyFromBinary([]byte(ipnskey)))
-	if err != nil && err != ds.ErrNotFound {
-		// None found, lets start at zero!
-		return 0, err
-	}
-	var val []byte
-	if err == nil {
-		prbytes, ok := prevrec.([]byte)
-		if !ok {
-			return 0, fmt.Errorf("unexpected type returned from datastore: %#v", prevrec)
-		}
-		dhtrec := new(dhtpb.Record)
-		err := proto.Unmarshal(prbytes, dhtrec)
-		if err != nil {
-			return 0, err
-		}
-
-		val = dhtrec.GetValue()
-	} else {
-		// try and check the dht for a record
-		ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-		defer cancel()
-
-		rv, err := p.routing.GetValue(ctx, ipnskey)
-		if err != nil {
-			// no such record found, start at zero!
-			return 0, nil
-		}
-
-		val = rv
-	}
-
-	e := new(pb.IpnsEntry)
-	err = proto.Unmarshal(val, e)
+func (p *ipnsPublisher) RePublish(ctx context.Context, pk ci.PrivKey, eol time.Time) error {
+	id, err := peer.IDFromPrivateKey(pk)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return e.GetSequence(), nil
+	record, err := p.getLocal(ctx, IpnsKeyForID(id))
+	if err == ds.ErrNotFound {
+		// not found means we don't have a previously published entry
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	path, seq, err := p.parseIpnsRecord(record)
+	if err != nil {
+		return err
+	}
+
+	// update record with same sequence number
+	return PutRecordToRouting(ctx, pk, path, seq, eol, p.routing, id)
+}
+
+func (p *ipnsPublisher) Upload(ctx context.Context, pk ci.PubKey, record []byte) (id peer.ID, oldSeq uint64, newSeq uint64, newPath path.Path, err error) {
+	id, err = peer.IDFromPublicKey(pk)
+	if err != nil {
+		return
+	}
+
+	// get previous records sequence number
+	oldRec, err := p.tryLocalThenRemote(ctx, IpnsKeyForID(id))
+	if err != nil {
+		return
+	}
+
+	_, oldSeq, err = p.parseIpnsRecord(oldRec)
+	if err != nil {
+		return
+	}
+
+	entry := new(pb.IpnsEntry)
+	err = proto.Unmarshal(record, entry)
+	if err != nil {
+		return
+	}
+
+	if ok, err1 := pk.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err1 != nil || !ok {
+		err = fmt.Errorf("The IPNS record is not signed by %s", id.Pretty())
+		return
+	}
+	if entry.Sequence == nil {
+		err = errors.New("The IPNS record must have a sequence number, but none were provided")
+		return
+	}
+
+	newSeq = *entry.Sequence
+	if newSeq <= oldSeq {
+		err = fmt.Errorf("There is already a newer IPNS record with sequence number: %d", oldSeq)
+		return
+	}
+
+	newPath, err = path.ParsePath(string(entry.Value))
+	if err != nil {
+		return
+	}
+
+	err = publishEntry(ctx, p.routing, pk, entry)
+	return
+}
+
+func (p *ipnsPublisher) tryLocalThenRemote(ctx context.Context, dhtKey string) ([]byte, error) {
+	dhtValue, err := p.getLocal(ctx, dhtKey)
+	if err == ds.ErrNotFound {
+		dhtValue, err = p.getRemote(ctx, dhtKey)
+		if err != nil {
+			return nil, nil
+		}
+	}
+	return dhtValue, err
+}
+
+func (p *ipnsPublisher) getRemote(ctx context.Context, dhtKey string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	return p.routing.GetValue(ctx, dhtKey)
+}
+
+func (p *ipnsPublisher) getLocal(ctx context.Context, dhtKey string) ([]byte, error) {
+	maybeDsVal, err := p.ds.Get(dshelp.NewKeyFromBinary([]byte(dhtKey)))
+	if err != nil {
+		return nil, err
+	}
+
+	dsVal, ok := maybeDsVal.([]byte)
+	if !ok {
+		return nil, errInvalidEntry
+	}
+
+	dhtRec := new(dhtpb.Record)
+	err = proto.Unmarshal(dsVal, dhtRec)
+	if err != nil {
+		return nil, err
+	}
+
+	return dhtRec.GetValue(), nil
+}
+
+func (p *ipnsPublisher) parseIpnsRecord(record []byte) (path.Path, uint64, error) {
+	if record == nil {
+		return "", 0, nil
+	}
+
+	// extract published data from record
+	ipnsEntry := new(pb.IpnsEntry)
+	err := proto.Unmarshal(record, ipnsEntry)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return path.Path(ipnsEntry.Value), ipnsEntry.GetSequence(), nil
 }
 
 // setting the TTL on published records is an experimental feature.
@@ -135,14 +221,36 @@ func checkCtxTTL(ctx context.Context) (time.Duration, bool) {
 	return d, ok
 }
 
-func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqnum uint64, eol time.Time, r routing.ValueStore, id peer.ID) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	namekey, ipnskey := IpnsKeysForID(id)
-	entry, err := CreateRoutingEntryData(k, value, seqnum, eol)
+func PutRecordToRouting(ctx context.Context, sk ci.PrivKey, value path.Path, seqnum uint64, eol time.Time, r routing.ValueStore, id peer.ID) error {
+	entry, err := createEntry(ctx, sk, value, seqnum, eol)
 	if err != nil {
 		return err
+	}
+
+	pk := sk.GetPublic()
+
+	return publishEntry(ctx, r, pk, entry)
+}
+
+func CreateEntry(sk ci.PrivKey, value path.Path, seqnum uint64, eol time.Time, ttl time.Duration) ([]byte, error) {
+	ctx := context.WithValue(context.Background(), "ipns-publish-ttl", ttl)
+	entry, err := createEntry(ctx, sk, value, seqnum, eol)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := proto.Marshal(entry)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func createEntry(ctx context.Context, sk ci.PrivKey, value path.Path, seqnum uint64, eol time.Time) (*pb.IpnsEntry, error) {
+	entry, err := CreateRoutingEntryData(sk, value, seqnum, eol)
+	if err != nil {
+		return nil, err
 	}
 
 	ttl, ok := checkCtxTTL(ctx)
@@ -150,14 +258,25 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 		entry.Ttl = proto.Uint64(uint64(ttl.Nanoseconds()))
 	}
 
+	return entry, nil
+}
+
+func publishEntry(ctx context.Context, r routing.ValueStore, pk ci.PubKey, entry *pb.IpnsEntry) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	errs := make(chan error, 2)
 
+	id, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		return err
+	}
+
 	go func() {
-		errs <- PublishEntry(ctx, r, ipnskey, entry)
+		errs <- PublishEntry(ctx, r, id, entry)
 	}()
 
 	go func() {
-		errs <- PublishPublicKey(ctx, r, namekey, k.GetPublic())
+		errs <- PublishPublicKey(ctx, r, id, pk)
 	}()
 
 	err = waitOnErrChan(ctx, errs)
@@ -182,17 +301,19 @@ func waitOnErrChan(ctx context.Context, errs chan error) error {
 	}
 }
 
-func PublishPublicKey(ctx context.Context, r routing.ValueStore, k string, pubk ci.PubKey) error {
-	log.Debugf("Storing pubkey at: %s", k)
-	pkbytes, err := pubk.Bytes()
+func PublishPublicKey(ctx context.Context, r routing.ValueStore, id peer.ID, pk ci.PubKey) error {
+	// Store associated public key
+	timectx, cancel := context.WithTimeout(ctx, PublishPutValTimeout)
+	defer cancel()
+
+	dhtValue, err := pk.Bytes()
 	if err != nil {
 		return err
 	}
 
-	// Store associated public key
-	timectx, cancel := context.WithTimeout(ctx, PublishPutValTimeout)
-	defer cancel()
-	err = r.PutValue(timectx, k, pkbytes)
+	dhtKey := routing.KeyForPublicKey(id)
+	log.Debugf("Storing pubkey at: %s", dhtKey)
+	err = r.PutValue(timectx, dhtKey, dhtValue)
 	if err != nil {
 		return err
 	}
@@ -200,18 +321,19 @@ func PublishPublicKey(ctx context.Context, r routing.ValueStore, k string, pubk 
 	return nil
 }
 
-func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec *pb.IpnsEntry) error {
+func PublishEntry(ctx context.Context, r routing.ValueStore, id peer.ID, rec *pb.IpnsEntry) error {
 	timectx, cancel := context.WithTimeout(ctx, PublishPutValTimeout)
 	defer cancel()
 
-	data, err := proto.Marshal(rec)
+	dhtValue, err := proto.Marshal(rec)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("Storing ipns entry at: %s", ipnskey)
+	dhtKey := IpnsKeyForID(id)
+	log.Debugf("Storing ipns entry at: %s", dhtKey)
 	// Store ipns entry at "/ipns/"+b58(h(pubkey))
-	if err := r.PutValue(timectx, ipnskey, data); err != nil {
+	if err := r.PutValue(timectx, dhtKey, dhtValue); err != nil {
 		return err
 	}
 
@@ -330,6 +452,7 @@ func ValidateIpnsRecord(k string, val []byte) error {
 // InitializeKeyspace sets the ipns record for the given key to
 // point to an empty directory.
 // TODO: this doesnt feel like it belongs here
+// TODO: compare to github.com/ipfs/go-ipfs/fuse/ipns/common.go
 func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
 	emptyDir := ft.EmptyDirNode()
 	nodek, err := ds.Add(emptyDir)
@@ -357,9 +480,6 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 	return nil
 }
 
-func IpnsKeysForID(id peer.ID) (name, ipns string) {
-	namekey := "/pk/" + string(id)
-	ipnskey := "/ipns/" + string(id)
-
-	return namekey, ipnskey
+func IpnsKeyForID(id peer.ID) string {
+	return "/ipns/" + string(id)
 }

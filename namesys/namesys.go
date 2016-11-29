@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	path "github.com/ipfs/go-ipfs/path"
+	"github.com/ipfs/go-ipfs/path"
 
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
@@ -23,20 +23,26 @@ import (
 // It can only publish to: (a) IPFS routing naming.
 //
 type mpns struct {
+	ipnsPub    *ipnsPublisher
+	dhtRes     *routingResolver
 	resolvers  map[string]resolver
-	publishers map[string]Publisher
+	publishers map[string]RePublisher
 }
 
 // NewNameSystem will construct the IPFS naming system based on Routing
 func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSystem {
+	ipnsPub := NewRoutingPublisher(r, ds)
+	dhtRes := NewRoutingResolver(r, cachesize)
 	return &mpns{
+		ipnsPub: ipnsPub,
+		dhtRes: dhtRes,
 		resolvers: map[string]resolver{
 			"dns":      newDNSResolver(),
 			"proquint": new(ProquintResolver),
-			"dht":      NewRoutingResolver(r, cachesize),
+			"dht":      dhtRes,
 		},
-		publishers: map[string]Publisher{
-			"/ipns/": NewRoutingPublisher(r, ds),
+		publishers: map[string]RePublisher{
+			"/ipns/": ipnsPub,
 		},
 	}
 }
@@ -89,7 +95,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error)
 
 // Publish implements Publisher
 func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
-	err := ns.publishers["/ipns/"].Publish(ctx, name, value)
+	err := ns.ipnsPub.Publish(ctx, name, value)
 	if err != nil {
 		return err
 	}
@@ -98,7 +104,7 @@ func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) e
 }
 
 func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error {
-	err := ns.publishers["/ipns/"].PublishWithEOL(ctx, name, value, eol)
+	err := ns.ipnsPub.PublishWithEOL(ctx, name, value, eol)
 	if err != nil {
 		return err
 	}
@@ -106,12 +112,16 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 	return nil
 }
 
+func (ns *mpns) RePublish(ctx context.Context, name ci.PrivKey, eol time.Time) error {
+	return ns.ipnsPub.RePublish(ctx, name, eol)
+}
+
+func (ns *mpns) Upload(ctx context.Context, pk ci.PubKey, record []byte) (peer.ID, uint64, uint64, path.Path, error) {
+	return ns.ipnsPub.Upload(ctx, pk, record)
+}
+
 func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {
-	rr, ok := ns.resolvers["dht"].(*routingResolver)
-	if !ok {
-		// should never happen, purely for sanity
-		log.Panicf("unexpected type %T as DHT resolver.", ns.resolvers["dht"])
-	}
+	rr := ns.dhtRes
 	if rr.cache == nil {
 		// resolver has no caching
 		return

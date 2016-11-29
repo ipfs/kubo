@@ -10,18 +10,21 @@ import (
 	"testing"
 	"time"
 
-	core "github.com/ipfs/go-ipfs/core"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	namesys "github.com/ipfs/go-ipfs/namesys"
-	path "github.com/ipfs/go-ipfs/path"
-	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
-	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
+	"github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs/path"
+	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/thirdparty/testutil"
 
 	id "gx/ipfs/QmbzCT1CwxVZ2ednptC9RavuJe7Bv8DDi2Ne89qUrA37XM/go-libp2p/p2p/protocol/identify"
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
+
+var errNotImplemented = errors.New("not implemented for mockNamesys")
 
 type mockNamesys map[string]path.Path
 
@@ -38,11 +41,19 @@ func (m mockNamesys) ResolveN(ctx context.Context, name string, depth int) (valu
 }
 
 func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
-	return errors.New("not implemented for mockNamesys")
+	return errNotImplemented
 }
 
 func (m mockNamesys) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, _ time.Time) error {
-	return errors.New("not implemented for mockNamesys")
+	return errNotImplemented
+}
+
+func (m mockNamesys) RePublish(ctx context.Context, name ci.PrivKey, _ time.Time) error {
+	return errNotImplemented
+}
+
+func (m mockNamesys) Upload(ctx context.Context, pk ci.PubKey, record []byte) (peer.ID, uint64, uint64, path.Path, error) {
+	return "", 0, 0, "", errNotImplemented
 }
 
 func newNodeWithMockNamesys(ns mockNamesys) (*core.IpfsNode, error) {

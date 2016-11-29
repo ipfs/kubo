@@ -229,20 +229,27 @@ test_launch_ipfs_daemon() {
 }
 
 do_umount() {
-    if [ "$(uname -s)" = "Linux" ]; then
-	fusermount -u "$1"
-    else
-	umount "$1"
-    fi
+	if [ "$(uname -s)" = "Linux" ]; then
+		sleep 1s
+		fusermount -u "$1" 2>umount.err
+	else
+		umount "$1"
+	fi
 }
 
 test_mount_ipfs() {
 
-	# make sure stuff is unmounted first.
-	test_expect_success FUSE "'ipfs mount' succeeds" '
+	test_expect_success FUSE "setup and publish default IPNS value" '
 		do_umount "$(pwd)/ipfs" || true &&
 		do_umount "$(pwd)/ipns" || true &&
-		ipfs mount >actual
+		mkdir ipfs || true &&
+		mkdir ipns || true &&
+		ipfs name publish /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+	'
+
+	# make sure stuff is unmounted first.
+	test_expect_success FUSE "'ipfs mount' succeeds" '
+		ipfs mount -f "$(pwd)/ipfs" -n "$(pwd)/ipns" >actual
 	'
 
 	test_expect_success FUSE "'ipfs mount' output looks good" '
