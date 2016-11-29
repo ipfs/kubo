@@ -196,7 +196,7 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 
 	// send wantlist updates
 	for { // try to send this message until we fail.
-		err := mq.sender.SendMsg(wlm)
+		err := mq.sender.SendMsg(ctx, wlm)
 		if err == nil {
 			return
 		}

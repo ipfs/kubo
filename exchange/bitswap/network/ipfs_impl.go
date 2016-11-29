@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 
@@ -19,6 +20,8 @@ import (
 )
 
 var log = logging.Logger("bitswap_network")
+
+var sendMessageTimeout = time.Minute * 10
 
 // NewFromIpfsHost returns a BitSwapNetwork supported by underlying IPFS host
 func NewFromIpfsHost(host host.Host, r routing.ContentRouting) BitSwapNetwork {
@@ -53,11 +56,20 @@ func (s *streamMessageSender) Close() error {
 	return s.s.Close()
 }
 
-func (s *streamMessageSender) SendMsg(msg bsmsg.BitSwapMessage) error {
-	return msgToStream(s.s, msg)
+func (s *streamMessageSender) SendMsg(ctx context.Context, msg bsmsg.BitSwapMessage) error {
+	return msgToStream(ctx, s.s, msg)
 }
 
-func msgToStream(s inet.Stream, msg bsmsg.BitSwapMessage) error {
+func msgToStream(ctx context.Context, s inet.Stream, msg bsmsg.BitSwapMessage) error {
+	deadline := time.Now().Add(sendMessageTimeout)
+	if dl, ok := ctx.Deadline(); ok {
+		deadline = dl
+	}
+
+	if err := s.SetWriteDeadline(deadline); err != nil {
+		log.Warningf("error setting deadline: %s", err)
+	}
+
 	switch s.Protocol() {
 	case ProtocolBitswap:
 		if err := msg.ToNetV1(s); err != nil {
@@ -71,6 +83,10 @@ func msgToStream(s inet.Stream, msg bsmsg.BitSwapMessage) error {
 		}
 	default:
 		return fmt.Errorf("unrecognized protocol on remote: %s", s.Protocol())
+	}
+
+	if err := s.SetWriteDeadline(time.Time{}); err != nil {
+		log.Warningf("error resetting deadline: %s", err)
 	}
 	return nil
 }
@@ -107,7 +123,7 @@ func (bsnet *impl) SendMessage(
 	}
 	defer s.Close()
 
-	return msgToStream(s, outgoing)
+	return msgToStream(ctx, s, outgoing)
 }
 
 func (bsnet *impl) SetDelegate(r Receiver) {

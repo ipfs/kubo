@@ -119,8 +119,8 @@ type messagePasser struct {
 	ctx    context.Context
 }
 
-func (mp *messagePasser) SendMsg(m bsmsg.BitSwapMessage) error {
-	return mp.net.SendMessage(mp.ctx, mp.local, mp.target, m)
+func (mp *messagePasser) SendMsg(ctx context.Context, m bsmsg.BitSwapMessage) error {
+	return mp.net.SendMessage(ctx, mp.local, mp.target, m)
 }
 
 func (mp *messagePasser) Close() error {
