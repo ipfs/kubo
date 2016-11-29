@@ -3,10 +3,19 @@ IPFS_MIN_GO_VERSION = 1.7
 IPFS_MIN_GX_VERSION = 0.6
 IPFS_MIN_GX_GO_VERSION = 1.1
 
-ifeq ($(TEST_NO_FUSE),1)
-  go_test=IPFS_REUSEPORT=false go test -tags nofuse
+
+export IPFS_REUSEPORT=false
+
+ifneq ($(COVERALLS_TOKEN), )
+  covertools_rule = covertools
+  GOT = overalls -project=github.com/ipfs/go-ipfs -covermode atomic -ignore=.git,Godeps,thirdparty,test -- $(GOTFLAGS)
 else
-  go_test=IPFS_REUSEPORT=false go test
+  covertools_rule = $()
+  GOT = go test $(GOTFLAGS) ./...
+endif
+
+ifeq ($(TEST_NO_FUSE),1)
+  GOTFLAGS += -tags nofuse
 endif
 
 ifeq ($(OS),Windows_NT)
@@ -48,8 +57,13 @@ gx_check: ${gx_bin} ${gx-go_bin}
 path_check:
 	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(GOPATH_DELIMITER), ,$(GOPATH))))
 
-deps: go_check gx_check path_check
+deps: go_check gx_check path_check $(covertools_rule)
 	${gx_bin} --verbose install --global
+
+covertools:
+	go get -u github.com/mattn/goveralls
+	go get -u golang.org/x/tools/cmd/cover
+	go get -u github.com/Kubuxu/overalls
 
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
@@ -67,7 +81,7 @@ clean:
 uninstall:
 	$(MAKE) -C cmd/ipfs uninstall
 
-PHONY += all help godep gx_check
+PHONY += all help godep gx_check dl_coveralls
 PHONY += go_check deps vendor install build nofuse clean uninstall
 
 ##############################################################
@@ -85,14 +99,14 @@ test_3node:
 test_go_fmt:
 	bin/test-go-fmt
 
-test_go_short:
-	$(go_test) -test.short ./...
 
-test_go_expensive:
-	$(go_test) ./...
-
-test_go_race:
-	$(go_test) ./... -race
+test_go_short: GOTFLAGS += -test.short
+test_go_race: GOTFLAGS += -race
+test_go_expensive test_go_short test_go_race:
+	$(GOT)
+ifneq ($(COVERALLS_TOKEN), )
+	goveralls -coverprofile=overalls.coverprofile -service $(SERVICE)
+endif
 
 test_sharness_short:
 	$(MAKE) -j1 -C test/sharness/
