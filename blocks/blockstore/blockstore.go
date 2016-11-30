@@ -194,8 +194,8 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 				return
 			}
 			if e.Error != nil {
-				log.Debug("blockstore.AllKeysChan got err:", e.Error)
-				continue
+				log.Errorf("blockstore.AllKeysChan got err:", e.Error)
+				return
 			}
 
 			// need to convert to key.Key using key.KeyFromDsKey.
