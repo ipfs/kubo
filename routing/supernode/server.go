@@ -117,7 +117,7 @@ var _ proxy.RequestHandler = &Server{}
 var _ proxy.Proxy = &Server{}
 
 func getRoutingRecord(ds datastore.Datastore, k string) (*pb.Record, error) {
-	dskey := dshelp.NewKeyFromBinary(k)
+	dskey := dshelp.NewKeyFromBinary([]byte(k))
 	val, err := ds.Get(dskey)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func putRoutingRecord(ds datastore.Datastore, k string, value *pb.Record) error 
 	if err != nil {
 		return err
 	}
-	dskey := dshelp.NewKeyFromBinary(k)
+	dskey := dshelp.NewKeyFromBinary([]byte(k))
 	// TODO namespace
 	if err := ds.Put(dskey, data); err != nil {
 		return err

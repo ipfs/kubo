@@ -108,7 +108,7 @@ func (rp *Republisher) republishEntries(p goprocess.Process) error {
 }
 
 func (rp *Republisher) getLastVal(k string) (path.Path, uint64, error) {
-	ival, err := rp.ds.Get(dshelp.NewKeyFromBinary(k))
+	ival, err := rp.ds.Get(dshelp.NewKeyFromBinary([]byte(k)))
 	if err != nil {
 		// not found means we dont have a previously published entry
 		return "", 0, errNoEntry

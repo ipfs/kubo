@@ -7,8 +7,12 @@ import (
 )
 
 // TODO: put this code into the go-datastore itself
-func NewKeyFromBinary(s string) ds.Key {
-	return ds.NewKey(base32.RawStdEncoding.EncodeToString([]byte(s)))
+
+func NewKeyFromBinary(rawKey []byte) ds.Key {
+	buf := make([]byte, 1+base32.RawStdEncoding.EncodedLen(len(rawKey)))
+	buf[0] = '/'
+	base32.RawStdEncoding.Encode(buf[1:], rawKey)
+	return ds.RawKey(string(buf))
 }
 
 func BinaryFromDsKey(k ds.Key) ([]byte, error) {
@@ -16,19 +20,11 @@ func BinaryFromDsKey(k ds.Key) ([]byte, error) {
 }
 
 func CidToDsKey(k *cid.Cid) ds.Key {
-	return NewKeyFromBinary(k.KeyString())
+	return NewKeyFromBinary(k.Bytes())
 }
 
 func DsKeyToCid(dsKey ds.Key) (*cid.Cid, error) {
 	kb, err := BinaryFromDsKey(dsKey)
-	if err != nil {
-		return nil, err
-	}
-	return cid.Cast(kb)
-}
-
-func DsKeyStringToCid(dsKey string) (*cid.Cid, error) {
-	kb, err := base32.RawStdEncoding.DecodeString(dsKey[1:])
 	if err != nil {
 		return nil, err
 	}
