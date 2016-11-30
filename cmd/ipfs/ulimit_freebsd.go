@@ -1,4 +1,4 @@
-// +build darwin linux netbsd openbsd
+// +build freebsd
 
 package main
 
@@ -17,6 +17,8 @@ func checkAndSetUlimit() error {
 	if err != nil {
 		return fmt.Errorf("error getting rlimit: %s", err)
 	}
+
+	ipfsFileDescNum := int64(ipfsFileDescNum)
 
 	var setting bool
 	if rLimit.Cur < ipfsFileDescNum {
