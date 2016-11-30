@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
+	keystore "github.com/ipfs/go-ipfs/keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -95,6 +96,7 @@ type FSRepo struct {
 	lockfile io.Closer
 	config   *config.Config
 	ds       repo.Datastore
+	keystore keystore.Keystore
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -160,6 +162,10 @@ func open(repoPath string) (repo.Repo, error) {
 	}
 
 	if err := r.openDatastore(); err != nil {
+		return nil, err
+	}
+
+	if err := r.openKeystore(); err != nil {
 		return nil, err
 	}
 
@@ -303,6 +309,10 @@ func APIAddr(repoPath string) (ma.Multiaddr, error) {
 	return ma.NewMultiaddr(s)
 }
 
+func (r *FSRepo) Keystore() keystore.Keystore {
+	return r.keystore
+}
+
 // SetAPIAddr writes the API Addr to the /api file.
 func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	f, err := os.Create(filepath.Join(r.path, apiFile))
@@ -326,6 +336,18 @@ func (r *FSRepo) openConfig() error {
 		return err
 	}
 	r.config = conf
+	return nil
+}
+
+func (r *FSRepo) openKeystore() error {
+	ksp := filepath.Join(r.path, "keystore")
+	ks, err := keystore.NewFSKeystore(ksp)
+	if err != nil {
+		return err
+	}
+
+	r.keystore = ks
+
 	return nil
 }
 
