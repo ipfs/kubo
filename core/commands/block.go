@@ -254,8 +254,7 @@ It takes a list of base58 encoded multihashs to remove.
 
 			cids = append(cids, c)
 		}
-		outChan := make(chan interface{})
-		err = util.RmBlocks(n.Blockstore, n.Pinning, outChan, cids, util.RmBlocksOpts{
+		ch, err := util.RmBlocks(n.Blockstore, n.Pinning, cids, util.RmBlocksOpts{
 			Quiet: quiet,
 			Force: force,
 		})
@@ -263,7 +262,7 @@ It takes a list of base58 encoded multihashs to remove.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput((<-chan interface{})(outChan))
+		res.SetOutput(ch)
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
 		if res.Error() != nil {
