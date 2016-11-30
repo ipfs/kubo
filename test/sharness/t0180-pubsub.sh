@@ -24,18 +24,17 @@ test_expect_success 'pubsub' '
 	mkfifo wait ||
 	test_fsh echo init fail
 
+	# ipfs pubsub sub is long-running so we need to start it in the background and
+	# wait put its output somewhere where we can access it
 	(
-		ipfsi 0 pubsub sub --enc=ndpayload testTopic | 
-			while read line; do
+		ipfsi 0 pubsub sub --enc=ndpayload testTopic | if read line; then
 				echo $line > actual &&
-				echo > done
-				exit
-			done
+				echo > wait
+			fi
 	) &
 
-	ipfspid=$!
-
-	sleep 1
+	# wait until ipfs pubsub sub is ready to do work
+	sleep 1 &&
 
 	# publish something
 	ipfsi 1 pubsub pub testTopic "testOK" &> pubErr &&

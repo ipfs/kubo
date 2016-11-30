@@ -19,11 +19,13 @@ check_has_connection() {
 
 startup_cluster() {
 	num_nodes="$1"
+	shift
+	other_args="$@"
 	bound=$(expr "$num_nodes" - 1)
 
-	if [ "$2" = "--enable-pubsub-experiment" ]; then
-		test_expect_success "start up nodes with pubsub enabled" '
-			iptb start --args --enable-pubsub-experiment
+	if test -n "$other_args"; then
+		test_expect_success "start up nodes with additional args" '
+			iptb start --args $other_args
 		'
 	else
 		test_expect_success "start up nodes" '
