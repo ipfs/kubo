@@ -181,44 +181,27 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 		return nil, err
 	}
 
-	// this function is here to compartmentalize
-	get := func() (*cid.Cid, bool) {
-		select {
-		case <-ctx.Done():
-			return nil, false
-		case e, more := <-res.Next():
-			if !more {
-				return nil, false
-			}
-			if e.Error != nil {
-				log.Debug("blockstore.AllKeysChan got err:", e.Error)
-				return nil, false
-			}
-
-			// need to convert to key.Key using key.KeyFromDsKey.
-			c, err := dshelp.DsKeyToCid(ds.RawKey(e.Key))
-			if err != nil {
-				log.Warningf("error parsing key from DsKey: ", err)
-				return nil, true
-			}
-
-			return c, true
-		}
-	}
-
 	output := make(chan *cid.Cid, dsq.KeysOnlyBufSize)
 	go func() {
 		defer func() {
-			res.Process().Close() // ensure exit (signals early exit, too)
+			res.Close() // ensure exit (signals early exit, too)
 			close(output)
 		}()
 
 		for {
-			k, ok := get()
+			e, ok := res.NextSync()
 			if !ok {
 				return
 			}
-			if k == nil {
+			if e.Error != nil {
+				log.Errorf("blockstore.AllKeysChan got err:", e.Error)
+				return
+			}
+
+			// need to convert to key.Key using key.KeyFromDsKey.
+			k, err := dshelp.DsKeyToCid(ds.RawKey(e.Key))
+			if err != nil {
+				log.Warningf("error parsing key from DsKey: ", err)
 				continue
 			}
 
