@@ -189,6 +189,7 @@ func (m *impl) ToProtoV0() *pb.Message {
 			Cancel:   proto.Bool(e.Cancel),
 		})
 	}
+	pbm.Wantlist.Full = proto.Bool(m.full)
 	for _, b := range m.Blocks() {
 		pbm.Blocks = append(pbm.Blocks, b.RawData())
 	}
@@ -205,6 +206,7 @@ func (m *impl) ToProtoV1() *pb.Message {
 			Cancel:   proto.Bool(e.Cancel),
 		})
 	}
+	pbm.Wantlist.Full = proto.Bool(m.full)
 	for _, b := range m.Blocks() {
 		blk := &pb.Message_Block{
 			Data:   b.RawData(),
