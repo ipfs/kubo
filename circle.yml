@@ -37,5 +37,7 @@ test:
   override:
     - make test_go_expensive:
         pwd: "../.go_workspace/src/$IMPORT_PATH"
+        parallel: true
     - make test_sharness_expensive:
         pwd: "../.go_workspace/src/$IMPORT_PATH"
+        parallel: true
