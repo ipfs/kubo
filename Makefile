@@ -81,7 +81,7 @@ clean:
 uninstall:
 	$(MAKE) -C cmd/ipfs uninstall
 
-PHONY += all help godep gx_check dl_coveralls
+PHONY += all help godep gx_check covertools
 PHONY += go_check deps vendor install build nofuse clean uninstall
 
 ##############################################################
