@@ -15,10 +15,12 @@ It has these top-level messages:
 package unixfs_pb
 
 import proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+import fmt "fmt"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+var _ = fmt.Errorf
 var _ = math.Inf
 
 type Data_DataType int32
@@ -64,8 +66,8 @@ func (x *Data_DataType) UnmarshalJSON(data []byte) error {
 }
 
 type Data struct {
-	Type             *Data_DataType `protobuf:"varint,1,req,enum=unixfs.pb.Data_DataType" json:"Type,omitempty"`
-	Data             []byte         `protobuf:"bytes,2,opt" json:"Data,omitempty"`
+	Type             *Data_DataType `protobuf:"varint,1,req,name=Type,enum=unixfs.pb.Data_DataType" json:"Type,omitempty"`
+	Data             []byte         `protobuf:"bytes,2,opt,name=Data" json:"Data,omitempty"`
 	Filesize         *uint64        `protobuf:"varint,3,opt,name=filesize" json:"filesize,omitempty"`
 	Blocksizes       []uint64       `protobuf:"varint,4,rep,name=blocksizes" json:"blocksizes,omitempty"`
 	XXX_unrecognized []byte         `json:"-"`
@@ -104,7 +106,7 @@ func (m *Data) GetBlocksizes() []uint64 {
 }
 
 type Metadata struct {
-	MimeType         *string `protobuf:"bytes,1,req" json:"MimeType,omitempty"`
+	MimeType         *string `protobuf:"bytes,1,opt,name=MimeType" json:"MimeType,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -120,5 +122,7 @@ func (m *Metadata) GetMimeType() string {
 }
 
 func init() {
+	proto.RegisterType((*Data)(nil), "unixfs.pb.Data")
+	proto.RegisterType((*Metadata)(nil), "unixfs.pb.Metadata")
 	proto.RegisterEnum("unixfs.pb.Data_DataType", Data_DataType_name, Data_DataType_value)
 }

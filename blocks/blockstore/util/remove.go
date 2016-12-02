@@ -29,7 +29,7 @@ type RmBlocksOpts struct {
 
 func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []*cid.Cid, opts RmBlocksOpts) (<-chan interface{}, error) {
 	// make the channel large enough to hold any result to avoid
-	// blocking while holding the GCLock	
+	// blocking while holding the GCLock
 	out := make(chan interface{}, len(cids))
 	go func() {
 		defer close(out)
