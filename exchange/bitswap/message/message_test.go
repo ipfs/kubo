@@ -118,6 +118,10 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if !copied.Full() {
+		t.Fatal("fullness attribute got dropped on marshal")
+	}
+
 	keys := make(map[string]bool)
 	for _, k := range copied.Wantlist() {
 		keys[k.Cid.KeyString()] = true
