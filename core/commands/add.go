@@ -76,7 +76,7 @@ You can now refer to the added file in a gateway, like so:
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
-		cmds.BoolOption(pinOptionName, "Pin this object when adding.  Default: true."),
+		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
 	},
 	PreRun: func(req cmds.Request) error {
@@ -135,12 +135,8 @@ You can now refer to the added file in a gateway, like so:
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
-		dopin, pin_found, _ := req.Option(pinOptionName).Bool()
+		dopin, _, _ := req.Option(pinOptionName).Bool()
 		rawblks, _, _ := req.Option(rawLeavesOptionName).Bool()
-
-		if !pin_found { // default
-			dopin = true
-		}
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
