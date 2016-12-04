@@ -105,7 +105,7 @@ test_go_race: GOTFLAGS += -race
 test_go_expensive test_go_short test_go_race:
 	$(GOT)
 ifneq ($(COVERALLS_TOKEN), )
-	goveralls -coverprofile=overalls.coverprofile -service $(SERVICE)
+	goveralls -coverprofile=overalls.coverprofile -service $(SERVICE) -ignore "go-ipfs/core/commands"
 endif
 
 test_sharness_short:
