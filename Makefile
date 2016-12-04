@@ -8,7 +8,7 @@ export IPFS_REUSEPORT=false
 
 ifneq ($(COVERALLS_TOKEN), )
   covertools_rule = covertools
-  GOT = overalls -project=github.com/ipfs/go-ipfs -covermode atomic -ignore=.git,Godeps,thirdparty,test -- $(GOTFLAGS)
+  GOT = overalls -project=github.com/ipfs/go-ipfs -covermode atomic -ignore=.git,Godeps,thirdparty,test,core/commands -- $(GOTFLAGS)
 else
   covertools_rule = $()
   GOT = go test $(GOTFLAGS) ./...
