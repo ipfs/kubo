@@ -80,11 +80,14 @@ You can now refer to the added file in a gateway, like so:
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
 	},
 	PreRun: func(req cmds.Request) error {
-		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
+		quiet, _, _ := req.Option(quietOptionName).Bool()
+		silent, _, _ := req.Option(silentOptionName).Bool()
+
+		if quiet || silent {
 			return nil
 		}
 
-		// ipfs cli progress bar defaults to true
+		// ipfs cli progress bar defaults to true unless quiet or silent is used
 		_, found, _ := req.Option(progressOptionName).Bool()
 		if !found {
 			req.SetOption(progressOptionName, true)
@@ -245,27 +248,14 @@ You can now refer to the added file in a gateway, like so:
 			return
 		}
 
-		progress, prgFound, err := req.Option(progressOptionName).Bool()
+		progress, _, err := req.Option(progressOptionName).Bool()
 		if err != nil {
 			res.SetError(u.ErrCast(), cmds.ErrNormal)
 			return
-		}
-
-		silent, _, err := req.Option(silentOptionName).Bool()
-		if err != nil {
-			res.SetError(u.ErrCast(), cmds.ErrNormal)
-			return
-		}
-
-		var showProgressBar bool
-		if prgFound {
-			showProgressBar = progress
-		} else if !quiet && !silent {
-			showProgressBar = true
 		}
 
 		var bar *pb.ProgressBar
-		if showProgressBar {
+		if progress {
 			bar = pb.New64(0).SetUnits(pb.U_BYTES)
 			bar.ManualUpdate = true
 			bar.ShowTimeLeft = false
@@ -292,7 +282,7 @@ You can now refer to the added file in a gateway, like so:
 				}
 				output := out.(*coreunix.AddedObject)
 				if len(output.Hash) > 0 {
-					if showProgressBar {
+					if progress {
 						// clear progress bar line before we print "added x" output
 						fmt.Fprintf(res.Stderr(), "\033[2K\r")
 					}
@@ -305,7 +295,7 @@ You can now refer to the added file in a gateway, like so:
 				} else {
 					log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
 
-					if !showProgressBar {
+					if !progress {
 						continue
 					}
 
@@ -321,11 +311,11 @@ You can now refer to the added file in a gateway, like so:
 					totalProgress = bar.Add64(delta)
 				}
 
-				if showProgressBar {
+				if progress {
 					bar.Update()
 				}
 			case size := <-sizeChan:
-				if showProgressBar {
+				if progress {
 					bar.Total = size
 					bar.ShowPercent = true
 					bar.ShowBar = true
