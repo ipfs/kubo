@@ -6,10 +6,6 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "bazil.org/fuse",
-			"Rev": "e4fcc9a2c7567d1c42861deebeb483315d222262"
-		},
-		{
 			"ImportPath": "github.com/briantigerchow/pubsub",
 			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
 		},

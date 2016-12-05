@@ -9,9 +9,9 @@ import (
 	"path"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
+	"gx/ipfs/QmVeTQJruz98RkXfsJPzKWJcTFzFk3S8ZnoWQdYijuha34/go-random"
 )
 
 func main() {

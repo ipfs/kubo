@@ -4,10 +4,11 @@ package bloom
 import (
 	"encoding/binary"
 	"errors"
-	// Non crypto hash, because speed
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mtchavez/jenkins"
-	"gx/ipfs/QmeWQMDa5dSdP4n8WDeoY5z8L2EKVqF4ZvK4VEHsLqXsGu/hamming"
 	"hash"
+
+	// Non crypto hash, because speed
+	"gx/ipfs/QmYoHyjLUqquHyobUMpzPKSaDcEuZnTtedDZXuC8aUqfoW/jenkins"
+	"gx/ipfs/QmeWQMDa5dSdP4n8WDeoY5z8L2EKVqF4ZvK4VEHsLqXsGu/hamming"
 )
 
 type Filter interface {

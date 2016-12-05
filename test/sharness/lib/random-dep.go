@@ -4,6 +4,7 @@
 package randomdep
 
 import (
-	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
-	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random-files"
+	_ "gx/ipfs/QmVeTQJruz98RkXfsJPzKWJcTFzFk3S8ZnoWQdYijuha34/go-random"
+
+	_ "gx/ipfs/QmY4r4SdwZCBfWn4wFkDshVG59Qt2ApcPB63Bcyb9HseEm/go-random-files"
 )
