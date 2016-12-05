@@ -22,6 +22,16 @@ type ProtoNode struct {
 	encoded []byte
 
 	cached *cid.Cid
+
+	// Prefix specifies cid version and hashing function
+	Prefix cid.Prefix
+}
+
+var defaultCidPrefix = cid.Prefix{
+	Codec:    cid.DagProtobuf,
+	MhLength: -1,
+	MhType:   mh.SHA2_256,
+	Version:  0,
 }
 
 type LinkSlice []*node.Link
@@ -219,9 +229,22 @@ func (n *ProtoNode) Loggable() map[string]interface{} {
 }
 
 func (n *ProtoNode) Cid() *cid.Cid {
-	h := n.Multihash()
+	if n.encoded != nil && n.cached != nil {
+		return n.cached
+	}
 
-	return cid.NewCidV0(h)
+	if n.Prefix.Codec == 0 {
+		n.Prefix = defaultCidPrefix
+	}
+
+	c, err := n.Prefix.Sum(n.RawData())
+	if err != nil {
+		// programmer error
+		panic(err)
+	}
+
+	n.cached = c
+	return c
 }
 
 func (n *ProtoNode) String() string {
