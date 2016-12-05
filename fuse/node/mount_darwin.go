@@ -58,6 +58,7 @@ For more help, see:
 	https://github.com/ipfs/go-ipfs/issues/177
 
 OSXFUSE versions >3.0.0 are not compatible with version of FUSE library in current use.
+	This will be fixed in near future, see https://github.com/ipfs/go-ipfs/issues/3471
 `
 
 var errStrNeedFuseVersion = `unable to check fuse version.
