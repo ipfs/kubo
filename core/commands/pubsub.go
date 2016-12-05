@@ -122,30 +122,17 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: getPsMsgMarshaler(func(m *floodsub.Message) (io.Reader, error) {
-			if m.Message == nil {
-				return strings.NewReader(""), nil
-			}
-
 			return bytes.NewReader(m.Data), nil
 		}),
 		"ndpayload": getPsMsgMarshaler(func(m *floodsub.Message) (io.Reader, error) {
-			if m.Message == nil {
-				return strings.NewReader("\n"), nil
-			}
-
 			m.Data = append(m.Data, '\n')
 			return bytes.NewReader(m.Data), nil
 		}),
 		"lenpayload": getPsMsgMarshaler(func(m *floodsub.Message) (io.Reader, error) {
 			buf := make([]byte, 8)
 
-			var data []byte
-			if m.Message != nil {
-				data = m.Data
-			}
-
-			n := binary.PutUvarint(buf, uint64(len(data)))
-			return io.MultiReader(bytes.NewReader(buf[:n]), bytes.NewReader(data)), nil
+			n := binary.PutUvarint(buf, uint64(len(m.Data)))
+			return io.MultiReader(bytes.NewReader(buf[:n]), bytes.NewReader(m.Data)), nil
 		}),
 	},
 	Type: floodsub.Message{},
@@ -186,6 +173,9 @@ func getPsMsgMarshaler(f func(m *floodsub.Message) (io.Reader, error)) func(cmds
 			obj, ok := v.(*floodsub.Message)
 			if !ok {
 				return nil, u.ErrCast()
+			}
+			if obj.Message == nil {
+				return strings.NewReader(""), nil
 			}
 
 			return f(obj)
