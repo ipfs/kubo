@@ -37,11 +37,9 @@ const (
 
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add a file to ipfs.",
+		Tagline: "Add a file or directory to ipfs.",
 		ShortDescription: `
-Adds contents of <path> to ipfs. Use -r to add directories.
-Note that directories are added recursively, to form the ipfs
-MerkleDAG.
+Adds contents of <path> to ipfs. Use -r to add directories (recursively).
 `,
 		LongDescription: `
 Adds contents of <path> to ipfs. Use -r to add directories.
@@ -70,22 +68,26 @@ You can now refer to the added file in a gateway, like so:
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
-		cmds.BoolOption(quietOptionName, "q", "Write minimal output.").Default(false),
-		cmds.BoolOption(silentOptionName, "Write no output.").Default(false),
+		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
+		cmds.BoolOption(silentOptionName, "Write no output."),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
-		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation.").Default(false),
-		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk.").Default(false),
-		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object.").Default(false),
-		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add.").Default(false),
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
+		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
+		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
 	},
 	PreRun: func(req cmds.Request) error {
-		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
+		quiet, _, _ := req.Option(quietOptionName).Bool()
+		silent, _, _ := req.Option(silentOptionName).Bool()
+
+		if quiet || silent {
 			return nil
 		}
 
+		// ipfs cli progress bar defaults to true unless quiet or silent is used
 		_, found, _ := req.Option(progressOptionName).Bool()
 		if !found {
 			req.SetOption(progressOptionName, true)
@@ -250,16 +252,6 @@ You can now refer to the added file in a gateway, like so:
 		if err != nil {
 			res.SetError(u.ErrCast(), cmds.ErrNormal)
 			return
-		}
-
-		silent, _, err := req.Option(silentOptionName).Bool()
-		if err != nil {
-			res.SetError(u.ErrCast(), cmds.ErrNormal)
-			return
-		}
-
-		if !quiet && !silent {
-			progress = true
 		}
 
 		var bar *pb.ProgressBar
