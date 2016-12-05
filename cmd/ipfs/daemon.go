@@ -48,6 +48,7 @@ const (
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
 	enableFloodSubKwd         = "enable-pubsub-experiment"
+	enableMultiplexKwd        = "enable-mplex-experiment"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -158,6 +159,7 @@ Headers.
 		cmds.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API.").Default(false),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
 		cmds.BoolOption(enableFloodSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
+		cmds.BoolOption(enableMultiplexKwd, "Add the experimental 'go-multiplex' stream muxer to libp2p on construction."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -288,6 +290,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	offline, _, _ := req.Option(offlineKwd).Bool()
 	pubsub, _, _ := req.Option(enableFloodSubKwd).Bool()
+	mplex, _, _ := req.Option(enableMultiplexKwd).Bool()
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
@@ -296,6 +299,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		Online:    !offline,
 		ExtraOpts: map[string]bool{
 			"pubsub": pubsub,
+			"mplex":  mplex,
 		},
 		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
