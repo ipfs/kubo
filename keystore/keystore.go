@@ -69,6 +69,8 @@ func (ks *FSKeystore) Put(name string, k ci.PrivKey) error {
 	_, err = os.Stat(kp)
 	if err == nil {
 		return ErrKeyExists
+	} else if !os.IsNotExist(err) {
+		return err
 	}
 
 	fi, err := os.Create(kp)
