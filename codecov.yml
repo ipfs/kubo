@@ -1,11 +1,11 @@
 codecov:
   ci:
     - "ci/circle-ci"
-    - "!js-ipfs-ap"
-    - "!teamcity"
-    - "!continuous-integration/travis-ci/pr"
-    - "!continuous-integration/travis-ci/push"
+    - "!travis-ci.org"
+    - "!ci.ipfs.team:8111"
+    - "!ci.ipfs.team"
   notify:
+    require_ci_to_pass: no
     after_n_builds: 1
 coverage:
   range: "50...100"
