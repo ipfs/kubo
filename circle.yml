@@ -26,7 +26,7 @@ dependencies:
   override:
     - rm -rf "$HOME/.go_workspace/src/$IMPORT_PATH"
     - mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - cp -a ./* "$HOME/.go_workspace/src/$IMPORT_PATH"
+    - cp -aT . "$HOME/.go_workspace/src/$IMPORT_PATH"
     - cd "$HOME/.go_workspace/src/$IMPORT_PATH" && make deps
 
   cache_directories:
@@ -35,9 +35,6 @@ dependencies:
 
 test:
   override:
-    - make test_go_expensive:
-        pwd: "../.go_workspace/src/$IMPORT_PATH"
-        parallel: true
-    - make test_sharness_expensive:
+    - case $CIRCLE_NODE_INDEX in 0) make coverage ;; 1) make test_sharness_expensive ;; esac:
         pwd: "../.go_workspace/src/$IMPORT_PATH"
         parallel: true

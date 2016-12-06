@@ -3,31 +3,39 @@ IPFS_MIN_GO_VERSION = 1.7
 IPFS_MIN_GX_VERSION = 0.6
 IPFS_MIN_GX_GO_VERSION = 1.1
 
+GOTAGS =
+GOTAGS += "" # we have to have always at least one tag, empty tag works well
+
+GOFLAGS =
+GOTFLAGS =
 
 export IPFS_REUSEPORT=false
+export GOFLAGS
+export GOTFLAGS
 
-ifneq ($(COVERALLS_TOKEN), )
-  covertools_rule = covertools
-  GOT = overalls -project=github.com/ipfs/go-ipfs -covermode atomic -ignore=.git,Godeps,thirdparty,test,core/commands,cmd -- $(GOTFLAGS)
-else
-  covertools_rule = $()
-  GOT = go test $(GOTFLAGS) ./...
-endif
+GOFLAGS += -tags $(call join-with,$(comma),$(GOTAGS))
 
 ifeq ($(TEST_NO_FUSE),1)
-  GOTFLAGS += -tags nofuse
+	GOTAGS += nofuse
 endif
 
 ifeq ($(OS),Windows_NT)
-  GOPATH_DELIMITER = ;
+	GOPATH_DELIMITER = ;
 else
-  GOPATH_DELIMITER = :
+	GOPATH_DELIMITER = :
 endif
 
 dist_root=/ipfs/QmNZL8wNsvAGdVYr8uGeUE9aGfHjFpHegAWywQFEdSaJbp
 gx_bin=bin/gx-v0.9.0
 gx-go_bin=bin/gx-go-v1.3.0
 
+
+# util functions
+
+space =
+space +=
+comma =,
+join-with = $(subst $(space),$1,$(strip $2))
 # use things in our bin before any other system binaries
 export PATH := bin:$(PATH)
 export IPFS_API ?= v04x.ipfs.io
@@ -58,12 +66,11 @@ path_check:
 	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(GOPATH_DELIMITER), ,$(GOPATH))))
 
 deps: go_check gx_check path_check $(covertools_rule)
-	${gx_bin} --verbose install --global
+	${gx_bin} --verbose install --global >/dev/null 2>&1
 
-covertools:
-	go get -u github.com/mattn/goveralls
+deps_covertools:
+	go get -u github.com/wadey/gocovmerge
 	go get -u golang.org/x/tools/cmd/cover
-	go get -u github.com/Kubuxu/overalls
 
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
@@ -71,7 +78,11 @@ covertools:
 vendor: godep
 	godep save -r ./...
 
-install build nofuse: deps
+nofuse: GOTAGS += nofuse
+nofuse: deps
+	$(MAKE) -C cmd/ipfs install
+
+install build: deps
 	$(MAKE) -C cmd/ipfs $@
 
 clean:
@@ -99,14 +110,19 @@ test_3node:
 test_go_fmt:
 	bin/test-go-fmt
 
-
 test_go_short: GOTFLAGS += -test.short
 test_go_race: GOTFLAGS += -race
 test_go_expensive test_go_short test_go_race:
-	$(GOT)
-ifneq ($(COVERALLS_TOKEN), )
-	goveralls -coverprofile=overalls.coverprofile -service $(SERVICE)
-endif
+	go test $(GOFLAGS) $(GOTFLAGS) ./...
+
+coverage: deps_covertools
+	@echo Running coverage
+	$(eval PKGS := $(shell go list -f '{{if (len .GoFiles)}}{{.ImportPath}}{{end}}' ./... | grep -v /vendor/ | grep -v /Godeps/))
+#$(eval PKGS_DELIM := $(call join-with,$(comma),$(PKGS)))
+	@go list -f '{{if or (len .TestGoFiles) (len .XTestGoFiles)}}go test $(GOFLAGS) $(GOTFLAGS) -covermode=atomic -coverprofile={{.Name}}_{{len .Imports}}_{{len .Deps}}.coverprofile {{.ImportPath}}{{end}}' $(GOFLAGS) $(PKGS) | xargs -I {} bash -c {} 2>&1 | grep -v 'warning: no packages being tested depend on'
+	gocovmerge `ls *.coverprofile` > coverage.txt
+	rm *.coverprofile
+	bash -c 'bash <(curl -s https://codecov.io/bash)'
 
 test_sharness_short:
 	$(MAKE) -j1 -C test/sharness/

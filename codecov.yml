@@ -1,0 +1,12 @@
+codecov:
+  ci:
+    - "ci/circle-ci"
+    - "!js-ipfs-ap"
+    - "!teamcity"
+    - "!continuous-integration/travis-ci/pr"
+    - "!continuous-integration/travis-ci/push"
+  notify:
+    after_n_builds: 1
+coverage:
+  range: "50...100"
+comment: off
