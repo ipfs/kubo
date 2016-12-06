@@ -3,19 +3,28 @@ IPFS_MIN_GO_VERSION = 1.7
 IPFS_MIN_GX_VERSION = 0.6
 IPFS_MIN_GX_GO_VERSION = 1.1
 
+GOTAGS =
+GOTAGS += "" # we have to have always at least one tag, empty tag works well
+
+GOFLAGS =
+GOTFLAGS =
 
 export IPFS_REUSEPORT=false
+export GOFLAGS
+export GOTFLAGS
+
+GOFLAGS += -tags $(call join-with,$(comma),$(GOTAGS))
 
 ifneq ($(COVERALLS_TOKEN), )
   covertools_rule = covertools
-  GOT = overalls -project=github.com/ipfs/go-ipfs -covermode atomic -ignore=.git,Godeps,thirdparty,test,core/commands,cmd -- $(GOTFLAGS)
+  GOT = overalls -project=github.com/ipfs/go-ipfs -covermode atomic -ignore=.git,Godeps,thirdparty,test,core/commands,cmd -- $(GOFLAGS) $(GOTFLAGS)
 else
-  covertools_rule = $()
-  GOT = go test $(GOTFLAGS) ./...
+  covertools_rule =
+  GOT = go test $(GOFLAGS) $(GOTFLAGS) ./...
 endif
 
 ifeq ($(TEST_NO_FUSE),1)
-  GOTFLAGS += -tags nofuse
+  GOTAGS += nofuse
 endif
 
 ifeq ($(OS),Windows_NT)
@@ -28,6 +37,13 @@ dist_root=/ipfs/QmNZL8wNsvAGdVYr8uGeUE9aGfHjFpHegAWywQFEdSaJbp
 gx_bin=bin/gx-v0.9.0
 gx-go_bin=bin/gx-go-v1.3.0
 
+
+# util functions
+
+space =
+space +=
+comma =,
+join-with = $(subst $(space),$1,$(strip $2))
 # use things in our bin before any other system binaries
 export PATH := bin:$(PATH)
 export IPFS_API ?= v04x.ipfs.io
@@ -58,7 +74,7 @@ path_check:
 	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(GOPATH_DELIMITER), ,$(GOPATH))))
 
 deps: go_check gx_check path_check $(covertools_rule)
-	${gx_bin} --verbose install --global
+	${gx_bin} --verbose install --global >/dev/null 2>&1
 
 covertools:
 	go get -u github.com/mattn/goveralls
@@ -71,7 +87,11 @@ covertools:
 vendor: godep
 	godep save -r ./...
 
-install build nofuse: deps
+nofuse: GOTAGS += nofuse
+nofuse: deps
+	$(MAKE) -C cmd/ipfs install
+
+install build: deps
 	$(MAKE) -C cmd/ipfs $@
 
 clean:
