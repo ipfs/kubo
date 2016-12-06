@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 
+	keystore "github.com/ipfs/go-ipfs/keystore"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
@@ -23,6 +24,8 @@ type Repo interface {
 
 	Datastore() Datastore
 	GetStorageUsage() (uint64, error)
+
+	Keystore() keystore.Keystore
 
 	// SetAPIAddr sets the API address in the repo.
 	SetAPIAddr(addr ma.Multiaddr) error
