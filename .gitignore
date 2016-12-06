@@ -10,6 +10,8 @@
 *.orig
 *~
 
+coverage.txt
+
 .ipfs
 bin/gx
 bin/gx*

@@ -16,13 +16,13 @@ export GOTFLAGS
 GOFLAGS += -tags $(call join-with,$(comma),$(GOTAGS))
 
 ifeq ($(TEST_NO_FUSE),1)
-  GOTAGS += nofuse
+	GOTAGS += nofuse
 endif
 
 ifeq ($(OS),Windows_NT)
-  GOPATH_DELIMITER = ;
+	GOPATH_DELIMITER = ;
 else
-  GOPATH_DELIMITER = :
+	GOPATH_DELIMITER = :
 endif
 
 dist_root=/ipfs/QmNZL8wNsvAGdVYr8uGeUE9aGfHjFpHegAWywQFEdSaJbp
