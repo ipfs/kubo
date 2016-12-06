@@ -15,14 +15,6 @@ export GOTFLAGS
 
 GOFLAGS += -tags $(call join-with,$(comma),$(GOTAGS))
 
-ifneq ($(COVERALLS_TOKEN), )
-  covertools_rule = covertools
-  GOT = overalls -project=github.com/ipfs/go-ipfs -covermode atomic -ignore=.git,Godeps,thirdparty,test,core/commands,cmd -- $(GOFLAGS) $(GOTFLAGS)
-else
-  covertools_rule =
-  GOT = go test $(GOFLAGS) $(GOTFLAGS) ./...
-endif
-
 ifeq ($(TEST_NO_FUSE),1)
   GOTAGS += nofuse
 endif
@@ -76,10 +68,9 @@ path_check:
 deps: go_check gx_check path_check $(covertools_rule)
 	${gx_bin} --verbose install --global >/dev/null 2>&1
 
-covertools:
-	go get -u github.com/mattn/goveralls
+deps_covertools:
+	go get -u github.com/wadey/gocovmerge
 	go get -u golang.org/x/tools/cmd/cover
-	go get -u github.com/Kubuxu/overalls
 
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
@@ -119,14 +110,19 @@ test_3node:
 test_go_fmt:
 	bin/test-go-fmt
 
-
 test_go_short: GOTFLAGS += -test.short
 test_go_race: GOTFLAGS += -race
 test_go_expensive test_go_short test_go_race:
-	$(GOT)
-ifneq ($(COVERALLS_TOKEN), )
-	goveralls -coverprofile=overalls.coverprofile -service $(SERVICE)
-endif
+	go test $(GOFLAGS) $(GOTFLAGS) ./...
+
+coverage: deps_covertools
+	@echo Running coverage
+	$(eval PKGS := $(shell go list -f '{{if (len .GoFiles)}}{{.ImportPath}}{{end}}' ./... | grep -v /vendor/ | grep -v /Godeps/))
+#$(eval PKGS_DELIM := $(call join-with,$(comma),$(PKGS)))
+	@go list -f '{{if or (len .TestGoFiles) (len .XTestGoFiles)}}go test $(GOFLAGS) $(GOTFLAGS) -covermode=atomic -coverprofile={{.Name}}_{{len .Imports}}_{{len .Deps}}.coverprofile {{.ImportPath}}{{end}}' $(GOFLAGS) $(PKGS) | xargs -I {} bash -c {} 2>&1 | grep -v 'warning: no packages being tested depend on'
+	gocovmerge `ls *.coverprofile` > coverage.txt
+	rm *.coverprofile
+	bash -c 'bash <(curl -s https://codecov.io/bash)'
 
 test_sharness_short:
 	$(MAKE) -j1 -C test/sharness/
