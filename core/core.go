@@ -514,6 +514,14 @@ func (n *IpfsNode) loadID() error {
 	return nil
 }
 
+func (n *IpfsNode) GetKey(name string) (ic.PrivKey, error) {
+	if name == "self" {
+		return n.PrivateKey, nil
+	} else {
+		return n.Repo.Keystore().Get(name)
+	}
+}
+
 func (n *IpfsNode) LoadPrivateKey() error {
 	if n.Identity == "" || n.Peerstore == nil {
 		return errors.New("loaded private key out of order.")

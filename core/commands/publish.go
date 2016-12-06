@@ -110,17 +110,11 @@ Publish an <ipfs-path> to another public key (not implemented):
 			ctx = context.WithValue(ctx, "ipns-publish-ttl", d)
 		}
 
-		var k crypto.PrivKey
 		kname, _, _ := req.Option("key").String()
-		if kname == "self" {
-			k = n.PrivateKey
-		} else {
-			ksk, err := n.Repo.Keystore().Get(kname)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			k = ksk
+		k, err := n.GetKey(kname)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		output, err := publish(ctx, n, k, path.Path(pstr), popts)
