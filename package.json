@@ -290,11 +290,11 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmXGevGDVTqeKdisBzaxEK4CJZqfxeXiVSWLaXaVWcG5on",
+      "hash": "QmbPSoTDH3JFKkSxsCQDyVMFT76KcQz7ELWEetyyg3aeDA",
       "name": "go-smux-multiplex",
-      "version": "1.1.4"
-	},
-	{
+      "version": "1.1.5"
+    },
+    {
       "author": "blang",
       "hash": "QmU1N5xVAUXgo3XRTt6GhJ2SuJEbxj2zRgMS7FpjSR2U83",
       "name": "semver",
