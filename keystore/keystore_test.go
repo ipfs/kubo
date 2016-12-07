@@ -127,6 +127,26 @@ func TestKeystoreBasics(t *testing.T) {
 	}
 }
 
+func TestNonExistingKey(t *testing.T) {
+	tdir, err := ioutil.TempDir("", "keystore-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ks, err := NewFSKeystore(tdir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k, err := ks.Get("does-it-exist")
+	if err != ErrNoSuchKey {
+		t.Fatalf("expected: %s, got %s", ErrNoSuchKey, err)
+	}
+	if k != nil {
+		t.Fatalf("Get on nonexistant key should give nil")
+	}
+}
+
 func TestMakeKeystoreNoDir(t *testing.T) {
 	_, err := NewFSKeystore("/this/is/not/a/real/dir")
 	if err == nil {
