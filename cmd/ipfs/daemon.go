@@ -44,6 +44,7 @@ const (
 	routingOptionKwd          = "routing"
 	routingOptionSupernodeKwd = "supernode"
 	routingOptionDHTClientKwd = "dhtclient"
+	routingOptionDHTKwd       = "dht"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
@@ -328,6 +329,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		ncfg.Routing = corerouting.SupernodeClient(infos...)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = core.DHTClientOption
+	case routingOptionDHTKwd:
+		ncfg.Routing = core.DHTOption
+	default:
+		res.SetError(fmt.Errorf("unrecognized routing option: %s", routingOption), cmds.ErrNormal)
+		return
 	}
 
 	node, err := core.NewNode(req.Context(), ncfg)
