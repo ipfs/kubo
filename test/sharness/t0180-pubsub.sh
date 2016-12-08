@@ -32,16 +32,27 @@ test_expect_success 'pubsub' '
 				echo > wait
 			fi
 	) &
+'
 
-	# wait until ipfs pubsub sub is ready to do work
-	sleep 1 &&
+test_expect_success "wait until ipfs pubsub sub is ready to do work" '
+	sleep 1
+'
 
-	# publish something
-	ipfsi 1 pubsub pub testTopic "testOK" &> pubErr &&
+test_expect_success "can see peer subscribed to testTopic" '
+	ipfsi 1 pubsub peers testTopic > peers_out
+'
 
-	# wait until `echo > wait` executed
+test_expect_success "output looks good" '
+	echo $PEERID_0 > peers_exp &&
+	test_cmp peers_exp peers_out
+'
+
+test_expect_success "publish something" '
+	ipfsi 1 pubsub pub testTopic "testOK" &> pubErr
+'
+
+test_expect_success "wait until echo > wait executed" '
 	cat wait &&
-
 	test_cmp pubErr empty &&
 	test_cmp expected actual 
 '
