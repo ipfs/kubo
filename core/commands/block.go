@@ -117,6 +117,8 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("format", "f", "cid format for blocks to be created with.").Default("v0"),
+		cmds.StringOption("mhtype", "multihash hash function").Default("sha2-256"),
+		cmds.IntOption("mhlen", "multihash hash length").Default(-1),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -143,11 +145,10 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			return
 		}
 
-		format, _, _ := req.Option("format").String()
 		var pref cid.Prefix
-		pref.MhType = mh.SHA2_256
-		pref.MhLength = -1
 		pref.Version = 1
+
+		format, _, _ := req.Option("format").String()
 		switch format {
 		case "cbor":
 			pref.Codec = cid.DagCBOR
@@ -162,6 +163,21 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			res.SetError(fmt.Errorf("unrecognized format: %s", format), cmds.ErrNormal)
 			return
 		}
+
+		mhtype, _, _ := req.Option("mhtype").String()
+		mhtval, ok := mh.Names[mhtype]
+		if !ok {
+			res.SetError(fmt.Errorf("unrecognized multihash function: %s", mhtype), cmds.ErrNormal)
+			return
+		}
+		pref.MhType = mhtval
+
+		mhlen, _, err := req.Option("mhlen").Int()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		pref.MhLength = mhlen
 
 		bcid, err := pref.Sum(data)
 		if err != nil {
