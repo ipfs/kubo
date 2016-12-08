@@ -184,6 +184,19 @@ test_expect_success "block get output looks right" '
 	test_cmp pb_block_out ../t0051-object-data/testPut.pb
 '
 
+test_expect_success "can set multihash type and length on block put" '
+	HASH=$(echo "foooo" | ipfs block put --format=raw --mhtype=sha3 --mhlen=16)
+'
+
+test_expect_success "output looks good" '
+	test "z25ScPysKoxJBcPxczn9NvuHiZU5" = "$HASH"
+'
+
+test_expect_success "can read block with different hash" '
+	ipfs block get $HASH > blk_get_out &&
+	echo "foooo" > blk_get_exp &&
+	test_cmp blk_get_exp blk_get_out
+'
 #
 # Misc tests
 #
