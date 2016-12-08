@@ -27,7 +27,7 @@ clean:
 
 bins: $(BINS)
 
-find_go_files = $(shell find $(1) -name "*.go")
+find_go_files = $(shell find $1 -name "*.go")
 
 # Non gx dependencies
 
