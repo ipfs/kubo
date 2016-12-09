@@ -274,15 +274,20 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 
 var PubsubPeersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List all peers we are currently pubsubbing with.",
+		Tagline: "List peers we are currently pubsubbing with.",
 		ShortDescription: `
-ipfs pubsub peers lists out the pubsub peers you are currently connected to.
+ipfs pubsub peers with no arguments lists out the pubsub peers you are
+currently connected to. If given a topic, it will list connected
+peers who are subscribed to the named topic.
 
 This is an experimental feature. It is not intended in its current state
 to be used in a production environment.
 
 To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("topic", false, false, "topic to list connected peers of"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -302,8 +307,13 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 			return
 		}
 
+		var topic string
+		if len(req.Arguments()) == 1 {
+			topic = req.Arguments()[0]
+		}
+
 		var out []string
-		for _, p := range n.Floodsub.ListPeers("") {
+		for _, p := range n.Floodsub.ListPeers(topic) {
 			out = append(out, p.Pretty())
 		}
 		res.SetOutput(&stringList{out})
