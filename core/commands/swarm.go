@@ -94,7 +94,12 @@ var swarmPeersCmd = &cmds.Command{
 			}
 
 			if verbose || latency {
-				ci.Latency = n.Peerstore.LatencyEWMA(pid).String()
+				lat := n.Peerstore.LatencyEWMA(pid)
+				if lat == 0 {
+					ci.Latency = "n/a"
+				} else {
+					ci.Latency = lat.String()
+				}
 			}
 			if verbose || streams {
 				strs, err := c.GetStreams()
