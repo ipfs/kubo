@@ -194,19 +194,7 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 		if err := GarbageCollect(gc.Node, ctx); err != nil {
 			return err
 		}
-		newStorage, err := gc.Repo.GetStorageUsage()
-		if err != nil {
-			return err
-		}
-		log.Infof("Repo GC done. Released %s\n", humanize.Bytes(uint64(storage-newStorage)))
-		if newStorage > gc.StorageGC {
-			log.Warningf("post-GC: Watermark still exceeded")
-			if newStorage > gc.StorageMax {
-				err := ErrMaxStorageExceeded
-				log.Error(err)
-				return err
-			}
-		}
+		log.Infof("Repo GC done. See `ipfs repo stat` to see how much space got freed.\n")
 	}
 	return nil
 }
