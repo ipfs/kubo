@@ -137,13 +137,23 @@ var DagGetCmd = &cmds.Command{
 			return
 		}
 
-		obj, err := n.Resolver.ResolvePath(req.Context(), p)
+		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		res.SetOutput(obj)
+		var out interface{} = obj
+		if len(rem) > 0 {
+			final, _, err := obj.Resolve(rem)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			out = final
+		}
+
+		res.SetOutput(out)
 	},
 }
 
