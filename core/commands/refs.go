@@ -44,8 +44,8 @@ with the following format:
 NOTE: List all references recursively by using the flag '-r'.
 `,
 	},
-	Subcommands: map[string]*cmds.Command{
-		"local": RefsLocalCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"local", RefsLocalCmd, ""},
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),

@@ -89,40 +89,40 @@ The CLI will exit with one of the following values:
 // commandsDaemonCmd is the "ipfs commands" command for daemon
 var CommandsDaemonCmd = CommandsCmd(Root)
 
-var rootSubcommands = map[string]*cmds.Command{
-	"add":       AddCmd,
-	"block":     BlockCmd,
-	"bootstrap": BootstrapCmd,
-	"cat":       CatCmd,
-	"commands":  CommandsDaemonCmd,
-	"config":    ConfigCmd,
-	"dag":       dag.DagCmd,
-	"dht":       DhtCmd,
-	"diag":      DiagCmd,
-	"dns":       DNSCmd,
-	"files":     files.FilesCmd,
-	"get":       GetCmd,
-	"id":        IDCmd,
-	"key":       KeyCmd,
-	"log":       LogCmd,
-	"ls":        LsCmd,
-	"mount":     MountCmd,
-	"name":      NameCmd,
-	"object":    ocmd.ObjectCmd,
-	"pin":       PinCmd,
-	"ping":      PingCmd,
-	"pubsub":    PubsubCmd,
-	"refs":      RefsCmd,
-	"repo":      RepoCmd,
-	"resolve":   ResolveCmd,
-	"stats":     StatsCmd,
-	"swarm":     SwarmCmd,
-	"tar":       TarCmd,
-	"tour":      tourCmd,
-	"file":      unixfs.UnixFSCmd,
-	"update":    ExternalBinary(),
-	"version":   VersionCmd,
-	"bitswap":   BitswapCmd,
+var rootSubcommands = []*cmds.CmdInfo{
+	{"add", AddCmd, ""},
+	{"block", BlockCmd, ""},
+	{"bootstrap", BootstrapCmd, ""},
+	{"cat", CatCmd, ""},
+	{"commands", CommandsDaemonCmd, ""},
+	{"config", ConfigCmd, ""},
+	{"dag", dag.DagCmd, ""},
+	{"dht", DhtCmd, ""},
+	{"diag", DiagCmd, ""},
+	{"dns", DNSCmd, ""},
+	{"files", files.FilesCmd, ""},
+	{"get", GetCmd, ""},
+	{"id", IDCmd, ""},
+	{"key", KeyCmd, ""},
+	{"log", LogCmd, ""},
+	{"ls", LsCmd, ""},
+	{"mount", MountCmd, ""},
+	{"name", NameCmd, ""},
+	{"object", ocmd.ObjectCmd, ""},
+	{"pin", PinCmd, ""},
+	{"ping", PingCmd, ""},
+	{"pubsub", PubsubCmd, ""},
+	{"refs", RefsCmd, ""},
+	{"repo", RepoCmd, ""},
+	{"resolve", ResolveCmd, ""},
+	{"stats", StatsCmd, ""},
+	{"swarm", SwarmCmd, ""},
+	{"tar", TarCmd, ""},
+	{"tour", tourCmd, ""},
+	{"file", unixfs.UnixFSCmd, ""},
+	{"update", ExternalBinary(), ""},
+	{"version", VersionCmd, ""},
+	{"bitswap", BitswapCmd, ""},
 }
 
 // RootRO is the readonly version of Root
@@ -132,35 +132,28 @@ var CommandsDaemonROCmd = CommandsCmd(RootRO)
 
 var RefsROCmd = &cmds.Command{}
 
-var rootROSubcommands = map[string]*cmds.Command{
-	"block": &cmds.Command{
-		Subcommands: map[string]*cmds.Command{
-			"stat": blockStatCmd,
-			"get":  blockGetCmd,
-		},
-	},
-	"cat":      CatCmd,
-	"commands": CommandsDaemonROCmd,
-	"dns":      DNSCmd,
-	"get":      GetCmd,
-	"ls":       LsCmd,
-	"name": &cmds.Command{
-		Subcommands: map[string]*cmds.Command{
-			"resolve": IpnsCmd,
-		},
-	},
-	"object": &cmds.Command{
-		Subcommands: map[string]*cmds.Command{
-			"data":  ocmd.ObjectDataCmd,
-			"links": ocmd.ObjectLinksCmd,
-			"get":   ocmd.ObjectGetCmd,
-			"stat":  ocmd.ObjectStatCmd,
-			"patch": ocmd.ObjectPatchCmd,
-		},
-	},
-	"refs":    RefsROCmd,
-	"resolve": ResolveCmd,
-	"version": VersionCmd,
+var rootROSubcommands = []*cmds.CmdInfo{
+	{"block",
+		&cmds.Command{Subcommands: []*cmds.CmdInfo{{"stat", blockStatCmd, ""}, {"get", blockGetCmd, ""}}},
+		""},
+	{"cat", CatCmd, ""},
+	{"commands", CommandsDaemonROCmd, ""},
+	{"dns", DNSCmd, ""},
+	{"get", GetCmd, ""},
+	{"ls", LsCmd, ""},
+	{"name", &cmds.Command{Subcommands: []*cmds.CmdInfo{{"resolve", IpnsCmd, ""}}}, ""},
+	{"object",
+		&cmds.Command{Subcommands: []*cmds.CmdInfo{
+			{"data", ocmd.ObjectDataCmd, ""},
+			{"links", ocmd.ObjectLinksCmd, ""},
+			{"get", ocmd.ObjectGetCmd, ""},
+			{"stat", ocmd.ObjectStatCmd, ""},
+			{"patch", ocmd.ObjectPatchCmd, ""},
+		}},
+		""},
+	{"refs", RefsROCmd, ""},
+	{"resolve", ResolveCmd, ""},
+	{"version", VersionCmd, ""},
 }
 
 func init() {
@@ -169,7 +162,7 @@ func init() {
 
 	// sanitize readonly refs command
 	*RefsROCmd = *RefsCmd
-	RefsROCmd.Subcommands = map[string]*cmds.Command{}
+	RefsROCmd.Subcommands = []*cmds.CmdInfo{}
 
 	Root.Subcommands = rootSubcommands
 	RootRO.Subcommands = rootROSubcommands

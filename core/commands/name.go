@@ -51,8 +51,8 @@ Resolve the value of a reference:
 `,
 	},
 
-	Subcommands: map[string]*cmds.Command{
-		"publish": PublishCmd,
-		"resolve": IpnsCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"publish", PublishCmd, ""},
+		{"resolve", IpnsCmd, ""},
 	},
 }

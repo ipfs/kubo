@@ -16,8 +16,5 @@ by IPFS objects, which hides ipfs implementation details like layout
 objects (e.g. fanout and chunking).
 `,
 	},
-
-	Subcommands: map[string]*cmds.Command{
-		"ls": LsCmd,
-	},
+	Subcommands: []*cmds.CmdInfo{{"ls", LsCmd, ""}},
 }
