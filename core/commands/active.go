@@ -24,9 +24,9 @@ Lists running and recently run commands.
 	Options: []cmds.Option{
 		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
 	},
-	Subcommands: map[string]*cmds.Command{
-		"clear":    clearInactiveCmd,
-		"set-time": setRequestClearCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"clear", clearInactiveCmd, ""},
+		{"set-time", setRequestClearCmd, ""},
 	},
 	Marshalers: map[cmds.EncodingType]cmds.Marshaler{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

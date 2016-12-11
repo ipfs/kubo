@@ -352,31 +352,19 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 		prefix += " "
 	}
 
-	// Sorting fixes changing order bug #2981.
-	sortedNames := make([]string, 0)
-	for name := range cmd.Subcommands {
-		sortedNames = append(sortedNames, name)
-	}
-	sort.Strings(sortedNames)
-
-	subcmds := make([]*cmds.Command, len(cmd.Subcommands))
 	lines := make([]string, len(cmd.Subcommands))
 
-	for i, name := range sortedNames {
-		sub := cmd.Subcommands[name]
-		usage := usageText(sub)
+	for i, cInfo := range cmd.Subcommands {
+		usage := usageText(cInfo.Cmd)
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
-		lines[i] = prefix + name + usage
-		subcmds[i] = sub
+		lines[i] = prefix + cInfo.Name + usage
 	}
-
 	lines = align(lines)
-	for i, sub := range subcmds {
-		lines[i] += " - " + sub.Helptext.Tagline
+	for i, cInfo := range cmd.Subcommands {
+		lines[i] += " - " + cInfo.Cmd.Helptext.Tagline
 	}
-
 	return lines
 }
 

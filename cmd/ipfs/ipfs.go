@@ -20,10 +20,10 @@ var commandsClientCmd = commands.CommandsCmd(Root)
 
 // Commands in localCommands should always be run locally (even if daemon is running).
 // They can override subcommands in commands.Root by defining a subcommand with the same name.
-var localCommands = map[string]*cmds.Command{
-	"daemon":   daemonCmd,
-	"init":     initCmd,
-	"commands": commandsClientCmd,
+var localCommands = []*cmds.CmdInfo{
+	{"daemon", daemonCmd, ""},
+	{"init", initCmd, ""},
+	{"commands", commandsClientCmd, ""},
 }
 var localMap = make(map[*cmds.Command]bool)
 
@@ -33,14 +33,14 @@ func init() {
 	Root.Subcommands = localCommands
 
 	// copy all subcommands from commands.Root into this root (if they aren't already present)
-	for k, v := range commands.Root.Subcommands {
-		if _, found := Root.Subcommands[k]; !found {
-			Root.Subcommands[k] = v
+	for _, globalCmdInfo := range commands.Root.Subcommands {
+		if Root.Subcommand(globalCmdInfo.Name) == nil {
+			Root.Subcommands = append(Root.Subcommands, globalCmdInfo)
 		}
 	}
 
 	for _, v := range localCommands {
-		localMap[v] = true
+		localMap[v.Cmd] = true
 	}
 }
 

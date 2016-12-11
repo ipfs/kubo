@@ -33,11 +33,11 @@ to be used in a production environment.
 To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
 	},
-	Subcommands: map[string]*cmds.Command{
-		"pub":   PubsubPubCmd,
-		"sub":   PubsubSubCmd,
-		"ls":    PubsubLsCmd,
-		"peers": PubsubPeersCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"pub", PubsubPubCmd, ""},
+		{"sub", PubsubSubCmd, ""},
+		{"ls", PubsubLsCmd, ""},
+		{"peers", PubsubPeersCmd, ""},
 	},
 }
 

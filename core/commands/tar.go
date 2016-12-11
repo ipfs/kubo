@@ -17,9 +17,9 @@ var TarCmd = &cmds.Command{
 		Tagline: "Utility functions for tar files in ipfs.",
 	},
 
-	Subcommands: map[string]*cmds.Command{
-		"add": tarAddCmd,
-		"cat": tarCatCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"add", tarAddCmd, ""},
+		{"cat", tarCatCmd, ""},
 	},
 }
 

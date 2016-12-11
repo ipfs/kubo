@@ -24,10 +24,10 @@ output of a running daemon.
 `,
 	},
 
-	Subcommands: map[string]*cmds.Command{
-		"level": logLevelCmd,
-		"ls":    logLsCmd,
-		"tail":  logTailCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"level", logLevelCmd, ""},
+		{"ls", logLsCmd, ""},
+		{"tail", logTailCmd, ""},
 	},
 }
 

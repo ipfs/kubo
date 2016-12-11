@@ -72,8 +72,8 @@ func TestOptionParsing(t *testing.T) {
 			commands.StringOption("string", "s", "a string"),
 			commands.BoolOption("bool", "b", "a bool"),
 		},
-		Subcommands: map[string]*commands.Command{
-			"test": subCmd,
+		Subcommands: []*commands.CmdInfo{
+			{"test", subCmd, ""},
 		},
 	}
 
@@ -142,62 +142,72 @@ func TestArgumentParsing(t *testing.T) {
 		t.Skip("stdin handling doesnt yet work on windows")
 	}
 	rootCmd := &commands.Command{
-		Subcommands: map[string]*commands.Command{
-			"noarg": {},
-			"onearg": {
+		Subcommands: []*commands.CmdInfo{
+			{"noarg", &commands.Command{}, ""},
+			{"onearg", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg"),
-				},
+				}},
+				"",
 			},
-			"twoargs": {
+			{"twoargs", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg"),
 					commands.StringArg("b", true, false, "another arg"),
-				},
+				}},
+				"",
 			},
-			"variadic": {
+			{"variadic", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, true, "some arg"),
-				},
+				}},
+				"",
 			},
-			"optional": {
+			{"optional", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("b", false, true, "another arg"),
-				},
+				}},
+				"",
 			},
-			"optionalsecond": {
+			{"optionalsecond", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg"),
 					commands.StringArg("b", false, false, "another arg"),
-				},
+				}},
+				"",
 			},
-			"reversedoptional": {
+			{"reversedoptional", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("a", false, false, "some arg"),
 					commands.StringArg("b", true, false, "another arg"),
-				},
+				}},
+				"",
 			},
-			"stdinenabled": {
+			{"stdinenabled", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, true, "some arg").EnableStdin(),
-				},
+				}},
+				"",
 			},
-			"stdinenabled2args": &commands.Command{
+			{"stdinenabled2args", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg"),
 					commands.StringArg("b", true, true, "another arg").EnableStdin(),
-				},
+				}},
+				"",
 			},
-			"stdinenablednotvariadic": &commands.Command{
+			{"stdinenablednotvariadic", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg").EnableStdin(),
-				},
+				}},
+				"",
 			},
-			"stdinenablednotvariadic2args": &commands.Command{
+			{"stdinenablednotvariadic2args", &commands.Command{
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg"),
 					commands.StringArg("b", true, false, "another arg").EnableStdin(),
-				},
+				}},
+				"",
 			},
 		},
 	}

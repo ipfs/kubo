@@ -23,10 +23,7 @@ This subcommand is currently an experimental feature, but it is intended
 to deprecate and replace the existing 'ipfs object' command moving forward.
 		`,
 	},
-	Subcommands: map[string]*cmds.Command{
-		"put": DagPutCmd,
-		"get": DagGetCmd,
-	},
+	Subcommands: []*cmds.CmdInfo{{"put", DagPutCmd, ""}, {"get", DagGetCmd, ""}},
 }
 
 type OutputObject struct {

@@ -31,10 +31,10 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 	Marshalers: bootstrapListCmd.Marshalers,
 	Type:       bootstrapListCmd.Type,
 
-	Subcommands: map[string]*cmds.Command{
-		"list": bootstrapListCmd,
-		"add":  bootstrapAddCmd,
-		"rm":   bootstrapRemoveCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"list", bootstrapListCmd, ""},
+		{"add", bootstrapAddCmd, ""},
+		{"rm", bootstrapRemoveCmd, ""},
 	},
 }
 
@@ -53,8 +53,8 @@ in the bootstrap list).
 	Options: []cmds.Option{
 		cmds.BoolOption("default", "Add default bootstrap nodes. (Deprecated, use 'default' subcommand instead)"),
 	},
-	Subcommands: map[string]*cmds.Command{
-		"default": bootstrapAddDefaultCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"default", bootstrapAddDefaultCmd, ""},
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -192,8 +192,8 @@ var bootstrapRemoveCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.BoolOption("all", "Remove all bootstrap peers. (Deprecated, use 'all' subcommand)"),
 	},
-	Subcommands: map[string]*cmds.Command{
-		"all": bootstrapRemoveAllCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"all", bootstrapRemoveAllCmd, ""},
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		all, _, err := req.Option("all").Bool()

@@ -30,12 +30,12 @@ var RepoCmd = &cmds.Command{
 `,
 	},
 
-	Subcommands: map[string]*cmds.Command{
-		"gc":      repoGcCmd,
-		"stat":    repoStatCmd,
-		"fsck":    RepoFsckCmd,
-		"version": repoVersionCmd,
-		"verify":  repoVerifyCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"gc", repoGcCmd, ""},
+		{"stat", repoStatCmd, ""},
+		{"fsck", RepoFsckCmd, ""},
+		{"version", repoVersionCmd, ""},
+		{"verify", repoVerifyCmd, ""},
 	},
 }
 

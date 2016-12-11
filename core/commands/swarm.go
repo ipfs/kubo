@@ -37,12 +37,12 @@ component that opens, listens for, and maintains connections to other
 ipfs peers in the internet.
 `,
 	},
-	Subcommands: map[string]*cmds.Command{
-		"addrs":      swarmAddrsCmd,
-		"connect":    swarmConnectCmd,
-		"disconnect": swarmDisconnectCmd,
-		"filters":    swarmFiltersCmd,
-		"peers":      swarmPeersCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"addrs", swarmAddrsCmd, ""},
+		{"connect", swarmConnectCmd, ""},
+		{"disconnect", swarmDisconnectCmd, ""},
+		{"filters", swarmFiltersCmd, ""},
+		{"peers", swarmPeersCmd, ""},
 	},
 }
 
@@ -196,8 +196,8 @@ var swarmAddrsCmd = &cmds.Command{
 'ipfs swarm addrs' lists all addresses this node is aware of.
 `,
 	},
-	Subcommands: map[string]*cmds.Command{
-		"local": swarmAddrsLocalCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"local", swarmAddrsLocalCmd, ""},
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -495,9 +495,9 @@ Where the above is equivalent to the standard CIDR:
 Filters default to those specified under the "Swarm.AddrFilters" config key.
 `,
 	},
-	Subcommands: map[string]*cmds.Command{
-		"add": swarmFiltersAddCmd,
-		"rm":  swarmFiltersRmCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"add", swarmFiltersAddCmd, ""},
+		{"rm", swarmFiltersRmCmd, ""},
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
