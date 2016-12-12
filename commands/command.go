@@ -39,6 +39,8 @@ type HelpText struct {
 	Tagline               string            // used in <cmd usage>
 	ShortDescription      string            // used in DESCRIPTION
 	SynopsisOptionsValues map[string]string // mappings for synopsis generator
+	// optional
+	AdditionalHelp				string            // can be used to add additional information
 
 	// optional - whole section overrides
 	Usage           string // overrides USAGE section
