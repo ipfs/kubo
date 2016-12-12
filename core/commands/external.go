@@ -17,6 +17,10 @@ func ExternalBinary() *cmds.Command {
 			cmds.StringArg("args", false, true, "Arguments for subcommand."),
 		},
 		External: true,
+		Helptext: cmds.HelpText{
+			Tagline:          "Download and apply go-ipfs updates",
+			ShortDescription: `Download and apply go-ipfs updates.`,
+		},
 		Run: func(req cmds.Request, res cmds.Response) {
 			binname := strings.Join(append([]string{"ipfs"}, req.Path()...), "-")
 			_, err := exec.LookPath(binname)

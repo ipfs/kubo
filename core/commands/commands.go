@@ -72,7 +72,7 @@ func cmd2outputCmd(name string, cmd *cmds.Command) Command {
 
 	i := 0
 	for _, cInfo := range cmd.Subcommands {
-		output.Subcommands[i] = cmd2outputCmd(name, cInfo.Cmd)
+		output.Subcommands[i] = cmd2outputCmd(cInfo.Name, cInfo.Cmd)
 		i++
 	}
 

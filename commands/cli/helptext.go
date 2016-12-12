@@ -24,17 +24,18 @@ const (
 )
 
 type helpFields struct {
-	Indent      string
-	Usage       string
-	Path        string
-	ArgUsage    string
-	Tagline     string
-	Arguments   string
-	Options     string
-	Synopsis    string
-	Subcommands string
-	Description string
-	MoreHelp    bool
+	Indent         string
+	Usage          string
+	Path           string
+	ArgUsage       string
+	Tagline        string
+	Arguments      string
+	Options        string
+	Synopsis       string
+	Subcommands    string
+	Description    string
+	AdditionalHelp string
+	MoreHelp       bool
 }
 
 // TrimNewlines removes extra newlines from fields. This makes aligning
@@ -96,6 +97,8 @@ const longHelpFormat = `USAGE
 {{.Subcommands}}
 
 {{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
+{{end}}{{if .AdditionalHelp}}
+{{.AdditionalHelp}}
 {{end}}
 `
 const shortHelpFormat = `USAGE
@@ -109,6 +112,8 @@ SUBCOMMANDS
 {{.Subcommands}}
 {{end}}{{if .MoreHelp}}
 Use '{{.Path}} --help' for more information about this command.
+{{end}}{{if .AdditionalHelp}}
+{{.AdditionalHelp}}
 {{end}}
 `
 
@@ -135,17 +140,18 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 	}
 
 	fields := helpFields{
-		Indent:      indentStr,
-		Path:        pathStr,
-		ArgUsage:    usageText(cmd),
-		Tagline:     cmd.Helptext.Tagline,
-		Arguments:   cmd.Helptext.Arguments,
-		Options:     cmd.Helptext.Options,
-		Synopsis:    cmd.Helptext.Synopsis,
-		Subcommands: cmd.Helptext.Subcommands,
-		Description: cmd.Helptext.ShortDescription,
-		Usage:       cmd.Helptext.Usage,
-		MoreHelp:    (cmd != root),
+		Indent:         indentStr,
+		Path:           pathStr,
+		ArgUsage:       usageText(cmd),
+		Tagline:        cmd.Helptext.Tagline,
+		Arguments:      cmd.Helptext.Arguments,
+		Options:        cmd.Helptext.Options,
+		Synopsis:       cmd.Helptext.Synopsis,
+		Subcommands:    cmd.Helptext.Subcommands,
+		Description:    cmd.Helptext.ShortDescription,
+		Usage:          cmd.Helptext.Usage,
+		AdditionalHelp: cmd.Helptext.AdditionalHelp,
+		MoreHelp:       (cmd != root),
 	}
 
 	if len(cmd.Helptext.LongDescription) > 0 {
@@ -193,15 +199,16 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 	}
 
 	fields := helpFields{
-		Indent:      indentStr,
-		Path:        pathStr,
-		ArgUsage:    usageText(cmd),
-		Tagline:     cmd.Helptext.Tagline,
-		Synopsis:    cmd.Helptext.Synopsis,
-		Description: cmd.Helptext.ShortDescription,
-		Subcommands: cmd.Helptext.Subcommands,
-		Usage:       cmd.Helptext.Usage,
-		MoreHelp:    (cmd != root),
+		Indent:         indentStr,
+		Path:           pathStr,
+		ArgUsage:       usageText(cmd),
+		Tagline:        cmd.Helptext.Tagline,
+		Synopsis:       cmd.Helptext.Synopsis,
+		Description:    cmd.Helptext.ShortDescription,
+		Subcommands:    cmd.Helptext.Subcommands,
+		Usage:          cmd.Helptext.Usage,
+		AdditionalHelp: cmd.Helptext.AdditionalHelp,
+		MoreHelp:       true,
 	}
 
 	// autogen fields that are empty
@@ -352,18 +359,33 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 		prefix += " "
 	}
 
-	lines := make([]string, len(cmd.Subcommands))
-
-	for i, cInfo := range cmd.Subcommands {
+	var lastCommandGroup = ""
+	var lines []string
+	for _, cInfo := range cmd.Subcommands {
+		if lastCommandGroup != cInfo.Group {
+			lastCommandGroup = cInfo.Group
+			lines = append(lines, "")
+			lines = append(lines, lastCommandGroup)
+		}
 		usage := usageText(cInfo.Cmd)
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
-		lines[i] = prefix + cInfo.Name + usage
+		lines = append(lines, prefix+cInfo.Name+usage)
 	}
 	lines = align(lines)
+	lastCommandGroup = ""
+	groupsBefore := 0
 	for i, cInfo := range cmd.Subcommands {
-		lines[i] += " - " + cInfo.Cmd.Helptext.Tagline
+		if lastCommandGroup != cInfo.Group {
+			lastCommandGroup = cInfo.Group
+			groupsBefore++
+		}
+		if groupsBefore > 0 {
+			// groupsBefore * 2 because there are 2 lines per group
+			lines[i+groupsBefore*2] = "  " + lines[i+groupsBefore*2]
+		}
+		lines[i+groupsBefore*2] += " - " + cInfo.Cmd.Helptext.Tagline
 	}
 	return lines
 }

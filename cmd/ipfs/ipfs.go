@@ -20,23 +20,38 @@ var commandsClientCmd = commands.CommandsCmd(Root)
 
 // Commands in localCommands should always be run locally (even if daemon is running).
 // They can override subcommands in commands.Root by defining a subcommand with the same name.
-var localCommands = []*cmds.CmdInfo{
-	{"daemon", daemonCmd, ""},
-	{"init", initCmd, ""},
-	{"commands", commandsClientCmd, ""},
+// The key in  this map is the position in the help text. As with the whole subcommand, the
+// explicit positioning here takes precedence over the implicit one in commands.Root.Subcommands.
+var localCommands = map[uint]*cmds.CmdInfo{
+	10: {"daemon", daemonCmd, "ADVANCED COMMANDS"},
+	0:  {"init", initCmd, "BASIC COMMANDS"},
+	32: {"commands", commandsClientCmd, "TOOL COMMANDS"},
 }
 var localMap = make(map[*cmds.Command]bool)
+
+func localCommandExists(name string) bool {
+	for _, v := range localCommands {
+		if v.Name == name {
+			return true
+		}
+	}
+	return false
+}
 
 func init() {
 	// setting here instead of in literal to prevent initialization loop
 	// (some commands make references to Root)
-	Root.Subcommands = localCommands
 
-	// copy all subcommands from commands.Root into this root (if they aren't already present)
-	for _, globalCmdInfo := range commands.Root.Subcommands {
-		if Root.Subcommand(globalCmdInfo.Name) == nil {
-			Root.Subcommands = append(Root.Subcommands, globalCmdInfo)
+	// copy all subcommands which don't exist in localCommands from commands.Root into this root
+	for _, v := range commands.Root.Subcommands {
+		if !localCommandExists(v.Name) {
+			Root.Subcommands = append(Root.Subcommands, v)
 		}
+	}
+
+	// add local commands to this root in the right position
+	for k, v := range localCommands {
+		Root.Subcommands = append(Root.Subcommands[:k], append([]*cmds.CmdInfo{v}, Root.Subcommands[k:]...)...)
 	}
 
 	for _, v := range localCommands {
