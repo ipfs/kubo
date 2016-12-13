@@ -125,6 +125,9 @@ func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {
 		// should never happen, purely for sanity
 		log.Panicf("unexpected type %T as DHT resolver.", ns.resolvers["dht"])
 	}
+	if time.Now().Add(DefaultResolverCacheTTL).Before(eol) {
+		eol = time.Now().Add(DefaultResolverCacheTTL)
+	}
 	rr.cache.Add(name.Pretty(), cacheEntry{
 		val: value,
 		eol: eol,
