@@ -32,8 +32,8 @@ var ErrExpiredRecord = errors.New("expired record")
 // unknown validity type.
 var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
 
-var PublishPutValTimeout = time.Minute
-var DefaultRecortTTL = 24 * time.Hour
+const PublishPutValTimeout = time.Minute
+const DefaultRecordTTL = 24 * time.Hour
 
 // ipnsPublisher is capable of publishing and resolving names to the IPFS
 // routing system.
@@ -54,7 +54,7 @@ func NewRoutingPublisher(route routing.ValueStore, ds ds.Datastore) *ipnsPublish
 // and publishes it out to the routing system
 func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Path) error {
 	log.Debugf("Publish %s", value)
-	return p.PublishWithEOL(ctx, k, value, time.Now().Add(DefaultRecortTTL))
+	return p.PublishWithEOL(ctx, k, value, time.Now().Add(DefaultRecordTTL))
 }
 
 // PublishWithEOL is a temporary stand in for the ipns records implementation
