@@ -22,8 +22,8 @@ import (
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
-	"gx/ipfs/Qma2gYZ4F7ftPMPve1RvbNJS45R3Y2qoYDtibH8MrwXAv4/go-ds-measure"
 	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	"gx/ipfs/QmbUSMTQtK9GRrUbD4ngqJwSzHsquUc8nyDubRWp4vPybH/go-ds-measure"
 )
 
 var log = logging.Logger("fsrepo")
@@ -365,17 +365,7 @@ func (r *FSRepo) openDatastore() error {
 	}
 
 	// Wrap it with metrics gathering
-	//
-	// Add our PeerID to metrics paths to keep them unique
-	//
-	// As some tests just pass a zero-value Config to fsrepo.Init,
-	// cope with missing PeerID.
-	id := r.config.Identity.PeerID
-	if id == "" {
-		// the tests pass in a zero Config; cope with it
-		id = fmt.Sprintf("uninitialized_%p", r)
-	}
-	prefix := "fsrepo." + id + ".datastore"
+	prefix := "ipfs.fsrepo.datastore"
 	r.ds = measure.New(prefix, r.ds)
 
 	return nil
