@@ -158,6 +158,11 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"patch": ocmd.ObjectPatchCmd,
 		},
 	},
+	"dag": &cmds.Command{
+		Subcommands: map[string]*cmds.Command{
+			"get": dag.DagGetCmd,
+		},
+	},
 	"refs":    RefsROCmd,
 	"resolve": ResolveCmd,
 	"version": VersionCmd,
