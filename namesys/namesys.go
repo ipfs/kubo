@@ -93,7 +93,7 @@ func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) e
 	if err != nil {
 		return err
 	}
-	ns.addToDHTCache(name, value, time.Now().Add(time.Hour*24))
+	ns.addToDHTCache(name, value, time.Now().Add(DefaultRecortTTL))
 	return nil
 }
 
