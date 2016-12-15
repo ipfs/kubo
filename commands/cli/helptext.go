@@ -169,7 +169,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer,
 		fields.Arguments = strings.Join(argumentText(cmd), "\n")
 	}
 	if len(fields.Options) == 0 {
-		fields.Options = strings.Join(optionText(cmd), "\n")
+		fields.Options = strings.Join(optionText(useColor, cmd), "\n")
 	}
 	if len(fields.Subcommands) == 0 {
 		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path, useColor), "\n")
@@ -304,7 +304,7 @@ func optionFlag(flag string) string {
 	}
 }
 
-func optionText(cmd ...*cmds.Command) []string {
+func optionText(useColor bool, cmd ...*cmds.Command) []string {
 	// get a slice of the options we want to list out
 	options := make([]cmds.Option, 0)
 	for _, c := range cmd {
@@ -353,7 +353,12 @@ func optionText(cmd ...*cmds.Command) []string {
 
 	// add option descriptions to output
 	for i, opt := range options {
-		lines[i] += " - " + opt.Description()
+		if useColor {
+			lines[i] += " - " +  formatCyan + opt.Description() + formatReset
+		} else {
+			lines[i] += " - " + opt.Description()
+		}
+
 	}
 
 	return lines
