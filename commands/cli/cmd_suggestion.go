@@ -50,9 +50,9 @@ func suggestUnknownCmd(args []string, root *cmds.Command) []string {
 	}
 
 	// Start with a simple strings.Contains check
-	for name, _ := range root.Subcommands {
-		if strings.Contains(arg, name) {
-			suggestions = append(suggestions, name)
+	for _, cInfo := range root.Subcommands {
+		if strings.Contains(arg, cInfo.Name) {
+			suggestions = append(suggestions, cInfo.Name)
 		}
 	}
 
@@ -61,10 +61,10 @@ func suggestUnknownCmd(args []string, root *cmds.Command) []string {
 		return suggestions
 	}
 
-	for name, _ := range root.Subcommands {
-		lev := levenshtein.DistanceForStrings([]rune(arg), []rune(name), options)
+	for _, cInfo := range root.Subcommands {
+		lev := levenshtein.DistanceForStrings([]rune(arg), []rune(cInfo.Name), options)
 		if lev <= MIN_LEVENSHTEIN {
-			sortableSuggestions = append(sortableSuggestions, &suggestion{name, lev})
+			sortableSuggestions = append(sortableSuggestions, &suggestion{cInfo.Name, lev})
 		}
 	}
 	sort.Sort(sortableSuggestions)

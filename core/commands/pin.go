@@ -22,10 +22,10 @@ var PinCmd = &cmds.Command{
 		Tagline: "Pin (and unpin) objects to local storage.",
 	},
 
-	Subcommands: map[string]*cmds.Command{
-		"add": addPinCmd,
-		"rm":  rmPinCmd,
-		"ls":  listPinCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"add", addPinCmd, ""},
+		{"rm", rmPinCmd, ""},
+		{"ls", listPinCmd, ""},
 	},
 }
 

@@ -17,9 +17,9 @@ var KeyCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create and manipulate keypairs",
 	},
-	Subcommands: map[string]*cmds.Command{
-		"gen":  KeyGenCmd,
-		"list": KeyListCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"gen", KeyGenCmd, ""},
+		{"list", KeyListCmd, ""},
 	},
 }
 

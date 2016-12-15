@@ -58,8 +58,8 @@ func getTestServer(t *testing.T, origins []string) *httptest.Server {
 	}
 
 	cmdRoot := &cmds.Command{
-		Subcommands: map[string]*cmds.Command{
-			"version": ipfscmd.VersionCmd,
+		Subcommands: []*cmds.CmdInfo{
+			{"version", ipfscmd.VersionCmd, ""},
 		},
 	}
 

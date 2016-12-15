@@ -22,58 +22,15 @@ var Root = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:  "Global p2p merkle-dag filesystem.",
 		Synopsis: "ipfs [--config=<config> | -c] [--debug=<debug> | -D] [--help=<help>] [-h=<h>] [--local=<local> | -L] [--api=<api>] <command> ...",
-		Subcommands: `
-BASIC COMMANDS
-  init          Initialize ipfs local configuration
-  add <path>    Add a file to IPFS
-  cat <ref>     Show IPFS object data
-  get <ref>     Download IPFS objects
-  ls <ref>      List links from an object
-  refs <ref>    List hashes of links from an object
-
-DATA STRUCTURE COMMANDS
-  block         Interact with raw blocks in the datastore
-  object        Interact with raw dag nodes
-  files         Interact with objects as if they were a unix filesystem
-  dag           Interact with IPLD documents (experimental)
-
-ADVANCED COMMANDS
-  daemon        Start a long-running daemon process
-  mount         Mount an IPFS read-only mountpoint
-  resolve       Resolve any type of name
-  name          Publish or resolve IPNS names
-  dns           Resolve DNS links
-  pin           Pin objects to local storage
-  repo          Manipulate the IPFS repository
-  stats         Various operational stats
-
-NETWORK COMMANDS
-  id            Show info about IPFS peers
-  bootstrap     Add or remove bootstrap peers
-  swarm         Manage connections to the p2p network
-  dht           Query the DHT for values or peers
-  ping          Measure the latency of a connection
-  diag          Print diagnostics
-
-TOOL COMMANDS
-  config        Manage configuration
-  version       Show ipfs version information
-  update        Download and apply go-ipfs updates
-  commands      List all available commands
-
-Use 'ipfs <command> --help' to learn more about each command.
-
-ipfs uses a repository in the local file system. By default, the repo is located
+		AdditionalHelp: `ipfs uses a repository in the local file system. By default, the repo is located
 at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
 
   export IPFS_PATH=/path/to/ipfsrepo
 
 EXIT STATUS
-
-The CLI will exit with one of the following values:
-
-0     Successful execution.
-1     Failed executions.
+  The CLI will exit with one of the following values:
+    0     Successful execution.
+    1     Failed executions.
 `,
 	},
 	Options: []cmds.Option{
@@ -82,6 +39,7 @@ The CLI will exit with one of the following values:
 		cmds.BoolOption("help", "Show the full command help text.").Default(false),
 		cmds.BoolOption("h", "Show a short version of the command help text.").Default(false),
 		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon.").Default(false),
+		cmds.BoolOption("color", "Use colors in console output.").Default(false),
 		cmds.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 	},
 }
@@ -89,40 +47,40 @@ The CLI will exit with one of the following values:
 // commandsDaemonCmd is the "ipfs commands" command for daemon
 var CommandsDaemonCmd = CommandsCmd(Root)
 
-var rootSubcommands = map[string]*cmds.Command{
-	"add":       AddCmd,
-	"block":     BlockCmd,
-	"bootstrap": BootstrapCmd,
-	"cat":       CatCmd,
-	"commands":  CommandsDaemonCmd,
-	"config":    ConfigCmd,
-	"dag":       dag.DagCmd,
-	"dht":       DhtCmd,
-	"diag":      DiagCmd,
-	"dns":       DNSCmd,
-	"files":     files.FilesCmd,
-	"get":       GetCmd,
-	"id":        IDCmd,
-	"key":       KeyCmd,
-	"log":       LogCmd,
-	"ls":        LsCmd,
-	"mount":     MountCmd,
-	"name":      NameCmd,
-	"object":    ocmd.ObjectCmd,
-	"pin":       PinCmd,
-	"ping":      PingCmd,
-	"pubsub":    PubsubCmd,
-	"refs":      RefsCmd,
-	"repo":      RepoCmd,
-	"resolve":   ResolveCmd,
-	"stats":     StatsCmd,
-	"swarm":     SwarmCmd,
-	"tar":       TarCmd,
-	"tour":      tourCmd,
-	"file":      unixfs.UnixFSCmd,
-	"update":    ExternalBinary(),
-	"version":   VersionCmd,
-	"bitswap":   BitswapCmd,
+var rootSubcommands = []*cmds.CmdInfo{
+	{"add", AddCmd, "BASIC COMMANDS"},
+	{"cat", CatCmd, "BASIC COMMANDS"},
+	{"get", GetCmd, "BASIC COMMANDS"},
+	{"ls", LsCmd, "BASIC COMMANDS"},
+	{"refs", RefsCmd, "BASIC COMMANDS"},
+	{"tour", tourCmd, "BASIC COMMANDS"},
+	{"block", BlockCmd, "DATA STRUCTURE COMMANDS"},
+	{"object", ocmd.ObjectCmd, "DATA STRUCTURE COMMANDS"},
+	{"files", files.FilesCmd, "DATA STRUCTURE COMMANDS"},
+	{"mount", MountCmd, "ADVANCED COMMANDS"},
+	{"resolve", ResolveCmd, "ADVANCED COMMANDS"},
+	{"name", NameCmd, "ADVANCED COMMANDS"},
+	{"dns", DNSCmd, "ADVANCED COMMANDS"},
+	{"pin", PinCmd, "ADVANCED COMMANDS"},
+	{"repo", RepoCmd, "ADVANCED COMMANDS"},
+	{"dag", dag.DagCmd, "ADVANCED COMMANDS"},
+	{"key", KeyCmd, "ADVANCED COMMANDS"},
+	{"pubsub", PubsubCmd, "ADVANCED COMMANDS"},
+	{"log", LogCmd, "ADVANCED COMMANDS"},
+	{"stats", StatsCmd, "ADVANCED COMMANDS"},
+	{"tar", TarCmd, "ADVANCED COMMANDS"},
+	{"file", unixfs.UnixFSCmd, "ADVANCED COMMANDS"},
+	{"bitswap", BitswapCmd, "ADVANCED COMMANDS"},
+	{"id", IDCmd, "NETWORK COMMANDS"},
+	{"bootstrap", BootstrapCmd, "NETWORK COMMANDS"},
+	{"swarm", SwarmCmd, "NETWORK COMMANDS"},
+	{"dht", DhtCmd, "NETWORK COMMANDS"},
+	{"ping", PingCmd, "NETWORK COMMANDS"},
+	{"diag", DiagCmd, "NETWORK COMMANDS"},
+	{"commands", CommandsDaemonCmd, "TOOL COMMANDS"},
+	{"config", ConfigCmd, "TOOL COMMANDS"},
+	{"version", VersionCmd, "TOOL COMMANDS"},
+	{"update", ExternalBinary(), "TOOL COMMANDS"},
 }
 
 // RootRO is the readonly version of Root
@@ -132,35 +90,28 @@ var CommandsDaemonROCmd = CommandsCmd(RootRO)
 
 var RefsROCmd = &cmds.Command{}
 
-var rootROSubcommands = map[string]*cmds.Command{
-	"block": &cmds.Command{
-		Subcommands: map[string]*cmds.Command{
-			"stat": blockStatCmd,
-			"get":  blockGetCmd,
-		},
-	},
-	"cat":      CatCmd,
-	"commands": CommandsDaemonROCmd,
-	"dns":      DNSCmd,
-	"get":      GetCmd,
-	"ls":       LsCmd,
-	"name": &cmds.Command{
-		Subcommands: map[string]*cmds.Command{
-			"resolve": IpnsCmd,
-		},
-	},
-	"object": &cmds.Command{
-		Subcommands: map[string]*cmds.Command{
-			"data":  ocmd.ObjectDataCmd,
-			"links": ocmd.ObjectLinksCmd,
-			"get":   ocmd.ObjectGetCmd,
-			"stat":  ocmd.ObjectStatCmd,
-			"patch": ocmd.ObjectPatchCmd,
-		},
-	},
-	"refs":    RefsROCmd,
-	"resolve": ResolveCmd,
-	"version": VersionCmd,
+var rootROSubcommands = []*cmds.CmdInfo{
+	{"block",
+		&cmds.Command{Subcommands: []*cmds.CmdInfo{{"stat", blockStatCmd, ""}, {"get", blockGetCmd, ""}}},
+		""},
+	{"cat", CatCmd, ""},
+	{"commands", CommandsDaemonROCmd, ""},
+	{"dns", DNSCmd, ""},
+	{"get", GetCmd, ""},
+	{"ls", LsCmd, ""},
+	{"name", &cmds.Command{Subcommands: []*cmds.CmdInfo{{"resolve", IpnsCmd, ""}}}, ""},
+	{"object",
+		&cmds.Command{Subcommands: []*cmds.CmdInfo{
+			{"data", ocmd.ObjectDataCmd, ""},
+			{"links", ocmd.ObjectLinksCmd, ""},
+			{"get", ocmd.ObjectGetCmd, ""},
+			{"stat", ocmd.ObjectStatCmd, ""},
+			{"patch", ocmd.ObjectPatchCmd, ""},
+		}},
+		""},
+	{"refs", RefsROCmd, ""},
+	{"resolve", ResolveCmd, ""},
+	{"version", VersionCmd, ""},
 }
 
 func init() {
@@ -169,7 +120,7 @@ func init() {
 
 	// sanitize readonly refs command
 	*RefsROCmd = *RefsCmd
-	RefsROCmd.Subcommands = map[string]*cmds.Command{}
+	RefsROCmd.Subcommands = []*cmds.CmdInfo{}
 
 	Root.Subcommands = rootSubcommands
 	RootRO.Subcommands = rootROSubcommands
