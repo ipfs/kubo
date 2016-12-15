@@ -39,6 +39,7 @@ EXIT STATUS
 		cmds.BoolOption("help", "Show the full command help text.").Default(false),
 		cmds.BoolOption("h", "Show a short version of the command help text.").Default(false),
 		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon.").Default(false),
+		cmds.BoolOption("color", "Use colors in console output.").Default(false),
 		cmds.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 	},
 }

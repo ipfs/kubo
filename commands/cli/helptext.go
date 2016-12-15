@@ -21,6 +21,11 @@ const (
 	whitespace = "\r\n\t "
 
 	indentStr = "  "
+
+	formatReset     = "\033[0m"
+	formatBold      = "\033[1m"
+	formatUnderline = "\033[4m"
+	formatCyan      = "\033[36m"
 )
 
 type helpFields struct {
@@ -128,7 +133,7 @@ func init() {
 }
 
 // LongHelp writes a formatted CLI helptext string to a Writer for the given command
-func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
+func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer, useColor bool) error {
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err
@@ -166,7 +171,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 		fields.Options = strings.Join(optionText(cmd), "\n")
 	}
 	if len(fields.Subcommands) == 0 {
-		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
+		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path, useColor), "\n")
 	}
 	if len(fields.Synopsis) == 0 {
 		fields.Synopsis = generateSynopsis(cmd, pathStr)
@@ -182,7 +187,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 }
 
 // ShortHelp writes a formatted CLI helptext string to a Writer for the given command
-func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
+func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer, useColor bool) error {
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err
@@ -213,7 +218,7 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 
 	// autogen fields that are empty
 	if len(fields.Subcommands) == 0 {
-		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
+		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path, useColor), "\n")
 	}
 	if len(fields.Synopsis) == 0 {
 		fields.Synopsis = generateSynopsis(cmd, pathStr)
@@ -353,7 +358,7 @@ func optionText(cmd ...*cmds.Command) []string {
 	return lines
 }
 
-func subcommandText(cmd *cmds.Command, rootName string, path []string) []string {
+func subcommandText(cmd *cmds.Command, rootName string, path []string, useColor bool) []string {
 	prefix := fmt.Sprintf("%v %v", rootName, strings.Join(path, " "))
 	if len(path) > 0 {
 		prefix += " "
@@ -371,7 +376,12 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
-		lines = append(lines, prefix+cInfo.Name+usage)
+		if useColor {
+			lines = append(lines, prefix+formatBold+cInfo.Name+formatReset+usage)
+		} else {
+			lines = append(lines, prefix+cInfo.Name+usage)
+		}
+
 	}
 	lines = align(lines)
 	lastCommandGroup = ""
@@ -383,9 +393,14 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 		}
 		if groupsBefore > 0 {
 			// groupsBefore * 2 because there are 2 lines per group
-			lines[i+groupsBefore*2] = "  " + lines[i+groupsBefore*2]
+			lines[i+groupsBefore*2] = indentStr + lines[i+groupsBefore*2]
 		}
-		lines[i+groupsBefore*2] += " - " + cInfo.Cmd.Helptext.Tagline
+		if useColor {
+			lines[i+groupsBefore*2] += " - " + formatCyan + cInfo.Cmd.Helptext.Tagline + formatReset
+		} else {
+			lines[i+groupsBefore*2] += " - " + cInfo.Cmd.Helptext.Tagline
+		}
+
 	}
 	return lines
 }
