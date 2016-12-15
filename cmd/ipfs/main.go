@@ -86,12 +86,20 @@ func main() {
 	// this is a local helper to print out help text.
 	// there's some considerations that this makes easier.
 	printHelp := func(long bool, w io.Writer) {
+		useColor := false
+		for _, str := range(os.Args){
+			if str == "--color" {
+				useColor = true
+			}
+		}
+
+
 		helpFunc := cmdsCli.ShortHelp
 		if long {
 			helpFunc = cmdsCli.LongHelp
 		}
 
-		helpFunc("ipfs", Root, invoc.path, w)
+		helpFunc("ipfs", Root, invoc.path, w, useColor)
 	}
 
 	// this is a message to tell the user how to get the help text
