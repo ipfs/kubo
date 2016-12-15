@@ -133,7 +133,7 @@ func init() {
 }
 
 // LongHelp writes a formatted CLI helptext string to a Writer for the given command
-func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer, useColor bool) error {
+func LongHelp(rootName string, root *cmds.Command, path []string, req cmds.Request, out io.Writer) error {
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err
@@ -164,11 +164,15 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer,
 	}
 
 	// autogen fields that are empty
+	useColor := false
+	if req != nil {
+		useColor, _, _ = req.Option("color").Bool()
+	}
 	if len(fields.Arguments) == 0 {
 		fields.Arguments = strings.Join(argumentText(cmd), "\n")
 	}
 	if len(fields.Options) == 0 {
-		fields.Options = strings.Join(optionText(cmd), "\n")
+		fields.Options = strings.Join(optionText(useColor, cmd), "\n")
 	}
 	if len(fields.Subcommands) == 0 {
 		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path, useColor), "\n")
@@ -187,7 +191,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer,
 }
 
 // ShortHelp writes a formatted CLI helptext string to a Writer for the given command
-func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer, useColor bool) error {
+func ShortHelp(rootName string, root *cmds.Command, path []string, req cmds.Request, out io.Writer) error {
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err
@@ -218,7 +222,12 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 
 	// autogen fields that are empty
 	if len(fields.Subcommands) == 0 {
-		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path, useColor), "\n")
+		if req != nil {
+			useColor, _, _ := req.Option("color").Bool()
+			fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path, useColor), "\n")
+		} else {
+			fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path, false), "\n")
+		}
 	}
 	if len(fields.Synopsis) == 0 {
 		fields.Synopsis = generateSynopsis(cmd, pathStr)
@@ -303,7 +312,7 @@ func optionFlag(flag string) string {
 	}
 }
 
-func optionText(cmd ...*cmds.Command) []string {
+func optionText(useColor bool, cmd ...*cmds.Command) []string {
 	// get a slice of the options we want to list out
 	options := make([]cmds.Option, 0)
 	for _, c := range cmd {
@@ -352,7 +361,12 @@ func optionText(cmd ...*cmds.Command) []string {
 
 	// add option descriptions to output
 	for i, opt := range options {
-		lines[i] += " - " + opt.Description()
+		if useColor {
+			lines[i] += " - " + formatCyan + opt.Description() + formatReset
+		} else {
+			lines[i] += " - " + opt.Description()
+		}
+
 	}
 
 	return lines
