@@ -229,6 +229,22 @@ func (n *ProtoNode) Loggable() map[string]interface{} {
 	}
 }
 
+func (n *ProtoNode) UnmarshalJSON(b []byte) error {
+	s := struct {
+		Data  []byte       `json:"data"`
+		Links []*node.Link `json:"links"`
+	}{}
+
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
+
+	n.data = s.Data
+	n.links = s.Links
+	return nil
+}
+
 func (n *ProtoNode) MarshalJSON() ([]byte, error) {
 	out := map[string]interface{}{
 		"data":  n.data,
