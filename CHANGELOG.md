@@ -1,5 +1,15 @@
 # go-ipfs changelog
 
+### 0.4.4 - 2016-10-11
+
+This release contains an important hotfix for a bug we discovered in how pinning works.
+If you had a large number of pins, new pins would overwrite existing pins.
+Apart from the hotfix, this release is equal to the previous release 0.4.3.
+
+- Fix bug in pinsets fanout, and add stress test. (@whyrusleeping, [ipfs/go-ipfs#3273](https://github.com/ipfs/go-ipfs/pull/3273))
+
+We published a [detailed account of the bug and fix in a blog post](https://ipfs.io/blog/21-go-ipfs-0-4-4-released/).
+
 ### 0.4.3 - 2016-09-20
 
 There have been no changes since the last release candidate 0.4.3-rc4. \o/

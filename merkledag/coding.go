@@ -60,7 +60,9 @@ func (n *ProtoNode) getPBNode() *pb.PBNode {
 		pbn.Links[i] = &pb.PBLink{}
 		pbn.Links[i].Name = &l.Name
 		pbn.Links[i].Tsize = &l.Size
-		pbn.Links[i].Hash = l.Cid.Bytes()
+		if l.Cid != nil {
+			pbn.Links[i].Hash = l.Cid.Bytes()
+		}
 	}
 
 	if len(n.data) > 0 {

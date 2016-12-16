@@ -109,6 +109,7 @@ var rootROSubcommands = []*cmds.CmdInfo{
 			{"patch", ocmd.ObjectPatchCmd, ""},
 		}},
 		""},
+	{"dag", &cmds.Command{Subcommands: []*cmds.CmdInfo{{"get", dag.DagGetCmd, ""}}}, ""},
 	{"refs", RefsROCmd, ""},
 	{"resolve", ResolveCmd, ""},
 	{"version", VersionCmd, ""},
