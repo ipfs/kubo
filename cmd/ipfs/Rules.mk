@@ -21,7 +21,7 @@ CLEAN += $(COVER_BIN_$(d))
 
 $(COVER_BIN_$(d)): GOTAGS += testrunmain
 $(COVER_BIN_$(d)): $(d) $$(DEPS_GO) ALWAYS
-	$(eval TMP_PKGS := $(shell go list -f '{{range .Deps}}{{.}} {{end}}' $(go-flags-with-tags) ./cmd/ipfs | sed 's/ /\n/g' | grep ipfs/go-ipfs))
+	$(eval TMP_PKGS := $(shell go list -f '{{range .Deps}}{{.}} {{end}}' $(go-flags-with-tags) ./cmd/ipfs | sed 's/ /\n/g' | grep ipfs/go-ipfs | grep -v ipfs/go-ipfs/Godeps) $(call go-pkg-name,$<))
 	$(eval TMP_LIST := $(call join-with,$(comma),$(TMP_PKGS)))
 	@echo go test $@ -c -covermode atomic -coverpkg ... $(go-flags-with-tags) ./$(@D) # for info
 	@go test -o $@ -c -covermode atomic -coverpkg $(TMP_LIST) $(go-flags-with-tags) ./$(@D) 2>&1 | (grep -v 'warning: no packages being tested' || true)
