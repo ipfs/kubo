@@ -1,6 +1,7 @@
 package merkledag_test
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -126,5 +127,34 @@ func TestNodeCopy(t *testing.T) {
 
 	if nd.Data() == nil {
 		t.Fatal("should be different objects")
+	}
+}
+
+func TestJsonRoundtrip(t *testing.T) {
+	nd := new(ProtoNode)
+	nd.SetLinks([]*node.Link{
+		{Name: "a"},
+		{Name: "c"},
+		{Name: "b"},
+	})
+	nd.SetData([]byte("testing"))
+
+	jb, err := nd.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nn := new(ProtoNode)
+	err = nn.UnmarshalJSON(jb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(nn.Data(), nd.Data()) {
+		t.Fatal("data wasnt the same")
+	}
+
+	if !nn.Cid().Equals(nd.Cid()) {
+		t.Fatal("objects differed after marshaling")
 	}
 }

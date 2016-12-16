@@ -2,6 +2,7 @@ package merkledag
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
@@ -226,6 +227,31 @@ func (n *ProtoNode) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"node": n.String(),
 	}
+}
+
+func (n *ProtoNode) UnmarshalJSON(b []byte) error {
+	s := struct {
+		Data  []byte       `json:"data"`
+		Links []*node.Link `json:"links"`
+	}{}
+
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
+
+	n.data = s.Data
+	n.links = s.Links
+	return nil
+}
+
+func (n *ProtoNode) MarshalJSON() ([]byte, error) {
+	out := map[string]interface{}{
+		"data":  n.data,
+		"links": n.links,
+	}
+
+	return json.Marshal(out)
 }
 
 func (n *ProtoNode) Cid() *cid.Cid {
