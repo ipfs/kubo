@@ -11,7 +11,9 @@ test_description="test http requests made by cli"
 test_init_ipfs
 
 test_expect_success "can make http request against nc server" '
-	go-sleep 0.5s | nc -l 5005 > nc_out &
+	nc -ld 5005 > nc_out &
+	NCPID=$!
+	go-sleep 0.5s && kill "$NCPID" &
 	ipfs cat /ipfs/Qmabcdef --api /ip4/127.0.0.1/tcp/5005 || true
 '
 
