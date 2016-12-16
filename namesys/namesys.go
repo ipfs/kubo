@@ -107,6 +107,16 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 }
 
 func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {
+	rr, ok := ns.resolvers["dht"].(*routingResolver)
+	if !ok {
+		// should never happen, purely for sanity
+		log.Panicf("unexpected type %T as DHT resolver.", ns.resolvers["dht"])
+	}
+	if rr.cache == nil {
+		// resolver has no caching
+		return
+	}
+
 	var err error
 	value, err = path.ParsePath(value.String())
 	if err != nil {
@@ -120,11 +130,6 @@ func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {
 		return
 	}
 
-	rr, ok := ns.resolvers["dht"].(*routingResolver)
-	if !ok {
-		// should never happen, purely for sanity
-		log.Panicf("unexpected type %T as DHT resolver.", ns.resolvers["dht"])
-	}
 	if time.Now().Add(DefaultResolverCacheTTL).Before(eol) {
 		eol = time.Now().Add(DefaultResolverCacheTTL)
 	}
