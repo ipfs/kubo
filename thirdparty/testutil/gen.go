@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 
@@ -48,6 +49,14 @@ func RandPeerID() (peer.ID, error) {
 	}
 	h := u.Hash(buf)
 	return peer.ID(h), nil
+}
+
+func RandCidV0() (*cid.Cid, error) {
+	buf := make([]byte, 16)
+	if _, err := io.ReadFull(u.NewTimeSeededRand(), buf); err != nil {
+		return &cid.Cid{}, err
+	}
+	return cid.NewCidV0(buf), nil
 }
 
 func RandPeerIDFatal(t testing.TB) peer.ID {
