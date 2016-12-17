@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	path "github.com/ipfs/go-ipfs/path"
 
 	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 	ipldcbor "gx/ipfs/QmbuuwTd9x4NReZ7sxtiKk7wFcfDUo54MfWBdtF5MRCPGR/go-ipld-cbor"
@@ -105,7 +106,7 @@ var DagGetCmd = &cmds.Command{
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("cid", true, false, "The cid of the object to get").EnableStdin(),
+		cmds.StringArg("ref", true, false, "The object to get").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -114,13 +115,13 @@ var DagGetCmd = &cmds.Command{
 			return
 		}
 
-		c, err := cid.Decode(req.Arguments()[0])
+		p, err := path.ParsePath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		obj, err := n.DAG.Get(req.Context(), c)
+		obj, err := n.Resolver.ResolvePath(req.Context(), p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
