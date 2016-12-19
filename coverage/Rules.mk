@@ -14,7 +14,9 @@ UCOVER_$(d) := $(addsuffix .coverprofile,$(addprefix $(d)/unitcover/, $(subst /,
 
 $(UCOVER_$(d)): $(d)/coverage_deps ALWAYS
 	$(eval TMP_PKG := $(subst _,/,$(basename $(@F))))
-	@go test $(go-flags-with-tags) $(GOTFLAGS) -covermode=atomic -coverprofile=$@ $(TMP_PKG)
+	$(eval TMP_DEPS := $(shell go list -f '{{range .Deps}}{{.}} {{end}}' $(go-flags-with-tags) $(TMP_PKG) | sed 's/ /\n/g' | grep ipfs/go-ipfs | grep -v ipfs/go-ipfs/Godeps) $(TMP_PKG))
+	$(eval TMP_DEPS_LIST := $(call join-with,$(comma),$(TMP_DEPS)))
+	go test $(go-flags-with-tags) $(GOTFLAGS) -covermode=atomic -coverpkg=$(TMP_DEPS_LIST) -coverprofile=$@ $(TMP_PKG)
 
 
 $(d)/unit_tests.coverprofile: $(UCOVER_$(d))
