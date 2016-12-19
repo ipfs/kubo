@@ -43,7 +43,10 @@ func (o *option) Type() reflect.Kind {
 }
 
 func (o *option) Description() string {
-	if o.description[len(o.description)-1] != '.' {
+	if len(o.description) == 0 {
+		return ""
+	}
+	if !strings.HasSuffix(o.description, ".") {
 		o.description += "."
 	}
 	if o.defaultVal != nil {
