@@ -47,6 +47,7 @@ ADVANCED COMMANDS
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
   stats         Various operational stats
+  exp           Experimental commands
   filestore     Manage the filestore (experimental)
 
 NETWORK COMMANDS

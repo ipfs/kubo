@@ -11,7 +11,13 @@ import (
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
 
+type Listener interface {
+	Accept() (net.Stream, error)
+	Close() error
+}
+
 type ipfsListener struct {
+	node   *core.IpfsNode
 	conCh  chan net.Stream
 	proto  pro.ID
 	ctx    context.Context
@@ -29,7 +35,7 @@ func (il *ipfsListener) Accept() (net.Stream, error) {
 
 func (il *ipfsListener) Close() error {
 	il.cancel()
-	// TODO: unregister handler from peerhost
+	il.node.PeerHost.RemoveStreamHandler(il.proto)
 	return nil
 }
 
@@ -37,6 +43,7 @@ func Listen(nd *core.IpfsNode, protocol string) (*ipfsListener, error) {
 	ctx, cancel := context.WithCancel(nd.Context())
 
 	list := &ipfsListener{
+		node:   nd,
 		proto:  pro.ID(protocol),
 		conCh:  make(chan net.Stream),
 		ctx:    ctx,
