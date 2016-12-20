@@ -33,7 +33,10 @@ CLEAN += $(wildcard $(d)/test-results/*)
 $(SHARNESS_$(d)): $(d) ALWAYS
 	@clonedir=$(dir $(@D)) $</lib/install-sharness.sh
 
-test_sharness_deps: $(SHARNESS_$(d)) $$(DEPS_$(d)) # use second expansion so coverage can inject dependency
+$(d)/deps: $(SHARNESS_$(d)) $$(DEPS_$(d)) # use second expansion so coverage can inject dependency
+.PHONY: $(d)/deps
+
+test_sharness_deps: $(d)/deps
 .PHONY: test_sharness_deps
 
 test_sharness_short: $(d)/aggregate
