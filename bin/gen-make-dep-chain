@@ -1,9 +1,0 @@
-#!/bin/sh
-(for p ; do
-	printf "%s\n" "$p"
-done) | tac |
-( read -r PREV ;
-while read  -r CURR ; do
-	printf '%s: | %s\n' "$PREV" "$CURR"
-	PREV="$CURR"
-done) | tac
