@@ -32,7 +32,7 @@ $(d)/ipfs: $(d)/main
 
 CLEAN += $(d)/ipfs
 
-ifneq ($(filter coverage,$(MAKECMDGOALS)),)
+ifneq ($(filter coverage%,$(MAKECMDGOALS)),)
 	# this is quite hacky but it is best way I could fiture out
 	DEPS_test/sharness += cmd/ipfs/ipfs-test-cover $(d)/coverage_deps $(d)/ipfs
 endif

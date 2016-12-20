@@ -24,9 +24,13 @@ include $(dir)/Rules.mk
 dir := cmd/ipfs
 include $(dir)/Rules.mk
 
-# has to be after cmd/ipfs due to PATH
-dir := coverage
-include $(dir)/Rules.mk
+# include this file only if coverage target is executed
+# it is quite expensive
+ifneq ($(filter coverage% clean,$(MAKECMDGOALS)),)
+	# has to be after cmd/ipfs due to PATH
+	dir := coverage
+	include $(dir)/Rules.mk
+endif
 
 dir := namesys/pb
 include $(dir)/Rules.mk
