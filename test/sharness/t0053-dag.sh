@@ -59,6 +59,15 @@ test_dag_cmd() {
 		echo "{\"data\":\"CAISB2Zvb2JhcgoYBw==\",\"links\":[]}" > dag_get_pb_exp &&
 		test_cmp dag_get_pb_exp dag_get_pb_out
 	'
+
+	test_expect_success "can call dag get with a path" '
+		ipfs dag get $IPLDHASH/cats/0 > cat_out
+	'
+
+	test_expect_success "output looks correct" '
+		echo "{\"data\":\"CAISBGZvbwoYBA==\",\"links\":[]}" > cat_exp &&
+		test_cmp cat_exp cat_out
+	'
 }
 
 # should work offline
