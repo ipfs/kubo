@@ -5,6 +5,7 @@ package pin
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -25,9 +26,8 @@ var emptyKey *cid.Cid
 func init() {
 	e, err := cid.Decode("QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n")
 	if err != nil {
-		msg := "failed to decode empty key constant"
-		log.Error(msg)
-		panic(msg)
+		log.Error("failed to decode empty key constant")
+		os.Exit(1)
 	}
 	emptyKey = e
 }
