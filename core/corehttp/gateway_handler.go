@@ -199,19 +199,6 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	// expose those headers
 	w.Header().Set("Access-Control-Expose-Headers", "X-Stream-Output, X-Chunked-Output")
 
-	// Suborigin header, sandboxes apps from each other in the browser (even
-	// though they are served from the same gateway domain).
-	//
-	// Omited if the path was treated by IPNSHostnameOption(), for example
-	// a request for http://example.net/ would be changed to /ipns/example.net/,
-	// which would turn into an incorrect Suborigin: example.net header.
-	//
-	// NOTE: This is not yet widely supported by browsers.
-	if !ipnsHostname {
-		pathRoot := strings.SplitN(urlPath, "/", 4)[2]
-		w.Header().Set("Suborigin", pathRoot)
-	}
-
 	// set these headers _after_ the error, for we may just not have it
 	// and dont want the client to cache a 500 response...
 	// and only if it's /ipfs!
