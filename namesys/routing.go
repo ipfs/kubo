@@ -16,16 +16,18 @@ import (
 	routing "github.com/ipfs/go-ipfs/routing"
 	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
 	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
+	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 )
 
 var log = logging.Logger("namesys")
+var cachePrefix = "IPNSPERSISENTCACHE_"
 
 // routingResolver implements NSResolver for the main IPFS SFS-like naming
 type routingResolver struct {
-	routing routing.IpfsRouting
-
-	cache *lru.Cache
+	routing   routing.IpfsRouting
+	datastore ds.Datastore
+	cache     *lru.Cache
 }
 
 func (r *routingResolver) cacheGet(name string) (path.Path, bool) {
@@ -88,7 +90,7 @@ type cacheEntry struct {
 // to implement SFS-like naming on top.
 // cachesize is the limit of the number of entries in the lru cache. Setting it
 // to '0' will disable caching.
-func NewRoutingResolver(route routing.IpfsRouting, cachesize int) *routingResolver {
+func NewRoutingResolver(route routing.IpfsRouting, cachesize int, ds ds.Datastore) *routingResolver {
 	if route == nil {
 		panic("attempt to create resolver with nil routing system")
 	}
@@ -99,8 +101,9 @@ func NewRoutingResolver(route routing.IpfsRouting, cachesize int) *routingResolv
 	}
 
 	return &routingResolver{
-		routing: route,
-		cache:   cache,
+		routing:   route,
+		cache:     cache,
+		datastore: ds,
 	}
 }
 
@@ -137,11 +140,12 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 
 	var entry *pb.IpnsEntry
 	var pubkey ci.PubKey
+	var val []byte
 
 	resp := make(chan error, 2)
 	go func() {
 		ipnsKey := key.Key(h)
-		val, err := r.routing.GetValue(ctx, ipnsKey)
+		val, err = r.routing.GetValue(ctx, ipnsKey)
 		if err != nil {
 			log.Warning("RoutingResolve get failed.")
 			resp <- err
@@ -168,7 +172,20 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 	for i := 0; i < 2; i++ {
 		err = <-resp
 		if err != nil {
-			return "", err
+			val, err := r.datastore.Get(ds.NewKey(cachePrefix + name))
+			if err != nil {
+				return "", err
+			}
+			var entry *pb.IpnsEntry
+			err = proto.Unmarshal(val.([]byte), entry)
+			if err != nil {
+				return "", err
+			}
+			p, err := path.ParsePath(string(entry.GetValue()))
+			if err != nil {
+				return "", err
+			}
+			return p, nil
 		}
 	}
 
@@ -192,12 +209,14 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		}
 
 		r.cacheSet(name, p, entry)
+		go r.datastore.Put(ds.NewKey(cachePrefix + name), val)
 		return p, nil
 	} else {
 		// Its an old style multihash record
 		log.Warning("Detected old style multihash record")
 		p := path.FromKey(key.Key(valh))
 		r.cacheSet(name, p, entry)
+		go r.datastore.Put(ds.NewKey(cachePrefix + name), val)
 		return p, nil
 	}
 }

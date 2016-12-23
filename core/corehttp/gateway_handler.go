@@ -12,10 +12,9 @@ import (
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
-	"encoding/json"
+	"errors"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreunix"
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -25,7 +24,6 @@ import (
 	"github.com/ipfs/go-ipfs/routing"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	"gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
@@ -163,6 +161,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		r.URL.Path = strings.Replace(r.URL.Path, paths[2], peerID, 1)
 	}
 
+	unmodifiedURLPath := r.URL.Path
+
 	// If this is an ipns query let's check to see if it's using our own peer ID.
 	// If so let's resolve it locally instead of going out to the network.
 	var ownID bool = false
@@ -262,12 +262,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// and only if it's /ipfs!
 	// TODO: break this out when we split /ipfs /ipns routes.
 	modtime := time.Now()
-	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
+	if strings.HasPrefix(unmodifiedURLPath, ipfsPathPrefix) {
 		w.Header().Set("Etag", etag)
 		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 		// set modtime to a really long time ago, since files are immutable and should stay cached
 		modtime = time.Unix(1, 0)
-	} else if strings.HasPrefix(urlPath, ipnsPathPrefix) && !ownID { // cache ipns returns for 10 minutes
+	} else if strings.HasPrefix(unmodifiedURLPath, ipnsPathPrefix) && !ownID { // cache ipns returns for 10 minutes
 		w.Header().Set("Cache-Control", "public, max-age=600, immutable")
 	}
 
@@ -387,31 +387,24 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(i.node.Context(), time.Second*300)
 
-	var hashes []string
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&hashes)
-	if err != nil {
-		webError(w, "Put body must contain a list of hashes", err, http.StatusBadRequest)
+	var paths []string = strings.Split(r.URL.Path, "/")
+	if paths[1] != "ipfs" {
+		webError(w, "Cannot put to IPNS", errors.New("Cannot put to IPNS"), http.StatusInternalServerError)
 		cancel()
 		return
 	}
-
-	for _, h := range hashes {
-		_, err := multihash.FromB58String(h)
+	if len(paths) != 3 {
+		webError(w, "Path must contain only one hash", errors.New("Path must contain only one hash"), http.StatusInternalServerError)
+		cancel()
+		return
+	}
+	go func() {
+		node, err := i.node.DAG.Get(ctx, key.B58KeyDecode(paths[2]))
 		if err != nil {
-			webError(w, "Hashes must be base58 encoded multihashes", err, http.StatusBadRequest)
-			cancel()
 			return
 		}
-		maybeFetchFromNetwork := func(h string) {
-			k := key.B58KeyDecode(h)
-			has, err := i.node.Blockstore.Has(k)
-			if !has && err == nil {
-				coreunix.Cat(ctx, i.node, gopath.Join(ipfsPathPrefix, h))
-			}
-		}
-		go maybeFetchFromNetwork(h)
-	}
+		dag.FetchGraph(ctx, node, i.node.DAG)
+	}()
 
 	i.addUserHeaders(w)
 	return

@@ -17,5 +17,8 @@ This fork is currently based on IPFS v0.4.3 with the following changes:
 - Resolve IPNS queries locally if the query is for our own peer ID. This will make browsing one's own OpenBazaar page much faster.
 - Increase MaxRecordAge to 7 days to match the message TTL.
 - Accept gateway IPNS queries using a blockchainID. Resolves names to a peer ID.
-- Added optional cookie and basic authentication to gateway
-- Remove private key check from config initialization as OpenBazaar doesn't store the private key in the config
+- Cache INPS gateway queries for 10 minutes.
+- Change gateway PUT to accept a directory hash.
+- Added optional cookie and basic authentication to gateway.
+- Added persistent cache for IPNS. Used if network query fails.
+- Remove private key check from config initialization as OpenBazaar doesn't store the private key in the config.
