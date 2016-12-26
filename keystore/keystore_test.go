@@ -210,16 +210,26 @@ func (st *fsState) HasKey(key string) bool {
 	return e
 }
 
-func (st *fsState) Put(key string, value ci.PrivKey) {
-	st.store[key] = value
+func (st *fsState) Put(key string, value ci.PrivKey) *fsState {
+	newstore := map[string]ci.PrivKey{}
+	for k, v := range st.store {
+		newstore[k] = v
+	}
+	newstore[key] = value
+	return &fsState{store: newstore}
 }
 
 func (st *fsState) Get(key string) ci.PrivKey {
 	return st.store[key]
 }
 
-func (st *fsState) Del(key string) {
-	delete(st.store, key)
+func (st *fsState) Del(key string) *fsState {
+	newstore := map[string]ci.PrivKey{}
+	for k, v := range st.store {
+		newstore[k] = v
+	}
+	delete(newstore, key)
+	return &fsState{store: newstore}
 }
 
 // Using []interface{} as return type due to gopter accepting interfaces in gen.OneOfConst(...)
@@ -240,8 +250,8 @@ func ValidKey(key string) bool {
 
 type getCommand string
 
-func (cm *getCommand) Run(store commands.SystemUnderTest) commands.Result {
-	val, err := store.(*FSKeystore).Get(string(*cm))
+func (cm getCommand) Run(store commands.SystemUnderTest) commands.Result {
+	val, err := store.(*FSKeystore).Get(string(cm))
 	if err != nil {
 		return nil
 	}
@@ -251,18 +261,21 @@ func (cm *getCommand) Run(store commands.SystemUnderTest) commands.Result {
 	}
 	return hash
 }
-func (cm *getCommand) PreCondition(state commands.State) bool {
-	return state.(*fsState).HasKey(string(*cm)) && ValidKey(string(*cm))
+func (getCommand) NextState(s commands.State) commands.State {
+	return s
 }
-func (cm *getCommand) PostCondition(state commands.State, result commands.Result) *gopter.PropResult {
-	expected, err := state.(*fsState).Get(string(*cm)).Hash()
+func (cm getCommand) PreCondition(state commands.State) bool {
+	return state.(*fsState).HasKey(string(cm)) && ValidKey(string(cm))
+}
+func (cm getCommand) PostCondition(state commands.State, result commands.Result) *gopter.PropResult {
+	expected, err := state.(*fsState).Get(string(cm)).Hash()
 	if result != nil && err == nil && reflect.DeepEqual(expected, result.([]byte)) {
 		return &gopter.PropResult{Status: gopter.PropTrue}
 	}
 	return gopter.NewPropResult(false, fmt.Sprintf("result is nil: %v, err is nil: %v", result == nil, err == nil))
 }
-func (cm *getCommand) String() string {
-	return fmt.Sprintf("Get(%q)", string(*cm))
+func (cm getCommand) String() string {
+	return fmt.Sprintf("Get(%q)", string(cm))
 }
 
 func getGen(state commands.State) gopter.Gen {
@@ -273,28 +286,27 @@ func getGen(state commands.State) gopter.Gen {
 
 type delCommand string
 
-func (cm *delCommand) Run(store commands.SystemUnderTest) commands.Result {
-	err := store.(*FSKeystore).Delete(string(*cm))
+func (cm delCommand) Run(store commands.SystemUnderTest) commands.Result {
+	err := store.(*FSKeystore).Delete(string(cm))
 	if err != nil {
 		return false
 	}
 	return true
 }
-func (cm *delCommand) PreCondition(state commands.State) bool {
-	return state.(*fsState).HasKey(string(*cm)) && ValidKey(string(*cm))
+func (cm delCommand) NextState(st commands.State) commands.State {
+	return st.(*fsState).Del(string(cm))
 }
-func (cm *delCommand) PostCondition(state commands.State, result commands.Result) *gopter.PropResult {
+func (cm delCommand) PreCondition(state commands.State) bool {
+	return state.(*fsState).HasKey(string(cm)) && ValidKey(string(cm))
+}
+func (delCommand) PostCondition(st commands.State, result commands.Result) *gopter.PropResult {
 	if result.(bool) {
 		return &gopter.PropResult{Status: gopter.PropTrue}
 	}
 	return &gopter.PropResult{Status: gopter.PropFalse}
 }
-func (cm *delCommand) String() string {
-	return fmt.Sprintf("Del(%q)", string(*cm))
-}
-func (cm *delCommand) NextState(st commands.State) commands.State {
-	st.(*fsState).Del(string(*cm))
-	return st
+func (cm delCommand) String() string {
+	return fmt.Sprintf("Del(%q)", string(cm))
 }
 
 func delGen(state commands.State) gopter.Gen {
@@ -315,10 +327,13 @@ func (cm *putCommand) Run(store commands.SystemUnderTest) commands.Result {
 	}
 	return true
 }
-func (cm *putCommand) PreCondition(state commands.State) bool {
-	return state.(*fsState).HasKey(string(cm.key)) && ValidKey(string(cm.key))
+func (cm *putCommand) NextState(st commands.State) commands.State {
+	return st.(*fsState).Put(cm.key, cm.val)
 }
-func (cm *putCommand) PostCondition(state commands.State, result commands.Result) *gopter.PropResult {
+func (cm *putCommand) PreCondition(commands.State) bool {
+	return ValidKey(string(cm.key))
+}
+func (*putCommand) PostCondition(st commands.State, result commands.Result) *gopter.PropResult {
 	if result.(bool) {
 		return &gopter.PropResult{Status: gopter.PropTrue}
 	}
@@ -327,10 +342,6 @@ func (cm *putCommand) PostCondition(state commands.State, result commands.Result
 func (cm *putCommand) String() string {
 	h, _ := cm.val.Hash()
 	return fmt.Sprintf("Put(%q, %x...)", cm.key, h[:6])
-}
-func (cm *putCommand) NextState(st commands.State) commands.State {
-	st.(*fsState).Put(cm.key, cm.val)
-	return st
 }
 
 func runesToString(v []rune) string {
@@ -353,7 +364,6 @@ func putGen() gopter.Gen {
 		func(_ rune) bool {
 			return true
 		}).Map(func(v string) *putCommand {
-
 		k, _, _ := ci.GenerateEd25519Key(rr{}) // Unfortunately, can't replicate privk related bugs with this
 		return &putCommand{
 			key: v,
