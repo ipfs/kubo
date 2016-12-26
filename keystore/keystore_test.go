@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 	"github.com/leanovate/gopter"
 	"github.com/leanovate/gopter/commands"
 	"github.com/leanovate/gopter/gen"
+	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
 type rr struct{}
@@ -239,6 +239,7 @@ func ValidKey(key string) bool {
 }
 
 type getCommand string
+
 func (cm *getCommand) Run(store commands.SystemUnderTest) commands.Result {
 	val, err := store.(*FSKeystore).Get(string(*cm))
 	if err != nil {
@@ -271,6 +272,7 @@ func getGen(state commands.State) gopter.Gen {
 }
 
 type delCommand string
+
 func (cm *delCommand) Run(store commands.SystemUnderTest) commands.Result {
 	err := store.(*FSKeystore).Delete(string(*cm))
 	if err != nil {
@@ -351,7 +353,7 @@ func putGen() gopter.Gen {
 		func(_ rune) bool {
 			return true
 		}).Map(func(v string) *putCommand {
-		
+
 		k, _, _ := ci.GenerateEd25519Key(rr{}) // Unfortunately, can't replicate privk related bugs with this
 		return &putCommand{
 			key: v,
@@ -362,7 +364,7 @@ func putGen() gopter.Gen {
 
 var listCommand = &commands.ProtoCommand{
 	Name: "List",
-	RunFunc: func (store commands.SystemUnderTest) commands.Result {
+	RunFunc: func(store commands.SystemUnderTest) commands.Result {
 		list, err := store.(*FSKeystore).List()
 		if err != nil {
 			return nil
@@ -385,7 +387,7 @@ var listCommand = &commands.ProtoCommand{
 			if reflect.DeepEqual(expected, actual) {
 				return &gopter.PropResult{Status: gopter.PropTrue}
 			}
-			return gopter.NewPropResult(false, "Failed at deep equal");
+			return gopter.NewPropResult(false, "Failed at deep equal")
 		}
 		return gopter.NewPropResult(false, fmt.Sprintf("Failed at first if, is res nil?: %v", res == nil))
 	},
@@ -403,7 +405,7 @@ var filestoreCommands = &commands.ProtoCommands{
 		}
 		return keystore
 	},
-	InitialStateGen: gen.Const(&fsState { store: map[string]ci.PrivKey{} }),
+	InitialStateGen: gen.Const(&fsState{store: map[string]ci.PrivKey{}}),
 	GenCommandFunc: func(state commands.State) gopter.Gen {
 		if len(state.(*fsState).Keys()) == 0 {
 			return gen.OneGenOf(putGen(), gen.Const(listCommand))
