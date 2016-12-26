@@ -330,8 +330,8 @@ func (cm *putCommand) Run(store commands.SystemUnderTest) commands.Result {
 func (cm *putCommand) NextState(st commands.State) commands.State {
 	return st.(*fsState).Put(cm.key, cm.val)
 }
-func (cm *putCommand) PreCondition(commands.State) bool {
-	return ValidKey(string(cm.key))
+func (cm *putCommand) PreCondition(st commands.State) bool {
+	return !st.(*fsState).HasKey(cm.key) && ValidKey(string(cm.key))
 }
 func (*putCommand) PostCondition(st commands.State, result commands.Result) *gopter.PropResult {
 	if result.(bool) {
