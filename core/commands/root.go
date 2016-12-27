@@ -141,6 +141,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 	},
 	"cat":      CatCmd,
 	"commands": CommandsDaemonROCmd,
+	"discover": DiscoverCmd,
 	"dns":      DNSCmd,
 	"get":      GetCmd,
 	"ls":       LsCmd,
