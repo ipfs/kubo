@@ -9,15 +9,15 @@ import (
 	"sort"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
-	swarm "gx/ipfs/QmWfxnAiQ5TnnCgiX9ikVUKFNHRgGhbgKdx5DoKPELD7P4/go-libp2p-swarm"
-	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
+	"github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
 
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
+	swarm "gx/ipfs/QmWfxnAiQ5TnnCgiX9ikVUKFNHRgGhbgKdx5DoKPELD7P4/go-libp2p-swarm"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
 )
 
 type stringList struct {
@@ -448,10 +448,10 @@ func stringListMarshaler(res cmds.Response) (io.Reader, error) {
 
 // parseAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns slices of multiaddrs and peerids.
-func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
-	iaddrs = make([]iaddr.IPFSAddr, len(addrs))
+func parseAddresses(addrs []string) (iaddrs []ipfsaddr.IPFSAddr, err error) {
+	iaddrs = make([]ipfsaddr.IPFSAddr, len(addrs))
 	for i, saddr := range addrs {
-		iaddrs[i], err = iaddr.ParseString(saddr)
+		iaddrs[i], err = ipfsaddr.ParseString(saddr)
 		if err != nil {
 			return nil, cmds.ClientError("invalid peer address: " + err.Error())
 		}
