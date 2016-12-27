@@ -176,7 +176,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 			if err != nil {
 				return "", err
 			}
-			var entry *pb.IpnsEntry
+			entry := new(pb.IpnsEntry)
 			err = proto.Unmarshal(val.([]byte), entry)
 			if err != nil {
 				return "", err
