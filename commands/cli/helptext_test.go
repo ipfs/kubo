@@ -4,7 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"bytes"
 	cmds "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/core/commands"
 )
 
 func TestSynopsisGenerator(t *testing.T) {
@@ -42,4 +44,41 @@ func TestSynopsisGenerator(t *testing.T) {
 	if !strings.Contains(syn, "[--]") {
 		t.Fatal("Synopsis should contain options finalizer")
 	}
+}
+
+func TestColorOutput(t *testing.T) {
+	opt := cmds.BoolOption("color", "Use colors in console output.").Default(false)
+	opts := map[string]cmds.Option{"color": opt}
+	colorReq, _ := cmds.NewRequest(nil, cmds.OptMap{"color": true}, []string{}, nil, nil, opts)
+	buf := new(bytes.Buffer)
+
+	LongHelp("ipfs", commands.Root, []string{}, colorReq, buf)
+	colorFullLongHelp := buf.String()
+	cyanCount := strings.Count(colorFullLongHelp, formatCyan)
+	resetCount := strings.Count(colorFullLongHelp, formatReset)
+	if cyanCount == 0 {
+		t.Fatal("Colorful long help should contain the cyan escape code")
+	}
+	if resetCount == 0 {
+		t.Fatal("Colorful long help should contain the reset escape code")
+	}
+	if resetCount < cyanCount {
+		t.Fatal("There should be at least as many reset escape codes as cyan escape codes")
+	}
+
+	buf = new(bytes.Buffer)
+	ShortHelp("ipfs", commands.Root, []string{}, colorReq, buf)
+	colorFullShortHelp := buf.String()
+	cyanCount = strings.Count(colorFullShortHelp, formatCyan)
+	resetCount = strings.Count(colorFullShortHelp, formatReset)
+	if cyanCount == 0 {
+		t.Fatal("Colorful shot help should contain the cyan escape code")
+	}
+	if resetCount == 0 {
+		t.Fatal("Colorful shot help should contain the reset escape code")
+	}
+	if resetCount < cyanCount {
+		t.Fatal("There should be at least as many reset escape codes as cyan escape codes")
+	}
+
 }
