@@ -47,8 +47,8 @@ test_expect_success "ipfs help succeeds" '
 '
 
 test_expect_success "ipfs help output looks good" '
-	egrep -i "^Usage" help.txt >/dev/null &&
-	egrep "ipfs <command>" help.txt >/dev/null ||
+	egrep -i "^USAGE" help.txt >/dev/null &&
+	egrep "Use '\''ipfs --help'\''" help.txt >/dev/null ||
 	test_fsh cat help.txt
 '
 
