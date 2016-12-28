@@ -80,4 +80,8 @@ test_expect_success "'ipfs commands --flags' output looks good" '
 	grep "ipfs repo gc --quiet / ipfs repo gc -q" commands.txt
 '
 
+test_expect_success "'ipfs --color' succeeds" '
+	ipfs --color >commands.txt
+'
+
 test_done
