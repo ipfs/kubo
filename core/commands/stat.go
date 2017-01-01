@@ -193,14 +193,15 @@ Example:
 					printStats(out, bs)
 				} else {
 					if first {
-						fmt.Fprintln(out, "Total Up\t Total Down\t Rate Up\t Rate Down")
+						fmt.Fprintln(out, "Total Up    Total Down  Rate Up     Rate Down")
 						first = false
 					}
 					fmt.Fprint(out, "\r")
-					fmt.Fprintf(out, "%s \t\t", humanize.Bytes(uint64(bs.TotalOut)))
-					fmt.Fprintf(out, " %s \t\t", humanize.Bytes(uint64(bs.TotalIn)))
-					fmt.Fprintf(out, " %s/s   \t", humanize.Bytes(uint64(bs.RateOut)))
-					fmt.Fprintf(out, " %s/s     ", humanize.Bytes(uint64(bs.RateIn)))
+					// In the worst case scenario, the humanized output is of form "xxx.x xB", which is 8 characters long
+					fmt.Fprintf(out, "%8s    ", humanize.Bytes(uint64(bs.TotalOut)))
+					fmt.Fprintf(out, "%8s    ", humanize.Bytes(uint64(bs.TotalIn)))
+					fmt.Fprintf(out, "%8s/s  ", humanize.Bytes(uint64(bs.RateOut)))
+					fmt.Fprintf(out, "%8s/s  ", humanize.Bytes(uint64(bs.RateIn)))
 				}
 				return out, nil
 
