@@ -44,6 +44,7 @@ var addPinCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s).").Default(true),
+		cmds.BoolOption("fetch", "f", "Fetch the object(s) before pinning").Default(true),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -62,7 +63,14 @@ var addPinCmd = &cmds.Command{
 			return
 		}
 
-		added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
+		// set fetch flag
+		fetch, _, err := req.Option("fetch").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive, fetch)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

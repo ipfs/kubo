@@ -24,7 +24,7 @@ import (
 	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
-func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
+func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool, fetch bool) ([]*cid.Cid, error) {
 	dagnodes := make([]node.Node, 0)
 	for _, fpath := range paths {
 		p, err := path.ParsePath(fpath)
@@ -45,7 +45,7 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		err := n.Pinning.Pin(ctx, dagnode, recursive)
+		err := n.Pinning.Pin(ctx, dagnode, recursive, fetch)
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}

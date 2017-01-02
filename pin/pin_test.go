@@ -54,7 +54,7 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// Pin A{}
-	err = p.Pin(ctx, a, false)
+	err = p.Pin(ctx, a, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// recursively pin B{A,C}
-	err = p.Pin(ctx, b, true)
+	err = p.Pin(ctx, b, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// Add D{A,C,E}
-	err = p.Pin(ctx, d, true)
+	err = p.Pin(ctx, d, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,19 +163,19 @@ func TestDuplicateSemantics(t *testing.T) {
 	}
 
 	// pin is recursively
-	err = p.Pin(ctx, a, true)
+	err = p.Pin(ctx, a, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// pinning directly should fail
-	err = p.Pin(ctx, a, false)
+	err = p.Pin(ctx, a, false, true)
 	if err == nil {
 		t.Fatal("expected direct pin to fail")
 	}
 
 	// pinning recursively again should succeed
-	err = p.Pin(ctx, a, true)
+	err = p.Pin(ctx, a, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func TestPinRecursiveFail(t *testing.T) {
 
 	// NOTE: This isnt a time based test, we expect the pin to fail
 	mctx, _ := context.WithTimeout(ctx, time.Millisecond)
-	err = p.Pin(mctx, a, true)
+	err = p.Pin(mctx, a, true, true)
 	if err == nil {
 		t.Fatal("should have failed to pin here")
 	}
@@ -232,7 +232,7 @@ func TestPinRecursiveFail(t *testing.T) {
 
 	// this one is time based... but shouldnt cause any issues
 	mctx, _ = context.WithTimeout(ctx, time.Second)
-	err = p.Pin(mctx, a, true)
+	err = p.Pin(mctx, a, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}

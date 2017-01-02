@@ -83,7 +83,7 @@ func StringToPinMode(s string) (PinMode, bool) {
 type Pinner interface {
 	IsPinned(*cid.Cid) (string, bool, error)
 	IsPinnedWithType(*cid.Cid, PinMode) (string, bool, error)
-	Pin(context.Context, node.Node, bool) error
+	Pin(context.Context, node.Node, bool, bool) error
 	Unpin(context.Context, *cid.Cid, bool) error
 
 	// Check if a set of keys are pinned, more efficient than
@@ -162,7 +162,7 @@ func NewPinner(dstore ds.Datastore, serv, internal mdag.DAGService) Pinner {
 }
 
 // Pin the given node, optionally recursive
-func (p *pinner) Pin(ctx context.Context, node node.Node, recurse bool) error {
+func (p *pinner) Pin(ctx context.Context, node node.Node, recurse bool, fetch bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	c := node.Cid()
@@ -176,10 +176,12 @@ func (p *pinner) Pin(ctx context.Context, node node.Node, recurse bool) error {
 			p.directPin.Remove(c)
 		}
 
-		// fetch entire graph
-		err := mdag.FetchGraph(ctx, c, p.dserv)
-		if err != nil {
-			return err
+		if fetch {
+			// fetch entire graph
+			err := mdag.FetchGraph(ctx, c, p.dserv)
+			if err != nil {
+				return err
+			}
 		}
 
 		p.recursePin.Add(c)
