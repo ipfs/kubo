@@ -6,8 +6,10 @@ import (
 	"io"
 	"text/tabwriter"
 
+	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
@@ -71,6 +73,13 @@ The JSON output contains type information.
 			return
 		}
 
+		dserv := nd.DAG
+		if !resolve {
+			offlineexch := offline.Exchange(nd.Blockstore)
+			bserv := blockservice.New(nd.Blockstore, offlineexch)
+			dserv = merkledag.NewDAGService(bserv)
+		}
+
 		paths := req.Arguments()
 
 		var dagnodes []node.Node
@@ -101,39 +110,19 @@ The JSON output contains type information.
 				Links: make([]LsLink, len(dagnode.Links())),
 			}
 			for j, link := range dagnode.Links() {
-				var linkNode *merkledag.ProtoNode
 				t := unixfspb.Data_DataType(-1)
-				linkKey := link.Cid
-				if ok, err := nd.Blockstore.Has(linkKey); ok && err == nil {
-					b, err := nd.Blockstore.Get(linkKey)
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
-					linkNode, err = merkledag.DecodeProtobuf(b.RawData())
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
+
+				linkNode, err := link.GetNode(req.Context(), dserv)
+				if err == merkledag.ErrNotFound && !resolve {
+					// not an error
+					linkNode = nil
+				} else if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
 				}
 
-				if linkNode == nil && resolve {
-					nd, err := link.GetNode(req.Context(), nd.DAG)
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
-
-					pbnd, ok := nd.(*merkledag.ProtoNode)
-					if !ok {
-						res.SetError(merkledag.ErrNotProtobuf, cmds.ErrNormal)
-						return
-					}
-
-					linkNode = pbnd
-				}
-				if linkNode != nil {
-					d, err := unixfs.FromBytes(linkNode.Data())
+				if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
+					d, err := unixfs.FromBytes(pn.Data())
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return

@@ -90,12 +90,25 @@ test_ls_cmd() {
 	'
 }
 
+test_ls_cmd_raw_leaves() {
+	test_expect_success "'ipfs add -r --raw-leaves' then 'ipfs ls' works as expected" '
+		mkdir -p somedir &&
+		echo bar > somedir/foo &&
+		ipfs add --raw-leaves -r somedir/ > /dev/null &&
+		ipfs ls QmThNTdtKaVoCVrYmM5EBS6U3S5vfKFue2TxbxxAxRcKKE > ls-actual
+		echo "zb2rhf6GzX4ckKZtjy8yy8iyq1KttCrRyqDedD6xubhY3sw2F 4 foo" > ls-expect
+		test_cmp ls-actual ls-expect
+	'
+}
+
 # should work offline
 test_ls_cmd
+test_ls_cmd_raw_leaves
 
 # should work online
 test_launch_ipfs_daemon
 test_ls_cmd
+test_ls_cmd_raw_leaves
 test_kill_ipfs_daemon
 
 test_done
