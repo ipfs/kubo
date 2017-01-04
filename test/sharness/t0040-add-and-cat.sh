@@ -315,22 +315,73 @@ test_expect_success "ipfs cat with built input output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "'ipfs add -r' succeeds" '
-	mkdir mountdir/planets &&
-	echo "Hello Mars!" >mountdir/planets/mars.txt &&
-	echo "Hello Venus!" >mountdir/planets/venus.txt &&
-	ipfs add -r mountdir/planets >actual
-'
+add_directory() {
+    EXTRA_ARGS=$1
 
-test_expect_success "'ipfs add -r' output looks good" '
-	PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY" &&
-	MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
-	VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
-	echo "added $MARS planets/mars.txt" >expected &&
-	echo "added $VENUS planets/venus.txt" >>expected &&
-	echo "added $PLANETS planets" >>expected &&
-	test_cmp expected actual
-'
+    test_expect_success "'ipfs add -r $EXTRA_ARGS' succeeds" '
+            mkdir mountdir/planets &&
+            echo "Hello Mars!" >mountdir/planets/mars.txt &&
+            echo "Hello Venus!" >mountdir/planets/venus.txt &&
+            ipfs add -r $EXTRA_ARGS mountdir/planets >actual
+    '
+
+    test_expect_success "'ipfs add -r $EXTRA_ARGS' output looks good" '
+            echo "added $MARS planets/mars.txt" >expected &&
+            echo "added $VENUS planets/venus.txt" >>expected &&
+            echo "added $PLANETS planets" >>expected &&
+            test_cmp expected actual
+    '
+
+    test_expect_success "ipfs cat accept many hashes from built input" '
+            { echo "$MARS"; echo "$VENUS"; } | ipfs cat >actual
+    '
+
+    test_expect_success "ipfs cat output looks good" '
+            cat mountdir/planets/mars.txt mountdir/planets/venus.txt >expected &&
+            test_cmp expected actual
+    '
+
+    test_expect_success "ipfs cat accept many hashes as args" '
+            ipfs cat "$MARS" "$VENUS" >actual
+    '
+
+    test_expect_success "ipfs cat output looks good" '
+            test_cmp expected actual
+    '
+
+    test_expect_success "ipfs cat with both arg and stdin" '
+            echo "$MARS" | ipfs cat "$VENUS" >actual
+    '
+
+    test_expect_success "ipfs cat output looks good" '
+            cat mountdir/planets/venus.txt >expected &&
+            test_cmp expected actual
+    '
+
+    test_expect_success "ipfs cat with two args and stdin" '
+            echo "$MARS" | ipfs cat "$VENUS" "$VENUS" >actual
+    '
+
+    test_expect_success "ipfs cat output looks good" '
+            cat mountdir/planets/venus.txt mountdir/planets/venus.txt >expected &&
+            test_cmp expected actual
+    '
+
+    test_expect_success "cleanup" '
+            rm -r mountdir/planets
+    '
+}
+
+PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY"
+MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN"
+VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4"
+add_directory
+
+PLANETS="QmfWfQfKCY5Ukv9peBbxM5vqWM9BzmqUSXvdCgjT2wsiBT"
+MARS="zb2rhZdTkQNawVajsTNiYc9cTPHqgLdJVvBRkZok9RjkgQYRU"
+VENUS="zb2rhn6TGvnUaMAg4VV4y9HVx5W42HihcH4jsyrDv8mkepFqq"
+add_directory '--raw-leaves'
+
 
 test_expect_success "'ipfs add -rn' succeeds" '
 	mkdir -p mountdir/moons/jupiter &&
@@ -356,42 +407,6 @@ test_expect_success "'ipfs add -rn' output looks good" '
   echo "added $MOONS moons" >>expected &&
 	test_cmp expected actual
 '
-
-test_expect_success "ipfs cat accept many hashes from built input" '
-	{ echo "$MARS"; echo "$VENUS"; } | ipfs cat >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/mars.txt mountdir/planets/venus.txt >expected &&
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs cat accept many hashes as args" '
-	ipfs cat "$MARS" "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs cat with both arg and stdin" '
-	echo "$MARS" | ipfs cat "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/venus.txt >expected &&
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs cat with two args and stdin" '
-	echo "$MARS" | ipfs cat "$VENUS" "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/venus.txt mountdir/planets/venus.txt >expected &&
-	test_cmp expected actual
-'
-
 
 test_expect_success "go-random is installed" '
     type random
