@@ -132,7 +132,7 @@ func TestPBdataTools(t *testing.T) {
 
 }
 
-func TestMetedata(t *testing.T) {
+func TestMetadata(t *testing.T) {
 	meta := &Metadata{
 		MimeType: "audio/aiff",
 		Size:     12345,

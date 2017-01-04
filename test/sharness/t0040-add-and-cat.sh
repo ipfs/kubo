@@ -421,7 +421,7 @@ test_expect_success "ipfs add --only-hash succeeds" '
     echo "unknown content for only-hash" | ipfs add --only-hash -q > oh_hash
 '
 
-#TODO: this doesnt work when online hence separated out from test_add_cat_file
+#TODO: this doesn't work when online hence separated out from test_add_cat_file
 test_expect_success "ipfs cat file fails" '
     test_must_fail ipfs cat $(cat oh_hash)
 '
