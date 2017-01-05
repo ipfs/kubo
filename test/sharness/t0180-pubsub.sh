@@ -54,7 +54,7 @@ test_expect_success "publish something" '
 test_expect_success "wait until echo > wait executed" '
 	cat wait &&
 	test_cmp pubErr empty &&
-	test_cmp expected actual 
+	test_cmp expected actual
 '
 
 test_expect_success 'stop iptb' '
