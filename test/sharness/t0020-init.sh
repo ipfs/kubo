@@ -117,6 +117,10 @@ test_expect_success "Welcome readme doesn't exists" '
 	test_must_fail ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme
 '
 
+test_expect_success "ipfs id agent string contains correct version" '
+	ipfs id -f "<aver>" | grep $(ipfs version -n)
+'
+
 test_expect_success "clean up ipfs dir" '
 	rm -rf "$IPFS_PATH"
 '
