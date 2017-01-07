@@ -44,6 +44,7 @@ import (
 	discovery "gx/ipfs/QmQHmMFyhfp2ZXnbYWqAWhEideDCNDM6hzJwqCU29Y5zV2/go-libp2p/p2p/discovery"
 	p2pbhost "gx/ipfs/QmQHmMFyhfp2ZXnbYWqAWhEideDCNDM6hzJwqCU29Y5zV2/go-libp2p/p2p/host/basic"
 	rhost "gx/ipfs/QmQHmMFyhfp2ZXnbYWqAWhEideDCNDM6hzJwqCU29Y5zV2/go-libp2p/p2p/host/routed"
+	identify "gx/ipfs/QmQHmMFyhfp2ZXnbYWqAWhEideDCNDM6hzJwqCU29Y5zV2/go-libp2p/p2p/protocol/identify"
 	ping "gx/ipfs/QmQHmMFyhfp2ZXnbYWqAWhEideDCNDM6hzJwqCU29Y5zV2/go-libp2p/p2p/protocol/ping"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
@@ -85,6 +86,10 @@ const (
 	offlineMode
 	onlineMode
 )
+
+func init() {
+	identify.ClientVersion = "go-ipfs/" + config.CurrentVersionNumber + "/" + config.CurrentCommit
+}
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
