@@ -47,8 +47,8 @@ test_expect_success "ipfs help succeeds" '
 '
 
 test_expect_success "ipfs help output looks good" '
-	egrep -i "^Usage" help.txt >/dev/null &&
-	egrep "ipfs <command>" help.txt >/dev/null ||
+	egrep -i "^USAGE" help.txt >/dev/null &&
+	egrep "Use '\''ipfs --help'\''" help.txt >/dev/null ||
 	test_fsh cat help.txt
 '
 
@@ -78,6 +78,10 @@ test_expect_success "'ipfs commands --flags' output looks good" '
 	grep "ipfs pin add --recursive / ipfs pin add -r" commands.txt &&
 	grep "ipfs id --format / ipfs id -f" commands.txt &&
 	grep "ipfs repo gc --quiet / ipfs repo gc -q" commands.txt
+'
+
+test_expect_success "'ipfs --color' succeeds" '
+	ipfs --color >commands.txt
 '
 
 test_done

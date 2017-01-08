@@ -91,7 +91,7 @@ func main() {
 			helpFunc = cmdsCli.LongHelp
 		}
 
-		helpFunc("ipfs", Root, invoc.path, w)
+		helpFunc("ipfs", Root, invoc.path, invoc.req, w)
 	}
 
 	// this is a message to tell the user how to get the help text
@@ -366,9 +366,8 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 	// find the last command in path that has a cmdDetailsMap entry
 	cmd := root
 	for _, cmp := range path {
-		var found bool
-		cmd, found = cmd.Subcommands[cmp]
-		if !found {
+		cmd = cmd.Subcommand(cmp)
+		if cmd == nil {
 			return nil, fmt.Errorf("subcommand %s should be in root", cmp)
 		}
 

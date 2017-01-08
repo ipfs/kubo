@@ -44,16 +44,16 @@ operations.
 	Options: []cmds.Option{
 		cmds.BoolOption("f", "flush", "Flush target and ancestors after write.").Default(true),
 	},
-	Subcommands: map[string]*cmds.Command{
-		"read":  FilesReadCmd,
-		"write": FilesWriteCmd,
-		"mv":    FilesMvCmd,
-		"cp":    FilesCpCmd,
-		"ls":    FilesLsCmd,
-		"mkdir": FilesMkdirCmd,
-		"stat":  FilesStatCmd,
-		"rm":    FilesRmCmd,
-		"flush": FilesFlushCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"read", FilesReadCmd, ""},
+		{"write", FilesWriteCmd, ""},
+		{"mv", FilesMvCmd, ""},
+		{"cp", FilesCpCmd, ""},
+		{"ls", FilesLsCmd, ""},
+		{"mkdir", FilesMkdirCmd, ""},
+		{"stat", FilesStatCmd, ""},
+		{"rm", FilesRmCmd, ""},
+		{"flush", FilesFlushCmd, ""},
 	},
 }
 

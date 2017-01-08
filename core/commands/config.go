@@ -127,10 +127,10 @@ Set the value of the 'Datastore.Path' key:
 		},
 	},
 	Type: ConfigField{},
-	Subcommands: map[string]*cmds.Command{
-		"show":    configShowCmd,
-		"edit":    configEditCmd,
-		"replace": configReplaceCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"show", configShowCmd, ""},
+		{"edit", configEditCmd, ""},
+		{"replace", configReplaceCmd, ""},
 	},
 }
 

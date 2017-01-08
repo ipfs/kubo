@@ -24,11 +24,11 @@ result. This is the Merkle-DAG version of modifying an object.
 `,
 	},
 	Arguments: []cmds.Argument{},
-	Subcommands: map[string]*cmds.Command{
-		"append-data": patchAppendDataCmd,
-		"add-link":    patchAddLinkCmd,
-		"rm-link":     patchRmLinkCmd,
-		"set-data":    patchSetDataCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"append-data", patchAppendDataCmd, ""},
+		{"add-link", patchAddLinkCmd, ""},
+		{"rm-link", patchRmLinkCmd, ""},
+		{"set-data", patchSetDataCmd, ""},
 	},
 }
 
