@@ -21,20 +21,27 @@ const (
 	whitespace = "\r\n\t "
 
 	indentStr = "  "
+
+	formatReset = "\033[0m"
+	formatBold = "\033[1m"
+	formatUnderline = "\033[4m"
+	formatCyan = "\033[36m"
+
 )
 
 type helpFields struct {
-	Indent      string
-	Usage       string
-	Path        string
-	ArgUsage    string
-	Tagline     string
-	Arguments   string
-	Options     string
-	Synopsis    string
-	Subcommands string
-	Description string
-	MoreHelp    bool
+	Indent         string
+	Usage          string
+	Path           string
+	ArgUsage       string
+	Tagline        string
+	Arguments      string
+	Options        string
+	Synopsis       string
+	Subcommands    string
+	Description    string
+	AdditionalHelp string
+	MoreHelp       bool
 }
 
 // TrimNewlines removes extra newlines from fields. This makes aligning
@@ -96,6 +103,8 @@ const longHelpFormat = `USAGE
 {{.Subcommands}}
 
 {{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
+{{end}}{{if .AdditionalHelp}}
+{{.AdditionalHelp}}
 {{end}}
 `
 const shortHelpFormat = `USAGE
@@ -109,6 +118,8 @@ SUBCOMMANDS
 {{.Subcommands}}
 {{end}}{{if .MoreHelp}}
 Use '{{.Path}} --help' for more information about this command.
+{{end}}{{if .AdditionalHelp}}
+{{.AdditionalHelp}}
 {{end}}
 `
 
@@ -123,7 +134,7 @@ func init() {
 }
 
 // LongHelp writes a formatted CLI helptext string to a Writer for the given command
-func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
+func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer, useColor bool) error {
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err
@@ -145,6 +156,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 		Subcommands: cmd.Helptext.Subcommands,
 		Description: cmd.Helptext.ShortDescription,
 		Usage:       cmd.Helptext.Usage,
+		AdditionalHelp: cmd.Helptext.AdditionalHelp,
 		MoreHelp:    (cmd != root),
 	}
 
@@ -157,10 +169,10 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 		fields.Arguments = strings.Join(argumentText(cmd), "\n")
 	}
 	if len(fields.Options) == 0 {
-		fields.Options = strings.Join(optionText(cmd), "\n")
+		fields.Options = strings.Join(optionText(useColor, cmd), "\n")
 	}
 	if len(fields.Subcommands) == 0 {
-		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
+		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path, useColor), "\n")
 	}
 	if len(fields.Synopsis) == 0 {
 		fields.Synopsis = generateSynopsis(cmd, pathStr)
@@ -176,7 +188,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 }
 
 // ShortHelp writes a formatted CLI helptext string to a Writer for the given command
-func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
+func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer, useColor bool) error {
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err
@@ -201,12 +213,13 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 		Description: cmd.Helptext.ShortDescription,
 		Subcommands: cmd.Helptext.Subcommands,
 		Usage:       cmd.Helptext.Usage,
-		MoreHelp:    (cmd != root),
+		AdditionalHelp: cmd.Helptext.AdditionalHelp,
+		MoreHelp:    true,
 	}
 
 	// autogen fields that are empty
 	if len(fields.Subcommands) == 0 {
-		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
+		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path, useColor), "\n")
 	}
 	if len(fields.Synopsis) == 0 {
 		fields.Synopsis = generateSynopsis(cmd, pathStr)
@@ -291,7 +304,7 @@ func optionFlag(flag string) string {
 	}
 }
 
-func optionText(cmd ...*cmds.Command) []string {
+func optionText(useColor bool, cmd ...*cmds.Command) []string {
 	// get a slice of the options we want to list out
 	options := make([]cmds.Option, 0)
 	for _, c := range cmd {
@@ -340,43 +353,61 @@ func optionText(cmd ...*cmds.Command) []string {
 
 	// add option descriptions to output
 	for i, opt := range options {
-		lines[i] += " - " + opt.Description()
+		if useColor {
+			lines[i] += " - " +  formatCyan + opt.Description() + formatReset
+		} else {
+			lines[i] += " - " + opt.Description()
+		}
+
 	}
 
 	return lines
 }
 
-func subcommandText(cmd *cmds.Command, rootName string, path []string) []string {
+func subcommandText(cmd *cmds.Command, rootName string, path []string, useColor bool) []string {
 	prefix := fmt.Sprintf("%v %v", rootName, strings.Join(path, " "))
 	if len(path) > 0 {
 		prefix += " "
 	}
 
-	// Sorting fixes changing order bug #2981.
-	sortedNames := make([]string, 0)
-	for name := range cmd.Subcommands {
-		sortedNames = append(sortedNames, name)
-	}
-	sort.Strings(sortedNames)
-
-	subcmds := make([]*cmds.Command, len(cmd.Subcommands))
-	lines := make([]string, len(cmd.Subcommands))
-
-	for i, name := range sortedNames {
-		sub := cmd.Subcommands[name]
-		usage := usageText(sub)
+	var lastCommandGroup = ""
+	var lines []string
+	for _, cInfo := range cmd.Subcommands {
+		if lastCommandGroup != cInfo.Group {
+			lastCommandGroup = cInfo.Group
+			lines = append(lines, "")
+			lines = append(lines, lastCommandGroup)
+		}
+		usage := usageText(cInfo.Cmd)
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
-		lines[i] = prefix + name + usage
-		subcmds[i] = sub
-	}
+		if useColor {
+			lines = append(lines, prefix + formatBold + cInfo.Name + formatReset + usage)
+		} else {
+			lines = append(lines, prefix + cInfo.Name + usage)
+		}
 
+	}
 	lines = align(lines)
-	for i, sub := range subcmds {
-		lines[i] += " - " + sub.Helptext.Tagline
-	}
+	lastCommandGroup = ""
+	groupsBefore := 0
+	for i, cInfo := range cmd.Subcommands {
+		if lastCommandGroup != cInfo.Group {
+			lastCommandGroup = cInfo.Group
+			groupsBefore++
+		}
+		if groupsBefore > 0 {
+			// groupsBefore * 2 because there are 2 lines per group
+			lines[i+groupsBefore*2] = indentStr + lines[i+groupsBefore*2]
+		}
+		if useColor {
+			lines[i+groupsBefore*2] += " - " + formatCyan + cInfo.Cmd.Helptext.Tagline + formatReset
+		} else {
+			lines[i+groupsBefore*2] += " - "  + cInfo.Cmd.Helptext.Tagline
+		}
 
+	}
 	return lines
 }
 

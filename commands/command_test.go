@@ -103,8 +103,8 @@ func TestRegistration(t *testing.T) {
 			IntOption("beep", "number of beeps"),
 		},
 		Run: noop,
-		Subcommands: map[string]*Command{
-			"a": cmdA,
+		Subcommands: []*CmdInfo{
+			{"a", cmdA, ""},
 		},
 	}
 
@@ -130,20 +130,20 @@ func TestRegistration(t *testing.T) {
 func TestResolving(t *testing.T) {
 	cmdC := &Command{}
 	cmdB := &Command{
-		Subcommands: map[string]*Command{
-			"c": cmdC,
+		Subcommands: []*CmdInfo{
+			{"c", cmdC, ""},
 		},
 	}
 	cmdB2 := &Command{}
 	cmdA := &Command{
-		Subcommands: map[string]*Command{
-			"b": cmdB,
-			"B": cmdB2,
+		Subcommands: []*CmdInfo{
+			{"b", cmdB, ""},
+			{"B", cmdB2, ""},
 		},
 	}
 	cmd := &Command{
-		Subcommands: map[string]*Command{
-			"a": cmdA,
+		Subcommands: []*CmdInfo{
+			{"a", cmdA, ""},
 		},
 	}
 
@@ -158,9 +158,9 @@ func TestResolving(t *testing.T) {
 
 func TestWalking(t *testing.T) {
 	cmdA := &Command{
-		Subcommands: map[string]*Command{
-			"b": &Command{},
-			"B": &Command{},
+		Subcommands: []*CmdInfo{
+			{"b", &Command{}, ""},
+			{"B", &Command{}, ""},
 		},
 	}
 	i := 0
@@ -182,8 +182,8 @@ func TestHelpProcessing(t *testing.T) {
 		Helptext: HelpText{
 			ShortDescription: "This is short",
 		},
-		Subcommands: map[string]*Command{
-			"a": cmdB,
+		Subcommands: []*CmdInfo{
+			{"a", cmdB, ""},
 		},
 	}
 	cmdA.ProcessHelp()

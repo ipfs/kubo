@@ -27,10 +27,10 @@ IPFS very quickly. To start, run:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("id", false, false, "The id of the topic you would like to tour."),
 	},
-	Subcommands: map[string]*cmds.Command{
-		"list":    cmdIpfsTourList,
-		"next":    cmdIpfsTourNext,
-		"restart": cmdIpfsTourRestart,
+	Subcommands: []*cmds.CmdInfo{
+		{"list", cmdIpfsTourList, ""},
+		{"next", cmdIpfsTourNext, ""},
+		{"restart", cmdIpfsTourRestart, ""},
 	},
 	Run: tourRunFunc,
 }

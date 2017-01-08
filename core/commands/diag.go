@@ -45,10 +45,10 @@ var DiagCmd = &cmds.Command{
 		Tagline: "Generate diagnostic reports.",
 	},
 
-	Subcommands: map[string]*cmds.Command{
-		"net":  diagNetCmd,
-		"sys":  sysDiagCmd,
-		"cmds": ActiveReqsCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"net", diagNetCmd, ""},
+		{"sys", sysDiagCmd, ""},
+		{"cmds", ActiveReqsCmd, ""},
 	},
 }
 

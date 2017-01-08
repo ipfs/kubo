@@ -20,11 +20,11 @@ var BitswapCmd = &cmds.Command{
 		Tagline:          "Interact with the bitswap agent.",
 		ShortDescription: ``,
 	},
-	Subcommands: map[string]*cmds.Command{
-		"wantlist": showWantlistCmd,
-		"stat":     bitswapStatCmd,
-		"unwant":   unwantCmd,
-		"ledger":   ledgerCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"wantlist", showWantlistCmd, ""},
+		{"stat", bitswapStatCmd, ""},
+		{"unwant", unwantCmd, ""},
+		{"ledger", ledgerCmd, ""},
 	},
 }
 

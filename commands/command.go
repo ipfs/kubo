@@ -39,6 +39,8 @@ type HelpText struct {
 	Tagline               string            // used in <cmd usage>
 	ShortDescription      string            // used in DESCRIPTION
 	SynopsisOptionsValues map[string]string // mappings for synopsis generator
+	// optional
+	AdditionalHelp				string            // can be used to add additional information
 
 	// optional - whole section overrides
 	Usage           string // overrides USAGE section
@@ -75,7 +77,13 @@ type Command struct {
 	//
 	// ie. If command Run returns &Block{}, then Command.Type == &Block{}
 	Type        interface{}
-	Subcommands map[string]*Command
+	Subcommands []*CmdInfo
+}
+
+type CmdInfo struct {
+	Name  string
+	Cmd   *Command
+	Group string
 }
 
 // ErrNotCallable signals a command that cannot be called.
@@ -266,7 +274,12 @@ func (c *Command) CheckArguments(req Request) error {
 
 // Subcommand returns the subcommand with the given id
 func (c *Command) Subcommand(id string) *Command {
-	return c.Subcommands[id]
+	for _, cInfo := range c.Subcommands {
+		if cInfo.Name == id {
+			return cInfo.Cmd
+		}
+	}
+	return nil
 }
 
 type CommandVisitor func(*Command)
@@ -274,8 +287,8 @@ type CommandVisitor func(*Command)
 // Walks tree of all subcommands (including this one)
 func (c *Command) Walk(visitor CommandVisitor) {
 	visitor(c)
-	for _, cm := range c.Subcommands {
-		cm.Walk(visitor)
+	for _, cInfo := range c.Subcommands {
+		cInfo.Cmd.Walk(visitor)
 	}
 }
 

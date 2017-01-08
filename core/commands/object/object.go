@@ -50,15 +50,15 @@ var ObjectCmd = &cmds.Command{
 directly.`,
 	},
 
-	Subcommands: map[string]*cmds.Command{
-		"data":  ObjectDataCmd,
-		"diff":  ObjectDiffCmd,
-		"get":   ObjectGetCmd,
-		"links": ObjectLinksCmd,
-		"new":   ObjectNewCmd,
-		"patch": ObjectPatchCmd,
-		"put":   ObjectPutCmd,
-		"stat":  ObjectStatCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"data", ObjectDataCmd, ""},
+		{"diff", ObjectDiffCmd, ""},
+		{"get", ObjectGetCmd, ""},
+		{"links", ObjectLinksCmd, ""},
+		{"new", ObjectNewCmd, ""},
+		{"patch", ObjectPatchCmd, ""},
+		{"put", ObjectPutCmd, ""},
+		{"stat", ObjectStatCmd, ""},
 	},
 }
 

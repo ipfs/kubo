@@ -30,13 +30,13 @@ var DhtCmd = &cmds.Command{
 		ShortDescription: ``,
 	},
 
-	Subcommands: map[string]*cmds.Command{
-		"query":     queryDhtCmd,
-		"findprovs": findProvidersDhtCmd,
-		"findpeer":  findPeerDhtCmd,
-		"get":       getValueDhtCmd,
-		"put":       putValueDhtCmd,
-		"provide":   provideRefDhtCmd,
+	Subcommands: []*cmds.CmdInfo{
+		{"query", queryDhtCmd, ""},
+		{"findprovs", findProvidersDhtCmd, ""},
+		{"findpeer", findPeerDhtCmd, ""},
+		{"get", getValueDhtCmd, ""},
+		{"put", putValueDhtCmd, ""},
+		{"provide", provideRefDhtCmd, ""},
 	},
 }
 
