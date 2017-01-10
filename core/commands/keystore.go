@@ -125,7 +125,7 @@ var KeyGenCmd = &cmds.Command{
 				return nil, fmt.Errorf("expected a KeyOutput as command result")
 			}
 
-			return strings.NewReader(k.Id), nil
+			return strings.NewReader(k.Id + "\n"), nil
 		},
 	},
 	Type: KeyOutput{},
