@@ -19,7 +19,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 
-	id "gx/ipfs/QmQHmMFyhfp2ZXnbYWqAWhEideDCNDM6hzJwqCU29Y5zV2/go-libp2p/p2p/protocol/identify"
+	id "gx/ipfs/QmdzDdLZ7nj133QvNHypyS9Y39g35bMFk5DJ2pmX7YqtKU/go-libp2p/p2p/protocol/identify"
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
