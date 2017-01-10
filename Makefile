@@ -66,7 +66,7 @@ path_check:
 	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(GOPATH_DELIMITER), ,$(GOPATH))))
 
 deps: go_check gx_check path_check $(covertools_rule)
-	${gx_bin} --verbose install --global >/dev/null 2>&1
+	${gx_bin} --verbose install --global
 
 deps_covertools:
 	go get -u github.com/wadey/gocovmerge
