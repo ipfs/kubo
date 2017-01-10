@@ -163,7 +163,6 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	switch err {
 	case nil:
 		// core.Resolve worked
-		defer dr.Close()
 	case coreiface.ErrIsDir:
 		dir = true
 	case namesys.ErrResolveFailed:
@@ -180,10 +179,12 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		}
 		fallthrough
 	default:
-		// all other erros
+		// all other errors
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
 		return
 	}
+
+	defer dr.Close()
 
 	etag := gopath.Base(urlPath)
 	if r.Header.Get("If-None-Match") == etag {
