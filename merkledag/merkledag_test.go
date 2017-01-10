@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -483,5 +484,23 @@ func TestCidRetention(t *testing.T) {
 
 	if !out.Cid().Equals(c2) {
 		t.Fatal("output cid didnt match")
+	}
+}
+
+func TestCidRawDoesnNeedData(t *testing.T) {
+	srv := NewDAGService(dstest.Bserv())
+	nd := NewRawNode([]byte("somedata"))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// there is no data for this node in the blockservice
+	// so dag service can't load it
+	links, err := srv.GetLinks(ctx, nd.Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(links) != 0 {
+		t.Fatal("raw node shouldn't have any links")
 	}
 }
