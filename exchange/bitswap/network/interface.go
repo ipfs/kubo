@@ -26,7 +26,7 @@ type BitSwapNetwork interface {
 		peer.ID,
 		bsmsg.BitSwapMessage) error
 
-	// SetDelegate registers the Reciver to handle messages received from the
+	// SetDelegate registers the Receiver to handle messages received from the
 	// network.
 	SetDelegate(Receiver)
 

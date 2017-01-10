@@ -5,19 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"path"
 	"sort"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
-	swarm "gx/ipfs/QmWfxnAiQ5TnnCgiX9ikVUKFNHRgGhbgKdx5DoKPELD7P4/go-libp2p-swarm"
-	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
+	"github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
 
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
+	swarm "gx/ipfs/QmWfxnAiQ5TnnCgiX9ikVUKFNHRgGhbgKdx5DoKPELD7P4/go-libp2p-swarm"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
 )
 
 type stringList struct {
@@ -46,6 +48,67 @@ ipfs peers in the internet.
 	},
 }
 
+var DiscoverCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Get random peers of the IPFS node.",
+		ShortDescription: `
+'ipfs discover' is useful for discovering the whole IPFS network without
+being a peer on the network. The client starts discovering from some
+bootstrap nodes and gets some random nodes. Recursively continuing to
+crawl they can reach each node without putting too much strain on any
+of the nodes.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		log.Debug("ipfs discover")
+		n := getNode(req, res)
+		if n == nil {
+			return
+		}
+
+		conns := n.PeerHost.Network().Conns()
+		var sample []int = shuffle(len(conns), 5)
+
+		var addrs []string
+		for _, i := range sample {
+			pid := conns[i].RemotePeer()
+			addr := conns[i].RemoteMultiaddr()
+
+			saddr := path.Join(addr.String(), "ipfs", pid.Pretty())
+			addrs = append(addrs, saddr)
+		}
+		sort.Sort(sort.StringSlice(addrs))
+
+		res.SetOutput(&stringList{addrs})
+	},
+	Type: stringList{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+}
+
+func shuffle(input, output int) []int {
+	indexes := make([]int, input)
+	for i := range indexes {
+		indexes[i] = i
+	}
+	done := 0
+	unsorted := indexes
+	for done < output {
+		left := len(unsorted)
+		if left <= 0 {
+			break
+		}
+		picked := rand.Intn(left)
+		if picked > 0 {
+			unsorted[0], unsorted[picked] = unsorted[picked], unsorted[0]
+		}
+		unsorted = unsorted[1:]
+		done += 1
+	}
+	return indexes[:done]
+}
+
 var swarmPeersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List peers with open connections.",
@@ -61,14 +124,8 @@ var swarmPeersCmd = &cmds.Command{
 	Run: func(req cmds.Request, res cmds.Response) {
 
 		log.Debug("ipfs swarm peers")
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
+		n := getNode(req, res)
+		if n == nil {
 			return
 		}
 
@@ -77,7 +134,6 @@ var swarmPeersCmd = &cmds.Command{
 		streams, _, _ := req.Option("streams").Bool()
 
 		conns := n.PeerHost.Network().Conns()
-
 		var out connInfos
 		for _, c := range conns {
 			pid := c.RemotePeer()
@@ -201,14 +257,8 @@ var swarmAddrsCmd = &cmds.Command{
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
+		n := getNode(req, res)
+		if n == nil {
 			return
 		}
 
@@ -264,14 +314,8 @@ var swarmAddrsLocalCmd = &cmds.Command{
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
+		n := getNode(req, res)
+		if n == nil {
 			return
 		}
 
@@ -311,20 +355,14 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 		cmds.StringArg("address", true, true, "Address of peer to connect to.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
+
+		n := getNode(req, res)
+		if n == nil {
+			return
+		}
+
 		ctx := req.Context()
-
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
 		addrs := req.Arguments()
-
-		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
-			return
-		}
 
 		snet, ok := n.PeerHost.Network().(*swarm.Network)
 		if !ok {
@@ -379,19 +417,12 @@ it will reconnect.
 		cmds.StringArg("address", true, true, "Address of peer to disconnect from.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+		n := getNode(req, res)
+		if n == nil {
 			return
 		}
 
 		addrs := req.Arguments()
-
-		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
-			return
-		}
-
 		iaddrs, err := parseAddresses(addrs)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -448,10 +479,10 @@ func stringListMarshaler(res cmds.Response) (io.Reader, error) {
 
 // parseAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns slices of multiaddrs and peerids.
-func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
-	iaddrs = make([]iaddr.IPFSAddr, len(addrs))
+func parseAddresses(addrs []string) (iaddrs []ipfsaddr.IPFSAddr, err error) {
+	iaddrs = make([]ipfsaddr.IPFSAddr, len(addrs))
 	for i, saddr := range addrs {
-		iaddrs[i], err = iaddr.ParseString(saddr)
+		iaddrs[i], err = ipfsaddr.ParseString(saddr)
 		if err != nil {
 			return nil, cmds.ClientError("invalid peer address: " + err.Error())
 		}
@@ -474,6 +505,21 @@ func peersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
 		})
 	}
 	return pis, nil
+}
+
+func getNode(req cmds.Request, res cmds.Response) *core.IpfsNode {
+	n, err := req.InvocContext().GetNode()
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return nil
+	}
+
+	if n.PeerHost == nil {
+		res.SetError(errNotOnline, cmds.ErrClient)
+		return nil
+	}
+
+	return n
 }
 
 var swarmFiltersCmd = &cmds.Command{
