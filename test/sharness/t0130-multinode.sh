@@ -88,7 +88,7 @@ test_expect_success "set up tcp testbed" '
 '
 
 # test multiplex muxer
-export LIBP2P_MUX_PREFS="/mplex/6.7.0 /yamux/1.0.0 /spdy/3.1.0"
+export LIBP2P_MUX_PREFS="/mplex/6.7.0"
 run_advanced_test --enable-mplex-experiment
 unset LIBP2P_MUX_PREFS
 
