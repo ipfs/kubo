@@ -143,7 +143,7 @@ var KeyListCmd = &cmds.Command{
 		Tagline: "List all local keypairs",
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("show-ids", "l", "also show key ids"),
+		cmds.BoolOption("l", "Show extra information about keys."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -189,7 +189,7 @@ var KeyListCmd = &cmds.Command{
 }
 
 func keyOutputListMarshaler(res cmds.Response) (io.Reader, error) {
-	withId, _, _ := res.Request().Option("show-ids").Bool()
+	withId, _, _ := res.Request().Option("l").Bool()
 
 	list, ok := res.Output().(*KeyOutputList)
 	if !ok {
