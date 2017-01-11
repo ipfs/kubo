@@ -140,7 +140,7 @@ func (n *dagService) Remove(nd node.Node) error {
 
 // FetchGraph fetches all nodes that are children of the given node
 func FetchGraph(ctx context.Context, c *cid.Cid, serv DAGService) error {
-	return EnumerateChildrenAsync(ctx, serv, c, cid.NewSet().Visit)
+	return EnumerateChildren(ctx, serv, c, cid.NewSet().Visit, false)
 }
 
 // FindLinks searches this nodes links for the given key,
