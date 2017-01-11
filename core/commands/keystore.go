@@ -1,11 +1,14 @@
 package commands
 
 import (
+	"bytes"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
 	"strings"
+	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 
@@ -26,6 +29,10 @@ var KeyCmd = &cmds.Command{
 type KeyOutput struct {
 	Name string
 	Id   string
+}
+
+type KeyOutputList struct {
+	Keys []KeyOutput
 }
 
 var KeyGenCmd = &cmds.Command{
@@ -125,7 +132,7 @@ var KeyGenCmd = &cmds.Command{
 				return nil, fmt.Errorf("expected a KeyOutput as command result")
 			}
 
-			return strings.NewReader(k.Id), nil
+			return strings.NewReader(k.Id + "\n"), nil
 		},
 	},
 	Type: KeyOutput{},
@@ -134,6 +141,9 @@ var KeyGenCmd = &cmds.Command{
 var KeyListCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List all local keypairs",
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("l", "Show extra information about keys."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -149,10 +159,52 @@ var KeyListCmd = &cmds.Command{
 		}
 
 		sort.Strings(keys)
-		res.SetOutput(&stringList{keys})
+
+		list := make([]KeyOutput, 0, len(keys))
+
+		for _, key := range keys {
+			privKey, err := n.Repo.Keystore().Get(key)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			pubKey := privKey.GetPublic()
+
+			pid, err := peer.IDFromPublicKey(pubKey)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			list = append(list, KeyOutput{Name: key, Id: pid.Pretty()})
+		}
+
+		res.SetOutput(&KeyOutputList{list})
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: stringListMarshaler,
+		cmds.Text: keyOutputListMarshaler,
 	},
-	Type: stringList{},
+	Type: KeyOutputList{},
+}
+
+func keyOutputListMarshaler(res cmds.Response) (io.Reader, error) {
+	withId, _, _ := res.Request().Option("l").Bool()
+
+	list, ok := res.Output().(*KeyOutputList)
+	if !ok {
+		return nil, errors.New("failed to cast []KeyOutput")
+	}
+
+	buf := new(bytes.Buffer)
+	w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
+	for _, s := range list.Keys {
+		if withId {
+			fmt.Fprintf(w, "%s\t%s\t\n", s.Id, s.Name)
+		} else {
+			fmt.Fprintf(w, "%s\n", s.Name)
+		}
+	}
+	w.Flush()
+	return buf, nil
 }
