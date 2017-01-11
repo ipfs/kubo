@@ -112,10 +112,9 @@ func (s *blockService) AddBlocks(bs []blocks.Block) ([]*cid.Cid, error) {
 			if err != nil {
 				return nil, err
 			}
-			if has {
-				continue
+			if !has {
+				toput = append(toput, b)
 			}
-			toput = append(toput, b)
 		}
 	} else {
 		toput = bs
