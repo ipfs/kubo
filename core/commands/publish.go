@@ -117,7 +117,13 @@ Publish an <ipfs-path> to another public key (not implemented):
 			return
 		}
 
-		output, err := publish(ctx, n, k, path.Path(pstr), popts)
+		pth, err := path.ParsePath(pstr)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		output, err := publish(ctx, n, k, pth, popts)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
