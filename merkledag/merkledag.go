@@ -392,10 +392,14 @@ func EnumerateChildren(ctx context.Context, ds LinkService, root *cid.Cid, visit
 func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visit func(*cid.Cid) bool) error {
 	toprocess := make(chan []*cid.Cid, 8)
 	nodes := make(chan *NodeOption, 8)
+	var fetcherWg sync.WaitGroup
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	defer close(toprocess)
+	defer func() {
+		fetcherWg.Wait()
+		close(toprocess)
+	}()
 
 	go fetchNodes(ctx, ds, toprocess, nodes)
 
@@ -406,6 +410,15 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visi
 
 	nodes <- &NodeOption{Node: root}
 	live := 1
+
+	feedFetcher := func(cids []*cid.Cid) {
+		defer fetcherWg.Done()
+		select {
+		case <-ctx.Done():
+			return
+		case toprocess <- cids:
+		}
+	}
 
 	for {
 		select {
@@ -437,11 +450,8 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visi
 			}
 
 			if len(cids) > 0 {
-				select {
-				case toprocess <- cids:
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+				fetcherWg.Add(1)
+				go feedFetcher(cids)
 			}
 		case <-ctx.Done():
 			return ctx.Err()
