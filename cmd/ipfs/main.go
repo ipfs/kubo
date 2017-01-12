@@ -593,10 +593,9 @@ func profileIfEnabled() (func(), error) {
 var apiFileErrorFmt string = `Failed to parse '%[1]s/api' file.
 	error: %[2]s
 If you're sure go-ipfs isn't running, you can just delete it.
-Otherwise check:
 `
-var checkIPFSUnixFmt = "\tps aux | grep ipfs"
-var checkIPFSWinFmt = "\ttasklist | findstr ipfs"
+var checkIPFSUnixFmt = "Otherwise check:\n\tps aux | grep ipfs"
+var checkIPFSWinFmt = "Otherwise check:\n\ttasklist | findstr ipfs"
 
 // getApiClient checks the repo, and the given options, checking for
 // a running API service. if there is one, it returns a client.
