@@ -82,21 +82,9 @@ export PATH=$PATH:$GOPATH/bin
 
 #### Download and Compile IPFS
 
-go-ipfs differs from the vanilla `go get` flow: it uses
-[gx](https://github.com/whyrusleeping/gx)/[gx-go](https://github.com/whyrusleeping/gx-go)
-for dependency management.
-
-First download `go-ipfs` without installing:
-
 ```
 $ go get -u -d github.com/ipfs/go-ipfs
-
 $ cd $GOPATH/src/github.com/ipfs/go-ipfs
-```
-
-Then install `go-ipfs` and its dependencies, including `gx` and `gx-go`:
-
-```
 $ make install
 ```
 
@@ -109,7 +97,8 @@ following instead of `make install`:
 $ make source
 ```
 
-Note: This process may break if [gx](https://github.com/whyrusleeping/gx) or any of its dependencies break as `go get`
+Note: This process may break if [gx](https://github.com/whyrusleeping/gx) (used for
+dependency management) or any of its dependencies break as `go get`
 will always select the latest code for every dependency, often resulting in
 mismatched APIs.
 
