@@ -137,7 +137,7 @@ func TestPinnerBasic(t *testing.T) {
 	assertPinned(t, p, dk, "pinned node not found.")
 
 	// Test recursive unpin
-	err = p.Unpin(ctx, dk, true)
+	err = p.Unpin(ctx, dk, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +261,7 @@ func TestIsPinnedLookup(t *testing.T) {
 	assertPinned(t, p, bk, "B should be pinned")
 
 	// Unpin A5 recursively
-	if err := p.Unpin(ctx, aKeys[5], true); err != nil {
+	if err := p.Unpin(ctx, aKeys[5], true, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -269,7 +269,7 @@ func TestIsPinnedLookup(t *testing.T) {
 	assertUnpinned(t, p, aKeys[4], "A4 should be unpinned")
 
 	// Unpin B recursively
-	if err := p.Unpin(ctx, bk, true); err != nil {
+	if err := p.Unpin(ctx, bk, true, false); err != nil {
 		t.Fatal(err)
 	}
 	assertUnpinned(t, p, bk, "B should be unpinned")

@@ -34,7 +34,7 @@ test_expect_success "gc okay after adding incomplete node -- prep" '
   ipfs repo gc && # will remove /adir/file1 and /adir/file2 but not /adir
   test_must_fail ipfs cat $FILE1_HASH &&
   ipfs files cp /ipfs/$ADIR_HASH /adir &&
-  ipfs pin rm $ADIR_HASH
+  ipfs pin rm -r=false $ADIR_HASH
 '
 
 test_expect_success "gc okay after adding incomplete node" '

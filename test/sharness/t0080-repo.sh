@@ -86,9 +86,15 @@ test_expect_success "pinning directly should fail now" '
 '
 
 test_expect_success "'ipfs pin rm -r=false <hash>' should fail" '
-  echo "Error: $HASH is pinned recursively" >expected4 &&
+  echo "Error: $HASH is not pinned directly" >expected4 &&
   test_must_fail ipfs pin rm -r=false "$HASH" 2>actual4 &&
   test_cmp expected4 actual4
+'
+
+test_expect_success "'ipfs pin rm -e -r=false <hash>' should fail and explain why" '
+  echo "Error: $HASH is pinned recursively" >expected11 &&
+  test_must_fail ipfs pin rm -e -r=false "$HASH" 2>actual11 &&
+  test_cmp expected11 actual11
 '
 
 test_expect_success "remove recursive pin, add direct" '
@@ -100,6 +106,13 @@ test_expect_success "remove recursive pin, add direct" '
 
 test_expect_success "remove direct pin" '
   echo "unpinned $HASH" >expected6 &&
+  ipfs pin rm -r=false "$HASH" >actual6 &&
+  test_cmp expected6 actual6
+'
+
+test_expect_success "remove direct pin with pin rm -r" '
+  echo "unpinned $HASH" >expected6 &&
+  ipfs pin add -r=false "$HASH"
   ipfs pin rm "$HASH" >actual6 &&
   test_cmp expected6 actual6
 '

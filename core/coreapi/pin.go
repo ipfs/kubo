@@ -53,7 +53,7 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]coreif
 }
 
 func (api *PinAPI) Rm(ctx context.Context, p coreiface.Path) error {
-	_, err := corerepo.Unpin(api.node, ctx, []string{p.String()}, true)
+	_, err := corerepo.Unpin(api.node, ctx, []string{p.String()}, true, true)
 	if err != nil {
 		return err
 	}

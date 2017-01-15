@@ -184,6 +184,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s).").WithDefault(true),
+		cmdkit.BoolOption("explain", "e", "Check for other pinned objects which could cause specified object(s) to be indirectly pinned").WithDefault(false),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -200,7 +201,13 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return
 		}
 
-		removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive)
+		explain, _, err := req.Option("explain").Bool()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive, explain)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
