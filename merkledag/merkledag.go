@@ -140,7 +140,7 @@ func (n *dagService) Remove(nd node.Node) error {
 
 // FetchGraph fetches all nodes that are children of the given node
 func FetchGraph(ctx context.Context, c *cid.Cid, serv DAGService) error {
-	return EnumerateChildrenAsync(ctx, serv, c, cid.NewSet().Visit)
+	return EnumerateChildren(ctx, serv, c, cid.NewSet().Visit, false)
 }
 
 // FindLinks searches this nodes links for the given key,
@@ -389,103 +389,92 @@ func EnumerateChildren(ctx context.Context, ds LinkService, root *cid.Cid, visit
 	return nil
 }
 
+// FetchGraphConcurrency is total number of concurrent fetches that
+// 'fetchNodes' will start at a time
+var FetchGraphConcurrency = 8
+
 func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visit func(*cid.Cid) bool) error {
-	toprocess := make(chan []*cid.Cid, 8)
-	nodes := make(chan *NodeOption, 8)
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	defer close(toprocess)
-
-	go fetchNodes(ctx, ds, toprocess, nodes)
+	if !visit(c) {
+		return nil
+	}
 
 	root, err := ds.Get(ctx, c)
 	if err != nil {
 		return err
 	}
 
-	nodes <- &NodeOption{Node: root}
-	live := 1
+	feed := make(chan node.Node)
+	out := make(chan *NodeOption)
+	done := make(chan struct{})
 
+	var setlk sync.Mutex
+
+	for i := 0; i < FetchGraphConcurrency; i++ {
+		go func() {
+			for n := range feed {
+				links := n.Links()
+				cids := make([]*cid.Cid, 0, len(links))
+				for _, l := range links {
+					setlk.Lock()
+					unseen := visit(l.Cid)
+					setlk.Unlock()
+					if unseen {
+						cids = append(cids, l.Cid)
+					}
+				}
+
+				for nopt := range ds.GetMany(ctx, cids) {
+					select {
+					case out <- nopt:
+					case <-ctx.Done():
+						return
+					}
+				}
+				select {
+				case done <- struct{}{}:
+				case <-ctx.Done():
+				}
+			}
+		}()
+	}
+	defer close(feed)
+
+	send := feed
+	var todobuffer []node.Node
+	var inProgress int
+
+	next := root
 	for {
 		select {
-		case opt, ok := <-nodes:
-			if !ok {
+		case send <- next:
+			inProgress++
+			if len(todobuffer) > 0 {
+				next = todobuffer[0]
+				todobuffer = todobuffer[1:]
+			} else {
+				next = nil
+				send = nil
+			}
+		case <-done:
+			inProgress--
+			if inProgress == 0 && next == nil {
 				return nil
 			}
-
-			if opt.Err != nil {
-				return opt.Err
+		case nc := <-out:
+			if nc.Err != nil {
+				return nc.Err
 			}
 
-			nd := opt.Node
-
-			// a node has been fetched
-			live--
-
-			var cids []*cid.Cid
-			for _, lnk := range nd.Links() {
-				c := lnk.Cid
-				if visit(c) {
-					live++
-					cids = append(cids, c)
-				}
+			if next == nil {
+				next = nc.Node
+				send = feed
+			} else {
+				todobuffer = append(todobuffer, nc.Node)
 			}
 
-			if live == 0 {
-				return nil
-			}
-
-			if len(cids) > 0 {
-				select {
-				case toprocess <- cids:
-				case <-ctx.Done():
-					return ctx.Err()
-				}
-			}
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
-}
 
-// FetchGraphConcurrency is total number of concurrenct fetches that
-// 'fetchNodes' will start at a time
-var FetchGraphConcurrency = 8
-
-func fetchNodes(ctx context.Context, ds DAGService, in <-chan []*cid.Cid, out chan<- *NodeOption) {
-	var wg sync.WaitGroup
-	defer func() {
-		// wait for all 'get' calls to complete so we don't accidentally send
-		// on a closed channel
-		wg.Wait()
-		close(out)
-	}()
-
-	rateLimit := make(chan struct{}, FetchGraphConcurrency)
-
-	get := func(ks []*cid.Cid) {
-		defer wg.Done()
-		defer func() {
-			<-rateLimit
-		}()
-		nodes := ds.GetMany(ctx, ks)
-		for opt := range nodes {
-			select {
-			case out <- opt:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}
-
-	for ks := range in {
-		select {
-		case rateLimit <- struct{}{}:
-		case <-ctx.Done():
-			return
-		}
-		wg.Add(1)
-		go get(ks)
-	}
 }

@@ -504,3 +504,46 @@ func TestCidRawDoesnNeedData(t *testing.T) {
 		t.Fatal("raw node shouldn't have any links")
 	}
 }
+
+func TestEnumerateAsyncFailsNotFound(t *testing.T) {
+	a := NodeWithData([]byte("foo1"))
+	b := NodeWithData([]byte("foo2"))
+	c := NodeWithData([]byte("foo3"))
+	d := NodeWithData([]byte("foo4"))
+
+	ds := dstest.Mock()
+	for _, n := range []node.Node{a, b, c} {
+		_, err := ds.Add(n)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	parent := new(ProtoNode)
+	if err := parent.AddNodeLinkClean("a", a); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := parent.AddNodeLinkClean("b", b); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := parent.AddNodeLinkClean("c", c); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := parent.AddNodeLinkClean("d", d); err != nil {
+		t.Fatal(err)
+	}
+
+	pcid, err := ds.Add(parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cset := cid.NewSet()
+	err = EnumerateChildrenAsync(context.Background(), ds, pcid, cset.Visit)
+	if err == nil {
+		t.Fatal("this should have failed")
+	}
+}
