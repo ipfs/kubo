@@ -9,6 +9,7 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	offline "github.com/ipfs/go-ipfs/routing/offline"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 var IpnsCmd = &cmds.Command{
@@ -42,6 +43,11 @@ Resolve the value of a reference:
   > ipfs name resolve ipfs.io
   /ipfs/QmaBvfZooxWkrv7D3r8LS9moNjzD2o525XMZze69hhoxf5
 
+Resolve the value of another key:
+
+  > ipfs name resolve -k=test
+  /ipfs/QmbTg3GRWqrrJeBdHZ58BSQygDRZgXUK1gZcCURgZTjcG8
+
 `,
 	},
 
@@ -50,6 +56,7 @@ Resolve the value of a reference:
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name.").Default(false),
+		cmds.StringOption("key", "k", "name of key to use").Default("self"),
 		cmds.BoolOption("nocache", "n", "Do not use cached entries.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -89,15 +96,29 @@ Resolve the value of a reference:
 		}
 
 		var name string
-		if len(req.Arguments()) == 0 {
-			if n.Identity == "" {
-				res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
+
+		if kname, found, _ := req.Option("key").String(); found {
+			k, err := n.GetKey(kname)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			name = n.Identity.Pretty()
-
+			pid, err := peer.IDFromPrivateKey(k)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			name = pid.Pretty()
 		} else {
-			name = req.Arguments()[0]
+			if len(req.Arguments()) == 0 {
+				if n.Identity == "" {
+					res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
+					return
+				}
+				name = n.Identity.Pretty()
+			} else {
+				name = req.Arguments()[0]
+			}
 		}
 
 		recursive, _, _ := req.Option("recursive").Bool()
