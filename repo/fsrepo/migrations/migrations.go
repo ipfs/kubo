@@ -35,6 +35,9 @@ func migrationsBinName() string {
 }
 
 func RunMigration(newv int) error {
+	if newv == 5 {
+		return fmt.Errorf("No automatic migrations yet for repo version 5. You will have to build them from source.\nSee https://github.com/ipfs/fs-repo-migrations")
+	}
 	migrateBin := migrationsBinName()
 
 	fmt.Println("  => Looking for suitable fs-repo-migrations binary.")
