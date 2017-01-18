@@ -94,7 +94,7 @@ If your operating system isn't officially supported, but you still want to try
 building ipfs anyways (it should work fine in most cases), you can do the
 following instead of `make install`:
 ```
-$ make source
+$ make install_unsupported
 ```
 
 Note: This process may break if [gx](https://github.com/whyrusleeping/gx) (used for
