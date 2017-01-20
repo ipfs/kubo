@@ -163,7 +163,11 @@ func (bs *blockstore) Has(k *cid.Cid) (bool, error) {
 }
 
 func (s *blockstore) DeleteBlock(k *cid.Cid) error {
-	return s.datastore.Delete(dshelp.CidToDsKey(k))
+	err := s.datastore.Delete(dshelp.CidToDsKey(k))
+	if err == ds.ErrNotFound {
+		return ErrNotFound
+	}
+	return err
 }
 
 // AllKeysChan runs a query for keys from the blockstore.

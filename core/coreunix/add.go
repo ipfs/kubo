@@ -103,6 +103,7 @@ type Adder struct {
 	RawLeaves  bool
 	Silent     bool
 	Wrap       bool
+	NoCopy     bool
 	Chunker    string
 	root       node.Node
 	mr         *mfs.Root
@@ -124,6 +125,7 @@ func (adder Adder) add(reader io.Reader) (node.Node, error) {
 		Dagserv:   adder.dagService,
 		RawLeaves: adder.RawLeaves,
 		Maxlinks:  ihelper.DefaultLinksPerBlock,
+		NoCopy:    adder.NoCopy,
 	}
 
 	if adder.Trickle {

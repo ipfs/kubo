@@ -12,6 +12,7 @@ import (
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
+	filestore "github.com/ipfs/go-ipfs/filestore"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
@@ -166,8 +167,8 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		TempErrFunc: isTooManyFDError,
 	}
 
-	var err error
 	bs := bstore.NewBlockstore(rds)
+
 	opts := bstore.DefaultCacheOpts()
 	conf, err := n.Repo.Config()
 	if err != nil {
@@ -184,7 +185,14 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		return err
 	}
 
-	n.Blockstore = bstore.NewGCBlockstore(cbs, bstore.NewGCLocker())
+	n.BaseBlocks = cbs
+	n.GCLocker = bstore.NewGCLocker()
+	n.Blockstore = bstore.NewGCBlockstore(cbs, n.GCLocker)
+
+	if conf.Experimental.FilestoreEnabled {
+		n.Filestore = filestore.NewFilestore(bs, n.Repo.FileManager())
+		n.Blockstore = bstore.NewGCBlockstore(n.Filestore, n.GCLocker)
+	}
 
 	rcfg, err := n.Repo.Config()
 	if err != nil {

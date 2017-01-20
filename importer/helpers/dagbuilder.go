@@ -35,6 +35,10 @@ type DagBuilderParams struct {
 
 	// DAGService to write blocks to (required)
 	Dagserv dag.DAGService
+
+	// NoCopy signals to the chunker that it should track fileinfo for
+	// filestore adds
+	NoCopy bool
 }
 
 // Generate a new DagBuilderHelper from the given params, which data source comes
@@ -47,8 +51,8 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		maxlinks:  dbp.Maxlinks,
 		batch:     dbp.Dagserv.Batch(),
 	}
-	if fi, ok := spl.Reader().(files.FileInfo); ok {
-		db.fullPath = fi.FullPath()
+	if fi, ok := spl.Reader().(files.FileInfo); dbp.NoCopy && ok {
+		db.fullPath = fi.AbsPath()
 		db.stat = fi.Stat()
 	}
 	return db
@@ -146,7 +150,7 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 }
 
 func (db *DagBuilderHelper) SetPosInfo(node *UnixfsNode, offset uint64) {
-	if db.stat != nil {
+	if db.fullPath != "" {
 		node.SetPosInfo(offset, db.fullPath, db.stat)
 	}
 }

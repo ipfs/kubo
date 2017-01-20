@@ -28,6 +28,7 @@ import (
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
+	filestore "github.com/ipfs/go-ipfs/filestore"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
@@ -110,6 +111,9 @@ type IpfsNode struct {
 	// Services
 	Peerstore  pstore.Peerstore     // storage for other Peer instances
 	Blockstore bstore.GCBlockstore  // the block store (lower level)
+	Filestore  *filestore.Filestore // the filestore blockstore
+	BaseBlocks bstore.Blockstore    // the raw blockstore, no filestore wrapping
+	GCLocker   bstore.GCLocker      // the locker used to protect the blockstore during gc
 	Blocks     bserv.BlockService   // the block service, get/add blocks.
 	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
 	Resolver   *path.Resolver       // the path resolution system

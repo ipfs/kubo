@@ -3,6 +3,7 @@ package repo
 import (
 	"errors"
 
+	filestore "github.com/ipfs/go-ipfs/filestore"
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/repo/config"
 
@@ -48,3 +49,5 @@ func (m *Mock) Keystore() keystore.Keystore { return nil }
 func (m *Mock) SwarmKey() ([]byte, error) {
 	return nil, nil
 }
+
+func (m *Mock) FileManager() *filestore.FileManager { return nil }

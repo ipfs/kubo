@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	filestore "github.com/ipfs/go-ipfs/filestore"
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
@@ -100,6 +101,7 @@ type FSRepo struct {
 	config   *config.Config
 	ds       repo.Datastore
 	keystore keystore.Keystore
+	filemgr  *filestore.FileManager
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -170,6 +172,10 @@ func open(repoPath string) (repo.Repo, error) {
 
 	if err := r.openKeystore(); err != nil {
 		return nil, err
+	}
+
+	if r.config.Experimental.FilestoreEnabled {
+		r.filemgr = filestore.NewFileManager(r.ds, filepath.Dir(r.path))
 	}
 
 	keepLocked = true
@@ -316,6 +322,10 @@ func (r *FSRepo) Keystore() keystore.Keystore {
 	return r.keystore
 }
 
+func (r *FSRepo) Path() string {
+	return r.path
+}
+
 // SetAPIAddr writes the API Addr to the /api file.
 func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	f, err := os.Create(filepath.Join(r.path, apiFile))
@@ -422,6 +432,10 @@ func (r *FSRepo) Config() (*config.Config, error) {
 		return nil, errors.New("cannot access config, repo not open")
 	}
 	return r.config, nil
+}
+
+func (r *FSRepo) FileManager() *filestore.FileManager {
+	return r.filemgr
 }
 
 // setConfigUnsynced is for private use.

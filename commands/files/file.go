@@ -19,10 +19,10 @@ type File interface {
 	// they are not directories
 	io.ReadCloser
 
-	// FileName returns a filename path associated with this file
+	// FileName returns a filename associated with this file
 	FileName() string
 
-	// FullPath returns the full path in the os associated with this file
+	// FullPath returns the full path used when adding this file
 	FullPath() string
 
 	// IsDirectory returns true if the File is a directory (and therefore
@@ -57,6 +57,6 @@ type SizeFile interface {
 }
 
 type FileInfo interface {
-	FullPath() string
+	AbsPath() string
 	Stat() os.FileInfo
 }
