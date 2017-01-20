@@ -79,9 +79,9 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 	// exclusively. We should probably find another way to share logging data
 	ctx, cancelFunc := context.WithCancel(parent)
 	ctx = metrics.CtxSubScope(ctx, "bitswap")
-	dupHist := metrics.NewCtx(ctx, "dup_blocks_bytes", "Summary of duplicate"+
+	dupHist := metrics.NewCtx(ctx, "recv_dup_blocks_bytes", "Summary of duplicate"+
 		" data blocks recived").Histogram(metricsBuckets)
-	allHist := metrics.NewCtx(ctx, "all_blocks_bytes", "Summary of all"+
+	allHist := metrics.NewCtx(ctx, "recv_all_blocks_bytes", "Summary of all"+
 		" data blocks recived").Histogram(metricsBuckets)
 
 	notif := notifications.New()

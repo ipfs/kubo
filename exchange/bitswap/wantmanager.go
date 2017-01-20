@@ -30,24 +30,28 @@ type WantManager struct {
 	ctx     context.Context
 	cancel  func()
 
-	metricWantlist metrics.Gauge
+	wantlistGauge metrics.Gauge
+	sentHistogram metrics.Histogram
 }
 
 func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantManager {
 	ctx, cancel := context.WithCancel(ctx)
 	wantlistGauge := metrics.NewCtx(ctx, "wanlist_total",
 		"Number of items in wantlist.").Gauge()
+	sentHistogram := metrics.NewCtx(ctx, "sent_all_blocks_bytes", "Histogram of blocks sent by"+
+		" this bitswap").Histogram(metricsBuckets)
 	return &WantManager{
-		incoming:       make(chan []*bsmsg.Entry, 10),
-		connect:        make(chan peer.ID, 10),
-		disconnect:     make(chan peer.ID, 10),
-		peerReqs:       make(chan chan []peer.ID),
-		peers:          make(map[peer.ID]*msgQueue),
-		wl:             wantlist.NewThreadSafe(),
-		network:        network,
-		ctx:            ctx,
-		cancel:         cancel,
-		metricWantlist: wantlistGauge,
+		incoming:      make(chan []*bsmsg.Entry, 10),
+		connect:       make(chan peer.ID, 10),
+		disconnect:    make(chan peer.ID, 10),
+		peerReqs:      make(chan chan []peer.ID),
+		peers:         make(map[peer.ID]*msgQueue),
+		wl:            wantlist.NewThreadSafe(),
+		network:       network,
+		ctx:           ctx,
+		cancel:        cancel,
+		wantlistGauge: wantlistGauge,
+		sentHistogram: sentHistogram,
 	}
 }
 
@@ -115,6 +119,8 @@ func (pm *WantManager) SendBlock(ctx context.Context, env *engine.Envelope) {
 	// Blocks need to be sent synchronously to maintain proper backpressure
 	// throughout the network stack
 	defer env.Sent()
+
+	pm.sentHistogram.Observe(float64(len(env.Block.RawData())))
 
 	msg := bsmsg.New(false)
 	msg.AddBlock(env.Block)
@@ -289,12 +295,12 @@ func (pm *WantManager) Run() {
 			for _, e := range entries {
 				if e.Cancel {
 					if pm.wl.Remove(e.Cid) {
-						pm.metricWantlist.Dec()
+						pm.wantlistGauge.Dec()
 						filtered = append(filtered, e)
 					}
 				} else {
 					if pm.wl.AddEntry(e.Entry) {
-						pm.metricWantlist.Inc()
+						pm.wantlistGauge.Inc()
 						filtered = append(filtered, e)
 					}
 				}
