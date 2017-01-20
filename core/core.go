@@ -41,6 +41,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	p2phost "gx/ipfs/QmPsRtodRuBUir32nz5v4zuSBTSszrR1d3fA6Ahb6eaejj/go-libp2p-host"
+	dht "gx/ipfs/QmRG9fdibExi5DFy8kzyxF76jvZVUb2mQBUSMNP1YaYn9M/go-libp2p-kad-dht"
 	mssmux "gx/ipfs/QmRVYfZ7tWNHPBzWiG6KWGzvT2hcGems8srihsQE29x1U5/go-smux-multistream"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
@@ -52,7 +53,6 @@ import (
 	spdy "gx/ipfs/QmWUNsat6Jb19nC5CiJCDXepTkxjdxi3eZqeoB6mrmmaGu/go-smux-spdystream"
 	floodsub "gx/ipfs/QmX3L7GWQ2HfvdwUM7kFJrtKfycamfhricAFSshyHtCB3h/floodsub"
 	metrics "gx/ipfs/QmY2otvyPM2sTaDsczo7Yuosg98sUMCJ9qx1gpPaAPTS9B/go-libp2p-metrics"
-	dht "gx/ipfs/QmZbinR1CdVPaoom5vgD5YC5c1oeCPJqYhoGJFXoA32GKn/go-libp2p-kad-dht"
 	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	mplex "gx/ipfs/QmbPSoTDH3JFKkSxsCQDyVMFT76KcQz7ELWEetyyg3aeDA/go-smux-multiplex"
 	swarm "gx/ipfs/Qmbiq2d2ZMi34A6V22kNY3b4GgPGFztmRCQZ931TJkYWp7/go-libp2p-swarm"
