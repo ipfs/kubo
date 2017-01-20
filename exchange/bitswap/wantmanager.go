@@ -9,6 +9,8 @@ import (
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+
+	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 	peer "gx/ipfs/QmZcUPvPhD1Xvk6mwijYF8AfR3mG31S1YsEfHG4khrFPRr/go-libp2p-peer"
 )
@@ -27,20 +29,25 @@ type WantManager struct {
 	network bsnet.BitSwapNetwork
 	ctx     context.Context
 	cancel  func()
+
+	metricWantlist metrics.Gauge
 }
 
 func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantManager {
 	ctx, cancel := context.WithCancel(ctx)
+	wantlistGauge := metrics.NewCtx(ctx, "wanlist_total",
+		"Number of items in wantlist.").Gauge()
 	return &WantManager{
-		incoming:   make(chan []*bsmsg.Entry, 10),
-		connect:    make(chan peer.ID, 10),
-		disconnect: make(chan peer.ID, 10),
-		peerReqs:   make(chan chan []peer.ID),
-		peers:      make(map[peer.ID]*msgQueue),
-		wl:         wantlist.NewThreadSafe(),
-		network:    network,
-		ctx:        ctx,
-		cancel:     cancel,
+		incoming:       make(chan []*bsmsg.Entry, 10),
+		connect:        make(chan peer.ID, 10),
+		disconnect:     make(chan peer.ID, 10),
+		peerReqs:       make(chan chan []peer.ID),
+		peers:          make(map[peer.ID]*msgQueue),
+		wl:             wantlist.NewThreadSafe(),
+		network:        network,
+		ctx:            ctx,
+		cancel:         cancel,
+		metricWantlist: wantlistGauge,
 	}
 }
 
@@ -282,10 +289,12 @@ func (pm *WantManager) Run() {
 			for _, e := range entries {
 				if e.Cancel {
 					if pm.wl.Remove(e.Cid) {
+						pm.metricWantlist.Dec()
 						filtered = append(filtered, e)
 					}
 				} else {
 					if pm.wl.AddEntry(e.Entry) {
+						pm.metricWantlist.Inc()
 						filtered = append(filtered, e)
 					}
 				}
