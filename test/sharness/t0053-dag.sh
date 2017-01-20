@@ -15,10 +15,10 @@ test_expect_success "make a few test files" '
 	echo "bar" > file2 &&
 	echo "baz" > file3 &&
 	echo "qux" > file4 &&
-	HASH1=$(ipfs add -q file1) &&
-	HASH2=$(ipfs add -q file2) &&
-	HASH3=$(ipfs add -q file3) &&
-	HASH4=$(ipfs add -q file4)
+	HASH1=$(ipfs add --pin=false -q file1) &&
+	HASH2=$(ipfs add --pin=false -q file2) &&
+	HASH3=$(ipfs add --pin=false -q file3) &&
+	HASH4=$(ipfs add --pin=false -q file4)
 '
 
 test_expect_success "make an ipld object in json" '
@@ -45,6 +45,15 @@ test_dag_cmd() {
 		test_cmp file1 out1 &&
 		test_cmp file2 out2 &&
 		test_cmp file3 out3
+	'
+
+	test_expect_success "can pin cbor object" '
+		ipfs pin add $EXPHASH
+	'
+
+	test_expect_success "after gc, objects still acessible" '
+		ipfs repo gc > /dev/null &&
+		ipfs refs -r --timeout=2s $EXPHASH > /dev/null
 	'
 
 	test_expect_success "add a normal file" '
