@@ -19,6 +19,7 @@ import (
 	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
 
+	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -47,6 +48,9 @@ var (
 	HasBlockBufferSize    = 256
 	provideKeysBufferSize = 2048
 	provideWorkerMax      = 512
+
+	// the 1<<18+15 is to observe old file chunks that are 1<<18 + 14 in size
+	metricsBuckets = []float64{1 << 6, 1 << 10, 1 << 14, 1 << 18, 1<<18 + 15, 1 << 22}
 )
 
 func init() {
@@ -74,6 +78,11 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 	// shouldn't accept a context anymore. Clients should probably use Close()
 	// exclusively. We should probably find another way to share logging data
 	ctx, cancelFunc := context.WithCancel(parent)
+	ctx = metrics.CtxSubScope(ctx, "bitswap")
+	dupHist := metrics.NewCtx(ctx, "dup_blocks_bytes", "Summary of duplicate"+
+		" data blocks recived").Histogram(metricsBuckets)
+	allHist := metrics.NewCtx(ctx, "all_blocks_bytes", "Summary of all"+
+		" data blocks recived").Histogram(metricsBuckets)
 
 	notif := notifications.New()
 	px := process.WithTeardown(func() error {
@@ -91,6 +100,9 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		newBlocks:     make(chan *cid.Cid, HasBlockBufferSize),
 		provideKeys:   make(chan *cid.Cid, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
+
+		dupMetric: dupHist,
+		allMetric: allHist,
 	}
 	go bs.wm.Run()
 	network.SetDelegate(bs)
@@ -145,6 +157,10 @@ type Bitswap struct {
 	blocksRecvd    int
 	dupBlocksRecvd int
 	dupDataRecvd   uint64
+
+	// Metrics interface metrics
+	dupMetric metrics.Histogram
+	allMetric metrics.Histogram
 }
 
 type blockRequest struct {
@@ -373,6 +389,8 @@ var ErrAlreadyHaveBlock = errors.New("already have block")
 func (bs *Bitswap) updateReceiveCounters(b blocks.Block) error {
 	bs.counterLk.Lock()
 	defer bs.counterLk.Unlock()
+	blkLen := len(b.RawData())
+	bs.allMetric.Observe(float64(blkLen))
 	bs.blocksRecvd++
 	has, err := bs.blockstore.Has(b.Cid())
 	if err != nil {
@@ -380,8 +398,9 @@ func (bs *Bitswap) updateReceiveCounters(b blocks.Block) error {
 		return err
 	}
 	if err == nil && has {
+		bs.dupMetric.Observe(float64(blkLen))
 		bs.dupBlocksRecvd++
-		bs.dupDataRecvd += uint64(len(b.RawData()))
+		bs.dupDataRecvd += uint64(blkLen)
 	}
 
 	if has {
