@@ -29,7 +29,7 @@ import (
 var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
-var RepoVersion = 4
+var RepoVersion = 5
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`

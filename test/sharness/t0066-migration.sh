@@ -35,8 +35,9 @@ test_expect_success "ipfs daemon --migrate=true runs migration" '
 '
 
 test_expect_success "output looks good" '
-	grep "Running: " true_out > /dev/null &&
-	grep "Success: fs-repo has been migrated to version 4." true_out > /dev/null
+	#grep "Running: " true_out > /dev/null &&
+	#grep "Success: fs-repo has been migrated to version 4." true_out > /dev/null
+	grep "No automatic migrations yet" true_out > /dev/null
 '
 
 test_expect_success "'ipfs daemon' prompts to auto migrate" '
