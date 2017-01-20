@@ -43,7 +43,7 @@ func (rp RepoPath) CheckVersion(version int) error {
 	}
 
 	if v != version {
-		return fmt.Errorf("versions differ (expected: %s, actual:%s)", version, v)
+		return fmt.Errorf("versions differ (expected: %d, actual:%d)", version, v)
 	}
 
 	return nil
