@@ -368,9 +368,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		go func(b blocks.Block) {
 			defer wg.Done()
 
-			if err := bs.updateReceiveCounters(b); err != nil {
-				return // ignore error, is either logged previously, or ErrAlreadyHaveBlock
-			}
+			bs.updateReceiveCounters(b)
 
 			k := b.Cid()
 			log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
@@ -386,27 +384,27 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 
 var ErrAlreadyHaveBlock = errors.New("already have block")
 
-func (bs *Bitswap) updateReceiveCounters(b blocks.Block) error {
-	bs.counterLk.Lock()
-	defer bs.counterLk.Unlock()
+func (bs *Bitswap) updateReceiveCounters(b blocks.Block) {
 	blkLen := len(b.RawData())
-	bs.allMetric.Observe(float64(blkLen))
-	bs.blocksRecvd++
 	has, err := bs.blockstore.Has(b.Cid())
 	if err != nil {
 		log.Infof("blockstore.Has error: %s", err)
-		return err
+		return
 	}
-	if err == nil && has {
+
+	bs.allMetric.Observe(float64(blkLen))
+	if has {
 		bs.dupMetric.Observe(float64(blkLen))
+	}
+
+	bs.counterLk.Lock()
+	defer bs.counterLk.Unlock()
+
+	bs.blocksRecvd++
+	if has {
 		bs.dupBlocksRecvd++
 		bs.dupDataRecvd += uint64(blkLen)
 	}
-
-	if has {
-		return ErrAlreadyHaveBlock
-	}
-	return nil
 }
 
 // Connected/Disconnected warns bitswap about peer connections
