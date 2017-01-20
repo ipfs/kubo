@@ -2,6 +2,7 @@ package mfsr
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/ipfs/go-ipfs/thirdparty/assert"
@@ -20,6 +21,12 @@ func TestVersion(t *testing.T) {
 	rp := RepoPath("")
 	_, err := rp.Version()
 	assert.Err(err, t, "Should throw an error when path is bad,")
+
+	rp = RepoPath("/path/to/nowhere")
+	_, err = rp.Version()
+	if !os.IsNotExist(err) {
+		t.Fatalf("Should throw an `IsNotExist` error when file doesn't exist: %v", err)
+	}
 
 	rp = testVersionFile("4", t)
 	_, err = rp.Version()
