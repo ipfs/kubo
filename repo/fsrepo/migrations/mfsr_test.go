@@ -3,6 +3,7 @@ package mfsr
 import (
 	"io/ioutil"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/ipfs/go-ipfs/thirdparty/assert"
@@ -28,13 +29,15 @@ func TestVersion(t *testing.T) {
 		t.Fatalf("Should throw an `IsNotExist` error when file doesn't exist: %v", err)
 	}
 
-	rp = testVersionFile("4", t)
+	fsrepoV := 5
+
+	rp = testVersionFile(strconv.Itoa(fsrepoV), t)
 	_, err = rp.Version()
 	assert.Err(err, t, "Bad VersionFile")
 
-	assert.Nil(rp.WriteVersion(4), t, "Trouble writing version")
+	assert.Nil(rp.WriteVersion(fsrepoV), t, "Trouble writing version")
 
-	assert.Nil(rp.CheckVersion(4), t, "Trouble checking the verion")
+	assert.Nil(rp.CheckVersion(fsrepoV), t, "Trouble checking the verion")
 
 	assert.Err(rp.CheckVersion(1), t, "Should throw an error for the wrong version.")
 }
