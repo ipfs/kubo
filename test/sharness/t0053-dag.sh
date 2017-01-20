@@ -31,7 +31,7 @@ test_dag_cmd() {
 	'
 
 	test_expect_success "output looks correct" '
-		EXPHASH="zdpuApvChR5xM7ttbQmpmtna7wcShHi4gPyxUcWbB7nh8K7cN"
+		EXPHASH="zdpuAzn7KZcQmKJvpEM1DgHXaybVj7mRP4ZMrkW94taYEuZHp"
 		test $EXPHASH = $IPLDHASH
 	'
 
