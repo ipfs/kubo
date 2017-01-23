@@ -13,7 +13,7 @@ Sections:
 IPFS uses a set of type value that is useful to enumerate up front:
 
 - `<ipfs-path>` is unix-style path, beginning with `/ipfs/<hash>/...` or `/ipns/<hash>/...` or `/ipns/<domain>/...`.
-- `<hash>` is a base58 encoded [multihash](https://github.com/jbenet/multihash) (there are [many implementations](https://github.com/jbenet/multihash#implementations)). Usually the hash of an ipfs object (or merkle dag node).
+- `<hash>` is a base58 encoded [multihash](https://github.com/jbenet/multihash) (there are [many implementations](https://github.com/jbenet/multihash#implementations)). Usually the hash of an IPFS object (or merkle dag node).
 
 A note on streams: IPFS is a streaming protocol. Everything about it can be streamed. When importing files, API requests should aim to stream the data in, and handle back-pressure correctly, so that the IPFS node can handle it sequentially without too much memory pressure. (If using HTTP, this is typically handled for you by writes to the request body blocking.)
 

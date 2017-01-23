@@ -11,11 +11,6 @@ import (
 	"sort"
 	"sync"
 
-	"gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
-	_ "gx/ipfs/QmV3NSS3A1kX5s28r7yLczhDsXzkgo65cqRgKFXYunWZmD/metrics/runtime"
-
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
@@ -25,10 +20,16 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	conn "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/conn"
-	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	prometheus "gx/ipfs/QmdhsRK1EK2fvAz2i2SH5DEfkL6seDuyMYEsxKa9Braim3/client_golang/prometheus"
+
+	"gx/ipfs/QmR3KwhXCRLTNZB59vELb2HhEWrGy9nuychepxFtj3wWYa/client_golang/prometheus"
+	"gx/ipfs/QmT6Cp31887FpAc25z25YHgpFJohZedrYLWPPspRtj1Brp/go-multiaddr-net"
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
+	mprome "gx/ipfs/QmXWro6iddJRbGWUoZDpTu6tjo5EXX4xJHHR9VczeoGZbw/go-metrics-prometheus"
+	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	iconn "gx/ipfs/QmctX4TY6jXtpfeDiwMGoB4qVTBGDnz7T7r22CwQSzTgwt/go-libp2p-interface-conn"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
+
+	_ "gx/ipfs/QmV3NSS3A1kX5s28r7yLczhDsXzkgo65cqRgKFXYunWZmD/metrics/runtime"
 )
 
 const (
@@ -42,9 +43,14 @@ const (
 	offlineKwd                = "offline"
 	routingOptionKwd          = "routing"
 	routingOptionSupernodeKwd = "supernode"
+	routingOptionDHTClientKwd = "dhtclient"
+	routingOptionDHTKwd       = "dht"
+	routingOptionNoneKwd      = "none"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
+	enableFloodSubKwd         = "enable-pubsub-experiment"
+	enableMultiplexKwd        = "enable-mplex-experiment"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -53,7 +59,7 @@ var daemonCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Run a network-connected IPFS node.",
 		ShortDescription: `
-'ipfs daemon' runs a persistent IPFS daemon that can serve commands
+'ipfs daemon' runs a persistent ipfs daemon that can serve commands
 over the network. Most applications that use IPFS will do so by
 communicating with a daemon over the HTTP API. While the daemon is
 running, calls to 'ipfs' commands will be sent over the network to
@@ -84,7 +90,7 @@ make sure to protect the port as you would other services or database
 
 HTTP Headers
 
-IPFS supports passing arbitrary headers to the API and Gateway. You can
+ipfs supports passing arbitrary headers to the API and Gateway. You can
 do this by setting headers on the API.HTTPHeaders and Gateway.HTTPHeaders
 keys:
 
@@ -118,9 +124,20 @@ environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
 
+Routing
+
+IPFS by default will use a DHT for content routing. There is a highly
+experimental alternative that operates the DHT in a 'client only' mode that can
+be enabled by running the daemon as:
+
+    ipfs daemon --routing=dhtclient
+
+This will later be transitioned into a config option once it gets out of the
+'experimental' stage.
+
 DEPRECATION NOTICE
 
-Previously, IPFS used an environment variable as seen below:
+Previously, ipfs used an environment variable as seen below:
 
    export API_ORIGIN="http://localhost:8888/"
 
@@ -131,7 +148,7 @@ Headers.
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption(initOptionKwd, "Initialize IPFS with default settings if not already initialized").Default(false),
+		cmds.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized").Default(false),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").Default("dht"),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem").Default(false),
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)").Default(false),
@@ -143,6 +160,8 @@ Headers.
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").Default(true),
 		cmds.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API.").Default(false),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
+		cmds.BoolOption(enableFloodSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
+		cmds.BoolOption(enableMultiplexKwd, "Add the experimental 'go-multiplex' stream muxer to libp2p on construction."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -166,6 +185,13 @@ func defaultMux(path string) corehttp.ServeOption {
 var fileDescriptorCheck = func() error { return nil }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
+	// Inject metrics before we do anything
+
+	err := mprome.Inject()
+	if err != nil {
+		log.Errorf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
+	}
+
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
 
@@ -191,7 +217,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	if unencrypted {
 		log.Warningf(`Running with --%s: All connections are UNENCRYPTED.
 		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
-		conn.EncryptConnections = false
+		iconn.EncryptConnections = false
 	}
 
 	// first, whether user has provided the initialization flag. we may be
@@ -204,7 +230,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	if initialize {
 
-		// now, FileExists is our best method of detecting whether IPFS is
+		// now, FileExists is our best method of detecting whether ipfs is
 		// configured. Consider moving this into a config helper method
 		// `IsInitialized` where the quality of the signal can be improved over
 		// time, and many call-sites can benefit.
@@ -264,21 +290,29 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	offline, _, _ := req.Option(offlineKwd).Bool()
+	pubsub, _, _ := req.Option(enableFloodSubKwd).Bool()
+	mplex, _, _ := req.Option(enableMultiplexKwd).Bool()
+
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
 		Repo:      repo,
 		Permament: true, // It is temporary way to signify that node is permament
-		//TODO(Kubuxu): refactor Online vs Offline by adding Permement vs Epthemeral
+		Online:    !offline,
+		ExtraOpts: map[string]bool{
+			"pubsub": pubsub,
+			"mplex":  mplex,
+		},
+		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
-	offline, _, _ := req.Option(offlineKwd).Bool()
-	ncfg.Online = !offline
 
 	routingOption, _, err := req.Option(routingOptionKwd).String()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
-	if routingOption == routingOptionSupernodeKwd {
+	switch routingOption {
+	case routingOptionSupernodeKwd:
 		servers, err := cfg.SupernodeRouting.ServerIPFSAddrs()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -294,6 +328,15 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 
 		ncfg.Routing = corerouting.SupernodeClient(infos...)
+	case routingOptionDHTClientKwd:
+		ncfg.Routing = core.DHTClientOption
+	case routingOptionDHTKwd:
+		ncfg.Routing = core.DHTOption
+	case routingOptionNoneKwd:
+		ncfg.Routing = core.NilRouterOption
+	default:
+		res.SetError(fmt.Errorf("unrecognized routing option: %s", routingOption), cmds.ErrNormal)
+		return
 	}
 
 	node, err := core.NewNode(req.Context(), ncfg)
@@ -302,6 +345,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
+	node.SetLocal(false)
 
 	printSwarmAddrs(node)
 
@@ -365,8 +409,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 
 	// initialize metrics collector
-	prometheus.MustRegisterOrGet(&corehttp.IpfsNodeCollector{Node: node})
-	prometheus.EnableCollectChecks(true)
+	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	fmt.Printf("Daemon is ready\n")
 	// collect long-running errors and block for shutdown
@@ -415,9 +458,9 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 	if err != nil {
 		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
 	}
-	gatewayOpt := corehttp.GatewayOption(corehttp.WebUIPaths...)
+	gatewayOpt := corehttp.GatewayOption(false, corehttp.WebUIPaths...)
 	if unrestricted {
-		gatewayOpt = corehttp.GatewayOption("/ipfs", "/ipns")
+		gatewayOpt = corehttp.GatewayOption(true, "/ipfs", "/ipns")
 	}
 
 	var opts = []corehttp.ServeOption{
@@ -441,7 +484,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		return fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err), nil
 	}
 
-	if err := node.Repo.SetAPIAddr(apiMaddr.String()); err != nil {
+	if err := node.Repo.SetAPIAddr(apiMaddr); err != nil {
 		return fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %s", err), nil
 	}
 
@@ -486,8 +529,8 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	if err != nil {
 		return fmt.Errorf("serveHTTPGateway: req.Option(%s) failed: %s", writableKwd, err), nil
 	}
-	if writableOptionFound {
-		cfg.Gateway.Writable = writable
+	if !writableOptionFound {
+		writable = cfg.Gateway.Writable
 	}
 
 	gwLis, err := manet.Listen(gatewayMaddr)
@@ -508,7 +551,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption("/ipfs", "/ipns"),
+		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

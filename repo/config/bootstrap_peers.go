@@ -8,7 +8,7 @@ import (
 )
 
 // DefaultBootstrapAddresses are the hardcoded bootstrap addresses
-// for ipfs. they are nodes run by the ipfs team. docs on these later.
+// for IPFS. they are nodes run by the IPFS team. docs on these later.
 // As with all p2p networks, bootstrap is an important security concern.
 //
 // NOTE: This is here -- and not inside cmd/ipfs/init.go -- because of an

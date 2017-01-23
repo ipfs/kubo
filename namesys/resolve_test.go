@@ -1,19 +1,18 @@
 package namesys
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	path "github.com/ipfs/go-ipfs/path"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dssync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	dssync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 func TestRoutingResolve(t *testing.T) {
@@ -36,13 +35,12 @@ func TestRoutingResolve(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pubkb, err := pubk.Bytes()
+	pid, err := peer.IDFromPublicKey(pubk)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pkhash := u.Hash(pubkb)
-	res, err := resolver.Resolve(context.Background(), key.Key(pkhash).B58String())
+	res, err := resolver.Resolve(context.Background(), pid.Pretty())
 	if err != nil {
 		t.Fatal(err)
 	}

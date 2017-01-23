@@ -7,8 +7,9 @@ import (
 	gopath "path"
 	"strings"
 
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 )
 
 // Mv moves the file or directory at 'src' to 'dst'
@@ -87,7 +88,7 @@ func lookupDir(r *Root, path string) (*Directory, error) {
 }
 
 // PutNode inserts 'nd' at 'path' in the given mfs
-func PutNode(r *Root, path string, nd *dag.Node) error {
+func PutNode(r *Root, path string, nd node.Node) error {
 	dirp, filename := gopath.Split(path)
 	if filename == "" {
 		return fmt.Errorf("cannot create file with empty name")

@@ -2,25 +2,28 @@ package pin
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"io"
 	"sort"
-	"unsafe"
 
-	"github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin/internal/pb"
+
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 	"gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 const (
+	// defaultFanout specifies the default number of fan-out links per layer
 	defaultFanout = 256
-	maxItems      = 8192
+
+	// maxItems is the maximum number of items that will fit in a single bucket
+	maxItems = 8192
 )
 
 func randomSeed() (uint32, error) {
@@ -31,45 +34,21 @@ func randomSeed() (uint32, error) {
 	return binary.LittleEndian.Uint32(buf[:]), nil
 }
 
-func hash(seed uint32, k key.Key) uint32 {
+func hash(seed uint32, c *cid.Cid) uint32 {
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], seed)
 	h := fnv.New32a()
 	_, _ = h.Write(buf[:])
-	_, _ = io.WriteString(h, string(k))
+	_, _ = h.Write(c.Bytes())
 	return h.Sum32()
 }
 
-type itemIterator func() (k key.Key, data []byte, ok bool)
+type itemIterator func() (c *cid.Cid, ok bool)
 
-type keyObserver func(key.Key)
-
-// refcount is the marshaled format of refcounts. It may change
-// between versions; this is valid for version 1. Changing it may
-// become desirable if there are many links with refcount > 255.
-//
-// There are two guarantees that need to be preserved, if this is
-// changed:
-//
-//     - the marshaled format is of fixed size, matching
-//       unsafe.Sizeof(refcount(0))
-//     - methods of refcount handle endianness, and may
-//       in later versions need encoding/binary.
-type refcount uint8
-
-func (r refcount) Bytes() []byte {
-	return []byte{byte(r)}
-}
-
-// readRefcount returns the idx'th refcount in []byte, which is
-// assumed to be a sequence of refcount.Bytes results.
-func (r *refcount) ReadFromIdx(buf []byte, idx int) {
-	*r = refcount(buf[idx])
-}
+type keyObserver func(*cid.Cid)
 
 type sortByHash struct {
-	links []*merkledag.Link
-	data  []byte
+	links []*node.Link
 }
 
 func (s sortByHash) Len() int {
@@ -77,32 +56,29 @@ func (s sortByHash) Len() int {
 }
 
 func (s sortByHash) Less(a, b int) bool {
-	return bytes.Compare(s.links[a].Hash, s.links[b].Hash) == -1
+	return bytes.Compare(s.links[a].Cid.Bytes(), s.links[b].Cid.Bytes()) == -1
 }
 
 func (s sortByHash) Swap(a, b int) {
 	s.links[a], s.links[b] = s.links[b], s.links[a]
-	if len(s.data) != 0 {
-		const n = int(unsafe.Sizeof(refcount(0)))
-		tmp := make([]byte, n)
-		copy(tmp, s.data[a*n:a*n+n])
-		copy(s.data[a*n:a*n+n], s.data[b*n:b*n+n])
-		copy(s.data[b*n:b*n+n], tmp)
-	}
 }
 
-func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint64, iter itemIterator, internalKeys keyObserver) (*merkledag.Node, error) {
+func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint64, iter itemIterator, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
 	seed, err := randomSeed()
 	if err != nil {
 		return nil, err
 	}
-	n := &merkledag.Node{
-		Links: make([]*merkledag.Link, 0, defaultFanout+maxItems),
-	}
+	links := make([]*node.Link, 0, defaultFanout+maxItems)
 	for i := 0; i < defaultFanout; i++ {
-		n.Links = append(n.Links, &merkledag.Link{Hash: emptyKey.ToMultihash()})
+		links = append(links, &node.Link{Cid: emptyKey})
 	}
+
+	// add emptyKey to our set of internal pinset objects
+	n := &merkledag.ProtoNode{}
+	n.SetLinks(links)
+
 	internalKeys(emptyKey)
+
 	hdr := &pb.Set{
 		Version: proto.Uint32(1),
 		Fanout:  proto.Uint32(defaultFanout),
@@ -111,255 +87,223 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 	if err := writeHdr(n, hdr); err != nil {
 		return nil, err
 	}
-	hdrLen := len(n.Data())
 
 	if estimatedLen < maxItems {
 		// it'll probably fit
+		links := n.Links()
 		for i := 0; i < maxItems; i++ {
-			k, data, ok := iter()
+			k, ok := iter()
 			if !ok {
 				// all done
 				break
 			}
-			n.Links = append(n.Links, &merkledag.Link{Hash: k.ToMultihash()})
-			n.SetData(append(n.Data(), data...))
+
+			links = append(links, &node.Link{Cid: k})
 		}
+
+		n.SetLinks(links)
+
 		// sort by hash, also swap item Data
 		s := sortByHash{
-			links: n.Links[defaultFanout:],
-			data:  n.Data()[hdrLen:],
+			links: n.Links()[defaultFanout:],
 		}
 		sort.Stable(s)
 	}
 
-	// wasteful but simple
-	type item struct {
-		k    key.Key
-		data []byte
-	}
-	hashed := make(map[uint32][]item)
+	hashed := make([][]*cid.Cid, defaultFanout)
 	for {
-		k, data, ok := iter()
+		// This loop essentially enumerates every single item in the set
+		// and maps them all into a set of buckets. Each bucket will be recursively
+		// turned into its own sub-set, and so on down the chain. Each sub-set
+		// gets added to the dagservice, and put into its place in a set nodes
+		// links array.
+		//
+		// Previously, the bucket was selected by taking an int32 from the hash of
+		// the input key + seed. This was erroneous as we would later be assigning
+		// the created sub-sets into an array of length 256 by the modulus of the
+		// int32 hash value with 256. This resulted in overwriting existing sub-sets
+		// and losing pins. The fix (a few lines down from this comment), is to
+		// map the hash value down to the 8 bit keyspace here while creating the
+		// buckets. This way, we avoid any overlapping later on.
+		k, ok := iter()
 		if !ok {
 			break
 		}
-		h := hash(seed, k)
-		hashed[h] = append(hashed[h], item{k, data})
+		h := hash(seed, k) % defaultFanout
+		hashed[h] = append(hashed[h], k)
 	}
+
 	for h, items := range hashed {
-		childIter := func() (k key.Key, data []byte, ok bool) {
-			if len(items) == 0 {
-				return "", nil, false
-			}
-			first := items[0]
-			items = items[1:]
-			return first.k, first.data, true
+		if len(items) == 0 {
+			// recursion base case
+			continue
 		}
+
+		childIter := getCidListIterator(items)
+
+		// recursively create a pinset from the items for this bucket index
 		child, err := storeItems(ctx, dag, uint64(len(items)), childIter, internalKeys)
 		if err != nil {
 			return nil, err
 		}
+
 		size, err := child.Size()
 		if err != nil {
 			return nil, err
 		}
+
 		childKey, err := dag.Add(child)
 		if err != nil {
 			return nil, err
 		}
+
 		internalKeys(childKey)
-		l := &merkledag.Link{
-			Name: "",
-			Hash: childKey.ToMultihash(),
+
+		// overwrite the 'empty key' in the existing links array
+		n.Links()[h] = &node.Link{
+			Cid:  childKey,
 			Size: size,
 		}
-		n.Links[int(h%defaultFanout)] = l
 	}
 	return n, nil
 }
 
-func readHdr(n *merkledag.Node) (*pb.Set, []byte, error) {
+func readHdr(n *merkledag.ProtoNode) (*pb.Set, error) {
 	hdrLenRaw, consumed := binary.Uvarint(n.Data())
 	if consumed <= 0 {
-		return nil, nil, errors.New("invalid Set header length")
+		return nil, errors.New("invalid Set header length")
 	}
-	buf := n.Data()[consumed:]
-	if hdrLenRaw > uint64(len(buf)) {
-		return nil, nil, errors.New("impossibly large Set header length")
+
+	pbdata := n.Data()[consumed:]
+	if hdrLenRaw > uint64(len(pbdata)) {
+		return nil, errors.New("impossibly large Set header length")
 	}
 	// as hdrLenRaw was <= an int, we now know it fits in an int
 	hdrLen := int(hdrLenRaw)
 	var hdr pb.Set
-	if err := proto.Unmarshal(buf[:hdrLen], &hdr); err != nil {
-		return nil, nil, err
+	if err := proto.Unmarshal(pbdata[:hdrLen], &hdr); err != nil {
+		return nil, err
 	}
-	buf = buf[hdrLen:]
 
 	if v := hdr.GetVersion(); v != 1 {
-		return nil, nil, fmt.Errorf("unsupported Set version: %d", v)
+		return nil, fmt.Errorf("unsupported Set version: %d", v)
 	}
-	if uint64(hdr.GetFanout()) > uint64(len(n.Links)) {
-		return nil, nil, errors.New("impossibly large Fanout")
+	if uint64(hdr.GetFanout()) > uint64(len(n.Links())) {
+		return nil, errors.New("impossibly large Fanout")
 	}
-	return &hdr, buf, nil
+	return &hdr, nil
 }
 
-func writeHdr(n *merkledag.Node, hdr *pb.Set) error {
+func writeHdr(n *merkledag.ProtoNode, hdr *pb.Set) error {
 	hdrData, err := proto.Marshal(hdr)
 	if err != nil {
 		return err
 	}
-	n.SetData(make([]byte, binary.MaxVarintLen64, binary.MaxVarintLen64+len(hdrData)))
-	written := binary.PutUvarint(n.Data(), uint64(len(hdrData)))
-	n.SetData(n.Data()[:written])
-	n.SetData(append(n.Data(), hdrData...))
+
+	// make enough space for the length prefix and the marshalled header data
+	data := make([]byte, binary.MaxVarintLen64, binary.MaxVarintLen64+len(hdrData))
+
+	// write the uvarint length of the header data
+	uvarlen := binary.PutUvarint(data, uint64(len(hdrData)))
+
+	// append the actual protobuf data *after* the length value we wrote
+	data = append(data[:uvarlen], hdrData...)
+
+	n.SetData(data)
 	return nil
 }
 
-type walkerFunc func(buf []byte, idx int, link *merkledag.Link) error
+type walkerFunc func(idx int, link *node.Link) error
 
-func walkItems(ctx context.Context, dag merkledag.DAGService, n *merkledag.Node, fn walkerFunc, children keyObserver) error {
-	hdr, buf, err := readHdr(n)
+func walkItems(ctx context.Context, dag merkledag.DAGService, n *merkledag.ProtoNode, fn walkerFunc, children keyObserver) error {
+	hdr, err := readHdr(n)
 	if err != nil {
 		return err
 	}
 	// readHdr guarantees fanout is a safe value
 	fanout := hdr.GetFanout()
-	for i, l := range n.Links[fanout:] {
-		if err := fn(buf, i, l); err != nil {
+	for i, l := range n.Links()[fanout:] {
+		if err := fn(i, l); err != nil {
 			return err
 		}
 	}
-	for _, l := range n.Links[:fanout] {
-		children(key.Key(l.Hash))
-		if key.Key(l.Hash) == emptyKey {
+	for _, l := range n.Links()[:fanout] {
+		c := l.Cid
+		children(c)
+		if c.Equals(emptyKey) {
 			continue
 		}
 		subtree, err := l.GetNode(ctx, dag)
 		if err != nil {
 			return err
 		}
-		if err := walkItems(ctx, dag, subtree, fn, children); err != nil {
+
+		stpb, ok := subtree.(*merkledag.ProtoNode)
+		if !ok {
+			return merkledag.ErrNotProtobuf
+		}
+
+		if err := walkItems(ctx, dag, stpb, fn, children); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node, name string, internalKeys keyObserver) ([]key.Key, error) {
+func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.ProtoNode, name string, internalKeys keyObserver) ([]*cid.Cid, error) {
 	l, err := root.GetNodeLink(name)
 	if err != nil {
 		return nil, err
 	}
-	internalKeys(key.Key(l.Hash))
+
+	lnkc := l.Cid
+	internalKeys(lnkc)
+
 	n, err := l.GetNode(ctx, dag)
 	if err != nil {
 		return nil, err
 	}
 
-	var res []key.Key
-	walk := func(buf []byte, idx int, link *merkledag.Link) error {
-		res = append(res, key.Key(link.Hash))
+	pbn, ok := n.(*merkledag.ProtoNode)
+	if !ok {
+		return nil, merkledag.ErrNotProtobuf
+	}
+
+	var res []*cid.Cid
+	walk := func(idx int, link *node.Link) error {
+		res = append(res, link.Cid)
 		return nil
 	}
-	if err := walkItems(ctx, dag, n, walk, internalKeys); err != nil {
+
+	if err := walkItems(ctx, dag, pbn, walk, internalKeys); err != nil {
 		return nil, err
 	}
 	return res, nil
 }
 
-func loadMultiset(ctx context.Context, dag merkledag.DAGService, root *merkledag.Node, name string, internalKeys keyObserver) (map[key.Key]uint64, error) {
-	l, err := root.GetNodeLink(name)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get link %s: %v", name, err)
-	}
-	internalKeys(key.Key(l.Hash))
-	n, err := l.GetNode(ctx, dag)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get node from link %s: %v", name, err)
-	}
-
-	refcounts := make(map[key.Key]uint64)
-	walk := func(buf []byte, idx int, link *merkledag.Link) error {
-		var r refcount
-		r.ReadFromIdx(buf, idx)
-		refcounts[key.Key(link.Hash)] += uint64(r)
-		return nil
-	}
-	if err := walkItems(ctx, dag, n, walk, internalKeys); err != nil {
-		return nil, err
-	}
-	return refcounts, nil
-}
-
-func storeSet(ctx context.Context, dag merkledag.DAGService, keys []key.Key, internalKeys keyObserver) (*merkledag.Node, error) {
-	iter := func() (k key.Key, data []byte, ok bool) {
-		if len(keys) == 0 {
-			return "", nil, false
+func getCidListIterator(cids []*cid.Cid) itemIterator {
+	return func() (c *cid.Cid, ok bool) {
+		if len(cids) == 0 {
+			return nil, false
 		}
-		first := keys[0]
-		keys = keys[1:]
-		return first, nil, true
+
+		first := cids[0]
+		cids = cids[1:]
+		return first, true
 	}
-	n, err := storeItems(ctx, dag, uint64(len(keys)), iter, internalKeys)
-	if err != nil {
-		return nil, err
-	}
-	k, err := dag.Add(n)
-	if err != nil {
-		return nil, err
-	}
-	internalKeys(k)
-	return n, nil
 }
 
-func copyRefcounts(orig map[key.Key]uint64) map[key.Key]uint64 {
-	r := make(map[key.Key]uint64, len(orig))
-	for k, v := range orig {
-		r[k] = v
-	}
-	return r
-}
+func storeSet(ctx context.Context, dag merkledag.DAGService, cids []*cid.Cid, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
+	iter := getCidListIterator(cids)
 
-func storeMultiset(ctx context.Context, dag merkledag.DAGService, refcounts map[key.Key]uint64, internalKeys keyObserver) (*merkledag.Node, error) {
-	// make a working copy of the refcounts
-	refcounts = copyRefcounts(refcounts)
-
-	iter := func() (k key.Key, data []byte, ok bool) {
-		// Every call of this function returns the next refcount item.
-		//
-		// This function splits out the uint64 reference counts as
-		// smaller increments, as fits in type refcount. Most of the
-		// time the refcount will fit inside just one, so this saves
-		// space.
-		//
-		// We use range here to pick an arbitrary item in the map, but
-		// not really iterate the map.
-		for k, refs := range refcounts {
-			// Max value a single multiset item can store
-			num := ^refcount(0)
-			if refs <= uint64(num) {
-				// Remaining count fits in a single item; remove the
-				// key from the map.
-				num = refcount(refs)
-				delete(refcounts, k)
-			} else {
-				// Count is too large to fit in one item, the key will
-				// repeat in some later call.
-				refcounts[k] -= uint64(num)
-			}
-			return k, num.Bytes(), true
-		}
-		return "", nil, false
-	}
-	n, err := storeItems(ctx, dag, uint64(len(refcounts)), iter, internalKeys)
+	n, err := storeItems(ctx, dag, uint64(len(cids)), iter, internalKeys)
 	if err != nil {
 		return nil, err
 	}
-	k, err := dag.Add(n)
+	c, err := dag.Add(n)
 	if err != nil {
 		return nil, err
 	}
-	internalKeys(k)
+	internalKeys(c)
 	return n, nil
 }

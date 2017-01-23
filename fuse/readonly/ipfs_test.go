@@ -13,9 +13,6 @@ import (
 	"sync"
 	"testing"
 
-	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
-
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
@@ -24,7 +21,11 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+
+	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -33,7 +34,7 @@ func maybeSkipFuseTests(t *testing.T) {
 	}
 }
 
-func randObj(t *testing.T, nd *core.IpfsNode, size int64) (*dag.Node, []byte) {
+func randObj(t *testing.T, nd *core.IpfsNode, size int64) (node.Node, []byte) {
 	buf := make([]byte, size)
 	u.NewTimeSeededRand().Read(buf)
 	read := bytes.NewReader(buf)
@@ -74,11 +75,7 @@ func TestIpfsBasicRead(t *testing.T) {
 	defer mnt.Close()
 
 	fi, data := randObj(t, nd, 10000)
-	k, err := fi.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	k := fi.Cid()
 	fname := path.Join(mnt.Dir, k.String())
 	rbuf, err := ioutil.ReadFile(fname)
 	if err != nil {
@@ -90,17 +87,23 @@ func TestIpfsBasicRead(t *testing.T) {
 	}
 }
 
-func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.Node) []string {
-	if len(n.Links) == 0 {
+func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) []string {
+	if len(n.Links()) == 0 {
 		return []string{name}
 	}
 	var out []string
-	for _, lnk := range n.Links {
+	for _, lnk := range n.Links() {
 		child, err := lnk.GetNode(ipfs.Context(), ipfs.DAG)
 		if err != nil {
 			t.Fatal(err)
 		}
-		sub := getPaths(t, ipfs, path.Join(name, lnk.Name), child)
+
+		childpb, ok := child.(*dag.ProtoNode)
+		if !ok {
+			t.Fatal(dag.ErrNotProtobuf)
+		}
+
+		sub := getPaths(t, ipfs, path.Join(name, lnk.Name), childpb)
 		out = append(out, sub...)
 	}
 	return out
@@ -114,7 +117,7 @@ func TestIpfsStressRead(t *testing.T) {
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
-	var ks []key.Key
+	var ks []*cid.Cid
 	var paths []string
 
 	nobj := 50
@@ -123,13 +126,9 @@ func TestIpfsStressRead(t *testing.T) {
 	// Make a bunch of objects
 	for i := 0; i < nobj; i++ {
 		fi, _ := randObj(t, nd, rand.Int63n(50000))
-		k, err := fi.Key()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		ks = append(ks, k)
-		paths = append(paths, k.String())
+		c := fi.Cid()
+		ks = append(ks, c)
+		paths = append(paths, c.String())
 	}
 
 	// Now make a bunch of dirs
@@ -209,14 +208,11 @@ func TestIpfsBasicDirRead(t *testing.T) {
 
 	// Make a 'file'
 	fi, data := randObj(t, nd, 10000)
-	k, err := fi.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	k := fi.Cid()
 
 	// Make a directory and put that file in it
 	db := uio.NewDirectory(nd.DAG)
-	err = db.AddChild(nd.Context(), "actual", k)
+	err := db.AddChild(nd.Context(), "actual", k)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,10 +255,7 @@ func TestFileSizeReporting(t *testing.T) {
 	defer mnt.Close()
 
 	fi, data := randObj(t, nd, 10000)
-	k, err := fi.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	k := fi.Cid()
 
 	fname := path.Join(mnt.Dir, k.String())
 

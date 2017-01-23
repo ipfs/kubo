@@ -15,7 +15,7 @@ import (
 	"reflect"
 
 	"github.com/ipfs/go-ipfs/path"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 var log = logging.Logger("command")
@@ -52,9 +52,14 @@ type HelpText struct {
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
-	Options    []Option
-	Arguments  []Argument
-	PreRun     func(req Request) error
+	Options   []Option
+	Arguments []Argument
+	PreRun    func(req Request) error
+
+	// Run is the function that processes the request to generate a response.
+	// Note that when executing the command over the HTTP API you can only read
+	// after writing when using multipart requests. The request body will not be
+	// available for reading after the HTTP connection has been written to.
 	Run        Function
 	PostRun    Function
 	Marshalers map[EncodingType]Marshaler

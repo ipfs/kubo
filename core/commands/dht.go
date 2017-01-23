@@ -2,19 +2,24 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	notif "github.com/ipfs/go-ipfs/notifications"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	ipdht "github.com/ipfs/go-ipfs/routing/dht"
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+
+	ipdht "gx/ipfs/QmRG9fdibExi5DFy8kzyxF76jvZVUb2mQBUSMNP1YaYn9M/go-libp2p-kad-dht"
+	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
+	notif "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing/notifications"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
@@ -31,6 +36,7 @@ var DhtCmd = &cmds.Command{
 		"findpeer":  findPeerDhtCmd,
 		"get":       getValueDhtCmd,
 		"put":       putValueDhtCmd,
+		"provide":   provideRefDhtCmd,
 	},
 }
 
@@ -62,7 +68,9 @@ var queryDhtCmd = &cmds.Command{
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
-		closestPeers, err := dht.GetClosestPeers(ctx, key.Key(req.Arguments()[0]))
+		k := string(b58.Decode(req.Arguments()[0]))
+
+		closestPeers, err := dht.GetClosestPeers(ctx, k)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -159,7 +167,13 @@ var findProvidersDhtCmd = &cmds.Command{
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
-		pchan := dht.FindProvidersAsync(ctx, key.B58KeyDecode(req.Arguments()[0]), numProviders)
+		c, err := cid.Decode(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		pchan := dht.FindProvidersAsync(ctx, c, numProviders)
 		go func() {
 			defer close(outChan)
 			for e := range events {
@@ -225,6 +239,156 @@ var findProvidersDhtCmd = &cmds.Command{
 		},
 	},
 	Type: notif.QueryEvent{},
+}
+
+var provideRefDhtCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Announce to the network that you are providing given values.",
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, true, "The key[s] to send provide records for.").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.BoolOption("recursive", "r", "Recursively provide entire graph.").Default(false),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if n.Routing == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
+			return
+		}
+
+		rec, _, _ := req.Option("recursive").Bool()
+
+		var cids []*cid.Cid
+		for _, arg := range req.Arguments() {
+			c, err := cid.Decode(arg)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			has, err := n.Blockstore.Has(c)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			if !has {
+				res.SetError(fmt.Errorf("block %s not found locally, cannot provide", c), cmds.ErrNormal)
+				return
+			}
+
+			cids = append(cids, c)
+		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
+		events := make(chan *notif.QueryEvent)
+		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+
+		go func() {
+			defer close(outChan)
+			for e := range events {
+				outChan <- e
+			}
+		}()
+
+		go func() {
+			defer close(events)
+			var err error
+			if rec {
+				err = provideKeysRec(ctx, n.Routing, n.DAG, cids)
+			} else {
+				err = provideKeys(ctx, n.Routing, cids)
+			}
+			if err != nil {
+				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+					Type:  notif.QueryError,
+					Extra: err.Error(),
+				})
+			}
+		}()
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			verbose, _, _ := res.Request().Option("v").Bool()
+			pfm := pfuncMap{
+				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+					if verbose {
+						fmt.Fprintf(out, "sending provider record to peer %s\n", obj.ID)
+					}
+				},
+			}
+
+			marshal := func(v interface{}) (io.Reader, error) {
+				obj, ok := v.(*notif.QueryEvent)
+				if !ok {
+					return nil, u.ErrCast()
+				}
+
+				buf := new(bytes.Buffer)
+				printEvent(obj, buf, verbose, pfm)
+				return buf, nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Channel:   outChan,
+				Marshaler: marshal,
+				Res:       res,
+			}, nil
+		},
+	},
+	Type: notif.QueryEvent{},
+}
+
+func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []*cid.Cid) error {
+	for _, c := range cids {
+		err := r.Provide(ctx, c)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGService, cids []*cid.Cid) error {
+	provided := cid.NewSet()
+	for _, c := range cids {
+		kset := cid.NewSet()
+
+		err := dag.EnumerateChildrenAsync(ctx, dserv, c, kset.Visit)
+		if err != nil {
+			return err
+		}
+
+		for _, k := range kset.Keys() {
+			if provided.Has(k) {
+				continue
+			}
+
+			err = r.Provide(ctx, k)
+			if err != nil {
+				return err
+			}
+			provided.Add(k)
+		}
+	}
+
+	return nil
 }
 
 var findPeerDhtCmd = &cmds.Command{
@@ -604,14 +768,14 @@ func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfu
 	}
 }
 
-func escapeDhtKey(s string) (key.Key, error) {
+func escapeDhtKey(s string) (string, error) {
 	parts := path.SplitList(s)
 	switch len(parts) {
 	case 1:
-		return key.B58KeyDecode(s), nil
+		return string(b58.Decode(s)), nil
 	case 3:
-		k := key.B58KeyDecode(parts[2])
-		return key.Key(path.Join(append(parts[:2], string(k)))), nil
+		k := b58.Decode(parts[2])
+		return path.Join(append(parts[:2], string(k))), nil
 	default:
 		return "", errors.New("invalid key")
 	}

@@ -45,8 +45,8 @@ test_expect_success "ipfs cat fails" '
 '
 
 test_expect_success "ipfs cat no repo message looks good" '
-    echo "Error: no ipfs repo found in $IPFS_PATH." > cat_fail_exp &&
-    echo "please run: ipfs init" >> cat_fail_exp &&
+    echo "Error: no IPFS repo found in $IPFS_PATH." > cat_fail_exp &&
+    echo "please run: 'ipfs init'" >> cat_fail_exp &&
     test_path_cmp cat_fail_exp cat_fail_out
 '
 
@@ -80,7 +80,7 @@ test_expect_success "ipfs peer id looks good" '
 
 test_expect_success "ipfs init output looks good" '
 	STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
-	echo "initializing ipfs node at $IPFS_PATH" >expected &&
+	echo "initializing IPFS node at $IPFS_PATH" >expected &&
 	echo "generating $BITS-bit RSA keypair...done" >>expected &&
 	echo "peer identity: $PEERID" >>expected &&
 	echo "to get started, enter:" >>expected &&
@@ -107,7 +107,7 @@ test_expect_success "ipfs peer id looks good" '
 '
 
 test_expect_success "'ipfs init --empty-repo' output looks good" '
-	echo "initializing ipfs node at $IPFS_PATH" >expected &&
+	echo "initializing IPFS node at $IPFS_PATH" >expected &&
 	echo "generating $BITS-bit RSA keypair...done" >>expected &&
 	echo "peer identity: $PEERID" >>expected &&
 	test_cmp expected actual_init
@@ -115,6 +115,10 @@ test_expect_success "'ipfs init --empty-repo' output looks good" '
 
 test_expect_success "Welcome readme doesn't exists" '
 	test_must_fail ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme
+'
+
+test_expect_success "ipfs id agent string contains correct version" '
+	ipfs id -f "<aver>" | grep $(ipfs version -n)
 '
 
 test_expect_success "clean up ipfs dir" '

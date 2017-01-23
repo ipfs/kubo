@@ -1,16 +1,16 @@
 package dht
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	routing "github.com/ipfs/go-ipfs/routing"
-	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	record "github.com/ipfs/go-ipfs/routing/record"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
-	ctxfrac "gx/ipfs/QmX6DhWrpBB5NtadXmPSXYNdVvuLfJXoFNMvUMoVvP5UJa/go-context/frac"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ctxfrac "gx/ipfs/QmTKsRYeY4simJyf37K93juSq75Lo8MVCDJ7owjmf46u8W/go-context/frac"
+	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
+	record "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record"
+	recpb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
 // MaxRecordAge specifies the maximum time that any node will hold onto a record
@@ -19,7 +19,7 @@ import (
 // For example, a record may contain an ipns entry with an EOL saying its valid
 // until the year 2020 (a great time in the future). For that record to stick around
 // it must be rebroadcasted more frequently than once every 'MaxRecordAge'
-const MaxRecordAge = time.Hour * 24 * 7
+const MaxRecordAge = time.Hour * 36
 
 func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, error) {
 	log.Debugf("getPublicKey for: %s", p)
@@ -106,7 +106,7 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 
 // verifyRecordLocally attempts to verify a record. if we do not have the public
 // key, we fail. we do not search the dht.
-func (dht *IpfsDHT) verifyRecordLocally(r *pb.Record) error {
+func (dht *IpfsDHT) verifyRecordLocally(r *recpb.Record) error {
 	if r == nil {
 		log.Error("nil record passed into verifyRecordLocally")
 		return fmt.Errorf("nil record")
@@ -133,7 +133,7 @@ func (dht *IpfsDHT) verifyRecordLocally(r *pb.Record) error {
 // retrieving arbitrary public keys from the DHT as a result of passively
 // receiving records (e.g. through a PUT_VALUE or ADD_PROVIDER) can cause a
 // massive amplification attack on the dht. Use with care.
-func (dht *IpfsDHT) verifyRecordOnline(ctx context.Context, r *pb.Record) error {
+func (dht *IpfsDHT) verifyRecordOnline(ctx context.Context, r *recpb.Record) error {
 
 	if len(r.Signature) > 0 {
 		// get the public key, search for it if necessary.

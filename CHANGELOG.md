@@ -1,5 +1,19 @@
 # go-ipfs changelog
 
+### 0.4.4 - 2016-10-11
+
+This release contains an important hotfix for a bug we discovered in how pinning works.
+If you had a large number of pins, new pins would overwrite existing pins.
+Apart from the hotfix, this release is equal to the previous release 0.4.3.
+
+- Fix bug in pinsets fanout, and add stress test. (@whyrusleeping, [ipfs/go-ipfs#3273](https://github.com/ipfs/go-ipfs/pull/3273))
+
+We published a [detailed account of the bug and fix in a blog post](https://ipfs.io/blog/21-go-ipfs-0-4-4-released/).
+
+### 0.4.3 - 2016-09-20
+
+There have been no changes since the last release candidate 0.4.3-rc4. \o/
+
 ### 0.4.3-rc4 - 2016-09-09
 
 This release candidate fixes issues in Bitswap and the `ipfs add` command, and improves testing.
@@ -24,12 +38,12 @@ With this release candidate, we're also moving go-ipfs to Go 1.7, which we expec
 - Improve tests for pinning within `ipfs files`. (@kevina, [ipfs/go-ipfs#3151](https://github.com/ipfs/go-ipfs/pull/3151))
 - Improve tests for the automatic raising of file descriptor limits. (@whyrusleeping, [ipfs/go-ipfs#3149](https://github.com/ipfs/go-ipfs/pull/3149))
 
-### 0.4.3-rc3 - 2016-08-09
+### 0.4.3-rc3 - 2016-08-11
 
 This release candidate fixes a panic that occurs when input from stdin was
 expected, but none was given: [ipfs/go-ipfs#3050](https://github.com/ipfs/go-ipfs/pull/3050)
 
-### 0.4.3-rc2 - 2016-07-23
+### 0.4.3-rc2 - 2016-08-04
 
 This release includes bugfixes and fixes for regressions that were introduced
 between 0.4.2 and 0.4.3-rc1.

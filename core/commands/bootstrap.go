@@ -10,7 +10,7 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 type BootstrapOutput struct {
@@ -181,7 +181,7 @@ in the bootstrap list).`,
 
 var bootstrapRemoveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes peers from the bootstrap list.",
+		Tagline: "Remove peers from the bootstrap list.",
 		ShortDescription: `Outputs the list of peers that were removed.
 ` + bootstrapSecurityWarning,
 	},
@@ -250,7 +250,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 
 var bootstrapRemoveAllCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Removes all peers from the bootstrap list.",
+		Tagline:          "Remove all peers from the bootstrap list.",
 		ShortDescription: `Outputs the list of peers that were removed.`,
 	},
 

@@ -1,17 +1,18 @@
 package corerepo
 
 import (
+	"context"
 	"errors"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	gc "github.com/ipfs/go-ipfs/pin/gc"
 	repo "github.com/ipfs/go-ipfs/repo"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 var log = logging.Logger("corerepo")
@@ -19,7 +20,7 @@ var log = logging.Logger("corerepo")
 var ErrMaxStorageExceeded = errors.New("Maximum storage limit exceeded. Maybe unpin some files?")
 
 type KeyRemoved struct {
-	Key key.Key
+	Key *cid.Cid
 }
 
 type GC struct {
@@ -72,16 +73,13 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 	}, nil
 }
 
-func BestEffortRoots(filesRoot *mfs.Root) ([]key.Key, error) {
+func BestEffortRoots(filesRoot *mfs.Root) ([]*cid.Cid, error) {
 	rootDag, err := filesRoot.GetValue().GetNode()
 	if err != nil {
 		return nil, err
 	}
-	rootKey, err := rootDag.Key()
-	if err != nil {
-		return nil, err
-	}
-	return []key.Key{rootKey}, nil
+
+	return []*cid.Cid{rootDag.Cid()}, nil
 }
 
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
@@ -91,7 +89,7 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning, roots)
+	rmed, err := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
 	if err != nil {
 		return err
 	}
@@ -114,7 +112,7 @@ func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemo
 	if err != nil {
 		return nil, err
 	}
-	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning, roots)
+	rmed, err := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
 	if err != nil {
 		return nil, err
 	}
@@ -192,26 +190,11 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 		// Do GC here
 		log.Info("Watermark exceeded. Starting repo GC...")
 		defer log.EventBegin(ctx, "repoGC").Done()
-		// 1 minute is sufficient for ~1GB unlink() blocks each of 100kb in SSD
-		_ctx, cancel := context.WithTimeout(ctx, time.Duration(gc.SlackGB)*time.Minute)
-		defer cancel()
 
-		if err := GarbageCollect(gc.Node, _ctx); err != nil {
+		if err := GarbageCollect(gc.Node, ctx); err != nil {
 			return err
 		}
-		newStorage, err := gc.Repo.GetStorageUsage()
-		if err != nil {
-			return err
-		}
-		log.Infof("Repo GC done. Released %s\n", humanize.Bytes(uint64(storage-newStorage)))
-		if newStorage > gc.StorageGC {
-			log.Warningf("post-GC: Watermark still exceeded")
-			if newStorage > gc.StorageMax {
-				err := ErrMaxStorageExceeded
-				log.Error(err)
-				return err
-			}
-		}
+		log.Infof("Repo GC done. See `ipfs repo stat` to see how much space got freed.\n")
 	}
 	return nil
 }

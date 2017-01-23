@@ -1,36 +1,25 @@
 package providers
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"strings"
 	"time"
 
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
-	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dsq "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	dsq "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/query"
+	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	goprocessctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
-	autobatch "gx/ipfs/QmVvJ27GcLaLSXvcB4auk3Gn3xuWK5ti5ENkZ2pCoJEYW4/autobatch"
-	base32 "gx/ipfs/Qmb1DA2A9LS2wR4FFweB4uEDomFsdmnw1VLawLE1yQzudj/base32"
-
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	flags "github.com/ipfs/go-ipfs/flags"
-
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	autobatch "gx/ipfs/QmY6k4rtt8FZvU87itWvuWTPJoCdkLZF48J55Aa1UxLFeY/autobatch"
+	base32 "gx/ipfs/QmZvZSVtvxak4dcTkhsQhqd1SQ6rg5UzaSTu62WfWKjj93/base32"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
-const MAGIC string = "000000000000000000000000"
-
 var batchBufferSize = 256
-
-func init() {
-	if flags.LowMemMode {
-		batchBufferSize = 8
-	}
-}
 
 var log = logging.Logger("providers")
 
@@ -59,12 +48,12 @@ type providerSet struct {
 }
 
 type addProv struct {
-	k   key.Key
+	k   *cid.Cid
 	val peer.ID
 }
 
 type getProv struct {
-	k    key.Key
+	k    *cid.Cid
 	resp chan []peer.ID
 }
 
@@ -88,15 +77,15 @@ func NewProviderManager(ctx context.Context, local peer.ID, dstore ds.Batching) 
 
 const providersKeyPrefix = "/providers/"
 
-func mkProvKey(k key.Key) ds.Key {
-	return ds.NewKey(providersKeyPrefix + base32.RawStdEncoding.EncodeToString([]byte(k)))
+func mkProvKey(k *cid.Cid) string {
+	return providersKeyPrefix + base32.RawStdEncoding.EncodeToString(k.Bytes())
 }
 
 func (pm *ProviderManager) Process() goprocess.Process {
 	return pm.proc
 }
 
-func (pm *ProviderManager) providersForKey(k key.Key) ([]peer.ID, error) {
+func (pm *ProviderManager) providersForKey(k *cid.Cid) ([]peer.ID, error) {
 	pset, err := pm.getProvSet(k)
 	if err != nil {
 		return nil, err
@@ -104,8 +93,8 @@ func (pm *ProviderManager) providersForKey(k key.Key) ([]peer.ID, error) {
 	return pset.providers, nil
 }
 
-func (pm *ProviderManager) getProvSet(k key.Key) (*providerSet, error) {
-	cached, ok := pm.providers.Get(k)
+func (pm *ProviderManager) getProvSet(k *cid.Cid) (*providerSet, error) {
+	cached, ok := pm.providers.Get(k.KeyString())
 	if ok {
 		return cached.(*providerSet), nil
 	}
@@ -116,31 +105,32 @@ func (pm *ProviderManager) getProvSet(k key.Key) (*providerSet, error) {
 	}
 
 	if len(pset.providers) > 0 {
-		pm.providers.Add(k, pset)
+		pm.providers.Add(k.KeyString(), pset)
 	}
 
 	return pset, nil
 }
 
-func loadProvSet(dstore ds.Datastore, k key.Key) (*providerSet, error) {
-	res, err := dstore.Query(dsq.Query{Prefix: mkProvKey(k).String()})
+func loadProvSet(dstore ds.Datastore, k *cid.Cid) (*providerSet, error) {
+	res, err := dstore.Query(dsq.Query{Prefix: mkProvKey(k)})
 	if err != nil {
 		return nil, err
 	}
 
 	out := newProviderSet()
-	for e := range res.Next() {
+	for {
+		e, ok := res.NextSync()
+		if !ok {
+			break
+		}
 		if e.Error != nil {
 			log.Error("got an error: ", e.Error)
 			continue
 		}
-		parts := strings.Split(e.Key, "/")
-		if len(parts) != 4 {
-			log.Warning("incorrectly formatted key: ", e.Key)
-			continue
-		}
 
-		decstr, err := base32.RawStdEncoding.DecodeString(parts[len(parts)-1])
+		lix := strings.LastIndex(e.Key, "/")
+
+		decstr, err := base32.RawStdEncoding.DecodeString(e.Key[lix+1:])
 		if err != nil {
 			log.Error("base32 decoding error: ", err)
 			continue
@@ -171,11 +161,15 @@ func readTimeValue(i interface{}) (time.Time, error) {
 	return time.Unix(0, nsec), nil
 }
 
-func (pm *ProviderManager) addProv(k key.Key, p peer.ID) error {
-	iprovs, ok := pm.providers.Get(k)
+func (pm *ProviderManager) addProv(k *cid.Cid, p peer.ID) error {
+	iprovs, ok := pm.providers.Get(k.KeyString())
 	if !ok {
-		iprovs = newProviderSet()
-		pm.providers.Add(k, iprovs)
+		stored, err := loadProvSet(pm.dstore, k)
+		if err != nil {
+			return err
+		}
+		iprovs = stored
+		pm.providers.Add(k.KeyString(), iprovs)
 	}
 	provs := iprovs.(*providerSet)
 	now := time.Now()
@@ -184,22 +178,25 @@ func (pm *ProviderManager) addProv(k key.Key, p peer.ID) error {
 	return writeProviderEntry(pm.dstore, k, p, now)
 }
 
-func writeProviderEntry(dstore ds.Datastore, k key.Key, p peer.ID, t time.Time) error {
-	dsk := mkProvKey(k).ChildString(base32.RawStdEncoding.EncodeToString([]byte(p)))
+func writeProviderEntry(dstore ds.Datastore, k *cid.Cid, p peer.ID, t time.Time) error {
+	dsk := mkProvKey(k) + "/" + base32.RawStdEncoding.EncodeToString([]byte(p))
 
 	buf := make([]byte, 16)
 	n := binary.PutVarint(buf, t.UnixNano())
 
-	return dstore.Put(dsk, buf[:n])
+	return dstore.Put(ds.NewKey(dsk), buf[:n])
 }
 
-func (pm *ProviderManager) deleteProvSet(k key.Key) error {
-	pm.providers.Remove(k)
+func (pm *ProviderManager) deleteProvSet(k *cid.Cid) error {
+	pm.providers.Remove(k.KeyString())
 
 	res, err := pm.dstore.Query(dsq.Query{
 		KeysOnly: true,
-		Prefix:   mkProvKey(k).String(),
+		Prefix:   mkProvKey(k),
 	})
+	if err != nil {
+		return err
+	}
 
 	entries, err := res.Rest()
 	if err != nil {
@@ -215,43 +212,40 @@ func (pm *ProviderManager) deleteProvSet(k key.Key) error {
 	return nil
 }
 
-func (pm *ProviderManager) getAllProvKeys() ([]key.Key, error) {
+func (pm *ProviderManager) getProvKeys() (func() (*cid.Cid, bool), error) {
 	res, err := pm.dstore.Query(dsq.Query{
-		KeysOnly: true,
+		KeysOnly: false,
 		Prefix:   providersKeyPrefix,
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
-	entries, err := res.Rest()
-	if err != nil {
-		return nil, err
+	iter := func() (*cid.Cid, bool) {
+		for e := range res.Next() {
+			parts := strings.Split(e.Key, "/")
+			if len(parts) != 4 {
+				log.Warningf("incorrectly formatted provider entry in datastore: %s", e.Key)
+				continue
+			}
+			decoded, err := base32.RawStdEncoding.DecodeString(parts[2])
+			if err != nil {
+				log.Warning("error decoding base32 provider key: %s: %s", parts[2], err)
+				continue
+			}
+
+			c, err := cid.Cast(decoded)
+			if err != nil {
+				log.Warning("error casting key to cid from datastore key: %s", err)
+				continue
+			}
+
+			return c, true
+		}
+		return nil, false
 	}
 
-	out := make([]key.Key, 0, len(entries))
-	seen := make(map[key.Key]struct{})
-	for _, e := range entries {
-		parts := strings.Split(e.Key, "/")
-		if len(parts) != 4 {
-			log.Warning("incorrectly formatted provider entry in datastore")
-			continue
-		}
-		decoded, err := base32.RawStdEncoding.DecodeString(parts[2])
-		if err != nil {
-			log.Warning("error decoding base32 provider key")
-			continue
-		}
-
-		k := key.Key(decoded)
-		if _, ok := seen[k]; !ok {
-			out = append(out, key.Key(decoded))
-			seen[k] = struct{}{}
-		}
-	}
-
-	return out, nil
+	return iter, nil
 }
 
 func (pm *ProviderManager) run() {
@@ -271,12 +265,17 @@ func (pm *ProviderManager) run() {
 
 			gp.resp <- provs
 		case <-tick.C:
-			keys, err := pm.getAllProvKeys()
+			keys, err := pm.getProvKeys()
 			if err != nil {
 				log.Error("Error loading provider keys: ", err)
 				continue
 			}
-			for _, k := range keys {
+			for {
+				k, ok := keys()
+				if !ok {
+					break
+				}
+
 				provs, err := pm.getProvSet(k)
 				if err != nil {
 					log.Error("error loading known provset: ", err)
@@ -284,18 +283,15 @@ func (pm *ProviderManager) run() {
 				}
 				var filtered []peer.ID
 				for p, t := range provs.set {
-					if time.Now().Sub(t) > ProvideValidity && !isPointer(p) {
-						delete(provs.set, p)
-					} else if time.Now().Sub(t) > time.Hour*168 && isPointer(p) {
+					if time.Now().Sub(t) > ProvideValidity {
 						delete(provs.set, p)
 					} else {
 						filtered = append(filtered, p)
 					}
 				}
 
-				if len(filtered) > 0 {
-					provs.providers = filtered
-				} else {
+				provs.providers = filtered
+				if len(filtered) == 0 {
 					err := pm.deleteProvSet(k)
 					if err != nil {
 						log.Error("error deleting provider set: ", err)
@@ -303,12 +299,13 @@ func (pm *ProviderManager) run() {
 				}
 			}
 		case <-pm.proc.Closing():
+			tick.Stop()
 			return
 		}
 	}
 }
 
-func (pm *ProviderManager) AddProvider(ctx context.Context, k key.Key, val peer.ID) {
+func (pm *ProviderManager) AddProvider(ctx context.Context, k *cid.Cid, val peer.ID) {
 	prov := &addProv{
 		k:   k,
 		val: val,
@@ -319,7 +316,7 @@ func (pm *ProviderManager) AddProvider(ctx context.Context, k key.Key, val peer.
 	}
 }
 
-func (pm *ProviderManager) GetProviders(ctx context.Context, k key.Key) []peer.ID {
+func (pm *ProviderManager) GetProviders(ctx context.Context, k *cid.Cid) []peer.ID {
 	gp := &getProv{
 		k:    k,
 		resp: make(chan []peer.ID, 1), // buffered to prevent sender from blocking
@@ -354,9 +351,4 @@ func (ps *providerSet) setVal(p peer.ID, t time.Time) {
 	}
 
 	ps.set[p] = t
-}
-
-func isPointer(id peer.ID) bool {
-	hexID := peer.IDHexEncode(id)
-	return hexID[4:28] == MAGIC
 }

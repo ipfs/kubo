@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 )
@@ -35,8 +35,7 @@ var logLevelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Change the logging level.",
 		ShortDescription: `
-'ipfs log level' is a utility command used to change the logging
-output of a running daemon.
+Change the verbosity of one or all subsystems log output. This does not affect the event log.
 `,
 	},
 
@@ -45,7 +44,7 @@ output of a running daemon.
 		// clash with a subsystem name
 		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
 		cmds.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'critical' the least verbose.
-			One of: debug, info, notice, warning, error, critical.
+			One of: debug, info, warning, error, critical.
 		`),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -91,9 +90,9 @@ subsystems of a running daemon.
 
 var logTailCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Read the logs.",
+		Tagline: "Read the event log.",
 		ShortDescription: `
-'ipfs log tail' is a utility command used to read log output as it is written.
+Outputs event log messages (not other log messages) as they are generated.
 `,
 	},
 

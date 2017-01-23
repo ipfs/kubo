@@ -16,7 +16,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 type ConfigField struct {
@@ -26,10 +26,10 @@ type ConfigField struct {
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get and set IPFS config values.",
+		Tagline: "Get and set ipfs config values.",
 		ShortDescription: `
 'ipfs config' controls configuration variables. It works like 'git config'.
-The configuration values are stored in a config file inside your IPFS
+The configuration values are stored in a config file inside your ipfs
 repository.`,
 		LongDescription: `
 'ipfs config' controls configuration variables. It works
@@ -38,13 +38,13 @@ file inside your IPFS repository.
 
 Examples:
 
-Get the value of the 'datastore.path' key:
+Get the value of the 'Datastore.Path' key:
 
-  $ ipfs config datastore.path
+  $ ipfs config Datastore.Path
 
-Set the value of the 'datastore.path' key:
+Set the value of the 'Datastore.Path' key:
 
-  $ ipfs config datastore.path ~/.ipfs/datastore
+  $ ipfs config Datastore.Path ~/.ipfs/datastore
 `,
 	},
 
@@ -136,7 +136,7 @@ Set the value of the 'datastore.path' key:
 
 var configShowCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Outputs the content of the config file.",
+		Tagline: "Output config file contents.",
 		ShortDescription: `
 WARNING: Your private key is stored in the config file, and it will be
 included in the output of this command.
@@ -222,7 +222,7 @@ func scrubValue(m map[string]interface{}, key []string) error {
 
 var configEditCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Opens the config file for editing in $EDITOR.",
+		Tagline: "Open the config file for editing in $EDITOR.",
 		ShortDescription: `
 To use 'ipfs config edit', you must have the $EDITOR environment
 variable set to your preferred text editor.
@@ -245,7 +245,7 @@ variable set to your preferred text editor.
 
 var configReplaceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Replaces the config with <file>.",
+		Tagline: "Replace the config with <file>.",
 		ShortDescription: `
 Make sure to back up the config file first if neccessary, as this operation
 can't be undone.

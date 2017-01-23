@@ -1,8 +1,11 @@
 # Contribute
 
 go-ipfs is MIT licensed open source software. We welcome contributions big and
-small! Take a look at the [community contributing notes](https://github.com/ipfs/community/blob/master/contributing.md). Please make sure to check the [issues](https://github.com/ipfs/go-ipfs/issues). Search the closed ones
-before reporting things, and help us with the open ones.
+small! Take a look at the [community contributing notes](https://github.com/ipfs/community/blob/master/contributing.md). 
+
+Please make sure to check out the [issues](https://github.com/ipfs/go-ipfs/issues). Search the closed ones before reporting things, and (if you can!) help us with open ones.
+
+Please note that the go-ipfs issues are only for bug reports and directly actionable features. Check [the IPFS Community guide on reporting issues](https://github.com/ipfs/community/blob/master/contributing.md#reporting-issues) if your question doesn't fit as a bug report or an actionable feature, and our [guide on opening issues](https://github.com/ipfs/go-ipfs/blob/master/docs/github-issue-guide.md) if you are not sure how to make an issue here.
 
 If you're looking to help out, head to the [captain's log](https://github.com/ipfs/go-ipfs/issues/2247) and
 try picking up an issue from there.
@@ -27,6 +30,23 @@ Please look and conform to our [Go Contribution Guidelines](https://github.com/i
 All commits in a PR must pass tests. If they don't, fix the commits and/or [squash them](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History#Squashing-Commits) so that they do pass the tests. This should be done so that we can use git-bisect easily.
 
 We use CI tests which run when you push to your branch. To run the tests locally, you can run any of these: `make build`, `make install`, `make test`, `go test ./...`, depending on what youre looking to do. Generally `go test ./...` is your best bet.
+
+### Branch Names
+
+If you are working on a new feature, prefix your branch name with `feat/`. If you are fixing an issue, `fix/`. If you are simply adding tests, `test/`. If you are adding documentation, `doc/`. If your changeset doesn't fall into one of these categories, use your best judgement and come up with your own short prefix.
+
+After that, try to signal what part of the codebase this branch is working on. For example, if you are adding a new test to the DHT that tests for nil providers being returned, then `test/dht/nil-provs` would be acceptable. If your changes don't fall cleanly in a single module, you can use a more general descriptor, or leave it off in favor of a slightly more wordy description.
+
+Please also try to keep branch names around or under 20 characters. It keeps things a little cleaner overall. Also try to avoid putting issue numbers in branch names, it takes up space without providing any immediately relevant context about the changeset.
+
+A few examples of good branch names:
+
+- `feat/cmds/object-diff`
+  - For a Pull Request that adds an `ipfs object diff` command.
+- `test/dag/cache-invalid`
+  - For adding tests around the merkledag's cache invalidation code.
+- `doc/unixfs/pkg-desc`
+  - For a branch that adds or improves the package description in unixfs.
 
 ### Commit messages
 
@@ -57,7 +77,7 @@ properly written. It checks the following:
   script which will setup a Git commit-msg hook that will add the above
   trailers to all the commit messages you write.
 
-See the [documentation about amending commits](docs/amending-commits.md)
+See the [documentation about amending commits](https://github.com/ipfs/community/blob/master/docs/amending-commits.md)
 for explanation about how you can rework commit messages.
   
 Some example commit messages:

@@ -7,13 +7,14 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	tar "github.com/ipfs/go-ipfs/tar"
 )
 
 var TarCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Utility functions for tar files in IPFS.",
+		Tagline: "Utility functions for tar files in ipfs.",
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -53,16 +54,12 @@ represent it.
 			return
 		}
 
-		k, err := node.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		c := node.Cid()
 
 		fi.FileName()
 		res.SetOutput(&coreunix.AddedObject{
 			Name: fi.FileName(),
-			Hash: k.B58String(),
+			Hash: c.String(),
 		})
 	},
 	Type: coreunix.AddedObject{},
@@ -83,7 +80,7 @@ var tarCatCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, false, "IPFS path of archive to export.").EnableStdin(),
+		cmds.StringArg("path", true, false, "ipfs path of archive to export.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -98,13 +95,19 @@ var tarCatCmd = &cmds.Command{
 			return
 		}
 
-		root, err := core.Resolve(req.Context(), nd, p)
+		root, err := core.Resolve(req.Context(), nd.Namesys, nd.Resolver, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		r, err := tar.ExportTar(req.Context(), root, nd.DAG)
+		rootpb, ok := root.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
+		r, err := tar.ExportTar(req.Context(), rootpb, nd.DAG)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

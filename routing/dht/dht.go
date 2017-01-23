@@ -4,40 +4,41 @@ package dht
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"sync"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	routing "github.com/ipfs/go-ipfs/routing"
-	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	providers "github.com/ipfs/go-ipfs/routing/dht/providers"
-	kb "github.com/ipfs/go-ipfs/routing/kbucket"
-	record "github.com/ipfs/go-ipfs/routing/record"
+	pb "gx/ipfs/QmRG9fdibExi5DFy8kzyxF76jvZVUb2mQBUSMNP1YaYn9M/go-libp2p-kad-dht/pb"
+	providers "gx/ipfs/QmRG9fdibExi5DFy8kzyxF76jvZVUb2mQBUSMNP1YaYn9M/go-libp2p-kad-dht/providers"
+	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
 
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
-	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
-	host "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/host"
-	protocol "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/protocol"
+	host "gx/ipfs/QmPsRtodRuBUir32nz5v4zuSBTSszrR1d3fA6Ahb6eaejj/go-libp2p-host"
+	kb "gx/ipfs/QmRVHVr38ChANF2PUMNKQs7Q4uVWCLVabrfcTG9taNbcVy/go-libp2p-kbucket"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	goprocessctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	base32 "gx/ipfs/QmZvZSVtvxak4dcTkhsQhqd1SQ6rg5UzaSTu62WfWKjj93/base32"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	record "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record"
+	recpb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
 var log = logging.Logger("dht")
 
-var ProtocolDHT protocol.ID = "/openbazaar/dht"
+var ProtocolDHT protocol.ID = "/openbazaar/kad/1.0.0"
+var ProtocolDHTOld protocol.ID = "/openbazaar/dht"
 
 // NumBootstrapQueries defines the number of random dht queries to do to
 // collect members of the routing table.
 const NumBootstrapQueries = 5
-
-// TODO. SEE https://github.com/jbenet/node-ipfs/blob/master/submodules/ipfs-dht/index.js
 
 // IpfsDHT is an implementation of Kademlia with Coral and S/Kademlia modifications.
 // It is used to implement the base IpfsRouting module.
@@ -51,8 +52,7 @@ type IpfsDHT struct {
 	routingTable *kb.RoutingTable // Array of routing tables for differently distanced nodes
 	providers    *providers.ProviderManager
 
-	birth    time.Time  // When this peer started up
-	diaglock sync.Mutex // lock to make diagnostics work better
+	birth time.Time // When this peer started up
 
 	Validator record.Validator // record validator funcs
 	Selector  record.Selector  // record selection funcs
@@ -66,46 +66,57 @@ type IpfsDHT struct {
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
 func NewDHT(ctx context.Context, h host.Host, dstore ds.Batching) *IpfsDHT {
-	dht := new(IpfsDHT)
-	dht.datastore = dstore
-	dht.self = h.ID()
-	dht.peerstore = h.Peerstore()
-	dht.host = h
+	dht := NewDHTClient(ctx, h, dstore)
+
+	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
+	h.SetStreamHandler(ProtocolDHTOld, dht.handleNewStream)
+
+	return dht
+}
+
+// NewDHTClient creates a new DHT object with the given peer as the 'local' host
+func NewDHTClient(ctx context.Context, h host.Host, dstore ds.Batching) *IpfsDHT {
+	dht := makeDHT(ctx, h, dstore)
 
 	// register for network notifs.
 	dht.host.Network().Notify((*netNotifiee)(dht))
 
-	dht.proc = goprocess.WithTeardown(func() error {
+	dht.proc = goprocessctx.WithContextAndTeardown(ctx, func() error {
 		// remove ourselves from network notifs.
 		dht.host.Network().StopNotify((*netNotifiee)(dht))
 		return nil
 	})
 
-	dht.strmap = make(map[peer.ID]*messageSender)
-	dht.ctx = ctx
-
-	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
-	dht.providers = providers.NewProviderManager(dht.ctx, dht.self, dstore)
 	dht.proc.AddChild(dht.providers.Process())
-	goprocessctx.CloseAfterContext(dht.proc, ctx)
 
-	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(dht.self), time.Minute, dht.peerstore)
-	dht.birth = time.Now()
-
-	dht.Validator = make(record.Validator)
 	dht.Validator["pk"] = record.PublicKeyValidator
-
-	dht.Selector = make(record.Selector)
 	dht.Selector["pk"] = record.PublicKeySelector
 
 	return dht
 }
 
+func makeDHT(ctx context.Context, h host.Host, dstore ds.Batching) *IpfsDHT {
+	return &IpfsDHT{
+		datastore:    dstore,
+		self:         h.ID(),
+		peerstore:    h.Peerstore(),
+		host:         h,
+		strmap:       make(map[peer.ID]*messageSender),
+		ctx:          ctx,
+		providers:    providers.NewProviderManager(ctx, h.ID(), dstore),
+		birth:        time.Now(),
+		routingTable: kb.NewRoutingTable(KValue, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore()),
+
+		Validator: make(record.Validator),
+		Selector:  make(record.Selector),
+	}
+}
+
 // putValueToPeer stores the given key/value pair at the peer 'p'
 func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
-	key key.Key, rec *pb.Record) error {
+	key string, rec *recpb.Record) error {
 
-	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
+	pmes := pb.NewMessage(pb.Message_PUT_VALUE, key, 0)
 	pmes.Record = rec
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	switch err {
@@ -134,8 +145,7 @@ var errInvalidRecord = errors.New("received invalid record")
 // key. It returns either the value or a list of closer peers.
 // NOTE: It will update the dht's peerstore with any new addresses
 // it finds for the given peer.
-func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
-	key key.Key) (*pb.Record, []pstore.PeerInfo, error) {
+func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID, key string) (*recpb.Record, []pstore.PeerInfo, error) {
 
 	pmes, err := dht.getValueSingle(ctx, p, key)
 	if err != nil {
@@ -155,7 +165,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 			log.Info("Received invalid record! (discarded)")
 			// return a sentinal to signify an invalid record was received
 			err = errInvalidRecord
-			record = new(pb.Record)
+			record = new(recpb.Record)
 		}
 		return record, peers, err
 	}
@@ -170,11 +180,15 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 }
 
 // getValueSingle simply performs the get value RPC with the given parameters
-func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
-	key key.Key) (*pb.Message, error) {
-	defer log.EventBegin(ctx, "getValueSingle", p, &key).Done()
+func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID, key string) (*pb.Message, error) {
+	meta := logging.LoggableMap{
+		"key":  key,
+		"peer": p,
+	}
 
-	pmes := pb.NewMessage(pb.Message_GET_VALUE, string(key), 0)
+	defer log.EventBegin(ctx, "getValueSingle", meta).Done()
+
+	pmes := pb.NewMessage(pb.Message_GET_VALUE, key, 0)
 	resp, err := dht.sendRequest(ctx, p, pmes)
 	switch err {
 	case nil:
@@ -188,20 +202,20 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
 }
 
 // getLocal attempts to retrieve the value from the datastore
-func (dht *IpfsDHT) getLocal(key key.Key) (*pb.Record, error) {
+func (dht *IpfsDHT) getLocal(key string) (*recpb.Record, error) {
+	log.Debugf("getLocal %s", key)
 
-	log.Debug("getLocal %s", key)
-	v, err := dht.datastore.Get(key.DsKey())
+	v, err := dht.datastore.Get(mkDsKey(key))
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("found in db")
+	log.Debugf("found %s in local datastore")
 
 	byt, ok := v.([]byte)
 	if !ok {
 		return nil, errors.New("value stored in datastore not []byte")
 	}
-	rec := new(pb.Record)
+	rec := new(recpb.Record)
 	err = proto.Unmarshal(byt, rec)
 	if err != nil {
 		return nil, err
@@ -228,13 +242,13 @@ func (dht *IpfsDHT) getOwnPrivateKey() (ci.PrivKey, error) {
 }
 
 // putLocal stores the key value pair in the datastore
-func (dht *IpfsDHT) putLocal(key key.Key, rec *pb.Record) error {
+func (dht *IpfsDHT) putLocal(key string, rec *recpb.Record) error {
 	data, err := proto.Marshal(rec)
 	if err != nil {
 		return err
 	}
 
-	return dht.datastore.Put(key.DsKey(), data)
+	return dht.datastore.Put(mkDsKey(key), data)
 }
 
 // Update signals the routingTable to Update its last-seen status
@@ -270,10 +284,10 @@ func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.ID, id peer.ID) (
 	}
 }
 
-func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key key.Key) (*pb.Message, error) {
-	defer log.EventBegin(ctx, "findProvidersSingle", p, &key).Done()
+func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key *cid.Cid) (*pb.Message, error) {
+	defer log.EventBegin(ctx, "findProvidersSingle", p, key).Done()
 
-	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, string(key), 0)
+	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, key.KeyString(), 0)
 	resp, err := dht.sendRequest(ctx, p, pmes)
 	switch err {
 	case nil:
@@ -288,8 +302,7 @@ func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key key.
 
 // nearestPeersToQuery returns the routing tables closest peers.
 func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.ID {
-	key := key.Key(pmes.GetKey())
-	closer := dht.routingTable.NearestPeers(kb.ConvertKey(key), count)
+	closer := dht.routingTable.NearestPeers(kb.ConvertKey(pmes.GetKey()), count)
 	return closer
 }
 
@@ -337,4 +350,8 @@ func (dht *IpfsDHT) Process() goprocess.Process {
 // Close calls Process Close
 func (dht *IpfsDHT) Close() error {
 	return dht.proc.Close()
+}
+
+func mkDsKey(s string) ds.Key {
+	return ds.NewKey(base32.RawStdEncoding.EncodeToString([]byte(s)))
 }

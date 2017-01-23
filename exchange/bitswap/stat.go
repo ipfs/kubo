@@ -1,13 +1,14 @@
 package bitswap
 
 import (
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	"sort"
+
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 type Stat struct {
 	ProvideBufLen   int
-	Wantlist        []key.Key
+	Wantlist        []*cid.Cid
 	Peers           []string
 	BlocksReceived  int
 	DupBlksReceived int

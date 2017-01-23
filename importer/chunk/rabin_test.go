@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ipfs/go-ipfs/blocks"
-	"github.com/ipfs/go-ipfs/blocks/key"
-	"gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	"gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 	"io"
 	"testing"
 )
@@ -39,10 +38,10 @@ func TestRabinChunking(t *testing.T) {
 	}
 }
 
-func chunkData(t *testing.T, data []byte) map[key.Key]blocks.Block {
+func chunkData(t *testing.T, data []byte) map[string]blocks.Block {
 	r := NewRabin(bytes.NewReader(data), 1024*256)
 
-	blkmap := make(map[key.Key]blocks.Block)
+	blkmap := make(map[string]blocks.Block)
 
 	for {
 		blk, err := r.NextBytes()
@@ -54,7 +53,7 @@ func chunkData(t *testing.T, data []byte) map[key.Key]blocks.Block {
 		}
 
 		b := blocks.NewBlock(blk)
-		blkmap[b.Key()] = b
+		blkmap[b.Cid().KeyString()] = b
 	}
 
 	return blkmap

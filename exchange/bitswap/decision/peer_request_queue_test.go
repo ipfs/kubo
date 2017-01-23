@@ -1,15 +1,17 @@
 package decision
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
 	"strings"
 	"testing"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 func TestPushPop(t *testing.T) {
@@ -41,10 +43,13 @@ func TestPushPop(t *testing.T) {
 	for _, index := range rand.Perm(len(alphabet)) { // add blocks for all letters
 		letter := alphabet[index]
 		t.Log(partner.String())
-		prq.Push(&wantlist.Entry{Key: key.Key(letter), Priority: math.MaxInt32 - index}, partner)
+
+		c := cid.NewCidV0(u.Hash([]byte(letter)))
+		prq.Push(&wantlist.Entry{Cid: c, Priority: math.MaxInt32 - index}, partner)
 	}
 	for _, consonant := range consonants {
-		prq.Remove(key.Key(consonant), partner)
+		c := cid.NewCidV0(u.Hash([]byte(consonant)))
+		prq.Remove(c, partner)
 	}
 
 	prq.fullThaw()
@@ -56,12 +61,13 @@ func TestPushPop(t *testing.T) {
 			break
 		}
 
-		out = append(out, string(received.Entry.Key))
+		out = append(out, received.Entry.Cid.String())
 	}
 
 	// Entries popped should already be in correct order
 	for i, expected := range vowels {
-		if out[i] != expected {
+		exp := cid.NewCidV0(u.Hash([]byte(expected))).String()
+		if out[i] != exp {
 			t.Fatal("received", out[i], "expected", expected)
 		}
 	}
@@ -78,10 +84,11 @@ func TestPeerRepeats(t *testing.T) {
 	// Have each push some blocks
 
 	for i := 0; i < 5; i++ {
-		prq.Push(&wantlist.Entry{Key: key.Key(i)}, a)
-		prq.Push(&wantlist.Entry{Key: key.Key(i)}, b)
-		prq.Push(&wantlist.Entry{Key: key.Key(i)}, c)
-		prq.Push(&wantlist.Entry{Key: key.Key(i)}, d)
+		elcid := cid.NewCidV0(u.Hash([]byte(fmt.Sprint(i))))
+		prq.Push(&wantlist.Entry{Cid: elcid}, a)
+		prq.Push(&wantlist.Entry{Cid: elcid}, b)
+		prq.Push(&wantlist.Entry{Cid: elcid}, c)
+		prq.Push(&wantlist.Entry{Cid: elcid}, d)
 	}
 
 	// now, pop off four entries, there should be one from each

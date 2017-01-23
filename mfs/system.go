@@ -1,4 +1,4 @@
-// package mfs implements an in memory model of a mutable ipfs filesystem.
+// package mfs implements an in memory model of a mutable IPFS filesystem.
 //
 // It consists of four main structs:
 // 1) The Filesystem
@@ -10,16 +10,17 @@
 package mfs
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 var ErrNotExist = errors.New("no such rootfs")
@@ -29,7 +30,7 @@ var log = logging.Logger("mfs")
 var ErrIsDirectory = errors.New("error: is a directory")
 
 type childCloser interface {
-	closeChild(string, *dag.Node, bool) error
+	closeChild(string, *dag.ProtoNode, bool) error
 }
 
 type NodeType int
@@ -41,7 +42,7 @@ const (
 
 // FSNode represents any node (directory, root, or file) in the mfs filesystem
 type FSNode interface {
-	GetNode() (*dag.Node, error)
+	GetNode() (node.Node, error)
 	Flush() error
 	Type() NodeType
 }
@@ -49,7 +50,7 @@ type FSNode interface {
 // Root represents the root of a filesystem tree
 type Root struct {
 	// node is the merkledag root
-	node *dag.Node
+	node *dag.ProtoNode
 
 	// val represents the node. It can either be a File or a Directory
 	val FSNode
@@ -61,19 +62,15 @@ type Root struct {
 	Type string
 }
 
-type PubFunc func(context.Context, key.Key) error
+type PubFunc func(context.Context, *cid.Cid) error
 
 // newRoot creates a new Root and starts up a republisher routine for it
-func NewRoot(parent context.Context, ds dag.DAGService, node *dag.Node, pf PubFunc) (*Root, error) {
-	ndk, err := node.Key()
-	if err != nil {
-		return nil, err
-	}
+func NewRoot(parent context.Context, ds dag.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
 
 	var repub *Republisher
 	if pf != nil {
 		repub = NewRepublisher(parent, pf, time.Millisecond*300, time.Second*3)
-		repub.setVal(ndk)
+		repub.setVal(node.Cid())
 		go repub.Run()
 	}
 
@@ -91,9 +88,9 @@ func NewRoot(parent context.Context, ds dag.DAGService, node *dag.Node, pf PubFu
 
 	switch pbn.GetType() {
 	case ft.TDirectory:
-		root.val = NewDirectory(parent, ndk.String(), node, root, ds)
+		root.val = NewDirectory(parent, node.String(), node, root, ds)
 	case ft.TFile, ft.TMetadata, ft.TRaw:
-		fi, err := NewFile(ndk.String(), node, root, ds)
+		fi, err := NewFile(node.String(), node, root, ds)
 		if err != nil {
 			return nil, err
 		}
@@ -114,27 +111,22 @@ func (kr *Root) Flush() error {
 		return err
 	}
 
-	k, err := nd.Key()
-	if err != nil {
-		return err
-	}
-
 	if kr.repub != nil {
-		kr.repub.Update(k)
+		kr.repub.Update(nd.Cid())
 	}
 	return nil
 }
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
-func (kr *Root) closeChild(name string, nd *dag.Node, sync bool) error {
-	k, err := kr.dserv.Add(nd)
+func (kr *Root) closeChild(name string, nd *dag.ProtoNode, sync bool) error {
+	c, err := kr.dserv.Add(nd)
 	if err != nil {
 		return err
 	}
 
 	if kr.repub != nil {
-		kr.repub.Update(k)
+		kr.repub.Update(c)
 	}
 	return nil
 }
@@ -145,13 +137,8 @@ func (kr *Root) Close() error {
 		return err
 	}
 
-	k, err := nd.Key()
-	if err != nil {
-		return err
-	}
-
 	if kr.repub != nil {
-		kr.repub.Update(k)
+		kr.repub.Update(nd.Cid())
 		return kr.repub.Close()
 	}
 
@@ -170,11 +157,11 @@ type Republisher struct {
 	cancel func()
 
 	lk      sync.Mutex
-	val     key.Key
-	lastpub key.Key
+	val     *cid.Cid
+	lastpub *cid.Cid
 }
 
-func (rp *Republisher) getVal() key.Key {
+func (rp *Republisher) getVal() *cid.Cid {
 	rp.lk.Lock()
 	defer rp.lk.Unlock()
 	return rp.val
@@ -195,10 +182,10 @@ func NewRepublisher(ctx context.Context, pf PubFunc, tshort, tlong time.Duration
 	}
 }
 
-func (p *Republisher) setVal(k key.Key) {
+func (p *Republisher) setVal(c *cid.Cid) {
 	p.lk.Lock()
 	defer p.lk.Unlock()
-	p.val = k
+	p.val = c
 }
 
 func (p *Republisher) pubNow() {
@@ -230,8 +217,8 @@ func (p *Republisher) Close() error {
 // Touch signals that an update has occurred since the last publish.
 // Multiple consecutive touches may extend the time period before
 // the next Publish occurs in order to more efficiently batch updates
-func (np *Republisher) Update(k key.Key) {
-	np.setVal(k)
+func (np *Republisher) Update(c *cid.Cid) {
+	np.setVal(c)
 	select {
 	case np.Publish <- struct{}{}:
 	default:

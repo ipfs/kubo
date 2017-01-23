@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 var log = logging.Logger("config")
 
-// Config is used to load IPFS config files.
+// Config is used to load ipfs config files.
 type Config struct {
 	Identity         Identity              // local node's peer identity
 	Datastore        Datastore             // local node's storage
@@ -29,6 +29,8 @@ type Config struct {
 	SupernodeRouting SupernodeClientConfig // local node's routing servers (if SupernodeRouting enabled)
 	API              API                   // local node's API settings
 	Swarm            SwarmConfig
+
+	Reprovider Reprovider
 }
 
 const (

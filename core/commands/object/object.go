@@ -12,13 +12,14 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
@@ -43,7 +44,7 @@ type Object struct {
 
 var ObjectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with ipfs objects.",
+		Tagline: "Interact with IPFS objects.",
 		ShortDescription: `
 'ipfs object' is a plumbing command used to manipulate DAG objects
 directly.`,
@@ -63,7 +64,7 @@ directly.`,
 
 var ObjectDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Outputs the raw bytes in an IPFS object.",
+		Tagline: "Output the raw bytes of an IPFS object.",
 		ShortDescription: `
 'ipfs object data' is a plumbing command for retrieving the raw bytes stored
 in a DAG node. It outputs to stdout, and <key> is a base58 encoded multihash.
@@ -87,19 +88,31 @@ is the raw data of the object.
 			return
 		}
 
-		fpath := path.Path(req.Arguments()[0])
-		node, err := core.Resolve(req.Context(), n, fpath)
+		fpath, err := path.ParsePath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(bytes.NewReader(node.Data()))
+
+		node, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, fpath)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		pbnode, ok := node.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(bytes.NewReader(pbnode.Data()))
 	},
 }
 
 var ObjectLinksCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Outputs the links pointed to by the specified object.",
+		Tagline: "Output the links pointed to by the specified object.",
 		ShortDescription: `
 'ipfs object links' is a plumbing command for retrieving the links from
 a DAG node. It outputs to stdout, and <key> is a base58 encoded
@@ -127,11 +140,12 @@ multihash.
 		}
 
 		fpath := path.Path(req.Arguments()[0])
-		node, err := core.Resolve(req.Context(), n, fpath)
+		node, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
 		output, err := getOutput(node)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -190,20 +204,26 @@ This command outputs data in the following encodings:
 
 		fpath := path.Path(req.Arguments()[0])
 
-		object, err := core.Resolve(req.Context(), n, fpath)
+		object, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		node := &Node{
-			Links: make([]Link, len(object.Links)),
-			Data:  string(object.Data()),
+		pbo, ok := object.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
 		}
 
-		for i, link := range object.Links {
+		node := &Node{
+			Links: make([]Link, len(object.Links())),
+			Data:  string(pbo.Data()),
+		}
+
+		for i, link := range object.Links() {
 			node.Links[i] = Link{
-				Hash: link.Hash.B58String(),
+				Hash: link.Cid.String(),
 				Name: link.Name,
 				Size: link.Size,
 			}
@@ -257,7 +277,7 @@ var ObjectStatCmd = &cmds.Command{
 
 		fpath := path.Path(req.Arguments()[0])
 
-		object, err := core.Resolve(req.Context(), n, fpath)
+		object, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -271,10 +291,10 @@ var ObjectStatCmd = &cmds.Command{
 
 		res.SetOutput(ns)
 	},
-	Type: dag.NodeStat{},
+	Type: node.NodeStat{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			ns := res.Output().(*dag.NodeStat)
+			ns := res.Output().(*node.NodeStat)
 
 			buf := new(bytes.Buffer)
 			w := func(s string, n int) {
@@ -293,7 +313,7 @@ var ObjectStatCmd = &cmds.Command{
 
 var ObjectPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Stores input as a DAG object, outputs its key.",
+		Tagline: "Store input as a DAG object, print its key.",
 		ShortDescription: `
 'ipfs object put' is a plumbing command for storing DAG nodes.
 It reads from stdin, and the output is a base58 encoded multihash.
@@ -384,7 +404,7 @@ And then run:
 
 var ObjectNewCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Creates a new object from an ipfs template.",
+		Tagline: "Create a new object from an ipfs template.",
 		ShortDescription: `
 'ipfs object new' is a plumbing command for creating new DAG nodes.
 `,
@@ -408,7 +428,7 @@ Available templates:
 			return
 		}
 
-		node := new(dag.Node)
+		node := new(dag.ProtoNode)
 		if len(req.Arguments()) == 1 {
 			template := req.Arguments()[0]
 			var err error
@@ -424,7 +444,7 @@ Available templates:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(&Object{Hash: k.B58String()})
+		res.SetOutput(&Object{Hash: k.String()})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -435,7 +455,7 @@ Available templates:
 	Type: Object{},
 }
 
-func nodeFromTemplate(template string) (*dag.Node, error) {
+func nodeFromTemplate(template string) (*dag.ProtoNode, error) {
 	switch template {
 	case "unixfs-dir":
 		return ft.EmptyDirNode(), nil
@@ -459,7 +479,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEnco
 		return nil, ErrObjectTooLarge
 	}
 
-	var dagnode *dag.Node
+	var dagnode *dag.ProtoNode
 	switch getObjectEnc(encoding) {
 	case objectEncodingJSON:
 		node := new(Node)
@@ -537,21 +557,17 @@ func getObjectEnc(o interface{}) objectEncoding {
 	return objectEncoding(v)
 }
 
-func getOutput(dagnode *dag.Node) (*Object, error) {
-	key, err := dagnode.Key()
-	if err != nil {
-		return nil, err
-	}
-
+func getOutput(dagnode node.Node) (*Object, error) {
+	c := dagnode.Cid()
 	output := &Object{
-		Hash:  key.B58String(),
-		Links: make([]Link, len(dagnode.Links)),
+		Hash:  c.String(),
+		Links: make([]Link, len(dagnode.Links())),
 	}
 
-	for i, link := range dagnode.Links {
+	for i, link := range dagnode.Links() {
 		output.Links[i] = Link{
 			Name: link.Name,
-			Hash: link.Hash.B58String(),
+			Hash: link.Cid.String(),
 			Size: link.Size,
 		}
 	}
@@ -559,29 +575,29 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 	return output, nil
 }
 
-// converts the Node object into a real dag.Node
-func deserializeNode(node *Node, dataFieldEncoding string) (*dag.Node, error) {
-	dagnode := new(dag.Node)
+// converts the Node object into a real dag.ProtoNode
+func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error) {
+	dagnode := new(dag.ProtoNode)
 	switch dataFieldEncoding {
 	case "text":
-		dagnode.SetData([]byte(node.Data))
+		dagnode.SetData([]byte(nd.Data))
 	case "base64":
-		data, _ := base64.StdEncoding.DecodeString(node.Data)
+		data, _ := base64.StdEncoding.DecodeString(nd.Data)
 		dagnode.SetData(data)
 	default:
 		return nil, fmt.Errorf("Unkown data field encoding")
 	}
 
-	dagnode.Links = make([]*dag.Link, len(node.Links))
-	for i, link := range node.Links {
-		hash, err := mh.FromB58String(link.Hash)
+	dagnode.SetLinks(make([]*node.Link, len(nd.Links)))
+	for i, link := range nd.Links {
+		c, err := cid.Decode(link.Hash)
 		if err != nil {
 			return nil, err
 		}
-		dagnode.Links[i] = &dag.Link{
+		dagnode.Links()[i] = &node.Link{
 			Name: link.Name,
 			Size: link.Size,
-			Hash: hash,
+			Cid:  c,
 		}
 	}
 

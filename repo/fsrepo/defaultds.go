@@ -7,12 +7,13 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/dir"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/flatfs"
-	levelds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/leveldb"
-	"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/measure"
-	mount "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/syncmount"
+
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	mount "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/syncmount"
+	levelds "gx/ipfs/QmaHHmfEozrrotyhyN44omJouyuEtx6ahddqV6W5yRaUSQ/go-ds-leveldb"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
+	measure "gx/ipfs/QmbUSMTQtK9GRrUbD4ngqJwSzHsquUc8nyDubRWp4vPybH/go-ds-measure"
+	"gx/ipfs/Qmcdc2Str4Dkc8yVCzzUFpnxmkS9AZXnpfo6jbhjjtXXkB/go-ds-flatfs"
 )
 
 const (
@@ -32,9 +33,10 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	}
 
 	syncfs := !r.config.Datastore.NoSync
-	// 5 bytes of prefix gives us 25 bits of freedom, 16 of which are taken by
-	// by the Qm prefix. Leaving us with 9 bits, or 512 way sharding
-	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 5, syncfs)
+
+	// 2 characters of base32 suffix gives us 10 bits of freedom.
+	// Leaving us with 10 bits, or 1024 way sharding
+	blocksDS, err := flatfs.CreateOrOpen(path.Join(r.path, flatfsDirectory), flatfs.NextToLast(2), syncfs)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}
@@ -48,7 +50,8 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		// the tests pass in a zero Config; cope with it
 		id = fmt.Sprintf("uninitialized_%p", r)
 	}
-	prefix := "fsrepo." + id + ".datastore."
+
+	prefix := "ipfs.fsrepo.datastore."
 	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
 	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
 	mountDS := mount.New([]mount.Mount{

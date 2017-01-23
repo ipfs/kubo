@@ -1,6 +1,7 @@
 package mfs
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -9,7 +10,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	mod "github.com/ipfs/go-ipfs/unixfs/mod"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 )
 
 type File struct {
@@ -20,12 +21,12 @@ type File struct {
 	desclock sync.RWMutex
 
 	dserv  dag.DAGService
-	node   *dag.Node
+	node   node.Node
 	nodelk sync.Mutex
 }
 
 // NewFile returns a NewFile object with the given parameters
-func NewFile(name string, node *dag.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
+func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
 	return &File{
 		dserv:  dserv,
 		parent: parent,
@@ -45,18 +46,23 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 	node := fi.node
 	fi.nodelk.Unlock()
 
-	fsn, err := ft.FSNodeFromBytes(node.Data())
-	if err != nil {
-		return nil, err
-	}
+	switch node := node.(type) {
+	case *dag.ProtoNode:
+		fsn, err := ft.FSNodeFromBytes(node.Data())
+		if err != nil {
+			return nil, err
+		}
 
-	switch fsn.Type {
-	default:
-		return nil, fmt.Errorf("unsupported fsnode type for 'file'")
-	case ft.TSymlink:
-		return nil, fmt.Errorf("symlinks not yet supported")
-	case ft.TFile, ft.TRaw:
-		// OK case
+		switch fsn.Type {
+		default:
+			return nil, fmt.Errorf("unsupported fsnode type for 'file'")
+		case ft.TSymlink:
+			return nil, fmt.Errorf("symlinks not yet supported")
+		case ft.TFile, ft.TRaw:
+			// OK case
+		}
+	case *dag.RawNode:
+		// Ok as well.
 	}
 
 	switch flags {
@@ -86,16 +92,22 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 func (fi *File) Size() (int64, error) {
 	fi.nodelk.Lock()
 	defer fi.nodelk.Unlock()
-	pbd, err := ft.FromBytes(fi.node.Data())
-	if err != nil {
-		return 0, err
+	switch nd := fi.node.(type) {
+	case *dag.ProtoNode:
+		pbd, err := ft.FromBytes(nd.Data())
+		if err != nil {
+			return 0, err
+		}
+		return int64(pbd.GetFilesize()), nil
+	case *dag.RawNode:
+		return int64(len(nd.RawData())), nil
+	default:
+		return 0, fmt.Errorf("unrecognized node type in mfs/file.Size()")
 	}
-
-	return int64(pbd.GetFilesize()), nil
 }
 
 // GetNode returns the dag node associated with this file
-func (fi *File) GetNode() (*dag.Node, error) {
+func (fi *File) GetNode() (node.Node, error) {
 	fi.nodelk.Lock()
 	defer fi.nodelk.Unlock()
 	return fi.node, nil

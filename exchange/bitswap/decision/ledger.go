@@ -4,20 +4,17 @@ import (
 	"sync"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-)
 
-// keySet is just a convenient alias for maps of keys, where we only care
-// access/lookups.
-type keySet map[key.Key]struct{}
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+)
 
 func newLedger(p peer.ID) *ledger {
 	return &ledger{
 		wantList:   wl.New(),
 		Partner:    p,
-		sentToPeer: make(map[key.Key]time.Time),
+		sentToPeer: make(map[string]time.Time),
 	}
 }
 
@@ -44,9 +41,17 @@ type ledger struct {
 
 	// sentToPeer is a set of keys to ensure we dont send duplicate blocks
 	// to a given peer
-	sentToPeer map[key.Key]time.Time
+	sentToPeer map[string]time.Time
 
 	lk sync.Mutex
+}
+
+type Receipt struct {
+	Peer      string
+	Value     float64
+	Sent      uint64
+	Recv      uint64
+	Exchanged uint64
 }
 
 type debtRatio struct {
@@ -70,16 +75,16 @@ func (l *ledger) ReceivedBytes(n int) {
 	l.Accounting.BytesRecv += uint64(n)
 }
 
-func (l *ledger) Wants(k key.Key, priority int) {
+func (l *ledger) Wants(k *cid.Cid, priority int) {
 	log.Debugf("peer %s wants %s", l.Partner, k)
 	l.wantList.Add(k, priority)
 }
 
-func (l *ledger) CancelWant(k key.Key) {
+func (l *ledger) CancelWant(k *cid.Cid) {
 	l.wantList.Remove(k)
 }
 
-func (l *ledger) WantListContains(k key.Key) (*wl.Entry, bool) {
+func (l *ledger) WantListContains(k *cid.Cid) (*wl.Entry, bool) {
 	return l.wantList.Contains(k)
 }
 

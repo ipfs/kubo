@@ -1,14 +1,14 @@
 package dht
 
 import (
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	notif "github.com/ipfs/go-ipfs/notifications"
-	kb "github.com/ipfs/go-ipfs/routing/kbucket"
-	pset "github.com/ipfs/go-ipfs/thirdparty/peerset"
+	"context"
 
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	kb "gx/ipfs/QmRVHVr38ChANF2PUMNKQs7Q4uVWCLVabrfcTG9taNbcVy/go-libp2p-kbucket"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	notif "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing/notifications"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+	pset "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer/peerset"
 )
 
 // Required in order for proper JSON marshaling
@@ -21,10 +21,16 @@ func pointerizePeerInfos(pis []pstore.PeerInfo) []*pstore.PeerInfo {
 	return out
 }
 
+func loggableKey(k string) logging.LoggableMap {
+	return logging.LoggableMap{
+		"key": k,
+	}
+}
+
 // Kademlia 'node lookup' operation. Returns a channel of the K closest peers
 // to the given key
-func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key key.Key) (<-chan peer.ID, error) {
-	e := log.EventBegin(ctx, "getClosestPeers", &key)
+func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) (<-chan peer.ID, error) {
+	e := log.EventBegin(ctx, "getClosestPeers", loggableKey(key))
 	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), KValue)
 	if len(tablepeers) == 0 {
 		return nil, kb.ErrLookupFailure
@@ -60,7 +66,7 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key key.Key) (<-chan pe
 
 		var filtered []pstore.PeerInfo
 		for _, clp := range closer {
-			if kb.Closer(clp, dht.self, key) && peerset.TryAdd(clp) {
+			if peerset.TryAdd(clp) {
 				select {
 				case out <- clp:
 				case <-ctx.Done():
@@ -93,7 +99,7 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key key.Key) (<-chan pe
 	return out, nil
 }
 
-func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key key.Key, p peer.ID) ([]peer.ID, error) {
+func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key string, p peer.ID) ([]peer.ID, error) {
 	pmes, err := dht.findPeerSingle(ctx, p, peer.ID(key))
 	if err != nil {
 		return nil, err

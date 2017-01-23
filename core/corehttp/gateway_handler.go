@@ -1,6 +1,8 @@
 package corehttp
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,22 +11,21 @@ import (
 	"strings"
 	"time"
 
-	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	"errors"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	"github.com/ipfs/go-ipfs/namesys"
-	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
-	"github.com/ipfs/go-ipfs/routing"
-	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
+	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+
 )
 
 const (
@@ -37,18 +38,20 @@ const (
 type gatewayHandler struct {
 	node   *core.IpfsNode
 	config GatewayConfig
+	api    coreiface.UnixfsAPI
 }
 
-func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) *gatewayHandler {
+func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.UnixfsAPI) *gatewayHandler {
 	i := &gatewayHandler{
-		node:   node,
-		config: conf,
+		node:   n,
+		config: c,
+		api:    api,
 	}
 	return i
 }
 
 // TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
+func (i *gatewayHandler) newDagFromReader(r io.Reader) (node.Node, error) {
 	// TODO(cryptix): change and remove this helper once PR1136 is merged
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
@@ -58,6 +61,21 @@ func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(i.node.Context(), time.Hour)
+	// the hour is a hard fallback, we don't expect it to happen, but just in case
+	defer cancel()
+
+	if cn, ok := w.(http.CloseNotifier); ok {
+		clientGone := cn.CloseNotify()
+		go func() {
+			select {
+			case <-clientGone:
+			case <-ctx.Done():
+			}
+			cancel()
+		}()
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("A panic occurred in the gateway handler!")
@@ -92,7 +110,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if i.config.Writable {
 		switch r.Method {
 		case "POST":
-			i.postHandler(w, r)
+			i.postHandler(ctx, w, r)
 			return
 		case "PUT":
 			i.putHandler(w, r)
@@ -104,7 +122,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "GET" || r.Method == "HEAD" {
-		i.getOrHeadHandler(w, r)
+		i.getOrHeadHandler(ctx, w, r)
 		return
 	}
 
@@ -134,21 +152,7 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 	i.addUserHeaders(w) // return all custom headers (including CORS ones, if set)
 }
 
-func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(i.node.Context(), time.Hour)
-	// the hour is a hard fallback, we don't expect it to happen, but just in case
-	defer cancel()
-
-	if cn, ok := w.(http.CloseNotifier); ok {
-		clientGone := cn.CloseNotify()
-		go func() {
-			select {
-			case <-clientGone:
-			case <-ctx.Done():
-			}
-			cancel()
-		}()
-	}
+func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	// If this is an ipns query and the user passed in a blockchain ID handle, let's resolve it into a peer ID.
 	var paths []string = strings.Split(r.URL.Path, "/")
@@ -212,13 +216,29 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		ipnsHostname = true
 	}
 
-	nd, err := core.Resolve(ctx, i.node, path.Path(urlPath))
-	// If node is in offline mode the error code and message should be different
-	if err == core.ErrNoNamesys && !i.node.OnlineMode() {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
+	dr, err := i.api.Cat(ctx, urlPath)
+	dir := false
+	switch err {
+	case nil:
+		// core.Resolve worked
+		defer dr.Close()
+	case coreiface.ErrIsDir:
+		dir = true
+	case namesys.ErrResolveFailed:
+		// Don't log that error as it is just noise
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Path Resolve error: %s", err.Error())
+		log.Info("Path Resolve error: %s", err.Error())
 		return
-	} else if err != nil {
+	case coreiface.ErrOffline:
+		if !i.node.OnlineMode() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
+			return
+		}
+		fallthrough
+	default:
+		// all other erros
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
 		return
 	}
@@ -237,26 +257,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// expose those headers
 	w.Header().Set("Access-Control-Expose-Headers", "X-Stream-Output, X-Chunked-Output")
 
-	// Suborigin header, sandboxes apps from each other in the browser (even
-	// though they are served from the same gateway domain).
-	//
-	// Omited if the path was treated by IPNSHostnameOption(), for example
-	// a request for http://example.net/ would be changed to /ipns/example.net/,
-	// which would turn into an incorrect Suborigin: example.net header.
-	//
-	// NOTE: This is not yet widely supported by browsers.
-	if !ipnsHostname {
-		pathRoot := strings.SplitN(urlPath, "/", 4)[2]
-		w.Header().Set("Suborigin", pathRoot)
-	}
-
-	dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
-	if err != nil && err != uio.ErrIsDir {
-		// not a directory and still an error
-		internalWebError(w, err)
-		return
-	}
-
 	// set these headers _after_ the error, for we may just not have it
 	// and dont want the client to cache a 500 response...
 	// and only if it's /ipfs!
@@ -271,10 +271,15 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		w.Header().Set("Cache-Control", "public, max-age=600, immutable")
 	}
 
-	if err == nil {
-		defer dr.Close()
+	if !dir {
 		name := gopath.Base(urlPath)
 		http.ServeContent(w, r, name, modtime, dr)
+		return
+	}
+
+	links, err := i.api.Ls(ctx, urlPath)
+	if err != nil {
+		internalWebError(w, err)
 		return
 	}
 
@@ -282,7 +287,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	var dirListing []directoryItem
 	// loop through files
 	foundIndex := false
-	for _, link := range nd.Links {
+	for _, link := range links {
 		if link.Name == "index.html" {
 			log.Debugf("found index.html link for %s", urlPath)
 			foundIndex = true
@@ -294,13 +299,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				return
 			}
 
-			// return index page instead.
-			nd, err := core.Resolve(ctx, i.node, path.Path(urlPath+"/index.html"))
+			p, err := path.ParsePath(urlPath + "/index.html")
 			if err != nil {
 				internalWebError(w, err)
 				return
 			}
-			dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
+
+			// return index page instead.
+			dr, err := i.api.Cat(ctx, p.String())
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -366,14 +372,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	nd, err := i.newDagFromReader(r.Body)
-	if err != nil {
-		internalWebError(w, err)
-		return
-	}
-
-	k, err := i.node.DAG.Add(nd)
+func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	k, err := i.api.Add(ctx, r.Body)
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -398,6 +398,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		cancel()
 		return
 	}
+
 	go func() {
 		node, err := i.node.DAG.Get(ctx, key.B58KeyDecode(paths[2]))
 		if err != nil {
@@ -415,20 +416,13 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
-	ipfsNode, err := core.Resolve(ctx, i.node, path.Path(urlPath))
+	p, err := path.ParsePath(urlPath)
 	if err != nil {
-		// FIXME HTTP error code
-		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
+		webError(w, "failed to parse path", err, http.StatusBadRequest)
 		return
 	}
 
-	k, err := ipfsNode.Key()
-	if err != nil {
-		webError(w, "Could not get key from resolved node", err, http.StatusInternalServerError)
-		return
-	}
-
-	h, components, err := path.SplitAbsPath(path.FromKey(k))
+	c, components, err := path.SplitAbsPath(p)
 	if err != nil {
 		webError(w, "Could not split path", err, http.StatusInternalServerError)
 		return
@@ -436,7 +430,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	tctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, key.Key(h))
+	rootnd, err := i.node.Resolver.DAG.Get(tctx, c)
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return
@@ -448,20 +442,33 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pbnd, ok := pathNodes[len(pathNodes)-1].(*dag.ProtoNode)
+	if !ok {
+		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		return
+	}
+
 	// TODO(cyrptix): assumes len(pathNodes) > 1 - not found is an error above?
-	err = pathNodes[len(pathNodes)-1].RemoveNodeLink(components[len(components)-1])
+	err = pbnd.RemoveNodeLink(components[len(components)-1])
 	if err != nil {
 		webError(w, "Could not delete link", err, http.StatusBadRequest)
 		return
 	}
 
-	newnode := pathNodes[len(pathNodes)-1]
+	var newnode *dag.ProtoNode = pbnd
 	for j := len(pathNodes) - 2; j >= 0; j-- {
 		if _, err := i.node.DAG.Add(newnode); err != nil {
 			webError(w, "Could not add node", err, http.StatusInternalServerError)
 			return
 		}
-		newnode, err = pathNodes[j].UpdateNodeLink(components[j], newnode)
+
+		pathpb, ok := pathNodes[j].(*dag.ProtoNode)
+		if !ok {
+			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+			return
+		}
+
+		newnode, err = pathpb.UpdateNodeLink(components[j], newnode)
 		if err != nil {
 			webError(w, "Could not update node links", err, http.StatusInternalServerError)
 			return
@@ -474,15 +481,11 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Redirect to new path
-	key, err := newnode.Key()
-	if err != nil {
-		webError(w, "Could not get key of new node", err, http.StatusInternalServerError)
-		return
-	}
+	ncid := newnode.Cid()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+key.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", ncid.String())
+	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
@@ -505,7 +508,8 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
 	w.WriteHeader(code)
-	log.Errorf("%s: %s", message, err) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
+
+	log.Errorf("%s: %s", message, err) // TODO(cryptix): log until we have a better way to expose these (counter metrics maybe)
 	fmt.Fprintf(w, "%s: %s", message, err)
 }
 

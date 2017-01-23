@@ -10,15 +10,17 @@ It is generated from these files:
 
 It has these top-level messages:
 	Message
-	Record
 */
 package dht_pb
 
 import proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+import fmt "fmt"
 import math "math"
+import record_pb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+var _ = fmt.Errorf
 var _ = math.Inf
 
 type Message_MessageType int32
@@ -120,7 +122,7 @@ type Message struct {
 	Key *string `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
 	// Used to return a value
 	// PUT_VALUE, GET_VALUE
-	Record *Record `protobuf:"bytes,3,opt,name=record" json:"record,omitempty"`
+	Record *record_pb.Record `protobuf:"bytes,3,opt,name=record" json:"record,omitempty"`
 	// Used to return peers closer to a key in a query
 	// GET_VALUE, GET_PROVIDERS, FIND_NODE
 	CloserPeers []*Message_Peer `protobuf:"bytes,8,rep,name=closerPeers" json:"closerPeers,omitempty"`
@@ -155,7 +157,7 @@ func (m *Message) GetKey() string {
 	return ""
 }
 
-func (m *Message) GetRecord() *Record {
+func (m *Message) GetRecord() *record_pb.Record {
 	if m != nil {
 		return m.Record
 	}
@@ -211,62 +213,9 @@ func (m *Message_Peer) GetConnection() Message_ConnectionType {
 	return Message_NOT_CONNECTED
 }
 
-// Record represents a dht record that contains a value
-// for a key value pair
-type Record struct {
-	// The key that references this record
-	Key *string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
-	// The actual value this record is storing
-	Value []byte `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
-	// hash of the authors public key
-	Author *string `protobuf:"bytes,3,opt,name=author" json:"author,omitempty"`
-	// A PKI signature for the key+value+author
-	Signature []byte `protobuf:"bytes,4,opt,name=signature" json:"signature,omitempty"`
-	// Time the record was received, set by receiver
-	TimeReceived     *string `protobuf:"bytes,5,opt,name=timeReceived" json:"timeReceived,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
-
-func (m *Record) Reset()         { *m = Record{} }
-func (m *Record) String() string { return proto.CompactTextString(m) }
-func (*Record) ProtoMessage()    {}
-
-func (m *Record) GetKey() string {
-	if m != nil && m.Key != nil {
-		return *m.Key
-	}
-	return ""
-}
-
-func (m *Record) GetValue() []byte {
-	if m != nil {
-		return m.Value
-	}
-	return nil
-}
-
-func (m *Record) GetAuthor() string {
-	if m != nil && m.Author != nil {
-		return *m.Author
-	}
-	return ""
-}
-
-func (m *Record) GetSignature() []byte {
-	if m != nil {
-		return m.Signature
-	}
-	return nil
-}
-
-func (m *Record) GetTimeReceived() string {
-	if m != nil && m.TimeReceived != nil {
-		return *m.TimeReceived
-	}
-	return ""
-}
-
 func init() {
+	proto.RegisterType((*Message)(nil), "dht.pb.Message")
+	proto.RegisterType((*Message_Peer)(nil), "dht.pb.Message.Peer")
 	proto.RegisterEnum("dht.pb.Message_MessageType", Message_MessageType_name, Message_MessageType_value)
 	proto.RegisterEnum("dht.pb.Message_ConnectionType", Message_ConnectionType_name, Message_ConnectionType_value)
 }

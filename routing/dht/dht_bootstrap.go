@@ -3,18 +3,17 @@
 package dht
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"sync"
 	"time"
 
-	routing "github.com/ipfs/go-ipfs/routing"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-
-	goprocess "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
-	periodicproc "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/periodic"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	periodicproc "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/periodic"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 // BootstrapConfig specifies parameters used bootstrapping the DHT.
@@ -74,9 +73,14 @@ func (dht *IpfsDHT) Bootstrap(ctx context.Context) error {
 // These parameters are configurable.
 //
 // BootstrapWithConfig returns a process, so the user can stop it.
-func (dht *IpfsDHT) BootstrapWithConfig(config BootstrapConfig) (goprocess.Process, error) {
-	sig := time.Tick(config.Period)
-	return dht.BootstrapOnSignal(config, sig)
+func (dht *IpfsDHT) BootstrapWithConfig(cfg BootstrapConfig) (goprocess.Process, error) {
+	if cfg.Queries <= 0 {
+		return nil, fmt.Errorf("invalid number of queries: %d", cfg.Queries)
+	}
+
+	proc := periodicproc.Tick(cfg.Period, dht.bootstrapWorker(cfg))
+
+	return proc, nil
 }
 
 // SignalBootstrap ensures the dht routing table remains healthy as peers come and go.
@@ -94,7 +98,13 @@ func (dht *IpfsDHT) BootstrapOnSignal(cfg BootstrapConfig, signal <-chan time.Ti
 		return nil, fmt.Errorf("invalid signal: %v", signal)
 	}
 
-	proc := periodicproc.Ticker(signal, func(worker goprocess.Process) {
+	proc := periodicproc.Ticker(signal, dht.bootstrapWorker(cfg))
+
+	return proc, nil
+}
+
+func (dht *IpfsDHT) bootstrapWorker(cfg BootstrapConfig) func(worker goprocess.Process) {
+	return func(worker goprocess.Process) {
 		// it would be useful to be able to send out signals of when we bootstrap, too...
 		// maybe this is a good case for whole module event pub/sub?
 
@@ -103,9 +113,7 @@ func (dht *IpfsDHT) BootstrapOnSignal(cfg BootstrapConfig, signal <-chan time.Ti
 			log.Warning(err)
 			// A bootstrapping error is important to notice but not fatal.
 		}
-	})
-
-	return proc, nil
+	}
 }
 
 // runBootstrap builds up list of peers by requesting random peer IDs

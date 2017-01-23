@@ -72,7 +72,7 @@ run_basic_test() {
 }
 
 run_advanced_test() {
-	startup_cluster 5
+	startup_cluster 5 "$@"
 
 	run_single_file_test
 
@@ -87,12 +87,13 @@ test_expect_success "set up tcp testbed" '
 	iptb init -n 5 -p 0 -f --bootstrap=none
 '
 
+# test multiplex muxer
+export LIBP2P_MUX_PREFS="/mplex/6.7.0"
+run_advanced_test "--enable-mplex-experiment"
+unset LIBP2P_MUX_PREFS
+
+# test default configuration
 run_advanced_test
 
-test_expect_success "set up utp testbed" '
-	iptb init -n 5 -p 0 -f --bootstrap=none --utp
-'
-
-run_advanced_test
 
 test_done

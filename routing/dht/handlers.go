@@ -1,23 +1,22 @@
 package dht
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	lgbl "github.com/ipfs/go-ipfs/thirdparty/loggables"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	pb "gx/ipfs/QmRG9fdibExi5DFy8kzyxF76jvZVUb2mQBUSMNP1YaYn9M/go-libp2p-kad-dht/pb"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	lgbl "gx/ipfs/QmTMy4hVSY28DdwJ9kBz6y7q6MuioFzPcpM3Ma3aPjo1i3/go-libp2p-loggables"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	base32 "gx/ipfs/QmZvZSVtvxak4dcTkhsQhqd1SQ6rg5UzaSTu62WfWKjj93/base32"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	recpb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
-
-const MAGIC string = "000000000000000000000000"
 
 // The number of closer peers to send on requests.
 var CloserPeerCount = KValue
@@ -52,7 +51,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 
 	// first, is there even a key?
-	k := key.Key(pmes.GetKey())
+	k := pmes.GetKey()
 	if k == "" {
 		return nil, errors.New("handleGetValue but no key was provided")
 		// TODO: send back an error response? could be bad, but the other node's hanging.
@@ -71,7 +70,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 		for _, pi := range closerinfos {
 			log.Debugf("handleGetValue returning closer peer: '%s'", pi.ID)
 			if len(pi.Addrs) < 1 {
-				log.Errorf(`no addresses on peer being sent!
+				log.Warningf(`no addresses on peer being sent!
 					[local:%s]
 					[sending:%s]
 					[remote:%s]`, dht.self, pi.ID, p)
@@ -84,9 +83,9 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	return resp, nil
 }
 
-func (dht *IpfsDHT) checkLocalDatastore(k key.Key) (*pb.Record, error) {
+func (dht *IpfsDHT) checkLocalDatastore(k string) (*recpb.Record, error) {
 	log.Debugf("%s handleGetValue looking into ds", dht.self)
-	dskey := k.DsKey()
+	dskey := convertToDsKey(k)
 	iVal, err := dht.datastore.Get(dskey)
 	log.Debugf("%s handleGetValue looking into ds GOT %v", dht.self, iVal)
 
@@ -107,7 +106,7 @@ func (dht *IpfsDHT) checkLocalDatastore(k key.Key) (*pb.Record, error) {
 		return nil, fmt.Errorf("datastore had non byte-slice value for %v", dskey)
 	}
 
-	rec := new(pb.Record)
+	rec := new(recpb.Record)
 	err = proto.Unmarshal(byts, rec)
 	if err != nil {
 		log.Debug("failed to unmarshal DHT record from datastore")
@@ -150,7 +149,7 @@ func (dht *IpfsDHT) checkLocalDatastore(k key.Key) (*pb.Record, error) {
 // Store a value in this peer local storage
 func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 	defer log.EventBegin(ctx, "handlePutValue", p).Done()
-	dskey := key.Key(pmes.GetKey()).DsKey()
+	dskey := convertToDsKey(pmes.GetKey())
 
 	rec := pmes.GetRecord()
 	if rec == nil {
@@ -159,7 +158,7 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	}
 
 	if err := dht.verifyRecordLocally(rec); err != nil {
-		log.Warningf("Bad dht record in PUT from: %s. %s", key.Key(pmes.GetRecord().GetAuthor()), err)
+		log.Warningf("Bad dht record in PUT from: %s. %s", peer.ID(pmes.GetRecord().GetAuthor()), err)
 		return nil, err
 	}
 
@@ -217,23 +216,27 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	defer log.EventBegin(ctx, "handleGetProviders", lm).Done()
 
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
-	key := key.Key(pmes.GetKey())
-	lm["key"] = func() interface{} { return key.B58String() }
+	c, err := cid.Cast([]byte(pmes.GetKey()))
+	if err != nil {
+		return nil, err
+	}
+
+	lm["key"] = func() interface{} { return c.String() }
 
 	// debug logging niceness.
-	reqDesc := fmt.Sprintf("%s handleGetProviders(%s, %s): ", dht.self, p, key)
+	reqDesc := fmt.Sprintf("%s handleGetProviders(%s, %s): ", dht.self, p, c)
 	log.Debugf("%s begin", reqDesc)
 	defer log.Debugf("%s end", reqDesc)
 
 	// check if we have this value, to add ourselves as provider.
-	has, err := dht.datastore.Has(key.DsKey())
+	has, err := dht.datastore.Has(convertToDsKey(c.KeyString()))
 	if err != nil && err != ds.ErrNotFound {
 		log.Debugf("unexpected datastore error: %v\n", err)
 		has = false
 	}
 
 	// setup providers
-	providers := dht.providers.GetProviders(ctx, key)
+	providers := dht.providers.GetProviders(ctx, c)
 	if has {
 		providers = append(providers, dht.self)
 		log.Debugf("%s have the value. added self as provider", reqDesc)
@@ -261,42 +264,41 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 	lm["peer"] = func() interface{} { return p.Pretty() }
 
 	defer log.EventBegin(ctx, "handleAddProvider", lm).Done()
-	key := key.Key(pmes.GetKey())
-	lm["key"] = func() interface{} { return key.B58String() }
+	c, err := cid.Cast([]byte(pmes.GetKey()))
+	if err != nil {
+		return nil, err
+	}
 
-	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, key)
+	lm["key"] = func() interface{} { return c.String() }
+
+	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, c)
 
 	// add provider should use the address given in the message
 	pinfos := pb.PBPeersToPeerInfos(pmes.GetProviderPeers())
 	for _, pi := range pinfos {
-		// We need to disable this check for OpenBazaar pointers to work
-		/*if pi.ID != p {
+		if pi.ID != p {
 			// we should ignore this provider reccord! not from originator.
 			// (we chould sign them and check signature later...)
 			log.Debugf("handleAddProvider received provider %s from %s. Ignore.", pi.ID, p)
 			continue
-		}*/
+		}
 
 		if len(pi.Addrs) < 1 {
 			log.Debugf("%s got no valid addresses for provider %s. Ignore.", dht.self, p)
 			continue
 		}
 
-		log.Infof("received provider %s for %s (addrs: %s)", p, key, pi.Addrs)
-		if pi.ID != dht.self && !isPointer(pi.ID) { // dont add own addrs.
+		log.Infof("received provider %s for %s (addrs: %s)", p, c, pi.Addrs)
+		if pi.ID != dht.self { // dont add own addrs.
 			// add the received addresses to our peerstore.
-			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, peer.ProviderAddrTTL)
-		} else if isPointer(pi.ID) {
-			// keep the address for this pointer around for a week
-			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, time.Hour*24*7)
+			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, pstore.ProviderAddrTTL)
 		}
-		dht.providers.AddProvider(ctx, key, pi.ID)
+		dht.providers.AddProvider(ctx, c, p)
 	}
 
 	return nil, nil
 }
 
-func isPointer(id peer.ID) bool {
-	hexID := peer.IDHexEncode(id)
-	return hexID[4:28] == MAGIC
+func convertToDsKey(s string) ds.Key {
+	return ds.NewKey(base32.RawStdEncoding.EncodeToString([]byte(s)))
 }

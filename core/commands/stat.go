@@ -10,20 +10,20 @@ import (
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	metrics "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/metrics"
-	protocol "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/protocol"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	metrics "gx/ipfs/QmY2otvyPM2sTaDsczo7Yuosg98sUMCJ9qx1gpPaAPTS9B/go-libp2p-metrics"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 var StatsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Query ipfs statistics.",
+		Tagline: "Query IPFS statistics.",
 		ShortDescription: `'ipfs stats' is a set of commands to help look at statistics
-for your ipfs node.
+for your IPFS node.
 `,
 		LongDescription: `'ipfs stats' is a set of commands to help look at statistics
-for your ipfs node.`,
+for your IPFS node.`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -90,6 +90,11 @@ Example:
 		// Must be online!
 		if !nd.OnlineMode() {
 			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		if nd.Reporter == nil {
+			res.SetError(fmt.Errorf("bandwidth reporter disabled in config"), cmds.ErrNormal)
 			return
 		}
 
@@ -188,14 +193,15 @@ Example:
 					printStats(out, bs)
 				} else {
 					if first {
-						fmt.Fprintln(out, "Total Up\t Total Down\t Rate Up\t Rate Down")
+						fmt.Fprintln(out, "Total Up    Total Down  Rate Up     Rate Down")
 						first = false
 					}
 					fmt.Fprint(out, "\r")
-					fmt.Fprintf(out, "%s \t\t", humanize.Bytes(uint64(bs.TotalOut)))
-					fmt.Fprintf(out, " %s \t\t", humanize.Bytes(uint64(bs.TotalIn)))
-					fmt.Fprintf(out, " %s/s   \t", humanize.Bytes(uint64(bs.RateOut)))
-					fmt.Fprintf(out, " %s/s     ", humanize.Bytes(uint64(bs.RateIn)))
+					// In the worst case scenario, the humanized output is of form "xxx.x xB", which is 8 characters long
+					fmt.Fprintf(out, "%8s    ", humanize.Bytes(uint64(bs.TotalOut)))
+					fmt.Fprintf(out, "%8s    ", humanize.Bytes(uint64(bs.TotalIn)))
+					fmt.Fprintf(out, "%8s/s  ", humanize.Bytes(uint64(bs.RateOut)))
+					fmt.Fprintf(out, "%8s/s  ", humanize.Bytes(uint64(bs.RateIn)))
 				}
 				return out, nil
 

@@ -8,7 +8,7 @@ It is not safe to run the main IPFS codebase in the OpenBazaar network as your n
 not be able to communicate with other OpenBazaar nodes.
 
 ## Diff
-This fork is currently based on IPFS v0.4.3 with the following changes:
+This fork is currently based on IPFS v0.4.5-pre2 with the following changes:
 
 - The `/ipfs/dht`, `/ipfs/bitswap/`, and `/ipfs/supernoderouting/` protocol strings have been changed to `/openbazaar/dht`, `/openbazaar/bitswap/`, and `/openbazaar/supernoderouting/` respectively. This keeps the OpenBazaar network from merging with the main IPFS network.
 - Changed the TTL of providers which use a magic number for an ID from 24 hours to 7 days. A longer TTL on certain data is needed for OpenBazaar's messaging system.
@@ -22,3 +22,4 @@ This fork is currently based on IPFS v0.4.3 with the following changes:
 - Added optional cookie and basic authentication to gateway.
 - Added persistent cache for IPNS. Used if network query fails.
 - Remove private key check from config initialization as OpenBazaar doesn't store the private key in the config.
+- Bundled go-libp2p-kad-dht so we can modify protocol strings without maintaining another fork.

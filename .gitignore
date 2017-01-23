@@ -5,9 +5,12 @@
 *.swp
 .ipfsconfig
 *.out
+*.coverprofile
 *.test
 *.orig
 *~
+
+coverage.txt
 
 .ipfs
 .idea/

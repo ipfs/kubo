@@ -1,6 +1,14 @@
+// In order to re-generate the golang packages for `Message` you will need...
+// 1. Protobuf binary (tested with protoc 3.0.0). - https://github.com/gogo/protobuf/releases
+// 2. Gogo Protobuf (tested with gogo 0.3). - https://github.com/gogo/protobuf
+// 3. To have cloned `libp2p/go-libp2p-{record,kad-dht}` under the same directory.
+// Now from `libp2p/go-libp2p-kad-dht/pb` you can run...
+// `protoc --gogo_out=. --proto_path=../../go-libp2p-record/pb/ --proto_path=./ dht.proto`
+
+syntax = "proto2";
 package dht.pb;
 
-//run `protoc --go_out=. *.proto` to generate
+import "record.proto";
 
 message Message {
 	enum MessageType {
@@ -50,7 +58,7 @@ message Message {
 
 	// Used to return a value
 	// PUT_VALUE, GET_VALUE
-	optional Record record = 3;
+	optional record.pb.Record record = 3;
 
 	// Used to return peers closer to a key in a query
 	// GET_VALUE, GET_PROVIDERS, FIND_NODE
@@ -59,23 +67,4 @@ message Message {
 	// Used to return Providers
 	// GET_VALUE, ADD_PROVIDER, GET_PROVIDERS
 	repeated Peer providerPeers = 9;
-}
-
-// Record represents a dht record that contains a value
-// for a key value pair
-message Record {
-	// The key that references this record
-	optional string key = 1;
-
-	// The actual value this record is storing
-	optional bytes value = 2;
-
-	// hash of the authors public key
-	optional string author = 3;
-
-	// A PKI signature for the key+value+author
-	optional bytes signature = 4;
-
-	// Time the record was received, set by receiver
-	optional string timeReceived = 5;
 }

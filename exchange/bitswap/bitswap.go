@@ -1,22 +1,16 @@
-// package bitswap implements the IPFS Exchange interface with the BitSwap
+// package bitswap implements the IPFS exchange interface with the BitSwap
 // bilateral exchange protocol.
 package bitswap
 
 import (
+	"context"
 	"errors"
 	"math"
 	"sync"
 	"time"
 
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	process "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess"
-	procctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
@@ -24,7 +18,13 @@ import (
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
 	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
-	loggables "github.com/ipfs/go-ipfs/thirdparty/loggables"
+
+	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	loggables "gx/ipfs/QmTMy4hVSY28DdwJ9kBz6y7q6MuioFzPcpM3Ma3aPjo1i3/go-libp2p-loggables"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 var log = logging.Logger("bitswap")
@@ -57,7 +57,7 @@ func init() {
 	}
 }
 
-var rebroadcastDelay = delay.Fixed(time.Second * 10)
+var rebroadcastDelay = delay.Fixed(time.Minute)
 
 // New initializes a BitSwap instance that communicates over the provided
 // BitSwapNetwork. This function registers the returned instance as the network
@@ -68,7 +68,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 
 	// important to use provided parent context (since it may include important
 	// loggable data). It's probably not a good idea to allow bitswap to be
-	// coupled to the concerns of the IPFS daemon in this way.
+	// coupled to the concerns of the ipfs daemon in this way.
 	//
 	// FIXME(btc) Now that bitswap manages itself using a process, it probably
 	// shouldn't accept a context anymore. Clients should probably use Close()
@@ -82,15 +82,14 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 	})
 
 	bs := &Bitswap{
-		self:          p,
 		blockstore:    bstore,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
 		network:       network,
 		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
-		newBlocks:     make(chan blocks.Block, HasBlockBufferSize),
-		provideKeys:   make(chan key.Key, provideKeysBufferSize),
+		newBlocks:     make(chan *cid.Cid, HasBlockBufferSize),
+		provideKeys:   make(chan *cid.Cid, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
 	}
 	go bs.wm.Run()
@@ -112,34 +111,36 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 
 // Bitswap instances implement the bitswap protocol.
 type Bitswap struct {
-
-	// the ID of the peer to act on behalf of
-	self peer.ID
-
-	// network delivers messages on behalf of the session
-	network bsnet.BitSwapNetwork
-
 	// the peermanager manages sending messages to peers in a way that
 	// wont block bitswap operation
 	wm *WantManager
+
+	// the engine is the bit of logic that decides who to send which blocks to
+	engine *decision.Engine
+
+	// network delivers messages on behalf of the session
+	network bsnet.BitSwapNetwork
 
 	// blockstore is the local database
 	// NB: ensure threadsafety
 	blockstore blockstore.Blockstore
 
+	// notifications engine for receiving new blocks and routing them to the
+	// appropriate user requests
 	notifications notifications.PubSub
 
-	// send keys to a worker to find and connect to providers for them
+	// findKeys sends keys to a worker to find and connect to providers for them
 	findKeys chan *blockRequest
-
-	engine *decision.Engine
+	// newBlocks is a channel for newly added blocks to be provided to the
+	// network.  blocks pushed down this channel get buffered and fed to the
+	// provideKeys channel later on to avoid too much network activity
+	newBlocks chan *cid.Cid
+	// provideKeys directly feeds provide workers
+	provideKeys chan *cid.Cid
 
 	process process.Process
 
-	newBlocks chan blocks.Block
-
-	provideKeys chan key.Key
-
+	// Counters for various statistics
 	counterLk      sync.Mutex
 	blocksRecvd    int
 	dupBlocksRecvd int
@@ -147,14 +148,15 @@ type Bitswap struct {
 }
 
 type blockRequest struct {
-	Key key.Key
+	Cid *cid.Cid
 	Ctx context.Context
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
-func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (blocks.Block, error) {
-	if k == "" {
+func (bs *Bitswap) GetBlock(parent context.Context, k *cid.Cid) (blocks.Block, error) {
+	if k == nil {
+		log.Error("nil cid in GetBlock")
 		return nil, blockstore.ErrNotFound
 	}
 
@@ -164,18 +166,16 @@ func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (blocks.Block, er
 	// functions called by this one. Otherwise those functions won't return
 	// when this context's cancel func is executed. This is difficult to
 	// enforce. May this comment keep you safe.
-
 	ctx, cancelFunc := context.WithCancel(parent)
 
+	// TODO: this request ID should come in from a higher layer so we can track
+	// across multiple 'GetBlock' invocations
 	ctx = logging.ContextWithLoggable(ctx, loggables.Uuid("GetBlockRequest"))
-	log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
-	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
+	log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
+	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
+	defer cancelFunc()
 
-	defer func() {
-		cancelFunc()
-	}()
-
-	promise, err := bs.GetBlocks(ctx, []key.Key{k})
+	promise, err := bs.GetBlocks(ctx, []*cid.Cid{k})
 	if err != nil {
 		return nil, err
 	}
@@ -196,12 +196,16 @@ func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (blocks.Block, er
 	}
 }
 
-func (bs *Bitswap) WantlistForPeer(p peer.ID) []key.Key {
-	var out []key.Key
+func (bs *Bitswap) WantlistForPeer(p peer.ID) []*cid.Cid {
+	var out []*cid.Cid
 	for _, e := range bs.engine.WantlistForPeer(p) {
-		out = append(out, e.Key)
+		out = append(out, e.Cid)
 	}
 	return out
+}
+
+func (bs *Bitswap) LedgerForPeer(p peer.ID) *decision.Receipt {
+	return bs.engine.LedgerForPeer(p)
 }
 
 // GetBlocks returns a channel where the caller may receive blocks that
@@ -211,7 +215,7 @@ func (bs *Bitswap) WantlistForPeer(p peer.ID) []key.Key {
 // NB: Your request remains open until the context expires. To conserve
 // resources, provide a context with a reasonably short deadline (ie. not one
 // that lasts throughout the lifetime of the server)
-func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks.Block, error) {
+func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan blocks.Block, error) {
 	if len(keys) == 0 {
 		out := make(chan blocks.Block)
 		close(out)
@@ -226,7 +230,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 	promise := bs.notifications.Subscribe(ctx, keys...)
 
 	for _, k := range keys {
-		log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
+		log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
 	}
 
 	bs.wm.WantBlocks(ctx, keys)
@@ -235,13 +239,13 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 	// be able to provide for all keys. This currently holds true in most
 	// every situation. Later, this assumption may not hold as true.
 	req := &blockRequest{
-		Key: keys[0],
+		Cid: keys[0],
 		Ctx: ctx,
 	}
 
-	remaining := make(map[key.Key]struct{})
+	remaining := cid.NewSet()
 	for _, k := range keys {
-		remaining[k] = struct{}{}
+		remaining.Add(k)
 	}
 
 	out := make(chan blocks.Block)
@@ -250,11 +254,8 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 		defer cancel()
 		defer close(out)
 		defer func() {
-			var toCancel []key.Key
-			for k, _ := range remaining {
-				toCancel = append(toCancel, k)
-			}
-			bs.CancelWants(toCancel)
+			// can't just defer this call on its own, arguments are resolved *when* the defer is created
+			bs.CancelWants(remaining.Keys())
 		}()
 		for {
 			select {
@@ -263,7 +264,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 					return
 				}
 
-				delete(remaining, blk.Key())
+				remaining.Remove(blk.Cid())
 				select {
 				case out <- blk:
 				case <-ctx.Done():
@@ -284,8 +285,8 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan blocks
 }
 
 // CancelWant removes a given key from the wantlist
-func (bs *Bitswap) CancelWants(ks []key.Key) {
-	bs.wm.CancelWants(ks)
+func (bs *Bitswap) CancelWants(cids []*cid.Cid) {
+	bs.wm.CancelWants(cids)
 }
 
 // HasBlock announces the existance of a block to this bitswap service. The
@@ -297,35 +298,28 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	default:
 	}
 
-	err := bs.tryPutBlock(blk, 4) // attempt to store block up to four times
+	err := bs.blockstore.Put(blk)
 	if err != nil {
 		log.Errorf("Error writing block to datastore: %s", err)
 		return err
 	}
 
+	// NOTE: There exists the possiblity for a race condition here.  If a user
+	// creates a node, then adds it to the dagservice while another goroutine
+	// is waiting on a GetBlock for that object, they will receive a reference
+	// to the same node. We should address this soon, but i'm not going to do
+	// it now as it requires more thought and isnt causing immediate problems.
 	bs.notifications.Publish(blk)
 
 	bs.engine.AddBlock(blk)
 
 	select {
-	case bs.newBlocks <- blk:
+	case bs.newBlocks <- blk.Cid():
 		// send block off to be reprovided
 	case <-bs.process.Closing():
 		return bs.process.Close()
 	}
 	return nil
-}
-
-func (bs *Bitswap) tryPutBlock(blk blocks.Block, attempts int) error {
-	var err error
-	for i := 0; i < attempts; i++ {
-		if err = bs.blockstore.Put(blk); err == nil {
-			break
-		}
-
-		time.Sleep(time.Millisecond * time.Duration(400*(i+1)))
-	}
-	return err
 }
 
 func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) {
@@ -342,13 +336,13 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	}
 
 	// quickly send out cancels, reduces chances of duplicate block receives
-	var keys []key.Key
+	var keys []*cid.Cid
 	for _, block := range iblocks {
-		if _, found := bs.wm.wl.Contains(block.Key()); !found {
+		if _, found := bs.wm.wl.Contains(block.Cid()); !found {
 			log.Infof("received un-asked-for %s from %s", block, p)
 			continue
 		}
-		keys = append(keys, block.Key())
+		keys = append(keys, block.Cid())
 	}
 	bs.wm.CancelWants(keys)
 
@@ -362,8 +356,8 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 				return // ignore error, is either logged previously, or ErrAlreadyHaveBlock
 			}
 
-			k := b.Key()
-			log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
+			k := b.Cid()
+			log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
 
 			log.Debugf("got block %s from %s", b, p)
 			if err := bs.HasBlock(b); err != nil {
@@ -380,14 +374,14 @@ func (bs *Bitswap) updateReceiveCounters(b blocks.Block) error {
 	bs.counterLk.Lock()
 	defer bs.counterLk.Unlock()
 	bs.blocksRecvd++
-	has, err := bs.blockstore.Has(b.Key())
+	has, err := bs.blockstore.Has(b.Cid())
 	if err != nil {
 		log.Infof("blockstore.Has error: %s", err)
 		return err
 	}
 	if err == nil && has {
 		bs.dupBlocksRecvd++
-		bs.dupDataRecvd += uint64(len(b.Data()))
+		bs.dupDataRecvd += uint64(len(b.RawData()))
 	}
 
 	if has {
@@ -417,10 +411,14 @@ func (bs *Bitswap) Close() error {
 	return bs.process.Close()
 }
 
-func (bs *Bitswap) GetWantlist() []key.Key {
-	var out []key.Key
+func (bs *Bitswap) GetWantlist() []*cid.Cid {
+	var out []*cid.Cid
 	for _, e := range bs.wm.wl.Entries() {
-		out = append(out, e.Key)
+		out = append(out, e.Cid)
 	}
 	return out
+}
+
+func (bs *Bitswap) IsOnline() bool {
+	return true
 }

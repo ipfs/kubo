@@ -1,7 +1,7 @@
 package dht
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -9,46 +9,55 @@ import (
 	"testing"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	routing "github.com/ipfs/go-ipfs/routing"
-	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	record "github.com/ipfs/go-ipfs/routing/record"
-	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
-	travisci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
+	pb "gx/ipfs/QmRG9fdibExi5DFy8kzyxF76jvZVUb2mQBUSMNP1YaYn9M/go-libp2p-kad-dht/pb"
 
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dssync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
-	netutil "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/test/util"
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	netutil "gx/ipfs/QmPS1HTBHiJcqxDAZ4s8bGt22HtL3oC67TPR3BsrvM44Z1/go-libp2p-netutil"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	dssync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	ci "gx/ipfs/QmbHpE8HYbHdwAxyiJMsPzywVyZKLLHNi5HemfVCPwo839/go-testutil/ci"
+	travisci "gx/ipfs/QmbHpE8HYbHdwAxyiJMsPzywVyZKLLHNi5HemfVCPwo839/go-testutil/ci/travis"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	record "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record"
+	bhost "gx/ipfs/QmdzDdLZ7nj133QvNHypyS9Y39g35bMFk5DJ2pmX7YqtKU/go-libp2p/p2p/host/basic"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
-var testCaseValues = map[key.Key][]byte{}
+var testCaseValues = map[string][]byte{}
+var testCaseCids []*cid.Cid
 
 func init() {
 	testCaseValues["hello"] = []byte("world")
 	for i := 0; i < 100; i++ {
 		k := fmt.Sprintf("%d -- key", i)
 		v := fmt.Sprintf("%d -- value", i)
-		testCaseValues[key.Key(k)] = []byte(v)
+		testCaseValues[k] = []byte(v)
+
+		mhv := u.Hash([]byte(v))
+		testCaseCids = append(testCaseCids, cid.NewCidV0(mhv))
 	}
 }
 
-func setupDHT(ctx context.Context, t *testing.T) *IpfsDHT {
-	h := netutil.GenHostSwarm(t, ctx)
+func setupDHT(ctx context.Context, t *testing.T, client bool) *IpfsDHT {
+	h := bhost.New(netutil.GenSwarmNetwork(t, ctx))
 
 	dss := dssync.MutexWrap(ds.NewMapDatastore())
-	d := NewDHT(ctx, h, dss)
+	var d *IpfsDHT
+	if client {
+		d = NewDHTClient(ctx, h, dss)
+	} else {
+		d = NewDHT(ctx, h, dss)
+	}
 
 	d.Validator["v"] = &record.ValidChecker{
-		Func: func(key.Key, []byte) error {
+		Func: func(string, []byte) error {
 			return nil
 		},
 		Sign: false,
 	}
+	d.Selector["v"] = func(_ string, bs [][]byte) (int, error) { return 0, nil }
 	return d
 }
 
@@ -61,7 +70,7 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 	sanityPeersMap := make(map[string]struct{})
 
 	for i := 0; i < n; i++ {
-		dhts[i] = setupDHT(ctx, t)
+		dhts[i] = setupDHT(ctx, t, false)
 		peers[i] = dhts[i].self
 		addrs[i] = dhts[i].peerstore.Addrs(dhts[i].self)[0]
 
@@ -80,8 +89,7 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 	return addrs, peers, dhts
 }
 
-func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
-
+func connectNoSync(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 	idB := b.self
 	addrB := b.peerstore.Addrs(idB)
 	if len(addrB) == 0 {
@@ -93,6 +101,10 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 	if err := a.host.Connect(ctx, pi); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
+	connectNoSync(t, ctx, a, b)
 
 	// loop until connection notification has been received.
 	// under high load, this may not happen as immediately as we would like.
@@ -128,12 +140,11 @@ func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 }
 
 func TestValueGetSet(t *testing.T) {
-	// t.Skip("skipping test to debug another")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	ctx := context.Background()
-
-	dhtA := setupDHT(ctx, t)
-	dhtB := setupDHT(ctx, t)
+	dhtA := setupDHT(ctx, t, false)
+	dhtB := setupDHT(ctx, t, false)
 
 	defer dhtA.Close()
 	defer dhtB.Close()
@@ -141,14 +152,10 @@ func TestValueGetSet(t *testing.T) {
 	defer dhtB.host.Close()
 
 	vf := &record.ValidChecker{
-		Func: func(key.Key, []byte) error {
-			return nil
-		},
+		Func: func(string, []byte) error { return nil },
 		Sign: false,
 	}
-	nulsel := func(_ key.Key, bs [][]byte) (int, error) {
-		return 0, nil
-	}
+	nulsel := func(_ string, bs [][]byte) (int, error) { return 0, nil }
 
 	dhtA.Validator["v"] = vf
 	dhtB.Validator["v"] = vf
@@ -157,27 +164,36 @@ func TestValueGetSet(t *testing.T) {
 
 	connect(t, ctx, dhtA, dhtB)
 
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	dhtA.PutValue(ctxT, "/v/hello", []byte("world"))
-
-	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
-	val, err := dhtA.GetValue(ctxT, "/v/hello")
+	log.Error("adding value on: ", dhtA.self)
+	ctxT, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	err := dhtA.PutValue(ctxT, "/v/hello", []byte("world"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if string(val) != "world" {
-		t.Fatalf("Expected 'world' got '%s'", string(val))
-	}
+	/*
+		ctxT, _ = context.WithTimeout(ctx, time.Second*2)
+		val, err := dhtA.GetValue(ctxT, "/v/hello")
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
-	val, err = dhtB.GetValue(ctxT, "/v/hello")
+		if string(val) != "world" {
+			t.Fatalf("Expected 'world' got '%s'", string(val))
+		}
+	*/
+
+	log.Error("requesting value on dht: ", dhtB.self)
+	ctxT, cancel = context.WithTimeout(ctx, time.Second*2)
+	defer cancel()
+	valb, err := dhtB.GetValue(ctxT, "/v/hello")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if string(val) != "world" {
-		t.Fatalf("Expected 'world' got '%s'", string(val))
+	if string(valb) != "world" {
+		t.Fatalf("Expected 'world' got '%s'", string(valb))
 	}
 }
 
@@ -197,29 +213,7 @@ func TestProvides(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	for k, v := range testCaseValues {
-		log.Debugf("adding local values for %s = %s", k, v)
-		sk := dhts[3].peerstore.PrivKey(dhts[3].self)
-		rec, err := record.MakePutRecord(sk, k, v, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		err = dhts[3].putLocal(k, rec)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		bits, err := dhts[3].getLocal(k)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(bits.GetValue(), v) {
-			t.Fatalf("didn't store the right bits (%s, %s)", k, v)
-		}
-	}
-
-	for k := range testCaseValues {
+	for _, k := range testCaseCids {
 		log.Debugf("announcing provider for %s", k)
 		if err := dhts[3].Provide(ctx, k); err != nil {
 			t.Fatal(err)
@@ -230,12 +224,13 @@ func TestProvides(t *testing.T) {
 	time.Sleep(time.Millisecond * 6)
 
 	n := 0
-	for k := range testCaseValues {
+	for _, c := range testCaseCids {
 		n = (n + 1) % 3
 
-		log.Debugf("getting providers for %s from %d", k, n)
-		ctxT, _ := context.WithTimeout(ctx, time.Second)
-		provchan := dhts[n].FindProvidersAsync(ctxT, k, 1)
+		log.Debugf("getting providers for %s from %d", c, n)
+		ctxT, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		provchan := dhts[n].FindProvidersAsync(ctxT, c, 1)
 
 		select {
 		case prov := <-provchan:
@@ -325,8 +320,9 @@ func TestBootstrap(t *testing.T) {
 	stop := make(chan struct{})
 	go func() {
 		for {
-			t.Logf("bootstrapping them so they find each other", nDHTs)
-			ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
+			t.Logf("bootstrapping them so they find each other %d", nDHTs)
+			ctxT, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
 			bootstrap(t, ctxT, dhts)
 
 			select {
@@ -394,7 +390,7 @@ func TestPeriodicBootstrap(t *testing.T) {
 	}
 	go amplify(signal, allSignals)
 
-	t.Logf("dhts are not connected.", nDHTs)
+	t.Logf("dhts are not connected. %d", nDHTs)
 	for _, dht := range dhts {
 		rtlen := dht.routingTable.Size()
 		if rtlen > 0 {
@@ -406,7 +402,7 @@ func TestPeriodicBootstrap(t *testing.T) {
 		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
 	}
 
-	t.Logf("DHTs are now connected to 1-2 others.", nDHTs)
+	t.Logf("DHTs are now connected to 1-2 others. %d", nDHTs)
 	for _, dht := range dhts {
 		rtlen := dht.routingTable.Size()
 		if rtlen > 2 {
@@ -418,7 +414,7 @@ func TestPeriodicBootstrap(t *testing.T) {
 		printRoutingTables(dhts)
 	}
 
-	t.Logf("bootstrapping them so they find each other", nDHTs)
+	t.Logf("bootstrapping them so they find each other. %d", nDHTs)
 	signal <- time.Now()
 
 	// this is async, and we dont know when it's finished with one cycle, so keep checking
@@ -450,8 +446,9 @@ func TestProvidesMany(t *testing.T) {
 	}
 
 	<-time.After(100 * time.Millisecond)
-	t.Logf("bootstrapping them so they find each other", nDHTs)
-	ctxT, _ := context.WithTimeout(ctx, 20*time.Second)
+	t.Logf("bootstrapping them so they find each other. %d", nDHTs)
+	ctxT, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
 	bootstrap(t, ctxT, dhts)
 
 	if u.Debug {
@@ -464,35 +461,16 @@ func TestProvidesMany(t *testing.T) {
 		}
 	}
 
-	var providers = map[key.Key]peer.ID{}
+	providers := make(map[string]peer.ID)
 
 	d := 0
-	for k, v := range testCaseValues {
+	for _, c := range testCaseCids {
 		d = (d + 1) % len(dhts)
 		dht := dhts[d]
-		providers[k] = dht.self
+		providers[c.KeyString()] = dht.self
 
-		t.Logf("adding local values for %s = %s (on %s)", k, v, dht.self)
-		rec, err := record.MakePutRecord(nil, k, v, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		err = dht.putLocal(k, rec)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		bits, err := dht.getLocal(k)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(bits.GetValue(), v) {
-			t.Fatalf("didn't store the right bits (%s, %s)", k, v)
-		}
-
-		t.Logf("announcing provider for %s", k)
-		if err := dht.Provide(ctx, k); err != nil {
+		t.Logf("announcing provider for %s", c)
+		if err := dht.Provide(ctx, c); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -502,13 +480,14 @@ func TestProvidesMany(t *testing.T) {
 
 	errchan := make(chan error)
 
-	ctxT, _ = context.WithTimeout(ctx, 5*time.Second)
+	ctxT, cancel = context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	var wg sync.WaitGroup
-	getProvider := func(dht *IpfsDHT, k key.Key) {
+	getProvider := func(dht *IpfsDHT, k *cid.Cid) {
 		defer wg.Done()
 
-		expected := providers[k]
+		expected := providers[k.KeyString()]
 
 		provchan := dht.FindProvidersAsync(ctxT, k, 1)
 		select {
@@ -525,12 +504,12 @@ func TestProvidesMany(t *testing.T) {
 		}
 	}
 
-	for k := range testCaseValues {
+	for _, c := range testCaseCids {
 		// everyone should be able to find it...
 		for _, dht := range dhts {
-			log.Debugf("getting providers for %s at %s", k, dht.self)
+			log.Debugf("getting providers for %s at %s", c, dht.self)
 			wg.Add(1)
-			go getProvider(dht, k)
+			go getProvider(dht, c)
 		}
 	}
 
@@ -565,33 +544,16 @@ func TestProvidesAsync(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	k := key.Key("hello")
-	val := []byte("world")
-	sk := dhts[3].peerstore.PrivKey(dhts[3].self)
-	rec, err := record.MakePutRecord(sk, k, val, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[3].putLocal(k, rec)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	bits, err := dhts[3].getLocal(k)
-	if err != nil && bytes.Equal(bits.GetValue(), val) {
-		t.Fatal(err)
-	}
-
-	err = dhts[3].Provide(ctx, key.Key("hello"))
+	err := dhts[3].Provide(ctx, testCaseCids[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(time.Millisecond * 60)
 
-	ctxT, _ := context.WithTimeout(ctx, time.Millisecond*300)
-	provs := dhts[0].FindProvidersAsync(ctxT, key.Key("hello"), 5)
+	ctxT, cancel := context.WithTimeout(ctx, time.Millisecond*300)
+	defer cancel()
+	provs := dhts[0].FindProvidersAsync(ctxT, testCaseCids[0], 5)
 	select {
 	case p, ok := <-provs:
 		if !ok {
@@ -609,12 +571,8 @@ func TestProvidesAsync(t *testing.T) {
 }
 
 func TestLayeredGet(t *testing.T) {
-	// t.Skip("skipping test to debug another")
-	if testing.Short() {
-		t.SkipNow()
-	}
-
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	_, _, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
@@ -626,26 +584,24 @@ func TestLayeredGet(t *testing.T) {
 
 	connect(t, ctx, dhts[0], dhts[1])
 	connect(t, ctx, dhts[1], dhts[2])
-	connect(t, ctx, dhts[1], dhts[3])
+	connect(t, ctx, dhts[2], dhts[3])
 
-	err := dhts[3].Provide(ctx, key.Key("/v/hello"))
+	err := dhts[3].PutValue(ctx, "/v/hello", []byte("world"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(time.Millisecond * 6)
 
-	t.Log("interface was changed. GetValue should not use providers.")
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	val, err := dhts[0].GetValue(ctxT, key.Key("/v/hello"))
-	if err != routing.ErrNotFound {
-		t.Error(err)
+	ctxT, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	val, err := dhts[0].GetValue(ctxT, "/v/hello")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if string(val) == "world" {
-		t.Error("should not get value.")
-	}
-	if len(val) > 0 && string(val) != "world" {
-		t.Error("worse, there's a value and its not even the right one.")
+
+	if string(val) != "world" {
+		t.Error("got wrong value")
 	}
 }
 
@@ -669,7 +625,8 @@ func TestFindPeer(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
+	ctxT, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 	p, err := dhts[0].FindPeer(ctxT, peers[2])
 	if err != nil {
 		t.Fatal(err)
@@ -713,7 +670,8 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 	// fmt.Println("2 is", peers[2])
 	// fmt.Println("3 is", peers[3])
 
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
+	ctxT, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 	pchan, err := dhts[0].FindPeersConnectedToPeer(ctxT, peers[2])
 	if err != nil {
 		t.Fatal(err)
@@ -780,8 +738,8 @@ func TestConnectCollision(t *testing.T) {
 
 		ctx := context.Background()
 
-		dhtA := setupDHT(ctx, t)
-		dhtB := setupDHT(ctx, t)
+		dhtA := setupDHT(ctx, t, false)
+		dhtB := setupDHT(ctx, t, false)
 
 		addrA := dhtA.peerstore.Addrs(dhtA.self)[0]
 		addrB := dhtB.peerstore.Addrs(dhtB.self)[0]
@@ -832,10 +790,71 @@ func TestBadProtoMessages(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	d := setupDHT(ctx, t)
+	d := setupDHT(ctx, t, false)
 
 	nilrec := new(pb.Message)
 	if _, err := d.handlePutValue(ctx, "testpeer", nilrec); err == nil {
 		t.Fatal("should have errored on nil record")
+	}
+}
+
+func TestClientModeConnect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	a := setupDHT(ctx, t, false)
+	b := setupDHT(ctx, t, true)
+
+	connectNoSync(t, ctx, a, b)
+
+	c := testCaseCids[0]
+	p := peer.ID("TestPeer")
+	a.providers.AddProvider(ctx, c, p)
+	time.Sleep(time.Millisecond * 5) // just in case...
+
+	provs, err := b.FindProviders(ctx, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(provs) == 0 {
+		t.Fatal("Expected to get a provider back")
+	}
+
+	if provs[0].ID != p {
+		t.Fatal("expected it to be our test peer")
+	}
+}
+
+func TestFindClosestPeers(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	nDHTs := 30
+	_, _, dhts := setupDHTS(ctx, nDHTs, t)
+	defer func() {
+		for i := 0; i < nDHTs; i++ {
+			dhts[i].Close()
+			defer dhts[i].host.Close()
+		}
+	}()
+
+	t.Logf("connecting %d dhts in a ring", nDHTs)
+	for i := 0; i < nDHTs; i++ {
+		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
+	}
+
+	peers, err := dhts[1].GetClosestPeers(ctx, "foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out []peer.ID
+	for p := range peers {
+		out = append(out, p)
+	}
+
+	if len(out) != KValue {
+		t.Fatalf("got wrong number of peers (got %d, expected %d)", len(out), KValue)
 	}
 }

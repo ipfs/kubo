@@ -16,8 +16,8 @@ test_init_ipfs
 H_BLOCK1=$(echo "Block 1" | ipfs add -q)
 H_BLOCK2=$(echo "Block 2" | ipfs add -q)
 
-BS_BLOCK1="CIQPD/CIQPDDQH5PDJTF4QSNMPFC45FQZH5MBSWCX2W254P7L7HGNHW5MQXZA.data"
-BS_BLOCK2="CIQNY/CIQNYWBOKHY7TCY7FUOBXKVJ66YRMARDT3KC7PPY6UWWPZR4YA67CKQ.data"
+BS_BLOCK1="XZ/CIQPDDQH5PDJTF4QSNMPFC45FQZH5MBSWCX2W254P7L7HGNHW5MQXZA.data"
+BS_BLOCK2="CK/CIQNYWBOKHY7TCY7FUOBXKVJ66YRMARDT3KC7PPY6UWWPZR4YA67CKQ.data"
 
 
 test_expect_success 'blocks are swapped' '
@@ -42,6 +42,11 @@ test_check_bad_blocks() {
 }
 
 test_check_bad_blocks
+
+test_expect_success "can add and cat a raw-leaf file" '
+	HASH=$(echo "stuff" | ipfs add -q --raw-leaves) &&
+	ipfs cat $HASH > /dev/null
+'
 
 test_launch_ipfs_daemon
 test_check_bad_blocks

@@ -1,22 +1,27 @@
 package providers
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+	//
+	// used by TestLargeProvidersSet: do not remove
+	// lds "github.com/ipfs/go-ds-leveldb"
 )
 
 func TestProviderManager(t *testing.T) {
 	ctx := context.Background()
 	mid := peer.ID("testing")
 	p := NewProviderManager(ctx, mid, ds.NewMapDatastore())
-	a := key.Key("test")
+	a := cid.NewCidV0(u.Hash([]byte("test")))
 	p.AddProvider(ctx, a, peer.ID("testingprovider"))
 	resp := p.GetProviders(ctx, a)
 	if len(resp) != 1 {
@@ -36,15 +41,15 @@ func TestProvidersDatastore(t *testing.T) {
 	defer p.proc.Close()
 
 	friend := peer.ID("friend")
-	var keys []key.Key
+	var cids []*cid.Cid
 	for i := 0; i < 100; i++ {
-		k := key.Key(fmt.Sprint(i))
-		keys = append(keys, k)
-		p.AddProvider(ctx, k, friend)
+		c := cid.NewCidV0(u.Hash([]byte(fmt.Sprint(i))))
+		cids = append(cids, c)
+		p.AddProvider(ctx, c, friend)
 	}
 
-	for _, k := range keys {
-		resp := p.GetProviders(ctx, k)
+	for _, c := range cids {
+		resp := p.GetProviders(ctx, c)
 		if len(resp) != 1 {
 			t.Fatal("Could not retrieve provider.")
 		}
@@ -57,7 +62,7 @@ func TestProvidersDatastore(t *testing.T) {
 func TestProvidersSerialization(t *testing.T) {
 	dstore := ds.NewMapDatastore()
 
-	k := key.Key("my key!")
+	k := cid.NewCidV0(u.Hash(([]byte("my key!"))))
 	p1 := peer.ID("peer one")
 	p2 := peer.ID("peer two")
 	pt1 := time.Now()
@@ -112,16 +117,16 @@ func TestProvidesExpire(t *testing.T) {
 	p := NewProviderManager(ctx, mid, ds.NewMapDatastore())
 
 	peers := []peer.ID{"a", "b"}
-	var keys []key.Key
+	var cids []*cid.Cid
 	for i := 0; i < 10; i++ {
-		k := key.Key(i)
-		keys = append(keys, k)
-		p.AddProvider(ctx, k, peers[0])
-		p.AddProvider(ctx, k, peers[1])
+		c := cid.NewCidV0(u.Hash([]byte(fmt.Sprint(i))))
+		cids = append(cids, c)
+		p.AddProvider(ctx, c, peers[0])
+		p.AddProvider(ctx, c, peers[1])
 	}
 
 	for i := 0; i < 10; i++ {
-		out := p.GetProviders(ctx, keys[i])
+		out := p.GetProviders(ctx, cids[i])
 		if len(out) != 2 {
 			t.Fatal("expected providers to still be there")
 		}
@@ -129,9 +134,9 @@ func TestProvidesExpire(t *testing.T) {
 
 	time.Sleep(time.Second)
 	for i := 0; i < 10; i++ {
-		out := p.GetProviders(ctx, keys[i])
-		if len(out) > 2 {
-			t.Fatal("expected providers to be cleaned up")
+		out := p.GetProviders(ctx, cids[i])
+		if len(out) > 0 {
+			t.Fatal("expected providers to be cleaned up, got: ", out)
 		}
 	}
 
@@ -139,12 +144,94 @@ func TestProvidesExpire(t *testing.T) {
 		t.Fatal("providers map not cleaned up")
 	}
 
-	allprovs, err := p.getAllProvKeys()
+	proviter, err := p.getProvKeys()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(allprovs) != 0 {
+	_, ok := proviter()
+	if ok {
 		t.Fatal("expected everything to be cleaned out of the datastore")
+	}
+}
+
+var _ = ioutil.NopCloser
+var _ = os.DevNull
+
+/* This can be used for profiling. Keeping it commented out for now to avoid incurring extra CI time
+func TestLargeProvidersSet(t *testing.T) {
+	old := lruCacheSize
+	lruCacheSize = 10
+	defer func() { lruCacheSize = old }()
+
+	dirn, err := ioutil.TempDir("", "provtest")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	opts := &lds.Options{
+		NoSync:      true,
+		Compression: 1,
+	}
+	lds, err := lds.NewDatastore(dirn, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = lds
+
+	defer func() {
+		os.RemoveAll(dirn)
+	}()
+
+	ctx := context.Background()
+	var peers []peer.ID
+	for i := 0; i < 3000; i++ {
+		peers = append(peers, peer.ID(fmt.Sprint(i)))
+	}
+
+	mid := peer.ID("myself")
+	p := NewProviderManager(ctx, mid, lds)
+	defer p.proc.Close()
+
+	var cids []*cid.Cid
+	for i := 0; i < 1000; i++ {
+		c := cid.NewCidV0(u.Hash([]byte(fmt.Sprint(i))))
+		cids = append(cids, c)
+		for _, pid := range peers {
+			p.AddProvider(ctx, c, pid)
+		}
+	}
+
+	for i := 0; i < 5; i++ {
+		start := time.Now()
+		for _, c := range cids {
+			_ = p.GetProviders(ctx, c)
+		}
+		elapsed := time.Since(start)
+		fmt.Printf("query %f ms\n", elapsed.Seconds()*1000)
+	}
+}
+*/
+
+func TestUponCacheMissProvidersAreReadFromDatastore(t *testing.T) {
+	old := lruCacheSize
+	lruCacheSize = 1
+	defer func() { lruCacheSize = old }()
+	ctx := context.Background()
+
+	p1, p2 := peer.ID("a"), peer.ID("b")
+	c1 := cid.NewCidV1(cid.DagCBOR, u.Hash([]byte("1")))
+	c2 := cid.NewCidV1(cid.DagCBOR, u.Hash([]byte("2")))
+	pm := NewProviderManager(ctx, p1, ds.NewMapDatastore())
+
+	pm.AddProvider(ctx, c1, p1)
+	// make the cached provider for c1 go to datastore
+	pm.AddProvider(ctx, c2, p1)
+	// now just offloaded record should be brought back and joined with p2
+	pm.AddProvider(ctx, c1, p2)
+
+	c1Provs := pm.GetProviders(ctx, c1)
+	if len(c1Provs) != 2 {
+		t.Fatalf("expected c1 to be provided by 2 peers, is by %d", len(c1Provs))
 	}
 }

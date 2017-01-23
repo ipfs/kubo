@@ -7,33 +7,41 @@ import (
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
-func TestAppendWanted(t *testing.T) {
-	const str = "foo"
-	m := New(true)
-	m.AddEntry(key.Key(str), 1)
+func mkFakeCid(s string) *cid.Cid {
+	return cid.NewCidV0(u.Hash([]byte(s)))
+}
 
-	if !wantlistContains(m.ToProto().GetWantlist(), str) {
+func TestAppendWanted(t *testing.T) {
+	str := mkFakeCid("foo")
+	m := New(true)
+	m.AddEntry(str, 1)
+
+	if !wantlistContains(m.ToProtoV0().GetWantlist(), str) {
 		t.Fail()
 	}
-	m.ToProto().GetWantlist().GetEntries()
 }
 
 func TestNewMessageFromProto(t *testing.T) {
-	const str = "a_key"
+	str := mkFakeCid("a_key")
 	protoMessage := new(pb.Message)
 	protoMessage.Wantlist = new(pb.Message_Wantlist)
 	protoMessage.Wantlist.Entries = []*pb.Message_Wantlist_Entry{
-		{Block: proto.String(str)},
+		{Block: proto.String(str.KeyString())},
 	}
 	if !wantlistContains(protoMessage.Wantlist, str) {
 		t.Fail()
 	}
-	m := newMessageFromProto(*protoMessage)
-	if !wantlistContains(m.ToProto().GetWantlist(), str) {
+	m, err := newMessageFromProto(*protoMessage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !wantlistContains(m.ToProtoV0().GetWantlist(), str) {
 		t.Fail()
 	}
 }
@@ -51,7 +59,7 @@ func TestAppendBlock(t *testing.T) {
 	}
 
 	// assert strings are in proto message
-	for _, blockbytes := range m.ToProto().GetBlocks() {
+	for _, blockbytes := range m.ToProtoV0().GetBlocks() {
 		s := bytes.NewBuffer(blockbytes).String()
 		if !contains(strs, s) {
 			t.Fail()
@@ -60,10 +68,10 @@ func TestAppendBlock(t *testing.T) {
 }
 
 func TestWantlist(t *testing.T) {
-	keystrs := []string{"foo", "bar", "baz", "bat"}
+	keystrs := []*cid.Cid{mkFakeCid("foo"), mkFakeCid("bar"), mkFakeCid("baz"), mkFakeCid("bat")}
 	m := New(true)
 	for _, s := range keystrs {
-		m.AddEntry(key.Key(s), 1)
+		m.AddEntry(s, 1)
 	}
 	exported := m.Wantlist()
 
@@ -71,22 +79,22 @@ func TestWantlist(t *testing.T) {
 		present := false
 		for _, s := range keystrs {
 
-			if s == string(k.Key) {
+			if s.Equals(k.Cid) {
 				present = true
 			}
 		}
 		if !present {
-			t.Logf("%v isn't in original list", k.Key)
+			t.Logf("%v isn't in original list", k.Cid)
 			t.Fail()
 		}
 	}
 }
 
 func TestCopyProtoByValue(t *testing.T) {
-	const str = "foo"
+	str := mkFakeCid("foo")
 	m := New(true)
-	protoBeforeAppend := m.ToProto()
-	m.AddEntry(key.Key(str), 1)
+	protoBeforeAppend := m.ToProtoV0()
+	m.AddEntry(str, 1)
 	if wantlistContains(protoBeforeAppend.GetWantlist(), str) {
 		t.Fail()
 	}
@@ -94,14 +102,14 @@ func TestCopyProtoByValue(t *testing.T) {
 
 func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original := New(true)
-	original.AddEntry(key.Key("M"), 1)
-	original.AddEntry(key.Key("B"), 1)
-	original.AddEntry(key.Key("D"), 1)
-	original.AddEntry(key.Key("T"), 1)
-	original.AddEntry(key.Key("F"), 1)
+	original.AddEntry(mkFakeCid("M"), 1)
+	original.AddEntry(mkFakeCid("B"), 1)
+	original.AddEntry(mkFakeCid("D"), 1)
+	original.AddEntry(mkFakeCid("T"), 1)
+	original.AddEntry(mkFakeCid("F"), 1)
 
 	buf := new(bytes.Buffer)
-	if err := original.ToNet(buf); err != nil {
+	if err := original.ToNetV1(buf); err != nil {
 		t.Fatal(err)
 	}
 
@@ -110,13 +118,17 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	keys := make(map[key.Key]bool)
+	if !copied.Full() {
+		t.Fatal("fullness attribute got dropped on marshal")
+	}
+
+	keys := make(map[string]bool)
 	for _, k := range copied.Wantlist() {
-		keys[k.Key] = true
+		keys[k.Cid.KeyString()] = true
 	}
 
 	for _, k := range original.Wantlist() {
-		if _, ok := keys[k.Key]; !ok {
+		if _, ok := keys[k.Cid.KeyString()]; !ok {
 			t.Fatalf("Key Missing: \"%v\"", k)
 		}
 	}
@@ -131,7 +143,7 @@ func TestToAndFromNetMessage(t *testing.T) {
 	original.AddBlock(blocks.NewBlock([]byte("M")))
 
 	buf := new(bytes.Buffer)
-	if err := original.ToNet(buf); err != nil {
+	if err := original.ToNetV1(buf); err != nil {
 		t.Fatal(err)
 	}
 
@@ -140,21 +152,21 @@ func TestToAndFromNetMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	keys := make(map[key.Key]bool)
+	keys := make(map[string]bool)
 	for _, b := range m2.Blocks() {
-		keys[b.Key()] = true
+		keys[b.Cid().KeyString()] = true
 	}
 
 	for _, b := range original.Blocks() {
-		if _, ok := keys[b.Key()]; !ok {
+		if _, ok := keys[b.Cid().KeyString()]; !ok {
 			t.Fail()
 		}
 	}
 }
 
-func wantlistContains(wantlist *pb.Message_Wantlist, x string) bool {
+func wantlistContains(wantlist *pb.Message_Wantlist, c *cid.Cid) bool {
 	for _, e := range wantlist.GetEntries() {
-		if e.GetBlock() == x {
+		if e.GetBlock() == c.KeyString() {
 			return true
 		}
 	}
@@ -174,8 +186,8 @@ func TestDuplicates(t *testing.T) {
 	b := blocks.NewBlock([]byte("foo"))
 	msg := New(true)
 
-	msg.AddEntry(b.Key(), 1)
-	msg.AddEntry(b.Key(), 1)
+	msg.AddEntry(b.Cid(), 1)
+	msg.AddEntry(b.Cid(), 1)
 	if len(msg.Wantlist()) != 1 {
 		t.Fatal("Duplicate in BitSwapMessage")
 	}

@@ -39,4 +39,14 @@ test_expect_success 'gateway should work in offline mode' '
 '
 
 test_kill_ipfs_daemon
+
+test_expect_success 'daemon should not start with bad dht opt' '
+  test_must_fail ipfs daemon --routing=fdsfdsfds > daemon_output 2>&1
+'
+
+test_expect_success 'output contains info about dht option' '
+  grep "unrecognized routing option:" daemon_output ||
+  test_fsh cat daemon_output
+'
+
 test_done

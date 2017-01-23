@@ -90,12 +90,80 @@ test_ls_cmd() {
 	'
 }
 
+test_ls_cmd_raw_leaves() {
+	test_expect_success "'ipfs add -r --raw-leaves' then 'ipfs ls' works as expected" '
+		mkdir -p somedir &&
+		echo bar > somedir/foo &&
+		ipfs add --raw-leaves -r somedir/ > /dev/null &&
+		ipfs ls QmThNTdtKaVoCVrYmM5EBS6U3S5vfKFue2TxbxxAxRcKKE > ls-actual
+		echo "zb2rhf6GzX4ckKZtjy8yy8iyq1KttCrRyqDedD6xubhY3sw2F 4 foo" > ls-expect
+		test_cmp ls-actual ls-expect
+	'
+}
+
 # should work offline
 test_ls_cmd
+test_ls_cmd_raw_leaves
 
 # should work online
 test_launch_ipfs_daemon
 test_ls_cmd
+test_ls_cmd_raw_leaves
+test_kill_ipfs_daemon
+
+#
+# test for ls --resolve-type=false
+#
+
+test_expect_success "'ipfs add -r' succeeds" '
+	mkdir adir &&
+	# note: not using a seed as the files need to have truly random content
+	random 1000 > adir/file1 &&
+	random 1000 > adir/file2 &&
+	ipfs add --pin=false -q -r adir > adir-hashes
+'
+
+test_expect_success "get hashes from add output" '
+	FILE=`head -1 adir-hashes` &&
+	DIR=`tail -1 adir-hashes` &&
+	test "$FILE" -a "$DIR"
+'
+
+test_expect_success "remove a file in dir" '
+	ipfs block rm $FILE
+'
+
+test_expect_success "'ipfs ls --resolve-type=false ' ok" '
+	ipfs ls --resolve-type=false $DIR > /dev/null
+'
+
+test_expect_success "'ipfs ls' fails" '
+	test_must_fail ipfs ls $DIR
+'
+
+test_launch_ipfs_daemon --offline
+
+test_expect_success "'ipfs ls --resolve-type=false' ok" '
+	ipfs ls --resolve-type=false $DIR > /dev/null
+'
+
+test_expect_success "'ipfs ls' fails" '
+	test_must_fail ipfs ls $DIR
+'
+
+test_kill_ipfs_daemon
+
+test_launch_ipfs_daemon
+
+# now we try `ipfs ls --resolve-type=false` with the daemon online It
+# should not even attempt to retrieve the file from the network.  If
+# it does it should eventually fail as the content is random and
+# should not exist on the network, but we don't want to wait for a
+# timeout so we will kill the request after a few seconds
+test_expect_success "'ipfs ls --resolve-type=false' ok and does not hang" '
+	go-timeout 2 ipfs ls --resolve-type=false $DIR
+'
+
 test_kill_ipfs_daemon
 
 test_done

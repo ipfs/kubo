@@ -1,9 +1,11 @@
 package dht
 
 import (
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+	"io"
 
-	inet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
+	inet "gx/ipfs/QmQx1dHDDYENugYgqA22BaBrRfuv1coSsuPiM7rYh1wwGH/go-libp2p-net"
+	mstream "gx/ipfs/QmTnsezaB1wWNRHeHnYrm8K4d5i9wtyj3GsqjC3Rt5b5v5/go-multistream"
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 )
 
 // netNotifiee defines methods to be used with the IpfsDHT
@@ -20,7 +22,26 @@ func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
 		return
 	default:
 	}
-	dht.Update(dht.Context(), v.RemotePeer())
+
+	// Note: We *could* just check the peerstore to see if the remote side supports the dht
+	// protocol, but its not clear that that information will make it into the peerstore
+	// by the time this notification is sent. So just to be very careful, we brute force this
+	// and open a new stream
+	s, err := dht.host.NewStream(dht.Context(), v.RemotePeer(), ProtocolDHT, ProtocolDHTOld)
+	switch err {
+	case nil:
+		s.Close()
+		// connected fine? full dht node
+		dht.Update(dht.Context(), v.RemotePeer())
+	case mstream.ErrNotSupported:
+		// Client mode only, don't bother adding them to our routing table
+	case io.EOF:
+		// This is kindof an error, but it happens someone often so make it a warning
+		log.Warningf("checking dht client type: %s", err)
+	default:
+		// real error? thats odd
+		log.Errorf("checking dht client type: %s", err)
+	}
 }
 
 func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {

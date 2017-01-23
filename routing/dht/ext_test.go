@@ -1,24 +1,22 @@
 package dht
 
 import (
+	"context"
 	"io"
 	"math/rand"
 	"testing"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	routing "github.com/ipfs/go-ipfs/routing"
-	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	record "github.com/ipfs/go-ipfs/routing/record"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dssync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
-
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	inet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net"
-	mocknet "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/net/mock"
+	inet "gx/ipfs/QmQx1dHDDYENugYgqA22BaBrRfuv1coSsuPiM7rYh1wwGH/go-libp2p-net"
+	pb "gx/ipfs/QmRG9fdibExi5DFy8kzyxF76jvZVUb2mQBUSMNP1YaYn9M/go-libp2p-kad-dht/pb"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	dssync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
+	record "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record"
+	mocknet "gx/ipfs/QmdzDdLZ7nj133QvNHypyS9Y39g35bMFk5DJ2pmX7YqtKU/go-libp2p/p2p/net/mock"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
 )
 
 func TestGetFailures(t *testing.T) {
@@ -43,8 +41,9 @@ func TestGetFailures(t *testing.T) {
 	})
 
 	// This one should time out
-	ctx1, _ := context.WithTimeout(context.Background(), 200*time.Millisecond)
-	if _, err := d.GetValue(ctx1, key.Key("test")); err != nil {
+	ctx1, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	if _, err := d.GetValue(ctx1, "test"); err != nil {
 		if merr, ok := err.(u.MultiErr); ok && len(merr) > 0 {
 			err = merr[0]
 		}
@@ -83,8 +82,9 @@ func TestGetFailures(t *testing.T) {
 	// the dht should be exhausting its query and returning not found.
 	// (was 3 seconds before which should be _plenty_ of time, but maybe
 	// travis machines really have a hard time...)
-	ctx2, _ := context.WithTimeout(context.Background(), 20*time.Second)
-	_, err = d.GetValue(ctx2, key.Key("test"))
+	ctx2, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	_, err = d.GetValue(ctx2, "test")
 	if err != nil {
 		if merr, ok := err.(u.MultiErr); ok && len(merr) > 0 {
 			err = merr[0]
@@ -108,7 +108,7 @@ func TestGetFailures(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		rec, err := record.MakePutRecord(sk, key.Key(str), []byte("blah"), true)
+		rec, err := record.MakePutRecord(sk, str, []byte("blah"), true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -118,7 +118,7 @@ func TestGetFailures(t *testing.T) {
 			Record: rec,
 		}
 
-		s, err := hosts[1].NewStream(context.Background(), ProtocolDHT, hosts[0].ID())
+		s, err := hosts[1].NewStream(context.Background(), hosts[0].ID(), ProtocolDHT)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -202,7 +202,7 @@ func TestNotFound(t *testing.T) {
 	// long timeout to ensure timing is not at play.
 	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
 	defer cancel()
-	v, err := d.GetValue(ctx, key.Key("hello"))
+	v, err := d.GetValue(ctx, "hello")
 	log.Debugf("get value got %v", v)
 	if err != nil {
 		if merr, ok := err.(u.MultiErr); ok && len(merr) > 0 {
@@ -275,7 +275,7 @@ func TestLessThanKResponses(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
-	if _, err := d.GetValue(ctx, key.Key("hello")); err != nil {
+	if _, err := d.GetValue(ctx, "hello"); err != nil {
 		switch err {
 		case routing.ErrNotFound:
 			//Success!

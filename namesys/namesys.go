@@ -1,24 +1,26 @@
 package namesys
 
 import (
+	"context"
 	"strings"
 	"time"
 
 	path "github.com/ipfs/go-ipfs/path"
-	routing "github.com/ipfs/go-ipfs/routing"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
 // mpns (a multi-protocol NameSystem) implements generic IPFS naming.
 //
 // Uses several Resolvers:
-// (a) ipfs routing naming: SFS-like PKI names.
+// (a) IPFS routing naming: SFS-like PKI names.
 // (b) dns domains: resolves using links in DNS TXT records
 // (c) proquints: interprets string as the raw byte data.
 //
-// It can only publish to: (a) ipfs routing naming.
+// It can only publish to: (a) IPFS routing naming.
 //
 type mpns struct {
 	resolvers  map[string]resolver
@@ -26,7 +28,7 @@ type mpns struct {
 }
 
 // NewNameSystem will construct the IPFS naming system based on Routing
-func NewNameSystem(r routing.IpfsRouting, ds ds.Datastore, cachesize int) NameSystem {
+func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSystem {
 	return &mpns{
 		resolvers: map[string]resolver{
 			"dns":      newDNSResolver(),
@@ -87,9 +89,52 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error)
 
 // Publish implements Publisher
 func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
-	return ns.publishers["/ipns/"].Publish(ctx, name, value)
+	err := ns.publishers["/ipns/"].Publish(ctx, name, value)
+	if err != nil {
+		return err
+	}
+	ns.addToDHTCache(name, value, time.Now().Add(DefaultRecordTTL))
+	return nil
 }
 
-func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, val path.Path, eol time.Time) error {
-	return ns.publishers["/ipns/"].PublishWithEOL(ctx, name, val, eol)
+func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error {
+	err := ns.publishers["/ipns/"].PublishWithEOL(ctx, name, value, eol)
+	if err != nil {
+		return err
+	}
+	ns.addToDHTCache(name, value, eol)
+	return nil
+}
+
+func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {
+	rr, ok := ns.resolvers["dht"].(*routingResolver)
+	if !ok {
+		// should never happen, purely for sanity
+		log.Panicf("unexpected type %T as DHT resolver.", ns.resolvers["dht"])
+	}
+	if rr.cache == nil {
+		// resolver has no caching
+		return
+	}
+
+	var err error
+	value, err = path.ParsePath(value.String())
+	if err != nil {
+		log.Error("could not parse path")
+		return
+	}
+
+	name, err := peer.IDFromPrivateKey(key)
+	if err != nil {
+		log.Error("while adding to cache, could not get peerid from private key")
+		return
+	}
+
+	if time.Now().Add(DefaultResolverCacheTTL).Before(eol) {
+		eol = time.Now().Add(DefaultResolverCacheTTL)
+	}
+	rr.cache.Add(name.Pretty(), cacheEntry{
+		val: value,
+		eol: eol,
+	})
 }

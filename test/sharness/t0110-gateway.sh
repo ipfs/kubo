@@ -21,9 +21,13 @@ apiport=$API_PORT
 # define a function to test a gateway, and do so for each port.
 # for now we check 5001 here as 5002 will be checked in gateway-writable.
 
-test_expect_success "GET IPFS path succeeds" '
+test_expect_success "Make a file to test with" '
   echo "Hello Worlds!" >expected &&
-  HASH=$(ipfs add -q expected) &&
+  HASH=$(ipfs add -q expected) ||
+	test_fsh cat daemon_err
+'
+
+test_expect_success "GET IPFS path succeeds" '
   curl -sfo actual "http://127.0.0.1:$port/ipfs/$HASH"
 '
 
@@ -139,6 +143,16 @@ test_expect_success "test gateway api is sanitized" '
 for cmd in "add" "block/put" "bootstrap" "config" "dht" "diag" "dns" "get" "id" "mount" "name/publish" "object/put" "object/new" "object/patch" "pin" "ping" "refs/local" "repo" "resolve" "stats" "swarm" "tour" "file" "update" "version" "bitswap"; do
     test_curl_resp_http_code "http://127.0.0.1:$port/api/v0/$cmd" "HTTP/1.1 404 Not Found"
   done
+'
+
+test_expect_success "create raw-leaves node" '
+  echo "This is RAW!" > rfile &&
+  echo "This is RAW!" | ipfs add --raw-leaves -q > rhash
+'
+
+test_expect_success "try fetching it from gateway" '
+  curl http://127.0.0.1:$port/ipfs/$(cat rhash) > ffile &&
+  test_cmp rfile ffile
 '
 
 test_kill_ipfs_daemon

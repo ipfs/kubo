@@ -1,21 +1,21 @@
 package io
 
 import (
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	"context"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 type directoryBuilder struct {
 	dserv   mdag.DAGService
-	dirnode *mdag.Node
+	dirnode *mdag.ProtoNode
 }
 
 // NewEmptyDirectory returns an empty merkledag Node with a folder Data chunk
-func NewEmptyDirectory() *mdag.Node {
-	nd := new(mdag.Node)
+func NewEmptyDirectory() *mdag.ProtoNode {
+	nd := new(mdag.ProtoNode)
 	nd.SetData(format.FolderPBData())
 	return nd
 }
@@ -29,16 +29,21 @@ func NewDirectory(dserv mdag.DAGService) *directoryBuilder {
 }
 
 // AddChild adds a (name, key)-pair to the root node.
-func (d *directoryBuilder) AddChild(ctx context.Context, name string, k key.Key) error {
-	cnode, err := d.dserv.Get(ctx, k)
+func (d *directoryBuilder) AddChild(ctx context.Context, name string, c *cid.Cid) error {
+	cnode, err := d.dserv.Get(ctx, c)
 	if err != nil {
 		return err
 	}
 
-	return d.dirnode.AddNodeLinkClean(name, cnode)
+	cnpb, ok := cnode.(*mdag.ProtoNode)
+	if !ok {
+		return mdag.ErrNotProtobuf
+	}
+
+	return d.dirnode.AddNodeLinkClean(name, cnpb)
 }
 
 // GetNode returns the root of this directoryBuilder
-func (d *directoryBuilder) GetNode() *mdag.Node {
+func (d *directoryBuilder) GetNode() *mdag.ProtoNode {
 	return d.dirnode
 }
