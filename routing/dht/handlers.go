@@ -278,13 +278,6 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 	// add provider should use the address given in the message
 	pinfos := pb.PBPeersToPeerInfos(pmes.GetProviderPeers())
 	for _, pi := range pinfos {
-		if pi.ID != p {
-			// we should ignore this provider reccord! not from originator.
-			// (we chould sign them and check signature later...)
-			log.Debugf("handleAddProvider received provider %s from %s. Ignore.", pi.ID, p)
-			continue
-		}
-
 		if len(pi.Addrs) < 1 {
 			log.Debugf("%s got no valid addresses for provider %s. Ignore.", dht.self, p)
 			continue
@@ -297,7 +290,7 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 		} else if isPointer(pi.ID) {
 			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, time.Hour*24*7)
 		}
-		dht.providers.AddProvider(ctx, c, p)
+		dht.providers.AddProvider(ctx, c, pi.ID)
 	}
 
 	return nil, nil
