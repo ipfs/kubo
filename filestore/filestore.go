@@ -129,6 +129,15 @@ func (f *Filestore) Has(c *cid.Cid) (bool, error) {
 }
 
 func (f *Filestore) Put(b blocks.Block) error {
+	has, err := f.Has(b.Cid())
+	if err != nil {
+		return err
+	}
+
+	if has {
+		return nil
+	}
+
 	switch b := b.(type) {
 	case *posinfo.FilestoreNode:
 		return f.fm.Put(b)
@@ -142,6 +151,15 @@ func (f *Filestore) PutMany(bs []blocks.Block) error {
 	var fstores []*posinfo.FilestoreNode
 
 	for _, b := range bs {
+		has, err := f.Has(b.Cid())
+		if err != nil {
+			return err
+		}
+
+		if has {
+			continue
+		}
+
 		switch b := b.(type) {
 		case *posinfo.FilestoreNode:
 			fstores = append(fstores, b)
