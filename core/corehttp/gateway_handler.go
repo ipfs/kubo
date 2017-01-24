@@ -16,16 +16,17 @@ import (
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	"github.com/ipfs/go-ipfs/namesys"
+	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
-	ft "github.com/ipfs/go-ipfs/unixfs"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	recpb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
-	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
-
+	"gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 const (
@@ -173,9 +174,9 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	if paths[1] == "ipns" && paths[2] == i.node.Identity.Pretty() {
 		id := i.node.Identity
 		_, ipnskey := namesys.IpnsKeysForID(id)
-		ival, _ := i.node.Repo.Datastore().Get(ipnskey.DsKey())
+		ival, _ := i.node.Repo.Datastore().Get(ds.NewKey(ipnskey))
 		val := ival.([]byte)
-		dhtrec := new(dhtpb.Record)
+		dhtrec := new(recpb.Record)
 		proto.Unmarshal(val, dhtrec)
 		e := new(pb.IpnsEntry)
 		proto.Unmarshal(dhtrec.GetValue(), e)
@@ -400,11 +401,11 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func() {
-		node, err := i.node.DAG.Get(ctx, key.B58KeyDecode(paths[2]))
+		k, err := cid.Decode(paths[2])
 		if err != nil {
 			return
 		}
-		dag.FetchGraph(ctx, node, i.node.DAG)
+		dag.FetchGraph(ctx, k, i.node.DAG)
 	}()
 
 	i.addUserHeaders(w)

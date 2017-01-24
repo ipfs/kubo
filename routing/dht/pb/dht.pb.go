@@ -212,10 +212,3 @@ func (m *Message_Peer) GetConnection() Message_ConnectionType {
 	}
 	return Message_NOT_CONNECTED
 }
-
-func init() {
-	proto.RegisterType((*Message)(nil), "dht.pb.Message")
-	proto.RegisterType((*Message_Peer)(nil), "dht.pb.Message.Peer")
-	proto.RegisterEnum("dht.pb.Message_MessageType", Message_MessageType_name, Message_MessageType_value)
-	proto.RegisterEnum("dht.pb.Message_ConnectionType", Message_ConnectionType_name, Message_ConnectionType_value)
-}
