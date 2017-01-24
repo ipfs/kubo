@@ -18,6 +18,8 @@ import (
 	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
+const MAGIC string = "000000000000000000000000"
+
 // The number of closer peers to send on requests.
 var CloserPeerCount = KValue
 
@@ -289,9 +291,11 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 		}
 
 		log.Infof("received provider %s for %s (addrs: %s)", p, c, pi.Addrs)
-		if pi.ID != dht.self { // dont add own addrs.
+		if pi.ID != dht.self && !isPointer(pi.ID) { // dont add own addrs.
 			// add the received addresses to our peerstore.
 			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, pstore.ProviderAddrTTL)
+		} else if isPointer(pi.ID) {
+			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, time.Hour*24*7)
 		}
 		dht.providers.AddProvider(ctx, c, p)
 	}
@@ -301,4 +305,9 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 
 func convertToDsKey(s string) ds.Key {
 	return ds.NewKey(base32.RawStdEncoding.EncodeToString([]byte(s)))
+}
+
+func isPointer(id peer.ID) bool {
+	hexID := peer.IDHexEncode(id)
+	return hexID[4:28] == MAGIC
 }
