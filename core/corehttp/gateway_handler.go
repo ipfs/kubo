@@ -17,12 +17,12 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/namesys"
-	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
-	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	recpb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
 
+	namepb "github.com/ipfs/go-ipfs/namesys/pb"
+	"github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
@@ -174,14 +174,17 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	if paths[1] == "ipns" && paths[2] == i.node.Identity.Pretty() {
 		id := i.node.Identity
 		_, ipnskey := namesys.IpnsKeysForID(id)
-		ival, _ := i.node.Repo.Datastore().Get(ds.NewKey(ipnskey))
+		ival, hasherr := i.node.Repo.Datastore().Get(dshelp.NewKeyFromBinary([]byte(ipnskey)))
+		if hasherr != nil {
+			webError(w, "Error fetching own IPNS mapping", hasherr, http.StatusInternalServerError)
+			return
+		}
 		val := ival.([]byte)
 		dhtrec := new(recpb.Record)
 		proto.Unmarshal(val, dhtrec)
-		e := new(pb.IpnsEntry)
+		e := new(namepb.IpnsEntry)
 		proto.Unmarshal(dhtrec.GetValue(), e)
 		pth := path.Path(e.Value).String()
-		pth = "/ipfs/" + pth
 		for _, p := range paths[3:] {
 			pth += "/" + p
 		}
@@ -216,7 +219,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		originalUrlPath = prefix + hdr[0]
 		ipnsHostname = true
 	}
-
+	fmt.Println(urlPath)
 	dr, err := i.api.Cat(ctx, urlPath)
 	dir := false
 	switch err {
