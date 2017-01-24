@@ -89,16 +89,21 @@ func (f *Filestore) DeleteBlock(c *cid.Cid) error {
 		return err1
 	}
 
-	if err2 := f.fm.DeleteBlock(c); err2 != nil {
-		// if we successfully removed something from the blockstore, but the
-		// filestore didnt have it, return success
-		if err1 == nil && err2 != blockstore.ErrNotFound {
-			return nil
+	err2 := f.fm.DeleteBlock(c)
+	// if we successfully removed something from the blockstore, but the
+	// filestore didnt have it, return success
+
+	switch err2 {
+	case nil:
+		return nil
+	case blockstore.ErrNotFound:
+		if err1 == blockstore.ErrNotFound {
+			return blockstore.ErrNotFound
 		}
+		return nil
+	default:
 		return err2
 	}
-
-	return nil
 }
 
 func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
