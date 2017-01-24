@@ -142,7 +142,15 @@ func (f *FileManager) Has(c *cid.Cid) (bool, error) {
 	return f.ds.Has(dsk)
 }
 
+type putter interface {
+	Put(ds.Key, interface{}) error
+}
+
 func (f *FileManager) Put(b *posinfo.FilestoreNode) error {
+	return f.putTo(b, f.ds)
+}
+
+func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 	var dobj pb.DataObj
 
 	if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
@@ -163,15 +171,20 @@ func (f *FileManager) Put(b *posinfo.FilestoreNode) error {
 		return err
 	}
 
-	return f.ds.Put(dshelp.CidToDsKey(b.Cid()), data)
+	return to.Put(dshelp.CidToDsKey(b.Cid()), data)
 }
 
 func (f *FileManager) PutMany(bs []*posinfo.FilestoreNode) error {
-	// TODO: this better
+	batch, err := f.ds.Batch()
+	if err != nil {
+		return err
+	}
+
 	for _, b := range bs {
-		if err := f.Put(b); err != nil {
+		if err := f.putTo(b, batch); err != nil {
 			return err
 		}
 	}
-	return nil
+
+	return batch.Commit()
 }
