@@ -19,7 +19,7 @@ import (
 // For example, a record may contain an ipns entry with an EOL saying its valid
 // until the year 2020 (a great time in the future). For that record to stick around
 // it must be rebroadcasted more frequently than once every 'MaxRecordAge'
-const MaxRecordAge = time.Hour * 36
+const MaxRecordAge = time.Hour * 24 * 7
 
 func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, error) {
 	log.Debugf("getPublicKey for: %s", p)
