@@ -102,3 +102,63 @@ func TestBasicFilestore(t *testing.T) {
 		}
 	}
 }
+
+func randomFileAdd(t *testing.T, fs *Filestore, dir string, size int) (string, []*cid.Cid) {
+	buf := make([]byte, size)
+	rand.Read(buf)
+
+	fname, err := makeFile(dir, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out []*cid.Cid
+	for i := 0; i < size/10; i++ {
+		n := &posinfo.FilestoreNode{
+			PosInfo: &posinfo.PosInfo{
+				FullPath: fname,
+				Offset:   uint64(i * 10),
+			},
+			Node: dag.NewRawNode(buf[i*10 : (i+1)*10]),
+		}
+		err := fs.Put(n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, n.Cid())
+	}
+
+	return fname, out
+}
+
+func TestDeletes(t *testing.T) {
+	dir, fs := newTestFilestore(t)
+	_, cids := randomFileAdd(t, fs, dir, 100)
+	todelete := cids[:4]
+	for _, c := range todelete {
+		err := fs.DeleteBlock(c)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	deleted := make(map[string]bool)
+	for _, c := range todelete {
+		_, err := fs.Get(c)
+		if err != blockstore.ErrNotFound {
+			t.Fatal("expected blockstore not found error")
+		}
+		deleted[c.KeyString()] = true
+	}
+
+	keys, err := fs.AllKeysChan(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for c := range keys {
+		if deleted[c.KeyString()] {
+			t.Fatal("shouldnt have reference to this key anymore")
+		}
+	}
+}
