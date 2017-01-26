@@ -95,6 +95,16 @@ uninstall:
 PHONY += all help godep gx_check covertools
 PHONY += go_check deps vendor install build nofuse clean uninstall
 
+proto:
+	go get -v go.pedge.io/protoeasy/cmd/protoeasy
+	protoeasy \
+		--exclude blocks/bloom \
+		--exclude Godeps \
+		--gogo \
+		--gogo-plugin gogo \
+		--gogo-import-path github.com/ipfs/go-ipfs \
+		.
+
 ##############################################################
 # tests targets
 
