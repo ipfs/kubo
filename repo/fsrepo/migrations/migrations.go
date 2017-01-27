@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var DistPath = "https://ipfs.io/ipfs/QmUnvqDuRyfe7HJuiMMHv77AMUFnjGyAU28LFPeTYwGmFF"
+var DistPath = "https://ipfs.io/ipfs/QmUgY7wRGB7bEKREE5BNrSwjzrRZddkRV4bu64bP2qgv7f"
 
 func init() {
 	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
@@ -35,9 +35,6 @@ func migrationsBinName() string {
 }
 
 func RunMigration(newv int) error {
-	if newv == 5 {
-		return fmt.Errorf("No automatic migrations yet for repo version 5. You will have to build them from source.\nSee https://github.com/ipfs/fs-repo-migrations")
-	}
 	migrateBin := migrationsBinName()
 
 	fmt.Println("  => Looking for suitable fs-repo-migrations binary.")

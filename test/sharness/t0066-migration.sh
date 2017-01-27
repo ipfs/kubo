@@ -13,7 +13,7 @@ test_init_ipfs
 test_expect_success "setup mock migrations" '
 	mkdir bin &&
 	echo "#!/bin/bash" > bin/fs-repo-migrations &&
-	echo "echo 4" >> bin/fs-repo-migrations &&
+	echo "echo 5" >> bin/fs-repo-migrations &&
 	chmod +x bin/fs-repo-migrations &&
 	export PATH="$(pwd)/bin":$PATH
 '
@@ -35,9 +35,8 @@ test_expect_success "ipfs daemon --migrate=true runs migration" '
 '
 
 test_expect_success "output looks good" '
-	#grep "Running: " true_out > /dev/null &&
-	#grep "Success: fs-repo has been migrated to version 4." true_out > /dev/null
-	grep "No automatic migrations yet" true_out > /dev/null
+	grep "Running: " true_out > /dev/null &&
+	grep "Success: fs-repo has been migrated to version 5." true_out > /dev/null
 '
 
 test_expect_success "'ipfs daemon' prompts to auto migrate" '
