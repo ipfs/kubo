@@ -47,7 +47,7 @@ to a particular peer, use the 'peer' option along with that peer's multihash
 id. To specify a specific protocol, use the 'proto' option. The 'peer' and
 'proto' options cannot be specified simultaneously. The protocols that are
 queried using this method are outlined in the specification:
-https://github.com/ipfs/specs/blob/master/libp2p/7-properties.md#757-protocol-multicodecs
+https://github.com/libp2p/specs/blob/master/7-properties.md#757-protocol-multicodecs
 
 Example protocol options:
   - /ipfs/id/1.0.0
