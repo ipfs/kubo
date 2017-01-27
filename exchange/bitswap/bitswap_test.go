@@ -3,6 +3,7 @@ package bitswap
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -299,6 +300,25 @@ func TestEmptyKey(t *testing.T) {
 	}
 }
 
+func assertStat(st *Stat, sblks, rblks int, sdata, rdata uint64) error {
+	if sblks != st.BlocksSent {
+		return fmt.Errorf("mismatch in blocks sent: %d vs %d", sblks, st.BlocksSent)
+	}
+
+	if rblks != st.BlocksReceived {
+		return fmt.Errorf("mismatch in blocks recvd: %d vs %d", rblks, st.BlocksReceived)
+	}
+
+	if sdata != st.DataSent {
+		return fmt.Errorf("mismatch in data sent: %d vs %d", sdata, st.DataSent)
+	}
+
+	if rdata != st.DataReceived {
+		return fmt.Errorf("mismatch in data recvd: %d vs %d", rdata, st.DataReceived)
+	}
+	return nil
+}
+
 func TestBasicBitswap(t *testing.T) {
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
 	sg := NewTestSessionGenerator(net)
@@ -318,6 +338,24 @@ func TestBasicBitswap(t *testing.T) {
 	defer cancel()
 	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	st0, err := instances[0].Exchange.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	st1, err := instances[1].Exchange.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := assertStat(st0, 1, 0, 1, 0); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := assertStat(st1, 0, 1, 0, 1); err != nil {
 		t.Fatal(err)
 	}
 
