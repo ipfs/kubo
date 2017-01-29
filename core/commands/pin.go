@@ -44,7 +44,7 @@ var addPinCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s).").Default(true),
-		cmds.BoolOption("fetch", "f", "Fetch the object(s) before pinning").Default(true),
+		cmds.BoolOption("fetch", "f", "Fetch the object(s) before pinning. WARNING: Disabling that can lead to data loss if gc is run with pinned node tree not fully present").Default(true),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
