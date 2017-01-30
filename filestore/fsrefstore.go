@@ -109,11 +109,21 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 		return nil, err
 	}
 
+	outcid, err := c.Prefix().Sum(out)
+	if err != nil {
+		return nil, err
+	}
+
+	if !c.Equals(outcid) {
+		return nil, &CorruptReferenceError{fmt.Errorf("data in file did not match. %s offset %d", dobj.GetFilePath(), dobj.GetOffset())}
+	}
+
 	return blocks.NewBlockWithCid(out, c)
 }
 
 func (f *FileManager) readDataObj(d *pb.DataObj) ([]byte, error) {
-	abspath := filepath.Join(f.root, d.GetFilePath())
+	p := filepath.FromSlash(d.GetFilePath())
+	abspath := filepath.Join(f.root, p)
 
 	fi, err := os.Open(abspath)
 	if err != nil {
@@ -162,7 +172,7 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 		return err
 	}
 
-	dobj.FilePath = proto.String(p)
+	dobj.FilePath = proto.String(filepath.ToSlash(p))
 	dobj.Offset = proto.Uint64(b.PosInfo.Offset)
 	dobj.Size_ = proto.Uint64(uint64(len(b.RawData())))
 

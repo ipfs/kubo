@@ -23,11 +23,10 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 type DataObj struct {
-	FilePath         *string  `protobuf:"bytes,1,opt,name=FilePath" json:"FilePath,omitempty"`
-	Offset           *uint64  `protobuf:"varint,2,opt,name=Offset" json:"Offset,omitempty"`
-	Size_            *uint64  `protobuf:"varint,3,opt,name=Size" json:"Size,omitempty"`
-	Modtime          *float64 `protobuf:"fixed64,4,opt,name=Modtime" json:"Modtime,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
+	FilePath         *string `protobuf:"bytes,1,opt,name=FilePath" json:"FilePath,omitempty"`
+	Offset           *uint64 `protobuf:"varint,2,opt,name=Offset" json:"Offset,omitempty"`
+	Size_            *uint64 `protobuf:"varint,3,opt,name=Size" json:"Size,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
 }
 
 func (m *DataObj) Reset()         { *m = DataObj{} }
@@ -51,13 +50,6 @@ func (m *DataObj) GetOffset() uint64 {
 func (m *DataObj) GetSize_() uint64 {
 	if m != nil && m.Size_ != nil {
 		return *m.Size_
-	}
-	return 0
-}
-
-func (m *DataObj) GetModtime() float64 {
-	if m != nil && m.Modtime != nil {
-		return *m.Modtime
 	}
 	return 0
 }
