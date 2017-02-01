@@ -6,7 +6,7 @@ $(d)/gx: $(d)/gx-v0.9.0
 $(d)/gx-go: $(d)/gx-go-v1.3.0
 
 TGTS_$(d) := $(d)/gx $(d)/gx-go
-DISTCLEAN += $(wildcard $(d)/gx-v*) $(wildcard $(d)/gx-go-v*)
+DISTCLEAN += $(wildcard $(d)/gx-v*) $(wildcard $(d)/gx-go-v*) $(d)/tmp
 
 PATH := $(realpath $(d)):$(PATH)
 

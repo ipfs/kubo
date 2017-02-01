@@ -13,6 +13,15 @@ include mk/golang.mk
 include mk/gx.mk
 
 # -------------------- #
+#   extra properties   #
+# -------------------- #
+
+ifeq ($(TEST_NO_FUSE),1)
+	GOTAGS += nofuse
+endif
+export IPFS_REUSEPORT=false
+
+# -------------------- #
 #       sub-files      #
 # -------------------- #
 dir := bin
@@ -58,15 +67,6 @@ include $(dir)/Rules.mk
 	$(PROTOC)
 
 # -------------------- #
-#   extra properties   #
-# -------------------- #
-
-ifeq ($(TEST_NO_FUSE),1)
-	GOTAGS += nofuse
-endif
-export IPFS_REUSEPORT=false
-
-# -------------------- #
 #     core targets     #
 # -------------------- #
 
@@ -75,14 +75,14 @@ build: $(TGT_BIN)
 .PHONY: build
 
 clean:
-	rm -f $(CLEAN)
+	rm -rf $(CLEAN)
 .PHONY: clean
 
 coverage: $(COVERAGE)
 .PHONY: coverage
 
 distclean: clean
-	rm -f $(DISTCLEAN)
+	rm -rf $(DISTCLEAN)
 .PHONY: distclean
 
 test: $(TEST)
