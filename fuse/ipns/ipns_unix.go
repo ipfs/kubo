@@ -97,8 +97,26 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 
 	node, err := core.Resolve(ctx, ipfs.Namesys, ipfs.Resolver, p)
 	if err != nil {
-		log.Errorf("looking up %s: %s", p, err)
-		return nil, err
+		log.Debugf("failed to look up %s: %s", p, err)
+
+		// Attempt to perform an offline resolve of the path, since the node's key
+		// may not yet exist in in the network.
+		log.Debugf("trying offline lookup")
+		offlineNode, err := core.NewNode(ctx, &core.BuildCfg{
+			Online: false,
+			Repo:   ipfs.Repo,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if err := offlineNode.SetupOfflineRouting(); err != nil {
+			return nil, err
+		}
+		node, err = core.Resolve(ctx, offlineNode, p)
+		if err != nil {
+			log.Errorf("failed to look up %s: %s", p, err)
+			return nil, err
+		}
 	}
 
 	pbnode, ok := node.(*dag.ProtoNode)
