@@ -84,6 +84,20 @@ func (f *FileManager) DeleteBlock(c *cid.Cid) error {
 }
 
 func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
+	dobj, err := f.getDataObj(c)
+	if err != nil {
+		return nil, err
+	}
+
+	out, err := f.readDataObj(c, dobj)
+	if err != nil {
+		return nil, err
+	}
+
+	return blocks.NewBlockWithCid(out, c)
+}
+
+func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
 	o, err := f.ds.Get(dshelp.CidToDsKey(c))
 	switch err {
 	case ds.ErrNotFound:
@@ -104,12 +118,7 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 		return nil, err
 	}
 
-	out, err := f.readDataObj(c, &dobj)
-	if err != nil {
-		return nil, err
-	}
-
-	return blocks.NewBlockWithCid(out, c)
+	return &dobj, nil
 }
 
 // reads and verifies the block
