@@ -48,7 +48,7 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 		return nil, err
 	}
 
-	out := make(chan *cid.Cid)
+	out := make(chan *cid.Cid, dsq.KeysOnlyBufSize)
 	go func() {
 		defer close(out)
 		for {
