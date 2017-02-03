@@ -10,7 +10,7 @@ import (
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
+	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
