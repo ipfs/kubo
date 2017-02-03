@@ -16,12 +16,12 @@ import (
 type Status int32
 
 const (
-	StatusOk        Status = 0
-	StatusFileError Status = 10 // Backing File Error
-	//StatusFileNotFound Status = 11 // Backing File Not Found
-	//StatusFileChanged  Status = 12 // Contents of the file changed
-	StatusOtherError  Status = 20 // Internal Error, likely corrupt entry
-	StatusKeyNotFound Status = 30
+	StatusOk           Status = 0
+	StatusFileError    Status = 10 // Backing File Error
+	StatusFileNotFound Status = 11 // Backing File Not Found
+	StatusFileChanged  Status = 12 // Contents of the file changed
+	StatusOtherError   Status = 20 // Internal Error, likely corrupt entry
+	StatusKeyNotFound  Status = 30
 )
 
 func (s Status) String() string {
@@ -30,6 +30,10 @@ func (s Status) String() string {
 		return "ok"
 	case StatusFileError:
 		return "error"
+	case StatusFileNotFound:
+		return "no-file"
+	case StatusFileChanged:
+		return "changed"
 	case StatusOtherError:
 		return "ERROR"
 	case StatusKeyNotFound:
@@ -139,8 +143,17 @@ func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
 	if err != nil {
 		if err == ds.ErrNotFound || err == blockstore.ErrNotFound {
 			status = StatusKeyNotFound
-		} else if _, ok := err.(*CorruptReferenceError); ok {
-			status = StatusFileError
+		} else if err, ok := err.(*CorruptReferenceError); ok {
+			switch err.Code {
+			case FileError:
+				status = StatusFileError
+			case FileMissing:
+				status = StatusFileNotFound
+			case FileChanged:
+				status = StatusFileChanged
+			default:
+				status = StatusOtherError
+			}
 		} else {
 			status = StatusOtherError
 		}

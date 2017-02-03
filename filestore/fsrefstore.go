@@ -27,8 +27,18 @@ type FileManager struct {
 	root string
 }
 
+type CorruptReferenceCode int
+
+const (
+	OtherErr    CorruptReferenceCode = 0
+	FileError   CorruptReferenceCode = 1
+	FileMissing CorruptReferenceCode = 2
+	FileChanged CorruptReferenceCode = 3
+)
+
 type CorruptReferenceError struct {
-	Err error
+	Code CorruptReferenceCode
+	Err  error
 }
 
 func (c CorruptReferenceError) Error() string {
@@ -127,20 +137,24 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	abspath := filepath.Join(f.root, p)
 
 	fi, err := os.Open(abspath)
-	if err != nil {
-		return nil, &CorruptReferenceError{err}
+	if os.IsNotExist(err) {
+		return nil, &CorruptReferenceError{FileMissing, err}
+	} else if err != nil {
+		return nil, &CorruptReferenceError{FileError, err}
 	}
 	defer fi.Close()
 
 	_, err = fi.Seek(int64(d.GetOffset()), os.SEEK_SET)
 	if err != nil {
-		return nil, &CorruptReferenceError{err}
+		return nil, &CorruptReferenceError{FileError, err}
 	}
 
 	outbuf := make([]byte, d.GetSize_())
 	_, err = io.ReadFull(fi, outbuf)
-	if err != nil {
-		return nil, &CorruptReferenceError{err}
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return nil, &CorruptReferenceError{FileChanged, err}
+	} else if err != nil {
+		return nil, &CorruptReferenceError{FileError, err}
 	}
 
 	outcid, err := c.Prefix().Sum(outbuf)
@@ -149,7 +163,8 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	}
 
 	if !c.Equals(outcid) {
-		return nil, &CorruptReferenceError{fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
+		return nil, &CorruptReferenceError{FileChanged,
+			fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
 	}
 
 	return outbuf, nil
