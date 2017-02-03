@@ -104,24 +104,16 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 		return nil, err
 	}
 
-	out, err := f.readDataObj(&dobj)
+	out, err := f.readDataObj(c, &dobj)
 	if err != nil {
 		return nil, err
-	}
-
-	outcid, err := c.Prefix().Sum(out)
-	if err != nil {
-		return nil, err
-	}
-
-	if !c.Equals(outcid) {
-		return nil, &CorruptReferenceError{fmt.Errorf("data in file did not match. %s offset %d", dobj.GetFilePath(), dobj.GetOffset())}
 	}
 
 	return blocks.NewBlockWithCid(out, c)
 }
 
-func (f *FileManager) readDataObj(d *pb.DataObj) ([]byte, error) {
+// reads and verifies the block
+func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	p := filepath.FromSlash(d.GetFilePath())
 	abspath := filepath.Join(f.root, p)
 
@@ -140,6 +132,15 @@ func (f *FileManager) readDataObj(d *pb.DataObj) ([]byte, error) {
 	_, err = io.ReadFull(fi, outbuf)
 	if err != nil {
 		return nil, &CorruptReferenceError{err}
+	}
+
+	outcid, err := c.Prefix().Sum(outbuf)
+	if err != nil {
+		return nil, err
+	}
+
+	if !c.Equals(outcid) {
+		return nil, &CorruptReferenceError{fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
 	}
 
 	return outbuf, nil
