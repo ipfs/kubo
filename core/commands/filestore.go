@@ -24,6 +24,16 @@ var FileStoreCmd = &cmds.Command{
 var lsFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List objects in filestore.",
+		LongDescription: `
+List objects in the filestore.
+
+If one or more <obj> is specified only list those specific objects,
+otherwise list all objects.
+
+The output is:
+
+<hash> <size> <path> <offset>
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("obj", false, true, "Cid of objects to list."),
@@ -80,6 +90,26 @@ var lsFileStore = &cmds.Command{
 var verifyFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Verify objects in filestore.",
+		LongDescription: `
+Verify objects in the filestore.
+
+If one or more <obj> is specified only verify those specific objects,
+otherwise verify all objects.
+
+The output is:
+
+<status> <hash> <size> <path> <offset>
+
+Where <status> is one of:
+ok:       the block can be reconstructed
+changed:  the contents of the backing file have changed
+no-file:  the backing file could not be found
+error:    there was some other problem reading the file
+missing:  <obj> could not be found in the filestore
+ERROR:    internal error, most likely due to a corrupt database
+
+For ERROR entries the error will also be printed to stderr.
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("obj", false, true, "Cid of objects to verify."),
