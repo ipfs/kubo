@@ -1,6 +1,11 @@
 # go-ipfs changelog
 
-### 0.4.5
+### 0.4.5 - 2017-02-06
+
+#### Changes from rc1 to rc2
+- Fixed json output of ipld objects in `ipfs dag get` ([ipfs/go-ipfs#3655](https://github.com/ipfs/go-ipfs/pull/3655))
+
+#### Changes since 0.4.4
 
 - Notable changes
 	- IPLD and CIDs
