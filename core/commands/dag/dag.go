@@ -10,7 +10,7 @@ import (
 
 	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
-	ipldcbor "gx/ipfs/QmfMxth6d2po8YGrtSVyNb2u6SFNrPdAsWQoZG83oXRBqX/go-ipld-cbor"
+	ipldcbor "gx/ipfs/Qmf658QLDTXfRDgnGmUB6TYj671XjmHScG61p3g7dSxUcF/go-ipld-cbor"
 )
 
 var DagCmd = &cmds.Command{

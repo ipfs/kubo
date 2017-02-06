@@ -56,6 +56,19 @@ test_dag_cmd() {
 		ipfs refs -r --timeout=2s $EXPHASH > /dev/null
 	'
 
+	test_expect_success "can get object" '
+		ipfs dag get $IPLDHASH > ipld_obj_out
+	'
+
+	test_expect_success "object links look right" '
+		grep "{\"/\":\"" ipld_obj_out > /dev/null
+	'
+
+	test_expect_success "retreived object hashes back correctly" '
+		IPLDHASH2=$(cat ipld_obj_out | ipfs dag put) &&
+		test "$IPLDHASH" = "$IPLDHASH2"
+	'
+
 	test_expect_success "add a normal file" '
 		HASH=$(echo "foobar" | ipfs add -q)
 	'
