@@ -301,10 +301,10 @@
       "version": "3.3.0"
     }
   ],
-  "gxVersion": "0.4.0",
+  "gxVersion": "0.10.0",
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs",
-  "version": "0.4.5-rc1"
+  "version": "0.4.5-rc2"
 }
 
