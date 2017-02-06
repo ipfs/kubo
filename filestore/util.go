@@ -144,16 +144,7 @@ func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
 		if err == ds.ErrNotFound || err == blockstore.ErrNotFound {
 			status = StatusKeyNotFound
 		} else if err, ok := err.(*CorruptReferenceError); ok {
-			switch err.Code {
-			case FileError:
-				status = StatusFileError
-			case FileMissing:
-				status = StatusFileNotFound
-			case FileChanged:
-				status = StatusFileChanged
-			default:
-				status = StatusOtherError
-			}
+			status = err.Code
 		} else {
 			status = StatusOtherError
 		}
