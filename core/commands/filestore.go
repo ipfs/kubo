@@ -18,6 +18,7 @@ var FileStoreCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"ls":     lsFileStore,
 		"verify": verifyFileStore,
+		"dups":   dupsFileStore,
 	},
 }
 
@@ -157,6 +158,44 @@ For ERROR entries the error will also be printed to stderr.
 	Type: filestore.ListRes{},
 }
 
+var dupsFileStore = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Print block both in filestore and non-filestore.",
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		_, fs, err := getFilestore(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		ch, err := fs.FileManager().AllKeysChan(req.Context())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		out := make(chan interface{}, 128)
+		res.SetOutput((<-chan interface{})(out))
+
+		go func() {
+			defer close(out)
+			for cid := range ch {
+				have, err := fs.MainBlockstore().Has(cid)
+				if err != nil {
+					out <- &RefWrapper{Err: err.Error()}
+					return
+				}
+				if have {
+					out <- &RefWrapper{Ref: cid.String()}
+				}
+			}
+		}()
+	},
+	Marshalers: refsMarshallerMap,
+	Type:       RefWrapper{},
+}
+
+
 func getFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Filestore, error) {
 	n, err := req.InvocContext().GetNode()
 	if err != nil {
@@ -211,3 +250,4 @@ func perKeyActionToChan(args []string, action func(*cid.Cid) *filestore.ListRes,
 	}()
 	return out
 }
+

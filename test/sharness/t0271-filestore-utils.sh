@@ -115,6 +115,18 @@ test_filestore_verify() {
 	'
 }
 
+cat <<EOF > dups_expect
+$FILE1_HASH
+EOF
+
+test_filestore_dups() {
+	test_expect_success "'ipfs filestore dups'" '
+		ipfs add --raw-leaves somedir/file1 &&
+		ipfs filestore dups > dups_actual &&
+		test_cmp dups_expect dups_actual
+'
+}
+
 init_ipfs_filestore() {
 	test_expect_success "clean up old node" '
 		rm -rf "$IPFS_PATH" mountdir ipfs ipns
@@ -135,6 +147,8 @@ test_filestore_adds
 
 test_filestore_verify
 
+test_filestore_dups
+
 echo "WORKING DIR"
 echo "IPFS PATH = " $IPFS_PATH
 pwd
@@ -144,9 +158,15 @@ test_init_dataset
 
 init_ipfs_filestore
 
-test_launch_ipfs_daemon
+# must be in offline mode so tests of retrieving non-exist blocks
+# don't hang
+test_launch_ipfs_daemon --offline
 
 test_filestore_adds
+
+test_filestore_verify
+
+test_filestore_dups
 
 test_kill_ipfs_daemon
 
