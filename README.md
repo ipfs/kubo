@@ -27,6 +27,7 @@ Please put all issues regarding the Go IPFS _implementation_ in [this repo](http
 - [Security Issues](#security-issues)
 - [Install](#install)
   - [Install prebuilt packages](#install-prebuilt-packages)
+  - [From Linux package managers](#from-linux-package-managers)
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
@@ -63,6 +64,12 @@ From there:
 - Click the blue "Download go-ipfs" on the right side of the page.
 - Open/extract the archive.
 - Move `ipfs` to your path (`install.sh` can do it for you).
+
+### From Linux package managers
+
+With snap, in any of the [supported Linux distributions](https://snapcraft.io/docs/core/install):
+
+    $ sudo snap install ipfs
 
 ### Build from Source
 
