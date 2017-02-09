@@ -234,6 +234,10 @@ func makeSmuxTransport(mplexExp bool) smux.Transport {
 		LogOutput:              ioutil.Discard,
 	}
 
+	if os.Getenv("YAMUX_DEBUG") != "" {
+		ymxtpt.LogOutput = os.Stderr
+	}
+
 	mstpt.AddTransport("/yamux/1.0.0", ymxtpt)
 
 	mstpt.AddTransport("/spdy/3.1.0", spdy.Transport)
