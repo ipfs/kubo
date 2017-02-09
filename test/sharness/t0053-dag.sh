@@ -92,9 +92,8 @@ test_dag_cmd() {
 	'
 
 	test_expect_success "non-canonical cbor input is normalized" '
-	DATA="\xa2\x65\x61\x6c\x69\x6e\x6b\xd8\x2a\x58\x25\x00\x01\x71\x12\x20\x65\x96\x50\xfc\x34\x43\xc9\x16\x42\x80\x48\xef\xc5\xba\x45\x58\xdc\x86\x35\x94\x98\x0a\x59\xf5\xcb\x3c\x4d\x84\x86\x7e\x6d\x31\x63\x61\x72\x72\x80" 
-	HASH=$(echo "$DATA" | ipfs dag put --format=cbor --input-enc=raw) &&
-	test $HASH = "zdpuAyaAXrG12ax4EWuMxvFqBQuzwMGTW8C7NXAotCrcTnSXP" ||
+	HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=cbor --input-enc=raw) &&
+	test $HASH = "zdpuAmxF8q6iTUtkB3xtEYzmc5Sw762qwQJftt5iW8NTWLtjC" ||
 	test_fsh echo $HASH
 	'
 }
