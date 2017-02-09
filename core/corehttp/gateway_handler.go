@@ -16,15 +16,17 @@ import (
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	"github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
-	ft "github.com/ipfs/go-ipfs/unixfs"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	recpb "gx/ipfs/QmdM4ohF7cr4MvAECVeD3hRA3HtZrk1ngaek4n8ojVT87h/go-libp2p-record/pb"
 
+	namepb "github.com/ipfs/go-ipfs/namesys/pb"
+	"github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 	routing "gx/ipfs/QmbkGVaN9W6RYJK4Ws5FvMKXKDqdRQ5snhtaa92qP6L8eU/go-libp2p-routing"
-	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	"gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 const (
@@ -83,6 +85,29 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	if i.config.Authenticated {
+		if i.config.Username == "" || i.config.Password == "" {
+			cookie, err := r.Cookie("OpenBazaar_Auth_Cookie")
+			if err != nil {
+				w.WriteHeader(http.StatusForbidden)
+				fmt.Fprint(w, "403 - Forbidden")
+				return
+			}
+			if i.config.Cookie.Value != cookie.Value {
+				w.WriteHeader(http.StatusForbidden)
+				fmt.Fprint(w, "403 - Forbidden")
+				return
+			}
+		} else {
+			username, password, ok := r.BasicAuth()
+			if !ok || username != i.config.Username || password != i.config.Password {
+				w.WriteHeader(http.StatusForbidden)
+				fmt.Fprint(w, "403 - Forbidden")
+				return
+			}
+		}
+	}
+
 	if i.config.Writable {
 		switch r.Method {
 		case "POST":
@@ -130,6 +155,43 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 
 func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
+	// If this is an ipns query and the user passed in a blockchain ID handle, let's resolve it into a peer ID.
+	var paths []string = strings.Split(r.URL.Path, "/")
+	if paths[1] == "ipns" && paths[2][0:1] == "@" {
+		peerID, err := i.config.Resolver.Resolve(paths[2])
+		if err != nil {
+			webError(w, "Path Resolve error", err, http.StatusBadRequest)
+			return
+		}
+		r.URL.Path = strings.Replace(r.URL.Path, paths[2], peerID, 1)
+	}
+
+	unmodifiedURLPath := r.URL.Path
+
+	// If this is an ipns query let's check to see if it's using our own peer ID.
+	// If so let's resolve it locally instead of going out to the network.
+	var ownID bool = false
+	if paths[1] == "ipns" && paths[2] == i.node.Identity.Pretty() {
+		id := i.node.Identity
+		_, ipnskey := namesys.IpnsKeysForID(id)
+		ival, hasherr := i.node.Repo.Datastore().Get(dshelp.NewKeyFromBinary([]byte(ipnskey)))
+		if hasherr != nil {
+			webError(w, "Error fetching own IPNS mapping", hasherr, http.StatusInternalServerError)
+			return
+		}
+		val := ival.([]byte)
+		dhtrec := new(recpb.Record)
+		proto.Unmarshal(val, dhtrec)
+		e := new(namepb.IpnsEntry)
+		proto.Unmarshal(dhtrec.GetValue(), e)
+		pth := path.Path(e.Value).String()
+		for _, p := range paths[3:] {
+			pth += "/" + p
+		}
+		r.URL.Path = pth
+		ownID = true
+	}
+
 	urlPath := r.URL.Path
 
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
@@ -157,7 +219,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		originalUrlPath = prefix + hdr[0]
 		ipnsHostname = true
 	}
-
+	fmt.Println(urlPath)
 	dr, err := i.api.Cat(ctx, urlPath)
 	dir := false
 	switch err {
@@ -204,12 +266,13 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	// and only if it's /ipfs!
 	// TODO: break this out when we split /ipfs /ipns routes.
 	modtime := time.Now()
-	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
+	if strings.HasPrefix(unmodifiedURLPath, ipfsPathPrefix) {
 		w.Header().Set("Etag", etag)
 		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
-
 		// set modtime to a really long time ago, since files are immutable and should stay cached
 		modtime = time.Unix(1, 0)
+	} else if strings.HasPrefix(unmodifiedURLPath, ipnsPathPrefix) && !ownID { // cache ipns returns for 10 minutes
+		w.Header().Set("Cache-Control", "public, max-age=600, immutable")
 	}
 
 	if !dir {
@@ -326,111 +389,30 @@ func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter,
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO(cryptix): move me to ServeHTTP and pass into all handlers
-	ctx, cancel := context.WithCancel(i.node.Context())
-	defer cancel()
+	ctx, cancel := context.WithTimeout(i.node.Context(), time.Second*300)
 
-	rootPath, err := path.ParsePath(r.URL.Path)
-	if err != nil {
-		webError(w, "putHandler: IPFS path not valid", err, http.StatusBadRequest)
+	var paths []string = strings.Split(r.URL.Path, "/")
+	if paths[1] != "ipfs" {
+		webError(w, "Cannot put to IPNS", errors.New("Cannot put to IPNS"), http.StatusInternalServerError)
+		cancel()
+		return
+	}
+	if len(paths) != 3 {
+		webError(w, "Path must contain only one hash", errors.New("Path must contain only one hash"), http.StatusInternalServerError)
+		cancel()
 		return
 	}
 
-	rsegs := rootPath.Segments()
-	if rsegs[0] == ipnsPathPrefix {
-		webError(w, "putHandler: updating named entries not supported", errors.New("WritableGateway: ipns put not supported"), http.StatusBadRequest)
-		return
-	}
-
-	var newnode node.Node
-	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
-		newnode = ft.EmptyDirNode()
-	} else {
-		putNode, err := i.newDagFromReader(r.Body)
+	go func() {
+		k, err := cid.Decode(paths[2])
 		if err != nil {
-			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
 			return
 		}
-		newnode = putNode
-	}
+		dag.FetchGraph(ctx, k, i.node.DAG)
+	}()
 
-	var newPath string
-	if len(rsegs) > 1 {
-		newPath = path.Join(rsegs[2:])
-	}
-
-	var newcid *cid.Cid
-	rnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
-	switch ev := err.(type) {
-	case path.ErrNoLink:
-		// ev.Node < node where resolve failed
-		// ev.Name < new link
-		// but we need to patch from the root
-		c, err := cid.Decode(rsegs[1])
-		if err != nil {
-			webError(w, "putHandler: bad input path", err, http.StatusBadRequest)
-			return
-		}
-
-		rnode, err := i.node.DAG.Get(ctx, c)
-		if err != nil {
-			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
-			return
-		}
-
-		pbnd, ok := rnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
-		err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
-		if err != nil {
-			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
-			return
-		}
-
-		nnode, err := e.Finalize(i.node.DAG)
-		if err != nil {
-			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
-			return
-		}
-
-		newcid = nnode.Cid()
-
-	case nil:
-		pbnd, ok := rnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		pbnewnode, ok := newnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		// object set-data case
-		pbnd.SetData(pbnewnode.Data())
-
-		newcid, err = i.node.DAG.Add(pbnd)
-		if err != nil {
-			nnk := newnode.Cid()
-			rk := pbnd.Cid()
-			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), rk.String()), err, http.StatusInternalServerError)
-			return
-		}
-	default:
-		log.Warningf("putHandler: unhandled resolve error %T", ev)
-		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
-		return
-	}
-
-	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", newcid.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newcid.String(), newPath), http.StatusCreated)
+	i.addUserHeaders(w)
+	return
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
