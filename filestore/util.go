@@ -9,7 +9,6 @@ import (
 
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	dsq "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/query"
-	proto "gx/ipfs/QmT6n4mspWYEya864BhCUJEgyxiRfmiSY9ruQwTUNpRKaM/protobuf/proto"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 )
 
@@ -124,17 +123,12 @@ func next(qr dsq.Results) (*cid.Cid, *pb.DataObj, error) {
 		return nil, nil, fmt.Errorf("decoding cid from filestore: %s", err)
 	}
 
-	data, ok := v.Value.([]byte)
-	if !ok {
-		return c, nil, fmt.Errorf("stored filestore dataobj was not a []byte")
-	}
-
-	var dobj pb.DataObj
-	if err := proto.Unmarshal(data, &dobj); err != nil {
+	dobj, err := unmarshalDataObj(v.Value)
+	if err != nil {
 		return c, nil, err
 	}
 
-	return c, &dobj, nil
+	return c, dobj, nil
 }
 
 func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {

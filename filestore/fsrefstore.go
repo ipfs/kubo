@@ -109,6 +109,10 @@ func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
 		//
 	}
 
+	return unmarshalDataObj(o)
+}
+
+func unmarshalDataObj(o interface{}) (*pb.DataObj, error) {
 	data, ok := o.([]byte)
 	if !ok {
 		return nil, fmt.Errorf("stored filestore dataobj was not a []byte")
