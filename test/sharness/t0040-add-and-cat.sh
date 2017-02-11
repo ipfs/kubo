@@ -207,6 +207,20 @@ test_add_named_pipe() {
     '
 }
 
+test_add_sharded_dir() {
+	mkdir testdata
+	for i in `seq 2000`
+	do
+		echo $i > testdata/file$i
+	done
+
+	test_expect_success "ipfs add on very large directory succeeds" '
+		ipfs add -r -q testdata | tail -n1 > sharddir_out &&
+		echo QmSCJD1KYLhVVHqBK3YyXuoEqHt7vggyJhzoFYbT8v1XYL > sharddir_exp &&
+		test_cmp sharddir_exp sharddir_out
+	'
+}
+
 test_add_pwd_is_symlink() {
     test_expect_success "ipfs add -r adds directory content when ./ is symlink" '
       mkdir hellodir &&
@@ -439,6 +453,8 @@ test_kill_ipfs_daemon
 
 test_add_cat_file
 
+test_add_sharded_dir
+
 test_add_cat_raw
 
 test_expect_success "ipfs add --only-hash succeeds" '
@@ -458,6 +474,8 @@ test_add_pwd_is_symlink
 test_launch_ipfs_daemon --offline
 
 test_add_cat_file
+
+test_add_sharded_dir
 
 test_kill_ipfs_daemon
 
