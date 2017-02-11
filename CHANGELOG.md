@@ -1,6 +1,14 @@
 # go-ipfs changelog
 
-### 0.4.5 - 2017-02-06
+### 0.4.5 - 2017-02-11
+
+#### Changes from rc3 to rc4
+- Update to fixed webui. ([ipfs/go-ipfs#3669](https://github.com/ipfs/go-ipfs/pull/3669))
+
+#### Changes from rc2 to rc3
+- Fix handling of null arrays in cbor ipld objects.  ([ipfs/go-ipfs#3666](https://github.com/ipfs/go-ipfs/pull/3666))
+- Add env var to enable yamux debug logging.  ([ipfs/go-ipfs#3668](https://github.com/ipfs/go-ipfs/pull/3668))
+- Fix libc check during auto-migrations.  ([ipfs/go-ipfs#3665](https://github.com/ipfs/go-ipfs/pull/3665))
 
 #### Changes from rc1 to rc2
 - Fixed json output of ipld objects in `ipfs dag get` ([ipfs/go-ipfs#3655](https://github.com/ipfs/go-ipfs/pull/3655))
