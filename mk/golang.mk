@@ -14,7 +14,7 @@ go-pkg-name=$(shell go list $(go-tags) ./$(1))
 go-main-name=$(notdir $(call go-pkg-name,$(1)))$(?exe)
 go-curr-pkg-tgt=$(d)/$(call go-main-name,$(d))
 
-go-tags=$(if $(GOTAGS), -tags $(call join-with,$(comma),$(GOTAGS)))
+go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
 go-flags-with-tags=$(GOFLAGS)$(go-tags)
 
 define go-build
