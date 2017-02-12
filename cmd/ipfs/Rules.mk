@@ -12,6 +12,8 @@ PATH := $(realpath $(d)):$(PATH)
 # DEPS_OO_$(d) += merkledag/pb/merkledag.pb.go namesys/pb/namesys.pb.go
 # DEPS_OO_$(d) += pin/internal/pb/header.pb.go unixfs/pb/unixfs.pb.go
 
+$(IPFS_BIN_$(d)): GOFLAGS += -ldflags="-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(shell git rev-parse --short HEAD)"
+
 # uses second expansion to collect all $(DEPS_GO)
 $(IPFS_BIN_$(d)): $(d) $$(DEPS_GO) ALWAYS #| $(DEPS_OO_$(d))
 	$(go-build)
