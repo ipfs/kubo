@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	debug  = flag.Bool("debug", false, "direct IPFS output to console")
+	debug  = flag.Bool("debug", false, "direct ipfs output to console")
 	online = flag.Bool("online", false, "run the benchmarks with a running daemon")
 )
 

@@ -9,7 +9,22 @@ test_description="Test HTTP Gateway (Writable)"
 . lib/test-lib.sh
 
 test_init_ipfs
+
+test_launch_ipfs_daemon --writable
+test_expect_success "ipfs daemon --writable overrides config" '
+  curl -v -X POST http://$GWAY_ADDR/ipfs/ 2> outfile &&
+  grep "HTTP/1.1 201 Created" outfile &&
+  grep "Location: /ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH" outfile
+'
+test_kill_ipfs_daemon
+
 test_config_ipfs_gateway_writable
+test_launch_ipfs_daemon --writable=false
+test_expect_success "ipfs daemon --writable=false overrides Writable=true config" '
+  curl -v -X POST http://$GWAY_ADDR/ipfs/ 2> outfile &&
+  grep "HTTP/1.1 405 Method Not Allowed" outfile
+'
+test_kill_ipfs_daemon
 test_launch_ipfs_daemon
 
 port=$GWAY_PORT

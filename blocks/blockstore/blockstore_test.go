@@ -2,34 +2,36 @@ package blockstore
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dsq "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/query"
-	ds_sync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	blocks "github.com/ipfs/go-ipfs/blocks"
-	key "github.com/ipfs/go-ipfs/blocks/key"
-)
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
-// TODO(brian): TestGetReturnsNil
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	dsq "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/query"
+	ds_sync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+)
 
 func TestGetWhenKeyNotPresent(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
-	_, err := bs.Get(key.Key("not present"))
+	c := cid.NewCidV0(u.Hash([]byte("stuff")))
+	bl, err := bs.Get(c)
 
-	if err != nil {
-		t.Log("As expected, block is not present")
-		return
+	if bl != nil {
+		t.Error("nil block expected")
 	}
-	t.Fail()
+	if err == nil {
+		t.Error("error expected, got nil")
+	}
 }
 
-func TestGetWhenKeyIsEmptyString(t *testing.T) {
+func TestGetWhenKeyIsNil(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
-	_, err := bs.Get(key.Key(""))
+	_, err := bs.Get(nil)
 	if err != ErrNotFound {
 		t.Fail()
 	}
@@ -44,51 +46,62 @@ func TestPutThenGetBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	blockFromBlockstore, err := bs.Get(block.Key())
+	blockFromBlockstore, err := bs.Get(block.Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(block.Data(), blockFromBlockstore.Data()) {
+	if !bytes.Equal(block.RawData(), blockFromBlockstore.RawData()) {
 		t.Fail()
 	}
 }
 
-func TestRuntimeHashing(t *testing.T) {
+func TestHashOnRead(t *testing.T) {
+	orginalDebug := u.Debug
+	defer (func() {
+		u.Debug = orginalDebug
+	})()
+	u.Debug = false
+
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	bl := blocks.NewBlock([]byte("some data"))
-	blBad, err := blocks.NewBlockWithHash([]byte("some other data"), bl.Key().ToMultihash())
+	blBad, err := blocks.NewBlockWithCid([]byte("some other data"), bl.Cid())
 	if err != nil {
-		t.Fatal("Debug is enabled")
+		t.Fatal("debug is off, still got an error")
+	}
+	bl2 := blocks.NewBlock([]byte("some other data"))
+	bs.Put(blBad)
+	bs.Put(bl2)
+	bs.HashOnRead(true)
+
+	if _, err := bs.Get(bl.Cid()); err != ErrHashMismatch {
+		t.Fatalf("expected '%v' got '%v'\n", ErrHashMismatch, err)
 	}
 
-	bs.Put(blBad)
-	bs.RuntimeHashing(true)
-
-	if _, err := bs.Get(bl.Key()); err != ErrHashMismatch {
-		t.Fatalf("Expected '%v' got '%v'\n", ErrHashMismatch, err)
+	if b, err := bs.Get(bl2.Cid()); err != nil || b.String() != bl2.String() {
+		t.Fatal("got wrong blocks")
 	}
 }
 
-func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []key.Key) {
+func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []*cid.Cid) {
 	if d == nil {
 		d = ds.NewMapDatastore()
 	}
 	bs := NewBlockstore(ds_sync.MutexWrap(d))
 
-	keys := make([]key.Key, N)
+	keys := make([]*cid.Cid, N)
 	for i := 0; i < N; i++ {
 		block := blocks.NewBlock([]byte(fmt.Sprintf("some data %d", i)))
 		err := bs.Put(block)
 		if err != nil {
 			t.Fatal(err)
 		}
-		keys[i] = block.Key()
+		keys[i] = block.Cid()
 	}
 	return bs, keys
 }
 
-func collect(ch <-chan key.Key) []key.Key {
-	var keys []key.Key
+func collect(ch <-chan *cid.Cid) []*cid.Cid {
+	var keys []*cid.Cid
 	for k := range ch {
 		keys = append(keys, k)
 	}
@@ -177,18 +190,18 @@ func TestValueTypeMismatch(t *testing.T) {
 	block := blocks.NewBlock([]byte("some data"))
 
 	datastore := ds.NewMapDatastore()
-	k := BlockPrefix.Child(block.Key().DsKey())
+	k := BlockPrefix.Child(dshelp.CidToDsKey(block.Cid()))
 	datastore.Put(k, "data that isn't a block!")
 
 	blockstore := NewBlockstore(ds_sync.MutexWrap(datastore))
 
-	_, err := blockstore.Get(block.Key())
+	_, err := blockstore.Get(block.Cid())
 	if err != ValueTypeMismatch {
 		t.Fatal(err)
 	}
 }
 
-func expectMatches(t *testing.T, expect, actual []key.Key) {
+func expectMatches(t *testing.T, expect, actual []*cid.Cid) {
 
 	if len(expect) != len(actual) {
 		t.Errorf("expect and actual differ: %d != %d", len(expect), len(actual))
@@ -196,7 +209,7 @@ func expectMatches(t *testing.T, expect, actual []key.Key) {
 	for _, ek := range expect {
 		found := false
 		for _, ak := range actual {
-			if ek == ak {
+			if ek.Equals(ak) {
 				found = true
 			}
 		}

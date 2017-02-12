@@ -8,13 +8,13 @@ import (
 	"os"
 	"path"
 
+	context "context"
 	assets "github.com/ipfs/go-ipfs/assets"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 const (
@@ -23,9 +23,9 @@ const (
 
 var initCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Initializes IPFS config file.",
+		Tagline: "Initializes ipfs config file.",
 		ShortDescription: `
-Initializes IPFS configuration files and generates a new keypair.
+Initializes ipfs configuration files and generates a new keypair.
 
 ipfs uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
@@ -112,7 +112,7 @@ func initWithDefaults(out io.Writer, repoRoot string) error {
 }
 
 func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, conf *config.Config) error {
-	if _, err := fmt.Fprintf(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
+	if _, err := fmt.Fprintf(out, "initializing IPFS node at %s\n", repoRoot); err != nil {
 		return err
 	}
 

@@ -1,4 +1,4 @@
-// package blocks contains the lowest level of ipfs data structures,
+// package blocks contains the lowest level of IPFS data structures,
 // the raw block with a checksum.
 package blocks
 
@@ -6,62 +6,67 @@ import (
 	"errors"
 	"fmt"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
+var ErrWrongHash = errors.New("data did not match given hash!")
+
 type Block interface {
-	Multihash() mh.Multihash
-	Data() []byte
-	Key() key.Key
+	RawData() []byte
+	Cid() *cid.Cid
 	String() string
 	Loggable() map[string]interface{}
 }
 
 // Block is a singular block of data in ipfs
 type BasicBlock struct {
-	multihash mh.Multihash
-	data      []byte
+	cid  *cid.Cid
+	data []byte
 }
 
 // NewBlock creates a Block object from opaque data. It will hash the data.
 func NewBlock(data []byte) *BasicBlock {
-	return &BasicBlock{data: data, multihash: u.Hash(data)}
+	// TODO: fix assumptions
+	return &BasicBlock{data: data, cid: cid.NewCidV0(u.Hash(data))}
 }
 
 // NewBlockWithHash creates a new block when the hash of the data
 // is already known, this is used to save time in situations where
 // we are able to be confident that the data is correct
-func NewBlockWithHash(data []byte, h mh.Multihash) (*BasicBlock, error) {
+func NewBlockWithCid(data []byte, c *cid.Cid) (*BasicBlock, error) {
 	if u.Debug {
-		chk := u.Hash(data)
-		if string(chk) != string(h) {
-			return nil, errors.New("Data did not match given hash!")
+		chkc, err := c.Prefix().Sum(data)
+		if err != nil {
+			return nil, err
+		}
+
+		if !chkc.Equals(c) {
+			return nil, ErrWrongHash
 		}
 	}
-	return &BasicBlock{data: data, multihash: h}, nil
+	return &BasicBlock{data: data, cid: c}, nil
 }
 
 func (b *BasicBlock) Multihash() mh.Multihash {
-	return b.multihash
+	return b.cid.Hash()
 }
 
-func (b *BasicBlock) Data() []byte {
+func (b *BasicBlock) RawData() []byte {
 	return b.data
 }
 
-// Key returns the block's Multihash as a Key value.
-func (b *BasicBlock) Key() key.Key {
-	return key.Key(b.multihash)
+func (b *BasicBlock) Cid() *cid.Cid {
+	return b.cid
 }
 
 func (b *BasicBlock) String() string {
-	return fmt.Sprintf("[Block %s]", b.Key())
+	return fmt.Sprintf("[Block %s]", b.Cid())
 }
 
 func (b *BasicBlock) Loggable() map[string]interface{} {
 	return map[string]interface{}{
-		"block": b.Key().String(),
+		"block": b.Cid().String(),
 	}
 }

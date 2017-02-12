@@ -52,7 +52,7 @@ unarchive() {
 		tar.gz)
 			if have_binary tar; then
 				echo "==> using 'tar' to extract binary from archive"
-				cat "$ua_infile" | tar -O -z -x "$ua_distname/$ua_distname" > "$ua_outfile"
+				cat "$ua_infile" | tar -O -z -x -f - "$ua_distname/$ua_distname" > "$ua_outfile"
 			else
 				die "no binary on system for extracting tar files"
 			fi
@@ -75,9 +75,7 @@ unarchive() {
 get_go_vars() {
 	if [ ! -z "$GOOS" ] && [ ! -z "$GOARCH" ]; then
 		printf "%s-%s" "$GOOS" "$GOARCH"
-	fi
-
-	if have_binary go; then
+	elif have_binary go; then
 		printf "%s-%s" "$(go env GOOS)" "$(go env GOARCH)"
 	else
 		die "no way of determining system GOOS and GOARCH\nPlease manually set GOOS and GOARCH then retry."

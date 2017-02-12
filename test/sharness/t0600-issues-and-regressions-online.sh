@@ -27,6 +27,12 @@ test_expect_success "no panic traces on daemon" '
 	test_must_fail grep "nil pointer dereference" daemon_err
 '
 
+test_expect_success "metrics work" '
+	curl "$API_ADDR/debug/metrics/prometheus" > pro_data &&
+	grep "ipfs_bs_cache_arc_hits_total" < pro_data ||
+	test_fsh cat pro_data
+'
+
 test_kill_ipfs_daemon
 
 test_expect_success "ipfs daemon --offline --mount fails - #2995" '

@@ -12,8 +12,8 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 var log = logging.Logger("commands/cli")
@@ -36,27 +36,6 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		return nil, cmd, path, err
 	}
 
-	// if -r is provided, and it is associated with the package builtin
-	// recursive path option, allow recursive file paths
-	recursiveOpt := req.Option(cmds.RecShort)
-	recursive := false
-	if recursiveOpt != nil && recursiveOpt.Definition() == cmds.OptionRecursivePath {
-		recursive, _, err = recursiveOpt.Bool()
-		if err != nil {
-			return req, nil, nil, u.ErrCast()
-		}
-	}
-
-	// if '--hidden' is provided, enumerate hidden paths
-	hiddenOpt := req.Option("hidden")
-	hidden := false
-	if hiddenOpt != nil {
-		hidden, _, err = hiddenOpt.Bool()
-		if err != nil {
-			return req, nil, nil, u.ErrCast()
-		}
-	}
-
 	// This is an ugly hack to maintain our current CLI interface while fixing
 	// other stdin usage bugs. Let this serve as a warning, be careful about the
 	// choices you make, they will haunt you forever.
@@ -67,7 +46,7 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		}
 	}
 
-	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive, hidden, root)
+	stringArgs, fileArgs, err := ParseArgs(req, stringVals, stdin, cmd.Arguments, root)
 	if err != nil {
 		return req, cmd, path, err
 	}
@@ -84,6 +63,32 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	}
 
 	return req, cmd, path, nil
+}
+
+func ParseArgs(req cmds.Request, inputs []string, stdin *os.File, argDefs []cmds.Argument, root *cmds.Command) ([]string, []files.File, error) {
+	var err error
+
+	// if -r is provided, and it is associated with the package builtin
+	// recursive path option, allow recursive file paths
+	recursiveOpt := req.Option(cmds.RecShort)
+	recursive := false
+	if recursiveOpt != nil && recursiveOpt.Definition() == cmds.OptionRecursivePath {
+		recursive, _, err = recursiveOpt.Bool()
+		if err != nil {
+			return nil, nil, u.ErrCast()
+		}
+	}
+
+	// if '--hidden' is provided, enumerate hidden paths
+	hiddenOpt := req.Option("hidden")
+	hidden := false
+	if hiddenOpt != nil {
+		hidden, _, err = hiddenOpt.Bool()
+		if err != nil {
+			return nil, nil, u.ErrCast()
+		}
+	}
+	return parseArgs(inputs, stdin, argDefs, recursive, hidden, root)
 }
 
 // Parse a command line made up of sub-commands, short arguments, long arguments and positional arguments

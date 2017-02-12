@@ -6,8 +6,8 @@ import (
 	"path"
 	"time"
 
+	cxt "context"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	cxt "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -34,7 +34,7 @@ func NewWriter(ctx cxt.Context, dag mdag.DAGService, archive bool, compression i
 	}, nil
 }
 
-func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
+func (w *Writer) writeDir(nd *mdag.ProtoNode, fpath string) error {
 	if err := writeDirHeader(w.TarW, fpath); err != nil {
 		return err
 	}
@@ -45,8 +45,13 @@ func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
 			return err
 		}
 
-		npath := path.Join(fpath, nd.Links[i].Name)
-		if err := w.WriteNode(child, npath); err != nil {
+		childpb, ok := child.(*mdag.ProtoNode)
+		if !ok {
+			return mdag.ErrNotProtobuf
+		}
+
+		npath := path.Join(fpath, nd.Links()[i].Name)
+		if err := w.WriteNode(childpb, npath); err != nil {
 			return err
 		}
 	}
@@ -54,12 +59,12 @@ func (w *Writer) writeDir(nd *mdag.Node, fpath string) error {
 	return nil
 }
 
-func (w *Writer) writeFile(nd *mdag.Node, pb *upb.Data, fpath string) error {
+func (w *Writer) writeFile(nd *mdag.ProtoNode, pb *upb.Data, fpath string) error {
 	if err := writeFileHeader(w.TarW, fpath, pb.GetFilesize()); err != nil {
 		return err
 	}
 
-	dagr := uio.NewDataFileReader(w.ctx, nd, pb, w.Dag)
+	dagr := uio.NewPBFileReader(w.ctx, nd, pb, w.Dag)
 	if _, err := dagr.WriteTo(w.TarW); err != nil {
 		return err
 	}
@@ -67,7 +72,7 @@ func (w *Writer) writeFile(nd *mdag.Node, pb *upb.Data, fpath string) error {
 	return nil
 }
 
-func (w *Writer) WriteNode(nd *mdag.Node, fpath string) error {
+func (w *Writer) WriteNode(nd *mdag.ProtoNode, fpath string) error {
 	pb := new(upb.Data)
 	if err := proto.Unmarshal(nd.Data(), pb); err != nil {
 		return err

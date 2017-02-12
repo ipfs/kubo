@@ -5,12 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dssync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	core "github.com/ipfs/go-ipfs/core"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
@@ -19,7 +14,12 @@ import (
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+
+	context "context"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	dssync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 func getDagserv(t *testing.T) merkledag.DAGService {
@@ -41,10 +41,7 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	k, err := nd.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	c := nd.Cid()
 
 	m := new(ft.Metadata)
 	m.MimeType = "THIS IS A TEST"
@@ -52,7 +49,7 @@ func TestMetadata(t *testing.T) {
 	// Such effort, many compromise
 	ipfsnode := &core.IpfsNode{DAG: ds}
 
-	mdk, err := AddMetadataTo(ipfsnode, k.B58String(), m)
+	mdk, err := AddMetadataTo(ipfsnode, c.String(), m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,12 +62,22 @@ func TestMetadata(t *testing.T) {
 		t.Fatalf("something went wrong in conversion: '%s' != '%s'", rec.MimeType, m.MimeType)
 	}
 
-	retnode, err := ds.Get(ctx, key.B58KeyDecode(mdk))
+	cdk, err := cid.Decode(mdk)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ndr, err := uio.NewDagReader(ctx, retnode, ds)
+	retnode, err := ds.Get(ctx, cdk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rtnpb, ok := retnode.(*merkledag.ProtoNode)
+	if !ok {
+		t.Fatal("expected protobuf node")
+	}
+
+	ndr, err := uio.NewDagReader(ctx, rtnpb, ds)
 	if err != nil {
 		t.Fatal(err)
 	}

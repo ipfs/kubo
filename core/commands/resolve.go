@@ -8,7 +8,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	ns "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 type ResolvedPath struct {
@@ -99,19 +99,15 @@ Resolve the value of an IPFS DAG path:
 			return
 		}
 
-		node, err := core.Resolve(req.Context(), n, p)
+		node, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		key, err := node.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		c := node.Cid()
 
-		res.SetOutput(&ResolvedPath{path.FromKey(key)})
+		res.SetOutput(&ResolvedPath{path.FromCid(c)})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

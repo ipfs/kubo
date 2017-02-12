@@ -1,97 +1,60 @@
 package merkledag
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	mh "gx/ipfs/QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku/go-multihash"
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
+	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
+var ErrNotProtobuf = fmt.Errorf("expected protobuf dag node")
 var ErrLinkNotFound = fmt.Errorf("no link by that name")
 
 // Node represents a node in the IPFS Merkle DAG.
 // nodes have opaque data and a set of navigable links.
-type Node struct {
-	Links []*Link
+type ProtoNode struct {
+	links []*node.Link
 	data  []byte
 
 	// cache encoded/marshaled value
 	encoded []byte
 
-	cached mh.Multihash
+	cached *cid.Cid
+
+	// Prefix specifies cid version and hashing function
+	Prefix cid.Prefix
 }
 
-// NodeStat is a statistics object for a Node. Mostly sizes.
-type NodeStat struct {
-	Hash           string
-	NumLinks       int // number of links in link table
-	BlockSize      int // size of the raw, encoded data
-	LinksSize      int // size of the links segment
-	DataSize       int // size of the data segment
-	CumulativeSize int // cumulative size of object and its references
+var defaultCidPrefix = cid.Prefix{
+	Codec:    cid.DagProtobuf,
+	MhLength: -1,
+	MhType:   mh.SHA2_256,
+	Version:  0,
 }
 
-func (ns NodeStat) String() string {
-	f := "NodeStat{NumLinks: %d, BlockSize: %d, LinksSize: %d, DataSize: %d, CumulativeSize: %d}"
-	return fmt.Sprintf(f, ns.NumLinks, ns.BlockSize, ns.LinksSize, ns.DataSize, ns.CumulativeSize)
-}
-
-// Link represents an IPFS Merkle DAG Link between Nodes.
-type Link struct {
-	// utf string name. should be unique per object
-	Name string // utf8
-
-	// cumulative size of target object
-	Size uint64
-
-	// multihash of the target object
-	Hash mh.Multihash
-}
-
-type LinkSlice []*Link
+type LinkSlice []*node.Link
 
 func (ls LinkSlice) Len() int           { return len(ls) }
 func (ls LinkSlice) Swap(a, b int)      { ls[a], ls[b] = ls[b], ls[a] }
 func (ls LinkSlice) Less(a, b int) bool { return ls[a].Name < ls[b].Name }
 
-// MakeLink creates a link to the given node
-func MakeLink(n *Node) (*Link, error) {
-	s, err := n.Size()
-	if err != nil {
-		return nil, err
-	}
-
-	h, err := n.Multihash()
-	if err != nil {
-		return nil, err
-	}
-	return &Link{
-		Size: s,
-		Hash: h,
-	}, nil
-}
-
-// GetNode returns the MDAG Node that this link points to
-func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
-	return serv.Get(ctx, key.Key(l.Hash))
-}
-
-func NodeWithData(d []byte) *Node {
-	return &Node{data: d}
+func NodeWithData(d []byte) *ProtoNode {
+	return &ProtoNode{data: d}
 }
 
 // AddNodeLink adds a link to another node.
-func (n *Node) AddNodeLink(name string, that *Node) error {
+func (n *ProtoNode) AddNodeLink(name string, that node.Node) error {
 	n.encoded = nil
 
-	lnk, err := MakeLink(that)
-
-	lnk.Name = name
+	lnk, err := node.MakeLink(that)
 	if err != nil {
 		return err
 	}
+
+	lnk.Name = name
 
 	n.AddRawLink(name, lnk)
 
@@ -100,9 +63,9 @@ func (n *Node) AddNodeLink(name string, that *Node) error {
 
 // AddNodeLinkClean adds a link to another node. without keeping a reference to
 // the child node
-func (n *Node) AddNodeLinkClean(name string, that *Node) error {
+func (n *ProtoNode) AddNodeLinkClean(name string, that node.Node) error {
 	n.encoded = nil
-	lnk, err := MakeLink(that)
+	lnk, err := node.MakeLink(that)
 	if err != nil {
 		return err
 	}
@@ -112,31 +75,31 @@ func (n *Node) AddNodeLinkClean(name string, that *Node) error {
 }
 
 // AddRawLink adds a copy of a link to this node
-func (n *Node) AddRawLink(name string, l *Link) error {
+func (n *ProtoNode) AddRawLink(name string, l *node.Link) error {
 	n.encoded = nil
-	n.Links = append(n.Links, &Link{
+	n.links = append(n.links, &node.Link{
 		Name: name,
 		Size: l.Size,
-		Hash: l.Hash,
+		Cid:  l.Cid,
 	})
 
 	return nil
 }
 
 // Remove a link on this node by the given name
-func (n *Node) RemoveNodeLink(name string) error {
+func (n *ProtoNode) RemoveNodeLink(name string) error {
 	n.encoded = nil
-	good := make([]*Link, 0, len(n.Links))
+	good := make([]*node.Link, 0, len(n.links))
 	var found bool
 
-	for _, l := range n.Links {
+	for _, l := range n.links {
 		if l.Name != name {
 			good = append(good, l)
 		} else {
 			found = true
 		}
 	}
-	n.Links = good
+	n.links = good
 
 	if !found {
 		return ErrNotFound
@@ -146,20 +109,34 @@ func (n *Node) RemoveNodeLink(name string) error {
 }
 
 // Return a copy of the link with given name
-func (n *Node) GetNodeLink(name string) (*Link, error) {
-	for _, l := range n.Links {
+func (n *ProtoNode) GetNodeLink(name string) (*node.Link, error) {
+	for _, l := range n.links {
 		if l.Name == name {
-			return &Link{
+			return &node.Link{
 				Name: l.Name,
 				Size: l.Size,
-				Hash: l.Hash,
+				Cid:  l.Cid,
 			}, nil
 		}
 	}
 	return nil, ErrLinkNotFound
 }
 
-func (n *Node) GetLinkedNode(ctx context.Context, ds DAGService, name string) (*Node, error) {
+func (n *ProtoNode) GetLinkedProtoNode(ctx context.Context, ds DAGService, name string) (*ProtoNode, error) {
+	nd, err := n.GetLinkedNode(ctx, ds, name)
+	if err != nil {
+		return nil, err
+	}
+
+	pbnd, ok := nd.(*ProtoNode)
+	if !ok {
+		return nil, ErrNotProtobuf
+	}
+
+	return pbnd, nil
+}
+
+func (n *ProtoNode) GetLinkedNode(ctx context.Context, ds DAGService, name string) (node.Node, error) {
 	lnk, err := n.GetNodeLink(name)
 	if err != nil {
 		return nil, err
@@ -170,25 +147,30 @@ func (n *Node) GetLinkedNode(ctx context.Context, ds DAGService, name string) (*
 
 // Copy returns a copy of the node.
 // NOTE: Does not make copies of Node objects in the links.
-func (n *Node) Copy() *Node {
-	nnode := new(Node)
+func (n *ProtoNode) Copy() node.Node {
+	nnode := new(ProtoNode)
 	if len(n.data) > 0 {
 		nnode.data = make([]byte, len(n.data))
 		copy(nnode.data, n.data)
 	}
 
-	if len(n.Links) > 0 {
-		nnode.Links = make([]*Link, len(n.Links))
-		copy(nnode.Links, n.Links)
+	if len(n.links) > 0 {
+		nnode.links = make([]*node.Link, len(n.links))
+		copy(nnode.links, n.links)
 	}
 	return nnode
 }
 
-func (n *Node) Data() []byte {
+func (n *ProtoNode) RawData() []byte {
+	out, _ := n.EncodeProtobuf(false)
+	return out
+}
+
+func (n *ProtoNode) Data() []byte {
 	return n.data
 }
 
-func (n *Node) SetData(d []byte) {
+func (n *ProtoNode) SetData(d []byte) {
 	n.encoded = nil
 	n.cached = nil
 	n.data = d
@@ -196,8 +178,8 @@ func (n *Node) SetData(d []byte) {
 
 // UpdateNodeLink return a copy of the node with the link name set to point to
 // that. If a link of the same name existed, it is removed.
-func (n *Node) UpdateNodeLink(name string, that *Node) (*Node, error) {
-	newnode := n.Copy()
+func (n *ProtoNode) UpdateNodeLink(name string, that *ProtoNode) (*ProtoNode, error) {
+	newnode := n.Copy().(*ProtoNode)
 	err := newnode.RemoveNodeLink(name)
 	err = nil // ignore error
 	err = newnode.AddNodeLink(name, that)
@@ -206,21 +188,21 @@ func (n *Node) UpdateNodeLink(name string, that *Node) (*Node, error) {
 
 // Size returns the total size of the data addressed by node,
 // including the total sizes of references.
-func (n *Node) Size() (uint64, error) {
+func (n *ProtoNode) Size() (uint64, error) {
 	b, err := n.EncodeProtobuf(false)
 	if err != nil {
 		return 0, err
 	}
 
 	s := uint64(len(b))
-	for _, l := range n.Links {
+	for _, l := range n.links {
 		s += l.Size
 	}
 	return s, nil
 }
 
 // Stat returns statistics on the node.
-func (n *Node) Stat() (*NodeStat, error) {
+func (n *ProtoNode) Stat() (*node.NodeStat, error) {
 	enc, err := n.EncodeProtobuf(false)
 	if err != nil {
 		return nil, err
@@ -231,14 +213,9 @@ func (n *Node) Stat() (*NodeStat, error) {
 		return nil, err
 	}
 
-	key, err := n.Key()
-	if err != nil {
-		return nil, err
-	}
-
-	return &NodeStat{
-		Hash:           key.B58String(),
-		NumLinks:       len(n.Links),
+	return &node.NodeStat{
+		Hash:           n.Cid().String(),
+		NumLinks:       len(n.links),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.data), // includes framing.
 		DataSize:       len(n.data),
@@ -246,19 +223,107 @@ func (n *Node) Stat() (*NodeStat, error) {
 	}, nil
 }
 
+func (n *ProtoNode) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"node": n.String(),
+	}
+}
+
+func (n *ProtoNode) UnmarshalJSON(b []byte) error {
+	s := struct {
+		Data  []byte       `json:"data"`
+		Links []*node.Link `json:"links"`
+	}{}
+
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
+
+	n.data = s.Data
+	n.links = s.Links
+	return nil
+}
+
+func (n *ProtoNode) MarshalJSON() ([]byte, error) {
+	out := map[string]interface{}{
+		"data":  n.data,
+		"links": n.links,
+	}
+
+	return json.Marshal(out)
+}
+
+func (n *ProtoNode) Cid() *cid.Cid {
+	if n.encoded != nil && n.cached != nil {
+		return n.cached
+	}
+
+	if n.Prefix.Codec == 0 {
+		n.Prefix = defaultCidPrefix
+	}
+
+	c, err := n.Prefix.Sum(n.RawData())
+	if err != nil {
+		// programmer error
+		panic(err)
+	}
+
+	n.cached = c
+	return c
+}
+
+func (n *ProtoNode) String() string {
+	return n.Cid().String()
+}
+
 // Multihash hashes the encoded data of this node.
-func (n *Node) Multihash() (mh.Multihash, error) {
+func (n *ProtoNode) Multihash() mh.Multihash {
 	// NOTE: EncodeProtobuf generates the hash and puts it in n.cached.
 	_, err := n.EncodeProtobuf(false)
 	if err != nil {
-		return nil, err
+		// Note: no possibility exists for an error to be returned through here
+		panic(err)
 	}
 
-	return n.cached, nil
+	return n.cached.Hash()
 }
 
-// Key returns the Multihash as a key, for maps.
-func (n *Node) Key() (key.Key, error) {
-	h, err := n.Multihash()
-	return key.Key(h), err
+func (n *ProtoNode) Links() []*node.Link {
+	return n.links
+}
+
+func (n *ProtoNode) SetLinks(links []*node.Link) {
+	n.links = links
+}
+
+func (n *ProtoNode) Resolve(path []string) (interface{}, []string, error) {
+	return n.ResolveLink(path)
+}
+
+func (n *ProtoNode) ResolveLink(path []string) (*node.Link, []string, error) {
+	if len(path) == 0 {
+		return nil, nil, fmt.Errorf("end of path, no more links to resolve")
+	}
+
+	lnk, err := n.GetNodeLink(path[0])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return lnk, path[1:], nil
+}
+
+func (n *ProtoNode) Tree(p string, depth int) []string {
+	// ProtoNodes are only ever one path deep, anything below that results in
+	// nothing
+	if p != "" {
+		return nil
+	}
+
+	out := make([]string, 0, len(n.links))
+	for _, lnk := range n.links {
+		out = append(out, lnk.Name)
+	}
+	return out
 }

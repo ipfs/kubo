@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -11,14 +12,15 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
-	id "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/protocol/identify"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	id "gx/ipfs/QmdzDdLZ7nj133QvNHypyS9Y39g35bMFk5DJ2pmX7YqtKU/go-libp2p/p2p/protocol/identify"
+	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
 type mockNamesys map[string]path.Path
@@ -104,7 +106,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, *core
 		ts.Listener,
 		VersionOption(),
 		IPNSHostnameOption(),
-		GatewayOption("/ipfs", "/ipns"),
+		GatewayOption(false, "/ipfs", "/ipns"),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -134,7 +136,7 @@ func TestGatewayGet(t *testing.T) {
 		{"localhost:5001", "/", http.StatusNotFound, "404 page not found\n"},
 		{"localhost:5001", "/" + k, http.StatusNotFound, "404 page not found\n"},
 		{"localhost:5001", "/ipfs/" + k, http.StatusOK, "fnord"},
-		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusBadRequest, "Path Resolve error: " + namesys.ErrResolveFailed.Error()},
+		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusInternalServerError, "Path Resolve error: " + namesys.ErrResolveFailed.Error()},
 		{"localhost:5001", "/ipns/example.com", http.StatusOK, "fnord"},
 		{"example.com", "/", http.StatusOK, "fnord"},
 	} {
@@ -178,11 +180,13 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	_, dagn2, err := coreunix.AddWrapped(n, strings.NewReader("_"), "index.html")
 	if err != nil {
 		t.Fatal(err)
 	}
-	dagn1.AddNodeLink("foo", dagn2)
+
+	dagn1.(*dag.ProtoNode).AddNodeLink("foo", dagn2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,10 +201,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	k, err := dagn1.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	k := dagn1.Cid()
 	t.Logf("k: %s\n", k)
 	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
 
@@ -271,8 +272,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dagn2.AddNodeLink("bar", dagn3)
-	dagn1.AddNodeLink("foo? #<'", dagn2)
+	dagn2.(*dag.ProtoNode).AddNodeLink("bar", dagn3)
+	dagn1.(*dag.ProtoNode).AddNodeLink("foo? #<'", dagn2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,10 +291,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	k, err := dagn1.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	k := dagn1.Cid()
 	t.Logf("k: %s\n", k)
 	ns["/ipns/example.net"] = path.FromString("/ipfs/" + k.String())
 

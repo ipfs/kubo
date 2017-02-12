@@ -6,6 +6,14 @@ import (
 	"testing"
 )
 
+func TestBasicFilter(t *testing.T) {
+	f := BasicFilter().(*filter)
+
+	if len(f.filter) != 2048 {
+		t.Fatal("basic filter should have length 2048, has:", len(f.filter))
+	}
+}
+
 func TestFilter(t *testing.T) {
 	f := NewFilter(128)
 

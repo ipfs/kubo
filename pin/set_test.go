@@ -6,12 +6,13 @@ import (
 	"os"
 	"testing"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
+
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
-func ignoreKey(_ key.Key) {}
+func ignoreCids(_ *cid.Cid) {}
 
 func TestSet(t *testing.T) {
 	ds := mdtest.Mock()
@@ -20,7 +21,7 @@ func TestSet(t *testing.T) {
 	if os.Getenv("STRESS_IT_OUT_YO") != "" {
 		limit = 10000000
 	}
-	var inputs []key.Key
+	var inputs []*cid.Cid
 	for i := 0; i < limit; i++ {
 		c, err := ds.Add(dag.NodeWithData([]byte(fmt.Sprint(i))))
 		if err != nil {
@@ -30,20 +31,20 @@ func TestSet(t *testing.T) {
 		inputs = append(inputs, c)
 	}
 
-	out, err := storeSet(context.Background(), ds, inputs, ignoreKey)
+	out, err := storeSet(context.Background(), ds, inputs, ignoreCids)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// weird wrapper node because loadSet expects us to pass an
 	// object pointing to multiple named sets
-	setroot := &dag.Node{}
+	setroot := &dag.ProtoNode{}
 	err = setroot.AddNodeLinkClean("foo", out)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	outset, err := loadSet(context.Background(), ds, setroot, "foo", ignoreKey)
+	outset, err := loadSet(context.Background(), ds, setroot, "foo", ignoreCids)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +53,7 @@ func TestSet(t *testing.T) {
 		t.Fatal("got wrong number", len(outset), limit)
 	}
 
-	seen := key.NewKeySet()
+	seen := cid.NewSet()
 	for _, c := range outset {
 		seen.Add(c)
 	}

@@ -3,14 +3,13 @@ package supernode
 import (
 	"testing"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	datastore "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
+	dhtpb "gx/ipfs/QmRG9fdibExi5DFy8kzyxF76jvZVUb2mQBUSMNP1YaYn9M/go-libp2p-kad-dht/pb"
+	datastore "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 )
 
 func TestPutProviderDoesntResultInDuplicates(t *testing.T) {
 	routingBackend := datastore.NewMapDatastore()
-	k := key.Key("foo")
+	k := "foo"
 	put := []*dhtpb.Message_Peer{
 		convPeer("bob", "127.0.0.1/tcp/4001"),
 		convPeer("alice", "10.0.0.10/tcp/4001"),

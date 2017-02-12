@@ -31,12 +31,16 @@ test_expect_success 'put' '
 	test_fsh cat putted
 '
 
+test_expect_success "add a ref so we can find providers for it" '
+	echo "some stuff" > afile &&
+	HASH=$(ipfsi 3 add -q afile)
+'
+
 # ipfs dht findprovs <key>
 test_expect_success 'findprovs' '
-  ipfsi 4 dht findprovs planet | sort >provs &&
-  sort provs putted | uniq -d >actual &&
-  [ -s actual ] ||
-	test_fsh cat actual
+	ipfsi 4 dht findprovs $HASH > provs &&
+	iptb get id 3 > expected &&
+	test_cmp provs expected
 '
 
 # ipfs dht get <key>

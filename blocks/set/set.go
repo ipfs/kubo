@@ -3,63 +3,58 @@ package set
 
 import (
 	"github.com/ipfs/go-ipfs/blocks/bloom"
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 var log = logging.Logger("blockset")
 
 // BlockSet represents a mutable set of keyed blocks
 type BlockSet interface {
-	AddBlock(key.Key)
-	RemoveBlock(key.Key)
-	HasKey(key.Key) bool
+	AddBlock(*cid.Cid)
+	RemoveBlock(*cid.Cid)
+	HasKey(*cid.Cid) bool
 	GetBloomFilter() bloom.Filter
 
-	GetKeys() []key.Key
+	GetKeys() []*cid.Cid
 }
 
-func SimpleSetFromKeys(keys []key.Key) BlockSet {
-	sbs := &simpleBlockSet{blocks: make(map[key.Key]struct{})}
+func SimpleSetFromKeys(keys []*cid.Cid) BlockSet {
+	sbs := &simpleBlockSet{blocks: cid.NewSet()}
 	for _, k := range keys {
-		sbs.blocks[k] = struct{}{}
+		sbs.AddBlock(k)
 	}
 	return sbs
 }
 
 func NewSimpleBlockSet() BlockSet {
-	return &simpleBlockSet{blocks: make(map[key.Key]struct{})}
+	return &simpleBlockSet{blocks: cid.NewSet()}
 }
 
 type simpleBlockSet struct {
-	blocks map[key.Key]struct{}
+	blocks *cid.Set
 }
 
-func (b *simpleBlockSet) AddBlock(k key.Key) {
-	b.blocks[k] = struct{}{}
+func (b *simpleBlockSet) AddBlock(k *cid.Cid) {
+	b.blocks.Add(k)
 }
 
-func (b *simpleBlockSet) RemoveBlock(k key.Key) {
-	delete(b.blocks, k)
+func (b *simpleBlockSet) RemoveBlock(k *cid.Cid) {
+	b.blocks.Remove(k)
 }
 
-func (b *simpleBlockSet) HasKey(k key.Key) bool {
-	_, has := b.blocks[k]
-	return has
+func (b *simpleBlockSet) HasKey(k *cid.Cid) bool {
+	return b.blocks.Has(k)
 }
 
 func (b *simpleBlockSet) GetBloomFilter() bloom.Filter {
 	f := bloom.BasicFilter()
-	for k := range b.blocks {
-		f.Add([]byte(k))
+	for _, k := range b.blocks.Keys() {
+		f.Add(k.Bytes())
 	}
 	return f
 }
 
-func (b *simpleBlockSet) GetKeys() []key.Key {
-	var out []key.Key
-	for k := range b.blocks {
-		out = append(out, k)
-	}
-	return out
+func (b *simpleBlockSet) GetKeys() []*cid.Cid {
+	return b.blocks.Keys()
 }

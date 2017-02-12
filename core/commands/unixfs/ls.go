@@ -12,6 +12,7 @@ import (
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
@@ -42,6 +43,9 @@ Displays the contents of an IPFS or IPNS object(s) at the given path.
 The JSON output contains size information. For files, the child size
 is the total size of the file contents. For directories, the child
 size is the IPFS link size.
+
+This functionality is deprecated, and will be removed in future versions. If
+possible, please use 'ipfs ls' instead.
 `,
 		LongDescription: `
 Displays the contents of an IPFS or IPNS object(s) at the given path.
@@ -59,6 +63,9 @@ Example:
     cat.jpg
     > ipfs file ls /ipfs/QmW2WQi7j6c7UgJTarActp7tDNikE4B2qXtFCfLPdsgaTQ
     cat.jpg
+
+This functionality is deprecated, and will be removed in future versions. If
+possible, please use 'ipfs ls' instead.
 `,
 	},
 
@@ -81,19 +88,21 @@ Example:
 
 		for _, fpath := range paths {
 			ctx := req.Context()
-			merkleNode, err := core.Resolve(ctx, node, path.Path(fpath))
+
+			resolver := &path.Resolver{
+				DAG:         node.DAG,
+				ResolveOnce: uio.ResolveUnixfsOnce,
+			}
+
+			merkleNode, err := core.Resolve(ctx, node.Namesys, resolver, path.Path(fpath))
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 
-			key, err := merkleNode.Key()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
+			c := merkleNode.Cid()
 
-			hash := key.B58String()
+			hash := c.String()
 			output.Arguments[fpath] = hash
 
 			if _, ok := output.Objects[hash]; ok {
@@ -101,7 +110,13 @@ Example:
 				continue
 			}
 
-			unixFSNode, err := unixfs.FromBytes(merkleNode.Data())
+			ndpb, ok := merkleNode.(*merkledag.ProtoNode)
+			if !ok {
+				res.SetError(merkledag.ErrNotProtobuf, cmds.ErrNormal)
+				return
+			}
+
+			unixFSNode, err := unixfs.FromBytes(ndpb.Data())
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -110,7 +125,7 @@ Example:
 			t := unixFSNode.GetType()
 
 			output.Objects[hash] = &LsObject{
-				Hash: key.String(),
+				Hash: c.String(),
 				Type: t.String(),
 				Size: unixFSNode.GetFilesize(),
 			}
@@ -119,16 +134,21 @@ Example:
 			case unixfspb.Data_File:
 				break
 			case unixfspb.Data_Directory:
-				links := make([]LsLink, len(merkleNode.Links))
+				links := make([]LsLink, len(merkleNode.Links()))
 				output.Objects[hash].Links = links
-				for i, link := range merkleNode.Links {
-					var linkNode *merkledag.Node
-					linkNode, err = link.GetNode(ctx, node.DAG)
+				for i, link := range merkleNode.Links() {
+					linkNode, err := link.GetNode(ctx, node.DAG)
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
 					}
-					d, err := unixfs.FromBytes(linkNode.Data())
+					lnpb, ok := linkNode.(*merkledag.ProtoNode)
+					if !ok {
+						res.SetError(merkledag.ErrNotProtobuf, cmds.ErrNormal)
+						return
+					}
+
+					d, err := unixfs.FromBytes(lnpb.Data())
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
@@ -136,7 +156,7 @@ Example:
 					t := d.GetType()
 					lsLink := LsLink{
 						Name: link.Name,
-						Hash: link.Hash.B58String(),
+						Hash: link.Cid.String(),
 						Type: t.String(),
 					}
 					if t == unixfspb.Data_File {

@@ -8,7 +8,7 @@ import (
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
 )
 
-// Mount mounts ipfs at a given location, and returns a mount.Mount instance.
+// Mount mounts IPFS at a given location, and returns a mount.Mount instance.
 func Mount(ipfs *core.IpfsNode, mountpoint string) (mount.Mount, error) {
 	cfg, err := ipfs.Repo.Config()
 	if err != nil {

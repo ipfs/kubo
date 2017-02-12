@@ -7,6 +7,8 @@ machine:
     CIRCLE: 1
     IMPORT_PATH: "github.com/ipfs/go-ipfs"
     GOPATH: "$HOME/.go_workspace"
+    GOBIN: "$GOPATH/bin"
+    SERVICE: "circle-ci"
 
   post:
     - sudo rm -rf /usr/local/go
@@ -24,7 +26,7 @@ dependencies:
   override:
     - rm -rf "$HOME/.go_workspace/src/$IMPORT_PATH"
     - mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - cp -a ./* "$HOME/.go_workspace/src/$IMPORT_PATH"
+    - cp -aT . "$HOME/.go_workspace/src/$IMPORT_PATH"
     - cd "$HOME/.go_workspace/src/$IMPORT_PATH" && make deps
 
   cache_directories:
@@ -33,7 +35,6 @@ dependencies:
 
 test:
   override:
-    - make test_go_expensive:
+    - case $CIRCLE_NODE_INDEX in 0) make coverage ;; 1) make test_sharness_expensive ;; esac:
         pwd: "../.go_workspace/src/$IMPORT_PATH"
-    - make test_sharness_expensive:
-        pwd: "../.go_workspace/src/$IMPORT_PATH"
+        parallel: true

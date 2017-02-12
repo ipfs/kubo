@@ -1,16 +1,16 @@
 package bitswap
 
 import (
+	"context"
 	"sync"
 	"time"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	engine "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 type WantManager struct {
@@ -51,7 +51,7 @@ type msgPair struct {
 
 type cancellation struct {
 	who peer.ID
-	blk key.Key
+	blk *cid.Cid
 }
 
 type msgQueue struct {
@@ -69,23 +69,23 @@ type msgQueue struct {
 	done chan struct{}
 }
 
-func (pm *WantManager) WantBlocks(ctx context.Context, ks []key.Key) {
+func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid) {
 	log.Infof("want blocks: %s", ks)
 	pm.addEntries(ctx, ks, false)
 }
 
-func (pm *WantManager) CancelWants(ks []key.Key) {
+func (pm *WantManager) CancelWants(ks []*cid.Cid) {
 	log.Infof("cancel wants: %s", ks)
 	pm.addEntries(context.TODO(), ks, true)
 }
 
-func (pm *WantManager) addEntries(ctx context.Context, ks []key.Key, cancel bool) {
+func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, cancel bool) {
 	var entries []*bsmsg.Entry
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
 			Cancel: cancel,
 			Entry: &wantlist.Entry{
-				Key:      k,
+				Cid:      k,
 				Priority: kMaxPriority - i,
 				RefCnt:   1,
 			},
@@ -130,7 +130,7 @@ func (pm *WantManager) startPeerHandler(p peer.ID) *msgQueue {
 	// new peer, we will want to give them our full wantlist
 	fullwantlist := bsmsg.New(true)
 	for _, e := range pm.wl.Entries() {
-		fullwantlist.AddEntry(e.Key, e.Priority)
+		fullwantlist.AddEntry(e.Cid, e.Priority)
 	}
 	mq.out = fullwantlist
 	mq.work <- struct{}{}
@@ -175,28 +175,13 @@ func (mq *msgQueue) runQueue(ctx context.Context) {
 }
 
 func (mq *msgQueue) doWork(ctx context.Context) {
-	// allow ten minutes for connections
-	// this includes looking them up in the dht
-	// dialing them, and handshaking
 	if mq.sender == nil {
-		conctx, cancel := context.WithTimeout(ctx, time.Minute*10)
-		defer cancel()
-
-		err := mq.network.ConnectTo(conctx, mq.p)
+		err := mq.openSender(ctx)
 		if err != nil {
-			log.Infof("cant connect to peer %s: %s", mq.p, err)
+			log.Infof("cant open message sender to peer %s: %s", mq.p, err)
 			// TODO: cant connect, what now?
 			return
 		}
-
-		nsender, err := mq.network.NewMessageSender(ctx, mq.p)
-		if err != nil {
-			log.Infof("cant open new stream to peer %s: %s", mq.p, err)
-			// TODO: cant open stream, what now?
-			return
-		}
-
-		mq.sender = nsender
 	}
 
 	// grab outgoing message
@@ -210,14 +195,64 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 	mq.outlk.Unlock()
 
 	// send wantlist updates
-	err := mq.sender.SendMsg(wlm)
-	if err != nil {
+	for { // try to send this message until we fail.
+		err := mq.sender.SendMsg(ctx, wlm)
+		if err == nil {
+			return
+		}
+
 		log.Infof("bitswap send error: %s", err)
 		mq.sender.Close()
 		mq.sender = nil
-		// TODO: what do we do if this fails?
-		return
+
+		select {
+		case <-mq.done:
+			return
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Millisecond * 100):
+			// wait 100ms in case disconnect notifications are still propogating
+			log.Warning("SendMsg errored but neither 'done' nor context.Done() were set")
+		}
+
+		err = mq.openSender(ctx)
+		if err != nil {
+			log.Errorf("couldnt open sender again after SendMsg(%s) failed: %s", mq.p, err)
+			// TODO(why): what do we do now?
+			// I think the *right* answer is to probably put the message we're
+			// trying to send back, and then return to waiting for new work or
+			// a disconnect.
+			return
+		}
+
+		// TODO: Is this the same instance for the remote peer?
+		// If its not, we should resend our entire wantlist to them
+		/*
+			if mq.sender.InstanceID() != mq.lastSeenInstanceID {
+				wlm = mq.getFullWantlistMessage()
+			}
+		*/
 	}
+}
+
+func (mq *msgQueue) openSender(ctx context.Context) error {
+	// allow ten minutes for connections this includes looking them up in the
+	// dht dialing them, and handshaking
+	conctx, cancel := context.WithTimeout(ctx, time.Minute*10)
+	defer cancel()
+
+	err := mq.network.ConnectTo(conctx, mq.p)
+	if err != nil {
+		return err
+	}
+
+	nsender, err := mq.network.NewMessageSender(ctx, mq.p)
+	if err != nil {
+		return err
+	}
+
+	mq.sender = nsender
+	return nil
 }
 
 func (pm *WantManager) Connected(p peer.ID) {
@@ -246,7 +281,7 @@ func (pm *WantManager) Run() {
 			var filtered []*bsmsg.Entry
 			for _, e := range entries {
 				if e.Cancel {
-					if pm.wl.Remove(e.Key) {
+					if pm.wl.Remove(e.Cid) {
 						filtered = append(filtered, e)
 					}
 				} else {
@@ -292,14 +327,13 @@ func (pm *WantManager) Run() {
 }
 
 func (wm *WantManager) newMsgQueue(p peer.ID) *msgQueue {
-	mq := new(msgQueue)
-	mq.done = make(chan struct{})
-	mq.work = make(chan struct{}, 1)
-	mq.network = wm.network
-	mq.p = p
-	mq.refcnt = 1
-
-	return mq
+	return &msgQueue{
+		done:    make(chan struct{}),
+		work:    make(chan struct{}, 1),
+		network: wm.network,
+		p:       p,
+		refcnt:  1,
+	}
 }
 
 func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
@@ -312,8 +346,7 @@ func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
 		}
 	}()
 
-	// if we have no message held, or the one we are given is full
-	// overwrite the one we are holding
+	// if we have no message held allocate a new one
 	if mq.out == nil {
 		mq.out = bsmsg.New(false)
 	}
@@ -323,9 +356,9 @@ func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
 	// one passed in
 	for _, e := range entries {
 		if e.Cancel {
-			mq.out.Cancel(e.Key)
+			mq.out.Cancel(e.Cid)
 		} else {
-			mq.out.AddEntry(e.Key, e.Priority)
+			mq.out.AddEntry(e.Cid, e.Priority)
 		}
 	}
 }

@@ -14,15 +14,18 @@ It has these top-level messages:
 package bitswap_message_pb
 
 import proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+import fmt "fmt"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+var _ = fmt.Errorf
 var _ = math.Inf
 
 type Message struct {
 	Wantlist         *Message_Wantlist `protobuf:"bytes,1,opt,name=wantlist" json:"wantlist,omitempty"`
 	Blocks           [][]byte          `protobuf:"bytes,2,rep,name=blocks" json:"blocks,omitempty"`
+	Payload          []*Message_Block  `protobuf:"bytes,3,rep,name=payload" json:"payload,omitempty"`
 	XXX_unrecognized []byte            `json:"-"`
 }
 
@@ -40,6 +43,13 @@ func (m *Message) GetWantlist() *Message_Wantlist {
 func (m *Message) GetBlocks() [][]byte {
 	if m != nil {
 		return m.Blocks
+	}
+	return nil
+}
+
+func (m *Message) GetPayload() []*Message_Block {
+	if m != nil {
+		return m.Payload
 	}
 	return nil
 }
@@ -100,5 +110,33 @@ func (m *Message_Wantlist_Entry) GetCancel() bool {
 	return false
 }
 
+type Message_Block struct {
+	Prefix           []byte `protobuf:"bytes,1,opt,name=prefix" json:"prefix,omitempty"`
+	Data             []byte `protobuf:"bytes,2,opt,name=data" json:"data,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *Message_Block) Reset()         { *m = Message_Block{} }
+func (m *Message_Block) String() string { return proto.CompactTextString(m) }
+func (*Message_Block) ProtoMessage()    {}
+
+func (m *Message_Block) GetPrefix() []byte {
+	if m != nil {
+		return m.Prefix
+	}
+	return nil
+}
+
+func (m *Message_Block) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
 func init() {
+	proto.RegisterType((*Message)(nil), "bitswap.message.pb.Message")
+	proto.RegisterType((*Message_Wantlist)(nil), "bitswap.message.pb.Message.Wantlist")
+	proto.RegisterType((*Message_Wantlist_Entry)(nil), "bitswap.message.pb.Message.Wantlist.Entry")
+	proto.RegisterType((*Message_Block)(nil), "bitswap.message.pb.Message.Block")
 }

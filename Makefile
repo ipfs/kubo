@@ -3,22 +3,39 @@ IPFS_MIN_GO_VERSION = 1.7
 IPFS_MIN_GX_VERSION = 0.6
 IPFS_MIN_GX_GO_VERSION = 1.1
 
+GOTAGS =
+GOTAGS += "" # we have to have always at least one tag, empty tag works well
+
+GOFLAGS =
+GOTFLAGS =
+
+export IPFS_REUSEPORT=false
+export GOFLAGS
+export GOTFLAGS
+
+GOFLAGS += -tags $(call join-with,$(comma),$(GOTAGS))
+
 ifeq ($(TEST_NO_FUSE),1)
-  go_test=IPFS_REUSEPORT=false go test -tags nofuse
-else
-  go_test=IPFS_REUSEPORT=false go test
+	GOTAGS += nofuse
 endif
 
 ifeq ($(OS),Windows_NT)
-  GOPATH_DELIMITER = ;
+	GOPATH_DELIMITER = ;
 else
-  GOPATH_DELIMITER = :
+	GOPATH_DELIMITER = :
 endif
 
 dist_root=/ipfs/QmNZL8wNsvAGdVYr8uGeUE9aGfHjFpHegAWywQFEdSaJbp
 gx_bin=bin/gx-v0.9.0
 gx-go_bin=bin/gx-go-v1.3.0
 
+
+# util functions
+
+space =
+space +=
+comma =,
+join-with = $(subst $(space),$1,$(strip $2))
 # use things in our bin before any other system binaries
 export PATH := bin:$(PATH)
 export IPFS_API ?= v04x.ipfs.io
@@ -48,8 +65,12 @@ gx_check: ${gx_bin} ${gx-go_bin}
 path_check:
 	@bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(GOPATH_DELIMITER), ,$(GOPATH))))
 
-deps: go_check gx_check path_check
+deps: go_check gx_check path_check $(covertools_rule)
 	${gx_bin} --verbose install --global
+
+deps_covertools:
+	go get -u github.com/wadey/gocovmerge
+	go get -u golang.org/x/tools/cmd/cover
 
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
@@ -57,22 +78,21 @@ deps: go_check gx_check path_check
 vendor: godep
 	godep save -r ./...
 
-install: deps
-	make -C cmd/ipfs install
-
-build: deps
-	make -C cmd/ipfs build
-
+nofuse: GOTAGS += nofuse
 nofuse: deps
-	make -C cmd/ipfs nofuse
+	$(MAKE) -C cmd/ipfs install
+
+install build: deps
+	$(MAKE) -C cmd/ipfs $@
 
 clean:
-	make -C cmd/ipfs clean
+	$(MAKE) -C cmd/ipfs clean
+	$(MAKE) -C test clean
 
 uninstall:
-	make -C cmd/ipfs uninstall
+	$(MAKE) -C cmd/ipfs uninstall
 
-PHONY += all help godep gx_check
+PHONY += all help godep gx_check covertools
 PHONY += go_check deps vendor install build nofuse clean uninstall
 
 ##############################################################
@@ -80,33 +100,41 @@ PHONY += go_check deps vendor install build nofuse clean uninstall
 
 test: test_expensive
 
-test_short: build test_go_short test_sharness_short
+test_short: test_go_fmt build test_go_short test_sharness_short
 
-test_expensive: build test_go_expensive test_sharness_expensive windows_build_check
+test_expensive: test_go_fmt build test_go_expensive test_sharness_expensive windows_build_check
 
 test_3node:
-	cd test/3nodetest && make
+	$(MAKE) -C test/3nodetest
 
-test_go_short:
-	$(go_test) -test.short ./...
+test_go_fmt:
+	bin/test-go-fmt
 
-test_go_expensive:
-	$(go_test) ./...
+test_go_short: GOTFLAGS += -test.short
+test_go_race: GOTFLAGS += -race
+test_go_expensive test_go_short test_go_race:
+	go test $(GOFLAGS) $(GOTFLAGS) ./...
 
-test_go_race:
-	$(go_test) ./... -race
+coverage: deps_covertools
+	@echo Running coverage
+	$(eval PKGS := $(shell go list -f '{{if (len .GoFiles)}}{{.ImportPath}}{{end}}' ./... | grep -v /vendor/ | grep -v /Godeps/))
+#$(eval PKGS_DELIM := $(call join-with,$(comma),$(PKGS)))
+	@go list -f '{{if or (len .TestGoFiles) (len .XTestGoFiles)}}go test $(GOFLAGS) $(GOTFLAGS) -covermode=atomic -coverprofile={{.Name}}_{{len .Imports}}_{{len .Deps}}.coverprofile {{.ImportPath}}{{end}}' $(GOFLAGS) $(PKGS) | xargs -I {} bash -c {} 2>&1 | grep -v 'warning: no packages being tested depend on'
+	gocovmerge `ls *.coverprofile` > coverage.txt
+	rm *.coverprofile
+	bash -c 'bash <(curl -s https://codecov.io/bash)'
 
 test_sharness_short:
-	make -C test/sharness/
+	$(MAKE) -j1 -C test/sharness/
 
 test_sharness_expensive:
-	TEST_EXPENSIVE=1 make -C test/sharness/
+	TEST_EXPENSIVE=1 $(MAKE) -j1 -C test/sharness/
 
 test_all_commits:
 	@echo "testing all commits between origin/master..HEAD"
 	@echo "WARNING: this will 'git rebase --exec'."
 	@test/bin/continueyn
-	GIT_EDITOR=true git rebase -i --exec "make test" origin/master
+	GIT_EDITOR=true git rebase -i --exec "$(MAKE) test" origin/master
 
 test_all_commits_travis:
 	# these are needed because travis.
@@ -114,12 +142,12 @@ test_all_commits_travis:
 	git config --global user.email "nemo@ipfs.io"
 	git config --global user.name "IPFS BOT"
 	git fetch origin master:master
-	GIT_EDITOR=true git rebase -i --exec "make test" master
+	GIT_EDITOR=true git rebase -i --exec "$(MAKE) test" master
 
 # since we have CI for osx and linux but not windows, this should help
 windows_build_check:
 	GOOS=windows GOARCH=amd64 go build -o .test.ipfs.exe ./cmd/ipfs
-	rm .test.ipfs.exe
+	rm -f .test.ipfs.exe
 
 PHONY += test test_short test_expensive
 

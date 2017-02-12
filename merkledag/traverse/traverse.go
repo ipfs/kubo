@@ -2,11 +2,10 @@
 package traverse
 
 import (
+	"context"
 	"errors"
 
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 )
 
 // Order is an identifier for traversal algorithm orders
@@ -20,7 +19,7 @@ const (
 
 // Options specifies a series of traversal options
 type Options struct {
-	DAG     mdag.DAGService // the dagservice to fetch nodes
+	DAG     node.NodeGetter // the dagservice to fetch nodes
 	Order   Order           // what order to traverse in
 	Func    Func            // the function to perform at each step
 	ErrFunc ErrFunc         // see ErrFunc. Optional
@@ -30,7 +29,7 @@ type Options struct {
 
 // State is a current traversal state
 type State struct {
-	Node  *mdag.Node
+	Node  node.Node
 	Depth int
 }
 
@@ -39,17 +38,13 @@ type traversal struct {
 	seen map[string]struct{}
 }
 
-func (t *traversal) shouldSkip(n *mdag.Node) (bool, error) {
+func (t *traversal) shouldSkip(n node.Node) (bool, error) {
 	if t.opts.SkipDuplicates {
-		k, err := n.Key()
-		if err != nil {
-			return true, err
-		}
-
-		if _, found := t.seen[string(k)]; found {
+		k := n.Cid()
+		if _, found := t.seen[k.KeyString()]; found {
 			return true, nil
 		}
-		t.seen[string(k)] = struct{}{}
+		t.seen[k.KeyString()] = struct{}{}
 	}
 
 	return false, nil
@@ -63,9 +58,9 @@ func (t *traversal) callFunc(next State) error {
 // stop processing. if it returns a nil node, just skip it.
 //
 // the error handling is a little complicated.
-func (t *traversal) getNode(link *mdag.Link) (*mdag.Node, error) {
+func (t *traversal) getNode(link *node.Link) (node.Node, error) {
 
-	getNode := func(l *mdag.Link) (*mdag.Node, error) {
+	getNode := func(l *node.Link) (node.Node, error) {
 		next, err := l.GetNode(context.TODO(), t.opts.DAG)
 		if err != nil {
 			return nil, err
@@ -103,7 +98,7 @@ type Func func(current State) error
 //
 type ErrFunc func(err error) error
 
-func Traverse(root *mdag.Node, o Options) error {
+func Traverse(root node.Node, o Options) error {
 	t := traversal{
 		opts: o,
 		seen: map[string]struct{}{},
@@ -149,7 +144,7 @@ func dfsPostTraverse(state State, t *traversal) error {
 }
 
 func dfsDescend(df dfsFunc, curr State, t *traversal) error {
-	for _, l := range curr.Node.Links {
+	for _, l := range curr.Node.Links() {
 		node, err := t.getNode(l)
 		if err != nil {
 			return err
@@ -188,7 +183,7 @@ func bfsTraverse(root State, t *traversal) error {
 			return err
 		}
 
-		for _, l := range curr.Node.Links {
+		for _, l := range curr.Node.Links() {
 			node, err := t.getNode(l)
 			if err != nil {
 				return err

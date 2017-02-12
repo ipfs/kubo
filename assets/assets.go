@@ -1,4 +1,4 @@
-//go:generate go-bindata -pkg=assets init-doc ../vendor/dir-index-html-v1.0.0
+//go:generate go-bindata -pkg=assets -prefix=$GOPATH/src/gx/ipfs/QmQfeKxQtBN721pekQh6Jq24adFUjnU65YdY3GNczfuG2T init-doc $GOPATH/src/gx/ipfs/QmQfeKxQtBN721pekQh6Jq24adFUjnU65YdY3GNczfuG2T/dir-index-html
 //go:generate gofmt -w bindata.go
 
 package assets
@@ -6,12 +6,16 @@ package assets
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"path/filepath"
 
-	"github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+
+	// this import keeps gx from thinking the dep isn't used
+	_ "gx/ipfs/QmQfeKxQtBN721pekQh6Jq24adFUjnU65YdY3GNczfuG2T/dir-index-html"
 )
 
 // initDocPaths lists the paths for the docs we want to seed during --init
@@ -22,23 +26,25 @@ var initDocPaths = []string{
 	filepath.Join("init-doc", "contact"),
 	filepath.Join("init-doc", "security-notes"),
 	filepath.Join("init-doc", "quick-start"),
+	filepath.Join("init-doc", "ping"),
 }
 
 // SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key
-func SeedInitDocs(nd *core.IpfsNode) (*key.Key, error) {
+func SeedInitDocs(nd *core.IpfsNode) (*cid.Cid, error) {
 	return addAssetList(nd, initDocPaths)
 }
 
+var initDirPath = filepath.Join(os.Getenv("GOPATH"), "gx", "ipfs", "QmQfeKxQtBN721pekQh6Jq24adFUjnU65YdY3GNczfuG2T", "dir-index-html")
 var initDirIndex = []string{
-	filepath.Join("..", "vendor", "dir-index-html-v1.0.0", "knownIcons.txt"),
-	filepath.Join("..", "vendor", "dir-index-html-v1.0.0", "dir-index.html"),
+	filepath.Join(initDirPath, "knownIcons.txt"),
+	filepath.Join(initDirPath, "dir-index.html"),
 }
 
-func SeedInitDirIndex(nd *core.IpfsNode) (*key.Key, error) {
+func SeedInitDirIndex(nd *core.IpfsNode) (*cid.Cid, error) {
 	return addAssetList(nd, initDirIndex)
 }
 
-func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {
+func addAssetList(nd *core.IpfsNode, l []string) (*cid.Cid, error) {
 	dirb := uio.NewDirectory(nd.DAG)
 
 	for _, p := range l {
@@ -53,14 +59,18 @@ func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {
 		}
 
 		fname := filepath.Base(p)
-		k := key.B58KeyDecode(s)
-		if err := dirb.AddChild(nd.Context(), fname, k); err != nil {
+		c, err := cid.Decode(s)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := dirb.AddChild(nd.Context(), fname, c); err != nil {
 			return nil, fmt.Errorf("assets: could not add '%s' as a child: %s", fname, err)
 		}
 	}
 
 	dir := dirb.GetNode()
-	dkey, err := nd.DAG.Add(dir)
+	dcid, err := nd.DAG.Add(dir)
 	if err != nil {
 		return nil, fmt.Errorf("assets: DAG.Add(dir) failed: %s", err)
 	}
@@ -73,5 +83,5 @@ func addAssetList(nd *core.IpfsNode, l []string) (*key.Key, error) {
 		return nil, fmt.Errorf("assets: Pinning flush failed: %s", err)
 	}
 
-	return &dkey, nil
+	return dcid, nil
 }

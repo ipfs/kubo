@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,16 +16,17 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 var log = logging.Logger("cmds/files")
 
 var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Manipulate unixfs files.",
+		Tagline: "Interact with unixfs files.",
 		ShortDescription: `
 Files is an API for manipulating IPFS objects as if they were a unix
 filesystem.
@@ -40,7 +42,7 @@ operations.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("flush", "f", "Flush target and ancestors after write. Default: true."),
+		cmds.BoolOption("f", "flush", "Flush target and ancestors after write.").Default(true),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -158,12 +160,14 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 		return nil, err
 	}
 
-	k, err := nd.Key()
-	if err != nil {
-		return nil, err
+	c := nd.Cid()
+
+	pbnd, ok := nd.(*dag.ProtoNode)
+	if !ok {
+		return nil, dag.ErrNotProtobuf
 	}
 
-	d, err := ft.FromBytes(nd.Data())
+	d, err := ft.FromBytes(pbnd.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -184,8 +188,8 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 	}
 
 	return &Object{
-		Hash:           k.B58String(),
-		Blocks:         len(nd.Links),
+		Hash:           c.String(),
+		Blocks:         len(nd.Links()),
 		Size:           d.GetFilesize(),
 		CumulativeSize: cumulsize,
 		Type:           ndtype,
@@ -207,10 +211,7 @@ var FilesCpCmd = &cmds.Command{
 			return
 		}
 
-		flush, found, _ := req.Option("flush").Bool()
-		if !found {
-			flush = true
-		}
+		flush, _, _ := req.Option("flush").Bool()
 
 		src, err := checkPath(req.Arguments()[0])
 		if err != nil {
@@ -251,7 +252,7 @@ var FilesCpCmd = &cmds.Command{
 	},
 }
 
-func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (*dag.Node, error) {
+func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (node.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
 		np, err := path.ParsePath(p)
@@ -259,7 +260,21 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (*dag.N
 			return nil, err
 		}
 
-		return core.Resolve(ctx, node, np)
+		resolver := &path.Resolver{
+			DAG:         node.DAG,
+			ResolveOnce: uio.ResolveUnixfsOnce,
+		}
+
+		nd, err := core.Resolve(ctx, node.Namesys, resolver, np)
+		if err != nil {
+			return nil, err
+		}
+		pbnd, ok := nd.(*dag.ProtoNode)
+		if !ok {
+			return nil, dag.ErrNotProtobuf
+		}
+
+		return pbnd, nil
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {
@@ -284,9 +299,9 @@ type FilesLsOutput struct {
 
 var FilesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directories.",
+		Tagline: "List directories in the local mutable namespace.",
 		ShortDescription: `
-List directories.
+List directories in the local mutable namespace.
 
 Examples:
 
@@ -585,10 +600,7 @@ stat' on the file or any of its ancestors.
 
 		create, _, _ := req.Option("create").Bool()
 		trunc, _, _ := req.Option("truncate").Bool()
-		flush, fset, _ := req.Option("flush").Bool()
-		if !fset {
-			flush = true
-		}
+		flush, _, _ := req.Option("flush").Bool()
 
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -618,7 +630,12 @@ stat' on the file or any of its ancestors.
 			return
 		}
 
-		defer wfd.Close()
+		defer func() {
+			err := wfd.Close()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+			}
+		}()
 
 		if trunc {
 			if err := wfd.Truncate(0); err != nil {
@@ -700,10 +717,7 @@ Examples:
 			return
 		}
 
-		flush, found, _ := req.Option("flush").Bool()
-		if !found {
-			flush = true
-		}
+		flush, _, _ := req.Option("flush").Bool()
 
 		err = mfs.Mkdir(n.FilesRoot, dirtomake, dashp, flush)
 		if err != nil {

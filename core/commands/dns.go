@@ -6,12 +6,12 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 var DNSCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "DNS link resolver.",
+		Tagline: "Resolve DNS links.",
 		ShortDescription: `
 Multihashes are hard to remember, but domain names are usually easy to
 remember.  To create memorable aliases for multihashes, DNS TXT
@@ -26,7 +26,7 @@ This command resolves those links to the referenced object.
 
 For example, with this DNS TXT record:
 
-	> dig +short TXT ipfs.io
+	> dig +short TXT _dnslink.ipfs.io
 	dnslink=/ipfs/QmRzTuh2Lpuz7Gr39stNr6mTFdqAghsZec1JoUnfySUzcy
 
 The resolver will give:

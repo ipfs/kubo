@@ -3,7 +3,10 @@ package repo
 import (
 	"errors"
 
+	keystore "github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/repo/config"
+
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 )
 
 var errTODO = errors.New("TODO: mock repo")
@@ -12,6 +15,7 @@ var errTODO = errors.New("TODO: mock repo")
 type Mock struct {
 	C config.Config
 	D Datastore
+	K keystore.Keystore
 }
 
 func (m *Mock) Config() (*config.Config, error) {
@@ -37,4 +41,6 @@ func (m *Mock) GetStorageUsage() (uint64, error) { return 0, nil }
 
 func (m *Mock) Close() error { return errTODO }
 
-func (m *Mock) SetAPIAddr(addr string) error { return errTODO }
+func (m *Mock) SetAPIAddr(addr ma.Multiaddr) error { return errTODO }
+
+func (m *Mock) Keystore() keystore.Keystore { return nil }

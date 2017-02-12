@@ -14,40 +14,42 @@ objects.
 package corerepo
 
 import (
+	"context"
 	"fmt"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
-func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {
-	dagnodes := make([]*merkledag.Node, 0)
+func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
+	dagnodes := make([]node.Node, 0)
 	for _, fpath := range paths {
-		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
+		p, err := path.ParsePath(fpath)
+		if err != nil {
+			return nil, err
+		}
+
+		dagnode, err := core.Resolve(ctx, n.Namesys, n.Resolver, p)
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
 		dagnodes = append(dagnodes, dagnode)
 	}
 
-	var out []key.Key
+	var out []*cid.Cid
 	for _, dagnode := range dagnodes {
-		k, err := dagnode.Key()
-		if err != nil {
-			return nil, err
-		}
+		c := dagnode.Cid()
 
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		err = n.Pinning.Pin(ctx, dagnode, recursive)
+		err := n.Pinning.Pin(ctx, dagnode, recursive)
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
-		out = append(out, k)
+		out = append(out, c)
 	}
 
 	err := n.Pinning.Flush()
@@ -58,16 +60,16 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 	return out, nil
 }
 
-func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {
+func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
 
-	var unpinned []key.Key
+	var unpinned []*cid.Cid
 	for _, p := range paths {
 		p, err := path.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
 
-		k, err := core.ResolveToKey(ctx, n, p)
+		k, err := core.ResolveToCid(ctx, n, p)
 		if err != nil {
 			return nil, err
 		}

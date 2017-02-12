@@ -17,8 +17,8 @@ var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only).",
 		ShortDescription: `
-Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
-All ipfs objects will be accessible under that directory. Note that the
+Mount IPFS at a read-only mountpoint on the OS (default: /ipfs and /ipns).
+All IPFS objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
 You may have to create /ipfs and /ipns before using 'ipfs mount':
@@ -29,9 +29,9 @@ You may have to create /ipfs and /ipns before using 'ipfs mount':
 > ipfs mount
 `,
 		LongDescription: `
-Mount ipfs at a read-only mountpoint on the OS. The default, /ipfs and /ipns,
+Mount IPFS at a read-only mountpoint on the OS. The default, /ipfs and /ipns,
 are set in the configutation file, but can be overriden by the options.
-All ipfs objects will be accessible under this directory. Note that the
+All IPFS objects will be accessible under this directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
 You may have to create /ipfs and /ipns before using 'ipfs mount':

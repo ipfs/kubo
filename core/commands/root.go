@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	dag "github.com/ipfs/go-ipfs/core/commands/dag"
 	files "github.com/ipfs/go-ipfs/core/commands/files"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 var log = logging.Logger("core/commands")
@@ -24,9 +25,9 @@ var Root = &cmds.Command{
 		Subcommands: `
 BASIC COMMANDS
   init          Initialize ipfs local configuration
-  add <path>    Add a file to ipfs
-  cat <ref>     Show ipfs object data
-  get <ref>     Download ipfs objects
+  add <path>    Add a file to IPFS
+  cat <ref>     Show IPFS object data
+  get <ref>     Download IPFS objects
   ls <ref>      List links from an object
   refs <ref>    List hashes of links from an object
 
@@ -34,18 +35,21 @@ DATA STRUCTURE COMMANDS
   block         Interact with raw blocks in the datastore
   object        Interact with raw dag nodes
   files         Interact with objects as if they were a unix filesystem
+  dag           Interact with IPLD documents (experimental)
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
-  mount         Mount an ipfs read-only mountpoint
+  mount         Mount an IPFS read-only mountpoint
   resolve       Resolve any type of name
   name          Publish or resolve IPNS names
   dns           Resolve DNS links
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
+  stats         Various operational stats
+  key           Create and manipulate keypairs
 
 NETWORK COMMANDS
-  id            Show info about ipfs peers
+  id            Show info about IPFS peers
   bootstrap     Add or remove bootstrap peers
   swarm         Manage connections to the p2p network
   dht           Query the DHT for values or peers
@@ -64,6 +68,13 @@ ipfs uses a repository in the local file system. By default, the repo is located
 at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
 
   export IPFS_PATH=/path/to/ipfsrepo
+
+EXIT STATUS
+
+The CLI will exit with one of the following values:
+
+0     Successful execution.
+1     Failed executions.
 `,
 	},
 	Options: []cmds.Option{
@@ -86,12 +97,14 @@ var rootSubcommands = map[string]*cmds.Command{
 	"cat":       CatCmd,
 	"commands":  CommandsDaemonCmd,
 	"config":    ConfigCmd,
+	"dag":       dag.DagCmd,
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
 	"dns":       DNSCmd,
 	"files":     files.FilesCmd,
 	"get":       GetCmd,
 	"id":        IDCmd,
+	"key":       KeyCmd,
 	"log":       LogCmd,
 	"ls":        LsCmd,
 	"mount":     MountCmd,
@@ -99,6 +112,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"object":    ocmd.ObjectCmd,
 	"pin":       PinCmd,
 	"ping":      PingCmd,
+	"pubsub":    PubsubCmd,
 	"refs":      RefsCmd,
 	"repo":      RepoCmd,
 	"resolve":   ResolveCmd,
@@ -143,6 +157,11 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"get":   ocmd.ObjectGetCmd,
 			"stat":  ocmd.ObjectStatCmd,
 			"patch": ocmd.ObjectPatchCmd,
+		},
+	},
+	"dag": &cmds.Command{
+		Subcommands: map[string]*cmds.Command{
+			"get": dag.DagGetCmd,
 		},
 	},
 	"refs":    RefsROCmd,

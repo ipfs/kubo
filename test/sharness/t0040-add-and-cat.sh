@@ -87,6 +87,9 @@ test_add_cat_file() {
 }
 
 test_add_cat_5MB() {
+	ADD_FLAGS="$1"
+	EXP_HASH="$2"
+
     test_expect_success "generate 5MB file using go-random" '
     	random 5242880 41 >mountdir/bigfile
     '
@@ -98,16 +101,16 @@ test_add_cat_5MB() {
     '
 
     test_expect_success "'ipfs add bigfile' succeeds" '
-    	ipfs add mountdir/bigfile >actual
+    	ipfs add $ADD_FLAGS mountdir/bigfile >actual ||
+		test_fsh cat daemon_err
     '
 
     test_expect_success "'ipfs add bigfile' output looks good" '
-    	HASH="QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb" &&
-    	echo "added $HASH bigfile" >expected &&
+    	echo "added $EXP_HASH bigfile" >expected &&
     	test_cmp expected actual
     '
     test_expect_success "'ipfs cat' succeeds" '
-    	ipfs cat "$HASH" >actual
+    	ipfs cat "$EXP_HASH" >actual
     '
 
     test_expect_success "'ipfs cat' output looks good" '
@@ -115,12 +118,27 @@ test_add_cat_5MB() {
     '
 
     test_expect_success FUSE "cat ipfs/bigfile succeeds" '
-    	cat "ipfs/$HASH" >actual
+    	cat "ipfs/$EXP_HASH" >actual
     '
 
     test_expect_success FUSE "cat ipfs/bigfile looks good" '
     	test_cmp mountdir/bigfile actual
     '
+}
+
+test_add_cat_raw() {
+	test_expect_success "add a small file with raw-leaves" '
+		echo "foobar" > afile &&
+		HASH=$(ipfs add -q --raw-leaves afile)
+	'
+
+	test_expect_success "cat that small file" '
+		ipfs cat $HASH > afile_out
+	'
+
+	test_expect_success "make sure it looks good" '
+		test_cmp afile afile_out
+	'
 }
 
 test_add_cat_expensive() {
@@ -297,22 +315,73 @@ test_expect_success "ipfs cat with built input output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "'ipfs add -r' succeeds" '
-	mkdir mountdir/planets &&
-	echo "Hello Mars!" >mountdir/planets/mars.txt &&
-	echo "Hello Venus!" >mountdir/planets/venus.txt &&
-	ipfs add -r mountdir/planets >actual
-'
+add_directory() {
+    EXTRA_ARGS=$1
 
-test_expect_success "'ipfs add -r' output looks good" '
-	PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY" &&
-	MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
-	VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
-	echo "added $MARS planets/mars.txt" >expected &&
-	echo "added $VENUS planets/venus.txt" >>expected &&
-	echo "added $PLANETS planets" >>expected &&
-	test_cmp expected actual
-'
+    test_expect_success "'ipfs add -r $EXTRA_ARGS' succeeds" '
+            mkdir mountdir/planets &&
+            echo "Hello Mars!" >mountdir/planets/mars.txt &&
+            echo "Hello Venus!" >mountdir/planets/venus.txt &&
+            ipfs add -r $EXTRA_ARGS mountdir/planets >actual
+    '
+
+    test_expect_success "'ipfs add -r $EXTRA_ARGS' output looks good" '
+            echo "added $MARS planets/mars.txt" >expected &&
+            echo "added $VENUS planets/venus.txt" >>expected &&
+            echo "added $PLANETS planets" >>expected &&
+            test_cmp expected actual
+    '
+
+    test_expect_success "ipfs cat accept many hashes from built input" '
+            { echo "$MARS"; echo "$VENUS"; } | ipfs cat >actual
+    '
+
+    test_expect_success "ipfs cat output looks good" '
+            cat mountdir/planets/mars.txt mountdir/planets/venus.txt >expected &&
+            test_cmp expected actual
+    '
+
+    test_expect_success "ipfs cat accept many hashes as args" '
+            ipfs cat "$MARS" "$VENUS" >actual
+    '
+
+    test_expect_success "ipfs cat output looks good" '
+            test_cmp expected actual
+    '
+
+    test_expect_success "ipfs cat with both arg and stdin" '
+            echo "$MARS" | ipfs cat "$VENUS" >actual
+    '
+
+    test_expect_success "ipfs cat output looks good" '
+            cat mountdir/planets/venus.txt >expected &&
+            test_cmp expected actual
+    '
+
+    test_expect_success "ipfs cat with two args and stdin" '
+            echo "$MARS" | ipfs cat "$VENUS" "$VENUS" >actual
+    '
+
+    test_expect_success "ipfs cat output looks good" '
+            cat mountdir/planets/venus.txt mountdir/planets/venus.txt >expected &&
+            test_cmp expected actual
+    '
+
+    test_expect_success "cleanup" '
+            rm -r mountdir/planets
+    '
+}
+
+PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY"
+MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN"
+VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4"
+add_directory
+
+PLANETS="QmfWfQfKCY5Ukv9peBbxM5vqWM9BzmqUSXvdCgjT2wsiBT"
+MARS="zb2rhZdTkQNawVajsTNiYc9cTPHqgLdJVvBRkZok9RjkgQYRU"
+VENUS="zb2rhn6TGvnUaMAg4VV4y9HVx5W42HihcH4jsyrDv8mkepFqq"
+add_directory '--raw-leaves'
+
 
 test_expect_success "'ipfs add -rn' succeeds" '
 	mkdir -p mountdir/moons/jupiter &&
@@ -339,47 +408,13 @@ test_expect_success "'ipfs add -rn' output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "ipfs cat accept many hashes from built input" '
-	{ echo "$MARS"; echo "$VENUS"; } | ipfs cat >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/mars.txt mountdir/planets/venus.txt >expected &&
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs cat accept many hashes as args" '
-	ipfs cat "$MARS" "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs cat with both arg and stdin" '
-	echo "$MARS" | ipfs cat "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/venus.txt >expected &&
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs cat with two args and stdin" '
-	echo "$MARS" | ipfs cat "$VENUS" "$VENUS" >actual
-'
-
-test_expect_success "ipfs cat output looks good" '
-	cat mountdir/planets/venus.txt mountdir/planets/venus.txt >expected &&
-	test_cmp expected actual
-'
-
-
 test_expect_success "go-random is installed" '
     type random
 '
 
-test_add_cat_5MB
+test_add_cat_5MB "" "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
+
+test_add_cat_5MB --raw-leaves "QmbdLHCmdi48eM8T7D67oXjA1S2Puo8eMfngdHhdPukFd6"
 
 test_add_cat_expensive
 
@@ -387,11 +422,15 @@ test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=tr
 
 test_add_pwd_is_symlink
 
+test_add_cat_raw
+
 test_kill_ipfs_daemon
 
 # should work offline
 
 test_add_cat_file
+
+test_add_cat_raw
 
 test_expect_success "ipfs add --only-hash succeeds" '
     echo "unknown content for only-hash" | ipfs add --only-hash -q > oh_hash
