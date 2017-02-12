@@ -149,6 +149,15 @@ windows_build_check:
 	GOOS=windows GOARCH=amd64 go build -o .test.ipfs.exe ./cmd/ipfs
 	rm -f .test.ipfs.exe
 
+install_unsupported:
+	@echo "note: this command has yet to be tested to build in the system you are using"
+	@echo "installing gx"
+	go get -u github.com/whyrusleeping/gx
+	go get -u github.com/whyrusleeping/gx-go
+	gx --verbose install --global >/dev/null 2>&1
+	@echo "installing go-ipfs"
+	go install ./cmd/ipfs
+
 PHONY += test test_short test_expensive
 
 ##############################################################
