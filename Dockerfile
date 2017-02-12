@@ -76,4 +76,4 @@ VOLUME $IPFS_PATH
 ENTRYPOINT ["/usr/local/bin/start_ipfs"]
 
 # Execute the daemon subcommand by default
-CMD ["daemon"]
+CMD ["daemon", "--migrate=true"]
