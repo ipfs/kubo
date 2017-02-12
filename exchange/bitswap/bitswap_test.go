@@ -2,30 +2,35 @@ package bitswap
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"testing"
 	"time"
 
-	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
-	travis "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	p2ptestutil "gx/ipfs/QmVCe3SNMjkcPgnpFhZs719dheq6xE7gJwjzV7aWcUM4Ms/go-libp2p/p2p/test/util"
+	travis "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
+
+	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
+
+	p2ptestutil "gx/ipfs/QmPS1HTBHiJcqxDAZ4s8bGt22HtL3oC67TPR3BsrvM44Z1/go-libp2p-netutil"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
 // well under varying conditions
 const kNetworkDelay = 0 * time.Millisecond
 
+func getVirtualNetwork() tn.Network {
+	return tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+}
+
 func TestClose(t *testing.T) {
-	vnet := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	vnet := getVirtualNetwork()
 	sesgen := NewTestSessionGenerator(vnet)
 	defer sesgen.Close()
 	bgen := blocksutil.NewBlockGenerator()
@@ -34,7 +39,7 @@ func TestClose(t *testing.T) {
 	bitswap := sesgen.Next()
 
 	bitswap.Exchange.Close()
-	bitswap.Exchange.GetBlock(context.Background(), block.Key())
+	bitswap.Exchange.GetBlock(context.Background(), block.Cid())
 }
 
 func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
@@ -46,14 +51,14 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 
 	block := blocks.NewBlock([]byte("block"))
 	pinfo := p2ptestutil.RandTestBogusIdentityOrFatal(t)
-	rs.Client(pinfo).Provide(context.Background(), block.Key()) // but not on network
+	rs.Client(pinfo).Provide(context.Background(), block.Cid()) // but not on network
 
 	solo := g.Next()
 	defer solo.Exchange.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 	defer cancel()
-	_, err := solo.Exchange.GetBlock(ctx, block.Key())
+	_, err := solo.Exchange.GetBlock(ctx, block.Cid())
 
 	if err != context.DeadlineExceeded {
 		t.Fatal("Expected DeadlineExceeded error")
@@ -80,13 +85,13 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	received, err := wantsBlock.Exchange.GetBlock(ctx, block.Key())
+	received, err := wantsBlock.Exchange.GetBlock(ctx, block.Cid())
 	if err != nil {
 		t.Log(err)
 		t.Fatal("Expected to succeed")
 	}
 
-	if !bytes.Equal(block.Data(), received.Data()) {
+	if !bytes.Equal(block.RawData(), received.RawData()) {
 		t.Fatal("Data doesn't match")
 	}
 }
@@ -172,10 +177,10 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 		}
 	}
 
-	var blkeys []key.Key
+	var blkeys []*cid.Cid
 	first := instances[0]
 	for _, b := range blocks {
-		blkeys = append(blkeys, b.Key())
+		blkeys = append(blkeys, b.Cid())
 		first.Exchange.HasBlock(b)
 	}
 
@@ -212,7 +217,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	for _, inst := range instances {
 		for _, b := range blocks {
-			if _, err := inst.Blockstore().Get(b.Key()); err != nil {
+			if _, err := inst.Blockstore().Get(b.Cid()); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -220,8 +225,8 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 }
 
 func getOrFail(bitswap Instance, b blocks.Block, t *testing.T, wg *sync.WaitGroup) {
-	if _, err := bitswap.Blockstore().Get(b.Key()); err != nil {
-		_, err := bitswap.Exchange.GetBlock(context.Background(), b.Key())
+	if _, err := bitswap.Blockstore().Get(b.Cid()); err != nil {
+		_, err := bitswap.Exchange.GetBlock(context.Background(), b.Cid())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -256,7 +261,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	// peerA requests and waits for block alpha
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
 	defer cancel()
-	alphaPromise, err := peerA.Exchange.GetBlocks(ctx, []key.Key{alpha.Key()})
+	alphaPromise, err := peerA.Exchange.GetBlocks(ctx, []*cid.Cid{alpha.Cid()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,7 +278,7 @@ func TestSendToWantingPeer(t *testing.T) {
 		t.Fatal("context timed out and broke promise channel!")
 	}
 
-	if blkrecvd.Key() != alpha.Key() {
+	if !blkrecvd.Cid().Equals(alpha.Cid()) {
 		t.Fatal("Wrong block!")
 	}
 
@@ -285,7 +290,10 @@ func TestEmptyKey(t *testing.T) {
 	defer sg.Close()
 	bs := sg.Instances(1)[0].Exchange
 
-	_, err := bs.GetBlock(context.Background(), key.Key(""))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	_, err := bs.GetBlock(ctx, nil)
 	if err != blockstore.ErrNotFound {
 		t.Error("empty str key should return ErrNotFound")
 	}
@@ -308,7 +316,7 @@ func TestBasicBitswap(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Key())
+	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -334,7 +342,7 @@ func TestDoubleGet(t *testing.T) {
 	blocks := bg.Blocks(1)
 
 	ctx1, cancel1 := context.WithCancel(context.Background())
-	blkch1, err := instances[1].Exchange.GetBlocks(ctx1, []key.Key{blocks[0].Key()})
+	blkch1, err := instances[1].Exchange.GetBlocks(ctx1, []*cid.Cid{blocks[0].Cid()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +350,7 @@ func TestDoubleGet(t *testing.T) {
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	defer cancel2()
 
-	blkch2, err := instances[1].Exchange.GetBlocks(ctx2, []key.Key{blocks[0].Key()})
+	blkch2, err := instances[1].Exchange.GetBlocks(ctx2, []*cid.Cid{blocks[0].Cid()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,9 +397,9 @@ func TestWantlistCleanup(t *testing.T) {
 	bswap := instances.Exchange
 	blocks := bg.Blocks(20)
 
-	var keys []key.Key
+	var keys []*cid.Cid
 	for _, b := range blocks {
-		keys = append(keys, b.Key())
+		keys = append(keys, b.Cid())
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)

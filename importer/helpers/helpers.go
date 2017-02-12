@@ -1,12 +1,16 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
+	"os"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -37,14 +41,17 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 // UnixfsNode is a struct created to aid in the generation
 // of unixfs DAG trees
 type UnixfsNode struct {
-	node *dag.Node
-	ufmt *ft.FSNode
+	raw     bool
+	rawnode *dag.RawNode
+	node    *dag.ProtoNode
+	ufmt    *ft.FSNode
+	posInfo *pi.PosInfo
 }
 
 // NewUnixfsNode creates a new Unixfs node to represent a file
 func NewUnixfsNode() *UnixfsNode {
 	return &UnixfsNode{
-		node: new(dag.Node),
+		node: new(dag.ProtoNode),
 		ufmt: &ft.FSNode{Type: ft.TFile},
 	}
 }
@@ -52,13 +59,13 @@ func NewUnixfsNode() *UnixfsNode {
 // NewUnixfsBlock creates a new Unixfs node to represent a raw data block
 func NewUnixfsBlock() *UnixfsNode {
 	return &UnixfsNode{
-		node: new(dag.Node),
+		node: new(dag.ProtoNode),
 		ufmt: &ft.FSNode{Type: ft.TRaw},
 	}
 }
 
 // NewUnixfsNodeFromDag reconstructs a Unixfs node from a given dag node
-func NewUnixfsNodeFromDag(nd *dag.Node) (*UnixfsNode, error) {
+func NewUnixfsNodeFromDag(nd *dag.ProtoNode) (*UnixfsNode, error) {
 	mb, err := ft.FSNodeFromBytes(nd.Data())
 	if err != nil {
 		return nil, err
@@ -74,20 +81,34 @@ func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
 
+func (n *UnixfsNode) Set(other *UnixfsNode) {
+	n.node = other.node
+	n.raw = other.raw
+	n.rawnode = other.rawnode
+	if other.ufmt != nil {
+		n.ufmt.Data = other.ufmt.Data
+	}
+}
+
 func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*UnixfsNode, error) {
-	nd, err := n.node.Links[i].GetNode(ctx, ds)
+	nd, err := n.node.Links()[i].GetNode(ctx, ds)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewUnixfsNodeFromDag(nd)
+	pbn, ok := nd.(*dag.ProtoNode)
+	if !ok {
+		return nil, dag.ErrNotProtobuf
+	}
+
+	return NewUnixfsNodeFromDag(pbn)
 }
 
 // addChild will add the given UnixfsNode as a child of the receiver.
 // the passed in DagBuilderHelper is used to store the child node an
 // pin it locally so it doesnt get lost
 func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
-	n.ufmt.AddBlockSize(child.ufmt.FileSize())
+	n.ufmt.AddBlockSize(child.FileSize())
 
 	childnode, err := child.GetDagNode()
 	if err != nil {
@@ -112,16 +133,47 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 // Removes the child node at the given index
 func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 	n.ufmt.RemoveBlockSize(index)
-	n.node.Links = append(n.node.Links[:index], n.node.Links[index+1:]...)
+	n.node.SetLinks(append(n.node.Links()[:index], n.node.Links()[index+1:]...))
 }
 
 func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
 }
 
+func (n *UnixfsNode) FileSize() uint64 {
+	if n.raw {
+		return uint64(len(n.rawnode.RawData()))
+	}
+	return n.ufmt.FileSize()
+}
+
+func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
+	n.posInfo = &pi.PosInfo{offset, fullPath, stat}
+}
+
 // getDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
-func (n *UnixfsNode) GetDagNode() (*dag.Node, error) {
+func (n *UnixfsNode) GetDagNode() (node.Node, error) {
+	nd, err := n.getBaseDagNode()
+	if err != nil {
+		return nil, err
+	}
+
+	if n.posInfo != nil {
+		return &pi.FilestoreNode{
+			Node:    nd,
+			PosInfo: n.posInfo,
+		}, nil
+	}
+
+	return nd, nil
+}
+
+func (n *UnixfsNode) getBaseDagNode() (node.Node, error) {
+	if n.raw {
+		return n.rawnode, nil
+	}
+
 	data, err := n.ufmt.GetBytes()
 	if err != nil {
 		return nil, err

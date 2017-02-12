@@ -47,7 +47,7 @@ Please put all issues regarding the Go IPFS _implementation_ in [this repo](http
 
 The IPFS protocol and its implementations are still in heavy development. This means that there may be problems in our protocols, or there may be mistakes in our implementations. And -- though IPFS is not production-ready yet -- many people are already running nodes in their machines. So we take security vulnerabilities very seriously. If you discover a security issue, please bring it to our attention right away!
 
-If you find a vulnerability that may affect live deployments -- for example, by exposing a remote execution exploit -- please send your report privately to security@ipfs.io. Please DO NOT file a public issue.
+If you find a vulnerability that may affect live deployments -- for example, by exposing a remote execution exploit -- please send your report privately to security@ipfs.io. Please DO NOT file a public issue. The GPG key for security@ipfs.io is [4B9665FB 92636D17 7C7A86D3 50AAE8A9 59B13AF3](https://pgp.mit.edu/pks/lookup?op=get&search=0x50AAE8A959B13AF3).
 
 If the issue is a protocol weakness that cannot be immediately exploited or something not yet deployed, just discuss it openly.
 
@@ -89,7 +89,7 @@ for dependency management.
 First download `go-ipfs` without installing:
 
 ```
-$ go get -d github.com/ipfs/go-ipfs
+$ go get -u -d github.com/ipfs/go-ipfs
 
 $ cd $GOPATH/src/github.com/ipfs/go-ipfs
 ```
@@ -99,6 +99,23 @@ Then install `go-ipfs` and its dependencies, including `gx` and `gx-go`:
 ```
 $ make install
 ```
+
+#### Building on less common systems
+
+If your operating system isn't officially supported, but you still want to try
+building ipfs anyways (it should work fine in most cases), you can do the
+following:
+
+- Install gx: `go get -u github.com/whyrusleeping/gx`
+- Install gx-go: `go get -u github.com/whyrusleeping/gx-go`
+- Fetch ipfs source: `go get -d github.com/ipfs/go-ipfs 2> /dev/null`
+- Enter source directory: `cd $GOPATH/src/github.com/ipfs/go-ipfs`
+- Install deps: `gx install`
+- Install ipfs: `go install ./cmd/ipfs`
+
+Note: This process may break if [gx](https://github.com/whyrusleeping/gx) or any of its dependencies break as `go get`
+will always select the latest code for every dependency, often resulting in
+mismatched APIs.
 
 #### Troubleshooting
 

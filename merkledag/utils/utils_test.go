@@ -3,12 +3,12 @@ package dagutils
 import (
 	"testing"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	path "github.com/ipfs/go-ipfs/path"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	context "context"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 func TestAddLink(t *testing.T) {
@@ -20,7 +20,7 @@ func TestAddLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nd := new(dag.Node)
+	nd := new(dag.ProtoNode)
 	nnode, err := addLink(context.Background(), ds, nd, "fish", fishnode)
 	if err != nil {
 		t.Fatal(err)
@@ -31,21 +31,17 @@ func TestAddLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fnpkey, err := fnprime.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if fnpkey != fk {
+	fnpkey := fnprime.Cid()
+	if !fnpkey.Equals(fk) {
 		t.Fatal("wrong child node found!")
 	}
 }
 
-func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.Node, pth string, exp key.Key) {
+func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.ProtoNode, pth string, exp *cid.Cid) {
 	parts := path.SplitList(pth)
 	cur := root
 	for _, e := range parts {
-		nxt, err := cur.GetLinkedNode(context.Background(), ds, e)
+		nxt, err := cur.GetLinkedProtoNode(context.Background(), ds, e)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -53,18 +49,14 @@ func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.Node, pth strin
 		cur = nxt
 	}
 
-	curk, err := cur.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if curk != exp {
+	curc := cur.Cid()
+	if !curc.Equals(exp) {
 		t.Fatal("node not as expected at end of path")
 	}
 }
 
 func TestInsertNode(t *testing.T) {
-	root := new(dag.Node)
+	root := new(dag.ProtoNode)
 	e := NewDagEditor(root, nil)
 
 	testInsert(t, e, "a", "anodefortesting", false, "")
@@ -77,13 +69,10 @@ func TestInsertNode(t *testing.T) {
 	testInsert(t, e, "", "bar", true, "cannot create link with no name!")
 	testInsert(t, e, "////", "slashes", true, "cannot create link with no name!")
 
-	k, err := e.GetNode().Key()
-	if err != nil {
-		t.Fatal(err)
-	}
+	c := e.GetNode().Cid()
 
-	if k.B58String() != "QmZ8yeT9uD6ouJPNAYt62XffYuXBT6b4mP4obRSE9cJrSt" {
-		t.Fatal("output was different than expected: ", k)
+	if c.String() != "QmZ8yeT9uD6ouJPNAYt62XffYuXBT6b4mP4obRSE9cJrSt" {
+		t.Fatal("output was different than expected: ", c)
 	}
 }
 
@@ -94,10 +83,10 @@ func testInsert(t *testing.T, e *Editor, path, data string, create bool, experr 
 		t.Fatal(err)
 	}
 
-	var c func() *dag.Node
+	var c func() *dag.ProtoNode
 	if create {
-		c = func() *dag.Node {
-			return &dag.Node{}
+		c = func() *dag.ProtoNode {
+			return &dag.ProtoNode{}
 		}
 	}
 

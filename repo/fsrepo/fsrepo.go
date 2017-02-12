@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
+	keystore "github.com/ipfs/go-ipfs/keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -18,15 +19,17 @@ import (
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	"gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/measure"
-	util "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
+	util "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	"gx/ipfs/QmbUSMTQtK9GRrUbD4ngqJwSzHsquUc8nyDubRWp4vPybH/go-ds-measure"
 )
 
 var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
-var RepoVersion = 4
+var RepoVersion = 5
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -55,7 +58,7 @@ type NoRepoError struct {
 var _ error = NoRepoError{}
 
 func (err NoRepoError) Error() string {
-	return fmt.Sprintf("no ipfs repo found in %s.\nplease run: ipfs init", err.Path)
+	return fmt.Sprintf("no IPFS repo found in %s.\nplease run: 'ipfs init'", err.Path)
 }
 
 const apiFile = "api"
@@ -93,6 +96,7 @@ type FSRepo struct {
 	lockfile io.Closer
 	config   *config.Config
 	ds       repo.Datastore
+	keystore keystore.Keystore
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -158,6 +162,10 @@ func open(repoPath string) (repo.Repo, error) {
 	}
 
 	if err := r.openDatastore(); err != nil {
+		return nil, err
+	}
+
+	if err := r.openKeystore(); err != nil {
 		return nil, err
 	}
 
@@ -274,7 +282,7 @@ func LockedByOtherProcess(repoPath string) (bool, error) {
 // in the fsrepo. This is a concurrent operation, meaning that any
 // process may read this file. modifying this file, therefore, should
 // use "mv" to replace the whole file and avoid interleaved read/writes.
-func APIAddr(repoPath string) (string, error) {
+func APIAddr(repoPath string) (ma.Multiaddr, error) {
 	repoPath = filepath.Clean(repoPath)
 	apiFilePath := filepath.Join(repoPath, apiFile)
 
@@ -282,9 +290,9 @@ func APIAddr(repoPath string) (string, error) {
 	f, err := os.Open(apiFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", repo.ErrApiNotRunning
+			return nil, repo.ErrApiNotRunning
 		}
-		return "", err
+		return nil, err
 	}
 	defer f.Close()
 
@@ -293,23 +301,27 @@ func APIAddr(repoPath string) (string, error) {
 	buf := make([]byte, 2048)
 	n, err := f.Read(buf)
 	if err != nil && err != io.EOF {
-		return "", err
+		return nil, err
 	}
 
 	s := string(buf[:n])
 	s = strings.TrimSpace(s)
-	return s, nil
+	return ma.NewMultiaddr(s)
+}
+
+func (r *FSRepo) Keystore() keystore.Keystore {
+	return r.keystore
 }
 
 // SetAPIAddr writes the API Addr to the /api file.
-func (r *FSRepo) SetAPIAddr(addr string) error {
+func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	f, err := os.Create(filepath.Join(r.path, apiFile))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, err = f.WriteString(addr)
+	_, err = f.WriteString(addr.String())
 	return err
 }
 
@@ -327,6 +339,18 @@ func (r *FSRepo) openConfig() error {
 	return nil
 }
 
+func (r *FSRepo) openKeystore() error {
+	ksp := filepath.Join(r.path, "keystore")
+	ks, err := keystore.NewFSKeystore(ksp)
+	if err != nil {
+		return err
+	}
+
+	r.keystore = ks
+
+	return nil
+}
+
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
 	switch r.config.Datastore.Type {
@@ -341,17 +365,7 @@ func (r *FSRepo) openDatastore() error {
 	}
 
 	// Wrap it with metrics gathering
-	//
-	// Add our PeerID to metrics paths to keep them unique
-	//
-	// As some tests just pass a zero-value Config to fsrepo.Init,
-	// cope with missing PeerID.
-	id := r.config.Identity.PeerID
-	if id == "" {
-		// the tests pass in a zero Config; cope with it
-		id = fmt.Sprintf("uninitialized_%p", r)
-	}
-	prefix := "fsrepo." + id + ".datastore"
+	prefix := "ipfs.fsrepo.datastore"
 	r.ds = measure.New(prefix, r.ds)
 
 	return nil

@@ -1,6 +1,7 @@
 package mfs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -9,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
+
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
@@ -28,7 +29,7 @@ type Directory struct {
 	files     map[string]*File
 
 	lock sync.Mutex
-	node *dag.Node
+	node *dag.ProtoNode
 	ctx  context.Context
 
 	modTime time.Time
@@ -36,7 +37,7 @@ type Directory struct {
 	name string
 }
 
-func NewDirectory(ctx context.Context, name string, node *dag.Node, parent childCloser, dserv dag.DAGService) *Directory {
+func NewDirectory(ctx context.Context, name string, node *dag.ProtoNode, parent childCloser, dserv dag.DAGService) *Directory {
 	return &Directory{
 		dserv:     dserv,
 		ctx:       ctx,
@@ -51,7 +52,7 @@ func NewDirectory(ctx context.Context, name string, node *dag.Node, parent child
 
 // closeChild updates the child by the given name to the dag node 'nd'
 // and changes its own dag node
-func (d *Directory) closeChild(name string, nd *dag.Node, sync bool) error {
+func (d *Directory) closeChild(name string, nd *dag.ProtoNode, sync bool) error {
 	mynd, err := d.closeChildUpdate(name, nd, sync)
 	if err != nil {
 		return err
@@ -64,7 +65,7 @@ func (d *Directory) closeChild(name string, nd *dag.Node, sync bool) error {
 }
 
 // closeChildUpdate is the portion of closeChild that needs to be locked around
-func (d *Directory) closeChildUpdate(name string, nd *dag.Node, sync bool) (*dag.Node, error) {
+func (d *Directory) closeChildUpdate(name string, nd *dag.ProtoNode, sync bool) (*dag.ProtoNode, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -79,16 +80,16 @@ func (d *Directory) closeChildUpdate(name string, nd *dag.Node, sync bool) (*dag
 	return nil, nil
 }
 
-func (d *Directory) flushCurrentNode() (*dag.Node, error) {
+func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
 	_, err := d.dserv.Add(d.node)
 	if err != nil {
 		return nil, err
 	}
 
-	return d.node.Copy(), nil
+	return d.node.Copy().(*dag.ProtoNode), nil
 }
 
-func (d *Directory) updateChild(name string, nd *dag.Node) error {
+func (d *Directory) updateChild(name string, nd node.Node) error {
 	err := d.node.RemoveNodeLink(name)
 	if err != nil && err != dag.ErrNotFound {
 		return err
@@ -120,28 +121,40 @@ func (d *Directory) childNode(name string) (FSNode, error) {
 }
 
 // cacheNode caches a node into d.childDirs or d.files and returns the FSNode.
-func (d *Directory) cacheNode(name string, nd *dag.Node) (FSNode, error) {
-	i, err := ft.FromBytes(nd.Data())
-	if err != nil {
-		return nil, err
-	}
+func (d *Directory) cacheNode(name string, nd node.Node) (FSNode, error) {
+	switch nd := nd.(type) {
+	case *dag.ProtoNode:
+		i, err := ft.FromBytes(nd.Data())
+		if err != nil {
+			return nil, err
+		}
 
-	switch i.GetType() {
-	case ufspb.Data_Directory:
-		ndir := NewDirectory(d.ctx, name, nd, d, d.dserv)
-		d.childDirs[name] = ndir
-		return ndir, nil
-	case ufspb.Data_File, ufspb.Data_Raw, ufspb.Data_Symlink:
+		switch i.GetType() {
+		case ufspb.Data_Directory:
+			ndir := NewDirectory(d.ctx, name, nd, d, d.dserv)
+			d.childDirs[name] = ndir
+			return ndir, nil
+		case ufspb.Data_File, ufspb.Data_Raw, ufspb.Data_Symlink:
+			nfi, err := NewFile(name, nd, d, d.dserv)
+			if err != nil {
+				return nil, err
+			}
+			d.files[name] = nfi
+			return nfi, nil
+		case ufspb.Data_Metadata:
+			return nil, ErrNotYetImplemented
+		default:
+			return nil, ErrInvalidChild
+		}
+	case *dag.RawNode:
 		nfi, err := NewFile(name, nd, d, d.dserv)
 		if err != nil {
 			return nil, err
 		}
 		d.files[name] = nfi
 		return nfi, nil
-	case ufspb.Data_Metadata:
-		return nil, ErrNotYetImplemented
 	default:
-		return nil, ErrInvalidChild
+		return nil, fmt.Errorf("unrecognized node type in cache node")
 	}
 }
 
@@ -161,14 +174,16 @@ func (d *Directory) Uncache(name string) {
 
 // childFromDag searches through this directories dag node for a child link
 // with the given name
-func (d *Directory) childFromDag(name string) (*dag.Node, error) {
-	for _, lnk := range d.node.Links {
-		if lnk.Name == name {
-			return lnk.GetNode(d.ctx, d.dserv)
-		}
+func (d *Directory) childFromDag(name string) (node.Node, error) {
+	pbn, err := d.node.GetLinkedNode(d.ctx, d.dserv, name)
+	switch err {
+	case nil:
+		return pbn, nil
+	case dag.ErrLinkNotFound:
+		return nil, os.ErrNotExist
+	default:
+		return nil, err
 	}
-
-	return nil, os.ErrNotExist
 }
 
 // childUnsync returns the child under this directory by the given name
@@ -206,7 +221,7 @@ func (d *Directory) ListNames() []string {
 		names[n] = struct{}{}
 	}
 
-	for _, l := range d.node.Links {
+	for _, l := range d.node.Links() {
 		names[l.Name] = struct{}{}
 	}
 
@@ -224,7 +239,7 @@ func (d *Directory) List() ([]NodeListing, error) {
 	defer d.lock.Unlock()
 
 	var out []NodeListing
-	for _, l := range d.node.Links {
+	for _, l := range d.node.Links() {
 		child := NodeListing{}
 		child.Name = l.Name
 
@@ -246,12 +261,7 @@ func (d *Directory) List() ([]NodeListing, error) {
 			return nil, err
 		}
 
-		k, err := nd.Key()
-		if err != nil {
-			return nil, err
-		}
-
-		child.Hash = k.B58String()
+		child.Hash = nd.Cid().String()
 
 		out = append(out, child)
 	}
@@ -275,7 +285,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 		}
 	}
 
-	ndir := new(dag.Node)
+	ndir := new(dag.ProtoNode)
 	ndir.SetData(ft.FolderPBData())
 
 	_, err = d.dserv.Add(ndir)
@@ -326,7 +336,7 @@ func (d *Directory) Flush() error {
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
-func (d *Directory) AddChild(name string, nd *dag.Node) error {
+func (d *Directory) AddChild(name string, nd node.Node) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -387,7 +397,7 @@ func (d *Directory) Path() string {
 	return out
 }
 
-func (d *Directory) GetNode() (*dag.Node, error) {
+func (d *Directory) GetNode() (node.Node, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -401,5 +411,5 @@ func (d *Directory) GetNode() (*dag.Node, error) {
 		return nil, err
 	}
 
-	return d.node.Copy(), nil
+	return d.node.Copy().(*dag.ProtoNode), nil
 }

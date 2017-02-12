@@ -6,7 +6,7 @@ import (
 	"io"
 	"path"
 
-	cxt "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	cxt "context"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	tar "github.com/ipfs/go-ipfs/unixfs/archive/tar"
@@ -30,7 +30,7 @@ func (i *identityWriteCloser) Close() error {
 }
 
 // DagArchive is equivalent to `ipfs getdag $hash | maybe_tar | maybe_gzip`
-func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService, archive bool, compression int) (io.Reader, error) {
+func DagArchive(ctx cxt.Context, nd *mdag.ProtoNode, name string, dag mdag.DAGService, archive bool, compression int) (io.Reader, error) {
 
 	_, filename := path.Split(name)
 

@@ -1,17 +1,19 @@
 package notifications
 
 import (
-	pubsub "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/briantigerchow/pubsub"
+	"context"
+
 	blocks "github.com/ipfs/go-ipfs/blocks"
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	pubsub "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/briantigerchow/pubsub"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 const bufferSize = 16
 
 type PubSub interface {
 	Publish(block blocks.Block)
-	Subscribe(ctx context.Context, keys ...key.Key) <-chan blocks.Block
+	Subscribe(ctx context.Context, keys ...*cid.Cid) <-chan blocks.Block
 	Shutdown()
 }
 
@@ -24,8 +26,7 @@ type impl struct {
 }
 
 func (ps *impl) Publish(block blocks.Block) {
-	topic := string(block.Key())
-	ps.wrapped.Pub(block, topic)
+	ps.wrapped.Pub(block, block.Cid().KeyString())
 }
 
 func (ps *impl) Shutdown() {
@@ -35,7 +36,7 @@ func (ps *impl) Shutdown() {
 // Subscribe returns a channel of blocks for the given |keys|. |blockChannel|
 // is closed if the |ctx| times out or is cancelled, or after sending len(keys)
 // blocks.
-func (ps *impl) Subscribe(ctx context.Context, keys ...key.Key) <-chan blocks.Block {
+func (ps *impl) Subscribe(ctx context.Context, keys ...*cid.Cid) <-chan blocks.Block {
 
 	blocksCh := make(chan blocks.Block, len(keys))
 	valuesCh := make(chan interface{}, len(keys)) // provide our own channel to control buffer, prevent blocking
@@ -71,10 +72,10 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...key.Key) <-chan blocks.Bl
 	return blocksCh
 }
 
-func toStrings(keys []key.Key) []string {
+func toStrings(keys []*cid.Cid) []string {
 	strs := make([]string, 0)
 	for _, key := range keys {
-		strs = append(strs, string(key))
+		strs = append(strs, key.KeyString())
 	}
 	return strs
 }

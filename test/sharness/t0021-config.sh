@@ -72,6 +72,25 @@ test_config_cmd() {
     grep "\"beep3\": false," actual
   '
 
+  test_expect_success "setup for config replace test" '
+    cp "$IPFS_PATH/config" newconfig.json &&
+	sed -i"~" -e /PrivKey/d -e s/10GB/11GB/ newconfig.json &&
+	sed -i"~" -e '"'"'/PeerID/ {'"'"' -e '"'"' s/,$// '"'"' -e '"'"' } '"'"' newconfig.json
+  '
+
+  test_expect_success "run 'ipfs config replace'" '
+	ipfs config replace - < newconfig.json
+  '
+
+  test_expect_success "check resulting config after 'ipfs config replace'" '
+	sed -e /PrivKey/d "$IPFS_PATH/config" > replconfig.json &&
+	sed -i"~" -e '"'"'/PeerID/ {'"'"' -e '"'"' s/,$// '"'"' -e '"'"' } '"'"' replconfig.json &&
+	test_cmp replconfig.json newconfig.json
+  '
+
+  # SECURITY
+  # Those tests are here to prevent exposing the PrivKey on the network
+
   test_expect_success "'ipfs config Identity' fails" '
        test_expect_code 1 ipfs config Identity 2> ident_out
   '
@@ -81,8 +100,6 @@ test_config_cmd() {
        test_cmp ident_exp ident_out
   '
 
-  # SECURITY
-  # Those tests are here to prevent exposing the PrivKey on the network
   test_expect_success "'ipfs config Identity.PrivKey' fails" '
        test_expect_code 1 ipfs config Identity.PrivKey 2> ident_out
   '
@@ -92,7 +109,7 @@ test_config_cmd() {
   '
 
   test_expect_success "lower cased PrivKey" '
-       sed -i -e '\''s/PrivKey/privkey/'\'' "$IPFS_PATH/config" &&
+       sed -i"~" -e '\''s/PrivKey/privkey/'\'' "$IPFS_PATH/config" &&
        test_expect_code 1 ipfs config Identity.privkey 2> ident_out
   '
 
@@ -101,7 +118,7 @@ test_config_cmd() {
   '
 
   test_expect_success "fix it back" '
-       sed -i -e '\''s/privkey/PrivKey/'\'' "$IPFS_PATH/config"
+       sed -i"~" -e '\''s/privkey/PrivKey/'\'' "$IPFS_PATH/config"
   '
 
   test_expect_success "'ipfs config show' doesn't include privkey" '

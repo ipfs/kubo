@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 type ThreadSafe struct {
@@ -16,11 +16,11 @@ type ThreadSafe struct {
 
 // not threadsafe
 type Wantlist struct {
-	set map[key.Key]*Entry
+	set map[string]*Entry
 }
 
 type Entry struct {
-	Key      key.Key
+	Cid      *cid.Cid
 	Priority int
 
 	RefCnt int
@@ -40,11 +40,11 @@ func NewThreadSafe() *ThreadSafe {
 
 func New() *Wantlist {
 	return &Wantlist{
-		set: make(map[key.Key]*Entry),
+		set: make(map[string]*Entry),
 	}
 }
 
-func (w *ThreadSafe) Add(k key.Key, priority int) bool {
+func (w *ThreadSafe) Add(k *cid.Cid, priority int) bool {
 	w.lk.Lock()
 	defer w.lk.Unlock()
 	return w.Wantlist.Add(k, priority)
@@ -56,13 +56,13 @@ func (w *ThreadSafe) AddEntry(e *Entry) bool {
 	return w.Wantlist.AddEntry(e)
 }
 
-func (w *ThreadSafe) Remove(k key.Key) bool {
+func (w *ThreadSafe) Remove(k *cid.Cid) bool {
 	w.lk.Lock()
 	defer w.lk.Unlock()
 	return w.Wantlist.Remove(k)
 }
 
-func (w *ThreadSafe) Contains(k key.Key) (*Entry, bool) {
+func (w *ThreadSafe) Contains(k *cid.Cid) (*Entry, bool) {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
 	return w.Wantlist.Contains(k)
@@ -90,14 +90,15 @@ func (w *Wantlist) Len() int {
 	return len(w.set)
 }
 
-func (w *Wantlist) Add(k key.Key, priority int) bool {
+func (w *Wantlist) Add(c *cid.Cid, priority int) bool {
+	k := c.KeyString()
 	if e, ok := w.set[k]; ok {
 		e.RefCnt++
 		return false
 	}
 
 	w.set[k] = &Entry{
-		Key:      k,
+		Cid:      c,
 		Priority: priority,
 		RefCnt:   1,
 	}
@@ -106,15 +107,17 @@ func (w *Wantlist) Add(k key.Key, priority int) bool {
 }
 
 func (w *Wantlist) AddEntry(e *Entry) bool {
-	if ex, ok := w.set[e.Key]; ok {
+	k := e.Cid.KeyString()
+	if ex, ok := w.set[k]; ok {
 		ex.RefCnt++
 		return false
 	}
-	w.set[e.Key] = e
+	w.set[k] = e
 	return true
 }
 
-func (w *Wantlist) Remove(k key.Key) bool {
+func (w *Wantlist) Remove(c *cid.Cid) bool {
+	k := c.KeyString()
 	e, ok := w.set[k]
 	if !ok {
 		return false
@@ -128,8 +131,8 @@ func (w *Wantlist) Remove(k key.Key) bool {
 	return false
 }
 
-func (w *Wantlist) Contains(k key.Key) (*Entry, bool) {
-	e, ok := w.set[k]
+func (w *Wantlist) Contains(k *cid.Cid) (*Entry, bool) {
+	e, ok := w.set[k.KeyString()]
 	return e, ok
 }
 

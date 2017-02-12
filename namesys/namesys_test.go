@@ -4,9 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	context "context"
 
 	path "github.com/ipfs/go-ipfs/path"
+	offroute "github.com/ipfs/go-ipfs/routing/offline"
+	"github.com/ipfs/go-ipfs/unixfs"
+
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
 type mockResolver struct {
@@ -68,4 +73,20 @@ func TestNamesysResolution(t *testing.T) {
 	testResolution(t, r, "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", 1, "/ipns/ipfs.io", ErrResolveRecursion)
 	testResolution(t, r, "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", 2, "/ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", ErrResolveRecursion)
 	testResolution(t, r, "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", 3, "/ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy", ErrResolveRecursion)
+}
+
+func TestPublishWithCache0(t *testing.T) {
+	dst := ds.NewMapDatastore()
+	priv, _, err := ci.GenerateKeyPair(ci.RSA, 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
+	routing := offroute.NewOfflineRouter(dst, priv)
+
+	nsys := NewNameSystem(routing, dst, 0)
+	p, err := path.ParsePath(unixfs.EmptyDirNode().Cid().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsys.Publish(context.Background(), priv, p)
 }

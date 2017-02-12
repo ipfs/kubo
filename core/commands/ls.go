@@ -6,13 +6,17 @@ import (
 	"io"
 	"text/tabwriter"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
+
+	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
 )
 
 type LsLink struct {
@@ -32,12 +36,14 @@ type LsOutput struct {
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List links from an object.",
+		Tagline: "List directory contents for Unix filesystem objects.",
 		ShortDescription: `
-Displays the links an IPFS or IPNS object(s) contains, with the following
-format:
+Displays the contents of an IPFS or IPNS object(s) at the given path, with
+the following format:
 
   <link base58 hash> <link size in bytes> <link name>
+
+The JSON output contains type information.
 `,
 	},
 
@@ -49,7 +55,7 @@ format:
 		cmds.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -67,11 +73,29 @@ format:
 			return
 		}
 
+		dserv := nd.DAG
+		if !resolve {
+			offlineexch := offline.Exchange(nd.Blockstore)
+			bserv := blockservice.New(nd.Blockstore, offlineexch)
+			dserv = merkledag.NewDAGService(bserv)
+		}
+
 		paths := req.Arguments()
 
-		var dagnodes []*merkledag.Node
+		var dagnodes []node.Node
 		for _, fpath := range paths {
-			dagnode, err := core.Resolve(req.Context(), node, path.Path(fpath))
+			p, err := path.ParsePath(fpath)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			r := &path.Resolver{
+				DAG:         nd.DAG,
+				ResolveOnce: uio.ResolveUnixfsOnce,
+			}
+
+			dagnode, err := core.Resolve(req.Context(), nd.Namesys, r, p)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -83,34 +107,22 @@ format:
 		for i, dagnode := range dagnodes {
 			output[i] = LsObject{
 				Hash:  paths[i],
-				Links: make([]LsLink, len(dagnode.Links)),
+				Links: make([]LsLink, len(dagnode.Links())),
 			}
-			for j, link := range dagnode.Links {
-				var linkNode *merkledag.Node
+			for j, link := range dagnode.Links() {
 				t := unixfspb.Data_DataType(-1)
-				linkKey := key.Key(link.Hash)
-				if ok, err := node.Blockstore.Has(linkKey); ok && err == nil {
-					b, err := node.Blockstore.Get(linkKey)
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
-					linkNode, err = merkledag.DecodeProtobuf(b.Data())
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
+
+				linkNode, err := link.GetNode(req.Context(), dserv)
+				if err == merkledag.ErrNotFound && !resolve {
+					// not an error
+					linkNode = nil
+				} else if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
 				}
 
-				if linkNode == nil && resolve {
-					linkNode, err = link.GetNode(req.Context(), node.DAG)
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
-				}
-				if linkNode != nil {
-					d, err := unixfs.FromBytes(linkNode.Data())
+				if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
+					d, err := unixfs.FromBytes(pn.Data())
 					if err != nil {
 						res.SetError(err, cmds.ErrNormal)
 						return
@@ -120,7 +132,7 @@ format:
 				}
 				output[i].Links[j] = LsLink{
 					Name: link.Name,
-					Hash: link.Hash.B58String(),
+					Hash: link.Cid.String(),
 					Size: link.Size,
 					Type: t,
 				}

@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var DistPath = "https://ipfs.io/ipfs/QmUnvqDuRyfe7HJuiMMHv77AMUFnjGyAU28LFPeTYwGmFF"
+var DistPath = "https://ipfs.io/ipfs/QmUgY7wRGB7bEKREE5BNrSwjzrRZddkRV4bu64bP2qgv7f"
 
 func init() {
 	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
@@ -128,7 +128,7 @@ func migrationsVersion(bin string) (int, error) {
 	vs := strings.Trim(string(out), " \n\t")
 	vn, err := strconv.Atoi(vs)
 	if err != nil {
-		return 0, fmt.Errorf("migrations binary version check did not return a number")
+		return 0, fmt.Errorf("migrations binary version check did not return a number: %s", err)
 	}
 
 	return vn, nil
@@ -253,17 +253,19 @@ func osWithVariant() (string, error) {
 		return "", fmt.Errorf("failed to resolve go-ipfs: %s", err)
 	}
 
-	cmd := exec.Command("ldd", bin)
+	// ldd outputs the system's kind of libc
+	// - on standard ubuntu: ldd (Ubuntu GLIBC 2.23-0ubuntu5) 2.23
+	// - on alpine: musl libc (x86_64)
+	cmd := exec.Command("ldd --version", bin)
 	buf := new(bytes.Buffer)
 	cmd.Stdout = buf
-	err = cmd.Run()
-	if err != nil {
-		return "", fmt.Errorf("failed to run ldd: %s", err)
-	}
+	// we throw away the error, this code path must not fail because of
+	// a silly issue such as missing/broken ldd. we'll assume glibc in that case.
+	_ = cmd.Run()
 
 	scan := bufio.NewScanner(buf)
 	for scan.Scan() {
-		if strings.Contains(scan.Text(), "libc") && strings.Contains(scan.Text(), "musl") {
+		if strings.Contains(scan.Text(), "musl") {
 			return "linux-musl", nil
 		}
 	}

@@ -3,17 +3,17 @@ package ipfsaddr
 import (
 	"errors"
 
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+	ma "gx/ipfs/QmUAQaWbKxGCUTuoQVvvicbQNZ9APF5pDGWyAZSe93AtKH/go-multiaddr"
 
 	path "github.com/ipfs/go-ipfs/path"
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	peer "gx/ipfs/QmRBqJF7hb8ZSpRcMwUt8hNhydWcxGEhtk81HKq6oUwKvs/go-libp2p-peer"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 )
 
 var log = logging.Logger("ipfsaddr")
 
-// ErrInvalidAddr signals an address is not a valid ipfs address.
-var ErrInvalidAddr = errors.New("invalid ipfs address")
+// ErrInvalidAddr signals an address is not a valid IPFS address.
+var ErrInvalidAddr = errors.New("invalid IPFS address")
 
 type IPFSAddr interface {
 	ID() peer.ID
@@ -83,7 +83,7 @@ func ParseMultiaddr(m ma.Multiaddr) (a IPFSAddr, err error) {
 		return nil, ErrInvalidAddr
 	}
 
-	// make sure it's an ipfs addr
+	// make sure it's an IPFS addr
 	parts := ma.Split(m)
 	if len(parts) < 1 {
 		return nil, ErrInvalidAddr
@@ -93,7 +93,7 @@ func ParseMultiaddr(m ma.Multiaddr) (a IPFSAddr, err error) {
 		return nil, ErrInvalidAddr
 	}
 
-	// make sure ipfs id parses as a peer.ID
+	// make sure 'ipfs id' parses as a peer.ID
 	peerIdParts := path.SplitList(ipfspart.String())
 	peerIdStr := peerIdParts[len(peerIdParts)-1]
 	id, err := peer.IDB58Decode(peerIdStr)

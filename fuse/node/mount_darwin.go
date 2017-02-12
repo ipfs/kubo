@@ -11,6 +11,8 @@ import (
 	"syscall"
 
 	core "github.com/ipfs/go-ipfs/core"
+
+	"gx/ipfs/QmU1N5xVAUXgo3XRTt6GhJ2SuJEbxj2zRgMS7FpjSR2U83/semver"
 )
 
 func init() {
@@ -29,7 +31,7 @@ var fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
 var errStrFuseRequired = `OSXFUSE not found.
 
 OSXFUSE is required to mount, please install it.
-NOTE: Version 2.7.2 or higher required; prior versions are known to kernel panic!
+NOTE: Version in between 2.7.2 and 3.0.0 is required; prior versions are known to kernel panic!
 It is recommended you install it from the OSXFUSE website:
 
 	http://osxfuse.github.io/
@@ -54,6 +56,9 @@ It is recommended you install it from the OSXFUSE website:
 For more help, see:
 
 	https://github.com/ipfs/go-ipfs/issues/177
+
+OSXFUSE versions >3.0.0 are not compatible with version of FUSE library in current use.
+	This will be fixed in near future, see https://github.com/ipfs/go-ipfs/issues/3471
 `
 
 var errStrNeedFuseVersion = `unable to check fuse version.
@@ -109,7 +114,7 @@ trying to run these checks with:
 [3]: %s
 `
 
-var errStrFixConfig = `config key invalid: %s %s
+var errStrFixConfig = `config key invalid: %s %v
 You may be able to get this error to go away by setting it again:
 
 	ipfs config %s true
@@ -138,11 +143,22 @@ func darwinFuseCheckVersion(node *core.IpfsNode) error {
 	}
 
 	log.Debug("mount: osxfuse version:", ov)
-	if strings.HasPrefix(ov, "2.7.") || strings.HasPrefix(ov, "2.8.") {
-		return nil
+
+	min := semver.MustParse("2.7.2")
+	max := semver.MustParse("3.0.0")
+	curr, err := semver.Make(ov)
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf(errStrUpgradeFuse, ov)
+	if curr.LT(min) {
+		return fmt.Errorf(errStrUpgradeFuse, ov)
+	}
+	// TODO: Upgrade fuse lib and work nice with 3.0.0+
+	if curr.GE(max) {
+		return fmt.Errorf(errStrUpgradeFuse, ov)
+	}
+	return nil
 }
 
 func tryGFV() (string, error) {
@@ -221,12 +237,15 @@ func userAskedToSkipFuseCheck(node *core.IpfsNode) (skip bool, err error) {
 	if err != nil {
 		return false, nil // failed to get config value. dont skip check.
 	}
-	s, ok := val.(string)
-	if !ok {
+
+	switch val := val.(type) {
+	case string:
+		return val == "true", nil
+	case bool:
+		return val, nil
+	default:
 		// got config value, but it's invalid... dont skip check, ask the user to fix it...
 		return false, fmt.Errorf(errStrFixConfig, dontCheckOSXFUSEConfigKey, val,
 			dontCheckOSXFUSEConfigKey)
 	}
-	// only "true" counts as telling us to skip.
-	return s == "true", nil
 }

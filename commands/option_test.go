@@ -1,6 +1,9 @@
 package commands
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestOptionValueExtractBoolNotFound(t *testing.T) {
 	t.Log("ensure that no error is returned when value is not found")
@@ -25,5 +28,18 @@ func TestOptionValueExtractWrongType(t *testing.T) {
 	_, _, err = optval.Int()
 	if err == nil {
 		t.Fatal("No error returned. Failure.")
+	}
+}
+
+func TestLackOfDescriptionOfOptionDoesNotPanic(t *testing.T) {
+	opt := BoolOption("a", "")
+	opt.Description()
+}
+
+func TestDotIsAddedInDescripton(t *testing.T) {
+	opt := BoolOption("a", "desc without dot")
+	dest := opt.Description()
+	if !strings.HasSuffix(dest, ".") {
+		t.Fatal("dot should have been added at the end of description")
 	}
 }

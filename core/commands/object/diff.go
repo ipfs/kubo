@@ -7,6 +7,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 )
@@ -17,13 +18,13 @@ type Changes struct {
 
 var ObjectDiffCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Takes a diff of the two given objects.",
+		Tagline: "Display the diff between two ipfs objects.",
 		ShortDescription: `
 'ipfs object diff' is a command used to show the differences between
-two ipfs objects.`,
+two IPFS objects.`,
 		LongDescription: `
 'ipfs object diff' is a command used to show the differences between
-two ipfs objects.
+two IPFS objects.
 
 Example:
 
@@ -73,19 +74,31 @@ Example:
 
 		ctx := req.Context()
 
-		obj_a, err := core.Resolve(ctx, node, pa)
+		obj_a, err := core.Resolve(ctx, node.Namesys, node.Resolver, pa)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		obj_b, err := core.Resolve(ctx, node, pb)
+		obj_b, err := core.Resolve(ctx, node.Namesys, node.Resolver, pb)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		changes, err := dagutils.Diff(ctx, node.DAG, obj_a, obj_b)
+		pbobj_a, ok := obj_a.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
+		pbobj_b, ok := obj_b.(*dag.ProtoNode)
+		if !ok {
+			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
+			return
+		}
+
+		changes, err := dagutils.Diff(ctx, node.DAG, pbobj_a, pbobj_b)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

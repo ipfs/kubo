@@ -24,7 +24,7 @@ sort_rand() {
 }
 
 check_random_corruption() {
-	to_break=$(find "$IPFS_PATH/blocks" -type f | sort_rand | head -n 1)
+	to_break=$(find "$IPFS_PATH/blocks" -type f | grep -v README | grep -v SHARDING | sort_rand | head -n 1)
 
 	test_expect_success "back up file and overwrite it" '
 		cp "$to_break" backup_file &&

@@ -15,22 +15,28 @@ import (
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	pin "github.com/ipfs/go-ipfs/pin"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	"context"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
 )
 
 // TODO: extract these tests and more as a generic layout test suite
 
-func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
+func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return BalancedLayout(dbp.New(spl))
+	nd, err := BalancedLayout(dbp.New(spl))
+	if err != nil {
+		return nil, err
+	}
+
+	return nd.(*dag.ProtoNode), nil
 }
 
-func getTestDag(t *testing.T, ds dag.DAGService, size int64, blksize int64) (*dag.Node, []byte) {
+func getTestDag(t *testing.T, ds dag.DAGService, size int64, blksize int64) (*dag.ProtoNode, []byte) {
 	data := make([]byte, size)
 	u.NewTimeSeededRand().Read(data)
 	r := bytes.NewReader(data)
@@ -76,6 +82,30 @@ func testFileConsistency(t *testing.T, nbytes int64, blksize int64) {
 
 func TestBuilderConsistency(t *testing.T) {
 	testFileConsistency(t, 100000, chunk.DefaultBlockSize)
+}
+
+func TestNoChunking(t *testing.T) {
+	ds := mdtest.Mock()
+
+	nd, should := getTestDag(t, ds, 1000, 2000)
+	r, err := uio.NewDagReader(context.Background(), nd, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dagrArrComp(t, r, should)
+}
+
+func TestTwoChunks(t *testing.T) {
+	ds := mdtest.Mock()
+
+	nd, should := getTestDag(t, ds, 2000, 1000)
+	r, err := uio.NewDagReader(context.Background(), nd, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dagrArrComp(t, r, should)
 }
 
 func arrComp(a, b []byte) error {

@@ -2,6 +2,7 @@ package fs_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -21,7 +22,6 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil/record"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fuseutil"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/syscallx"
-	"gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 )
 
 // TO TEST:

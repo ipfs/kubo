@@ -1,12 +1,15 @@
 package core
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"os"
+	"syscall"
+	"time"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -14,18 +17,23 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
-	ds "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore"
-	dsync "gx/ipfs/QmTxLSvdhwg68WJimdS6icLPhZi28aTp6b7uihC2Yb47Xk/go-datastore/sync"
 
-	pstore "gx/ipfs/QmQdnfvZQuhdT93LNc5bos52wAmdr3G2p6G8teLJMEN32P/go-libp2p-peerstore"
-	goprocessctx "gx/ipfs/QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn/goprocess/context"
-	ci "gx/ipfs/QmUWER4r4qMvaCnX5zREcfyiWN7cXN9g3a7fkRqNz8qWPP/go-libp2p-crypto"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	dsync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
+	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
+	goprocessctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
+	retry "gx/ipfs/QmUaGhKyLgTuYDdQsbKST1tYr2CVoix59rqaxdxqk2UbfK/retry-datastore"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
 type BuildCfg struct {
 	// If online is set, the node will have networking enabled
 	Online bool
+
+	// ExtraOpts is a map of extra options used to configure the ipfs nodes creation
+	ExtraOpts map[string]bool
 
 	// If permament then node should run more expensive processes
 	// that will improve performance in long run
@@ -37,6 +45,14 @@ type BuildCfg struct {
 	Routing RoutingOption
 	Host    HostOption
 	Repo    repo.Repo
+}
+
+func (cfg *BuildCfg) getOpt(key string) bool {
+	if cfg.ExtraOpts == nil {
+		return false
+	}
+
+	return cfg.ExtraOpts[key]
 }
 
 func (cfg *BuildCfg) fillDefaults() error {
@@ -75,7 +91,7 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 		return nil, err
 	}
 
-	data, err := pub.Hash()
+	pid, err := peer.IDFromPublicKey(pub)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +103,7 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 
 	c.Bootstrap = cfg.DefaultBootstrapAddresses
 	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001"}
-	c.Identity.PeerID = key.Key(data).B58String()
+	c.Identity.PeerID = pid.Pretty()
 	c.Identity.PrivKey = base64.StdEncoding.EncodeToString(privkeyb)
 
 	return &repo.Mock{
@@ -105,6 +121,7 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	if err != nil {
 		return nil, err
 	}
+	ctx = metrics.CtxScope(ctx, "ipfs")
 
 	n := &IpfsNode{
 		mode:      offlineMode,
@@ -127,14 +144,30 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	return n, nil
 }
 
+func isTooManyFDError(err error) bool {
+	perr, ok := err.(*os.PathError)
+	if ok && perr.Err == syscall.EMFILE {
+		return true
+	}
+
+	return false
+}
+
 func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	// setup local peer ID (private key is loaded in online setup)
 	if err := n.loadID(); err != nil {
 		return err
 	}
 
+	rds := &retry.Datastore{
+		Batching:    n.Repo.Datastore(),
+		Delay:       time.Millisecond * 200,
+		Retries:     6,
+		TempErrFunc: isTooManyFDError,
+	}
+
 	var err error
-	bs := bstore.NewBlockstore(n.Repo.Datastore())
+	bs := bstore.NewBlockstore(rds)
 	opts := bstore.DefaultCacheOpts()
 	conf, err := n.Repo.Config()
 	if err != nil {
@@ -146,10 +179,12 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		opts.HasBloomFilterSize = 0
 	}
 
-	n.Blockstore, err = bstore.CachedBlockstore(bs, ctx, opts)
+	cbs, err := bstore.CachedBlockstore(bs, ctx, opts)
 	if err != nil {
 		return err
 	}
+
+	n.Blockstore = bstore.NewGCBlockstore(cbs, bstore.NewGCLocker())
 
 	rcfg, err := n.Repo.Config()
 	if err != nil {
@@ -157,12 +192,12 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	if rcfg.Datastore.HashOnRead {
-		bs.RuntimeHashing(true)
+		bs.HashOnRead(true)
 	}
 
 	if cfg.Online {
 		do := setupDiscoveryOption(rcfg.Discovery)
-		if err := n.startOnlineServices(ctx, cfg.Routing, cfg.Host, do); err != nil {
+		if err := n.startOnlineServices(ctx, cfg.Routing, cfg.Host, do, cfg.getOpt("pubsub"), cfg.getOpt("mplex")); err != nil {
 			return err
 		}
 	} else {
@@ -171,15 +206,17 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 
 	n.Blocks = bserv.New(n.Blockstore, n.Exchange)
 	n.DAG = dag.NewDAGService(n.Blocks)
-	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG)
+
+	internalDag := dag.NewDAGService(bserv.New(n.Blockstore, offline.Exchange(n.Blockstore)))
+	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG, internalDag)
 	if err != nil {
 		// TODO: we should move towards only running 'NewPinner' explicity on
 		// node init instead of implicitly here as a result of the pinner keys
 		// not being found in the datastore.
 		// this is kinda sketchy and could cause data loss
-		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG)
+		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG, internalDag)
 	}
-	n.Resolver = &path.Resolver{DAG: n.DAG}
+	n.Resolver = path.NewBasicResolver(n.DAG)
 
 	err = n.loadFilesRoot()
 	if err != nil {

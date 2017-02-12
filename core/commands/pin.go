@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"io"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
+
+	context "context"
+	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 var PinCmd = &cmds.Command{
@@ -29,12 +30,12 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pins []key.Key
+	Pins []*cid.Cid
 }
 
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Pins objects to local storage.",
+		Tagline:          "Pin objects to local storage.",
 		ShortDescription: "Stores an IPFS object(s) from a given path locally to disk.",
 	},
 
@@ -95,10 +96,10 @@ var addPinCmd = &cmds.Command{
 
 var rmPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Removes the pinned object from local storage.",
+		Tagline: "Remove pinned objects from local storage.",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
-collected if needed. (By default, recursively. Use -r=false for direct pins)
+collected if needed. (By default, recursively. Use -r=false for direct pins.)
 `,
 	},
 
@@ -268,31 +269,31 @@ type RefKeyList struct {
 
 func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsNode) (map[string]RefKeyObject, error) {
 
+	mode, ok := pin.StringToPinMode(typeStr)
+	if !ok {
+		return nil, fmt.Errorf("invalid pin mode '%s'", typeStr)
+	}
+
 	keys := make(map[string]RefKeyObject)
 
 	for _, p := range args {
-		dagNode, err := core.Resolve(ctx, n, path.Path(p))
+		pth, err := path.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
 
-		k, err := dagNode.Key()
+		c, err := core.ResolveToCid(ctx, n, pth)
 		if err != nil {
 			return nil, err
 		}
 
-		mode, ok := pin.StringToPinMode(typeStr)
-		if !ok {
-			return nil, fmt.Errorf("Invalid pin mode '%s'", typeStr)
-		}
-
-		pinType, pinned, err := n.Pinning.IsPinnedWithType(k, mode)
+		pinType, pinned, err := n.Pinning.IsPinnedWithType(c, mode)
 		if err != nil {
 			return nil, err
 		}
 
 		if !pinned {
-			return nil, fmt.Errorf("Path '%s' is not pinned", p)
+			return nil, fmt.Errorf("path '%s' is not pinned", p)
 		}
 
 		switch pinType {
@@ -300,7 +301,7 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 		default:
 			pinType = "indirect through " + pinType
 		}
-		keys[k.B58String()] = RefKeyObject{
+		keys[c.String()] = RefKeyObject{
 			Type: pinType,
 		}
 	}
@@ -312,9 +313,9 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 
 	keys := make(map[string]RefKeyObject)
 
-	AddToResultKeys := func(keyList []key.Key, typeStr string) {
-		for _, k := range keyList {
-			keys[k.B58String()] = RefKeyObject{
+	AddToResultKeys := func(keyList []*cid.Cid, typeStr string) {
+		for _, c := range keyList {
+			keys[c.String()] = RefKeyObject{
 				Type: typeStr,
 			}
 		}
@@ -324,18 +325,14 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 		AddToResultKeys(n.Pinning.DirectKeys(), "direct")
 	}
 	if typeStr == "indirect" || typeStr == "all" {
-		ks := key.NewKeySet()
+		set := cid.NewSet()
 		for _, k := range n.Pinning.RecursiveKeys() {
-			nd, err := n.DAG.Get(ctx, k)
-			if err != nil {
-				return nil, err
-			}
-			err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks, false)
+			err := dag.EnumerateChildren(n.Context(), n.DAG, k, set.Visit, false)
 			if err != nil {
 				return nil, err
 			}
 		}
-		AddToResultKeys(ks.Keys(), "indirect")
+		AddToResultKeys(set.Keys(), "indirect")
 	}
 	if typeStr == "recursive" || typeStr == "all" {
 		AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
