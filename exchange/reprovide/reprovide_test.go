@@ -10,6 +10,7 @@ import (
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	dssync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
+	pstore "gx/ipfs/QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU/go-libp2p-peerstore"
 
 	. "github.com/ipfs/go-ipfs/exchange/reprovide"
 )
@@ -37,16 +38,19 @@ func TestReprovide(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	provs, err := clB.FindProviders(ctx, blk.Cid())
-	if err != nil {
-		t.Fatal(err)
+	var providers []pstore.PeerInfo
+	maxProvs := 100
+
+	provChan := clB.FindProvidersAsync(ctx, blk.Cid(), maxProvs)
+	for p := range provChan {
+		providers = append(providers, p)
 	}
 
-	if len(provs) == 0 {
+	if len(providers) == 0 {
 		t.Fatal("Should have gotten a provider")
 	}
 
-	if provs[0].ID != idA.ID() {
+	if providers[0].ID != idA.ID() {
 		t.Fatal("Somehow got the wrong peer back as a provider.")
 	}
 }

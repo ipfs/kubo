@@ -91,10 +91,6 @@ func (c *offlineRouting) GetValues(ctx context.Context, key string, _ int) ([]ro
 	}, nil
 }
 
-func (c *offlineRouting) FindProviders(ctx context.Context, key *cid.Cid) ([]pstore.PeerInfo, error) {
-	return nil, ErrOffline
-}
-
 func (c *offlineRouting) FindPeer(ctx context.Context, pid peer.ID) (pstore.PeerInfo, error) {
 	return pstore.PeerInfo{}, ErrOffline
 }
