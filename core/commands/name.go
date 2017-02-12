@@ -28,11 +28,6 @@ Publish an <ipfs-path> to your identity name:
   > ipfs name publish /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
-Publish an <ipfs-path> to another public key:
-
-  > ipfs name publish /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
-  Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
-
 Resolve the value of your identity:
 
   > ipfs name resolve
@@ -53,6 +48,7 @@ Resolve the value of a reference:
 
 	Subcommands: map[string]*cmds.Command{
 		"publish": PublishCmd,
+		"upload":  UploadNameCmd,
 		"resolve": IpnsCmd,
 	},
 }

@@ -30,11 +30,13 @@ For command-line bindings to this functionality, see:
 package namesys
 
 import (
+	"context"
 	"errors"
 	"time"
 
-	context "context"
-	path "github.com/ipfs/go-ipfs/path"
+	"github.com/ipfs/go-ipfs/path"
+
+	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
 	ci "gx/ipfs/QmfWDLQjGjVe4fr5CoztYW2DYYjRysMJrFe1RCsXLPTf46/go-libp2p-crypto"
 )
 
@@ -68,7 +70,7 @@ var ErrPublishFailed = errors.New("Could not publish name.")
 // key (name).
 type NameSystem interface {
 	Resolver
-	Publisher
+	RePublisher
 }
 
 // Resolver is an object capable of resolving names.
@@ -110,4 +112,10 @@ type Publisher interface {
 	// TODO: to be replaced by a more generic 'PublishWithValidity' type
 	// call once the records spec is implemented
 	PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error
+}
+
+type RePublisher interface {
+	Publisher
+	RePublish(ctx context.Context, sk ci.PrivKey, eol time.Time) error
+	Upload(ctx context.Context, pk ci.PubKey, record []byte) (id peer.ID, oldSeq uint64, newSeq uint64, newPath path.Path, err error)
 }
