@@ -8,3 +8,4 @@
 !checkflags
 !continueyn
 !verify-go-fmt.sh
+!Rules.mk
