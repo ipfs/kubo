@@ -32,7 +32,9 @@ else
   # when overwriting CMD, making this PR safe to merge
   echo "DEPRECATED: arguments have been set but the first argument isn't 'daemon'" >&2
   echo "DEPRECATED: run 'docker run ipfs/go-ipfs daemon $@' instead" >&2
-  echo "DEPRECATED: see https://github.com/ipfs/go-ipfs/pull/3573 for more information" >&2
+  echo "DEPRECATED: see the following PRs for more information:" >&2
+  echo "DEPRECATED: * https://github.com/ipfs/go-ipfs/pull/3573" >&2
+  echo "DEPRECATED: * https://github.com/ipfs/go-ipfs/pull/3685" >&2
 fi
 
 exec ipfs daemon "$@"
