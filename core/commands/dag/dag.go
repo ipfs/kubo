@@ -10,8 +10,8 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
-	ipldcbor "gx/ipfs/QmWcQMNruWC3wphK1L6zEcV4MZBJqfsNKSRFcuo4AsNk4k/go-ipld-cbor"
 	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	ipldcbor "gx/ipfs/QmdaC21UyoyN3t9QdapHZfsaUo3mqVf5p4CEuFaYVFqwap/go-ipld-cbor"
 )
 
 var DagCmd = &cmds.Command{

@@ -22,7 +22,7 @@ test_expect_success "make a few test files" '
 '
 
 test_expect_success "make an ipld object in json" '
-	printf "{\"hello\":\"world\",\"cats\":[{\"/\":\"%s\"},{\"water\":{\"/\":\"%s\"}}],\"magic\":{\"/\":\"%s\"}}" $HASH1 $HASH2 $HASH3 > ipld_object
+	printf "{\"hello\":\"world\",\"cats\":[{\"/\":\"%s\"},{\"water\":{\"/\":\"%s\"}}],\"magic\":{\"/\":\"%s\"},\"sub\":{\"dict\":\"ionary\",\"beep\":[0,\"bop\"]}}" $HASH1 $HASH2 $HASH3 > ipld_object
 '
 
 test_dag_cmd() {
@@ -31,7 +31,7 @@ test_dag_cmd() {
 	'
 
 	test_expect_success "output looks correct" '
-		EXPHASH="zdpuAzn7KZcQmKJvpEM1DgHXaybVj7mRP4ZMrkW94taYEuZHp"
+		EXPHASH="zdpuAsXfkHapxohc8LtsCzYiAsy84ESqKRD8eWuY64tt9r2CE"
 		test $EXPHASH = $IPLDHASH
 	'
 
@@ -45,6 +45,27 @@ test_dag_cmd() {
 		test_cmp file1 out1 &&
 		test_cmp file2 out2 &&
 		test_cmp file3 out3
+	'
+
+	test_expect_success "resolving sub-objects works" '
+		ipfs dag get $IPLDHASH/hello > sub1 &&
+		ipfs dag get $IPLDHASH/sub > sub2 &&
+		ipfs dag get $IPLDHASH/sub/beep > sub3 &&
+		ipfs dag get $IPLDHASH/sub/beep/0 > sub4 &&
+		ipfs dag get $IPLDHASH/sub/beep/1 > sub5
+	'
+
+	test_expect_success "sub-objects look right" '
+		echo "\"world\"" > sub1_exp &&
+		test_cmp sub1_exp sub1 &&
+		echo "{\"beep\":[0,\"bop\"],\"dict\":\"ionary\"}" > sub2_exp &&
+		test_cmp sub2_exp sub2 &&
+		echo "[0,\"bop\"]" > sub3_exp &&
+		test_cmp sub3_exp sub3 &&
+		echo "0" > sub4_exp &&
+		test_cmp sub4_exp sub4 &&
+		echo "\"bop\"" > sub5_exp &&
+		test_cmp sub5_exp sub5
 	'
 
 	test_expect_success "can pin cbor object" '
