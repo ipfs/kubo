@@ -1,0 +1,15 @@
+FROM ipfs/go-ipfs:latest
+
+USER root
+
+RUN apk add fuse shadow --update-cache --repository http://nl.alpinelinux.org/alpine/edge/testing \
+  && mkdir /ipns \
+  && mkdir /ipfs \
+  && addgroup fuse \
+  && addgroup ipfs fuse \
+  && chown ipfs:fuse /etc/fuse.conf \
+  && chown ipfs:fuse /ipfs /ipns
+
+USER ipfs
+
+ENTRYPOINT ["/usr/local/bin/start_ipfs", "--mount"]
