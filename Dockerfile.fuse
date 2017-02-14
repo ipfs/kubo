@@ -1,5 +1,9 @@
 FROM ipfs/go-ipfs:latest
 
+# This a Docker image based on /Dockerfile with FUSE mounts pre-enabled.
+#
+# This should be run with '--cap-add SYS_ADMIN --device /dev/fuse'.
+
 USER root
 
 RUN apk add fuse shadow --update-cache --repository http://nl.alpinelinux.org/alpine/edge/testing \
