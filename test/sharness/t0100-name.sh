@@ -60,6 +60,15 @@ test_expect_success "ipfs cat on published content succeeds" '
     test_cmp expected actual
 '
 
+# test with a custom key
+test_expect_success "ipfs resolves published key from keystore" '
+    ipfs key gen "sharness_test_key_name_resolve" --type=rsa --size=2048 || true && 
+    ipfs name publish -k="sharness_test_key_name_resolve" "/ipfs/$HASH_WELCOME_DOCS/help" &&
+    echo "/ipfs/$HASH_WELCOME_DOCS/help" >expected5 &&
+    ipfs name resolve -k="sharness_test_key_name_resolve" >actual &&
+    test_cmp expected5 actual
+'
+
 # publish with an explicit node ID
 
 test_expect_failure "'ipfs name publish <local-id> <hash>' succeeds" '
