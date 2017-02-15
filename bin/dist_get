@@ -25,17 +25,26 @@ download() {
 
 	if have_binary wget; then
 		printf '==> Using wget to download "%s" to "%s"\n' "$dl_url" "$dl_output"
-		wget "$dl_url" -O "$dl_output" || return
-	elif have_binary curl; then
-		printf '==> Using curl to download "%s" to "%s"\n' "$dl_url" "$dl_output"
-		curl --silent "$dl_url" > "$dl_output" || return
-	elif have_binary fetch; then
-		printf '==> Using fetch to download "%s" to "%s"\n' "$dl_url" "$dl_output"
-		fetch "$dl_url" -o "$dl_output" || return
-	else
-		die "no binary found to download $dl_url. exiting."
+		if wget "$dl_url" -O "$dl_output"; then
+			echo "==> download complete!"
+			return
+		fi
 	fi
-	echo "==> download complete!"
+	if have_binary curl; then
+		printf '==> Using curl to download "%s" to "%s"\n' "$dl_url" "$dl_output"
+		if curl --silent "$dl_url" > "$dl_output"; then
+			echo "==> download complete!"
+			return
+		fi
+	fi
+	if have_binary fetch; then
+		printf '==> Using fetch to download "%s" to "%s"\n' "$dl_url" "$dl_output"
+		if fetch "$dl_url" -o "$dl_output"; then
+			echo "==> download complete!"
+			return
+		fi
+	fi
+	die "Unable to download $dl_url. exiting."
 }
 
 unarchive() {
