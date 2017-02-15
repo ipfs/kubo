@@ -8,7 +8,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	offline "github.com/ipfs/go-ipfs/routing/offline"
-	peer "gx/ipfs/QmfMmLGoKzCHDN7cGgk64PJr4iipzidDRME8HABSJqvmhC/go-libp2p-peer"
+
+	peer "gx/ipfs/QmZcUPvPhD1Xvk6mwijYF8AfR3mG31S1YsEfHG4khrFPRr/go-libp2p-peer"
 	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
 )
 
@@ -43,7 +44,7 @@ Resolve the value of a reference:
   > ipfs name resolve ipfs.io
   /ipfs/QmaBvfZooxWkrv7D3r8LS9moNjzD2o525XMZze69hhoxf5
 
-Resolve the value of another key:
+Resolve the value of a key from the local keystore:
 
   > ipfs name resolve -k=test
   /ipfs/QmbTg3GRWqrrJeBdHZ58BSQygDRZgXUK1gZcCURgZTjcG8
@@ -98,6 +99,10 @@ Resolve the value of another key:
 		var name string
 
 		if kname, found, _ := req.Option("key").String(); found {
+			if len(req.Arguments()) > 0 {
+				res.SetError(errors.New("key name and an explicit id cannot be specified at the same time"), cmds.ErrNormal)
+				return
+			}
 			k, err := n.GetKey(kname)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
