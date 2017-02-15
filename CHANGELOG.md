@@ -1,5 +1,171 @@
 # go-ipfs changelog
 
+### 0.4.5 - 2017-02-11
+
+#### Changes from rc3 to rc4
+- Update to fixed webui. ([ipfs/go-ipfs#3669](https://github.com/ipfs/go-ipfs/pull/3669))
+
+#### Changes from rc2 to rc3
+- Fix handling of null arrays in cbor ipld objects.  ([ipfs/go-ipfs#3666](https://github.com/ipfs/go-ipfs/pull/3666))
+- Add env var to enable yamux debug logging.  ([ipfs/go-ipfs#3668](https://github.com/ipfs/go-ipfs/pull/3668))
+- Fix libc check during auto-migrations.  ([ipfs/go-ipfs#3665](https://github.com/ipfs/go-ipfs/pull/3665))
+
+#### Changes from rc1 to rc2
+- Fixed json output of ipld objects in `ipfs dag get` ([ipfs/go-ipfs#3655](https://github.com/ipfs/go-ipfs/pull/3655))
+
+#### Changes since 0.4.4
+
+- Notable changes
+	- IPLD and CIDs
+	  - Rework go-ipfs to use Content IDs  ([ipfs/go-ipfs#3187](https://github.com/ipfs/go-ipfs/pull/3187))  ([ipfs/go-ipfs#3290](https://github.com/ipfs/go-ipfs/pull/3290))
+	  - Turn merkledag.Node into an interface ([ipfs/go-ipfs#3301](https://github.com/ipfs/go-ipfs/pull/3301))
+	  - Implement cbor ipld nodes  ([ipfs/go-ipfs#3325](https://github.com/ipfs/go-ipfs/pull/3325))
+	  - Allow cid format selection in block put command  ([ipfs/go-ipfs#3324](https://github.com/ipfs/go-ipfs/pull/3324))  ([ipfs/go-ipfs#3483](https://github.com/ipfs/go-ipfs/pull/3483))
+	  - Bitswap protocol extension to handle cids  ([ipfs/go-ipfs#3297](https://github.com/ipfs/go-ipfs/pull/3297))
+	  - Add dag get to read-only api  ([ipfs/go-ipfs#3499](https://github.com/ipfs/go-ipfs/pull/3499))
+	- Raw Nodes
+	  - Implement 'Raw Node' node type for addressing raw data  ([ipfs/go-ipfs#3307](https://github.com/ipfs/go-ipfs/pull/3307))
+	  - Optimize DagService GetLinks for Raw Nodes.  ([ipfs/go-ipfs#3351](https://github.com/ipfs/go-ipfs/pull/3351))
+	- Experimental PubSub
+	  - Added a very basic pubsub implementation  ([ipfs/go-ipfs#3202](https://github.com/ipfs/go-ipfs/pull/3202))
+	- Core API
+	  - gateway: use core api for serving GET/HEAD/POST  ([ipfs/go-ipfs#3244](https://github.com/ipfs/go-ipfs/pull/3244))
+
+- Improvements
+	- Disable auto-gc check in 'ipfs cat'  ([ipfs/go-ipfs#3100](https://github.com/ipfs/go-ipfs/pull/3100))
+	- Add `bitswap ledger` command  ([ipfs/go-ipfs#2852](https://github.com/ipfs/go-ipfs/pull/2852))
+	- Add `ipfs block rm` command.  ([ipfs/go-ipfs#2962](https://github.com/ipfs/go-ipfs/pull/2962))
+	- Add config option to disable bandwidth metrics   ([ipfs/go-ipfs#3381](https://github.com/ipfs/go-ipfs/pull/3381))
+	- Add experimental dht 'client mode' flag  ([ipfs/go-ipfs#3269](https://github.com/ipfs/go-ipfs/pull/3269))
+	- Add config option to set reprovider interval  ([ipfs/go-ipfs#3101](https://github.com/ipfs/go-ipfs/pull/3101))
+	- Add `ipfs dht provide` command  ([ipfs/go-ipfs#3106](https://github.com/ipfs/go-ipfs/pull/3106))
+	- Add stream info to `ipfs swarm peers -v`  ([ipfs/go-ipfs#3352](https://github.com/ipfs/go-ipfs/pull/3352))
+	- Add option to enable go-multiplex experiment  ([ipfs/go-ipfs#3447](https://github.com/ipfs/go-ipfs/pull/3447))
+	- Basic Keystore implementation  ([ipfs/go-ipfs#3472](https://github.com/ipfs/go-ipfs/pull/3472))
+	- Make `ipfs add --local` not send providers messages  ([ipfs/go-ipfs#3102](https://github.com/ipfs/go-ipfs/pull/3102))
+	- Fix bug in `ipfs tar add` that buffered input in memory  ([ipfs/go-ipfs#3334](https://github.com/ipfs/go-ipfs/pull/3334))
+	- Make blockstore retry operations on temporary errors  ([ipfs/go-ipfs#3091](https://github.com/ipfs/go-ipfs/pull/3091))
+	- Don't hold the PinLock in adder when not pinning.  ([ipfs/go-ipfs#3222](https://github.com/ipfs/go-ipfs/pull/3222))
+	- Validate repo/api file and improve error message  ([ipfs/go-ipfs#3219](https://github.com/ipfs/go-ipfs/pull/3219))
+	- no longer hard code gomaxprocs  ([ipfs/go-ipfs#3357](https://github.com/ipfs/go-ipfs/pull/3357))
+	- Updated Bash complete script  ([ipfs/go-ipfs#3377](https://github.com/ipfs/go-ipfs/pull/3377))
+	- Remove expensive debug statement in blockstore AllKeysChan  ([ipfs/go-ipfs#3384](https://github.com/ipfs/go-ipfs/pull/3384))
+	- Remove GC timeout, fix GC tests  ([ipfs/go-ipfs#3494](https://github.com/ipfs/go-ipfs/pull/3494))
+	- Fix `ipfs pin add` resource consumption  ([ipfs/go-ipfs#3495](https://github.com/ipfs/go-ipfs/pull/3495))  ([ipfs/go-ipfs#3571](https://github.com/ipfs/go-ipfs/pull/3571))
+	- Add IPNS entry to DHT cache after publish  ([ipfs/go-ipfs#3501](https://github.com/ipfs/go-ipfs/pull/3501))
+	- Add in `--routing=none` daemon option  ([ipfs/go-ipfs#3605](https://github.com/ipfs/go-ipfs/pull/3605))
+
+- Bitswap
+	- Don't re-provide blocks we've provided very recently  ([ipfs/go-ipfs#3105](https://github.com/ipfs/go-ipfs/pull/3105))
+	- Add a deadline to sendmsg calls ([ipfs/go-ipfs#3445](https://github.com/ipfs/go-ipfs/pull/3445))
+	- cleanup bitswap and handle message send failure slightly better  ([ipfs/go-ipfs#3408](https://github.com/ipfs/go-ipfs/pull/3408))
+	- Increase wantlist resend delay to one minute  ([ipfs/go-ipfs#3448](https://github.com/ipfs/go-ipfs/pull/3448))
+	- Fix issue where wantlist fullness wasn't included in messages  ([ipfs/go-ipfs#3461](https://github.com/ipfs/go-ipfs/pull/3461))
+	- Only pass keys down newBlocks chan in bitswap   ([ipfs/go-ipfs#3271](https://github.com/ipfs/go-ipfs/pull/3271))
+
+- Bugfixes
+	- gateway: fix --writable flag  ([ipfs/go-ipfs#3206](https://github.com/ipfs/go-ipfs/pull/3206))
+	- Fix relative seek in unixfs not expanding file properly   ([ipfs/go-ipfs#3095](https://github.com/ipfs/go-ipfs/pull/3095))
+	- Update multicodec service names for ipfs services  ([ipfs/go-ipfs#3132](https://github.com/ipfs/go-ipfs/pull/3132))
+	- dht: add missing protocol ID to newStream call  ([ipfs/go-ipfs#3203](https://github.com/ipfs/go-ipfs/pull/3203))
+	- Return immediately on namesys error  ([ipfs/go-ipfs#3345](https://github.com/ipfs/go-ipfs/pull/3345))
+	- Improve osxfuse handling  ([ipfs/go-ipfs#3098](https://github.com/ipfs/go-ipfs/pull/3098))  ([ipfs/go-ipfs#3413](https://github.com/ipfs/go-ipfs/pull/3413))
+	- commands: fix opt.Description panic when desc was empty  ([ipfs/go-ipfs#3521](https://github.com/ipfs/go-ipfs/pull/3521))
+	- Fixes #3133: Properly handle release candidates in version comparison  ([ipfs/go-ipfs#3136](https://github.com/ipfs/go-ipfs/pull/3136))
+	- Don't drop error in readStreamedJson.  ([ipfs/go-ipfs#3276](https://github.com/ipfs/go-ipfs/pull/3276))
+	- Error out on invalid `--routing` option  ([ipfs/go-ipfs#3482](https://github.com/ipfs/go-ipfs/pull/3482))
+	- Respect contexts when returning diagnostics responses  ([ipfs/go-ipfs#3353](https://github.com/ipfs/go-ipfs/pull/3353))
+	- Fix json marshalling of pbnode  ([ipfs/go-ipfs#3507](https://github.com/ipfs/go-ipfs/pull/3507))
+
+- General changes and refactorings
+	- Disable Suborigins the spec changed and our impl conflicts  ([ipfs/go-ipfs#3519](https://github.com/ipfs/go-ipfs/pull/3519))
+	- Avoid sending provide messages for pinsets  ([ipfs/go-ipfs#3103](https://github.com/ipfs/go-ipfs/pull/3103))
+	- Refactor cli handling to expose argument parsing functionality  ([ipfs/go-ipfs#3308](https://github.com/ipfs/go-ipfs/pull/3308))
+	- Create a FilestoreNode object to carry PosInfo  ([ipfs/go-ipfs#3314](https://github.com/ipfs/go-ipfs/pull/3314))
+	- Print 'n/a' instead of zero latency in `ipfs swarm peers`  ([ipfs/go-ipfs#3491](https://github.com/ipfs/go-ipfs/pull/3491))
+	- Add DAGService.GetLinks() method to optimize traversals.  ([ipfs/go-ipfs#3255](https://github.com/ipfs/go-ipfs/pull/3255))
+	- Make path resolver no longer require whole IpfsNode for construction  ([ipfs/go-ipfs#3321](https://github.com/ipfs/go-ipfs/pull/3321))
+	- Distinguish between Offline and Local Modes of daemon operation.  ([ipfs/go-ipfs#3259](https://github.com/ipfs/go-ipfs/pull/3259))
+	- Separate out the GC Locking from the Blockstore interface.  ([ipfs/go-ipfs#3348](https://github.com/ipfs/go-ipfs/pull/3348))
+	- Avoid unnecessary allocs in datastore key handling  ([ipfs/go-ipfs#3407](https://github.com/ipfs/go-ipfs/pull/3407))
+	- Use NextSync method for datastore queries ([ipfs/go-ipfs#3386](https://github.com/ipfs/go-ipfs/pull/3386))
+	- Switch unixfs.Metadata.MimeType to optional ([ipfs/go-ipfs#3458](https://github.com/ipfs/go-ipfs/pull/3458))
+	- Fix path parsing in `ipfs name publish`   ([ipfs/go-ipfs#3592](https://github.com/ipfs/go-ipfs/pull/3592))
+	- Fix inconsistent `ipfs stats bw` formatting  ([ipfs/go-ipfs#3554](https://github.com/ipfs/go-ipfs/pull/3554))
+	- Set the libp2p agent version based on version string  ([ipfs/go-ipfs#3569](https://github.com/ipfs/go-ipfs/pull/3569))
+
+- Cross Platform Changes
+	- Fix 'dist_get' script on BSDs.  ([ipfs/go-ipfs#3264](https://github.com/ipfs/go-ipfs/pull/3264))
+	- ulimit: Tune resource limits on BSDs  ([ipfs/go-ipfs#3374](https://github.com/ipfs/go-ipfs/pull/3374))
+
+- Metrics
+	- Introduce go-metrics-interface  ([ipfs/go-ipfs#3189](https://github.com/ipfs/go-ipfs/pull/3189))
+	- Fix metrics injection  ([ipfs/go-ipfs#3315](https://github.com/ipfs/go-ipfs/pull/3315))
+
+- Misc
+	- Bump Go requirement to 1.7  ([ipfs/go-ipfs#3111](https://github.com/ipfs/go-ipfs/pull/3111))
+	- Merge 0.4.3 release candidate changes back into master  ([ipfs/go-ipfs#3248](https://github.com/ipfs/go-ipfs/pull/3248))
+	- Add security@ipfs.io GPG key to assets  ([ipfs/go-ipfs#2997](https://github.com/ipfs/go-ipfs/pull/2997))
+	- Improve makefiles  ([ipfs/go-ipfs#2999](https://github.com/ipfs/go-ipfs/pull/2999))  ([ipfs/go-ipfs#3265](https://github.com/ipfs/go-ipfs/pull/3265))
+	- Refactor install.sh script  ([ipfs/go-ipfs#3194](https://github.com/ipfs/go-ipfs/pull/3194))
+	- Add test check for go code formatting  ([ipfs/go-ipfs#3421](https://github.com/ipfs/go-ipfs/pull/3421))
+	- bin: dist_get script: prevents get_go_vars() returns same values twice  ([ipfs/go-ipfs#3079](https://github.com/ipfs/go-ipfs/pull/3079))
+
+- Dependencies
+	- Update libp2p to have fixed spdystream dep  ([ipfs/go-ipfs#3210](https://github.com/ipfs/go-ipfs/pull/3210))
+	- Update libp2p and dht packages  ([ipfs/go-ipfs#3263](https://github.com/ipfs/go-ipfs/pull/3263))
+	- Update to libp2p 4.0.1 and propogate other changes  ([ipfs/go-ipfs#3284](https://github.com/ipfs/go-ipfs/pull/3284))
+	- Update to libp2p 4.0.4  ([ipfs/go-ipfs#3361](https://github.com/ipfs/go-ipfs/pull/3361))
+	- Update go-libp2p across codebase  ([ipfs/go-ipfs#3406](https://github.com/ipfs/go-ipfs/pull/3406))
+	- Update to go-libp2p 4.1.0  ([ipfs/go-ipfs#3373](https://github.com/ipfs/go-ipfs/pull/3373))
+	- Update deps for libp2p 3.4.0  ([ipfs/go-ipfs#3110](https://github.com/ipfs/go-ipfs/pull/3110))
+	- Update go-libp2p-swarm with deadlock fixes  ([ipfs/go-ipfs#3339](https://github.com/ipfs/go-ipfs/pull/3339))
+	- Update to new cid and ipld node packages  ([ipfs/go-ipfs#3326](https://github.com/ipfs/go-ipfs/pull/3326))
+	- Update to newer ipld node interface with Copy and better Tree  ([ipfs/go-ipfs#3391](https://github.com/ipfs/go-ipfs/pull/3391))
+	- Update experimental go-multiplex to 0.2.6  ([ipfs/go-ipfs#3475](https://github.com/ipfs/go-ipfs/pull/3475))
+	- Rework routing interfaces to make separation easier  ([ipfs/go-ipfs#3107](https://github.com/ipfs/go-ipfs/pull/3107))
+	- Update to dht code with fixed GetClosestPeers  ([ipfs/go-ipfs#3346](https://github.com/ipfs/go-ipfs/pull/3346))
+	- Move go-is-domain to gx  ([ipfs/go-ipfs#3077](https://github.com/ipfs/go-ipfs/pull/3077))
+	- Extract thirdparty/loggables and thirdparty/peerset  ([ipfs/go-ipfs#3204](https://github.com/ipfs/go-ipfs/pull/3204))
+	- Completely remove go-key dep  ([ipfs/go-ipfs#3439](https://github.com/ipfs/go-ipfs/pull/3439))
+	- Remove randbo dep, its no longer needed  ([ipfs/go-ipfs#3118](https://github.com/ipfs/go-ipfs/pull/3118))
+	- Update libp2p for identify configuration updates  ([ipfs/go-ipfs#3539](https://github.com/ipfs/go-ipfs/pull/3539))
+	- Use newer flatfs sharding scheme  ([ipfs/go-ipfs#3608](https://github.com/ipfs/go-ipfs/pull/3608))
+
+- Testing
+	- fix test_fsh arg quoting in ipfs-test-lib  ([ipfs/go-ipfs#3085](https://github.com/ipfs/go-ipfs/pull/3085))
+	- 100% coverage for blocks/blocksutil  ([ipfs/go-ipfs#3090](https://github.com/ipfs/go-ipfs/pull/3090))
+	- 100% coverage on blocks/set  ([ipfs/go-ipfs#3084](https://github.com/ipfs/go-ipfs/pull/3084))
+	- 81% coverage on blockstore  ([ipfs/go-ipfs#3074](https://github.com/ipfs/go-ipfs/pull/3074))
+	- 80% coverage of unixfs/mod  ([ipfs/go-ipfs#3096](https://github.com/ipfs/go-ipfs/pull/3096))
+	- 82% coverage on blocks  ([ipfs/go-ipfs#3086](https://github.com/ipfs/go-ipfs/pull/3086))
+	- 87% coverage on unixfs   ([ipfs/go-ipfs#3492](https://github.com/ipfs/go-ipfs/pull/3492)) 
+	- Improve coverage on routing/offline  ([ipfs/go-ipfs#3516](https://github.com/ipfs/go-ipfs/pull/3516))
+	- Add test for flags package   ([ipfs/go-ipfs#3449](https://github.com/ipfs/go-ipfs/pull/3449))
+	- improve test coverage on merkledag package  ([ipfs/go-ipfs#3113](https://github.com/ipfs/go-ipfs/pull/3113))
+	- 80% coverage of unixfs/io ([ipfs/go-ipfs#3097](https://github.com/ipfs/go-ipfs/pull/3097))
+	- Accept more than one digit in repo version tests  ([ipfs/go-ipfs#3130](https://github.com/ipfs/go-ipfs/pull/3130))
+	- Fix typo in hash in t0050  ([ipfs/go-ipfs#3170](https://github.com/ipfs/go-ipfs/pull/3170))
+	- fix bug in pinsets and add a stress test for the scenario  ([ipfs/go-ipfs#3273](https://github.com/ipfs/go-ipfs/pull/3273))  ([ipfs/go-ipfs#3302](https://github.com/ipfs/go-ipfs/pull/3302))
+	- Report coverage to codecov  ([ipfs/go-ipfs#3473](https://github.com/ipfs/go-ipfs/pull/3473))
+	- Add test for 'ipfs config replace'  ([ipfs/go-ipfs#3073](https://github.com/ipfs/go-ipfs/pull/3073))
+	- Fix netcat on macOS not closing socket when the stdin sends EOF  ([ipfs/go-ipfs#3515](https://github.com/ipfs/go-ipfs/pull/3515))
+
+- Documentation
+	- Update dns help with a correct domain name  ([ipfs/go-ipfs#3087](https://github.com/ipfs/go-ipfs/pull/3087))
+	- Add period to `ipfs pin rm`  ([ipfs/go-ipfs#3088](https://github.com/ipfs/go-ipfs/pull/3088))
+	- Make all Taglines use imperative mood  ([ipfs/go-ipfs#3041](https://github.com/ipfs/go-ipfs/pull/3041))
+	- Document listing commands better  ([ipfs/go-ipfs#3083](https://github.com/ipfs/go-ipfs/pull/3083))
+	- Add notes to readme on building for uncommon systems  ([ipfs/go-ipfs#3051](https://github.com/ipfs/go-ipfs/pull/3051))
+	- Add branch naming conventions doc  ([ipfs/go-ipfs#3035](https://github.com/ipfs/go-ipfs/pull/3035))
+	- Replace <default> keyword with <<default>>  ([ipfs/go-ipfs#3129](https://github.com/ipfs/go-ipfs/pull/3129))
+	- Fix Add() docs regarding pinning  ([ipfs/go-ipfs#3513](https://github.com/ipfs/go-ipfs/pull/3513))
+	- Add sudo to install commands.  ([ipfs/go-ipfs#3201](https://github.com/ipfs/go-ipfs/pull/3201))
+	- Add docs for `"commands".Command.Run`  ([ipfs/go-ipfs#3382](https://github.com/ipfs/go-ipfs/pull/3382))
+	- Put config keys in proper case  ([ipfs/go-ipfs#3365](https://github.com/ipfs/go-ipfs/pull/3365))
+	- Fix link in `ipfs stats bw` help message  ([ipfs/go-ipfs#3620](https://github.com/ipfs/go-ipfs/pull/3620))
+
+
 ### 0.4.4 - 2016-10-11
 
 This release contains an important hotfix for a bug we discovered in how pinning works.

@@ -8,12 +8,12 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/dir"
 
+	"gx/ipfs/QmQktQvV8bRSZK3RJz9LW7m7uGFWZjdigzJxgfSrteY1Bd/go-ds-flatfs"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	mount "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/syncmount"
 	levelds "gx/ipfs/QmaHHmfEozrrotyhyN44omJouyuEtx6ahddqV6W5yRaUSQ/go-ds-leveldb"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 	measure "gx/ipfs/QmbUSMTQtK9GRrUbD4ngqJwSzHsquUc8nyDubRWp4vPybH/go-ds-measure"
-	"gx/ipfs/Qmbx2KUs8mUbDUiiESzC1ms7mdmh4pRu8X1V1tffC46M4n/go-ds-flatfs"
 )
 
 const (
@@ -33,9 +33,10 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	}
 
 	syncfs := !r.config.Datastore.NoSync
-	// 5 bytes of prefix gives us 25 bits of freedom, 16 of which are taken by
-	// by the Qm prefix. Leaving us with 9 bits, or 512 way sharding
-	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 5, syncfs)
+
+	// 2 characters of base32 suffix gives us 10 bits of freedom.
+	// Leaving us with 10 bits, or 1024 way sharding
+	blocksDS, err := flatfs.CreateOrOpen(path.Join(r.path, flatfsDirectory), flatfs.NextToLast(2), syncfs)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}

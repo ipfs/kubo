@@ -63,7 +63,8 @@ test_expect_success ".ipfs/ has been created" '
 	test -d ".ipfs" &&
 	test -f ".ipfs/config" &&
 	test -d ".ipfs/datastore" &&
-	test -d ".ipfs/blocks" ||
+	test -d ".ipfs/blocks" &&
+	test ! -f ._check_writeable ||
 	test_fsh ls -al .ipfs
 '
 

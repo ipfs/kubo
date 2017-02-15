@@ -9,6 +9,8 @@
 [![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs)
 [![Build Status](https://travis-ci.org/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs)
 
+[![Throughput Graph](https://graphs.waffle.io/ipfs/go-ipfs/throughput.svg)](https://waffle.io/ipfs/go-ipfs/metrics/throughput)
+
 > IPFS implementation in Go
 
 IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from
@@ -27,6 +29,7 @@ Please put all issues regarding the Go IPFS _implementation_ in [this repo](http
 - [Security Issues](#security-issues)
 - [Install](#install)
   - [Install prebuilt packages](#install-prebuilt-packages)
+  - [From Linux package managers](#from-linux-package-managers)
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
@@ -63,6 +66,12 @@ From there:
 - Click the blue "Download go-ipfs" on the right side of the page.
 - Open/extract the archive.
 - Move `ipfs` to your path (`install.sh` can do it for you).
+
+### From Linux package managers
+
+With snap, in any of the [supported Linux distributions](https://snapcraft.io/docs/core/install):
+
+    $ sudo snap install ipfs
 
 ### Build from Source
 

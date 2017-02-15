@@ -2,6 +2,4 @@
 !.git/HEAD
 !.git/refs/
 !.git/packed-refs
-cmd/ipfs/ipfs
-vendor/gx/
-test/
+test/sharness/lib/sharness/

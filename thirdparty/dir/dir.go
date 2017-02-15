@@ -16,6 +16,7 @@ func Writable(path string) error {
 	}
 	// Check the directory is writeable
 	if f, err := os.Create(filepath.Join(path, "._check_writeable")); err == nil {
+		f.Close()
 		os.Remove(f.Name())
 	} else {
 		return errors.New("'" + path + "' is not writeable")

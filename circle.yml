@@ -35,6 +35,6 @@ dependencies:
 
 test:
   override:
-    - case $CIRCLE_NODE_INDEX in 0) make coverage ;; 1) make test_sharness_expensive ;; esac:
+    - bin/circle.sh:
         pwd: "../.go_workspace/src/$IMPORT_PATH"
         parallel: true
