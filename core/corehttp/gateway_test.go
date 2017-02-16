@@ -20,7 +20,7 @@ import (
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 
 	ci "gx/ipfs/QmNiCwBNA8MWDADTFVq1BonUEJbS2SvjAoNkZZrhEwcuUi/go-libp2p-crypto"
-	id "gx/ipfs/QmSNJRX4uphb3Eyp69uYbpRVvgqjPxfjnJmjcdMWkDH5Pn/go-libp2p/p2p/protocol/identify"
+	id "gx/ipfs/QmU3g3psEDiC4tQh1Qu2NYg5aYVQqxC3m74ZavLwPfJEtu/go-libp2p/p2p/protocol/identify"
 )
 
 type mockNamesys map[string]path.Path

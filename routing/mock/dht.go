@@ -5,8 +5,8 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	sync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
-	mocknet "gx/ipfs/QmSNJRX4uphb3Eyp69uYbpRVvgqjPxfjnJmjcdMWkDH5Pn/go-libp2p/p2p/net/mock"
-	dht "gx/ipfs/QmdFu71pRmWMNWht96ZTJ3wRx4D7BPJ2JfHH24z59Gidsc/go-libp2p-kad-dht"
+	mocknet "gx/ipfs/QmU3g3psEDiC4tQh1Qu2NYg5aYVQqxC3m74ZavLwPfJEtu/go-libp2p/p2p/net/mock"
+	dht "gx/ipfs/QmUpZqxzrUoyDsgWXDri9yYgi5r5EK7J5Tan1MbgnawYLx/go-libp2p-kad-dht"
 )
 
 type mocknetserver struct {
