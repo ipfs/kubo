@@ -69,6 +69,8 @@ test_pin_dag() {
 
 test_init_ipfs
 
+test_pins
+
 test_pin_dag
 test_pin_dag --raw-leaves
 
