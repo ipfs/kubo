@@ -49,31 +49,4 @@ test_expect_success "output looks good" '
 	grep "Please get fs-repo-migrations from https://dist.ipfs.io" daemon_out > /dev/null
 '
 
-test_launch_ipfs_daemon
-
-test_expect_success "build fake dist.ipfs.io" '
-	mkdir -p fakedist/fs-repo-migrations/v1.0.0/
-	echo "v1.0.0" > fakedist/fs-repo-migrations/versions
-
-	echo "#!/bin/sh" >  fakedist/linux
-	echo "echo linux $@" >> fakedist/linux
-	tar -czf fakedist/fs-repo-migrations/fs-repo-migrations_v1.0.0_linux-amd64.tar.gz fakedist/linux
-
-	echo "#!/bin/sh" >  fakedist/linux-musl
-	echo "echo linux-musl $@" >> fakedist/linux-musl
-	tar -czf fakedist/fs-repo-migrations/fs-repo-migrations_v1.0.0_linux-musl-amd64.tar.gz fakedist/linux-musl
-
-	ipfs add -q -r fakedist/ > fakedisthash
-'
-
-test_expect_success "detect musl" '
-	IPFS_DIST_PATH="http://172.17.0.1:$GWAY_PORT" echo $IPFS_DIST_PATH
-'
-
-# make fakedist with executables that just echo "I'm $GOOS-$variant with $ARGV"
-# ipfs add -r fakedist
-# find out IPFS_DIST_PATH
-# run daemon --migrate end-to-end
-# check for correct output
-
 test_done
