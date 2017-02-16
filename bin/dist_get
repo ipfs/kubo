@@ -17,9 +17,9 @@ try_download() {
 	url="$1"
 	output="$2"
 	command="$3"
-	util_name=$(set -- $3; echo $1)
+	util_name="$(set -- $command; echo "$1")"
 
-	if ! have_binary $util_name; then
+	if ! have_binary "$util_name"; then
 		return 1
 	fi
 
