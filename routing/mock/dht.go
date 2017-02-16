@@ -3,10 +3,10 @@ package mockrouting
 import (
 	context "context"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+	dht "gx/ipfs/QmP7pcMVuGTv71YCyiVM3B7ZXhhceG4jNZGtUtx1T4fYDj/go-libp2p-kad-dht"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	sync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
-	mocknet "gx/ipfs/QmSNJRX4uphb3Eyp69uYbpRVvgqjPxfjnJmjcdMWkDH5Pn/go-libp2p/p2p/net/mock"
-	dht "gx/ipfs/QmdFu71pRmWMNWht96ZTJ3wRx4D7BPJ2JfHH24z59Gidsc/go-libp2p-kad-dht"
+	mocknet "gx/ipfs/QmRXqQG51GzZ3MGPaR6BALwPYFjdWpj21RiGHXRxxKN2H1/go-libp2p/p2p/net/mock"
 )
 
 type mocknetserver struct {
