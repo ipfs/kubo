@@ -297,9 +297,9 @@
     },
     {
       "author": "libp2p",
-      "hash": "QmYGtdYa6iZuypJaVCSGADrf7UKEykjWv7BTQugDmsk9J3",
+      "hash": "QmS39Ze3STYkQHTDNfJACZAfp9kNBoTDCD86yhqHfSxzJ3",
       "name": "go-libp2p-pnet",
-      "version": "0.1.1"
+      "version": "2.0.0"
     }
   ],
   "gxVersion": "0.10.0",
