@@ -73,6 +73,39 @@ func SplitAbsPath(fpath Path) (*cid.Cid, []string, error) {
 	return c, parts[1:], nil
 }
 
+func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath Path) (node.Node, []string, error) {
+	c, p, err := SplitAbsPath(fpath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	nd, err := r.DAG.Get(ctx, c)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for len(p) > 0 {
+		val, rest, err := nd.Resolve(p)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		switch val := val.(type) {
+		case *node.Link:
+			next, err := val.GetNode(ctx, r.DAG)
+			if err != nil {
+				return nil, nil, err
+			}
+			nd = next
+			p = rest
+		default:
+			return nd, p, nil
+		}
+	}
+
+	return nd, nil, nil
+}
+
 // ResolvePath fetches the node for given path. It returns the last item
 // returned by ResolvePathComponents.
 func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (node.Node, error) {
