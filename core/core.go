@@ -10,6 +10,7 @@ interfaces and how core/... fits into the bigger IPFS picture, see:
 package core
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -44,6 +45,7 @@ import (
 	ic "gx/ipfs/QmNiCwBNA8MWDADTFVq1BonUEJbS2SvjAoNkZZrhEwcuUi/go-libp2p-crypto"
 	addrutil "gx/ipfs/QmPB5aAzt2wo5Xk8SoZi6y2oFN7shQMvYWgduMATojkdpj/go-addr-util"
 	metrics "gx/ipfs/QmPj6rmE2sWJ65h6b8F4fcN5kySDhYqL2Ty8DWWF3WEUNS/go-libp2p-metrics"
+	pnet "gx/ipfs/QmQ2sk2irQYkeMMVKpLjq1bSiNPn9B5wZB53Nx8dd4dhnQ/go-libp2p-pnet"
 	mplex "gx/ipfs/QmQ3UABWTgK78utKeiVXaH9BrjC7Ydn1pRuwqnWHT3p4zh/go-smux-multiplex"
 	floodsub "gx/ipfs/QmQDb7jmfC33qzGUGpWrfgRootQnmQvN7DMktfuekShsiF/floodsub"
 	pstore "gx/ipfs/QmQMQ2RUjnaEEX8ybmrhuFFGhAwPjyL1Eo6ZoJGD7aAccM/go-libp2p-peerstore"
@@ -67,6 +69,7 @@ import (
 	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
 	yamux "gx/ipfs/Qmbn7RYyWzBVXiUp9jZ1dA4VADHy9DtS7iZLwfhEUQvm3U/go-smux-yamux"
 	p2phost "gx/ipfs/QmbzbRyd22gcW92U1rA2yKagB3myMYhk45XBknJ49F9XWJ/go-libp2p-host"
+	ipnet "gx/ipfs/QmcT6bMjz32yoMdyvZsMvqFnbbsDxhTYw6FG1yMqKV8Rbh/go-libp2p-interface-pnet"
 	smux "gx/ipfs/QmeZBgYBHvxMukGK5ojg28BCNLB9SeXqT7XXg6o7r2GbJy/go-stream-muxer"
 )
 
@@ -100,9 +103,10 @@ type IpfsNode struct {
 	Repo repo.Repo
 
 	// Local node
-	Pinning    pin.Pinner // the pinning manager
-	Mounts     Mounts     // current mount state, if any.
-	PrivateKey ic.PrivKey // the local node's private Key
+	Pinning        pin.Pinner // the pinning manager
+	Mounts         Mounts     // current mount state, if any.
+	PrivateKey     ic.PrivKey // the local node's private Key
+	PNetFingerpint []byte     // fingerprint of private network
 
 	// Services
 	Peerstore  pstore.Peerstore     // storage for other Peer instances
@@ -174,7 +178,22 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 	tpt := makeSmuxTransport(mplex)
 
-	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter, addrfilter, tpt)
+	swarmkey, err := n.Repo.SwarmKey()
+	if err != nil {
+		return err
+	}
+
+	var protec ipnet.Protector
+	if swarmkey != nil {
+		protec, err = pnet.NewProtector(bytes.NewReader(swarmkey))
+		if err != nil {
+			return err
+		}
+		n.PNetFingerpint = protec.Fingerprint()
+	}
+
+	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter,
+		addrfilter, tpt, protec)
 	if err != nil {
 		return err
 	}
@@ -671,15 +690,15 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 	return listen, nil
 }
 
-type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport) (p2phost.Host, error)
+type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protc ipnet.Protector) (p2phost.Host, error)
 
 var DefaultHostOption HostOption = constructPeerHost
 
 // isolates the complex initialization steps
-func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport) (p2phost.Host, error) {
+func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protec ipnet.Protector) (p2phost.Host, error) {
 
 	// no addresses to begin with. we'll start later.
-	swrm, err := swarm.NewSwarmWithProtector(ctx, nil, id, ps, nil, tpt, bwr)
+	swrm, err := swarm.NewSwarmWithProtector(ctx, nil, id, ps, protec, tpt, bwr)
 	if err != nil {
 		return nil, err
 	}

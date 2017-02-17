@@ -18,6 +18,7 @@ import (
 	mocknet "gx/ipfs/QmU3g3psEDiC4tQh1Qu2NYg5aYVQqxC3m74ZavLwPfJEtu/go-libp2p/p2p/net/mock"
 	peer "gx/ipfs/QmZcUPvPhD1Xvk6mwijYF8AfR3mG31S1YsEfHG4khrFPRr/go-libp2p-peer"
 	host "gx/ipfs/QmbzbRyd22gcW92U1rA2yKagB3myMYhk45XBknJ49F9XWJ/go-libp2p-host"
+	ipnet "gx/ipfs/QmcT6bMjz32yoMdyvZsMvqFnbbsDxhTYw6FG1yMqKV8Rbh/go-libp2p-interface-pnet"
 	smux "gx/ipfs/QmeZBgYBHvxMukGK5ojg28BCNLB9SeXqT7XXg6o7r2GbJy/go-stream-muxer"
 )
 
@@ -33,7 +34,7 @@ func NewMockNode() (*core.IpfsNode, error) {
 }
 
 func MockHostOption(mn mocknet.Mocknet) core.HostOption {
-	return func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, _ smux.Transport) (host.Host, error) {
+	return func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, _ smux.Transport, _ ipnet.Protector) (host.Host, error) {
 		return mn.AddPeerWithPeerstore(id, ps)
 	}
 }

@@ -294,6 +294,12 @@
       "hash": "QmU1N5xVAUXgo3XRTt6GhJ2SuJEbxj2zRgMS7FpjSR2U83",
       "name": "semver",
       "version": "3.3.0"
+    },
+    {
+      "author": "libp2p",
+      "hash": "QmQ2sk2irQYkeMMVKpLjq1bSiNPn9B5wZB53Nx8dd4dhnQ",
+      "name": "go-libp2p-pnet",
+      "version": "2.2.1"
     }
   ],
   "gxVersion": "0.10.0",
