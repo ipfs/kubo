@@ -138,11 +138,23 @@ func (n *dagService) Remove(nd node.Node) error {
 	return n.Blocks.DeleteBlock(nd)
 }
 
+// get the links for a node, from the node, bypassing the
+// LinkService
+func GetLinksDirect(serv DAGService) GetLinks {
+	return func(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
+		node, err := serv.Get(ctx, c)
+		if err != nil {
+			return nil, err
+		}
+		return node.Links(), nil
+	}
+}
+
 // FetchGraph fetches all nodes that are children of the given node
 func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
 	v, _ := ctx.Value("progress").(*ProgressTracker)
 	if v == nil {
-		return EnumerateChildrenAsync(ctx, serv, root, cid.NewSet().Visit)
+		return EnumerateChildrenAsync(ctx, GetLinksDirect(serv), root, cid.NewSet().Visit)
 	}
 	set := cid.NewSet()
 	visit := func(c *cid.Cid) bool {
@@ -153,7 +165,7 @@ func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
 			return false
 		}
 	}
-	return EnumerateChildrenAsync(ctx, serv, root, visit)
+	return EnumerateChildrenAsync(ctx, GetLinksDirect(serv), root, visit)
 }
 
 // FindLinks searches this nodes links for the given key,
@@ -380,10 +392,11 @@ func (t *Batch) Commit() error {
 	return err
 }
 
+type GetLinks func(context.Context, *cid.Cid) ([]*node.Link, error)
+
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
-type GetLinks func(context.Context, *cid.Cid) ([]*node.Link, error)
 func EnumerateChildren(ctx context.Context, getLinks GetLinks, root *cid.Cid, visit func(*cid.Cid) bool) error {
 	links, err := getLinks(ctx, root)
 	if err != nil {
@@ -426,9 +439,9 @@ func (p *ProgressTracker) Value() int {
 // 'fetchNodes' will start at a time
 var FetchGraphConcurrency = 8
 
-func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visit func(*cid.Cid) bool) error {
+func EnumerateChildrenAsync(ctx context.Context, getLinks GetLinks, c *cid.Cid, visit func(*cid.Cid) bool) error {
 	feed := make(chan *cid.Cid)
-	out := make(chan node.Node)
+	out := make(chan []*node.Link)
 	done := make(chan struct{})
 
 	var setlk sync.Mutex
@@ -441,7 +454,7 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visi
 	for i := 0; i < FetchGraphConcurrency; i++ {
 		go func() {
 			for ic := range feed {
-				n, err := ds.Get(ctx, ic)
+				links, err := getLinks(ctx, ic)
 				if err != nil {
 					errChan <- err
 					return
@@ -453,7 +466,7 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visi
 
 				if unseen {
 					select {
-					case out <- n:
+					case out <- links:
 					case <-fetchersCtx.Done():
 						return
 					}
@@ -488,8 +501,8 @@ func EnumerateChildrenAsync(ctx context.Context, ds DAGService, c *cid.Cid, visi
 			if inProgress == 0 && next == nil {
 				return nil
 			}
-		case nd := <-out:
-			for _, lnk := range nd.Links() {
+		case links := <-out:
+			for _, lnk := range links {
 				if next == nil {
 					next = lnk.Cid
 					send = feed

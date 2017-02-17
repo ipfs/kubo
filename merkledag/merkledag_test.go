@@ -543,7 +543,7 @@ func TestEnumerateAsyncFailsNotFound(t *testing.T) {
 	}
 
 	cset := cid.NewSet()
-	err = EnumerateChildrenAsync(context.Background(), ds, pcid, cset.Visit)
+	err = EnumerateChildrenAsync(context.Background(), GetLinksDirect(ds), pcid, cset.Visit)
 	if err == nil {
 		t.Fatal("this should have failed")
 	}
