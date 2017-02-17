@@ -190,6 +190,24 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 			return err
 		}
 		n.PNetFingerpint = protec.Fingerprint()
+		go func() {
+			t := time.NewTicker(30 * time.Second)
+			<-t.C // swallow one tick
+			for {
+				select {
+				case <-t.C:
+					if ph := n.PeerHost; ph != nil {
+						if len(ph.Network().Peers()) == 0 {
+							log.Warning("We are in private network and have no peers.")
+							log.Warning("This might be configuration mistake.")
+						}
+					}
+				case <-n.Process().Closing():
+					t.Stop()
+					return
+				}
+			}
+		}()
 	}
 
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter,
