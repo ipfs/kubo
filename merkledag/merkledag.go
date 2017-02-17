@@ -383,17 +383,16 @@ func (t *Batch) Commit() error {
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
-func EnumerateChildren(ctx context.Context, ds LinkService, root *cid.Cid, visit func(*cid.Cid) bool, bestEffort bool) error {
-	links, err := ds.GetLinks(ctx, root)
-	if bestEffort && err == ErrNotFound {
-		return nil
-	} else if err != nil {
+type GetLinks func(context.Context, *cid.Cid) ([]*node.Link, error)
+func EnumerateChildren(ctx context.Context, getLinks GetLinks, root *cid.Cid, visit func(*cid.Cid) bool) error {
+	links, err := getLinks(ctx, root)
+	if err != nil {
 		return err
 	}
 	for _, lnk := range links {
 		c := lnk.Cid
 		if visit(c) {
-			err = EnumerateChildren(ctx, ds, c, visit, bestEffort)
+			err = EnumerateChildren(ctx, getLinks, c, visit)
 			if err != nil {
 				return err
 			}
