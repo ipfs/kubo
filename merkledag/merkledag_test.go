@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"strings"
 	"sync"
 	"testing"
@@ -546,4 +547,81 @@ func TestEnumerateAsyncFailsNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("this should have failed")
 	}
+}
+
+func TestProgressIndicator(t *testing.T) {
+	testProgressIndicator(t, 5)
+}
+
+func TestProgressIndicatorNoChildren(t *testing.T) {
+	testProgressIndicator(t, 0)
+}
+
+func testProgressIndicator(t *testing.T, depth int) {
+	ds := dstest.Mock()
+
+	top, numChildren := mkDag(ds, depth)
+
+	v := new(ProgressTracker)
+	ctx := v.DeriveContext(context.Background())
+
+	err := FetchGraph(ctx, top, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if v.Value() != numChildren+1 {
+		t.Errorf("wrong number of children reported in progress indicator, expected %d, got %d",
+			numChildren+1, v.Value())
+	}
+}
+
+func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
+	totalChildren := 0
+	f := func() *ProtoNode {
+		p := new(ProtoNode)
+		buf := make([]byte, 16)
+		rand.Read(buf)
+
+		p.SetData(buf)
+		_, err := ds.Add(p)
+		if err != nil {
+			panic(err)
+		}
+		return p
+	}
+
+	for i := 0; i < depth; i++ {
+		thisf := f
+		f = func() *ProtoNode {
+			pn := mkNodeWithChildren(thisf, 10)
+			_, err := ds.Add(pn)
+			if err != nil {
+				panic(err)
+			}
+			totalChildren += 10
+			return pn
+		}
+	}
+
+	nd := f()
+	c, err := ds.Add(nd)
+	if err != nil {
+		panic(err)
+	}
+
+	return c, totalChildren
+}
+
+func mkNodeWithChildren(getChild func() *ProtoNode, width int) *ProtoNode {
+	cur := new(ProtoNode)
+
+	for i := 0; i < width; i++ {
+		c := getChild()
+		if err := cur.AddNodeLinkClean(fmt.Sprint(i), c); err != nil {
+			panic(err)
+		}
+	}
+
+	return cur
 }
