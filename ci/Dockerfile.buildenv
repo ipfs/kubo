@@ -37,9 +37,10 @@ USER user
 RUN make -f mk/gx.mk gx-deps
 USER root
 
-COPY . $SRC_PATH/
-RUN chown -R user $GOPATH
+COPY . $SRC_PATH
+RUN chown -R user:user $GOPATH
 USER user
-RUN make cmd/ipfs/ipfs #populate go cache
+# mkdir .git/objects is required for git to detect repo
+RUN mkdir .git/objects && make cmd/ipfs/ipfs #populate go cache
 
 CMD ["/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait"]
