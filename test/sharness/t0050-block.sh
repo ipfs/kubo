@@ -150,8 +150,8 @@ test_expect_success "'add some blocks' succeeds" '
         echo "Hello Venus!" | ipfs block put
 '
 
-test_expect_success "multi-block 'ipfs block rm -f' with non existent blocks succeed" '
-  ipfs block rm -f $HASH $RANDOMHASH $HASH2
+test_expect_success "multi-block 'ipfs block rm -i' with non existent blocks succeed" '
+  ipfs block rm -i $HASH $RANDOMHASH $HASH2
 '
 
 test_expect_success "existent blocks removed" '
