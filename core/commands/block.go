@@ -280,21 +280,19 @@ It takes a list of base58 encoded multihashs to remove.
 		}
 		res.SetOutput(ch)
 	},
-	PostRun: func(req cmds.Request, res cmds.Response) {
-		if res.Error() != nil {
-			return
-		}
-		outChan, ok := res.Output().(<-chan interface{})
-		if !ok {
-			res.SetError(u.ErrCast(), cmds.ErrNormal)
-			return
-		}
-		res.SetOutput(nil)
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
 
-		err := util.ProcRmOutput(outChan, res.Stdout(), res.Stderr())
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-		}
+			err := util.ProcRmOutput(outChan, res.Stdout(), res.Stderr())
+			if err != nil {
+				return nil, err
+			}
+			return nil, nil
+		},
 	},
 	Type: util.RemovedBlock{},
 }
