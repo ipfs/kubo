@@ -1,6 +1,7 @@
 package gc
 
 import (
+	"bytes"
 	"context"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -28,9 +29,9 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 
 	ls = ls.GetOfflineLinkService()
 
-	gcs, err := ColoredSet(ctx, pn, ls, bestEffortRoots)
-	if err != nil {
-		return nil, err
+	gcs, errs := ColoredSet(ctx, pn, ls, bestEffortRoots)
+	if errs != nil {
+		return nil, &UnsafeToContinueError{errs}
 	}
 
 	keychan, err := bs.AllKeysChan(ctx)
@@ -83,35 +84,61 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	return nil
 }
 
-func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid) (*cid.Set, error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid) (*cid.Set, []error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	gcs := cid.NewSet()
-	err := Descendants(ctx, ls.GetLinks, gcs, pn.RecursiveKeys())
+	var errors []error
+	getLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
+		links, err := ls.GetLinks(ctx, cid)
+		if err != nil {
+			errors = append(errors, err)
+		}
+		return links, nil
+	}
+	err := Descendants(ctx, getLinks, gcs, pn.RecursiveKeys())
 	if err != nil {
-		return nil, err
+		errors = append(errors, err)
 	}
 
 	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
 		links, err := ls.GetLinks(ctx, cid)
-		if err == dag.ErrNotFound {
-			err = nil
+		if err != nil && err != dag.ErrNotFound {
+			errors = append(errors, err)
 		}
-		return links, err
+		return links, nil
 	}
 	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
 	if err != nil {
-		return nil, err
+		errors = append(errors, err)
 	}
 
 	for _, k := range pn.DirectKeys() {
 		gcs.Add(k)
 	}
 
-	err = Descendants(ctx, ls.GetLinks, gcs, pn.InternalPins())
+	err = Descendants(ctx, getLinks, gcs, pn.InternalPins())
 	if err != nil {
-		return nil, err
+		errors = append(errors, err)
 	}
 
-	return gcs, nil
+	if errors != nil {
+		return nil, errors
+	} else {
+		return gcs, nil
+	}
+}
+
+type UnsafeToContinueError struct {
+	Errors []error
+}
+
+func (e *UnsafeToContinueError) Error() string {
+	var buf bytes.Buffer
+	for _, err := range e.Errors {
+		buf.WriteString(err.Error())
+		buf.WriteString("\n")
+	}
+	buf.WriteString("aborting due to previous errors")
+	return buf.String()
 }
