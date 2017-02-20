@@ -79,7 +79,8 @@ run_advanced_test() {
 	run_random_dir_test
 
 	test_expect_success "shut down nodes" '
-		iptb stop
+		iptb stop ||
+			test_fsh tail -n +1 .iptb/*/daemon.std*
 	'
 }
 
