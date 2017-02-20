@@ -59,7 +59,6 @@ func TestAddGCLive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	errs := make(chan error)
 	out := make(chan interface{})
 	adder, err := NewAdder(context.Background(), node.Pinning, node.Blockstore, node.DAG)
 	if err != nil {
@@ -100,16 +99,12 @@ func TestAddGCLive(t *testing.T) {
 	}
 
 	var gcout <-chan *cid.Cid
+	var errs <-chan error
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcchan, err := gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
-		if err != nil {
-			log.Error("GC ERROR:", err)
-			errs <- err
-			return
-		}
-
+		gcchan, erro := gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
+		errs = erro
 		gcout = gcchan
 	}()
 

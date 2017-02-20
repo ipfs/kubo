@@ -1,6 +1,7 @@
 package corerepo
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"time"
@@ -89,35 +90,65 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	rmed, err := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
-	if err != nil {
-		return err
-	}
+	rmed, erro := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
 
-	for {
+	var errors []error
+	for rmed != nil || erro != nil {
 		select {
 		case _, ok := <-rmed:
 			if !ok {
-				return nil
+				rmed = nil
 			}
-		case <-ctx.Done():
-			return ctx.Err()
+		case err, ok := <-erro:
+			if ok {
+				errors = append(errors, err)
+			} else {
+				erro = nil
+			}
 		}
 	}
-
+	switch len(errors) {
+	case 0:
+		return nil
+	case 1:
+		return errors[0]
+	default:
+		return NewMultiError(errors...)
+	}
 }
 
-func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, error) {
+func NewMultiError(errs ...error) *MultiError {
+	return &MultiError{errs[:len(errs)-1], errs[len(errs)-1]}
+}
+
+type MultiError struct {
+	Errors  []error
+	Summary error
+}
+
+func (e *MultiError) Error() string {
+	var buf bytes.Buffer
+	for _, err := range e.Errors {
+		buf.WriteString(err.Error())
+		buf.WriteString("\n")
+	}
+	buf.WriteString(e.Summary.Error())
+	return buf.String()
+}
+
+func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, <-chan error) {
+	out := make(chan *KeyRemoved)
+
 	roots, err := BestEffortRoots(n.FilesRoot)
 	if err != nil {
-		return nil, err
+		erro := make(chan error)
+		erro <- err
+		close(erro)
+		close(out)
+		return out, erro
 	}
-	rmed, err := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
-	if err != nil {
-		return nil, err
-	}
+	rmed, erro := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
 
-	out := make(chan *KeyRemoved)
 	go func() {
 		defer close(out)
 		for k := range rmed {
@@ -128,7 +159,7 @@ func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemo
 			}
 		}
 	}()
-	return out, nil
+	return out, erro
 }
 
 func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {

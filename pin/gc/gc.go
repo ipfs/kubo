@@ -1,8 +1,9 @@
 package gc
 
 import (
-	"bytes"
 	"context"
+	"errors"
+	"fmt"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -24,50 +25,65 @@ var log = logging.Logger("gc")
 //
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
-func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) (<-chan *cid.Cid, error) {
+//
+func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) (<-chan *cid.Cid, <-chan error) {
 	unlocker := bs.GCLock()
-
 	ls = ls.GetOfflineLinkService()
 
-	gcs, errs := ColoredSet(ctx, pn, ls, bestEffortRoots)
-	if errs != nil {
-		return nil, &UnsafeToContinueError{errs}
-	}
-
-	keychan, err := bs.AllKeysChan(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	output := make(chan *cid.Cid)
+	errOutput := make(chan error)
+
 	go func() {
+		defer close(errOutput)
 		defer close(output)
 		defer unlocker.Unlock()
+
+		gcs, err := ColoredSet(ctx, pn, ls, bestEffortRoots, errOutput)
+		if err != nil {
+			errOutput <- err
+			return
+		}
+
+		keychan, err := bs.AllKeysChan(ctx)
+		if err != nil {
+			errOutput <- err
+			return
+		}
+
+		errors := false
+
+	loop:
 		for {
 			select {
 			case k, ok := <-keychan:
 				if !ok {
-					return
+					break loop
 				}
 				if !gcs.Has(k) {
 					err := bs.DeleteBlock(k)
 					if err != nil {
-						log.Errorf("Error removing key from blockstore: %s", err)
-						return
+						errors = true
+						errOutput <- &CouldNotDeleteBlockError{k, err}
+						//log.Errorf("Error removing key from blockstore: %s", err)
+						// continue as error is non-fatal
+						continue loop
 					}
 					select {
 					case output <- k:
 					case <-ctx.Done():
-						return
+						break loop
 					}
 				}
 			case <-ctx.Done():
-				return
+				break loop
 			}
+		}
+		if errors {
+			errOutput <- ErrCouldNotDeleteSomeBlocks
 		}
 	}()
 
-	return output, nil
+	return output, errOutput
 }
 
 func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []*cid.Cid) error {
@@ -84,33 +100,37 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	return nil
 }
 
-func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid) (*cid.Set, []error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid, errOutput chan<- error) (*cid.Set, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
+	errors := false
 	gcs := cid.NewSet()
-	var errors []error
 	getLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
 		links, err := ls.GetLinks(ctx, cid)
 		if err != nil {
-			errors = append(errors, err)
+			errors = true
+			errOutput <- &CouldNotFetchLinksError{cid, err}
 		}
 		return links, nil
 	}
 	err := Descendants(ctx, getLinks, gcs, pn.RecursiveKeys())
 	if err != nil {
-		errors = append(errors, err)
+		errors = true
+		errOutput <- err
 	}
 
 	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
 		links, err := ls.GetLinks(ctx, cid)
 		if err != nil && err != dag.ErrNotFound {
-			errors = append(errors, err)
+			errors = true
+			errOutput <- &CouldNotFetchLinksError{cid, err}
 		}
 		return links, nil
 	}
 	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
 	if err != nil {
-		errors = append(errors, err)
+		errors = true
+		errOutput <- err
 	}
 
 	for _, k := range pn.DirectKeys() {
@@ -119,26 +139,35 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 
 	err = Descendants(ctx, getLinks, gcs, pn.InternalPins())
 	if err != nil {
-		errors = append(errors, err)
+		errors = true
+		errOutput <- err
 	}
 
-	if errors != nil {
-		return nil, errors
+	if errors {
+		return nil, ErrCouldNotFetchAllLinks
 	} else {
 		return gcs, nil
 	}
 }
 
-type UnsafeToContinueError struct {
-	Errors []error
+var ErrCouldNotFetchAllLinks = errors.New("garbage collection aborted: could not retrieve some links")
+
+var ErrCouldNotDeleteSomeBlocks = errors.New("garbage collection incomplete: could not delete some blocks")
+
+type CouldNotFetchLinksError struct {
+	Key *cid.Cid
+	Err error
 }
 
-func (e *UnsafeToContinueError) Error() string {
-	var buf bytes.Buffer
-	for _, err := range e.Errors {
-		buf.WriteString(err.Error())
-		buf.WriteString("\n")
-	}
-	buf.WriteString("aborting due to previous errors")
-	return buf.String()
+func (e *CouldNotFetchLinksError) Error() string {
+	return fmt.Sprintf("could not retrieve links for %s: %s", e.Key, e.Err)
+}
+
+type CouldNotDeleteBlockError struct {
+	Key *cid.Cid
+	Err error
+}
+
+func (e *CouldNotDeleteBlockError) Error() string {
+	return fmt.Sprintf("could not remove %s: %s", e.Key, e.Err)
 }
