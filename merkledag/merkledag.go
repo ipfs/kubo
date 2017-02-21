@@ -36,8 +36,10 @@ type DAGService interface {
 }
 
 type LinkService interface {
-	// Return all links for a node, may be more effect than
-	// calling Get in DAGService
+	// GetLinks return all links for a node.  The complete node does not
+	// necessarily have to exist locally, or at all.  For example, raw
+	// leaves cannot possibly have links so there is no need to look
+	// at the node.
 	GetLinks(context.Context, *cid.Cid) ([]*node.Link, error)
 
 	GetOfflineLinkService() LinkService
@@ -114,6 +116,8 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 	}
 }
 
+// GetLinks return the links for the node, the node doesn't necessarily have
+// to exist locally.
 func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
 	if c.Type() == cid.Raw {
 		return nil, nil
@@ -138,8 +142,9 @@ func (n *dagService) Remove(nd node.Node) error {
 	return n.Blocks.DeleteBlock(nd)
 }
 
-// get the links for a node, from the node, bypassing the
-// LinkService
+// GetLinksDirect creates a function to get the links for a node, from
+// the node, bypassing the LinkService.  If the node does not exist
+// locally (and can not be retrieved) an error will be returned.
 func GetLinksDirect(serv DAGService) GetLinks {
 	return func(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
 		node, err := serv.Get(ctx, c)
