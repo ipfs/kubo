@@ -1,8 +1,8 @@
 include mk/header.mk
 
-dist_root_$(d)=/ipfs/QmTazYLCem8B7pQGLsCj1Q4MxkqGMmD9XugvStLJSQ8uxA
+dist_root_$(d)=/ipfs/QmNjXP6N98fYT1i7abgeBHmdR5WoeBeik4DtGiX9iFWK31
 
-$(d)/gx: $(d)/gx-v0.10.0
+$(d)/gx: $(d)/gx-v0.11.0
 $(d)/gx-go: $(d)/gx-go-v1.4.0
 
 TGTS_$(d) := $(d)/gx $(d)/gx-go
