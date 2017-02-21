@@ -147,7 +147,7 @@ test_init_ipfs() {
 		test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
 		test_config_set Mounts.IPNS "$(pwd)/ipns" &&
 		test_config_set Addresses.API "/ip4/127.0.0.1/tcp/0" &&
-		test_config_set Addresses.Gateway "/ip4/127.0.0.1/tcp/0" &&
+		test_config_set Addresses.Gateway "/ip4/0.0.0.0/tcp/0" &&
 		test_config_set --json Addresses.Swarm "[
   \"/ip4/0.0.0.0/tcp/0\"
 ]" &&
