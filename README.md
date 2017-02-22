@@ -91,21 +91,10 @@ export PATH=$PATH:$GOPATH/bin
 
 #### Download and Compile IPFS
 
-go-ipfs differs from the vanilla `go get` flow: it uses
-[gx](https://github.com/whyrusleeping/gx)/[gx-go](https://github.com/whyrusleeping/gx-go)
-for dependency management.
-
-First download `go-ipfs` without installing:
-
 ```
 $ go get -u -d github.com/ipfs/go-ipfs
 
 $ cd $GOPATH/src/github.com/ipfs/go-ipfs
-```
-
-Then install `go-ipfs` and its dependencies, including `gx` and `gx-go`:
-
-```
 $ make install
 ```
 
@@ -113,16 +102,14 @@ $ make install
 
 If your operating system isn't officially supported, but you still want to try
 building ipfs anyways (it should work fine in most cases), you can do the
-following:
+following instead of `make install`:
 
-- Install gx: `go get -u github.com/whyrusleeping/gx`
-- Install gx-go: `go get -u github.com/whyrusleeping/gx-go`
-- Fetch ipfs source: `go get -d github.com/ipfs/go-ipfs 2> /dev/null`
-- Enter source directory: `cd $GOPATH/src/github.com/ipfs/go-ipfs`
-- Install deps: `gx install`
-- Install ipfs: `go install ./cmd/ipfs`
+```
+$ make install_unsupported
+```
 
-Note: This process may break if [gx](https://github.com/whyrusleeping/gx) or any of its dependencies break as `go get`
+Note: This process may break if [gx](https://github.com/whyrusleeping/gx)
+(used for dependency management) or any of its dependencies break as `go get`
 will always select the latest code for every dependency, often resulting in
 mismatched APIs.
 
