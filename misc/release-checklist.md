@@ -17,11 +17,11 @@
 - [ ] release {{version}}-rcX on dist
 
 ## release
-- [ ] versions changed to {{version}}-rcX:
+- [ ] versions changed to {{version}}:
   - [ ] in repo/config/version.go
   - [ ] in package.json
-- [ ] gx publish
-- [ ] commit tagged
+- [ ] gx publish done and commited
+- [ ] signed version tag pushed
 - [ ] fast forward merge of **master** to **release**
 - [ ] push release to dist
 
