@@ -91,6 +91,20 @@ func (c *offlineRouting) GetValues(ctx context.Context, key string, _ int) ([]ro
 	}, nil
 }
 
+func (c *offlineRouting) GetValuesAsync(ctx context.Context, key string, _ int) <-chan *routing.RecvdVal {
+	res := make(chan *routing.RecvdVal, 1)
+	defer close(res)
+	value, err := c.GetValue(ctx, key)
+	if err != nil {
+		log.Debugf("OfflineRouting.GetValuesAsync: %v", err)
+	} else {
+		res <- &routing.RecvdVal{
+			Val: value,
+		}
+	}
+	return res
+}
+
 func (c *offlineRouting) FindPeer(ctx context.Context, pid peer.ID) (pstore.PeerInfo, error) {
 	return pstore.PeerInfo{}, ErrOffline
 }

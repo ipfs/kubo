@@ -31,6 +31,13 @@ func (c *nilclient) GetValues(_ context.Context, _ string, _ int) ([]routing.Rec
 	return nil, errors.New("Tried GetValues from nil routing.")
 }
 
+func (c *nilclient) GetValuesAsync(_ context.Context, _ string, _ int) <-chan *routing.RecvdVal {
+	log.Debug("Tried to GetValuesAsync from nil routing.")
+	res := make(chan *routing.RecvdVal, 0)
+	close(res)
+	return res
+}
+
 func (c *nilclient) FindPeer(_ context.Context, _ peer.ID) (pstore.PeerInfo, error) {
 	return pstore.PeerInfo{}, nil
 }

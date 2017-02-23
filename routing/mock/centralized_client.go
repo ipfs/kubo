@@ -75,6 +75,23 @@ func (c *client) GetValues(ctx context.Context, key string, count int) ([]routin
 	return []routing.RecvdVal{{Val: data, From: c.peer.ID()}}, nil
 }
 
+func (c *client) GetValuesAsync(ctx context.Context, key string, count int) <-chan *routing.RecvdVal {
+	log.Debugf("GetValuesAsync: %s", key)
+	res := make(chan *routing.RecvdVal, 1)
+	defer close(res)
+	data, err := c.GetValue(ctx, key)
+	if err != nil {
+		log.Debugf("GetValuesAsync error: %v", err)
+	} else {
+		res <- &routing.RecvdVal{
+			Val:  data,
+			From: c.peer.ID(),
+		}
+	}
+
+	return res
+}
+
 func (c *client) FindProviders(ctx context.Context, key *cid.Cid) ([]pstore.PeerInfo, error) {
 	return c.server.Providers(key), nil
 }
