@@ -130,7 +130,7 @@ func (e *MultiError) Error() string {
 	var buf bytes.Buffer
 	for _, err := range e.Errors {
 		buf.WriteString(err.Error())
-		buf.WriteString("\n")
+		buf.WriteString("; ")
 	}
 	buf.WriteString(e.Summary.Error())
 	return buf.String()
