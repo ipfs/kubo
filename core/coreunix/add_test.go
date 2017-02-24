@@ -98,14 +98,11 @@ func TestAddGCLive(t *testing.T) {
 		t.Fatal("add shouldnt complete yet")
 	}
 
-	var gcout <-chan *cid.Cid
-	var errs <-chan error
+	var gcout <-chan gc.Result
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcchan, erro := gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
-		errs = erro
-		gcout = gcchan
+		gcout = gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
 	}()
 
 	// gc shouldnt start until we let the add finish its current file.
@@ -114,8 +111,6 @@ func TestAddGCLive(t *testing.T) {
 	select {
 	case <-gcstarted:
 		t.Fatal("gc shouldnt have started yet")
-	case err := <-errs:
-		t.Fatal(err)
 	default:
 	}
 
@@ -128,18 +123,17 @@ func TestAddGCLive(t *testing.T) {
 	select {
 	case o := <-out:
 		addedHashes[o.(*AddedObject).Hash] = struct{}{}
-	case err := <-errs:
-		t.Fatal(err)
 	}
 
 	select {
 	case <-gcstarted:
-	case err := <-errs:
-		t.Fatal(err)
 	}
 
-	for k := range gcout {
-		if _, ok := addedHashes[k.String()]; ok {
+	for r := range gcout {
+		if r.Error != nil {
+			t.Fatal(err)
+		}
+		if _, ok := addedHashes[r.KeyRemoved.String()]; ok {
 			t.Fatal("gc'ed a hash we just added")
 		}
 	}

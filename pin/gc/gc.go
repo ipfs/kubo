@@ -16,6 +16,11 @@ import (
 
 var log = logging.Logger("gc")
 
+type Result struct {
+	KeyRemoved *cid.Cid
+	Error      error
+}
+
 // GC performs a mark and sweep garbage collection of the blocks in the blockstore
 // first, it creates a 'marked' set and adds to it the following:
 // - all recursively pinned blocks, plus all of their descendants (recursively)
@@ -26,27 +31,25 @@ var log = logging.Logger("gc")
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
 //
-func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) (<-chan *cid.Cid, <-chan error) {
+func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
 	unlocker := bs.GCLock()
 	ls = ls.GetOfflineLinkService()
 
-	output := make(chan *cid.Cid)
-	errOutput := make(chan error)
+	output := make(chan Result, 128)
 
 	go func() {
-		defer close(errOutput)
 		defer close(output)
 		defer unlocker.Unlock()
 
-		gcs, err := ColoredSet(ctx, pn, ls, bestEffortRoots, errOutput)
+		gcs, err := ColoredSet(ctx, pn, ls, bestEffortRoots, output)
 		if err != nil {
-			errOutput <- err
+			output <- Result{Error: err}
 			return
 		}
 
 		keychan, err := bs.AllKeysChan(ctx)
 		if err != nil {
-			errOutput <- err
+			output <- Result{Error: err}
 			return
 		}
 
@@ -63,13 +66,13 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 					err := bs.DeleteBlock(k)
 					if err != nil {
 						errors = true
-						errOutput <- &CouldNotDeleteBlockError{k, err}
+						output <- Result{Error: &CouldNotDeleteBlockError{k, err}}
 						//log.Errorf("Error removing key from blockstore: %s", err)
 						// continue as error is non-fatal
 						continue loop
 					}
 					select {
-					case output <- k:
+					case output <- Result{KeyRemoved: k}:
 					case <-ctx.Done():
 						break loop
 					}
@@ -79,11 +82,11 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 			}
 		}
 		if errors {
-			errOutput <- ErrCouldNotDeleteSomeBlocks
+			output <- Result{Error: ErrCouldNotDeleteSomeBlocks}
 		}
 	}()
 
-	return output, errOutput
+	return output
 }
 
 func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []*cid.Cid) error {
@@ -100,7 +103,7 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	return nil
 }
 
-func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid, errOutput chan<- error) (*cid.Set, error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	errors := false
@@ -109,28 +112,28 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 		links, err := ls.GetLinks(ctx, cid)
 		if err != nil {
 			errors = true
-			errOutput <- &CouldNotFetchLinksError{cid, err}
+			output <- Result{Error: &CouldNotFetchLinksError{cid, err}}
 		}
 		return links, nil
 	}
 	err := Descendants(ctx, getLinks, gcs, pn.RecursiveKeys())
 	if err != nil {
 		errors = true
-		errOutput <- err
+		output <- Result{Error: err}
 	}
 
 	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
 		links, err := ls.GetLinks(ctx, cid)
 		if err != nil && err != dag.ErrNotFound {
 			errors = true
-			errOutput <- &CouldNotFetchLinksError{cid, err}
+			output <- Result{Error: &CouldNotFetchLinksError{cid, err}}
 		}
 		return links, nil
 	}
 	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
 	if err != nil {
 		errors = true
-		errOutput <- err
+		output <- Result{Error: err}
 	}
 
 	for _, k := range pn.DirectKeys() {
@@ -140,7 +143,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 	err = Descendants(ctx, getLinks, gcs, pn.InternalPins())
 	if err != nil {
 		errors = true
-		errOutput <- err
+		output <- Result{Error: err}
 	}
 
 	if errors {

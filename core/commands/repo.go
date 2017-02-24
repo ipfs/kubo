@@ -58,28 +58,20 @@ order to reclaim hard disk space.
 			return
 		}
 
-		gcOutChan, erro := corerepo.GarbageCollectAsync(n, req.Context())
+		gcOutChan := corerepo.GarbageCollectAsync(n, req.Context())
 
-		outChan := make(chan interface{})
+		outChan := make(chan interface{}, len(gcOutChan))
 		res.SetOutput((<-chan interface{})(outChan))
 
 		go func() {
 			defer close(outChan)
 			var errors []error
-			for gcOutChan != nil || erro != nil {
-				select {
-				case k, ok := <-gcOutChan:
-					if ok {
-						outChan <- k
-					} else {
-						gcOutChan = nil
-					}
-				case err, ok := <-erro:
-					if ok {
-						errors = append(errors, err)
-					} else {
-						erro = nil
-					}
+			for res := range gcOutChan {
+				if res.KeyRemoved != nil {
+					outChan <- &corerepo.KeyRemoved{res.KeyRemoved}
+				}
+				if res.Error != nil {
+					errors = append(errors, res.Error)
 				}
 			}
 			switch len(errors) {

@@ -90,23 +90,15 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	rmed, erro := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
+	rmed := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
 
 	var errors []error
-	for rmed != nil || erro != nil {
-		select {
-		case _, ok := <-rmed:
-			if !ok {
-				rmed = nil
-			}
-		case err, ok := <-erro:
-			if ok {
-				errors = append(errors, err)
-			} else {
-				erro = nil
-			}
+	for res := range rmed {
+		if res.Error != nil {
+			errors = append(errors, err)
 		}
 	}
+
 	switch len(errors) {
 	case 0:
 		return nil
@@ -136,30 +128,16 @@ func (e *MultiError) Error() string {
 	return buf.String()
 }
 
-func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, <-chan error) {
-	out := make(chan *KeyRemoved)
-
+func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) <-chan gc.Result {
 	roots, err := BestEffortRoots(n.FilesRoot)
 	if err != nil {
-		erro := make(chan error)
-		erro <- err
-		close(erro)
+		out := make(chan gc.Result)
+		out <- gc.Result{Error: err}
 		close(out)
-		return out, erro
+		return out
 	}
-	rmed, erro := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
 
-	go func() {
-		defer close(out)
-		for k := range rmed {
-			select {
-			case out <- &KeyRemoved{k}:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	return out, erro
+	return gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
 }
 
 func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {
