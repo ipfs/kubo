@@ -15,6 +15,7 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 
+	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
 )
 
@@ -65,24 +66,11 @@ order to reclaim hard disk space.
 
 		go func() {
 			defer close(outChan)
-			var errors []error
-			for res := range gcOutChan {
-				if res.KeyRemoved != nil {
-					outChan <- &corerepo.KeyRemoved{res.KeyRemoved}
-				}
-				if res.Error != nil {
-					errors = append(errors, res.Error)
-				}
-			}
-			switch len(errors) {
-			case 0:
-				return
-			case 1:
-				res.SetError(errors[0], cmds.ErrNormal)
-				return
-			default:
-				res.SetError(corerepo.NewMultiError(errors...), cmds.ErrNormal)
-				return
+			err := corerepo.CollectResult(req.Context(), gcOutChan, func(k *cid.Cid) {
+				outChan <- &corerepo.KeyRemoved{k}
+			})
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
 			}
 		}()
 	},
