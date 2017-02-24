@@ -372,17 +372,6 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
-	// construct http gateway - if it is set in the config
-	var gwErrc <-chan error
-	if len(cfg.Addresses.Gateway) > 0 {
-		var err error
-		err, gwErrc = serveHTTPGateway(req)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-	}
-
 	// construct fuse mountpoints - if the user provided the --mount flag
 	mount, _, err := req.Option(mountKwd).Bool()
 	if err != nil {
@@ -406,6 +395,17 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
+	}
+
+	// construct http gateway - if it is set in the config
+	var gwErrc <-chan error
+	if len(cfg.Addresses.Gateway) > 0 {
+		var err error
+		err, gwErrc = serveHTTPGateway(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 	}
 
 	// initialize metrics collector
