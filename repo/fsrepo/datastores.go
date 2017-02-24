@@ -1,12 +1,12 @@
 package fsrepo
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 
 	repo "github.com/ipfs/go-ipfs/repo"
 
+	s3ds "github.com/ipfs/go-ds-s3"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	mount "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/syncmount"
 	levelds "gx/ipfs/QmaHHmfEozrrotyhyN44omJouyuEtx6ahddqV6W5yRaUSQ/go-ds-leveldb"
@@ -45,17 +45,13 @@ func (r *FSRepo) constructDatastore(params map[string]interface{}) (repo.Datasto
 
 		return r.openMeasureDB(prefix, child)
 
+	case "s3ds":
+		return r.openS3Datastore(params)
 	case "levelds":
 		return r.openLeveldbDatastore(params)
 	default:
 		return nil, fmt.Errorf("unknown datastore type: %s", params["type"])
 	}
-}
-
-type mountConfig struct {
-	Path      string
-	ChildType string
-	Child     *json.RawMessage
 }
 
 func (r *FSRepo) openMountDatastore(mountcfg []interface{}) (repo.Datastore, error) {
@@ -116,4 +112,38 @@ func (r *FSRepo) openLeveldbDatastore(params map[string]interface{}) (repo.Datas
 
 func (r *FSRepo) openMeasureDB(prefix string, child repo.Datastore) (repo.Datastore, error) {
 	return measure.New(prefix, child), nil
+}
+
+func (r *FSRepo) openS3Datastore(params map[string]interface{}) (repo.Datastore, error) {
+	keys := []string{
+		"bucket",
+		"domain",
+		"secretKey",
+		"accessKey",
+	}
+	if err := assertStrings("s3ds", params, keys); err != nil {
+		return nil, err
+	}
+	cfg := &s3ds.Config{
+		Bucket:    params["bucket"].(string),
+		Domain:    params["domain"].(string),
+		SecretKey: params["secretKey"].(string),
+		AccessKey: params["accessKey"].(string),
+	}
+
+	return s3ds.NewS3Datastore(cfg), nil
+}
+
+func assertStrings(dstype string, m map[string]interface{}, keys []string) error {
+	for _, k := range keys {
+		val, ok := m[k]
+		if !ok {
+			return fmt.Errorf("%s config: key '%s' not found", dstype, k)
+		}
+		_, ok = val.(string)
+		if !ok {
+			return fmt.Errorf("%s config: key '%s' was not a string", dstype, k)
+		}
+	}
+	return nil
 }
