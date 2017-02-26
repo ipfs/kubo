@@ -10,9 +10,6 @@ import (
 	"fmt"
 	"os"
 
-	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
-	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
@@ -23,6 +20,8 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 	peer "gx/ipfs/QmZcUPvPhD1Xvk6mwijYF8AfR3mG31S1YsEfHG4khrFPRr/go-libp2p-peer"
+	fuse "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse"
+	fs "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs"
 )
 
 func init() {

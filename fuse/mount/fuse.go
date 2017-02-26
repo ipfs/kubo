@@ -9,10 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-
-	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	"gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	"gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse"
+	"gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs"
 )
 
 var ErrNotMounted = errors.New("not mounted")
