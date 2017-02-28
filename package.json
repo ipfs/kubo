@@ -171,12 +171,6 @@
       "version": "0.1.0"
     },
     {
-      "author": "whyrusleeping",
-      "hash": "QmY6k4rtt8FZvU87itWvuWTPJoCdkLZF48J55Aa1UxLFeY",
-      "name": "autobatch",
-      "version": "0.2.4"
-    },
-    {
       "author": "jbenet",
       "hash": "QmaeHSCBd9XjXxmgHEiKkHtLcMCb2eZsPLKT7bHgBfBkqw",
       "name": "go-is-domain",
