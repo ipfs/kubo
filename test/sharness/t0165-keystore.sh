@@ -33,7 +33,8 @@ test_key_cmd() {
 	'
 
 	test_expect_success "key list -l contains self key with peerID" '
-		ipfs key list -l | grep "$(ipfs config Identity.PeerID) self"
+		PeerID="$(ipfs config Identity.PeerID)"
+		ipfs key list -l | grep "$PeerID self"
 	'
 }
 
