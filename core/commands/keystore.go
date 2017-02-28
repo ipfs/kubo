@@ -40,7 +40,7 @@ var KeyGenCmd = &cmds.Command{
 		Tagline: "Create a new keypair",
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("type", "t", "type of the key to create"),
+		cmds.StringOption("type", "t", "type of the key to create [rsa, ed25519]"),
 		cmds.IntOption("size", "s", "size of the key to generate"),
 	},
 	Arguments: []cmds.Argument{
@@ -160,7 +160,9 @@ var KeyListCmd = &cmds.Command{
 
 		sort.Strings(keys)
 
-		list := make([]KeyOutput, 0, len(keys))
+		list := make([]KeyOutput, 0, len(keys)+1)
+
+		list = append(list, KeyOutput{Name: "self", Id: n.Identity.Pretty()})
 
 		for _, key := range keys {
 			privKey, err := n.Repo.Keystore().Get(key)
