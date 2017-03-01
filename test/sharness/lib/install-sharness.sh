@@ -8,7 +8,9 @@
 # settings
 version=5eee9b51b5621cec95a64018f0cc779963b230d2
 urlprefix=https://github.com/mlafeldt/sharness.git
-clonedir=lib
+if test ! -n "$clonedir" ; then
+	clonedir=lib
+fi
 sharnessdir=sharness
 
 if test -f "$clonedir/$sharnessdir/SHARNESS_VERSION_$version"

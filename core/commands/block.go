@@ -11,9 +11,9 @@ import (
 	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	cmds "github.com/ipfs/go-ipfs/commands"
 
-	mh "gx/ipfs/QmYDds3421prZgqKbLpEK7T9Aa2eVdQ7o3YarX1LVLdP2J/go-multihash"
-	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
-	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
+	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
+	mh "gx/ipfs/QmbZ6Cee2uHjG7hf19qLHppgKDRtaG4CVtMzdmK9VCVqLu/go-multihash"
 )
 
 type BlockStat struct {
@@ -280,21 +280,19 @@ It takes a list of base58 encoded multihashs to remove.
 		}
 		res.SetOutput(ch)
 	},
-	PostRun: func(req cmds.Request, res cmds.Response) {
-		if res.Error() != nil {
-			return
-		}
-		outChan, ok := res.Output().(<-chan interface{})
-		if !ok {
-			res.SetError(u.ErrCast(), cmds.ErrNormal)
-			return
-		}
-		res.SetOutput(nil)
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
 
-		err := util.ProcRmOutput(outChan, res.Stdout(), res.Stderr())
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-		}
+			err := util.ProcRmOutput(outChan, res.Stdout(), res.Stderr())
+			if err != nil {
+				return nil, err
+			}
+			return nil, nil
+		},
 	},
 	Type: util.RemovedBlock{},
 }

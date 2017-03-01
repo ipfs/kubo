@@ -3,7 +3,6 @@ package pin
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -13,9 +12,9 @@ import (
 	"github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin/internal/pb"
 
-	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
+	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
+	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
 	"gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
 )
 
 const (
@@ -25,14 +24,6 @@ const (
 	// maxItems is the maximum number of items that will fit in a single bucket
 	maxItems = 8192
 )
-
-func randomSeed() (uint32, error) {
-	var buf [4]byte
-	if _, err := rand.Read(buf[:]); err != nil {
-		return 0, err
-	}
-	return binary.LittleEndian.Uint32(buf[:]), nil
-}
 
 func hash(seed uint32, c *cid.Cid) uint32 {
 	var buf [4]byte
@@ -63,11 +54,7 @@ func (s sortByHash) Swap(a, b int) {
 	s.links[a], s.links[b] = s.links[b], s.links[a]
 }
 
-func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint64, iter itemIterator, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
-	seed, err := randomSeed()
-	if err != nil {
-		return nil, err
-	}
+func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint64, depth uint32, iter itemIterator, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
 	links := make([]*node.Link, 0, defaultFanout+maxItems)
 	for i := 0; i < defaultFanout; i++ {
 		links = append(links, &node.Link{Cid: emptyKey})
@@ -82,7 +69,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 	hdr := &pb.Set{
 		Version: proto.Uint32(1),
 		Fanout:  proto.Uint32(defaultFanout),
-		Seed:    proto.Uint32(seed),
+		Seed:    proto.Uint32(depth),
 	}
 	if err := writeHdr(n, hdr); err != nil {
 		return nil, err
@@ -129,7 +116,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 		if !ok {
 			break
 		}
-		h := hash(seed, k) % defaultFanout
+		h := hash(depth, k) % defaultFanout
 		hashed[h] = append(hashed[h], k)
 	}
 
@@ -142,7 +129,7 @@ func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint
 		childIter := getCidListIterator(items)
 
 		// recursively create a pinset from the items for this bucket index
-		child, err := storeItems(ctx, dag, uint64(len(items)), childIter, internalKeys)
+		child, err := storeItems(ctx, dag, uint64(len(items)), depth+1, childIter, internalKeys)
 		if err != nil {
 			return nil, err
 		}
@@ -296,7 +283,7 @@ func getCidListIterator(cids []*cid.Cid) itemIterator {
 func storeSet(ctx context.Context, dag merkledag.DAGService, cids []*cid.Cid, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
 	iter := getCidListIterator(cids)
 
-	n, err := storeItems(ctx, dag, uint64(len(cids)), iter, internalKeys)
+	n, err := storeItems(ctx, dag, uint64(len(cids)), 0, iter, internalKeys)
 	if err != nil {
 		return nil, err
 	}

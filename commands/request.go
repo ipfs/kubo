@@ -14,7 +14,7 @@ import (
 	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/repo/config"
-	u "gx/ipfs/Qmb912gdngC1UWwTkhuW8knyRbcWeu5kqkxBpveLmW8bSr/go-ipfs-util"
+	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
 )
 
 type OptMap map[string]interface{}

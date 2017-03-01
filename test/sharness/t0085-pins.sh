@@ -39,13 +39,47 @@ test_pins() {
 	'
 }
 
+test_pin_dag() {
+	EXTRA_ARGS=$1
+
+	test_expect_success "'ipfs add $EXTRA_ARGS --pin=false' 1MB file" '
+		random 1048576 56 > afile &&
+		HASH=`ipfs add $EXTRA_ARGS --pin=false -q afile`
+	'
+
+	test_expect_success "'ipfs pin add' file" '
+		ipfs pin add --recursive=true $HASH
+	'
+
+	test_expect_success "'ipfs pin rm' file" '
+		ipfs pin rm $HASH
+	'
+
+	test_expect_success "remove part of the dag" '
+		PART=`ipfs refs $HASH | head -1` &&
+		ipfs block rm $PART
+	'
+
+	test_expect_success "pin file, should fail" '
+		test_must_fail ipfs pin add --recursive=true $HASH 2> err &&
+		cat err &&
+		grep -q "not found" err
+	'
+}
+
 test_init_ipfs
 
 test_pins
 
+test_pin_dag
+test_pin_dag --raw-leaves
+
 test_launch_ipfs_daemon --offline
 
 test_pins
+
+test_pin_dag
+test_pin_dag --raw-leaves
 
 test_kill_ipfs_daemon
 

@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var DistPath = "https://ipfs.io/ipfs/QmUgY7wRGB7bEKREE5BNrSwjzrRZddkRV4bu64bP2qgv7f"
+var DistPath = "https://ipfs.io/ipfs/QmNjXP6N98fYT1i7abgeBHmdR5WoeBeik4DtGiX9iFWK31"
 
 func init() {
 	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
@@ -243,27 +243,30 @@ func GetBinaryForVersion(distname, binnom, root, vers, out string) error {
 	return unpackArchive(distname, binnom, arcpath, out, archive)
 }
 
+// osWithVariant returns the OS name with optional variant.
+// Currently returns either runtime.GOOS, or "linux-musl".
 func osWithVariant() (string, error) {
 	if runtime.GOOS != "linux" {
 		return runtime.GOOS, nil
 	}
 
-	bin, err := exec.LookPath(filepath.Base(os.Args[0]))
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve go-ipfs: %s", err)
-	}
-
-	// ldd outputs the system's kind of libc
+	// ldd outputs the system's kind of libc.
 	// - on standard ubuntu: ldd (Ubuntu GLIBC 2.23-0ubuntu5) 2.23
 	// - on alpine: musl libc (x86_64)
-	cmd := exec.Command("ldd --version", bin)
-	buf := new(bytes.Buffer)
-	cmd.Stdout = buf
-	// we throw away the error, this code path must not fail because of
-	// a silly issue such as missing/broken ldd. we'll assume glibc in that case.
-	_ = cmd.Run()
+	//
+	// we use the combined stdout+stderr,
+	// because ldd --version prints differently on different OSes.
+	// - on standard ubuntu: stdout
+	// - on alpine: stderr (it probably doesn't know the --version flag)
+	//
+	// we supress non-zero exit codes (see last point about alpine).
+	out, err := exec.Command("sh", "-c", "ldd --version || true").CombinedOutput()
+	if err != nil {
+		return "", err
+	}
 
-	scan := bufio.NewScanner(buf)
+	// now just see if we can find "musl" somewhere in the output
+	scan := bufio.NewScanner(bytes.NewBuffer(out))
 	for scan.Scan() {
 		if strings.Contains(scan.Text(), "musl") {
 			return "linux-musl", nil

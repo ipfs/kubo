@@ -9,9 +9,9 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	path "github.com/ipfs/go-ipfs/path"
 
-	node "gx/ipfs/QmRSU5EqqWVZSNdbU51yXmVoF1uNw3JgTNB6RaiL7DZM16/go-ipld-node"
-	ipldcbor "gx/ipfs/QmT1B6cKXnMMki8nbuhrnLuiU32HLvwi6xe99bJ79482UK/go-ipld-cbor"
-	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
+	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	ipldcbor "gx/ipfs/QmdaC21UyoyN3t9QdapHZfsaUo3mqVf5p4CEuFaYVFqwap/go-ipld-cbor"
 )
 
 var DagCmd = &cmds.Command{
@@ -137,13 +137,23 @@ var DagGetCmd = &cmds.Command{
 			return
 		}
 
-		obj, err := n.Resolver.ResolvePath(req.Context(), p)
+		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		res.SetOutput(obj)
+		var out interface{} = obj
+		if len(rem) > 0 {
+			final, _, err := obj.Resolve(rem)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			out = final
+		}
+
+		res.SetOutput(out)
 	},
 }
 

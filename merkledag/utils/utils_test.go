@@ -8,7 +8,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	context "context"
-	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 )
 
 func TestAddLink(t *testing.T) {

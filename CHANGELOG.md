@@ -1,5 +1,37 @@
 # go-ipfs changelog
 
+
+### 0.4.6 - 2017-02-21
+
+Ipfs 0.4.6 contains several bugfixes related to migrations and also contains a
+few other improvements to other parts of the codebase. Notably:
+
+- The default config will now contain some ipv6 addresses for bootstrap nodes.
+- `ipfs pin add` should be faster and consume less memory.
+- Pinning thousands of files no longer causes superlinear usage of storage space.
+
+- Improvements
+	- Make pinset sharding deterministic ([ipfs/go-ipfs#3640](https://github.com/ipfs/go-ipfs/pull/3640))
+	- Update to go-multihash with blake2 ([ipfs/go-ipfs#3649](https://github.com/ipfs/go-ipfs/pull/3649))
+	- Pass cids instead of nodes around in EnumerateChildrenAsync ([ipfs/go-ipfs#3598](https://github.com/ipfs/go-ipfs/pull/3598))
+	- Add /ip6 bootstrap nodes ([ipfs/go-ipfs#3523](https://github.com/ipfs/go-ipfs/pull/3523))
+	- Add sub-object support to `dag get` command ([ipfs/go-ipfs#3687](https://github.com/ipfs/go-ipfs/pull/3687))
+	- Add half-closed streams support to multiplex experiment ([ipfs/go-ipfs#3695](https://github.com/ipfs/go-ipfs/pull/3695))
+- Documentation
+	- Add the snap installation instructions ([ipfs/go-ipfs#3663](https://github.com/ipfs/go-ipfs/pull/3663))
+	- Add closed PRs, Issues throughput ([ipfs/go-ipfs#3602](https://github.com/ipfs/go-ipfs/pull/3602))
+- Bugfixes
+	- Fix auto-migration on docker nodes ([ipfs/go-ipfs#3698](https://github.com/ipfs/go-ipfs/pull/3698))
+	- Update flatfs to v1.1.2, fixing directory fd issue ([ipfs/go-ipfs#3711](https://github.com/ipfs/go-ipfs/pull/3711))
+- General Changes and Refactorings
+	- Remove `FindProviders` from routing mocks ([ipfs/go-ipfs#3617](https://github.com/ipfs/go-ipfs/pull/3617))
+	- Use Marshalers instead of PostRun to process `block rm` output ([ipfs/go-ipfs#3708](https://github.com/ipfs/go-ipfs/pull/3708))
+- Testing
+	- Makefile rework and sharness test coverage ([ipfs/go-ipfs#3504](https://github.com/ipfs/go-ipfs/pull/3504))
+	- Print out all daemon stderr files when iptb stop fails ([ipfs/go-ipfs#3701](https://github.com/ipfs/go-ipfs/pull/3701))
+	- Add tests for recursively pinning a dag ([ipfs/go-ipfs#3691](https://github.com/ipfs/go-ipfs/pull/3691))
+	- Fix lack of commit hash during build ([ipfs/go-ipfs#3705](https://github.com/ipfs/go-ipfs/pull/3705))
+
 ### 0.4.5 - 2017-02-11
 
 #### Changes from rc3 to rc4

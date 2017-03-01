@@ -9,22 +9,23 @@
 # use the ipfs tool to test against
 
 # add current directory to path, for ipfs tool.
-BIN=$(cd .. && echo `pwd`/bin)
-PATH=${BIN}:${PATH}
+if test "$MAKE_SKIP_PATH" != "1"; then
+	BIN=$(cd .. && echo `pwd`/bin)
+	BIN2=$(cd ../.. && echo `pwd`/cmd/ipfs)
+	PATH=${BIN2}:${BIN}:${PATH}
+
+	# assert the `ipfs` we're using is the right one.
+	if test `which ipfs` != ${BIN2}/ipfs; then
+		echo >&2 "Cannot find the tests' local ipfs tool."
+		echo >&2 "Please check test and ipfs tool installation."
+		exit 1
+	fi
+fi
 
 # set sharness verbosity. we set the env var directly as
 # it's too late to pass in --verbose, and --verbose is harder
 # to pass through in some cases.
 test "$TEST_VERBOSE" = 1 && verbose=t
-
-# assert the `ipfs` we're using is the right one.
-if test `which ipfs` != ${BIN}/ipfs; then
-	echo >&2 "Cannot find the tests' local ipfs tool."
-	echo >&2 "Please check test and ipfs tool installation."
-	exit 1
-fi
-
-
 # source the common hashes first.
 . lib/test-lib-hashes.sh
 
@@ -146,7 +147,7 @@ test_init_ipfs() {
 		test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
 		test_config_set Mounts.IPNS "$(pwd)/ipns" &&
 		test_config_set Addresses.API "/ip4/127.0.0.1/tcp/0" &&
-		test_config_set Addresses.Gateway "/ip4/127.0.0.1/tcp/0" &&
+		test_config_set Addresses.Gateway "/ip4/0.0.0.0/tcp/0" &&
 		test_config_set --json Addresses.Swarm "[
   \"/ip4/0.0.0.0/tcp/0\"
 ]" &&

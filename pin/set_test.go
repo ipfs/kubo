@@ -2,38 +2,73 @@ package pin
 
 import (
 	"context"
-	"fmt"
-	"os"
+	"encoding/binary"
 	"testing"
 
+	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	bserv "github.com/ipfs/go-ipfs/blockservice"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 
-	cid "gx/ipfs/QmcTcsTvfaeEBRFo1TkFgT8sRmgi1n1LTZpecfVP8fzpGD/go-cid"
+	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	dsq "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/query"
+	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 )
 
 func ignoreCids(_ *cid.Cid) {}
 
-func TestSet(t *testing.T) {
-	ds := mdtest.Mock()
-	limit := 10000 // 10000 reproduces the pinloss issue fairly reliably
-
-	if os.Getenv("STRESS_IT_OUT_YO") != "" {
-		limit = 10000000
+func objCount(d ds.Datastore) int {
+	q := dsq.Query{KeysOnly: true}
+	res, err := d.Query(q)
+	if err != nil {
+		panic(err)
 	}
-	var inputs []*cid.Cid
-	for i := 0; i < limit; i++ {
-		c, err := ds.Add(dag.NodeWithData([]byte(fmt.Sprint(i))))
-		if err != nil {
-			t.Fatal(err)
+
+	var count int
+	for {
+		_, ok := res.NextSync()
+		if !ok {
+			break
 		}
 
+		count++
+	}
+	return count
+}
+
+func TestSet(t *testing.T) {
+	dst := ds.NewMapDatastore()
+	bstore := blockstore.NewBlockstore(dst)
+	ds := dag.NewDAGService(bserv.New(bstore, offline.Exchange(bstore)))
+
+	// this value triggers the creation of a recursive shard.
+	// If the recursive sharding is done improperly, this will result in
+	// an infinite recursion and crash (OOM)
+	limit := uint32((defaultFanout * maxItems) + 1)
+
+	var inputs []*cid.Cid
+	buf := make([]byte, 4)
+	for i := uint32(0); i < limit; i++ {
+		binary.BigEndian.PutUint32(buf, i)
+		c := dag.NewRawNode(buf).Cid()
 		inputs = append(inputs, c)
 	}
+
+	_, err := storeSet(context.Background(), ds, inputs[:len(inputs)-1], ignoreCids)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	objs1 := objCount(dst)
 
 	out, err := storeSet(context.Background(), ds, inputs, ignoreCids)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	objs2 := objCount(dst)
+	if objs2-objs1 > 2 {
+		t.Fatal("set sharding does not appear to be deterministic")
 	}
 
 	// weird wrapper node because loadSet expects us to pass an
@@ -49,7 +84,7 @@ func TestSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(outset) != limit {
+	if uint32(len(outset)) != limit {
 		t.Fatal("got wrong number", len(outset), limit)
 	}
 
