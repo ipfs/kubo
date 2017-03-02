@@ -69,6 +69,9 @@ From there:
 
 ### From Linux package managers
 
+- [Arch Linux](#arch-linux)
+- [Snap](#snap)
+
 #### Arch Linux
 
 In Arch Linux go-ipfs is available as
