@@ -134,6 +134,13 @@ test_gc_robust_part2() {
 		grep -q "aborted" repo_gc_out
 	'
 
+	test_expect_success "'ipfs repo gc --stream-errors' should abort and report each error separately" '
+		test_must_fail ipfs repo gc --stream-errors 2>&1 | tee repo_gc_out &&
+		grep -q "Error: could not retrieve links for $LEAF1" repo_gc_out &&
+		grep -q "Error: could not retrieve links for $LEAF2" repo_gc_out &&
+		grep -q "Error: garbage collection aborted" repo_gc_out
+	'
+
 	test_expect_success "unpin 1MB file" '
 		ipfs pin rm $HASH2
 	'

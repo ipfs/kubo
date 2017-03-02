@@ -20,10 +20,6 @@ var log = logging.Logger("corerepo")
 
 var ErrMaxStorageExceeded = errors.New("Maximum storage limit exceeded. Maybe unpin some files?")
 
-type KeyRemoved struct {
-	Key *cid.Cid
-}
-
 type GC struct {
 	Node       *core.IpfsNode
 	Repo       repo.Repo
