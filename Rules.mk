@@ -83,6 +83,7 @@ coverage: $(COVERAGE)
 
 distclean: clean
 	rm -rf $(DISTCLEAN)
+	git clean -ffxd
 .PHONY: distclean
 
 test: $(TEST)
