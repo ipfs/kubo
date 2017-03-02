@@ -294,6 +294,12 @@
       "hash": "QmQ2sk2irQYkeMMVKpLjq1bSiNPn9B5wZB53Nx8dd4dhnQ",
       "name": "go-libp2p-pnet",
       "version": "2.2.1"
+    },
+    {
+      "author": "kubuxu",
+      "hash": "QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9",
+      "name": "fuse",
+      "version": "0.1.3"
     }
   ],
   "gxVersion": "0.10.0",

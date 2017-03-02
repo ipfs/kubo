@@ -31,7 +31,7 @@ var fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
 var errStrFuseRequired = `OSXFUSE not found.
 
 OSXFUSE is required to mount, please install it.
-NOTE: Version in between 2.7.2 and 3.0.0 is required; prior versions are known to kernel panic!
+NOTE: Version 2.7.2 or higher required; prior versions are known to kernel panic!
 It is recommended you install it from the OSXFUSE website:
 
 	http://osxfuse.github.io/
@@ -56,9 +56,6 @@ It is recommended you install it from the OSXFUSE website:
 For more help, see:
 
 	https://github.com/ipfs/go-ipfs/issues/177
-
-OSXFUSE versions >3.0.0 are not compatible with version of FUSE library in current use.
-	This will be fixed in near future, see https://github.com/ipfs/go-ipfs/issues/3471
 `
 
 var errStrNeedFuseVersion = `unable to check fuse version.
@@ -145,17 +142,12 @@ func darwinFuseCheckVersion(node *core.IpfsNode) error {
 	log.Debug("mount: osxfuse version:", ov)
 
 	min := semver.MustParse("2.7.2")
-	max := semver.MustParse("3.0.0")
 	curr, err := semver.Make(ov)
 	if err != nil {
 		return err
 	}
 
 	if curr.LT(min) {
-		return fmt.Errorf(errStrUpgradeFuse, ov)
-	}
-	// TODO: Upgrade fuse lib and work nice with 3.0.0+
-	if curr.GE(max) {
 		return fmt.Errorf(errStrUpgradeFuse, ov)
 	}
 	return nil
