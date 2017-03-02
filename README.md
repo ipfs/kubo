@@ -69,6 +69,19 @@ From there:
 
 ### From Linux package managers
 
+#### Arch Linux
+
+In Arch Linux go-ipfs is available as
+[go-ipfs](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) package.
+
+	$ sudo pacman -S go-ipfs
+
+Development version of go-ipfs is also on AUR under
+[go-ipfs-git](https://aur.archlinux.org/packages/go-ipfs-git/).
+You can install it using your favourite AUR Helper or manually from AUR.
+
+#### Snap
+
 With snap, in any of the [supported Linux distributions](https://snapcraft.io/docs/core/install):
 
     $ sudo snap install ipfs
