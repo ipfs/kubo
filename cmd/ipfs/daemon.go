@@ -347,6 +347,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 	node.SetLocal(false)
 
+	if node.PNetFingerpint != nil {
+		fmt.Println("Swarm is limited to private network of peers with the swarm key")
+		fmt.Printf("Swarm key fingerprint: %x\n", node.PNetFingerpint)
+	}
+
 	printSwarmAddrs(node)
 
 	defer func() {

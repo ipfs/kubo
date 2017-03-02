@@ -14,10 +14,10 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 
+	floodsub "gx/ipfs/QmQDb7jmfC33qzGUGpWrfgRootQnmQvN7DMktfuekShsiF/floodsub"
 	pstore "gx/ipfs/QmQMQ2RUjnaEEX8ybmrhuFFGhAwPjyL1Eo6ZoJGD7aAccM/go-libp2p-peerstore"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
-	floodsub "gx/ipfs/Qmf2UPccWR8aZWT8UvEEKP9PhJQNidSegwEMrzZKHsCX4u/floodsub"
 )
 
 var PubsubCmd = &cmds.Command{
