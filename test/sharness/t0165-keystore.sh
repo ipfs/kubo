@@ -22,6 +22,7 @@ test_key_cmd() {
 	test_expect_success "both keys show up in list output" '
 		echo bazed > list_exp &&
 		echo foobarsa >> list_exp &&
+		echo self >> list_exp
 		ipfs key list | sort > list_out &&
 		test_cmp list_exp list_out
 	'
@@ -29,6 +30,11 @@ test_key_cmd() {
 	test_expect_success "key hashes show up in long list output" '
 		ipfs key list -l | grep $edhash > /dev/null &&
 		ipfs key list -l | grep $rsahash > /dev/null
+	'
+
+	test_expect_success "key list -l contains self key with peerID" '
+		PeerID="$(ipfs config Identity.PeerID)"
+		ipfs key list -l | grep "$PeerID self"
 	'
 }
 
