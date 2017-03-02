@@ -163,7 +163,7 @@ func TestAddGCLive(t *testing.T) {
 	defer cancel()
 
 	set := cid.NewSet()
-	err = dag.EnumerateChildren(ctx, node.DAG, last, set.Visit, false)
+	err = dag.EnumerateChildren(ctx, node.DAG.GetLinks, last, set.Visit)
 	if err != nil {
 		t.Fatal(err)
 	}

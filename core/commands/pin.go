@@ -400,7 +400,7 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	if typeStr == "indirect" || typeStr == "all" {
 		set := cid.NewSet()
 		for _, k := range n.Pinning.RecursiveKeys() {
-			err := dag.EnumerateChildren(n.Context(), n.DAG, k, set.Visit, false)
+			err := dag.EnumerateChildren(n.Context(), n.DAG.GetLinks, k, set.Visit)
 			if err != nil {
 				return nil, err
 			}

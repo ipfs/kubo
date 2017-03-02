@@ -249,7 +249,7 @@ func TestFetchGraph(t *testing.T) {
 
 	offline_ds := NewDAGService(bs)
 
-	err = EnumerateChildren(context.Background(), offline_ds, root.Cid(), func(_ *cid.Cid) bool { return true }, false)
+	err = EnumerateChildren(context.Background(), offline_ds.GetLinks, root.Cid(), func(_ *cid.Cid) bool { return true })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +266,7 @@ func TestEnumerateChildren(t *testing.T) {
 	}
 
 	set := cid.NewSet()
-	err = EnumerateChildren(context.Background(), ds, root.Cid(), set.Visit, false)
+	err = EnumerateChildren(context.Background(), ds.GetLinks, root.Cid(), set.Visit)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -543,7 +543,7 @@ func TestEnumerateAsyncFailsNotFound(t *testing.T) {
 	}
 
 	cset := cid.NewSet()
-	err = EnumerateChildrenAsync(context.Background(), ds, pcid, cset.Visit)
+	err = EnumerateChildrenAsync(context.Background(), GetLinksDirect(ds), pcid, cset.Visit)
 	if err == nil {
 		t.Fatal("this should have failed")
 	}
