@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"errors"
 	_ "expvar"
 	"fmt"
@@ -346,6 +347,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 	node.SetLocal(false)
+
+	if node.PNetFingerpint != nil {
+		fmt.Println("Swarm is limited to private network as of the swarm key")
+		fmt.Printf("Swarm key fingerprint: %s\n", hex.EncodeToString(node.PNetFingerpint))
+	}
 
 	printSwarmAddrs(node)
 
