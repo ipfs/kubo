@@ -75,7 +75,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (*cid.Cid, error) {
 		return nil, fmt.Errorf("assets: DAG.Add(dir) failed: %s", err)
 	}
 
-	if err := nd.Pinning.Pin(nd.Context(), dir, true); err != nil {
+	if err := nd.Pinning.Pin(nd.Context(), dir, true, true); err != nil {
 		return nil, fmt.Errorf("assets: Pinning on init-docu failed: %s", err)
 	}
 
