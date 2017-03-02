@@ -139,8 +139,21 @@ func (n *dagService) Remove(nd node.Node) error {
 }
 
 // FetchGraph fetches all nodes that are children of the given node
-func FetchGraph(ctx context.Context, c *cid.Cid, serv DAGService) error {
-	return EnumerateChildrenAsync(ctx, serv, c, cid.NewSet().Visit)
+func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
+	v, _ := ctx.Value("progress").(*ProgressTracker)
+	if v == nil {
+		return EnumerateChildrenAsync(ctx, serv, root, cid.NewSet().Visit)
+	}
+	set := cid.NewSet()
+	visit := func(c *cid.Cid) bool {
+		if set.Visit(c) {
+			v.Increment()
+			return true
+		} else {
+			return false
+		}
+	}
+	return EnumerateChildrenAsync(ctx, serv, root, visit)
 }
 
 // FindLinks searches this nodes links for the given key,
@@ -387,6 +400,27 @@ func EnumerateChildren(ctx context.Context, ds LinkService, root *cid.Cid, visit
 		}
 	}
 	return nil
+}
+
+type ProgressTracker struct {
+	Total int
+	lk    sync.Mutex
+}
+
+func (p *ProgressTracker) DeriveContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, "progress", p)
+}
+
+func (p *ProgressTracker) Increment() {
+	p.lk.Lock()
+	defer p.lk.Unlock()
+	p.Total++
+}
+
+func (p *ProgressTracker) Value() int {
+	p.lk.Lock()
+	defer p.lk.Unlock()
+	return p.Total
 }
 
 // FetchGraphConcurrency is total number of concurrent fetches that
