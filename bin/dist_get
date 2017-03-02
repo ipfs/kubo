@@ -13,6 +13,26 @@ check_writeable() {
 	printf "" > "$1" && rm "$1"
 }
 
+try_download() {
+	url="$1"
+	output="$2"
+	command="$3"
+	util_name="$(set -- $command; echo "$1")"
+
+	if ! have_binary "$util_name"; then
+		return 1
+	fi
+
+	printf '==> Using %s to download "%s" to "%s"\n' "$util_name" "$url" "$output"
+	if eval "$command"; then
+		echo "==> Download complete!"
+		return
+	else
+		echo "error: couldn't download with $util_name ($?)"
+		return 1
+	fi
+}
+
 download() {
 	dl_url="$1"
 	dl_output="$2"
@@ -23,19 +43,12 @@ download() {
 		die "download error: cannot write to $dl_output"
 	fi
 
-	if have_binary wget; then
-		printf '==> Using wget to download "%s" to "%s"\n' "$dl_url" "$dl_output"
-		wget "$dl_url" -O "$dl_output" || return
-	elif have_binary curl; then
-		printf '==> Using curl to download "%s" to "%s"\n' "$dl_url" "$dl_output"
-		curl --silent "$dl_url" > "$dl_output" || return
-	elif have_binary fetch; then
-		printf '==> Using fetch to download "%s" to "%s"\n' "$dl_url" "$dl_output"
-		fetch "$dl_url" -o "$dl_output" || return
-	else
-		die "no binary found to download $dl_url. exiting."
-	fi
-	echo "==> download complete!"
+	try_download "$dl_url" "$dl_output" "wget '$dl_url' -O '$dl_output'" && return
+	try_download "$dl_url" "$dl_output" "curl --silent '$dl_url' > '$dl_output'" && return 
+	try_download "$dl_url" "$dl_output" "fetch '$dl_url' -o '$dl_output'" && return
+	try_download "$dl_url" "$dl_output" "http '$dl_url' > '$dl_output'" && return
+
+	die "Unable to download $dl_url. exiting."
 }
 
 unarchive() {
