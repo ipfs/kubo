@@ -15,6 +15,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
@@ -55,6 +56,10 @@ func NewDirectory(ctx context.Context, name string, node node.Node, parent child
 		files:      make(map[string]*File),
 		modTime:    time.Now(),
 	}, nil
+}
+
+func (d *Directory) SetPrefix(prefix cid.Prefix) {
+	d.dirbuilder.SetPrefix(prefix)
 }
 
 // closeChild updates the child by the given name to the dag node 'nd'

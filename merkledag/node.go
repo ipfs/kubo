@@ -28,11 +28,35 @@ type ProtoNode struct {
 	Prefix cid.Prefix
 }
 
-var defaultCidPrefix = cid.Prefix{
+var v0CidPrefix = cid.Prefix{
 	Codec:    cid.DagProtobuf,
 	MhLength: -1,
 	MhType:   mh.SHA2_256,
 	Version:  0,
+}
+
+var v1CidPrefix = cid.Prefix{
+	Codec:    cid.DagProtobuf,
+	MhLength: -1,
+	MhType:   mh.SHA2_256,
+	Version:  1,
+}
+
+func PrefixForCidVersion(version int) (cid.Prefix, error) {
+	switch version {
+	case 0:
+		return v0CidPrefix, nil
+	case 1:
+		return v1CidPrefix, nil
+	default:
+		return cid.Prefix{}, fmt.Errorf("unknown CID version: %d", version)
+	}
+}
+
+func (n *ProtoNode) SetPrefix(prefix cid.Prefix) {
+	n.Prefix = prefix
+	n.encoded = nil
+	n.cached = nil
 }
 
 type LinkSlice []*node.Link
@@ -158,6 +182,9 @@ func (n *ProtoNode) Copy() node.Node {
 		nnode.links = make([]*node.Link, len(n.links))
 		copy(nnode.links, n.links)
 	}
+
+	nnode.Prefix = n.Prefix
+
 	return nnode
 }
 
@@ -260,7 +287,7 @@ func (n *ProtoNode) Cid() *cid.Cid {
 	}
 
 	if n.Prefix.Codec == 0 {
-		n.Prefix = defaultCidPrefix
+		n.Prefix = v0CidPrefix
 	}
 
 	c, err := n.Prefix.Sum(n.RawData())

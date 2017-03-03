@@ -27,6 +27,17 @@ test_add_symlinks() {
 		test_cmp filehash_exp filehash_out
 	'
 
+	test_expect_success "ipfs add --cid-version=1 files succeeds" '
+		ipfs add -q -r --cid-version=1 files >filehash_all &&
+		tail -n 1 filehash_all >filehash_out
+	'
+
+	test_expect_success "output looks good" '
+		# note this hash implies all internal nodes are stored using CidV1
+		echo zdj7WZDQ2xMmr4qn6aRZTsE9fCUs2KmvPigpHdpssqUobwcWK > filehash_exp &&
+		test_cmp filehash_exp filehash_out
+	'
+
 	test_expect_success "adding a symlink adds the link itself" '
 		ipfs add -q files/bar/baz > goodlink_out
 	'

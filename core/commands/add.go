@@ -38,6 +38,7 @@ const (
 	rawLeavesOptionName   = "raw-leaves"
 	noCopyOptionName      = "nocopy"
 	fstoreCacheOptionName = "fscache"
+	cidVersionOptionName  = "cid-version"
 )
 
 const adderOutChanSize = 8
@@ -88,6 +89,7 @@ You can now refer to the added file in a gateway, like so:
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
+		cmds.IntOption(cidVersionOptionName, "Cid version. Non-zero value will change default of 'raw-leaves' to true. (experimental)").Default(0),
 	},
 	PreRun: func(req cmds.Request) error {
 		quiet, _, _ := req.Option(quietOptionName).Bool()
@@ -161,6 +163,7 @@ You can now refer to the added file in a gateway, like so:
 		rawblks, rbset, _ := req.Option(rawLeavesOptionName).Bool()
 		nocopy, _, _ := req.Option(noCopyOptionName).Bool()
 		fscache, _, _ := req.Option(fstoreCacheOptionName).Bool()
+		cidVer, _, _ := req.Option(cidVersionOptionName).Int()
 
 		if nocopy && !cfg.Experimental.FilestoreEnabled {
 			res.SetError(errors.New("filestore is not enabled, see https://git.io/vy4XN"),
@@ -174,6 +177,16 @@ You can now refer to the added file in a gateway, like so:
 
 		if nocopy && !rawblks {
 			res.SetError(fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well"), cmds.ErrNormal)
+			return
+		}
+
+		if cidVer >= 1 && !rbset {
+			rawblks = true
+		}
+
+		prefix, err := dag.PrefixForCidVersion(cidVer)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
@@ -223,6 +236,7 @@ You can now refer to the added file in a gateway, like so:
 		fileAdder.Silent = silent
 		fileAdder.RawLeaves = rawblks
 		fileAdder.NoCopy = nocopy
+		fileAdder.Prefix = prefix
 
 		if hash {
 			md := dagtest.Mock()

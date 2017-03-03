@@ -100,7 +100,7 @@ test_add_cat_5MB() {
     	test_cmp sha1_expected sha1_actual
     '
 
-    test_expect_success "'ipfs add bigfile' succeeds" '
+    test_expect_success "'ipfs add $ADD_FLAGS bigfile' succeeds" '
     	ipfs add $ADD_FLAGS mountdir/bigfile >actual ||
 		test_fsh cat daemon_err
     '
@@ -142,6 +142,9 @@ test_add_cat_raw() {
 }
 
 test_add_cat_expensive() {
+    ADD_FLAGS="$1"
+    HASH="$2"
+
     test_expect_success EXPENSIVE "generate 100MB file using go-random" '
     	random 104857600 42 >mountdir/bigfile
     '
@@ -152,12 +155,11 @@ test_add_cat_expensive() {
     	test_cmp sha1_expected sha1_actual
     '
 
-    test_expect_success EXPENSIVE "ipfs add bigfile succeeds" '
-    	ipfs add mountdir/bigfile >actual
+    test_expect_success EXPENSIVE "ipfs add $ADD_FLAGS bigfile succeeds" '
+    	ipfs add $ADD_FLAGS mountdir/bigfile >actual
     '
 
     test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
-    	HASH="QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3" &&
     	echo "added $HASH bigfile" >expected &&
     	test_cmp expected actual
     '
@@ -391,6 +393,16 @@ MARS="zb2rhZdTkQNawVajsTNiYc9cTPHqgLdJVvBRkZok9RjkgQYRU"
 VENUS="zb2rhn6TGvnUaMAg4VV4y9HVx5W42HihcH4jsyrDv8mkepFqq"
 add_directory '--raw-leaves'
 
+PLANETS="zdj7Wnbun6P41Z5ddTkNvZaDTmQ8ZLdiKFcJrL9sV87rPScMP"
+MARS="zb2rhZdTkQNawVajsTNiYc9cTPHqgLdJVvBRkZok9RjkgQYRU"
+VENUS="zb2rhn6TGvnUaMAg4VV4y9HVx5W42HihcH4jsyrDv8mkepFqq"
+add_directory '--cid-version=1'
+
+PLANETS="zdj7WiC51v78BjBcmZR7uuBvmDWxSn5EDr5MiyTwE18e8qvb7"
+MARS="zdj7WWx6fGNrNGkdpkuTAxCjKbQ1pPtarqA6VQhedhLTZu34J"
+VENUS="zdj7WbB1BUF8WejmVpQCmMLd1RbPnxJtvAj1Lep6eTmXRFbrz"
+add_directory '--cid-version=1 --raw-leaves=false'
+
 
 test_expect_success "'ipfs add -rn' succeeds" '
 	mkdir -p mountdir/moons/jupiter &&
@@ -425,13 +437,32 @@ test_add_cat_5MB "" "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
 
 test_add_cat_5MB --raw-leaves "QmbdLHCmdi48eM8T7D67oXjA1S2Puo8eMfngdHhdPukFd6"
 
-test_add_cat_expensive
+# note: the specified hash implies that internal nodes are stored
+# using CidV1 and leaves are stored using raw blocks
+test_add_cat_5MB --cid-version=1 "zdj7WiiaedqVBXjX4SNqx3jfuZideDqdLYnDzCDJ66JDMK9o2"
+
+# note: the specified hash implies that internal nodes are stored
+# using CidV1 and leaves are stored using CidV1 but using the legacy
+# format (i.e. not raw)
+test_add_cat_5MB '--cid-version=1 --raw-leaves=false' "zdj7WfgEsj897BBZj2mcfsRLhaPZcCixPV2G7DkWgF1Wdr64P"
+
+test_add_cat_expensive "" "QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3"
+
+# note: the specified hash implies that internal nodes are stored
+# using CidV1 and leaves are stored using raw blocks
+test_add_cat_expensive "--cid-version=1" "zdj7WcatQrtuE4WMkS4XsfsMixuQN2po4irkYhqxeJyW1wgCq"
 
 test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=true&r=true&stream-channels=true:"
 
 test_add_pwd_is_symlink
 
 test_add_cat_raw
+
+test_expect_success "ipfs add --cid-version=9 fails" '
+	echo "context" > afile.txt &&
+	test_must_fail ipfs add --cid-version=9 afile.txt 2>&1 | tee add_out &&
+	grep -q "unknown CID version" add_out
+'
 
 test_kill_ipfs_daemon
 
