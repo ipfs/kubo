@@ -13,10 +13,6 @@ EXPOSE 4002/udp
 EXPOSE 5001
 EXPOSE 8080
 
-# Volume for mounting an IPFS fs-repo
-# This is moved to the bottom for technical reasons.
-#VOLUME $IPFS_PATH
-
 # IPFS API to use for fetching gx packages.
 # This can be a gateway too, since its read-only API provides all gx needs.
 # - e.g. /ip4/172.17.0.1/tcp/8080 if the Docker host
@@ -33,14 +29,17 @@ ENV GOPATH     /go
 ENV PATH       /go/bin:$PATH
 ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
 
+# Expose the fs-repo as a volume.
+# start_ipfs initializes an fs-repo if none is mounted
+VOLUME $IPFS_PATH
+
 # Get the go-ipfs sourcecode
 COPY . $SRC_PATH
 
-RUN apk add --update musl-dev gcc go git bash wget ca-certificates \
-	# Setup user and fs-repo directory
-	&& mkdir -p $IPFS_PATH \
+RUN apk add --no-cache --virtual .build-deps-ipfs musl-dev gcc go git \
+	&& apk add --no-cache tini su-exec bash wget ca-certificates \
+	# Setup user
 	&& adduser -D -h $IPFS_PATH -u 1000 ipfs \
-	&& chown ipfs:ipfs $IPFS_PATH && chmod 755 $IPFS_PATH \
 	# Install gx
 	&& go get -u github.com/whyrusleeping/gx \
 	&& go get -u github.com/whyrusleeping/gx-go \
@@ -58,22 +57,12 @@ RUN apk add --update musl-dev gcc go git bash wget ca-certificates \
 	&& cp $SRC_PATH/bin/container_daemon /usr/local/bin/start_ipfs \
 	&& chmod 755 /usr/local/bin/start_ipfs \
 	# Remove all build-time dependencies
-	&& apk del --purge musl-dev gcc go git && rm -rf $GOPATH && rm -vf $IPFS_PATH/api
-
-# Call uid 1000 "ipfs"
-USER ipfs
-
-# Expose the fs-repo as a volume.
-# We're doing this down here (and not at the top),
-# so that the overlay directory is owned by the ipfs user.
-# start_ipfs initializes an ephemeral fs-repo if none is mounted,
-# which is why uid=1000 needs write permissions there.
-VOLUME $IPFS_PATH
+	&& apk del --purge .build-deps-ipfs && rm -rf $GOPATH && rm -vf $IPFS_PATH/api
 
 # This just makes sure that:
 # 1. There's an fs-repo, and initializes one if there isn't.
 # 2. The API and Gateway are accessible from outside the container.
-ENTRYPOINT ["/usr/local/bin/start_ipfs"]
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_ipfs"]
 
 # Execute the daemon subcommand by default
 CMD ["daemon", "--migrate=true"]
