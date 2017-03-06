@@ -24,7 +24,7 @@ assert_repo_size_less_than() {
 
 	test_expect_success "check repo size" '
 		test "$(get_repo_size)"	-lt "$expval" ||
-			(get_repo_size && false)
+		test_fsh get_repo_size
 	'
 }
 
@@ -33,7 +33,7 @@ assert_repo_size_greater_than() {
 
 	test_expect_success "check repo size" '
 		test "$(get_repo_size)"	-gt "$expval" ||
-			(get_repo_size && false)
+			test_fsh get_repo_size
 	'
 }
 
@@ -67,6 +67,12 @@ init_ipfs_filestore() {
 	'
 
 	test_init_ipfs
+
+	test_expect_success "nocopy add errors and has right message" '
+		test_must_fail ipfs add --nocopy -r somedir 2> add_out &&
+			grep "filestore is not enabled" add_out
+	'
+
 
 	test_expect_success "enable filestore config setting" '
 		ipfs config --json Experimental.FilestoreEnabled true
