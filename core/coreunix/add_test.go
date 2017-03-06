@@ -193,6 +193,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	adder.Out = make(chan interface{})
 	adder.Progress = true
 	adder.RawLeaves = rawLeaves
+	adder.NoCopy = true
 
 	data := make([]byte, 5*1024*1024)
 	rand.New(rand.NewSource(2)).Read(data) // Rand.Read never returns an error
@@ -210,12 +211,18 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	for _ = range adder.Out {
 	}
 
-	if bs.countAtOffsetZero != 2 {
-		t.Fatal("expected 2 blocks with an offset at zero (one root and one leafh), got", bs.countAtOffsetZero)
+	exp := 0
+	nonOffZero := 0
+	if rawLeaves {
+		exp = 1
+		nonOffZero = 19
 	}
-	if bs.countAtOffsetNonZero != 19 {
+	if bs.countAtOffsetZero != exp {
+		t.Fatalf("expected %d blocks with an offset at zero (one root and one leafh), got %d", exp, bs.countAtOffsetZero)
+	}
+	if bs.countAtOffsetNonZero != nonOffZero {
 		// note: the exact number will depend on the size and the sharding algo. used
-		t.Fatal("expected 19 blocks with an offset > 0, got", bs.countAtOffsetNonZero)
+		t.Fatalf("expected %d blocks with an offset > 0, got %d", nonOffZero, bs.countAtOffsetNonZero)
 	}
 }
 

@@ -14,6 +14,7 @@ const (
 
 	applicationDirectory = "application/x-directory"
 	applicationSymlink   = "application/symlink"
+	applicationFile      = "application/octet-stream"
 
 	contentTypeHeader = "Content-Type"
 )
@@ -34,7 +35,8 @@ func NewFileFromPart(part *multipart.Part) (File, error) {
 	}
 
 	contentType := part.Header.Get(contentTypeHeader)
-	if contentType == applicationSymlink {
+	switch contentType {
+	case applicationSymlink:
 		out, err := ioutil.ReadAll(part)
 		if err != nil {
 			return nil, err
@@ -43,6 +45,13 @@ func NewFileFromPart(part *multipart.Part) (File, error) {
 		return &Symlink{
 			Target: string(out),
 			name:   f.FileName(),
+		}, nil
+	case applicationFile:
+		return &ReaderFile{
+			reader:   part,
+			filename: f.FileName(),
+			abspath:  part.Header.Get("abspath"),
+			fullpath: f.FullPath(),
 		}, nil
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 
+	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
@@ -23,16 +24,18 @@ import (
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 const (
-	quietOptionName     = "quiet"
-	silentOptionName    = "silent"
-	progressOptionName  = "progress"
-	trickleOptionName   = "trickle"
-	wrapOptionName      = "wrap-with-directory"
-	hiddenOptionName    = "hidden"
-	onlyHashOptionName  = "only-hash"
-	chunkerOptionName   = "chunker"
-	pinOptionName       = "pin"
-	rawLeavesOptionName = "raw-leaves"
+	quietOptionName       = "quiet"
+	silentOptionName      = "silent"
+	progressOptionName    = "progress"
+	trickleOptionName     = "trickle"
+	wrapOptionName        = "wrap-with-directory"
+	hiddenOptionName      = "hidden"
+	onlyHashOptionName    = "only-hash"
+	chunkerOptionName     = "chunker"
+	pinOptionName         = "pin"
+	rawLeavesOptionName   = "raw-leaves"
+	noCopyOptionName      = "nocopy"
+	fstoreCacheOptionName = "fscache"
 )
 
 var AddCmd = &cmds.Command{
@@ -78,6 +81,8 @@ You can now refer to the added file in a gateway, like so:
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
+		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. (experimental)"),
+		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 	},
 	PreRun: func(req cmds.Request) error {
 		quiet, _, _ := req.Option(quietOptionName).Bool()
@@ -139,7 +144,18 @@ You can now refer to the added file in a gateway, like so:
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, _, _ := req.Option(pinOptionName).Bool()
-		rawblks, _, _ := req.Option(rawLeavesOptionName).Bool()
+		rawblks, rbset, _ := req.Option(rawLeavesOptionName).Bool()
+		nocopy, _, _ := req.Option(noCopyOptionName).Bool()
+		fscache, _, _ := req.Option(fstoreCacheOptionName).Bool()
+
+		if nocopy && !rbset {
+			rawblks = true
+		}
+
+		if nocopy && !rawblks {
+			res.SetError(fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well"), cmds.ErrNormal)
+			return
+		}
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -154,13 +170,19 @@ You can now refer to the added file in a gateway, like so:
 			n = nilnode
 		}
 
-		dserv := n.DAG
+		addblockstore := n.Blockstore
+		if !(fscache || nocopy) {
+			addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
+		}
+
+		exch := n.Exchange
 		local, _, _ := req.Option("local").Bool()
 		if local {
-			offlineexch := offline.Exchange(n.Blockstore)
-			bserv := blockservice.New(n.Blockstore, offlineexch)
-			dserv = dag.NewDAGService(bserv)
+			exch = offline.Exchange(addblockstore)
 		}
+
+		bserv := blockservice.New(addblockstore, exch)
+		dserv := dag.NewDAGService(bserv)
 
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
@@ -180,6 +202,7 @@ You can now refer to the added file in a gateway, like so:
 		fileAdder.Pin = dopin
 		fileAdder.Silent = silent
 		fileAdder.RawLeaves = rawblks
+		fileAdder.NoCopy = nocopy
 
 		if hash {
 			md := dagtest.Mock()

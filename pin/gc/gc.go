@@ -51,7 +51,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 				if !gcs.Has(k) {
 					err := bs.DeleteBlock(k)
 					if err != nil {
-						log.Debugf("Error removing key from blockstore: %s", err)
+						log.Errorf("Error removing key from blockstore: %s", err)
 						return
 					}
 					select {
