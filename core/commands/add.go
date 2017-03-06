@@ -144,9 +144,13 @@ You can now refer to the added file in a gateway, like so:
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, _, _ := req.Option(pinOptionName).Bool()
-		rawblks, _, _ := req.Option(rawLeavesOptionName).Bool()
+		rawblks, rbset, _ := req.Option(rawLeavesOptionName).Bool()
 		nocopy, _, _ := req.Option(noCopyOptionName).Bool()
 		fscache, _, _ := req.Option(fstoreCacheOptionName).Bool()
+
+		if nocopy && !rbset {
+			rawblks = true
+		}
 
 		if nocopy && !rawblks {
 			res.SetError(fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well"), cmds.ErrNormal)
@@ -167,7 +171,7 @@ You can now refer to the added file in a gateway, like so:
 		}
 
 		addblockstore := n.Blockstore
-		if !fscache && !nocopy {
+		if !(fscache || nocopy) {
 			addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
 		}
 
