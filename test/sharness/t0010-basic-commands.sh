@@ -17,8 +17,7 @@ test_expect_success "ipfs version succeeds" '
 '
 
 test_expect_success "ipfs --version success" '
-    ipfs --version ||
-    test_fsh ipfs --version
+    ipfs --version
 '
 
 test_expect_success "ipfs version output looks good" '
@@ -65,9 +64,26 @@ test_expect_success "'ipfs commands' output looks good" '
 test_expect_success "All commands accept --help" '
 	while read -r cmd
 	do
-		echo "running: $cmd --help"
-		$cmd --help </dev/null >/dev/null || return
+		$cmd --help </dev/null >/dev/null ||
+			{ echo $cmd doesnt accept --help; FAIL=1; }
 	done <commands.txt
+
+	if [ ${FAIL-0} = 1 ]; then
+		return 1
+	fi
+'
+
+test_expect_failure "All ipfs root commands are mentioned in base helptext" '
+	cut -d" " -f 2 commands.txt | sort -u | \
+	while read cmd
+	do
+		grep "    $cmd" help.txt > /dev/null ||
+			{ echo missing $cmd from helptext; FAIL=1; }
+	done
+
+	if [ ${FAIL-0} = 1 ]; then
+		return 1
+	fi
 '
 
 test_expect_success "'ipfs commands --flags' succeeds" '
@@ -79,5 +95,7 @@ test_expect_success "'ipfs commands --flags' output looks good" '
 	grep "ipfs id --format / ipfs id -f" commands.txt &&
 	grep "ipfs repo gc --quiet / ipfs repo gc -q" commands.txt
 '
+
+
 
 test_done
