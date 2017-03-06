@@ -64,6 +64,10 @@ func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 				})
 
 				bs.wm.SendBlock(ctx, envelope)
+				bs.counterLk.Lock()
+				bs.blocksSent++
+				bs.dataSent += uint64(len(envelope.Block.RawData()))
+				bs.counterLk.Unlock()
 			case <-ctx.Done():
 				return
 			}

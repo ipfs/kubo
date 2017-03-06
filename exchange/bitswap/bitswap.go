@@ -157,6 +157,9 @@ type Bitswap struct {
 	blocksRecvd    int
 	dupBlocksRecvd int
 	dupDataRecvd   uint64
+	blocksSent     int
+	dataSent       uint64
+	dataRecvd      uint64
 
 	// Metrics interface metrics
 	dupMetric metrics.Histogram
@@ -401,6 +404,7 @@ func (bs *Bitswap) updateReceiveCounters(b blocks.Block) {
 	defer bs.counterLk.Unlock()
 
 	bs.blocksRecvd++
+	bs.dataRecvd += uint64(len(b.RawData()))
 	if has {
 		bs.dupBlocksRecvd++
 		bs.dupDataRecvd += uint64(blkLen)
