@@ -40,6 +40,8 @@ const (
 	fstoreCacheOptionName = "fscache"
 )
 
+const adderOutChanSize = 8
+
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add a file or directory to ipfs.",
@@ -208,7 +210,7 @@ You can now refer to the added file in a gateway, like so:
 			return
 		}
 
-		outChan := make(chan interface{}, 8)
+		outChan := make(chan interface{}, adderOutChanSize)
 		res.SetOutput((<-chan interface{})(outChan))
 
 		fileAdder.Out = outChan
