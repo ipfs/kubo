@@ -10,7 +10,7 @@ test_description="Test out the filestore nocopy functionality"
 
 
 test_expect_success "create a dataset" '
-	random-files -seed=483 -depth=3 -dirs=4 -files=6 -filesize=1000000 somedir
+	random-files -seed=483 -depth=3 -dirs=4 -files=6 -filesize=1000000 somedir > /dev/null
 '
 
 EXPHASH="QmW4JLyeTxEWGwa4mkE9mHzdtAkyhMX2ToGFEKZNjCiJud"
@@ -24,7 +24,7 @@ assert_repo_size_less_than() {
 
 	test_expect_success "check repo size" '
 		test "$(get_repo_size)"	-lt "$expval" ||
-		test_fsh get_repo_size
+			test_fsh get_repo_size
 	'
 }
 
@@ -83,9 +83,9 @@ init_ipfs_filestore
 
 test_filestore_adds
 
-echo "WORKING DIR"
-echo "IPFS PATH = " $IPFS_PATH
-pwd
+test_debug '
+	echo "pwd=$(pwd)"; echo "IPFS_PATH=$IPFS_PATH"
+'
 
 
 init_ipfs_filestore
