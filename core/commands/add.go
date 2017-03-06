@@ -1,23 +1,24 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
-
-	"github.com/ipfs/go-ipfs/core/coreunix"
-	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
 	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
+	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 )
 
 // Error indicating the max depth has been exceded.
@@ -128,6 +129,12 @@ You can now refer to the added file in a gateway, like so:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		// check if repo will exceed storage limit if added
 		// TODO: this doesn't handle the case if the hashed file is already in blocks (deduplicated)
 		// TODO: conditional GC is disabled due to it is somehow not possible to pass the size to the daemon
@@ -147,6 +154,12 @@ You can now refer to the added file in a gateway, like so:
 		rawblks, rbset, _ := req.Option(rawLeavesOptionName).Bool()
 		nocopy, _, _ := req.Option(noCopyOptionName).Bool()
 		fscache, _, _ := req.Option(fstoreCacheOptionName).Bool()
+
+		if nocopy && !cfg.Experimental.FilestoreEnabled {
+			res.SetError(errors.New("filestore is not enabled, see https://git.io/vy4XN"),
+				cmds.ErrClient)
+			return
+		}
 
 		if nocopy && !rbset {
 			rawblks = true
