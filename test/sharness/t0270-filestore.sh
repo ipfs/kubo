@@ -49,13 +49,13 @@ test_filestore_adds() {
 	assert_repo_size_less_than 1000000
 
 	test_expect_success "normal add with fscache doesnt duplicate data" '
-		HASH2=$(ipfs add --raw-leaves --fscache -r -q somedir | tail -n1)
+		ipfs add --raw-leaves --fscache -r -q somedir > /dev/null
 	'
 
 	assert_repo_size_less_than 1000000
 
 	test_expect_success "normal add without fscache duplicates data" '
-		HASH2=$(ipfs add --raw-leaves -r -q somedir | tail -n1)
+		ipfs add --raw-leaves -r -q somedir > /dev/null
 	'
 
 	assert_repo_size_greater_than 1000000
