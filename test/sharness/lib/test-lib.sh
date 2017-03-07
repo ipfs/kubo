@@ -343,15 +343,18 @@ disk_usage() {
     case $(uname -s) in
         Linux)
             DU="du -sb"
+			M=1
             ;;
         FreeBSD)
             DU="du -s -A -B 1"
+			M=512
             ;;
         Darwin | DragonFly | *)
             DU="du -s"
+			M=512
             ;;
     esac
-        $DU "$1" | awk "{print \$1}"
+	expr $($DU "$1" | awk "{print \$1}") "*" "$M"
 }
 
 # output a file's permission in human readable format
