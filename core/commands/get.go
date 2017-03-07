@@ -70,22 +70,24 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
-		pbnd, ok := dn.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(err, cmds.ErrNormal)
+		switch dn := dn.(type) {
+		case *dag.ProtoNode:
+			size, err := dn.Size()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			res.SetLength(size)
+		case *dag.RawNode:
+			res.SetLength(uint64(len(dn.RawData())))
+		default:
+			res.SetError(fmt.Errorf("'ipfs get' only supports unixfs nodes"), cmds.ErrNormal)
 			return
 		}
-
-		size, err := dn.Size()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetLength(size)
 
 		archive, _, _ := req.Option("archive").Bool()
-		reader, err := uarchive.DagArchive(ctx, pbnd, p.String(), node.DAG, archive, cmplvl)
+		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

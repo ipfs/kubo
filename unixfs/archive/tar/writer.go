@@ -2,17 +2,19 @@ package tar
 
 import (
 	"archive/tar"
+	"context"
+	"fmt"
 	"io"
 	"path"
 	"time"
-
-	cxt "context"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
+
+	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
 // Writer is a utility structure that helps to write
@@ -22,11 +24,11 @@ type Writer struct {
 	Dag  mdag.DAGService
 	TarW *tar.Writer
 
-	ctx cxt.Context
+	ctx context.Context
 }
 
 // NewWriter wraps given io.Writer.
-func NewWriter(ctx cxt.Context, dag mdag.DAGService, archive bool, compression int, w io.Writer) (*Writer, error) {
+func NewWriter(ctx context.Context, dag mdag.DAGService, archive bool, compression int, w io.Writer) (*Writer, error) {
 	return &Writer{
 		Dag:  dag,
 		TarW: tar.NewWriter(w),
@@ -45,13 +47,8 @@ func (w *Writer) writeDir(nd *mdag.ProtoNode, fpath string) error {
 			return err
 		}
 
-		childpb, ok := child.(*mdag.ProtoNode)
-		if !ok {
-			return mdag.ErrNotProtobuf
-		}
-
 		npath := path.Join(fpath, nd.Links()[i].Name)
-		if err := w.WriteNode(childpb, npath); err != nil {
+		if err := w.WriteNode(child, npath); err != nil {
 			return err
 		}
 	}
@@ -72,25 +69,40 @@ func (w *Writer) writeFile(nd *mdag.ProtoNode, pb *upb.Data, fpath string) error
 	return nil
 }
 
-func (w *Writer) WriteNode(nd *mdag.ProtoNode, fpath string) error {
-	pb := new(upb.Data)
-	if err := proto.Unmarshal(nd.Data(), pb); err != nil {
-		return err
-	}
+func (w *Writer) WriteNode(nd node.Node, fpath string) error {
+	switch nd := nd.(type) {
+	case *mdag.ProtoNode:
+		pb := new(upb.Data)
+		if err := proto.Unmarshal(nd.Data(), pb); err != nil {
+			return err
+		}
 
-	switch pb.GetType() {
-	case upb.Data_Metadata:
-		fallthrough
-	case upb.Data_Directory:
-		return w.writeDir(nd, fpath)
-	case upb.Data_Raw:
-		fallthrough
-	case upb.Data_File:
-		return w.writeFile(nd, pb, fpath)
-	case upb.Data_Symlink:
-		return writeSymlinkHeader(w.TarW, string(pb.GetData()), fpath)
+		switch pb.GetType() {
+		case upb.Data_Metadata:
+			fallthrough
+		case upb.Data_Directory:
+			return w.writeDir(nd, fpath)
+		case upb.Data_Raw:
+			fallthrough
+		case upb.Data_File:
+			return w.writeFile(nd, pb, fpath)
+		case upb.Data_Symlink:
+			return writeSymlinkHeader(w.TarW, string(pb.GetData()), fpath)
+		default:
+			return ft.ErrUnrecognizedType
+		}
+	case *mdag.RawNode:
+		if err := writeFileHeader(w.TarW, fpath, uint64(len(nd.RawData()))); err != nil {
+			return err
+		}
+
+		if _, err := w.TarW.Write(nd.RawData()); err != nil {
+			return err
+		}
+		w.TarW.Flush()
+		return nil
 	default:
-		return ft.ErrUnrecognizedType
+		return fmt.Errorf("nodes of type %T are not supported in unixfs", nd)
 	}
 }
 

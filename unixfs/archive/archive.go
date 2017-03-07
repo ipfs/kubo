@@ -3,14 +3,15 @@ package archive
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
 	"io"
 	"path"
-
-	cxt "context"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	tar "github.com/ipfs/go-ipfs/unixfs/archive/tar"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
+
+	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
 )
 
 // DefaultBufSize is the buffer size for gets. for now, 1MB, which is ~4 blocks.
@@ -30,7 +31,7 @@ func (i *identityWriteCloser) Close() error {
 }
 
 // DagArchive is equivalent to `ipfs getdag $hash | maybe_tar | maybe_gzip`
-func DagArchive(ctx cxt.Context, nd *mdag.ProtoNode, name string, dag mdag.DAGService, archive bool, compression int) (io.Reader, error) {
+func DagArchive(ctx context.Context, nd node.Node, name string, dag mdag.DAGService, archive bool, compression int) (io.Reader, error) {
 
 	_, filename := path.Split(name)
 
