@@ -33,6 +33,19 @@ test_expect_success "metrics work" '
 	test_fsh cat pro_data
 '
 
+test_expect_success "pin add api looks right" '
+	HASH=$(echo "foo" | ipfs add -q) &&
+	curl "http://$API_ADDR/api/v0/pin/add/$HASH" > pinadd_out &&
+	echo "{\"Pins\":[\"QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6\"]}" > pinadd_exp &&
+	test_cmp pinadd_out pinadd_exp
+'
+
+test_expect_success "pin add api looks right" '
+	curl "http://$API_ADDR/api/v0/pin/rm/$HASH" > pinrm_out &&
+	echo "{\"Pins\":[\"QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6\"]}" > pinrm_exp &&
+	test_cmp pinrm_out pinrm_exp
+'
+
 test_kill_ipfs_daemon
 
 test_expect_success "ipfs daemon --offline --mount fails - #2995" '

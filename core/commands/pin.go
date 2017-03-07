@@ -31,11 +31,11 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pins []*cid.Cid
+	Pins []string
 }
 
 type AddPinOutput struct {
-	Pins     []*cid.Cid
+	Pins     []string
 	Progress int `json:",omitempty"`
 }
 
@@ -76,7 +76,7 @@ var addPinCmd = &cmds.Command{
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			res.SetOutput(&AddPinOutput{Pins: added})
+			res.SetOutput(&AddPinOutput{Pins: cidsToStrings(added)})
 			return
 		}
 
@@ -109,7 +109,7 @@ var addPinCmd = &cmds.Command{
 					if pv := v.Value(); pv != 0 {
 						out <- &AddPinOutput{Progress: v.Value()}
 					}
-					out <- &AddPinOutput{Pins: val}
+					out <- &AddPinOutput{Pins: cidsToStrings(val)}
 					return
 				case <-ticker.C:
 					out <- &AddPinOutput{Progress: v.Value()}
@@ -122,7 +122,7 @@ var addPinCmd = &cmds.Command{
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			var added []*cid.Cid
+			var added []string
 
 			switch out := res.Output().(type) {
 			case *AddPinOutput:
@@ -203,7 +203,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return
 		}
 
-		res.SetOutput(&PinOutput{removed})
+		res.SetOutput(&PinOutput{cidsToStrings(removed)})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -412,4 +412,12 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	}
 
 	return keys, nil
+}
+
+func cidsToStrings(cs []*cid.Cid) []string {
+	out := make([]string, 0, len(cs))
+	for _, c := range cs {
+		out = append(out, c.String())
+	}
+	return out
 }
