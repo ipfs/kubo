@@ -74,28 +74,26 @@ order to reclaim hard disk space.
 
 		go func() {
 			defer close(outChan)
-			unreportedError := false
-			var lastErr error
 			if streamErrors {
+				errs := false
 				for res := range gcOutChan {
-					if unreportedError {
-						outChan <- &GcResult{Error: lastErr.Error()}
-						unreportedError = false
-					}
 					if res.Error != nil {
-						lastErr = res.Error
-						unreportedError = true
+						outChan <- &GcResult{Error: res.Error.Error()}
+						errs = true
 					} else {
 						outChan <- &GcResult{Key: res.KeyRemoved}
 					}
 				}
+				if errs {
+					res.SetError(fmt.Errorf("encountered errors during gc run"), cmds.ErrNormal)
+				}
 			} else {
-				lastErr = corerepo.CollectResult(req.Context(), gcOutChan, func(k *cid.Cid) {
+				err := corerepo.CollectResult(req.Context(), gcOutChan, func(k *cid.Cid) {
 					outChan <- &GcResult{Key: k}
 				})
-			}
-			if lastErr != nil {
-				res.SetError(lastErr, cmds.ErrNormal)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+				}
 			}
 		}()
 	},
