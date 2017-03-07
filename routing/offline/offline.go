@@ -97,6 +97,7 @@ func (c *offlineRouting) GetValuesAsync(ctx context.Context, key string, _ int) 
 	value, err := c.GetValue(ctx, key)
 	if err != nil {
 		log.Debugf("OfflineRouting.GetValuesAsync: %v", err)
+		res <- &routing.RecvdVal{Error: err}
 	} else {
 		res <- &routing.RecvdVal{
 			Val: value,

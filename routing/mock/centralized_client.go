@@ -82,6 +82,7 @@ func (c *client) GetValuesAsync(ctx context.Context, key string, count int) <-ch
 	data, err := c.GetValue(ctx, key)
 	if err != nil {
 		log.Debugf("GetValuesAsync error: %v", err)
+		res <- &routing.RecvdVal{Error: err}
 	} else {
 		res <- &routing.RecvdVal{
 			Val:  data,
