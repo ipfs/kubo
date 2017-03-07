@@ -64,6 +64,20 @@ test_get_cmd() {
 		rm "$HASH"
 	'
 
+	test_expect_success "ipfs get works with raw leaves" '
+	HASH2=$(ipfs add --raw-leaves -q data) &&
+		ipfs get "$HASH2" >actual2
+	'
+
+	test_expect_success "ipfs get output looks good" '
+		printf "%s\n\n" "Saving file(s) to $HASH2" >expected2 &&
+		test_cmp expected2 actual2
+	'
+
+	test_expect_success "ipfs get file output looks good" '
+		test_cmp "$HASH2" data
+	'
+
     test_ipfs_get_flag ".tar" "-xf" -a
 
     test_ipfs_get_flag ".tar.gz" "-zxf" -a -C
