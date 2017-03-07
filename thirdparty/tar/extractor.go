@@ -11,7 +11,8 @@ import (
 )
 
 type Extractor struct {
-	Path string
+	Path     string
+	Progress func(int64) int64
 }
 
 func (te *Extractor) Extract(reader io.Reader) error {
@@ -111,10 +112,30 @@ func (te *Extractor) extractFile(h *tar.Header, r *tar.Reader, depth int, rootEx
 	}
 	defer file.Close()
 
-	_, err = io.Copy(file, r)
+	err = copyWithProgress(file, r, te.Progress)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func copyWithProgress(to io.Writer, from io.Reader, cb func(int64) int64) error {
+	buf := make([]byte, 4096)
+	for {
+		n, err := from.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+
+		cb(int64(n))
+		_, err = to.Write(buf[:n])
+		if err != nil {
+			return err
+		}
+	}
+
 }
