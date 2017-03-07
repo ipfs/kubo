@@ -68,7 +68,15 @@ func (n *dagService) Add(nd node.Node) (*cid.Cid, error) {
 }
 
 func (n *dagService) Batch() *Batch {
-	return &Batch{ds: n, MaxSize: 8 * 1024 * 1024}
+	return &Batch{
+		ds:      n,
+		MaxSize: 8 << 20,
+
+		// By default, only batch up to 128 nodes at a time.
+		// The current implementation of flatfs opens this many file
+		// descriptors at the same time for the optimized batch write.
+		MaxBlocks: 128,
+	}
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
@@ -376,15 +384,16 @@ func (np *nodePromise) Get(ctx context.Context) (node.Node, error) {
 type Batch struct {
 	ds *dagService
 
-	blocks  []blocks.Block
-	size    int
-	MaxSize int
+	blocks    []blocks.Block
+	size      int
+	MaxSize   int
+	MaxBlocks int
 }
 
 func (t *Batch) Add(nd node.Node) (*cid.Cid, error) {
 	t.blocks = append(t.blocks, nd)
 	t.size += len(nd.RawData())
-	if t.size > t.MaxSize {
+	if t.size > t.MaxSize || len(t.blocks) > t.MaxBlocks {
 		return nd.Cid(), t.Commit()
 	}
 	return nd.Cid(), nil
