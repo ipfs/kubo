@@ -141,7 +141,7 @@ test_get_fail() {
 	'
 
 	test_expect_success "ipfs get fails" '
-		test_expect_code 1 ipfs get QmaGidyrnX8FMbWJoxp8HVwZ1uRKwCyxBJzABnR1S2FVUr 
+		test_expect_code 1 ipfs get QmaGidyrnX8FMbWJoxp8HVwZ1uRKwCyxBJzABnR1S2FVUr
 	'
 }
 
@@ -154,6 +154,13 @@ test_get_fail
 # should work online
 test_launch_ipfs_daemon
 test_get_cmd
+
+test_expect_success "empty request to get doesn't panic and returns error" '
+	curl "http://$API_ADDR/api/v0/get" > curl_out || true &&
+		grep "not enough arugments provided" curl_out
+
+
+'
 test_kill_ipfs_daemon
 
 test_done
