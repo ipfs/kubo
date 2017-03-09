@@ -24,7 +24,7 @@ assert_repo_size_less_than() {
 
 	test_expect_success "check repo size" '
 		test "$(get_repo_size)"	-lt "$expval" ||
-			test_fsh get_repo_size
+			{ echo should be bellow "$expval" && test_fsh get_repo_size; }
 	'
 }
 
@@ -33,7 +33,7 @@ assert_repo_size_greater_than() {
 
 	test_expect_success "check repo size" '
 		test "$(get_repo_size)"	-gt "$expval" ||
-			test_fsh get_repo_size
+			{ echo should be above "$expval" && test_fsh get_repo_size; }
 	'
 }
 
@@ -49,13 +49,13 @@ test_filestore_adds() {
 	assert_repo_size_less_than 1000000
 
 	test_expect_success "normal add with fscache doesnt duplicate data" '
-		HASH2=$(ipfs add --raw-leaves --fscache -r -q somedir | tail -n1)
+		ipfs add --raw-leaves --fscache -r -q somedir > /dev/null
 	'
 
 	assert_repo_size_less_than 1000000
 
 	test_expect_success "normal add without fscache duplicates data" '
-		HASH2=$(ipfs add --raw-leaves -r -q somedir | tail -n1)
+		ipfs add --raw-leaves -r -q somedir > /dev/null
 	'
 
 	assert_repo_size_greater_than 1000000
