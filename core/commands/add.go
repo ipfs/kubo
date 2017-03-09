@@ -26,6 +26,7 @@ var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 const (
 	quietOptionName       = "quiet"
+	quieterOptionName     = "quieter"
 	silentOptionName      = "silent"
 	progressOptionName    = "progress"
 	trickleOptionName     = "trickle"
@@ -73,6 +74,7 @@ You can now refer to the added file in a gateway, like so:
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
+		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 		cmds.BoolOption(silentOptionName, "Write no output."),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
@@ -87,6 +89,9 @@ You can now refer to the added file in a gateway, like so:
 	},
 	PreRun: func(req cmds.Request) error {
 		quiet, _, _ := req.Option(quietOptionName).Bool()
+		quieter, _, _ := req.Option(quieterOptionName).Bool()
+		quiet = quiet || quieter
+
 		silent, _, _ := req.Option(silentOptionName).Bool()
 
 		if quiet || silent {
@@ -278,17 +283,11 @@ You can now refer to the added file in a gateway, like so:
 		}
 		res.SetOutput(nil)
 
-		quiet, _, err := req.Option("quiet").Bool()
-		if err != nil {
-			res.SetError(u.ErrCast(), cmds.ErrNormal)
-			return
-		}
+		quiet, _, _ := req.Option(quietOptionName).Bool()
+		quieter, _, _ := req.Option(quieterOptionName).Bool()
+		quiet = quiet || quieter
 
-		progress, _, err := req.Option(progressOptionName).Bool()
-		if err != nil {
-			res.SetError(u.ErrCast(), cmds.ErrNormal)
-			return
-		}
+		progress, _, _ := req.Option(progressOptionName).Bool()
 
 		var bar *pb.ProgressBar
 		if progress {
@@ -307,6 +306,7 @@ You can now refer to the added file in a gateway, like so:
 		}
 
 		lastFile := ""
+		lastHash := ""
 		var totalProgress, prevFiles, lastBytes int64
 
 	LOOP:
@@ -314,10 +314,18 @@ You can now refer to the added file in a gateway, like so:
 			select {
 			case out, ok := <-outChan:
 				if !ok {
+					if quieter {
+						fmt.Fprintln(res.Stdout(), lastHash)
+					}
 					break LOOP
 				}
 				output := out.(*coreunix.AddedObject)
 				if len(output.Hash) > 0 {
+					lastHash = output.Hash
+					if quieter {
+						continue
+					}
+
 					if progress {
 						// clear progress bar line before we print "added x" output
 						fmt.Fprintf(res.Stderr(), "\033[2K\r")
@@ -327,7 +335,6 @@ You can now refer to the added file in a gateway, like so:
 					} else {
 						fmt.Fprintf(res.Stdout(), "added %s %s\n", output.Hash, output.Name)
 					}
-
 				} else {
 					log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
 
