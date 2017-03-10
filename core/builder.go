@@ -86,7 +86,7 @@ func (cfg *BuildCfg) fillDefaults() error {
 }
 
 func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
-	c := cfg.Config{}
+	c := cfg.NewConfig()
 	priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, rand.Reader)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 
 	return &repo.Mock{
 		D: dstore,
-		C: c,
+		C: *c,
 	}, nil
 }
 

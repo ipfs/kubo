@@ -34,6 +34,20 @@ type Config struct {
 	Experimental Experiments
 }
 
+// NewConfig creates any new Config with all the values set the
+// default
+func NewConfig() *Config {
+	conf := &Config{}
+	conf.SetDefaults()
+	return conf
+}
+
+func (conf *Config) SetDefaults() {
+	// sets defaults other that are not the go-standard of
+	// false, 0, or the empty string
+	conf.Swarm.NatPortMap = true
+}
+
 const (
 	// DefaultPathName is the default config dir name
 	DefaultPathName = ".ipfs"
@@ -95,11 +109,11 @@ func FromMap(v map[string]interface{}) (*Config, error) {
 	if err := json.NewEncoder(buf).Encode(v); err != nil {
 		return nil, err
 	}
-	var conf Config
-	if err := json.NewDecoder(buf).Decode(&conf); err != nil {
+	conf := NewConfig()
+	if err := json.NewDecoder(buf).Decode(conf); err != nil {
 		return nil, fmt.Errorf("Failure to decode config: %s", err)
 	}
-	return &conf, nil
+	return conf, nil
 }
 
 func ToMap(conf *Config) (map[string]interface{}, error) {
@@ -113,3 +127,4 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	}
 	return m, nil
 }
+

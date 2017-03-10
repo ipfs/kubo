@@ -72,6 +72,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			Interval: "12h",
 		},
 	}
+	conf.SetDefaults()
 
 	return conf, nil
 }
