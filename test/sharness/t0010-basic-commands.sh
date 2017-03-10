@@ -88,6 +88,20 @@ test_expect_failure "All ipfs root commands are mentioned in base helptext" '
 	fi
 '
 
+test_expect_failure "All ipfs commands docs are 80 columns or less" '
+	echo 0 > fail
+	while read cmd
+	do
+		LENGTH="$($cmd --help | awk "{ print length }" | sort -nr | head -1)"
+		[ $LENGTH -gt 80 ] &&
+			{ echo "$cmd" help text is longer than 79 chars "($LENGTH)"; echo 1 > fail; }
+	done <commands.txt
+
+	if [ $(cat fail) = 1 ]; then
+		return 1
+	fi
+'
+
 test_expect_success "'ipfs commands --flags' succeeds" '
 	ipfs commands --flags >commands.txt
 '
