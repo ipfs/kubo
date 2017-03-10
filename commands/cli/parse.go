@@ -6,13 +6,14 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
+
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
 	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
 )
 
@@ -260,7 +261,7 @@ const msgStdinInfo = "ipfs: Reading from %s; send Ctrl-d to stop."
 
 func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive, hidden bool, root *cmds.Command) ([]string, []files.File, error) {
 	// ignore stdin on Windows
-	if runtime.GOOS == "windows" {
+	if osh.IsWindows() {
 		stdin = nil
 	}
 
@@ -399,8 +400,20 @@ func getArgDef(i int, argDefs []cmds.Argument) *cmds.Argument {
 
 const notRecursiveFmtStr = "'%s' is a directory, use the '-%s' flag to specify directories"
 const dirNotSupportedFmtStr = "Invalid path '%s', argument '%s' does not support directories"
+const winDriveLetterFmtStr = "%q is a drive letter, not a drive path"
 
 func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (files.File, error) {
+	// resolve Windows relative dot paths like `X:.\somepath`
+	if osh.IsWindows() {
+		if len(fpath) >= 3 && fpath[1:3] == ":." {
+			var err error
+			fpath, err = filepath.Abs(fpath)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	if fpath == "." {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -413,7 +426,7 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 		fpath = cwd
 	}
 
-	fpath = filepath.ToSlash(filepath.Clean(fpath))
+	fpath = filepath.Clean(fpath)
 
 	stat, err := os.Lstat(fpath)
 	if err != nil {
@@ -427,6 +440,10 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 		if !recursive {
 			return nil, fmt.Errorf(notRecursiveFmtStr, fpath, cmds.RecShort)
 		}
+	}
+
+	if osh.IsWindows() {
+		return windowsParseFile(fpath, hidden, stat)
 	}
 
 	return files.NewSerialFile(path.Base(fpath), fpath, hidden, stat)
@@ -480,4 +497,33 @@ func (r *messageReader) Read(b []byte) (int, error) {
 
 func (r *messageReader) Close() error {
 	return r.r.Close()
+}
+
+func windowsParseFile(fpath string, hidden bool, stat os.FileInfo) (files.File, error) {
+	// special cases for Windows drive roots i.e. `X:\` and their long form `\\?\X:\`
+	// drive path must be preserved as `X:\` (or it's longform) and not converted to `X:`, `X:.`, `\`, or `/` here
+	switch len(fpath) {
+	case 3:
+		// `X:` is cleaned to `X:.` which may not be the expected behaviour by the user, they'll need to provide more specific input
+		if fpath[1:3] == ":." {
+			return nil, fmt.Errorf(winDriveLetterFmtStr, fpath[:2])
+		}
+		// `X:\` needs to preserve the `\`, path.Base(filepath.ToSlash(fpath)) results in `X:` which is not valid
+		if fpath[1:3] == ":\\" {
+			return files.NewSerialFile(fpath, fpath, hidden, stat)
+		}
+	case 6:
+		// `\\?\X:` long prefix form of `X:`, still ambiguous
+		if fpath[:4] == "\\\\?\\" && fpath[5] == ':' {
+			return nil, fmt.Errorf(winDriveLetterFmtStr, fpath)
+		}
+	case 7:
+		// `\\?\X:\` long prefix form is translated into short form `X:\`
+		if fpath[:4] == "\\\\?\\" && fpath[5] == ':' && fpath[6] == '\\' {
+			fpath = string(fpath[4]) + ":\\"
+			return files.NewSerialFile(fpath, fpath, hidden, stat)
+		}
+	}
+
+	return files.NewSerialFile(path.Base(filepath.ToSlash(fpath)), fpath, hidden, stat)
 }
