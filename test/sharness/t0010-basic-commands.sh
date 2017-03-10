@@ -62,26 +62,28 @@ test_expect_success "'ipfs commands' output looks good" '
 '
 
 test_expect_success "All commands accept --help" '
+	echo 0 > fail
 	while read -r cmd
 	do
 		$cmd --help </dev/null >/dev/null ||
-			{ echo $cmd doesnt accept --help; FAIL=1; }
+			{ echo $cmd doesnt accept --help; echo 1 > fail; }
 	done <commands.txt
 
-	if [ ${FAIL-0} = 1 ]; then
+	if [ $(cat fail) = 1 ]; then
 		return 1
 	fi
 '
 
 test_expect_failure "All ipfs root commands are mentioned in base helptext" '
-	cut -d" " -f 2 commands.txt | sort -u | \
+	echo 0 > fail
+	cut -d" " -f 2 commands.txt | grep -v ipfs | sort -u | \
 	while read cmd
 	do
 		grep "    $cmd" help.txt > /dev/null ||
-			{ echo missing $cmd from helptext; FAIL=1; }
+			{ echo missing $cmd from helptext; echo 1 > fail; }
 	done
 
-	if [ ${FAIL-0} = 1 ]; then
+	if [ $(cat fail) = 1 ]; then
 		return 1
 	fi
 '
