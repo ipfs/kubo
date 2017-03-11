@@ -34,9 +34,9 @@ type Config struct {
 	Experimental Experiments
 }
 
-// NewConfig creates any new Config with all the values set the
+// NewDefaultConfig creates any new Config with all the values set the
 // default
-func NewConfig() *Config {
+func NewDefaultConfig() *Config {
 	conf := &Config{}
 	conf.SetDefaults()
 	return conf
@@ -109,7 +109,7 @@ func FromMap(v map[string]interface{}) (*Config, error) {
 	if err := json.NewEncoder(buf).Encode(v); err != nil {
 		return nil, err
 	}
-	conf := NewConfig()
+	conf := NewDefaultConfig()
 	if err := json.NewDecoder(buf).Decode(conf); err != nil {
 		return nil, fmt.Errorf("Failure to decode config: %s", err)
 	}
@@ -127,4 +127,3 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	}
 	return m, nil
 }
-

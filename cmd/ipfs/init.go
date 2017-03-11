@@ -89,7 +89,7 @@ environment variable:
 				return
 			}
 
-			conf = config.NewConfig()
+			conf = config.NewDefaultConfig()
 			if err := json.NewDecoder(confFile).Decode(conf); err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return

@@ -17,14 +17,18 @@ test_expect_success "Swarm.NatPortMap set to true in inital config" '
 '
 
 test_expect_success "Swarm.NatPortMap has line in config file" '
-	grep -q NatPortMap .ipfs/config
+	grep -q NatPortMap "$IPFS_PATH"/config
 '
 
 test_expect_success "remove Swarm.NatPortMap from config file" '
-	sed -i "s/NatPortMap/XxxYyyyZzz/" .ipfs/config
+	sed -i "s/NatPortMap/XxxYyyyZzz/" "$IPFS_PATH"/config
 '
 
-test_expect_success "load config file by replacing a unrelated key" '
+test_expect_success "load config file by replacing an unrelated key" '
+	# Note: this is relying on an implementation detail where setting a
+	#   config field loads the json blob into the config struct, causing
+	#   defaults to be properly set. Simply "reading" the config would read
+	#   the json directly and not cause defaults to be reset
 	ipfs config --json Swarm.DisableBandwidthMetrics false
 '
 

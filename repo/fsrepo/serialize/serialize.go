@@ -63,8 +63,7 @@ func Load(filename string) (*config.Config, error) {
 		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
-	cfg := config.NewConfig()
-
+	cfg := config.NewDefaultConfig()
 	err := ReadConfigFile(filename, cfg)
 	if err != nil {
 		return nil, err
