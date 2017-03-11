@@ -737,7 +737,7 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 		newOpts = append(newOpts, p2pbhost.NATPortMap)
 	}
 
-	host := p2pbhost.New(network, newOpts)
+	host := p2pbhost.New(network, newOpts...)
 
 	return host, nil
 }
