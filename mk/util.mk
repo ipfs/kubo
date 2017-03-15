@@ -2,8 +2,10 @@
 ifeq ($(OS),Windows_NT)
 	WINDOWS :=1
 	?exe :=.exe # windows compat
+	PATH_SEP :=;
 else
 	?exe :=
+	PATH_SEP :=:
 endif
 
 space:=

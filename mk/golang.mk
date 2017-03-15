@@ -46,5 +46,10 @@ check_go_version:
 .PHONY: check_go_version
 DEPS_GO += check_go_version
 
+check_go_path:
+	bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(PATH_SEP),$(space),$(GOPATH))))
+.PHONY: check_go_path
+DEPS_GO += check_go_path
+
 TEST += $(TEST_GO)
 TEST_SHORT += test_go_fmt test_go_short
