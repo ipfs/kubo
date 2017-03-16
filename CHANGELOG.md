@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-### 0.4.7rc1 - 2017-03-10
+### 0.4.7 - 2017-03-15
 
 Ipfs 0.4.7 contains several exciting new features!
 First off, The long awaited filestore feature has been merged, allowing users
