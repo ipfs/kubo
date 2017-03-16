@@ -1,5 +1,67 @@
 # go-ipfs changelog
 
+### 0.4.7 - 2017-03-15
+
+Ipfs 0.4.7 contains several exciting new features!
+First off, The long awaited filestore feature has been merged, allowing users
+the option to not have ipfs store chunked copies of added files in the
+blockstore, pushing to burden of ensuring those files are not changed to the
+user. The filestore feature is currently still experimental, and must be
+enabled in your config with:
+```
+ipfs config Experimental.FilestoreEnabled true
+```
+before it can be used. Please see [this issue](https://github.com/ipfs/go-ipfs/issues/3397#issuecomment-284337564) for more details.
+
+Next up, We have merged initial support for ipfs 'Private Networks'. This
+feature allows users to run ipfs in a mode that will only connect to other
+peers in the private network. This feature, like the filestore is being
+released experimentally, but if you're interested please try it out.
+Instructions for setting it up can be found
+[here](https://github.com/ipfs/go-ipfs/issues/3397#issuecomment-284341649).
+
+This release also enables support for the 'mplex' stream muxer by default. This
+stream multiplexing protocol was available previously via the
+`--enable-mplex-experiment` daemon flag, but has now graduated to being 'less
+experimental' and no longer requires the flag to use it.
+
+Aside from those, we have a good number of bugfixes, perf improvements and new
+tests. Heres a list of highlights:
+
+- Features
+	- Implement basic filestore 'no-copy' functionality ([ipfs/go-ipfs#3629](https://github.com/ipfs/go-ipfs/pull/3629))
+	- Add support for private ipfs networks ([ipfs/go-ipfs#3697](https://github.com/ipfs/go-ipfs/pull/3697))
+	- Enable 'mplex' stream muxer by default ([ipfs/go-ipfs#3725](https://github.com/ipfs/go-ipfs/pull/3725))
+	- Add `--quieter` option to `ipfs add` ([ipfs/go-ipfs#3770](https://github.com/ipfs/go-ipfs/pull/3770))
+	- Report progress during `pin add` via `--progress` ([ipfs/go-ipfs#3671](https://github.com/ipfs/go-ipfs/pull/3671))
+- Improvements
+	- Allow `ipfs get` to handle content added with raw leaves option ([ipfs/go-ipfs#3757](https://github.com/ipfs/go-ipfs/pull/3757))
+	- Fix accuracy of progress bar on `ipfs get` ([ipfs/go-ipfs#3758](https://github.com/ipfs/go-ipfs/pull/3758))
+	- Limit number of objects in batches to prevent too many fds issue ([ipfs/go-ipfs#3756](https://github.com/ipfs/go-ipfs/pull/3756))
+	- Add more info to bitswap stat ([ipfs/go-ipfs#3635](https://github.com/ipfs/go-ipfs/pull/3635))
+	- Add multiple performance metrics ([ipfs/go-ipfs#3615](https://github.com/ipfs/go-ipfs/pull/3615))
+	- Make `dist_get` fall back to other downloaders if one fails ([ipfs/go-ipfs#3692](https://github.com/ipfs/go-ipfs/pull/3692))
+- Documentation
+	- Add Arch Linux install instructions to readme ([ipfs/go-ipfs#3742](https://github.com/ipfs/go-ipfs/pull/3742))
+	- Improve release checklist document ([ipfs/go-ipfs#3717](https://github.com/ipfs/go-ipfs/pull/3717))
+- Bugfixes
+	- Fix drive root parsing on windows ([ipfs/go-ipfs#3328](https://github.com/ipfs/go-ipfs/pull/3328))
+	- Fix panic in ipfs get when passing no parameters to API ([ipfs/go-ipfs#3768](https://github.com/ipfs/go-ipfs/pull/3768))
+	- Fix breakage of `ipfs pin add` api output ([ipfs/go-ipfs#3760](https://github.com/ipfs/go-ipfs/pull/3760))
+	- Fix issue in DHT queries that was causing poor record replication ([ipfs/go-ipfs#3748](https://github.com/ipfs/go-ipfs/pull/3748))
+	- Fix `ipfs mount` crashing if no name was published before ([ipfs/go-ipfs#3728](https://github.com/ipfs/go-ipfs/pull/3728))
+	- Add `self` key to the `ipfs key list` listing ([ipfs/go-ipfs#3734](https://github.com/ipfs/go-ipfs/pull/3734))
+	- Fix panic when shutting down `ipfs daemon` pre gateway setup ([ipfs/go-ipfs#3723](https://github.com/ipfs/go-ipfs/pull/3723))
+- General Changes and Refactorings
+	- Refactor `EnumerateChildren` to avoid need for bestEffort parameter ([ipfs/go-ipfs#3700](https://github.com/ipfs/go-ipfs/pull/3700))
+	- Update fuse dependency, fixing several issues ([ipfs/go-ipfs#3727](https://github.com/ipfs/go-ipfs/pull/3727))
+	- Add `install_unsupported` makefile target for 'exotic' systems ([ipfs/go-ipfs#3719](https://github.com/ipfs/go-ipfs/pull/3719))
+	- Deprecate implicit daemon argument in Dockerfile ([ipfs/go-ipfs#3685](https://github.com/ipfs/go-ipfs/pull/3685))
+- Testing
+	- Add test to ensure helptext is under 80 columns wide ([ipfs/go-ipfs#3774](https://github.com/ipfs/go-ipfs/pull/3774))
+	- Add unit tests for auto migration code ([ipfs/go-ipfs#3618](https://github.com/ipfs/go-ipfs/pull/3618))
+	- Fix iptb stop issue in sharness tests  ([ipfs/go-ipfs#3714](https://github.com/ipfs/go-ipfs/pull/3714))
+
 
 ### 0.4.6 - 2017-02-21
 

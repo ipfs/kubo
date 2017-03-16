@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 // ReaderFile is a implementation of File created from an `io.Reader`.
@@ -11,12 +12,22 @@ import (
 type ReaderFile struct {
 	filename string
 	fullpath string
+	abspath  string
 	reader   io.ReadCloser
 	stat     os.FileInfo
 }
 
 func NewReaderFile(filename, path string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
-	return &ReaderFile{filename, path, reader, stat}
+	return &ReaderFile{filename, path, path, reader, stat}
+}
+
+func NewReaderPathFile(filename, path string, reader io.ReadCloser, stat os.FileInfo) (*ReaderFile, error) {
+	abspath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ReaderFile{filename, path, abspath, reader, stat}, nil
 }
 
 func (f *ReaderFile) IsDirectory() bool {
@@ -33,6 +44,10 @@ func (f *ReaderFile) FileName() string {
 
 func (f *ReaderFile) FullPath() string {
 	return f.fullpath
+}
+
+func (f *ReaderFile) AbsPath() string {
+	return f.abspath
 }
 
 func (f *ReaderFile) Read(p []byte) (int, error) {

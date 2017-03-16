@@ -10,7 +10,7 @@ import (
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
-	peer "gx/ipfs/QmZcUPvPhD1Xvk6mwijYF8AfR3mG31S1YsEfHG4khrFPRr/go-libp2p-peer"
+	peer "gx/ipfs/QmWUswjn261LSyVxWAEpMVtPdy8zmKBJJfBpG3Qdpa8ZsE/go-libp2p-peer"
 )
 
 var TaskWorkerCount = 8
@@ -64,6 +64,10 @@ func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 				})
 
 				bs.wm.SendBlock(ctx, envelope)
+				bs.counterLk.Lock()
+				bs.blocksSent++
+				bs.dataSent += uint64(len(envelope.Block.RawData()))
+				bs.counterLk.Unlock()
 			case <-ctx.Done():
 				return
 			}

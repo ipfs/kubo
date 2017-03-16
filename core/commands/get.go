@@ -51,6 +51,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		return err
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
+		if len(req.Arguments()) == 0 {
+			res.SetError(errors.New("not enough arugments provided"), cmds.ErrClient)
+			return
+		}
+
 		cmplvl, err := getCompressOptions(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrClient)
@@ -70,22 +75,24 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
-		pbnd, ok := dn.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(err, cmds.ErrNormal)
+		switch dn := dn.(type) {
+		case *dag.ProtoNode:
+			size, err := dn.Size()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			res.SetLength(size)
+		case *dag.RawNode:
+			res.SetLength(uint64(len(dn.RawData())))
+		default:
+			res.SetError(fmt.Errorf("'ipfs get' only supports unixfs nodes"), cmds.ErrNormal)
 			return
 		}
-
-		size, err := dn.Size()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetLength(size)
 
 		archive, _, _ := req.Option("archive").Bool()
-		reader, err := uarchive.DagArchive(ctx, pbnd, p.String(), node.DAG, archive, cmplvl)
+		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -143,6 +150,12 @@ func (r *clearlineReader) Read(p []byte) (n int, err error) {
 }
 
 func progressBarForReader(out io.Writer, r io.Reader, l int64) (*pb.ProgressBar, io.Reader) {
+	bar := makeProgressBar(out, l)
+	barR := bar.NewProxyReader(r)
+	return bar, &clearlineReader{barR, out}
+}
+
+func makeProgressBar(out io.Writer, l int64) *pb.ProgressBar {
 	// setup bar reader
 	// TODO: get total length of files
 	bar := pb.New64(l).SetUnits(pb.U_BYTES)
@@ -155,8 +168,7 @@ func progressBarForReader(out io.Writer, r io.Reader, l int64) (*pb.ProgressBar,
 		bar.Callback = nil
 		log.Infof("terminal width: %v\n", terminalWidth)
 	}
-	barR := bar.NewProxyReader(r)
-	return bar, &clearlineReader{barR, out}
+	return bar
 }
 
 type getWriter struct {
@@ -208,12 +220,13 @@ func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
 
 func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	fmt.Fprintf(gw.Out, "Saving file(s) to %s\n", fpath)
-	bar, barR := progressBarForReader(gw.Err, r, gw.Size)
+	bar := makeProgressBar(gw.Err, gw.Size)
 	bar.Start()
 	defer bar.Finish()
+	defer bar.Set64(gw.Size)
 
-	extractor := &tar.Extractor{fpath}
-	return extractor.Extract(barR)
+	extractor := &tar.Extractor{fpath, bar.Add64}
+	return extractor.Extract(r)
 }
 
 func getCompressOptions(req cmds.Request) (int, error) {

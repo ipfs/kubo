@@ -367,6 +367,15 @@ add_directory() {
             test_cmp expected actual
     '
 
+	test_expect_success "ipfs add --quieter succeeds" '
+            ipfs add -r -Q $EXTRA_ARGS mountdir/planets >actual
+	'
+
+    test_expect_success "ipfs add --quieter returns only one correct hash" '
+            echo "$PLANETS" > expected &&
+            test_cmp expected actual
+    '
+
     test_expect_success "cleanup" '
             rm -r mountdir/planets
     '

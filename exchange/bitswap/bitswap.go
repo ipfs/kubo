@@ -19,12 +19,13 @@ import (
 	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
 
+	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	loggables "gx/ipfs/QmTcfnDHimxBJqx6utpnWqVHdvyquXgkwAvYt4zMaJMKS2/go-libp2p-loggables"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
-	peer "gx/ipfs/QmZcUPvPhD1Xvk6mwijYF8AfR3mG31S1YsEfHG4khrFPRr/go-libp2p-peer"
+	peer "gx/ipfs/QmWUswjn261LSyVxWAEpMVtPdy8zmKBJJfBpG3Qdpa8ZsE/go-libp2p-peer"
+	loggables "gx/ipfs/QmXs1igHHEaUmMxKtbP8Z9wTjitQ75sqxaKQP4QgnLN4nn/go-libp2p-loggables"
 )
 
 var log = logging.Logger("bitswap")
@@ -47,6 +48,9 @@ var (
 	HasBlockBufferSize    = 256
 	provideKeysBufferSize = 2048
 	provideWorkerMax      = 512
+
+	// the 1<<18+15 is to observe old file chunks that are 1<<18 + 14 in size
+	metricsBuckets = []float64{1 << 6, 1 << 10, 1 << 14, 1 << 18, 1<<18 + 15, 1 << 22}
 )
 
 func init() {
@@ -74,6 +78,11 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 	// shouldn't accept a context anymore. Clients should probably use Close()
 	// exclusively. We should probably find another way to share logging data
 	ctx, cancelFunc := context.WithCancel(parent)
+	ctx = metrics.CtxSubScope(ctx, "bitswap")
+	dupHist := metrics.NewCtx(ctx, "recv_dup_blocks_bytes", "Summary of duplicate"+
+		" data blocks recived").Histogram(metricsBuckets)
+	allHist := metrics.NewCtx(ctx, "recv_all_blocks_bytes", "Summary of all"+
+		" data blocks recived").Histogram(metricsBuckets)
 
 	notif := notifications.New()
 	px := process.WithTeardown(func() error {
@@ -91,6 +100,9 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		newBlocks:     make(chan *cid.Cid, HasBlockBufferSize),
 		provideKeys:   make(chan *cid.Cid, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
+
+		dupMetric: dupHist,
+		allMetric: allHist,
 	}
 	go bs.wm.Run()
 	network.SetDelegate(bs)
@@ -145,6 +157,13 @@ type Bitswap struct {
 	blocksRecvd    int
 	dupBlocksRecvd int
 	dupDataRecvd   uint64
+	blocksSent     int
+	dataSent       uint64
+	dataRecvd      uint64
+
+	// Metrics interface metrics
+	dupMetric metrics.Histogram
+	allMetric metrics.Histogram
 }
 
 type blockRequest struct {
@@ -352,9 +371,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		go func(b blocks.Block) {
 			defer wg.Done()
 
-			if err := bs.updateReceiveCounters(b); err != nil {
-				return // ignore error, is either logged previously, or ErrAlreadyHaveBlock
-			}
+			bs.updateReceiveCounters(b)
 
 			k := b.Cid()
 			log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
@@ -370,24 +387,28 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 
 var ErrAlreadyHaveBlock = errors.New("already have block")
 
-func (bs *Bitswap) updateReceiveCounters(b blocks.Block) error {
-	bs.counterLk.Lock()
-	defer bs.counterLk.Unlock()
-	bs.blocksRecvd++
+func (bs *Bitswap) updateReceiveCounters(b blocks.Block) {
+	blkLen := len(b.RawData())
 	has, err := bs.blockstore.Has(b.Cid())
 	if err != nil {
 		log.Infof("blockstore.Has error: %s", err)
-		return err
-	}
-	if err == nil && has {
-		bs.dupBlocksRecvd++
-		bs.dupDataRecvd += uint64(len(b.RawData()))
+		return
 	}
 
+	bs.allMetric.Observe(float64(blkLen))
 	if has {
-		return ErrAlreadyHaveBlock
+		bs.dupMetric.Observe(float64(blkLen))
 	}
-	return nil
+
+	bs.counterLk.Lock()
+	defer bs.counterLk.Unlock()
+
+	bs.blocksRecvd++
+	bs.dataRecvd += uint64(len(b.RawData()))
+	if has {
+		bs.dupBlocksRecvd++
+		bs.dupDataRecvd += uint64(blkLen)
+	}
 }
 
 // Connected/Disconnected warns bitswap about peer connections

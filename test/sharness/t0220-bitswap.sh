@@ -20,6 +20,9 @@ test_expect_success "'ipfs bitswap stat' output looks good" '
 bitswap status
 	provides buffer: 0 / 256
 	blocks received: 0
+	blocks sent: 0
+	data received: 0
+	data sent: 0
 	dup blocks received: 0
 	dup data received: 0 B
 	wantlist [0 keys]
@@ -55,6 +58,9 @@ test_expect_success "'ipfs bitswap stat' output looks good" '
 bitswap status
 	provides buffer: 0 / 256
 	blocks received: 0
+	blocks sent: 0
+	data received: 0
+	data sent: 0
 	dup blocks received: 0
 	dup data received: 0 B
 	wantlist [0 keys]

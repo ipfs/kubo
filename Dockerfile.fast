@@ -53,3 +53,4 @@ RUN cd $SRC_PATH \
 USER ipfs
 VOLUME $IPFS_PATH
 ENTRYPOINT ["/usr/local/bin/start_ipfs"]
+CMD ["daemon", "--migrate=true"]

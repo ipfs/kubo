@@ -128,7 +128,7 @@ anotherfile
 		t.Fatal("Expected a nil file and ErrNotDirectory")
 	}
 	if n, err := mpf.Read(buf); n != 4 || err != nil {
-		t.Fatal("Expected to be able to read 4 bytes")
+		t.Fatal("Expected to be able to read 4 bytes: ", n, err)
 	}
 	if err := mpf.Close(); err != nil {
 		t.Fatal("Expected to be able to close file")

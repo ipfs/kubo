@@ -35,7 +35,7 @@ import (
 
 	context "context"
 	path "github.com/ipfs/go-ipfs/path"
-	ci "gx/ipfs/QmNiCwBNA8MWDADTFVq1BonUEJbS2SvjAoNkZZrhEwcuUi/go-libp2p-crypto"
+	ci "gx/ipfs/QmPGxZ1DP2w45WcogpW1h43BvseXbfke9N91qotpoQcUeS/go-libp2p-crypto"
 )
 
 const (

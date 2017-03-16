@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"time"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
@@ -30,7 +31,12 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pins []*cid.Cid
+	Pins []string
+}
+
+type AddPinOutput struct {
+	Pins     []string
+	Progress int `json:",omitempty"`
 }
 
 var addPinCmd = &cmds.Command{
@@ -44,8 +50,9 @@ var addPinCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s).").Default(true),
+		cmds.BoolOption("progress", "Show progress"),
 	},
-	Type: PinOutput{},
+	Type: AddPinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -61,22 +68,88 @@ var addPinCmd = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		showProgress, _, _ := req.Option("progress").Bool()
 
-		added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+		if !showProgress {
+			added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(&AddPinOutput{Pins: cidsToStrings(added)})
 			return
 		}
 
-		res.SetOutput(&PinOutput{added})
+		v := new(dag.ProgressTracker)
+		ctx := v.DeriveContext(req.Context())
+
+		ch := make(chan []*cid.Cid)
+		go func() {
+			defer close(ch)
+			added, err := corerepo.Pin(n, ctx, req.Arguments(), recursive)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			ch <- added
+		}()
+		out := make(chan interface{})
+		res.SetOutput((<-chan interface{})(out))
+		go func() {
+			ticker := time.NewTicker(500 * time.Millisecond)
+			defer ticker.Stop()
+			defer close(out)
+			for {
+				select {
+				case val, ok := <-ch:
+					if !ok {
+						// error already set just return
+						return
+					}
+					if pv := v.Value(); pv != 0 {
+						out <- &AddPinOutput{Progress: v.Value()}
+					}
+					out <- &AddPinOutput{Pins: cidsToStrings(val)}
+					return
+				case <-ticker.C:
+					out <- &AddPinOutput{Progress: v.Value()}
+				case <-ctx.Done():
+					res.SetError(ctx.Err(), cmds.ErrNormal)
+					return
+				}
+			}
+		}()
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			added, ok := res.Output().(*PinOutput)
-			if !ok {
+			var added []string
+
+			switch out := res.Output().(type) {
+			case *AddPinOutput:
+				added = out.Pins
+			case <-chan interface{}:
+				progressLine := false
+				for r0 := range out {
+					r := r0.(*AddPinOutput)
+					if r.Pins != nil {
+						added = r.Pins
+					} else {
+						if progressLine {
+							fmt.Fprintf(res.Stderr(), "\r")
+						}
+						fmt.Fprintf(res.Stderr(), "Fetched/Processed %d nodes", r.Progress)
+						progressLine = true
+					}
+				}
+				if progressLine {
+					fmt.Fprintf(res.Stderr(), "\n")
+				}
+				if res.Error() != nil {
+					return nil, res.Error()
+				}
+			default:
 				return nil, u.ErrCast()
 			}
-
 			var pintype string
 			rec, found, _ := res.Request().Option("recursive").Bool()
 			if rec || !found {
@@ -86,7 +159,7 @@ var addPinCmd = &cmds.Command{
 			}
 
 			buf := new(bytes.Buffer)
-			for _, k := range added.Pins {
+			for _, k := range added {
 				fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
 			}
 			return buf, nil
@@ -130,7 +203,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return
 		}
 
-		res.SetOutput(&PinOutput{removed})
+		res.SetOutput(&PinOutput{cidsToStrings(removed)})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -327,7 +400,7 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	if typeStr == "indirect" || typeStr == "all" {
 		set := cid.NewSet()
 		for _, k := range n.Pinning.RecursiveKeys() {
-			err := dag.EnumerateChildren(n.Context(), n.DAG, k, set.Visit, false)
+			err := dag.EnumerateChildren(n.Context(), n.DAG.GetLinks, k, set.Visit)
 			if err != nil {
 				return nil, err
 			}
@@ -339,4 +412,12 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	}
 
 	return keys, nil
+}
+
+func cidsToStrings(cs []*cid.Cid) []string {
+	out := make([]string, 0, len(cs))
+	for _, c := range cs {
+		out = append(out, c.String())
+	}
+	return out
 }

@@ -95,6 +95,9 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 			header.Set("Content-Disposition", fmt.Sprintf("file; filename=\"%s\"", filename))
 
 			header.Set("Content-Type", contentType)
+			if rf, ok := file.(*files.ReaderFile); ok {
+				header.Set("abspath", rf.AbsPath())
+			}
 
 			_, err := mfr.mpWriter.CreatePart(header)
 			if err != nil {

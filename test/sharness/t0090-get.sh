@@ -64,6 +64,20 @@ test_get_cmd() {
 		rm "$HASH"
 	'
 
+	test_expect_success "ipfs get works with raw leaves" '
+	HASH2=$(ipfs add --raw-leaves -q data) &&
+		ipfs get "$HASH2" >actual2
+	'
+
+	test_expect_success "ipfs get output looks good" '
+		printf "%s\n\n" "Saving file(s) to $HASH2" >expected2 &&
+		test_cmp expected2 actual2
+	'
+
+	test_expect_success "ipfs get file output looks good" '
+		test_cmp "$HASH2" data
+	'
+
     test_ipfs_get_flag ".tar" "-xf" -a
 
     test_ipfs_get_flag ".tar.gz" "-zxf" -a -C
@@ -127,7 +141,7 @@ test_get_fail() {
 	'
 
 	test_expect_success "ipfs get fails" '
-		test_expect_code 1 ipfs get QmaGidyrnX8FMbWJoxp8HVwZ1uRKwCyxBJzABnR1S2FVUr 
+		test_expect_code 1 ipfs get QmaGidyrnX8FMbWJoxp8HVwZ1uRKwCyxBJzABnR1S2FVUr
 	'
 }
 
@@ -140,6 +154,13 @@ test_get_fail
 # should work online
 test_launch_ipfs_daemon
 test_get_cmd
+
+test_expect_success "empty request to get doesn't panic and returns error" '
+	curl "http://$API_ADDR/api/v0/get" > curl_out || true &&
+		grep "not enough arugments provided" curl_out
+
+
+'
 test_kill_ipfs_daemon
 
 test_done

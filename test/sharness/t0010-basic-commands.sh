@@ -17,8 +17,7 @@ test_expect_success "ipfs version succeeds" '
 '
 
 test_expect_success "ipfs --version success" '
-    ipfs --version ||
-    test_fsh ipfs --version
+    ipfs --version
 '
 
 test_expect_success "ipfs version output looks good" '
@@ -63,11 +62,44 @@ test_expect_success "'ipfs commands' output looks good" '
 '
 
 test_expect_success "All commands accept --help" '
+	echo 0 > fail
 	while read -r cmd
 	do
-		echo "running: $cmd --help"
-		$cmd --help </dev/null >/dev/null || return
+		$cmd --help </dev/null >/dev/null ||
+			{ echo $cmd doesnt accept --help; echo 1 > fail; }
 	done <commands.txt
+
+	if [ $(cat fail) = 1 ]; then
+		return 1
+	fi
+'
+
+test_expect_failure "All ipfs root commands are mentioned in base helptext" '
+	echo 0 > fail
+	cut -d" " -f 2 commands.txt | grep -v ipfs | sort -u | \
+	while read cmd
+	do
+		grep "    $cmd" help.txt > /dev/null ||
+			{ echo missing $cmd from helptext; echo 1 > fail; }
+	done
+
+	if [ $(cat fail) = 1 ]; then
+		return 1
+	fi
+'
+
+test_expect_failure "All ipfs commands docs are 80 columns or less" '
+	echo 0 > fail
+	while read cmd
+	do
+		LENGTH="$($cmd --help | awk "{ print length }" | sort -nr | head -1)"
+		[ $LENGTH -gt 80 ] &&
+			{ echo "$cmd" help text is longer than 79 chars "($LENGTH)"; echo 1 > fail; }
+	done <commands.txt
+
+	if [ $(cat fail) = 1 ]; then
+		return 1
+	fi
 '
 
 test_expect_success "'ipfs commands --flags' succeeds" '
@@ -79,5 +111,7 @@ test_expect_success "'ipfs commands --flags' output looks good" '
 	grep "ipfs id --format / ipfs id -f" commands.txt &&
 	grep "ipfs repo gc --quiet / ipfs repo gc -q" commands.txt
 '
+
+
 
 test_done

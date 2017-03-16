@@ -1,19 +1,32 @@
-# ipfs release checklist
+# ipfs {{version}} checklist
 
-- [ ] version changed in repo/config/version.go
-- [ ] changelog.md updated
-- [ ] commit tagged
-- [ ] tests
+## pre-release
+
+- [ ] CHANGELOG.md updated - PR: 
+- [ ] tests are green
   - [ ] go-ipfs tests
   - [ ] sharness tests
   - [ ] webui works
   - [ ] js-ipfs-api tests
-- [ ] builds
-  - [ ] windows
-  - [ ] linux
-    - [ ] amd64
-	- [ ] arm
-  - [ ] osx
+  - [ ] deploy on one of our hosts
 
-## post release
-- [ ] bump repo/config/version.go to $NEXT-dev
+## RC cycle
+- [ ] versions changed to {{version}}-rcX:
+  - [ ] in repo/config/version.go
+  - [ ] in package.json
+- [ ] release {{version}}-rcX on dist
+
+## release
+- [ ] versions changed to {{version}}:
+  - [ ] in repo/config/version.go
+  - [ ] in package.json
+- [ ] gx publish done and commited
+- [ ] signed version tag pushed
+- [ ] fast forward merge of **master** to **release**
+- [ ] push release to dist
+
+## post-release
+- [ ] bump version to {{version+1}}-dev:
+  - [ ] in repo/config/version.go 
+  - [ ] in package.json
+

@@ -160,10 +160,12 @@ func (n *UnixfsNode) GetDagNode() (node.Node, error) {
 	}
 
 	if n.posInfo != nil {
-		return &pi.FilestoreNode{
-			Node:    nd,
-			PosInfo: n.posInfo,
-		}, nil
+		if rn, ok := nd.(*dag.RawNode); ok {
+			return &pi.FilestoreNode{
+				Node:    rn,
+				PosInfo: n.posInfo,
+			}, nil
+		}
 	}
 
 	return nd, nil

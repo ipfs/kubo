@@ -12,8 +12,8 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 
-	ci "gx/ipfs/QmNiCwBNA8MWDADTFVq1BonUEJbS2SvjAoNkZZrhEwcuUi/go-libp2p-crypto"
-	peer "gx/ipfs/QmZcUPvPhD1Xvk6mwijYF8AfR3mG31S1YsEfHG4khrFPRr/go-libp2p-peer"
+	ci "gx/ipfs/QmPGxZ1DP2w45WcogpW1h43BvseXbfke9N91qotpoQcUeS/go-libp2p-crypto"
+	peer "gx/ipfs/QmWUswjn261LSyVxWAEpMVtPdy8zmKBJJfBpG3Qdpa8ZsE/go-libp2p-peer"
 )
 
 var KeyCmd = &cmds.Command{
@@ -40,7 +40,7 @@ var KeyGenCmd = &cmds.Command{
 		Tagline: "Create a new keypair",
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("type", "t", "type of the key to create"),
+		cmds.StringOption("type", "t", "type of the key to create [rsa, ed25519]"),
 		cmds.IntOption("size", "s", "size of the key to generate"),
 	},
 	Arguments: []cmds.Argument{
@@ -160,7 +160,9 @@ var KeyListCmd = &cmds.Command{
 
 		sort.Strings(keys)
 
-		list := make([]KeyOutput, 0, len(keys))
+		list := make([]KeyOutput, 0, len(keys)+1)
+
+		list = append(list, KeyOutput{Name: "self", Id: n.Identity.Pretty()})
 
 		for _, key := range keys {
 			privKey, err := n.Repo.Keystore().Get(key)

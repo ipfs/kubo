@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
+	filestore "github.com/ipfs/go-ipfs/filestore"
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
@@ -20,10 +21,12 @@ import (
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
+
+	measure "gx/ipfs/QmNPv1yzXBqxzqjfTzHCeBoicxxZgHzLezdY2hMCZ3r6EU/go-ds-measure"
 	ma "gx/ipfs/QmSWLfmj5frN9xVLMMN846dMDriy5wN5jeghUm7aTW3DAG/go-multiaddr"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	util "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
-	"gx/ipfs/QmbUSMTQtK9GRrUbD4ngqJwSzHsquUc8nyDubRWp4vPybH/go-ds-measure"
 )
 
 var log = logging.Logger("fsrepo")
@@ -62,6 +65,7 @@ func (err NoRepoError) Error() string {
 }
 
 const apiFile = "api"
+const swarmKeyFile = "swarm.key"
 
 var (
 
@@ -97,6 +101,7 @@ type FSRepo struct {
 	config   *config.Config
 	ds       repo.Datastore
 	keystore keystore.Keystore
+	filemgr  *filestore.FileManager
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -167,6 +172,10 @@ func open(repoPath string) (repo.Repo, error) {
 
 	if err := r.openKeystore(); err != nil {
 		return nil, err
+	}
+
+	if r.config.Experimental.FilestoreEnabled {
+		r.filemgr = filestore.NewFileManager(r.ds, filepath.Dir(r.path))
 	}
 
 	keepLocked = true
@@ -313,6 +322,10 @@ func (r *FSRepo) Keystore() keystore.Keystore {
 	return r.keystore
 }
 
+func (r *FSRepo) Path() string {
+	return r.path
+}
+
 // SetAPIAddr writes the API Addr to the /api file.
 func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	f, err := os.Create(filepath.Join(r.path, apiFile))
@@ -419,6 +432,10 @@ func (r *FSRepo) Config() (*config.Config, error) {
 		return nil, errors.New("cannot access config, repo not open")
 	}
 	return r.config, nil
+}
+
+func (r *FSRepo) FileManager() *filestore.FileManager {
+	return r.filemgr
 }
 
 // setConfigUnsynced is for private use.
@@ -590,6 +607,26 @@ func (r *FSRepo) GetStorageUsage() (uint64, error) {
 		return nil
 	})
 	return du, err
+}
+
+func (r *FSRepo) SwarmKey() ([]byte, error) {
+	repoPath := filepath.Clean(r.path)
+	spath := filepath.Join(repoPath, swarmKeyFile)
+
+	f, err := os.Open(spath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+	defer f.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return ioutil.ReadAll(f)
 }
 
 var _ io.Closer = &FSRepo{}

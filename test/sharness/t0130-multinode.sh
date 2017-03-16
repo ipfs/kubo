@@ -90,7 +90,7 @@ test_expect_success "set up tcp testbed" '
 
 # test multiplex muxer
 export LIBP2P_MUX_PREFS="/mplex/6.7.0"
-run_advanced_test "--enable-mplex-experiment"
+run_advanced_test
 unset LIBP2P_MUX_PREFS
 
 # test default configuration

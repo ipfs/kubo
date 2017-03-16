@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 
+	filestore "github.com/ipfs/go-ipfs/filestore"
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
@@ -27,8 +28,12 @@ type Repo interface {
 
 	Keystore() keystore.Keystore
 
+	FileManager() *filestore.FileManager
+
 	// SetAPIAddr sets the API address in the repo.
 	SetAPIAddr(addr ma.Multiaddr) error
+
+	SwarmKey() ([]byte, error)
 
 	io.Closer
 }

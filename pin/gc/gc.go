@@ -9,6 +9,7 @@ import (
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
+	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
 )
 
 var log = logging.Logger("gc")
@@ -50,7 +51,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 				if !gcs.Has(k) {
 					err := bs.DeleteBlock(k)
 					if err != nil {
-						log.Debugf("Error removing key from blockstore: %s", err)
+						log.Errorf("Error removing key from blockstore: %s", err)
 						return
 					}
 					select {
@@ -68,12 +69,12 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 	return output, nil
 }
 
-func Descendants(ctx context.Context, ls dag.LinkService, set *cid.Set, roots []*cid.Cid, bestEffort bool) error {
+func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []*cid.Cid) error {
 	for _, c := range roots {
 		set.Add(c)
 
 		// EnumerateChildren recursively walks the dag and adds the keys to the given set
-		err := dag.EnumerateChildren(ctx, ls, c, set.Visit, bestEffort)
+		err := dag.EnumerateChildren(ctx, getLinks, c, set.Visit)
 		if err != nil {
 			return err
 		}
@@ -86,12 +87,19 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	gcs := cid.NewSet()
-	err := Descendants(ctx, ls, gcs, pn.RecursiveKeys(), false)
+	err := Descendants(ctx, ls.GetLinks, gcs, pn.RecursiveKeys())
 	if err != nil {
 		return nil, err
 	}
 
-	err = Descendants(ctx, ls, gcs, bestEffortRoots, true)
+	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
+		links, err := ls.GetLinks(ctx, cid)
+		if err == dag.ErrNotFound {
+			err = nil
+		}
+		return links, err
+	}
+	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +108,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 		gcs.Add(k)
 	}
 
-	err = Descendants(ctx, ls, gcs, pn.InternalPins(), false)
+	err = Descendants(ctx, ls.GetLinks, gcs, pn.InternalPins())
 	if err != nil {
 		return nil, err
 	}

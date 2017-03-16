@@ -10,7 +10,7 @@ DEPS_GO :=
 TEST_GO :=
 CHECK_GO :=
 
-go-pkg-name=$(shell go list $(go-tags) ./$(1))
+go-pkg-name=$(shell go list $(go-tags) github.com/ipfs/go-ipfs/$(1))
 go-main-name=$(notdir $(call go-pkg-name,$(1)))$(?exe)
 go-curr-pkg-tgt=$(d)/$(call go-main-name,$(d))
 

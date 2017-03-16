@@ -13,8 +13,8 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
-	pstore "gx/ipfs/QmQMQ2RUjnaEEX8ybmrhuFFGhAwPjyL1Eo6ZoJGD7aAccM/go-libp2p-peerstore"
-	swarm "gx/ipfs/QmY8hduizbuACvYmL4aZQbpFeKhEQJ1Nom2jY6kv6rL8Gf/go-libp2p-swarm"
+	swarm "gx/ipfs/QmTU8NWsDYNShMA3hjPfEZTg3pD7YgX62sFmZdEgbjtWq2/go-libp2p-swarm"
+	pstore "gx/ipfs/Qme1g4e3m2SmdiSGGU3vSWmUStwUjc5oECnEriaK9Xa1HU/go-libp2p-peerstore"
 
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	ma "gx/ipfs/QmSWLfmj5frN9xVLMMN846dMDriy5wN5jeghUm7aTW3DAG/go-multiaddr"

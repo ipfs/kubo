@@ -1,38 +1,43 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
-	"github.com/ipfs/go-ipfs/core/coreunix"
-	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
-
+	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
 	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
+	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 )
 
 // Error indicating the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 const (
-	quietOptionName     = "quiet"
-	silentOptionName    = "silent"
-	progressOptionName  = "progress"
-	trickleOptionName   = "trickle"
-	wrapOptionName      = "wrap-with-directory"
-	hiddenOptionName    = "hidden"
-	onlyHashOptionName  = "only-hash"
-	chunkerOptionName   = "chunker"
-	pinOptionName       = "pin"
-	rawLeavesOptionName = "raw-leaves"
+	quietOptionName       = "quiet"
+	quieterOptionName     = "quieter"
+	silentOptionName      = "silent"
+	progressOptionName    = "progress"
+	trickleOptionName     = "trickle"
+	wrapOptionName        = "wrap-with-directory"
+	hiddenOptionName      = "hidden"
+	onlyHashOptionName    = "only-hash"
+	chunkerOptionName     = "chunker"
+	pinOptionName         = "pin"
+	rawLeavesOptionName   = "raw-leaves"
+	noCopyOptionName      = "nocopy"
+	fstoreCacheOptionName = "fscache"
 )
 
 var AddCmd = &cmds.Command{
@@ -69,6 +74,7 @@ You can now refer to the added file in a gateway, like so:
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
+		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 		cmds.BoolOption(silentOptionName, "Write no output."),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
@@ -78,9 +84,14 @@ You can now refer to the added file in a gateway, like so:
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
+		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. (experimental)"),
+		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 	},
 	PreRun: func(req cmds.Request) error {
 		quiet, _, _ := req.Option(quietOptionName).Bool()
+		quieter, _, _ := req.Option(quieterOptionName).Bool()
+		quiet = quiet || quieter
+
 		silent, _, _ := req.Option(silentOptionName).Bool()
 
 		if quiet || silent {
@@ -123,6 +134,12 @@ You can now refer to the added file in a gateway, like so:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		// check if repo will exceed storage limit if added
 		// TODO: this doesn't handle the case if the hashed file is already in blocks (deduplicated)
 		// TODO: conditional GC is disabled due to it is somehow not possible to pass the size to the daemon
@@ -139,7 +156,24 @@ You can now refer to the added file in a gateway, like so:
 		silent, _, _ := req.Option(silentOptionName).Bool()
 		chunker, _, _ := req.Option(chunkerOptionName).String()
 		dopin, _, _ := req.Option(pinOptionName).Bool()
-		rawblks, _, _ := req.Option(rawLeavesOptionName).Bool()
+		rawblks, rbset, _ := req.Option(rawLeavesOptionName).Bool()
+		nocopy, _, _ := req.Option(noCopyOptionName).Bool()
+		fscache, _, _ := req.Option(fstoreCacheOptionName).Bool()
+
+		if nocopy && !cfg.Experimental.FilestoreEnabled {
+			res.SetError(errors.New("filestore is not enabled, see https://git.io/vy4XN"),
+				cmds.ErrClient)
+			return
+		}
+
+		if nocopy && !rbset {
+			rawblks = true
+		}
+
+		if nocopy && !rawblks {
+			res.SetError(fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well"), cmds.ErrNormal)
+			return
+		}
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
@@ -154,13 +188,19 @@ You can now refer to the added file in a gateway, like so:
 			n = nilnode
 		}
 
-		dserv := n.DAG
+		addblockstore := n.Blockstore
+		if !(fscache || nocopy) {
+			addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
+		}
+
+		exch := n.Exchange
 		local, _, _ := req.Option("local").Bool()
 		if local {
-			offlineexch := offline.Exchange(n.Blockstore)
-			bserv := blockservice.New(n.Blockstore, offlineexch)
-			dserv = dag.NewDAGService(bserv)
+			exch = offline.Exchange(addblockstore)
 		}
+
+		bserv := blockservice.New(addblockstore, exch)
+		dserv := dag.NewDAGService(bserv)
 
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
@@ -180,6 +220,7 @@ You can now refer to the added file in a gateway, like so:
 		fileAdder.Pin = dopin
 		fileAdder.Silent = silent
 		fileAdder.RawLeaves = rawblks
+		fileAdder.NoCopy = nocopy
 
 		if hash {
 			md := dagtest.Mock()
@@ -242,17 +283,11 @@ You can now refer to the added file in a gateway, like so:
 		}
 		res.SetOutput(nil)
 
-		quiet, _, err := req.Option("quiet").Bool()
-		if err != nil {
-			res.SetError(u.ErrCast(), cmds.ErrNormal)
-			return
-		}
+		quiet, _, _ := req.Option(quietOptionName).Bool()
+		quieter, _, _ := req.Option(quieterOptionName).Bool()
+		quiet = quiet || quieter
 
-		progress, _, err := req.Option(progressOptionName).Bool()
-		if err != nil {
-			res.SetError(u.ErrCast(), cmds.ErrNormal)
-			return
-		}
+		progress, _, _ := req.Option(progressOptionName).Bool()
 
 		var bar *pb.ProgressBar
 		if progress {
@@ -271,6 +306,7 @@ You can now refer to the added file in a gateway, like so:
 		}
 
 		lastFile := ""
+		lastHash := ""
 		var totalProgress, prevFiles, lastBytes int64
 
 	LOOP:
@@ -278,10 +314,18 @@ You can now refer to the added file in a gateway, like so:
 			select {
 			case out, ok := <-outChan:
 				if !ok {
+					if quieter {
+						fmt.Fprintln(res.Stdout(), lastHash)
+					}
 					break LOOP
 				}
 				output := out.(*coreunix.AddedObject)
 				if len(output.Hash) > 0 {
+					lastHash = output.Hash
+					if quieter {
+						continue
+					}
+
 					if progress {
 						// clear progress bar line before we print "added x" output
 						fmt.Fprintf(res.Stderr(), "\033[2K\r")
@@ -291,7 +335,6 @@ You can now refer to the added file in a gateway, like so:
 					} else {
 						fmt.Fprintf(res.Stdout(), "added %s %s\n", output.Hash, output.Name)
 					}
-
 				} else {
 					log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
 

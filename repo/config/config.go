@@ -30,7 +30,8 @@ type Config struct {
 	API              API                   // local node's API settings
 	Swarm            SwarmConfig
 
-	Reprovider Reprovider
+	Reprovider   Reprovider
+	Experimental Experiments
 }
 
 const (

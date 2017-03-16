@@ -11,13 +11,14 @@ import (
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 
-	metrics "gx/ipfs/QmPj6rmE2sWJ65h6b8F4fcN5kySDhYqL2Ty8DWWF3WEUNS/go-libp2p-metrics"
-	pstore "gx/ipfs/QmQMQ2RUjnaEEX8ybmrhuFFGhAwPjyL1Eo6ZoJGD7aAccM/go-libp2p-peerstore"
+	ipnet "gx/ipfs/QmRSTPtUUt4fHYqJ3gwyeRGvqSwR9quD9zDC148oYYycKV/go-libp2p-interface-pnet"
 	"gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	syncds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
-	mocknet "gx/ipfs/QmSNJRX4uphb3Eyp69uYbpRVvgqjPxfjnJmjcdMWkDH5Pn/go-libp2p/p2p/net/mock"
-	peer "gx/ipfs/QmZcUPvPhD1Xvk6mwijYF8AfR3mG31S1YsEfHG4khrFPRr/go-libp2p-peer"
-	host "gx/ipfs/QmbzbRyd22gcW92U1rA2yKagB3myMYhk45XBknJ49F9XWJ/go-libp2p-host"
+	peer "gx/ipfs/QmWUswjn261LSyVxWAEpMVtPdy8zmKBJJfBpG3Qdpa8ZsE/go-libp2p-peer"
+	host "gx/ipfs/QmXzeAcmKDTfNZQBiyF22hQKuTK7P5z6MBBQLTk9bbiSUc/go-libp2p-host"
+	metrics "gx/ipfs/QmaMSrAXMpMhsrbGZYmGXE4X1ttkFv7KZSpGa5AKYTUpPD/go-libp2p-metrics"
+	pstore "gx/ipfs/Qme1g4e3m2SmdiSGGU3vSWmUStwUjc5oECnEriaK9Xa1HU/go-libp2p-peerstore"
+	mocknet "gx/ipfs/QmeWJwi61vii5g8zQUB9UGegfUbmhTKHgeDFP9XuSp5jZ4/go-libp2p/p2p/net/mock"
 	smux "gx/ipfs/QmeZBgYBHvxMukGK5ojg28BCNLB9SeXqT7XXg6o7r2GbJy/go-stream-muxer"
 )
 
@@ -33,7 +34,7 @@ func NewMockNode() (*core.IpfsNode, error) {
 }
 
 func MockHostOption(mn mocknet.Mocknet) core.HostOption {
-	return func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, _ smux.Transport) (host.Host, error) {
+	return func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, _ smux.Transport, _ ipnet.Protector) (host.Host, error) {
 		return mn.AddPeerWithPeerstore(id, ps)
 	}
 }

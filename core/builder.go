@@ -12,20 +12,21 @@ import (
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
+	filestore "github.com/ipfs/go-ipfs/filestore"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
 
-	ci "gx/ipfs/QmNiCwBNA8MWDADTFVq1BonUEJbS2SvjAoNkZZrhEwcuUi/go-libp2p-crypto"
-	pstore "gx/ipfs/QmQMQ2RUjnaEEX8ybmrhuFFGhAwPjyL1Eo6ZoJGD7aAccM/go-libp2p-peerstore"
+	ci "gx/ipfs/QmPGxZ1DP2w45WcogpW1h43BvseXbfke9N91qotpoQcUeS/go-libp2p-crypto"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	dsync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
 	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	goprocessctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	retry "gx/ipfs/QmUaGhKyLgTuYDdQsbKST1tYr2CVoix59rqaxdxqk2UbfK/retry-datastore"
-	peer "gx/ipfs/QmZcUPvPhD1Xvk6mwijYF8AfR3mG31S1YsEfHG4khrFPRr/go-libp2p-peer"
+	peer "gx/ipfs/QmWUswjn261LSyVxWAEpMVtPdy8zmKBJJfBpG3Qdpa8ZsE/go-libp2p-peer"
+	pstore "gx/ipfs/Qme1g4e3m2SmdiSGGU3vSWmUStwUjc5oECnEriaK9Xa1HU/go-libp2p-peerstore"
 )
 
 type BuildCfg struct {
@@ -166,8 +167,8 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		TempErrFunc: isTooManyFDError,
 	}
 
-	var err error
 	bs := bstore.NewBlockstore(rds)
+
 	opts := bstore.DefaultCacheOpts()
 	conf, err := n.Repo.Config()
 	if err != nil {
@@ -184,7 +185,14 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		return err
 	}
 
-	n.Blockstore = bstore.NewGCBlockstore(cbs, bstore.NewGCLocker())
+	n.BaseBlocks = cbs
+	n.GCLocker = bstore.NewGCLocker()
+	n.Blockstore = bstore.NewGCBlockstore(cbs, n.GCLocker)
+
+	if conf.Experimental.FilestoreEnabled {
+		n.Filestore = filestore.NewFilestore(bs, n.Repo.FileManager())
+		n.Blockstore = bstore.NewGCBlockstore(n.Filestore, n.GCLocker)
+	}
 
 	rcfg, err := n.Repo.Config()
 	if err != nil {

@@ -23,8 +23,8 @@ func (rp RepoPath) Version() (int, error) {
 	}
 
 	fn := rp.VersionFile()
-	if _, err := os.Stat(fn); os.IsNotExist(err) {
-		return 0, VersionFileNotFound(rp)
+	if _, err := os.Stat(fn); err != nil {
+		return 0, err
 	}
 
 	c, err := ioutil.ReadFile(fn)
@@ -43,7 +43,7 @@ func (rp RepoPath) CheckVersion(version int) error {
 	}
 
 	if v != version {
-		return fmt.Errorf("versions differ (expected: %s, actual:%s)", version, v)
+		return fmt.Errorf("versions differ (expected: %d, actual:%d)", version, v)
 	}
 
 	return nil
@@ -52,10 +52,4 @@ func (rp RepoPath) CheckVersion(version int) error {
 func (rp RepoPath) WriteVersion(version int) error {
 	fn := rp.VersionFile()
 	return ioutil.WriteFile(fn, []byte(fmt.Sprintf("%d\n", version)), 0644)
-}
-
-type VersionFileNotFound string
-
-func (v VersionFileNotFound) Error() string {
-	return "no version file in repo at " + string(v)
 }

@@ -4,6 +4,7 @@ package ipns
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	mrand "math/rand"
@@ -11,15 +12,15 @@ import (
 	"sync"
 	"testing"
 
-	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
-	racedet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
-
-	context "context"
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
+
+	racedet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
+
 	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
+	fstest "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs/fstestutil"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -135,7 +136,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 	if err != nil {
 		t.Fatal(err)
 	}
-	mnt, err := fstest.MountedT(t, fs)
+	mnt, err := fstest.MountedT(t, fs, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

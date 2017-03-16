@@ -83,6 +83,7 @@ coverage: $(COVERAGE)
 
 distclean: clean
 	rm -rf $(DISTCLEAN)
+	git clean -ffxd
 .PHONY: distclean
 
 test: $(TEST)
@@ -101,6 +102,17 @@ nofuse: build
 install: $$(DEPS_GO)
 	go install $(go-flags-with-tags) ./cmd/ipfs
 .PHONY: install
+
+install_unsupported:
+	@echo "note: this command has yet to be tested to build in the system you are using"
+	@echo "installing gx"
+	go get -u github.com/whyrusleeping/gx
+	go get -u github.com/whyrusleeping/gx-go
+	@echo downloading dependencies
+	gx install --global
+	@echo "installing go-ipfs"
+	go install ./cmd/ipfs
+.PHONY: install_unsupported
 
 uninstall:
 	go clean -i ./cmd/ipfs
