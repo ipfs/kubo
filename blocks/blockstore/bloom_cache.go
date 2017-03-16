@@ -142,10 +142,7 @@ func (b *bloomcache) Get(k *cid.Cid) (blocks.Block, error) {
 }
 
 func (b *bloomcache) Put(bl blocks.Block) error {
-	if has, ok := b.hasCached(bl.Cid()); ok && has {
-		return nil
-	}
-
+	// See comment in PutMany
 	err := b.blockstore.Put(bl)
 	if err == nil {
 		b.bloom.AddTS(bl.Cid().Bytes())
@@ -155,7 +152,7 @@ func (b *bloomcache) Put(bl blocks.Block) error {
 
 func (b *bloomcache) PutMany(bs []blocks.Block) error {
 	// bloom cache gives only conclusive resulty if key is not contained
-	// to reduce number of puts we need conclusive infomration if block is contained
+	// to reduce number of puts we need conclusive information if block is contained
 	// this means that PutMany can't be improved with bloom cache so we just
 	// just do a passthrough.
 	err := b.blockstore.PutMany(bs)
