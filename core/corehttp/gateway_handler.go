@@ -12,6 +12,7 @@ import (
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
+	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -158,7 +159,13 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		ipnsHostname = true
 	}
 
-	dr, err := i.api.Unixfs().Cat(ctx, urlPath)
+	parsedPath, err := coreapi.ParsePath(urlPath)
+	if err != nil {
+		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
+		return
+	}
+
+	dr, err := i.api.Unixfs().Cat(ctx, parsedPath)
 	dir := false
 	switch err {
 	case nil:
@@ -218,7 +225,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	links, err := i.api.Unixfs().Ls(ctx, urlPath)
+	links, err := i.api.Unixfs().Ls(ctx, parsedPath)
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -240,14 +247,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 				return
 			}
 
-			p, err := path.ParsePath(urlPath + "/index.html")
-			if err != nil {
-				internalWebError(w, err)
-				return
-			}
-
-			// return index page instead.
-			dr, err := i.api.Unixfs().Cat(ctx, p.String())
+			dr, err := i.api.Unixfs().Cat(ctx, coreapi.ParseCid(link.Cid))
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -314,15 +314,15 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 }
 
 func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	k, err := i.api.Unixfs().Add(ctx, r.Body)
+	p, err := i.api.Unixfs().Add(ctx, r.Body)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", k.String())
-	http.Redirect(w, r, ipfsPathPrefix+k.String(), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", p.Cid().String())
+	http.Redirect(w, r, p.String(), http.StatusCreated)
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {

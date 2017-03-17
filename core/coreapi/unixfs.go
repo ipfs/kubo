@@ -13,16 +13,20 @@ import (
 
 type UnixfsAPI CoreAPI
 
-func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (*cid.Cid, error) {
+func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.Path, error) {
 	k, err := coreunix.AddWithContext(ctx, api.node, r)
 	if err != nil {
 		return nil, err
 	}
-	return cid.Decode(k)
+	c, err := cid.Decode(k)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCid(c), nil
 }
 
-func (api *UnixfsAPI) Cat(ctx context.Context, p string) (coreiface.Reader, error) {
-	dagnode, err := resolve(ctx, api.node, p)
+func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Reader, error) {
+	dagnode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +40,8 @@ func (api *UnixfsAPI) Cat(ctx context.Context, p string) (coreiface.Reader, erro
 	return r, nil
 }
 
-func (api *UnixfsAPI) Ls(ctx context.Context, p string) ([]*coreiface.Link, error) {
-	dagnode, err := resolve(ctx, api.node, p)
+func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*coreiface.Link, error) {
+	dagnode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -48,4 +52,8 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p string) ([]*coreiface.Link, erro
 		links[i] = &coreiface.Link{l.Name, l.Size, l.Cid}
 	}
 	return links, nil
+}
+
+func (api *UnixfsAPI) core() coreiface.CoreAPI {
+	return (*CoreAPI)(api)
 }
