@@ -9,7 +9,7 @@ blockstore, pushing to burden of ensuring those files are not changed to the
 user. The filestore feature is currently still experimental, and must be
 enabled in your config with:
 ```
-ipfs config Experimental.FilestoreEnabled true
+ipfs config --json Experimental.FilestoreEnabled true
 ```
 before it can be used. Please see [this issue](https://github.com/ipfs/go-ipfs/issues/3397#issuecomment-284337564) for more details.
 
