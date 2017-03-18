@@ -216,7 +216,10 @@ See https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604 for more 
 - `DisableBandwidthMetrics`
 A boolean value that when set to true, will cause ipfs to not keep track of
 bandwidth metrics. Disabling bandwidth metrics can lead to a slight performance
-improvement, as well as a reduction in memory usage. 
+improvement, as well as a reduction in memory usage.
+
+- `DisableNatPortMap`
+Disable NAT discovery.
 
 ## `Tour`
 Unused.
