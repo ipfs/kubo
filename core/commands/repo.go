@@ -110,7 +110,7 @@ order to reclaim hard disk space.
 				return nil, err
 			}
 
-			for v := range outChan {
+			marshal := func(v interface{}) (io.Reader, error) {
 				obj, ok := v.(*GcResult)
 				if !ok {
 					return nil, u.ErrCast()
@@ -118,21 +118,21 @@ order to reclaim hard disk space.
 
 				if obj.Error != "" {
 					fmt.Fprintf(res.Stderr(), "Error: %s\n", obj.Error)
-					continue
+					return nil, nil
 				}
 
 				if quiet {
-					fmt.Fprintf(res.Stdout(), "%s\n", obj.Key.String())
+					return bytes.NewBufferString(obj.Key.String() + "\n"), nil
 				} else {
-					fmt.Fprintf(res.Stdout(), "removed %s\n", obj.Key.String())
+					return bytes.NewBufferString(fmt.Sprintf("removed %s\n", obj.Key)), nil
 				}
 			}
 
-			if res.Error() != nil {
-				return nil, res.Error()
-			}
-
-			return nil, nil
+			return &cmds.ChannelMarshaler{
+				Channel:   outChan,
+				Marshaler: marshal,
+				Res:       res,
+			}, nil
 		},
 	},
 }

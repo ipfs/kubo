@@ -25,6 +25,9 @@ func (cr *ChannelMarshaler) Read(p []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
+		if r == nil {
+			return 0, nil
+		}
 		cr.reader = r
 	}
 
