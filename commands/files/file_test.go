@@ -127,7 +127,7 @@ anotherfile
 	if file, err := mpf.NextFile(); file != nil || err != ErrNotDirectory {
 		t.Fatal("Expected a nil file and ErrNotDirectory")
 	}
-	if n, err := mpf.Read(buf); n != 4 || err != nil {
+	if n, err := mpf.Read(buf); n != 4 || err != io.EOF && err != nil {
 		t.Fatal("Expected to be able to read 4 bytes: ", n, err)
 	}
 	if err := mpf.Close(); err != nil {
@@ -171,7 +171,7 @@ anotherfile
 	if mpf.FileName() != "dir/nested" {
 		t.Fatalf("Expected filename to be \"nested\", got %s", mpf.FileName())
 	}
-	if n, err := mpf.Read(buf); n != 12 || err != nil {
+	if n, err := mpf.Read(buf); n != 12 || err != io.EOF && err != nil {
 		t.Fatalf("expected to be able to read 12 bytes from file: %s (got %d)", err, n)
 	}
 	if err := mpf.Close(); err != nil {
