@@ -16,6 +16,8 @@ import (
 
 var log = logging.Logger("gc")
 
+// Result represents an incremental output from a garbage collection
+// run.  It contains either an error, or the cid of a removed object.
 type Result struct {
 	KeyRemoved *cid.Cid
 	Error      error
@@ -66,7 +68,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 					err := bs.DeleteBlock(k)
 					if err != nil {
 						errors = true
-						output <- Result{Error: &CouldNotDeleteBlockError{k, err}}
+						output <- Result{Error: &CannotDeleteBlockError{k, err}}
 						//log.Errorf("Error removing key from blockstore: %s", err)
 						// continue as error is non-fatal
 						continue loop
@@ -82,7 +84,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 			}
 		}
 		if errors {
-			output <- Result{Error: ErrCouldNotDeleteSomeBlocks}
+			output <- Result{Error: ErrCannotDeleteSomeBlocks}
 		}
 	}()
 
@@ -103,6 +105,8 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	return nil
 }
 
+// ColoredSet computes the set of nodes in the graph that are pinned by the
+// pins in the given pinner.
 func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
@@ -112,7 +116,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 		links, err := ls.GetLinks(ctx, cid)
 		if err != nil {
 			errors = true
-			output <- Result{Error: &CouldNotFetchLinksError{cid, err}}
+			output <- Result{Error: &CannotFetchLinksError{cid, err}}
 		}
 		return links, nil
 	}
@@ -126,7 +130,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 		links, err := ls.GetLinks(ctx, cid)
 		if err != nil && err != dag.ErrNotFound {
 			errors = true
-			output <- Result{Error: &CouldNotFetchLinksError{cid, err}}
+			output <- Result{Error: &CannotFetchLinksError{cid, err}}
 		}
 		return links, nil
 	}
@@ -147,30 +151,30 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 	}
 
 	if errors {
-		return nil, ErrCouldNotFetchAllLinks
-	} else {
-		return gcs, nil
+		return nil, ErrCannotFetchAllLinks
 	}
+
+	return gcs, nil
 }
 
-var ErrCouldNotFetchAllLinks = errors.New("garbage collection aborted: could not retrieve some links")
+var ErrCannotFetchAllLinks = errors.New("garbage collection aborted: could not retrieve some links")
 
-var ErrCouldNotDeleteSomeBlocks = errors.New("garbage collection incomplete: could not delete some blocks")
+var ErrCannotDeleteSomeBlocks = errors.New("garbage collection incomplete: could not delete some blocks")
 
-type CouldNotFetchLinksError struct {
+type CannotFetchLinksError struct {
 	Key *cid.Cid
 	Err error
 }
 
-func (e *CouldNotFetchLinksError) Error() string {
+func (e *CannotFetchLinksError) Error() string {
 	return fmt.Sprintf("could not retrieve links for %s: %s", e.Key, e.Err)
 }
 
-type CouldNotDeleteBlockError struct {
+type CannotDeleteBlockError struct {
 	Key *cid.Cid
 	Err error
 }
 
-func (e *CouldNotDeleteBlockError) Error() string {
+func (e *CannotDeleteBlockError) Error() string {
 	return fmt.Sprintf("could not remove %s: %s", e.Key, e.Err)
 }

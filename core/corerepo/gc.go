@@ -91,6 +91,9 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 	return CollectResult(ctx, rmed, nil)
 }
 
+// CollectResult collects the output of a garbage collection run and calls the
+// given callback for each object removed.  It also collects all errors into a
+// MultiError which is returned after the gc is completed.
 func CollectResult(ctx context.Context, gcOut <-chan gc.Result, cb func(*cid.Cid)) error {
 	var errors []error
 loop:
@@ -121,10 +124,12 @@ loop:
 	}
 }
 
+// NewMultiError creates a new MultiError object from a given slice of errors.
 func NewMultiError(errs ...error) *MultiError {
 	return &MultiError{errs[:len(errs)-1], errs[len(errs)-1]}
 }
 
+// MultiError contains the results of multiple errors.
 type MultiError struct {
 	Errors  []error
 	Summary error

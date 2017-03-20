@@ -40,6 +40,7 @@ var RepoCmd = &cmds.Command{
 	},
 }
 
+// GcResult is the result returned by "repo gc" command.
 type GcResult struct {
 	Key   *cid.Cid
 	Error string `json:",omitempty"`
