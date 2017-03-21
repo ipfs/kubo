@@ -18,7 +18,19 @@ import (
 
 var KeyCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create and manipulate keypairs",
+		Tagline: "Create and list IPNS name keypairs",
+		ShortDescription: `
+'ipfs key gen' generates a new keypair for usage with IPNS and 'ipfs name publish'.
+
+  > ipfs key gen --type=rsa --size=2048 mykey
+  > ipfs name publish --key=mykey QmSomeHash
+
+'ipfs key list' lists the available keys.
+
+  > ipfs key list
+  self
+  mykey
+		`,
 	},
 	Subcommands: map[string]*cmds.Command{
 		"gen":  KeyGenCmd,
