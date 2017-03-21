@@ -11,6 +11,7 @@ import (
 	"sort"
 	"sync"
 
+	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
@@ -180,8 +181,6 @@ func defaultMux(path string) corehttp.ServeOption {
 	}
 }
 
-var fileDescriptorCheck = func() error { return nil }
-
 func daemonFunc(req cmds.Request, re cmds.ResponseEmitter) {
 	// Inject metrics before we do anything
 
@@ -193,9 +192,8 @@ func daemonFunc(req cmds.Request, re cmds.ResponseEmitter) {
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
 
-	managefd, _, _ := req.Option(adjustFDLimitKwd).Bool()
-	if managefd {
-		if err := fileDescriptorCheck(); err != nil {
+	if managed, _, _ := req.Option(adjustFDLimitKwd).Bool(); managed {
+		if err := utilmain.ManageFdLimit(); err != nil {
 			log.Errorf("setting file descriptor limit: %s", err)
 		}
 	}
