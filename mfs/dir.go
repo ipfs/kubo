@@ -59,7 +59,7 @@ func NewDirectory(ctx context.Context, name string, node node.Node, parent child
 
 // closeChild updates the child by the given name to the dag node 'nd'
 // and changes its own dag node
-func (d *Directory) closeChild(name string, nd *dag.ProtoNode, sync bool) error {
+func (d *Directory) closeChild(name string, nd node.Node, sync bool) error {
 	mynd, err := d.closeChildUpdate(name, nd, sync)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (d *Directory) closeChild(name string, nd *dag.ProtoNode, sync bool) error 
 }
 
 // closeChildUpdate is the portion of closeChild that needs to be locked around
-func (d *Directory) closeChildUpdate(name string, nd *dag.ProtoNode, sync bool) (*dag.ProtoNode, error) {
+func (d *Directory) closeChildUpdate(name string, nd node.Node, sync bool) (*dag.ProtoNode, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -329,13 +329,10 @@ func (d *Directory) Unlink(name string) error {
 }
 
 func (d *Directory) Flush() error {
-	d.lock.Lock()
-	nd, err := d.flushCurrentNode()
+	nd, err := d.GetNode()
 	if err != nil {
-		d.lock.Unlock()
 		return err
 	}
-	d.lock.Unlock()
 
 	return d.parent.closeChild(d.name, nd, true)
 }

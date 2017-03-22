@@ -51,9 +51,9 @@ test_sharding() {
 		ipfs files mkdir /foo
 	'
 
-	test_expect_success "can make 1100 files in a directory" '
+	test_expect_success "can make 100 files in a directory" '
 		printf "" > list_exp_raw
-		for i in `seq 1100`
+		for i in `seq 100`
 		do
 			echo $i | ipfs files write --create /foo/file$i
 			echo file$i >> list_exp_raw
@@ -70,6 +70,12 @@ test_sharding() {
 		ipfs files read /foo/file65 > file_out &&
 		echo "65" > file_exp &&
 		test_cmp file_out file_exp
+	'
+
+	test_expect_success "output object was really sharded" '
+		ipfs files stat --hash /foo > expected_foo_hash &&
+		echo QmPkwLJTYZRGPJ8Lazr9qPdrLmswPtUjaDbEpmR9jEh1se > actual_foo_hash &&
+		test_cmp expected_foo_hash actual_foo_hash
 	'
 }
 
@@ -508,7 +514,7 @@ test_files_api() {
 }
 
 # test offline and online
-#test_files_api
+test_files_api
 
 test_expect_success "clean up objects from previous test run" '
 	ipfs repo gc
@@ -518,6 +524,14 @@ test_launch_ipfs_daemon
 
 ONLINE=1 # set online flag so tests can easily tell
 test_files_api
+test_kill_ipfs_daemon
+
+test_expect_success "enable sharding in config" '
+	ipfs config --json Experimental.ShardingEnabled true
+'
+
+test_launch_ipfs_daemon
 test_sharding
 test_kill_ipfs_daemon
+
 test_done

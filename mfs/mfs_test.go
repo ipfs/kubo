@@ -752,7 +752,7 @@ func TestMfsHugeDir(t *testing.T) {
 	defer cancel()
 	_, rt := setupRoot(ctx, t)
 
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 10000; i++ {
 		err := Mkdir(rt, fmt.Sprintf("/dir%d", i), false, false)
 		if err != nil {
 			t.Fatal(err)

@@ -190,15 +190,18 @@ func (adder *Adder) PinRoot() error {
 func (adder *Adder) Finalize() (node.Node, error) {
 	root := adder.mr.GetValue()
 
-	// cant just call adder.RootNode() here as we need the name for printing
-	rootNode, err := root.GetNode()
+	err := root.Flush()
 	if err != nil {
 		return nil, err
 	}
 
 	var name string
 	if !adder.Wrap {
-		name = rootNode.Links()[0].Name
+		children, err := root.(*mfs.Directory).ListNames()
+		if err != nil {
+			return nil, err
+		}
+		name = children[0]
 
 		dir, ok := adder.mr.GetValue().(*mfs.Directory)
 		if !ok {

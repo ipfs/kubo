@@ -17,6 +17,10 @@ import (
 // result in the node being restructured into a sharded object.
 var ShardSplitThreshold = 1000
 
+// UseHAMTSharding is a global flag that signifies whether or not to use the
+// HAMT sharding scheme for directory creation
+var UseHAMTSharding = false
+
 // DefaultShardWidth is the default value used for hamt sharding width.
 var DefaultShardWidth = 256
 
@@ -31,7 +35,15 @@ type Directory struct {
 func NewDirectory(dserv mdag.DAGService) *Directory {
 	db := new(Directory)
 	db.dserv = dserv
-	db.dirnode = format.EmptyDirNode()
+	if UseHAMTSharding {
+		s, err := hamt.NewHamtShard(dserv, DefaultShardWidth)
+		if err != nil {
+			panic(err) // will only panic if DefaultShardWidth is a bad value
+		}
+		db.shard = s
+	} else {
+		db.dirnode = format.EmptyDirNode()
+	}
 	return db
 }
 
@@ -70,7 +82,7 @@ func NewDirectoryFromNode(dserv mdag.DAGService, nd node.Node) (*Directory, erro
 // AddChild adds a (name, key)-pair to the root node.
 func (d *Directory) AddChild(ctx context.Context, name string, nd node.Node) error {
 	if d.shard == nil {
-		if len(d.dirnode.Links()) < ShardSplitThreshold {
+		if !UseHAMTSharding {
 			_ = d.dirnode.RemoveNodeLink(name)
 			return d.dirnode.AddNodeLinkClean(name, nd)
 		}
