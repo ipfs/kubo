@@ -59,4 +59,4 @@ A list of cool demos to work towards
 - mounted {npm, apt, other pkg manager} registry
 - open a video on ipfs, stream it in
 - watch a video with a topology of 1 seed N leechers (N ~100)
-- more in section 3.8 in the [paper](http://static.benet.ai/t/ipfs.pdf)
+- more in section 3.8 in the [paper](https://github.com/ipfs/ipfs/blob/master/papers/ipfs-cap2pfs/ipfs-p2p-file-system.pdf)
