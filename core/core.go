@@ -214,7 +214,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter,
-		addrfilter, tpt, protec)
+		addrfilter, tpt, protec, &ConstructPeerHostOpts{DisableNatPortMap: cfg.Swarm.DisableNatPortMap})
 	if err != nil {
 		return err
 	}
@@ -709,12 +709,16 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 	return listen, nil
 }
 
-type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protc ipnet.Protector) (p2phost.Host, error)
+type ConstructPeerHostOpts struct {
+	DisableNatPortMap bool
+}
+
+type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protc ipnet.Protector, opts *ConstructPeerHostOpts) (p2phost.Host, error)
 
 var DefaultHostOption HostOption = constructPeerHost
 
 // isolates the complex initialization steps
-func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protec ipnet.Protector) (p2phost.Host, error) {
+func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protec ipnet.Protector, opts *ConstructPeerHostOpts) (p2phost.Host, error) {
 
 	// no addresses to begin with. we'll start later.
 	swrm, err := swarm.NewSwarmWithProtector(ctx, nil, id, ps, protec, tpt, bwr)
@@ -728,7 +732,12 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 		network.Swarm().Filters.AddDialFilter(f)
 	}
 
-	host := p2pbhost.New(network, p2pbhost.NATPortMap, bwr)
+	hostOpts := []interface{}{bwr}
+	if !opts.DisableNatPortMap {
+		hostOpts = append(hostOpts, p2pbhost.NATPortMap)
+	}
+
+	host := p2pbhost.New(network, hostOpts...)
 
 	return host, nil
 }
