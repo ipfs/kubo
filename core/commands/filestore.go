@@ -7,8 +7,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/filestore"
-	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
+	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -160,7 +160,7 @@ For ERROR entries the error will also be printed to stderr.
 
 var dupsFileStore = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Print block both in filestore and non-filestore.",
+		Tagline: "List blocks that are both in the filestore and standard block storage.",
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		_, fs, err := getFilestore(req)
@@ -194,7 +194,6 @@ var dupsFileStore = &cmds.Command{
 	Marshalers: refsMarshallerMap,
 	Type:       RefWrapper{},
 }
-
 
 func getFilestore(req cmds.Request) (*core.IpfsNode, *filestore.Filestore, error) {
 	n, err := req.InvocContext().GetNode()
@@ -250,4 +249,3 @@ func perKeyActionToChan(args []string, action func(*cid.Cid) *filestore.ListRes,
 	}()
 	return out
 }
-
