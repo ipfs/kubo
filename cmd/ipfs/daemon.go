@@ -26,7 +26,6 @@ import (
 	iconn "gx/ipfs/QmT6jBTqNKhhb8dbzCEMUNkGhm3RuRActcMhpShAHLpQtp/go-libp2p-interface-conn"
 	"gx/ipfs/QmVCNGTyD4EkvNYaAp253uMQ9Rjsjy2oGMvcdJJUoVRfja/go-multiaddr-net"
 	"gx/ipfs/QmX3QZ5jHEPidwUrymXV1iSCSUhdGxj15sm2gP4jKMef7B/client_golang/prometheus"
-	util "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
 	pstore "gx/ipfs/Qme1g4e3m2SmdiSGGU3vSWmUStwUjc5oECnEriaK9Xa1HU/go-libp2p-peerstore"
 )
 
@@ -227,12 +226,9 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	if initialize {
 
-		// now, FileExists is our best method of detecting whether ipfs is
-		// configured. Consider moving this into a config helper method
-		// `IsInitialized` where the quality of the signal can be improved over
-		// time, and many call-sites can benefit.
-		if !util.FileExists(req.InvocContext().ConfigRoot) {
-			err := initWithDefaults(os.Stdout, req.InvocContext().ConfigRoot)
+		cfg := req.InvocContext().ConfigRoot
+		if !fsrepo.IsInitialized(cfg) {
+			err := initWithDefaults(os.Stdout, cfg)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
