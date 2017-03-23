@@ -28,7 +28,8 @@ type FileManager struct {
 }
 
 type CorruptReferenceError struct {
-	Err error
+	Code Status
+	Err  error
 }
 
 func (c CorruptReferenceError) Error() string {
@@ -108,6 +109,10 @@ func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
 		//
 	}
 
+	return unmarshalDataObj(o)
+}
+
+func unmarshalDataObj(o interface{}) (*pb.DataObj, error) {
 	data, ok := o.([]byte)
 	if !ok {
 		return nil, fmt.Errorf("stored filestore dataobj was not a []byte")
@@ -127,20 +132,24 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	abspath := filepath.Join(f.root, p)
 
 	fi, err := os.Open(abspath)
-	if err != nil {
-		return nil, &CorruptReferenceError{err}
+	if os.IsNotExist(err) {
+		return nil, &CorruptReferenceError{StatusFileNotFound, err}
+	} else if err != nil {
+		return nil, &CorruptReferenceError{StatusFileError, err}
 	}
 	defer fi.Close()
 
 	_, err = fi.Seek(int64(d.GetOffset()), os.SEEK_SET)
 	if err != nil {
-		return nil, &CorruptReferenceError{err}
+		return nil, &CorruptReferenceError{StatusFileError, err}
 	}
 
 	outbuf := make([]byte, d.GetSize_())
 	_, err = io.ReadFull(fi, outbuf)
-	if err != nil {
-		return nil, &CorruptReferenceError{err}
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return nil, &CorruptReferenceError{StatusFileChanged, err}
+	} else if err != nil {
+		return nil, &CorruptReferenceError{StatusFileError, err}
 	}
 
 	outcid, err := c.Prefix().Sum(outbuf)
@@ -149,7 +158,8 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	}
 
 	if !c.Equals(outcid) {
-		return nil, &CorruptReferenceError{fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
+		return nil, &CorruptReferenceError{StatusFileChanged,
+			fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
 	}
 
 	return outbuf, nil

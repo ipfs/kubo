@@ -19,6 +19,14 @@ type Filestore struct {
 	bs blockstore.Blockstore
 }
 
+func (f *Filestore) FileManager() *FileManager {
+	return f.fm
+}
+
+func (f *Filestore) MainBlockstore() blockstore.Blockstore {
+	return f.bs
+}
+
 func NewFilestore(bs blockstore.Blockstore, fm *FileManager) *Filestore {
 	return &Filestore{fm, bs}
 }
