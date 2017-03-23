@@ -276,8 +276,9 @@ func (p *pinner) isPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error
 	}
 
 	// Default is Indirect
+	visitedSet := cid.NewSet()
 	for _, rc := range p.recursePin.Keys() {
-		has, err := hasChild(p.dserv, rc, c)
+		has, err := hasChild(p.dserv, rc, c, visitedSet.Visit)
 		if err != nil {
 			return "", false, err
 		}
@@ -519,7 +520,9 @@ func (p *pinner) PinWithMode(c *cid.Cid, mode PinMode) {
 	}
 }
 
-func hasChild(ds mdag.LinkService, root *cid.Cid, child *cid.Cid) (bool, error) {
+// hasChild recursively looks for a Cid among the children of a root Cid.
+// The visit function can be used to shortcut already-visited branches.
+func hasChild(ds mdag.LinkService, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
 	links, err := ds.GetLinks(context.Background(), root)
 	if err != nil {
 		return false, err
@@ -529,14 +532,15 @@ func hasChild(ds mdag.LinkService, root *cid.Cid, child *cid.Cid) (bool, error) 
 		if lnk.Cid.Equals(child) {
 			return true, nil
 		}
+		if visit(c) {
+			has, err := hasChild(ds, c, child, visit)
+			if err != nil {
+				return false, err
+			}
 
-		has, err := hasChild(ds, c, child)
-		if err != nil {
-			return false, err
-		}
-
-		if has {
-			return has, nil
+			if has {
+				return has, nil
+			}
 		}
 	}
 	return false, nil
