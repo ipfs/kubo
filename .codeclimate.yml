@@ -1,0 +1,18 @@
+ratings:
+  paths: 
+  - **/*.go
+
+exclude_paths:
+- test/
+- Godeps/
+- thirdparty/
+
+engines:
+  fixme:
+    enabled: true
+  golint:
+    enabled: true
+  govet:
+    enabled: true
+  gofmt:
+    enabled: true
