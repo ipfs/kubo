@@ -1,6 +1,6 @@
 ratings:
   paths: 
-  - **/*.go
+  - "**/*.go"
 
 exclude_paths:
 - test/
