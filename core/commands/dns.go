@@ -60,6 +60,10 @@ The resolver can recursively resolve:
 			depth = namesys.DefaultDepthLimit
 		}
 		output, err := resolver.ResolveN(req.Context(), name, depth)
+		if err == namesys.ErrResolveFailed {
+			res.SetError(err, cmds.ErrNotFound)
+			return
+		}
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

@@ -18,7 +18,6 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
-	"github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
@@ -169,26 +168,18 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	dir := false
 	switch err {
 	case nil:
-		// core.Resolve worked
+		// Cat() worked
 		defer dr.Close()
 	case coreiface.ErrIsDir:
 		dir = true
-	case namesys.ErrResolveFailed:
-		// Don't log that error as it is just noise
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Path Resolve error: %s", err.Error())
-		log.Info("Path Resolve error: %s", err.Error())
-		return
 	case coreiface.ErrOffline:
 		if !i.node.OnlineMode() {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
+			webError(w, "ipfs cat "+urlPath, err, http.StatusServiceUnavailable)
 			return
 		}
 		fallthrough
 	default:
-		// all other erros
-		webError(w, "Path Resolve error", err, http.StatusBadRequest)
+		webError(w, "ipfs cat "+urlPath, err, http.StatusNotFound)
 		return
 	}
 
@@ -532,7 +523,7 @@ func webErrorWithCode(w http.ResponseWriter, message string, err error, code int
 	w.WriteHeader(code)
 
 	log.Errorf("%s: %s", message, err) // TODO(cryptix): log until we have a better way to expose these (counter metrics maybe)
-	fmt.Fprintf(w, "%s: %s", message, err)
+	fmt.Fprintf(w, "%s: %s\n", message, err)
 }
 
 // return a 500 error and log
