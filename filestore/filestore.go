@@ -36,6 +36,7 @@ func (f *Filestore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 
 	a, err := f.bs.AllKeysChan(ctx)
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 

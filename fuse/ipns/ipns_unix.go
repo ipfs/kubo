@@ -125,8 +125,6 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 	default:
 		return nil, errors.New("unrecognized type")
 	}
-
-	panic("not reached")
 }
 
 type keyRoot struct {
