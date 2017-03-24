@@ -126,11 +126,11 @@ TEST_ULIMIT_PRESET=1
 test_launch_ipfs_daemon
 
 test_expect_success "daemon raised its fd limit" '
-	grep "raised file descriptor limit to 1024." actual_daemon > /dev/null
+	grep "raised file descriptor limit to 2048." actual_daemon > /dev/null
 '
 
-test_expect_success "daemon actually can handle 1024 file descriptors" '
-	hang-fds -hold=2s 1000 '$API_MADDR'
+test_expect_success "daemon actually can handle 2048 file descriptors" '
+	hang-fds -hold=2s 2000 '$API_MADDR' > /dev/null
 '
 
 test_expect_success "daemon didnt throw any errors" '
