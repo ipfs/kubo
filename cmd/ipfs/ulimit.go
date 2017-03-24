@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-var ipfsFileDescNum = uint64(1024)
+var ipfsFileDescNum = uint64(2048)
 
 func init() {
 	if val := os.Getenv("IPFS_FD_MAX"); val != "" {
