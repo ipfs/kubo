@@ -217,12 +217,12 @@ type NodeListing struct {
 	Hash string
 }
 
-func (d *Directory) ListNames() ([]string, error) {
+func (d *Directory) ListNames(ctx context.Context) ([]string, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
 	var out []string
-	err := d.dirbuilder.ForEachLink(func(l *node.Link) error {
+	err := d.dirbuilder.ForEachLink(ctx, func(l *node.Link) error {
 		out = append(out, l.Name)
 		return nil
 	})
@@ -235,9 +235,9 @@ func (d *Directory) ListNames() ([]string, error) {
 	return out, nil
 }
 
-func (d *Directory) List() ([]NodeListing, error) {
+func (d *Directory) List(ctx context.Context) ([]NodeListing, error) {
 	var out []NodeListing
-	err := d.ForEachEntry(context.TODO(), func(nl NodeListing) error {
+	err := d.ForEachEntry(ctx, func(nl NodeListing) error {
 		out = append(out, nl)
 		return nil
 	})
@@ -247,7 +247,7 @@ func (d *Directory) List() ([]NodeListing, error) {
 func (d *Directory) ForEachEntry(ctx context.Context, f func(NodeListing) error) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	return d.dirbuilder.ForEachLink(func(l *node.Link) error {
+	return d.dirbuilder.ForEachLink(ctx, func(l *node.Link) error {
 		c, err := d.childUnsync(l.Name)
 		if err != nil {
 			return err

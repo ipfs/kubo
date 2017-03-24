@@ -119,7 +119,7 @@ func (d *Directory) switchToSharding(ctx context.Context) error {
 	return nil
 }
 
-func (d *Directory) ForEachLink(f func(*node.Link) error) error {
+func (d *Directory) ForEachLink(ctx context.Context, f func(*node.Link) error) error {
 	if d.shard == nil {
 		for _, l := range d.dirnode.Links() {
 			if err := f(l); err != nil {
@@ -129,15 +129,15 @@ func (d *Directory) ForEachLink(f func(*node.Link) error) error {
 		return nil
 	}
 
-	return d.shard.ForEachLink(f)
+	return d.shard.ForEachLink(ctx, f)
 }
 
-func (d *Directory) Links() ([]*node.Link, error) {
+func (d *Directory) Links(ctx context.Context) ([]*node.Link, error) {
 	if d.shard == nil {
 		return d.dirnode.Links(), nil
 	}
 
-	return d.shard.EnumLinks()
+	return d.shard.EnumLinks(ctx)
 }
 
 func (d *Directory) Find(ctx context.Context, name string) (node.Node, error) {

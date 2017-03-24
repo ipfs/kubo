@@ -38,7 +38,7 @@ func TestDirectoryGrowth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	links, err := dir.Links()
+	links, err := dir.Links(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestDuplicateAddDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lnks, err := dir.Links()
+	lnks, err := dir.Links(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestDirBuilder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	links, err := dir.Links()
+	links, err := dir.Links(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestDirBuilder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	links, err = adir.Links()
+	links, err = adir.Links(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

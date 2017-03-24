@@ -324,7 +324,7 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 // ReadDirAll reads the link structure as directory entries
 func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var entries []fuse.Dirent
-	listing, err := dir.dir.List()
+	listing, err := dir.dir.List(ctx)
 	if err != nil {
 		return nil, err
 	}

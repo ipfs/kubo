@@ -82,6 +82,9 @@ func mkdirP(t *testing.T, root *Directory, pth string) *Directory {
 }
 
 func assertDirAtPath(root *Directory, pth string, children []string) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	fsn, err := DirLookup(root, pth)
 	if err != nil {
 		return err
@@ -92,7 +95,7 @@ func assertDirAtPath(root *Directory, pth string, children []string) error {
 		return fmt.Errorf("%s was not a directory", pth)
 	}
 
-	listing, err := dir.List()
+	listing, err := dir.List(ctx)
 	if err != nil {
 		return err
 	}
@@ -496,7 +499,7 @@ func TestMfsFile(t *testing.T) {
 
 func randomWalk(d *Directory, n int) (*Directory, error) {
 	for i := 0; i < n; i++ {
-		dirents, err := d.List()
+		dirents, err := d.List(context.Background())
 		if err != nil {
 			return nil, err
 		}
@@ -585,7 +588,7 @@ func actorRemoveFile(d *Directory) error {
 		return err
 	}
 
-	ents, err := d.List()
+	ents, err := d.List(context.Background())
 	if err != nil {
 		return err
 	}
@@ -605,7 +608,7 @@ func randomFile(d *Directory) (*File, error) {
 		return nil, err
 	}
 
-	ents, err := d.List()
+	ents, err := d.List(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -953,6 +956,7 @@ func TestConcurrentReads(t *testing.T) {
 	}
 	wg.Wait()
 }
+
 func writeFile(rt *Root, path string, data []byte) error {
 	n, err := Lookup(rt, path)
 	if err != nil {
@@ -975,8 +979,8 @@ func writeFile(rt *Root, path string, data []byte) error {
 		return err
 	}
 
-	if nw != 10 {
-		fmt.Errorf("wrote incorrect amount")
+	if nw != len(data) {
+		return fmt.Errorf("wrote incorrect amount: %d != 10", nw)
 	}
 
 	return nil

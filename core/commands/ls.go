@@ -111,7 +111,7 @@ The JSON output contains type information.
 				return
 			}
 
-			links, err := dir.Links()
+			links, err := dir.Links(req.Context())
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return

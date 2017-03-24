@@ -197,7 +197,7 @@ func (adder *Adder) Finalize() (node.Node, error) {
 
 	var name string
 	if !adder.Wrap {
-		children, err := root.(*mfs.Directory).ListNames()
+		children, err := root.(*mfs.Directory).ListNames(adder.ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +232,7 @@ func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
 	case *mfs.File:
 		return nil
 	case *mfs.Directory:
-		names, err := fsn.ListNames()
+		names, err := fsn.ListNames(adder.ctx)
 		if err != nil {
 			return err
 		}

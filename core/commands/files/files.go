@@ -348,7 +348,7 @@ Examples:
 		case *mfs.Directory:
 			if !long {
 				var output []mfs.NodeListing
-				names, err := fsn.ListNames()
+				names, err := fsn.ListNames(req.Context())
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
@@ -361,7 +361,7 @@ Examples:
 				}
 				res.SetOutput(&FilesLsOutput{output})
 			} else {
-				listing, err := fsn.List()
+				listing, err := fsn.List(req.Context())
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return

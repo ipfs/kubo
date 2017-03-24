@@ -72,6 +72,8 @@ func assertLink(s *HamtShard, name string, found bool) error {
 }
 
 func assertSerializationWorks(ds dag.DAGService, s *HamtShard) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	nd, err := s.Node()
 	if err != nil {
 		return err
@@ -82,12 +84,12 @@ func assertSerializationWorks(ds dag.DAGService, s *HamtShard) error {
 		return err
 	}
 
-	linksA, err := s.EnumLinks()
+	linksA, err := s.EnumLinks(ctx)
 	if err != nil {
 		return err
 	}
 
-	linksB, err := nds.EnumLinks()
+	linksB, err := nds.EnumLinks(ctx)
 	if err != nil {
 		return err
 	}
@@ -160,7 +162,8 @@ func TestDirBuilding(t *testing.T) {
 func TestShardReload(t *testing.T) {
 	ds := mdtest.Mock()
 	s, _ := NewHamtShard(ds, 256)
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	_, s, err := makeDir(ds, 200)
 	if err != nil {
@@ -177,7 +180,7 @@ func TestShardReload(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lnks, err := nds.EnumLinks()
+	lnks, err := nds.EnumLinks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,7 +273,7 @@ func TestSetAfterMarshal(t *testing.T) {
 		}
 	}
 
-	links, err := nds.EnumLinks()
+	links, err := nds.EnumLinks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +304,7 @@ func TestDuplicateAddShard(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lnks, err := dir.EnumLinks()
+	lnks, err := dir.EnumLinks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,7 +396,7 @@ func TestRemoveElemsAfterMarshal(t *testing.T) {
 		}
 	}
 
-	links, err := nds.EnumLinks()
+	links, err := nds.EnumLinks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

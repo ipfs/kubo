@@ -351,17 +351,17 @@ func (ds *HamtShard) getValue(ctx context.Context, hv *hashBits, key string, cb 
 	return os.ErrNotExist
 }
 
-func (ds *HamtShard) EnumLinks() ([]*node.Link, error) {
+func (ds *HamtShard) EnumLinks(ctx context.Context) ([]*node.Link, error) {
 	var links []*node.Link
-	err := ds.ForEachLink(func(l *node.Link) error {
+	err := ds.ForEachLink(ctx, func(l *node.Link) error {
 		links = append(links, l)
 		return nil
 	})
 	return links, err
 }
 
-func (ds *HamtShard) ForEachLink(f func(*node.Link) error) error {
-	return ds.walkTrie(func(sv *shardValue) error {
+func (ds *HamtShard) ForEachLink(ctx context.Context, f func(*node.Link) error) error {
+	return ds.walkTrie(ctx, func(sv *shardValue) error {
 		lnk, err := node.MakeLink(sv.val)
 		if err != nil {
 			return err
@@ -373,7 +373,7 @@ func (ds *HamtShard) ForEachLink(f func(*node.Link) error) error {
 	})
 }
 
-func (ds *HamtShard) walkTrie(cb func(*shardValue) error) error {
+func (ds *HamtShard) walkTrie(ctx context.Context, cb func(*shardValue) error) error {
 	for i := 0; i < ds.tableSize; i++ {
 		if ds.bitfield.Bit(i) == 0 {
 			continue
@@ -382,7 +382,7 @@ func (ds *HamtShard) walkTrie(cb func(*shardValue) error) error {
 		idx := ds.indexForBitPos(i)
 		// NOTE: an optimized version could simply iterate over each
 		//       element in the 'children' array.
-		c, err := ds.getChild(context.TODO(), idx)
+		c, err := ds.getChild(ctx, idx)
 		if err != nil {
 			return err
 		}
@@ -395,7 +395,7 @@ func (ds *HamtShard) walkTrie(cb func(*shardValue) error) error {
 			}
 
 		case *HamtShard:
-			err := c.walkTrie(cb)
+			err := c.walkTrie(ctx, cb)
 			if err != nil {
 				return err
 			}

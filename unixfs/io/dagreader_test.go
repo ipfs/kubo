@@ -169,7 +169,10 @@ func TestMetadataNode(t *testing.T) {
 	ctx, closer := context.WithCancel(context.Background())
 	defer closer()
 
-	data, err := unixfs.BytesForMetadata(&unixfs.Metadata{"text", 125})
+	data, err := unixfs.BytesForMetadata(&unixfs.Metadata{
+		MimeType: "text",
+		Size:     125,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
