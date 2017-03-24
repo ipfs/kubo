@@ -198,14 +198,14 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 				return
 			}
 			if e.Error != nil {
-				log.Errorf("blockstore.AllKeysChan got err:", e.Error)
+				log.Errorf("blockstore.AllKeysChan got err: %s", e.Error)
 				return
 			}
 
 			// need to convert to key.Key using key.KeyFromDsKey.
 			k, err := dshelp.DsKeyToCid(ds.RawKey(e.Key))
 			if err != nil {
-				log.Warningf("error parsing key from DsKey: ", err)
+				log.Warningf("error parsing key from DsKey: %s", err)
 				continue
 			}
 

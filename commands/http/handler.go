@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,11 +12,10 @@ import (
 	"strings"
 	"sync"
 
-	context "context"
-	"github.com/ipfs/go-ipfs/repo/config"
-	cors "gx/ipfs/QmPG2kW5t27LuHgHnvhUwbHCNHAt2eUcb4gPHqofrESUdB/cors"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/repo/config"
+
+	cors "gx/ipfs/QmPG2kW5t27LuHgHnvhUwbHCNHAt2eUcb4gPHqofrESUdB/cors"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
@@ -323,7 +323,6 @@ func flushCopy(w io.Writer, r io.Reader) error {
 
 		f.Flush()
 	}
-	return nil
 }
 
 func sanitizedErrStr(err error) string {

@@ -205,7 +205,7 @@ func TestCatOffline(t *testing.T) {
 
 	_, err = api.Cat(ctx, coreapi.ResolvedPath("/ipns/Qmfoobar", nil, nil))
 	if err != coreiface.ErrOffline {
-		t.Fatalf("expected ErrOffline, got: %", err)
+		t.Fatalf("expected ErrOffline, got: %s", err)
 	}
 }
 
@@ -223,7 +223,7 @@ func TestLs(t *testing.T) {
 	}
 	parts := strings.Split(k, "/")
 	if len(parts) != 2 {
-		t.Errorf("unexpected path:", k)
+		t.Errorf("unexpected path: %s", k)
 	}
 	p := coreapi.ResolvedPath("/ipfs/"+parts[0], nil, nil)
 

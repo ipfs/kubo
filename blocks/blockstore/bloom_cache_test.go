@@ -31,7 +31,9 @@ func testBloomCached(bs Blockstore, ctx context.Context) (*bloomcache, error) {
 func TestPutManyAddsToBloom(t *testing.T) {
 	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 
-	ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
 	cachedbs, err := testBloomCached(bs, ctx)
 
 	select {
@@ -75,7 +77,9 @@ func TestHasIsBloomCached(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		bs.Put(blocks.NewBlock([]byte(fmt.Sprintf("data: %d", i))))
 	}
-	ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
 	cachedbs, err := testBloomCached(bs, ctx)
 	if err != nil {
 		t.Fatal(err)
