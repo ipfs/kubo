@@ -62,7 +62,7 @@ func NewUnixfsNodeFromDag(nd *dag.ProtoNode) (*UnixfsNode, error) {
 	}, nil
 }
 
-func (n *UnixfsNode) SetPrefix(prefix cid.Prefix) {
+func (n *UnixfsNode) SetPrefix(prefix *cid.Prefix) {
 	n.node.SetPrefix(prefix)
 }
 

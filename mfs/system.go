@@ -63,7 +63,7 @@ type Root struct {
 	Type string
 
 	// Prefix to use for any children created
-	Prefix cid.Prefix
+	Prefix *cid.Prefix
 }
 
 type PubFunc func(context.Context, *cid.Cid) error

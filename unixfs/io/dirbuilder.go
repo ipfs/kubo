@@ -81,7 +81,7 @@ func NewDirectoryFromNode(dserv mdag.DAGService, nd node.Node) (*Directory, erro
 }
 
 // SetPrefix sets the prefix of the root node
-func (d *Directory) SetPrefix(prefix cid.Prefix) {
+func (d *Directory) SetPrefix(prefix *cid.Prefix) {
 	if d.dirnode != nil {
 		d.dirnode.SetPrefix(prefix)
 	}

@@ -25,7 +25,7 @@ type DagBuilderHelper struct {
 	batch     *dag.Batch
 	fullPath  string
 	stat      os.FileInfo
-	prefix    cid.Prefix
+	prefix    *cid.Prefix
 }
 
 type DagBuilderParams struct {
@@ -36,8 +36,8 @@ type DagBuilderParams struct {
 	// instead of using the unixfs TRaw type
 	RawLeaves bool
 
-	// CID Prefix to use
-	Prefix cid.Prefix
+	// CID Prefix to use if set
+	Prefix *cid.Prefix
 
 	// DAGService to write blocks to (required)
 	Dagserv dag.DAGService

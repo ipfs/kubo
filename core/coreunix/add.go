@@ -103,7 +103,7 @@ type Adder struct {
 	mroot      *mfs.Root
 	unlocker   bs.Unlocker
 	tempRoot   *cid.Cid
-	Prefix     cid.Prefix
+	Prefix     *cid.Prefix
 }
 
 func (adder *Adder) mfsRoot() (*mfs.Root, error) {
@@ -113,6 +113,7 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 	rnode := unixfs.EmptyDirNode()
 	rnode.SetPrefix(adder.Prefix)
 	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil)
+	mr.Prefix = adder.Prefix
 	if err != nil {
 		return nil, err
 	}
