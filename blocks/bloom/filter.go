@@ -1,15 +1,17 @@
-// package bloom implements a simple bloom filter.
+// Package bloom implements a simple bloom filter.
 package bloom
 
 import (
 	"encoding/binary"
 	"errors"
 	// Non crypto hash, because speed
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mtchavez/jenkins"
 	"gx/ipfs/QmeWQMDa5dSdP4n8WDeoY5z8L2EKVqF4ZvK4VEHsLqXsGu/hamming"
 	"hash"
+
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mtchavez/jenkins"
 )
 
+// A Filter represents a bloom filter.
 type Filter interface {
 	Add([]byte)
 	Find([]byte) bool
@@ -17,6 +19,8 @@ type Filter interface {
 	HammingDistance(Filter) (int, error)
 }
 
+// NewFilter creates a new bloom Filter with the given
+// size. k (the number of hash functions), is hardcoded to 3.
 func NewFilter(size int) Filter {
 	return &filter{
 		hash:   jenkins.New(),
@@ -31,6 +35,8 @@ type filter struct {
 	k      int
 }
 
+// BasicFilter calls NewFilter with a bloom filter size of
+// 2048 bytes.
 func BasicFilter() Filter {
 	return NewFilter(2048)
 }
@@ -84,11 +90,11 @@ func (f *filter) Merge(o Filter) (Filter, error) {
 	}
 
 	if len(casfil.filter) != len(f.filter) {
-		return nil, errors.New("filter lengths must match!")
+		return nil, errors.New("filter lengths must match")
 	}
 
 	if casfil.k != f.k {
-		return nil, errors.New("filter k-values must match!")
+		return nil, errors.New("filter k-values must match")
 	}
 
 	nfilt := new(filter)
@@ -110,7 +116,7 @@ func (f *filter) HammingDistance(o Filter) (int, error) {
 	}
 
 	if len(f.filter) != len(casfil.filter) {
-		return 0, errors.New("filter lengths must match!")
+		return 0, errors.New("filter lengths must match")
 	}
 
 	acc := 0

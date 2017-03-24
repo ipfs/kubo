@@ -14,18 +14,17 @@ import (
 	syncds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
 )
 
-func testBloomCached(bs Blockstore, ctx context.Context) (*bloomcache, error) {
+func testBloomCached(ctx context.Context, bs Blockstore) (*bloomcache, error) {
 	if ctx == nil {
-		ctx = context.TODO()
+		ctx = context.Background()
 	}
 	opts := DefaultCacheOpts()
 	opts.HasARCCacheSize = 0
-	bbs, err := CachedBlockstore(bs, ctx, opts)
+	bbs, err := CachedBlockstore(ctx, bs, opts)
 	if err == nil {
 		return bbs.(*bloomcache), nil
-	} else {
-		return nil, err
 	}
+	return nil, err
 }
 
 func TestPutManyAddsToBloom(t *testing.T) {
@@ -34,7 +33,7 @@ func TestPutManyAddsToBloom(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	cachedbs, err := testBloomCached(bs, ctx)
+	cachedbs, err := testBloomCached(ctx, bs)
 
 	select {
 	case <-cachedbs.rebuildChan:
@@ -65,7 +64,7 @@ func TestPutManyAddsToBloom(t *testing.T) {
 
 func TestReturnsErrorWhenSizeNegative(t *testing.T) {
 	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-	_, err := bloomCached(bs, context.TODO(), -1, 1)
+	_, err := bloomCached(context.Background(), bs, -1, 1)
 	if err == nil {
 		t.Fail()
 	}
@@ -80,7 +79,7 @@ func TestHasIsBloomCached(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	cachedbs, err := testBloomCached(bs, ctx)
+	cachedbs, err := testBloomCached(ctx, bs)
 	if err != nil {
 		t.Fatal(err)
 	}

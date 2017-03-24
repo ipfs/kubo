@@ -1,13 +1,15 @@
-package blockstore_util
+// Package blockstoreutil provides utility functions for Blockstores.
+package blockstoreutil
 
 import (
 	"fmt"
 	"io"
 
-	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
-	"github.com/ipfs/go-ipfs/pin"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
+
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
+	"github.com/ipfs/go-ipfs/pin"
 )
 
 // RemovedBlock is used to respresent the result of removing a block.
@@ -21,12 +23,17 @@ type RemovedBlock struct {
 	Error string `json:",omitempty"`
 }
 
+// RmBlocksOpts is used to wrap options for RmBlocks().
 type RmBlocksOpts struct {
 	Prefix string
 	Quiet  bool
 	Force  bool
 }
 
+// RmBlocks removes the blocks provided in the cids slice.
+// It returns a channel where objects of type RemovedBlock are placed, when
+// not using the Quiet option. Block removal is asynchronous and will
+// skip any pinned blocks.
 func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []*cid.Cid, opts RmBlocksOpts) (<-chan interface{}, error) {
 	// make the channel large enough to hold any result to avoid
 	// blocking while holding the GCLock
@@ -53,6 +60,11 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []*cid.Cid, opts RmB
 	return out, nil
 }
 
+// FilterPinned takes a slice of Cids and returns it with the pinned Cids
+// removed. If a Cid is pinned, it will place RemovedBlock objects in the given
+// out channel, with an error which indicates that the Cid is pinned.
+// This function is used in RmBlocks to filter out any blocks which are not
+// to be removed (because they are pinned).
 func FilterPinned(pins pin.Pinner, out chan<- interface{}, cids []*cid.Cid) []*cid.Cid {
 	stillOkay := make([]*cid.Cid, 0, len(cids))
 	res, err := pins.CheckIfPinned(cids...)
@@ -73,6 +85,9 @@ func FilterPinned(pins pin.Pinner, out chan<- interface{}, cids []*cid.Cid) []*c
 	return stillOkay
 }
 
+// ProcRmOutput takes the channel returned by RmBlocks and writes
+// to stdout/stderr according to the RemovedBlock objects received in
+// that channel.
 func ProcRmOutput(in <-chan interface{}, sout io.Writer, serr io.Writer) error {
 	someFailed := false
 	for res := range in {
