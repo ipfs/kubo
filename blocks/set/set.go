@@ -1,24 +1,30 @@
-// package set contains various different types of 'BlockSet's
+// Package set defines the BlockSet interface which provides
+// abstraction for sets of Cids.
+// It provides a default implementation using cid.Set.
 package set
 
 import (
-	"github.com/ipfs/go-ipfs/blocks/bloom"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
+
+	"github.com/ipfs/go-ipfs/blocks/bloom"
 )
 
 var log = logging.Logger("blockset")
 
-// BlockSet represents a mutable set of keyed blocks
+// BlockSet represents a mutable set of blocks CIDs.
 type BlockSet interface {
 	AddBlock(*cid.Cid)
 	RemoveBlock(*cid.Cid)
 	HasKey(*cid.Cid) bool
+	// GetBloomFilter creates and returns a bloom filter to which
+	// all the CIDs in the set have been added.
 	GetBloomFilter() bloom.Filter
-
 	GetKeys() []*cid.Cid
 }
 
+// SimpleSetFromKeys returns a default implementation of BlockSet
+// using cid.Set. The given keys are added to the set.
 func SimpleSetFromKeys(keys []*cid.Cid) BlockSet {
 	sbs := &simpleBlockSet{blocks: cid.NewSet()}
 	for _, k := range keys {
@@ -27,6 +33,8 @@ func SimpleSetFromKeys(keys []*cid.Cid) BlockSet {
 	return sbs
 }
 
+// NewSimpleBlockSet returns a new empty default implementation
+// of BlockSet using cid.Set.
 func NewSimpleBlockSet() BlockSet {
 	return &simpleBlockSet{blocks: cid.NewSet()}
 }

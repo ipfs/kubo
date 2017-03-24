@@ -7,6 +7,7 @@ import (
 	"gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 )
 
+// CacheOpts wraps options for CachedBlockStore().
 // Next to each option is it aproximate memory usage per unit
 type CacheOpts struct {
 	HasBloomFilterSize   int // 1 byte
@@ -14,6 +15,7 @@ type CacheOpts struct {
 	HasARCCacheSize      int // 32 bytes
 }
 
+// DefaultCacheOpts returns a CacheOpts initialized with default values.
 func DefaultCacheOpts() CacheOpts {
 	return CacheOpts{
 		HasBloomFilterSize:   512 << 10,
@@ -22,8 +24,12 @@ func DefaultCacheOpts() CacheOpts {
 	}
 }
 
-func CachedBlockstore(bs Blockstore,
-	ctx context.Context, opts CacheOpts) (cbs Blockstore, err error) {
+// CachedBlockstore returns a blockstore wrapped in an ARCCache and
+// then in a bloom filter cache, if the options indicate it.
+func CachedBlockstore(
+	ctx context.Context,
+	bs Blockstore,
+	opts CacheOpts) (cbs Blockstore, err error) {
 	cbs = bs
 
 	if opts.HasBloomFilterSize < 0 || opts.HasBloomFilterHashes < 0 ||
@@ -42,7 +48,7 @@ func CachedBlockstore(bs Blockstore,
 	}
 	if opts.HasBloomFilterSize != 0 {
 		// *8 because of bytes to bits conversion
-		cbs, err = bloomCached(cbs, ctx, opts.HasBloomFilterSize*8, opts.HasBloomFilterHashes)
+		cbs, err = bloomCached(ctx, cbs, opts.HasBloomFilterSize*8, opts.HasBloomFilterHashes)
 	}
 
 	return cbs, err

@@ -186,7 +186,7 @@ func TestAllKeysRespectsContext(t *testing.T) {
 
 }
 
-func TestValueTypeMismatch(t *testing.T) {
+func TestErrValueTypeMismatch(t *testing.T) {
 	block := blocks.NewBlock([]byte("some data"))
 
 	datastore := ds.NewMapDatastore()
@@ -196,7 +196,7 @@ func TestValueTypeMismatch(t *testing.T) {
 	blockstore := NewBlockstore(ds_sync.MutexWrap(datastore))
 
 	_, err := blockstore.Get(block.Cid())
-	if err != ValueTypeMismatch {
+	if err != ErrValueTypeMismatch {
 		t.Fatal(err)
 	}
 }

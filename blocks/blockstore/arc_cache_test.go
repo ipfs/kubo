@@ -13,25 +13,24 @@ import (
 
 var exampleBlock = blocks.NewBlock([]byte("foo"))
 
-func testArcCached(bs Blockstore, ctx context.Context) (*arccache, error) {
+func testArcCached(ctx context.Context, bs Blockstore) (*arccache, error) {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
 	opts := DefaultCacheOpts()
 	opts.HasBloomFilterSize = 0
 	opts.HasBloomFilterHashes = 0
-	bbs, err := CachedBlockstore(bs, ctx, opts)
+	bbs, err := CachedBlockstore(ctx, bs, opts)
 	if err == nil {
 		return bbs.(*arccache), nil
-	} else {
-		return nil, err
 	}
+	return nil, err
 }
 
-func createStores(t *testing.T) (*arccache, *blockstore, *callbackDatastore) {
+func createStores(t *testing.T) (*arccache, Blockstore, *callbackDatastore) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
 	bs := NewBlockstore(syncds.MutexWrap(cd))
-	arc, err := testArcCached(bs, nil)
+	arc, err := testArcCached(nil, bs)
 	if err != nil {
 		t.Fatal(err)
 	}
