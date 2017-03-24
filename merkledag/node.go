@@ -266,6 +266,7 @@ func (n *ProtoNode) Cid() *cid.Cid {
 	c, err := n.Prefix.Sum(n.RawData())
 	if err != nil {
 		// programmer error
+		err = fmt.Errorf("invalid CID of length %d: %x: %v", len(n.RawData()), n.RawData(), err)
 		panic(err)
 	}
 
