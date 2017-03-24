@@ -12,8 +12,11 @@ import (
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 )
 
+// Status is used to identify the state of the block data referenced
+// by a FilestoreNode. Among other places, it is used by CorruptReferenceError.
 type Status int32
 
+// These are the supported Status codes.
 const (
 	StatusOk           Status = 0
 	StatusFileError    Status = 10 // Backing File Error
@@ -23,6 +26,7 @@ const (
 	StatusKeyNotFound  Status = 30
 )
 
+// String provides a human-readable representation for Status codes.
 func (s Status) String() string {
 	switch s {
 	case StatusOk:
@@ -42,10 +46,16 @@ func (s Status) String() string {
 	}
 }
 
+// Format returns the status formatted as a string
+// with leading 0s.
 func (s Status) Format() string {
 	return fmt.Sprintf("%-7s", s.String())
 }
 
+// ListRes wraps the response of the List*() functions, which
+// allows to obtain and verify blocks stored by the FileManager
+// of a Filestore. It includes information about the referenced
+// block.
 type ListRes struct {
 	Status   Status
 	ErrorMsg string
@@ -55,6 +65,7 @@ type ListRes struct {
 	Size     uint64
 }
 
+// FormatLong returns a human readable string for a ListRes object.
 func (r *ListRes) FormatLong() string {
 	switch {
 	case r.Key == nil:
@@ -66,18 +77,34 @@ func (r *ListRes) FormatLong() string {
 	}
 }
 
+// List fetches the block with the given key from the Filemanager
+// of the given Filestore and returns a ListRes object with the information.
+// List does not verify that the reference is valid or whether the
+// raw data is accesible. See Verify().
 func List(fs *Filestore, key *cid.Cid) *ListRes {
 	return list(fs, false, key)
 }
 
+// ListAll returns a function as an iterator which, once invoked, returns
+// one by one each block in the Filestore's FileManager.
+// ListAll does not verify that the references are valid or whether
+// the raw data is accessible. See VerifyAll().
 func ListAll(fs *Filestore) (func() *ListRes, error) {
 	return listAll(fs, false)
 }
 
+// Verify fetches the block with the given key from the Filemanager
+// of the given Filestore and returns a ListRes object with the information.
+// Verify makes sure that the reference is valid and the block data can be
+// read.
 func Verify(fs *Filestore, key *cid.Cid) *ListRes {
 	return list(fs, true, key)
 }
 
+// VerifyAll returns a function as an iterator which, once invoked,
+// returns one by one each block in the Filestore's FileManager.
+// VerifyAll checks that the reference is valid and that the block data
+// can be read.
 func VerifyAll(fs *Filestore) (func() *ListRes, error) {
 	return listAll(fs, true)
 }
@@ -150,14 +177,14 @@ func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
 			ErrorMsg: errorMsg,
 			Key:      c,
 		}
-	} else {
-		return &ListRes{
-			Status:   status,
-			ErrorMsg: errorMsg,
-			Key:      c,
-			FilePath: *d.FilePath,
-			Size:     *d.Size_,
-			Offset:   *d.Offset,
-		}
+	}
+
+	return &ListRes{
+		Status:   status,
+		ErrorMsg: errorMsg,
+		Key:      c,
+		FilePath: *d.FilePath,
+		Size:     *d.Size_,
+		Offset:   *d.Offset,
 	}
 }
