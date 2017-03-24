@@ -12,6 +12,7 @@ package mfs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -30,7 +31,7 @@ var log = logging.Logger("mfs")
 var ErrIsDirectory = errors.New("error: is a directory")
 
 type childCloser interface {
-	closeChild(string, *dag.ProtoNode, bool) error
+	closeChild(string, node.Node, bool) error
 }
 
 type NodeType int
@@ -87,8 +88,13 @@ func NewRoot(parent context.Context, ds dag.DAGService, node *dag.ProtoNode, pf 
 	}
 
 	switch pbn.GetType() {
-	case ft.TDirectory:
-		root.val = NewDirectory(parent, node.String(), node, root, ds)
+	case ft.TDirectory, ft.THAMTShard:
+		rval, err := NewDirectory(parent, node.String(), node, root, ds)
+		if err != nil {
+			return nil, err
+		}
+
+		root.val = rval
 	case ft.TFile, ft.TMetadata, ft.TRaw:
 		fi, err := NewFile(node.String(), node, root, ds)
 		if err != nil {
@@ -96,7 +102,7 @@ func NewRoot(parent context.Context, ds dag.DAGService, node *dag.ProtoNode, pf 
 		}
 		root.val = fi
 	default:
-		panic("unrecognized! (NYI)")
+		return nil, fmt.Errorf("unrecognized unixfs type: %s", pbn.GetType())
 	}
 	return root, nil
 }
@@ -119,7 +125,7 @@ func (kr *Root) Flush() error {
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
-func (kr *Root) closeChild(name string, nd *dag.ProtoNode, sync bool) error {
+func (kr *Root) closeChild(name string, nd node.Node, sync bool) error {
 	c, err := kr.dserv.Add(nd)
 	if err != nil {
 		return err

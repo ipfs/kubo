@@ -59,17 +59,27 @@ func addAssetList(nd *core.IpfsNode, l []string) (*cid.Cid, error) {
 		}
 
 		fname := filepath.Base(p)
+
 		c, err := cid.Decode(s)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := dirb.AddChild(nd.Context(), fname, c); err != nil {
+		node, err := nd.DAG.Get(nd.Context(), c)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := dirb.AddChild(nd.Context(), fname, node); err != nil {
 			return nil, fmt.Errorf("assets: could not add '%s' as a child: %s", fname, err)
 		}
 	}
 
-	dir := dirb.GetNode()
+	dir, err := dirb.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
 	dcid, err := nd.DAG.Add(dir)
 	if err != nil {
 		return nil, fmt.Errorf("assets: DAG.Add(dir) failed: %s", err)
