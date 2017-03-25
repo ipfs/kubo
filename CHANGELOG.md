@@ -1,5 +1,34 @@
 # go-ipfs changelog
 
+### 0.4.8-rc1 - 2017-03-24
+- Features
+	- Implement unixfs directory sharding ([ipfs/go-ipfs#3042](https://github.com/ipfs/go-ipfs/pull/3042))
+	- Add DisableNatPortMap option ([ipfs/go-ipfs#3798](https://github.com/ipfs/go-ipfs/pull/3798))
+	- Basic Filestore utilty commands ([ipfs/go-ipfs#3653](https://github.com/ipfs/go-ipfs/pull/3653))
+- Improvements
+	- More Robust GC ([ipfs/go-ipfs#3712](https://github.com/ipfs/go-ipfs/pull/3712))
+	- Automatically fix permissions for docker volumes ([ipfs/go-ipfs#3744](https://github.com/ipfs/go-ipfs/pull/3744))
+	- Core API refinements and efficiency improvements ([ipfs/go-ipfs#3493](https://github.com/ipfs/go-ipfs/pull/3493))
+	- Improve IsPinned() lookups for indirect pins ([ipfs/go-ipfs#3809](https://github.com/ipfs/go-ipfs/pull/3809))
+- Documentation
+	- Improve 'name' and 'key' helptexts ([ipfs/go-ipfs#3806](https://github.com/ipfs/go-ipfs/pull/3806))
+	- Update link to paper in dev.md ([ipfs/go-ipfs#3812](https://github.com/ipfs/go-ipfs/pull/3812))
+	- Add test to enforce helptext on commands ([ipfs/go-ipfs#2648](https://github.com/ipfs/go-ipfs/pull/2648))
+- Bugfixes
+	- Remove bloom filter check on Put call in blockstore ([ipfs/go-ipfs#3782](https://github.com/ipfs/go-ipfs/pull/3782))
+	- Re-add the GOPATH checking functionality ([ipfs/go-ipfs#3787](https://github.com/ipfs/go-ipfs/pull/3787))
+	- Use fsrepo.IsInitialized to test for initialization ([ipfs/go-ipfs#3805](https://github.com/ipfs/go-ipfs/pull/3805))
+	- Return 404 Not Found for failed path resolutions ([ipfs/go-ipfs#3777](https://github.com/ipfs/go-ipfs/pull/3777))
+	- Fix 'dist\_get' failing without failing ([ipfs/go-ipfs#3818](https://github.com/ipfs/go-ipfs/pull/3818))
+	- Update iptb with fix for t0130 hanging issue ([ipfs/go-ipfs#3823](https://github.com/ipfs/go-ipfs/pull/3823))
+	- fix hidden file detection on windows ([ipfs/go-ipfs#3829](https://github.com/ipfs/go-ipfs/pull/3829))
+- General Changes and Refactorings
+	- Fix multiple govet warnings ([ipfs/go-ipfs#3824](https://github.com/ipfs/go-ipfs/pull/3824))
+	- Make Golint happy in the blocks submodule ([ipfs/go-ipfs#3827](https://github.com/ipfs/go-ipfs/pull/3827))
+- Testing
+	- Enable codeclimate for automated linting and vetting ([ipfs/go-ipfs#3821](https://github.com/ipfs/go-ipfs/pull/3821))
+	- Fix EOF test failure with Multipart.Read ([ipfs/go-ipfs#3804](https://github.com/ipfs/go-ipfs/pull/3804))
+
 ### 0.4.7 - 2017-03-15
 
 Ipfs 0.4.7 contains several exciting new features!
