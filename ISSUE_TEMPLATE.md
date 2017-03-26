@@ -1,11 +1,16 @@
-<!-- Output From `ipfs version --all`) -->
+<!-- Output From `ipfs version --all` -->
 #### Version information:
 
 <!-- Bug, Feature, Enhancement, Etc -->
 #### Type:
 
-<!-- from `P0` "Critical" to `P5` "Relatively Unimportant") -->
-#### Priority:
+<!-- One of following:
+    Critical - System crash, application panic.
+    High - The main functionality of the application does not work, API breakage, repo format breakage, etc.
+    Medium - A non-essential functionality does not work, performance issues, etc.
+    Low - An optional functionality does not work.
+    Very Low - Translation or documentation mistake. Something that really does not matter much but should be noticed for a future release. -->
+#### Severity:
 
 #### Description:
 
