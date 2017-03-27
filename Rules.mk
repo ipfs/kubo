@@ -99,8 +99,7 @@ nofuse: GOTAGS += nofuse
 nofuse: build
 .PHONY: nofuse
 
-install: $$(DEPS_GO)
-	go install $(go-flags-with-tags) ./cmd/ipfs
+install: cmd/ipfs-install
 .PHONY: install
 
 install_unsupported:
