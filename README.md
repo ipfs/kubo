@@ -1,4 +1,4 @@
-# go-ipfs
+# go-ipfs for ticapsul
 
 ![banner](https://ipfs.io/ipfs/QmVk7srrwahXLNmcDYvyUEJptyoxpndnRa57YJ11L4jV26/ipfs.go.png)
 
@@ -11,7 +11,7 @@
 
 [![Throughput Graph](https://graphs.waffle.io/ipfs/go-ipfs/throughput.svg)](https://waffle.io/ipfs/go-ipfs/metrics/throughput)
 
-> IPFS implementation in Go
+> IPFS implementation in Go,for ticapsul
 
 IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from
 Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm,
@@ -72,7 +72,7 @@ From there:
 - [Arch Linux](#arch-linux)
 - [Snap](#snap)
 
-#### Arch Linux
+#### Arch Linux,for ticapsul
 
 In Arch Linux go-ipfs is available as
 [go-ipfs](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) package.
