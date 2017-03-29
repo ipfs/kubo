@@ -27,6 +27,7 @@ var PinCmd = &cmds.Command{
 		"add":    addPinCmd,
 		"rm":     rmPinCmd,
 		"ls":     listPinCmd,
+		"verify": verifyPinCmd,
 		"update": updatePinCmd,
 	},
 }
@@ -410,6 +411,27 @@ new pin and removing the old one.
 	},
 }
 
+var verifyPinCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Verify that recursive pins are complete.",
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, _ := req.InvocContext().GetNode()
+
+		rdr, wtr := io.Pipe()
+		out := pinVerify(req.Context(), n)
+
+		go func() {
+			defer wtr.Close()
+			for r := range out {
+				r.Format(wtr)
+			}
+		}()
+
+		res.SetOutput(rdr)
+	},
+}
+
 type RefKeyObject struct {
 	Type string
 }
@@ -490,6 +512,91 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	}
 
 	return keys, nil
+}
+
+type pinStatus struct {
+	// use pointer to array slice to reduce memory usage
+	// the value should not be nil unless uninitialized
+	badNodes *[]badNode
+}
+
+type badNode struct {
+	cid *cid.Cid
+	err error
+}
+
+type pinVerifyRes struct {
+	cid *cid.Cid
+	pinStatus
+}
+
+func pinVerify(ctx context.Context, n *core.IpfsNode) <-chan pinVerifyRes {
+	visited := make(map[string]pinStatus)
+	getLinks := n.DAG.GetOfflineLinkService().GetLinks
+	emptySlice := &[]badNode{}
+	recPins := n.Pinning.RecursiveKeys()
+
+	var checkPin func(root *cid.Cid) pinStatus
+	checkPin = func(root *cid.Cid) pinStatus {
+		key := root.String()
+		if status, ok := visited[key]; ok {
+			if status.badNodes == nil {
+				return pinStatus{&[]badNode{badNode{
+					cid: root,
+					err: fmt.Errorf("Cycle Detected.")}}}
+			}
+			return status
+		}
+
+		links, err := getLinks(ctx, root)
+		if err != nil {
+			status := pinStatus{&[]badNode{badNode{cid: root, err: err}}}
+			visited[key] = status
+			return status
+		}
+
+		status := pinStatus{}
+		visited[key] = status // paranoid mode cycle detection
+		for _, lnk := range links {
+			res := checkPin(lnk.Cid)
+			if len(*res.badNodes) > 0 {
+				if status.badNodes == nil {
+					status.badNodes = res.badNodes
+				} else {
+					slice := append(*status.badNodes, *res.badNodes...)
+					status.badNodes = &slice
+				}
+			}
+		}
+		if status.badNodes == nil {
+			status.badNodes = emptySlice // prevent special cases
+		}
+
+		visited[key] = status
+		return status
+	}
+
+	out := make(chan pinVerifyRes)
+	go func() {
+		defer close(out)
+		for _, cid := range recPins {
+			pinStatus := checkPin(cid)
+			out <- pinVerifyRes{cid, pinStatus}
+		}
+	}()
+
+	return out
+}
+
+func (r pinVerifyRes) Format(out io.Writer) {
+	if len(*r.badNodes) == 0 {
+		fmt.Fprintf(out, "%s ok\n", r.cid)
+	} else {
+		fmt.Fprintf(out, "%s broken\n", r.cid)
+		for _, e := range *r.badNodes {
+			fmt.Fprintf(out, "  %s: %s\n", e.cid, e.err)
+		}
+	}
 }
 
 func cidsToStrings(cs []*cid.Cid) []string {
