@@ -515,9 +515,7 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 }
 
 type pinStatus struct {
-	// use pointer to array slice to reduce memory usage
-	// the value should not be nil unless uninitialized
-	badNodes *[]badNode
+	badNodes []badNode
 }
 
 type badNode struct {
@@ -533,43 +531,28 @@ type pinVerifyRes struct {
 func pinVerify(ctx context.Context, n *core.IpfsNode) <-chan pinVerifyRes {
 	visited := make(map[string]pinStatus)
 	getLinks := n.DAG.GetOfflineLinkService().GetLinks
-	emptySlice := &[]badNode{}
 	recPins := n.Pinning.RecursiveKeys()
 
 	var checkPin func(root *cid.Cid) pinStatus
 	checkPin = func(root *cid.Cid) pinStatus {
 		key := root.String()
 		if status, ok := visited[key]; ok {
-			if status.badNodes == nil {
-				return pinStatus{&[]badNode{badNode{
-					cid: root,
-					err: fmt.Errorf("Cycle Detected.")}}}
-			}
 			return status
 		}
 
 		links, err := getLinks(ctx, root)
 		if err != nil {
-			status := pinStatus{&[]badNode{badNode{cid: root, err: err}}}
+			status := pinStatus{[]badNode{badNode{cid: root, err: err}}}
 			visited[key] = status
 			return status
 		}
 
 		status := pinStatus{}
-		visited[key] = status // paranoid mode cycle detection
 		for _, lnk := range links {
 			res := checkPin(lnk.Cid)
-			if len(*res.badNodes) > 0 {
-				if status.badNodes == nil {
-					status.badNodes = res.badNodes
-				} else {
-					slice := append(*status.badNodes, *res.badNodes...)
-					status.badNodes = &slice
-				}
+			if len(res.badNodes) > 0 {
+				status.badNodes = append(status.badNodes, res.badNodes...)
 			}
-		}
-		if status.badNodes == nil {
-			status.badNodes = emptySlice // prevent special cases
 		}
 
 		visited[key] = status
@@ -589,11 +572,11 @@ func pinVerify(ctx context.Context, n *core.IpfsNode) <-chan pinVerifyRes {
 }
 
 func (r pinVerifyRes) Format(out io.Writer) {
-	if len(*r.badNodes) == 0 {
+	if len(r.badNodes) == 0 {
 		fmt.Fprintf(out, "%s ok\n", r.cid)
 	} else {
 		fmt.Fprintf(out, "%s broken\n", r.cid)
-		for _, e := range *r.badNodes {
+		for _, e := range r.badNodes {
 			fmt.Fprintf(out, "  %s: %s\n", e.cid, e.err)
 		}
 	}
