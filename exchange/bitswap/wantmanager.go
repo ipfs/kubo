@@ -36,7 +36,7 @@ type WantManager struct {
 
 func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantManager {
 	ctx, cancel := context.WithCancel(ctx)
-	wantlistGauge := metrics.NewCtx(ctx, "wanlist_total",
+	wantlistGauge := metrics.NewCtx(ctx, "wantlist_total",
 		"Number of items in wantlist.").Gauge()
 	sentHistogram := metrics.NewCtx(ctx, "sent_all_blocks_bytes", "Histogram of blocks sent by"+
 		" this bitswap").Histogram(metricsBuckets)
