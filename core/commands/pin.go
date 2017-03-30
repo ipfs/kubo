@@ -415,8 +415,19 @@ var verifyPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Verify that recursive pins are complete.",
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "Also write the hashes of non-broken pins."),
+		cmds.BoolOption("quiet", "q", "Write just hashes of broken pins."),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, _ := req.InvocContext().GetNode()
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		verbose, _, _ := res.Request().Option("verbose").Bool()
+		quiet, _, _ := res.Request().Option("quiet").Bool()
 
 		rdr, wtr := io.Pipe()
 		out := pinVerify(req.Context(), n)
@@ -424,7 +435,11 @@ var verifyPinCmd = &cmds.Command{
 		go func() {
 			defer wtr.Close()
 			for r := range out {
-				r.Format(wtr)
+				if quiet && len(r.badNodes) > 0 {
+					fmt.Fprintf(wtr, "%s\n", r.cid)
+				} else if !quiet {
+					r.Format(wtr, verbose)
+				}
 			}
 		}()
 
@@ -571,9 +586,11 @@ func pinVerify(ctx context.Context, n *core.IpfsNode) <-chan pinVerifyRes {
 	return out
 }
 
-func (r pinVerifyRes) Format(out io.Writer) {
+func (r pinVerifyRes) Format(out io.Writer, verbose bool) {
 	if len(r.badNodes) == 0 {
-		fmt.Fprintf(out, "%s ok\n", r.cid)
+		if verbose {
+			fmt.Fprintf(out, "%s ok\n", r.cid)
+		}
 	} else {
 		fmt.Fprintf(out, "%s broken\n", r.cid)
 		for _, e := range r.badNodes {
