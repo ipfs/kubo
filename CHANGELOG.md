@@ -1,6 +1,28 @@
 # go-ipfs changelog
 
-### 0.4.8-rc1 - 2017-03-24
+### 0.4.8 - 2017-03-29
+
+Ipfs 0.4.8 brings with it several improvements, bugfixes, documentation
+improvements, and the long awaited directory sharding code.
+
+Currently, when too many items are added into a unixfs directory, the object
+gets too large and you may experience issues. To pervent this problem, and
+generally make working really large directories more efficient, we have
+implemented a HAMT structure for unixfs. To enable this feature, run:
+```
+ipfs config --json Experimental.ShardingEnabled true
+```
+
+And restart your daemon if it was running.
+
+Note: With this setting enabled, the hashes of any newly added directories will
+be different than they previously were, as the new code will use the sharded
+HAMT structure for all directories. Also, nodes running ipfs 0.4.7 and earlier
+will not be able to access directories created with this option.
+
+That said, please do give it a try, let us know how it goes, and then take a
+look at all the other cool things added in 0.4.8 below.
+
 - Features
 	- Implement unixfs directory sharding ([ipfs/go-ipfs#3042](https://github.com/ipfs/go-ipfs/pull/3042))
 	- Add DisableNatPortMap option ([ipfs/go-ipfs#3798](https://github.com/ipfs/go-ipfs/pull/3798))
