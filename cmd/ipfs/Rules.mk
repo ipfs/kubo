@@ -22,7 +22,7 @@ $(IPFS_BIN_$(d)): $(d) $$(DEPS_GO) ALWAYS #| $(DEPS_OO_$(d))
 
 
 $(d)-install: GOFLAGS += $(cmd/ipfs_flags)
-$(d)-install:
+$(d)-install: $(d) $$(DEPS_GO) ALWAYS 
 	go install $(go-flags-with-tags) ./cmd/ipfs
 .PHONY: $(d)-install
 
