@@ -1,12 +1,13 @@
 package dagutils
 
 import (
+	"context"
 	"fmt"
 	"path"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
-	context "context"
+	node "github.com/ipfs/go-ipld-node"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 )
 
@@ -87,7 +88,8 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.ProtoNode, cs [
 	return e.Finalize(ds)
 }
 
-func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.ProtoNode) ([]*Change, error) {
+// Diff returns a set of changes that transform node 'a' into node 'b'
+func Diff(ctx context.Context, ds dag.DAGService, a, b node.Node) ([]*Change, error) {
 	if len(a.Links()) == 0 && len(b.Links()) == 0 {
 		return []*Change{
 			&Change{
@@ -104,7 +106,7 @@ func Diff(ctx context.Context, ds dag.DAGService, a, b *dag.ProtoNode) ([]*Chang
 
 	// strip out unchanged stuff
 	for _, lnk := range a.Links() {
-		l, err := b.GetNodeLink(lnk.Name)
+		l, _, err := b.ResolveLink([]string{lnk.Name})
 		if err == nil {
 			if l.Cid.Equals(lnk.Cid) {
 				// no change... ignore it

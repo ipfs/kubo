@@ -24,9 +24,10 @@ var PinCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"add": addPinCmd,
-		"rm":  rmPinCmd,
-		"ls":  listPinCmd,
+		"add":    addPinCmd,
+		"rm":     rmPinCmd,
+		"ls":     listPinCmd,
+		"update": updatePinCmd,
 	},
 }
 
@@ -328,6 +329,83 @@ Example:
 				}
 			}
 			return out, nil
+		},
+	},
+}
+
+var updatePinCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Update a recursive pin",
+		ShortDescription: `
+Updates one pin to another, making sure that all objects in the new pin are
+local.  Then removes the old pin. This is an optimized version of adding the
+new pin and removing the old one.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("from-path", true, false, "Path to old object."),
+		cmds.StringArg("to-path", true, false, "Path to new object to be pinned."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("unpin", "Remove the old pin.").Default(true),
+	},
+	Type: PinOutput{},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		unpin, _, err := req.Option("unpin").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		from, err := path.ParsePath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		to, err := path.ParsePath(req.Arguments()[1])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		fromc, err := core.ResolveToCid(req.Context(), n, from)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		toc, err := core.ResolveToCid(req.Context(), n, to)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		err = n.Pinning.Update(req.Context(), fromc, toc, unpin)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&PinOutput{Pins: []string{from.String(), to.String()}})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			added, ok := res.Output().(*PinOutput)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "updated %s to %s\n", added.Pins[0], added.Pins[1])
+			return buf, nil
 		},
 	},
 }
