@@ -85,10 +85,9 @@ func (d *Directory) SetPrefix(prefix *cid.Prefix) {
 	if d.dirnode != nil {
 		d.dirnode.SetPrefix(prefix)
 	}
-	// FIXME: Should we do this? -- kevina
-	//if d.shard != nil {
-	//	d.shard.SetPrefix(prefix)
-	//}
+	if d.shard != nil {
+		d.shard.SetPrefix(prefix)
+	}
 }
 
 // AddChild adds a (name, key)-pair to the root node.

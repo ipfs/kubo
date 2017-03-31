@@ -55,4 +55,23 @@ test_expect_success "sharded and unsharded output look the same" '
 	test_cmp sharded_out unsharded_out
 '
 
+test_add_large_dir_v1() {
+	exphash="$1"
+	test_expect_success "ipfs add (CIDv1) on very large directory succeeds" '
+		ipfs add -r -q --cid-version=1 testdata | tail -n1 > sharddir_out &&
+		echo "$exphash" > sharddir_exp &&
+		test_cmp sharddir_exp sharddir_out
+	'
+}
+
+# this hash implies both the directory and the leaf entries are CIDv1
+SHARDEDV1="zdj7WX91spg4DsnNpvoBLjyjXUGgcTTWavygBbSifpmJdgPUA"
+test_add_large_dir_v1 "$SHARDEDV1"
+
+test_launch_ipfs_daemon
+
+test_add_large_dir_v1 "$SHARDEDV1"
+
+test_kill_ipfs_daemon
+
 test_done
