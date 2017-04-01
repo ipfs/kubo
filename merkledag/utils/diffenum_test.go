@@ -70,6 +70,20 @@ var tg2 = map[string]ndesc{
 	"d": ndesc{},
 }
 
+var tg3 = map[string]ndesc{
+	"a1": ndesc{
+		"foo": "b",
+		"bar": "c",
+	},
+	"b": ndesc{},
+	"a2": ndesc{
+		"foo": "b",
+		"bar": "d",
+	},
+	"c": ndesc{},
+	"d": ndesc{},
+}
+
 func TestDiffEnumBasic(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -121,6 +135,7 @@ func assertCidList(a, b []*cid.Cid) error {
 	}
 	return nil
 }
+
 func TestDiffEnumFail(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -146,4 +161,30 @@ func TestDiffEnumFail(t *testing.T) {
 		t.Fatal(err)
 	}
 
+}
+
+func TestDiffEnumRecurse(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	nds := mkGraph(tg3)
+
+	ds := mdtest.Mock()
+	lgds := &getLogger{ds: ds}
+
+	for _, s := range []string{"a1", "a2", "b", "c", "d"} {
+		_, err := ds.Add(nds[s])
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err := DiffEnumerate(ctx, lgds, nds["a1"].Cid(), nds["a2"].Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = assertCidList(lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid(), nds["d"].Cid()})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
