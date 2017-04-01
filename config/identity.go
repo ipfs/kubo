@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/base64"
+
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
