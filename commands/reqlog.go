@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// ReqLogEntry is an entry in the request log
 type ReqLogEntry struct {
 	StartTime time.Time
 	EndTime   time.Time
@@ -15,31 +16,17 @@ type ReqLogEntry struct {
 	Args      []string
 	ID        int
 
-	req Request
 	log *ReqLog
 }
 
-func (r *ReqLogEntry) Finish() {
-	log := r.log
-	log.lock.Lock()
-	defer log.lock.Unlock()
-
-	r.Active = false
-	r.EndTime = time.Now()
-	r.log.maybeCleanup()
-
-	// remove references to save memory
-	r.req = nil
-	r.log = nil
-
-}
-
+// Copy returns a copy of the ReqLogEntry
 func (r *ReqLogEntry) Copy() *ReqLogEntry {
 	out := *r
 	out.log = nil
 	return &out
 }
 
+// ReqLog is a log of requests
 type ReqLog struct {
 	Requests []*ReqLogEntry
 	nextID   int
@@ -47,10 +34,8 @@ type ReqLog struct {
 	keep     time.Duration
 }
 
+// Add creates a ReqLogEntry from a request and adds it to the log
 func (rl *ReqLog) Add(req Request) *ReqLogEntry {
-	rl.lock.Lock()
-	defer rl.lock.Unlock()
-
 	rle := &ReqLogEntry{
 		StartTime: time.Now(),
 		Active:    true,
@@ -58,18 +43,33 @@ func (rl *ReqLog) Add(req Request) *ReqLogEntry {
 		Options:   req.Options(),
 		Args:      req.StringArguments(),
 		ID:        rl.nextID,
-		req:       req,
 		log:       rl,
 	}
 
-	rl.nextID++
-	rl.Requests = append(rl.Requests, rle)
+	rl.AddEntry(rle)
 	return rle
 }
 
+// AddEntry adds an entry to the log
+func (rl *ReqLog) AddEntry(rle *ReqLogEntry) {
+	rl.lock.Lock()
+	defer rl.lock.Unlock()
+
+	rl.nextID++
+	rl.Requests = append(rl.Requests, rle)
+
+	if rle == nil || !rle.Active {
+		rl.maybeCleanup()
+	}
+
+	return
+}
+
+// ClearInactive removes stale entries
 func (rl *ReqLog) ClearInactive() {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
+
 	k := rl.keep
 	rl.keep = 0
 	rl.cleanup()
@@ -97,6 +97,7 @@ func (rl *ReqLog) cleanup() {
 	rl.Requests = rl.Requests[:i]
 }
 
+// SetKeepTime sets a duration after which an entry will be considered inactive
 func (rl *ReqLog) SetKeepTime(t time.Duration) {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
@@ -114,4 +115,15 @@ func (rl *ReqLog) Report() []*ReqLogEntry {
 	}
 
 	return out
+}
+
+// Finish marks an entry in the log as finished
+func (rl *ReqLog) Finish(rle *ReqLogEntry) {
+	rl.lock.Lock()
+	defer rl.lock.Unlock()
+
+	rle.Active = false
+	rle.EndTime = time.Now()
+
+	rl.maybeCleanup()
 }

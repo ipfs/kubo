@@ -1,6 +1,8 @@
 package commands
 
-import "io"
+import (
+	"io"
+)
 
 type ChannelMarshaler struct {
 	Channel   <-chan interface{}

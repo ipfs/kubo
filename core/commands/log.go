@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"io"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
+
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -16,7 +17,7 @@ import (
 var logAllKeyword = "all"
 
 var LogCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Interact with the daemon log output.",
 		ShortDescription: `
 'ipfs log' contains utility commands to affect or read the logging
@@ -32,7 +33,7 @@ output of a running daemon.
 }
 
 var logLevelCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Change the logging level.",
 		ShortDescription: `
 Change the verbosity of one or all subsystems log output. This does not affect
@@ -40,11 +41,11 @@ the event log.
 `,
 	},
 
-	Arguments: []cmds.Argument{
+	Arguments: []cmdkit.Argument{
 		// TODO use a different keyword for 'all' because all can theoretically
 		// clash with a subsystem name
-		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
-		cmds.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'critical' the least verbose.
+		cmdkit.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
+		cmdkit.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'critical' the least verbose.
 			One of: debug, info, warning, error, critical.
 		`),
 	},
@@ -58,7 +59,7 @@ the event log.
 		}
 
 		if err := logging.SetLogLevel(subsystem, level); err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -73,7 +74,7 @@ the event log.
 }
 
 var logLsCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "List the logging subsystems.",
 		ShortDescription: `
 'ipfs log ls' is a utility command used to list the logging
@@ -90,7 +91,7 @@ subsystems of a running daemon.
 }
 
 var logTailCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Read the event log.",
 		ShortDescription: `
 Outputs event log messages (not other log messages) as they are generated.

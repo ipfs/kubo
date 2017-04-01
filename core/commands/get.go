@@ -9,20 +9,22 @@ import (
 	gopath "path"
 	"strings"
 
-	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
-
-	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	tar "github.com/ipfs/go-ipfs/thirdparty/tar"
 	uarchive "github.com/ipfs/go-ipfs/unixfs/archive"
+
+	"gx/ipfs/QmQVvuDwXUGbtYmbmTcbLtGRYXnEbymaR2zEj38GVysqWe/go-ipfs-cmds"
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
+	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 )
 
 var ErrInvalidCompressionLevel = errors.New("Compression level must be between 1 and 9")
 
 var GetCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Download IPFS objects.",
 		ShortDescription: `
 Stores to disk the data contained an IPFS or IPNS object(s) at the given path.
@@ -37,41 +39,40 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 `,
 	},
 
-	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
-	Options: []cmds.Option{
-		cmds.StringOption("output", "o", "The path where the output should be stored."),
-		cmds.BoolOption("archive", "a", "Output a TAR archive.").Default(false),
-		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression.").Default(false),
-		cmds.IntOption("compression-level", "l", "The level of compression (1-9).").Default(-1),
+	Options: []cmdkit.Option{
+		cmdkit.StringOption("output", "o", "The path where the output should be stored."),
+		cmdkit.BoolOption("archive", "a", "Output a TAR archive.").Default(false),
+		cmdkit.BoolOption("compress", "C", "Compress the output with GZIP compression.").Default(false),
+		cmdkit.IntOption("compression-level", "l", "The level of compression (1-9).").Default(-1),
 	},
 	PreRun: func(req cmds.Request) error {
 		_, err := getCompressOptions(req)
 		return err
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
+	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
 		if len(req.Arguments()) == 0 {
-			res.SetError(errors.New("not enough arugments provided"), cmds.ErrClient)
+			res.SetError(errors.New("not enough arugments provided"), cmdkit.ErrClient)
 			return
 		}
-
 		cmplvl, err := getCompressOptions(req)
 		if err != nil {
-			res.SetError(err, cmds.ErrClient)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		node, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 		p := path.Path(req.Arguments()[0])
 		ctx := req.Context()
 		dn, err := core.Resolve(ctx, node.Namesys, node.Resolver, p)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -79,7 +80,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		case *dag.ProtoNode:
 			size, err := dn.Size()
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
@@ -87,51 +88,67 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		case *dag.RawNode:
 			res.SetLength(uint64(len(dn.RawData())))
 		default:
-			res.SetError(fmt.Errorf("'ipfs get' only supports unixfs nodes"), cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		archive, _, _ := req.Option("archive").Bool()
 		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		res.SetOutput(reader)
+
+		res.Emit(reader)
 	},
-	PostRun: func(req cmds.Request, res cmds.Response) {
-		if res.Output() == nil {
-			return
-		}
-		outReader := res.Output().(io.Reader)
-		res.SetOutput(nil)
+	PostRun: map[cmds.EncodingType]func(cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
+		cmds.CLI: func(req cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
+			reNext, res := cmds.NewChanResponsePair(req)
 
-		outPath, _, _ := req.Option("output").String()
-		if len(outPath) == 0 {
-			_, outPath = gopath.Split(req.Arguments()[0])
-			outPath = gopath.Clean(outPath)
-		}
+			go func() {
+				defer re.Close()
 
-		cmplvl, err := getCompressOptions(req)
-		if err != nil {
-			res.SetError(err, cmds.ErrClient)
-			return
-		}
+				v, err := res.Next()
+				if err != nil {
+					log.Error(e.New(err))
+					return
+				}
 
-		archive, _, _ := req.Option("archive").Bool()
+				outReader, ok := v.(io.Reader)
+				if !ok {
+					log.Error(e.New(e.TypeErr(outReader, v)))
+					return
+				}
 
-		gw := getWriter{
-			Out:         os.Stdout,
-			Err:         os.Stderr,
-			Archive:     archive,
-			Compression: cmplvl,
-			Size:        int64(res.Length()),
-		}
+				outPath, _, _ := req.Option("output").String()
+				if len(outPath) == 0 {
+					_, outPath = gopath.Split(req.Arguments()[0])
+					outPath = gopath.Clean(outPath)
+				}
 
-		if err := gw.Write(outReader, outPath); err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+				cmplvl, err := getCompressOptions(req)
+				if err != nil {
+					re.SetError(err, cmdkit.ErrNormal)
+					return
+				}
+
+				archive, _, _ := req.Option("archive").Bool()
+
+				gw := getWriter{
+					Out:         os.Stdout,
+					Err:         os.Stderr,
+					Archive:     archive,
+					Compression: cmplvl,
+					Size:        int64(res.Length()),
+				}
+
+				if err := gw.Write(outReader, outPath); err != nil {
+					re.SetError(err, cmdkit.ErrNormal)
+				}
+			}()
+
+			return reNext
+		},
 	},
 }
 

@@ -9,6 +9,7 @@ import (
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
@@ -17,6 +18,7 @@ import (
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
 )
 
 type LsLink struct {
@@ -35,7 +37,7 @@ type LsOutput struct {
 }
 
 var LsCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "List directory contents for Unix filesystem objects.",
 		ShortDescription: `
 Displays the contents of an IPFS or IPNS object(s) at the given path, with
@@ -47,29 +49,29 @@ The JSON output contains type information.
 `,
 	},
 
-	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
-		cmds.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
+		cmdkit.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		// get options early -> exit early in case of error
 		if _, _, err := req.Option("headers").Bool(); err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		resolve, _, err := req.Option("resolve-type").Bool()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -86,7 +88,7 @@ The JSON output contains type information.
 		for _, fpath := range paths {
 			p, err := path.ParsePath(fpath)
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
@@ -97,17 +99,18 @@ The JSON output contains type information.
 
 			dagnode, err := core.Resolve(req.Context(), nd.Namesys, r, p)
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 			dagnodes = append(dagnodes, dagnode)
 		}
 
 		output := make([]LsObject, len(req.Arguments()))
+
 		for i, dagnode := range dagnodes {
 			dir, err := uio.NewDirectoryFromNode(nd.DAG, dagnode)
 			if err != nil && err != uio.ErrNotADir {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
@@ -117,7 +120,7 @@ The JSON output contains type information.
 			} else {
 				links, err = dir.Links(req.Context())
 				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
+					res.SetError(err, cmdkit.ErrNormal)
 					return
 				}
 			}
@@ -135,14 +138,14 @@ The JSON output contains type information.
 					// not an error
 					linkNode = nil
 				} else if err != nil {
-					res.SetError(err, cmds.ErrNormal)
+					res.SetError(err, cmdkit.ErrNormal)
 					return
 				}
 
 				if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
 					d, err := unixfs.FromBytes(pn.Data())
 					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
+						res.SetError(err, cmdkit.ErrNormal)
 						return
 					}
 
@@ -162,8 +165,17 @@ The JSON output contains type information.
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
 			headers, _, _ := res.Request().Option("headers").Bool()
-			output := res.Output().(*LsOutput)
+			output, ok := v.(*LsOutput)
+			if !ok {
+				return nil, e.TypeErr(output, v)
+			}
+
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, object := range output.Objects {

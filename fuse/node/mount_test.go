@@ -9,7 +9,8 @@ import (
 	"testing"
 	"time"
 
-	context "context"
+	"context"
+
 	core "github.com/ipfs/go-ipfs/core"
 	ipns "github.com/ipfs/go-ipfs/fuse/ipns"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"

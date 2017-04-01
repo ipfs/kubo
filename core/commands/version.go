@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
 )
 
 type VersionOutput struct {
@@ -20,16 +22,16 @@ type VersionOutput struct {
 }
 
 var VersionCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline:          "Show ipfs version information.",
 		ShortDescription: "Returns the current version of ipfs and exits.",
 	},
 
-	Options: []cmds.Option{
-		cmds.BoolOption("number", "n", "Only show the version number.").Default(false),
-		cmds.BoolOption("commit", "Show the commit hash.").Default(false),
-		cmds.BoolOption("repo", "Show repo version.").Default(false),
-		cmds.BoolOption("all", "Show all version information").Default(false),
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("number", "n", "Only show the version number.").Default(false),
+		cmdkit.BoolOption("commit", "Show the commit hash.").Default(false),
+		cmdkit.BoolOption("repo", "Show repo version.").Default(false),
+		cmdkit.BoolOption("all", "Show all version information").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(&VersionOutput{
@@ -42,7 +44,15 @@ var VersionCmd = &cmds.Command{
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v := res.Output().(*VersionOutput)
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			version, ok := v.(*VersionOutput)
+			if !ok {
+				return nil, e.TypeErr(version, v)
+			}
 
 			repo, _, err := res.Request().Option("repo").Bool()
 			if err != nil {
@@ -50,7 +60,7 @@ var VersionCmd = &cmds.Command{
 			}
 
 			if repo {
-				return strings.NewReader(v.Repo + "\n"), nil
+				return strings.NewReader(version.Repo + "\n"), nil
 			}
 
 			commit, _, err := res.Request().Option("commit").Bool()
@@ -59,7 +69,7 @@ var VersionCmd = &cmds.Command{
 				return nil, err
 			}
 			if commit {
-				commitTxt = "-" + v.Commit
+				commitTxt = "-" + version.Commit
 			}
 
 			number, _, err := res.Request().Option("number").Bool()
@@ -67,7 +77,7 @@ var VersionCmd = &cmds.Command{
 				return nil, err
 			}
 			if number {
-				return strings.NewReader(fmt.Sprintln(v.Version + commitTxt)), nil
+				return strings.NewReader(fmt.Sprintln(version.Version + commitTxt)), nil
 			}
 
 			all, _, err := res.Request().Option("all").Bool()
@@ -77,11 +87,11 @@ var VersionCmd = &cmds.Command{
 			if all {
 				out := fmt.Sprintf("go-ipfs version: %s-%s\n"+
 					"Repo version: %s\nSystem version: %s\nGolang version: %s\n",
-					v.Version, v.Commit, v.Repo, v.System, v.Golang)
+					version.Version, version.Commit, version.Repo, version.System, version.Golang)
 				return strings.NewReader(out), nil
 			}
 
-			return strings.NewReader(fmt.Sprintf("ipfs version %s%s\n", v.Version, commitTxt)), nil
+			return strings.NewReader(fmt.Sprintf("ipfs version %s%s\n", version.Version, commitTxt)), nil
 		},
 	},
 	Type: VersionOutput{},

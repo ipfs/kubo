@@ -1,7 +1,7 @@
 package ipns
 
 import (
-	context "context"
+	"context"
 
 	"github.com/ipfs/go-ipfs/core"
 	nsys "github.com/ipfs/go-ipfs/namesys"

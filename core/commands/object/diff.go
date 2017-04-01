@@ -7,8 +7,10 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
+	cmdkit "gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
 )
 
 type Changes struct {
@@ -16,7 +18,7 @@ type Changes struct {
 }
 
 var ObjectDiffCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Display the diff between two ipfs objects.",
 		ShortDescription: `
 'ipfs object diff' is a command used to show the differences between
@@ -42,17 +44,17 @@ Example:
    Changed "bar" from QmNgd5cz2jNftnAHBhcRUGdtiaMzb5Rhjqd4etondHHST8 to QmRfFVsjSXkhFxrfWnLpMae2M4GBVsry6VAuYYcji5MiZb.
 `,
 	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("obj_a", true, false, "Object to diff against."),
-		cmds.StringArg("obj_b", true, false, "Object to diff."),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("obj_a", true, false, "Object to diff against."),
+		cmdkit.StringArg("obj_b", true, false, "Object to diff."),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption("verbose", "v", "Print extra information."),
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("verbose", "v", "Print extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -61,13 +63,13 @@ Example:
 
 		pa, err := path.ParsePath(a)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		pb, err := path.ParsePath(b)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -75,19 +77,19 @@ Example:
 
 		obj_a, err := core.Resolve(ctx, node.Namesys, node.Resolver, pa)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		obj_b, err := core.Resolve(ctx, node.Namesys, node.Resolver, pb)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		changes, err := dagutils.Diff(ctx, node.DAG, obj_a, obj_b)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -96,8 +98,17 @@ Example:
 	Type: Changes{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
 			verbose, _, _ := res.Request().Option("v").Bool()
-			changes := res.Output().(*Changes)
+			changes, ok := v.(*Changes)
+			if !ok {
+				return nil, e.TypeErr(changes, v)
+			}
+
 			buf := new(bytes.Buffer)
 			for _, change := range changes.Changes {
 				if verbose {

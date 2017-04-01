@@ -4,12 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
-	cmds "github.com/ipfs/go-ipfs/commands"
-	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
@@ -18,12 +17,14 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	"gx/ipfs/QmQVvuDwXUGbtYmbmTcbLtGRYXnEbymaR2zEj38GVysqWe/go-ipfs-cmds"
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit/files"
 	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 )
 
-// Error indicating the max depth has been exceded.
+// ErrDepthLimitExceeded indicates that the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 const (
@@ -47,7 +48,7 @@ const (
 const adderOutChanSize = 8
 
 var AddCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Add a file or directory to ipfs.",
 		ShortDescription: `
 Adds contents of <path> to ipfs. Use -r to add directories (recursively).
@@ -98,26 +99,26 @@ You can now check what blocks have been created by:
 `,
 	},
 
-	Arguments: []cmds.Argument{
-		cmds.FileArg("path", true, true, "The path to a file to be added to ipfs.").EnableRecursive().EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.FileArg("path", true, true, "The path to a file to be added to ipfs.").EnableRecursive().EnableStdin(),
 	},
-	Options: []cmds.Option{
-		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
-		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
-		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
-		cmds.BoolOption(silentOptionName, "Write no output."),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
-		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
-		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
-		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
-		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").Default("size-262144"),
-		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
-		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
-		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. (experimental)"),
-		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
-		cmds.IntOption(cidVersionOptionName, "Cid version. Non-zero value will change default of 'raw-leaves' to true. (experimental)").Default(0),
-		cmds.StringOption(hashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)").Default("sha2-256"),
+	Options: []cmdkit.Option{
+		cmdkit.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
+		cmdkit.BoolOption(quietOptionName, "q", "Write minimal output."),
+		cmdkit.BoolOption(quieterOptionName, "Q", "Write only final hash."),
+		cmdkit.BoolOption(silentOptionName, "Write no output."),
+		cmdkit.BoolOption(progressOptionName, "p", "Stream progress data."),
+		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		cmdkit.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
+		cmdkit.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
+		cmdkit.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
+		cmdkit.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").Default("size-262144"),
+		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
+		cmdkit.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
+		cmdkit.BoolOption(noCopyOptionName, "Add the file using filestore. (experimental)"),
+		cmdkit.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
+		cmdkit.IntOption(cidVersionOptionName, "Cid version. Non-zero value will change default of 'raw-leaves' to true. (experimental)").Default(0),
+		cmdkit.StringOption(hashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)").Default("sha2-256"),
 	},
 	PreRun: func(req cmds.Request) error {
 		quiet, _, _ := req.Option(quietOptionName).Bool()
@@ -154,29 +155,28 @@ You can now check what blocks have been created by:
 				return
 			}
 
-			log.Debugf("Total size of file being added: %v\n", size)
 			sizeCh <- size
 		}()
 
 		return nil
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
+	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		cfg, err := n.Repo.Config()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 		// check if repo will exceed storage limit if added
 		// TODO: this doesn't handle the case if the hashed file is already in blocks (deduplicated)
 		// TODO: conditional GC is disabled due to it is somehow not possible to pass the size to the daemon
 		//if err := corerepo.ConditionalGC(req.Context(), n, uint64(size)); err != nil {
-		//	res.SetError(err, cmds.ErrNormal)
+		//	res.SetError(err, cmdkit.ErrNormal)
 		//	return
 		//}
 
@@ -196,7 +196,7 @@ You can now check what blocks have been created by:
 
 		if nocopy && !cfg.Experimental.FilestoreEnabled {
 			res.SetError(errors.New("filestore is not enabled, see https://git.io/vy4XN"),
-				cmds.ErrClient)
+				cmdkit.ErrClient)
 			return
 		}
 
@@ -205,7 +205,7 @@ You can now check what blocks have been created by:
 		}
 
 		if nocopy && !rawblks {
-			res.SetError(fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well"), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well"), cmdkit.ErrNormal)
 			return
 		}
 
@@ -219,13 +219,13 @@ You can now check what blocks have been created by:
 
 		prefix, err := dag.PrefixForCidVersion(cidVer)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
-			res.SetError(fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr)), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr)), cmdkit.ErrNormal)
 			return
 		}
 
@@ -239,7 +239,7 @@ You can now check what blocks have been created by:
 				NilRepo: true,
 			})
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 			n = nilnode
@@ -259,14 +259,13 @@ You can now check what blocks have been created by:
 		bserv := blockservice.New(addblockstore, exch)
 		dserv := dag.NewDAGService(bserv)
 
+		outChan := make(chan interface{}, adderOutChanSize)
+
 		fileAdder, err := coreunix.NewAdder(req.Context(), n.Pinning, n.Blockstore, dserv)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-
-		outChan := make(chan interface{}, adderOutChanSize)
-		res.SetOutput((<-chan interface{})(outChan))
 
 		fileAdder.Out = outChan
 		fileAdder.Chunker = chunker
@@ -284,7 +283,7 @@ You can now check what blocks have been created by:
 			md := dagtest.Mock()
 			mr, err := mfs.NewRoot(req.Context(), md, ft.EmptyDirNode(), nil)
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
@@ -321,112 +320,161 @@ You can now check what blocks have been created by:
 			return fileAdder.PinRoot()
 		}
 
+		errCh := make(chan error)
 		go func() {
+			var err error
+			defer func() { errCh <- err }()
 			defer close(outChan)
-			if err := addAllAndPin(req.Files()); err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
+			err = addAllAndPin(req.Files())
 		}()
+
+		defer res.Close()
+
+		err = res.Emit(outChan)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		err = <-errCh
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+		}
 	},
-	PostRun: func(req cmds.Request, res cmds.Response) {
-		if res.Error() != nil {
-			return
-		}
-		outChan, ok := res.Output().(<-chan interface{})
-		if !ok {
-			res.SetError(u.ErrCast(), cmds.ErrNormal)
-			return
-		}
-		res.SetOutput(nil)
+	PostRun: map[cmds.EncodingType]func(cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
+		cmds.CLI: func(req cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
+			reNext, res := cmds.NewChanResponsePair(req)
+			outChan := make(chan interface{})
 
-		quiet, _, _ := req.Option(quietOptionName).Bool()
-		quieter, _, _ := req.Option(quieterOptionName).Bool()
-		quiet = quiet || quieter
+			progressBar := func(wait chan struct{}) {
+				defer close(wait)
 
-		progress, _, _ := req.Option(progressOptionName).Bool()
+				quiet, _, _ := req.Option(quietOptionName).Bool()
+				quieter, _, _ := req.Option(quieterOptionName).Bool()
+				quiet = quiet || quieter
 
-		var bar *pb.ProgressBar
-		if progress {
-			bar = pb.New64(0).SetUnits(pb.U_BYTES)
-			bar.ManualUpdate = true
-			bar.ShowTimeLeft = false
-			bar.ShowPercent = false
-			bar.Output = res.Stderr()
-			bar.Start()
-		}
+				progress, _, _ := req.Option(progressOptionName).Bool()
 
-		var sizeChan chan int64
-		s, found := req.Values()["size"]
-		if found {
-			sizeChan = s.(chan int64)
-		}
-
-		lastFile := ""
-		lastHash := ""
-		var totalProgress, prevFiles, lastBytes int64
-
-	LOOP:
-		for {
-			select {
-			case out, ok := <-outChan:
-				if !ok {
-					if quieter {
-						fmt.Fprintln(res.Stdout(), lastHash)
-					}
-					break LOOP
-				}
-				output := out.(*coreunix.AddedObject)
-				if len(output.Hash) > 0 {
-					lastHash = output.Hash
-					if quieter {
-						continue
-					}
-
-					if progress {
-						// clear progress bar line before we print "added x" output
-						fmt.Fprintf(res.Stderr(), "\033[2K\r")
-					}
-					if quiet {
-						fmt.Fprintf(res.Stdout(), "%s\n", output.Hash)
-					} else {
-						fmt.Fprintf(res.Stdout(), "added %s %s\n", output.Hash, output.Name)
-					}
-				} else {
-					log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
-
-					if !progress {
-						continue
-					}
-
-					if len(lastFile) == 0 {
-						lastFile = output.Name
-					}
-					if output.Name != lastFile || output.Bytes < lastBytes {
-						prevFiles += lastBytes
-						lastFile = output.Name
-					}
-					lastBytes = output.Bytes
-					delta := prevFiles + lastBytes - totalProgress
-					totalProgress = bar.Add64(delta)
-				}
-
+				var bar *pb.ProgressBar
 				if progress {
-					bar.Update()
+					bar = pb.New64(0).SetUnits(pb.U_BYTES)
+					bar.ManualUpdate = true
+					bar.ShowTimeLeft = false
+					bar.ShowPercent = false
+					bar.Output = os.Stderr
+					bar.Start()
 				}
-			case size := <-sizeChan:
-				if progress {
-					bar.Total = size
-					bar.ShowPercent = true
-					bar.ShowBar = true
-					bar.ShowTimeLeft = true
+
+				var sizeChan chan int64
+				s, found := req.Values()["size"]
+				if found {
+					sizeChan = s.(chan int64)
 				}
-			case <-req.Context().Done():
-				res.SetError(req.Context().Err(), cmds.ErrNormal)
-				return
+
+				lastFile := ""
+				lastHash := ""
+				var totalProgress, prevFiles, lastBytes int64
+
+			LOOP:
+				for {
+					select {
+					case out, ok := <-outChan:
+						if !ok {
+							if quieter {
+								fmt.Fprintln(os.Stdout, lastHash)
+							}
+
+							break LOOP
+						}
+						output := out.(*coreunix.AddedObject)
+						if len(output.Hash) > 0 {
+							lastHash = output.Hash
+							if quieter {
+								continue
+							}
+
+							if progress {
+								// clear progress bar line before we print "added x" output
+								fmt.Fprintf(os.Stderr, "\033[2K\r")
+							}
+							if quiet {
+								fmt.Fprintf(os.Stdout, "%s\n", output.Hash)
+							} else {
+								fmt.Fprintf(os.Stdout, "added %s %s\n", output.Hash, output.Name)
+							}
+
+						} else {
+							if !progress {
+								continue
+							}
+
+							if len(lastFile) == 0 {
+								lastFile = output.Name
+							}
+							if output.Name != lastFile || output.Bytes < lastBytes {
+								prevFiles += lastBytes
+								lastFile = output.Name
+							}
+							lastBytes = output.Bytes
+							delta := prevFiles + lastBytes - totalProgress
+							totalProgress = bar.Add64(delta)
+						}
+
+						if progress {
+							bar.Update()
+						}
+					case size := <-sizeChan:
+						if progress {
+							bar.Total = size
+							bar.ShowPercent = true
+							bar.ShowBar = true
+							bar.ShowTimeLeft = true
+						}
+					case <-req.Context().Done():
+						re.SetError(req.Context().Err(), cmdkit.ErrNormal)
+						return
+					}
+				}
 			}
-		}
+
+			go func() {
+				// defer order important! First close outChan, then wait for output to finish, then close re
+				defer re.Close()
+
+				if e := res.Error(); e != nil {
+					defer close(outChan)
+					re.SetError(e.Message, e.Code)
+					return
+				}
+
+				wait := make(chan struct{})
+				go progressBar(wait)
+
+				defer func() { <-wait }()
+				defer close(outChan)
+
+				for {
+					v, err := res.Next()
+					if err != nil {
+						// replace error by actual error - will be looked at by next if-statement
+						if err == cmds.ErrRcvdError {
+							err = res.Error()
+						}
+
+						if e, ok := err.(*cmdkit.Error); ok {
+							re.Emit(e)
+						} else if err != io.EOF {
+							re.SetError(err, cmdkit.ErrNormal)
+						}
+
+						return
+					}
+
+					outChan <- v
+				}
+			}()
+
+			return reNext
+		},
 	},
 	Type: coreunix.AddedObject{},
 }

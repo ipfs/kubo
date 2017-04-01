@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,13 +10,14 @@ import (
 	"path"
 	"strings"
 
-	context "context"
 	assets "github.com/ipfs/go-ipfs/assets"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
 )
 
 const (
@@ -23,7 +25,7 @@ const (
 )
 
 var initCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Initializes ipfs config file.",
 		ShortDescription: `
 Initializes ipfs configuration files and generates a new keypair.
@@ -44,18 +46,18 @@ environment variable:
     export IPFS_PATH=/path/to/ipfsrepo
 `,
 	},
-	Arguments: []cmds.Argument{
-		cmds.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
 	},
-	Options: []cmds.Option{
-		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
-		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
-		cmds.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
+	Options: []cmdkit.Option{
+		cmdkit.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
+		cmdkit.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
+		cmdkit.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
 		// name of the file?
-		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs."),
+		// TODO cmdkit.StringOption("event-logs", "l", "Location for machine-readable event logs."),
 	},
 	PreRun: func(req cmds.Request) error {
 		daemonLocked, err := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot)
@@ -73,20 +75,23 @@ environment variable:
 		return nil
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
+		// needs to be called at least once
+		res.SetOutput(nil)
+
 		if req.InvocContext().Online {
-			res.SetError(errors.New("init must be run offline only!"), cmds.ErrNormal)
+			res.SetError(errors.New("init must be run offline only!"), cmdkit.ErrNormal)
 			return
 		}
 
 		empty, _, err := req.Option("e").Bool()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		nBitsForKeypair, _, err := req.Option("b").Int()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -96,20 +101,20 @@ environment variable:
 		if f != nil {
 			confFile, err := f.NextFile()
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
 			conf = &config.Config{}
 			if err := json.NewDecoder(confFile).Decode(conf); err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 		}
 
 		profile, _, err := req.Option("profile").String()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -119,7 +124,7 @@ environment variable:
 		}
 
 		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, empty, nBitsForKeypair, profiles, conf); err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 	},

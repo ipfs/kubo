@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	commands "github.com/ipfs/go-ipfs/core/commands"
+
+	cmds "gx/ipfs/QmQVvuDwXUGbtYmbmTcbLtGRYXnEbymaR2zEj38GVysqWe/go-ipfs-cmds"
 )
 
 // This is the CLI root, used for executing commands accessible to CLI clients.
@@ -22,7 +24,7 @@ var commandsClientCmd = commands.CommandsCmd(Root)
 // They can override subcommands in commands.Root by defining a subcommand with the same name.
 var localCommands = map[string]*cmds.Command{
 	"daemon":   daemonCmd,
-	"init":     initCmd,
+	"init":     cmds.NewCommand(initCmd),
 	"commands": commandsClientCmd,
 }
 var localMap = make(map[*cmds.Command]bool)
@@ -31,8 +33,14 @@ func init() {
 	// setting here instead of in literal to prevent initialization loop
 	// (some commands make references to Root)
 	Root.Subcommands = localCommands
+	Root.OldSubcommands = map[string]*oldcmds.Command{}
 
 	// copy all subcommands from commands.Root into this root (if they aren't already present)
+	for k, v := range commands.Root.OldSubcommands {
+		if _, found := Root.OldSubcommands[k]; !found {
+			Root.OldSubcommands[k] = v
+		}
+	}
 	for k, v := range commands.Root.Subcommands {
 		if _, found := Root.Subcommands[k]; !found {
 			Root.Subcommands[k] = v
@@ -88,17 +96,13 @@ func (d *cmdDetails) usesRepo() bool          { return !d.doesNotUseRepo }
 // not being able to run on all the same contexts. This map describes these
 // properties so that other code can make decisions about whether to invoke a
 // command or return an error to the user.
-var cmdDetailsMap = map[*cmds.Command]cmdDetails{
-	initCmd: {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
-
-	// daemonCmd allows user to initialize the config. Thus, it may be called
-	// without using the config as input
-	daemonCmd:                             {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
-	commandsClientCmd:                     {doesNotUseRepo: true},
-	commands.CommandsDaemonCmd:            {doesNotUseRepo: true},
-	commands.VersionCmd:                   {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
-	commands.LogCmd:                       {cannotRunOnClient: true},
-	commands.ActiveReqsCmd:                {cannotRunOnClient: true},
-	commands.RepoFsckCmd:                  {cannotRunOnDaemon: true},
-	commands.ConfigCmd.Subcommand("edit"): {cannotRunOnDaemon: true, doesNotUseRepo: true},
+var cmdDetailsMap = map[string]cmdDetails{
+	"init":        {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
+	"daemon":      {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
+	"commands":    {doesNotUseRepo: true},
+	"version":     {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
+	"log":         {cannotRunOnClient: true},
+	"diag/cmds":   {cannotRunOnClient: true},
+	"repo/fsck":   {cannotRunOnDaemon: true},
+	"config/edit": {cannotRunOnDaemon: true, doesNotUseRepo: true},
 }

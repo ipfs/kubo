@@ -11,13 +11,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/repo/config"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
-)
 
-type OptMap map[string]interface{}
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit/files"
+)
 
 type Context struct {
 	Online     bool
@@ -66,10 +66,10 @@ func (c *Context) NodeWithoutConstructing() *core.IpfsNode {
 // Request represents a call to a command from a consumer
 type Request interface {
 	Path() []string
-	Option(name string) *OptionValue
-	Options() OptMap
+	Option(name string) *cmdkit.OptionValue
+	Options() cmdkit.OptMap
 	SetOption(name string, val interface{})
-	SetOptions(opts OptMap) error
+	SetOptions(opts cmdkit.OptMap) error
 	Arguments() []string
 	StringArguments() []string
 	SetArguments([]string)
@@ -89,13 +89,13 @@ type Request interface {
 
 type request struct {
 	path       []string
-	options    OptMap
+	options    cmdkit.OptMap
 	arguments  []string
 	files      files.File
 	cmd        *Command
 	ctx        Context
 	rctx       context.Context
-	optionDefs map[string]Option
+	optionDefs map[string]cmdkit.Option
 	values     map[string]interface{}
 	stdin      io.Reader
 }
@@ -106,7 +106,7 @@ func (r *request) Path() []string {
 }
 
 // Option returns the value of the option for given name.
-func (r *request) Option(name string) *OptionValue {
+func (r *request) Option(name string) *cmdkit.OptionValue {
 	// find the option with the specified name
 	option, found := r.optionDefs[name]
 	if !found {
@@ -117,16 +117,16 @@ func (r *request) Option(name string) *OptionValue {
 	for _, n := range option.Names() {
 		val, found := r.options[n]
 		if found {
-			return &OptionValue{val, found, option}
+			return &cmdkit.OptionValue{val, found, option}
 		}
 	}
 
-	return &OptionValue{option.DefaultVal(), false, option}
+	return &cmdkit.OptionValue{option.DefaultVal(), false, option}
 }
 
 // Options returns a copy of the option map
-func (r *request) Options() OptMap {
-	output := make(OptMap)
+func (r *request) Options() cmdkit.OptMap {
+	output := make(cmdkit.OptMap)
 	for k, v := range r.options {
 		output[k] = v
 	}
@@ -164,7 +164,7 @@ func (r *request) SetOption(name string, val interface{}) {
 }
 
 // SetOptions sets the option values, unsetting any values that were previously set
-func (r *request) SetOptions(opts OptMap) error {
+func (r *request) SetOptions(opts cmdkit.OptMap) error {
 	r.options = opts
 	return r.ConvertOptions()
 }
@@ -212,7 +212,7 @@ func (r *request) haveVarArgsFromStdin() bool {
 	}
 
 	last := r.cmd.Arguments[len(r.cmd.Arguments)-1]
-	return last.SupportsStdin && last.Type == ArgString && (last.Required || last.Variadic) &&
+	return last.SupportsStdin && last.Type == cmdkit.ArgString && (last.Required || last.Variadic) &&
 		len(r.arguments) < len(r.cmd.Arguments)
 }
 
@@ -293,27 +293,27 @@ func (r *request) Command() *Command {
 type converter func(string) (interface{}, error)
 
 var converters = map[reflect.Kind]converter{
-	Bool: func(v string) (interface{}, error) {
+	cmdkit.Bool: func(v string) (interface{}, error) {
 		if v == "" {
 			return true, nil
 		}
 		return strconv.ParseBool(v)
 	},
-	Int: func(v string) (interface{}, error) {
+	cmdkit.Int: func(v string) (interface{}, error) {
 		val, err := strconv.ParseInt(v, 0, 32)
 		if err != nil {
 			return nil, err
 		}
 		return int(val), err
 	},
-	Uint: func(v string) (interface{}, error) {
+	cmdkit.Uint: func(v string) (interface{}, error) {
 		val, err := strconv.ParseUint(v, 0, 32)
 		if err != nil {
 			return nil, err
 		}
 		return int(val), err
 	},
-	Float: func(v string) (interface{}, error) {
+	cmdkit.Float: func(v string) (interface{}, error) {
 		return strconv.ParseFloat(v, 64)
 	},
 }
@@ -335,7 +335,7 @@ func (r *request) ConvertOptions() error {
 
 		kind := reflect.TypeOf(v).Kind()
 		if kind != opt.Type() {
-			if kind == String {
+			if kind == cmdkit.String {
 				convert := converters[opt.Type()]
 				str, ok := v.(string)
 				if !ok {
@@ -378,12 +378,12 @@ func NewEmptyRequest() (Request, error) {
 
 // NewRequest returns a request initialized with given arguments
 // An non-nil error will be returned if the provided option values are invalid
-func NewRequest(path []string, opts OptMap, args []string, file files.File, cmd *Command, optDefs map[string]Option) (Request, error) {
+func NewRequest(path []string, opts cmdkit.OptMap, args []string, file files.File, cmd *Command, optDefs map[string]cmdkit.Option) (Request, error) {
 	if opts == nil {
-		opts = make(OptMap)
+		opts = make(cmdkit.OptMap)
 	}
 	if optDefs == nil {
-		optDefs = make(map[string]Option)
+		optDefs = make(map[string]cmdkit.Option)
 	}
 
 	ctx := Context{}
