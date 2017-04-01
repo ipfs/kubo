@@ -28,13 +28,24 @@ func DiffEnumerate(ctx context.Context, dserv node.NodeGetter, from, to *cid.Cid
 
 	sset := cid.NewSet()
 	for _, c := range diff {
-		if c.a == nil {
-			err := mdag.EnumerateChildrenAsync(ctx, mdag.GetLinksDirect(dserv), c.b, sset.Visit)
+		// Since we're already assuming we have everything in the 'from' graph,
+		// add all those cids to our 'already seen' set to avoid potentially
+		// enumerating them later
+		if c.bef != nil {
+			sset.Add(c.bef)
+		}
+	}
+	for _, c := range diff {
+		if c.bef == nil {
+			if sset.Has(c.aft) {
+				continue
+			}
+			err := mdag.EnumerateChildrenAsync(ctx, mdag.GetLinksDirect(dserv), c.aft, sset.Visit)
 			if err != nil {
 				return err
 			}
 		} else {
-			err := DiffEnumerate(ctx, dserv, c.a, c.b)
+			err := DiffEnumerate(ctx, dserv, c.bef, c.aft)
 			if err != nil {
 				return err
 			}
@@ -45,9 +56,12 @@ func DiffEnumerate(ctx context.Context, dserv node.NodeGetter, from, to *cid.Cid
 }
 
 type diffpair struct {
-	a, b *cid.Cid
+	bef, aft *cid.Cid
 }
 
+// getLinkDiff returns a changset (minimum edit distance style) between nodes
+// 'a' and 'b'. Currently does not log deletions as our usecase doesnt call for
+// this.
 func getLinkDiff(a, b node.Node) []diffpair {
 	have := make(map[string]*node.Link)
 	names := make(map[string]*node.Link)
@@ -65,11 +79,11 @@ func getLinkDiff(a, b node.Node) []diffpair {
 
 		match, ok := names[l.Name]
 		if !ok {
-			out = append(out, diffpair{b: l.Cid})
+			out = append(out, diffpair{aft: l.Cid})
 			continue
 		}
 
-		out = append(out, diffpair{a: match.Cid, b: l.Cid})
+		out = append(out, diffpair{bef: match.Cid, aft: l.Cid})
 	}
 	return out
 }
