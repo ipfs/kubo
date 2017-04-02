@@ -53,6 +53,12 @@ func TestMarshalling(t *testing.T) {
 	}
 }
 
+func TestErrTypeOrder(t *testing.T) {
+	if ErrNormal != 0 || ErrClient != 1 || ErrImplementation != 2 || ErrNotFound != 3 {
+		t.Fatal("ErrType order is wrong")
+	}
+}
+
 func removeWhitespace(input string) string {
 	input = strings.Replace(input, " ", "", -1)
 	input = strings.Replace(input, "\t", "", -1)
