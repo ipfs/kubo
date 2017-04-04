@@ -62,6 +62,7 @@ var CatCmd = &cmds.Command{
 		bar.Start()
 
 		res.SetOutput(reader)
+		defer bar.Finish()
 	},
 }
 
