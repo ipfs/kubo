@@ -49,7 +49,7 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 
 func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 	idmap := logging.LoggableMap{"ID": id}
-	defer log.Info("bitswap task worker shutting down...")
+	defer log.Debug("bitswap task worker shutting down...")
 	for {
 		log.Event(ctx, "Bitswap.TaskWorker.Loop", idmap)
 		select {

@@ -25,8 +25,8 @@ func (bg *BlockGenerator) Next() *blocks.BasicBlock {
 }
 
 // Blocks generates as many BasicBlocks as specified by n.
-func (bg *BlockGenerator) Blocks(n int) []*blocks.BasicBlock {
-	blocks := make([]*blocks.BasicBlock, 0)
+func (bg *BlockGenerator) Blocks(n int) []blocks.Block {
+	blocks := make([]blocks.Block, 0, n)
 	for i := 0; i < n; i++ {
 		b := bg.Next()
 		blocks = append(blocks, b)

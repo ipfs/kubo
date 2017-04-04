@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -17,13 +18,13 @@ import (
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
 	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
-	blocks "gx/ipfs/QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh/go-block-format"
 
 	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	loggables "gx/ipfs/QmVesPmqbPp7xRGyY96tnBwzDtVV1nqv4SCVxo5zCqKyH8/go-libp2p-loggables"
+	blocks "gx/ipfs/QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh/go-block-format"
 	cid "gx/ipfs/Qma4RJSuh7mMeJQYCqMbKzekn6EwBo7HEs5AQYjVRMQATB/go-cid"
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
@@ -159,10 +160,15 @@ type Bitswap struct {
 	blocksSent     int
 	dataSent       uint64
 	dataRecvd      uint64
+	messagesRecvd  uint64
 
 	// Metrics interface metrics
 	dupMetric metrics.Histogram
 	allMetric metrics.Histogram
+
+	// Sessions
+	sessions []*Session
+	sessLk   sync.Mutex
 }
 
 type blockRequest struct {
@@ -173,45 +179,7 @@ type blockRequest struct {
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
 func (bs *Bitswap) GetBlock(parent context.Context, k *cid.Cid) (blocks.Block, error) {
-	if k == nil {
-		log.Error("nil cid in GetBlock")
-		return nil, blockstore.ErrNotFound
-	}
-
-	// Any async work initiated by this function must end when this function
-	// returns. To ensure this, derive a new context. Note that it is okay to
-	// listen on parent in this scope, but NOT okay to pass |parent| to
-	// functions called by this one. Otherwise those functions won't return
-	// when this context's cancel func is executed. This is difficult to
-	// enforce. May this comment keep you safe.
-	ctx, cancelFunc := context.WithCancel(parent)
-
-	// TODO: this request ID should come in from a higher layer so we can track
-	// across multiple 'GetBlock' invocations
-	ctx = logging.ContextWithLoggable(ctx, loggables.Uuid("GetBlockRequest"))
-	log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
-	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
-	defer cancelFunc()
-
-	promise, err := bs.GetBlocks(ctx, []*cid.Cid{k})
-	if err != nil {
-		return nil, err
-	}
-
-	select {
-	case block, ok := <-promise:
-		if !ok {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			default:
-				return nil, errors.New("promise channel was closed")
-			}
-		}
-		return block, nil
-	case <-parent.Done():
-		return nil, parent.Err()
-	}
+	return getBlock(parent, k, bs.GetBlocks)
 }
 
 func (bs *Bitswap) WantlistForPeer(p peer.ID) []*cid.Cid {
@@ -251,7 +219,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 		log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
 	}
 
-	bs.wm.WantBlocks(ctx, keys)
+	bs.wm.WantBlocks(ctx, keys, nil)
 
 	// NB: Optimization. Assumes that providers of key[0] are likely to
 	// be able to provide for all keys. This currently holds true in most
@@ -304,7 +272,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 
 // CancelWant removes a given key from the wantlist
 func (bs *Bitswap) CancelWants(cids []*cid.Cid) {
-	bs.wm.CancelWants(cids)
+	bs.wm.CancelWants(context.Background(), cids, nil)
 }
 
 // HasBlock announces the existance of a block to this bitswap service. The
@@ -340,7 +308,22 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	return nil
 }
 
+func (bs *Bitswap) SessionsForBlock(c *cid.Cid) []*Session {
+	bs.sessLk.Lock()
+	defer bs.sessLk.Unlock()
+
+	var out []*Session
+	for _, s := range bs.sessions {
+		if s.InterestedIn(c) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) {
+	atomic.AddUint64(&bs.messagesRecvd, 1)
+
 	// This call records changes to wantlists, blocks received,
 	// and number of bytes transfered.
 	bs.engine.MessageReceived(p, incoming)
@@ -362,7 +345,8 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		}
 		keys = append(keys, block.Cid())
 	}
-	bs.wm.CancelWants(keys)
+
+	bs.wm.CancelWants(context.Background(), keys, nil)
 
 	wg := sync.WaitGroup{}
 	for _, block := range iblocks {
@@ -375,6 +359,9 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 			k := b.Cid()
 			log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
 
+			for _, ses := range bs.SessionsForBlock(k) {
+				ses.ReceiveBlock(p, b)
+			}
 			log.Debugf("got block %s from %s", b, p)
 			if err := bs.HasBlock(b); err != nil {
 				log.Warningf("ReceiveMessage HasBlock error: %s", err)

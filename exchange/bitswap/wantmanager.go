@@ -71,13 +71,13 @@ type msgQueue struct {
 	done chan struct{}
 }
 
-func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid) {
+func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid, peers []peer.ID) {
 	log.Infof("want blocks: %s", ks)
-	pm.addEntries(ctx, ks, false)
+	pm.addEntries(ctx, ks, peers, false)
 }
 
-func (pm *WantManager) CancelWants(ks []*cid.Cid) {
-	pm.addEntries(context.Background(), ks, true)
+func (pm *WantManager) CancelWants(ctx context.Context, ks []*cid.Cid, peers []peer.ID) {
+	pm.addEntries(context.Background(), ks, peers, true)
 }
 
 type wantSet struct {
@@ -85,7 +85,7 @@ type wantSet struct {
 	targets []peer.ID
 }
 
-func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, cancel bool) {
+func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, targets []peer.ID, cancel bool) {
 	var entries []*bsmsg.Entry
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
@@ -98,7 +98,7 @@ func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, cancel boo
 		})
 	}
 	select {
-	case pm.incoming <- &wantSet{entries: entries}:
+	case pm.incoming <- &wantSet{entries: entries, targets: targets}:
 	case <-pm.ctx.Done():
 	case <-ctx.Done():
 	}

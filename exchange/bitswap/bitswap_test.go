@@ -370,6 +370,9 @@ func TestDoubleGet(t *testing.T) {
 	instances := sg.Instances(2)
 	blocks := bg.Blocks(1)
 
+	// NOTE: A race condition can happen here where these GetBlocks requests go
+	// through before the peers even get connected. This is okay, bitswap
+	// *should* be able to handle this.
 	ctx1, cancel1 := context.WithCancel(context.Background())
 	blkch1, err := instances[1].Exchange.GetBlocks(ctx1, []*cid.Cid{blocks[0].Cid()})
 	if err != nil {
@@ -385,7 +388,7 @@ func TestDoubleGet(t *testing.T) {
 	}
 
 	// ensure both requests make it into the wantlist at the same time
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 20)
 	cancel1()
 
 	_, ok := <-blkch1
@@ -405,6 +408,14 @@ func TestDoubleGet(t *testing.T) {
 		}
 		t.Log(blk)
 	case <-time.After(time.Second * 5):
+		p1wl := instances[0].Exchange.WantlistForPeer(instances[1].Peer)
+		if len(p1wl) != 1 {
+			t.Logf("wantlist view didnt have 1 item (had %d)", len(p1wl))
+		} else if !p1wl[0].Equals(blocks[0].Cid()) {
+			t.Logf("had 1 item, it was wrong: %s %s", blocks[0].Cid(), p1wl[0])
+		} else {
+			t.Log("had correct wantlist, somehow")
+		}
 		t.Fatal("timed out waiting on block")
 	}
 
