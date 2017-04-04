@@ -17,6 +17,7 @@ type Filter interface {
 	Find([]byte) bool
 	Merge(Filter) (Filter, error)
 	HammingDistance(Filter) (int, error)
+	SupersetOf(Filter) (bool, error)
 }
 
 // NewFilter creates a new bloom Filter with the given
@@ -127,4 +128,24 @@ func (f *filter) HammingDistance(o Filter) (int, error) {
 	}
 
 	return acc, nil
+}
+
+func (f *filter) SupersetOf(o Filter) (bool, error) {
+	casfil, ok := o.(*filter)
+	if !ok {
+		return false, errors.New("Unsupported filter type")
+	}
+
+	if len(f.filter) != len(casfil.filter) {
+		return false, errors.New("filter lengths must match!")
+	}
+
+	for i := 0; i < len(casfil.filter); i++ {
+		// if you AND the bytes together, the result should
+		// be equal to casfil if superset
+		if f.filter[i]&casfil.filter[i] != casfil.filter[i] {
+			return false, nil
+		}
+	}
+	return true, nil
 }
