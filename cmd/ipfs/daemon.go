@@ -456,9 +456,9 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 	if err != nil {
 		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
 	}
-	gatewayOpt := corehttp.GatewayOption(false, corehttp.WebUIPaths...)
+	gatewayOpt := corehttp.GatewayOption(nil, false, http.Cookie{}, "", "", false, corehttp.WebUIPaths...)
 	if unrestricted {
-		gatewayOpt = corehttp.GatewayOption(true, "/ipfs", "/ipns")
+		gatewayOpt = corehttp.GatewayOption(nil, false, http.Cookie{}, "", "", true, "/ipfs", "/ipns")
 	}
 
 	var opts = []corehttp.ServeOption{
@@ -549,7 +549,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
+		corehttp.GatewayOption(nil, false, http.Cookie{}, "", "", writable, "/ipfs", "/ipns"),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

@@ -78,7 +78,7 @@ var swarmPeersCmd = &cmds.Command{
 
 		conns := n.PeerHost.Network().Conns()
 
-		var out connInfos
+		var out []string
 		for _, c := range conns {
 			pid := c.RemotePeer()
 			addr := c.RemoteMultiaddr()
@@ -113,10 +113,9 @@ var swarmPeersCmd = &cmds.Command{
 				}
 			}
 			sort.Sort(&ci)
-			out.Peers = append(out.Peers, ci)
+			out = append(out, ci.Peer)
 		}
 
-		sort.Sort(&out)
 		res.SetOutput(&out)
 	},
 	Marshalers: cmds.MarshalerMap{

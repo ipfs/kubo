@@ -59,7 +59,7 @@ Publish an <ipfs-path> with another name, added by an 'ipfs key' command:
 		cmds.StringOption("lifetime", "t",
 			`Time duration that the record will be valid for. <<default>>
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
-    "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("24h"),
+    "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("168h"),
 		cmds.StringOption("ttl", "Time duration this record should be cached for (caution: experimental)."),
 		cmds.StringOption("key", "k", "Name of the key to be used, as listed by 'ipfs key list'. Default: <<default>>.").Default("self"),
 	},

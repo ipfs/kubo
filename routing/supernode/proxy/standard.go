@@ -15,7 +15,7 @@ import (
 	pstore "gx/ipfs/Qme1g4e3m2SmdiSGGU3vSWmUStwUjc5oECnEriaK9Xa1HU/go-libp2p-peerstore"
 )
 
-const ProtocolSNR = "/ipfs/supernoderouting"
+const ProtocolSNR = "/openbazaar/supernoderouting"
 
 var log = logging.Logger("supernode/proxy")
 

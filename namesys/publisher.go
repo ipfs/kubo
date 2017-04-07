@@ -35,6 +35,8 @@ var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
 const PublishPutValTimeout = time.Minute
 const DefaultRecordTTL = 24 * time.Hour
 
+var DefaultPublishLifetime = time.Hour * 24 * 7
+
 // ipnsPublisher is capable of publishing and resolving names to the IPFS
 // routing system.
 type ipnsPublisher struct {
@@ -54,7 +56,7 @@ func NewRoutingPublisher(route routing.ValueStore, ds ds.Datastore) *ipnsPublish
 // and publishes it out to the routing system
 func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Path) error {
 	log.Debugf("Publish %s", value)
-	return p.PublishWithEOL(ctx, k, value, time.Now().Add(DefaultRecordTTL))
+	return p.PublishWithEOL(ctx, k, value, time.Now().Add(DefaultPublishLifetime))
 }
 
 // PublishWithEOL is a temporary stand in for the ipns records implementation
