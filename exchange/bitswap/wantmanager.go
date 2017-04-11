@@ -17,7 +17,7 @@ import (
 
 type WantManager struct {
 	// sync channels for Run loop
-	incoming   chan []*bsmsg.Entry
+	incoming   chan *wantSet
 	connect    chan peer.ID        // notification channel for new peers connecting
 	disconnect chan peer.ID        // notification channel for peers disconnecting
 	peerReqs   chan chan []peer.ID // channel to request connected peers on
@@ -41,7 +41,7 @@ func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantMana
 	sentHistogram := metrics.NewCtx(ctx, "sent_all_blocks_bytes", "Histogram of blocks sent by"+
 		" this bitswap").Histogram(metricsBuckets)
 	return &WantManager{
-		incoming:      make(chan []*bsmsg.Entry, 10),
+		incoming:      make(chan *wantSet, 10),
 		connect:       make(chan peer.ID, 10),
 		disconnect:    make(chan peer.ID, 10),
 		peerReqs:      make(chan chan []peer.ID),
@@ -61,6 +61,7 @@ type msgQueue struct {
 	outlk   sync.Mutex
 	out     bsmsg.BitSwapMessage
 	network bsnet.BitSwapNetwork
+	wl      *wantlist.Wantlist
 
 	sender bsnet.MessageSender
 
@@ -76,8 +77,12 @@ func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid) {
 }
 
 func (pm *WantManager) CancelWants(ks []*cid.Cid) {
-	log.Infof("cancel wants: %s", ks)
-	pm.addEntries(context.TODO(), ks, true)
+	pm.addEntries(context.Background(), ks, true)
+}
+
+type wantSet struct {
+	entries []*bsmsg.Entry
+	targets []peer.ID
 }
 
 func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, cancel bool) {
@@ -93,7 +98,7 @@ func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, cancel boo
 		})
 	}
 	select {
-	case pm.incoming <- entries:
+	case pm.incoming <- &wantSet{entries: entries}:
 	case <-pm.ctx.Done():
 	case <-ctx.Done():
 	}
@@ -133,6 +138,8 @@ func (pm *WantManager) startPeerHandler(p peer.ID) *msgQueue {
 	// new peer, we will want to give them our full wantlist
 	fullwantlist := bsmsg.New(true)
 	for _, e := range pm.wl.Entries() {
+		ne := *e
+		mq.wl.AddEntry(&ne)
 		fullwantlist.AddEntry(e.Cid, e.Priority)
 	}
 	mq.out = fullwantlist
@@ -278,27 +285,35 @@ func (pm *WantManager) Run() {
 	defer tock.Stop()
 	for {
 		select {
-		case entries := <-pm.incoming:
+		case ws := <-pm.incoming:
 
 			// add changes to our wantlist
-			var filtered []*bsmsg.Entry
-			for _, e := range entries {
+			for _, e := range ws.entries {
 				if e.Cancel {
 					if pm.wl.Remove(e.Cid) {
 						pm.wantlistGauge.Dec()
-						filtered = append(filtered, e)
 					}
 				} else {
 					if pm.wl.AddEntry(e.Entry) {
 						pm.wantlistGauge.Inc()
-						filtered = append(filtered, e)
 					}
 				}
 			}
 
 			// broadcast those wantlist changes
-			for _, p := range pm.peers {
-				p.addMessage(filtered)
+			if len(ws.targets) == 0 {
+				for _, p := range pm.peers {
+					p.addMessage(ws.entries)
+				}
+			} else {
+				for _, t := range ws.targets {
+					p, ok := pm.peers[t]
+					if !ok {
+						log.Warning("tried sending wantlist change to non-partner peer")
+						continue
+					}
+					p.addMessage(ws.entries)
+				}
 			}
 
 		case <-tock.C:
@@ -335,6 +350,7 @@ func (wm *WantManager) newMsgQueue(p peer.ID) *msgQueue {
 	return &msgQueue{
 		done:    make(chan struct{}),
 		work:    make(chan struct{}, 1),
+		wl:      wantlist.New(),
 		network: wm.network,
 		p:       p,
 		refcnt:  1,
@@ -342,9 +358,13 @@ func (wm *WantManager) newMsgQueue(p peer.ID) *msgQueue {
 }
 
 func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
+	var work bool
 	mq.outlk.Lock()
 	defer func() {
 		mq.outlk.Unlock()
+		if !work {
+			return
+		}
 		select {
 		case mq.work <- struct{}{}:
 		default:
@@ -361,9 +381,15 @@ func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
 	// one passed in
 	for _, e := range entries {
 		if e.Cancel {
-			mq.out.Cancel(e.Cid)
+			if mq.wl.Remove(e.Cid) {
+				work = true
+				mq.out.Cancel(e.Cid)
+			}
 		} else {
-			mq.out.AddEntry(e.Cid, e.Priority)
+			if mq.wl.Add(e.Cid, e.Priority) {
+				work = true
+				mq.out.AddEntry(e.Cid, e.Priority)
+			}
 		}
 	}
 }
