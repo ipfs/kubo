@@ -73,7 +73,7 @@ properly written. It checks the following:
   and with licensing the work under the [MIT license](docs/LICENSE).
 
   To help you automatically add these trailers, you can run the
-  [setup_commit_msg_hook.sh](https://raw.githubusercontent.com/ipfs/community/master/dev/tools/hooks/setup_commit_msg_hook.sh)
+  [setup_commit_msg_hook.sh](https://raw.githubusercontent.com/ipfs/community/master/dev/hooks/setup_commit_msg_hook.sh)
   script which will setup a Git commit-msg hook that will add the above
   trailers to all the commit messages you write.
 
