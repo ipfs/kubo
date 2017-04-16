@@ -21,6 +21,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	"github.com/ipfs/go-ipfs/pin"
+	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
@@ -189,15 +190,18 @@ func (adder *Adder) PinRoot() error {
 func (adder *Adder) Finalize() (node.Node, error) {
 	root := adder.mr.GetValue()
 
-	// cant just call adder.RootNode() here as we need the name for printing
-	rootNode, err := root.GetNode()
+	err := root.Flush()
 	if err != nil {
 		return nil, err
 	}
 
 	var name string
 	if !adder.Wrap {
-		name = rootNode.Links()[0].Name
+		children, err := root.(*mfs.Directory).ListNames(adder.ctx)
+		if err != nil {
+			return nil, err
+		}
+		name = children[0]
 
 		dir, ok := adder.mr.GetValue().(*mfs.Directory)
 		if !ok {
@@ -228,7 +232,12 @@ func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
 	case *mfs.File:
 		return nil
 	case *mfs.Directory:
-		for _, name := range fsn.ListNames() {
+		names, err := fsn.ListNames(adder.ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, name := range names {
 			child, err := fsn.Child(name)
 			if err != nil {
 				return err
@@ -342,6 +351,10 @@ func (adder *Adder) addNode(node node.Node, path string) error {
 	// patch it into the root
 	if path == "" {
 		path = node.Cid().String()
+	}
+
+	if pi, ok := node.(*posinfo.FilestoreNode); ok {
+		node = pi.Node
 	}
 
 	dir := gopath.Dir(path)

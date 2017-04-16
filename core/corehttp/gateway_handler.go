@@ -12,12 +12,12 @@ import (
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
+	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
-	"github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
@@ -37,10 +37,10 @@ const (
 type gatewayHandler struct {
 	node   *core.IpfsNode
 	config GatewayConfig
-	api    coreiface.UnixfsAPI
+	api    coreiface.CoreAPI
 }
 
-func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.UnixfsAPI) *gatewayHandler {
+func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 	i := &gatewayHandler{
 		node:   n,
 		config: c,
@@ -158,30 +158,28 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		ipnsHostname = true
 	}
 
-	dr, err := i.api.Cat(ctx, urlPath)
+	parsedPath, err := coreapi.ParsePath(urlPath)
+	if err != nil {
+		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
+		return
+	}
+
+	dr, err := i.api.Unixfs().Cat(ctx, parsedPath)
 	dir := false
 	switch err {
 	case nil:
-		// core.Resolve worked
+		// Cat() worked
 		defer dr.Close()
 	case coreiface.ErrIsDir:
 		dir = true
-	case namesys.ErrResolveFailed:
-		// Don't log that error as it is just noise
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Path Resolve error: %s", err.Error())
-		log.Info("Path Resolve error: %s", err.Error())
-		return
 	case coreiface.ErrOffline:
 		if !i.node.OnlineMode() {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			fmt.Fprint(w, "Could not resolve path. Node is in offline mode.")
+			webError(w, "ipfs cat "+urlPath, err, http.StatusServiceUnavailable)
 			return
 		}
 		fallthrough
 	default:
-		// all other erros
-		webError(w, "Path Resolve error", err, http.StatusBadRequest)
+		webError(w, "ipfs cat "+urlPath, err, http.StatusNotFound)
 		return
 	}
 
@@ -218,7 +216,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	links, err := i.api.Ls(ctx, urlPath)
+	links, err := i.api.Unixfs().Ls(ctx, parsedPath)
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -240,14 +238,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 				return
 			}
 
-			p, err := path.ParsePath(urlPath + "/index.html")
-			if err != nil {
-				internalWebError(w, err)
-				return
-			}
-
-			// return index page instead.
-			dr, err := i.api.Cat(ctx, p.String())
+			dr, err := i.api.Unixfs().Cat(ctx, coreapi.ParseCid(link.Cid))
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -314,15 +305,15 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 }
 
 func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	k, err := i.api.Add(ctx, r.Body)
+	p, err := i.api.Unixfs().Add(ctx, r.Body)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", k.String())
-	http.Redirect(w, r, ipfsPathPrefix+k.String(), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", p.Cid().String())
+	http.Redirect(w, r, p.String(), http.StatusCreated)
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
@@ -532,7 +523,7 @@ func webErrorWithCode(w http.ResponseWriter, message string, err error, code int
 	w.WriteHeader(code)
 
 	log.Errorf("%s: %s", message, err) // TODO(cryptix): log until we have a better way to expose these (counter metrics maybe)
-	fmt.Fprintf(w, "%s: %s", message, err)
+	fmt.Fprintf(w, "%s: %s\n", message, err)
 }
 
 // return a 500 error and log

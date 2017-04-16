@@ -41,12 +41,13 @@ ADVANCED COMMANDS
   daemon        Start a long-running daemon process
   mount         Mount an IPFS read-only mountpoint
   resolve       Resolve any type of name
-  name          Publish or resolve IPNS names
+  name          Publish and resolve IPNS names
+  key           Create and list IPNS name keypairs
   dns           Resolve DNS links
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
   stats         Various operational stats
-  key           Create and manipulate keypairs
+  filestore     Manage the filestore (experimental)
 
 NETWORK COMMANDS
   id            Show info about IPFS peers
@@ -124,6 +125,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"update":    ExternalBinary(),
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
+	"filestore": FileStoreCmd,
 }
 
 // RootRO is the readonly version of Root

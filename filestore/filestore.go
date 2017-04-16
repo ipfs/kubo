@@ -1,3 +1,10 @@
+// Package filestore implements a Blockstore which is able to read certain
+// blocks of data directly from its original location in the filesystem.
+//
+// In a Filestore, object leaves are stored as FilestoreNodes. FilestoreNodes
+// include a filesystem path and an offset, allowing a Blockstore dealing with
+// such blocks to avoid storing the whole contents and reading them from their
+// filesystem location instead.
 package filestore
 
 import (
@@ -14,20 +21,37 @@ import (
 
 var log = logging.Logger("filestore")
 
+// Filestore implements a Blockstore by combining a standard Blockstore
+// to store regular blocks and a special Blockstore called
+// FileManager to store blocks which data exists in an external file.
 type Filestore struct {
 	fm *FileManager
 	bs blockstore.Blockstore
 }
 
+// FileManager returns the FileManager in Filestore.
+func (f *Filestore) FileManager() *FileManager {
+	return f.fm
+}
+
+// MainBlockstore returns the standard Blockstore in the Filestore.
+func (f *Filestore) MainBlockstore() blockstore.Blockstore {
+	return f.bs
+}
+
+// NewFilestore creates one using the given Blockstore and FileManager.
 func NewFilestore(bs blockstore.Blockstore, fm *FileManager) *Filestore {
 	return &Filestore{fm, bs}
 }
 
+// AllKeysChan returns a channel from which to read the keys stored in
+// the blockstore. If the given context is cancelled the channel will be closed.
 func (f *Filestore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	a, err := f.bs.AllKeysChan(ctx)
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 
@@ -84,6 +108,10 @@ func (f *Filestore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 	return out, nil
 }
 
+// DeleteBlock deletes the block with the given key from the
+// blockstore. As expected, in the case of FileManager blocks, only the
+// reference is deleted, not its contents. It may return
+// ErrNotFound when the block is not stored.
 func (f *Filestore) DeleteBlock(c *cid.Cid) error {
 	err1 := f.bs.DeleteBlock(c)
 	if err1 != nil && err1 != blockstore.ErrNotFound {
@@ -107,6 +135,8 @@ func (f *Filestore) DeleteBlock(c *cid.Cid) error {
 	}
 }
 
+// Get retrieves the block with the given Cid. It may return
+// ErrNotFound when the block is not stored.
 func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
 	blk, err := f.bs.Get(c)
 	switch err {
@@ -121,6 +151,8 @@ func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
 	return f.fm.Get(c)
 }
 
+// Has returns true if the block with the given Cid is
+// stored in the Filestore.
 func (f *Filestore) Has(c *cid.Cid) (bool, error) {
 	has, err := f.bs.Has(c)
 	if err != nil {
@@ -134,6 +166,10 @@ func (f *Filestore) Has(c *cid.Cid) (bool, error) {
 	return f.fm.Has(c)
 }
 
+// Put stores a block in the Filestore. For blocks of
+// underlying type FilestoreNode, the operation is
+// delegated to the FileManager, while the rest of blocks
+// are handled by the regular blockstore.
 func (f *Filestore) Put(b blocks.Block) error {
 	has, err := f.Has(b.Cid())
 	if err != nil {
@@ -152,6 +188,8 @@ func (f *Filestore) Put(b blocks.Block) error {
 	}
 }
 
+// PutMany is like Put(), but takes a slice of blocks, allowing
+// the underlying blockstore to perform batch transactions.
 func (f *Filestore) PutMany(bs []blocks.Block) error {
 	var normals []blocks.Block
 	var fstores []*posinfo.FilestoreNode
@@ -188,6 +226,11 @@ func (f *Filestore) PutMany(bs []blocks.Block) error {
 		}
 	}
 	return nil
+}
+
+// HashOnRead calls blockstore.HashOnRead.
+func (f *Filestore) HashOnRead(enabled bool) {
+	f.bs.HashOnRead(enabled)
 }
 
 var _ blockstore.Blockstore = (*Filestore)(nil)

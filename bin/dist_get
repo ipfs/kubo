@@ -44,7 +44,7 @@ download() {
 	fi
 
 	try_download "$dl_url" "$dl_output" "wget '$dl_url' -O '$dl_output'" && return
-	try_download "$dl_url" "$dl_output" "curl --silent '$dl_url' > '$dl_output'" && return 
+	try_download "$dl_url" "$dl_output" "curl --silent '$dl_url' > '$dl_output'" && return
 	try_download "$dl_url" "$dl_output" "fetch '$dl_url' -o '$dl_output'" && return
 	try_download "$dl_url" "$dl_output" "http '$dl_url' > '$dl_output'" && return
 
@@ -65,7 +65,8 @@ unarchive() {
 		tar.gz)
 			if have_binary tar; then
 				echo "==> using 'tar' to extract binary from archive"
-				cat "$ua_infile" | tar -O -z -x -f - "$ua_distname/$ua_distname" > "$ua_outfile"
+				< "$ua_infile" tar -Ozxf - "$ua_distname/$ua_distname" > "$ua_outfile" \
+					|| die "tar has failed"
 			else
 				die "no binary on system for extracting tar files"
 			fi
@@ -73,7 +74,8 @@ unarchive() {
 		zip)
 			if have_binary unzip; then
 				echo "==> using 'unzip' to extract binary from archive"
-				unzip -p "$ua_infile" "$ua_distname/$ua_distname" > "$ua_outfile"
+				unzip -p "$ua_infile" "$ua_distname/$ua_distname" > "$ua_outfile" \
+					|| die "unzip has failed"
 			else
 				die "no installed method for extracting .zip archives"
 			fi
@@ -82,7 +84,7 @@ unarchive() {
 			die "unrecognized archive type '$ua_archivetype'"
 	esac
 
-	chmod +x "$ua_outfile"
+	chmod +x "$ua_outfile" || die "chmod has failed"
 }
 
 get_go_vars() {

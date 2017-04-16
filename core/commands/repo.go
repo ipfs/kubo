@@ -15,6 +15,7 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 
+	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
 )
 
@@ -39,6 +40,12 @@ var RepoCmd = &cmds.Command{
 	},
 }
 
+// GcResult is the result returned by "repo gc" command.
+type GcResult struct {
+	Key   *cid.Cid
+	Error string `json:",omitempty"`
+}
+
 var repoGcCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Perform a garbage collection sweep on the repo.",
@@ -50,6 +57,7 @@ order to reclaim hard disk space.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
+		cmds.BoolOption("stream-errors", "Stream errors.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -58,23 +66,39 @@ order to reclaim hard disk space.
 			return
 		}
 
-		gcOutChan, err := corerepo.GarbageCollectAsync(n, req.Context())
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		streamErrors, _, _ := res.Request().Option("stream-errors").Bool()
 
-		outChan := make(chan interface{})
+		gcOutChan := corerepo.GarbageCollectAsync(n, req.Context())
+
+		outChan := make(chan interface{}, cap(gcOutChan))
 		res.SetOutput((<-chan interface{})(outChan))
 
 		go func() {
 			defer close(outChan)
-			for k := range gcOutChan {
-				outChan <- k
+			if streamErrors {
+				errs := false
+				for res := range gcOutChan {
+					if res.Error != nil {
+						outChan <- &GcResult{Error: res.Error.Error()}
+						errs = true
+					} else {
+						outChan <- &GcResult{Key: res.KeyRemoved}
+					}
+				}
+				if errs {
+					res.SetError(fmt.Errorf("encountered errors during gc run"), cmds.ErrNormal)
+				}
+			} else {
+				err := corerepo.CollectResult(req.Context(), gcOutChan, func(k *cid.Cid) {
+					outChan <- &GcResult{Key: k}
+				})
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+				}
 			}
 		}()
 	},
-	Type: corerepo.KeyRemoved{},
+	Type: GcResult{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			outChan, ok := res.Output().(<-chan interface{})
@@ -88,18 +112,21 @@ order to reclaim hard disk space.
 			}
 
 			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*corerepo.KeyRemoved)
+				obj, ok := v.(*GcResult)
 				if !ok {
 					return nil, u.ErrCast()
 				}
 
-				buf := new(bytes.Buffer)
-				if quiet {
-					buf = bytes.NewBufferString(obj.Key.String() + "\n")
-				} else {
-					buf = bytes.NewBufferString(fmt.Sprintf("removed %s\n", obj.Key))
+				if obj.Error != "" {
+					fmt.Fprintf(res.Stderr(), "Error: %s\n", obj.Error)
+					return nil, nil
 				}
-				return buf, nil
+
+				if quiet {
+					return bytes.NewBufferString(obj.Key.String() + "\n"), nil
+				} else {
+					return bytes.NewBufferString(fmt.Sprintf("removed %s\n", obj.Key)), nil
+				}
 			}
 
 			return &cmds.ChannelMarshaler{

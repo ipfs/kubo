@@ -9,11 +9,16 @@ import (
 	ipld "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
 )
 
-// type CoreAPI interface {
-// 	ID() CoreID
-// 	Version() CoreVersion
-// }
+type Path interface {
+	String() string
+	Cid() *cid.Cid
+	Root() *cid.Cid
+	Resolved() bool
+}
 
+// TODO: should we really copy these?
+//       if we didn't, godoc would generate nice links straight to go-ipld-node
+type Node ipld.Node
 type Link ipld.Link
 
 type Reader interface {
@@ -21,10 +26,16 @@ type Reader interface {
 	io.Closer
 }
 
+type CoreAPI interface {
+	Unixfs() UnixfsAPI
+	ResolvePath(context.Context, Path) (Path, error)
+	ResolveNode(context.Context, Path) (Node, error)
+}
+
 type UnixfsAPI interface {
-	Add(context.Context, io.Reader) (*cid.Cid, error)
-	Cat(context.Context, string) (Reader, error)
-	Ls(context.Context, string) ([]*Link, error)
+	Add(context.Context, io.Reader) (Path, error)
+	Cat(context.Context, Path) (Reader, error)
+	Ls(context.Context, Path) ([]*Link, error)
 }
 
 // type ObjectAPI interface {
@@ -50,5 +61,4 @@ type UnixfsAPI interface {
 // }
 
 var ErrIsDir = errors.New("object is a directory")
-var ErrIsNonDag = errors.New("not a merkledag object")
 var ErrOffline = errors.New("can't resolve, ipfs node is offline")

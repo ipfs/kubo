@@ -28,7 +28,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 			Headers:      cfg.Gateway.HTTPHeaders,
 			Writable:     writable,
 			PathPrefixes: cfg.Gateway.PathPrefixes,
-		}, coreapi.NewUnixfsAPI(n))
+		}, coreapi.NewCoreAPI(n))
 
 		for _, p := range paths {
 			mux.Handle(p+"/", gateway)

@@ -16,7 +16,6 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	ci "gx/ipfs/QmPGxZ1DP2w45WcogpW1h43BvseXbfke9N91qotpoQcUeS/go-libp2p-crypto"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -100,7 +99,7 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 	switch err {
 	case nil:
 	case namesys.ErrResolveFailed:
-		node = uio.NewEmptyDirectory()
+		node = ft.EmptyDirNode()
 	default:
 		log.Errorf("looking up %s: %s", p, err)
 		return nil, err
@@ -126,8 +125,6 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 	default:
 		return nil, errors.New("unrecognized type")
 	}
-
-	panic("not reached")
 }
 
 type keyRoot struct {
@@ -325,7 +322,7 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 // ReadDirAll reads the link structure as directory entries
 func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var entries []fuse.Dirent
-	listing, err := dir.dir.List()
+	listing, err := dir.dir.List(ctx)
 	if err != nil {
 		return nil, err
 	}

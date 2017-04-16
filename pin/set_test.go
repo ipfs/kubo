@@ -95,7 +95,7 @@ func TestSet(t *testing.T) {
 
 	for _, c := range inputs {
 		if !seen.Has(c) {
-			t.Fatalf("expected to have %s, didnt find it")
+			t.Fatalf("expected to have '%s', didnt find it", c)
 		}
 	}
 }

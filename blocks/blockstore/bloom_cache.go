@@ -12,9 +12,10 @@ import (
 	bloom "gx/ipfs/QmeiMCBkYHxkDkDfnDadzz4YxY5ruL5Pj499essE4vRsGM/bbloom"
 )
 
-// bloomCached returns Blockstore that caches Has requests using Bloom filter
-// Size is size of bloom filter in bytes
-func bloomCached(bs Blockstore, ctx context.Context, bloomSize, hashCount int) (*bloomcache, error) {
+// bloomCached returns a Blockstore that caches Has requests using a Bloom
+// filter. bloomSize is size of bloom filter in bytes. hashCount specifies the
+// number of hashing functions in the bloom filter (usually known as k).
+func bloomCached(ctx context.Context, bs Blockstore, bloomSize, hashCount int) (*bloomcache, error) {
 	bl, err := bloom.New(float64(bloomSize), float64(hashCount))
 	if err != nil {
 		return nil, err
@@ -142,10 +143,7 @@ func (b *bloomcache) Get(k *cid.Cid) (blocks.Block, error) {
 }
 
 func (b *bloomcache) Put(bl blocks.Block) error {
-	if has, ok := b.hasCached(bl.Cid()); ok && has {
-		return nil
-	}
-
+	// See comment in PutMany
 	err := b.blockstore.Put(bl)
 	if err == nil {
 		b.bloom.AddTS(bl.Cid().Bytes())
@@ -155,7 +153,7 @@ func (b *bloomcache) Put(bl blocks.Block) error {
 
 func (b *bloomcache) PutMany(bs []blocks.Block) error {
 	// bloom cache gives only conclusive resulty if key is not contained
-	// to reduce number of puts we need conclusive infomration if block is contained
+	// to reduce number of puts we need conclusive information if block is contained
 	// this means that PutMany can't be improved with bloom cache so we just
 	// just do a passthrough.
 	err := b.blockstore.PutMany(bs)
@@ -166,6 +164,10 @@ func (b *bloomcache) PutMany(bs []blocks.Block) error {
 		b.bloom.AddTS(bl.Cid().Bytes())
 	}
 	return nil
+}
+
+func (b *bloomcache) HashOnRead(enabled bool) {
+	b.blockstore.HashOnRead(enabled)
 }
 
 func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {

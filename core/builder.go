@@ -18,6 +18,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	ci "gx/ipfs/QmPGxZ1DP2w45WcogpW1h43BvseXbfke9N91qotpoQcUeS/go-libp2p-crypto"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
@@ -175,12 +176,15 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		return err
 	}
 
+	// TEMP: setting global sharding switch here
+	uio.UseHAMTSharding = conf.Experimental.ShardingEnabled
+
 	opts.HasBloomFilterSize = conf.Datastore.BloomFilterSize
 	if !cfg.Permament {
 		opts.HasBloomFilterSize = 0
 	}
 
-	cbs, err := bstore.CachedBlockstore(bs, ctx, opts)
+	cbs, err := bstore.CachedBlockstore(ctx, bs, opts)
 	if err != nil {
 		return err
 	}

@@ -94,8 +94,9 @@ func Session(ctx context.Context, net tn.Network, p testutil.Identity) Instance 
 	adapter := net.Adapter(p)
 	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
 
-	bstore, err := blockstore.CachedBlockstore(blockstore.NewBlockstore(
-		ds_sync.MutexWrap(dstore)), ctx, blockstore.DefaultCacheOpts())
+	bstore, err := blockstore.CachedBlockstore(ctx,
+		blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)),
+		blockstore.DefaultCacheOpts())
 	if err != nil {
 		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}

@@ -265,16 +265,7 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (node.N
 			ResolveOnce: uio.ResolveUnixfsOnce,
 		}
 
-		nd, err := core.Resolve(ctx, node.Namesys, resolver, np)
-		if err != nil {
-			return nil, err
-		}
-		pbnd, ok := nd.(*dag.ProtoNode)
-		if !ok {
-			return nil, dag.ErrNotProtobuf
-		}
-
-		return pbnd, nil
+		return core.Resolve(ctx, node.Namesys, resolver, np)
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {
@@ -357,14 +348,20 @@ Examples:
 		case *mfs.Directory:
 			if !long {
 				var output []mfs.NodeListing
-				for _, name := range fsn.ListNames() {
+				names, err := fsn.ListNames(req.Context())
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+
+				for _, name := range names {
 					output = append(output, mfs.NodeListing{
 						Name: name,
 					})
 				}
 				res.SetOutput(&FilesLsOutput{output})
 			} else {
-				listing, err := fsn.List()
+				listing, err := fsn.List(req.Context())
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return

@@ -19,14 +19,14 @@ import (
 )
 
 // `echo -n 'hello, world!' | ipfs add`
-var hello = "QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
+var hello = coreapi.ResolvedPath("/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", nil, nil)
 var helloStr = "hello, world!"
 
 // `ipfs object new unixfs-dir`
-var emptyUnixfsDir = "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
+var emptyDir = coreapi.ResolvedPath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn", nil, nil)
 
 // `echo -n | ipfs add`
-var emptyUnixfsFile = "QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
+var emptyFile = coreapi.ResolvedPath("/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH", nil, nil)
 
 func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.UnixfsAPI, error) {
 	r := &repo.Mock{
@@ -41,7 +41,7 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.UnixfsAPI, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	api := coreapi.NewUnixfsAPI(node)
+	api := coreapi.NewCoreAPI(node).Unixfs()
 	return node, api, nil
 }
 
@@ -53,13 +53,13 @@ func TestAdd(t *testing.T) {
 	}
 
 	str := strings.NewReader(helloStr)
-	c, err := api.Add(ctx, str)
+	p, err := api.Add(ctx, str)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if c.String() != hello {
-		t.Fatalf("expected CID %s, got: %s", hello, c)
+	if p.String() != hello.String() {
+		t.Fatalf("expected path %s, got: %s", hello, p)
 	}
 
 	r, err := api.Cat(ctx, hello)
@@ -85,13 +85,13 @@ func TestAddEmptyFile(t *testing.T) {
 	}
 
 	str := strings.NewReader("")
-	c, err := api.Add(ctx, str)
+	p, err := api.Add(ctx, str)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if c.String() != emptyUnixfsFile {
-		t.Fatalf("expected CID %s, got: %s", hello, c)
+	if p.String() != emptyFile.String() {
+		t.Fatalf("expected path %s, got: %s", hello, p)
 	}
 }
 
@@ -103,16 +103,17 @@ func TestCatBasic(t *testing.T) {
 	}
 
 	hr := strings.NewReader(helloStr)
-	k, err := coreunix.Add(node, hr)
+	p, err := coreunix.Add(node, hr)
 	if err != nil {
 		t.Fatal(err)
 	}
+	p = "/ipfs/" + p
 
-	if k != hello {
-		t.Fatalf("expected CID %s, got: %s", hello, k)
+	if p != hello.String() {
+		t.Fatalf("expected CID %s, got: %s", hello, p)
 	}
 
-	r, err := api.Cat(ctx, k)
+	r, err := api.Cat(ctx, hello)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +140,7 @@ func TestCatEmptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := api.Cat(ctx, emptyUnixfsFile)
+	r, err := api.Cat(ctx, emptyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,8 +166,13 @@ func TestCatDir(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	p := coreapi.ParseCid(c)
 
-	_, err = api.Cat(ctx, c.String())
+	if p.String() != emptyDir.String() {
+		t.Fatalf("expected path %s, got: %s", emptyDir, p)
+	}
+
+	_, err = api.Cat(ctx, emptyDir)
 	if err != coreiface.ErrIsDir {
 		t.Fatalf("expected ErrIsDir, got: %s", err)
 	}
@@ -184,7 +190,7 @@ func TestCatNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = api.Cat(ctx, c.String())
+	_, err = api.Cat(ctx, coreapi.ParseCid(c))
 	if !strings.Contains(err.Error(), "proto: required field") {
 		t.Fatalf("expected protobuf error, got: %s", err)
 	}
@@ -197,9 +203,9 @@ func TestCatOffline(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = api.Cat(ctx, "/ipns/Qmfoobar")
+	_, err = api.Cat(ctx, coreapi.ResolvedPath("/ipns/Qmfoobar", nil, nil))
 	if err != coreiface.ErrOffline {
-		t.Fatalf("expected ErrOffline, got: %", err)
+		t.Fatalf("expected ErrOffline, got: %s", err)
 	}
 }
 
@@ -211,17 +217,17 @@ func TestLs(t *testing.T) {
 	}
 
 	r := strings.NewReader("content-of-file")
-	p, _, err := coreunix.AddWrapped(node, r, "name-of-file")
+	k, _, err := coreunix.AddWrapped(node, r, "name-of-file")
 	if err != nil {
 		t.Error(err)
 	}
-	parts := strings.Split(p, "/")
+	parts := strings.Split(k, "/")
 	if len(parts) != 2 {
-		t.Errorf("unexpected path:", p)
+		t.Errorf("unexpected path: %s", k)
 	}
-	k := parts[0]
+	p := coreapi.ResolvedPath("/ipfs/"+parts[0], nil, nil)
 
-	links, err := api.Ls(ctx, k)
+	links, err := api.Ls(ctx, p)
 	if err != nil {
 		t.Error(err)
 	}
@@ -236,7 +242,7 @@ func TestLs(t *testing.T) {
 		t.Fatalf("expected name = name-of-file, got %s", links[0].Name)
 	}
 	if links[0].Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
-		t.Fatalf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", links[0].Cid.String())
+		t.Fatalf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", links[0].Cid)
 	}
 }
 
@@ -247,12 +253,12 @@ func TestLsEmptyDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	c, err := node.DAG.Add(unixfs.EmptyDirNode())
+	_, err = node.DAG.Add(unixfs.EmptyDirNode())
 	if err != nil {
 		t.Error(err)
 	}
 
-	links, err := api.Ls(ctx, c.String())
+	links, err := api.Ls(ctx, emptyDir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -275,7 +281,7 @@ func TestLsNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	links, err := api.Ls(ctx, c.String())
+	links, err := api.Ls(ctx, coreapi.ParseCid(c))
 	if err != nil {
 		t.Error(err)
 	}

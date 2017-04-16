@@ -11,6 +11,9 @@ import (
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
 )
 
+// arccache wraps a BlockStore with an Adaptive Replacement Cache (ARC) for
+// block Cids. This provides block access-time improvements, allowing
+// to short-cut many searches without query-ing the underlying datastore.
 type arccache struct {
 	arc        *lru.ARCCache
 	blockstore Blockstore
@@ -126,6 +129,10 @@ func (b *arccache) PutMany(bs []blocks.Block) error {
 		b.addCache(block.Cid(), true)
 	}
 	return nil
+}
+
+func (b *arccache) HashOnRead(enabled bool) {
+	b.blockstore.HashOnRead(enabled)
 }
 
 func (b *arccache) addCache(c *cid.Cid, has bool) {

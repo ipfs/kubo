@@ -19,6 +19,8 @@ ENV GOPATH     /go
 ENV PATH       /go/bin:$PATH
 ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
 
+VOLUME $IPFS_PATH
+
 # This is an optimization which avoids rebuilding
 # of the gx dependencies every time anything changes.
 # gx will only be invoked if the dependencies have changed.
@@ -28,10 +30,9 @@ ENV SRC_PATH   /go/src/github.com/ipfs/go-ipfs
 # and trigger a re-run of all following commands.
 COPY ./package.json $SRC_PATH/package.json
 
-RUN apk add --update musl-dev gcc go git bash wget ca-certificates \
-	&& mkdir -p $IPFS_PATH \
+RUN apk add --no-cache --virtual .build-deps-ipfs musl-dev gcc go git \
+	&& apk add --no-cache tini su-exec bash wget ca-certificates \
 	&& adduser -D -h $IPFS_PATH -u 1000 ipfs \
-	&& chown ipfs:ipfs $IPFS_PATH && chmod 755 $IPFS_PATH \
 	&& go get -u github.com/whyrusleeping/gx \
 	&& go get -u github.com/whyrusleeping/gx-go \
 	&& ([ -z "$GX_IPFS" ] || echo $GX_IPFS > $IPFS_PATH/api) \
@@ -48,9 +49,7 @@ RUN cd $SRC_PATH \
 	&& cp ipfs /usr/local/bin/ipfs \
 	&& cp $SRC_PATH/bin/container_daemon /usr/local/bin/start_ipfs \
 	&& chmod 755 /usr/local/bin/start_ipfs \
-	&& apk del --purge musl-dev gcc go git && rm -rf $GOPATH && rm -vf $IPFS_PATH/api
+	&& apk del --purge .build-deps-ipfs && rm -rf $GOPATH && rm -vf $IPFS_PATH/api
 
-USER ipfs
-VOLUME $IPFS_PATH
-ENTRYPOINT ["/usr/local/bin/start_ipfs"]
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_ipfs"]
 CMD ["daemon", "--migrate=true"]

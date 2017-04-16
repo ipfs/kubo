@@ -82,6 +82,9 @@ func mkdirP(t *testing.T, root *Directory, pth string) *Directory {
 }
 
 func assertDirAtPath(root *Directory, pth string, children []string) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	fsn, err := DirLookup(root, pth)
 	if err != nil {
 		return err
@@ -92,7 +95,7 @@ func assertDirAtPath(root *Directory, pth string, children []string) error {
 		return fmt.Errorf("%s was not a directory", pth)
 	}
 
-	listing, err := dir.List()
+	listing, err := dir.List(ctx)
 	if err != nil {
 		return err
 	}
@@ -496,7 +499,7 @@ func TestMfsFile(t *testing.T) {
 
 func randomWalk(d *Directory, n int) (*Directory, error) {
 	for i := 0; i < n; i++ {
-		dirents, err := d.List()
+		dirents, err := d.List(context.Background())
 		if err != nil {
 			return nil, err
 		}
@@ -585,7 +588,7 @@ func actorRemoveFile(d *Directory) error {
 		return err
 	}
 
-	ents, err := d.List()
+	ents, err := d.List(context.Background())
 	if err != nil {
 		return err
 	}
@@ -605,7 +608,7 @@ func randomFile(d *Directory) (*File, error) {
 		return nil, err
 	}
 
-	ents, err := d.List()
+	ents, err := d.List(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -747,6 +750,67 @@ func TestMfsStress(t *testing.T) {
 	}
 }
 
+func TestMfsHugeDir(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, rt := setupRoot(ctx, t)
+
+	for i := 0; i < 10000; i++ {
+		err := Mkdir(rt, fmt.Sprintf("/dir%d", i), false, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestMkdirP(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, rt := setupRoot(ctx, t)
+
+	err := Mkdir(rt, "/a/b/c/d/e/f", true, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestConcurrentWriteAndFlush(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ds, rt := setupRoot(ctx, t)
+
+	d := mkdirP(t, rt.GetValue().(*Directory), "foo/bar/baz")
+	fn := fileNodeFromReader(t, ds, bytes.NewBuffer(nil))
+	err := d.AddChild("file", fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nloops := 5000
+
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < nloops; i++ {
+			err := writeFile(rt, "/foo/bar/baz/file", []byte("STUFF"))
+			if err != nil {
+				t.Error("file write failed: ", err)
+				return
+			}
+		}
+	}()
+
+	for i := 0; i < nloops; i++ {
+		_, err := rt.GetValue().GetNode()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	wg.Wait()
+}
+
 func TestFlushing(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -886,6 +950,71 @@ func TestConcurrentReads(t *testing.T) {
 
 				if !bytes.Equal(mybuf[:length], buf[offset:offset+length]) {
 					t.Error("incorrect read!")
+				}
+			}
+		}(i)
+	}
+	wg.Wait()
+}
+
+func writeFile(rt *Root, path string, data []byte) error {
+	n, err := Lookup(rt, path)
+	if err != nil {
+		return err
+	}
+
+	fi, ok := n.(*File)
+	if !ok {
+		return fmt.Errorf("expected to receive a file, but didnt get one")
+	}
+
+	fd, err := fi.Open(OpenWriteOnly, true)
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+
+	nw, err := fd.Write(data)
+	if err != nil {
+		return err
+	}
+
+	if nw != len(data) {
+		return fmt.Errorf("wrote incorrect amount: %d != 10", nw)
+	}
+
+	return nil
+}
+
+func TestConcurrentWrites(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ds, rt := setupRoot(ctx, t)
+
+	rootdir := rt.GetValue().(*Directory)
+
+	path := "a/b/c"
+	d := mkdirP(t, rootdir, path)
+
+	fi := fileNodeFromReader(t, ds, bytes.NewReader(make([]byte, 0)))
+	err := d.AddChild("afile", fi)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	nloops := 100
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(me int) {
+			defer wg.Done()
+			mybuf := bytes.Repeat([]byte{byte(me)}, 10)
+			for j := 0; j < nloops; j++ {
+				err := writeFile(rt, "a/b/c/afile", mybuf)
+				if err != nil {
+					t.Error("writefile failed: ", err)
+					return
 				}
 			}
 		}(i)

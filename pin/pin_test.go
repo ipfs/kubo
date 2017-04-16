@@ -35,6 +35,17 @@ func assertPinned(t *testing.T, p Pinner, c *cid.Cid, failmsg string) {
 	}
 }
 
+func assertUnpinned(t *testing.T, p Pinner, c *cid.Cid, failmsg string) {
+	_, pinned, err := p.IsPinned(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if pinned {
+		t.Fatal(failmsg)
+	}
+}
+
 func TestPinnerBasic(t *testing.T) {
 	ctx := context.Background()
 
@@ -145,6 +156,122 @@ func TestPinnerBasic(t *testing.T) {
 	assertPinned(t, np, bk, "could not find recursively pinned node")
 }
 
+func TestIsPinnedLookup(t *testing.T) {
+	// We are going to test that lookups work in pins which share
+	// the same branches. For that we will construct this tree:
+	//
+	// A5->A4->A3->A2->A1->A0
+	//         /           /
+	// B-------           /
+	//  \                /
+	//   C---------------
+	//
+	// We will ensure that IsPinned works for all objects both when they
+	// are pinned and once they have been unpinned.
+	aBranchLen := 6
+	if aBranchLen < 3 {
+		t.Fatal("set aBranchLen to at least 3")
+	}
+
+	ctx := context.Background()
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
+	bstore := blockstore.NewBlockstore(dstore)
+	bserv := bs.New(bstore, offline.Exchange(bstore))
+
+	dserv := mdag.NewDAGService(bserv)
+
+	// TODO does pinner need to share datastore with blockservice?
+	p := NewPinner(dstore, dserv, dserv)
+
+	aNodes := make([]*mdag.ProtoNode, aBranchLen, aBranchLen)
+	aKeys := make([]*cid.Cid, aBranchLen, aBranchLen)
+	for i := 0; i < aBranchLen; i++ {
+		a, _ := randNode()
+		if i >= 1 {
+			err := a.AddNodeLink("child", aNodes[i-1])
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		ak, err := dserv.Add(a)
+		if err != nil {
+			t.Fatal(err)
+		}
+		//t.Logf("a[%d] is %s", i, ak)
+		aNodes[i] = a
+		aKeys[i] = ak
+	}
+
+	// Pin A5 recursively
+	if err := p.Pin(ctx, aNodes[aBranchLen-1], true); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create node B and add A3 as child
+	b, _ := randNode()
+	if err := b.AddNodeLink("mychild", aNodes[3]); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create C node
+	c, _ := randNode()
+	// Add A0 as child of C
+	if err := c.AddNodeLink("child", aNodes[0]); err != nil {
+		t.Fatal(err)
+	}
+
+	// Add C
+	ck, err := dserv.Add(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	//t.Logf("C is %s", ck)
+
+	// Add C to B and Add B
+	if err := b.AddNodeLink("myotherchild", c); err != nil {
+		t.Fatal(err)
+	}
+	bk, err := dserv.Add(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	//t.Logf("B is %s", bk)
+
+	// Pin C recursively
+
+	if err := p.Pin(ctx, c, true); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pin B recursively
+
+	if err := p.Pin(ctx, b, true); err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinned(t, p, aKeys[0], "A0 should be pinned")
+	assertPinned(t, p, aKeys[1], "A1 should be pinned")
+	assertPinned(t, p, ck, "C should be pinned")
+	assertPinned(t, p, bk, "B should be pinned")
+
+	// Unpin A5 recursively
+	if err := p.Unpin(ctx, aKeys[5], true); err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinned(t, p, aKeys[0], "A0 should still be pinned through B")
+	assertUnpinned(t, p, aKeys[4], "A4 should be unpinned")
+
+	// Unpin B recursively
+	if err := p.Unpin(ctx, bk, true); err != nil {
+		t.Fatal(err)
+	}
+	assertUnpinned(t, p, bk, "B should be unpinned")
+	assertUnpinned(t, p, aKeys[1], "A1 should be unpinned")
+	assertPinned(t, p, aKeys[0], "A0 should still be pinned through C")
+}
+
 func TestDuplicateSemantics(t *testing.T) {
 	ctx := context.Background()
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
@@ -214,7 +341,9 @@ func TestPinRecursiveFail(t *testing.T) {
 	}
 
 	// NOTE: This isnt a time based test, we expect the pin to fail
-	mctx, _ := context.WithTimeout(ctx, time.Millisecond)
+	mctx, cancel := context.WithTimeout(ctx, time.Millisecond)
+	defer cancel()
+
 	err = p.Pin(mctx, a, true)
 	if err == nil {
 		t.Fatal("should have failed to pin here")
@@ -231,7 +360,8 @@ func TestPinRecursiveFail(t *testing.T) {
 	}
 
 	// this one is time based... but shouldnt cause any issues
-	mctx, _ = context.WithTimeout(ctx, time.Second)
+	mctx, cancel = context.WithTimeout(ctx, time.Second)
+	defer cancel()
 	err = p.Pin(mctx, a, true)
 	if err != nil {
 		t.Fatal(err)

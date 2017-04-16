@@ -24,7 +24,7 @@ func TestPathParsing(t *testing.T) {
 		_, err := ParsePath(p)
 		valid := (err == nil)
 		if valid != expected {
-			t.Fatalf("expected %s to have valid == %s", p, expected)
+			t.Fatalf("expected %s to have valid == %t", p, expected)
 		}
 	}
 }

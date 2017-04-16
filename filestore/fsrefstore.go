@@ -20,25 +20,43 @@ import (
 	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
 )
 
+// FilestorePrefix identifies the key prefix for FileManager blocks.
 var FilestorePrefix = ds.NewKey("filestore")
 
+// FileManager is a blockstore implementation which stores special
+// blocks FilestoreNode type. These nodes only contain a reference
+// to the actual location of the block data in the filesystem
+// (a path and an offset).
 type FileManager struct {
 	ds   ds.Batching
 	root string
 }
 
+// CorruptReferenceError implements the error interface.
+// It is used to indicate that the block contents pointed
+// by the referencing blocks cannot be retrieved (i.e. the
+// file is not found, or the data changed as it was being read).
 type CorruptReferenceError struct {
-	Err error
+	Code Status
+	Err  error
 }
 
+// Error() returns the error message in the CorruptReferenceError
+// as a string.
 func (c CorruptReferenceError) Error() string {
 	return c.Err.Error()
 }
 
+// NewFileManager initializes a new file manager with the given
+// datastore and root. All FilestoreNodes paths are relative to the
+// root path given here, which is prepended for any operations.
 func NewFileManager(ds ds.Batching, root string) *FileManager {
 	return &FileManager{dsns.Wrap(ds, FilestorePrefix), root}
 }
 
+// AllKeysChan returns a channel from which to read the keys stored in
+// the FileManager. If the given context is cancelled the channel will be
+// closed.
 func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 	q := dsq.Query{KeysOnly: true}
 	q.Prefix = FilestorePrefix.String()
@@ -75,6 +93,8 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 	return out, nil
 }
 
+// DeleteBlock deletes the reference-block from the underlying
+// datastore. It does not touch the referenced data.
 func (f *FileManager) DeleteBlock(c *cid.Cid) error {
 	err := f.ds.Delete(dshelp.CidToDsKey(c))
 	if err == ds.ErrNotFound {
@@ -83,6 +103,10 @@ func (f *FileManager) DeleteBlock(c *cid.Cid) error {
 	return err
 }
 
+// Get reads a block from the datastore. Reading a block
+// is done in two steps: the first step retrieves the reference
+// block from the datastore. The second step uses the stored
+// path and offsets to read the raw block data directly from disk.
 func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 	dobj, err := f.getDataObj(c)
 	if err != nil {
@@ -108,6 +132,10 @@ func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
 		//
 	}
 
+	return unmarshalDataObj(o)
+}
+
+func unmarshalDataObj(o interface{}) (*pb.DataObj, error) {
 	data, ok := o.([]byte)
 	if !ok {
 		return nil, fmt.Errorf("stored filestore dataobj was not a []byte")
@@ -127,20 +155,24 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	abspath := filepath.Join(f.root, p)
 
 	fi, err := os.Open(abspath)
-	if err != nil {
-		return nil, &CorruptReferenceError{err}
+	if os.IsNotExist(err) {
+		return nil, &CorruptReferenceError{StatusFileNotFound, err}
+	} else if err != nil {
+		return nil, &CorruptReferenceError{StatusFileError, err}
 	}
 	defer fi.Close()
 
 	_, err = fi.Seek(int64(d.GetOffset()), os.SEEK_SET)
 	if err != nil {
-		return nil, &CorruptReferenceError{err}
+		return nil, &CorruptReferenceError{StatusFileError, err}
 	}
 
 	outbuf := make([]byte, d.GetSize_())
 	_, err = io.ReadFull(fi, outbuf)
-	if err != nil {
-		return nil, &CorruptReferenceError{err}
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return nil, &CorruptReferenceError{StatusFileChanged, err}
+	} else if err != nil {
+		return nil, &CorruptReferenceError{StatusFileError, err}
 	}
 
 	outcid, err := c.Prefix().Sum(outbuf)
@@ -149,12 +181,15 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	}
 
 	if !c.Equals(outcid) {
-		return nil, &CorruptReferenceError{fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
+		return nil, &CorruptReferenceError{StatusFileChanged,
+			fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
 	}
 
 	return outbuf, nil
 }
 
+// Has returns if the FileManager is storing a block reference. It does not
+// validate the data, nor checks if the reference is valid.
 func (f *FileManager) Has(c *cid.Cid) (bool, error) {
 	// NOTE: interesting thing to consider. Has doesnt validate the data.
 	// So the data on disk could be invalid, and we could think we have it.
@@ -166,6 +201,8 @@ type putter interface {
 	Put(ds.Key, interface{}) error
 }
 
+// Put adds a new reference block to the FileManager. It does not check
+// that the reference is valid.
 func (f *FileManager) Put(b *posinfo.FilestoreNode) error {
 	return f.putTo(b, f.ds)
 }
@@ -194,6 +231,8 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 	return to.Put(dshelp.CidToDsKey(b.Cid()), data)
 }
 
+// PutMany is like Put() but takes a slice of blocks instead,
+// allowing it to create a batch transaction.
 func (f *FileManager) PutMany(bs []*posinfo.FilestoreNode) error {
 	batch, err := f.ds.Batch()
 	if err != nil {

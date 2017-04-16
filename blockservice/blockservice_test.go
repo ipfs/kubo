@@ -32,7 +32,7 @@ func TestWriteThroughWorks(t *testing.T) {
 
 	bserv.AddBlock(block)
 	if bstore.PutCounter != 2 {
-		t.Fatal("Put should have called again, should be 2 is: %d", bstore.PutCounter)
+		t.Fatalf("Put should have called again, should be 2 is: %d", bstore.PutCounter)
 	}
 }
 

@@ -336,15 +336,18 @@ func (dm *DagModifier) readPrep() error {
 		ctx, cancel := context.WithCancel(dm.ctx)
 		dr, err := uio.NewDagReader(ctx, dm.curNode, dm.dagserv)
 		if err != nil {
+			cancel()
 			return err
 		}
 
 		i, err := dr.Seek(int64(dm.curWrOff), os.SEEK_SET)
 		if err != nil {
+			cancel()
 			return err
 		}
 
 		if i != int64(dm.curWrOff) {
+			cancel()
 			return ErrSeekFail
 		}
 

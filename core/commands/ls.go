@@ -105,11 +105,24 @@ The JSON output contains type information.
 
 		output := make([]LsObject, len(req.Arguments()))
 		for i, dagnode := range dagnodes {
+			dir, err := uio.NewDirectoryFromNode(nd.DAG, dagnode)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			links, err := dir.Links(req.Context())
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
 			output[i] = LsObject{
 				Hash:  paths[i],
-				Links: make([]LsLink, len(dagnode.Links())),
+				Links: make([]LsLink, len(links)),
 			}
-			for j, link := range dagnode.Links() {
+
+			for j, link := range links {
 				t := unixfspb.Data_DataType(-1)
 
 				linkNode, err := link.GetNode(req.Context(), dserv)
