@@ -84,7 +84,7 @@ Resolve the value of a dnslink:
 
 		if local {
 			offroute := offline.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
-			resolver = namesys.NewRoutingResolver(offroute, 0)
+			resolver = namesys.NewRoutingResolver(offroute, 0, n.Repo.Datastore())
 		}
 
 		if nocache {

@@ -5,4 +5,5 @@ type Ipns struct {
 	RecordLifetime  string
 
 	ResolveCacheSize int
+	QuerySize        int
 }
