@@ -1,4 +1,4 @@
-# go-ipfs changelog
+# go-ipfs changelog          
 
 ### 0.4.8 - 2017-03-29
 
@@ -1159,3 +1159,11 @@ And many more things.
       <install new ipfs>
       <manually add .../ipfs/... to addrs in bootstrap_peers>
       ipfs bootstrap add <bootstrap_peers
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
