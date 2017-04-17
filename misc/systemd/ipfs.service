@@ -1,0 +1,9 @@
+[Unit]
+Description=ipfs: global versioned p2p merkledag file system
+
+[Service]
+ExecStart=/usr/bin/ipfs daemon
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
