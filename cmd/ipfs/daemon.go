@@ -226,7 +226,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	if initialize {
 
-		cfg := req.InvocContext().ConfigRoot
+		cfg := ctx.ConfigRoot
 		if !fsrepo.IsInitialized(cfg) {
 			err := initWithDefaults(os.Stdout, cfg)
 			if err != nil {
@@ -238,7 +238,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+	repo, err := fsrepo.Open(ctx.ConfigRoot)
 	switch err {
 	default:
 		res.SetError(err, cmds.ErrNormal)
@@ -268,7 +268,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			return
 		}
 
-		repo, err = fsrepo.Open(req.InvocContext().ConfigRoot)
+		repo, err = fsrepo.Open(ctx.ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -359,7 +359,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 	}()
 
-	req.InvocContext().ConstructNode = func() (*core.IpfsNode, error) {
+	ctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return node, nil
 	}
 
