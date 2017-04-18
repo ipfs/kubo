@@ -183,7 +183,16 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	etag := gopath.Base(urlPath)
+	// Resolve path to the final DAG node for the ETag
+	dagnode, err := i.api.ResolveNode(ctx, parsedPath)
+	if err != nil {
+		// Unixfs().Cat() also calls ResolveNode, so it should not fail here.
+		webError(w, "could not resolve ipfs path", err, http.StatusBadRequest)
+		return
+	}
+
+	// Check etag send back to us
+	etag := "\"" + dagnode.Cid().String() + "\""
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -191,6 +200,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-IPFS-Path", urlPath)
+	w.Header().Set("Etag", etag)
 
 	// set 'allowed' headers
 	w.Header().Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
@@ -203,7 +213,6 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	// TODO: break this out when we split /ipfs /ipns routes.
 	modtime := time.Now()
 	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
-		w.Header().Set("Etag", etag)
 		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 
 		// set modtime to a really long time ago, since files are immutable and should stay cached
