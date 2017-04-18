@@ -164,7 +164,22 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	dr, err := i.api.Unixfs().Cat(ctx, parsedPath)
+	// Resolve path to the final DAG node for the ETag
+	resolvedPath, err := i.api.ResolvePath(ctx, parsedPath)
+	switch err {
+	case nil:
+	case coreiface.ErrOffline:
+		if !i.node.OnlineMode() {
+			webError(w, "ipfs resolve -r "+urlPath, err, http.StatusServiceUnavailable)
+			return
+		}
+		fallthrough
+	default:
+		webError(w, "ipfs resolve -r "+urlPath, err, http.StatusNotFound)
+		return
+	}
+
+	dr, err := i.api.Unixfs().Cat(ctx, resolvedPath)
 	dir := false
 	switch err {
 	case nil:
@@ -172,27 +187,13 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		defer dr.Close()
 	case coreiface.ErrIsDir:
 		dir = true
-	case coreiface.ErrOffline:
-		if !i.node.OnlineMode() {
-			webError(w, "ipfs cat "+urlPath, err, http.StatusServiceUnavailable)
-			return
-		}
-		fallthrough
 	default:
 		webError(w, "ipfs cat "+urlPath, err, http.StatusNotFound)
 		return
 	}
 
-	// Resolve path to the final DAG node for the ETag
-	dagnode, err := i.api.ResolveNode(ctx, parsedPath)
-	if err != nil {
-		// Unixfs().Cat() also calls ResolveNode, so it should not fail here.
-		webError(w, "could not resolve ipfs path", err, http.StatusBadRequest)
-		return
-	}
-
 	// Check etag send back to us
-	etag := "\"" + dagnode.Cid().String() + "\""
+	etag := "\"" + resolvedPath.Cid().String() + "\""
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -225,7 +226,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	links, err := i.api.Unixfs().Ls(ctx, parsedPath)
+	links, err := i.api.Unixfs().Ls(ctx, resolvedPath)
 	if err != nil {
 		internalWebError(w, err)
 		return
