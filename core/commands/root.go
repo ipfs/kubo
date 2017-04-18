@@ -66,7 +66,9 @@ TOOL COMMANDS
 Use 'ipfs <command> --help' to learn more about each command.
 
 ipfs uses a repository in the local file system. By default, the repo is located
-at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+at ~/.ipfs. To change the repo location, you can either use --repo or set the $IPFS_PATH environment variable:
+
+    ipfs <cmd> --repo=/path/to/ipfsrepo
 
   export IPFS_PATH=/path/to/ipfsrepo
 
@@ -79,7 +81,7 @@ The CLI will exit with one of the following values:
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("config", "c", "Path to the configuration file to use."),
+		cmds.StringOption("repo", "R", "Path to the configuration file to use."),
 		cmds.BoolOption("debug", "D", "Operate in debug mode.").Default(false),
 		cmds.BoolOption("help", "Show the full command help text.").Default(false),
 		cmds.BoolOption("h", "Show a short version of the command help text.").Default(false),
