@@ -19,7 +19,7 @@ Please note the following:
   - https://pgp.mit.edu/pks/lookup?op=get&search=0x50AAE8A959B13AF3
 
 - ipfs uses encryption for all communication, but it's NOT PROVEN SECURE
-  YET!  It may be totally broken. For now, the code is included to make
+  YET! It may be totally broken. For now, the code is included to make
   sure we benchmark our operations with encryption in mind. In the future,
   there will be an "unsafe" mode for high performance intranet apps.
   If this is a blocking feature for you, please contact us.
