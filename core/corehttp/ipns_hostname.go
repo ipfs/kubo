@@ -7,7 +7,7 @@ import (
 
 	"context"
 	"github.com/ipfs/go-ipfs/core"
-	isd "gx/ipfs/QmaeHSCBd9XjXxmgHEiKkHtLcMCb2eZsPLKT7bHgBfBkqw/go-is-domain"
+	isd "gx/ipfs/QmZmmuAXgX73UQmX1jRKjTGmjzq24Jinqkq8vzkBtno4uX/go-is-domain"
 )
 
 // IPNSHostnameOption rewrites an incoming request if its Host: header contains
