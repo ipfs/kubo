@@ -23,6 +23,9 @@ import (
 	id "gx/ipfs/QmeWJwi61vii5g8zQUB9UGegfUbmhTKHgeDFP9XuSp5jZ4/go-libp2p/p2p/protocol/identify"
 )
 
+// `ipfs object new unixfs-dir`
+var emptyDir = "/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
+
 type mockNamesys map[string]path.Path
 
 func (m mockNamesys) Resolve(ctx context.Context, name string) (value path.Path, err error) {
@@ -458,6 +461,32 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 	if !strings.Contains(s, "<a href=\"/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
+	}
+}
+
+func TestCacheControlImmutable(t *testing.T) {
+	ts, _ := newTestServerAndNode(t, nil)
+	t.Logf("test server url: %s", ts.URL)
+	defer ts.Close()
+
+	req, err := http.NewRequest("GET", ts.URL+emptyDir+"/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check the immutable tag isn't set
+	hdrs, ok := res.Header["Cache-Control"]
+	if ok {
+		for _, hdr := range hdrs {
+			if strings.Contains(hdr, "immutable") {
+				t.Fatalf("unexpected Cache-Control: immutable on directory listing: %s", hdr)
+			}
+		}
 	}
 }
 
