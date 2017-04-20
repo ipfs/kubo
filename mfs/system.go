@@ -1,12 +1,6 @@
 // package mfs implements an in memory model of a mutable IPFS filesystem.
 //
-// It consists of four main structs:
-// 1) The Filesystem
-//        The filesystem serves as a container and entry point for various mfs filesystems
-// 2) Root
-//        Root represents an individual filesystem mounted within the mfs system as a whole
-// 3) Directories
-// 4) Files
+// It's made up out of roots, directories and files.
 package mfs
 
 import (
@@ -59,8 +53,6 @@ type Root struct {
 	repub *Republisher
 
 	dserv dag.DAGService
-
-	Type string
 }
 
 type PubFunc func(context.Context, *cid.Cid) error
