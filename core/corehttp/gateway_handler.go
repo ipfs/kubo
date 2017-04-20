@@ -164,7 +164,22 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	dr, err := i.api.Unixfs().Cat(ctx, parsedPath)
+	// Resolve path to the final DAG node for the ETag
+	resolvedPath, err := i.api.ResolvePath(ctx, parsedPath)
+	switch err {
+	case nil:
+	case coreiface.ErrOffline:
+		if !i.node.OnlineMode() {
+			webError(w, "ipfs resolve -r "+urlPath, err, http.StatusServiceUnavailable)
+			return
+		}
+		fallthrough
+	default:
+		webError(w, "ipfs resolve -r "+urlPath, err, http.StatusNotFound)
+		return
+	}
+
+	dr, err := i.api.Unixfs().Cat(ctx, resolvedPath)
 	dir := false
 	switch err {
 	case nil:
@@ -172,18 +187,13 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		defer dr.Close()
 	case coreiface.ErrIsDir:
 		dir = true
-	case coreiface.ErrOffline:
-		if !i.node.OnlineMode() {
-			webError(w, "ipfs cat "+urlPath, err, http.StatusServiceUnavailable)
-			return
-		}
-		fallthrough
 	default:
 		webError(w, "ipfs cat "+urlPath, err, http.StatusNotFound)
 		return
 	}
 
-	etag := gopath.Base(urlPath)
+	// Check etag send back to us
+	etag := "\"" + resolvedPath.Cid().String() + "\""
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -191,6 +201,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-IPFS-Path", urlPath)
+	w.Header().Set("Etag", etag)
 
 	// set 'allowed' headers
 	w.Header().Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
@@ -202,8 +213,8 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	// and only if it's /ipfs!
 	// TODO: break this out when we split /ipfs /ipns routes.
 	modtime := time.Now()
+
 	if strings.HasPrefix(urlPath, ipfsPathPrefix) && !dir {
-		w.Header().Set("Etag", etag)
 		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 
 		// set modtime to a really long time ago, since files are immutable and should stay cached
@@ -216,7 +227,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	links, err := i.api.Unixfs().Ls(ctx, parsedPath)
+	links, err := i.api.Unixfs().Ls(ctx, resolvedPath)
 	if err != nil {
 		internalWebError(w, err)
 		return
