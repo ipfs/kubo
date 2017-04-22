@@ -7,11 +7,16 @@ MAINTAINER Lars Gierth <lgierth@ipfs.io>
 # Please keep these two Dockerfiles in sync.
 
 
-# Ports for Swarm TCP, Swarm uTP, API, Gateway
+# /tcp transport
 EXPOSE 4001
+# /udp/utp transport
 EXPOSE 4002/udp
+# api
 EXPOSE 5001
+# gateway
 EXPOSE 8080
+# /tcp/ws transport
+EXPOSE 8081
 
 # IPFS API to use for fetching gx packages.
 # This can be a gateway too, since its read-only API provides all gx needs.
