@@ -286,6 +286,9 @@ func (e *Engine) AddBlock(block blocks.Block) {
 
 func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 	l := e.findOrCreate(p)
+	l.lk.Lock()
+	defer l.lk.Unlock()
+
 	for _, block := range m.Blocks() {
 		l.SentBytes(len(block.RawData()))
 		l.wantList.Remove(block.Cid())
