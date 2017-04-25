@@ -507,7 +507,37 @@ func assertLedgerMatch(ra, rb *decision.Receipt) error {
 	return nil
 }
 
-func TestBitswapBytesSentOneWay(t *testing.T) {
+func assertLedgerEqual(ra, rb *decision.Receipt) error {
+	if ra.Value != rb.Value {
+		return fmt.Errorf("mismatch in ledgers (value/debt ratio): %f vs %f ", ra.Value, rb.Value)
+	}
+
+	if ra.Sent != rb.Sent {
+		return fmt.Errorf("mismatch in ledgers (sent bytes): %d vs %d", ra.Sent, rb.Sent)
+	}
+
+	if ra.Recv != rb.Recv {
+		return fmt.Errorf("mismatch in ledgers (recvd bytes): %d vs %d", ra.Recv, rb.Recv)
+	}
+
+	if ra.Exchanged != rb.Exchanged {
+		return fmt.Errorf("mismatch in ledgers (exchanged blocks): %d vs %d ", ra.Exchanged, rb.Exchanged)
+	}
+
+	return nil
+}
+
+func newReceipt(sent, recv, exchanged uint64) *decision.Receipt {
+	return &decision.Receipt{
+		Peer:      "test",
+		Value:     float64(sent) / (1 + float64(recv)),
+		Sent:      sent,
+		Recv:      recv,
+		Exchanged: exchanged,
+	}
+}
+
+func TestBitswapLedgerOneWay(t *testing.T) {
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
 	sg := NewTestSessionGenerator(net)
 	defer sg.Close()
@@ -532,7 +562,20 @@ func TestBitswapBytesSentOneWay(t *testing.T) {
 	ra := instances[0].Exchange.LedgerForPeer(instances[1].Peer)
 	rb := instances[1].Exchange.LedgerForPeer(instances[0].Peer)
 
+	// compare peer ledger receipts
 	err = assertLedgerMatch(ra, rb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that receipts have intended values
+	ratest := newReceipt(1, 0, 1)
+	err = assertLedgerEqual(ratest, ra)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rbtest := newReceipt(0, 1, 1)
+	err = assertLedgerEqual(rbtest, rb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -546,7 +589,7 @@ func TestBitswapBytesSentOneWay(t *testing.T) {
 	}
 }
 
-func TestBitswapBytesSentTwoWay(t *testing.T) {
+func TestBitswapLedgerTwoWay(t *testing.T) {
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
 	sg := NewTestSessionGenerator(net)
 	defer sg.Close()
@@ -583,7 +626,20 @@ func TestBitswapBytesSentTwoWay(t *testing.T) {
 	ra := instances[0].Exchange.LedgerForPeer(instances[1].Peer)
 	rb := instances[1].Exchange.LedgerForPeer(instances[0].Peer)
 
+	// compare peer ledger receipts
 	err = assertLedgerMatch(ra, rb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that receipts have intended values
+	rtest := newReceipt(1, 1, 2)
+	err = assertLedgerEqual(rtest, ra)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = assertLedgerEqual(rtest, rb)
 	if err != nil {
 		t.Fatal(err)
 	}
