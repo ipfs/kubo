@@ -44,9 +44,10 @@ download() {
 	fi
 
 	try_download "$dl_url" "$dl_output" "wget '$dl_url' -O '$dl_output'" && return
-	try_download "$dl_url" "$dl_output" "curl --silent '$dl_url' > '$dl_output'" && return
+	try_download "$dl_url" "$dl_output" "curl --silent --fail --output '$dl_output' '$dl_url'" && return
 	try_download "$dl_url" "$dl_output" "fetch '$dl_url' -o '$dl_output'" && return
 	try_download "$dl_url" "$dl_output" "http '$dl_url' > '$dl_output'" && return
+	try_download "$dl_url" "$dl_output" "ftp -o '$dl_output' '$dl_url'" && return
 
 	die "Unable to download $dl_url. exiting."
 }
