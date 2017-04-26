@@ -58,7 +58,7 @@ import (
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	pnet "gx/ipfs/QmUVtboYWnhKRrQ8Ny34Zz3qchUxqjypy4ahjFg9kc6iy7/go-libp2p-pnet"
+	pnet "gx/ipfs/QmTJoXQ24GqDf9MqAUwf3vW38HG6ahE9S7GzZoRMEeE8Kc/go-libp2p-pnet"
 	metrics "gx/ipfs/QmVMbSdq6PbznPC83SENVhH7JZn3BqqxkKgrHJFN2RuARf/go-libp2p-metrics"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
 	floodsub "gx/ipfs/QmYPKo97ssdv3Bsk9sRAS5ZjahGg9Stzys3vybu3r7VuB5/floodsub"
