@@ -132,6 +132,7 @@ mismatched APIs.
 #### Troubleshooting
 
 * Separate [instructions are available for building on Windows](docs/windows.md).
+* Also, [instructions for OpenBSD](docs/openbsd.md).
 * `git` is required in order for `go get` to fetch all dependencies.
 * Package managers often contain out-of-date `golang` packages.
   Ensure that `go version` reports at least 1.7. See above for how to install go.
