@@ -255,9 +255,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7",
+      "hash": "Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck",
       "name": "go-ipld-format",
-      "version": "0.4.5"
+      "version": "0.4.6"
     },
     {
       "author": "whyrusleeping",
@@ -291,9 +291,9 @@
     },
     {
       "author": "libp2p",
-      "hash": "QmUVtboYWnhKRrQ8Ny34Zz3qchUxqjypy4ahjFg9kc6iy7",
+      "hash": "QmTJoXQ24GqDf9MqAUwf3vW38HG6ahE9S7GzZoRMEeE8Kc",
       "name": "go-libp2p-pnet",
-      "version": "2.2.3"
+      "version": "2.2.4"
     },
     {
       "author": "kubuxu",
