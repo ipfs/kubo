@@ -42,6 +42,7 @@ var v1CidPrefix = cid.Prefix{
 	Version:  1,
 }
 
+// PrefixForCidVersion returns the Protobuf prefix for a given CID version
 func PrefixForCidVersion(version int) (cid.Prefix, error) {
 	switch version {
 	case 0:
@@ -53,7 +54,7 @@ func PrefixForCidVersion(version int) (cid.Prefix, error) {
 	}
 }
 
-// SetPrefix sets the prefix if it is non nil, if prefix is nil then
+// SetPrefix sets the CID prefix if it is non nil, if prefix is nil then
 // it resets it the default value
 func (n *ProtoNode) SetPrefix(prefix *cid.Prefix) {
 	if prefix == nil {

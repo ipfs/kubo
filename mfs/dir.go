@@ -58,6 +58,7 @@ func NewDirectory(ctx context.Context, name string, node node.Node, parent child
 	}, nil
 }
 
+// SetPrefix sets the CID prefix
 func (d *Directory) SetPrefix(prefix *cid.Prefix) {
 	d.dirbuilder.SetPrefix(prefix)
 }

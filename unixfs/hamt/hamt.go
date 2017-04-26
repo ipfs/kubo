@@ -125,6 +125,7 @@ func NewHamtFromDag(dserv dag.DAGService, nd node.Node) (*HamtShard, error) {
 	return ds, nil
 }
 
+// SetPrefix sets the CID Prefix
 func (ds *HamtShard) SetPrefix(prefix *cid.Prefix) {
 	ds.prefix = prefix
 }
