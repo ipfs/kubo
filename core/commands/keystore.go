@@ -155,7 +155,7 @@ var KeyListCmd = &cmds.Command{
 		Tagline: "List all local keypairs",
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("l", "Show extra information about keys."),
+		cmds.BoolOption("l", "Show extra information about keys.").Default(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
