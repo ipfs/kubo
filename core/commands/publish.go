@@ -48,6 +48,11 @@ Publish an <ipfs-path> with another name, added by an 'ipfs key' command:
   > ipfs name publish --key=mykey /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
+Alternatively, publish an <ipfs-path> using a valid PeerID(as listed by 'ipfs key list -l'):
+
+ > ipfs name publish --key=QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+
 `,
 	},
 
@@ -61,7 +66,7 @@ Publish an <ipfs-path> with another name, added by an 'ipfs key' command:
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("24h"),
 		cmds.StringOption("ttl", "Time duration this record should be cached for (caution: experimental)."),
-		cmds.StringOption("key", "k", "Name of the key to be used, as listed by 'ipfs key list'. Default: <<default>>.").Default("self"),
+		cmds.StringOption("key", "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'. Default: <<default>>.").Default("self"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		log.Debug("begin publish")
@@ -116,7 +121,7 @@ Publish an <ipfs-path> with another name, added by an 'ipfs key' command:
 		}
 
 		kname, _, _ := req.Option("key").String()
-		k, err := n.GetKey(kname)
+		k, err := keylookup(kname, n)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -175,4 +180,37 @@ func publish(ctx context.Context, n *core.IpfsNode, k crypto.PrivKey, ref path.P
 		Name:  pid.Pretty(),
 		Value: ref.String(),
 	}, nil
+}
+
+func keylookup(k string, n *core.IpfsNode) (crypto.PrivKey, error) {
+
+	res, err := n.GetKey(k)
+	if res != nil {
+		return res, nil
+	}
+
+	keys, err := n.Repo.Keystore().List()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		privKey, err := n.Repo.Keystore().Get(key)
+		if err != nil {
+			return nil, err
+		}
+
+		pubKey := privKey.GetPublic()
+
+		pid, err := peer.IDFromPublicKey(pubKey)
+		if err != nil {
+			return nil, err
+		}
+
+		if pid.Pretty() == k {
+			return privKey, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no key by the given name or PeerID was found")
 }
