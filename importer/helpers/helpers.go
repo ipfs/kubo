@@ -10,6 +10,7 @@ import (
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
@@ -48,22 +49,6 @@ type UnixfsNode struct {
 	posInfo *pi.PosInfo
 }
 
-// NewUnixfsNode creates a new Unixfs node to represent a file
-func NewUnixfsNode() *UnixfsNode {
-	return &UnixfsNode{
-		node: new(dag.ProtoNode),
-		ufmt: &ft.FSNode{Type: ft.TFile},
-	}
-}
-
-// NewUnixfsBlock creates a new Unixfs node to represent a raw data block
-func NewUnixfsBlock() *UnixfsNode {
-	return &UnixfsNode{
-		node: new(dag.ProtoNode),
-		ufmt: &ft.FSNode{Type: ft.TRaw},
-	}
-}
-
 // NewUnixfsNodeFromDag reconstructs a Unixfs node from a given dag node
 func NewUnixfsNodeFromDag(nd *dag.ProtoNode) (*UnixfsNode, error) {
 	mb, err := ft.FSNodeFromBytes(nd.Data())
@@ -75,6 +60,11 @@ func NewUnixfsNodeFromDag(nd *dag.ProtoNode) (*UnixfsNode, error) {
 		node: nd,
 		ufmt: mb,
 	}, nil
+}
+
+// SetPrefix sets the CID Prefix
+func (n *UnixfsNode) SetPrefix(prefix *cid.Prefix) {
+	n.node.SetPrefix(prefix)
 }
 
 func (n *UnixfsNode) NumChildren() int {

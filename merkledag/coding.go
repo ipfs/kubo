@@ -86,7 +86,7 @@ func (n *ProtoNode) EncodeProtobuf(force bool) ([]byte, error) {
 
 	if n.cached == nil {
 		if n.Prefix.Codec == 0 { // unset
-			n.Prefix = defaultCidPrefix
+			n.Prefix = v0CidPrefix
 		}
 		c, err := n.Prefix.Sum(n.encoded)
 		if err != nil {

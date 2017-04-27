@@ -61,6 +61,9 @@ type Root struct {
 	dserv dag.DAGService
 
 	Type string
+
+	// Prefix to use for any children created
+	Prefix *cid.Prefix
 }
 
 type PubFunc func(context.Context, *cid.Cid) error

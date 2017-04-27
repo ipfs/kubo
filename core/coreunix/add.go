@@ -69,13 +69,7 @@ type AddedObject struct {
 }
 
 func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds dag.DAGService) (*Adder, error) {
-	mr, err := mfs.NewRoot(ctx, ds, unixfs.EmptyDirNode(), nil)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Adder{
-		mr:         mr,
 		ctx:        ctx,
 		pinning:    p,
 		blockstore: bs,
@@ -87,7 +81,6 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds dag.
 		Wrap:       false,
 		Chunker:    "",
 	}, nil
-
 }
 
 // Adder holds the switches passed to the `add` command.
@@ -107,13 +100,29 @@ type Adder struct {
 	NoCopy     bool
 	Chunker    string
 	root       node.Node
-	mr         *mfs.Root
+	mroot      *mfs.Root
 	unlocker   bs.Unlocker
 	tempRoot   *cid.Cid
+	Prefix     *cid.Prefix
+}
+
+func (adder *Adder) mfsRoot() (*mfs.Root, error) {
+	if adder.mroot != nil {
+		return adder.mroot, nil
+	}
+	rnode := unixfs.EmptyDirNode()
+	rnode.SetPrefix(adder.Prefix)
+	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil)
+	mr.Prefix = adder.Prefix
+	if err != nil {
+		return nil, err
+	}
+	adder.mroot = mr
+	return adder.mroot, nil
 }
 
 func (adder *Adder) SetMfsRoot(r *mfs.Root) {
-	adder.mr = r
+	adder.mroot = r
 }
 
 // Constructs a node from reader's data, and adds it. Doesn't pin.
@@ -122,11 +131,13 @@ func (adder Adder) add(reader io.Reader) (node.Node, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	params := ihelper.DagBuilderParams{
 		Dagserv:   adder.dagService,
 		RawLeaves: adder.RawLeaves,
 		Maxlinks:  ihelper.DefaultLinksPerBlock,
 		NoCopy:    adder.NoCopy,
+		Prefix:    adder.Prefix,
 	}
 
 	if adder.Trickle {
@@ -142,7 +153,11 @@ func (adder *Adder) RootNode() (node.Node, error) {
 		return adder.root, nil
 	}
 
-	root, err := adder.mr.GetValue().GetNode()
+	mr, err := adder.mfsRoot()
+	if err != nil {
+		return nil, err
+	}
+	root, err := mr.GetValue().GetNode()
 	if err != nil {
 		return nil, err
 	}
@@ -188,9 +203,13 @@ func (adder *Adder) PinRoot() error {
 }
 
 func (adder *Adder) Finalize() (node.Node, error) {
-	root := adder.mr.GetValue()
+	mr, err := adder.mfsRoot()
+	if err != nil {
+		return nil, err
+	}
+	root := mr.GetValue()
 
-	err := root.Flush()
+	err = root.Flush()
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +222,12 @@ func (adder *Adder) Finalize() (node.Node, error) {
 		}
 		name = children[0]
 
-		dir, ok := adder.mr.GetValue().(*mfs.Directory)
+		mr, err := adder.mfsRoot()
+		if err != nil {
+			return nil, err
+		}
+
+		dir, ok := mr.GetValue().(*mfs.Directory)
 		if !ok {
 			return nil, fmt.Errorf("root is not a directory")
 		}
@@ -219,7 +243,7 @@ func (adder *Adder) Finalize() (node.Node, error) {
 		return nil, err
 	}
 
-	err = adder.mr.Close()
+	err = mr.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -357,14 +381,18 @@ func (adder *Adder) addNode(node node.Node, path string) error {
 		node = pi.Node
 	}
 
+	mr, err := adder.mfsRoot()
+	if err != nil {
+		return err
+	}
 	dir := gopath.Dir(path)
 	if dir != "." {
-		if err := mfs.Mkdir(adder.mr, dir, true, false); err != nil {
+		if err := mfs.Mkdir(mr, dir, true, false); err != nil {
 			return err
 		}
 	}
 
-	if err := mfs.PutNode(adder.mr, path, node); err != nil {
+	if err := mfs.PutNode(mr, path, node); err != nil {
 		return err
 	}
 
@@ -406,6 +434,7 @@ func (adder *Adder) addFile(file files.File) error {
 		}
 
 		dagnode := dag.NodeWithData(sdata)
+		dagnode.SetPrefix(adder.Prefix)
 		_, err = adder.dagService.Add(dagnode)
 		if err != nil {
 			return err
@@ -439,7 +468,11 @@ func (adder *Adder) addFile(file files.File) error {
 func (adder *Adder) addDir(dir files.File) error {
 	log.Infof("adding directory: %s", dir.FileName())
 
-	err := mfs.Mkdir(adder.mr, dir.FileName(), true, false)
+	mr, err := adder.mfsRoot()
+	if err != nil {
+		return err
+	}
+	err = mfs.Mkdir(mr, dir.FileName(), true, false)
 	if err != nil {
 		return err
 	}

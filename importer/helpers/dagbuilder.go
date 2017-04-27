@@ -7,7 +7,9 @@ import (
 	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
@@ -23,6 +25,7 @@ type DagBuilderHelper struct {
 	batch     *dag.Batch
 	fullPath  string
 	stat      os.FileInfo
+	prefix    *cid.Prefix
 }
 
 type DagBuilderParams struct {
@@ -32,6 +35,9 @@ type DagBuilderParams struct {
 	// RawLeaves signifies that the importer should use raw ipld nodes as leaves
 	// instead of using the unixfs TRaw type
 	RawLeaves bool
+
+	// CID Prefix to use if set
+	Prefix *cid.Prefix
 
 	// DAGService to write blocks to (required)
 	Dagserv dag.DAGService
@@ -48,6 +54,7 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		dserv:     dbp.Dagserv,
 		spl:       spl,
 		rawLeaves: dbp.RawLeaves,
+		prefix:    dbp.Prefix,
 		maxlinks:  dbp.Maxlinks,
 		batch:     dbp.Dagserv.Batch(),
 	}
@@ -103,6 +110,26 @@ func (db *DagBuilderHelper) GetDagServ() dag.DAGService {
 	return db.dserv
 }
 
+// NewUnixfsNode creates a new Unixfs node to represent a file.
+func (db *DagBuilderHelper) NewUnixfsNode() *UnixfsNode {
+	n := &UnixfsNode{
+		node: new(dag.ProtoNode),
+		ufmt: &ft.FSNode{Type: ft.TFile},
+	}
+	n.SetPrefix(db.prefix)
+	return n
+}
+
+// NewUnixfsBlock creates a new Unixfs node to represent a raw data block
+func (db *DagBuilderHelper) NewUnixfsBlock() *UnixfsNode {
+	n := &UnixfsNode{
+		node: new(dag.ProtoNode),
+		ufmt: &ft.FSNode{Type: ft.TRaw},
+	}
+	n.SetPrefix(db.prefix)
+	return n
+}
+
 // FillNodeLayer will add datanodes as children to the give node until
 // at most db.indirSize ndoes are added
 //
@@ -143,7 +170,7 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 			raw:     true,
 		}, nil
 	} else {
-		blk := NewUnixfsBlock()
+		blk := db.NewUnixfsBlock()
 		blk.SetData(data)
 		return blk, nil
 	}

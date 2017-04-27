@@ -13,7 +13,7 @@ func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
 	var root *h.UnixfsNode
 	for level := 0; !db.Done(); level++ {
 
-		nroot := h.NewUnixfsNode()
+		nroot := db.NewUnixfsNode()
 		db.SetPosInfo(nroot, 0)
 
 		// add our old root as a child of the new root.
@@ -33,7 +33,7 @@ func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
 
 	}
 	if root == nil {
-		root = h.NewUnixfsNode()
+		root = db.NewUnixfsNode()
 	}
 
 	out, err := db.Add(root)
@@ -72,7 +72,7 @@ func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int, offset u
 
 	// while we have room AND we're not done
 	for node.NumChildren() < db.Maxlinks() && !db.Done() {
-		child := h.NewUnixfsNode()
+		child := db.NewUnixfsNode()
 		db.SetPosInfo(child, offset)
 
 		err := fillNodeRec(db, child, depth-1, offset)

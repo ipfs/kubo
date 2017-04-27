@@ -31,6 +31,7 @@ import (
 	format "github.com/ipfs/go-ipfs/unixfs"
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
 
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 	"gx/ipfs/QmfJHywXQu98UeZtGJBQrPAR6AtmDjjbe3qjTo9piXHPnx/murmur3"
@@ -50,6 +51,7 @@ type HamtShard struct {
 	tableSize    int
 	tableSizeLg2 int
 
+	prefix   *cid.Prefix
 	hashFunc uint64
 
 	prefixPadStr string
@@ -123,9 +125,15 @@ func NewHamtFromDag(dserv dag.DAGService, nd node.Node) (*HamtShard, error) {
 	return ds, nil
 }
 
+// SetPrefix sets the CID Prefix
+func (ds *HamtShard) SetPrefix(prefix *cid.Prefix) {
+	ds.prefix = prefix
+}
+
 // Node serializes the HAMT structure into a merkledag node with unixfs formatting
 func (ds *HamtShard) Node() (node.Node, error) {
 	out := new(dag.ProtoNode)
+	out.SetPrefix(ds.prefix)
 
 	// TODO: optimized 'for each set bit'
 	for i := 0; i < ds.tableSize; i++ {
