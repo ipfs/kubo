@@ -10,6 +10,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	keystore "github.com/ipfs/go-ipfs/keystore"
 	path "github.com/ipfs/go-ipfs/path"
 
 	crypto "gx/ipfs/QmP1DfoUjiWH2ZBo1PBH6FupdBucbDepx3HpWmEY6JMUpY/go-libp2p-crypto"
@@ -121,7 +122,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID(as listed by 'ipfs ke
 		}
 
 		kname, _, _ := req.Option("key").String()
-		k, err := keylookup(kname, n)
+		k, err := keylookup(n, kname)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -182,11 +183,15 @@ func publish(ctx context.Context, n *core.IpfsNode, k crypto.PrivKey, ref path.P
 	}, nil
 }
 
-func keylookup(k string, n *core.IpfsNode) (crypto.PrivKey, error) {
+func keylookup(n *core.IpfsNode, k string) (crypto.PrivKey, error) {
 
 	res, err := n.GetKey(k)
 	if res != nil {
 		return res, nil
+	}
+
+	if err != nil && err != keystore.ErrNoSuchKey {
+		return nil, err
 	}
 
 	keys, err := n.Repo.Keystore().List()
