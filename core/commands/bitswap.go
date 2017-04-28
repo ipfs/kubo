@@ -64,7 +64,11 @@ var unwantCmd = &cmds.Command{
 			ks = append(ks, c)
 		}
 
-		bs.CancelWants(ks)
+		// TODO: This should maybe find *all* sessions for this request and cancel them?
+		// (why): in reality, i think this command should be removed. Its
+		// messing with the internal state of bitswap. You should cancel wants
+		// by killing the command that caused the want.
+		bs.CancelWants(ks, 0)
 	},
 }
 

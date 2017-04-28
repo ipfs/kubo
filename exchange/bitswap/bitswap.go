@@ -169,6 +169,9 @@ type Bitswap struct {
 	// Sessions
 	sessions []*Session
 	sessLk   sync.Mutex
+
+	sessID   uint64
+	sessIDLk sync.Mutex
 }
 
 type blockRequest struct {
@@ -219,7 +222,9 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 		log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
 	}
 
-	bs.wm.WantBlocks(ctx, keys, nil)
+	mses := bs.getNextSessionID()
+
+	bs.wm.WantBlocks(ctx, keys, nil, mses)
 
 	// NB: Optimization. Assumes that providers of key[0] are likely to
 	// be able to provide for all keys. This currently holds true in most
@@ -241,7 +246,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 		defer close(out)
 		defer func() {
 			// can't just defer this call on its own, arguments are resolved *when* the defer is created
-			bs.CancelWants(remaining.Keys())
+			bs.CancelWants(remaining.Keys(), mses)
 		}()
 		for {
 			select {
@@ -250,6 +255,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 					return
 				}
 
+				bs.CancelWants([]*cid.Cid{blk.Cid()}, mses)
 				remaining.Remove(blk.Cid())
 				select {
 				case out <- blk:
@@ -270,9 +276,16 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 	}
 }
 
+func (bs *Bitswap) getNextSessionID() uint64 {
+	bs.sessIDLk.Lock()
+	defer bs.sessIDLk.Unlock()
+	bs.sessID++
+	return bs.sessID
+}
+
 // CancelWant removes a given key from the wantlist
-func (bs *Bitswap) CancelWants(cids []*cid.Cid) {
-	bs.wm.CancelWants(context.Background(), cids, nil)
+func (bs *Bitswap) CancelWants(cids []*cid.Cid, ses uint64) {
+	bs.wm.CancelWants(context.Background(), cids, nil, ses)
 }
 
 // HasBlock announces the existance of a block to this bitswap service. The
@@ -314,7 +327,7 @@ func (bs *Bitswap) SessionsForBlock(c *cid.Cid) []*Session {
 
 	var out []*Session
 	for _, s := range bs.sessions {
-		if s.InterestedIn(c) {
+		if s.interestedIn(c) {
 			out = append(out, s)
 		}
 	}
@@ -346,8 +359,6 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		keys = append(keys, block.Cid())
 	}
 
-	bs.wm.CancelWants(context.Background(), keys, nil)
-
 	wg := sync.WaitGroup{}
 	for _, block := range iblocks {
 		wg.Add(1)
@@ -360,7 +371,8 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 			log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
 
 			for _, ses := range bs.SessionsForBlock(k) {
-				ses.ReceiveBlock(p, b)
+				ses.receiveBlockFrom(p, b)
+				bs.CancelWants([]*cid.Cid{k}, ses.id)
 			}
 			log.Debugf("got block %s from %s", b, p)
 			if err := bs.HasBlock(b); err != nil {

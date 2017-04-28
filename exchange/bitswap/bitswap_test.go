@@ -332,6 +332,11 @@ func TestBasicBitswap(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	time.Sleep(time.Millisecond * 20)
+	if len(instances[1].Exchange.GetWantlist()) != 0 {
+		t.Fatal("shouldnt have anything in wantlist")
+	}
+
 	st0, err := instances[0].Exchange.Stat()
 	if err != nil {
 		t.Fatal(err)

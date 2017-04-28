@@ -71,34 +71,31 @@ type msgQueue struct {
 	done chan struct{}
 }
 
-func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid, peers []peer.ID) {
+func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid, peers []peer.ID, ses uint64) {
 	log.Infof("want blocks: %s", ks)
-	pm.addEntries(ctx, ks, peers, false)
+	pm.addEntries(ctx, ks, peers, false, ses)
 }
 
-func (pm *WantManager) CancelWants(ctx context.Context, ks []*cid.Cid, peers []peer.ID) {
-	pm.addEntries(context.Background(), ks, peers, true)
+func (pm *WantManager) CancelWants(ctx context.Context, ks []*cid.Cid, peers []peer.ID, ses uint64) {
+	pm.addEntries(context.Background(), ks, peers, true, ses)
 }
 
 type wantSet struct {
 	entries []*bsmsg.Entry
 	targets []peer.ID
+	from    uint64
 }
 
-func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, targets []peer.ID, cancel bool) {
+func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, targets []peer.ID, cancel bool, ses uint64) {
 	var entries []*bsmsg.Entry
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
 			Cancel: cancel,
-			Entry: &wantlist.Entry{
-				Cid:      k,
-				Priority: kMaxPriority - i,
-				RefCnt:   1,
-			},
+			Entry:  wantlist.NewRefEntry(k, kMaxPriority-i),
 		})
 	}
 	select {
-	case pm.incoming <- &wantSet{entries: entries, targets: targets}:
+	case pm.incoming <- &wantSet{entries: entries, targets: targets, from: ses}:
 	case <-pm.ctx.Done():
 	case <-ctx.Done():
 	}
@@ -290,11 +287,11 @@ func (pm *WantManager) Run() {
 			// add changes to our wantlist
 			for _, e := range ws.entries {
 				if e.Cancel {
-					if pm.wl.Remove(e.Cid) {
+					if pm.wl.Remove(e.Cid, ws.from) {
 						pm.wantlistGauge.Dec()
 					}
 				} else {
-					if pm.wl.AddEntry(e.Entry) {
+					if pm.wl.AddEntry(e.Entry, ws.from) {
 						pm.wantlistGauge.Inc()
 					}
 				}
