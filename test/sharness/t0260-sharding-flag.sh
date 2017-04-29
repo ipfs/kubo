@@ -55,6 +55,12 @@ test_expect_success "sharded and unsharded output look the same" '
 	test_cmp sharded_out unsharded_out
 '
 
+test_expect_success "ipfs cat error output the same" '
+	test_expect_code 1 ipfs cat "$SHARDED" 2> sharded_err &&
+	test_expect_code 1 ipfs cat "$UNSHARDED" 2> unsharded_err &&
+	test_cmp sharded_err unsharded_err
+'
+
 test_add_large_dir_v1() {
 	exphash="$1"
 	test_expect_success "ipfs add (CIDv1) on very large directory succeeds" '
