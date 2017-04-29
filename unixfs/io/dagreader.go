@@ -45,7 +45,7 @@ func NewDagReader(ctx context.Context, n node.Node, serv mdag.DAGService) (DagRe
 		}
 
 		switch pb.GetType() {
-		case ftpb.Data_Directory:
+		case ftpb.Data_Directory, ftpb.Data_HAMTShard:
 			// Dont allow reading directories
 			return nil, ErrIsDir
 		case ftpb.Data_File, ftpb.Data_Raw:
