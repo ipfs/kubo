@@ -48,6 +48,7 @@ func NewDirectory(dserv mdag.DAGService) *Directory {
 	return db
 }
 
+// ErrNotADir implies that the given node was not a unixfs directory
 var ErrNotADir = fmt.Errorf("merkledag node was not a directory or shard")
 
 func NewDirectoryFromNode(dserv mdag.DAGService, nd node.Node) (*Directory, error) {
@@ -167,7 +168,12 @@ func (d *Directory) Find(ctx context.Context, name string) (node.Node, error) {
 		return d.dserv.Get(ctx, lnk.Cid)
 	}
 
-	return d.shard.Find(ctx, name)
+	lnk, err := d.shard.Find(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return lnk.GetNode(ctx, d.dserv)
 }
 
 func (d *Directory) RemoveChild(ctx context.Context, name string) error {

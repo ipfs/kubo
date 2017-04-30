@@ -191,6 +191,7 @@ type shardValue struct {
 	val *node.Link
 }
 
+// Link returns a link to this node
 func (sv *shardValue) Link() (*node.Link, error) {
 	return sv.val, nil
 }
@@ -234,7 +235,8 @@ func (ds *HamtShard) Remove(ctx context.Context, name string) error {
 	return ds.modifyValue(ctx, hv, name, nil)
 }
 
-func (ds *HamtShard) Find(ctx context.Context, name string) (node.Node, error) {
+// Find searches for a child node by 'name' within this hamt
+func (ds *HamtShard) Find(ctx context.Context, name string) (*node.Link, error) {
 	hv := &hashBits{b: hash([]byte(name))}
 
 	var out *node.Link
@@ -246,7 +248,7 @@ func (ds *HamtShard) Find(ctx context.Context, name string) (node.Node, error) {
 		return nil, err
 	}
 
-	return ds.dserv.Get(ctx, out.Cid)
+	return out, nil
 }
 
 // getChild returns the i'th child of this shard. If it is cached in the
@@ -320,6 +322,7 @@ func (ds *HamtShard) setChild(i int, c child) {
 	ds.children[i] = c
 }
 
+// Link returns a merklelink to this shard node
 func (ds *HamtShard) Link() (*node.Link, error) {
 	nd, err := ds.Node()
 	if err != nil {

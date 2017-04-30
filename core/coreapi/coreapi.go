@@ -6,6 +6,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	ipfspath "github.com/ipfs/go-ipfs/path"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 )
@@ -42,8 +43,13 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p coreiface.Path) (coreifac
 		return p, nil
 	}
 
+	r := &ipfspath.Resolver{
+		DAG:         api.node.DAG,
+		ResolveOnce: uio.ResolveUnixfsOnce,
+	}
+
 	p2 := ipfspath.FromString(p.String())
-	node, err := core.Resolve(ctx, api.node.Namesys, api.node.Resolver, p2)
+	node, err := core.Resolve(ctx, api.node.Namesys, r, p2)
 	if err == core.ErrNoNamesys {
 		return nil, coreiface.ErrOffline
 	} else if err != nil {
