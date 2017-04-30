@@ -48,10 +48,12 @@ func NewDirectory(dserv mdag.DAGService) *Directory {
 	return db
 }
 
+var ErrNotADir = fmt.Errorf("merkledag node was not a directory or shard")
+
 func NewDirectoryFromNode(dserv mdag.DAGService, nd node.Node) (*Directory, error) {
 	pbnd, ok := nd.(*mdag.ProtoNode)
 	if !ok {
-		return nil, mdag.ErrNotProtobuf
+		return nil, ErrNotADir
 	}
 
 	pbd, err := format.FromBytes(pbnd.Data())
@@ -76,7 +78,7 @@ func NewDirectoryFromNode(dserv mdag.DAGService, nd node.Node) (*Directory, erro
 			shard: shard,
 		}, nil
 	default:
-		return nil, fmt.Errorf("merkledag node was not a directory or shard")
+		return nil, ErrNotADir
 	}
 }
 

@@ -9,7 +9,12 @@ import (
 )
 
 func Cat(ctx context.Context, n *core.IpfsNode, pstr string) (uio.DagReader, error) {
-	dagNode, err := core.Resolve(ctx, n.Namesys, n.Resolver, path.Path(pstr))
+	r := &path.Resolver{
+		DAG:         n.DAG,
+		ResolveOnce: uio.ResolveUnixfsOnce,
+	}
+
+	dagNode, err := core.Resolve(ctx, n.Namesys, r, path.Path(pstr))
 	if err != nil {
 		return nil, err
 	}

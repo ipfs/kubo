@@ -163,7 +163,7 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd node.Node, names []stri
 		ctx, cancel = context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 
-		lnk, rest, err := nd.ResolveLink(names)
+		lnk, err := s.ResolveOnce(ctx, s.DAG, nd, names[0])
 		if err == dag.ErrLinkNotFound {
 			return result, ErrNoLink{Name: names[0], Node: nd.Cid()}
 		} else if err != nil {
@@ -177,7 +177,7 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd node.Node, names []stri
 
 		nd = nextnode
 		result = append(result, nextnode)
-		names = rest
+		names = names[1:]
 	}
 	return result, nil
 }
