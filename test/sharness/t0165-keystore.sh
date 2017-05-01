@@ -36,6 +36,14 @@ test_key_cmd() {
 		PeerID="$(ipfs config Identity.PeerID)"
 		ipfs key list -l | grep "$PeerID self"
 	'
+
+	test_expect_success "key rm remove a key" '
+		ipfs key rm foobarsa
+		echo bazed > list_exp &&
+		echo self >> list_exp
+		ipfs key list | sort > list_out &&
+		test_cmp list_exp list_out
+	'
 }
 
 test_key_cmd
