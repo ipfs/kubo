@@ -37,7 +37,7 @@ func (e ErrNoLink) Error() string {
 type Resolver struct {
 	DAG dag.DAGService
 
-	ResolveOnce func(ctx context.Context, ds dag.DAGService, nd node.Node, name string) (*node.Link, error)
+	ResolveOnce func(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error)
 }
 
 func NewBasicResolver(ds dag.DAGService) *Resolver {
@@ -121,9 +121,10 @@ func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (node.Node, erro
 	return nodes[len(nodes)-1], err
 }
 
-func ResolveSingle(ctx context.Context, ds dag.DAGService, nd node.Node, name string) (*node.Link, error) {
-	lnk, _, err := nd.ResolveLink([]string{name})
-	return lnk, err
+// ResolveSingle simply resolves one hop of a path through a graph with no
+// extra context (does not opaquely resolve through sharded nodes)
+func ResolveSingle(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error) {
+	return nd.ResolveLink(names)
 }
 
 // ResolvePathComponents fetches the nodes for each segment of the given path.
@@ -163,7 +164,7 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd node.Node, names []stri
 		ctx, cancel = context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 
-		lnk, rest, err := nd.ResolveLink(names)
+		lnk, rest, err := s.ResolveOnce(ctx, s.DAG, nd, names)
 		if err == dag.ErrLinkNotFound {
 			return result, ErrNoLink{Name: names[0], Node: nd.Cid()}
 		} else if err != nil {

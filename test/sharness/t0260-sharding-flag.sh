@@ -68,6 +68,11 @@ test_add_large_dir_v1() {
 		echo "$exphash" > sharddir_exp &&
 		test_cmp sharddir_exp sharddir_out
 	'
+
+	test_expect_success "can access a path under the dir" '
+		ipfs cat "$exphash/file20" > file20_out &&
+		test_cmp testdata/file20 file20_out
+	'
 }
 
 # this hash implies both the directory and the leaf entries are CIDv1
