@@ -36,6 +36,8 @@ var log = logging.Logger("coreunix")
 // how many bytes of progress to wait before sending a progress update message
 const progressReaderIncrement = 1024 * 256
 
+var liveCacheSize = uint64(256 << 10)
+
 type Link struct {
 	Name, Hash string
 	Size       uint64
@@ -104,6 +106,7 @@ type Adder struct {
 	unlocker   bs.Unlocker
 	tempRoot   *cid.Cid
 	Prefix     *cid.Prefix
+	liveNodes  uint64
 }
 
 func (adder *Adder) mfsRoot() (*mfs.Root, error) {
@@ -421,6 +424,19 @@ func (adder *Adder) addFile(file files.File) error {
 	if err != nil {
 		return err
 	}
+
+	if adder.liveNodes >= liveCacheSize {
+		// TODO: A smarter cache that uses some sort of lru cache with an eviction handler
+		mr, err := adder.mfsRoot()
+		if err != nil {
+			return err
+		}
+		if err := mr.Flush(); err != nil {
+			return err
+		}
+		adder.liveNodes = 0
+	}
+	adder.liveNodes++
 
 	if file.IsDirectory() {
 		return adder.addDir(file)
