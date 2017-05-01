@@ -208,7 +208,10 @@ var keyRmCmd = &cmds.Command{
 		Tagline: "Remove a keypair",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("name", true, false, "name of key to remove"),
+		cmds.StringArg("name", true, true, "names of keys to remove"),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("l", "Show extra information about keys."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -217,45 +220,46 @@ var keyRmCmd = &cmds.Command{
 			return
 		}
 
-		name := req.Arguments()[0]
-		if name == "self" {
-			res.SetError(fmt.Errorf("cannot remove key with name 'self'"), cmds.ErrNormal)
-			return
+		names := req.Arguments()
+
+		list := make([]KeyOutput, 0, len(names))
+		for _, name := range names {
+			if name == "self" {
+				res.SetError(fmt.Errorf("cannot remove key with name 'self'"), cmds.ErrNormal)
+				return
+			}
+
+			removed, err := n.Repo.Keystore().Get(name)
+			if err != nil {
+				res.SetError(fmt.Errorf("no key named %s was found", name), cmds.ErrNormal)
+				return
+			}
+
+			pubKey := removed.GetPublic()
+
+			pid, err := peer.IDFromPublicKey(pubKey)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			list = append(list, KeyOutput{Name: name, Id: pid.Pretty()})
 		}
 
-		removed, err := n.Repo.Keystore().Get(name)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+		for _, name := range names {
+			err = n.Repo.Keystore().Delete(name)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 
-		err = n.Repo.Keystore().Delete(name)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		pubKey := removed.GetPublic()
-
-		pid, err := peer.IDFromPublicKey(pubKey)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&KeyOutput{
-			Name: name,
-			Id:   pid.Pretty(),
-		})
+		res.SetOutput(&KeyOutputList{list})
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v := res.Output().(*KeyOutput)
-			s := fmt.Sprintf("Removed key %s with Id: %s\n", v.Name, v.Id)
-			return strings.NewReader(s), nil
-		},
+		cmds.Text: keyOutputListMarshaler,
 	},
-	Type: KeyOutput{},
+	Type: KeyOutputList{},
 }
 
 func keyOutputListMarshaler(res cmds.Response) (io.Reader, error) {
