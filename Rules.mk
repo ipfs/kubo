@@ -105,12 +105,14 @@ install: cmd/ipfs-install
 install_unsupported:
 	@echo "note: this command has yet to be tested to build in the system you are using"
 	@echo "installing gx"
-	go get -u github.com/whyrusleeping/gx
-	go get -u github.com/whyrusleeping/gx-go
+	go get -v -u github.com/whyrusleeping/gx
+	go get -v -u github.com/whyrusleeping/gx-go
+	@echo check gx and gx-go
+	gx -v && gx-go -v
 	@echo downloading dependencies
 	gx install --global
 	@echo "installing go-ipfs"
-	go install ./cmd/ipfs
+	go install -v -tags nofuse ./cmd/ipfs
 .PHONY: install_unsupported
 
 uninstall:
