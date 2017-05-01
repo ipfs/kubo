@@ -33,9 +33,9 @@ var KeyCmd = &cmds.Command{
 		`,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"gen":  KeyGenCmd,
-		"list": KeyListCmd,
-		"rm": KeyRmCmd,
+		"gen":  keyGenCmd,
+		"list": keyListCmd,
+		"rm":   keyRmCmd,
 	},
 }
 
@@ -48,7 +48,7 @@ type KeyOutputList struct {
 	Keys []KeyOutput
 }
 
-var KeyGenCmd = &cmds.Command{
+var keyGenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create a new keypair",
 	},
@@ -151,7 +151,7 @@ var KeyGenCmd = &cmds.Command{
 	Type: KeyOutput{},
 }
 
-var KeyListCmd = &cmds.Command{
+var keyListCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List all local keypairs",
 	},
@@ -203,7 +203,7 @@ var KeyListCmd = &cmds.Command{
 	Type: KeyOutputList{},
 }
 
-var KeyRmCmd = &cmds.Command{
+var keyRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Remove a keypair",
 	},
