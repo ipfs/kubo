@@ -208,7 +208,7 @@ var keyRmCmd = &cmds.Command{
 		Tagline: "Remove a keypair",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("name", true, true, "names of keys to remove"),
+		cmds.StringArg("name", true, true, "names of keys to remove").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Show extra information about keys."),
