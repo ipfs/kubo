@@ -111,7 +111,7 @@ You can now refer to the added file in a gateway, like so:
 		sizeFile, ok := req.Files().(files.SizeFile)
 		if !ok {
 			// we don't need to error, the progress bar just won't know how big the files are
-			log.Warning("cannnot determine size of input file")
+			log.Warning("cannot determine size of input file")
 			return nil
 		}
 
