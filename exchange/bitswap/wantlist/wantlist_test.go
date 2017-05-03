@@ -48,9 +48,13 @@ func assertNotHasCid(t *testing.T, w wli, c *cid.Cid) {
 func TestBasicWantlist(t *testing.T) {
 	wl := New()
 
-	wl.Add(testcids[0], 5)
+	if !wl.Add(testcids[0], 5) {
+		t.Fatal("expected true")
+	}
 	assertHasCid(t, wl, testcids[0])
-	wl.Add(testcids[1], 4)
+	if !wl.Add(testcids[1], 4) {
+		t.Fatal("expected true")
+	}
 	assertHasCid(t, wl, testcids[0])
 	assertHasCid(t, wl, testcids[1])
 
@@ -58,7 +62,9 @@ func TestBasicWantlist(t *testing.T) {
 		t.Fatal("should have had two items")
 	}
 
-	wl.Add(testcids[1], 4)
+	if wl.Add(testcids[1], 4) {
+		t.Fatal("add shouldnt report success on second add")
+	}
 	assertHasCid(t, wl, testcids[0])
 	assertHasCid(t, wl, testcids[1])
 
@@ -66,7 +72,10 @@ func TestBasicWantlist(t *testing.T) {
 		t.Fatal("should have had two items")
 	}
 
-	wl.Remove(testcids[0])
+	if !wl.Remove(testcids[0]) {
+		t.Fatal("should have gotten true")
+	}
+
 	assertHasCid(t, wl, testcids[1])
 	if _, has := wl.Contains(testcids[0]); has {
 		t.Fatal("shouldnt have this cid")
@@ -76,12 +85,20 @@ func TestBasicWantlist(t *testing.T) {
 func TestSesRefWantlist(t *testing.T) {
 	wl := NewThreadSafe()
 
-	wl.Add(testcids[0], 5, 1)
+	if !wl.Add(testcids[0], 5, 1) {
+		t.Fatal("should have added")
+	}
 	assertHasCid(t, wl, testcids[0])
-	wl.Remove(testcids[0], 2)
+	if wl.Remove(testcids[0], 2) {
+		t.Fatal("shouldnt have removed")
+	}
 	assertHasCid(t, wl, testcids[0])
-	wl.Add(testcids[0], 5, 1)
+	if wl.Add(testcids[0], 5, 1) {
+		t.Fatal("shouldnt have added")
+	}
 	assertHasCid(t, wl, testcids[0])
-	wl.Remove(testcids[0], 1)
+	if !wl.Remove(testcids[0], 1) {
+		t.Fatal("should have removed")
+	}
 	assertNotHasCid(t, wl, testcids[0])
 }

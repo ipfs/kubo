@@ -105,13 +105,10 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 }
 
 func (e *Engine) WantlistForPeer(p peer.ID) (out []*wl.Entry) {
-	e.lock.Lock()
-	partner, ok := e.ledgerMap[p]
-	if ok {
-		out = partner.wantList.SortedEntries()
-	}
-	e.lock.Unlock()
-	return out
+	partner := e.findOrCreate(p)
+	partner.lk.Lock()
+	defer partner.lk.Unlock()
+	return partner.wantList.SortedEntries()
 }
 
 func (e *Engine) LedgerForPeer(p peer.ID) *Receipt {

@@ -170,7 +170,7 @@ func (w *Wantlist) Remove(c *cid.Cid) bool {
 	}
 
 	delete(w.set, k)
-	return false
+	return true
 }
 
 func (w *Wantlist) Contains(k *cid.Cid) (*Entry, bool) {

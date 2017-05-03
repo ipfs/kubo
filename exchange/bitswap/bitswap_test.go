@@ -318,7 +318,7 @@ func TestBasicBitswap(t *testing.T) {
 
 	t.Log("Test a one node trying to get one block from another")
 
-	instances := sg.Instances(2)
+	instances := sg.Instances(3)
 	blocks := bg.Blocks(1)
 	err := instances[0].Exchange.HasBlock(blocks[0])
 	if err != nil {
@@ -333,6 +333,10 @@ func TestBasicBitswap(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 20)
+	wl := instances[2].Exchange.WantlistForPeer(instances[1].Peer)
+	if len(wl) != 0 {
+		t.Fatal("should have no items in other peers wantlist")
+	}
 	if len(instances[1].Exchange.GetWantlist()) != 0 {
 		t.Fatal("shouldnt have anything in wantlist")
 	}

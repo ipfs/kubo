@@ -285,6 +285,9 @@ func (bs *Bitswap) getNextSessionID() uint64 {
 
 // CancelWant removes a given key from the wantlist
 func (bs *Bitswap) CancelWants(cids []*cid.Cid, ses uint64) {
+	if len(cids) == 0 {
+		return
+	}
 	bs.wm.CancelWants(context.Background(), cids, nil, ses)
 }
 
