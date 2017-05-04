@@ -11,6 +11,7 @@ import (
 )
 
 type Keystore interface {
+	Has(string) bool
 	Put(string, ci.PrivKey) error
 	Get(string) (ci.PrivKey, error)
 	Delete(string) error
@@ -52,6 +53,14 @@ func NewFSKeystore(dir string) (*FSKeystore, error) {
 	}
 
 	return &FSKeystore{dir}, nil
+}
+
+func (ks *FSKeystore) Has(name string) bool {
+	kp := filepath.Join(ks.dir, name)
+
+	_, err := os.Stat(kp)
+
+	return err == nil
 }
 
 func (ks *FSKeystore) Put(name string, k ci.PrivKey) error {

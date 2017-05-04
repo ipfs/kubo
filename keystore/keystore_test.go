@@ -82,6 +82,14 @@ func TestKeystoreBasics(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if !ks.Has("foo") {
+		t.Fatal("should know it has a key named foo")
+	}
+
+	if ks.Has("nonexistingkey") {
+		t.Fatal("should know it doesn't have a key named nonexistingkey")
+	}
+
 	if err := ks.Delete("bar"); err != nil {
 		t.Fatal(err)
 	}
