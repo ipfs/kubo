@@ -28,17 +28,20 @@ var writebufferSize = 1 << 21
 
 var log = logging.Logger("dagio")
 
+// DagModifier interface allows for reading and modifying DAGs.
 type DagModifier interface {
 	Read([]byte) (int, error)
-	WriteAt(b []byte, offset int64) (int, error)
-	GetNode() (node.Node, error)
-	Size() (int64, error)
-	Sync() error
 	Write(b []byte) (int, error)
-	Truncate(int64) error
 	Seek(offset int64, whence int) (int64, error)
-	HasChanges() bool
+
+	WriteAt(b []byte, offset int64) (int, error)
 	CtxReadFull(ctx context.Context, b []byte) (int, error)
+	Sync() error
+	Truncate(int64) error
+
+	Size() (int64, error)
+	GetNode() (node.Node, error)
+	HasChanges() bool
 }
 
 // DagModifier is the only struct licensed and able to correctly
@@ -59,6 +62,8 @@ type protoDagModifier struct {
 	read uio.DagReader
 }
 
+// NewDagModifier creates new instance of DagModifier that allows for reading
+// writing and other operations on DAG.
 func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, spl chunk.SplitterGen) (DagModifier, error) {
 	pbn, ok := from.(*mdag.ProtoNode)
 	if !ok {
