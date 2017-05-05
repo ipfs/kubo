@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
+	blocks "gx/ipfs/QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh/go-block-format"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"

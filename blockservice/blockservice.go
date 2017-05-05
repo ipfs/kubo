@@ -10,9 +10,10 @@ import (
 
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	exchange "github.com/ipfs/go-ipfs/exchange"
-	blocks "gx/ipfs/QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh/go-block-format"
+	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	blocks "gx/ipfs/QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh/go-block-format"
 	cid "gx/ipfs/Qma4RJSuh7mMeJQYCqMbKzekn6EwBo7HEs5AQYjVRMQATB/go-cid"
 )
 
@@ -31,6 +32,7 @@ type BlockService interface {
 	GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error)
 	GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block
 	DeleteBlock(o blocks.Block) error
+	NewSession(context.Context) *Session
 	Close() error
 }
 
@@ -75,6 +77,21 @@ func (bs *blockService) Blockstore() blockstore.Blockstore {
 
 func (bs *blockService) Exchange() exchange.Interface {
 	return bs.exchange
+}
+
+func (bs *blockService) NewSession(ctx context.Context) *Session {
+	bswap, ok := bs.Exchange().(*bitswap.Bitswap)
+	if ok {
+		ses := bswap.NewSession(ctx)
+		return &Session{
+			ses: ses,
+			bs:  bs.blockstore,
+		}
+	}
+	return &Session{
+		ses: bs.exchange,
+		bs:  bs.blockstore,
+	}
 }
 
 // AddBlock adds a particular block to the service, Putting it into the datastore.
@@ -141,16 +158,25 @@ func (s *blockService) AddBlocks(bs []blocks.Block) ([]*cid.Cid, error) {
 func (s *blockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
 	log.Debugf("BlockService GetBlock: '%s'", c)
 
-	block, err := s.blockstore.Get(c)
+	var f exchange.Fetcher
+	if s.exchange != nil {
+		f = s.exchange
+	}
+
+	return getBlock(ctx, c, s.blockstore, f)
+}
+
+func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f exchange.Fetcher) (blocks.Block, error) {
+	block, err := bs.Get(c)
 	if err == nil {
 		return block, nil
 	}
 
-	if err == blockstore.ErrNotFound && s.exchange != nil {
+	if err == blockstore.ErrNotFound && f != nil {
 		// TODO be careful checking ErrNotFound. If the underlying
 		// implementation changes, this will break.
 		log.Debug("Blockservice: Searching bitswap")
-		blk, err := s.exchange.GetBlock(ctx, c)
+		blk, err := f.GetBlock(ctx, c)
 		if err != nil {
 			if err == blockstore.ErrNotFound {
 				return nil, ErrNotFound
@@ -172,12 +198,16 @@ func (s *blockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, 
 // the returned channel.
 // NB: No guarantees are made about order.
 func (s *blockService) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
+	return getBlocks(ctx, ks, s.blockstore, s.exchange)
+}
+
+func getBlocks(ctx context.Context, ks []*cid.Cid, bs blockstore.Blockstore, f exchange.Fetcher) <-chan blocks.Block {
 	out := make(chan blocks.Block)
 	go func() {
 		defer close(out)
 		var misses []*cid.Cid
 		for _, c := range ks {
-			hit, err := s.blockstore.Get(c)
+			hit, err := bs.Get(c)
 			if err != nil {
 				misses = append(misses, c)
 				continue
@@ -194,7 +224,7 @@ func (s *blockService) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan bloc
 			return
 		}
 
-		rblocks, err := s.exchange.GetBlocks(ctx, misses)
+		rblocks, err := f.GetBlocks(ctx, misses)
 		if err != nil {
 			log.Debugf("Error with GetBlocks: %s", err)
 			return
@@ -219,4 +249,17 @@ func (s *blockService) DeleteBlock(o blocks.Block) error {
 func (s *blockService) Close() error {
 	log.Debug("blockservice is shutting down...")
 	return s.exchange.Close()
+}
+
+type Session struct {
+	bs  blockstore.Blockstore
+	ses exchange.Fetcher
+}
+
+func (s *Session) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
+	return getBlock(ctx, c, s.bs, s.ses)
+}
+
+func (s *Session) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
+	return getBlocks(ctx, ks, s.bs, s.ses)
 }

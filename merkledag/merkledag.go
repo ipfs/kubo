@@ -161,11 +161,30 @@ func GetLinksDirect(serv node.NodeGetter) GetLinks {
 	}
 }
 
+type sesGetter struct {
+	bs *bserv.Session
+}
+
+func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
+	blk, err := sg.bs.GetBlock(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeBlock(blk)
+}
+
 // FetchGraph fetches all nodes that are children of the given node
 func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
+	var ng node.NodeGetter = serv
+	ds, ok := serv.(*dagService)
+	if ok {
+		ng = &sesGetter{ds.Blocks.NewSession(ctx)}
+	}
+
 	v, _ := ctx.Value("progress").(*ProgressTracker)
 	if v == nil {
-		return EnumerateChildrenAsync(ctx, GetLinksDirect(serv), root, cid.NewSet().Visit)
+		return EnumerateChildrenAsync(ctx, GetLinksDirect(ng), root, cid.NewSet().Visit)
 	}
 	set := cid.NewSet()
 	visit := func(c *cid.Cid) bool {
@@ -176,7 +195,7 @@ func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
 			return false
 		}
 	}
-	return EnumerateChildrenAsync(ctx, GetLinksDirect(serv), root, visit)
+	return EnumerateChildrenAsync(ctx, GetLinksDirect(ng), root, visit)
 }
 
 // FindLinks searches this nodes links for the given key,

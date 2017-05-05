@@ -13,10 +13,7 @@ import (
 // Any type that implements exchange.Interface may be used as an IPFS block
 // exchange protocol.
 type Interface interface { // type Exchanger interface
-	// GetBlock returns the block associated with a given key.
-	GetBlock(context.Context, *cid.Cid) (blocks.Block, error)
-
-	GetBlocks(context.Context, []*cid.Cid) (<-chan blocks.Block, error)
+	Fetcher
 
 	// TODO Should callers be concerned with whether the block was made
 	// available on the network?
@@ -25,4 +22,10 @@ type Interface interface { // type Exchanger interface
 	IsOnline() bool
 
 	io.Closer
+}
+
+type Fetcher interface {
+	// GetBlock returns the block associated with a given key.
+	GetBlock(context.Context, *cid.Cid) (blocks.Block, error)
+	GetBlocks(context.Context, []*cid.Cid) (<-chan blocks.Block, error)
 }
