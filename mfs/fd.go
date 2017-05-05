@@ -27,7 +27,7 @@ type FileDescriptor interface {
 
 type fileDescriptor struct {
 	inode      *File
-	mod        *mod.DagModifier
+	mod        mod.DagModifier
 	perms      int
 	sync       bool
 	hasChanges bool

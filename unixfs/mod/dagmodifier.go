@@ -28,10 +28,23 @@ var writebufferSize = 1 << 21
 
 var log = logging.Logger("dagio")
 
+type DagModifier interface {
+	Read([]byte) (int, error)
+	WriteAt(b []byte, offset int64) (int, error)
+	GetNode() (node.Node, error)
+	Size() (int64, error)
+	Sync() error
+	Write(b []byte) (int, error)
+	Truncate(int64) error
+	Seek(offset int64, whence int) (int64, error)
+	HasChanges() bool
+	CtxReadFull(ctx context.Context, b []byte) (int, error)
+}
+
 // DagModifier is the only struct licensed and able to correctly
 // perform surgery on a DAG 'file'
 // Dear god, please rename this to something more pleasant
-type DagModifier struct {
+type protoDagModifier struct {
 	dagserv mdag.DAGService
 	curNode *mdag.ProtoNode
 
@@ -46,13 +59,13 @@ type DagModifier struct {
 	read uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, spl chunk.SplitterGen) (DagModifier, error) {
 	pbn, ok := from.(*mdag.ProtoNode)
 	if !ok {
 		return nil, mdag.ErrNotProtobuf
 	}
 
-	return &DagModifier{
+	return &protoDagModifier{
 		curNode:  pbn.Copy().(*mdag.ProtoNode),
 		dagserv:  serv,
 		splitter: spl,
@@ -61,7 +74,7 @@ func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, s
 }
 
 // WriteAt will modify a dag file in place
-func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
+func (dm *protoDagModifier) WriteAt(b []byte, offset int64) (int, error) {
 	// TODO: this is currently VERY inneficient
 	// each write that happens at an offset other than the current one causes a
 	// flush to disk, and dag rewrite
@@ -104,7 +117,7 @@ func (zr zeroReader) Read(b []byte) (int, error) {
 
 // expandSparse grows the file with zero blocks of 4096
 // A small blocksize is chosen to aid in deduplication
-func (dm *DagModifier) expandSparse(size int64) error {
+func (dm *protoDagModifier) expandSparse(size int64) error {
 	r := io.LimitReader(zeroReader{}, size)
 	spl := chunk.NewSizeSplitter(r, 4096)
 	nnode, err := dm.appendData(dm.curNode, spl)
@@ -126,7 +139,7 @@ func (dm *DagModifier) expandSparse(size int64) error {
 }
 
 // Write continues writing to the dag at the current offset
-func (dm *DagModifier) Write(b []byte) (int, error) {
+func (dm *protoDagModifier) Write(b []byte) (int, error) {
 	if dm.read != nil {
 		dm.read = nil
 	}
@@ -148,7 +161,7 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-func (dm *DagModifier) Size() (int64, error) {
+func (dm *protoDagModifier) Size() (int64, error) {
 	pbn, err := ft.FromBytes(dm.curNode.Data())
 	if err != nil {
 		return 0, err
@@ -164,7 +177,7 @@ func (dm *DagModifier) Size() (int64, error) {
 }
 
 // Sync writes changes to this dag to disk
-func (dm *DagModifier) Sync() error {
+func (dm *protoDagModifier) Sync() error {
 	// No buffer? Nothing to do
 	if dm.wrBuf == nil {
 		return nil
@@ -226,7 +239,7 @@ func (dm *DagModifier) Sync() error {
 // modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
 // returns the new key of the passed in node and whether or not all the data in the reader
 // has been consumed.
-func (dm *DagModifier) modifyDag(node *mdag.ProtoNode, offset uint64, data io.Reader) (*cid.Cid, bool, error) {
+func (dm *protoDagModifier) modifyDag(node *mdag.ProtoNode, offset uint64, data io.Reader) (*cid.Cid, bool, error) {
 	f, err := ft.FromBytes(node.Data())
 	if err != nil {
 		return nil, false, err
@@ -305,7 +318,7 @@ func (dm *DagModifier) modifyDag(node *mdag.ProtoNode, offset uint64, data io.Re
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(node *mdag.ProtoNode, spl chunk.Splitter) (node.Node, error) {
+func (dm *protoDagModifier) appendData(node *mdag.ProtoNode, spl chunk.Splitter) (node.Node, error) {
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,
@@ -315,7 +328,7 @@ func (dm *DagModifier) appendData(node *mdag.ProtoNode, spl chunk.Splitter) (nod
 }
 
 // Read data from this dag starting at the current offset
-func (dm *DagModifier) Read(b []byte) (int, error) {
+func (dm *protoDagModifier) Read(b []byte) (int, error) {
 	err := dm.readPrep()
 	if err != nil {
 		return 0, err
@@ -326,7 +339,7 @@ func (dm *DagModifier) Read(b []byte) (int, error) {
 	return n, err
 }
 
-func (dm *DagModifier) readPrep() error {
+func (dm *protoDagModifier) readPrep() error {
 	err := dm.Sync()
 	if err != nil {
 		return err
@@ -359,7 +372,7 @@ func (dm *DagModifier) readPrep() error {
 }
 
 // Read data from this dag starting at the current offset
-func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
+func (dm *protoDagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 	err := dm.readPrep()
 	if err != nil {
 		return 0, err
@@ -371,7 +384,7 @@ func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 }
 
 // GetNode gets the modified DAG Node
-func (dm *DagModifier) GetNode() (*mdag.ProtoNode, error) {
+func (dm *protoDagModifier) GetNode() (node.Node, error) {
 	err := dm.Sync()
 	if err != nil {
 		return nil, err
@@ -380,11 +393,11 @@ func (dm *DagModifier) GetNode() (*mdag.ProtoNode, error) {
 }
 
 // HasChanges returned whether or not there are unflushed changes to this dag
-func (dm *DagModifier) HasChanges() bool {
+func (dm *protoDagModifier) HasChanges() bool {
 	return dm.wrBuf != nil
 }
 
-func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
+func (dm *protoDagModifier) Seek(offset int64, whence int) (int64, error) {
 	err := dm.Sync()
 	if err != nil {
 		return 0, err
@@ -425,7 +438,7 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 	return int64(dm.curWrOff), nil
 }
 
-func (dm *DagModifier) Truncate(size int64) error {
+func (dm *protoDagModifier) Truncate(size int64) error {
 	err := dm.Sync()
 	if err != nil {
 		return err

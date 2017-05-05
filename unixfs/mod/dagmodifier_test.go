@@ -31,7 +31,9 @@ func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.Blocksto
 	return dserv, bstore
 }
 
-func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) []byte {
+func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm DagModifier,
+	dserv mdag.DAGService) []byte {
+
 	newdata := make([]byte, size)
 	r := u.NewTimeSeededRand()
 	r.Read(newdata)
@@ -55,12 +57,12 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 		t.Fatal(err)
 	}
 
-	err = trickle.VerifyTrickleDagStructure(nd, dm.dagserv, h.DefaultLinksPerBlock, 4)
+	err = trickle.VerifyTrickleDagStructure(nd, dserv, h.DefaultLinksPerBlock, 4)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rd, err := uio.NewDagReader(context.Background(), nd, dm.dagserv)
+	rd, err := uio.NewDagReader(context.Background(), nd, dserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,26 +95,26 @@ func TestDagModifierBasic(t *testing.T) {
 	length := uint64(60)
 
 	t.Log("Testing mod within zero block")
-	b = testModWrite(t, beg, length, b, dagmod)
+	b = testModWrite(t, beg, length, b, dagmod, dserv)
 
 	// Within bounds of existing file
 	beg = 1000
 	length = 4000
 	t.Log("Testing mod within bounds of existing multiblock file.")
-	b = testModWrite(t, beg, length, b, dagmod)
+	b = testModWrite(t, beg, length, b, dagmod, dserv)
 
 	// Extend bounds
 	beg = 49500
 	length = 4000
 
 	t.Log("Testing mod that extends file.")
-	b = testModWrite(t, beg, length, b, dagmod)
+	b = testModWrite(t, beg, length, b, dagmod, dserv)
 
 	// "Append"
 	beg = uint64(len(b))
 	length = 3000
 	t.Log("Testing pure append")
-	b = testModWrite(t, beg, length, b, dagmod)
+	b = testModWrite(t, beg, length, b, dagmod, dserv)
 
 	// Verify reported length
 	node, err := dagmod.GetNode()
@@ -120,7 +122,7 @@ func TestDagModifierBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	size, err := ft.DataSize(node.Data())
+	size, err := ft.DataSize(node.(*mdag.ProtoNode).Data())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -638,7 +640,7 @@ func TestReadAndSeek(t *testing.T) {
 	// skip 4
 	_, err = dagmod.Seek(1, os.SEEK_CUR)
 	if err != nil {
-		t.Fatalf("error: %s, offset %d, reader offset %d", err, dagmod.curWrOff, dagmod.read.Offset())
+		t.Fatal(err)
 	}
 
 	//read 5,6,7
