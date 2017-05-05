@@ -10,16 +10,21 @@ test_description="test the unix files api"
 
 test_init_ipfs
 
-# setup files for testing
-test_expect_success "can create some files for testing" '
-	FILE1=$(echo foo | ipfs add -q) &&
-	FILE2=$(echo bar | ipfs add -q) &&
-	FILE3=$(echo baz | ipfs add -q) &&
-	mkdir stuff_test &&
+create_files() {
+	add_args=( "$@" )
+	FILE1=$(echo foo | ipfs add ${add_args[@]} -q) &&
+	FILE2=$(echo bar | ipfs add ${add_args[@]} -q) &&
+	FILE3=$(echo baz | ipfs add ${add_args[@]} -q) &&
+	mkdir -f stuff_test &&
 	echo cats > stuff_test/a &&
 	echo dogs > stuff_test/b &&
 	echo giraffes > stuff_test/c &&
-	DIR1=$(ipfs add -q stuff_test | tail -n1)
+	DIR1=$(ipfs add -r ${add_args[@]} -q stuff_test | tail -n1)
+}
+
+# setup files for testing
+test_expect_success "can create some files for testing" '
+	create_files
 '
 
 verify_path_exists() {
@@ -532,6 +537,22 @@ test_expect_success "enable sharding in config" '
 
 test_launch_ipfs_daemon
 test_sharding
+test_kill_ipfs_daemon
+
+
+test_expect_success "enable sharding in config" '
+	ipfs config --json Experimental.ShardingEnabled false
+'
+
+
+test_launch_ipfs_daemon
+
+test_expect_success "can create some files for testing with raw-leaves" '
+	create_files --raw-leaves
+'
+
+test_files_api
+
 test_kill_ipfs_daemon
 
 test_done
