@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	gopath "path"
 	"runtime/debug"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
@@ -227,91 +229,101 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	links, err := i.api.Unixfs().Ls(ctx, resolvedPath)
+	nd, err := i.api.ResolveNode(ctx, resolvedPath)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
-	// storage for directory listing
-	var dirListing []directoryItem
-	// loop through files
-	foundIndex := false
-	for _, link := range links {
-		if link.Name == "index.html" {
-			log.Debugf("found index.html link for %s", urlPath)
-			foundIndex = true
+	dirr, err := uio.NewDirectoryFromNode(i.node.DAG, nd)
+	if err != nil {
+		internalWebError(w, err)
+		return
+	}
 
-			if urlPath[len(urlPath)-1] != '/' {
-				// See comment above where originalUrlPath is declared.
-				http.Redirect(w, r, originalUrlPath+"/", 302)
-				log.Debugf("redirect to %s", originalUrlPath+"/")
-				return
-			}
+	ixnd, err := dirr.Find(ctx, "index.html")
+	switch {
+	case err == nil:
+		log.Debugf("found index.html link for %s", urlPath)
 
-			dr, err := i.api.Unixfs().Cat(ctx, coreapi.ParseCid(link.Cid))
-			if err != nil {
-				internalWebError(w, err)
-				return
-			}
-			defer dr.Close()
-
-			// write to request
-			http.ServeContent(w, r, "index.html", modtime, dr)
-			break
+		if urlPath[len(urlPath)-1] != '/' {
+			// See comment above where originalUrlPath is declared.
+			http.Redirect(w, r, originalUrlPath+"/", 302)
+			log.Debugf("redirect to %s", originalUrlPath+"/")
+			return
 		}
 
+		dr, err := i.api.Unixfs().Cat(ctx, coreapi.ParseCid(ixnd.Cid()))
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+		defer dr.Close()
+
+		// write to request
+		http.ServeContent(w, r, "index.html", modtime, dr)
+		return
+	default:
+		internalWebError(w, err)
+		return
+	case os.IsNotExist(err):
+	}
+
+	if r.Method == "HEAD" {
+		return
+	}
+
+	// storage for directory listing
+	var dirListing []directoryItem
+	dirr.ForEachLink(ctx, func(link *node.Link) error {
 		// See comment above where originalUrlPath is declared.
 		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalUrlPath, link.Name)}
 		dirListing = append(dirListing, di)
+		return nil
+	})
+
+	// construct the correct back link
+	// https://github.com/ipfs/go-ipfs/issues/1365
+	var backLink string = prefix + urlPath
+
+	// don't go further up than /ipfs/$hash/
+	pathSplit := path.SplitList(backLink)
+	switch {
+	// keep backlink
+	case len(pathSplit) == 3: // url: /ipfs/$hash
+
+	// keep backlink
+	case len(pathSplit) == 4 && pathSplit[3] == "": // url: /ipfs/$hash/
+
+	// add the correct link depending on wether the path ends with a slash
+	default:
+		if strings.HasSuffix(backLink, "/") {
+			backLink += "./.."
+		} else {
+			backLink += "/.."
+		}
 	}
 
-	if !foundIndex {
-		if r.Method != "HEAD" {
-			// construct the correct back link
-			// https://github.com/ipfs/go-ipfs/issues/1365
-			var backLink string = prefix + urlPath
-
-			// don't go further up than /ipfs/$hash/
-			pathSplit := path.SplitList(backLink)
-			switch {
-			// keep backlink
-			case len(pathSplit) == 3: // url: /ipfs/$hash
-
-			// keep backlink
-			case len(pathSplit) == 4 && pathSplit[3] == "": // url: /ipfs/$hash/
-
-			// add the correct link depending on wether the path ends with a slash
-			default:
-				if strings.HasSuffix(backLink, "/") {
-					backLink += "./.."
-				} else {
-					backLink += "/.."
-				}
-			}
-
-			// strip /ipfs/$hash from backlink if IPNSHostnameOption touched the path.
-			if ipnsHostname {
-				backLink = prefix + "/"
-				if len(pathSplit) > 5 {
-					// also strip the trailing segment, because it's a backlink
-					backLinkParts := pathSplit[3 : len(pathSplit)-2]
-					backLink += path.Join(backLinkParts) + "/"
-				}
-			}
-
-			// See comment above where originalUrlPath is declared.
-			tplData := listingTemplateData{
-				Listing:  dirListing,
-				Path:     originalUrlPath,
-				BackLink: backLink,
-			}
-			err := listingTemplate.Execute(w, tplData)
-			if err != nil {
-				internalWebError(w, err)
-				return
-			}
+	// strip /ipfs/$hash from backlink if IPNSHostnameOption touched the path.
+	if ipnsHostname {
+		backLink = prefix + "/"
+		if len(pathSplit) > 5 {
+			// also strip the trailing segment, because it's a backlink
+			backLinkParts := pathSplit[3 : len(pathSplit)-2]
+			backLink += path.Join(backLinkParts) + "/"
 		}
+	}
+
+	// See comment above where originalUrlPath is declared.
+	tplData := listingTemplateData{
+		Listing:  dirListing,
+		Path:     originalUrlPath,
+		BackLink: backLink,
+	}
+	err = listingTemplate.Execute(w, tplData)
+	if err != nil {
+		internalWebError(w, err)
+		return
 	}
 }
 
