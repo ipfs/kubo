@@ -306,6 +306,11 @@
       "hash": "QmfJHywXQu98UeZtGJBQrPAR6AtmDjjbe3qjTo9piXHPnx",
       "name": "murmur3",
       "version": "0.0.0"
+    },
+    {
+      "hash": "QmafuecpeZp3k3sHJ5mUARHd4795revuadECQMkmHB8LfW",
+      "name": "go-libp2p-routing",
+      "version": "2.2.12"
     }
   ],
   "gxVersion": "0.10.0",
