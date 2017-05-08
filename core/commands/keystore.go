@@ -260,12 +260,20 @@ var keyRenameCmd = &cmds.Command{
 
 		overwrite := false
 		force, _, _ := res.Request().Option("f").Bool()
-		if force && ks.Has(newName) {
-			overwrite = true
-			err := ks.Delete(newName)
+		if force {
+			exist, err := ks.Has(newName)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
+			}
+
+			if exist {
+				overwrite = true
+				err := ks.Delete(newName)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
 			}
 		}
 

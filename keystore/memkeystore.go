@@ -10,9 +10,9 @@ func NewMemKeystore() *MemKeystore {
 	return &MemKeystore{make(map[string]ci.PrivKey)}
 }
 
-func (mk *MemKeystore) Has(name string) bool {
+func (mk *MemKeystore) Has(name string) (bool, error) {
 	_, ok := mk.keys[name]
-	return ok
+	return ok, nil
 }
 
 func (mk *MemKeystore) Put(name string, k ci.PrivKey) error {
