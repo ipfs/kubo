@@ -52,6 +52,18 @@ to be used in a production environment.
 
 To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
+		LongDescription: `
+ipfs pubsub sub subscribes to messages on a given topic.
+
+This is an experimental feature. It is not intended in its current state
+to be used in a production environment.
+
+To use, the daemon must be run with '--enable-pubsub-experiment'.
+
+This command outputs data in the following encodings:
+  * "json"
+(Specified by the "--encoding" or "--enc" flag)
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("topic", true, false, "String name of topic to subscribe to."),
