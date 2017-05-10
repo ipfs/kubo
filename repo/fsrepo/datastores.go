@@ -94,7 +94,7 @@ func (r *FSRepo) openFlatfsDatastore(params map[string]interface{}) (repo.Datast
 		return nil, err
 	}
 
-	return flatfs.CreateOrOpen(p, shardFun, params["nosync"].(bool))
+	return flatfs.CreateOrOpen(p, shardFun, params["sync"].(bool))
 }
 
 func (r *FSRepo) openLeveldbDatastore(params map[string]interface{}) (repo.Datastore, error) {

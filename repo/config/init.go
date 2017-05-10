@@ -95,7 +95,7 @@ func datastoreConfig() (*Datastore, error) {
 					"child": map[string]interface{}{
 						"type":      "flatfs",
 						"path":      "blocks",
-						"nosync":    false,
+						"sync":      true,
 						"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
 					},
 				},
