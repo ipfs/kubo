@@ -189,6 +189,12 @@ Version         string The repo version.
 			} else {
 				fmt.Fprintf(buf, "RepoSize \t %d\n", stat.RepoSize)
 			}
+			maxSizeInMiB := stat.StorageMax / (1024 * 1024)
+			if human && maxSizeInMiB > 0 {
+				fmt.Fprintf(buf, "StorageMax (MiB) \t %d\n", maxSizeInMiB)
+			} else {
+				fmt.Fprintf(buf, "StorageMax \t %d\n", stat.StorageMax)
+			}
 			fmt.Fprintf(buf, "RepoPath \t %s\n", stat.RepoPath)
 			fmt.Fprintf(buf, "Version \t %s\n", stat.Version)
 
