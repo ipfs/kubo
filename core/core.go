@@ -23,7 +23,6 @@ import (
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
-	diag "github.com/ipfs/go-ipfs/diagnostics"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
@@ -127,7 +126,6 @@ type IpfsNode struct {
 	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
-	Diagnostics  *diag.Diagnostics   // the diagnostics service
 	Ping         *ping.PingService
 	Reprovider   *rp.Reprovider // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
@@ -317,7 +315,6 @@ func (n *IpfsNode) HandlePeerFound(p pstore.PeerInfo) {
 // initialized with the host and _before_ we start listening.
 func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption) error {
 	// setup diagnostics service
-	n.Diagnostics = diag.NewDiagnostics(n.Identity, host)
 	n.Ping = ping.NewPingService(host)
 
 	// setup routing service

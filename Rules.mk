@@ -53,9 +53,6 @@ include $(dir)/Rules.mk
 dir := exchange/bitswap/message/pb
 include $(dir)/Rules.mk
 
-dir := diagnostics/pb
-include $(dir)/Rules.mk
-
 dir := pin/internal/pb
 include $(dir)/Rules.mk
 
