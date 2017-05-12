@@ -2,6 +2,31 @@
 
 ### 0.4.9 - 2017-04-30
 
+Ipfs 0.4.9 is a maintenance release that contains several useful bugfixes and
+improvements. Notably, `ipfs add` has gained the ability to select which CID
+version will be output. The common ipfs hash that looks like this:
+`QmRjNgF2mRLDT8AzCPsQbw1EYF2hDTFgfUmJokJPhCApYP` is a multihash. Multihashes
+allow us to specify the hashing algorithm that was used to verify the data, but
+it doesn't give us any indication of what format that data might be. To address
+that issue, we are adding another couple of bytes to the prefix that will allow us
+to indicate the format of the data referenced by the hash. This new format is
+called a Content ID, or CID for short. The previous bare multihashes will still
+be fully supported throughout the entire application as CID version 0. The new
+format with the type information will be CID version 1. To give an example,
+the content referenced by the hash above is "Hello Ipfs!". That same content,
+in the same format (dag-protobuf) using CIDv1 is
+`zb2rhkgXZVkT2xvDiuUsJENPSbWJy7fdYnsboLBzzEjjZMRoG`.
+
+CIDv1 hashes are supported in ipfs versions back to 0.4.5. Nodes running 0.4.4
+and older will not be able to load content via CIDv1 and we recommend that they
+update to a newer version.
+
+There are many other use cases for CIDs. Plugins can be written to
+allow ipfs to natively address content from any other merkletree based system,
+such as git, bitcoin, zcash and ethereum -- a few systems we've already started work on.
+
+Aside from the CID flag, there were many other changes as noted below:
+
 - Features
   - Add support for using CidV1 in 'ipfs add' ([ipfs/go-ipfs#3743](https://github.com/ipfs/go-ipfs/pull/3743))
 - Improvements
