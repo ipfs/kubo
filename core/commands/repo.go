@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -182,21 +183,23 @@ Version         string The repo version.
 			}
 
 			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "NumObjects \t %d\n", stat.NumObjects)
+			wtr := tabwriter.NewWriter(buf, 0, 0, 1, ' ', 0)
+			fmt.Fprintf(wtr, "NumObjects:\t%d\n", stat.NumObjects)
 			sizeInMiB := stat.RepoSize / (1024 * 1024)
 			if human && sizeInMiB > 0 {
-				fmt.Fprintf(buf, "RepoSize (MiB) \t %d\n", sizeInMiB)
+				fmt.Fprintf(wtr, "RepoSize (MiB):\t%d\n", sizeInMiB)
 			} else {
-				fmt.Fprintf(buf, "RepoSize \t %d\n", stat.RepoSize)
+				fmt.Fprintf(wtr, "RepoSize:\t%d\n", stat.RepoSize)
 			}
 			maxSizeInMiB := stat.StorageMax / (1024 * 1024)
 			if human && maxSizeInMiB > 0 {
-				fmt.Fprintf(buf, "StorageMax (MiB) \t %d\n", maxSizeInMiB)
+				fmt.Fprintf(wtr, "StorageMax (MiB):\t%d\n", maxSizeInMiB)
 			} else {
-				fmt.Fprintf(buf, "StorageMax \t %d\n", stat.StorageMax)
+				fmt.Fprintf(wtr, "StorageMax:\t%d\n", stat.StorageMax)
 			}
-			fmt.Fprintf(buf, "RepoPath \t %s\n", stat.RepoPath)
-			fmt.Fprintf(buf, "Version \t %s\n", stat.Version)
+			fmt.Fprintf(wtr, "RepoPath:\t%s\n", stat.RepoPath)
+			fmt.Fprintf(wtr, "Version:\t%s\n", stat.Version)
+			wtr.Flush()
 
 			return buf, nil
 		},
