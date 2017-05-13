@@ -27,7 +27,7 @@ type RemovedBlock struct {
 type RmBlocksOpts struct {
 	Prefix string
 	Quiet  bool
-	Force  bool
+	Ignore bool
 }
 
 // RmBlocks removes the blocks provided in the cids slice.
@@ -48,7 +48,7 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []*cid.Cid, opts RmB
 
 		for _, c := range stillOkay {
 			err := blocks.DeleteBlock(c)
-			if err != nil && opts.Force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
+			if err != nil && opts.Ignore && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
 				// ignore non-existent blocks
 			} else if err != nil {
 				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}

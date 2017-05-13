@@ -248,7 +248,7 @@ It takes a list of base58 encoded multihashs to remove.
 		cmds.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to remove."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("force", "f", "Ignore nonexistent blocks.").Default(false),
+		cmds.BoolOption("ignore", "i", "Ignore nonexistent blocks.").Default(false),
 		cmds.BoolOption("quiet", "q", "Write minimal output.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -258,7 +258,7 @@ It takes a list of base58 encoded multihashs to remove.
 			return
 		}
 		hashes := req.Arguments()
-		force, _, _ := req.Option("force").Bool()
+		ignore, _, _ := req.Option("ignore").Bool()
 		quiet, _, _ := req.Option("quiet").Bool()
 		cids := make([]*cid.Cid, 0, len(hashes))
 		for _, hash := range hashes {
@@ -272,7 +272,7 @@ It takes a list of base58 encoded multihashs to remove.
 		}
 		ch, err := util.RmBlocks(n.Blockstore, n.Pinning, cids, util.RmBlocksOpts{
 			Quiet: quiet,
-			Force: force,
+			Ignore: ignore,
 		})
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
