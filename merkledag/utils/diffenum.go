@@ -6,8 +6,8 @@ import (
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 
-	node "github.com/ipfs/go-ipld-node"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
 // DiffEnumerate fetches every object in the graph pointed to by 'to' that is
@@ -55,13 +55,15 @@ func DiffEnumerate(ctx context.Context, dserv node.NodeGetter, from, to *cid.Cid
 	return nil
 }
 
+// if both bef and aft are not nil, then that signifies bef was replaces with aft.
+// if bef is nil and aft is not, that means aft was newly added
+// if aft is nil and bef is not, that means bef was deleted
 type diffpair struct {
 	bef, aft *cid.Cid
 }
 
-// getLinkDiff returns a changset (minimum edit distance style) between nodes
-// 'a' and 'b'. Currently does not log deletions as our usecase doesnt call for
-// this.
+// getLinkDiff returns a changeset between nodes 'a' and 'b'. Currently does
+// not log deletions as our usecase doesnt call for this.
 func getLinkDiff(a, b node.Node) []diffpair {
 	have := make(map[string]*node.Link)
 	names := make(map[string]*node.Link)
