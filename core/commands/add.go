@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
@@ -17,6 +18,7 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	mh "gx/ipfs/QmVGtdTZdTFaLsaj2RwdVG8jcjNNcp1DE914DKZ2kHmXHw/go-multihash"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 )
@@ -39,6 +41,7 @@ const (
 	noCopyOptionName      = "nocopy"
 	fstoreCacheOptionName = "fscache"
 	cidVersionOptionName  = "cid-version"
+	hashOptionName        = "hash"
 )
 
 const adderOutChanSize = 8
@@ -90,6 +93,7 @@ You can now refer to the added file in a gateway, like so:
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmds.IntOption(cidVersionOptionName, "Cid version. Non-zero value will change default of 'raw-leaves' to true. (experimental)").Default(0),
+		cmds.StringOption(hashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)").Default("sha2-256"),
 	},
 	PreRun: func(req cmds.Request) error {
 		quiet, _, _ := req.Option(quietOptionName).Bool()
@@ -164,6 +168,7 @@ You can now refer to the added file in a gateway, like so:
 		nocopy, _, _ := req.Option(noCopyOptionName).Bool()
 		fscache, _, _ := req.Option(fstoreCacheOptionName).Bool()
 		cidVer, _, _ := req.Option(cidVersionOptionName).Int()
+		hashFunStr, hfset, _ := req.Option(hashOptionName).String()
 
 		if nocopy && !cfg.Experimental.FilestoreEnabled {
 			res.SetError(errors.New("filestore is not enabled, see https://git.io/vy4XN"),
@@ -180,6 +185,10 @@ You can now refer to the added file in a gateway, like so:
 			return
 		}
 
+		if hfset && cidVer == 0 {
+			cidVer = 1
+		}
+
 		if cidVer >= 1 && !rbset {
 			rawblks = true
 		}
@@ -189,6 +198,15 @@ You can now refer to the added file in a gateway, like so:
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
+		if !ok {
+			res.SetError(fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr)), cmds.ErrNormal)
+			return
+		}
+
+		prefix.MhType = hashFunCode
+		prefix.MhLength = -1
 
 		if hash {
 			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
