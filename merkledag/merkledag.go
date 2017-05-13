@@ -116,7 +116,7 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 		decnd.Prefix = b.Cid().Prefix()
 		return decnd, nil
 	case cid.Raw:
-		return NewRawNode(b.RawData()), nil
+		return NewRawNodeWPrefix(b.RawData(), b.Cid().Prefix())
 	case cid.DagCBOR:
 		return ipldcbor.Decode(b.RawData())
 	default:
