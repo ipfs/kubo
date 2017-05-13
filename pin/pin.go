@@ -90,7 +90,7 @@ type Pinner interface {
 	// Update updates a recursive pin from one cid to another
 	// this is more efficient than simply pinning the new one and unpinning the
 	// old one
-	Update(context.Context, *cid.Cid, *cid.Cid, bool) error
+	Update(ctx context.Context, from, to *cid.Cid, unpin bool) error
 
 	// Check if a set of keys are pinned, more efficient than
 	// calling IsPinned for each key
