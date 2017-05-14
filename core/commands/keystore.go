@@ -49,6 +49,7 @@ type KeyOutputList struct {
 	Keys []KeyOutput
 }
 
+// KeyRenameOutput define the output type of keyRenameCmd
 type KeyRenameOutput struct {
 	Was       string
 	Now       string
