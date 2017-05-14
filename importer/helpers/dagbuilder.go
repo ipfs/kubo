@@ -165,10 +165,21 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 	}
 
 	if db.rawLeaves {
-		return &UnixfsNode{
-			rawnode: dag.NewRawNode(data),
-			raw:     true,
-		}, nil
+		if db.prefix == nil {
+			return &UnixfsNode{
+				rawnode: dag.NewRawNode(data),
+				raw:     true,
+			}, nil
+		} else {
+			rawnode, err := dag.NewRawNodeWPrefix(data, *db.prefix)
+			if err != nil {
+				return nil, err
+			}
+			return &UnixfsNode{
+				rawnode: rawnode,
+				raw:     true,
+			}, nil
+		}
 	} else {
 		blk := db.NewUnixfsBlock()
 		blk.SetData(data)
