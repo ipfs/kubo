@@ -6,6 +6,8 @@ import (
 	context "context"
 	"github.com/ipfs/go-ipfs/core"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 )
 
 type Stat struct {
@@ -13,6 +15,7 @@ type Stat struct {
 	RepoSize   uint64 // size in bytes
 	RepoPath   string
 	Version    string
+	StorageMax uint64 // size in bytes
 }
 
 func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
@@ -38,10 +41,21 @@ func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
 		return nil, err
 	}
 
+	cfg, err := r.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	storageMax, err := humanize.ParseBytes(cfg.Datastore.StorageMax)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Stat{
 		NumObjects: count,
 		RepoSize:   usage,
 		RepoPath:   path,
 		Version:    fmt.Sprintf("fs-repo@%d", fsrepo.RepoVersion),
+		StorageMax: storageMax,
 	}, nil
 }
