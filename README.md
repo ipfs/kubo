@@ -109,8 +109,9 @@ The build process for ipfs requires Go 1.8 or higher. If you don't have it: [Dow
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
 ```
-export PATH=$PATH:/usr/local/go/bin
-export PATH=$PATH:$GOPATH/bin
+export GOPATH=$HOME/go
+export GOBIN=$GOPATH/bin
+export PATH=$PATH:$GOBIN
 ```
 
 (If you run into trouble, see the [Go install instructions](https://golang.org/doc/install)).
