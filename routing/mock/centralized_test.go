@@ -33,7 +33,7 @@ func TestClientFindProviders(t *testing.T) {
 	client := rs.Client(pi)
 
 	k := cid.NewCidV0(u.Hash([]byte("hello")))
-	err := client.Provide(context.Background(), k)
+	err := client.Provide(context.Background(), k, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestClientOverMax(t *testing.T) {
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
 		pi := testutil.RandIdentityOrFatal(t)
-		err := rs.Client(pi).Provide(context.Background(), k)
+		err := rs.Client(pi).Provide(context.Background(), k, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -106,7 +106,7 @@ func TestCanceledContext(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			err = rs.Client(pi).Provide(context.Background(), k)
+			err = rs.Client(pi).Provide(context.Background(), k, true)
 			if err != nil {
 				t.Error(err)
 			}
@@ -151,7 +151,7 @@ func TestValidAfter(t *testing.T) {
 
 	rs := NewServerWithDelay(conf)
 
-	rs.Client(pi).Provide(ctx, key)
+	rs.Client(pi).Provide(ctx, key, true)
 
 	var providers []pstore.PeerInfo
 	max := 100

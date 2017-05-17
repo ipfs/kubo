@@ -53,7 +53,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 
 	block := blocks.NewBlock([]byte("block"))
 	pinfo := p2ptestutil.RandTestBogusIdentityOrFatal(t)
-	rs.Client(pinfo).Provide(context.Background(), block.Cid()) // but not on network
+	rs.Client(pinfo).Provide(context.Background(), block.Cid(), true) // but not on network
 
 	solo := g.Next()
 	defer solo.Exchange.Close()
