@@ -10,6 +10,13 @@ func NewMemKeystore() *MemKeystore {
 	return &MemKeystore{make(map[string]ci.PrivKey)}
 }
 
+// Has return whether or not a key exist in the Keystore
+func (mk *MemKeystore) Has(name string) (bool, error) {
+	_, ok := mk.keys[name]
+	return ok, nil
+}
+
+// Put store a key in the Keystore
 func (mk *MemKeystore) Put(name string, k ci.PrivKey) error {
 	if err := validateName(name); err != nil {
 		return err
@@ -24,6 +31,7 @@ func (mk *MemKeystore) Put(name string, k ci.PrivKey) error {
 	return nil
 }
 
+// Get retrieve a key from the Keystore
 func (mk *MemKeystore) Get(name string) (ci.PrivKey, error) {
 	if err := validateName(name); err != nil {
 		return nil, err
@@ -37,6 +45,7 @@ func (mk *MemKeystore) Get(name string) (ci.PrivKey, error) {
 	return k, nil
 }
 
+// Delete remove a key from the Keystore
 func (mk *MemKeystore) Delete(name string) error {
 	if err := validateName(name); err != nil {
 		return err
@@ -46,6 +55,7 @@ func (mk *MemKeystore) Delete(name string) error {
 	return nil
 }
 
+// List return a list of key identifier
 func (mk *MemKeystore) List() ([]string, error) {
 	out := make([]string, 0, len(mk.keys))
 	for k, _ := range mk.keys {
