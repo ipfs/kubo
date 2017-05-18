@@ -99,7 +99,7 @@ var setRequestClearCmd = &cmds.Command{
 		Tagline: "Set how long to keep inactive requests in the log.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("time", true, false, "Time to keep inactive requests in log."),
+		cmds.StringArg("time", true, false, "Time to keep inactive requests in log, such as 300ms, -1.5h or 2h45m. Valid time units are 'ns','us' (or 'µs'), 'ms', 's', 'm', 'h'."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		tval, err := time.ParseDuration(req.Arguments()[0])
