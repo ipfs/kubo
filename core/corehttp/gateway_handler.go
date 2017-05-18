@@ -27,6 +27,7 @@ import (
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	routing "gx/ipfs/QmafuecpeZp3k3sHJ5mUARHd4795revuadECQMkmHB8LfW/go-libp2p-routing"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	multibase "gx/ipfs/QmcxkxTVuURV2Ptse8TvkqH5BQDwV62X1x19JqqvbBzwUM/go-multibase"
 )
 
 const (
@@ -209,6 +210,39 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	w.Header().Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
 	// expose those headers
 	w.Header().Set("Access-Control-Expose-Headers", "X-Stream-Output, X-Chunked-Output")
+
+	// Suborigin header, sandboxes apps from each other in the browser (even
+	// though they are served from the same gateway domain).
+	//
+	// Omitted if the path was treated by IPNSHostnameOption(), for example
+	// a request for http://example.net/ would be changed to /ipns/example.net/,
+	// which would turn into an incorrect Suborigin header.
+	// In this case the correct thing to do is omit the header because it is already
+	// handled correctly without a Suborigin.
+	//
+	// NOTE: This is not yet widely supported by browsers.
+	if !ipnsHostname {
+		// e.g.: 1="ipfs", 2="QmYuNaKwY...", ...
+		pathComponents := strings.SplitN(urlPath, "/", 4)
+
+		var suboriginRaw []byte
+		cidDecoded, err := cid.Decode(pathComponents[2])
+		if err != nil {
+			// component 2 doesn't decode with cid, so it must be a hostname
+			suboriginRaw = []byte(strings.ToLower(pathComponents[2]))
+		} else {
+			suboriginRaw = cidDecoded.Bytes()
+		}
+
+		base32Encoded, err := multibase.Encode(multibase.Base32, suboriginRaw)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+
+		suborigin := pathComponents[1] + "000" + strings.ToLower(base32Encoded)
+		w.Header().Set("Suborigin", suborigin)
+	}
 
 	// set these headers _after_ the error, for we may just not have it
 	// and dont want the client to cache a 500 response...
