@@ -421,73 +421,38 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		newPath = path.Join(rsegs[2:])
 	}
 
-	var newcid cid.Cid
-	rnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
-	switch ev := err.(type) {
-	case resolver.ErrNoLink:
-		// ev.Node < node where resolve failed
-		// ev.Name < new link
-		// but we need to patch from the root
-		c, err := cid.Decode(rsegs[1])
-		if err != nil {
-			webError(w, "putHandler: bad input path", err, http.StatusBadRequest)
-			return
-		}
-
-		rnode, err := i.node.DAG.Get(ctx, c)
-		if err != nil {
-			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
-			return
-		}
-
-		pbnd, ok := rnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
-		err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
-		if err != nil {
-			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
-			return
-		}
-
-		nnode, err := e.Finalize(ctx, i.node.DAG)
-		if err != nil {
-			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
-			return
-		}
-
-		newcid = nnode.Cid()
-
-	case nil:
-		pbnd, ok := rnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		pbnewnode, ok := newnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		// object set-data case
-		pbnd.SetData(pbnewnode.Data())
-
-		newcid = pbnd.Cid()
-		err = i.node.DAG.Add(ctx, pbnd)
-		if err != nil {
-			nnk := newnode.Cid()
-			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), newcid.String()), err, http.StatusInternalServerError)
-			return
-		}
-	default:
-		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
+	c, err := cid.Decode(rsegs[1])
+	if err != nil {
+		webError(w, "putHandler: bad input path", err, http.StatusBadRequest)
 		return
 	}
+
+	rnode, err := i.node.DAG.Get(ctx, c)
+	if err != nil {
+		webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
+		return
+	}
+
+	pbnd, ok := rnode.(*dag.ProtoNode)
+	if !ok {
+		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		return
+	}
+
+	e := dagutils.NewDagEditor(pbnd, i.node.DAG)
+	err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
+	if err != nil {
+		webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
+		return
+	}
+
+	nnode, err := e.Finalize(ctx, i.node.DAG)
+	if err != nil {
+		webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
+		return
+	}
+
+	newcid := nnode.Cid()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", newcid.String())
