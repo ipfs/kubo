@@ -53,6 +53,14 @@ func New() *Wantlist {
 	}
 }
 
+// Add adds the given cid to the wantlist with the specified priority, governed
+// by the session ID 'ses'.  if a cid is added under multiple session IDs, then
+// it must be removed by each of those sessions before it is no longer 'in the
+// wantlist'. Calls to Add are idempotent given the same arguments. Subsequent
+// calls with different values for priority will not update the priority
+// TODO: think through priority changes here
+// Add returns true if the cid did not exist in the wantlist before this call
+// (even if it was under a different session)
 func (w *ThreadSafe) Add(c *cid.Cid, priority int, ses uint64) bool {
 	w.lk.Lock()
 	defer w.lk.Unlock()
@@ -84,6 +92,10 @@ func (w *ThreadSafe) AddEntry(e *Entry, ses uint64) bool {
 	return true
 }
 
+// Remove removes the given cid from being tracked by the given session.
+// 'true' is returned if this call to Remove removed the final session ID
+// tracking the cid. (meaning true will be returned iff this call caused the
+// value of 'Contains(c)' to change from true to false)
 func (w *ThreadSafe) Remove(c *cid.Cid, ses uint64) bool {
 	w.lk.Lock()
 	defer w.lk.Unlock()
@@ -101,6 +113,8 @@ func (w *ThreadSafe) Remove(c *cid.Cid, ses uint64) bool {
 	return false
 }
 
+// Contains returns true if the given cid is in the wantlist tracked by one or
+// more sessions
 func (w *ThreadSafe) Contains(k *cid.Cid) (*Entry, bool) {
 	w.lk.RLock()
 	defer w.lk.RUnlock()

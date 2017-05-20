@@ -25,14 +25,14 @@ type Session struct {
 	activePeers    map[peer.ID]struct{}
 	activePeersArr []peer.ID
 
-	bs         *Bitswap
-	incoming   chan blkRecv
-	newReqs    chan []*cid.Cid
-	cancelKeys chan []*cid.Cid
+	bs           *Bitswap
+	incoming     chan blkRecv
+	newReqs      chan []*cid.Cid
+	cancelKeys   chan []*cid.Cid
+	interestReqs chan interestReq
 
 	interest  *lru.Cache
 	liveWants map[string]time.Time
-	liveCnt   int
 
 	tick          *time.Timer
 	baseTickDelay time.Duration
@@ -55,6 +55,7 @@ func (bs *Bitswap) NewSession(ctx context.Context) *Session {
 		liveWants:     make(map[string]time.Time),
 		newReqs:       make(chan []*cid.Cid),
 		cancelKeys:    make(chan []*cid.Cid),
+		interestReqs:  make(chan interestReq),
 		ctx:           ctx,
 		bs:            bs,
 		incoming:      make(chan blkRecv),
@@ -85,8 +86,29 @@ func (s *Session) receiveBlockFrom(from peer.ID, blk blocks.Block) {
 	s.incoming <- blkRecv{from: from, blk: blk}
 }
 
+type interestReq struct {
+	c    *cid.Cid
+	resp chan bool
+}
+
+// TODO: PERF: this is using a channel to guard a map access against race
+// conditions. This is definitely much slower than a mutex, though its unclear
+// if it will actually induce any noticeable slowness. This is implemented this
+// way to avoid adding a more complex set of mutexes around the liveWants map.
+// note that in the average case (where this session *is* interested in the
+// block we received) this function will not be called, as the cid will likely
+// still be in the interest cache.
+func (s *Session) isLiveWant(c *cid.Cid) bool {
+	resp := make(chan bool)
+	s.interestReqs <- interestReq{
+		c:    c,
+		resp: resp,
+	}
+	return <-resp
+}
+
 func (s *Session) interestedIn(c *cid.Cid) bool {
-	return s.interest.Contains(c.KeyString())
+	return s.interest.Contains(c.KeyString()) || s.isLiveWant(c)
 }
 
 const provSearchDelay = time.Second * 10
@@ -124,12 +146,11 @@ func (s *Session) run(ctx context.Context) {
 			for _, k := range keys {
 				s.interest.Add(k.KeyString(), nil)
 			}
-			if s.liveCnt < activeWantsLimit {
-				toadd := activeWantsLimit - s.liveCnt
+			if len(s.liveWants) < activeWantsLimit {
+				toadd := activeWantsLimit - len(s.liveWants)
 				if toadd > len(keys) {
 					toadd = len(keys)
 				}
-				s.liveCnt += toadd
 
 				now := keys[:toadd]
 				keys = keys[toadd:]
@@ -152,15 +173,23 @@ func (s *Session) run(ctx context.Context) {
 			s.bs.wm.WantBlocks(ctx, live, nil, s.id)
 
 			if len(live) > 0 {
-				go func() {
-					for p := range s.bs.network.FindProvidersAsync(ctx, live[0], 10) {
+				go func(k *cid.Cid) {
+					// TODO: have a task queue setup for this to:
+					// - rate limit
+					// - manage timeouts
+					// - ensure two 'findprovs' calls for the same block don't run concurrently
+					// - share peers between sessions based on interest set
+					for p := range s.bs.network.FindProvidersAsync(ctx, k, 10) {
 						newpeers <- p
 					}
-				}()
+				}(live[0])
 			}
 			s.resetTick()
 		case p := <-newpeers:
 			s.addActivePeer(p)
+		case lwchk := <-s.interestReqs:
+			_, ok := s.liveWants[lwchk.c.KeyString()]
+			lwchk.resp <- ok
 		case <-ctx.Done():
 			return
 		}
@@ -170,7 +199,6 @@ func (s *Session) run(ctx context.Context) {
 func (s *Session) receiveBlock(ctx context.Context, blk blocks.Block) {
 	ks := blk.Cid().KeyString()
 	if _, ok := s.liveWants[ks]; ok {
-		s.liveCnt--
 		tval := s.liveWants[ks]
 		s.latTotal += time.Since(tval)
 		s.fetchcnt++

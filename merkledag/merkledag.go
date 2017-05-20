@@ -155,6 +155,9 @@ func GetLinksDirect(serv node.NodeGetter) GetLinks {
 	return func(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
 		node, err := serv.Get(ctx, c)
 		if err != nil {
+			if err == bserv.ErrNotFound {
+				err = ErrNotFound
+			}
 			return nil, err
 		}
 		return node.Links(), nil

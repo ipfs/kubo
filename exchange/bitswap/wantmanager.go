@@ -25,6 +25,7 @@ type WantManager struct {
 	// synchronized by Run loop, only touch inside there
 	peers map[peer.ID]*msgQueue
 	wl    *wantlist.ThreadSafe
+	bcwl  *wantlist.ThreadSafe
 
 	network bsnet.BitSwapNetwork
 	ctx     context.Context
@@ -47,6 +48,7 @@ func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantMana
 		peerReqs:      make(chan chan []peer.ID),
 		peers:         make(map[peer.ID]*msgQueue),
 		wl:            wantlist.NewThreadSafe(),
+		bcwl:          wantlist.NewThreadSafe(),
 		network:       network,
 		ctx:           ctx,
 		cancel:        cancel,
@@ -61,7 +63,7 @@ type msgQueue struct {
 	outlk   sync.Mutex
 	out     bsmsg.BitSwapMessage
 	network bsnet.BitSwapNetwork
-	wl      *wantlist.Wantlist
+	wl      *wantlist.ThreadSafe
 
 	sender bsnet.MessageSender
 
@@ -71,11 +73,13 @@ type msgQueue struct {
 	done chan struct{}
 }
 
+// WantBlocks adds the given cids to the wantlist, tracked by the given session
 func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid, peers []peer.ID, ses uint64) {
 	log.Infof("want blocks: %s", ks)
 	pm.addEntries(ctx, ks, peers, false, ses)
 }
 
+// CancelWants removes the given cids from the wantlist, tracked by the given session
 func (pm *WantManager) CancelWants(ctx context.Context, ks []*cid.Cid, peers []peer.ID, ses uint64) {
 	pm.addEntries(context.Background(), ks, peers, true, ses)
 }
@@ -134,9 +138,10 @@ func (pm *WantManager) startPeerHandler(p peer.ID) *msgQueue {
 
 	// new peer, we will want to give them our full wantlist
 	fullwantlist := bsmsg.New(true)
-	for _, e := range pm.wl.Entries() {
-		ne := *e
-		mq.wl.AddEntry(&ne)
+	for _, e := range pm.bcwl.Entries() {
+		for k := range e.SesTrk {
+			mq.wl.AddEntry(e, k)
+		}
 		fullwantlist.AddEntry(e.Cid, e.Priority)
 	}
 	mq.out = fullwantlist
@@ -284,13 +289,23 @@ func (pm *WantManager) Run() {
 		select {
 		case ws := <-pm.incoming:
 
+			// is this a broadcast or not?
+			brdc := len(ws.targets) == 0
+
 			// add changes to our wantlist
 			for _, e := range ws.entries {
 				if e.Cancel {
+					if brdc {
+						pm.bcwl.Remove(e.Cid, ws.from)
+					}
+
 					if pm.wl.Remove(e.Cid, ws.from) {
 						pm.wantlistGauge.Dec()
 					}
 				} else {
+					if brdc {
+						pm.bcwl.AddEntry(e.Entry, ws.from)
+					}
 					if pm.wl.AddEntry(e.Entry, ws.from) {
 						pm.wantlistGauge.Inc()
 					}
@@ -300,7 +315,7 @@ func (pm *WantManager) Run() {
 			// broadcast those wantlist changes
 			if len(ws.targets) == 0 {
 				for _, p := range pm.peers {
-					p.addMessage(ws.entries)
+					p.addMessage(ws.entries, ws.from)
 				}
 			} else {
 				for _, t := range ws.targets {
@@ -309,24 +324,10 @@ func (pm *WantManager) Run() {
 						log.Warning("tried sending wantlist change to non-partner peer")
 						continue
 					}
-					p.addMessage(ws.entries)
+					p.addMessage(ws.entries, ws.from)
 				}
 			}
 
-		case <-tock.C:
-			// resend entire wantlist every so often (REALLY SHOULDNT BE NECESSARY)
-			var es []*bsmsg.Entry
-			for _, e := range pm.wl.Entries() {
-				es = append(es, &bsmsg.Entry{Entry: e})
-			}
-
-			for _, p := range pm.peers {
-				p.outlk.Lock()
-				p.out = bsmsg.New(true)
-				p.outlk.Unlock()
-
-				p.addMessage(es)
-			}
 		case p := <-pm.connect:
 			pm.startPeerHandler(p)
 		case p := <-pm.disconnect:
@@ -347,14 +348,14 @@ func (wm *WantManager) newMsgQueue(p peer.ID) *msgQueue {
 	return &msgQueue{
 		done:    make(chan struct{}),
 		work:    make(chan struct{}, 1),
-		wl:      wantlist.New(),
+		wl:      wantlist.NewThreadSafe(),
 		network: wm.network,
 		p:       p,
 		refcnt:  1,
 	}
 }
 
-func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
+func (mq *msgQueue) addMessage(entries []*bsmsg.Entry, ses uint64) {
 	var work bool
 	mq.outlk.Lock()
 	defer func() {
@@ -378,12 +379,12 @@ func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
 	// one passed in
 	for _, e := range entries {
 		if e.Cancel {
-			if mq.wl.Remove(e.Cid) {
+			if mq.wl.Remove(e.Cid, ses) {
 				work = true
 				mq.out.Cancel(e.Cid)
 			}
 		} else {
-			if mq.wl.Add(e.Cid, e.Priority) {
+			if mq.wl.Add(e.Cid, e.Priority, ses) {
 				work = true
 				mq.out.AddEntry(e.Cid, e.Priority)
 			}

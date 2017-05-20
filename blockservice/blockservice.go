@@ -251,15 +251,18 @@ func (s *blockService) Close() error {
 	return s.exchange.Close()
 }
 
+// Session is a helper type to provide higher level access to bitswap sessions
 type Session struct {
 	bs  blockstore.Blockstore
 	ses exchange.Fetcher
 }
 
+// GetBlock gets a block in the context of a request session
 func (s *Session) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
 	return getBlock(ctx, c, s.bs, s.ses)
 }
 
+// GetBlocks gets blocks in the context of a request session
 func (s *Session) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
 	return getBlocks(ctx, ks, s.bs, s.ses)
 }

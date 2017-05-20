@@ -111,6 +111,11 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
+			if pid == nd.Identity {
+				res.SetOutput(&KeyList{bs.GetWantlist()})
+				return
+			}
+
 			res.SetOutput(&KeyList{bs.WantlistForPeer(pid)})
 		} else {
 			res.SetOutput(&KeyList{bs.GetWantlist()})

@@ -24,6 +24,7 @@ type Interface interface { // type Exchanger interface
 	io.Closer
 }
 
+// Fetcher is an object that can be used to retrieve blocks
 type Fetcher interface {
 	// GetBlock returns the block associated with a given key.
 	GetBlock(context.Context, *cid.Cid) (blocks.Block, error)

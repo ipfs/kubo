@@ -332,7 +332,7 @@ func TestBasicBitswap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(time.Millisecond * 20)
+	time.Sleep(time.Millisecond * 25)
 	wl := instances[2].Exchange.WantlistForPeer(instances[1].Peer)
 	if len(wl) != 0 {
 		t.Fatal("should have no items in other peers wantlist")

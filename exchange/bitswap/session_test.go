@@ -150,3 +150,55 @@ func TestSessionSplitFetch(t *testing.T) {
 		}
 	}
 }
+
+func TestInterestCacheOverflow(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	vnet := getVirtualNetwork()
+	sesgen := NewTestSessionGenerator(vnet)
+	defer sesgen.Close()
+	bgen := blocksutil.NewBlockGenerator()
+
+	blks := bgen.Blocks(2049)
+	inst := sesgen.Instances(2)
+
+	a := inst[0]
+	b := inst[1]
+
+	ses := a.Exchange.NewSession(ctx)
+	zeroch, err := ses.GetBlocks(ctx, []*cid.Cid{blks[0].Cid()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var restcids []*cid.Cid
+	for _, blk := range blks[1:] {
+		restcids = append(restcids, blk.Cid())
+	}
+
+	restch, err := ses.GetBlocks(ctx, restcids)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// wait to ensure that all the above cids were added to the sessions cache
+	time.Sleep(time.Millisecond * 50)
+
+	if err := b.Exchange.HasBlock(blks[0]); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case blk, ok := <-zeroch:
+		if ok && blk.Cid().Equals(blks[0].Cid()) {
+			// success!
+		} else {
+			t.Fatal("failed to get the block")
+		}
+	case <-restch:
+		t.Fatal("should not get anything on restch")
+	case <-time.After(time.Second * 5):
+		t.Fatal("timed out waiting for block")
+	}
+}

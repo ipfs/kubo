@@ -323,6 +323,7 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	return nil
 }
 
+// SessionsForBlock returns a slice of all sessions that may be interested in the given cid
 func (bs *Bitswap) SessionsForBlock(c *cid.Cid) []*Session {
 	bs.sessLk.Lock()
 	defer bs.sessLk.Unlock()
