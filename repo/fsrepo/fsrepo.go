@@ -32,7 +32,7 @@ import (
 var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
-var RepoVersion = 5
+var RepoVersion = 6
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -260,10 +260,6 @@ func Init(repoPath string, conf *config.Config) error {
 		return err
 	}
 
-	if err := initDefaultDatastore(repoPath, conf); err != nil {
-		return err
-	}
-
 	if err := mfsr.RepoPath(repoPath).WriteVersion(RepoVersion); err != nil {
 		return err
 	}
@@ -368,13 +364,10 @@ func (r *FSRepo) openDatastore() error {
 		}
 
 		r.ds = d
+	} else if r.config.Datastore.Type != "" || r.config.Datastore.Path != "" {
+		return fmt.Errorf("old style datatstore config detected")
 	} else {
-		// TODO: This is for legacy configs, remove in the future
-		d, err := openDefaultDatastore(r)
-		if err != nil {
-			return err
-		}
-		r.ds = d
+		return fmt.Errorf("required Datastore.Spec entry missing form config file")
 	}
 
 	// Wrap it with metrics gathering
