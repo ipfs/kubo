@@ -414,6 +414,7 @@ func (bs *Bitswap) updateReceiveCounters(b blocks.Block) {
 // Connected/Disconnected warns bitswap about peer connections
 func (bs *Bitswap) PeerConnected(p peer.ID) {
 	bs.wm.Connected(p)
+	bs.engine.PeerConnected(p)
 }
 
 // Connected/Disconnected warns bitswap about peer connections
