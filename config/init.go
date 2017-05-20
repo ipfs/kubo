@@ -21,10 +21,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		return nil, err
 	}
 
-	datastore, err := datastoreConfig()
-	if err != nil {
-		return nil, err
-	}
+	datastore := DefaultDatastoreConfig()
 
 	conf := &Config{
 
@@ -79,7 +76,8 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	return conf, nil
 }
 
-func datastoreConfig() (*Datastore, error) {
+// DatastoreConfig is an internal function exported to aid in testing.
+func DefaultDatastoreConfig() *Datastore {
 	return &Datastore{
 		StorageMax:         "10GB",
 		StorageGCWatermark: 90, // 90%
@@ -111,7 +109,7 @@ func datastoreConfig() (*Datastore, error) {
 				},
 			},
 		},
-	}, nil
+	}
 }
 
 // identityConfig initializes a new identity.
