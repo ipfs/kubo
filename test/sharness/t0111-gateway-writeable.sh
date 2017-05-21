@@ -105,6 +105,23 @@ test_expect_success "We can HTTP GET file just updated" '
   test_cmp infile2 outfile2
 '
 
+test_expect_success "Replacing a file with PUT gives us the hash of the new tree" '
+  echo "$RANDOM" >infile3 &&
+  URL="http://localhost:$port/ipfs/$HASH/test/test.txt" &&
+  echo "PUT $URL" &&
+  curl -svX PUT --data-binary @infile3 "$URL" 2>curl_putExisting.out &&
+  grep "HTTP/1.1 201 Created" curl_putExisting.out &&
+  LOCATION=$(grep Location curl_putExisting.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test/test.txt")
+'
+
+test_expect_success "We can HTTP GET file just replaced" '
+  URL="http://localhost:$port/ipfs/$HASH/test/test.txt" &&
+  echo "GET $URL" &&
+  curl -svo outfile3 "$URL" 2>curl_getExisting.out &&
+  test_cmp infile3 outfile3
+'
+
 test_kill_ipfs_daemon
 
 test_done
