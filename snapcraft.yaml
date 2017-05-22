@@ -1,0 +1,21 @@
+name: ipfs
+version: master
+summary: global, versioned, peer-to-peer filesystem
+description: |
+  IPFS combines good ideas from Git, BitTorrent, Kademlia, SFS, and the Web.
+  It is like a single bittorrent swarm, exchanging git objects. IPFS provides
+  an interface as simple as the HTTP web, but with permanence built in. You
+  can also mount the world at /ipfs.
+
+confinement: strict
+
+apps:
+  ipfs:
+    command: ipfs
+    plugs: [network, network-bind]
+
+parts:
+  ipfs:
+    source: .
+    plugin: ipfs
+    go-importpath: github.com/ipfs/go-ipfs
