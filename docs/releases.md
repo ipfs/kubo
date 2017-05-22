@@ -19,3 +19,12 @@ will be allowed up to release day.
 - [ ] update release branch to point to release commit
 - [ ] publish dist.ipfs.io
 - [ ] publish next version to https://github.com/ipfs/npm-go-ipfs
+
+## Post-Release
+- Communication
+  - [ ] Create the release issue
+  - [ ] Announcements (both pre-release and post-release)
+    - [ ] Twitter
+    - [ ] IRC
+    - [ ] Reddit
+  - [ ] Blog post (at minimum, paste the changelog. optionally add context and thank contributors.)
