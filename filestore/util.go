@@ -2,6 +2,7 @@ package filestore
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
@@ -89,7 +90,10 @@ func List(fs *Filestore, key *cid.Cid) *ListRes {
 // one by one each block in the Filestore's FileManager.
 // ListAll does not verify that the references are valid or whether
 // the raw data is accessible. See VerifyAll().
-func ListAll(fs *Filestore) (func() *ListRes, error) {
+func ListAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
+	if fileOrder {
+		return listAllFileOrder(fs, false)
+	}
 	return listAll(fs, false)
 }
 
@@ -105,7 +109,10 @@ func Verify(fs *Filestore, key *cid.Cid) *ListRes {
 // returns one by one each block in the Filestore's FileManager.
 // VerifyAll checks that the reference is valid and that the block data
 // can be read.
-func VerifyAll(fs *Filestore) (func() *ListRes, error) {
+func VerifyAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
+	if fileOrder {
+		return listAllFileOrder(fs, true)
+	}
 	return listAll(fs, true)
 }
 
@@ -156,6 +163,93 @@ func next(qr dsq.Results) (*cid.Cid, *pb.DataObj, error) {
 	}
 
 	return c, dobj, nil
+}
+
+func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
+	q := dsq.Query{}
+	qr, err := fs.fm.ds.Query(q)
+	if err != nil {
+		return nil, err
+	}
+
+	var entries listEntries
+
+	for {
+		v, ok := qr.NextSync()
+		if !ok {
+			break
+		}
+		dobj, err := unmarshalDataObj(v.Value)
+		if err != nil {
+			entries = append(entries, &listEntry{
+				dsKey: v.Key,
+				err:   err,
+			})
+		} else {
+			entries = append(entries, &listEntry{
+				dsKey:    v.Key,
+				filePath: dobj.GetFilePath(),
+				offset:   dobj.GetOffset(),
+				size:     dobj.GetSize_(),
+			})
+		}
+	}
+	sort.Sort(entries)
+
+	i := 0
+	return func() *ListRes {
+		if i >= len(entries) {
+			return nil
+		}
+		v := entries[i]
+		i++
+		// attempt to convert the datastore key to a CID,
+		// store the error but don't use it yet
+		cid, keyErr := dshelp.DsKeyToCid(ds.RawKey(v.dsKey))
+		// first if they listRes already had an error return that error
+		if v.err != nil {
+			return mkListRes(cid, nil, v.err)
+		}
+		// now reconstruct the DataObj
+		dobj := pb.DataObj{
+			FilePath: &v.filePath,
+			Offset:   &v.offset,
+			Size_:    &v.size,
+		}
+		// now if we could not convert the datastore key return that
+		// error
+		if keyErr != nil {
+			return mkListRes(cid, &dobj, keyErr)
+		}
+		// finally verify the dataobj if requested
+		var err error
+		if verify {
+			_, err = fs.fm.readDataObj(cid, &dobj)
+		}
+		return mkListRes(cid, &dobj, err)
+	}, nil
+}
+
+type listEntry struct {
+	filePath string
+	offset   uint64
+	dsKey    string
+	size     uint64
+	err      error
+}
+
+type listEntries []*listEntry
+
+func (l listEntries) Len() int      { return len(l) }
+func (l listEntries) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+func (l listEntries) Less(i, j int) bool {
+	if l[i].filePath == l[j].filePath {
+		if l[i].offset == l[j].offset {
+			return l[i].dsKey < l[j].dsKey
+		}
+		return l[i].offset < l[j].offset
+	}
+	return l[i].filePath < l[j].filePath
 }
 
 func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
