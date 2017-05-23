@@ -91,6 +91,8 @@ With snap, in any of the [supported Linux distributions](https://snapcraft.io/do
 
 ### Build from Source
 
+There are separate instructions for [building from source on Windows](https://gist.github.com/drwasho/ca224cbd4a21440f7cc1245e594398e4).
+
 #### Install Go
 
 The build process for ipfs requires Go 1.7 or higher. If you don't have it: [Download Go 1.7+](https://golang.org/dl/).
