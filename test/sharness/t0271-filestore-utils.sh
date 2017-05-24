@@ -37,27 +37,31 @@ test_init() {
 
 EXPHASH="QmRueCuPMYYvdxWz1vWncF7wzCScEx4qasZXo5aVBb1R4V"
 
-cat <<EOF > ls_expect
-zb2rhaPkR7ZF9BzSC2BfqbcGivi9QMdauermW9YB6NvS7FZMo   10000 somedir/file2 0
-zb2rhav4wcdvNXtaKDTWHYAqtUHMEpygT1cxqMsfK7QrDuHxH  262144 somedir/file3 524288
+cat <<EOF > ls_expect_file_order
 zb2rhbcZ3aUXYcrbhhDH1JyrpDcpdw1KFJ5Xs5covjnvMpxDR    1000 somedir/file1 0
+zb2rhaPkR7ZF9BzSC2BfqbcGivi9QMdauermW9YB6NvS7FZMo   10000 somedir/file2 0
 zb2rhe28UqCDm7TFib7PRyQYEkvuq8iahcXA2AbgaxCLvNhfk  262144 somedir/file3 0
 zb2rhebtyTTuHKyTbJPnkDUSruU5Uma4DN8t2EkvYZ6fP36mm  262144 somedir/file3 262144
+zb2rhav4wcdvNXtaKDTWHYAqtUHMEpygT1cxqMsfK7QrDuHxH  262144 somedir/file3 524288
 zb2rhm9VTrX2mfatggYUk8mHLz78XBxVUTTzLvM2N3d6frdAU  213568 somedir/file3 786432
 EOF
+
+sort < ls_expect_file_order > ls_expect_key_order
 
 FILE1_HASH=zb2rhbcZ3aUXYcrbhhDH1JyrpDcpdw1KFJ5Xs5covjnvMpxDR
 FILE2_HASH=zb2rhaPkR7ZF9BzSC2BfqbcGivi9QMdauermW9YB6NvS7FZMo
 FILE3_HASH=QmfE4SDQazxTD7u8VTYs9AJqQL8rrJPUAorLeJXKSZrVf9
 
-cat <<EOF > verify_expect
-ok      zb2rhaPkR7ZF9BzSC2BfqbcGivi9QMdauermW9YB6NvS7FZMo   10000 somedir/file2 0
-ok      zb2rhav4wcdvNXtaKDTWHYAqtUHMEpygT1cxqMsfK7QrDuHxH  262144 somedir/file3 524288
+cat <<EOF > verify_expect_file_order
 ok      zb2rhbcZ3aUXYcrbhhDH1JyrpDcpdw1KFJ5Xs5covjnvMpxDR    1000 somedir/file1 0
+ok      zb2rhaPkR7ZF9BzSC2BfqbcGivi9QMdauermW9YB6NvS7FZMo   10000 somedir/file2 0
 ok      zb2rhe28UqCDm7TFib7PRyQYEkvuq8iahcXA2AbgaxCLvNhfk  262144 somedir/file3 0
 ok      zb2rhebtyTTuHKyTbJPnkDUSruU5Uma4DN8t2EkvYZ6fP36mm  262144 somedir/file3 262144
+ok      zb2rhav4wcdvNXtaKDTWHYAqtUHMEpygT1cxqMsfK7QrDuHxH  262144 somedir/file3 524288
 ok      zb2rhm9VTrX2mfatggYUk8mHLz78XBxVUTTzLvM2N3d6frdAU  213568 somedir/file3 786432
 EOF
+
+sort < verify_expect_file_order > verify_expect_key_order
 
 test_filestore_adds() {
 	test_expect_success "nocopy add succeeds" '
@@ -70,7 +74,12 @@ test_filestore_adds() {
 
 	test_expect_success "'ipfs filestore ls' output looks good'" '
 		ipfs filestore ls | sort > ls_actual &&
-		test_cmp ls_expect ls_actual
+		test_cmp ls_expect_key_order ls_actual
+	'
+
+	test_expect_success "'ipfs filestore ls --file-order' output looks good'" '
+		ipfs filestore ls --file-order > ls_actual &&
+		test_cmp ls_expect_file_order ls_actual
 	'
 
 	test_expect_success "'ipfs filestore ls HASH' works" '
@@ -88,12 +97,17 @@ test_filestore_adds() {
 test_filestore_state() {
 	test_expect_success "ipfs filestore verify' output looks good'" '
 		ipfs filestore verify | LC_ALL=C sort > verify_actual
-		test_cmp verify_expect verify_actual
+		test_cmp verify_expect_key_order verify_actual
 	'
 }
 
 test_filestore_verify() {
 	test_filestore_state
+
+	test_expect_success "ipfs filestore verify --file-order' output looks good'" '
+		ipfs filestore verify --file-order > verify_actual
+		test_cmp verify_expect_file_order verify_actual
+	'
 
 	test_expect_success "'ipfs filestore verify HASH' works" '
 		ipfs filestore verify $FILE1_HASH > verify_actual &&
