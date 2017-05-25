@@ -429,21 +429,43 @@ var verifyPinCmd = &cmds.Command{
 		verbose, _, _ := res.Request().Option("verbose").Bool()
 		quiet, _, _ := res.Request().Option("quiet").Bool()
 
-		rdr, wtr := io.Pipe()
-		out := pinVerify(req.Context(), n)
+		if verbose && quiet {
+			res.SetError(fmt.Errorf("The --verbose and --quiet options can not be used at the same time"), cmds.ErrNormal)
+		}
 
-		go func() {
-			defer wtr.Close()
-			for r := range out {
-				if quiet && len(r.badNodes) > 0 {
-					fmt.Fprintf(wtr, "%s\n", r.cid)
-				} else if !quiet {
-					r.Format(wtr, verbose)
-				}
+		opts := pinVerifyOpts{
+			explain:   !quiet,
+			includeOk: verbose,
+		}
+		out := pinVerify(req.Context(), n, opts)
+
+		res.SetOutput(out)
+	},
+	Type: PinVerifyRes{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			quiet, _, _ := res.Request().Option("quiet").Bool()
+
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
 			}
-		}()
 
-		res.SetOutput(rdr)
+			rdr, wtr := io.Pipe()
+			go func() {
+				defer wtr.Close()
+				for r0 := range outChan {
+					r := r0.(*PinVerifyRes)
+					if quiet && !r.Ok {
+						fmt.Fprintf(wtr, "%s\n", r.Cid)
+					} else if !quiet {
+						r.Format(wtr)
+					}
+				}
+			}()
+
+			return rdr, nil
+		},
 	},
 }
 
@@ -529,27 +551,36 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	return keys, nil
 }
 
-type pinStatus struct {
-	badNodes []badNode
+// PinVerifyRes is the result returned for each pin checked in "pin verify"
+type PinVerifyRes struct {
+	Cid string
+	PinStatus
 }
 
-type badNode struct {
-	cid *cid.Cid
-	err error
+// PinStatus is part of PinVerifyRes, do not use directly
+type PinStatus struct {
+	Ok       bool
+	BadNodes []BadNode `json:",omitempty"`
 }
 
-type pinVerifyRes struct {
-	cid *cid.Cid
-	pinStatus
+// BadNode is used in PinVerifyRes
+type BadNode struct {
+	Cid string
+	Err string
 }
 
-func pinVerify(ctx context.Context, n *core.IpfsNode) <-chan pinVerifyRes {
-	visited := make(map[string]pinStatus)
+type pinVerifyOpts struct {
+	explain   bool
+	includeOk bool
+}
+
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
+	visited := make(map[string]PinStatus)
 	getLinks := n.DAG.GetOfflineLinkService().GetLinks
 	recPins := n.Pinning.RecursiveKeys()
 
-	var checkPin func(root *cid.Cid) pinStatus
-	checkPin = func(root *cid.Cid) pinStatus {
+	var checkPin func(root *cid.Cid) PinStatus
+	checkPin = func(root *cid.Cid) PinStatus {
 		key := root.String()
 		if status, ok := visited[key]; ok {
 			return status
@@ -557,16 +588,20 @@ func pinVerify(ctx context.Context, n *core.IpfsNode) <-chan pinVerifyRes {
 
 		links, err := getLinks(ctx, root)
 		if err != nil {
-			status := pinStatus{[]badNode{badNode{cid: root, err: err}}}
+			status := PinStatus{Ok: false}
+			if opts.explain {
+				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+			}
 			visited[key] = status
 			return status
 		}
 
-		status := pinStatus{}
+		status := PinStatus{Ok: true}
 		for _, lnk := range links {
 			res := checkPin(lnk.Cid)
-			if len(res.badNodes) > 0 {
-				status.badNodes = append(status.badNodes, res.badNodes...)
+			if !res.Ok {
+				status.Ok = false
+				status.BadNodes = append(status.BadNodes, res.BadNodes...)
 			}
 		}
 
@@ -574,27 +609,28 @@ func pinVerify(ctx context.Context, n *core.IpfsNode) <-chan pinVerifyRes {
 		return status
 	}
 
-	out := make(chan pinVerifyRes)
+	out := make(chan interface{})
 	go func() {
 		defer close(out)
 		for _, cid := range recPins {
 			pinStatus := checkPin(cid)
-			out <- pinVerifyRes{cid, pinStatus}
+			if !pinStatus.Ok || opts.includeOk {
+				out <- &PinVerifyRes{cid.String(), pinStatus}
+			}
 		}
 	}()
 
 	return out
 }
 
-func (r pinVerifyRes) Format(out io.Writer, verbose bool) {
-	if len(r.badNodes) == 0 {
-		if verbose {
-			fmt.Fprintf(out, "%s ok\n", r.cid)
-		}
+// Format formats PinVerifyRes
+func (r PinVerifyRes) Format(out io.Writer) {
+	if r.Ok {
+		fmt.Fprintf(out, "%s ok\n", r.Cid)
 	} else {
-		fmt.Fprintf(out, "%s broken\n", r.cid)
-		for _, e := range r.badNodes {
-			fmt.Fprintf(out, "  %s: %s\n", e.cid, e.err)
+		fmt.Fprintf(out, "%s broken\n", r.Cid)
+		for _, e := range r.BadNodes {
+			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
 		}
 	}
 }
