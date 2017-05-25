@@ -27,6 +27,7 @@ var PinCmd = &cmds.Command{
 		"add":    addPinCmd,
 		"rm":     rmPinCmd,
 		"ls":     listPinCmd,
+		"verify": verifyPinCmd,
 		"update": updatePinCmd,
 	},
 }
@@ -410,6 +411,64 @@ new pin and removing the old one.
 	},
 }
 
+var verifyPinCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Verify that recursive pins are complete.",
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "Also write the hashes of non-broken pins."),
+		cmds.BoolOption("quiet", "q", "Write just hashes of broken pins."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		verbose, _, _ := res.Request().Option("verbose").Bool()
+		quiet, _, _ := res.Request().Option("quiet").Bool()
+
+		if verbose && quiet {
+			res.SetError(fmt.Errorf("The --verbose and --quiet options can not be used at the same time"), cmds.ErrNormal)
+		}
+
+		opts := pinVerifyOpts{
+			explain:   !quiet,
+			includeOk: verbose,
+		}
+		out := pinVerify(req.Context(), n, opts)
+
+		res.SetOutput(out)
+	},
+	Type: PinVerifyRes{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			quiet, _, _ := res.Request().Option("quiet").Bool()
+
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			rdr, wtr := io.Pipe()
+			go func() {
+				defer wtr.Close()
+				for r0 := range outChan {
+					r := r0.(*PinVerifyRes)
+					if quiet && !r.Ok {
+						fmt.Fprintf(wtr, "%s\n", r.Cid)
+					} else if !quiet {
+						r.Format(wtr)
+					}
+				}
+			}()
+
+			return rdr, nil
+		},
+	},
+}
+
 type RefKeyObject struct {
 	Type string
 }
@@ -490,6 +549,90 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	}
 
 	return keys, nil
+}
+
+// PinVerifyRes is the result returned for each pin checked in "pin verify"
+type PinVerifyRes struct {
+	Cid string
+	PinStatus
+}
+
+// PinStatus is part of PinVerifyRes, do not use directly
+type PinStatus struct {
+	Ok       bool
+	BadNodes []BadNode `json:",omitempty"`
+}
+
+// BadNode is used in PinVerifyRes
+type BadNode struct {
+	Cid string
+	Err string
+}
+
+type pinVerifyOpts struct {
+	explain   bool
+	includeOk bool
+}
+
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
+	visited := make(map[string]PinStatus)
+	getLinks := n.DAG.GetOfflineLinkService().GetLinks
+	recPins := n.Pinning.RecursiveKeys()
+
+	var checkPin func(root *cid.Cid) PinStatus
+	checkPin = func(root *cid.Cid) PinStatus {
+		key := root.String()
+		if status, ok := visited[key]; ok {
+			return status
+		}
+
+		links, err := getLinks(ctx, root)
+		if err != nil {
+			status := PinStatus{Ok: false}
+			if opts.explain {
+				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+			}
+			visited[key] = status
+			return status
+		}
+
+		status := PinStatus{Ok: true}
+		for _, lnk := range links {
+			res := checkPin(lnk.Cid)
+			if !res.Ok {
+				status.Ok = false
+				status.BadNodes = append(status.BadNodes, res.BadNodes...)
+			}
+		}
+
+		visited[key] = status
+		return status
+	}
+
+	out := make(chan interface{})
+	go func() {
+		defer close(out)
+		for _, cid := range recPins {
+			pinStatus := checkPin(cid)
+			if !pinStatus.Ok || opts.includeOk {
+				out <- &PinVerifyRes{cid.String(), pinStatus}
+			}
+		}
+	}()
+
+	return out
+}
+
+// Format formats PinVerifyRes
+func (r PinVerifyRes) Format(out io.Writer) {
+	if r.Ok {
+		fmt.Fprintf(out, "%s ok\n", r.Cid)
+	} else {
+		fmt.Fprintf(out, "%s broken\n", r.Cid)
+		for _, e := range r.BadNodes {
+			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
+		}
+	}
 }
 
 func cidsToStrings(cs []*cid.Cid) []string {
