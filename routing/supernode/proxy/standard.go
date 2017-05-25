@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	pstore "gx/ipfs/QmNUVzEjq3XWJ89hegahPvyfJbTXgTaom48pLb7YBD9gHQ/go-libp2p-peerstore"
-	dhtpb "gx/ipfs/QmQcRLisUbREko56ThfgzdBorMGNfNjgqzvwuPPr1jFw6A/go-libp2p-kad-dht/pb"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	dhtpb "gx/ipfs/QmUJKdWyaf2dpuACw7ctu3KNciyzR7S69yGFr2BP6vYUB8/go-libp2p-kad-dht/pb"
 	inet "gx/ipfs/QmVHSBsn8LEeay8m5ERebgUVuhzw838PsyTttCmP6GMJkg/go-libp2p-net"
 	loggables "gx/ipfs/QmVesPmqbPp7xRGyY96tnBwzDtVV1nqv4SCVxo5zCqKyH8/go-libp2p-loggables"
 	kbucket "gx/ipfs/QmXKSwZVoHCTne4jTLzDtMc2K6paEZ2QaUMQfJ4ogYd28n/go-libp2p-kbucket"

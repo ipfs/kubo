@@ -14,9 +14,9 @@ import (
 	mh "gx/ipfs/QmVGtdTZdTFaLsaj2RwdVG8jcjNNcp1DE914DKZ2kHmXHw/go-multihash"
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
+	routing "gx/ipfs/QmXiH3yLocPhjkAmL8R29fKRcEKoVXKCaVDbAS9tdTrVEd/go-libp2p-routing"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	routing "gx/ipfs/QmafuecpeZp3k3sHJ5mUARHd4795revuadECQMkmHB8LfW/go-libp2p-routing"
 )
 
 var log = logging.Logger("namesys")

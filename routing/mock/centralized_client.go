@@ -13,9 +13,9 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	dhtpb "gx/ipfs/QmWYCqr6UDqqD1bfRybaAPtbAqcN3TSJpveaBXMwbQ3ePZ/go-libp2p-record/pb"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
+	routing "gx/ipfs/QmXiH3yLocPhjkAmL8R29fKRcEKoVXKCaVDbAS9tdTrVEd/go-libp2p-routing"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	routing "gx/ipfs/QmafuecpeZp3k3sHJ5mUARHd4795revuadECQMkmHB8LfW/go-libp2p-routing"
 	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
@@ -104,7 +104,10 @@ func (c *client) FindProvidersAsync(ctx context.Context, k *cid.Cid, max int) <-
 
 // Provide returns once the message is on the network. Value is not necessarily
 // visible yet.
-func (c *client) Provide(_ context.Context, key *cid.Cid) error {
+func (c *client) Provide(_ context.Context, key *cid.Cid, brd bool) error {
+	if !brd {
+		return nil
+	}
 	info := pstore.PeerInfo{
 		ID:    c.peer.ID(),
 		Addrs: []ma.Multiaddr{c.peer.Address()},

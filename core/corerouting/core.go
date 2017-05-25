@@ -10,7 +10,7 @@ import (
 	gcproxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 	pstore "gx/ipfs/QmNUVzEjq3XWJ89hegahPvyfJbTXgTaom48pLb7YBD9gHQ/go-libp2p-peerstore"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
-	routing "gx/ipfs/QmafuecpeZp3k3sHJ5mUARHd4795revuadECQMkmHB8LfW/go-libp2p-routing"
+	routing "gx/ipfs/QmXiH3yLocPhjkAmL8R29fKRcEKoVXKCaVDbAS9tdTrVEd/go-libp2p-routing"
 	"gx/ipfs/QmcyNeWPsoFGxThGpV8JnJdfUNankKhWCTrbrcFRQda4xR/go-libp2p-host"
 )
 

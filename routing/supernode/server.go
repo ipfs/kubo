@@ -9,8 +9,8 @@ import (
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
 	pstore "gx/ipfs/QmNUVzEjq3XWJ89hegahPvyfJbTXgTaom48pLb7YBD9gHQ/go-libp2p-peerstore"
-	dhtpb "gx/ipfs/QmQcRLisUbREko56ThfgzdBorMGNfNjgqzvwuPPr1jFw6A/go-libp2p-kad-dht/pb"
 	datastore "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	dhtpb "gx/ipfs/QmUJKdWyaf2dpuACw7ctu3KNciyzR7S69yGFr2BP6vYUB8/go-libp2p-kad-dht/pb"
 	record "gx/ipfs/QmWYCqr6UDqqD1bfRybaAPtbAqcN3TSJpveaBXMwbQ3ePZ/go-libp2p-record"
 	pb "gx/ipfs/QmWYCqr6UDqqD1bfRybaAPtbAqcN3TSJpveaBXMwbQ3ePZ/go-libp2p-record/pb"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"

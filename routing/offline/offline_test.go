@@ -67,7 +67,7 @@ func TestOfflineRouterLocal(t *testing.T) {
 	}
 
 	cid, _ = testutil.RandCidV0()
-	err = offline.Provide(ctx, cid)
+	err = offline.Provide(ctx, cid, true)
 	if err != ErrOffline {
 		t.Fatal("OfflineRouting should alert that its offline")
 	}

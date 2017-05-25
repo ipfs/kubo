@@ -13,12 +13,12 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	pstore "gx/ipfs/QmNUVzEjq3XWJ89hegahPvyfJbTXgTaom48pLb7YBD9gHQ/go-libp2p-peerstore"
-	ipdht "gx/ipfs/QmQcRLisUbREko56ThfgzdBorMGNfNjgqzvwuPPr1jFw6A/go-libp2p-kad-dht"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	ipdht "gx/ipfs/QmUJKdWyaf2dpuACw7ctu3KNciyzR7S69yGFr2BP6vYUB8/go-libp2p-kad-dht"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
+	routing "gx/ipfs/QmXiH3yLocPhjkAmL8R29fKRcEKoVXKCaVDbAS9tdTrVEd/go-libp2p-routing"
+	notif "gx/ipfs/QmXiH3yLocPhjkAmL8R29fKRcEKoVXKCaVDbAS9tdTrVEd/go-libp2p-routing/notifications"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	routing "gx/ipfs/QmafuecpeZp3k3sHJ5mUARHd4795revuadECQMkmHB8LfW/go-libp2p-routing"
-	notif "gx/ipfs/QmafuecpeZp3k3sHJ5mUARHd4795revuadECQMkmHB8LfW/go-libp2p-routing/notifications"
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
 
@@ -357,7 +357,7 @@ var provideRefDhtCmd = &cmds.Command{
 
 func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []*cid.Cid) error {
 	for _, c := range cids {
-		err := r.Provide(ctx, c)
+		err := r.Provide(ctx, c, true)
 		if err != nil {
 			return err
 		}
@@ -380,7 +380,7 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGSer
 				continue
 			}
 
-			err = r.Provide(ctx, k)
+			err = r.Provide(ctx, k, true)
 			if err != nil {
 				return err
 			}
