@@ -21,11 +21,6 @@ test_expect_success 'peer ids' '
   PEERID_1=$(iptb get id 1)
 '
 
-# netcat (nc) is needed for the following tests
-test_expect_success "socat is available" '
-  type socat >/dev/null
-'
-
 test_expect_success "test ports are closed" '
   (! (netstat -ln | grep "LISTEN" | grep ":10101 ")) &&
   (! (netstat -ln | grep "LISTEN" | grep ":10102 "))
@@ -36,22 +31,22 @@ test_expect_success 'start ipfs listener' '
 '
 
 test_expect_success 'Test server to client communications' '
-  socat FILE:corenet0.bin TCP-LISTEN:10101,reuseaddr &
-  NC_SERVER_PID=$!
+  ma-pipe-unidir --listen send /ip4/127.0.0.1/tcp/10101 < corenet0.bin &
+  SERVER_PID=$!
 
   ipfsi 1 exp corenet dial $PEERID_0 corenet-test /ip4/127.0.0.1/tcp/10102 2>&1 > dialer-stdouterr.log &&
-  socat TCP4:127.0.0.1:10102 OPEN:client.out,creat,trunc &&
-  wait $NC_SERVER_PID
+  ma-pipe-unidir recv /ip4/127.0.0.1/tcp/10102 > client.out &&
+  wait $SERVER_PID
 '
 
-test_expect_success 'Test server to client communications' '
-  socat TCP-LISTEN:10101,reuseaddr OPEN:server.out,creat,trunc &
-  NC_SERVER_PID=$!
+test_expect_success 'Test client to server communications' '
+  ma-pipe-unidir --listen recv /ip4/127.0.0.1/tcp/10101 > server.out &
+  SERVER_PID=$!
+  #sleep 0.5 &&
 
   ipfsi 1 exp corenet dial $PEERID_0 corenet-test /ip4/127.0.0.1/tcp/10102 2>&1 > dialer-stdouterr.log &&
-  socat FILE:corenet1.bin TCP4:127.0.0.1:10102 &&
-
-  wait $NC_SERVER_PID
+  ma-pipe-unidir send /ip4/127.0.0.1/tcp/10102 < corenet1.bin
+  wait $SERVER_PID
 '
 
 test_expect_success 'server to client output looks good' '
