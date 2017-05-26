@@ -54,14 +54,12 @@ test_expect_success "We can HTTP GET file just created" '
   test_cmp infile outfile
 '
 
-test_expect_success "HTTP PUT empty directory" '
+test_expect_success "HTTP PUT empty directory fails" '
   URL="http://localhost:$port/ipfs/$HASH_EMPTY_DIR/" &&
   echo "PUT $URL" &&
   curl -svX PUT "$URL" 2>curl_putEmpty.out &&
   cat curl_putEmpty.out &&
-  grep "Ipfs-Hash: $HASH_EMPTY_DIR" curl_putEmpty.out &&
-  grep "Location: /ipfs/$HASH_EMPTY_DIR" curl_putEmpty.out &&
-  grep "HTTP/1.1 201 Created" curl_putEmpty.out
+  grep "HTTP/1.1 400 Bad Request" curl_putEmpty.out
 '
 
 test_expect_success "HTTP GET empty directory" '
@@ -97,7 +95,6 @@ test_expect_success "HTTP PUT file to append to existing hierarchy" '
   HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test/test.txt")
 '
 
-
 test_expect_success "We can HTTP GET file just updated" '
   URL="http://localhost:$port/ipfs/$HASH/test/test.txt" &&
   echo "GET $URL" &&
@@ -112,7 +109,11 @@ test_expect_success "Replacing a file with PUT gives us the hash of the new tree
   curl -svX PUT --data-binary @infile3 "$URL" 2>curl_putExisting.out &&
   grep "HTTP/1.1 201 Created" curl_putExisting.out &&
   LOCATION=$(grep Location curl_putExisting.out) &&
-  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test/test.txt")
+  IPFS_HASH=$(grep Ipfs-Hash curl_putExisting.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test/test.txt") &&
+  IPFS_HASH=$(expr "$IPFS_HASH" : "< Ipfs-Hash: \(\w*\)") &&
+  echo "$HASH -vs- $IPFS_HASH" > /home/jes/foo.log &&
+  [ "$HASH" = "$IPFS_HASH" ]
 '
 
 test_expect_success "We can HTTP GET file just replaced" '
@@ -120,6 +121,31 @@ test_expect_success "We can HTTP GET file just replaced" '
   echo "GET $URL" &&
   curl -svo outfile3 "$URL" 2>curl_getExisting.out &&
   test_cmp infile3 outfile3
+'
+
+test_expect_success "We can't PUT to a path ending with /" '
+  URL="http://localhost:$port/ipfs/$HASH/test/" &&
+  echo "PUT $URL" &&
+  curl -svX PUT "$URL" 2>curl_putDirectoryFail.out &&
+  cat curl_putDirectoryFail.out &&
+  grep "HTTP/1.1 400 Bad Request" curl_putDirectoryFail.out
+'
+
+test_expect_success "PUT to a directory replaces it with a file" '
+  echo "$RANDOM" >infile4 &&
+  URL="http://localhost:$port/ipfs/$HASH/test" &&
+  echo "PUT $URL" &&
+  curl -svX PUT --data-binary @infile4 "$URL" 2>curl_putDirectory.out &&
+  grep "HTTP/1.1 201 Created" curl_putDirectory.out &&
+  LOCATION=$(grep Location curl_putDirectory.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test")
+'
+
+test_expect_success "We can HTTP GET directory just replaced" '
+  URL="http://localhost:$port/ipfs/$HASH/test" &&
+  echo "GET $URL" &&
+  curl -svo outfile4 "$URL" 2>curl_getDirectory.out &&
+  test_cmp infile4 outfile4
 '
 
 test_kill_ipfs_daemon
