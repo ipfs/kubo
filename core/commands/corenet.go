@@ -1,23 +1,25 @@
 package commands
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
+	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corenet "github.com/ipfs/go-ipfs/core/corenet"
 
-	manet "gx/ipfs/Qmf1Gq7N45Rpuw7ev47uWgH6dLPtdnvcMRNPkVBwqjLJg2/go-multiaddr-net"
-	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
-	net "gx/ipfs/QmVHSBsn8LEeay8m5ERebgUVuhzw838PsyTttCmP6GMJkg/go-libp2p-net"
 	peerstore "gx/ipfs/QmNUVzEjq3XWJ89hegahPvyfJbTXgTaom48pLb7YBD9gHQ/go-libp2p-peerstore"
+	net "gx/ipfs/QmVHSBsn8LEeay8m5ERebgUVuhzw838PsyTttCmP6GMJkg/go-libp2p-net"
+	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	manet "gx/ipfs/Qmf1Gq7N45Rpuw7ev47uWgH6dLPtdnvcMRNPkVBwqjLJg2/go-multiaddr-net"
 )
 
 // Command output types.
 type AppInfoOutput struct {
-	Identity string
 	Protocol string
 	Address  string
 }
@@ -31,8 +33,11 @@ type StreamInfoOutput struct {
 	RemoteAddress string
 }
 
-type ListCommandOutput struct {
-	Apps    []AppInfoOutput
+type CorenetLsOutput struct {
+	Apps []AppInfoOutput
+}
+
+type CorenetStreamsOutput struct {
 	Streams []StreamInfoOutput
 }
 
@@ -144,20 +149,20 @@ var CorenetCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"list":   listCmd,
-		"dial":   dialCmd,
-		"listen": listenCmd,
-		"close":  closeCmd,
+		"ls":      CorenetLsCmd,
+		"streams": CorenetStreamsCmd,
+		"dial":    CorenetDialCmd,
+		"listen":  CorenetListenCmd,
+		"close":   CorenetCloseCmd,
 	},
 }
 
-var listCmd = &cmds.Command{
+var CorenetLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List active application protocol connections.",
+		Tagline: "List active application protocol listeners.",
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("apps", "a", "Display only local application protocol listeners.").Default(false),
-		cmds.BoolOption("streams", "s", "Display active application protocol streams.").Default(false),
+		cmds.BoolOption("headers", "v", "Print table headers (HandlerId, Protocol, Local, Remote).").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -171,15 +176,58 @@ var listCmd = &cmds.Command{
 			return
 		}
 
-		var output ListCommandOutput
+		output := &CorenetLsOutput{}
 
 		for _, a := range apps.apps {
 			output.Apps = append(output.Apps, AppInfoOutput{
-				Identity: a.identity.Pretty(),
 				Protocol: a.protocol,
 				Address:  a.address.String(),
 			})
 		}
+
+		res.SetOutput(output)
+	},
+	Type: CorenetLsOutput{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			headers, _, _ := res.Request().Option("headers").Bool()
+			list, _ := res.Output().(*CorenetLsOutput)
+			buf := new(bytes.Buffer)
+			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
+			for _, app := range list.Apps {
+				if headers {
+					fmt.Fprintln(w, "Address\tProtocol")
+				}
+
+				fmt.Fprintf(w, "%s\t%s\n", app.Address, app.Protocol)
+			}
+			w.Flush()
+
+			return buf, nil
+		},
+	},
+}
+
+var CorenetStreamsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List active application protocol connections.",
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("headers", "v", "Print table headers (HandlerId, Protocol, Local, Remote).").Default(false),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if !n.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		output := &CorenetStreamsOutput{}
 
 		for _, s := range streams.streams {
 			output.Streams = append(output.Streams, StreamInfoOutput{
@@ -195,11 +243,30 @@ var listCmd = &cmds.Command{
 			})
 		}
 
-		res.SetOutput(&output)
+		res.SetOutput(output)
+	},
+	Type: CorenetStreamsOutput{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			headers, _, _ := res.Request().Option("headers").Bool()
+			list, _ := res.Output().(*CorenetStreamsOutput)
+			buf := new(bytes.Buffer)
+			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
+			for _, stream := range list.Streams {
+				if headers {
+					fmt.Fprintln(w, "HandlerId\tProtocol\tLocal\tRemote")
+				}
+
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.HandlerId, stream.Protocol, stream.LocalAddress, stream.RemotePeer)
+			}
+			w.Flush()
+
+			return buf, nil
+		},
 	},
 }
 
-var listenCmd = &cmds.Command{
+var CorenetListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create application protocol listener and proxy to network multiaddr.",
 	},
@@ -251,7 +318,6 @@ var listenCmd = &cmds.Command{
 
 		// Successful response.
 		res.SetOutput(&AppInfoOutput{
-			Identity: app.identity.Pretty(),
 			Protocol: proto,
 			Address:  addr.String(),
 		})
@@ -313,7 +379,7 @@ func startStreaming(stream *cnStreamInfo) {
 	}()
 }
 
-var dialCmd = &cmds.Command{
+var CorenetDialCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Dial to an application service.",
 	},
@@ -393,7 +459,6 @@ var dialCmd = &cmds.Command{
 		}
 
 		output := AppInfoOutput{
-			Identity: app.identity.Pretty(),
 			Protocol: app.protocol,
 			Address:  app.address.String(),
 		}
@@ -427,7 +492,7 @@ func doAccept(app *cnAppInfo, remote net.Stream, listener manet.Listener) {
 	startStreaming(&stream)
 }
 
-var closeCmd = &cmds.Command{
+var CorenetCloseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Closes an active stream listener or client.",
 	},
