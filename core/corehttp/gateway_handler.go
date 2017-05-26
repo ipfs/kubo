@@ -398,6 +398,11 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if rootPath[len(rootPath)-1] == '/' {
+		webError(w, "putHandler: can't PUT a directory", err, http.StatusBadRequest)
+		return
+	}
+
 	rsegs := rootPath.Segments()
 	if rsegs[0] == ipnsPathPrefix {
 		webError(w, "putHandler: updating named entries not supported", errors.New("WritableGateway: ipns put not supported"), http.StatusBadRequest)
@@ -427,38 +432,32 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newcid *cid.Cid
-	if newPath == "" {
-		// not inserting anything: directory tree is unchanged
-		newcid = c
-	} else {
-		rnode, err := i.node.DAG.Get(ctx, c)
-		if err != nil {
-			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
-			return
-		}
-
-		pbnd, ok := rnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
-		err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
-		if err != nil {
-			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
-			return
-		}
-
-		nnode, err := e.Finalize(ctx, i.node.DAG)
-		if err != nil {
-			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
-			return
-		}
-
-		newcid = nnode.Cid()
+	rnode, err := i.node.DAG.Get(ctx, c)
+	if err != nil {
+		webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
+		return
 	}
+
+	pbnd, ok := rnode.(*dag.ProtoNode)
+	if !ok {
+		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		return
+	}
+
+	e := dagutils.NewDagEditor(pbnd, i.node.DAG)
+	err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
+	if err != nil {
+		webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
+		return
+	}
+
+	nnode, err := e.Finalize(ctx, i.node.DAG)
+	if err != nil {
+		webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
+		return
+	}
+
+	newcid := nnode.Cid()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", newcid.String())
