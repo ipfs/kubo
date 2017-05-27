@@ -42,7 +42,6 @@ test_expect_success 'Test server to client communications' '
 test_expect_success 'Test client to server communications' '
   ma-pipe-unidir --listen recv /ip4/127.0.0.1/tcp/10101 > server.out &
   SERVER_PID=$!
-  #sleep 0.5 &&
 
   ipfsi 1 exp corenet dial $PEERID_0 corenet-test /ip4/127.0.0.1/tcp/10102 2>&1 > dialer-stdouterr.log &&
   ma-pipe-unidir send /ip4/127.0.0.1/tcp/10102 < corenet1.bin
@@ -55,6 +54,82 @@ test_expect_success 'server to client output looks good' '
 
 test_expect_success 'client to server output looks good' '
   test_cmp server.out corenet1.bin
+'
+
+test_expect_success "'ipfs corenet ls' succeeds" '
+  echo "/ip4/127.0.0.1/tcp/10101 /app/corenet-test" > expected &&
+  ipfsi 0 exp corenet ls > actual
+'
+
+test_expect_success "'ipfs corenet ls' output looks good" '
+  test_cmp expected actual
+'
+
+test_expect_success "Cannot re-register app handler" '
+  (! ipfsi 0 exp corenet listen corenet-test /ip4/127.0.0.1/tcp/10101)
+'
+
+test_expect_success "'ipfs corenet streams' output is empty" '
+  ipfsi 0 exp corenet streams > actual &&
+  test_must_be_empty actual
+'
+
+test_expect_success "Setup: Idle stream" '
+  ma-pipe-unidir --listen --pidFile=listener.pid recv /ip4/127.0.0.1/tcp/10101 &
+
+  ipfsi 1 exp corenet dial $PEERID_0 corenet-test /ip4/127.0.0.1/tcp/10102 2>&1 > dialer-stdouterr.log &&
+  ma-pipe-unidir --pidFile=client.pid recv /ip4/127.0.0.1/tcp/10102 &
+
+  go-sleep 500ms &&
+  kill -0 $(cat listener.pid) && kill -0 $(cat client.pid)
+'
+
+test_expect_success "'ipfs corenet streams' succeeds" '
+  echo "2 /app/corenet-test /ip4/127.0.0.1/tcp/10101 $PEERID_1" > expected
+  ipfsi 0 exp corenet streams > actual
+'
+
+test_expect_success "'ipfs corenet streams' output looks good" '
+  test_cmp expected actual
+'
+
+test_expect_success "'ipfs corenet close' closes stream" '
+  ipfsi 0 exp corenet close 2 &&
+  ipfsi 0 exp corenet streams > actual &&
+  [ ! -f listener.pid ] && [ ! -f client.pid ] &&
+  test_must_be_empty actual
+'
+
+test_expect_success "'ipfs corenet close' closes app handler" '
+  ipfsi 0 exp corenet close corenet-test &&
+  ipfsi 0 exp corenet ls > actual &&
+  test_must_be_empty actual
+'
+
+test_expect_success "Setup: Idle stream(2)" '
+  ma-pipe-unidir --listen --pidFile=listener.pid recv /ip4/127.0.0.1/tcp/10101 &
+
+  ipfsi 0 exp corenet listen corenet-test2 /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log &&
+  ipfsi 1 exp corenet dial $PEERID_0 corenet-test2 /ip4/127.0.0.1/tcp/10102 2>&1 > dialer-stdouterr.log &&
+  ma-pipe-unidir --pidFile=client.pid recv /ip4/127.0.0.1/tcp/10102 &
+
+  go-sleep 500ms &&
+  kill -0 $(cat listener.pid) && kill -0 $(cat client.pid)
+'
+
+test_expect_success "'ipfs corenet streams' succeeds(2)" '
+  echo "3 /app/corenet-test2 /ip4/127.0.0.1/tcp/10101 $PEERID_1" > expected
+  ipfsi 0 exp corenet streams > actual
+  test_cmp expected actual
+'
+
+test_expect_success "'ipfs corenet close -a' closes streams and app handlers" '
+  ipfsi 0 exp corenet close -a &&
+  ipfsi 0 exp corenet streams > actual &&
+  [ ! -f listener.pid ] && [ ! -f client.pid ] &&
+  test_must_be_empty actual &&
+  ipfsi 0 exp corenet ls > actual &&
+  test_must_be_empty actual
 '
 
 test_expect_success 'stop iptb' '

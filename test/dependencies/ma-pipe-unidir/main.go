@@ -4,22 +4,26 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"strconv"
 
 	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
 	manet "gx/ipfs/Qmf1Gq7N45Rpuw7ev47uWgH6dLPtdnvcMRNPkVBwqjLJg2/go-multiaddr-net"
 )
 
-const USAGE = "ma-pipe-unidir [-l|--listen] [-h|--help] <send|recv> <multiaddr>\n"
+const USAGE = "ma-pipe-unidir [-l|--listen] [--pidFile=path] [-h|--help] <send|recv> <multiaddr>\n"
 
 type Opts struct {
-	Listen bool
+	Listen  bool
+	PidFile string
 }
 
-func main() {
+func app() int {
 	opts := Opts{}
 	flag.BoolVar(&opts.Listen, "l", false, "")
 	flag.BoolVar(&opts.Listen, "listen", false, "")
+	flag.StringVar(&opts.PidFile, "pidFile", "", "")
 	flag.Usage = func() {
 		fmt.Print(USAGE)
 	}
@@ -28,15 +32,25 @@ func main() {
 
 	if len(args) < 2 { // <mode> <addr>
 		fmt.Print(USAGE)
-		return
+		return 1
 	}
 
 	mode := args[0]
 	addr := args[1]
 
+	if len(opts.PidFile) > 0 {
+		data := []byte(strconv.Itoa(os.Getpid()))
+		err := ioutil.WriteFile(opts.PidFile, data, 0644)
+		if err != nil {
+			return 1
+		}
+
+		defer os.Remove(opts.PidFile)
+	}
+
 	maddr, err := ma.NewMultiaddr(addr)
 	if err != nil {
-		return
+		return 1
 	}
 
 	var conn manet.Conn
@@ -44,18 +58,18 @@ func main() {
 	if opts.Listen {
 		listener, err := manet.Listen(maddr)
 		if err != nil {
-			return
+			return 1
 		}
 
 		conn, err = listener.Accept()
 		if err != nil {
-			return
+			return 1
 		}
 	} else {
 		var err error
 		conn, err = manet.Dial(maddr)
 		if err != nil {
-			return
+			return 1
 		}
 	}
 
@@ -68,6 +82,11 @@ func main() {
 	default:
 		//TODO: a bit late
 		fmt.Print(USAGE)
-		return
+		return 1
 	}
+	return 0
+}
+
+func main() {
+	os.Exit(app())
 }
