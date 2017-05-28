@@ -26,7 +26,16 @@ test_expect_success "test ports are closed" '
   (! (netstat -ln | grep "LISTEN" | grep ":10102 "))
 '
 
-test_expect_success 'start ipfs listener' '
+test_must_fail 'fail without config option being enabled' '
+  ipfsi 0 exp corenet ls
+'
+
+test_expect_success "enable filestore config setting" '
+  ipfsi 0 config --json Experimental.Libp2pStreamMounting true
+  ipfsi 1 config --json Experimental.Libp2pStreamMounting true
+'
+
+test_expect_success 'start corenet listener' '
   ipfsi 0 exp corenet listen corenet-test /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log
 '
 
