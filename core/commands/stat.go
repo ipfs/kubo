@@ -10,10 +10,10 @@ import (
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	metrics "gx/ipfs/QmVMbSdq6PbznPC83SENVhH7JZn3BqqxkKgrHJFN2RuARf/go-libp2p-metrics"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	metrics "gx/ipfs/QmdibiN2wzuuXXz4JvqQ1ZGW3eUkoAy1AWznHFau6iePCc/go-libp2p-metrics"
 )
 
 var StatsCmd = &cmds.Command{

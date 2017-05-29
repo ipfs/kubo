@@ -23,8 +23,8 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
+	routing "gx/ipfs/QmNdaQ8itUU9jEZUwTsG4gHMaPmRfi6FEe89QjQAFbep3M/go-libp2p-routing"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	routing "gx/ipfs/QmXiH3yLocPhjkAmL8R29fKRcEKoVXKCaVDbAS9tdTrVEd/go-libp2p-routing"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 	multibase "gx/ipfs/QmcxkxTVuURV2Ptse8TvkqH5BQDwV62X1x19JqqvbBzwUM/go-multibase"
