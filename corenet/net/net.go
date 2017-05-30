@@ -1,4 +1,4 @@
-package corenet
+package net
 
 import (
 	"time"
