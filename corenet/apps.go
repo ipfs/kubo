@@ -28,6 +28,7 @@ type AppInfo struct {
 	Registry *AppRegistry
 }
 
+// Close closes the listener. Does not affect child streams
 func (c *AppInfo) Close() error {
 	c.Registry.Deregister(c.Protocol)
 	c.Closer.Close()
@@ -39,10 +40,12 @@ type AppRegistry struct {
 	Apps []*AppInfo
 }
 
+// Register registers appInfo in this registry
 func (c *AppRegistry) Register(appInfo *AppInfo) {
 	c.Apps = append(c.Apps, appInfo)
 }
 
+// Deregister deregisters protocol handler from this registry
 func (c *AppRegistry) Deregister(proto string) {
 	foundAt := -1
 	for i, a := range c.Apps {

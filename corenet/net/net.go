@@ -11,12 +11,14 @@ import (
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
 
+// Listener wraps stream handler into a listener
 type Listener interface {
 	Accept() (net.Stream, error)
 	Close() error
 }
 
-type ipfsListener struct {
+// IpfsListener holds information on a listener
+type IpfsListener struct {
 	node   *core.IpfsNode
 	conCh  chan net.Stream
 	proto  pro.ID
@@ -24,7 +26,8 @@ type ipfsListener struct {
 	cancel func()
 }
 
-func (il *ipfsListener) Accept() (net.Stream, error) {
+// Accept waits for a connection from the listener
+func (il *IpfsListener) Accept() (net.Stream, error) {
 	select {
 	case c := <-il.conCh:
 		return c, nil
@@ -33,16 +36,18 @@ func (il *ipfsListener) Accept() (net.Stream, error) {
 	}
 }
 
-func (il *ipfsListener) Close() error {
+// Close closes the listener and removes stream handler
+func (il *IpfsListener) Close() error {
 	il.cancel()
 	il.node.PeerHost.RemoveStreamHandler(il.proto)
 	return nil
 }
 
-func Listen(nd *core.IpfsNode, protocol string) (*ipfsListener, error) {
+// Listen creates new IpfsListener
+func Listen(nd *core.IpfsNode, protocol string) (*IpfsListener, error) {
 	ctx, cancel := context.WithCancel(nd.Context())
 
-	list := &ipfsListener{
+	list := &IpfsListener{
 		node:   nd,
 		proto:  pro.ID(protocol),
 		conCh:  make(chan net.Stream),
@@ -61,6 +66,7 @@ func Listen(nd *core.IpfsNode, protocol string) (*ipfsListener, error) {
 	return list, nil
 }
 
+// Dial dials to a specified node and protocol
 func Dial(nd *core.IpfsNode, p peer.ID, protocol string) (net.Stream, error) {
 	ctx, cancel := context.WithTimeout(nd.Context(), time.Second*30)
 	defer cancel()

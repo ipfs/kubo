@@ -45,6 +45,7 @@ type CorenetStreamsOutput struct {
 	Streams []CorenetStreamInfoOutput
 }
 
+// CorenetCmd is the 'ipfs corenet' command
 var CorenetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Libp2p stream mounting.",
@@ -55,15 +56,15 @@ Note: this command is experimental and subject to change as usecases and APIs ar
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"ls":      CorenetLsCmd,
-		"streams": CorenetStreamsCmd,
-		"dial":    CorenetDialCmd,
-		"listen":  CorenetListenCmd,
-		"close":   CorenetCloseCmd,
+		"ls":      corenetLsCmd,
+		"streams": corenetStreamsCmd,
+		"dial":    corenetDialCmd,
+		"listen":  corenetListenCmd,
+		"close":   corenetCloseCmd,
 	},
 }
 
-var CorenetLsCmd = &cmds.Command{
+var corenetLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List active application protocol listeners.",
 	},
@@ -120,7 +121,7 @@ var CorenetLsCmd = &cmds.Command{
 	},
 }
 
-var CorenetStreamsCmd = &cmds.Command{
+var corenetStreamsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List active application protocol streams.",
 	},
@@ -184,7 +185,7 @@ var CorenetStreamsCmd = &cmds.Command{
 	},
 }
 
-var CorenetListenCmd = &cmds.Command{
+var corenetListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create application protocol listener and proxy to network multiaddr.",
 	},
@@ -306,7 +307,7 @@ func startStreaming(stream *corenet.StreamInfo) {
 	}()
 }
 
-var CorenetDialCmd = &cmds.Command{
+var corenetDialCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Dial to an application service.",
 	},
@@ -427,7 +428,7 @@ func doAccept(n *core.IpfsNode, app *corenet.AppInfo, remote net.Stream, listene
 	startStreaming(&stream)
 }
 
-var CorenetCloseCmd = &cmds.Command{
+var corenetCloseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Closes an active stream listener or client.",
 	},

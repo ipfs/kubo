@@ -25,6 +25,7 @@ type StreamInfo struct {
 	Registry *StreamRegistry
 }
 
+// Close closes stream endpoints and deregisters it
 func (c *StreamInfo) Close() error {
 	c.Local.Close()
 	c.Remote.Close()
@@ -39,12 +40,14 @@ type StreamRegistry struct {
 	nextID uint64
 }
 
+// Register registers a stream to the registry
 func (c *StreamRegistry) Register(streamInfo *StreamInfo) {
 	streamInfo.HandlerID = c.nextID
 	c.Streams = append(c.Streams, streamInfo)
 	c.nextID++
 }
 
+// Deregister deregisters stream from the registry
 func (c *StreamRegistry) Deregister(handlerID uint64) {
 	foundAt := -1
 	for i, s := range c.Streams {
