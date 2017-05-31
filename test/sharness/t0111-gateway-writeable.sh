@@ -112,7 +112,6 @@ test_expect_success "Replacing a file with PUT gives us the hash of the new tree
   IPFS_HASH=$(grep Ipfs-Hash curl_putExisting.out) &&
   HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test/test.txt") &&
   IPFS_HASH=$(expr "$IPFS_HASH" : "< Ipfs-Hash: \(\w*\)") &&
-  echo "$HASH -vs- $IPFS_HASH" > /home/jes/foo.log &&
   [ "$HASH" = "$IPFS_HASH" ]
 '
 
