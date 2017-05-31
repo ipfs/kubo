@@ -528,9 +528,7 @@ func (p *pinner) InternalPins() []*cid.Cid {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	var out []*cid.Cid
-	for _, c := range p.internalPin.Keys() {
-		out = append(out, c)
-	}
+	out = append(out, p.internalPin.Keys()...)
 	return out
 }
 

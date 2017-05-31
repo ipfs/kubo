@@ -66,7 +66,7 @@ func (rs *s) Providers(c *cid.Cid) []pstore.PeerInfo {
 		return ret
 	}
 	for _, r := range records {
-		if time.Now().Sub(r.Created) > rs.delayConf.ValueVisibility.Get() {
+		if time.Since(r.Created) > rs.delayConf.ValueVisibility.Get() {
 			ret = append(ret, r.Peer)
 		}
 	}

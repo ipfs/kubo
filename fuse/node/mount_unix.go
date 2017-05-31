@@ -49,12 +49,7 @@ func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
 		return err
 	}
 
-	var err error
-	if err = doMount(node, fsdir, nsdir); err != nil {
-		return err
-	}
-
-	return nil
+	return doMount(node, fsdir, nsdir)
 }
 
 func doMount(node *core.IpfsNode, fsdir, nsdir string) error {

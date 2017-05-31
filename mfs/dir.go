@@ -326,12 +326,7 @@ func (d *Directory) Unlink(name string) error {
 	delete(d.childDirs, name)
 	delete(d.files, name)
 
-	err := d.dirbuilder.RemoveChild(d.ctx, name)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return d.dirbuilder.RemoveChild(d.ctx, name)
 }
 
 func (d *Directory) Flush() error {

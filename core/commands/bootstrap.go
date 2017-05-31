@@ -315,7 +315,6 @@ var bootstrapListCmd = &cmds.Command{
 			return
 		}
 		res.SetOutput(&BootstrapOutput{config.BootstrapPeerStrings(peers)})
-		return
 	},
 	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{

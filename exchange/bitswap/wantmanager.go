@@ -55,7 +55,7 @@ func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantMana
 	}
 }
 
-type msgPair struct {
+/*type msgPair struct {
 	to  peer.ID
 	msg bsmsg.BitSwapMessage
 }
@@ -63,7 +63,7 @@ type msgPair struct {
 type cancellation struct {
 	who peer.ID
 	blk *cid.Cid
-}
+}*/
 
 type msgQueue struct {
 	p peer.ID

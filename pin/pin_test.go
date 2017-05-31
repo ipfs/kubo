@@ -183,8 +183,8 @@ func TestIsPinnedLookup(t *testing.T) {
 	// TODO does pinner need to share datastore with blockservice?
 	p := NewPinner(dstore, dserv, dserv)
 
-	aNodes := make([]*mdag.ProtoNode, aBranchLen, aBranchLen)
-	aKeys := make([]*cid.Cid, aBranchLen, aBranchLen)
+	aNodes := make([]*mdag.ProtoNode, aBranchLen)
+	aKeys := make([]*cid.Cid, aBranchLen)
 	for i := 0; i < aBranchLen; i++ {
 		a, _ := randNode()
 		if i >= 1 {

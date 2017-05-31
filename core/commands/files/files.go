@@ -472,7 +472,7 @@ Examples:
 			return
 		}
 
-		_, err = rfd.Seek(int64(offset), os.SEEK_SET)
+		_, err = rfd.Seek(int64(offset), io.SeekStart)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -651,7 +651,7 @@ stat' on the file or any of its ancestors.
 			return
 		}
 
-		_, err = wfd.Seek(int64(offset), os.SEEK_SET)
+		_, err = wfd.Seek(int64(offset), io.SeekStart)
 		if err != nil {
 			log.Error("seekfail: ", err)
 			res.SetError(err, cmds.ErrNormal)

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -185,7 +184,7 @@ func (dr *pbDagReader) Offset() int64 {
 // recreations that need to happen.
 func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
-	case os.SEEK_SET:
+	case io.SeekStart:
 		if offset < 0 {
 			return -1, errors.New("Invalid offset")
 		}
@@ -226,7 +225,7 @@ func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
 		}
 
 		// set proper offset within child readseeker
-		n, err := dr.buf.Seek(left, os.SEEK_SET)
+		n, err := dr.buf.Seek(left, io.SeekStart)
 		if err != nil {
 			return -1, err
 		}
@@ -238,13 +237,13 @@ func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
 		}
 		dr.offset = offset
 		return offset, nil
-	case os.SEEK_CUR:
+	case io.SeekCurrent:
 		// TODO: be smarter here
 		noffset := dr.offset + offset
-		return dr.Seek(noffset, os.SEEK_SET)
-	case os.SEEK_END:
+		return dr.Seek(noffset, io.SeekStart)
+	case io.SeekEnd:
 		noffset := int64(dr.pbdata.GetFilesize()) - offset
-		return dr.Seek(noffset, os.SEEK_SET)
+		return dr.Seek(noffset, io.SeekStart)
 	default:
 		return 0, errors.New("invalid whence")
 	}

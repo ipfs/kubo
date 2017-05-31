@@ -44,12 +44,6 @@ func init() {
 	}
 }
 
-// isLocal returns true if the command should only be run locally (not sent to daemon), otherwise false
-func isLocal(cmd *cmds.Command) bool {
-	_, found := localMap[cmd]
-	return found
-}
-
 // NB: when necessary, properties are described using negatives in order to
 // provide desirable defaults
 type cmdDetails struct {
@@ -85,11 +79,10 @@ func (d *cmdDetails) Loggable() map[string]interface{} {
 	}
 }
 
-func (d *cmdDetails) usesConfigAsInput() bool        { return !d.doesNotUseConfigAsInput }
-func (d *cmdDetails) doesNotPreemptAutoUpdate() bool { return !d.preemptsAutoUpdate }
-func (d *cmdDetails) canRunOnClient() bool           { return !d.cannotRunOnClient }
-func (d *cmdDetails) canRunOnDaemon() bool           { return !d.cannotRunOnDaemon }
-func (d *cmdDetails) usesRepo() bool                 { return !d.doesNotUseRepo }
+func (d *cmdDetails) usesConfigAsInput() bool { return !d.doesNotUseConfigAsInput }
+func (d *cmdDetails) canRunOnClient() bool    { return !d.cannotRunOnClient }
+func (d *cmdDetails) canRunOnDaemon() bool    { return !d.cannotRunOnDaemon }
+func (d *cmdDetails) usesRepo() bool          { return !d.doesNotUseRepo }
 
 // "What is this madness!?" you ask. Our commands have the unfortunate problem of
 // not being able to run on all the same contexts. This map describes these

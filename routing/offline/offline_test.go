@@ -15,12 +15,14 @@ func TestOfflineRouterStorage(t *testing.T) {
 	privkey, _, _ := testutil.RandTestKeyPair(128)
 	offline := NewOfflineRouter(nds, privkey)
 
-	err := offline.PutValue(ctx, "key", []byte("testing 1 2 3"))
-	if err != nil {
+	if err := offline.PutValue(ctx, "key", []byte("testing 1 2 3")); err != nil {
 		t.Fatal(err)
 	}
 
 	val, err := offline.GetValue(ctx, "key")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !bytes.Equal([]byte("testing 1 2 3"), val) {
 		t.Fatal("OfflineRouter does not properly store")
 	}

@@ -2,8 +2,8 @@ package mod
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -384,7 +384,7 @@ func TestDagTruncate(t *testing.T) {
 		t.Fatal("size was incorrect!")
 	}
 
-	_, err = dagmod.Seek(0, os.SEEK_SET)
+	_, err = dagmod.Seek(0, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -450,7 +450,7 @@ func TestSparseWrite(t *testing.T) {
 		t.Fatal("incorrect write amount")
 	}
 
-	_, err = dagmod.Seek(0, os.SEEK_SET)
+	_, err = dagmod.Seek(0, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -479,7 +479,7 @@ func TestSeekPastEndWrite(t *testing.T) {
 	buf := make([]byte, 5000)
 	u.NewTimeSeededRand().Read(buf[2500:])
 
-	nseek, err := dagmod.Seek(2500, os.SEEK_SET)
+	nseek, err := dagmod.Seek(2500, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -497,7 +497,7 @@ func TestSeekPastEndWrite(t *testing.T) {
 		t.Fatal("incorrect write amount")
 	}
 
-	_, err = dagmod.Seek(0, os.SEEK_SET)
+	_, err = dagmod.Seek(0, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -525,7 +525,7 @@ func TestRelativeSeek(t *testing.T) {
 
 	for i := 0; i < 64; i++ {
 		dagmod.Write([]byte{byte(i)})
-		if _, err := dagmod.Seek(1, os.SEEK_CUR); err != nil {
+		if _, err := dagmod.Seek(1, io.SeekCurrent); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -576,17 +576,26 @@ func TestEndSeek(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	offset, err := dagmod.Seek(0, os.SEEK_CUR)
+	offset, err := dagmod.Seek(0, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if offset != 100 {
 		t.Fatal("expected the relative seek 0 to return current location")
 	}
 
-	offset, err = dagmod.Seek(0, os.SEEK_SET)
+	offset, err = dagmod.Seek(0, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if offset != 0 {
 		t.Fatal("expected the absolute seek to set offset at 0")
 	}
 
-	offset, err = dagmod.Seek(0, os.SEEK_END)
+	offset, err = dagmod.Seek(0, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if offset != 100 {
 		t.Fatal("expected the end seek to set offset at end")
 	}
@@ -612,7 +621,7 @@ func TestReadAndSeek(t *testing.T) {
 	}
 
 	readBuf := make([]byte, 4)
-	offset, err := dagmod.Seek(0, os.SEEK_SET)
+	offset, err := dagmod.Seek(0, io.SeekStart)
 	if offset != 0 {
 		t.Fatal("expected offset to be 0")
 	}
@@ -636,7 +645,7 @@ func TestReadAndSeek(t *testing.T) {
 	}
 
 	// skip 4
-	_, err = dagmod.Seek(1, os.SEEK_CUR)
+	_, err = dagmod.Seek(1, io.SeekCurrent)
 	if err != nil {
 		t.Fatalf("error: %s, offset %d, reader offset %d", err, dagmod.curWrOff, dagmod.read.Offset())
 	}
@@ -676,7 +685,7 @@ func TestCtxRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dagmod.Seek(0, os.SEEK_SET)
+	dagmod.Seek(0, io.SeekStart)
 
 	readBuf := make([]byte, 4)
 	_, err = dagmod.CtxReadFull(ctx, readBuf)

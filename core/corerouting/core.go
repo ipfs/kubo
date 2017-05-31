@@ -19,10 +19,10 @@ import (
 // the core if it's going to be the default)
 
 var (
-	errHostMissing      = errors.New("supernode routing client requires a Host component")
-	errIdentityMissing  = errors.New("supernode routing server requires a peer ID identity")
-	errPeerstoreMissing = errors.New("supernode routing server requires a peerstore")
-	errServersMissing   = errors.New("supernode routing client requires at least 1 server peer")
+	// errHostMissing      = errors.New("supernode routing client requires a Host component")
+	// errIdentityMissing  = errors.New("supernode routing server requires a peer ID identity")
+	// errPeerstoreMissing = errors.New("supernode routing server requires a peerstore")
+	errServersMissing = errors.New("supernode routing client requires at least 1 server peer")
 )
 
 // SupernodeServer returns a configuration for a routing server that stores

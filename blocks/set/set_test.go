@@ -25,15 +25,15 @@ func exampleKeys() []*cid.Cid {
 func checkSet(set BlockSet, keySlice []*cid.Cid, t *testing.T) {
 	for i, key := range keySlice {
 		if i&tReAdd == 0 {
-			if set.HasKey(key) == false {
+			if !set.HasKey(key) {
 				t.Error("key should be in the set")
 			}
 		} else if i&tRemove == 0 {
-			if set.HasKey(key) == true {
+			if set.HasKey(key) {
 				t.Error("key shouldn't be in the set")
 			}
 		} else if i&tAdd == 0 {
-			if set.HasKey(key) == false {
+			if !set.HasKey(key) {
 				t.Error("key should be in the set")
 			}
 		}
@@ -70,7 +70,7 @@ func TestSetWorks(t *testing.T) {
 	bloom := set.GetBloomFilter()
 
 	for _, key := range addedKeys {
-		if bloom.Find(key.Bytes()) == false {
+		if !bloom.Find(key.Bytes()) {
 			t.Error("bloom doesn't contain expected key")
 		}
 	}

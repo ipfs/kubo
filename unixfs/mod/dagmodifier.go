@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"os"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
@@ -14,7 +13,6 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
@@ -25,8 +23,6 @@ var ErrUnrecognizedWhence = errors.New("unrecognized whence")
 
 // 2MB
 var writebufferSize = 1 << 21
-
-var log = logging.Logger("dagio")
 
 // DagModifier is the only struct licensed and able to correctly
 // perform surgery on a DAG 'file'
@@ -340,7 +336,7 @@ func (dm *DagModifier) readPrep() error {
 			return err
 		}
 
-		i, err := dr.Seek(int64(dm.curWrOff), os.SEEK_SET)
+		i, err := dr.Seek(int64(dm.curWrOff), io.SeekStart)
 		if err != nil {
 			cancel()
 			return err
@@ -397,11 +393,11 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 
 	var newoffset uint64
 	switch whence {
-	case os.SEEK_CUR:
+	case io.SeekCurrent:
 		newoffset = dm.curWrOff + uint64(offset)
-	case os.SEEK_SET:
+	case io.SeekStart:
 		newoffset = uint64(offset)
-	case os.SEEK_END:
+	case io.SeekEnd:
 		newoffset = uint64(fisize) - uint64(offset)
 	default:
 		return 0, ErrUnrecognizedWhence

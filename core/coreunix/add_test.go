@@ -120,14 +120,10 @@ func TestAddGCLive(t *testing.T) {
 	pipew.Close()
 
 	// receive next object from adder
-	select {
-	case o := <-out:
-		addedHashes[o.(*AddedObject).Hash] = struct{}{}
-	}
+	o := <-out
+	addedHashes[o.(*AddedObject).Hash] = struct{}{}
 
-	select {
-	case <-gcstarted:
-	}
+	<-gcstarted
 
 	for r := range gcout {
 		if r.Error != nil {
@@ -197,7 +193,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 			t.Fatal(err)
 		}
 	}()
-	for _ = range adder.Out {
+	for range adder.Out {
 	}
 
 	exp := 0

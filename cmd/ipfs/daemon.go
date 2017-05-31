@@ -201,11 +201,9 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	ctx := req.InvocContext()
 
 	go func() {
-		select {
-		case <-req.Context().Done():
-			fmt.Println("Received interrupt signal, shutting down...")
-			fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
-		}
+		<-req.Context().Done()
+		fmt.Println("Received interrupt signal, shutting down...")
+		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 	}()
 
 	// check transport encryption flag.
@@ -418,7 +416,6 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			res.SetError(err, cmds.ErrNormal)
 		}
 	}
-	return
 }
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests

@@ -104,10 +104,7 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 	}
 	defer s.Close()
 	pbw := ggio.NewDelimitedWriter(s)
-	if err := pbw.WriteMsg(m); err != nil {
-		return err
-	}
-	return nil
+	return pbw.WriteMsg(m)
 }
 
 // SendRequest sends the request to each remote sequentially (randomized order),

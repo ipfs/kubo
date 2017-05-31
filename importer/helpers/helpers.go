@@ -113,11 +113,8 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	}
 
 	_, err = db.batch.Add(childnode)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // Removes the child node at the given index

@@ -162,7 +162,7 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	}
 	defer fi.Close()
 
-	_, err = fi.Seek(int64(d.GetOffset()), os.SEEK_SET)
+	_, err = fi.Seek(int64(d.GetOffset()), io.SeekStart)
 	if err != nil {
 		return nil, &CorruptReferenceError{StatusFileError, err}
 	}

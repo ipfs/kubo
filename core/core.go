@@ -73,7 +73,8 @@ import (
 )
 
 const IpnsValidatorTag = "ipns"
-const kSizeBlockstoreWriteCache = 100
+
+// const kSizeBlockstoreWriteCache = 100
 const kReprovideFrequency = time.Hour * 12
 const discoveryConnTimeout = time.Second * 30
 
@@ -341,12 +342,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), size)
 
 	// setup ipns republishing
-	err = n.setupIpnsRepublisher()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return n.setupIpnsRepublisher()
 }
 
 // getCacheSize returns cache life and cache size

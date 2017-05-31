@@ -172,7 +172,7 @@ func (s *blockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, 
 // the returned channel.
 // NB: No guarantees are made about order.
 func (s *blockService) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
-	out := make(chan blocks.Block, 0)
+	out := make(chan blocks.Block)
 	go func() {
 		defer close(out)
 		var misses []*cid.Cid

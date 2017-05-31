@@ -190,7 +190,7 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	if err != nil {
 		return err
 	}
-	o, err := r.Seek(req.Offset, os.SEEK_SET)
+	o, err := r.Seek(req.Offset, io.SeekStart)
 	lm["res_offset"] = o
 	if err != nil {
 		return err

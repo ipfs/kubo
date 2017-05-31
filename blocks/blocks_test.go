@@ -91,9 +91,8 @@ func TestManualHash(t *testing.T) {
 
 	u.Debug = true
 
-	block, err = NewBlockWithCid(data, c)
+	_, err = NewBlockWithCid(data, c)
 	if err != ErrWrongHash {
 		t.Fatal(err)
 	}
-
 }
