@@ -446,6 +446,11 @@
       "hash": "Qma7Kuwun7w8SZphjEPDVxvGfetBkqdNGmigDA13sJdLex",
       "name": "go-ipld-git",
       "version": "0.1.3"
+    },
+    {
+      "hash": "QmQBB2dQLmQHJgs2gqZ3iqL2XiuCtUCvXzWt5kMXDf5Zcr",
+      "name": "go-maddr-filter",
+      "version": "1.1.4"
     }
   ],
   "gxVersion": "0.10.0",
