@@ -27,7 +27,7 @@ test_expect_success "test ports are closed" '
 '
 
 test_must_fail 'fail without config option being enabled' '
-  ipfsi 0 exp corenet ls
+  ipfsi 0 corenet ls
 '
 
 test_expect_success "enable filestore config setting" '
