@@ -465,7 +465,7 @@ var corenetCloseCmd = &cmds.Command{
 		useHandlerID := false
 
 		if !closeAll && len(req.Arguments()) == 0 {
-			res.SetError(errors.New(" handlerID nor stream protocol"), cmds.ErrNormal)
+			res.SetError(errors.New("no handlerID nor stream protocol specified"), cmds.ErrNormal)
 			return
 
 		} else if !closeAll {
@@ -479,11 +479,11 @@ var corenetCloseCmd = &cmds.Command{
 		}
 
 		if closeAll || useHandlerID {
-			for _, s := range n.Corenet.Streams.Streams {
-				if !closeAll && handlerID != s.HandlerID {
+			for _, stream := range n.Corenet.Streams.Streams {
+				if !closeAll && handlerID != stream.HandlerID {
 					continue
 				}
-				s.Close()
+				stream.Close()
 				if !closeAll {
 					break
 				}
@@ -491,18 +491,15 @@ var corenetCloseCmd = &cmds.Command{
 		}
 
 		if closeAll || !useHandlerID {
-			for _, a := range n.Corenet.Apps.Apps {
-				if !closeAll && a.Protocol != proto {
+			for _, app := range n.Corenet.Apps.Apps {
+				if !closeAll && app.Protocol != proto {
 					continue
 				}
-				a.Close()
+				app.Close()
 				if !closeAll {
 					break
 				}
 			}
-		}
-
-		if len(req.Arguments()) != 1 {
 		}
 	},
 }
