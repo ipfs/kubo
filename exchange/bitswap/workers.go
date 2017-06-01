@@ -7,6 +7,7 @@ import (
 	"time"
 
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
@@ -15,7 +16,7 @@ import (
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
 
-var TaskWorkerCount = 8
+const TaskWorkerCount = 8
 
 func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// Start up a worker to handle block requests this node is making
@@ -202,9 +203,73 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 	}
 }
 
+type connReq struct {
+	peers <-chan peer.ID
+	ctx   context.Context
+	cid   *cid.Cid
+}
+
+func connectWorker(ctx context.Context, net bsnet.BitSwapNetwork, kset *cid.Set, ksetLk *sync.Mutex,
+	requestChan <-chan *connReq) {
+	for {
+		select {
+		case cr := <-requestChan:
+			wg := &sync.WaitGroup{}
+			for p := range cr.peers {
+				wg.Add(1)
+				go func(p peer.ID) {
+					defer wg.Done()
+					err := net.ConnectTo(cr.ctx, p)
+					if err != nil {
+						log.Debug("failed to connect to provider %s: %s", p, err)
+					}
+				}(p)
+			}
+			wg.Wait()
+			ksetLk.Lock()
+			kset.Remove(cr.cid)
+			ksetLk.Unlock()
+
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (bs *Bitswap) dhtWorker(ctx context.Context, kset *cid.Set, ksetLk *sync.Mutex,
+	blkChan <-chan *blockRequest) {
+
+	connectChan := make(chan *connReq, TaskWorkerCount)
+	for i := 0; i < TaskWorkerCount; i++ {
+		go connectWorker(ctx, bs.network, kset, ksetLk, connectChan)
+	}
+
+	for {
+		select {
+		case e := <-blkChan:
+			child, cancel := context.WithTimeout(e.Ctx, providerRequestTimeout)
+			defer cancel()
+			providers := bs.network.FindProvidersAsync(child, e.Cid, maxProvidersPerRequest)
+			connectChan <- &connReq{
+				peers: providers,
+				ctx:   child,
+				cid:   e.Cid,
+			}
+
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
 func (bs *Bitswap) providerQueryManager(ctx context.Context) {
-	var activeLk sync.Mutex
+	ksetLk := &sync.Mutex{}
 	kset := cid.NewSet()
+
+	searchChan := make(chan *blockRequest, TaskWorkerCount)
+	for i := 0; i < TaskWorkerCount; i++ {
+		go bs.dhtWorker(ctx, kset, ksetLk, searchChan)
+	}
 
 	for {
 		select {
@@ -215,34 +280,15 @@ func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 			default:
 			}
 
-			activeLk.Lock()
+			ksetLk.Lock()
 			if kset.Has(e.Cid) {
-				activeLk.Unlock()
+				ksetLk.Unlock()
 				continue
 			}
 			kset.Add(e.Cid)
-			activeLk.Unlock()
+			ksetLk.Unlock()
 
-			go func(e *blockRequest) {
-				child, cancel := context.WithTimeout(e.Ctx, providerRequestTimeout)
-				defer cancel()
-				providers := bs.network.FindProvidersAsync(child, e.Cid, maxProvidersPerRequest)
-				wg := &sync.WaitGroup{}
-				for p := range providers {
-					wg.Add(1)
-					go func(p peer.ID) {
-						defer wg.Done()
-						err := bs.network.ConnectTo(child, p)
-						if err != nil {
-							log.Debug("failed to connect to provider %s: %s", p, err)
-						}
-					}(p)
-				}
-				wg.Wait()
-				activeLk.Lock()
-				kset.Remove(e.Cid)
-				activeLk.Unlock()
-			}(e)
+			searchChan <- e
 
 		case <-ctx.Done():
 			return
