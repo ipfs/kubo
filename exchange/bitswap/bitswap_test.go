@@ -601,14 +601,14 @@ func TestBitswapLedgerTwoWay(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
+	_, err = instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	blk, err = instances[0].Exchange.GetBlock(ctx, blocks[1].Cid())
+	blk, err := instances[0].Exchange.GetBlock(ctx, blocks[1].Cid())
 	if err != nil {
 		t.Fatal(err)
 	}

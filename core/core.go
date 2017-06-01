@@ -74,7 +74,6 @@ import (
 
 const IpnsValidatorTag = "ipns"
 
-// const kSizeBlockstoreWriteCache = 100
 const kReprovideFrequency = time.Hour * 12
 const discoveryConnTimeout = time.Second * 30
 
@@ -84,8 +83,7 @@ type mode int
 
 const (
 	// zero value is not a valid mode, must be explicitly set
-	invalidMode mode = iota
-	localMode
+	localMode mode = iota
 	offlineMode
 	onlineMode
 )

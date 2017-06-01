@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"os"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
@@ -138,7 +137,7 @@ func TestBasicSet(t *testing.T) {
 
 func TestDirBuilding(t *testing.T) {
 	ds := mdtest.Mock()
-	s, _ := NewHamtShard(ds, 256)
+	_, _ = NewHamtShard(ds, 256)
 
 	_, s, err := makeDir(ds, 200)
 	if err != nil {
@@ -161,7 +160,7 @@ func TestDirBuilding(t *testing.T) {
 
 func TestShardReload(t *testing.T) {
 	ds := mdtest.Mock()
-	s, _ := NewHamtShard(ds, 256)
+	_, _ = NewHamtShard(ds, 256)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -492,21 +491,6 @@ func TestSetHamtChild(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func printDag(ds dag.DAGService, nd *dag.ProtoNode, depth int) {
-	padding := strings.Repeat(" ", depth)
-	fmt.Println("{")
-	for _, l := range nd.Links() {
-		fmt.Printf("%s%s: %s", padding, l.Name, l.Cid.String())
-		ch, err := ds.Get(context.Background(), l.Cid)
-		if err != nil {
-			panic(err)
-		}
-
-		printDag(ds, ch.(*dag.ProtoNode), depth+1)
-	}
-	fmt.Println(padding + "}")
 }
 
 func printDiff(ds dag.DAGService, a, b *dag.ProtoNode) {

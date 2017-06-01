@@ -13,7 +13,6 @@ import (
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
-	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -123,11 +122,6 @@ func arrComp(a, b []byte) error {
 		}
 	}
 	return nil
-}
-
-type dagservAndPinner struct {
-	ds merkledag.DAGService
-	mp pin.Pinner
 }
 
 func TestIndirectBlocks(t *testing.T) {
@@ -564,32 +558,4 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func printDag(nd *merkledag.ProtoNode, ds merkledag.DAGService, indent int) {
-	pbd, err := ft.FromBytes(nd.Data())
-	if err != nil {
-		panic(err)
-	}
-
-	for i := 0; i < indent; i++ {
-		fmt.Print(" ")
-	}
-	fmt.Printf("{size = %d, type = %s, nc = %d", pbd.GetFilesize(), pbd.GetType().String(), len(pbd.GetBlocksizes()))
-	if len(nd.Links()) > 0 {
-		fmt.Println()
-	}
-	for _, lnk := range nd.Links() {
-		child, err := lnk.GetNode(context.Background(), ds)
-		if err != nil {
-			panic(err)
-		}
-		printDag(child.(*merkledag.ProtoNode), ds, indent+1)
-	}
-	if len(nd.Links()) > 0 {
-		for i := 0; i < indent; i++ {
-			fmt.Print(" ")
-		}
-	}
-	fmt.Println("}")
 }

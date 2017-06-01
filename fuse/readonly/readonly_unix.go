@@ -85,7 +85,6 @@ func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 type Node struct {
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.ProtoNode
-	fd     *uio.DagReader
 	cached *ftpb.Data
 }
 

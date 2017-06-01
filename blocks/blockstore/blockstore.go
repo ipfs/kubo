@@ -102,10 +102,6 @@ func NewBlockstore(d ds.Batching) Blockstore {
 type blockstore struct {
 	datastore ds.Batching
 
-	lk      sync.RWMutex
-	gcreq   int32
-	gcreqlk sync.Mutex
-
 	rehash bool
 }
 
@@ -246,9 +242,8 @@ func NewGCLocker() GCLocker {
 }
 
 type gclocker struct {
-	lk      sync.RWMutex
-	gcreq   int32
-	gcreqlk sync.Mutex
+	lk    sync.RWMutex
+	gcreq int32
 }
 
 // Unlocker represents an object which can Unlock

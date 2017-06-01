@@ -41,16 +41,6 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}
 
-	// Add our PeerID to metrics paths to keep them unique
-	//
-	// As some tests just pass a zero-value Config to fsrepo.Init,
-	// cope with missing PeerID.
-	id := r.config.Identity.PeerID
-	if id == "" {
-		// the tests pass in a zero Config; cope with it
-		id = fmt.Sprintf("uninitialized_%p", r)
-	}
-
 	prefix := "ipfs.fsrepo.datastore."
 	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
 	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)

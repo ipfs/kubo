@@ -18,12 +18,7 @@ import (
 // default and 2) to avoid a circular dependency (it needs to be referenced in
 // the core if it's going to be the default)
 
-var (
-	// errHostMissing      = errors.New("supernode routing client requires a Host component")
-	// errIdentityMissing  = errors.New("supernode routing server requires a peer ID identity")
-	// errPeerstoreMissing = errors.New("supernode routing server requires a peerstore")
-	errServersMissing = errors.New("supernode routing client requires at least 1 server peer")
-)
+var errServersMissing = errors.New("supernode routing client requires at least 1 server peer")
 
 // SupernodeServer returns a configuration for a routing server that stores
 // routing records to the provided datastore. Only routing records are store in

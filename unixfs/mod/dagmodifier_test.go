@@ -1,35 +1,20 @@
 package mod
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/blocks/blockstore"
-	bs "github.com/ipfs/go-ipfs/blockservice"
-	"github.com/ipfs/go-ipfs/exchange/offline"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	testu "github.com/ipfs/go-ipfs/unixfs/test"
 
-	context "context"
-	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
-	"gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
 )
-
-func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.Blockstore) {
-	dstore := ds.NewMapDatastore()
-	tsds := sync.MutexWrap(dstore)
-	bstore := blockstore.NewBlockstore(tsds)
-	bserv := bs.New(bstore, offline.Exchange(bstore))
-	dserv := mdag.NewDAGService(bserv)
-	return dserv, bstore
-}
 
 func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) []byte {
 	newdata := make([]byte, size)
@@ -112,7 +97,7 @@ func TestDagModifierBasic(t *testing.T) {
 	beg = uint64(len(b))
 	length = 3000
 	t.Log("Testing pure append")
-	b = testModWrite(t, beg, length, b, dagmod)
+	_ = testModWrite(t, beg, length, b, dagmod)
 
 	// Verify reported length
 	node, err := dagmod.GetNode()

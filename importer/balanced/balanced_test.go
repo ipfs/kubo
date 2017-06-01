@@ -12,7 +12,6 @@ import (
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
-	pin "github.com/ipfs/go-ipfs/pin"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	"context"
@@ -122,11 +121,6 @@ func dagrArrComp(t *testing.T, r io.Reader, should []byte) {
 	if err := arrComp(out, should); err != nil {
 		t.Fatal(err)
 	}
-}
-
-type dagservAndPinner struct {
-	ds dag.DAGService
-	mp pin.Pinner
 }
 
 func TestIndirectBlocks(t *testing.T) {

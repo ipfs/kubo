@@ -64,8 +64,8 @@ func run() error {
 		return err
 	}
 	repoPath := gopath.Join(cwd, config.DefaultPathName)
-	if err := ensureRepoInitialized(repoPath); err != nil {
-	}
+	_ = ensureRepoInitialized(repoPath)
+
 	repo, err := fsrepo.Open(repoPath)
 	if err != nil { // owned by node
 		return err
@@ -231,26 +231,6 @@ func runFileCattingWorker(ctx context.Context, n *core.IpfsNode) error {
 	}
 
 	return nil
-}
-
-func toPeerInfos(bpeers []config.BootstrapPeer) ([]pstore.PeerInfo, error) {
-	var peers []pstore.PeerInfo
-	for _, bootstrap := range bpeers {
-		p, err := toPeerInfo(bootstrap)
-		if err != nil {
-			return nil, err
-		}
-		peers = append(peers, p)
-	}
-	return peers, nil
-}
-
-func toPeerInfo(bootstrap config.BootstrapPeer) (p pstore.PeerInfo, err error) {
-	p = pstore.PeerInfo{
-		ID:    bootstrap.ID(),
-		Addrs: []ma.Multiaddr{bootstrap.Multiaddr()},
-	}
-	return p, nil
 }
 
 func cmdCtx(node *core.IpfsNode, repoPath string) commands.Context {

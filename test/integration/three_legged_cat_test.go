@@ -65,7 +65,6 @@ func TestThreeLeggedCat100MBMacbookCoastToCoast(t *testing.T) {
 func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	// const numPeers = 3
 
 	// create network
 	mn := mocknet.New(ctx)

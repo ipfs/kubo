@@ -37,12 +37,6 @@ var RepoVersion = 5
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
 
-/*
-var errIncorrectRepoFmt = `Repo has incorrect version: %s
-Program version is: %s
-Please run the ipfs migration tool before continuing.
-` + migrationInstructions
-*/
 var programTooLowMessage = `Your programs version (%d) is lower than your repos (%d).
 Please update ipfs to a version that supports the existing repo, or run
 a migration in reverse.

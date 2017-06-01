@@ -27,7 +27,7 @@ func TestOfflineRouterStorage(t *testing.T) {
 		t.Fatal("OfflineRouter does not properly store")
 	}
 
-	val, err = offline.GetValue(ctx, "notHere")
+	_, err = offline.GetValue(ctx, "notHere")
 	if err == nil {
 		t.Fatal("Router should throw errors for unfound records")
 	}

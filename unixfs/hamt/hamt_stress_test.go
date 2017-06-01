@@ -1,13 +1,10 @@
 package hamt
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"math/rand"
 	"os"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -188,105 +185,4 @@ func genOpSet(seed int64, keep, temp []string) []testOp {
 			})
 		}
 	}
-}
-
-// executes the given op set with a repl to allow easier debugging
-func debugExecuteOpSet(ds dag.DAGService, width int, ops []testOp) (*HamtShard, error) {
-	s, err := NewHamtShard(ds, width)
-	if err != nil {
-		return nil, err
-	}
-
-	e := ft.EmptyDirNode()
-	ds.Add(e)
-	ctx := context.TODO()
-
-	run := 0
-
-	opnames := map[int]string{
-		opAdd: "add",
-		opDel: "del",
-	}
-
-mainloop:
-	for i := 0; i < len(ops); i++ {
-		o := ops[i]
-
-		fmt.Printf("Op %d: %s %s\n", i, opnames[o.Op], o.Val)
-		for run == 0 {
-			cmd := readCommand()
-			parts := strings.Split(cmd, " ")
-			switch parts[0] {
-			case "":
-				run = 1
-			case "find":
-				_, err := s.Find(ctx, parts[1])
-				if err == nil {
-					fmt.Println("success")
-				} else {
-					fmt.Println(err)
-				}
-			case "run":
-				if len(parts) > 1 {
-					n, err := strconv.Atoi(parts[1])
-					if err != nil {
-						panic(err)
-					}
-
-					run = n
-				} else {
-					run = -1
-				}
-			case "lookop":
-				for k := 0; k < len(ops); k++ {
-					if ops[k].Val == parts[1] {
-						fmt.Printf("  Op %d: %s %s\n", k, opnames[ops[k].Op], parts[1])
-					}
-				}
-			case "restart":
-				var err error
-				s, err = NewHamtShard(ds, width)
-				if err != nil {
-					panic(err)
-				}
-				i = -1
-				continue mainloop
-			case "print":
-				nd, err := s.Node()
-				if err != nil {
-					panic(err)
-				}
-				printDag(ds, nd.(*dag.ProtoNode), 0)
-			}
-		}
-		run--
-
-		switch o.Op {
-		case opAdd:
-			err := s.Set(ctx, o.Val, e)
-			if err != nil {
-				return nil, fmt.Errorf("inserting %s: %s", o.Val, err)
-			}
-		case opDel:
-			fmt.Println("deleting: ", o.Val)
-			err := s.Remove(ctx, o.Val)
-			if err != nil {
-				return nil, fmt.Errorf("deleting %s: %s", o.Val, err)
-			}
-		case opFind:
-			_, err := s.Find(ctx, o.Val)
-			if err != nil {
-				return nil, fmt.Errorf("finding %s: %s", o.Val, err)
-			}
-		}
-	}
-
-	return s, nil
-}
-
-func readCommand() string {
-	fmt.Print("> ")
-	scan := bufio.NewScanner(os.Stdin)
-	scan.Scan()
-	return scan.Text()
 }

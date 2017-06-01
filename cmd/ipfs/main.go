@@ -37,17 +37,12 @@ import (
 // log is the command logger
 var log = logging.Logger("cmd/ipfs")
 
-var (
-	// errUnexpectedApiOutput = errors.New("api returned unexpected output")
-	// errApiVersionMismatch  = errors.New("api version mismatch")
-	errRequestCanceled = errors.New("request canceled")
-)
+var errRequestCanceled = errors.New("request canceled")
 
 const (
 	EnvEnableProfiling = "IPFS_PROF"
 	cpuProfile         = "ipfs.cpuprof"
 	heapProfile        = "ipfs.memprof"
-	// errorFormat        = "ERROR: %v\n\n"
 )
 
 type cmdInvocation struct {

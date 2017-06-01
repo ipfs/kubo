@@ -160,17 +160,11 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 		errs <- PublishPublicKey(ctx, r, namekey, k.GetPublic())
 	}()
 
-	err = waitOnErrChan(ctx, errs)
-	if err != nil {
+	if err := waitOnErrChan(ctx, errs); err != nil {
 		return err
 	}
 
-	err = waitOnErrChan(ctx, errs)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return waitOnErrChan(ctx, errs)
 }
 
 func waitOnErrChan(ctx context.Context, errs chan error) error {
@@ -340,12 +334,7 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 		return err
 	}
 
-	err = pub.Publish(ctx, key, path.FromCid(nodek))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return pub.Publish(ctx, key, path.FromCid(nodek))
 }
 
 func IpnsKeysForID(id peer.ID) (name, ipns string) {
