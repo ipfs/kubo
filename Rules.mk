@@ -66,13 +66,6 @@ include $(dir)/Rules.mk
 # -------------------- #
 #     core targets     #
 # -------------------- #
-PACKAGES_NOVENDOR := $(shell go list github.com/ipfs/go-ipfs/... | grep -v /Godeps/)
-
-megacheck:
-	@go get honnef.co/go/tools/cmd/megacheck
-	@for pkg in ${PACKAGES_NOVENDOR}; do megacheck "$$pkg"; done
-
-.PHONY: megacheck
 
 build: $(TGT_BIN)
 .PHONY: build
@@ -149,6 +142,7 @@ help:
 	@echo '  test_go_short'
 	@echo '  test_go_expensive'
 	@echo '  test_go_race'
+	@echo '  test_go_megacheck'	 - Run the `megacheck` vetting tool
 	@echo '  test_sharness_short'
 	@echo '  test_sharness_expensive'
 	@echo '  test_sharness_race'
