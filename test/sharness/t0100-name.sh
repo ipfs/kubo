@@ -74,4 +74,20 @@ test_expect_failure "publish with our explicit node ID looks good" '
 	test_cmp expected_node_id_publish actual_node_id_publish
 '
 
+# publish with an explicit node ID as key name
+
+test_expect_success "generate and verify a new key" '
+	NEWID=`ipfs key gen --type=rsa --size=2048 keyname` &&
+	test_check_peerid "${NEWID}"
+'
+
+test_expect_success "'ipfs name publish --key=<peer-id> <hash>' succeeds" '
+	ipfs name publish --key=${NEWID} "/ipfs/$HASH_WELCOME_DOCS" >actual_node_id_publish
+'
+
+test_expect_success "publish an explicit node ID as key name looks good" '
+	echo "Published to ${NEWID}: /ipfs/$HASH_WELCOME_DOCS" >expected_node_id_publish &&
+	test_cmp expected_node_id_publish actual_node_id_publish
+'
+
 test_done

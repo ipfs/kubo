@@ -153,7 +153,7 @@ func (n *dagService) Remove(nd node.Node) error {
 // GetLinksDirect creates a function to get the links for a node, from
 // the node, bypassing the LinkService.  If the node does not exist
 // locally (and can not be retrieved) an error will be returned.
-func GetLinksDirect(serv DAGService) GetLinks {
+func GetLinksDirect(serv node.NodeGetter) GetLinks {
 	return func(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
 		node, err := serv.Get(ctx, c)
 		if err != nil {

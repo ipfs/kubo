@@ -40,6 +40,9 @@ The output is:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("obj", false, true, "Cid of objects to list."),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("file-order", "sort the results based on the path of the backing file"),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		_, fs, err := getFilestore(req)
 		if err != nil {
@@ -53,7 +56,8 @@ The output is:
 			}, req.Context())
 			res.SetOutput(out)
 		} else {
-			next, err := filestore.ListAll(fs)
+			fileOrder, _, _ := req.Option("file-order").Bool()
+			next, err := filestore.ListAll(fs, fileOrder)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -114,6 +118,9 @@ For ERROR entries the error will also be printed to stderr.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("obj", false, true, "Cid of objects to verify."),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("file-order", "verify the objects based on the order of the backing file"),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		_, fs, err := getFilestore(req)
 		if err != nil {
@@ -127,7 +134,8 @@ For ERROR entries the error will also be printed to stderr.
 			}, req.Context())
 			res.SetOutput(out)
 		} else {
-			next, err := filestore.VerifyAll(fs)
+			fileOrder, _, _ := req.Option("file-order").Bool()
+			next, err := filestore.VerifyAll(fs, fileOrder)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return

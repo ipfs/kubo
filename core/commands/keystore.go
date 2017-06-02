@@ -33,8 +33,10 @@ var KeyCmd = &cmds.Command{
 		`,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"gen":  KeyGenCmd,
-		"list": KeyListCmd,
+		"gen":    keyGenCmd,
+		"list":   keyListCmd,
+		"rename": keyRenameCmd,
+		"rm":     keyRmCmd,
 	},
 }
 
@@ -47,7 +49,15 @@ type KeyOutputList struct {
 	Keys []KeyOutput
 }
 
-var KeyGenCmd = &cmds.Command{
+// KeyRenameOutput define the output type of keyRenameCmd
+type KeyRenameOutput struct {
+	Was       string
+	Now       string
+	Id        string
+	Overwrite bool
+}
+
+var keyGenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create a new keypair",
 	},
@@ -150,7 +160,7 @@ var KeyGenCmd = &cmds.Command{
 	Type: KeyOutput{},
 }
 
-var KeyListCmd = &cmds.Command{
+var keyListCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List all local keypairs",
 	},
@@ -192,6 +202,170 @@ var KeyListCmd = &cmds.Command{
 			}
 
 			list = append(list, KeyOutput{Name: key, Id: pid.Pretty()})
+		}
+
+		res.SetOutput(&KeyOutputList{list})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: keyOutputListMarshaler,
+	},
+	Type: KeyOutputList{},
+}
+
+var keyRenameCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Rename a keypair",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", true, false, "name of key to rename"),
+		cmds.StringArg("newName", true, false, "new name of the key"),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("force", "f", "Allow to overwrite an existing key."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		ks := n.Repo.Keystore()
+
+		name := req.Arguments()[0]
+		newName := req.Arguments()[1]
+
+		if name == "self" {
+			res.SetError(fmt.Errorf("cannot rename key with name 'self'"), cmds.ErrNormal)
+			return
+		}
+
+		if newName == "self" {
+			res.SetError(fmt.Errorf("cannot overwrite key with name 'self'"), cmds.ErrNormal)
+			return
+		}
+
+		oldKey, err := ks.Get(name)
+		if err != nil {
+			res.SetError(fmt.Errorf("no key named %s was found", name), cmds.ErrNormal)
+			return
+		}
+
+		pubKey := oldKey.GetPublic()
+
+		pid, err := peer.IDFromPublicKey(pubKey)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		overwrite := false
+		force, _, _ := res.Request().Option("f").Bool()
+		if force {
+			exist, err := ks.Has(newName)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			if exist {
+				overwrite = true
+				err := ks.Delete(newName)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+			}
+		}
+
+		err = ks.Put(newName, oldKey)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		err = ks.Delete(name)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&KeyRenameOutput{
+			Was:       name,
+			Now:       newName,
+			Id:        pid.Pretty(),
+			Overwrite: overwrite,
+		})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			k, ok := res.Output().(*KeyRenameOutput)
+			if !ok {
+				return nil, fmt.Errorf("expected a KeyRenameOutput as command result")
+			}
+
+			buf := new(bytes.Buffer)
+
+			if k.Overwrite {
+				fmt.Fprintf(buf, "Key %s renamed to %s with overwriting\n", k.Id, k.Now)
+			} else {
+				fmt.Fprintf(buf, "Key %s renamed to %s\n", k.Id, k.Now)
+			}
+			return buf, nil
+		},
+	},
+	Type: KeyRenameOutput{},
+}
+
+var keyRmCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove a keypair",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", true, true, "names of keys to remove").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("l", "Show extra information about keys."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		names := req.Arguments()
+
+		list := make([]KeyOutput, 0, len(names))
+		for _, name := range names {
+			if name == "self" {
+				res.SetError(fmt.Errorf("cannot remove key with name 'self'"), cmds.ErrNormal)
+				return
+			}
+
+			removed, err := n.Repo.Keystore().Get(name)
+			if err != nil {
+				res.SetError(fmt.Errorf("no key named %s was found", name), cmds.ErrNormal)
+				return
+			}
+
+			pubKey := removed.GetPublic()
+
+			pid, err := peer.IDFromPublicKey(pubKey)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			list = append(list, KeyOutput{Name: name, Id: pid.Pretty()})
+		}
+
+		for _, name := range names {
+			err = n.Repo.Keystore().Delete(name)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 
 		res.SetOutput(&KeyOutputList{list})

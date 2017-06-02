@@ -1,6 +1,7 @@
 package pin
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 
-	context "context"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	dssync "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
 	"gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
@@ -366,4 +366,37 @@ func TestPinRecursiveFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestPinUpdate(t *testing.T) {
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
+	bstore := blockstore.NewBlockstore(dstore)
+	bserv := bs.New(bstore, offline.Exchange(bstore))
+
+	dserv := mdag.NewDAGService(bserv)
+	p := NewPinner(dstore, dserv, dserv)
+	n1, c1 := randNode()
+	n2, c2 := randNode()
+
+	dserv.Add(n1)
+	dserv.Add(n2)
+
+	ctx := context.Background()
+	if err := p.Pin(ctx, n1, true); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := p.Update(ctx, c1, c2, true); err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinned(t, p, c2, "c2 should be pinned now")
+	assertUnpinned(t, p, c1, "c1 should no longer be pinned")
+
+	if err := p.Update(ctx, c2, c1, false); err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinned(t, p, c2, "c2 should be pinned still")
+	assertPinned(t, p, c1, "c1 should be pinned now")
 }

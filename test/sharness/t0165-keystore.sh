@@ -36,6 +36,37 @@ test_key_cmd() {
 		PeerID="$(ipfs config Identity.PeerID)"
 		ipfs key list -l | grep "$PeerID self"
 	'
+
+	test_expect_success "key rm remove a key" '
+		ipfs key rm foobarsa
+		echo bazed > list_exp &&
+		echo self >> list_exp
+		ipfs key list | sort > list_out &&
+		test_cmp list_exp list_out
+	'
+
+	test_expect_success "key rm can't remove self" '
+		test_must_fail ipfs key rm self 2>&1 | tee key_rm_out &&
+		grep -q "Error: cannot remove key with name" key_rm_out
+	'
+
+	test_expect_success "key rename rename a key" '
+		ipfs key rename bazed fooed
+		echo fooed > list_exp &&
+		echo self >> list_exp
+		ipfs key list | sort > list_out &&
+		test_cmp list_exp list_out
+	'
+
+	test_expect_success "key rename can't rename self" '
+		test_must_fail ipfs key rename self bar 2>&1 | tee key_rename_out &&
+		grep -q "Error: cannot rename key with name" key_rename_out
+	'
+
+	test_expect_success "key rename can't overwrite self, even with force" '
+		test_must_fail ipfs key rename -f fooed self 2>&1 | tee key_rename_out &&
+		grep -q "Error: cannot overwrite key with name" key_rename_out
+	'
 }
 
 test_key_cmd
