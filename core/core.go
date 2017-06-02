@@ -23,7 +23,7 @@ import (
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
-	corenet "github.com/ipfs/go-ipfs/corenet"
+	ptp "github.com/ipfs/go-ipfs/ptp"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
@@ -132,7 +132,7 @@ type IpfsNode struct {
 	IpnsRepub    *ipnsrp.Republisher
 
 	Floodsub *floodsub.PubSub
-	Corenet  *corenet.Corenet
+	PTP      *ptp.PTP
 
 	proc goprocess.Process
 	ctx  context.Context
@@ -248,7 +248,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
 	}
 
-	n.Corenet = corenet.NewCorenet()
+	n.PTP = ptp.NewPTP()
 
 	// setup local discovery
 	if do != nil {

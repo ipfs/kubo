@@ -3,10 +3,10 @@ package net
 import (
 	"io"
 
-	corenet "github.com/ipfs/go-ipfs/corenet"
+	ptp "github.com/ipfs/go-ipfs/ptp"
 )
 
-func startStreaming(stream *corenet.StreamInfo) {
+func startStreaming(stream *ptp.StreamInfo) {
 	go func() {
 		io.Copy(stream.Local, stream.Remote)
 		stream.Close()

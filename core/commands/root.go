@@ -47,7 +47,7 @@ ADVANCED COMMANDS
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
   stats         Various operational stats
-  corenet       Libp2p stream mounting
+  ptp       Libp2p stream mounting
   filestore     Manage the filestore (experimental)
 
 NETWORK COMMANDS
@@ -99,7 +99,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"cat":       CatCmd,
 	"commands":  CommandsDaemonCmd,
 	"config":    ConfigCmd,
-	"corenet":   CorenetCmd,
 	"dag":       dag.DagCmd,
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
@@ -115,6 +114,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"object":    ocmd.ObjectCmd,
 	"pin":       PinCmd,
 	"ping":      PingCmd,
+	"ptp":       PTPCmd,
 	"pubsub":    PubsubCmd,
 	"refs":      RefsCmd,
 	"repo":      RepoCmd,

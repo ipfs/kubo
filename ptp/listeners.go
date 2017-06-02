@@ -1,4 +1,4 @@
-package corenet
+package ptp
 
 import (
 	"io"
@@ -8,8 +8,8 @@ import (
 	"fmt"
 )
 
-// AppInfo holds information on a local application protocol listener service.
-type AppInfo struct {
+// ListenerInfo holds information on a p2p listener.
+type ListenerInfo struct {
 	// Application protocol identifier.
 	Protocol string
 
@@ -26,30 +26,30 @@ type AppInfo struct {
 	// whether this application listener has been shutdown.
 	Running bool
 
-	Registry *AppRegistry
+	Registry *ListenerRegistry
 }
 
 // Close closes the listener. Does not affect child streams
-func (c *AppInfo) Close() error {
+func (c *ListenerInfo) Close() error {
 	c.Closer.Close()
 	err := c.Registry.Deregister(c.Protocol)
 	return err
 }
 
-// AppRegistry is a collection of local application protocol listeners.
-type AppRegistry struct {
-	Apps []*AppInfo
+// ListenerRegistry is a collection of local application protocol listeners.
+type ListenerRegistry struct {
+	Listeners []*ListenerInfo
 }
 
-// Register registers appInfo in this registry
-func (c *AppRegistry) Register(appInfo *AppInfo) {
-	c.Apps = append(c.Apps, appInfo)
+// Register registers listenerInfo in this registry
+func (c *ListenerRegistry) Register(listenerInfo *ListenerInfo) {
+	c.Listeners = append(c.Listeners, listenerInfo)
 }
 
-// Deregister deregisters protocol handler from this registry
-func (c *AppRegistry) Deregister(proto string) error {
+// Deregister removes p2p listener from this registry
+func (c *ListenerRegistry) Deregister(proto string) error {
 	foundAt := -1
-	for i, a := range c.Apps {
+	for i, a := range c.Listeners {
 		if a.Protocol == proto {
 			foundAt = i
 			break
@@ -57,7 +57,7 @@ func (c *AppRegistry) Deregister(proto string) error {
 	}
 
 	if foundAt != -1 {
-		c.Apps = append(c.Apps[:foundAt], c.Apps[foundAt+1:]...)
+		c.Listeners = append(c.Listeners[:foundAt], c.Listeners[foundAt+1:]...)
 		return nil
 	}
 

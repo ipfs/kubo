@@ -9,20 +9,20 @@ import (
 	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core"
-	cnet "github.com/ipfs/go-ipfs/corenet/net"
+	core "github.com/ipfs/go-ipfs/core"
+	ptpnet "github.com/ipfs/go-ipfs/ptp/net"
 
 	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
 )
 
-// CorenetAppInfoOutput is output type of ls command
-type CorenetAppInfoOutput struct {
+// PTPAppInfoOutput is output type of ls command
+type PTPAppInfoOutput struct {
 	Protocol string
 	Address  string
 }
 
-// CorenetStreamInfoOutput is output type of streams command
-type CorenetStreamInfoOutput struct {
+// PTPStreamInfoOutput is output type of streams command
+type PTPStreamInfoOutput struct {
 	HandlerID     string
 	Protocol      string
 	LocalPeer     string
@@ -31,38 +31,38 @@ type CorenetStreamInfoOutput struct {
 	RemoteAddress string
 }
 
-// CorenetLsOutput is output type of ls command
-type CorenetLsOutput struct {
-	Apps []CorenetAppInfoOutput
+// PTPLsOutput is output type of ls command
+type PTPLsOutput struct {
+	Apps []PTPAppInfoOutput
 }
 
-// CorenetStreamsOutput is output type of streams command
-type CorenetStreamsOutput struct {
-	Streams []CorenetStreamInfoOutput
+// PTPStreamsOutput is output type of streams command
+type PTPStreamsOutput struct {
+	Streams []PTPStreamInfoOutput
 }
 
-// CorenetCmd is the 'ipfs corenet' command
-var CorenetCmd = &cmds.Command{
+// PTPCmd is the 'ipfs ptp' command
+var PTPCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Libp2p stream mounting.",
 		ShortDescription: `
-Expose a local application to remote peers over libp2p
+Create and use tunnels to remote peers over libp2p
 
 Note: this command is experimental and subject to change as usecases and APIs are refined`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"ls":      corenetLsCmd,
-		"streams": corenetStreamsCmd,
-		"dial":    corenetDialCmd,
-		"listen":  corenetListenCmd,
-		"close":   corenetCloseCmd,
+		"ls":      ptpLsCmd,
+		"streams": ptpStreamsCmd,
+		"dial":    ptpDialCmd,
+		"listen":  ptpListenCmd,
+		"close":   ptpCloseCmd,
 	},
 }
 
-var corenetLsCmd = &cmds.Command{
+var ptpLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List active application protocol listeners.",
+		Tagline: "List active p2p listeners.",
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("headers", "v", "Print table headers (HandlerID, Protocol, Local, Remote).").Default(false),
@@ -85,10 +85,10 @@ var corenetLsCmd = &cmds.Command{
 			return
 		}
 
-		output := &CorenetLsOutput{}
+		output := &PTPLsOutput{}
 
-		for _, app := range n.Corenet.Apps.Apps {
-			output.Apps = append(output.Apps, CorenetAppInfoOutput{
+		for _, app := range n.PTP.Apps.Apps {
+			output.Apps = append(output.Apps, PTPAppInfoOutput{
 				Protocol: app.Protocol,
 				Address:  app.Address.String(),
 			})
@@ -96,11 +96,11 @@ var corenetLsCmd = &cmds.Command{
 
 		res.SetOutput(output)
 	},
-	Type: CorenetLsOutput{},
+	Type: PTPLsOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			headers, _, _ := res.Request().Option("headers").Bool()
-			list, _ := res.Output().(*CorenetLsOutput)
+			list, _ := res.Output().(*PTPLsOutput)
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, app := range list.Apps {
@@ -117,12 +117,12 @@ var corenetLsCmd = &cmds.Command{
 	},
 }
 
-var corenetStreamsCmd = &cmds.Command{
+var ptpStreamsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List active application protocol streams.",
+		Tagline: "List active p2p streams.",
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("headers", "v", "Print table headers (HandlerID, Protocol, Local, Remote).").Default(false),
+		cmds.BoolOption("headers", "v", "Print table headers (HagndlerID, Protocol, Local, Remote).").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -142,10 +142,10 @@ var corenetStreamsCmd = &cmds.Command{
 			return
 		}
 
-		output := &CorenetStreamsOutput{}
+		output := &PTPStreamsOutput{}
 
-		for _, s := range n.Corenet.Streams.Streams {
-			output.Streams = append(output.Streams, CorenetStreamInfoOutput{
+		for _, s := range n.PTP.Streams.Streams {
+			output.Streams = append(output.Streams, PTPStreamInfoOutput{
 				HandlerID: strconv.FormatUint(s.HandlerID, 10),
 
 				Protocol: s.Protocol,
@@ -160,11 +160,11 @@ var corenetStreamsCmd = &cmds.Command{
 
 		res.SetOutput(output)
 	},
-	Type: CorenetStreamsOutput{},
+	Type: PTPStreamsOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			headers, _, _ := res.Request().Option("headers").Bool()
-			list, _ := res.Output().(*CorenetStreamsOutput)
+			list, _ := res.Output().(*PTPStreamsOutput)
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, stream := range list.Streams {
@@ -181,12 +181,11 @@ var corenetStreamsCmd = &cmds.Command{
 	},
 }
 
-var corenetListenCmd = &cmds.Command{
+var ptpListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create application protocol listener and proxy to network multiaddr.",
 		ShortDescription: `
-Register a p2p connection handler and proxies the connections to a specified
-address.
+Register a p2p connection handler and proxies the connections to a specified address.
 
 Note that the connections originate from the ipfs daemon process.
 		`,
@@ -214,7 +213,7 @@ Note that the connections originate from the ipfs daemon process.
 		}
 
 		proto := "/app/" + req.Arguments()[0]
-		if cnet.CheckProtoExists(n, proto) {
+		if ptpnet.CheckProtoExists(n, proto) {
 			res.SetError(errors.New("protocol handler already registered"), cmds.ErrNormal)
 			return
 		}
@@ -225,30 +224,30 @@ Note that the connections originate from the ipfs daemon process.
 			return
 		}
 
-		_, err = cnet.NewListener(n, proto, addr)
+		_, err = ptpnet.NewListener(n, proto, addr)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
 		// Successful response.
-		res.SetOutput(&CorenetAppInfoOutput{
+		res.SetOutput(&PTPAppInfoOutput{
 			Protocol: proto,
 			Address:  addr.String(),
 		})
 	},
 }
 
-var corenetDialCmd = &cmds.Command{
+var ptpDialCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Dial to an application service.",
+		Tagline: "Dial to a p2p listener.",
 
 		ShortDescription: `
 Establish a new connection to a peer service.
 
 When a connection is made to a peer service the ipfs daemon will setup one time
 TCP listener and return it's bind port, this way a dialing application can
-transparently connect to a corenet service.
+transparently connect to a p2p service.
 		`,
 	},
 	Arguments: []cmds.Argument{
@@ -291,13 +290,13 @@ transparently connect to a corenet service.
 			}
 		}
 
-		app, err := cnet.Dial(n, addr, peer, proto, bindAddr)
+		app, err := ptpnet.Dial(n, addr, peer, proto, bindAddr)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		output := CorenetAppInfoOutput{
+		output := PTPAppInfoOutput{
 			Protocol: app.Protocol,
 			Address:  app.Address.String(),
 		}
@@ -306,13 +305,12 @@ transparently connect to a corenet service.
 	},
 }
 
-var corenetCloseCmd = &cmds.Command{
+var ptpCloseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Closes an active stream listener or client.",
+		Tagline: "Closes an active p2p stream or listener.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("HandlerID", false, false, "Application listener or client HandlerID"),
-		cmds.StringArg("Protocol", false, false, "Application listener or client HandlerID"),
+		cmds.StringArg("Identifier", false, false, "Stream HandlerID or p2p listener protocol"),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("all", "a", "Close all streams and listeners.").Default(false),
@@ -344,7 +342,7 @@ var corenetCloseCmd = &cmds.Command{
 
 		if !closeAll {
 			if len(req.Arguments()) == 0 {
-				res.SetError(errors.New("no handlerID nor stream protocol specified"), cmds.ErrNormal)
+				res.SetError(errors.New("no handlerID nor listener protocol specified"), cmds.ErrNormal)
 				return
 			}
 
@@ -357,7 +355,7 @@ var corenetCloseCmd = &cmds.Command{
 		}
 
 		if closeAll || useHandlerID {
-			for _, stream := range n.Corenet.Streams.Streams {
+			for _, stream := range n.PTP.Streams.Streams {
 				if !closeAll && handlerID != stream.HandlerID {
 					continue
 				}
@@ -369,7 +367,7 @@ var corenetCloseCmd = &cmds.Command{
 		}
 
 		if closeAll || !useHandlerID {
-			for _, app := range n.Corenet.Apps.Apps {
+			for _, app := range n.PTP.Apps.Apps {
 				if !closeAll && app.Protocol != proto {
 					continue
 				}

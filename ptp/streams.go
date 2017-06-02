@@ -1,4 +1,4 @@
-package corenet
+package ptp
 
 import (
 	"io"
@@ -7,7 +7,7 @@ import (
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
 
-// StreamInfo holds information on active incoming and outgoing protocol app streams.
+// StreamInfo holds information on active incoming and outgoing p2p streams.
 type StreamInfo struct {
 	HandlerID uint64
 

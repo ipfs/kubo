@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	core "github.com/ipfs/go-ipfs/core"
-	corenet "github.com/ipfs/go-ipfs/corenet"
+	ptp "github.com/ipfs/go-ipfs/ptp"
 
 	net "gx/ipfs/QmRscs8KxrSmSv4iuevHv8JfuUzHBMoqiaHzxfDRiksd6e/go-libp2p-net"
 	peerstore "gx/ipfs/QmXZSd1qR5BxZkPyuwfT5jpqQFScZccoZvDneXsKzCNHWX/go-libp2p-peerstore"
@@ -13,13 +13,13 @@ import (
 	manet "gx/ipfs/Qmf1Gq7N45Rpuw7ev47uWgH6dLPtdnvcMRNPkVBwqjLJg2/go-multiaddr-net"
 )
 
-func Dial(n *core.IpfsNode, addr ma.Multiaddr, peer peer.ID, proto string, bindAddr ma.Multiaddr) (*corenet.AppInfo, error) {
+func Dial(n *core.IpfsNode, addr ma.Multiaddr, peer peer.ID, proto string, bindAddr ma.Multiaddr) (*ptp.ListenerInfo, error) {
 	lnet, _, err := manet.DialArgs(bindAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	app := corenet.AppInfo{
+	app := ptp.ListenerInfo{
 		Identity: n.Identity,
 		Protocol: proto,
 	}
@@ -54,7 +54,7 @@ func Dial(n *core.IpfsNode, addr ma.Multiaddr, peer peer.ID, proto string, bindA
 	return &app, nil
 }
 
-func doAccept(n *core.IpfsNode, app *corenet.AppInfo, remote net.Stream, listener manet.Listener) {
+func doAccept(n *core.IpfsNode, app *ptp.ListenerInfo, remote net.Stream, listener manet.Listener) {
 	defer listener.Close()
 
 	local, err := listener.Accept()
@@ -62,7 +62,7 @@ func doAccept(n *core.IpfsNode, app *corenet.AppInfo, remote net.Stream, listene
 		return
 	}
 
-	stream := corenet.StreamInfo{
+	stream := ptp.StreamInfo{
 		Protocol: app.Protocol,
 
 		LocalPeer: app.Identity,
@@ -74,9 +74,9 @@ func doAccept(n *core.IpfsNode, app *corenet.AppInfo, remote net.Stream, listene
 		Local:  local,
 		Remote: remote,
 
-		Registry: &n.Corenet.Streams,
+		Registry: &n.PTP.Streams,
 	}
 
-	n.Corenet.Streams.Register(&stream)
+	n.PTP.Streams.Register(&stream)
 	startStreaming(&stream)
 }
