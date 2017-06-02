@@ -5,6 +5,7 @@ import (
 
 	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	"fmt"
 )
 
 // AppInfo holds information on a local application protocol listener service.
@@ -30,9 +31,9 @@ type AppInfo struct {
 
 // Close closes the listener. Does not affect child streams
 func (c *AppInfo) Close() error {
-	c.Registry.Deregister(c.Protocol)
 	c.Closer.Close()
-	return nil
+	err := c.Registry.Deregister(c.Protocol)
+	return err
 }
 
 // AppRegistry is a collection of local application protocol listeners.
@@ -46,7 +47,7 @@ func (c *AppRegistry) Register(appInfo *AppInfo) {
 }
 
 // Deregister deregisters protocol handler from this registry
-func (c *AppRegistry) Deregister(proto string) {
+func (c *AppRegistry) Deregister(proto string) error {
 	foundAt := -1
 	for i, a := range c.Apps {
 		if a.Protocol == proto {
@@ -57,5 +58,8 @@ func (c *AppRegistry) Deregister(proto string) {
 
 	if foundAt != -1 {
 		c.Apps = append(c.Apps[:foundAt], c.Apps[foundAt+1:]...)
+		return nil
 	}
+
+	return fmt.Errorf("failed to deregister proto %s", proto)
 }

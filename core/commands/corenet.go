@@ -9,14 +9,10 @@ import (
 	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
-	corenet "github.com/ipfs/go-ipfs/corenet"
+	"github.com/ipfs/go-ipfs/core"
 	cnet "github.com/ipfs/go-ipfs/corenet/net"
 
-	net "gx/ipfs/QmRscs8KxrSmSv4iuevHv8JfuUzHBMoqiaHzxfDRiksd6e/go-libp2p-net"
-	peerstore "gx/ipfs/QmXZSd1qR5BxZkPyuwfT5jpqQFScZccoZvDneXsKzCNHWX/go-libp2p-peerstore"
 	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
-	manet "gx/ipfs/Qmf1Gq7N45Rpuw7ev47uWgH6dLPtdnvcMRNPkVBwqjLJg2/go-multiaddr-net"
 )
 
 // CorenetAppInfoOutput is output type of ls command
@@ -188,6 +184,12 @@ var corenetStreamsCmd = &cmds.Command{
 var corenetListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create application protocol listener and proxy to network multiaddr.",
+		ShortDescription: `
+Register a p2p connection handler and proxies the connections to a specified
+address.
+
+Note that the connections originate from the ipfs daemon process.
+		`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("Protocol", true, false, "Protocol identifier."),
@@ -212,7 +214,7 @@ var corenetListenCmd = &cmds.Command{
 		}
 
 		proto := "/app/" + req.Arguments()[0]
-		if checkProtoExists(n.PeerHost.Mux().Protocols(), proto) {
+		if cnet.CheckProtoExists(n, proto) {
 			res.SetError(errors.New("protocol handler already registered"), cmds.ErrNormal)
 			return
 		}
@@ -223,24 +225,11 @@ var corenetListenCmd = &cmds.Command{
 			return
 		}
 
-		listener, err := cnet.Listen(n, proto)
+		_, err = cnet.NewListener(n, proto, addr)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
-		app := corenet.AppInfo{
-			Identity: n.Identity,
-			Protocol: proto,
-			Address:  addr,
-			Closer:   listener,
-			Running:  true,
-			Registry: &n.Corenet.Apps,
-		}
-
-		go acceptStreams(n, &app, listener)
-
-		n.Corenet.Apps.Register(&app)
 
 		// Successful response.
 		res.SetOutput(&CorenetAppInfoOutput{
@@ -250,66 +239,17 @@ var corenetListenCmd = &cmds.Command{
 	},
 }
 
-func checkProtoExists(protos []string, proto string) bool {
-	for _, p := range protos {
-		if p != proto {
-			continue
-		}
-		return true
-	}
-	return false
-}
-
-func acceptStreams(n *core.IpfsNode, app *corenet.AppInfo, listener cnet.Listener) {
-	for app.Running {
-		remote, err := listener.Accept()
-		if err != nil {
-			listener.Close()
-			break
-		}
-
-		local, err := manet.Dial(app.Address)
-		if err != nil {
-			remote.Close()
-			continue
-		}
-
-		stream := corenet.StreamInfo{
-			Protocol: app.Protocol,
-
-			LocalPeer: app.Identity,
-			LocalAddr: app.Address,
-
-			RemotePeer: remote.Conn().RemotePeer(),
-			RemoteAddr: remote.Conn().RemoteMultiaddr(),
-
-			Local:  local,
-			Remote: remote,
-
-			Registry: &n.Corenet.Streams,
-		}
-
-		n.Corenet.Streams.Register(&stream)
-		startStreaming(&stream)
-	}
-	n.Corenet.Apps.Deregister(app.Protocol)
-}
-
-func startStreaming(stream *corenet.StreamInfo) {
-	go func() {
-		io.Copy(stream.Local, stream.Remote)
-		stream.Close()
-	}()
-
-	go func() {
-		io.Copy(stream.Remote, stream.Local)
-		stream.Close()
-	}()
-}
-
 var corenetDialCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Dial to an application service.",
+
+		ShortDescription: `
+Establish a new connection to a peer service.
+
+When a connection is made to a peer service the ipfs daemon will setup one time
+TCP listener and return it's bind port, this way a dialing application can
+transparently connect to a corenet service.
+		`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("Peer", true, false, "Remote peer to connect to"),
@@ -351,44 +291,9 @@ var corenetDialCmd = &cmds.Command{
 			}
 		}
 
-		lnet, _, err := manet.DialArgs(bindAddr)
+		app, err := cnet.Dial(n, addr, peer, proto, bindAddr)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		app := corenet.AppInfo{
-			Identity: n.Identity,
-			Protocol: proto,
-		}
-
-		n.Peerstore.AddAddr(peer, addr, peerstore.TempAddrTTL)
-
-		remote, err := cnet.Dial(n, peer, proto)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		switch lnet {
-		case "tcp", "tcp4", "tcp6":
-			listener, err := manet.Listen(bindAddr)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				if err := remote.Close(); err != nil {
-					res.SetError(err, cmds.ErrNormal)
-				}
-				return
-			}
-
-			app.Address = listener.Multiaddr()
-			app.Closer = listener
-			app.Running = true
-
-			go doAccept(n, &app, remote, listener)
-
-		default:
-			res.SetError(errors.New("unsupported protocol: "+lnet), cmds.ErrNormal)
 			return
 		}
 
@@ -399,33 +304,6 @@ var corenetDialCmd = &cmds.Command{
 
 		res.SetOutput(&output)
 	},
-}
-
-func doAccept(n *core.IpfsNode, app *corenet.AppInfo, remote net.Stream, listener manet.Listener) {
-	defer listener.Close()
-
-	local, err := listener.Accept()
-	if err != nil {
-		return
-	}
-
-	stream := corenet.StreamInfo{
-		Protocol: app.Protocol,
-
-		LocalPeer: app.Identity,
-		LocalAddr: app.Address,
-
-		RemotePeer: remote.Conn().RemotePeer(),
-		RemoteAddr: remote.Conn().RemoteMultiaddr(),
-
-		Local:  local,
-		Remote: remote,
-
-		Registry: &n.Corenet.Streams,
-	}
-
-	n.Corenet.Streams.Register(&stream)
-	startStreaming(&stream)
 }
 
 var corenetCloseCmd = &cmds.Command{
@@ -464,15 +342,15 @@ var corenetCloseCmd = &cmds.Command{
 
 		useHandlerID := false
 
-		if !closeAll && len(req.Arguments()) == 0 {
-			res.SetError(errors.New("no handlerID nor stream protocol specified"), cmds.ErrNormal)
-			return
+		if !closeAll {
+			if len(req.Arguments()) == 0 {
+				res.SetError(errors.New("no handlerID nor stream protocol specified"), cmds.ErrNormal)
+				return
+			}
 
-		} else if !closeAll {
 			handlerID, err = strconv.ParseUint(req.Arguments()[0], 10, 64)
 			if err != nil {
 				proto = "/app/" + req.Arguments()[0]
-
 			} else {
 				useHandlerID = true
 			}

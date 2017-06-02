@@ -5,6 +5,7 @@ import (
 
 	context "context"
 	core "github.com/ipfs/go-ipfs/core"
+
 	net "gx/ipfs/QmRscs8KxrSmSv4iuevHv8JfuUzHBMoqiaHzxfDRiksd6e/go-libp2p-net"
 	pstore "gx/ipfs/QmXZSd1qR5BxZkPyuwfT5jpqQFScZccoZvDneXsKzCNHWX/go-libp2p-peerstore"
 	pro "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -67,7 +68,7 @@ func Listen(nd *core.IpfsNode, protocol string) (*IpfsListener, error) {
 }
 
 // Dial dials to a specified node and protocol
-func Dial(nd *core.IpfsNode, p peer.ID, protocol string) (net.Stream, error) {
+func dial(nd *core.IpfsNode, p peer.ID, protocol string) (net.Stream, error) {
 	ctx, cancel := context.WithTimeout(nd.Context(), time.Second*30)
 	defer cancel()
 	err := nd.PeerHost.Connect(ctx, pstore.PeerInfo{ID: p})
@@ -75,4 +76,18 @@ func Dial(nd *core.IpfsNode, p peer.ID, protocol string) (net.Stream, error) {
 		return nil, err
 	}
 	return nd.PeerHost.NewStream(nd.Context(), p, pro.ID(protocol))
+}
+
+// CheckProtoExists checks whether a protocol handler is registered to
+// mux handler
+func CheckProtoExists(n *core.IpfsNode, proto string) bool {
+	protos := n.PeerHost.Mux().Protocols()
+
+	for _, p := range protos {
+		if p != proto {
+			continue
+		}
+		return true
+	}
+	return false
 }
