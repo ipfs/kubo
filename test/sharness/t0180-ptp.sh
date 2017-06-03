@@ -66,7 +66,7 @@ test_expect_success 'client to server output looks good' '
 '
 
 test_expect_success "'ipfs ptp ls' succeeds" '
-  echo "/ip4/127.0.0.1/tcp/10101 /app/ptp-test" > expected &&
+  echo "/ip4/127.0.0.1/tcp/10101 /ptp/ptp-test" > expected &&
   ipfsi 0 ptp ls > actual
 '
 
@@ -94,7 +94,7 @@ test_expect_success "Setup: Idle stream" '
 '
 
 test_expect_success "'ipfs ptp streams' succeeds" '
-  echo "2 /app/ptp-test /ip4/127.0.0.1/tcp/10101 $PEERID_1" > expected
+  echo "2 /ptp/ptp-test /ip4/127.0.0.1/tcp/10101 $PEERID_1" > expected
   ipfsi 0 ptp streams > actual
 '
 
@@ -127,7 +127,7 @@ test_expect_success "Setup: Idle stream(2)" '
 '
 
 test_expect_success "'ipfs ptp streams' succeeds(2)" '
-  echo "3 /app/ptp-test2 /ip4/127.0.0.1/tcp/10101 $PEERID_1" > expected
+  echo "3 /ptp/ptp-test2 /ip4/127.0.0.1/tcp/10101 $PEERID_1" > expected
   ipfsi 0 ptp streams > actual
   test_cmp expected actual
 '

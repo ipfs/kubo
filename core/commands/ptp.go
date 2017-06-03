@@ -10,13 +10,12 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	ptpnet "github.com/ipfs/go-ipfs/ptp/net"
 
 	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
 )
 
-// PTPAppInfoOutput is output type of ls command
-type PTPAppInfoOutput struct {
+// PTPListenerInfoOutput is output type of ls command
+type PTPListenerInfoOutput struct {
 	Protocol string
 	Address  string
 }
@@ -33,7 +32,7 @@ type PTPStreamInfoOutput struct {
 
 // PTPLsOutput is output type of ls command
 type PTPLsOutput struct {
-	Apps []PTPAppInfoOutput
+	Listeners []PTPListenerInfoOutput
 }
 
 // PTPStreamsOutput is output type of streams command
@@ -87,10 +86,10 @@ var ptpLsCmd = &cmds.Command{
 
 		output := &PTPLsOutput{}
 
-		for _, app := range n.PTP.Apps.Apps {
-			output.Apps = append(output.Apps, PTPAppInfoOutput{
-				Protocol: app.Protocol,
-				Address:  app.Address.String(),
+		for _, listener := range n.PTP.Listeners.Listeners {
+			output.Listeners = append(output.Listeners, PTPListenerInfoOutput{
+				Protocol: listener.Protocol,
+				Address:  listener.Address.String(),
 			})
 		}
 
@@ -103,12 +102,12 @@ var ptpLsCmd = &cmds.Command{
 			list, _ := res.Output().(*PTPLsOutput)
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
-			for _, app := range list.Apps {
+			for _, listener := range list.Listeners {
 				if headers {
 					fmt.Fprintln(w, "Address\tProtocol")
 				}
 
-				fmt.Fprintf(w, "%s\t%s\n", app.Address, app.Protocol)
+				fmt.Fprintf(w, "%s\t%s\n", listener.Address, listener.Protocol)
 			}
 			w.Flush()
 
@@ -183,9 +182,9 @@ var ptpStreamsCmd = &cmds.Command{
 
 var ptpListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create application protocol listener and proxy to network multiaddr.",
+		Tagline: "Forward p2p connections to a network multiaddr.",
 		ShortDescription: `
-Register a p2p connection handler and proxies the connections to a specified address.
+Register a p2p connection handler and forward the connections to a specified address.
 
 Note that the connections originate from the ipfs daemon process.
 		`,
@@ -212,8 +211,8 @@ Note that the connections originate from the ipfs daemon process.
 			return
 		}
 
-		proto := "/app/" + req.Arguments()[0]
-		if ptpnet.CheckProtoExists(n, proto) {
+		proto := "/ptp/" + req.Arguments()[0]
+		if n.PTP.CheckProtoExists(proto) {
 			res.SetError(errors.New("protocol handler already registered"), cmds.ErrNormal)
 			return
 		}
@@ -224,14 +223,14 @@ Note that the connections originate from the ipfs daemon process.
 			return
 		}
 
-		_, err = ptpnet.NewListener(n, proto, addr)
+		_, err = n.PTP.NewListener(n.Context(), proto, addr)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
 		// Successful response.
-		res.SetOutput(&PTPAppInfoOutput{
+		res.SetOutput(&PTPListenerInfoOutput{
 			Protocol: proto,
 			Address:  addr.String(),
 		})
@@ -253,7 +252,7 @@ transparently connect to a p2p service.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("Peer", true, false, "Remote peer to connect to"),
 		cmds.StringArg("Protocol", true, false, "Protocol identifier."),
-		cmds.StringArg("BindAddress", false, false, "Address to listen for application/s (default: /ip4/127.0.0.1/tcp/0)."),
+		cmds.StringArg("BindAddress", false, false, "Address to listen for connection/s (default: /ip4/127.0.0.1/tcp/0)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -279,7 +278,7 @@ transparently connect to a p2p service.
 			return
 		}
 
-		proto := "/app/" + req.Arguments()[1]
+		proto := "/ptp/" + req.Arguments()[1]
 
 		bindAddr, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
 		if len(req.Arguments()) == 3 {
@@ -290,15 +289,15 @@ transparently connect to a p2p service.
 			}
 		}
 
-		app, err := ptpnet.Dial(n, addr, peer, proto, bindAddr)
+		listenerInfo, err := n.PTP.Dial(n.Context(), addr, peer, proto, bindAddr)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		output := PTPAppInfoOutput{
-			Protocol: app.Protocol,
-			Address:  app.Address.String(),
+		output := PTPListenerInfoOutput{
+			Protocol: listenerInfo.Protocol,
+			Address:  listenerInfo.Address.String(),
 		}
 
 		res.SetOutput(&output)
@@ -348,7 +347,7 @@ var ptpCloseCmd = &cmds.Command{
 
 			handlerID, err = strconv.ParseUint(req.Arguments()[0], 10, 64)
 			if err != nil {
-				proto = "/app/" + req.Arguments()[0]
+				proto = "/ptp/" + req.Arguments()[0]
 			} else {
 				useHandlerID = true
 			}
@@ -367,11 +366,11 @@ var ptpCloseCmd = &cmds.Command{
 		}
 
 		if closeAll || !useHandlerID {
-			for _, app := range n.PTP.Apps.Apps {
-				if !closeAll && app.Protocol != proto {
+			for _, listener := range n.PTP.Listeners.Listeners {
+				if !closeAll && listener.Protocol != proto {
 					continue
 				}
-				app.Close()
+				listener.Close()
 				if !closeAll {
 					break
 				}

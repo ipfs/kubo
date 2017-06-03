@@ -47,7 +47,7 @@ ADVANCED COMMANDS
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
   stats         Various operational stats
-  ptp       Libp2p stream mounting
+  ptp           Libp2p stream mounting
   filestore     Manage the filestore (experimental)
 
 NETWORK COMMANDS

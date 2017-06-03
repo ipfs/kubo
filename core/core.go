@@ -23,7 +23,6 @@ import (
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
-	ptp "github.com/ipfs/go-ipfs/ptp"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
@@ -36,6 +35,7 @@ import (
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
+	ptp "github.com/ipfs/go-ipfs/ptp"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	nilrouting "github.com/ipfs/go-ipfs/routing/none"
@@ -248,7 +248,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
 	}
 
-	n.PTP = ptp.NewPTP()
+	n.PTP = ptp.NewPTP(n.Identity, n.PeerHost, n.Peerstore)
 
 	// setup local discovery
 	if do != nil {
