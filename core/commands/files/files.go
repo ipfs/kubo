@@ -664,7 +664,12 @@ stat' on the file or any of its ancestors.
 			return
 		}
 
-		n, err := io.Copy(wfd, input)
+		var r io.Reader = input
+		if countfound {
+			r = io.LimitReader(r, int64(count))
+		}
+
+		n, err := io.Copy(wfd, r)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
