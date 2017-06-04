@@ -124,7 +124,7 @@ $ cd $GOPATH/src/github.com/ipfs/go-ipfs
 $ make install
 ```
 
-If you are building on FreeBSD instead of `make install` use `gmake install`.
+If you are building on FreeBSD instead of `make install` use `gmake install` .
 
 #### Building on less common systems
 
