@@ -12,6 +12,7 @@ import (
 	ipldcbor "gx/ipfs/QmNrbCt8j9DT5W9Pmjy2SdudT9k8GpaDr4sRuFix3BXhgR/go-ipld-cbor"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	ipldgit "github.com/ipfs/go-ipld-git"
 )
 
 var DagCmd = &cmds.Command{
@@ -163,6 +164,8 @@ func convertJsonToType(r io.Reader, format string) (node.Node, error) {
 		return ipldcbor.FromJson(r)
 	case "dag-pb", "protobuf":
 		return nil, fmt.Errorf("protobuf handling in 'dag' command not yet implemented")
+	case "git":
+		return nil, fmt.Errorf("git parsing from json not yet implemented")
 	default:
 		return nil, fmt.Errorf("unknown target format: %s", format)
 	}
@@ -177,6 +180,13 @@ func convertRawToType(r io.Reader, format string) (node.Node, error) {
 		}
 
 		return ipldcbor.Decode(data)
+	case "git":
+		n, err := ipldgit.ParseObject(r)
+		if err != nil {
+			return nil, err
+		}
+
+		return n, nil
 	default:
 		return nil, fmt.Errorf("unsupported target format for raw input: %s", format)
 	}

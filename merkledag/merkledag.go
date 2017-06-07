@@ -15,6 +15,7 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	"github.com/ipfs/go-ipld-git"
 )
 
 var log = logging.Logger("merkledag")
@@ -119,6 +120,8 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 		return NewRawNodeWPrefix(b.RawData(), b.Cid().Prefix())
 	case cid.DagCBOR:
 		return ipldcbor.Decode(b.RawData())
+	case cid.GitRaw:
+		return ipldgit.ParseObjectFromBuffer(b.RawData())
 	default:
 		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
 	}
