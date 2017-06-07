@@ -6,18 +6,19 @@ import (
 	"sync"
 	"time"
 
+	keystore "github.com/ipfs/go-ipfs/keystore"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
 	routing "gx/ipfs/QmNdaQ8itUU9jEZUwTsG4gHMaPmRfi6FEe89QjQAFbep3M/go-libp2p-routing"
+	ic "gx/ipfs/QmP1DfoUjiWH2ZBo1PBH6FupdBucbDepx3HpWmEY6JMUpY/go-libp2p-crypto"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	gpctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	recpb "gx/ipfs/QmWYCqr6UDqqD1bfRybaAPtbAqcN3TSJpveaBXMwbQ3ePZ/go-libp2p-record/pb"
-	pstore "gx/ipfs/QmXZSd1qR5BxZkPyuwfT5jpqQFScZccoZvDneXsKzCNHWX/go-libp2p-peerstore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
@@ -31,9 +32,10 @@ var DefaultRebroadcastInterval = time.Hour * 4
 const DefaultRecordLifetime = time.Hour * 24
 
 type Republisher struct {
-	r  routing.ValueStore
-	ds ds.Datastore
-	ps pstore.Peerstore
+	r    routing.ValueStore
+	ds   ds.Datastore
+	self ic.PrivKey
+	ks   keystore.Keystore
 
 	Interval time.Duration
 
@@ -44,21 +46,16 @@ type Republisher struct {
 	entries   map[peer.ID]struct{}
 }
 
-func NewRepublisher(r routing.ValueStore, ds ds.Datastore, ps pstore.Peerstore) *Republisher {
+// NewRepublisher creates a new Republisher
+func NewRepublisher(r routing.ValueStore, ds ds.Datastore, self ic.PrivKey, ks keystore.Keystore) *Republisher {
 	return &Republisher{
 		r:              r,
-		ps:             ps,
 		ds:             ds,
-		entries:        make(map[peer.ID]struct{}),
+		self:           self,
+		ks:             ks,
 		Interval:       DefaultRebroadcastInterval,
 		RecordLifetime: DefaultRecordLifetime,
 	}
-}
-
-func (rp *Republisher) AddName(id peer.ID) {
-	rp.entrylock.Lock()
-	defer rp.entrylock.Unlock()
-	rp.entries[id] = struct{}{}
 }
 
 func (rp *Republisher) Run(proc goprocess.Process) {
@@ -82,26 +79,56 @@ func (rp *Republisher) republishEntries(p goprocess.Process) error {
 	ctx, cancel := context.WithCancel(gpctx.OnClosingContext(p))
 	defer cancel()
 
-	for id, _ := range rp.entries {
-		log.Debugf("republishing ipns entry for %s", id)
-		priv := rp.ps.PrivKey(id)
+	err := rp.republishEntry(ctx, rp.self)
+	if err != nil {
+		return err
+	}
 
-		// Look for it locally only
-		_, ipnskey := namesys.IpnsKeysForID(id)
-		p, seq, err := rp.getLastVal(ipnskey)
+	if rp.ks != nil {
+		keyNames, err := rp.ks.List()
 		if err != nil {
-			if err == errNoEntry {
-				continue
+			return err
+		}
+		for _, name := range keyNames {
+			priv, err := rp.ks.Get(name)
+			if err != nil {
+				return err
 			}
-			return err
-		}
+			err = rp.republishEntry(ctx, priv)
+			if err != nil {
+				return err
+			}
 
-		// update record with same sequence number
-		eol := time.Now().Add(rp.RecordLifetime)
-		err = namesys.PutRecordToRouting(ctx, priv, p, seq, eol, rp.r, id)
-		if err != nil {
-			return err
 		}
+	}
+
+	return nil
+}
+
+func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) error {
+	id, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("republishing ipns entry for %s", id)
+
+	// Look for it locally only
+	_, ipnskey := namesys.IpnsKeysForID(id)
+	p, seq, err := rp.getLastVal(ipnskey)
+	if err != nil {
+		if err == errNoEntry {
+			return nil
+		}
+		return err
+	}
+
+	// update record with same sequence number
+	eol := time.Now().Add(rp.RecordLifetime)
+	err = namesys.PutRecordToRouting(ctx, priv, p, seq, eol, rp.r, id)
+	if err != nil {
+		println("put record to routing error: " + err.Error())
+		return err
 	}
 
 	return nil
