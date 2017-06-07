@@ -199,7 +199,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 			if err != nil {
 				errs <- err
 			}
-			for _ = range outch {
+			for range outch {
 			}
 		}(inst)
 	}
@@ -224,16 +224,6 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 			}
 		}
 	}
-}
-
-func getOrFail(bitswap Instance, b blocks.Block, t *testing.T, wg *sync.WaitGroup) {
-	if _, err := bitswap.Blockstore().Get(b.Cid()); err != nil {
-		_, err := bitswap.Exchange.GetBlock(context.Background(), b.Cid())
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	wg.Done()
 }
 
 // TODO simplify this test. get to the _essence_!
@@ -611,14 +601,14 @@ func TestBitswapLedgerTwoWay(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
+	_, err = instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	blk, err = instances[0].Exchange.GetBlock(ctx, blocks[1].Cid())
+	blk, err := instances[0].Exchange.GetBlock(ctx, blocks[1].Cid())
 	if err != nil {
 		t.Fatal(err)
 	}

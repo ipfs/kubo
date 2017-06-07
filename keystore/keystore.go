@@ -104,11 +104,8 @@ func (ks *FSKeystore) Put(name string, k ci.PrivKey) error {
 	defer fi.Close()
 
 	_, err = fi.Write(b)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // Get retrieve a key from the Keystore

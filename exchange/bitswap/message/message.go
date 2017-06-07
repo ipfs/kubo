@@ -220,19 +220,13 @@ func (m *impl) ToProtoV1() *pb.Message {
 func (m *impl) ToNetV0(w io.Writer) error {
 	pbw := ggio.NewDelimitedWriter(w)
 
-	if err := pbw.WriteMsg(m.ToProtoV0()); err != nil {
-		return err
-	}
-	return nil
+	return pbw.WriteMsg(m.ToProtoV0())
 }
 
 func (m *impl) ToNetV1(w io.Writer) error {
 	pbw := ggio.NewDelimitedWriter(w)
 
-	if err := pbw.WriteMsg(m.ToProtoV1()); err != nil {
-		return err
-	}
-	return nil
+	return pbw.WriteMsg(m.ToProtoV1())
 }
 
 func (m *impl) Loggable() map[string]interface{} {

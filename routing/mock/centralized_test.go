@@ -45,7 +45,7 @@ func TestClientFindProviders(t *testing.T) {
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
 	isInClient := false
 	for pi := range providersFromClient {
-		if pi.ID == pi.ID {
+		if pi.ID == pi.ID { // <-- typo?
 			isInClient = true
 		}
 	}
@@ -72,7 +72,7 @@ func TestClientOverMax(t *testing.T) {
 
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
 	i := 0
-	for _ = range providersFromClient {
+	for range providersFromClient {
 		i++
 	}
 	if i != max {
@@ -128,7 +128,7 @@ func TestCanceledContext(t *testing.T) {
 	providers := client.FindProvidersAsync(ctx, k, max)
 
 	numProvidersReturned := 0
-	for _ = range providers {
+	for range providers {
 		numProvidersReturned++
 	}
 	t.Log(numProvidersReturned)

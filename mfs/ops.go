@@ -65,12 +65,7 @@ func Mv(r *Root, src, dst string) error {
 		return err
 	}
 
-	err = srcDirObj.Unlink(srcFname)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return srcDirObj.Unlink(srcFname)
 }
 
 func lookupDir(r *Root, path string) (*Directory, error) {

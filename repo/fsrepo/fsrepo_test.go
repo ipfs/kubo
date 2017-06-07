@@ -100,7 +100,7 @@ func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
 	actual, ok := v.([]byte)
 	assert.True(ok, t, "value should be the []byte from r1's Put")
 	assert.Nil(r2.Close(), t)
-	assert.True(bytes.Compare(expected, actual) == 0, t, "data should match")
+	assert.True(bytes.Equal(expected, actual), t, "data should match")
 }
 
 func TestOpenMoreThanOnceInSameProcess(t *testing.T) {

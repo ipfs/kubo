@@ -47,12 +47,9 @@ const (
 	extraContentLengthHeader = "X-Content-Length"
 	uaHeader                 = "User-Agent"
 	contentTypeHeader        = "Content-Type"
-	contentDispHeader        = "Content-Disposition"
-	transferEncodingHeader   = "Transfer-Encoding"
 	applicationJson          = "application/json"
 	applicationOctetStream   = "application/octet-stream"
 	plainText                = "text/plain"
-	originHeader             = "origin"
 )
 
 var AllowedExposedHeadersArr = []string{streamHeader, channelHeader, extraContentLengthHeader}

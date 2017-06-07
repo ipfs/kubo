@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -346,7 +347,7 @@ func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 }
 
 func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	_, err := fi.fi.Seek(req.Offset, os.SEEK_SET)
+	_, err := fi.fi.Seek(req.Offset, io.SeekStart)
 	if err != nil {
 		return err
 	}
@@ -473,7 +474,7 @@ func (fi *FileNode) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.
 			return nil, fuse.ENOTSUP
 		}
 
-		_, err := fd.Seek(0, os.SEEK_END)
+		_, err := fd.Seek(0, io.SeekEnd)
 		if err != nil {
 			log.Error("seek reset failed: ", err)
 			return nil, err

@@ -427,11 +427,6 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	req.Host = "example.net"
 	req.Header.Set("X-Ipfs-Gateway-Prefix", "/bad-prefix")
 
-	res, err = doWithoutRedirect(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// make request to directory listing with evil prefix
 	req, err = http.NewRequest("GET", ts.URL, nil)
 	if err != nil {

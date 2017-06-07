@@ -67,7 +67,7 @@ func TestGetBlocks(t *testing.T) {
 	}
 
 	var count int
-	for _ = range received {
+	for range received {
 		count++
 	}
 	if len(expected) != count {

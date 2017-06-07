@@ -27,9 +27,6 @@ type ledger struct {
 	// Accounting tracks bytes sent and recieved.
 	Accounting debtRatio
 
-	// firstExchnage is the time of the first data exchange.
-	firstExchange time.Time
-
 	// lastExchange is the time of the last data exchange.
 	lastExchange time.Time
 

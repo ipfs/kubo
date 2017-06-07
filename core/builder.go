@@ -65,6 +65,7 @@ func (cfg *BuildCfg) fillDefaults() error {
 	if cfg.Repo == nil {
 		var d ds.Datastore
 		d = ds.NewMapDatastore()
+
 		if cfg.NilRepo {
 			d = ds.NewNullDatastore()
 		}
@@ -230,10 +231,5 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 	n.Resolver = path.NewBasicResolver(n.DAG)
 
-	err = n.loadFilesRoot()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return n.loadFilesRoot()
 }

@@ -4,13 +4,10 @@
 package set
 
 import (
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 
 	"github.com/ipfs/go-ipfs/blocks/bloom"
 )
-
-var log = logging.Logger("blockset")
 
 // BlockSet represents a mutable set of blocks CIDs.
 type BlockSet interface {

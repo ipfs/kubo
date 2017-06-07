@@ -118,7 +118,7 @@ func (b *bloomcache) hasCached(k *cid.Cid) (has bool, ok bool) {
 	}
 	if b.BloomActive() {
 		blr := b.bloom.HasTS(k.Bytes())
-		if blr == false { // not contained in bloom is only conclusive answer bloom gives
+		if !blr { // not contained in bloom is only conclusive answer bloom gives
 			b.hits.Inc()
 			return false, true
 		}

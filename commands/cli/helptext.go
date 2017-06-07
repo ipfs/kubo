@@ -16,9 +16,6 @@ const (
 	variadicArg = "%v..."
 	shortFlag   = "-%v"
 	longFlag    = "--%v"
-	optionType  = "(%v)"
-
-	whitespace = "\r\n\t "
 
 	indentStr = "  "
 )
@@ -295,9 +292,7 @@ func optionText(cmd ...*cmds.Command) []string {
 	// get a slice of the options we want to list out
 	options := make([]cmds.Option, 0)
 	for _, c := range cmd {
-		for _, opt := range c.Options {
-			options = append(options, opt)
-		}
+		options = append(options, c.Options...)
 	}
 
 	// add option names to output (with each name aligned)
@@ -424,13 +419,6 @@ func align(lines []string) []string {
 		}
 	}
 
-	return lines
-}
-
-func indent(lines []string, prefix string) []string {
-	for i, line := range lines {
-		lines[i] = prefix + indentString(line, prefix)
-	}
 	return lines
 }
 

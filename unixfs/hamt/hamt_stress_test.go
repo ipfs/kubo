@@ -1,13 +1,10 @@
 package hamt
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"math/rand"
 	"os"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -191,7 +188,8 @@ func genOpSet(seed int64, keep, temp []string) []testOp {
 }
 
 // executes the given op set with a repl to allow easier debugging
-func debugExecuteOpSet(ds dag.DAGService, width int, ops []testOp) (*HamtShard, error) {
+/*func debugExecuteOpSet(ds dag.DAGService, width int, ops []testOp) (*HamtShard, error) {
+
 	s, err := NewHamtShard(ds, width)
 	if err != nil {
 		return nil, err
@@ -238,7 +236,7 @@ mainloop:
 					run = -1
 				}
 			case "lookop":
-				for k := 0; k < len(ops); k++ {
+				for k = 0; k < len(ops); k++ {
 					if ops[k].Val == parts[1] {
 						fmt.Printf("  Op %d: %s %s\n", k, opnames[ops[k].Op], parts[1])
 					}
@@ -289,4 +287,4 @@ func readCommand() string {
 	scan := bufio.NewScanner(os.Stdin)
 	scan.Scan()
 	return scan.Text()
-}
+}*/

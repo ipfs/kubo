@@ -20,13 +20,6 @@ var DefaultSNRServers = []string{
 	"/ip4/178.62.61.185/tcp/4002/ipfs/QmVw6fGNqBixZE4bewRLT2VXX7fAHUHs8JyidDiJ1P7RUN",
 }
 
-func initSNRConfig() (*SupernodeClientConfig, error) {
-	// TODO perform validation
-	return &SupernodeClientConfig{
-		Servers: DefaultSNRServers,
-	}, nil
-}
-
 func (gcr *SupernodeClientConfig) ServerIPFSAddrs() ([]ipfsaddr.IPFSAddr, error) {
 	var addrs []ipfsaddr.IPFSAddr
 	for _, server := range gcr.Servers {

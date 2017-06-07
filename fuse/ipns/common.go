@@ -33,9 +33,6 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 	}
 
 	pub := nsys.NewRoutingPublisher(n.Routing, n.Repo.Datastore())
-	if err := pub.Publish(ctx, key, path.FromCid(nodek)); err != nil {
-		return err
-	}
 
-	return nil
+	return pub.Publish(ctx, key, path.FromCid(nodek))
 }

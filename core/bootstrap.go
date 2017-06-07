@@ -147,10 +147,7 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 
 	defer log.EventBegin(ctx, "bootstrapStart", id).Done()
 	log.Debugf("%s bootstrapping to %d nodes: %s", id, numToDial, randSubset)
-	if err := bootstrapConnect(ctx, host, randSubset); err != nil {
-		return err
-	}
-	return nil
+	return bootstrapConnect(ctx, host, randSubset)
 }
 
 func bootstrapConnect(ctx context.Context, ph host.Host, peers []pstore.PeerInfo) error {

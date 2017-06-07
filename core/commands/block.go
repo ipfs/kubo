@@ -288,10 +288,7 @@ It takes a list of base58 encoded multihashs to remove.
 			}
 
 			err := util.ProcRmOutput(outChan, res.Stdout(), res.Stderr())
-			if err != nil {
-				return nil, err
-			}
-			return nil, nil
+			return nil, err
 		},
 	},
 	Type: util.RemovedBlock{},

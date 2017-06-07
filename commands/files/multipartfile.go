@@ -10,7 +10,6 @@ import (
 
 const (
 	multipartFormdataType = "multipart/form-data"
-	multipartMixedType    = "multipart/mixed"
 
 	applicationDirectory = "application/x-directory"
 	applicationSymlink   = "application/symlink"
