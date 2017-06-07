@@ -83,10 +83,10 @@ type StreamInfo struct {
 }
 
 // Close closes stream endpoints and deregisters it
-func (c *StreamInfo) Close() error {
-	c.Local.Close()
-	c.Remote.Close()
-	c.Registry.Deregister(c.HandlerID)
+func (s *StreamInfo) Close() error {
+	s.Local.Close()
+	s.Remote.Close()
+	s.Registry.Deregister(s.HandlerID)
 	return nil
 }
 

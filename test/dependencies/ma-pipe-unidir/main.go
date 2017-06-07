@@ -38,6 +38,11 @@ func app() int {
 	mode := args[0]
 	addr := args[1]
 
+	if mode != "send" && mode != "recv" {
+		fmt.Print(USAGE)
+		return 1
+	}
+
 	if len(opts.PidFile) > 0 {
 		data := []byte(strconv.Itoa(os.Getpid()))
 		err := ioutil.WriteFile(opts.PidFile, data, 0644)
@@ -80,8 +85,6 @@ func app() int {
 	case "send":
 		io.Copy(conn, os.Stdin)
 	default:
-		//TODO: a bit late
-		fmt.Print(USAGE)
 		return 1
 	}
 	return 0

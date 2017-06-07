@@ -51,15 +51,40 @@ Note: this command is experimental and subject to change as usecases and APIs ar
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"ls":      ptpLsCmd,
-		"streams": ptpStreamsCmd,
-		"dial":    ptpDialCmd,
-		"listen":  ptpListenCmd,
-		"close":   ptpCloseCmd,
+		"listener": ptpListenerCmd,
+		"stream":   ptpStreamCmd,
 	},
 }
 
-var ptpLsCmd = &cmds.Command{
+// ptpListenerCmd is the 'ipfs ptp listener' command
+var ptpListenerCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "P2P listener management.",
+		ShortDescription: "Create and manage listener p2p endpoints",
+	},
+
+	Subcommands: map[string]*cmds.Command{
+		"ls":    ptpListenerLsCmd,
+		"open":  ptpListenerListenCmd,
+		"close": ptpListenerCloseCmd,
+	},
+}
+
+// ptpStreamCmd is the 'ipfs ptp stream' command
+var ptpStreamCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "P2P stream management.",
+		ShortDescription: "Create and manage p2p streams",
+	},
+
+	Subcommands: map[string]*cmds.Command{
+		"ls":    ptpStreamLsCmd,
+		"dial":  ptpStreamDialCmd,
+		"close": ptpStreamCloseCmd,
+	},
+}
+
+var ptpListenerLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List active p2p listeners.",
 	},
@@ -67,20 +92,10 @@ var ptpLsCmd = &cmds.Command{
 		cmds.BoolOption("headers", "v", "Print table headers (HandlerID, Protocol, Local, Remote).").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+
+		n, err := getNode(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		err = checkEnabled(n)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
 			return
 		}
 
@@ -116,7 +131,7 @@ var ptpLsCmd = &cmds.Command{
 	},
 }
 
-var ptpStreamsCmd = &cmds.Command{
+var ptpStreamLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List active p2p streams.",
 	},
@@ -124,20 +139,9 @@ var ptpStreamsCmd = &cmds.Command{
 		cmds.BoolOption("headers", "v", "Print table headers (HagndlerID, Protocol, Local, Remote).").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		n, err := getNode(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		err = checkEnabled(n)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
 			return
 		}
 
@@ -180,7 +184,7 @@ var ptpStreamsCmd = &cmds.Command{
 	},
 }
 
-var ptpListenCmd = &cmds.Command{
+var ptpListenerListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Forward p2p connections to a network multiaddr.",
 		ShortDescription: `
@@ -194,20 +198,9 @@ Note that the connections originate from the ipfs daemon process.
 		cmds.StringArg("Address", true, false, "Request handling application address."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		n, err := getNode(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		err = checkEnabled(n)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
 			return
 		}
 
@@ -237,7 +230,7 @@ Note that the connections originate from the ipfs daemon process.
 	},
 }
 
-var ptpDialCmd = &cmds.Command{
+var ptpStreamDialCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Dial to a p2p listener.",
 
@@ -255,20 +248,9 @@ transparently connect to a p2p service.
 		cmds.StringArg("BindAddress", false, false, "Address to listen for connection/s (default: /ip4/127.0.0.1/tcp/0)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		n, err := getNode(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		err = checkEnabled(n)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
 			return
 		}
 
@@ -304,89 +286,110 @@ transparently connect to a p2p service.
 	},
 }
 
-var ptpCloseCmd = &cmds.Command{
+var ptpListenerCloseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Closes an active p2p stream or listener.",
+		Tagline: "Close active p2p listener.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("Identifier", false, false, "Stream HandlerID or p2p listener protocol"),
+		cmds.StringArg("Protocol", false, false, "P2P listener protocol"),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("all", "a", "Close all streams and listeners.").Default(false),
+		cmds.BoolOption("all", "a", "Close all listeners.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		n, err := getNode(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		err = checkEnabled(n)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
 			return
 		}
 
 		closeAll, _, _ := req.Option("all").Bool()
-
 		var proto string
-		var handlerID uint64
-
-		useHandlerID := false
 
 		if !closeAll {
 			if len(req.Arguments()) == 0 {
-				res.SetError(errors.New("no handlerID nor listener protocol specified"), cmds.ErrNormal)
+				res.SetError(errors.New("no protocol name specified"), cmds.ErrNormal)
 				return
 			}
 
-			handlerID, err = strconv.ParseUint(req.Arguments()[0], 10, 64)
-			if err != nil {
-				proto = "/ptp/" + req.Arguments()[0]
-			} else {
-				useHandlerID = true
-			}
+			proto = "/ptp/" + req.Arguments()[0]
 		}
 
-		if closeAll || useHandlerID {
-			for _, stream := range n.PTP.Streams.Streams {
-				if !closeAll && handlerID != stream.HandlerID {
-					continue
-				}
-				stream.Close()
-				if !closeAll {
-					break
-				}
+		for _, listener := range n.PTP.Listeners.Listeners {
+			if !closeAll && listener.Protocol != proto {
+				continue
 			}
-		}
-
-		if closeAll || !useHandlerID {
-			for _, listener := range n.PTP.Listeners.Listeners {
-				if !closeAll && listener.Protocol != proto {
-					continue
-				}
-				listener.Close()
-				if !closeAll {
-					break
-				}
+			listener.Close()
+			if !closeAll {
+				break
 			}
 		}
 	},
 }
 
-func checkEnabled(n *core.IpfsNode) error {
+var ptpStreamCloseCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Close active p2p stream.",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("HandlerID", false, false, "Stream HandlerID"),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("all", "a", "Close all streams.").Default(false),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := getNode(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		closeAll, _, _ := req.Option("all").Bool()
+		var handlerID uint64
+
+		if !closeAll {
+			if len(req.Arguments()) == 0 {
+				res.SetError(errors.New("no HandlerID specified"), cmds.ErrNormal)
+				return
+			}
+
+			handlerID, err = strconv.ParseUint(req.Arguments()[0], 10, 64)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
+
+		for _, stream := range n.PTP.Streams.Streams {
+			if !closeAll && handlerID != stream.HandlerID {
+				continue
+			}
+			stream.Close()
+			if !closeAll {
+				break
+			}
+		}
+	},
+}
+
+func getNode(req cmds.Request) (*core.IpfsNode, error) {
+	n, err := req.InvocContext().GetNode()
+	if err != nil {
+		return nil, err
+	}
+
 	config, err := n.Repo.Config()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !config.Experimental.Libp2pStreamMounting {
-		return errors.New("libp2p stream mounting not enabled")
+		return nil, errors.New("libp2p stream mounting not enabled")
 	}
-	return nil
+
+	if !n.OnlineMode() {
+		return nil, errNotOnline
+	}
+
+	return n, nil
 }
