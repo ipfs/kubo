@@ -210,55 +210,52 @@ type connReq struct {
 }
 
 func connectWorker(ctx context.Context, net bsnet.BitSwapNetwork, kset *cid.Set, ksetLk *sync.Mutex,
-	requestChan <-chan *connReq) {
+	cr *connReq) {
+	wg := &sync.WaitGroup{}
+outer:
 	for {
 		select {
-		case cr := <-requestChan:
-			wg := &sync.WaitGroup{}
-			for p := range cr.peers {
-				wg.Add(1)
-				go func(p peer.ID) {
-					defer wg.Done()
-					err := net.ConnectTo(cr.ctx, p)
-					if err != nil {
-						log.Debug("failed to connect to provider %s: %s", p, err)
-					}
-				}(p)
+		case p, ok := <-cr.peers:
+			if !ok {
+				break outer
 			}
-			wg.Wait()
-			ksetLk.Lock()
-			kset.Remove(cr.cid)
-			ksetLk.Unlock()
 
+			wg.Add(1)
+			go func(p peer.ID) {
+				defer wg.Done()
+				err := net.ConnectTo(cr.ctx, p)
+				if err != nil {
+					log.Debug("failed to connect to provider %s: %s", p, err)
+				}
+			}(p)
 		case <-ctx.Done():
 			return
 		}
 	}
+
+	wg.Wait()
+	ksetLk.Lock()
+	kset.Remove(cr.cid)
+	ksetLk.Unlock()
 }
 
 func (bs *Bitswap) dhtWorker(ctx context.Context, kset *cid.Set, ksetLk *sync.Mutex,
-	blkChan <-chan *blockRequest) {
+	req *blockRequest) {
+	connectSemaphore := make(chan struct{}, TaskWorkerCount)
 
-	connectChan := make(chan *connReq, TaskWorkerCount)
-	for i := 0; i < TaskWorkerCount; i++ {
-		go connectWorker(ctx, bs.network, kset, ksetLk, connectChan)
-	}
+	child, cancel := context.WithTimeout(ctx, providerRequestTimeout)
+	defer cancel()
+	providers := bs.network.FindProvidersAsync(child, req.Cid, maxProvidersPerRequest)
 
-	for {
-		select {
-		case e := <-blkChan:
-			child, cancel := context.WithTimeout(e.Ctx, providerRequestTimeout)
-			defer cancel()
-			providers := bs.network.FindProvidersAsync(child, e.Cid, maxProvidersPerRequest)
-			connectChan <- &connReq{
-				peers: providers,
-				ctx:   child,
-				cid:   e.Cid,
-			}
-
-		case <-ctx.Done():
-			return
-		}
+	select {
+	case connectSemaphore <- struct{}{}:
+		go connectWorker(ctx, bs.network, kset, ksetLk, &connReq{
+			peers: providers,
+			ctx:   child,
+			cid:   req.Cid,
+		})
+		<-connectSemaphore
+	case <-ctx.Done():
 	}
 }
 
@@ -266,10 +263,7 @@ func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 	ksetLk := &sync.Mutex{}
 	kset := cid.NewSet()
 
-	searchChan := make(chan *blockRequest, TaskWorkerCount)
-	for i := 0; i < TaskWorkerCount; i++ {
-		go bs.dhtWorker(ctx, kset, ksetLk, searchChan)
-	}
+	searchSemaphore := make(chan struct{}, TaskWorkerCount)
 
 	for {
 		select {
@@ -288,8 +282,12 @@ func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 			kset.Add(e.Cid)
 			ksetLk.Unlock()
 
-			searchChan <- e
-
+			select {
+			case searchSemaphore <- struct{}{}:
+				go bs.dhtWorker(e.Ctx, kset, ksetLk, e)
+				<-searchSemaphore
+			case <-e.Ctx.Done():
+			}
 		case <-ctx.Done():
 			return
 		}
