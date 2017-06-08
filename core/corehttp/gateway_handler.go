@@ -280,7 +280,9 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	case err == nil:
 		log.Debugf("found index.html link for %s", urlPath)
 
-		if urlPath[len(urlPath)-1] != '/' {
+		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
+		goget := r.URL.Query().Get("go-get") == "1"
+		if dirwithoutslash && !goget {
 			// See comment above where originalUrlPath is declared.
 			http.Redirect(w, r, originalUrlPath+"/", 302)
 			log.Debugf("redirect to %s", originalUrlPath+"/")
