@@ -34,18 +34,6 @@
 			"Rev": "3463798d9574bd0b7eca275dccc530804ff5216f"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-os-rename",
-			"Rev": "3ac97f61ef67a6b87b95c1282f6c317ed0e693c2"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-random",
-			"Rev": "cd535bd25356746b9b1e824871dda7da932460e2"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-random-files",
-			"Rev": "737479700b40b4b50e914e963ce8d9d44603e3c8"
-		},
-		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
 			"Rev": "1f6da4a72e57d4e7edd4a7295a585e0a3999a2d4"
 		},
