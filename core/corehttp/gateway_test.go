@@ -485,6 +485,27 @@ func TestCacheControlImmutable(t *testing.T) {
 	}
 }
 
+func TestGoGetSupport(t *testing.T) {
+	ts, _ := newTestServerAndNode(t, nil)
+	t.Logf("test server url: %s", ts.URL)
+	defer ts.Close()
+
+	// mimic go-get
+	req, err := http.NewRequest("GET", ts.URL+emptyDir+"?go-get=1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Errorf("status is %d, expected 200", res.StatusCode)
+	}
+}
+
 func TestVersion(t *testing.T) {
 	config.CurrentCommit = "theshortcommithash"
 
