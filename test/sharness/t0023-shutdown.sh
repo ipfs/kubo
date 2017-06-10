@@ -17,7 +17,11 @@ test_expect_success "shutdown succeeds" '
 '
 
 test_expect_success "daemon no longer running" '
-	test_expect_code  1 kill -0 $IPFS_PID
+	for i in $(test_seq 1 100)
+	do
+		go-sleep 100ms
+		! kill -0 $IPFS_PID 2>/dev/null && return
+	done
 '
 
 test_launch_ipfs_daemon --offline
