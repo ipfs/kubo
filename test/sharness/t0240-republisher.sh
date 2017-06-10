@@ -94,6 +94,29 @@ go-sleep 15s
 
 verify_can_resolve "$num_test_nodes" "$id" "$HASH" "republisher fires after twenty seconds"
 
+#
+
+test_expect_success "generate new key" '
+KEY2=`ipfsi 1 key gen beepboop --type ed25519`
+'
+
+test_expect_success "publish with new key succeeds" '
+	HASH=$(echo "barfoo" | ipfsi 1 add -q) &&
+	ipfsi 1 name publish -t 5s -k "$KEY2" $HASH
+'
+
+verify_can_resolve "$num_test_nodes" "$KEY2" "$HASH" "new key just after publishing"
+
+go-sleep 5s
+
+verify_cannot_resolve "$num_test_nodes" "$KEY2" "new key cannot resolve after 5 seconds"
+
+go-sleep 15s
+
+verify_can_resolve "$num_test_nodes" "$KEY2" "$HASH" "new key can resolve again after republish"
+
+#
+
 teardown_iptb
 
 test_done
