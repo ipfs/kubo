@@ -145,6 +145,7 @@ var findProvidersDhtCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmds.IntOption("num-providers", "n", "The number of providers to find.").Default(20),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -159,7 +160,15 @@ var findProvidersDhtCmd = &cmds.Command{
 			return
 		}
 
-		numProviders := 20
+		numProviders, _, err := res.Request().Option("n").Int()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if numProviders < 1 {
+			res.SetError(fmt.Errorf("Number of providers must be greater than 0"), cmds.ErrNormal)
+			return
+		}
 
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
