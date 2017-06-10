@@ -3,7 +3,6 @@ package republisher
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 
 	keystore "github.com/ipfs/go-ipfs/keystore"
@@ -41,9 +40,6 @@ type Republisher struct {
 
 	// how long records that are republished should be valid for
 	RecordLifetime time.Duration
-
-	entrylock sync.Mutex
-	entries   map[peer.ID]struct{}
 }
 
 // NewRepublisher creates a new Republisher
