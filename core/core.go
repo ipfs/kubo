@@ -35,6 +35,7 @@ import (
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
+	ptp "github.com/ipfs/go-ipfs/ptp"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	nilrouting "github.com/ipfs/go-ipfs/routing/none"
@@ -130,6 +131,7 @@ type IpfsNode struct {
 	IpnsRepub    *ipnsrp.Republisher
 
 	Floodsub *floodsub.PubSub
+	PTP      *ptp.PTP
 
 	proc goprocess.Process
 	ctx  context.Context
@@ -244,6 +246,8 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	if pubsub {
 		n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
 	}
+
+	n.PTP = ptp.NewPTP(n.Identity, n.PeerHost, n.Peerstore)
 
 	// setup local discovery
 	if do != nil {
