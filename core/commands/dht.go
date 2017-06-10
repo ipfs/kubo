@@ -160,7 +160,7 @@ var findProvidersDhtCmd = &cmds.Command{
 			return
 		}
 
-		numProviders, _, err := res.Request().Option("n").Int()
+		numProviders, _, err := res.Request().Option("num-providers").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
