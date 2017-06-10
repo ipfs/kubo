@@ -1,6 +1,7 @@
 package config
 
 type Experiments struct {
-	FilestoreEnabled bool
-	ShardingEnabled  bool
+	FilestoreEnabled     bool
+	ShardingEnabled      bool
+	Libp2pStreamMounting bool
 }
