@@ -26,8 +26,8 @@ test_expect_success "test ports are closed" '
   (! (netstat -ln | grep "LISTEN" | grep ":10102 "))
 '
 
-test_must_fail 'fail without config option being enabled' '
-  ipfsi 0 p2p stream ls
+test_expect_success 'fail without config option being enabled' '
+  test_must_fail ipfsi 0 p2p stream ls
 '
 
 test_expect_success "enable filestore config setting" '
