@@ -19,6 +19,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
@@ -26,13 +27,19 @@ import (
 
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
 	dagnodes := make([]node.Node, 0)
+
+	r := &path.Resolver{
+		DAG:         n.DAG,
+		ResolveOnce: uio.ResolveUnixfsOnce,
+	}
+
 	for _, fpath := range paths {
 		p, err := path.ParsePath(fpath)
 		if err != nil {
 			return nil, err
 		}
 
-		dagnode, err := core.Resolve(ctx, n.Namesys, n.Resolver, p)
+		dagnode, err := core.Resolve(ctx, n.Namesys, r, p)
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
@@ -61,15 +68,20 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 }
 
 func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
-
 	var unpinned []*cid.Cid
+
+	r := &path.Resolver{
+		DAG:         n.DAG,
+		ResolveOnce: uio.ResolveUnixfsOnce,
+	}
+
 	for _, p := range paths {
 		p, err := path.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
 
-		k, err := core.ResolveToCid(ctx, n, p)
+		k, err := core.ResolveToCid(ctx, n.Namesys, r, p)
 		if err != nil {
 			return nil, err
 		}

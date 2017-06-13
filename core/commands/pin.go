@@ -12,6 +12,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	context "context"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
@@ -377,13 +378,18 @@ new pin and removing the old one.
 			return
 		}
 
-		fromc, err := core.ResolveToCid(req.Context(), n, from)
+		r := &path.Resolver{
+			DAG:         n.DAG,
+			ResolveOnce: uio.ResolveUnixfsOnce,
+		}
+
+		fromc, err := core.ResolveToCid(req.Context(), n.Namesys, r, from)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		toc, err := core.ResolveToCid(req.Context(), n, to)
+		toc, err := core.ResolveToCid(req.Context(), n.Namesys, r, to)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -486,13 +492,18 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 
 	keys := make(map[string]RefKeyObject)
 
+	r := &path.Resolver{
+		DAG:         n.DAG,
+		ResolveOnce: uio.ResolveUnixfsOnce,
+	}
+
 	for _, p := range args {
 		pth, err := path.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
 
-		c, err := core.ResolveToCid(ctx, n, pth)
+		c, err := core.ResolveToCid(ctx, n.Namesys, r, pth)
 		if err != nil {
 			return nil, err
 		}
