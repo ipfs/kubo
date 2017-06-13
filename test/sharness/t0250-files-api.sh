@@ -72,6 +72,16 @@ test_sharding() {
 		test_cmp file_out file_exp
 	'
 
+	test_expect_success "can pin a file from sharded directory" '
+		ipfs files stat --hash /foo/file42 > pin_file_hash &&
+		ipfs pin add < pin_file_hash > pin_hash
+	'
+
+	test_expect_success "can unpin a file from sharded directory" '
+		read -r _ HASH _ < pin_hash &&
+		ipfs pin rm $HASH
+	'
+
 	test_expect_success "output object was really sharded" '
 		ipfs files stat --hash /foo > expected_foo_hash &&
 		echo QmPkwLJTYZRGPJ8Lazr9qPdrLmswPtUjaDbEpmR9jEh1se > actual_foo_hash &&
