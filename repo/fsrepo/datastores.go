@@ -1,7 +1,6 @@
 package fsrepo
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -20,7 +19,7 @@ func (r *FSRepo) constructDatastore(params map[string]interface{}) (repo.Datasto
 	case "mount":
 		mounts, ok := params["mounts"].([]interface{})
 		if !ok {
-			return nil, fmt.Errorf("mounts field wasnt an array")
+			return nil, fmt.Errorf("'mounts' field is missing or not an array")
 		}
 
 		return r.openMountDatastore(mounts)
@@ -29,19 +28,33 @@ func (r *FSRepo) constructDatastore(params map[string]interface{}) (repo.Datasto
 	case "mem":
 		return ds.NewMapDatastore(), nil
 	case "log":
-		child, err := r.constructDatastore(params["child"].(map[string]interface{}))
+		childField, ok := params["child"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("'child' field is missing or not a map")
+		}
+		child, err := r.constructDatastore(childField)
 		if err != nil {
 			return nil, err
 		}
-
-		return ds.NewLogDatastore(child, params["name"].(string)), nil
+		nameField, ok := params["name"].(string)
+		if !ok {
+			return nil, fmt.Errorf("'name' field was missing or not a string")
+		}
+		return ds.NewLogDatastore(child, nameField), nil
 	case "measure":
-		child, err := r.constructDatastore(params["child"].(map[string]interface{}))
+		childField, ok := params["child"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("'child' field was missing or not a map")
+		}
+		child, err := r.constructDatastore(childField)
 		if err != nil {
 			return nil, err
 		}
 
-		prefix := params["prefix"].(string)
+		prefix, ok := params["prefix"].(string)
+		if !ok {
+			return nil, fmt.Errorf("'prefix' field was missing or not a string")
+		}
 
 		return r.openMeasureDB(prefix, child)
 
@@ -50,12 +63,6 @@ func (r *FSRepo) constructDatastore(params map[string]interface{}) (repo.Datasto
 	default:
 		return nil, fmt.Errorf("unknown datastore type: %s", params["type"])
 	}
-}
-
-type mountConfig struct {
-	Path      string
-	ChildType string
-	Child     *json.RawMessage
 }
 
 func (r *FSRepo) openMountDatastore(mountcfg []interface{}) (repo.Datastore, error) {
@@ -83,22 +90,35 @@ func (r *FSRepo) openMountDatastore(mountcfg []interface{}) (repo.Datastore, err
 }
 
 func (r *FSRepo) openFlatfsDatastore(params map[string]interface{}) (repo.Datastore, error) {
-	p := params["path"].(string)
+	p, ok := params["path"].(string)
+	if !ok {
+		return nil, fmt.Errorf("'path' field is missing or not boolean")
+	}
 	if !filepath.IsAbs(p) {
 		p = filepath.Join(r.path, p)
 	}
 
-	sshardFun := params["shardFunc"].(string)
+	sshardFun, ok := params["shardFunc"].(string)
+	if !ok {
+		return nil, fmt.Errorf("'shardFunc' field is missing or not a string")
+	}
 	shardFun, err := flatfs.ParseShardFunc(sshardFun)
 	if err != nil {
 		return nil, err
 	}
 
-	return flatfs.CreateOrOpen(p, shardFun, params["sync"].(bool))
+	syncField, ok := params["sync"].(bool)
+	if !ok {
+		return nil, fmt.Errorf("'sync' field is missing or not boolean")
+	}
+	return flatfs.CreateOrOpen(p, shardFun, syncField)
 }
 
 func (r *FSRepo) openLeveldbDatastore(params map[string]interface{}) (repo.Datastore, error) {
-	p := params["path"].(string)
+	p, ok := params["path"].(string)
+	if !ok {
+		return nil, fmt.Errorf("'path' field is missing or not string")
+	}
 	if !filepath.IsAbs(p) {
 		p = filepath.Join(r.path, p)
 	}

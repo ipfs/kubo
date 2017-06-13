@@ -39,7 +39,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			Gateway:    "/ip4/127.0.0.1/tcp/8080",
 		},
 
-		Datastore: *datastore,
+		Datastore: datastore,
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
 		Identity:  identity,
 		Discovery: Discovery{MDNS{
@@ -77,8 +77,8 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 }
 
 // DatastoreConfig is an internal function exported to aid in testing.
-func DefaultDatastoreConfig() *Datastore {
-	return &Datastore{
+func DefaultDatastoreConfig() Datastore {
+	return Datastore{
 		StorageMax:         "10GB",
 		StorageGCWatermark: 90, // 90%
 		GCPeriod:           "1h",
