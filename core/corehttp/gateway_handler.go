@@ -197,7 +197,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	// Check etag send back to us
 	etag := "\"" + resolvedPath.Cid().String() + "\""
-	if r.Header.Get("If-None-Match") == etag {
+	if r.Header.Get("If-None-Match") == etag || r.Header.Get("If-None-Match") == "W/"+etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
