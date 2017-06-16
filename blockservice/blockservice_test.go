@@ -3,7 +3,7 @@ package blockservice
 import (
 	"testing"
 
-	"github.com/ipfs/go-ipfs/blocks"
+	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	butil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"

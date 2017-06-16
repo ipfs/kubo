@@ -6,7 +6,7 @@ import (
 	"time"
 
 	context "context"
-	blocks "github.com/ipfs/go-ipfs/blocks"
+	blocks "github.com/ipfs/go-block-format"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"

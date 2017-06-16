@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
+	blocks "github.com/ipfs/go-block-format"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	bstest "github.com/ipfs/go-ipfs/blockservice/test"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"

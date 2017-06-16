@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
+	blocks "github.com/ipfs/go-block-format"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
+	blocks "github.com/ipfs/go-block-format"
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"

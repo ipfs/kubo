@@ -3,7 +3,7 @@ package blockstore
 import (
 	"context"
 
-	"github.com/ipfs/go-ipfs/blocks"
+	"github.com/ipfs/go-block-format"
 
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	"gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
