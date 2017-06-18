@@ -1,5 +1,37 @@
 # go-ipfs changelog
 
+### 0.4.10 - 2017-06-18
+
+- Features
+  - Add support for specifying the hash function in `ipfs add` ([ipfs/go-ipfs#3919](https://github.com/ipfs/go-ipfs/pull/3919))
+  - Implement `ipfs key {rm, rename}` ([ipfs/go-ipfs#3892](https://github.com/ipfs/go-ipfs/pull/3892))
+  - Implement `ipfs shutdown` command ([ipfs/go-ipfs#3884](https://github.com/ipfs/go-ipfs/pull/3884))
+  - Implement `ipfs pin update` ([ipfs/go-ipfs#3846](https://github.com/ipfs/go-ipfs/pull/3846))
+  - Implement `ipfs pin verify` ([ipfs/go-ipfs#3843](https://github.com/ipfs/go-ipfs/pull/3843))
+  - Implemented experimental p2p commands ([ipfs/go-ipfs#3943](https://github.com/ipfs/go-ipfs/pull/3943))
+- Improvements
+  - Add MaxStorage field to output of "repo stat" ([ipfs/go-ipfs#3915](https://github.com/ipfs/go-ipfs/pull/3915))
+  - Add Suborigin header to gateway responses ([ipfs/go-ipfs#3914](https://github.com/ipfs/go-ipfs/pull/3914))
+  - Add "--file-order" option to "filestore ls" and "verify" ([ipfs/go-ipfs#3938](https://github.com/ipfs/go-ipfs/pull/3938))
+  - Allow selecting ipns keys by Peer ID ([ipfs/go-ipfs#3882](https://github.com/ipfs/go-ipfs/pull/3882))
+  - Don't redirect to trailing slash in gateway for `go get` ([ipfs/go-ipfs#3963](https://github.com/ipfs/go-ipfs/pull/3963))
+  - Add 'ipfs dht findprovs --num-providers' to allow choosing number of providers to find ([ipfs/go-ipfs#3966](https://github.com/ipfs/go-ipfs/pull/3966))
+  - Make sure all keystore keys get republished ([ipfs/go-ipfs#3951](https://github.com/ipfs/go-ipfs/pull/3951))
+- Documentation
+  - Adding documentation on PubSub encodedings ([ipfs/go-ipfs#3909](https://github.com/ipfs/go-ipfs/pull/3909))
+  - Change 'neccessary' to 'necessary' ([ipfs/go-ipfs#3941](https://github.com/ipfs/go-ipfs/pull/3941))
+  - README.md: add Nix to the linux package managers ([ipfs/go-ipfs#3939](https://github.com/ipfs/go-ipfs/pull/3939))
+  - More verbose errors in filestore ([ipfs/go-ipfs#3964](https://github.com/ipfs/go-ipfs/pull/3964))
+- Bugfixes
+  - Fix typo in message when file size check fails ([ipfs/go-ipfs#3895](https://github.com/ipfs/go-ipfs/pull/3895))
+  - Clean up bitswap ledgers when disconnecting ([ipfs/go-ipfs#3437](https://github.com/ipfs/go-ipfs/pull/3437))
+  - Make odds of 'process added after close' panic less likely ([ipfs/go-ipfs#3940](https://github.com/ipfs/go-ipfs/pull/3940))
+- General Changes and Refactorings
+  - Remove 'ipfs diag net' from codebase ([ipfs/go-ipfs#3916](https://github.com/ipfs/go-ipfs/pull/3916))
+  - Update to dht code with provide announce option ([ipfs/go-ipfs#3928](https://github.com/ipfs/go-ipfs/pull/3928))
+  - Apply the megacheck code vetting tool ([ipfs/go-ipfs#3949](https://github.com/ipfs/go-ipfs/pull/3949))
+  - Expose port 8081 in docker container for /ws listener ([ipfs/go-ipfs#3954](https://github.com/ipfs/go-ipfs/pull/3954))
+
 ### 0.4.9 - 2017-04-30
 
 Ipfs 0.4.9 is a maintenance release that contains several useful bugfixes and
