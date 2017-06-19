@@ -9,12 +9,16 @@ import (
 
 	repo "github.com/ipfs/go-ipfs/repo"
 
-	levelds "gx/ipfs/QmPdvXuXWAR6gtxxqZw42RtSADMwz4ijVmYHGS542b6cMz/go-ds-leveldb"
 	measure "gx/ipfs/QmSb95iHExSSb47zpmyn5CyY5PZidVWSjyKyDqgYQrnKor/go-ds-measure"
 	flatfs "gx/ipfs/QmUTshC2PP4ZDqkrFfDU4JGJFMWjYnunxPgkQ6ZCA2hGqh/go-ds-flatfs"
+
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	mount "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/syncmount"
+
+	badgerds "github.com/ipfs/go-ds-badger"
+	levelds "gx/ipfs/QmPdvXuXWAR6gtxxqZw42RtSADMwz4ijVmYHGS542b6cMz/go-ds-leveldb"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
+	"os"
 )
 
 // ConfigFromMap creates a new datastore config from a map
@@ -332,4 +336,21 @@ func (c measureDatastoreConfig) Create(path string) (repo.Datastore, error) {
 		return nil, err
 	}
 	return measure.New(c.prefix, child), nil
+}
+
+func (r *FSRepo) openBadgerDatastore(params map[string]interface{}) (repo.Datastore, error) {
+	p, ok := params["path"].(string)
+	if !ok {
+		return nil, fmt.Errorf("'path' field is missing or not string")
+	}
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(r.path, p)
+	}
+
+	err := os.MkdirAll(p, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	return badgerds.NewDatastore(p, nil)
 }
