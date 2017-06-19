@@ -1,4 +1,4 @@
-package ptp
+package p2p
 
 import (
 	"context"
@@ -14,8 +14,8 @@ import (
 	manet "gx/ipfs/Qmf1Gq7N45Rpuw7ev47uWgH6dLPtdnvcMRNPkVBwqjLJg2/go-multiaddr-net"
 )
 
-// PTP structure holds information on currently running streams/listeners
-type PTP struct {
+// P2P structure holds information on currently running streams/listeners
+type P2P struct {
 	Listeners ListenerRegistry
 	Streams   StreamRegistry
 
@@ -24,38 +24,38 @@ type PTP struct {
 	peerstore pstore.Peerstore
 }
 
-// NewPTP creates new PTP struct
-func NewPTP(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore) *PTP {
-	return &PTP{
+// NewP2P creates new P2P struct
+func NewP2P(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore) *P2P {
+	return &P2P{
 		identity:  identity,
 		peerHost:  peerHost,
 		peerstore: peerstore,
 	}
 }
 
-func (ptp *PTP) newStreamTo(ctx2 context.Context, p peer.ID, protocol string) (net.Stream, error) {
+func (p2p *P2P) newStreamTo(ctx2 context.Context, p peer.ID, protocol string) (net.Stream, error) {
 	ctx, cancel := context.WithTimeout(ctx2, time.Second*30) //TODO: configurable?
 	defer cancel()
-	err := ptp.peerHost.Connect(ctx, pstore.PeerInfo{ID: p})
+	err := p2p.peerHost.Connect(ctx, pstore.PeerInfo{ID: p})
 	if err != nil {
 		return nil, err
 	}
-	return ptp.peerHost.NewStream(ctx2, p, pro.ID(protocol))
+	return p2p.peerHost.NewStream(ctx2, p, pro.ID(protocol))
 }
 
 // Dial creates new P2P stream to a remote listener
-func (ptp *PTP) Dial(ctx context.Context, addr ma.Multiaddr, peer peer.ID, proto string, bindAddr ma.Multiaddr) (*ListenerInfo, error) {
+func (p2p *P2P) Dial(ctx context.Context, addr ma.Multiaddr, peer peer.ID, proto string, bindAddr ma.Multiaddr) (*ListenerInfo, error) {
 	lnet, _, err := manet.DialArgs(bindAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	listenerInfo := ListenerInfo{
-		Identity: ptp.identity,
+		Identity: p2p.identity,
 		Protocol: proto,
 	}
 
-	remote, err := ptp.newStreamTo(ctx, peer, proto)
+	remote, err := p2p.newStreamTo(ctx, peer, proto)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (ptp *PTP) Dial(ctx context.Context, addr ma.Multiaddr, peer peer.ID, proto
 		listenerInfo.Closer = listener
 		listenerInfo.Running = true
 
-		go ptp.doAccept(&listenerInfo, remote, listener)
+		go p2p.doAccept(&listenerInfo, remote, listener)
 
 	default:
 		return nil, errors.New("unsupported protocol: " + lnet)
@@ -83,7 +83,7 @@ func (ptp *PTP) Dial(ctx context.Context, addr ma.Multiaddr, peer peer.ID, proto
 	return &listenerInfo, nil
 }
 
-func (ptp *PTP) doAccept(listenerInfo *ListenerInfo, remote net.Stream, listener manet.Listener) {
+func (p2p *P2P) doAccept(listenerInfo *ListenerInfo, remote net.Stream, listener manet.Listener) {
 	defer listener.Close()
 
 	local, err := listener.Accept()
@@ -103,10 +103,10 @@ func (ptp *PTP) doAccept(listenerInfo *ListenerInfo, remote net.Stream, listener
 		Local:  local,
 		Remote: remote,
 
-		Registry: &ptp.Streams,
+		Registry: &p2p.Streams,
 	}
 
-	ptp.Streams.Register(&stream)
+	p2p.Streams.Register(&stream)
 	stream.startStreaming()
 }
 
@@ -143,18 +143,18 @@ func (il *P2PListener) Close() error {
 }
 
 // Listen creates new P2PListener
-func (ptp *PTP) registerStreamHandler(ctx2 context.Context, protocol string) (*P2PListener, error) {
+func (p2p *P2P) registerStreamHandler(ctx2 context.Context, protocol string) (*P2PListener, error) {
 	ctx, cancel := context.WithCancel(ctx2)
 
 	list := &P2PListener{
-		peerHost: ptp.peerHost,
+		peerHost: p2p.peerHost,
 		proto:    pro.ID(protocol),
 		conCh:    make(chan net.Stream),
 		ctx:      ctx,
 		cancel:   cancel,
 	}
 
-	ptp.peerHost.SetStreamHandler(list.proto, func(s net.Stream) {
+	p2p.peerHost.SetStreamHandler(list.proto, func(s net.Stream) {
 		select {
 		case list.conCh <- s:
 		case <-ctx.Done():
@@ -165,30 +165,30 @@ func (ptp *PTP) registerStreamHandler(ctx2 context.Context, protocol string) (*P
 	return list, nil
 }
 
-// NewListener creates new ptp listener
-func (ptp *PTP) NewListener(ctx context.Context, proto string, addr ma.Multiaddr) (*ListenerInfo, error) {
-	listener, err := ptp.registerStreamHandler(ctx, proto)
+// NewListener creates new p2p listener
+func (p2p *P2P) NewListener(ctx context.Context, proto string, addr ma.Multiaddr) (*ListenerInfo, error) {
+	listener, err := p2p.registerStreamHandler(ctx, proto)
 	if err != nil {
 		return nil, err
 	}
 
 	listenerInfo := ListenerInfo{
-		Identity: ptp.identity,
+		Identity: p2p.identity,
 		Protocol: proto,
 		Address:  addr,
 		Closer:   listener,
 		Running:  true,
-		Registry: &ptp.Listeners,
+		Registry: &p2p.Listeners,
 	}
 
-	go ptp.acceptStreams(&listenerInfo, listener)
+	go p2p.acceptStreams(&listenerInfo, listener)
 
-	ptp.Listeners.Register(&listenerInfo)
+	p2p.Listeners.Register(&listenerInfo)
 
 	return &listenerInfo, nil
 }
 
-func (ptp *PTP) acceptStreams(listenerInfo *ListenerInfo, listener Listener) {
+func (p2p *P2P) acceptStreams(listenerInfo *ListenerInfo, listener Listener) {
 	for listenerInfo.Running {
 		remote, err := listener.Accept()
 		if err != nil {
@@ -214,19 +214,19 @@ func (ptp *PTP) acceptStreams(listenerInfo *ListenerInfo, listener Listener) {
 			Local:  local,
 			Remote: remote,
 
-			Registry: &ptp.Streams,
+			Registry: &p2p.Streams,
 		}
 
-		ptp.Streams.Register(&stream)
+		p2p.Streams.Register(&stream)
 		stream.startStreaming()
 	}
-	ptp.Listeners.Deregister(listenerInfo.Protocol)
+	p2p.Listeners.Deregister(listenerInfo.Protocol)
 }
 
 // CheckProtoExists checks whether a protocol handler is registered to
 // mux handler
-func (ptp *PTP) CheckProtoExists(proto string) bool {
-	protos := ptp.peerHost.Mux().Protocols()
+func (p2p *P2P) CheckProtoExists(proto string) bool {
+	protos := p2p.peerHost.Mux().Protocols()
 
 	for _, p := range protos {
 		if p != proto {
