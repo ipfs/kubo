@@ -441,6 +441,11 @@
       "hash": "QmbJUay5h1HtzhJb5QQk2t26yCnJksHynvhcqp18utBPqG",
       "name": "go-block-format",
       "version": "0.1.1"
+    },
+    {
+      "hash": "QmaNDbaV1wvPRLxTYepVsXrppXNjQ1NbrnG7ibAgKeyaXD",
+      "name": "go-libp2p-routing",
+      "version": "2.2.15"
     }
   ],
   "gxVersion": "0.10.0",
