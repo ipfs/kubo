@@ -152,23 +152,25 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 var ErrNoRawYet = fmt.Errorf("currently only fully support protonodes in the dagmodifier")
 
 func (dm *DagModifier) Size() (int64, error) {
-	pbnd, ok := dm.curNode.(*mdag.ProtoNode)
-	if !ok {
-		return 0, ErrNoRawYet
-	}
-
-	pbn, err := ft.FromBytes(pbnd.Data())
-	if err != nil {
-		return 0, err
-	}
-
-	if dm.wrBuf != nil {
-		if uint64(dm.wrBuf.Len())+dm.writeStart > pbn.GetFilesize() {
+	switch nd := dm.curNode.(type) {
+	case *mdag.ProtoNode:
+		pbn, err := ft.FromBytes(nd.Data())
+		if err != nil {
+			return 0, err
+		}
+		if dm.wrBuf != nil && uint64(dm.wrBuf.Len())+dm.writeStart > pbn.GetFilesize() {
 			return int64(dm.wrBuf.Len()) + int64(dm.writeStart), nil
 		}
+		return int64(pbn.GetFilesize()), nil
+	case *mdag.RawNode:
+		if dm.wrBuf != nil {
+			return 0, ErrNoRawYet
+		}
+		sz, err := nd.Size()
+		return int64(sz), err
+	default:
+		return 0, ErrNotUnixfs
 	}
-
-	return int64(pbn.GetFilesize()), nil
 }
 
 // Sync writes changes to this dag to disk
@@ -397,12 +399,12 @@ func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 }
 
 // GetNode gets the modified DAG Node
-func (dm *DagModifier) GetNode() (*mdag.ProtoNode, error) {
+func (dm *DagModifier) GetNode() (node.Node, error) {
 	err := dm.Sync()
 	if err != nil {
 		return nil, err
 	}
-	return dm.curNode.Copy().(*mdag.ProtoNode), nil
+	return dm.curNode.Copy(), nil
 }
 
 // HasChanges returned whether or not there are unflushed changes to this dag

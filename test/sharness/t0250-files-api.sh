@@ -15,6 +15,7 @@ test_expect_success "can create some files for testing" '
 	FILE1=$(echo foo | ipfs add -q) &&
 	FILE2=$(echo bar | ipfs add -q) &&
 	FILE3=$(echo baz | ipfs add -q) &&
+        FILE9=$(echo zip | ipfs add -q --raw-leaves) &&
 	mkdir stuff_test &&
 	echo cats > stuff_test/a &&
 	echo dogs > stuff_test/b &&
@@ -245,6 +246,42 @@ test_files_api() {
 
 	test_expect_success "cannot remove root" '
 		test_expect_code 1 ipfs files rm -r /
+	'
+
+	test_expect_success "check root hash was not changed" '
+		ipfs files stat --hash / > roothashafter &&
+		test_cmp roothash roothashafter
+	'
+
+        # test raw node
+
+	test_expect_success "can put a raw-node into root" '
+		ipfs files cp /ipfs/$FILE9 /file9
+	'
+
+	test_expect_success "file shows up in root" '
+		verify_dir_contents / file9 cats
+	'
+
+	test_expect_success "can read file" '
+		ipfs files read /file9 > file9out
+	'
+
+	test_expect_success "output looks good" '
+		echo zip > expected &&
+		test_cmp expected file9out
+	'
+
+	test_expect_success "can remove file from root" '
+		ipfs files rm /file9
+	'
+
+	test_expect_success "file no longer appears" '
+		verify_dir_contents / cats
+	'
+
+	test_expect_success "check root hash" '
+		ipfs files stat --hash / > roothash
 	'
 
 	test_expect_success "check root hash was not changed" '
