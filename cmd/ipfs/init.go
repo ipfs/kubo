@@ -58,6 +58,13 @@ var initCmd = &cmds.Command{
 		ShortDescription: `
 Initializes ipfs configuration files and generates a new keypair.
 
+If you are going to run IPFS in server environment, you may want to
+initialize it using 'server' profile.
+
+Available profiles:
+    'server' - Disables local host discovery, recommended when
+        running IPFS on machines with public IPv4 addresses.
+
 ipfs uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
 environment variable:
