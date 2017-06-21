@@ -151,6 +151,7 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 
 var ErrNoRawYet = fmt.Errorf("currently only fully support protonodes in the dagmodifier")
 
+// Size returns the Filesize of the node
 func (dm *DagModifier) Size() (int64, error) {
 	switch nd := dm.curNode.(type) {
 	case *mdag.ProtoNode:
@@ -321,25 +322,18 @@ func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*c
 
 // appendData appends the blocks from the given chan to the end of this dag
 func (dm *DagModifier) appendData(nd node.Node, spl chunk.Splitter) (node.Node, error) {
-
-	var root *mdag.ProtoNode
 	switch nd := nd.(type) {
 	case *mdag.ProtoNode:
-		root = nd
+		dbp := &help.DagBuilderParams{
+			Dagserv:  dm.dagserv,
+			Maxlinks: help.DefaultLinksPerBlock,
+		}
+		return trickle.TrickleAppend(dm.ctx, nd, dbp.New(spl))
 	case *mdag.RawNode:
-		// TODO: be able to append to rawnodes. Probably requires making this
-		// node a child of a unxifs intermediate node and passing it down
 		return nil, fmt.Errorf("appending to raw node types not yet supported")
 	default:
 		return nil, ErrNotUnixfs
 	}
-
-	dbp := &help.DagBuilderParams{
-		Dagserv:  dm.dagserv,
-		Maxlinks: help.DefaultLinksPerBlock,
-	}
-
-	return trickle.TrickleAppend(dm.ctx, root, dbp.New(spl))
 }
 
 // Read data from this dag starting at the current offset
