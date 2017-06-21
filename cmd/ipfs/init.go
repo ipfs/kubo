@@ -22,36 +22,6 @@ const (
 	nBitsForKeypairDefault = 2048
 )
 
-// TODO: move this out(where?)
-// ConfigProfiles is a map holding configuration transformers
-var ConfigProfiles = map[string]func(*config.Config) error{
-	"server": func(c *config.Config) error {
-
-		// defaultServerFilters has a list of non-routable IPv4 prefixes
-		// according to http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
-		defaultServerFilters := []string{
-			"/ip4/10.0.0.0/ipcidr/8",
-			"/ip4/100.64.0.0/ipcidr/10",
-			"/ip4/169.254.0.0/ipcidr/16",
-			"/ip4/172.16.0.0/ipcidr/12",
-			"/ip4/192.0.0.0/ipcidr/24",
-			"/ip4/192.0.0.0/ipcidr/29",
-			"/ip4/192.0.0.8/ipcidr/32",
-			"/ip4/192.0.0.170/ipcidr/32",
-			"/ip4/192.0.0.171/ipcidr/32",
-			"/ip4/192.0.2.0/ipcidr/24",
-			"/ip4/192.168.0.0/ipcidr/16",
-			"/ip4/198.18.0.0/ipcidr/15",
-			"/ip4/198.51.100.0/ipcidr/24",
-			"/ip4/203.0.113.0/ipcidr/24",
-			"/ip4/240.0.0.0/ipcidr/4",
-		}
-
-		c.Swarm.AddrFilters = append(c.Swarm.AddrFilters, defaultServerFilters...)
-		return nil
-	},
-}
-
 var initCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Initializes ipfs config file.",
@@ -78,7 +48,7 @@ environment variable:
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
 		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
-		cmds.StringOption("profile", "p", "Apply profile settings to config"),
+		cmds.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -183,8 +153,8 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 	}
 
 	for _, profile := range confProfiles {
-		transformer := ConfigProfiles[profile]
-		if transformer == nil {
+		transformer, ok := config.ConfigProfiles[profile]
+		if !ok {
 			return fmt.Errorf("invalid configuration profile: %s", profile)
 		}
 
