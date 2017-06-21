@@ -126,6 +126,21 @@ test_expect_success "clean up ipfs dir" '
 	rm -rf "$IPFS_PATH"
 '
 
+# test init profiles
+test_expect_success "'ipfs init --profile' succeeds" '
+	BITS="1024" &&
+	ipfs init --bits="$BITS" --profile=server
+'
+
+test_expect_success "'ipfs config Swarm.AddrFilters' looks good" '
+	ipfs config Swarm.AddrFilters > actual_config &&
+	test $(cat actual_config | wc -l) = 17
+'
+
+test_expect_success "clean up ipfs dir" '
+	rm -rf "$IPFS_PATH"
+'
+
 test_init_ipfs
 
 test_launch_ipfs_daemon
