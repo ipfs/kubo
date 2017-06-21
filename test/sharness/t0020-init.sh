@@ -127,6 +127,13 @@ test_expect_success "clean up ipfs dir" '
 '
 
 # test init profiles
+test_expect_success "'ipfs init --profile' with invalid profile fails" '
+	BITS="1024" &&
+	test_must_fail ipfs init --bits="$BITS" --profile=nonexistent_profile 2> invalid_profile_out
+	EXPECT="Error: invalid configuration profile: nonexistent_profile" &&
+	grep "$EXPECT" invalid_profile_out
+'
+
 test_expect_success "'ipfs init --profile' succeeds" '
 	BITS="1024" &&
 	ipfs init --bits="$BITS" --profile=server
