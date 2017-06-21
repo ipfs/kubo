@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 
 	context "context"
 	assets "github.com/ipfs/go-ipfs/assets"
@@ -20,6 +21,36 @@ import (
 const (
 	nBitsForKeypairDefault = 2048
 )
+
+// TODO: move this out(where?)
+// ConfigProfiles is a map holding configuration transformers
+var ConfigProfiles = map[string]func(*config.Config) error{
+	"server": func(c *config.Config) error {
+
+		// defaultServerFilters has a list of non-routable IPv4 prefixes
+		// according to http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+		defaultServerFilters := []string{
+			"/ip4/10.0.0.0/ipcidr/8",
+			"/ip4/100.64.0.0/ipcidr/10",
+			"/ip4/169.254.0.0/ipcidr/16",
+			"/ip4/172.16.0.0/ipcidr/12",
+			"/ip4/192.0.0.0/ipcidr/24",
+			"/ip4/192.0.0.0/ipcidr/29",
+			"/ip4/192.0.0.8/ipcidr/32",
+			"/ip4/192.0.0.170/ipcidr/32",
+			"/ip4/192.0.0.171/ipcidr/32",
+			"/ip4/192.0.2.0/ipcidr/24",
+			"/ip4/192.168.0.0/ipcidr/16",
+			"/ip4/198.18.0.0/ipcidr/15",
+			"/ip4/198.51.100.0/ipcidr/24",
+			"/ip4/203.0.113.0/ipcidr/24",
+			"/ip4/240.0.0.0/ipcidr/4",
+		}
+
+		c.Swarm.AddrFilters = append(c.Swarm.AddrFilters, defaultServerFilters...)
+		return nil
+	},
+}
 
 var initCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -40,6 +71,7 @@ environment variable:
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
 		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
+		cmds.StringOption("profile", "p", "Apply profile settings to config"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -96,7 +128,18 @@ environment variable:
 			}
 		}
 
-		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, empty, nBitsForKeypair, conf); err != nil {
+		profile, _, err := req.Option("profile").String()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		var profiles []string
+		if profile != "" {
+			profiles = strings.Split(profile, ",")
+		}
+
+		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, empty, nBitsForKeypair, profiles, conf); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -108,10 +151,10 @@ Reinitializing would overwrite your keys.
 `)
 
 func initWithDefaults(out io.Writer, repoRoot string) error {
-	return doInit(out, repoRoot, false, nBitsForKeypairDefault, nil)
+	return doInit(out, repoRoot, false, nBitsForKeypairDefault, nil, nil)
 }
 
-func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, conf *config.Config) error {
+func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, confProfiles []string, conf *config.Config) error {
 	if _, err := fmt.Fprintf(out, "initializing IPFS node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -128,6 +171,17 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 		var err error
 		conf, err = config.Init(out, nBitsForKeypair)
 		if err != nil {
+			return err
+		}
+	}
+
+	for _, profile := range confProfiles {
+		transformer := ConfigProfiles[profile]
+		if transformer == nil {
+			return fmt.Errorf("invalid configuration profile: %s", profile)
+		}
+
+		if err := transformer(conf); err != nil {
 			return err
 		}
 	}
