@@ -150,36 +150,29 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 		entry.Ttl = proto.Uint64(uint64(ttl.Nanoseconds()))
 	}
 
-	var errorChanSize int
-	var errorChan chan error
+	var errs chan error
 
 	// Attempt to extract the public key from the ID
 	var extractedPublicKey = peer.ExtractPublicKey()
 
-	if extractedPublicKey == nil {
-		errorChanSize = 2 // IPNS and public key
-	} else {
-		errorChanSize = 1 // IPNS only
-	}
-
-	errorChan = make(chan error, errorChanSize)
+	errs = make(chan error, 2) // At most two errors (IPNS and public key)
 
 	go func() {
-		errorChan <- PublishEntry(ctx, r, ipnskey, entry)
+		errs <- PublishEntry(ctx, r, ipnskey, entry)
 	}()
 
 	// Publish the public key if a public key cannot be extracted from the ID
 	if extractedPublicKey == nil {
 		go func() {
-			errorChan <- PublishPublicKey(ctx, r, namekey, k.GetPublic())
+			errs <- PublishPublicKey(ctx, r, namekey, k.GetPublic())
 		}()
 
-		if err := waitOnErrChan(ctx, errorChan); err != nil {
+		if err := waitOnErrChan(ctx, errs); err != nil {
 			return err
 		}
 	}
 
-	return waitOnErrChan(ctx, errorChan)
+	return waitOnErrChan(ctx, errs)
 }
 
 func waitOnErrChan(ctx context.Context, errs chan error) error {
