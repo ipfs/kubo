@@ -113,9 +113,18 @@ test_dag_cmd() {
 	'
 
 	test_expect_success "non-canonical cbor input is normalized" '
-	HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=cbor --input-enc=raw) &&
-	test $HASH = "zdpuAmxF8q6iTUtkB3xtEYzmc5Sw762qwQJftt5iW8NTWLtjC" ||
-	test_fsh echo $HASH
+		HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=cbor --input-enc=raw) &&
+		test $HASH = "zdpuAmxF8q6iTUtkB3xtEYzmc5Sw762qwQJftt5iW8NTWLtjC" ||
+		test_fsh echo $HASH
+	'
+
+	test_expect_success "add an ipld with pin" '
+		PINHASH=$(printf {\"foo\":\"bar\"} | ipfs dag put --pin=true)
+	'
+
+	test_expect_success "after gc, objects still acessible" '
+		ipfs repo gc > /dev/null &&
+		ipfs refs -r --timeout=2s $PINHASH > /dev/null
 	'
 }
 

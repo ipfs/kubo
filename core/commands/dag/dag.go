@@ -8,6 +8,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	path "github.com/ipfs/go-ipfs/path"
+	pin "github.com/ipfs/go-ipfs/pin"
 
 	ipldcbor "gx/ipfs/QmNrbCt8j9DT5W9Pmjy2SdudT9k8GpaDr4sRuFix3BXhgR/go-ipld-cbor"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
@@ -48,6 +49,7 @@ into an object of the specified format.
 	Options: []cmds.Option{
 		cmds.StringOption("format", "f", "Format that the object will be added as.").Default("cbor"),
 		cmds.StringOption("input-enc", "Format that the input object will be.").Default("json"),
+		cmds.BoolOption("pin", "Pin this object when adding.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -64,7 +66,17 @@ into an object of the specified format.
 
 		ienc, _, _ := req.Option("input-enc").String()
 		format, _, _ := req.Option("format").String()
+		dopin, _, err := req.Option("pin").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
+		if dopin {
+			defer n.Blockstore.PinLock().Unlock()
+		}
+
+		var c *cid.Cid
 		switch ienc {
 		case "json":
 			nd, err := convertJsonToType(fi, format)
@@ -73,14 +85,11 @@ into an object of the specified format.
 				return
 			}
 
-			c, err := n.DAG.Add(nd)
+			c, err = n.DAG.Add(nd)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-
-			res.SetOutput(&OutputObject{Cid: c})
-			return
 		case "raw":
 			nd, err := convertRawToType(fi, format)
 			if err != nil {
@@ -88,18 +97,27 @@ into an object of the specified format.
 				return
 			}
 
-			c, err := n.DAG.Add(nd)
+			c, err = n.DAG.Add(nd)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-
-			res.SetOutput(&OutputObject{Cid: c})
-			return
 		default:
 			res.SetError(fmt.Errorf("unrecognized input encoding: %s", ienc), cmds.ErrNormal)
 			return
 		}
+
+		if dopin {
+			n.Pinning.PinWithMode(c, pin.Recursive)
+
+			err := n.Pinning.Flush()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
+
+		res.SetOutput(&OutputObject{Cid: c})
 	},
 	Type: OutputObject{},
 	Marshalers: cmds.MarshalerMap{
