@@ -140,6 +140,7 @@ func TestGatewayGet(t *testing.T) {
 		{"localhost:5001", "/" + k, http.StatusNotFound, "404 page not found\n"},
 		{"localhost:5001", "/ipfs/" + k, http.StatusOK, "fnord"},
 		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusNotFound, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"localhost:5001", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"localhost:5001", "/ipns/example.com", http.StatusOK, "fnord"},
 		{"example.com", "/", http.StatusOK, "fnord"},
 	} {
