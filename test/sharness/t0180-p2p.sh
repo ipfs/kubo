@@ -26,8 +26,8 @@ test_expect_success "test ports are closed" '
   (! (netstat -ln | grep "LISTEN" | grep ":10102 "))
 '
 
-test_must_fail 'fail without config option being enabled' '
-  ipfsi 0 p2p stream ls
+test_expect_success 'fail without config option being enabled' '
+  test_must_fail ipfsi 0 p2p stream ls
 '
 
 test_expect_success "enable filestore config setting" '
@@ -40,21 +40,26 @@ test_expect_success 'start p2p listener' '
 '
 
 test_expect_success 'Test server to client communications' '
-  ma-pipe-unidir --listen send /ip4/127.0.0.1/tcp/10101 < test0.bin &
-  SERVER_PID=$!
+  ma-pipe-unidir --listen --pidFile=listener.pid send /ip4/127.0.0.1/tcp/10101 < test0.bin &
+
+  go-sleep 500ms &&
+  kill -0 $(cat listener.pid) &&
 
   ipfsi 1 p2p stream dial $PEERID_0 p2p-test /ip4/127.0.0.1/tcp/10102 2>&1 > dialer-stdouterr.log &&
   ma-pipe-unidir recv /ip4/127.0.0.1/tcp/10102 > client.out &&
-  wait $SERVER_PID
+  test ! -f listener.pid
 '
 
 test_expect_success 'Test client to server communications' '
-  ma-pipe-unidir --listen recv /ip4/127.0.0.1/tcp/10101 > server.out &
-  SERVER_PID=$!
+  ma-pipe-unidir --listen --pidFile=listener.pid recv /ip4/127.0.0.1/tcp/10101 > server.out &
+
+  go-sleep 500ms &&
+  kill -0 $(cat listener.pid) &&
 
   ipfsi 1 p2p stream dial $PEERID_0 p2p-test /ip4/127.0.0.1/tcp/10102 2>&1 > dialer-stdouterr.log &&
-  ma-pipe-unidir send /ip4/127.0.0.1/tcp/10102 < test1.bin
-  wait $SERVER_PID
+  ma-pipe-unidir send /ip4/127.0.0.1/tcp/10102 < test1.bin &&
+  go-sleep 250ms &&
+  test ! -f listener.pid
 '
 
 test_expect_success 'server to client output looks good' '
