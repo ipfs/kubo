@@ -88,19 +88,28 @@ func ParseArgs(req cmds.Request, inputs []string, stdin *os.File, argDefs []cmds
 	}
 
 	var rulesFile string
-	if gitignore, _, err := req.Option("git-ignore").Bool(); gitignore {
-		cwd, err := os.Getwd()
+	gitignoreOpt := req.Option("git-ignore")
+	if gitignoreOpt != nil {
+		gitignore, _, err := gitignoreOpt.Bool()
 		if err != nil {
 			return nil, nil, err
 		}
-		rulesFile = filepath.Join(cwd, ".gitignore")
-	} else if err != nil {
-		return nil, nil, u.ErrCast()
+		if gitignore {
+			cwd, err := os.Getwd()
+			if err != nil {
+				return nil, nil, err
+			}
+			rulesFile = filepath.Join(cwd, ".gitignore")
+		}
 	}
 
-	ignore, _, err := req.Option("ignore").Strings()
-	if err != nil {
-		return nil, nil, u.ErrCast()
+	var ignore []string
+	ignoreOpt := req.Option("ignore")
+	if ignoreOpt != nil {
+		ignore, _, err = ignoreOpt.Strings()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	filter, err := files.NewFilter(rulesFile, ignore, hidden)

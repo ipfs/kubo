@@ -8,17 +8,16 @@ import (
 
 // Filter - File filter.
 type Filter struct {
-	// Hidden - Filter hidden files.
-	// Hidden files has a dot prefix.
-	Hidden bool
+	// IncludeHidden - Include hidden files.
+	IncludeHidden bool
 	// Rules - File filter rules.
 	Rules *ignore.GitIgnore
 }
 
 // NewFilter - Creates a new file filter from .gitignore file and list of rules.
 // First argument can be empty and only second one will be used.
-func NewFilter(ignorefile string, rules []string, hidden bool) (filter *Filter, err error) {
-	filter = &Filter{Hidden: hidden}
+func NewFilter(ignorefile string, rules []string, includeHidden bool) (filter *Filter, err error) {
+	filter = &Filter{IncludeHidden: includeHidden}
 	if ignorefile == "" {
 		filter.Rules, err = ignore.CompileIgnoreLines(rules...)
 	} else {
@@ -29,7 +28,7 @@ func NewFilter(ignorefile string, rules []string, hidden bool) (filter *Filter, 
 
 // Filter - Returns true if file should be filtered.
 func (filter *Filter) Filter(fpath string) bool {
-	if filter.Hidden && strings.HasPrefix(fpath, ".") {
+	if !filter.IncludeHidden && strings.HasPrefix(fpath, ".") {
 		return true
 	}
 	return filter.Rules.MatchesPath(fpath)
