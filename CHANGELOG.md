@@ -1,6 +1,48 @@
 # go-ipfs changelog
 
-### 0.4.10 - 2017-06-18
+### 0.4.10 - 2017-06-27
+
+Ipfs 0.4.10 is a patch release that contains several exciting new features,
+bugfixes and general improvements. Including new commands, easier corruption
+recovery, and a generally cleaner codebase.
+
+The `ipfs pin` command has two new subcommands, `verify` and `update`. `ipfs
+pin verify` is used to scan the repo for pinned object graphs and check their
+integrity. Any issues are reported back with helpful error text to make error
+recovery simpler.  This subcommand was added to help recover from datastore
+corruptions, particularly if using the experimental filestore and accidentally
+deleting tracked files.
+`ipfs pin update` was added to make the task of keeping a large, frequently
+changing object graph pinned. Previously users had to call `ipfs pin rm` on the
+old pin, and `ipfs pin add` on the new one. The 'new' `ipfs pin add` call would
+be very expensive as it would need to verify the entirety of the graph again.
+The `ipfs pin update` command takes shortcuts, portions of the graph that were
+covered under the old pin are assumed to be fine, and the command skips
+checking them.
+
+Next up, we have finally implemented an `ipfs shutdown` command so users can
+shut down their ipfs daemons via the API. This is especially useful on
+platforms that make it difficult to control processes (Android, for example),
+and is also useful when needing to shut down a node remotely and you do not
+have access to the machine itself.
+
+`ipfs add` has gained a new flag; the `--hash` flag allows you to select which
+hash function to use and we have given it the ability to select `blake2b-256`.
+This pushes us one step closer to shifting over to using blake2b as the
+default. Blake2b is significantly faster than sha2-256, and also is conjectured
+to provide superior security.
+
+We have also finally implemented a very early (and experimental) `ipfs p2p`.
+This command and its subcommands will allow you to open up arbitrary streams to
+other ipfs peers through libp2p. The interfaces are a little bit clunky right
+now, but shouldn't get in the way of anyone wanting to try building a fully
+peer to peer application on top of ipfs and libp2p. For more info on this
+command, to ask questions, or to provide feedback, head over to the [feedback
+issue](https://github.com/ipfs/go-ipfs/issues/3994) for the command.
+
+A few other subcommands and flags were added around the API, as well as many
+other requested improvements. See below for the full list of changes.
+
 
 - Features
   - Add support for specifying the hash function in `ipfs add` ([ipfs/go-ipfs#3919](https://github.com/ipfs/go-ipfs/pull/3919))
