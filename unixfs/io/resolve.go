@@ -7,40 +7,51 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	hamt "github.com/ipfs/go-ipfs/unixfs/hamt"
 
-	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
-func ResolveUnixfsOnce(ctx context.Context, ds dag.DAGService, nd node.Node, name string) (*node.Link, error) {
+// ResolveUnixfsOnce resolves a single hop of a path through a graph in a
+// unixfs context. This includes handling traversing sharded directories.
+func ResolveUnixfsOnce(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error) {
 	switch nd := nd.(type) {
 	case *dag.ProtoNode:
 		upb, err := ft.FromBytes(nd.Data())
 		if err != nil {
 			// Not a unixfs node, use standard object traversal code
-			return nd.GetNodeLink(name)
+			lnk, err := nd.GetNodeLink(names[0])
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return lnk, names[1:], nil
 		}
 
 		switch upb.GetType() {
 		case ft.THAMTShard:
 			s, err := hamt.NewHamtFromDag(ds, nd)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
-			// TODO: optimized routine on HAMT for returning a dag.Link to avoid extra disk hits
-			out, err := s.Find(ctx, name)
+			out, err := s.Find(ctx, names[0])
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
-			return node.MakeLink(out)
+			return out, names[1:], nil
 		default:
-			return nd.GetNodeLink(name)
+			lnk, err := nd.GetNodeLink(names[0])
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return lnk, names[1:], nil
 		}
 	default:
-		lnk, _, err := nd.ResolveLink([]string{name})
+		lnk, rest, err := nd.ResolveLink(names)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return lnk, nil
+		return lnk, rest, nil
 	}
 }

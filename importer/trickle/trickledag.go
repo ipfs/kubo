@@ -9,7 +9,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
 // layerRepeat specifies how many times to append a child tree of a
@@ -18,13 +18,13 @@ import (
 const layerRepeat = 4
 
 func TrickleLayout(db *h.DagBuilderHelper) (node.Node, error) {
-	root := h.NewUnixfsNode()
+	root := db.NewUnixfsNode()
 	if err := db.FillNodeLayer(root); err != nil {
 		return nil, err
 	}
 	for level := 1; !db.Done(); level++ {
 		for i := 0; i < layerRepeat && !db.Done(); i++ {
-			next := h.NewUnixfsNode()
+			next := db.NewUnixfsNode()
 			if err := fillTrickleRec(db, next, level); err != nil {
 				return nil, err
 			}
@@ -54,7 +54,7 @@ func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error
 
 	for i := 1; i < depth && !db.Done(); i++ {
 		for j := 0; j < layerRepeat && !db.Done(); j++ {
-			next := h.NewUnixfsNode()
+			next := db.NewUnixfsNode()
 			if err := fillTrickleRec(db, next, i); err != nil {
 				return err
 			}
@@ -117,7 +117,7 @@ func TrickleAppend(ctx context.Context, basen node.Node, db *h.DagBuilderHelper)
 	// Now, continue filling out tree like normal
 	for i := n; !db.Done(); i++ {
 		for j := 0; j < layerRepeat && !db.Done(); j++ {
-			next := h.NewUnixfsNode()
+			next := db.NewUnixfsNode()
 			err := fillTrickleRec(db, next, i)
 			if err != nil {
 				return nil, err
@@ -162,7 +162,7 @@ func appendFillLastChild(ctx context.Context, ufsn *h.UnixfsNode, depth int, lay
 	// Partially filled depth layer
 	if layerFill != 0 {
 		for ; layerFill < layerRepeat && !db.Done(); layerFill++ {
-			next := h.NewUnixfsNode()
+			next := db.NewUnixfsNode()
 			err := fillTrickleRec(db, next, depth)
 			if err != nil {
 				return err
@@ -211,7 +211,7 @@ func trickleAppendRec(ctx context.Context, ufsn *h.UnixfsNode, db *h.DagBuilderH
 	// Now, continue filling out tree like normal
 	for i := n; i < depth && !db.Done(); i++ {
 		for j := 0; j < layerRepeat && !db.Done(); j++ {
-			next := h.NewUnixfsNode()
+			next := db.NewUnixfsNode()
 			if err := fillTrickleRec(db, next, i); err != nil {
 				return nil, err
 			}

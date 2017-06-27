@@ -5,7 +5,7 @@ import (
 
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 
-	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
 func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
@@ -13,7 +13,7 @@ func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
 	var root *h.UnixfsNode
 	for level := 0; !db.Done(); level++ {
 
-		nroot := h.NewUnixfsNode()
+		nroot := db.NewUnixfsNode()
 		db.SetPosInfo(nroot, 0)
 
 		// add our old root as a child of the new root.
@@ -33,7 +33,7 @@ func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
 
 	}
 	if root == nil {
-		root = h.NewUnixfsNode()
+		root = db.NewUnixfsNode()
 	}
 
 	out, err := db.Add(root)
@@ -72,7 +72,7 @@ func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int, offset u
 
 	// while we have room AND we're not done
 	for node.NumChildren() < db.Maxlinks() && !db.Done() {
-		child := h.NewUnixfsNode()
+		child := db.NewUnixfsNode()
 		db.SetPosInfo(child, offset)
 
 		err := fillNodeRec(db, child, depth-1, offset)

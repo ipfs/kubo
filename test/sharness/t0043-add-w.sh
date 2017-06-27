@@ -27,6 +27,14 @@ added QmYC3u5jGWuyFwvTxtvLYm2K3SpWZ31tg3NjpVVvh9cJaJ _jo7/wzvsihy
 added QmQkib3f9XNX5sj6WEahLUPFpheTcwSRJwUCSvjcv8b9by _jo7
 added QmNQoesMj1qp8ApE51NbtTjFYksyzkezPD4cat7V2kzbKN '
 
+add_w_d1_v1='added zb2rhjXyHbbgwgtAUwHtpBd8iXLgK22ZjVmaiJSMNmqBTpXS3 _jo7/-s782qgs
+added zb2rhi6PQqQFbS4QsvrV8sL9ue1fvFoqtLVqogNPCZri8rquN _jo7/15totauzkak-
+added zb2rhjQthC6LgnNZztpsF9LcfPxznh3cJnmzUx8dnSqNqJ8Yz _jo7/galecuirrj4r
+added zb2rhYh9hgDw1DpaZfLUU5MkKNezPWjPTkgGQPiTyLpZYu3jn _jo7/mzo50r-1xidf5zx
+added zb2rhZK5xwEUhY4uskfj4sn979aCH27cnqseVVznYDn7NFWtt _jo7/wzvsihy
+added zdj7WfNC8EZchqskczxsgrVEqwLVpksQ9B5kopf391jVbCGwv _jo7
+added zdj7Wn5jf686mfYE8gUKWzY7aTjp5eAQcecD8q4ZtqLJbDNxe '
+
 add_w_d2='added Qme987pqNBhZZXy4ckeXiR7zaRQwBabB7fTgHurW2yJfNu 4r93
 added QmU9Jqks8TPu4vFr6t7EKkAKQrSJuEujNj1AkzoCeTEDFJ gnz66h/1k0xpx34
 added QmSLYZycXAufRw3ePMVH2brbtYWCcWsmksGLbHcT8ia9Ke gnz66h/9cwudvacx
@@ -133,6 +141,14 @@ test_add_w() {
     test_sort_cmp expected actual
   '
 
+  test_expect_success "ipfs add -w -r (dir) --cid-version=1 succeeds" '
+    ipfs add -r -w --cid-version=1 m/t_1wp-8a2/_jo7 >actual
+  '
+
+  test_expect_success "ipfs add -w -r (dir) --cid-version=1 is correct" '
+    echo "$add_w_d1_v1" >expected &&
+    test_sort_cmp expected actual
+  '
 }
 
 test_init_ipfs

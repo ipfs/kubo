@@ -8,7 +8,8 @@ import (
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
 type UnixfsAPI CoreAPI
@@ -46,9 +47,23 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*coreiface.Li
 		return nil, err
 	}
 
-	l := dagnode.Links()
-	links := make([]*coreiface.Link, len(l))
-	for i, l := range l {
+	var ndlinks []*node.Link
+	dir, err := uio.NewDirectoryFromNode(api.node.DAG, dagnode)
+	switch err {
+	case nil:
+		l, err := dir.Links(ctx)
+		if err != nil {
+			return nil, err
+		}
+		ndlinks = l
+	case uio.ErrNotADir:
+		ndlinks = dagnode.Links()
+	default:
+		return nil, err
+	}
+
+	links := make([]*coreiface.Link, len(ndlinks))
+	for i, l := range ndlinks {
 		links[i] = &coreiface.Link{l.Name, l.Size, l.Cid}
 	}
 	return links, nil

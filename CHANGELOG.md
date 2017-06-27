@@ -1,5 +1,58 @@
 # go-ipfs changelog
 
+### 0.4.9 - 2017-04-30
+
+Ipfs 0.4.9 is a maintenance release that contains several useful bugfixes and
+improvements. Notably, `ipfs add` has gained the ability to select which CID
+version will be output. The common ipfs hash that looks like this:
+`QmRjNgF2mRLDT8AzCPsQbw1EYF2hDTFgfUmJokJPhCApYP` is a multihash. Multihashes
+allow us to specify the hashing algorithm that was used to verify the data, but
+it doesn't give us any indication of what format that data might be. To address
+that issue, we are adding another couple of bytes to the prefix that will allow us
+to indicate the format of the data referenced by the hash. This new format is
+called a Content ID, or CID for short. The previous bare multihashes will still
+be fully supported throughout the entire application as CID version 0. The new
+format with the type information will be CID version 1. To give an example,
+the content referenced by the hash above is "Hello Ipfs!". That same content,
+in the same format (dag-protobuf) using CIDv1 is
+`zb2rhkgXZVkT2xvDiuUsJENPSbWJy7fdYnsboLBzzEjjZMRoG`.
+
+CIDv1 hashes are supported in ipfs versions back to 0.4.5. Nodes running 0.4.4
+and older will not be able to load content via CIDv1 and we recommend that they
+update to a newer version.
+
+There are many other use cases for CIDs. Plugins can be written to
+allow ipfs to natively address content from any other merkletree based system,
+such as git, bitcoin, zcash and ethereum -- a few systems we've already started work on.
+
+Aside from the CID flag, there were many other changes as noted below:
+
+- Features
+  - Add support for using CidV1 in 'ipfs add' ([ipfs/go-ipfs#3743](https://github.com/ipfs/go-ipfs/pull/3743))
+- Improvements
+  - Use CID as an ETag strong validator ([ipfs/go-ipfs#3869](https://github.com/ipfs/go-ipfs/pull/3869))
+  - Update go-multihash with keccak and bitcoin hashes ([ipfs/go-ipfs#3833](https://github.com/ipfs/go-ipfs/pull/3833))
+  - Update go-is-domain to contain new gTLD ([ipfs/go-ipfs#3873](https://github.com/ipfs/go-ipfs/pull/3873))
+  - Periodically flush cached directories during ipfs add ([ipfs/go-ipfs#3888](https://github.com/ipfs/go-ipfs/pull/3888))
+  - improved gateway directory listing for sharded nodes ([ipfs/go-ipfs#3897](https://github.com/ipfs/go-ipfs/pull/3897))
+- Documentation
+  - Change issue template to use Severity instead of Priority ([ipfs/go-ipfs#3834](https://github.com/ipfs/go-ipfs/pull/3834))
+  - Fix link to commit hook script in contribute.md ([ipfs/go-ipfs#3863](https://github.com/ipfs/go-ipfs/pull/3863))
+  - Fix install_unsupported for openbsd, add docs ([ipfs/go-ipfs#3880](https://github.com/ipfs/go-ipfs/pull/3880))
+- Bugfixes
+  - Fix wanlist typo in prometheus metric name ([ipfs/go-ipfs#3841](https://github.com/ipfs/go-ipfs/pull/3841))
+  - Fix `make install` not using ldflags for git hash ([ipfs/go-ipfs#3838](https://github.com/ipfs/go-ipfs/pull/3838))
+  - Fix `make install` not installing dependencies ([ipfs/go-ipfs#3848](https://github.com/ipfs/go-ipfs/pull/3848))
+  - Fix erroneous Cache-Control: immutable on dir listings ([ipfs/go-ipfs#3870](https://github.com/ipfs/go-ipfs/pull/3870))
+  - Fix bitswap accounting of 'BytesSent' in ledger ([ipfs/go-ipfs#3876](https://github.com/ipfs/go-ipfs/pull/3876))
+  - Fix gateway handling of sharded directories ([ipfs/go-ipfs#3889](https://github.com/ipfs/go-ipfs/pull/3889))
+  - Fix sharding memory growth, and fix resolver for unixfs paths ([ipfs/go-ipfs#3890](https://github.com/ipfs/go-ipfs/pull/3890))
+- General Changes and Refactorings
+  - Use ctx var consistently in daemon.go ([ipfs/go-ipfs#3864](https://github.com/ipfs/go-ipfs/pull/3864))
+  - Handle 404 correctly in dist_get tool ([ipfs/go-ipfs#3879](https://github.com/ipfs/go-ipfs/pull/3879))
+- Testing
+  - Fix go fuse tests ([ipfs/go-ipfs#3840](https://github.com/ipfs/go-ipfs/pull/3840))
+
 ### 0.4.8 - 2017-03-29
 
 Ipfs 0.4.8 brings with it several improvements, bugfixes, documentation

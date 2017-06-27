@@ -21,12 +21,12 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
-	ma "gx/ipfs/QmSWLfmj5frN9xVLMMN846dMDriy5wN5jeghUm7aTW3DAG/go-multiaddr"
+	pstore "gx/ipfs/QmNUVzEjq3XWJ89hegahPvyfJbTXgTaom48pLb7YBD9gHQ/go-libp2p-peerstore"
 	mprome "gx/ipfs/QmSk46nSD78YiuNojYMS8NW6hSCjH95JajqqzzoychZgef/go-metrics-prometheus"
-	iconn "gx/ipfs/QmT6jBTqNKhhb8dbzCEMUNkGhm3RuRActcMhpShAHLpQtp/go-libp2p-interface-conn"
-	"gx/ipfs/QmVCNGTyD4EkvNYaAp253uMQ9Rjsjy2oGMvcdJJUoVRfja/go-multiaddr-net"
 	"gx/ipfs/QmX3QZ5jHEPidwUrymXV1iSCSUhdGxj15sm2gP4jKMef7B/client_golang/prometheus"
-	pstore "gx/ipfs/Qme1g4e3m2SmdiSGGU3vSWmUStwUjc5oECnEriaK9Xa1HU/go-libp2p-peerstore"
+	iconn "gx/ipfs/QmcXRdAP5bCCm51X7XfDUrQ8Q9PsrKbU75pyvB18iuKob5/go-libp2p-interface-conn"
+	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
+	"gx/ipfs/Qmf1Gq7N45Rpuw7ev47uWgH6dLPtdnvcMRNPkVBwqjLJg2/go-multiaddr-net"
 )
 
 const (
@@ -226,7 +226,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	if initialize {
 
-		cfg := req.InvocContext().ConfigRoot
+		cfg := ctx.ConfigRoot
 		if !fsrepo.IsInitialized(cfg) {
 			err := initWithDefaults(os.Stdout, cfg)
 			if err != nil {
@@ -238,7 +238,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+	repo, err := fsrepo.Open(ctx.ConfigRoot)
 	switch err {
 	default:
 		res.SetError(err, cmds.ErrNormal)
@@ -268,7 +268,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			return
 		}
 
-		repo, err = fsrepo.Open(req.InvocContext().ConfigRoot)
+		repo, err = fsrepo.Open(ctx.ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -359,7 +359,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 	}()
 
-	req.InvocContext().ConstructNode = func() (*core.IpfsNode, error) {
+	ctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return node, nil
 	}
 

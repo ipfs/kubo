@@ -8,8 +8,9 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
 	hamt "github.com/ipfs/go-ipfs/unixfs/hamt"
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 
-	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
 // ShardSplitThreshold specifies how large of an unsharded directory
@@ -47,10 +48,13 @@ func NewDirectory(dserv mdag.DAGService) *Directory {
 	return db
 }
 
+// ErrNotADir implies that the given node was not a unixfs directory
+var ErrNotADir = fmt.Errorf("merkledag node was not a directory or shard")
+
 func NewDirectoryFromNode(dserv mdag.DAGService, nd node.Node) (*Directory, error) {
 	pbnd, ok := nd.(*mdag.ProtoNode)
 	if !ok {
-		return nil, mdag.ErrNotProtobuf
+		return nil, ErrNotADir
 	}
 
 	pbd, err := format.FromBytes(pbnd.Data())
@@ -75,7 +79,17 @@ func NewDirectoryFromNode(dserv mdag.DAGService, nd node.Node) (*Directory, erro
 			shard: shard,
 		}, nil
 	default:
-		return nil, fmt.Errorf("merkledag node was not a directory or shard")
+		return nil, ErrNotADir
+	}
+}
+
+// SetPrefix sets the prefix of the root node
+func (d *Directory) SetPrefix(prefix *cid.Prefix) {
+	if d.dirnode != nil {
+		d.dirnode.SetPrefix(prefix)
+	}
+	if d.shard != nil {
+		d.shard.SetPrefix(prefix)
 	}
 }
 
@@ -154,7 +168,12 @@ func (d *Directory) Find(ctx context.Context, name string) (node.Node, error) {
 		return d.dserv.Get(ctx, lnk.Cid)
 	}
 
-	return d.shard.Find(ctx, name)
+	lnk, err := d.shard.Find(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return lnk.GetNode(ctx, d.dserv)
 }
 
 func (d *Directory) RemoveChild(ctx context.Context, name string) error {

@@ -10,8 +10,8 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
-	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
 var log = logging.Logger("path")
@@ -37,7 +37,7 @@ func (e ErrNoLink) Error() string {
 type Resolver struct {
 	DAG dag.DAGService
 
-	ResolveOnce func(ctx context.Context, ds dag.DAGService, nd node.Node, name string) (*node.Link, error)
+	ResolveOnce func(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error)
 }
 
 func NewBasicResolver(ds dag.DAGService) *Resolver {
@@ -121,9 +121,10 @@ func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (node.Node, erro
 	return nodes[len(nodes)-1], err
 }
 
-func ResolveSingle(ctx context.Context, ds dag.DAGService, nd node.Node, name string) (*node.Link, error) {
-	lnk, _, err := nd.ResolveLink([]string{name})
-	return lnk, err
+// ResolveSingle simply resolves one hop of a path through a graph with no
+// extra context (does not opaquely resolve through sharded nodes)
+func ResolveSingle(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error) {
+	return nd.ResolveLink(names)
 }
 
 // ResolvePathComponents fetches the nodes for each segment of the given path.
@@ -163,7 +164,7 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd node.Node, names []stri
 		ctx, cancel = context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 
-		lnk, rest, err := nd.ResolveLink(names)
+		lnk, rest, err := s.ResolveOnce(ctx, s.DAG, nd, names)
 		if err == dag.ErrLinkNotFound {
 			return result, ErrNoLink{Name: names[0], Node: nd.Cid()}
 		} else if err != nil {

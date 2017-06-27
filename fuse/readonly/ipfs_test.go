@@ -22,10 +22,9 @@ import (
 	ci "github.com/ipfs/go-ipfs/thirdparty/testutil/ci"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
-	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
-	u "gx/ipfs/QmZuY8aV7zbNXVy6DyN9SmnuH3o9nG852F4aTiSBpts8d1/go-ipfs-util"
+	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
 	fstest "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs/fstestutil"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -117,7 +116,7 @@ func TestIpfsStressRead(t *testing.T) {
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
-	var ks []*cid.Cid
+	var nodes []node.Node
 	var paths []string
 
 	nobj := 50
@@ -126,9 +125,8 @@ func TestIpfsStressRead(t *testing.T) {
 	// Make a bunch of objects
 	for i := 0; i < nobj; i++ {
 		fi, _ := randObj(t, nd, rand.Int63n(50000))
-		c := fi.Cid()
-		ks = append(ks, c)
-		paths = append(paths, c.String())
+		nodes = append(nodes, fi)
+		paths = append(paths, fi.Cid().String())
 	}
 
 	// Now make a bunch of dirs
@@ -136,19 +134,24 @@ func TestIpfsStressRead(t *testing.T) {
 		db := uio.NewDirectory(nd.DAG)
 		for j := 0; j < 1+rand.Intn(10); j++ {
 			name := fmt.Sprintf("child%d", j)
-			err := db.AddChild(nd.Context(), name, ks[rand.Intn(len(ks))])
+
+			err := db.AddChild(nd.Context(), name, nodes[rand.Intn(len(nodes))])
 			if err != nil {
 				t.Fatal(err)
 			}
 		}
-		newdir := db.GetNode()
-		k, err := nd.DAG.Add(newdir)
+		newdir, err := db.GetNode()
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		ks = append(ks, k)
-		npaths := getPaths(t, nd, k.String(), newdir)
+		_, err = nd.DAG.Add(newdir)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		nodes = append(nodes, newdir)
+		npaths := getPaths(t, nd, newdir.Cid().String(), newdir.(*dag.ProtoNode))
 		paths = append(paths, npaths...)
 	}
 
@@ -208,16 +211,19 @@ func TestIpfsBasicDirRead(t *testing.T) {
 
 	// Make a 'file'
 	fi, data := randObj(t, nd, 10000)
-	k := fi.Cid()
 
 	// Make a directory and put that file in it
 	db := uio.NewDirectory(nd.DAG)
-	err := db.AddChild(nd.Context(), "actual", k)
+	err := db.AddChild(nd.Context(), "actual", fi)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	d1nd := db.GetNode()
+	d1nd, err := db.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	d1ndk, err := nd.DAG.Add(d1nd)
 	if err != nil {
 		t.Fatal(err)

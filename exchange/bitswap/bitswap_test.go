@@ -11,6 +11,7 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
+	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
@@ -18,8 +19,8 @@ import (
 
 	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
 
-	p2ptestutil "gx/ipfs/QmNqvnxGtJBaKQnenD6uboNGdjSjHGmZGRxMHEevKJe5Pk/go-libp2p-netutil"
-	cid "gx/ipfs/QmV5gPoRsjN1Gid3LMdNZTyfCtP2DsvqEbMAmz82RmmiGk/go-cid"
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	p2ptestutil "gx/ipfs/QmcCgouQ5iXfmxmVNc1fpXLacRSPMNHx4tzqDpou6XNvvd/go-libp2p-netutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -487,5 +488,167 @@ func TestWantlistCleanup(t *testing.T) {
 	time.Sleep(time.Millisecond * 50)
 	if !(len(bswap.GetWantlist()) == 1 && bswap.GetWantlist()[0] == keys[0]) {
 		t.Fatal("should only have keys[0] in wantlist")
+	}
+}
+
+func assertLedgerMatch(ra, rb *decision.Receipt) error {
+	if ra.Sent != rb.Recv {
+		return fmt.Errorf("mismatch in ledgers (exchanged bytes): %d sent vs %d recvd", ra.Sent, rb.Recv)
+	}
+
+	if ra.Recv != rb.Sent {
+		return fmt.Errorf("mismatch in ledgers (exchanged bytes): %d recvd vs %d sent", ra.Recv, rb.Sent)
+	}
+
+	if ra.Exchanged != rb.Exchanged {
+		return fmt.Errorf("mismatch in ledgers (exchanged blocks): %d vs %d ", ra.Exchanged, rb.Exchanged)
+	}
+
+	return nil
+}
+
+func assertLedgerEqual(ra, rb *decision.Receipt) error {
+	if ra.Value != rb.Value {
+		return fmt.Errorf("mismatch in ledgers (value/debt ratio): %f vs %f ", ra.Value, rb.Value)
+	}
+
+	if ra.Sent != rb.Sent {
+		return fmt.Errorf("mismatch in ledgers (sent bytes): %d vs %d", ra.Sent, rb.Sent)
+	}
+
+	if ra.Recv != rb.Recv {
+		return fmt.Errorf("mismatch in ledgers (recvd bytes): %d vs %d", ra.Recv, rb.Recv)
+	}
+
+	if ra.Exchanged != rb.Exchanged {
+		return fmt.Errorf("mismatch in ledgers (exchanged blocks): %d vs %d ", ra.Exchanged, rb.Exchanged)
+	}
+
+	return nil
+}
+
+func newReceipt(sent, recv, exchanged uint64) *decision.Receipt {
+	return &decision.Receipt{
+		Peer:      "test",
+		Value:     float64(sent) / (1 + float64(recv)),
+		Sent:      sent,
+		Recv:      recv,
+		Exchanged: exchanged,
+	}
+}
+
+func TestBitswapLedgerOneWay(t *testing.T) {
+	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	sg := NewTestSessionGenerator(net)
+	defer sg.Close()
+	bg := blocksutil.NewBlockGenerator()
+
+	t.Log("Test ledgers match when one peer sends block to another")
+
+	instances := sg.Instances(2)
+	blocks := bg.Blocks(1)
+	err := instances[0].Exchange.HasBlock(blocks[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ra := instances[0].Exchange.LedgerForPeer(instances[1].Peer)
+	rb := instances[1].Exchange.LedgerForPeer(instances[0].Peer)
+
+	// compare peer ledger receipts
+	err = assertLedgerMatch(ra, rb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that receipts have intended values
+	ratest := newReceipt(1, 0, 1)
+	err = assertLedgerEqual(ratest, ra)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rbtest := newReceipt(0, 1, 1)
+	err = assertLedgerEqual(rbtest, rb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(blk)
+	for _, inst := range instances {
+		err := inst.Exchange.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestBitswapLedgerTwoWay(t *testing.T) {
+	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	sg := NewTestSessionGenerator(net)
+	defer sg.Close()
+	bg := blocksutil.NewBlockGenerator()
+
+	t.Log("Test ledgers match when two peers send one block to each other")
+
+	instances := sg.Instances(2)
+	blocks := bg.Blocks(2)
+	err := instances[0].Exchange.HasBlock(blocks[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = instances[1].Exchange.HasBlock(blocks[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	blk, err = instances[0].Exchange.GetBlock(ctx, blocks[1].Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ra := instances[0].Exchange.LedgerForPeer(instances[1].Peer)
+	rb := instances[1].Exchange.LedgerForPeer(instances[0].Peer)
+
+	// compare peer ledger receipts
+	err = assertLedgerMatch(ra, rb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that receipts have intended values
+	rtest := newReceipt(1, 1, 2)
+	err = assertLedgerEqual(rtest, ra)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = assertLedgerEqual(rtest, rb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(blk)
+	for _, inst := range instances {
+		err := inst.Exchange.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }

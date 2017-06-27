@@ -31,8 +31,9 @@ import (
 	format "github.com/ipfs/go-ipfs/unixfs"
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 	"gx/ipfs/QmfJHywXQu98UeZtGJBQrPAR6AtmDjjbe3qjTo9piXHPnx/murmur3"
 )
 
@@ -50,6 +51,7 @@ type HamtShard struct {
 	tableSize    int
 	tableSizeLg2 int
 
+	prefix   *cid.Prefix
 	hashFunc uint64
 
 	prefixPadStr string
@@ -60,7 +62,7 @@ type HamtShard struct {
 
 // child can either be another shard, or a leaf node value
 type child interface {
-	Node() (node.Node, error)
+	Link() (*node.Link, error)
 	Label() string
 }
 
@@ -123,9 +125,15 @@ func NewHamtFromDag(dserv dag.DAGService, nd node.Node) (*HamtShard, error) {
 	return ds, nil
 }
 
+// SetPrefix sets the CID Prefix
+func (ds *HamtShard) SetPrefix(prefix *cid.Prefix) {
+	ds.prefix = prefix
+}
+
 // Node serializes the HAMT structure into a merkledag node with unixfs formatting
 func (ds *HamtShard) Node() (node.Node, error) {
 	out := new(dag.ProtoNode)
+	out.SetPrefix(ds.prefix)
 
 	// TODO: optimized 'for each set bit'
 	for i := 0; i < ds.tableSize; i++ {
@@ -136,12 +144,12 @@ func (ds *HamtShard) Node() (node.Node, error) {
 		cindex := ds.indexForBitPos(i)
 		ch := ds.children[cindex]
 		if ch != nil {
-			cnd, err := ch.Node()
+			clnk, err := ch.Link()
 			if err != nil {
 				return nil, err
 			}
 
-			err = out.AddNodeLinkClean(ds.linkNamePrefix(i)+ch.Label(), cnd)
+			err = out.AddRawLink(ds.linkNamePrefix(i)+ch.Label(), clnk)
 			if err != nil {
 				return nil, err
 			}
@@ -180,10 +188,11 @@ func (ds *HamtShard) Node() (node.Node, error) {
 
 type shardValue struct {
 	key string
-	val node.Node
+	val *node.Link
 }
 
-func (sv *shardValue) Node() (node.Node, error) {
+// Link returns a link to this node
+func (sv *shardValue) Link() (*node.Link, error) {
 	return sv.val, nil
 }
 
@@ -206,7 +215,18 @@ func (ds *HamtShard) Label() string {
 // Set sets 'name' = nd in the HAMT
 func (ds *HamtShard) Set(ctx context.Context, name string, nd node.Node) error {
 	hv := &hashBits{b: hash([]byte(name))}
-	return ds.modifyValue(ctx, hv, name, nd)
+	_, err := ds.dserv.Add(nd)
+	if err != nil {
+		return err
+	}
+
+	lnk, err := node.MakeLink(nd)
+	if err != nil {
+		return err
+	}
+	lnk.Name = ds.linkNamePrefix(0) + name
+
+	return ds.modifyValue(ctx, hv, name, lnk)
 }
 
 // Remove deletes the named entry if it exists, this operation is idempotent.
@@ -215,16 +235,20 @@ func (ds *HamtShard) Remove(ctx context.Context, name string) error {
 	return ds.modifyValue(ctx, hv, name, nil)
 }
 
-func (ds *HamtShard) Find(ctx context.Context, name string) (node.Node, error) {
+// Find searches for a child node by 'name' within this hamt
+func (ds *HamtShard) Find(ctx context.Context, name string) (*node.Link, error) {
 	hv := &hashBits{b: hash([]byte(name))}
 
-	var out node.Node
+	var out *node.Link
 	err := ds.getValue(ctx, hv, name, func(sv *shardValue) error {
 		out = sv.val
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return out, err
+	return out, nil
 }
 
 // getChild returns the i'th child of this shard. If it is cached in the
@@ -283,9 +307,10 @@ func (ds *HamtShard) loadChild(ctx context.Context, i int) (child, error) {
 
 		c = cds
 	} else {
+		lnk2 := *lnk
 		c = &shardValue{
 			key: lnk.Name[ds.maxpadlen:],
-			val: nd,
+			val: &lnk2,
 		}
 	}
 
@@ -297,16 +322,33 @@ func (ds *HamtShard) setChild(i int, c child) {
 	ds.children[i] = c
 }
 
-func (ds *HamtShard) insertChild(idx int, key string, val node.Node) error {
-	if val == nil {
+// Link returns a merklelink to this shard node
+func (ds *HamtShard) Link() (*node.Link, error) {
+	nd, err := ds.Node()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = ds.dserv.Add(nd)
+	if err != nil {
+		return nil, err
+	}
+
+	return node.MakeLink(nd)
+}
+
+func (ds *HamtShard) insertChild(idx int, key string, lnk *node.Link) error {
+	if lnk == nil {
 		return os.ErrNotExist
 	}
 
 	i := ds.indexForBitPos(idx)
 	ds.bitfield.SetBit(ds.bitfield, idx, 1)
+
+	lnk.Name = ds.linkNamePrefix(idx) + key
 	sv := &shardValue{
 		key: key,
-		val: val,
+		val: lnk,
 	}
 
 	ds.children = append(ds.children[:i], append([]child{sv}, ds.children[i:]...)...)
@@ -362,11 +404,7 @@ func (ds *HamtShard) EnumLinks(ctx context.Context) ([]*node.Link, error) {
 
 func (ds *HamtShard) ForEachLink(ctx context.Context, f func(*node.Link) error) error {
 	return ds.walkTrie(ctx, func(sv *shardValue) error {
-		lnk, err := node.MakeLink(sv.val)
-		if err != nil {
-			return err
-		}
-
+		lnk := sv.val
 		lnk.Name = sv.key
 
 		return f(lnk)
@@ -406,7 +444,7 @@ func (ds *HamtShard) walkTrie(ctx context.Context, cb func(*shardValue) error) e
 	return nil
 }
 
-func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, val node.Node) error {
+func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, val *node.Link) error {
 	idx := hv.Next(ds.tableSizeLg2)
 
 	if ds.bitfield.Bit(idx) != 1 {

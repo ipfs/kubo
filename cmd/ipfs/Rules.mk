@@ -12,11 +12,19 @@ PATH := $(realpath $(d)):$(PATH)
 # DEPS_OO_$(d) += merkledag/pb/merkledag.pb.go namesys/pb/namesys.pb.go
 # DEPS_OO_$(d) += pin/internal/pb/header.pb.go unixfs/pb/unixfs.pb.go
 
-$(IPFS_BIN_$(d)): GOFLAGS += -ldflags="-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(shell git rev-parse --short HEAD)"
+$(d)_flags =-ldflags="-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(shell git rev-parse --short HEAD)" 
+
+$(IPFS_BIN_$(d)): GOFLAGS += $(cmd/ipfs_flags)
 
 # uses second expansion to collect all $(DEPS_GO)
 $(IPFS_BIN_$(d)): $(d) $$(DEPS_GO) ALWAYS #| $(DEPS_OO_$(d))
 	$(go-build)
+
+
+$(d)-install: GOFLAGS += $(cmd/ipfs_flags)
+$(d)-install: $(d) $$(DEPS_GO) ALWAYS 
+	go install $(go-flags-with-tags) ./cmd/ipfs
+.PHONY: $(d)-install
 
 COVER_BIN_$(d) := $(d)/ipfs-test-cover
 CLEAN += $(COVER_BIN_$(d))

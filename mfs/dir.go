@@ -15,7 +15,8 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	node "gx/ipfs/QmYDscK7dmdo2GZ9aumS8s5auUUAH5mR1jvj5pYhWusfK7/go-ipld-node"
+	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
@@ -55,6 +56,11 @@ func NewDirectory(ctx context.Context, name string, node node.Node, parent child
 		files:      make(map[string]*File),
 		modTime:    time.Now(),
 	}, nil
+}
+
+// SetPrefix sets the CID prefix
+func (d *Directory) SetPrefix(prefix *cid.Prefix) {
+	d.dirbuilder.SetPrefix(prefix)
 }
 
 // closeChild updates the child by the given name to the dag node 'nd'
