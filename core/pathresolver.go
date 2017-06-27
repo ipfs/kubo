@@ -57,14 +57,14 @@ func Resolve(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p p
 	return r.ResolvePath(ctx, p)
 }
 
-// ResolveToKey resolves a path to a key.
+// ResolveToCid resolves a path to a cid.
 //
-// It first checks if the path is already in the form of just a key (<key> or
-// /ipfs/<key>) and returns immediately if so. Otherwise, it falls back onto
+// It first checks if the path is already in the form of just a cid (<cid> or
+// /ipfs/<cid>) and returns immediately if so. Otherwise, it falls back onto
 // Resolve to perform resolution of the dagnode being referenced.
-func ResolveToCid(ctx context.Context, n *IpfsNode, p path.Path) (*cid.Cid, error) {
+func ResolveToCid(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p path.Path) (*cid.Cid, error) {
 
-	// If the path is simply a key, parse and return it. Parsed paths are already
+	// If the path is simply a cid, parse and return it. Parsed paths are already
 	// normalized (read: prepended with /ipfs/ if needed), so segment[1] should
 	// always be the key.
 	if p.IsJustAKey() {
@@ -77,12 +77,12 @@ func ResolveToCid(ctx context.Context, n *IpfsNode, p path.Path) (*cid.Cid, erro
 	if err != nil {
 		return nil, err
 	}
-	dagnode, err := Resolve(ctx, n.Namesys, n.Resolver, head)
+	dagnode, err := Resolve(ctx, nsys, r, head)
 	if err != nil {
 		return nil, err
 	}
 
-	// Extract and return the key of the link to the target dag node.
+	// Extract and return the cid of the link to the target dag node.
 	link, _, err := dagnode.ResolveLink([]string{tail})
 	if err != nil {
 		return nil, err

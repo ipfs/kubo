@@ -30,7 +30,7 @@ func testArcCached(ctx context.Context, bs Blockstore) (*arccache, error) {
 func createStores(t *testing.T) (*arccache, Blockstore, *callbackDatastore) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
 	bs := NewBlockstore(syncds.MutexWrap(cd))
-	arc, err := testArcCached(nil, bs)
+	arc, err := testArcCached(context.TODO(), bs)
 	if err != nil {
 		t.Fatal(err)
 	}

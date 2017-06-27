@@ -232,8 +232,9 @@ test_expect_success "'ipfs repo stat' succeeds" '
 test_expect_success "repo stats came out correct" '
   grep "RepoPath" repo-stats &&
   grep "RepoSize" repo-stats &&
-  grep "NumObjects" repo-stats
-  grep "Version" repo-stats
+  grep "NumObjects" repo-stats &&
+  grep "Version" repo-stats &&
+  grep "StorageMax" repo-stats
 '
 
 test_expect_success "'ipfs repo stat' after adding a file" '

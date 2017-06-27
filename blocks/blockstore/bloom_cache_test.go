@@ -34,6 +34,9 @@ func TestPutManyAddsToBloom(t *testing.T) {
 	defer cancel()
 
 	cachedbs, err := testBloomCached(ctx, bs)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	select {
 	case <-cachedbs.rebuildChan:
@@ -49,7 +52,7 @@ func TestPutManyAddsToBloom(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if has == false {
+	if !has {
 		t.Fatal("added block is reported missing")
 	}
 
@@ -57,7 +60,7 @@ func TestPutManyAddsToBloom(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if has == true {
+	if has {
 		t.Fatal("not added block is reported to be in blockstore")
 	}
 }

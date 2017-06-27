@@ -247,7 +247,7 @@ var configReplaceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Replace the config with <file>.",
 		ShortDescription: `
-Make sure to back up the config file first if neccessary, as this operation
+Make sure to back up the config file first if necessary, as this operation
 can't be undone.
 `,
 	},

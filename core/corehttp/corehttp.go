@@ -79,6 +79,12 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	var serverError error
 	serverExited := make(chan struct{})
 
+	select {
+	case <-node.Process().Closing():
+		return fmt.Errorf("failed to start server, process closing")
+	default:
+	}
+
 	node.Process().Go(func(p goprocess.Process) {
 		serverError = http.Serve(lis, handler)
 		close(serverExited)

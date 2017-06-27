@@ -6,14 +6,12 @@ import (
 	"io"
 	"io/ioutil"
 	mrand "math/rand"
-	"os"
 	"testing"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
-	pin "github.com/ipfs/go-ipfs/pin"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	"context"
@@ -60,12 +58,6 @@ func TestSizeBasedSplit(t *testing.T) {
 
 	// Uneven offset
 	testFileConsistency(t, 31*4095, 4096)
-}
-
-func dup(b []byte) []byte {
-	o := make([]byte, len(b))
-	copy(o, b)
-	return o
 }
 
 func testFileConsistency(t *testing.T, nbytes int64, blksize int64) {
@@ -131,11 +123,6 @@ func dagrArrComp(t *testing.T, r io.Reader, should []byte) {
 	}
 }
 
-type dagservAndPinner struct {
-	ds dag.DAGService
-	mp pin.Pinner
-}
-
 func TestIndirectBlocks(t *testing.T) {
 	ds := mdtest.Mock()
 	dag, buf := getTestDag(t, ds, 1024*1024, 512)
@@ -166,7 +153,7 @@ func TestSeekingBasic(t *testing.T) {
 	}
 
 	start := int64(4000)
-	n, err := rs.Seek(start, os.SEEK_SET)
+	n, err := rs.Seek(start, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +181,7 @@ func TestSeekToBegin(t *testing.T) {
 		t.Fatal("Copy didnt copy enough bytes")
 	}
 
-	seeked, err := rs.Seek(0, os.SEEK_SET)
+	seeked, err := rs.Seek(0, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +209,7 @@ func TestSeekToAlmostBegin(t *testing.T) {
 		t.Fatal("Copy didnt copy enough bytes")
 	}
 
-	seeked, err := rs.Seek(1, os.SEEK_SET)
+	seeked, err := rs.Seek(1, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +230,7 @@ func TestSeekEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	seeked, err := rs.Seek(0, os.SEEK_END)
+	seeked, err := rs.Seek(0, io.SeekEnd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +249,7 @@ func TestSeekEndSingleBlockFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	seeked, err := rs.Seek(0, os.SEEK_END)
+	seeked, err := rs.Seek(0, io.SeekEnd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,7 +272,7 @@ func TestSeekingStress(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		offset := mrand.Intn(int(nbytes))
 		l := int(nbytes) - offset
-		n, err := rs.Seek(int64(offset), os.SEEK_SET)
+		n, err := rs.Seek(int64(offset), io.SeekStart)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -323,7 +310,7 @@ func TestSeekingConsistency(t *testing.T) {
 
 	for coff := nbytes - 4096; coff >= 0; coff -= 4096 {
 		t.Log(coff)
-		n, err := rs.Seek(coff, os.SEEK_SET)
+		n, err := rs.Seek(coff, io.SeekStart)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -47,9 +47,9 @@
       "version": "0.1.1"
     },
     {
-      "hash": "QmUA1aACeXdawsoHqutU4ozwrYGduFSQEz6n1hqXuE9i8k",
+      "hash": "QmSmKZTvFyWiPxu96rwKaEVSydbpSE1knuR42mCKwnLXAx",
       "name": "iptb",
-      "version": "1.1.10"
+      "version": "1.2.0"
     },
     {
       "hash": "QmVGtdTZdTFaLsaj2RwdVG8jcjNNcp1DE914DKZ2kHmXHw",
@@ -154,9 +154,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmNUVzEjq3XWJ89hegahPvyfJbTXgTaom48pLb7YBD9gHQ",
+      "hash": "QmXZSd1qR5BxZkPyuwfT5jpqQFScZccoZvDneXsKzCNHWX",
       "name": "go-libp2p-peerstore",
-      "version": "1.4.6"
+      "version": "1.4.8"
     },
     {
       "author": "whyrusleeping",
@@ -190,9 +190,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmRai5yZNL67pWCoznW7sBdFnqZrFULuJ5w8KhmRyhdgN4",
+      "hash": "QmQA5mdxru8Bh6dpC9PJfSkumqnmHgJX7knxSgBo5Lpime",
       "name": "go-libp2p",
-      "version": "4.3.11"
+      "version": "4.3.12"
     },
     {
       "author": "whyrusleeping",
@@ -237,9 +237,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmQcRLisUbREko56ThfgzdBorMGNfNjgqzvwuPPr1jFw6A",
+      "hash": "QmRmroYSdievxnjiuy99C8BzShNstdEWcEF3LQHF7fUbez",
       "name": "go-libp2p-kad-dht",
-      "version": "2.4.23"
+      "version": "2.5.1"
     },
     {
       "author": "whyrusleeping",
@@ -249,9 +249,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYPKo97ssdv3Bsk9sRAS5ZjahGg9Stzys3vybu3r7VuB5",
+      "hash": "QmUpeULWfmtsgCnfuRN3BHsfhHvBxNphoYh4La4CMxGt2Z",
       "name": "floodsub",
-      "version": "0.8.13"
+      "version": "0.8.14"
     },
     {
       "author": "whyrusleeping",
@@ -312,6 +312,6 @@
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs",
-  "version": "0.4.9"
+  "version": "0.4.10"
 }
 

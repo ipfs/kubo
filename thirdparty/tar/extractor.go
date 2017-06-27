@@ -79,12 +79,7 @@ func (te *Extractor) extractDir(h *tar.Header, depth int) error {
 		te.Path = path
 	}
 
-	err := os.MkdirAll(path, 0755)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return os.MkdirAll(path, 0755)
 }
 
 func (te *Extractor) extractSymlink(h *tar.Header) error {
@@ -112,12 +107,7 @@ func (te *Extractor) extractFile(h *tar.Header, r *tar.Reader, depth int, rootEx
 	}
 	defer file.Close()
 
-	err = copyWithProgress(file, r, te.Progress)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return copyWithProgress(file, r, te.Progress)
 }
 
 func copyWithProgress(to io.Writer, from io.Reader, cb func(int64) int64) error {

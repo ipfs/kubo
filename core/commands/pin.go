@@ -12,6 +12,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	context "context"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
@@ -24,9 +25,11 @@ var PinCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"add": addPinCmd,
-		"rm":  rmPinCmd,
-		"ls":  listPinCmd,
+		"add":    addPinCmd,
+		"rm":     rmPinCmd,
+		"ls":     listPinCmd,
+		"verify": verifyPinCmd,
+		"update": updatePinCmd,
 	},
 }
 
@@ -332,6 +335,146 @@ Example:
 	},
 }
 
+var updatePinCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Update a recursive pin",
+		ShortDescription: `
+Updates one pin to another, making sure that all objects in the new pin are
+local.  Then removes the old pin. This is an optimized version of adding the
+new pin and removing the old one.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("from-path", true, false, "Path to old object."),
+		cmds.StringArg("to-path", true, false, "Path to new object to be pinned."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("unpin", "Remove the old pin.").Default(true),
+	},
+	Type: PinOutput{},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		unpin, _, err := req.Option("unpin").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		from, err := path.ParsePath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		to, err := path.ParsePath(req.Arguments()[1])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		r := &path.Resolver{
+			DAG:         n.DAG,
+			ResolveOnce: uio.ResolveUnixfsOnce,
+		}
+
+		fromc, err := core.ResolveToCid(req.Context(), n.Namesys, r, from)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		toc, err := core.ResolveToCid(req.Context(), n.Namesys, r, to)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		err = n.Pinning.Update(req.Context(), fromc, toc, unpin)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&PinOutput{Pins: []string{from.String(), to.String()}})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			added, ok := res.Output().(*PinOutput)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "updated %s to %s\n", added.Pins[0], added.Pins[1])
+			return buf, nil
+		},
+	},
+}
+
+var verifyPinCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Verify that recursive pins are complete.",
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "Also write the hashes of non-broken pins."),
+		cmds.BoolOption("quiet", "q", "Write just hashes of broken pins."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		verbose, _, _ := res.Request().Option("verbose").Bool()
+		quiet, _, _ := res.Request().Option("quiet").Bool()
+
+		if verbose && quiet {
+			res.SetError(fmt.Errorf("The --verbose and --quiet options can not be used at the same time"), cmds.ErrNormal)
+		}
+
+		opts := pinVerifyOpts{
+			explain:   !quiet,
+			includeOk: verbose,
+		}
+		out := pinVerify(req.Context(), n, opts)
+
+		res.SetOutput(out)
+	},
+	Type: PinVerifyRes{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			quiet, _, _ := res.Request().Option("quiet").Bool()
+
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			rdr, wtr := io.Pipe()
+			go func() {
+				defer wtr.Close()
+				for r0 := range outChan {
+					r := r0.(*PinVerifyRes)
+					if quiet && !r.Ok {
+						fmt.Fprintf(wtr, "%s\n", r.Cid)
+					} else if !quiet {
+						r.Format(wtr)
+					}
+				}
+			}()
+
+			return rdr, nil
+		},
+	},
+}
+
 type RefKeyObject struct {
 	Type string
 }
@@ -349,13 +492,18 @@ func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsN
 
 	keys := make(map[string]RefKeyObject)
 
+	r := &path.Resolver{
+		DAG:         n.DAG,
+		ResolveOnce: uio.ResolveUnixfsOnce,
+	}
+
 	for _, p := range args {
 		pth, err := path.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
 
-		c, err := core.ResolveToCid(ctx, n, pth)
+		c, err := core.ResolveToCid(ctx, n.Namesys, r, pth)
 		if err != nil {
 			return nil, err
 		}
@@ -412,6 +560,90 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	}
 
 	return keys, nil
+}
+
+// PinVerifyRes is the result returned for each pin checked in "pin verify"
+type PinVerifyRes struct {
+	Cid string
+	PinStatus
+}
+
+// PinStatus is part of PinVerifyRes, do not use directly
+type PinStatus struct {
+	Ok       bool
+	BadNodes []BadNode `json:",omitempty"`
+}
+
+// BadNode is used in PinVerifyRes
+type BadNode struct {
+	Cid string
+	Err string
+}
+
+type pinVerifyOpts struct {
+	explain   bool
+	includeOk bool
+}
+
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
+	visited := make(map[string]PinStatus)
+	getLinks := n.DAG.GetOfflineLinkService().GetLinks
+	recPins := n.Pinning.RecursiveKeys()
+
+	var checkPin func(root *cid.Cid) PinStatus
+	checkPin = func(root *cid.Cid) PinStatus {
+		key := root.String()
+		if status, ok := visited[key]; ok {
+			return status
+		}
+
+		links, err := getLinks(ctx, root)
+		if err != nil {
+			status := PinStatus{Ok: false}
+			if opts.explain {
+				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+			}
+			visited[key] = status
+			return status
+		}
+
+		status := PinStatus{Ok: true}
+		for _, lnk := range links {
+			res := checkPin(lnk.Cid)
+			if !res.Ok {
+				status.Ok = false
+				status.BadNodes = append(status.BadNodes, res.BadNodes...)
+			}
+		}
+
+		visited[key] = status
+		return status
+	}
+
+	out := make(chan interface{})
+	go func() {
+		defer close(out)
+		for _, cid := range recPins {
+			pinStatus := checkPin(cid)
+			if !pinStatus.Ok || opts.includeOk {
+				out <- &PinVerifyRes{cid.String(), pinStatus}
+			}
+		}
+	}()
+
+	return out
+}
+
+// Format formats PinVerifyRes
+func (r PinVerifyRes) Format(out io.Writer) {
+	if r.Ok {
+		fmt.Fprintf(out, "%s ok\n", r.Cid)
+	} else {
+		fmt.Fprintf(out, "%s broken\n", r.Cid)
+		for _, e := range r.BadNodes {
+			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
+		}
+	}
 }
 
 func cidsToStrings(cs []*cid.Cid) []string {

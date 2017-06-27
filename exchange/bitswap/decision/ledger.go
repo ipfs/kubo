@@ -27,9 +27,6 @@ type ledger struct {
 	// Accounting tracks bytes sent and recieved.
 	Accounting debtRatio
 
-	// firstExchnage is the time of the first data exchange.
-	firstExchange time.Time
-
 	// lastExchange is the time of the last data exchange.
 	lastExchange time.Time
 
@@ -42,6 +39,10 @@ type ledger struct {
 	// sentToPeer is a set of keys to ensure we dont send duplicate blocks
 	// to a given peer
 	sentToPeer map[string]time.Time
+
+	// ref is the reference count for this ledger, its used to ensure we
+	// don't drop the reference to this ledger in multi-connection scenarios
+	ref int
 
 	lk sync.Mutex
 }

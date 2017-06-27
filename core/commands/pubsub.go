@@ -14,9 +14,9 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 
-	pstore "gx/ipfs/QmNUVzEjq3XWJ89hegahPvyfJbTXgTaom48pLb7YBD9gHQ/go-libp2p-peerstore"
+	floodsub "gx/ipfs/QmUpeULWfmtsgCnfuRN3BHsfhHvBxNphoYh4La4CMxGt2Z/floodsub"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
-	floodsub "gx/ipfs/QmYPKo97ssdv3Bsk9sRAS5ZjahGg9Stzys3vybu3r7VuB5/floodsub"
+	pstore "gx/ipfs/QmXZSd1qR5BxZkPyuwfT5jpqQFScZccoZvDneXsKzCNHWX/go-libp2p-peerstore"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 )
 
@@ -51,6 +51,18 @@ This is an experimental feature. It is not intended in its current state
 to be used in a production environment.
 
 To use, the daemon must be run with '--enable-pubsub-experiment'.
+`,
+		LongDescription: `
+ipfs pubsub sub subscribes to messages on a given topic.
+
+This is an experimental feature. It is not intended in its current state
+to be used in a production environment.
+
+To use, the daemon must be run with '--enable-pubsub-experiment'.
+
+This command outputs data in the following encodings:
+  * "json"
+(Specified by the "--encoding" or "--enc" flag)
 `,
 	},
 	Arguments: []cmds.Argument{

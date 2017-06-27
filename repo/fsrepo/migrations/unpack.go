@@ -70,11 +70,8 @@ func writeToPath(rc io.Reader, out string) error {
 	defer binfi.Close()
 
 	_, err = io.Copy(binfi, rc)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func unpackZip(dist, binnom, path, out string) error {

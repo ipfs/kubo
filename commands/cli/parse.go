@@ -59,11 +59,8 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	}
 
 	err = cmd.CheckArguments(req)
-	if err != nil {
-		return req, cmd, path, err
-	}
 
-	return req, cmd, path, nil
+	return req, cmd, path, err
 }
 
 func ParseArgs(req cmds.Request, inputs []string, stdin *os.File, argDefs []cmds.Argument, root *cmds.Command) ([]string, []files.File, error) {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -18,7 +17,6 @@ import (
 var BlockSizeLimit = 1048576 // 1 MB
 
 // rough estimates on expected sizes
-var roughDataBlockSize = chunk.DefaultBlockSize
 var roughLinkBlockSize = 1 << 13 // 8KB
 var roughLinkSize = 34 + 8 + 5   // sha256 multihash + size + no name + protobuf framing
 
@@ -113,11 +111,8 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	}
 
 	_, err = db.batch.Add(childnode)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // Removes the child node at the given index

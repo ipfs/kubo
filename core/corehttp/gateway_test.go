@@ -20,7 +20,7 @@ import (
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 
 	ci "gx/ipfs/QmP1DfoUjiWH2ZBo1PBH6FupdBucbDepx3HpWmEY6JMUpY/go-libp2p-crypto"
-	id "gx/ipfs/QmRai5yZNL67pWCoznW7sBdFnqZrFULuJ5w8KhmRyhdgN4/go-libp2p/p2p/protocol/identify"
+	id "gx/ipfs/QmQA5mdxru8Bh6dpC9PJfSkumqnmHgJX7knxSgBo5Lpime/go-libp2p/p2p/protocol/identify"
 )
 
 // `ipfs object new unixfs-dir`
@@ -427,11 +427,6 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	req.Host = "example.net"
 	req.Header.Set("X-Ipfs-Gateway-Prefix", "/bad-prefix")
 
-	res, err = doWithoutRedirect(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// make request to directory listing with evil prefix
 	req, err = http.NewRequest("GET", ts.URL, nil)
 	if err != nil {
@@ -487,6 +482,27 @@ func TestCacheControlImmutable(t *testing.T) {
 				t.Fatalf("unexpected Cache-Control: immutable on directory listing: %s", hdr)
 			}
 		}
+	}
+}
+
+func TestGoGetSupport(t *testing.T) {
+	ts, _ := newTestServerAndNode(t, nil)
+	t.Logf("test server url: %s", ts.URL)
+	defer ts.Close()
+
+	// mimic go-get
+	req, err := http.NewRequest("GET", ts.URL+emptyDir+"?go-get=1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Errorf("status is %d, expected 200", res.StatusCode)
 	}
 }
 

@@ -2,8 +2,8 @@ package io
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 
@@ -54,7 +54,7 @@ func TestSeekAndRead(t *testing.T) {
 	}
 
 	for i := 255; i >= 0; i-- {
-		reader.Seek(int64(i), os.SEEK_SET)
+		reader.Seek(int64(i), io.SeekStart)
 
 		if reader.Offset() != int64(i) {
 			t.Fatal("expected offset to be increased by one after read")
@@ -100,14 +100,14 @@ func TestRelativeSeek(t *testing.T) {
 			t.Fatalf("expected to read: %d at %d, read %d", i, reader.Offset()-1, out)
 		}
 		if i != 255 {
-			_, err := reader.Seek(3, os.SEEK_CUR)
+			_, err := reader.Seek(3, io.SeekCurrent)
 			if err != nil {
 				t.Fatal(err)
 			}
 		}
 	}
 
-	_, err = reader.Seek(4, os.SEEK_END)
+	_, err = reader.Seek(4, io.SeekEnd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestRelativeSeek(t *testing.T) {
 		if int(out) != 255-i {
 			t.Fatalf("expected to read: %d at %d, read %d", 255-i, reader.Offset()-1, out)
 		}
-		reader.Seek(-5, os.SEEK_CUR) // seek 4 bytes but we read one byte every time so 5 bytes
+		reader.Seek(-5, io.SeekCurrent) // seek 4 bytes but we read one byte every time so 5 bytes
 	}
 
 }

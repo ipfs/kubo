@@ -170,12 +170,6 @@ type Republisher struct {
 	lastpub *cid.Cid
 }
 
-func (rp *Republisher) getVal() *cid.Cid {
-	rp.lk.Lock()
-	defer rp.lk.Unlock()
-	return rp.val
-}
-
 // NewRepublisher creates a new Republisher object to republish the given root
 // using the given short and long time intervals
 func NewRepublisher(ctx context.Context, pf PubFunc, tshort, tlong time.Duration) *Republisher {
@@ -195,13 +189,6 @@ func (p *Republisher) setVal(c *cid.Cid) {
 	p.lk.Lock()
 	defer p.lk.Unlock()
 	p.val = c
-}
-
-func (p *Republisher) pubNow() {
-	select {
-	case p.pubnowch <- nil:
-	default:
-	}
 }
 
 func (p *Republisher) WaitPub() {

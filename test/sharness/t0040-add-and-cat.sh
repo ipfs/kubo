@@ -403,6 +403,10 @@ MARS="zdj7WWx6fGNrNGkdpkuTAxCjKbQ1pPtarqA6VQhedhLTZu34J"
 VENUS="zdj7WbB1BUF8WejmVpQCmMLd1RbPnxJtvAj1Lep6eTmXRFbrz"
 add_directory '--cid-version=1 --raw-leaves=false'
 
+PLANETS="zDMZof1kqxDAx9myQbXsyWwyWP9qRPsXsWH7XuTz6isT7Rh1S6nM"
+MARS="zCT5htkdz1ZBHYVQXFQn51ngPXLVqaHSWoae87V1d6e9qWpSAjXw"
+VENUS="zCT5htke5JcdoMM4WhmUKXWf2QC3TnQToqGZHH1WsZERv6kPhFPg"
+add_directory '--hash=blake2b-256'
 
 test_expect_success "'ipfs add -rn' succeeds" '
 	mkdir -p mountdir/moons/jupiter &&
@@ -446,11 +450,25 @@ test_add_cat_5MB --cid-version=1 "zdj7WiiaedqVBXjX4SNqx3jfuZideDqdLYnDzCDJ66JDMK
 # format (i.e. not raw)
 test_add_cat_5MB '--cid-version=1 --raw-leaves=false' "zdj7WfgEsj897BBZj2mcfsRLhaPZcCixPV2G7DkWgF1Wdr64P"
 
+# note: --hash=blake2b-256 implies --cid-version=1 which implies --raw-leaves=true
+# the specified hash represents the leaf nodes stored as raw leaves and
+# encoded with the blake2b-256 hash funtion
+test_add_cat_5MB '--hash=blake2b-256' "zDMZof1kuxn7ebvKyvmkYLPvocSvFYxxAWT1yQBN1wWiXXr7w5mY"
+
+# the specified hash represents the leaf nodes stored as protoful nodes and
+# encoded with the blake2b-256 hash funtion
+test_add_cat_5MB '--hash=blake2b-256 --raw-leaves=false' "zDMZof1krz3SFTyhboRyWZyUP2qNgVdn9wjtaX211aHJ8WgeyT9v"
+
 test_add_cat_expensive "" "QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3"
 
 # note: the specified hash implies that internal nodes are stored
 # using CidV1 and leaves are stored using raw blocks
 test_add_cat_expensive "--cid-version=1" "zdj7WcatQrtuE4WMkS4XsfsMixuQN2po4irkYhqxeJyW1wgCq"
+
+# note: --hash=blake2b-256 implies --cid-version=1 which implies --raw-leaves=true
+# the specified hash represents the leaf nodes stored as raw leaves and
+# encoded with the blake2b-256 hash funtion
+test_add_cat_expensive '--hash=blake2b-256' "zDMZof1kwndounDzQCANUHjiE3zt1mPEgx7RE3JTHoZrRRa79xcv"
 
 test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=true&r=true&stream-channels=true:"
 

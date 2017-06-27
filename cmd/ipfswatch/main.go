@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	commands "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
@@ -99,7 +100,7 @@ func run(ipfsPath, watchPath string) error {
 	}
 
 	interrupts := make(chan os.Signal)
-	signal.Notify(interrupts, os.Interrupt, os.Kill)
+	signal.Notify(interrupts, os.Interrupt, syscall.SIGTERM)
 
 	for {
 		select {
@@ -167,10 +168,7 @@ func addTree(w *fsnotify.Watcher, root string) error {
 		}
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func IsDirectory(path string) (bool, error) {

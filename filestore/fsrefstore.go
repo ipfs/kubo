@@ -162,7 +162,7 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	}
 	defer fi.Close()
 
-	_, err = fi.Seek(int64(d.GetOffset()), os.SEEK_SET)
+	_, err = fi.Seek(int64(d.GetOffset()), io.SeekStart)
 	if err != nil {
 		return nil, &CorruptReferenceError{StatusFileError, err}
 	}
@@ -211,7 +211,7 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 	var dobj pb.DataObj
 
 	if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
-		return fmt.Errorf("cannot add filestore references outside ipfs root")
+		return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)
 	}
 
 	p, err := filepath.Rel(f.root, b.PosInfo.FullPath)

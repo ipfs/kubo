@@ -70,6 +70,7 @@ From there:
 ### From Linux package managers
 
 - [Arch Linux](#arch-linux)
+- [Nix](#nix)
 - [Snap](#snap)
 
 #### Arch Linux
@@ -82,6 +83,15 @@ In Arch Linux go-ipfs is available as
 Development version of go-ipfs is also on AUR under
 [go-ipfs-git](https://aur.archlinux.org/packages/go-ipfs-git/).
 You can install it using your favourite AUR Helper or manually from AUR.
+
+### Nix
+
+For Linux and MacOSX you can use the purely functional package manager [Nix](https://nixos.org/nix/):
+
+```
+$ nix-env -i ipfs
+```
+You can also install the Package by using it's attribute name, which is also `ipfs`.
 
 #### Snap
 
@@ -113,6 +123,8 @@ $ go get -u -d github.com/ipfs/go-ipfs
 $ cd $GOPATH/src/github.com/ipfs/go-ipfs
 $ make install
 ```
+
+If you are building on FreeBSD instead of `make install` use `gmake install`.
 
 #### Building on less common systems
 

@@ -14,13 +14,13 @@ import (
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	routing "gx/ipfs/QmNdaQ8itUU9jEZUwTsG4gHMaPmRfi6FEe89QjQAFbep3M/go-libp2p-routing"
 	ci "gx/ipfs/QmP1DfoUjiWH2ZBo1PBH6FupdBucbDepx3HpWmEY6JMUpY/go-libp2p-crypto"
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	record "gx/ipfs/QmWYCqr6UDqqD1bfRybaAPtbAqcN3TSJpveaBXMwbQ3ePZ/go-libp2p-record"
 	dhtpb "gx/ipfs/QmWYCqr6UDqqD1bfRybaAPtbAqcN3TSJpveaBXMwbQ3ePZ/go-libp2p-record/pb"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	routing "gx/ipfs/QmafuecpeZp3k3sHJ5mUARHd4795revuadECQMkmHB8LfW/go-libp2p-routing"
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
 
@@ -160,17 +160,11 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 		errs <- PublishPublicKey(ctx, r, namekey, k.GetPublic())
 	}()
 
-	err = waitOnErrChan(ctx, errs)
-	if err != nil {
+	if err := waitOnErrChan(ctx, errs); err != nil {
 		return err
 	}
 
-	err = waitOnErrChan(ctx, errs)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return waitOnErrChan(ctx, errs)
 }
 
 func waitOnErrChan(ctx context.Context, errs chan error) error {
@@ -192,12 +186,7 @@ func PublishPublicKey(ctx context.Context, r routing.ValueStore, k string, pubk 
 	// Store associated public key
 	timectx, cancel := context.WithTimeout(ctx, PublishPutValTimeout)
 	defer cancel()
-	err = r.PutValue(timectx, k, pkbytes)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.PutValue(timectx, k, pkbytes)
 }
 
 func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec *pb.IpnsEntry) error {
@@ -211,11 +200,7 @@ func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec
 
 	log.Debugf("Storing ipns entry at: %s", ipnskey)
 	// Store ipns entry at "/ipns/"+b58(h(pubkey))
-	if err := r.PutValue(timectx, ipnskey, data); err != nil {
-		return err
-	}
-
-	return nil
+	return r.PutValue(timectx, ipnskey, data)
 }
 
 func CreateRoutingEntryData(pk ci.PrivKey, val path.Path, seq uint64, eol time.Time) (*pb.IpnsEntry, error) {
@@ -349,12 +334,7 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 		return err
 	}
 
-	err = pub.Publish(ctx, key, path.FromCid(nodek))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return pub.Publish(ctx, key, path.FromCid(nodek))
 }
 
 func IpnsKeysForID(id peer.ID) (name, ipns string) {

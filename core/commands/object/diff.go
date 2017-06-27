@@ -7,7 +7,6 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 )
@@ -86,19 +85,7 @@ Example:
 			return
 		}
 
-		pbobj_a, ok := obj_a.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
-			return
-		}
-
-		pbobj_b, ok := obj_b.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(dag.ErrNotProtobuf, cmds.ErrNormal)
-			return
-		}
-
-		changes, err := dagutils.Diff(ctx, node.DAG, pbobj_a, pbobj_b)
+		changes, err := dagutils.Diff(ctx, node.DAG, obj_a, obj_b)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

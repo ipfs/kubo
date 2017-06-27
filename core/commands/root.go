@@ -47,6 +47,7 @@ ADVANCED COMMANDS
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
   stats         Various operational stats
+  p2p           Libp2p stream mounting
   filestore     Manage the filestore (experimental)
 
 NETWORK COMMANDS
@@ -113,6 +114,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"object":    ocmd.ObjectCmd,
 	"pin":       PinCmd,
 	"ping":      PingCmd,
+	"p2p":       P2PCmd,
 	"pubsub":    PubsubCmd,
 	"refs":      RefsCmd,
 	"repo":      RepoCmd,
@@ -126,6 +128,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
 	"filestore": FileStoreCmd,
+	"shutdown":  daemonShutdownCmd,
 }
 
 // RootRO is the readonly version of Root

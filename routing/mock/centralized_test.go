@@ -8,8 +8,8 @@ import (
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
 
-	pstore "gx/ipfs/QmNUVzEjq3XWJ89hegahPvyfJbTXgTaom48pLb7YBD9gHQ/go-libp2p-peerstore"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
+	pstore "gx/ipfs/QmXZSd1qR5BxZkPyuwfT5jpqQFScZccoZvDneXsKzCNHWX/go-libp2p-peerstore"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 )
 
@@ -33,7 +33,7 @@ func TestClientFindProviders(t *testing.T) {
 	client := rs.Client(pi)
 
 	k := cid.NewCidV0(u.Hash([]byte("hello")))
-	err := client.Provide(context.Background(), k)
+	err := client.Provide(context.Background(), k, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestClientFindProviders(t *testing.T) {
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
 	isInClient := false
 	for pi := range providersFromClient {
-		if pi.ID == pi.ID {
+		if pi.ID == pi.ID { // <-- typo?
 			isInClient = true
 		}
 	}
@@ -60,7 +60,7 @@ func TestClientOverMax(t *testing.T) {
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
 		pi := testutil.RandIdentityOrFatal(t)
-		err := rs.Client(pi).Provide(context.Background(), k)
+		err := rs.Client(pi).Provide(context.Background(), k, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -72,7 +72,7 @@ func TestClientOverMax(t *testing.T) {
 
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
 	i := 0
-	for _ = range providersFromClient {
+	for range providersFromClient {
 		i++
 	}
 	if i != max {
@@ -106,7 +106,7 @@ func TestCanceledContext(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			err = rs.Client(pi).Provide(context.Background(), k)
+			err = rs.Client(pi).Provide(context.Background(), k, true)
 			if err != nil {
 				t.Error(err)
 			}
@@ -128,7 +128,7 @@ func TestCanceledContext(t *testing.T) {
 	providers := client.FindProvidersAsync(ctx, k, max)
 
 	numProvidersReturned := 0
-	for _ = range providers {
+	for range providers {
 		numProvidersReturned++
 	}
 	t.Log(numProvidersReturned)
@@ -151,7 +151,7 @@ func TestValidAfter(t *testing.T) {
 
 	rs := NewServerWithDelay(conf)
 
-	rs.Client(pi).Provide(ctx, key)
+	rs.Client(pi).Provide(ctx, key, true)
 
 	var providers []pstore.PeerInfo
 	max := 100

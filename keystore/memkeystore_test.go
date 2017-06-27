@@ -46,6 +46,23 @@ func TestMemKeyStoreBasics(t *testing.T) {
 	if err == nil {
 		t.Fatal("should not be able to overwrite key")
 	}
+
+	exist, err := ks.Has("foo")
+	if !exist {
+		t.Fatal("should know it has a key named foo")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	exist, err = ks.Has("nonexistingkey")
+	if exist {
+		t.Fatal("should know it doesn't have a key named nonexistingkey")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if err := ks.Delete("bar"); err != nil {
 		t.Fatal(err)
 	}

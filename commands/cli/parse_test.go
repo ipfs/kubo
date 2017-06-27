@@ -204,7 +204,7 @@ func TestArgumentParsing(t *testing.T) {
 
 	test := func(cmd words, f *os.File, res words) {
 		if f != nil {
-			if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+			if _, err := f.Seek(0, io.SeekStart); err != nil {
 				t.Fatal(err)
 			}
 		}

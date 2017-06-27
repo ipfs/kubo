@@ -10,6 +10,7 @@ import (
 	"time"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
+	dutils "github.com/ipfs/go-ipfs/merkledag/utils"
 
 	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -86,6 +87,11 @@ type Pinner interface {
 	Pin(context.Context, node.Node, bool) error
 	Unpin(context.Context, *cid.Cid, bool) error
 
+	// Update updates a recursive pin from one cid to another
+	// this is more efficient than simply pinning the new one and unpinning the
+	// old one
+	Update(ctx context.Context, from, to *cid.Cid, unpin bool) error
+
 	// Check if a set of keys are pinned, more efficient than
 	// calling IsPinned for each key
 	CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error)
@@ -94,6 +100,7 @@ type Pinner interface {
 	// care! If used improperly, garbage collection may not be
 	// successful.
 	PinWithMode(*cid.Cid, PinMode)
+
 	// RemovePinWithMode is for manually editing the pin structure.
 	// Use with care! If used improperly, garbage collection may not
 	// be successful.
@@ -447,6 +454,26 @@ func (p *pinner) RecursiveKeys() []*cid.Cid {
 	return p.recursePin.Keys()
 }
 
+func (p *pinner) Update(ctx context.Context, from, to *cid.Cid, unpin bool) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.recursePin.Has(from) {
+		return fmt.Errorf("'from' cid was not recursively pinned already")
+	}
+
+	err := dutils.DiffEnumerate(ctx, p.dserv, from, to)
+	if err != nil {
+		return err
+	}
+
+	p.recursePin.Add(to)
+	if unpin {
+		p.recursePin.Remove(from)
+	}
+	return nil
+}
+
 // Flush encodes and writes pinner keysets to the datastore
 func (p *pinner) Flush() error {
 	p.lock.Lock()
@@ -501,9 +528,7 @@ func (p *pinner) InternalPins() []*cid.Cid {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	var out []*cid.Cid
-	for _, c := range p.internalPin.Keys() {
-		out = append(out, c)
-	}
+	out = append(out, p.internalPin.Keys()...)
 	return out
 }
 

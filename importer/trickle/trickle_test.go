@@ -7,14 +7,12 @@ import (
 	"io"
 	"io/ioutil"
 	mrand "math/rand"
-	"os"
 	"testing"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
-	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -126,11 +124,6 @@ func arrComp(a, b []byte) error {
 	return nil
 }
 
-type dagservAndPinner struct {
-	ds merkledag.DAGService
-	mp pin.Pinner
-}
-
 func TestIndirectBlocks(t *testing.T) {
 	splitter := chunk.SizeSplitterGen(512)
 	nbytes := 1024 * 1024
@@ -178,7 +171,7 @@ func TestSeekingBasic(t *testing.T) {
 	}
 
 	start := int64(4000)
-	n, err := rs.Seek(start, os.SEEK_SET)
+	n, err := rs.Seek(start, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +215,7 @@ func TestSeekToBegin(t *testing.T) {
 		t.Fatal("Copy didnt copy enough bytes")
 	}
 
-	seeked, err := rs.Seek(0, os.SEEK_SET)
+	seeked, err := rs.Seek(0, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +259,7 @@ func TestSeekToAlmostBegin(t *testing.T) {
 		t.Fatal("Copy didnt copy enough bytes")
 	}
 
-	seeked, err := rs.Seek(1, os.SEEK_SET)
+	seeked, err := rs.Seek(1, io.SeekStart)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,7 +295,7 @@ func TestSeekEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	seeked, err := rs.Seek(0, os.SEEK_END)
+	seeked, err := rs.Seek(0, io.SeekEnd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +321,7 @@ func TestSeekEndSingleBlockFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	seeked, err := rs.Seek(0, os.SEEK_END)
+	seeked, err := rs.Seek(0, io.SeekEnd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -358,7 +351,7 @@ func TestSeekingStress(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		offset := mrand.Intn(int(nbytes))
 		l := int(nbytes) - offset
-		n, err := rs.Seek(int64(offset), os.SEEK_SET)
+		n, err := rs.Seek(int64(offset), io.SeekStart)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -403,7 +396,7 @@ func TestSeekingConsistency(t *testing.T) {
 
 	for coff := nbytes - 4096; coff >= 0; coff -= 4096 {
 		t.Log(coff)
-		n, err := rs.Seek(coff, os.SEEK_SET)
+		n, err := rs.Seek(coff, io.SeekStart)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -565,32 +558,4 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func printDag(nd *merkledag.ProtoNode, ds merkledag.DAGService, indent int) {
-	pbd, err := ft.FromBytes(nd.Data())
-	if err != nil {
-		panic(err)
-	}
-
-	for i := 0; i < indent; i++ {
-		fmt.Print(" ")
-	}
-	fmt.Printf("{size = %d, type = %s, nc = %d", pbd.GetFilesize(), pbd.GetType().String(), len(pbd.GetBlocksizes()))
-	if len(nd.Links()) > 0 {
-		fmt.Println()
-	}
-	for _, lnk := range nd.Links() {
-		child, err := lnk.GetNode(context.Background(), ds)
-		if err != nil {
-			panic(err)
-		}
-		printDag(child.(*merkledag.ProtoNode), ds, indent+1)
-	}
-	if len(nd.Links()) > 0 {
-		for i := 0; i < indent; i++ {
-			fmt.Print(" ")
-		}
-	}
-	fmt.Println("}")
 }

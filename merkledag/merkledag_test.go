@@ -209,12 +209,6 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 	}
 }
 
-func assertCanGet(t *testing.T, ds DAGService, n node.Node) {
-	if _, err := ds.Get(context.Background(), n.Cid()); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestCantGet(t *testing.T) {
 	ds := dstest.Mock()
 	a := NodeWithData([]byte("A"))

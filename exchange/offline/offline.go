@@ -42,7 +42,7 @@ func (_ *offlineExchange) Close() error {
 }
 
 func (e *offlineExchange) GetBlocks(ctx context.Context, ks []*cid.Cid) (<-chan blocks.Block, error) {
-	out := make(chan blocks.Block, 0)
+	out := make(chan blocks.Block)
 	go func() {
 		defer close(out)
 		var misses []*cid.Cid

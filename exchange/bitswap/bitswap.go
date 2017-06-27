@@ -37,7 +37,6 @@ const (
 	// TODO: if a 'non-nice' strategy is implemented, consider increasing this value
 	maxProvidersPerRequest = 3
 	providerRequestTimeout = time.Second * 10
-	hasBlockTimeout        = time.Second * 15
 	provideTimeout         = time.Second * 15
 	sizeBatchRequestChan   = 32
 	// kMaxPriority is the max priority as defined by the bitswap protocol
@@ -414,6 +413,7 @@ func (bs *Bitswap) updateReceiveCounters(b blocks.Block) {
 // Connected/Disconnected warns bitswap about peer connections
 func (bs *Bitswap) PeerConnected(p peer.ID) {
 	bs.wm.Connected(p)
+	bs.engine.PeerConnected(p)
 }
 
 // Connected/Disconnected warns bitswap about peer connections

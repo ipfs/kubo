@@ -89,6 +89,11 @@ func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 	if !peerIsPartner(sanfrancisco.Peer, seattle.Engine) {
 		t.Fatal("Peer wasn't added as a Partner")
 	}
+
+	seattle.Engine.PeerDisconnected(sanfrancisco.Peer)
+	if peerIsPartner(sanfrancisco.Peer, seattle.Engine) {
+		t.Fatal("expected peer to be removed")
+	}
 }
 
 func peerIsPartner(p peer.ID, e *Engine) bool {

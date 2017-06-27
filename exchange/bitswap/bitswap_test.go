@@ -20,7 +20,7 @@ import (
 	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
 
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	p2ptestutil "gx/ipfs/QmcCgouQ5iXfmxmVNc1fpXLacRSPMNHx4tzqDpou6XNvvd/go-libp2p-netutil"
+	p2ptestutil "gx/ipfs/Qma2j8dYePrvN5DoNgwh1uAuu3FFtEtrUQFmr737ws8nCp/go-libp2p-netutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -53,7 +53,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 
 	block := blocks.NewBlock([]byte("block"))
 	pinfo := p2ptestutil.RandTestBogusIdentityOrFatal(t)
-	rs.Client(pinfo).Provide(context.Background(), block.Cid()) // but not on network
+	rs.Client(pinfo).Provide(context.Background(), block.Cid(), true) // but not on network
 
 	solo := g.Next()
 	defer solo.Exchange.Close()
@@ -199,7 +199,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 			if err != nil {
 				errs <- err
 			}
-			for _ = range outch {
+			for range outch {
 			}
 		}(inst)
 	}
@@ -224,16 +224,6 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 			}
 		}
 	}
-}
-
-func getOrFail(bitswap Instance, b blocks.Block, t *testing.T, wg *sync.WaitGroup) {
-	if _, err := bitswap.Blockstore().Get(b.Cid()); err != nil {
-		_, err := bitswap.Exchange.GetBlock(context.Background(), b.Cid())
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	wg.Done()
 }
 
 // TODO simplify this test. get to the _essence_!
@@ -611,14 +601,14 @@ func TestBitswapLedgerTwoWay(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
+	_, err = instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	blk, err = instances[0].Exchange.GetBlock(ctx, blocks[1].Cid())
+	blk, err := instances[0].Exchange.GetBlock(ctx, blocks[1].Cid())
 	if err != nil {
 		t.Fatal(err)
 	}

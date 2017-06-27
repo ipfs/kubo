@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
 	ipns "github.com/ipfs/go-ipfs/fuse/ipns"
@@ -17,10 +16,6 @@ import (
 )
 
 var log = logging.Logger("node")
-
-// amount of time to wait for mount errors
-// TODO is this non-deterministic?
-const mountTimeout = time.Second
 
 // fuseNoDirectory used to check the returning fuse error
 const fuseNoDirectory = "fusermount: failed to access mountpoint"
@@ -49,12 +44,7 @@ func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
 		return err
 	}
 
-	var err error
-	if err = doMount(node, fsdir, nsdir); err != nil {
-		return err
-	}
-
-	return nil
+	return doMount(node, fsdir, nsdir)
 }
 
 func doMount(node *core.IpfsNode, fsdir, nsdir string) error {

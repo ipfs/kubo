@@ -70,7 +70,7 @@ Lists running and recently run commands.
 
 				var live time.Duration
 				if req.Active {
-					live = time.Now().Sub(req.StartTime)
+					live = time.Since(req.StartTime)
 				} else {
 					live = req.EndTime.Sub(req.StartTime)
 				}

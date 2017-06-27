@@ -3,7 +3,6 @@ package commands
 import "testing"
 
 func noop(req Request, res Response) {
-	return
 }
 
 func TestOptionValidation(t *testing.T) {

@@ -198,7 +198,7 @@ func TestFilePersistence(t *testing.T) {
 	mnt.Close()
 
 	t.Log("Closed, opening new fs")
-	node, mnt = setupIpnsTest(t, node)
+	_, mnt = setupIpnsTest(t, node)
 	defer mnt.Close()
 
 	rbuf, err := ioutil.ReadFile(mnt.Dir + fname)

@@ -215,9 +215,8 @@ func (n *ProtoNode) SetData(d []byte) {
 // that. If a link of the same name existed, it is removed.
 func (n *ProtoNode) UpdateNodeLink(name string, that *ProtoNode) (*ProtoNode, error) {
 	newnode := n.Copy().(*ProtoNode)
-	err := newnode.RemoveNodeLink(name)
-	err = nil // ignore error
-	err = newnode.AddNodeLink(name, that)
+	_ = newnode.RemoveNodeLink(name) // ignore error
+	err := newnode.AddNodeLink(name, that)
 	return newnode, err
 }
 

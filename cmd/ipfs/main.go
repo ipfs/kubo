@@ -37,17 +37,12 @@ import (
 // log is the command logger
 var log = logging.Logger("cmd/ipfs")
 
-var (
-	errUnexpectedApiOutput = errors.New("api returned unexpected output")
-	errApiVersionMismatch  = errors.New("api version mismatch")
-	errRequestCanceled     = errors.New("request canceled")
-)
+var errRequestCanceled = errors.New("request canceled")
 
 const (
 	EnvEnableProfiling = "IPFS_PROF"
 	cpuProfile         = "ipfs.cpuprof"
 	heapProfile        = "ipfs.memprof"
-	errorFormat        = "ERROR: %v\n\n"
 )
 
 type cmdInvocation struct {
@@ -492,7 +487,7 @@ func startProfiling() (func(), error) {
 	}
 	pprof.StartCPUProfile(ofi)
 	go func() {
-		for _ = range time.NewTicker(time.Second * 30).C {
+		for range time.NewTicker(time.Second * 30).C {
 			err := writeHeapProfileToFile()
 			if err != nil {
 				log.Error(err)
@@ -546,7 +541,7 @@ func (ih *IntrHandler) Handle(handler func(count int, ih *IntrHandler), sigs ...
 	go func() {
 		defer ih.wg.Done()
 		count := 0
-		for _ = range ih.sig {
+		for range ih.sig {
 			count++
 			handler(count, ih)
 		}

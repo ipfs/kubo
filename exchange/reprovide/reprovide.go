@@ -6,9 +6,9 @@ import (
 	"time"
 
 	blocks "github.com/ipfs/go-ipfs/blocks/blockstore"
+	routing "gx/ipfs/QmNdaQ8itUU9jEZUwTsG4gHMaPmRfi6FEe89QjQAFbep3M/go-libp2p-routing"
 	backoff "gx/ipfs/QmPJUtEJsm5YLUWhF6imvyCH8KZXRJa9Wup7FDMwTy5Ufz/backoff"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	routing "gx/ipfs/QmafuecpeZp3k3sHJ5mUARHd4795revuadECQMkmHB8LfW/go-libp2p-routing"
 )
 
 var log = logging.Logger("reprovider")
@@ -54,7 +54,7 @@ func (rp *Reprovider) Reprovide(ctx context.Context) error {
 	}
 	for c := range keychan {
 		op := func() error {
-			err := rp.rsys.Provide(ctx, c)
+			err := rp.rsys.Provide(ctx, c, true)
 			if err != nil {
 				log.Debugf("Failed to provide key: %s", err)
 			}
