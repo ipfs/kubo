@@ -16,6 +16,7 @@ const (
 	Uint    = reflect.Uint
 	Float   = reflect.Float64
 	String  = reflect.String
+	Strings = reflect.Array
 )
 
 // Option is used to specify a field that will be provided by a consumer
@@ -53,9 +54,8 @@ func (o *option) Description() string {
 		if strings.Contains(o.description, "<<default>>") {
 			return strings.Replace(o.description, "<<default>>",
 				fmt.Sprintf("Default: %v.", o.defaultVal), -1)
-		} else {
-			return fmt.Sprintf("%s Default: %v.", o.description, o.defaultVal)
 		}
+		return fmt.Sprintf("%s Default: %v.", o.description, o.defaultVal)
 	}
 	return o.description
 }
@@ -106,6 +106,9 @@ func FloatOption(names ...string) Option {
 }
 func StringOption(names ...string) Option {
 	return NewOption(String, names...)
+}
+func StringsOption(names ...string) Option {
+	return NewOption(Strings, names...)
 }
 
 type OptionValue struct {
@@ -174,6 +177,17 @@ func (ov OptionValue) String() (value string, found bool, err error) {
 		return "", false, nil
 	}
 	val, ok := ov.value.(string)
+	if !ok {
+		err = util.ErrCast()
+	}
+	return val, ov.found, err
+}
+
+func (ov OptionValue) Strings() (value []string, found bool, err error) {
+	if !ov.found && ov.value == nil {
+		return nil, false, nil
+	}
+	val, ok := ov.value.([]string)
 	if !ok {
 		err = util.ErrCast()
 	}

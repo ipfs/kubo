@@ -106,15 +106,16 @@ func parseOpts(args []string, root *cmds.Command) (
 	// parseFlag checks that a flag is valid and saves it into opts
 	// Returns true if the optional second argument is used
 	parseFlag := func(name string, arg *string, mustUse bool) (bool, error) {
-		if _, ok := opts[name]; ok {
-			return false, fmt.Errorf("Duplicate values for option '%s'", name)
-		}
-
 		optDef, found := optDefs[name]
 		if !found {
 			err = fmt.Errorf("Unrecognized option '%s'", name)
 			return false, err
 		}
+
+		if _, ok := opts[name]; ok && optDef.Type() != cmds.Strings {
+			return false, fmt.Errorf("Duplicate values for option '%s'", name)
+		}
+
 		// mustUse implies that you must use the argument given after the '='
 		// eg. -r=true means you must take true into consideration
 		//		mustUse == true in the above case
@@ -137,13 +138,19 @@ func parseOpts(args []string, root *cmds.Command) (
 			default:
 				return true, fmt.Errorf("Option '%s' takes true/false arguments, but was passed '%s'", name, argVal)
 			}
+		} else if arg != nil && optDef.Type() == cmds.Strings {
+			if res, ok := opts[name].([]string); ok {
+				opts[name] = append(res, *arg)
+			} else {
+				opts[name] = []string{*arg}
+			}
 		} else {
 			if arg == nil {
 				return true, fmt.Errorf("Missing argument for option '%s'", name)
 			}
 			opts[name] = *arg
-			return true, nil
 		}
+		return true, nil
 	}
 
 	optDefs, err = root.GetOptions(path)

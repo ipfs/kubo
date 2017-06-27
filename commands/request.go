@@ -334,7 +334,7 @@ func (r *request) ConvertOptions() error {
 		}
 
 		kind := reflect.TypeOf(v).Kind()
-		if kind != opt.Type() {
+		if kind != opt.Type() && opt.Type() != Strings && kind != String {
 			if kind == String {
 				convert := converters[opt.Type()]
 				str, ok := v.(string)
