@@ -322,7 +322,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	f, err := files.NewSerialFile(root, root, false, stat)
+	f, err := files.NewSerialFile(root, root, nil, stat)
 	if err != nil {
 		return "", err
 	}

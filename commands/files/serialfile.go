@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 )
 
@@ -14,15 +13,15 @@ import (
 // No more than one file will be opened at a time (directories will advance
 // to the next file when NextFile() is called).
 type serialFile struct {
-	name              string
-	path              string
-	files             []os.FileInfo
-	stat              os.FileInfo
-	current           *File
-	handleHiddenFiles bool
+	name    string
+	path    string
+	files   []os.FileInfo
+	stat    os.FileInfo
+	current *File
+	filter  *Filter
 }
 
-func NewSerialFile(name, path string, hidden bool, stat os.FileInfo) (File, error) {
+func NewSerialFile(name, path string, filter *Filter, stat os.FileInfo) (File, error) {
 
 	switch mode := stat.Mode(); {
 	case mode.IsRegular():
@@ -38,7 +37,7 @@ func NewSerialFile(name, path string, hidden bool, stat os.FileInfo) (File, erro
 		if err != nil {
 			return nil, err
 		}
-		return &serialFile{name, path, contents, stat, nil, hidden}, nil
+		return &serialFile{name, path, filterFiles(filter, contents), stat, nil, filter}, nil
 	case mode&os.ModeSymlink != 0:
 		target, err := os.Readlink(path)
 		if err != nil {
@@ -71,15 +70,6 @@ func (f *serialFile) NextFile() (File, error) {
 	stat := f.files[0]
 	f.files = f.files[1:]
 
-	for !f.handleHiddenFiles && strings.HasPrefix(stat.Name(), ".") {
-		if len(f.files) == 0 {
-			return nil, io.EOF
-		}
-
-		stat = f.files[0]
-		f.files = f.files[1:]
-	}
-
 	// open the next file
 	fileName := filepath.ToSlash(filepath.Join(f.name, stat.Name()))
 	filePath := filepath.ToSlash(filepath.Join(f.path, stat.Name()))
@@ -87,7 +77,7 @@ func (f *serialFile) NextFile() (File, error) {
 	// recursively call the constructor on the next file
 	// if it's a regular file, we will open it as a ReaderFile
 	// if it's a directory, files in it will be opened serially
-	sf, err := NewSerialFile(fileName, filePath, f.handleHiddenFiles, stat)
+	sf, err := NewSerialFile(fileName, filePath, f.filter, stat)
 	if err != nil {
 		return nil, err
 	}
@@ -144,4 +134,18 @@ func (f *serialFile) Size() (int64, error) {
 	})
 
 	return du, err
+}
+
+func filterFiles(filter *Filter, files []os.FileInfo) (res []os.FileInfo) {
+	for _, file := range files {
+		name := file.Name()
+		if file.IsDir() {
+			name = fmt.Sprintf("%s/", name)
+		}
+		if filter.Filter(name) {
+			continue
+		}
+		res = append(res, file)
+	}
+	return
 }

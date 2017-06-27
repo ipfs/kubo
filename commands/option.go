@@ -196,12 +196,16 @@ func (ov OptionValue) Strings() (value []string, found bool, err error) {
 
 // Flag names
 const (
-	EncShort   = "enc"
-	EncLong    = "encoding"
-	RecShort   = "r"
-	RecLong    = "recursive"
-	ChanOpt    = "stream-channels"
-	TimeoutOpt = "timeout"
+	EncShort       = "enc"
+	EncLong        = "encoding"
+	RecShort       = "r"
+	RecLong        = "recursive"
+	ChanOpt        = "stream-channels"
+	TimeoutOpt     = "timeout"
+	IgnoreShort    = "i"
+	IgnoreLong     = "ignore"
+	GitIgnoreShort = "g"
+	GitIgnoreLong  = "git-ignore"
 )
 
 // options that are used by this package

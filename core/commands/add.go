@@ -88,6 +88,8 @@ You can now refer to the added file in a gateway, like so:
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmds.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm to use."),
+		cmds.StringsOption(cmds.IgnoreLong, cmds.IgnoreShort, "List of ignore rules. (comma separated)."),
+		cmds.BoolOption(cmds.GitIgnoreLong, cmds.GitIgnoreShort, "Respect .gitignore rules. (experimental)"),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").Default(true),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. (experimental)"),

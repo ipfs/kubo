@@ -86,7 +86,29 @@ func ParseArgs(req cmds.Request, inputs []string, stdin *os.File, argDefs []cmds
 			return nil, nil, u.ErrCast()
 		}
 	}
-	return parseArgs(inputs, stdin, argDefs, recursive, hidden, root)
+
+	var rulesFile string
+	if gitignore, _, err := req.Option("git-ignore").Bool(); gitignore {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, nil, err
+		}
+		rulesFile = filepath.Join(cwd, ".gitignore")
+	} else if err != nil {
+		return nil, nil, u.ErrCast()
+	}
+
+	ignore, _, err := req.Option("ignore").Strings()
+	if err != nil {
+		return nil, nil, u.ErrCast()
+	}
+
+	filter, err := files.NewFilter(rulesFile, ignore, hidden)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return parseArgs(inputs, stdin, argDefs, recursive, filter, root)
 }
 
 // Parse a command line made up of sub-commands, short arguments, long arguments and positional arguments
@@ -263,7 +285,7 @@ func parseOpts(args []string, root *cmds.Command) (
 
 const msgStdinInfo = "ipfs: Reading from %s; send Ctrl-d to stop."
 
-func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive, hidden bool, root *cmds.Command) ([]string, []files.File, error) {
+func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool, filter *files.Filter, root *cmds.Command) ([]string, []files.File, error) {
 	// ignore stdin on Windows
 	if osh.IsWindows() {
 		stdin = nil
@@ -336,7 +358,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 					fpath = stdin.Name()
 					file = files.NewReaderFile("", fpath, r, nil)
 				} else {
-					nf, err := appendFile(fpath, argDef, recursive, hidden)
+					nf, err := appendFile(fpath, argDef, recursive, filter)
 					if err != nil {
 						return nil, nil, err
 					}
@@ -406,7 +428,7 @@ const notRecursiveFmtStr = "'%s' is a directory, use the '-%s' flag to specify d
 const dirNotSupportedFmtStr = "Invalid path '%s', argument '%s' does not support directories"
 const winDriveLetterFmtStr = "%q is a drive letter, not a drive path"
 
-func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (files.File, error) {
+func appendFile(fpath string, argDef *cmds.Argument, recursive bool, filter *files.Filter) (files.File, error) {
 	// resolve Windows relative dot paths like `X:.\somepath`
 	if osh.IsWindows() {
 		if len(fpath) >= 3 && fpath[1:3] == ":." {
@@ -447,10 +469,10 @@ func appendFile(fpath string, argDef *cmds.Argument, recursive, hidden bool) (fi
 	}
 
 	if osh.IsWindows() {
-		return windowsParseFile(fpath, hidden, stat)
+		return windowsParseFile(fpath, filter, stat)
 	}
 
-	return files.NewSerialFile(path.Base(fpath), fpath, hidden, stat)
+	return files.NewSerialFile(path.Base(fpath), fpath, filter, stat)
 }
 
 // Inform the user if a file is waiting on input
@@ -503,7 +525,7 @@ func (r *messageReader) Close() error {
 	return r.r.Close()
 }
 
-func windowsParseFile(fpath string, hidden bool, stat os.FileInfo) (files.File, error) {
+func windowsParseFile(fpath string, filter *files.Filter, stat os.FileInfo) (files.File, error) {
 	// special cases for Windows drive roots i.e. `X:\` and their long form `\\?\X:\`
 	// drive path must be preserved as `X:\` (or it's longform) and not converted to `X:`, `X:.`, `\`, or `/` here
 	switch len(fpath) {
@@ -514,7 +536,7 @@ func windowsParseFile(fpath string, hidden bool, stat os.FileInfo) (files.File, 
 		}
 		// `X:\` needs to preserve the `\`, path.Base(filepath.ToSlash(fpath)) results in `X:` which is not valid
 		if fpath[1:3] == ":\\" {
-			return files.NewSerialFile(fpath, fpath, hidden, stat)
+			return files.NewSerialFile(fpath, fpath, filter, stat)
 		}
 	case 6:
 		// `\\?\X:` long prefix form of `X:`, still ambiguous
@@ -525,9 +547,9 @@ func windowsParseFile(fpath string, hidden bool, stat os.FileInfo) (files.File, 
 		// `\\?\X:\` long prefix form is translated into short form `X:\`
 		if fpath[:4] == "\\\\?\\" && fpath[5] == ':' && fpath[6] == '\\' {
 			fpath = string(fpath[4]) + ":\\"
-			return files.NewSerialFile(fpath, fpath, hidden, stat)
+			return files.NewSerialFile(fpath, fpath, filter, stat)
 		}
 	}
 
-	return files.NewSerialFile(path.Base(filepath.ToSlash(fpath)), fpath, hidden, stat)
+	return files.NewSerialFile(path.Base(filepath.ToSlash(fpath)), fpath, filter, stat)
 }

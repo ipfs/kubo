@@ -28,7 +28,7 @@ func BuildDagFromFile(fpath string, ds dag.DAGService) (node.Node, error) {
 		return nil, fmt.Errorf("`%s` is a directory", fpath)
 	}
 
-	f, err := files.NewSerialFile(fpath, fpath, false, stat)
+	f, err := files.NewSerialFile(fpath, fpath, nil, stat)
 	if err != nil {
 		return nil, err
 	}
