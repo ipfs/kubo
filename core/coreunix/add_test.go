@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	"github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/commands/files"
@@ -21,8 +20,9 @@ import (
 	"github.com/ipfs/go-ipfs/repo/config"
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	"github.com/ipfs/go-ipfs/thirdparty/testutil"
+	"gx/ipfs/QmbJUay5h1HtzhJb5QQk2t26yCnJksHynvhcqp18utBPqG/go-block-format"
 
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	cid "gx/ipfs/QmNw61A6sJoXMeP37mJRtQZdNhj5e3FdjoTN3v4FyE96Gk/go-cid"
 )
 
 func TestAddRecursive(t *testing.T) {

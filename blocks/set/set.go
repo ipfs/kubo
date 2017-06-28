@@ -4,7 +4,7 @@
 package set
 
 import (
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	cid "gx/ipfs/QmNw61A6sJoXMeP37mJRtQZdNhj5e3FdjoTN3v4FyE96Gk/go-cid"
 
 	"github.com/ipfs/go-ipfs/blocks/bloom"
 )
