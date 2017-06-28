@@ -529,7 +529,7 @@ test_files_api() {
 		ipfs files rm -r /adir
 	'
 
-	test_expect_success "root mfs entry is empyt" '
+	test_expect_success "root mfs entry is empty" '
 		verify_dir_contents /
 	'
 
