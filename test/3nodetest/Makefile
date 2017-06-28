@@ -1,4 +1,4 @@
-RANDOMSRC = ../../Godeps/_workspace/src/github.com/jbenet/go-random
+RANDOMSRC = ${GOPATH}/src/gx/ipfs/QmbRf8gHLzTjhtVR8Qc4hBXF2c3pV7zCcaS8wSXQKx44kv/go-random
 IMAGE_NAME = ipfs-test-latest
 IPFS_ROOT = ../..
 

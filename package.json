@@ -306,6 +306,17 @@
       "hash": "QmfJHywXQu98UeZtGJBQrPAR6AtmDjjbe3qjTo9piXHPnx",
       "name": "murmur3",
       "version": "0.0.0"
+    },
+    {
+      "author": "jbenet",
+      "hash": "QmTyCJo2KTgqLxgZoSss3ZeDG637zrw9ZaXKJ1NKQmYybz",
+      "name": "go-random-files",
+      "version": "0.0.0"
+    },
+    {
+      "hash": "QmbRf8gHLzTjhtVR8Qc4hBXF2c3pV7zCcaS8wSXQKx44kv",
+      "name": "go-random",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.10.0",
