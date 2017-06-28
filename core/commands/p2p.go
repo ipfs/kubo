@@ -40,7 +40,7 @@ type P2PStreamsOutput struct {
 	Streams []P2PStreamInfoOutput
 }
 
-// P2PCmd is the 'ipfs ppp' command
+// P2PCmd is the 'ipfs p2p' command
 var P2PCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Libp2p stream mounting.",
