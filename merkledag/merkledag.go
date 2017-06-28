@@ -14,6 +14,7 @@ import (
 	ipldcbor "gx/ipfs/QmNrbCt8j9DT5W9Pmjy2SdudT9k8GpaDr4sRuFix3BXhgR/go-ipld-cbor"
 	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
 	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	"github.com/ipfs/go-ipld-git"
 )
 
 var ErrNotFound = fmt.Errorf("merkledag: not found")
@@ -117,6 +118,8 @@ func decodeBlock(b blocks.Block) (node.Node, error) {
 		return NewRawNodeWPrefix(b.RawData(), b.Cid().Prefix())
 	case cid.DagCBOR:
 		return ipldcbor.Decode(b.RawData())
+	case cid.GitRaw:
+		return ipldgit.ParseObjectFromBuffer(b.RawData())
 	default:
 		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
 	}
