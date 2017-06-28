@@ -134,6 +134,7 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	urlPath := r.URL.Path
+	escapedURLPath := r.URL.EscapedPath()
 
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
 	// the prefix header can be set to signal this sub-path.
@@ -173,12 +174,12 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	case nil:
 	case coreiface.ErrOffline:
 		if !i.node.OnlineMode() {
-			webError(w, "ipfs resolve -r "+urlPath, err, http.StatusServiceUnavailable)
+			webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
 			return
 		}
 		fallthrough
 	default:
-		webError(w, "ipfs resolve -r "+urlPath, err, http.StatusNotFound)
+		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
 
@@ -191,7 +192,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	case coreiface.ErrIsDir:
 		dir = true
 	default:
-		webError(w, "ipfs cat "+urlPath, err, http.StatusNotFound)
+		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
 
@@ -278,7 +279,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	ixnd, err := dirr.Find(ctx, "index.html")
 	switch {
 	case err == nil:
-		log.Debugf("found index.html link for %s", urlPath)
+		log.Debugf("found index.html link for %s", escapedURLPath)
 
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
 		goget := r.URL.Query().Get("go-get") == "1"
