@@ -16,7 +16,7 @@ import (
 	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
 )
 
-const TaskWorkerCount = 8
+const taskWorkerCount = 8
 
 func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// Start up a worker to handle block requests this node is making
@@ -25,7 +25,7 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	})
 
 	// Start up workers to handle requests from other nodes for the data on this node
-	for i := 0; i < TaskWorkerCount; i++ {
+	for i := 0; i < taskWorkerCount; i++ {
 		i := i
 		px.Go(func(px process.Process) {
 			bs.taskWorker(ctx, i)
@@ -241,7 +241,7 @@ outer:
 
 func (bs *Bitswap) dhtWorker(ctx context.Context, kset *cid.Set, ksetLk *sync.Mutex,
 	req *blockRequest) {
-	connectSemaphore := make(chan struct{}, TaskWorkerCount)
+	connectSemaphore := make(chan struct{}, taskWorkerCount)
 
 	child, cancel := context.WithTimeout(ctx, providerRequestTimeout)
 	defer cancel()
@@ -263,7 +263,7 @@ func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 	ksetLk := &sync.Mutex{}
 	kset := cid.NewSet()
 
-	searchSemaphore := make(chan struct{}, TaskWorkerCount)
+	searchSemaphore := make(chan struct{}, taskWorkerCount)
 
 	for {
 		select {
