@@ -12,7 +12,7 @@ import (
 	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 
 	cid "gx/ipfs/QmNw61A6sJoXMeP37mJRtQZdNhj5e3FdjoTN3v4FyE96Gk/go-cid"
-	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	ds "gx/ipfs/QmSiN66ybp5udnQnvhb6euiWiiQWdGvwMhAWa95cC1DTCV/go-datastore"
 )
 
 func newTestFilestore(t *testing.T) (string, *Filestore) {

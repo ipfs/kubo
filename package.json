@@ -130,9 +130,9 @@
     },
     {
       "author": "jbenet",
-      "hash": "QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364",
+      "hash": "QmSiN66ybp5udnQnvhb6euiWiiQWdGvwMhAWa95cC1DTCV",
       "name": "go-datastore",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "author": "codahale",
@@ -178,15 +178,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUaGhKyLgTuYDdQsbKST1tYr2CVoix59rqaxdxqk2UbfK",
+      "hash": "QmdPEjPsDpZjF1j5yveKC188eMawm1SEAtKctk4gVvzrro",
       "name": "retry-datastore",
-      "version": "1.1.2"
+      "version": "1.1.3"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmTGLHiFMABaPXGAJMA2tu3DXkaFLTxkQXKeowp2jMqvEk",
+      "hash": "QmX2b53j4pzmVm2feeHWcurjaVeh13QsMi8QzcWEofrQbL",
       "name": "failstore",
-      "version": "1.0.2"
+      "version": "1.0.3"
     },
     {
       "author": "whyrusleeping",
@@ -202,21 +202,21 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmXZEfbEv9sXG9JnLoMNhREDMDgkq5Jd7uWJ7d77VJ4pxn",
+      "hash": "QmQDvz6cULtMd1PuJgf7f2r75PqFuASXyGb7goXmJ4pPfr",
       "name": "go-ds-flatfs",
-      "version": "1.1.2"
+      "version": "1.1.3"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmNPv1yzXBqxzqjfTzHCeBoicxxZgHzLezdY2hMCZ3r6EU",
+      "hash": "QmeAJNAhWssP1Tt7ikNrjXMVxHJ96zhPvMxsCuNWJxmNe4",
       "name": "go-ds-measure",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmaHHmfEozrrotyhyN44omJouyuEtx6ahddqV6W5yRaUSQ",
+      "hash": "QmdXKJDw9Yk63NvtrA5a7g2zkeKQGKTWdDECLjNiSGSKT5",
       "name": "go-ds-leveldb",
-      "version": "1.0.1"
+      "version": "1.0.2"
     },
     {
       "author": "whyrusleeping",
@@ -237,9 +237,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmUisRCuGWoJM7WtVQDYT2jrNxUtfZMJzvVFTogzdwv7uV",
+      "hash": "QmNaAVhp2UXfeDTLhHRUxjB69Tpku38ovSmQegcAMoJXbY",
       "name": "go-libp2p-kad-dht",
-      "version": "2.5.2"
+      "version": "2.5.3"
     },
     {
       "author": "whyrusleeping",
