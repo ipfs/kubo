@@ -249,12 +249,14 @@ func (bs *Bitswap) dhtWorker(ctx context.Context, kset *cid.Set, ksetLk *sync.Mu
 
 	select {
 	case connectSemaphore <- struct{}{}:
-		go connectWorker(ctx, bs.network, kset, ksetLk, &connReq{
-			peers: providers,
-			ctx:   child,
-			cid:   req.Cid,
-		})
-		<-connectSemaphore
+		go func() {
+			connectWorker(ctx, bs.network, kset, ksetLk, &connReq{
+				peers: providers,
+				ctx:   child,
+				cid:   req.Cid,
+			})
+			<-connectSemaphore
+		}()
 	case <-ctx.Done():
 	}
 }
@@ -284,8 +286,10 @@ func (bs *Bitswap) providerQueryManager(ctx context.Context) {
 
 			select {
 			case searchSemaphore <- struct{}{}:
-				go bs.dhtWorker(e.Ctx, kset, ksetLk, e)
-				<-searchSemaphore
+				go func() {
+					bs.dhtWorker(e.Ctx, kset, ksetLk, e)
+					<-searchSemaphore
+				}()
 			case <-e.Ctx.Done():
 			}
 		case <-ctx.Done():
