@@ -126,6 +126,28 @@ test_expect_success "clean up ipfs dir" '
 	rm -rf "$IPFS_PATH"
 '
 
+# test init profiles
+test_expect_success "'ipfs init --profile' with invalid profile fails" '
+	BITS="1024" &&
+	test_must_fail ipfs init --bits="$BITS" --profile=nonexistent_profile 2> invalid_profile_out
+	EXPECT="Error: invalid configuration profile: nonexistent_profile" &&
+	grep "$EXPECT" invalid_profile_out
+'
+
+test_expect_success "'ipfs init --profile' succeeds" '
+	BITS="1024" &&
+	ipfs init --bits="$BITS" --profile=server
+'
+
+test_expect_success "'ipfs config Swarm.AddrFilters' looks good" '
+	ipfs config Swarm.AddrFilters > actual_config &&
+	test $(cat actual_config | wc -l) = 17
+'
+
+test_expect_success "clean up ipfs dir" '
+	rm -rf "$IPFS_PATH"
+'
+
 test_init_ipfs
 
 test_launch_ipfs_daemon
