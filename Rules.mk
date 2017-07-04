@@ -56,6 +56,9 @@ include $(dir)/Rules.mk
 dir := pin/internal/pb
 include $(dir)/Rules.mk
 
+dir := plugin
+include $(dir)/Rules.mk
+
 # -------------------- #
 #   universal rules    #
 # -------------------- #

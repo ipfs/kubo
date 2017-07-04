@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	coredag "github.com/ipfs/go-ipfs/core/coredag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 
@@ -76,34 +77,25 @@ into an object of the specified format.
 			defer n.Blockstore.PinLock().Unlock()
 		}
 
+		nds, err := coredag.ParseInputs(ienc, format, fi)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
 		var c *cid.Cid
-		switch ienc {
-		case "json":
-			nd, err := convertJsonToType(fi, format)
+		b := n.DAG.Batch()
+		for _, nd := range nds {
+			cid, err := b.Add(nd)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 
-			c, err = n.DAG.Add(nd)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-		case "raw":
-			nd, err := convertRawToType(fi, format)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			c, err = n.DAG.Add(nd)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-		default:
-			res.SetError(fmt.Errorf("unrecognized input encoding: %s", ienc), cmds.ErrNormal)
+			c = cid
+		}
+		if err := b.Commit(); err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
