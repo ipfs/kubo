@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"gx/ipfs/QmbJUay5h1HtzhJb5QQk2t26yCnJksHynvhcqp18utBPqG/go-block-format"
+	"gx/ipfs/QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh/go-block-format"
 
-	cid "gx/ipfs/QmNw61A6sJoXMeP37mJRtQZdNhj5e3FdjoTN3v4FyE96Gk/go-cid"
-	ds "gx/ipfs/QmSiN66ybp5udnQnvhb6euiWiiQWdGvwMhAWa95cC1DTCV/go-datastore"
-	syncds "gx/ipfs/QmSiN66ybp5udnQnvhb6euiWiiQWdGvwMhAWa95cC1DTCV/go-datastore/sync"
+	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	syncds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
+	cid "gx/ipfs/Qma4RJSuh7mMeJQYCqMbKzekn6EwBo7HEs5AQYjVRMQATB/go-cid"
 )
 
 var exampleBlock = blocks.NewBlock([]byte("foo"))

@@ -11,7 +11,7 @@ import (
 	tar "github.com/ipfs/go-ipfs/unixfs/archive/tar"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	node "gx/ipfs/QmUBtPvHKFAX43XMsyxsYpMi3U5VwZ4jYFTo4kFhvAR33G/go-ipld-format"
+	node "gx/ipfs/QmPAKbSsgEX5B6fpmxa61jXYnoWzZr5sNafd3qgPiSH8Uv/go-ipld-format"
 )
 
 // DefaultBufSize is the buffer size for gets. for now, 1MB, which is ~4 blocks.
