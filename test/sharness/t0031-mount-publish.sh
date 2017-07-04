@@ -40,7 +40,7 @@ test_expect_success FUSE "'ipfs mount' output looks good" '
 '
 
 test_expect_success "cannot publish after mounting /ipns" '
-  echo "Error: You cannot manually publish while IPNS is mounted." >expected &&
+  echo "Error: cannot manually publish while IPNS is mounted" >expected &&
   test_must_fail ipfsi 0 name publish '$HASH' 2>actual &&
   test_cmp expected actual
 '
