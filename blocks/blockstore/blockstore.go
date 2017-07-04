@@ -193,8 +193,6 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true}
-	// datastore/namespace does *NOT* fix up Query.Prefix
-	q.Prefix = BlockPrefix.String()
 	res, err := bs.datastore.Query(q)
 	if err != nil {
 		return nil, err

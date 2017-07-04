@@ -59,7 +59,6 @@ func NewFileManager(ds ds.Batching, root string) *FileManager {
 // closed.
 func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 	q := dsq.Query{KeysOnly: true}
-	q.Prefix = FilestorePrefix.String()
 
 	res, err := f.ds.Query(q)
 	if err != nil {

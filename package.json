@@ -367,11 +367,6 @@
       "version": "1.5.4"
     },
     {
-      "hash": "QmP1wMAqk6aZYRZirbaAwmrNeqFRgQrwBt3orUtvSa1UYD",
-      "name": "go-libp2p-routing",
-      "version": "2.2.16"
-    },
-    {
       "author": "libp2p",
       "hash": "QmPsBptED6X43GYg3347TAUruN3UfsAhaGTP9xbinYX7uf",
       "name": "go-libp2p-interface-pnet",
@@ -441,11 +436,6 @@
       "hash": "QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh",
       "name": "go-block-format",
       "version": "0.1.2"
-    },
-    {
-      "hash": "QmP1wMAqk6aZYRZirbaAwmrNeqFRgQrwBt3orUtvSa1UYD",
-      "name": "go-libp2p-routing",
-      "version": "2.2.16"
     }
   ],
   "gxVersion": "0.10.0",
