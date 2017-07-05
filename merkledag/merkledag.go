@@ -4,7 +4,6 @@ package merkledag
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -13,8 +12,14 @@ import (
 
 	node "gx/ipfs/QmPAKbSsgEX5B6fpmxa61jXYnoWzZr5sNafd3qgPiSH8Uv/go-ipld-format"
 	cid "gx/ipfs/Qma4RJSuh7mMeJQYCqMbKzekn6EwBo7HEs5AQYjVRMQATB/go-cid"
-	ipldcbor "gx/ipfs/Qmcdid3XrCxcoNQUqZKiiKtM7JXxtyipU3izyRqwjFbVWw/go-ipld-cbor"
+	_ "gx/ipfs/Qmcdid3XrCxcoNQUqZKiiKtM7JXxtyipU3izyRqwjFbVWw/go-ipld-cbor"
 )
+
+func init() {
+	// Register IPLD block decoders.
+	node.DefaultBlockDecoder[cid.DagProtobuf] = DecodeProtobufBlock
+	node.DefaultBlockDecoder[cid.Raw] = DecodeRawBlock
+}
 
 var ErrNotFound = fmt.Errorf("merkledag: not found")
 
@@ -94,32 +99,7 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 		return nil, fmt.Errorf("Failed to get block for %s: %v", c, err)
 	}
 
-	return decodeBlock(b)
-}
-
-func decodeBlock(b blocks.Block) (node.Node, error) {
-	c := b.Cid()
-
-	switch c.Type() {
-	case cid.DagProtobuf:
-		decnd, err := DecodeProtobuf(b.RawData())
-		if err != nil {
-			if strings.Contains(err.Error(), "Unmarshal failed") {
-				return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", c)
-			}
-			return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
-		}
-
-		decnd.cached = b.Cid()
-		decnd.Prefix = b.Cid().Prefix()
-		return decnd, nil
-	case cid.Raw:
-		return NewRawNodeWPrefix(b.RawData(), b.Cid().Prefix())
-	case cid.DagCBOR:
-		return ipldcbor.Decode(b.RawData())
-	default:
-		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
-	}
+	return node.Decode(b)
 }
 
 // GetLinks return the links for the node, the node doesn't necessarily have
@@ -213,7 +193,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 					return
 				}
 
-				nd, err := decodeBlock(b)
+				nd, err := node.Decode(b)
 				if err != nil {
 					out <- &NodeOption{Err: err}
 					return
