@@ -32,7 +32,6 @@ type BlockService interface {
 	GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error)
 	GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block
 	DeleteBlock(o blocks.Block) error
-	NewSession(context.Context) *Session
 	Close() error
 }
 
@@ -79,18 +78,18 @@ func (bs *blockService) Exchange() exchange.Interface {
 	return bs.exchange
 }
 
-func (bs *blockService) NewSession(ctx context.Context) *Session {
-	bswap, ok := bs.Exchange().(*bitswap.Bitswap)
-	if ok {
+func NewSession(ctx context.Context, bs BlockService) *Session {
+	exchange := bs.Exchange()
+	if bswap, ok := exchange.(*bitswap.Bitswap); ok {
 		ses := bswap.NewSession(ctx)
 		return &Session{
 			ses: ses,
-			bs:  bs.blockstore,
+			bs:  bs.Blockstore(),
 		}
 	}
 	return &Session{
-		ses: bs.exchange,
-		bs:  bs.blockstore,
+		ses: exchange,
+		bs:  bs.Blockstore(),
 	}
 }
 

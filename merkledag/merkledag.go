@@ -182,7 +182,7 @@ func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
 	var ng node.NodeGetter = serv
 	ds, ok := serv.(*dagService)
 	if ok {
-		ng = &sesGetter{ds.Blocks.NewSession(ctx)}
+		ng = &sesGetter{bserv.NewSession(ctx, ds.Blocks)}
 	}
 
 	v, _ := ctx.Value("progress").(*ProgressTracker)
