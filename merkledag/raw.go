@@ -24,7 +24,7 @@ func NewRawNode(data []byte) *RawNode {
 	return &RawNode{blk}
 }
 
-// A raw block decoder conforming to `node.DecodeBlockFunc`.
+// DecodeRawBlock is a block decoder for raw IPLD nodes conforming to `node.DecodeBlockFunc`.
 func DecodeRawBlock(block blocks.Block) (node.Node, error) {
 	if block.Cid().Type() != cid.Raw {
 		return nil, fmt.Errorf("raw nodes cannot be decoded from non-raw blocks: %d", block.Cid().Type())

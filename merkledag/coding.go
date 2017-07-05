@@ -112,7 +112,8 @@ func DecodeProtobuf(encoded []byte) (*ProtoNode, error) {
 	return n, nil
 }
 
-// A block decoder conforming to node.DecodeBlockFunc
+// DecodeProtobufBlock is a block decoder for protobuf IPLD nodes conforming to
+// node.DecodeBlockFunc
 func DecodeProtobufBlock(b blocks.Block) (node.Node, error) {
 	c := b.Cid()
 	if c.Type() != cid.DagProtobuf {
