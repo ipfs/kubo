@@ -9,10 +9,10 @@ import (
 
 	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	"gx/ipfs/QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh/go-block-format"
 
 	mh "gx/ipfs/QmVGtdTZdTFaLsaj2RwdVG8jcjNNcp1DE914DKZ2kHmXHw/go-multihash"
 	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
+	blocks "gx/ipfs/QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh/go-block-format"
 	cid "gx/ipfs/Qma4RJSuh7mMeJQYCqMbKzekn6EwBo7HEs5AQYjVRMQATB/go-cid"
 )
 
@@ -149,20 +149,15 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		pref.Version = 1
 
 		format, _, _ := req.Option("format").String()
-		switch format {
-		case "cbor":
-			pref.Codec = cid.DagCBOR
-		case "protobuf":
-			pref.Codec = cid.DagProtobuf
-		case "raw":
-			pref.Codec = cid.Raw
-		case "v0":
-			pref.Version = 0
-			pref.Codec = cid.DagProtobuf
-		default:
+		formatval, ok := cid.Codecs[format]
+		if !ok {
 			res.SetError(fmt.Errorf("unrecognized format: %s", format), cmds.ErrNormal)
 			return
 		}
+		if format == "v0" {
+			pref.Version = 0
+		}
+		pref.Codec = formatval
 
 		mhtype, _, _ := req.Option("mhtype").String()
 		mhtval, ok := mh.Names[mhtype]
