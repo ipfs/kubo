@@ -202,11 +202,11 @@ P2P command needs to be enabled in config
 Basic usage:
 
 - Open a listener on one node (node A)
-`p2p listener open p2p-test /ip4/127.0.0.1/tcp/10101`
-- Connect your app to the endpoint opened locally (tcp on localhost port 10101)
+`ipfs p2p listener open p2p-test /ip4/127.0.0.1/tcp/10101`
+- Where `/ip4/127.0.0.1/tcp/10101` put address of application you want to pass p2p connections to
 - On the other node, connect to the listener on node A
-`ipfsi 1 p2p stream dial $NODE_A_PEERID p2p-test /ip4/127.0.0.1/tcp/10102`
-- Now connect the application on node B to its tcp endpoint, and they should now be communicating
+`ipfs p2p stream dial $NODE_A_PEERID p2p-test /ip4/127.0.0.1/tcp/10102`
+- Node B is now listening for a connection on TCP at 127.0.0.1:10102, connect your application there to complete the connection
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works / fits use cases
