@@ -75,17 +75,28 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir) // clean up
-	repo := FSRepo{path: dir}
 
 	config := new(config.Datastore)
 	err = json.Unmarshal(defaultConfig, config)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ds, err := repo.constructDatastore(config.Spec)
+
+	dsc, err := AnyDatastoreConfig(config.Spec)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	expected := "/blocks:{flatfs;blocks;/repo/flatfs/shard/v1/next-to-last/2};/:{levelds;datastore};"
+	if dsc.DiskId() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskId())
+	}
+
+	ds, err := dsc.Create(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if typ := reflect.TypeOf(ds).String(); typ != "*syncmount.Datastore" {
 		t.Errorf("expected '*syncmount.Datastore' got '%s'", typ)
 	}
@@ -102,17 +113,28 @@ func TestLevelDbConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir) // clean up
-	repo := FSRepo{path: dir}
 
 	spec := make(map[string]interface{})
 	err = json.Unmarshal(leveldbConfig, &spec)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ds, err := repo.constructDatastore(spec)
+
+	dsc, err := AnyDatastoreConfig(spec)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	expected := "levelds;datastore"
+	if dsc.DiskId() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskId())
+	}
+
+	ds, err := dsc.Create(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if typ := reflect.TypeOf(ds).String(); typ != "*leveldb.datastore" {
 		t.Errorf("expected '*leveldb.datastore' got '%s'", typ)
 	}
@@ -129,17 +151,28 @@ func TestFlatfsConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir) // clean up
-	repo := FSRepo{path: dir}
 
 	spec := make(map[string]interface{})
 	err = json.Unmarshal(flatfsConfig, &spec)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ds, err := repo.constructDatastore(spec)
+
+	dsc, err := AnyDatastoreConfig(spec)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	expected := "flatfs;blocks;/repo/flatfs/shard/v1/next-to-last/2"
+	if dsc.DiskId() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskId())
+	}
+
+	ds, err := dsc.Create(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if typ := reflect.TypeOf(ds).String(); typ != "*flatfs.Datastore" {
 		t.Errorf("expected '*flatfs.Datastore' got '%s'", typ)
 	}
@@ -156,17 +189,28 @@ func TestMeasureConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir) // clean up
-	repo := FSRepo{path: dir}
 
 	spec := make(map[string]interface{})
 	err = json.Unmarshal(measureConfig, &spec)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ds, err := repo.constructDatastore(spec)
+
+	dsc, err := AnyDatastoreConfig(spec)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	expected := "flatfs;blocks;/repo/flatfs/shard/v1/next-to-last/2"
+	if dsc.DiskId() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskId())
+	}
+
+	ds, err := dsc.Create(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if typ := reflect.TypeOf(ds).String(); typ != "*measure.measure" {
 		t.Errorf("expected '*measure.measure' got '%s'", typ)
 	}

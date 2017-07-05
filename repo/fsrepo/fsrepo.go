@@ -1,6 +1,7 @@
 package fsrepo
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -357,17 +358,38 @@ func (r *FSRepo) openKeystore() error {
 
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
-	if r.config.Datastore.Spec != nil {
-		d, err := r.constructDatastore(r.config.Datastore.Spec)
+	if r.config.Datastore.Type != "" || r.config.Datastore.Path != "" {
+		return fmt.Errorf("old style datatstore config detected")
+	} else if r.config.Datastore.Spec == nil {
+		return fmt.Errorf("required Datastore.Spec entry missing form config file")
+	}
+
+	dsc, err := AnyDatastoreConfig(r.config.Datastore.Spec)
+	if err != nil {
+		return err
+	}
+	diskId := dsc.DiskId()
+
+	oldDiskId, err := r.readDiskId()
+	if err == nil {
+		if oldDiskId != diskId {
+			return fmt.Errorf("Datastore configuration of '%s' does not match what is on disk '%s'",
+				oldDiskId, diskId)
+		}
+	} else if os.IsNotExist(err) {
+		err := r.writeDiskId(diskId)
 		if err != nil {
 			return err
 		}
-		r.ds = d
-	} else if r.config.Datastore.Type != "" || r.config.Datastore.Path != "" {
-		return fmt.Errorf("old style datatstore config detected")
 	} else {
-		return fmt.Errorf("required Datastore.Spec entry missing form config file")
+		return err
 	}
+
+	d, err := dsc.Create(r.path)
+	if err != nil {
+		return err
+	}
+	r.ds = d
 
 	// Wrap it with metrics gathering
 	prefix := "ipfs.fsrepo.datastore"
@@ -376,12 +398,31 @@ func (r *FSRepo) openDatastore() error {
 	return nil
 }
 
-func (r *FSRepo) constructDatastore(params map[string]interface{}) (repo.Datastore, error) {
-	cfg, err := AnyDatastoreConfig(params)
+var DiskIdFn = "dsid"
+
+func (r *FSRepo) readDiskId() (string, error) {
+	fn, err := config.Path(r.path, DiskIdFn)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return cfg.Create(r.path)
+	b, err := ioutil.ReadFile(fn)
+	if err != nil {
+		return "", err
+	}
+	b = bytes.TrimSpace(b)
+	return string(b), nil
+}
+
+func (r *FSRepo) writeDiskId(newId string) error {
+	fn, err := config.Path(r.path, DiskIdFn)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(fn, []byte(newId), 0666)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Close closes the FSRepo, releasing held resources.

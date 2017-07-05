@@ -1,6 +1,7 @@
 package fsrepo
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 
@@ -18,9 +19,11 @@ import (
 type ConfigFromMap func(map[string]interface{}) (DatastoreConfig, error)
 
 type DatastoreConfig interface {
-	// DiskId is a unique id representing the Datastore config as stored on disk, runtime config values are not
-	// part of this Id.  No length limit.
-	//DiskId() string
+	// DiskId is a unique id representing the Datastore config as
+	// stored on disk, runtime config values are not part of this Id.
+	// Returns an empty string if the datastore does not have an on
+	// disk representation. No length limit.
+	DiskId() string
 
 	// Create instantiate a new datastore from this config
 	Create(path string) (repo.Datastore, error)
@@ -91,6 +94,14 @@ func MountDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error
 	return &res, nil
 }
 
+func (c *mountDatastoreConfig) DiskId() string {
+	buf := new(bytes.Buffer)
+	for _, m := range c.mounts {
+		fmt.Fprintf(buf, "%s:{%s};", m.prefix.String(), m.ds.DiskId())
+	}
+	return buf.String()
+}
+
 func (c *mountDatastoreConfig) Create(path string) (repo.Datastore, error) {
 	mounts := make([]mount.Mount, len(c.mounts))
 	for i, m := range c.mounts {
@@ -136,6 +147,10 @@ func FlatfsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, erro
 	return &c, nil
 }
 
+func (c *flatfsDatastoreConfig) DiskId() string {
+	return fmt.Sprintf("flatfs;%s;%s", c.path, c.shardFun.String())
+}
+
 func (c *flatfsDatastoreConfig) Create(path string) (repo.Datastore, error) {
 	p := c.path
 	if !filepath.IsAbs(p) {
@@ -173,6 +188,10 @@ func LeveldsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, err
 	return &c, nil
 }
 
+func (c *leveldsDatastoreConfig) DiskId() string {
+	return fmt.Sprintf("levelds;%s", c.path)
+}
+
 func (c *leveldsDatastoreConfig) Create(path string) (repo.Datastore, error) {
 	p := c.path
 	if !filepath.IsAbs(p) {
@@ -190,6 +209,10 @@ type memDatastoreConfig struct {
 
 func MemDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	return &memDatastoreConfig{params}, nil
+}
+
+func (c *memDatastoreConfig) DiskId() string {
+	return ""
 }
 
 func (c *memDatastoreConfig) Create(string) (repo.Datastore, error) {
@@ -226,6 +249,10 @@ func (c *logDatastoreConfig) Create(path string) (repo.Datastore, error) {
 	return ds.NewLogDatastore(child, c.name), nil
 }
 
+func (c *logDatastoreConfig) DiskId() string {
+	return c.child.DiskId()
+}
+
 type measureDatastoreConfig struct {
 	child  DatastoreConfig
 	prefix string
@@ -245,6 +272,10 @@ func MeasureDatastoreConfig(params map[string]interface{}) (DatastoreConfig, err
 		return nil, fmt.Errorf("'prefix' field was missing or not a string")
 	}
 	return &measureDatastoreConfig{child, prefix}, nil
+}
+
+func (c *measureDatastoreConfig) DiskId() string {
+	return c.child.DiskId()
 }
 
 func (c measureDatastoreConfig) Create(path string) (repo.Datastore, error) {
