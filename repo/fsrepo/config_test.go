@@ -7,10 +7,6 @@ import (
 	"reflect"
 	"testing"
 
-	//"fmt"
-
-	syncmount "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/syncmount"
-	//levelds "gx/ipfs/QmaHHmfEozrrotyhyN44omJouyuEtx6ahddqV6W5yRaUSQ/go-ds-leveldb"
 	config "github.com/ipfs/go-ipfs/repo/config"
 )
 
@@ -90,10 +86,6 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, ok := ds.(*syncmount.Datastore)
-	if !ok {
-		t.Fatal("expected mount datastore at top level")
-	}
 	if typ := reflect.TypeOf(ds).String(); typ != "*syncmount.Datastore" {
 		t.Errorf("expected '*syncmount.Datastore' got '%s'", typ)
 	}
@@ -122,7 +114,7 @@ func TestLevelDbConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if typ := reflect.TypeOf(ds).String(); typ != "*leveldb.datastore" {
-		t.Errorf("expected '*syncmount.Datastore' got '%s'", typ)
+		t.Errorf("expected '*leveldb.datastore' got '%s'", typ)
 	}
 }
 
@@ -149,7 +141,7 @@ func TestFlatfsConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if typ := reflect.TypeOf(ds).String(); typ != "*flatfs.Datastore" {
-		t.Errorf("expected '*syncmount.Datastore' got '%s'", typ)
+		t.Errorf("expected '*flatfs.Datastore' got '%s'", typ)
 	}
 }
 
@@ -176,6 +168,6 @@ func TestMeasureConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if typ := reflect.TypeOf(ds).String(); typ != "*measure.measure" {
-		t.Errorf("expected '*syncmount.Datastore' got '%s'", typ)
+		t.Errorf("expected '*measure.measure' got '%s'", typ)
 	}
 }

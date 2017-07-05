@@ -362,7 +362,6 @@ func (r *FSRepo) openDatastore() error {
 		if err != nil {
 			return err
 		}
-
 		r.ds = d
 	} else if r.config.Datastore.Type != "" || r.config.Datastore.Path != "" {
 		return fmt.Errorf("old style datatstore config detected")
@@ -375,6 +374,14 @@ func (r *FSRepo) openDatastore() error {
 	r.ds = measure.New(prefix, r.ds)
 
 	return nil
+}
+
+func (r *FSRepo) constructDatastore(params map[string]interface{}) (repo.Datastore, error) {
+	cfg, err := AnyDatastoreConfig(params)
+	if err != nil {
+		return nil, err
+	}
+	return cfg.Create(r.path)
 }
 
 // Close closes the FSRepo, releasing held resources.
