@@ -14,14 +14,14 @@ import (
 	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
 )
 
-// PTPListenerInfoOutput is output type of ls command
-type PTPListenerInfoOutput struct {
+// P2PListenerInfoOutput is output type of ls command
+type P2PListenerInfoOutput struct {
 	Protocol string
 	Address  string
 }
 
-// PTPStreamInfoOutput is output type of streams command
-type PTPStreamInfoOutput struct {
+// P2PStreamInfoOutput is output type of streams command
+type P2PStreamInfoOutput struct {
 	HandlerID     string
 	Protocol      string
 	LocalPeer     string
@@ -30,18 +30,18 @@ type PTPStreamInfoOutput struct {
 	RemoteAddress string
 }
 
-// PTPLsOutput is output type of ls command
-type PTPLsOutput struct {
-	Listeners []PTPListenerInfoOutput
+// P2PLsOutput is output type of ls command
+type P2PLsOutput struct {
+	Listeners []P2PListenerInfoOutput
 }
 
-// PTPStreamsOutput is output type of streams command
-type PTPStreamsOutput struct {
-	Streams []PTPStreamInfoOutput
+// P2PStreamsOutput is output type of streams command
+type P2PStreamsOutput struct {
+	Streams []P2PStreamInfoOutput
 }
 
-// PTPCmd is the 'ipfs ptp' command
-var PTPCmd = &cmds.Command{
+// P2PCmd is the 'ipfs p2p' command
+var P2PCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Libp2p stream mounting.",
 		ShortDescription: `
@@ -51,40 +51,40 @@ Note: this command is experimental and subject to change as usecases and APIs ar
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"listener": ptpListenerCmd,
-		"stream":   ptpStreamCmd,
+		"listener": p2pListenerCmd,
+		"stream":   p2pStreamCmd,
 	},
 }
 
-// ptpListenerCmd is the 'ipfs ptp listener' command
-var ptpListenerCmd = &cmds.Command{
+// p2pListenerCmd is the 'ipfs p2p listener' command
+var p2pListenerCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "P2P listener management.",
 		ShortDescription: "Create and manage listener p2p endpoints",
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"ls":    ptpListenerLsCmd,
-		"open":  ptpListenerListenCmd,
-		"close": ptpListenerCloseCmd,
+		"ls":    p2pListenerLsCmd,
+		"open":  p2pListenerListenCmd,
+		"close": p2pListenerCloseCmd,
 	},
 }
 
-// ptpStreamCmd is the 'ipfs ptp stream' command
-var ptpStreamCmd = &cmds.Command{
+// p2pStreamCmd is the 'ipfs p2p stream' command
+var p2pStreamCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "P2P stream management.",
 		ShortDescription: "Create and manage p2p streams",
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"ls":    ptpStreamLsCmd,
-		"dial":  ptpStreamDialCmd,
-		"close": ptpStreamCloseCmd,
+		"ls":    p2pStreamLsCmd,
+		"dial":  p2pStreamDialCmd,
+		"close": p2pStreamCloseCmd,
 	},
 }
 
-var ptpListenerLsCmd = &cmds.Command{
+var p2pListenerLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List active p2p listeners.",
 	},
@@ -99,10 +99,10 @@ var ptpListenerLsCmd = &cmds.Command{
 			return
 		}
 
-		output := &PTPLsOutput{}
+		output := &P2PLsOutput{}
 
-		for _, listener := range n.PTP.Listeners.Listeners {
-			output.Listeners = append(output.Listeners, PTPListenerInfoOutput{
+		for _, listener := range n.P2P.Listeners.Listeners {
+			output.Listeners = append(output.Listeners, P2PListenerInfoOutput{
 				Protocol: listener.Protocol,
 				Address:  listener.Address.String(),
 			})
@@ -110,11 +110,11 @@ var ptpListenerLsCmd = &cmds.Command{
 
 		res.SetOutput(output)
 	},
-	Type: PTPLsOutput{},
+	Type: P2PLsOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			headers, _, _ := res.Request().Option("headers").Bool()
-			list, _ := res.Output().(*PTPLsOutput)
+			list, _ := res.Output().(*P2PLsOutput)
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, listener := range list.Listeners {
@@ -131,7 +131,7 @@ var ptpListenerLsCmd = &cmds.Command{
 	},
 }
 
-var ptpStreamLsCmd = &cmds.Command{
+var p2pStreamLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List active p2p streams.",
 	},
@@ -145,10 +145,10 @@ var ptpStreamLsCmd = &cmds.Command{
 			return
 		}
 
-		output := &PTPStreamsOutput{}
+		output := &P2PStreamsOutput{}
 
-		for _, s := range n.PTP.Streams.Streams {
-			output.Streams = append(output.Streams, PTPStreamInfoOutput{
+		for _, s := range n.P2P.Streams.Streams {
+			output.Streams = append(output.Streams, P2PStreamInfoOutput{
 				HandlerID: strconv.FormatUint(s.HandlerID, 10),
 
 				Protocol: s.Protocol,
@@ -163,11 +163,11 @@ var ptpStreamLsCmd = &cmds.Command{
 
 		res.SetOutput(output)
 	},
-	Type: PTPStreamsOutput{},
+	Type: P2PStreamsOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			headers, _, _ := res.Request().Option("headers").Bool()
-			list, _ := res.Output().(*PTPStreamsOutput)
+			list, _ := res.Output().(*P2PStreamsOutput)
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, stream := range list.Streams {
@@ -184,7 +184,7 @@ var ptpStreamLsCmd = &cmds.Command{
 	},
 }
 
-var ptpListenerListenCmd = &cmds.Command{
+var p2pListenerListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Forward p2p connections to a network multiaddr.",
 		ShortDescription: `
@@ -204,8 +204,8 @@ Note that the connections originate from the ipfs daemon process.
 			return
 		}
 
-		proto := "/ptp/" + req.Arguments()[0]
-		if n.PTP.CheckProtoExists(proto) {
+		proto := "/p2p/" + req.Arguments()[0]
+		if n.P2P.CheckProtoExists(proto) {
 			res.SetError(errors.New("protocol handler already registered"), cmds.ErrNormal)
 			return
 		}
@@ -216,21 +216,21 @@ Note that the connections originate from the ipfs daemon process.
 			return
 		}
 
-		_, err = n.PTP.NewListener(n.Context(), proto, addr)
+		_, err = n.P2P.NewListener(n.Context(), proto, addr)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
 		// Successful response.
-		res.SetOutput(&PTPListenerInfoOutput{
+		res.SetOutput(&P2PListenerInfoOutput{
 			Protocol: proto,
 			Address:  addr.String(),
 		})
 	},
 }
 
-var ptpStreamDialCmd = &cmds.Command{
+var p2pStreamDialCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Dial to a p2p listener.",
 
@@ -260,7 +260,7 @@ transparently connect to a p2p service.
 			return
 		}
 
-		proto := "/ptp/" + req.Arguments()[1]
+		proto := "/p2p/" + req.Arguments()[1]
 
 		bindAddr, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
 		if len(req.Arguments()) == 3 {
@@ -271,13 +271,13 @@ transparently connect to a p2p service.
 			}
 		}
 
-		listenerInfo, err := n.PTP.Dial(n.Context(), addr, peer, proto, bindAddr)
+		listenerInfo, err := n.P2P.Dial(n.Context(), addr, peer, proto, bindAddr)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		output := PTPListenerInfoOutput{
+		output := P2PListenerInfoOutput{
 			Protocol: listenerInfo.Protocol,
 			Address:  listenerInfo.Address.String(),
 		}
@@ -286,7 +286,7 @@ transparently connect to a p2p service.
 	},
 }
 
-var ptpListenerCloseCmd = &cmds.Command{
+var p2pListenerCloseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Close active p2p listener.",
 	},
@@ -312,10 +312,10 @@ var ptpListenerCloseCmd = &cmds.Command{
 				return
 			}
 
-			proto = "/ptp/" + req.Arguments()[0]
+			proto = "/p2p/" + req.Arguments()[0]
 		}
 
-		for _, listener := range n.PTP.Listeners.Listeners {
+		for _, listener := range n.P2P.Listeners.Listeners {
 			if !closeAll && listener.Protocol != proto {
 				continue
 			}
@@ -327,7 +327,7 @@ var ptpListenerCloseCmd = &cmds.Command{
 	},
 }
 
-var ptpStreamCloseCmd = &cmds.Command{
+var p2pStreamCloseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Close active p2p stream.",
 	},
@@ -360,7 +360,7 @@ var ptpStreamCloseCmd = &cmds.Command{
 			}
 		}
 
-		for _, stream := range n.PTP.Streams.Streams {
+		for _, stream := range n.P2P.Streams.Streams {
 			if !closeAll && handlerID != stream.HandlerID {
 				continue
 			}

@@ -1,4 +1,4 @@
-package ptp
+package p2p
 
 import (
 	"fmt"

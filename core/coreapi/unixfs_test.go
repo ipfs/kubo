@@ -16,7 +16,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
-	cbor "gx/ipfs/QmNrbCt8j9DT5W9Pmjy2SdudT9k8GpaDr4sRuFix3BXhgR/go-ipld-cbor"
+	cbor "gx/ipfs/Qmcdid3XrCxcoNQUqZKiiKtM7JXxtyipU3izyRqwjFbVWw/go-ipld-cbor"
 )
 
 // `echo -n 'hello, world!' | ipfs add`

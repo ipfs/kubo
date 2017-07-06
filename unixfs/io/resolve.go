@@ -7,7 +7,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	hamt "github.com/ipfs/go-ipfs/unixfs/hamt"
 
-	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	node "gx/ipfs/QmPAKbSsgEX5B6fpmxa61jXYnoWzZr5sNafd3qgPiSH8Uv/go-ipld-format"
 )
 
 // ResolveUnixfsOnce resolves a single hop of a path through a graph in a
