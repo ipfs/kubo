@@ -54,8 +54,8 @@ Set the value of the 'Datastore.Path' key:
 		cmdkit.StringArg("value", false, false, "The value to set the config entry to."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("bool", "Set a boolean value.").Default(false),
-		cmdkit.BoolOption("json", "Parse stringified JSON.").Default(false),
+		cmdkit.BoolOption("bool", "Set a boolean value."),
+		cmdkit.BoolOption("json", "Parse stringified JSON."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()

@@ -61,8 +61,8 @@ order to reclaim hard disk space.
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("stream-errors", "Stream errors.").Default(false),
-		cmdkit.BoolOption("quiet", "q", "Write minimal output.").Default(false),
+		cmdkit.BoolOption("stream-errors", "Stream errors."),
+		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -165,7 +165,7 @@ Version         string The repo version.
 		cmds.EmitOnce(res, stat)
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("human", "Output RepoSize in MiB.").Default(false),
+		cmdkit.BoolOption("human", "Output RepoSize in MiB."),
 	},
 	Type: corerepo.Stat{},
 	Encoders: cmds.EncoderMap{

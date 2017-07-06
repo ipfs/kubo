@@ -276,7 +276,7 @@ Example:
 	},
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").Default("all"),
-		cmdkit.BoolOption("quiet", "q", "Write just hashes of objects.").Default(false),
+		cmdkit.BoolOption("quiet", "q", "Write just hashes of objects."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

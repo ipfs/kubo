@@ -53,7 +53,7 @@ The JSON output contains type information.
 		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
+		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
 		cmdkit.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {

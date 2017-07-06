@@ -55,8 +55,8 @@ Resolve the value of a dnslink:
 		cmdkit.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name.").Default(false),
-		cmdkit.BoolOption("nocache", "n", "Do not use cached entries.").Default(false),
+		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name."),
+		cmdkit.BoolOption("nocache", "n", "Do not use cached entries."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

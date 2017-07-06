@@ -61,7 +61,7 @@ into an object of the specified format.
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("format", "f", "Format that the object will be added as.").Default("cbor"),
 		cmdkit.StringOption("input-enc", "Format that the input object will be.").Default("json"),
-		cmdkit.BoolOption("pin", "Pin this object when adding.").Default(false),
+		cmdkit.BoolOption("pin", "Pin this object when adding."),
 		cmdkit.StringOption("hash", "Hash function to use").Default(""),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {

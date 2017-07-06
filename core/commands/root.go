@@ -86,10 +86,10 @@ The CLI will exit with one of the following values:
 	},
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("config", "c", "Path to the configuration file to use."),
-		cmdkit.BoolOption("debug", "D", "Operate in debug mode.").Default(false),
-		cmdkit.BoolOption("help", "Show the full command help text.").Default(false),
-		cmdkit.BoolOption("h", "Show a short version of the command help text.").Default(false),
-		cmdkit.BoolOption("local", "L", "Run the command locally, instead of using the daemon.").Default(false),
+		cmdkit.BoolOption("debug", "D", "Operate in debug mode."),
+		cmdkit.BoolOption("help", "Show the full command help text."),
+		cmdkit.BoolOption("h", "Show a short version of the command help text."),
+		cmdkit.BoolOption("local", "L", "Run the command locally, instead of using the daemon."),
 		cmdkit.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 	},
 }

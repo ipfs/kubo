@@ -91,7 +91,7 @@ var p2pListenerLsCmd = &cmds.Command{
 		Tagline: "List active p2p listeners.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (HandlerID, Protocol, Local, Remote).").Default(false),
+		cmdkit.BoolOption("headers", "v", "Print table headers (HandlerID, Protocol, Local, Remote)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -143,7 +143,7 @@ var p2pStreamLsCmd = &cmds.Command{
 		Tagline: "List active p2p streams.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (HagndlerID, Protocol, Local, Remote).").Default(false),
+		cmdkit.BoolOption("headers", "v", "Print table headers (HagndlerID, Protocol, Local, Remote)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := getNode(req)
@@ -307,7 +307,7 @@ var p2pListenerCloseCmd = &cmds.Command{
 		cmdkit.StringArg("Protocol", false, false, "P2P listener protocol"),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("all", "a", "Close all listeners.").Default(false),
+		cmdkit.BoolOption("all", "a", "Close all listeners."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(nil)
@@ -350,7 +350,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 		cmdkit.StringArg("HandlerID", false, false, "Stream HandlerID"),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("all", "a", "Close all streams.").Default(false),
+		cmdkit.BoolOption("all", "a", "Close all streams."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(nil)

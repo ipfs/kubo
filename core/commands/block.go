@@ -260,8 +260,8 @@ It takes a list of base58 encoded multihashs to remove.
 		cmdkit.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to remove."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("force", "f", "Ignore nonexistent blocks.").Default(false),
-		cmdkit.BoolOption("quiet", "q", "Write minimal output.").Default(false),
+		cmdkit.BoolOption("force", "f", "Ignore nonexistent blocks."),
+		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
 	},
 	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
 		n, err := req.InvocContext().GetNode()
