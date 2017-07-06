@@ -148,6 +148,25 @@ test_expect_success "clean up ipfs dir" '
 	rm -rf "$IPFS_PATH"
 '
 
+test_expect_success "'ipfs init --profile=test' succeeds" '
+	BITS="1024" &&
+	ipfs init --bits="$BITS" --profile=test
+'
+
+test_expect_success "'ipfs config Bootstrap' looks good" '
+	ipfs config Bootstrap > actual_config &&
+	test $(cat actual_config) = "[]"
+'
+
+test_expect_success "'ipfs config Addresses.API' looks good" '
+	ipfs config Addresses.API > actual_config &&
+	test $(cat actual_config) = "/ip4/127.0.0.1/tcp/0"
+'
+
+test_expect_success "clean up ipfs dir" '
+	rm -rf "$IPFS_PATH"
+'
+
 test_init_ipfs
 
 test_launch_ipfs_daemon

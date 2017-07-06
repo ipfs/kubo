@@ -28,4 +28,17 @@ var ConfigProfiles = map[string]func(*Config) error{
 		c.Discovery.MDNS.Enabled = false
 		return nil
 	},
+	"test": func(c *Config) error {
+		c.Addresses.API = "/ip4/127.0.0.1/tcp/0"
+		c.Addresses.Gateway = "/ip4/127.0.0.1/tcp/0"
+
+		c.Swarm.DisableNatPortMap = true
+		c.Addresses.Swarm = []string{
+			"/ip4/127.0.0.1/tcp/0",
+		}
+
+		c.Bootstrap = []string{}
+		c.Discovery.MDNS.Enabled = false
+		return nil
+	},
 }
