@@ -291,7 +291,7 @@ func TestEmptyKey(t *testing.T) {
 	}
 }
 
-func assertStat(st *Stat, sblks, rblks int, sdata, rdata uint64) error {
+func assertStat(st *Stat, sblks, rblks, sdata, rdata uint64) error {
 	if sblks != st.BlocksSent {
 		return fmt.Errorf("mismatch in blocks sent: %d vs %d", sblks, st.BlocksSent)
 	}

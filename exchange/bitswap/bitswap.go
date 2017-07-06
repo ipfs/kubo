@@ -99,6 +99,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		newBlocks:     make(chan *cid.Cid, HasBlockBufferSize),
 		provideKeys:   make(chan *cid.Cid, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
+		counters:      new(counters),
 
 		dupMetric: dupHist,
 		allMetric: allHist,
@@ -152,14 +153,8 @@ type Bitswap struct {
 	process process.Process
 
 	// Counters for various statistics
-	counterLk      sync.Mutex
-	blocksRecvd    int
-	dupBlocksRecvd int
-	dupDataRecvd   uint64
-	blocksSent     int
-	dataSent       uint64
-	dataRecvd      uint64
-	messagesRecvd  uint64
+	counterLk sync.Mutex
+	counters  *counters
 
 	// Metrics interface metrics
 	dupMetric metrics.Histogram
@@ -171,6 +166,16 @@ type Bitswap struct {
 
 	sessID   uint64
 	sessIDLk sync.Mutex
+}
+
+type counters struct {
+	blocksRecvd    uint64
+	dupBlocksRecvd uint64
+	dupDataRecvd   uint64
+	blocksSent     uint64
+	dataSent       uint64
+	dataRecvd      uint64
+	messagesRecvd  uint64
 }
 
 type blockRequest struct {
@@ -338,7 +343,7 @@ func (bs *Bitswap) SessionsForBlock(c *cid.Cid) []*Session {
 }
 
 func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) {
-	atomic.AddUint64(&bs.messagesRecvd, 1)
+	atomic.AddUint64(&bs.counters.messagesRecvd, 1)
 
 	// This call records changes to wantlists, blocks received,
 	// and number of bytes transfered.
@@ -403,12 +408,13 @@ func (bs *Bitswap) updateReceiveCounters(b blocks.Block) {
 
 	bs.counterLk.Lock()
 	defer bs.counterLk.Unlock()
+	c := bs.counters
 
-	bs.blocksRecvd++
-	bs.dataRecvd += uint64(len(b.RawData()))
+	c.blocksRecvd++
+	c.dataRecvd += uint64(len(b.RawData()))
 	if has {
-		bs.dupBlocksRecvd++
-		bs.dupDataRecvd += uint64(blkLen)
+		c.dupBlocksRecvd++
+		c.dupDataRecvd += uint64(blkLen)
 	}
 }
 
