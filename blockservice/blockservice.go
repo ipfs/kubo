@@ -78,6 +78,8 @@ func (bs *blockService) Exchange() exchange.Interface {
 	return bs.exchange
 }
 
+// NewSession creates a bitswap session that allows for controlled exchange of
+// wantlists to decrease the bandwidth overhead.
 func NewSession(ctx context.Context, bs BlockService) *Session {
 	exchange := bs.Exchange()
 	if bswap, ok := exchange.(*bitswap.Bitswap); ok {

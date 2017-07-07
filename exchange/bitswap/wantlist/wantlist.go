@@ -79,6 +79,7 @@ func (w *ThreadSafe) Add(c *cid.Cid, priority int, ses uint64) bool {
 	return true
 }
 
+// AddEntry adds given Entry to the wantlist. For more information see Add method.
 func (w *ThreadSafe) AddEntry(e *Entry, ses uint64) bool {
 	w.lk.Lock()
 	defer w.lk.Unlock()
