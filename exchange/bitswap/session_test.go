@@ -202,3 +202,43 @@ func TestInterestCacheOverflow(t *testing.T) {
 		t.Fatal("timed out waiting for block")
 	}
 }
+
+func TestPutAfterSessionCacheEvict(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	vnet := getVirtualNetwork()
+	sesgen := NewTestSessionGenerator(vnet)
+	defer sesgen.Close()
+	bgen := blocksutil.NewBlockGenerator()
+
+	blks := bgen.Blocks(2500)
+	inst := sesgen.Instances(1)
+
+	a := inst[0]
+
+	ses := a.Exchange.NewSession(ctx)
+
+	var allcids []*cid.Cid
+	for _, blk := range blks[1:] {
+		allcids = append(allcids, blk.Cid())
+	}
+
+	blkch, err := ses.GetBlocks(ctx, allcids)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// wait to ensure that all the above cids were added to the sessions cache
+	time.Sleep(time.Millisecond * 50)
+
+	if err := a.Exchange.HasBlock(blks[17]); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-blkch:
+	case <-time.After(time.Millisecond * 50):
+		t.Fatal("timed out waiting for block")
+	}
+}

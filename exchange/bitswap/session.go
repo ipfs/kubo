@@ -21,7 +21,7 @@ const activeWantsLimit = 16
 // info to, and who to request blocks from
 type Session struct {
 	ctx            context.Context
-	tofetch        []*cid.Cid
+	tofetch        *cidQueue
 	activePeers    map[peer.ID]struct{}
 	activePeersArr []peer.ID
 
@@ -55,6 +55,7 @@ func (bs *Bitswap) NewSession(ctx context.Context) *Session {
 		liveWants:     make(map[string]time.Time),
 		newReqs:       make(chan []*cid.Cid),
 		cancelKeys:    make(chan []*cid.Cid),
+		tofetch:       newCidQueue(),
 		interestReqs:  make(chan interestReq),
 		ctx:           ctx,
 		bs:            bs,
@@ -157,7 +158,9 @@ func (s *Session) run(ctx context.Context) {
 
 				s.wantBlocks(ctx, now)
 			}
-			s.tofetch = append(s.tofetch, keys...)
+			for _, k := range keys {
+				s.tofetch.Push(k)
+			}
 		case keys := <-s.cancelKeys:
 			s.cancel(keys)
 
@@ -188,8 +191,7 @@ func (s *Session) run(ctx context.Context) {
 		case p := <-newpeers:
 			s.addActivePeer(p)
 		case lwchk := <-s.interestReqs:
-			_, ok := s.liveWants[lwchk.c.KeyString()]
-			lwchk.resp <- ok
+			lwchk.resp <- s.cidIsWanted(lwchk.c)
 		case <-ctx.Done():
 			s.tick.Stop()
 			return
@@ -197,19 +199,31 @@ func (s *Session) run(ctx context.Context) {
 	}
 }
 
+func (s *Session) cidIsWanted(c *cid.Cid) bool {
+	_, ok := s.liveWants[c.KeyString()]
+	if !ok {
+		ok = s.tofetch.Has(c)
+	}
+
+	return ok
+}
+
 func (s *Session) receiveBlock(ctx context.Context, blk blocks.Block) {
-	ks := blk.Cid().KeyString()
-	if _, ok := s.liveWants[ks]; ok {
-		tval := s.liveWants[ks]
-		s.latTotal += time.Since(tval)
+	c := blk.Cid()
+	if s.cidIsWanted(c) {
+		ks := c.KeyString()
+		tval, ok := s.liveWants[ks]
+		if ok {
+			s.latTotal += time.Since(tval)
+			delete(s.liveWants, ks)
+		} else {
+			s.tofetch.Remove(c)
+		}
 		s.fetchcnt++
-		delete(s.liveWants, ks)
 		s.notif.Publish(blk)
 
-		if len(s.tofetch) > 0 {
-			next := s.tofetch[0:1]
-			s.tofetch = s.tofetch[1:]
-			s.wantBlocks(ctx, next)
+		if next := s.tofetch.Pop(); next != nil {
+			s.wantBlocks(ctx, []*cid.Cid{next})
 		}
 	}
 }
@@ -222,19 +236,9 @@ func (s *Session) wantBlocks(ctx context.Context, ks []*cid.Cid) {
 }
 
 func (s *Session) cancel(keys []*cid.Cid) {
-	sset := cid.NewSet()
 	for _, c := range keys {
-		sset.Add(c)
+		s.tofetch.Remove(c)
 	}
-	var i, j int
-	for ; j < len(s.tofetch); j++ {
-		if sset.Has(s.tofetch[j]) {
-			continue
-		}
-		s.tofetch[i] = s.tofetch[j]
-		i++
-	}
-	s.tofetch = s.tofetch[:i]
 }
 
 func (s *Session) cancelWants(keys []*cid.Cid) {
@@ -259,4 +263,47 @@ func (s *Session) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan blocks
 // GetBlock fetches a single block
 func (s *Session) GetBlock(parent context.Context, k *cid.Cid) (blocks.Block, error) {
 	return getBlock(parent, k, s.GetBlocks)
+}
+
+type cidQueue struct {
+	elems []*cid.Cid
+	eset  *cid.Set
+}
+
+func newCidQueue() *cidQueue {
+	return &cidQueue{eset: cid.NewSet()}
+}
+
+func (cq *cidQueue) Pop() *cid.Cid {
+	for {
+		if len(cq.elems) == 0 {
+			return nil
+		}
+
+		out := cq.elems[0]
+		cq.elems = cq.elems[1:]
+
+		if cq.eset.Has(out) {
+			cq.eset.Remove(out)
+			return out
+		}
+	}
+}
+
+func (cq *cidQueue) Push(c *cid.Cid) {
+	if cq.eset.Visit(c) {
+		cq.elems = append(cq.elems, c)
+	}
+}
+
+func (cq *cidQueue) Remove(c *cid.Cid) {
+	cq.eset.Remove(c)
+}
+
+func (cq *cidQueue) Has(c *cid.Cid) bool {
+	return cq.eset.Has(c)
+}
+
+func (cq *cidQueue) Len() int {
+	return cq.eset.Len()
 }

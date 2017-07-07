@@ -317,6 +317,10 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	// it now as it requires more thought and isnt causing immediate problems.
 	bs.notifications.Publish(blk)
 
+	for _, s := range bs.SessionsForBlock(blk.Cid()) {
+		s.receiveBlockFrom("", blk)
+	}
+
 	bs.engine.AddBlock(blk)
 
 	select {
@@ -370,7 +374,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	wg := sync.WaitGroup{}
 	for _, block := range iblocks {
 		wg.Add(1)
-		go func(b blocks.Block) {
+		go func(b blocks.Block) { // TODO: this probably doesnt need to be a goroutine...
 			defer wg.Done()
 
 			bs.updateReceiveCounters(b)
@@ -382,7 +386,11 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 				ses.receiveBlockFrom(p, b)
 				bs.CancelWants([]*cid.Cid{k}, ses.id)
 			}
+
 			log.Debugf("got block %s from %s", b, p)
+			// TODO: rework this to not call 'HasBlock'. 'HasBlock' is really
+			// designed to be called when blocks are coming in from non-bitswap
+			// places (like the user manually adding data)
 			if err := bs.HasBlock(b); err != nil {
 				log.Warningf("ReceiveMessage HasBlock error: %s", err)
 			}
