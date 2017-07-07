@@ -152,7 +152,7 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub, mplex bool) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub, ipnsps, mplex bool) error {
 
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
@@ -249,8 +249,15 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return err
 	}
 
-	if pubsub {
+	if pubsub || ipnsps {
 		n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
+	}
+
+	if ipnsps {
+		err = namesys.AddPubsubNameSystem(ctx, n.Namesys, n.PeerHost, n.Routing, n.Repo.Datastore(), n.Floodsub)
+		if err != nil {
+			return err
+		}
 	}
 
 	n.P2P = p2p.NewP2P(n.Identity, n.PeerHost, n.Peerstore)

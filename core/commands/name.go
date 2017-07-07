@@ -63,5 +63,6 @@ Resolve the value of a dnslink:
 	Subcommands: map[string]*cmds.Command{
 		"publish": PublishCmd,
 		"resolve": IpnsCmd,
+		"pubsub":  IpnsPubsubCmd,
 	},
 }

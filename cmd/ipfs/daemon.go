@@ -46,6 +46,7 @@ const (
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
 	enableFloodSubKwd         = "enable-pubsub-experiment"
+	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
 	enableMultiplexKwd        = "enable-mplex-experiment"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
@@ -157,6 +158,7 @@ Headers.
 		cmdkit.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API."),
 		cmdkit.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
 		cmdkit.BoolOption(enableFloodSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
+		cmdkit.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
 		cmdkit.BoolOption(enableMultiplexKwd, "Add the experimental 'go-multiplex' stream muxer to libp2p on construction.").WithDefault(true),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
@@ -283,6 +285,7 @@ func daemonFunc(req cmds.Request, re cmds.ResponseEmitter) {
 
 	offline, _, _ := req.Option(offlineKwd).Bool()
 	pubsub, _, _ := req.Option(enableFloodSubKwd).Bool()
+	ipnsps, _, _ := req.Option(enableIPNSPubSubKwd).Bool()
 	mplex, _, _ := req.Option(enableMultiplexKwd).Bool()
 
 	// Start assembling node config
@@ -292,6 +295,7 @@ func daemonFunc(req cmds.Request, re cmds.ResponseEmitter) {
 		Online:    !offline,
 		ExtraOpts: map[string]bool{
 			"pubsub": pubsub,
+			"ipnsps": ipnsps,
 			"mplex":  mplex,
 		},
 		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
