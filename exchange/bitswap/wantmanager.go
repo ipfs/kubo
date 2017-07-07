@@ -17,7 +17,7 @@ import (
 
 type WantManager struct {
 	// sync channels for Run loop
-	incoming   chan []*bsmsg.Entry
+	incoming   chan *wantSet
 	connect    chan peer.ID        // notification channel for new peers connecting
 	disconnect chan peer.ID        // notification channel for peers disconnecting
 	peerReqs   chan chan []peer.ID // channel to request connected peers on
@@ -25,6 +25,7 @@ type WantManager struct {
 	// synchronized by Run loop, only touch inside there
 	peers map[peer.ID]*msgQueue
 	wl    *wantlist.ThreadSafe
+	bcwl  *wantlist.ThreadSafe
 
 	network bsnet.BitSwapNetwork
 	ctx     context.Context
@@ -41,12 +42,13 @@ func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantMana
 	sentHistogram := metrics.NewCtx(ctx, "sent_all_blocks_bytes", "Histogram of blocks sent by"+
 		" this bitswap").Histogram(metricsBuckets)
 	return &WantManager{
-		incoming:      make(chan []*bsmsg.Entry, 10),
+		incoming:      make(chan *wantSet, 10),
 		connect:       make(chan peer.ID, 10),
 		disconnect:    make(chan peer.ID, 10),
 		peerReqs:      make(chan chan []peer.ID),
 		peers:         make(map[peer.ID]*msgQueue),
 		wl:            wantlist.NewThreadSafe(),
+		bcwl:          wantlist.NewThreadSafe(),
 		network:       network,
 		ctx:           ctx,
 		cancel:        cancel,
@@ -61,6 +63,7 @@ type msgQueue struct {
 	outlk   sync.Mutex
 	out     bsmsg.BitSwapMessage
 	network bsnet.BitSwapNetwork
+	wl      *wantlist.ThreadSafe
 
 	sender bsnet.MessageSender
 
@@ -70,30 +73,33 @@ type msgQueue struct {
 	done chan struct{}
 }
 
-func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid) {
+// WantBlocks adds the given cids to the wantlist, tracked by the given session
+func (pm *WantManager) WantBlocks(ctx context.Context, ks []*cid.Cid, peers []peer.ID, ses uint64) {
 	log.Infof("want blocks: %s", ks)
-	pm.addEntries(ctx, ks, false)
+	pm.addEntries(ctx, ks, peers, false, ses)
 }
 
-func (pm *WantManager) CancelWants(ks []*cid.Cid) {
-	log.Infof("cancel wants: %s", ks)
-	pm.addEntries(context.TODO(), ks, true)
+// CancelWants removes the given cids from the wantlist, tracked by the given session
+func (pm *WantManager) CancelWants(ctx context.Context, ks []*cid.Cid, peers []peer.ID, ses uint64) {
+	pm.addEntries(context.Background(), ks, peers, true, ses)
 }
 
-func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, cancel bool) {
+type wantSet struct {
+	entries []*bsmsg.Entry
+	targets []peer.ID
+	from    uint64
+}
+
+func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, targets []peer.ID, cancel bool, ses uint64) {
 	var entries []*bsmsg.Entry
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
 			Cancel: cancel,
-			Entry: &wantlist.Entry{
-				Cid:      k,
-				Priority: kMaxPriority - i,
-				RefCnt:   1,
-			},
+			Entry:  wantlist.NewRefEntry(k, kMaxPriority-i),
 		})
 	}
 	select {
-	case pm.incoming <- entries:
+	case pm.incoming <- &wantSet{entries: entries, targets: targets, from: ses}:
 	case <-pm.ctx.Done():
 	case <-ctx.Done():
 	}
@@ -132,7 +138,10 @@ func (pm *WantManager) startPeerHandler(p peer.ID) *msgQueue {
 
 	// new peer, we will want to give them our full wantlist
 	fullwantlist := bsmsg.New(true)
-	for _, e := range pm.wl.Entries() {
+	for _, e := range pm.bcwl.Entries() {
+		for k := range e.SesTrk {
+			mq.wl.AddEntry(e, k)
+		}
 		fullwantlist.AddEntry(e.Cid, e.Priority)
 	}
 	mq.out = fullwantlist
@@ -278,43 +287,47 @@ func (pm *WantManager) Run() {
 	defer tock.Stop()
 	for {
 		select {
-		case entries := <-pm.incoming:
+		case ws := <-pm.incoming:
+
+			// is this a broadcast or not?
+			brdc := len(ws.targets) == 0
 
 			// add changes to our wantlist
-			var filtered []*bsmsg.Entry
-			for _, e := range entries {
+			for _, e := range ws.entries {
 				if e.Cancel {
-					if pm.wl.Remove(e.Cid) {
+					if brdc {
+						pm.bcwl.Remove(e.Cid, ws.from)
+					}
+
+					if pm.wl.Remove(e.Cid, ws.from) {
 						pm.wantlistGauge.Dec()
-						filtered = append(filtered, e)
 					}
 				} else {
-					if pm.wl.AddEntry(e.Entry) {
+					if brdc {
+						pm.bcwl.AddEntry(e.Entry, ws.from)
+					}
+					if pm.wl.AddEntry(e.Entry, ws.from) {
 						pm.wantlistGauge.Inc()
-						filtered = append(filtered, e)
 					}
 				}
 			}
 
 			// broadcast those wantlist changes
-			for _, p := range pm.peers {
-				p.addMessage(filtered)
+			if len(ws.targets) == 0 {
+				for _, p := range pm.peers {
+					p.addMessage(ws.entries, ws.from)
+				}
+			} else {
+				for _, t := range ws.targets {
+					p, ok := pm.peers[t]
+					if !ok {
+						log.Warning("tried sending wantlist change to non-partner peer")
+						continue
+					}
+					p.addMessage(ws.entries, ws.from)
+				}
 			}
 
-		case <-tock.C:
-			// resend entire wantlist every so often (REALLY SHOULDNT BE NECESSARY)
-			var es []*bsmsg.Entry
-			for _, e := range pm.wl.Entries() {
-				es = append(es, &bsmsg.Entry{Entry: e})
-			}
-
-			for _, p := range pm.peers {
-				p.outlk.Lock()
-				p.out = bsmsg.New(true)
-				p.outlk.Unlock()
-
-				p.addMessage(es)
-			}
 		case p := <-pm.connect:
 			pm.startPeerHandler(p)
 		case p := <-pm.disconnect:
@@ -335,16 +348,21 @@ func (wm *WantManager) newMsgQueue(p peer.ID) *msgQueue {
 	return &msgQueue{
 		done:    make(chan struct{}),
 		work:    make(chan struct{}, 1),
+		wl:      wantlist.NewThreadSafe(),
 		network: wm.network,
 		p:       p,
 		refcnt:  1,
 	}
 }
 
-func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
+func (mq *msgQueue) addMessage(entries []*bsmsg.Entry, ses uint64) {
+	var work bool
 	mq.outlk.Lock()
 	defer func() {
 		mq.outlk.Unlock()
+		if !work {
+			return
+		}
 		select {
 		case mq.work <- struct{}{}:
 		default:
@@ -361,9 +379,15 @@ func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
 	// one passed in
 	for _, e := range entries {
 		if e.Cancel {
-			mq.out.Cancel(e.Cid)
+			if mq.wl.Remove(e.Cid, ses) {
+				work = true
+				mq.out.Cancel(e.Cid)
+			}
 		} else {
-			mq.out.AddEntry(e.Cid, e.Priority)
+			if mq.wl.Add(e.Cid, e.Priority, ses) {
+				work = true
+				mq.out.AddEntry(e.Cid, e.Priority)
+			}
 		}
 	}
 }
