@@ -1,5 +1,5 @@
 # golang utilities
-GO_MIN_VERSION = 1.7
+GO_MIN_VERSION = 1.8
 
 # pre-definitions
 GOTAGS ?=
