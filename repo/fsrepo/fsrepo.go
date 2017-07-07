@@ -1,7 +1,7 @@
 package fsrepo
 
 import (
-	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -370,14 +370,14 @@ func (r *FSRepo) openDatastore() error {
 	}
 	diskId := dsc.DiskId()
 
-	oldDiskId, err := r.readDiskId()
+	oldId, _, err := r.readSpec()
 	if err == nil {
-		if oldDiskId != diskId {
+		if oldId != diskId {
 			return fmt.Errorf("Datastore configuration of '%s' does not match what is on disk '%s'",
-				oldDiskId, diskId)
+				oldId, diskId)
 		}
 	} else if os.IsNotExist(err) {
-		err := r.writeDiskId(diskId)
+		err := r.writeSpec(diskId, r.config.Datastore.Spec)
 		if err != nil {
 			return err
 		}
@@ -398,27 +398,55 @@ func (r *FSRepo) openDatastore() error {
 	return nil
 }
 
-var DiskIdFn = "dsid"
+var SpecFn = "spec"
 
-func (r *FSRepo) readDiskId() (string, error) {
-	fn, err := config.Path(r.path, DiskIdFn)
+func (r *FSRepo) readSpec() (string, map[string]interface{}, error) {
+	fn, err := config.Path(r.path, SpecFn)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	b, err := ioutil.ReadFile(fn)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	b = bytes.TrimSpace(b)
-	return string(b), nil
+	idspec := make(map[string]interface{})
+	err = json.Unmarshal(b, &idspec)
+	if err != nil {
+		return "", nil, err
+	}
+	id, ok := idspec["id"].(string)
+	if !ok {
+		return "", nil, fmt.Errorf("could not retrieve 'id' field from spec file")
+	}
+	spec, ok := idspec["spec"].(map[string]interface{})
+	if !ok {
+		return "", nil, fmt.Errorf("could not retrieve 'spec' field from spec file")
+	}
+
+	dsc, err := AnyDatastoreConfig(spec)
+	if err != nil {
+		return "", nil, err
+	}
+	computedId := dsc.DiskId()
+	if computedId != id {
+		return "", nil, fmt.Errorf("bad spec file, computed id (%s) does not match given (%s)",
+			computedId, id)
+	}
+
+	return id, spec, nil
 }
 
-func (r *FSRepo) writeDiskId(newId string) error {
-	fn, err := config.Path(r.path, DiskIdFn)
+func (r *FSRepo) writeSpec(id string, spec map[string]interface{}) error {
+	fn, err := config.Path(r.path, SpecFn)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(fn, []byte(newId), 0666)
+	idspec := map[string]interface{}{
+		"id":   id,
+		"spec": spec,
+	}
+	b, err := json.Marshal(idspec)
+	err = ioutil.WriteFile(fn, b, 0666)
 	if err != nil {
 		return err
 	}
