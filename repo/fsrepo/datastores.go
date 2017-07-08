@@ -62,6 +62,7 @@ func init() {
 		"mount":   MountDatastoreConfig,
 		"flatfs":  FlatfsDatastoreConfig,
 		"levelds": LeveldsDatastoreConfig,
+		"badger":  BadgerdsDatastoreConfig,
 		"mem":     MemDatastoreConfig,
 		"log":     LogDatastoreConfig,
 		"measure": MeasureDatastoreConfig,
@@ -338,13 +339,30 @@ func (c measureDatastoreConfig) Create(path string) (repo.Datastore, error) {
 	return measure.New(c.prefix, child), nil
 }
 
-func (r *FSRepo) openBadgerDatastore(params map[string]interface{}) (repo.Datastore, error) {
-	p, ok := params["path"].(string)
+type badgerdsDatastoreConfig struct {
+	path        string
+}
+
+func BadgerdsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
+	var c badgerdsDatastoreConfig
+	var ok bool
+
+	c.path, ok = params["path"].(string)
 	if !ok {
 		return nil, fmt.Errorf("'path' field is missing or not string")
 	}
+
+	return &c, nil
+}
+
+func (c *badgerdsDatastoreConfig) DiskId() string {
+	return fmt.Sprintf("badgerds;%s", c.path)
+}
+
+func (c *badgerdsDatastoreConfig) Create(path string) (repo.Datastore, error) {
+	p := c.path
 	if !filepath.IsAbs(p) {
-		p = filepath.Join(r.path, p)
+		p = filepath.Join(path, p)
 	}
 
 	err := os.MkdirAll(p, 0755)
