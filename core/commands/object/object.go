@@ -22,10 +22,10 @@ import (
 	cid "gx/ipfs/Qma4RJSuh7mMeJQYCqMbKzekn6EwBo7HEs5AQYjVRMQATB/go-cid"
 )
 
-// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
-var ErrObjectTooLarge = errors.New("input object was too large. limit is 2mbytes")
+// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 8m
+var ErrObjectTooLarge = errors.New("input object was too large. limit is 8mbytes")
 
-const inputLimit = 2 << 20
+const inputLimit = 2 << 22
 
 type Node struct {
 	Links []Link
