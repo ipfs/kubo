@@ -469,6 +469,12 @@
       "hash": "QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx",
       "name": "go-testutil",
       "version": "1.1.11"
+    },
+    {
+      "author": "magik6k",
+      "hash": "QmTC7BY2viSAbPbGte6NyMZJCC2xheaRBYKEn4BuzTxe7W",
+      "name": "go-ds-badger",
+      "version": "0.1.10"
     }
   ],
   "gxVersion": "0.10.0",
