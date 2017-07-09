@@ -64,11 +64,6 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 
 	args := make([]string, valCount)
 
-	//skip further checks if we have fewer provided arguments than minimum required
-	if valCount < numRequired {
-		return nil, fmt.Errorf("Needed at least %v argument(s), got %v", numRequired, valCount)
-	}
-
 	valIndex := 0
 	requiredFile := ""
 	for _, argDef := range cmd.Arguments {
