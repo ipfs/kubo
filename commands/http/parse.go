@@ -122,13 +122,13 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		}
 	}
 
-	if f.FullPath() == "" {
-		return nil, fmt.Errorf("Corrupted data passed as file argument")
-	}
-
 	// if there is a required filearg, error if no files were provided
 	if len(requiredFile) > 0 && f == nil {
 		return nil, fmt.Errorf("File argument '%s' is required", requiredFile)
+	}
+
+	if f != nil && f.FullPath() == "" {
+		return nil, fmt.Errorf("Corrupted data passed as file argument")
 	}
 
 	req, err := cmds.NewRequest(pth, opts, args, f, cmd, optDefs)
