@@ -1,6 +1,8 @@
 package merkledag
 
 import (
+	"fmt"
+
 	"gx/ipfs/QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh/go-block-format"
 
 	node "gx/ipfs/QmPAKbSsgEX5B6fpmxa61jXYnoWzZr5sNafd3qgPiSH8Uv/go-ipld-format"
@@ -21,6 +23,17 @@ func NewRawNode(data []byte) *RawNode {
 
 	return &RawNode{blk}
 }
+
+// DecodeRawBlock is a block decoder for raw IPLD nodes conforming to `node.DecodeBlockFunc`.
+func DecodeRawBlock(block blocks.Block) (node.Node, error) {
+	if block.Cid().Type() != cid.Raw {
+		return nil, fmt.Errorf("raw nodes cannot be decoded from non-raw blocks: %d", block.Cid().Type())
+	}
+	// Once you "share" a block, it should be immutable. Therefore, we can just use this block as-is.
+	return &RawNode{block}, nil
+}
+
+var _ node.DecodeBlockFunc = DecodeRawBlock
 
 // NewRawNodeWPrefix creates a RawNode with the hash function
 // specified in prefix.
