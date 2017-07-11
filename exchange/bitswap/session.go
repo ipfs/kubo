@@ -78,13 +78,28 @@ func (bs *Bitswap) NewSession(ctx context.Context) *Session {
 	return s
 }
 
+func (bs *Bitswap) removeSession(s *Session) {
+	bs.sessLk.Lock()
+	defer bs.sessLk.Unlock()
+	for i := 0; i < len(bs.sessions); i++ {
+		if bs.sessions[i] == s {
+			bs.sessions[i] = bs.sessions[len(bs.sessions)-1]
+			bs.sessions = bs.sessions[:len(bs.sessions)-1]
+			return
+		}
+	}
+}
+
 type blkRecv struct {
 	from peer.ID
 	blk  blocks.Block
 }
 
 func (s *Session) receiveBlockFrom(from peer.ID, blk blocks.Block) {
-	s.incoming <- blkRecv{from: from, blk: blk}
+	select {
+	case s.incoming <- blkRecv{from: from, blk: blk}:
+	case <-s.ctx.Done():
+	}
 }
 
 type interestReq struct {
@@ -105,7 +120,13 @@ func (s *Session) isLiveWant(c *cid.Cid) bool {
 		c:    c,
 		resp: resp,
 	}
-	return <-resp
+
+	select {
+	case want := <-resp:
+		return want
+	case <-s.ctx.Done():
+		return false
+	}
 }
 
 func (s *Session) interestedIn(c *cid.Cid) bool {
@@ -194,6 +215,7 @@ func (s *Session) run(ctx context.Context) {
 			lwchk.resp <- s.cidIsWanted(lwchk.c)
 		case <-ctx.Done():
 			s.tick.Stop()
+			s.bs.removeSession(s)
 			return
 		}
 	}

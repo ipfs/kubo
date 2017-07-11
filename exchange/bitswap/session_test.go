@@ -242,3 +242,46 @@ func TestPutAfterSessionCacheEvict(t *testing.T) {
 		t.Fatal("timed out waiting for block")
 	}
 }
+
+func TestMultipleSessions(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	vnet := getVirtualNetwork()
+	sesgen := NewTestSessionGenerator(vnet)
+	defer sesgen.Close()
+	bgen := blocksutil.NewBlockGenerator()
+
+	blk := bgen.Blocks(1)[0]
+	inst := sesgen.Instances(2)
+
+	a := inst[0]
+	b := inst[1]
+
+	ctx1, cancel1 := context.WithCancel(ctx)
+	ses := a.Exchange.NewSession(ctx1)
+
+	blkch, err := ses.GetBlocks(ctx, []*cid.Cid{blk.Cid()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel1()
+
+	ses2 := a.Exchange.NewSession(ctx)
+	blkch2, err := ses2.GetBlocks(ctx, []*cid.Cid{blk.Cid()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Millisecond * 10)
+	if err := b.Exchange.HasBlock(blk); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-blkch2:
+	case <-time.After(time.Second * 20):
+		t.Fatal("bad juju")
+	}
+	_ = blkch
+}
