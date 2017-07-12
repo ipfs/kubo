@@ -7,7 +7,6 @@ import (
 	"io"
 	"path"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
 	tar "github.com/ipfs/go-ipfs/unixfs/archive/tar"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -31,7 +30,7 @@ func (i *identityWriteCloser) Close() error {
 }
 
 // DagArchive is equivalent to `ipfs getdag $hash | maybe_tar | maybe_gzip`
-func DagArchive(ctx context.Context, nd node.Node, name string, dag mdag.DAGService, archive bool, compression int) (io.Reader, error) {
+func DagArchive(ctx context.Context, nd node.Node, name string, dag node.DAGService, archive bool, compression int) (io.Reader, error) {
 
 	_, filename := path.Split(name)
 

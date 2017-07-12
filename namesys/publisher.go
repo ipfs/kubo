@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
@@ -16,6 +15,7 @@ import (
 
 	routing "gx/ipfs/QmPjTrrSfE6TzLv6ya6VWhGcCgPrUAdcgrDcQyRDX2VyW1/go-libp2p-routing"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
@@ -315,7 +315,7 @@ func ValidateIpnsRecord(k string, val []byte) error {
 // InitializeKeyspace sets the ipns record for the given key to
 // point to an empty directory.
 // TODO: this doesnt feel like it belongs here
-func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
+func InitializeKeyspace(ctx context.Context, ds node.DAGService, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
 	emptyDir := ft.EmptyDirNode()
 	nodek, err := ds.Add(emptyDir)
 	if err != nil {

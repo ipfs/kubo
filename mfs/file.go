@@ -20,13 +20,13 @@ type File struct {
 
 	desclock sync.RWMutex
 
-	dserv  dag.DAGService
+	dserv  node.DAGService
 	node   node.Node
 	nodelk sync.Mutex
 }
 
 // NewFile returns a NewFile object with the given parameters
-func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
+func NewFile(name string, node node.Node, parent childCloser, dserv node.DAGService) (*File, error) {
 	return &File{
 		dserv:  dserv,
 		parent: parent,

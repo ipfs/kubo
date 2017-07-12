@@ -29,7 +29,7 @@ var writebufferSize = 1 << 21
 // perform surgery on a DAG 'file'
 // Dear god, please rename this to something more pleasant
 type DagModifier struct {
-	dagserv mdag.DAGService
+	dagserv node.DAGService
 	curNode node.Node
 
 	splitter   chunk.SplitterGen
@@ -45,7 +45,7 @@ type DagModifier struct {
 
 var ErrNotUnixfs = fmt.Errorf("dagmodifier only supports unixfs nodes (proto or raw)")
 
-func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from node.Node, serv node.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
 	switch from.(type) {
 	case *mdag.ProtoNode, *mdag.RawNode:
 		// ok
@@ -478,7 +478,7 @@ func (dm *DagModifier) Truncate(size int64) error {
 }
 
 // dagTruncate truncates the given node to 'size' and returns the modified Node
-func dagTruncate(ctx context.Context, n node.Node, size uint64, ds mdag.DAGService) (*mdag.ProtoNode, error) {
+func dagTruncate(ctx context.Context, n node.Node, size uint64, ds node.DAGService) (*mdag.ProtoNode, error) {
 	nd, ok := n.(*mdag.ProtoNode)
 	if !ok {
 		return nil, ErrNoRawYet

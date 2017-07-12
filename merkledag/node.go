@@ -154,7 +154,7 @@ func (n *ProtoNode) GetNodeLink(name string) (*node.Link, error) {
 	return nil, ErrLinkNotFound
 }
 
-func (n *ProtoNode) GetLinkedProtoNode(ctx context.Context, ds DAGService, name string) (*ProtoNode, error) {
+func (n *ProtoNode) GetLinkedProtoNode(ctx context.Context, ds node.NodeGetter, name string) (*ProtoNode, error) {
 	nd, err := n.GetLinkedNode(ctx, ds, name)
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (n *ProtoNode) GetLinkedProtoNode(ctx context.Context, ds DAGService, name 
 	return pbnd, nil
 }
 
-func (n *ProtoNode) GetLinkedNode(ctx context.Context, ds DAGService, name string) (node.Node, error) {
+func (n *ProtoNode) GetLinkedNode(ctx context.Context, ds node.NodeGetter, name string) (node.Node, error) {
 	lnk, err := n.GetNodeLink(name)
 	if err != nil {
 		return nil, err

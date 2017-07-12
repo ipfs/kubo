@@ -13,6 +13,7 @@ import (
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 func shuffle(seed int64, arr []string) {
@@ -24,11 +25,11 @@ func shuffle(seed int64, arr []string) {
 	}
 }
 
-func makeDir(ds dag.DAGService, size int) ([]string, *HamtShard, error) {
+func makeDir(ds node.DAGService, size int) ([]string, *HamtShard, error) {
 	return makeDirWidth(ds, size, 256)
 }
 
-func makeDirWidth(ds dag.DAGService, size, width int) ([]string, *HamtShard, error) {
+func makeDirWidth(ds node.DAGService, size, width int) ([]string, *HamtShard, error) {
 	s, _ := NewHamtShard(ds, width)
 
 	var dirs []string
@@ -70,7 +71,7 @@ func assertLink(s *HamtShard, name string, found bool) error {
 	}
 }
 
-func assertSerializationWorks(ds dag.DAGService, s *HamtShard) error {
+func assertSerializationWorks(ds node.DAGService, s *HamtShard) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	nd, err := s.Node()
@@ -493,7 +494,7 @@ func TestSetHamtChild(t *testing.T) {
 	}
 }
 
-func printDiff(ds dag.DAGService, a, b *dag.ProtoNode) {
+func printDiff(ds node.DAGService, a, b *dag.ProtoNode) {
 	diff, err := dagutils.Diff(context.TODO(), ds, a, b)
 	if err != nil {
 		panic(err)

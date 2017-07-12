@@ -24,7 +24,7 @@ var ErrInvalidChild = errors.New("invalid child node")
 var ErrDirExists = errors.New("directory already has entry by that name")
 
 type Directory struct {
-	dserv  dag.DAGService
+	dserv  node.DAGService
 	parent childCloser
 
 	childDirs map[string]*Directory
@@ -40,7 +40,7 @@ type Directory struct {
 	name string
 }
 
-func NewDirectory(ctx context.Context, name string, node node.Node, parent childCloser, dserv dag.DAGService) (*Directory, error) {
+func NewDirectory(ctx context.Context, name string, node node.Node, parent childCloser, dserv node.DAGService) (*Directory, error) {
 	db, err := uio.NewDirectoryFromNode(dserv, node)
 	if err != nil {
 		return nil, err

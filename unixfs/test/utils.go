@@ -24,11 +24,11 @@ func SizeSplitterGen(size int64) chunk.SplitterGen {
 	}
 }
 
-func GetDAGServ() mdag.DAGService {
+func GetDAGServ() node.DAGService {
 	return mdagmock.Mock()
 }
 
-func GetNode(t testing.TB, dserv mdag.DAGService, data []byte) node.Node {
+func GetNode(t testing.TB, dserv node.DAGService, data []byte) node.Node {
 	in := bytes.NewReader(data)
 	node, err := imp.BuildTrickleDagFromReader(dserv, SizeSplitterGen(500)(in))
 	if err != nil {
@@ -38,11 +38,11 @@ func GetNode(t testing.TB, dserv mdag.DAGService, data []byte) node.Node {
 	return node
 }
 
-func GetEmptyNode(t testing.TB, dserv mdag.DAGService) node.Node {
+func GetEmptyNode(t testing.TB, dserv node.DAGService) node.Node {
 	return GetNode(t, dserv, []byte{})
 }
 
-func GetRandomNode(t testing.TB, dserv mdag.DAGService, size int64) ([]byte, node.Node) {
+func GetRandomNode(t testing.TB, dserv node.DAGService, size int64) ([]byte, node.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {
@@ -65,7 +65,7 @@ func ArrComp(a, b []byte) error {
 	return nil
 }
 
-func PrintDag(nd *mdag.ProtoNode, ds mdag.DAGService, indent int) {
+func PrintDag(nd *mdag.ProtoNode, ds node.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		panic(err)

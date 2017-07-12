@@ -78,7 +78,7 @@ func (n *UnixfsNode) Set(other *UnixfsNode) {
 	}
 }
 
-func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*UnixfsNode, error) {
+func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds node.NodeGetter) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
 	if err != nil {
 		return nil, err

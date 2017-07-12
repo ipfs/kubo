@@ -258,6 +258,10 @@ type Session struct {
 	ses exchange.Fetcher
 }
 
+func (s *Session) Blockstore() blockstore.Blockstore {
+	return s.bs
+}
+
 // GetBlock gets a block in the context of a request session
 func (s *Session) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
 	return getBlock(ctx, c, s.bs, s.ses)

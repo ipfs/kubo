@@ -16,11 +16,12 @@ import (
 
 	"context"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 // TODO: extract these tests and more as a generic layout test suite
 
-func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.ProtoNode, error) {
+func buildTestDag(ds node.DAGService, spl chunk.Splitter) (*dag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
@@ -34,7 +35,7 @@ func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.ProtoNode, error)
 	return nd.(*dag.ProtoNode), nil
 }
 
-func getTestDag(t *testing.T, ds dag.DAGService, size int64, blksize int64) (*dag.ProtoNode, []byte) {
+func getTestDag(t *testing.T, ds node.DAGService, size int64, blksize int64) (*dag.ProtoNode, []byte) {
 	data := make([]byte, size)
 	u.NewTimeSeededRand().Read(data)
 	r := bytes.NewReader(data)

@@ -34,7 +34,7 @@ type ReadSeekCloser interface {
 
 // NewDagReader creates a new reader object that reads the data represented by
 // the given node, using the passed in DAGService for data retreival
-func NewDagReader(ctx context.Context, n node.Node, serv mdag.DAGService) (DagReader, error) {
+func NewDagReader(ctx context.Context, n node.Node, serv node.DAGService) (DagReader, error) {
 	switch n := n.(type) {
 	case *mdag.RawNode:
 		return NewBufDagReader(n.RawData()), nil

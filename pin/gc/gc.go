@@ -30,9 +30,9 @@ type Result struct {
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
 //
-func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
+func GC(ctx context.Context, bs bstore.GCBlockstore, ng node.NodeGetter, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
 	unlocker := bs.GCLock()
-	ls = ls.GetOfflineLinkService()
+	ng = ng.OfflineNodeGetter()
 
 	output := make(chan Result, 128)
 
@@ -40,7 +40,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 		defer close(output)
 		defer unlocker.Unlock()
 
-		gcs, err := ColoredSet(ctx, pn, ls, bestEffortRoots, output)
+		gcs, err := ColoredSet(ctx, pn, ng, bestEffortRoots, output)
 		if err != nil {
 			output <- Result{Error: err}
 			return
@@ -104,13 +104,13 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 
 // ColoredSet computes the set of nodes in the graph that are pinned by the
 // pins in the given pinner.
-func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ng node.NodeGetter, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	errors := false
 	gcs := cid.NewSet()
 	getLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
-		links, err := ls.GetLinks(ctx, cid)
+		links, err := node.GetLinks(ctx, ng, cid)
 		if err != nil {
 			errors = true
 			output <- Result{Error: &CannotFetchLinksError{cid, err}}
@@ -124,7 +124,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 	}
 
 	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
-		links, err := ls.GetLinks(ctx, cid)
+		links, err := node.GetLinks(ctx, ng, cid)
 		if err != nil && err != dag.ErrNotFound {
 			errors = true
 			output <- Result{Error: &CannotFetchLinksError{cid, err}}

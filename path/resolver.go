@@ -35,12 +35,12 @@ func (e ErrNoLink) Error() string {
 // TODO: now that this is more modular, try to unify this code with the
 //       the resolvers in namesys
 type Resolver struct {
-	DAG dag.DAGService
+	DAG node.DAGService
 
-	ResolveOnce func(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error)
+	ResolveOnce func(ctx context.Context, ds node.DAGService, nd node.Node, names []string) (*node.Link, []string, error)
 }
 
-func NewBasicResolver(ds dag.DAGService) *Resolver {
+func NewBasicResolver(ds node.DAGService) *Resolver {
 	return &Resolver{
 		DAG:         ds,
 		ResolveOnce: ResolveSingle,
@@ -123,7 +123,7 @@ func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (node.Node, erro
 
 // ResolveSingle simply resolves one hop of a path through a graph with no
 // extra context (does not opaquely resolve through sharded nodes)
-func ResolveSingle(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error) {
+func ResolveSingle(ctx context.Context, ds node.DAGService, nd node.Node, names []string) (*node.Link, []string, error) {
 	return nd.ResolveLink(names)
 }
 

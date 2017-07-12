@@ -17,6 +17,7 @@ import (
 	context "context"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 var PinCmd = &cmds.Command{
@@ -548,7 +549,7 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	if typeStr == "indirect" || typeStr == "all" {
 		set := cid.NewSet()
 		for _, k := range n.Pinning.RecursiveKeys() {
-			err := dag.EnumerateChildren(n.Context(), n.DAG.GetLinks, k, set.Visit)
+			err := dag.EnumerateChildren(n.Context(), dag.GetLinksWithDAG(n.DAG), k, set.Visit)
 			if err != nil {
 				return nil, err
 			}
@@ -587,7 +588,7 @@ type pinVerifyOpts struct {
 
 func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
 	visited := make(map[string]PinStatus)
-	getLinks := n.DAG.GetOfflineLinkService().GetLinks
+	ng := n.DAG.OfflineNodeGetter()
 	recPins := n.Pinning.RecursiveKeys()
 
 	var checkPin func(root *cid.Cid) PinStatus
@@ -597,7 +598,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 			return status
 		}
 
-		links, err := getLinks(ctx, root)
+		links, err := node.GetLinks(ctx, ng, root)
 		if err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {

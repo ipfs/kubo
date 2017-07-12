@@ -21,14 +21,14 @@ import (
 // unixfs merkledag nodes as a tar archive format.
 // It wraps any io.Writer.
 type Writer struct {
-	Dag  mdag.DAGService
+	Dag  node.DAGService
 	TarW *tar.Writer
 
 	ctx context.Context
 }
 
 // NewWriter wraps given io.Writer.
-func NewWriter(ctx context.Context, dag mdag.DAGService, archive bool, compression int, w io.Writer) (*Writer, error) {
+func NewWriter(ctx context.Context, dag node.DAGService, archive bool, compression int, w io.Writer) (*Writer, error) {
 	return &Writer{
 		Dag:  dag,
 		TarW: tar.NewWriter(w),
@@ -41,7 +41,7 @@ func (w *Writer) writeDir(nd *mdag.ProtoNode, fpath string) error {
 		return err
 	}
 
-	for i, ng := range mdag.GetDAG(w.ctx, w.Dag, nd) {
+	for i, ng := range node.GetDAG(w.ctx, w.Dag, nd) {
 		child, err := ng.Get(w.ctx)
 		if err != nil {
 			return err

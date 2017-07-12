@@ -236,7 +236,7 @@ func trickleDepthInfo(node *h.UnixfsNode, maxlinks int) (int, int) {
 
 // VerifyTrickleDagStructure checks that the given dag matches exactly the trickle dag datastructure
 // layout
-func VerifyTrickleDagStructure(nd node.Node, ds dag.DAGService, direct int, layerRepeat int) error {
+func VerifyTrickleDagStructure(nd node.Node, ds node.NodeGetter, direct int, layerRepeat int) error {
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {
 		return dag.ErrNotProtobuf
@@ -246,7 +246,7 @@ func VerifyTrickleDagStructure(nd node.Node, ds dag.DAGService, direct int, laye
 }
 
 // Recursive call for verifying the structure of a trickledag
-func verifyTDagRec(nd *dag.ProtoNode, depth, direct, layerRepeat int, ds dag.DAGService) error {
+func verifyTDagRec(nd *dag.ProtoNode, depth, direct, layerRepeat int, ds node.NodeGetter) error {
 	if depth == 0 {
 		// zero depth dag is raw data block
 		if len(nd.Links()) > 0 {

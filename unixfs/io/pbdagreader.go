@@ -10,12 +10,13 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
 // DagReader provides a way to easily read the data contained in a dag.
 type pbDagReader struct {
-	serv mdag.DAGService
+	serv node.DAGService
 
 	// the node being read
 	node *mdag.ProtoNode
@@ -28,7 +29,7 @@ type pbDagReader struct {
 	buf ReadSeekCloser
 
 	// NodeGetters for each of 'nodes' child links
-	promises []mdag.NodeGetter
+	promises []*node.NodePromise
 
 	// the index of the child link currently being read from
 	linkPosition int
@@ -45,9 +46,9 @@ type pbDagReader struct {
 
 var _ DagReader = (*pbDagReader)(nil)
 
-func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv mdag.DAGService) *pbDagReader {
+func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv node.DAGService) *pbDagReader {
 	fctx, cancel := context.WithCancel(ctx)
-	promises := mdag.GetDAG(fctx, serv, n)
+	promises := node.GetDAG(fctx, serv, n)
 	return &pbDagReader{
 		node:     n,
 		serv:     serv,

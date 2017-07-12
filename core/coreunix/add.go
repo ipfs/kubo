@@ -70,7 +70,7 @@ type AddedObject struct {
 	Bytes int64  `json:",omitempty"`
 }
 
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds dag.DAGService) (*Adder, error) {
+func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds node.DAGService) (*Adder, error) {
 	return &Adder{
 		ctx:        ctx,
 		pinning:    p,
@@ -90,7 +90,7 @@ type Adder struct {
 	ctx        context.Context
 	pinning    pin.Pinner
 	blockstore bstore.GCBlockstore
-	dagService dag.DAGService
+	dagService node.DAGService
 	Out        chan interface{}
 	Progress   bool
 	Hidden     bool
@@ -548,7 +548,7 @@ func outputDagnode(out chan interface{}, name string, dn node.Node) error {
 	return nil
 }
 
-func NewMemoryDagService() dag.DAGService {
+func NewMemoryDagService() node.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	bsrv := bserv.New(bs, offline.Exchange(bs))
