@@ -11,8 +11,8 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 
+	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	cid "gx/ipfs/Qma4RJSuh7mMeJQYCqMbKzekn6EwBo7HEs5AQYjVRMQATB/go-cid"
 )
 
 func newTestFilestore(t *testing.T) (string, *Filestore) {
