@@ -9,30 +9,38 @@ import (
 	ipldcbor "gx/ipfs/QmemYymP73eVdTUUMZEiSpiHeZQKNJdT5dP2iuHssZh1sR/go-ipld-cbor"
 )
 
+// DagParser is function used for parsing stream into Node
 type DagParser func(r io.Reader) ([]node.Node, error)
 
+// FormatParsers is used for mapping format descriptors to DagParsers
 type FormatParsers map[string]DagParser
+
+// InputEncParsers is used for mapping input encodings to FormatParsers
 type InputEncParsers map[string]FormatParsers
 
+// DefaultInputEncParsers is InputEncParser that is used everywhere
 var DefaultInputEncParsers = InputEncParsers{
-	"json": DefaultJsonParsers,
-	"raw":  DefaultRawParsers,
+	"json": defaultJsonParsers,
+	"raw":  defaultRawParsers,
 }
 
-var DefaultJsonParsers = FormatParsers{
-	"cbor":     CborJsonParser,
-	"dag-cbor": CborJsonParser,
+var defaultJsonParsers = FormatParsers{
+	"cbor":     cborJsonParser,
+	"dag-cbor": cborJsonParser,
 }
 
-var DefaultRawParsers = FormatParsers{
-	"cbor":     CborRawParser,
-	"dag-cbor": CborRawParser,
+var defaultRawParsers = FormatParsers{
+	"cbor":     cborRawParser,
+	"dag-cbor": cborRawParser,
 }
 
+// ParseInputs uses DefaultInputEncParsers to parse io.Reader described by
+// input encoding and format to an instance of ipld Node
 func ParseInputs(ienc, format string, r io.Reader) ([]node.Node, error) {
 	return DefaultInputEncParsers.ParseInputs(ienc, format, r)
 }
 
+// AddParser adds DagParser under give input encoding and format
 func (iep InputEncParsers) AddParser(ienv, format string, f DagParser) {
 	m, ok := iep[ienv]
 	if !ok {
@@ -43,6 +51,8 @@ func (iep InputEncParsers) AddParser(ienv, format string, f DagParser) {
 	m[format] = f
 }
 
+// ParseInputs parses io.Reader described by input encoding and format to
+// an instance of ipld Node
 func (iep InputEncParsers) ParseInputs(ienc, format string, r io.Reader) ([]node.Node, error) {
 	pset, ok := iep[ienc]
 	if !ok {
@@ -57,7 +67,7 @@ func (iep InputEncParsers) ParseInputs(ienc, format string, r io.Reader) ([]node
 	return parser(r)
 }
 
-func CborJsonParser(r io.Reader) ([]node.Node, error) {
+func cborJsonParser(r io.Reader) ([]node.Node, error) {
 	nd, err := ipldcbor.FromJson(r)
 	if err != nil {
 		return nil, err
@@ -66,7 +76,7 @@ func CborJsonParser(r io.Reader) ([]node.Node, error) {
 	return []node.Node{nd}, nil
 }
 
-func CborRawParser(r io.Reader) ([]node.Node, error) {
+func cborRawParser(r io.Reader) ([]node.Node, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
