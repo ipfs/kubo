@@ -15,7 +15,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	"context"
-	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
+	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 )
 
 // TODO: extract these tests and more as a generic layout test suite
