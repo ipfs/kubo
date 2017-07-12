@@ -1,6 +1,5 @@
 include mk/header.mk
 
-
 SHARNESS_$(d) = $(d)/lib/sharness/sharness.sh
 
 T_$(d) = $(sort $(wildcard $(d)/t[0-9][0-9][0-9][0-9]-*.sh))
@@ -11,6 +10,20 @@ DEPS_$(d) := test/bin/random test/bin/multihash test/bin/pollEndpoint \
 DEPS_$(d) += cmd/ipfs/ipfs
 DEPS_$(d) += $(d)/clean-test-results
 DEPS_$(d) += $(SHARNESS_$(d))
+
+ifeq ($(OS),Linux)
+PLUGINS_DIR_$(d) := $(d)/plugins/
+ORGIN_PLUGINS_$(d) := $(plugin/plugins_plugins_so)
+PLUGINS_$(d) := $(addprefix $(PLUGINS_DIR_$(d)),$(notdir $(ORGIN_PLUGINS_$(d))))
+
+$(PLUGINS_$(d)): $(ORGIN_PLUGINS_$(d))
+	@mkdir -p $(@D)
+	cp -f plugin/plugins/$(@F) $@
+
+ifneq ($(TEST_NO_PLUGIN),1)
+DEPS_$(d) += $(PLUGINS_$(d))
+endif
+endif
 
 export MAKE_SKIP_PATH=1
 

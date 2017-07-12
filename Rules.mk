@@ -27,6 +27,10 @@ export IPFS_REUSEPORT=false
 dir := bin
 include $(dir)/Rules.mk
 
+# tests need access to rules from plugin
+dir := plugin
+include $(dir)/Rules.mk
+
 dir := test
 include $(dir)/Rules.mk
 
@@ -56,8 +60,6 @@ include $(dir)/Rules.mk
 dir := pin/internal/pb
 include $(dir)/Rules.mk
 
-dir := plugin
-include $(dir)/Rules.mk
 
 # -------------------- #
 #   universal rules    #
