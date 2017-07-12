@@ -145,7 +145,7 @@ help:
 	@echo '  test_go_short'
 	@echo '  test_go_expensive'
 	@echo '  test_go_race'
-	@echo '  test_go_megacheck'	 - Run the `megacheck` vetting tool
+	@echo '  test_go_megacheck	 - Run the `megacheck` vetting tool'
 	@echo '  test_sharness_short'
 	@echo '  test_sharness_expensive'
 	@echo '  test_sharness_race'
