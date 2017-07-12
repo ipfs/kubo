@@ -332,9 +332,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcxkxTVuURV2Ptse8TvkqH5BQDwV62X1x19JqqvbBzwUM",
+      "hash": "Qme4T6BE4sQxg7ZouamF5M7Tx1ZFTqzcns7BkyQPXpoT99",
       "name": "go-multibase",
-      "version": "0.2.3"
+      "version": "0.2.4"
     },
     {
       "author": "whyrusleeping",
@@ -436,6 +436,11 @@
       "hash": "QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg",
       "name": "go-block-format",
       "version": "0.1.3"
+    },
+    {
+      "hash": "QmPjTrrSfE6TzLv6ya6VWhGcCgPrUAdcgrDcQyRDX2VyW1",
+      "name": "go-libp2p-routing",
+      "version": "2.2.17"
     }
   ],
   "gxVersion": "0.10.0",
