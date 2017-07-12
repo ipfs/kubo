@@ -4,7 +4,6 @@ package merkledag
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -15,6 +14,15 @@ import (
 	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
 	ipldcbor "gx/ipfs/QmemYymP73eVdTUUMZEiSpiHeZQKNJdT5dP2iuHssZh1sR/go-ipld-cbor"
 )
+
+// TODO: We should move these registrations elsewhere. Really, most of the IPLD
+// functionality should go in a `go-ipld` repo but that will take a lot of work
+// and design.
+func init() {
+	node.Register(cid.DagProtobuf, DecodeProtobufBlock)
+	node.Register(cid.Raw, DecodeRawBlock)
+	node.Register(cid.DagCBOR, ipldcbor.DecodeBlock)
+}
 
 var ErrNotFound = fmt.Errorf("merkledag: not found")
 
@@ -94,32 +102,7 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 		return nil, fmt.Errorf("Failed to get block for %s: %v", c, err)
 	}
 
-	return decodeBlock(b)
-}
-
-func decodeBlock(b blocks.Block) (node.Node, error) {
-	c := b.Cid()
-
-	switch c.Type() {
-	case cid.DagProtobuf:
-		decnd, err := DecodeProtobuf(b.RawData())
-		if err != nil {
-			if strings.Contains(err.Error(), "Unmarshal failed") {
-				return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", c)
-			}
-			return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
-		}
-
-		decnd.cached = b.Cid()
-		decnd.Prefix = b.Cid().Prefix()
-		return decnd, nil
-	case cid.Raw:
-		return NewRawNodeWPrefix(b.RawData(), b.Cid().Prefix())
-	case cid.DagCBOR:
-		return ipldcbor.Decode(b.RawData())
-	default:
-		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
-	}
+	return node.Decode(b)
 }
 
 // GetLinks return the links for the node, the node doesn't necessarily have
@@ -174,7 +157,7 @@ func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 		return nil, err
 	}
 
-	return decodeBlock(blk)
+	return node.Decode(blk)
 }
 
 // FetchGraph fetches all nodes that are children of the given node
@@ -235,7 +218,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 					return
 				}
 
-				nd, err := decodeBlock(b)
+				nd, err := node.Decode(b)
 				if err != nil {
 					out <- &NodeOption{Err: err}
 					return
