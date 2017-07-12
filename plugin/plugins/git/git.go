@@ -13,31 +13,31 @@ import (
 )
 
 var Plugins = []plugin.Plugin{
-	&GitPlugin{},
+	&gitPlugin{},
 }
 
-type GitPlugin struct{}
+type gitPlugin struct{}
 
-var _ plugin.PluginIPLD = (*GitPlugin)(nil)
+var _ plugin.PluginIPLD = (*gitPlugin)(nil)
 
-func (*GitPlugin) Name() string {
+func (*gitPlugin) Name() string {
 	return "ipld-git"
 }
 
-func (*GitPlugin) Version() string {
+func (*gitPlugin) Version() string {
 	return "0.0.1"
 }
 
-func (*GitPlugin) Init() error {
+func (*gitPlugin) Init() error {
 	return nil
 }
 
-func (*GitPlugin) RegisterBlockDecoders(dec format.BlockDecoder) error {
+func (*gitPlugin) RegisterBlockDecoders(dec format.BlockDecoder) error {
 	dec.Register(cid.GitRaw, git.DecodeBlock)
 	return nil
 }
 
-func (*GitPlugin) RegisterInputEncParsers(iec coredag.InputEncParsers) error {
+func (*gitPlugin) RegisterInputEncParsers(iec coredag.InputEncParsers) error {
 	iec.AddParser("raw", "git", parseRawGit)
 	iec.AddParser("zlib", "git", parseZlibGit)
 	return nil
