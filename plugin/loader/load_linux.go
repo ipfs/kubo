@@ -17,12 +17,14 @@ func init() {
 func linxuLoadFunc(pluginDir string) ([]iplugin.Plugin, error) {
 	var plugins []iplugin.Plugin
 
-	filepath.Walk(pluginDir, func(fi string, info os.FileInfo, err error) error {
+	err := filepath.Walk(pluginDir, func(fi string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if info.IsDir() {
-			log.Warningf("found directory inside plugins directory: %s", fi)
+			if fi != pluginDir {
+				log.Warningf("found directory inside plugins directory: %s", fi)
+			}
 			return nil
 		}
 
@@ -42,7 +44,7 @@ func linxuLoadFunc(pluginDir string) ([]iplugin.Plugin, error) {
 		return nil
 	})
 
-	return plugins, nil
+	return plugins, err
 }
 
 func loadPlugin(fi string) ([]iplugin.Plugin, error) {

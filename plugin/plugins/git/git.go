@@ -1,4 +1,4 @@
-package git
+package main
 
 import (
 	"compress/zlib"
