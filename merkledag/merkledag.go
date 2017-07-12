@@ -10,9 +10,9 @@ import (
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	blocks "gx/ipfs/QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg/go-block-format"
 
+	ipldcbor "gx/ipfs/QmRsVKyuqssWQn4jtvH2PMA9Yc3AC9TYFFtvzCUbZG4kTT/go-ipld-cbor"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
-	ipldcbor "gx/ipfs/QmemYymP73eVdTUUMZEiSpiHeZQKNJdT5dP2iuHssZh1sR/go-ipld-cbor"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 // TODO: We should move these registrations elsewhere. Really, most of the IPLD
