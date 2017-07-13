@@ -14,7 +14,7 @@ import (
 EOL
 
 to_preload | while read -r name path num; do
-	echo "\tplugin$name \"$path\""
+	echo "plugin$name \"$path\""
 done | sort -u
 
 cat <<EOL
@@ -24,7 +24,7 @@ var preloadPlugins = []plugin.Plugin{
 EOL
 
 to_preload | while read -r name path num; do
-	echo "\tplugin$name.Plugins[$num],"
+	echo "plugin$name.Plugins[$num],"
 done
 
 
