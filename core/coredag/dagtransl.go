@@ -20,13 +20,13 @@ type InputEncParsers map[string]FormatParsers
 
 // DefaultInputEncParsers is InputEncParser that is used everywhere
 var DefaultInputEncParsers = InputEncParsers{
-	"json": defaultJsonParsers,
+	"json": defaultJSONParsers,
 	"raw":  defaultRawParsers,
 }
 
-var defaultJsonParsers = FormatParsers{
-	"cbor":     cborJsonParser,
-	"dag-cbor": cborJsonParser,
+var defaultJSONParsers = FormatParsers{
+	"cbor":     cborJSONParser,
+	"dag-cbor": cborJSONParser,
 }
 
 var defaultRawParsers = FormatParsers{
@@ -67,7 +67,7 @@ func (iep InputEncParsers) ParseInputs(ienc, format string, r io.Reader) ([]node
 	return parser(r)
 }
 
-func cborJsonParser(r io.Reader) ([]node.Node, error) {
+func cborJSONParser(r io.Reader) ([]node.Node, error) {
 	nd, err := ipldcbor.FromJson(r)
 	if err != nil {
 		return nil, err
