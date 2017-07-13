@@ -2,6 +2,7 @@ package loader
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/ipfs/go-ipfs/plugin"
 
@@ -21,7 +22,7 @@ func LoadPlugins(pluginDir string) ([]plugin.Plugin, error) {
 		plMap[v.Name()] = v
 	}
 
-	newPls, err := loadPluginsFunc(pluginDir)
+	newPls, err := loadDynamicPlugins(pluginDir)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +30,10 @@ func LoadPlugins(pluginDir string) ([]plugin.Plugin, error) {
 	for _, pl := range newPls {
 		if ppl, ok := plMap[pl.Name()]; ok {
 			// plugin is already preloaded
-			return nil, fmt.Errorf("plugin: %s, is duplicated in version: %s, while trying to load dynamically: %s", ppl.Name(), ppl.Version(), pl.Version())
+			return nil, fmt.Errorf(
+				"plugin: %s, is duplicated in version: %s, "+
+					"while trying to load dynamically: %s",
+				ppl.Name(), ppl.Version(), pl.Version())
 		}
 		plMap[pl.Name()] = pl
 	}
@@ -46,4 +50,16 @@ func LoadPlugins(pluginDir string) ([]plugin.Plugin, error) {
 
 	err = run(pls)
 	return nil, err
+}
+
+func loadDynamicPlugins(pluginDir string) ([]plugin.Plugin, error) {
+	_, err := os.Stat(pluginDir)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return loadPluginsFunc(pluginDir)
 }
