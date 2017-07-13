@@ -8,6 +8,7 @@ $(d)_plugins_main:=$(addsuffix /main/main.go,$($(d)_plugins))
 $($(d)_plugins_main): d:=$(d)
 $($(d)_plugins_main):
 	$(d)/gen_main.sh "$(dir $@).." "$(call go-pkg-name,$(dir $@)/..)"
+	go fmt $@ >/dev/null
 
 $($(d)_plugins_so): %.so : %/main/main.go
 $($(d)_plugins_so): $$(DEPS_GO) ALWAYS
