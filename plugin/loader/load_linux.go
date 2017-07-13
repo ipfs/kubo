@@ -56,11 +56,12 @@ func loadPlugin(fi string) ([]iplugin.Plugin, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Errorf("plugins: %T", pls)
 
-	typePls, ok := pls.([]iplugin.Plugin)
+	typePls, ok := pls.(*[]iplugin.Plugin)
 	if !ok {
 		return nil, errors.New("filed 'Plugins' didn't contain correct type")
 	}
 
-	return typePls, nil
+	return *typePls, nil
 }
