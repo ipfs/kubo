@@ -204,6 +204,9 @@ var FilesCpCmd = &cmds.Command{
 		cmds.StringArg("source", true, false, "Source object to copy."),
 		cmds.StringArg("dest", true, false, "Destination to copy object to."),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("force", "Force overwrite of existing files.").Default(false),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -212,6 +215,7 @@ var FilesCpCmd = &cmds.Command{
 		}
 
 		flush, _, _ := req.Option("flush").Bool()
+		force, _, _ := req.Option("force").Bool()
 
 		src, err := checkPath(req.Arguments()[0])
 		if err != nil {
@@ -234,6 +238,14 @@ var FilesCpCmd = &cmds.Command{
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+
+		if force {
+			err := unlinkNodeIfExists(node, dst)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 
 		err = mfs.PutNode(node.FilesRoot, dst, nd)
@@ -274,6 +286,27 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (node.N
 
 		return fsn.GetNode()
 	}
+}
+
+func unlinkNodeIfExists(node *core.IpfsNode, path string) (error) {
+	dir, name := gopath.Split(path)
+	parent, err := mfs.Lookup(node.FilesRoot, dir)
+	if err != nil {
+		return err
+	}
+
+	pdir, ok := parent.(*mfs.Directory)
+	if !ok {
+		err = fmt.Errorf("No such file or directory: %s", dir)
+		return err
+	}
+
+	child, err := pdir.Child(name)
+	if (err == nil && child.Type() == mfs.TFile) {
+		pdir.Unlink(name)
+	}
+
+	return err
 }
 
 type Object struct {
