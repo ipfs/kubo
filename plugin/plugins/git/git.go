@@ -12,6 +12,7 @@ import (
 	git "gx/ipfs/Qma7Kuwun7w8SZphjEPDVxvGfetBkqdNGmigDA13sJdLex/go-ipld-git"
 )
 
+// Plugins is exported list of plugins that will be loaded
 var Plugins = []plugin.Plugin{
 	&gitPlugin{},
 }
