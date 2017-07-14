@@ -1,6 +1,6 @@
 include mk/header.mk
 
-$(d)/coverage_deps:
+$(d)/coverage_deps: $$(DEPS_GO)
 	rm -rf $(@D)/unitcover && mkdir $(@D)/unitcover
 	rm -rf $(@D)/sharnesscover && mkdir $(@D)/sharnesscover
 ifneq ($(IPFS_SKIP_COVER_BINS),1)
