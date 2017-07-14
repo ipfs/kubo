@@ -200,15 +200,15 @@ func LeveldsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, err
 		return nil, fmt.Errorf("'path' field is missing or not string")
 	}
 
-	switch params["compression"].(string) {
+	switch cm := params["compression"].(string); cm {
 	case "none":
 		c.compression = ldbopts.NoCompression
 	case "snappy":
 		c.compression = ldbopts.SnappyCompression
 	case "":
-		fallthrough
-	default:
 		c.compression = ldbopts.DefaultCompression
+	default:
+		return nil, fmt.Errorf("unrecognized value for compression: %s", cm)
 	}
 
 	return &c, nil
