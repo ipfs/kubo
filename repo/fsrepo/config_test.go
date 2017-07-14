@@ -87,9 +87,9 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := "/blocks:{flatfs;blocks;/repo/flatfs/shard/v1/next-to-last/2};/:{levelds;datastore};"
-	if dsc.DiskId() != expected {
-		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskId())
+	expected := `{"mounts":[{"mountpoint":{"string":"/blocks"},"path":"blocks","shardFunc":"/repo/flatfs/shard/v1/next-to-last/2","type":"flatfs"},{"mountpoint":{"string":"/"},"path":"datastore","type":"levelds"}],"type":"mount"}`
+	if dsc.DiskSpec().String() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskSpec().String())
 	}
 
 	ds, err := dsc.Create(dir)
@@ -125,9 +125,9 @@ func TestLevelDbConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := "levelds;datastore"
-	if dsc.DiskId() != expected {
-		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskId())
+	expected := `{"path":"datastore","type":"levelds"}`
+	if dsc.DiskSpec().String() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskSpec().String())
 	}
 
 	ds, err := dsc.Create(dir)
@@ -163,9 +163,9 @@ func TestFlatfsConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := "flatfs;blocks;/repo/flatfs/shard/v1/next-to-last/2"
-	if dsc.DiskId() != expected {
-		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskId())
+	expected := `{"path":"blocks","shardFunc":"/repo/flatfs/shard/v1/next-to-last/2","type":"flatfs"}`
+	if dsc.DiskSpec().String() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskSpec().String())
 	}
 
 	ds, err := dsc.Create(dir)
@@ -201,9 +201,9 @@ func TestMeasureConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := "flatfs;blocks;/repo/flatfs/shard/v1/next-to-last/2"
-	if dsc.DiskId() != expected {
-		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskId())
+	expected := `{"path":"blocks","shardFunc":"/repo/flatfs/shard/v1/next-to-last/2","type":"flatfs"}`
+	if dsc.DiskSpec().String() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskSpec().String())
 	}
 
 	ds, err := dsc.Create(dir)
