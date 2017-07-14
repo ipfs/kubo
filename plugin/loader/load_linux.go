@@ -11,10 +11,10 @@ import (
 )
 
 func init() {
-	loadPluginsFunc = linxuLoadFunc
+	loadPluginsFunc = linuxLoadFunc
 }
 
-func linxuLoadFunc(pluginDir string) ([]iplugin.Plugin, error) {
+func linuxLoadFunc(pluginDir string) ([]iplugin.Plugin, error) {
 	var plugins []iplugin.Plugin
 
 	err := filepath.Walk(pluginDir, func(fi string, info os.FileInfo, err error) error {

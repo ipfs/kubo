@@ -15,7 +15,7 @@ var loadPluginsFunc = func(string) ([]plugin.Plugin, error) {
 	return nil, nil
 }
 
-// LoadPlugins loads and initalizes plugins.
+// LoadPlugins loads and initializes plugins.
 func LoadPlugins(pluginDir string) ([]plugin.Plugin, error) {
 	plMap := make(map[string]plugin.Plugin)
 	for _, v := range preloadPlugins {
@@ -43,7 +43,7 @@ func LoadPlugins(pluginDir string) ([]plugin.Plugin, error) {
 		pls = append(pls, v)
 	}
 
-	err = initalize(pls)
+	err = initialize(pls)
 	if err != nil {
 		return nil, err
 	}

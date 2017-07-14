@@ -7,7 +7,7 @@ import (
 	format "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
 )
 
-func initalize(plugins []plugin.Plugin) error {
+func initialize(plugins []plugin.Plugin) error {
 	for _, p := range plugins {
 		err := p.Init()
 		if err != nil {
