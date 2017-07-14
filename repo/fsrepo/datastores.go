@@ -19,8 +19,9 @@ import (
 // ConfigFromMap creates a new datastore config from a map
 type ConfigFromMap func(map[string]interface{}) (DatastoreConfig, error)
 
-type DiskSpec map[string]interface{}
-
+// DatastoreConfig is an abstraction of a datastore config.  A "spec"
+// is first converted to a DatastoreConfig and then Create() is called
+// to instantiate a new datastore
 type DatastoreConfig interface {
 	// DiskSpec returns a minimal configuration of the datastore
 	// represting what is stored on disk.  Run time values are
@@ -31,6 +32,10 @@ type DatastoreConfig interface {
 	Create(path string) (repo.Datastore, error)
 }
 
+// DiskSpec is the type returned by the DatastoreConfig's DiskSpec method
+type DiskSpec map[string]interface{}
+
+// Bytes returns a minimal JSON encoding of the DiskSpec
 func (spec DiskSpec) Bytes() []byte {
 	b, err := json.Marshal(spec)
 	if err != nil {
@@ -40,6 +45,7 @@ func (spec DiskSpec) Bytes() []byte {
 	return bytes.TrimSpace(b)
 }
 
+// String returns a minimal JSON encoding of the DiskSpec
 func (spec DiskSpec) String() string {
 	return string(spec.Bytes())
 }
@@ -57,6 +63,8 @@ func init() {
 	}
 }
 
+// AnyDatastoreConfig returns a DatastoreConfig from a spec based on
+// the "type" parameter
 func AnyDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	which, ok := params["type"].(string)
 	if !ok {
@@ -78,6 +86,7 @@ type premount struct {
 	prefix ds.Key
 }
 
+// MountDatastoreConfig returns a mount DatastoreConfig from a spec
 func MountDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	var res mountDatastoreConfig
 	mounts, ok := params["mounts"].([]interface{})
@@ -143,6 +152,7 @@ type flatfsDatastoreConfig struct {
 	syncField bool
 }
 
+// FlatfsDatastoreConfig returns a flatfs DatastoreConfig from a spec
 func FlatfsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	var c flatfsDatastoreConfig
 	var ok bool
@@ -191,6 +201,7 @@ type leveldsDatastoreConfig struct {
 	compression ldbopts.Compression
 }
 
+// LeveldsDatastoreConfig returns a levelds DatastoreConfig from a spec
 func LeveldsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	var c leveldsDatastoreConfig
 	var ok bool
@@ -253,6 +264,7 @@ type logDatastoreConfig struct {
 	name  string
 }
 
+// LogDatastoreConfig returns a log DatastoreConfig from a spec
 func LogDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	childField, ok := params["child"].(map[string]interface{})
 	if !ok {
@@ -287,6 +299,7 @@ type measureDatastoreConfig struct {
 	prefix string
 }
 
+// MeasureDatastoreConfig returns a measure DatastoreConfig from a spec
 func MeasureDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	childField, ok := params["child"].(map[string]interface{})
 	if !ok {
