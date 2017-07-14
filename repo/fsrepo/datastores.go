@@ -355,8 +355,11 @@ func BadgerdsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, er
 	return &c, nil
 }
 
-func (c *badgerdsDatastoreConfig) DiskId() string {
-	return fmt.Sprintf("badgerds;%s", c.path)
+func (c *badgerdsDatastoreConfig) DiskSpec() DiskSpec {
+	return map[string]interface{}{
+		"type": "badgerds",
+		"path": c.path,
+	}
 }
 
 func (c *badgerdsDatastoreConfig) Create(path string) (repo.Datastore, error) {
