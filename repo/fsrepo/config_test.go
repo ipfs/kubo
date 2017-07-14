@@ -87,7 +87,7 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := `{"mounts":[{"mountpoint":{"string":"/blocks"},"path":"blocks","shardFunc":"/repo/flatfs/shard/v1/next-to-last/2","type":"flatfs"},{"mountpoint":{"string":"/"},"path":"datastore","type":"levelds"}],"type":"mount"}`
+	expected := `{"mounts":[{"mountpoint":"/blocks","path":"blocks","shardFunc":"/repo/flatfs/shard/v1/next-to-last/2","type":"flatfs"},{"mountpoint":"/","path":"datastore","type":"levelds"}],"type":"mount"}`
 	if dsc.DiskSpec().String() != expected {
 		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskSpec().String())
 	}

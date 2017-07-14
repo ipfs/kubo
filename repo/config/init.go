@@ -76,7 +76,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	return conf, nil
 }
 
-// DatastoreConfig is an internal function exported to aid in testing.
+// DefaultDatastoreConfig is an internal function exported to aid in testing.
 func DefaultDatastoreConfig() Datastore {
 	return Datastore{
 		StorageMax:         "10GB",

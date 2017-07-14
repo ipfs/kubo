@@ -126,7 +126,7 @@ func (c *mountDatastoreConfig) DiskSpec() DiskSpec {
 		if c == nil {
 			c = make(map[string]interface{})
 		}
-		c["mountpoint"] = m.prefix
+		c["mountpoint"] = m.prefix.String()
 		mounts[i] = c
 	}
 	cfg["mounts"] = mounts
@@ -247,6 +247,7 @@ type memDatastoreConfig struct {
 	cfg map[string]interface{}
 }
 
+// MemDatastoreConfig returns a memory DatastoreConfig from a spec
 func MemDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	return &memDatastoreConfig{params}, nil
 }

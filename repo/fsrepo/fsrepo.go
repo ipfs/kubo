@@ -62,6 +62,8 @@ func (err NoRepoError) Error() string {
 const apiFile = "api"
 const swarmKeyFile = "swarm.key"
 
+const specFn = "datastore_spec"
+
 var (
 
 	// packageLock must be held to while performing any operation that modifies an
@@ -245,7 +247,7 @@ func initConfig(path string, conf *config.Config) error {
 }
 
 func initSpec(path string, conf map[string]interface{}) error {
-	fn, err := config.Path(path, SpecFn)
+	fn, err := config.Path(path, specFn)
 	if err != nil {
 		return err
 	}
@@ -415,10 +417,8 @@ func (r *FSRepo) openDatastore() error {
 	return nil
 }
 
-var SpecFn = "datastore_spec"
-
 func (r *FSRepo) readSpec() (string, error) {
-	fn, err := config.Path(r.path, SpecFn)
+	fn, err := config.Path(r.path, specFn)
 	if err != nil {
 		return "", err
 	}
