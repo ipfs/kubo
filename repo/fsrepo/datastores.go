@@ -31,14 +31,17 @@ type DatastoreConfig interface {
 	Create(path string) (repo.Datastore, error)
 }
 
-func (spec DiskSpec) String() string {
+func (spec DiskSpec) Bytes() []byte {
 	b, err := json.Marshal(spec)
 	if err != nil {
 		// should not happen
 		panic(err)
 	}
-	b = bytes.TrimSpace(b)
-	return string(b)
+	return bytes.TrimSpace(b)
+}
+
+func (spec DiskSpec) String() string {
+	return string(spec.Bytes())
 }
 
 var datastores map[string]ConfigFromMap

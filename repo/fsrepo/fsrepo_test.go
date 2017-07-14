@@ -25,7 +25,7 @@ func TestInitIdempotence(t *testing.T) {
 	t.Parallel()
 	path := testRepoPath("", t)
 	for i := 0; i < 10; i++ {
-		assert.Nil(Init(path, &config.Config{}), t, "multiple calls to init should succeed")
+		assert.Nil(Init(path, &config.Config{Datastore: config.DefaultDatastoreConfig()}), t, "multiple calls to init should succeed")
 	}
 }
 

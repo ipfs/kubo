@@ -240,7 +240,27 @@ func initConfig(path string, conf *config.Config) error {
 	if err := serialize.WriteConfigFile(configFilename, conf); err != nil {
 		return err
 	}
+
 	return nil
+}
+
+func initSpec(path string, conf map[string]interface{}) error {
+	fn, err := config.Path(path, SpecFn)
+	if err != nil {
+		return err
+	}
+
+	if util.FileExists(fn) {
+		return nil
+	}
+
+	dsc, err := AnyDatastoreConfig(conf)
+	if err != nil {
+		return err
+	}
+	bytes := dsc.DiskSpec().Bytes()
+
+	return ioutil.WriteFile(fn, bytes, 0600)
 }
 
 // Init initializes a new FSRepo at the given path with the provided config.
@@ -257,6 +277,10 @@ func Init(repoPath string, conf *config.Config) error {
 	}
 
 	if err := initConfig(repoPath, conf); err != nil {
+		return err
+	}
+
+	if err := initSpec(repoPath, conf.Datastore.Spec); err != nil {
 		return err
 	}
 
@@ -370,18 +394,12 @@ func (r *FSRepo) openDatastore() error {
 	spec := dsc.DiskSpec()
 
 	oldSpec, err := r.readSpec()
-	if err == nil {
-		if oldSpec != spec.String() {
-			return fmt.Errorf("Datastore configuration of '%s' does not match what is on disk '%s'",
-				oldSpec, spec.String())
-		}
-	} else if os.IsNotExist(err) {
-		err := r.writeSpec(spec.String())
-		if err != nil {
-			return err
-		}
-	} else {
+	if err != nil {
 		return err
+	}
+	if oldSpec != spec.String() {
+		return fmt.Errorf("Datastore configuration of '%s' does not match what is on disk '%s'",
+			oldSpec, spec.String())
 	}
 
 	d, err := dsc.Create(r.path)
@@ -409,19 +427,6 @@ func (r *FSRepo) readSpec() (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(b)), nil
-}
-
-func (r *FSRepo) writeSpec(spec string) error {
-	fn, err := config.Path(r.path, SpecFn)
-	if err != nil {
-		return err
-	}
-	b := []byte(spec)
-	err = ioutil.WriteFile(fn, b, 0600)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // Close closes the FSRepo, releasing held resources.
