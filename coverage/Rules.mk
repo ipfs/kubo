@@ -41,6 +41,7 @@ endif
 
 export IPFS_COVER_DIR:= $(realpath $(d))/sharnesscover/
 
+$(D)/sharness_tests.coverprofile: export TEST_NO_PLUGIN=1
 $(d)/sharness_tests.coverprofile: $(d)/ipfs cmd/ipfs/ipfs-test-cover $(d)/coverage_deps test_sharness_short
 	(cd $(@D)/sharnesscover && find . -type f | gocovmerge -list -) > $@
 
