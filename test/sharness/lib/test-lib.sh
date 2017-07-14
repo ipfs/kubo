@@ -54,6 +54,7 @@ expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
 if test "$TEST_VERBOSE" = 1; then
 	echo '# TEST_VERBOSE='"$TEST_VERBOSE"
 	echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
+	echo '# TEST_NO_PLUGIN='"$TEST_NO_PLUGIN"
 	echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
 	echo '# TEST_OS='"$TEST_OS"
 fi
