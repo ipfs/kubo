@@ -9,6 +9,7 @@ import (
 
 	context "context"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 func TestAddLink(t *testing.T) {
@@ -37,7 +38,7 @@ func TestAddLink(t *testing.T) {
 	}
 }
 
-func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.ProtoNode, pth string, exp *cid.Cid) {
+func assertNodeAtPath(t *testing.T, ds node.DAGService, root *dag.ProtoNode, pth string, exp *cid.Cid) {
 	parts := path.SplitList(pth)
 	cur := root
 	for _, e := range parts {

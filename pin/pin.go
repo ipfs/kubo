@@ -14,8 +14,8 @@ import (
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
 )
 
 var log = logging.Logger("pin")
@@ -147,13 +147,13 @@ type pinner struct {
 	// Track the keys used for storing the pinning state, so gc does
 	// not delete them.
 	internalPin *cid.Set
-	dserv       mdag.DAGService
-	internal    mdag.DAGService // dagservice used to store internal objects
+	dserv       node.DAGService
+	internal    node.DAGService // dagservice used to store internal objects
 	dstore      ds.Datastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
-func NewPinner(dstore ds.Datastore, serv, internal mdag.DAGService) Pinner {
+func NewPinner(dstore ds.Datastore, serv, internal node.DAGService) Pinner {
 
 	rcset := cid.NewSet()
 	dirset := cid.NewSet()
@@ -318,7 +318,7 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	// Now walk all recursive pins to check for indirect pins
 	var checkChildren func(*cid.Cid, *cid.Cid) error
 	checkChildren = func(rk, parentKey *cid.Cid) error {
-		links, err := p.dserv.GetLinks(context.Background(), parentKey)
+		links, err := node.GetLinks(context.Background(), p.dserv, parentKey)
 		if err != nil {
 			return err
 		}
@@ -384,7 +384,7 @@ func cidSetWithValues(cids []*cid.Cid) *cid.Set {
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(d ds.Datastore, dserv, internal mdag.DAGService) (Pinner, error) {
+func LoadPinner(d ds.Datastore, dserv, internal node.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	rootKeyI, err := d.Get(pinDatastoreKey)
@@ -547,8 +547,8 @@ func (p *pinner) PinWithMode(c *cid.Cid, mode PinMode) {
 
 // hasChild recursively looks for a Cid among the children of a root Cid.
 // The visit function can be used to shortcut already-visited branches.
-func hasChild(ds mdag.LinkService, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
-	links, err := ds.GetLinks(context.Background(), root)
+func hasChild(ds node.NodeGetter, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
+	links, err := node.GetLinks(context.Background(), ds, root)
 	if err != nil {
 		return false, err
 	}

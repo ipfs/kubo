@@ -13,7 +13,7 @@ import (
 	"github.com/ipfs/go-ipfs/pin/internal/pb"
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	"gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
@@ -54,7 +54,7 @@ func (s sortByHash) Swap(a, b int) {
 	s.links[a], s.links[b] = s.links[b], s.links[a]
 }
 
-func storeItems(ctx context.Context, dag merkledag.DAGService, estimatedLen uint64, depth uint32, iter itemIterator, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
+func storeItems(ctx context.Context, dag node.DAGService, estimatedLen uint64, depth uint32, iter itemIterator, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
 	links := make([]*node.Link, 0, defaultFanout+maxItems)
 	for i := 0; i < defaultFanout; i++ {
 		links = append(links, &node.Link{Cid: emptyKey})
@@ -202,7 +202,7 @@ func writeHdr(n *merkledag.ProtoNode, hdr *pb.Set) error {
 
 type walkerFunc func(idx int, link *node.Link) error
 
-func walkItems(ctx context.Context, dag merkledag.DAGService, n *merkledag.ProtoNode, fn walkerFunc, children keyObserver) error {
+func walkItems(ctx context.Context, dag node.DAGService, n *merkledag.ProtoNode, fn walkerFunc, children keyObserver) error {
 	hdr, err := readHdr(n)
 	if err != nil {
 		return err
@@ -237,7 +237,7 @@ func walkItems(ctx context.Context, dag merkledag.DAGService, n *merkledag.Proto
 	return nil
 }
 
-func loadSet(ctx context.Context, dag merkledag.DAGService, root *merkledag.ProtoNode, name string, internalKeys keyObserver) ([]*cid.Cid, error) {
+func loadSet(ctx context.Context, dag node.DAGService, root *merkledag.ProtoNode, name string, internalKeys keyObserver) ([]*cid.Cid, error) {
 	l, err := root.GetNodeLink(name)
 	if err != nil {
 		return nil, err
@@ -280,7 +280,7 @@ func getCidListIterator(cids []*cid.Cid) itemIterator {
 	}
 }
 
-func storeSet(ctx context.Context, dag merkledag.DAGService, cids []*cid.Cid, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
+func storeSet(ctx context.Context, dag node.DAGService, cids []*cid.Cid, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
 	iter := getCidListIterator(cids)
 
 	n, err := storeItems(ctx, dag, uint64(len(cids)), 0, iter, internalKeys)

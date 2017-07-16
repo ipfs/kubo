@@ -9,12 +9,11 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 // KeyList is a general type for outputting lists of keys
@@ -220,7 +219,7 @@ type RefWrapper struct {
 
 type RefWriter struct {
 	out chan interface{}
-	DAG dag.DAGService
+	DAG node.DAGService
 	Ctx context.Context
 
 	Unique    bool
@@ -242,7 +241,7 @@ func (rw *RefWriter) writeRefsRecursive(n node.Node) (int, error) {
 	nc := n.Cid()
 
 	var count int
-	for i, ng := range dag.GetDAG(rw.Ctx, rw.DAG, n) {
+	for i, ng := range node.GetDAG(rw.Ctx, rw.DAG, n) {
 		lc := n.Links()[i].Cid
 		if rw.skip(lc) {
 			continue

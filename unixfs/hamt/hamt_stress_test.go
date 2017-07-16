@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 func getNames(prefix string, count int) []string {
@@ -112,7 +112,7 @@ func validateOpSetCompletion(t *testing.T, s *HamtShard, keep, temp []string) er
 	return nil
 }
 
-func executeOpSet(t *testing.T, ds dag.DAGService, width int, ops []testOp) (*HamtShard, error) {
+func executeOpSet(t *testing.T, ds node.DAGService, width int, ops []testOp) (*HamtShard, error) {
 	ctx := context.TODO()
 	s, err := NewHamtShard(ds, width)
 	if err != nil {
@@ -188,7 +188,7 @@ func genOpSet(seed int64, keep, temp []string) []testOp {
 }
 
 // executes the given op set with a repl to allow easier debugging
-/*func debugExecuteOpSet(ds dag.DAGService, width int, ops []testOp) (*HamtShard, error) {
+/*func debugExecuteOpSet(ds node.DAGService, width int, ops []testOp) (*HamtShard, error) {
 
 	s, err := NewHamtShard(ds, width)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 const (
@@ -37,7 +37,7 @@ func (c *Change) String() string {
 	}
 }
 
-func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.ProtoNode, cs []*Change) (*dag.ProtoNode, error) {
+func ApplyChange(ctx context.Context, ds node.DAGService, nd *dag.ProtoNode, cs []*Change) (*dag.ProtoNode, error) {
 	e := NewDagEditor(nd, ds)
 	for _, c := range cs {
 		switch c.Type {
@@ -89,7 +89,7 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.ProtoNode, cs [
 }
 
 // Diff returns a set of changes that transform node 'a' into node 'b'
-func Diff(ctx context.Context, ds dag.DAGService, a, b node.Node) ([]*Change, error) {
+func Diff(ctx context.Context, ds node.DAGService, a, b node.Node) ([]*Change, error) {
 	if len(a.Links()) == 0 && len(b.Links()) == 0 {
 		return []*Change{
 			&Change{

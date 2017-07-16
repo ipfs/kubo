@@ -26,28 +26,28 @@ import (
 
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	dssync "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
 )
 
 func emptyDirNode() *dag.ProtoNode {
 	return dag.NodeWithData(ft.FolderPBData())
 }
 
-func getDagserv(t *testing.T) dag.DAGService {
+func getDagserv(t *testing.T) node.DAGService {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
 	blockserv := bserv.New(bs, offline.Exchange(bs))
 	return dag.NewDAGService(blockserv)
 }
 
-func getRandFile(t *testing.T, ds dag.DAGService, size int64) node.Node {
+func getRandFile(t *testing.T, ds node.DAGService, size int64) node.Node {
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
 	return fileNodeFromReader(t, ds, r)
 }
 
-func fileNodeFromReader(t *testing.T, ds dag.DAGService, r io.Reader) node.Node {
+func fileNodeFromReader(t *testing.T, ds node.DAGService, r io.Reader) node.Node {
 	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r))
 	if err != nil {
 		t.Fatal(err)
@@ -128,7 +128,7 @@ func compStrArrs(a, b []string) bool {
 	return true
 }
 
-func assertFileAtPath(ds dag.DAGService, root *Directory, expn node.Node, pth string) error {
+func assertFileAtPath(ds node.DAGService, root *Directory, expn node.Node, pth string) error {
 	exp, ok := expn.(*dag.ProtoNode)
 	if !ok {
 		return dag.ErrNotProtobuf
@@ -182,7 +182,7 @@ func assertFileAtPath(ds dag.DAGService, root *Directory, expn node.Node, pth st
 	return nil
 }
 
-func catNode(ds dag.DAGService, nd *dag.ProtoNode) ([]byte, error) {
+func catNode(ds node.DAGService, nd *dag.ProtoNode) ([]byte, error) {
 	r, err := uio.NewDagReader(context.TODO(), nd, ds)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func catNode(ds dag.DAGService, nd *dag.ProtoNode) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func setupRoot(ctx context.Context, t *testing.T) (dag.DAGService, *Root) {
+func setupRoot(ctx context.Context, t *testing.T) (node.DAGService, *Root) {
 	ds := getDagserv(t)
 
 	root := emptyDirNode()

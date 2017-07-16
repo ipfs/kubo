@@ -32,7 +32,7 @@ import (
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	"gx/ipfs/QmfJHywXQu98UeZtGJBQrPAR6AtmDjjbe3qjTo9piXHPnx/murmur3"
 )
@@ -57,7 +57,7 @@ type HamtShard struct {
 	prefixPadStr string
 	maxpadlen    int
 
-	dserv dag.DAGService
+	dserv node.DAGService
 }
 
 // child can either be another shard, or a leaf node value
@@ -66,7 +66,7 @@ type child interface {
 	Label() string
 }
 
-func NewHamtShard(dserv dag.DAGService, size int) (*HamtShard, error) {
+func NewHamtShard(dserv node.DAGService, size int) (*HamtShard, error) {
 	ds, err := makeHamtShard(dserv, size)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func NewHamtShard(dserv dag.DAGService, size int) (*HamtShard, error) {
 	return ds, nil
 }
 
-func makeHamtShard(ds dag.DAGService, size int) (*HamtShard, error) {
+func makeHamtShard(ds node.DAGService, size int) (*HamtShard, error) {
 	lg2s := int(math.Log2(float64(size)))
 	if 1<<uint(lg2s) != size {
 		return nil, fmt.Errorf("hamt size should be a power of two")
@@ -93,7 +93,7 @@ func makeHamtShard(ds dag.DAGService, size int) (*HamtShard, error) {
 	}, nil
 }
 
-func NewHamtFromDag(dserv dag.DAGService, nd node.Node) (*HamtShard, error) {
+func NewHamtFromDag(dserv node.DAGService, nd node.Node) (*HamtShard, error) {
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {
 		return nil, dag.ErrLinkNotFound

@@ -26,9 +26,9 @@ import (
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	syncds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
 )
 
 var log = logging.Logger("coreunix")
@@ -70,7 +70,7 @@ type AddedObject struct {
 	Bytes int64  `json:",omitempty"`
 }
 
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds dag.DAGService) (*Adder, error) {
+func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds node.DAGService) (*Adder, error) {
 	return &Adder{
 		ctx:        ctx,
 		pinning:    p,
@@ -90,7 +90,7 @@ type Adder struct {
 	ctx        context.Context
 	pinning    pin.Pinner
 	blockstore bstore.GCBlockstore
-	dagService dag.DAGService
+	dagService node.DAGService
 	Out        chan interface{}
 	Progress   bool
 	Hidden     bool
@@ -548,7 +548,7 @@ func outputDagnode(out chan interface{}, name string, dn node.Node) error {
 	return nil
 }
 
-func NewMemoryDagService() dag.DAGService {
+func NewMemoryDagService() node.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	bsrv := bserv.New(bs, offline.Exchange(bs))

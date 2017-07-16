@@ -26,7 +26,7 @@ import (
 
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 func TestNode(t *testing.T) {
@@ -131,7 +131,7 @@ func TestBatchFetchDupBlock(t *testing.T) {
 
 func runBatchFetchTest(t *testing.T, read io.Reader) {
 	ctx := context.Background()
-	var dagservs []DAGService
+	var dagservs []node.DAGService
 	for _, bsi := range bstest.Mocks(5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
@@ -221,7 +221,7 @@ func TestCantGet(t *testing.T) {
 }
 
 func TestFetchGraph(t *testing.T) {
-	var dservs []DAGService
+	var dservs []node.DAGService
 	bsis := bstest.Mocks(2)
 	for _, bsi := range bsis {
 		dservs = append(dservs, NewDAGService(bsi))
@@ -243,7 +243,7 @@ func TestFetchGraph(t *testing.T) {
 
 	offline_ds := NewDAGService(bs)
 
-	err = EnumerateChildren(context.Background(), offline_ds.GetLinks, root.Cid(), func(_ *cid.Cid) bool { return true })
+	err = EnumerateChildren(context.Background(), GetLinksWithDAG(offline_ds), root.Cid(), func(_ *cid.Cid) bool { return true })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -260,7 +260,7 @@ func TestEnumerateChildren(t *testing.T) {
 	}
 
 	set := cid.NewSet()
-	err = EnumerateChildren(context.Background(), ds.GetLinks, root.Cid(), set.Visit)
+	err = EnumerateChildren(context.Background(), GetLinksWithDAG(ds), root.Cid(), set.Visit)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -315,7 +315,7 @@ func TestFetchFailure(t *testing.T) {
 		}
 	}
 
-	getters := GetDAG(context.Background(), ds, top)
+	getters := node.GetDAG(context.Background(), ds, top)
 	for i, getter := range getters {
 		_, err := getter.Get(context.Background())
 		if err != nil && i < 10 {
@@ -491,7 +491,7 @@ func TestCidRawDoesnNeedData(t *testing.T) {
 
 	// there is no data for this node in the blockservice
 	// so dag service can't load it
-	links, err := srv.GetLinks(ctx, nd.Cid())
+	links, err := node.GetLinks(ctx, srv, nd.Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -570,7 +570,7 @@ func testProgressIndicator(t *testing.T, depth int) {
 	}
 }
 
-func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
+func mkDag(ds node.DAGService, depth int) (*cid.Cid, int) {
 	totalChildren := 0
 	f := func() *ProtoNode {
 		p := new(ProtoNode)

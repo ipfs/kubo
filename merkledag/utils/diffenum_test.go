@@ -9,7 +9,7 @@ import (
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 func buildNode(name string, desc map[string]ndesc, out map[string]node.Node) node.Node {
@@ -90,7 +90,7 @@ func TestDiffEnumBasic(t *testing.T) {
 	nds := mkGraph(tg1)
 
 	ds := mdtest.Mock()
-	lgds := &getLogger{ds: ds}
+	lgds := &getLogger{ds: ds, log: &[]*cid.Cid{}}
 
 	for _, nd := range nds {
 		_, err := ds.Add(nd)
@@ -104,7 +104,7 @@ func TestDiffEnumBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = assertCidList(lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid()})
+	err = assertCidList(*lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestDiffEnumBasic(t *testing.T) {
 
 type getLogger struct {
 	ds  node.NodeGetter
-	log []*cid.Cid
+	log *[]*cid.Cid
 }
 
 func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
@@ -120,8 +120,15 @@ func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	gl.log = append(gl.log, c)
+	*gl.log = append(*gl.log, c)
 	return nd, nil
+}
+
+func (gl *getLogger) OfflineNodeGetter() node.NodeGetter {
+	return &getLogger{
+		ds:  gl.ds.OfflineNodeGetter(),
+		log: gl.log,
+	}
 }
 
 func assertCidList(a, b []*cid.Cid) error {
@@ -142,7 +149,7 @@ func TestDiffEnumFail(t *testing.T) {
 	nds := mkGraph(tg2)
 
 	ds := mdtest.Mock()
-	lgds := &getLogger{ds: ds}
+	lgds := &getLogger{ds: ds, log: &[]*cid.Cid{}}
 
 	for _, s := range []string{"a1", "a2", "b", "c"} {
 		_, err := ds.Add(nds[s])
@@ -156,7 +163,7 @@ func TestDiffEnumFail(t *testing.T) {
 		t.Fatal("expected err not found")
 	}
 
-	err = assertCidList(lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid()})
+	err = assertCidList(*lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +176,7 @@ func TestDiffEnumRecurse(t *testing.T) {
 	nds := mkGraph(tg3)
 
 	ds := mdtest.Mock()
-	lgds := &getLogger{ds: ds}
+	lgds := &getLogger{ds: ds, log: &[]*cid.Cid{}}
 
 	for _, s := range []string{"a1", "a2", "b", "c", "d"} {
 		_, err := ds.Add(nds[s])
@@ -183,7 +190,7 @@ func TestDiffEnumRecurse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = assertCidList(lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid(), nds["d"].Cid()})
+	err = assertCidList(*lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid(), nds["d"].Cid()})
 	if err != nil {
 		t.Fatal(err)
 	}

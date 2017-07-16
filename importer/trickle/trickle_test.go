@@ -17,9 +17,10 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
-func buildTestDag(ds merkledag.DAGService, spl chunk.Splitter) (*merkledag.ProtoNode, error) {
+func buildTestDag(ds node.DAGService, spl chunk.Splitter) (*merkledag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,

@@ -10,7 +10,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -78,7 +78,7 @@ func (n *UnixfsNode) Set(other *UnixfsNode) {
 	}
 }
 
-func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*UnixfsNode, error) {
+func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds node.NodeGetter) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
 	if err != nil {
 		return nil, err

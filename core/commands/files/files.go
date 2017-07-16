@@ -19,7 +19,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 var log = logging.Logger("cmds/files")
@@ -154,7 +154,7 @@ func statGetFormatOptions(req cmds.Request) (string, error) {
 	}
 }
 
-func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
+func statNode(ds node.DAGService, fsn mfs.FSNode) (*Object, error) {
 	nd, err := fsn.GetNode()
 	if err != nil {
 		return nil, err

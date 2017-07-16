@@ -21,7 +21,7 @@ import (
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 var ErrNotExist = errors.New("no such rootfs")
@@ -58,7 +58,7 @@ type Root struct {
 
 	repub *Republisher
 
-	dserv dag.DAGService
+	dserv node.DAGService
 
 	Type string
 
@@ -69,7 +69,7 @@ type Root struct {
 type PubFunc func(context.Context, *cid.Cid) error
 
 // newRoot creates a new Root and starts up a republisher routine for it
-func NewRoot(parent context.Context, ds dag.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
+func NewRoot(parent context.Context, ds node.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
 
 	var repub *Republisher
 	if pf != nil {

@@ -10,7 +10,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
@@ -34,7 +34,7 @@ type ReadSeekCloser interface {
 
 // NewDagReader creates a new reader object that reads the data represented by
 // the given node, using the passed in DAGService for data retreival
-func NewDagReader(ctx context.Context, n node.Node, serv mdag.DAGService) (DagReader, error) {
+func NewDagReader(ctx context.Context, n node.Node, serv node.DAGService) (DagReader, error) {
 	switch n := n.(type) {
 	case *mdag.RawNode:
 		return NewBufDagReader(n.RawData()), nil

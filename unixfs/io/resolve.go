@@ -7,12 +7,12 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	hamt "github.com/ipfs/go-ipfs/unixfs/hamt"
 
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 // ResolveUnixfsOnce resolves a single hop of a path through a graph in a
 // unixfs context. This includes handling traversing sharded directories.
-func ResolveUnixfsOnce(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error) {
+func ResolveUnixfsOnce(ctx context.Context, ds node.DAGService, nd node.Node, names []string) (*node.Link, []string, error) {
 	switch nd := nd.(type) {
 	case *dag.ProtoNode:
 		upb, err := ft.FromBytes(nd.Data())

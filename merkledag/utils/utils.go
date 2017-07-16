@@ -10,9 +10,9 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	syncds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
 )
 
 type Editor struct {
@@ -20,14 +20,14 @@ type Editor struct {
 
 	// tmp is a temporary in memory (for now) dagstore for all of the
 	// intermediary nodes to be stored in
-	tmp dag.DAGService
+	tmp node.DAGService
 
 	// src is the dagstore with *all* of the data on it, it is used to pull
 	// nodes from for modification (nil is a valid value)
-	src dag.DAGService
+	src node.DAGService
 }
 
-func NewMemoryDagService() dag.DAGService {
+func NewMemoryDagService() node.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	bsrv := bserv.New(bs, offline.Exchange(bs))
@@ -35,7 +35,7 @@ func NewMemoryDagService() dag.DAGService {
 }
 
 // root is the node to be modified, source is the dagstore to pull nodes from (optional)
-func NewDagEditor(root *dag.ProtoNode, source dag.DAGService) *Editor {
+func NewDagEditor(root *dag.ProtoNode, source node.DAGService) *Editor {
 	return &Editor{
 		root: root,
 		tmp:  NewMemoryDagService(),
@@ -47,11 +47,11 @@ func (e *Editor) GetNode() *dag.ProtoNode {
 	return e.root.Copy().(*dag.ProtoNode)
 }
 
-func (e *Editor) GetDagService() dag.DAGService {
+func (e *Editor) GetDagService() node.DAGService {
 	return e.tmp
 }
 
-func addLink(ctx context.Context, ds dag.DAGService, root *dag.ProtoNode, childname string, childnd node.Node) (*dag.ProtoNode, error) {
+func addLink(ctx context.Context, ds node.DAGService, root *dag.ProtoNode, childname string, childnd node.Node) (*dag.ProtoNode, error) {
 	if childname == "" {
 		return nil, errors.New("cannot create link with no name!")
 	}
@@ -188,13 +188,13 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 	return root, nil
 }
 
-func (e *Editor) Finalize(ds dag.DAGService) (*dag.ProtoNode, error) {
+func (e *Editor) Finalize(ds node.DAGService) (*dag.ProtoNode, error) {
 	nd := e.GetNode()
 	err := copyDag(nd, e.tmp, ds)
 	return nd, err
 }
 
-func copyDag(nd *dag.ProtoNode, from, to dag.DAGService) error {
+func copyDag(nd *dag.ProtoNode, from, to node.DAGService) error {
 	_, err := to.Add(nd)
 	if err != nil {
 		return err

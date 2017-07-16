@@ -56,6 +56,7 @@ import (
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	dht "gx/ipfs/QmTHyAbD9KzGrseLNzmEoNkVxA8F2h7LQG2iV6uhBqs6kX/go-libp2p-kad-dht"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	metrics "gx/ipfs/QmVjRAPfRtResCMCE4eBqr4Beoa6A89P1YweG9wUS6RqUL/go-libp2p-metrics"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
@@ -114,7 +115,7 @@ type IpfsNode struct {
 	BaseBlocks bstore.Blockstore    // the raw blockstore, no filestore wrapping
 	GCLocker   bstore.GCLocker      // the locker used to protect the blockstore during gc
 	Blocks     bserv.BlockService   // the block service, get/add blocks.
-	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
+	DAG        node.DAGService      // the merkle dag service, get/add objects.
 	Resolver   *path.Resolver       // the path resolution system
 	Reporter   metrics.Reporter
 	Discovery  discovery.Service

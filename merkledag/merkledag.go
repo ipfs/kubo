@@ -10,9 +10,9 @@ import (
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	blocks "gx/ipfs/QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg/go-block-format"
 
+	ipldcbor "gx/ipfs/QmRsVKyuqssWQn4jtvH2PMA9Yc3AC9TYFFtvzCUbZG4kTT/go-ipld-cbor"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
-	ipldcbor "gx/ipfs/QmemYymP73eVdTUUMZEiSpiHeZQKNJdT5dP2iuHssZh1sR/go-ipld-cbor"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 // TODO: We should move these registrations elsewhere. Really, most of the IPLD
@@ -25,31 +25,6 @@ func init() {
 }
 
 var ErrNotFound = fmt.Errorf("merkledag: not found")
-
-// DAGService is an IPFS Merkle DAG service.
-type DAGService interface {
-	Add(node.Node) (*cid.Cid, error)
-	Get(context.Context, *cid.Cid) (node.Node, error)
-	Remove(node.Node) error
-
-	// GetDAG returns, in order, all the single leve child
-	// nodes of the passed in node.
-	GetMany(context.Context, []*cid.Cid) <-chan *NodeOption
-
-	Batch() *Batch
-
-	LinkService
-}
-
-type LinkService interface {
-	// GetLinks return all links for a node.  The complete node does not
-	// necessarily have to exist locally, or at all.  For example, raw
-	// leaves cannot possibly have links so there is no need to look
-	// at the node.
-	GetLinks(context.Context, *cid.Cid) ([]*node.Link, error)
-
-	GetOfflineLinkService() LinkService
-}
 
 func NewDAGService(bs bserv.BlockService) *dagService {
 	return &dagService{Blocks: bs}
@@ -73,16 +48,12 @@ func (n *dagService) Add(nd node.Node) (*cid.Cid, error) {
 	return n.Blocks.AddBlock(nd)
 }
 
-func (n *dagService) Batch() *Batch {
-	return &Batch{
-		ds:      n,
-		MaxSize: 8 << 20,
-
-		// By default, only batch up to 128 nodes at a time.
-		// The current implementation of flatfs opens this many file
-		// descriptors at the same time for the optimized batch write.
-		MaxBlocks: 128,
+func (n *dagService) AddMany(nds []node.Node) ([]*cid.Cid, error) {
+	blks := make([]blocks.Block, len(nds))
+	for i, nd := range nds {
+		blks[i] = nd
 	}
+	return n.Blocks.AddBlocks(blks)
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
@@ -118,7 +89,7 @@ func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, er
 	return node.Links(), nil
 }
 
-func (n *dagService) GetOfflineLinkService() LinkService {
+func (n *dagService) OfflineNodeGetter() node.NodeGetter {
 	if n.Blocks.Exchange().IsOnline() {
 		bsrv := bserv.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
 		return NewDAGService(bsrv)
@@ -160,8 +131,13 @@ func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 	return node.Decode(blk)
 }
 
+func (sg *sesGetter) OfflineNodeGetter() node.NodeGetter {
+	bsrv := bserv.New(sg.bs.Blockstore(), offline.Exchange(sg.bs.Blockstore()))
+	return NewDAGService(bsrv)
+}
+
 // FetchGraph fetches all nodes that are children of the given node
-func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
+func FetchGraph(ctx context.Context, root *cid.Cid, serv node.DAGService) error {
 	var ng node.NodeGetter = serv
 	ds, ok := serv.(*dagService)
 	if ok {
@@ -196,13 +172,8 @@ func FindLinks(links []*cid.Cid, c *cid.Cid, start int) []int {
 	return out
 }
 
-type NodeOption struct {
-	Node node.Node
-	Err  error
-}
-
-func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *NodeOption {
-	out := make(chan *NodeOption, len(keys))
+func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *node.NodeOption {
+	out := make(chan *node.NodeOption, len(keys))
 	blocks := ds.Blocks.GetBlocks(ctx, keys)
 	var count int
 
@@ -213,22 +184,22 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 			case b, ok := <-blocks:
 				if !ok {
 					if count != len(keys) {
-						out <- &NodeOption{Err: fmt.Errorf("failed to fetch all nodes")}
+						out <- &node.NodeOption{Err: fmt.Errorf("failed to fetch all nodes")}
 					}
 					return
 				}
 
 				nd, err := node.Decode(b)
 				if err != nil {
-					out <- &NodeOption{Err: err}
+					out <- &node.NodeOption{Err: err}
 					return
 				}
 
-				out <- &NodeOption{Node: nd}
+				out <- &node.NodeOption{Node: nd}
 				count++
 
 			case <-ctx.Done():
-				out <- &NodeOption{Err: ctx.Err()}
+				out <- &node.NodeOption{Err: ctx.Err()}
 				return
 			}
 		}
@@ -236,180 +207,13 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 	return out
 }
 
-// GetDAG will fill out all of the links of the given Node.
-// It returns a channel of nodes, which the caller can receive
-// all the child nodes of 'root' on, in proper order.
-func GetDAG(ctx context.Context, ds DAGService, root node.Node) []NodeGetter {
-	var cids []*cid.Cid
-	for _, lnk := range root.Links() {
-		cids = append(cids, lnk.Cid)
-	}
-
-	return GetNodes(ctx, ds, cids)
-}
-
-// GetNodes returns an array of 'NodeGetter' promises, with each corresponding
-// to the key with the same index as the passed in keys
-func GetNodes(ctx context.Context, ds DAGService, keys []*cid.Cid) []NodeGetter {
-
-	// Early out if no work to do
-	if len(keys) == 0 {
-		return nil
-	}
-
-	promises := make([]NodeGetter, len(keys))
-	for i := range keys {
-		promises[i] = newNodePromise(ctx)
-	}
-
-	dedupedKeys := dedupeKeys(keys)
-	go func() {
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		nodechan := ds.GetMany(ctx, dedupedKeys)
-
-		for count := 0; count < len(keys); {
-			select {
-			case opt, ok := <-nodechan:
-				if !ok {
-					for _, p := range promises {
-						p.Fail(ErrNotFound)
-					}
-					return
-				}
-
-				if opt.Err != nil {
-					for _, p := range promises {
-						p.Fail(opt.Err)
-					}
-					return
-				}
-
-				nd := opt.Node
-				is := FindLinks(keys, nd.Cid(), 0)
-				for _, i := range is {
-					count++
-					promises[i].Send(nd)
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	return promises
-}
-
-// Remove duplicates from a list of keys
-func dedupeKeys(cids []*cid.Cid) []*cid.Cid {
-	set := cid.NewSet()
-	for _, c := range cids {
-		set.Add(c)
-	}
-	return set.Keys()
-}
-
-func newNodePromise(ctx context.Context) NodeGetter {
-	return &nodePromise{
-		recv: make(chan node.Node, 1),
-		ctx:  ctx,
-		err:  make(chan error, 1),
-	}
-}
-
-type nodePromise struct {
-	cache node.Node
-	clk   sync.Mutex
-	recv  chan node.Node
-	ctx   context.Context
-	err   chan error
-}
-
-// NodeGetter provides a promise like interface for a dag Node
-// the first call to Get will block until the Node is received
-// from its internal channels, subsequent calls will return the
-// cached node.
-type NodeGetter interface {
-	Get(context.Context) (node.Node, error)
-	Fail(err error)
-	Send(node.Node)
-}
-
-func (np *nodePromise) Fail(err error) {
-	np.clk.Lock()
-	v := np.cache
-	np.clk.Unlock()
-
-	// if promise has a value, don't fail it
-	if v != nil {
-		return
-	}
-
-	np.err <- err
-}
-
-func (np *nodePromise) Send(nd node.Node) {
-	var already bool
-	np.clk.Lock()
-	if np.cache != nil {
-		already = true
-	}
-	np.cache = nd
-	np.clk.Unlock()
-
-	if already {
-		panic("sending twice to the same promise is an error!")
-	}
-
-	np.recv <- nd
-}
-
-func (np *nodePromise) Get(ctx context.Context) (node.Node, error) {
-	np.clk.Lock()
-	c := np.cache
-	np.clk.Unlock()
-	if c != nil {
-		return c, nil
-	}
-
-	select {
-	case nd := <-np.recv:
-		return nd, nil
-	case <-np.ctx.Done():
-		return nil, np.ctx.Err()
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case err := <-np.err:
-		return nil, err
-	}
-}
-
-type Batch struct {
-	ds *dagService
-
-	blocks    []blocks.Block
-	size      int
-	MaxSize   int
-	MaxBlocks int
-}
-
-func (t *Batch) Add(nd node.Node) (*cid.Cid, error) {
-	t.blocks = append(t.blocks, nd)
-	t.size += len(nd.RawData())
-	if t.size > t.MaxSize || len(t.blocks) > t.MaxBlocks {
-		return nd.Cid(), t.Commit()
-	}
-	return nd.Cid(), nil
-}
-
-func (t *Batch) Commit() error {
-	_, err := t.ds.Blocks.AddBlocks(t.blocks)
-	t.blocks = nil
-	t.size = 0
-	return err
-}
-
 type GetLinks func(context.Context, *cid.Cid) ([]*node.Link, error)
+
+func GetLinksWithDAG(ng node.NodeGetter) GetLinks {
+	return func(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
+		return node.GetLinks(ctx, ng, c)
+	}
+}
 
 // EnumerateChildren will walk the dag below the given root node and add all
 // unseen children to the passed in set.
@@ -536,3 +340,8 @@ func EnumerateChildrenAsync(ctx context.Context, getLinks GetLinks, c *cid.Cid, 
 	}
 
 }
+
+var _ node.LinkGetter = &dagService{}
+var _ node.NodeGetter = &dagService{}
+var _ node.NodeGetter = &sesGetter{}
+var _ node.DAGService = &dagService{}

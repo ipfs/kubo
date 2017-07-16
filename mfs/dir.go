@@ -16,7 +16,7 @@ import (
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
@@ -24,7 +24,7 @@ var ErrInvalidChild = errors.New("invalid child node")
 var ErrDirExists = errors.New("directory already has entry by that name")
 
 type Directory struct {
-	dserv  dag.DAGService
+	dserv  node.DAGService
 	parent childCloser
 
 	childDirs map[string]*Directory
@@ -40,7 +40,7 @@ type Directory struct {
 	name string
 }
 
-func NewDirectory(ctx context.Context, name string, node node.Node, parent childCloser, dserv dag.DAGService) (*Directory, error) {
+func NewDirectory(ctx context.Context, name string, node node.Node, parent childCloser, dserv node.DAGService) (*Directory, error) {
 	db, err := uio.NewDirectoryFromNode(dserv, node)
 	if err != nil {
 		return nil, err

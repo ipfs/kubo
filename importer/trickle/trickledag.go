@@ -9,7 +9,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	node "gx/ipfs/QmVHxZ8ovAuHiHTbJa68budGYAqmMUzb1bqDW1SVb6y5M9/go-ipld-format"
 )
 
 // layerRepeat specifies how many times to append a child tree of a
@@ -236,7 +236,7 @@ func trickleDepthInfo(node *h.UnixfsNode, maxlinks int) (int, int) {
 
 // VerifyTrickleDagStructure checks that the given dag matches exactly the trickle dag datastructure
 // layout
-func VerifyTrickleDagStructure(nd node.Node, ds dag.DAGService, direct int, layerRepeat int) error {
+func VerifyTrickleDagStructure(nd node.Node, ds node.NodeGetter, direct int, layerRepeat int) error {
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {
 		return dag.ErrNotProtobuf
@@ -246,7 +246,7 @@ func VerifyTrickleDagStructure(nd node.Node, ds dag.DAGService, direct int, laye
 }
 
 // Recursive call for verifying the structure of a trickledag
-func verifyTDagRec(nd *dag.ProtoNode, depth, direct, layerRepeat int, ds dag.DAGService) error {
+func verifyTDagRec(nd *dag.ProtoNode, depth, direct, layerRepeat int, ds node.NodeGetter) error {
 	if depth == 0 {
 		// zero depth dag is raw data block
 		if len(nd.Links()) > 0 {
