@@ -10,12 +10,24 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 )
 
+// note: to test sorting of the mountpoints in the disk spec they are
+// specified out of order in the test config
 var defaultConfig = []byte(`{
     "StorageMax": "10GB",
     "StorageGCWatermark": 90,
     "GCPeriod": "1h",
     "Spec": {
       "mounts": [
+        {
+          "child": {
+            "compression": "none",
+            "path": "datastore",
+            "type": "levelds"
+          },
+          "mountpoint": "/",
+          "prefix": "leveldb.datastore",
+          "type": "measure"
+        },
         {
           "child": {
             "path": "blocks",
@@ -25,16 +37,6 @@ var defaultConfig = []byte(`{
           },
           "mountpoint": "/blocks",
           "prefix": "flatfs.datastore",
-          "type": "measure"
-        },
-        {
-          "child": {
-            "compression": "none",
-            "path": "datastore",
-            "type": "levelds"
-          },
-          "mountpoint": "/",
-          "prefix": "leveldb.datastore",
           "type": "measure"
         }
       ],

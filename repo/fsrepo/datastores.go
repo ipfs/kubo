@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"sort"
 
 	repo "github.com/ipfs/go-ipfs/repo"
 
@@ -114,6 +115,10 @@ func MountDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error
 			prefix: ds.NewKey(prefix.(string)),
 		})
 	}
+	sort.Slice(res.mounts,
+		func(i, j int) bool {
+			return res.mounts[i].prefix.String() > res.mounts[j].prefix.String()
+		})
 
 	return &res, nil
 }
