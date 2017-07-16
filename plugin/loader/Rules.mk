@@ -1,7 +1,7 @@
 include mk/header.mk
 
 $(d)/preload.go: d:=$(d)
-$(d)/preload.go: $(d)/preload_list
+$(d)/preload.go: $(d)/preload_list $(d)/preload.sh
 	$(d)/preload.sh > $@
 	go fmt $@ >/dev/null
 
