@@ -441,6 +441,12 @@
       "hash": "QmPjTrrSfE6TzLv6ya6VWhGcCgPrUAdcgrDcQyRDX2VyW1",
       "name": "go-libp2p-routing",
       "version": "2.2.17"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "Qma7Kuwun7w8SZphjEPDVxvGfetBkqdNGmigDA13sJdLex",
+      "name": "go-ipld-git",
+      "version": "0.1.3"
     }
   ],
   "gxVersion": "0.10.0",

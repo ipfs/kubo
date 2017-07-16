@@ -1,4 +1,5 @@
 # util functions
+OS ?= $(shell sh -c 'uname -s 2>/dev/null || echo not')
 ifeq ($(OS),Windows_NT)
 	WINDOWS :=1
 	?exe :=.exe # windows compat

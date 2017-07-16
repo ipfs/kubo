@@ -40,12 +40,13 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 
 # Please put go-ipfs specific shell functions below
 
+TEST_OS="$(uname -s | tr '[a-z]' '[A-Z]')"
+
 # grab + output options
 test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
 test "$TEST_NO_DOCKER" != 1 && type docker >/dev/null 2>&1 && test_set_prereq DOCKER
-
-TEST_OS=$(uname -s | tr [a-z] [A-Z])
+test "$TEST_NO_PLUGIN" != 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUGIN
 
 # Set a prereq as error messages are often different on Windows/Cygwin
 expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
@@ -53,6 +54,7 @@ expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
 if test "$TEST_VERBOSE" = 1; then
 	echo '# TEST_VERBOSE='"$TEST_VERBOSE"
 	echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
+	echo '# TEST_NO_PLUGIN='"$TEST_NO_PLUGIN"
 	echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
 	echo '# TEST_OS='"$TEST_OS"
 fi

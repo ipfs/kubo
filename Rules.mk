@@ -27,6 +27,10 @@ export IPFS_REUSEPORT=false
 dir := bin
 include $(dir)/Rules.mk
 
+# tests need access to rules from plugin
+dir := plugin
+include $(dir)/Rules.mk
+
 dir := test
 include $(dir)/Rules.mk
 
@@ -55,6 +59,7 @@ include $(dir)/Rules.mk
 
 dir := pin/internal/pb
 include $(dir)/Rules.mk
+
 
 # -------------------- #
 #   universal rules    #
@@ -142,7 +147,7 @@ help:
 	@echo '  test_go_short'
 	@echo '  test_go_expensive'
 	@echo '  test_go_race'
-	@echo '  test_go_megacheck'	 - Run the `megacheck` vetting tool
+	@echo '  test_go_megacheck	 - Run the `megacheck` vetting tool'
 	@echo '  test_sharness_short'
 	@echo '  test_sharness_expensive'
 	@echo '  test_sharness_race'
