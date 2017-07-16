@@ -56,7 +56,6 @@ func loadPlugin(fi string) ([]iplugin.Plugin, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Errorf("plugins: %T", pls)
 
 	typePls, ok := pls.(*[]iplugin.Plugin)
 	if !ok {
