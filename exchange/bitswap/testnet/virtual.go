@@ -9,16 +9,21 @@ import (
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
+
 	routing "gx/ipfs/QmPjTrrSfE6TzLv6ya6VWhGcCgPrUAdcgrDcQyRDX2VyW1/go-libp2p-routing"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
+
+var log = logging.Logger("bstestnet")
 
 func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
 	return &network{
 		clients:       make(map[peer.ID]bsnet.Receiver),
 		delay:         d,
 		routingserver: rs,
+		conns:         make(map[string]struct{}),
 	}
 }
 
@@ -26,6 +31,7 @@ type network struct {
 	clients       map[peer.ID]bsnet.Receiver
 	routingserver mockrouting.Server
 	delay         delay.D
+	conns         map[string]struct{}
 }
 
 func (n *network) Adapter(p testutil.Identity) bsnet.BitSwapNetwork {
@@ -149,7 +155,22 @@ func (nc *networkClient) ConnectTo(_ context.Context, p peer.ID) error {
 	if !nc.network.HasPeer(p) {
 		return errors.New("no such peer in network")
 	}
+	tag := tagForPeers(nc.local, p)
+	if _, ok := nc.network.conns[tag]; ok {
+		log.Warning("ALREADY CONNECTED TO PEER (is this a reconnect? test lib needs fixing)")
+		return nil
+	}
+	nc.network.conns[tag] = struct{}{}
+	// TODO: add handling for disconnects
+
 	nc.network.clients[p].PeerConnected(nc.local)
 	nc.Receiver.PeerConnected(p)
 	return nil
+}
+
+func tagForPeers(a, b peer.ID) string {
+	if a < b {
+		return string(a + b)
+	}
+	return string(b + a)
 }

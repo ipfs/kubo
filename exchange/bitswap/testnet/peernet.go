@@ -1,7 +1,7 @@
 package bitswap
 
 import (
-	context "context"
+	"context"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
@@ -37,4 +37,4 @@ func (pn *peernet) HasPeer(p peer.ID) bool {
 	return false
 }
 
-var _ Network = &peernet{}
+var _ Network = (*peernet)(nil)

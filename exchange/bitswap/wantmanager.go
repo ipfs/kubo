@@ -187,15 +187,6 @@ func (mq *msgQueue) runQueue(ctx context.Context) {
 }
 
 func (mq *msgQueue) doWork(ctx context.Context) {
-	if mq.sender == nil {
-		err := mq.openSender(ctx)
-		if err != nil {
-			log.Infof("cant open message sender to peer %s: %s", mq.p, err)
-			// TODO: cant connect, what now?
-			return
-		}
-	}
-
 	// grab outgoing message
 	mq.outlk.Lock()
 	wlm := mq.out
@@ -205,6 +196,16 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 	}
 	mq.out = nil
 	mq.outlk.Unlock()
+
+	// NB: only open a stream if we actually have data to send
+	if mq.sender == nil {
+		err := mq.openSender(ctx)
+		if err != nil {
+			log.Infof("cant open message sender to peer %s: %s", mq.p, err)
+			// TODO: cant connect, what now?
+			return
+		}
+	}
 
 	// send wantlist updates
 	for { // try to send this message until we fail.
