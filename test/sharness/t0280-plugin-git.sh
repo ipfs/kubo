@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2016 Jakub Sztandera
+# Copyright (c) 2017 Jakub Sztandera
 # MIT Licensed; see the LICENSE file in this repository.
 #
 

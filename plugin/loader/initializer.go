@@ -34,12 +34,10 @@ func runIPLDPlugin(pl plugin.Plugin) error {
 		return nil
 	}
 
-	var err error
-	err = ipldpl.RegisterBlockDecoders(format.DefaultBlockDecoder)
+	err := ipldpl.RegisterBlockDecoders(format.DefaultBlockDecoder)
 	if err != nil {
 		return err
 	}
 
-	err = ipldpl.RegisterInputEncParsers(coredag.DefaultInputEncParsers)
-	return err
+	return ipldpl.RegisterInputEncParsers(coredag.DefaultInputEncParsers)
 }
