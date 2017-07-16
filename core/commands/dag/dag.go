@@ -79,25 +79,28 @@ into an object of the specified format.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		if len(nds) == 0 {
+			res.SetError(fmt.Errorf("no node returned from ParseInputs"), cmds.ErrNormal)
+			return
+		}
 
-		var c *cid.Cid
 		b := n.DAG.Batch()
 		for _, nd := range nds {
-			cid, err := b.Add(nd)
+			_, err := b.Add(nd)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-
-			c = cid
 		}
+
 		if err := b.Commit(); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
+		root := nds[0].Cid()
 		if dopin {
-			n.Pinning.PinWithMode(c, pin.Recursive)
+			n.Pinning.PinWithMode(root, pin.Recursive)
 
 			err := n.Pinning.Flush()
 			if err != nil {
@@ -106,7 +109,7 @@ into an object of the specified format.
 			}
 		}
 
-		res.SetOutput(&OutputObject{Cid: c})
+		res.SetOutput(&OutputObject{Cid: root})
 	},
 	Type: OutputObject{},
 	Marshalers: cmds.MarshalerMap{
