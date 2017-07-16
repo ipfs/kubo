@@ -3,7 +3,6 @@ package dagcmd
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -12,8 +11,6 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
-	ipldcbor "gx/ipfs/QmemYymP73eVdTUUMZEiSpiHeZQKNJdT5dP2iuHssZh1sR/go-ipld-cbor"
 )
 
 var DagCmd = &cmds.Command{
@@ -165,29 +162,4 @@ var DagGetCmd = &cmds.Command{
 
 		res.SetOutput(out)
 	},
-}
-
-func convertJsonToType(r io.Reader, format string) (node.Node, error) {
-	switch format {
-	case "cbor", "dag-cbor":
-		return ipldcbor.FromJson(r)
-	case "dag-pb", "protobuf":
-		return nil, fmt.Errorf("protobuf handling in 'dag' command not yet implemented")
-	default:
-		return nil, fmt.Errorf("unknown target format: %s", format)
-	}
-}
-
-func convertRawToType(r io.Reader, format string) (node.Node, error) {
-	switch format {
-	case "cbor", "dag-cbor":
-		data, err := ioutil.ReadAll(r)
-		if err != nil {
-			return nil, err
-		}
-
-		return ipldcbor.Decode(data)
-	default:
-		return nil, fmt.Errorf("unsupported target format for raw input: %s", format)
-	}
 }
