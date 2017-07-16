@@ -59,7 +59,7 @@ func (g *SessionGenerator) Instances(n int) []Instance {
 	for i, inst := range instances {
 		for j := i + 1; j < len(instances); j++ {
 			oinst := instances[j]
-			inst.Exchange.PeerConnected(oinst.Peer)
+			inst.Exchange.network.ConnectTo(context.Background(), oinst.Peer)
 		}
 	}
 	return instances
