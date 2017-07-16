@@ -32,7 +32,7 @@ func linuxLoadFunc(pluginDir string) ([]iplugin.Plugin, error) {
 			// file is not executable let's not load it
 			// this is to prevent loading plugins from for example non-executable
 			// mounts, some /tmp mounts are marked as such for security
-			log.Warningf("non-executable file in plugins directory: %s", fi)
+			log.Errorf("non-executable file in plugins directory: %s", fi)
 			return nil
 		}
 
