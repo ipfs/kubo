@@ -10,8 +10,8 @@ import (
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
-	identity, err := identityConfig(out, nBitsForKeypair)
+func Init(out io.Writer, nBitsForKeypair, keyType int) (*Config, error) {
+	identity, err := identityConfig(out, nBitsForKeypair, keyType)
 	if err != nil {
 		return nil, err
 	}
@@ -93,15 +93,22 @@ func datastoreConfig() (Datastore, error) {
 }
 
 // identityConfig initializes a new identity.
-func identityConfig(out io.Writer, nbits int) (Identity, error) {
+func identityConfig(out io.Writer, nbits, keyType int) (Identity, error) {
 	// TODO guard higher up
 	ident := Identity{}
-	if nbits < 1024 {
-		return ident, errors.New("Bitsize less than 1024 is considered unsafe.")
+
+	switch keyType {
+	case ci.RSA:
+		if nbits < 1024 {
+			return ident, errors.New("Bitsize less than 1024 is considered unsafe for RSA.")
+		}
+
+		fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
+	case ci.Ed25519:
+		fmt.Fprintf(out, "generating Ed25519 keypair...")
 	}
 
-	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
+	sk, pk, err := ci.GenerateKeyPair(keyType, nbits)
 	if err != nil {
 		return ident, err
 	}
