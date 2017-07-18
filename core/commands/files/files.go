@@ -288,7 +288,7 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (node.N
 	}
 }
 
-func unlinkNodeIfExists(node *core.IpfsNode, path string) (error) {
+func unlinkNodeIfExists(node *core.IpfsNode, path string) error {
 	dir, name := gopath.Split(path)
 	parent, err := mfs.Lookup(node.FilesRoot, dir)
 	if err != nil {
@@ -302,7 +302,7 @@ func unlinkNodeIfExists(node *core.IpfsNode, path string) (error) {
 	}
 
 	child, err := pdir.Child(name)
-	if (err == nil && child.Type() == mfs.TFile) {
+	if err == nil && child.Type() == mfs.TFile {
 		pdir.Unlink(name)
 	}
 
