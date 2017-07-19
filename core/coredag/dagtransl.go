@@ -5,8 +5,8 @@ import (
 	"io"
 	"io/ioutil"
 
+	ipldcbor "gx/ipfs/QmXgUVPAxjMLZSyxx818YstJJAoRg3nyPWENmBLVzLtoax/go-ipld-cbor"
 	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
-	ipldcbor "gx/ipfs/QmemYymP73eVdTUUMZEiSpiHeZQKNJdT5dP2iuHssZh1sR/go-ipld-cbor"
 )
 
 // DagParser is function used for parsing stream into Node
