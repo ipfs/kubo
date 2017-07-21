@@ -419,47 +419,36 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newcid *cid.Cid
-	rnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
+	c, err := cid.Decode(rsegs[1])
+	if err != nil {
+		webError(w, "putHandler: bad input path", err, http.StatusBadRequest)
+		return
+	}
+
+	rnode, err := i.node.DAG.Get(ctx, c)
+	if err != nil {
+		webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
+		return
+	}
+
+	pbnd, ok := rnode.(*dag.ProtoNode)
+	if !ok {
+		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		return
+	}
+
+	e := dagutils.NewDagEditor(pbnd, i.node.DAG)
+
+	tnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
 	switch ev := err.(type) {
 	case path.ErrNoLink:
-		// ev.Node < node where resolve failed
-		// ev.Name < new link
-		// but we need to patch from the root
-		c, err := cid.Decode(rsegs[1])
-		if err != nil {
-			webError(w, "putHandler: bad input path", err, http.StatusBadRequest)
-			return
-		}
-
-		rnode, err := i.node.DAG.Get(ctx, c)
-		if err != nil {
-			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
-			return
-		}
-
-		pbnd, ok := rnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
 		err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
 		if err != nil {
 			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
 			return
 		}
-
-		nnode, err := e.Finalize(i.node.DAG)
-		if err != nil {
-			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
-			return
-		}
-
-		newcid = nnode.Cid()
-
 	case nil:
-		pbnd, ok := rnode.(*dag.ProtoNode)
+		pbtnd, ok := tnode.(*dag.ProtoNode)
 		if !ok {
 			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
 			return
@@ -472,13 +461,11 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// object set-data case
-		pbnd.SetData(pbnewnode.Data())
+		pbtnd.SetData(pbnewnode.Data())
 
-		newcid, err = i.node.DAG.Add(pbnd)
+		err = e.InsertNodeAtPath(ctx, newPath, pbtnd, ft.EmptyDirNode)
 		if err != nil {
-			nnk := newnode.Cid()
-			rk := pbnd.Cid()
-			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), rk.String()), err, http.StatusInternalServerError)
+			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
 			return
 		}
 	default:
@@ -486,6 +473,14 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
 		return
 	}
+
+	nnode, err := e.Finalize(i.node.DAG)
+	if err != nil {
+		webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
+		return
+	}
+
+	newcid = nnode.Cid()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", newcid.String())
