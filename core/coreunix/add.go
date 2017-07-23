@@ -223,6 +223,11 @@ func (adder *Adder) Finalize() (node.Node, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		if len(children) == 0 {
+			return nil, fmt.Errorf("expected at least one child dir, got none")
+		}
+
 		name = children[0]
 
 		mr, err := adder.mfsRoot()
