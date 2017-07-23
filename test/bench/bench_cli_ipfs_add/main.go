@@ -64,7 +64,7 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 				}
 			}
 
-			initCmd := exec.Command("ipfs", "init", "-f", "-b=1024")
+			initCmd := exec.Command("ipfs", "init", "-b=1024")
 			setupCmd(initCmd)
 			if err := initCmd.Run(); err != nil {
 				benchmarkError = err
