@@ -7,6 +7,7 @@ import (
 
 	path "github.com/ipfs/go-ipfs/path"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	circuit "gx/ipfs/QmVEPsD9h95ToAC7NJpYopFcXyjVJm35xV4tw43J5JdCnL/go-libp2p-circuit"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
@@ -106,6 +107,13 @@ func ParseMultiaddr(m ma.Multiaddr) (a IPFSAddr, err error) {
 
 func Transport(iaddr IPFSAddr) (maddr ma.Multiaddr) {
 	maddr = iaddr.Multiaddr()
+
+	// /ipfs/QmId is part of the transport address for p2p-circuit
+	_, err := maddr.ValueForProtocol(circuit.P_CIRCUIT)
+	if err == nil {
+		return maddr
+	}
+
 	split := ma.Split(maddr)
 	maddr = ma.Join(split[:len(split)-1]...)
 	return

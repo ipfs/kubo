@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"sort"
+	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	repo "github.com/ipfs/go-ipfs/repo"
@@ -128,7 +129,11 @@ var swarmPeersCmd = &cmds.Command{
 
 			buf := new(bytes.Buffer)
 			for _, info := range ci.Peers {
-				fmt.Fprintf(buf, "%s/ipfs/%s", info.Addr, info.Peer)
+				if strings.Contains(info.Addr, "/p2p-circuit/") {
+					fmt.Fprintf(buf, "%s", info.Addr)
+				} else {
+					fmt.Fprintf(buf, "%s/ipfs/%s", info.Addr, info.Peer)
+				}
 				if info.Latency != "" {
 					fmt.Fprintf(buf, " %s", info.Latency)
 				}
