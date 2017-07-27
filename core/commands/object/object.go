@@ -16,6 +16,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
@@ -355,6 +356,7 @@ And then run:
 	Options: []cmds.Option{
 		cmds.StringOption("inputenc", "Encoding type of input data. One of: {\"protobuf\", \"json\"}.").Default("json"),
 		cmds.StringOption("datafieldenc", "Encoding type of the data field, either \"text\" or \"base64\".").Default("text"),
+		cmds.BoolOption("pin", "Pin this object when adding.").Default(false),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -381,6 +383,16 @@ And then run:
 			return
 		}
 
+		dopin, _, err := req.Option("pin").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if dopin {
+			defer n.Blockstore.PinLock().Unlock()
+		}
+
 		output, err := objectPut(n, input, inputenc, datafieldenc)
 		if err != nil {
 			errType := cmds.ErrNormal
@@ -389,6 +401,21 @@ And then run:
 			}
 			res.SetError(err, errType)
 			return
+		}
+
+		if dopin {
+			c, err := cid.Decode(output.Hash)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			n.Pinning.PinWithMode(c, pin.Recursive)
+			err = n.Pinning.Flush()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 
 		res.SetOutput(output)
