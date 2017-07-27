@@ -15,7 +15,7 @@ import (
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
 
 	// this import keeps gx from thinking the dep isn't used
-	_ "gx/ipfs/QmQfeKxQtBN721pekQh6Jq24adFUjnU65YdY3GNczfuG2T/dir-index-html"
+	_ "gx/ipfs/QmdZ4PvPHFQVLLEve7DgoKDcSY19wwpGBB1GKjjKi2rEL1/dir-index-html"
 )
 
 // initDocPaths lists the paths for the docs we want to seed during --init
