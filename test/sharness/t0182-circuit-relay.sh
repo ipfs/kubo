@@ -63,6 +63,23 @@ test_expect_success 'peers for B look good' '
   test_cmp peers_exp peers_out
 '
 
+test_expect_success 'add an object in A' '
+  echo "hello relay" | ipfsi 0 add > peers_out
+'
+
+test_expect_success 'object ID' '
+  OBJID=$(cut -f3 -d " " peers_out)
+'
+
+test_expect_success 'cat the object in B' '
+  ipfsi 2 cat $OBJID > peers_out
+'
+
+test_expect_success 'output looks good' '
+  echo "hello relay" > peers_exp &&
+  test_cmp peers_exp peers_out
+'
+
 test_expect_success 'stop iptb' '
   iptb stop
 '
