@@ -24,7 +24,7 @@ func init() {
 	node.Register(cid.DagCBOR, ipldcbor.DecodeBlock)
 }
 
-var ErrNotFound = fmt.Errorf("merkledag: not found")
+var ErrNotFound = fmt.Errorf("merkledag: not found. Is the ipfs daemon running? The daemon must be running in order to get non-local merkledags. Launch it with \"ipfs daemon\".")
 
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
