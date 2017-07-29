@@ -129,7 +129,7 @@ var swarmPeersCmd = &cmds.Command{
 
 			buf := new(bytes.Buffer)
 			for _, info := range ci.Peers {
-				if strings.Contains(info.Addr, "/p2p-circuit/") {
+				if strings.HasSuffix(info.Addr, fmt.Sprintf("/ipfs/%s", info.Peer)) {
 					fmt.Fprintf(buf, "%s", info.Addr)
 				} else {
 					fmt.Fprintf(buf, "%s/ipfs/%s", info.Addr, info.Peer)
