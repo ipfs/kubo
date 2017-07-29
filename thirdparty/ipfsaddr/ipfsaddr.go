@@ -109,6 +109,9 @@ func Transport(iaddr IPFSAddr) (maddr ma.Multiaddr) {
 	maddr = iaddr.Multiaddr()
 
 	// /ipfs/QmId is part of the transport address for p2p-circuit
+	// TODO clean up the special case
+	// we need a consistent way of composing and consumig multiaddrs
+	// so that we don't have to do this
 	_, err := maddr.ValueForProtocol(circuit.P_CIRCUIT)
 	if err == nil {
 		return maddr
