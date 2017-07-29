@@ -16,6 +16,7 @@ $($(d)_plugins_so): $$(DEPS_GO) ALWAYS
 	chmod +x "$@"
 
 CLEAN += $($(d)_plugins_so)
+CLEAN += $(foreach main_dir,$($(d)_plugins_main),$(dir $(main_dir)))
 
 build_plugins: $($(d)_plugins_so)
 
