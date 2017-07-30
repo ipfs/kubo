@@ -820,6 +820,7 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 		hostOpts = append(hostOpts, opts.AddrsFactory)
 	}
 
+	addrsFactory := opts.AddrsFactory
 	if !opts.DisableRelay {
 		filterRelayAddr := func(addrs []ma.Multiaddr) []ma.Multiaddr {
 			var raddrs []ma.Multiaddr
@@ -832,7 +833,16 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 			}
 			return raddrs
 		}
-		hostOpts = append(hostOpts, p2pbhost.AddrsFactory(filterRelayAddr))
+
+		if addrsFactory != nil {
+			addrsFactory = composeAddrsFactory(addrsFactory, filterRelayAddr)
+		} else {
+			addrsFactory = filterRelayAddr
+		}
+	}
+
+	if addrsFactory != nil {
+		hostOpts = append(hostOpts, addrsFactory)
 	}
 
 	host := p2pbhost.New(network, hostOpts...)
@@ -850,6 +860,12 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 	}
 
 	return host, nil
+}
+
+func composeAddrsFactory(f, g p2pbhost.AddrsFactory) p2pbhost.AddrsFactory {
+	return func(addrs []ma.Multiaddr) []ma.Multiaddr {
+		return f(g(addrs))
+	}
 }
 
 // startListening on the network addresses
