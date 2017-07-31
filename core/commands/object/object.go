@@ -412,15 +412,15 @@ And then run:
 			}
 		}
 
-		res.SetOutput(objectCid)
+		res.SetOutput(&Object{Hash: objectCid.String()})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			object := res.Output().(*cid.Cid)
-			return strings.NewReader("added " + object.String() + "\n"), nil
+			object := res.Output().(*Object)
+			return strings.NewReader("added " + object.Hash + "\n"), nil
 		},
 	},
-	Type: cid.Cid{},
+	Type: Object{},
 }
 
 var ObjectNewCmd = &cmds.Command{
