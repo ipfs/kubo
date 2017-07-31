@@ -16,6 +16,7 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -52,7 +53,7 @@ environment variable:
 	},
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
-		cmds.IntOption("key-type", "k", "Key type (RSA or Ed25519-id").Default(ci.RSA),
+		cmds.IntOption("key-type", "k", "Key type (RSA or Ed25519-id").Default(keypairTypeDefault),
 		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
 		cmds.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
@@ -82,19 +83,19 @@ environment variable:
 			return
 		}
 
-		empty, _, err := req.Option("e").Bool()
+		empty, _, err := req.Option("empty-repo").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		nBitsForKeypair, _, err := req.Option("b").Int()
+		nBitsForKeypair, _, err := req.Option("bits").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		keyType, _, err := req.Option("k").Int()
+		keyType, _, err := req.Option("key-type").Int()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
