@@ -21,6 +21,7 @@ import (
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
 	p2ptestutil "gx/ipfs/QmZG4W8GR9FpC4z69Vab9ENtEoxKjDnTym5oa7Q3Yr7P4o/go-libp2p-netutil"
+	tu "gx/ipfs/QmZJD56ZWLViJAVkvLc7xbbDerHzUMLr2X4fLRYfbxZWDN/go-testutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -332,13 +333,16 @@ func TestBasicBitswap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(time.Millisecond * 25)
-	wl := instances[2].Exchange.WantlistForPeer(instances[1].Peer)
-	if len(wl) != 0 {
-		t.Fatal("should have no items in other peers wantlist")
-	}
-	if len(instances[1].Exchange.GetWantlist()) != 0 {
-		t.Fatal("shouldnt have anything in wantlist")
+	if err = tu.WaitFor(ctx, func() error {
+		if len(instances[2].Exchange.WantlistForPeer(instances[1].Peer)) != 0 {
+			return fmt.Errorf("should have no items in other peers wantlist")
+		}
+		if len(instances[1].Exchange.GetWantlist()) != 0 {
+			return fmt.Errorf("shouldnt have anything in wantlist")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 
 	st0, err := instances[0].Exchange.Stat()
