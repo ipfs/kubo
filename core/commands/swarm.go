@@ -202,7 +202,8 @@ var swarmAddrsCmd = &cmds.Command{
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"local": swarmAddrsLocalCmd,
+		"local":  swarmAddrsLocalCmd,
+		"listen": swarmAddrsListenCmd,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -290,6 +291,46 @@ var swarmAddrsLocalCmd = &cmds.Command{
 				saddr = path.Join(saddr, "ipfs", id)
 			}
 			addrs = append(addrs, saddr)
+		}
+		sort.Sort(sort.StringSlice(addrs))
+
+		res.SetOutput(&stringList{addrs})
+	},
+	Type: stringList{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+}
+
+var swarmAddrsListenCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List interface listening addresses.",
+		ShortDescription: `
+'ipfs swarm addrs listen' lists all interface addresses the node is listening on.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if n.PeerHost == nil {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		var addrs []string
+		maddrs, err := n.PeerHost.Network().InterfaceListenAddresses()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		for _, addr := range maddrs {
+			addrs = append(addrs, addr.String())
 		}
 		sort.Sort(sort.StringSlice(addrs))
 
