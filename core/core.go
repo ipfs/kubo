@@ -45,7 +45,6 @@ import (
 	pnet "gx/ipfs/QmNMCAuxnQFHLGWcvay3DmVFrKuY6Y2nsc9vzsf4gVouJV/go-libp2p-pnet"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	routing "gx/ipfs/QmPjTrrSfE6TzLv6ya6VWhGcCgPrUAdcgrDcQyRDX2VyW1/go-libp2p-routing"
-	mplex "gx/ipfs/QmQ3UABWTgK78utKeiVXaH9BrjC7Ydn1pRuwqnWHT3p4zh/go-smux-multiplex"
 	ipnet "gx/ipfs/QmQq9YzmdFdWNTDdArueGyD7L5yyiRQigrRHJnTGkxcEjT/go-libp2p-interface-pnet"
 	dht "gx/ipfs/QmRKEzkaiwud2LnwJ9CgBrKw122ddKPTMtLizV3DNimVRD/go-libp2p-kad-dht"
 	p2phost "gx/ipfs/QmRNyPNJGNCaZyYonJj7owciWTsMd9gRfEKmZY3o6xwN3h/go-libp2p-host"
@@ -70,6 +69,7 @@ import (
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	yamux "gx/ipfs/Qmbn7RYyWzBVXiUp9jZ1dA4VADHy9DtS7iZLwfhEUQvm3U/go-smux-yamux"
 	addrutil "gx/ipfs/Qmcx4KoZ91XS6izLjdkujAMAunAS1YuTgfgASgYaZF5GkR/go-addr-util"
+	mplex "gx/ipfs/Qme65bXDcjpTRnBc8jhqRGbj9saiwUfxhuPqSns35mrGYZ/go-smux-multiplex"
 	smux "gx/ipfs/QmeZBgYBHvxMukGK5ojg28BCNLB9SeXqT7XXg6o7r2GbJy/go-stream-muxer"
 )
 
