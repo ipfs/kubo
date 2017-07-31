@@ -393,7 +393,7 @@ And then run:
 			defer n.Blockstore.PinLock().Unlock()
 		}
 
-		output, err := objectPut(n, input, inputenc, datafieldenc)
+		objectCid, err := objectPut(n, input, inputenc, datafieldenc)
 		if err != nil {
 			errType := cmds.ErrNormal
 			if err == ErrUnknownObjectEnc {
@@ -404,13 +404,7 @@ And then run:
 		}
 
 		if dopin {
-			c, err := cid.Decode(output.Hash)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			n.Pinning.PinWithMode(c, pin.Recursive)
+			n.Pinning.PinWithMode(objectCid, pin.Recursive)
 			err = n.Pinning.Flush()
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
@@ -418,15 +412,15 @@ And then run:
 			}
 		}
 
-		res.SetOutput(output)
+		res.SetOutput(objectCid)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			object := res.Output().(*Object)
-			return strings.NewReader("added " + object.Hash + "\n"), nil
+			object := res.Output().(*cid.Cid)
+			return strings.NewReader("added " + object.String() + "\n"), nil
 		},
 	},
-	Type: Object{},
+	Type: cid.Cid{},
 }
 
 var ObjectNewCmd = &cmds.Command{
@@ -495,7 +489,7 @@ func nodeFromTemplate(template string) (*dag.ProtoNode, error) {
 var ErrEmptyNode = errors.New("no data or links in this node")
 
 // objectPut takes a format option, serializes bytes from stdin and updates the dag with that data
-func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEncoding string) (*Object, error) {
+func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEncoding string) (*cid.Cid, error) {
 
 	data, err := ioutil.ReadAll(io.LimitReader(input, inputLimit+10))
 	if err != nil {
@@ -560,7 +554,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEnco
 		return nil, err
 	}
 
-	return getOutput(dagnode)
+	return dagnode.Cid(), nil
 }
 
 // ErrUnknownObjectEnc is returned if a invalid encoding is supplied
