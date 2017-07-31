@@ -262,7 +262,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List local addresses.",
 		ShortDescription: `
-'ipfs swarm addrs local' lists all local addresses the node is listening on.
+'ipfs swarm addrs local' lists all local listening addresses announced to the network.
 `,
 	},
 	Options: []cmds.Option{
