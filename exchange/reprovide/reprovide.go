@@ -5,26 +5,27 @@ import (
 	"fmt"
 	"time"
 
-	blocks "github.com/ipfs/go-ipfs/blocks/blockstore"
 	backoff "gx/ipfs/QmPJUtEJsm5YLUWhF6imvyCH8KZXRJa9Wup7FDMwTy5Ufz/backoff"
 	routing "gx/ipfs/QmPjTrrSfE6TzLv6ya6VWhGcCgPrUAdcgrDcQyRDX2VyW1/go-libp2p-routing"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
 )
 
 var log = logging.Logger("reprovider")
+
+type KeyChanFunc func(context.Context) (<-chan *cid.Cid, error)
 
 type Reprovider struct {
 	// The routing system to provide values through
 	rsys routing.ContentRouting
 
-	// The backing store for blocks to be provided
-	bstore blocks.Blockstore
+	keyProvider KeyChanFunc
 }
 
-func NewReprovider(rsys routing.ContentRouting, bstore blocks.Blockstore) *Reprovider {
+func NewReprovider(rsys routing.ContentRouting, keyProvider KeyChanFunc) *Reprovider {
 	return &Reprovider{
-		rsys:   rsys,
-		bstore: bstore,
+		rsys:        rsys,
+		keyProvider: keyProvider,
 	}
 }
 
@@ -48,9 +49,9 @@ func (rp *Reprovider) ProvideEvery(ctx context.Context, tick time.Duration) {
 }
 
 func (rp *Reprovider) Reprovide(ctx context.Context) error {
-	keychan, err := rp.bstore.AllKeysChan(ctx)
+	keychan, err := rp.keyProvider(ctx)
 	if err != nil {
-		return fmt.Errorf("Failed to get key chan from blockstore: %s", err)
+		return fmt.Errorf("Failed to get key chan: %s", err)
 	}
 	for c := range keychan {
 		op := func() error {

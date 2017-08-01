@@ -237,22 +237,6 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return err
 	}
 
-	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
-
-	if cfg.Reprovider.Interval != "0" {
-		interval := kReprovideFrequency
-		if cfg.Reprovider.Interval != "" {
-			dur, err := time.ParseDuration(cfg.Reprovider.Interval)
-			if err != nil {
-				return err
-			}
-
-			interval = dur
-		}
-
-		go n.Reprovider.ProvideEvery(ctx, interval)
-	}
-
 	if pubsub {
 		n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
 	}
@@ -271,6 +255,45 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	return n.Bootstrap(DefaultBootstrapConfig)
+}
+
+func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+
+	var keyProvider func(context.Context) (<-chan *cid.Cid, error)
+
+	switch cfg.Reprovider.Strategy {
+	case "all":
+		fallthrough
+	case "":
+		keyProvider = rp.NewBlockstoreProvider(n.Blockstore)
+	case "roots":
+		keyProvider = rp.NewPinnedProvider(n.Pinning, n.DAG, true)
+	case "pinned":
+		keyProvider = rp.NewPinnedProvider(n.Pinning, n.DAG, false)
+	default:
+		return fmt.Errorf("unknown reprovider strtaegy '%s'", cfg.Reprovider.Strategy)
+	}
+	n.Reprovider = rp.NewReprovider(n.Routing, keyProvider)
+
+	if cfg.Reprovider.Interval != "0" {
+		interval := kReprovideFrequency
+		if cfg.Reprovider.Interval != "" {
+			dur, err := time.ParseDuration(cfg.Reprovider.Interval)
+			if err != nil {
+				return err
+			}
+
+			interval = dur
+		}
+
+		go n.Reprovider.ProvideEvery(ctx, interval)
+	}
+
+	return nil
 }
 
 func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {

@@ -72,6 +72,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		},
 		Reprovider: Reprovider{
 			Interval: "12h",
+			Strategy: "all",
 		},
 	}
 
