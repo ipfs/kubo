@@ -364,7 +364,7 @@ generic_stat() {
             _STAT="stat -f %Sp"
             ;;
     esac
-    $_STAT "$1"
+    $_STAT "$1" || echo "failed" # Avoid returning nothing.
 }
 
 test_check_peerid() {
