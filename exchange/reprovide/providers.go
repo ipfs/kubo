@@ -3,7 +3,6 @@ package reprovide
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	blocks "github.com/ipfs/go-ipfs/blocks/blockstore"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
