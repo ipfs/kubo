@@ -11,13 +11,15 @@ import (
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
 )
 
-func NewBlockstoreProvider(bstore blocks.Blockstore) KeyChanFunc {
+// NewBlockstoreProvider returns key provider using bstore.AllKeysChan
+func NewBlockstoreProvider(bstore blocks.Blockstore) keyChanFunc {
 	return func(ctx context.Context) (<-chan *cid.Cid, error) {
 		return bstore.AllKeysChan(ctx)
 	}
 }
 
-func NewPinnedProvider(pinning pin.Pinner, dag merkledag.DAGService, onlyRoots bool) KeyChanFunc {
+// NewPinnedProvider returns provider supplying pinned keys
+func NewPinnedProvider(pinning pin.Pinner, dag merkledag.DAGService, onlyRoots bool) keyChanFunc {
 	return func(ctx context.Context) (<-chan *cid.Cid, error) {
 		set, err := pinSet(ctx, pinning, dag, onlyRoots)
 		if err != nil {
