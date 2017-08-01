@@ -16,35 +16,48 @@ var log = logging.Logger("reprovider")
 type KeyChanFunc func(context.Context) (<-chan *cid.Cid, error)
 
 type Reprovider struct {
+	ctx     context.Context
+	trigger chan context.CancelFunc
+
 	// The routing system to provide values through
 	rsys routing.ContentRouting
 
 	keyProvider KeyChanFunc
 }
 
-func NewReprovider(rsys routing.ContentRouting, keyProvider KeyChanFunc) *Reprovider {
+func NewReprovider(ctx context.Context, rsys routing.ContentRouting, keyProvider KeyChanFunc) *Reprovider {
 	return &Reprovider{
-		rsys:        rsys,
+		ctx:     ctx,
+		trigger: make(chan context.CancelFunc),
+
+		rsys: rsys,
 		keyProvider: keyProvider,
 	}
 }
 
-func (rp *Reprovider) ProvideEvery(ctx context.Context, tick time.Duration) {
+func (rp *Reprovider) ProvideEvery(tick time.Duration) {
 	// dont reprovide immediately.
 	// may have just started the daemon and shutting it down immediately.
 	// probability( up another minute | uptime ) increases with uptime.
 	after := time.After(time.Minute)
+	var done context.CancelFunc
 	for {
 		select {
-		case <-ctx.Done():
+		case <-rp.ctx.Done():
 			return
+		case done = <-rp.trigger:
 		case <-after:
-			err := rp.Reprovide(ctx)
-			if err != nil {
-				log.Debug(err)
-			}
-			after = time.After(tick)
 		}
+
+		err := rp.Reprovide(rp.ctx)
+		if err != nil {
+			log.Debug(err)
+		}
+
+		if done != nil {
+			done()
+		}
+		after = time.After(tick)
 	}
 }
 
@@ -71,4 +84,17 @@ func (rp *Reprovider) Reprovide(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (rp *Reprovider) Trigger(ctx context.Context) error {
+	progressCtx, done := context.WithCancel(ctx)
+	select {
+	case <-rp.ctx.Done():
+		return context.Canceled
+	case <-ctx.Done():
+		return context.Canceled
+	case rp.trigger <- done:
+		<-progressCtx.Done()
+		return nil
+	}
 }

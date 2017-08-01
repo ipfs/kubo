@@ -26,6 +26,7 @@ func NewPinnedProvider(pinning pin.Pinner, dag merkledag.DAGService, onlyRoots b
 
 		outCh := make(chan *cid.Cid)
 		go func() {
+			defer close(outCh)
 			set.ForEach(func(c *cid.Cid) error {
 				select {
 				case <-ctx.Done():

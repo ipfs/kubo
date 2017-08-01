@@ -277,7 +277,7 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 	default:
 		return fmt.Errorf("unknown reprovider strtaegy '%s'", cfg.Reprovider.Strategy)
 	}
-	n.Reprovider = rp.NewReprovider(n.Routing, keyProvider)
+	n.Reprovider = rp.NewReprovider(ctx, n.Routing, keyProvider)
 
 	if cfg.Reprovider.Interval != "0" {
 		interval := kReprovideFrequency
@@ -290,7 +290,7 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 			interval = dur
 		}
 
-		go n.Reprovider.ProvideEvery(ctx, interval)
+		go n.Reprovider.ProvideEvery(interval)
 	}
 
 	return nil
