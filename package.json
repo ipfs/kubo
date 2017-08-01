@@ -454,9 +454,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmVEPsD9h95ToAC7NJpYopFcXyjVJm35xV4tw43J5JdCnL",
+      "hash": "QmSC7288aesJAC3BQ4Duy6Pk2CMfQWL7cr5t9SV4HBmKFT",
       "name": "go-libp2p-circuit",
-      "version": "1.1.1"
+      "version": "1.1.2"
     }
   ],
   "gxVersion": "0.10.0",
@@ -465,3 +465,4 @@
   "name": "go-ipfs",
   "version": "0.4.11-dev"
 }
+

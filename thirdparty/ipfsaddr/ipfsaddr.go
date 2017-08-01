@@ -6,8 +6,8 @@ import (
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 
 	path "github.com/ipfs/go-ipfs/path"
+	circuit "gx/ipfs/QmSC7288aesJAC3BQ4Duy6Pk2CMfQWL7cr5t9SV4HBmKFT/go-libp2p-circuit"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	circuit "gx/ipfs/QmVEPsD9h95ToAC7NJpYopFcXyjVJm35xV4tw43J5JdCnL/go-libp2p-circuit"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
