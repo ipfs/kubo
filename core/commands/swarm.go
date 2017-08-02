@@ -128,9 +128,9 @@ var swarmPeersCmd = &cmds.Command{
 			}
 
 			buf := new(bytes.Buffer)
-			pipfs := ma.ProtocolWithCode(ma.P_IPFS)
+			pipfs := ma.ProtocolWithCode(ma.P_IPFS).Name
 			for _, info := range ci.Peers {
-				ids := fmt.Sprintf("/%s/%s", pipfs.Name, info.Peer)
+				ids := fmt.Sprintf("/%s/%s", pipfs, info.Peer)
 				if strings.HasSuffix(info.Addr, ids) {
 					fmt.Fprintf(buf, "%s", info.Addr)
 				} else {
