@@ -53,7 +53,7 @@ environment variable:
 	},
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
-		cmds.IntOption("key-type", "k", "Key type (RSA or Ed25519-id").Default(keypairTypeDefault),
+		cmds.IntOption("key-type", "k", "Key type (RSA or Ed25519-id)").Default(keypairTypeDefault),
 		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
 		cmds.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
