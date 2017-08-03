@@ -14,10 +14,11 @@ import (
 var log = logging.Logger("reprovider")
 
 type keyChanFunc func(context.Context) (<-chan *cid.Cid, error)
+type doneFunc func(error)
 
 type Reprovider struct {
 	ctx     context.Context
-	trigger chan context.CancelFunc
+	trigger chan doneFunc
 
 	// The routing system to provide values through
 	rsys routing.ContentRouting
@@ -29,7 +30,7 @@ type Reprovider struct {
 func NewReprovider(ctx context.Context, rsys routing.ContentRouting, keyProvider keyChanFunc) *Reprovider {
 	return &Reprovider{
 		ctx:     ctx,
-		trigger: make(chan context.CancelFunc),
+		trigger: make(chan doneFunc),
 
 		rsys:        rsys,
 		keyProvider: keyProvider,
@@ -42,7 +43,7 @@ func (rp *Reprovider) ProvideEvery(tick time.Duration) {
 	// may have just started the daemon and shutting it down immediately.
 	// probability( up another minute | uptime ) increases with uptime.
 	after := time.After(time.Minute)
-	var done context.CancelFunc
+	var done doneFunc
 	for {
 		select {
 		case <-rp.ctx.Done():
@@ -51,14 +52,19 @@ func (rp *Reprovider) ProvideEvery(tick time.Duration) {
 		case <-after:
 		}
 
+		unmute := rp.muteTrigger()
+
 		err := rp.Reprovide()
 		if err != nil {
 			log.Debug(err)
 		}
 
 		if done != nil {
-			done()
+			done(err)
 		}
+
+		unmute()
+
 		after = time.After(tick)
 	}
 }
@@ -93,13 +99,36 @@ func (rp *Reprovider) Reprovide() error {
 func (rp *Reprovider) Trigger(ctx context.Context) error {
 	progressCtx, done := context.WithCancel(ctx)
 
+	var err error
+	df := func(e error) {
+		err = e
+		done()
+	}
+
 	select {
 	case <-rp.ctx.Done():
 		return context.Canceled
 	case <-ctx.Done():
 		return context.Canceled
-	case rp.trigger <- done:
+	case rp.trigger <- df:
 		<-progressCtx.Done()
-		return nil
+		return err
 	}
+}
+
+func (rp *Reprovider) muteTrigger() context.CancelFunc {
+	ctx, cf := context.WithCancel(rp.ctx)
+	go func() {
+		defer cf()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case done := <-rp.trigger:
+				done(fmt.Errorf("reprovider is already running"))
+			}
+		}
+	}()
+
+	return cf
 }
