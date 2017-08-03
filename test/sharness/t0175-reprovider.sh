@@ -5,7 +5,7 @@ test_description="Test reprovider"
 . lib/test-lib.sh
 
 init_strategy() {
-  NUM_NODES=2
+  NUM_NODES=6
   test_expect_success 'init iptb' '
     iptb init -f -n $NUM_NODES --bootstrap=none --port=0
   '
@@ -19,30 +19,26 @@ init_strategy() {
     ipfsi 0 config Reprovider.Strategy '$1'
   '
 
-  test_expect_success 'start peers' '
-    iptb start 0 &&
-    iptb start 1 &&
-    iptb connect 0 1
-  '
+  startup_cluster 6 --debug
 }
 
 findprovs_empty() {
-  test_expect_success 'findprovs succeeds' '
+  test_expect_success 'findprovs '$1' succeeds' '
     ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut
   '
 
-  test_expect_success "findprovs output is empty" '
+  test_expect_success "findprovs $1 output is empty" '
     test_must_be_empty findprovsOut
   '
 }
 
 findprovs_expect() {
-  test_expect_success 'findprovs succeeds' '
+  test_expect_success 'findprovs '$1' succeeds' '
     ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut &&
     echo '$2' > expected
   '
 
-  test_expect_success "findprovs output looks good" '
+  test_expect_success "findprovs $1 output looks good" '
     test_cmp findprovsOut expected
   '
 }
@@ -102,13 +98,15 @@ init_strategy 'roots'
 
 test_expect_success 'prepare test files' '
   echo foo > f1 &&
-  echo bar > f2
+  echo bar > f2 &&
+  echo baz > f3
 '
 
 test_expect_success 'add test objects' '
   HASH_FOO=$(ipfsi 0 add -q --local --pin=false f1) &&
   HASH_BAR=$(ipfsi 0 add -q --local --pin=false f2) &&
-  HASH_BAR_DIR=$(ipfsi 0 add -q --local -w f2)
+  HASH_BAZ=$(ipfsi 0 add -q --local f3) &&
+  HASH_BAR_DIR=$(ipfsi 0 add -q --local -w f2 | tail -1)
 '
 
 findprovs_empty '$HASH_FOO'
@@ -119,6 +117,7 @@ reprovide
 
 findprovs_empty '$HASH_FOO'
 findprovs_empty '$HASH_BAR'
+findprovs_expect '$HASH_BAZ' '$PEERID_0'
 findprovs_expect '$HASH_BAR_DIR' '$PEERID_0'
 
 test_expect_success 'stop peer 1' '

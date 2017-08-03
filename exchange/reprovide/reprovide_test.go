@@ -33,8 +33,8 @@ func TestReprovide(t *testing.T) {
 	bstore.Put(blk)
 
 	keyProvider := NewBlockstoreProvider(bstore)
-	reprov := NewReprovider(clA, keyProvider)
-	err := reprov.Reprovide(ctx)
+	reprov := NewReprovider(ctx, clA, keyProvider)
+	err := reprov.Reprovide()
 	if err != nil {
 		t.Fatal(err)
 	}
