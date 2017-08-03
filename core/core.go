@@ -852,6 +852,7 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 
 		err := circuit.AddRelayTransport(ctx, host, relayOpts...)
 		if err != nil {
+			host.Close()
 			return nil, err
 		}
 	}
