@@ -105,6 +105,25 @@ test_expect_success "We can HTTP GET file just updated" '
   test_cmp infile2 outfile2
 '
 
+
+test_expect_success "HTTP PUT file to overwrite existing file" '
+  echo "nonrandom" >infile3 &&
+  URL="http://localhost:$port/ipfs/$HASH/test/test.txt" &&
+  echo "PUT $URL" &&
+  curl -svX PUT --data-binary @infile3 "$URL" 2>curl_put3.out &&
+  grep "HTTP/1.1 201 Created" curl_put3.out &&
+  LOCATION=$(grep Location curl_put3.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test/test.txt")
+'
+
+
+test_expect_success "We can HTTP GET file just updated" '
+  URL="http://localhost:$port/ipfs/$HASH/test/test.txt" &&
+  echo "GET $URL" &&
+  curl -svo outfile3 "$URL" 2>curl_get3.out &&
+  test_cmp infile3 outfile3
+'
+
 test_kill_ipfs_daemon
 
 test_done

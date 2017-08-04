@@ -425,62 +425,67 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rnode, err := i.node.DAG.Get(ctx, c)
-	if err != nil {
-		webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
-		return
-	}
-
-	pbnd, ok := rnode.(*dag.ProtoNode)
-	if !ok {
-		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-		return
-	}
-
-	e := dagutils.NewDagEditor(pbnd, i.node.DAG)
-
-	tnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
-	switch ev := err.(type) {
-	case path.ErrNoLink:
-		err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
+	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" && newPath == "" {
+		// Empty directory with no path specified will return empty directory.
+		newcid = c
+	} else {
+		rnode, err := i.node.DAG.Get(ctx, c)
 		if err != nil {
-			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
+			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
 			return
 		}
-	case nil:
-		pbtnd, ok := tnode.(*dag.ProtoNode)
+
+		pbnd, ok := rnode.(*dag.ProtoNode)
 		if !ok {
 			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
 			return
 		}
 
-		pbnewnode, ok := newnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
+
+		tnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
+		switch ev := err.(type) {
+		case path.ErrNoLink:
+			err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
+			if err != nil {
+				webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
+				return
+			}
+		case nil:
+			pbtnd, ok := tnode.(*dag.ProtoNode)
+			if !ok {
+				webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+				return
+			}
+
+			pbnewnode, ok := newnode.(*dag.ProtoNode)
+			if !ok {
+				webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+				return
+			}
+
+			// object set-data case
+			pbtnd.SetData(pbnewnode.Data())
+
+			err = e.InsertNodeAtPath(ctx, newPath, pbtnd, ft.EmptyDirNode)
+			if err != nil {
+				webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
+				return
+			}
+		default:
+			log.Warningf("putHandler: unhandled resolve error %T", ev)
+			webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
 			return
 		}
 
-		// object set-data case
-		pbtnd.SetData(pbnewnode.Data())
-
-		err = e.InsertNodeAtPath(ctx, newPath, pbtnd, ft.EmptyDirNode)
+		nnode, err := e.Finalize(i.node.DAG)
 		if err != nil {
-			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
+			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
 			return
 		}
-	default:
-		log.Warningf("putHandler: unhandled resolve error %T", ev)
-		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
-		return
-	}
 
-	nnode, err := e.Finalize(i.node.DAG)
-	if err != nil {
-		webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
-		return
+		newcid = nnode.Cid()
 	}
-
-	newcid = nnode.Cid()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", newcid.String())
