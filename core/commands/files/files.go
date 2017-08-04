@@ -297,16 +297,21 @@ func unlinkNodeIfExists(node *core.IpfsNode, path string) error {
 
 	pdir, ok := parent.(*mfs.Directory)
 	if !ok {
-		err = fmt.Errorf("No such file or directory: %s", dir)
+		err = fmt.Errorf("No such directory: %s", dir)
 		return err
 	}
 
+	// Attempt to unlink if child is a file, ignore error since
+	// we are only concerned with unlinking an existing file.
 	child, err := pdir.Child(name)
 	if err == nil && child.Type() == mfs.TFile {
-		pdir.Unlink(name)
+		err := pdir.Unlink(name)
+		if err != nil {
+			return err
+		}
 	}
 
-	return err
+	return nil
 }
 
 type Object struct {

@@ -529,6 +529,18 @@ test_files_api() {
 		ipfs files rm -r /adir
 	'
 
+	test_expect_success "test copy --force overwrites files" '
+		ipfs files cp /ipfs/$FILE1 /file1
+		ipfs files cp /ipfs/$FILE2 /file2
+		ipfs files cp --force /file1 /file2
+		test "`ipfs files read /file1`" = "`ipfs files read /file2`"
+	'
+
+	test_expect_success "clean up" '
+	    ipfs files rm /file1 &&
+	    ipfs files rm /file2
+    '
+
 	test_expect_success "root mfs entry is empty" '
 		verify_dir_contents /
 	'
