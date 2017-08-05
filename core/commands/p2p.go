@@ -47,7 +47,8 @@ var P2PCmd = &cmds.Command{
 		ShortDescription: `
 Create and use tunnels to remote peers over libp2p
 
-Note: this command is experimental and subject to change as usecases and APIs are refined`,
+Note: this command is experimental and subject to change as usecases and APIs
+are refined`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -188,7 +189,8 @@ var p2pListenerListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Forward p2p connections to a network multiaddr.",
 		ShortDescription: `
-Register a p2p connection handler and forward the connections to a specified address.
+Register a p2p connection handler and forward the connections to a specified
+address.
 
 Note that the connections originate from the ipfs daemon process.
 		`,
@@ -237,9 +239,9 @@ var p2pStreamDialCmd = &cmds.Command{
 		ShortDescription: `
 Establish a new connection to a peer service.
 
-When a connection is made to a peer service the ipfs daemon will setup one time
-TCP listener and return it's bind port, this way a dialing application can
-transparently connect to a p2p service.
+When a connection is made to a peer service the ipfs daemon will setup one
+time TCP listener and return it's bind port, this way a dialing application
+can transparently connect to a p2p service.
 		`,
 	},
 	Arguments: []cmds.Argument{

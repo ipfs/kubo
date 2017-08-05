@@ -557,7 +557,8 @@ var FilesWriteCmd = &cmds.Command{
 		Tagline: "Write to a mutable file in a given filesystem.",
 		ShortDescription: `
 Write data to a file in a given filesystem. This command allows you to specify
-a beginning offset to write to. The entire length of the input will be written.
+a beginning offset to write to. The entire length of the input will be
+written.
 
 If the '--create' option is specified, the file will be created if it does not
 exist. Nonexistant intermediate directories will not be created.

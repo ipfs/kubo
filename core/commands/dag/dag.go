@@ -128,7 +128,8 @@ var DagGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get a dag node from ipfs.",
 		ShortDescription: `
-'ipfs dag get' fetches a dag node from ipfs and prints it out in the specifed format.
+'ipfs dag get' fetches a dag node from ipfs and prints it out in the specifed
+format.
 `,
 	},
 	Arguments: []cmds.Argument{
