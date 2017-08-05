@@ -22,6 +22,7 @@ type Wantlist struct {
 type Entry struct {
 	Cid      *cid.Cid
 	Priority int
+	Size     int
 
 	SesTrk map[uint64]struct{}
 }
@@ -61,7 +62,7 @@ func New() *Wantlist {
 // TODO: think through priority changes here
 // Add returns true if the cid did not exist in the wantlist before this call
 // (even if it was under a different session)
-func (w *ThreadSafe) Add(c *cid.Cid, priority int, ses uint64) bool {
+func (w *ThreadSafe) Add(c *cid.Cid, priority, size int, ses uint64) bool {
 	w.lk.Lock()
 	defer w.lk.Unlock()
 	k := c.KeyString()
@@ -74,6 +75,7 @@ func (w *ThreadSafe) Add(c *cid.Cid, priority int, ses uint64) bool {
 		Cid:      c,
 		Priority: priority,
 		SesTrk:   map[uint64]struct{}{ses: struct{}{}},
+		Size:     size,
 	}
 
 	return true
@@ -149,7 +151,7 @@ func (w *Wantlist) Len() int {
 	return len(w.set)
 }
 
-func (w *Wantlist) Add(c *cid.Cid, priority int) bool {
+func (w *Wantlist) Add(c *cid.Cid, priority int, size int) bool {
 	k := c.KeyString()
 	if _, ok := w.set[k]; ok {
 		return false
@@ -158,6 +160,7 @@ func (w *Wantlist) Add(c *cid.Cid, priority int) bool {
 	w.set[k] = &Entry{
 		Cid:      c,
 		Priority: priority,
+		Size:     size,
 	}
 
 	return true

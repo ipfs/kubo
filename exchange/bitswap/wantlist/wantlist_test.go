@@ -47,12 +47,14 @@ func assertNotHasCid(t *testing.T, w wli, c *cid.Cid) {
 
 func TestBasicWantlist(t *testing.T) {
 	wl := New()
+	// arbitrary blockSize for testing
+	blockSize := 10
 
-	if !wl.Add(testcids[0], 5) {
+	if !wl.Add(testcids[0], blockSize, 5) {
 		t.Fatal("expected true")
 	}
 	assertHasCid(t, wl, testcids[0])
-	if !wl.Add(testcids[1], 4) {
+	if !wl.Add(testcids[1], blockSize, 4) {
 		t.Fatal("expected true")
 	}
 	assertHasCid(t, wl, testcids[0])
@@ -62,7 +64,7 @@ func TestBasicWantlist(t *testing.T) {
 		t.Fatal("should have had two items")
 	}
 
-	if wl.Add(testcids[1], 4) {
+	if wl.Add(testcids[1], blockSize, 4) {
 		t.Fatal("add shouldnt report success on second add")
 	}
 	assertHasCid(t, wl, testcids[0])
@@ -84,8 +86,10 @@ func TestBasicWantlist(t *testing.T) {
 
 func TestSesRefWantlist(t *testing.T) {
 	wl := NewThreadSafe()
+	// arbitrary blockSize for testing
+	blockSize := 10
 
-	if !wl.Add(testcids[0], 5, 1) {
+	if !wl.Add(testcids[0], 5, blockSize, 1) {
 		t.Fatal("should have added")
 	}
 	assertHasCid(t, wl, testcids[0])
@@ -93,7 +97,7 @@ func TestSesRefWantlist(t *testing.T) {
 		t.Fatal("shouldnt have removed")
 	}
 	assertHasCid(t, wl, testcids[0])
-	if wl.Add(testcids[0], 5, 1) {
+	if wl.Add(testcids[0], 5, blockSize, 1) {
 		t.Fatal("shouldnt have added")
 	}
 	assertHasCid(t, wl, testcids[0])

@@ -391,7 +391,7 @@ func (mq *msgQueue) addMessage(entries []*bsmsg.Entry, ses uint64) {
 				mq.out.Cancel(e.Cid)
 			}
 		} else {
-			if mq.wl.Add(e.Cid, e.Priority, ses) {
+			if mq.wl.Add(e.Cid, e.Priority, e.Size, ses) {
 				work = true
 				mq.out.AddEntry(e.Cid, e.Priority)
 			}

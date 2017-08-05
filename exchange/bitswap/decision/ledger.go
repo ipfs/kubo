@@ -76,9 +76,9 @@ func (l *ledger) ReceivedBytes(n int) {
 	l.Accounting.BytesRecv += uint64(n)
 }
 
-func (l *ledger) Wants(k *cid.Cid, priority int) {
+func (l *ledger) Wants(k *cid.Cid, priority, size int) {
 	log.Debugf("peer %s wants %s", l.Partner, k)
-	l.wantList.Add(k, priority)
+	l.wantList.Add(k, priority, size)
 }
 
 func (l *ledger) CancelWant(k *cid.Cid) {
@@ -91,4 +91,14 @@ func (l *ledger) WantListContains(k *cid.Cid) (*wl.Entry, bool) {
 
 func (l *ledger) ExchangeCount() uint64 {
 	return l.exchangeCount
+}
+
+func (l *ledger) Receipt() *Receipt {
+	return &Receipt{
+		Peer:      string(l.Partner),
+		Value:     l.Accounting.Value(),
+		Sent:      l.Accounting.BytesSent,
+		Recv:      l.Accounting.BytesRecv,
+		Exchanged: l.ExchangeCount(),
+	}
 }
