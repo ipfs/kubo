@@ -41,7 +41,11 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 		t.Fatal(err)
 	}
 
-	err = trickle.VerifyTrickleDagStructure(nd, dm.dagserv, h.DefaultLinksPerBlock, 4)
+	err = trickle.VerifyTrickleDagStructure(nd, trickle.VerifyParams{
+		Getter:      dm.dagserv,
+		Direct:      h.DefaultLinksPerBlock,
+		LayerRepeat: 4,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
