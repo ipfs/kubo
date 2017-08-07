@@ -8,8 +8,8 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 
 	testutil "gx/ipfs/QmSTbByZ1rJVn8KANcoiLDiPH2pgDaz33uT6JW6B9nMBW5/go-libp2p-netutil"
-	bhost "gx/ipfs/QmZPBrKq6S1fdYaRAzYZivJL12QkUqHwnNzF9wC8VXC4bo/go-libp2p/p2p/host/basic"
 	inet "gx/ipfs/QmahYsGWry85Y7WUe2SX5G4JkH2zifEQAUtJVLZ24aC9DF/go-libp2p-net"
+	bhost "gx/ipfs/QmctoXhbiaVYyW8zUEYFv8PcZ9z66rvxQNSSuYAvC7cRoc/go-libp2p/p2p/host/basic"
 )
 
 // This test is based on go-libp2p/p2p/net/swarm.TestConnectednessCorrect

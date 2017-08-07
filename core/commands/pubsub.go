@@ -14,8 +14,8 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	blocks "gx/ipfs/QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg/go-block-format"
 
+	floodsub "gx/ipfs/QmNhuMfExDSZvjyrUk9FkC1Cb3vqx2ErCicFwxq2f7SHbW/floodsub"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	floodsub "gx/ipfs/QmQCm4CY8hXwYnaEZ5E2iRWFmWWX9xGCTABySyLbfyqXNh/floodsub"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
 )
