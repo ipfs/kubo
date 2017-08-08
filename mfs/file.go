@@ -23,6 +23,8 @@ type File struct {
 	dserv  dag.DAGService
 	node   node.Node
 	nodelk sync.Mutex
+
+	RawLeaves bool
 }
 
 // NewFile returns a NewFile object with the given parameters
@@ -79,6 +81,7 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 	if err != nil {
 		return nil, err
 	}
+	dmod.RawLeaves = fi.RawLeaves
 
 	return &fileDescriptor{
 		inode: fi,

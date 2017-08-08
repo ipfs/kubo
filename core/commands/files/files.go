@@ -43,6 +43,7 @@ operations.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("f", "flush", "Flush target and ancestors after write.").Default(true),
+		cmds.BoolOption("raw-leaves", "Use raw blocks for newly created leaf nodes. (experimental)"),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -598,6 +599,7 @@ stat' on the file or any of its ancestors.
 		create, _, _ := req.Option("create").Bool()
 		trunc, _, _ := req.Option("truncate").Bool()
 		flush, _, _ := req.Option("flush").Bool()
+		rawLeaves, _, _ := req.Option("raw-leaves").Bool()
 
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -620,6 +622,7 @@ stat' on the file or any of its ancestors.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		fi.RawLeaves = rawLeaves
 
 		wfd, err := fi.Open(mfs.OpenWriteOnly, flush)
 		if err != nil {
