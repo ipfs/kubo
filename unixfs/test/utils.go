@@ -18,6 +18,7 @@ import (
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 )
 
 func SizeSplitterGen(size int64) chunk.SplitterGen {
@@ -41,6 +42,13 @@ type NodeOpts struct {
 var UseProtoBufLeaves = NodeOpts{Prefix: mdag.V0CidPrefix()}
 var UseRawLeaves = NodeOpts{Prefix: mdag.V0CidPrefix(), ForceRawLeaves: true, RawLeavesUsed: true}
 var UseCidV1 = NodeOpts{Prefix: mdag.V1CidPrefix(), RawLeavesUsed: true}
+var UseBlake2b256 NodeOpts
+
+func init() {
+	UseBlake2b256 = UseCidV1
+	UseBlake2b256.Prefix.MhType = mh.Names["blake2b-256"]
+	UseBlake2b256.Prefix.MhLength = -1
+}
 
 func GetNode(t testing.TB, dserv mdag.DAGService, data []byte, opts NodeOpts) node.Node {
 	in := bytes.NewReader(data)

@@ -77,6 +77,7 @@ func runAllSubtests(t *testing.T, tfunc func(*testing.T, testu.NodeOpts)) {
 	t.Run("opts=ProtoBufLeaves", func(t *testing.T) { tfunc(t, testu.UseProtoBufLeaves) })
 	t.Run("opts=RawLeaves", func(t *testing.T) { tfunc(t, testu.UseRawLeaves) })
 	t.Run("opts=CidV1", func(t *testing.T) { tfunc(t, testu.UseCidV1) })
+	t.Run("opts=Blake2b256", func(t *testing.T) { tfunc(t, testu.UseBlake2b256) })
 }
 
 func TestDagModifierBasic(t *testing.T) {
