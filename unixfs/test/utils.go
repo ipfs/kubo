@@ -8,8 +8,9 @@ import (
 	"io/ioutil"
 	"testing"
 
-	imp "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
+	h "github.com/ipfs/go-ipfs/importer/helpers"
+	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	mdagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -28,9 +29,23 @@ func GetDAGServ() mdag.DAGService {
 	return mdagmock.Mock()
 }
 
-func GetNode(t testing.TB, dserv mdag.DAGService, data []byte) node.Node {
+type UseRawLeaves bool
+
+const (
+	ProtoBufLeaves UseRawLeaves = false
+	RawLeaves      UseRawLeaves = true
+)
+
+func GetNode(t testing.TB, dserv mdag.DAGService, data []byte, rawLeaves UseRawLeaves) node.Node {
 	in := bytes.NewReader(data)
-	node, err := imp.BuildTrickleDagFromReader(dserv, SizeSplitterGen(500)(in))
+
+	dbp := h.DagBuilderParams{
+		Dagserv:   dserv,
+		Maxlinks:  h.DefaultLinksPerBlock,
+		RawLeaves: bool(rawLeaves),
+	}
+
+	node, err := trickle.TrickleLayout(dbp.New(SizeSplitterGen(500)(in)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,18 +53,18 @@ func GetNode(t testing.TB, dserv mdag.DAGService, data []byte) node.Node {
 	return node
 }
 
-func GetEmptyNode(t testing.TB, dserv mdag.DAGService) node.Node {
-	return GetNode(t, dserv, []byte{})
+func GetEmptyNode(t testing.TB, dserv mdag.DAGService, rawLeaves UseRawLeaves) node.Node {
+	return GetNode(t, dserv, []byte{}, rawLeaves)
 }
 
-func GetRandomNode(t testing.TB, dserv mdag.DAGService, size int64) ([]byte, node.Node) {
+func GetRandomNode(t testing.TB, dserv mdag.DAGService, size int64, rawLeaves UseRawLeaves) ([]byte, node.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	node := GetNode(t, dserv, buf)
+	node := GetNode(t, dserv, buf, rawLeaves)
 	return buf, node
 }
 
