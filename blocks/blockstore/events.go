@@ -63,15 +63,15 @@ func (es *eventSystem) fireEvent(t EventID, e *Event) error {
 	return nil
 }
 
-func (e *eventSystem) fireMany(t EventID, es []*Event) error {
-	e.lock.RLock()
-	hs, ok := e.handlers[t]
-	e.lock.RUnlock()
+func (es *eventSystem) fireMany(t EventID, evs []*Event) error {
+	es.lock.RLock()
+	hs, ok := es.handlers[t]
+	es.lock.RUnlock()
 	if !ok {
 		return nil
 	}
 
-	for _, e := range es {
+	for _, e := range evs {
 		for _, h := range hs {
 			handled, err := h(e)
 			if err != nil {
