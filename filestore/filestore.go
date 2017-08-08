@@ -10,9 +10,10 @@ package filestore
 import (
 	"context"
 
+	"gx/ipfs/QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg/go-block-format"
+
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
-	"gx/ipfs/QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg/go-block-format"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
@@ -25,8 +26,9 @@ var log = logging.Logger("filestore")
 // to store regular blocks and a special Blockstore called
 // FileManager to store blocks which data exists in an external file.
 type Filestore struct {
+	blockstore.Blockstore
+
 	fm *FileManager
-	bs blockstore.Blockstore
 }
 
 // FileManager returns the FileManager in Filestore.
@@ -36,12 +38,12 @@ func (f *Filestore) FileManager() *FileManager {
 
 // MainBlockstore returns the standard Blockstore in the Filestore.
 func (f *Filestore) MainBlockstore() blockstore.Blockstore {
-	return f.bs
+	return f.Blockstore
 }
 
 // NewFilestore creates one using the given Blockstore and FileManager.
 func NewFilestore(bs blockstore.Blockstore, fm *FileManager) *Filestore {
-	return &Filestore{fm, bs}
+	return &Filestore{fm: fm, Blockstore: bs}
 }
 
 // AllKeysChan returns a channel from which to read the keys stored in
@@ -49,7 +51,7 @@ func NewFilestore(bs blockstore.Blockstore, fm *FileManager) *Filestore {
 func (f *Filestore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
-	a, err := f.bs.AllKeysChan(ctx)
+	a, err := f.Blockstore.AllKeysChan(ctx)
 	if err != nil {
 		cancel()
 		return nil, err
@@ -113,7 +115,7 @@ func (f *Filestore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 // reference is deleted, not its contents. It may return
 // ErrNotFound when the block is not stored.
 func (f *Filestore) DeleteBlock(c *cid.Cid) error {
-	err1 := f.bs.DeleteBlock(c)
+	err1 := f.Blockstore.DeleteBlock(c)
 	if err1 != nil && err1 != blockstore.ErrNotFound {
 		return err1
 	}
@@ -138,7 +140,7 @@ func (f *Filestore) DeleteBlock(c *cid.Cid) error {
 // Get retrieves the block with the given Cid. It may return
 // ErrNotFound when the block is not stored.
 func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
-	blk, err := f.bs.Get(c)
+	blk, err := f.Blockstore.Get(c)
 	switch err {
 	default:
 		return nil, err
@@ -154,7 +156,7 @@ func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
 // Has returns true if the block with the given Cid is
 // stored in the Filestore.
 func (f *Filestore) Has(c *cid.Cid) (bool, error) {
-	has, err := f.bs.Has(c)
+	has, err := f.Blockstore.Has(c)
 	if err != nil {
 		return false, err
 	}
@@ -184,7 +186,7 @@ func (f *Filestore) Put(b blocks.Block) error {
 	case *posinfo.FilestoreNode:
 		return f.fm.Put(b)
 	default:
-		return f.bs.Put(b)
+		return f.Blockstore.Put(b)
 	}
 }
 
@@ -213,7 +215,7 @@ func (f *Filestore) PutMany(bs []blocks.Block) error {
 	}
 
 	if len(normals) > 0 {
-		err := f.bs.PutMany(normals)
+		err := f.Blockstore.PutMany(normals)
 		if err != nil {
 			return err
 		}
@@ -230,7 +232,7 @@ func (f *Filestore) PutMany(bs []blocks.Block) error {
 
 // HashOnRead calls blockstore.HashOnRead.
 func (f *Filestore) HashOnRead(enabled bool) {
-	f.bs.HashOnRead(enabled)
+	f.Blockstore.HashOnRead(enabled)
 }
 
 var _ blockstore.Blockstore = (*Filestore)(nil)

@@ -20,7 +20,7 @@ func bloomCached(ctx context.Context, bs Blockstore, bloomSize, hashCount int) (
 	if err != nil {
 		return nil, err
 	}
-	bc := &bloomcache{blockstore: bs, bloom: bl}
+	bc := &bloomcache{Blockstore: bs, bloom: bl}
 	bc.hits = metrics.NewCtx(ctx, "bloom.hits_total",
 		"Number of cache hits in bloom cache").Counter()
 	bc.total = metrics.NewCtx(ctx, "bloom_total",
@@ -50,12 +50,13 @@ func bloomCached(ctx context.Context, bs Blockstore, bloomSize, hashCount int) (
 }
 
 type bloomcache struct {
+	Blockstore
+
 	bloom  *bloom.Bloom
 	active int32
 
 	// This chan is only used for testing to wait for bloom to enable
 	rebuildChan chan struct{}
-	blockstore  Blockstore
 
 	// Statistics
 	hits  metrics.Counter
@@ -75,7 +76,7 @@ func (b *bloomcache) Rebuild(ctx context.Context) {
 	evt := log.EventBegin(ctx, "bloomcache.Rebuild")
 	defer evt.Done()
 
-	ch, err := b.blockstore.AllKeysChan(ctx)
+	ch, err := b.Blockstore.AllKeysChan(ctx)
 	if err != nil {
 		log.Errorf("AllKeysChan failed in bloomcache rebuild with: %v", err)
 		return
@@ -103,7 +104,7 @@ func (b *bloomcache) DeleteBlock(k *cid.Cid) error {
 		return ErrNotFound
 	}
 
-	return b.blockstore.DeleteBlock(k)
+	return b.Blockstore.DeleteBlock(k)
 }
 
 // if ok == false has is inconclusive
@@ -131,7 +132,7 @@ func (b *bloomcache) Has(k *cid.Cid) (bool, error) {
 		return has, nil
 	}
 
-	return b.blockstore.Has(k)
+	return b.Blockstore.Has(k)
 }
 
 func (b *bloomcache) Get(k *cid.Cid) (blocks.Block, error) {
@@ -139,12 +140,12 @@ func (b *bloomcache) Get(k *cid.Cid) (blocks.Block, error) {
 		return nil, ErrNotFound
 	}
 
-	return b.blockstore.Get(k)
+	return b.Blockstore.Get(k)
 }
 
 func (b *bloomcache) Put(bl blocks.Block) error {
 	// See comment in PutMany
-	err := b.blockstore.Put(bl)
+	err := b.Blockstore.Put(bl)
 	if err == nil {
 		b.bloom.AddTS(bl.Cid().Bytes())
 	}
@@ -156,7 +157,7 @@ func (b *bloomcache) PutMany(bs []blocks.Block) error {
 	// to reduce number of puts we need conclusive information if block is contained
 	// this means that PutMany can't be improved with bloom cache so we just
 	// just do a passthrough.
-	err := b.blockstore.PutMany(bs)
+	err := b.Blockstore.PutMany(bs)
 	if err != nil {
 		return err
 	}
@@ -164,24 +165,4 @@ func (b *bloomcache) PutMany(bs []blocks.Block) error {
 		b.bloom.AddTS(bl.Cid().Bytes())
 	}
 	return nil
-}
-
-func (b *bloomcache) HashOnRead(enabled bool) {
-	b.blockstore.HashOnRead(enabled)
-}
-
-func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
-	return b.blockstore.AllKeysChan(ctx)
-}
-
-func (b *bloomcache) GCLock() Unlocker {
-	return b.blockstore.(GCBlockstore).GCLock()
-}
-
-func (b *bloomcache) PinLock() Unlocker {
-	return b.blockstore.(GCBlockstore).PinLock()
-}
-
-func (b *bloomcache) GCRequested() bool {
-	return b.blockstore.(GCBlockstore).GCRequested()
 }

@@ -15,8 +15,9 @@ import (
 // block Cids. This provides block access-time improvements, allowing
 // to short-cut many searches without query-ing the underlying datastore.
 type arccache struct {
-	arc        *lru.ARCCache
-	blockstore Blockstore
+	Blockstore
+
+	arc *lru.ARCCache
 
 	hits  metrics.Counter
 	total metrics.Counter
@@ -27,7 +28,7 @@ func newARCCachedBS(ctx context.Context, bs Blockstore, lruSize int) (*arccache,
 	if err != nil {
 		return nil, err
 	}
-	c := &arccache{arc: arc, blockstore: bs}
+	c := &arccache{arc: arc, Blockstore: bs}
 	c.hits = metrics.NewCtx(ctx, "arc.hits_total", "Number of ARC cache hits").Counter()
 	c.total = metrics.NewCtx(ctx, "arc_total", "Total number of ARC cache requests").Counter()
 
@@ -40,7 +41,7 @@ func (b *arccache) DeleteBlock(k *cid.Cid) error {
 	}
 
 	b.arc.Remove(k) // Invalidate cache before deleting.
-	err := b.blockstore.DeleteBlock(k)
+	err := b.Blockstore.DeleteBlock(k)
 	switch err {
 	case nil, ds.ErrNotFound, ErrNotFound:
 		b.addCache(k, false)
@@ -74,7 +75,7 @@ func (b *arccache) Has(k *cid.Cid) (bool, error) {
 		return has, nil
 	}
 
-	res, err := b.blockstore.Has(k)
+	res, err := b.Blockstore.Has(k)
 	if err == nil {
 		b.addCache(k, res)
 	}
@@ -91,7 +92,7 @@ func (b *arccache) Get(k *cid.Cid) (blocks.Block, error) {
 		return nil, ErrNotFound
 	}
 
-	bl, err := b.blockstore.Get(k)
+	bl, err := b.Blockstore.Get(k)
 	if bl == nil && err == ErrNotFound {
 		b.addCache(k, false)
 	} else if bl != nil {
@@ -105,7 +106,7 @@ func (b *arccache) Put(bl blocks.Block) error {
 		return nil
 	}
 
-	err := b.blockstore.Put(bl)
+	err := b.Blockstore.Put(bl)
 	if err == nil {
 		b.addCache(bl.Cid(), true)
 	}
@@ -121,7 +122,7 @@ func (b *arccache) PutMany(bs []blocks.Block) error {
 			good = append(good, block)
 		}
 	}
-	err := b.blockstore.PutMany(good)
+	err := b.Blockstore.PutMany(good)
 	if err != nil {
 		return err
 	}
@@ -131,26 +132,6 @@ func (b *arccache) PutMany(bs []blocks.Block) error {
 	return nil
 }
 
-func (b *arccache) HashOnRead(enabled bool) {
-	b.blockstore.HashOnRead(enabled)
-}
-
 func (b *arccache) addCache(c *cid.Cid, has bool) {
 	b.arc.Add(c.KeyString(), has)
-}
-
-func (b *arccache) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
-	return b.blockstore.AllKeysChan(ctx)
-}
-
-func (b *arccache) GCLock() Unlocker {
-	return b.blockstore.(GCBlockstore).GCLock()
-}
-
-func (b *arccache) PinLock() Unlocker {
-	return b.blockstore.(GCBlockstore).PinLock()
-}
-
-func (b *arccache) GCRequested() bool {
-	return b.blockstore.(GCBlockstore).GCRequested()
 }
