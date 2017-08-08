@@ -9,6 +9,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 )
 
@@ -239,6 +240,7 @@ type VerifyParams struct {
 	Getter      node.NodeGetter
 	Direct      int
 	LayerRepeat int
+	Prefix      *cid.Prefix
 	RawLeaves   bool
 }
 
@@ -250,6 +252,7 @@ func VerifyTrickleDagStructure(nd node.Node, p VerifyParams) error {
 
 // Recursive call for verifying the structure of a trickledag
 func verifyTDagRec(n node.Node, depth int, p VerifyParams) error {
+	codec := cid.DagProtobuf
 	if depth == 0 {
 		if len(n.Links()) > 0 {
 			return errors.New("expected direct block")
@@ -269,17 +272,34 @@ func verifyTDagRec(n node.Node, depth int, p VerifyParams) error {
 			if p.RawLeaves {
 				return errors.New("expected raw leaf, got a protobuf node")
 			}
-
-			return nil
 		case *dag.RawNode:
 			if !p.RawLeaves {
 				return errors.New("expected protobuf node as leaf")
 			}
-
-			return nil
+			codec = cid.Raw
 		default:
 			return errors.New("expected ProtoNode or RawNode")
 		}
+	}
+
+	// verify prefix
+	if p.Prefix != nil {
+		prefix := n.Cid().Prefix()
+		expect := *p.Prefix // make a copy
+		expect.Codec = uint64(codec)
+		if codec == cid.Raw && expect.Version == 0 {
+			expect.Version = 1
+		}
+		if expect.MhLength == -1 {
+			expect.MhLength = prefix.MhLength
+		}
+		if prefix != expect {
+			return fmt.Errorf("unexpected cid prefix: expected: %v; got %v", expect, prefix)
+		}
+	}
+
+	if depth == 0 {
+		return nil
 	}
 
 	nd, ok := n.(*dag.ProtoNode)

@@ -40,6 +40,7 @@ type DagModifier struct {
 	curWrOff   uint64
 	wrBuf      *bytes.Buffer
 
+	Prefix    cid.Prefix
 	RawLeaves bool
 
 	read uio.DagReader
@@ -47,6 +48,10 @@ type DagModifier struct {
 
 var ErrNotUnixfs = fmt.Errorf("dagmodifier only supports unixfs nodes (proto or raw)")
 
+// NewDagModifier returns a new DagModifier, the Cid prefix for newly
+// created nodes will be inherted from the passed in node.  If the Cid
+// version if not 0 raw leaves will also be enabled.  The Prefix and
+// RawLeaves options can be overridden by changing them after the call.
 func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
 	switch from.(type) {
 	case *mdag.ProtoNode, *mdag.RawNode:
@@ -55,11 +60,20 @@ func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, s
 		return nil, ErrNotUnixfs
 	}
 
+	prefix := from.Cid().Prefix()
+	prefix.Codec = cid.DagProtobuf
+	rawLeaves := false
+	if prefix.Version > 0 {
+		rawLeaves = true
+	}
+
 	return &DagModifier{
-		curNode:  from.Copy(),
-		dagserv:  serv,
-		splitter: spl,
-		ctx:      ctx,
+		curNode:   from.Copy(),
+		dagserv:   serv,
+		splitter:  spl,
+		ctx:       ctx,
+		Prefix:    prefix,
+		RawLeaves: rawLeaves,
 	}, nil
 }
 
@@ -240,6 +254,7 @@ func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*c
 
 			nd := new(mdag.ProtoNode)
 			nd.SetData(b)
+			nd.SetPrefix(&nd0.Prefix)
 			k, err := dm.dagserv.Add(nd)
 			if err != nil {
 				return nil, false, err
@@ -345,6 +360,7 @@ func (dm *DagModifier) appendData(nd node.Node, spl chunk.Splitter) (node.Node, 
 		dbp := &help.DagBuilderParams{
 			Dagserv:   dm.dagserv,
 			Maxlinks:  help.DefaultLinksPerBlock,
+			Prefix:    &dm.Prefix,
 			RawLeaves: dm.RawLeaves,
 		}
 		return trickle.TrickleAppend(dm.ctx, nd, dbp.New(spl))
