@@ -9,10 +9,10 @@ import (
 	"sync/atomic"
 
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
-	blocks "gx/ipfs/QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg/go-block-format"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	blocks "gx/ipfs/QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg/go-block-format"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	dsns "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/namespace"
 	dsq "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/query"
@@ -96,11 +96,13 @@ func NewBlockstore(d ds.Batching) Blockstore {
 	dsb = dd
 	return &blockstore{
 		datastore: dsb,
+		events:    &eventSystem{},
 	}
 }
 
 type blockstore struct {
 	datastore ds.Batching
+	events    *eventSystem
 
 	rehash bool
 }
@@ -143,14 +145,20 @@ func (bs *blockstore) Get(k *cid.Cid) (blocks.Block, error) {
 }
 
 func (bs *blockstore) Put(block blocks.Block) error {
-	k := dshelp.CidToDsKey(block.Cid())
+	c := block.Cid()
+	k := dshelp.CidToDsKey(c)
 
 	// Has is cheaper than Put, so see if we already have it
 	exists, err := bs.datastore.Has(k)
 	if err == nil && exists {
 		return nil // already stored.
 	}
-	return bs.datastore.Put(k, block.RawData())
+	err = bs.datastore.Put(k, block.RawData())
+	if err != nil {
+		return err
+	}
+
+	return bs.events.fireEvent(EventPostPut, &Event{cid: c, block: block})
 }
 
 func (bs *blockstore) PutMany(blocks []blocks.Block) error {
@@ -158,8 +166,11 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	if err != nil {
 		return err
 	}
-	for _, b := range blocks {
-		k := dshelp.CidToDsKey(b.Cid())
+	events := make([]*Event, len(blocks))
+	for i, b := range blocks {
+		c := b.Cid()
+		k := dshelp.CidToDsKey(c)
+		events[i] = &Event{cid: c, block: b}
 		exists, err := bs.datastore.Has(k)
 		if err == nil && exists {
 			continue
@@ -170,7 +181,12 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 			return err
 		}
 	}
-	return t.Commit()
+	err = t.Commit()
+	if err != nil {
+		return err
+	}
+
+	return bs.events.fireMany(EventPostPut, events)
 }
 
 func (bs *blockstore) Has(k *cid.Cid) (bool, error) {
