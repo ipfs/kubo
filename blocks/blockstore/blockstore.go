@@ -49,6 +49,8 @@ type Blockstore interface {
 	// HashOnRead specifies if every read block should be
 	// rehashed to make sure it matches its CID.
 	HashOnRead(enabled bool)
+	// RegisterEventHandler registers an event handler
+	RegisterEventHandler(EventID, EventFunc)
 }
 
 // GCLocker abstract functionality to lock a blockstore when performing
@@ -105,6 +107,10 @@ type blockstore struct {
 	events    *eventSystem
 
 	rehash bool
+}
+
+func (bs *blockstore) RegisterEventHandler(t EventID, eh EventFunc) {
+	bs.events.addHandler(t, eh)
 }
 
 func (bs *blockstore) HashOnRead(enabled bool) {
