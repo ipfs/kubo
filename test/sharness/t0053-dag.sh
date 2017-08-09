@@ -126,6 +126,15 @@ test_dag_cmd() {
 		ipfs repo gc > /dev/null &&
 		ipfs refs -r --timeout=2s $PINHASH > /dev/null
 	'
+
+	test_expect_success "can add an ipld object with sha3 hash" '
+		IPLDHASH=$(cat ipld_object | ipfs dag put --hash sha3)
+	'
+
+	test_expect_success "output looks correct" '
+		EXPHASH="zBwWX8u9LYZdCWqaryJW8QsBstghHSPy41nfhhFLY9qw1Vu2BWqnMFtk1jL3qCtEdGd7Kqw1HNPZv5z8LxP2eHGGDCdRE"
+		test $EXPHASH = $IPLDHASH
+	'
 }
 
 # should work offline
