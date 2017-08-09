@@ -98,7 +98,7 @@ func NewBlockstore(d ds.Batching) Blockstore {
 	dsb = dd
 	return &blockstore{
 		datastore: dsb,
-		events:    &eventSystem{},
+		events:    newEventSystem(),
 	}
 }
 

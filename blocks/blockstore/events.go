@@ -32,6 +32,10 @@ type eventSystem struct {
 	handlers map[EventID][]EventFunc
 }
 
+func newEventSystem() *eventSystem {
+	return &eventSystem{handlers: make(map[EventID][]EventFunc)}
+}
+
 func (es *eventSystem) addHandler(t EventID, ef EventFunc) {
 	es.lock.Lock()
 	defer es.lock.Unlock()
