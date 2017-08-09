@@ -20,6 +20,7 @@ type InputEncParsers map[string]FormatParsers
 var DefaultInputEncParsers = InputEncParsers{
 	"json": defaultJSONParsers,
 	"raw":  defaultRawParsers,
+	"cbor": defaultCborParsers,
 }
 
 var defaultJSONParsers = FormatParsers{
@@ -28,6 +29,11 @@ var defaultJSONParsers = FormatParsers{
 }
 
 var defaultRawParsers = FormatParsers{
+	"cbor":     cborRawParser,
+	"dag-cbor": cborRawParser,
+}
+
+var defaultCborParsers = FormatParsers{
 	"cbor":     cborRawParser,
 	"dag-cbor": cborRawParser,
 }

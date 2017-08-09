@@ -118,6 +118,12 @@ test_dag_cmd() {
 		test_fsh echo $HASH
 	'
 
+	test_expect_success "non-canonical cbor input is normalized with input-enc cbor" '
+		HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=cbor --input-enc=cbor) &&
+		test $HASH = "zdpuAmxF8q6iTUtkB3xtEYzmc5Sw762qwQJftt5iW8NTWLtjC" ||
+		test_fsh echo $HASH
+	'
+
 	test_expect_success "add an ipld with pin" '
 		PINHASH=$(printf {\"foo\":\"bar\"} | ipfs dag put --pin=true)
 	'
