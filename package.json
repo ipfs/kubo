@@ -261,9 +261,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmXgUVPAxjMLZSyxx818YstJJAoRg3nyPWENmBLVzLtoax",
+      "hash": "QmeebqVZeEXBqJ2B4urQWfdhwRRPm84ajnCo8x8pfwbsPM",
       "name": "go-ipld-cbor",
-      "version": "1.2.7"
+      "version": "1.2.8"
     },
     {
       "author": "lgierth",

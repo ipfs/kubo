@@ -3,6 +3,7 @@ package dagcmd
 import (
 	"fmt"
 	"io"
+	"math"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -11,6 +12,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 )
 
 var DagCmd = &cmds.Command{
@@ -48,6 +50,7 @@ into an object of the specified format.
 		cmds.StringOption("format", "f", "Format that the object will be added as.").Default("cbor"),
 		cmds.StringOption("input-enc", "Format that the input object will be.").Default("json"),
 		cmds.BoolOption("pin", "Pin this object when adding.").Default(false),
+		cmds.StringOption("hash", "Hash function to use").Default(""),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -64,17 +67,31 @@ into an object of the specified format.
 
 		ienc, _, _ := req.Option("input-enc").String()
 		format, _, _ := req.Option("format").String()
+		hash, _, err := req.Option("hash").String()
 		dopin, _, err := req.Option("pin").Bool()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
+		// mhType tells inputParser which hash should be used. MaxUint64 means 'use
+		// default hash' (sha256 for cbor, sha1 for git..)
+		mhType := uint64(math.MaxUint64)
+
+		if hash != "" {
+			var ok bool
+			mhType, ok = mh.Names[hash]
+			if !ok {
+				res.SetError(fmt.Errorf("%s in not a valid multihash name", hash), cmds.ErrNormal)
+				return
+			}
+		}
+
 		if dopin {
 			defer n.Blockstore.PinLock().Unlock()
 		}
 
-		nds, err := coredag.ParseInputs(ienc, format, fi)
+		nds, err := coredag.ParseInputs(ienc, format, fi, mhType, -1)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
