@@ -13,6 +13,7 @@ api_repo="repos/$org/$repo"
 exclusions=(
 	'master'
 	'release'
+	'feat/zcash'
 )
 
 gh_api_next() {
