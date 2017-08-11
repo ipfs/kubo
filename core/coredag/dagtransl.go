@@ -26,11 +26,17 @@ var DefaultInputEncParsers = InputEncParsers{
 var defaultJSONParsers = FormatParsers{
 	"cbor":     cborJSONParser,
 	"dag-cbor": cborJSONParser,
+
+	"protobuf": dagpbJSONParser,
+	"dag-pb":   dagpbJSONParser,
 }
 
 var defaultRawParsers = FormatParsers{
 	"cbor":     cborRawParser,
 	"dag-cbor": cborRawParser,
+
+	"protobuf": dagpbRawParser,
+	"dag-pb":   dagpbRawParser,
 }
 
 var defaultCborParsers = FormatParsers{
