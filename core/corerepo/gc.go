@@ -79,14 +79,13 @@ func BestEffortRoots(filesRoot *mfs.Root) ([]*cid.Cid, error) {
 	return []*cid.Cid{rootDag.Cid()}, nil
 }
 
-func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
+func GarbageCollect(ctx context.Context, n *core.IpfsNode) error {
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel() // in case error occurs during operation
-	roots, err := BestEffortRoots(n.FilesRoot)
+	defer cancel()
+	rmed, err := GarbageCollectAsync(ctx, n)
 	if err != nil {
 		return err
 	}
-	rmed := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
 
 	return CollectResult(ctx, rmed, nil)
 }
@@ -145,16 +144,22 @@ func (e *MultiError) Error() string {
 	return buf.String()
 }
 
-func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) <-chan gc.Result {
-	roots, err := BestEffortRoots(n.FilesRoot)
+func GarbageCollectAsync(ctx context.Context, n *core.IpfsNode) (<-chan gc.Result, error) {
+	g, err := gc.NewGC(n.Blockstore, n.DAG)
 	if err != nil {
-		out := make(chan gc.Result)
-		out <- gc.Result{Error: err}
-		close(out)
-		return out
+		return nil, err
 	}
 
-	return gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
+	err = g.AddPinSource(n.Pinning.PinSources()...)
+	if err != nil {
+		return nil, err
+	}
+	err = g.AddPinSource(*n.FilesRoot.PinSource())
+	if err != nil {
+		return nil, err
+	}
+
+	return g.Run(ctx), nil
 }
 
 func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {
@@ -217,7 +222,7 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 		log.Info("Watermark exceeded. Starting repo GC...")
 		defer log.EventBegin(ctx, "repoGC").Done()
 
-		if err := GarbageCollect(gc.Node, ctx); err != nil {
+		if err := GarbageCollect(ctx, gc.Node); err != nil {
 			return err
 		}
 		log.Infof("Repo GC done. See `ipfs repo stat` to see how much space got freed.\n")

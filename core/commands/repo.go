@@ -69,7 +69,11 @@ order to reclaim hard disk space.
 
 		streamErrors, _, _ := res.Request().Option("stream-errors").Bool()
 
-		gcOutChan := corerepo.GarbageCollectAsync(n, req.Context())
+		gcOutChan, err := corerepo.GarbageCollectAsync(req.Context(), n)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		outChan := make(chan interface{}, cap(gcOutChan))
 		res.SetOutput((<-chan interface{})(outChan))

@@ -110,6 +110,9 @@ type Pinner interface {
 	DirectKeys() []*cid.Cid
 	RecursiveKeys() []*cid.Cid
 	InternalPins() []*cid.Cid
+
+	// References of pins for GC
+	PinSources() []Source
 }
 
 type Pinned struct {
@@ -454,6 +457,39 @@ func (p *pinner) RecursiveKeys() []*cid.Cid {
 	return p.recursePin.Keys()
 }
 
+// InternalPins returns slice of cids that are part of internal pin structure
+func (p *pinner) InternalPins() []*cid.Cid {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	var out []*cid.Cid
+	out = append(out, p.internalPin.Keys()...)
+	return out
+}
+
+func (p *pinner) PinSources() []Source {
+	nilErr := func(p func() []*cid.Cid) func() ([]*cid.Cid, error) {
+		return func() ([]*cid.Cid, error) { return p(), nil }
+	}
+
+	return []Source{
+		{
+			Get:    nilErr(p.RecursiveKeys),
+			Strict: true,
+		},
+		{
+			Get:    nilErr(p.DirectKeys),
+			Strict: true,
+			Direct: true,
+		},
+		{
+			Get:      nilErr(p.InternalPins),
+			Strict:   true,
+			Internal: true,
+		},
+	}
+
+}
+
 func (p *pinner) Update(ctx context.Context, from, to *cid.Cid, unpin bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -522,14 +558,6 @@ func (p *pinner) Flush() error {
 	}
 	p.internalPin = internalset
 	return nil
-}
-
-func (p *pinner) InternalPins() []*cid.Cid {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	var out []*cid.Cid
-	out = append(out, p.internalPin.Keys()...)
-	return out
 }
 
 // PinWithMode allows the user to have fine grained control over pin
