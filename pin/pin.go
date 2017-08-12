@@ -183,6 +183,12 @@ func (p *pinner) Pin(ctx context.Context, node node.Node, recurse bool) error {
 			p.directPin.Remove(c)
 		}
 
+		v, _ := ctx.Value("progress").(*mdag.ProgressTracker)
+		if v != nil {
+			stat, _ := node.Stat()
+			v.IncrementCumulative(stat.CumulativeSize)
+		}
+
 		// fetch entire graph
 		err := mdag.FetchGraph(ctx, c, p.dserv)
 		if err != nil {
