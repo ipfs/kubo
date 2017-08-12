@@ -141,6 +141,31 @@ test_dag_cmd() {
 		EXPHASH="zBwWX8u9LYZdCWqaryJW8QsBstghHSPy41nfhhFLY9qw1Vu2BWqnMFtk1jL3qCtEdGd7Kqw1HNPZv5z8LxP2eHGGDCdRE"
 		test $EXPHASH = $IPLDHASH
 	'
+
+	test_expect_success "prepare dag-pb object" '
+		echo foo > test_file &&
+		HASH=$(ipfs add -wq test_file | tail -n1)
+	'
+
+	test_expect_success "dag put with json dag-pb works" '
+		ipfs dag get $HASH > pbjson &&
+		cat pbjson | ipfs dag put --format=dag-pb --input-enc=json > dag_put_out
+	'
+
+	test_expect_success "dag put with dag-pb works output looks good" '
+		printf $HASH > dag_put_exp &&
+		test_cmp dag_put_exp dag_put_out
+	'
+
+	test_expect_success "dag put with raw dag-pb works" '
+		ipfs block get $HASH > pbraw &&
+		cat pbraw | ipfs dag put --format=dag-pb --input-enc=raw > dag_put_out
+	'
+
+	test_expect_success "dag put with dag-pb works output looks good" '
+		printf $HASH > dag_put_exp &&
+		test_cmp dag_put_exp dag_put_out
+	'
 }
 
 # should work offline
