@@ -18,8 +18,10 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 )
 
 var log = logging.Logger("cmds/files")
@@ -39,11 +41,21 @@ of consistency guarantees. If the daemon is unexpectedly killed before running
 'ipfs files flush' on the files in question, then data may be lost. This also
 applies to running 'ipfs repo gc' concurrently with '--flush=false'
 operations.
+
+The --cid-version and --hash-fun option only apply to newly created files
+and directories.  If not specified these proprieties are inhertied
+from the parent directory.
 `,
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("f", "flush", "Flush target and ancestors after write.").Default(true),
 		cmds.BoolOption("raw-leaves", "Use raw blocks for newly created leaf nodes. (experimental)"),
+		cmds.IntOption("cid-version", "cid-ver", "Cid version. Non-zero value will change default of 'raw-leaves' to true. (experimental)"),
+		cmds.StringOption("hash-fun", "Hash function to use. Will set Cid version to 1 if used. (experimental)"),
+		// ^^fixme: can't use just "hash" as the option name as the
+		// conflicts with "--hash" usage by the stat command, this is
+		// unfortunate as it creates an inconsistency with the "add"
+		// that uses "hash"
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -599,7 +611,13 @@ stat' on the file or any of its ancestors.
 		create, _, _ := req.Option("create").Bool()
 		trunc, _, _ := req.Option("truncate").Bool()
 		flush, _, _ := req.Option("flush").Bool()
-		rawLeaves, _, _ := req.Option("raw-leaves").Bool()
+		rawLeaves, rawLeavesDef, _ := req.Option("raw-leaves").Bool()
+
+		prefix, err := getPrefix(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -617,12 +635,14 @@ stat' on the file or any of its ancestors.
 			return
 		}
 
-		fi, err := getFileHandle(nd.FilesRoot, path, create)
+		fi, err := getFileHandle(nd.FilesRoot, path, create, prefix)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		fi.RawLeaves = rawLeaves
+		if rawLeavesDef {
+			fi.RawLeaves = rawLeaves
+		}
 
 		wfd, err := fi.Open(mfs.OpenWriteOnly, flush)
 		if err != nil {
@@ -719,7 +739,21 @@ Examples:
 
 		flush, _, _ := req.Option("flush").Bool()
 
-		err = mfs.Mkdir(n.FilesRoot, dirtomake, dashp, flush)
+		prefix, err := getPrefix(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		root := n.FilesRoot
+		if prefix != nil {
+			// FIXME: This is ugly and may not be correct either
+			// -- kevina
+			newRoot := *root
+			root = &newRoot
+			root.Prefix = prefix
+		}
+
+		err = mfs.Mkdir(root, dirtomake, dashp, flush)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -863,8 +897,36 @@ Remove files or directories.
 	},
 }
 
-func getFileHandle(r *mfs.Root, path string, create bool) (*mfs.File, error) {
+func getPrefix(req cmds.Request) (*cid.Prefix, error) {
+	cidVer, cidVerSet, _ := req.Option("cid-version").Int()
+	hashFunStr, hashFunSet, _ := req.Option("hash-fun").String()
 
+	if !cidVerSet && !hashFunSet {
+		return nil, nil
+	}
+
+	if hashFunSet && cidVer == 0 {
+		cidVer = 1
+	}
+
+	prefix, err := dag.PrefixForCidVersion(cidVer)
+	if err != nil {
+		return nil, err
+	}
+
+	if hashFunSet {
+		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
+		if !ok {
+			return nil, fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
+		}
+		prefix.MhType = hashFunCode
+		prefix.MhLength = -1
+	}
+
+	return &prefix, nil
+}
+
+func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*mfs.File, error) {
 	target, err := mfs.Lookup(r, path)
 	switch err {
 	case nil:
@@ -890,7 +952,9 @@ func getFileHandle(r *mfs.Root, path string, create bool) (*mfs.File, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
-		prefix := pdir.GetPrefix()
+		if prefix == nil {
+			prefix = pdir.GetPrefix()
+		}
 
 		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
 		nd.SetPrefix(prefix)
