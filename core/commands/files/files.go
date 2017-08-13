@@ -58,15 +58,16 @@ from the parent directory.
 		// that uses "hash"
 	},
 	Subcommands: map[string]*cmds.Command{
-		"read":  FilesReadCmd,
-		"write": FilesWriteCmd,
-		"mv":    FilesMvCmd,
-		"cp":    FilesCpCmd,
-		"ls":    FilesLsCmd,
-		"mkdir": FilesMkdirCmd,
-		"stat":  FilesStatCmd,
-		"rm":    FilesRmCmd,
-		"flush": FilesFlushCmd,
+		"read":   FilesReadCmd,
+		"write":  FilesWriteCmd,
+		"mv":     FilesMvCmd,
+		"cp":     FilesCpCmd,
+		"ls":     FilesLsCmd,
+		"mkdir":  FilesMkdirCmd,
+		"stat":   FilesStatCmd,
+		"rm":     FilesRmCmd,
+		"flush":  FilesFlushCmd,
+		"update": FilesUpdateCmd,
 	},
 }
 
@@ -791,6 +792,69 @@ are run with the '--flush=false'.
 			return
 		}
 	},
+}
+
+var FilesUpdateCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Change the cid version of hash function of the root node of a given path.",
+		ShortDescription: `
+Flush a given path to disk. This is only useful when other commands
+are run with the '--flush=false'.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", false, false, "Path to flush. Default: '/'."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		nd, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		path := "/"
+		if len(req.Arguments()) > 0 {
+			path = req.Arguments()[0]
+		}
+
+		flush, _, _ := req.Option("flush").Bool()
+
+		prefix, err := getPrefix(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		err = updatePath(nd.FilesRoot, path, prefix, flush)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+	},
+}
+
+func updatePath(rt *mfs.Root, pth string, prefix *cid.Prefix, flush bool) error {
+	if prefix == nil {
+		return nil
+	}
+
+	nd, err := mfs.Lookup(rt, pth)
+	if err != nil {
+		return err
+	}
+
+	switch n := nd.(type) {
+	case *mfs.Directory:
+		n.SetPrefix(prefix)
+	default:
+		return fmt.Errorf("can only update directories")
+	}
+
+	if flush {
+		nd.Flush()
+	}
+
+	return nil
 }
 
 var FilesRmCmd = &cmds.Command{
