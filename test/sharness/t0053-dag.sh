@@ -166,6 +166,27 @@ test_dag_cmd() {
 		printf $HASH > dag_put_exp &&
 		test_cmp dag_put_exp dag_put_out
 	'
+
+	test_expect_success "prepare data for dag resolve" '
+		NESTED_HASH=$(echo "{\"data\":123}" | ipfs dag put) &&
+		HASH=$(echo "{\"obj\":{\"/\":\"${NESTED_HASH}\"}}" | ipfs dag put)
+	'
+
+	test_expect_success "dag resolve some things" '
+		ipfs dag resolve $HASH > resolve_hash &&
+		ipfs dag resolve ${HASH}/obj > resolve_obj &&
+		ipfs dag resolve ${HASH}/obj/data > resolve_data
+	'
+
+	test_expect_success "dag resolve output looks good" '
+		printf $HASH > resolve_hash_exp &&
+		printf $NESTED_HASH > resolve_obj_exp &&
+		printf $NESTED_HASH/data > resolve_data_exp &&
+
+		test_cmp resolve_hash_exp resolve_hash &&
+		test_cmp resolve_obj_exp resolve_obj &&
+		test_cmp resolve_data_exp resolve_data
+	'
 }
 
 # should work offline

@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math"
@@ -26,13 +27,19 @@ to deprecate and replace the existing 'ipfs object' command moving forward.
 		`,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"put": DagPutCmd,
-		"get": DagGetCmd,
+		"put":     DagPutCmd,
+		"get":     DagGetCmd,
+		"resolve": DagResolveCmd,
 	},
 }
 
 type OutputObject struct {
 	Cid *cid.Cid
+}
+
+type ResolveOutput struct {
+	Cid     *cid.Cid
+	RemPath string
 }
 
 var DagPutCmd = &cmds.Command{
@@ -182,4 +189,55 @@ var DagGetCmd = &cmds.Command{
 
 		res.SetOutput(out)
 	},
+}
+
+var DagResolveCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Resolve ipld block",
+		ShortDescription: `
+'ipfs dag resolve' fetches a dag node from ipfs, prints it's address and remaining path.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ref", true, false, "The path to resolve").EnableStdin(),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		p, err := path.ParsePath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&ResolveOutput{
+			Cid:     obj.Cid(),
+			RemPath: path.Join(rem),
+		})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			output := res.Output().(*ResolveOutput)
+			buf := new(bytes.Buffer)
+			p := output.Cid.String()
+			if output.RemPath != "" {
+				p = path.Join([]string{p, output.RemPath})
+			}
+
+			buf.WriteString(p)
+
+			return buf, nil
+		},
+	},
+	Type: ResolveOutput{},
 }
