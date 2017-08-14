@@ -278,9 +278,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qme65bXDcjpTRnBc8jhqRGbj9saiwUfxhuPqSns35mrGYZ",
+      "hash": "QmYBCDHS74pfbhMhtLeDpZyBa4Z9X76JLyACSKum1K39eP",
       "name": "go-smux-multiplex",
-      "version": "1.1.8"
+      "version": "1.1.9"
     },
     {
       "author": "blang",
