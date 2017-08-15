@@ -263,7 +263,7 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 		return err
 	}
 
-	var keyProvider func(context.Context) (<-chan *cid.Cid, error)
+	var keyProvider rp.KeyChanFunc
 
 	switch cfg.Reprovider.Strategy {
 	case "all":
@@ -275,7 +275,7 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 	case "pinned":
 		keyProvider = rp.NewPinnedProvider(n.Pinning, n.DAG, false)
 	default:
-		return fmt.Errorf("unknown reprovider strtaegy '%s'", cfg.Reprovider.Strategy)
+		return fmt.Errorf("unknown reprovider strategy '%s'", cfg.Reprovider.Strategy)
 	}
 	n.Reprovider = rp.NewReprovider(ctx, n.Routing, keyProvider)
 

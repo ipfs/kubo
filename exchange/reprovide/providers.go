@@ -11,14 +11,14 @@ import (
 )
 
 // NewBlockstoreProvider returns key provider using bstore.AllKeysChan
-func NewBlockstoreProvider(bstore blocks.Blockstore) keyChanFunc {
+func NewBlockstoreProvider(bstore blocks.Blockstore) KeyChanFunc {
 	return func(ctx context.Context) (<-chan *cid.Cid, error) {
 		return bstore.AllKeysChan(ctx)
 	}
 }
 
 // NewPinnedProvider returns provider supplying pinned keys
-func NewPinnedProvider(pinning pin.Pinner, dag merkledag.DAGService, onlyRoots bool) keyChanFunc {
+func NewPinnedProvider(pinning pin.Pinner, dag merkledag.DAGService, onlyRoots bool) KeyChanFunc {
 	return func(ctx context.Context) (<-chan *cid.Cid, error) {
 		set, err := pinSet(ctx, pinning, dag, onlyRoots)
 		if err != nil {
@@ -46,6 +46,8 @@ func pinSet(ctx context.Context, pinning pin.Pinner, dag merkledag.DAGService, o
 	set := newStreamingSet()
 
 	go func() {
+		defer close(set.new)
+
 		for _, key := range pinning.DirectKeys() {
 			set.add(key)
 		}
@@ -56,41 +58,33 @@ func pinSet(ctx context.Context, pinning pin.Pinner, dag merkledag.DAGService, o
 			if !onlyRoots {
 				err := merkledag.EnumerateChildren(ctx, dag.GetLinks, key, set.add)
 				if err != nil {
-					return //TODO: propagate to chan / log?
+					log.Errorf("reprovide indirect pins: %s", err)
+					return
 				}
 			}
 		}
-
-		close(set.new)
 	}()
 
 	return set, nil
 }
 
 type streamingSet struct {
-	set map[string]struct{}
+	set *cid.Set
 	new chan *cid.Cid
 }
 
 // NewSet initializes and returns a new Set.
 func newStreamingSet() *streamingSet {
 	return &streamingSet{
-		set: make(map[string]struct{}),
+		set: cid.NewSet(),
 		new: make(chan *cid.Cid),
 	}
-}
-
-// has returns if the Set contains a given Cid.
-func (s *streamingSet) has(c *cid.Cid) bool {
-	_, ok := s.set[string(c.Bytes())]
-	return ok
 }
 
 // add adds a Cid to the set only if it is
 // not in it already.
 func (s *streamingSet) add(c *cid.Cid) bool {
-	if !s.has(c) {
-		s.set[string(c.Bytes())] = struct{}{}
+	if s.set.Visit(c) {
 		s.new <- c
 		return true
 	}

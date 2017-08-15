@@ -15,7 +15,7 @@ a running daemon do not read the config file at runtime.
 - [`Identity`](#identity)
 - [`Ipns`](#ipns)
 - [`Mounts`](#mounts)
-- [`Reproviderl`](#reprovider)
+- [`Reprovider`](#reprovider)
 - [`SupernodeRouting`](#supernoderouting)
 - [`Swarm`](#swarm)
 - [`Tour`](#tour)

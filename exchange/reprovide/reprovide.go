@@ -13,7 +13,8 @@ import (
 
 var log = logging.Logger("reprovider")
 
-type keyChanFunc func(context.Context) (<-chan *cid.Cid, error)
+//KeyChanFunc is function streaming CIDs to pass to content routing
+type KeyChanFunc func(context.Context) (<-chan *cid.Cid, error)
 type doneFunc func(error)
 
 type Reprovider struct {
@@ -23,11 +24,11 @@ type Reprovider struct {
 	// The routing system to provide values through
 	rsys routing.ContentRouting
 
-	keyProvider keyChanFunc
+	keyProvider KeyChanFunc
 }
 
 // NewReprovider creates new Reprovider instance.
-func NewReprovider(ctx context.Context, rsys routing.ContentRouting, keyProvider keyChanFunc) *Reprovider {
+func NewReprovider(ctx context.Context, rsys routing.ContentRouting, keyProvider KeyChanFunc) *Reprovider {
 	return &Reprovider{
 		ctx:     ctx,
 		trigger: make(chan doneFunc),
@@ -52,6 +53,8 @@ func (rp *Reprovider) ProvideEvery(tick time.Duration) {
 		case <-after:
 		}
 
+		//'mute' the trigger channel so when `ipfs bitswap reprovide` is called
+		//a 'reprovider is already running' error is returned
 		unmute := rp.muteTrigger()
 
 		err := rp.Reprovide()
