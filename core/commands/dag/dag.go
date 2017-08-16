@@ -33,10 +33,12 @@ to deprecate and replace the existing 'ipfs object' command moving forward.
 	},
 }
 
+// OutputObject is the output type of 'dag put' command
 type OutputObject struct {
 	Cid *cid.Cid
 }
 
+// ResolveOutput is the output type of 'dag resolve' command
 type ResolveOutput struct {
 	Cid     *cid.Cid
 	RemPath string
@@ -191,6 +193,7 @@ var DagGetCmd = &cmds.Command{
 	},
 }
 
+// DagResolveCmd returns address of highest block within a path and a path remainder
 var DagResolveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Resolve ipld block",
