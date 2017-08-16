@@ -819,22 +819,10 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 
 	addrsFactory := opts.AddrsFactory
 	if !opts.DisableRelay {
-		filterRelayAddr := func(addrs []ma.Multiaddr) []ma.Multiaddr {
-			var raddrs []ma.Multiaddr
-			for _, addr := range addrs {
-				_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
-				if err == nil {
-					continue
-				}
-				raddrs = append(raddrs, addr)
-			}
-			return raddrs
-		}
-
 		if addrsFactory != nil {
-			addrsFactory = composeAddrsFactory(addrsFactory, filterRelayAddr)
+			addrsFactory = composeAddrsFactory(addrsFactory, filterRelayAddrs)
 		} else {
-			addrsFactory = filterRelayAddr
+			addrsFactory = filterRelayAddrs
 		}
 	}
 
@@ -858,6 +846,18 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 	}
 
 	return host, nil
+}
+
+func filterRelayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
+	var raddrs []ma.Multiaddr
+	for _, addr := range addrs {
+		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
+		if err == nil {
+			continue
+		}
+		raddrs = append(raddrs, addr)
+	}
+	return raddrs
 }
 
 func composeAddrsFactory(f, g p2pbhost.AddrsFactory) p2pbhost.AddrsFactory {
