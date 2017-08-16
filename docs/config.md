@@ -18,7 +18,6 @@ a running daemon do not read the config file at runtime.
 - [`ReproviderInterval`](#reproviderinterval)
 - [`SupernodeRouting`](#supernoderouting)
 - [`Swarm`](#swarm)
-- [`Tour`](#tour)
 
 ## `Addresses`
 Contains information about various listener addresses to be used by this node.
@@ -221,5 +220,3 @@ improvement, as well as a reduction in memory usage.
 - `DisableNatPortMap`
 Disable NAT discovery.
 
-## `Tour`
-Unused.
