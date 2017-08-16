@@ -121,6 +121,7 @@ func NewHamtFromDag(dserv dag.DAGService, nd node.Node) (*HamtShard, error) {
 	ds.children = make([]child, len(pbnd.Links()))
 	ds.bitfield = new(big.Int).SetBytes(pbd.GetData())
 	ds.hashFunc = pbd.GetHashType()
+	ds.prefix = &ds.nd.Prefix
 
 	return ds, nil
 }
@@ -128,6 +129,11 @@ func NewHamtFromDag(dserv dag.DAGService, nd node.Node) (*HamtShard, error) {
 // SetPrefix sets the CID Prefix
 func (ds *HamtShard) SetPrefix(prefix *cid.Prefix) {
 	ds.prefix = prefix
+}
+
+// GetPrefix gets the CID Prefix, may be nil if unset
+func (ds *HamtShard) Prefix() *cid.Prefix {
+	return ds.prefix
 }
 
 // Node serializes the HAMT structure into a merkledag node with unixfs formatting
@@ -500,6 +506,7 @@ func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, 
 			if err != nil {
 				return err
 			}
+			ns.prefix = ds.prefix
 			chhv := &hashBits{
 				b:        hash([]byte(child.key)),
 				consumed: hv.consumed,

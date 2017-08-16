@@ -115,6 +115,7 @@ func (d *Directory) switchToSharding(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	s.SetPrefix(&d.dirnode.Prefix)
 
 	d.shard = s
 	for _, lnk := range d.dirnode.Links() {
@@ -191,4 +192,12 @@ func (d *Directory) GetNode() (node.Node, error) {
 	}
 
 	return d.shard.Node()
+}
+
+func (d *Directory) GetPrefix() *cid.Prefix {
+	if d.shard == nil {
+		return &d.dirnode.Prefix
+	}
+
+	return d.shard.Prefix()
 }

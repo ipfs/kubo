@@ -58,6 +58,11 @@ func NewDirectory(ctx context.Context, name string, node node.Node, parent child
 	}, nil
 }
 
+// GetPrefix gets the CID prefix of the root node
+func (d *Directory) GetPrefix() *cid.Prefix {
+	return d.dirbuilder.GetPrefix()
+}
+
 // SetPrefix sets the CID prefix
 func (d *Directory) SetPrefix(prefix *cid.Prefix) {
 	d.dirbuilder.SetPrefix(prefix)
@@ -299,6 +304,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	}
 
 	ndir := ft.EmptyDirNode()
+	ndir.SetPrefix(d.GetPrefix())
 
 	_, err = d.dserv.Add(ndir)
 	if err != nil {

@@ -27,14 +27,19 @@ type File struct {
 	RawLeaves bool
 }
 
-// NewFile returns a NewFile object with the given parameters
+// NewFile returns a NewFile object with the given parameters.  If the
+// Cid version is non-zero RawLeaves will be enabled.
 func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
-	return &File{
+	fi := &File{
 		dserv:  dserv,
 		parent: parent,
 		name:   name,
 		node:   node,
-	}, nil
+	}
+	if node.Cid().Prefix().Version > 0 {
+		fi.RawLeaves = true
+	}
+	return fi, nil
 }
 
 const (

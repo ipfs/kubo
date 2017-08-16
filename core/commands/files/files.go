@@ -890,8 +890,10 @@ func getFileHandle(r *mfs.Root, path string, create bool) (*mfs.File, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
+		prefix := pdir.GetPrefix()
 
 		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
+		nd.SetPrefix(prefix)
 		err = pdir.AddChild(fname, nd)
 		if err != nil {
 			return nil, err

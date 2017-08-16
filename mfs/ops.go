@@ -129,7 +129,9 @@ func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
 			if err != nil {
 				return err
 			}
-			mkd.SetPrefix(r.Prefix)
+			if r.Prefix != nil {
+				mkd.SetPrefix(r.Prefix)
+			}
 			fsn = mkd
 		} else if err != nil {
 			return err
@@ -148,7 +150,9 @@ func Mkdir(r *Root, pth string, mkparents bool, flush bool) error {
 			return err
 		}
 	}
-	final.SetPrefix(r.Prefix)
+	if r.Prefix != nil {
+		final.SetPrefix(r.Prefix)
+	}
 
 	if flush {
 		err := final.Flush()
