@@ -6,9 +6,9 @@ import (
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 
 	path "github.com/ipfs/go-ipfs/path"
-	circuit "gx/ipfs/QmSC7288aesJAC3BQ4Duy6Pk2CMfQWL7cr5t9SV4HBmKFT/go-libp2p-circuit"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	circuit "gx/ipfs/QmbVTkb8ihJNudRL4Vf9wjxMAapWxYdehrS7XBij31AGKM/go-libp2p-circuit"
 )
 
 var log = logging.Logger("ipfsaddr")
