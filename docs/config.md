@@ -102,7 +102,7 @@ A boolean value. If set to true, all block reads from disk will be hashed and ve
 - `BloomFilterSize`
 A number representing the size in bytes of the blockstore's bloom filter. A value of zero represents the feature being disabled.
 
-Default: `0` 
+Default: `0`
 
 - `Params`
 Extra parameters for datastore construction, not currently used.
@@ -228,3 +228,9 @@ improvement, as well as a reduction in memory usage.
 - `DisableNatPortMap`
 Disable NAT discovery.
 
+- `DisableRelay`
+Disables the p2p-circuit relay transport.
+
+- `EnableRelayHop`
+Enables HOP relay for the node. If this is enabled, the node will act as
+an intermediate (Hop Relay) node in relay circuits for connected peers.

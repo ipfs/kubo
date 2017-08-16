@@ -451,6 +451,12 @@
       "hash": "QmQBB2dQLmQHJgs2gqZ3iqL2XiuCtUCvXzWt5kMXDf5Zcr",
       "name": "go-maddr-filter",
       "version": "1.1.4"
+    },
+    {
+      "author": "vyzo",
+      "hash": "QmSC7288aesJAC3BQ4Duy6Pk2CMfQWL7cr5t9SV4HBmKFT",
+      "name": "go-libp2p-circuit",
+      "version": "1.1.2"
     }
   ],
   "gxVersion": "0.10.0",

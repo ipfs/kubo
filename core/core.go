@@ -50,6 +50,7 @@ import (
 	ipnet "gx/ipfs/QmQq9YzmdFdWNTDdArueGyD7L5yyiRQigrRHJnTGkxcEjT/go-libp2p-interface-pnet"
 	p2phost "gx/ipfs/QmRNyPNJGNCaZyYonJj7owciWTsMd9gRfEKmZY3o6xwN3h/go-libp2p-host"
 	mssmux "gx/ipfs/QmRVYfZ7tWNHPBzWiG6KWGzvT2hcGems8srihsQE29x1U5/go-smux-multistream"
+	circuit "gx/ipfs/QmSC7288aesJAC3BQ4Duy6Pk2CMfQWL7cr5t9SV4HBmKFT/go-libp2p-circuit"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
@@ -221,9 +222,12 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	hostopts := &ConstructPeerHostOpts{
 		AddrsFactory:      addrsFactory,
 		DisableNatPortMap: cfg.Swarm.DisableNatPortMap,
+		DisableRelay:      cfg.Swarm.DisableRelay,
+		EnableRelayHop:    cfg.Swarm.EnableRelayHop,
 	}
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter,
 		addrfilter, tpt, protec, hostopts)
+
 	if err != nil {
 		return err
 	}
@@ -783,8 +787,10 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 }
 
 type ConstructPeerHostOpts struct {
-	DisableNatPortMap bool
 	AddrsFactory      p2pbhost.AddrsFactory
+	DisableNatPortMap bool
+	DisableRelay      bool
+	EnableRelayHop    bool
 }
 
 type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protc ipnet.Protector, opts *ConstructPeerHostOpts) (p2phost.Host, error)
@@ -810,13 +816,54 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 	if !opts.DisableNatPortMap {
 		hostOpts = append(hostOpts, p2pbhost.NATPortMap)
 	}
-	if opts.AddrsFactory != nil {
-		hostOpts = append(hostOpts, opts.AddrsFactory)
+
+	addrsFactory := opts.AddrsFactory
+	if !opts.DisableRelay {
+		if addrsFactory != nil {
+			addrsFactory = composeAddrsFactory(addrsFactory, filterRelayAddrs)
+		} else {
+			addrsFactory = filterRelayAddrs
+		}
+	}
+
+	if addrsFactory != nil {
+		hostOpts = append(hostOpts, addrsFactory)
 	}
 
 	host := p2pbhost.New(network, hostOpts...)
 
+	if !opts.DisableRelay {
+		var relayOpts []circuit.RelayOpt
+		if opts.EnableRelayHop {
+			relayOpts = append(relayOpts, circuit.OptHop)
+		}
+
+		err := circuit.AddRelayTransport(ctx, host, relayOpts...)
+		if err != nil {
+			host.Close()
+			return nil, err
+		}
+	}
+
 	return host, nil
+}
+
+func filterRelayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
+	var raddrs []ma.Multiaddr
+	for _, addr := range addrs {
+		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
+		if err == nil {
+			continue
+		}
+		raddrs = append(raddrs, addr)
+	}
+	return raddrs
+}
+
+func composeAddrsFactory(f, g p2pbhost.AddrsFactory) p2pbhost.AddrsFactory {
+	return func(addrs []ma.Multiaddr) []ma.Multiaddr {
+		return f(g(addrs))
+	}
 }
 
 // startListening on the network addresses
