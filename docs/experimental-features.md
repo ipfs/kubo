@@ -225,7 +225,7 @@ is no direct connectivity.
 Experimental
 
 ### In Version
-master
+master, 0.4.11
 
 ### How to enable
 
