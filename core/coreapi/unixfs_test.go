@@ -15,7 +15,7 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
+	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	cbor "gx/ipfs/QmeebqVZeEXBqJ2B4urQWfdhwRRPm84ajnCo8x8pfwbsPM/go-ipld-cbor"
 )
@@ -37,7 +37,7 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.UnixfsAPI, error) {
 				PeerID: "Qmfoo", // required by offline node
 			},
 		},
-		D: testutil.ThreadSafeCloserMapDatastore(),
+		D: ds2.ThreadSafeCloserMapDatastore(),
 	}
 	node, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
 	if err != nil {

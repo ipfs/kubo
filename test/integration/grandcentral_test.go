@@ -9,18 +9,16 @@ import (
 	"testing"
 
 	context "context"
-	"gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	syncds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
 
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
-	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	mocknet "gx/ipfs/QmZPBrKq6S1fdYaRAzYZivJL12QkUqHwnNzF9wC8VXC4bo/go-libp2p/p2p/net/mock"
+	mocknet "gx/ipfs/QmXZ6XetFwaDNmszPCux9DaKqMykEJGDtWHSqprn94UXzM/go-libp2p/p2p/net/mock"
+	testutil "gx/ipfs/QmZJD56ZWLViJAVkvLc7xbbDerHzUMLr2X4fLRYfbxZWDN/go-testutil"
 )
 
 func TestSupernodeBootstrappedAddCat(t *testing.T) {
@@ -89,7 +87,7 @@ func InitializeSupernodeNetwork(
 		Bandwidth: math.MaxInt32,
 	})
 
-	routingDatastore := ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore()))
+	routingDatastore := ds2.ThreadSafeCloserMapDatastore()
 	var servers []*core.IpfsNode
 	for i := 0; i < numServers; i++ {
 		bootstrap, err := core.NewNode(ctx, &core.BuildCfg{

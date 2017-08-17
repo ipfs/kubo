@@ -14,13 +14,14 @@ import (
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	travis "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
 	blocks "gx/ipfs/QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg/go-block-format"
+	travis "gx/ipfs/QmZJD56ZWLViJAVkvLc7xbbDerHzUMLr2X4fLRYfbxZWDN/go-testutil/ci/travis"
 
 	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
 
-	p2ptestutil "gx/ipfs/QmSTbByZ1rJVn8KANcoiLDiPH2pgDaz33uT6JW6B9nMBW5/go-libp2p-netutil"
 	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	p2ptestutil "gx/ipfs/QmZG4W8GR9FpC4z69Vab9ENtEoxKjDnTym5oa7Q3Yr7P4o/go-libp2p-netutil"
+	tu "gx/ipfs/QmZJD56ZWLViJAVkvLc7xbbDerHzUMLr2X4fLRYfbxZWDN/go-testutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -332,13 +333,16 @@ func TestBasicBitswap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(time.Millisecond * 25)
-	wl := instances[2].Exchange.WantlistForPeer(instances[1].Peer)
-	if len(wl) != 0 {
-		t.Fatal("should have no items in other peers wantlist")
-	}
-	if len(instances[1].Exchange.GetWantlist()) != 0 {
-		t.Fatal("shouldnt have anything in wantlist")
+	if err = tu.WaitFor(ctx, func() error {
+		if len(instances[2].Exchange.WantlistForPeer(instances[1].Peer)) != 0 {
+			return fmt.Errorf("should have no items in other peers wantlist")
+		}
+		if len(instances[1].Exchange.GetWantlist()) != 0 {
+			return fmt.Errorf("shouldnt have anything in wantlist")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 
 	st0, err := instances[0].Exchange.Stat()
