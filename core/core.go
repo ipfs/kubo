@@ -29,7 +29,7 @@ import (
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	mdag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
@@ -110,14 +110,14 @@ type IpfsNode struct {
 	PNetFingerpint []byte     // fingerprint of private network
 
 	// Services
-	Peerstore  pstore.Peerstore     // storage for other Peer instances
-	Blockstore bstore.GCBlockstore  // the block store (lower level)
-	Filestore  *filestore.Filestore // the filestore blockstore
-	BaseBlocks bstore.Blockstore    // the raw blockstore, no filestore wrapping
-	GCLocker   bstore.GCLocker      // the locker used to protect the blockstore during gc
-	Blocks     bserv.BlockService   // the block service, get/add blocks.
-	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
-	Resolver   *path.Resolver       // the path resolution system
+	Peerstore  pstore.Peerstore       // storage for other Peer instances
+	Blockstore bstore.GCBlockstore    // the block store (lower level)
+	Filestore  *filestore.Filestore   // the filestore blockstore
+	BaseBlocks bstore.Blockstore      // the raw blockstore, no filestore wrapping
+	GCLocker   bstore.GCLocker        // the locker used to protect the blockstore during gc
+	Blocks     bserv.BlockService     // the block service, get/add blocks.
+	DAG        *mdag.MerkleDAGService // the merkle dag service, get/add objects.
+	Resolver   *path.Resolver         // the path resolution system
 	Reporter   metrics.Reporter
 	Discovery  discovery.Service
 	FilesRoot  *mfs.Root
@@ -690,7 +690,7 @@ func (n *IpfsNode) loadFilesRoot() error {
 		return n.Repo.Datastore().Put(dsk, c.Bytes())
 	}
 
-	var nd *merkledag.ProtoNode
+	var nd *mdag.ProtoNode
 	val, err := n.Repo.Datastore().Get(dsk)
 
 	switch {
@@ -711,9 +711,9 @@ func (n *IpfsNode) loadFilesRoot() error {
 			return fmt.Errorf("error loading filesroot from DAG: %s", err)
 		}
 
-		pbnd, ok := rnd.(*merkledag.ProtoNode)
+		pbnd, ok := rnd.(*mdag.ProtoNode)
 		if !ok {
-			return merkledag.ErrNotProtobuf
+			return mdag.ErrNotProtobuf
 		}
 
 		nd = pbnd

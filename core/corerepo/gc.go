@@ -86,7 +86,8 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	rmed := gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
+
+	rmed := gc.GC(ctx, n.Blockstore, n.DAG.GetOfflineLinkService(), n.Pinning, roots)
 
 	return CollectResult(ctx, rmed, nil)
 }
@@ -154,7 +155,7 @@ func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) <-chan gc.Result
 		return out
 	}
 
-	return gc.GC(ctx, n.Blockstore, n.DAG, n.Pinning, roots)
+	return gc.GC(ctx, n.Blockstore, n.DAG.GetOfflineLinkService(), n.Pinning, roots)
 }
 
 func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {
