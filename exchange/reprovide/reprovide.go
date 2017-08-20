@@ -38,14 +38,18 @@ func NewReprovider(ctx context.Context, rsys routing.ContentRouting, keyProvider
 	}
 }
 
-// ProvideEvery re-provides keys with 'tick' interval
-func (rp *Reprovider) ProvideEvery(tick time.Duration) {
+// Run re-provides keys with 'tick' interval or when triggered
+func (rp *Reprovider) Run(tick time.Duration) {
 	// dont reprovide immediately.
 	// may have just started the daemon and shutting it down immediately.
 	// probability( up another minute | uptime ) increases with uptime.
 	after := time.After(time.Minute)
 	var done doneFunc
 	for {
+		if tick == 0 {
+			after = make(chan time.Time)
+		}
+
 		select {
 		case <-rp.ctx.Done():
 			return
@@ -98,7 +102,7 @@ func (rp *Reprovider) Reprovide() error {
 	return nil
 }
 
-// Trigger starts reprovision process in rp.ProvideEvery and waits for it
+// Trigger starts reprovision process in rp.Run and waits for it
 func (rp *Reprovider) Trigger(ctx context.Context) error {
 	progressCtx, done := context.WithCancel(ctx)
 
