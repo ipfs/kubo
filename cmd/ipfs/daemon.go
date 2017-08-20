@@ -45,6 +45,7 @@ const (
 	routingOptionDHTClientKwd = "dhtclient"
 	routingOptionDHTKwd       = "dht"
 	routingOptionNoneKwd      = "none"
+	routingOptionDefaultKwd   = "default"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
@@ -151,6 +152,7 @@ Headers.
 		cmdkit.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
 		cmdkit.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmdkit.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault("dht"),
+		cmdkit.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault("default"),
 		cmdkit.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
 		cmdkit.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmdkit.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
@@ -300,6 +302,22 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
+	if err != nil {
+		re.SetError(err, cmdkit.ErrNormal)
+		return
+	}
+	if routingOption == routingOptionDefaultKwd {
+		cfg, err := repo.Config()
+		if err != nil {
+			re.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		routingOption = cfg.Discovery.Routing
+		if routingOption == "" {
+			routingOption = routingOptionDHTKwd
+		}
+	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:
 		re.SetError(errors.New("supernode routing was never fully implemented and has been removed"), cmdkit.ErrNormal)
