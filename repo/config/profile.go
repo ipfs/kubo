@@ -73,6 +73,11 @@ var Profiles = map[string]Transformer{
 		c.Datastore.Spec = DefaultDatastoreConfig().Spec
 		return nil
 	},
+	"lowpower": func(c *Config) error {
+		c.Discovery.Routing = "dhtclient"
+		c.Reprovider.Interval = "0"
+		return nil
+	},
 }
 
 func appendSingle(a []string, b []string) []string {

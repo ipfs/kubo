@@ -45,7 +45,8 @@ CONFIG_SET_JSON_TEST='{
   "MDNS": {
     "Enabled": true,
     "Interval": 10
-  }
+  },
+  "Routing": "dht"
 }'
 
 test_profile_apply_revert() {
