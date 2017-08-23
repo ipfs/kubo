@@ -19,7 +19,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 
-	id "gx/ipfs/QmXZ6XetFwaDNmszPCux9DaKqMykEJGDtWHSqprn94UXzM/go-libp2p/p2p/protocol/identify"
+	id "gx/ipfs/QmZyngpQxUGyx1T2bzEcst6YzERkvVwDzBMbsSQF4f1smE/go-libp2p/p2p/protocol/identify"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
