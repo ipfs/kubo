@@ -18,7 +18,7 @@ Depending on whether you are using OSX or Linux, follow the proceeding instructi
 
 ## Mac OSX -- OSXFUSE
 
-It has been discovered that versions of `osxfuse` prior to `2.7.0` will cause a kernel panic. For everyone's sake, please upgrade (latest at time of writing is `2.7.4`). The installer can be found at https://osxfuse.github.io/. There is also a homebrew formula using cask but users report best results installing from the official OSXFUSE installer package:
+It has been discovered that versions of `osxfuse` prior to `2.7.0` will cause a kernel panic. For everyone's sake, please upgrade (latest at time of writing is `2.7.4`). The installer can be found at https://osxfuse.github.io/. Users have reported the best results when installing from the official OSXFUSE installer but one can also install OSXFUSE via homebrew/cask:
 
 ```sh
 brew tap caskroom/cask # if you don't have cask yet
