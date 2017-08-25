@@ -4,8 +4,9 @@ test_description="Test reprovider"
 
 . lib/test-lib.sh
 
+NUM_NODES=6
+
 init_strategy() {
-  NUM_NODES=6
   test_expect_success 'init iptb' '
     iptb init -f -n $NUM_NODES --bootstrap=none --port=0
   '
@@ -19,7 +20,7 @@ init_strategy() {
     ipfsi 0 config Reprovider.Strategy '$1'
   '
 
-  startup_cluster 6 --debug
+  startup_cluster ${NUM_NODES}
 }
 
 findprovs_empty() {
@@ -123,5 +124,30 @@ findprovs_expect '$HASH_BAR_DIR' '$PEERID_0'
 test_expect_success 'stop peer 1' '
   iptb stop 1
 '
+
+# Test reprovider working with ticking disabled
+test_expect_success 'init iptb' '
+  iptb init -f -n $NUM_NODES --bootstrap=none --port=0
+'
+
+test_expect_success 'peer ids' '
+  PEERID_0=$(iptb get id 0) &&
+  PEERID_1=$(iptb get id 1)
+'
+
+test_expect_success 'Disable reprovider ticking' '
+  ipfsi 0 config Reprovider.Interval 0
+'
+
+startup_cluster ${NUM_NODES}
+
+test_expect_success 'add test object' '
+  HASH_0=$(echo "foo" | ipfsi 0 add -q --local)
+'
+
+findprovs_empty '$HASH_0'
+reprovide
+findprovs_expect '$HASH_0' '$PEERID_0'
+
 
 test_done

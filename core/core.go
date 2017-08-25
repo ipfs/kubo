@@ -283,19 +283,17 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 	}
 	n.Reprovider = rp.NewReprovider(ctx, n.Routing, keyProvider)
 
-	if cfg.Reprovider.Interval != "0" {
-		interval := kReprovideFrequency
-		if cfg.Reprovider.Interval != "" {
-			dur, err := time.ParseDuration(cfg.Reprovider.Interval)
-			if err != nil {
-				return err
-			}
-
-			interval = dur
+	reproviderInterval := kReprovideFrequency
+	if cfg.Reprovider.Interval != "" {
+		dur, err := time.ParseDuration(cfg.Reprovider.Interval)
+		if err != nil {
+			return err
 		}
 
-		go n.Reprovider.ProvideEvery(interval)
+		reproviderInterval = dur
 	}
+
+	go n.Reprovider.Run(reproviderInterval)
 
 	return nil
 }
