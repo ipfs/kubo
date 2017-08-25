@@ -20,7 +20,7 @@ go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
 go-flags-with-tags=$(GOFLAGS)$(go-tags)
 
 define go-build
-$(GOCC) build -gcflags "-N -l" -i $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
+$(GOCC) build -i $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
 endef
 
 test_go_short: GOTFLAGS += -test.short
