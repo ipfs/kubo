@@ -31,6 +31,11 @@ test_expect_success "GET IPFS path succeeds" '
   curl -sfo actual "http://127.0.0.1:$port/ipfs/$HASH"
 '
 
+test_expect_success "GET IPFS path with explicit filename succeeds with proper header" "
+  curl -fo actual -D actual_headers 'http://127.0.0.1:$port/ipfs/$HASH?filename=testтест' &&
+  grep -F \"Content-Disposition: inline; filename*=UTF-8''test%D1%82%D0%B5%D1%81%D1%82\" actual_headers
+"
+
 test_expect_success "GET IPFS path output looks good" '
   test_cmp expected actual &&
   rm actual
