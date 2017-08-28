@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"gx/ipfs/QmVA4mafxbfH5aEvNz8fyoxC6J1xhAtw88B4GerPznSZBg/go-block-format"
+	"gx/ipfs/QmP5Lp2S1BzuBUWKA8Y25Ajtatqmv1f5cdzxAN4vFoebcf/go-block-format"
 
 	context "context"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	datastore "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	dhtpb "gx/ipfs/QmZSEstKChFezMwTcAWH5UQxvRckmnvgVZjFeSnGLDHU3Y/go-libp2p-kad-dht/pb"
+	dhtpb "gx/ipfs/QmfPWAEd2CPb6chn16EFBREVXG8dtLkaPEA8ZF9Mza2jYs/go-libp2p-kad-dht/pb"
 )
 
 func TestPutProviderDoesntResultInDuplicates(t *testing.T) {

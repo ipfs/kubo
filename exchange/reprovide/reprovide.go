@@ -6,9 +6,9 @@ import (
 	"time"
 
 	backoff "gx/ipfs/QmPJUtEJsm5YLUWhF6imvyCH8KZXRJa9Wup7FDMwTy5Ufz/backoff"
-	routing "gx/ipfs/QmPjTrrSfE6TzLv6ya6VWhGcCgPrUAdcgrDcQyRDX2VyW1/go-libp2p-routing"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
+	routing "gx/ipfs/QmeCCYJLNMQnEZyeJGeytEytx6J2hWXGSXHnJvzD5rACCz/go-libp2p-routing"
+	cid "gx/ipfs/QmetUj3ZqWMDVeFMRq7S9PdMauXCwBZuggfHqoS4MPt1Vy/go-cid"
 )
 
 var log = logging.Logger("reprovider")

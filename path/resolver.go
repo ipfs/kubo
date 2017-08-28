@@ -9,9 +9,9 @@ import (
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
+	node "gx/ipfs/QmRL2JDEtNzSkEjMgsUBXgmHKeJ7a4V6QoirXHrc93igo2/go-ipld-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	node "gx/ipfs/QmYNyRZJBUYPNrLszFmrBrPJbsBh2vMsefz5gnDpB5M1P6/go-ipld-format"
+	cid "gx/ipfs/QmetUj3ZqWMDVeFMRq7S9PdMauXCwBZuggfHqoS4MPt1Vy/go-cid"
 )
 
 var log = logging.Logger("path")

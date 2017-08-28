@@ -7,8 +7,8 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 
-	testutil "gx/ipfs/QmYdcTdkuCvFXLj2uejJF5aY3HWhtd8JLT4BjPxF9BNPYf/go-libp2p-netutil"
-	bhost "gx/ipfs/QmZyngpQxUGyx1T2bzEcst6YzERkvVwDzBMbsSQF4f1smE/go-libp2p/p2p/host/basic"
+	testutil "gx/ipfs/QmQWNh36tpEaJgcoetFFWRpL9tV3Y1tUHx6tVTqbjKd6jP/go-libp2p-netutil"
+	bhost "gx/ipfs/QmRLAc3sN9cTLDpNYkz9dGoGc9wXY1svkJY2RrVbuYcD4V/go-libp2p/p2p/host/basic"
 	inet "gx/ipfs/QmahYsGWry85Y7WUe2SX5G4JkH2zifEQAUtJVLZ24aC9DF/go-libp2p-net"
 )
 

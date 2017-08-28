@@ -9,9 +9,9 @@ import (
 	supernode "github.com/ipfs/go-ipfs/routing/supernode"
 	gcproxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	routing "gx/ipfs/QmPjTrrSfE6TzLv6ya6VWhGcCgPrUAdcgrDcQyRDX2VyW1/go-libp2p-routing"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	"gx/ipfs/QmW8Rgju5JrSMHP7RDNdiwwXyenRqAbtSaPfdQKQC7ZdH6/go-libp2p-host"
+	"gx/ipfs/QmcQJspoQP914EDCTemcXz8yQkL4xvc49pTWFhzmifvUZY/go-libp2p-host"
+	routing "gx/ipfs/QmeCCYJLNMQnEZyeJGeytEytx6J2hWXGSXHnJvzD5rACCz/go-libp2p-routing"
 )
 
 // NB: DHT option is included in the core to avoid 1) because it's a sane

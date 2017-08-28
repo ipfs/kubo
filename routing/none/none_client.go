@@ -7,10 +7,10 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	routing "gx/ipfs/QmPjTrrSfE6TzLv6ya6VWhGcCgPrUAdcgrDcQyRDX2VyW1/go-libp2p-routing"
-	cid "gx/ipfs/QmTprEaAA2A9bst5XH7exuyi5KzNMK3SEDNN8rBDnKWcUS/go-cid"
-	p2phost "gx/ipfs/QmW8Rgju5JrSMHP7RDNdiwwXyenRqAbtSaPfdQKQC7ZdH6/go-libp2p-host"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	p2phost "gx/ipfs/QmcQJspoQP914EDCTemcXz8yQkL4xvc49pTWFhzmifvUZY/go-libp2p-host"
+	routing "gx/ipfs/QmeCCYJLNMQnEZyeJGeytEytx6J2hWXGSXHnJvzD5rACCz/go-libp2p-routing"
+	cid "gx/ipfs/QmetUj3ZqWMDVeFMRq7S9PdMauXCwBZuggfHqoS4MPt1Vy/go-cid"
 )
 
 type nilclient struct {
