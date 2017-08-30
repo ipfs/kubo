@@ -518,9 +518,9 @@
     },
     {
       "author": "magik6k",
-      "hash": "QmcZfkbgwwwH5ZLTQRHkSQBDiDqd3skY2eU6MZRgWuXcse",
+      "hash": "QmbRJmoNKwRJxutmE5g5anDQ7mYWmVwrDWsGthGhZPifTv",
       "name": "go-ipfs-config",
-      "version": "0.2.22"
+      "version": "0.3.0"
     },
     {
       "author": "why",
@@ -589,9 +589,9 @@
     },
     {
       "author": "travisperson",
-      "hash": "QmQLcRTxMtdUmmTse5uoqBLM5YZgjZP4qiCPynY6qEz6qA",
+      "hash": "QmPyA7saCss8G5o6aFhCj92kuQkSmfi7mFsd7KzeW2PSYc",
       "name": "iptb-plugins",
-      "version": "1.0.8"
+      "version": "1.0.9"
     },
     {
       "author": "hsanjuan",

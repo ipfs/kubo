@@ -1,14 +1,16 @@
 package options
 
 type ApiSettings struct {
-	Offline bool
+	Offline     bool
+	FetchBlocks bool
 }
 
 type ApiOption func(*ApiSettings) error
 
 func ApiOptions(opts ...ApiOption) (*ApiSettings, error) {
 	options := &ApiSettings{
-		Offline: false,
+		Offline:     false,
+		FetchBlocks: true,
 	}
 
 	return ApiOptionsTo(options, opts...)
@@ -31,6 +33,13 @@ var Api apiOpts
 func (apiOpts) Offline(offline bool) ApiOption {
 	return func(settings *ApiSettings) error {
 		settings.Offline = offline
+		return nil
+	}
+}
+
+func (apiOpts) FetchBlocks(fetchBlocks bool) ApiOption {
+	return func(settings *ApiSettings) error {
+		settings.FetchBlocks = fetchBlocks
 		return nil
 	}
 }

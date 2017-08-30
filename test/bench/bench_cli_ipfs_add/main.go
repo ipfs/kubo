@@ -13,7 +13,7 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
 	random "gx/ipfs/QmSJ9n2s9NUoA9D849W5jj5SJ94nMcZpj1jCgQJieiNqSt/go-random"
-	config "gx/ipfs/QmcZfkbgwwwH5ZLTQRHkSQBDiDqd3skY2eU6MZRgWuXcse/go-ipfs-config"
+	config "gx/ipfs/QmbRJmoNKwRJxutmE5g5anDQ7mYWmVwrDWsGthGhZPifTv/go-ipfs-config"
 )
 
 var (

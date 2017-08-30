@@ -8,6 +8,7 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	coreopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	id "gx/ipfs/QmRBaUEQEeFWywfrZJ64QgsmvcqgLSK3VbvGMR2NM2Edpf/go-libp2p/p2p/protocol/identify"
 )
@@ -15,6 +16,7 @@ import (
 type GatewayConfig struct {
 	Headers      map[string][]string
 	Writable     bool
+	FetchBlocks  bool
 	PathPrefixes []string
 }
 
@@ -25,7 +27,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 			return nil, err
 		}
 
-		api, err := coreapi.NewCoreAPI(n)
+		api, err := coreapi.NewCoreAPI(n, coreopts.Api.FetchBlocks(cfg.Gateway.FetchBlocks))
 		if err != nil {
 			return nil, err
 		}
@@ -34,6 +36,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 			Headers:      cfg.Gateway.HTTPHeaders,
 			Writable:     writable,
 			PathPrefixes: cfg.Gateway.PathPrefixes,
+			FetchBlocks:  cfg.Gateway.FetchBlocks,
 		}, api)
 
 		for _, p := range paths {

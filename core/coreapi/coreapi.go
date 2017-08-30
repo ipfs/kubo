@@ -23,7 +23,6 @@ import (
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
-
 	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
 	"gx/ipfs/QmP2g3VxmC7g7fyRJDj1VJ72KHZbJ9UW24YjSWEj1XTb4H/go-ipfs-exchange-interface"
 	bserv "gx/ipfs/QmPoh3SrQzFBWtdGK6qmHDV4EanKR6kYPj4DD3J2NLoEmZ/go-blockservice"
@@ -215,6 +214,10 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		subApi.blocks = bserv.New(api.blockstore, subApi.exchange)
 		subApi.dag = dag.NewDAGService(subApi.blocks)
 
+	}
+
+	if !settings.FetchBlocks {
+		subApi.dag = dag.NewDAGService(bserv.New(subApi.blockstore, offlinexch.Exchange(subApi.blockstore)))
 	}
 
 	return subApi, nil

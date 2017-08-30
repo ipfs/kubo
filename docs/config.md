@@ -248,6 +248,11 @@ A boolean to configure whether the gateway is writeable or not.
 
 Default: `false`
 
+- `FetchBlocks`
+A boolean to configure whether the gateway should fetch blocks from network to satisfy requests.
+
+Default: `true`
+
 - `PathPrefixes`
 TODO
 
