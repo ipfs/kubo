@@ -75,12 +75,15 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 		done <- struct{}{}
 	}()
 
-	go func() {
-		nsmount, err2 = ipns.Mount(node, nsdir, fsdir)
-		done <- struct{}{}
-	}()
+	if node.OnlineMode() {
+		go func() {
+			nsmount, err2 = ipns.Mount(node, nsdir, fsdir)
+			done <- struct{}{}
+		}()
 
-	<-done
+		<-done
+	}
+
 	<-done
 
 	if err1 != nil {
