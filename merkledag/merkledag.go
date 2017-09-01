@@ -158,6 +158,8 @@ func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 		return nil, ErrNotFound
 	default:
 		return nil, err
+	case nil:
+		// noop
 	}
 
 	return node.Decode(blk)

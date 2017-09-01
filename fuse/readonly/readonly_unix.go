@@ -74,9 +74,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	switch nd := nd.(type) {
-	case *mdag.ProtoNode:
-		return &Node{Ipfs: s.Ipfs, Nd: nd}, nil
-	case *mdag.RawNode:
+	case *mdag.ProtoNode, *mdag.RawNode:
 		return &Node{Ipfs: s.Ipfs, Nd: nd}, nil
 	default:
 		log.Error("fuse node was not a protobuf node")
@@ -113,8 +111,6 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 		a.Mode = 0444
 		a.Size = uint64(len(rawnd.RawData()))
 		a.Blocks = 1
-		a.Uid = uint32(os.Getuid()) // TODO: should probably cache these calls. No sense making multiple syscalls for each attr call here
-		a.Gid = uint32(os.Getgid())
 		return nil
 	}
 
@@ -126,26 +122,18 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	switch s.cached.GetType() {
 	case ftpb.Data_Directory, ftpb.Data_HAMTShard:
 		a.Mode = os.ModeDir | 0555
-		a.Uid = uint32(os.Getuid())
-		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_File:
 		size := s.cached.GetFilesize()
 		a.Mode = 0444
 		a.Size = uint64(size)
 		a.Blocks = uint64(len(s.Nd.Links()))
-		a.Uid = uint32(os.Getuid())
-		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_Raw:
 		a.Mode = 0444
 		a.Size = uint64(len(s.cached.GetData()))
 		a.Blocks = uint64(len(s.Nd.Links()))
-		a.Uid = uint32(os.Getuid())
-		a.Gid = uint32(os.Getgid())
 	case ftpb.Data_Symlink:
 		a.Mode = 0777 | os.ModeSymlink
 		a.Size = uint64(len(s.cached.GetData()))
-		a.Uid = uint32(os.Getuid())
-		a.Gid = uint32(os.Getgid())
 	default:
 		return fmt.Errorf("Invalid data type - %s", s.cached.GetType())
 	}
@@ -198,7 +186,37 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		// will be expensive to query each child. However most shells call an
 		// additional 'stat' on each item in a directory listing, its probably
 		// okay.
-		entries = append(entries, fuse.Dirent{Name: n, Type: fuse.DT_File})
+		nd, err := s.Ipfs.DAG.Get(ctx, lnk.Cid)
+		if err != nil {
+			log.Warning("error fetching directory child node: ", err)
+		}
+
+		var t fuse.DirentType
+		switch nd := nd.(type) {
+		case *mdag.RawNode:
+			t = fuse.DT_File
+		case *mdag.ProtoNode:
+			var data ftpb.Data
+			if err := proto.Unmarshal(nd.Data(), &data); err != nil {
+				log.Warning("failed to unmarshal protonode data field:", err)
+			} else {
+				switch data.GetType() {
+				case ftpb.Data_Directory, ftpb.Data_HAMTShard:
+					t = fuse.DT_Dir
+				case ftpb.Data_File, ftpb.Data_Raw:
+					t = fuse.DT_File
+				case ftpb.Data_Symlink:
+					t = fuse.DT_Link
+				case ftpb.Data_Metadata:
+					log.Error("metadata object in fuse should contain its wrapped type")
+				default:
+					log.Error("unrecognized protonode data type: ", data.GetType())
+				}
+			}
+		default:
+			t = fuse.DT_Unknown
+		}
+		entries = append(entries, fuse.Dirent{Name: n, Type: t})
 		return nil
 	})
 	if err != nil {
