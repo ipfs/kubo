@@ -142,6 +142,7 @@ Set the value of the 'Datastore.Path' key:
 		"show":    configShowCmd,
 		"edit":    configEditCmd,
 		"replace": configReplaceCmd,
+		"profile": configProfileCmd,
 	},
 }
 
@@ -288,6 +289,59 @@ can't be undone.
 		err = replaceConfig(r, file)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+	},
+}
+
+var configProfileCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Apply profiles to config.",
+	},
+
+	Subcommands: map[string]*cmds.Command{
+		"apply": configProfileApplyCmd,
+	},
+}
+
+var configProfileApplyCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Apply profile to config.",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("profile", true, false, "The profile to apply to the config."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		args := req.Arguments()
+
+		profile, ok := config.ConfigProfiles[args[0]]
+		if !ok {
+			res.SetError(fmt.Errorf("%s in not a profile", args[0]), cmds.ErrNormal)
+			return
+		}
+
+		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		defer r.Close()
+
+		cfg, err := r.Config()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		err = profile(cfg)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		err = r.SetConfig(cfg)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 	},
