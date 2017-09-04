@@ -472,9 +472,9 @@
     },
     {
       "author": "magik6k",
-      "hash": "QmTC7BY2viSAbPbGte6NyMZJCC2xheaRBYKEn4BuzTxe7W",
+      "hash": "QmNWbaGdPCA3anCcvh4jm3VAahAbmmAsU58sp8Ti4KTJkL",
       "name": "go-ds-badger",
-      "version": "0.1.10"
+      "version": "0.2.0"
     }
   ],
   "gxVersion": "0.10.0",
