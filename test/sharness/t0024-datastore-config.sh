@@ -9,92 +9,9 @@ test_init_ipfs
 test_launch_ipfs_daemon
 test_kill_ipfs_daemon
 
-SPEC_ORIG=$(cat <<'EOF')
-{
-  "mounts": [
-    {
-      "child": {
-        "path": "blocks",
-        "shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
-        "sync": true,
-        "type": "flatfs"
-      },
-      "mountpoint": "/blocks",
-      "prefix": "flatfs.datastore",
-      "type": "measure"
-    },
-    {
-      "child": {
-        "compression": "none",
-        "path": "datastore",
-        "type": "levelds"
-      },
-      "mountpoint": "/",
-      "prefix": "leveldb.datastore",
-      "type": "measure"
-    }
-  ],
-  "type": "mount"
-}
-EOF
+SPEC_NOSYNC=$(cat ../t0024-files/spec-nosync)
 
-SPEC_NOSYNC=$(cat <<'EOF')
-{
-  "mounts": [
-    {
-      "child": {
-        "path": "blocks",
-        "shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
-        "sync": false,
-        "type": "flatfs"
-      },
-      "mountpoint": "/blocks",
-      "prefix": "flatfs.datastore",
-      "type": "measure"
-    },
-    {
-      "child": {
-        "compression": "none",
-        "path": "datastore",
-        "type": "levelds"
-      },
-      "mountpoint": "/",
-      "prefix": "leveldb.datastore",
-      "type": "measure"
-    }
-  ],
-  "type": "mount"
-}
-EOF
-
-SPEC_NEWSHARDFUN=$(cat <<'EOF')
-{
-  "mounts": [
-    {
-      "child": {
-        "path": "blocks",
-        "shardFunc": "/repo/flatfs/shard/v1/next-to-last/3",
-        "sync": true,
-        "type": "flatfs"
-      },
-      "mountpoint": "/blocks",
-      "prefix": "flatfs.datastore",
-      "type": "measure"
-    },
-    {
-      "child": {
-        "compression": "none",
-        "path": "datastore",
-        "type": "levelds"
-      },
-      "mountpoint": "/",
-      "prefix": "leveldb.datastore",
-      "type": "measure"
-    }
-  ],
-  "type": "mount"
-}
-EOF
+SPEC_NEWSHARDFUN=$(cat ../t0024-files/spec-newshardfun)
 
 test_expect_success "change runtime value in spec config" '
   ipfs config --json Datastore.Spec "$SPEC_NOSYNC"
