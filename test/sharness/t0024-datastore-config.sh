@@ -9,7 +9,7 @@ test_init_ipfs
 test_launch_ipfs_daemon
 test_kill_ipfs_daemon
 
-SPEC_ORIG=$(cat <<EOF)
+SPEC_ORIG=$(cat <<'EOF')
 {
   "mounts": [
     {
