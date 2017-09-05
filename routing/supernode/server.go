@@ -8,8 +8,8 @@ import (
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
-	dhtpb "gx/ipfs/QmNV315eTphFgCttWPrT5ARNsiPNRLGFWHRJZyXyqvmjD6/go-libp2p-kad-dht/pb"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	dhtpb "gx/ipfs/QmQL77Pjoim43xXA2SY2Z9JYUbrZ7SvAKwXDQHaT68fZzR/go-libp2p-kad-dht/pb"
 	datastore "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
