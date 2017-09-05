@@ -28,17 +28,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 
 		// setup the node's default addresses.
 		// NOTE: two swarm listen addrs, one tcp, one utp.
-		Addresses: Addresses{
-			Swarm: []string{
-				"/ip4/0.0.0.0/tcp/4001",
-				// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-				"/ip6/::/tcp/4001",
-			},
-			Announce:   []string{},
-			NoAnnounce: []string{},
-			API:        "/ip4/127.0.0.1/tcp/5001",
-			Gateway:    "/ip4/127.0.0.1/tcp/8080",
-		},
+		Addresses: addressesConfig(),
 
 		Datastore: datastore,
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
@@ -96,6 +86,20 @@ const DefaultConnMgrLowWater = 600
 // DefaultConnMgrGracePeriod is the default value for the connection managers
 // grace period
 const DefaultConnMgrGracePeriod = time.Second * 20
+
+func addressesConfig() Addresses {
+	return Addresses{
+		Swarm: []string{
+			"/ip4/0.0.0.0/tcp/4001",
+			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
+			"/ip6/::/tcp/4001",
+		},
+		Announce:   []string{},
+		NoAnnounce: []string{},
+		API:        "/ip4/127.0.0.1/tcp/5001",
+		Gateway:    "/ip4/127.0.0.1/tcp/8080",
+	}
+}
 
 // DefaultDatastoreConfig is an internal function exported to aid in testing.
 func DefaultDatastoreConfig() Datastore {
