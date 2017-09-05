@@ -300,7 +300,8 @@ var configProfileCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"apply": configProfileApplyCmd,
+		"apply":  configProfileApplyCmd,
+		"revert": configProfileRevertCmd,
 	},
 }
 
@@ -314,37 +315,66 @@ var configProfileApplyCmd = &cmds.Command{
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
 
-		profile, ok := config.ConfigProfiles[args[0]]
+		profile, ok := config.Profiles[args[0]]
 		if !ok {
 			res.SetError(fmt.Errorf("%s in not a profile", args[0]), cmds.ErrNormal)
 			return
 		}
 
-		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		defer r.Close()
-
-		cfg, err := r.Config()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		err = profile(cfg)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		err = r.SetConfig(cfg)
+		err := transformConfig(req.InvocContext().ConfigRoot, profile.Apply)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 	},
+}
+
+var configProfileRevertCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Revert profile changes.",
+		ShortDescription: `Reverts profile-related changes to the config.
+
+Reverting some profiles may damage the configuration or not be possible.
+Backing up the config before running this command is advised.`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("profile", true, false, "The profile to apply to the config."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		args := req.Arguments()
+
+		profile, ok := config.Profiles[args[0]]
+		if !ok {
+			res.SetError(fmt.Errorf("%s in not a profile", args[0]), cmds.ErrNormal)
+			return
+		}
+
+		err := transformConfig(req.InvocContext().ConfigRoot, profile.Unapply)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+	},
+}
+
+func transformConfig(configRoot string, transformer config.Transformer) error {
+	r, err := fsrepo.Open(configRoot)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	cfg, err := r.Config()
+	if err != nil {
+		return err
+	}
+
+	err = transformer(cfg)
+	if err != nil {
+		return err
+	}
+
+	return r.SetConfig(cfg)
 }
 
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {
