@@ -343,6 +343,8 @@ type badgerdsDatastoreConfig struct {
 	path string
 }
 
+// BadgerdsDatastoreConfig returns a configuration stub for a badger datastore
+// from the given parameters
 func BadgerdsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) {
 	var c badgerdsDatastoreConfig
 	var ok bool
