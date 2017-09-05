@@ -8,7 +8,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
-	circuit "gx/ipfs/QmY8a2Zohd4Jxgj5BEfcWQtR1Q3jUsvkgMLc5sBn8nqpWS/go-libp2p-circuit"
+	circuit "gx/ipfs/QmYkTCcfrPdR5QMasnhh3FVRVNEKzH3YsvuBPpB4YPgwWC/go-libp2p-circuit"
 )
 
 var log = logging.Logger("ipfsaddr")
