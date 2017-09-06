@@ -182,16 +182,12 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		if len(n) == 0 {
 			n = lnk.Cid.String()
 		}
-		// TODO: calling everything a DT_File here might cause issues. But it
-		// will be expensive to query each child. However most shells call an
-		// additional 'stat' on each item in a directory listing, its probably
-		// okay.
 		nd, err := s.Ipfs.DAG.Get(ctx, lnk.Cid)
 		if err != nil {
 			log.Warning("error fetching directory child node: ", err)
 		}
 
-		var t fuse.DirentType
+		t := fuse.DT_Unknown
 		switch nd := nd.(type) {
 		case *mdag.RawNode:
 			t = fuse.DT_File
@@ -213,8 +209,6 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 					log.Error("unrecognized protonode data type: ", data.GetType())
 				}
 			}
-		default:
-			t = fuse.DT_Unknown
 		}
 		entries = append(entries, fuse.Dirent{Name: n, Type: t})
 		return nil
