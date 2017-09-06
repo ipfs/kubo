@@ -41,12 +41,12 @@ test_config_cmd_set() {
 # (i.e. just setting 'ipfs config --json foo "[1, 2, 3]"') may
 # set it as astring instead of proper json. We leverage the
 # unmarshalling that has to happen.
-CONFIG_SET_JSON_TEST='{
+CONFIG_SET_JSON_TEST=$(echo '{
 	"MDNS": {
 		"Enabled": true,
 		"Interval": 10
 	}
-}'
+}' | sed 's/\t/  /g')
 
 test_config_cmd() {
 	test_config_cmd_set "beep" "boop"

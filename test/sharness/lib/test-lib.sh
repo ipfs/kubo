@@ -226,11 +226,11 @@ test_launch_ipfs_daemon() {
 }
 
 do_umount() {
-    if [ "$(uname -s)" = "Linux" ]; then
+	if [ "$(uname -s)" = "Linux" ]; then
 	fusermount -u "$1"
-    else
+	else
 	umount "$1"
-    fi
+	fi
 }
 
 test_mount_ipfs() {
@@ -335,36 +335,36 @@ test_str_contains() {
 }
 
 disk_usage() {
-    # normalize du across systems
-    case $(uname -s) in
-        Linux)
-            DU="du -sb"
+	# normalize du across systems
+	case $(uname -s) in
+		Linux)
+			DU="du -sb"
 			M=1
-            ;;
-        FreeBSD)
-            DU="du -s -A -B 1"
+			;;
+		FreeBSD)
+			DU="du -s -A -B 1"
 			M=512
-            ;;
-        Darwin | DragonFly | *)
-            DU="du -s"
+			;;
+		Darwin | DragonFly | *)
+			DU="du -s"
 			M=512
-            ;;
-    esac
+			;;
+	esac
 	expr $($DU "$1" | awk "{print \$1}") "*" "$M"
 }
 
 # output a file's permission in human readable format
 generic_stat() {
-    # normalize stat across systems
-    case $(uname -s) in
-        Linux)
-            _STAT="stat -c %A"
-            ;;
-        FreeBSD | Darwin | DragonFly)
-            _STAT="stat -f %Sp"
-            ;;
-    esac
-    $_STAT "$1" || echo "failed" # Avoid returning nothing.
+	# normalize stat across systems
+	case $(uname -s) in
+		Linux)
+			_STAT="stat -c %A"
+			;;
+		FreeBSD | Darwin | DragonFly)
+			_STAT="stat -f %Sp"
+			;;
+	esac
+	$_STAT "$1" || echo "failed" # Avoid returning nothing.
 }
 
 test_check_peerid() {

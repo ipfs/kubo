@@ -149,8 +149,8 @@ test_filestore_verify() {
 		grep changed verify_actual | grep -q somedir/file3
 	'
 
-        # reset the state for the next test
-        test_init_dataset
+	# reset the state for the next test
+	test_init_dataset
 }
 
 test_filestore_dups() {

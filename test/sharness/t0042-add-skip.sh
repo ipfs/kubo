@@ -49,8 +49,8 @@ test_add_skip() {
 	'
 
 	test_expect_success "'ipfs add' includes hidden files given explicitly even without --hidden" '
-    mkdir -p mountdir/dotfiles &&
-    echo "set nocompatible" > mountdir/dotfiles/.vimrc
+		mkdir -p mountdir/dotfiles &&
+		echo "set nocompatible" > mountdir/dotfiles/.vimrc
 		cat >expected <<-\EOF &&
 added QmT4uMRDCN7EMpFeqwvKkboszbqeW1kWVGrBxBuCGqZcQc .vimrc
 		EOF

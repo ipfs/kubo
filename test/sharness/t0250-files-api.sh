@@ -533,7 +533,7 @@ test_files_api() {
 		verify_dir_contents /
 	'
 
-        test_expect_success "repo gc" '
+	test_expect_success "repo gc" '
 		ipfs repo gc
 	'
 }

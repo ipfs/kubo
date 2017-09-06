@@ -70,7 +70,7 @@ test_expect_success "'ipfs repo fsck' succeeds partial lock" '
 '
 
 test_expect_success "'ipfs repo fsck' output looks good with no daemon" '
-  grep "Lockfiles have been removed." fsck_out_actual2
+	grep "Lockfiles have been removed." fsck_out_actual2
 '
 
 # Make sure the files are actually removed
