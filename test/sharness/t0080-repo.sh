@@ -49,14 +49,14 @@ test_expect_success "'ipfs pin rm' output looks good" '
 '
 
 test_expect_failure "ipfs repo gc fully reverse ipfs add" '
-    ipfs repo gc &&
-    random 100000 41 >gcfile &&
-    disk_usage "$IPFS_PATH/blocks" >expected &&
-    hash=`ipfs add -q gcfile` &&
-    ipfs pin rm -r $hash &&
-    ipfs repo gc &&
-    disk_usage "$IPFS_PATH/blocks" >actual &&
-    test_cmp expected actual
+	ipfs repo gc &&
+	random 100000 41 >gcfile &&
+	disk_usage "$IPFS_PATH/blocks" >expected &&
+	hash=`ipfs add -q gcfile` &&
+	ipfs pin rm -r $hash &&
+	ipfs repo gc &&
+	disk_usage "$IPFS_PATH/blocks" >actual &&
+	test_cmp expected actual
 '
 
 test_expect_success "file no longer pinned" '
@@ -136,7 +136,7 @@ test_expect_success "pin something directly" '
 	DIRECTPIN=`ipfs add -q awesome` &&
 	echo "unpinned $DIRECTPIN" >expected9 &&
 	ipfs pin rm -r "$DIRECTPIN" >actual9 &&
-	test_cmp expected9 actual9  &&
+	test_cmp expected9 actual9	&&
 
 	echo "pinned $DIRECTPIN directly" >expected10 &&
 	ipfs pin add -r=false "$DIRECTPIN" >actual10 &&
@@ -220,34 +220,34 @@ test_expect_success "'ipfs refs --unique --recursive (bigger)'" '
 '
 
 get_field_num() {
-  field=$1
-  file=$2
-  num=$(grep "$field" "$file" | awk '{ print $2 }')
-  echo $num
+	field=$1
+	file=$2
+	num=$(grep "$field" "$file" | awk '{ print $2 }')
+	echo $num
 }
 
 test_expect_success "'ipfs repo stat' succeeds" '
-  ipfs repo stat > repo-stats
+	ipfs repo stat > repo-stats
 '
 test_expect_success "repo stats came out correct" '
-  grep "RepoPath" repo-stats &&
-  grep "RepoSize" repo-stats &&
-  grep "NumObjects" repo-stats &&
-  grep "Version" repo-stats &&
-  grep "StorageMax" repo-stats
+	grep "RepoPath" repo-stats &&
+	grep "RepoSize" repo-stats &&
+	grep "NumObjects" repo-stats &&
+	grep "Version" repo-stats &&
+	grep "StorageMax" repo-stats
 '
 
 test_expect_success "'ipfs repo stat' after adding a file" '
-  ipfs add repo-stats &&
-  ipfs repo stat > repo-stats-2
+	ipfs add repo-stats &&
+	ipfs repo stat > repo-stats-2
 '
 
 test_expect_success "repo stats are updated correctly" '
-  test $(get_field_num "RepoSize" repo-stats-2) -ge $(get_field_num "RepoSize" repo-stats)
+	test $(get_field_num "RepoSize" repo-stats-2) -ge $(get_field_num "RepoSize" repo-stats)
 '
 
 test_expect_success "'ipfs repo version' succeeds" '
-  ipfs repo version > repo-version
+	ipfs repo version > repo-version
 '
 
 test_expect_success "repo version came out correct" '
@@ -255,7 +255,7 @@ test_expect_success "repo version came out correct" '
 '
 
 test_expect_success "'ipfs repo version -q' succeeds" '
-  ipfs repo version -q > repo-version-q
+	ipfs repo version -q > repo-version-q
 '
 test_expect_success "repo version came out correct" '
 	egrep "^fs-repo@[0-9]+" repo-version-q >/dev/null

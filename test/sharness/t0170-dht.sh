@@ -7,27 +7,27 @@ test_description="Test dht command"
 # start iptb + wait for peering
 NUM_NODES=5
 test_expect_success 'init iptb' '
-  iptb init -n $NUM_NODES --bootstrap=none --port=0
+	iptb init -n $NUM_NODES --bootstrap=none --port=0
 '
 
 startup_cluster $NUM_NODES
 
 test_expect_success 'peer ids' '
-  PEERID_0=$(iptb get id 0) &&
-  PEERID_2=$(iptb get id 2)
+	PEERID_0=$(iptb get id 0) &&
+	PEERID_2=$(iptb get id 2)
 '
 
 # ipfs dht findpeer <peerID>
 test_expect_success 'findpeer' '
-  ipfsi 1 dht findpeer $PEERID_0 | sort >actual &&
-  ipfsi 0 id -f "<addrs>" | cut -d / -f 1-5 | sort >expected &&
-  test_cmp actual expected
+	ipfsi 1 dht findpeer $PEERID_0 | sort >actual &&
+	ipfsi 0 id -f "<addrs>" | cut -d / -f 1-5 | sort >expected &&
+	test_cmp actual expected
 '
 
 # ipfs dht put <key> <value>
 test_expect_success 'put' '
-  ipfsi 1 dht put planet pluto | sort >putted &&
-  [ -s putted ] ||
+	ipfsi 1 dht put planet pluto | sort >putted &&
+	[ -s putted ] ||
 	test_fsh cat putted
 '
 
@@ -45,9 +45,9 @@ test_expect_success 'findprovs' '
 
 # ipfs dht get <key>
 test_expect_success 'get' '
-  ipfsi 0 dht put bar foo >actual &&
-  ipfsi 4 dht get -v bar >actual &&
-  egrep "error: record key does not have selectorfunc" actual > /dev//null ||
+	ipfsi 0 dht put bar foo >actual &&
+	ipfsi 4 dht get -v bar >actual &&
+	egrep "error: record key does not have selectorfunc" actual > /dev//null ||
 	test_fsh cat actual
 '
 
@@ -56,16 +56,16 @@ test_expect_success 'get' '
 ## turns out to be the closest to what a key hashes to.
 # TODO: flaky. tracked by https://github.com/ipfs/go-ipfs/issues/2620
 test_expect_success 'query' '
-  ipfsi 3 dht query banana >actual &&
-  ipfsi 3 dht query apple >>actual &&
-  ipfsi 3 dht query pear >>actual &&
-  PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
-  [ -s actual ] ||
+	ipfsi 3 dht query banana >actual &&
+	ipfsi 3 dht query apple >>actual &&
+	ipfsi 3 dht query pear >>actual &&
+	PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
+	[ -s actual ] ||
 	test_might_fail test_fsh cat actual
 '
 
 test_expect_success 'stop iptb' '
-  iptb stop
+	iptb stop
 '
 
 test_done

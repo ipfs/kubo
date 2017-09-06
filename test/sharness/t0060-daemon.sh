@@ -14,48 +14,48 @@ test_launch_ipfs_daemon
 
 # this errors if we didn't --init $IPFS_PATH correctly
 test_expect_success "'ipfs config Identity.PeerID' works" '
-  PEERID=$(ipfs config Identity.PeerID)
+	PEERID=$(ipfs config Identity.PeerID)
 '
 
 test_expect_success "'ipfs swarm addrs local' works" '
-  ipfs swarm addrs local >local_addrs
+	ipfs swarm addrs local >local_addrs
 '
 
 test_expect_success "ipfs swarm addrs listen; works" '
-  ipfs swarm addrs listen >listen_addrs
+	ipfs swarm addrs listen >listen_addrs
 '
 
 test_expect_success "ipfs peer id looks good" '
-  test_check_peerid "$PEERID"
+	test_check_peerid "$PEERID"
 '
 
 # this is for checking SetAllowedOrigins race condition for the api and gateway
 # See https://github.com/ipfs/go-ipfs/pull/1966
 test_expect_success "ipfs API works with the correct allowed origin port" '
-  curl -s -X GET -H "Origin:http://localhost:$API_PORT" -I "http://$API_ADDR/api/v0/version"
+	curl -s -X GET -H "Origin:http://localhost:$API_PORT" -I "http://$API_ADDR/api/v0/version"
 '
 
 test_expect_success "ipfs gateway works with the correct allowed origin port" '
-  curl -s -X GET -H "Origin:http://localhost:$GWAY_PORT" -I "http://$GWAY_ADDR/api/v0/version"
+	curl -s -X GET -H "Origin:http://localhost:$GWAY_PORT" -I "http://$GWAY_ADDR/api/v0/version"
 '
 
 test_expect_success "ipfs daemon output looks good" '
-  STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
-  echo "Initializing daemon..." >expected_daemon &&
-  sed "s/^/Swarm listening on /" listen_addrs >>expected_daemon &&
-  sed "s/^/Swarm announcing /" local_addrs >>expected_daemon &&
-  echo "API server listening on '$API_MADDR'" >>expected_daemon &&
-  echo "Gateway (readonly) server listening on '$GWAY_MADDR'" >>expected_daemon &&
-  echo "Daemon is ready" >>expected_daemon &&
-  test_cmp expected_daemon actual_daemon
+	STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
+	echo "Initializing daemon..." >expected_daemon &&
+	sed "s/^/Swarm listening on /" listen_addrs >>expected_daemon &&
+	sed "s/^/Swarm announcing /" local_addrs >>expected_daemon &&
+	echo "API server listening on '$API_MADDR'" >>expected_daemon &&
+	echo "Gateway (readonly) server listening on '$GWAY_MADDR'" >>expected_daemon &&
+	echo "Daemon is ready" >>expected_daemon &&
+	test_cmp expected_daemon actual_daemon
 '
 
 test_expect_success ".ipfs/ has been created" '
-  test -d ".ipfs" &&
-  test -f ".ipfs/config" &&
-  test -d ".ipfs/datastore" &&
-  test -d ".ipfs/blocks" ||
-  test_fsh ls -al .ipfs
+	test -d ".ipfs" &&
+	test -f ".ipfs/config" &&
+	test -d ".ipfs/datastore" &&
+	test -d ".ipfs/blocks" ||
+	test_fsh ls -al .ipfs
 '
 
 # begin same as in t0010
@@ -86,9 +86,9 @@ test_expect_success "nc is available" '
 
 # check transport is encrypted
 test_expect_success "transport should be encrypted" '
-  nc -w 1 localhost $SWARM_PORT > swarmnc < ../t0060-data/mss-ls &&
-  grep -q "/secio" swarmnc &&
-  test_must_fail grep -q "/plaintext/1.0.0" swarmnc ||
+	nc -w 1 localhost $SWARM_PORT > swarmnc < ../t0060-data/mss-ls &&
+	grep -q "/secio" swarmnc &&
+	test_must_fail grep -q "/plaintext/1.0.0" swarmnc ||
 	test_fsh cat swarmnc
 '
 
@@ -106,11 +106,11 @@ test_expect_success "output looks good" '
 # end same as in t0010
 
 test_expect_success "daemon is still running" '
-  kill -0 $IPFS_PID
+	kill -0 $IPFS_PID
 '
 
 test_expect_success "'ipfs daemon' can be killed" '
-  test_kill_repeat_10_sec $IPFS_PID
+	test_kill_repeat_10_sec $IPFS_PID
 '
 
 test_expect_success "'ipfs daemon' should be able to run with a pipe attached to stdin (issue #861)" '
@@ -121,9 +121,9 @@ test_expect_success "'ipfs daemon' should be able to run with a pipe attached to
 '
 
 test_expect_success "daemon with pipe eventually becomes live" '
-  pollEndpoint -host='$API_MADDR' -ep=/version -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
-  test_kill_repeat_10_sec $DAEMON_PID ||
-  test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
+	pollEndpoint -host='$API_MADDR' -ep=/version -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
+	test_kill_repeat_10_sec $DAEMON_PID ||
+	test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
 
 ulimit -S -n 512

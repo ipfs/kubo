@@ -61,7 +61,7 @@ test_object_cmd() {
 	'
 
 	test_expect_success "'ipfs object put file.json' succeeds" '
-		ipfs object put  ../t0051-object-data/testPut.json > actual_putOut
+		ipfs object put	../t0051-object-data/testPut.json > actual_putOut
 	'
 
 	test_expect_success "'ipfs object put file.json' output looks good" '
@@ -71,7 +71,7 @@ test_object_cmd() {
 	'
 
 	test_expect_success "'ipfs object put file.xml' succeeds" '
-		ipfs object put  ../t0051-object-data/testPut.xml --inputenc=xml > actual_putOut
+		ipfs object put	../t0051-object-data/testPut.xml --inputenc=xml > actual_putOut
 	'
 
 	test_expect_success "'ipfs object put file.xml' output looks good" '
@@ -307,21 +307,21 @@ test_object_cmd() {
 
 test_object_content_type() {
 
-	  test_expect_success "'ipfs object get --encoding=protobuf' returns the correct content type" '
-    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=protobuf" | grep -q "^Content-Type: application/protobuf"
-  '
+	test_expect_success "'ipfs object get --encoding=protobuf' returns the correct content type" '
+		curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=protobuf" | grep -q "^Content-Type: application/protobuf"
+	'
 
-	  test_expect_success "'ipfs object get --encoding=json' returns the correct content type" '
-    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=json" | grep -q "^Content-Type: application/json"
-  '
+	test_expect_success "'ipfs object get --encoding=json' returns the correct content type" '
+		curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=json" | grep -q "^Content-Type: application/json"
+	'
 
-	  test_expect_success "'ipfs object get --encoding=text' returns the correct content type" '
-    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=text" | grep -q "^Content-Type: text/plain"
-  '
+	test_expect_success "'ipfs object get --encoding=text' returns the correct content type" '
+		curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=text" | grep -q "^Content-Type: text/plain"
+	'
 
-	  test_expect_success "'ipfs object get --encoding=xml' returns the correct content type" '
-  curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=xml" | grep -q "^Content-Type: application/xml"
-  '
+	test_expect_success "'ipfs object get --encoding=xml' returns the correct content type" '
+		curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=xml" | grep -q "^Content-Type: application/xml"
+	'
 }
 
 # should work offline

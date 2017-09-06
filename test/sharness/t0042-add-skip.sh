@@ -55,7 +55,7 @@ test_add_skip() {
 added QmT4uMRDCN7EMpFeqwvKkboszbqeW1kWVGrBxBuCGqZcQc .vimrc
 		EOF
 		ipfs add mountdir/dotfiles/.vimrc >actual
-    cat actual
+		cat actual
 		test_cmp expected actual
 	'
 

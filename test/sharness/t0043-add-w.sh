@@ -57,98 +57,98 @@ add_w_r='QmcCksBMDuuyuyfAMMNzEAx6Z7jTrdRy9a23WpufAhG9ji'
 
 test_add_w() {
 
-  test_expect_success "go-random-files is installed" '
-    type random-files
-  '
+	test_expect_success "go-random-files is installed" '
+		type random-files
+	'
 
-  test_expect_success "random-files generates test files" '
-    random-files --seed 7547632 --files 5 --dirs 2 --depth 3 m &&
-    echo "$add_w_m" >expected &&
-    ipfs add -q -r m | tail -n1 >actual &&
-    test_sort_cmp expected actual
-  '
+	test_expect_success "random-files generates test files" '
+		random-files --seed 7547632 --files 5 --dirs 2 --depth 3 m &&
+		echo "$add_w_m" >expected &&
+		ipfs add -q -r m | tail -n1 >actual &&
+		test_sort_cmp expected actual
+	'
 
-  # test single file
-  test_expect_success "ipfs add -w (single file) succeeds" '
-    ipfs add -w m/4r93 >actual
-  '
+	# test single file
+	test_expect_success "ipfs add -w (single file) succeeds" '
+		ipfs add -w m/4r93 >actual
+	'
 
-  test_expect_success "ipfs add -w (single file) is correct" '
-    echo "$add_w_1" >expected &&
-    test_sort_cmp expected actual
-  '
+	test_expect_success "ipfs add -w (single file) is correct" '
+		echo "$add_w_1" >expected &&
+		test_sort_cmp expected actual
+	'
 
-  # test two files together
-  test_expect_success "ipfs add -w (multiple) succeeds" '
-    ipfs add -w m/4r93 m/4u6ead >actual
-  '
+	# test two files together
+	test_expect_success "ipfs add -w (multiple) succeeds" '
+		ipfs add -w m/4r93 m/4u6ead >actual
+	'
 
-  test_expect_success "ipfs add -w (multiple) is correct" '
-    echo "$add_w_12" >expected  &&
-    test_sort_cmp expected actual
-  '
+	test_expect_success "ipfs add -w (multiple) is correct" '
+		echo "$add_w_12" >expected	&&
+		test_sort_cmp expected actual
+	'
 
-  test_expect_success "ipfs add -w (multiple) succeeds" '
-    ipfs add -w m/4u6ead m/4r93 >actual
-  '
+	test_expect_success "ipfs add -w (multiple) succeeds" '
+		ipfs add -w m/4u6ead m/4r93 >actual
+	'
 
-  test_expect_success "ipfs add -w (multiple) orders" '
-    echo "$add_w_21" >expected  &&
-    test_sort_cmp expected actual
-  '
+	test_expect_success "ipfs add -w (multiple) orders" '
+		echo "$add_w_21" >expected	&&
+		test_sort_cmp expected actual
+	'
 
-  # test a directory
-  test_expect_success "ipfs add -w -r (dir) succeeds" '
-    ipfs add -r -w m/t_1wp-8a2/_jo7 >actual
-  '
+	# test a directory
+	test_expect_success "ipfs add -w -r (dir) succeeds" '
+		ipfs add -r -w m/t_1wp-8a2/_jo7 >actual
+	'
 
-  test_expect_success "ipfs add -w -r (dir) is correct" '
-    echo "$add_w_d1" >expected &&
-    test_sort_cmp expected actual
-  '
+	test_expect_success "ipfs add -w -r (dir) is correct" '
+		echo "$add_w_d1" >expected &&
+		test_sort_cmp expected actual
+	'
 
-  # test files and directory
-  test_expect_success "ipfs add -w -r <many> succeeds" '
-    ipfs add -w -r m/t_1wp-8a2/h3qpecj0 \
-      m/ha6f0x7su6/gnz66h m/t_1wp-8a2/_jo7 m/4r93 >actual
-  '
+	# test files and directory
+	test_expect_success "ipfs add -w -r <many> succeeds" '
+		ipfs add -w -r m/t_1wp-8a2/h3qpecj0 \
+			m/ha6f0x7su6/gnz66h m/t_1wp-8a2/_jo7 m/4r93 >actual
+	'
 
-  test_expect_success "ipfs add -w -r <many> is correct" '
-    echo "$add_w_d2" >expected &&
-    test_sort_cmp expected actual
-  '
+	test_expect_success "ipfs add -w -r <many> is correct" '
+		echo "$add_w_d2" >expected &&
+		test_sort_cmp expected actual
+	'
 
-  # test -w -r m/* == -r m
-  test_expect_success "ipfs add -w -r m/* == add -r m  succeeds" '
-    ipfs add -q -w -r m/* | tail -n1 >actual
-  '
+	# test -w -r m/* == -r m
+	test_expect_success "ipfs add -w -r m/* == add -r m	succeeds" '
+		ipfs add -q -w -r m/* | tail -n1 >actual
+	'
 
-  test_expect_success "ipfs add -w -r m/* == add -r m  is correct" '
-    echo "$add_w_m" >expected &&
-    test_sort_cmp expected actual
-  '
+	test_expect_success "ipfs add -w -r m/* == add -r m	is correct" '
+		echo "$add_w_m" >expected &&
+		test_sort_cmp expected actual
+	'
 
-  # test repeats together
-  test_expect_success "ipfs add -w (repeats) succeeds" '
-    ipfs add -q -w -r m/t_1wp-8a2/h3qpecj0 m/ha6f0x7su6/gnz66h \
-      m/t_1wp-8a2/_jo7 m/4r93 m/t_1wp-8a2 m/t_1wp-8a2 m/4r93 \
-      m/4r93 m/ha6f0x7su6/_rwujlf3qh_g08 \
-      m/ha6f0x7su6/gnz66h/9cwudvacx | tail -n1 >actual
-  '
+	# test repeats together
+	test_expect_success "ipfs add -w (repeats) succeeds" '
+		ipfs add -q -w -r m/t_1wp-8a2/h3qpecj0 m/ha6f0x7su6/gnz66h \
+			m/t_1wp-8a2/_jo7 m/4r93 m/t_1wp-8a2 m/t_1wp-8a2 m/4r93 \
+			m/4r93 m/ha6f0x7su6/_rwujlf3qh_g08 \
+			m/ha6f0x7su6/gnz66h/9cwudvacx | tail -n1 >actual
+	'
 
-  test_expect_success "ipfs add -w (repeats) is correct" '
-    echo "$add_w_r" >expected  &&
-    test_sort_cmp expected actual
-  '
+	test_expect_success "ipfs add -w (repeats) is correct" '
+		echo "$add_w_r" >expected	&&
+		test_sort_cmp expected actual
+	'
 
-  test_expect_success "ipfs add -w -r (dir) --cid-version=1 succeeds" '
-    ipfs add -r -w --cid-version=1 m/t_1wp-8a2/_jo7 >actual
-  '
+	test_expect_success "ipfs add -w -r (dir) --cid-version=1 succeeds" '
+		ipfs add -r -w --cid-version=1 m/t_1wp-8a2/_jo7 >actual
+	'
 
-  test_expect_success "ipfs add -w -r (dir) --cid-version=1 is correct" '
-    echo "$add_w_d1_v1" >expected &&
-    test_sort_cmp expected actual
-  '
+	test_expect_success "ipfs add -w -r (dir) --cid-version=1 is correct" '
+		echo "$add_w_d1_v1" >expected &&
+		test_sort_cmp expected actual
+	'
 }
 
 test_init_ipfs

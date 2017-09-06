@@ -55,9 +55,9 @@ test_expect_success "resolve output looks good" '
 '
 
 test_expect_success "ipfs cat on published content succeeds" '
-    ipfs cat "/ipfs/$HASH_WELCOME_DOCS/help" >expected &&
-    ipfs cat "/ipns/$PEERID" >actual &&
-    test_cmp expected actual
+	ipfs cat "/ipfs/$HASH_WELCOME_DOCS/help" >expected &&
+	ipfs cat "/ipns/$PEERID" >actual &&
+	test_cmp expected actual
 '
 
 # publish with an explicit node ID

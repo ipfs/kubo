@@ -7,14 +7,14 @@ test_description="Test dht command"
 # start iptb + wait for peering
 NUM_NODES=5
 test_expect_success 'init iptb' '
-  iptb init -n $NUM_NODES --bootstrap=none --port=0
+	iptb init -n $NUM_NODES --bootstrap=none --port=0
 '
 
 startup_cluster $NUM_NODES --enable-pubsub-experiment
 
 test_expect_success 'peer ids' '
-  PEERID_0=$(iptb get id 0) &&
-  PEERID_2=$(iptb get id 2)
+	PEERID_0=$(iptb get id 0) &&
+	PEERID_2=$(iptb get id 2)
 '
 
 # ipfs pubsub sub
@@ -58,7 +58,7 @@ test_expect_success "wait until echo > wait executed" '
 '
 
 test_expect_success 'stop iptb' '
-  iptb stop
+	iptb stop
 '
 
 test_done

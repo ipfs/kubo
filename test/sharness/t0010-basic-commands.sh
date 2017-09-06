@@ -17,7 +17,7 @@ test_expect_success "ipfs version succeeds" '
 '
 
 test_expect_success "ipfs --version success" '
-    ipfs --version
+	ipfs --version
 '
 
 test_expect_success "ipfs version output looks good" '
@@ -26,10 +26,10 @@ test_expect_success "ipfs version output looks good" '
 '
 
 test_expect_success "ipfs versions matches ipfs --version" '
-    ipfs version > version.txt &&
-    ipfs --version > version2.txt &&
-    diff version2.txt version.txt ||
-    test_fsh ipfs --version
+	ipfs version > version.txt &&
+	ipfs --version > version2.txt &&
+	diff version2.txt version.txt ||
+	test_fsh ipfs --version
 
 '
 
@@ -79,7 +79,7 @@ test_expect_failure "All ipfs root commands are mentioned in base helptext" '
 	cut -d" " -f 2 commands.txt | grep -v ipfs | sort -u | \
 	while read cmd
 	do
-		grep "    $cmd" help.txt > /dev/null ||
+		grep "	$cmd" help.txt > /dev/null ||
 			{ echo missing $cmd from helptext; echo 1 > fail; }
 	done
 

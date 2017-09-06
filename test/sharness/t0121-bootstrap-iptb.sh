@@ -22,15 +22,15 @@ test_expect_success "setup iptb nodes" '
 '
 
 test_expect_success "start up iptb nodes" '
-    iptb start
+	iptb start
 '
 
 test_expect_success "check peers works" '
-    ipfs swarm peers >peers_out
+	ipfs swarm peers >peers_out
 '
 
 test_expect_success "correct number of peers" '
-    test -z "`cat peers_out`"
+	test -z "`cat peers_out`"
 '
 
 betterwait() {

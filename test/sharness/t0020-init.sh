@@ -40,14 +40,14 @@ test_expect_success "cleanup dir with bad perms" '
 # test no repo error message
 # this applies to `ipfs add sth`, `ipfs refs <hash>`
 test_expect_success "ipfs cat fails" '
-    export IPFS_PATH="$(pwd)/.ipfs" &&
-    test_must_fail ipfs cat Qmaa4Rw81a3a1VEx4LxB7HADUAXvZFhCoRdBzsMZyZmqHD 2> cat_fail_out
+	export IPFS_PATH="$(pwd)/.ipfs" &&
+	test_must_fail ipfs cat Qmaa4Rw81a3a1VEx4LxB7HADUAXvZFhCoRdBzsMZyZmqHD 2> cat_fail_out
 '
 
 test_expect_success "ipfs cat no repo message looks good" '
-    echo "Error: no IPFS repo found in $IPFS_PATH." > cat_fail_exp &&
-    echo "please run: 'ipfs init'" >> cat_fail_exp &&
-    test_path_cmp cat_fail_exp cat_fail_out
+	echo "Error: no IPFS repo found in $IPFS_PATH." > cat_fail_exp &&
+	echo "please run: 'ipfs init'" >> cat_fail_exp &&
+	test_path_cmp cat_fail_exp cat_fail_out
 '
 
 # test that init succeeds

@@ -11,20 +11,20 @@ test_description="Test get command"
 test_init_ipfs
 
 test_ipfs_get_flag() {
-    ext="$1"; shift
-    tar_flag="$1"; shift
-    flag="$@"
+	ext="$1"; shift
+	tar_flag="$1"; shift
+	flag="$@"
 
-    test_expect_success "ipfs get $flag succeeds" '
-        ipfs get "$HASH" '"$flag"' >actual
-    '
+	test_expect_success "ipfs get $flag succeeds" '
+		ipfs get "$HASH" '"$flag"' >actual
+	'
 
-    test_expect_success "ipfs get $flag output looks good" '
+	test_expect_success "ipfs get $flag output looks good" '
 		printf "%s\n\n" "Saving archive to $HASH$ext" >expected &&
 		test_cmp expected actual
 	'
 
-    test_expect_success "ipfs get $flag archive output is valid" '
+	test_expect_success "ipfs get $flag archive output is valid" '
 		tar "$tar_flag" "$HASH$ext" &&
 		test_cmp "$HASH" data &&
 		rm "$HASH$ext" &&
@@ -78,11 +78,11 @@ test_get_cmd() {
 		test_cmp "$HASH2" data
 	'
 
-    test_ipfs_get_flag ".tar" "-xf" -a
+	test_ipfs_get_flag ".tar" "-xf" -a
 
-    test_ipfs_get_flag ".tar.gz" "-zxf" -a -C
+	test_ipfs_get_flag ".tar.gz" "-zxf" -a -C
 
-    test_ipfs_get_flag ".tar.gz" "-zxf" -a -C -l 9
+	test_ipfs_get_flag ".tar.gz" "-zxf" -a -C -l 9
 
 	test_expect_success "ipfs get succeeds (directory)" '
 		mkdir -p dir &&

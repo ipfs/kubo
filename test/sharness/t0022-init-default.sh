@@ -30,7 +30,7 @@ test_expect_success "ipfs config succeeds" '
 '
 
 test_expect_success "ipfs read config succeeds" '
-    IPFS_DEFAULT_CONFIG=$(cat "$IPFS_PATH"/config)
+	IPFS_DEFAULT_CONFIG=$(cat "$IPFS_PATH"/config)
 '
 
 test_expect_success "clean up ipfs dir" '

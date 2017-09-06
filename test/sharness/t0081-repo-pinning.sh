@@ -17,13 +17,13 @@ test_pin_flag() {
 
 	if ipfs pin ls --type="$ptype" "$object" >actual
 	then
-	    test "$expect" = "true" && return
-	    test_fsh cat actual
-	    return
+		test "$expect" = "true" && return
+		test_fsh cat actual
+		return
 	else
-	    test "$expect" = "false" && return
-	    test_fsh cat actual
-	    return
+		test "$expect" = "false" && return
+		test_fsh cat actual
+		return
 	fi
 }
 
@@ -41,8 +41,8 @@ test_pin() {
 	[ "$?" = "0" ] && d="true" || d="false"
 
 	test_pin_flag "$object" "recursive" $r || return 1
-	test_pin_flag "$object" "indirect"  $i || return 1
-	test_pin_flag "$object" "direct"    $d || return 1
+	test_pin_flag "$object" "indirect"	$i || return 1
+	test_pin_flag "$object" "direct"		$d || return 1
 	return 0
 }
 
@@ -108,10 +108,10 @@ test_expect_success "objects are there" '
 	ipfs cat "$HASH_FILE3" >FILE3_a &&
 	ipfs cat "$HASH_FILE2" >FILE2_a &&
 	ipfs cat "$HASH_FILE1" >FILE1_a &&
-	ipfs ls "$HASH_DIR3"   >DIR3_a &&
-	ipfs ls "$HASH_DIR4"   >DIR4_a &&
-	ipfs ls "$HASH_DIR2"   >DIR2_a &&
-	ipfs ls "$HASH_DIR1"   >DIR1_a
+	ipfs ls "$HASH_DIR3"	 >DIR3_a &&
+	ipfs ls "$HASH_DIR4"	 >DIR4_a &&
+	ipfs ls "$HASH_DIR2"	 >DIR2_a &&
+	ipfs ls "$HASH_DIR1"	 >DIR1_a
 '
 
 # saving this output for later
@@ -152,16 +152,16 @@ test_expect_success "'ipfs repo gc' succeeds" '
 test_expect_success "objects are still there" '
 	cat FILE6_a FILE5_a FILE4_a FILE3_a FILE2_a FILE1_a >expected45 &&
 	cat DIR3_a DIR4_a DIR2_a DIR1_a >>expected45 &&
-	ipfs cat "$HASH_FILE6"  >actual45 &&
+	ipfs cat "$HASH_FILE6"	>actual45 &&
 	ipfs cat "$HASH_FILE5" >>actual45 &&
 	ipfs cat "$HASH_FILE4" >>actual45 &&
 	ipfs cat "$HASH_FILE3" >>actual45 &&
 	ipfs cat "$HASH_FILE2" >>actual45 &&
 	ipfs cat "$HASH_FILE1" >>actual45 &&
-	ipfs ls "$HASH_DIR3"   >>actual45 &&
-	ipfs ls "$HASH_DIR4"   >>actual45 &&
-	ipfs ls "$HASH_DIR2"   >>actual45 &&
-	ipfs ls "$HASH_DIR1"   >>actual45 &&
+	ipfs ls "$HASH_DIR3"	 >>actual45 &&
+	ipfs ls "$HASH_DIR4"	 >>actual45 &&
+	ipfs ls "$HASH_DIR2"	 >>actual45 &&
+	ipfs ls "$HASH_DIR1"	 >>actual45 &&
 	test_cmp expected45 actual45
 '
 
@@ -178,27 +178,27 @@ test_expect_success "none are pinned any more" '
 	test_pin "$HASH_FILE3" &&
 	test_pin "$HASH_FILE2" &&
 	test_pin "$HASH_FILE1" &&
-	test_pin "$HASH_DIR3"  &&
-	test_pin "$HASH_DIR4"  &&
-	test_pin "$HASH_DIR2"  &&
+	test_pin "$HASH_DIR3"	&&
+	test_pin "$HASH_DIR4"	&&
+	test_pin "$HASH_DIR2"	&&
 	test_pin "$HASH_DIR1"
 '
 
 test_expect_success "pin some directly and indirectly" '
-	ipfs pin add -r=false	"$HASH_DIR1"  >actual7 &&
-	ipfs pin add -r=true	"$HASH_DIR2"  >>actual7 &&
+	ipfs pin add -r=false	"$HASH_DIR1"	>actual7 &&
+	ipfs pin add -r=true	"$HASH_DIR2"	>>actual7 &&
 	ipfs pin add -r=false	"$HASH_FILE1" >>actual7 &&
-	echo "pinned $HASH_DIR1 directly"	   >expected7 &&
+	echo "pinned $HASH_DIR1 directly"		 >expected7 &&
 	echo "pinned $HASH_DIR2 recursively" >>expected7 &&
 	echo "pinned $HASH_FILE1 directly"	 >>expected7 &&
 	test_cmp expected7 actual7
 '
 
 test_expect_success "pin lists look good" '
-	test_pin $HASH_DIR1  direct &&
-	test_pin $HASH_DIR2  recursive &&
-	test_pin $HASH_DIR3  &&
-	test_pin $HASH_DIR4  indirect &&
+	test_pin $HASH_DIR1	direct &&
+	test_pin $HASH_DIR2	recursive &&
+	test_pin $HASH_DIR3	&&
+	test_pin $HASH_DIR4	indirect &&
 	test_pin $HASH_FILE1 indirect direct &&
 	test_pin $HASH_FILE2 indirect &&
 	test_pin $HASH_FILE3 &&
@@ -220,12 +220,12 @@ test_expect_success "'ipfs repo gc' succeeds" '
 test_expect_success "some objects are still there" '
 	cat FILE6_a FILE4_a FILE2_a FILE1_a >expected8 &&
 	cat DIR4_a DIR2_a DIR1_objlink >>expected8 &&
-	ipfs cat "$HASH_FILE6"  >actual8 &&
+	ipfs cat "$HASH_FILE6"	>actual8 &&
 	ipfs cat "$HASH_FILE4" >>actual8 &&
 	ipfs cat "$HASH_FILE2" >>actual8 &&
 	ipfs cat "$HASH_FILE1" >>actual8 &&
-	ipfs ls "$HASH_DIR4"   >>actual8 &&
-	ipfs ls "$HASH_DIR2"   >>actual8 &&
+	ipfs ls "$HASH_DIR4"	 >>actual8 &&
+	ipfs ls "$HASH_DIR2"	 >>actual8 &&
 	ipfs object links "$HASH_DIR1" >>actual8 &&
 	test_cmp expected8 actual8
 '
@@ -275,9 +275,9 @@ test_expect_success "test add nopin dir" '
 FICTIONAL_HASH="QmXV4f9v8a56MxWKBhP3ETsz4EaafudU1cKfPaaJnenc48"
 test_launch_ipfs_daemon
 test_expect_success "test unpinning a hash that's not pinned" "
-  test_expect_code 1 ipfs pin rm $FICTIONAL_HASH --timeout=2s
-  test_expect_code 1 ipfs pin rm $FICTIONAL_HASH/a --timeout=2s
-  test_expect_code 1 ipfs pin rm $FICTIONAL_HASH/a/b --timeout=2s
+	test_expect_code 1 ipfs pin rm $FICTIONAL_HASH --timeout=2s
+	test_expect_code 1 ipfs pin rm $FICTIONAL_HASH/a --timeout=2s
+	test_expect_code 1 ipfs pin rm $FICTIONAL_HASH/a/b --timeout=2s
 "
 test_kill_ipfs_daemon
 
