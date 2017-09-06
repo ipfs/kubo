@@ -7,7 +7,7 @@ type Profile struct {
 	Unapply Transformer
 }
 
-// Profiles is a map holding configuration transformers
+// Profiles is a map holding configuration transformers. Docs are in docs/config.md
 var Profiles = map[string]*Profile{
 	"server": {
 		Apply: func(c *Config) error {
@@ -65,17 +65,17 @@ var Profiles = map[string]*Profile{
 	},
 	"badgerds": {
 		Apply: func(c *Config) error {
-				c.Datastore.Spec = map[string]interface{}{
-					"type":   "measure",
-					"prefix": "badger.datastore",
-					"child": map[string]interface{}{
-						"type":       "badgerds",
-						"path":       "badgerds",
-						"syncWrites": true,
-					},
-				}
-				return nil
-			},
+			c.Datastore.Spec = map[string]interface{}{
+				"type":   "measure",
+				"prefix": "badger.datastore",
+				"child": map[string]interface{}{
+					"type":       "badgerds",
+					"path":       "badgerds",
+					"syncWrites": true,
+				},
+			}
+			return nil
+		},
 		Unapply: func(c *Config) error {
 			c.Datastore.Spec = DefaultDatastoreConfig().Spec
 			return nil

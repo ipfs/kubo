@@ -151,6 +151,30 @@ test_config_cmd() {
     echo "Error: setting private key with API is not supported" > replace_expected
     test_cmp replace_out replace_expected
   '
+
+  test_expect_success "'ipfs config Swarm.AddrFilters' looks good" '
+    ipfs config Swarm.AddrFilters > actual_config &&
+    test $(cat actual_config | wc -l) = 1
+  '
+
+  test_expect_success "'ipfs config profile apply server' works" '
+    ipfs config profile apply server
+  '
+
+  test_expect_success "'ipfs config Swarm.AddrFilters' looks good with server profile" '
+    ipfs config Swarm.AddrFilters > actual_config &&
+    test $(cat actual_config | wc -l) = 17
+  '
+
+  test_expect_success "'ipfs config profile revert server' works" '
+    ipfs config profile revert server
+  '
+
+  test_expect_success "'ipfs config Swarm.AddrFilters' looks good with reverted server profile" '
+    ipfs config Swarm.AddrFilters > actual_config &&
+    test $(cat actual_config | wc -l) = 1
+  '
+
 }
 
 test_init_ipfs

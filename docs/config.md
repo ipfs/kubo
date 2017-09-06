@@ -17,6 +17,7 @@ on a running daemon do not read the config file at runtime.
 - [`Mounts`](#mounts)
 - [`Reprovider`](#reprovider)
 - [`Swarm`](#swarm)
+- [`Profiles`](#profiles)
 
 ## `Addresses`
 Contains information about various listener addresses to be used by this node.
@@ -287,3 +288,17 @@ LowWater is the minimum number of connections to maintain.
 HighWater is the number of connections that, when exceeded, will trigger a connection GC operation.
 - `GracePeriod`
 GracePeriod is a time duration that new connections are immune from being closed by the connection manager.
+
+## Profiles
+Configuration profiles allow to tweak configuration quickly. Profiles can be
+applied with `--profile` flag to `ipfs init` or with `ipfs config profile apply`
+command.
+
+- `server` profile
+Recommended for nodes with public IPv4 address, disables host and content
+discovery in local networks.
+
+- `test` profile
+Reduces external interference, useful for running ipfs in test environments.
+Note that with these settings node won't be able to talk to the rest of the
+network without manual bootstrap.
