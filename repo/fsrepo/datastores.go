@@ -18,6 +18,7 @@ import (
 
 	badgerds "gx/ipfs/QmNWbaGdPCA3anCcvh4jm3VAahAbmmAsU58sp8Ti4KTJkL/go-ds-badger"
 	levelds "gx/ipfs/QmPdvXuXWAR6gtxxqZw42RtSADMwz4ijVmYHGS542b6cMz/go-ds-leveldb"
+	badger "gx/ipfs/QmQL7yJ4iWQdeAH9WvgJ4XYHS6m5DqL853Cck5SaUb8MAw/badger"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 )
 
@@ -340,7 +341,8 @@ func (c measureDatastoreConfig) Create(path string) (repo.Datastore, error) {
 }
 
 type badgerdsDatastoreConfig struct {
-	path string
+	path       string
+	syncWrites bool
 }
 
 // BadgerdsDatastoreConfig returns a configuration stub for a badger datastore
@@ -352,6 +354,17 @@ func BadgerdsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, er
 	c.path, ok = params["path"].(string)
 	if !ok {
 		return nil, fmt.Errorf("'path' field is missing or not string")
+	}
+
+	sw, ok := params["syncWrites"]
+	if !ok {
+		c.syncWrites = true
+	} else {
+		if swb, ok := sw.(bool); ok {
+			c.syncWrites = swb
+		} else {
+			return nil, fmt.Errorf("'syncWrites' field was not a boolean")
+		}
 	}
 
 	return &c, nil
@@ -375,5 +388,8 @@ func (c *badgerdsDatastoreConfig) Create(path string) (repo.Datastore, error) {
 		return nil, err
 	}
 
-	return badgerds.NewDatastore(p, nil)
+	defopts := badger.DefaultOptions
+	defopts.SyncWrites = c.syncWrites
+
+	return badgerds.NewDatastore(p, &defopts)
 }
