@@ -3,8 +3,8 @@ package supernode
 import (
 	"testing"
 
-	dhtpb "gx/ipfs/QmNV315eTphFgCttWPrT5ARNsiPNRLGFWHRJZyXyqvmjD6/go-libp2p-kad-dht/pb"
 	datastore "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	dhtpb "gx/ipfs/QmeQMs9pr9Goci9xJ1Wo5ZQrknzBZwnmHYWJXA8stQDFMx/go-libp2p-kad-dht/pb"
 )
 
 func TestPutProviderDoesntResultInDuplicates(t *testing.T) {

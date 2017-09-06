@@ -190,9 +190,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmbRT4BwPQEx4CPCd8LKYL46tFWYneGswQnHFdsuiczJRL",
+      "hash": "QmXZyBQMkqSYigxhJResC6fLWDGFhbphK67eZoqMDUvBmK",
       "name": "go-libp2p",
-      "version": "4.5.3"
+      "version": "4.5.5"
     },
     {
       "author": "whyrusleeping",
@@ -237,9 +237,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmNV315eTphFgCttWPrT5ARNsiPNRLGFWHRJZyXyqvmjD6",
+      "hash": "QmeQMs9pr9Goci9xJ1Wo5ZQrknzBZwnmHYWJXA8stQDFMx",
       "name": "go-libp2p-kad-dht",
-      "version": "2.5.13"
+      "version": "2.5.16"
     },
     {
       "author": "whyrusleeping",
@@ -249,9 +249,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQF8Xp6cJg8mZJ7rcSTFbhHxEjYGxjfPnygBsaWPXJbtM",
+      "hash": "QmTm7GoSkSSQPP32bZhvu17oY1AfvPKND6ELUdYAcKuR1j",
       "name": "floodsub",
-      "version": "0.8.22"
+      "version": "0.8.25"
     },
     {
       "author": "whyrusleeping",
@@ -308,9 +308,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYTeBaLWbFKQAtVTHbxvTbKfgqrGJUupK4UwjeugownfD",
+      "hash": "QmQ1bJEsmdEiGfTQRoj6CsshWmAKduAEDEbwzbvk5QT5Ui",
       "name": "go-libp2p-netutil",
-      "version": "0.2.23"
+      "version": "0.2.25"
     },
     {
       "hash": "QmSAFA8v42u4gpJNy1tb7vW3JiiXiaYDC2b845c2RnNSJL",
@@ -319,9 +319,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmcx4KoZ91XS6izLjdkujAMAunAS1YuTgfgASgYaZF5GkR",
+      "hash": "QmVJGsPeK3vwtEyyTxpCs47yjBYMmYsAhEouPDF3Gb2eK3",
       "name": "go-addr-util",
-      "version": "1.2.0"
+      "version": "1.2.2"
     },
     {
       "author": "whyrusleeping",
@@ -409,9 +409,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQ8c9nscf6kxoxCoXGxuXWB4ruQ1ttfRG5gKcQbNgJvGr",
+      "hash": "QmQUmDr1DMDDy6KMSsJuyV9nVD7dJZ9iWxXESQWPvte2NP",
       "name": "go-libp2p-swarm",
-      "version": "1.7.5"
+      "version": "1.7.7"
     },
     {
       "author": "whyrusleeping",
@@ -454,9 +454,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmY8a2Zohd4Jxgj5BEfcWQtR1Q3jUsvkgMLc5sBn8nqpWS",
+      "hash": "QmYkTCcfrPdR5QMasnhh3FVRVNEKzH3YsvuBPpB4YPgwWC",
       "name": "go-libp2p-circuit",
-      "version": "1.1.6"
+      "version": "1.1.8"
     },
     {
       "author": "whyrusleeping",
