@@ -126,6 +126,8 @@ func identityConfig(out io.Writer, nbits, keyType int) (Identity, error) {
 		fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
 	case ci.Ed25519:
 		fmt.Fprintf(out, "generating Ed25519 keypair...")
+	default:
+		return ident, fmt.Errorf("unrecognized keyType: %d", keyType)
 	}
 
 	sk, pk, err := ci.GenerateKeyPair(keyType, nbits)
@@ -142,11 +144,22 @@ func identityConfig(out io.Writer, nbits, keyType int) (Identity, error) {
 	}
 	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
-	id, err := peer.IDFromPublicKey(pk)
+	kf := peer.IDFromPublicKey
+	switch keyType {
+	case ci.RSA:
+		kf = peer.IDFromPublicKey
+	case ci.Ed25519:
+		kf = peer.IDFromEd25519PublicKey
+	default:
+		return ident, fmt.Errorf("unrecognized keyType: %d", keyType)
+	}
+
+	id, err := kf(pk)
 	if err != nil {
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
+
 	fmt.Fprintf(out, "peer identity: %s\n", ident.PeerID)
 	return ident, nil
 }

@@ -56,6 +56,7 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	floodsub "gx/ipfs/QmTm7GoSkSSQPP32bZhvu17oY1AfvPKND6ELUdYAcKuR1j/floodsub"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	p2phost "gx/ipfs/QmUwW8jMQDxXhLD2j4EfWqLEMX3MsvyWcWGvJPVDh1aTmu/go-libp2p-host"
 	addrutil "gx/ipfs/QmVJGsPeK3vwtEyyTxpCs47yjBYMmYsAhEouPDF3Gb2eK3/go-addr-util"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
@@ -759,9 +760,29 @@ func loadPrivateKey(cfg *config.Identity, id peer.ID) (ic.PrivKey, error) {
 		return nil, err
 	}
 
-	id2, err := peer.IDFromPrivateKey(sk)
+	decmh, err := mh.Decode([]byte(id))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("id was not a valid multihash")
+	}
+
+	// TODO: this isnt very elegant. Formalize how we want to do this
+	var id2 peer.ID
+	switch decmh.Code {
+	case mh.ID:
+		if _, ok := sk.(*ic.Ed25519PrivateKey); !ok {
+			return nil, fmt.Errorf("key embedded peer IDs are only supported for ed25519")
+		}
+		id2, err = peer.IDFromEd25519PublicKey(sk.GetPublic())
+		if err != nil {
+			return nil, err
+		}
+	case mh.SHA2_256:
+		id2, err = peer.IDFromPrivateKey(sk)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported peer ID hash: %q", mh.Codes[decmh.Code])
 	}
 
 	if id2 != id {

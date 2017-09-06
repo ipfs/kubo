@@ -24,6 +24,7 @@ import (
 const (
 	nBitsForKeypairDefault = 2048
 	keypairTypeDefault     = ci.RSA
+	keypairTypeStrDefault  = "rsa"
 )
 
 var initCmd = &cmds.Command{
@@ -53,7 +54,7 @@ environment variable:
 	},
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
-		cmds.IntOption("key-type", "k", "Key type (RSA or Ed25519-id)").Default(keypairTypeDefault),
+		cmds.StringOption("key-type", "k", "Key type (RSA or Ed25519-id)").Default(keypairTypeStrDefault),
 		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
 		cmds.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
@@ -95,9 +96,20 @@ environment variable:
 			return
 		}
 
-		keyType, _, err := req.Option("key-type").Int()
+		keyTypeStr, _, err := req.Option("key-type").String()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		var keyType int
+		switch keyTypeStr {
+		case "rsa":
+			keyType = ci.RSA
+		case "ed25519":
+			keyType = ci.Ed25519
+		default:
+			res.SetError(fmt.Errorf("unrecognized key-type: %s", keyTypeStr), cmds.ErrNormal)
 			return
 		}
 
