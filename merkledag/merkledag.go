@@ -153,8 +153,13 @@ type sesGetter struct {
 
 func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 	blk, err := sg.bs.GetBlock(ctx, c)
-	if err != nil {
+	switch err {
+	case bserv.ErrNotFound:
+		return nil, ErrNotFound
+	default:
 		return nil, err
+	case nil:
+		// noop
 	}
 
 	return node.Decode(blk)
