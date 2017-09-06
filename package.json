@@ -463,12 +463,6 @@
       "hash": "QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx",
       "name": "go-testutil",
       "version": "1.1.11"
-    },
-    {
-      "author": "whyrusleeping",
-      "hash": "QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx",
-      "name": "go-testutil",
-      "version": "1.1.11"
     }
   ],
   "gxVersion": "0.10.0",
