@@ -46,8 +46,9 @@ var ConfigProfiles = map[string]func(*Config) error{
 			"type":   "measure",
 			"prefix": "badger.datastore",
 			"child": map[string]interface{}{
-				"type": "badgerds",
-				"path": "badgerds",
+				"type":       "badgerds",
+				"path":       "badgerds",
+				"syncWrites": true,
 			},
 		}
 		return nil
