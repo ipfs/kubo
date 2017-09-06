@@ -43,8 +43,12 @@ var ConfigProfiles = map[string]func(*Config) error{
 	},
 	"badgerds": func(c *Config) error {
 		c.Datastore.Spec = map[string]interface{}{
-			"type": "badgerds",
-			"path": "badgerds",
+			"type":   "measure",
+			"prefix": "badger.datastore",
+			"child": map[string]interface{}{
+				"type": "badgerds",
+				"path": "badgerds",
+			},
 		}
 		return nil
 	},
