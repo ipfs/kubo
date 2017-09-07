@@ -16,9 +16,8 @@ import (
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	mount "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/syncmount"
 
-	badgerds "gx/ipfs/QmNWbaGdPCA3anCcvh4jm3VAahAbmmAsU58sp8Ti4KTJkL/go-ds-badger"
 	levelds "gx/ipfs/QmPdvXuXWAR6gtxxqZw42RtSADMwz4ijVmYHGS542b6cMz/go-ds-leveldb"
-	badger "gx/ipfs/QmQL7yJ4iWQdeAH9WvgJ4XYHS6m5DqL853Cck5SaUb8MAw/badger"
+	badgerds "gx/ipfs/QmRh9Udeo8qCe4XKCSA2NUunTZbFvbc5d44E5wTZPFf3Fg/go-ds-badger"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 )
 
@@ -388,7 +387,7 @@ func (c *badgerdsDatastoreConfig) Create(path string) (repo.Datastore, error) {
 		return nil, err
 	}
 
-	defopts := badger.DefaultOptions
+	defopts := badgerds.DefaultOptions
 	defopts.SyncWrites = c.syncWrites
 
 	return badgerds.NewDatastore(p, &defopts)
