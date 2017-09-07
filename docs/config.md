@@ -68,11 +68,6 @@ Default: The ipfs.io bootstrap nodes
 Contains information related to the construction and operation of the on-disk
 storage system.
 
-- `Type`
-Denotes overall datastore type. The only currently valid option is `leveldb`.
-
-Default: `leveldb`
-
 - `Path`
 Path to the leveldb datastore directory. Set during init to either `$IPFS_PATH/datastore`, or `$HOME/.ipfs/datastore` if `$IPFS_PATH` is unset.
 
@@ -91,11 +86,6 @@ A time duration specifying how frequently to run a garbage collection. Only used
 
 Default: `1h`
 
-- `NoSync` *!*
-A boolean value denoting whether or not to disable sanity syncing in the flatfs datastore code. Setting this to true may significantly improve performance, but be careful using it as if the daemon is killed before a write is synchronized to disk, there is a chance of data loss.
-
-Default: `false`
-
 - `HashOnRead`
 A boolean value. If set to true, all block reads from disk will be hashed and verified. This will cause increased CPU utilization.
 
@@ -104,8 +94,42 @@ A number representing the size in bytes of the blockstore's bloom filter. A valu
 
 Default: `0`
 
-- `Params`
-Extra parameters for datastore construction, not currently used.
+- `Spec`
+Spec defines the structure of the ipfs datastore. It is a composable structure, where each datastore is represented by a json object. Datastores can wrap other datastores to provide extra functionality (eg metrics, logging, or caching).
+
+This can be changed manually, however, if you make any changes that require a different on-disk structure, you will need to run the [ipfs-ds-convert tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new structures.
+
+For more information on possible values for this configuration option, see docs/datastores.md 
+
+Default:
+```
+{
+  "mounts": [
+	{
+	  "child": {
+		"path": "blocks",
+		"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+		"sync": true,
+		"type": "flatfs"
+	  },
+	  "mountpoint": "/blocks",
+	  "prefix": "flatfs.datastore",
+	  "type": "measure"
+	},
+	{
+	  "child": {
+		"compression": "none",
+		"path": "datastore",
+		"type": "levelds"
+	  },
+	  "mountpoint": "/",
+	  "prefix": "leveldb.datastore",
+	  "type": "measure"
+	}
+  ],
+  "type": "mount"
+}
+```
 
 ## `Discovery`
 Contains options for configuring ipfs node discovery mechanisms.
