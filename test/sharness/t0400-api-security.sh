@@ -17,15 +17,15 @@ test_init_ipfs
 
 test_launch_ipfs_daemon
 test_expect_success "Gateway on API unavailable" '
-	HASH=$(echo "testing" | ipfs add -q)
-	test_curl_resp_http_code "http://127.0.0.1:$API_PORT/ipfs/$HASH" "HTTP/1.1 404 Not Found"
+  HASH=$(echo "testing" | ipfs add -q)
+  test_curl_resp_http_code "http://127.0.0.1:$API_PORT/ipfs/$HASH" "HTTP/1.1 404 Not Found"
 '
 test_kill_ipfs_daemon
 
 test_launch_ipfs_daemon --unrestricted-api
 test_expect_success "Gateway on --unrestricted-api API available" '
-	HASH=$(echo "testing" | ipfs add -q)
-	test_curl_resp_http_code "http://127.0.0.1:$API_PORT/ipfs/$HASH" "HTTP/1.1 200 OK"
+  HASH=$(echo "testing" | ipfs add -q)
+  test_curl_resp_http_code "http://127.0.0.1:$API_PORT/ipfs/$HASH" "HTTP/1.1 200 OK"
 '
 test_kill_ipfs_daemon
 
