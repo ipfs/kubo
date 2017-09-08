@@ -459,10 +459,10 @@
       "version": "1.1.8"
     },
     {
-      "author": "whyrusleeping",
-      "hash": "QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx",
-      "name": "go-testutil",
-      "version": "1.1.11"
+      "author": "magik6k",
+      "hash": "QmRh9Udeo8qCe4XKCSA2NUunTZbFvbc5d44E5wTZPFf3Fg",
+      "name": "go-ds-badger",
+      "version": "0.2.1"
     }
   ],
   "gxVersion": "0.10.0",
