@@ -796,14 +796,13 @@ are run with the '--flush=false'.
 
 var FilesUpdateCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Change the cid version of hash function of the root node of a given path.",
+		Tagline: "Change the cid version or hash function of the root node of a given path.",
 		ShortDescription: `
-Flush a given path to disk. This is only useful when other commands
-are run with the '--flush=false'.
+Change the cid version or hash function of the root node of a given path.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", false, false, "Path to flush. Default: '/'."),
+		cmds.StringArg("path", false, false, "Path to change. Default: '/'."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
