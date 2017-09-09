@@ -746,15 +746,12 @@ Examples:
 			return
 		}
 		root := n.FilesRoot
-		if prefix != nil {
-			// FIXME: This is ugly and may not be correct either
-			// -- kevina
-			newRoot := *root
-			root = &newRoot
-			root.Prefix = prefix
-		}
 
-		err = mfs.Mkdir(root, dirtomake, dashp, flush)
+		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
+			Mkparents: dashp,
+			Flush:     flush,
+			Prefix:    prefix,
+		})
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
