@@ -606,7 +606,7 @@ tests_for_files_api() {
   fi
 
   test_expect_success "can update root hash to cidv1" '
-    ipfs files --cid-version=1 update / &&
+    ipfs files --cid-version=1 chcid / &&
     echo zdj7WbTaiJT1fgatdet9Ei9iDB5hdCxkbVyhyh8YTUnXMiwYi > hash_expect &&
     ipfs files stat --hash / > hash_actual &&
     test_cmp hash_expect hash_actual
@@ -617,7 +617,7 @@ tests_for_files_api() {
 
   if [ "$EXTRA" = "offline" ]; then
     test_expect_success "can update root hash to blake2b-256" '
-      ipfs files --hash-fun=blake2b-256 update / &&
+    ipfs files --hash-fun=blake2b-256 chcid / &&
       echo zDMZof1kvswQMT8txrmnb3JGBuna6qXCTry6hSifrkZEd6VmHbBm > hash_expect &&
       ipfs files stat --hash / > hash_actual &&
       test_cmp hash_expect hash_actual
@@ -630,7 +630,7 @@ tests_for_files_api() {
   fi
 
   test_expect_success "can update root hash back to cidv0" '
-    ipfs files --cid-version=0 update / &&
+    ipfs files --cid-version=0 chcid / &&
     echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn > hash_expect &&
     ipfs files stat --hash / > hash_actual &&
     test_cmp hash_expect hash_actual

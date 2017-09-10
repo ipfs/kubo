@@ -58,16 +58,16 @@ from the parent directory.
 		// that uses "hash"
 	},
 	Subcommands: map[string]*cmds.Command{
-		"read":   FilesReadCmd,
-		"write":  FilesWriteCmd,
-		"mv":     FilesMvCmd,
-		"cp":     FilesCpCmd,
-		"ls":     FilesLsCmd,
-		"mkdir":  FilesMkdirCmd,
-		"stat":   FilesStatCmd,
-		"rm":     FilesRmCmd,
-		"flush":  FilesFlushCmd,
-		"update": FilesUpdateCmd,
+		"read":  FilesReadCmd,
+		"write": FilesWriteCmd,
+		"mv":    FilesMvCmd,
+		"cp":    FilesCpCmd,
+		"ls":    FilesLsCmd,
+		"mkdir": FilesMkdirCmd,
+		"stat":  FilesStatCmd,
+		"rm":    FilesRmCmd,
+		"flush": FilesFlushCmd,
+		"chcid": FilesChcidCmd,
 	},
 }
 
@@ -791,7 +791,7 @@ are run with the '--flush=false'.
 	},
 }
 
-var FilesUpdateCmd = &cmds.Command{
+var FilesChcidCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Change the cid version or hash function of the root node of a given path.",
 		ShortDescription: `
