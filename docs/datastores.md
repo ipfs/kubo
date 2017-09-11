@@ -21,6 +21,9 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 }
 ```
 
+NOTE: flatfs should only be used as a block store (mounted at `/blocks`) as the
+current implementation is not complete.
+
 ## levelds
 Uses a leveldb database to store key value pairs.
 
