@@ -1,8 +1,8 @@
 # The go-ipfs config file
 
 The go-ipfs config file is a json document. It is read once at node instantiation,
-either for an offline command, or for starting the daemon. Commands that execute on
-a running daemon do not read the config file at runtime.
+either for an offline command, or when starting the daemon. Commands that execute
+on a running daemon do not read the config file at runtime.
 
 ## Table of Contents
 
@@ -68,29 +68,32 @@ Default: The ipfs.io bootstrap nodes
 Contains information related to the construction and operation of the on-disk
 storage system.
 
-- `Path`
-Path to the leveldb datastore directory. Set during init to either `$IPFS_PATH/datastore`, or `$HOME/.ipfs/datastore` if `$IPFS_PATH` is unset.
-
 - `StorageMax`
-An upper limit on the total size of the ipfs repository's datastore. Writes to the datastore will begin to fail once this limit is reached.
+An upper limit on the total size of the ipfs repository's datastore. Writes to
+the datastore will begin to fail once this limit is reached.
 
 Default: `10GB`
 
 - `StorageGCWatermark`
-The percentage of the `StorageMax` value at which a garbage collection will be triggered automatically if the daemon was run with automatic gc enabled (that option defaults to false currently).
+The percentage of the `StorageMax` value at which a garbage collection will be
+triggered automatically if the daemon was run with automatic gc enabled (that
+option defaults to false currently).
 
 Default: `90`
 
 - `GCPeriod`
-A time duration specifying how frequently to run a garbage collection. Only used if automatic gc is enabled.
+A time duration specifying how frequently to run a garbage collection. Only used
+if automatic gc is enabled.
 
 Default: `1h`
 
 - `HashOnRead`
-A boolean value. If set to true, all block reads from disk will be hashed and verified. This will cause increased CPU utilization.
+A boolean value. If set to true, all block reads from disk will be hashed and
+verified. This will cause increased CPU utilization.
 
 - `BloomFilterSize`
-A number representing the size in bytes of the blockstore's bloom filter. A value of zero represents the feature being disabled.
+A number representing the size in bytes of the blockstore's bloom filter. A
+value of zero represents the feature being disabled.
 
 Default: `0`
 
@@ -185,7 +188,9 @@ Default: `[]`
 ## `Identity`
 
 - `PeerID`
-The unique PKI identity label for this configs peer. Set on init and never read, its merely here for convenience. Ipfs will always generate the peerID from its keypair at runtime.
+The unique PKI identity label for this configs peer. Set on init and never read,
+its merely here for convenience. Ipfs will always generate the peerID from its
+keypair at runtime.
 
 - `PrivKey`
 The base64 encoded protobuf describing (and containing) the nodes private key.
@@ -193,14 +198,17 @@ The base64 encoded protobuf describing (and containing) the nodes private key.
 ## `Ipns`
 
 - `RepublishPeriod`
-A time duration specifying how frequently to republish ipns records to ensure they stay fresh on the network. If unset, we default to 12 hours.
+A time duration specifying how frequently to republish ipns records to ensure
+they stay fresh on the network. If unset, we default to 12 hours.
 
 - `RecordLifetime`
-A time duration specifying the value to set on ipns records for their validity lifetime.
+A time duration specifying the value to set on ipns records for their validity
+lifetime.
 If unset, we default to 24 hours.
 
 - `ResolveCacheSize`
-The number of entries to store in an LRU cache of resolved ipns entries. Entries will be kept cached until their lifetime is expired.
+The number of entries to store in an LRU cache of resolved ipns entries. Entries
+will be kept cached until their lifetime is expired.
 
 Default: `128`
 
@@ -242,7 +250,8 @@ Options for configuring the swarm.
 
 - `AddrFilters`
 An array of address filters (multiaddr netmasks) to filter dials to.
-See https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604 for more information.
+See https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604 for more
+information.
 
 - `DisableBandwidthMetrics`
 A boolean value that when set to true, will cause ipfs to not keep track of
