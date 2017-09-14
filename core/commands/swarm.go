@@ -15,7 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	iaddr "github.com/ipfs/go-ipfs/thirdparty/ipfsaddr"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	swarm "gx/ipfs/QmQUmDr1DMDDy6KMSsJuyV9nVD7dJZ9iWxXESQWPvte2NP/go-libp2p-swarm"
+	swarm "gx/ipfs/QmW97nvnsknsoN8NUz8CUF5hVVaicLgNaEb6EZMk3oB943/go-libp2p-swarm"
 
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"

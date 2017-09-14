@@ -190,9 +190,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmXZyBQMkqSYigxhJResC6fLWDGFhbphK67eZoqMDUvBmK",
+      "hash": "QmZ3ma9g2NTg7GNF1ntWNRa1GW9jVzGq8UE9cKCwRKv6dS",
       "name": "go-libp2p",
-      "version": "4.5.5"
+      "version": "5.0.1"
     },
     {
       "author": "whyrusleeping",
@@ -237,9 +237,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmeQMs9pr9Goci9xJ1Wo5ZQrknzBZwnmHYWJXA8stQDFMx",
+      "hash": "QmdPuLwm97UHxH7nR33TJxFi4PteFEDZagYWfTY1mNQWA5",
       "name": "go-libp2p-kad-dht",
-      "version": "2.5.16"
+      "version": "3.0.0"
     },
     {
       "author": "whyrusleeping",
@@ -249,9 +249,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmTm7GoSkSSQPP32bZhvu17oY1AfvPKND6ELUdYAcKuR1j",
+      "hash": "QmPbZeZEGP57SvMvcRQhTQ4Hswb7PWKaMYeU7fMFLuwfuq",
       "name": "floodsub",
-      "version": "0.8.25"
+      "version": "0.9.0"
     },
     {
       "author": "whyrusleeping",
@@ -278,9 +278,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYBCDHS74pfbhMhtLeDpZyBa4Z9X76JLyACSKum1K39eP",
+      "hash": "QmeUMpb5CtvmVNvmiAWNCSp3M2xULRTLELFwcNKhx6iE3g",
       "name": "go-smux-multiplex",
-      "version": "1.1.9"
+      "version": "3.0.1"
     },
     {
       "author": "blang",
@@ -308,9 +308,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQ1bJEsmdEiGfTQRoj6CsshWmAKduAEDEbwzbvk5QT5Ui",
+      "hash": "QmP4cEjmvf8tC6ykxKXrvmYLo8vqtGsgduMatjbAKnBzv8",
       "name": "go-libp2p-netutil",
-      "version": "0.2.25"
+      "version": "0.3.1"
     },
     {
       "hash": "QmSAFA8v42u4gpJNy1tb7vW3JiiXiaYDC2b845c2RnNSJL",
@@ -325,9 +325,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmbn7RYyWzBVXiUp9jZ1dA4VADHy9DtS7iZLwfhEUQvm3U",
+      "hash": "QmfTJ3UpS5ycNX7uQvPUSSRjGxk9EhUG7SyCstX6tCoNXS",
       "name": "go-smux-yamux",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "author": "whyrusleeping",
@@ -349,15 +349,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmVjRAPfRtResCMCE4eBqr4Beoa6A89P1YweG9wUS6RqUL",
+      "hash": "QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14",
       "name": "go-libp2p-metrics",
-      "version": "1.6.10"
+      "version": "2.0.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmeZBgYBHvxMukGK5ojg28BCNLB9SeXqT7XXg6o7r2GbJy",
+      "hash": "QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw",
       "name": "go-stream-muxer",
-      "version": "1.1.0"
+      "version": "3.0.0"
     },
     {
       "author": "multiformats",
@@ -373,15 +373,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmahYsGWry85Y7WUe2SX5G4JkH2zifEQAUtJVLZ24aC9DF",
+      "hash": "QmNa31VPzC561NWwRsJLE7nGYZYuuD2QfpK2b1q9BK54J1",
       "name": "go-libp2p-net",
-      "version": "1.6.12"
+      "version": "2.0.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmRVYfZ7tWNHPBzWiG6KWGzvT2hcGems8srihsQE29x1U5",
+      "hash": "QmVniQJkdzLZaZwzwMdd3dJTvWiJ1DQEkreVy6hs6h7Vk5",
       "name": "go-smux-multistream",
-      "version": "1.5.5"
+      "version": "2.0.0"
     },
     {
       "author": "whyrusleeping",
@@ -403,15 +403,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUwW8jMQDxXhLD2j4EfWqLEMX3MsvyWcWGvJPVDh1aTmu",
+      "hash": "QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6",
       "name": "go-libp2p-host",
-      "version": "1.3.19"
+      "version": "2.0.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQUmDr1DMDDy6KMSsJuyV9nVD7dJZ9iWxXESQWPvte2NP",
+      "hash": "QmW97nvnsknsoN8NUz8CUF5hVVaicLgNaEb6EZMk3oB943",
       "name": "go-libp2p-swarm",
-      "version": "1.7.7"
+      "version": "2.0.2"
     },
     {
       "author": "whyrusleeping",
@@ -454,9 +454,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmYkTCcfrPdR5QMasnhh3FVRVNEKzH3YsvuBPpB4YPgwWC",
+      "hash": "QmVXc7cgEkxWDELn9sGV9r1HbqfQR9YCUmbsrkp1rcXSjn",
       "name": "go-libp2p-circuit",
-      "version": "1.1.8"
+      "version": "2.0.1"
     },
     {
       "author": "magik6k",

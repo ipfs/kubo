@@ -16,7 +16,7 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	testutil "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil"
-	mocknet "gx/ipfs/QmXZyBQMkqSYigxhJResC6fLWDGFhbphK67eZoqMDUvBmK/go-libp2p/p2p/net/mock"
+	mocknet "gx/ipfs/QmZ3ma9g2NTg7GNF1ntWNRa1GW9jVzGq8UE9cKCwRKv6dS/go-libp2p/p2p/net/mock"
 )
 
 func TestThreeLeggedCatTransfer(t *testing.T) {

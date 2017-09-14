@@ -10,7 +10,7 @@ import (
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	testutil "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil"
 
-	p2ptestutil "gx/ipfs/QmQ1bJEsmdEiGfTQRoj6CsshWmAKduAEDEbwzbvk5QT5Ui/go-libp2p-netutil"
+	p2ptestutil "gx/ipfs/QmP4cEjmvf8tC6ykxKXrvmYLo8vqtGsgduMatjbAKnBzv8/go-libp2p-netutil"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	ds_sync "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
