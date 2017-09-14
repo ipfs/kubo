@@ -45,6 +45,7 @@ import (
 	yamux "gx/ipfs/QmNWCEvi7bPRcvqAV8AKLGVNoQdArWi7NJayka2SM4XtRe/go-smux-yamux"
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	mplex "gx/ipfs/QmP81tTizXSjKTLWhjty1rabPQHe1YPMj6Bq5gR5fWZakn/go-smux-multiplex"
+	connmgr "gx/ipfs/QmPErLx83hgF5XKqjeYaLWXJSFon4mH7YPzoftUvfrPgQG/go-libp2p-connmgr"
 	floodsub "gx/ipfs/QmPGT8xqmDnbCbc5HCpjSCzPw7HcsSKuzVAWGjAtF3oftm/floodsub"
 	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
@@ -64,6 +65,7 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
 	dht "gx/ipfs/QmYi2NvTAiv2xTNJNcnuz3iXDDT1ViBwLFXmDb2g7NogAD/go-libp2p-kad-dht"
+	ifconnmgr "gx/ipfs/QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr/go-libp2p-interface-connmgr"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	discovery "gx/ipfs/Qmbgce14YTWE2qhE49JVvTBPaHTyz3FaFmqQPyuZAz6C28/go-libp2p/p2p/discovery"
 	p2pbhost "gx/ipfs/Qmbgce14YTWE2qhE49JVvTBPaHTyz3FaFmqQPyuZAz6C28/go-libp2p/p2p/host/basic"
@@ -219,11 +221,17 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return err
 	}
 
+	connmgr, err := constructConnMgr(cfg.Swarm.ConnMgr)
+	if err != nil {
+		return err
+	}
+
 	hostopts := &ConstructPeerHostOpts{
 		AddrsFactory:      addrsFactory,
 		DisableNatPortMap: cfg.Swarm.DisableNatPortMap,
 		DisableRelay:      cfg.Swarm.DisableRelay,
 		EnableRelayHop:    cfg.Swarm.EnableRelayHop,
+		ConnectionManager: connmgr,
 	}
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter,
 		addrfilter, tpt, protec, hostopts)
@@ -259,6 +267,22 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	return n.Bootstrap(DefaultBootstrapConfig)
+}
+
+func constructConnMgr(cfg config.ConnMgr) (ifconnmgr.ConnManager, error) {
+	switch cfg.Type {
+	case "", "none":
+		return nil, nil
+	case "basic":
+		grace, err := time.ParseDuration(cfg.GracePeriod)
+		if err != nil {
+			return nil, fmt.Errorf("parsing Swarm.ConnMgr.GracePeriod: %s", err)
+		}
+
+		return connmgr.NewConnManager(cfg.LowWater, cfg.HighWater, grace), nil
+	default:
+		return nil, fmt.Errorf("unrecognized ConnMgr.Type: %q", cfg.Type)
+	}
 }
 
 func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
@@ -380,7 +404,7 @@ func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
 			if d.MDNS.Interval == 0 {
 				d.MDNS.Interval = 5
 			}
-			return discovery.NewMdnsService(ctx, h, time.Duration(d.MDNS.Interval)*time.Second)
+			return discovery.NewMdnsService(ctx, h, time.Duration(d.MDNS.Interval)*time.Second, discovery.ServiceTag)
 		}
 	}
 	return nil
@@ -789,6 +813,7 @@ type ConstructPeerHostOpts struct {
 	DisableNatPortMap bool
 	DisableRelay      bool
 	EnableRelayHop    bool
+	ConnectionManager ifconnmgr.ConnManager
 }
 
 type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protc ipnet.Protector, opts *ConstructPeerHostOpts) (p2phost.Host, error)
@@ -813,6 +838,9 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 	hostOpts := []interface{}{bwr}
 	if !opts.DisableNatPortMap {
 		hostOpts = append(hostOpts, p2pbhost.NATPortMap)
+	}
+	if opts.ConnectionManager != nil {
+		hostOpts = append(hostOpts, opts.ConnectionManager)
 	}
 
 	addrsFactory := opts.AddrsFactory
