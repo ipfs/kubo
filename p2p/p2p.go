@@ -64,7 +64,7 @@ func (p2p *P2P) Dial(ctx context.Context, addr ma.Multiaddr, peer peer.ID, proto
 	case "tcp", "tcp4", "tcp6":
 		listener, err := manet.Listen(bindAddr)
 		if err != nil {
-			if err2 := remote.Close(); err2 != nil {
+			if err2 := remote.Reset(); err2 != nil {
 				return nil, err2
 			}
 			return nil, err
@@ -158,7 +158,7 @@ func (p2p *P2P) registerStreamHandler(ctx2 context.Context, protocol string) (*P
 		select {
 		case list.conCh <- s:
 		case <-ctx.Done():
-			s.Close()
+			s.Reset()
 		}
 	})
 
@@ -198,7 +198,7 @@ func (p2p *P2P) acceptStreams(listenerInfo *ListenerInfo, listener Listener) {
 
 		local, err := manet.Dial(listenerInfo.Address)
 		if err != nil {
-			remote.Close()
+			remote.Reset()
 			continue
 		}
 

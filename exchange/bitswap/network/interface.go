@@ -40,6 +40,7 @@ type BitSwapNetwork interface {
 type MessageSender interface {
 	SendMsg(context.Context, bsmsg.BitSwapMessage) error
 	Close() error
+	Reset() error
 }
 
 // Implement Receiver to receive messages from the BitSwapNetwork

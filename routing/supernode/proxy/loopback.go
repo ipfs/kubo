@@ -42,6 +42,7 @@ func (lb *Loopback) HandleStream(s inet.Stream) {
 	pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	var incoming dhtpb.Message
 	if err := pbr.ReadMsg(&incoming); err != nil {
+		s.Reset()
 		log.Debug(err)
 		return
 	}
@@ -51,6 +52,8 @@ func (lb *Loopback) HandleStream(s inet.Stream) {
 	pbw := ggio.NewDelimitedWriter(s)
 
 	if err := pbw.WriteMsg(outgoing); err != nil {
-		return // TODO logerr
+		s.Reset()
+		log.Debug(err)
+		return
 	}
 }

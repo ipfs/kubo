@@ -60,7 +60,7 @@ func (px *standard) Bootstrap(ctx context.Context) error {
 func (p *standard) HandleStream(s inet.Stream) {
 	// TODO(brian): Should clients be able to satisfy requests?
 	log.Error("supernode client received (dropped) a routing message from", s.Conn().RemotePeer())
-	s.Close()
+	s.Reset()
 }
 
 const replicationFactor = 2
@@ -102,9 +102,15 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 	if err != nil {
 		return err
 	}
-	defer s.Close()
 	pbw := ggio.NewDelimitedWriter(s)
-	return pbw.WriteMsg(m)
+
+	err = pbw.WriteMsg(m)
+	if err == nil {
+		s.Close()
+	} else {
+		s.Reset()
+	}
+	return err
 }
 
 // SendRequest sends the request to each remote sequentially (randomized order),
@@ -139,17 +145,20 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
 	if err = w.WriteMsg(m); err != nil {
+		s.Reset()
 		e.SetError(err)
 		return nil, err
 	}
 
 	response := &dhtpb.Message{}
 	if err = r.ReadMsg(response); err != nil {
+		s.Reset()
 		e.SetError(err)
 		return nil, err
 	}
 	// need ctx expiration?
 	if response == nil {
+		s.Reset()
 		err := errors.New("no response to request")
 		e.SetError(err)
 		return nil, err

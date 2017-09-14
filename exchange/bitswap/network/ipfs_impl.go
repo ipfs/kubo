@@ -56,6 +56,10 @@ func (s *streamMessageSender) Close() error {
 	return s.s.Close()
 }
 
+func (s *streamMessageSender) Reset() error {
+	return s.s.Reset()
+}
+
 func (s *streamMessageSender) SendMsg(ctx context.Context, msg bsmsg.BitSwapMessage) error {
 	return msgToStream(ctx, s.s, msg)
 }
@@ -121,9 +125,14 @@ func (bsnet *impl) SendMessage(
 	if err != nil {
 		return err
 	}
-	defer s.Close()
 
-	return msgToStream(ctx, s, outgoing)
+	err = msgToStream(ctx, s, outgoing)
+	if err != nil {
+		s.Reset()
+	} else {
+		s.Close()
+	}
+	return err
 }
 
 func (bsnet *impl) SetDelegate(r Receiver) {
@@ -180,6 +189,7 @@ func (bsnet *impl) handleNewStream(s inet.Stream) {
 	defer s.Close()
 
 	if bsnet.receiver == nil {
+		s.Reset()
 		return
 	}
 
@@ -188,6 +198,7 @@ func (bsnet *impl) handleNewStream(s inet.Stream) {
 		received, err := bsmsg.FromPBReader(reader)
 		if err != nil {
 			if err != io.EOF {
+				s.Reset()
 				go bsnet.receiver.ReceiveError(err)
 				log.Debugf("bitswap net handleNewStream from %s error: %s", s.Conn().RemotePeer(), err)
 			}

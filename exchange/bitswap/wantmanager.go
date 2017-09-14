@@ -172,18 +172,19 @@ func (pm *WantManager) stopPeerHandler(p peer.ID) {
 }
 
 func (mq *msgQueue) runQueue(ctx context.Context) {
-	defer func() {
-		if mq.sender != nil {
-			mq.sender.Close()
-		}
-	}()
 	for {
 		select {
 		case <-mq.work: // there is work to be done
 			mq.doWork(ctx)
 		case <-mq.done:
+			if mq.sender != nil {
+				mq.sender.Close()
+			}
 			return
 		case <-ctx.Done():
+			if mq.sender != nil {
+				mq.sender.Reset()
+			}
 			return
 		}
 	}
@@ -218,7 +219,7 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 		}
 
 		log.Infof("bitswap send error: %s", err)
-		mq.sender.Close()
+		mq.sender.Reset()
 		mq.sender = nil
 
 		select {
