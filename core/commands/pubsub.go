@@ -15,7 +15,7 @@ import (
 	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	floodsub "gx/ipfs/QmPbZeZEGP57SvMvcRQhTQ4Hswb7PWKaMYeU7fMFLuwfuq/floodsub"
+	floodsub "gx/ipfs/QmPcbjCaRns5xLC7jkhjfEoPJiop5Fo8xzo4KaUgyuHXYr/floodsub"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 )
