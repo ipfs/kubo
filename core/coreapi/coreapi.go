@@ -57,8 +57,12 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p coreiface.Path) (coreifac
 	}
 
 	var root *cid.Cid
-	if p2.IsJustAKey() {
-		root = node.Cid()
+	seg := p2.Segments()
+	if len(seg) >= 2 && seg[0] == "ipfs" {
+		root, err = cid.Decode(seg[1])
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return ResolvedPath(p.String(), node.Cid(), root), nil
