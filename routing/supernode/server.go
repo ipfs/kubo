@@ -10,10 +10,10 @@ import (
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	datastore "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	dhtpb "gx/ipfs/QmXF6hA3AWGNmE33GarqeCu3ksAXhLiwhcRR4mvfyWTZcT/go-libp2p-kad-dht/pb"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	pb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
-	dhtpb "gx/ipfs/QmdPuLwm97UHxH7nR33TJxFi4PteFEDZagYWfTY1mNQWA5/go-libp2p-kad-dht/pb"
 )
 
 // Server handles routing queries using a database backend

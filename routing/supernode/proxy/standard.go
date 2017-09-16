@@ -9,10 +9,10 @@ import (
 	kbucket "gx/ipfs/QmSAFA8v42u4gpJNy1tb7vW3JiiXiaYDC2b845c2RnNSJL/go-libp2p-kbucket"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	loggables "gx/ipfs/QmT4PgCNdv73hnFAqzHqwW44q7M9PWpykSswHDxndquZbc/go-libp2p-loggables"
+	dhtpb "gx/ipfs/QmXF6hA3AWGNmE33GarqeCu3ksAXhLiwhcRR4mvfyWTZcT/go-libp2p-kad-dht/pb"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	host "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
-	dhtpb "gx/ipfs/QmdPuLwm97UHxH7nR33TJxFi4PteFEDZagYWfTY1mNQWA5/go-libp2p-kad-dht/pb"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"
