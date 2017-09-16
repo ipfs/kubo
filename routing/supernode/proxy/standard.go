@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 
+	inet "gx/ipfs/QmNa31VPzC561NWwRsJLE7nGYZYuuD2QfpK2b1q9BK54J1/go-libp2p-net"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	kbucket "gx/ipfs/QmSAFA8v42u4gpJNy1tb7vW3JiiXiaYDC2b845c2RnNSJL/go-libp2p-kbucket"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	loggables "gx/ipfs/QmT4PgCNdv73hnFAqzHqwW44q7M9PWpykSswHDxndquZbc/go-libp2p-loggables"
-	host "gx/ipfs/QmUwW8jMQDxXhLD2j4EfWqLEMX3MsvyWcWGvJPVDh1aTmu/go-libp2p-host"
+	dhtpb "gx/ipfs/QmXF6hA3AWGNmE33GarqeCu3ksAXhLiwhcRR4mvfyWTZcT/go-libp2p-kad-dht/pb"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
-	inet "gx/ipfs/QmahYsGWry85Y7WUe2SX5G4JkH2zifEQAUtJVLZ24aC9DF/go-libp2p-net"
-	dhtpb "gx/ipfs/QmeQMs9pr9Goci9xJ1Wo5ZQrknzBZwnmHYWJXA8stQDFMx/go-libp2p-kad-dht/pb"
+	host "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"
@@ -60,7 +60,7 @@ func (px *standard) Bootstrap(ctx context.Context) error {
 func (p *standard) HandleStream(s inet.Stream) {
 	// TODO(brian): Should clients be able to satisfy requests?
 	log.Error("supernode client received (dropped) a routing message from", s.Conn().RemotePeer())
-	s.Close()
+	s.Reset()
 }
 
 const replicationFactor = 2
@@ -102,9 +102,15 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 	if err != nil {
 		return err
 	}
-	defer s.Close()
 	pbw := ggio.NewDelimitedWriter(s)
-	return pbw.WriteMsg(m)
+
+	err = pbw.WriteMsg(m)
+	if err == nil {
+		s.Close()
+	} else {
+		s.Reset()
+	}
+	return err
 }
 
 // SendRequest sends the request to each remote sequentially (randomized order),
@@ -139,17 +145,20 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
 	if err = w.WriteMsg(m); err != nil {
+		s.Reset()
 		e.SetError(err)
 		return nil, err
 	}
 
 	response := &dhtpb.Message{}
 	if err = r.ReadMsg(response); err != nil {
+		s.Reset()
 		e.SetError(err)
 		return nil, err
 	}
 	// need ctx expiration?
 	if response == nil {
+		s.Reset()
 		err := errors.New("no response to request")
 		e.SetError(err)
 		return nil, err

@@ -133,6 +133,10 @@ func (mp *messagePasser) Close() error {
 	return nil
 }
 
+func (mp *messagePasser) Reset() error {
+	return nil
+}
+
 func (n *networkClient) NewMessageSender(ctx context.Context, p peer.ID) (bsnet.MessageSender, error) {
 	return &messagePasser{
 		net:    n.network,
