@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -192,7 +191,7 @@ Version         string The repo version.
 			} else {
 				fmt.Fprintf(wtr, "RepoSize:\t%d\n", stat.RepoSize)
 			}
-			if stat.StorageMax != math.MaxUint64 {
+			if stat.StorageMax != corerepo.NoLimit {
 				maxSizeInMiB := stat.StorageMax / (1024 * 1024)
 				if human && maxSizeInMiB > 0 {
 					fmt.Fprintf(wtr, "StorageMax (MiB):\t%d\n", maxSizeInMiB)

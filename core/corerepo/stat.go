@@ -19,6 +19,9 @@ type Stat struct {
 	StorageMax uint64 // size in bytes
 }
 
+// NoLimit represents the value for unlimited storage
+const NoLimit uint64 = math.MaxUint64
+
 func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
 	r := n.Repo
 
@@ -47,7 +50,7 @@ func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
 		return nil, err
 	}
 
-	var storageMax uint64 = math.MaxUint64
+	storageMax := NoLimit
 	if cfg.Datastore.StorageMax != "" {
 		storageMax, err = humanize.ParseBytes(cfg.Datastore.StorageMax)
 		if err != nil {
