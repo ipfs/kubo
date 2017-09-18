@@ -263,4 +263,11 @@ test_expect_success "repo version came out correct" '
 
 test_kill_ipfs_daemon
 
+test_expect_success "remove Datastore.StorageMax from config" '
+  ipfs config Datastore.StorageMax ""
+'
+test_expect_success "'ipfs repo stat' still succeeds" '
+  ipfs repo stat > repo-stats
+'
+
 test_done

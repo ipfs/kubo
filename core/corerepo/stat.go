@@ -2,6 +2,7 @@ package corerepo
 
 import (
 	"fmt"
+	"math"
 
 	context "context"
 	"github.com/ipfs/go-ipfs/core"
@@ -46,9 +47,12 @@ func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
 		return nil, err
 	}
 
-	storageMax, err := humanize.ParseBytes(cfg.Datastore.StorageMax)
-	if err != nil {
-		return nil, err
+	var storageMax uint64 = math.MaxUint64
+	if cfg.Datastore.StorageMax != "" {
+		storageMax, err = humanize.ParseBytes(cfg.Datastore.StorageMax)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Stat{

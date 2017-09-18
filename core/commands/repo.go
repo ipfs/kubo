@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -191,11 +192,13 @@ Version         string The repo version.
 			} else {
 				fmt.Fprintf(wtr, "RepoSize:\t%d\n", stat.RepoSize)
 			}
-			maxSizeInMiB := stat.StorageMax / (1024 * 1024)
-			if human && maxSizeInMiB > 0 {
-				fmt.Fprintf(wtr, "StorageMax (MiB):\t%d\n", maxSizeInMiB)
-			} else {
-				fmt.Fprintf(wtr, "StorageMax:\t%d\n", stat.StorageMax)
+			if stat.StorageMax != math.MaxUint64 {
+				maxSizeInMiB := stat.StorageMax / (1024 * 1024)
+				if human && maxSizeInMiB > 0 {
+					fmt.Fprintf(wtr, "StorageMax (MiB):\t%d\n", maxSizeInMiB)
+				} else {
+					fmt.Fprintf(wtr, "StorageMax:\t%d\n", stat.StorageMax)
+				}
 			}
 			fmt.Fprintf(wtr, "RepoPath:\t%s\n", stat.RepoPath)
 			fmt.Fprintf(wtr, "Version:\t%s\n", stat.Version)
