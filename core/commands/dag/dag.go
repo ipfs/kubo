@@ -16,7 +16,6 @@ import (
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
-	"reflect"
 )
 
 var DagCmd = &cmds.Command{
@@ -93,10 +92,6 @@ into an object of the specified format.
 			}
 		}
 
-		if dopin {
-			defer n.Blockstore.PinLock().Unlock()
-		}
-
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
@@ -118,29 +113,37 @@ into an object of the specified format.
 					return fmt.Errorf("no node returned from ParseInputs")
 				}
 
-				b := n.DAG.Batch()
-				for _, nd := range nds {
-					_, err := b.Add(nd)
-					if err != nil {
+				var cid *cid.Cid
+				err = func() error {
+					if dopin {
+						defer n.Blockstore.PinLock().Unlock()
+					}
+
+					b := n.DAG.Batch()
+					for _, nd := range nds {
+						_, err := b.Add(nd)
+						if err != nil {
+							return err
+						}
+					}
+
+					if err := b.Commit(); err != nil {
 						return err
 					}
-				}
 
-				if err := b.Commit(); err != nil {
-					return err
-				}
+					cid = nds[0].Cid()
+					if dopin {
+						n.Pinning.PinWithMode(cid, pin.Recursive)
 
-				root := nds[0].Cid()
-				if dopin {
-					n.Pinning.PinWithMode(root, pin.Recursive)
-
-					err := n.Pinning.Flush()
-					if err != nil {
-						return err
+						err := n.Pinning.Flush()
+						if err != nil {
+							return err
+						}
 					}
-				}
+					return nil
+				}()
 
-				outChan <- &OutputObject{Cid: root}
+				outChan <- &OutputObject{Cid: cid}
 			}
 
 			return nil
@@ -159,7 +162,6 @@ into an object of the specified format.
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			outChan, ok := res.Output().(<-chan interface{})
 			if !ok {
-				fmt.Println(reflect.TypeOf(res.Output()))
 				return nil, u.ErrCast()
 			}
 
