@@ -8,12 +8,15 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	files "github.com/ipfs/go-ipfs/commands/files"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
+	"reflect"
 )
 
 var DagCmd = &cmds.Command{
@@ -53,7 +56,7 @@ into an object of the specified format.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.FileArg("object data", true, false, "The object to put").EnableStdin(),
+		cmds.FileArg("object data", true, true, "The object to put").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("format", "f", "Format that the object will be added as.").Default("cbor"),
@@ -63,12 +66,6 @@ into an object of the specified format.
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		fi, err := req.Files().NextFile()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -100,52 +97,86 @@ into an object of the specified format.
 			defer n.Blockstore.PinLock().Unlock()
 		}
 
-		nds, err := coredag.ParseInputs(ienc, format, fi, mhType, -1)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		if len(nds) == 0 {
-			res.SetError(fmt.Errorf("no node returned from ParseInputs"), cmds.ErrNormal)
-			return
+		outChan := make(chan interface{}, 8)
+		res.SetOutput((<-chan interface{})(outChan))
+
+		addAllAndPin := func(f files.File) error {
+			for {
+				file, err := f.NextFile()
+				if err == io.EOF {
+					// Finished the list of files.
+					break
+				} else if err != nil {
+					return err
+				}
+
+				nds, err := coredag.ParseInputs(ienc, format, file, mhType, -1)
+				if err != nil {
+					return err
+				}
+				if len(nds) == 0 {
+					return fmt.Errorf("no node returned from ParseInputs")
+				}
+
+				b := n.DAG.Batch()
+				for _, nd := range nds {
+					_, err := b.Add(nd)
+					if err != nil {
+						return err
+					}
+				}
+
+				if err := b.Commit(); err != nil {
+					return err
+				}
+
+				root := nds[0].Cid()
+				if dopin {
+					n.Pinning.PinWithMode(root, pin.Recursive)
+
+					err := n.Pinning.Flush()
+					if err != nil {
+						return err
+					}
+				}
+
+				outChan <- &OutputObject{Cid: root}
+			}
+
+			return nil
 		}
 
-		b := n.DAG.Batch()
-		for _, nd := range nds {
-			_, err := b.Add(nd)
-			if err != nil {
+		go func() {
+			defer close(outChan)
+			if err := addAllAndPin(req.Files()); err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-		}
-
-		if err := b.Commit(); err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		root := nds[0].Cid()
-		if dopin {
-			n.Pinning.PinWithMode(root, pin.Recursive)
-
-			err := n.Pinning.Flush()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-		}
-
-		res.SetOutput(&OutputObject{Cid: root})
+		}()
 	},
 	Type: OutputObject{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			oobj, ok := res.Output().(*OutputObject)
+			outChan, ok := res.Output().(<-chan interface{})
 			if !ok {
-				return nil, fmt.Errorf("expected a different object in marshaler")
+				fmt.Println(reflect.TypeOf(res.Output()))
+				return nil, u.ErrCast()
 			}
 
-			return strings.NewReader(oobj.Cid.String()), nil
+			marshal := func(v interface{}) (io.Reader, error) {
+				obj, ok := v.(*OutputObject)
+				if !ok {
+					return nil, u.ErrCast()
+				}
+
+				return strings.NewReader(obj.Cid.String() + "\n"), nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Channel:   outChan,
+				Marshaler: marshal,
+				Res:       res,
+			}, nil
 		},
 	},
 }
