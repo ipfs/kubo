@@ -282,3 +282,16 @@ Peers can see their (unspecific) relay address in the output of
       dialing.
 - [ ] Dialing priorities for relay addresses; arguably, relay addresses should
       have lower priority than direct dials.
+
+## Plugins
+
+Plugins allow to add functionality without the need to recompile the daemon.
+
+### Basic Usage:
+
+See [Plugin docs](./plugins.md)
+
+### Road to being a real feature
+
+- [ ] Better support for platforms other than Linux
+- [ ] More plugins and plugin types
