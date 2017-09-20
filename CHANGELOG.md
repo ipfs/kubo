@@ -4,8 +4,9 @@
 
 Ipfs 0.4.11 is a larger release that brings many long-awaited features and
 performance improvements. These include new datastore options, more efficient
-bitswap transfers, circuit relay support, ipld plugins and more! Take a look
-at the full changelog below for a detailed list of every change.
+bitswap transfers, greatly improved resource consumption, circuit relay
+support, ipld plugins, and more! Take a look at the full changelog below for a
+detailed list of every change.
 
 The ipfs datastore has, until now, been a combination of leveldb and a custom
 git-like storage backend called 'flatfs'. This works well enough for the
@@ -30,6 +31,22 @@ DHT for providers less frequently. In future releases we will migrate over more
 ipfs commands to take advantage of bitswap sessions. As nodes update to this
 and future versions, expect to see idle bandwidth usage on the ipfs network
 go down noticably.
+
+The never ending effort to reduce resource consumption had a few important
+updates this release. First, the bitswap sessions changes discussed above will
+help with improving bandwidth usage. Aside from that there are two important
+libp2p updates that improved things significantly. The first was a fix to a bug
+in the dial limiter code that was causing it to not limit outgoing dials
+correctly. This resulted in ipfs running out of file descriptors very
+frequently (as well as incurring a decent amount of excess outgoing bandwidth),
+this has now been fixed. Users who previously received "too many open files"
+errors should see this much less often in 0.4.11. The second change was a
+memory leak in the DHT that was identified and fixed. Streams being tracked in
+a map in the DHT weren't being cleaned up after the peer disconnected leading
+to the multiplexer session not being cleaned up properly. This issue has been
+resolved, and now memory usage appears to be stable over time. There is still a
+lot of work to be done improving memory usage, but we feel this is a solid
+victory.
 
 It is often said that NAT traversal is the hardest problem in peer to peer
 technology, we tend to agree with this. In an effort to provide a more
@@ -111,6 +128,7 @@ you.
   - Fix bad multipart message panic in gateway ([ipfs/go-ipfs#4053](https://github.com/ipfs/go-ipfs/pull/4053))
   - Add blocks to the blockstore before returning them from blockservice sessions ([ipfs/go-ipfs#4169](https://github.com/ipfs/go-ipfs/pull/4169))
   - Various fixes for /ipfs fuse code ([ipfs/go-ipfs#4194](https://github.com/ipfs/go-ipfs/pull/4194))
+  - Fix memory leak in dht stream tracking ([ipfs/go-ipfs#4251](https://github.com/ipfs/go-ipfs/pull/4251))
 - General Changes and Refactorings
   - Require go 1.8 ([ipfs/go-ipfs#4044](https://github.com/ipfs/go-ipfs/pull/4044))
   - Change IPFS to use the new pluggable Block to IPLD decoding framework. ([ipfs/go-ipfs#4060](https://github.com/ipfs/go-ipfs/pull/4060))
