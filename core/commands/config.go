@@ -313,11 +313,9 @@ var configProfileApplyCmd = &cmds.Command{
 		cmds.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		args := req.Arguments()
-
-		profile, ok := config.Profiles[args[0]]
+		profile, ok := config.Profiles[req.Arguments()[0]]
 		if !ok {
-			res.SetError(fmt.Errorf("%s in not a profile", args[0]), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmds.ErrNormal)
 			return
 		}
 
@@ -341,11 +339,9 @@ Backing up the config before running this command is advised.`,
 		cmds.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		args := req.Arguments()
-
-		profile, ok := config.Profiles[args[0]]
+		profile, ok := config.Profiles[req.Arguments()[0]]
 		if !ok {
-			res.SetError(fmt.Errorf("%s in not a profile", args[0]), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmds.ErrNormal)
 			return
 		}
 

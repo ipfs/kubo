@@ -1,7 +1,9 @@
 package config
 
+// Transformer is a function which takes configuration and applies some filter to it
 type Transformer func(c *Config) error
 
+// Profile applies some set of changes to the configuration
 type Profile struct {
 	Apply   Transformer
 	Unapply Transformer
@@ -32,11 +34,13 @@ var Profiles = map[string]*Profile{
 				"/ip4/240.0.0.0/ipcidr/4",
 			}
 
+			c.Addresses.NoAnnounce = append(c.Addresses.NoAnnounce, defaultServerFilters...)
 			c.Swarm.AddrFilters = append(c.Swarm.AddrFilters, defaultServerFilters...)
 			c.Discovery.MDNS.Enabled = false
 			return nil
 		},
 		Unapply: func(c *Config) error {
+			c.Addresses.NoAnnounce = []string{}
 			c.Swarm.AddrFilters = []string{}
 			c.Discovery.MDNS.Enabled = true
 			return nil
