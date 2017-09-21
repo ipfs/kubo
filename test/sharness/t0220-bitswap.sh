@@ -16,7 +16,7 @@ test_expect_success "'ipfs bitswap stat' succeeds" '
 '
 
 test_expect_success "'ipfs bitswap stat' output looks good" '
-  cat <<EOF | sed "s/  /\\t/g" >expected &&
+  cat <<EOF | unexpand -t2 >expected &&
 bitswap status
   provides buffer: 0 / 256
   blocks received: 0
@@ -54,7 +54,7 @@ test_expect_success "'ipfs bitswap stat' succeeds" '
 '
 
 test_expect_success "'ipfs bitswap stat' output looks good" '
-  cat <<EOF | sed "s/  /\\t/g" >expected &&
+  cat <<EOF | unexpand -t2 >expected &&
 bitswap status
   provides buffer: 0 / 256
   blocks received: 0
