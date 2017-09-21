@@ -96,6 +96,9 @@ into an object of the specified format.
 		res.SetOutput((<-chan interface{})(outChan))
 
 		addAllAndPin := func(f files.File) error {
+			cids := cid.NewSet()
+			b := n.DAG.Batch()
+
 			for {
 				file, err := f.NextFile()
 				if err == io.EOF {
@@ -113,37 +116,34 @@ into an object of the specified format.
 					return fmt.Errorf("no node returned from ParseInputs")
 				}
 
-				var cid *cid.Cid
-				err = func() error {
-					if dopin {
-						defer n.Blockstore.PinLock().Unlock()
-					}
-
-					b := n.DAG.Batch()
-					for _, nd := range nds {
-						_, err := b.Add(nd)
-						if err != nil {
-							return err
-						}
-					}
-
-					if err := b.Commit(); err != nil {
+				for _, nd := range nds {
+					_, err := b.Add(nd)
+					if err != nil {
 						return err
 					}
+				}
 
-					cid = nds[0].Cid()
-					if dopin {
-						n.Pinning.PinWithMode(cid, pin.Recursive)
-
-						err := n.Pinning.Flush()
-						if err != nil {
-							return err
-						}
-					}
-					return nil
-				}()
-
+				cid := nds[0].Cid()
+				cids.Add(cid)
 				outChan <- &OutputObject{Cid: cid}
+			}
+
+			if err := b.Commit(); err != nil {
+				return err
+			}
+
+			if dopin {
+				defer n.Blockstore.PinLock().Unlock()
+
+				cids.ForEach(func(c *cid.Cid) error {
+					n.Pinning.PinWithMode(c, pin.Recursive)
+					return nil
+				})
+
+				err := n.Pinning.Flush()
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil
