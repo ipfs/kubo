@@ -17,11 +17,6 @@ fi
 
 test_init_ipfs
 
-test_expect_success "copy plugin" '
-  mkdir -p "$IPFS_PATH/plugins" &&
-  cp ../plugins/git.so "$IPFS_PATH/plugins/"
-'
-
 # from https://github.com/ipfs/go-ipld-git/blob/master/make-test-repo.sh
 test_expect_success "prepare test data" '
   tar xzf ../t0280-plugin-git-data/git.tar.gz
@@ -45,6 +40,33 @@ test_dag_git() {
     test_cmp file1 out1
   '
 }
+
+test_expect_success "copy plugin to local plugin directory" '
+  mkdir -p "$IPFS_PATH/plugins" &&
+  chmod +x ../plugins/git.so &&
+  cp ../plugins/git.so "$IPFS_PATH/plugins/"
+'
+
+# should work offline
+#test_dag_git
+
+# should work online
+test_launch_ipfs_daemon
+test_dag_git
+test_kill_ipfs_daemon
+
+test_expect_success "copy plugin to global plugin directory" '
+  mkdir -p "./system_plugins" &&
+  cp ../plugins/git.so "./system_plugins/"
+'
+
+test_expect_success "fail with duplicate plugin" '
+  echo 123 | test_must_fail ipfs dag put
+'
+
+test_expect_success "remove local plugin" '
+  rm -r "$IPFS_PATH/plugins/"
+'
 
 # should work offline
 #test_dag_git

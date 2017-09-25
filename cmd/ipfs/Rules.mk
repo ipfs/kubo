@@ -13,10 +13,10 @@ PATH := $(realpath $(d)):$(PATH)
 # DEPS_OO_$(d) += merkledag/pb/merkledag.pb.go namesys/pb/namesys.pb.go
 # DEPS_OO_$(d) += pin/internal/pb/header.pb.go unixfs/pb/unixfs.pb.go
 
-CONFIG_COMMIT ?= github.com/ipfs/go-ipfs/repo/config.CurrentCommit=$(shell git rev-parse --short HEAD)
-CONFIG_PLUGIN_PATH ?= github.com/ipfs/go-ipfs/repo/config.SystemPluginPath=${PLUGIN_PATH}
-
-$(d)_flags =-ldflags="-X ${CONFIG_COMMIT} -X ${CONFIG_PLUGIN_PATH}"
+$(d)_flags  =-ldflags="
+$(d)_flags += -X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=${CONFIG_COMMIT}
+$(d)_flags += -X github.com/ipfs/go-ipfs/repo/config.SystemPluginPath=${CONFIG_PLUGIN_PATH}
+$(d)_flags += "
 
 $(d)-try-build $(IPFS_BIN_$(d)): GOFLAGS += $(cmd/ipfs_flags)
 
