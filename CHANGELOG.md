@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-### 0.4.11-rc1 2017-09-14
+### 0.4.11 2017-09-14
 
 Ipfs 0.4.11 is a larger release that brings many long-awaited features and
 performance improvements. These include new datastore options, more efficient
