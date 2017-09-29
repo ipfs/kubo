@@ -7,8 +7,11 @@ import (
 	"math"
 	"strings"
 
+	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 
@@ -173,7 +176,15 @@ var DagGetCmd = &cmds.Command{
 			return
 		}
 
-		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		local, _, _ := req.Option("local").Bool()
+
+		resolver := n.Resolver
+		if local {
+			exch := offline.Exchange(n.Blockstore)
+			resolver = path.NewBasicResolver(dag.NewDAGService(blockservice.New(n.Blockstore, exch)))
+		}
+
+		obj, rem, err := resolver.ResolveToLastNode(req.Context(), p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
