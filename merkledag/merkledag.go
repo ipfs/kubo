@@ -4,17 +4,25 @@ package merkledag
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 
-	ipldcbor "gx/ipfs/QmNrbCt8j9DT5W9Pmjy2SdudT9k8GpaDr4sRuFix3BXhgR/go-ipld-cbor"
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+	ipldcbor "gx/ipfs/QmcRu2X6kdDKmCbMpYXKHVgDrhLqVYCACMe1aghUcdHj2z/go-ipld-cbor"
 )
+
+// TODO: We should move these registrations elsewhere. Really, most of the IPLD
+// functionality should go in a `go-ipld` repo but that will take a lot of work
+// and design.
+func init() {
+	node.Register(cid.DagProtobuf, DecodeProtobufBlock)
+	node.Register(cid.Raw, DecodeRawBlock)
+	node.Register(cid.DagCBOR, ipldcbor.DecodeBlock)
+}
 
 var ErrNotFound = fmt.Errorf("merkledag: not found")
 
@@ -24,8 +32,8 @@ type DAGService interface {
 	Get(context.Context, *cid.Cid) (node.Node, error)
 	Remove(node.Node) error
 
-	// GetDAG returns, in order, all the single leve child
-	// nodes of the passed in node.
+	// GetMany returns a channel of NodeOption given
+	// a set of CIDs.
 	GetMany(context.Context, []*cid.Cid) <-chan *NodeOption
 
 	Batch() *Batch
@@ -94,32 +102,7 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 		return nil, fmt.Errorf("Failed to get block for %s: %v", c, err)
 	}
 
-	return decodeBlock(b)
-}
-
-func decodeBlock(b blocks.Block) (node.Node, error) {
-	c := b.Cid()
-
-	switch c.Type() {
-	case cid.DagProtobuf:
-		decnd, err := DecodeProtobuf(b.RawData())
-		if err != nil {
-			if strings.Contains(err.Error(), "Unmarshal failed") {
-				return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", c)
-			}
-			return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
-		}
-
-		decnd.cached = b.Cid()
-		decnd.Prefix = b.Cid().Prefix()
-		return decnd, nil
-	case cid.Raw:
-		return NewRawNodeWPrefix(b.RawData(), b.Cid().Prefix())
-	case cid.DagCBOR:
-		return ipldcbor.Decode(b.RawData())
-	default:
-		return nil, fmt.Errorf("unrecognized object type: %s", c.Type())
-	}
+	return node.Decode(b)
 }
 
 // GetLinks return the links for the node, the node doesn't necessarily have
@@ -155,17 +138,44 @@ func GetLinksDirect(serv node.NodeGetter) GetLinks {
 	return func(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
 		node, err := serv.Get(ctx, c)
 		if err != nil {
+			if err == bserv.ErrNotFound {
+				err = ErrNotFound
+			}
 			return nil, err
 		}
 		return node.Links(), nil
 	}
 }
 
+type sesGetter struct {
+	bs *bserv.Session
+}
+
+func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
+	blk, err := sg.bs.GetBlock(ctx, c)
+	switch err {
+	case bserv.ErrNotFound:
+		return nil, ErrNotFound
+	default:
+		return nil, err
+	case nil:
+		// noop
+	}
+
+	return node.Decode(blk)
+}
+
 // FetchGraph fetches all nodes that are children of the given node
 func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
+	var ng node.NodeGetter = serv
+	ds, ok := serv.(*dagService)
+	if ok {
+		ng = &sesGetter{bserv.NewSession(ctx, ds.Blocks)}
+	}
+
 	v, _ := ctx.Value("progress").(*ProgressTracker)
 	if v == nil {
-		return EnumerateChildrenAsync(ctx, GetLinksDirect(serv), root, cid.NewSet().Visit)
+		return EnumerateChildrenAsync(ctx, GetLinksDirect(ng), root, cid.NewSet().Visit)
 	}
 	set := cid.NewSet()
 	visit := func(c *cid.Cid) bool {
@@ -176,7 +186,7 @@ func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
 			return false
 		}
 	}
-	return EnumerateChildrenAsync(ctx, GetLinksDirect(serv), root, visit)
+	return EnumerateChildrenAsync(ctx, GetLinksDirect(ng), root, visit)
 }
 
 // FindLinks searches this nodes links for the given key,
@@ -213,7 +223,7 @@ func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *Node
 					return
 				}
 
-				nd, err := decodeBlock(b)
+				nd, err := node.Decode(b)
 				if err != nil {
 					out <- &NodeOption{Err: err}
 					return

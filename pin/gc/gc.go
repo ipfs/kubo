@@ -9,9 +9,12 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
 
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
+
+var log = logging.Logger("gc")
 
 // Result represents an incremental output from a garbage collection
 // run.  It contains either an error, or the cid of a removed object.
@@ -31,7 +34,13 @@ type Result struct {
 // deletes any block that is not found in the marked set.
 //
 func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
+
+	elock := log.EventBegin(ctx, "GC.lockWait")
 	unlocker := bs.GCLock()
+	elock.Done()
+	elock = log.EventBegin(ctx, "GC.locked")
+	emark := log.EventBegin(ctx, "GC.mark")
+
 	ls = ls.GetOfflineLinkService()
 
 	output := make(chan Result, 128)
@@ -39,12 +48,18 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 	go func() {
 		defer close(output)
 		defer unlocker.Unlock()
+		defer elock.Done()
 
 		gcs, err := ColoredSet(ctx, pn, ls, bestEffortRoots, output)
 		if err != nil {
 			output <- Result{Error: err}
 			return
 		}
+		emark.Append(logging.LoggableMap{
+			"blackSetSize": fmt.Sprintf("%d", gcs.Len()),
+		})
+		emark.Done()
+		esweep := log.EventBegin(ctx, "GC.sweep")
 
 		keychan, err := bs.AllKeysChan(ctx)
 		if err != nil {
@@ -53,6 +68,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 		}
 
 		errors := false
+		var removed uint64
 
 	loop:
 		for {
@@ -63,6 +79,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 				}
 				if !gcs.Has(k) {
 					err := bs.DeleteBlock(k)
+					removed++
 					if err != nil {
 						errors = true
 						output <- Result{Error: &CannotDeleteBlockError{k, err}}
@@ -80,6 +97,10 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 				break loop
 			}
 		}
+		esweep.Append(logging.LoggableMap{
+			"whiteSetSize": fmt.Sprintf("%d", removed),
+		})
+		esweep.Done()
 		if errors {
 			output <- Result{Error: ErrCannotDeleteSomeBlocks}
 		}

@@ -10,8 +10,9 @@ import (
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	"github.com/ipfs/go-ipfs/unixfs"
 
-	ci "gx/ipfs/QmP1DfoUjiWH2ZBo1PBH6FupdBucbDepx3HpWmEY6JMUpY/go-libp2p-crypto"
-	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
+	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	dssync "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
+	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 type mockResolver struct {
@@ -76,7 +77,7 @@ func TestNamesysResolution(t *testing.T) {
 }
 
 func TestPublishWithCache0(t *testing.T) {
-	dst := ds.NewMapDatastore()
+	dst := dssync.MutexWrap(ds.NewMapDatastore())
 	priv, _, err := ci.GenerateKeyPair(ci.RSA, 1024)
 	if err != nil {
 		t.Fatal(err)

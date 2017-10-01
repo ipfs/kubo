@@ -3,11 +3,14 @@ package merkledag
 import (
 	"fmt"
 	"sort"
+	"strings"
+
+	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
 	pb "github.com/ipfs/go-ipfs/merkledag/pb"
 
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 )
 
 // for now, we use a PBNode intermediate thing.
@@ -108,3 +111,27 @@ func DecodeProtobuf(encoded []byte) (*ProtoNode, error) {
 	}
 	return n, nil
 }
+
+// DecodeProtobufBlock is a block decoder for protobuf IPLD nodes conforming to
+// node.DecodeBlockFunc
+func DecodeProtobufBlock(b blocks.Block) (node.Node, error) {
+	c := b.Cid()
+	if c.Type() != cid.DagProtobuf {
+		return nil, fmt.Errorf("this function can only decode protobuf nodes")
+	}
+
+	decnd, err := DecodeProtobuf(b.RawData())
+	if err != nil {
+		if strings.Contains(err.Error(), "Unmarshal failed") {
+			return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", c)
+		}
+		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
+	}
+
+	decnd.cached = c
+	decnd.Prefix = c.Prefix()
+	return decnd, nil
+}
+
+// Type assertion
+var _ node.DecodeBlockFunc = DecodeProtobufBlock

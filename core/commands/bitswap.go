@@ -9,10 +9,10 @@ import (
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 var BitswapCmd = &cmds.Command{
@@ -21,10 +21,11 @@ var BitswapCmd = &cmds.Command{
 		ShortDescription: ``,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"wantlist": showWantlistCmd,
-		"stat":     bitswapStatCmd,
-		"unwant":   unwantCmd,
-		"ledger":   ledgerCmd,
+		"wantlist":  showWantlistCmd,
+		"stat":      bitswapStatCmd,
+		"unwant":    unwantCmd,
+		"ledger":    ledgerCmd,
+		"reprovide": reprovideCmd,
 	},
 }
 
@@ -64,7 +65,11 @@ var unwantCmd = &cmds.Command{
 			ks = append(ks, c)
 		}
 
-		bs.CancelWants(ks)
+		// TODO: This should maybe find *all* sessions for this request and cancel them?
+		// (why): in reality, i think this command should be removed. Its
+		// messing with the internal state of bitswap. You should cancel wants
+		// by killing the command that caused the want.
+		bs.CancelWants(ks, 0)
 	},
 }
 
@@ -107,6 +112,11 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
+			if pid == nd.Identity {
+				res.SetOutput(&KeyList{bs.GetWantlist()})
+				return
+			}
+
 			res.SetOutput(&KeyList{bs.WantlistForPeer(pid)})
 		} else {
 			res.SetOutput(&KeyList{bs.GetWantlist()})
@@ -231,5 +241,32 @@ prints the ledger associated with a given peer.
 				out.Sent, out.Recv)
 			return buf, nil
 		},
+	},
+}
+
+var reprovideCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Trigger reprovider.",
+		ShortDescription: `
+Trigger reprovider to announce our data to network.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		nd, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if !nd.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		err = nd.Reprovider.Trigger(req.Context())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 	},
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -13,9 +14,9 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
@@ -29,7 +30,7 @@ var writebufferSize = 1 << 21
 // Dear god, please rename this to something more pleasant
 type DagModifier struct {
 	dagserv mdag.DAGService
-	curNode *mdag.ProtoNode
+	curNode node.Node
 
 	splitter   chunk.SplitterGen
 	ctx        context.Context
@@ -42,14 +43,18 @@ type DagModifier struct {
 	read uio.DagReader
 }
 
+var ErrNotUnixfs = fmt.Errorf("dagmodifier only supports unixfs nodes (proto or raw)")
+
 func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
-	pbn, ok := from.(*mdag.ProtoNode)
-	if !ok {
-		return nil, mdag.ErrNotProtobuf
+	switch from.(type) {
+	case *mdag.ProtoNode, *mdag.RawNode:
+		// ok
+	default:
+		return nil, ErrNotUnixfs
 	}
 
 	return &DagModifier{
-		curNode:  pbn.Copy().(*mdag.ProtoNode),
+		curNode:  from.Copy(),
 		dagserv:  serv,
 		splitter: spl,
 		ctx:      ctx,
@@ -144,19 +149,29 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-func (dm *DagModifier) Size() (int64, error) {
-	pbn, err := ft.FromBytes(dm.curNode.Data())
-	if err != nil {
-		return 0, err
-	}
+var ErrNoRawYet = fmt.Errorf("currently only fully support protonodes in the dagmodifier")
 
-	if dm.wrBuf != nil {
-		if uint64(dm.wrBuf.Len())+dm.writeStart > pbn.GetFilesize() {
+// Size returns the Filesize of the node
+func (dm *DagModifier) Size() (int64, error) {
+	switch nd := dm.curNode.(type) {
+	case *mdag.ProtoNode:
+		pbn, err := ft.FromBytes(nd.Data())
+		if err != nil {
+			return 0, err
+		}
+		if dm.wrBuf != nil && uint64(dm.wrBuf.Len())+dm.writeStart > pbn.GetFilesize() {
 			return int64(dm.wrBuf.Len()) + int64(dm.writeStart), nil
 		}
+		return int64(pbn.GetFilesize()), nil
+	case *mdag.RawNode:
+		if dm.wrBuf != nil {
+			return 0, ErrNoRawYet
+		}
+		sz, err := nd.Size()
+		return int64(sz), err
+	default:
+		return 0, ErrNotUnixfs
 	}
-
-	return int64(pbn.GetFilesize()), nil
 }
 
 // Sync writes changes to this dag to disk
@@ -222,7 +237,12 @@ func (dm *DagModifier) Sync() error {
 // modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
 // returns the new key of the passed in node and whether or not all the data in the reader
 // has been consumed.
-func (dm *DagModifier) modifyDag(node *mdag.ProtoNode, offset uint64, data io.Reader) (*cid.Cid, bool, error) {
+func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*cid.Cid, bool, error) {
+	node, ok := n.(*mdag.ProtoNode)
+	if !ok {
+		return nil, false, ErrNoRawYet
+	}
+
 	f, err := ft.FromBytes(node.Data())
 	if err != nil {
 		return nil, false, err
@@ -301,13 +321,19 @@ func (dm *DagModifier) modifyDag(node *mdag.ProtoNode, offset uint64, data io.Re
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(node *mdag.ProtoNode, spl chunk.Splitter) (node.Node, error) {
-	dbp := &help.DagBuilderParams{
-		Dagserv:  dm.dagserv,
-		Maxlinks: help.DefaultLinksPerBlock,
+func (dm *DagModifier) appendData(nd node.Node, spl chunk.Splitter) (node.Node, error) {
+	switch nd := nd.(type) {
+	case *mdag.ProtoNode:
+		dbp := &help.DagBuilderParams{
+			Dagserv:  dm.dagserv,
+			Maxlinks: help.DefaultLinksPerBlock,
+		}
+		return trickle.TrickleAppend(dm.ctx, nd, dbp.New(spl))
+	case *mdag.RawNode:
+		return nil, fmt.Errorf("appending to raw node types not yet supported")
+	default:
+		return nil, ErrNotUnixfs
 	}
-
-	return trickle.TrickleAppend(dm.ctx, node, dbp.New(spl))
 }
 
 // Read data from this dag starting at the current offset
@@ -367,12 +393,12 @@ func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 }
 
 // GetNode gets the modified DAG Node
-func (dm *DagModifier) GetNode() (*mdag.ProtoNode, error) {
+func (dm *DagModifier) GetNode() (node.Node, error) {
 	err := dm.Sync()
 	if err != nil {
 		return nil, err
 	}
-	return dm.curNode.Copy().(*mdag.ProtoNode), nil
+	return dm.curNode.Copy(), nil
 }
 
 // HasChanges returned whether or not there are unflushed changes to this dag
@@ -452,7 +478,12 @@ func (dm *DagModifier) Truncate(size int64) error {
 }
 
 // dagTruncate truncates the given node to 'size' and returns the modified Node
-func dagTruncate(ctx context.Context, nd *mdag.ProtoNode, size uint64, ds mdag.DAGService) (*mdag.ProtoNode, error) {
+func dagTruncate(ctx context.Context, n node.Node, size uint64, ds mdag.DAGService) (*mdag.ProtoNode, error) {
+	nd, ok := n.(*mdag.ProtoNode)
+	if !ok {
+		return nil, ErrNoRawYet
+	}
+
 	if len(nd.Links()) == 0 {
 		// TODO: this can likely be done without marshaling and remarshaling
 		pbn, err := ft.FromBytes(nd.Data())

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 
 	context "context"
 	assets "github.com/ipfs/go-ipfs/assets"
@@ -27,6 +28,15 @@ var initCmd = &cmds.Command{
 		ShortDescription: `
 Initializes ipfs configuration files and generates a new keypair.
 
+If you are going to run IPFS in server environment, you may want to
+initialize it using 'server' profile.
+
+Available profiles:
+    'server' - Disables local host discovery, recommended when
+        running IPFS on machines with public IPv4 addresses.
+    'test' - Reduces external interference of IPFS daemon, this
+        is useful when using the daemon in test environments.
+
 ipfs uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
 environment variable:
@@ -40,6 +50,7 @@ environment variable:
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
 		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
+		cmds.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -96,7 +107,18 @@ environment variable:
 			}
 		}
 
-		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, empty, nBitsForKeypair, conf); err != nil {
+		profile, _, err := req.Option("profile").String()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		var profiles []string
+		if profile != "" {
+			profiles = strings.Split(profile, ",")
+		}
+
+		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, empty, nBitsForKeypair, profiles, conf); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -108,10 +130,10 @@ Reinitializing would overwrite your keys.
 `)
 
 func initWithDefaults(out io.Writer, repoRoot string) error {
-	return doInit(out, repoRoot, false, nBitsForKeypairDefault, nil)
+	return doInit(out, repoRoot, false, nBitsForKeypairDefault, nil, nil)
 }
 
-func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, conf *config.Config) error {
+func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, confProfiles []string, conf *config.Config) error {
 	if _, err := fmt.Fprintf(out, "initializing IPFS node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -128,6 +150,17 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 		var err error
 		conf, err = config.Init(out, nBitsForKeypair)
 		if err != nil {
+			return err
+		}
+	}
+
+	for _, profile := range confProfiles {
+		transformer, ok := config.ConfigProfiles[profile]
+		if !ok {
+			return fmt.Errorf("invalid configuration profile: %s", profile)
+		}
+
+		if err := transformer(conf); err != nil {
 			return err
 		}
 	}

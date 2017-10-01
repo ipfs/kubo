@@ -2,16 +2,16 @@
 package decision
 
 import (
+	"context"
 	"sync"
 	"time"
 
-	context "context"
-	blocks "github.com/ipfs/go-ipfs/blocks"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 // TODO consider taking responsibility for other types of requests. For
@@ -105,13 +105,10 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 }
 
 func (e *Engine) WantlistForPeer(p peer.ID) (out []*wl.Entry) {
-	e.lock.Lock()
-	partner, ok := e.ledgerMap[p]
-	if ok {
-		out = partner.wantList.SortedEntries()
-	}
-	e.lock.Unlock()
-	return out
+	partner := e.findOrCreate(p)
+	partner.lk.Lock()
+	defer partner.lk.Unlock()
+	return partner.wantList.SortedEntries()
 }
 
 func (e *Engine) LedgerForPeer(p peer.ID) *Receipt {

@@ -8,17 +8,22 @@ import (
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	routing "gx/ipfs/QmNdaQ8itUU9jEZUwTsG4gHMaPmRfi6FEe89QjQAFbep3M/go-libp2p-routing"
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	testutil "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil"
+
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
+
+var log = logging.Logger("bstestnet")
 
 func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
 	return &network{
 		clients:       make(map[peer.ID]bsnet.Receiver),
 		delay:         d,
 		routingserver: rs,
+		conns:         make(map[string]struct{}),
 	}
 }
 
@@ -26,6 +31,7 @@ type network struct {
 	clients       map[peer.ID]bsnet.Receiver
 	routingserver mockrouting.Server
 	delay         delay.D
+	conns         map[string]struct{}
 }
 
 func (n *network) Adapter(p testutil.Identity) bsnet.BitSwapNetwork {
@@ -127,6 +133,10 @@ func (mp *messagePasser) Close() error {
 	return nil
 }
 
+func (mp *messagePasser) Reset() error {
+	return nil
+}
+
 func (n *networkClient) NewMessageSender(ctx context.Context, p peer.ID) (bsnet.MessageSender, error) {
 	return &messagePasser{
 		net:    n.network,
@@ -149,7 +159,22 @@ func (nc *networkClient) ConnectTo(_ context.Context, p peer.ID) error {
 	if !nc.network.HasPeer(p) {
 		return errors.New("no such peer in network")
 	}
+	tag := tagForPeers(nc.local, p)
+	if _, ok := nc.network.conns[tag]; ok {
+		log.Warning("ALREADY CONNECTED TO PEER (is this a reconnect? test lib needs fixing)")
+		return nil
+	}
+	nc.network.conns[tag] = struct{}{}
+	// TODO: add handling for disconnects
+
 	nc.network.clients[p].PeerConnected(nc.local)
 	nc.Receiver.PeerConnected(p)
 	return nil
+}
+
+func tagForPeers(a, b peer.ID) string {
+	if a < b {
+		return string(a + b)
+	}
+	return string(b + a)
 }

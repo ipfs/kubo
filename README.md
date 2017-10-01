@@ -44,6 +44,7 @@ Please put all issues regarding the Go IPFS _implementation_ in [this repo](http
 - [Todo](#todo)
 - [Contributing](#contributing)
   - [Want to hack on IPFS?](#want-to-hack-on-ipfs)
+  - [Want to read our code?](#want-to-read-our-code)
 - [License](#license)
 
 ## Security Issues
@@ -103,7 +104,7 @@ With snap, in any of the [supported Linux distributions](https://snapcraft.io/do
 
 #### Install Go
 
-The build process for ipfs requires Go 1.7 or higher. If you don't have it: [Download Go 1.7+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.8 or higher. If you don't have it: [Download Go 1.8+](https://golang.org/dl/).
 
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
@@ -147,7 +148,7 @@ mismatched APIs.
 * Also, [instructions for OpenBSD](docs/openbsd.md).
 * `git` is required in order for `go get` to fetch all dependencies.
 * Package managers often contain out-of-date `golang` packages.
-  Ensure that `go version` reports at least 1.7. See above for how to install go.
+  Ensure that `go version` reports at least 1.8. See above for how to install go.
 * If you are interested in development, please install the development
 dependencies as well.
 * *WARNING: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
@@ -306,6 +307,18 @@ This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/c
 ### Want to hack on IPFS?
 
 [![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/contributing.md)
+
+### Want to read our code?
+
+Some places to get you started. (WIP)
+
+Main file: [cmd/ipfs/main.go](https://github.com/ipfs/go-ipfs/blob/master/cmd/ipfs/main.go) <br>
+CLI Commands: [core/commands/](https://github.com/ipfs/go-ipfs/tree/master/core/commands) <br>
+Bitswap (the data trading engine): [exchange/bitswap/](https://github.com/ipfs/go-ipfs/tree/master/exchange/bitswap)
+
+DHT: https://github.com/libp2p/go-libp2p-kad-dht <br>
+PubSub: https://github.com/libp2p/go-floodsub <br>
+libp2p: https://github.com/libp2p/go-libp2p
 
 ## License
 

@@ -8,11 +8,11 @@ import (
 
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 var TaskWorkerCount = 8
@@ -49,7 +49,7 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 
 func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 	idmap := logging.LoggableMap{"ID": id}
-	defer log.Info("bitswap task worker shutting down...")
+	defer log.Debug("bitswap task worker shutting down...")
 	for {
 		log.Event(ctx, "Bitswap.TaskWorker.Loop", idmap)
 		select {
@@ -73,8 +73,8 @@ func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 
 				bs.wm.SendBlock(ctx, envelope)
 				bs.counterLk.Lock()
-				bs.blocksSent++
-				bs.dataSent += uint64(len(envelope.Block.RawData()))
+				bs.counters.blocksSent++
+				bs.counters.dataSent += uint64(len(envelope.Block.RawData()))
 				bs.counterLk.Unlock()
 			case <-ctx.Done():
 				return

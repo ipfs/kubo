@@ -7,9 +7,9 @@ import (
 	"errors"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
@@ -19,13 +19,13 @@ import (
 	flags "github.com/ipfs/go-ipfs/flags"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
 
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
+	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	loggables "gx/ipfs/QmVesPmqbPp7xRGyY96tnBwzDtVV1nqv4SCVxo5zCqKyH8/go-libp2p-loggables"
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 var log = logging.Logger("bitswap")
@@ -99,6 +99,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		newBlocks:     make(chan *cid.Cid, HasBlockBufferSize),
 		provideKeys:   make(chan *cid.Cid, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
+		counters:      new(counters),
 
 		dupMetric: dupHist,
 		allMetric: allHist,
@@ -152,17 +153,29 @@ type Bitswap struct {
 	process process.Process
 
 	// Counters for various statistics
-	counterLk      sync.Mutex
-	blocksRecvd    int
-	dupBlocksRecvd int
-	dupDataRecvd   uint64
-	blocksSent     int
-	dataSent       uint64
-	dataRecvd      uint64
+	counterLk sync.Mutex
+	counters  *counters
 
 	// Metrics interface metrics
 	dupMetric metrics.Histogram
 	allMetric metrics.Histogram
+
+	// Sessions
+	sessions []*Session
+	sessLk   sync.Mutex
+
+	sessID   uint64
+	sessIDLk sync.Mutex
+}
+
+type counters struct {
+	blocksRecvd    uint64
+	dupBlocksRecvd uint64
+	dupDataRecvd   uint64
+	blocksSent     uint64
+	dataSent       uint64
+	dataRecvd      uint64
+	messagesRecvd  uint64
 }
 
 type blockRequest struct {
@@ -173,45 +186,7 @@ type blockRequest struct {
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
 func (bs *Bitswap) GetBlock(parent context.Context, k *cid.Cid) (blocks.Block, error) {
-	if k == nil {
-		log.Error("nil cid in GetBlock")
-		return nil, blockstore.ErrNotFound
-	}
-
-	// Any async work initiated by this function must end when this function
-	// returns. To ensure this, derive a new context. Note that it is okay to
-	// listen on parent in this scope, but NOT okay to pass |parent| to
-	// functions called by this one. Otherwise those functions won't return
-	// when this context's cancel func is executed. This is difficult to
-	// enforce. May this comment keep you safe.
-	ctx, cancelFunc := context.WithCancel(parent)
-
-	// TODO: this request ID should come in from a higher layer so we can track
-	// across multiple 'GetBlock' invocations
-	ctx = logging.ContextWithLoggable(ctx, loggables.Uuid("GetBlockRequest"))
-	log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
-	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
-	defer cancelFunc()
-
-	promise, err := bs.GetBlocks(ctx, []*cid.Cid{k})
-	if err != nil {
-		return nil, err
-	}
-
-	select {
-	case block, ok := <-promise:
-		if !ok {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			default:
-				return nil, errors.New("promise channel was closed")
-			}
-		}
-		return block, nil
-	case <-parent.Done():
-		return nil, parent.Err()
-	}
+	return getBlock(parent, k, bs.GetBlocks)
 }
 
 func (bs *Bitswap) WantlistForPeer(p peer.ID) []*cid.Cid {
@@ -251,7 +226,9 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 		log.Event(ctx, "Bitswap.GetBlockRequest.Start", k)
 	}
 
-	bs.wm.WantBlocks(ctx, keys)
+	mses := bs.getNextSessionID()
+
+	bs.wm.WantBlocks(ctx, keys, nil, mses)
 
 	// NB: Optimization. Assumes that providers of key[0] are likely to
 	// be able to provide for all keys. This currently holds true in most
@@ -273,7 +250,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 		defer close(out)
 		defer func() {
 			// can't just defer this call on its own, arguments are resolved *when* the defer is created
-			bs.CancelWants(remaining.Keys())
+			bs.CancelWants(remaining.Keys(), mses)
 		}()
 		for {
 			select {
@@ -282,6 +259,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 					return
 				}
 
+				bs.CancelWants([]*cid.Cid{blk.Cid()}, mses)
 				remaining.Remove(blk.Cid())
 				select {
 				case out <- blk:
@@ -302,14 +280,32 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 	}
 }
 
+func (bs *Bitswap) getNextSessionID() uint64 {
+	bs.sessIDLk.Lock()
+	defer bs.sessIDLk.Unlock()
+	bs.sessID++
+	return bs.sessID
+}
+
 // CancelWant removes a given key from the wantlist
-func (bs *Bitswap) CancelWants(cids []*cid.Cid) {
-	bs.wm.CancelWants(cids)
+func (bs *Bitswap) CancelWants(cids []*cid.Cid, ses uint64) {
+	if len(cids) == 0 {
+		return
+	}
+	bs.wm.CancelWants(context.Background(), cids, nil, ses)
 }
 
 // HasBlock announces the existance of a block to this bitswap service. The
 // service will potentially notify its peers.
 func (bs *Bitswap) HasBlock(blk blocks.Block) error {
+	return bs.receiveBlockFrom(blk, "")
+}
+
+// TODO: Some of this stuff really only needs to be done when adding a block
+// from the user, not when receiving it from the network.
+// In case you run `git blame` on this comment, I'll save you some time: ask
+// @whyrusleeping, I don't know the answers you seek.
+func (bs *Bitswap) receiveBlockFrom(blk blocks.Block, from peer.ID) error {
 	select {
 	case <-bs.process.Closing():
 		return errors.New("bitswap is closed")
@@ -329,6 +325,13 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	// it now as it requires more thought and isnt causing immediate problems.
 	bs.notifications.Publish(blk)
 
+	k := blk.Cid()
+	ks := []*cid.Cid{k}
+	for _, s := range bs.SessionsForBlock(k) {
+		s.receiveBlockFrom(from, blk)
+		bs.CancelWants(ks, s.id)
+	}
+
 	bs.engine.AddBlock(blk)
 
 	select {
@@ -340,7 +343,23 @@ func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	return nil
 }
 
+// SessionsForBlock returns a slice of all sessions that may be interested in the given cid
+func (bs *Bitswap) SessionsForBlock(c *cid.Cid) []*Session {
+	bs.sessLk.Lock()
+	defer bs.sessLk.Unlock()
+
+	var out []*Session
+	for _, s := range bs.sessions {
+		if s.interestedIn(c) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) {
+	atomic.AddUint64(&bs.counters.messagesRecvd, 1)
+
 	// This call records changes to wantlists, blocks received,
 	// and number of bytes transfered.
 	bs.engine.MessageReceived(p, incoming)
@@ -362,23 +381,21 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		}
 		keys = append(keys, block.Cid())
 	}
-	bs.wm.CancelWants(keys)
 
 	wg := sync.WaitGroup{}
 	for _, block := range iblocks {
 		wg.Add(1)
-		go func(b blocks.Block) {
+		go func(b blocks.Block) { // TODO: this probably doesnt need to be a goroutine...
 			defer wg.Done()
 
 			bs.updateReceiveCounters(b)
 
-			k := b.Cid()
-			log.Event(ctx, "Bitswap.GetBlockRequest.End", k)
-
 			log.Debugf("got block %s from %s", b, p)
-			if err := bs.HasBlock(b); err != nil {
-				log.Warningf("ReceiveMessage HasBlock error: %s", err)
+
+			if err := bs.receiveBlockFrom(b, p); err != nil {
+				log.Warningf("ReceiveMessage recvBlockFrom error: %s", err)
 			}
+			log.Event(ctx, "Bitswap.GetBlockRequest.End", b.Cid())
 		}(block)
 	}
 	wg.Wait()
@@ -401,12 +418,13 @@ func (bs *Bitswap) updateReceiveCounters(b blocks.Block) {
 
 	bs.counterLk.Lock()
 	defer bs.counterLk.Unlock()
+	c := bs.counters
 
-	bs.blocksRecvd++
-	bs.dataRecvd += uint64(len(b.RawData()))
+	c.blocksRecvd++
+	c.dataRecvd += uint64(len(b.RawData()))
 	if has {
-		bs.dupBlocksRecvd++
-		bs.dupDataRecvd += uint64(blkLen)
+		c.dupBlocksRecvd++
+		c.dupDataRecvd += uint64(blkLen)
 	}
 }
 

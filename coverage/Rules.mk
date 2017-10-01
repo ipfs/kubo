@@ -1,6 +1,6 @@
 include mk/header.mk
 
-$(d)/coverage_deps:
+$(d)/coverage_deps: $$(DEPS_GO)
 	rm -rf $(@D)/unitcover && mkdir $(@D)/unitcover
 	rm -rf $(@D)/sharnesscover && mkdir $(@D)/sharnesscover
 ifneq ($(IPFS_SKIP_COVER_BINS),1)
@@ -41,6 +41,7 @@ endif
 
 export IPFS_COVER_DIR:= $(realpath $(d))/sharnesscover/
 
+$(d)/sharness_tests.coverprofile: export TEST_NO_PLUGIN=1
 $(d)/sharness_tests.coverprofile: $(d)/ipfs cmd/ipfs/ipfs-test-cover $(d)/coverage_deps test_sharness_short
 	(cd $(@D)/sharnesscover && find . -type f | gocovmerge -list -) > $@
 

@@ -11,7 +11,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 
-	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
 // P2PListenerInfoOutput is output type of ls command
@@ -40,7 +40,7 @@ type P2PStreamsOutput struct {
 	Streams []P2PStreamInfoOutput
 }
 
-// P2PCmd is the 'ipfs ppp' command
+// P2PCmd is the 'ipfs p2p' command
 var P2PCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Libp2p stream mounting.",

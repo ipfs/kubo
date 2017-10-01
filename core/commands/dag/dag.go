@@ -1,17 +1,19 @@
 package dagcmd
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"math"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	coredag "github.com/ipfs/go-ipfs/core/coredag"
 	path "github.com/ipfs/go-ipfs/path"
+	pin "github.com/ipfs/go-ipfs/pin"
 
-	ipldcbor "gx/ipfs/QmNrbCt8j9DT5W9Pmjy2SdudT9k8GpaDr4sRuFix3BXhgR/go-ipld-cbor"
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 )
 
 var DagCmd = &cmds.Command{
@@ -25,13 +27,21 @@ to deprecate and replace the existing 'ipfs object' command moving forward.
 		`,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"put": DagPutCmd,
-		"get": DagGetCmd,
+		"put":     DagPutCmd,
+		"get":     DagGetCmd,
+		"resolve": DagResolveCmd,
 	},
 }
 
+// OutputObject is the output type of 'dag put' command
 type OutputObject struct {
 	Cid *cid.Cid
+}
+
+// ResolveOutput is the output type of 'dag resolve' command
+type ResolveOutput struct {
+	Cid     *cid.Cid
+	RemPath string
 }
 
 var DagPutCmd = &cmds.Command{
@@ -48,6 +58,8 @@ into an object of the specified format.
 	Options: []cmds.Option{
 		cmds.StringOption("format", "f", "Format that the object will be added as.").Default("cbor"),
 		cmds.StringOption("input-enc", "Format that the input object will be.").Default("json"),
+		cmds.BoolOption("pin", "Pin this object when adding.").Default(false),
+		cmds.StringOption("hash", "Hash function to use").Default(""),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -64,42 +76,66 @@ into an object of the specified format.
 
 		ienc, _, _ := req.Option("input-enc").String()
 		format, _, _ := req.Option("format").String()
-
-		switch ienc {
-		case "json":
-			nd, err := convertJsonToType(fi, format)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			c, err := n.DAG.Add(nd)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			res.SetOutput(&OutputObject{Cid: c})
-			return
-		case "raw":
-			nd, err := convertRawToType(fi, format)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			c, err := n.DAG.Add(nd)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			res.SetOutput(&OutputObject{Cid: c})
-			return
-		default:
-			res.SetError(fmt.Errorf("unrecognized input encoding: %s", ienc), cmds.ErrNormal)
+		hash, _, err := req.Option("hash").String()
+		dopin, _, err := req.Option("pin").Bool()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		// mhType tells inputParser which hash should be used. MaxUint64 means 'use
+		// default hash' (sha256 for cbor, sha1 for git..)
+		mhType := uint64(math.MaxUint64)
+
+		if hash != "" {
+			var ok bool
+			mhType, ok = mh.Names[hash]
+			if !ok {
+				res.SetError(fmt.Errorf("%s in not a valid multihash name", hash), cmds.ErrNormal)
+				return
+			}
+		}
+
+		if dopin {
+			defer n.Blockstore.PinLock().Unlock()
+		}
+
+		nds, err := coredag.ParseInputs(ienc, format, fi, mhType, -1)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if len(nds) == 0 {
+			res.SetError(fmt.Errorf("no node returned from ParseInputs"), cmds.ErrNormal)
+			return
+		}
+
+		b := n.DAG.Batch()
+		for _, nd := range nds {
+			_, err := b.Add(nd)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
+
+		if err := b.Commit(); err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		root := nds[0].Cid()
+		if dopin {
+			n.Pinning.PinWithMode(root, pin.Recursive)
+
+			err := n.Pinning.Flush()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
+
+		res.SetOutput(&OutputObject{Cid: root})
 	},
 	Type: OutputObject{},
 	Marshalers: cmds.MarshalerMap{
@@ -157,27 +193,54 @@ var DagGetCmd = &cmds.Command{
 	},
 }
 
-func convertJsonToType(r io.Reader, format string) (node.Node, error) {
-	switch format {
-	case "cbor", "dag-cbor":
-		return ipldcbor.FromJson(r)
-	case "dag-pb", "protobuf":
-		return nil, fmt.Errorf("protobuf handling in 'dag' command not yet implemented")
-	default:
-		return nil, fmt.Errorf("unknown target format: %s", format)
-	}
-}
-
-func convertRawToType(r io.Reader, format string) (node.Node, error) {
-	switch format {
-	case "cbor", "dag-cbor":
-		data, err := ioutil.ReadAll(r)
+// DagResolveCmd returns address of highest block within a path and a path remainder
+var DagResolveCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Resolve ipld block",
+		ShortDescription: `
+'ipfs dag resolve' fetches a dag node from ipfs, prints it's address and remaining path.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ref", true, false, "The path to resolve").EnableStdin(),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return ipldcbor.Decode(data)
-	default:
-		return nil, fmt.Errorf("unsupported target format for raw input: %s", format)
-	}
+		p, err := path.ParsePath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&ResolveOutput{
+			Cid:     obj.Cid(),
+			RemPath: path.Join(rem),
+		})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			output := res.Output().(*ResolveOutput)
+			buf := new(bytes.Buffer)
+			p := output.Cid.String()
+			if output.RemPath != "" {
+				p = path.Join([]string{p, output.RemPath})
+			}
+
+			buf.WriteString(p)
+
+			return buf, nil
+		},
+	},
+	Type: ResolveOutput{},
 }

@@ -3,18 +3,18 @@ package bitswap
 import (
 	"sort"
 
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 )
 
 type Stat struct {
 	ProvideBufLen   int
 	Wantlist        []*cid.Cid
 	Peers           []string
-	BlocksReceived  int
+	BlocksReceived  uint64
 	DataReceived    uint64
-	BlocksSent      int
+	BlocksSent      uint64
 	DataSent        uint64
-	DupBlksReceived int
+	DupBlksReceived uint64
 	DupDataReceived uint64
 }
 
@@ -23,12 +23,13 @@ func (bs *Bitswap) Stat() (*Stat, error) {
 	st.ProvideBufLen = len(bs.newBlocks)
 	st.Wantlist = bs.GetWantlist()
 	bs.counterLk.Lock()
-	st.BlocksReceived = bs.blocksRecvd
-	st.DupBlksReceived = bs.dupBlocksRecvd
-	st.DupDataReceived = bs.dupDataRecvd
-	st.BlocksSent = bs.blocksSent
-	st.DataSent = bs.dataSent
-	st.DataReceived = bs.dataRecvd
+	c := bs.counters
+	st.BlocksReceived = c.blocksRecvd
+	st.DupBlksReceived = c.dupBlocksRecvd
+	st.DupDataReceived = c.dupDataRecvd
+	st.BlocksSent = c.blocksSent
+	st.DataSent = c.dataSent
+	st.DataReceived = c.dataRecvd
 	bs.counterLk.Unlock()
 
 	for _, p := range bs.engine.Peers() {

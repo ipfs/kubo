@@ -2,7 +2,7 @@
 // with Blocks.
 package blocksutil
 
-import "github.com/ipfs/go-ipfs/blocks"
+import "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
 // NewBlockGenerator returns an object capable of
 // producing blocks.
@@ -25,8 +25,8 @@ func (bg *BlockGenerator) Next() *blocks.BasicBlock {
 }
 
 // Blocks generates as many BasicBlocks as specified by n.
-func (bg *BlockGenerator) Blocks(n int) []*blocks.BasicBlock {
-	blocks := make([]*blocks.BasicBlock, 0)
+func (bg *BlockGenerator) Blocks(n int) []blocks.Block {
+	blocks := make([]blocks.Block, 0, n)
 	for i := 0; i < n; i++ {
 		b := bg.Next()
 		blocks = append(blocks, b)

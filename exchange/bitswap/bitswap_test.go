@@ -8,19 +8,20 @@ import (
 	"testing"
 	"time"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	travis "github.com/ipfs/go-ipfs/thirdparty/testutil/ci/travis"
+	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+	travis "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil/ci/travis"
 
 	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
 
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	p2ptestutil "gx/ipfs/Qma2j8dYePrvN5DoNgwh1uAuu3FFtEtrUQFmr737ws8nCp/go-libp2p-netutil"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	tu "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil"
+	p2ptestutil "gx/ipfs/QmdzuGp4a9pahgXuBeReHdYGUzdVX3FUCwfmWVo5mQfkTi/go-libp2p-netutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -291,7 +292,7 @@ func TestEmptyKey(t *testing.T) {
 	}
 }
 
-func assertStat(st *Stat, sblks, rblks int, sdata, rdata uint64) error {
+func assertStat(st *Stat, sblks, rblks, sdata, rdata uint64) error {
 	if sblks != st.BlocksSent {
 		return fmt.Errorf("mismatch in blocks sent: %d vs %d", sblks, st.BlocksSent)
 	}
@@ -318,7 +319,7 @@ func TestBasicBitswap(t *testing.T) {
 
 	t.Log("Test a one node trying to get one block from another")
 
-	instances := sg.Instances(2)
+	instances := sg.Instances(3)
 	blocks := bg.Blocks(1)
 	err := instances[0].Exchange.HasBlock(blocks[0])
 	if err != nil {
@@ -329,6 +330,18 @@ func TestBasicBitswap(t *testing.T) {
 	defer cancel()
 	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Cid())
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = tu.WaitFor(ctx, func() error {
+		if len(instances[2].Exchange.WantlistForPeer(instances[1].Peer)) != 0 {
+			return fmt.Errorf("should have no items in other peers wantlist")
+		}
+		if len(instances[1].Exchange.GetWantlist()) != 0 {
+			return fmt.Errorf("shouldnt have anything in wantlist")
+		}
+		return nil
+	}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -370,6 +383,9 @@ func TestDoubleGet(t *testing.T) {
 	instances := sg.Instances(2)
 	blocks := bg.Blocks(1)
 
+	// NOTE: A race condition can happen here where these GetBlocks requests go
+	// through before the peers even get connected. This is okay, bitswap
+	// *should* be able to handle this.
 	ctx1, cancel1 := context.WithCancel(context.Background())
 	blkch1, err := instances[1].Exchange.GetBlocks(ctx1, []*cid.Cid{blocks[0].Cid()})
 	if err != nil {
@@ -385,7 +401,7 @@ func TestDoubleGet(t *testing.T) {
 	}
 
 	// ensure both requests make it into the wantlist at the same time
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 20)
 	cancel1()
 
 	_, ok := <-blkch1
@@ -405,6 +421,14 @@ func TestDoubleGet(t *testing.T) {
 		}
 		t.Log(blk)
 	case <-time.After(time.Second * 5):
+		p1wl := instances[0].Exchange.WantlistForPeer(instances[1].Peer)
+		if len(p1wl) != 1 {
+			t.Logf("wantlist view didnt have 1 item (had %d)", len(p1wl))
+		} else if !p1wl[0].Equals(blocks[0].Cid()) {
+			t.Logf("had 1 item, it was wrong: %s %s", blocks[0].Cid(), p1wl[0])
+		} else {
+			t.Log("had correct wantlist, somehow")
+		}
 		t.Fatal("timed out waiting on block")
 	}
 

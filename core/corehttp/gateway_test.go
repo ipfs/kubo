@@ -17,10 +17,10 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	testutil "github.com/ipfs/go-ipfs/thirdparty/testutil"
+	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 
-	ci "gx/ipfs/QmP1DfoUjiWH2ZBo1PBH6FupdBucbDepx3HpWmEY6JMUpY/go-libp2p-crypto"
-	id "gx/ipfs/QmQA5mdxru8Bh6dpC9PJfSkumqnmHgJX7knxSgBo5Lpime/go-libp2p/p2p/protocol/identify"
+	id "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/protocol/identify"
+	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 // `ipfs object new unixfs-dir`
@@ -56,7 +56,7 @@ func newNodeWithMockNamesys(ns mockNamesys) (*core.IpfsNode, error) {
 	}
 	r := &repo.Mock{
 		C: c,
-		D: testutil.ThreadSafeCloserMapDatastore(),
+		D: ds2.ThreadSafeCloserMapDatastore(),
 	}
 	n, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 	if err != nil {
@@ -140,6 +140,7 @@ func TestGatewayGet(t *testing.T) {
 		{"localhost:5001", "/" + k, http.StatusNotFound, "404 page not found\n"},
 		{"localhost:5001", "/ipfs/" + k, http.StatusOK, "fnord"},
 		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusNotFound, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"localhost:5001", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"localhost:5001", "/ipns/example.com", http.StatusOK, "fnord"},
 		{"example.com", "/", http.StatusOK, "fnord"},
 	} {

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	ci "gx/ipfs/QmP1DfoUjiWH2ZBo1PBH6FupdBucbDepx3HpWmEY6JMUpY/go-libp2p-crypto"
-	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
@@ -21,10 +21,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		return nil, err
 	}
 
-	datastore, err := datastoreConfig()
-	if err != nil {
-		return nil, err
-	}
+	datastore := DefaultDatastoreConfig()
 
 	conf := &Config{
 
@@ -36,8 +33,10 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 				// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
 				"/ip6/::/tcp/4001",
 			},
-			API:     "/ip4/127.0.0.1/tcp/5001",
-			Gateway: "/ip4/127.0.0.1/tcp/8080",
+			Announce:   []string{},
+			NoAnnounce: []string{},
+			API:        "/ip4/127.0.0.1/tcp/5001",
+			Gateway:    "/ip4/127.0.0.1/tcp/8080",
 		},
 
 		Datastore: datastore,
@@ -70,26 +69,47 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		},
 		Reprovider: Reprovider{
 			Interval: "12h",
+			Strategy: "all",
 		},
 	}
 
 	return conf, nil
 }
 
-func datastoreConfig() (Datastore, error) {
-	dspath, err := DataStorePath("")
-	if err != nil {
-		return Datastore{}, err
-	}
+// DefaultDatastoreConfig is an internal function exported to aid in testing.
+func DefaultDatastoreConfig() Datastore {
 	return Datastore{
-		Path:               dspath,
-		Type:               "leveldb",
 		StorageMax:         "10GB",
 		StorageGCWatermark: 90, // 90%
 		GCPeriod:           "1h",
-		HashOnRead:         false,
 		BloomFilterSize:    0,
-	}, nil
+		Spec: map[string]interface{}{
+			"type": "mount",
+			"mounts": []interface{}{
+				map[string]interface{}{
+					"mountpoint": "/blocks",
+					"type":       "measure",
+					"prefix":     "flatfs.datastore",
+					"child": map[string]interface{}{
+						"type":      "flatfs",
+						"path":      "blocks",
+						"sync":      true,
+						"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+					},
+				},
+				map[string]interface{}{
+					"mountpoint": "/",
+					"type":       "measure",
+					"prefix":     "leveldb.datastore",
+					"child": map[string]interface{}{
+						"type":        "levelds",
+						"path":        "datastore",
+						"compression": "none",
+					},
+				},
+			},
+		},
+	}
 }
 
 // identityConfig initializes a new identity.

@@ -23,11 +23,11 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	routing "gx/ipfs/QmNdaQ8itUU9jEZUwTsG4gHMaPmRfi6FEe89QjQAFbep3M/go-libp2p-routing"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
-	multibase "gx/ipfs/QmcxkxTVuURV2Ptse8TvkqH5BQDwV62X1x19JqqvbBzwUM/go-multibase"
+	multibase "gx/ipfs/QmafgXF3u3QSWErQoZ2URmQp5PFG384htoE7J338nS2H7T/go-multibase"
 )
 
 const (
@@ -134,6 +134,7 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	urlPath := r.URL.Path
+	escapedURLPath := r.URL.EscapedPath()
 
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
 	// the prefix header can be set to signal this sub-path.
@@ -173,12 +174,12 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	case nil:
 	case coreiface.ErrOffline:
 		if !i.node.OnlineMode() {
-			webError(w, "ipfs resolve -r "+urlPath, err, http.StatusServiceUnavailable)
+			webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
 			return
 		}
 		fallthrough
 	default:
-		webError(w, "ipfs resolve -r "+urlPath, err, http.StatusNotFound)
+		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
 
@@ -191,7 +192,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	case coreiface.ErrIsDir:
 		dir = true
 	default:
-		webError(w, "ipfs cat "+urlPath, err, http.StatusNotFound)
+		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
 
@@ -207,9 +208,17 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	w.Header().Set("Etag", etag)
 
 	// set 'allowed' headers
-	w.Header().Set("Access-Control-Allow-Headers", "X-Stream-Output, X-Chunked-Output")
-	// expose those headers
-	w.Header().Set("Access-Control-Expose-Headers", "X-Stream-Output, X-Chunked-Output")
+	// & expose those headers
+	var allowedHeadersArr = []string{
+		"Content-Range",
+		"X-Chunked-Output",
+		"X-Stream-Output",
+	}
+
+	var allowedHeaders = strings.Join(allowedHeadersArr, ", ")
+
+	w.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
+	w.Header().Set("Access-Control-Expose-Headers", allowedHeaders)
 
 	// Suborigin header, sandboxes apps from each other in the browser (even
 	// though they are served from the same gateway domain).
@@ -278,7 +287,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	ixnd, err := dirr.Find(ctx, "index.html")
 	switch {
 	case err == nil:
-		log.Debugf("found index.html link for %s", urlPath)
+		log.Debugf("found index.html link for %s", escapedURLPath)
 
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
 		goget := r.URL.Query().Get("go-get") == "1"

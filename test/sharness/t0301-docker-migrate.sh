@@ -69,7 +69,7 @@ test_expect_success "kill the net cat" '
 '
 
 test_expect_success "correct version was requested" '
-	grep "/fs-repo-migrations/v1.1.1/fs-repo-migrations_v1.1.1_linux-musl-amd64.tar.gz" dist_serv_out > /dev/null
+	grep "/fs-repo-migrations/v1.1.1/fs-repo-migrations_v1.1.1_linux-amd64.tar.gz" dist_serv_out > /dev/null
 '
 
 test_done

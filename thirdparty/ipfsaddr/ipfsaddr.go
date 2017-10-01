@@ -3,11 +3,12 @@ package ipfsaddr
 import (
 	"errors"
 
-	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 
 	path "github.com/ipfs/go-ipfs/path"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	circuit "gx/ipfs/QmbMNjK69isbpzVGKKrsnM7Sqyh3TVKAphRn5WuUhwTFbW/go-libp2p-circuit"
 )
 
 var log = logging.Logger("ipfsaddr")
@@ -106,6 +107,16 @@ func ParseMultiaddr(m ma.Multiaddr) (a IPFSAddr, err error) {
 
 func Transport(iaddr IPFSAddr) (maddr ma.Multiaddr) {
 	maddr = iaddr.Multiaddr()
+
+	// /ipfs/QmId is part of the transport address for p2p-circuit
+	// TODO clean up the special case
+	// we need a consistent way of composing and consumig multiaddrs
+	// so that we don't have to do this
+	_, err := maddr.ValueForProtocol(circuit.P_CIRCUIT)
+	if err == nil {
+		return maddr
+	}
+
 	split := ma.Split(maddr)
 	maddr = ma.Join(split[:len(split)-1]...)
 	return

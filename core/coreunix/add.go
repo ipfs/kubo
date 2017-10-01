@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	gopath "path"
+	"strconv"
 
 	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
@@ -24,11 +25,11 @@ import (
 	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 
-	ds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore"
-	syncds "gx/ipfs/QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364/go-datastore/sync"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
-	node "gx/ipfs/Qmb3Hm9QDFmfYuET4pu7Kyg8JV78jFa1nvZx5vnCZsK4ck/go-ipld-format"
+	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	syncds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
 )
 
 var log = logging.Logger("coreunix")
@@ -46,6 +47,7 @@ type Link struct {
 type Object struct {
 	Hash  string
 	Links []Link
+	Size  string
 }
 
 type hiddenFileError struct {
@@ -68,6 +70,7 @@ type AddedObject struct {
 	Name  string
 	Hash  string `json:",omitempty"`
 	Bytes int64  `json:",omitempty"`
+	Size  string `json:",omitempty"`
 }
 
 func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds dag.DAGService) (*Adder, error) {
@@ -223,6 +226,11 @@ func (adder *Adder) Finalize() (node.Node, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		if len(children) == 0 {
+			return nil, fmt.Errorf("expected at least one child dir, got none")
+		}
+
 		name = children[0]
 
 		mr, err := adder.mfsRoot()
@@ -543,6 +551,7 @@ func outputDagnode(out chan interface{}, name string, dn node.Node) error {
 	out <- &AddedObject{
 		Hash: o.Hash,
 		Name: name,
+		Size: o.Size,
 	}
 
 	return nil
@@ -558,9 +567,14 @@ func NewMemoryDagService() dag.DAGService {
 // from core/commands/object.go
 func getOutput(dagnode node.Node) (*Object, error) {
 	c := dagnode.Cid()
+	s, err := dagnode.Size()
+	if err != nil {
+		return nil, err
+	}
 
 	output := &Object{
 		Hash:  c.String(),
+		Size:  strconv.FormatUint(s, 10),
 		Links: make([]Link, len(dagnode.Links())),
 	}
 

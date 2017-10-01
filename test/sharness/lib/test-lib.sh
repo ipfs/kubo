@@ -40,12 +40,13 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 
 # Please put go-ipfs specific shell functions below
 
+TEST_OS="$(uname -s | tr '[a-z]' '[A-Z]')"
+
 # grab + output options
 test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
 test "$TEST_NO_DOCKER" != 1 && type docker >/dev/null 2>&1 && test_set_prereq DOCKER
-
-TEST_OS=$(uname -s | tr [a-z] [A-Z])
+test "$TEST_NO_PLUGIN" != 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUGIN
 
 # Set a prereq as error messages are often different on Windows/Cygwin
 expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
@@ -53,6 +54,7 @@ expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
 if test "$TEST_VERBOSE" = 1; then
 	echo '# TEST_VERBOSE='"$TEST_VERBOSE"
 	echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
+	echo '# TEST_NO_PLUGIN='"$TEST_NO_PLUGIN"
 	echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
 	echo '# TEST_OS='"$TEST_OS"
 fi
@@ -139,19 +141,13 @@ test_init_ipfs() {
 
 	test_expect_success "ipfs init succeeds" '
 		export IPFS_PATH="$(pwd)/.ipfs" &&
-		ipfs init -b=1024 > /dev/null
+		ipfs init --profile=test -b=1024 > /dev/null
 	'
 
-	test_expect_success "prepare config -- mounting and bootstrap rm" '
+	test_expect_success "prepare config -- mounting" '
 		mkdir mountdir ipfs ipns &&
 		test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
-		test_config_set Mounts.IPNS "$(pwd)/ipns" &&
-		test_config_set Addresses.API "/ip4/127.0.0.1/tcp/0" &&
-		test_config_set Addresses.Gateway "/ip4/0.0.0.0/tcp/0" &&
-		test_config_set --json Addresses.Swarm "[
-  \"/ip4/0.0.0.0/tcp/0\"
-]" &&
-		ipfs bootstrap rm --all ||
+		test_config_set Mounts.IPNS "$(pwd)/ipns" ||
 		test_fsh cat "\"$IPFS_PATH/config\""
 	'
 
@@ -368,7 +364,7 @@ generic_stat() {
             _STAT="stat -f %Sp"
             ;;
     esac
-    $_STAT "$1"
+    $_STAT "$1" || echo "failed" # Avoid returning nothing.
 }
 
 test_check_peerid() {

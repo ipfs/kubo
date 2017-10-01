@@ -5,18 +5,15 @@ import (
 	"context"
 	"io"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
+	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 )
 
 // Any type that implements exchange.Interface may be used as an IPFS block
 // exchange protocol.
 type Interface interface { // type Exchanger interface
-	// GetBlock returns the block associated with a given key.
-	GetBlock(context.Context, *cid.Cid) (blocks.Block, error)
-
-	GetBlocks(context.Context, []*cid.Cid) (<-chan blocks.Block, error)
+	Fetcher
 
 	// TODO Should callers be concerned with whether the block was made
 	// available on the network?
@@ -25,4 +22,11 @@ type Interface interface { // type Exchanger interface
 	IsOnline() bool
 
 	io.Closer
+}
+
+// Fetcher is an object that can be used to retrieve blocks
+type Fetcher interface {
+	// GetBlock returns the block associated with a given key.
+	GetBlock(context.Context, *cid.Cid) (blocks.Block, error)
+	GetBlocks(context.Context, []*cid.Cid) (<-chan blocks.Block, error)
 }

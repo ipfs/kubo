@@ -1,8 +1,8 @@
 # The go-ipfs config file
 
 The go-ipfs config file is a json document. It is read once at node instantiation,
-either for an offline command, or for starting the daemon. Commands that execute on
-a running daemon do not read the config file at runtime.
+either for an offline command, or when starting the daemon. Commands that execute
+on a running daemon do not read the config file at runtime.
 
 ## Table of Contents
 
@@ -15,10 +15,9 @@ a running daemon do not read the config file at runtime.
 - [`Identity`](#identity)
 - [`Ipns`](#ipns)
 - [`Mounts`](#mounts)
-- [`ReproviderInterval`](#reproviderinterval)
+- [`Reprovider`](#reprovider)
 - [`SupernodeRouting`](#supernoderouting)
 - [`Swarm`](#swarm)
-- [`Tour`](#tour)
 
 ## `Addresses`
 Contains information about various listener addresses to be used by this node.
@@ -69,44 +68,71 @@ Default: The ipfs.io bootstrap nodes
 Contains information related to the construction and operation of the on-disk
 storage system.
 
-- `Type`
-Denotes overall datastore type. The only currently valid option is `leveldb`.
-
-Default: `leveldb`
-
-- `Path`
-Path to the leveldb datastore directory. Set during init to either `$IPFS_PATH/datastore`, or `$HOME/.ipfs/datastore` if `$IPFS_PATH` is unset.
-
 - `StorageMax`
-An upper limit on the total size of the ipfs repository's datastore. Writes to the datastore will begin to fail once this limit is reached.
+An upper limit on the total size of the ipfs repository's datastore. Writes to
+the datastore will begin to fail once this limit is reached.
 
 Default: `10GB`
 
 - `StorageGCWatermark`
-The percentage of the `StorageMax` value at which a garbage collection will be triggered automatically if the daemon was run with automatic gc enabled (that option defaults to false currently).
+The percentage of the `StorageMax` value at which a garbage collection will be
+triggered automatically if the daemon was run with automatic gc enabled (that
+option defaults to false currently).
 
 Default: `90`
 
 - `GCPeriod`
-A time duration specifying how frequently to run a garbage collection. Only used if automatic gc is enabled.
+A time duration specifying how frequently to run a garbage collection. Only used
+if automatic gc is enabled.
 
 Default: `1h`
 
-- `NoSync` *!*
-A boolean value denoting whether or not to disable sanity syncing in the flatfs datastore code. Setting this to true may significantly improve performance, but be careful using it as if the daemon is killed before a write is synchronized to disk, there is a chance of data loss.
-
-Default: `false`
-
 - `HashOnRead`
-A boolean value. If set to true, all block reads from disk will be hashed and verified. This will cause increased CPU utilization.
+A boolean value. If set to true, all block reads from disk will be hashed and
+verified. This will cause increased CPU utilization.
 
 - `BloomFilterSize`
-A number representing the size in bytes of the blockstore's bloom filter. A value of zero represents the feature being disabled.
+A number representing the size in bytes of the blockstore's bloom filter. A
+value of zero represents the feature being disabled.
 
-Default: `0` 
+Default: `0`
 
-- `Params`
-Extra parameters for datastore construction, not currently used.
+- `Spec`
+Spec defines the structure of the ipfs datastore. It is a composable structure, where each datastore is represented by a json object. Datastores can wrap other datastores to provide extra functionality (eg metrics, logging, or caching).
+
+This can be changed manually, however, if you make any changes that require a different on-disk structure, you will need to run the [ipfs-ds-convert tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new structures.
+
+For more information on possible values for this configuration option, see docs/datastores.md 
+
+Default:
+```
+{
+  "mounts": [
+	{
+	  "child": {
+		"path": "blocks",
+		"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+		"sync": true,
+		"type": "flatfs"
+	  },
+	  "mountpoint": "/blocks",
+	  "prefix": "flatfs.datastore",
+	  "type": "measure"
+	},
+	{
+	  "child": {
+		"compression": "none",
+		"path": "datastore",
+		"type": "levelds"
+	  },
+	  "mountpoint": "/",
+	  "prefix": "leveldb.datastore",
+	  "type": "measure"
+	}
+  ],
+  "type": "mount"
+}
+```
 
 ## `Discovery`
 Contains options for configuring ipfs node discovery mechanisms.
@@ -162,7 +188,9 @@ Default: `[]`
 ## `Identity`
 
 - `PeerID`
-The unique PKI identity label for this configs peer. Set on init and never read, its merely here for convenience. Ipfs will always generate the peerID from its keypair at runtime.
+The unique PKI identity label for this configs peer. Set on init and never read,
+its merely here for convenience. Ipfs will always generate the peerID from its
+keypair at runtime.
 
 - `PrivKey`
 The base64 encoded protobuf describing (and containing) the nodes private key.
@@ -170,14 +198,17 @@ The base64 encoded protobuf describing (and containing) the nodes private key.
 ## `Ipns`
 
 - `RepublishPeriod`
-A time duration specifying how frequently to republish ipns records to ensure they stay fresh on the network. If unset, we default to 12 hours.
+A time duration specifying how frequently to republish ipns records to ensure
+they stay fresh on the network. If unset, we default to 12 hours.
 
 - `RecordLifetime`
-A time duration specifying the value to set on ipns records for their validity lifetime.
+A time duration specifying the value to set on ipns records for their validity
+lifetime.
 If unset, we default to 24 hours.
 
 - `ResolveCacheSize`
-The number of entries to store in an LRU cache of resolved ipns entries. Entries will be kept cached until their lifetime is expired.
+The number of entries to store in an LRU cache of resolved ipns entries. Entries
+will be kept cached until their lifetime is expired.
 
 Default: `128`
 
@@ -193,7 +224,9 @@ Mountpoint for `/ipns/`.
 - `FuseAllowOther`
 Sets the FUSE allow other option on the mountpoint.
 
-## `ReproviderInterval`
+## `Reprovider`
+
+- `Interval`
 Sets the time between rounds of reproviding local content to the routing
 system. If unset, it defaults to 12 hours. If set to the value `"0"` it will
 disable content reproviding.
@@ -203,6 +236,12 @@ not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
 manually announce your content periodically.
 
+- `Strategy`
+Tells reprovider what should be announced. Valid strategies are:
+  - "all" (default) - announce all stored data
+  - "pinned" - only announce pinned data
+  - "roots" - only announce directly pinned keys and root keys of recursive pins
+
 ## `SupernodeRouting`
 Deprecated.
 
@@ -211,7 +250,8 @@ Options for configuring the swarm.
 
 - `AddrFilters`
 An array of address filters (multiaddr netmasks) to filter dials to.
-See https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604 for more information.
+See https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604 for more
+information.
 
 - `DisableBandwidthMetrics`
 A boolean value that when set to true, will cause ipfs to not keep track of
@@ -221,5 +261,9 @@ improvement, as well as a reduction in memory usage.
 - `DisableNatPortMap`
 Disable NAT discovery.
 
-## `Tour`
-Unused.
+- `DisableRelay`
+Disables the p2p-circuit relay transport.
+
+- `EnableRelayHop`
+Enables HOP relay for the node. If this is enabled, the node will act as
+an intermediate (Hop Relay) node in relay circuits for connected peers.

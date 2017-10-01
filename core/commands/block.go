@@ -7,13 +7,13 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/ipfs/go-ipfs/blocks"
 	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	cmds "github.com/ipfs/go-ipfs/commands"
 
-	mh "gx/ipfs/QmVGtdTZdTFaLsaj2RwdVG8jcjNNcp1DE914DKZ2kHmXHw/go-multihash"
-	u "gx/ipfs/QmWbjfz3u6HkAdPh34dgPchGbQjob6LXLhAeCGii2TX69n/go-ipfs-util"
-	cid "gx/ipfs/QmYhQaCYEcaPPjxJX7YcPcVKkQfRy6sJ7B3XmGFk82XYdQ/go-cid"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 )
 
 type BlockStat struct {
@@ -149,20 +149,15 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		pref.Version = 1
 
 		format, _, _ := req.Option("format").String()
-		switch format {
-		case "cbor":
-			pref.Codec = cid.DagCBOR
-		case "protobuf":
-			pref.Codec = cid.DagProtobuf
-		case "raw":
-			pref.Codec = cid.Raw
-		case "v0":
-			pref.Version = 0
-			pref.Codec = cid.DagProtobuf
-		default:
+		formatval, ok := cid.Codecs[format]
+		if !ok {
 			res.SetError(fmt.Errorf("unrecognized format: %s", format), cmds.ErrNormal)
 			return
 		}
+		if format == "v0" {
+			pref.Version = 0
+		}
+		pref.Codec = formatval
 
 		mhtype, _, _ := req.Option("mhtype").String()
 		mhtval, ok := mh.Names[mhtype]

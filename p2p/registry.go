@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 
-	ma "gx/ipfs/QmcyqRMCAXVtYPS4DiBrA7sezL9rRGfW8Ctx7cywL4TXJj/go-multiaddr"
-	peer "gx/ipfs/QmdS9KpbDyPrieswibZhkod1oXqRwZJrUPzxCofAMWpFGq/go-libp2p-peer"
+	net "gx/ipfs/QmNa31VPzC561NWwRsJLE7nGYZYuuD2QfpK2b1q9BK54J1/go-libp2p-net"
+	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 // ListenerInfo holds information on a p2p listener.
@@ -76,8 +78,8 @@ type StreamInfo struct {
 	RemotePeer peer.ID
 	RemoteAddr ma.Multiaddr
 
-	Local  io.ReadWriteCloser
-	Remote io.ReadWriteCloser
+	Local  manet.Conn
+	Remote net.Stream
 
 	Registry *StreamRegistry
 }
@@ -90,15 +92,31 @@ func (s *StreamInfo) Close() error {
 	return nil
 }
 
+// Reset closes stream endpoints and deregisters it
+func (s *StreamInfo) Reset() error {
+	s.Local.Close()
+	s.Remote.Reset()
+	s.Registry.Deregister(s.HandlerID)
+	return nil
+}
+
 func (s *StreamInfo) startStreaming() {
 	go func() {
-		io.Copy(s.Local, s.Remote)
-		s.Close()
+		_, err := io.Copy(s.Local, s.Remote)
+		if err != nil {
+			s.Reset()
+		} else {
+			s.Close()
+		}
 	}()
 
 	go func() {
-		io.Copy(s.Remote, s.Local)
-		s.Close()
+		_, err := io.Copy(s.Remote, s.Local)
+		if err != nil {
+			s.Reset()
+		} else {
+			s.Close()
+		}
 	}()
 }
 
