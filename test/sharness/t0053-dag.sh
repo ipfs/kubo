@@ -153,7 +153,7 @@ test_dag_cmd() {
 	'
 
 	test_expect_success "dag put with dag-pb works output looks good" '
-		printf $HASH > dag_put_exp &&
+		echo $HASH > dag_put_exp &&
 		test_cmp dag_put_exp dag_put_out
 	'
 
@@ -163,7 +163,20 @@ test_dag_cmd() {
 	'
 
 	test_expect_success "dag put with dag-pb works output looks good" '
-		printf $HASH > dag_put_exp &&
+		echo $HASH > dag_put_exp &&
+		test_cmp dag_put_exp dag_put_out
+	'
+
+	test_expect_success "dag put multiple files" '
+		printf {\"foo\":\"bar\"} > a.json &&
+		printf {\"foo\":\"baz\"} > b.json &&
+		ipfs dag put a.json b.json > dag_put_out
+	'
+
+	test_expect_success "dag put multiple files output looks good" '
+		echo zdpuAoKMEvka7gKGSjF9B3of1F5gE5MyMMywxTC13wCmouQrf > dag_put_exp &&
+		echo zdpuAogmDEvpvGjMFsNTGDEU1JMYe6v69oxR8nG81EurmGHMj >> dag_put_exp &&
+
 		test_cmp dag_put_exp dag_put_out
 	'
 
