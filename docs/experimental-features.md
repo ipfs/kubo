@@ -190,12 +190,12 @@ First, to prevent your node from even trying to connect to the default bootstrap
 ipfs bootstrap rm --all
 ```
 
-then
+Then add your own bootstrap peers with:
 ```bash
 ipfs bootstrap add <multiaddr>
 ```
 
-example:
+For example:
 ```
 ipfs bootstrap add /ip4/104.236.76.40/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64
 ```
