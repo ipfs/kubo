@@ -37,6 +37,8 @@ var defaultRawParsers = FormatParsers{
 
 	"protobuf": dagpbRawParser,
 	"dag-pb":   dagpbRawParser,
+
+	"raw": rawRawParser,
 }
 
 var defaultCborParsers = FormatParsers{
