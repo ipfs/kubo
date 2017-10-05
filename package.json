@@ -261,9 +261,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcRu2X6kdDKmCbMpYXKHVgDrhLqVYCACMe1aghUcdHj2z",
+      "hash": "QmWCs8kMecJwCPK8JThue8TjgM2ieJ2HjTLDu7Cv2NEmZi",
       "name": "go-ipld-cbor",
-      "version": "1.2.9"
+      "version": "1.2.10"
     },
     {
       "author": "lgierth",
@@ -290,9 +290,9 @@
     },
     {
       "author": "libp2p",
-      "hash": "QmNMCAuxnQFHLGWcvay3DmVFrKuY6Y2nsc9vzsf4gVouJV",
+      "hash": "QmcWmYQEQCrezztaQ81nXzMx2jaAEow17wdesDAjjR769r",
       "name": "go-libp2p-pnet",
-      "version": "2.3.0"
+      "version": "2.3.1"
     },
     {
       "author": "kubuxu",
