@@ -62,6 +62,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID(as listed by 'ipfs ke
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("resolve", "Resolve given path before publishing.").Default(true),
+		cmds.BoolOption("clear", "Clears the path that the ipns hash is pointing to").Default(false),
 		cmds.StringOption("lifetime", "t",
 			`Time duration that the record will be valid for. <<default>>
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
@@ -128,10 +129,18 @@ Alternatively, publish an <ipfs-path> using a valid PeerID(as listed by 'ipfs ke
 			return
 		}
 
-		pth, err := path.ParsePath(pstr)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+		pth := path.Path("")
+		if clear, _, _ := req.Option("clear").Bool(); clear {
+			if pstr != "" {
+				res.SetError(errors.New("cannot set a path to publish if ipns should be cleared"), cmds.ErrNormal)
+				return
+			}
+		} else {
+			pth, err = path.ParsePath(pstr)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 
 		output, err := publish(ctx, n, k, pth, popts)
