@@ -1,9 +1,9 @@
 # Plugins
 
-Since 0.4.11 go-ipfs has an experimental plugin system for various added
-functionality.
+Since 0.4.11 go-ipfs has an experimental plugin system that allows augmenting
+the daemons functionality without recompiling.
 
-When IPFS node is created, it will load plugins from `$IPFS_PATH/plugins`
+When an IPFS node is created, it will load plugins from the `$IPFS_PATH/plugins`
 directory (by default `~/.ipfs/plugins`).
 
 ### Plugin types

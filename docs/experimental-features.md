@@ -285,6 +285,9 @@ Peers can see their (unspecific) relay address in the output of
 
 ## Plugins
 
+### In Version
+0.4.11
+
 Plugins allow to add functionality without the need to recompile the daemon.
 
 ### Basic Usage:
@@ -295,3 +298,4 @@ See [Plugin docs](./plugins.md)
 
 - [ ] Better support for platforms other than Linux
 - [ ] More plugins and plugin types
+- [ ] Feedback on stability
