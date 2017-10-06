@@ -463,6 +463,12 @@
       "hash": "QmYQYQ3FiVskUmMB2eLLvrhHhAfAPNZ3StZP5Ni7LTJgnX",
       "name": "go-ds-badger",
       "version": "0.4.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmQgLZP9haZheimMHqqAjJh2LhRmNfEoZDfbtkpeMhi9xK",
+      "name": "go-testutil",
+      "version": "1.1.12"
     }
   ],
   "gxVersion": "0.10.0",
