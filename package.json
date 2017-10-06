@@ -190,9 +190,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ",
+      "hash": "Qmbgce14YTWE2qhE49JVvTBPaHTyz3FaFmqQPyuZAz6C28",
       "name": "go-libp2p",
-      "version": "5.0.2"
+      "version": "5.0.4"
     },
     {
       "author": "whyrusleeping",
@@ -237,9 +237,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmT7PnPxYkeKPCG8pAnucfcjrXc15Q7FgvFv7YC24EPrw8",
+      "hash": "QmYi2NvTAiv2xTNJNcnuz3iXDDT1ViBwLFXmDb2g7NogAD",
       "name": "go-libp2p-kad-dht",
-      "version": "3.0.2"
+      "version": "3.0.4"
     },
     {
       "author": "whyrusleeping",
@@ -249,9 +249,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmdnza7rLi7CMNNwNhNkcs9piX5sf6rxE8FrCsPzYtUEUi",
+      "hash": "QmPGT8xqmDnbCbc5HCpjSCzPw7HcsSKuzVAWGjAtF3oftm",
       "name": "floodsub",
-      "version": "0.9.2"
+      "version": "0.9.3"
     },
     {
       "author": "whyrusleeping",
@@ -403,9 +403,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6",
+      "hash": "Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk",
       "name": "go-libp2p-host",
-      "version": "2.0.0"
+      "version": "2.1.1"
     },
     {
       "author": "whyrusleeping",
@@ -454,9 +454,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmbMNjK69isbpzVGKKrsnM7Sqyh3TVKAphRn5WuUhwTFbW",
+      "hash": "QmfHWhmJSJD9RjogJdPsb7wzJbUkxpZkctHvAfvJCTAP6X",
       "name": "go-libp2p-circuit",
-      "version": "2.0.2"
+      "version": "2.0.3"
     },
     {
       "author": "magik6k",
@@ -466,9 +466,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQgLZP9haZheimMHqqAjJh2LhRmNfEoZDfbtkpeMhi9xK",
+      "hash": "QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx",
       "name": "go-testutil",
-      "version": "1.1.12"
+      "version": "1.1.11"
     }
   ],
   "gxVersion": "0.10.0",
