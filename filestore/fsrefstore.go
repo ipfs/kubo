@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -12,8 +13,8 @@ import (
 	dshelp "gx/ipfs/QmNP2u7bofwUQptHQGPfabGWtTCbxhNLSZKqbf1uzsup9V/go-ipfs-ds-help"
 	proto "gx/ipfs/QmT6n4mspWYEya864BhCUJEgyxiRfmiSY9ruQwTUNpRKaM/protobuf/proto"
 	blocks "gx/ipfs/QmTRCUvZLiir12Qr6MV3HKfKMHX8Nf1Vddn6t2g5nsQSb9/go-block-format"
-	posinfo "gx/ipfs/QmUWsXLvYYDAaoAt9TPZpFX4ffHHMg46AHrz1ZLTN5ABbe/go-ipfs-posinfo"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
+	posinfo "gx/ipfs/QmdGSfmN4wWNXVs2XiwHbpjnUikJ7HyrTJNHyYGdodyJDC/go-ipfs-posinfo"
 	blockstore "gx/ipfs/QmdpuJBPBZ6sLPj9BQpn3Rpi38BT2cF1QMiUfyzNWeySW4/go-ipfs-blockstore"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	dsns "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/namespace"
@@ -111,13 +112,20 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	out, err := f.readDataObj(c, dobj)
 	if err != nil {
 		return nil, err
 	}
 
 	return blocks.NewBlockWithCid(out, c)
+}
+
+func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+	if !d.GetURL() {
+		return f.readFileDataObj(c, d)
+	} else {
+		return f.readURLDataObj(c, d)
+	}
 }
 
 func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
@@ -148,8 +156,7 @@ func unmarshalDataObj(o interface{}) (*pb.DataObj, error) {
 	return &dobj, nil
 }
 
-// reads and verifies the block
-func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+func (f *FileManager) readFileDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	p := filepath.FromSlash(d.GetFilePath())
 	abspath := filepath.Join(f.root, p)
 
@@ -187,6 +194,46 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	return outbuf, nil
 }
 
+// reads and verifies the block from URL
+func (f *FileManager) readURLDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+
+	req, err := http.NewRequest("GET", d.GetFilePath(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Range", fmt.Sprintf("bytes=%d-%d", d.GetOffset(), d.GetOffset()+d.GetSize_()-1))
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusPartialContent {
+		return nil, fmt.Errorf("expected HTTP 206 got %d", res.StatusCode)
+	}
+
+	outbuf := make([]byte, d.GetSize_())
+	_, err = io.ReadFull(res.Body, outbuf)
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return nil, &CorruptReferenceError{StatusFileChanged, err}
+	} else if err != nil {
+		return nil, &CorruptReferenceError{StatusFileError, err}
+	}
+	res.Body.Close()
+
+	outcid, err := c.Prefix().Sum(outbuf)
+	if err != nil {
+		return nil, err
+	}
+
+	if !c.Equals(outcid) {
+		return nil, &CorruptReferenceError{StatusFileChanged,
+			fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
+	}
+
+	return outbuf, nil
+}
+
 // Has returns if the FileManager is storing a block reference. It does not
 // validate the data, nor checks if the reference is valid.
 func (f *FileManager) Has(c *cid.Cid) (bool, error) {
@@ -209,16 +256,21 @@ func (f *FileManager) Put(b *posinfo.FilestoreNode) error {
 func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 	var dobj pb.DataObj
 
-	if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
-		return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)
-	}
+	if !b.PosInfo.IsURL {
+		if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
+			return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)
+		}
 
-	p, err := filepath.Rel(f.root, b.PosInfo.FullPath)
-	if err != nil {
-		return err
-	}
+		p, err := filepath.Rel(f.root, b.PosInfo.FullPath)
+		if err != nil {
+			return err
+		}
 
-	dobj.FilePath = proto.String(filepath.ToSlash(p))
+		dobj.FilePath = proto.String(filepath.ToSlash(p))
+	} else {
+		dobj.FilePath = proto.String(b.PosInfo.FullPath)
+		dobj.URL = proto.Bool(true)
+	}
 	dobj.Offset = proto.Uint64(b.PosInfo.Offset)
 	dobj.Size_ = proto.Uint64(uint64(len(b.RawData())))
 

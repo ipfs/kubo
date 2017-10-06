@@ -1,10 +1,8 @@
-PB = $(wildcard *.proto)
-GO = $(PB:.proto=.pb.go)
+include mk/header.mk
 
-all: $(GO)
+PB_$(d) = $(wildcard $(d)/*.proto)
+TGTS_$(d) = $(PB_$(d):.proto=.pb.go)
 
-%.pb.go: %.proto
-		protoc --gogo_out=. $<
+#DEPS_GO += $(TGTS_$(d))
 
-clean:
-		rm *.pb.go
+include mk/footer.mk

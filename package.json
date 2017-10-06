@@ -422,9 +422,9 @@
     },
     {
       "author": "hector",
-      "hash": "QmUWsXLvYYDAaoAt9TPZpFX4ffHHMg46AHrz1ZLTN5ABbe",
+      "hash": "QmdGSfmN4wWNXVs2XiwHbpjnUikJ7HyrTJNHyYGdodyJDC",
       "name": "go-ipfs-posinfo",
-      "version": "0.0.2"
+      "version": "0.0.3"
     },
     {
       "author": "hsanjuan",

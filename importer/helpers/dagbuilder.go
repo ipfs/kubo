@@ -25,6 +25,7 @@ type DagBuilderHelper struct {
 	maxlinks  int
 	batch     *ipld.Batch
 	fullPath  string
+	isUrl     bool
 	stat      os.FileInfo
 	prefix    *cid.Prefix
 }
@@ -48,6 +49,8 @@ type DagBuilderParams struct {
 	// NoCopy signals to the chunker that it should track fileinfo for
 	// filestore adds
 	NoCopy bool
+
+	URL string
 }
 
 // New generates a new DagBuilderHelper from the given params and a given
@@ -64,6 +67,11 @@ func (dbp *DagBuilderParams) New(spl chunker.Splitter) *DagBuilderHelper {
 	if fi, ok := spl.Reader().(files.FileInfo); dbp.NoCopy && ok {
 		db.fullPath = fi.AbsPath()
 		db.stat = fi.Stat()
+	}
+
+	if dbp.URL != "" {
+		db.fullPath = dbp.URL
+		db.isUrl = true
 	}
 	return db
 }
@@ -206,7 +214,7 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 // from the DagBuilderHelper.
 func (db *DagBuilderHelper) SetPosInfo(node *UnixfsNode, offset uint64) {
 	if db.fullPath != "" {
-		node.SetPosInfo(offset, db.fullPath, db.stat)
+		node.SetPosInfo(offset, db.fullPath, db.stat, db.isUrl)
 	}
 }
 
