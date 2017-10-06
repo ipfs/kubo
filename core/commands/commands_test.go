@@ -210,6 +210,8 @@ func TestCommands(t *testing.T) {
 		"/tar/add",
 		"/tar/cat",
 		"/update",
+		"/urlstore",
+		"/urlstore/add",
 		"/version",
 	}
 

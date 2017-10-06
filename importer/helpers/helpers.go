@@ -8,7 +8,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	pi "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
+	pi "gx/ipfs/QmSWGV3UhqqETWDaJpbNns4qG42JkagbNDEQetCKhYSctq/go-ipfs-posinfo"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
@@ -142,11 +142,12 @@ func (n *UnixfsNode) FileSize() uint64 {
 
 // SetPosInfo sets information about the offset of the data of this node in a
 // filesystem file.
-func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
+func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo, isUrl bool) {
 	n.posInfo = &pi.PosInfo{
 		Offset:   offset,
 		FullPath: fullPath,
 		Stat:     stat,
+		IsURL:    isUrl,
 	}
 }
 
