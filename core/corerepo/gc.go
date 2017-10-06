@@ -14,6 +14,7 @@ import (
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 )
 
 var log = logging.Logger("corerepo")
@@ -94,7 +95,7 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 // CollectResult collects the output of a garbage collection run and calls the
 // given callback for each object removed.  It also collects all errors into a
 // MultiError which is returned after the gc is completed.
-func CollectResult(ctx context.Context, gcOut <-chan gc.Result, cb func(*cid.Cid)) error {
+func CollectResult(ctx context.Context, gcOut <-chan gc.Result, cb func(mh.Multihash)) error {
 	var errors []error
 loop:
 	for {

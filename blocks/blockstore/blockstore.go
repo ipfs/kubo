@@ -13,6 +13,7 @@ import (
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	dsns "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/namespace"
 	dsq "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/query"
@@ -37,15 +38,15 @@ var ErrNotFound = errors.New("blockstore: block not found")
 // Blockstore wraps a Datastore block-centered methods and provides a layer
 // of abstraction which allows to add different caching strategies.
 type Blockstore interface {
-	DeleteBlock(*cid.Cid) error
-	Has(*cid.Cid) (bool, error)
+	DeleteBlock(mh.Multihash) error
+	Has(mh.Multihash) (bool, error)
 	Get(*cid.Cid) (blocks.Block, error)
 	Put(blocks.Block) error
 	PutMany([]blocks.Block) error
 	// AllKeysChan returns a channel from which
 	// the CIDs in the Blockstore can be read. It should respect
 	// the given context, closing the channel if it becomes Done.
-	AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error)
+	AllKeysChan(ctx context.Context) (<-chan mh.Multihash, error)
 	// HashOnRead specifies if every read block should be
 	// rehashed to make sure it matches its CID.
 	HashOnRead(enabled bool)
@@ -173,12 +174,12 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	return t.Commit()
 }
 
-func (bs *blockstore) Has(k *cid.Cid) (bool, error) {
-	return bs.datastore.Has(dshelp.CidToDsKey(k))
+func (bs *blockstore) Has(k mh.Multihash) (bool, error) {
+	return bs.datastore.Has(dshelp.MultihashToDsKey(k))
 }
 
-func (bs *blockstore) DeleteBlock(k *cid.Cid) error {
-	err := bs.datastore.Delete(dshelp.CidToDsKey(k))
+func (bs *blockstore) DeleteBlock(k mh.Multihash) error {
+	err := bs.datastore.Delete(dshelp.MultihashToDsKey(k))
 	if err == ds.ErrNotFound {
 		return ErrNotFound
 	}
@@ -189,7 +190,7 @@ func (bs *blockstore) DeleteBlock(k *cid.Cid) error {
 // this is very simplistic, in the future, take dsq.Query as a param?
 //
 // AllKeysChan respects context.
-func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
+func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan mh.Multihash, error) {
 
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true}
@@ -198,7 +199,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 		return nil, err
 	}
 
-	output := make(chan *cid.Cid, dsq.KeysOnlyBufSize)
+	output := make(chan mh.Multihash, dsq.KeysOnlyBufSize)
 	go func() {
 		defer func() {
 			res.Close() // ensure exit (signals early exit, too)
@@ -216,7 +217,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 			}
 
 			// need to convert to key.Key using key.KeyFromDsKey.
-			k, err := dshelp.DsKeyToCid(ds.RawKey(e.Key))
+			k, err := dshelp.DsKeyToMultihash(ds.RawKey(e.Key))
 			if err != nil {
 				log.Warningf("error parsing key from DsKey: %s", err)
 				continue

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
+
 	backoff "gx/ipfs/QmPJUtEJsm5YLUWhF6imvyCH8KZXRJa9Wup7FDMwTy5Ufz/backoff"
 	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -14,7 +16,7 @@ import (
 var log = logging.Logger("reprovider")
 
 //KeyChanFunc is function streaming CIDs to pass to content routing
-type KeyChanFunc func(context.Context) (<-chan *cid.Cid, error)
+type KeyChanFunc func(context.Context) (<-chan mh.Multihash, error)
 type doneFunc func(error)
 
 type Reprovider struct {
@@ -84,11 +86,23 @@ func (rp *Reprovider) Reprovide() error {
 	}
 	for c := range keychan {
 		op := func() error {
-			err := rp.rsys.Provide(rp.ctx, c, true)
+			//FIXME NOW:  This is a major hack and beyond broken!!!
+			err := rp.rsys.Provide(rp.ctx, cid.NewCidV0(c), true)
 			if err != nil {
 				log.Debugf("Failed to provide key: %s", err)
+				return err
 			}
-			return err
+			err = rp.rsys.Provide(rp.ctx, cid.NewCidV1(cid.Raw, c), true)
+			if err != nil {
+				log.Debugf("Failed to provide key: %s", err)
+				return err
+			}
+			err = rp.rsys.Provide(rp.ctx, cid.NewCidV1(cid.DagProtobuf, c), true)
+			if err != nil {
+				log.Debugf("Failed to provide key: %s", err)
+				return err
+			}
+			return nil
 		}
 
 		// TODO: this backoff library does not respect our context, we should

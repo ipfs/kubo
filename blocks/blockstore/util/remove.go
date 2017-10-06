@@ -47,7 +47,7 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []*cid.Cid, opts RmB
 		stillOkay := FilterPinned(pins, out, cids)
 
 		for _, c := range stillOkay {
-			err := blocks.DeleteBlock(c)
+			err := blocks.DeleteBlock(c.Hash())
 			if err != nil && opts.Force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
 				// ignore non-existent blocks
 			} else if err != nil {

@@ -9,6 +9,7 @@ import (
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	"gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	bloom "gx/ipfs/QmXqKGu7QzfRzFC4yd5aL9sThYx22vY163VGwmxfp5qGHk/bbloom"
 )
 
@@ -85,7 +86,7 @@ func (b *bloomcache) Rebuild(ctx context.Context) {
 		select {
 		case key, ok := <-ch:
 			if ok {
-				b.bloom.AddTS(key.Bytes()) // Use binary key, the more compact the better
+				b.bloom.AddTS(key) // Use binary key, the more compact the better
 			} else {
 				finish = true
 			}
@@ -98,7 +99,7 @@ func (b *bloomcache) Rebuild(ctx context.Context) {
 	atomic.StoreInt32(&b.active, 1)
 }
 
-func (b *bloomcache) DeleteBlock(k *cid.Cid) error {
+func (b *bloomcache) DeleteBlock(k mh.Multihash) error {
 	if has, ok := b.hasCached(k); ok && !has {
 		return ErrNotFound
 	}
@@ -108,7 +109,7 @@ func (b *bloomcache) DeleteBlock(k *cid.Cid) error {
 
 // if ok == false has is inconclusive
 // if ok == true then has respons to question: is it contained
-func (b *bloomcache) hasCached(k *cid.Cid) (has bool, ok bool) {
+func (b *bloomcache) hasCached(k mh.Multihash) (has bool, ok bool) {
 	b.total.Inc()
 	if k == nil {
 		log.Error("nil cid in bloom cache")
@@ -117,7 +118,7 @@ func (b *bloomcache) hasCached(k *cid.Cid) (has bool, ok bool) {
 		return false, false
 	}
 	if b.BloomActive() {
-		blr := b.bloom.HasTS(k.Bytes())
+		blr := b.bloom.HasTS(k)
 		if !blr { // not contained in bloom is only conclusive answer bloom gives
 			b.hits.Inc()
 			return false, true
@@ -126,7 +127,7 @@ func (b *bloomcache) hasCached(k *cid.Cid) (has bool, ok bool) {
 	return false, false
 }
 
-func (b *bloomcache) Has(k *cid.Cid) (bool, error) {
+func (b *bloomcache) Has(k mh.Multihash) (bool, error) {
 	if has, ok := b.hasCached(k); ok {
 		return has, nil
 	}
@@ -135,7 +136,7 @@ func (b *bloomcache) Has(k *cid.Cid) (bool, error) {
 }
 
 func (b *bloomcache) Get(k *cid.Cid) (blocks.Block, error) {
-	if has, ok := b.hasCached(k); ok && !has {
+	if has, ok := b.hasCached(k.Hash()); ok && !has {
 		return nil, ErrNotFound
 	}
 
@@ -170,7 +171,7 @@ func (b *bloomcache) HashOnRead(enabled bool) {
 	b.blockstore.HashOnRead(enabled)
 }
 
-func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
+func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan mh.Multihash, error) {
 	return b.blockstore.AllKeysChan(ctx)
 }
 

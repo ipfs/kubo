@@ -18,6 +18,7 @@ import (
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 )
 
 type RepoVersion struct {
@@ -43,7 +44,7 @@ var RepoCmd = &cmds.Command{
 
 // GcResult is the result returned by "repo gc" command.
 type GcResult struct {
-	Key   *cid.Cid
+	Key   mh.Multihash
 	Error string `json:",omitempty"`
 }
 
@@ -90,7 +91,7 @@ order to reclaim hard disk space.
 					res.SetError(fmt.Errorf("encountered errors during gc run"), cmds.ErrNormal)
 				}
 			} else {
-				err := corerepo.CollectResult(req.Context(), gcOutChan, func(k *cid.Cid) {
+				err := corerepo.CollectResult(req.Context(), gcOutChan, func(k mh.Multihash) {
 					outChan <- &GcResult{Key: k}
 				})
 				if err != nil {
@@ -290,7 +291,7 @@ var repoVerifyCmd = &cmds.Command{
 			var fails int
 			var i int
 			for k := range keys {
-				_, err := bs.Get(k)
+				_, err := bs.Get(cid.NewCidV1(cid.Raw, k))
 				if err != nil {
 					out <- &VerifyProgress{
 						Message: fmt.Sprintf("block %s was corrupt (%s)", k, err),

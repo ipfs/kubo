@@ -237,7 +237,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 		} else {
 			log.Debugf("wants %s - %d", entry.Cid, entry.Priority)
 			l.Wants(entry.Cid, entry.Priority)
-			if exists, err := e.bs.Has(entry.Cid); err == nil && exists {
+			if exists, err := e.bs.Has(entry.Cid.Hash()); err == nil && exists {
 				e.peerRequestQueue.Push(entry.Entry, p)
 				newWorkExists = true
 			}

@@ -100,7 +100,7 @@ func NewSession(ctx context.Context, bs BlockService) *Session {
 func (s *blockService) AddBlock(o blocks.Block) (*cid.Cid, error) {
 	c := o.Cid()
 	if s.checkFirst {
-		has, err := s.blockstore.Has(c)
+		has, err := s.blockstore.Has(c.Hash())
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +126,7 @@ func (s *blockService) AddBlocks(bs []blocks.Block) ([]*cid.Cid, error) {
 	var toput []blocks.Block
 	if s.checkFirst {
 		for _, b := range bs {
-			has, err := s.blockstore.Has(b.Cid())
+			has, err := s.blockstore.Has(b.Cid().Hash())
 			if err != nil {
 				return nil, err
 			}
@@ -244,7 +244,7 @@ func getBlocks(ctx context.Context, ks []*cid.Cid, bs blockstore.Blockstore, f e
 
 // DeleteBlock deletes a block in the blockservice from the datastore
 func (s *blockService) DeleteBlock(o blocks.Block) error {
-	return s.blockstore.DeleteBlock(o.Cid())
+	return s.blockstore.DeleteBlock(o.Cid().Hash())
 }
 
 func (s *blockService) Close() error {

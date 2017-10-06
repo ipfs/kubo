@@ -2,6 +2,7 @@ package dshelp
 
 import (
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	base32 "gx/ipfs/QmfVj3x4D6Jkq9SEoi5n2NmoUomLwoeiwnYz2KQa15wRw6/base32"
 )
@@ -20,13 +21,17 @@ func BinaryFromDsKey(k ds.Key) ([]byte, error) {
 }
 
 func CidToDsKey(k *cid.Cid) ds.Key {
-	return NewKeyFromBinary(k.Bytes())
+	return NewKeyFromBinary(k.Hash())
 }
 
-func DsKeyToCid(dsKey ds.Key) (*cid.Cid, error) {
+func MultihashToDsKey(mh mh.Multihash) ds.Key {
+	return NewKeyFromBinary(mh)
+}
+
+func DsKeyToMultihash(dsKey ds.Key) (mh.Multihash, error) {
 	kb, err := BinaryFromDsKey(dsKey)
 	if err != nil {
 		return nil, err
 	}
-	return cid.Cast(kb)
+	return mh.Cast(kb)
 }
