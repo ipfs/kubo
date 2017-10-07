@@ -274,6 +274,11 @@ var provideRefDhtCmd = &cmds.Command{
 			return
 		}
 
+		if len(n.PeerHost.Network().Conns()) == 0 {
+			res.SetError(errors.New("no peers in the swarm are connected to, cannot provide"), cmds.ErrNormal)
+			return
+		}
+
 		rec, _, _ := req.Option("recursive").Bool()
 
 		var cids []*cid.Cid
