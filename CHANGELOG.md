@@ -76,6 +76,7 @@ plugin](https://github.com/ipfs/go-ipld-eth) that lets ipfs ingest and operate
 on all ethereum blockchain data. Soon to come are plugins for the bitcoin and
 zcash data formats. In the future, we will be adding plugins for other things
 like datastore backends and specialized libp2p network transports.
+You can read more on this topic in [Plugin docs](docs/plugins.md)
 
 In order to simplify its integration with fs-repo-migrations, we've switched
 the ipfs/go-ipfs docker image from a musl base to a glibc base. For most users
