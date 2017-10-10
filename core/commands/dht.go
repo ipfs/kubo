@@ -275,7 +275,7 @@ var provideRefDhtCmd = &cmds.Command{
 		}
 
 		if len(n.PeerHost.Network().Conns()) == 0 {
-			res.SetError(errors.New("no peers in the swarm are connected to, cannot provide"), cmds.ErrNormal)
+			res.SetError(errors.New("cannot provide, no connected peers"), cmds.ErrNormal)
 			return
 		}
 
