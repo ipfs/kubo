@@ -17,7 +17,7 @@ Please look and conform to our [Go Contribution Guidelines](https://github.com/i
 ## General Guidelines:
 
 - See the [dev pseudo-roadmap](dev.md).
-- Please adhere to the protocol described in [the main ipfs repo](https://github.com/ipfs/ipfs), [paper](http://static.benet.ai/t/ipfs.pdf), and [specs](https://github.com/ipfs/specs) (WIP).
+- Please adhere to the protocol described in [the main ipfs repo](https://github.com/ipfs/ipfs), [paper](https://arxiv.org/pdf/1407.3561.pdf), and [specs](https://github.com/ipfs/specs) (WIP).
 - Please make branches and pull-request, even if working on the main repository.
 - Ask questions or talk about things in [Issues](https://github.com/ipfs/go-ipfs/issues) or #ipfs on freenode.
 - Ensure you are able to contribute (no legal issues please-- we'll probably setup a CLA).
