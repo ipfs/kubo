@@ -11,7 +11,6 @@ import (
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 	ipldcbor "gx/ipfs/QmWCs8kMecJwCPK8JThue8TjgM2ieJ2HjTLDu7Cv2NEmZi/go-ipld-cbor"
 )
 
@@ -75,8 +74,9 @@ func (n *dagService) Add(nd node.Node) (*cid.Cid, error) {
 
 func (n *dagService) Batch() *Batch {
 	return &Batch{
-		ds:      n,
-		MaxSize: 8 << 20,
+		ds:            n,
+		commitResults: make(chan error, ParallelBatchCommits),
+		MaxSize:       8 << 20,
 
 		// By default, only batch up to 128 nodes at a time.
 		// The current implementation of flatfs opens this many file
@@ -387,31 +387,6 @@ func (np *nodePromise) Get(ctx context.Context) (node.Node, error) {
 	case err := <-np.err:
 		return nil, err
 	}
-}
-
-type Batch struct {
-	ds *dagService
-
-	blocks    []blocks.Block
-	size      int
-	MaxSize   int
-	MaxBlocks int
-}
-
-func (t *Batch) Add(nd node.Node) (*cid.Cid, error) {
-	t.blocks = append(t.blocks, nd)
-	t.size += len(nd.RawData())
-	if t.size > t.MaxSize || len(t.blocks) > t.MaxBlocks {
-		return nd.Cid(), t.Commit()
-	}
-	return nd.Cid(), nil
-}
-
-func (t *Batch) Commit() error {
-	_, err := t.ds.Blocks.AddBlocks(t.blocks)
-	t.blocks = nil
-	t.size = 0
-	return err
 }
 
 type GetLinks func(context.Context, *cid.Cid) ([]*node.Link, error)
