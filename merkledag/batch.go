@@ -43,7 +43,8 @@ func (t *Batch) processResults() {
 }
 
 func (t *Batch) asyncCommit() {
-	if len(t.blocks) == 0 || t.commitError != nil {
+	numBlocks := len(t.blocks)
+	if numBlocks == 0 || t.commitError != nil {
 		return
 	}
 	if t.activeCommits >= ParallelBatchCommits {
@@ -61,7 +62,7 @@ func (t *Batch) asyncCommit() {
 	}(t.blocks)
 
 	t.activeCommits++
-	t.blocks = nil
+	t.blocks = make([]blocks.Block, 0, numBlocks)
 	t.size = 0
 
 	return
