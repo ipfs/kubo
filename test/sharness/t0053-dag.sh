@@ -167,6 +167,12 @@ test_dag_cmd() {
     test_cmp dag_put_exp dag_put_out
   '
 
+  test_expect_success "dag put with raw node works" '
+    echo "foo bar" > raw_node_in &&
+    HASH=$(ipfs dag put --format=raw --input-enc=raw -- raw_node_in) &&
+    ipfs block get "$HASH" > raw_node_out &&
+    test_cmp raw_node_in raw_node_out'
+
   test_expect_success "dag put multiple files" '
     printf {\"foo\":\"bar\"} > a.json &&
     printf {\"foo\":\"baz\"} > b.json &&
