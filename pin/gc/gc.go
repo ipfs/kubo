@@ -33,15 +33,13 @@ type Result struct {
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
 //
-func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
+func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.OfflineLinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
 
 	elock := log.EventBegin(ctx, "GC.lockWait")
 	unlocker := bs.GCLock()
 	elock.Done()
 	elock = log.EventBegin(ctx, "GC.locked")
 	emark := log.EventBegin(ctx, "GC.mark")
-
-	ls = ls.GetOfflineLinkService()
 
 	output := make(chan Result, 128)
 

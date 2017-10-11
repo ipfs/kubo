@@ -47,33 +47,31 @@ type LinkService interface {
 	// leaves cannot possibly have links so there is no need to look
 	// at the node.
 	GetLinks(context.Context, *cid.Cid) ([]*node.Link, error)
-
-	GetOfflineLinkService() LinkService
 }
 
-func NewDAGService(bs bserv.BlockService) *dagService {
-	return &dagService{Blocks: bs}
+func NewDAGService(bs bserv.BlockService) *MerkleDAGService {
+	return &MerkleDAGService{Blocks: bs}
 }
 
-// dagService is an IPFS Merkle DAG service.
+// MerkleDAGService is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)
 // - stores nodes' data in a BlockService
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
-type dagService struct {
+type MerkleDAGService struct {
 	Blocks bserv.BlockService
 }
 
-// Add adds a node to the dagService, storing the block in the BlockService
-func (n *dagService) Add(nd node.Node) (*cid.Cid, error) {
+// Add adds a node to the MerkleDAGService, storing the block in the BlockService
+func (n *MerkleDAGService) Add(nd node.Node) (*cid.Cid, error) {
 	if n == nil { // FIXME remove this assertion. protect with constructor invariant
-		return nil, fmt.Errorf("dagService is nil")
+		return nil, fmt.Errorf("MerkleDAGService is nil")
 	}
 
 	return n.Blocks.AddBlock(nd)
 }
 
-func (n *dagService) Batch() *Batch {
+func (n *MerkleDAGService) Batch() *Batch {
 	return &Batch{
 		ds:      n,
 		MaxSize: 8 << 20,
@@ -85,10 +83,10 @@ func (n *dagService) Batch() *Batch {
 	}
 }
 
-// Get retrieves a node from the dagService, fetching the block in the BlockService
-func (n *dagService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
+// Get retrieves a node from the MerkleDAGService, fetching the block in the BlockService
+func (n *MerkleDAGService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 	if n == nil {
-		return nil, fmt.Errorf("dagService is nil")
+		return nil, fmt.Errorf("MerkleDAGService is nil")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -107,7 +105,7 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 
 // GetLinks return the links for the node, the node doesn't necessarily have
 // to exist locally.
-func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
+func (n *MerkleDAGService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
 	if c.Type() == cid.Raw {
 		return nil, nil
 	}
@@ -118,16 +116,22 @@ func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, er
 	return node.Links(), nil
 }
 
-func (n *dagService) GetOfflineLinkService() LinkService {
+// OfflineLinkService is just a wrapper around LinkService that is
+// assumed to be offline.
+type OfflineLinkService struct {
+	LinkService
+}
+
+func (n *MerkleDAGService) GetOfflineLinkService() OfflineLinkService {
 	if n.Blocks.Exchange().IsOnline() {
 		bsrv := bserv.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
-		return NewDAGService(bsrv)
+		return OfflineLinkService{NewDAGService(bsrv)}
 	} else {
-		return n
+		return OfflineLinkService{n}
 	}
 }
 
-func (n *dagService) Remove(nd node.Node) error {
+func (n *MerkleDAGService) Remove(nd node.Node) error {
 	return n.Blocks.DeleteBlock(nd)
 }
 
@@ -168,7 +172,7 @@ func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 // FetchGraph fetches all nodes that are children of the given node
 func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
 	var ng node.NodeGetter = serv
-	ds, ok := serv.(*dagService)
+	ds, ok := serv.(*MerkleDAGService)
 	if ok {
 		ng = &sesGetter{bserv.NewSession(ctx, ds.Blocks)}
 	}
@@ -206,7 +210,7 @@ type NodeOption struct {
 	Err  error
 }
 
-func (ds *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *NodeOption {
+func (ds *MerkleDAGService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *NodeOption {
 	out := make(chan *NodeOption, len(keys))
 	blocks := ds.Blocks.GetBlocks(ctx, keys)
 	var count int
@@ -390,7 +394,7 @@ func (np *nodePromise) Get(ctx context.Context) (node.Node, error) {
 }
 
 type Batch struct {
-	ds *dagService
+	ds *MerkleDAGService
 
 	blocks    []blocks.Block
 	size      int
