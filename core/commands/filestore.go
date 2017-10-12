@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 
+	bs "github.com/ipfs/go-ipfs/blocks/blockstore"
+	butil "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	oldCmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
@@ -22,6 +24,7 @@ var FileStoreCmd = &cmds.Command{
 	},
 	Subcommands: map[string]*cmds.Command{
 		"ls": lsFileStore,
+		"rm": rmFileStore,
 	},
 	OldSubcommands: map[string]*oldCmds.Command{
 		"verify": verifyFileStore,
@@ -234,6 +237,63 @@ var dupsFileStore = &oldCmds.Command{
 	},
 	Marshalers: refsMarshallerMap,
 	Type:       RefWrapper{},
+}
+
+var rmFileStore = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Remove IPFS block(s) from just the filestore or blockstore.",
+		ShortDescription: `
+Remove blocks from either the filestore or the main blockstore.
+`,
+	},
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("hash", true, true, "CID's of block(s) to remove."),
+	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("force", "f", "Ignore nonexistent blocks."),
+		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
+		cmdkit.BoolOption("non-filestore", "Remove non-filestore blocks"),
+	},
+	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
+		n, fs, err := getFilestore(req.InvocContext())
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+		hashes := req.Arguments()
+		force, _, _ := req.Option("force").Bool()
+		quiet, _, _ := req.Option("quiet").Bool()
+		nonFilestore, _, _ := req.Option("non-filestore").Bool()
+		prefix := filestore.FilestorePrefix.String()
+		if nonFilestore {
+			prefix = bs.BlockPrefix.String()
+		}
+		cids := make([]*cid.Cid, 0, len(hashes))
+		for _, hash := range hashes {
+			c, err := cid.Decode(hash)
+			if err != nil {
+				res.SetError(fmt.Errorf("invalid content id: %s (%s)", hash, err), cmdkit.ErrNormal)
+				return
+			}
+
+			cids = append(cids, c)
+		}
+		ch, err := filestore.RmBlocks(fs, n.Blockstore, n.Pinning, cids, butil.RmBlocksOpts{
+			Prefix: prefix,
+			Quiet:  quiet,
+			Force:  force,
+		})
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+		err = res.Emit(ch)
+		if err != nil {
+			log.Error(err)
+		}
+	},
+	PostRun: blockRmCmd.PostRun,
+	Type:    butil.RemovedBlock{},
 }
 
 type getNoder interface {
