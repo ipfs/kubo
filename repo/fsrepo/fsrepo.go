@@ -636,7 +636,13 @@ func (r *FSRepo) GetStorageUsage() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-
+	
+	pth, err = filepath.EvalSymlinks(pth)
+	if err != nil {
+		log.Debugf("filepath.EvalSymlinks error: %s", err)
+		return 0, err
+	}
+	
 	var du uint64
 	err = filepath.Walk(pth, func(p string, f os.FileInfo, err error) error {
 		if err != nil {
