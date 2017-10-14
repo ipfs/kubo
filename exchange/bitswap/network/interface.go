@@ -4,8 +4,10 @@ import (
 	"context"
 
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	ifconnmgr "gx/ipfs/QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr/go-libp2p-interface-connmgr"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
@@ -33,6 +35,8 @@ type BitSwapNetwork interface {
 	ConnectTo(context.Context, peer.ID) error
 
 	NewMessageSender(context.Context, peer.ID) (MessageSender, error)
+
+	ConnectionManager() ifconnmgr.ConnManager
 
 	Routing
 }
