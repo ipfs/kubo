@@ -16,7 +16,6 @@ on a running daemon do not read the config file at runtime.
 - [`Ipns`](#ipns)
 - [`Mounts`](#mounts)
 - [`Reprovider`](#reprovider)
-- [`SupernodeRouting`](#supernoderouting)
 - [`Swarm`](#swarm)
 
 ## `Addresses`
@@ -241,9 +240,6 @@ Tells reprovider what should be announced. Valid strategies are:
   - "all" (default) - announce all stored data
   - "pinned" - only announce pinned data
   - "roots" - only announce directly pinned keys and root keys of recursive pins
-
-## `SupernodeRouting`
-Deprecated.
 
 ## `Swarm`
 Options for configuring the swarm.
