@@ -185,10 +185,23 @@ When using this feature, you will not be able to connect to the default bootstra
 nodes (Since we arent part of your private network) so you will need to set up
 your own bootstrap nodes.
 
-To prevent your node from even trying to connect to the default bootstrap nodes, run:
+First, to prevent your node from even trying to connect to the default bootstrap nodes, run:
 ```bash
 ipfs bootstrap rm --all
 ```
+
+Then add your own bootstrap peers with:
+```bash
+ipfs bootstrap add <multiaddr>
+```
+
+For example:
+```
+ipfs bootstrap add /ip4/104.236.76.40/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64
+```
+
+Bootstrap nodes are no different from all other nodes in the network apart from
+the function they serve.
 
 To be extra cautious, You can also set the `LIBP2P_FORCE_PNET` environment
 variable to `1` to force the usage of private networks. If no private network is
