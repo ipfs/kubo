@@ -246,7 +246,7 @@ Options for configuring the swarm.
 
 - `AddrFilters`
 An array of address filters (multiaddr netmasks) to filter dials to.
-See https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604 for more
+See [this issue](https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604) for more
 information.
 
 - `DisableBandwidthMetrics`
@@ -263,3 +263,17 @@ Disables the p2p-circuit relay transport.
 - `EnableRelayHop`
 Enables HOP relay for the node. If this is enabled, the node will act as
 an intermediate (Hop Relay) node in relay circuits for connected peers.
+
+### `ConnMgr`
+Connection manager configuration.
+
+- `Type`
+Sets the type of connection manager to use, options are: `"none"` and `"basic"`.
+
+- `LowWater`
+LowWater is the minimum number of connections to maintain.
+
+- `HighWater`
+HighWater is the number of connections that, when exceeded, will trigger a connection GC operation.
+- `GracePeriod`
+GracePeriod is a time duration that new connections are immune from being closed by the connection manager.
