@@ -274,6 +274,11 @@ var provideRefDhtCmd = &cmds.Command{
 			return
 		}
 
+		if len(n.PeerHost.Network().Conns()) == 0 {
+			res.SetError(errors.New("cannot provide, no connected peers"), cmds.ErrNormal)
+			return
+		}
+
 		rec, _, _ := req.Option("recursive").Bool()
 
 		var cids []*cid.Cid
