@@ -57,7 +57,8 @@ type HamtShard struct {
 	prefixPadStr string
 	maxpadlen    int
 
-	dserv dag.DAGService
+	dsadd dag.DAGService
+	dsget dag.NodeFetcher
 }
 
 // child can either be another shard, or a leaf node value
@@ -66,11 +67,14 @@ type child interface {
 	Label() string
 }
 
+var ErrReadOnly = fmt.Errorf("cannot modify readonly hamt shard")
+
 func NewHamtShard(dserv dag.DAGService, size int) (*HamtShard, error) {
 	ds, err := makeHamtShard(dserv, size)
 	if err != nil {
 		return nil, err
 	}
+	ds.setWriterDag(dserv)
 
 	ds.bitfield = big.NewInt(0)
 	ds.nd = new(dag.ProtoNode)
@@ -78,7 +82,7 @@ func NewHamtShard(dserv dag.DAGService, size int) (*HamtShard, error) {
 	return ds, nil
 }
 
-func makeHamtShard(ds dag.DAGService, size int) (*HamtShard, error) {
+func makeHamtShard(rodag dag.NodeFetcher, size int) (*HamtShard, error) {
 	lg2s := int(math.Log2(float64(size)))
 	if 1<<uint(lg2s) != size {
 		return nil, fmt.Errorf("hamt size should be a power of two")
@@ -89,11 +93,25 @@ func makeHamtShard(ds dag.DAGService, size int) (*HamtShard, error) {
 		prefixPadStr: fmt.Sprintf("%%0%dX", len(maxpadding)),
 		maxpadlen:    len(maxpadding),
 		tableSize:    size,
-		dserv:        ds,
+		dsget:        rodag,
 	}, nil
 }
 
+func (s *HamtShard) setWriterDag(ds dag.DAGService) {
+	s.dsadd = ds
+}
+
 func NewHamtFromDag(dserv dag.DAGService, nd node.Node) (*HamtShard, error) {
+	hs, err := NewHamtReader(dserv, nd)
+	if err != nil {
+		return nil, err
+	}
+
+	hs.setWriterDag(dserv)
+	return hs, nil
+}
+
+func NewHamtReader(dserv dag.NodeFetcher, nd node.Node) (*HamtShard, error) {
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {
 		return nil, dag.ErrLinkNotFound
@@ -132,6 +150,10 @@ func (ds *HamtShard) SetPrefix(prefix *cid.Prefix) {
 
 // Node serializes the HAMT structure into a merkledag node with unixfs formatting
 func (ds *HamtShard) Node() (node.Node, error) {
+	if ds.dsadd == nil {
+		return nil, ErrReadOnly
+	}
+
 	out := new(dag.ProtoNode)
 	out.SetPrefix(ds.prefix)
 
@@ -178,7 +200,7 @@ func (ds *HamtShard) Node() (node.Node, error) {
 
 	out.SetData(data)
 
-	_, err = ds.dserv.Add(out)
+	_, err = ds.dsadd.Add(out)
 	if err != nil {
 		return nil, err
 	}
@@ -214,8 +236,12 @@ func (ds *HamtShard) Label() string {
 
 // Set sets 'name' = nd in the HAMT
 func (ds *HamtShard) Set(ctx context.Context, name string, nd node.Node) error {
+	if ds.dsadd == nil {
+		return ErrReadOnly
+	}
+
 	hv := &hashBits{b: hash([]byte(name))}
-	_, err := ds.dserv.Add(nd)
+	_, err := ds.dsadd.Add(nd)
 	if err != nil {
 		return err
 	}
@@ -279,7 +305,7 @@ func (ds *HamtShard) loadChild(ctx context.Context, i int) (child, error) {
 		return nil, fmt.Errorf("invalid link name '%s'", lnk.Name)
 	}
 
-	nd, err := lnk.GetNode(ctx, ds.dserv)
+	nd, err := lnk.GetNode(ctx, ds.dsget)
 	if err != nil {
 		return nil, err
 	}
@@ -300,9 +326,13 @@ func (ds *HamtShard) loadChild(ctx context.Context, i int) (child, error) {
 			return nil, fmt.Errorf("HAMT entries must have non-zero length name")
 		}
 
-		cds, err := NewHamtFromDag(ds.dserv, nd)
+		cds, err := NewHamtReader(ds.dsget, nd)
 		if err != nil {
 			return nil, err
+		}
+
+		if ds.dsadd != nil {
+			cds.setWriterDag(ds.dsadd)
 		}
 
 		c = cds
@@ -329,7 +359,7 @@ func (ds *HamtShard) Link() (*node.Link, error) {
 		return nil, err
 	}
 
-	_, err = ds.dserv.Add(nd)
+	_, err = ds.dsadd.Add(nd)
 	if err != nil {
 		return nil, err
 	}
@@ -445,6 +475,10 @@ func (ds *HamtShard) walkTrie(ctx context.Context, cb func(*shardValue) error) e
 }
 
 func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, val *node.Link) error {
+	if ds.dsadd == nil {
+		return ErrReadOnly
+	}
+
 	idx := hv.Next(ds.tableSizeLg2)
 
 	if ds.bitfield.Bit(idx) != 1 {
@@ -496,10 +530,11 @@ func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, 
 			return nil
 
 		default: // replace value with another shard, one level deeper
-			ns, err := NewHamtShard(ds.dserv, ds.tableSize)
+			ns, err := NewHamtShard(ds.dsadd, ds.tableSize)
 			if err != nil {
 				return err
 			}
+
 			chhv := &hashBits{
 				b:        hash([]byte(child.key)),
 				consumed: hv.consumed,
