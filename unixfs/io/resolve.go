@@ -12,7 +12,7 @@ import (
 
 // ResolveUnixfsOnce resolves a single hop of a path through a graph in a
 // unixfs context. This includes handling traversing sharded directories.
-func ResolveUnixfsOnce(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error) {
+func ResolveUnixfsOnce(ctx context.Context, ds dag.NodeFetcher, nd node.Node, names []string) (*node.Link, []string, error) {
 	switch nd := nd.(type) {
 	case *dag.ProtoNode:
 		upb, err := ft.FromBytes(nd.Data())
@@ -28,7 +28,8 @@ func ResolveUnixfsOnce(ctx context.Context, ds dag.DAGService, nd node.Node, nam
 
 		switch upb.GetType() {
 		case ft.THAMTShard:
-			s, err := hamt.NewHamtFromDag(ds, nd)
+			panic("foo")
+			s, err := hamt.NewHamtFromDag(nil, nd)
 			if err != nil {
 				return nil, nil, err
 			}
