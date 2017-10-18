@@ -159,7 +159,9 @@ func (s *Session) run(ctx context.Context) {
 		case blk := <-s.incoming:
 			s.tick.Stop()
 
-			s.addActivePeer(blk.from)
+			if blk.from != "" {
+				s.addActivePeer(blk.from)
+			}
 
 			s.receiveBlock(ctx, blk.blk)
 
