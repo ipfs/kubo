@@ -307,11 +307,14 @@ func GetNodes(ctx context.Context, ds DAGService, keys []*cid.Cid) []NodeGetter 
 
 // Remove duplicates from a list of keys
 func dedupeKeys(cids []*cid.Cid) []*cid.Cid {
+	out := make([]*cid.Cid, 0, len(cids))
 	set := cid.NewSet()
 	for _, c := range cids {
-		set.Add(c)
+		if set.Visit(c) {
+			out = append(out, c)
+		}
 	}
-	return set.Keys()
+	return out
 }
 
 func newNodePromise(ctx context.Context) NodeGetter {

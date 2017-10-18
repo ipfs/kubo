@@ -373,7 +373,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 }
 
 type sizeReadSeeker interface {
-  Size() uint64
+	Size() uint64
 
 	io.ReadSeeker
 }
