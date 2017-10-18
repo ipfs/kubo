@@ -372,7 +372,31 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	}
 }
 
+type sizeReadSeeker interface {
+  Size() uint64
+
+	io.ReadSeeker
+}
+
+type sizeSeeker struct {
+	sizeReadSeeker
+}
+
+func (s *sizeSeeker) Seek(offset int64, whence int) (int64, error) {
+	if whence == io.SeekEnd && offset == 0 {
+		return int64(s.Size()), nil
+	}
+
+	return s.sizeReadSeeker.Seek(offset, whence)
+}
+
 func (i *gatewayHandler) serverFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
+	if sp, ok := content.(sizeReadSeeker); ok {
+		content = &sizeSeeker{
+			sizeReadSeeker: sp,
+		}
+	}
+
 	http.ServeContent(w, req, name, modtime, content)
 	//TODO: check for errors in ServeContent.. somehow
 

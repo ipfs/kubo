@@ -188,6 +188,9 @@ func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
 		if offset < 0 {
 			return -1, errors.New("Invalid offset")
 		}
+		if offset == dr.offset {
+			return offset, nil
+		}
 
 		// Grab cached protobuf object (solely to make code look cleaner)
 		pb := dr.pbdata
@@ -239,6 +242,10 @@ func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
 		return offset, nil
 	case io.SeekCurrent:
 		// TODO: be smarter here
+		if offset == 0 {
+			return dr.offset, nil
+		}
+
 		noffset := dr.offset + offset
 		return dr.Seek(noffset, io.SeekStart)
 	case io.SeekEnd:
