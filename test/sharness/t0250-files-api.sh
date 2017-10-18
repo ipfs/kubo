@@ -572,7 +572,7 @@ tests_for_files_api() {
   local EXTRA
   EXTRA=$1
 
-  test_expect_success "can create some files for testing ($extra)" '
+  test_expect_success "can create some files for testing ($EXTRA)" '
     create_files
   '
   ROOT_HASH=QmcwKfTMCT7AaeiD92hWjnZn9b6eh9NxnhfSzN5x2vnDpt
@@ -581,7 +581,7 @@ tests_for_files_api() {
   TRUNC_HASH=QmdaQZbLwK5ykweGdCVovNnvBom7QhikovDUVqTPHQG4L8
   test_files_api "($EXTRA)"
 
-  test_expect_success "can create some files for testing with raw-leaves ($extra)" '
+  test_expect_success "can create some files for testing with raw-leaves ($EXTRA)" '
     create_files --raw-leaves
   '
 
