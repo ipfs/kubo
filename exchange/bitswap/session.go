@@ -2,6 +2,7 @@ package bitswap
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
@@ -44,7 +45,8 @@ type Session struct {
 
 	uuid logging.Loggable
 
-	id uint64
+	id  uint64
+	tag string
 }
 
 // NewSession creates a new bitswap session whose lifetime is bounded by the
@@ -65,6 +67,8 @@ func (bs *Bitswap) NewSession(ctx context.Context) *Session {
 		baseTickDelay: time.Millisecond * 500,
 		id:            bs.getNextSessionID(),
 	}
+
+	s.tag = fmt.Sprint("bs-ses-", s.id)
 
 	cache, _ := lru.New(2048)
 	s.interest = cache
@@ -139,6 +143,9 @@ func (s *Session) addActivePeer(p peer.ID) {
 	if _, ok := s.activePeers[p]; !ok {
 		s.activePeers[p] = struct{}{}
 		s.activePeersArr = append(s.activePeersArr, p)
+
+		cmgr := s.bs.network.ConnectionManager()
+		cmgr.TagPeer(p, s.tag, 10)
 	}
 }
 
@@ -218,6 +225,11 @@ func (s *Session) run(ctx context.Context) {
 		case <-ctx.Done():
 			s.tick.Stop()
 			s.bs.removeSession(s)
+
+			cmgr := s.bs.network.ConnectionManager()
+			for _, p := range s.activePeersArr {
+				cmgr.UntagPeer(p, s.tag)
+			}
 			return
 		}
 	}
