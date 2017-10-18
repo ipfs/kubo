@@ -105,14 +105,6 @@ func (bsnet *impl) NewMessageSender(ctx context.Context, p peer.ID) (MessageSend
 }
 
 func (bsnet *impl) newStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
-
-	// first, make sure we're connected.
-	// if this fails, we cannot connect to given peer.
-	//TODO(jbenet) move this into host.NewStream?
-	if err := bsnet.host.Connect(ctx, pstore.PeerInfo{ID: p}); err != nil {
-		return nil, err
-	}
-
 	return bsnet.host.NewStream(ctx, p, ProtocolBitswap, ProtocolBitswapOne, ProtocolBitswapNoVers)
 }
 
