@@ -31,6 +31,7 @@ func GetDAGServ() mdag.DAGService {
 	return mdagmock.Mock()
 }
 
+// NodeOpts is used by GetNode, GetEmptyNode and GetRandomNode
 type NodeOpts struct {
 	Prefix cid.Prefix
 	// ForceRawLeaves if true will force the use of raw leaves

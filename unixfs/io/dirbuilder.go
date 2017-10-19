@@ -194,6 +194,7 @@ func (d *Directory) GetNode() (node.Node, error) {
 	return d.shard.Node()
 }
 
+// GetPrefix returns the CID Prefix used
 func (d *Directory) GetPrefix() *cid.Prefix {
 	if d.shard == nil {
 		return &d.dirnode.Prefix

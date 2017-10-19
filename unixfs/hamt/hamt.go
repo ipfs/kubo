@@ -131,7 +131,7 @@ func (ds *HamtShard) SetPrefix(prefix *cid.Prefix) {
 	ds.prefix = prefix
 }
 
-// GetPrefix gets the CID Prefix, may be nil if unset
+// Prefix gets the CID Prefix, may be nil if unset
 func (ds *HamtShard) Prefix() *cid.Prefix {
 	return ds.prefix
 }
