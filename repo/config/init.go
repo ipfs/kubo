@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -71,10 +72,30 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			Interval: "12h",
 			Strategy: "all",
 		},
+		Swarm: SwarmConfig{
+			ConnMgr: ConnMgr{
+				LowWater:    DefaultConnMgrLowWater,
+				HighWater:   DefaultConnMgrHighWater,
+				GracePeriod: DefaultConnMgrGracePeriod.String(),
+				Type:        "basic",
+			},
+		},
 	}
 
 	return conf, nil
 }
+
+// DefaultConnMgrHighWater is the default value for the connection managers
+// 'high water' mark
+const DefaultConnMgrHighWater = 900
+
+// DefaultConnMgrLowWater is the default value for the connection managers 'low
+// water' mark
+const DefaultConnMgrLowWater = 600
+
+// DefaultConnMgrGracePeriod is the default value for the connection managers
+// grace period
+const DefaultConnMgrGracePeriod = time.Second * 20
 
 // DefaultDatastoreConfig is an internal function exported to aid in testing.
 func DefaultDatastoreConfig() Datastore {
