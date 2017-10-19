@@ -51,7 +51,7 @@ test_sharding() {
   ARGS=$2 # only applied to the initial directory
 
   test_expect_success "make a directory $EXTRA" '
-    ipfs files $ARGS mkdir /foo
+    ipfs files mkdir $ARGS /foo
   '
 
   test_expect_success "can make 100 files in a directory $EXTRA" '
@@ -97,16 +97,17 @@ test_sharding() {
 }
 
 test_files_api() {
-  local EXTRA ARGS
+  local EXTRA ARGS RAW_LEAVES
   EXTRA=$1
   ARGS=$2
+  RAW_LEAVES=$3
 
   test_expect_success "can mkdir in root $EXTRA" '
-    ipfs files $ARGS mkdir /cats
+    ipfs files mkdir $ARGS /cats
   '
 
   test_expect_success "'files ls' lists root by default $EXTRA" '
-    ipfs files $ARGS ls >actual &&
+    ipfs files ls >actual &&
     echo "cats" >expected &&
     test_cmp expected actual
   '
@@ -121,7 +122,7 @@ test_files_api() {
   # we do verification of stat formatting now as we depend on it
 
   test_expect_success "stat works $EXTRA" '
-    ipfs files $ARGS stat / >stat
+    ipfs files stat / >stat
   '
 
   test_expect_success "hash is first line of stat $EXTRA" '
@@ -129,41 +130,41 @@ test_files_api() {
   '
 
   test_expect_success "stat --hash gives only hash $EXTRA" '
-    ipfs files $ARGS stat --hash / >actual &&
+    ipfs files stat --hash / >actual &&
     head -n1 stat >expected &&
     test_cmp expected actual
   '
 
   test_expect_success "stat with multiple format options should fail $EXTRA" '
-    test_must_fail ipfs files $ARGS stat --hash --size /
+    test_must_fail ipfs files stat --hash --size /
   '
 
   test_expect_success "compare hash option with format $EXTRA" '
-    ipfs files $ARGS stat --hash / >expected &&
-    ipfs files $ARGS stat --format='"'"'<hash>'"'"' / >actual &&
+    ipfs files stat --hash / >expected &&
+    ipfs files stat --format='"'"'<hash>'"'"' / >actual &&
     test_cmp expected actual
   '
   test_expect_success "compare size option with format $EXTRA" '
-    ipfs files $ARGS stat --size / >expected &&
-    ipfs files $ARGS stat --format='"'"'<cumulsize>'"'"' / >actual &&
+    ipfs files stat --size / >expected &&
+    ipfs files stat --format='"'"'<cumulsize>'"'"' / >actual &&
     test_cmp expected actual
   '
 
   test_expect_success "check root hash $EXTRA" '
-    ipfs files $ARGS stat --hash / > roothash
+    ipfs files stat --hash / > roothash
   '
 
   test_expect_success "cannot mkdir / $EXTRA" '
-    test_expect_code 1 ipfs files $ARGS mkdir /
+    test_expect_code 1 ipfs files mkdir $ARGS /
   '
 
   test_expect_success "check root hash was not changed $EXTRA" '
-    ipfs files $ARGS stat --hash / > roothashafter &&
+    ipfs files stat --hash / > roothashafter &&
     test_cmp roothash roothashafter
   '
 
   test_expect_success "can put files into directory $EXTRA" '
-    ipfs files $ARGS cp /ipfs/$FILE1 /cats/file1
+    ipfs files cp /ipfs/$FILE1 /cats/file1
   '
 
   test_expect_success "file shows up in directory $EXTRA" '
@@ -172,12 +173,12 @@ test_files_api() {
 
   test_expect_success "file has correct hash and size in directory $EXTRA" '
     echo "file1	$FILE1	4" > ls_l_expected &&
-    ipfs files $ARGS ls -l /cats > ls_l_actual &&
+    ipfs files ls -l /cats > ls_l_actual &&
     test_cmp ls_l_expected ls_l_actual
   '
 
   test_expect_success "can read file $EXTRA" '
-    ipfs files $ARGS read /cats/file1 > file1out
+    ipfs files read /cats/file1 > file1out
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -186,7 +187,7 @@ test_files_api() {
   '
 
   test_expect_success "can put another file into root $EXTRA" '
-    ipfs files $ARGS cp /ipfs/$FILE2 /file2
+    ipfs files cp /ipfs/$FILE2 /file2
   '
 
   test_expect_success "file shows up in root $EXTRA" '
@@ -194,7 +195,7 @@ test_files_api() {
   '
 
   test_expect_success "can read file $EXTRA" '
-    ipfs files $ARGS read /file2 > file2out
+    ipfs files read /file2 > file2out
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -203,7 +204,7 @@ test_files_api() {
   '
 
   test_expect_success "can make deep directory $EXTRA" '
-    ipfs files $ARGS mkdir -p /cats/this/is/a/dir
+    ipfs files mkdir $ARGS -p /cats/this/is/a/dir
   '
 
   test_expect_success "directory was created correctly $EXTRA" '
@@ -216,11 +217,11 @@ test_files_api() {
   '
 
   test_expect_success "can copy file into new dir $EXTRA" '
-    ipfs files $ARGS cp /ipfs/$FILE3 /cats/this/is/a/dir/file3
+    ipfs files cp /ipfs/$FILE3 /cats/this/is/a/dir/file3
   '
 
   test_expect_success "can read file $EXTRA" '
-    ipfs files $ARGS read /cats/this/is/a/dir/file3 > output
+    ipfs files read /cats/this/is/a/dir/file3 > output
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -233,7 +234,7 @@ test_files_api() {
   '
 
   test_expect_success "can remove file $EXTRA" '
-    ipfs files $ARGS rm /cats/this/is/a/dir/file3
+    ipfs files rm /cats/this/is/a/dir/file3
   '
 
   test_expect_success "file no longer appears $EXTRA" '
@@ -241,7 +242,7 @@ test_files_api() {
   '
 
   test_expect_success "can remove dir $EXTRA" '
-    ipfs files $ARGS rm -r /cats/this/is/a/dir
+    ipfs files rm -r /cats/this/is/a/dir
   '
 
   test_expect_success "dir no longer appears $EXTRA" '
@@ -249,7 +250,7 @@ test_files_api() {
   '
 
   test_expect_success "can remove file from root $EXTRA" '
-    ipfs files $ARGS rm /file2
+    ipfs files rm /file2
   '
 
   test_expect_success "file no longer appears $EXTRA" '
@@ -257,22 +258,22 @@ test_files_api() {
   '
 
   test_expect_success "check root hash $EXTRA" '
-    ipfs files $ARGS stat --hash / > roothash
+    ipfs files stat --hash / > roothash
   '
 
   test_expect_success "cannot remove root $EXTRA" '
-    test_expect_code 1 ipfs files $ARGS rm -r /
+    test_expect_code 1 ipfs files rm -r /
   '
 
   test_expect_success "check root hash was not changed $EXTRA" '
-    ipfs files $ARGS stat --hash / > roothashafter &&
+    ipfs files stat --hash / > roothashafter &&
     test_cmp roothash roothashafter
   '
 
   # test read options
 
   test_expect_success "read from offset works $EXTRA" '
-    ipfs files $ARGS read -o 1 /cats/file1 > output
+    ipfs files read -o 1 /cats/file1 > output
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -281,7 +282,7 @@ test_files_api() {
   '
 
   test_expect_success "read with size works $EXTRA" '
-    ipfs files $ARGS read -n 2 /cats/file1 > output
+    ipfs files read -n 2 /cats/file1 > output
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -290,11 +291,11 @@ test_files_api() {
   '
 
   test_expect_success "cannot read from negative offset $EXTRA" '
-    test_expect_code 1 ipfs files $ARGS read --offset -3 /cats/file1
+    test_expect_code 1 ipfs files read --offset -3 /cats/file1
   '
 
   test_expect_success "read from offset 0 works $EXTRA" '
-    ipfs files $ARGS read --offset 0 /cats/file1 > output
+    ipfs files read --offset 0 /cats/file1 > output
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -303,7 +304,7 @@ test_files_api() {
   '
 
   test_expect_success "read last byte works $EXTRA" '
-    ipfs files $ARGS read --offset 2 /cats/file1 > output
+    ipfs files read --offset 2 /cats/file1 > output
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -312,7 +313,7 @@ test_files_api() {
   '
 
   test_expect_success "offset past end of file fails $EXTRA" '
-    test_expect_code 1 ipfs files $ARGS read --offset 5 /cats/file1
+    test_expect_code 1 ipfs files read --offset 5 /cats/file1
   '
 
   test_expect_success "cannot read negative count bytes $EXTRA" '
@@ -320,7 +321,7 @@ test_files_api() {
   '
 
   test_expect_success "reading zero bytes prints nothing $EXTRA" '
-    ipfs files $ARGS read --count 0 /cats/file1 > output
+    ipfs files read --count 0 /cats/file1 > output
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -329,7 +330,7 @@ test_files_api() {
   '
 
   test_expect_success "count > len(file) prints entire file $EXTRA" '
-    ipfs files $ARGS read --count 200 /cats/file1 > output
+    ipfs files read --count 200 /cats/file1 > output
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -341,7 +342,7 @@ test_files_api() {
 
   test_expect_success "can write file $EXTRA" '
     echo "ipfs rocks" > tmpfile &&
-    cat tmpfile | ipfs files $ARGS write --create /cats/ipfs
+    cat tmpfile | ipfs files write $ARGS $RAW_LEAVES --create /cats/ipfs
   '
 
   test_expect_success "file was created $EXTRA" '
@@ -349,44 +350,44 @@ test_files_api() {
   '
 
   test_expect_success "can read file we just wrote $EXTRA" '
-    ipfs files $ARGS read /cats/ipfs > output
+    ipfs files read /cats/ipfs > output
   '
 
   test_expect_success "can write to offset $EXTRA" '
-    echo "is super cool" | ipfs files $ARGS write -o 5 /cats/ipfs
+    echo "is super cool" | ipfs files write $ARGS $RAW_LEAVES -o 5 /cats/ipfs
   '
 
   test_expect_success "file looks correct $EXTRA" '
     echo "ipfs is super cool" > expected &&
-    ipfs files $ARGS read /cats/ipfs > output &&
+    ipfs files read /cats/ipfs > output &&
     test_cmp expected output
   '
 
   test_expect_success "file hash correct $EXTRA" '
     echo $FILE_HASH > filehash_expected &&
-    ipfs files $ARGS stat --hash /cats/ipfs > filehash &&
+    ipfs files stat --hash /cats/ipfs > filehash &&
     test_cmp filehash_expected filehash 
   '
 
   test_expect_success "cant write to negative offset $EXTRA" '
-    test_expect_code 1 ipfs files $ARGS write --offset -1 /cats/ipfs < output
+    test_expect_code 1 ipfs files write $ARGS $RAW_LEAVES --offset -1 /cats/ipfs < output
   '
 
   test_expect_success "verify file was not changed $EXTRA" '
-    ipfs files $ARGS stat --hash /cats/ipfs > afterhash &&
+    ipfs files stat --hash /cats/ipfs > afterhash &&
     test_cmp filehash afterhash
   '
 
   test_expect_success "write new file for testing $EXTRA" '
-    echo foobar | ipfs files $ARGS write --create /fun
+    echo foobar | ipfs files write $ARGS $RAW_LEAVES --create /fun
   '
 
   test_expect_success "write to offset past end works $EXTRA" '
-    echo blah | ipfs files $ARGS write --offset 50 /fun
+    echo blah | ipfs files write $ARGS $RAW_LEAVES --offset 50 /fun
   '
 
   test_expect_success "can read file $EXTRA" '
-    ipfs files $ARGS read /fun > sparse_output
+    ipfs files read /fun > sparse_output
   '
 
   test_expect_success "output looks good $EXTRA" '
@@ -396,21 +397,21 @@ test_files_api() {
   '
 
   test_expect_success "cleanup $EXTRA" '
-    ipfs files $ARGS rm /fun
+    ipfs files rm /fun
   '
 
   test_expect_success "cannot write to directory $EXTRA" '
-    ipfs files $ARGS stat --hash /cats > dirhash &&
-    test_expect_code 1 ipfs files $ARGS write /cats < output
+    ipfs files stat --hash /cats > dirhash &&
+    test_expect_code 1 ipfs files write $ARGS $RAW_LEAVES /cats < output
   '
 
   test_expect_success "verify dir was not changed $EXTRA" '
-    ipfs files $ARGS stat --hash /cats > afterdirhash &&
+    ipfs files stat --hash /cats > afterdirhash &&
     test_cmp dirhash afterdirhash
   '
 
   test_expect_success "cannot write to nonexistant path $EXTRA" '
-    test_expect_code 1 ipfs files $ARGS write /cats/bar/ < output
+    test_expect_code 1 ipfs files write $ARGS $RAW_LEAVES /cats/bar/ < output
   '
 
   test_expect_success "no new paths were created $EXTRA" '
@@ -418,7 +419,7 @@ test_files_api() {
   '
 
   test_expect_success "write 'no-flush' succeeds $EXTRA" '
-    echo "testing" | ipfs files $ARGS write -f=false -e /cats/walrus
+    echo "testing" | ipfs files write $ARGS $RAW_LEAVES -f=false -e /cats/walrus
   '
 
   test_expect_success "root hash not bubbled up yet $EXTRA" '
@@ -428,7 +429,7 @@ test_files_api() {
   '
 
   test_expect_success "changes bubbled up to root on inspection $EXTRA" '
-    ipfs files $ARGS stat --hash / > root_hash
+    ipfs files stat --hash / > root_hash
   '
 
   test_expect_success "root hash looks good $EXTRA" '
@@ -445,12 +446,12 @@ test_files_api() {
   '
 
   test_expect_success "flush root succeeds $EXTRA" '
-    ipfs files $ARGS flush /
+    ipfs files flush /
   '
 
   # test mv
   test_expect_success "can mv dir $EXTRA" '
-    ipfs files $ARGS mv /cats/this/is /cats/
+    ipfs files mv /cats/this/is /cats/
   '
 
   test_expect_success "mv worked $EXTRA" '
@@ -459,7 +460,7 @@ test_files_api() {
   '
 
   test_expect_success "cleanup, remove 'cats' $EXTRA" '
-    ipfs files $ARGS rm -r /cats
+    ipfs files rm -r /cats
   '
 
   test_expect_success "cleanup looks good $EXTRA" '
@@ -468,36 +469,36 @@ test_files_api() {
 
   # test truncating
   test_expect_success "create a new file $EXTRA" '
-    echo "some content" | ipfs files $ARGS write --create /cats
+    echo "some content" | ipfs files write $ARGS $RAW_LEAVES --create /cats
   '
 
   test_expect_success "truncate and write over that file $EXTRA" '
-    echo "fish" | ipfs files $ARGS write --truncate /cats
+    echo "fish" | ipfs files write $ARGS $RAW_LEAVES --truncate /cats
   '
 
   test_expect_success "output looks good $EXTRA" '
-    ipfs files $ARGS read /cats > file_out &&
+    ipfs files read /cats > file_out &&
     echo "fish" > file_exp &&
     test_cmp file_out file_exp
   '
 
   test_expect_success "file hash correct $EXTRA" '
     echo $TRUNC_HASH > filehash_expected &&
-    ipfs files $ARGS stat --hash /cats > filehash &&
+    ipfs files stat --hash /cats > filehash &&
     test_cmp filehash_expected filehash
   '
 
   test_expect_success "cleanup $EXTRA" '
-    ipfs files $ARGS rm /cats
+    ipfs files rm /cats
   '
 
   # test flush flags
   test_expect_success "mkdir --flush works $EXTRA" '
-    ipfs files $ARGS mkdir --flush --parents /flushed/deep
+    ipfs files mkdir $ARGS --flush --parents /flushed/deep
   '
 
   test_expect_success "mkdir --flush works a second time $EXTRA" '
-    ipfs files $ARGS mkdir --flush --parents /flushed/deep
+    ipfs files mkdir $ARGS --flush --parents /flushed/deep
   '
 
   test_expect_success "dir looks right $EXTRA" '
@@ -509,7 +510,7 @@ test_files_api() {
   '
 
   test_expect_success "cleanup $EXTRA" '
-    ipfs files $ARGS rm -r /flushed
+    ipfs files rm -r /flushed
   '
 
   test_expect_success "child dir looks right $EXTRA" '
@@ -518,43 +519,43 @@ test_files_api() {
 
   # test for https://github.com/ipfs/go-ipfs/issues/2654
   test_expect_success "create and remove dir $EXTRA" '
-    ipfs files $ARGS mkdir /test_dir &&
-    ipfs files $ARGS rm -r "/test_dir"
+    ipfs files mkdir $ARGS /test_dir &&
+    ipfs files rm -r "/test_dir"
   '
 
   test_expect_success "create test file $EXTRA" '
-    echo "content" | ipfs files $ARGS write -e "/test_file"
+    echo "content" | ipfs files write $ARGS $RAW_LEAVES -e "/test_file"
   '
 
   test_expect_success "copy test file onto test dir $EXTRA" '
-    ipfs files $ARGS cp "/test_file" "/test_dir"
+    ipfs files cp "/test_file" "/test_dir"
   '
 
   test_expect_success "test /test_dir $EXTRA" '
-    ipfs files $ARGS stat "/test_dir" | grep -q "^Type: file"
+    ipfs files stat "/test_dir" | grep -q "^Type: file"
   '
 
   test_expect_success "clean up /test_dir and /test_file $EXTRA" '
-    ipfs files $ARGS rm -r /test_dir &&
-    ipfs files $ARGS rm -r /test_file
+    ipfs files rm -r /test_dir &&
+    ipfs files rm -r /test_file
   '
 
   test_expect_success "make a directory and a file $EXTRA" '
-    ipfs files $ARGS mkdir /adir &&
-    echo "blah" | ipfs files $ARGS write --create /foobar
+    ipfs files mkdir $ARGS /adir &&
+    echo "blah" | ipfs files write $ARGS $RAW_LEAVES --create /foobar
   '
 
   test_expect_success "copy a file into a directory $EXTRA" '
-    ipfs files $ARGS cp /foobar /adir/
+    ipfs files cp /foobar /adir/
   '
 
   test_expect_success "file made it into directory $EXTRA" '
-    ipfs files $ARGS ls /adir | grep foobar
+    ipfs files ls /adir | grep foobar
   '
 
   test_expect_success "clean up $EXTRA" '
-    ipfs files $ARGS rm -r /foobar &&
-    ipfs files $ARGS rm -r /adir
+    ipfs files rm -r /foobar &&
+    ipfs files rm -r /adir
   '
 
   test_expect_success "root mfs entry is empty $EXTRA" '
@@ -595,7 +596,7 @@ tests_for_files_api() {
   CATS_HASH=QmPqWDEg7NoWRX8Y4vvYjZtmdg5umbfsTQ9zwNr12JoLmt
   FILE_HASH=QmRCgHeoKxCqK2Es6M6nPUDVWz19yNQPnsXGsXeuTkSKpN
   TRUNC_HASH=QmRFJEKWF5A5FyFYZgNhusLw2UziW9zBKYr4huyHjzcB6o
-  test_files_api "($EXTRA, raw-leaves)" --raw-leaves
+  test_files_api "($EXTRA, raw-leaves)" '' --raw-leaves
 
   ROOT_HASH=QmageRWxC7wWjPv5p36NeAgBAiFdBHaNfxAehBSwzNech2
   CATS_HASH=zdj7WkEzPLNAr5TYJSQC8CFcBjLvWFfGdx6kaBrJXnBguwWeX
@@ -606,7 +607,7 @@ tests_for_files_api() {
   fi
 
   test_expect_success "can update root hash to cidv1" '
-    ipfs files --cid-version=1 chcid / &&
+    ipfs files chcid --cid-version=1 / &&
     echo zdj7WbTaiJT1fgatdet9Ei9iDB5hdCxkbVyhyh8YTUnXMiwYi > hash_expect &&
     ipfs files stat --hash / > hash_actual &&
     test_cmp hash_expect hash_actual
@@ -617,7 +618,7 @@ tests_for_files_api() {
 
   if [ "$EXTRA" = "offline" ]; then
     test_expect_success "can update root hash to blake2b-256" '
-    ipfs files --hash-fun=blake2b-256 chcid / &&
+    ipfs files chcid --hash=blake2b-256 / &&
       echo zDMZof1kvswQMT8txrmnb3JGBuna6qXCTry6hSifrkZEd6VmHbBm > hash_expect &&
       ipfs files stat --hash / > hash_actual &&
       test_cmp hash_expect hash_actual
@@ -630,7 +631,7 @@ tests_for_files_api() {
   fi
 
   test_expect_success "can update root hash back to cidv0" '
-    ipfs files --cid-version=0 chcid / &&
+    ipfs files chcid / --cid-version=0 &&
     echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn > hash_expect &&
     ipfs files stat --hash / > hash_actual &&
     test_cmp hash_expect hash_actual

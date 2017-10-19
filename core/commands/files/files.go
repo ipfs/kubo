@@ -41,21 +41,10 @@ of consistency guarantees. If the daemon is unexpectedly killed before running
 'ipfs files flush' on the files in question, then data may be lost. This also
 applies to running 'ipfs repo gc' concurrently with '--flush=false'
 operations.
-
-The --cid-version and --hash-fun option only apply to newly created files
-and directories.  If not specified these proprieties are inhertied
-from the parent directory.
 `,
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("f", "flush", "Flush target and ancestors after write.").Default(true),
-		cmds.BoolOption("raw-leaves", "Use raw blocks for newly created leaf nodes. (experimental)"),
-		cmds.IntOption("cid-version", "cid-ver", "Cid version. Non-zero value will change default of 'raw-leaves' to true. (experimental)"),
-		cmds.StringOption("hash-fun", "Hash function to use. Will set Cid version to 1 if used. (experimental)"),
-		// ^^fixme: can't use just "hash" as the option name as the
-		// conflicts with "--hash" usage by the stat command, this is
-		// unfortunate as it creates an inconsistency with the "add"
-		// that uses "hash"
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -70,6 +59,9 @@ from the parent directory.
 		"chcid": FilesChcidCmd,
 	},
 }
+
+var cidVersionOption = cmds.IntOption("cid-version", "cid-ver", "Cid version to use. (experimental)")
+var hashOption = cmds.StringOption("hash", "Hash function to use. Will set Cid version to 1 if used. (experimental)")
 
 var formatError = errors.New("Format was set by multiple options. Only one format option is allowed")
 
@@ -576,6 +568,13 @@ a beginning offset to write to. The entire length of the input will be written.
 If the '--create' option is specified, the file will be created if it does not
 exist. Nonexistant intermediate directories will not be created.
 
+Newly created files will have the same CID version and hash function of the
+parent directory unless the --cid-version and --hash options are used.
+
+Newly created leaves will be in the legacy format (Protobuf) if the
+CID version is 0, or raw is the CID version is non-zero.  Use of the
+--raw-leaves option will override this behavior.
+
 If the '--flush' option is set to false, changes will not be propogated to the
 merkledag root. This can make operations much faster when doing a large number
 of writes to a deeper directory structure.
@@ -601,6 +600,9 @@ stat' on the file or any of its ancestors.
 		cmds.BoolOption("create", "e", "Create the file if it does not exist."),
 		cmds.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
 		cmds.IntOption("count", "n", "Maximum number of bytes to read."),
+		cmds.BoolOption("raw-leaves", "Use raw blocks for newly created leaf nodes. (experimental)"),
+		cidVersionOption,
+		hashOption,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		path, err := checkPath(req.Arguments()[0])
@@ -709,6 +711,9 @@ var FilesMkdirCmd = &cmds.Command{
 		ShortDescription: `
 Create the directory if it does not already exist.
 
+The directory will have the same CID version and hash function of the
+parent directory unless the --cid-version and --hash options are used.
+
 NOTE: All paths must be absolute.
 
 Examples:
@@ -723,6 +728,8 @@ Examples:
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("parents", "p", "No error if existing, make parent directories as needed."),
+		cidVersionOption,
+		hashOption,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -800,6 +807,10 @@ Change the cid version or hash function of the root node of a given path.
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", false, false, "Path to change. Default: '/'."),
+	},
+	Options: []cmds.Option{
+		cidVersionOption,
+		hashOption,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -959,7 +970,7 @@ Remove files or directories.
 
 func getPrefix(req cmds.Request) (*cid.Prefix, error) {
 	cidVer, cidVerSet, _ := req.Option("cid-version").Int()
-	hashFunStr, hashFunSet, _ := req.Option("hash-fun").String()
+	hashFunStr, hashFunSet, _ := req.Option("hash").String()
 
 	if !cidVerSet && !hashFunSet {
 		return nil, nil
