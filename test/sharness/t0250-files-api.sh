@@ -177,6 +177,19 @@ test_files_api() {
     test_cmp ls_l_expected ls_l_actual
   '
 
+  test_expect_success "can stat file $EXTRA" '
+    ipfs files stat /cats/file1 > file1stat_orig
+  '
+
+  test_expect_success "stat output looks good" '
+    grep -v CumulativeSize: file1stat_orig > file1stat_actual &&
+    echo "$FILE1" > file1stat_expect &&
+    echo "Size: 4" >> file1stat_expect &&
+    echo "ChildBlocks: 0" >> file1stat_expect &&
+    echo "Type: file" >> file1stat_expect &&
+    test_cmp file1stat_expect file1stat_actual
+  '
+
   test_expect_success "can read file $EXTRA" '
     ipfs files read /cats/file1 > file1out
   '

@@ -168,38 +168,46 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 
 	c := nd.Cid()
 
-	pbnd, ok := nd.(*dag.ProtoNode)
-	if !ok {
-		return nil, dag.ErrNotProtobuf
-	}
-
-	d, err := ft.FromBytes(pbnd.Data())
-	if err != nil {
-		return nil, err
-	}
-
 	cumulsize, err := nd.Size()
 	if err != nil {
 		return nil, err
 	}
 
-	var ndtype string
-	switch fsn.Type() {
-	case mfs.TDir:
-		ndtype = "directory"
-	case mfs.TFile:
-		ndtype = "file"
-	default:
-		return nil, fmt.Errorf("Unrecognized node type: %s", fsn.Type())
-	}
+	switch n := nd.(type) {
+	case *dag.ProtoNode:
+		d, err := ft.FromBytes(n.Data())
+		if err != nil {
+			return nil, err
+		}
 
-	return &Object{
-		Hash:           c.String(),
-		Blocks:         len(nd.Links()),
-		Size:           d.GetFilesize(),
-		CumulativeSize: cumulsize,
-		Type:           ndtype,
-	}, nil
+		var ndtype string
+		switch fsn.Type() {
+		case mfs.TDir:
+			ndtype = "directory"
+		case mfs.TFile:
+			ndtype = "file"
+		default:
+			return nil, fmt.Errorf("unrecognized node type: %s", fsn.Type())
+		}
+
+		return &Object{
+			Hash:           c.String(),
+			Blocks:         len(nd.Links()),
+			Size:           d.GetFilesize(),
+			CumulativeSize: cumulsize,
+			Type:           ndtype,
+		}, nil
+	case *dag.RawNode:
+		return &Object{
+			Hash:           c.String(),
+			Blocks:         0,
+			Size:           cumulsize,
+			CumulativeSize: cumulsize,
+			Type:           "file",
+		}, nil
+	default:
+		return nil, fmt.Errorf("not unixfs node (proto or raw)")
+	}
 }
 
 var FilesCpCmd = &cmds.Command{
