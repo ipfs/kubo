@@ -372,7 +372,7 @@ func makeSmuxTransport(mplexExp bool) smux.Transport {
 	mstpt := mssmux.NewBlankTransport()
 
 	ymxtpt := &yamux.Transport{
-		AcceptBacklog:          8192,
+		AcceptBacklog:          512,
 		ConnectionWriteTimeout: time.Second * 10,
 		KeepAliveInterval:      time.Second * 30,
 		EnableKeepAlive:        true,
