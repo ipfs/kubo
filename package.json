@@ -475,6 +475,12 @@
       "hash": "QmPErLx83hgF5XKqjeYaLWXJSFon4mH7YPzoftUvfrPgQG",
       "name": "go-libp2p-connmgr",
       "version": "0.3.2"
+    },
+    {
+      "author": "why",
+      "hash": "QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr",
+      "name": "go-libp2p-interface-connmgr",
+      "version": "0.0.2"
     }
   ],
   "gxVersion": "0.10.0",
