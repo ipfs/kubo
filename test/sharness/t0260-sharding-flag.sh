@@ -75,8 +75,8 @@ test_add_large_dir_v1() {
   '
 }
 
-# this hash implies both the directory and the leaf entries are CIDv1
-SHARDEDV1="zdj7WX91spg4DsnNpvoBLjyjXUGgcTTWavygBbSifpmJdgPUA"
+# this hash implies the directory is CIDv1 and leaf entries are CIDv1 and raw
+SHARDEDV1="zdj7WY8aNcxF49q1ZpFXfchNmbswnUxiVDVjmrHb53xRM8W4C"
 test_add_large_dir_v1 "$SHARDEDV1"
 
 test_launch_ipfs_daemon

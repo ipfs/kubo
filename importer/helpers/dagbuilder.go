@@ -120,8 +120,8 @@ func (db *DagBuilderHelper) NewUnixfsNode() *UnixfsNode {
 	return n
 }
 
-// NewUnixfsBlock creates a new Unixfs node to represent a raw data block
-func (db *DagBuilderHelper) NewUnixfsBlock() *UnixfsNode {
+// newUnixfsBlock creates a new Unixfs node to represent a raw data block
+func (db *DagBuilderHelper) newUnixfsBlock() *UnixfsNode {
 	n := &UnixfsNode{
 		node: new(dag.ProtoNode),
 		ufmt: &ft.FSNode{Type: ft.TRaw},
@@ -181,7 +181,7 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 			}, nil
 		}
 	} else {
-		blk := db.NewUnixfsBlock()
+		blk := db.newUnixfsBlock()
 		blk.SetData(data)
 		return blk, nil
 	}

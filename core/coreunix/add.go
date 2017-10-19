@@ -119,7 +119,6 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 	rnode := unixfs.EmptyDirNode()
 	rnode.SetPrefix(adder.Prefix)
 	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil)
-	mr.Prefix = adder.Prefix
 	if err != nil {
 		return nil, err
 	}
@@ -398,7 +397,12 @@ func (adder *Adder) addNode(node node.Node, path string) error {
 	}
 	dir := gopath.Dir(path)
 	if dir != "." {
-		if err := mfs.Mkdir(mr, dir, true, false); err != nil {
+		opts := mfs.MkdirOpts{
+			Mkparents: true,
+			Flush:     false,
+			Prefix:    adder.Prefix,
+		}
+		if err := mfs.Mkdir(mr, dir, opts); err != nil {
 			return err
 		}
 	}
@@ -496,7 +500,11 @@ func (adder *Adder) addDir(dir files.File) error {
 	if err != nil {
 		return err
 	}
-	err = mfs.Mkdir(mr, dir.FileName(), true, false)
+	err = mfs.Mkdir(mr, dir.FileName(), mfs.MkdirOpts{
+		Mkparents: true,
+		Flush:     false,
+		Prefix:    adder.Prefix,
+	})
 	if err != nil {
 		return err
 	}

@@ -42,6 +42,12 @@ var v1CidPrefix = cid.Prefix{
 	Version:  1,
 }
 
+// V0CidPrefix returns a prefix for CIDv0
+func V0CidPrefix() cid.Prefix { return v0CidPrefix }
+
+// V1CidPrefix returns a prefix for CIDv1 with the default settings
+func V1CidPrefix() cid.Prefix { return v1CidPrefix }
+
 // PrefixForCidVersion returns the Protobuf prefix for a given CID version
 func PrefixForCidVersion(version int) (cid.Prefix, error) {
 	switch version {
