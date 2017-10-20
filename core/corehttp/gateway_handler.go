@@ -268,7 +268,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	if !dir {
 		name := gopath.Base(urlPath)
-		i.serverFile(w, r, name, modtime, dr)
+		i.serveFile(w, r, name, modtime, dr)
 		return
 	}
 
@@ -390,7 +390,7 @@ func (s *sizeSeeker) Seek(offset int64, whence int) (int64, error) {
 	return s.sizeReadSeeker.Seek(offset, whence)
 }
 
-func (i *gatewayHandler) serverFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
+func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
 	if sp, ok := content.(sizeReadSeeker); ok {
 		content = &sizeSeeker{
 			sizeReadSeeker: sp,
@@ -398,13 +398,6 @@ func (i *gatewayHandler) serverFile(w http.ResponseWriter, req *http.Request, na
 	}
 
 	http.ServeContent(w, req, name, modtime, content)
-	//TODO: check for errors in ServeContent.. somehow
-
-	// If http.ServeContent can't figure out content size it won't write it to the
-	// responseWriter, Content-Length not being set is a good indicator of this
-	if req.Method != "HEAD" && w.Header().Get("Content-Length") == "" {
-		io.Copy(w, content)
-	}
 }
 
 func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
