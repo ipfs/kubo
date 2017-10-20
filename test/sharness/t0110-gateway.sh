@@ -124,7 +124,7 @@ test_expect_success "HEAD 'index.html' has no content" '
 # test ipfs readonly api
 
 test_curl_gateway_api() {
-    curl -sfo actual "http://127.0.0.1:$port/api/v0/$1"
+  curl -sfo actual "http://127.0.0.1:$port/api/v0/$1"
 }
 
 test_expect_success "get IPFS directory file through readonly API succeeds" '
@@ -140,7 +140,7 @@ test_expect_success "refs IPFS directory file through readonly API succeeds" '
 '
 
 test_expect_success "test gateway api is sanitized" '
-for cmd in "add" "block/put" "bootstrap" "config" "dht" "diag" "dns" "get" "id" "mount" "name/publish" "object/put" "object/new" "object/patch" "pin" "ping" "refs/local" "repo" "resolve" "stats" "swarm"  "file" "update" "version" "bitswap"; do
+  for cmd in "add" "block/put" "bootstrap" "config" "dht" "diag" "dns" "get" "id" "mount" "name/publish" "object/put" "object/new" "object/patch" "pin" "ping" "refs/local" "repo" "resolve" "stats" "swarm"  "file" "update" "version" "bitswap"; do
     test_curl_resp_http_code "http://127.0.0.1:$port/api/v0/$cmd" "HTTP/1.1 404 Not Found"
   done
 '
@@ -153,6 +153,17 @@ test_expect_success "create raw-leaves node" '
 test_expect_success "try fetching it from gateway" '
   curl http://127.0.0.1:$port/ipfs/$(cat rhash) > ffile &&
   test_cmp rfile ffile
+'
+
+test_expect_success "Add compact blocks" '
+  ipfs block put ../t0110-gateway-data/foo.block &&
+  FOO2_HASH=$(ipfs block put ../t0110-gateway-data/foofoo.block) &&
+  printf "foofoo" > expected
+'
+
+test_expect_success "GET compact blocks succeeds" '
+  curl -o actual "http://127.0.0.1:$port/ipfs/$FOO2_HASH" &&
+  test_cmp expected actual
 '
 
 test_kill_ipfs_daemon
