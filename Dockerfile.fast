@@ -11,37 +11,36 @@ ENV SRC_DIR /go/src/github.com/ipfs/go-ipfs
 
 COPY ./package.json $SRC_DIR/package.json
 
+# Fetch dependencies.
+# Also: allow using a custom IPFS API endpoint.
 RUN set -x \
   && go get github.com/whyrusleeping/gx \
   && go get github.com/whyrusleeping/gx-go \
-  # Allows using a custom (i.e. local) IPFS API endpoint.
   && ([ -z "$GX_IPFS" ] || echo $GX_IPFS > /root/.ipfs/api) \
-  # Fetch the dependencies so we don't have to do it everytime.
   && cd $SRC_DIR \
   && gx install
 
 COPY . $SRC_DIR
 
 # Build the thing.
+# Also: fix getting HEAD commit hash via git rev-parse.
 RUN set -x \
   && cd $SRC_DIR \
-  # Required for getting the HEAD commit hash via git rev-parse.
   && mkdir .git/objects \
-  # Build the thing.
   && make build \
   && mv cmd/ipfs/ipfs /usr/local/bin/ipfs \
   && mv bin/container_daemon /usr/local/bin/start_ipfs
 
+# Get su-exec, a very minimal tool for dropping privileges,
+# and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
 ENV TINI_VERSION v0.16.1
 RUN set -x \
-  # Get su-exec, a very minimal tool for dropping privileges
   && cd /tmp \
   && git clone https://github.com/ncopa/su-exec.git \
   && cd su-exec \
   && git checkout -q $SUEXEC_VERSION \
   && make \
-  # Get tini, a very minimal init daemon for containers
   && cd /tmp \
   && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
   && chmod +x tini \
