@@ -35,7 +35,7 @@ RUN set -x \
   && chmod +x tini
 
 # Get the TLS CA certificates, they're not provided by busybox.
-RUN apt-get install -y ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates
 
 # Now comes the actual target image, which aims to be as small as possible.
 FROM busybox:1-glibc
@@ -62,8 +62,8 @@ EXPOSE 8081
 # Create the fs-repo directory and switch to a non-privileged user.
 ENV IPFS_PATH /data/ipfs
 RUN mkdir -p $IPFS_PATH \
-  && adduser -D -h $IPFS_PATH -u 1000 -g 100 ipfs \
-  && chown 1000:100 $IPFS_PATH
+  && adduser -D -h $IPFS_PATH -u 1000 -G users ipfs \
+  && chown ipfs:users $IPFS_PATH
 
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.
