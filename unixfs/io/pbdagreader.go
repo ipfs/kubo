@@ -15,7 +15,7 @@ import (
 
 // DagReader provides a way to easily read the data contained in a dag.
 type pbDagReader struct {
-	serv mdag.DAGService
+	serv mdag.NodeFetcher
 
 	// the node being read
 	node *mdag.ProtoNode
@@ -45,7 +45,7 @@ type pbDagReader struct {
 
 var _ DagReader = (*pbDagReader)(nil)
 
-func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv mdag.DAGService) *pbDagReader {
+func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv mdag.NodeFetcher) *pbDagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	promises := mdag.GetDAG(fctx, serv, n)
 	return &pbDagReader{
