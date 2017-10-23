@@ -12,24 +12,23 @@ ENV SRC_DIR /go/src/github.com/ipfs/go-ipfs
 COPY . $SRC_DIR
 
 # Build the thing.
+# Also: fix getting HEAD commit hash via git rev-parse.
+# Also: allow using a custom IPFS API endpoint.
 RUN cd $SRC_DIR \
-  # Required for getting the HEAD commit hash via git rev-parse.
   && mkdir .git/objects \
-  # Allows using a custom (i.e. local) IPFS API endpoint.
   && ([ -z "$GX_IPFS" ] || echo $GX_IPFS > /root/.ipfs/api) \
-  # Build the thing.
   && make build
 
+# Get su-exec, a very minimal tool for dropping privileges,
+# and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
 ENV TINI_VERSION v0.16.1
 RUN set -x \
-  # Get su-exec, a very minimal tool for dropping privileges
   && cd /tmp \
   && git clone https://github.com/ncopa/su-exec.git \
   && cd su-exec \
   && git checkout -q $SUEXEC_VERSION \
   && make \
-  # Get tini, a very minimal init daemon for containers
   && cd /tmp \
   && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
   && chmod +x tini
