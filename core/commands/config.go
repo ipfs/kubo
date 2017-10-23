@@ -155,7 +155,8 @@ included in the output of this command.
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		fname, err := config.Filename(req.InvocContext().ConfigRoot)
+		cfgPath := req.InvocContext().ConfigRoot
+		fname, err := config.Filename(cfgPath)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

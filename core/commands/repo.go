@@ -18,8 +18,8 @@ import (
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	cmds "gx/ipfs/QmQVvuDwXUGbtYmbmTcbLtGRYXnEbymaR2zEj38GVysqWe/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmUsuV7rMitqBCk2UPmX1f3Vtp4tJNi6xvXpkQgKujjW5R/go-ipfs-cmds"
 )
 
 type RepoVersion struct {
@@ -162,7 +162,7 @@ Version         string The repo version.
 			return
 		}
 
-		res.Emit(stat)
+		cmds.EmitOnce(res, stat)
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("human", "Output RepoSize in MiB.").Default(false),

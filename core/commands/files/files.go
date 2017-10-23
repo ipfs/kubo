@@ -794,6 +794,7 @@ Examples:
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
 		res.SetOutput(nil)
 	},
 }
@@ -870,6 +871,8 @@ Change the cid version or hash function of the root node of a given path.
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		res.SetOutput(nil)
 	},
 }
 

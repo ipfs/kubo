@@ -9,8 +9,8 @@ import (
 
 	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	"gx/ipfs/QmQVvuDwXUGbtYmbmTcbLtGRYXnEbymaR2zEj38GVysqWe/go-ipfs-cmds"
 	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
+	"gx/ipfs/QmUsuV7rMitqBCk2UPmX1f3Vtp4tJNi6xvXpkQgKujjW5R/go-ipfs-cmds"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
@@ -67,7 +67,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 			return
 		}
 
-		err = res.Emit(&BlockStat{
+		err = cmds.EmitOnce(res, &BlockStat{
 			Key:  b.Cid().String(),
 			Size: len(b.RawData()),
 		})
@@ -204,7 +204,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			return
 		}
 
-		err = res.Emit(&BlockStat{
+		err = cmds.EmitOnce(res, &BlockStat{
 			Key:  k.String(),
 			Size: len(data),
 		})
