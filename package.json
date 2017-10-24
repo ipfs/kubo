@@ -481,6 +481,12 @@
       "hash": "QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr",
       "name": "go-libp2p-interface-connmgr",
       "version": "0.0.2"
+    },
+    {
+      "author": "why",
+      "hash": "QmeS8cCKawUwejVrsBtmC1toTXmwVWZGiRJqzgTURVWeF9",
+      "name": "go-ipfs-addr",
+      "version": "0.1.1"
     }
   ],
   "gxVersion": "0.10.0",
