@@ -271,7 +271,10 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 func constructConnMgr(cfg config.ConnMgr) (ifconnmgr.ConnManager, error) {
 	switch cfg.Type {
-	case "", "none":
+	case "":
+		// 'default' value is the basic connection manager
+		return connmgr.NewConnManager(config.DefaultConnMgrLowWater, config.DefaultConnMgrHighWater, config.DefaultConnMgrGracePeriod), nil
+	case "none":
 		return nil, nil
 	case "basic":
 		grace, err := time.ParseDuration(cfg.GracePeriod)
