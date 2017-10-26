@@ -284,14 +284,18 @@ Stop the running container:
     docker stop ipfs_host
 
 ### Troubleshooting
+
 If you have previously installed IPFS before and you are running into
 problems getting a newer version to work, try deleting (or backing up somewhere
 else) your IPFS config directory (~/.ipfs by default) and rerunning `ipfs init`.
 This will reinitialize the config file to its defaults and clear out the local
 datastore of any bad entries.
 
-For any other problems, check the [issues list](https://github.com/ipfs/go-ipfs/issues)
-and if you dont see your problem there, either come talk to us on irc (freenode #ipfs) or
+Please direct general questions and help requests to our
+[forum](https://discuss.ipfs.io) or our IRC channel (freenode #ipfs).
+
+If you believe you've found a bug, check the [issues list](https://github.com/ipfs/go-ipfs/issues)
+and, if you dont see your problem there, either come talk to us on IRC (freenode #ipfs) or
 file an issue of your own!
 
 ## Todo
