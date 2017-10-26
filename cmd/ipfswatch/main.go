@@ -18,7 +18,7 @@ import (
 	homedir "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
-	commands "gx/ipfs/QmUsuV7rMitqBCk2UPmX1f3Vtp4tJNi6xvXpkQgKujjW5R/go-ipfs-cmds"
+	commands "gx/ipfs/QmUgr8HrEkQqXfBPtj1A2UEg1V7cvhUhDsmL44wFPCJk5k/go-ipfs-cmds"
 	fsnotify "gx/ipfs/QmczzCMvJ3HV57WBKDy8b4ucp7quT325JjDbixYRS5Pwvv/fsnotify.v1"
 )
 
