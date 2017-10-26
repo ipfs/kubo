@@ -1,5 +1,36 @@
 # go-ipfs changelog
 
+## 0.4.12-rc1 2017-10-26
+
+- Features
+  - Implement Connection Manager ([ipfs/go-ipfs#4288](https://github.com/ipfs/go-ipfs/pull/4288))
+  - Support multiple files in dag put ([ipfs/go-ipfs#4254](https://github.com/ipfs/go-ipfs/pull/4254))
+  - Add 'raw' support to the dag put command ([ipfs/go-ipfs#4285](https://github.com/ipfs/go-ipfs/pull/4285))
+- Improvements
+  - Parallelize dag batch flushing ([ipfs/go-ipfs#4296](https://github.com/ipfs/go-ipfs/pull/4296))
+  - Update go-peerstream to improve CPU usage ([ipfs/go-ipfs#4323](https://github.com/ipfs/go-ipfs/pull/4323))
+  - Add full support for CidV1 in Files API and Dag Modifier ([ipfs/go-ipfs#4026](https://github.com/ipfs/go-ipfs/pull/4026))
+  - Lower yamux accept buffer size ([ipfs/go-ipfs#4326](https://github.com/ipfs/go-ipfs/pull/4326))
+- Documentation
+  - Add some docs on plugins ([ipfs/go-ipfs#4255](https://github.com/ipfs/go-ipfs/pull/4255))
+  - Add more info about private network bootstrap ([ipfs/go-ipfs#4270](https://github.com/ipfs/go-ipfs/pull/4270))
+  - Add more info about `ipfs add` chunker option ([ipfs/go-ipfs#4306](https://github.com/ipfs/go-ipfs/pull/4306))
+- Bugfixes
+  - Fix FreeBSD build issues ([ipfs/go-ipfs#4275](https://github.com/ipfs/go-ipfs/pull/4275))
+  - Don't crash when Datastore.StorageMax is not defined ([ipfs/go-ipfs#4246](https://github.com/ipfs/go-ipfs/pull/4246))
+  - Do not call 'Connect' on NewStream in bitswap ([ipfs/go-ipfs#4317](https://github.com/ipfs/go-ipfs/pull/4317))
+  - Filter out "" from active peers in bitswap sessions ([ipfs/go-ipfs#4316](https://github.com/ipfs/go-ipfs/pull/4316))
+  - Fix "seeker can't seek" on specific files ([ipfs/go-ipfs#4320](https://github.com/ipfs/go-ipfs/pull/4320))
+  - Do not set "gecos" field in Dockerfile ([ipfs/go-ipfs#4331](https://github.com/ipfs/go-ipfs/pull/4331))
+  - Handle sym links in when calculating repo size ([ipfs/go-ipfs#4305](https://github.com/ipfs/go-ipfs/pull/4305))
+- General Changes and Refactorings
+  - Fix indent in sharness tests ([ipfs/go-ipfs#4212](https://github.com/ipfs/go-ipfs/pull/4212))
+  - Remove supernode routing ([ipfs/go-ipfs#4302](https://github.com/ipfs/go-ipfs/pull/4302))
+  - Extract go-ipfs-addr ([ipfs/go-ipfs#4340](https://github.com/ipfs/go-ipfs/pull/4340))
+- Testing
+  - Make sharness t0180-p2p less racy ([ipfs/go-ipfs#4310](https://github.com/ipfs/go-ipfs/pull/4310))
+
+
 ### 0.4.11 2017-09-14
 
 Ipfs 0.4.11 is a larger release that brings many long-awaited features and
