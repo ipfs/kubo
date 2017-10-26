@@ -298,10 +298,6 @@ If you believe you've found a bug, check the [issues list](https://github.com/ip
 and, if you dont see your problem there, either come talk to us on IRC (freenode #ipfs) or
 file an issue of your own!
 
-## Todo
-
-An IPFS alpha version has been released in February 2015. Things left to be done are all marked as [issues](https://github.com/ipfs/go-ipfs/issues).
-
 ## Contributing
 
 Please see [Contribute.md](contribute.md)!
