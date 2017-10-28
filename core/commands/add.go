@@ -72,29 +72,28 @@ You can now refer to the added file in a gateway, like so:
 
   /ipfs/QmaG4FuMqEBnQNn3C8XJ5bpW8kLs7zq2ZXgHptJHbKDDVx/example.jpg
 
-The chunker option, '-s', defines the chunking strategy for how
-ipfs puts larger files into blocks. Blocks with same content can
+The chunker option, '-s', specifies the chunking strategy that dictates
+how to break files into blocks. Blocks with same content can
 be deduplicated. The default is a fixed block size of
 256 * 1024 bytes, 'size-262144'. Alternatively, you can use the
 rabin chunker for content defined chunking by specifying
-rabin-[min]-[avg]-[max] (where min/avg/max refer to the resulting 
+rabin-[min]-[avg]-[max] (where min/avg/max refer to the resulting
 chunk sizes). Using other chunking strategies will produce
 different hashes for the same file.
 
-  > ipfs add --chunker=size-1024 ipfs-logo.svg
-  added QmZ9KNxxeeLCPrdceBjvVcmSyLbUWMF4ceKDP8yboLNoHT ipfs-logo.svg
-  > ipfs add --chunker=rabin-128-256-2048 ipfs-logo.svg
-  added QmQN64Mbj1WK8wAej5MoFkHkD3aTtSGzGnAFXomdVHNNhs ipfs-logo.svg
+  > ipfs add --chunker=size-2048 ipfs-logo.svg
+  added QmafrLBfzRLV4XSH1XcaMMeaXEUhDJjmtDfsYU95TrWG87 ipfs-logo.svg
+  > ipfs add --chunker=rabin-512-1024-2048 ipfs-logo.svg
+  added Qmf1hDN65tR55Ubh2RN1FPxr69xq3giVBz1KApsresY8Gn ipfs-logo.svg
 
 You can now check what blocks have been created by:
 
-  > ipfs object links QmQN64Mbj1WK8wAej5MoFkHkD3aTtSGzGnAFXomdVHNNhs
-  Qmb3Wzsmy9RXkyQhERdPd93mBP2jTRUjgVBwx5yWJR5b6k 223
-  Qmc7ikMLM1SS88YxxogRtjAyuLLfR85ZDKjfy7ahZYD38h 141
-  QmeUiJHEXZnEwjpCfUUSkDuXFk2nuT6gALCeUXtZkRvcbj 858
-  QmWwiQMNhpjq9kFUiuFbSQoqrQNTVjwo1wgbbx8wPr9PjB 1040
-  QmNPg3SUphwfoJwveDyMRjDDaoitTCE7g9UUqYod8gPwz5 431
-  QmPzBVWJtMPdeaoJK55rua7LgbEsjHseMHsUSUrPJ3AncS 278
+  > ipfs object links QmafrLBfzRLV4XSH1XcaMMeaXEUhDJjmtDfsYU95TrWG87
+  QmY6yj1GsermExDXoosVE3aSPxdMNYr6aKuw3nA8LoWPRS 2059
+  Qmf7ZQeSxq2fJVJbCmgTrLLVN9tDR9Wy5k75DxQKuz5Gyt 1195
+  > ipfs object links Qmf1hDN65tR55Ubh2RN1FPxr69xq3giVBz1KApsresY8Gn
+  QmY6yj1GsermExDXoosVE3aSPxdMNYr6aKuw3nA8LoWPRS 2059
+  QmerURi9k4XzKCaaPbsK6BL5pMEjF7PGphjDvkkjDtsVf3 868
   QmQB28iwSriSUSMqG2nXDTLtdPHgWb4rebBrU7Q1j4vxPv 338
 `,
 	},
