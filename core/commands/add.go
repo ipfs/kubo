@@ -72,13 +72,14 @@ You can now refer to the added file in a gateway, like so:
 
   /ipfs/QmaG4FuMqEBnQNn3C8XJ5bpW8kLs7zq2ZXgHptJHbKDDVx/example.jpg
 
-The chunker option, '-s', defines the chunking strategy for how 
+The chunker option, '-s', defines the chunking strategy for how
 ipfs puts larger files into blocks. Blocks with same content can
 be deduplicated. The default is a fixed block size of
-256 * 1024 bytes, 'size-262144'. A variable block size can be
-specified by using the rabin chunker, rabin-[min]-[avg]-[max].
-Using different chunking strategies will produce different hashes 
-for the same file.
+256 * 1024 bytes, 'size-262144'. Alternatively, you can use the
+rabin chunker for content defined chunking by specifying
+rabin-[min]-[avg]-[max] (where min/avg/max refer to the resulting 
+chunk sizes). Using other chunking strategies will produce
+different hashes for the same file.
 
   > ipfs add --chunker=size-1024 ipfs-logo.svg
   added QmZ9KNxxeeLCPrdceBjvVcmSyLbUWMF4ceKDP8yboLNoHT ipfs-logo.svg
@@ -88,12 +89,12 @@ for the same file.
 You can now check what blocks have been created by:
 
   > ipfs object links QmQN64Mbj1WK8wAej5MoFkHkD3aTtSGzGnAFXomdVHNNhs
-  Qmb3Wzsmy9RXkyQhERdPd93mBP2jTRUjgVBwx5yWJR5b6k 223   
-  Qmc7ikMLM1SS88YxxogRtjAyuLLfR85ZDKjfy7ahZYD38h 141   
-  QmeUiJHEXZnEwjpCfUUSkDuXFk2nuT6gALCeUXtZkRvcbj 858   
-  QmWwiQMNhpjq9kFUiuFbSQoqrQNTVjwo1wgbbx8wPr9PjB 1040  
-  QmNPg3SUphwfoJwveDyMRjDDaoitTCE7g9UUqYod8gPwz5 431   
-  QmPzBVWJtMPdeaoJK55rua7LgbEsjHseMHsUSUrPJ3AncS 278   
+  Qmb3Wzsmy9RXkyQhERdPd93mBP2jTRUjgVBwx5yWJR5b6k 223
+  Qmc7ikMLM1SS88YxxogRtjAyuLLfR85ZDKjfy7ahZYD38h 141
+  QmeUiJHEXZnEwjpCfUUSkDuXFk2nuT6gALCeUXtZkRvcbj 858
+  QmWwiQMNhpjq9kFUiuFbSQoqrQNTVjwo1wgbbx8wPr9PjB 1040
+  QmNPg3SUphwfoJwveDyMRjDDaoitTCE7g9UUqYod8gPwz5 431
+  QmPzBVWJtMPdeaoJK55rua7LgbEsjHseMHsUSUrPJ3AncS 278
   QmQB28iwSriSUSMqG2nXDTLtdPHgWb4rebBrU7Q1j4vxPv 338
 `,
 	},
