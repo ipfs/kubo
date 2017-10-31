@@ -168,17 +168,17 @@ test_expect_success "clean up ipfs dir" '
 '
 
 test_expect_success "'ipfs init --profile=lowpower' succeeds" '
-	BITS="1024" &&
-	ipfs init --bits="$BITS" --profile=lowpower
+  BITS="1024" &&
+  ipfs init --bits="$BITS" --profile=lowpower
 '
 
 test_expect_success "'ipfs config Discovery.Routing' looks good" '
-	ipfs config Discovery.Routing > actual_config &&
-	test $(cat actual_config) = "dhtclient"
+  ipfs config Routing.Type > actual_config &&
+  test $(cat actual_config) = "dhtclient"
 '
 
 test_expect_success "clean up ipfs dir" '
-	rm -rf "$IPFS_PATH"
+  rm -rf "$IPFS_PATH"
 '
 
 test_init_ipfs
