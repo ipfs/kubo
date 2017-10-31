@@ -35,7 +35,8 @@ var logLevelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Change the logging level.",
 		ShortDescription: `
-Change the verbosity of one or all subsystems log output. This does not affect the event log.
+Change the verbosity of one or all subsystems log output. This does not affect
+the event log.
 `,
 	},
 
