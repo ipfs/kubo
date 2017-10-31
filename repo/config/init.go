@@ -43,7 +43,10 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 				Enabled:  true,
 				Interval: 10,
 			},
-			Routing: "dht",
+		},
+
+		Routing: Routing{
+			Type: "dht",
 		},
 
 		// setup the node mount points.

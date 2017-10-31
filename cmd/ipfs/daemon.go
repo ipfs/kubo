@@ -151,7 +151,6 @@ Headers.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
 		cmdkit.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
-		cmdkit.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault("dht"),
 		cmdkit.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault("default"),
 		cmdkit.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
 		cmdkit.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
@@ -313,7 +312,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return
 		}
 
-		routingOption = cfg.Discovery.Routing
+		routingOption = cfg.Routing.Type
 		if routingOption == "" {
 			routingOption = routingOptionDHTKwd
 		}

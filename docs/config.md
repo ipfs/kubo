@@ -203,7 +203,6 @@ Valid modes are:
   - `dht` (default)
   - `dhtclient`
   - `none`
-  - `supernode` (deprecated)
 
 ## `Gateway`
 Options for the HTTP gateway.
