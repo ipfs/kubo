@@ -65,27 +65,35 @@ type diffpair struct {
 // getLinkDiff returns a changeset between nodes 'a' and 'b'. Currently does
 // not log deletions as our usecase doesnt call for this.
 func getLinkDiff(a, b node.Node) []diffpair {
-	have := make(map[string]*node.Link)
-	names := make(map[string]*node.Link)
+	ina := make(map[string]*node.Link)
+	inb := make(map[string]*node.Link)
+	var aonly []*cid.Cid
+	for _, l := range b.Links() {
+		inb[l.Cid.KeyString()] = l
+	}
 	for _, l := range a.Links() {
-		have[l.Cid.KeyString()] = l
-		names[l.Name] = l
+		var key = l.Cid.KeyString()
+		ina[key] = l
+		if inb[key] == nil {
+			aonly = append(aonly, l.Cid)
+		}
 	}
 
 	var out []diffpair
+	var aindex int
 
 	for _, l := range b.Links() {
-		if have[l.Cid.KeyString()] != nil {
+		if ina[l.Cid.KeyString()] != nil {
 			continue
 		}
 
-		match, ok := names[l.Name]
-		if !ok {
+		if aindex < len(aonly) {
+			out = append(out, diffpair{bef: aonly[aindex], aft: l.Cid})
+			aindex++
+		} else {
 			out = append(out, diffpair{aft: l.Cid})
 			continue
 		}
-
-		out = append(out, diffpair{bef: match.Cid, aft: l.Cid})
 	}
 	return out
 }

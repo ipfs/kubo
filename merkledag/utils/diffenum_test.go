@@ -84,6 +84,49 @@ var tg3 = map[string]ndesc{
 	"d": ndesc{},
 }
 
+var tg4 = map[string]ndesc{
+	"a1": ndesc{
+		"key1": "b",
+		"key2": "c",
+	},
+	"a2": ndesc{
+		"key1": "b",
+		"key2": "d",
+	},
+}
+
+var tg5 = map[string]ndesc{
+	"a1": ndesc{
+		"key1": "a",
+		"key2": "b",
+	},
+	"a2": ndesc{
+		"key1": "c",
+		"key2": "d",
+	},
+}
+
+func TestNameMatching(t *testing.T) {
+	nds := mkGraph(tg4)
+
+	diff := getLinkDiff(nds["a1"], nds["a2"])
+	if len(diff) != 1 {
+		t.Fatal(fmt.Errorf("node diff didn't match by name"))
+	}
+}
+
+func TestNameMatching2(t *testing.T) {
+	nds := mkGraph(tg5)
+
+	diff := getLinkDiff(nds["a1"], nds["a2"])
+	if len(diff) != 2 {
+		t.Fatal(fmt.Errorf("incorrect number of link diff elements"))
+	}
+	if !(diff[0].bef.Equals(nds["a1"].Links()[0].Cid) && diff[0].aft.Equals(nds["a2"].Links()[0].Cid)) {
+		t.Fatal(fmt.Errorf("node diff didn't match by name"))
+	}
+}
+
 func TestDiffEnumBasic(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
