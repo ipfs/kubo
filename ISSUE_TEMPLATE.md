@@ -1,4 +1,9 @@
-<!-- Output From `ipfs version --all` -->
+<!--
+Output From `ipfs version --all`
+
+If your version is older than *0.4.11* please update
+and re-check if the problem persists.
+-->
 #### Version information:
 
 <!-- Bug, Feature, Enhancement, Etc -->
