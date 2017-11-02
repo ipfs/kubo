@@ -460,9 +460,9 @@
     },
     {
       "author": "magik6k",
-      "hash": "QmNm2bfBCtEzmpxVzaW2FZGzWx2KWHprfd27aWoXptrAGa",
+      "hash": "QmNyEjsu9TxPRC1PqaL3JQRwAsSAGA1mu6ZtuHonvh5rju",
       "name": "go-ds-badger",
-      "version": "1.0.4"
+      "version": "1.1.1"
     },
     {
       "author": "whyrusleeping",
