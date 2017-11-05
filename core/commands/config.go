@@ -345,7 +345,7 @@ Backing up the config before running this command is advised.`,
 			return
 		}
 
-		err := transformConfig(req.InvocContext().ConfigRoot, profile.Unapply)
+		err := transformConfig(req.InvocContext().ConfigRoot, profile.Revert)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

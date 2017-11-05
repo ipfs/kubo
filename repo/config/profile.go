@@ -5,8 +5,8 @@ type Transformer func(c *Config) error
 
 // Profile applies some set of changes to the configuration
 type Profile struct {
-	Apply   Transformer
-	Unapply Transformer
+	Apply  Transformer
+	Revert Transformer
 }
 
 // Profiles is a map holding configuration transformers. Docs are in docs/config.md
@@ -39,7 +39,7 @@ var Profiles = map[string]*Profile{
 			c.Discovery.MDNS.Enabled = false
 			return nil
 		},
-		Unapply: func(c *Config) error {
+		Revert: func(c *Config) error {
 			c.Addresses.NoAnnounce = []string{}
 			c.Swarm.AddrFilters = []string{}
 			c.Discovery.MDNS.Enabled = true
@@ -60,7 +60,7 @@ var Profiles = map[string]*Profile{
 			c.Discovery.MDNS.Enabled = false
 			return nil
 		},
-		Unapply: func(c *Config) error {
+		Revert: func(c *Config) error {
 			c.Addresses = addressesConfig()
 
 			c.Swarm.DisableNatPortMap = false
@@ -80,7 +80,7 @@ var Profiles = map[string]*Profile{
 			}
 			return nil
 		},
-		Unapply: func(c *Config) error {
+		Revert: func(c *Config) error {
 			c.Datastore.Spec = DefaultDatastoreConfig().Spec
 			return nil
 		},
