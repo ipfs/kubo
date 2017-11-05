@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.12-rc1 2017-10-26
+## 0.4.12-rc2 2017-10-26
 
 - Features
   - Implement Connection Manager ([ipfs/go-ipfs#4288](https://github.com/ipfs/go-ipfs/pull/4288))
@@ -11,10 +11,13 @@
   - Update go-peerstream to improve CPU usage ([ipfs/go-ipfs#4323](https://github.com/ipfs/go-ipfs/pull/4323))
   - Add full support for CidV1 in Files API and Dag Modifier ([ipfs/go-ipfs#4026](https://github.com/ipfs/go-ipfs/pull/4026))
   - Lower yamux accept buffer size ([ipfs/go-ipfs#4326](https://github.com/ipfs/go-ipfs/pull/4326))
+  - Optimise `ipfs pin update` command ([ipfs/go-ipfs#4348](https://github.com/ipfs/go-ipfs/pull/4348))
 - Documentation
   - Add some docs on plugins ([ipfs/go-ipfs#4255](https://github.com/ipfs/go-ipfs/pull/4255))
   - Add more info about private network bootstrap ([ipfs/go-ipfs#4270](https://github.com/ipfs/go-ipfs/pull/4270))
   - Add more info about `ipfs add` chunker option ([ipfs/go-ipfs#4306](https://github.com/ipfs/go-ipfs/pull/4306))
+  - Remove cruft in readme and mention discourse forum ([ipfs/go-ipfs#4345](https://github.com/ipfs/go-ipfs/pull/4345))
+  - Add note about updating before reporting issues ([ipfs/go-ipfs#4361](https://github.com/ipfs/go-ipfs/pull/4361))
 - Bugfixes
   - Fix FreeBSD build issues ([ipfs/go-ipfs#4275](https://github.com/ipfs/go-ipfs/pull/4275))
   - Don't crash when Datastore.StorageMax is not defined ([ipfs/go-ipfs#4246](https://github.com/ipfs/go-ipfs/pull/4246))
@@ -27,6 +30,9 @@
   - Fix indent in sharness tests ([ipfs/go-ipfs#4212](https://github.com/ipfs/go-ipfs/pull/4212))
   - Remove supernode routing ([ipfs/go-ipfs#4302](https://github.com/ipfs/go-ipfs/pull/4302))
   - Extract go-ipfs-addr ([ipfs/go-ipfs#4340](https://github.com/ipfs/go-ipfs/pull/4340))
+  - Remove dead code and config files ([ipfs/go-ipfs#4357](https://github.com/ipfs/go-ipfs/pull/4357))
+  - Update badgerds to 1.0 ([ipfs/go-ipfs#4327](https://github.com/ipfs/go-ipfs/pull/4327))
+  - Wrap help descriptions under 80 chars ([ipfs/go-ipfs#4121](https://github.com/ipfs/go-ipfs/pull/4121))
 - Testing
   - Make sharness t0180-p2p less racy ([ipfs/go-ipfs#4310](https://github.com/ipfs/go-ipfs/pull/4310))
 
