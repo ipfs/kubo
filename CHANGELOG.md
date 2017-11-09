@@ -1,6 +1,47 @@
 # go-ipfs changelog
 
-## 0.4.12-rc2 2017-10-26
+## 0.4.12 2017-11-09
+
+Ipfs 0.4.12 brings with it many important fixes for the huge spike in network
+size we've seen this past month. These changes include the Connection Manager,
+faster batching in `ipfs add`, libp2p fixes that reduce CPU usage, and a bunch
+of new documentation.
+
+The most critical change is the 'Connection Manager': it allows an ipfs node to
+maintain a limited set of connections to other peers in the network. By default
+(and with no config changes required by the user), ipfs nodes will now try to
+maintain between 600 and 900 open connections. These limits are still likely
+higher than needed, and future releases may lower the default recommendation,
+but for now we want to make changes gradually. The rationale for this selection
+of numbers is as follows:
+
+- The DHT routing table for a large network may rise to around 400 peers
+- Bitswap connections tend to be separate from the DHT
+- PubSub connections also generally are another distinct set of peers
+  (including js-ipfs nodes)
+
+Because of this, we selected 600 as a 'LowWater' number, and 900 as a
+'HighWater' number to avoid having to clear out connections too frequently.
+You can configure different numbers as you see fit via the `Swarm.ConnMgr`
+field in your ipfs config file. See
+[here](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#connmgr) for
+more details.
+
+Disk utilization during `ipfs add` has been optimized for large files by doing
+batch writes in parallel. Previously, when adding a large file, users might have
+noticed that the add progressed by about 8MB at a time, with brief pauses in between.
+This was caused by quickly filling up the batch, then blocking while it was
+writing to disk. We now write to disk in the background while continuing to add
+the remainder of the file.
+
+Other changes in this release have noticeably reduced memory consumption and CPU
+usage. This was done by optimising some frequently called functions in libp2p
+that were expensive in terms of both CPU usage and memory allocations. We also
+lowered the yamux accept buffer sizes which were raised over a year ago to
+combat a separate bug that has since been fixed.
+
+And finally, thank you to everyone who filed bugs, tested out the release candidates,
+filed pull requests, and contributed in any other way to this release!
 
 - Features
   - Implement Connection Manager ([ipfs/go-ipfs#4288](https://github.com/ipfs/go-ipfs/pull/4288))
