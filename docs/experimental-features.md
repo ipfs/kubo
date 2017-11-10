@@ -301,6 +301,9 @@ Peers can see their (unspecific) relay address in the output of
 ### In Version
 0.4.11
 
+### State
+Experimental
+
 Plugins allow to add functionality without the need to recompile the daemon.
 
 ### Basic Usage:
@@ -312,3 +315,30 @@ See [Plugin docs](./plugins.md)
 - [ ] Better support for platforms other than Linux
 - [ ] More plugins and plugin types
 - [ ] Feedback on stability
+
+ ## Badger datastore
+
+ ### In Version
+ 0.4.11
+
+ Badger-ds is new datastore implementation based on
+ https://github.com/dgraph-io/badger
+
+ ### Basic Usage
+
+ ```
+ $ ipfs init --profile=badgerds
+ ```
+ or
+ ```
+ [BACKUP ~/.ipfs]
+ $ ipfs config profile apply badgerds
+ $ ipfs-ds-convert convert
+ ```
+
+###
+
+### Road to being a real feature
+
+- [ ] Needs more testing
+- [ ] Make sure there are no unknown major problems
