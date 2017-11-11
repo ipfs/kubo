@@ -32,7 +32,7 @@ else
   # print deprecation warning
   # go-ipfs used to hardcode "ipfs daemon" in it's entrypoint
   # this workaround supports the new syntax so people start setting daemon explicitly
-  # when overwriting CMD, making this PR safe to merge
+  # when overwriting CMD
   echo "DEPRECATED: arguments have been set but the first argument isn't 'daemon'" >&2
   echo "DEPRECATED: run 'docker run ipfs/go-ipfs daemon $@' instead" >&2
   echo "DEPRECATED: see the following PRs for more information:" >&2
