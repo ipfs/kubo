@@ -68,8 +68,8 @@ Contains information related to the construction and operation of the on-disk
 storage system.
 
 - `StorageMax`
-An upper limit on the total size of the ipfs repository's datastore. Writes to
-the datastore will begin to fail once this limit is reached.
+A soft upper limit for the size of the ipfs repository's datastore. With `StorageGCWatermark`,
+is used to calculate whether to trigger a gc run (only if `--enable-gc` flag is set).
 
 Default: `10GB`
 
