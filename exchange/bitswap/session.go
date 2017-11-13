@@ -119,7 +119,7 @@ type interestReq struct {
 // block we received) this function will not be called, as the cid will likely
 // still be in the interest cache.
 func (s *Session) isLiveWant(c *cid.Cid) bool {
-	resp := make(chan bool)
+	resp := make(chan bool, 1)
 	s.interestReqs <- interestReq{
 		c:    c,
 		resp: resp,
