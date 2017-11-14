@@ -1,5 +1,15 @@
 # go-ipfs changelog
 
+## 0.4.13 2017-11-14
+
+Ipfs 0.4.13 is a patch release that fixes two high priority issues that were
+discovered in the 0.4.12 release.
+
+Bugfixes:
+  - Fix periodic bitswap deadlock ([ipfs/go-ipfs#4386](https://github.com/ipfs/go-ipfs/pull/4386))
+  - Fix badgerds crash on startup ([ipfs/go-ipfs#4384](https://github.com/ipfs/go-ipfs/pull/4384))
+
+
 ## 0.4.12 2017-11-09
 
 Ipfs 0.4.12 brings with it many important fixes for the huge spike in network

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LAST_TAG=$(git tag | grep -v -- '-rc' | grep 'v'| tail -n1)
+LAST_TAG=$(git tag -l | sort -V | grep -v -- '-rc' | grep 'v'| tail -n1)
 
 git log --oneline --merges --reverse $LAST_TAG...master |
 while read MERGE
