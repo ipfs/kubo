@@ -164,9 +164,32 @@ If you make changes to the protocol buffers, you will need to install the [proto
 
 ### Updating
 
+#### Updating using ipfs-update
 IPFS has an updating tool that can be accessed through `ipfs update`. The tool is
 not installed alongside IPFS in order to keep that logic independent of the main
 codebase. To install `ipfs update`, [download it here](https://ipfs.io/ipns/dist.ipfs.io/#ipfs-update).
+
+#### Downloading IPFS builds using IPFS
+List the available versions of go-ipfs:
+```
+$ ipfs cat /ipns/dist.ipfs.io/go-ipfs/versions
+```
+
+Then, to view available builds for a version from the previous command ($VERSION):
+```
+$ ipfs ls /ipns/dist.ipfs.io/go-ipfs/$VERSION
+```
+
+To download a given build of a version:
+```
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_darwin-386.tar.gz # darwin 32-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_darwin-amd64.tar.gz # darwin 64-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_freebsd-amd64.tar.gz # freebsd 64-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-386.tar.gz # linux 32-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-amd64.tar.gz # linux 64-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-arm.tar.gz # linux arm build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_windows-amd64.zip # windows 64-bit build
+```
 
 ## Usage
 
