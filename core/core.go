@@ -122,6 +122,7 @@ type IpfsNode struct {
 	Resolver   *path.Resolver       // the path resolution system
 	Reporter   metrics.Reporter
 	Discovery  discovery.Service
+	Broadcast  discovery.Service
 	FilesRoot  *mfs.Root
 
 	// Online
@@ -152,7 +153,7 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub, mplex bool) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, bo DiscoveryOption, pubsub, mplex bool) error {
 
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
@@ -255,7 +256,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 	n.P2P = p2p.NewP2P(n.Identity, n.PeerHost, n.Peerstore)
 
-	// setup local discovery
+	// setup local MDNS discovery
 	if do != nil {
 		service, err := do(ctx, n.PeerHost)
 		if err != nil {
@@ -263,6 +264,17 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		} else {
 			service.RegisterNotifee(n)
 			n.Discovery = service
+		}
+	}
+
+	// setup local broadcast discovery
+	if bo != nil {
+		service, err := bo(ctx, n.PeerHost)
+		if err != nil {
+			log.Error("broadcast error: ", err)
+		} else {
+			service.RegisterNotifee(n)
+			n.Broadcast = service
 		}
 	}
 
@@ -401,13 +413,25 @@ func makeSmuxTransport(mplexExp bool) smux.Transport {
 	return mstpt
 }
 
-func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
+func setupMdnsOption(d config.Discovery) DiscoveryOption {
 	if d.MDNS.Enabled {
 		return func(ctx context.Context, h p2phost.Host) (discovery.Service, error) {
 			if d.MDNS.Interval == 0 {
 				d.MDNS.Interval = 5
 			}
 			return discovery.NewMdnsService(ctx, h, time.Duration(d.MDNS.Interval)*time.Second, discovery.ServiceTag)
+		}
+	}
+	return nil
+}
+
+func setupBroadcastOption(d config.Discovery) DiscoveryOption {
+	if d.Broadcast.Enabled {
+		return func(ctx context.Context, h p2phost.Host) (discovery.Service, error) {
+			if d.Broadcast.Interval == 0 {
+				d.Broadcast.Interval = 20
+			}
+			return discovery.NewBroadcastService(ctx, h, 4001, time.Duration(d.Broadcast.Interval)*time.Second)
 		}
 	}
 	return nil
