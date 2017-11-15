@@ -138,8 +138,8 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx, cancel := context.WithCancel(node.Context())
-	ctx = logging.ContextWithLoggable(ctx, loggables.Uuid("requestId"))
 	defer cancel()
+	ctx = logging.ContextWithLoggable(ctx, loggables.Uuid("requestId"))
 	if cn, ok := w.(http.CloseNotifier); ok {
 		clientGone := cn.CloseNotify()
 		go func() {

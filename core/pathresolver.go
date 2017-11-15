@@ -10,6 +10,7 @@ import (
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 // ErrNoNamesys is an explicit error for when an IPFS node doesn't
@@ -22,34 +23,40 @@ var ErrNoNamesys = errors.New(
 // entries and returning the final node.
 func Resolve(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p path.Path) (node.Node, error) {
 	if strings.HasPrefix(p.String(), "/ipns/") {
-		defer log.EventBegin(ctx, "resolveIpnsPath").Done()
+		evt := log.EventBegin(ctx, "resolveIpnsPath")
+		defer evt.Done()
 		// resolve ipns paths
 
 		// TODO(cryptix): we sould be able to query the local cache for the path
 		if nsys == nil {
+			evt.Append(logging.LoggableMap{"error": ErrNoNamesys.Error()})
 			return nil, ErrNoNamesys
 		}
 
 		seg := p.Segments()
 
 		if len(seg) < 2 || seg[1] == "" { // just "/<protocol/>" without further segments
+			evt.Append(logging.LoggableMap{"error": path.ErrNoComponents.Error()})
 			return nil, path.ErrNoComponents
 		}
 
 		extensions := seg[2:]
 		resolvable, err := path.FromSegments("/", seg[0], seg[1])
 		if err != nil {
+			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
 		}
 
 		respath, err := nsys.Resolve(ctx, resolvable.String())
 		if err != nil {
+			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
 		}
 
 		segments := append(respath.Segments(), extensions...)
 		p, err = path.FromSegments("/", segments...)
 		if err != nil {
+			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
 		}
 	}

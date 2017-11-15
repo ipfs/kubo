@@ -131,15 +131,19 @@ func ResolveSingle(ctx context.Context, ds dag.DAGService, nd node.Node, names [
 // It uses the first path component as a hash (key) of the first node, then
 // resolves all other components walking the links, with ResolveLinks.
 func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]node.Node, error) {
+	evt := log.EventBegin(ctx, "resolvePathComponents", logging.LoggableMap{"fpath": fpath})
+	defer evt.Done()
+
 	h, parts, err := SplitAbsPath(fpath)
 	if err != nil {
+		evt.Append(logging.LoggableMap{"error": err.Error()})
 		return nil, err
 	}
-	defer log.EventBegin(ctx, "resolvePathComponents", logging.LoggableMap{"parts": parts, "cid": h}).Done()
 
 	log.Debug("resolve dag get")
 	nd, err := s.DAG.Get(ctx, h)
 	if err != nil {
+		evt.Append(logging.LoggableMap{"error": err.Error()})
 		return nil, err
 	}
 
@@ -155,7 +159,8 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]nod
 // would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
 func (s *Resolver) ResolveLinks(ctx context.Context, ndd node.Node, names []string) ([]node.Node, error) {
 
-	defer log.EventBegin(ctx, "resolveLinks", logging.LoggableMap{"names": names}).Done()
+	evt := log.EventBegin(ctx, "resolveLinks", logging.LoggableMap{"names": names})
+	defer evt.Done()
 	result := make([]node.Node, 0, len(names)+1)
 	result = append(result, ndd)
 	nd := ndd // dup arg workaround
@@ -168,13 +173,16 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd node.Node, names []stri
 
 		lnk, rest, err := s.ResolveOnce(ctx, s.DAG, nd, names)
 		if err == dag.ErrLinkNotFound {
+			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return result, ErrNoLink{Name: names[0], Node: nd.Cid()}
 		} else if err != nil {
+			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return result, err
 		}
 
 		nextnode, err := lnk.GetNode(ctx, s.DAG)
 		if err != nil {
+			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return result, err
 		}
 
