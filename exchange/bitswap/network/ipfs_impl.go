@@ -15,8 +15,9 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	ifconnmgr "gx/ipfs/QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr/go-libp2p-interface-connmgr"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
-	host "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
+	host "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
 )
 
 var log = logging.Logger("bitswap_network")
@@ -105,14 +106,6 @@ func (bsnet *impl) NewMessageSender(ctx context.Context, p peer.ID) (MessageSend
 }
 
 func (bsnet *impl) newStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
-
-	// first, make sure we're connected.
-	// if this fails, we cannot connect to given peer.
-	//TODO(jbenet) move this into host.NewStream?
-	if err := bsnet.host.Connect(ctx, pstore.PeerInfo{ID: p}); err != nil {
-		return nil, err
-	}
-
 	return bsnet.host.NewStream(ctx, p, ProtocolBitswap, ProtocolBitswapOne, ProtocolBitswapNoVers)
 }
 
@@ -210,6 +203,10 @@ func (bsnet *impl) handleNewStream(s inet.Stream) {
 		log.Debugf("bitswap net handleNewStream from %s", s.Conn().RemotePeer())
 		bsnet.receiver.ReceiveMessage(ctx, p, received)
 	}
+}
+
+func (bsnet *impl) ConnectionManager() ifconnmgr.ConnManager {
+	return bsnet.host.ConnManager()
 }
 
 type netNotifiee impl

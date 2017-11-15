@@ -34,7 +34,8 @@ the private key enables publishing new (signed) values. In both publish
 and resolve, the default name used is the node's own PeerID,
 which is the hash of its public key.
 
-You can use the 'ipfs key' commands to list and generate more names and their respective keys.
+You can use the 'ipfs key' commands to list and generate more names and their
+respective keys.
 
 Examples:
 
@@ -49,7 +50,8 @@ Publish an <ipfs-path> with another name, added by an 'ipfs key' command:
   > ipfs name publish --key=mykey /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
-Alternatively, publish an <ipfs-path> using a valid PeerID(as listed by 'ipfs key list -l'):
+Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by 
+'ipfs key list -l'):
 
  > ipfs name publish --key=QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy

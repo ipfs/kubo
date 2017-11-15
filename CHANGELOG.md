@@ -1,5 +1,83 @@
 # go-ipfs changelog
 
+## 0.4.12 2017-11-09
+
+Ipfs 0.4.12 brings with it many important fixes for the huge spike in network
+size we've seen this past month. These changes include the Connection Manager,
+faster batching in `ipfs add`, libp2p fixes that reduce CPU usage, and a bunch
+of new documentation.
+
+The most critical change is the 'Connection Manager': it allows an ipfs node to
+maintain a limited set of connections to other peers in the network. By default
+(and with no config changes required by the user), ipfs nodes will now try to
+maintain between 600 and 900 open connections. These limits are still likely
+higher than needed, and future releases may lower the default recommendation,
+but for now we want to make changes gradually. The rationale for this selection
+of numbers is as follows:
+
+- The DHT routing table for a large network may rise to around 400 peers
+- Bitswap connections tend to be separate from the DHT
+- PubSub connections also generally are another distinct set of peers
+  (including js-ipfs nodes)
+
+Because of this, we selected 600 as a 'LowWater' number, and 900 as a
+'HighWater' number to avoid having to clear out connections too frequently.
+You can configure different numbers as you see fit via the `Swarm.ConnMgr`
+field in your ipfs config file. See
+[here](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#connmgr) for
+more details.
+
+Disk utilization during `ipfs add` has been optimized for large files by doing
+batch writes in parallel. Previously, when adding a large file, users might have
+noticed that the add progressed by about 8MB at a time, with brief pauses in between.
+This was caused by quickly filling up the batch, then blocking while it was
+writing to disk. We now write to disk in the background while continuing to add
+the remainder of the file.
+
+Other changes in this release have noticeably reduced memory consumption and CPU
+usage. This was done by optimising some frequently called functions in libp2p
+that were expensive in terms of both CPU usage and memory allocations. We also
+lowered the yamux accept buffer sizes which were raised over a year ago to
+combat a separate bug that has since been fixed.
+
+And finally, thank you to everyone who filed bugs, tested out the release candidates,
+filed pull requests, and contributed in any other way to this release!
+
+- Features
+  - Implement Connection Manager ([ipfs/go-ipfs#4288](https://github.com/ipfs/go-ipfs/pull/4288))
+  - Support multiple files in dag put ([ipfs/go-ipfs#4254](https://github.com/ipfs/go-ipfs/pull/4254))
+  - Add 'raw' support to the dag put command ([ipfs/go-ipfs#4285](https://github.com/ipfs/go-ipfs/pull/4285))
+- Improvements
+  - Parallelize dag batch flushing ([ipfs/go-ipfs#4296](https://github.com/ipfs/go-ipfs/pull/4296))
+  - Update go-peerstream to improve CPU usage ([ipfs/go-ipfs#4323](https://github.com/ipfs/go-ipfs/pull/4323))
+  - Add full support for CidV1 in Files API and Dag Modifier ([ipfs/go-ipfs#4026](https://github.com/ipfs/go-ipfs/pull/4026))
+  - Lower yamux accept buffer size ([ipfs/go-ipfs#4326](https://github.com/ipfs/go-ipfs/pull/4326))
+  - Optimise `ipfs pin update` command ([ipfs/go-ipfs#4348](https://github.com/ipfs/go-ipfs/pull/4348))
+- Documentation
+  - Add some docs on plugins ([ipfs/go-ipfs#4255](https://github.com/ipfs/go-ipfs/pull/4255))
+  - Add more info about private network bootstrap ([ipfs/go-ipfs#4270](https://github.com/ipfs/go-ipfs/pull/4270))
+  - Add more info about `ipfs add` chunker option ([ipfs/go-ipfs#4306](https://github.com/ipfs/go-ipfs/pull/4306))
+  - Remove cruft in readme and mention discourse forum ([ipfs/go-ipfs#4345](https://github.com/ipfs/go-ipfs/pull/4345))
+  - Add note about updating before reporting issues ([ipfs/go-ipfs#4361](https://github.com/ipfs/go-ipfs/pull/4361))
+- Bugfixes
+  - Fix FreeBSD build issues ([ipfs/go-ipfs#4275](https://github.com/ipfs/go-ipfs/pull/4275))
+  - Don't crash when Datastore.StorageMax is not defined ([ipfs/go-ipfs#4246](https://github.com/ipfs/go-ipfs/pull/4246))
+  - Do not call 'Connect' on NewStream in bitswap ([ipfs/go-ipfs#4317](https://github.com/ipfs/go-ipfs/pull/4317))
+  - Filter out "" from active peers in bitswap sessions ([ipfs/go-ipfs#4316](https://github.com/ipfs/go-ipfs/pull/4316))
+  - Fix "seeker can't seek" on specific files ([ipfs/go-ipfs#4320](https://github.com/ipfs/go-ipfs/pull/4320))
+  - Do not set "gecos" field in Dockerfile ([ipfs/go-ipfs#4331](https://github.com/ipfs/go-ipfs/pull/4331))
+  - Handle sym links in when calculating repo size ([ipfs/go-ipfs#4305](https://github.com/ipfs/go-ipfs/pull/4305))
+- General Changes and Refactorings
+  - Fix indent in sharness tests ([ipfs/go-ipfs#4212](https://github.com/ipfs/go-ipfs/pull/4212))
+  - Remove supernode routing ([ipfs/go-ipfs#4302](https://github.com/ipfs/go-ipfs/pull/4302))
+  - Extract go-ipfs-addr ([ipfs/go-ipfs#4340](https://github.com/ipfs/go-ipfs/pull/4340))
+  - Remove dead code and config files ([ipfs/go-ipfs#4357](https://github.com/ipfs/go-ipfs/pull/4357))
+  - Update badgerds to 1.0 ([ipfs/go-ipfs#4327](https://github.com/ipfs/go-ipfs/pull/4327))
+  - Wrap help descriptions under 80 chars ([ipfs/go-ipfs#4121](https://github.com/ipfs/go-ipfs/pull/4121))
+- Testing
+  - Make sharness t0180-p2p less racy ([ipfs/go-ipfs#4310](https://github.com/ipfs/go-ipfs/pull/4310))
+
+
 ### 0.4.11 2017-09-14
 
 Ipfs 0.4.11 is a larger release that brings many long-awaited features and
@@ -76,6 +154,7 @@ plugin](https://github.com/ipfs/go-ipld-eth) that lets ipfs ingest and operate
 on all ethereum blockchain data. Soon to come are plugins for the bitcoin and
 zcash data formats. In the future, we will be adding plugins for other things
 like datastore backends and specialized libp2p network transports.
+You can read more on this topic in [Plugin docs](docs/plugins.md)
 
 In order to simplify its integration with fs-repo-migrations, we've switched
 the ipfs/go-ipfs docker image from a musl base to a glibc base. For most users

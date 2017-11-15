@@ -22,7 +22,8 @@ the private key enables publishing new (signed) values. In both publish
 and resolve, the default name used is the node's own PeerID,
 which is the hash of its public key.
 
-You can use the 'ipfs key' commands to list and generate more names and their respective keys.
+You can use the 'ipfs key' commands to list and generate more names and their
+respective keys.
 
 Examples:
 

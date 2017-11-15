@@ -42,7 +42,6 @@ import (
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	pnet "gx/ipfs/QmNMCAuxnQFHLGWcvay3DmVFrKuY6Y2nsc9vzsf4gVouJV/go-libp2p-pnet"
 	yamux "gx/ipfs/QmNWCEvi7bPRcvqAV8AKLGVNoQdArWi7NJayka2SM4XtRe/go-smux-yamux"
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	mplex "gx/ipfs/QmP81tTizXSjKTLWhjty1rabPQHe1YPMj6Bq5gR5fWZakn/go-smux-multiplex"
@@ -51,28 +50,31 @@ import (
 	mafilter "gx/ipfs/QmQBB2dQLmQHJgs2gqZ3iqL2XiuCtUCvXzWt5kMXDf5Zcr/go-maddr-filter"
 	metrics "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics"
 	ipnet "gx/ipfs/QmQq9YzmdFdWNTDdArueGyD7L5yyiRQigrRHJnTGkxcEjT/go-libp2p-interface-pnet"
-	discovery "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/discovery"
-	p2pbhost "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/host/basic"
-	rhost "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/host/routed"
-	identify "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/protocol/identify"
-	ping "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/protocol/ping"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	dht "gx/ipfs/QmT7PnPxYkeKPCG8pAnucfcjrXc15Q7FgvFv7YC24EPrw8/go-libp2p-kad-dht"
 	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	floodsub "gx/ipfs/QmUUSLfvihARhCxxgnjW4hmycJpPvzNu12Aaz6JWVdfnLg/go-libp2p-floodsub"
 	addrutil "gx/ipfs/QmVJGsPeK3vwtEyyTxpCs47yjBYMmYsAhEouPDF3Gb2eK3/go-addr-util"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	mssmux "gx/ipfs/QmVniQJkdzLZaZwzwMdd3dJTvWiJ1DQEkreVy6hs6h7Vk5/go-smux-multistream"
-	swarm "gx/ipfs/QmWpJ4y2vxJ6GZpPfQbpVpQxAYS3UeR6AKNbAHxw7wN3qw/go-libp2p-swarm"
+	dht "gx/ipfs/QmWRBYr99v8sjrpbyNWMuGkQekn7b9ELoLSCe8Ny7Nxain/go-libp2p-kad-dht"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
+	ifconnmgr "gx/ipfs/QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr/go-libp2p-interface-connmgr"
+	connmgr "gx/ipfs/QmYr5RRXTXwEsG7sq1nP1JioZ8RmiFUktnBdoNBvTovgGj/go-libp2p-connmgr"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	p2phost "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
-	circuit "gx/ipfs/QmbMNjK69isbpzVGKKrsnM7Sqyh3TVKAphRn5WuUhwTFbW/go-libp2p-circuit"
-	floodsub "gx/ipfs/Qmdnza7rLi7CMNNwNhNkcs9piX5sf6rxE8FrCsPzYtUEUi/floodsub"
+	p2phost "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
+	pnet "gx/ipfs/QmcWmYQEQCrezztaQ81nXzMx2jaAEow17wdesDAjjR769r/go-libp2p-pnet"
+	swarm "gx/ipfs/QmdQFrFnPrKRQtpeHKjZ3cVNwxmGKKS2TvhJTuN9C9yduh/go-libp2p-swarm"
+	discovery "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/discovery"
+	p2pbhost "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/host/basic"
+	rhost "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/host/routed"
+	identify "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/protocol/identify"
+	ping "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/protocol/ping"
+	circuit "gx/ipfs/Qmf7GSJ4omRJsvA9uzTqzbnVhq4RWLPzjzW4xJzUta4dKE/go-libp2p-circuit"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -219,11 +221,17 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return err
 	}
 
+	connmgr, err := constructConnMgr(cfg.Swarm.ConnMgr)
+	if err != nil {
+		return err
+	}
+
 	hostopts := &ConstructPeerHostOpts{
 		AddrsFactory:      addrsFactory,
 		DisableNatPortMap: cfg.Swarm.DisableNatPortMap,
 		DisableRelay:      cfg.Swarm.DisableRelay,
 		EnableRelayHop:    cfg.Swarm.EnableRelayHop,
+		ConnectionManager: connmgr,
 	}
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter,
 		addrfilter, tpt, protec, hostopts)
@@ -259,6 +267,25 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	return n.Bootstrap(DefaultBootstrapConfig)
+}
+
+func constructConnMgr(cfg config.ConnMgr) (ifconnmgr.ConnManager, error) {
+	switch cfg.Type {
+	case "":
+		// 'default' value is the basic connection manager
+		return connmgr.NewConnManager(config.DefaultConnMgrLowWater, config.DefaultConnMgrHighWater, config.DefaultConnMgrGracePeriod), nil
+	case "none":
+		return nil, nil
+	case "basic":
+		grace, err := time.ParseDuration(cfg.GracePeriod)
+		if err != nil {
+			return nil, fmt.Errorf("parsing Swarm.ConnMgr.GracePeriod: %s", err)
+		}
+
+		return connmgr.NewConnManager(cfg.LowWater, cfg.HighWater, grace), nil
+	default:
+		return nil, fmt.Errorf("unrecognized ConnMgr.Type: %q", cfg.Type)
+	}
 }
 
 func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
@@ -348,7 +375,7 @@ func makeSmuxTransport(mplexExp bool) smux.Transport {
 	mstpt := mssmux.NewBlankTransport()
 
 	ymxtpt := &yamux.Transport{
-		AcceptBacklog:          8192,
+		AcceptBacklog:          512,
 		ConnectionWriteTimeout: time.Second * 10,
 		KeepAliveInterval:      time.Second * 30,
 		EnableKeepAlive:        true,
@@ -380,7 +407,7 @@ func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
 			if d.MDNS.Interval == 0 {
 				d.MDNS.Interval = 5
 			}
-			return discovery.NewMdnsService(ctx, h, time.Duration(d.MDNS.Interval)*time.Second)
+			return discovery.NewMdnsService(ctx, h, time.Duration(d.MDNS.Interval)*time.Second, discovery.ServiceTag)
 		}
 	}
 	return nil
@@ -789,6 +816,7 @@ type ConstructPeerHostOpts struct {
 	DisableNatPortMap bool
 	DisableRelay      bool
 	EnableRelayHop    bool
+	ConnectionManager ifconnmgr.ConnManager
 }
 
 type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protc ipnet.Protector, opts *ConstructPeerHostOpts) (p2phost.Host, error)
@@ -813,6 +841,9 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr
 	hostOpts := []interface{}{bwr}
 	if !opts.DisableNatPortMap {
 		hostOpts = append(hostOpts, p2pbhost.NATPortMap)
+	}
+	if opts.ConnectionManager != nil {
+		hostOpts = append(hostOpts, opts.ConnectionManager)
 	}
 
 	addrsFactory := opts.AddrsFactory

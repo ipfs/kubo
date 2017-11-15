@@ -12,30 +12,29 @@ ENV SRC_DIR /go/src/github.com/ipfs/go-ipfs
 COPY . $SRC_DIR
 
 # Build the thing.
+# Also: fix getting HEAD commit hash via git rev-parse.
+# Also: allow using a custom IPFS API endpoint.
 RUN cd $SRC_DIR \
-  # Required for getting the HEAD commit hash via git rev-parse.
   && mkdir .git/objects \
-  # Allows using a custom (i.e. local) IPFS API endpoint.
   && ([ -z "$GX_IPFS" ] || echo $GX_IPFS > /root/.ipfs/api) \
-  # Build the thing.
   && make build
 
+# Get su-exec, a very minimal tool for dropping privileges,
+# and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
 ENV TINI_VERSION v0.16.1
 RUN set -x \
-  # Get su-exec, a very minimal tool for dropping privileges
   && cd /tmp \
   && git clone https://github.com/ncopa/su-exec.git \
   && cd su-exec \
   && git checkout -q $SUEXEC_VERSION \
   && make \
-  # Get tini, a very minimal init daemon for containers
   && cd /tmp \
   && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
   && chmod +x tini
 
 # Get the TLS CA certificates, they're not provided by busybox.
-RUN apt-get install -y ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates
 
 # Now comes the actual target image, which aims to be as small as possible.
 FROM busybox:1-glibc
@@ -62,8 +61,8 @@ EXPOSE 8081
 # Create the fs-repo directory and switch to a non-privileged user.
 ENV IPFS_PATH /data/ipfs
 RUN mkdir -p $IPFS_PATH \
-  && adduser -D -h $IPFS_PATH -u 1000 -g 100 ipfs \
-  && chown 1000:100 $IPFS_PATH
+  && adduser -D -h $IPFS_PATH -u 1000 -G users ipfs \
+  && chown ipfs:users $IPFS_PATH
 
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.

@@ -268,7 +268,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	if !dir {
 		name := gopath.Base(urlPath)
-		http.ServeContent(w, r, name, modtime, dr)
+		i.serveFile(w, r, name, modtime, dr)
 		return
 	}
 
@@ -370,6 +370,34 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		internalWebError(w, err)
 		return
 	}
+}
+
+type sizeReadSeeker interface {
+	Size() uint64
+
+	io.ReadSeeker
+}
+
+type sizeSeeker struct {
+	sizeReadSeeker
+}
+
+func (s *sizeSeeker) Seek(offset int64, whence int) (int64, error) {
+	if whence == io.SeekEnd && offset == 0 {
+		return int64(s.Size()), nil
+	}
+
+	return s.sizeReadSeeker.Seek(offset, whence)
+}
+
+func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
+	if sp, ok := content.(sizeReadSeeker); ok {
+		content = &sizeSeeker{
+			sizeReadSeeker: sp,
+		}
+	}
+
+	http.ServeContent(w, req, name, modtime, content)
 }
 
 func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {

@@ -16,12 +16,10 @@ import (
 	commands "github.com/ipfs/go-ipfs/core/commands"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	"github.com/ipfs/go-ipfs/core/corerouting"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
-	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	mprome "gx/ipfs/QmSk46nSD78YiuNojYMS8NW6hSCjH95JajqqzzoychZgef/go-metrics-prometheus"
 	"gx/ipfs/QmX3QZ5jHEPidwUrymXV1iSCSUhdGxj15sm2gP4jKMef7B/client_golang/prometheus"
 	"gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
@@ -67,18 +65,18 @@ The daemon will start listening on ports on the network, which are
 documented in (and can be modified through) 'ipfs config Addresses'.
 For example, to change the 'Gateway' port:
 
-    ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/8082
+  ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/8082
 
 The API address can be changed the same way:
 
-   ipfs config Addresses.API /ip4/127.0.0.1/tcp/5002
+  ipfs config Addresses.API /ip4/127.0.0.1/tcp/5002
 
 Make sure to restart the daemon after changing addresses.
 
 By default, the gateway is only accessible locally. To expose it to
 other computers in the network, use 0.0.0.0 as the ip address:
 
-   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 
 Be careful if you expose the API. It is a security risk, as anyone could
 control your node remotely. If you need to control the node remotely,
@@ -91,8 +89,8 @@ ipfs supports passing arbitrary headers to the API and Gateway. You can
 do this by setting headers on the API.HTTPHeaders and Gateway.HTTPHeaders
 keys:
 
-	ipfs config --json API.HTTPHeaders.X-Special-Header '["so special :)"]'
-	ipfs config --json Gateway.HTTPHeaders.X-Special-Header '["so special :)"]'
+  ipfs config --json API.HTTPHeaders.X-Special-Header '["so special :)"]'
+  ipfs config --json Gateway.HTTPHeaders.X-Special-Header '["so special :)"]'
 
 Note that the value of the keys is an _array_ of strings. This is because
 headers can have more than one value, and it is convenient to pass through
@@ -102,9 +100,9 @@ CORS Headers (for API)
 
 You can setup CORS headers the same way:
 
-	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["example.com"]'
-	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
-	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Credentials '["true"]'
+  ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["example.com"]'
+  ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
+  ipfs config --json API.HTTPHeaders.Access-Control-Allow-Credentials '["true"]'
 
 Shutdown
 
@@ -119,15 +117,15 @@ ipfs uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
 environment variable:
 
-    export IPFS_PATH=/path/to/ipfsrepo
+  export IPFS_PATH=/path/to/ipfsrepo
 
 Routing
 
 IPFS by default will use a DHT for content routing. There is a highly
-experimental alternative that operates the DHT in a 'client only' mode that can
-be enabled by running the daemon as:
+experimental alternative that operates the DHT in a 'client only' mode that
+can be enabled by running the daemon as:
 
-    ipfs daemon --routing=dhtclient
+  ipfs daemon --routing=dhtclient
 
 This will later be transitioned into a config option once it gets out of the
 'experimental' stage.
@@ -136,7 +134,7 @@ DEPRECATION NOTICE
 
 Previously, ipfs used an environment variable as seen below:
 
-   export API_ORIGIN="http://localhost:8888/"
+  export API_ORIGIN="http://localhost:8888/"
 
 This is deprecated. It is still honored in this version, but will be removed
 in a future version, along with this notice. Please move to setting the HTTP
@@ -304,21 +302,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:
-		servers, err := cfg.SupernodeRouting.ServerIPFSAddrs()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			repo.Close() // because ownership hasn't been transferred to the node
-			return
-		}
-		var infos []pstore.PeerInfo
-		for _, addr := range servers {
-			infos = append(infos, pstore.PeerInfo{
-				ID:    addr.ID(),
-				Addrs: []ma.Multiaddr{addr.Transport()},
-			})
-		}
-
-		ncfg.Routing = corerouting.SupernodeClient(infos...)
+		res.SetError(errors.New("supernode routing was never fully implemented and has been removed"), cmds.ErrNormal)
+		return
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = core.DHTClientOption
 	case routingOptionDHTKwd:
