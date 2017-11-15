@@ -135,6 +135,7 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]nod
 	if err != nil {
 		return nil, err
 	}
+	defer log.EventBegin(ctx, "resolvePathComponents", logging.LoggableMap{"parts": parts, "cid": h}).Done()
 
 	log.Debug("resolve dag get")
 	nd, err := s.DAG.Get(ctx, h)
@@ -154,6 +155,7 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]nod
 // would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
 func (s *Resolver) ResolveLinks(ctx context.Context, ndd node.Node, names []string) ([]node.Node, error) {
 
+	defer log.EventBegin(ctx, "resolveLinks", logging.LoggableMap{"names": names}).Done()
 	result := make([]node.Node, 0, len(names)+1)
 	result = append(result, ndd)
 	nd := ndd // dup arg workaround
