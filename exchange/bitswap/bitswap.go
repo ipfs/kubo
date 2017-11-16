@@ -405,7 +405,7 @@ var ErrAlreadyHaveBlock = errors.New("already have block")
 
 func (bs *Bitswap) updateReceiveCounters(b blocks.Block) {
 	blkLen := len(b.RawData())
-	has, err := bs.blockstore.Has(b.Cid())
+	has, err := bs.blockstore.Has(b.Cid().Hash())
 	if err != nil {
 		log.Infof("blockstore.Has error: %s", err)
 		return

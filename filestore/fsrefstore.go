@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	proto "gx/ipfs/QmT6n4mspWYEya864BhCUJEgyxiRfmiSY9ruQwTUNpRKaM/protobuf/proto"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	dsns "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/namespace"
 	dsq "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/query"
@@ -57,7 +59,7 @@ func NewFileManager(ds ds.Batching, root string) *FileManager {
 // AllKeysChan returns a channel from which to read the keys stored in
 // the FileManager. If the given context is cancelled the channel will be
 // closed.
-func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
+func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan mh.Multihash, error) {
 	q := dsq.Query{KeysOnly: true}
 
 	res, err := f.ds.Query(q)
@@ -65,7 +67,7 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 		return nil, err
 	}
 
-	out := make(chan *cid.Cid, dsq.KeysOnlyBufSize)
+	out := make(chan mh.Multihash, dsq.KeysOnlyBufSize)
 	go func() {
 		defer close(out)
 		for {
@@ -75,14 +77,14 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 			}
 
 			k := ds.RawKey(v.Key)
-			c, err := dshelp.DsKeyToCid(k)
+			mh, err := dshelp.DsKeyToMultihash(k)
 			if err != nil {
 				log.Error("decoding cid from filestore: %s", err)
 				continue
 			}
 
 			select {
-			case out <- c:
+			case out <- mh:
 			case <-ctx.Done():
 				return
 			}
@@ -94,8 +96,8 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 
 // DeleteBlock deletes the reference-block from the underlying
 // datastore. It does not touch the referenced data.
-func (f *FileManager) DeleteBlock(c *cid.Cid) error {
-	err := f.ds.Delete(dshelp.CidToDsKey(c))
+func (f *FileManager) DeleteBlock(c mh.Multihash) error {
+	err := f.ds.Delete(dshelp.MultihashToDsKey(c))
 	if err == ds.ErrNotFound {
 		return blockstore.ErrNotFound
 	}
@@ -112,7 +114,7 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 		return nil, err
 	}
 
-	out, err := f.readDataObj(c, dobj)
+	out, err := f.readDataObj(c.Hash(), dobj)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +151,7 @@ func unmarshalDataObj(o interface{}) (*pb.DataObj, error) {
 }
 
 // reads and verifies the block
-func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+func (f *FileManager) readDataObj(m mh.Multihash, d *pb.DataObj) ([]byte, error) {
 	p := filepath.FromSlash(d.GetFilePath())
 	abspath := filepath.Join(f.root, p)
 
@@ -174,12 +176,16 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 		return nil, &CorruptReferenceError{StatusFileError, err}
 	}
 
-	outcid, err := c.Prefix().Sum(outbuf)
+	dm, err := mh.Decode(m)
+	if err != nil {
+		return nil, err
+	}
+	outmh, err := mh.Sum(outbuf, dm.Code, dm.Length)
 	if err != nil {
 		return nil, err
 	}
 
-	if !c.Equals(outcid) {
+	if !bytes.Equal(m, outmh) {
 		return nil, &CorruptReferenceError{StatusFileChanged,
 			fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
 	}
@@ -189,10 +195,10 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 
 // Has returns if the FileManager is storing a block reference. It does not
 // validate the data, nor checks if the reference is valid.
-func (f *FileManager) Has(c *cid.Cid) (bool, error) {
+func (f *FileManager) Has(k mh.Multihash) (bool, error) {
 	// NOTE: interesting thing to consider. Has doesnt validate the data.
 	// So the data on disk could be invalid, and we could think we have it.
-	dsk := dshelp.CidToDsKey(c)
+	dsk := dshelp.MultihashToDsKey(k)
 	return f.ds.Has(dsk)
 }
 

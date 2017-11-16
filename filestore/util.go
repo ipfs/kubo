@@ -9,6 +9,7 @@ import (
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	dsq "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/query"
 )
@@ -122,7 +123,7 @@ func list(fs *Filestore, verify bool, key *cid.Cid) *ListRes {
 		return mkListRes(key, nil, err)
 	}
 	if verify {
-		_, err = fs.fm.readDataObj(key, dobj)
+		_, err = fs.fm.readDataObj(key.Hash(), dobj)
 	}
 	return mkListRes(key, dobj, err)
 }
@@ -135,24 +136,24 @@ func listAll(fs *Filestore, verify bool) (func() *ListRes, error) {
 	}
 
 	return func() *ListRes {
-		cid, dobj, err := next(qr)
+		mh, dobj, err := next(qr)
 		if dobj == nil && err == nil {
 			return nil
 		} else if err == nil && verify {
-			_, err = fs.fm.readDataObj(cid, dobj)
+			_, err = fs.fm.readDataObj(mh, dobj)
 		}
-		return mkListRes(cid, dobj, err)
+		return mkListRes(mkCid(mh), dobj, err)
 	}, nil
 }
 
-func next(qr dsq.Results) (*cid.Cid, *pb.DataObj, error) {
+func next(qr dsq.Results) (mh.Multihash, *pb.DataObj, error) {
 	v, ok := qr.NextSync()
 	if !ok {
 		return nil, nil, nil
 	}
 
 	k := ds.RawKey(v.Key)
-	c, err := dshelp.DsKeyToCid(k)
+	c, err := dshelp.DsKeyToMultihash(k)
 	if err != nil {
 		return nil, nil, fmt.Errorf("decoding cid from filestore: %s", err)
 	}
@@ -203,12 +204,12 @@ func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
 		}
 		v := entries[i]
 		i++
-		// attempt to convert the datastore key to a CID,
+		// attempt to convert the datastore key to a Multihash,
 		// store the error but don't use it yet
-		cid, keyErr := dshelp.DsKeyToCid(ds.RawKey(v.dsKey))
+		mh, keyErr := dshelp.DsKeyToMultihash(ds.RawKey(v.dsKey))
 		// first if they listRes already had an error return that error
 		if v.err != nil {
-			return mkListRes(cid, nil, v.err)
+			return mkListRes(mkCid(mh), nil, v.err)
 		}
 		// now reconstruct the DataObj
 		dobj := pb.DataObj{
@@ -219,14 +220,14 @@ func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
 		// now if we could not convert the datastore key return that
 		// error
 		if keyErr != nil {
-			return mkListRes(cid, &dobj, keyErr)
+			return mkListRes(mkCid(mh), &dobj, keyErr)
 		}
 		// finally verify the dataobj if requested
 		var err error
 		if verify {
-			_, err = fs.fm.readDataObj(cid, &dobj)
+			_, err = fs.fm.readDataObj(mh, &dobj)
 		}
-		return mkListRes(cid, &dobj, err)
+		return mkListRes(mkCid(mh), &dobj, err)
 	}, nil
 }
 
@@ -250,6 +251,10 @@ func (l listEntries) Less(i, j int) bool {
 		return l[i].offset < l[j].offset
 	}
 	return l[i].filePath < l[j].filePath
+}
+
+func mkCid(m mh.Multihash) *cid.Cid {
+	return cid.NewCidV1(cid.Raw, m)
 }
 
 func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {

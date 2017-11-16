@@ -12,6 +12,7 @@ import (
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 )
 
 var log = logging.Logger("gc")
@@ -19,7 +20,7 @@ var log = logging.Logger("gc")
 // Result represents an incremental output from a garbage collection
 // run.  It contains either an error, or the cid of a removed object.
 type Result struct {
-	KeyRemoved *cid.Cid
+	KeyRemoved mh.Multihash
 	Error      error
 }
 
@@ -82,7 +83,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 					removed++
 					if err != nil {
 						errors = true
-						output <- Result{Error: &CannotDeleteBlockError{k, err}}
+						output <- Result{Error: &CannotDeleteBlockError{cid.NewCidV1(cid.Raw, k), err}}
 						//log.Errorf("Error removing key from blockstore: %s", err)
 						// continue as error is non-fatal
 						continue loop
@@ -109,9 +110,9 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 	return output
 }
 
-func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []*cid.Cid) error {
+func Descendants(ctx context.Context, getLinks dag.GetLinks, set *Set, roots []*cid.Cid) error {
 	for _, c := range roots {
-		set.Add(c)
+		set.Add(c.Hash())
 
 		// EnumerateChildren recursively walks the dag and adds the keys to the given set
 		err := dag.EnumerateChildren(ctx, getLinks, c, set.Visit)
@@ -125,11 +126,11 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 
 // ColoredSet computes the set of nodes in the graph that are pinned by the
 // pins in the given pinner.
-func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid, output chan<- Result) (*Set, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	errors := false
-	gcs := cid.NewSet()
+	gcs := NewSet()
 	getLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
 		links, err := ls.GetLinks(ctx, cid)
 		if err != nil {
@@ -159,7 +160,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 	}
 
 	for _, k := range pn.DirectKeys() {
-		gcs.Add(k)
+		gcs.Add(k.Hash())
 	}
 
 	err = Descendants(ctx, getLinks, gcs, pn.InternalPins())
