@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.13 2017-11-14
+## 0.4.13 2017-11-16
 
 Ipfs 0.4.13 is a patch release that fixes two high priority issues that were
 discovered in the 0.4.12 release.
