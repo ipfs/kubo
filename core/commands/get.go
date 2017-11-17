@@ -160,6 +160,7 @@ func makeProgressBar(out io.Writer, l int64) *pb.ProgressBar {
 	// TODO: get total length of files
 	bar := pb.New64(l).SetUnits(pb.U_BYTES)
 	bar.Output = out
+	bar.ShowSpeed = true
 
 	// the progress bar lib doesn't give us a way to get the width of the output,
 	// so as a hack we just use a callback to measure the output, then git rid of it

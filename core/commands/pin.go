@@ -14,6 +14,8 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
+	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
+
 	context "context"
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
@@ -38,8 +40,10 @@ type PinOutput struct {
 }
 
 type AddPinOutput struct {
-	Pins     []string
-	Progress int `json:",omitempty"`
+	Pins           []string
+	Progress       int `json:",omitempty"`
+	FetchedSize    int `json:",omitempty"`
+	CumulativeSize int `json:",omitempty"`
 }
 
 var addPinCmd = &cmds.Command{
@@ -110,12 +114,12 @@ var addPinCmd = &cmds.Command{
 						return
 					}
 					if pv := v.Value(); pv != 0 {
-						out <- &AddPinOutput{Progress: v.Value()}
+						out <- &AddPinOutput{Progress: v.Value(), FetchedSize: v.FetchedSize(), CumulativeSize: v.CumulativeSize()}
 					}
 					out <- &AddPinOutput{Pins: cidsToStrings(val)}
 					return
 				case <-ticker.C:
-					out <- &AddPinOutput{Progress: v.Value()}
+					out <- &AddPinOutput{Progress: v.Value(), FetchedSize: v.FetchedSize(), CumulativeSize: v.CumulativeSize()}
 				case <-ctx.Done():
 					res.SetError(ctx.Err(), cmds.ErrNormal)
 					return
@@ -131,21 +135,19 @@ var addPinCmd = &cmds.Command{
 			case *AddPinOutput:
 				added = out.Pins
 			case <-chan interface{}:
-				progressLine := false
+				// Set to a random value of 100 until we get a CumulativeSize
+				bar := pb.New(100).SetUnits(pb.U_BYTES)
+				bar.ShowSpeed = true
+				defer bar.Finish()
+				bar.Start()
 				for r0 := range out {
 					r := r0.(*AddPinOutput)
 					if r.Pins != nil {
 						added = r.Pins
 					} else {
-						if progressLine {
-							fmt.Fprintf(res.Stderr(), "\r")
-						}
-						fmt.Fprintf(res.Stderr(), "Fetched/Processed %d nodes", r.Progress)
-						progressLine = true
+						bar.Total = int64(r.CumulativeSize)
+						bar.Set(r.FetchedSize)
 					}
-				}
-				if progressLine {
-					fmt.Fprintf(res.Stderr(), "\n")
 				}
 				if res.Error() != nil {
 					return nil, res.Error()

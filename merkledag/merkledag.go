@@ -180,7 +180,15 @@ func FetchGraph(ctx context.Context, root *cid.Cid, serv DAGService) error {
 	set := cid.NewSet()
 	visit := func(c *cid.Cid) bool {
 		if set.Visit(c) {
-			v.Increment()
+			cnt := 0
+			node, err := serv.Get(ctx, c)
+			if err == nil {
+				stat, err := node.Stat()
+				if err == nil {
+					cnt = stat.LinksSize + stat.DataSize
+				}
+			}
+			v.Increment(cnt)
 			return true
 		} else {
 			return false
@@ -415,17 +423,26 @@ func EnumerateChildren(ctx context.Context, getLinks GetLinks, root *cid.Cid, vi
 }
 
 type ProgressTracker struct {
-	Total int
-	lk    sync.Mutex
+	Total      int
+	Fetched    int
+	Cumulative int
+	lk         sync.Mutex
 }
 
 func (p *ProgressTracker) DeriveContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, "progress", p)
 }
 
-func (p *ProgressTracker) Increment() {
+func (p *ProgressTracker) IncrementCumulative(size int) {
 	p.lk.Lock()
 	defer p.lk.Unlock()
+	p.Cumulative += size
+}
+
+func (p *ProgressTracker) Increment(size int) {
+	p.lk.Lock()
+	defer p.lk.Unlock()
+	p.Fetched += size
 	p.Total++
 }
 
@@ -433,6 +450,18 @@ func (p *ProgressTracker) Value() int {
 	p.lk.Lock()
 	defer p.lk.Unlock()
 	return p.Total
+}
+
+func (p *ProgressTracker) FetchedSize() int {
+	p.lk.Lock()
+	defer p.lk.Unlock()
+	return p.Fetched
+}
+
+func (p *ProgressTracker) CumulativeSize() int {
+	p.lk.Lock()
+	defer p.lk.Unlock()
+	return p.Cumulative
 }
 
 // FetchGraphConcurrency is total number of concurrent fetches that
