@@ -18,6 +18,7 @@ import (
 	cors "gx/ipfs/QmPG2kW5t27LuHgHnvhUwbHCNHAt2eUcb4gPHqofrESUdB/cors"
 	cmdkit "gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	loggables "gx/ipfs/QmT4PgCNdv73hnFAqzHqwW44q7M9PWpykSswHDxndquZbc/go-libp2p-loggables"
 )
 
 var log = logging.Logger("commands/http")
@@ -139,6 +140,7 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(node.Context())
 	defer cancel()
+	ctx = logging.ContextWithLoggable(ctx, loggables.Uuid("requestId"))
 	if cn, ok := w.(http.CloseNotifier); ok {
 		clientGone := cn.CloseNotify()
 		go func() {
