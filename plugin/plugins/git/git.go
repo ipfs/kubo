@@ -53,7 +53,7 @@ func parseRawGit(r io.Reader, mhType uint64, mhLen int) ([]format.Node, error) {
 	}
 
 	if mhLen != -1 && mhLen != mh.DefaultLengths[mh.SHA1] {
-		return nil, fmt.Errorf("invalid mhLen %d", mhType)
+		return nil, fmt.Errorf("invalid mhLen %d", mhLen)
 	}
 
 	nd, err := git.ParseObject(r)
