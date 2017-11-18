@@ -4,7 +4,8 @@ package main
 
 import (
 	"fmt"
-	"syscall"
+
+	unix "gx/ipfs/QmPXvegq26x982cQjSfbTvSzZXn7GiaMwhhVPHkeTEhrPT/sys/unix"
 )
 
 func init() {
@@ -12,8 +13,8 @@ func init() {
 }
 
 func checkAndSetUlimit() error {
-	var rLimit syscall.Rlimit
-	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	var rLimit unix.Rlimit
+	err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
 		return fmt.Errorf("error getting rlimit: %s", err)
 	}
@@ -29,7 +30,7 @@ func checkAndSetUlimit() error {
 		setting = true
 	}
 
-	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	err = unix.Setrlimit(unix.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
 		return fmt.Errorf("error setting ulimit: %s", err)
 	}
