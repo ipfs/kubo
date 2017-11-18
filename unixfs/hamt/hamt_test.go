@@ -222,6 +222,20 @@ func TestRemoveElems(t *testing.T) {
 	}
 	ctx := context.Background()
 
+	for i := 0; i < 100; i++ {
+		err := s.Remove(ctx, fmt.Sprintf("NOTEXIST%d", rand.Int()))
+		if err != os.ErrNotExist {
+			t.Fatal("shouldnt be able to remove things that don't exist")
+		}
+	}
+
+	for _, d := range dirs {
+		_, err := s.Find(ctx, d)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	shuffle(time.Now().UnixNano(), dirs)
 
 	for _, d := range dirs {

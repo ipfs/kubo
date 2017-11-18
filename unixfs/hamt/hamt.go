@@ -492,16 +492,21 @@ func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, 
 
 		return nil
 	case *shardValue:
-		switch {
-		case val == nil: // passing a nil value signifies a 'delete'
-			ds.bitfield.SetBit(ds.bitfield, idx, 0)
-			return ds.rmChild(cindex)
+		if child.key == key {
+			// value modification
+			if val == nil {
+				ds.bitfield.SetBit(ds.bitfield, idx, 0)
+				return ds.rmChild(cindex)
+			}
 
-		case child.key == key: // value modification
 			child.val = val
 			return nil
+		} else {
+			if val == nil {
+				return os.ErrNotExist
+			}
 
-		default: // replace value with another shard, one level deeper
+			// replace value with another shard, one level deeper
 			ns, err := NewHamtShard(ds.dserv, ds.tableSize)
 			if err != nil {
 				return err
