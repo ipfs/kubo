@@ -2,20 +2,20 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
-	"reflect"
 	"strings"
 	"time"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 
-	context "context"
+	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
+	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 const kPingTimeout = 10 * time.Second
@@ -27,7 +27,7 @@ type PingResult struct {
 }
 
 var PingCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Send echo request packets to IPFS hosts.",
 		ShortDescription: `
 'ipfs ping' is a tool to test sending data to other nodes. It finds nodes
@@ -35,61 +35,52 @@ via the routing system, sends pings, waits for pongs, and prints out round-
 trip latency information.
 		`,
 	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
 	},
-	Options: []cmds.Option{
-		cmds.IntOption("count", "n", "Number of ping messages to send.").Default(10),
+	Options: []cmdkit.Option{
+		cmdkit.IntOption("count", "n", "Number of ping messages to send.").Default(10),
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(<-chan interface{})
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			obj, ok := v.(*PingResult)
 			if !ok {
-				fmt.Println(reflect.TypeOf(res.Output()))
 				return nil, u.ErrCast()
 			}
 
-			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*PingResult)
-				if !ok {
-					return nil, u.ErrCast()
-				}
-
-				buf := new(bytes.Buffer)
-				if len(obj.Text) > 0 {
-					buf = bytes.NewBufferString(obj.Text + "\n")
-				} else if obj.Success {
-					fmt.Fprintf(buf, "Pong received: time=%.2f ms\n", obj.Time.Seconds()*1000)
-				} else {
-					fmt.Fprintf(buf, "Pong failed\n")
-				}
-				return buf, nil
+			buf := new(bytes.Buffer)
+			if len(obj.Text) > 0 {
+				buf = bytes.NewBufferString(obj.Text + "\n")
+			} else if obj.Success {
+				fmt.Fprintf(buf, "Pong received: time=%.2f ms\n", obj.Time.Seconds()*1000)
+			} else {
+				fmt.Fprintf(buf, "Pong failed\n")
 			}
-
-			return &cmds.ChannelMarshaler{
-				Channel:   outChan,
-				Marshaler: marshal,
-				Res:       res,
-			}, nil
+			return buf, nil
 		},
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		// Must be online!
 		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(errNotOnline, cmdkit.ErrClient)
 			return
 		}
 
 		addr, peerID, err := ParsePeerParam(req.Arguments()[0])
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -99,7 +90,7 @@ trip latency information.
 
 		numPings, _, err := req.Option("count").Int()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -140,7 +131,6 @@ func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) 
 		defer cancel()
 		pings, err := n.Ping.Ping(ctx, pid)
 		if err != nil {
-			log.Debugf("Ping error: %s", err)
 			outChan <- &PingResult{
 				Success: false,
 				Text:    fmt.Sprintf("Ping error: %s", err),

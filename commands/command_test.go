@@ -1,15 +1,19 @@
 package commands
 
-import "testing"
+import (
+	"testing"
+
+	cmdkit "gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
+)
 
 func noop(req Request, res Response) {
 }
 
 func TestOptionValidation(t *testing.T) {
 	cmd := Command{
-		Options: []Option{
-			IntOption("b", "beep", "enables beeper"),
-			StringOption("B", "boop", "password for booper"),
+		Options: []cmdkit.Option{
+			cmdkit.IntOption("b", "beep", "enables beeper"),
+			cmdkit.StringOption("B", "boop", "password for booper"),
 		},
 		Run: noop,
 	}
@@ -54,7 +58,7 @@ func TestOptionValidation(t *testing.T) {
 	}
 
 	req, _ = NewRequest(nil, nil, nil, nil, nil, opts)
-	req.SetOption(EncShort, "json")
+	req.SetOption(cmdkit.EncShort, "json")
 	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")
@@ -91,15 +95,15 @@ func TestOptionValidation(t *testing.T) {
 
 func TestRegistration(t *testing.T) {
 	cmdA := &Command{
-		Options: []Option{
-			IntOption("beep", "number of beeps"),
+		Options: []cmdkit.Option{
+			cmdkit.IntOption("beep", "number of beeps"),
 		},
 		Run: noop,
 	}
 
 	cmdB := &Command{
-		Options: []Option{
-			IntOption("beep", "number of beeps"),
+		Options: []cmdkit.Option{
+			cmdkit.IntOption("beep", "number of beeps"),
 		},
 		Run: noop,
 		Subcommands: map[string]*Command{
@@ -108,8 +112,8 @@ func TestRegistration(t *testing.T) {
 	}
 
 	cmdC := &Command{
-		Options: []Option{
-			StringOption("encoding", "data encoding type"),
+		Options: []cmdkit.Option{
+			cmdkit.StringOption("encoding", "data encoding type"),
 		},
 		Run: noop,
 	}
@@ -173,12 +177,12 @@ func TestWalking(t *testing.T) {
 
 func TestHelpProcessing(t *testing.T) {
 	cmdB := &Command{
-		Helptext: HelpText{
+		Helptext: cmdkit.HelpText{
 			ShortDescription: "This is other short",
 		},
 	}
 	cmdA := &Command{
-		Helptext: HelpText{
+		Helptext: cmdkit.HelpText{
 			ShortDescription: "This is short",
 		},
 		Subcommands: map[string]*Command{

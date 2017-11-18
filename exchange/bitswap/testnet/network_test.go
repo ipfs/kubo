@@ -1,10 +1,10 @@
 package bitswap
 
 import (
+	"context"
 	"sync"
 	"testing"
 
-	context "context"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
