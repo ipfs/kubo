@@ -120,11 +120,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 					return
 				}
 
-				outPath, _, _ := req.Option("output").String()
-				if len(outPath) == 0 {
-					_, outPath = gopath.Split(req.Arguments()[0])
-					outPath = gopath.Clean(outPath)
-				}
+				outPath := getOutPath(req)
 
 				cmplvl, err := getCompressOptions(req)
 				if err != nil {
@@ -186,6 +182,16 @@ func makeProgressBar(out io.Writer, l int64) *pb.ProgressBar {
 		log.Infof("terminal width: %v\n", terminalWidth)
 	}
 	return bar
+}
+
+func getOutPath(req cmds.Request) string {
+	outPath, _, _ := req.Option("output").String()
+	if outPath == "" {
+		trimmed := strings.TrimRight(req.Arguments()[0], "/")
+		_, outPath = gopath.Split(trimmed)
+		outPath = gopath.Clean(outPath)
+	}
+	return outPath
 }
 
 type getWriter struct {
