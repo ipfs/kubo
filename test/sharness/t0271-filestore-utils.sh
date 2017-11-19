@@ -165,6 +165,25 @@ test_filestore_dups() {
   '
 }
 
+test_filestore_get() {
+  test_expect_success "create and add some files" '
+    random    1000  11 > smallfile0 &&
+    random 1000000  12 > largefile0 &&
+    SMALLHASH=$(ipfs add -q --raw-leaves smallfile0) &&
+    LARGEHASH=$(ipfs add -q --raw-leaves largefile0)
+  '
+
+  test_expect_success "get small file into filestore" '
+    ipfs filestore get $SMALLHASH smallfile &&
+    test_cmp smallfile0 smallfile
+  '
+
+  test_expect_success "get large file into filestore" '
+    ipfs filestore get $LARGEHASH largefile &&
+    test_cmp largefile0 largefile
+  '
+}
+
 #
 # No daemon
 #
@@ -176,6 +195,8 @@ test_filestore_adds
 test_filestore_verify
 
 test_filestore_dups
+
+test_filestore_get
 
 #
 # With daemon
@@ -192,6 +213,8 @@ test_filestore_adds
 test_filestore_verify
 
 test_filestore_dups
+
+test_filestore_get
 
 test_kill_ipfs_daemon
 

@@ -206,11 +206,21 @@ func (f *FileManager) Put(b *posinfo.FilestoreNode) error {
 	return f.putTo(b, f.ds)
 }
 
+// CheckPath checks that a path to the backing file is valid for use
+// in the filestore
+func (f *FileManager) CheckPath(fullpath string) error {
+	if !filepath.HasPrefix(fullpath, f.root) {
+		return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)
+	}
+	return nil
+}
+
 func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 	var dobj pb.DataObj
 
-	if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
-		return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)
+	err := f.CheckPath(b.PosInfo.FullPath)
+	if err != nil {
+		return err
 	}
 
 	p, err := filepath.Rel(f.root, b.PosInfo.FullPath)
