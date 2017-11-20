@@ -24,7 +24,7 @@ Contains information about various listener addresses to be used by this node.
 - `API`
 Multiaddr describing the address to serve the local HTTP API on.
 
-Default: `/ip4/127.0.0.1/tcp/4001`
+Default: `/ip4/127.0.0.1/tcp/5001`
 
 - `Gateway`
 Multiaddr describing the address to serve the local gateway on.
@@ -41,6 +41,16 @@ Default:
   "/ip6/::/tcp/4001"
 ]
 ```
+
+- `Announce`
+Array of swarm addresses to announce to the network.
+
+Default: `[]`
+
+- `NoAnnounce`
+Array of swarm addresses not to announce to the network.
+
+Default: `[]`
 
 ## `API`
 Contains information used by the API gateway.
