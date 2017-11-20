@@ -43,7 +43,7 @@ Default:
 ```
 
 - `Announce`
-Array of swarm addresses to announce to the network.
+If non-empty, this array specifies the swarm addresses to announce to the network. If empty, the daemon will announce inferred swarm addresses.
 
 Default: `[]`
 
