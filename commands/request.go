@@ -15,8 +15,8 @@ import (
 	"github.com/ipfs/go-ipfs/repo/config"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
 
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit/files"
+	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
+	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit/files"
 )
 
 type Context struct {
@@ -61,6 +61,17 @@ func (c *Context) GetNode() (*core.IpfsNode, error) {
 // so that clients may close it.
 func (c *Context) NodeWithoutConstructing() *core.IpfsNode {
 	return c.node
+}
+
+// RootContext returns the node's context.
+func (c *Context) RootContext() context.Context {
+	n, err := c.GetNode()
+	if err != nil {
+		log.Debug("error getting node: ", err)
+		return nil
+	}
+
+	return n.Context()
 }
 
 // Request represents a call to a command from a consumer

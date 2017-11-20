@@ -9,8 +9,8 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 
-	cmds "gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
+	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 )
 
 const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
@@ -28,8 +28,8 @@ var CatCmd = &cmds.Command{
 		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
 		cmdkit.IntOption("length", "l", "Maximum number of bytes to read."),
 	},
-	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
-		node, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+		node, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -41,11 +41,8 @@ var CatCmd = &cmds.Command{
 				return
 			}
 		}
-		offset, _, err := req.Option("offset").Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+
+		offset, _ := req.Options["offset"].(int)
 		if offset < 0 {
 			res.SetError(fmt.Errorf("Cannot specify negative offset."), cmdkit.ErrNormal)
 			return
@@ -64,6 +61,12 @@ var CatCmd = &cmds.Command{
 			max = -1
 		}
 
+		err = req.ParseBodyArgs()
+		if err != nil && err.Error() != "all arguments covered by positional arguments" {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		readers, length, err := cat(req.Context(), node, req.Arguments(), int64(offset), int64(max))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -71,7 +74,7 @@ var CatCmd = &cmds.Command{
 		}
 
 		/*
-			if err := corerepo.ConditionalGC(req.Context(), node, length); err != nil {
+			if err := corerepo.ConditionalGC(req.Context, node, length); err != nil {
 				re.SetError(err, cmdkit.ErrNormal)
 				return
 			}
@@ -89,8 +92,8 @@ var CatCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrNormal)
 		}
 	},
-	PostRun: map[cmds.EncodingType]func(cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
-		cmds.CLI: func(req cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
+	PostRun: map[cmds.EncodingType]func(*cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
+		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
 			reNext, res := cmds.NewChanResponsePair(req)
 
 			go func() {

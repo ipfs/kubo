@@ -6,7 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	cmdkit "gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
+	cmdkit "gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 )
 
 type TestOutput struct {
@@ -28,7 +29,7 @@ func TestMarshalling(t *testing.T) {
 		t.Error("Should have failed (no encoding type specified in request)")
 	}
 
-	req.SetOption(cmdkit.EncShort, JSON)
+	req.SetOption(cmds.EncShort, JSON)
 
 	reader, err := res.Marshal()
 	if err != nil {

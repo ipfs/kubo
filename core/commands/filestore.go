@@ -11,8 +11,9 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	"github.com/ipfs/go-ipfs/filestore"
 
-	cmds "gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	lgc "github.com/ipfs/go-ipfs/commands/legacy"
+	cmds "gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
+	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
 )
 
@@ -21,11 +22,9 @@ var FileStoreCmd = &cmds.Command{
 		Tagline: "Interact with filestore objects.",
 	},
 	Subcommands: map[string]*cmds.Command{
-		"ls": lsFileStore,
-	},
-	OldSubcommands: map[string]*oldCmds.Command{
-		"verify": verifyFileStore,
-		"dups":   dupsFileStore,
+		"ls":     lsFileStore,
+		"verify": lgc.NewCommand(verifyFileStore),
+		"dups":   lgc.NewCommand(dupsFileStore),
 	},
 }
 
@@ -54,15 +53,15 @@ The output is:
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("file-order", "sort the results based on the path of the backing file"),
 	},
-	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
-		_, fs, err := getFilestore(req.InvocContext())
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+		_, fs, err := getFilestore(env.(*oldCmds.Context))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		args := req.Arguments()
+		args := req.Arguments
 		if len(args) > 0 {
-			out := perKeyActionToChan(req.Context(), args, func(c *cid.Cid) *filestore.ListRes {
+			out := perKeyActionToChan(req.Context, args, func(c *cid.Cid) *filestore.ListRes {
 				return filestore.List(fs, c)
 			})
 
@@ -71,14 +70,14 @@ The output is:
 				log.Error(err)
 			}
 		} else {
-			fileOrder, _, _ := req.Option("file-order").Bool()
+			fileOrder, _ := req.Options["file-order"].(bool)
 			next, err := filestore.ListAll(fs, fileOrder)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
-			out := listResToChan(req.Context(), next)
+			out := listResToChan(req.Context, next)
 			err = res.Emit(out)
 			if err != nil {
 				log.Error(err)
@@ -86,7 +85,7 @@ The output is:
 		}
 	},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(req cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
+		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
 			reNext, res := cmds.NewChanResponsePair(req)
 
 			go func() {
@@ -236,12 +235,8 @@ var dupsFileStore = &oldCmds.Command{
 	Type:       RefWrapper{},
 }
 
-type getNoder interface {
-	GetNode() (*core.IpfsNode, error)
-}
-
-func getFilestore(g getNoder) (*core.IpfsNode, *filestore.Filestore, error) {
-	n, err := g.GetNode()
+func getFilestore(env interface{}) (*core.IpfsNode, *filestore.Filestore, error) {
+	n, err := GetNode(env)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	coreCmds "github.com/ipfs/go-ipfs/core/commands"
 	"github.com/ipfs/go-ipfs/plugin/loader"
@@ -33,6 +34,10 @@ import (
 	manet "gx/ipfs/QmSGL5Uoa6gKHgBBwQG8u1CWKUC8ZnwaZiLgFVTFBR2bxr/go-multiaddr-net"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	loggables "gx/ipfs/QmSvcDkiRwB8LuMhUtnvhum2C851Mproo75ZDD19jx43tD/go-libp2p-loggables"
+	"gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
+	"gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds/cli"
+	"gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds/http"
+	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
 )
@@ -49,10 +54,9 @@ const (
 )
 
 type cmdInvocation struct {
-	path []string
-	cmd  *cmds.Command
-	req  cmds.Request
+	req  *cmds.Request
 	node *core.IpfsNode
+	ctx  *oldcmds.Context
 }
 
 type exitErr int
@@ -100,12 +104,17 @@ func mainRet() int {
 			helpFunc = cli.LongHelp
 		}
 
-		helpFunc("ipfs", Root, invoc.path, w)
+		var p []string
+		if invoc.req != nil {
+			p = invoc.req.Path
+		}
+
+		helpFunc("ipfs", Root, p, w)
 	}
 
 	// this is a message to tell the user how to get the help text
 	printMetaHelp := func(w io.Writer) {
-		cmdPath := strings.Join(invoc.path, " ")
+		cmdPath := strings.Join(invoc.req.Path, " ")
 		fmt.Fprintf(w, "Use 'ipfs %s --help' for information about this command\n", cmdPath)
 	}
 
@@ -118,6 +127,9 @@ func mainRet() int {
 			os.Args[1] = "version"
 		}
 	}
+
+	intrh, ctx := invoc.SetupInterruptHandler(ctx)
+	defer intrh.Close()
 
 	// parse the commandline into a command invocation
 	parseErr := invoc.Parse(ctx, os.Args[1:])
@@ -142,7 +154,7 @@ func mainRet() int {
 		printErr(parseErr)
 
 		// this was a user error, print help.
-		if invoc.cmd != nil {
+		if invoc.req != nil && invoc.req.Command != nil {
 			// we need a newline space.
 			fmt.Fprintf(os.Stderr, "\n")
 			printHelp(false, os.Stderr)
@@ -153,15 +165,12 @@ func mainRet() int {
 	// here we handle the cases where
 	// - commands with no Run func are invoked directly.
 	// - the main command is invoked.
-	if invoc.cmd == nil || invoc.cmd.Run == nil {
+	if invoc.req == nil || invoc.req.Command == nil || invoc.req.Command.Run == nil {
 		printHelp(false, os.Stdout)
 		return 0
 	}
 
 	// ok, finally, run the command invocation.
-	intrh, ctx := invoc.SetupInterruptHandler(ctx)
-	defer intrh.Close()
-
 	err = invoc.Run(ctx)
 	if err != nil {
 		if code, ok := err.(exitErr); ok {
@@ -184,10 +193,7 @@ func mainRet() int {
 func (i *cmdInvocation) Run(ctx context.Context) error {
 
 	// check if user wants to debug. option OR env var.
-	debug, _, err := i.req.Option("debug").Bool()
-	if err != nil {
-		return err
-	}
+	debug, _ := i.req.Options["debug"].(bool)
 	if debug || os.Getenv("IPFS_LOGGING") == "debug" {
 		u.Debug = true
 		logging.SetDebugLogging()
@@ -196,8 +202,7 @@ func (i *cmdInvocation) Run(ctx context.Context) error {
 		u.Debug = true
 	}
 
-	err = callCommand(ctx, i.req, Root, i.cmd)
-	return err
+	return callCommand(ctx, i.req, Root, i.ctx)
 }
 
 func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.IpfsNode, error) {
@@ -206,12 +211,7 @@ func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.Ipf
 			return nil, errors.New("constructing node without a request")
 		}
 
-		cmdctx := i.req.InvocContext()
-		if cmdctx == nil {
-			return nil, errors.New("constructing node without a request context")
-		}
-
-		r, err := fsrepo.Open(i.req.InvocContext().ConfigRoot)
+		r, err := fsrepo.Open(i.ctx.ConfigRoot)
 		if err != nil { // repo is owned by the node
 			return nil, err
 		}
@@ -219,7 +219,7 @@ func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.Ipf
 		// ok everything is good. set it on the invocation (for ownership)
 		// and return it.
 		n, err = core.NewNode(ctx, &core.BuildCfg{
-			Online: cmdctx.Online,
+			Online: i.ctx.Online,
 			Repo:   r,
 		})
 		if err != nil {
@@ -244,10 +244,16 @@ func (i *cmdInvocation) close() {
 func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 	var err error
 
-	i.req, i.cmd, i.path, err = cli.Parse(args, os.Stdin, Root)
+	i.req, err = cli.Parse(args, os.Stdin, Root)
 	if err != nil {
 		return err
 	}
+
+	//TODO remove this
+	//fmt.Printf("%#v\n", i.req)
+
+	// TODO(keks): pass this as arg to cli.Parse()
+	i.req.Context = ctx
 
 	repoPath, err := getRepoPath(i.req)
 	if err != nil {
@@ -256,20 +262,22 @@ func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 	log.Debugf("config path is %s", repoPath)
 
 	// this sets up the function that will initialize the config lazily.
-	cmdctx := i.req.InvocContext()
-	cmdctx.ConfigRoot = repoPath
-	cmdctx.LoadConfig = loadConfig
+	if i.ctx == nil {
+		i.ctx = &oldcmds.Context{}
+	}
+	i.ctx.ConfigRoot = repoPath
+	i.ctx.LoadConfig = loadConfig
 	// this sets up the function that will initialize the node
 	// this is so that we can construct the node lazily.
-	cmdctx.ConstructNode = i.constructNodeFunc(ctx)
+	i.ctx.ConstructNode = i.constructNodeFunc(ctx)
 
 	// if no encoding was specified by user, default to plaintext encoding
 	// (if command doesn't support plaintext, use JSON instead)
-	if !i.req.Option("encoding").Found() {
-		if i.req.Command().Encoders != nil && i.req.Command().Encoders[cmds.Text] != nil {
-			i.req.SetOption("encoding", cmds.Text)
+	if enc := i.req.Options[cmds.EncShort]; enc == "" {
+		if i.req.Command.Encoders != nil && i.req.Command.Encoders[cmds.Text] != nil {
+			i.req.SetOption(cmds.EncShort, cmds.Text)
 		} else {
-			i.req.SetOption("encoding", cmds.JSON)
+			i.req.SetOption(cmds.EncShort, cmds.JSON)
 		}
 	}
 
@@ -277,18 +285,12 @@ func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 }
 
 func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
-	longHelp, _, err := i.req.Option("help").Bool()
-	if err != nil {
-		return false, false, err
-	}
-	shortHelp, _, err := i.req.Option("h").Bool()
-	if err != nil {
-		return false, false, err
-	}
+	longHelp, _ := i.req.Options["help"].(bool)
+	shortHelp, _ := i.req.Options["h"].(bool)
 	return longHelp, shortHelp, nil
 }
 
-func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Request, root *cmds.Command) error {
+func callPreCommandHooks(ctx context.Context, details cmdDetails, req *cmds.Request, root *cmds.Command) error {
 
 	log.Event(ctx, "callPreCommandHooks", &details)
 	log.Debug("calling pre-command hooks...")
@@ -296,20 +298,16 @@ func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Reque
 	return nil
 }
 
-func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd *cmds.Command) error {
-	log.Info(config.EnvDir, " ", req.InvocContext().ConfigRoot)
+func callCommand(ctx context.Context, req *cmds.Request, root *cmds.Command, cctx *oldcmds.Context) error {
+	log.Info(config.EnvDir, " ", cctx.ConfigRoot)
+	cmd := req.Command
 
-	err := req.SetRootContext(ctx)
+	details, err := commandDetails(req.Path, root)
 	if err != nil {
 		return err
 	}
 
-	details, err := commandDetails(req.Path(), root)
-	if err != nil {
-		return err
-	}
-
-	client, err := commandShouldRunOnDaemon(*details, req, root)
+	client, err := commandShouldRunOnDaemon(*details, req, root, cctx)
 	if err != nil {
 		return err
 	}
@@ -319,11 +317,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		return err
 	}
 
-	encTypeStr, found, err := req.Option("encoding").String()
-	if !found || err != nil {
-		log.Error("error getting encoding - using JSON. reason: ", err)
-		encTypeStr = "json"
-	}
+	encTypeStr, _ := req.Options[cmds.EncShort].(string)
 	encType := cmds.EncodingType(encTypeStr)
 
 	var (
@@ -341,7 +335,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 	}
 
 	if cmd.PreRun != nil {
-		err = cmd.PreRun(req)
+		err = cmd.PreRun(req, cctx)
 		if err != nil {
 			return err
 		}
@@ -375,19 +369,14 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 	} else {
 		log.Debug("executing command locally")
 
-		pluginpath := filepath.Join(req.InvocContext().ConfigRoot, "plugins")
+		pluginpath := filepath.Join(cctx.ConfigRoot, "plugins")
 		if _, err := loader.LoadPlugins(pluginpath); err != nil {
-			return err
-		}
-
-		err := req.SetRootContext(ctx)
-		if err != nil {
 			return err
 		}
 
 		// Okay!!!!! NOW we can call the command.
 		go func() {
-			err := root.Call(req, re)
+			err := root.Call(req, re, cctx)
 			if err != nil {
 				re.SetError(err, cmdkit.ErrNormal)
 			}
@@ -428,8 +417,8 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 // It returns a client if the command should be executed on a daemon and nil if
 // it should be executed on a client. It returns an error if the command must
 // NOT be executed on either.
-func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.Command) (http.Client, error) {
-	path := req.Path()
+func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, root *cmds.Command, cctx *oldcmds.Context) (http.Client, error) {
+	path := req.Path
 	// root command.
 	if len(path) < 1 {
 		return nil, nil
@@ -447,14 +436,11 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 	// to this point so that we dont check unnecessarily
 
 	// did user specify an api to use for this command?
-	apiAddrStr, _, err := req.Option(coreCmds.ApiOption).String()
-	if err != nil {
-		return nil, err
-	}
+	apiAddrStr, _ := req.Options[coreCmds.ApiOption].(string)
 
-	client, err := getApiClient(req.InvocContext().ConfigRoot, apiAddrStr)
+	client, err := getApiClient(cctx.ConfigRoot, apiAddrStr)
 	if err == repo.ErrApiNotRunning {
-		if apiAddrStr != "" && req.Command() != daemonCmd {
+		if apiAddrStr != "" && req.Command != daemonCmd {
 			// if user SPECIFIED an api, and this cmd is not daemon
 			// we MUST use it. so error out.
 			return nil, err
@@ -469,7 +455,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 		if details.cannotRunOnDaemon {
 			// check if daemon locked. legacy error text, for now.
 			log.Debugf("Command cannot run on daemon. Checking if daemon is locked")
-			if daemonLocked, _ := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot); daemonLocked {
+			if daemonLocked, _ := fsrepo.LockedByOtherProcess(cctx.ConfigRoot); daemonLocked {
 				return nil, cmds.ClientError("ipfs daemon is running. please stop it to run this command")
 			}
 			return nil, nil
@@ -493,11 +479,8 @@ func isClientError(err error) bool {
 	return false
 }
 
-func getRepoPath(req cmds.Request) (string, error) {
-	repoOpt, found, err := req.Option("config").String()
-	if err != nil {
-		return "", err
-	}
+func getRepoPath(req *cmds.Request) (string, error) {
+	repoOpt, found := req.Options["config"].(string)
 	if found && repoOpt != "" {
 		return repoOpt, nil
 	}

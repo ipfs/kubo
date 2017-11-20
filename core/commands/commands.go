@@ -11,11 +11,11 @@ import (
 	"sort"
 	"strings"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
+	// oldcmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
-	cmds "gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
+	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 )
 
 type commandEncoder struct {
@@ -69,16 +69,16 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 		Options: []cmdkit.Option{
 			cmdkit.BoolOption(flagsOptionName, "f", "Show command flags"),
 		},
-		Run: func(req cmds.Request, res cmds.ResponseEmitter) {
+		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
 			rootCmd := cmd2outputCmd("ipfs", root)
-			rootCmd.showOpts, _, _ = req.Option(flagsOptionName).Bool()
+			rootCmd.showOpts, _ = req.Options[flagsOptionName].(bool)
 			err := res.Emit(&rootCmd)
 			if err != nil {
 				log.Error(err)
 			}
 		},
 		Encoders: cmds.EncoderMap{
-			cmds.Text: func(req cmds.Request) func(io.Writer) cmds.Encoder {
+			cmds.Text: func(req *cmds.Request) func(io.Writer) cmds.Encoder {
 				return func(w io.Writer) cmds.Encoder { return &commandEncoder{w} }
 			},
 		},
@@ -94,51 +94,12 @@ func cmd2outputCmd(name string, cmd *cmds.Command) Command {
 
 	output := Command{
 		Name:        name,
-		Subcommands: make([]Command, len(cmd.Subcommands)+len(cmd.OldSubcommands)),
+		Subcommands: make([]Command, 0, len(cmd.Subcommands)),
 		Options:     opts,
 	}
 
-	// we need to keep track of names because a name *might* be used by both a Subcommand and an OldSubscommand.
-	names := make(map[string]struct{})
-
-	i := 0
 	for name, sub := range cmd.Subcommands {
-		names[name] = struct{}{}
-		output.Subcommands[i] = cmd2outputCmd(name, sub)
-		i++
-	}
-
-	for name, sub := range cmd.OldSubcommands {
-		if _, ok := names[name]; ok {
-			continue
-		}
-
-		names[name] = struct{}{}
-		output.Subcommands[i] = oldCmd2outputCmd(name, sub)
-		i++
-	}
-
-	// trucate to the amount of names we actually have
-	output.Subcommands = output.Subcommands[:len(names)]
-	return output
-}
-
-func oldCmd2outputCmd(name string, cmd *oldcmds.Command) Command {
-	opts := make([]Option, len(cmd.Options))
-	for i, opt := range cmd.Options {
-		opts[i] = Option{opt.Names()}
-	}
-
-	output := Command{
-		Name:        name,
-		Subcommands: make([]Command, len(cmd.Subcommands)),
-		Options:     opts,
-	}
-
-	i := 0
-	for name, sub := range cmd.Subcommands {
-		output.Subcommands[i] = oldCmd2outputCmd(name, sub)
-		i++
+		output.Subcommands = append(output.Subcommands, cmd2outputCmd(name, sub))
 	}
 
 	return output

@@ -11,9 +11,10 @@ import (
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 
-	"gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
+	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 )
 
 var log = logging.Logger("core/commands")
@@ -91,6 +92,11 @@ The CLI will exit with one of the following values:
 		cmdkit.BoolOption("h", "Show a short version of the command help text."),
 		cmdkit.BoolOption("local", "L", "Run the command locally, instead of using the daemon."),
 		cmdkit.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
+
+		// global options, added to every command
+		cmds.OptionEncodingType,
+		cmds.OptionStreamChannels,
+		cmds.OptionTimeout,
 	},
 }
 
@@ -108,34 +114,31 @@ var rootSubcommands = map[string]*cmds.Command{
 	"pubsub":    PubsubCmd,
 	"repo":      RepoCmd,
 	"stats":     StatsCmd,
-}
-
-var rootOldSubcommands = map[string]*oldcmds.Command{
-	"bootstrap": BootstrapCmd,
-	"config":    ConfigCmd,
-	"dag":       dag.DagCmd,
-	"dht":       DhtCmd,
-	"diag":      DiagCmd,
-	"dns":       DNSCmd,
-	"files":     files.FilesCmd,
-	"id":        IDCmd,
-	"key":       KeyCmd,
-	"log":       LogCmd,
-	"ls":        LsCmd,
-	"mount":     MountCmd,
-	"name":      NameCmd,
-	"object":    ocmd.ObjectCmd,
-	"pin":       PinCmd,
-	"ping":      PingCmd,
-	"p2p":       P2PCmd,
-	"refs":      RefsCmd,
-	"resolve":   ResolveCmd,
-	"swarm":     SwarmCmd,
-	"tar":       TarCmd,
-	"file":      unixfs.UnixFSCmd,
-	"update":    ExternalBinary(),
-	"version":   VersionCmd,
-	"shutdown":  daemonShutdownCmd,
+	"bootstrap": lgc.NewCommand(BootstrapCmd),
+	"config":    lgc.NewCommand(ConfigCmd),
+	"dag":       lgc.NewCommand(dag.DagCmd),
+	"dht":       lgc.NewCommand(DhtCmd),
+	"diag":      lgc.NewCommand(DiagCmd),
+	"dns":       lgc.NewCommand(DNSCmd),
+	"files":     lgc.NewCommand(files.FilesCmd),
+	"id":        lgc.NewCommand(IDCmd),
+	"key":       lgc.NewCommand(KeyCmd),
+	"log":       lgc.NewCommand(LogCmd),
+	"ls":        lgc.NewCommand(LsCmd),
+	"mount":     lgc.NewCommand(MountCmd),
+	"name":      lgc.NewCommand(NameCmd),
+	"object":    lgc.NewCommand(ocmd.ObjectCmd),
+	"pin":       lgc.NewCommand(PinCmd),
+	"ping":      lgc.NewCommand(PingCmd),
+	"p2p":       lgc.NewCommand(P2PCmd),
+	"refs":      lgc.NewCommand(RefsCmd),
+	"resolve":   lgc.NewCommand(ResolveCmd),
+	"swarm":     lgc.NewCommand(SwarmCmd),
+	"tar":       lgc.NewCommand(TarCmd),
+	"file":      lgc.NewCommand(unixfs.UnixFSCmd),
+	"update":    lgc.NewCommand(ExternalBinary()),
+	"version":   lgc.NewCommand(VersionCmd),
+	"shutdown":  lgc.NewCommand(daemonShutdownCmd),
 }
 
 // RootRO is the readonly version of Root
@@ -155,33 +158,30 @@ var rootROSubcommands = map[string]*cmds.Command{
 		},
 	},
 	"get": GetCmd,
-}
-
-var rootROOldSubcommands = map[string]*oldcmds.Command{
-	"dns": DNSCmd,
-	"ls":  LsCmd,
-	"name": &oldcmds.Command{
+	"dns": lgc.NewCommand(DNSCmd),
+	"ls":  lgc.NewCommand(LsCmd),
+	"name": lgc.NewCommand(&oldcmds.Command{
 		Subcommands: map[string]*oldcmds.Command{
 			"resolve": IpnsCmd,
 		},
-	},
-	"object": &oldcmds.Command{
+	}),
+	"object": lgc.NewCommand(&oldcmds.Command{
 		Subcommands: map[string]*oldcmds.Command{
 			"data":  ocmd.ObjectDataCmd,
 			"links": ocmd.ObjectLinksCmd,
 			"get":   ocmd.ObjectGetCmd,
 			"stat":  ocmd.ObjectStatCmd,
 		},
-	},
-	"dag": &oldcmds.Command{
+	}),
+	"dag": lgc.NewCommand(&oldcmds.Command{
 		Subcommands: map[string]*oldcmds.Command{
 			"get":     dag.DagGetCmd,
 			"resolve": dag.DagResolveCmd,
 		},
-	},
-	"refs":    RefsROCmd,
-	"resolve": ResolveCmd,
-	"version": VersionCmd,
+	}),
+	"refs":    lgc.NewCommand(RefsROCmd),
+	"resolve": lgc.NewCommand(ResolveCmd),
+	"version": lgc.NewCommand(VersionCmd),
 }
 
 func init() {
@@ -192,10 +192,8 @@ func init() {
 	*RefsROCmd = *RefsCmd
 	RefsROCmd.Subcommands = map[string]*oldcmds.Command{}
 
-	Root.OldSubcommands = rootOldSubcommands
 	Root.Subcommands = rootSubcommands
 
-	RootRO.OldSubcommands = rootROOldSubcommands
 	RootRO.Subcommands = rootROSubcommands
 }
 

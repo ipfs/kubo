@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,9 +10,9 @@ import (
 
 	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	"gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
 
+	"gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
+	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
 	blocks "gx/ipfs/QmYsEQydGrsxNZfAiskvQ76N2xE9hDQtSAkRSynwMiUK3c/go-block-format"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
@@ -60,8 +61,8 @@ on raw IPFS blocks. It outputs the following to stdout:
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to stat.").EnableStdin(),
 	},
-	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
-		b, err := getBlockForKey(req, req.Arguments()[0])
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+		b, err := getBlockForKey(req.Context, env, req.Arguments[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -77,7 +78,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 	},
 	Type: BlockStat{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req cmds.Request, w io.Writer, v interface{}) error {
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			bs, ok := v.(*BlockStat)
 			if !ok {
 				return e.TypeErr(bs, v)
@@ -100,8 +101,8 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
 	},
-	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
-		b, err := getBlockForKey(req, req.Arguments()[0])
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+		b, err := getBlockForKey(req.Context, env, req.Arguments[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -131,14 +132,14 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		cmdkit.StringOption("mhtype", "multihash hash function").WithDefault("sha2-256"),
 		cmdkit.IntOption("mhlen", "multihash hash length").WithDefault(-1),
 	},
-	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		file, err := req.Files().NextFile()
+		file, err := req.Files.NextFile()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -159,7 +160,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		var pref cid.Prefix
 		pref.Version = 1
 
-		format, _, _ := req.Option("format").String()
+		format, _ := req.Options["format"].(string)
 		formatval, ok := cid.Codecs[format]
 		if !ok {
 			res.SetError(fmt.Errorf("unrecognized format: %s", format), cmdkit.ErrNormal)
@@ -170,7 +171,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		}
 		pref.Codec = formatval
 
-		mhtype, _, _ := req.Option("mhtype").String()
+		mhtype, _ := req.Options["mhtype"].(string)
 		mhtval, ok := mh.Names[mhtype]
 		if !ok {
 			err := fmt.Errorf("unrecognized multihash function: %s", mhtype)
@@ -179,9 +180,9 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		}
 		pref.MhType = mhtval
 
-		mhlen, _, err := req.Option("mhlen").Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+		mhlen, ok := req.Options["mhlen"].(int)
+		if !ok {
+			res.SetError("missing option \"mhlen\"", cmdkit.ErrNormal)
 			return
 		}
 		pref.MhLength = mhlen
@@ -213,7 +214,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		}
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req cmds.Request, w io.Writer, v interface{}) error {
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			bs, ok := v.(*BlockStat)
 			if !ok {
 				return e.TypeErr(bs, v)
@@ -225,12 +226,12 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 	Type: BlockStat{},
 }
 
-func getBlockForKey(req cmds.Request, skey string) (blocks.Block, error) {
+func getBlockForKey(ctx context.Context, env interface{}, skey string) (blocks.Block, error) {
 	if len(skey) == 0 {
 		return nil, fmt.Errorf("zero length cid invalid")
 	}
 
-	n, err := req.InvocContext().GetNode()
+	n, err := GetNode(env)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +241,7 @@ func getBlockForKey(req cmds.Request, skey string) (blocks.Block, error) {
 		return nil, err
 	}
 
-	b, err := n.Blocks.GetBlock(req.Context(), c)
+	b, err := n.Blocks.GetBlock(ctx, c)
 	if err != nil {
 		return nil, err
 	}
@@ -263,15 +264,15 @@ It takes a list of base58 encoded multihashs to remove.
 		cmdkit.BoolOption("force", "f", "Ignore nonexistent blocks."),
 		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
 	},
-	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		hashes := req.Arguments()
-		force, _, _ := req.Option("force").Bool()
-		quiet, _, _ := req.Option("quiet").Bool()
+		hashes := req.Arguments
+		force, _ := req.Options["force"].(bool)
+		quiet, _ := req.Options["quiet"].(bool)
 		cids := make([]*cid.Cid, 0, len(hashes))
 		for _, hash := range hashes {
 			c, err := cid.Decode(hash)
@@ -298,8 +299,8 @@ It takes a list of base58 encoded multihashs to remove.
 			log.Error(err)
 		}
 	},
-	PostRun: map[cmds.EncodingType]func(cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
-		cmds.CLI: func(req cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
+	PostRun: map[cmds.EncodingType]func(*cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
+		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
 			reNext, res := cmds.NewChanResponsePair(req)
 
 			go func() {

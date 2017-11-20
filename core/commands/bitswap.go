@@ -6,13 +6,15 @@ import (
 	"io"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
+	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 
 	cmds "gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cmdkit "gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
+	cmdkit "gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
 )
@@ -24,13 +26,11 @@ var BitswapCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"stat": bitswapStatCmd,
-	},
-	OldSubcommands: map[string]*oldcmds.Command{
-		"wantlist":  showWantlistCmd,
-		"unwant":    unwantCmd,
-		"ledger":    ledgerCmd,
-		"reprovide": reprovideCmd,
+		"stat":      bitswapStatCmd,
+		"wantlist":  lgc.NewCommand(showWantlistCmd),
+		"unwant":    lgc.NewCommand(unwantCmd),
+		"ledger":    lgc.NewCommand(ledgerCmd),
+		"reprovide": lgc.NewCommand(reprovideCmd),
 	},
 }
 
@@ -140,8 +140,8 @@ var bitswapStatCmd = &cmds.Command{
 		ShortDescription: ``,
 	},
 	Type: bitswap.Stat{},
-	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+		nd, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -167,7 +167,7 @@ var bitswapStatCmd = &cmds.Command{
 		cmds.EmitOnce(res, st)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req cmds.Request, w io.Writer, v interface{}) error {
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			out, ok := v.(*bitswap.Stat)
 			if !ok {
 				return e.TypeErr(out, v)
