@@ -120,9 +120,13 @@ type interestReq struct {
 // still be in the interest cache.
 func (s *Session) isLiveWant(c *cid.Cid) bool {
 	resp := make(chan bool, 1)
-	s.interestReqs <- interestReq{
+	select {
+	case s.interestReqs <- interestReq{
 		c:    c,
 		resp: resp,
+	}:
+	case <-s.ctx.Done():
+		return false
 	}
 
 	select {
@@ -278,13 +282,17 @@ func (s *Session) cancel(keys []*cid.Cid) {
 }
 
 func (s *Session) cancelWants(keys []*cid.Cid) {
-	s.cancelKeys <- keys
+	select {
+	case s.cancelKeys <- keys:
+	case <-s.ctx.Done():
+	}
 }
 
 func (s *Session) fetch(ctx context.Context, keys []*cid.Cid) {
 	select {
 	case s.newReqs <- keys:
 	case <-ctx.Done():
+	case <-s.ctx.Done():
 	}
 }
 
