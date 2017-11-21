@@ -70,6 +70,16 @@ test_object_cmd() {
     test_cmp expected_putOut actual_putOut
   '
 
+  test_expect_success "'ipfs object put --quiet file.json' succeeds" '
+    ipfs object put --quiet ../t0051-object-data/testPut.json > actual_putOut
+  '
+
+  test_expect_success "'ipfs object put --quiet file.json' output looks good" '
+    HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
+    printf "$HASH\n" > expected_putOut &&
+    test_cmp expected_putOut actual_putOut
+  '
+
   test_expect_success "'ipfs object put file.xml' succeeds" '
     ipfs object put  ../t0051-object-data/testPut.xml --inputenc=xml > actual_putOut
   '

@@ -19,10 +19,10 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	cmdkit "gx/ipfs/QmUyfy4QSr3NXym4etEiRyxBLqqAeKHJuRdi8AACxg63fZ/go-ipfs-cmdkit"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	cmdkit "gx/ipfs/QmUyfy4QSr3NXym4etEiRyxBLqqAeKHJuRdi8AACxg63fZ/go-ipfs-cmdkit"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
@@ -385,6 +385,7 @@ And then run:
 		cmdkit.StringOption("inputenc", "Encoding type of input data. One of: {\"protobuf\", \"json\"}.").WithDefault("json"),
 		cmdkit.StringOption("datafieldenc", "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
 		cmdkit.BoolOption("pin", "Pin this object when adding."),
+		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -444,6 +445,8 @@ And then run:
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			quiet, _, _ := res.Request().Option("quiet").Bool()
+
 			v, err := unwrapOutput(res.Output())
 			if err != nil {
 				return nil, err
@@ -453,7 +456,12 @@ And then run:
 				return nil, e.TypeErr(obj, v)
 			}
 
-			return strings.NewReader("added " + obj.Hash + "\n"), nil
+			out := obj.Hash + "\n"
+			if !quiet {
+				out = "added " + out
+			}
+
+			return strings.NewReader(out), nil
 		},
 	},
 	Type: Object{},
