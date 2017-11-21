@@ -90,15 +90,14 @@ var addPinCmd = &cmds.Command{
 		v := new(dag.ProgressTracker)
 		ctx := v.DeriveContext(req.Context())
 
-		ch := make(chan []*cid.Cid)
+		type pinResult struct {
+			pins []*cid.Cid
+			err  error
+		}
+		ch := make(chan pinResult, 1)
 		go func() {
-			defer close(ch)
 			added, err := corerepo.Pin(n, ctx, req.Arguments(), recursive)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-			ch <- added
+			ch <- pinResult{pins: added, err: err}
 		}()
 
 		ticker := time.NewTicker(500 * time.Millisecond)
@@ -106,16 +105,16 @@ var addPinCmd = &cmds.Command{
 		defer close(out)
 		for {
 			select {
-			case val, ok := <-ch:
-				if !ok {
-					// error already set just return
+			case val := <-ch:
+				if val.err != nil {
+					res.SetError(val.err, cmdkit.ErrNormal)
 					return
 				}
 
 				if pv := v.Value(); pv != 0 {
 					out <- &AddPinOutput{Progress: v.Value()}
 				}
-				out <- &AddPinOutput{Pins: cidsToStrings(val)}
+				out <- &AddPinOutput{Pins: cidsToStrings(val.pins)}
 				return
 			case <-ticker.C:
 				out <- &AddPinOutput{Progress: v.Value()}

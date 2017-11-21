@@ -342,6 +342,8 @@ You can now check what blocks have been created by:
 	},
 	PostRun: map[cmds.EncodingType]func(cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
 		cmds.CLI: func(req cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
+			ctx := req.Context()
+
 			reNext, res := cmds.NewChanResponsePair(req)
 			outChan := make(chan interface{})
 
@@ -429,9 +431,6 @@ You can now check what blocks have been created by:
 							bar.ShowBar = true
 							bar.ShowTimeLeft = true
 						}
-					case <-req.Context().Done():
-						re.SetError(req.Context().Err(), cmdkit.ErrNormal)
-						return
 					}
 				}
 			}
@@ -469,7 +468,12 @@ You can now check what blocks have been created by:
 						return
 					}
 
-					outChan <- v
+					select {
+					case outChan <- v:
+					case <-ctx.Done():
+						re.SetError(ctx.Err(), cmdkit.ErrNormal)
+						return
+					}
 				}
 			}()
 
