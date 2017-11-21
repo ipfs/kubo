@@ -18,7 +18,7 @@ import (
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
+	"gx/ipfs/QmUyfy4QSr3NXym4etEiRyxBLqqAeKHJuRdi8AACxg63fZ/go-ipfs-cmdkit"
 )
 
 type LsLink struct {
@@ -54,7 +54,7 @@ The JSON output contains type information.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
-		cmdkit.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
+		cmdkit.BoolOption("resolve-type", "Resolve linked objects to find out their types.").WithDefault(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

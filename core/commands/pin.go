@@ -17,8 +17,8 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	"gx/ipfs/QmSNbH2A1evCCbJSDC6u3RV3GGDhgu6pRGbXHvrN89tMKf/go-ipfs-cmdkit"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	"gx/ipfs/QmUyfy4QSr3NXym4etEiRyxBLqqAeKHJuRdi8AACxg63fZ/go-ipfs-cmdkit"
 )
 
 var PinCmd = &cmds.Command{
@@ -54,7 +54,7 @@ var addPinCmd = &cmds.Command{
 		cmdkit.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s).").Default(true),
+		cmdkit.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
 		cmdkit.BoolOption("progress", "Show progress"),
 	},
 	Type: AddPinOutput{},
@@ -181,7 +181,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 		cmdkit.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s).").Default(true),
+		cmdkit.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s).").WithDefault(true),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -275,7 +275,7 @@ Example:
 		cmdkit.StringArg("ipfs-path", false, true, "Path to object(s) to be listed."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").Default("all"),
+		cmdkit.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
 		cmdkit.BoolOption("quiet", "q", "Write just hashes of objects."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -358,7 +358,7 @@ new pin and removing the old one.
 		cmdkit.StringArg("to-path", true, false, "Path to new object to be pinned."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("unpin", "Remove the old pin.").Default(true),
+		cmdkit.BoolOption("unpin", "Remove the old pin.").WithDefault(true),
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
