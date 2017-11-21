@@ -127,7 +127,7 @@ multihash.
 		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name).").Default(false),
+		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -384,7 +384,7 @@ And then run:
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("inputenc", "Encoding type of input data. One of: {\"protobuf\", \"json\"}.").Default("json"),
 		cmdkit.StringOption("datafieldenc", "Encoding type of the data field, either \"text\" or \"base64\".").Default("text"),
-		cmdkit.BoolOption("pin", "Pin this object when adding.").Default(false),
+		cmdkit.BoolOption("pin", "Pin this object when adding."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

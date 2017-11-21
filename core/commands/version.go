@@ -28,10 +28,10 @@ var VersionCmd = &cmds.Command{
 	},
 
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("number", "n", "Only show the version number.").Default(false),
-		cmdkit.BoolOption("commit", "Show the commit hash.").Default(false),
-		cmdkit.BoolOption("repo", "Show repo version.").Default(false),
-		cmdkit.BoolOption("all", "Show all version information").Default(false),
+		cmdkit.BoolOption("number", "n", "Only show the version number."),
+		cmdkit.BoolOption("commit", "Show the commit hash."),
+		cmdkit.BoolOption("repo", "Show repo version."),
+		cmdkit.BoolOption("all", "Show all version information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(&VersionOutput{

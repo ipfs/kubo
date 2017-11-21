@@ -72,7 +72,7 @@ Example:
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("peer", "p", "Specify a peer to print bandwidth for."),
 		cmdkit.StringOption("proto", "t", "Specify a protocol to print bandwidth for."),
-		cmdkit.BoolOption("poll", "Print bandwidth at an interval.").Default(false),
+		cmdkit.BoolOption("poll", "Print bandwidth at an interval."),
 		cmdkit.StringOption("interval", "i", `Time interval to wait between updating output, if 'poll' is true.
 
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are:

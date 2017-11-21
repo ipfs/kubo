@@ -49,7 +49,7 @@ The resolver can recursively resolve:
 		cmdkit.StringArg("domain-name", true, false, "The domain-name name to resolve.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not a DNS link.").Default(false),
+		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not a DNS link."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 

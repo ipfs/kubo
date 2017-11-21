@@ -25,7 +25,7 @@ Lists running and recently run commands.
 		res.SetOutput(req.InvocContext().ReqLog.Report())
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information.").Default(false),
+		cmdkit.BoolOption("verbose", "v", "Print extra information."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"clear":    clearInactiveCmd,
