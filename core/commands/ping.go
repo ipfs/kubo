@@ -39,7 +39,7 @@ trip latency information.
 		cmdkit.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.IntOption("count", "n", "Number of ping messages to send.").Default(10),
+		cmdkit.IntOption("count", "n", "Number of ping messages to send.").WithDefault(10),
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

@@ -140,7 +140,7 @@ var findProvidersDhtCmd = &cmds.Command{
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("verbose", "v", "Print extra information."),
-		cmdkit.IntOption("num-providers", "n", "The number of providers to find.").Default(20),
+		cmdkit.IntOption("num-providers", "n", "The number of providers to find.").WithDefault(20),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

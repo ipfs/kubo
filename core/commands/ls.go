@@ -54,7 +54,7 @@ The JSON output contains type information.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
-		cmdkit.BoolOption("resolve-type", "Resolve linked objects to find out their types.").Default(true),
+		cmdkit.BoolOption("resolve-type", "Resolve linked objects to find out their types.").WithDefault(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()

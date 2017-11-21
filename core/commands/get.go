@@ -46,7 +46,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmdkit.StringOption("output", "o", "The path where the output should be stored."),
 		cmdkit.BoolOption("archive", "a", "Output a TAR archive."),
 		cmdkit.BoolOption("compress", "C", "Compress the output with GZIP compression."),
-		cmdkit.IntOption("compression-level", "l", "The level of compression (1-9).").Default(-1),
+		cmdkit.IntOption("compression-level", "l", "The level of compression (1-9).").WithDefault(-1),
 	},
 	PreRun: func(req cmds.Request) error {
 		_, err := getCompressOptions(req)

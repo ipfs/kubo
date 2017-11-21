@@ -121,7 +121,7 @@ func (r *request) Option(name string) *cmdkit.OptionValue {
 		}
 	}
 
-	return &cmdkit.OptionValue{option.DefaultVal(), false, option}
+	return &cmdkit.OptionValue{option.Default(), false, option}
 }
 
 // Options returns a copy of the option map

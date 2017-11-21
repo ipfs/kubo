@@ -59,10 +59,10 @@ into an object of the specified format.
 		cmdkit.FileArg("object data", true, true, "The object to put").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "f", "Format that the object will be added as.").Default("cbor"),
-		cmdkit.StringOption("input-enc", "Format that the input object will be.").Default("json"),
+		cmdkit.StringOption("format", "f", "Format that the object will be added as.").WithDefault("cbor"),
+		cmdkit.StringOption("input-enc", "Format that the input object will be.").WithDefault("json"),
 		cmdkit.BoolOption("pin", "Pin this object when adding."),
-		cmdkit.StringOption("hash", "Hash function to use").Default(""),
+		cmdkit.StringOption("hash", "Hash function to use").WithDefault(""),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()

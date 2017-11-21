@@ -127,9 +127,9 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		cmdkit.FileArg("data", true, false, "The data to be stored as an IPFS block.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "f", "cid format for blocks to be created with.").Default("v0"),
-		cmdkit.StringOption("mhtype", "multihash hash function").Default("sha2-256"),
-		cmdkit.IntOption("mhlen", "multihash hash length").Default(-1),
+		cmdkit.StringOption("format", "f", "cid format for blocks to be created with.").WithDefault("v0"),
+		cmdkit.StringOption("mhtype", "multihash hash function").WithDefault("sha2-256"),
+		cmdkit.IntOption("mhlen", "multihash hash length").WithDefault(-1),
 	},
 	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
 		n, err := req.InvocContext().GetNode()

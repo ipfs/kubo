@@ -232,7 +232,7 @@ func generateSynopsis(cmd *cmds.Command, path string) string {
 			if len(n) > 1 {
 				pre = "--"
 			}
-			if opt.Type() == cmdkit.Bool && opt.DefaultVal() == true {
+			if opt.Type() == cmdkit.Bool && opt.Default() == true {
 				pre = "--"
 				sopt = fmt.Sprintf("%s%s=false", pre, n)
 				break

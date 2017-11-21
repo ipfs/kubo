@@ -61,7 +61,7 @@ NOTE: List all references recursively by using the flag '-r'.
 		cmdkit.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").Default("<dst>"),
+		cmdkit.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").WithDefault("<dst>"),
 		cmdkit.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
 		cmdkit.BoolOption("unique", "u", "Omit duplicate refs from output."),
 		cmdkit.BoolOption("recursive", "r", "Recursively list links of child nodes."),

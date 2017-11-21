@@ -76,7 +76,7 @@ Example:
 		cmdkit.StringOption("interval", "i", `Time interval to wait between updating output, if 'poll' is true.
 
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are:
-    "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("1s"),
+    "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("1s"),
 	},
 
 	Run: func(req cmds.Request, res cmds.ResponseEmitter) {

@@ -46,7 +46,7 @@ operations.
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("f", "flush", "Flush target and ancestors after write.").Default(true),
+		cmdkit.BoolOption("f", "flush", "Flush target and ancestors after write.").WithDefault(true),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  FilesReadCmd,
@@ -77,7 +77,7 @@ var FilesStatCmd = &cmds.Command{
 	},
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("format", "Print statistics in given format. Allowed tokens: "+
-			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").Default(
+			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").WithDefault(
 			`<hash>
 Size: <size>
 CumulativeSize: <cumulsize>
