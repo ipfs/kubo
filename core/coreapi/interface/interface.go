@@ -11,8 +11,9 @@ import (
 
 type Path interface {
 	String() string
+	Components() []string
 	Cid() *cid.Cid
-	Root() *cid.Cid
+	RootCid() *cid.Cid
 	Resolved() bool
 }
 
@@ -61,4 +62,5 @@ type UnixfsAPI interface {
 // }
 
 var ErrIsDir = errors.New("object is a directory")
-var ErrOffline = errors.New("can't resolve, ipfs node is offline")
+var ErrOffline = errors.New("can't resolve, ipfs is offline")
+var ErrNotFound = errors.New("can't find requested node")
