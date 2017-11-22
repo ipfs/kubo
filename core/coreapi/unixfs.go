@@ -26,25 +26,25 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.Path, err
 	return ParseCid(c), nil
 }
 
-func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Reader, error) {
-	dagnode, err := api.core().ResolveNode(ctx, p)
+func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Path, coreiface.Reader, error) {
+	rp, dagnode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	r, err := uio.NewDagReader(ctx, dagnode, api.node.DAG)
 	if err == uio.ErrIsDir {
-		return nil, coreiface.ErrIsDir
+		return nil, nil, coreiface.ErrIsDir
 	} else if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return r, nil
+	return rp, r, nil
 }
 
-func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*coreiface.Link, error) {
-	dagnode, err := api.core().ResolveNode(ctx, p)
+func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) (coreiface.Path, []*coreiface.Link, error) {
+	rp, dagnode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var ndlinks []*node.Link
@@ -53,20 +53,20 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*coreiface.Li
 	case nil:
 		l, err := dir.Links(ctx)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		ndlinks = l
 	case uio.ErrNotADir:
 		ndlinks = dagnode.Links()
 	default:
-		return nil, err
+		return nil, nil, err
 	}
 
 	links := make([]*coreiface.Link, len(ndlinks))
 	for i, l := range ndlinks {
 		links[i] = &coreiface.Link{l.Name, l.Size, l.Cid}
 	}
-	return links, nil
+	return rp, links, nil
 }
 
 func (api *UnixfsAPI) core() coreiface.CoreAPI {

@@ -182,7 +182,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	dr, err := i.api.Unixfs().Cat(ctx, resolvedPath)
+	_, dr, err := i.api.Unixfs().Cat(ctx, resolvedPath)
 	dir := false
 	switch err {
 	case nil:
@@ -271,7 +271,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	nd, err := i.api.ResolveNode(ctx, resolvedPath)
+	_, nd, err := i.api.ResolveNode(ctx, resolvedPath)
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -297,7 +297,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 			return
 		}
 
-		dr, err := i.api.Unixfs().Cat(ctx, coreapi.ParseCid(ixnd.Cid()))
+		_, dr, err := i.api.Unixfs().Cat(ctx, coreapi.ParseCid(ixnd.Cid()))
 		if err != nil {
 			internalWebError(w, err)
 			return
@@ -449,7 +449,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newcid *cid.Cid
-	rnode, err := i.api.ResolveNode(ctx, rootPath)
+	_, rnode, err := i.api.ResolveNode(ctx, rootPath)
 	if err == coreiface.ErrNotFound {
 		// ev.Node < node where resolve failed
 		// ev.Name < new link

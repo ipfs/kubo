@@ -26,17 +26,17 @@ func (api *CoreAPI) Unixfs() coreiface.UnixfsAPI {
 }
 
 // TODO: also return path here
-func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (coreiface.Node, error) {
+func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (coreiface.Path, coreiface.Node, error) {
 	p, err := api.ResolvePath(ctx, p)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	node, err := api.node.DAG.Get(ctx, p.Cid())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return node, nil
+	return p, node, nil
 }
 
 // TODO: store all of ipfspath.Resolver.ResolvePathComponents() in Path
