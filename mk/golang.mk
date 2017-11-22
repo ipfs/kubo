@@ -1,5 +1,5 @@
 # golang utilities
-GO_MIN_VERSION = 1.8
+GO_MIN_VERSION = 1.9
 
 # pre-definitions
 GOCC ?= go
