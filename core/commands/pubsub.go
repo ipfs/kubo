@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"net/http"
 	"sync"
 	"time"
 
@@ -107,6 +108,10 @@ This command outputs data in the following encodings:
 
 				connectToPubSubPeers(req.Context(), n, cid)
 			}()
+		}
+
+		if f, ok := res.(http.Flusher); ok {
+			f.Flush()
 		}
 
 		for {
