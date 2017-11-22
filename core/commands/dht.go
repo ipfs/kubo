@@ -93,7 +93,11 @@ var queryDhtCmd = &cmds.Command{
 		go func() {
 			defer close(outChan)
 			for e := range events {
-				outChan <- e
+				select {
+				case outChan <- e:
+				case <-req.Context().Done():
+					return
+				}
 			}
 		}()
 	},
@@ -181,7 +185,11 @@ var findProvidersDhtCmd = &cmds.Command{
 		go func() {
 			defer close(outChan)
 			for e := range events {
-				outChan <- e
+				select {
+				case outChan <- e:
+				case <-req.Context().Done():
+					return
+				}
 			}
 		}()
 
@@ -301,7 +309,11 @@ var provideRefDhtCmd = &cmds.Command{
 		go func() {
 			defer close(outChan)
 			for e := range events {
-				outChan <- e
+				select {
+				case outChan <- e:
+				case <-req.Context().Done():
+					return
+				}
 			}
 		}()
 
@@ -427,7 +439,11 @@ var findPeerDhtCmd = &cmds.Command{
 		go func() {
 			defer close(outChan)
 			for v := range events {
-				outChan <- v
+				select {
+				case outChan <- v:
+				case <-req.Context().Done():
+				}
+
 			}
 		}()
 
@@ -529,7 +545,10 @@ Different key types can specify other 'best' rules.
 		go func() {
 			defer close(outChan)
 			for e := range events {
-				outChan <- e
+				select {
+				case outChan <- e:
+				case <-req.Context().Done():
+				}
 			}
 		}()
 
@@ -643,7 +662,11 @@ NOTE: A value may not exceed 2048 bytes.
 		go func() {
 			defer close(outChan)
 			for e := range events {
-				outChan <- e
+				select {
+				case outChan <- e:
+				case <-req.Context().Done():
+					return
+				}
 			}
 		}()
 
