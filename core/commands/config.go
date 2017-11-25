@@ -295,7 +295,7 @@ can't be undone.
 }
 
 var configProfileCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Apply profiles to config.",
 	},
 
@@ -306,48 +306,48 @@ var configProfileCmd = &cmds.Command{
 }
 
 var configProfileApplyCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Apply profile to config.",
 	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("profile", true, false, "The profile to apply to the config."),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		profile, ok := config.Profiles[req.Arguments()[0]]
 		if !ok {
-			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmdkit.ErrNormal)
 			return
 		}
 
 		err := transformConfig(req.InvocContext().ConfigRoot, profile.Apply)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 	},
 }
 
 var configProfileRevertCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Revert profile changes.",
 		ShortDescription: `Reverts profile-related changes to the config.
 
 Reverting some profiles may damage the configuration or not be possible.
 Backing up the config before running this command is advised.`,
 	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("profile", true, false, "The profile to apply to the config."),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		profile, ok := config.Profiles[req.Arguments()[0]]
 		if !ok {
-			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmdkit.ErrNormal)
 			return
 		}
 
 		err := transformConfig(req.InvocContext().ConfigRoot, profile.Revert)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 	},
