@@ -9,14 +9,27 @@ Configuration profiles allow to tweak configuration quickly. Profiles can be
 applied with `--profile` flag to `ipfs init` or with `ipfs config profile apply`
 command.
 
-- `server` profile
-Recommended for nodes with public IPv4 address, disables host and content
-discovery in local networks.
+Available profiles:
+- `server`
 
-- `test` profile
-Reduces external interference, useful for running ipfs in test environments.
-Note that with these settings node won't be able to talk to the rest of the
-network without manual bootstrap.
+  Recommended for nodes with public IPv4 address, disables host and content
+  discovery in local networks.
+
+- `test`
+
+  Reduces external interference, useful for running ipfs in test environments.
+  Note that with these settings node won't be able to talk to the rest of the
+  network without manual bootstrap.
+
+- `badgerds`
+
+  Replaces default datastore configuration with experimental badger datastore.
+  If you apply this profile after `ipfs init`, you will need to convert your
+  datastore to the new configuration. You can do this using [ipfs-ds-convert](https://github.com/ipfs/ipfs-ds-convert)
+
+  WARNING: badger datastore is experimantal. Make sure to backup your data
+  frequently
+
 
 ## Table of Contents
 

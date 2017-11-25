@@ -324,13 +324,14 @@ var configProfileApplyCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+		res.SetOutput(nil)
 	},
 }
 
 var configProfileRevertCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Revert profile changes.",
-		ShortDescription: `Reverts profile-related changes to the config.
+		ShortDescription: `Reverts profile-related changes to the default values.
 
 Reverting some profiles may damage the configuration or not be possible.
 Backing up the config before running this command is advised.`,
@@ -350,6 +351,7 @@ Backing up the config before running this command is advised.`,
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+		res.SetOutput(nil)
 	},
 }
 

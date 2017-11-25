@@ -64,6 +64,7 @@ var Profiles = map[string]*Profile{
 			c.Addresses = addressesConfig()
 
 			c.Swarm.DisableNatPortMap = false
+			c.Discovery.MDNS.Enabled = true
 			return nil
 		},
 	},

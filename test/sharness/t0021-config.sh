@@ -48,6 +48,32 @@ CONFIG_SET_JSON_TEST='{
   }
 }'
 
+test_profile_apply_revert() {
+  profile=$1
+
+  test_expect_success "save expected config" '
+    ipfs config show >expected
+  '
+
+  test_expect_success "'ipfs config profile apply ${profile}' works" '
+    ipfs config profile apply '${profile}'
+  '
+
+  test_expect_success "profile ${profile} changed something" '
+    ipfs config show >actual &&
+    test_must_fail test_cmp expected actual
+  '
+
+  test_expect_success "'ipfs config profile revert ${profile}' works" '
+    ipfs config profile revert '${profile}'
+  '
+
+  test_expect_success "config is back to previous state after ${profile} revert" '
+    ipfs config show >actual &&
+    test_cmp expected actual
+  '
+}
+
 test_config_cmd() {
   test_config_cmd_set "beep" "boop"
   test_config_cmd_set "beep1" "boop2"
@@ -175,6 +201,14 @@ test_config_cmd() {
     test $(cat actual_config | wc -l) = 1
   '
 
+  test_profile_apply_revert server
+
+  # won't work as we already have this profile applied
+  # test_profile_apply_revert test
+
+  # won't work as it changes datastore definition, which makes ipfs not launch
+  # without converting first
+  # test_profile_apply_revert badgerds
 }
 
 test_init_ipfs
