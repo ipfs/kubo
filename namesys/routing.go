@@ -117,7 +117,7 @@ func (r *routingResolver) ResolveN(ctx context.Context, name string, depth int) 
 // resolveOnce implements resolver. Uses the IPFS routing system to
 // resolve SFS-like names.
 func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
-	log.Debugf("RoutingResolve: '%s'", name)
+	log.Debugf("RoutingResolver resolving %s", name)
 	cached, ok := r.cacheGet(name)
 	if ok {
 		return cached, nil
@@ -127,7 +127,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 	hash, err := mh.FromB58String(name)
 	if err != nil {
 		// name should be a multihash. if it isn't, error out here.
-		log.Warningf("RoutingResolve: bad input hash: [%s]\n", name)
+		log.Debugf("RoutingResolver: bad input hash: [%s]\n", name)
 		return "", err
 	}
 
@@ -143,7 +143,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		ipnsKey := string(h)
 		val, err := r.routing.GetValue(ctx, ipnsKey)
 		if err != nil {
-			log.Warning("RoutingResolve get failed.")
+			log.Debugf("RoutingResolver: dht get failed: %s", err)
 			resp <- err
 			return
 		}
@@ -179,7 +179,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 
 	// check sig with pk
 	if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
-		return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pubkey)
+		return "", fmt.Errorf("ipns entry for %s has invalid signature", h)
 	}
 
 	// ok sig checks out. this is a valid name.
@@ -197,7 +197,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		return p, nil
 	} else {
 		// Its an old style multihash record
-		log.Warning("Detected old style multihash record")
+		log.Debugf("encountered CIDv0 ipns entry: %s", h)
 		p := path.FromCid(cid.NewCidV0(valh))
 		r.cacheSet(name, p, entry)
 		return p, nil

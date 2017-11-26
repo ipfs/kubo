@@ -18,10 +18,9 @@ func resolve(ctx context.Context, r resolver, name string, depth int, prefixes .
 	for {
 		p, err := r.resolveOnce(ctx, name)
 		if err != nil {
-			log.Warningf("Could not resolve %s", name)
 			return "", err
 		}
-		log.Debugf("Resolved %s to %s", name, p.String())
+		log.Debugf("resolved %s to %s", name, p.String())
 
 		if strings.HasPrefix(p.String(), "/ipfs/") {
 			// we've bottomed out with an IPFS path
