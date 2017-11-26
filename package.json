@@ -460,9 +460,9 @@
     },
     {
       "author": "magik6k",
-      "hash": "QmaZp8XCS3su4Mzd8DL95npF9dqkEC9rTxmSiV3YX9qQy4",
+      "hash": "QmWDZGtKpkJ6i4t3ri4KGEL3h2VbDiy2yH4F1UzdytMM2R",
       "name": "go-ds-badger",
-      "version": "1.1.2"
+      "version": "1.1.3"
     },
     {
       "author": "whyrusleeping",
@@ -493,6 +493,6 @@
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs",
-  "version": "0.4.12"
+  "version": "0.4.13"
 }
 
