@@ -17,6 +17,7 @@ import (
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
+	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
@@ -432,6 +433,8 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (error, <-chan error
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("api"),
 		corehttp.CommandsOption(*cctx),
+		corehttp.CheckVersionOption(),
+		corehttp.ServerNameOption("go-ipfs/" + config.CurrentVersionNumber),
 		corehttp.WebUIOption,
 		gatewayOpt,
 		corehttp.VersionOption(),
@@ -529,6 +532,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (error, <-chan e
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
 		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
+		corehttp.CheckVersionOption(),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

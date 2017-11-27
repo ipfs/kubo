@@ -1,6 +1,8 @@
 package corehttp
 
 import (
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -10,12 +12,18 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	corecommands "github.com/ipfs/go-ipfs/core/commands"
+	path "github.com/ipfs/go-ipfs/path"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
 	cmds "gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
 	cmdsHttp "gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds/http"
 )
 
+var (
+	errApiVersionMismatch = errors.New("api version mismatch")
+)
+
+const apiPath = "/api/v0"
 const originEnvKey = "API_ORIGIN"
 const originEnvKeyDeprecate = `You are using the ` + originEnvKey + `ENV Variable.
 This functionality is deprecated, and will be removed in future versions.
@@ -130,4 +138,43 @@ func CommandsOption(cctx oldcmds.Context) ServeOption {
 
 func CommandsROOption(cctx oldcmds.Context) ServeOption {
 	return commandsOption(cctx, corecommands.RootRO)
+}
+
+// CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/go-ipfs/`
+func CheckVersionOption() ServeOption {
+	daemonVersion := config.ApiVersion
+
+	return ServeOption(func(n *core.IpfsNode, l net.Listener, next *http.ServeMux) (*http.ServeMux, error) {
+		mux := http.NewServeMux()
+		mux.HandleFunc(APIPath+"/", func(w http.ResponseWriter, r *http.Request) {
+			pth := path.SplitList(r.URL.Path[len(APIPath):])
+			// backwards compatibility to previous version check
+			if pth[1] != "version" {
+				clientVersion := r.UserAgent()
+				// skips check if client is not go-ipfs
+				if clientVersion != "" && strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
+					http.Error(w, fmt.Sprintf("%s (%s != %s)", errApiVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
+					return
+				}
+			}
+
+			next.ServeHTTP(w, r)
+		})
+		mux.HandleFunc("/", next.ServeHTTP)
+
+		return mux, nil
+	})
+}
+
+// ServerNameOption returns a ServeOption that makes the http server set the Server HTTP header.
+func ServerNameOption(name string) ServeOption {
+	return ServeOption(func(n *core.IpfsNode, l net.Listener, next *http.ServeMux) (*http.ServeMux, error) {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Server", name)
+			next.ServeHTTP(w, r)
+		})
+
+		return mux, nil
+	})
 }
