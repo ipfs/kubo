@@ -43,10 +43,16 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		Datastore: datastore,
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
 		Identity:  identity,
-		Discovery: Discovery{MDNS{
-			Enabled:  true,
-			Interval: 10,
-		}},
+		Discovery: Discovery{
+			MDNS{
+				Enabled:  true,
+				Interval: 10,
+			},
+			Broadcast{
+				Enabled:  true,
+				Interval: 20,
+			},
+		},
 
 		// setup the node mount points.
 		Mounts: Mounts{

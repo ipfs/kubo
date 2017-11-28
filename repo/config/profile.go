@@ -26,6 +26,7 @@ var ConfigProfiles = map[string]func(*Config) error{
 
 		c.Swarm.AddrFilters = append(c.Swarm.AddrFilters, defaultServerFilters...)
 		c.Discovery.MDNS.Enabled = false
+		c.Discovery.Broadcast.Enabled = false
 		return nil
 	},
 	"test": func(c *Config) error {
@@ -39,6 +40,7 @@ var ConfigProfiles = map[string]func(*Config) error{
 
 		c.Bootstrap = []string{}
 		c.Discovery.MDNS.Enabled = false
+		c.Discovery.Broadcast.Enabled = false
 		return nil
 	},
 	"badgerds": func(c *Config) error {
