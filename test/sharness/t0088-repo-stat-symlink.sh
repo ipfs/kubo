@@ -21,6 +21,7 @@ test_expect_success "'ipfs repo stat' RepoSize is correct with sym link" '
   reposize_direct=$(ipfs repo stat | grep RepoSize | awk '\''{ print $2 }'\'') &&
   export IPFS_PATH=".ipfs" &&
   reposize_symlink=$(ipfs repo stat | grep RepoSize | awk '\''{ print $2 }'\'') &&
+  echo "reposize_symlink: $reposize_symlink;  reposize_direct: $reposize_direct" &&
   test $reposize_symlink -ge $reposize_direct
 '
 
