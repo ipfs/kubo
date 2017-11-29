@@ -28,6 +28,7 @@ var log = logging.Logger("ipns-repub")
 
 var DefaultRebroadcastInterval = time.Hour * 4
 var InitialRebroadcastDelay = time.Minute * 1
+var FailureRetryInterval = time.Minute * 5
 
 const DefaultRecordLifetime = time.Hour * 24
 
@@ -56,17 +57,17 @@ func NewRepublisher(r routing.ValueStore, ds ds.Datastore, self ic.PrivKey, ks k
 }
 
 func (rp *Republisher) Run(proc goprocess.Process) {
-	tick := time.NewTicker(rp.Interval)
-	defer tick.Stop()
-	delayCh := time.After(InitialRebroadcastDelay)
+	timer := time.NewTimer(InitialRebroadcastDelay)
+	defer timer.Stop()
 
 	for {
 		select {
-		case <-delayCh:
-			delayCh = tick.C
+		case <-timer.C:
+			timer.Reset(rp.Interval)
 			err := rp.republishEntries(proc)
 			if err != nil {
 				log.Error("Republisher failed to republish: ", err)
+				timer.Reset(FailureRetryInterval)
 			}
 		case <-proc.Closing():
 			return
