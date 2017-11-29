@@ -65,6 +65,9 @@ func NewRepublisher(r routing.ValueStore, ds ds.Datastore, self ic.PrivKey, ks k
 func (rp *Republisher) Run(proc goprocess.Process) {
 	timer := time.NewTimer(InitialRebroadcastDelay)
 	defer timer.Stop()
+	if rp.Interval < InitialRebroadcastDelay {
+		timer.Reset(rp.Interval)
+	}
 
 	for {
 		select {
@@ -73,7 +76,9 @@ func (rp *Republisher) Run(proc goprocess.Process) {
 			err := rp.republishEntries(proc)
 			if err != nil {
 				log.Error("Republisher failed to republish: ", err)
-				timer.Reset(FailureRetryInterval)
+				if FailureRetryInterval < rp.Interval {
+					timer.Reset(FailureRetryInterval)
+				}
 			}
 		case <-proc.Closing():
 			return
