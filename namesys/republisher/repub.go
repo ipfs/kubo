@@ -26,10 +26,16 @@ var errNoEntry = errors.New("no previous entry")
 
 var log = logging.Logger("ipns-repub")
 
+// DefaultRebroadcastInterval is the default interval at which we rebroadcast IPNS records
 var DefaultRebroadcastInterval = time.Hour * 4
+
+// InitialRebroadcastDelay is the delay before first broadcasting IPNS records on start
 var InitialRebroadcastDelay = time.Minute * 1
+
+// FailureRetryInterval is the interval at which we retry IPNS records broadcasts (when they fail)
 var FailureRetryInterval = time.Minute * 5
 
+// DefaultRecordLifetime is the default lifetime for IPNS records
 const DefaultRecordLifetime = time.Hour * 24
 
 type Republisher struct {
