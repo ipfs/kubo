@@ -12,8 +12,9 @@ import (
 	"sync"
 
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
-	oldcmds "github.com/ipfs/go-ipfs/core/commands"
+	commands "github.com/ipfs/go-ipfs/core/commands"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
@@ -279,7 +280,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
 	}
 
 	offline, _ := req.Options[offlineKwd].(bool)
-	ipnsps, _, _ := req.Options[enableIPNSPubSubKwd].(bool)
+	ipnsps, _ := req.Options[enableIPNSPubSubKwd].(bool)
 	pubsub, _ := req.Options[enableFloodSubKwd].(bool)
 	mplex, _ := req.Options[enableMultiplexKwd].(bool)
 
@@ -403,7 +404,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (error, <-chan error
 		return fmt.Errorf("serveHTTPApi: GetConfig() failed: %s", err), nil
 	}
 
-	apiAddr, _ := req.Options[oldcmds.ApiOption].(string)
+	apiAddr, _ := req.Options[commands.ApiOption].(string)
 	if apiAddr == "" {
 		apiAddr = cfg.Addresses.API
 	}
