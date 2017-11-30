@@ -58,8 +58,8 @@ func mockResolverTwo() *mockResolver {
 func TestNamesysResolution(t *testing.T) {
 	r := &mpns{
 		resolvers: map[string]resolver{
-			"one": mockResolverOne(),
-			"two": mockResolverTwo(),
+			"dht": mockResolverOne(),
+			"dns": mockResolverTwo(),
 		},
 	}
 

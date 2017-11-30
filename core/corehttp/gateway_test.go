@@ -48,6 +48,10 @@ func (m mockNamesys) PublishWithEOL(ctx context.Context, name ci.PrivKey, value 
 	return errors.New("not implemented for mockNamesys")
 }
 
+func (m mockNamesys) GetResolver(subs string) (namesys.Resolver, bool) {
+	return nil, false
+}
+
 func newNodeWithMockNamesys(ns mockNamesys) (*core.IpfsNode, error) {
 	c := config.Config{
 		Identity: config.Identity{
