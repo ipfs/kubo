@@ -15,14 +15,11 @@ test_expect_success "create symbolic link for IPFS_PATH" '
 
 test_init_ipfs
 
-# compare RepoSize when getting it directly vs via symbolic link
+# ensure that the RepoSize is reasonable when checked via a symlink.
 test_expect_success "'ipfs repo stat' RepoSize is correct with sym link" '
-  export IPFS_PATH="sym_link_target" &&
-  reposize_direct=$(ipfs repo stat | grep RepoSize | awk '\''{ print $2 }'\'') &&
-  export IPFS_PATH=".ipfs" &&
   reposize_symlink=$(ipfs repo stat | grep RepoSize | awk '\''{ print $2 }'\'') &&
-  echo "reposize_symlink: $reposize_symlink;  reposize_direct: $reposize_direct" &&
-  test $reposize_symlink -ge $reposize_direct
+  symlink_size=$(file_size .ipfs) &&
+  test "${reposize_symlink}" -gt "${symlink_size}"
 '
 
 test_done
