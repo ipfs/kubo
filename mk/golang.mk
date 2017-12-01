@@ -23,6 +23,10 @@ define go-build
 $(GOCC) build -i $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
 endef
 
+define go-try-build
+$(GOCC) build $(go-flags-with-tags) -o /dev/null "$(call go-pkg-name,$<)"
+endef
+
 test_go_short: GOTFLAGS += -test.short
 test_go_short: test_go_expensive
 .PHONY: test_go_short
