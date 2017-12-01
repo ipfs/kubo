@@ -208,7 +208,7 @@ The base64 encoded protobuf describing (and containing) the nodes private key.
 
 - `RepublishPeriod`
 A time duration specifying how frequently to republish ipns records to ensure
-they stay fresh on the network. If unset, we default to 12 hours.
+they stay fresh on the network. If unset, we default to 4 hours.
 
 - `RecordLifetime`
 A time duration specifying the value to set on ipns records for their validity

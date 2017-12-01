@@ -26,8 +26,16 @@ var errNoEntry = errors.New("no previous entry")
 
 var log = logging.Logger("ipns-repub")
 
+// DefaultRebroadcastInterval is the default interval at which we rebroadcast IPNS records
 var DefaultRebroadcastInterval = time.Hour * 4
 
+// InitialRebroadcastDelay is the delay before first broadcasting IPNS records on start
+var InitialRebroadcastDelay = time.Minute * 1
+
+// FailureRetryInterval is the interval at which we retry IPNS records broadcasts (when they fail)
+var FailureRetryInterval = time.Minute * 5
+
+// DefaultRecordLifetime is the default lifetime for IPNS records
 const DefaultRecordLifetime = time.Hour * 24
 
 type Republisher struct {
@@ -55,15 +63,22 @@ func NewRepublisher(r routing.ValueStore, ds ds.Datastore, self ic.PrivKey, ks k
 }
 
 func (rp *Republisher) Run(proc goprocess.Process) {
-	tick := time.NewTicker(rp.Interval)
-	defer tick.Stop()
+	timer := time.NewTimer(InitialRebroadcastDelay)
+	defer timer.Stop()
+	if rp.Interval < InitialRebroadcastDelay {
+		timer.Reset(rp.Interval)
+	}
 
 	for {
 		select {
-		case <-tick.C:
+		case <-timer.C:
+			timer.Reset(rp.Interval)
 			err := rp.republishEntries(proc)
 			if err != nil {
 				log.Error("Republisher failed to republish: ", err)
+				if FailureRetryInterval < rp.Interval {
+					timer.Reset(FailureRetryInterval)
+				}
 			}
 		case <-proc.Closing():
 			return
