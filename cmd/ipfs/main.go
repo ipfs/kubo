@@ -21,6 +21,7 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	coreCmds "github.com/ipfs/go-ipfs/core/commands"
+	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/ipfs/go-ipfs/plugin/loader"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -30,12 +31,12 @@ import (
 	manet "gx/ipfs/QmSGL5Uoa6gKHgBBwQG8u1CWKUC8ZnwaZiLgFVTFBR2bxr/go-multiaddr-net"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	loggables "gx/ipfs/QmSvcDkiRwB8LuMhUtnvhum2C851Mproo75ZDD19jx43tD/go-libp2p-loggables"
-	"gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
-	"gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds/cli"
-	"gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds/http"
 	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
+	"gx/ipfs/QmYopJAcV7R9SbxiPBCvqhnt8EusQpWPHewoZakCMt8hps/go-ipfs-cmds"
+	"gx/ipfs/QmYopJAcV7R9SbxiPBCvqhnt8EusQpWPHewoZakCMt8hps/go-ipfs-cmds/cli"
+	"gx/ipfs/QmYopJAcV7R9SbxiPBCvqhnt8EusQpWPHewoZakCMt8hps/go-ipfs-cmds/http"
 )
 
 // log is the command logger
@@ -269,11 +270,11 @@ func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 
 	// if no encoding was specified by user, default to plaintext encoding
 	// (if command doesn't support plaintext, use JSON instead)
-	if enc := i.req.Options[cmds.EncShort]; enc == "" {
+	if enc := i.req.Options[cmds.EncLong]; enc == "" {
 		if i.req.Command.Encoders != nil && i.req.Command.Encoders[cmds.Text] != nil {
-			i.req.SetOption(cmds.EncShort, cmds.Text)
+			i.req.SetOption(cmds.EncLong, cmds.Text)
 		} else {
-			i.req.SetOption(cmds.EncShort, cmds.JSON)
+			i.req.SetOption(cmds.EncLong, cmds.JSON)
 		}
 	}
 
@@ -313,7 +314,7 @@ func callCommand(ctx context.Context, req *cmds.Request, root *cmds.Command, cct
 		return err
 	}
 
-	encTypeStr, _ := req.Options[cmds.EncShort].(string)
+	encTypeStr, _ := req.Options[cmds.EncLong].(string)
 	encType := cmds.EncodingType(encTypeStr)
 
 	var (
@@ -658,7 +659,7 @@ func apiClientForAddr(addr ma.Multiaddr) (http.Client, error) {
 		return nil, err
 	}
 
-	return http.NewClient(host), nil
+	return http.NewClient(host, http.ClientWithAPIPrefix(corehttp.APIPath)), nil
 }
 
 func isConnRefused(err error) bool {

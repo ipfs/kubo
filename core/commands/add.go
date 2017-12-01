@@ -18,10 +18,10 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	"gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
 	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit/files"
 	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
+	"gx/ipfs/QmYopJAcV7R9SbxiPBCvqhnt8EusQpWPHewoZakCMt8hps/go-ipfs-cmds"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 )
 
@@ -162,7 +162,6 @@ You can now check what blocks have been created by:
 		return nil
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
-		fmt.Printf("%#v\n", req)
 		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -202,6 +201,15 @@ You can now check what blocks have been created by:
 			return
 		}
 
+		if hfset && hashFunStr != "sha2-256" && cidVer == 0 {
+			cidVer = 1
+		}
+
+		if cidVer > 0 && !rbset {
+			rawblks = true
+		}
+
+		// if rawblocks is not explicitly set but nocopy is, set rawblocks
 		if nocopy && !rbset {
 			rawblks = true
 		}
@@ -209,10 +217,6 @@ You can now check what blocks have been created by:
 		if nocopy && !rawblks {
 			res.SetError(fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well"), cmdkit.ErrNormal)
 			return
-		}
-
-		if hfset && hashFunStr != "sha2-256" && cidVer == 0 {
-			cidVer = 1
 		}
 
 		prefix, err := dag.PrefixForCidVersion(cidVer)

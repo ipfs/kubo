@@ -15,15 +15,14 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
-	cmds "gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds"
-	cmdsHttp "gx/ipfs/QmTwKPLyeRKuDawuy6CAn1kRj1FVoqBEM8sviAUWN7NW9K/go-ipfs-cmds/http"
+	cmds "gx/ipfs/QmYopJAcV7R9SbxiPBCvqhnt8EusQpWPHewoZakCMt8hps/go-ipfs-cmds"
+	cmdsHttp "gx/ipfs/QmYopJAcV7R9SbxiPBCvqhnt8EusQpWPHewoZakCMt8hps/go-ipfs-cmds/http"
 )
 
 var (
 	errApiVersionMismatch = errors.New("api version mismatch")
 )
 
-const apiPath = "/api/v0"
 const originEnvKey = "API_ORIGIN"
 const originEnvKeyDeprecate = `You are using the ` + originEnvKey + `ENV Variable.
 This functionality is deprecated, and will be removed in future versions.
@@ -116,6 +115,7 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 
 		cfg := cmdsHttp.NewServerConfig()
 		cfg.SetAllowedMethods("GET", "POST", "PUT")
+		cfg.APIPath = APIPath
 		rcfg, err := n.Repo.Config()
 		if err != nil {
 			return nil, err
@@ -127,7 +127,7 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 		patchCORSVars(cfg, l.Addr())
 
 		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
-		mux.Handle(APIPath, cmdHandler)
+		mux.Handle(APIPath+"/", cmdHandler)
 		return mux, nil
 	}
 }
@@ -146,21 +146,22 @@ func CheckVersionOption() ServeOption {
 
 	return ServeOption(func(n *core.IpfsNode, l net.Listener, next *http.ServeMux) (*http.ServeMux, error) {
 		mux := http.NewServeMux()
-		mux.HandleFunc(APIPath+"/", func(w http.ResponseWriter, r *http.Request) {
-			pth := path.SplitList(r.URL.Path[len(APIPath):])
-			// backwards compatibility to previous version check
-			if pth[1] != "version" {
-				clientVersion := r.UserAgent()
-				// skips check if client is not go-ipfs
-				if clientVersion != "" && strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
-					http.Error(w, fmt.Sprintf("%s (%s != %s)", errApiVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
-					return
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, APIPath) {
+				pth := path.SplitList(r.URL.Path[len(APIPath):])
+				// backwards compatibility to previous version check
+				if pth[1] != "version" {
+					clientVersion := r.UserAgent()
+					// skips check if client is not go-ipfs
+					if clientVersion != "" && strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
+						http.Error(w, fmt.Sprintf("%s (%s != %s)", errApiVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
+						return
+					}
 				}
 			}
 
 			next.ServeHTTP(w, r)
 		})
-		mux.HandleFunc("/", next.ServeHTTP)
 
 		return mux, nil
 	})
