@@ -503,6 +503,12 @@
       "hash": "QmPXvegq26x982cQjSfbTvSzZXn7GiaMwhhVPHkeTEhrPT",
       "name": "sys",
       "version": "0.1.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "Qmb37wDRoh9VZMZXmmZktN35szvj9GeBYDtA9giDmXwwd7",
+      "name": "go-libp2p-blankhost",
+      "version": "0.2.2"
     }
   ],
   "gxVersion": "0.10.0",
