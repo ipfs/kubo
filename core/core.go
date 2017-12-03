@@ -49,7 +49,6 @@ import (
 	mafilter "gx/ipfs/QmQBB2dQLmQHJgs2gqZ3iqL2XiuCtUCvXzWt5kMXDf5Zcr/go-maddr-filter"
 	mplex "gx/ipfs/QmREBy6TSjLQMtYFhjf97cypsUTzBagcwamWocKHFCTb1e/go-smux-multiplex"
 	p2phost "gx/ipfs/QmRS46AyqtpJBsf1zmQdeizSDEzo1qkWR7rdEuPFAv8237/go-libp2p-host"
-	dht "gx/ipfs/QmRp6k4vbwnXCLjiSo5oud7rbG2UA5b8iqkHLbnqGkMVFQ/go-libp2p-kad-dht"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
@@ -63,7 +62,6 @@ import (
 	swarm "gx/ipfs/QmU219N3jn7QadVCeBUqGnAkwoXoUomrCwDuVQVuL7PB5W/go-libp2p-swarm"
 	circuit "gx/ipfs/QmUZJUk816s2aWLqWKYKAJWADdfftzUEtBA32mrz1EyjpT/go-libp2p-circuit"
 	floodsub "gx/ipfs/QmVNv1WV6XxzQV4MBuiLX5729wMazaf8TNzm2Sq6ejyHh7/go-libp2p-floodsub"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	mssmux "gx/ipfs/QmVniQJkdzLZaZwzwMdd3dJTvWiJ1DQEkreVy6hs6h7Vk5/go-smux-multistream"
 	connmgr "gx/ipfs/QmWCEs92cwfeBTD7wEdi3hufREHRBo6ahTkFT1mJcYKEHN/go-libp2p-connmgr"
 	ifconnmgr "gx/ipfs/QmWfkNorhirGE1Qp3VwBWcnGaj4adv4hNqCYwabMrEYc21/go-libp2p-interface-connmgr"
@@ -75,6 +73,8 @@ import (
 	ipnet "gx/ipfs/QmauYrW3kDcfZwUuqjyDCSTyaicL8tvo3a7VkAVgAEes96/go-libp2p-interface-pnet"
 	metrics "gx/ipfs/QmbXmeK6KgUAkbyVGRxXknupmWAHnt6ryghT8BFSsEh2sB/go-libp2p-metrics"
 	addrutil "gx/ipfs/QmcNdF325V5LjhHowoZJvby7Y3xB7kNUMPj6Ve7VPzdQ9Z/go-addr-util"
+	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
+	dht "gx/ipfs/Qmf5nYMuUKg377bFDE3U5AV53fFMg6PPvQkeNZ1qFhE1gv/go-libp2p-kad-dht"
 )
 
 const IpnsValidatorTag = "ipns"

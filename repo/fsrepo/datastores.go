@@ -10,14 +10,14 @@ import (
 
 	repo "github.com/ipfs/go-ipfs/repo"
 
-	measure "gx/ipfs/QmSb95iHExSSb47zpmyn5CyY5PZidVWSjyKyDqgYQrnKor/go-ds-measure"
-	flatfs "gx/ipfs/QmUTshC2PP4ZDqkrFfDU4JGJFMWjYnunxPgkQ6ZCA2hGqh/go-ds-flatfs"
+	measure "gx/ipfs/QmU7tt6mHJ5Wocjy2omBxpDfN8g9pkRimzJae7EXdrs96k/go-ds-measure"
+	flatfs "gx/ipfs/Qmak5iFUErGmKhYUC5StZtCGFp5bdhvye8PdKgTMk9B9Fw/go-ds-flatfs"
 
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	mount "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/syncmount"
+	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
+	mount "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore/syncmount"
 
-	levelds "gx/ipfs/QmPdvXuXWAR6gtxxqZw42RtSADMwz4ijVmYHGS542b6cMz/go-ds-leveldb"
-	badgerds "gx/ipfs/QmWDZGtKpkJ6i4t3ri4KGEL3h2VbDiy2yH4F1UzdytMM2R/go-ds-badger"
+	badgerds "gx/ipfs/QmPhe5Agy6FW8nyFXdphtAVPrmmPFN18pCrtpnRzMWa4Vi/go-ds-badger"
+	levelds "gx/ipfs/QmYnCBXxoyoS38vtNQjjpRwZTiUnpuuKpapxMNaDfyQRLf/go-ds-leveldb"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 )
 
