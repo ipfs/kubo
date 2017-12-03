@@ -363,8 +363,29 @@ generic_stat() {
     FreeBSD | Darwin | DragonFly)
       _STAT="stat -f %Sp"
       ;;
+    *)
+        echo "unsupported OS" >&2
+        exit 1
+        ;;
   esac
   $_STAT "$1" || echo "failed" # Avoid returning nothing.
+}
+
+# output a file's permission in human readable format
+file_size() {
+    case $(uname -s) in
+        Linux)
+            _STAT="stat --format=%s"
+            ;;
+        FreeBSD | Darwin | DragonFly)
+            _STAT="stat -f%z"
+            ;;
+        *)
+            echo "unsupported OS" >&2
+            exit 1
+            ;;
+    esac
+    $_STAT "$1"
 }
 
 test_check_peerid() {
