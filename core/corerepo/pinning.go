@@ -58,14 +58,14 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 }
 
 func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
-	var unpinned []*cid.Cid
+	unpinned := make([]*cid.Cid, len(paths))
 
 	r := &path.Resolver{
 		DAG:         n.DAG,
 		ResolveOnce: uio.ResolveUnixfsOnce,
 	}
 
-	for _, p := range paths {
+	for i, p := range paths {
 		p, err := path.ParsePath(p)
 		if err != nil {
 			return nil, err
@@ -80,7 +80,7 @@ func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool
 		if err != nil {
 			return nil, err
 		}
-		unpinned = append(unpinned, k)
+		unpinned[i] = k
 	}
 
 	err := n.Pinning.Flush()
