@@ -172,7 +172,10 @@ func NewPinner(dstore ds.Datastore, serv, internal mdag.DAGService) Pinner {
 func (p *pinner) Pin(ctx context.Context, node node.Node, recurse bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	c := node.Cid()
+	c, err := p.dserv.Add(node)
+	if err != nil {
+		return err
+	}
 
 	if recurse {
 		if p.recursePin.Has(c) {
