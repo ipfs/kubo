@@ -50,8 +50,6 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 	for _, dagnode := range dagnodes {
 		c := dagnode.Cid()
 
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
 		err := n.Pinning.Pin(ctx, dagnode, recursive)
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
@@ -86,8 +84,6 @@ func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool
 			return nil, err
 		}
 
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
 		err = n.Pinning.Unpin(ctx, k, recursive)
 		if err != nil {
 			return nil, err
