@@ -260,5 +260,5 @@ func initializeIpnsKeyspace(repoRoot string) error {
 		return err
 	}
 
-	return namesys.InitializeKeyspace(ctx, nd.DAG, nd.Namesys, nd.Pinning, nd.PrivateKey)
+	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
 }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
@@ -321,16 +320,12 @@ func ValidateIpnsRecord(k string, val []byte) error {
 // InitializeKeyspace sets the ipns record for the given key to
 // point to an empty directory.
 // TODO: this doesnt feel like it belongs here
-func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
+func InitializeKeyspace(ctx context.Context, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
 	emptyDir := ft.EmptyDirNode()
-	nodek, err := ds.Add(emptyDir)
-	if err != nil {
-		return err
-	}
 
 	// pin recursively because this might already be pinned
 	// and doing a direct pin would throw an error in that case
-	err = pins.Pin(ctx, emptyDir, true)
+	err := pins.Pin(ctx, emptyDir, true)
 	if err != nil {
 		return err
 	}
@@ -340,7 +335,7 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 		return err
 	}
 
-	return pub.Publish(ctx, key, path.FromCid(nodek))
+	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
 }
 
 func IpnsKeysForID(id peer.ID) (name, ipns string) {
