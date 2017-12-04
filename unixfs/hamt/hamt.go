@@ -501,35 +501,35 @@ func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, 
 
 			child.val = val
 			return nil
-		} else {
-			if val == nil {
-				return os.ErrNotExist
-			}
-
-			// replace value with another shard, one level deeper
-			ns, err := NewHamtShard(ds.dserv, ds.tableSize)
-			if err != nil {
-				return err
-			}
-			ns.prefix = ds.prefix
-			chhv := &hashBits{
-				b:        hash([]byte(child.key)),
-				consumed: hv.consumed,
-			}
-
-			err = ns.modifyValue(ctx, hv, key, val)
-			if err != nil {
-				return err
-			}
-
-			err = ns.modifyValue(ctx, chhv, child.key, child.val)
-			if err != nil {
-				return err
-			}
-
-			ds.setChild(cindex, ns)
-			return nil
 		}
+
+		if val == nil {
+			return os.ErrNotExist
+		}
+
+		// replace value with another shard, one level deeper
+		ns, err := NewHamtShard(ds.dserv, ds.tableSize)
+		if err != nil {
+			return err
+		}
+		ns.prefix = ds.prefix
+		chhv := &hashBits{
+			b:        hash([]byte(child.key)),
+			consumed: hv.consumed,
+		}
+
+		err = ns.modifyValue(ctx, hv, key, val)
+		if err != nil {
+			return err
+		}
+
+		err = ns.modifyValue(ctx, chhv, child.key, child.val)
+		if err != nil {
+			return err
+		}
+
+		ds.setChild(cindex, ns)
+		return nil
 	default:
 		return fmt.Errorf("unexpected type for child: %#v", child)
 	}
