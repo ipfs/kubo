@@ -109,8 +109,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 				defer re.Close()
 
 				v, err := res.Next()
-				if err != nil {
-					log.Error(e.New(err))
+				if !cmds.HandleError(err, res, re) {
 					return
 				}
 

@@ -453,19 +453,8 @@ You can now check what blocks have been created by:
 
 				for {
 					v, err := res.Next()
-					if err != nil {
-						// replace error by actual error - will be looked at by next if-statement
-						if err == cmds.ErrRcvdError {
-							err = res.Error()
-						}
-
-						if e, ok := err.(*cmdkit.Error); ok {
-							re.Emit(e)
-						} else if err != io.EOF {
-							re.SetError(err, cmdkit.ErrNormal)
-						}
-
-						return
+					if !cmds.HandleError(err, res, re) {
+						break
 					}
 
 					select {
