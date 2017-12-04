@@ -80,11 +80,6 @@ func addAssetList(nd *core.IpfsNode, l []string) (*cid.Cid, error) {
 		return nil, err
 	}
 
-	dcid, err := nd.DAG.Add(dir)
-	if err != nil {
-		return nil, fmt.Errorf("assets: DAG.Add(dir) failed: %s", err)
-	}
-
 	if err := nd.Pinning.Pin(nd.Context(), dir, true); err != nil {
 		return nil, fmt.Errorf("assets: Pinning on init-docu failed: %s", err)
 	}
@@ -93,5 +88,5 @@ func addAssetList(nd *core.IpfsNode, l []string) (*cid.Cid, error) {
 		return nil, fmt.Errorf("assets: Pinning flush failed: %s", err)
 	}
 
-	return dcid, nil
+	return dir.Cid(), nil
 }
