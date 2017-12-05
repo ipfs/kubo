@@ -451,8 +451,9 @@ func (bs *Bitswap) Close() error {
 }
 
 func (bs *Bitswap) GetWantlist() []*cid.Cid {
-	var out []*cid.Cid
-	for _, e := range bs.wm.wl.Entries() {
+	entries := bs.wm.wl.Entries()
+	out := make([]*cid.Cid, 0, len(entries))
+	for _, e := range entries {
 		out = append(out, e.Cid)
 	}
 	return out
