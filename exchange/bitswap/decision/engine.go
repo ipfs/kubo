@@ -201,7 +201,8 @@ func (e *Engine) Peers() []peer.ID {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	response := make([]peer.ID, 0)
+	response := make([]peer.ID, 0, len(e.ledgerMap))
+
 	for _, ledger := range e.ledgerMap {
 		response = append(response, ledger.Partner)
 	}
