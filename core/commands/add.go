@@ -313,13 +313,19 @@ You can now check what blocks have been created by:
 			}
 
 			// copy intermediary nodes from editor to our actual dagservice
-			_, err := fileAdder.Finalize()
+			nd, err := fileAdder.Finalize()
 			if err != nil {
 				return err
 			}
 
 			if hash {
 				return nil
+			}
+
+			if !local {
+				if err := n.Providers.ProvideRecursive(req.Context, nd, dserv); err != nil {
+					return err
+				}
 			}
 
 			return fileAdder.PinRoot()

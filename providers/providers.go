@@ -4,21 +4,22 @@ import (
 	"context"
 	"time"
 
+	host "gx/ipfs/QmQQGtcp6nVUrQjNsnU53YWV1q8fK1Kd9S7FEkYbRZzxry/go-libp2p-host"
 	flags "gx/ipfs/QmRMGdC6HKdLsPDABL9aXPDidrpmEHzJqFWSvshkbn9Hj8/go-ipfs-flags"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
-	logging "gx/ipfs/Qmbi1CTJsbnBZjCEgc2otwu8cUFPsGpzWXG7edVCLZ7Gvk/go-log"
 	routing "gx/ipfs/QmUV9hDAAyjeGbxbXkJ2sYqZ6dTd1DXJ2REhYEkRm178Tg/go-libp2p-routing"
 	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
-	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
+	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
 	pstore "gx/ipfs/QmZhsmorLpD9kmQ4ynbAu4vbKv2goMUnXazwGA4gnWHDjB/go-libp2p-peerstore"
-	host "gx/ipfs/QmQQGtcp6nVUrQjNsnU53YWV1q8fK1Kd9S7FEkYbRZzxry/go-libp2p-host"
+	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
+	logging "gx/ipfs/Qmbi1CTJsbnBZjCEgc2otwu8cUFPsGpzWXG7edVCLZ7Gvk/go-log"
 )
 
 const (
 	provideTimeout = time.Second * 15
 
-	// maxProvidersPerRequest specifies the maximum number of providers desired
+	// MaxProvidersPerRequest specifies the maximum number of providers desired
 	// from the network. This value is specified because the network streams
 	// results.
 	// TODO: if a 'non-nice' strategy is implemented, consider increasing this value
@@ -46,8 +47,10 @@ type blockRequest struct {
 
 // Interface is an definition of providers interface to libp2p routing system
 type Interface interface {
-	Provide(*cid.Cid) error
-	FindProviders(ctx context.Context, c *cid.Cid) error
+	Provide(k *cid.Cid) error
+	ProvideRecursive(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) error
+
+	FindProviders(ctx context.Context, k *cid.Cid) error
 	FindProvidersAsync(ctx context.Context, k *cid.Cid, max int) <-chan peer.ID
 
 	Stat() (*Stat, error)
@@ -119,6 +122,29 @@ func (p *providers) Provide(b *cid.Cid) error {
 	return nil
 }
 
+func (p *providers) provideRecursive(ctx context.Context, n ipld.Node, serv ipld.NodeGetter, done *cid.Set) error {
+	p.Provide(n.Cid())
+
+	for _, l := range n.Links() {
+		if !done.Visit(l.Cid) {
+			continue
+		}
+
+		sub, err := l.GetNode(ctx, serv)
+		if err != nil {
+			return err
+		}
+		if err := p.provideRecursive(ctx, sub, serv, done); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *providers) ProvideRecursive(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) error {
+	return p.provideRecursive(ctx, n, serv, cid.NewSet())
+}
+
 func (p *providers) FindProviders(ctx context.Context, c *cid.Cid) error {
 	select {
 	case <-ctx.Done():
@@ -130,6 +156,9 @@ func (p *providers) FindProviders(ctx context.Context, c *cid.Cid) error {
 
 // FindProvidersAsync returns a channel of providers for the given key
 func (p *providers) FindProvidersAsync(ctx context.Context, k *cid.Cid, max int) <-chan peer.ID {
+	if p.host == nil {
+		return nil
+	}
 
 	// Since routing queries are expensive, give bitswap the peers to which we
 	// have open connections. Note that this may cause issues if bitswap starts
