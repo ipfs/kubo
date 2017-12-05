@@ -298,15 +298,15 @@ func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 func (e *Engine) PeerConnected(p peer.ID) {
 	e.lock.Lock()
+	defer e.lock.Unlock()
 	l, ok := e.ledgerMap[p]
 	if !ok {
 		l = newLedger(p)
 		e.ledgerMap[p] = l
 	}
 	l.lk.Lock()
+	defer l.lk.Unlock()
 	l.ref++
-	l.lk.Unlock()
-	e.lock.Unlock()
 }
 
 func (e *Engine) PeerDisconnected(p peer.ID) {
@@ -317,11 +317,11 @@ func (e *Engine) PeerDisconnected(p peer.ID) {
 		return
 	}
 	l.lk.Lock()
+	defer l.lk.Unlock()
 	l.ref--
 	if l.ref <= 0 {
 		delete(e.ledgerMap, p)
 	}
-	l.lk.Unlock()
 }
 
 func (e *Engine) numBytesSentTo(p peer.ID) uint64 {
@@ -337,12 +337,12 @@ func (e *Engine) numBytesReceivedFrom(p peer.ID) uint64 {
 // ledger lazily instantiates a ledger
 func (e *Engine) findOrCreate(p peer.ID) *ledger {
 	e.lock.Lock()
+	defer e.lock.Unlock()
 	l, ok := e.ledgerMap[p]
 	if !ok {
 		l = newLedger(p)
 		e.ledgerMap[p] = l
 	}
-	e.lock.Unlock()
 	return l
 }
 
