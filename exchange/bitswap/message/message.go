@@ -120,7 +120,7 @@ func (m *impl) Empty() bool {
 }
 
 func (m *impl) Wantlist() []Entry {
-	var out []Entry
+	out := make([]Entry, 0, len(m.wantlist))
 	for _, e := range m.wantlist {
 		out = append(out, e)
 	}
@@ -182,6 +182,7 @@ func FromPBReader(pbr ggio.Reader) (BitSwapMessage, error) {
 func (m *impl) ToProtoV0() *pb.Message {
 	pbm := new(pb.Message)
 	pbm.Wantlist = new(pb.Message_Wantlist)
+	pbm.Wantlist.Entries = make([]*pb.Message_Wantlist_Entry, 0, len(m.wantlist))
 	for _, e := range m.wantlist {
 		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
 			Block:    proto.String(e.Cid.KeyString()),
@@ -190,7 +191,10 @@ func (m *impl) ToProtoV0() *pb.Message {
 		})
 	}
 	pbm.Wantlist.Full = proto.Bool(m.full)
-	for _, b := range m.Blocks() {
+
+	blocks := m.Blocks()
+	pbm.Blocks = make([][]byte, 0, len(blocks))
+	for _, b := range blocks {
 		pbm.Blocks = append(pbm.Blocks, b.RawData())
 	}
 	return pbm
@@ -199,6 +203,7 @@ func (m *impl) ToProtoV0() *pb.Message {
 func (m *impl) ToProtoV1() *pb.Message {
 	pbm := new(pb.Message)
 	pbm.Wantlist = new(pb.Message_Wantlist)
+	pbm.Wantlist.Entries = make([]*pb.Message_Wantlist_Entry, 0, len(m.wantlist))
 	for _, e := range m.wantlist {
 		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
 			Block:    proto.String(e.Cid.KeyString()),
@@ -207,7 +212,10 @@ func (m *impl) ToProtoV1() *pb.Message {
 		})
 	}
 	pbm.Wantlist.Full = proto.Bool(m.full)
-	for _, b := range m.Blocks() {
+
+	blocks := m.Blocks()
+	pbm.Payload = make([]*pb.Message_Block, 0, len(blocks))
+	for _, b := range blocks {
 		blk := &pb.Message_Block{
 			Data:   b.RawData(),
 			Prefix: b.Cid().Prefix().Bytes(),
@@ -230,7 +238,7 @@ func (m *impl) ToNetV1(w io.Writer) error {
 }
 
 func (m *impl) Loggable() map[string]interface{} {
-	var blocks []string
+	blocks := make([]string, 0, len(m.blocks))
 	for _, v := range m.blocks {
 		blocks = append(blocks, v.Cid().String())
 	}
