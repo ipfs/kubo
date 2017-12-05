@@ -73,7 +73,7 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...*cid.Cid) <-chan blocks.B
 }
 
 func toStrings(keys []*cid.Cid) []string {
-	strs := make([]string, 0)
+	strs := make([]string, 0, len(keys))
 	for _, key := range keys {
 		strs = append(strs, key.KeyString())
 	}
