@@ -325,13 +325,7 @@ to a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
-		chpb, ok := childnd.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
-			return
-		}
-
-		err = e.InsertNodeAtPath(req.Context(), npath, chpb, createfunc)
+		err = e.InsertNodeAtPath(req.Context(), npath, childnd, createfunc)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

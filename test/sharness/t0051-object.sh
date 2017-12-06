@@ -216,6 +216,13 @@ test_object_cmd() {
     ipfs object stat /ipfs/$N3/foo/baz > /dev/null
   '
 
+  test_expect_success "'ipfs object patch add-link' allow linking IPLD objects" '
+    EMPTY_DIR=$(ipfs object new unixfs-dir) &&
+    OBJ=$(echo "123" | ipfs dag put) &&
+    N1=$(ipfs object patch $EMPTY_DIR add-link foo $OBJ) &&
+    ipfs object stat $N1 > /dev/null
+  '
+
   test_expect_success "object patch creation looks right" '
     echo "QmPc73aWK9dgFBXe86P4PvQizHo9e5Qt7n7DAMXWuigFuG" > hash_exp &&
     echo $N3 > hash_actual &&

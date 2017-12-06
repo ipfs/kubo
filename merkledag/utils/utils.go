@@ -212,8 +212,9 @@ func copyDag(nd *dag.ProtoNode, from, to dag.DAGService) error {
 		}
 
 		childpb, ok := child.(*dag.ProtoNode)
-		if !ok {
-			return dag.ErrNotProtobuf
+		if !ok { // leaf node
+			_, err := to.Add(nd)
+			return err
 		}
 
 		err = copyDag(childpb, from, to)
