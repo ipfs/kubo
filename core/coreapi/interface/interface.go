@@ -11,8 +11,9 @@ import (
 
 type Path interface {
 	String() string
+	Components() []string
 	Cid() *cid.Cid
-	Root() *cid.Cid
+	RootCid() *cid.Cid
 	Resolved() bool
 }
 
@@ -29,13 +30,13 @@ type Reader interface {
 type CoreAPI interface {
 	Unixfs() UnixfsAPI
 	ResolvePath(context.Context, Path) (Path, error)
-	ResolveNode(context.Context, Path) (Node, error)
+	ResolveNode(context.Context, Path) (Path, Node, error)
 }
 
 type UnixfsAPI interface {
 	Add(context.Context, io.Reader) (Path, error)
-	Cat(context.Context, Path) (Reader, error)
-	Ls(context.Context, Path) ([]*Link, error)
+	Cat(context.Context, Path) (Path, Reader, error)
+	Ls(context.Context, Path) (Path, []*Link, error)
 }
 
 // type ObjectAPI interface {
@@ -61,4 +62,5 @@ type UnixfsAPI interface {
 // }
 
 var ErrIsDir = errors.New("object is a directory")
-var ErrOffline = errors.New("can't resolve, ipfs node is offline")
+var ErrOffline = errors.New("can't resolve, ipfs is offline")
+var ErrNotFound = errors.New("can't find requested node")

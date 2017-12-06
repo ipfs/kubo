@@ -19,7 +19,6 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
-	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -183,7 +182,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	dr, err := i.api.Unixfs().Cat(ctx, resolvedPath)
+	_, dr, err := i.api.Unixfs().Cat(ctx, resolvedPath)
 	dir := false
 	switch err {
 	case nil:
@@ -272,7 +271,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	nd, err := i.api.ResolveNode(ctx, resolvedPath)
+	_, nd, err := i.api.ResolveNode(ctx, resolvedPath)
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -298,7 +297,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 			return
 		}
 
-		dr, err := i.api.Unixfs().Cat(ctx, coreapi.ParseCid(ixnd.Cid()))
+		_, dr, err := i.api.Unixfs().Cat(ctx, coreapi.ParseCid(ixnd.Cid()))
 		if err != nil {
 			internalWebError(w, err)
 			return
@@ -332,7 +331,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	var backLink string = prefix + urlPath
 
 	// don't go further up than /ipfs/$hash/
-	pathSplit := path.SplitList(backLink)
+	pathSplit := coreapi.SplitPath(backLink)
 	switch {
 	// keep backlink
 	case len(pathSplit) == 3: // url: /ipfs/$hash
@@ -355,7 +354,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		if len(pathSplit) > 5 {
 			// also strip the trailing segment, because it's a backlink
 			backLinkParts := pathSplit[3 : len(pathSplit)-2]
-			backLink += path.Join(backLinkParts) + "/"
+			backLink += coreapi.JoinComponents(backLinkParts) + "/"
 		}
 	}
 
@@ -417,13 +416,13 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
-	rootPath, err := path.ParsePath(r.URL.Path)
+	rootPath, err := coreapi.ParsePath(r.URL.Path)
 	if err != nil {
 		webError(w, "putHandler: IPFS path not valid", err, http.StatusBadRequest)
 		return
 	}
 
-	rsegs := rootPath.Segments()
+	rsegs := rootPath.Components()
 	if rsegs[0] == ipnsPathPrefix {
 		webError(w, "putHandler: updating named entries not supported", errors.New("WritableGateway: ipns put not supported"), http.StatusBadRequest)
 		return
@@ -431,6 +430,9 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newnode node.Node
 	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
+		// TODO(lgierth): this seems to mean that PUT /ipfs/QmUNLL/foo/bar
+		//                results in bar being an empty directory,
+		//                no matter what
 		newnode = ft.EmptyDirNode()
 	} else {
 		putNode, err := i.newDagFromReader(r.Body)
@@ -443,13 +445,12 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newPath string
 	if len(rsegs) > 1 {
-		newPath = path.Join(rsegs[2:])
+		newPath = coreapi.JoinComponents(rsegs[2:])
 	}
 
 	var newcid *cid.Cid
-	rnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
-	switch ev := err.(type) {
-	case path.ErrNoLink:
+	_, rnode, err := i.api.ResolveNode(ctx, rootPath)
+	if err == coreiface.ErrNotFound {
 		// ev.Node < node where resolve failed
 		// ev.Name < new link
 		// but we need to patch from the root
@@ -485,8 +486,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		newcid = nnode.Cid()
-
-	case nil:
+	} else if err == nil {
 		pbnd, ok := rnode.(*dag.ProtoNode)
 		if !ok {
 			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
@@ -509,9 +509,9 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), rk.String()), err, http.StatusInternalServerError)
 			return
 		}
-	default:
-		log.Warningf("putHandler: unhandled resolve error %T", ev)
-		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
+	} else {
+		log.Warningf("putHandler: unhandled resolve error %T", err)
+		webError(w, "could not resolve root DAG", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -525,21 +525,16 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
-	p, err := path.ParsePath(urlPath)
+	p, err := coreapi.ParsePath(urlPath)
 	if err != nil {
 		webError(w, "failed to parse path", err, http.StatusBadRequest)
 		return
 	}
-
-	c, components, err := path.SplitAbsPath(p)
-	if err != nil {
-		webError(w, "Could not split path", err, http.StatusInternalServerError)
-		return
-	}
+	components := p.Components()[2:]
 
 	tctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, c)
+	rootnd, err := i.node.Resolver.DAG.Get(tctx, p.RootCid())
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return
@@ -589,12 +584,13 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Redirect to new path
-	ncid := newnode.Cid()
+	ncid := newnode.Cid().String()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", ncid.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", ncid)
+
+	npath := gopath.Join(ipfsPathPrefix+ncid, gopath.Join(components...))
+	http.Redirect(w, r, npath, http.StatusCreated)
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
@@ -604,7 +600,7 @@ func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
 }
 
 func webError(w http.ResponseWriter, message string, err error, defaultCode int) {
-	if _, ok := err.(path.ErrNoLink); ok {
+	if err == coreiface.ErrNotFound {
 		webErrorWithCode(w, message, err, http.StatusNotFound)
 	} else if err == routing.ErrNotFound {
 		webErrorWithCode(w, message, err, http.StatusNotFound)

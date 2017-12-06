@@ -64,7 +64,7 @@ func TestAdd(t *testing.T) {
 		t.Fatalf("expected path %s, got: %s", hello, p)
 	}
 
-	r, err := api.Cat(ctx, hello)
+	_, r, err := api.Cat(ctx, hello)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,12 +112,16 @@ func TestCatBasic(t *testing.T) {
 	p = "/ipfs/" + p
 
 	if p != hello.String() {
-		t.Fatalf("expected CID %s, got: %s", hello, p)
+		t.Fatalf("expected path %s, got: %s", hello, p)
 	}
 
-	r, err := api.Cat(ctx, hello)
+	rp, r, err := api.Cat(ctx, hello)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if rp.String() != hello.String() {
+		t.Fatalf("exptected path %s, got: %s", hello, rp)
 	}
 
 	buf := make([]byte, len(helloStr))
@@ -142,7 +146,7 @@ func TestCatEmptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := api.Cat(ctx, emptyFile)
+	_, r, err := api.Cat(ctx, emptyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +178,7 @@ func TestCatDir(t *testing.T) {
 		t.Fatalf("expected path %s, got: %s", emptyDir, p)
 	}
 
-	_, err = api.Cat(ctx, emptyDir)
+	_, _, err = api.Cat(ctx, emptyDir)
 	if err != coreiface.ErrIsDir {
 		t.Fatalf("expected ErrIsDir, got: %s", err)
 	}
@@ -192,7 +196,7 @@ func TestCatNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = api.Cat(ctx, coreapi.ParseCid(c))
+	_, _, err = api.Cat(ctx, coreapi.ParseCid(c))
 	if !strings.Contains(err.Error(), "proto: required field") {
 		t.Fatalf("expected protobuf error, got: %s", err)
 	}
@@ -205,7 +209,7 @@ func TestCatOffline(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = api.Cat(ctx, coreapi.ResolvedPath("/ipns/Qmfoobar", nil, nil))
+	_, _, err = api.Cat(ctx, coreapi.ResolvedPath("/ipns/Qmfoobar", nil, nil))
 	if err != coreiface.ErrOffline {
 		t.Fatalf("expected ErrOffline, got: %s", err)
 	}
@@ -229,9 +233,13 @@ func TestLs(t *testing.T) {
 	}
 	p := coreapi.ResolvedPath("/ipfs/"+parts[0], nil, nil)
 
-	links, err := api.Ls(ctx, p)
+	rp, links, err := api.Ls(ctx, p)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if rp.String() != p.String() {
+		t.Fatalf("exptected path %s, got: %s", p, rp)
 	}
 
 	if len(links) != 1 {
@@ -260,7 +268,7 @@ func TestLsEmptyDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	links, err := api.Ls(ctx, emptyDir)
+	_, links, err := api.Ls(ctx, emptyDir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -288,7 +296,7 @@ func TestLsNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	links, err := api.Ls(ctx, coreapi.ParseCid(c))
+	_, links, err := api.Ls(ctx, coreapi.ParseCid(c))
 	if err != nil {
 		t.Error(err)
 	}

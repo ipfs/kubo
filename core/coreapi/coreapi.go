@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"strings"
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
@@ -24,17 +25,18 @@ func (api *CoreAPI) Unixfs() coreiface.UnixfsAPI {
 	return (*UnixfsAPI)(api)
 }
 
-func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (coreiface.Node, error) {
+// TODO: also return path here
+func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (coreiface.Path, coreiface.Node, error) {
 	p, err := api.ResolvePath(ctx, p)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	node, err := api.node.DAG.Get(ctx, p.Cid())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return node, nil
+	return p, node, nil
 }
 
 // TODO: store all of ipfspath.Resolver.ResolvePathComponents() in Path
@@ -52,6 +54,8 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p coreiface.Path) (coreifac
 	node, err := core.Resolve(ctx, api.node.Namesys, r, p2)
 	if err == core.ErrNoNamesys {
 		return nil, coreiface.ErrOffline
+	} else if _, ok := err.(ipfspath.ErrNoLink); ok {
+		return nil, coreiface.ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
@@ -76,7 +80,12 @@ func ParsePath(p string) (coreiface.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &path{path: pp}, nil
+	var root *cid.Cid
+	r, _, err := ipfspath.SplitAbsPath(pp)
+	if err == nil {
+		root = r
+	}
+	return &path{path: pp, root: root}, nil
 }
 
 func ParseCid(c *cid.Cid) coreiface.Path {
@@ -87,7 +96,16 @@ func ResolvedPath(p string, c *cid.Cid, r *cid.Cid) coreiface.Path {
 	return &path{path: ipfspath.FromString(p), cid: c, root: r}
 }
 
-func (p *path) String() string { return p.path.String() }
-func (p *path) Cid() *cid.Cid  { return p.cid }
-func (p *path) Root() *cid.Cid { return p.root }
-func (p *path) Resolved() bool { return p.cid != nil }
+func (p *path) String() string       { return p.path.String() }
+func (p *path) Components() []string { return p.path.Segments() }
+func (p *path) Cid() *cid.Cid        { return p.cid }
+func (p *path) RootCid() *cid.Cid    { return p.root }
+func (p *path) Resolved() bool       { return p.cid != nil }
+
+func JoinComponents(comps []string) string {
+	return strings.Join(comps, "/")
+}
+
+func SplitPath(p string) []string {
+	return strings.Split(p, "/")
+}
