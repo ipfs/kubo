@@ -16,9 +16,9 @@ import (
 	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
 	mount "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore/syncmount"
 
-	badgerds "gx/ipfs/QmPhe5Agy6FW8nyFXdphtAVPrmmPFN18pCrtpnRzMWa4Vi/go-ds-badger"
 	levelds "gx/ipfs/QmYnCBXxoyoS38vtNQjjpRwZTiUnpuuKpapxMNaDfyQRLf/go-ds-leveldb"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
+	badgerds "gx/ipfs/Qmdin8YL17fL1BC5ej6o9b8es6MBoiQjKVdyxEwJh3HVmf/go-ds-badger"
 )
 
 // ConfigFromMap creates a new datastore config from a map
