@@ -194,7 +194,7 @@ func (e *Editor) Finalize(ds dag.DAGService) (*dag.ProtoNode, error) {
 	return nd, err
 }
 
-func copyDag(nd *dag.ProtoNode, from, to dag.DAGService) error {
+func copyDag(nd node.Node, from, to dag.DAGService) error {
 	_, err := to.Add(nd)
 	if err != nil {
 		return err
@@ -211,12 +211,7 @@ func copyDag(nd *dag.ProtoNode, from, to dag.DAGService) error {
 			return err
 		}
 
-		childpb, ok := child.(*dag.ProtoNode)
-		if !ok {
-			return dag.ErrNotProtobuf
-		}
-
-		err = copyDag(childpb, from, to)
+		err = copyDag(child, from, to)
 		if err != nil {
 			return err
 		}
