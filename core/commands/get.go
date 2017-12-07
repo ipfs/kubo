@@ -49,6 +49,15 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmdkit.IntOption("compression-level", "l", "The level of compression (1-9).").WithDefault(-1),
 	},
 	PreRun: func(req cmds.Request) error {
+		if len(req.Arguments()) == 0 {
+			return errors.New("not enough arguments provided")
+		}
+
+		// clean the path argument by removing trailing slash
+		pathArg := req.StringArguments()[0]
+		trimmedPath := strings.TrimSuffix(pathArg, "/")
+		req.SetArguments([]string{trimmedPath})
+
 		_, err := getCompressOptions(req)
 		return err
 	},
@@ -119,8 +128,6 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 					return
 				}
 
-				outPath := getOutPath(req)
-
 				cmplvl, err := getCompressOptions(req)
 				if err != nil {
 					re.SetError(err, cmdkit.ErrNormal)
@@ -136,6 +143,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 					Compression: cmplvl,
 					Size:        int64(res.Length()),
 				}
+
+				outPath := getOutPath(req)
 
 				if err := gw.Write(outReader, outPath); err != nil {
 					re.SetError(err, cmdkit.ErrNormal)
@@ -186,8 +195,7 @@ func makeProgressBar(out io.Writer, l int64) *pb.ProgressBar {
 func getOutPath(req cmds.Request) string {
 	outPath, _, _ := req.Option("output").String()
 	if outPath == "" {
-		trimmed := strings.TrimRight(req.Arguments()[0], "/")
-		_, outPath = gopath.Split(trimmed)
+		_, outPath = gopath.Split(req.Arguments()[0])
 		outPath = gopath.Clean(outPath)
 	}
 	return outPath
@@ -247,7 +255,7 @@ func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	defer bar.Finish()
 	defer bar.Set64(gw.Size)
 
-	extractor := &tar.Extractor{fpath, bar.Add64}
+	extractor := &tar.Extractor{Path: fpath, Progress: bar.Add64}
 	return extractor.Extract(r)
 }
 
