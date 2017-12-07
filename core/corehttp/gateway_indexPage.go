@@ -14,6 +14,7 @@ type listingTemplateData struct {
 	Listing  []directoryItem
 	Path     string
 	BackLink string
+	Meta     []template.HTML
 }
 
 type directoryItem struct {

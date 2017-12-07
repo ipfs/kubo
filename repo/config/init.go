@@ -59,6 +59,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		},
 
 		Gateway: Gateway{
+			Hostname:     "ipfs.io",
 			RootRedirect: "",
 			Writable:     false,
 			PathPrefixes: []string{},

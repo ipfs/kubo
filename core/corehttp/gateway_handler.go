@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
@@ -284,13 +285,14 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
+	goget := r.URL.Query().Get("go-get") == "1"
+
 	ixnd, err := dirr.Find(ctx, "index.html")
 	switch {
 	case err == nil:
 		log.Debugf("found index.html link for %s", escapedURLPath)
 
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
-		goget := r.URL.Query().Get("go-get") == "1"
 		if dirwithoutslash && !goget {
 			// See comment above where originalUrlPath is declared.
 			http.Redirect(w, r, originalUrlPath+"/", 302)
@@ -316,6 +318,22 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	if r.Method == "HEAD" {
 		return
+	}
+
+	var meta []template.HTML
+	if goget {
+		_, err = dirr.Find(ctx, "package.json")
+		if err == nil {
+			seg := path.FromString(parsedPath.String()).Segments()
+			if len(seg) == 3 && seg[0] == "ipfs" {
+				metatpl := `<meta name="go-import" content="%[1]s git https://%[1]s.git">`
+				dvcsimport := fmt.Sprintf("%s/ipfs/%s/%s", i.config.Hostname, seg[1], seg[2])
+				meta = append(meta, template.HTML(fmt.Sprintf(metatpl, dvcsimport)))
+			}
+		} else if !os.IsNotExist(err) {
+			internalWebError(w, err)
+			return
+		}
 	}
 
 	// storage for directory listing
@@ -364,6 +382,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		Listing:  dirListing,
 		Path:     originalUrlPath,
 		BackLink: backLink,
+		Meta:     meta,
 	}
 	err = listingTemplate.Execute(w, tplData)
 	if err != nil {

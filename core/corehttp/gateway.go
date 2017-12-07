@@ -13,6 +13,7 @@ import (
 )
 
 type GatewayConfig struct {
+	Hostname     string
 	Headers      map[string][]string
 	Writable     bool
 	PathPrefixes []string
@@ -26,6 +27,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 		}
 
 		gateway := newGatewayHandler(n, GatewayConfig{
+			Hostname:     cfg.Gateway.Hostname,
 			Headers:      cfg.Gateway.HTTPHeaders,
 			Writable:     writable,
 			PathPrefixes: cfg.Gateway.PathPrefixes,
