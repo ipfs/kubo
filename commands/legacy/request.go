@@ -20,6 +20,14 @@ type requestWrapper struct {
 	ctx *oldcmds.Context
 }
 
+func (r *requestWrapper) String() string {
+	return fmt.Sprintf("{%v, %v}", r.req, r.ctx)
+}
+
+func (r *requestWrapper) GoString() string {
+	return fmt.Sprintf("lgc.Request{%#v, %#v}", r.req, r.ctx)
+}
+
 // InvocContext retuns the invocation context of the oldcmds.Request.
 // It is faked using OldContext().
 func (r *requestWrapper) InvocContext() *oldcmds.Context {
@@ -36,6 +44,19 @@ func (r *requestWrapper) SetInvocContext(ctx oldcmds.Context) {
 func (r *requestWrapper) Command() *oldcmds.Command { return nil }
 
 func (r *requestWrapper) Arguments() []string {
+	cmdArgs := r.req.Command.Arguments
+	reqArgs := r.req.Arguments
+
+	// TODO figure out the exaclt policy for when to use these automatically
+	// TODO once that's done, change the log.Debug below to log.Error
+	// read arguments from body if we don't have all of them or the command has variadic arguemnts
+	if len(reqArgs) < len(cmdArgs) ||
+		len(cmdArgs) > 0 && cmdArgs[len(cmdArgs)-1].Variadic {
+		err := r.req.ParseBodyArgs()
+		if err != nil {
+			log.Debug("error reading arguments from stdin: ", err)
+		}
+	}
 	return r.req.Arguments
 }
 
@@ -54,7 +75,11 @@ func (r *requestWrapper) Files() files.File {
 func (r *requestWrapper) Option(name string) *cmdkit.OptionValue {
 	var option cmdkit.Option
 
-	for _, def := range r.req.Command.Options {
+	optDefs, err := r.req.Root.GetOptions(r.req.Path)
+	if err != nil {
+		return &cmdkit.OptionValue{nil, false, nil}
+	}
+	for _, def := range optDefs {
 		for _, optName := range def.Names() {
 			if name == optName {
 				option = def

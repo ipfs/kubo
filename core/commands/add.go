@@ -429,7 +429,7 @@ You can now check what blocks have been created by:
 							bar.ShowTimeLeft = true
 						}
 					case <-req.Context.Done():
-						re.SetError(req.Context.Err(), cmdkit.ErrNormal)
+						//re.SetError(req.Context.Err(), cmdkit.ErrNormal)
 						return
 					}
 				}

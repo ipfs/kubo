@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -17,6 +18,7 @@ import (
 
 	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit"
 	"gx/ipfs/QmVD1W3MC8Hk1WZgFQPWWmBECJ3X72BgUYf9eCQ4PGzPps/go-ipfs-cmdkit/files"
+	"gx/ipfs/QmYopJAcV7R9SbxiPBCvqhnt8EusQpWPHewoZakCMt8hps/go-ipfs-cmds"
 )
 
 type Context struct {
@@ -72,6 +74,33 @@ func (c *Context) RootContext() context.Context {
 	}
 
 	return n.Context()
+}
+
+func (c *Context) LogRequest(req *cmds.Request) func() {
+	rle := &ReqLogEntry{
+		StartTime: time.Now(),
+		Active:    true,
+		Command:   strings.Join(req.Path, "/"),
+		Options:   req.Options,
+		Args:      req.Arguments,
+		ID:        c.ReqLog.nextID,
+		log:       c.ReqLog,
+	}
+	c.ReqLog.AddEntry(rle)
+
+	return func() {
+		c.ReqLog.Finish(rle)
+	}
+}
+
+func (c *Context) Close() {
+	// let's not forget teardown. If a node was initialized, we must close it.
+	// Note that this means the underlying req.Context().Node variable is exposed.
+	// this is gross, and should be changed when we extract out the exec Context.
+	if c.node != nil {
+		log.Info("Shutting down node...")
+		c.node.Close()
+	}
 }
 
 // Request represents a call to a command from a consumer

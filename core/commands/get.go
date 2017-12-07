@@ -257,13 +257,13 @@ func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 
 func getCompressOptions(req *cmds.Request) (int, error) {
 	cmprs, _ := req.Options["compress"].(bool)
-	cmplvl, cmplvlFound := req.Options["compression-level"].(int)
+	cmplvl, _ := req.Options["compression-level"].(int)
 	switch {
 	case !cmprs:
 		return gzip.NoCompression, nil
-	case cmprs && !cmplvlFound:
+	case cmprs && cmplvl == -1:
 		return gzip.DefaultCompression, nil
-	case cmprs && cmplvlFound && (cmplvl < 1 || cmplvl > 9):
+	case cmprs && (cmplvl < 1 || cmplvl > 9):
 		return gzip.NoCompression, ErrInvalidCompressionLevel
 	}
 	return cmplvl, nil
