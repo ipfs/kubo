@@ -2,7 +2,7 @@ include mk/header.mk
 IPFS_BIN_$(d) := $(call go-curr-pkg-tgt)
 
 TGT_BIN += $(IPFS_BIN_$(d))
-TEST += $(d)-try-build
+TEST_GO_BUILD += $(d)-try-build
 CLEAN += $(IPFS_BIN_$(d))
 
 PATH := $(realpath $(d)):$(PATH)
