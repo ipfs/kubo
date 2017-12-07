@@ -220,8 +220,15 @@ test_object_cmd() {
     EMPTY_DIR=$(ipfs object new unixfs-dir) &&
     OBJ=$(echo "123" | ipfs dag put) &&
     N1=$(ipfs object patch $EMPTY_DIR add-link foo $OBJ) &&
-    ipfs object stat $N1 > /dev/null
+
+    ipfs object stat /ipfs/$N1 > /dev/null &&
+    ipfs resolve /ipfs/$N1/foo > actual  &&
+    echo /ipfs/$OBJ > expected &&
+
+    test_cmp expected actual
   '
+
+
 
   test_expect_success "object patch creation looks right" '
     echo "QmPc73aWK9dgFBXe86P4PvQizHo9e5Qt7n7DAMXWuigFuG" > hash_exp &&
