@@ -119,7 +119,6 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		errmsg = errmsg + "bad request for " + r.URL.Path
 	}
 	fmt.Fprint(w, errmsg)
-	log.Error(errmsg) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
 }
 
 func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -287,14 +286,11 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	ixnd, err := dirr.Find(ctx, "index.html")
 	switch {
 	case err == nil:
-		log.Debugf("found index.html link for %s", escapedURLPath)
-
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
 		goget := r.URL.Query().Get("go-get") == "1"
 		if dirwithoutslash && !goget {
 			// See comment above where originalUrlPath is declared.
 			http.Redirect(w, r, originalUrlPath+"/", 302)
-			log.Debugf("redirect to %s", originalUrlPath+"/")
 			return
 		}
 
@@ -510,7 +506,6 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		log.Warningf("putHandler: unhandled resolve error %T", ev)
 		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
 		return
 	}
@@ -618,8 +613,10 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
 	w.WriteHeader(code)
 
-	log.Errorf("%s: %s", message, err) // TODO(cryptix): log until we have a better way to expose these (counter metrics maybe)
 	fmt.Fprintf(w, "%s: %s\n", message, err)
+	if code >= 500 {
+		log.Warningf("server error: %s: %s", err)
+	}
 }
 
 // return a 500 error and log
