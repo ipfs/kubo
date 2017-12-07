@@ -25,6 +25,11 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	datastore := DefaultDatastoreConfig()
 
 	conf := &Config{
+		API: API{
+			HTTPHeaders: map[string][]string{
+				"Server": {"go-ipfs/" + CurrentVersionNumber},
+			},
+		},
 
 		// setup the node's default addresses.
 		// NOTE: two swarm listen addrs, one tcp, one utp.
