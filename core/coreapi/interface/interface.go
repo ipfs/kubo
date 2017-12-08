@@ -34,13 +34,14 @@ type Reader interface {
 type CoreAPI interface {
 	// Unixfs returns an implementation of Unixfs API
 	Unixfs() UnixfsAPI
+	Dag() DagAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, Path) (Path, error)
 
 	// ResolveNode resolves the path (if not resolved already) using Unixfs
 	// resolver, gets and returns the resolved Node
-	ResolveNode(context.Context, Path) (Node, error)
+	ResolveNode(context.Context, Path) (Node, error) //TODO: should this get dropped in favor of DagAPI.Get?
 }
 
 // UnixfsAPI is the basic interface to immutable files in IPFS
@@ -53,6 +54,12 @@ type UnixfsAPI interface {
 
 	// Ls returns the list of links in a directory
 	Ls(context.Context, Path) ([]*Link, error)
+}
+
+type DagAPI interface {
+	Put(ctx context.Context, src io.Reader, inputEnc string, format *cid.Prefix) ([]Node, error)
+	Get(ctx context.Context, path Path) (Node, error)
+	Tree(ctx context.Context, path Path, depth int) ([]Path, error)
 }
 
 // type ObjectAPI interface {
