@@ -199,11 +199,12 @@ func (s *Session) run(ctx context.Context) {
 			s.cancel(keys)
 
 		case <-s.tick.C:
-			var live []*cid.Cid
+			live := make([]*cid.Cid, 0, len(s.liveWants))
+			now := time.Now()
 			for c := range s.liveWants {
 				cs, _ := cid.Cast([]byte(c))
 				live = append(live, cs)
-				s.liveWants[c] = time.Now()
+				s.liveWants[c] = now
 			}
 
 			// Broadcast these keys to everyone we're connected to

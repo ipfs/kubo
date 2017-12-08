@@ -372,16 +372,6 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		return
 	}
 
-	// quickly send out cancels, reduces chances of duplicate block receives
-	var keys []*cid.Cid
-	for _, block := range iblocks {
-		if _, found := bs.wm.wl.Contains(block.Cid()); !found {
-			log.Infof("received un-asked-for %s from %s", block, p)
-			continue
-		}
-		keys = append(keys, block.Cid())
-	}
-
 	wg := sync.WaitGroup{}
 	for _, block := range iblocks {
 		wg.Add(1)
@@ -451,8 +441,9 @@ func (bs *Bitswap) Close() error {
 }
 
 func (bs *Bitswap) GetWantlist() []*cid.Cid {
-	var out []*cid.Cid
-	for _, e := range bs.wm.wl.Entries() {
+	entries := bs.wm.wl.Entries()
+	out := make([]*cid.Cid, 0, len(entries))
+	for _, e := range entries {
 		out = append(out, e.Cid)
 	}
 	return out

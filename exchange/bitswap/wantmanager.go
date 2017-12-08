@@ -94,7 +94,7 @@ type wantSet struct {
 }
 
 func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, targets []peer.ID, cancel bool, ses uint64) {
-	var entries []*bsmsg.Entry
+	entries := make([]*bsmsg.Entry, 0, len(ks))
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
 			Cancel: cancel,
@@ -340,7 +340,7 @@ func (pm *WantManager) Run() {
 				pm.stopPeerHandler(p.peer)
 			}
 		case req := <-pm.peerReqs:
-			var peers []peer.ID
+			peers := make([]peer.ID, 0, len(pm.peers))
 			for p := range pm.peers {
 				peers = append(peers, p)
 			}
