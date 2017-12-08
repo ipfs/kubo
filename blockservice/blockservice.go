@@ -177,6 +177,15 @@ func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f excha
 		block, err = f.GetBlock(ctx, c)
 	}
 
+	switch err.(type) {
+	default:
+		err = &errs.RetrievalError{err, c}
+	case *errs.RetrievalError:
+		// noop, avoid wrapping error twice
+	case nil:
+		// noop, no error
+	}
+
 	return block, err
 }
 
