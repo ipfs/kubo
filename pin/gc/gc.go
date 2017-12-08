@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	"github.com/ipfs/go-ipfs/errs"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
 
@@ -146,7 +147,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 
 	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
 		links, err := ls.GetLinks(ctx, cid)
-		if err != nil && err != dag.ErrNotFound {
+		if err != nil && errs.Unwrap(err) != errs.ErrCidNotFound {
 			errors = true
 			output <- Result{Error: &CannotFetchLinksError{cid, err}}
 		}

@@ -6,6 +6,7 @@ import (
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	"github.com/ipfs/go-ipfs/errs"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
@@ -98,7 +99,7 @@ func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path
 		if err == dag.ErrLinkNotFound && create != nil {
 			nd = create()
 			err = nil // no longer an error case
-		} else if err == dag.ErrNotFound {
+		} else if errs.Unwrap(err) == errs.ErrCidNotFound {
 			// try finding it in our source dagstore
 			nd, err = root.GetLinkedProtoNode(ctx, e.src, path[0])
 		}
@@ -159,7 +160,7 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 
 	// search for node in both tmp dagstore and source dagstore
 	nd, err := root.GetLinkedProtoNode(ctx, e.tmp, path[0])
-	if err == dag.ErrNotFound {
+	if errs.Unwrap(err) == errs.ErrCidNotFound {
 		nd, err = root.GetLinkedProtoNode(ctx, e.src, path[0])
 	}
 
@@ -203,7 +204,7 @@ func copyDag(nd *dag.ProtoNode, from, to dag.DAGService) error {
 	for _, lnk := range nd.Links() {
 		child, err := lnk.GetNode(context.Background(), from)
 		if err != nil {
-			if err == dag.ErrNotFound {
+			if errs.Unwrap(err) == errs.ErrCidNotFound {
 				// not found means we didnt modify it, and it should
 				// already be in the target datastore
 				continue

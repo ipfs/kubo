@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ipfs/go-ipfs/blocks/blockstore"
+	"github.com/ipfs/go-ipfs/errs"
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
@@ -256,7 +256,7 @@ func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
 	status := StatusOk
 	errorMsg := ""
 	if err != nil {
-		if err == ds.ErrNotFound || err == blockstore.ErrNotFound {
+		if err == ds.ErrNotFound || err == errs.ErrCidNotFound {
 			status = StatusKeyNotFound
 		} else if err, ok := err.(*CorruptReferenceError); ok {
 			status = err.Code

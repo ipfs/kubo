@@ -8,6 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	errs "github.com/ipfs/go-ipfs/errs"
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
@@ -30,9 +31,6 @@ var ErrValueTypeMismatch = errors.New("the retrieved value is not a Block")
 // ErrHashMismatch is an error returned when the hash of a block
 // is different than expected.
 var ErrHashMismatch = errors.New("block in storage has different hash than requested")
-
-// ErrNotFound is an error returned when a block is not found.
-var ErrNotFound = errors.New("blockstore: block not found")
 
 // Blockstore wraps a Datastore block-centered methods and provides a layer
 // of abstraction which allows to add different caching strategies.
@@ -112,12 +110,12 @@ func (bs *blockstore) HashOnRead(enabled bool) {
 func (bs *blockstore) Get(k *cid.Cid) (blocks.Block, error) {
 	if k == nil {
 		log.Error("nil cid in blockstore")
-		return nil, ErrNotFound
+		return nil, errs.ErrCidNotFound
 	}
 
 	maybeData, err := bs.datastore.Get(dshelp.CidToDsKey(k))
 	if err == ds.ErrNotFound {
-		return nil, ErrNotFound
+		return nil, errs.ErrCidNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -180,7 +178,7 @@ func (bs *blockstore) Has(k *cid.Cid) (bool, error) {
 func (bs *blockstore) DeleteBlock(k *cid.Cid) error {
 	err := bs.datastore.Delete(dshelp.CidToDsKey(k))
 	if err == ds.ErrNotFound {
-		return ErrNotFound
+		return errs.ErrCidNotFound
 	}
 	return err
 }

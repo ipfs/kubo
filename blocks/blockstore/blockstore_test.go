@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"testing"
 
-	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+
+	"github.com/ipfs/go-ipfs/errs"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
@@ -32,7 +34,7 @@ func TestGetWhenKeyNotPresent(t *testing.T) {
 func TestGetWhenKeyIsNil(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	_, err := bs.Get(nil)
-	if err != ErrNotFound {
+	if err != errs.ErrCidNotFound {
 		t.Fail()
 	}
 }

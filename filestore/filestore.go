@@ -10,9 +10,11 @@ package filestore
 import (
 	"context"
 
-	"github.com/ipfs/go-ipfs/blocks/blockstore"
-	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+
+	"github.com/ipfs/go-ipfs/blocks/blockstore"
+	"github.com/ipfs/go-ipfs/errs"
+	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -114,7 +116,7 @@ func (f *Filestore) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
 // ErrNotFound when the block is not stored.
 func (f *Filestore) DeleteBlock(c *cid.Cid) error {
 	err1 := f.bs.DeleteBlock(c)
-	if err1 != nil && err1 != blockstore.ErrNotFound {
+	if err1 != nil && err1 != errs.ErrCidNotFound {
 		return err1
 	}
 
@@ -125,9 +127,9 @@ func (f *Filestore) DeleteBlock(c *cid.Cid) error {
 	switch err2 {
 	case nil:
 		return nil
-	case blockstore.ErrNotFound:
-		if err1 == blockstore.ErrNotFound {
-			return blockstore.ErrNotFound
+	case errs.ErrCidNotFound:
+		if err1 == errs.ErrCidNotFound {
+			return errs.ErrCidNotFound
 		}
 		return nil
 	default:
@@ -144,7 +146,7 @@ func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
 		return nil, err
 	case nil:
 		return blk, nil
-	case blockstore.ErrNotFound:
+	case errs.ErrCidNotFound:
 		// try filestore
 	}
 

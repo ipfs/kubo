@@ -5,9 +5,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+	errs "github.com/ipfs/go-ipfs/errs"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+
 	"gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	bloom "gx/ipfs/QmXqKGu7QzfRzFC4yd5aL9sThYx22vY163VGwmxfp5qGHk/bbloom"
 )
@@ -100,7 +102,7 @@ func (b *bloomcache) Rebuild(ctx context.Context) {
 
 func (b *bloomcache) DeleteBlock(k *cid.Cid) error {
 	if has, ok := b.hasCached(k); ok && !has {
-		return ErrNotFound
+		return errs.ErrCidNotFound
 	}
 
 	return b.blockstore.DeleteBlock(k)
@@ -136,7 +138,7 @@ func (b *bloomcache) Has(k *cid.Cid) (bool, error) {
 
 func (b *bloomcache) Get(k *cid.Cid) (blocks.Block, error) {
 	if has, ok := b.hasCached(k); ok && !has {
-		return nil, ErrNotFound
+		return nil, errs.ErrCidNotFound
 	}
 
 	return b.blockstore.Get(k)

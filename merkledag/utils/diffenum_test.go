@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ipfs/go-ipfs/errs"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 
@@ -195,7 +196,7 @@ func TestDiffEnumFail(t *testing.T) {
 	}
 
 	err := DiffEnumerate(ctx, lgds, nds["a1"].Cid(), nds["a2"].Cid())
-	if err != dag.ErrNotFound {
+	if errs.Unwrap(err) != errs.ErrCidNotFound {
 		t.Fatal("expected err not found")
 	}
 

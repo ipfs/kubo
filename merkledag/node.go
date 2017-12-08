@@ -140,7 +140,7 @@ func (n *ProtoNode) RemoveNodeLink(name string) error {
 	n.links = good
 
 	if !found {
-		return ErrNotFound
+		return ErrLinkNotFound
 	}
 
 	return nil

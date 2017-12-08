@@ -3,12 +3,13 @@ package blockstore
 import (
 	"context"
 
+	"github.com/ipfs/go-ipfs/errs"
+
 	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	"gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
-	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
 )
 
 // arccache wraps a BlockStore with an Adaptive Replacement Cache (ARC) for
@@ -36,13 +37,13 @@ func newARCCachedBS(ctx context.Context, bs Blockstore, lruSize int) (*arccache,
 
 func (b *arccache) DeleteBlock(k *cid.Cid) error {
 	if has, ok := b.hasCached(k); ok && !has {
-		return ErrNotFound
+		return errs.ErrCidNotFound
 	}
 
 	b.arc.Remove(k) // Invalidate cache before deleting.
 	err := b.blockstore.DeleteBlock(k)
 	switch err {
-	case nil, ds.ErrNotFound, ErrNotFound:
+	case nil, errs.ErrCidNotFound:
 		b.addCache(k, false)
 		return err
 	default:
@@ -84,15 +85,15 @@ func (b *arccache) Has(k *cid.Cid) (bool, error) {
 func (b *arccache) Get(k *cid.Cid) (blocks.Block, error) {
 	if k == nil {
 		log.Error("nil cid in arc cache")
-		return nil, ErrNotFound
+		return nil, errs.ErrCidNotFound
 	}
 
 	if has, ok := b.hasCached(k); ok && !has {
-		return nil, ErrNotFound
+		return nil, errs.ErrCidNotFound
 	}
 
 	bl, err := b.blockstore.Get(k)
-	if bl == nil && err == ErrNotFound {
+	if bl == nil && err == errs.ErrCidNotFound {
 		b.addCache(k, false)
 	} else if bl != nil {
 		b.addCache(k, true)

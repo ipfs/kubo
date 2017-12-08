@@ -10,6 +10,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/errs"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
@@ -134,7 +135,7 @@ The JSON output contains type information.
 				t := unixfspb.Data_DataType(-1)
 
 				linkNode, err := link.GetNode(req.Context(), dserv)
-				if err == merkledag.ErrNotFound && !resolve {
+				if errs.Unwrap(err) == errs.ErrCidNotFound && !resolve {
 					// not an error
 					linkNode = nil
 				} else if err != nil {

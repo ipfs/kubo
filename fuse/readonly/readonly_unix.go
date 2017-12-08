@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/errs"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
@@ -156,8 +157,8 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	nd, err := s.Ipfs.DAG.Get(ctx, link.Cid)
-	switch err {
-	case mdag.ErrNotFound:
+	switch errs.Unwrap(err) {
+	case errs.ErrCidNotFound:
 	default:
 		log.Errorf("fuse lookup %q: %s", name, err)
 		return nil, err

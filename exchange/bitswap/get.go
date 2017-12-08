@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	"github.com/ipfs/go-ipfs/errs"
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 )
 
 type getBlocksFunc func(context.Context, []*cid.Cid) (<-chan blocks.Block, error)
@@ -16,7 +16,7 @@ type getBlocksFunc func(context.Context, []*cid.Cid) (<-chan blocks.Block, error
 func getBlock(p context.Context, k *cid.Cid, gb getBlocksFunc) (blocks.Block, error) {
 	if k == nil {
 		log.Error("nil cid in GetBlock")
-		return nil, blockstore.ErrNotFound
+		return nil, errs.ErrCidNotFound
 	}
 
 	// Any async work initiated by this function must end when this function

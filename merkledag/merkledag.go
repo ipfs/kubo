@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	"github.com/ipfs/go-ipfs/errs"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
@@ -22,8 +23,6 @@ func init() {
 	node.Register(cid.Raw, DecodeRawBlock)
 	node.Register(cid.DagCBOR, ipldcbor.DecodeBlock)
 }
-
-var ErrNotFound = fmt.Errorf("merkledag: not found")
 
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
@@ -96,10 +95,7 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 
 	b, err := n.Blocks.GetBlock(ctx, c)
 	if err != nil {
-		if err == bserv.ErrNotFound {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("Failed to get block for %s: %v", c, err)
+		return nil, err
 	}
 
 	return node.Decode(b)
@@ -138,9 +134,6 @@ func GetLinksDirect(serv node.NodeGetter) GetLinks {
 	return func(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
 		node, err := serv.Get(ctx, c)
 		if err != nil {
-			if err == bserv.ErrNotFound {
-				err = ErrNotFound
-			}
 			return nil, err
 		}
 		return node.Links(), nil
@@ -153,13 +146,8 @@ type sesGetter struct {
 
 func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 	blk, err := sg.bs.GetBlock(ctx, c)
-	switch err {
-	case bserv.ErrNotFound:
-		return nil, ErrNotFound
-	default:
+	if err != nil {
 		return nil, err
-	case nil:
-		// noop
 	}
 
 	return node.Decode(blk)
@@ -279,7 +267,7 @@ func GetNodes(ctx context.Context, ds DAGService, keys []*cid.Cid) []NodeGetter 
 			case opt, ok := <-nodechan:
 				if !ok {
 					for _, p := range promises {
-						p.Fail(ErrNotFound)
+						p.Fail(errs.ErrCidNotFound)
 					}
 					return
 				}

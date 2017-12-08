@@ -7,11 +7,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ipfs/go-ipfs/blocks/blockstore"
+	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+
+	"github.com/ipfs/go-ipfs/errs"
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
-	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	proto "gx/ipfs/QmT6n4mspWYEya864BhCUJEgyxiRfmiSY9ruQwTUNpRKaM/protobuf/proto"
@@ -97,7 +98,7 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 func (f *FileManager) DeleteBlock(c *cid.Cid) error {
 	err := f.ds.Delete(dshelp.CidToDsKey(c))
 	if err == ds.ErrNotFound {
-		return blockstore.ErrNotFound
+		return errs.ErrCidNotFound
 	}
 	return err
 }
@@ -124,7 +125,7 @@ func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
 	o, err := f.ds.Get(dshelp.CidToDsKey(c))
 	switch err {
 	case ds.ErrNotFound:
-		return nil, blockstore.ErrNotFound
+		return nil, errs.ErrCidNotFound
 	default:
 		return nil, err
 	case nil:

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
+	"github.com/ipfs/go-ipfs/errs"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
@@ -287,7 +287,7 @@ func TestEmptyKey(t *testing.T) {
 	defer cancel()
 
 	_, err := bs.GetBlock(ctx, nil)
-	if err != blockstore.ErrNotFound {
+	if errs.Unwrap(err) != errs.ErrCidNotFound {
 		t.Error("empty str key should return ErrNotFound")
 	}
 }

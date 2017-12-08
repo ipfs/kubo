@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
+	"github.com/ipfs/go-ipfs/errs"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 
@@ -145,7 +146,7 @@ func TestDeletes(t *testing.T) {
 	deleted := make(map[string]bool)
 	for _, c := range todelete {
 		_, err := fs.Get(c)
-		if err != blockstore.ErrNotFound {
+		if err != errs.ErrCidNotFound {
 			t.Fatal("expected blockstore not found error")
 		}
 		deleted[c.KeyString()] = true

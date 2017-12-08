@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ipfs/go-ipfs/errs"
+
 	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
@@ -129,11 +131,11 @@ func TestGetAndDeleteFalseShortCircuit(t *testing.T) {
 
 	trap("get hit datastore", cd, t)
 
-	if bl, err := arc.Get(exampleBlock.Cid()); bl != nil || err != ErrNotFound {
+	if bl, err := arc.Get(exampleBlock.Cid()); bl != nil || err != errs.ErrCidNotFound {
 		t.Fatal("get returned invalid result")
 	}
 
-	if arc.DeleteBlock(exampleBlock.Cid()) != ErrNotFound {
+	if arc.DeleteBlock(exampleBlock.Cid()) != errs.ErrCidNotFound {
 		t.Fatal("expected ErrNotFound error")
 	}
 }

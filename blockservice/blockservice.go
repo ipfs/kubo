@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
+	"github.com/ipfs/go-ipfs/errs"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 
@@ -18,8 +19,6 @@ import (
 )
 
 var log = logging.Logger("blockservice")
-
-var ErrNotFound = errors.New("blockservice: key not found")
 
 // BlockService is a hybrid block datastore. It stores data in a local
 // datastore and may retrieve data from a remote Exchange.
@@ -173,26 +172,12 @@ func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f excha
 		return block, nil
 	}
 
-	if err == blockstore.ErrNotFound && f != nil {
-		// TODO be careful checking ErrNotFound. If the underlying
-		// implementation changes, this will break.
+	if errs.Unwrap(err) == errs.ErrCidNotFound && f != nil {
 		log.Debug("Blockservice: Searching bitswap")
-		blk, err := f.GetBlock(ctx, c)
-		if err != nil {
-			if err == blockstore.ErrNotFound {
-				return nil, ErrNotFound
-			}
-			return nil, err
-		}
-		return blk, nil
+		block, err = f.GetBlock(ctx, c)
 	}
 
-	log.Debug("Blockservice GetBlock: Not found")
-	if err == blockstore.ErrNotFound {
-		return nil, ErrNotFound
-	}
-
-	return nil, err
+	return block, err
 }
 
 // GetBlocks gets a list of blocks asynchronously and returns through
