@@ -37,6 +37,9 @@ var ipnsFollowAddCmd = &cmds.Command{
 Follows an IPNS name by periodically resolving in the backround.
 `,
 	},
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("name", true, false, "IPNS Name to follow."),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -53,9 +56,6 @@ Follows an IPNS name by periodically resolving in the backround.
 
 		res.SetOutput(&ipnsFollowResult{true})
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, false, "IPNS Name to follow."),
-	},
 	Type: ipnsFollowResult{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: marshalFollowResult,
@@ -69,6 +69,9 @@ var ipnsFollowPinCmd = &cmds.Command{
 Follows an IPNS name by periodically resolving and recursively
 pinning in the backround.
 `,
+	},
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("name", true, false, "IPNS Name to follow."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -85,9 +88,6 @@ pinning in the backround.
 		n.Namecache.Follow(req.Arguments()[0], true)
 
 		res.SetOutput(&ipnsFollowResult{true})
-	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, false, "IPNS Name to follow."),
 	},
 	Type: ipnsFollowResult{},
 	Marshalers: cmds.MarshalerMap{
@@ -123,6 +123,9 @@ var ipnsFollowCancelCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Cancels a follow",
 	},
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("name", true, false, "Name follow to cancel."),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -138,9 +141,6 @@ var ipnsFollowCancelCmd = &cmds.Command{
 		n.Namecache.Unfollow(req.Arguments()[0])
 
 		res.SetOutput(&ipnsFollowResult{true})
-	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, false, "Name follow to cancel."),
 	},
 	Type: ipnsFollowResult{},
 	Marshalers: cmds.MarshalerMap{
