@@ -132,7 +132,7 @@ func (nc *nameCache) followName(ctx context.Context, name string, pinit bool) {
 			if c != cid.Undef {
 				err = nc.unpin(c)
 				if err != nil {
-					log.Errorf("Error unpinning followed %s: %s", name, err.Error())
+					log.Errorf("Error unpinning %s: %s", name, err.Error())
 				}
 			}
 			return
