@@ -19,6 +19,7 @@ import (
 
 const (
 	followInterval = 60 * time.Minute
+	resolveTimeout = 60 * time.Second
 )
 
 var log = logging.Logger("namecache")
@@ -122,7 +123,10 @@ func (nc *nameCache) resolveAndPin(ctx context.Context, name string, pinit bool)
 		name = "/ipns/" + name
 	}
 
-	p, err := nc.nsys.Resolve(ctx, name)
+	rctx, cancel := context.WithTimeout(ctx, resolveTimeout)
+	defer cancel()
+
+	p, err := nc.nsys.Resolve(rctx, name)
 	if err != nil {
 		log.Debugf("error resolving %s: %s", name, err.Error())
 		return
