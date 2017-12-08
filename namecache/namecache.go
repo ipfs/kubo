@@ -196,6 +196,8 @@ func (nc *nameCache) resolveAndUpdate(ctx context.Context, name string, c cid.Ci
 
 	defer nc.bstore.PinLock().Unlock()
 
+	log.Debugf("Updating pin %s -> %s", c.String(), ncid.String())
+
 	err = nc.pinning.Update(ctx, c, ncid, true)
 	if err != nil {
 		return c, err
