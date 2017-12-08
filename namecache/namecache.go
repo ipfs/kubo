@@ -48,12 +48,13 @@ type nameCache struct {
 	mx      sync.Mutex
 }
 
-func NewNameCache(ctx context.Context, nsys namesys.NameSystem, pinning pin.Pinner, dag ipld.DAGService) NameCache {
+func NewNameCache(ctx context.Context, nsys namesys.NameSystem, pinning pin.Pinner, dag ipld.DAGService, bstore bstore.GCBlockstore) NameCache {
 	return &nameCache{
 		ctx:     ctx,
 		nsys:    nsys,
 		pinning: pinning,
 		dag:     dag,
+		bstore:  bstore,
 		follows: make(map[string]func()),
 	}
 }
