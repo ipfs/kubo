@@ -8,19 +8,12 @@ import (
 	"gx/ipfs/QmamUWYjFeYYzFDFPTvnmGkozJigsoDWUA4zoifTRFTnwK/go-ipfs-cmds"
 )
 
-func TestGetCmdOutputPath(t *testing.T) {
+func TestGetOutputPath(t *testing.T) {
 	cases := []struct {
 		args    []string
 		opts    cmdkit.OptMap
 		outPath string
 	}{
-		{
-			args: []string{"/ipns/multiformats.io/"},
-			opts: map[string]interface{}{
-				"output": "takes-precedence",
-			},
-			outPath: "takes-precedence",
-		},
 		{
 			args: []string{"/ipns/multiformats.io/"},
 			opts: cmdkit.OptMap{
@@ -45,27 +38,56 @@ func TestGetCmdOutputPath(t *testing.T) {
 		},
 	}
 
-	defOpts, err := GetCmd.GetOptions([]string{})
-	if err != nil {
-		t.Fatalf("error getting default command options: %v", err)
+	for _, tc := range cases {
+		req := getGetCmdReq(tc.args, nil, t)
+
+		if outPath := getOutPath(req); outPath != tc.outPath {
+			t.Errorf("expected outPath %s to be %s", outPath, tc.outPath)
+		}
+	}
+}
+
+func TestGetCmdPathCleanupInPreRun(t *testing.T) {
+	cases := []struct {
+		args     []string
+		wantArgs []string
+	}{
+		{
+			args:     []string{"/ipns/multiformats.io/"},
+			wantArgs: []string{"/ipns/multiformats.io"},
+		},
+		{
+			args:     []string{"/ipns/multiformats.io"},
+			wantArgs: []string{"/ipns/multiformats.io"},
+		},
+		{
+			args:     []string{"/ipns/multiformats.io/logo.svg/"},
+			wantArgs: []string{"/ipns/multiformats.io/logo.svg"},
+		},
 	}
 
 	for _, tc := range cases {
-		req, err := cmds.NewRequest([]string{}, tc.opts, tc.args, nil, GetCmd, defOpts)
-		if err != nil {
-			t.Fatalf("error creating a command request: %v", err)
-		}
+		req := getGetCmdReq(tc.args, nil, t)
 
-		err = GetCmd.PreRun(req)
+		err := GetCmd.PreRun(req)
 		if err != nil {
 			t.Fatalf("get command PreRun failed with error: %v", err)
 		}
 		if pathArg := req.Arguments()[0]; strings.HasSuffix(pathArg, "/") {
 			t.Errorf("trailing suffix should have been removed, got %s", pathArg)
 		}
-
-		if outPath := getOutPath(req); outPath != tc.outPath {
-			t.Errorf("expected outPath %s to be %s", outPath, tc.outPath)
-		}
 	}
+}
+
+func getGetCmdReq(args []string, opts cmdkit.OptMap, t *testing.T) cmds.Request {
+	defOpts, err := GetCmd.GetOptions([]string{})
+	if err != nil {
+		t.Fatalf("error getting default command options: %v", err)
+	}
+
+	req, err := cmds.NewRequest([]string{}, opts, args, nil, GetCmd, defOpts)
+	if err != nil {
+		t.Fatalf("error creating a command request: %v", err)
+	}
+	return req
 }

@@ -191,7 +191,8 @@ func makeProgressBar(out io.Writer, l int64) *pb.ProgressBar {
 func getOutPath(req cmds.Request) string {
 	outPath, _, _ := req.Option("output").String()
 	if outPath == "" {
-		_, outPath = gopath.Split(req.Arguments()[0])
+		trimmed := strings.TrimRight(req.Arguments()[0], "/")
+		_, outPath = gopath.Split(trimmed)
 		outPath = gopath.Clean(outPath)
 	}
 	return outPath
