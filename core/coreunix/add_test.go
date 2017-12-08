@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -27,7 +28,7 @@ import (
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
-func TestAddRecursive(t *testing.T) {
+func NewTestNode() (*core.IpfsNode, error) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
@@ -36,7 +37,68 @@ func TestAddRecursive(t *testing.T) {
 		},
 		D: ds2.ThreadSafeCloserMapDatastore(),
 	}
-	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
+	return core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
+}
+
+func BenchmarkAddR(b *testing.B) {
+	planets := map[string]int64{
+		"./bench_data/earth/moon":        1 << 10, //1KB
+		"./bench_data/jupiter/europa":    1 << 11,
+		"./bench_data/mars/phobos":       1 << 12,
+		"./bench_data/mars/deimos":       1 << 13,
+		"./bench_data/mercury/ganymede":  1 << 14,
+		"./bench_data/mercury/halimede":  1 << 15,
+		"./bench_data/neptune/triton":    1 << 16,
+		"./bench_data/neptune/laomedeia": 1 << 17,
+		"./bench_data/neptune/sao":       1 << 18,
+		"./bench_data/neptune/larissa":   1 << 19,
+		"./bench_data/saturn/titan":      1 << 20,
+		"./bench_data/saturn/mimas":      1 << 21,
+		"./bench_data/saturn/dione":      1 << 22,
+		"./bench_data/saturn/rhea":       1 << 23,
+		"./bench_data/uranus/titania":    1 << 24,
+		"./bench_data/venus":             1 << 25, //32MB
+	}
+	for f, fs := range planets {
+		//make dirs
+		planet := path.Dir(f)
+		os.MkdirAll(planet, os.ModePerm)
+
+		//open the file for writing
+		file, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE, 0644)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		//gen data
+		data := make([]byte, fs)
+		rand.New(rand.NewSource(fs)).Read(data)
+		fileData := ioutil.NopCloser(bytes.NewBuffer(data))
+
+		//write data
+		_, err = io.Copy(file, fileData)
+		if err != nil {
+			b.Fatal(err)
+		}
+		file.Close()
+	}
+	//do not include the above in our benchmark
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		node, err := NewTestNode()
+		if err != nil {
+			b.Fatal(err)
+		}
+		if _, err := AddR(node, "bench_data"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	os.RemoveAll("./bench_data")
+}
+
+func TestAddRecursive(t *testing.T) {
+	node, err := NewTestNode()
 	if err != nil {
 		t.Fatal(err)
 	}
