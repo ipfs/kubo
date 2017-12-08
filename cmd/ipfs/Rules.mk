@@ -25,9 +25,9 @@ TRY_BUILD_$(d)=$(addprefix $(d)-try-build-,$(SUPPORTED_PLATFORMS))
 $(d)-try-build: $(TRY_BUILD_$(d))
 .PHONY: $(d)-try-build
 
-$(TRY_BUILD_$(d)): private PLATFORM = $(subst -, ,$(patsubst $<-try-build-%,%,$@))
-$(TRY_BUILD_$(d)): private GOOS = $(word 1,$(PLATFORM))
-$(TRY_BUILD_$(d)): private GOARCH = $(word 2,$(PLATFORM))
+$(TRY_BUILD_$(d)): PLATFORM = $(subst -, ,$(patsubst $<-try-build-%,%,$@))
+$(TRY_BUILD_$(d)): GOOS = $(word 1,$(PLATFORM))
+$(TRY_BUILD_$(d)): GOARCH = $(word 2,$(PLATFORM))
 $(TRY_BUILD_$(d)): $(d) $$(DEPS_GO) ALWAYS
 	GOOS=$(GOOS) GOARCH=$(GOARCH) $(go-try-build)
 .PHONY: $(TRY_BUILD_$(d))
