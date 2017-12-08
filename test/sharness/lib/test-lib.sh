@@ -40,6 +40,10 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 
 # Please put go-ipfs specific shell functions below
 
+# Make sure the ipfs path is set, also set in test_init_ipfs but that
+# is not always used.
+export IPFS_PATH="$(pwd)/.ipfs"
+
 TEST_OS="$(uname -s | tr '[a-z]' '[A-Z]')"
 
 # grab + output options
