@@ -52,7 +52,11 @@ Follows an IPNS name by periodically resolving in the backround.
 			return
 		}
 
-		n.Namecache.Follow(req.Arguments()[0], false)
+		err = n.Namecache.Follow(req.Arguments()[0], false)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		res.SetOutput(&ipnsFollowResult{true})
 	},
@@ -85,7 +89,11 @@ pinning in the backround.
 			return
 		}
 
-		n.Namecache.Follow(req.Arguments()[0], true)
+		err = n.Namecache.Follow(req.Arguments()[0], true)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		res.SetOutput(&ipnsFollowResult{true})
 	},
@@ -138,7 +146,11 @@ var ipnsFollowCancelCmd = &cmds.Command{
 			return
 		}
 
-		n.Namecache.Unfollow(req.Arguments()[0])
+		err = n.Namecache.Unfollow(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		res.SetOutput(&ipnsFollowResult{true})
 	},

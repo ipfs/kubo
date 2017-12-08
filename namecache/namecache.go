@@ -3,6 +3,7 @@ package namecache
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -24,8 +25,11 @@ var log = logging.Logger("namecache")
 
 // NameCache represents a following cache of names
 type NameCache interface {
-	Follow(name string, pinit bool)
-	Unfollow(name string)
+	// Follow starts following name, pinning it if pinit is true
+	Follow(name string, pinit bool) error
+	// Unofollow cancels a follow
+	Unfollow(name string) error
+	// ListFollows returns a list of followed names
 	ListFollows() []string
 }
 
@@ -51,21 +55,23 @@ func NewNameCache(ctx context.Context, nsys namesys.NameSystem, pinning pin.Pinn
 
 // Follow spawns a goroutine that periodically resolves a name
 // and (when pinit is true) pins it in the background
-func (nc *nameCache) Follow(name string, pinit bool) {
+func (nc *nameCache) Follow(name string, pinit bool) error {
 	nc.mx.Lock()
 	defer nc.mx.Unlock()
 
 	if _, ok := nc.follows[name]; ok {
-		return
+		return fmt.Errorf("Already following %s", name)
 	}
 
 	ctx, cancel := context.WithCancel(nc.ctx)
 	go nc.followName(ctx, name, pinit)
 	nc.follows[name] = cancel
+
+	return nil
 }
 
 // Unfollow cancels a follow
-func (nc *nameCache) Unfollow(name string) {
+func (nc *nameCache) Unfollow(name string) error {
 	nc.mx.Lock()
 	defer nc.mx.Unlock()
 
@@ -73,7 +79,10 @@ func (nc *nameCache) Unfollow(name string) {
 	if ok {
 		cancel()
 		delete(nc.follows, name)
+		return nil
 	}
+
+	return fmt.Errorf("Unknown name %s", name)
 }
 
 // ListFollows returns a list of names currently being followed
