@@ -29,6 +29,10 @@ func (api *CoreAPI) Dag() coreiface.DagAPI {
 	return &DagAPI{api, nil}
 }
 
+func (api *CoreAPI) Name() coreiface.NameAPI {
+	return (*NameAPI)(api)
+}
+
 func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (coreiface.Node, error) {
 	p, err := api.ResolvePath(ctx, p)
 	if err != nil {

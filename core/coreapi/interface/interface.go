@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"time"
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
@@ -27,6 +28,11 @@ type Path interface {
 type Node ipld.Node
 type Link ipld.Link
 
+type IpnsEntry struct {
+	Name  string
+	Value Path
+}
+
 type Reader interface {
 	io.ReadSeeker
 	io.Closer
@@ -37,6 +43,7 @@ type CoreAPI interface {
 	// Unixfs returns an implementation of Unixfs API
 	Unixfs() UnixfsAPI
 	Dag() DagAPI
+	Name() NameAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, Path) (Path, error)
@@ -88,6 +95,18 @@ type DagAPI interface {
 	// WithDepth is an option for Tree which specifies maximum depth of the
 	// returned tree. Default is -1 (no depth limit)
 	WithDepth(depth int) options.DagTreeOption
+}
+
+type NameAPI interface {
+	Publish(ctx context.Context, path Path, validTime time.Duration, key string) (*IpnsEntry, error)
+	Resolve(ctx context.Context, name string, recursive bool, local bool, nocache bool) (Path, error)
+}
+
+type KeyApi interface {
+	Generate(ctx context.Context, name string, algorithm string, size int) error
+	List(ctx context.Context) (map[string]string, error) //TODO: better key type?
+	Rename(ctx context.Context, oldName string, newName string) error
+	Remove(ctx context.Context, name string) error
 }
 
 // type ObjectAPI interface {
