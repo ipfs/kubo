@@ -181,7 +181,11 @@ func (s *blockService) AddBlocks(bs []blocks.Block) error {
 
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
-func (s *blockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
+func (s *blockService) GetBlock(ctx context.Context, c *cid.Cid) (blk blocks.Block, err error) {
+	eip := log.EventBegin(ctx, "BlockService.GetBlock", c)
+	defer func() {
+		eip.DoneWithErr(err)
+	}()
 	log.Debugf("BlockService GetBlock: '%s'", c)
 
 	var f exchange.Fetcher
@@ -224,12 +228,14 @@ func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f excha
 // the returned channel.
 // NB: No guarantees are made about order.
 func (s *blockService) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
+	ctx = log.EventBeginInContext(ctx, "BlockService.GetBlocks")
 	return getBlocks(ctx, ks, s.blockstore, s.exchange)
 }
 
 func getBlocks(ctx context.Context, ks []*cid.Cid, bs blockstore.Blockstore, f exchange.Fetcher) <-chan blocks.Block {
 	out := make(chan blocks.Block)
 	go func() {
+		defer logging.MaybeFinishEvent(ctx)
 		defer close(out)
 		var misses []*cid.Cid
 		for _, c := range ks {
@@ -284,12 +290,17 @@ type Session struct {
 }
 
 // GetBlock gets a block in the context of a request session
-func (s *Session) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
+func (s *Session) GetBlock(ctx context.Context, c *cid.Cid) (blk blocks.Block, err error) {
+	eip := log.EventBegin(ctx, "Session.GetBlock", c)
+	defer func() {
+		eip.DoneWithErr(err)
+	}()
 	return getBlock(ctx, c, s.bs, s.ses)
 }
 
 // GetBlocks gets blocks in the context of a request session
 func (s *Session) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
+	ctx = log.EventBeginInContext(ctx, "Session.GetBlocks")
 	return getBlocks(ctx, ks, s.bs, s.ses)
 }
 
