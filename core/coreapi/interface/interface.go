@@ -41,7 +41,7 @@ type CoreAPI interface {
 
 	// ResolveNode resolves the path (if not resolved already) using Unixfs
 	// resolver, gets and returns the resolved Node
-	ResolveNode(context.Context, Path) (Node, error) //TODO: should this get dropped in favor of DagAPI.Get?
+	ResolveNode(context.Context, Path) (Node, error)
 }
 
 // UnixfsAPI is the basic interface to immutable files in IPFS
@@ -56,9 +56,17 @@ type UnixfsAPI interface {
 	Ls(context.Context, Path) ([]*Link, error)
 }
 
+// DagAPI specifies the interface to IPLD
 type DagAPI interface {
-	Put(ctx context.Context, src io.Reader, inputEnc string, format *cid.Prefix) ([]Node, error)
+	// Put inserts data using specified format and input encoding.
+	// If format is not specified (nil), default dag-cbor/sha256 is used
+	Put(ctx context.Context, src io.Reader, inputEnc string, format *cid.Prefix) ([]Node, error) //TODO: make format optional
+
+	// Get attempts to resolve and get the node specified by the path
 	Get(ctx context.Context, path Path) (Node, error)
+
+	// Tree returns list of paths within a node specified by the path.
+	// To get all paths in a tree, set depth to -1
 	Tree(ctx context.Context, path Path, depth int) ([]Path, error)
 }
 

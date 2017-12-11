@@ -10,13 +10,13 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
+	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
+	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
 )
 
-type DagAPI CoreAPI
+type dagAPI CoreAPI
 
-func (api *DagAPI) Put(ctx context.Context, src io.Reader, inputEnc string, format *cid.Prefix) ([]coreiface.Node, error) {
+func (api *dagAPI) Put(ctx context.Context, src io.Reader, inputEnc string, format *cid.Prefix) ([]coreiface.Node, error) {
 	if format == nil {
 		format = &cid.Prefix{
 			Version:  1,
@@ -51,11 +51,11 @@ func (api *DagAPI) Put(ctx context.Context, src io.Reader, inputEnc string, form
 	return out, nil
 }
 
-func (api *DagAPI) Get(ctx context.Context, path coreiface.Path) (coreiface.Node, error) {
+func (api *dagAPI) Get(ctx context.Context, path coreiface.Path) (coreiface.Node, error) {
 	return api.core().ResolveNode(ctx, path)
 }
 
-func (api *DagAPI) Tree(ctx context.Context, p coreiface.Path, depth int) ([]coreiface.Path, error) {
+func (api *dagAPI) Tree(ctx context.Context, p coreiface.Path, depth int) ([]coreiface.Path, error) {
 	n, err := api.Get(ctx, p)
 	if err != nil {
 		return nil, err
@@ -72,6 +72,6 @@ func (api *DagAPI) Tree(ctx context.Context, p coreiface.Path, depth int) ([]cor
 	return out, nil
 }
 
-func (api *DagAPI) core() coreiface.CoreAPI {
+func (api *dagAPI) core() coreiface.CoreAPI {
 	return (*CoreAPI)(api)
 }
