@@ -22,42 +22,40 @@ var ErrNoNamesys = errors.New(
 // Resolve resolves the given path by parsing out protocol-specific
 // entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
 // entries and returning the final node.
-func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (ipld.Node, error) {
+func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (node ipld.Node, err error) {
+	eip := log.EventBegin(ctx, "Resolve")
+	defer func() {
+		eip.Append(logging.LoggableMap{"path": p.String()})
+		eip.DoneWithErr(err)
+	}()
 	if strings.HasPrefix(p.String(), "/ipns/") {
-		evt := log.EventBegin(ctx, "resolveIpnsPath")
-		defer evt.Done()
 		// resolve ipns paths
 
 		// TODO(cryptix): we sould be able to query the local cache for the path
 		if nsys == nil {
-			evt.Append(logging.LoggableMap{"error": ErrNoNamesys.Error()})
 			return nil, ErrNoNamesys
 		}
 
 		seg := p.Segments()
 
 		if len(seg) < 2 || seg[1] == "" { // just "/<protocol/>" without further segments
-			evt.Append(logging.LoggableMap{"error": path.ErrNoComponents.Error()})
 			return nil, path.ErrNoComponents
 		}
 
 		extensions := seg[2:]
 		resolvable, err := path.FromSegments("/", seg[0], seg[1])
 		if err != nil {
-			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
 		}
 
 		respath, err := nsys.Resolve(ctx, resolvable.String())
 		if err != nil {
-			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
 		}
 
 		segments := append(respath.Segments(), extensions...)
 		p, err = path.FromSegments("/", segments...)
 		if err != nil {
-			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
 		}
 	}

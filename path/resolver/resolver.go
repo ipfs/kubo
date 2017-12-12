@@ -111,20 +111,20 @@ func ResolveSingle(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names 
 // ResolvePathComponents fetches the nodes for each segment of the given path.
 // It uses the first path component as a hash (key) of the first node, then
 // resolves all other components walking the links, with ResolveLinks.
-func (r *Resolver) ResolvePathComponents(ctx context.Context, fpath path.Path) ([]ipld.Node, error) {
-	evt := log.EventBegin(ctx, "resolvePathComponents", logging.LoggableMap{"fpath": fpath})
-	defer evt.Done()
-
+func (r *Resolver) ResolvePathComponents(ctx context.Context, fpath path.Path) (nodes []ipld.Node, err error) {
+	eip := log.EventBegin(ctx, "ResolvePathComponents")
+	defer func() {
+		eip.Append(logging.LoggableMap{"path": fpath.String()})
+		eip.DoneWithErr(err)
+	}()
 	h, parts, err := path.SplitAbsPath(fpath)
 	if err != nil {
-		evt.Append(logging.LoggableMap{"error": err.Error()})
 		return nil, err
 	}
 
 	log.Debug("resolve dag get")
 	nd, err := r.DAG.Get(ctx, h)
 	if err != nil {
-		evt.Append(logging.LoggableMap{"error": err.Error()})
 		return nil, err
 	}
 
@@ -138,12 +138,14 @@ func (r *Resolver) ResolvePathComponents(ctx context.Context, fpath path.Path) (
 //
 // ResolveLinks(nd, []string{"foo", "bar", "baz"})
 // would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
-func (r *Resolver) ResolveLinks(ctx context.Context, ndd ipld.Node, names []string) ([]ipld.Node, error) {
-
-	evt := log.EventBegin(ctx, "resolveLinks", logging.LoggableMap{"names": names})
-	defer evt.Done()
-	result := make([]ipld.Node, 0, len(names)+1)
-	result = append(result, ndd)
+func (r *Resolver) ResolveLinks(ctx context.Context, ndd ipld.Node, names []string) (nodes []ipld.Node, err error) {
+	eip := log.EventBegin(ctx, "ResolveLinks")
+	defer func() {
+		eip.Append(logging.LoggableMap{"names": names})
+		eip.DoneWithErr(err)
+	}()
+	nodes = make([]ipld.Node, 0, len(names)+1)
+	nodes = append(nodes, ndd)
 	nd := ndd // dup arg workaround
 
 	// for each of the path components
@@ -154,22 +156,19 @@ func (r *Resolver) ResolveLinks(ctx context.Context, ndd ipld.Node, names []stri
 
 		lnk, rest, err := r.ResolveOnce(ctx, r.DAG, nd, names)
 		if err == dag.ErrLinkNotFound {
-			evt.Append(logging.LoggableMap{"error": err.Error()})
-			return result, ErrNoLink{Name: names[0], Node: nd.Cid()}
+			return nodes, ErrNoLink{Name: names[0], Node: nd.Cid()}
 		} else if err != nil {
-			evt.Append(logging.LoggableMap{"error": err.Error()})
-			return result, err
+			return nodes, err
 		}
 
 		nextnode, err := lnk.GetNode(ctx, r.DAG)
 		if err != nil {
-			evt.Append(logging.LoggableMap{"error": err.Error()})
-			return result, err
+			return nodes, err
 		}
 
 		nd = nextnode
-		result = append(result, nextnode)
+		nodes = append(nodes, nextnode)
 		names = rest
 	}
-	return result, nil
+	return nodes, nil
 }
