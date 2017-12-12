@@ -19,6 +19,7 @@ will be allowed up to release day.
 - [ ] update release branch to point to release commit
 - [ ] publish dist.ipfs.io
 - [ ] publish next version to https://github.com/ipfs/npm-go-ipfs
+- [ ] publish gx version with `gx release`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
 
 ## Post-Release
 - Communication
