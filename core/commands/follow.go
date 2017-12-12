@@ -175,7 +175,7 @@ func marshalFollowResult(res cmds.Response) (io.Reader, error) {
 	if output.OK {
 		state = "ok"
 	} else {
-		state = "wtf"
+		state = "error"
 	}
 
 	return strings.NewReader(state + "\n"), nil
