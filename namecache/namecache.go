@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	followInterval = 60 * time.Minute
-	resolveTimeout = 60 * time.Second
+	DefaultFollowInterval = 1 * time.Hour
+	resolveTimeout        = 1 * time.Minute
 )
 
 var log = logging.Logger("namecache")
@@ -30,7 +30,7 @@ var log = logging.Logger("namecache")
 // NameCache represents a following cache of names
 type NameCache interface {
 	// Follow starts following name, pinning it if pinit is true
-	Follow(name string, pinit bool) error
+	Follow(name string, pinit bool, followInterval time.Duration) error
 	// Unofollow cancels a follow
 	Unfollow(name string) error
 	// ListFollows returns a list of followed names
@@ -61,7 +61,7 @@ func NewNameCache(ctx context.Context, nsys namesys.NameSystem, pinning pin.Pinn
 
 // Follow spawns a goroutine that periodically resolves a name
 // and (when pinit is true) pins it in the background
-func (nc *nameCache) Follow(name string, pinit bool) error {
+func (nc *nameCache) Follow(name string, pinit bool, followInterval time.Duration) error {
 	nc.mx.Lock()
 	defer nc.mx.Unlock()
 
@@ -70,7 +70,7 @@ func (nc *nameCache) Follow(name string, pinit bool) error {
 	}
 
 	ctx, cancel := context.WithCancel(nc.ctx)
-	go nc.followName(ctx, name, pinit)
+	go nc.followName(ctx, name, pinit, followInterval)
 	nc.follows[name] = cancel
 
 	return nil
@@ -104,7 +104,7 @@ func (nc *nameCache) ListFollows() []string {
 	return follows
 }
 
-func (nc *nameCache) followName(ctx context.Context, name string, pinit bool) {
+func (nc *nameCache) followName(ctx context.Context, name string, pinit bool, followInterval time.Duration) {
 	// if cid != nil, we have created a new pin that is updated on changes and
 	// unpinned on cancel
 	c, err := nc.resolveAndPin(ctx, name, pinit)

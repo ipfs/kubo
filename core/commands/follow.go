@@ -4,9 +4,11 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+	nc "github.com/ipfs/go-ipfs/namecache"
 
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -40,7 +42,8 @@ Follows an IPNS name by periodically resolving in the backround.
 		cmdkit.StringArg("name", true, true, "IPNS Name to follow."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("pin", "recursively pin the resolved pointer"),
+		cmdkit.BoolOption("pin", "Recursively pin the resolved pointer"),
+		cmdkit.StringOption("refresh-interval", "Follow refresh interval."),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -57,8 +60,25 @@ Follows an IPNS name by periodically resolving in the backround.
 
 		pin, _, _ := req.Option("pin").Bool()
 
+		refrS, _, err := req.Option("refresh-interval").String()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		var refr time.Duration
+		if refrS == "" {
+			refr = nc.DefaultFollowInterval
+		} else {
+			refr, err = time.ParseDuration(refrS)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+		}
+
 		for _, name := range req.Arguments() {
-			err = n.Namecache.Follow(name, pin)
+			err = n.Namecache.Follow(name, pin, refr)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
