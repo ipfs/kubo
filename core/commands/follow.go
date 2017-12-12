@@ -12,7 +12,7 @@ import (
 )
 
 type ipnsFollowResult struct {
-	OK bool
+	Result string
 }
 
 var IpnsFollowCmd = &cmds.Command{
@@ -58,7 +58,7 @@ Follows an IPNS name by periodically resolving in the backround.
 			return
 		}
 
-		res.SetOutput(&ipnsFollowResult{true})
+		res.SetOutput(&ipnsFollowResult{"ok"})
 	},
 	Type: ipnsFollowResult{},
 	Marshalers: cmds.MarshalerMap{
@@ -95,7 +95,7 @@ pinning in the backround.
 			return
 		}
 
-		res.SetOutput(&ipnsFollowResult{true})
+		res.SetOutput(&ipnsFollowResult{"ok"})
 	},
 	Type: ipnsFollowResult{},
 	Marshalers: cmds.MarshalerMap{
@@ -152,7 +152,7 @@ var ipnsFollowCancelCmd = &cmds.Command{
 			return
 		}
 
-		res.SetOutput(&ipnsFollowResult{true})
+		res.SetOutput(&ipnsFollowResult{"ok"})
 	},
 	Type: ipnsFollowResult{},
 	Marshalers: cmds.MarshalerMap{
@@ -171,12 +171,5 @@ func marshalFollowResult(res cmds.Response) (io.Reader, error) {
 		return nil, e.TypeErr(output, v)
 	}
 
-	var state string
-	if output.OK {
-		state = "ok"
-	} else {
-		state = "error"
-	}
-
-	return strings.NewReader(state + "\n"), nil
+	return strings.NewReader(output.Result + "\n"), nil
 }
