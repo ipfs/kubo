@@ -24,7 +24,6 @@ Periodically resolve and optionally pin IPNS names in the background.
 	},
 	Subcommands: map[string]*cmds.Command{
 		"add":    ipnsFollowAddCmd,
-		"pin":    ipnsFollowPinCmd,
 		"list":   ipnsFollowListCmd,
 		"cancel": ipnsFollowCancelCmd,
 	},
@@ -32,14 +31,18 @@ Periodically resolve and optionally pin IPNS names in the background.
 
 var ipnsFollowAddCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Follow a name without pinning",
+		Tagline: "Follow one or more names",
 		ShortDescription: `
 Follows an IPNS name by periodically resolving in the backround.
 `,
 	},
 	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, false, "IPNS Name to follow."),
+		cmdkit.StringArg("name", true, true, "IPNS Name to follow."),
 	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("pin", "recursively pin the resolved pointer"),
+	},
+
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -52,47 +55,14 @@ Follows an IPNS name by periodically resolving in the backround.
 			return
 		}
 
-		err = n.Namecache.Follow(req.Arguments()[0], false)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		pin, _, _ := req.Option("pin").Bool()
 
-		res.SetOutput(&ipnsFollowResult{"ok"})
-	},
-	Type: ipnsFollowResult{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: marshalFollowResult,
-	},
-}
-
-var ipnsFollowPinCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
-		Tagline: "Follows and pins a name",
-		ShortDescription: `
-Follows an IPNS name by periodically resolving and recursively
-pinning in the backround.
-`,
-	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, false, "IPNS Name to follow."),
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		if n.Namecache == nil {
-			res.SetError(errors.New("IPNS Namecache is not available"), cmdkit.ErrClient)
-			return
-		}
-
-		err = n.Namecache.Follow(req.Arguments()[0], true)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+		for _, name := range req.Arguments() {
+			err = n.Namecache.Follow(name, pin)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
 		}
 
 		res.SetOutput(&ipnsFollowResult{"ok"})
@@ -132,7 +102,7 @@ var ipnsFollowCancelCmd = &cmds.Command{
 		Tagline: "Cancels a follow",
 	},
 	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, false, "Name follow to cancel."),
+		cmdkit.StringArg("name", true, true, "Name follow to cancel."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -146,10 +116,12 @@ var ipnsFollowCancelCmd = &cmds.Command{
 			return
 		}
 
-		err = n.Namecache.Unfollow(req.Arguments()[0])
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+		for _, name := range req.Arguments() {
+			err = n.Namecache.Unfollow(name)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
 		}
 
 		res.SetOutput(&ipnsFollowResult{"ok"})
