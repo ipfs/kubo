@@ -3,8 +3,8 @@ package commands
 import (
 	"testing"
 
+	"gx/ipfs/QmTD5GyjsmygZ5mzyD28x3QRTYL9yeNcSmcQjnZ93g1NuY/go-ipfs-cmds"
 	"gx/ipfs/QmUyfy4QSr3NXym4etEiRyxBLqqAeKHJuRdi8AACxg63fZ/go-ipfs-cmdkit"
-	"gx/ipfs/QmamUWYjFeYYzFDFPTvnmGkozJigsoDWUA4zoifTRFTnwK/go-ipfs-cmds"
 )
 
 func TestGetOutputPath(t *testing.T) {

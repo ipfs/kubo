@@ -219,6 +219,7 @@ format.
 
 		res.SetOutput(out)
 	},
+	Type: new(interface{}),
 }
 
 // DagResolveCmd returns address of highest block within a path and a path remainder
