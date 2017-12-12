@@ -82,13 +82,13 @@ func (nc *nameCache) Unfollow(name string) error {
 	defer nc.mx.Unlock()
 
 	cancel, ok := nc.follows[name]
-	if ok {
-		cancel()
-		delete(nc.follows, name)
-		return nil
+	if !ok {
+		return fmt.Errorf("Unknown name %s", name)
 	}
 
-	return fmt.Errorf("Unknown name %s", name)
+	cancel()
+	delete(nc.follows, name)
+	return nil
 }
 
 // ListFollows returns a list of names currently being followed
@@ -96,7 +96,7 @@ func (nc *nameCache) ListFollows() []string {
 	nc.mx.Lock()
 	defer nc.mx.Unlock()
 
-	follows := make([]string, 0)
+	follows := make([]string, len(nc.follows))[:0]
 	for name, _ := range nc.follows {
 		follows = append(follows, name)
 	}
