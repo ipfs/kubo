@@ -65,6 +65,10 @@ func (nc *nameCache) Follow(name string, pinit bool, followInterval time.Duratio
 	nc.mx.Lock()
 	defer nc.mx.Unlock()
 
+	if !strings.HasPrefix(name, "/ipns/") {
+		name = "/ipns/" + name
+	}
+
 	if _, ok := nc.follows[name]; ok {
 		return fmt.Errorf("Already following %s", name)
 	}
@@ -80,6 +84,10 @@ func (nc *nameCache) Follow(name string, pinit bool, followInterval time.Duratio
 func (nc *nameCache) Unfollow(name string) error {
 	nc.mx.Lock()
 	defer nc.mx.Unlock()
+
+	if !strings.HasPrefix(name, "/ipns/") {
+		name = "/ipns/" + name
+	}
 
 	cancel, ok := nc.follows[name]
 	if !ok {
@@ -222,10 +230,6 @@ func (nc *nameCache) unpin(cid cid.Cid) error {
 
 func (nc *nameCache) resolve(ctx context.Context, name string) (path.Path, error) {
 	log.Debugf("resolving %s", name)
-
-	if !strings.HasPrefix(name, "/ipns/") {
-		name = "/ipns/" + name
-	}
 
 	rctx, cancel := context.WithTimeout(ctx, resolveTimeout)
 	defer cancel()
