@@ -54,7 +54,7 @@ func main() {
 
 	// show what we got
 	start := time.Now()
-	log.Debug("starting at %s, tries: %d, timeout: %s, url: %s", start, *tries, *timeout, u)
+	log.Debugf("starting at %s, tries: %d, timeout: %s, url: %s", start, *tries, *timeout, u)
 
 	for *tries > 0 {
 
