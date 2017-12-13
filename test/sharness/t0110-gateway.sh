@@ -145,8 +145,6 @@ for cmd in add  \
            config \
            dht \
            diag \
-           dns \
-           get \
            id \
            mount \
            name/publish \
@@ -157,12 +155,10 @@ for cmd in add  \
            ping \
            refs/local \
            repo \
-           resolve \
            stats \
            swarm \
            file \
            update \
-           version \
            bitswap
 do
   test_expect_success "test gateway api is sanitized" '
