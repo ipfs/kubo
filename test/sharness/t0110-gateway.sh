@@ -139,11 +139,36 @@ test_expect_success "refs IPFS directory file through readonly API succeeds" '
   test_curl_gateway_api "refs?arg=$HASH2/test"
 '
 
-test_expect_success "test gateway api is sanitized" '
-  for cmd in "add" "block/put" "bootstrap" "config" "dht" "diag" "dns" "get" "id" "mount" "name/publish" "object/put" "object/new" "object/patch" "pin" "ping" "refs/local" "repo" "resolve" "stats" "swarm"  "file" "update" "version" "bitswap"; do
+for cmd in add  \
+           block/put \
+           bootstrap \
+           config \
+           dht \
+           diag \
+           dns \
+           get \
+           id \
+           mount \
+           name/publish \
+           object/put \
+           object/new \
+           object/patch \
+           pin \
+           ping \
+           refs/local \
+           repo \
+           resolve \
+           stats \
+           swarm \
+           file \
+           update \
+           version \
+           bitswap
+do
+  test_expect_success "test gateway api is sanitized" '
     test_curl_resp_http_code "http://127.0.0.1:$port/api/v0/$cmd" "HTTP/1.1 404 Not Found"
-  done
-'
+  '
+done
 
 test_expect_success "create raw-leaves node" '
   echo "This is RAW!" > rfile &&
