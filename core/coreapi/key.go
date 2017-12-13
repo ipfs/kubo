@@ -7,24 +7,33 @@ import (
 	"sort"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-type KeyAPI CoreAPI
+type KeyAPI struct {
+	*CoreAPI
+	*caopts.KeyOptions
+}
 
-func (api *KeyAPI) Generate(ctx context.Context, name string, algorithm string, size int) (string, error) {
+func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (string, error) {
+	options, err := caopts.KeyGenerateOptions(opts...)
+	if err != nil {
+		return "", err
+	}
+
 	var sk crypto.PrivKey
 	var pk crypto.PubKey
 
-	switch algorithm {
+	switch options.Algorithm {
 	case "rsa":
-		if size == 0 {
+		if options.Size == 0 {
 			return "", fmt.Errorf("please specify a key size with --size")
 		}
 
-		priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, size, rand.Reader)
+		priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, options.Size, rand.Reader)
 		if err != nil {
 			return "", err
 		}
@@ -40,10 +49,10 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, algorithm string, 
 		sk = priv
 		pk = pub
 	default:
-		return "", fmt.Errorf("unrecognized key type: %s", algorithm)
+		return "", fmt.Errorf("unrecognized key type: %s", options.Algorithm)
 	}
 
-	err := api.node.Repo.Keystore().Put(name, sk)
+	err = api.node.Repo.Keystore().Put(name, sk)
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +94,12 @@ func (api *KeyAPI) List(ctx context.Context) (map[string]string, error) {
 	return out, nil
 }
 
-func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, force bool) (string, bool, error) {
+func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, opts ...caopts.KeyRenameOption) (string, bool, error) {
+	options, err := caopts.KeyRenameOptions(opts...)
+	if newName == "self" {
+		return "", false, err
+	}
+
 	ks := api.node.Repo.Keystore()
 
 	if oldName == "self" {
@@ -109,7 +123,7 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, f
 	}
 
 	overwrite := false
-	if force {
+	if options.Force {
 		exist, err := ks.Has(newName)
 		if err != nil {
 			return "", false, err
@@ -160,5 +174,5 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (string, error) {
 }
 
 func (api *KeyAPI) core() coreiface.CoreAPI {
-	return (*CoreAPI)(api)
+	return api.CoreAPI
 }

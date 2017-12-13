@@ -9,6 +9,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipath "github.com/ipfs/go-ipfs/path"
@@ -18,9 +19,16 @@ import (
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-type NameAPI CoreAPI
+type NameAPI struct {
+	*CoreAPI
+	*caopts.NameOptions
+}
 
-func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, validTime time.Duration, key string) (*coreiface.IpnsEntry, error) {
+func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopts.NamePublishOption) (*coreiface.IpnsEntry, error) {
+	options, err := caopts.NamePublishOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
 	n := api.node
 
 	if !n.OnlineMode() {
@@ -43,12 +51,12 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, validTime tim
 		return nil, err
 	}
 
-	k, err := keylookup(n, key)
+	k, err := keylookup(n, options.Key)
 	if err != nil {
 		return nil, err
 	}
 
-	eol := time.Now().Add(validTime)
+	eol := time.Now().Add(options.ValidTime)
 	err = n.Namesys.PublishWithEOL(ctx, k, pth, eol)
 	if err != nil {
 		return nil, err
@@ -65,7 +73,12 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, validTime tim
 	}, nil
 }
 
-func (api *NameAPI) Resolve(ctx context.Context, name string, recursive bool, local bool, nocache bool) (coreiface.Path, error) {
+func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.NameResolveOption) (coreiface.Path, error) {
+	options, err := caopts.NameResolveOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
 	n := api.node
 
 	if !n.OnlineMode() {
@@ -77,21 +90,21 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, recursive bool, lo
 
 	var resolver namesys.Resolver = n.Namesys
 
-	if local && nocache {
+	if options.Local && options.Nocache {
 		return nil, errors.New("cannot specify both local and nocache")
 	}
 
-	if local {
+	if options.Local {
 		offroute := offline.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
 		resolver = namesys.NewRoutingResolver(offroute, 0)
 	}
 
-	if nocache {
+	if options.Nocache {
 		resolver = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), 0)
 	}
 
 	depth := 1
-	if recursive {
+	if options.Recursive {
 		depth = namesys.DefaultDepthLimit
 	}
 
@@ -108,7 +121,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, recursive bool, lo
 }
 
 func (api *NameAPI) core() coreiface.CoreAPI {
-	return (*CoreAPI)(api)
+	return api.CoreAPI
 }
 
 func keylookup(n *core.IpfsNode, k string) (crypto.PrivKey, error) {
