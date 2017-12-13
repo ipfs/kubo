@@ -171,7 +171,6 @@ var rootROOldSubcommands = map[string]*oldcmds.Command{
 			"links": ocmd.ObjectLinksCmd,
 			"get":   ocmd.ObjectGetCmd,
 			"stat":  ocmd.ObjectStatCmd,
-			"patch": ocmd.ObjectPatchCmd,
 		},
 	},
 	"dag": &oldcmds.Command{
