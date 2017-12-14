@@ -191,27 +191,29 @@ type KeyAPI interface {
 	Remove(ctx context.Context, name string) (Path, error)
 }
 
-// type ObjectAPI interface {
-// 	New() (cid.Cid, Object)
-// 	Get(string) (Object, error)
-// 	Links(string) ([]*Link, error)
-// 	Data(string) (Reader, error)
-// 	Stat(string) (ObjectStat, error)
-// 	Put(Object) (cid.Cid, error)
-// 	SetData(string, Reader) (cid.Cid, error)
-// 	AppendData(string, Data) (cid.Cid, error)
-// 	AddLink(string, string, string) (cid.Cid, error)
-// 	RmLink(string, string) (cid.Cid, error)
-// }
+//TODO: Should this use paths instead of cids?
+type ObjectAPI interface {
+	New(ctx context.Context) (Node, error)
+	Put(context.Context, Node) error
+	Get(context.Context, Path) (Node, error)
+	Data(context.Context, Path) (io.Reader, error)
+	Links(context.Context, Path) ([]*Link, error)
+	Stat(context.Context, Path) (*ObjectStat, error)
 
-// type ObjectStat struct {
-// 	Cid            cid.Cid
-// 	NumLinks       int
-// 	BlockSize      int
-// 	LinksSize      int
-// 	DataSize       int
-// 	CumulativeSize int
-// }
+	AddLink(ctx context.Context, base Path, name string, child Path, create bool) (Node, error) //TODO: make create optional
+	RmLink(context.Context, Path, string) (Node, error)
+	AppendData(context.Context, Path, io.Reader) (Node, error)
+	SetData(context.Context, Path, io.Reader) (Node, error)
+}
+
+type ObjectStat struct {
+	Cid            *cid.Cid
+	NumLinks       int
+	BlockSize      int
+	LinksSize      int
+	DataSize       int
+	CumulativeSize int
+}
 
 var ErrIsDir = errors.New("object is a directory")
 var ErrOffline = errors.New("can't resolve, ipfs node is offline")
