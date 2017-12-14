@@ -12,6 +12,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	pe "gx/ipfs/QmaCt1pmsspjLCLx9FfKwvKHkLBbaDdgEmDkjGNZ2SCxdW/errors"
 	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
 	syncds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore/sync"
 )
@@ -99,7 +100,7 @@ func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path
 		if err == dag.ErrLinkNotFound && create != nil {
 			nd = create()
 			err = nil // no longer an error case
-		} else if errs.Unwrap(err) == errs.ErrCidNotFound {
+		} else if pe.Cause(err) == errs.ErrCidNotFound {
 			// try finding it in our source dagstore
 			nd, err = root.GetLinkedProtoNode(ctx, e.src, path[0])
 		}
@@ -160,7 +161,7 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 
 	// search for node in both tmp dagstore and source dagstore
 	nd, err := root.GetLinkedProtoNode(ctx, e.tmp, path[0])
-	if errs.Unwrap(err) == errs.ErrCidNotFound {
+	if pe.Cause(err) == errs.ErrCidNotFound {
 		nd, err = root.GetLinkedProtoNode(ctx, e.src, path[0])
 	}
 
@@ -204,7 +205,7 @@ func copyDag(nd *dag.ProtoNode, from, to dag.DAGService) error {
 	for _, lnk := range nd.Links() {
 		child, err := lnk.GetNode(context.Background(), from)
 		if err != nil {
-			if errs.Unwrap(err) == errs.ErrCidNotFound {
+			if pe.Cause(err) == errs.ErrCidNotFound {
 				// not found means we didnt modify it, and it should
 				// already be in the target datastore
 				continue

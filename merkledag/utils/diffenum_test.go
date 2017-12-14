@@ -11,6 +11,7 @@ import (
 
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	pe "gx/ipfs/QmaCt1pmsspjLCLx9FfKwvKHkLBbaDdgEmDkjGNZ2SCxdW/errors"
 )
 
 func buildNode(name string, desc map[string]ndesc, out map[string]node.Node) node.Node {
@@ -196,7 +197,7 @@ func TestDiffEnumFail(t *testing.T) {
 	}
 
 	err := DiffEnumerate(ctx, lgds, nds["a1"].Cid(), nds["a2"].Cid())
-	if errs.Unwrap(err) != errs.ErrCidNotFound {
+	if pe.Cause(err) != errs.ErrCidNotFound {
 		t.Fatal("expected err not found")
 	}
 

@@ -509,6 +509,12 @@
       "hash": "Qmb37wDRoh9VZMZXmmZktN35szvj9GeBYDtA9giDmXwwd7",
       "name": "go-libp2p-blankhost",
       "version": "0.2.2"
+    },
+    {
+      "author": "kevina",
+      "hash": "QmaCt1pmsspjLCLx9FfKwvKHkLBbaDdgEmDkjGNZ2SCxdW",
+      "name": "errors",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.10.0",

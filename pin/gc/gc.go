@@ -13,6 +13,7 @@ import (
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	pe "gx/ipfs/QmaCt1pmsspjLCLx9FfKwvKHkLBbaDdgEmDkjGNZ2SCxdW/errors"
 )
 
 var log = logging.Logger("gc")
@@ -147,7 +148,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 
 	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
 		links, err := ls.GetLinks(ctx, cid)
-		if err != nil && errs.Unwrap(err) != errs.ErrCidNotFound {
+		if err != nil && pe.Cause(err) != errs.ErrCidNotFound {
 			errors = true
 			output <- Result{Error: &CannotFetchLinksError{cid, err}}
 		}

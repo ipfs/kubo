@@ -20,6 +20,7 @@ import (
 
 	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 	"gx/ipfs/QmUyfy4QSr3NXym4etEiRyxBLqqAeKHJuRdi8AACxg63fZ/go-ipfs-cmdkit"
+	pe "gx/ipfs/QmaCt1pmsspjLCLx9FfKwvKHkLBbaDdgEmDkjGNZ2SCxdW/errors"
 )
 
 type LsLink struct {
@@ -135,7 +136,7 @@ The JSON output contains type information.
 				t := unixfspb.Data_DataType(-1)
 
 				linkNode, err := link.GetNode(req.Context(), dserv)
-				if errs.Unwrap(err) == errs.ErrCidNotFound && !resolve {
+				if pe.Cause(err) == errs.ErrCidNotFound && !resolve {
 					// not an error
 					linkNode = nil
 				} else if err != nil {

@@ -22,6 +22,7 @@ import (
 	travis "gx/ipfs/QmQgLZP9haZheimMHqqAjJh2LhRmNfEoZDfbtkpeMhi9xK/go-testutil/ci/travis"
 	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 	p2ptestutil "gx/ipfs/QmUUNDRYXgfqdjxTg79ogkciczU5y4WY1tKMU2vEX9CRN7/go-libp2p-netutil"
+	pe "gx/ipfs/QmaCt1pmsspjLCLx9FfKwvKHkLBbaDdgEmDkjGNZ2SCxdW/errors"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -287,7 +288,7 @@ func TestEmptyKey(t *testing.T) {
 	defer cancel()
 
 	_, err := bs.GetBlock(ctx, nil)
-	if errs.Unwrap(err) != errs.ErrCidNotFound {
+	if pe.Cause(err) != errs.ErrCidNotFound {
 		t.Error("empty str key should return ErrNotFound")
 	}
 }

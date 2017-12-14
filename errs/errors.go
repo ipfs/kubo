@@ -9,23 +9,6 @@ import (
 
 var ErrCidNotFound = errors.New("CID not found in local blockstore")
 
-// Unwrap recursively unwrapped an error to an error type that can be
-// tested for quality
-func Unwrap(err error) error {
-	switch e := err.(type) {
-	case Wrapped:
-		return Unwrap(e.Unwrap())
-	default:
-		return err
-	}
-}
-
-// Wrapped represent an error wrapped with additional information,
-// such as a Cid
-type Wrapped interface {
-	Unwrap() error
-}
-
 // RetrievalError is an error indicating that a Cid could not be
 // retrived for some reason
 type RetrievalError struct {
@@ -33,7 +16,7 @@ type RetrievalError struct {
 	Cid *cid.Cid
 }
 
-func (e *RetrievalError) Unwrap() error {
+func (e *RetrievalError) Cause() error {
 	return e.Err
 }
 

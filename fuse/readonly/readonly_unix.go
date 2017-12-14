@@ -21,6 +21,7 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	lgbl "gx/ipfs/QmT4PgCNdv73hnFAqzHqwW44q7M9PWpykSswHDxndquZbc/go-libp2p-loggables"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	pe "gx/ipfs/QmaCt1pmsspjLCLx9FfKwvKHkLBbaDdgEmDkjGNZ2SCxdW/errors"
 	fuse "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse"
 	fs "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs"
 )
@@ -157,7 +158,7 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	nd, err := s.Ipfs.DAG.Get(ctx, link.Cid)
-	switch errs.Unwrap(err) {
+	switch pe.Cause(err) {
 	case errs.ErrCidNotFound:
 	default:
 		log.Errorf("fuse lookup %q: %s", name, err)

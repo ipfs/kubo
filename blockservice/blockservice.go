@@ -16,6 +16,7 @@ import (
 	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	pe "gx/ipfs/QmaCt1pmsspjLCLx9FfKwvKHkLBbaDdgEmDkjGNZ2SCxdW/errors"
 )
 
 var log = logging.Logger("blockservice")
@@ -172,7 +173,7 @@ func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f excha
 		return block, nil
 	}
 
-	if errs.Unwrap(err) == errs.ErrCidNotFound && f != nil {
+	if pe.Cause(err) == errs.ErrCidNotFound && f != nil {
 		log.Debug("Blockservice: Searching bitswap")
 		block, err = f.GetBlock(ctx, c)
 	}
