@@ -44,8 +44,7 @@ RUN set -x \
   && cd /tmp \
   && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
   && chmod +x tini \
-  # Install them
-  && mv su-exec/su-exec tini /sbin/
+  && mv su-exec/su-exec tini /sbin/ # Install them
 
 # Ports for Swarm TCP, Swarm uTP, API, Gateway, Swarm Websockets
 EXPOSE 4001
