@@ -161,7 +161,7 @@ for cmd in add  \
            update \
            bitswap
 do
-  test_expect_success "test gateway api is sanitized" '
+  test_expect_success "test gateway api is sanitized: $cmd" '
     test_curl_resp_http_code "http://127.0.0.1:$port/api/v0/$cmd" "HTTP/1.1 404 Not Found"
   '
 done
