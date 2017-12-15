@@ -1,3 +1,5 @@
+// Package iface defines IPFS Core API which is a set of interfaces used to
+// interact with IPFS nodes.
 package iface
 
 import (
@@ -9,6 +11,8 @@ import (
 	ipld "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 )
 
+// Path is a generic wrapper for paths used in the API. A path can be resolved
+// to a CID using one of Resolve functions in the API.
 type Path interface {
 	String() string
 	Cid() *cid.Cid
@@ -26,15 +30,28 @@ type Reader interface {
 	io.Closer
 }
 
+// CoreAPI defines an unified interface to IPFS for Go programs.
 type CoreAPI interface {
+	// Unixfs returns an implementation of Unixfs API
 	Unixfs() UnixfsAPI
+
+	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, Path) (Path, error)
+
+	// ResolveNode resolves the path (if not resolved already) using Unixfs
+	// resolver, gets and returns the resolved Node
 	ResolveNode(context.Context, Path) (Node, error)
 }
 
+// UnixfsAPI is the basic interface to immutable files in IPFS
 type UnixfsAPI interface {
+	// Add imports the data from the reader into merkledag file
 	Add(context.Context, io.Reader) (Path, error)
+
+	// Cat returns a reader for the file
 	Cat(context.Context, Path) (Reader, error)
+
+	// Ls returns the list of links in a directory
 	Ls(context.Context, Path) ([]*Link, error)
 }
 

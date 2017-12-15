@@ -15,6 +15,7 @@ type CoreAPI struct {
 	node *core.IpfsNode
 }
 
+// NewCoreAPI creates new instance of IPFS CoreAPI backed by go-ipfs Node
 func NewCoreAPI(n *core.IpfsNode) coreiface.CoreAPI {
 	api := &CoreAPI{n}
 	return api
