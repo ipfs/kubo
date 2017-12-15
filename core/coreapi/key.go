@@ -30,7 +30,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	switch options.Algorithm {
 	case "rsa":
 		if options.Size == 0 {
-			return "", fmt.Errorf("please specify a key size with --size")
+			return "", fmt.Errorf("please specify a key size with WithSize option")
 		}
 
 		priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, options.Size, rand.Reader)
