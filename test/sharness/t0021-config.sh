@@ -183,8 +183,16 @@ test_config_cmd() {
     test $(cat actual_config | wc -l) = 1
   '
 
+  test_expect_success "copy ipfs config" '
+    cp "$IPFS_PATH/config" before_patch
+  '
+
   test_expect_success "'ipfs config profile apply server' works" '
     ipfs config profile apply server
+  '
+
+  test_expect_success "backup was created and looks good" '
+    test_cmp "$(find "$IPFS_PATH" -name "config-profile*")" before_patch
   '
 
   test_expect_success "'ipfs config Swarm.AddrFilters' looks good with server profile" '
@@ -209,6 +217,10 @@ test_config_cmd() {
   # won't work as it changes datastore definition, which makes ipfs not launch
   # without converting first
   # test_profile_apply_revert badgerds
+
+  test_expect_success "cleanup config backups" '
+    find "$IPFS_PATH" -name "config-profile*" -exec rm {} \;
+  '
 }
 
 test_init_ipfs

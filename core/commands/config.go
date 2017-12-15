@@ -372,6 +372,11 @@ func transformConfig(configRoot string, transformer config.Transformer) error {
 		return err
 	}
 
+	_, err = r.BackupConfig("profile-")
+	if err != nil {
+		return err
+	}
+
 	return r.SetConfig(cfg)
 }
 

@@ -480,6 +480,32 @@ func (r *FSRepo) FileManager() *filestore.FileManager {
 	return r.filemgr
 }
 
+func (r *FSRepo) BackupConfig(prefix string) (string, error) {
+	temp, err := ioutil.TempFile(r.path, "config-"+prefix)
+	if err != nil {
+		return "", err
+	}
+	defer temp.Close()
+
+	configFilename, err := config.Filename(r.path)
+	if err != nil {
+		return "", err
+	}
+
+	orig, err := os.OpenFile(configFilename, os.O_RDONLY, 0600)
+	if err != nil {
+		return "", err
+	}
+	defer orig.Close()
+
+	_, err = io.Copy(temp, orig)
+	if err != nil {
+		return "", err
+	}
+
+	return orig.Name(), nil
+}
+
 // setConfigUnsynced is for private use.
 func (r *FSRepo) setConfigUnsynced(updated *config.Config) error {
 	configFilename, err := config.Filename(r.path)
