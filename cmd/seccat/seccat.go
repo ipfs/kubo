@@ -19,11 +19,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
+	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	secio "gx/ipfs/QmbSkjJvDuxaZYtR46sF9ust7XY1hcg7DrA6Mxu4UiSWqs/go-libp2p-secio"
+	secio "gx/ipfs/QmcfPte5kiCnjKVYELbDdHpuzh4avabCbg2WBjzXcHGTHN/go-libp2p-secio"
 )
 
 var verbose = false
