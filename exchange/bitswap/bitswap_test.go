@@ -108,7 +108,7 @@ func TestLargeSwarm(t *testing.T) {
 	if detectrace.WithRace() {
 		// when running with the race detector, 500 instances launches
 		// well over 8k goroutines. This hits a race detector limit.
-		numInstances = 100
+		numInstances = 75
 	} else if travis.IsRunning() {
 		numInstances = 200
 	} else {
@@ -292,23 +292,22 @@ func TestEmptyKey(t *testing.T) {
 	}
 }
 
-func assertStat(st *Stat, sblks, rblks, sdata, rdata uint64) error {
+func assertStat(t *testing.T, st *Stat, sblks, rblks, sdata, rdata uint64) {
 	if sblks != st.BlocksSent {
-		return fmt.Errorf("mismatch in blocks sent: %d vs %d", sblks, st.BlocksSent)
+		t.Errorf("mismatch in blocks sent: %d vs %d", sblks, st.BlocksSent)
 	}
 
 	if rblks != st.BlocksReceived {
-		return fmt.Errorf("mismatch in blocks recvd: %d vs %d", rblks, st.BlocksReceived)
+		t.Errorf("mismatch in blocks recvd: %d vs %d", rblks, st.BlocksReceived)
 	}
 
 	if sdata != st.DataSent {
-		return fmt.Errorf("mismatch in data sent: %d vs %d", sdata, st.DataSent)
+		t.Errorf("mismatch in data sent: %d vs %d", sdata, st.DataSent)
 	}
 
 	if rdata != st.DataReceived {
-		return fmt.Errorf("mismatch in data recvd: %d vs %d", rdata, st.DataReceived)
+		t.Errorf("mismatch in data recvd: %d vs %d", rdata, st.DataReceived)
 	}
-	return nil
 }
 
 func TestBasicBitswap(t *testing.T) {
@@ -355,12 +354,20 @@ func TestBasicBitswap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := assertStat(st0, 1, 0, 1, 0); err != nil {
+	st2, err := instances[2].Exchange.Stat()
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := assertStat(st1, 0, 1, 0, 1); err != nil {
-		t.Fatal(err)
+	t.Log("stat node 0")
+	assertStat(t, st0, 1, 0, uint64(len(blk.RawData())), 0)
+	t.Log("stat node 1")
+	assertStat(t, st1, 0, 1, 0, uint64(len(blk.RawData())))
+	t.Log("stat node 2")
+	assertStat(t, st2, 0, 0, 0, 0)
+
+	if !bytes.Equal(blk.RawData(), blocks[0].RawData()) {
+		t.Errorf("blocks aren't equal: expected %v, actual %v", blocks[0].RawData(), blk.RawData())
 	}
 
 	t.Log(blk)
