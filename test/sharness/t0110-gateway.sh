@@ -135,7 +135,7 @@ test_expect_success "get IPFS directory file through readonly API output looks g
   test_cmp dir/test actual
 '
 
-test_expect_success "refs IPFS directory file through readonly API succeeds" '
+test_expect_failure "refs IPFS directory file through readonly API succeeds" '
   test_curl_gateway_api "refs?arg=$HASH2/test"
 '
 
