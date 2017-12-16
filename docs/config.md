@@ -12,8 +12,8 @@ command.
 Available profiles:
 - `server`
 
-  Recommended for nodes with public IPv4 address, disables host and content
-  discovery in local networks.
+  Recommended for nodes with public IPv4 address (servers, VPSes, etc.),
+  disables host and content discovery in local networks.
 
 - `test`
 
@@ -27,7 +27,7 @@ Available profiles:
   If you apply this profile after `ipfs init`, you will need to convert your
   datastore to the new configuration. You can do this using [ipfs-ds-convert](https://github.com/ipfs/ipfs-ds-convert)
 
-  WARNING: badger datastore is experimantal. Make sure to backup your data
+  WARNING: badger datastore is experimental. Make sure to backup your data
   frequently
 
 

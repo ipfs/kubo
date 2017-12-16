@@ -319,7 +319,7 @@ var configProfileApplyCmd = &cmds.Command{
 			return
 		}
 
-		err := transformConfig(req.InvocContext().ConfigRoot, profile.Apply)
+		err := transformConfig(req.InvocContext().ConfigRoot, "apply-"+req.Arguments()[0], profile.Apply)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -346,7 +346,7 @@ Backing up the config before running this command is advised.`,
 			return
 		}
 
-		err := transformConfig(req.InvocContext().ConfigRoot, profile.Revert)
+		err := transformConfig(req.InvocContext().ConfigRoot, "revert-"+req.Arguments()[0], profile.Revert)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -355,7 +355,7 @@ Backing up the config before running this command is advised.`,
 	},
 }
 
-func transformConfig(configRoot string, transformer config.Transformer) error {
+func transformConfig(configRoot string, backupName string, transformer config.Transformer) error {
 	r, err := fsrepo.Open(configRoot)
 	if err != nil {
 		return err
@@ -372,7 +372,7 @@ func transformConfig(configRoot string, transformer config.Transformer) error {
 		return err
 	}
 
-	_, err = r.BackupConfig("profile-")
+	_, err = r.BackupConfig(backupName + "-")
 	if err != nil {
 		return err
 	}
