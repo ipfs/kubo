@@ -9,7 +9,7 @@ else
 	PATH_SEP :=:
 endif
 
-# SUPPORTED_PLATFORM += windows/386 FIXME: #4438 (badger bug)
+SUPPORTED_PLATFORMS += windows-386
 SUPPORTED_PLATFORMS += windows-amd64
 
 SUPPORTED_PLATFORMS += linux-arm

@@ -9,6 +9,7 @@ GOTFLAGS ?=
 
 DEPS_GO :=
 TEST_GO :=
+TEST_GO_BUILD :=
 CHECK_GO :=
 
 go-pkg-name=$(shell $(GOCC) list $(go-tags) github.com/ipfs/go-ipfs/$(1))
@@ -35,7 +36,7 @@ test_go_race: GOTFLAGS += -race
 test_go_race: test_go_expensive
 .PHONY: test_go_race
 
-test_go_expensive: $$(DEPS_GO)
+test_go_expensive: $$(TEST_GO_BUILD) $$(DEPS_GO)
 	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) ./...
 .PHONY: test_go_expensive
 TEST_GO += test_go_expensive
