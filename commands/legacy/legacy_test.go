@@ -83,7 +83,8 @@ func TestNewCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := "Test."
+	expected := `{"Value":"Test."}
+`
 
 	if buf.String() != expected {
 		t.Fatalf("expected string %#v but got %#v", expected, buf.String())
