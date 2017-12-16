@@ -50,6 +50,7 @@ CONFIG_SET_JSON_TEST='{
 
 test_profile_apply_revert() {
   profile=$1
+  inverse_profile=$2
 
   test_expect_success "save expected config" '
     ipfs config show >expected
@@ -64,11 +65,11 @@ test_profile_apply_revert() {
     test_must_fail test_cmp expected actual
   '
 
-  test_expect_success "'ipfs config profile revert ${profile}' works" '
-    ipfs config profile revert '${profile}'
+  test_expect_success "'ipfs config profile apply ${inverse_profile}' works" '
+    ipfs config profile apply '${inverse_profile}'
   '
 
-  test_expect_success "config is back to previous state after ${profile} revert" '
+  test_expect_success "config is back to previous state after ${inverse_profile} was applied" '
     ipfs config show >actual &&
     test_cmp expected actual
   '
@@ -192,7 +193,7 @@ test_config_cmd() {
   '
 
   test_expect_success "backup was created and looks good" '
-    test_cmp "$(find "$IPFS_PATH" -name "config-profile*")" before_patch
+    test_cmp "$(find "$IPFS_PATH" -name "config-*")" before_patch
   '
 
   test_expect_success "'ipfs config Swarm.AddrFilters' looks good with server profile" '
@@ -200,16 +201,16 @@ test_config_cmd() {
     test $(cat actual_config | wc -l) = 17
   '
 
-  test_expect_success "'ipfs config profile revert server' works" '
-    ipfs config profile revert server
+  test_expect_success "'ipfs config profile apply local-discovery' works" '
+    ipfs config profile apply local-discovery
   '
 
-  test_expect_success "'ipfs config Swarm.AddrFilters' looks good with reverted server profile" '
+  test_expect_success "'ipfs config Swarm.AddrFilters' looks good with applied local-discovery profile" '
     ipfs config Swarm.AddrFilters > actual_config &&
     test $(cat actual_config | wc -l) = 1
   '
 
-  test_profile_apply_revert server
+  test_profile_apply_revert server local-discovery
 
   # won't work as we already have this profile applied
   # test_profile_apply_revert test
@@ -219,7 +220,7 @@ test_config_cmd() {
   # test_profile_apply_revert badgerds
 
   test_expect_success "cleanup config backups" '
-    find "$IPFS_PATH" -name "config-profile*" -exec rm {} \;
+    find "$IPFS_PATH" -name "config-*" -exec rm {} \;
   '
 }
 

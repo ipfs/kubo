@@ -7,7 +7,8 @@ on a running daemon do not read the config file at runtime.
 #### Profiles
 Configuration profiles allow to tweak configuration quickly. Profiles can be
 applied with `--profile` flag to `ipfs init` or with `ipfs config profile apply`
-command.
+command. When a profile is applied a backup of the configuration file will
+be created in $IPFS_PATH
 
 Available profiles:
 - `server`
@@ -15,11 +16,20 @@ Available profiles:
   Recommended for nodes with public IPv4 address (servers, VPSes, etc.),
   disables host and content discovery in local networks.
 
+- `local-discovery`
+
+  Sets default values to fields affected by `server` profile, enables
+  discovery in local networks.
+
 - `test`
 
   Reduces external interference, useful for running ipfs in test environments.
   Note that with these settings node won't be able to talk to the rest of the
   network without manual bootstrap.
+
+- `default-networking`
+
+  Restores default network settings. Inverse profile of the `test` profile.
 
 - `badgerds`
 
@@ -28,8 +38,11 @@ Available profiles:
   datastore to the new configuration. You can do this using [ipfs-ds-convert](https://github.com/ipfs/ipfs-ds-convert)
 
   WARNING: badger datastore is experimental. Make sure to backup your data
-  frequently
+  frequently.
 
+- `default-datastore`
+
+  Restores default datastore configuration.
 
 ## Table of Contents
 

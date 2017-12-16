@@ -300,8 +300,7 @@ var configProfileCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"apply":  configProfileApplyCmd,
-		"revert": configProfileRevertCmd,
+		"apply": configProfileApplyCmd,
 	},
 }
 
@@ -319,7 +318,7 @@ var configProfileApplyCmd = &cmds.Command{
 			return
 		}
 
-		err := transformConfig(req.InvocContext().ConfigRoot, "apply-"+req.Arguments()[0], profile.Apply)
+		err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -328,34 +327,7 @@ var configProfileApplyCmd = &cmds.Command{
 	},
 }
 
-var configProfileRevertCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
-		Tagline: "Revert profile changes.",
-		ShortDescription: `Reverts profile-related changes to the default values.
-
-Reverting some profiles may damage the configuration or not be possible.
-Backing up the config before running this command is advised.`,
-	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
-	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		profile, ok := config.Profiles[req.Arguments()[0]]
-		if !ok {
-			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmdkit.ErrNormal)
-			return
-		}
-
-		err := transformConfig(req.InvocContext().ConfigRoot, "revert-"+req.Arguments()[0], profile.Revert)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-		res.SetOutput(nil)
-	},
-}
-
-func transformConfig(configRoot string, backupName string, transformer config.Transformer) error {
+func transformConfig(configRoot string, configName string, transformer config.Transformer) error {
 	r, err := fsrepo.Open(configRoot)
 	if err != nil {
 		return err
@@ -372,7 +344,7 @@ func transformConfig(configRoot string, backupName string, transformer config.Tr
 		return err
 	}
 
-	_, err = r.BackupConfig(backupName + "-")
+	_, err = r.BackupConfig("pre-" + configName + "-")
 	if err != nil {
 		return err
 	}

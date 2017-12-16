@@ -165,7 +165,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 			return fmt.Errorf("invalid configuration profile: %s", profile)
 		}
 
-		if err := transformer.Apply(conf); err != nil {
+		if err := transformer(conf); err != nil {
 			return err
 		}
 	}
