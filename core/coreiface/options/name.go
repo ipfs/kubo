@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+const (
+	DefaultNameValidTime = 24 * time.Hour
+)
+
 type NamePublishSettings struct {
 	ValidTime time.Duration
 	Key       string
@@ -12,7 +16,7 @@ type NamePublishSettings struct {
 type NameResolveSettings struct {
 	Recursive bool
 	Local     bool
-	Nocache   bool
+	Cache     bool
 }
 
 type NamePublishOption func(*NamePublishSettings) error
@@ -20,7 +24,7 @@ type NameResolveOption func(*NameResolveSettings) error
 
 func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error) {
 	options := &NamePublishSettings{
-		ValidTime: 24 * time.Hour,
+		ValidTime: DefaultNameValidTime,
 		Key:       "self",
 	}
 
@@ -38,7 +42,7 @@ func NameResolveOptions(opts ...NameResolveOption) (*NameResolveSettings, error)
 	options := &NameResolveSettings{
 		Recursive: false,
 		Local:     false,
-		Nocache:   false,
+		Cache:     true,
 	}
 
 	for _, opt := range opts {
@@ -81,9 +85,9 @@ func (api *NameOptions) WithLocal(local bool) NameResolveOption {
 	}
 }
 
-func (api *NameOptions) WithNoCache(nocache bool) NameResolveOption {
+func (api *NameOptions) WithCache(cache bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
-		settings.Nocache = nocache
+		settings.Cache = cache
 		return nil
 	}
 }

@@ -28,14 +28,19 @@ type Path interface {
 type Node ipld.Node
 type Link ipld.Link
 
-type IpnsEntry struct {
-	Name  string
-	Value Path
-}
-
 type Reader interface {
 	io.ReadSeeker
 	io.Closer
+}
+
+type IpnsEntry interface {
+	Name() string
+	Value() Path
+}
+
+type Key interface {
+	Name() string
+	Path() Path
 }
 
 // CoreAPI defines an unified interface to IPFS for Go programs.
@@ -108,7 +113,7 @@ type DagAPI interface {
 // You can use .Key API to list and generate more names and their respective keys.
 type NameAPI interface {
 	// Publish announces new IPNS name
-	Publish(ctx context.Context, path Path, opts ...options.NamePublishOption) (*IpnsEntry, error)
+	Publish(ctx context.Context, path Path, opts ...options.NamePublishOption) (IpnsEntry, error)
 
 	// WithValidTime is an option for Publish which specifies for how long the
 	// entry will remain valid. Default value is 24h
@@ -116,8 +121,9 @@ type NameAPI interface {
 
 	// WithKey is an option for Publish which specifies the key to use for
 	// publishing. Default value is "self" which is the node's own PeerID.
+	// The key parameter must be either PeerID or keystore key alias.
 	//
-	// You can use .Key API to list and generate more names and their respective keys.
+	// You can use KeyAPI to list and generate more names and their respective keys.
 	WithKey(key string) options.NamePublishOption
 
 	// Resolve attempts to resolve the newest version of the specified name
@@ -131,41 +137,42 @@ type NameAPI interface {
 	// offline. Default value is false
 	WithLocal(local bool) options.NameResolveOption
 
-	// WithNoCache is an option for Resolve which specifies when set to true
-	// disables the use of local name cache. Default value is false
-	WithNoCache(nocache bool) options.NameResolveOption
+	// WithCache is an option for Resolve which specifies if cache should be used.
+	// Default value is true
+	WithCache(cache bool) options.NameResolveOption
 }
 
 // KeyAPI specifies the interface to Keystore
 type KeyAPI interface {
 	// Generate generates new key, stores it in the keystore under the specified
 	// name and returns a base58 encoded multihash of it's public key
-	Generate(ctx context.Context, name string, opts ...options.KeyGenerateOption) (string, error)
+	Generate(ctx context.Context, name string, opts ...options.KeyGenerateOption) (Key, error)
 
 	// WithAlgorithm is an option for Generate which specifies which algorithm
-	// should be used for the key. Default is "rsa"
+	// should be used for the key. Default is options.RSAKey
 	//
 	// Supported algorithms:
-	// * rsa
-	// * ed25519
+	// * options.RSAKey
+	// * options.Ed25519Key
 	WithAlgorithm(algorithm string) options.KeyGenerateOption
 
 	// WithSize is an option for Generate which specifies the size of the key to
 	// generated. Default is 0
 	WithSize(size int) options.KeyGenerateOption
 
-	// Rename renames oldName key to newName.
-	Rename(ctx context.Context, oldName string, newName string, opts ...options.KeyRenameOption) (string, bool, error)
+	// Rename renames oldName key to newName. Returns the key and whether another
+	// key was overwritten, or an error
+	Rename(ctx context.Context, oldName string, newName string, opts ...options.KeyRenameOption) (Key, bool, error)
 
 	// WithForce is an option for Rename which specifies whether to allow to
 	// replace existing keys.
 	WithForce(force bool) options.KeyRenameOption
 
 	// List lists keys stored in keystore
-	List(ctx context.Context) (map[string]string, error) //TODO: better key type?
+	List(ctx context.Context) ([]Key, error)
 
-	// Remove removes keys from keystore
-	Remove(ctx context.Context, name string) (string, error)
+	// Remove removes keys from keystore. Returns ipns path of the removed key
+	Remove(ctx context.Context, name string) (Path, error)
 }
 
 // type ObjectAPI interface {
