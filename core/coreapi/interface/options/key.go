@@ -1,5 +1,10 @@
 package options
 
+const (
+	RSAKey     = "rsa"
+	Ed25519Key = "ed25519"
+)
+
 type KeyGenerateSettings struct {
 	Algorithm string
 	Size      int
@@ -14,7 +19,7 @@ type KeyRenameOption func(*KeyRenameSettings) error
 
 func KeyGenerateOptions(opts ...KeyGenerateOption) (*KeyGenerateSettings, error) {
 	options := &KeyGenerateSettings{
-		Algorithm: "rsa",
+		Algorithm: RSAKey,
 		Size:      0,
 	}
 

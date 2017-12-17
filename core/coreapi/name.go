@@ -15,7 +15,7 @@ import (
 	ipath "github.com/ipfs/go-ipfs/path"
 	offline "github.com/ipfs/go-ipfs/routing/offline"
 
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -24,7 +24,20 @@ type NameAPI struct {
 	*caopts.NameOptions
 }
 
-func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopts.NamePublishOption) (*coreiface.IpnsEntry, error) {
+type ipnsEntry struct {
+	name  string
+	value coreiface.Path
+}
+
+func (e *ipnsEntry) Name() string {
+	return e.name
+}
+
+func (e *ipnsEntry) Value() coreiface.Path {
+	return e.value
+}
+
+func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopts.NamePublishOption) (coreiface.IpnsEntry, error) {
 	options, err := caopts.NamePublishOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -40,10 +53,6 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 
 	if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
 		return nil, errors.New("cannot manually publish while IPNS is mounted")
-	}
-
-	if n.Identity == "" {
-		return nil, errors.New("identity not loaded")
 	}
 
 	pth, err := ipath.ParsePath(p.String())
@@ -67,9 +76,9 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 		return nil, err
 	}
 
-	return &coreiface.IpnsEntry{
-		Name:  pid.Pretty(),
-		Value: p,
+	return &ipnsEntry{
+		name:  pid.Pretty(),
+		value: p,
 	}, nil
 }
 
@@ -90,7 +99,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 
 	var resolver namesys.Resolver = n.Namesys
 
-	if options.Local && options.Nocache {
+	if options.Local && !options.Cache {
 		return nil, errors.New("cannot specify both local and nocache")
 	}
 
@@ -99,7 +108,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		resolver = namesys.NewRoutingResolver(offroute, 0)
 	}
 
-	if options.Nocache {
+	if !options.Cache {
 		resolver = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), 0)
 	}
 

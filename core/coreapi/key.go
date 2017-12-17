@@ -8,8 +8,9 @@ import (
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	ipfspath "github.com/ipfs/go-ipfs/path"
 
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -18,10 +19,23 @@ type KeyAPI struct {
 	*caopts.KeyOptions
 }
 
-func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (string, error) {
+type key struct {
+	name   string
+	peerId string
+}
+
+func (k *key) Name() string {
+	return k.name
+}
+
+func (k *key) Path() coreiface.Path {
+	return &path{path: ipfspath.FromString(ipfspath.Join([]string{"/ipns/", k.peerId}))}
+}
+
+func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (coreiface.Key, error) {
 	options, err := caopts.KeyGenerateOptions(opts...)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var sk crypto.PrivKey
@@ -30,12 +44,12 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	switch options.Algorithm {
 	case "rsa":
 		if options.Size == 0 {
-			return "", fmt.Errorf("please specify a key size with WithSize option")
+			return nil, fmt.Errorf("please specify a key size with WithSize option")
 		}
 
 		priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, options.Size, rand.Reader)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		sk = priv
@@ -43,29 +57,29 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	case "ed25519":
 		priv, pub, err := crypto.GenerateEd25519Key(rand.Reader)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		sk = priv
 		pk = pub
 	default:
-		return "", fmt.Errorf("unrecognized key type: %s", options.Algorithm)
+		return nil, fmt.Errorf("unrecognized key type: %s", options.Algorithm)
 	}
 
 	err = api.node.Repo.Keystore().Put(name, sk)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	pid, err := peer.IDFromPublicKey(pk)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return pid.String(), nil
+	return &key{name, pid.String()}, nil
 }
 
-func (api *KeyAPI) List(ctx context.Context) (map[string]string, error) {
+func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
 	keys, err := api.node.Repo.Keystore().List()
 	if err != nil {
 		return nil, err
@@ -73,11 +87,11 @@ func (api *KeyAPI) List(ctx context.Context) (map[string]string, error) {
 
 	sort.Strings(keys)
 
-	out := make(map[string]string, len(keys)+1)
-	out["self"] = api.node.Identity.Pretty()
+	out := make([]coreiface.Key, len(keys)+1)
+	out[0] = &key{"self", api.node.Identity.Pretty()}
 
-	for _, key := range keys {
-		privKey, err := api.node.Repo.Keystore().Get(key)
+	for n, k := range keys {
+		privKey, err := api.node.Repo.Keystore().Get(k)
 		if err != nil {
 			return nil, err
 		}
@@ -89,88 +103,88 @@ func (api *KeyAPI) List(ctx context.Context) (map[string]string, error) {
 			return nil, err
 		}
 
-		out[key] = pid.Pretty()
+		out[n+1] = &key{k, pid.Pretty()}
 	}
 	return out, nil
 }
 
-func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, opts ...caopts.KeyRenameOption) (string, bool, error) {
+func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, opts ...caopts.KeyRenameOption) (coreiface.Key, bool, error) {
 	options, err := caopts.KeyRenameOptions(opts...)
-	if newName == "self" {
-		return "", false, err
+	if err != nil {
+		return nil, false, err
 	}
 
 	ks := api.node.Repo.Keystore()
 
 	if oldName == "self" {
-		return "", false, fmt.Errorf("cannot rename key with name 'self'")
+		return nil, false, fmt.Errorf("cannot rename key with name 'self'")
 	}
 
 	if newName == "self" {
-		return "", false, fmt.Errorf("cannot overwrite key with name 'self'")
+		return nil, false, fmt.Errorf("cannot overwrite key with name 'self'")
 	}
 
 	oldKey, err := ks.Get(oldName)
 	if err != nil {
-		return "", false, fmt.Errorf("no key named %s was found", oldName)
+		return nil, false, fmt.Errorf("no key named %s was found", oldName)
 	}
 
 	pubKey := oldKey.GetPublic()
 
 	pid, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
-		return "", false, err
+		return nil, false, err
 	}
 
 	overwrite := false
 	if options.Force {
 		exist, err := ks.Has(newName)
 		if err != nil {
-			return "", false, err
+			return nil, false, err
 		}
 
 		if exist {
 			overwrite = true
 			err := ks.Delete(newName)
 			if err != nil {
-				return "", false, err
+				return nil, false, err
 			}
 		}
 	}
 
 	err = ks.Put(newName, oldKey)
 	if err != nil {
-		return "", false, err
+		return nil, false, err
 	}
 
-	return pid.Pretty(), overwrite, ks.Delete(oldName)
+	return &key{newName, pid.Pretty()}, overwrite, ks.Delete(oldName)
 }
 
-func (api *KeyAPI) Remove(ctx context.Context, name string) (string, error) {
+func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Path, error) {
 	ks := api.node.Repo.Keystore()
 
 	if name == "self" {
-		return "", fmt.Errorf("cannot remove key with name 'self'")
+		return nil, fmt.Errorf("cannot remove key with name 'self'")
 	}
 
 	removed, err := ks.Get(name)
 	if err != nil {
-		return "", fmt.Errorf("no key named %s was found", name)
+		return nil, fmt.Errorf("no key named %s was found", name)
 	}
 
 	pubKey := removed.GetPublic()
 
 	pid, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	err = ks.Delete(name)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return pid.Pretty(), nil
+	return (&key{"", pid.Pretty()}).Path(), nil
 }
 
 func (api *KeyAPI) core() coreiface.CoreAPI {
