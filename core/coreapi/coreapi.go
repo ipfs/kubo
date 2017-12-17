@@ -26,7 +26,7 @@ func (api *CoreAPI) Unixfs() coreiface.UnixfsAPI {
 }
 
 func (api *CoreAPI) Dag() coreiface.DagAPI {
-	return (*dagAPI)(api)
+	return &DagAPI{api, nil}
 }
 
 func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (coreiface.Node, error) {

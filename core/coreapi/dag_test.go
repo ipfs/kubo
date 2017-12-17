@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+
+	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
 )
 
 var (
@@ -26,12 +28,29 @@ func TestPut(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`), "json", nil)
+	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`))
 	if err != nil {
 		t.Error(err)
 	}
 
 	if res[0].Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+		t.Errorf("got wrong cid: %s", res[0].Cid().String())
+	}
+}
+
+func TestPutWithHash(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`), api.Dag().WithHash(mh.ID, -1))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res[0].Cid().String() != "z5hRLNd2sv4z1c" {
 		t.Errorf("got wrong cid: %s", res[0].Cid().String())
 	}
 }
@@ -43,12 +62,12 @@ func TestPath(t *testing.T) {
 		t.Error(err)
 	}
 
-	sub, err := api.Dag().Put(ctx, strings.NewReader(`"foo"`), "json", nil)
+	sub, err := api.Dag().Put(ctx, strings.NewReader(`"foo"`))
 	if err != nil {
 		t.Error(err)
 	}
 
-	res, err := api.Dag().Put(ctx, strings.NewReader(`{"lnk": {"/": "`+sub[0].Cid().String()+`"}}`), "json", nil)
+	res, err := api.Dag().Put(ctx, strings.NewReader(`{"lnk": {"/": "`+sub[0].Cid().String()+`"}}`))
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,7 +94,7 @@ func TestTree(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Dag().Put(ctx, strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`), "json", nil)
+	res, err := api.Dag().Put(ctx, strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`))
 	if err != nil {
 		t.Error(err)
 	}
