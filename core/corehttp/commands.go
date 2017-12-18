@@ -166,16 +166,3 @@ func CheckVersionOption() ServeOption {
 		return mux, nil
 	})
 }
-
-// ServerNameOption returns a ServeOption that makes the http server set the Server HTTP header.
-func ServerNameOption(name string) ServeOption {
-	return ServeOption(func(n *core.IpfsNode, l net.Listener, next *http.ServeMux) (*http.ServeMux, error) {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Server", name)
-			next.ServeHTTP(w, r)
-		})
-
-		return mux, nil
-	})
-}
