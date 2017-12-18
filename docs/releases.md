@@ -10,7 +10,8 @@ will be allowed up to release day.
 - [ ] before release, tag 'release canidate' for users to test against
   - if bugs are found/fixed, do another release canidate
 - [ ] all tests pass (no exceptions)
-- [ ] webui works (for most definitions of 'works')
+- [ ] run interop tests https://github.com/ipfs/interop#test-with-a-non-yet-released-version-of-go-ipfs
+- [ ] webui works (for most definitions of 'works') - Test the multiple pages and verify that no visible errors are shown.
 - [ ] CHANGELOG.md has been updated
   - use `LAST=v0.4.2 ; for n in $(git log --oneline --merges --reverse -n-1 $LAST...master | cut -d'#' -f2 | cut -d' ' -f1); do echo https://github.com/ipfs/go-ipfs/pull/$n; done`
 - [ ] version string in `repo/config/version.go` has been updated
