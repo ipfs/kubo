@@ -433,8 +433,8 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (error, <-chan error
 
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("api"),
+		corehttp.CheckVersionOption(),
 		corehttp.CommandsOption(*cctx),
-		//corehttp.CheckVersionOption(),
 		//corehttp.ServerNameOption("go-ipfs/" + config.CurrentVersionNumber),
 		corehttp.WebUIOption,
 		gatewayOpt,
@@ -529,11 +529,11 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (error, <-chan e
 
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("gateway"),
+		corehttp.CheckVersionOption(),
 		corehttp.CommandsROOption(*cctx),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
 		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
-		corehttp.CheckVersionOption(),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

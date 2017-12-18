@@ -41,8 +41,13 @@ func TestCheckVersionOption(t *testing.T) {
 		r.Header.Add("User-Agent", tc.userAgent) // old version, should fail
 
 		called := false
-		inner := http.NewServeMux()
-		inner.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		root := http.NewServeMux()
+		mux, err := CheckVersionOption()(nil, nil, root)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			called = true
 			if !tc.shouldHandle {
 				t.Error("handler was called even though version didn't match")
@@ -51,14 +56,9 @@ func TestCheckVersionOption(t *testing.T) {
 			}
 		})
 
-		mux, err := CheckVersionOption()(nil, nil, inner)
-		if err != nil {
-			t.Fatal(err)
-		}
-
 		w := httptest.NewRecorder()
 
-		mux.ServeHTTP(w, r)
+		root.ServeHTTP(w, r)
 
 		if tc.shouldHandle && !called {
 			t.Error("handler wasn't called even though it should have")

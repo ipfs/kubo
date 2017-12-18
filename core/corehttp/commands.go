@@ -144,11 +144,13 @@ func CommandsROOption(cctx oldcmds.Context) ServeOption {
 func CheckVersionOption() ServeOption {
 	daemonVersion := config.ApiVersion
 
-	return ServeOption(func(n *core.IpfsNode, l net.Listener, next *http.ServeMux) (*http.ServeMux, error) {
+	return ServeOption(func(n *core.IpfsNode, l net.Listener, parent *http.ServeMux) (*http.ServeMux, error) {
 		mux := http.NewServeMux()
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		parent.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, APIPath) {
-				pth := path.SplitList(r.URL.Path[len(APIPath):])
+				cmdqry := r.URL.Path[len(APIPath):]
+				pth := path.SplitList(cmdqry)
+
 				// backwards compatibility to previous version check
 				if pth[1] != "version" {
 					clientVersion := r.UserAgent()
@@ -160,7 +162,7 @@ func CheckVersionOption() ServeOption {
 				}
 			}
 
-			next.ServeHTTP(w, r)
+			mux.ServeHTTP(w, r)
 		})
 
 		return mux, nil
