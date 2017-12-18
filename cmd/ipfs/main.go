@@ -182,15 +182,38 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	if client != nil && !req.Command.External {
 		exctr = client.(cmds.Executor)
 	} else {
-		pluginpath := filepath.Join(env.(*oldcmds.Context).ConfigRoot, "plugins")
-		if _, err := loader.LoadPlugins(pluginpath); err != nil {
-			log.Warning("error loading plugins: ", err)
+		cctx := env.(*oldcmds.Context)
+		pluginpath := filepath.Join(cctx.ConfigRoot, "plugins")
+
+		// check if repo is accessible before loading plugins
+		ok, err := checkPermissions(cctx.ConfigRoot)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			if _, err := loader.LoadPlugins(pluginpath); err != nil {
+				log.Warning("error loading plugins: ", err)
+			}
 		}
 
 		exctr = cmds.NewExecutor(req.Root)
 	}
 
 	return exctr, nil
+}
+
+func checkPermissions(path string) (bool, error) {
+	_, err := os.Open(path)
+	if os.IsNotExist(err) {
+		// repo does not exist yet - don't load plugins, but also don't fail
+		return false, nil
+	}
+	if os.IsPermission(err) {
+		// repo is not accessible. error out.
+		return false, fmt.Errorf("error opening repository at %s: permission denied", path)
+	}
+
+	return true, nil
 }
 
 // commandDetails returns a command's details for the command given by |path|
