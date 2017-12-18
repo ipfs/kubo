@@ -31,6 +31,7 @@ const (
 
 var (
 	provideKeysBufferSize = 2048
+
 	// HasBlockBufferSize is the maximum numbers of CIDs that will get buffered
 	// for providing
 	HasBlockBufferSize = 256
@@ -45,7 +46,7 @@ type blockRequest struct {
 	Ctx context.Context
 }
 
-// Interface is an definition of providers interface to libp2p routing system
+// Interface defines providers interface to libp2p routing system
 type Interface interface {
 	Provide(k *cid.Cid) error
 	ProvideRecursive(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) error
@@ -65,6 +66,7 @@ type providers struct {
 	// network.  blocks pushed down this channel get buffered and fed to the
 	// provideKeys channel later on to avoid too much network activity
 	newBlocks chan *cid.Cid
+
 	// provideKeys directly feeds provide workers
 	provideKeys chan *cid.Cid
 
