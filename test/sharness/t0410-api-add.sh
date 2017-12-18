@@ -13,7 +13,7 @@ test_init_ipfs
 # Verify that that API add command returns size
 
 test_launch_ipfs_daemon
-test_expect_failure "API Add response includes size field" '
+test_expect_success "API Add response includes size field" '
   echo "hi" | curl -s -F file=@- "http://localhost:$API_PORT/api/v0/add" | grep "\"Size\": *\"11\""
 '
 test_kill_ipfs_daemon
