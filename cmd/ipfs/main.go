@@ -31,10 +31,10 @@ import (
 	manet "gx/ipfs/QmSGL5Uoa6gKHgBBwQG8u1CWKUC8ZnwaZiLgFVTFBR2bxr/go-multiaddr-net"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	loggables "gx/ipfs/QmSvcDkiRwB8LuMhUtnvhum2C851Mproo75ZDD19jx43tD/go-libp2p-loggables"
+	"gx/ipfs/QmUthF74m2X24Y1CFdq6wyu6QSm9Q6JEVPZ1c5XJtccW2y/go-ipfs-cmds"
+	"gx/ipfs/QmUthF74m2X24Y1CFdq6wyu6QSm9Q6JEVPZ1c5XJtccW2y/go-ipfs-cmds/cli"
+	"gx/ipfs/QmUthF74m2X24Y1CFdq6wyu6QSm9Q6JEVPZ1c5XJtccW2y/go-ipfs-cmds/http"
 	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
-	"gx/ipfs/QmXPgUkyFLMN3c79WrGM2VbjWynSPnmaHjF2AviBVQE2i7/go-ipfs-cmds"
-	"gx/ipfs/QmXPgUkyFLMN3c79WrGM2VbjWynSPnmaHjF2AviBVQE2i7/go-ipfs-cmds/cli"
-	"gx/ipfs/QmXPgUkyFLMN3c79WrGM2VbjWynSPnmaHjF2AviBVQE2i7/go-ipfs-cmds/http"
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
 )
 

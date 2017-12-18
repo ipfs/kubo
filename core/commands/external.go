@@ -10,7 +10,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 
-	"gx/ipfs/QmNaA1HxkbVtweGfabDMy2DMLvqQ1eg3LNEqDMVA3zCoz1/go-ipfs-cmdkit"
+	"gx/ipfs/QmSRaAPPNxyhnXeDa5NXtZ2CWBYJ6BRWNQp6gKxhPcoqDM/go-ipfs-cmdkit"
 )
 
 func ExternalBinary() *cmds.Command {

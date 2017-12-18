@@ -10,7 +10,7 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	ns "github.com/ipfs/go-ipfs/namesys"
 
-	"gx/ipfs/QmNaA1HxkbVtweGfabDMy2DMLvqQ1eg3LNEqDMVA3zCoz1/go-ipfs-cmdkit"
+	"gx/ipfs/QmSRaAPPNxyhnXeDa5NXtZ2CWBYJ6BRWNQp6gKxhPcoqDM/go-ipfs-cmdkit"
 )
 
 type ipnsPubsubState struct {
