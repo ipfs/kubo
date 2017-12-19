@@ -5,6 +5,7 @@ import (
 	"io"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	mpool "gx/ipfs/QmWBug6eBS7AxRdCDVuSY5CnSit7cS2XnPFYJWqWDumhCG/go-msgio/mpool"
 )
 
 var log = logging.Logger("chunk")
@@ -51,14 +52,14 @@ func Chan(s Splitter) (<-chan []byte, <-chan error) {
 
 type sizeSplitterv2 struct {
 	r    io.Reader
-	size int64
+	size uint32
 	err  error
 }
 
 func NewSizeSplitter(r io.Reader, size int64) Splitter {
 	return &sizeSplitterv2{
 		r:    r,
-		size: size,
+		size: uint32(size),
 	}
 }
 
@@ -66,17 +67,22 @@ func (ss *sizeSplitterv2) NextBytes() ([]byte, error) {
 	if ss.err != nil {
 		return nil, ss.err
 	}
-	buf := make([]byte, ss.size)
-	n, err := io.ReadFull(ss.r, buf)
-	if err == io.ErrUnexpectedEOF {
+
+	full := mpool.ByteSlicePool.Get(ss.size).([]byte)[:ss.size]
+	n, err := io.ReadFull(ss.r, full)
+	switch err {
+	case io.ErrUnexpectedEOF:
 		ss.err = io.EOF
-		err = nil
-	}
-	if err != nil {
+		small := make([]byte, n)
+		copy(small, full)
+		mpool.ByteSlicePool.Put(ss.size, full)
+		return small, nil
+	case nil:
+		return full, nil
+	default:
+		mpool.ByteSlicePool.Put(ss.size, full)
 		return nil, err
 	}
-
-	return buf[:n], nil
 }
 
 func (ss *sizeSplitterv2) Reader() io.Reader {
