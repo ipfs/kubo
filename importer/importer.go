@@ -34,7 +34,7 @@ func BuildDagFromFile(fpath string, ds dag.DAGService) (node.Node, error) {
 	}
 	defer f.Close()
 
-	return BuildDagFromReader(ds, chunk.NewSizeSplitter(f, chunk.DefaultBlockSize))
+	return BuildDagFromReader(ds, chunk.DefaultSplitter(f))
 }
 
 func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (node.Node, error) {
