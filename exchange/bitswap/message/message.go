@@ -1,6 +1,7 @@
 package message
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 
@@ -11,7 +12,16 @@ import (
 	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+)
+
+var (
+	// These two are equivalent, legacy
+	ProtocolBitswapOne    protocol.ID = "/ipfs/bitswap/1.0.0"
+	ProtocolBitswapNoVers protocol.ID = "/ipfs/bitswap"
+
+	ProtocolBitswap protocol.ID = "/ipfs/bitswap/1.1.0"
 )
 
 // TODO move message.go into the bitswap package
@@ -44,8 +54,7 @@ type BitSwapMessage interface {
 type Exportable interface {
 	ToProtoV0() *pb.Message
 	ToProtoV1() *pb.Message
-	ToNetV0(w io.Writer) error
-	ToNetV1(w io.Writer) error
+	ToNet(p protocol.ID, w io.Writer) error
 }
 
 type impl struct {
@@ -225,16 +234,24 @@ func (m *impl) ToProtoV1() *pb.Message {
 	return pbm
 }
 
-func (m *impl) ToNetV0(w io.Writer) error {
-	pbw := ggio.NewDelimitedWriter(w)
+func (m *impl) ToNet(p protocol.ID, w io.Writer) error {
+	var mspb *pb.Message
+	switch p {
+	case ProtocolBitswap:
+		mspb = m.ToProtoV1()
+	case ProtocolBitswapOne, ProtocolBitswapNoVers:
+		mspb = m.ToProtoV0()
+	default:
+		return fmt.Errorf("unrecognized protocol on remote: %s", p)
+	}
 
-	return pbw.WriteMsg(m.ToProtoV0())
-}
-
-func (m *impl) ToNetV1(w io.Writer) error {
-	pbw := ggio.NewDelimitedWriter(w)
-
-	return pbw.WriteMsg(m.ToProtoV1())
+	buf := new(bytes.Buffer)
+	ggbuf := ggio.NewDelimitedWriter(buf)
+	if err := ggbuf.WriteMsg(mspb); err != nil {
+		return err
+	}
+	_, err := w.Write(buf.Bytes())
+	return err
 }
 
 func (m *impl) Loggable() map[string]interface{} {

@@ -2,7 +2,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"time"
 
@@ -30,9 +29,9 @@ func NewFromIpfsHost(host host.Host, r routing.ContentRouting) BitSwapNetwork {
 		host:    host,
 		routing: r,
 	}
-	host.SetStreamHandler(ProtocolBitswap, bitswapNetwork.handleNewStream)
-	host.SetStreamHandler(ProtocolBitswapOne, bitswapNetwork.handleNewStream)
-	host.SetStreamHandler(ProtocolBitswapNoVers, bitswapNetwork.handleNewStream)
+	host.SetStreamHandler(bsmsg.ProtocolBitswap, bitswapNetwork.handleNewStream)
+	host.SetStreamHandler(bsmsg.ProtocolBitswapOne, bitswapNetwork.handleNewStream)
+	host.SetStreamHandler(bsmsg.ProtocolBitswapNoVers, bitswapNetwork.handleNewStream)
 	host.Network().Notify((*netNotifiee)(&bitswapNetwork))
 	// TODO: StopNotify.
 
@@ -75,19 +74,9 @@ func msgToStream(ctx context.Context, s inet.Stream, msg bsmsg.BitSwapMessage) e
 		log.Warningf("error setting deadline: %s", err)
 	}
 
-	switch s.Protocol() {
-	case ProtocolBitswap:
-		if err := msg.ToNetV1(s); err != nil {
-			log.Debugf("error: %s", err)
-			return err
-		}
-	case ProtocolBitswapOne, ProtocolBitswapNoVers:
-		if err := msg.ToNetV0(s); err != nil {
-			log.Debugf("error: %s", err)
-			return err
-		}
-	default:
-		return fmt.Errorf("unrecognized protocol on remote: %s", s.Protocol())
+	if err := msg.ToNet(s.Protocol(), s); err != nil {
+		log.Debugf("error: %s", err)
+		return err
 	}
 
 	if err := s.SetWriteDeadline(time.Time{}); err != nil {
@@ -106,7 +95,7 @@ func (bsnet *impl) NewMessageSender(ctx context.Context, p peer.ID) (MessageSend
 }
 
 func (bsnet *impl) newStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
-	return bsnet.host.NewStream(ctx, p, ProtocolBitswap, ProtocolBitswapOne, ProtocolBitswapNoVers)
+	return bsnet.host.NewStream(ctx, p, bsmsg.ProtocolBitswap, bsmsg.ProtocolBitswapOne, bsmsg.ProtocolBitswapNoVers)
 }
 
 func (bsnet *impl) SendMessage(

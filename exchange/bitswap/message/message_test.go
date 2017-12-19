@@ -109,7 +109,7 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original.AddEntry(mkFakeCid("F"), 1)
 
 	buf := new(bytes.Buffer)
-	if err := original.ToNetV1(buf); err != nil {
+	if err := original.ToNet(ProtocolBitswap, buf); err != nil {
 		t.Fatal(err)
 	}
 
@@ -143,7 +143,7 @@ func TestToAndFromNetMessage(t *testing.T) {
 	original.AddBlock(blocks.NewBlock([]byte("M")))
 
 	buf := new(bytes.Buffer)
-	if err := original.ToNetV1(buf); err != nil {
+	if err := original.ToNet(ProtocolBitswap, buf); err != nil {
 		t.Fatal(err)
 	}
 
