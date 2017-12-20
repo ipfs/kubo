@@ -25,7 +25,7 @@ import (
 	"gx/ipfs/QmSGL5Uoa6gKHgBBwQG8u1CWKUC8ZnwaZiLgFVTFBR2bxr/go-multiaddr-net"
 	"gx/ipfs/QmSRaAPPNxyhnXeDa5NXtZ2CWBYJ6BRWNQp6gKxhPcoqDM/go-ipfs-cmdkit"
 	mprome "gx/ipfs/QmSk46nSD78YiuNojYMS8NW6hSCjH95JajqqzzoychZgef/go-metrics-prometheus"
-	cmds "gx/ipfs/QmUthF74m2X24Y1CFdq6wyu6QSm9Q6JEVPZ1c5XJtccW2y/go-ipfs-cmds"
+	cmds "gx/ipfs/QmULd2tG5e3Hu6fdN1teSsXQFxzWmVWDmdMNMXutQnCbz9/go-ipfs-cmds"
 	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
 	"gx/ipfs/QmX3QZ5jHEPidwUrymXV1iSCSUhdGxj15sm2gP4jKMef7B/client_golang/prometheus"
 	iconn "gx/ipfs/Qmf82zCaYV8bkztRRoGwwSHVkaYtP2UKBnhpjJz1uFGJjQ/go-libp2p-interface-conn"
