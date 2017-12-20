@@ -22,6 +22,20 @@ func copyBuf(buf []byte) []byte {
 	return cpy
 }
 
+func TestSizeSplitterOverAllocate(t *testing.T) {
+	max := 1000
+	r := bytes.NewReader(randBuf(t, max))
+	chunksize := int64(1024 * 256)
+	splitter := NewSizeSplitter(r, chunksize)
+	chunk, err := splitter.NextBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cap(chunk) > len(chunk) {
+		t.Fatal("chunk capacity too large")
+	}
+}
+
 func TestSizeSplitterIsDeterministic(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
