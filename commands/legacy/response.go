@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"gx/ipfs/QmSRaAPPNxyhnXeDa5NXtZ2CWBYJ6BRWNQp6gKxhPcoqDM/go-ipfs-cmdkit"
-	"gx/ipfs/QmUjA7onJjYmZ2TivD83MeCfXf5o1U4ByVJWPjRru5NA4t/go-ipfs-cmds"
+	"gx/ipfs/QmUkTTz5YDkkJWFYfEUpgsR1cvY4KjBzo5VXwwB7UVCn1t/go-ipfs-cmds"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 )

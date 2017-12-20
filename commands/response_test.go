@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	cmdkit "gx/ipfs/QmSRaAPPNxyhnXeDa5NXtZ2CWBYJ6BRWNQp6gKxhPcoqDM/go-ipfs-cmdkit"
-	cmds "gx/ipfs/QmUjA7onJjYmZ2TivD83MeCfXf5o1U4ByVJWPjRru5NA4t/go-ipfs-cmds"
+	cmds "gx/ipfs/QmUkTTz5YDkkJWFYfEUpgsR1cvY4KjBzo5VXwwB7UVCn1t/go-ipfs-cmds"
 )
 
 type TestOutput struct {
