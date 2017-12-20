@@ -443,9 +443,10 @@ func (adder *Adder) addFile(file files.File) error {
 		if err != nil {
 			return err
 		}
-		if err := mr.Flush(); err != nil {
+		if err := mr.FlushMemFree(adder.ctx); err != nil {
 			return err
 		}
+
 		adder.liveNodes = 0
 	}
 	adder.liveNodes++

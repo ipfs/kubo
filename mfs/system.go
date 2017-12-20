@@ -123,6 +123,36 @@ func (kr *Root) Flush() error {
 	return nil
 }
 
+// FlushMemFree flushes the root directory and then uncaches all of its links.
+// This has the effect of clearing out potentially stale references and allows
+// them to be garbage collected.
+// CAUTION: Take care not to ever call this while holding a reference to any
+// child directories. Those directories will be bad references and using them
+// may have unintended racy side effects.
+// A better implemented mfs system (one that does smarter internal caching and
+// refcounting) shouldnt need this method.
+func (kr *Root) FlushMemFree(ctx context.Context) error {
+	dir, ok := kr.GetValue().(*Directory)
+	if !ok {
+		return fmt.Errorf("invalid mfs structure, root should be a directory")
+	}
+
+	if err := dir.Flush(); err != nil {
+		return err
+	}
+
+	dir.lock.Lock()
+	defer dir.lock.Unlock()
+	for name := range dir.files {
+		delete(dir.files, name)
+	}
+	for name := range dir.childDirs {
+		delete(dir.childDirs, name)
+	}
+
+	return nil
+}
+
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
 func (kr *Root) closeChild(name string, nd node.Node, sync bool) error {
