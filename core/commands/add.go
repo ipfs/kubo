@@ -20,7 +20,7 @@ import (
 
 	"gx/ipfs/QmSRaAPPNxyhnXeDa5NXtZ2CWBYJ6BRWNQp6gKxhPcoqDM/go-ipfs-cmdkit"
 	"gx/ipfs/QmSRaAPPNxyhnXeDa5NXtZ2CWBYJ6BRWNQp6gKxhPcoqDM/go-ipfs-cmdkit/files"
-	"gx/ipfs/QmUkTTz5YDkkJWFYfEUpgsR1cvY4KjBzo5VXwwB7UVCn1t/go-ipfs-cmds"
+	"gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 )

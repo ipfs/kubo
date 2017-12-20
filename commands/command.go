@@ -18,7 +18,7 @@ import (
 
 	cmdkit "gx/ipfs/QmSRaAPPNxyhnXeDa5NXtZ2CWBYJ6BRWNQp6gKxhPcoqDM/go-ipfs-cmdkit"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cmds "gx/ipfs/QmUkTTz5YDkkJWFYfEUpgsR1cvY4KjBzo5VXwwB7UVCn1t/go-ipfs-cmds"
+	cmds "gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 )
 
 var log = logging.Logger("command")

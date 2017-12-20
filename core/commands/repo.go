@@ -19,7 +19,7 @@ import (
 
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	cmdkit "gx/ipfs/QmSRaAPPNxyhnXeDa5NXtZ2CWBYJ6BRWNQp6gKxhPcoqDM/go-ipfs-cmdkit"
-	cmds "gx/ipfs/QmUkTTz5YDkkJWFYfEUpgsR1cvY4KjBzo5VXwwB7UVCn1t/go-ipfs-cmds"
+	cmds "gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
 )
 
