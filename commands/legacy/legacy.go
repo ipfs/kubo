@@ -53,29 +53,3 @@ func OldContext(env interface{}) *oldcmds.Context {
 
 	return ctx
 }
-
-/*
-// OldReqLog returns an oldcmds.ReqLog from a ReqLog
-func OldReqLog(newrl *ReqLog) *oldcmds.ReqLog {
-	if newrl == nil {
-		return nil
-	}
-
-	rl := &oldcmds.ReqLog{}
-
-	for _, rle := range newrl.Requests {
-		oldrle := &oldcmds.ReqLogEntry{
-			StartTime: rle.StartTime,
-			EndTime:   rle.EndTime,
-			Active:    rle.Active,
-			Command:   rle.Command,
-			Options:   rle.Options,
-			Args:      rle.Args,
-			ID:        rle.ID,
-		}
-		rl.AddEntry(oldrle)
-	}
-
-	return rl
-}
-*/

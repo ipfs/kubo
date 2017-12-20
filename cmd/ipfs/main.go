@@ -108,11 +108,8 @@ func mainRet() int {
 		}
 		log.Debugf("config path is %s", repoPath)
 
-		// this sets up the function that will initialize the config lazily.
-
 		// this sets up the function that will initialize the node
 		// this is so that we can construct the node lazily.
-
 		return &oldcmds.Context{
 			ConfigRoot: repoPath,
 			LoadConfig: loadConfig,

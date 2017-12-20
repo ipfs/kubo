@@ -145,6 +145,7 @@ You can now check what blocks have been created by:
 			return nil
 		}
 
+		// HACK! Using context to pass the size to PostRun
 		sizeCh := make(chan int64, 1)
 		req.Context = context.WithValue(req.Context, "size", sizeCh)
 
@@ -366,6 +367,7 @@ You can now check what blocks have been created by:
 					bar.Start()
 				}
 
+				// HACK! using context to pass size from PreRun
 				var sizeChan chan int64
 				sizeChan, _ = req.Context.Value("size").(chan int64)
 
@@ -429,7 +431,7 @@ You can now check what blocks have been created by:
 							bar.ShowTimeLeft = true
 						}
 					case <-req.Context.Done():
-						//re.SetError(req.Context.Err(), cmdkit.ErrNormal)
+						// don't set or print error here, that happens in the goroutine below
 						return
 					}
 				}

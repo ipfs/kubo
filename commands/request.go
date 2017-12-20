@@ -76,6 +76,9 @@ func (c *Context) RootContext() context.Context {
 	return n.Context()
 }
 
+// LogRequest adds the passed request to the request log and
+// returns a function that should be called when the request
+// lifetime is over.
 func (c *Context) LogRequest(req *cmds.Request) func() {
 	rle := &ReqLogEntry{
 		StartTime: time.Now(),
@@ -93,6 +96,7 @@ func (c *Context) LogRequest(req *cmds.Request) func() {
 	}
 }
 
+// Close cleans up the application state.
 func (c *Context) Close() {
 	// let's not forget teardown. If a node was initialized, we must close it.
 	// Note that this means the underlying req.Context().Node variable is exposed.

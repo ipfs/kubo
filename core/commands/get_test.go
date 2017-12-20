@@ -45,12 +45,10 @@ func TestGetOutputPath(t *testing.T) {
 		},
 	}
 
-	/*
-		defOpts, err := GetCmd.GetOptions([]string{})
-		if err != nil {
-			t.Fatalf("error getting default command options: %v", err)
-		}
-	*/
+	_, err := GetCmd.GetOptions([]string{})
+	if err != nil {
+		t.Fatalf("error getting default command options: %v", err)
+	}
 
 	for _, tc := range cases {
 		req, err := cmds.NewRequest(context.TODO(), []string{}, tc.opts, tc.args, nil, GetCmd)

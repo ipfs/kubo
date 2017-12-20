@@ -18,7 +18,6 @@ import (
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
-	//config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
@@ -200,7 +199,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
 		}
 	}
 
-	ctx := env.(*oldcmds.Context)
+	cctx := env.(*oldcmds.Context)
 
 	go func() {
 		<-req.Context.Done()
@@ -219,10 +218,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
 	initialize, _ := req.Options[initOptionKwd].(bool)
-
 	if initialize {
 
-		cfg := ctx.ConfigRoot
+		cfg := cctx.ConfigRoot
 		if !fsrepo.IsInitialized(cfg) {
 			err := initWithDefaults(os.Stdout, cfg)
 			if err != nil {
@@ -234,7 +232,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(ctx.ConfigRoot)
+	repo, err := fsrepo.Open(cctx.ConfigRoot)
 	switch err {
 	default:
 		re.SetError(err, cmdkit.ErrNormal)
@@ -264,7 +262,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
 			return
 		}
 
-		repo, err = fsrepo.Open(ctx.ConfigRoot)
+		repo, err = fsrepo.Open(cctx.ConfigRoot)
 		if err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return
@@ -273,7 +271,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
 		break
 	}
 
-	cfg, err := ctx.GetConfig()
+	cfg, err := cctx.GetConfig()
 	if err != nil {
 		re.SetError(err, cmdkit.ErrNormal)
 		return
@@ -340,12 +338,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
 		}
 	}()
 
-	ctx.ConstructNode = func() (*core.IpfsNode, error) {
+	cctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return node, nil
 	}
 
 	// construct api endpoint - every time
-	err, apiErrc := serveHTTPApi(req, ctx)
+	err, apiErrc := serveHTTPApi(req, cctx)
 	if err != nil {
 		re.SetError(err, cmdkit.ErrNormal)
 		return
@@ -359,7 +357,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
 		return
 	}
 	if mount {
-		if err := mountFuse(req, ctx); err != nil {
+		if err := mountFuse(req, cctx); err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
@@ -376,7 +374,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
 	var gwErrc <-chan error
 	if len(cfg.Addresses.Gateway) > 0 {
 		var err error
-		err, gwErrc = serveHTTPGateway(req, ctx)
+		err, gwErrc = serveHTTPGateway(req, cctx)
 		if err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return

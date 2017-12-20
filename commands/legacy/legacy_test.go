@@ -184,32 +184,3 @@ func TestTeeEmitter(t *testing.T) {
 		t.Fatal("expected %#v, got %#v", expect, buf2.String())
 	}
 }
-
-/*
-type teeErrorTestCase struct {
-	err1, err2 error
-	bothNil    bool
-	errString  string
-}
-
-func TestTeeError(t *testing.T) {
-	tcs := []teeErrorTestCase{
-		teeErrorTestCase{nil, nil, true, ""},
-		teeErrorTestCase{fmt.Errorf("error!"), nil, false, "1: error!"},
-		teeErrorTestCase{nil, fmt.Errorf("error!"), false, "2: error!"},
-		teeErrorTestCase{fmt.Errorf("error!"), fmt.Errorf("error!"), false, `1: error!
-2: error!`},
-	}
-
-	for i, tc := range tcs {
-		teeError := cmds.TeeError{tc.err1, tc.err2}
-		if teeError.BothNil() != tc.bothNil {
-			t.Fatalf("BothNil()/%d: expected %v but got %v", i, tc.bothNil, teeError.BothNil())
-		}
-
-		if teeError.Error() != tc.errString {
-			t.Fatalf("Error()/%d: expected %v but got %v", i, tc.errString, teeError.Error())
-		}
-	}
-}
-*/
