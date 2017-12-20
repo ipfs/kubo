@@ -179,7 +179,6 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"resolve": dag.DagResolveCmd,
 		},
 	}),
-	"refs":    lgc.NewCommand(RefsROCmd),
 	"resolve": lgc.NewCommand(ResolveCmd),
 	"version": lgc.NewCommand(VersionCmd),
 }
@@ -191,6 +190,11 @@ func init() {
 	// sanitize readonly refs command
 	*RefsROCmd = *RefsCmd
 	RefsROCmd.Subcommands = map[string]*oldcmds.Command{}
+
+	// this was in the big map definition above before,
+	// but if we leave it there lgc.NewCommand will be executed
+	// before the value is updated (:/sanitize readonly refs command/)
+	rootROSubcommands["refs"] = lgc.NewCommand(RefsROCmd)
 
 	Root.Subcommands = rootSubcommands
 

@@ -435,7 +435,6 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (error, <-chan error
 		corehttp.MetricsCollectionOption("api"),
 		corehttp.CheckVersionOption(),
 		corehttp.CommandsOption(*cctx),
-		//corehttp.ServerNameOption("go-ipfs/" + config.CurrentVersionNumber),
 		corehttp.WebUIOption,
 		gatewayOpt,
 		corehttp.VersionOption(),
