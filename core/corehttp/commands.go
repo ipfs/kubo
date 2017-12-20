@@ -110,7 +110,7 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	c.SetAllowedOrigins(origins...)
 }
 
-func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
+func commandsOption(cctx *oldcmds.Context, command *cmds.Command) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 
 		cfg := cmdsHttp.NewServerConfig()
@@ -132,11 +132,11 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 	}
 }
 
-func CommandsOption(cctx oldcmds.Context) ServeOption {
+func CommandsOption(cctx *oldcmds.Context) ServeOption {
 	return commandsOption(cctx, corecommands.Root)
 }
 
-func CommandsROOption(cctx oldcmds.Context) ServeOption {
+func CommandsROOption(cctx *oldcmds.Context) ServeOption {
 	return commandsOption(cctx, corecommands.RootRO)
 }
 

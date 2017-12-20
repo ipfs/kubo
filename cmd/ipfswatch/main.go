@@ -186,8 +186,8 @@ func IsHidden(path string) bool {
 	return false
 }
 
-func cmdCtx(node *core.IpfsNode, repoPath string) commands.Context {
-	return commands.Context{
+func cmdCtx(node *core.IpfsNode, repoPath string) *commands.Context {
+	return &commands.Context{
 		Online:     true,
 		ConfigRoot: repoPath,
 		LoadConfig: func(path string) (*config.Config, error) {
