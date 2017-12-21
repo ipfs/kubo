@@ -134,9 +134,9 @@ func (fi *fileDescriptor) flushUp(fullsync bool) error {
 			return nil
 		}
 		if nd == nil {
-			fi.inode.nodelk.Lock()
+			fi.inode.nodelk.RLock()
 			nd = fi.inode.node
-			fi.inode.nodelk.Unlock()
+			fi.inode.nodelk.RUnlock()
 		}
 
 		if err := fi.inode.parent.closeChild(fi.inode.name, nd, fullsync); err != nil {
