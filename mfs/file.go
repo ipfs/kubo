@@ -42,13 +42,7 @@ func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGServi
 	return fi, nil
 }
 
-const (
-	OpenReadOnly = iota
-	OpenWriteOnly
-	OpenReadWrite
-)
-
-func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
+func (fi *File) Open(flags Flags) (FileDescriptor, error) {
 	fi.nodelk.Lock()
 	node := fi.node
 	fi.nodelk.Unlock()
@@ -72,14 +66,12 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 		// Ok as well.
 	}
 
-	switch flags {
-	case OpenReadOnly:
-		fi.desclock.RLock()
-	case OpenWriteOnly, OpenReadWrite:
+	if flags.Write {
 		fi.desclock.Lock()
-	default:
-		// TODO: support other modes
-		return nil, fmt.Errorf("mode not supported")
+	} else if flags.Read {
+		fi.desclock.RLock()
+	} else {
+		return nil, fmt.Errorf("file opened for neither reading nor writing")
 	}
 
 	dmod, err := mod.NewDagModifier(context.TODO(), node, fi.dserv, chunk.DefaultSplitter)
@@ -90,8 +82,7 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 
 	return &fileDescriptor{
 		inode: fi,
-		perms: flags,
-		sync:  sync,
+		flags: flags,
 		mod:   dmod,
 	}, nil
 }
@@ -123,7 +114,7 @@ func (fi *File) GetNode() (node.Node, error) {
 
 func (fi *File) Flush() error {
 	// open the file in fullsync mode
-	fd, err := fi.Open(OpenWriteOnly, true)
+	fd, err := fi.Open(Flags{Write: true, Sync: true})
 	if err != nil {
 		return err
 	}

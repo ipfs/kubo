@@ -440,19 +440,20 @@ func (dir *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Nod
 }
 
 func (fi *FileNode) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-	var mfsflag int
+	mfsflags := mfs.Flags{Sync: true}
 	switch {
 	case req.Flags.IsReadOnly():
-		mfsflag = mfs.OpenReadOnly
+		mfsflags.Read = true
 	case req.Flags.IsWriteOnly():
-		mfsflag = mfs.OpenWriteOnly
+		mfsflags.Write = true
 	case req.Flags.IsReadWrite():
-		mfsflag = mfs.OpenReadWrite
+		mfsflags.Write = true
+		mfsflags.Read = true
 	default:
 		return nil, errors.New("unsupported flag type")
 	}
 
-	fd, err := fi.fi.Open(mfsflag, true)
+	fd, err := fi.fi.Open(mfsflags)
 	if err != nil {
 		return nil, err
 	}
@@ -508,19 +509,20 @@ func (dir *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp 
 
 	nodechild := &FileNode{fi: fi}
 
-	var openflag int
+	openflags := mfs.Flags{Sync: true}
 	switch {
 	case req.Flags.IsReadOnly():
-		openflag = mfs.OpenReadOnly
+		openflags.Read = true
 	case req.Flags.IsWriteOnly():
-		openflag = mfs.OpenWriteOnly
+		openflags.Write = true
 	case req.Flags.IsReadWrite():
-		openflag = mfs.OpenReadWrite
+		openflags.Read = true
+		openflags.Write = true
 	default:
 		return nil, nil, errors.New("unsupported open mode")
 	}
 
-	fd, err := fi.Open(openflag, true)
+	fd, err := fi.Open(openflags)
 	if err != nil {
 		return nil, nil, err
 	}
