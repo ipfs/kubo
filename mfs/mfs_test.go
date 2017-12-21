@@ -3,6 +3,7 @@ package mfs
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -772,7 +773,7 @@ func TestConcurrentWriteAndFlush(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < nloops; i++ {
-			err := writeFile(rt, "/foo/bar/baz/file", []byte("STUFF"))
+			err := writeFile(rt, "/foo/bar/baz/file", func(_ []byte) []byte { return []byte("STUFF") })
 			if err != nil {
 				t.Error("file write failed: ", err)
 				return
@@ -936,7 +937,7 @@ func TestConcurrentReads(t *testing.T) {
 	wg.Wait()
 }
 
-func writeFile(rt *Root, path string, data []byte) error {
+func writeFile(rt *Root, path string, transform func([]byte) []byte) error {
 	n, err := Lookup(rt, path)
 	if err != nil {
 		return err
@@ -947,11 +948,26 @@ func writeFile(rt *Root, path string, data []byte) error {
 		return fmt.Errorf("expected to receive a file, but didnt get one")
 	}
 
-	fd, err := fi.Open(Flags{Write: true, Sync: true})
+	fd, err := fi.Open(Flags{Read: true, Write: true, Sync: true})
 	if err != nil {
 		return err
 	}
 	defer fd.Close()
+
+	data, err := ioutil.ReadAll(fd)
+	if err != nil {
+		return err
+	}
+	data = transform(data)
+
+	_, err = fd.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
+	}
+	err = fd.Truncate(0)
+	if err != nil {
+		return err
+	}
 
 	nw, err := fd.Write(data)
 	if err != nil {
@@ -988,9 +1004,29 @@ func TestConcurrentWrites(t *testing.T) {
 		wg.Add(1)
 		go func(me int) {
 			defer wg.Done()
-			mybuf := bytes.Repeat([]byte{byte(me)}, 10)
+			var lastSeen uint64
 			for j := 0; j < nloops; j++ {
-				err := writeFile(rt, "a/b/c/afile", mybuf)
+				err := writeFile(rt, "a/b/c/afile", func(buf []byte) []byte {
+					if len(buf) == 0 {
+						if lastSeen > 0 {
+							t.Fatalf("file corrupted, last seen: %d", lastSeen)
+						}
+						buf = make([]byte, 8)
+					} else if len(buf) != 8 {
+						t.Fatal("buf not the right size")
+					}
+
+					num := binary.LittleEndian.Uint64(buf)
+					if num < lastSeen {
+						t.Fatalf("count decreased: was %d, is %d", lastSeen, num)
+					} else {
+						t.Logf("count correct: was %d, is %d", lastSeen, num)
+					}
+					num++
+					binary.LittleEndian.PutUint64(buf, num)
+					lastSeen = num
+					return buf
+				})
 				if err != nil {
 					t.Error("writefile failed: ", err)
 					return
@@ -999,6 +1035,15 @@ func TestConcurrentWrites(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
+	buf := make([]byte, 8)
+	if err := readFile(rt, "a/b/c/afile", 0, buf); err != nil {
+		t.Fatal(err)
+	}
+	actual := binary.LittleEndian.Uint64(buf)
+	expected := uint64(10 * nloops)
+	if actual != expected {
+		t.Fatalf("iteration mismatch: expect %d, got %d", expected, actual)
+	}
 }
 
 func TestFileDescriptors(t *testing.T) {
