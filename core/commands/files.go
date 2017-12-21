@@ -537,7 +537,7 @@ Examples:
 			return
 		}
 
-		rfd, err := fi.Open(mfs.OpenReadOnly, false)
+		rfd, err := fi.Open(mfs.Flags{Read: true, Sync: false})
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -738,7 +738,7 @@ stat' on the file or any of its ancestors.
 			fi.RawLeaves = rawLeaves
 		}
 
-		wfd, err := fi.Open(mfs.OpenWriteOnly, flush)
+		wfd, err := fi.Open(mfs.Flags{Write: true, Sync: flush})
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

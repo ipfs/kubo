@@ -26,6 +26,9 @@ import (
 
 var ErrNotExist = errors.New("no such rootfs")
 
+// ErrClosed indicates an error due to the target file being closed.
+var ErrClosed = errors.New("file closed")
+
 var log = logging.Logger("mfs")
 
 var ErrIsDirectory = errors.New("error: is a directory")
