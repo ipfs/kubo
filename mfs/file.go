@@ -42,7 +42,24 @@ func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGServi
 	return fi, nil
 }
 
-func (fi *File) Open(flags Flags) (FileDescriptor, error) {
+func (fi *File) Open(flags Flags) (_ FileDescriptor, _retErr error) {
+	if flags.Write {
+		fi.desclock.Lock()
+		defer func() {
+			if _retErr != nil {
+				fi.desclock.Unlock()
+			}
+		}()
+	} else if flags.Read {
+		fi.desclock.RLock()
+		defer func() {
+			if _retErr != nil {
+				fi.desclock.Unlock()
+			}
+		}()
+	} else {
+		return nil, fmt.Errorf("file opened for neither reading nor writing")
+	}
 	fi.nodelk.Lock()
 	node := fi.node
 	fi.nodelk.Unlock()
@@ -64,14 +81,6 @@ func (fi *File) Open(flags Flags) (FileDescriptor, error) {
 		}
 	case *dag.RawNode:
 		// Ok as well.
-	}
-
-	if flags.Write {
-		fi.desclock.Lock()
-	} else if flags.Read {
-		fi.desclock.RLock()
-	} else {
-		return nil, fmt.Errorf("file opened for neither reading nor writing")
 	}
 
 	dmod, err := mod.NewDagModifier(context.TODO(), node, fi.dserv, chunk.DefaultSplitter)
