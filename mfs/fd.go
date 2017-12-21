@@ -119,10 +119,16 @@ func (fi *fileDescriptor) Close() error {
 }
 
 func (fi *fileDescriptor) Sync() error {
+	if fi.state == stateClosed {
+		return ErrClosed
+	}
 	return fi.flushUp(false)
 }
 
 func (fi *fileDescriptor) Flush() error {
+	if fi.state == stateClosed {
+		return ErrClosed
+	}
 	return fi.flushUp(true)
 }
 
