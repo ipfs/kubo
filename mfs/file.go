@@ -73,7 +73,31 @@ func (m mode) String() string {
 	}
 }
 
-func (fi *File) Open(mode mode, sync bool) (FileDescriptor, error) {
+func (fi *File) Open(mode mode, sync bool) (_ FileDescriptor, _retErr error) {
+	if mode > 0x3 {
+		// TODO: support other modes
+		return nil, fmt.Errorf("mode not supported")
+	}
+
+	if mode.CanWrite() {
+		fi.desclock.Lock()
+		defer func() {
+			if _retErr != nil {
+				fi.desclock.Unlock()
+			}
+		}()
+	} else if mode.CanRead() {
+		fi.desclock.RLock()
+		defer func() {
+			if _retErr != nil {
+				fi.desclock.RUnlock()
+			}
+		}()
+	} else {
+		// For now, need to open with either read or write perm.
+		return nil, fmt.Errorf("mode not supported")
+	}
+
 	fi.nodelk.Lock()
 	node := fi.node
 	fi.nodelk.Unlock()
@@ -95,20 +119,6 @@ func (fi *File) Open(mode mode, sync bool) (FileDescriptor, error) {
 		}
 	case *dag.RawNode:
 		// Ok as well.
-	}
-
-	if mode > 0x3 {
-		// TODO: support other modes
-		return nil, fmt.Errorf("mode not supported")
-	}
-
-	if mode.CanWrite() {
-		fi.desclock.Lock()
-	} else if mode.CanRead() {
-		fi.desclock.RLock()
-	} else {
-		// For now, need to open with either read or write perm.
-		return nil, fmt.Errorf("mode not supported")
 	}
 
 	dmod, err := mod.NewDagModifier(context.TODO(), node, fi.dserv, chunk.DefaultSplitter)
