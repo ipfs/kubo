@@ -22,7 +22,7 @@ type File struct {
 
 	dserv  dag.DAGService
 	node   node.Node
-	nodelk sync.Mutex
+	nodelk sync.RWMutex
 
 	RawLeaves bool
 }
@@ -60,9 +60,10 @@ func (fi *File) Open(flags Flags) (_ FileDescriptor, _retErr error) {
 	} else {
 		return nil, fmt.Errorf("file opened for neither reading nor writing")
 	}
-	fi.nodelk.Lock()
+
+	fi.nodelk.RLock()
 	node := fi.node
-	fi.nodelk.Unlock()
+	fi.nodelk.RUnlock()
 
 	switch node := node.(type) {
 	case *dag.ProtoNode:
@@ -98,8 +99,8 @@ func (fi *File) Open(flags Flags) (_ FileDescriptor, _retErr error) {
 
 // Size returns the size of this file
 func (fi *File) Size() (int64, error) {
-	fi.nodelk.Lock()
-	defer fi.nodelk.Unlock()
+	fi.nodelk.RLock()
+	defer fi.nodelk.RUnlock()
 	switch nd := fi.node.(type) {
 	case *dag.ProtoNode:
 		pbd, err := ft.FromBytes(nd.Data())
@@ -116,8 +117,8 @@ func (fi *File) Size() (int64, error) {
 
 // GetNode returns the dag node associated with this file
 func (fi *File) GetNode() (node.Node, error) {
-	fi.nodelk.Lock()
-	defer fi.nodelk.Unlock()
+	fi.nodelk.RLock()
+	defer fi.nodelk.RUnlock()
 	return fi.node, nil
 }
 
