@@ -19,7 +19,7 @@ type DagAPI struct {
 	*caopts.DagOptions
 }
 
-func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) ([]coreiface.Node, error) {
+func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.Path, error) {
 	settings, err := caopts.DagPutOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -38,16 +38,12 @@ func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPut
 		return nil, fmt.Errorf("no node returned from ParseInputs")
 	}
 
-	out := make([]coreiface.Node, len(nds))
-	for n, nd := range nds {
-		_, err := api.node.DAG.Add(nd)
-		if err != nil {
-			return nil, err
-		}
-		out[n] = nd
+	_, err = api.node.DAG.Add(nds[0])
+	if err != nil {
+		return nil, err
 	}
 
-	return out, nil
+	return ParseCid(nds[0].Cid()), nil
 }
 
 func (api *DagAPI) Get(ctx context.Context, path coreiface.Path) (coreiface.Node, error) {

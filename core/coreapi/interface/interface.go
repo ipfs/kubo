@@ -61,8 +61,9 @@ type UnixfsAPI interface {
 // DagAPI specifies the interface to IPLD
 type DagAPI interface {
 	// Put inserts data using specified format and input encoding.
-	// If format is not specified (nil), default dag-cbor/sha256 is used
-	Put(ctx context.Context, src io.Reader, opts ...options.DagPutOption) ([]Node, error)
+	// Unless used with WithCodec or WithHash, the defaults "dag-cbor" and
+	// "sha256" are used.
+	Put(ctx context.Context, src io.Reader, opts ...options.DagPutOption) (Path, error)
 
 	// WithInputEnc is an option for Put which specifies the input encoding of the
 	// data. Default is "json", most formats/codecs support "raw"

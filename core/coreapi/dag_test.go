@@ -33,8 +33,8 @@ func TestPut(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res[0].Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
-		t.Errorf("got wrong cid: %s", res[0].Cid().String())
+	if res.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+		t.Errorf("got wrong cid: %s", res.Cid().String())
 	}
 }
 
@@ -50,8 +50,8 @@ func TestPutWithHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res[0].Cid().String() != "z5hRLNd2sv4z1c" {
-		t.Errorf("got wrong cid: %s", res[0].Cid().String())
+	if res.Cid().String() != "z5hRLNd2sv4z1c" {
+		t.Errorf("got wrong cid: %s", res.Cid().String())
 	}
 }
 
@@ -67,12 +67,12 @@ func TestPath(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Dag().Put(ctx, strings.NewReader(`{"lnk": {"/": "`+sub[0].Cid().String()+`"}}`))
+	res, err := api.Dag().Put(ctx, strings.NewReader(`{"lnk": {"/": "`+sub.Cid().String()+`"}}`))
 	if err != nil {
 		t.Error(err)
 	}
 
-	p, err := coreapi.ParsePath(path.Join(res[0].Cid().String(), "lnk"))
+	p, err := coreapi.ParsePath(path.Join(res.Cid().String(), "lnk"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -82,8 +82,8 @@ func TestPath(t *testing.T) {
 		t.Error(err)
 	}
 
-	if nd.Cid().String() != sub[0].Cid().String() {
-		t.Errorf("got unexpected cid %s, expected %s", nd.Cid().String(), sub[0].Cid().String())
+	if nd.Cid().String() != sub.Cid().String() {
+		t.Errorf("got unexpected cid %s, expected %s", nd.Cid().String(), sub.Cid().String())
 	}
 }
 
@@ -94,12 +94,17 @@ func TestTree(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Dag().Put(ctx, strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`))
+	c, err := api.Dag().Put(ctx, strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`))
 	if err != nil {
 		t.Error(err)
 	}
 
-	lst := res[0].Tree("", -1)
+	res, err := api.Dag().Get(ctx, c)
+	if err != nil {
+		t.Error(err)
+	}
+
+	lst := res.Tree("", -1)
 	if len(lst) != len(treeExpected) {
 		t.Errorf("tree length of %d doesn't match expected %d", len(lst), len(treeExpected))
 	}
