@@ -22,7 +22,7 @@ type File struct {
 
 	dserv  dag.DAGService
 	node   node.Node
-	nodelk sync.Mutex
+	nodelk sync.RWMutex
 
 	RawLeaves bool
 }
@@ -42,16 +42,65 @@ func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGServi
 	return fi, nil
 }
 
+type mode uint8
+
 const (
-	OpenReadOnly = iota
-	OpenWriteOnly
-	OpenReadWrite
+	Closed        mode = 0x0 // No access. Needs to be 0.
+	ModeRead      mode = 1 << 0
+	ModeWrite     mode = 1 << 1
+	ModeReadWrite mode = ModeWrite | ModeRead
 )
 
-func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
-	fi.nodelk.Lock()
+func (m mode) CanRead() bool {
+	return m&ModeRead != 0
+}
+func (m mode) CanWrite() bool {
+	return m&ModeWrite != 0
+}
+
+func (m mode) String() string {
+	switch m {
+	case ModeWrite:
+		return "write-only"
+	case ModeRead:
+		return "read-only"
+	case ModeReadWrite:
+		return "read-write"
+	case Closed:
+		return "closed"
+	default:
+		return "invalid"
+	}
+}
+
+func (fi *File) Open(mode mode, sync bool) (_ FileDescriptor, _retErr error) {
+	if mode > 0x3 {
+		// TODO: support other modes
+		return nil, fmt.Errorf("mode not supported")
+	}
+
+	if mode.CanWrite() {
+		fi.desclock.Lock()
+		defer func() {
+			if _retErr != nil {
+				fi.desclock.Unlock()
+			}
+		}()
+	} else if mode.CanRead() {
+		fi.desclock.RLock()
+		defer func() {
+			if _retErr != nil {
+				fi.desclock.RUnlock()
+			}
+		}()
+	} else {
+		// For now, need to open with either read or write perm.
+		return nil, fmt.Errorf("mode not supported")
+	}
+
+	fi.nodelk.RLock()
 	node := fi.node
-	fi.nodelk.Unlock()
+	fi.nodelk.RUnlock()
 
 	switch node := node.(type) {
 	case *dag.ProtoNode:
@@ -72,16 +121,6 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 		// Ok as well.
 	}
 
-	switch flags {
-	case OpenReadOnly:
-		fi.desclock.RLock()
-	case OpenWriteOnly, OpenReadWrite:
-		fi.desclock.Lock()
-	default:
-		// TODO: support other modes
-		return nil, fmt.Errorf("mode not supported")
-	}
-
 	dmod, err := mod.NewDagModifier(context.TODO(), node, fi.dserv, chunk.DefaultSplitter)
 	if err != nil {
 		return nil, err
@@ -90,7 +129,7 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 
 	return &fileDescriptor{
 		inode: fi,
-		perms: flags,
+		mode:  mode,
 		sync:  sync,
 		mod:   dmod,
 	}, nil
@@ -98,8 +137,8 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 
 // Size returns the size of this file
 func (fi *File) Size() (int64, error) {
-	fi.nodelk.Lock()
-	defer fi.nodelk.Unlock()
+	fi.nodelk.RLock()
+	defer fi.nodelk.RUnlock()
 	switch nd := fi.node.(type) {
 	case *dag.ProtoNode:
 		pbd, err := ft.FromBytes(nd.Data())
@@ -116,14 +155,14 @@ func (fi *File) Size() (int64, error) {
 
 // GetNode returns the dag node associated with this file
 func (fi *File) GetNode() (node.Node, error) {
-	fi.nodelk.Lock()
-	defer fi.nodelk.Unlock()
+	fi.nodelk.RLock()
+	defer fi.nodelk.RUnlock()
 	return fi.node, nil
 }
 
 func (fi *File) Flush() error {
 	// open the file in fullsync mode
-	fd, err := fi.Open(OpenWriteOnly, true)
+	fd, err := fi.Open(ModeWrite, true)
 	if err != nil {
 		return err
 	}
