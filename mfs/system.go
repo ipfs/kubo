@@ -25,6 +25,7 @@ import (
 )
 
 var ErrNotExist = errors.New("no such rootfs")
+var ErrClosed = errors.New("file closed")
 
 var log = logging.Logger("mfs")
 

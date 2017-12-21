@@ -42,13 +42,38 @@ func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGServi
 	return fi, nil
 }
 
+type mode uint8
+
 const (
-	OpenReadOnly = iota
-	OpenWriteOnly
-	OpenReadWrite
+	Closed        mode = 0x0 // No access. Needs to be 0.
+	ModeRead      mode = 1 << 0
+	ModeWrite     mode = 1 << 1
+	ModeReadWrite mode = ModeWrite | ModeRead
 )
 
-func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
+func (m mode) CanRead() bool {
+	return m&ModeRead != 0
+}
+func (m mode) CanWrite() bool {
+	return m&ModeWrite != 0
+}
+
+func (m mode) String() string {
+	switch m {
+	case ModeWrite:
+		return "write-only"
+	case ModeRead:
+		return "read-only"
+	case ModeReadWrite:
+		return "read-write"
+	case Closed:
+		return "closed"
+	default:
+		return "invalid"
+	}
+}
+
+func (fi *File) Open(mode mode, sync bool) (FileDescriptor, error) {
 	fi.nodelk.Lock()
 	node := fi.node
 	fi.nodelk.Unlock()
@@ -72,13 +97,17 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 		// Ok as well.
 	}
 
-	switch flags {
-	case OpenReadOnly:
-		fi.desclock.RLock()
-	case OpenWriteOnly, OpenReadWrite:
-		fi.desclock.Lock()
-	default:
+	if mode > 0x3 {
 		// TODO: support other modes
+		return nil, fmt.Errorf("mode not supported")
+	}
+
+	if mode.CanWrite() {
+		fi.desclock.Lock()
+	} else if mode.CanRead() {
+		fi.desclock.RLock()
+	} else {
+		// For now, need to open with either read or write perm.
 		return nil, fmt.Errorf("mode not supported")
 	}
 
@@ -90,7 +119,7 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 
 	return &fileDescriptor{
 		inode: fi,
-		perms: flags,
+		mode:  mode,
 		sync:  sync,
 		mod:   dmod,
 	}, nil
@@ -123,7 +152,7 @@ func (fi *File) GetNode() (node.Node, error) {
 
 func (fi *File) Flush() error {
 	// open the file in fullsync mode
-	fd, err := fi.Open(OpenWriteOnly, true)
+	fd, err := fi.Open(ModeWrite, true)
 	if err != nil {
 		return err
 	}
