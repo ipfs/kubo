@@ -193,14 +193,18 @@ type KeyAPI interface {
 
 //TODO: Should this use paths instead of cids?
 type ObjectAPI interface {
-	New(ctx context.Context) (Node, error)
-	Put(context.Context, Node) error
+	New(context.Context, ...options.ObjectNewOption) (Node, error)
+	WithType(string) options.ObjectNewOption
+
+	Put(context.Context, Node) (Path, error)
 	Get(context.Context, Path) (Node, error)
 	Data(context.Context, Path) (io.Reader, error)
 	Links(context.Context, Path) ([]*Link, error)
 	Stat(context.Context, Path) (*ObjectStat, error)
 
-	AddLink(ctx context.Context, base Path, name string, child Path, create bool) (Node, error) //TODO: make create optional
+	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (Node, error)
+	WithCreate(create bool) options.ObjectAddLinkOption
+
 	RmLink(context.Context, Path, string) (Node, error)
 	AppendData(context.Context, Path, io.Reader) (Node, error)
 	SetData(context.Context, Path, io.Reader) (Node, error)
