@@ -42,7 +42,7 @@ func (api *CoreAPI) Key() coreiface.KeyAPI {
 }
 
 func (api *CoreAPI) Object() coreiface.ObjectAPI {
-	return (*ObjectAPI)(api)
+	return &ObjectAPI{api, nil}
 }
 
 // ResolveNode resolves the path `p` using Unixfx resolver, gets and returns the

@@ -7,27 +7,44 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/ipfs/go-ipfs/merkledag/utils"
+	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
 )
 
-type ObjectAPI CoreAPI
+type ObjectAPI struct {
+	*CoreAPI
+	*caopts.ObjectOptions
+}
 
-func (api *ObjectAPI) New(ctx context.Context) (coreiface.Node, error) {
-	node := new(dag.ProtoNode)
-
-	_, err := api.node.DAG.Add(node)
+func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (coreiface.Node, error) {
+	options, err := caopts.ObjectNewOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
-	return node, nil
+
+	var n node.Node
+	switch options.Type {
+	case "empty":
+		n = new(dag.ProtoNode)
+	case "unixfs-dir":
+		n = ft.EmptyDirNode()
+	}
+
+	_, err = api.node.DAG.Add(n)
+	if err != nil {
+		return nil, err
+	}
+	return n, nil
 }
 
-func (api *ObjectAPI) Put(context.Context, coreiface.Node) error {
-	return errors.New("todo") // TODO: what should this method take? Should we just redir to dag-put?f
+func (api *ObjectAPI) Put(context.Context, coreiface.Node) (coreiface.Path, error) {
+	return nil, errors.New("todo") // TODO: implement using dag api.
 }
 
 func (api *ObjectAPI) Get(ctx context.Context, path coreiface.Path) (coreiface.Node, error) {
@@ -86,8 +103,13 @@ func (api *ObjectAPI) Stat(ctx context.Context, path coreiface.Path) (*coreiface
 	return out, nil
 }
 
-func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name string, child coreiface.Path, create bool) (coreiface.Node, error) {
-	rootNd, err := api.core().ResolveNode(ctx, base)
+func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name string, child coreiface.Path, opts ...caopts.ObjectAddLinkOption) (coreiface.Node, error) {
+	options, err := caopts.ObjectAddLinkOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
 		return nil, err
 	}
@@ -97,17 +119,17 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name str
 		return nil, err
 	}
 
-	rootPb, ok := rootNd.(*dag.ProtoNode)
+	basePb, ok := baseNd.(*dag.ProtoNode)
 	if !ok {
 		return nil, dag.ErrNotProtobuf
 	}
 
 	var createfunc func() *dag.ProtoNode
-	if create {
+	if options.Create {
 		createfunc = ft.EmptyDirNode
 	}
 
-	e := dagutils.NewDagEditor(rootPb, api.node.DAG)
+	e := dagutils.NewDagEditor(basePb, api.node.DAG)
 
 	err = e.InsertNodeAtPath(ctx, name, childNd, createfunc)
 	if err != nil {
@@ -122,18 +144,18 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name str
 	return nnode, nil
 }
 
-func (api *ObjectAPI) RmLink(ctx context.Context, root coreiface.Path, link string) (coreiface.Node, error) {
-	rootNd, err := api.core().ResolveNode(ctx, root)
+func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link string) (coreiface.Node, error) {
+	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
 		return nil, err
 	}
 
-	rootPb, ok := rootNd.(*dag.ProtoNode)
+	basePb, ok := baseNd.(*dag.ProtoNode)
 	if !ok {
 		return nil, dag.ErrNotProtobuf
 	}
 
-	e := dagutils.NewDagEditor(rootPb, api.node.DAG)
+	e := dagutils.NewDagEditor(basePb, api.node.DAG)
 
 	err = e.RmLink(ctx, link)
 	if err != nil {
@@ -186,5 +208,5 @@ func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.R
 }
 
 func (api *ObjectAPI) core() coreiface.CoreAPI {
-	return (*CoreAPI)(api)
+	return api.CoreAPI
 }
