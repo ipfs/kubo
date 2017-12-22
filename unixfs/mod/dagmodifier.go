@@ -481,6 +481,9 @@ func (dm *DagModifier) Truncate(size int64) error {
 	if err != nil {
 		return err
 	}
+	if size == int64(realSize) {
+		return nil
+	}
 
 	// Truncate can also be used to expand the file
 	if size > int64(realSize) {
