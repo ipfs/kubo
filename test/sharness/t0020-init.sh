@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
@@ -46,7 +46,7 @@ test_expect_success "ipfs cat fails" '
 
 test_expect_success "ipfs cat no repo message looks good" '
   echo "Error: no IPFS repo found in $IPFS_PATH." > cat_fail_exp &&
-  echo "please run: 'ipfs init'" >> cat_fail_exp &&
+  echo "please run: '"'"'ipfs init'"'"'" >> cat_fail_exp &&
   test_path_cmp cat_fail_exp cat_fail_out
 '
 

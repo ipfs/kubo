@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 test_description="Tests for various fixed issues and regressions."
 
