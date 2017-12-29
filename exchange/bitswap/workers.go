@@ -59,11 +59,13 @@ func (bs *Bitswap) taskWorker(ctx context.Context, id int) {
 				if !ok {
 					continue
 				}
-				log.Event(ctx, "Bitswap.TaskWorker.Work", logging.LoggableMap{
-					"ID":     id,
-					"Target": envelope.Peer.Pretty(),
-					"Block":  envelope.Block.Cid().String(),
-				})
+				log.Event(ctx, "Bitswap.TaskWorker.Work", logging.LoggableF(func() map[string]interface{} {
+					return logging.LoggableMap{
+						"ID":     id,
+						"Target": envelope.Peer.Pretty(),
+						"Block":  envelope.Block.Cid().String(),
+					}
+				}))
 
 				// update the BS ledger to reflect sent message
 				// TODO: Should only track *useful* messages in ledger
