@@ -37,9 +37,9 @@ type BuildCfg struct {
 	// ExtraOpts is a map of extra options used to configure the ipfs nodes creation
 	ExtraOpts map[string]bool
 
-	// If permament then node should run more expensive processes
+	// If permanent then node should run more expensive processes
 	// that will improve performance in long run
-	Permament bool
+	Permanent bool
 
 	// If NilRepo is set, a repo backed by a nil datastore will be constructed
 	NilRepo bool
@@ -181,7 +181,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	uio.UseHAMTSharding = conf.Experimental.ShardingEnabled
 
 	opts.HasBloomFilterSize = conf.Datastore.BloomFilterSize
-	if !cfg.Permament {
+	if !cfg.Permanent {
 		opts.HasBloomFilterSize = 0
 	}
 
