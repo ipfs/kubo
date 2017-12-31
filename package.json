@@ -509,6 +509,12 @@
       "hash": "QmYmhgAcvmDGXct1qBvc1kz9BxQSit1XBrTeiGZp2FvRyn",
       "name": "go-libp2p-blankhost",
       "version": "0.2.3"
+    },
+    {
+      "author": "jbenet",
+      "hash": "QmWBug6eBS7AxRdCDVuSY5CnSit7cS2XnPFYJWqWDumhCG",
+      "name": "go-msgio",
+      "version": "0.0.3"
     }
   ],
   "gxVersion": "0.10.0",

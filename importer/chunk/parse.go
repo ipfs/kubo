@@ -11,7 +11,7 @@ import (
 func FromString(r io.Reader, chunker string) (Splitter, error) {
 	switch {
 	case chunker == "" || chunker == "default":
-		return NewSizeSplitter(r, DefaultBlockSize), nil
+		return DefaultSplitter(r), nil
 
 	case strings.HasPrefix(chunker, "size-"):
 		sizeStr := strings.Split(chunker, "-")[1]
