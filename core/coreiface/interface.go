@@ -157,7 +157,10 @@ type KeyAPI interface {
 	WithType(algorithm string) options.KeyGenerateOption
 
 	// WithSize is an option for Generate which specifies the size of the key to
-	// generated. Default is 0
+	// generated. Default is -1
+	//
+	// value of -1 means 'use default size for key type':
+	//  * 2048 for RSA
 	WithSize(size int) options.KeyGenerateOption
 
 	// Rename renames oldName key to newName. Returns the key and whether another
