@@ -148,13 +148,13 @@ type KeyAPI interface {
 	// name and returns a base58 encoded multihash of it's public key
 	Generate(ctx context.Context, name string, opts ...options.KeyGenerateOption) (Key, error)
 
-	// WithAlgorithm is an option for Generate which specifies which algorithm
+	// WithType is an option for Generate which specifies which algorithm
 	// should be used for the key. Default is options.RSAKey
 	//
-	// Supported algorithms:
+	// Supported key types:
 	// * options.RSAKey
 	// * options.Ed25519Key
-	WithAlgorithm(algorithm string) options.KeyGenerateOption
+	WithType(algorithm string) options.KeyGenerateOption
 
 	// WithSize is an option for Generate which specifies the size of the key to
 	// generated. Default is 0

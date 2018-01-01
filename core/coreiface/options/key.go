@@ -3,6 +3,8 @@ package options
 const (
 	RSAKey     = "rsa"
 	Ed25519Key = "ed25519"
+
+	DefaultRSALen = 2048
 )
 
 type KeyGenerateSettings struct {
@@ -20,7 +22,7 @@ type KeyRenameOption func(*KeyRenameSettings) error
 func KeyGenerateOptions(opts ...KeyGenerateOption) (*KeyGenerateSettings, error) {
 	options := &KeyGenerateSettings{
 		Algorithm: RSAKey,
-		Size:      0,
+		Size:      -1,
 	}
 
 	for _, opt := range opts {
@@ -48,7 +50,7 @@ func KeyRenameOptions(opts ...KeyRenameOption) (*KeyRenameSettings, error) {
 
 type KeyOptions struct{}
 
-func (api *KeyOptions) WithAlgorithm(algorithm string) KeyGenerateOption {
+func (api *KeyOptions) WithType(algorithm string) KeyGenerateOption {
 	return func(settings *KeyGenerateSettings) error {
 		settings.Algorithm = algorithm
 		return nil
