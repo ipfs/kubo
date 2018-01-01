@@ -19,6 +19,8 @@ import (
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 
 	cbor "gx/ipfs/QmeZv9VXw2SfVbX55LV6kGTWASKBc9ZxAVqGBeJcDGdoXy/go-ipld-cbor"
+
+	"github.com/ipfs/go-ipfs/keystore"
 )
 
 // `echo -n 'hello, world!' | ipfs add`
@@ -39,6 +41,7 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
 			},
 		},
 		D: ds2.ThreadSafeCloserMapDatastore(),
+		K: keystore.NewMemKeystore(),
 	}
 	node, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
 	if err != nil {

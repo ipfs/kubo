@@ -29,7 +29,7 @@ func (k *key) Name() string {
 }
 
 func (k *key) Path() coreiface.Path {
-	return &path{path: ipfspath.FromString(ipfspath.Join([]string{"/ipns/", k.peerId}))}
+	return &path{path: ipfspath.FromString(ipfspath.Join([]string{"/ipns", k.peerId}))}
 }
 
 func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (coreiface.Key, error) {
@@ -38,13 +38,22 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 		return nil, err
 	}
 
+	if name == "self" {
+		return nil, fmt.Errorf("cannot overwrite key with name 'self'")
+	}
+
+	_, err = api.node.Repo.Keystore().Get(name)
+	if err == nil {
+		return nil, fmt.Errorf("key with name '%s' already exists", name)
+	}
+
 	var sk crypto.PrivKey
 	var pk crypto.PubKey
 
 	switch options.Algorithm {
 	case "rsa":
-		if options.Size == 0 {
-			return nil, fmt.Errorf("please specify a key size with WithSize option")
+		if options.Size == -1 {
+			options.Size = caopts.DefaultRSALen
 		}
 
 		priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, options.Size, rand.Reader)
@@ -76,7 +85,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 		return nil, err
 	}
 
-	return &key{name, pid.String()}, nil
+	return &key{name, pid.Pretty()}, nil
 }
 
 func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
