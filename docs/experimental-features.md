@@ -17,6 +17,7 @@ the above issue.
 - [go-multiplex stream muxer](#go-multiplex-stream-muxer)
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
 - [ipfs filestore](#ipfs-filestore)
+- [BadgerDB datastore](#badger-datastore)
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
 - [Circuit Relay](#circuit-relay)
