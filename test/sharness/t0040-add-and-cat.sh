@@ -46,11 +46,44 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
+  test_expect_success "ipfs cat with offset succeeds" '
+    ipfs cat --offset 10 "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat from offset output looks good" '
+    echo "ds!" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat multiple hashes with offset succeeds" '
+    ipfs cat --offset 10 "$HASH" "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat from offset output looks good" '
+    echo "ds!" >expected &&
+    echo "Hello Worlds!" >>expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat multiple hashes with offset succeeds" '
+    ipfs cat --offset 16 "$HASH" "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat from offset output looks good" '
+    echo "llo Worlds!" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat from negitive offset should fail" '
+    test_expect_code 1 ipfs cat --offset -102 "$HASH" > actual
+  '
+
   test_expect_success "ipfs cat /ipfs/file succeeds" '
     ipfs cat /ipfs/$HASH >actual
   '
 
   test_expect_success "output looks good" '
+    echo "Hello Worlds!" >expected &&
     test_cmp expected actual
   '
 
