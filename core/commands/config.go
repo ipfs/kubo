@@ -142,6 +142,7 @@ Set the value of the 'Datastore.Path' key:
 		"show":    configShowCmd,
 		"edit":    configEditCmd,
 		"replace": configReplaceCmd,
+		"profile": configProfileCmd,
 	},
 }
 
@@ -291,6 +292,64 @@ can't be undone.
 			return
 		}
 	},
+}
+
+var configProfileCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Apply profiles to config.",
+	},
+
+	Subcommands: map[string]*cmds.Command{
+		"apply": configProfileApplyCmd,
+	},
+}
+
+var configProfileApplyCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Apply profile to config.",
+	},
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		profile, ok := config.Profiles[req.Arguments()[0]]
+		if !ok {
+			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmdkit.ErrNormal)
+			return
+		}
+
+		err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+		res.SetOutput(nil)
+	},
+}
+
+func transformConfig(configRoot string, configName string, transformer config.Transformer) error {
+	r, err := fsrepo.Open(configRoot)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	cfg, err := r.Config()
+	if err != nil {
+		return err
+	}
+
+	err = transformer(cfg)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.BackupConfig("pre-" + configName + "-")
+	if err != nil {
+		return err
+	}
+
+	return r.SetConfig(cfg)
 }
 
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {

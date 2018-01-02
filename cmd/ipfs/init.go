@@ -160,7 +160,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 	}
 
 	for _, profile := range confProfiles {
-		transformer, ok := config.ConfigProfiles[profile]
+		transformer, ok := config.Profiles[profile]
 		if !ok {
 			return fmt.Errorf("invalid configuration profile: %s", profile)
 		}
