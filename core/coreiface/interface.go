@@ -191,31 +191,72 @@ type KeyAPI interface {
 	Remove(ctx context.Context, name string) (Path, error)
 }
 
-//TODO: Should this use paths instead of cids?
+// ObjectAPI specifies the interface to MerkleDAG and contains useful utilities
+// for manipulating MerkleDAG data structures.
 type ObjectAPI interface {
+	// New creates new, empty (by default) dag-node.
 	New(context.Context, ...options.ObjectNewOption) (Node, error)
+
+	// WithType is an option for New which allows to change the type of created
+	// dag node.
+	//
+	// Supported types:
+	// * 'empty' - Empty node
+	// * 'unixfs-dir' - Empty UnixFS directory
 	WithType(string) options.ObjectNewOption
 
+	// Put imports the node into merkledag
 	Put(context.Context, Node) (Path, error)
+
+	// Get returns the node for the path
 	Get(context.Context, Path) (Node, error)
+
+	// Data returns reader for data of the node
 	Data(context.Context, Path) (io.Reader, error)
+
+	// Links returns lint or links the node contains
 	Links(context.Context, Path) ([]*Link, error)
+
+	// Stat returns information about the node
 	Stat(context.Context, Path) (*ObjectStat, error)
 
+	// AddLink adds a link under the specified path. child path can point to a
+	// subdirectory within the patent which must be present (can be overridden
+	// with WithCreate option).
 	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (Node, error)
+
+	// WithCreate is an option for AddLink which specifies whether create required
+	// directories for the child
 	WithCreate(create bool) options.ObjectAddLinkOption
 
-	RmLink(context.Context, Path, string) (Node, error)
+	// RmLink removes a link from the node
+	RmLink(ctx context.Context, base Path, link string) (Node, error)
+
+	// AppendData appends data to the node
 	AppendData(context.Context, Path, io.Reader) (Node, error)
+
+	// SetData sets the data contained in the node
 	SetData(context.Context, Path, io.Reader) (Node, error)
 }
 
+// ObjectStat provides information about dag nodes
 type ObjectStat struct {
-	Cid            *cid.Cid
-	NumLinks       int
-	BlockSize      int
-	LinksSize      int
-	DataSize       int
+	// Cid is the CID of the node
+	Cid *cid.Cid
+
+	// NumLinks is number of links the node contains
+	NumLinks int
+
+	// BlockSize is size of the raw serialized node
+	BlockSize int
+
+	// LinksSize is size of the links block section
+	LinksSize int
+
+	// DataSize is the size of data block section
+	DataSize int
+
+	// CumulativeSize is size of node
 	CumulativeSize int
 }
 
