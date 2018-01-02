@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -23,6 +24,9 @@ var CatCmd = &cmds.Command{
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
+	Options: []cmdkit.Option{
+		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
+	},
 	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
 		node, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -36,8 +40,17 @@ var CatCmd = &cmds.Command{
 				return
 			}
 		}
+		offset, _, err := req.Option("offset").Int()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+		if offset < 0 {
+			res.SetError(fmt.Errorf("Cannot specify negative offset."), cmdkit.ErrNormal)
+			return
+		}
 
-		readers, length, err := cat(req.Context(), node, req.Arguments())
+		readers, length, err := cat(req.Context(), node, req.Arguments(), int64(offset))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -103,7 +116,7 @@ var CatCmd = &cmds.Command{
 	},
 }
 
-func cat(ctx context.Context, node *core.IpfsNode, paths []string) ([]io.Reader, uint64, error) {
+func cat(ctx context.Context, node *core.IpfsNode, paths []string, offset int64) ([]io.Reader, uint64, error) {
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
 	for _, fpath := range paths {
@@ -111,8 +124,18 @@ func cat(ctx context.Context, node *core.IpfsNode, paths []string) ([]io.Reader,
 		if err != nil {
 			return nil, 0, err
 		}
+		if offset > int64(read.Size()) {
+			offset = offset - int64(read.Size())
+			continue
+		}
+		count, err := read.Seek(offset, io.SeekStart)
+		if err != nil {
+			return nil, 0, err
+		}
+		offset = 0
+
 		readers = append(readers, read)
-		length += uint64(read.Size())
+		length += uint64(read.Size() - uint64(count))
 	}
 	return readers, length, nil
 }
