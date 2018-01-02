@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -10,14 +11,19 @@ import (
 	"text/tabwriter"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	bservice "github.com/ipfs/go-ipfs/blockservice"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
+	"github.com/ipfs/go-ipfs/exchange/offline"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 
+	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
 	cmds "gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cmdkit "gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
 )
@@ -36,6 +42,7 @@ var RepoCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"stat": repoStatCmd,
+		"has":  repoHasCmd,
 	},
 	OldSubcommands: map[string]*oldcmds.Command{
 		"gc":      repoGcCmd,
@@ -405,4 +412,168 @@ var repoVersionCmd = &oldcmds.Command{
 
 		},
 	},
+}
+
+type LocalityOutput struct {
+	Hash      string
+	Local     bool
+	SizeLocal int `json:",omitempty"`
+	SizeTotal int `json:",omitempty"`
+}
+
+var repoHasCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline:          "Show if an object is available locally",
+		ShortDescription: ``,
+	},
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("key", true, true, "Key(s) to check for locality.").EnableStdin(),
+	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("recursive", "r", "Check recursively the graph of objects to build more precise stats"),
+	},
+	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		recursive, _, err := req.Option("recursive").Bool()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		// Decode all the keys
+		var keys []*cid.Cid
+		for _, arg := range req.Arguments() {
+			c, err := cid.Decode(arg)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+
+			keys = append(keys, c)
+		}
+
+		// an offline DAGService will not fetch from the network
+		offlineDag := dag.NewDAGService(bservice.New(
+			n.Blockstore,
+			offline.Exchange(n.Blockstore),
+		))
+
+		ctx := n.Context()
+
+		for _, k := range keys {
+			root, err := offlineDag.Get(ctx, k)
+			if err != nil && err != dag.ErrNotFound {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+
+			hasRoot := err != dag.ErrNotFound
+
+			if !hasRoot || !recursive {
+				// we don't have precise size information
+				res.Emit(&LocalityOutput{Hash: k.String(), Local: hasRoot})
+				continue
+			}
+
+			local, sizeLocal, sizeTotal, err := walkBlock(ctx, offlineDag, root)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+
+			res.Emit(&LocalityOutput{
+				Hash:      k.String(),
+				Local:     local,
+				SizeLocal: sizeLocal,
+				SizeTotal: sizeTotal,
+			})
+		}
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req cmds.Request, w io.Writer, v interface{}) error {
+			lo, ok := v.(*LocalityOutput)
+			if !ok {
+				return e.TypeErr(lo, v)
+			}
+
+			recursive, _, err := req.Option("recursive").Bool()
+			if err != nil {
+				return err
+			}
+
+			var state string
+			if recursive {
+				state = "complete"
+				if !lo.Local {
+					state = "incomplete"
+				}
+				if lo.SizeTotal <= 0 {
+					state = "unknow"
+				}
+			} else {
+				if lo.Local {
+					state = "local"
+				} else {
+					state = "non local"
+				}
+			}
+
+			if lo.SizeTotal > 0 {
+				fmt.Fprintf(w, "%s\t%s\t%s of %s (%.2f%%)\n",
+					lo.Hash,
+					state,
+					humanize.Bytes(uint64(lo.SizeLocal)),
+					humanize.Bytes(uint64(lo.SizeTotal)),
+					100.0*float64(lo.SizeLocal)/float64(lo.SizeTotal),
+				)
+			} else {
+				fmt.Fprintf(w, "%s\t%s\n", lo.Hash, state)
+			}
+
+			return nil
+		}),
+	},
+	Type: LocalityOutput{},
+}
+
+func walkBlock(ctx context.Context, dagserv dag.DAGService, merkleNode node.Node) (bool, int, int, error) {
+	stat, err := merkleNode.Stat()
+	if err != nil {
+		return false, 0, 0, err
+	}
+
+	// Start with the block data size
+	sizeLocal := stat.BlockSize
+
+	local := true
+
+	for _, link := range merkleNode.Links() {
+		child, err := dagserv.Get(ctx, link.Cid)
+
+		if err == dag.ErrNotFound {
+			local = false
+			continue
+		}
+
+		if err != nil {
+			return local, sizeLocal, stat.CumulativeSize, err
+		}
+
+		childLocal, childLocalSize, _, err := walkBlock(ctx, dagserv, child)
+
+		if err != nil {
+			return local, sizeLocal, stat.CumulativeSize, err
+		}
+
+		// Recursively add the child size
+		local = local && childLocal
+		sizeLocal += childLocalSize
+	}
+
+	return local, sizeLocal, stat.CumulativeSize, nil
 }
