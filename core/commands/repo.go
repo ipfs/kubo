@@ -536,7 +536,7 @@ Example:
 					state = "incomplete"
 				}
 				if lo.SizeTotal <= 0 {
-					state = "unknow"
+					state = "unknown"
 				}
 			} else {
 				if lo.Local {
@@ -564,8 +564,8 @@ Example:
 	Type: localityOutput{},
 }
 
-func walkBlock(ctx context.Context, dagserv dag.DAGService, merkleNode node.Node) (bool, int, int, error) {
-	stat, err := merkleNode.Stat()
+func walkBlock(ctx context.Context, dagserv dag.DAGService, nd node.Node) (bool, int, int, error) {
+	stat, err := nd.Stat()
 	if err != nil {
 		return false, 0, 0, err
 	}
@@ -575,7 +575,7 @@ func walkBlock(ctx context.Context, dagserv dag.DAGService, merkleNode node.Node
 
 	local := true
 
-	for _, link := range merkleNode.Links() {
+	for _, link := range nd.Links() {
 		child, err := dagserv.Get(ctx, link.Cid)
 
 		if err == dag.ErrNotFound {
