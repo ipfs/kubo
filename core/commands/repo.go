@@ -414,7 +414,7 @@ var repoVersionCmd = &oldcmds.Command{
 	},
 }
 
-type LocalityOutput struct {
+type localityOutput struct {
 	Hash      string
 	Local     bool
 	SizeLocal int `json:",omitempty"`
@@ -476,7 +476,7 @@ var repoHasCmd = &cmds.Command{
 
 			if !hasRoot || !recursive {
 				// we don't have precise size information
-				res.Emit(&LocalityOutput{Hash: k.String(), Local: hasRoot})
+				res.Emit(&localityOutput{Hash: k.String(), Local: hasRoot})
 				continue
 			}
 
@@ -486,7 +486,7 @@ var repoHasCmd = &cmds.Command{
 				return
 			}
 
-			res.Emit(&LocalityOutput{
+			res.Emit(&localityOutput{
 				Hash:      k.String(),
 				Local:     local,
 				SizeLocal: sizeLocal,
@@ -496,7 +496,7 @@ var repoHasCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req cmds.Request, w io.Writer, v interface{}) error {
-			lo, ok := v.(*LocalityOutput)
+			lo, ok := v.(*localityOutput)
 			if !ok {
 				return e.TypeErr(lo, v)
 			}
@@ -538,7 +538,7 @@ var repoHasCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	Type: LocalityOutput{},
+	Type: localityOutput{},
 }
 
 func walkBlock(ctx context.Context, dagserv dag.DAGService, merkleNode node.Node) (bool, int, int, error) {
