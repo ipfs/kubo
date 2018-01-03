@@ -423,8 +423,31 @@ type localityOutput struct {
 
 var repoHasCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline:          "Show if an object is available locally",
-		ShortDescription: ``,
+		Tagline: "Show if an object is available locally",
+		ShortDescription: `
+'ipfs repo has' tell if an object is available locally. It will not do any network request.`,
+		LongDescription: `
+'ipfs repo has' tell if an object is available locally. It will not do any network request.
+
+When using the recursive option, the graph of objects will be traversed to compute precisely
+how much data is available locally.
+
+Example:
+
+	non-recursive
+	> ipfs repo has QmYGVhjTfVvBAAf2SAWMJsTDheo7UuyjQigGahmB8YU3ZH
+	QmYGVhjTfVvBAAf2SAWMJsTDheo7UuyjQigGahmB8YU3ZH	local
+	> ipfs repo has QmPXvegq26x982cQjSfbTvSzZXn7GiaMwhhVPHkeTEhrPT
+	QmPXvegq26x982cQjSfbTvSzZXn7GiaMwhhVPHkeTEhrPT	non local
+
+	recursive
+	> ipfs repo has -r QmQFnam7qMXfF8R1D3qrETCgESnVP8gt6iEnAbyG73gyqm
+	QmQFnam7qMXfF8R1D3qrETCgESnVP8gt6iEnAbyG73gyqm	unknow
+	> ipfs repo has -r QmQLXHs7K98JNQdWrBB2cQLJahPhmupbDjRuH1b9ibmwVa
+	QmQLXHs7K98JNQdWrBB2cQLJahPhmupbDjRuH1b9ibmwVa	incomplete	4.1 MB of 6.9 MB (60.31%)
+	> ipfs repo has -r QmeUKqHMr5r6wJzt3AVScnUAyC4TkdZGjYJNaFBCL1BmAv
+	QmeUKqHMr5r6wJzt3AVScnUAyC4TkdZGjYJNaFBCL1BmAv	complete	3.2 MB of 3.2 MB (100.00%)
+`,
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, true, "Key(s) to check for locality.").EnableStdin(),
