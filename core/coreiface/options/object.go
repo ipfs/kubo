@@ -4,16 +4,35 @@ type ObjectNewSettings struct {
 	Type string
 }
 
+type ObjectPutSettings struct {
+	InputEnc string
+}
+
 type ObjectAddLinkSettings struct {
 	Create bool
 }
 
 type ObjectNewOption func(*ObjectNewSettings) error
+type ObjectPutOption func(*ObjectPutSettings) error
 type ObjectAddLinkOption func(*ObjectAddLinkSettings) error
 
 func ObjectNewOptions(opts ...ObjectNewOption) (*ObjectNewSettings, error) {
 	options := &ObjectNewSettings{
 		Type: "empty",
+	}
+
+	for _, opt := range opts {
+		err := opt(options)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return options, nil
+}
+
+func ObjectPutOptions(opts ...ObjectPutOption) (*ObjectPutSettings, error) {
+	options := &ObjectPutSettings{
+		InputEnc: "json",
 	}
 
 	for _, opt := range opts {
@@ -44,6 +63,13 @@ type ObjectOptions struct{}
 func (api *ObjectOptions) WithType(t string) ObjectNewOption {
 	return func(settings *ObjectNewSettings) error {
 		settings.Type = t
+		return nil
+	}
+}
+
+func (api *ObjectOptions) WithInputEnc(e string) ObjectPutOption {
+	return func(settings *ObjectPutSettings) error {
+		settings.InputEnc = e
 		return nil
 	}
 }
