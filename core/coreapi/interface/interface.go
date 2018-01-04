@@ -64,6 +64,9 @@ type CoreAPI interface {
 	// Key returns an implementation of Key API.
 	Key() KeyAPI
 
+	// ObjectAPI returns an implementation of Object API
+	Object() ObjectAPI
+
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, Path) (Path, error)
 
@@ -205,8 +208,16 @@ type ObjectAPI interface {
 	// * 'unixfs-dir' - Empty UnixFS directory
 	WithType(string) options.ObjectNewOption
 
-	// Put imports the node into merkledag
-	Put(context.Context, Node) (Path, error)
+	// Put imports the data into merkledag
+	Put(context.Context, io.Reader, ...options.ObjectPutOption) (Path, error)
+
+	// WithInputEnc is an option for Put which specifies the input encoding of the
+	// data. Default is "json".
+	//
+	// Supported encodings:
+	// * "protobuf"
+	// * "json"
+	WithInputEnc(e string) options.ObjectPutOption
 
 	// Get returns the node for the path
 	Get(context.Context, Path) (Node, error)

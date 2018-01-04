@@ -3,7 +3,6 @@ package coreapi
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"io/ioutil"
 
@@ -15,6 +14,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
+	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
 )
 
 type ObjectAPI struct {
@@ -43,8 +43,14 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 	return n, nil
 }
 
-func (api *ObjectAPI) Put(context.Context, coreiface.Node) (coreiface.Path, error) {
-	return nil, errors.New("todo") // TODO: implement using dag api.
+func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.ObjectPutOption) (coreiface.Path, error) {
+	options, err := caopts.ObjectPutOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	dagApi := api.Dag()
+	return dagApi.Put(ctx, src, dagApi.WithInputEnc(options.InputEnc), dagApi.WithCodec(cid.DagProtobuf))
 }
 
 func (api *ObjectAPI) Get(ctx context.Context, path coreiface.Path) (coreiface.Node, error) {
