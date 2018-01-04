@@ -48,7 +48,7 @@ func (m *Mock) Close() error { return errTODO }
 
 func (m *Mock) SetAPIAddr(addr ma.Multiaddr) error { return errTODO }
 
-func (m *Mock) Keystore() keystore.Keystore { return nil }
+func (m *Mock) Keystore() keystore.Keystore { return m.K }
 
 func (m *Mock) SwarmKey() ([]byte, error) {
 	return nil, nil

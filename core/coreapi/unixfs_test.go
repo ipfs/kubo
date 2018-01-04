@@ -3,6 +3,7 @@ package coreapi_test
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"io"
 	"math"
 	"strings"
@@ -12,12 +13,15 @@ import (
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	keystore "github.com/ipfs/go-ipfs/keystore"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 
+	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
+	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	cbor "gx/ipfs/QmeZv9VXw2SfVbX55LV6kGTWASKBc9ZxAVqGBeJcDGdoXy/go-ipld-cbor"
 )
 
@@ -31,14 +35,40 @@ var emptyDir = coreapi.ResolvedPath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbs
 // `echo -n | ipfs add`
 var emptyFile = coreapi.ResolvedPath("/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH", nil, nil)
 
-func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
+func makeAPIIdent(ctx context.Context, fullIdentity bool) (*core.IpfsNode, coreiface.CoreAPI, error) {
+	var ident config.Identity
+	if fullIdentity {
+		sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		id, err := peer.IDFromPublicKey(pk)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		kbytes, err := sk.Bytes()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		ident = config.Identity{
+			PeerID:  id.Pretty(),
+			PrivKey: base64.StdEncoding.EncodeToString(kbytes),
+		}
+	} else {
+		ident = config.Identity{
+			PeerID: "Qmfoo",
+		}
+	}
+
 	r := &repo.Mock{
 		C: config.Config{
-			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
-			},
+			Identity: ident,
 		},
 		D: ds2.ThreadSafeCloserMapDatastore(),
+		K: keystore.NewMemKeystore(),
 	}
 	node, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
 	if err != nil {
@@ -46,6 +76,10 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
 	}
 	api := coreapi.NewCoreAPI(node)
 	return node, api, nil
+}
+
+func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
+	return makeAPIIdent(ctx, false)
 }
 
 func TestAdd(t *testing.T) {
