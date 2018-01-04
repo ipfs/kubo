@@ -84,7 +84,7 @@ trip latency information.
 
 		addr, peerID, err := ParsePeerParam(req.Arguments()[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("failed to parse peer address '%s': %s", req.Arguments()[0], err), cmdkit.ErrNormal)
 			return
 		}
 
