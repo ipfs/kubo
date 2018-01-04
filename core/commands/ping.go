@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -25,6 +26,9 @@ type PingResult struct {
 	Time    time.Duration
 	Text    string
 }
+
+// ErrPingSelf is returned when the user attempts to ping themself.
+var ErrPingSelf = errors.New("error: can't ping self")
 
 var PingCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -81,6 +85,11 @@ trip latency information.
 		addr, peerID, err := ParsePeerParam(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		if peerID == n.Identity {
+			res.SetError(ErrPingSelf, cmdkit.ErrNormal)
 			return
 		}
 
