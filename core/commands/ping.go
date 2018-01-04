@@ -103,6 +103,10 @@ trip latency information.
 			return
 		}
 
+		if numPings <= 0 {
+			res.SetError(fmt.Errorf("error: ping count must be greater than 0, was %d", numPings), cmdkit.ErrNormal)
+		}
+
 		outChan := pingPeer(ctx, n, peerID, numPings)
 		res.SetOutput(outChan)
 	},
