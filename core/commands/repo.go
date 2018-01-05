@@ -150,13 +150,19 @@ var repoStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Get stats for the currently used repo.",
 		ShortDescription: `
-'ipfs repo stat' is a plumbing command that will scan the local
-set of stored objects and print repo statistics. It outputs to stdout:
+'ipfs repo stat' provides information about the local set of 
+stored objects. It outputs:
+
+RepoSize        int Size in bytes that the repo is currently taking.
+StorageMax      string Maximum datastore size (from configuration)
 NumObjects      int Number of objects in the local repo.
 RepoPath        string The path to the repo being currently used.
-RepoSize        int Size in bytes that the repo is currently taking.
 Version         string The repo version.
 `,
+	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("size-only", "Only report RepoSize and StorageMax."),
+		cmdkit.BoolOption("human", "Output sizes in MiB."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
@@ -165,16 +171,20 @@ Version         string The repo version.
 			return
 		}
 
-		stat, err := corerepo.RepoStat(n, req.Context)
+		statF := corerepo.RepoStat
+
+		sizeOnly, _ := req.Options["size-only"].(bool)
+		if sizeOnly {
+			statF = corerepo.RepoSize
+		}
+
+		stat, err := statF(req.Context, n)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		cmds.EmitOnce(res, stat)
-	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption("human", "Output RepoSize in MiB."),
 	},
 	Type: corerepo.Stat{},
 	Encoders: cmds.EncoderMap{
@@ -184,17 +194,19 @@ Version         string The repo version.
 				return e.TypeErr(stat, v)
 			}
 
-			human, _ := req.Options["human"].(bool)
-
 			wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+			defer wtr.Flush()
 
-			fmt.Fprintf(wtr, "NumObjects:\t%d\n", stat.NumObjects)
+			human, _ := req.Options["human"].(bool)
+			sizeOnly, _ := req.Options["size-only"].(bool)
+
 			sizeInMiB := stat.RepoSize / (1024 * 1024)
 			if human && sizeInMiB > 0 {
 				fmt.Fprintf(wtr, "RepoSize (MiB):\t%d\n", sizeInMiB)
 			} else {
 				fmt.Fprintf(wtr, "RepoSize:\t%d\n", stat.RepoSize)
 			}
+
 			if stat.StorageMax != corerepo.NoLimit {
 				maxSizeInMiB := stat.StorageMax / (1024 * 1024)
 				if human && maxSizeInMiB > 0 {
@@ -203,9 +215,14 @@ Version         string The repo version.
 					fmt.Fprintf(wtr, "StorageMax:\t%d\n", stat.StorageMax)
 				}
 			}
+
+			if sizeOnly {
+				return nil
+			}
+
+			fmt.Fprintf(wtr, "NumObjects:\t%d\n", stat.NumObjects)
 			fmt.Fprintf(wtr, "RepoPath:\t%s\n", stat.RepoPath)
 			fmt.Fprintf(wtr, "Version:\t%s\n", stat.Version)
-			wtr.Flush()
 
 			return nil
 
