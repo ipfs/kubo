@@ -219,6 +219,14 @@ type ObjectAPI interface {
 	// * "json"
 	WithInputEnc(e string) options.ObjectPutOption
 
+	// WithDataType specifies the encoding of data field when using Josn or XML
+	// input encoding.
+	//
+	// Supported types:
+	// * "text" (default)
+	// * "base64"
+	WithDataType(t string) options.ObjectPutOption
+
 	// Get returns the node for the path
 	Get(context.Context, Path) (Node, error)
 
@@ -234,20 +242,20 @@ type ObjectAPI interface {
 	// AddLink adds a link under the specified path. child path can point to a
 	// subdirectory within the patent which must be present (can be overridden
 	// with WithCreate option).
-	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (Node, error)
+	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (Path, error)
 
 	// WithCreate is an option for AddLink which specifies whether create required
 	// directories for the child
 	WithCreate(create bool) options.ObjectAddLinkOption
 
 	// RmLink removes a link from the node
-	RmLink(ctx context.Context, base Path, link string) (Node, error)
+	RmLink(ctx context.Context, base Path, link string) (Path, error)
 
 	// AppendData appends data to the node
-	AppendData(context.Context, Path, io.Reader) (Node, error)
+	AppendData(context.Context, Path, io.Reader) (Path, error)
 
 	// SetData sets the data contained in the node
-	SetData(context.Context, Path, io.Reader) (Node, error)
+	SetData(context.Context, Path, io.Reader) (Path, error)
 }
 
 // ObjectStat provides information about dag nodes
@@ -267,7 +275,7 @@ type ObjectStat struct {
 	// DataSize is the size of data block section
 	DataSize int
 
-	// CumulativeSize is size of node
+	// CumulativeSize is size of the tree (BlockSize + link sizes)
 	CumulativeSize int
 }
 

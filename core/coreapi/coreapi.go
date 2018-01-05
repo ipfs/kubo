@@ -41,6 +41,7 @@ func (api *CoreAPI) Key() coreiface.KeyAPI {
 	return &KeyAPI{api, nil}
 }
 
+//Object returns the ObjectAPI interface backed by the go-ipfs node
 func (api *CoreAPI) Object() coreiface.ObjectAPI {
 	return &ObjectAPI{api, nil}
 }

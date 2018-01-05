@@ -13,13 +13,30 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	"encoding/base64"
+	"encoding/json"
+	"encoding/xml"
+	"errors"
+	"fmt"
 	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
 )
 
+const inputLimit = 2 << 20
+
 type ObjectAPI struct {
 	*CoreAPI
 	*caopts.ObjectOptions
+}
+
+type Link struct {
+	Name, Hash string
+	Size       uint64
+}
+
+type Node struct {
+	Links []Link
+	Data  string
 }
 
 func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (coreiface.Node, error) {
@@ -49,8 +66,66 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		return nil, err
 	}
 
-	dagApi := api.Dag()
-	return dagApi.Put(ctx, src, dagApi.WithInputEnc(options.InputEnc), dagApi.WithCodec(cid.DagProtobuf))
+	data, err := ioutil.ReadAll(io.LimitReader(src, inputLimit+10))
+	if err != nil {
+		return nil, err
+	}
+
+	var dagnode *dag.ProtoNode
+	switch options.InputEnc {
+	case "json":
+		node := new(Node)
+		err = json.Unmarshal(data, node)
+		if err != nil {
+			return nil, err
+		}
+
+		// check that we have data in the Node to add
+		// otherwise we will add the empty object without raising an error
+		if nodeEmpty(node) {
+			return nil, errors.New("no data or links in this node")
+		}
+
+		dagnode, err = deserializeNode(node, options.DataType)
+		if err != nil {
+			return nil, err
+		}
+
+	case "protobuf":
+		dagnode, err = dag.DecodeProtobuf(data)
+
+	case "xml":
+		node := new(Node)
+		err = xml.Unmarshal(data, node)
+		if err != nil {
+			return nil, err
+		}
+
+		// check that we have data in the Node to add
+		// otherwise we will add the empty object without raising an error
+		if nodeEmpty(node) {
+			return nil, errors.New("no data or links in this node")
+		}
+
+		dagnode, err = deserializeNode(node, options.DataType)
+		if err != nil {
+			return nil, err
+		}
+
+	default:
+		return nil, errors.New("unknown object encoding")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = api.node.DAG.Add(dagnode)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseCid(dagnode.Cid()), nil
 }
 
 func (api *ObjectAPI) Get(ctx context.Context, path coreiface.Path) (coreiface.Node, error) {
@@ -109,7 +184,7 @@ func (api *ObjectAPI) Stat(ctx context.Context, path coreiface.Path) (*coreiface
 	return out, nil
 }
 
-func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name string, child coreiface.Path, opts ...caopts.ObjectAddLinkOption) (coreiface.Node, error) {
+func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name string, child coreiface.Path, opts ...caopts.ObjectAddLinkOption) (coreiface.Path, error) {
 	options, err := caopts.ObjectAddLinkOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -147,10 +222,10 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name str
 		return nil, err
 	}
 
-	return nnode, nil
+	return ParseCid(nnode.Cid()), nil
 }
 
-func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link string) (coreiface.Node, error) {
+func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link string) (coreiface.Path, error) {
 	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
 		return nil, err
@@ -173,18 +248,18 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link stri
 		return nil, err
 	}
 
-	return nnode, nil
+	return ParseCid(nnode.Cid()), nil
 }
 
-func (api *ObjectAPI) AppendData(ctx context.Context, path coreiface.Path, r io.Reader) (coreiface.Node, error) {
+func (api *ObjectAPI) AppendData(ctx context.Context, path coreiface.Path, r io.Reader) (coreiface.Path, error) {
 	return api.patchData(ctx, path, r, true)
 }
 
-func (api *ObjectAPI) SetData(ctx context.Context, path coreiface.Path, r io.Reader) (coreiface.Node, error) {
+func (api *ObjectAPI) SetData(ctx context.Context, path coreiface.Path, r io.Reader) (coreiface.Path, error) {
 	return api.patchData(ctx, path, r, false)
 }
 
-func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.Reader, appendData bool) (coreiface.Node, error) {
+func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.Reader, appendData bool) (coreiface.Path, error) {
 	nd, err := api.core().ResolveNode(ctx, path)
 	if err != nil {
 		return nil, err
@@ -210,9 +285,41 @@ func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.R
 		return nil, err
 	}
 
-	return pbnd, nil
+	return ParseCid(pbnd.Cid()), nil
 }
 
 func (api *ObjectAPI) core() coreiface.CoreAPI {
 	return api.CoreAPI
+}
+
+func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error) {
+	dagnode := new(dag.ProtoNode)
+	switch dataFieldEncoding {
+	case "text":
+		dagnode.SetData([]byte(nd.Data))
+	case "base64":
+		data, _ := base64.StdEncoding.DecodeString(nd.Data)
+		dagnode.SetData(data)
+	default:
+		return nil, fmt.Errorf("Unkown data field encoding")
+	}
+
+	dagnode.SetLinks(make([]*node.Link, len(nd.Links)))
+	for i, link := range nd.Links {
+		c, err := cid.Decode(link.Hash)
+		if err != nil {
+			return nil, err
+		}
+		dagnode.Links()[i] = &node.Link{
+			Name: link.Name,
+			Size: link.Size,
+			Cid:  c,
+		}
+	}
+
+	return dagnode, nil
+}
+
+func nodeEmpty(node *Node) bool {
+	return node.Data == "" && len(node.Links) == 0
 }
