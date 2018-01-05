@@ -6,6 +6,7 @@ type ObjectNewSettings struct {
 
 type ObjectPutSettings struct {
 	InputEnc string
+	DataType string
 }
 
 type ObjectAddLinkSettings struct {
@@ -33,6 +34,7 @@ func ObjectNewOptions(opts ...ObjectNewOption) (*ObjectNewSettings, error) {
 func ObjectPutOptions(opts ...ObjectPutOption) (*ObjectPutSettings, error) {
 	options := &ObjectPutSettings{
 		InputEnc: "json",
+		DataType: "text",
 	}
 
 	for _, opt := range opts {
@@ -70,6 +72,13 @@ func (api *ObjectOptions) WithType(t string) ObjectNewOption {
 func (api *ObjectOptions) WithInputEnc(e string) ObjectPutOption {
 	return func(settings *ObjectPutSettings) error {
 		settings.InputEnc = e
+		return nil
+	}
+}
+
+func (api *ObjectOptions) WithDataType(t string) ObjectPutOption {
+	return func(settings *ObjectPutSettings) error {
+		settings.DataType = t
 		return nil
 	}
 }
