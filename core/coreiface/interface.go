@@ -53,6 +53,11 @@ type Key interface {
 	Path() Path
 }
 
+type BlockStat interface {
+	Size() int
+	Path() Path
+}
+
 // CoreAPI defines an unified interface to IPFS for Go programs.
 type CoreAPI interface {
 	// Unixfs returns an implementation of Unixfs API.
@@ -85,6 +90,19 @@ type UnixfsAPI interface {
 
 	// Ls returns the list of links in a directory
 	Ls(context.Context, Path) ([]*Link, error)
+}
+
+type BlockAPI interface {
+	Put(context.Context, io.Reader) (Path, error)
+	WithCodec(codec uint64) options.BlockPutOption
+	WithHash(mhType uint64, mhLen int) options.BlockPutOption
+
+	Get(context.Context) (io.Reader, error)
+
+	Rm(context.Context) error
+	WithForce(force bool) options.BlockRmOption
+
+	Stat(context.Context) (BlockStat, error)
 }
 
 // DagAPI specifies the interface to IPLD
