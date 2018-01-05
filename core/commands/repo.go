@@ -436,9 +436,9 @@ Example:
 
 	non-recursive
 	> ipfs repo has QmYGVhjTfVvBAAf2SAWMJsTDheo7UuyjQigGahmB8YU3ZH
-	QmYGVhjTfVvBAAf2SAWMJsTDheo7UuyjQigGahmB8YU3ZH	local
+	QmYGVhjTfVvBAAf2SAWMJsTDheo7UuyjQigGahmB8YU3ZH	found
 	> ipfs repo has QmPXvegq26x982cQjSfbTvSzZXn7GiaMwhhVPHkeTEhrPT
-	QmPXvegq26x982cQjSfbTvSzZXn7GiaMwhhVPHkeTEhrPT	non local
+	QmPXvegq26x982cQjSfbTvSzZXn7GiaMwhhVPHkeTEhrPT	missing
 
 	recursive
 	> ipfs repo has -r QmQFnam7qMXfF8R1D3qrETCgESnVP8gt6iEnAbyG73gyqm
@@ -450,7 +450,7 @@ Example:
 `,
 	},
 	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, true, "Key(s) to check for locality.").EnableStdin(),
+		cmdkit.StringArg("cid", true, true, "CID(s) to check for locality.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("recursive", "r", "Check recursively the graph of objects to build more precise stats"),
@@ -468,16 +468,17 @@ Example:
 			return
 		}
 
-		// Decode all the keys
-		var keys []*cid.Cid
-		for _, arg := range req.Arguments() {
+		// Decode all the cids
+		args := req.Arguments()
+		cids := make([]*cid.Cid, len(args))
+		for i, arg := range args {
 			c, err := cid.Decode(arg)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
-			keys = append(keys, c)
+			cids[i] = c
 		}
 
 		// an offline DAGService will not fetch from the network
@@ -488,8 +489,8 @@ Example:
 
 		ctx := n.Context()
 
-		for _, k := range keys {
-			root, err := offlineDag.Get(ctx, k)
+		for _, cid := range cids {
+			root, err := offlineDag.Get(ctx, cid)
 			if err != nil && err != dag.ErrNotFound {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
@@ -499,7 +500,7 @@ Example:
 
 			if !hasRoot || !recursive {
 				// we don't have precise size information
-				res.Emit(&localityOutput{Hash: k.String(), Local: hasRoot})
+				res.Emit(&localityOutput{Hash: cid.String(), Local: hasRoot})
 				continue
 			}
 
@@ -510,7 +511,7 @@ Example:
 			}
 
 			res.Emit(&localityOutput{
-				Hash:      k.String(),
+				Hash:      cid.String(),
 				Local:     local,
 				SizeLocal: sizeLocal,
 				SizeTotal: sizeTotal,
@@ -540,9 +541,9 @@ Example:
 				}
 			} else {
 				if lo.Local {
-					state = "local"
+					state = "found"
 				} else {
-					state = "non local"
+					state = "missing"
 				}
 			}
 
