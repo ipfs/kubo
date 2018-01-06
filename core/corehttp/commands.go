@@ -73,6 +73,7 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 	}
 
 	c.Headers = nc.API.HTTPHeaders
+	c.Headers["Server"] = []string{"go-ipfs/" + config.CurrentVersionNumber}
 }
 
 func addCORSDefaults(c *cmdsHttp.ServerConfig) {

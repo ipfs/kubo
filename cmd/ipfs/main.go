@@ -226,7 +226,7 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 	// find the last command in path that has a cmdDetailsMap entry
 	cmd := root
 	for _, cmp := range path {
-		cmd = cmd.Subcommand(cmp)
+		cmd = cmd.Subcommands[cmp]
 		if cmd == nil {
 			return nil, fmt.Errorf("subcommand %s should be in root", cmp)
 		}
