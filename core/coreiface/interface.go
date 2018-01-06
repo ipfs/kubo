@@ -62,6 +62,8 @@ type BlockStat interface {
 type CoreAPI interface {
 	// Unixfs returns an implementation of Unixfs API.
 	Unixfs() UnixfsAPI
+	// Block returns an implementation of Block API.
+	Block() BlockAPI
 	// Dag returns an implementation of Dag API.
 	Dag() DagAPI
 	// Name returns an implementation of Name API.
@@ -93,16 +95,16 @@ type UnixfsAPI interface {
 }
 
 type BlockAPI interface {
-	Put(context.Context, io.Reader) (Path, error)
-	WithCodec(codec uint64) options.BlockPutOption
+	Put(context.Context, io.Reader, ...options.BlockPutOption) (Path, error)
+	WithFormat(codec string) options.BlockPutOption
 	WithHash(mhType uint64, mhLen int) options.BlockPutOption
 
-	Get(context.Context) (io.Reader, error)
+	Get(context.Context, Path) (io.Reader, error)
 
-	Rm(context.Context) error
+	Rm(context.Context, Path, ...options.BlockRmOption) error
 	WithForce(force bool) options.BlockRmOption
 
-	Stat(context.Context) (BlockStat, error)
+	Stat(context.Context, Path) (BlockStat, error)
 }
 
 // DagAPI specifies the interface to IPLD
