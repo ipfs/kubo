@@ -78,6 +78,56 @@ test_add_cat_file() {
     test_expect_code 1 ipfs cat --offset -102 "$HASH" > actual
   '
 
+  test_expect_success "ipfs cat with length succeeds" '
+    ipfs cat --length 8 "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat with length output looks good" '
+    echo -n "Hello Wo" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat multiple hashes with offset and length succeeds" '
+    ipfs cat --offset 5 --length 15 "$HASH" "$HASH" "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat multiple hashes with offset and length looks good" '
+    echo " Worlds!" >expected &&
+    echo -n "Hello " >>expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with exact length succeeds" '
+    ipfs cat --length $(ipfs cat "$HASH" | wc -c) "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat with exact length looks good" '
+    echo "Hello Worlds!" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with 0 length succeeds" '
+    ipfs cat --length 0 "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat with 0 length looks good" '
+    : >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with oversized length succeeds" '
+    ipfs cat --length 100 "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat with oversized length looks good" '
+    echo "Hello Worlds!" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with negitive length should fail" '
+    test_expect_code 1 ipfs cat --length -102 "$HASH" > actual
+  '
+
   test_expect_success "ipfs cat /ipfs/file succeeds" '
     ipfs cat /ipfs/$HASH >actual
   '
