@@ -749,8 +749,8 @@ NOTE: All paths must be absolute.
 
 Examples:
 
-    $ ipfs mfs mkdir /test/newdir
-    $ ipfs mfs mkdir -p /test/does/not/exist/yet
+    $ ipfs files mkdir /test/newdir
+    $ ipfs files mkdir -p /test/does/not/exist/yet
 `,
 	},
 
