@@ -26,6 +26,10 @@ func (api *CoreAPI) Unixfs() coreiface.UnixfsAPI {
 	return (*UnixfsAPI)(api)
 }
 
+func (api *CoreAPI) Block() coreiface.BlockAPI {
+	return &BlockAPI{api, nil}
+}
+
 // Dag returns the DagAPI interface backed by the go-ipfs node
 func (api *CoreAPI) Dag() coreiface.DagAPI {
 	return &DagAPI{api, nil}
