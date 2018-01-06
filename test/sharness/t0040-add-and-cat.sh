@@ -83,7 +83,7 @@ test_add_cat_file() {
   '
 
   test_expect_success "ipfs cat with length output looks good" '
-    echo -n "Hello Wo" >expected &&
+    printf "Hello Wo" >expected &&
     test_cmp expected actual
   '
 
@@ -92,8 +92,7 @@ test_add_cat_file() {
   '
 
   test_expect_success "ipfs cat multiple hashes with offset and length looks good" '
-    echo " Worlds!" >expected &&
-    echo -n "Hello " >>expected &&
+    printf " Worlds!\nHello " >expected &&
     test_cmp expected actual
   '
 
