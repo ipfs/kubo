@@ -209,4 +209,16 @@ test_expect_success "no panic in output" '
   test_expect_code 1 grep "panic" stat_out
 '
 
+test_expect_success "can set multihash type and length on block put without format" '
+  HASH=$(echo "foooo" | ipfs block put --mhtype=sha3 --mhlen=16)
+'
+
+test_expect_success "output looks good" '
+  test "z2APJNN6rqZTWPpv7gYFHzh7ZEDX" = "$HASH"
+'
+
+test_expect_success "put with sha3 and cidv0 fails" '
+  echo "foooo" | test_must_fail ipfs block put --mhtype=sha3 --mhlen=16 --format=v0
+'
+
 test_done
