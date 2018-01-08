@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -121,6 +122,9 @@ var blockPutCmd = &cmds.Command{
 		ShortDescription: `
 'ipfs block put' is a plumbing command for storing raw IPFS blocks.
 It reads from stdin, and <key> is a base58 encoded multihash.
+
+By default CIDv0 is going to be generated. Setting 'mhtype' to anything other
+than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 `,
 	},
 
@@ -128,7 +132,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		cmdkit.FileArg("data", true, false, "The data to be stored as an IPFS block.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "f", "cid format for blocks to be created with.").WithDefault("v0"),
+		cmdkit.StringOption("format", "f", "cid format for blocks to be created with.").WithDefault(""),
 		cmdkit.StringOption("mhtype", "multihash hash function").WithDefault("sha2-256"),
 		cmdkit.IntOption("mhlen", "multihash hash length").WithDefault(-1),
 	},
@@ -157,20 +161,6 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			return
 		}
 
-		var pref cid.Prefix
-		pref.Version = 1
-
-		format, _ := req.Options["format"].(string)
-		formatval, ok := cid.Codecs[format]
-		if !ok {
-			res.SetError(fmt.Errorf("unrecognized format: %s", format), cmdkit.ErrNormal)
-			return
-		}
-		if format == "v0" {
-			pref.Version = 0
-		}
-		pref.Codec = formatval
-
 		mhtype, _ := req.Options["mhtype"].(string)
 		mhtval, ok := mh.Names[mhtype]
 		if !ok {
@@ -178,6 +168,33 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		var pref cid.Prefix
+		pref.Version = 1
+
+		format := req.Options["format"].(string)
+		if format == "" {
+			if mhtval == mh.SHA2_256 {
+				format = "v0"
+			} else {
+				format = "protobuf"
+			}
+		}
+
+		if format == "v0" {
+			pref.Version = 0
+		}
+		formatval, ok := cid.Codecs[format]
+		if !ok {
+			res.SetError(fmt.Errorf("unrecognized format: %s", format), cmdkit.ErrNormal)
+			return
+		}
+		if mhtval != mh.SHA2_256 && pref.Version == 0 {
+			res.SetError(errors.New("cannot generate CIDv0 with non-sha256 hash function"), cmdkit.ErrNormal)
+			return
+		}
+
+		pref.Codec = formatval
 		pref.MhType = mhtval
 
 		mhlen, ok := req.Options["mhlen"].(int)
