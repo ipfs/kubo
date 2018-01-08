@@ -41,6 +41,10 @@ var ErrInvalidAuthor = errors.New("author does not match path")
 // invalid due to being unsigned
 var ErrRecordNotSigned = errors.New("record not signed")
 
+// ErrInvalidPath should be returned when an ipns record path
+// is not in a valid format
+var ErrInvalidPath = errors.New("record path invalid")
+
 const PublishPutValTimeout = time.Minute
 const DefaultRecordTTL = 24 * time.Hour
 
@@ -315,12 +319,18 @@ func ValidateIpnsRecord(ctx context.Context, r *dhtpb.Record) error {
 	}
 
 	// Record must be signed
+	// Note: The DHT will actually check the signature so we don't
+	// need to do that here
 	if len(r.GetSignature()) == 0 {
 		return ErrRecordNotSigned
 	}
 
 	// Author in key must match author in record
-	authorB58 := strings.TrimLeft(k, "/ipns/")
+	parts := strings.Split(k, "/")
+	if len(parts) < 3 || parts[1] != "ipns" {
+		return ErrInvalidPath
+	}
+	authorB58 := parts[2]
 	author, err := mh.FromB58String(authorB58)
 	if err != nil {
 		return ErrInvalidAuthor
