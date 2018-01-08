@@ -12,6 +12,7 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
+	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
 	blocks "gx/ipfs/QmYsEQydGrsxNZfAiskvQ76N2xE9hDQtSAkRSynwMiUK3c/go-block-format"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
 )
@@ -44,7 +45,7 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 	if !ok {
 		return nil, fmt.Errorf("unrecognized format: %s", settings.Codec)
 	}
-	if settings.Codec == "v0" {
+	if settings.Codec == "v0" && settings.MhType == mh.SHA2_256 {
 		pref.Version = 0
 	}
 	pref.Codec = formatval
@@ -93,7 +94,11 @@ func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.Bl
 	}
 
 	select {
-	case res := <-out:
+	case res, ok := <-out:
+		if !ok {
+			return nil
+		}
+
 		remBlock, ok := res.(*util.RemovedBlock)
 		if !ok {
 			return errors.New("got unexpected output from util.RmBlocks")
