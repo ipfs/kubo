@@ -37,6 +37,10 @@ var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
 // author that does not match the IPNS path
 var ErrInvalidAuthor = errors.New("author does not match path")
 
+// ErrRecordNotSigned should be returned when an ipns record is
+// invalid due to being unsigned
+var ErrRecordNotSigned = errors.New("record not signed")
+
 const PublishPutValTimeout = time.Minute
 const DefaultRecordTTL = 24 * time.Hour
 
@@ -308,6 +312,11 @@ func ValidateIpnsRecord(ctx context.Context, r *dhtpb.Record) error {
 	err := proto.Unmarshal(val, entry)
 	if err != nil {
 		return err
+	}
+
+	// Record must be signed
+	if len(r.GetSignature()) == 0 {
+		return ErrRecordNotSigned
 	}
 
 	// Author in key must match author in record
