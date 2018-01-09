@@ -322,7 +322,7 @@ func AddWithContext(ctx context.Context, n *core.IpfsNode, r io.Reader) (string,
 
 // AddR recursively adds files in |path|.
 func AddR(n *core.IpfsNode, root string) (key string, err error) {
-	n.Blockstore.PinLock().Unlock()
+	defer n.Blockstore.PinLock().Unlock()
 
 	stat, err := os.Lstat(root)
 	if err != nil {
