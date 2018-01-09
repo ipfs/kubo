@@ -16,9 +16,9 @@ import (
 	"github.com/ipfs/go-ipfs/repo/config"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
 
-	"gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
+	"gx/ipfs/QmfVXM8xWBJZZMC3mJkv64dkWUeoqGKTcKDSMtiJ6AdZXM/go-ipfs-cmds"
 )
 
 type Context struct {
@@ -66,7 +66,7 @@ func (c *Context) NodeWithoutConstructing() *core.IpfsNode {
 }
 
 // RootContext returns the node's context.
-func (c *Context) RootContext() context.Context {
+func (c *Context) Context() context.Context {
 	n, err := c.GetNode()
 	if err != nil {
 		log.Debug("error getting node: ", err)

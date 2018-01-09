@@ -12,9 +12,9 @@ import (
 	"github.com/ipfs/go-ipfs/filestore"
 
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
-	cmds "gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cmds "gx/ipfs/QmfVXM8xWBJZZMC3mJkv64dkWUeoqGKTcKDSMtiJ6AdZXM/go-ipfs-cmds"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -53,7 +53,7 @@ The output is:
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("file-order", "sort the results based on the path of the backing file"),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		_, fs, err := getFilestore(env.(*oldCmds.Context))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)

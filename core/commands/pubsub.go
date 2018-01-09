@@ -12,11 +12,11 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 
 	floodsub "gx/ipfs/QmP1T1SGU6276R2MHKP2owbck37Fnzd6ZkpyNJvnG2LoTG/go-libp2p-floodsub"
-	cmds "gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
 	blocks "gx/ipfs/QmYsEQydGrsxNZfAiskvQ76N2xE9hDQtSAkRSynwMiUK3c/go-block-format"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cmds "gx/ipfs/QmfVXM8xWBJZZMC3mJkv64dkWUeoqGKTcKDSMtiJ6AdZXM/go-ipfs-cmds"
 )
 
 var PubsubCmd = &cmds.Command{
@@ -70,7 +70,7 @@ This command outputs data in the following encodings:
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("discover", "try to discover other peers subscribed to the same topic"),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -203,7 +203,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		cmdkit.StringArg("topic", true, false, "Topic to publish to."),
 		cmdkit.StringArg("data", true, true, "Payload of message to publish.").EnableStdin(),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -244,7 +244,7 @@ to be used in a production environment.
 To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -286,7 +286,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("topic", false, false, "topic to list connected peers of"),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)

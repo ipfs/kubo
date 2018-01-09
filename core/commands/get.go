@@ -16,9 +16,9 @@ import (
 	tar "github.com/ipfs/go-ipfs/thirdparty/tar"
 	uarchive "github.com/ipfs/go-ipfs/unixfs/archive"
 
-	"gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
+	"gx/ipfs/QmfVXM8xWBJZZMC3mJkv64dkWUeoqGKTcKDSMtiJ6AdZXM/go-ipfs-cmds"
 )
 
 var ErrInvalidCompressionLevel = errors.New("Compression level must be between 1 and 9")
@@ -48,11 +48,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmdkit.BoolOption("compress", "C", "Compress the output with GZIP compression."),
 		cmdkit.IntOption("compression-level", "l", "The level of compression (1-9).").WithDefault(-1),
 	},
-	PreRun: func(req *cmds.Request, env interface{}) error {
+	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		_, err := getCompressOptions(req)
 		return err
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		if len(req.Arguments) == 0 {
 			res.SetError(errors.New("not enough arugments provided"), cmdkit.ErrClient)
 			return

@@ -18,11 +18,11 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	"gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
+	"gx/ipfs/QmfVXM8xWBJZZMC3mJkv64dkWUeoqGKTcKDSMtiJ6AdZXM/go-ipfs-cmds"
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceded.
@@ -121,7 +121,7 @@ You can now check what blocks have been created by:
 		cmdkit.IntOption(cidVersionOptionName, "Cid version. Non-zero value will change default of 'raw-leaves' to true. (experimental)").WithDefault(0),
 		cmdkit.StringOption(hashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)").WithDefault("sha2-256"),
 	},
-	PreRun: func(req *cmds.Request, env interface{}) error {
+	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
 		quieter, _ := req.Options[quieterOptionName].(bool)
 		quiet = quiet || quieter
@@ -162,7 +162,7 @@ You can now check what blocks have been created by:
 
 		return nil
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)

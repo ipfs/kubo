@@ -18,9 +18,9 @@ import (
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
-	cmds "gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cmds "gx/ipfs/QmfVXM8xWBJZZMC3mJkv64dkWUeoqGKTcKDSMtiJ6AdZXM/go-ipfs-cmds"
 )
 
 type RepoVersion struct {
@@ -159,7 +159,7 @@ RepoSize        int Size in bytes that the repo is currently taking.
 Version         string The repo version.
 `,
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)

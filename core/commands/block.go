@@ -11,11 +11,11 @@ import (
 	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
-	"gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
 	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
 	blocks "gx/ipfs/QmYsEQydGrsxNZfAiskvQ76N2xE9hDQtSAkRSynwMiUK3c/go-block-format"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	"gx/ipfs/QmfVXM8xWBJZZMC3mJkv64dkWUeoqGKTcKDSMtiJ6AdZXM/go-ipfs-cmds"
 )
 
 type BlockStat struct {
@@ -61,7 +61,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to stat.").EnableStdin(),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		b, err := getBlockForKey(req.Context, env, req.Arguments[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -101,7 +101,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		b, err := getBlockForKey(req.Context, env, req.Arguments[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -132,7 +132,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		cmdkit.StringOption("mhtype", "multihash hash function").WithDefault("sha2-256"),
 		cmdkit.IntOption("mhlen", "multihash hash length").WithDefault(-1),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -226,7 +226,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 	Type: BlockStat{},
 }
 
-func getBlockForKey(ctx context.Context, env interface{}, skey string) (blocks.Block, error) {
+func getBlockForKey(ctx context.Context, env cmds.Environment, skey string) (blocks.Block, error) {
 	if len(skey) == 0 {
 		return nil, fmt.Errorf("zero length cid invalid")
 	}
@@ -264,7 +264,7 @@ It takes a list of base58 encoded multihashs to remove.
 		cmdkit.BoolOption("force", "f", "Ignore nonexistent blocks."),
 		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env interface{}) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)

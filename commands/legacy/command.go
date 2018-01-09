@@ -3,7 +3,7 @@ package legacy
 import (
 	"io"
 
-	"gx/ipfs/QmVs8An1faiQrNXtY8e51o5ssnrQs3YYBUfPbCMo34onJr/go-ipfs-cmds"
+	"gx/ipfs/QmfVXM8xWBJZZMC3mJkv64dkWUeoqGKTcKDSMtiJ6AdZXM/go-ipfs-cmds"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -29,7 +29,7 @@ func NewCommand(oldcmd *oldcmds.Command) *cmds.Command {
 	}
 
 	if oldcmd.Run != nil {
-		cmd.Run = func(req *cmds.Request, re cmds.ResponseEmitter, env interface{}) {
+		cmd.Run = func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
 			oldReq := &requestWrapper{req, OldContext(env)}
 			res := &fakeResponse{req: oldReq, re: re, wait: make(chan struct{})}
 
@@ -44,7 +44,7 @@ func NewCommand(oldcmd *oldcmds.Command) *cmds.Command {
 	}
 
 	if oldcmd.PreRun != nil {
-		cmd.PreRun = func(req *cmds.Request, env interface{}) error {
+		cmd.PreRun = func(req *cmds.Request, env cmds.Environment) error {
 			oldReq := &requestWrapper{req, OldContext(env)}
 			return oldcmd.PreRun(oldReq)
 		}
