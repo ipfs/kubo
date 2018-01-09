@@ -58,6 +58,15 @@ type BlockStat interface {
 	Path() Path
 }
 
+// Pin holds information about pinned resource
+type Pin interface {
+	// Path to the pinned object
+	Path() Path
+
+	// Type of the pin
+	Type() string
+}
+
 // CoreAPI defines an unified interface to IPFS for Go programs.
 type CoreAPI interface {
 	// Unixfs returns an implementation of Unixfs API.
@@ -320,6 +329,41 @@ type ObjectStat struct {
 
 	// CumulativeSize is size of the tree (BlockSize + link sizes)
 	CumulativeSize int
+}
+
+// PinAPI specifies the interface to pining
+type PinAPI interface {
+	// Add creates new pin, be default recursive - pinning the whole referenced
+	// tree
+	Add(context.Context, Path, ...options.PinAddOption) error
+
+	// WithRecursive is an option for Add which specifies whether to pin an entire
+	// object tree or just one object. Default: true
+	WithRecursive(bool) options.PinAddOption
+
+	// Ls returns list of pinned objects on this node
+	Ls(context.Context) ([]Pin, error)
+
+	// WithType is an option for Ls which allows to specify which pin types should
+	// be returned
+	//
+	// Supported values:
+	// * "direct" - directly pinned objects
+	// * "recursive" - roots of recursive pins
+	// * "indirect" - indirectly pinned objects (referenced by recursively pinned
+	//    objects)
+	// * "all" - all pinned objects (default)
+	WithType(string) options.PinLsOption
+
+	// Rm removes pin for object specified by the path
+	Rm(context.Context, Path) error
+
+	// Update changes one pin to another, skipping checks for matching paths in
+	// the old tree
+	Update(ctx context.Context, from Path, to Path) error
+
+	// Verify verifies the integrity of pinned objects
+	Verify(context.Context) error
 }
 
 var ErrIsDir = errors.New("object is a directory")
