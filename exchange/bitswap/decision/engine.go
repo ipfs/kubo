@@ -84,7 +84,7 @@ type Engine struct {
 
 	bs bstore.Blockstore
 
-	lock sync.Mutex // protects the fields immediatly below
+	lock sync.RWMutex // protects the fields immediatly below
 	// ledgerMap lists Ledgers by their Partner key.
 	ledgerMap map[peer.ID]*ledger
 
@@ -198,8 +198,8 @@ func (e *Engine) Outbox() <-chan (<-chan *Envelope) {
 
 // Returns a slice of Peers with whom the local node has active sessions
 func (e *Engine) Peers() []peer.ID {
-	e.lock.Lock()
-	defer e.lock.Unlock()
+	e.lock.RLock()
+	defer e.lock.RUnlock()
 
 	response := make([]peer.ID, 0, len(e.ledgerMap))
 
@@ -270,8 +270,8 @@ func (e *Engine) addBlock(block blocks.Block) {
 }
 
 func (e *Engine) AddBlock(block blocks.Block) {
-	e.lock.Lock()
-	defer e.lock.Unlock()
+	e.lock.RLock()
+	defer e.lock.RUnlock()
 
 	e.addBlock(block)
 }
@@ -336,9 +336,17 @@ func (e *Engine) numBytesReceivedFrom(p peer.ID) uint64 {
 
 // ledger lazily instantiates a ledger
 func (e *Engine) findOrCreate(p peer.ID) *ledger {
+	e.lock.RLock()
+	l, ok := e.ledgerMap[p]
+	e.lock.RUnlock()
+
+	if ok {
+		return l
+	}
+
 	e.lock.Lock()
 	defer e.lock.Unlock()
-	l, ok := e.ledgerMap[p]
+	l, ok = e.ledgerMap[p]
 	if !ok {
 		l = newLedger(p)
 		e.ledgerMap[p] = l
