@@ -309,7 +309,7 @@ func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
 
 // ValidateIpnsRecord implements ValidatorFunc and verifies that the
 // given 'val' is an IpnsEntry and that that entry is valid.
-func ValidateIpnsRecord(ctx context.Context, r *dhtpb.Record) error {
+func ValidateIpnsRecord(r *dhtpb.Record) error {
 	k := r.GetKey()
 	val := r.GetValue()
 	entry := new(pb.IpnsEntry)

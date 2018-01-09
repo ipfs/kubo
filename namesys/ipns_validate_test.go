@@ -1,7 +1,6 @@
 package namesys
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 )
 
 func TestValidation(t *testing.T) {
-	ctx := context.Background()
 	ts := time.Now()
 
 	// generate a key for signing the records
@@ -47,7 +45,7 @@ func TestValidation(t *testing.T) {
 	r1, err := record.MakePutRecord(CastKey(t, priv), ipnsPath, val, true)
 
 	// Validate the record
-	err = ValidateIpnsRecord(ctx, r1)
+	err = ValidateIpnsRecord(r1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +65,7 @@ func TestValidation(t *testing.T) {
 	r2, err := record.MakePutRecord(CastKey(t, priv), ipnsWrongPath, val, true)
 
 	// Record should fail validation because path doesn't match author
-	err = ValidateIpnsRecord(ctx, r2)
+	err = ValidateIpnsRecord(r2)
 	if err != ErrInvalidAuthor {
 		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
 	}
@@ -87,7 +85,7 @@ func TestValidation(t *testing.T) {
 	r3, err := record.MakePutRecord(CastKey(t, priv), ipnsPath, valExp, true)
 
 	// Record should fail validation because entry is expired
-	err = ValidateIpnsRecord(ctx, r3)
+	err = ValidateIpnsRecord(r3)
 	if err != ErrExpiredRecord {
 		t.Fatal("ValidateIpnsRecord should have returned ErrExpiredRecord")
 	}
