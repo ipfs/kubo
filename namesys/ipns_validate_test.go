@@ -4,18 +4,18 @@ import (
 	"testing"
 	"time"
 
-	record "github.com/libp2p/go-libp2p-record"
 	path "github.com/ipfs/go-ipfs/path"
-	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	cim "github.com/libp2p/go-libp2p-crypto"
+	record "github.com/libp2p/go-libp2p-record"
+	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 func TestValidation(t *testing.T) {
 	// Create a record validator
 	validator := make(record.Validator)
-	validator["ipns"] = &record.ValidChecker{ ValidateIpnsRecord, true }
+	validator["ipns"] = &record.ValidChecker{ValidateIpnsRecord, true}
 
 	// Generate a key for signing the records
 	r := u.NewSeededRand(15) // generate deterministic keypair
@@ -74,7 +74,7 @@ func TestValidation(t *testing.T) {
 	}
 
 	// Create expired entry
-	expired, err := CreateRoutingEntryData(priv, path.Path("foo"), 1, ts.Add(-1 * time.Hour))
+	expired, err := CreateRoutingEntryData(priv, path.Path("foo"), 1, ts.Add(-1*time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
