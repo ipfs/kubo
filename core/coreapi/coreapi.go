@@ -52,6 +52,10 @@ func (api *CoreAPI) Object() coreiface.ObjectAPI {
 	return &ObjectAPI{api, nil}
 }
 
+func (api *CoreAPI) Pin() coreiface.PinAPI {
+	return &PinAPI{api, nil}
+}
+
 // ResolveNode resolves the path `p` using Unixfx resolver, gets and returns the
 // resolved Node.
 func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (coreiface.Node, error) {
