@@ -14,7 +14,6 @@ import (
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
 	routing "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
 	record "github.com/libp2p/go-libp2p-record"
@@ -309,7 +308,7 @@ func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
 
 // ValidateIpnsRecord implements ValidatorFunc and verifies that the
 // given 'val' is an IpnsEntry and that that entry is valid.
-func ValidateIpnsRecord(r *dhtpb.Record) error {
+func ValidateIpnsRecord(r *record.ValidationRecord) error {
 	k := r.GetKey()
 	val := r.GetValue()
 	entry := new(pb.IpnsEntry)
@@ -318,12 +317,8 @@ func ValidateIpnsRecord(r *dhtpb.Record) error {
 		return err
 	}
 
-	// Record must be signed
 	// Note: The DHT will actually check the signature so we don't
 	// need to do that here
-	if len(r.GetSignature()) == 0 {
-		return ErrRecordNotSigned
-	}
 
 	// Author in key must match author in record
 	parts := strings.Split(k, "/")
@@ -331,11 +326,11 @@ func ValidateIpnsRecord(r *dhtpb.Record) error {
 		return ErrInvalidPath
 	}
 	authorB58 := parts[2]
-	author, err := mh.FromB58String(authorB58)
+	pid, err := peer.IDB58Decode(authorB58)
 	if err != nil {
 		return ErrInvalidAuthor
 	}
-	if string(author) != r.GetAuthor() {
+	if string(pid) != string(r.GetAuthor()) {
 		return ErrInvalidAuthor
 	}
 	

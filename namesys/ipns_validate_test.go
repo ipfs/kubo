@@ -13,9 +13,11 @@ import (
 )
 
 func TestValidation(t *testing.T) {
-	ts := time.Now()
+	// Create a record validator
+	validator := make(record.Validator)
+	validator["ipns"] = &record.ValidChecker{ ValidateIpnsRecord, true }
 
-	// generate a key for signing the records
+	// Generate a key for signing the records
 	r := u.NewSeededRand(15) // generate deterministic keypair
 	priv, pubk, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, r)
 	if err != nil {
@@ -23,6 +25,7 @@ func TestValidation(t *testing.T) {
 	}
 
 	// Create entry with expiry in one hour
+	ts := time.Now()
 	entry, err := CreateRoutingEntryData(priv, path.Path("foo"), 1, ts.Add(time.Hour))
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +48,7 @@ func TestValidation(t *testing.T) {
 	r1, err := record.MakePutRecord(CastKey(t, priv), ipnsPath, val, true)
 
 	// Validate the record
-	err = ValidateIpnsRecord(r1)
+	err = validator.VerifyRecord(r1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,11 +68,10 @@ func TestValidation(t *testing.T) {
 	r2, err := record.MakePutRecord(CastKey(t, priv), ipnsWrongPath, val, true)
 
 	// Record should fail validation because path doesn't match author
-	err = ValidateIpnsRecord(r2)
+	err = validator.VerifyRecord(r2)
 	if err != ErrInvalidAuthor {
 		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
 	}
-
 
 	// Create expired entry
 	expired, err := CreateRoutingEntryData(priv, path.Path("foo"), 1, ts.Add(-1 * time.Hour))
@@ -85,7 +87,7 @@ func TestValidation(t *testing.T) {
 	r3, err := record.MakePutRecord(CastKey(t, priv), ipnsPath, valExp, true)
 
 	// Record should fail validation because entry is expired
-	err = ValidateIpnsRecord(r3)
+	err = validator.VerifyRecord(r3)
 	if err != ErrExpiredRecord {
 		t.Fatal("ValidateIpnsRecord should have returned ErrExpiredRecord")
 	}
