@@ -150,8 +150,7 @@ var configShowCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Output config file contents.",
 		ShortDescription: `
-WARNING: Your private key is stored in the config file, and it will be
-included in the output of this command.
+NOTE: For security reasons, this command will omit your private key. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
 `,
 	},
 
