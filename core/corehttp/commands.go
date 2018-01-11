@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	errApiVersionMismatch = errors.New("api version mismatch")
+	errAPIVersionMismatch = errors.New("api version mismatch")
 )
 
 const originEnvKey = "API_ORIGIN"
@@ -157,7 +157,7 @@ func CheckVersionOption() ServeOption {
 					clientVersion := r.UserAgent()
 					// skips check if client is not go-ipfs
 					if clientVersion != "" && strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
-						http.Error(w, fmt.Sprintf("%s (%s != %s)", errApiVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
+						http.Error(w, fmt.Sprintf("%s (%s != %s)", errAPIVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
 						return
 					}
 				}

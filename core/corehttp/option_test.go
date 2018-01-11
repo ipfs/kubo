@@ -20,7 +20,7 @@ type testcasecheckversion struct {
 
 func (tc testcasecheckversion) body() string {
 	if !tc.shouldHandle && tc.responseBody == "" {
-		return fmt.Sprintf("%s (%s != %s)\n", errApiVersionMismatch, config.ApiVersion, tc.userAgent)
+		return fmt.Sprintf("%s (%s != %s)\n", errAPIVersionMismatch, config.ApiVersion, tc.userAgent)
 	}
 
 	return tc.responseBody
