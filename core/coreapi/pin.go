@@ -80,7 +80,7 @@ type badNode struct {
 }
 
 func (s *pinStatus) Ok() bool {
-	return s.Ok()
+	return s.ok
 }
 
 func (s *pinStatus) BadNodes() []coreiface.BadPinNode {
