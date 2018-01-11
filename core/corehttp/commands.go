@@ -37,6 +37,7 @@ or
 	ipfs daemon --api-http-header 'Access-Control-Allow-Origin: *'
 `
 
+// APIPath is the path at which the API is mounted.
 const APIPath = "/api/v0"
 
 var defaultLocalhostOrigins = []string{

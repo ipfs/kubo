@@ -65,7 +65,7 @@ func (c *Context) NodeWithoutConstructing() *core.IpfsNode {
 	return c.node
 }
 
-// RootContext returns the node's context.
+// Context returns the node's context.
 func (c *Context) Context() context.Context {
 	n, err := c.GetNode()
 	if err != nil {
