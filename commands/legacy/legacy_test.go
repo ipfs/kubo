@@ -68,7 +68,7 @@ func TestNewCommand(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 
 	// test calling "test" command
-	testCmd := root.Subcommand("test")
+	testCmd := root.Subcommands["test"]
 	enc := testCmd.Encoders[oldcmds.Text]
 	if enc == nil {
 		t.Fatal("got nil encoder")
@@ -91,7 +91,7 @@ func TestNewCommand(t *testing.T) {
 	}
 
 	// test getting subcommand
-	subCmd := testCmd.Subcommand("sub")
+	subCmd := testCmd.Subcommands["sub"]
 	if subCmd == nil {
 		t.Fatal("got nil subcommand")
 	}
@@ -154,33 +154,4 @@ func TestPipePair(t *testing.T) {
 
 	<-wait
 
-}
-
-func TestTeeEmitter(t *testing.T) {
-	req, err := cmds.NewRequest(nil, nil, nil, nil, nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	buf1 := bytes.NewBuffer(nil)
-	re1 := cmds.NewWriterResponseEmitter(WriteNopCloser{buf1}, req, cmds.Encoders[cmds.Text])
-
-	buf2 := bytes.NewBuffer(nil)
-	re2 := cmds.NewWriterResponseEmitter(WriteNopCloser{buf2}, req, cmds.Encoders[cmds.Text])
-
-	re := cmds.NewTeeEmitter(re1, re2)
-
-	expect := "def"
-	err = re.Emit(expect)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if buf1.String() != expect {
-		t.Fatal("expected %#v, got %#v", expect, buf1.String())
-	}
-
-	if buf2.String() != expect {
-		t.Fatal("expected %#v, got %#v", expect, buf2.String())
-	}
 }
