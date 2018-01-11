@@ -92,7 +92,7 @@ var CatCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrNormal)
 		}
 	},
-	PostRun: map[cmds.PostRunType]func(*cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
+	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
 			reNext, res := cmds.NewChanResponsePair(req)
 

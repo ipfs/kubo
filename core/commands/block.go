@@ -299,7 +299,7 @@ It takes a list of base58 encoded multihashs to remove.
 			log.Error(err)
 		}
 	},
-	PostRun: map[cmds.PostRunType]func(*cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
+	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
 			reNext, res := cmds.NewChanResponsePair(req)
 

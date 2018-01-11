@@ -101,7 +101,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 		res.Emit(reader)
 	},
-	PostRun: map[cmds.PostRunType]func(*cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
+	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
 			reNext, res := cmds.NewChanResponsePair(req)
 
