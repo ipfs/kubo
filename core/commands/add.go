@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -137,28 +136,6 @@ You can now check what blocks have been created by:
 		if !found {
 			req.Options[progressOptionName] = true
 		}
-
-		sizeFile, ok := req.Files.(files.SizeFile)
-		if !ok {
-			// we don't need to error, the progress bar just won't know how big the files are
-			log.Warning("cannot determine size of input file")
-			return nil
-		}
-
-		// HACK! Using context to pass the size to PostRun
-		sizeCh := make(chan int64, 1)
-		req.Context = context.WithValue(req.Context, "size", sizeCh)
-
-		go func() {
-			size, err := sizeFile.Size()
-			if err != nil {
-				log.Warningf("error getting files size: %s", err)
-				// see comment above
-				return
-			}
-
-			sizeCh <- size
-		}()
 
 		return nil
 	},
@@ -348,6 +325,27 @@ You can now check what blocks have been created by:
 			reNext, res := cmds.NewChanResponsePair(req)
 			outChan := make(chan interface{})
 
+			sizeChan := make(chan int64, 1)
+
+			sizeFile, ok := req.Files.(files.SizeFile)
+			if ok {
+				// Could be slow.
+				go func() {
+					size, err := sizeFile.Size()
+					if err != nil {
+						log.Warningf("error getting files size: %s", err)
+						// see comment above
+						return
+					}
+
+					sizeChan <- size
+				}()
+			} else {
+				// we don't need to error, the progress bar just
+				// won't know how big the files are
+				log.Warning("cannot determine size of input file")
+			}
+
 			progressBar := func(wait chan struct{}) {
 				defer close(wait)
 
@@ -366,10 +364,6 @@ You can now check what blocks have been created by:
 					bar.Output = os.Stderr
 					bar.Start()
 				}
-
-				// HACK! using context to pass size from PreRun
-				var sizeChan chan int64
-				sizeChan, _ = req.Context.Value("size").(chan int64)
 
 				lastFile := ""
 				lastHash := ""
