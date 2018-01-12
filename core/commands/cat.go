@@ -26,6 +26,7 @@ var CatCmd = &cmds.Command{
 	},
 	Options: []cmdkit.Option{
 		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
+		cmdkit.IntOption("length", "l", "Maximum number of bytes to read."),
 	},
 	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
 		node, err := req.InvocContext().GetNode()
@@ -50,7 +51,20 @@ var CatCmd = &cmds.Command{
 			return
 		}
 
-		readers, length, err := cat(req.Context(), node, req.Arguments(), int64(offset))
+		max, found, err := req.Option("length").Int()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+		if max < 0 {
+			res.SetError(fmt.Errorf("Cannot specify negative length."), cmdkit.ErrNormal)
+			return
+		}
+		if !found {
+			max = -1
+		}
+
+		readers, length, err := cat(req.Context(), node, req.Arguments(), int64(offset), int64(max))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -116,9 +130,12 @@ var CatCmd = &cmds.Command{
 	},
 }
 
-func cat(ctx context.Context, node *core.IpfsNode, paths []string, offset int64) ([]io.Reader, uint64, error) {
+func cat(ctx context.Context, node *core.IpfsNode, paths []string, offset int64, max int64) ([]io.Reader, uint64, error) {
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
+	if max == 0 {
+		return nil, 0, nil
+	}
 	for _, fpath := range paths {
 		read, err := coreunix.Cat(ctx, node, fpath)
 		if err != nil {
@@ -134,8 +151,18 @@ func cat(ctx context.Context, node *core.IpfsNode, paths []string, offset int64)
 		}
 		offset = 0
 
+		size := uint64(read.Size() - uint64(count))
+		length += size
+		if max > 0 && length >= uint64(max) {
+			var r io.Reader = read
+			if overshoot := int64(length - uint64(max)); overshoot != 0 {
+				r = io.LimitReader(read, int64(size)-overshoot)
+				length = uint64(max)
+			}
+			readers = append(readers, r)
+			break
+		}
 		readers = append(readers, read)
-		length += uint64(read.Size() - uint64(count))
 	}
 	return readers, length, nil
 }
