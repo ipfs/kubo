@@ -13,6 +13,17 @@ node you want to get the file to node 'B'. On node A, add the file to ipfs
 using the `ipfs add` command. This will print out the multihash of the content
 you added. Now, on node B, you can fetch the content using `ipfs get <hash>`.
 
+```
+# On A
+> ipfs add myfile.txt
+added QmZJ1xT1T9KYkHhgRhbv8D7mYrbemaXwYUkg7CeHdrk1Ye myfile.txt
+
+# On B
+> ipfs get QmZJ1xT1T9KYkHhgRhbv8D7mYrbemaXwYUkg7CeHdrk1Ye
+Saving file(s) to QmZJ1xT1T9KYkHhgRhbv8D7mYrbemaXwYUkg7CeHdrk1Ye
+ 13 B / 13 B [=====================================================] 100.00% 1s
+ ```
+
 If that worked, and downloaded the file, then congratulations! You just used
 ipfs to move files across the internet! But, if that `ipfs get` command is
 hanging, with no output, read onwards.
@@ -91,7 +102,11 @@ situation. If this is the case, you can try to enable upnp or NAT-PMP on the
 router of node A and retry the process. Otherwise, you can try manually
 connecting node A to node B.
 
-### Manually connecting node A to B On node B, run `ipfs id` and take one of
-the multiaddrs that contains its public ip address, and then on node A run
-`ipfs swarm connect <multiaddr>`.  If that *still* doesn't work, then you
-should either join IRC and ask for help there, or file an issue on github.
+### Manually connecting node A to B 
+
+On node B run `ipfs id` and take one of the multiaddrs that contains its public
+ip address, and then on node A run `ipfs swarm connect <multiaddr>`.  You can
+also try using a relayed connection, for more information [read this
+doc](./experimental-features.md#circuit-relay). If that *still* doesn't work,
+then you should either join IRC and ask for help there, or file an issue on
+github.
