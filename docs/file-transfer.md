@@ -110,3 +110,7 @@ also try using a relayed connection, for more information [read this
 doc](./experimental-features.md#circuit-relay). If that *still* doesn't work,
 then you should either join IRC and ask for help there, or file an issue on
 github.
+
+If this manual step *did* work, then you likely have an issue with NAT
+traversal, and ipfs cannot figure out how to make it through. Please report
+situations like this to us so we can work on fixing them.
