@@ -78,8 +78,7 @@ order to reclaim hard disk space.
 		res.SetOutput(outChan)
 
 		go func() {
-			defer close(outChan)
-
+			defer closeUnlessErr(req.Context(), outChan)
 			if streamErrors {
 				errs := false
 				for res := range gcOutChan {
@@ -282,7 +281,7 @@ var repoVerifyCmd = &oldcmds.Command{
 
 		out := make(chan interface{})
 		res.SetOutput((<-chan interface{})(out))
-		defer close(out)
+		defer closeUnlessErr(req.Context(), out)
 
 		bs := bstore.NewBlockstore(nd.Repo.Datastore())
 		bs.HashOnRead(true)

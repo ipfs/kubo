@@ -91,7 +91,7 @@ var queryDhtCmd = &cmds.Command{
 		res.SetOutput((<-chan interface{})(outChan))
 
 		go func() {
-			defer close(outChan)
+			defer closeUnlessErr(req.Context(), outChan)
 			for e := range events {
 				select {
 				case outChan <- e:
@@ -183,7 +183,7 @@ var findProvidersDhtCmd = &cmds.Command{
 
 		pchan := dht.FindProvidersAsync(ctx, c, numProviders)
 		go func() {
-			defer close(outChan)
+			defer closeUnlessErr(req.Context(), outChan)
 			for e := range events {
 				select {
 				case outChan <- e:
@@ -307,7 +307,7 @@ var provideRefDhtCmd = &cmds.Command{
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
 		go func() {
-			defer close(outChan)
+			defer closeUnlessErr(req.Context(), outChan)
 			for e := range events {
 				select {
 				case outChan <- e:
@@ -437,13 +437,12 @@ var findPeerDhtCmd = &cmds.Command{
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
 		go func() {
-			defer close(outChan)
+			defer closeUnlessErr(req.Context(), outChan)
 			for v := range events {
 				select {
 				case outChan <- v:
 				case <-req.Context().Done():
 				}
-
 			}
 		}()
 
@@ -543,7 +542,7 @@ Different key types can specify other 'best' rules.
 		}
 
 		go func() {
-			defer close(outChan)
+			defer closeUnlessErr(req.Context(), outChan)
 			for e := range events {
 				select {
 				case outChan <- e:
@@ -660,7 +659,7 @@ NOTE: A value may not exceed 2048 bytes.
 		data := req.Arguments()[1]
 
 		go func() {
-			defer close(outChan)
+			defer closeUnlessErr(req.Context(), outChan)
 			for e := range events {
 				select {
 				case outChan <- e:

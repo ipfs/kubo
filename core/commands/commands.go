@@ -6,6 +6,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"sort"
@@ -151,4 +152,15 @@ func unwrapOutput(i interface{}) (interface{}, error) {
 	}
 
 	return <-ch, nil
+}
+
+// closeUnlessErr closes `c`, unless `req` encountered an error (e.g. a timeout
+// or a cancellation). `defer closeUnlessErr(ctx, c)` is useful as an
+// alternative for `defer close(c)` if you want to prevent the receiver from
+// seeing the closed channel when there was a context error (which might
+// accidentally let it assume that there was no context error).
+func closeUnlessErr(ctx context.Context, c chan interface{}) {
+	if ctx.Err() == nil {
+		close(c)
+	}
 }
