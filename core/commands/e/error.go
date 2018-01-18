@@ -13,7 +13,7 @@ func TypeErr(expected, actual interface{}) error {
 // compile time type check that HandlerError is an error
 var _ error = New(nil)
 
-// HandlerError is adds a stack trace to an error
+// HandlerError adds a stack trace to an error
 type HandlerError struct {
 	Err   error
 	Stack []byte
