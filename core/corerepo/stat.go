@@ -5,27 +5,30 @@ import (
 	"math"
 
 	context "context"
+
 	"github.com/ipfs/go-ipfs/core"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 )
 
-type Stat struct {
-	NumObjects uint64
+type SizeStat struct {
 	RepoSize   uint64 // size in bytes
+	StorageMax uint64 // size in bytes
+}
+
+type Stat struct {
+	SizeStat
+	NumObjects uint64
 	RepoPath   string
 	Version    string
-	StorageMax uint64 // size in bytes
 }
 
 // NoLimit represents the value for unlimited storage
 const NoLimit uint64 = math.MaxUint64
 
 func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
-	r := n.Repo
-
-	usage, err := r.GetStorageUsage()
+	sizeStat, err := RepoSize(n, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +48,26 @@ func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
 		return nil, err
 	}
 
+	return &Stat{
+		NumObjects: count,
+		SizeStat: SizeStat{
+			RepoSize:   sizeStat.RepoSize,
+			StorageMax: sizeStat.StorageMax,
+		},
+		RepoPath: path,
+		Version:  fmt.Sprintf("fs-repo@%d", fsrepo.RepoVersion),
+	}, nil
+}
+
+func RepoSize(n *core.IpfsNode, ctx context.Context) (*SizeStat, error) {
+	r := n.Repo
+
 	cfg, err := r.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	usage, err := r.GetStorageUsage()
 	if err != nil {
 		return nil, err
 	}
@@ -58,11 +80,8 @@ func RepoStat(n *core.IpfsNode, ctx context.Context) (*Stat, error) {
 		}
 	}
 
-	return &Stat{
-		NumObjects: count,
+	return &SizeStat{
 		RepoSize:   usage,
-		RepoPath:   path,
-		Version:    fmt.Sprintf("fs-repo@%d", fsrepo.RepoVersion),
 		StorageMax: storageMax,
 	}, nil
 }

@@ -36,6 +36,7 @@ var RepoCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"stat": repoStatCmd,
+		"size": repoSizeCmd,
 	},
 	OldSubcommands: map[string]*oldcmds.Command{
 		"gc":      repoGcCmd,
@@ -157,6 +158,7 @@ set of stored objects and print repo statistics. It outputs to stdout:
 NumObjects      int Number of objects in the local repo.
 RepoPath        string The path to the repo being currently used.
 RepoSize        int Size in bytes that the repo is currently taking.
+StorageMax      string Maximum datastore size (from configuration)
 Version         string The repo version.
 `,
 	},
@@ -176,7 +178,7 @@ Version         string The repo version.
 		cmds.EmitOnce(res, stat)
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("human", "Output RepoSize in MiB."),
+		cmdkit.BoolOption("human", "Output RepoSize and StorageMax in MiB."),
 	},
 	Type: corerepo.Stat{},
 	Encoders: cmds.EncoderMap{
@@ -186,28 +188,16 @@ Version         string The repo version.
 				return e.TypeErr(stat, v)
 			}
 
-			human, _, err := req.Option("human").Bool()
-			if err != nil {
-				return err
-			}
-
 			wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
 
 			fmt.Fprintf(wtr, "NumObjects:\t%d\n", stat.NumObjects)
-			sizeInMiB := stat.RepoSize / (1024 * 1024)
-			if human && sizeInMiB > 0 {
-				fmt.Fprintf(wtr, "RepoSize (MiB):\t%d\n", sizeInMiB)
-			} else {
-				fmt.Fprintf(wtr, "RepoSize:\t%d\n", stat.RepoSize)
-			}
-			if stat.StorageMax != corerepo.NoLimit {
-				maxSizeInMiB := stat.StorageMax / (1024 * 1024)
-				if human && maxSizeInMiB > 0 {
-					fmt.Fprintf(wtr, "StorageMax (MiB):\t%d\n", maxSizeInMiB)
-				} else {
-					fmt.Fprintf(wtr, "StorageMax:\t%d\n", stat.StorageMax)
-				}
-			}
+
+			// Re-use output from repoSizeCmd
+			repoSizeEncoderF(req, w, &corerepo.SizeStat{
+				RepoSize:   stat.RepoSize,
+				StorageMax: stat.StorageMax,
+			})
+
 			fmt.Fprintf(wtr, "RepoPath:\t%s\n", stat.RepoPath)
 			fmt.Fprintf(wtr, "Version:\t%s\n", stat.Version)
 			wtr.Flush()
@@ -215,6 +205,72 @@ Version         string The repo version.
 			return nil
 
 		}),
+	},
+}
+
+func repoSizeEncoderF(req cmds.Request, w io.Writer, v interface{}) error {
+	stat, ok := v.(*corerepo.SizeStat)
+	if !ok {
+		return e.TypeErr(stat, v)
+	}
+
+	human, _, err := req.Option("human").Bool()
+	if err != nil {
+		return err
+	}
+
+	wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+
+	sizeInMiB := stat.RepoSize / (1024 * 1024)
+	if human && sizeInMiB > 0 {
+		fmt.Fprintf(wtr, "RepoSize (MiB):\t%d\n", sizeInMiB)
+	} else {
+		fmt.Fprintf(wtr, "RepoSize:\t%d\n", stat.RepoSize)
+	}
+	if stat.StorageMax != corerepo.NoLimit {
+		maxSizeInMiB := stat.StorageMax / (1024 * 1024)
+		if human && maxSizeInMiB > 0 {
+			fmt.Fprintf(wtr, "StorageMax (MiB):\t%d\n", maxSizeInMiB)
+		} else {
+			fmt.Fprintf(wtr, "StorageMax:\t%d\n", stat.StorageMax)
+		}
+	}
+	wtr.Flush()
+
+	return nil
+}
+
+var repoSizeCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Prints the size of the IPFS repo and the maximum limit.",
+		ShortDescription: `
+'ipfs repo size' efficiently obtains the size of the ipfs repository and
+the limit as configured in the Datastore settings. It outputs to stdout:
+RepoSize        int Size in bytes that the repo is currently taking.
+StorageMax      string Maximum datastore size (from configuration)
+`,
+	},
+	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
+		n, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		stat, err := corerepo.RepoSize(n, req.Context())
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		cmds.EmitOnce(res, stat)
+	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("human", "Output sizes in MiB."),
+	},
+	Type: corerepo.SizeStat{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(repoSizeEncoderF),
 	},
 }
 
