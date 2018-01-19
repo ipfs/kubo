@@ -10,9 +10,11 @@ import (
 	gopath "path"
 	"strings"
 
+	bservice "github.com/ipfs/go-ipfs/blockservice"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
@@ -21,6 +23,7 @@ import (
 
 	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
 	cmds "gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cmdkit "gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
@@ -50,6 +53,7 @@ operations.
 		cmdkit.BoolOption("f", "flush", "Flush target and ancestors after write.").WithDefault(true),
 	},
 	Subcommands: map[string]*cmds.Command{
+		"tree": filesTreeCmd,
 	},
 	OldSubcommands: map[string]*oldcmds.Command{
 		"read":  filesReadCmd,
@@ -224,7 +228,7 @@ func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
 
 var filesCpCmd = &oldcmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Copy files into mfs.",
+		Tagline: "Copy files within mfs.",
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("source", true, false, "Source object to copy."),
@@ -256,7 +260,7 @@ var filesCpCmd = &oldcmds.Command{
 			dst += gopath.Base(src)
 		}
 
-		nd, err := getNodeFromPath(req.Context(), node, src)
+		nd, err := getNodeFromPath(req.Context(), node, node.DAG, src)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -280,7 +284,7 @@ var filesCpCmd = &oldcmds.Command{
 	},
 }
 
-func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (node.Node, error) {
+func getNodeFromPath(ctx context.Context, node *core.IpfsNode, dagserv dag.DAGService, p string) (node.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
 		np, err := path.ParsePath(p)
@@ -289,7 +293,7 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (node.N
 		}
 
 		resolver := &path.Resolver{
-			DAG:         node.DAG,
+			DAG:         dagserv,
 			ResolveOnce: uio.ResolveUnixfsOnce,
 		}
 
@@ -432,6 +436,314 @@ Examples:
 		},
 	},
 	Type: filesLsOutput{},
+}
+
+type treeItem struct {
+	Name  string
+	Depth int
+}
+
+type treeSummary struct {
+	Local     bool
+	SizeLocal uint64 `json:",omitempty"`
+	SizeTotal uint64 `json:",omitempty"`
+	NbFile    int    `json:",omitempty"`
+	NbDir     int    `json:",omitempty"`
+}
+
+const itemType = "item"
+const summaryType = "summary"
+
+type treeOutput struct {
+	Hash string
+	Type string
+
+	Item    treeItem
+	Summary treeSummary
+}
+
+var filesTreeCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Show informations about a tree of files",
+		ShortDescription: `
+'ipfs files tree' display the tree structure of directories/files
+
+The path can be inside of MFS or not.
+
+Examples:
+
+	$ ipfs files tree /ipfs/QmQLXHs7K98JNQdWrBB2cQLJahPhmupbDjRuH1b9ibmwVa
+`,
+		LongDescription: `
+'ipfs files tree' display the tree structure of directories/files
+
+The path can be inside of MFS or not.
+
+Examples:
+
+	$ ipfs files tree /ipfs/QmQLXHs7K98JNQdWrBB2cQLJahPhmupbDjRuH1b9ibmwVa/locale
+	QmPA5R3e7FJZpFAT5NYRcYuLJay1qS3enu4zUHAkQMu5uW
+	├── webui-cs.json
+	├── webui-de.json
+	├── webui-en.json
+	├── webui-fr.json
+	├── webui-nl.json
+	├── webui-pl.json
+	├── webui-th.json
+	└── webui-zh.json
+	0 directories, 8 files present
+	23 kB present of 23 kB (100.00%)
+`,
+	},
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("path", true, false, "Path to print information about."),
+	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("only-summary", "s", "Only print the summary of the tree's information."),
+		// TODO: "local" is already used by the root ipfs command, what do ?
+		cmdkit.BoolOption("local2", "l", "Don't request data from the network."),
+	},
+	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
+		nd, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		path, err := checkPath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		onlySummary, _, err := req.Option("only-summary").Bool()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		local, _, err := req.Option("local2").Bool()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		var dagserv dag.DAGService
+		if local {
+			// an offline DAGService will not fetch from the network
+			dagserv = dag.NewDAGService(bservice.New(
+				nd.Blockstore,
+				offline.Exchange(nd.Blockstore),
+			))
+		} else {
+			// regular connected DAGService
+			dagserv = nd.DAG
+		}
+
+		root, err := getNodeFromPath(req.Context(), nd, dagserv, path)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		isDirectory := false
+		// try to decode unixfs
+		if pn, ok := root.(*dag.ProtoNode); ok {
+			unixfs, err := ft.FromBytes(pn.Data())
+			if err == nil {
+				isDirectory = unixfs.GetType() == ft.TDirectory
+			}
+		}
+
+		summary, err := walkBlockStart(res, nd.Context(), dagserv, root, isDirectory, onlySummary)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		res.Emit(&treeOutput{
+			Hash:    root.Cid().String(),
+			Type:    summaryType,
+			Summary: summary,
+		})
+
+	},
+	Type: treeOutput{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req cmds.Request, w io.Writer, v interface{}) error {
+			output, ok := v.(*treeOutput)
+			if !ok {
+				return e.TypeErr(output, v)
+			}
+
+			if output.Type == itemType {
+				item := output.Item
+
+				if item.Depth > 1 {
+					fmt.Fprint(w, strings.Repeat("│   ", item.Depth-1))
+				}
+
+				if item.Depth > 0 {
+					fmt.Fprint(w, "└── ")
+				}
+
+				if item.Depth == 0 {
+					fmt.Fprintln(w, output.Hash)
+				} else {
+					fmt.Fprintln(w, item.Name)
+				}
+
+				return nil
+			}
+
+			if output.Type == summaryType {
+				summary := output.Summary
+
+				fmt.Fprintf(w, "%d directories, %d files present\n",
+					summary.NbDir,
+					summary.NbFile,
+				)
+
+				if summary.SizeTotal > 0 {
+					fmt.Fprintf(w, "%s present of %s (%.2f%%)",
+						humanize.Bytes(uint64(summary.SizeLocal)),
+						humanize.Bytes(uint64(summary.SizeTotal)),
+						100.0*float64(summary.SizeLocal)/float64(summary.SizeTotal),
+					)
+				} else {
+					fmt.Fprintf(w, "%s present of unknown", humanize.Bytes(uint64(summary.SizeLocal)))
+				}
+
+				fmt.Fprintln(w)
+				return nil
+			}
+
+			return fmt.Errorf("unknow output type")
+		}),
+	},
+}
+
+type walkState struct {
+	res     cmds.ResponseEmitter
+	ctx     context.Context
+	dagserv dag.DAGService
+	node    node.Node
+
+	onlySummary       bool
+	depth             int
+	name              string
+	parentIsDirectory bool
+}
+
+func walkBlockStart(res cmds.ResponseEmitter, ctx context.Context, dagserv dag.DAGService, nd node.Node, isDirectory bool, onlySummary bool) (treeSummary, error) {
+	return walkBlock(walkState{
+		res,
+		ctx,
+		dagserv,
+		nd,
+		onlySummary,
+		0,
+		nd.Cid().String(),
+		isDirectory,
+	})
+}
+
+// Build a summary of a dag while emiting treeOutput with treeItem to display the graph of files/directories
+func walkBlock(state walkState) (treeSummary, error) {
+
+	// Start with the block data size
+	result := treeSummary{
+		Local:     true,
+		SizeLocal: uint64(len(state.node.RawData())),
+	}
+
+	isDirectory := false
+	// try to decode unixfs
+	if pn, ok := state.node.(*dag.ProtoNode); ok {
+		unixfs, err := ft.FromBytes(pn.Data())
+		if err == nil {
+
+			// if cumulative size is available, use it as total size
+			cumSize, err := pn.Size()
+			if err == nil {
+				result.SizeTotal = cumSize
+			}
+
+			unixType := unixfs.GetType()
+
+			// To distinguish files from chunk
+			isFile := unixType == ft.TFile && state.parentIsDirectory
+			isDirectory = unixType == ft.TDirectory
+
+			if isFile {
+				result.NbFile++
+			}
+
+			// Don't count the root directory if any
+			if isDirectory && state.depth != 0 {
+				result.NbDir++
+			}
+
+			if !state.onlySummary && (isFile || isDirectory) {
+				state.res.Emit(&treeOutput{
+					Hash: state.node.Cid().String(),
+					Type: itemType,
+					Item: treeItem{
+						Name:  state.name,
+						Depth: state.depth,
+					},
+				})
+			}
+		}
+	}
+
+	for _, link := range state.node.Links() {
+		child, err := state.dagserv.Get(state.ctx, link.Cid)
+
+		if err == dag.ErrNotFound {
+			result.Local = false
+
+			if !state.onlySummary {
+				state.res.Emit(&treeOutput{
+					Hash: link.Cid.String(),
+					Type: itemType,
+					Item: treeItem{
+						Name:  "[missing]",
+						Depth: state.depth + 1,
+					},
+				})
+			}
+
+			continue
+		}
+
+		if err != nil {
+			return result, err
+		}
+
+		childSum, err := walkBlock(walkState{
+			state.res,
+			state.ctx,
+			state.dagserv,
+			child,
+			state.onlySummary,
+			state.depth + 1,
+			link.Name,
+			isDirectory,
+		})
+
+		if err != nil {
+			return treeSummary{}, err
+		}
+
+		// aggregate the childs result
+		result.Local = result.Local && childSum.Local
+		result.SizeLocal += childSum.SizeLocal
+		result.NbDir += childSum.NbDir
+		result.NbFile += childSum.NbFile
+	}
+
+	return result, nil
 }
 
 var filesReadCmd = &oldcmds.Command{
