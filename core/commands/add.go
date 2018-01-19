@@ -17,10 +17,10 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	"gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds"
 	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	"gx/ipfs/QmeQHu2YxKwgyThinyW7S3GtebRToQcxQKqxNQaRBBGzuG/go-ipfs-cmds"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 )
 

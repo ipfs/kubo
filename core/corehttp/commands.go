@@ -15,8 +15,8 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
-	cmds "gx/ipfs/QmeQHu2YxKwgyThinyW7S3GtebRToQcxQKqxNQaRBBGzuG/go-ipfs-cmds"
-	cmdsHttp "gx/ipfs/QmeQHu2YxKwgyThinyW7S3GtebRToQcxQKqxNQaRBBGzuG/go-ipfs-cmds/http"
+	cmds "gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds"
+	cmdsHttp "gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds/http"
 )
 
 var (

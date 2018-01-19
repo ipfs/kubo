@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	cmds "gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	cmds "gx/ipfs/QmeQHu2YxKwgyThinyW7S3GtebRToQcxQKqxNQaRBBGzuG/go-ipfs-cmds"
 )
 
 type TestOutput struct {

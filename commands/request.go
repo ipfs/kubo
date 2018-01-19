@@ -16,9 +16,9 @@ import (
 	"github.com/ipfs/go-ipfs/repo/config"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
 
+	"gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	"gx/ipfs/QmeQHu2YxKwgyThinyW7S3GtebRToQcxQKqxNQaRBBGzuG/go-ipfs-cmds"
 )
 
 type Context struct {
