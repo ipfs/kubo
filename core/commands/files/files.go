@@ -236,7 +236,6 @@ var FilesCpCmd = &cmds.Command{
 		}
 
 		flush, _, _ := req.Option("flush").Bool()
-		fmt.Println("flush:", flush)
 
 		src, err := checkPath(req.Arguments()[0])
 		if err != nil {
