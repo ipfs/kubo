@@ -46,7 +46,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmdkit.StringOption("output", "o", "The path where the output should be stored."),
 		cmdkit.BoolOption("archive", "a", "Output a TAR archive."),
 		cmdkit.BoolOption("compress", "C", "Compress the output with GZIP compression."),
-		cmdkit.IntOption("compression-level", "l", "The level of compression (1-9).").WithDefault(-1),
+		cmdkit.IntOption("compression-level", "l", "The level of compression (1-9)."),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		_, err := getCompressOptions(req)
@@ -257,11 +257,11 @@ func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 
 func getCompressOptions(req *cmds.Request) (int, error) {
 	cmprs, _ := req.Options["compress"].(bool)
-	cmplvl, _ := req.Options["compression-level"].(int)
+	cmplvl, cmplvlFound := req.Options["compression-level"].(int)
 	switch {
 	case !cmprs:
 		return gzip.NoCompression, nil
-	case cmprs && cmplvl == -1:
+	case cmprs && !cmplvlFound:
 		return gzip.DefaultCompression, nil
 	case cmprs && (cmplvl < 1 || cmplvl > 9):
 		return gzip.NoCompression, ErrInvalidCompressionLevel
