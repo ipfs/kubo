@@ -237,9 +237,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmfUvYQhL2GinafMbPDYz7VFoZv4iiuLuR33aRsPurXGag",
+      "hash": "QmfChjky1VNaHUQR9F2xqR1QEyX45pqU78nhsoq5GDYoKL",
       "name": "go-libp2p-kad-dht",
-      "version": "3.0.11"
+      "version": "3.0.14"
     },
     {
       "author": "whyrusleeping",
@@ -430,9 +430,9 @@
       "version": "1.2.6"
     },
     {
-      "hash": "QmWGtsyPYEoiqTtWLpeUA2jpW4YSZgarKDD2zivYAFz7sR",
+      "hash": "QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV",
       "name": "go-libp2p-record",
-      "version": "2.1.6"
+      "version": "3.0.1"
     },
     {
       "author": "whyrusleeping",

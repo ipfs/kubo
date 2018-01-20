@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
@@ -15,11 +16,11 @@ import (
 
 	routing "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
-	record "gx/ipfs/QmWGtsyPYEoiqTtWLpeUA2jpW4YSZgarKDD2zivYAFz7sR/go-libp2p-record"
-	dhtpb "gx/ipfs/QmWGtsyPYEoiqTtWLpeUA2jpW4YSZgarKDD2zivYAFz7sR/go-libp2p-record/pb"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	record "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record"
+	dhtpb "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record/pb"
 	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
 )
 
@@ -30,6 +31,14 @@ var ErrExpiredRecord = errors.New("expired record")
 // ErrUnrecognizedValidity is returned when an IpnsRecord has an
 // unknown validity type.
 var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
+
+// ErrInvalidAuthor is returned when an IpnsRecord has an
+// author that does not match the IPNS path
+var ErrInvalidAuthor = errors.New("author does not match path")
+
+// ErrInvalidPath should be returned when an ipns record path
+// is not in a valid format
+var ErrInvalidPath = errors.New("record path invalid")
 
 const PublishPutValTimeout = time.Minute
 const DefaultRecordTTL = 24 * time.Hour
@@ -295,12 +304,31 @@ func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
 
 // ValidateIpnsRecord implements ValidatorFunc and verifies that the
 // given 'val' is an IpnsEntry and that that entry is valid.
-func ValidateIpnsRecord(k string, val []byte) error {
+func ValidateIpnsRecord(r *record.ValidationRecord) error {
+	if r.Namespace != "ipns" {
+		return ErrInvalidPath
+	}
+
 	entry := new(pb.IpnsEntry)
-	err := proto.Unmarshal(val, entry)
+	err := proto.Unmarshal(r.Value, entry)
 	if err != nil {
 		return err
 	}
+
+	// Note: The DHT will actually check the signature so we don't
+	// need to do that here
+
+	// Author in key must match author in record
+	parts := strings.Split(r.Key, "/")
+	pid, err := peer.IDB58Decode(parts[0])
+	if err != nil {
+		return ErrInvalidAuthor
+	}
+	if string(pid) != string(r.Author) {
+		return ErrInvalidAuthor
+	}
+
+	// Check that record has not expired
 	switch entry.GetValidityType() {
 	case pb.IpnsEntry_EOL:
 		t, err := u.ParseRFC3339(string(entry.GetValidity()))
