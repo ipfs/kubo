@@ -70,7 +70,7 @@ func (c *Context) Context() context.Context {
 	n, err := c.GetNode()
 	if err != nil {
 		log.Debug("error getting node: ", err)
-		return nil
+		return context.Background()
 	}
 
 	return n.Context()
