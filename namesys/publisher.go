@@ -36,10 +36,6 @@ var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
 // author that does not match the IPNS path
 var ErrInvalidAuthor = errors.New("author does not match path")
 
-// ErrRecordNotSigned should be returned when an ipns record is
-// invalid due to being unsigned
-var ErrRecordNotSigned = errors.New("record not signed")
-
 // ErrInvalidPath should be returned when an ipns record path
 // is not in a valid format
 var ErrInvalidPath = errors.New("record path invalid")
