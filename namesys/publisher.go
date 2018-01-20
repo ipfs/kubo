@@ -14,8 +14,8 @@ import (
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	record "github.com/libp2p/go-libp2p-record"
-	dhtpb "github.com/libp2p/go-libp2p-record/pb"
+	record "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record"
+	dhtpb "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record/pb"
 	routing "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
@@ -309,10 +309,12 @@ func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
 // ValidateIpnsRecord implements ValidatorFunc and verifies that the
 // given 'val' is an IpnsEntry and that that entry is valid.
 func ValidateIpnsRecord(r *record.ValidationRecord) error {
-	k := r.GetKey()
-	val := r.GetValue()
+	if r.Namespace != "ipns" {
+		return ErrInvalidPath
+	}
+
 	entry := new(pb.IpnsEntry)
-	err := proto.Unmarshal(val, entry)
+	err := proto.Unmarshal(r.Value, entry)
 	if err != nil {
 		return err
 	}
@@ -321,16 +323,12 @@ func ValidateIpnsRecord(r *record.ValidationRecord) error {
 	// need to do that here
 
 	// Author in key must match author in record
-	parts := strings.Split(k, "/")
-	if len(parts) < 3 || parts[1] != "ipns" {
-		return ErrInvalidPath
-	}
-	authorB58 := parts[2]
-	pid, err := peer.IDB58Decode(authorB58)
+	parts := strings.Split(r.Key, "/")
+	pid, err := peer.IDB58Decode(parts[0])
 	if err != nil {
 		return ErrInvalidAuthor
 	}
-	if string(pid) != string(r.GetAuthor()) {
+	if string(pid) != string(r.Author) {
 		return ErrInvalidAuthor
 	}
 
