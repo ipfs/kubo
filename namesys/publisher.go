@@ -14,13 +14,13 @@ import (
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	record "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record"
-	dhtpb "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record/pb"
 	routing "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	record "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record"
+	dhtpb "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record/pb"
 	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
 )
 
