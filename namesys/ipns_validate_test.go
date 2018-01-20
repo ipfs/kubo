@@ -5,7 +5,6 @@ import (
 	"time"
 
 	path "github.com/ipfs/go-ipfs/path"
-	cim "github.com/libp2p/go-libp2p-crypto"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -45,7 +44,7 @@ func TestValidation(t *testing.T) {
 	}
 
 	// Create the record
-	r1, err := record.MakePutRecord(CastKey(t, priv), ipnsPath, val, true)
+	r1, err := record.MakePutRecord(priv, ipnsPath, val, true)
 
 	// Validate the record
 	err = validator.VerifyRecord(r1)
@@ -65,7 +64,7 @@ func TestValidation(t *testing.T) {
 	pubkh2 := u.Hash(pubkb2).B58String()
 	ipnsWrongPath := "/ipns/" + pubkh2
 
-	r2, err := record.MakePutRecord(CastKey(t, priv), ipnsWrongPath, val, true)
+	r2, err := record.MakePutRecord(priv, ipnsWrongPath, val, true)
 
 	// Record should fail validation because path doesn't match author
 	err = validator.VerifyRecord(r2)
@@ -84,24 +83,11 @@ func TestValidation(t *testing.T) {
 	}
 
 	// Create record with the expired entry
-	r3, err := record.MakePutRecord(CastKey(t, priv), ipnsPath, valExp, true)
+	r3, err := record.MakePutRecord(priv, ipnsPath, valExp, true)
 
 	// Record should fail validation because entry is expired
 	err = validator.VerifyRecord(r3)
 	if err != ErrExpiredRecord {
 		t.Fatal("ValidateIpnsRecord should have returned ErrExpiredRecord")
 	}
-}
-
-// TODO: Remove once gx lib matches master of github.com/libp2p/go-libp2p-record
-func CastKey(t *testing.T, priv ci.PrivKey) cim.PrivKey {
-	privb, err := priv.Bytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	k, err := cim.UnmarshalPrivateKey(privb)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return k
 }
