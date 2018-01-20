@@ -54,7 +54,7 @@ The output is:
 		cmdkit.BoolOption("file-order", "sort the results based on the path of the backing file"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		_, fs, err := getFilestore(env.(*oldCmds.Context))
+		_, fs, err := getFilestore(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
