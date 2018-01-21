@@ -555,7 +555,7 @@ Examples:
 			}
 		}
 
-		summary, err := walkBlockStart(res, nd.Context(), dagserv, root, isDirectory, onlySummary)
+		summary, err := walkBlockStart(req.Context(), res, dagserv, root, isDirectory, onlySummary)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -618,14 +618,14 @@ Examples:
 				return nil
 			}
 
-			return fmt.Errorf("unknow output type")
+			return fmt.Errorf("unknown output type")
 		}),
 	},
 }
 
 type walkState struct {
-	res     cmds.ResponseEmitter
 	ctx     context.Context
+	res     cmds.ResponseEmitter
 	dagserv dag.DAGService
 	node    node.Node
 
@@ -635,10 +635,10 @@ type walkState struct {
 	parentIsDirectory bool
 }
 
-func walkBlockStart(res cmds.ResponseEmitter, ctx context.Context, dagserv dag.DAGService, nd node.Node, isDirectory bool, onlySummary bool) (treeSummary, error) {
+func walkBlockStart(ctx context.Context, res cmds.ResponseEmitter, dagserv dag.DAGService, nd node.Node, isDirectory bool, onlySummary bool) (treeSummary, error) {
 	return walkBlock(walkState{
-		res,
 		ctx,
+		res,
 		dagserv,
 		nd,
 		onlySummary,
@@ -660,8 +660,7 @@ func walkBlock(state walkState) (treeSummary, error) {
 	isDirectory := false
 	// try to decode unixfs
 	if pn, ok := state.node.(*dag.ProtoNode); ok {
-		unixfs, err := ft.FromBytes(pn.Data())
-		if err == nil {
+		if unixfs, err := ft.FromBytes(pn.Data()); err == nil {
 
 			// if cumulative size is available, use it as total size
 			cumSize, err := pn.Size()
@@ -722,8 +721,8 @@ func walkBlock(state walkState) (treeSummary, error) {
 		}
 
 		childSum, err := walkBlock(walkState{
-			state.res,
 			state.ctx,
+			state.res,
 			state.dagserv,
 			child,
 			state.onlySummary,
