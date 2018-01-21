@@ -439,8 +439,9 @@ Examples:
 }
 
 type treeItem struct {
-	Name  string
-	Depth int
+	Name      string
+	Depth     int
+	LastChild bool
 }
 
 type treeSummary struct {
@@ -583,7 +584,11 @@ Examples:
 					fmt.Fprint(w, strings.Repeat("│   ", item.Depth-1))
 				}
 
-				if item.Depth > 0 {
+				if item.Depth > 0 && !item.LastChild {
+					fmt.Fprint(w, "├── ")
+				}
+
+				if item.Depth > 0 && item.LastChild {
 					fmt.Fprint(w, "└── ")
 				}
 
@@ -633,6 +638,7 @@ type walkState struct {
 	depth             int
 	name              string
 	parentIsDirectory bool
+	lastChild         bool
 }
 
 func walkBlockStart(ctx context.Context, res cmds.ResponseEmitter, dagserv dag.DAGService, nd node.Node, isDirectory bool, onlySummary bool) (treeSummary, error) {
@@ -645,6 +651,7 @@ func walkBlockStart(ctx context.Context, res cmds.ResponseEmitter, dagserv dag.D
 		0,
 		nd.Cid().String(),
 		isDirectory,
+		false,
 	})
 }
 
@@ -688,16 +695,20 @@ func walkBlock(state walkState) (treeSummary, error) {
 					Hash: state.node.Cid().String(),
 					Type: itemType,
 					Item: treeItem{
-						Name:  state.name,
-						Depth: state.depth,
+						Name:      state.name,
+						Depth:     state.depth,
+						LastChild: state.lastChild,
 					},
 				})
 			}
 		}
 	}
 
-	for _, link := range state.node.Links() {
+	nbChild := len(state.node.Links())
+	for i, link := range state.node.Links() {
 		child, err := state.dagserv.Get(state.ctx, link.Cid)
+
+		isLastChild := i == nbChild-1
 
 		if err == dag.ErrNotFound {
 			result.Local = false
@@ -707,8 +718,9 @@ func walkBlock(state walkState) (treeSummary, error) {
 					Hash: link.Cid.String(),
 					Type: itemType,
 					Item: treeItem{
-						Name:  "[missing]",
-						Depth: state.depth + 1,
+						Name:      "[missing]",
+						Depth:     state.depth + 1,
+						LastChild: isLastChild,
 					},
 				})
 			}
@@ -729,6 +741,7 @@ func walkBlock(state walkState) (treeSummary, error) {
 			state.depth + 1,
 			link.Name,
 			isDirectory,
+			isLastChild,
 		})
 
 		if err != nil {
