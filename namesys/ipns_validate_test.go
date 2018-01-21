@@ -45,7 +45,6 @@ func TestValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
 	// Create IPNS record path with a different key
 	_, ipnsWrongAuthor := genKeys(t, r)
 	wrongAuthorRec, err := record.MakePutRecord(priv, ipnsWrongAuthor, val, true)
@@ -58,7 +57,6 @@ func TestValidation(t *testing.T) {
 	if err != ErrInvalidAuthor {
 		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
 	}
-
 
 	// Create IPNS record path with extra path components after author
 	extraPath := ipnsPath + "/some/path"
@@ -73,7 +71,6 @@ func TestValidation(t *testing.T) {
 		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
 	}
 
-
 	// Create unsigned IPNS record
 	unsignedRec, err := record.MakePutRecord(priv, ipnsPath, val, false)
 	if err != nil {
@@ -85,7 +82,6 @@ func TestValidation(t *testing.T) {
 	if err != ErrInvalidAuthor {
 		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
 	}
-
 
 	// Create unsigned IPNS record with no author
 	unsignedRecNoAuthor, err := record.MakePutRecord(priv, ipnsPath, val, false)
@@ -100,7 +96,6 @@ func TestValidation(t *testing.T) {
 	if err != ErrInvalidAuthor {
 		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
 	}
-
 
 	// Create expired entry
 	expiredEntry, err := CreateRoutingEntryData(priv, path.Path("foo"), 1, ts.Add(-1*time.Hour))
