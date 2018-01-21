@@ -462,6 +462,31 @@ test_files_api() {
     ipfs files flush /
   '
 
+  # test tree
+  test_expect_success "can display a tree inside MFS $EXTRA" '
+    ipfs files tree /
+  '
+
+  test_expect_success "can display the summary $EXTRA" '
+    ipfs files tree --only-summary / > output
+  '
+
+  test_expect_success "summary looks good $EXTRA" '
+    grep -q "(100.00%)" output
+  '
+
+  test_expect_success "can display a tree outside MFS $EXTRA" '
+    ipfs files tree /ipfs/$DIR1
+  '
+
+  test_expect_success "can display the summary $EXTRA" '
+    ipfs files tree --only-summary /ipfs/$DIR1 > output
+  '
+
+  test_expect_success "summary looks good $EXTRA" '
+    grep -q "(100.00%)" output
+  '
+
   # test mv
   test_expect_success "can mv dir $EXTRA" '
     ipfs files mv /cats/this/is /cats/
