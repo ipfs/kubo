@@ -48,7 +48,7 @@ var CatCmd = &cmds.Command{
 			return
 		}
 
-		max, found, err := req.Option("length").Int()
+		max, found := req.Options["length"].(int)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -67,7 +67,7 @@ var CatCmd = &cmds.Command{
 			return
 		}
 
-		readers, length, err := cat(req.Context(), node, req.Arguments(), int64(offset), int64(max))
+		readers, length, err := cat(req.Context, node, req.Arguments, int64(offset), int64(max))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
