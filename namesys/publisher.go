@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
@@ -319,8 +318,7 @@ func ValidateIpnsRecord(r *record.ValidationRecord) error {
 	// need to do that here
 
 	// Author in key must match author in record
-	parts := strings.Split(r.Key, "/")
-	pid, err := peer.IDB58Decode(parts[0])
+	pid, err := peer.IDB58Decode(r.Key)
 	if err != nil {
 		return ErrInvalidAuthor
 	}

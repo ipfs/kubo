@@ -1,6 +1,7 @@
 package namesys
 
 import (
+	"io"
 	"testing"
 	"time"
 
@@ -18,10 +19,7 @@ func TestValidation(t *testing.T) {
 
 	// Generate a key for signing the records
 	r := u.NewSeededRand(15) // generate deterministic keypair
-	priv, pubk, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, r)
-	if err != nil {
-		t.Fatal(err)
-	}
+	priv, ipnsPath := genKeys(t, r)
 
 	// Create entry with expiry in one hour
 	ts := time.Now()
@@ -30,64 +28,109 @@ func TestValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Get IPNS record path
-	pubkb, err := pubk.Bytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubkh := u.Hash(pubkb).B58String()
-	ipnsPath := "/ipns/" + pubkh
-
 	val, err := proto.Marshal(entry)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Create the record
-	r1, err := record.MakePutRecord(priv, ipnsPath, val, true)
+	rec, err := record.MakePutRecord(priv, ipnsPath, val, true)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Validate the record
-	err = validator.VerifyRecord(r1)
+	err = validator.VerifyRecord(rec)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 
 	// Create IPNS record path with a different key
-	_, pubk2, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, r)
+	_, ipnsWrongAuthor := genKeys(t, r)
+	wrongAuthorRec, err := record.MakePutRecord(priv, ipnsWrongAuthor, val, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pubkb2, err := pubk2.Bytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubkh2 := u.Hash(pubkb2).B58String()
-	ipnsWrongPath := "/ipns/" + pubkh2
-
-	r2, err := record.MakePutRecord(priv, ipnsWrongPath, val, true)
 
 	// Record should fail validation because path doesn't match author
-	err = validator.VerifyRecord(r2)
+	err = validator.VerifyRecord(wrongAuthorRec)
 	if err != ErrInvalidAuthor {
 		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
 	}
 
-	// Create expired entry
-	expired, err := CreateRoutingEntryData(priv, path.Path("foo"), 1, ts.Add(-1*time.Hour))
+
+	// Create IPNS record path with extra path components after author
+	extraPath := ipnsPath + "/some/path"
+	extraPathRec, err := record.MakePutRecord(priv, extraPath, val, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	valExp, err := proto.Marshal(expired)
+
+	// Record should fail validation because path has extra components after author
+	err = validator.VerifyRecord(extraPathRec)
+	if err != ErrInvalidAuthor {
+		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
+	}
+
+
+	// Create unsigned IPNS record
+	unsignedRec, err := record.MakePutRecord(priv, ipnsPath, val, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Record should fail validation because IPNS records require signature
+	err = validator.VerifyRecord(unsignedRec)
+	if err != ErrInvalidAuthor {
+		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
+	}
+
+
+	// Create unsigned IPNS record with no author
+	unsignedRecNoAuthor, err := record.MakePutRecord(priv, ipnsPath, val, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	noAuth := ""
+	unsignedRecNoAuthor.Author = &noAuth
+
+	// Record should fail validation because IPNS records require author
+	err = validator.VerifyRecord(unsignedRecNoAuthor)
+	if err != ErrInvalidAuthor {
+		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
+	}
+
+
+	// Create expired entry
+	expiredEntry, err := CreateRoutingEntryData(priv, path.Path("foo"), 1, ts.Add(-1*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	valExp, err := proto.Marshal(expiredEntry)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Create record with the expired entry
-	r3, err := record.MakePutRecord(priv, ipnsPath, valExp, true)
+	expiredRec, err := record.MakePutRecord(priv, ipnsPath, valExp, true)
 
 	// Record should fail validation because entry is expired
-	err = validator.VerifyRecord(r3)
+	err = validator.VerifyRecord(expiredRec)
 	if err != ErrExpiredRecord {
 		t.Fatal("ValidateIpnsRecord should have returned ErrExpiredRecord")
 	}
+}
+
+func genKeys(t *testing.T, r io.Reader) (ci.PrivKey, string) {
+	priv, pubk, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pubkb, err := pubk.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := "/ipns/" + u.Hash(pubkb).B58String()
+	return priv, p
 }
