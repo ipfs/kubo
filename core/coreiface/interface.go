@@ -17,9 +17,13 @@ import (
 // Path is a generic wrapper for paths used in the API. A path can be resolved
 // to a CID using one of Resolve functions in the API.
 type Path interface {
+	// String returns the path as a string.
 	String() string
+	// Cid returns cid referred to by path
 	Cid() *cid.Cid
+	// Root returns cid of root path
 	Root() *cid.Cid
+	// Resolved returns whether path has been fully resolved
 	Resolved() bool
 }
 
@@ -33,22 +37,31 @@ type Reader interface {
 	io.Closer
 }
 
+// IpnsEntry specifies the interface to IpnsEntries
 type IpnsEntry interface {
+	// Name returns IpnsEntry name
 	Name() string
+	// Value returns IpnsEntry value
 	Value() Path
 }
 
+// Key specifies the interface to Keys in KeyAPI Keystore
 type Key interface {
+	// Key returns key name
 	Name() string
+	// Path returns key path
 	Path() Path
 }
 
 // CoreAPI defines an unified interface to IPFS for Go programs.
 type CoreAPI interface {
-	// Unixfs returns an implementation of Unixfs API
+	// Unixfs returns an implementation of Unixfs API.
 	Unixfs() UnixfsAPI
+	// Dag returns an implementation of Dag API.
 	Dag() DagAPI
+	// Name returns an implementation of Name API.
 	Name() NameAPI
+	// Key returns an implementation of Key API.
 	Key() KeyAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
