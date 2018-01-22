@@ -501,8 +501,6 @@ Examples:
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("only-summary", "s", "Only print the summary of the tree's information."),
-		// TODO: "local" is already used by the root ipfs command, what do ?
-		cmdkit.BoolOption("local2", "l", "Don't request data from the network."),
 	},
 	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
 		nd, err := req.InvocContext().GetNode()
@@ -523,7 +521,7 @@ Examples:
 			return
 		}
 
-		local, _, err := req.Option("local2").Bool()
+		local, _, err := req.Option("local").Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
