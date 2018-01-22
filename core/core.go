@@ -420,6 +420,8 @@ func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
 	return nil
 }
 
+// HandlePeerFound attempts to connect to peer from `PeerInfo`, if it fails
+// logs a warning log.
 func (n *IpfsNode) HandlePeerFound(p pstore.PeerInfo) {
 	log.Warning("trying peer info: ", p)
 	ctx, cancel := context.WithTimeout(n.Context(), discoveryConnTimeout)
@@ -590,6 +592,7 @@ func (n *IpfsNode) teardown() error {
 	return nil
 }
 
+// OnlineMode returns whether or not the IpfsNode is in OnlineMode.
 func (n *IpfsNode) OnlineMode() bool {
 	switch n.mode {
 	case onlineMode:
@@ -599,6 +602,7 @@ func (n *IpfsNode) OnlineMode() bool {
 	}
 }
 
+// SetLocal will set the IpfsNode to local mode
 func (n *IpfsNode) SetLocal(isLocal bool) {
 	if isLocal {
 		n.mode = localMode
@@ -606,6 +610,7 @@ func (n *IpfsNode) SetLocal(isLocal bool) {
 	n.localModeSet = true
 }
 
+// LocalMode returns whether or not the IpfsNode is in LocalMode
 func (n *IpfsNode) LocalMode() bool {
 	if !n.localModeSet {
 		// programmer error should not happen
@@ -619,6 +624,7 @@ func (n *IpfsNode) LocalMode() bool {
 	}
 }
 
+// Bootstrap will set and call the IpfsNodes bootstrap function.
 func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 
 	// TODO what should return value be when in offlineMode?
@@ -670,6 +676,7 @@ func (n *IpfsNode) loadID() error {
 	return nil
 }
 
+// GetKey will return a key from the Keystore with name `name`.
 func (n *IpfsNode) GetKey(name string) (ic.PrivKey, error) {
 	if name == "self" {
 		return n.PrivateKey, nil
