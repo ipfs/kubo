@@ -29,14 +29,17 @@ type ipnsEntry struct {
 	value coreiface.Path
 }
 
+// Name returns the ipnsEntry name.
 func (e *ipnsEntry) Name() string {
 	return e.name
 }
 
+// Value returns the ipnsEntry value.
 func (e *ipnsEntry) Value() coreiface.Path {
 	return e.value
 }
 
+// Publish announces new IPNS name and returns the new IPNS entry.
 func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopts.NamePublishOption) (coreiface.IpnsEntry, error) {
 	options, err := caopts.NamePublishOptions(opts...)
 	if err != nil {
@@ -82,6 +85,8 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 	}, nil
 }
 
+// Resolve attempts to resolve the newest version of the specified name and
+// returns its path.
 func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.NameResolveOption) (coreiface.Path, error) {
 	options, err := caopts.NameResolveOptions(opts...)
 	if err != nil {
