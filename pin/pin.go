@@ -147,6 +147,7 @@ type Pinned struct {
 	Via  *cid.Cid
 }
 
+// Pinned returns whether or not the given cid is pinned
 func (p Pinned) Pinned() bool {
 	if p.Mode == NotPinned {
 		return false
@@ -155,6 +156,7 @@ func (p Pinned) Pinned() bool {
 	}
 }
 
+// String Returns pin status as string
 func (p Pinned) String() string {
 	switch p.Mode {
 	case NotPinned:
@@ -277,6 +279,8 @@ func (p *pinner) IsPinned(c *cid.Cid) (string, bool, error) {
 	return p.isPinnedWithType(c, Any)
 }
 
+// IsPinnedWithType returns whether or not the given cid is pinned with the
+// given pin type, as well as returning the type of pin its pinned with.
 func (p *pinner) IsPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
@@ -328,6 +332,8 @@ func (p *pinner) isPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error
 	return "", false, nil
 }
 
+// CheckIfPinned Checks if a set of keys are pinned, more efficient than
+// calling IsPinned for each key, returns the pinned status of cid(s)
 func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
@@ -393,6 +399,9 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	return pinned, nil
 }
 
+// RemovePinWithMode is for manually editing the pin structure.
+// Use with care! If used improperly, garbage collection may not
+// be successful.
 func (p *pinner) RemovePinWithMode(c *cid.Cid, mode PinMode) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -486,6 +495,9 @@ func (p *pinner) RecursiveKeys() []*cid.Cid {
 	return p.recursePin.Keys()
 }
 
+// Update updates a recursive pin from one cid to another
+// this is more efficient than simply pinning the new one and unpinning the
+// old one
 func (p *pinner) Update(ctx context.Context, from, to *cid.Cid, unpin bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -556,6 +568,8 @@ func (p *pinner) Flush() error {
 	return nil
 }
 
+// InternalPins returns all cids kept pinned for the internal state of the
+// pinner
 func (p *pinner) InternalPins() []*cid.Cid {
 	p.lock.Lock()
 	defer p.lock.Unlock()
