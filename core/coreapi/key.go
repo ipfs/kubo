@@ -24,14 +24,18 @@ type key struct {
 	peerId string
 }
 
+// Name returns the key name
 func (k *key) Name() string {
 	return k.name
 }
 
+// Path returns the path of the key.
 func (k *key) Path() coreiface.Path {
 	return &path{path: ipfspath.FromString(ipfspath.Join([]string{"/ipns", k.peerId}))}
 }
 
+// Generate generates new key, stores it in the keystore under the specified
+// name and returns a base58 encoded multihash of its public key.
 func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (coreiface.Key, error) {
 	options, err := caopts.KeyGenerateOptions(opts...)
 	if err != nil {
@@ -88,6 +92,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	return &key{name, pid.Pretty()}, nil
 }
 
+// List returns a list keys stored in keystore.
 func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
 	keys, err := api.node.Repo.Keystore().List()
 	if err != nil {
@@ -117,6 +122,8 @@ func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
 	return out, nil
 }
 
+// Rename renames `oldName` to `newName`. Returns the key and whether another
+// key was overwritten, or an error.
 func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, opts ...caopts.KeyRenameOption) (coreiface.Key, bool, error) {
 	options, err := caopts.KeyRenameOptions(opts...)
 	if err != nil {
@@ -169,6 +176,7 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 	return &key{newName, pid.Pretty()}, overwrite, ks.Delete(oldName)
 }
 
+// Remove removes keys from keystore. Returns ipns path of the removed key.
 func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Path, error) {
 	ks := api.node.Repo.Keystore()
 
