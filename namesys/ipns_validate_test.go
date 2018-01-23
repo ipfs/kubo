@@ -7,6 +7,7 @@ import (
 
 	path "github.com/ipfs/go-ipfs/path"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
+	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	record "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record"
@@ -45,7 +46,7 @@ func TestValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create IPNS record path with a different key
+	// Create IPNS record path with a different private key
 	_, ipnsWrongAuthor := genKeys(t, r)
 	wrongAuthorRec, err := record.MakePutRecord(priv, ipnsWrongAuthor, val, true)
 	if err != nil {
@@ -118,14 +119,14 @@ func TestValidation(t *testing.T) {
 }
 
 func genKeys(t *testing.T, r io.Reader) (ci.PrivKey, string) {
-	priv, pubk, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, r)
+	priv, _, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, r)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pubkb, err := pubk.Bytes()
+	id, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := "/ipns/" + u.Hash(pubkb).B58String()
-	return priv, p
+	_, ipnsKey := IpnsKeysForID(id)
+	return priv, ipnsKey
 }

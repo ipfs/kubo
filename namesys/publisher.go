@@ -318,7 +318,7 @@ func ValidateIpnsRecord(r *record.ValidationRecord) error {
 	// need to do that here
 
 	// Author in key must match author in record
-	pid, err := peer.IDB58Decode(r.Key)
+	pid, err := peer.IDFromString(r.Key)
 	if err != nil {
 		return ErrInvalidAuthor
 	}
