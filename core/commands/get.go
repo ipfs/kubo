@@ -119,11 +119,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 					return
 				}
 
-				outPath, _ := req.Options["output"].(string)
-				if len(outPath) == 0 {
-					_, outPath = gopath.Split(req.Arguments[0])
-					outPath = gopath.Clean(outPath)
-				}
+				outPath := getOutPath(req)
 
 				cmplvl, err := getCompressOptions(req)
 				if err != nil {
