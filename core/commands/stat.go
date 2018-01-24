@@ -171,7 +171,7 @@ Example:
 					fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalOut)))
 					fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalIn)))
 					fmt.Fprintf(os.Stdout, "%8s/s  ", humanize.Bytes(uint64(bs.RateOut)))
-					fmt.Fprintf(os.Stdout, "%8s/s  \n", humanize.Bytes(uint64(bs.RateIn)))
+					fmt.Fprintf(os.Stdout, "%8s/s      \r", humanize.Bytes(uint64(bs.RateIn)))
 				}
 			}()
 
