@@ -15,8 +15,10 @@ import (
 	"reflect"
 
 	"github.com/ipfs/go-ipfs/path"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	cmds "gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds"
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 var log = logging.Logger("command")
@@ -283,9 +285,9 @@ func ClientError(msg string) error {
 
 // global options, added to every command
 var globalOptions = []cmdkit.Option{
-	cmdkit.OptionEncodingType,
-	cmdkit.OptionStreamChannels,
-	cmdkit.OptionTimeout,
+	cmds.OptionEncodingType,
+	cmds.OptionStreamChannels,
+	cmds.OptionTimeout,
 }
 
 // the above array of Options, wrapped in a Command

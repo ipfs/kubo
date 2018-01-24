@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
-	"gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds"
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 func TestGetOutputPath(t *testing.T) {
@@ -44,18 +46,24 @@ func TestGetOutputPath(t *testing.T) {
 		},
 	}
 
-	defOpts, err := GetCmd.GetOptions([]string{})
+	_, err := GetCmd.GetOptions([]string{})
 	if err != nil {
 		t.Fatalf("error getting default command options: %v", err)
 	}
 
-	for _, tc := range cases {
-		req, err := cmds.NewRequest([]string{}, tc.opts, tc.args, nil, GetCmd, defOpts)
-		if err != nil {
-			t.Fatalf("error creating a command request: %v", err)
-		}
-		if outPath := getOutPath(req); outPath != tc.outPath {
-			t.Errorf("expected outPath %s to be %s", outPath, tc.outPath)
-		}
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), i), func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			req, err := cmds.NewRequest(ctx, []string{}, tc.opts, tc.args, nil, GetCmd)
+			if err != nil {
+				t.Fatalf("error creating a command request: %v", err)
+			}
+
+			if outPath := getOutPath(req); outPath != tc.outPath {
+				t.Errorf("expected outPath %s to be %s", outPath, tc.outPath)
+			}
+		})
 	}
 }

@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
-	cmds "gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cmdkit "gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	metrics "gx/ipfs/QmaL2WYJGbWKqHoLujoi9GQ5jj4JVFrBqHUBWmEYzJPVWT/go-libp2p-metrics"
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 var StatsCmd = &cmds.Command{
@@ -79,8 +79,8 @@ Example:
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("1s"),
 	},
 
-	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		nd, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -97,17 +97,8 @@ Example:
 			return
 		}
 
-		pstr, pfound, err := req.Option("peer").String()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		tstr, tfound, err := req.Option("proto").String()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		pstr, pfound := req.Options["peer"].(string)
+		tstr, tfound := req.Options["proto"].(string)
 		if pfound && tfound {
 			res.SetError(errors.New("please only specify peer OR protocol"), cmdkit.ErrClient)
 			return
@@ -123,23 +114,14 @@ Example:
 			pid = checkpid
 		}
 
-		timeS, _, err := req.Option("interval").String()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		timeS, _ := req.Options["interval"].(string)
 		interval, err := time.ParseDuration(timeS)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		doPoll, _, err := req.Option("poll").Bool()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
+		doPoll, _ := req.Options["poll"].(bool)
 		for {
 			if pfound {
 				stats := nd.Reporter.GetBandwidthForPeer(pid)
@@ -157,7 +139,7 @@ Example:
 			}
 			select {
 			case <-time.After(interval):
-			case <-req.Context().Done():
+			case <-req.Context.Done():
 				return
 			}
 		}
@@ -165,17 +147,13 @@ Example:
 	},
 	Type: metrics.Stats{},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(req cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
+		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
 			reNext, res := cmds.NewChanResponsePair(req)
 
 			go func() {
 				defer re.Close()
 
-				polling, _, err := res.Request().Option("poll").Bool()
-				if err != nil {
-					return
-				}
-
+				polling, _ := res.Request().Options["poll"].(bool)
 				fmt.Fprintln(os.Stdout, "Total Up    Total Down  Rate Up     Rate Down")
 				for {
 					v, err := res.Next()
@@ -193,7 +171,7 @@ Example:
 					fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalOut)))
 					fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalIn)))
 					fmt.Fprintf(os.Stdout, "%8s/s  ", humanize.Bytes(uint64(bs.RateOut)))
-					fmt.Fprintf(os.Stdout, "%8s/s  \n", humanize.Bytes(uint64(bs.RateIn)))
+					fmt.Fprintf(os.Stdout, "%8s/s      \r", humanize.Bytes(uint64(bs.RateIn)))
 				}
 			}()
 

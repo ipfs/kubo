@@ -9,14 +9,16 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/repo/config"
 	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
 
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit/files"
+	"gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds"
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 )
 
 type Context struct {
@@ -61,6 +63,48 @@ func (c *Context) GetNode() (*core.IpfsNode, error) {
 // so that clients may close it.
 func (c *Context) NodeWithoutConstructing() *core.IpfsNode {
 	return c.node
+}
+
+// Context returns the node's context.
+func (c *Context) Context() context.Context {
+	n, err := c.GetNode()
+	if err != nil {
+		log.Debug("error getting node: ", err)
+		return context.Background()
+	}
+
+	return n.Context()
+}
+
+// LogRequest adds the passed request to the request log and
+// returns a function that should be called when the request
+// lifetime is over.
+func (c *Context) LogRequest(req *cmds.Request) func() {
+	rle := &ReqLogEntry{
+		StartTime: time.Now(),
+		Active:    true,
+		Command:   strings.Join(req.Path, "/"),
+		Options:   req.Options,
+		Args:      req.Arguments,
+		ID:        c.ReqLog.nextID,
+		log:       c.ReqLog,
+	}
+	c.ReqLog.AddEntry(rle)
+
+	return func() {
+		c.ReqLog.Finish(rle)
+	}
+}
+
+// Close cleans up the application state.
+func (c *Context) Close() {
+	// let's not forget teardown. If a node was initialized, we must close it.
+	// Note that this means the underlying req.Context().Node variable is exposed.
+	// this is gross, and should be changed when we extract out the exec Context.
+	if c.node != nil {
+		log.Info("Shutting down node...")
+		c.node.Close()
+	}
 }
 
 // Request represents a call to a command from a consumer

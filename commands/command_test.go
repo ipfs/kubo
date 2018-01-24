@@ -3,7 +3,8 @@ package commands
 import (
 	"testing"
 
-	cmdkit "gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmUEB5nT4LG3TkUd5mkHrfRESUSgaUD4r7jSAYvvPeuWT9/go-ipfs-cmds"
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 func noop(req Request, res Response) {
@@ -58,7 +59,7 @@ func TestOptionValidation(t *testing.T) {
 	}
 
 	req, _ = NewRequest(nil, nil, nil, nil, nil, opts)
-	req.SetOption(cmdkit.EncShort, "json")
+	req.SetOption(cmds.EncLong, "json")
 	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")

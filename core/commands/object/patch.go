@@ -13,8 +13,11 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	cmdkit "gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
+
+var log = logging.Logger("core/commands/object")
 
 var ObjectPatchCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -74,7 +77,7 @@ the limit will not be respected by the network.
 			return
 		}
 
-		root, err := path.ParsePath(req.Arguments()[0])
+		root, err := path.ParsePath(req.StringArguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -142,7 +145,7 @@ Example:
 			return
 		}
 
-		rp, err := path.ParsePath(req.Arguments()[0])
+		rp, err := path.ParsePath(req.StringArguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
