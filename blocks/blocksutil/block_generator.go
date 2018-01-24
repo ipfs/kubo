@@ -2,7 +2,7 @@
 // with Blocks.
 package blocksutil
 
-import "gx/ipfs/QmYsEQydGrsxNZfAiskvQ76N2xE9hDQtSAkRSynwMiUK3c/go-block-format"
+import "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 
 // NewBlockGenerator returns an object capable of
 // producing blocks.
