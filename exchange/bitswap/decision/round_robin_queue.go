@@ -4,6 +4,8 @@
 package decision
 
 import (
+    "math"
+
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 )
 
@@ -50,18 +52,18 @@ func (rrq *RRQueue) InitRound() {
 	for _, weight := range rrq.weights {
 		totalWeight += weight
 	}
-
-	for id, weight := range rrq.weights {
-		allocation := int((weight / totalWeight) * float64(rrq.roundBurst))
-		if allocation <= 0 {
-			continue
-		}
-		rrp := &RRPeer{
-			id:         id,
-			allocation: allocation,
-		}
-		rrq.allocations = append(rrq.allocations, rrp)
-	}
+	
+    for id, weight := range rrq.weights {
+    	allocation := int((weight / totalWeight) * float64(rrq.roundBurst))
+    	if allocation <= 0 {
+    		continue
+    	}
+    	rrp := &RRPeer{
+    		id:         id,
+    		allocation: allocation,
+    	}
+    	rrq.allocations = append(rrq.allocations, rrp)
+    }
 }
 
 // update peer's weight using their current receipt
@@ -70,8 +72,8 @@ func (rrq *RRQueue) UpdateWeight(id peer.ID, r *Receipt) {
 }
 
 func (rrq *RRQueue) Pop() {
-	if len(rrq.allocations) != 0 {
-		rrq.allocations = rrq.allocations[1:]
+    if len(rrq.allocations) != 0 {
+    	rrq.allocations = rrq.allocations[1:]
 	}
 }
 
@@ -83,7 +85,7 @@ func (rrq *RRQueue) Head() *RRPeer {
 }
 
 func (rrq *RRQueue) Shift() {
-	rrq.allocations[0], rrq.allocations[len(rrq.allocations)-1] = rrq.allocations[len(rrq.allocations)-1], rrq.allocations[0]
+    rrq.allocations[0], rrq.allocations[len(rrq.allocations) - 1] = rrq.allocations[len(rrq.allocations) - 1], rrq.allocations[0]
 }
 
 func (rrq *RRQueue) ResetAllocations() {
@@ -109,4 +111,8 @@ func Simple(r *Receipt) float64 {
 		return 0
 	}
 	return r.Value
+}
+
+func Exp(r *Receipt) float64 {
+    return 100 / (1 + math.Exp(2 - r.Value))
 }

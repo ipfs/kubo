@@ -54,9 +54,9 @@ func (tl *strategy_prq) Push(entry *wantlist.Entry, receipt *Receipt) {
 	to := peer.ID(receipt.Peer)
 	tl.lock.Lock()
 	defer tl.lock.Unlock()
-
+	
 	partner, ok := tl.partners[to]
-
+	
 	if !ok {
 		partner = newActivePartner()
 		tl.pQueue.Push(partner)
@@ -151,11 +151,11 @@ func (tl *strategy_prq) nextTask() (rrp *RRPeer, task *peerRequestTask) {
 			continue
 		}
 
-		// check whether |task| exceeds peer's round-robin allocation
-		if task.Entry.Size > rrp.allocation {
-			tl.partners[rrp.id].taskQueue.Push(task)
-			tl.rrq.Pop()
-			continue
+    	// check whether |task| exceeds peer's round-robin allocation
+    	if task.Entry.Size > rrp.allocation {
+    		tl.partners[rrp.id].taskQueue.Push(task)
+    		tl.rrq.Pop()
+    		continue
 		}
 
 		return rrp, task
@@ -169,7 +169,7 @@ func (tl *strategy_prq) partnerNextTask(partner *activePartner) *peerRequestTask
 		task := partner.taskQueue.Pop().(*peerRequestTask)
 		// return task if it's not trash
 		if !task.trash {
-			return task
+		    return task
 		}
 	}
 	return nil
@@ -214,10 +214,10 @@ func (tl *strategy_prq) Remove(k *cid.Cid, p peer.ID) {
 // -------
 
 func (tl *strategy_prq) allocationForPeer(id peer.ID) int {
-	for _, rrp := range tl.rrq.allocations {
-		if rrp.id == id {
-			return rrp.allocation
-		}
-	}
-	return 0
+    for _, rrp := range tl.rrq.allocations {
+        if rrp.id == id {
+            return rrp.allocation
+        }
+    }
+    return 0
 }
