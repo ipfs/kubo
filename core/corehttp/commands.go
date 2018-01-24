@@ -73,7 +73,13 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 		}
 	}
 
-	c.Headers = nc.API.HTTPHeaders
+	c.Headers = make(map[string][]string, len(nc.API.HTTPHeaders))
+
+	// Copy these because the config is shared and this function is called
+	// in multiple places concurrently. Updating these in-place *is* racy.
+	for h, v := range nc.API.HTTPHeaders {
+		c.Headers[h] = v
+	}
 	c.Headers["Server"] = []string{"go-ipfs/" + config.CurrentVersionNumber}
 }
 
@@ -101,15 +107,16 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	}
 
 	// we're listening on tcp/udp with ports. ("udp!?" you say? yeah... it happens...)
-	origins := c.AllowedOrigins()
-	for i, o := range origins {
+	oldOrigins := c.AllowedOrigins()
+	newOrigins := make([]string, len(oldOrigins))
+	for i, o := range oldOrigins {
 		// TODO: allow replacing <host>. tricky, ip4 and ip6 and hostnames...
 		if port != "" {
 			o = strings.Replace(o, "<port>", port, -1)
 		}
-		origins[i] = o
+		newOrigins[i] = o
 	}
-	c.SetAllowedOrigins(origins...)
+	c.SetAllowedOrigins(newOrigins...)
 }
 
 func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
