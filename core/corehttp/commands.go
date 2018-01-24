@@ -51,9 +51,6 @@ func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
 	origin := os.Getenv(originEnvKey)
 	if origin != "" {
 		log.Warning(originEnvKeyDeprecate)
-		if len(c.AllowedOrigins()) == 0 {
-			c.SetAllowedOrigins([]string{origin}...)
-		}
 		c.AppendAllowedOrigins(origin)
 	}
 }
