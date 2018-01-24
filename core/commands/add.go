@@ -114,7 +114,7 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmdkit.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").WithDefault("size-262144"),
 		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
-		cmdkit.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. Implies CIDv1, defaults to on if CIDv1 is enabled. (experimental)"),
+		cmdkit.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
 		cmdkit.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmdkit.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmdkit.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. (experimental)"),
@@ -173,22 +173,15 @@ You can now check what blocks have been created by:
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 
-		// Given the following constraints:
+		// The arguments are subject to the following constraints.
 		//
 		// nocopy -> filestoreEnabled
 		// nocopy -> rawblocks
-		// rawblocks -> cidv1
 		// (hash != sha2-256) -> cidv1
-		//
-		// We solve for the values of rawblocks and cidv1 in the
-		// following order of preference:
-		//
-		// 1. If cidv1 isn't fixed, set it to false and try solving.
-		// 2. If rawblocks isn't fixed, set it to true and try solving.
-		//
-		// If neither solution works, give up (we have a conflict).
 
-		// nocopy -> filestorEnabled
+		// NOTE: 'rawblocks -> cidv1' is missing. Legacy reasons.
+
+		// nocopy -> filestoreEnabled
 		if nocopy && !cfg.Experimental.FilestoreEnabled {
 			res.SetError(errors.New("filestore is not enabled, see https://git.io/vy4XN"),
 				cmdkit.ErrClient)
@@ -209,26 +202,16 @@ You can now check what blocks have been created by:
 			rawblks = true
 		}
 
-		if !cidVerSet {
-			// Default to CIDv0 if possible.
-			// Conditions: no raw blocks, sha2-256
-			if hashFunStr == "sha2-256" && !rawblks {
-				cidVer = 0
-			} else {
-				cidVer = 1
-			}
-		} else if cidVer == 0 {
-			// CIDv0 *was* set...
-			if hashFunStr != "sha2-256" {
-				res.SetError(errors.New("CIDv0 only supports sha2-256"), cmdkit.ErrClient)
-				return
-			} else if rawblks {
+		// (hash != "sha2-256") -> CIDv1
+		if hashFunStr != "sha2-256" && cidVer == 0 {
+			if cidVerSet {
 				res.SetError(
-					errors.New("CIDv0 incompatible with raw-leaves and/or nocopy"),
+					errors.New("CIDv0 only supports sha2-256"),
 					cmdkit.ErrClient,
 				)
 				return
 			}
+			cidVer = 1
 		}
 
 		// cidV1 -> raw blocks (by default)
