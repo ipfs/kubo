@@ -115,6 +115,7 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 	}, nil
 }
 
+// NewNode constructs and returns an IpfsNode using the given cfg.
 func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	if cfg == nil {
 		cfg = new(BuildCfg)

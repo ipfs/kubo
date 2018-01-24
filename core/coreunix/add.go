@@ -73,6 +73,7 @@ type AddedObject struct {
 	Size  string `json:",omitempty"`
 }
 
+// NewAdder Returns a new Adder used for a file add operation.
 func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds dag.DAGService) (*Adder, error) {
 	return &Adder{
 		ctx:        ctx,
@@ -126,6 +127,7 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 	return adder.mroot, nil
 }
 
+// SetMfsRoot sets `r` as the root for Adder.
 func (adder *Adder) SetMfsRoot(r *mfs.Root) {
 	adder.mroot = r
 }
@@ -152,6 +154,7 @@ func (adder *Adder) add(reader io.Reader) (node.Node, error) {
 	return balanced.BalancedLayout(params.New(chnk))
 }
 
+// RootNode returns the root node of the Added.
 func (adder *Adder) RootNode() (node.Node, error) {
 	// for memoizing
 	if adder.root != nil {
@@ -181,6 +184,8 @@ func (adder *Adder) RootNode() (node.Node, error) {
 	return root, err
 }
 
+// Recursively pins the root node of Adder and
+// writes the pin state to the backing datastore.
 func (adder *Adder) PinRoot() error {
 	root, err := adder.RootNode()
 	if err != nil {
@@ -207,6 +212,7 @@ func (adder *Adder) PinRoot() error {
 	return adder.pinning.Flush()
 }
 
+// Finalize flushes the mfs root directory and returns the mfs root node.
 func (adder *Adder) Finalize() (node.Node, error) {
 	mr, err := adder.mfsRoot()
 	if err != nil {
@@ -566,6 +572,7 @@ func outputDagnode(out chan interface{}, name string, dn node.Node) error {
 	return nil
 }
 
+// NewMemoryDagService builds and returns a new mem-datastore.
 func NewMemoryDagService() dag.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))

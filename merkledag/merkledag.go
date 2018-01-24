@@ -27,14 +27,18 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
+	// Add adds the node to the DAGService
 	Add(node.Node) (*cid.Cid, error)
+	// Get gets the node the from the DAGService
 	Get(context.Context, *cid.Cid) (node.Node, error)
+	// Remove removes the node from the DAGService
 	Remove(node.Node) error
 
 	// GetMany returns a channel of NodeOption given
 	// a set of CIDs.
 	GetMany(context.Context, []*cid.Cid) <-chan *NodeOption
 
+	// Batch is a buffer for batching adds to a dag.
 	Batch() *Batch
 
 	LinkService

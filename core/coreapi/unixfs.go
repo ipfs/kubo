@@ -14,6 +14,8 @@ import (
 
 type UnixfsAPI CoreAPI
 
+// Add builds a merkledag node from a reader, adds it to the blockstore,
+// and returns the key representing that node.
 func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.Path, error) {
 	k, err := coreunix.AddWithContext(ctx, api.node, r)
 	if err != nil {
@@ -26,6 +28,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.Path, err
 	return ParseCid(c), nil
 }
 
+// Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.
 func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Reader, error) {
 	dagnode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
@@ -41,6 +44,8 @@ func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Read
 	return r, nil
 }
 
+// Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
+// `<link base58 hash> <link size in bytes> <link name>`
 func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*coreiface.Link, error) {
 	dagnode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {

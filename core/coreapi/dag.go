@@ -19,6 +19,9 @@ type DagAPI struct {
 	*caopts.DagOptions
 }
 
+// Put inserts data using specified format and input encoding. Unless used with
+// `WithCodes` or `WithHash`, the defaults "dag-cbor" and "sha256" are used.
+// Returns the path of the inserted data.
 func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.Path, error) {
 	settings, err := caopts.DagPutOptions(opts...)
 	if err != nil {
@@ -46,10 +49,12 @@ func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPut
 	return ParseCid(nds[0].Cid()), nil
 }
 
+// Get resolves `path` using Unixfs resolver, returns the resolved Node.
 func (api *DagAPI) Get(ctx context.Context, path coreiface.Path) (coreiface.Node, error) {
 	return api.core().ResolveNode(ctx, path)
 }
 
+// Tree returns list of paths within a node specified by the path `p`.
 func (api *DagAPI) Tree(ctx context.Context, p coreiface.Path, opts ...caopts.DagTreeOption) ([]coreiface.Path, error) {
 	settings, err := caopts.DagTreeOptions(opts...)
 	if err != nil {

@@ -46,11 +46,22 @@ const (
 type PinMode int
 
 const (
+	// Recursive pins pin the target cids along with any reachable children.
 	Recursive PinMode = iota
+
+	// Direct pins pin just the target cid.
 	Direct
+
+	// Indirect pins are cids who have some ancestor pinned recursively.
 	Indirect
+
+	// Internal pins are cids used to keep the internal state of the pinner.
 	Internal
+
+	// NotPinned
 	NotPinned
+
+	// Any refers to any pinned cid
 	Any
 )
 
@@ -82,10 +93,20 @@ func StringToPinMode(s string) (PinMode, bool) {
 }
 
 type Pinner interface {
+	// IsPinned returns whether or not the given cid is pinned
+	// and an explanation of why its pinned
 	IsPinned(*cid.Cid) (string, bool, error)
+
+	// IsPinnedWithType returns whether or not the given cid is pinned with the
+	// given pin type, as well as returning the type of pin its pinned with.
 	IsPinnedWithType(*cid.Cid, PinMode) (string, bool, error)
-	Pin(context.Context, node.Node, bool) error
-	Unpin(context.Context, *cid.Cid, bool) error
+
+	// Pin the given node, optionally recursively.
+	Pin(ctx context.Context, node node.Node, recursive bool) error
+
+	// Unpin the given cid. If recursive is true, removes either a recursive or
+	// a direct pin. If recursive is false, only removes a direct pin.
+	Unpin(ctx context.Context, cid *cid.Cid, recursive bool) error
 
 	// Update updates a recursive pin from one cid to another
 	// this is more efficient than simply pinning the new one and unpinning the
@@ -106,9 +127,17 @@ type Pinner interface {
 	// be successful.
 	RemovePinWithMode(*cid.Cid, PinMode)
 
+	// Flush writes the pin state to the backing datastore
 	Flush() error
+
+	// DirectKeys returns all directly pinned cids
 	DirectKeys() []*cid.Cid
+
+	// DirectKeys returns all recursively pinned cids
 	RecursiveKeys() []*cid.Cid
+
+	// InternalPins returns all cids kept pinned for the internal state of the
+	// pinner
 	InternalPins() []*cid.Cid
 }
 
@@ -118,6 +147,7 @@ type Pinned struct {
 	Via  *cid.Cid
 }
 
+// Pinned returns whether or not the given cid is pinned
 func (p Pinned) Pinned() bool {
 	if p.Mode == NotPinned {
 		return false
@@ -126,6 +156,7 @@ func (p Pinned) Pinned() bool {
 	}
 }
 
+// String Returns pin status as string
 func (p Pinned) String() string {
 	switch p.Mode {
 	case NotPinned:
@@ -248,6 +279,8 @@ func (p *pinner) IsPinned(c *cid.Cid) (string, bool, error) {
 	return p.isPinnedWithType(c, Any)
 }
 
+// IsPinnedWithType returns whether or not the given cid is pinned with the
+// given pin type, as well as returning the type of pin its pinned with.
 func (p *pinner) IsPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
@@ -299,6 +332,8 @@ func (p *pinner) isPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error
 	return "", false, nil
 }
 
+// CheckIfPinned Checks if a set of keys are pinned, more efficient than
+// calling IsPinned for each key, returns the pinned status of cid(s)
 func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
@@ -364,6 +399,9 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	return pinned, nil
 }
 
+// RemovePinWithMode is for manually editing the pin structure.
+// Use with care! If used improperly, garbage collection may not
+// be successful.
 func (p *pinner) RemovePinWithMode(c *cid.Cid, mode PinMode) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -457,6 +495,9 @@ func (p *pinner) RecursiveKeys() []*cid.Cid {
 	return p.recursePin.Keys()
 }
 
+// Update updates a recursive pin from one cid to another
+// this is more efficient than simply pinning the new one and unpinning the
+// old one
 func (p *pinner) Update(ctx context.Context, from, to *cid.Cid, unpin bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -527,6 +568,8 @@ func (p *pinner) Flush() error {
 	return nil
 }
 
+// InternalPins returns all cids kept pinned for the internal state of the
+// pinner
 func (p *pinner) InternalPins() []*cid.Cid {
 	p.lock.Lock()
 	defer p.lock.Unlock()

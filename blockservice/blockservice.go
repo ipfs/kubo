@@ -25,13 +25,26 @@ var ErrNotFound = errors.New("blockservice: key not found")
 // datastore and may retrieve data from a remote Exchange.
 // It uses an internal `datastore.Datastore` instance to store values.
 type BlockService interface {
+	// Blockstore returns a reference to the underlying blockstore
 	Blockstore() blockstore.Blockstore
+
+	// Exchange returns a reference to the underlying exchange (usually bitswap)
 	Exchange() exchange.Interface
+
+	// AddBlock puts a given block to the underlying datastore
 	AddBlock(o blocks.Block) (*cid.Cid, error)
+
+	// AddBlocks adds a slice of blocks at the same time using batching
+	// capabilities of the underlying datastore whenever possible.
 	AddBlocks(bs []blocks.Block) ([]*cid.Cid, error)
+
 	GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error)
-	GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block
 	DeleteBlock(o blocks.Block) error
+
+	// GetBlocks does a batch request for the given cids, returning blocks as
+	// they are found, in no particular order.
+	GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block
+
 	Close() error
 }
 

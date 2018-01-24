@@ -40,12 +40,19 @@ type Blockstore interface {
 	DeleteBlock(*cid.Cid) error
 	Has(*cid.Cid) (bool, error)
 	Get(*cid.Cid) (blocks.Block, error)
+
+	// Put puts a given block to the underlying datastore
 	Put(blocks.Block) error
+
+	// PutMany puts a slice of blocks at the same time using batching
+	// capabilities of the underlying datastore whenever possible.
 	PutMany([]blocks.Block) error
+
 	// AllKeysChan returns a channel from which
 	// the CIDs in the Blockstore can be read. It should respect
 	// the given context, closing the channel if it becomes Done.
 	AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error)
+
 	// HashOnRead specifies if every read block should be
 	// rehashed to make sure it matches its CID.
 	HashOnRead(enabled bool)
