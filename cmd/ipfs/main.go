@@ -131,9 +131,6 @@ func mainRet() int {
 				// ok everything is good. set it on the invocation (for ownership)
 				// and return it.
 				n, err = core.NewNode(ctx, &core.BuildCfg{
-					// TODO(keks) figure out how Online was set before. I think it was set to
-					// a value that always is the zero value so we can just drop it, but
-					// I'll have to check that.
 					Repo: r,
 				})
 				if err != nil {
