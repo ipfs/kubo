@@ -140,7 +140,7 @@ func CommandsOption(cctx oldcmds.Context) ServeOption {
 	return commandsOption(cctx, corecommands.Root)
 }
 
-// CommandsOption constructs a ServerOption for hooking the read-only commands
+// CommandsROOption constructs a ServerOption for hooking the read-only commands
 // into the HTTP server.
 func CommandsROOption(cctx oldcmds.Context) ServeOption {
 	return commandsOption(cctx, corecommands.RootRO)
