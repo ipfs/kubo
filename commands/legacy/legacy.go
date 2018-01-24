@@ -45,6 +45,8 @@ func (me *MarshalerEncoder) Encode(v interface{}) error {
 	return err
 }
 
+// OldContext tries to cast the environment as a legacy command context,
+// returning nil on failure.
 func OldContext(env interface{}) *oldcmds.Context {
 	ctx, ok := env.(*oldcmds.Context)
 	if !ok {
