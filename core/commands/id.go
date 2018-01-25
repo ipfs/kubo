@@ -13,7 +13,6 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	identify "gx/ipfs/QmNRN4eZGmY89CRC4T5PC4xDYRx6GkDKEfRnvrT65fVeio/go-libp2p/p2p/protocol/identify"
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	kb "gx/ipfs/QmYe9YR9fibxCaExayDXUAN7eX7Q4N7jsMcPs8KgpGdiEV/go-libp2p-kbucket"
 	"gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -72,8 +71,9 @@ EXAMPLE:
 
 		var id peer.ID
 		if len(req.Arguments()) > 0 {
-			id = peer.ID(b58.Decode(req.Arguments()[0]))
-			if len(id) == 0 {
+			var err error
+			id, err = peer.IDB58Decode(req.Arguments()[0])
+			if err != nil {
 				res.SetError(cmds.ClientError("Invalid peer id"), cmdkit.ErrClient)
 				return
 			}

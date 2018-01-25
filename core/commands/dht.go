@@ -15,7 +15,7 @@ import (
 
 	routing "gx/ipfs/QmRijoA6zGS98ELTDbGsLWPZbVotYsGbjp3RbXcKCYBeon/go-libp2p-routing"
 	notif "gx/ipfs/QmRijoA6zGS98ELTDbGsLWPZbVotYsGbjp3RbXcKCYBeon/go-libp2p-routing/notifications"
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
+	b58 "gx/ipfs/QmWFAMPqsEyUX7gDUsRVmMWz59FxSpJ1b2v6bJ1yYzo7jY/go-base58-fast/base58"
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
@@ -69,9 +69,13 @@ var queryDhtCmd = &cmds.Command{
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
-		k := string(b58.Decode(req.Arguments()[0]))
+		id, err := peer.IDB58Decode(req.Arguments()[0])
+		if err != nil {
+			res.SetError(cmds.ClientError("invalid peer ID"), cmdkit.ErrClient)
+			return
+		}
 
-		closestPeers, err := dht.GetClosestPeers(ctx, k)
+		closestPeers, err := dht.GetClosestPeers(ctx, string(id))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -773,9 +777,16 @@ func escapeDhtKey(s string) (string, error) {
 	parts := path.SplitList(s)
 	switch len(parts) {
 	case 1:
-		return string(b58.Decode(s)), nil
+		k, err := b58.Decode(s)
+		if err != nil {
+			return "", err
+		}
+		return string(k), nil
 	case 3:
-		k := b58.Decode(parts[2])
+		k, err := b58.Decode(parts[2])
+		if err != nil {
+			return "", err
+		}
 		return path.Join(append(parts[:2], string(k))), nil
 	default:
 		return "", errors.New("invalid key")

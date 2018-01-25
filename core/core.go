@@ -59,7 +59,6 @@ import (
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
 	addrutil "gx/ipfs/QmUBVwiWc4Xv1U8qky2eZab7UqfJ1WFmCKVGjFfdDkxr8W/go-addr-util"
 	pnet "gx/ipfs/QmUvHSZFyrZSRDUKzfE2ASstVUKtSbUCK24TTkWK73iZfc/go-libp2p-pnet"
 	mssmux "gx/ipfs/QmVniQJkdzLZaZwzwMdd3dJTvWiJ1DQEkreVy6hs6h7Vk5/go-smux-multistream"
@@ -672,7 +671,12 @@ func (n *IpfsNode) loadID() error {
 		return errors.New("no peer ID in config! (was 'ipfs init' run?)")
 	}
 
-	n.Identity = peer.ID(b58.Decode(cid))
+	id, err := peer.IDB58Decode(cid)
+	if err != nil {
+		return fmt.Errorf("peer ID invalid: %s", err)
+	}
+
+	n.Identity = id
 	return nil
 }
 
