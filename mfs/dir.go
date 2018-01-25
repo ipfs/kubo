@@ -40,6 +40,10 @@ type Directory struct {
 	name string
 }
 
+// NewDirectory constructs a new MFS directory.
+//
+// You probably don't want to call this directly. Instead, construct a new root
+// using NewRoot.
 func NewDirectory(ctx context.Context, name string, node node.Node, parent childCloser, dserv node.DAGService) (*Directory, error) {
 	db, err := uio.NewDirectoryFromNode(dserv, node)
 	if err != nil {

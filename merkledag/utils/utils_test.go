@@ -70,8 +70,8 @@ func TestInsertNode(t *testing.T) {
 	testInsert(t, e, "a/b/c/d/f", "baz", true, "")
 	testInsert(t, e, "a/b/c/d/f", "bar", true, "")
 
-	testInsert(t, e, "", "bar", true, "cannot create link with no name!")
-	testInsert(t, e, "////", "slashes", true, "cannot create link with no name!")
+	testInsert(t, e, "", "bar", true, "cannot create link with no name")
+	testInsert(t, e, "////", "slashes", true, "cannot create link with no name")
 
 	c := e.GetNode().Cid()
 

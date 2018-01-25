@@ -50,6 +50,7 @@ type pbDagReader struct {
 
 var _ DagReader = (*pbDagReader)(nil)
 
+// NewPBFileReader constructs a new PBFileReader.
 func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv node.DAGService) *pbDagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	curLinks := getLinkCids(n)

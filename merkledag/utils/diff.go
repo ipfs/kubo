@@ -37,6 +37,7 @@ func (c *Change) String() string {
 	}
 }
 
+// ApplyChange applies the requested changes to the given node in the given dag.
 func ApplyChange(ctx context.Context, ds node.DAGService, nd *dag.ProtoNode, cs []*Change) (*dag.ProtoNode, error) {
 	e := NewDagEditor(nd, ds)
 	for _, c := range cs {

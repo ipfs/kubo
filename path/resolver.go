@@ -40,6 +40,7 @@ type Resolver struct {
 	ResolveOnce func(ctx context.Context, ds node.DAGService, nd node.Node, names []string) (*node.Link, []string, error)
 }
 
+// NewBasicResolver constructs a new basic resolver.
 func NewBasicResolver(ds node.DAGService) *Resolver {
 	return &Resolver{
 		DAG:         ds,

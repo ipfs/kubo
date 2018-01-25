@@ -1,5 +1,5 @@
-// package importer implements utilities used to create IPFS DAGs from files
-// and readers
+// Package importer implements utilities used to create IPFS DAGs from files
+// and readers.
 package importer
 
 import (
@@ -15,8 +15,8 @@ import (
 	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-// Builds a DAG from the given file, writing created blocks to disk as they are
-// created
+// BuildDagFromFile builds a DAG from the given file, writing created blocks to
+// disk as they are created
 func BuildDagFromFile(fpath string, ds node.DAGService) (node.Node, error) {
 	stat, err := os.Lstat(fpath)
 	if err != nil {
@@ -36,6 +36,8 @@ func BuildDagFromFile(fpath string, ds node.DAGService) (node.Node, error) {
 	return BuildDagFromReader(ds, chunk.DefaultSplitter(f))
 }
 
+// BuildDagFromReader builds a DAG from the chunks returned by the given chunk
+// splitter.
 func BuildDagFromReader(ds node.DAGService, spl chunk.Splitter) (node.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
@@ -45,6 +47,7 @@ func BuildDagFromReader(ds node.DAGService, spl chunk.Splitter) (node.Node, erro
 	return bal.BalancedLayout(dbp.New(spl))
 }
 
+// BuildTrickleDagFromReader is similar to BuildDagFromReader but uses the trickle layout.
 func BuildTrickleDagFromReader(ds node.DAGService, spl chunk.Splitter) (node.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,

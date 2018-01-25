@@ -27,6 +27,7 @@ type Editor struct {
 	src node.DAGService
 }
 
+// NewMemoryDagService returns a new, thread-safe in-memory DAGService.
 func NewMemoryDagService() node.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
@@ -34,7 +35,10 @@ func NewMemoryDagService() node.DAGService {
 	return dag.NewDAGService(bsrv)
 }
 
-// root is the node to be modified, source is the dagstore to pull nodes from (optional)
+// NewDagEditor returns an ProtoNode editor.
+//
+// * root is the node to be modified
+// * source is the dagstore to pull nodes from (optional)
 func NewDagEditor(root *dag.ProtoNode, source node.DAGService) *Editor {
 	return &Editor{
 		root: root,
@@ -43,17 +47,19 @@ func NewDagEditor(root *dag.ProtoNode, source node.DAGService) *Editor {
 	}
 }
 
+// GetNode returns the a copy of the root node being edited.
 func (e *Editor) GetNode() *dag.ProtoNode {
 	return e.root.Copy().(*dag.ProtoNode)
 }
 
+// GetDagService returns the DAGService used by this editor.
 func (e *Editor) GetDagService() node.DAGService {
 	return e.tmp
 }
 
 func addLink(ctx context.Context, ds node.DAGService, root *dag.ProtoNode, childname string, childnd node.Node) (*dag.ProtoNode, error) {
 	if childname == "" {
-		return nil, errors.New("cannot create link with no name!")
+		return nil, errors.New("cannot create link with no name")
 	}
 
 	// ensure that the node we are adding is in the dagservice
@@ -188,6 +194,8 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 	return root, nil
 }
 
+// Finalize writes the new DAG to the given DAGService and returns the modified
+// root node.
 func (e *Editor) Finalize(ctx context.Context, ds node.DAGService) (*dag.ProtoNode, error) {
 	nd := e.GetNode()
 	err := copyDag(ctx, nd, e.tmp, ds)

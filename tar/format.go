@@ -34,6 +34,8 @@ func marshalHeader(h *tar.Header) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// ImportTar imports a tar file into the given DAGService and returns the root
+// node.
 func ImportTar(ctx context.Context, r io.Reader, ds node.DAGService) (*dag.ProtoNode, error) {
 	tr := tar.NewReader(r)
 
@@ -194,6 +196,8 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 	return tr.Read(b)
 }
 
+// ExportTar exports the passed DAG as a tar file. This function is the inverse
+// of ImportTar.
 func ExportTar(ctx context.Context, root *dag.ProtoNode, ds node.DAGService) (io.Reader, error) {
 	if string(root.Data()) != "ipfs/tar" {
 		return nil, errors.New("not an IPFS tarchive")

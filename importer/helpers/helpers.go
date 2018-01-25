@@ -65,10 +65,12 @@ func (n *UnixfsNode) SetPrefix(prefix *cid.Prefix) {
 	n.node.SetPrefix(prefix)
 }
 
+// NumChildren returns the number of children referenced by this UnixfsNode.
 func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
 
+// Set replaces this UnixfsNode with another UnixfsNode
 func (n *UnixfsNode) Set(other *UnixfsNode) {
 	n.node = other.node
 	n.raw = other.raw
@@ -78,6 +80,7 @@ func (n *UnixfsNode) Set(other *UnixfsNode) {
 	}
 }
 
+// GetChild gets the ith child of this node from the given DAGService.
 func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds node.DAGService) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
 	if err != nil {
@@ -92,8 +95,8 @@ func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds node.DAGService) (*
 	return NewUnixfsNodeFromDag(pbn)
 }
 
-// addChild will add the given UnixfsNode as a child of the receiver.
-// the passed in DagBuilderHelper is used to store the child node an
+// AddChild adds the given UnixfsNode as a child of the receiver.
+// The passed in DagBuilderHelper is used to store the child node an
 // pin it locally so it doesnt get lost
 func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	n.ufmt.AddBlockSize(child.FileSize())
@@ -115,7 +118,7 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	return err
 }
 
-// Removes the child node at the given index
+// RemoveChild removes the child node at the given index
 func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 	n.ufmt.RemoveBlockSize(index)
 	n.node.SetLinks(append(n.node.Links()[:index], n.node.Links()[index+1:]...))
@@ -140,7 +143,7 @@ func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo
 	}
 }
 
-// getDagNode fills out the proper formatting for the unixfs node
+// GetDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
 func (n *UnixfsNode) GetDagNode() (node.Node, error) {
 	nd, err := n.getBaseDagNode()

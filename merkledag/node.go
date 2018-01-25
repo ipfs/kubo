@@ -124,7 +124,7 @@ func (n *ProtoNode) AddRawLink(name string, l *node.Link) error {
 	return nil
 }
 
-// Remove a link on this node by the given name
+// RemoveNodeLink removes a link on this node by the given name.
 func (n *ProtoNode) RemoveNodeLink(name string) error {
 	n.encoded = nil
 	good := make([]*node.Link, 0, len(n.links))
@@ -146,7 +146,7 @@ func (n *ProtoNode) RemoveNodeLink(name string) error {
 	return nil
 }
 
-// Return a copy of the link with given name
+// GetNodeLink returns a copy of the link with the given name.
 func (n *ProtoNode) GetNodeLink(name string) (*node.Link, error) {
 	for _, l := range n.links {
 		if l.Name == name {
@@ -160,6 +160,7 @@ func (n *ProtoNode) GetNodeLink(name string) (*node.Link, error) {
 	return nil, ErrLinkNotFound
 }
 
+// GetLinkedProtoNode returns a copy of the ProtoNode with the given name.
 func (n *ProtoNode) GetLinkedProtoNode(ctx context.Context, ds node.DAGService, name string) (*ProtoNode, error) {
 	nd, err := n.GetLinkedNode(ctx, ds, name)
 	if err != nil {
@@ -174,6 +175,7 @@ func (n *ProtoNode) GetLinkedProtoNode(ctx context.Context, ds node.DAGService, 
 	return pbnd, nil
 }
 
+// GetLinkedNode returns a copy of the IPLD Node with the given name.
 func (n *ProtoNode) GetLinkedNode(ctx context.Context, ds node.DAGService, name string) (node.Node, error) {
 	lnk, err := n.GetNodeLink(name)
 	if err != nil {

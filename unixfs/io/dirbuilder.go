@@ -51,6 +51,8 @@ func NewDirectory(dserv node.DAGService) *Directory {
 // ErrNotADir implies that the given node was not a unixfs directory
 var ErrNotADir = fmt.Errorf("merkledag node was not a directory or shard")
 
+// NewDirectoryFromNode loads a unixfs directory from the given IPLD node and
+// DAGService.
 func NewDirectoryFromNode(dserv node.DAGService, nd node.Node) (*Directory, error) {
 	pbnd, ok := nd.(*mdag.ProtoNode)
 	if !ok {

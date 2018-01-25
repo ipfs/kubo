@@ -66,6 +66,7 @@ type child interface {
 	Label() string
 }
 
+// NewHamtShard creates a new, empty HAMT shard with the given size.
 func NewHamtShard(dserv node.DAGService, size int) (*HamtShard, error) {
 	ds, err := makeHamtShard(dserv, size)
 	if err != nil {
@@ -93,6 +94,7 @@ func makeHamtShard(ds node.DAGService, size int) (*HamtShard, error) {
 	}, nil
 }
 
+// NewHamtFromDag creates new a HAMT shard from the given DAG.
 func NewHamtFromDag(dserv node.DAGService, nd node.Node) (*HamtShard, error) {
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {

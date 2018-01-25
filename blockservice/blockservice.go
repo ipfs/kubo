@@ -22,6 +22,8 @@ var log = logging.Logger("blockservice")
 
 var ErrNotFound = errors.New("blockservice: key not found")
 
+// BlockGetter is the common interface shared between blockservice sessions and
+// the blockservice.
 type BlockGetter interface {
 	// GetBlock gets the requested block.
 	GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error)
@@ -95,12 +97,14 @@ func NewWriteThrough(bs blockstore.Blockstore, rem exchange.Interface) BlockServ
 	}
 }
 
-func (bs *blockService) Blockstore() blockstore.Blockstore {
-	return bs.blockstore
+// Blockstore returns the blockstore behind this blockservice.
+func (s *blockService) Blockstore() blockstore.Blockstore {
+	return s.blockstore
 }
 
-func (bs *blockService) Exchange() exchange.Interface {
-	return bs.exchange
+// Exchange returns the exchange behind this blockservice.
+func (s *blockService) Exchange() exchange.Interface {
+	return s.exchange
 }
 
 // NewSession creates a bitswap session that allows for controlled exchange of
@@ -286,3 +290,5 @@ func (s *Session) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error
 func (s *Session) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
 	return getBlocks(ctx, ks, s.bs, s.ses)
 }
+
+var _ BlockGetter = (*Session)(nil)

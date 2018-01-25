@@ -27,6 +27,7 @@ func SizeSplitterGen(size int64) chunk.SplitterGen {
 	}
 }
 
+// GetDAGServ returns a mock DAGService.
 func GetDAGServ() node.DAGService {
 	return mdagmock.Mock()
 }
@@ -51,6 +52,7 @@ func init() {
 	UseBlake2b256.Prefix.MhLength = -1
 }
 
+// GetNode returns a unixfs file node with the specified data.
 func GetNode(t testing.TB, dserv node.DAGService, data []byte, opts NodeOpts) node.Node {
 	in := bytes.NewReader(data)
 
@@ -69,10 +71,12 @@ func GetNode(t testing.TB, dserv node.DAGService, data []byte, opts NodeOpts) no
 	return node
 }
 
+// GetEmptyNode returns an empty unixfs file node.
 func GetEmptyNode(t testing.TB, dserv node.DAGService, opts NodeOpts) node.Node {
 	return GetNode(t, dserv, []byte{}, opts)
 }
 
+// GetRandomNode returns a random unixfs file node.
 func GetRandomNode(t testing.TB, dserv node.DAGService, size int64, opts NodeOpts) ([]byte, node.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	buf, err := ioutil.ReadAll(in)
@@ -96,6 +100,7 @@ func ArrComp(a, b []byte) error {
 	return nil
 }
 
+// PrintDag pretty-prints the given dag to stdout.
 func PrintDag(nd *mdag.ProtoNode, ds node.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
