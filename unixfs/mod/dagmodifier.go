@@ -330,7 +330,6 @@ func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*c
 				return nil, false, err
 			}
 
-			offset += bs
 			node.Links()[i].Cid = k
 
 			// Recache serialized node
