@@ -322,7 +322,7 @@ func ValidateIpnsRecord(r *record.ValidationRecord) error {
 	if err != nil {
 		return ErrInvalidAuthor
 	}
-	if string(pid) != string(r.Author) {
+	if pid != r.Author {
 		return ErrInvalidAuthor
 	}
 
