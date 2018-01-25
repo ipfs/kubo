@@ -134,7 +134,7 @@ The JSON output contains type information.
 				t := unixfspb.Data_DataType(-1)
 
 				linkNode, err := link.GetNode(req.Context(), dserv)
-				if err == merkledag.ErrNotFound && !resolve {
+				if err == node.ErrNotFound && !resolve {
 					// not an error
 					linkNode = nil
 				} else if err != nil {

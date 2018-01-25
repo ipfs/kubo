@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	bserv "github.com/ipfs/go-ipfs/blockservice"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
 
@@ -33,7 +35,7 @@ type Result struct {
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
 //
-func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
+func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
 
 	elock := log.EventBegin(ctx, "GC.lockWait")
 	unlocker := bs.GCLock()
@@ -41,7 +43,8 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 	elock = log.EventBegin(ctx, "GC.locked")
 	emark := log.EventBegin(ctx, "GC.mark")
 
-	ls = ls.GetOfflineLinkService()
+	bsrv := bserv.New(bs, offline.Exchange(bs))
+	ds := dag.NewDAGService(bsrv)
 
 	output := make(chan Result, 128)
 
@@ -50,7 +53,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, ls dag.LinkService, pn pin.
 		defer unlocker.Unlock()
 		defer elock.Done()
 
-		gcs, err := ColoredSet(ctx, pn, ls, bestEffortRoots, output)
+		gcs, err := ColoredSet(ctx, pn, ds, bestEffortRoots, output)
 		if err != nil {
 			output <- Result{Error: err}
 			return
@@ -125,13 +128,13 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 
 // ColoredSet computes the set of nodes in the graph that are pinned by the
 // pins in the given pinner.
-func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ng node.NodeGetter, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	errors := false
 	gcs := cid.NewSet()
 	getLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
-		links, err := ls.GetLinks(ctx, cid)
+		links, err := node.GetLinks(ctx, ng, cid)
 		if err != nil {
 			errors = true
 			output <- Result{Error: &CannotFetchLinksError{cid, err}}
@@ -145,8 +148,8 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ls dag.LinkService, bestEffo
 	}
 
 	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
-		links, err := ls.GetLinks(ctx, cid)
-		if err != nil && err != dag.ErrNotFound {
+		links, err := node.GetLinks(ctx, ng, cid)
+		if err != nil && err != node.ErrNotFound {
 			errors = true
 			output <- Result{Error: &CannotFetchLinksError{cid, err}}
 		}

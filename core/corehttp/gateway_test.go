@@ -178,6 +178,9 @@ func TestGatewayGet(t *testing.T) {
 }
 
 func TestIPNSHostnameRedirect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ns := mockNamesys{}
 	ts, n := newTestServerAndNode(t, ns)
 	t.Logf("test server url: %s", ts.URL)
@@ -199,12 +202,12 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = n.DAG.Add(dagn2)
+	err = n.DAG.Add(ctx, dagn2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = n.DAG.Add(dagn1)
+	err = n.DAG.Add(ctx, dagn1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,6 +265,9 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 }
 
 func TestIPNSHostnameBacklinks(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ns := mockNamesys{}
 	ts, n := newTestServerAndNode(t, ns)
 	t.Logf("test server url: %s", ts.URL)
@@ -286,15 +292,15 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = n.DAG.Add(dagn3)
+	err = n.DAG.Add(ctx, dagn3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = n.DAG.Add(dagn2)
+	err = n.DAG.Add(ctx, dagn2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = n.DAG.Add(dagn1)
+	err = n.DAG.Add(ctx, dagn1)
 	if err != nil {
 		t.Fatal(err)
 	}

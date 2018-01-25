@@ -21,7 +21,7 @@ import (
 	lgbl "gx/ipfs/QmaDoQyTYCS3DrPLBLXMixXfuCstBVVR81J3UY1vMxghpT/go-libp2p-loggables"
 	fuse "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse"
 	fs "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs"
-	format "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var log = logging.Logger("fuse/ipfs")
@@ -92,7 +92,7 @@ func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 // Node is the core object representing a filesystem tree node.
 type Node struct {
 	Ipfs   *core.IpfsNode
-	Nd     format.Node
+	Nd     node.Node
 	cached *ftpb.Data
 }
 
@@ -157,7 +157,7 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 	nd, err := s.Ipfs.DAG.Get(ctx, link.Cid)
 	switch err {
-	case mdag.ErrNotFound:
+	case node.ErrNotFound:
 	default:
 		log.Errorf("fuse lookup %q: %s", name, err)
 		return nil, err
@@ -177,7 +177,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	}
 
 	var entries []fuse.Dirent
-	err = dir.ForEachLink(ctx, func(lnk *format.Link) error {
+	err = dir.ForEachLink(ctx, func(lnk *node.Link) error {
 		n := lnk.Name
 		if len(n) == 0 {
 			n = lnk.Cid.String()

@@ -33,14 +33,10 @@ func TestBlocks(t *testing.T) {
 		t.Error("Block key and data multihash key not equal")
 	}
 
-	k, err := bs.AddBlock(o)
+	err := bs.AddBlock(o)
 	if err != nil {
 		t.Error("failed to add block to BlockService", err)
 		return
-	}
-
-	if !k.Equals(o.Cid()) {
-		t.Error("returned key is not equal to block key", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)

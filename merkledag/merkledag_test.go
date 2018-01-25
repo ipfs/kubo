@@ -131,7 +131,7 @@ func TestBatchFetchDupBlock(t *testing.T) {
 
 func runBatchFetchTest(t *testing.T, read io.Reader) {
 	ctx := context.Background()
-	var dagservs []DAGService
+	var dagservs []node.DAGService
 	for _, bsi := range bstest.Mocks(5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
@@ -155,7 +155,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 		t.Fatal(err)
 	}
 
-	_, err = dagservs[0].Add(root)
+	err = dagservs[0].Add(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestCantGet(t *testing.T) {
 }
 
 func TestFetchGraph(t *testing.T) {
-	var dservs []DAGService
+	var dservs []node.DAGService
 	bsis := bstest.Mocks(2)
 	for _, bsi := range bsis {
 		dservs = append(dservs, NewDAGService(bsi))
@@ -285,13 +285,15 @@ func TestEnumerateChildren(t *testing.T) {
 }
 
 func TestFetchFailure(t *testing.T) {
+	ctx := context.Background()
+
 	ds := dstest.Mock()
 	ds_bad := dstest.Mock()
 
 	top := new(ProtoNode)
 	for i := 0; i < 10; i++ {
 		nd := NodeWithData([]byte{byte('a' + i)})
-		_, err := ds.Add(nd)
+		err := ds.Add(ctx, nd)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -304,7 +306,7 @@ func TestFetchFailure(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		nd := NodeWithData([]byte{'f', 'a' + byte(i)})
-		_, err := ds_bad.Add(nd)
+		err := ds_bad.Add(ctx, nd)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -315,9 +317,9 @@ func TestFetchFailure(t *testing.T) {
 		}
 	}
 
-	getters := GetDAG(context.Background(), ds, top)
+	getters := node.GetDAG(ctx, ds, top)
 	for i, getter := range getters {
-		_, err := getter.Get(context.Background())
+		_, err := getter.Get(ctx)
 		if err != nil && i < 10 {
 			t.Fatal(err)
 		}
@@ -352,15 +354,17 @@ func TestUnmarshalFailure(t *testing.T) {
 }
 
 func TestBasicAddGet(t *testing.T) {
+	ctx := context.Background()
+
 	ds := dstest.Mock()
 	nd := new(ProtoNode)
 
-	c, err := ds.Add(nd)
+	err := ds.Add(ctx, nd)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	out, err := ds.Get(context.Background(), c)
+	out, err := ds.Get(ctx, nd.Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,20 +375,22 @@ func TestBasicAddGet(t *testing.T) {
 }
 
 func TestGetRawNodes(t *testing.T) {
+	ctx := context.Background()
+
 	rn := NewRawNode([]byte("test"))
 
 	ds := dstest.Mock()
 
-	c, err := ds.Add(rn)
+	err := ds.Add(ctx, rn)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !c.Equals(rn.Cid()) {
+	if !rn.Cid().Equals(rn.Cid()) {
 		t.Fatal("output cids didnt match")
 	}
 
-	out, err := ds.Get(context.TODO(), c)
+	out, err := ds.Get(ctx, rn.Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -449,6 +455,8 @@ func TestProtoNodeResolve(t *testing.T) {
 }
 
 func TestCidRetention(t *testing.T) {
+	ctx := context.Background()
+
 	nd := new(ProtoNode)
 	nd.SetData([]byte("fooooo"))
 
@@ -466,13 +474,13 @@ func TestCidRetention(t *testing.T) {
 	}
 
 	bs := dstest.Bserv()
-	_, err = bs.AddBlock(blk)
+	err = bs.AddBlock(blk)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ds := NewDAGService(bs)
-	out, err := ds.Get(context.Background(), c2)
+	out, err := ds.Get(ctx, c2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -501,6 +509,8 @@ func TestCidRawDoesnNeedData(t *testing.T) {
 }
 
 func TestEnumerateAsyncFailsNotFound(t *testing.T) {
+	ctx := context.Background()
+
 	a := NodeWithData([]byte("foo1"))
 	b := NodeWithData([]byte("foo2"))
 	c := NodeWithData([]byte("foo3"))
@@ -508,7 +518,7 @@ func TestEnumerateAsyncFailsNotFound(t *testing.T) {
 
 	ds := dstest.Mock()
 	for _, n := range []node.Node{a, b, c} {
-		_, err := ds.Add(n)
+		err := ds.Add(ctx, n)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -531,13 +541,13 @@ func TestEnumerateAsyncFailsNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pcid, err := ds.Add(parent)
+	err := ds.Add(ctx, parent)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	cset := cid.NewSet()
-	err = EnumerateChildrenAsync(context.Background(), GetLinksDirect(ds), pcid, cset.Visit)
+	err = EnumerateChildrenAsync(ctx, GetLinksDirect(ds), parent.Cid(), cset.Visit)
 	if err == nil {
 		t.Fatal("this should have failed")
 	}
@@ -570,7 +580,9 @@ func testProgressIndicator(t *testing.T, depth int) {
 	}
 }
 
-func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
+func mkDag(ds node.DAGService, depth int) (*cid.Cid, int) {
+	ctx := context.Background()
+
 	totalChildren := 0
 	f := func() *ProtoNode {
 		p := new(ProtoNode)
@@ -578,7 +590,7 @@ func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
 		rand.Read(buf)
 
 		p.SetData(buf)
-		_, err := ds.Add(p)
+		err := ds.Add(ctx, p)
 		if err != nil {
 			panic(err)
 		}
@@ -589,7 +601,7 @@ func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
 		thisf := f
 		f = func() *ProtoNode {
 			pn := mkNodeWithChildren(thisf, 10)
-			_, err := ds.Add(pn)
+			err := ds.Add(ctx, pn)
 			if err != nil {
 				panic(err)
 			}
@@ -599,12 +611,12 @@ func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
 	}
 
 	nd := f()
-	c, err := ds.Add(nd)
+	err := ds.Add(ctx, nd)
 	if err != nil {
 		panic(err)
 	}
 
-	return c, totalChildren
+	return nd.Cid(), totalChildren
 }
 
 func mkNodeWithChildren(getChild func() *ProtoNode, width int) *ProtoNode {

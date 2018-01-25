@@ -109,13 +109,13 @@ the limit will not be respected by the network.
 
 		rtpb.SetData(append(rtpb.Data(), data...))
 
-		newkey, err := nd.DAG.Add(rtpb)
+		err = nd.DAG.Add(req.Context(), rtpb)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		res.SetOutput(&Object{Hash: newkey.String()})
+		res.SetOutput(&Object{Hash: rtpb.Cid().String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{
@@ -177,13 +177,13 @@ Example:
 
 		rtpb.SetData(data)
 
-		newkey, err := nd.DAG.Add(rtpb)
+		err = nd.DAG.Add(req.Context(), rtpb)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		res.SetOutput(&Object{Hash: newkey.String()})
+		res.SetOutput(&Object{Hash: rtpb.Cid().String()})
 	},
 	Type: Object{},
 	Marshalers: cmds.MarshalerMap{
@@ -237,7 +237,7 @@ Removes a link by the given name from root.
 			return
 		}
 
-		nnode, err := e.Finalize(nd.DAG)
+		nnode, err := e.Finalize(req.Context(), nd.DAG)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -334,7 +334,7 @@ to a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
-		nnode, err := e.Finalize(nd.DAG)
+		nnode, err := e.Finalize(req.Context(), nd.DAG)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

@@ -6,6 +6,7 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks/blockstore"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
+	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
@@ -18,7 +19,7 @@ func NewBlockstoreProvider(bstore blocks.Blockstore) KeyChanFunc {
 }
 
 // NewPinnedProvider returns provider supplying pinned keys
-func NewPinnedProvider(pinning pin.Pinner, dag merkledag.DAGService, onlyRoots bool) KeyChanFunc {
+func NewPinnedProvider(pinning pin.Pinner, dag node.DAGService, onlyRoots bool) KeyChanFunc {
 	return func(ctx context.Context) (<-chan *cid.Cid, error) {
 		set, err := pinSet(ctx, pinning, dag, onlyRoots)
 		if err != nil {
@@ -42,7 +43,7 @@ func NewPinnedProvider(pinning pin.Pinner, dag merkledag.DAGService, onlyRoots b
 	}
 }
 
-func pinSet(ctx context.Context, pinning pin.Pinner, dag merkledag.DAGService, onlyRoots bool) (*streamingSet, error) {
+func pinSet(ctx context.Context, pinning pin.Pinner, dag node.DAGService, onlyRoots bool) (*streamingSet, error) {
 	set := newStreamingSet()
 
 	go func() {
@@ -56,7 +57,7 @@ func pinSet(ctx context.Context, pinning pin.Pinner, dag merkledag.DAGService, o
 			set.add(key)
 
 			if !onlyRoots {
-				err := merkledag.EnumerateChildren(ctx, dag.GetLinks, key, set.add)
+				err := merkledag.EnumerateChildren(ctx, merkledag.GetLinksWithDAG(dag), key, set.add)
 				if err != nil {
 					log.Errorf("reprovide indirect pins: %s", err)
 					return

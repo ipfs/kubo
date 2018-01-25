@@ -178,13 +178,13 @@ type pinner struct {
 	// Track the keys used for storing the pinning state, so gc does
 	// not delete them.
 	internalPin *cid.Set
-	dserv       mdag.DAGService
-	internal    mdag.DAGService // dagservice used to store internal objects
+	dserv       node.DAGService
+	internal    node.DAGService // dagservice used to store internal objects
 	dstore      ds.Datastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
-func NewPinner(dstore ds.Datastore, serv, internal mdag.DAGService) Pinner {
+func NewPinner(dstore ds.Datastore, serv, internal node.DAGService) Pinner {
 
 	rcset := cid.NewSet()
 	dirset := cid.NewSet()
@@ -203,10 +203,12 @@ func NewPinner(dstore ds.Datastore, serv, internal mdag.DAGService) Pinner {
 func (p *pinner) Pin(ctx context.Context, node node.Node, recurse bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	c, err := p.dserv.Add(node)
+	err := p.dserv.Add(ctx, node)
 	if err != nil {
 		return err
 	}
+
+	c := node.Cid()
 
 	if recurse {
 		if p.recursePin.Has(c) {
@@ -356,7 +358,7 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	// Now walk all recursive pins to check for indirect pins
 	var checkChildren func(*cid.Cid, *cid.Cid) error
 	checkChildren = func(rk, parentKey *cid.Cid) error {
-		links, err := p.dserv.GetLinks(context.Background(), parentKey)
+		links, err := node.GetLinks(context.TODO(), p.dserv, parentKey)
 		if err != nil {
 			return err
 		}
@@ -425,7 +427,7 @@ func cidSetWithValues(cids []*cid.Cid) *cid.Set {
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(d ds.Datastore, dserv, internal mdag.DAGService) (Pinner, error) {
+func LoadPinner(d ds.Datastore, dserv, internal node.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	rootKeyI, err := d.Get(pinDatastoreKey)
@@ -550,15 +552,17 @@ func (p *pinner) Flush() error {
 	}
 
 	// add the empty node, its referenced by the pin sets but never created
-	_, err := p.internal.Add(new(mdag.ProtoNode))
+	err := p.internal.Add(ctx, new(mdag.ProtoNode))
 	if err != nil {
 		return err
 	}
 
-	k, err := p.internal.Add(root)
+	err = p.internal.Add(ctx, root)
 	if err != nil {
 		return err
 	}
+
+	k := root.Cid()
 
 	internalset.Add(k)
 	if err := p.dstore.Put(pinDatastoreKey, k.Bytes()); err != nil {
@@ -593,8 +597,8 @@ func (p *pinner) PinWithMode(c *cid.Cid, mode PinMode) {
 
 // hasChild recursively looks for a Cid among the children of a root Cid.
 // The visit function can be used to shortcut already-visited branches.
-func hasChild(ds mdag.LinkService, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
-	links, err := ds.GetLinks(context.Background(), root)
+func hasChild(ng node.NodeGetter, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
+	links, err := node.GetLinks(context.TODO(), ng, root)
 	if err != nil {
 		return false, err
 	}
@@ -604,7 +608,7 @@ func hasChild(ds mdag.LinkService, root *cid.Cid, child *cid.Cid, visit func(*ci
 			return true, nil
 		}
 		if visit(c) {
-			has, err := hasChild(ds, c, child, visit)
+			has, err := hasChild(ng, c, child, visit)
 			if err != nil {
 				return false, err
 			}

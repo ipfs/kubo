@@ -2,6 +2,7 @@ package objectcmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
@@ -422,7 +423,7 @@ And then run:
 			defer n.Blockstore.PinLock().Unlock()
 		}
 
-		objectCid, err := objectPut(n, input, inputenc, datafieldenc)
+		objectCid, err := objectPut(req.Context(), n, input, inputenc, datafieldenc)
 		if err != nil {
 			errType := cmdkit.ErrNormal
 			if err == ErrUnknownObjectEnc {
@@ -504,12 +505,12 @@ Available templates:
 			}
 		}
 
-		k, err := n.DAG.Add(node)
+		err = n.DAG.Add(req.Context(), node)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		res.SetOutput(&Object{Hash: k.String()})
+		res.SetOutput(&Object{Hash: node.Cid().String()})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -542,7 +543,7 @@ func nodeFromTemplate(template string) (*dag.ProtoNode, error) {
 var ErrEmptyNode = errors.New("no data or links in this node")
 
 // objectPut takes a format option, serializes bytes from stdin and updates the dag with that data
-func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEncoding string) (*cid.Cid, error) {
+func objectPut(ctx context.Context, n *core.IpfsNode, input io.Reader, encoding string, dataFieldEncoding string) (*cid.Cid, error) {
 
 	data, err := ioutil.ReadAll(io.LimitReader(input, inputLimit+10))
 	if err != nil {
@@ -602,7 +603,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEnco
 		return nil, err
 	}
 
-	_, err = n.DAG.Add(dagnode)
+	err = n.DAG.Add(ctx, dagnode)
 	if err != nil {
 		return nil, err
 	}

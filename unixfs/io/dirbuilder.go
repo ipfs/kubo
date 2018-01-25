@@ -26,14 +26,14 @@ var UseHAMTSharding = false
 var DefaultShardWidth = 256
 
 type Directory struct {
-	dserv   mdag.DAGService
+	dserv   node.DAGService
 	dirnode *mdag.ProtoNode
 
 	shard *hamt.HamtShard
 }
 
 // NewDirectory returns a Directory. It needs a DAGService to add the Children
-func NewDirectory(dserv mdag.DAGService) *Directory {
+func NewDirectory(dserv node.DAGService) *Directory {
 	db := new(Directory)
 	db.dserv = dserv
 	if UseHAMTSharding {
@@ -51,7 +51,7 @@ func NewDirectory(dserv mdag.DAGService) *Directory {
 // ErrNotADir implies that the given node was not a unixfs directory
 var ErrNotADir = fmt.Errorf("merkledag node was not a directory or shard")
 
-func NewDirectoryFromNode(dserv mdag.DAGService, nd node.Node) (*Directory, error) {
+func NewDirectoryFromNode(dserv node.DAGService, nd node.Node) (*Directory, error) {
 	pbnd, ok := nd.(*mdag.ProtoNode)
 	if !ok {
 		return nil, ErrNotADir

@@ -78,7 +78,7 @@ func (n *UnixfsNode) Set(other *UnixfsNode) {
 	}
 }
 
-func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*UnixfsNode, error) {
+func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds node.DAGService) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 		return err
 	}
 
-	_, err = db.batch.Add(childnode)
+	err = db.batch.Add(childnode)
 
 	return err
 }
@@ -133,7 +133,11 @@ func (n *UnixfsNode) FileSize() uint64 {
 }
 
 func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
-	n.posInfo = &pi.PosInfo{offset, fullPath, stat}
+	n.posInfo = &pi.PosInfo{
+		Offset:   offset,
+		FullPath: fullPath,
+		Stat:     stat,
+	}
 }
 
 // getDagNode fills out the proper formatting for the unixfs node

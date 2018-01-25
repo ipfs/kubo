@@ -41,7 +41,7 @@ func TestRemoveLink(t *testing.T) {
 
 	// should fail
 	err = nd.RemoveNodeLink("a")
-	if err != ErrNotFound {
+	if err != node.ErrNotFound {
 		t.Fatal("should have failed to remove link")
 	}
 
@@ -60,20 +60,25 @@ func TestRemoveLink(t *testing.T) {
 }
 
 func TestFindLink(t *testing.T) {
+	ctx := context.Background()
+
 	ds := mdtest.Mock()
-	k, err := ds.Add(new(ProtoNode))
+	ndEmpty := new(ProtoNode)
+	err := ds.Add(ctx, ndEmpty)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	kEmpty := ndEmpty.Cid()
+
 	nd := &ProtoNode{}
 	nd.SetLinks([]*node.Link{
-		{Name: "a", Cid: k},
-		{Name: "c", Cid: k},
-		{Name: "b", Cid: k},
+		{Name: "a", Cid: kEmpty},
+		{Name: "c", Cid: kEmpty},
+		{Name: "b", Cid: kEmpty},
 	})
 
-	_, err = ds.Add(nd)
+	err = ds.Add(ctx, nd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +112,7 @@ func TestFindLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if olnk.Cid.String() == k.String() {
+	if olnk.Cid.String() == kEmpty.String() {
 		t.Fatal("new link should have different hash")
 	}
 }

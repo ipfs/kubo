@@ -170,7 +170,7 @@ func statGetFormatOptions(req cmds.Request) (string, error) {
 	}
 }
 
-func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
+func statNode(ds node.DAGService, fsn mfs.FSNode) (*Object, error) {
 	nd, err := fsn.GetNode()
 	if err != nil {
 		return nil, err

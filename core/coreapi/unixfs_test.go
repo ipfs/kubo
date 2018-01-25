@@ -200,12 +200,12 @@ func TestCatDir(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
-	c, err := node.DAG.Add(unixfs.EmptyDirNode())
+	edir := unixfs.EmptyDirNode()
+	err = node.DAG.Add(ctx, edir)
 	if err != nil {
 		t.Error(err)
 	}
-	p := coreapi.ParseCid(c)
+	p := coreapi.ParseCid(edir.Cid())
 
 	if p.String() != emptyDir.String() {
 		t.Fatalf("expected path %s, got: %s", emptyDir, p)
@@ -224,12 +224,13 @@ func TestCatNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	c, err := node.DAG.Add(new(mdag.ProtoNode))
+	nd := new(mdag.ProtoNode)
+	err = node.DAG.Add(ctx, nd)
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = api.Unixfs().Cat(ctx, coreapi.ParseCid(c))
+	_, err = api.Unixfs().Cat(ctx, coreapi.ParseCid(nd.Cid()))
 	if !strings.Contains(err.Error(), "proto: required field") {
 		t.Fatalf("expected protobuf error, got: %s", err)
 	}
@@ -292,7 +293,7 @@ func TestLsEmptyDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = node.DAG.Add(unixfs.EmptyDirNode())
+	err = node.DAG.Add(ctx, unixfs.EmptyDirNode())
 	if err != nil {
 		t.Error(err)
 	}
@@ -320,12 +321,12 @@ func TestLsNonUnixfs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c, err := node.DAG.Add(nd)
+	err = node.DAG.Add(ctx, nd)
 	if err != nil {
 		t.Error(err)
 	}
 
-	links, err := api.Unixfs().Ls(ctx, coreapi.ParseCid(c))
+	links, err := api.Unixfs().Ls(ctx, coreapi.ParseCid(nd.Cid()))
 	if err != nil {
 		t.Error(err)
 	}

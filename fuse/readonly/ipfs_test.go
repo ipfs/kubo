@@ -145,7 +145,7 @@ func TestIpfsStressRead(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, err = nd.DAG.Add(newdir)
+		err = nd.DAG.Add(nd.Context(), newdir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -224,12 +224,12 @@ func TestIpfsBasicDirRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d1ndk, err := nd.DAG.Add(d1nd)
+	err = nd.DAG.Add(nd.Context(), d1nd)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dirname := path.Join(mnt.Dir, d1ndk.String())
+	dirname := path.Join(mnt.Dir, d1nd.Cid().String())
 	fname := path.Join(dirname, "actual")
 	rbuf, err := ioutil.ReadFile(fname)
 	if err != nil {

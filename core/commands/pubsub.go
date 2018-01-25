@@ -100,13 +100,13 @@ This command outputs data in the following encodings:
 		if discover {
 			go func() {
 				blk := blocks.NewBlock([]byte("floodsub:" + topic))
-				cid, err := n.Blocks.AddBlock(blk)
+				err := n.Blocks.AddBlock(blk)
 				if err != nil {
 					log.Error("pubsub discovery: ", err)
 					return
 				}
 
-				connectToPubSubPeers(req.Context, n, cid)
+				connectToPubSubPeers(req.Context, n, blk.Cid())
 			}()
 		}
 

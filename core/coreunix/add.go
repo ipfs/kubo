@@ -74,7 +74,7 @@ type AddedObject struct {
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds dag.DAGService) (*Adder, error) {
+func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds node.DAGService) (*Adder, error) {
 	return &Adder{
 		ctx:        ctx,
 		pinning:    p,
@@ -94,7 +94,7 @@ type Adder struct {
 	ctx        context.Context
 	pinning    pin.Pinner
 	blockstore bstore.GCBlockstore
-	dagService dag.DAGService
+	dagService node.DAGService
 	Out        chan interface{}
 	Progress   bool
 	Hidden     bool
@@ -195,7 +195,9 @@ func (adder *Adder) PinRoot() error {
 		return nil
 	}
 
-	rnk, err := adder.dagService.Add(root)
+	rnk := root.Cid()
+
+	err = adder.dagService.Add(adder.ctx, root)
 	if err != nil {
 		return err
 	}
@@ -470,7 +472,7 @@ func (adder *Adder) addFile(file files.File) error {
 
 		dagnode := dag.NodeWithData(sdata)
 		dagnode.SetPrefix(adder.Prefix)
-		_, err = adder.dagService.Add(dagnode)
+		err = adder.dagService.Add(adder.ctx, dagnode)
 		if err != nil {
 			return err
 		}
@@ -573,7 +575,7 @@ func outputDagnode(out chan interface{}, name string, dn node.Node) error {
 }
 
 // NewMemoryDagService builds and returns a new mem-datastore.
-func NewMemoryDagService() dag.DAGService {
+func NewMemoryDagService() node.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	bsrv := bserv.New(bs, offline.Exchange(bs))

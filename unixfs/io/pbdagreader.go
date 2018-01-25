@@ -17,7 +17,7 @@ import (
 
 // DagReader provides a way to easily read the data contained in a dag.
 type pbDagReader struct {
-	serv mdag.DAGService
+	serv node.DAGService
 
 	// the node being read
 	node *mdag.ProtoNode
@@ -29,8 +29,8 @@ type pbDagReader struct {
 	// will either be a bytes.Reader or a child DagReader
 	buf ReadSeekCloser
 
-	// NodeGetters for each of 'nodes' child links
-	promises []mdag.NodeGetter
+	// NodePromises for each of 'nodes' child links
+	promises []*node.NodePromise
 
 	// the cid of each child of the current node
 	links []*cid.Cid
@@ -50,14 +50,14 @@ type pbDagReader struct {
 
 var _ DagReader = (*pbDagReader)(nil)
 
-func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv mdag.DAGService) *pbDagReader {
+func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv node.DAGService) *pbDagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	curLinks := getLinkCids(n)
 	return &pbDagReader{
 		node:     n,
 		serv:     serv,
 		buf:      NewBufDagReader(pb.GetData()),
-		promises: make([]mdag.NodeGetter, len(curLinks)),
+		promises: make([]*node.NodePromise, len(curLinks)),
 		links:    curLinks,
 		ctx:      fctx,
 		cancel:   cancel,
@@ -74,7 +74,7 @@ func (dr *pbDagReader) preloadNextNodes(ctx context.Context) {
 		end = len(dr.links)
 	}
 
-	for i, p := range mdag.GetNodes(ctx, dr.serv, dr.links[beg:end]) {
+	for i, p := range node.GetNodes(ctx, dr.serv, dr.links[beg:end]) {
 		dr.promises[beg+i] = p
 	}
 }

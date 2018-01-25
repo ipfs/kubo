@@ -474,7 +474,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		nnode, err := e.Finalize(i.node.DAG)
+		nnode, err := e.Finalize(ctx, i.node.DAG)
 		if err != nil {
 			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
 			return
@@ -498,11 +498,11 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		// object set-data case
 		pbnd.SetData(pbnewnode.Data())
 
-		newcid, err = i.node.DAG.Add(pbnd)
+		newcid = pbnd.Cid()
+		err = i.node.DAG.Add(ctx, pbnd)
 		if err != nil {
 			nnk := newnode.Cid()
-			rk := pbnd.Cid()
-			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), rk.String()), err, http.StatusInternalServerError)
+			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), newcid.String()), err, http.StatusInternalServerError)
 			return
 		}
 	default:
@@ -561,7 +561,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newnode *dag.ProtoNode = pbnd
 	for j := len(pathNodes) - 2; j >= 0; j-- {
-		if _, err := i.node.DAG.Add(newnode); err != nil {
+		if err := i.node.DAG.Add(ctx, newnode); err != nil {
 			webError(w, "Could not add node", err, http.StatusInternalServerError)
 			return
 		}
@@ -579,7 +579,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if _, err := i.node.DAG.Add(newnode); err != nil {
+	if err := i.node.DAG.Add(ctx, newnode); err != nil {
 		webError(w, "Could not add root node", err, http.StatusInternalServerError)
 		return
 	}

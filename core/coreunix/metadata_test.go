@@ -20,9 +20,10 @@ import (
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	dssync "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/sync"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func getDagserv(t *testing.T) merkledag.DAGService {
+func getDagserv(t *testing.T) node.DAGService {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
 	blockserv := bserv.New(bs, offline.Exchange(bs))

@@ -7,10 +7,12 @@ import (
 	"io"
 	"time"
 
+	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
@@ -555,7 +557,7 @@ func pinLsAll(typeStr string, ctx context.Context, n *core.IpfsNode) (map[string
 	if typeStr == "indirect" || typeStr == "all" {
 		set := cid.NewSet()
 		for _, k := range n.Pinning.RecursiveKeys() {
-			err := dag.EnumerateChildren(n.Context(), n.DAG.GetLinks, k, set.Visit)
+			err := dag.EnumerateChildren(n.Context(), dag.GetLinksWithDAG(n.DAG), k, set.Visit)
 			if err != nil {
 				return nil, err
 			}
@@ -594,7 +596,10 @@ type pinVerifyOpts struct {
 
 func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
 	visited := make(map[string]PinStatus)
-	getLinks := n.DAG.GetOfflineLinkService().GetLinks
+
+	bs := n.Blocks.Blockstore()
+	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
+	getLinks := dag.GetLinksWithDAG(DAG)
 	recPins := n.Pinning.RecursiveKeys()
 
 	var checkPin func(root *cid.Cid) PinStatus

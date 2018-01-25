@@ -70,6 +70,7 @@ import (
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	metrics "gx/ipfs/Qmb1QrSXKwGFWgiGEcyac4s5wakJG4yPvCPk49xZHxr5ux/go-libp2p-metrics"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
 	mafilter "gx/ipfs/Qmf2UAmRwDG4TvnkQpHZWPAzw7rpCYVhxmRXmYxXr5LD1g/go-maddr-filter"
 	dht "gx/ipfs/QmfChjky1VNaHUQR9F2xqR1QEyX45pqU78nhsoq5GDYoKL/go-libp2p-kad-dht"
@@ -117,7 +118,7 @@ type IpfsNode struct {
 	BaseBlocks bstore.Blockstore    // the raw blockstore, no filestore wrapping
 	GCLocker   bstore.GCLocker      // the locker used to protect the blockstore during gc
 	Blocks     bserv.BlockService   // the block service, get/add blocks.
-	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
+	DAG        node.DAGService      // the merkle dag service, get/add objects.
 	Resolver   *path.Resolver       // the path resolution system
 	Reporter   metrics.Reporter
 	Discovery  discovery.Service
@@ -739,7 +740,7 @@ func (n *IpfsNode) loadFilesRoot() error {
 	switch {
 	case err == ds.ErrNotFound || val == nil:
 		nd = ft.EmptyDirNode()
-		_, err := n.DAG.Add(nd)
+		err := n.DAG.Add(n.Context(), nd)
 		if err != nil {
 			return fmt.Errorf("failure writing to dagstore: %s", err)
 		}

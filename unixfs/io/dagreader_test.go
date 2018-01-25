@@ -209,15 +209,15 @@ func TestBadPBData(t *testing.T) {
 }
 
 func TestMetadataNode(t *testing.T) {
+	ctx, closer := context.WithCancel(context.Background())
+	defer closer()
+
 	dserv := testu.GetDAGServ()
 	rdata, rnode := testu.GetRandomNode(t, dserv, 512, testu.UseProtoBufLeaves)
-	_, err := dserv.Add(rnode)
+	err := dserv.Add(ctx, rnode)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	ctx, closer := context.WithCancel(context.Background())
-	defer closer()
 
 	data, err := unixfs.BytesForMetadata(&unixfs.Metadata{
 		MimeType: "text",

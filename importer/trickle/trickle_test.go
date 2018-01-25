@@ -17,6 +17,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 type UseRawLeaves bool
@@ -31,7 +32,7 @@ func runBothSubtests(t *testing.T, tfunc func(*testing.T, UseRawLeaves)) {
 	t.Run("leaves=Raw", func(t *testing.T) { tfunc(t, RawLeaves) })
 }
 
-func buildTestDag(ds merkledag.DAGService, spl chunk.Splitter, rawLeaves UseRawLeaves) (*merkledag.ProtoNode, error) {
+func buildTestDag(ds node.DAGService, spl chunk.Splitter, rawLeaves UseRawLeaves) (*merkledag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:   ds,
 		Maxlinks:  h.DefaultLinksPerBlock,

@@ -58,7 +58,7 @@ type Root struct {
 
 	repub *Republisher
 
-	dserv dag.DAGService
+	dserv node.DAGService
 
 	Type string
 }
@@ -67,7 +67,7 @@ type Root struct {
 type PubFunc func(context.Context, *cid.Cid) error
 
 // NewRoot creates a new Root and starts up a republisher routine for it.
-func NewRoot(parent context.Context, ds dag.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
+func NewRoot(parent context.Context, ds node.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
 
 	var repub *Republisher
 	if pf != nil {
@@ -160,13 +160,13 @@ func (kr *Root) FlushMemFree(ctx context.Context) error {
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published.
 func (kr *Root) closeChild(name string, nd node.Node, sync bool) error {
-	c, err := kr.dserv.Add(nd)
+	err := kr.dserv.Add(context.TODO(), nd)
 	if err != nil {
 		return err
 	}
 
 	if kr.repub != nil {
-		kr.repub.Update(c)
+		kr.repub.Update(nd.Cid())
 	}
 	return nil
 }

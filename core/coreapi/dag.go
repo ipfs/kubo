@@ -41,7 +41,7 @@ func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPut
 		return nil, fmt.Errorf("no node returned from ParseInputs")
 	}
 
-	_, err = api.node.DAG.Add(nds[0])
+	err = api.node.DAG.Add(ctx, nds[0])
 	if err != nil {
 		return nil, err
 	}

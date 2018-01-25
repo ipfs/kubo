@@ -27,7 +27,7 @@ func SizeSplitterGen(size int64) chunk.SplitterGen {
 	}
 }
 
-func GetDAGServ() mdag.DAGService {
+func GetDAGServ() node.DAGService {
 	return mdagmock.Mock()
 }
 
@@ -51,7 +51,7 @@ func init() {
 	UseBlake2b256.Prefix.MhLength = -1
 }
 
-func GetNode(t testing.TB, dserv mdag.DAGService, data []byte, opts NodeOpts) node.Node {
+func GetNode(t testing.TB, dserv node.DAGService, data []byte, opts NodeOpts) node.Node {
 	in := bytes.NewReader(data)
 
 	dbp := h.DagBuilderParams{
@@ -69,11 +69,11 @@ func GetNode(t testing.TB, dserv mdag.DAGService, data []byte, opts NodeOpts) no
 	return node
 }
 
-func GetEmptyNode(t testing.TB, dserv mdag.DAGService, opts NodeOpts) node.Node {
+func GetEmptyNode(t testing.TB, dserv node.DAGService, opts NodeOpts) node.Node {
 	return GetNode(t, dserv, []byte{}, opts)
 }
 
-func GetRandomNode(t testing.TB, dserv mdag.DAGService, size int64, opts NodeOpts) ([]byte, node.Node) {
+func GetRandomNode(t testing.TB, dserv node.DAGService, size int64, opts NodeOpts) ([]byte, node.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {
@@ -96,7 +96,7 @@ func ArrComp(a, b []byte) error {
 	return nil
 }
 
-func PrintDag(nd *mdag.ProtoNode, ds mdag.DAGService, indent int) {
+func PrintDag(nd *mdag.ProtoNode, ds node.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		panic(err)

@@ -37,7 +37,7 @@ func (c *Change) String() string {
 	}
 }
 
-func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.ProtoNode, cs []*Change) (*dag.ProtoNode, error) {
+func ApplyChange(ctx context.Context, ds node.DAGService, nd *dag.ProtoNode, cs []*Change) (*dag.ProtoNode, error) {
 	e := NewDagEditor(nd, ds)
 	for _, c := range cs {
 		switch c.Type {
@@ -85,11 +85,11 @@ func ApplyChange(ctx context.Context, ds dag.DAGService, nd *dag.ProtoNode, cs [
 		}
 	}
 
-	return e.Finalize(ds)
+	return e.Finalize(ctx, ds)
 }
 
 // Diff returns a set of changes that transform node 'a' into node 'b'
-func Diff(ctx context.Context, ds dag.DAGService, a, b node.Node) ([]*Change, error) {
+func Diff(ctx context.Context, ds node.DAGService, a, b node.Node) ([]*Change, error) {
 	if len(a.Links()) == 0 && len(b.Links()) == 0 {
 		return []*Change{
 			&Change{

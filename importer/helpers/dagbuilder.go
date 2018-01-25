@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"context"
 	"io"
 	"os"
 
@@ -16,13 +17,13 @@ import (
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
-	dserv     dag.DAGService
+	dserv     node.DAGService
 	spl       chunk.Splitter
 	recvdErr  error
 	rawLeaves bool
 	nextData  []byte // the next item to return.
 	maxlinks  int
-	batch     *dag.Batch
+	batch     *node.Batch
 	fullPath  string
 	stat      os.FileInfo
 	prefix    *cid.Prefix
@@ -40,7 +41,7 @@ type DagBuilderParams struct {
 	Prefix *cid.Prefix
 
 	// DAGService to write blocks to (required)
-	Dagserv dag.DAGService
+	Dagserv node.DAGService
 
 	// NoCopy signals to the chunker that it should track fileinfo for
 	// filestore adds
@@ -56,7 +57,7 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		rawLeaves: dbp.RawLeaves,
 		prefix:    dbp.Prefix,
 		maxlinks:  dbp.Maxlinks,
-		batch:     dbp.Dagserv.Batch(),
+		batch:     node.NewBatch(context.TODO(), dbp.Dagserv),
 	}
 	if fi, ok := spl.Reader().(files.FileInfo); dbp.NoCopy && ok {
 		db.fullPath = fi.AbsPath()
@@ -106,7 +107,7 @@ func (db *DagBuilderHelper) Next() ([]byte, error) {
 }
 
 // GetDagServ returns the dagservice object this Helper is using
-func (db *DagBuilderHelper) GetDagServ() dag.DAGService {
+func (db *DagBuilderHelper) GetDagServ() node.DAGService {
 	return db.dserv
 }
 
@@ -199,7 +200,7 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (node.Node, error) {
 		return nil, err
 	}
 
-	_, err = db.dserv.Add(dn)
+	err = db.dserv.Add(context.TODO(), dn)
 	if err != nil {
 		return nil, err
 	}

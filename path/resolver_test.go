@@ -39,7 +39,7 @@ func TestRecurivePathResolution(t *testing.T) {
 	}
 
 	for _, n := range []node.Node{a, b, c} {
-		_, err = dagService.Add(n)
+		err = dagService.Add(ctx, n)
 		if err != nil {
 			t.Fatal(err)
 		}

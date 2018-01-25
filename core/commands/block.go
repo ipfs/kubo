@@ -199,14 +199,14 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			return
 		}
 
-		k, err := n.Blocks.AddBlock(b)
+		err = n.Blocks.AddBlock(b)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		err = cmds.EmitOnce(res, &BlockStat{
-			Key:  k.String(),
+			Key:  b.Cid().String(),
 			Size: len(data),
 		})
 		if err != nil {

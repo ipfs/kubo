@@ -104,7 +104,7 @@ func TestAddGCLive(t *testing.T) {
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcout = gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
+		gcout = gc.GC(context.Background(), node.Blockstore, node.Pinning, nil)
 	}()
 
 	// gc shouldnt start until we let the add finish its current file.
@@ -150,7 +150,7 @@ func TestAddGCLive(t *testing.T) {
 	defer cancel()
 
 	set := cid.NewSet()
-	err = dag.EnumerateChildren(ctx, node.DAG.GetLinks, last, set.Visit)
+	err = dag.EnumerateChildren(ctx, dag.GetLinksWithDAG(node.DAG), last, set.Visit)
 	if err != nil {
 		t.Fatal(err)
 	}

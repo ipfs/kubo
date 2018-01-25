@@ -20,14 +20,14 @@ type Editor struct {
 
 	// tmp is a temporary in memory (for now) dagstore for all of the
 	// intermediary nodes to be stored in
-	tmp dag.DAGService
+	tmp node.DAGService
 
 	// src is the dagstore with *all* of the data on it, it is used to pull
 	// nodes from for modification (nil is a valid value)
-	src dag.DAGService
+	src node.DAGService
 }
 
-func NewMemoryDagService() dag.DAGService {
+func NewMemoryDagService() node.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	bsrv := bserv.New(bs, offline.Exchange(bs))
@@ -35,7 +35,7 @@ func NewMemoryDagService() dag.DAGService {
 }
 
 // root is the node to be modified, source is the dagstore to pull nodes from (optional)
-func NewDagEditor(root *dag.ProtoNode, source dag.DAGService) *Editor {
+func NewDagEditor(root *dag.ProtoNode, source node.DAGService) *Editor {
 	return &Editor{
 		root: root,
 		tmp:  NewMemoryDagService(),
@@ -47,22 +47,22 @@ func (e *Editor) GetNode() *dag.ProtoNode {
 	return e.root.Copy().(*dag.ProtoNode)
 }
 
-func (e *Editor) GetDagService() dag.DAGService {
+func (e *Editor) GetDagService() node.DAGService {
 	return e.tmp
 }
 
-func addLink(ctx context.Context, ds dag.DAGService, root *dag.ProtoNode, childname string, childnd node.Node) (*dag.ProtoNode, error) {
+func addLink(ctx context.Context, ds node.DAGService, root *dag.ProtoNode, childname string, childnd node.Node) (*dag.ProtoNode, error) {
 	if childname == "" {
 		return nil, errors.New("cannot create link with no name!")
 	}
 
 	// ensure that the node we are adding is in the dagservice
-	_, err := ds.Add(childnd)
+	err := ds.Add(ctx, childnd)
 	if err != nil {
 		return nil, err
 	}
 
-	_ = ds.Remove(root)
+	_ = ds.Remove(ctx, root.Cid())
 
 	// ensure no link with that name already exists
 	_ = root.RemoveNodeLink(childname) // ignore error, only option is ErrNotFound
@@ -71,7 +71,7 @@ func addLink(ctx context.Context, ds dag.DAGService, root *dag.ProtoNode, childn
 		return nil, err
 	}
 
-	if _, err := ds.Add(root); err != nil {
+	if err := ds.Add(ctx, root); err != nil {
 		return nil, err
 	}
 	return root, nil
@@ -98,7 +98,7 @@ func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path
 		if err == dag.ErrLinkNotFound && create != nil {
 			nd = create()
 			err = nil // no longer an error case
-		} else if err == dag.ErrNotFound {
+		} else if err == node.ErrNotFound {
 			// try finding it in our source dagstore
 			nd, err = root.GetLinkedProtoNode(ctx, e.src, path[0])
 		}
@@ -115,7 +115,7 @@ func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path
 		return nil, err
 	}
 
-	_ = e.tmp.Remove(root)
+	_ = e.tmp.Remove(ctx, root.Cid())
 
 	_ = root.RemoveNodeLink(path[0])
 	err = root.AddNodeLinkClean(path[0], ndprime)
@@ -123,7 +123,7 @@ func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path
 		return nil, err
 	}
 
-	_, err = e.tmp.Add(root)
+	err = e.tmp.Add(ctx, root)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 			return nil, err
 		}
 
-		_, err = e.tmp.Add(root)
+		err = e.tmp.Add(ctx, root)
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +159,7 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 
 	// search for node in both tmp dagstore and source dagstore
 	nd, err := root.GetLinkedProtoNode(ctx, e.tmp, path[0])
-	if err == dag.ErrNotFound {
+	if err == node.ErrNotFound {
 		nd, err = root.GetLinkedProtoNode(ctx, e.src, path[0])
 	}
 
@@ -172,7 +172,7 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 		return nil, err
 	}
 
-	_ = e.tmp.Remove(root)
+	e.tmp.Remove(ctx, root.Cid())
 
 	_ = root.RemoveNodeLink(path[0])
 	err = root.AddNodeLinkClean(path[0], nnode)
@@ -180,7 +180,7 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 		return nil, err
 	}
 
-	_, err = e.tmp.Add(root)
+	err = e.tmp.Add(ctx, root)
 	if err != nil {
 		return nil, err
 	}
@@ -188,22 +188,23 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 	return root, nil
 }
 
-func (e *Editor) Finalize(ds dag.DAGService) (*dag.ProtoNode, error) {
+func (e *Editor) Finalize(ctx context.Context, ds node.DAGService) (*dag.ProtoNode, error) {
 	nd := e.GetNode()
-	err := copyDag(nd, e.tmp, ds)
+	err := copyDag(ctx, nd, e.tmp, ds)
 	return nd, err
 }
 
-func copyDag(nd node.Node, from, to dag.DAGService) error {
-	_, err := to.Add(nd)
+func copyDag(ctx context.Context, nd node.Node, from, to node.DAGService) error {
+	// TODO(#4609): make this batch.
+	err := to.Add(ctx, nd)
 	if err != nil {
 		return err
 	}
 
 	for _, lnk := range nd.Links() {
-		child, err := lnk.GetNode(context.Background(), from)
+		child, err := lnk.GetNode(ctx, from)
 		if err != nil {
-			if err == dag.ErrNotFound {
+			if err == node.ErrNotFound {
 				// not found means we didnt modify it, and it should
 				// already be in the target datastore
 				continue
@@ -211,7 +212,7 @@ func copyDag(nd node.Node, from, to dag.DAGService) error {
 			return err
 		}
 
-		err = copyDag(child, from, to)
+		err = copyDag(ctx, child, from, to)
 		if err != nil {
 			return err
 		}

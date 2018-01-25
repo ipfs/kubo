@@ -9,35 +9,39 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func TestAddLink(t *testing.T) {
+	ctx, context := context.WithCancel(context.Background())
+	defer context()
+
 	ds := mdtest.Mock()
 	fishnode := dag.NodeWithData([]byte("fishcakes!"))
 
-	fk, err := ds.Add(fishnode)
+	err := ds.Add(ctx, fishnode)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	nd := new(dag.ProtoNode)
-	nnode, err := addLink(context.Background(), ds, nd, "fish", fishnode)
+	nnode, err := addLink(ctx, ds, nd, "fish", fishnode)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fnprime, err := nnode.GetLinkedNode(context.Background(), ds, "fish")
+	fnprime, err := nnode.GetLinkedNode(ctx, ds, "fish")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	fnpkey := fnprime.Cid()
-	if !fnpkey.Equals(fk) {
+	if !fnpkey.Equals(fishnode.Cid()) {
 		t.Fatal("wrong child node found!")
 	}
 }
 
-func assertNodeAtPath(t *testing.T, ds dag.DAGService, root *dag.ProtoNode, pth string, exp *cid.Cid) {
+func assertNodeAtPath(t *testing.T, ds node.DAGService, root *dag.ProtoNode, pth string, exp *cid.Cid) {
 	parts := path.SplitList(pth)
 	cur := root
 	for _, e := range parts {
@@ -78,7 +82,7 @@ func TestInsertNode(t *testing.T) {
 
 func testInsert(t *testing.T, e *Editor, path, data string, create bool, experr string) {
 	child := dag.NodeWithData([]byte(data))
-	ck, err := e.tmp.Add(child)
+	err := e.tmp.Add(context.Background(), child)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,5 +110,5 @@ func testInsert(t *testing.T, e *Editor, path, data string, create bool, experr 
 		t.Fatal(err, path, data, create, experr)
 	}
 
-	assertNodeAtPath(t, e.tmp, e.root, path, ck)
+	assertNodeAtPath(t, e.tmp, e.root, path, child.Cid())
 }

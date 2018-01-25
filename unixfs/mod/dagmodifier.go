@@ -29,7 +29,7 @@ var writebufferSize = 1 << 21
 // perform surgery on a DAG 'file'
 // Dear god, please rename this to something more pleasant
 type DagModifier struct {
-	dagserv mdag.DAGService
+	dagserv node.DAGService
 	curNode node.Node
 
 	splitter   chunk.SplitterGen
@@ -52,7 +52,7 @@ var ErrNotUnixfs = fmt.Errorf("dagmodifier only supports unixfs nodes (proto or 
 // created nodes will be inherted from the passed in node.  If the Cid
 // version if not 0 raw leaves will also be enabled.  The Prefix and
 // RawLeaves options can be overridden by changing them after the call.
-func NewDagModifier(ctx context.Context, from node.Node, serv mdag.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from node.Node, serv node.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
 	switch from.(type) {
 	case *mdag.ProtoNode, *mdag.RawNode:
 		// ok
@@ -128,7 +128,7 @@ func (dm *DagModifier) expandSparse(size int64) error {
 	if err != nil {
 		return err
 	}
-	_, err = dm.dagserv.Add(nnode)
+	err = dm.dagserv.Add(dm.ctx, nnode)
 	return err
 }
 
@@ -216,7 +216,7 @@ func (dm *DagModifier) Sync() error {
 			return err
 		}
 
-		_, err = dm.dagserv.Add(dm.curNode)
+		err = dm.dagserv.Add(dm.ctx, dm.curNode)
 		if err != nil {
 			return err
 		}
@@ -255,7 +255,7 @@ func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*c
 			nd := new(mdag.ProtoNode)
 			nd.SetData(b)
 			nd.SetPrefix(&nd0.Prefix)
-			k, err := dm.dagserv.Add(nd)
+			err = dm.dagserv.Add(dm.ctx, nd)
 			if err != nil {
 				return nil, false, err
 			}
@@ -266,7 +266,7 @@ func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*c
 				done = true
 			}
 
-			return k, done, nil
+			return nd.Cid(), done, nil
 		case *mdag.RawNode:
 			origData := nd0.RawData()
 			bytes := make([]byte, len(origData))
@@ -290,7 +290,7 @@ func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*c
 			if err != nil {
 				return nil, false, err
 			}
-			k, err := dm.dagserv.Add(nd)
+			err = dm.dagserv.Add(dm.ctx, nd)
 			if err != nil {
 				return nil, false, err
 			}
@@ -301,7 +301,7 @@ func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*c
 				done = true
 			}
 
-			return k, done, nil
+			return nd.Cid(), done, nil
 		}
 	}
 
@@ -348,8 +348,8 @@ func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*c
 		cur += bs
 	}
 
-	k, err := dm.dagserv.Add(node)
-	return k, done, err
+	err = dm.dagserv.Add(dm.ctx, node)
+	return node.Cid(), done, err
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
@@ -500,7 +500,7 @@ func (dm *DagModifier) Truncate(size int64) error {
 		return err
 	}
 
-	_, err = dm.dagserv.Add(nnode)
+	err = dm.dagserv.Add(dm.ctx, nnode)
 	if err != nil {
 		return err
 	}
@@ -510,7 +510,7 @@ func (dm *DagModifier) Truncate(size int64) error {
 }
 
 // dagTruncate truncates the given node to 'size' and returns the modified Node
-func dagTruncate(ctx context.Context, n node.Node, size uint64, ds mdag.DAGService) (node.Node, error) {
+func dagTruncate(ctx context.Context, n node.Node, size uint64, ds node.DAGService) (node.Node, error) {
 	if len(n.Links()) == 0 {
 		switch nd := n.(type) {
 		case *mdag.ProtoNode:
@@ -563,7 +563,7 @@ func dagTruncate(ctx context.Context, n node.Node, size uint64, ds mdag.DAGServi
 		ndata.AddBlockSize(childsize)
 	}
 
-	_, err := ds.Add(modified)
+	err := ds.Add(ctx, modified)
 	if err != nil {
 		return nil, err
 	}

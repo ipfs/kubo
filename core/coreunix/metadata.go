@@ -29,12 +29,12 @@ func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error
 		return "", err
 	}
 
-	nk, err := n.DAG.Add(mdnode)
+	err = n.DAG.Add(n.Context(), mdnode)
 	if err != nil {
 		return "", err
 	}
 
-	return nk.String(), nil
+	return mdnode.Cid().String(), nil
 }
 
 func Metadata(n *core.IpfsNode, skey string) (*ft.Metadata, error) {

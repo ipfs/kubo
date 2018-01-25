@@ -136,7 +136,7 @@ func TestDiffEnumBasic(t *testing.T) {
 	lgds := &getLogger{ds: ds}
 
 	for _, nd := range nds {
-		_, err := ds.Add(nd)
+		err := ds.Add(ctx, nd)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -167,6 +167,22 @@ func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 	return nd, nil
 }
 
+func (gl *getLogger) GetMany(ctx context.Context, cids []*cid.Cid) <-chan *node.NodeOption {
+	outCh := make(chan *node.NodeOption, len(cids))
+	nds := gl.ds.GetMany(ctx, cids)
+	for no := range nds {
+		if no.Err == nil {
+			gl.log = append(gl.log, no.Node.Cid())
+		}
+		select {
+		case outCh <- no:
+		default:
+			panic("too many responses")
+		}
+	}
+	return nds
+}
+
 func assertCidList(a, b []*cid.Cid) error {
 	if len(a) != len(b) {
 		return fmt.Errorf("got different number of cids than expected")
@@ -188,14 +204,14 @@ func TestDiffEnumFail(t *testing.T) {
 	lgds := &getLogger{ds: ds}
 
 	for _, s := range []string{"a1", "a2", "b", "c"} {
-		_, err := ds.Add(nds[s])
+		err := ds.Add(ctx, nds[s])
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	err := DiffEnumerate(ctx, lgds, nds["a1"].Cid(), nds["a2"].Cid())
-	if err != dag.ErrNotFound {
+	if err != node.ErrNotFound {
 		t.Fatal("expected err not found")
 	}
 
@@ -215,7 +231,7 @@ func TestDiffEnumRecurse(t *testing.T) {
 	lgds := &getLogger{ds: ds}
 
 	for _, s := range []string{"a1", "a2", "b", "c", "d"} {
-		_, err := ds.Add(nds[s])
+		err := ds.Add(ctx, nds[s])
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -24,7 +24,7 @@ var ErrInvalidChild = errors.New("invalid child node")
 var ErrDirExists = errors.New("directory already has entry by that name")
 
 type Directory struct {
-	dserv  dag.DAGService
+	dserv  node.DAGService
 	parent childCloser
 
 	childDirs map[string]*Directory
@@ -40,7 +40,7 @@ type Directory struct {
 	name string
 }
 
-func NewDirectory(ctx context.Context, name string, node node.Node, parent childCloser, dserv dag.DAGService) (*Directory, error) {
+func NewDirectory(ctx context.Context, name string, node node.Node, parent childCloser, dserv node.DAGService) (*Directory, error) {
 	db, err := uio.NewDirectoryFromNode(dserv, node)
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
 		return nil, err
 	}
 
-	_, err = d.dserv.Add(nd)
+	err = d.dserv.Add(d.ctx, nd)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +306,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	ndir := ft.EmptyDirNode()
 	ndir.SetPrefix(d.GetPrefix())
 
-	_, err = d.dserv.Add(ndir)
+	err = d.dserv.Add(d.ctx, ndir)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +354,7 @@ func (d *Directory) AddChild(name string, nd node.Node) error {
 		return ErrDirExists
 	}
 
-	_, err = d.dserv.Add(nd)
+	err = d.dserv.Add(d.ctx, nd)
 	if err != nil {
 		return err
 	}
@@ -420,7 +420,7 @@ func (d *Directory) GetNode() (node.Node, error) {
 		return nil, err
 	}
 
-	_, err = d.dserv.Add(nd)
+	err = d.dserv.Add(d.ctx, nd)
 	if err != nil {
 		return nil, err
 	}

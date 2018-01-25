@@ -20,7 +20,7 @@ type File struct {
 
 	desclock sync.RWMutex
 
-	dserv  dag.DAGService
+	dserv  node.DAGService
 	node   node.Node
 	nodelk sync.Mutex
 
@@ -29,7 +29,7 @@ type File struct {
 
 // NewFile returns a NewFile object with the given parameters.  If the
 // Cid version is non-zero RawLeaves will be enabled.
-func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
+func NewFile(name string, node node.Node, parent childCloser, dserv node.DAGService) (*File, error) {
 	fi := &File{
 		dserv:  dserv,
 		parent: parent,
