@@ -25,6 +25,8 @@ import (
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
+const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
+
 // `echo -n 'hello, world!' | ipfs add`
 var hello = coreapi.ResolvedPath("/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", nil, nil)
 var helloStr = "hello, world!"
@@ -59,7 +61,7 @@ func makeAPIIdent(ctx context.Context, fullIdentity bool) (*core.IpfsNode, corei
 		}
 	} else {
 		ident = config.Identity{
-			PeerID: "Qmfoo",
+			PeerID: testPeerID,
 		}
 	}
 

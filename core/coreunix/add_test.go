@@ -25,11 +25,13 @@ import (
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
+const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
+
 func TestAddRecursive(t *testing.T) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
+				PeerID: testPeerID, // required by offline node
 			},
 		},
 		D: ds2.ThreadSafeCloserMapDatastore(),
@@ -49,7 +51,7 @@ func TestAddGCLive(t *testing.T) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
+				PeerID: testPeerID, // required by offline node
 			},
 		},
 		D: ds2.ThreadSafeCloserMapDatastore(),
@@ -158,7 +160,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
+				PeerID: testPeerID, // required by offline node
 			},
 		},
 		D: ds2.ThreadSafeCloserMapDatastore(),

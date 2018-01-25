@@ -55,7 +55,7 @@ func (m mockNamesys) GetResolver(subs string) (namesys.Resolver, bool) {
 func newNodeWithMockNamesys(ns mockNamesys) (*core.IpfsNode, error) {
 	c := config.Config{
 		Identity: config.Identity{
-			PeerID: "Qmfoo", // required by offline node
+			PeerID: "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe", // required by offline node
 		},
 	}
 	r := &repo.Mock{
