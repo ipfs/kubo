@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -237,5 +238,32 @@ func TestCommands(t *testing.T) {
 		} else if sub == nil {
 			t.Errorf("subcommand %q is nil even though there was no error", path)
 		}
+	}
+}
+
+func TestCloseUnlessErrCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	c := make(chan interface{})
+	closeUnlessErr(ctx, c)
+
+	go func() {
+		c <- 1
+	}()
+	if _, ok := <-c; !ok {
+		t.Fatal("expected channel to be open")
+	}
+}
+
+func TestCloseUnlessErrNoCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	c := make(chan interface{})
+	closeUnlessErr(ctx, c)
+
+	if _, ok := <-c; ok {
+		t.Fatal("expected channel to be closed")
 	}
 }
