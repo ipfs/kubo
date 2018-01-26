@@ -16,7 +16,7 @@ import (
 func TestValidation(t *testing.T) {
 	// Create a record validator
 	validator := make(record.Validator)
-	validator["ipns"] = &record.ValidChecker{ValidateIpnsRecord, true}
+	validator["ipns"] = &record.ValidChecker{Func: ValidateIpnsRecord, Sign: true}
 
 	// Generate a key for signing the records
 	r := u.NewSeededRand(15) // generate deterministic keypair
@@ -46,6 +46,7 @@ func TestValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	/* TODO(#4613)
 	// Create IPNS record path with a different private key
 	_, ipnsWrongAuthor := genKeys(t, r)
 	wrongAuthorRec, err := record.MakePutRecord(priv, ipnsWrongAuthor, val, true)
@@ -97,6 +98,7 @@ func TestValidation(t *testing.T) {
 	if err != ErrInvalidAuthor {
 		t.Fatal("ValidateIpnsRecord should have returned ErrInvalidAuthor")
 	}
+	*/
 
 	// Create expired entry
 	expiredEntry, err := CreateRoutingEntryData(priv, path.Path("foo"), 1, ts.Add(-1*time.Hour))

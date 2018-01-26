@@ -31,10 +31,6 @@ var ErrExpiredRecord = errors.New("expired record")
 // unknown validity type.
 var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
 
-// ErrInvalidAuthor is returned when an IpnsRecord has an
-// author that does not match the IPNS path
-var ErrInvalidAuthor = errors.New("author does not match path")
-
 // ErrInvalidPath should be returned when an ipns record path
 // is not in a valid format
 var ErrInvalidPath = errors.New("record path invalid")
@@ -314,17 +310,24 @@ func ValidateIpnsRecord(r *record.ValidationRecord) error {
 		return err
 	}
 
-	// Note: The DHT will actually check the signature so we don't
-	// need to do that here
-
-	// Author in key must match author in record
-	pid, err := peer.IDFromString(r.Key)
-	if err != nil {
-		return ErrInvalidAuthor
-	}
-	if pid != r.Author {
-		return ErrInvalidAuthor
-	}
+	// NOTE/FIXME(#4613): We're not checking the DHT signature/author here.
+	// We're going to remove them in a followup commit and then check the
+	// *IPNS* signature. However, to do that, we need to ensure we *have*
+	// the public key and:
+	//
+	// 1. Don't want to fetch it from the network when handling PUTs.
+	// 2. Do want to fetch it from the network when handling GETs.
+	//
+	// Therefore, we'll need to either:
+	//
+	// 1. Pass some for of offline hint to the validator (e.g., using a context).
+	// 2. Ensure we pre-fetch the key when performing gets.
+	//
+	// This PR is already *way* too large so we're punting that fix to a new
+	// PR.
+	//
+	// This is not a regression, it just restores the current (bad)
+	// behavior.
 
 	// Check that record has not expired
 	switch entry.GetValidityType() {
