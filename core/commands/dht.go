@@ -174,9 +174,6 @@ var findProvidersDhtCmd = &cmds.Command{
 			return
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
@@ -185,6 +182,9 @@ var findProvidersDhtCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
 
 		pchan := dht.FindProvidersAsync(ctx, c, numProviders)
 		go func() {
@@ -535,17 +535,17 @@ Different key types can specify other 'best' rules.
 			return
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
-
 		dhtkey, err := escapeDhtKey(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
+		events := make(chan *notif.QueryEvent)
+		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
 		go func() {
 			defer close(outChan)
@@ -650,9 +650,6 @@ NOTE: A value may not exceed 2048 bytes.
 			return
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
@@ -661,6 +658,9 @@ NOTE: A value may not exceed 2048 bytes.
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
 
 		data := req.Arguments()[1]
 
