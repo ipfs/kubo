@@ -41,13 +41,13 @@ test_expect_success 'get with good keys' '
   ipfsi 1 dht get "/ipns/$PEERID_2" | grep -aq "/ipfs/$HASH"
 '
 
-test_expect_failure 'put with bad keys' '
+test_expect_failure 'put with bad keys (issue #4611)' '
   ! ipfsi 0 dht put "foo" "bar" &&
   ! ipfsi 0 dht put "/pk/foo" "bar" &&
   ! ipfsi 0 dht put "/ipns/foo" "bar"
 '
 
-test_expect_failure 'get with bad keys' '
+test_expect_failure 'get with bad keys (issue #4611)' '
   ! ipfsi 0 dht get "foo" &&
   ! ipfsi 0 dht get "/pk/foo"
 '
