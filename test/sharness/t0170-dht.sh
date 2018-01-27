@@ -29,7 +29,7 @@ test_expect_success 'findpeer' '
 
 # ipfs dht put <key> <value>
 test_expect_success 'put with good keys' '
-  echo "$TEST_DHT_VALUE" | base64 -d | ipfsi 0 dht put "$TEST_DHT_PATH" | sort >putted &&
+  echo "$TEST_DHT_VALUE" | b64decode | ipfsi 0 dht put "$TEST_DHT_PATH" | sort >putted &&
   [ -s putted ] ||
   test_fsh cat putted
 '
