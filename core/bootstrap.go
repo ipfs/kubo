@@ -11,7 +11,7 @@ import (
 
 	config "github.com/ipfs/go-ipfs/repo/config"
 	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
-	lgbl "gx/ipfs/QmaDoQyTYCS3DrPLBLXMixXfuCstBVVR81J3UY1vMxghpT/go-libp2p-loggables"
+	lgbl "gx/ipfs/QmQ3c5AP6yjqD3E4get5atkvfaUU4rubWquoL2e8ycjUSu/go-libp2p-loggables"
 
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"

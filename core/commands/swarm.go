@@ -15,10 +15,10 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	swarm "gx/ipfs/QmSD9fajyipwNQw3Hza2k2ifcBfbhGoC1ZHHgQBy4yqU8d/go-libp2p-swarm"
+	iaddr "gx/ipfs/QmPWejECnZ4a2eShmnMFBfaLQR7AjuNDPxiY7jmR4fPjg6/go-ipfs-addr"
+	swarm "gx/ipfs/QmSKrS9EF4V8FpD1d5FUGQiwYLNkXcxKabWgT2aWNVnQie/go-libp2p-swarm"
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	iaddr "gx/ipfs/QmWto9a6kfznUoW9owbLoBiLUMgRvgsVHRKFzs8zzzKYwp/go-ipfs-addr"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
 )
