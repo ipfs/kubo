@@ -111,11 +111,11 @@ test_seq() {
 }
 
 b64decode() {
-    for flag in "-D" "-d"; do
-        if base64 "$flag" 2>/dev/null; then
-            return
-        fi
-    done
-    echo "no compatible base64 command found" >&2
-    return 1
+    case `uname` in
+        Linux|FreeBSD) base64 -d ;;
+        Darwin) base64 -D ;;
+        *)
+            echo "no compatible base64 command found" >&2
+            return 1
+    esac
 }
