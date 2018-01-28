@@ -250,7 +250,11 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	if pubsub || ipnsps {
-		n.Floodsub = floodsub.NewFloodSub(ctx, peerhost)
+		service, err := floodsub.NewFloodSub(ctx, peerhost)
+		if err != nil {
+			return err
+		}
+		n.Floodsub = service
 	}
 
 	if ipnsps {

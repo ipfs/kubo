@@ -100,7 +100,11 @@ func TestPubsubPublishSubscribe(t *testing.T) {
 
 	pubhost := newNetHost(ctx, t)
 	pubmr := newMockRouting(ms, ks, pubhost)
-	pub := NewPubsubPublisher(ctx, pubhost, ds.NewMapDatastore(), pubmr, floodsub.NewFloodSub(ctx, pubhost))
+	fs, err := floodsub.NewFloodSub(ctx, pubhost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub := NewPubsubPublisher(ctx, pubhost, ds.NewMapDatastore(), pubmr, fs)
 	privk := pubhost.Peerstore().PrivKey(pubhost.ID())
 	pubpinfo := pstore.PeerInfo{ID: pubhost.ID(), Addrs: pubhost.Addrs()}
 
@@ -110,7 +114,13 @@ func TestPubsubPublishSubscribe(t *testing.T) {
 	resmrs := newMockRoutingForHosts(ms, ks, reshosts)
 	res := make([]*PubsubResolver, len(reshosts))
 	for i := 0; i < len(res); i++ {
-		res[i] = NewPubsubResolver(ctx, reshosts[i], resmrs[i], ks, floodsub.NewFloodSub(ctx, reshosts[i]))
+
+		fs, err := floodsub.NewFloodSub(ctx, reshosts[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		res[i] = NewPubsubResolver(ctx, reshosts[i], resmrs[i], ks, fs)
 		if err := reshosts[i].Connect(ctx, pubpinfo); err != nil {
 			t.Fatal(err)
 		}
@@ -127,7 +137,7 @@ func TestPubsubPublishSubscribe(t *testing.T) {
 	time.Sleep(time.Second * 1)
 
 	val := path.Path("/ipfs/QmP1DfoUjiWH2ZBo1PBH6FupdBucbDepx3HpWmEY6JMUpY")
-	err := pub.Publish(ctx, privk, val)
+	err = pub.Publish(ctx, privk, val)
 	if err != nil {
 		t.Fatal(err)
 	}
