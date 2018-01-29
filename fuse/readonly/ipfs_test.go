@@ -24,7 +24,7 @@ import (
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	fstest "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs/fstestutil"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -33,7 +33,7 @@ func maybeSkipFuseTests(t *testing.T) {
 	}
 }
 
-func randObj(t *testing.T, nd *core.IpfsNode, size int64) (node.Node, []byte) {
+func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
 	u.NewTimeSeededRand().Read(buf)
 	read := bytes.NewReader(buf)
@@ -116,7 +116,7 @@ func TestIpfsStressRead(t *testing.T) {
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
-	var nodes []node.Node
+	var nodes []ipld.Node
 	var paths []string
 
 	nobj := 50

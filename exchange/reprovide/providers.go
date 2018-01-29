@@ -6,7 +6,7 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks/blockstore"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
@@ -19,7 +19,7 @@ func NewBlockstoreProvider(bstore blocks.Blockstore) KeyChanFunc {
 }
 
 // NewPinnedProvider returns provider supplying pinned keys
-func NewPinnedProvider(pinning pin.Pinner, dag node.DAGService, onlyRoots bool) KeyChanFunc {
+func NewPinnedProvider(pinning pin.Pinner, dag ipld.DAGService, onlyRoots bool) KeyChanFunc {
 	return func(ctx context.Context) (<-chan *cid.Cid, error) {
 		set, err := pinSet(ctx, pinning, dag, onlyRoots)
 		if err != nil {
@@ -43,7 +43,7 @@ func NewPinnedProvider(pinning pin.Pinner, dag node.DAGService, onlyRoots bool) 
 	}
 }
 
-func pinSet(ctx context.Context, pinning pin.Pinner, dag node.DAGService, onlyRoots bool) (*streamingSet, error) {
+func pinSet(ctx context.Context, pinning pin.Pinner, dag ipld.DAGService, onlyRoots bool) (*streamingSet, error) {
 	set := newStreamingSet()
 
 	go func() {

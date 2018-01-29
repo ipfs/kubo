@@ -16,7 +16,7 @@ import (
 
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")
@@ -29,8 +29,8 @@ var writebufferSize = 1 << 21
 // perform surgery on a DAG 'file'
 // Dear god, please rename this to something more pleasant
 type DagModifier struct {
-	dagserv node.DAGService
-	curNode node.Node
+	dagserv ipld.DAGService
+	curNode ipld.Node
 
 	splitter   chunk.SplitterGen
 	ctx        context.Context
@@ -52,7 +52,7 @@ var ErrNotUnixfs = fmt.Errorf("dagmodifier only supports unixfs nodes (proto or 
 // created nodes will be inherted from the passed in node.  If the Cid
 // version if not 0 raw leaves will also be enabled.  The Prefix and
 // RawLeaves options can be overridden by changing them after the call.
-func NewDagModifier(ctx context.Context, from node.Node, serv node.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from ipld.Node, serv ipld.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
 	switch from.(type) {
 	case *mdag.ProtoNode, *mdag.RawNode:
 		// ok
@@ -167,7 +167,7 @@ func (dm *DagModifier) Size() (int64, error) {
 	return int64(fileSize), nil
 }
 
-func fileSize(n node.Node) (uint64, error) {
+func fileSize(n ipld.Node) (uint64, error) {
 	switch nd := n.(type) {
 	case *mdag.ProtoNode:
 		f, err := ft.FromBytes(nd.Data())
@@ -231,7 +231,7 @@ func (dm *DagModifier) Sync() error {
 // modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
 // returns the new key of the passed in node and whether or not all the data in the reader
 // has been consumed.
-func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*cid.Cid, bool, error) {
+func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*cid.Cid, bool, error) {
 	// If we've reached a leaf node.
 	if len(n.Links()) == 0 {
 		switch nd0 := n.(type) {
@@ -353,7 +353,7 @@ func (dm *DagModifier) modifyDag(n node.Node, offset uint64, data io.Reader) (*c
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(nd node.Node, spl chunk.Splitter) (node.Node, error) {
+func (dm *DagModifier) appendData(nd ipld.Node, spl chunk.Splitter) (ipld.Node, error) {
 	switch nd := nd.(type) {
 	case *mdag.ProtoNode, *mdag.RawNode:
 		dbp := &help.DagBuilderParams{
@@ -425,7 +425,7 @@ func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 }
 
 // GetNode gets the modified DAG Node
-func (dm *DagModifier) GetNode() (node.Node, error) {
+func (dm *DagModifier) GetNode() (ipld.Node, error) {
 	err := dm.Sync()
 	if err != nil {
 		return nil, err
@@ -510,7 +510,7 @@ func (dm *DagModifier) Truncate(size int64) error {
 }
 
 // dagTruncate truncates the given node to 'size' and returns the modified Node
-func dagTruncate(ctx context.Context, n node.Node, size uint64, ds node.DAGService) (node.Node, error) {
+func dagTruncate(ctx context.Context, n ipld.Node, size uint64, ds ipld.DAGService) (ipld.Node, error) {
 	if len(n.Links()) == 0 {
 		switch nd := n.(type) {
 		case *mdag.ProtoNode:
@@ -533,7 +533,7 @@ func dagTruncate(ctx context.Context, n node.Node, size uint64, ds node.DAGServi
 
 	var cur uint64
 	end := 0
-	var modified node.Node
+	var modified ipld.Node
 	ndata := new(ft.FSNode)
 	for i, lnk := range nd.Links() {
 		child, err := lnk.GetNode(ctx, ds)

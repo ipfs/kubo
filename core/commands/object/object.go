@@ -23,7 +23,7 @@ import (
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
@@ -313,7 +313,7 @@ var ObjectStatCmd = &cmds.Command{
 
 		res.SetOutput(ns)
 	},
-	Type: node.NodeStat{},
+	Type: ipld.NodeStat{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v, err := unwrapOutput(res.Output())
@@ -321,7 +321,7 @@ var ObjectStatCmd = &cmds.Command{
 				return nil, err
 			}
 
-			ns, ok := v.(*node.NodeStat)
+			ns, ok := v.(*ipld.NodeStat)
 			if !ok {
 				return nil, e.TypeErr(ns, v)
 			}
@@ -632,7 +632,7 @@ func getObjectEnc(o interface{}) objectEncoding {
 	return objectEncoding(v)
 }
 
-func getOutput(dagnode node.Node) (*Object, error) {
+func getOutput(dagnode ipld.Node) (*Object, error) {
 	c := dagnode.Cid()
 	output := &Object{
 		Hash:  c.String(),
@@ -663,13 +663,13 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 		return nil, fmt.Errorf("Unkown data field encoding")
 	}
 
-	dagnode.SetLinks(make([]*node.Link, len(nd.Links)))
+	dagnode.SetLinks(make([]*ipld.Link, len(nd.Links)))
 	for i, link := range nd.Links {
 		c, err := cid.Decode(link.Hash)
 		if err != nil {
 			return nil, err
 		}
-		dagnode.Links()[i] = &node.Link{
+		dagnode.Links()[i] = &ipld.Link{
 			Name: link.Name,
 			Size: link.Size,
 			Cid:  c,

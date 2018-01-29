@@ -26,7 +26,7 @@ import (
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	routing "gx/ipfs/QmRijoA6zGS98ELTDbGsLWPZbVotYsGbjp3RbXcKCYBeon/go-libp2p-routing"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 	multibase "gx/ipfs/QmexBtiTTEwwn42Yi6ouKt6VqzpA6wjJgiW1oh9VfaRrup/go-multibase"
 )
 
@@ -53,7 +53,7 @@ func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.CoreAPI)
 }
 
 // TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (node.Node, error) {
+func (i *gatewayHandler) newDagFromReader(r io.Reader) (ipld.Node, error) {
 	// TODO(cryptix): change and remove this helper once PR1136 is merged
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
@@ -316,7 +316,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	// storage for directory listing
 	var dirListing []directoryItem
-	dirr.ForEachLink(ctx, func(link *node.Link) error {
+	dirr.ForEachLink(ctx, func(link *ipld.Link) error {
 		// See comment above where originalUrlPath is declared.
 		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalUrlPath, link.Name)}
 		dirListing = append(dirListing, di)
@@ -425,7 +425,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newnode node.Node
+	var newnode ipld.Node
 	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
 		newnode = ft.EmptyDirNode()
 	} else {

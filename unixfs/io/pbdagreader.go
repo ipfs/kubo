@@ -12,12 +12,12 @@ import (
 
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // DagReader provides a way to easily read the data contained in a dag.
 type pbDagReader struct {
-	serv node.DAGService
+	serv ipld.DAGService
 
 	// the node being read
 	node *mdag.ProtoNode
@@ -30,7 +30,7 @@ type pbDagReader struct {
 	buf ReadSeekCloser
 
 	// NodePromises for each of 'nodes' child links
-	promises []*node.NodePromise
+	promises []*ipld.NodePromise
 
 	// the cid of each child of the current node
 	links []*cid.Cid
@@ -51,14 +51,14 @@ type pbDagReader struct {
 var _ DagReader = (*pbDagReader)(nil)
 
 // NewPBFileReader constructs a new PBFileReader.
-func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv node.DAGService) *pbDagReader {
+func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv ipld.DAGService) *pbDagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	curLinks := getLinkCids(n)
 	return &pbDagReader{
 		node:     n,
 		serv:     serv,
 		buf:      NewBufDagReader(pb.GetData()),
-		promises: make([]*node.NodePromise, len(curLinks)),
+		promises: make([]*ipld.NodePromise, len(curLinks)),
 		links:    curLinks,
 		ctx:      fctx,
 		cancel:   cancel,
@@ -75,7 +75,7 @@ func (dr *pbDagReader) preloadNextNodes(ctx context.Context) {
 		end = len(dr.links)
 	}
 
-	for i, p := range node.GetNodes(ctx, dr.serv, dr.links[beg:end]) {
+	for i, p := range ipld.GetNodes(ctx, dr.serv, dr.links[beg:end]) {
 		dr.promises[beg+i] = p
 	}
 }
@@ -135,7 +135,7 @@ func (dr *pbDagReader) precalcNextBuf(ctx context.Context) error {
 	}
 }
 
-func getLinkCids(n node.Node) []*cid.Cid {
+func getLinkCids(n ipld.Node) []*cid.Cid {
 	links := n.Links()
 	out := make([]*cid.Cid, 0, len(links))
 	for _, l := range links {

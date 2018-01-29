@@ -10,7 +10,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -81,7 +81,7 @@ func (n *UnixfsNode) Set(other *UnixfsNode) {
 }
 
 // GetChild gets the ith child of this node from the given DAGService.
-func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds node.DAGService) (*UnixfsNode, error) {
+func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds ipld.DAGService) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
 	if err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo
 
 // GetDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
-func (n *UnixfsNode) GetDagNode() (node.Node, error) {
+func (n *UnixfsNode) GetDagNode() (ipld.Node, error) {
 	nd, err := n.getBaseDagNode()
 	if err != nil {
 		return nil, err
@@ -163,7 +163,7 @@ func (n *UnixfsNode) GetDagNode() (node.Node, error) {
 	return nd, nil
 }
 
-func (n *UnixfsNode) getBaseDagNode() (node.Node, error) {
+func (n *UnixfsNode) getBaseDagNode() (ipld.Node, error) {
 	if n.raw {
 		return n.rawnode, nil
 	}

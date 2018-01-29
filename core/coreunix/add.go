@@ -29,7 +29,7 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var log = logging.Logger("coreunix")
@@ -74,7 +74,7 @@ type AddedObject struct {
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds node.DAGService) (*Adder, error) {
+func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds ipld.DAGService) (*Adder, error) {
 	return &Adder{
 		ctx:        ctx,
 		pinning:    p,
@@ -94,7 +94,7 @@ type Adder struct {
 	ctx        context.Context
 	pinning    pin.Pinner
 	blockstore bstore.GCBlockstore
-	dagService node.DAGService
+	dagService ipld.DAGService
 	Out        chan interface{}
 	Progress   bool
 	Hidden     bool
@@ -105,7 +105,7 @@ type Adder struct {
 	Wrap       bool
 	NoCopy     bool
 	Chunker    string
-	root       node.Node
+	root       ipld.Node
 	mroot      *mfs.Root
 	unlocker   bs.Unlocker
 	tempRoot   *cid.Cid
@@ -133,7 +133,7 @@ func (adder *Adder) SetMfsRoot(r *mfs.Root) {
 }
 
 // Constructs a node from reader's data, and adds it. Doesn't pin.
-func (adder *Adder) add(reader io.Reader) (node.Node, error) {
+func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	chnk, err := chunk.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (adder *Adder) add(reader io.Reader) (node.Node, error) {
 }
 
 // RootNode returns the root node of the Added.
-func (adder *Adder) RootNode() (node.Node, error) {
+func (adder *Adder) RootNode() (ipld.Node, error) {
 	// for memoizing
 	if adder.root != nil {
 		return adder.root, nil
@@ -215,7 +215,7 @@ func (adder *Adder) PinRoot() error {
 }
 
 // Finalize flushes the mfs root directory and returns the mfs root node.
-func (adder *Adder) Finalize() (node.Node, error) {
+func (adder *Adder) Finalize() (ipld.Node, error) {
 	mr, err := adder.mfsRoot()
 	if err != nil {
 		return nil, err
@@ -365,7 +365,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 // to preserve the filename.
 // Returns the path of the added file ("<dir hash>/filename"), the DAG node of
 // the directory, and and error if any.
-func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, node.Node, error) {
+func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, ipld.Node, error) {
 	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
 	fileAdder, err := NewAdder(n.Context(), n.Pinning, n.Blockstore, n.DAG)
 	if err != nil {
@@ -389,7 +389,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, node.No
 	return gopath.Join(c.String(), filename), dagnode, nil
 }
 
-func (adder *Adder) addNode(node node.Node, path string) error {
+func (adder *Adder) addNode(node ipld.Node, path string) error {
 	// patch it into the root
 	if path == "" {
 		path = node.Cid().String()
@@ -555,7 +555,7 @@ func (adder *Adder) maybePauseForGC() error {
 }
 
 // outputDagnode sends dagnode info over the output channel
-func outputDagnode(out chan interface{}, name string, dn node.Node) error {
+func outputDagnode(out chan interface{}, name string, dn ipld.Node) error {
 	if out == nil {
 		return nil
 	}
@@ -575,7 +575,7 @@ func outputDagnode(out chan interface{}, name string, dn node.Node) error {
 }
 
 // NewMemoryDagService builds and returns a new mem-datastore.
-func NewMemoryDagService() node.DAGService {
+func NewMemoryDagService() ipld.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	bsrv := bserv.New(bs, offline.Exchange(bs))
@@ -583,7 +583,7 @@ func NewMemoryDagService() node.DAGService {
 }
 
 // from core/commands/object.go
-func getOutput(dagnode node.Node) (*Object, error) {
+func getOutput(dagnode ipld.Node) (*Object, error) {
 	c := dagnode.Cid()
 	s, err := dagnode.Size()
 	if err != nil {

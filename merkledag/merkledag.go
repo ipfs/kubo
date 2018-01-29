@@ -10,7 +10,7 @@ import (
 
 	ipldcbor "gx/ipfs/QmNRz7BDWfdFNVLt7AVvmRefkrURD25EeoipcXqo6yoXU1/go-ipld-cbor"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
@@ -18,9 +18,9 @@ import (
 // functionality should go in a `go-ipld` repo but that will take a lot of work
 // and design.
 func init() {
-	node.Register(cid.DagProtobuf, DecodeProtobufBlock)
-	node.Register(cid.Raw, DecodeRawBlock)
-	node.Register(cid.DagCBOR, ipldcbor.DecodeBlock)
+	ipld.Register(cid.DagProtobuf, DecodeProtobufBlock)
+	ipld.Register(cid.Raw, DecodeRawBlock)
+	ipld.Register(cid.DagCBOR, ipldcbor.DecodeBlock)
 }
 
 // NewDAGService constructs a new DAGService (using the default implementation).
@@ -38,7 +38,7 @@ type dagService struct {
 }
 
 // Add adds a node to the dagService, storing the block in the BlockService
-func (n *dagService) Add(ctx context.Context, nd node.Node) error {
+func (n *dagService) Add(ctx context.Context, nd ipld.Node) error {
 	if n == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("dagService is nil")
 	}
@@ -46,7 +46,7 @@ func (n *dagService) Add(ctx context.Context, nd node.Node) error {
 	return n.Blocks.AddBlock(nd)
 }
 
-func (n *dagService) AddMany(ctx context.Context, nds []node.Node) error {
+func (n *dagService) AddMany(ctx context.Context, nds []ipld.Node) error {
 	blks := make([]blocks.Block, len(nds))
 	for i, nd := range nds {
 		blks[i] = nd
@@ -55,7 +55,7 @@ func (n *dagService) AddMany(ctx context.Context, nds []node.Node) error {
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
-func (n *dagService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
+func (n *dagService) Get(ctx context.Context, c *cid.Cid) (ipld.Node, error) {
 	if n == nil {
 		return nil, fmt.Errorf("dagService is nil")
 	}
@@ -66,17 +66,17 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 	b, err := n.Blocks.GetBlock(ctx, c)
 	if err != nil {
 		if err == bserv.ErrNotFound {
-			return nil, node.ErrNotFound
+			return nil, ipld.ErrNotFound
 		}
 		return nil, fmt.Errorf("Failed to get block for %s: %v", c, err)
 	}
 
-	return node.Decode(b)
+	return ipld.Decode(b)
 }
 
 // GetLinks return the links for the node, the node doesn't necessarily have
 // to exist locally.
-func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
+func (n *dagService) GetLinks(ctx context.Context, c *cid.Cid) ([]*ipld.Link, error) {
 	if c.Type() == cid.Raw {
 		return nil, nil
 	}
@@ -109,12 +109,12 @@ func (n *dagService) RemoveMany(ctx context.Context, cids []*cid.Cid) error {
 // GetLinksDirect creates a function to get the links for a node, from
 // the node, bypassing the LinkService.  If the node does not exist
 // locally (and can not be retrieved) an error will be returned.
-func GetLinksDirect(serv node.NodeGetter) GetLinks {
-	return func(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
+func GetLinksDirect(serv ipld.NodeGetter) GetLinks {
+	return func(ctx context.Context, c *cid.Cid) ([]*ipld.Link, error) {
 		nd, err := serv.Get(ctx, c)
 		if err != nil {
 			if err == bserv.ErrNotFound {
-				err = node.ErrNotFound
+				err = ipld.ErrNotFound
 			}
 			return nil, err
 		}
@@ -127,28 +127,28 @@ type sesGetter struct {
 }
 
 // Get gets a single node from the DAG.
-func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
+func (sg *sesGetter) Get(ctx context.Context, c *cid.Cid) (ipld.Node, error) {
 	blk, err := sg.bs.GetBlock(ctx, c)
 	switch err {
 	case bserv.ErrNotFound:
-		return nil, node.ErrNotFound
+		return nil, ipld.ErrNotFound
 	default:
 		return nil, err
 	case nil:
 		// noop
 	}
 
-	return node.Decode(blk)
+	return ipld.Decode(blk)
 }
 
 // GetMany gets many nodes at once, batching the request if possible.
-func (sg *sesGetter) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *node.NodeOption {
+func (sg *sesGetter) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *ipld.NodeOption {
 	return getNodesFromBG(ctx, sg.bs, keys)
 }
 
 // FetchGraph fetches all nodes that are children of the given node
-func FetchGraph(ctx context.Context, root *cid.Cid, serv node.DAGService) error {
-	var ng node.NodeGetter = serv
+func FetchGraph(ctx context.Context, root *cid.Cid, serv ipld.DAGService) error {
+	var ng ipld.NodeGetter = serv
 	ds, ok := serv.(*dagService)
 	if ok {
 		ng = &sesGetter{bserv.NewSession(ctx, ds.Blocks)}
@@ -187,12 +187,12 @@ func FindLinks(links []*cid.Cid, c *cid.Cid, start int) []int {
 // This method may not return all requested nodes (and may or may not return an
 // error indicating that it failed to do so. It is up to the caller to verify
 // that it received all nodes.
-func (n *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *node.NodeOption {
+func (n *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *ipld.NodeOption {
 	return getNodesFromBG(ctx, n.Blocks, keys)
 }
 
-func getNodesFromBG(ctx context.Context, bs bserv.BlockGetter, keys []*cid.Cid) <-chan *node.NodeOption {
-	out := make(chan *node.NodeOption, len(keys))
+func getNodesFromBG(ctx context.Context, bs bserv.BlockGetter, keys []*cid.Cid) <-chan *ipld.NodeOption {
+	out := make(chan *ipld.NodeOption, len(keys))
 	blocks := bs.GetBlocks(ctx, keys)
 	var count int
 
@@ -203,22 +203,22 @@ func getNodesFromBG(ctx context.Context, bs bserv.BlockGetter, keys []*cid.Cid) 
 			case b, ok := <-blocks:
 				if !ok {
 					if count != len(keys) {
-						out <- &node.NodeOption{Err: fmt.Errorf("failed to fetch all nodes")}
+						out <- &ipld.NodeOption{Err: fmt.Errorf("failed to fetch all nodes")}
 					}
 					return
 				}
 
-				nd, err := node.Decode(b)
+				nd, err := ipld.Decode(b)
 				if err != nil {
-					out <- &node.NodeOption{Err: err}
+					out <- &ipld.NodeOption{Err: err}
 					return
 				}
 
-				out <- &node.NodeOption{Node: nd}
+				out <- &ipld.NodeOption{Node: nd}
 				count++
 
 			case <-ctx.Done():
-				out <- &node.NodeOption{Err: ctx.Err()}
+				out <- &ipld.NodeOption{Err: ctx.Err()}
 				return
 			}
 		}
@@ -228,15 +228,15 @@ func getNodesFromBG(ctx context.Context, bs bserv.BlockGetter, keys []*cid.Cid) 
 
 // GetLinks is the type of function passed to the EnumerateChildren function(s)
 // for getting the children of an IPLD node.
-type GetLinks func(context.Context, *cid.Cid) ([]*node.Link, error)
+type GetLinks func(context.Context, *cid.Cid) ([]*ipld.Link, error)
 
 // GetLinksWithDAG returns a GetLinks function that tries to use the given
 // NodeGetter as a LinkGetter to get the children of a given IPLD node. This may
 // allow us to traverse the DAG without actually loading and parsing the node in
 // question (if we already have the links cached).
-func GetLinksWithDAG(ng node.NodeGetter) GetLinks {
-	return func(ctx context.Context, c *cid.Cid) ([]*node.Link, error) {
-		return node.GetLinks(ctx, ng, c)
+func GetLinksWithDAG(ng ipld.NodeGetter) GetLinks {
+	return func(ctx context.Context, c *cid.Cid) ([]*ipld.Link, error) {
+		return ipld.GetLinks(ctx, ng, c)
 	}
 }
 
@@ -291,7 +291,7 @@ var FetchGraphConcurrency = 8
 // NOTE: It *does not* make multiple concurrent calls to the passed `visit` function.
 func EnumerateChildrenAsync(ctx context.Context, getLinks GetLinks, c *cid.Cid, visit func(*cid.Cid) bool) error {
 	feed := make(chan *cid.Cid)
-	out := make(chan []*node.Link)
+	out := make(chan []*ipld.Link)
 	done := make(chan struct{})
 
 	var setlk sync.Mutex
@@ -370,7 +370,7 @@ func EnumerateChildrenAsync(ctx context.Context, getLinks GetLinks, c *cid.Cid, 
 
 }
 
-var _ node.LinkGetter = &dagService{}
-var _ node.NodeGetter = &dagService{}
-var _ node.NodeGetter = &sesGetter{}
-var _ node.DAGService = &dagService{}
+var _ ipld.LinkGetter = &dagService{}
+var _ ipld.NodeGetter = &dagService{}
+var _ ipld.NodeGetter = &sesGetter{}
+var _ ipld.DAGService = &dagService{}

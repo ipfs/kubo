@@ -18,7 +18,7 @@ import (
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func SizeSplitterGen(size int64) chunk.SplitterGen {
@@ -28,7 +28,7 @@ func SizeSplitterGen(size int64) chunk.SplitterGen {
 }
 
 // GetDAGServ returns a mock DAGService.
-func GetDAGServ() node.DAGService {
+func GetDAGServ() ipld.DAGService {
 	return mdagmock.Mock()
 }
 
@@ -53,7 +53,7 @@ func init() {
 }
 
 // GetNode returns a unixfs file node with the specified data.
-func GetNode(t testing.TB, dserv node.DAGService, data []byte, opts NodeOpts) node.Node {
+func GetNode(t testing.TB, dserv ipld.DAGService, data []byte, opts NodeOpts) ipld.Node {
 	in := bytes.NewReader(data)
 
 	dbp := h.DagBuilderParams{
@@ -72,12 +72,12 @@ func GetNode(t testing.TB, dserv node.DAGService, data []byte, opts NodeOpts) no
 }
 
 // GetEmptyNode returns an empty unixfs file node.
-func GetEmptyNode(t testing.TB, dserv node.DAGService, opts NodeOpts) node.Node {
+func GetEmptyNode(t testing.TB, dserv ipld.DAGService, opts NodeOpts) ipld.Node {
 	return GetNode(t, dserv, []byte{}, opts)
 }
 
 // GetRandomNode returns a random unixfs file node.
-func GetRandomNode(t testing.TB, dserv node.DAGService, size int64, opts NodeOpts) ([]byte, node.Node) {
+func GetRandomNode(t testing.TB, dserv ipld.DAGService, size int64, opts NodeOpts) ([]byte, ipld.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {
@@ -101,7 +101,7 @@ func ArrComp(a, b []byte) error {
 }
 
 // PrintDag pretty-prints the given dag to stdout.
-func PrintDag(nd *mdag.ProtoNode, ds node.DAGService, indent int) {
+func PrintDag(nd *mdag.ProtoNode, ds ipld.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		panic(err)

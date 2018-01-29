@@ -8,12 +8,12 @@ import (
 	. "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func TestRemoveLink(t *testing.T) {
 	nd := &ProtoNode{}
-	nd.SetLinks([]*node.Link{
+	nd.SetLinks([]*ipld.Link{
 		{Name: "a"},
 		{Name: "b"},
 		{Name: "a"},
@@ -41,7 +41,7 @@ func TestRemoveLink(t *testing.T) {
 
 	// should fail
 	err = nd.RemoveNodeLink("a")
-	if err != node.ErrNotFound {
+	if err != ipld.ErrNotFound {
 		t.Fatal("should have failed to remove link")
 	}
 
@@ -72,7 +72,7 @@ func TestFindLink(t *testing.T) {
 	kEmpty := ndEmpty.Cid()
 
 	nd := &ProtoNode{}
-	nd.SetLinks([]*node.Link{
+	nd.SetLinks([]*ipld.Link{
 		{Name: "a", Cid: kEmpty},
 		{Name: "c", Cid: kEmpty},
 		{Name: "b", Cid: kEmpty},
@@ -119,7 +119,7 @@ func TestFindLink(t *testing.T) {
 
 func TestNodeCopy(t *testing.T) {
 	nd := &ProtoNode{}
-	nd.SetLinks([]*node.Link{
+	nd.SetLinks([]*ipld.Link{
 		{Name: "a"},
 		{Name: "c"},
 		{Name: "b"},
@@ -137,7 +137,7 @@ func TestNodeCopy(t *testing.T) {
 
 func TestJsonRoundtrip(t *testing.T) {
 	nd := new(ProtoNode)
-	nd.SetLinks([]*node.Link{
+	nd.SetLinks([]*ipld.Link{
 		{Name: "a"},
 		{Name: "c"},
 		{Name: "b"},

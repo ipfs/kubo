@@ -16,7 +16,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var log = logging.Logger("tarfmt")
@@ -36,7 +36,7 @@ func marshalHeader(h *tar.Header) ([]byte, error) {
 
 // ImportTar imports a tar file into the given DAGService and returns the root
 // node.
-func ImportTar(ctx context.Context, r io.Reader, ds node.DAGService) (*dag.ProtoNode, error) {
+func ImportTar(ctx context.Context, r io.Reader, ds ipld.DAGService) (*dag.ProtoNode, error) {
 	tr := tar.NewReader(r)
 
 	root := new(dag.ProtoNode)
@@ -101,8 +101,8 @@ func escapePath(pth string) string {
 }
 
 type tarReader struct {
-	links []*node.Link
-	ds    node.DAGService
+	links []*ipld.Link
+	ds    ipld.DAGService
 
 	childRead *tarReader
 	hdrBuf    *bytes.Reader
@@ -198,7 +198,7 @@ func (tr *tarReader) Read(b []byte) (int, error) {
 
 // ExportTar exports the passed DAG as a tar file. This function is the inverse
 // of ImportTar.
-func ExportTar(ctx context.Context, root *dag.ProtoNode, ds node.DAGService) (io.Reader, error) {
+func ExportTar(ctx context.Context, root *dag.ProtoNode, ds ipld.DAGService) (io.Reader, error) {
 	if string(root.Data()) != "ipfs/tar" {
 		return nil, errors.New("not an IPFS tarchive")
 	}

@@ -26,7 +26,7 @@ import (
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func TestNode(t *testing.T) {
@@ -88,7 +88,7 @@ func SubtestNodeStat(t *testing.T, n *ProtoNode) {
 
 	k := n.Cid()
 
-	expected := node.NodeStat{
+	expected := ipld.NodeStat{
 		NumLinks:       len(n.Links()),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.Data()), // includes framing.
@@ -131,7 +131,7 @@ func TestBatchFetchDupBlock(t *testing.T) {
 
 func runBatchFetchTest(t *testing.T, read io.Reader) {
 	ctx := context.Background()
-	var dagservs []node.DAGService
+	var dagservs []ipld.DAGService
 	for _, bsi := range bstest.Mocks(5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
@@ -221,7 +221,7 @@ func TestCantGet(t *testing.T) {
 }
 
 func TestFetchGraph(t *testing.T) {
-	var dservs []node.DAGService
+	var dservs []ipld.DAGService
 	bsis := bstest.Mocks(2)
 	for _, bsi := range bsis {
 		dservs = append(dservs, NewDAGService(bsi))
@@ -265,8 +265,8 @@ func TestEnumerateChildren(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var traverse func(n node.Node)
-	traverse = func(n node.Node) {
+	var traverse func(n ipld.Node)
+	traverse = func(n ipld.Node) {
 		// traverse dag and check
 		for _, lnk := range n.Links() {
 			c := lnk.Cid
@@ -317,7 +317,7 @@ func TestFetchFailure(t *testing.T) {
 		}
 	}
 
-	getters := node.GetDAG(ctx, ds, top)
+	getters := ipld.GetDAG(ctx, ds, top)
 	for i, getter := range getters {
 		_, err := getter.Get(ctx)
 		if err != nil && i < 10 {
@@ -433,7 +433,7 @@ func TestGetRawNodes(t *testing.T) {
 func TestProtoNodeResolve(t *testing.T) {
 
 	nd := new(ProtoNode)
-	nd.SetLinks([]*node.Link{{Name: "foo"}})
+	nd.SetLinks([]*ipld.Link{{Name: "foo"}})
 
 	lnk, left, err := nd.ResolveLink([]string{"foo", "bar"})
 	if err != nil {
@@ -517,7 +517,7 @@ func TestEnumerateAsyncFailsNotFound(t *testing.T) {
 	d := NodeWithData([]byte("foo4"))
 
 	ds := dstest.Mock()
-	for _, n := range []node.Node{a, b, c} {
+	for _, n := range []ipld.Node{a, b, c} {
 		err := ds.Add(ctx, n)
 		if err != nil {
 			t.Fatal(err)
@@ -580,7 +580,7 @@ func testProgressIndicator(t *testing.T, depth int) {
 	}
 }
 
-func mkDag(ds node.DAGService, depth int) (*cid.Cid, int) {
+func mkDag(ds ipld.DAGService, depth int) (*cid.Cid, int) {
 	ctx := context.Background()
 
 	totalChildren := 0

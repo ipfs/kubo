@@ -15,7 +15,7 @@ import (
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var log = logging.Logger("pin")
@@ -102,7 +102,7 @@ type Pinner interface {
 	IsPinnedWithType(*cid.Cid, PinMode) (string, bool, error)
 
 	// Pin the given node, optionally recursively.
-	Pin(ctx context.Context, node node.Node, recursive bool) error
+	Pin(ctx context.Context, node ipld.Node, recursive bool) error
 
 	// Unpin the given cid. If recursive is true, removes either a recursive or
 	// a direct pin. If recursive is false, only removes a direct pin.
@@ -178,13 +178,13 @@ type pinner struct {
 	// Track the keys used for storing the pinning state, so gc does
 	// not delete them.
 	internalPin *cid.Set
-	dserv       node.DAGService
-	internal    node.DAGService // dagservice used to store internal objects
+	dserv       ipld.DAGService
+	internal    ipld.DAGService // dagservice used to store internal objects
 	dstore      ds.Datastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
-func NewPinner(dstore ds.Datastore, serv, internal node.DAGService) Pinner {
+func NewPinner(dstore ds.Datastore, serv, internal ipld.DAGService) Pinner {
 
 	rcset := cid.NewSet()
 	dirset := cid.NewSet()
@@ -200,7 +200,7 @@ func NewPinner(dstore ds.Datastore, serv, internal node.DAGService) Pinner {
 }
 
 // Pin the given node, optionally recursive
-func (p *pinner) Pin(ctx context.Context, node node.Node, recurse bool) error {
+func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	err := p.dserv.Add(ctx, node)
@@ -358,7 +358,7 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	// Now walk all recursive pins to check for indirect pins
 	var checkChildren func(*cid.Cid, *cid.Cid) error
 	checkChildren = func(rk, parentKey *cid.Cid) error {
-		links, err := node.GetLinks(context.TODO(), p.dserv, parentKey)
+		links, err := ipld.GetLinks(context.TODO(), p.dserv, parentKey)
 		if err != nil {
 			return err
 		}
@@ -427,7 +427,7 @@ func cidSetWithValues(cids []*cid.Cid) *cid.Set {
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(d ds.Datastore, dserv, internal node.DAGService) (Pinner, error) {
+func LoadPinner(d ds.Datastore, dserv, internal ipld.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	rootKeyI, err := d.Get(pinDatastoreKey)
@@ -597,8 +597,8 @@ func (p *pinner) PinWithMode(c *cid.Cid, mode PinMode) {
 
 // hasChild recursively looks for a Cid among the children of a root Cid.
 // The visit function can be used to shortcut already-visited branches.
-func hasChild(ng node.NodeGetter, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
-	links, err := node.GetLinks(context.TODO(), ng, root)
+func hasChild(ng ipld.NodeGetter, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
+	links, err := ipld.GetLinks(context.TODO(), ng, root)
 	if err != nil {
 		return false, err
 	}

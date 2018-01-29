@@ -10,7 +10,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	util "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func randNode() *merkledag.ProtoNode {
@@ -38,7 +38,7 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, n := range []node.Node{a, b, c} {
+	for _, n := range []ipld.Node{a, b, c} {
 		err = dagService.Add(ctx, n)
 		if err != nil {
 			t.Fatal(err)

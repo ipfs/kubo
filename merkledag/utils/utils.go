@@ -12,7 +12,7 @@ import (
 
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	syncds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/sync"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 type Editor struct {
@@ -20,15 +20,15 @@ type Editor struct {
 
 	// tmp is a temporary in memory (for now) dagstore for all of the
 	// intermediary nodes to be stored in
-	tmp node.DAGService
+	tmp ipld.DAGService
 
 	// src is the dagstore with *all* of the data on it, it is used to pull
 	// nodes from for modification (nil is a valid value)
-	src node.DAGService
+	src ipld.DAGService
 }
 
 // NewMemoryDagService returns a new, thread-safe in-memory DAGService.
-func NewMemoryDagService() node.DAGService {
+func NewMemoryDagService() ipld.DAGService {
 	// build mem-datastore for editor's intermediary nodes
 	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
 	bsrv := bserv.New(bs, offline.Exchange(bs))
@@ -39,7 +39,7 @@ func NewMemoryDagService() node.DAGService {
 //
 // * root is the node to be modified
 // * source is the dagstore to pull nodes from (optional)
-func NewDagEditor(root *dag.ProtoNode, source node.DAGService) *Editor {
+func NewDagEditor(root *dag.ProtoNode, source ipld.DAGService) *Editor {
 	return &Editor{
 		root: root,
 		tmp:  NewMemoryDagService(),
@@ -53,11 +53,11 @@ func (e *Editor) GetNode() *dag.ProtoNode {
 }
 
 // GetDagService returns the DAGService used by this editor.
-func (e *Editor) GetDagService() node.DAGService {
+func (e *Editor) GetDagService() ipld.DAGService {
 	return e.tmp
 }
 
-func addLink(ctx context.Context, ds node.DAGService, root *dag.ProtoNode, childname string, childnd node.Node) (*dag.ProtoNode, error) {
+func addLink(ctx context.Context, ds ipld.DAGService, root *dag.ProtoNode, childname string, childnd ipld.Node) (*dag.ProtoNode, error) {
 	if childname == "" {
 		return nil, errors.New("cannot create link with no name")
 	}
@@ -83,7 +83,7 @@ func addLink(ctx context.Context, ds node.DAGService, root *dag.ProtoNode, child
 	return root, nil
 }
 
-func (e *Editor) InsertNodeAtPath(ctx context.Context, pth string, toinsert node.Node, create func() *dag.ProtoNode) error {
+func (e *Editor) InsertNodeAtPath(ctx context.Context, pth string, toinsert ipld.Node, create func() *dag.ProtoNode) error {
 	splpath := path.SplitList(pth)
 	nd, err := e.insertNodeAtPath(ctx, e.root, splpath, toinsert, create)
 	if err != nil {
@@ -93,7 +93,7 @@ func (e *Editor) InsertNodeAtPath(ctx context.Context, pth string, toinsert node
 	return nil
 }
 
-func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path []string, toinsert node.Node, create func() *dag.ProtoNode) (*dag.ProtoNode, error) {
+func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path []string, toinsert ipld.Node, create func() *dag.ProtoNode) (*dag.ProtoNode, error) {
 	if len(path) == 1 {
 		return addLink(ctx, e.tmp, root, path[0], toinsert)
 	}
@@ -104,7 +104,7 @@ func (e *Editor) insertNodeAtPath(ctx context.Context, root *dag.ProtoNode, path
 		if err == dag.ErrLinkNotFound && create != nil {
 			nd = create()
 			err = nil // no longer an error case
-		} else if err == node.ErrNotFound {
+		} else if err == ipld.ErrNotFound {
 			// try finding it in our source dagstore
 			nd, err = root.GetLinkedProtoNode(ctx, e.src, path[0])
 		}
@@ -165,7 +165,7 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 
 	// search for node in both tmp dagstore and source dagstore
 	nd, err := root.GetLinkedProtoNode(ctx, e.tmp, path[0])
-	if err == node.ErrNotFound {
+	if err == ipld.ErrNotFound {
 		nd, err = root.GetLinkedProtoNode(ctx, e.src, path[0])
 	}
 
@@ -196,13 +196,13 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 
 // Finalize writes the new DAG to the given DAGService and returns the modified
 // root node.
-func (e *Editor) Finalize(ctx context.Context, ds node.DAGService) (*dag.ProtoNode, error) {
+func (e *Editor) Finalize(ctx context.Context, ds ipld.DAGService) (*dag.ProtoNode, error) {
 	nd := e.GetNode()
 	err := copyDag(ctx, nd, e.tmp, ds)
 	return nd, err
 }
 
-func copyDag(ctx context.Context, nd node.Node, from, to node.DAGService) error {
+func copyDag(ctx context.Context, nd ipld.Node, from, to ipld.DAGService) error {
 	// TODO(#4609): make this batch.
 	err := to.Add(ctx, nd)
 	if err != nil {
@@ -212,7 +212,7 @@ func copyDag(ctx context.Context, nd node.Node, from, to node.DAGService) error 
 	for _, lnk := range nd.Links() {
 		child, err := lnk.GetNode(ctx, from)
 		if err != nil {
-			if err == node.ErrNotFound {
+			if err == ipld.ErrNotFound {
 				// not found means we didnt modify it, and it should
 				// already be in the target datastore
 				continue

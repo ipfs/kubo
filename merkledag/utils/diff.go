@@ -8,7 +8,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 const (
@@ -38,7 +38,7 @@ func (c *Change) String() string {
 }
 
 // ApplyChange applies the requested changes to the given node in the given dag.
-func ApplyChange(ctx context.Context, ds node.DAGService, nd *dag.ProtoNode, cs []*Change) (*dag.ProtoNode, error) {
+func ApplyChange(ctx context.Context, ds ipld.DAGService, nd *dag.ProtoNode, cs []*Change) (*dag.ProtoNode, error) {
 	e := NewDagEditor(nd, ds)
 	for _, c := range cs {
 		switch c.Type {
@@ -90,7 +90,7 @@ func ApplyChange(ctx context.Context, ds node.DAGService, nd *dag.ProtoNode, cs 
 }
 
 // Diff returns a set of changes that transform node 'a' into node 'b'
-func Diff(ctx context.Context, ds node.DAGService, a, b node.Node) ([]*Change, error) {
+func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, error) {
 	if len(a.Links()) == 0 && len(b.Links()) == 0 {
 		return []*Change{
 			&Change{

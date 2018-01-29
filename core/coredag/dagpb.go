@@ -9,10 +9,10 @@ import (
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func dagpbJSONParser(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) {
+func dagpbJSONParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -27,10 +27,10 @@ func dagpbJSONParser(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error)
 
 	nd.SetPrefix(cidPrefix(mhType, mhLen))
 
-	return []node.Node{nd}, nil
+	return []ipld.Node{nd}, nil
 }
 
-func dagpbRawParser(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) {
+func dagpbRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func dagpbRawParser(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) 
 
 	nd.SetPrefix(cidPrefix(mhType, mhLen))
 
-	return []node.Node{nd}, nil
+	return []ipld.Node{nd}, nil
 }
 
 func cidPrefix(mhType uint64, mhLen int) *cid.Prefix {

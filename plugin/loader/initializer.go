@@ -4,7 +4,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/coredag"
 	"github.com/ipfs/go-ipfs/plugin"
 
-	format "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func initialize(plugins []plugin.Plugin) error {
@@ -34,7 +34,7 @@ func runIPLDPlugin(pl plugin.Plugin) error {
 		return nil
 	}
 
-	err := ipldpl.RegisterBlockDecoders(format.DefaultBlockDecoder)
+	err := ipldpl.RegisterBlockDecoders(ipld.DefaultBlockDecoder)
 	if err != nil {
 		return err
 	}

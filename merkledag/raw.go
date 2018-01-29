@@ -6,7 +6,7 @@ import (
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 type RawNode struct {
@@ -24,7 +24,7 @@ func NewRawNode(data []byte) *RawNode {
 }
 
 // DecodeRawBlock is a block decoder for raw IPLD nodes conforming to `node.DecodeBlockFunc`.
-func DecodeRawBlock(block blocks.Block) (node.Node, error) {
+func DecodeRawBlock(block blocks.Block) (ipld.Node, error) {
 	if block.Cid().Type() != cid.Raw {
 		return nil, fmt.Errorf("raw nodes cannot be decoded from non-raw blocks: %d", block.Cid().Type())
 	}
@@ -32,7 +32,7 @@ func DecodeRawBlock(block blocks.Block) (node.Node, error) {
 	return &RawNode{block}, nil
 }
 
-var _ node.DecodeBlockFunc = DecodeRawBlock
+var _ ipld.DecodeBlockFunc = DecodeRawBlock
 
 // NewRawNodeWPrefix creates a RawNode with the hash function
 // specified in prefix.
@@ -52,11 +52,11 @@ func NewRawNodeWPrefix(data []byte, prefix cid.Prefix) (*RawNode, error) {
 	return &RawNode{blk}, nil
 }
 
-func (rn *RawNode) Links() []*node.Link {
+func (rn *RawNode) Links() []*ipld.Link {
 	return nil
 }
 
-func (rn *RawNode) ResolveLink(path []string) (*node.Link, []string, error) {
+func (rn *RawNode) ResolveLink(path []string) (*ipld.Link, []string, error) {
 	return nil, nil, ErrLinkNotFound
 }
 
@@ -68,7 +68,7 @@ func (rn *RawNode) Tree(p string, depth int) []string {
 	return nil
 }
 
-func (rn *RawNode) Copy() node.Node {
+func (rn *RawNode) Copy() ipld.Node {
 	copybuf := make([]byte, len(rn.RawData()))
 	copy(copybuf, rn.RawData())
 	nblk, err := blocks.NewBlockWithCid(rn.RawData(), rn.Cid())
@@ -84,11 +84,11 @@ func (rn *RawNode) Size() (uint64, error) {
 	return uint64(len(rn.RawData())), nil
 }
 
-func (rn *RawNode) Stat() (*node.NodeStat, error) {
-	return &node.NodeStat{
+func (rn *RawNode) Stat() (*ipld.NodeStat, error) {
+	return &ipld.NodeStat{
 		CumulativeSize: len(rn.RawData()),
 		DataSize:       len(rn.RawData()),
 	}, nil
 }
 
-var _ node.Node = (*RawNode)(nil)
+var _ ipld.Node = (*RawNode)(nil)

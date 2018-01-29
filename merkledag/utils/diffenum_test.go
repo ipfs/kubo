@@ -9,10 +9,10 @@ import (
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func buildNode(name string, desc map[string]ndesc, out map[string]node.Node) node.Node {
+func buildNode(name string, desc map[string]ndesc, out map[string]ipld.Node) ipld.Node {
 	this := desc[name]
 	nd := new(dag.ProtoNode)
 	nd.SetData([]byte(name))
@@ -33,8 +33,8 @@ func buildNode(name string, desc map[string]ndesc, out map[string]node.Node) nod
 
 type ndesc map[string]string
 
-func mkGraph(desc map[string]ndesc) map[string]node.Node {
-	out := make(map[string]node.Node)
+func mkGraph(desc map[string]ndesc) map[string]ipld.Node {
+	out := make(map[string]ipld.Node)
 	for name := range desc {
 		if _, ok := out[name]; ok {
 			continue
@@ -154,11 +154,11 @@ func TestDiffEnumBasic(t *testing.T) {
 }
 
 type getLogger struct {
-	ds  node.NodeGetter
+	ds  ipld.NodeGetter
 	log []*cid.Cid
 }
 
-func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
+func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (ipld.Node, error) {
 	nd, err := gl.ds.Get(ctx, c)
 	if err != nil {
 		return nil, err
@@ -167,8 +167,8 @@ func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
 	return nd, nil
 }
 
-func (gl *getLogger) GetMany(ctx context.Context, cids []*cid.Cid) <-chan *node.NodeOption {
-	outCh := make(chan *node.NodeOption, len(cids))
+func (gl *getLogger) GetMany(ctx context.Context, cids []*cid.Cid) <-chan *ipld.NodeOption {
+	outCh := make(chan *ipld.NodeOption, len(cids))
 	nds := gl.ds.GetMany(ctx, cids)
 	for no := range nds {
 		if no.Err == nil {
@@ -211,7 +211,7 @@ func TestDiffEnumFail(t *testing.T) {
 	}
 
 	err := DiffEnumerate(ctx, lgds, nds["a1"].Cid(), nds["a2"].Cid())
-	if err != node.ErrNotFound {
+	if err != ipld.ErrNotFound {
 		t.Fatal("expected err not found")
 	}
 

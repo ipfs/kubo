@@ -70,7 +70,7 @@ import (
 	metrics "gx/ipfs/Qmb1QrSXKwGFWgiGEcyac4s5wakJG4yPvCPk49xZHxr5ux/go-libp2p-metrics"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	dht "gx/ipfs/Qmdm5sm2xHCXNaWdxpjhFeStvSNMRhKQkqpBX7aDcqXtfT/go-libp2p-kad-dht"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
 	circuit "gx/ipfs/Qmet8Dv4K3w6aGjNfX5MCRmu1KzJtkKhw1sCzQm2bvGNwP/go-libp2p-circuit"
 	mafilter "gx/ipfs/Qmf2UAmRwDG4TvnkQpHZWPAzw7rpCYVhxmRXmYxXr5LD1g/go-maddr-filter"
@@ -118,7 +118,7 @@ type IpfsNode struct {
 	BaseBlocks bstore.Blockstore    // the raw blockstore, no filestore wrapping
 	GCLocker   bstore.GCLocker      // the locker used to protect the blockstore during gc
 	Blocks     bserv.BlockService   // the block service, get/add blocks.
-	DAG        node.DAGService      // the merkle dag service, get/add objects.
+	DAG        ipld.DAGService      // the merkle dag service, get/add objects.
 	Resolver   *path.Resolver       // the path resolution system
 	Reporter   metrics.Reporter
 	Discovery  discovery.Service

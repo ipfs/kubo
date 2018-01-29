@@ -14,21 +14,21 @@ import (
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
 
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // Writer is a utility structure that helps to write
 // unixfs merkledag nodes as a tar archive format.
 // It wraps any io.Writer.
 type Writer struct {
-	Dag  node.DAGService
+	Dag  ipld.DAGService
 	TarW *tar.Writer
 
 	ctx context.Context
 }
 
 // NewWriter wraps given io.Writer.
-func NewWriter(ctx context.Context, dag node.DAGService, archive bool, compression int, w io.Writer) (*Writer, error) {
+func NewWriter(ctx context.Context, dag ipld.DAGService, archive bool, compression int, w io.Writer) (*Writer, error) {
 	return &Writer{
 		Dag:  dag,
 		TarW: tar.NewWriter(w),
@@ -41,7 +41,7 @@ func (w *Writer) writeDir(nd *mdag.ProtoNode, fpath string) error {
 		return err
 	}
 
-	for i, ng := range node.GetDAG(w.ctx, w.Dag, nd) {
+	for i, ng := range ipld.GetDAG(w.ctx, w.Dag, nd) {
 		child, err := ng.Get(w.ctx)
 		if err != nil {
 			return err
@@ -69,7 +69,7 @@ func (w *Writer) writeFile(nd *mdag.ProtoNode, pb *upb.Data, fpath string) error
 	return nil
 }
 
-func (w *Writer) WriteNode(nd node.Node, fpath string) error {
+func (w *Writer) WriteNode(nd ipld.Node, fpath string) error {
 	switch nd := nd.(type) {
 	case *mdag.ProtoNode:
 		pb := new(upb.Data)

@@ -11,19 +11,19 @@ import (
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
-	dserv     node.DAGService
+	dserv     ipld.DAGService
 	spl       chunk.Splitter
 	recvdErr  error
 	rawLeaves bool
 	nextData  []byte // the next item to return.
 	maxlinks  int
-	batch     *node.Batch
+	batch     *ipld.Batch
 	fullPath  string
 	stat      os.FileInfo
 	prefix    *cid.Prefix
@@ -41,7 +41,7 @@ type DagBuilderParams struct {
 	Prefix *cid.Prefix
 
 	// DAGService to write blocks to (required)
-	Dagserv node.DAGService
+	Dagserv ipld.DAGService
 
 	// NoCopy signals to the chunker that it should track fileinfo for
 	// filestore adds
@@ -57,7 +57,7 @@ func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
 		rawLeaves: dbp.RawLeaves,
 		prefix:    dbp.Prefix,
 		maxlinks:  dbp.Maxlinks,
-		batch:     node.NewBatch(context.TODO(), dbp.Dagserv),
+		batch:     ipld.NewBatch(context.TODO(), dbp.Dagserv),
 	}
 	if fi, ok := spl.Reader().(files.FileInfo); dbp.NoCopy && ok {
 		db.fullPath = fi.AbsPath()
@@ -107,7 +107,7 @@ func (db *DagBuilderHelper) Next() ([]byte, error) {
 }
 
 // GetDagServ returns the dagservice object this Helper is using
-func (db *DagBuilderHelper) GetDagServ() node.DAGService {
+func (db *DagBuilderHelper) GetDagServ() ipld.DAGService {
 	return db.dserv
 }
 
@@ -194,7 +194,7 @@ func (db *DagBuilderHelper) SetPosInfo(node *UnixfsNode, offset uint64) {
 	}
 }
 
-func (db *DagBuilderHelper) Add(node *UnixfsNode) (node.Node, error) {
+func (db *DagBuilderHelper) Add(node *UnixfsNode) (ipld.Node, error) {
 	dn, err := node.GetDagNode()
 	if err != nil {
 		return nil, err

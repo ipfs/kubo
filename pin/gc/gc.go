@@ -13,7 +13,7 @@ import (
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var log = logging.Logger("gc")
@@ -128,13 +128,13 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 
 // ColoredSet computes the set of nodes in the graph that are pinned by the
 // pins in the given pinner.
-func ColoredSet(ctx context.Context, pn pin.Pinner, ng node.NodeGetter, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	errors := false
 	gcs := cid.NewSet()
-	getLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
-		links, err := node.GetLinks(ctx, ng, cid)
+	getLinks := func(ctx context.Context, cid *cid.Cid) ([]*ipld.Link, error) {
+		links, err := ipld.GetLinks(ctx, ng, cid)
 		if err != nil {
 			errors = true
 			output <- Result{Error: &CannotFetchLinksError{cid, err}}
@@ -147,9 +147,9 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng node.NodeGetter, bestEffo
 		output <- Result{Error: err}
 	}
 
-	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*node.Link, error) {
-		links, err := node.GetLinks(ctx, ng, cid)
-		if err != nil && err != node.ErrNotFound {
+	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*ipld.Link, error) {
+		links, err := ipld.GetLinks(ctx, ng, cid)
+		if err != nil && err != ipld.ErrNotFound {
 			errors = true
 			output <- Result{Error: &CannotFetchLinksError{cid, err}}
 		}

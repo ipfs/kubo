@@ -12,10 +12,10 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func getBalancedDag(t testing.TB, size int64, blksize int64) (node.Node, node.DAGService) {
+func getBalancedDag(t testing.TB, size int64, blksize int64) (ipld.Node, ipld.DAGService) {
 	ds := mdtest.Mock()
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
 	nd, err := BuildDagFromReader(ds, chunk.NewSizeSplitter(r, blksize))
@@ -25,7 +25,7 @@ func getBalancedDag(t testing.TB, size int64, blksize int64) (node.Node, node.DA
 	return nd, ds
 }
 
-func getTrickleDag(t testing.TB, size int64, blksize int64) (node.Node, node.DAGService) {
+func getTrickleDag(t testing.TB, size int64, blksize int64) (ipld.Node, ipld.DAGService) {
 	ds := mdtest.Mock()
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
 	nd, err := BuildTrickleDagFromReader(ds, chunk.NewSizeSplitter(r, blksize))
@@ -101,7 +101,7 @@ func BenchmarkTrickleReadFull(b *testing.B) {
 	runReadBench(b, nd, ds)
 }
 
-func runReadBench(b *testing.B, nd node.Node, ds node.DAGService) {
+func runReadBench(b *testing.B, nd ipld.Node, ds ipld.DAGService) {
 	for i := 0; i < b.N; i++ {
 		ctx, cancel := context.WithCancel(context.Background())
 		read, err := uio.NewDagReader(ctx, nd, ds)

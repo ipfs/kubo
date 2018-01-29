@@ -9,7 +9,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func TestAddLink(t *testing.T) {
@@ -41,7 +41,7 @@ func TestAddLink(t *testing.T) {
 	}
 }
 
-func assertNodeAtPath(t *testing.T, ds node.DAGService, root *dag.ProtoNode, pth string, exp *cid.Cid) {
+func assertNodeAtPath(t *testing.T, ds ipld.DAGService, root *dag.ProtoNode, pth string, exp *cid.Cid) {
 	parts := path.SplitList(pth)
 	cur := root
 	for _, e := range parts {

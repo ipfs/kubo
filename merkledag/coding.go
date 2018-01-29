@@ -10,7 +10,7 @@ import (
 	pb "github.com/ipfs/go-ipfs/merkledag/pb"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // for now, we use a PBNode intermediate thing.
@@ -25,9 +25,9 @@ func (n *ProtoNode) unmarshal(encoded []byte) error {
 	}
 
 	pbnl := pbn.GetLinks()
-	n.links = make([]*node.Link, len(pbnl))
+	n.links = make([]*ipld.Link, len(pbnl))
 	for i, l := range pbnl {
-		n.links[i] = &node.Link{Name: l.GetName(), Size: l.GetTsize()}
+		n.links[i] = &ipld.Link{Name: l.GetName(), Size: l.GetTsize()}
 		c, err := cid.Cast(l.GetHash())
 		if err != nil {
 			return fmt.Errorf("Link hash #%d is not valid multihash. %v", i, err)
@@ -114,7 +114,7 @@ func DecodeProtobuf(encoded []byte) (*ProtoNode, error) {
 
 // DecodeProtobufBlock is a block decoder for protobuf IPLD nodes conforming to
 // node.DecodeBlockFunc
-func DecodeProtobufBlock(b blocks.Block) (node.Node, error) {
+func DecodeProtobufBlock(b blocks.Block) (ipld.Node, error) {
 	c := b.Cid()
 	if c.Type() != cid.DagProtobuf {
 		return nil, fmt.Errorf("this function can only decode protobuf nodes")
@@ -134,4 +134,4 @@ func DecodeProtobufBlock(b blocks.Block) (node.Node, error) {
 }
 
 // Type assertion
-var _ node.DecodeBlockFunc = DecodeProtobufBlock
+var _ ipld.DecodeBlockFunc = DecodeProtobufBlock

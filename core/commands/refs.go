@@ -14,7 +14,7 @@ import (
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // KeyList is a general type for outputting lists of keys
@@ -197,8 +197,8 @@ var refsMarshallerMap = cmds.MarshalerMap{
 	},
 }
 
-func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]node.Node, error) {
-	objects := make([]node.Node, len(paths))
+func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]ipld.Node, error) {
+	objects := make([]ipld.Node, len(paths))
 	for i, sp := range paths {
 		p, err := path.ParsePath(sp)
 		if err != nil {
@@ -221,7 +221,7 @@ type RefWrapper struct {
 
 type RefWriter struct {
 	out chan interface{}
-	DAG node.DAGService
+	DAG ipld.DAGService
 	Ctx context.Context
 
 	Unique    bool
@@ -232,18 +232,18 @@ type RefWriter struct {
 }
 
 // WriteRefs writes refs of the given object to the underlying writer.
-func (rw *RefWriter) WriteRefs(n node.Node) (int, error) {
+func (rw *RefWriter) WriteRefs(n ipld.Node) (int, error) {
 	if rw.Recursive {
 		return rw.writeRefsRecursive(n)
 	}
 	return rw.writeRefsSingle(n)
 }
 
-func (rw *RefWriter) writeRefsRecursive(n node.Node) (int, error) {
+func (rw *RefWriter) writeRefsRecursive(n ipld.Node) (int, error) {
 	nc := n.Cid()
 
 	var count int
-	for i, ng := range node.GetDAG(rw.Ctx, rw.DAG, n) {
+	for i, ng := range ipld.GetDAG(rw.Ctx, rw.DAG, n) {
 		lc := n.Links()[i].Cid
 		if rw.skip(lc) {
 			continue
@@ -267,7 +267,7 @@ func (rw *RefWriter) writeRefsRecursive(n node.Node) (int, error) {
 	return count, nil
 }
 
-func (rw *RefWriter) writeRefsSingle(n node.Node) (int, error) {
+func (rw *RefWriter) writeRefsSingle(n ipld.Node) (int, error) {
 	c := n.Cid()
 
 	if rw.skip(c) {
