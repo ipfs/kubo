@@ -139,7 +139,7 @@ func (s *blockService) AddBlock(o blocks.Block) error {
 	}
 
 	if err := s.exchange.HasBlock(o); err != nil {
-		// TODO(stebalien): really an error?
+		// TODO(#4623): really an error?
 		return errors.New("blockservice is closed")
 	}
 
@@ -170,7 +170,7 @@ func (s *blockService) AddBlocks(bs []blocks.Block) error {
 
 	for _, o := range toput {
 		if err := s.exchange.HasBlock(o); err != nil {
-			// TODO(stebalien): Should this really *return*?
+			// TODO(#4623): Should this really *return*?
 			return fmt.Errorf("blockservice is closed (%s)", err)
 		}
 	}
