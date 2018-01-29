@@ -32,7 +32,7 @@ func TestListSelf(t *testing.T) {
 	}
 
 	if keys[0].Path().String() != "/ipns/"+testPeerID {
-		t.Errorf("expected the key to have path '/ipns/Qmfoo', got '%s'", keys[0].Path().String())
+		t.Errorf("expected the key to have path '/ipns/%s', got '%s'", testPeerID, keys[0].Path().String())
 	}
 }
 
