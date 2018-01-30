@@ -7,13 +7,13 @@ import (
 
 	"github.com/ipfs/go-ipfs/merkledag"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
-	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
-	block "gx/ipfs/QmYsEQydGrsxNZfAiskvQ76N2xE9hDQtSAkRSynwMiUK3c/go-block-format"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	block "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
-func rawRawParser(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) {
+func rawRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
 	if mhType == math.MaxUint64 {
 		mhType = mh.SHA2_256
 	}
@@ -33,5 +33,5 @@ func rawRawParser(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) {
 		return nil, err
 	}
 	nd := &merkledag.RawNode{Block: blk}
-	return []node.Node{nd}, nil
+	return []ipld.Node{nd}, nil
 }

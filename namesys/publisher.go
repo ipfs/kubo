@@ -13,14 +13,14 @@ import (
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	routing "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing"
-	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
-	record "gx/ipfs/QmWGtsyPYEoiqTtWLpeUA2jpW4YSZgarKDD2zivYAFz7sR/go-libp2p-record"
-	dhtpb "gx/ipfs/QmWGtsyPYEoiqTtWLpeUA2jpW4YSZgarKDD2zivYAFz7sR/go-libp2p-record/pb"
-	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
+	routing "gx/ipfs/QmRijoA6zGS98ELTDbGsLWPZbVotYsGbjp3RbXcKCYBeon/go-libp2p-routing"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
+	record "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record"
+	dhtpb "gx/ipfs/QmbsY8Pr6s3uZsKg7rzBtGDKeCtdoAhNaMTCXBUbvb1eCV/go-libp2p-record/pb"
 )
 
 // ErrExpiredRecord should be returned when an ipns record is
@@ -30,6 +30,10 @@ var ErrExpiredRecord = errors.New("expired record")
 // ErrUnrecognizedValidity is returned when an IpnsRecord has an
 // unknown validity type.
 var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
+
+// ErrInvalidPath should be returned when an ipns record path
+// is not in a valid format
+var ErrInvalidPath = errors.New("record path invalid")
 
 const PublishPutValTimeout = time.Minute
 const DefaultRecordTTL = 24 * time.Hour
@@ -295,12 +299,37 @@ func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
 
 // ValidateIpnsRecord implements ValidatorFunc and verifies that the
 // given 'val' is an IpnsEntry and that that entry is valid.
-func ValidateIpnsRecord(k string, val []byte) error {
+func ValidateIpnsRecord(r *record.ValidationRecord) error {
+	if r.Namespace != "ipns" {
+		return ErrInvalidPath
+	}
+
 	entry := new(pb.IpnsEntry)
-	err := proto.Unmarshal(val, entry)
+	err := proto.Unmarshal(r.Value, entry)
 	if err != nil {
 		return err
 	}
+
+	// NOTE/FIXME(#4613): We're not checking the DHT signature/author here.
+	// We're going to remove them in a followup commit and then check the
+	// *IPNS* signature. However, to do that, we need to ensure we *have*
+	// the public key and:
+	//
+	// 1. Don't want to fetch it from the network when handling PUTs.
+	// 2. Do want to fetch it from the network when handling GETs.
+	//
+	// Therefore, we'll need to either:
+	//
+	// 1. Pass some for of offline hint to the validator (e.g., using a context).
+	// 2. Ensure we pre-fetch the key when performing gets.
+	//
+	// This PR is already *way* too large so we're punting that fix to a new
+	// PR.
+	//
+	// This is not a regression, it just restores the current (bad)
+	// behavior.
+
+	// Check that record has not expired
 	switch entry.GetValidityType() {
 	case pb.IpnsEntry_EOL:
 		t, err := u.ParseRFC3339(string(entry.GetValidity()))

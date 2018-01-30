@@ -20,11 +20,11 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	ci "gx/ipfs/QmeDA8gNhvRTsbrjEieay5wezupJDiky8xvCzDABbsGzmp/go-testutil/ci"
+	ci "gx/ipfs/QmfB65MYJqaKzBiMvW47fquCRhmEeXW6AhrJSGM7TeY5eG/go-testutil/ci"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
-	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	fstest "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs/fstestutil"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -33,7 +33,7 @@ func maybeSkipFuseTests(t *testing.T) {
 	}
 }
 
-func randObj(t *testing.T, nd *core.IpfsNode, size int64) (node.Node, []byte) {
+func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
 	u.NewTimeSeededRand().Read(buf)
 	read := bytes.NewReader(buf)
@@ -116,7 +116,7 @@ func TestIpfsStressRead(t *testing.T) {
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
-	var nodes []node.Node
+	var nodes []ipld.Node
 	var paths []string
 
 	nobj := 50
@@ -145,7 +145,7 @@ func TestIpfsStressRead(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, err = nd.DAG.Add(newdir)
+		err = nd.DAG.Add(nd.Context(), newdir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -224,12 +224,12 @@ func TestIpfsBasicDirRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d1ndk, err := nd.DAG.Add(d1nd)
+	err = nd.DAG.Add(nd.Context(), d1nd)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dirname := path.Join(mnt.Dir, d1ndk.String())
+	dirname := path.Join(mnt.Dir, d1nd.Cid().String())
 	fname := path.Join(dirname, "actual")
 	rbuf, err := ioutil.ReadFile(fname)
 	if err != nil {

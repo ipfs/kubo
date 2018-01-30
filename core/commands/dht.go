@@ -13,14 +13,15 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 
-	routing "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing"
-	notif "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing/notifications"
-	b58 "gx/ipfs/QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf/go-base58"
-	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
-	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
+	routing "gx/ipfs/QmRijoA6zGS98ELTDbGsLWPZbVotYsGbjp3RbXcKCYBeon/go-libp2p-routing"
+	notif "gx/ipfs/QmRijoA6zGS98ELTDbGsLWPZbVotYsGbjp3RbXcKCYBeon/go-libp2p-routing/notifications"
+	b58 "gx/ipfs/QmWFAMPqsEyUX7gDUsRVmMWz59FxSpJ1b2v6bJ1yYzo7jY/go-base58-fast/base58"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
-	ipdht "gx/ipfs/QmfUvYQhL2GinafMbPDYz7VFoZv4iiuLuR33aRsPurXGag/go-libp2p-kad-dht"
+	ipdht "gx/ipfs/Qmdm5sm2xHCXNaWdxpjhFeStvSNMRhKQkqpBX7aDcqXtfT/go-libp2p-kad-dht"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
@@ -69,9 +70,13 @@ var queryDhtCmd = &cmds.Command{
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
-		k := string(b58.Decode(req.Arguments()[0]))
+		id, err := peer.IDB58Decode(req.Arguments()[0])
+		if err != nil {
+			res.SetError(cmds.ClientError("invalid peer ID"), cmdkit.ErrClient)
+			return
+		}
 
-		closestPeers, err := dht.GetClosestPeers(ctx, k)
+		closestPeers, err := dht.GetClosestPeers(ctx, string(id))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -169,9 +174,6 @@ var findProvidersDhtCmd = &cmds.Command{
 			return
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
@@ -180,6 +182,9 @@ var findProvidersDhtCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
 
 		pchan := dht.FindProvidersAsync(ctx, c, numProviders)
 		go func() {
@@ -373,7 +378,7 @@ func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []*cid.Cid) er
 	return nil
 }
 
-func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv dag.DAGService, cids []*cid.Cid) error {
+func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv ipld.DAGService, cids []*cid.Cid) error {
 	provided := cid.NewSet()
 	for _, c := range cids {
 		kset := cid.NewSet()
@@ -530,17 +535,17 @@ Different key types can specify other 'best' rules.
 			return
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
-
 		dhtkey, err := escapeDhtKey(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
+		events := make(chan *notif.QueryEvent)
+		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
 		go func() {
 			defer close(outChan)
@@ -645,9 +650,6 @@ NOTE: A value may not exceed 2048 bytes.
 			return
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
@@ -656,6 +658,9 @@ NOTE: A value may not exceed 2048 bytes.
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
 
 		data := req.Arguments()[1]
 
@@ -773,9 +778,16 @@ func escapeDhtKey(s string) (string, error) {
 	parts := path.SplitList(s)
 	switch len(parts) {
 	case 1:
-		return string(b58.Decode(s)), nil
+		k, err := b58.Decode(s)
+		if err != nil {
+			return "", err
+		}
+		return string(k), nil
 	case 3:
-		k := b58.Decode(parts[2])
+		k, err := b58.Decode(parts[2])
+		if err != nil {
+			return "", err
+		}
 		return path.Join(append(parts[:2], string(k))), nil
 	default:
 		return "", errors.New("invalid key")

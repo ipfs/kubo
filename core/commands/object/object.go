@@ -2,6 +2,7 @@ package objectcmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
@@ -20,9 +21,9 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
@@ -312,7 +313,7 @@ var ObjectStatCmd = &cmds.Command{
 
 		res.SetOutput(ns)
 	},
-	Type: node.NodeStat{},
+	Type: ipld.NodeStat{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v, err := unwrapOutput(res.Output())
@@ -320,7 +321,7 @@ var ObjectStatCmd = &cmds.Command{
 				return nil, err
 			}
 
-			ns, ok := v.(*node.NodeStat)
+			ns, ok := v.(*ipld.NodeStat)
 			if !ok {
 				return nil, e.TypeErr(ns, v)
 			}
@@ -422,7 +423,7 @@ And then run:
 			defer n.Blockstore.PinLock().Unlock()
 		}
 
-		objectCid, err := objectPut(n, input, inputenc, datafieldenc)
+		objectCid, err := objectPut(req.Context(), n, input, inputenc, datafieldenc)
 		if err != nil {
 			errType := cmdkit.ErrNormal
 			if err == ErrUnknownObjectEnc {
@@ -504,12 +505,12 @@ Available templates:
 			}
 		}
 
-		k, err := n.DAG.Add(node)
+		err = n.DAG.Add(req.Context(), node)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		res.SetOutput(&Object{Hash: k.String()})
+		res.SetOutput(&Object{Hash: node.Cid().String()})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -542,7 +543,7 @@ func nodeFromTemplate(template string) (*dag.ProtoNode, error) {
 var ErrEmptyNode = errors.New("no data or links in this node")
 
 // objectPut takes a format option, serializes bytes from stdin and updates the dag with that data
-func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEncoding string) (*cid.Cid, error) {
+func objectPut(ctx context.Context, n *core.IpfsNode, input io.Reader, encoding string, dataFieldEncoding string) (*cid.Cid, error) {
 
 	data, err := ioutil.ReadAll(io.LimitReader(input, inputLimit+10))
 	if err != nil {
@@ -602,7 +603,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string, dataFieldEnco
 		return nil, err
 	}
 
-	_, err = n.DAG.Add(dagnode)
+	err = n.DAG.Add(ctx, dagnode)
 	if err != nil {
 		return nil, err
 	}
@@ -631,7 +632,7 @@ func getObjectEnc(o interface{}) objectEncoding {
 	return objectEncoding(v)
 }
 
-func getOutput(dagnode node.Node) (*Object, error) {
+func getOutput(dagnode ipld.Node) (*Object, error) {
 	c := dagnode.Cid()
 	output := &Object{
 		Hash:  c.String(),
@@ -662,13 +663,13 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 		return nil, fmt.Errorf("Unkown data field encoding")
 	}
 
-	dagnode.SetLinks(make([]*node.Link, len(nd.Links)))
+	dagnode.SetLinks(make([]*ipld.Link, len(nd.Links)))
 	for i, link := range nd.Links {
 		c, err := cid.Decode(link.Hash)
 		if err != nil {
 			return nil, err
 		}
-		dagnode.Links()[i] = &node.Link{
+		dagnode.Links()[i] = &ipld.Link{
 			Name: link.Name,
 			Size: link.Size,
 			Cid:  c,

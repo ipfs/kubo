@@ -10,7 +10,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	mod "github.com/ipfs/go-ipfs/unixfs/mod"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 type File struct {
@@ -20,8 +20,8 @@ type File struct {
 
 	desclock sync.RWMutex
 
-	dserv  dag.DAGService
-	node   node.Node
+	dserv  ipld.DAGService
+	node   ipld.Node
 	nodelk sync.Mutex
 
 	RawLeaves bool
@@ -29,7 +29,7 @@ type File struct {
 
 // NewFile returns a NewFile object with the given parameters.  If the
 // Cid version is non-zero RawLeaves will be enabled.
-func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
+func NewFile(name string, node ipld.Node, parent childCloser, dserv ipld.DAGService) (*File, error) {
 	fi := &File{
 		dserv:  dserv,
 		parent: parent,
@@ -115,7 +115,7 @@ func (fi *File) Size() (int64, error) {
 }
 
 // GetNode returns the dag node associated with this file
-func (fi *File) GetNode() (node.Node, error) {
+func (fi *File) GetNode() (ipld.Node, error) {
 	fi.nodelk.Lock()
 	defer fi.nodelk.Unlock()
 	return fi.node, nil

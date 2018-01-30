@@ -122,7 +122,7 @@ func (fi *fileDescriptor) flushUp(fullsync bool) error {
 		return err
 	}
 
-	_, err = fi.inode.dserv.Add(nd)
+	err = fi.inode.dserv.Add(context.TODO(), nd)
 	if err != nil {
 		return err
 	}

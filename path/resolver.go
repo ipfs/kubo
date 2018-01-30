@@ -9,9 +9,9 @@ import (
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var log = logging.Logger("path")
@@ -35,12 +35,13 @@ func (e ErrNoLink) Error() string {
 // TODO: now that this is more modular, try to unify this code with the
 //       the resolvers in namesys
 type Resolver struct {
-	DAG dag.DAGService
+	DAG ipld.DAGService
 
-	ResolveOnce func(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error)
+	ResolveOnce func(ctx context.Context, ds ipld.DAGService, nd ipld.Node, names []string) (*ipld.Link, []string, error)
 }
 
-func NewBasicResolver(ds dag.DAGService) *Resolver {
+// NewBasicResolver constructs a new basic resolver.
+func NewBasicResolver(ds ipld.DAGService) *Resolver {
 	return &Resolver{
 		DAG:         ds,
 		ResolveOnce: ResolveSingle,
@@ -73,7 +74,7 @@ func SplitAbsPath(fpath Path) (*cid.Cid, []string, error) {
 	return c, parts[1:], nil
 }
 
-func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath Path) (node.Node, []string, error) {
+func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath Path) (ipld.Node, []string, error) {
 	c, p, err := SplitAbsPath(fpath)
 	if err != nil {
 		return nil, nil, err
@@ -91,7 +92,7 @@ func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath Path) (node.Node
 		}
 
 		switch val := val.(type) {
-		case *node.Link:
+		case *ipld.Link:
 			next, err := val.GetNode(ctx, r.DAG)
 			if err != nil {
 				return nil, nil, err
@@ -108,7 +109,7 @@ func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath Path) (node.Node
 
 // ResolvePath fetches the node for given path. It returns the last item
 // returned by ResolvePathComponents.
-func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (node.Node, error) {
+func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (ipld.Node, error) {
 	// validate path
 	if err := fpath.IsValid(); err != nil {
 		return nil, err
@@ -123,14 +124,14 @@ func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (node.Node, erro
 
 // ResolveSingle simply resolves one hop of a path through a graph with no
 // extra context (does not opaquely resolve through sharded nodes)
-func ResolveSingle(ctx context.Context, ds dag.DAGService, nd node.Node, names []string) (*node.Link, []string, error) {
+func ResolveSingle(ctx context.Context, ds ipld.DAGService, nd ipld.Node, names []string) (*ipld.Link, []string, error) {
 	return nd.ResolveLink(names)
 }
 
 // ResolvePathComponents fetches the nodes for each segment of the given path.
 // It uses the first path component as a hash (key) of the first node, then
 // resolves all other components walking the links, with ResolveLinks.
-func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]node.Node, error) {
+func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]ipld.Node, error) {
 	evt := log.EventBegin(ctx, "resolvePathComponents", logging.LoggableMap{"fpath": fpath})
 	defer evt.Done()
 
@@ -157,11 +158,11 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]nod
 //
 // ResolveLinks(nd, []string{"foo", "bar", "baz"})
 // would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
-func (s *Resolver) ResolveLinks(ctx context.Context, ndd node.Node, names []string) ([]node.Node, error) {
+func (s *Resolver) ResolveLinks(ctx context.Context, ndd ipld.Node, names []string) ([]ipld.Node, error) {
 
 	evt := log.EventBegin(ctx, "resolveLinks", logging.LoggableMap{"names": names})
 	defer evt.Done()
-	result := make([]node.Node, 0, len(names)+1)
+	result := make([]ipld.Node, 0, len(names)+1)
 	result = append(result, ndd)
 	nd := ndd // dup arg workaround
 

@@ -109,3 +109,13 @@ test_seq() {
 		i=$(expr "$i" + 1)
 	done
 }
+
+b64decode() {
+    case `uname` in
+        Linux|FreeBSD) base64 -d ;;
+        Darwin) base64 -D ;;
+        *)
+            echo "no compatible base64 command found" >&2
+            return 1
+    esac
+}

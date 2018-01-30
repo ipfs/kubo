@@ -19,9 +19,9 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var ErrNotExist = errors.New("no such rootfs")
@@ -31,7 +31,7 @@ var log = logging.Logger("mfs")
 var ErrIsDirectory = errors.New("error: is a directory")
 
 type childCloser interface {
-	closeChild(string, node.Node, bool) error
+	closeChild(string, ipld.Node, bool) error
 }
 
 type NodeType int
@@ -43,7 +43,7 @@ const (
 
 // FSNode represents any node (directory, root, or file) in the mfs filesystem.
 type FSNode interface {
-	GetNode() (node.Node, error)
+	GetNode() (ipld.Node, error)
 	Flush() error
 	Type() NodeType
 }
@@ -58,7 +58,7 @@ type Root struct {
 
 	repub *Republisher
 
-	dserv dag.DAGService
+	dserv ipld.DAGService
 
 	Type string
 }
@@ -67,7 +67,7 @@ type Root struct {
 type PubFunc func(context.Context, *cid.Cid) error
 
 // NewRoot creates a new Root and starts up a republisher routine for it.
-func NewRoot(parent context.Context, ds dag.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
+func NewRoot(parent context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
 
 	var repub *Republisher
 	if pf != nil {
@@ -159,14 +159,14 @@ func (kr *Root) FlushMemFree(ctx context.Context) error {
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published.
-func (kr *Root) closeChild(name string, nd node.Node, sync bool) error {
-	c, err := kr.dserv.Add(nd)
+func (kr *Root) closeChild(name string, nd ipld.Node, sync bool) error {
+	err := kr.dserv.Add(context.TODO(), nd)
 	if err != nil {
 		return err
 	}
 
 	if kr.repub != nil {
-		kr.repub.Update(c)
+		kr.repub.Update(nd.Cid())
 	}
 	return nil
 }

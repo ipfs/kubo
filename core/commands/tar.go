@@ -51,7 +51,7 @@ represent it.
 			return
 		}
 
-		node, err := tar.ImportTar(fi, nd.DAG)
+		node, err := tar.ImportTar(req.Context(), fi, nd.DAG)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

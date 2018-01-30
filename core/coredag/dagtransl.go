@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // DagParser is function used for parsing stream into Node
-type DagParser func(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error)
+type DagParser func(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error)
 
 // FormatParsers is used for mapping format descriptors to DagParsers
 type FormatParsers map[string]DagParser
@@ -48,7 +48,7 @@ var defaultCborParsers = FormatParsers{
 
 // ParseInputs uses DefaultInputEncParsers to parse io.Reader described by
 // input encoding and format to an instance of ipld Node
-func ParseInputs(ienc, format string, r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) {
+func ParseInputs(ienc, format string, r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
 	return DefaultInputEncParsers.ParseInputs(ienc, format, r, mhType, mhLen)
 }
 
@@ -65,7 +65,7 @@ func (iep InputEncParsers) AddParser(ienv, format string, f DagParser) {
 
 // ParseInputs parses io.Reader described by input encoding and format to
 // an instance of ipld Node
-func (iep InputEncParsers) ParseInputs(ienc, format string, r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) {
+func (iep InputEncParsers) ParseInputs(ienc, format string, r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
 	parsers, ok := iep[ienc]
 	if !ok {
 		return nil, fmt.Errorf("no input parser for %q", ienc)

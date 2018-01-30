@@ -20,16 +20,18 @@ import (
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 
-	"gx/ipfs/QmYsEQydGrsxNZfAiskvQ76N2xE9hDQtSAkRSynwMiUK3c/go-block-format"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
+
+const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 func TestAddRecursive(t *testing.T) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
+				PeerID: testPeerID, // required by offline node
 			},
 		},
 		D: ds2.ThreadSafeCloserMapDatastore(),
@@ -49,7 +51,7 @@ func TestAddGCLive(t *testing.T) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
+				PeerID: testPeerID, // required by offline node
 			},
 		},
 		D: ds2.ThreadSafeCloserMapDatastore(),
@@ -102,7 +104,7 @@ func TestAddGCLive(t *testing.T) {
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcout = gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
+		gcout = gc.GC(context.Background(), node.Blockstore, node.Pinning, nil)
 	}()
 
 	// gc shouldnt start until we let the add finish its current file.
@@ -148,7 +150,7 @@ func TestAddGCLive(t *testing.T) {
 	defer cancel()
 
 	set := cid.NewSet()
-	err = dag.EnumerateChildren(ctx, node.DAG.GetLinks, last, set.Visit)
+	err = dag.EnumerateChildren(ctx, dag.GetLinksWithDAG(node.DAG), last, set.Visit)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +160,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
+				PeerID: testPeerID, // required by offline node
 			},
 		},
 		D: ds2.ThreadSafeCloserMapDatastore(),

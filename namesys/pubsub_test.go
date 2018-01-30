@@ -9,16 +9,16 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 
-	floodsub "gx/ipfs/QmP1T1SGU6276R2MHKP2owbck37Fnzd6ZkpyNJvnG2LoTG/go-libp2p-floodsub"
-	p2phost "gx/ipfs/QmP46LGWhzVZTMmt5akNNLfoV8qL4h5wTwmzQxLyDafggd/go-libp2p-host"
-	routing "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing"
-	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
-	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
-	bhost "gx/ipfs/QmYmhgAcvmDGXct1qBvc1kz9BxQSit1XBrTeiGZp2FvRyn/go-libp2p-blankhost"
-	netutil "gx/ipfs/QmZTcPxK6VqrwY94JpKZPvEqAZ6tEr1rLrpcqJbbRZbg2V/go-libp2p-netutil"
+	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
+	routing "gx/ipfs/QmRijoA6zGS98ELTDbGsLWPZbVotYsGbjp3RbXcKCYBeon/go-libp2p-routing"
+	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
+	netutil "gx/ipfs/QmWUugnJBbcuin8qdfiCYKAsNkG8NeDLhzoBqRaqXhAHd4/go-libp2p-netutil"
+	bhost "gx/ipfs/QmZ15dDSCo4DKn4o4GnqqLExKATBeeo3oNyQ5FBKtNjEQT/go-libp2p-blankhost"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
-	testutil "gx/ipfs/QmeDA8gNhvRTsbrjEieay5wezupJDiky8xvCzDABbsGzmp/go-testutil"
+	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
+	testutil "gx/ipfs/QmfB65MYJqaKzBiMvW47fquCRhmEeXW6AhrJSGM7TeY5eG/go-testutil"
+	p2phost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
 func newNetHost(ctx context.Context, t *testing.T) p2phost.Host {
@@ -100,7 +100,11 @@ func TestPubsubPublishSubscribe(t *testing.T) {
 
 	pubhost := newNetHost(ctx, t)
 	pubmr := newMockRouting(ms, ks, pubhost)
-	pub := NewPubsubPublisher(ctx, pubhost, ds.NewMapDatastore(), pubmr, floodsub.NewFloodSub(ctx, pubhost))
+	fs, err := floodsub.NewFloodSub(ctx, pubhost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub := NewPubsubPublisher(ctx, pubhost, ds.NewMapDatastore(), pubmr, fs)
 	privk := pubhost.Peerstore().PrivKey(pubhost.ID())
 	pubpinfo := pstore.PeerInfo{ID: pubhost.ID(), Addrs: pubhost.Addrs()}
 
@@ -110,7 +114,13 @@ func TestPubsubPublishSubscribe(t *testing.T) {
 	resmrs := newMockRoutingForHosts(ms, ks, reshosts)
 	res := make([]*PubsubResolver, len(reshosts))
 	for i := 0; i < len(res); i++ {
-		res[i] = NewPubsubResolver(ctx, reshosts[i], resmrs[i], ks, floodsub.NewFloodSub(ctx, reshosts[i]))
+
+		fs, err := floodsub.NewFloodSub(ctx, reshosts[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		res[i] = NewPubsubResolver(ctx, reshosts[i], resmrs[i], ks, fs)
 		if err := reshosts[i].Connect(ctx, pubpinfo); err != nil {
 			t.Fatal(err)
 		}
@@ -127,7 +137,7 @@ func TestPubsubPublishSubscribe(t *testing.T) {
 	time.Sleep(time.Second * 1)
 
 	val := path.Path("/ipfs/QmP1DfoUjiWH2ZBo1PBH6FupdBucbDepx3HpWmEY6JMUpY")
-	err := pub.Publish(ctx, privk, val)
+	err = pub.Publish(ctx, privk, val)
 	if err != nil {
 		t.Fatal(err)
 	}

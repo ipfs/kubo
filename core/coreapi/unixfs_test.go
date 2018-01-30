@@ -20,10 +20,12 @@ import (
 	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 
-	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
+	cbor "gx/ipfs/QmNRz7BDWfdFNVLt7AVvmRefkrURD25EeoipcXqo6yoXU1/go-ipld-cbor"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	cbor "gx/ipfs/QmeZv9VXw2SfVbX55LV6kGTWASKBc9ZxAVqGBeJcDGdoXy/go-ipld-cbor"
 )
+
+const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 // `echo -n 'hello, world!' | ipfs add`
 var hello = coreapi.ResolvedPath("/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", nil, nil)
@@ -59,7 +61,7 @@ func makeAPIIdent(ctx context.Context, fullIdentity bool) (*core.IpfsNode, corei
 		}
 	} else {
 		ident = config.Identity{
-			PeerID: "Qmfoo",
+			PeerID: testPeerID,
 		}
 	}
 
@@ -198,12 +200,12 @@ func TestCatDir(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
-	c, err := node.DAG.Add(unixfs.EmptyDirNode())
+	edir := unixfs.EmptyDirNode()
+	err = node.DAG.Add(ctx, edir)
 	if err != nil {
 		t.Error(err)
 	}
-	p := coreapi.ParseCid(c)
+	p := coreapi.ParseCid(edir.Cid())
 
 	if p.String() != emptyDir.String() {
 		t.Fatalf("expected path %s, got: %s", emptyDir, p)
@@ -222,12 +224,13 @@ func TestCatNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	c, err := node.DAG.Add(new(mdag.ProtoNode))
+	nd := new(mdag.ProtoNode)
+	err = node.DAG.Add(ctx, nd)
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = api.Unixfs().Cat(ctx, coreapi.ParseCid(c))
+	_, err = api.Unixfs().Cat(ctx, coreapi.ParseCid(nd.Cid()))
 	if !strings.Contains(err.Error(), "proto: required field") {
 		t.Fatalf("expected protobuf error, got: %s", err)
 	}
@@ -290,7 +293,7 @@ func TestLsEmptyDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = node.DAG.Add(unixfs.EmptyDirNode())
+	err = node.DAG.Add(ctx, unixfs.EmptyDirNode())
 	if err != nil {
 		t.Error(err)
 	}
@@ -318,12 +321,12 @@ func TestLsNonUnixfs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c, err := node.DAG.Add(nd)
+	err = node.DAG.Add(ctx, nd)
 	if err != nil {
 		t.Error(err)
 	}
 
-	links, err := api.Unixfs().Ls(ctx, coreapi.ParseCid(c))
+	links, err := api.Unixfs().Ls(ctx, coreapi.ParseCid(nd.Cid()))
 	if err != nil {
 		t.Error(err)
 	}

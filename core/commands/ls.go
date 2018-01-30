@@ -17,8 +17,8 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 type LsLink struct {
@@ -84,7 +84,7 @@ The JSON output contains type information.
 
 		paths := req.Arguments()
 
-		var dagnodes []node.Node
+		var dagnodes []ipld.Node
 		for _, fpath := range paths {
 			p, err := path.ParsePath(fpath)
 			if err != nil {
@@ -114,7 +114,7 @@ The JSON output contains type information.
 				return
 			}
 
-			var links []*node.Link
+			var links []*ipld.Link
 			if dir == nil {
 				links = dagnode.Links()
 			} else {
@@ -134,7 +134,7 @@ The JSON output contains type information.
 				t := unixfspb.Data_DataType(-1)
 
 				linkNode, err := link.GetNode(req.Context(), dserv)
-				if err == merkledag.ErrNotFound && !resolve {
+				if err == ipld.ErrNotFound && !resolve {
 					// not an error
 					linkNode = nil
 				} else if err != nil {

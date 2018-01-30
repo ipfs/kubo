@@ -9,8 +9,8 @@ import (
 	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -65,10 +65,12 @@ func (n *UnixfsNode) SetPrefix(prefix *cid.Prefix) {
 	n.node.SetPrefix(prefix)
 }
 
+// NumChildren returns the number of children referenced by this UnixfsNode.
 func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
 
+// Set replaces this UnixfsNode with another UnixfsNode
 func (n *UnixfsNode) Set(other *UnixfsNode) {
 	n.node = other.node
 	n.raw = other.raw
@@ -78,7 +80,8 @@ func (n *UnixfsNode) Set(other *UnixfsNode) {
 	}
 }
 
-func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*UnixfsNode, error) {
+// GetChild gets the ith child of this node from the given DAGService.
+func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds ipld.DAGService) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
 	if err != nil {
 		return nil, err
@@ -92,8 +95,8 @@ func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*U
 	return NewUnixfsNodeFromDag(pbn)
 }
 
-// addChild will add the given UnixfsNode as a child of the receiver.
-// the passed in DagBuilderHelper is used to store the child node an
+// AddChild adds the given UnixfsNode as a child of the receiver.
+// The passed in DagBuilderHelper is used to store the child node an
 // pin it locally so it doesnt get lost
 func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	n.ufmt.AddBlockSize(child.FileSize())
@@ -110,12 +113,12 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 		return err
 	}
 
-	_, err = db.batch.Add(childnode)
+	err = db.batch.Add(childnode)
 
 	return err
 }
 
-// Removes the child node at the given index
+// RemoveChild removes the child node at the given index
 func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 	n.ufmt.RemoveBlockSize(index)
 	n.node.SetLinks(append(n.node.Links()[:index], n.node.Links()[index+1:]...))
@@ -133,12 +136,16 @@ func (n *UnixfsNode) FileSize() uint64 {
 }
 
 func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
-	n.posInfo = &pi.PosInfo{offset, fullPath, stat}
+	n.posInfo = &pi.PosInfo{
+		Offset:   offset,
+		FullPath: fullPath,
+		Stat:     stat,
+	}
 }
 
-// getDagNode fills out the proper formatting for the unixfs node
+// GetDagNode fills out the proper formatting for the unixfs node
 // inside of a DAG node and returns the dag node
-func (n *UnixfsNode) GetDagNode() (node.Node, error) {
+func (n *UnixfsNode) GetDagNode() (ipld.Node, error) {
 	nd, err := n.getBaseDagNode()
 	if err != nil {
 		return nil, err
@@ -156,7 +163,7 @@ func (n *UnixfsNode) GetDagNode() (node.Node, error) {
 	return nd, nil
 }
 
-func (n *UnixfsNode) getBaseDagNode() (node.Node, error) {
+func (n *UnixfsNode) getBaseDagNode() (ipld.Node, error) {
 	if n.raw {
 		return n.rawnode, nil
 	}
