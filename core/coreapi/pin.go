@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	bserv "github.com/ipfs/go-ipfs/blockservice"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
 
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 type PinAPI struct {
@@ -97,7 +100,9 @@ func (n *badNode) Err() error {
 
 func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, error) {
 	visited := make(map[string]*pinStatus)
-	getLinks := api.node.DAG.GetOfflineLinkService().GetLinks
+	bs := api.node.Blocks.Blockstore()
+	DAG := merkledag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
+	getLinks := merkledag.GetLinksWithDAG(DAG)
 	recPins := api.node.Pinning.RecursiveKeys()
 
 	var checkPin func(root *cid.Cid) *pinStatus
@@ -152,7 +157,7 @@ func (p *pinInfo) Type() string {
 	return p.pinType
 }
 
-func pinLsAll(typeStr string, ctx context.Context, pinning pin.Pinner, dag merkledag.DAGService) ([]coreiface.Pin, error) {
+func pinLsAll(typeStr string, ctx context.Context, pinning pin.Pinner, dag ipld.DAGService) ([]coreiface.Pin, error) {
 
 	keys := make(map[string]*pinInfo)
 
@@ -171,7 +176,7 @@ func pinLsAll(typeStr string, ctx context.Context, pinning pin.Pinner, dag merkl
 	if typeStr == "indirect" || typeStr == "all" {
 		set := cid.NewSet()
 		for _, k := range pinning.RecursiveKeys() {
-			err := merkledag.EnumerateChildren(ctx, dag.GetLinks, k, set.Visit)
+			err := merkledag.EnumerateChildren(ctx, merkledag.GetLinksWithDAG(dag), k, set.Visit)
 			if err != nil {
 				return nil, err
 			}
