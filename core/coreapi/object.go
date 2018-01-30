@@ -18,8 +18,8 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 const inputLimit = 2 << 20
@@ -53,7 +53,7 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 		n = ft.EmptyDirNode()
 	}
 
-	_, err = api.node.DAG.Add(n)
+	err = api.node.DAG.Add(ctx, n)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		return nil, err
 	}
 
-	_, err = api.node.DAG.Add(dagnode)
+	err = api.node.DAG.Add(ctx, dagnode)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name str
 		return nil, err
 	}
 
-	nnode, err := e.Finalize(api.node.DAG)
+	nnode, err := e.Finalize(ctx, api.node.DAG)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link stri
 		return nil, err
 	}
 
-	nnode, err := e.Finalize(api.node.DAG)
+	nnode, err := e.Finalize(ctx, api.node.DAG)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +280,7 @@ func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.R
 	}
 	pbnd.SetData(data)
 
-	_, err = api.node.DAG.Add(pbnd)
+	err = api.node.DAG.Add(ctx, pbnd)
 	if err != nil {
 		return nil, err
 	}
