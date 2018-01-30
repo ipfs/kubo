@@ -62,12 +62,16 @@ type BlockStat interface {
 type CoreAPI interface {
 	// Unixfs returns an implementation of Unixfs API.
 	Unixfs() UnixfsAPI
+
 	// Block returns an implementation of Block API.
 	Block() BlockAPI
+
 	// Dag returns an implementation of Dag API.
 	Dag() DagAPI
+
 	// Name returns an implementation of Name API.
 	Name() NameAPI
+
 	// Key returns an implementation of Key API.
 	Key() KeyAPI
 
