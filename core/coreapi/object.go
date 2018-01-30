@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	node "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 const inputLimit = 2 << 20
@@ -45,7 +45,7 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 		return nil, err
 	}
 
-	var n node.Node
+	var n ipld.Node
 	switch options.Type {
 	case "empty":
 		n = new(dag.ProtoNode)
@@ -304,13 +304,13 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 		return nil, fmt.Errorf("Unkown data field encoding")
 	}
 
-	dagnode.SetLinks(make([]*node.Link, len(nd.Links)))
+	dagnode.SetLinks(make([]*ipld.Link, len(nd.Links)))
 	for i, link := range nd.Links {
 		c, err := cid.Decode(link.Hash)
 		if err != nil {
 			return nil, err
 		}
-		dagnode.Links()[i] = &node.Link{
+		dagnode.Links()[i] = &ipld.Link{
 			Name: link.Name,
 			Size: link.Size,
 			Cid:  c,
