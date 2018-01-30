@@ -297,24 +297,28 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 	case "text":
 		dagnode.SetData([]byte(nd.Data))
 	case "base64":
-		data, _ := base64.StdEncoding.DecodeString(nd.Data)
+		data, err := base64.StdEncoding.DecodeString(nd.Data)
+		if err != nil {
+			return nil, err
+		}
 		dagnode.SetData(data)
 	default:
 		return nil, fmt.Errorf("Unkown data field encoding")
 	}
 
-	dagnode.SetLinks(make([]*ipld.Link, len(nd.Links)))
+	links := make([]*ipld.Link, len(nd.Links))
 	for i, link := range nd.Links {
 		c, err := cid.Decode(link.Hash)
 		if err != nil {
 			return nil, err
 		}
-		dagnode.Links()[i] = &ipld.Link{
+		links[i] = &ipld.Link{
 			Name: link.Name,
 			Size: link.Size,
 			Cid:  c,
 		}
 	}
+	dagnode.SetLinks(links)
 
 	return dagnode, nil
 }
