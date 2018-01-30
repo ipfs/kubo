@@ -18,9 +18,10 @@ type InputEncParsers map[string]FormatParsers
 
 // DefaultInputEncParsers is InputEncParser that is used everywhere
 var DefaultInputEncParsers = InputEncParsers{
-	"json": defaultJSONParsers,
-	"raw":  defaultRawParsers,
-	"cbor": defaultCborParsers,
+	"json":     defaultJSONParsers,
+	"raw":      defaultRawParsers,
+	"cbor":     defaultCborParsers,
+	"protobuf": defaultProtobufParsers,
 }
 
 var defaultJSONParsers = FormatParsers{
@@ -44,6 +45,11 @@ var defaultRawParsers = FormatParsers{
 var defaultCborParsers = FormatParsers{
 	"cbor":     cborRawParser,
 	"dag-cbor": cborRawParser,
+}
+
+var defaultProtobufParsers = FormatParsers{
+	"protobuf": dagpbRawParser,
+	"dag-pb":   dagpbRawParser,
 }
 
 // ParseInputs uses DefaultInputEncParsers to parse io.Reader described by
