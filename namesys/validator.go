@@ -29,6 +29,9 @@ var ErrInvalidPath = errors.New("record path invalid")
 // signature verification
 var ErrSignature = errors.New("record signature verification failed")
 
+// Returns a ValidChecker for IPNS records
+// The validator function will get a public key from the KeyBook
+// to verify the record's signature
 func NewIpnsRecordValidator(kbook pstore.KeyBook) *record.ValidChecker {
 	// ValidateIpnsRecord implements ValidatorFunc and verifies that the
 	// given 'val' is an IpnsEntry and that that entry is valid.

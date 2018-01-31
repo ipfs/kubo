@@ -10,6 +10,8 @@ import (
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
+// Selects best record by checking which has the highest sequence number
+// and latest EOL
 func IpnsSelectorFunc(k string, vals [][]byte) (int, error) {
 	var recs []*pb.IpnsEntry
 	for _, v := range vals {
@@ -26,40 +28,40 @@ func IpnsSelectorFunc(k string, vals [][]byte) (int, error) {
 }
 
 func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
-	var best_seq uint64
-	best_i := -1
+	var bestSeq uint64
+	besti := -1
 
 	for i, r := range recs {
-		if r == nil || r.GetSequence() < best_seq {
+		if r == nil || r.GetSequence() < bestSeq {
 			continue
 		}
 
-		if best_i == -1 || r.GetSequence() > best_seq {
-			best_seq = r.GetSequence()
-			best_i = i
-		} else if r.GetSequence() == best_seq {
+		if besti == -1 || r.GetSequence() > bestSeq {
+			bestSeq = r.GetSequence()
+			besti = i
+		} else if r.GetSequence() == bestSeq {
 			rt, err := u.ParseRFC3339(string(r.GetValidity()))
 			if err != nil {
 				continue
 			}
 
-			bestt, err := u.ParseRFC3339(string(recs[best_i].GetValidity()))
+			bestt, err := u.ParseRFC3339(string(recs[besti].GetValidity()))
 			if err != nil {
 				continue
 			}
 
 			if rt.After(bestt) {
-				best_i = i
+				besti = i
 			} else if rt == bestt {
-				if bytes.Compare(vals[i], vals[best_i]) > 0 {
-					best_i = i
+				if bytes.Compare(vals[i], vals[besti]) > 0 {
+					besti = i
 				}
 			}
 		}
 	}
-	if best_i == -1 {
+	if besti == -1 {
 		return 0, errors.New("no usable records in given set")
 	}
 
-	return best_i, nil
+	return besti, nil
 }
