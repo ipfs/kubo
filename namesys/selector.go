@@ -10,8 +10,8 @@ import (
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
-// Selects best record by checking which has the highest sequence number
-// and latest EOL
+// IpnsSelectorFunc selects the best record by checking which has the highest
+// sequence number and latest EOL
 func IpnsSelectorFunc(k string, vals [][]byte) (int, error) {
 	var recs []*pb.IpnsEntry
 	for _, v := range vals {
