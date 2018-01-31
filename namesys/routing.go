@@ -147,7 +147,9 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		return "", err
 	}
 
-	// use the routing system to get the name.
+	// Use the routing system to get the name.
+	// Note that the DHT will call the ipns validator when retrieving
+	// the value, which in turn verifies the ipns record signature
 	_, ipnsKey := IpnsKeysForID(pid)
 	val, err := r.routing.GetValue(ctx, ipnsKey)
 	if err != nil {

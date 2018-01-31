@@ -29,6 +29,18 @@ var ErrInvalidPath = errors.New("record path invalid")
 // signature verification
 var ErrSignature = errors.New("record signature verification failed")
 
+// ErrBadRecord should be returned when an ipns record cannot be unmarshalled
+var ErrBadRecord = errors.New("record could not be unmarshalled")
+
+// ErrKeyFormat should be returned when an ipns record key is
+// incorrectly formatted (not a peer ID)
+var ErrKeyFormat = errors.New("record key could not be parsed into peer ID")
+
+// ErrPublicKeyNotFound should be returned when the public key
+// corresponding to the ipns record path cannot be retrieved
+// from the peer store
+var ErrPublicKeyNotFound = errors.New("public key not found in peer store")
+
 // NewIpnsRecordValidator returns a ValidChecker for IPNS records
 // The validator function will get a public key from the KeyBook
 // to verify the record's signature
@@ -44,19 +56,19 @@ func NewIpnsRecordValidator(kbook pstore.KeyBook) *record.ValidChecker {
 		entry := new(pb.IpnsEntry)
 		err := proto.Unmarshal(r.Value, entry)
 		if err != nil {
-			return err
+			return ErrBadRecord
 		}
 
 		// Get the public key defined by the ipns path
 		pid, err := peer.IDFromString(r.Key)
 		if err != nil {
-			log.Debugf("failed to parse ipns record key %s into public key hash", r.Key)
-			return ErrSignature
+			log.Debugf("failed to parse ipns record key %s into peer ID", r.Key)
+			return ErrKeyFormat
 		}
 		pubk := kbook.PubKey(pid)
 		if pubk == nil {
 			log.Debugf("public key with hash %s not found in peer store", pid)
-			return ErrSignature
+			return ErrPublicKeyNotFound
 		}
 
 		// Check the ipns record signature with the public key
