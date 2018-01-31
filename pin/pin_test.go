@@ -16,10 +16,12 @@ import (
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
+var rand = util.NewTimeSeededRand()
+
 func randNode() (*mdag.ProtoNode, *cid.Cid) {
 	nd := new(mdag.ProtoNode)
 	nd.SetData(make([]byte, 32))
-	util.NewTimeSeededRand().Read(nd.Data())
+	rand.Read(nd.Data())
 	k := nd.Cid()
 	return nd, k
 }
