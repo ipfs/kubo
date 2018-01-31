@@ -3,7 +3,6 @@ package namesys
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -16,24 +15,11 @@ import (
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	record "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record"
 	dhtpb "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record/pb"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
-
-// ErrExpiredRecord should be returned when an ipns record is
-// invalid due to being too old
-var ErrExpiredRecord = errors.New("expired record")
-
-// ErrUnrecognizedValidity is returned when an IpnsRecord has an
-// unknown validity type.
-var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
-
-// ErrInvalidPath should be returned when an ipns record path
-// is not in a valid format
-var ErrInvalidPath = errors.New("record path invalid")
 
 const PublishPutValTimeout = time.Minute
 const DefaultRecordTTL = 24 * time.Hour
@@ -208,7 +194,7 @@ func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec
 	}
 
 	log.Debugf("Storing ipns entry at: %s", ipnskey)
-	// Store ipns entry at "/ipns/"+b58(h(pubkey))
+	// Store ipns entry at "/ipns/"+h(pubkey)
 	return r.PutValue(timectx, ipnskey, data)
 }
 
@@ -236,114 +222,6 @@ func ipnsEntryDataForSig(e *pb.IpnsEntry) []byte {
 		[]byte(fmt.Sprint(e.GetValidityType())),
 	},
 		[]byte{})
-}
-
-var IpnsRecordValidator = &record.ValidChecker{
-	Func: ValidateIpnsRecord,
-	Sign: true,
-}
-
-func IpnsSelectorFunc(k string, vals [][]byte) (int, error) {
-	var recs []*pb.IpnsEntry
-	for _, v := range vals {
-		e := new(pb.IpnsEntry)
-		err := proto.Unmarshal(v, e)
-		if err == nil {
-			recs = append(recs, e)
-		} else {
-			recs = append(recs, nil)
-		}
-	}
-
-	return selectRecord(recs, vals)
-}
-
-func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
-	var best_seq uint64
-	best_i := -1
-
-	for i, r := range recs {
-		if r == nil || r.GetSequence() < best_seq {
-			continue
-		}
-
-		if best_i == -1 || r.GetSequence() > best_seq {
-			best_seq = r.GetSequence()
-			best_i = i
-		} else if r.GetSequence() == best_seq {
-			rt, err := u.ParseRFC3339(string(r.GetValidity()))
-			if err != nil {
-				continue
-			}
-
-			bestt, err := u.ParseRFC3339(string(recs[best_i].GetValidity()))
-			if err != nil {
-				continue
-			}
-
-			if rt.After(bestt) {
-				best_i = i
-			} else if rt == bestt {
-				if bytes.Compare(vals[i], vals[best_i]) > 0 {
-					best_i = i
-				}
-			}
-		}
-	}
-	if best_i == -1 {
-		return 0, errors.New("no usable records in given set")
-	}
-
-	return best_i, nil
-}
-
-// ValidateIpnsRecord implements ValidatorFunc and verifies that the
-// given 'val' is an IpnsEntry and that that entry is valid.
-func ValidateIpnsRecord(r *record.ValidationRecord) error {
-	if r.Namespace != "ipns" {
-		return ErrInvalidPath
-	}
-
-	entry := new(pb.IpnsEntry)
-	err := proto.Unmarshal(r.Value, entry)
-	if err != nil {
-		return err
-	}
-
-	// NOTE/FIXME(#4613): We're not checking the DHT signature/author here.
-	// We're going to remove them in a followup commit and then check the
-	// *IPNS* signature. However, to do that, we need to ensure we *have*
-	// the public key and:
-	//
-	// 1. Don't want to fetch it from the network when handling PUTs.
-	// 2. Do want to fetch it from the network when handling GETs.
-	//
-	// Therefore, we'll need to either:
-	//
-	// 1. Pass some for of offline hint to the validator (e.g., using a context).
-	// 2. Ensure we pre-fetch the key when performing gets.
-	//
-	// This PR is already *way* too large so we're punting that fix to a new
-	// PR.
-	//
-	// This is not a regression, it just restores the current (bad)
-	// behavior.
-
-	// Check that record has not expired
-	switch entry.GetValidityType() {
-	case pb.IpnsEntry_EOL:
-		t, err := u.ParseRFC3339(string(entry.GetValidity()))
-		if err != nil {
-			log.Debug("failed parsing time for ipns record EOL")
-			return err
-		}
-		if time.Now().After(t) {
-			return ErrExpiredRecord
-		}
-	default:
-		return ErrUnrecognizedValidity
-	}
-	return nil
 }
 
 // InitializeKeyspace sets the ipns record for the given key to
