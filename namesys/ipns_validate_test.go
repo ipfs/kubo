@@ -2,6 +2,7 @@ package namesys
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -21,7 +22,62 @@ import (
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-func TestValidation(t *testing.T) {
+func testValidatorCase(t *testing.T, priv ci.PrivKey, kbook pstore.KeyBook, ns string, key string, val []byte, eol time.Time, exp error) {
+	validChecker := NewIpnsRecordValidator(kbook)
+
+	p := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
+	entry, err := CreateRoutingEntryData(priv, p, 1, eol)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := val
+	if data == nil {
+		data, err = proto.Marshal(entry)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	rec := &record.ValidationRecord{
+		Namespace: ns,
+		Key:       key,
+		Value:     data,
+	}
+
+	err = validChecker.Func(rec)
+	if err != exp {
+		params := fmt.Sprintf("namespace: %s\nkey: %s\neol: %s\n", ns, key, eol)
+		if exp == nil {
+			t.Fatalf("Unexpected error %s for params %s", err, params)
+		} else if err == nil {
+			t.Fatalf("Expected error %s but there was no error for params %s", exp, params)
+		} else {
+			t.Fatalf("Expected error %s but got %s for params %s", exp, err, params)
+		}
+	}
+}
+
+func TestValidator(t *testing.T) {
+	ts := time.Now()
+
+	priv, id, _, _ := genKeys(t)
+	priv2, id2, _, _ := genKeys(t)
+	kbook := pstore.NewPeerstore()
+	kbook.AddPubKey(id, priv.GetPublic())
+	emptyKbook := pstore.NewPeerstore()
+
+	testValidatorCase(t, priv, kbook, "ipns", string(id), nil, ts.Add(time.Hour), nil)
+	testValidatorCase(t, priv, kbook, "ipns", string(id), nil, ts.Add(time.Hour*-1), ErrExpiredRecord)
+	testValidatorCase(t, priv, kbook, "ipns", string(id), []byte("bad data"), ts.Add(time.Hour), ErrBadRecord)
+	testValidatorCase(t, priv, kbook, "ipns", "bad key", nil, ts.Add(time.Hour), ErrKeyFormat)
+	testValidatorCase(t, priv, emptyKbook, "ipns", string(id), nil, ts.Add(time.Hour), ErrPublicKeyNotFound)
+	testValidatorCase(t, priv2, kbook, "ipns", string(id2), nil, ts.Add(time.Hour), ErrPublicKeyNotFound)
+	testValidatorCase(t, priv2, kbook, "ipns", string(id), nil, ts.Add(time.Hour), ErrSignature)
+	testValidatorCase(t, priv, kbook, "", string(id), nil, ts.Add(time.Hour), ErrInvalidPath)
+	testValidatorCase(t, priv, kbook, "wrong", string(id), nil, ts.Add(time.Hour), ErrInvalidPath)
+}
+
+func TestResolverValidation(t *testing.T) {
 	ctx := context.Background()
 	rid := testutil.RandIdentityOrFatal(t)
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
