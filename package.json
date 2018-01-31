@@ -575,6 +575,12 @@
       "hash": "QmWLWmRVSiagqP15jczsGME1qpob6HDbtbHAY2he9W5iUo",
       "name": "opentracing-go",
       "version": "0.0.3"
+    },
+    {
+      "author": "dignifiedquire",
+      "hash": "QmPdqSMmiwtQCBC515gFtMW2mP14HsfgnyQ2k5xPQVxMge",
+      "name": "go-fs-lock",
+      "version": "0.1.2"
     }
   ],
   "gxVersion": "0.10.0",

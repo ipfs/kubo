@@ -16,10 +16,10 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
+	lockfile "gx/ipfs/QmPdqSMmiwtQCBC515gFtMW2mP14HsfgnyQ2k5xPQVxMge/go-fs-lock"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 
@@ -28,6 +28,10 @@ import (
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	measure "gx/ipfs/QmbJgZGRtkFeSdCxBCPaMKWRDYbqMxHyFfvjQGcWzpqsDe/go-ds-measure"
 )
+
+// LockFile is the filename of the repo lock, relative to config dir
+// TODO rename repo lock and hide name
+const LockFile = "repo.lock"
 
 var log = logging.Logger("fsrepo")
 
@@ -126,7 +130,7 @@ func open(repoPath string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	r.lockfile, err = lockfile.Lock(r.path)
+	r.lockfile, err = lockfile.Lock(r.path, LockFile)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +301,7 @@ func Init(repoPath string, conf *config.Config) error {
 // process. If true, then the repo cannot be opened by this process.
 func LockedByOtherProcess(repoPath string) (bool, error) {
 	repoPath = filepath.Clean(repoPath)
-	locked, err := lockfile.Locked(repoPath)
+	locked, err := lockfile.Locked(repoPath, LockFile)
 	if locked {
 		log.Debugf("(%t)<->Lock is held at %s", locked, repoPath)
 	}
