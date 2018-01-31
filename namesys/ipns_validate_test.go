@@ -64,7 +64,7 @@ func TestValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	if resp != p {
-		t.Fatal("Mismatch between published path %s and resolved path %s", p, resp)
+		t.Fatalf("Mismatch between published path %s and resolved path %s", p, resp)
 	}
 
 	// Create expired entry
