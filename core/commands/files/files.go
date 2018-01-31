@@ -57,7 +57,7 @@ operations.
 		"cp":    lgc.NewCommand(filesCpCmd),
 		"ls":    lgc.NewCommand(filesLsCmd),
 		"mkdir": lgc.NewCommand(filesMkdirCmd),
-		"stat":  lgc.NewCommand(filesStatCmd),
+		"stat":  filesStatCmd,
 		"rm":    lgc.NewCommand(filesRmCmd),
 		"flush": lgc.NewCommand(filesFlushCmd),
 		"chcid": lgc.NewCommand(filesChcidCmd),
@@ -75,7 +75,7 @@ CumulativeSize: <cumulsize>
 ChildBlocks: <childs>
 Type: <type>`
 
-var filesStatCmd = &oldcmds.Command{
+var filesStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Display file status.",
 	},
@@ -89,20 +89,20 @@ var filesStatCmd = &oldcmds.Command{
 		cmdkit.BoolOption("hash", "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
 		cmdkit.BoolOption("size", "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 
 		_, err := statGetFormatOptions(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrClient)
 		}
 
-		node, err := req.InvocContext().GetNode()
+		node, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		path, err := checkPath(req.Arguments()[0])
+		path, err := checkPath(req.Arguments[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -114,37 +114,31 @@ var filesStatCmd = &oldcmds.Command{
 			return
 		}
 
-		o, err := statNode(node.DAG, fsn)
+		o, err := statNode(fsn)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		res.SetOutput(o)
+		cmds.EmitOnce(res, o)
 	},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			out, ok := v.(*Object)
 			if !ok {
-				return nil, e.TypeErr(out, v)
+				return e.TypeErr(out, v)
 			}
-			buf := new(bytes.Buffer)
 
-			s, _ := statGetFormatOptions(res.Request())
+			s, _ := statGetFormatOptions(req)
 			s = strings.Replace(s, "<hash>", out.Hash, -1)
 			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
 			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
 			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
 			s = strings.Replace(s, "<type>", out.Type, -1)
 
-			fmt.Fprintln(buf, s)
-			return buf, nil
-		},
+			_, err := fmt.Fprintln(w, s)
+			return err
+		}),
 	},
 	Type: Object{},
 }
@@ -153,11 +147,11 @@ func moreThanOne(a, b, c bool) bool {
 	return a && b || b && c || a && c
 }
 
-func statGetFormatOptions(req oldcmds.Request) (string, error) {
+func statGetFormatOptions(req *cmds.Request) (string, error) {
 
-	hash, _, _ := req.Option("hash").Bool()
-	size, _, _ := req.Option("size").Bool()
-	format, _, _ := req.Option("format").String()
+	hash, _ := req.Options["hash"].(bool)
+	size, _ := req.Options["size"].(bool)
+	format, _ := req.Options["format"].(string)
 
 	if moreThanOne(hash, size, format != defaultStatFormat) {
 		return "", formatError
@@ -172,7 +166,7 @@ func statGetFormatOptions(req oldcmds.Request) (string, error) {
 	}
 }
 
-func statNode(ds ipld.DAGService, fsn mfs.FSNode) (*Object, error) {
+func statNode(fsn mfs.FSNode) (*Object, error) {
 	nd, err := fsn.GetNode()
 	if err != nil {
 		return nil, err
