@@ -10,8 +10,6 @@ import (
 	gopath "path"
 	"strings"
 
-	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-
 	bservice "github.com/ipfs/go-ipfs/blockservice"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
@@ -24,6 +22,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cmds "gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
@@ -73,7 +72,7 @@ var hashOption = cmdkit.StringOption("hash", "Hash function to use. Will set Cid
 
 var formatError = errors.New("Format was set by multiple options. Only one format option is allowed")
 
-type StatOutput struct {
+type statOutput struct {
 	Hash           string
 	Size           uint64
 	CumulativeSize uint64
@@ -158,7 +157,7 @@ var filesStatCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			out, ok := v.(*StatOutput)
+			out, ok := v.(*statOutput)
 			if !ok {
 				return e.TypeErr(out, v)
 			}
@@ -183,7 +182,7 @@ var filesStatCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	Type: StatOutput{},
+	Type: statOutput{},
 }
 
 func moreThanOne(a, b, c bool) bool {
@@ -209,7 +208,7 @@ func statGetFormatOptions(req *cmds.Request) (string, error) {
 	}
 }
 
-func statNode(nd ipld.Node) (*StatOutput, error) {
+func statNode(nd ipld.Node) (*statOutput, error) {
 	c := nd.Cid()
 
 	cumulsize, err := nd.Size()
@@ -234,7 +233,7 @@ func statNode(nd ipld.Node) (*StatOutput, error) {
 			return nil, fmt.Errorf("unrecognized node type: %s", d.GetType())
 		}
 
-		return &StatOutput{
+		return &statOutput{
 			Hash:           c.String(),
 			Blocks:         len(nd.Links()),
 			Size:           d.GetFilesize(),
@@ -242,7 +241,7 @@ func statNode(nd ipld.Node) (*StatOutput, error) {
 			Type:           ndtype,
 		}, nil
 	case *dag.RawNode:
-		return &StatOutput{
+		return &statOutput{
 			Hash:           c.String(),
 			Blocks:         0,
 			Size:           cumulsize,
