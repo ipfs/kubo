@@ -11,6 +11,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
 
+	dstore "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -35,7 +36,7 @@ type Result struct {
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
 //
-func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
+func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
 
 	elock := log.EventBegin(ctx, "GC.lockWait")
 	unlocker := bs.GCLock()
@@ -106,6 +107,18 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner, bestEffortRo
 		esweep.Done()
 		if errors {
 			output <- Result{Error: ErrCannotDeleteSomeBlocks}
+		}
+
+		defer log.EventBegin(ctx, "GC.datastore").Done()
+		gds, ok := dstor.(dstore.GCDatastore)
+		if !ok {
+			return
+		}
+
+		err = gds.CollectGarbage()
+		if err != nil {
+			output <- Result{Error: err}
+			return
 		}
 	}()
 

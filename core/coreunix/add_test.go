@@ -104,7 +104,7 @@ func TestAddGCLive(t *testing.T) {
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcout = gc.GC(context.Background(), node.Blockstore, node.Pinning, nil)
+		gcout = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
 	}()
 
 	// gc shouldnt start until we let the add finish its current file.
