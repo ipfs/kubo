@@ -174,6 +174,8 @@ func (n *FSNode) GetBytes() ([]byte, error) {
 	return proto.Marshal(pbn)
 }
 
+// FileSize returns the total size of this tree. That is, the size of
+// the data in this node plus the size of all its children.
 func (n *FSNode) FileSize() uint64 {
 	return uint64(len(n.Data)) + n.subtotal
 }

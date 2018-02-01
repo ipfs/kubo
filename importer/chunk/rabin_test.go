@@ -68,7 +68,7 @@ func TestRabinChunkReuse(t *testing.T) {
 	ch2 := chunkData(t, data)
 
 	var extra int
-	for k, _ := range ch2 {
+	for k := range ch2 {
 		_, ok := ch1[k]
 		if !ok {
 			extra++

@@ -8,6 +8,9 @@ import (
 	"strings"
 )
 
+// FromString returns a Splitter depending on the given string:
+// it supports "default" (""), "size-{size}", "rabin", "rabin-{blocksize}" and
+// "rabin-{min}-{avg}-{max}".
 func FromString(r io.Reader, chunker string) (Splitter, error) {
 	switch {
 	case chunker == "" || chunker == "default":
