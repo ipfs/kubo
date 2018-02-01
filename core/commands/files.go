@@ -31,7 +31,7 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-var log = logging.Logger("cmds/files")
+var flog = logging.Logger("cmds/files")
 
 var FilesCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -768,7 +768,7 @@ stat' on the file or any of its ancestors.
 
 		_, err = wfd.Seek(int64(offset), io.SeekStart)
 		if err != nil {
-			log.Error("seekfail: ", err)
+			flog.Error("seekfail: ", err)
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
@@ -1112,7 +1112,7 @@ func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*
 		dirname, fname := gopath.Split(path)
 		pdiri, err := mfs.Lookup(r, dirname)
 		if err != nil {
-			log.Error("lookupfail ", dirname)
+			flog.Error("lookupfail ", dirname)
 			return nil, err
 		}
 		pdir, ok := pdiri.(*mfs.Directory)
@@ -1160,18 +1160,4 @@ func checkPath(p string) (string, error) {
 		cleaned += "/"
 	}
 	return cleaned, nil
-}
-
-// copy+pasted from ../commands.go
-func unwrapOutput(i interface{}) (interface{}, error) {
-	var (
-		ch <-chan interface{}
-		ok bool
-	)
-
-	if ch, ok = i.(<-chan interface{}); !ok {
-		return nil, e.TypeErr(ch, i)
-	}
-
-	return <-ch, nil
 }
