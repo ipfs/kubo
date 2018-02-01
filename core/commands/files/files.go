@@ -10,10 +10,14 @@ import (
 	gopath "path"
 	"strings"
 
+	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
+
+	bservice "github.com/ipfs/go-ipfs/blockservice"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
@@ -69,6 +73,17 @@ var hashOption = cmdkit.StringOption("hash", "Hash function to use. Will set Cid
 
 var formatError = errors.New("Format was set by multiple options. Only one format option is allowed")
 
+type StatOutput struct {
+	Hash           string
+	Size           uint64
+	CumulativeSize uint64
+	Blocks         int
+	Type           string
+	WithLocality   bool
+	Local          bool   `json:",omitempty"`
+	SizeLocal      uint64 `json:",omitempty"`
+}
+
 const defaultStatFormat = `<hash>
 Size: <size>
 CumulativeSize: <cumulsize>
@@ -88,6 +103,7 @@ var filesStatCmd = &cmds.Command{
 			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").WithDefault(defaultStatFormat),
 		cmdkit.BoolOption("hash", "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
 		cmdkit.BoolOption("size", "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
+		cmdkit.BoolOption("with-local", "Compute the amount of the dag that is local, and if possible the total size"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 
@@ -108,23 +124,41 @@ var filesStatCmd = &cmds.Command{
 			return
 		}
 
-		fsn, err := mfs.Lookup(node.FilesRoot, path)
+		nd, err := getNodeFromPath(req.Context, node, path)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		o, err := statNode(fsn)
+		o, err := statNode(nd)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		withLocal, _ := req.Options["with-local"].(bool)
+		if !withLocal {
+			cmds.EmitOnce(res, o)
+			return
+		}
+
+		// an offline DAGService will not fetch from the network
+		dagserv := dag.NewDAGService(bservice.New(
+			node.Blockstore,
+			offline.Exchange(node.Blockstore),
+		))
+
+		local, sizeLocal, err := walkBlock(req.Context, dagserv, nd)
+
+		o.WithLocality = true
+		o.Local = local
+		o.SizeLocal = sizeLocal
 
 		cmds.EmitOnce(res, o)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			out, ok := v.(*Object)
+			out, ok := v.(*StatOutput)
 			if !ok {
 				return e.TypeErr(out, v)
 			}
@@ -136,11 +170,20 @@ var filesStatCmd = &cmds.Command{
 			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
 			s = strings.Replace(s, "<type>", out.Type, -1)
 
-			_, err := fmt.Fprintln(w, s)
-			return err
+			fmt.Fprintln(w, s)
+
+			if out.WithLocality {
+				fmt.Fprintf(w, "Local: %s of %s (%.2f%%)\n",
+					humanize.Bytes(out.SizeLocal),
+					humanize.Bytes(out.CumulativeSize),
+					100.0*float64(out.SizeLocal)/float64(out.CumulativeSize),
+				)
+			}
+
+			return nil
 		}),
 	},
-	Type: Object{},
+	Type: StatOutput{},
 }
 
 func moreThanOne(a, b, c bool) bool {
@@ -166,12 +209,7 @@ func statGetFormatOptions(req *cmds.Request) (string, error) {
 	}
 }
 
-func statNode(fsn mfs.FSNode) (*Object, error) {
-	nd, err := fsn.GetNode()
-	if err != nil {
-		return nil, err
-	}
-
+func statNode(nd ipld.Node) (*StatOutput, error) {
 	c := nd.Cid()
 
 	cumulsize, err := nd.Size()
@@ -187,16 +225,16 @@ func statNode(fsn mfs.FSNode) (*Object, error) {
 		}
 
 		var ndtype string
-		switch fsn.Type() {
-		case mfs.TDir:
+		switch d.GetType() {
+		case ft.TDirectory, ft.THAMTShard:
 			ndtype = "directory"
-		case mfs.TFile:
+		case ft.TFile, ft.TMetadata, ft.TRaw:
 			ndtype = "file"
 		default:
-			return nil, fmt.Errorf("unrecognized node type: %s", fsn.Type())
+			return nil, fmt.Errorf("unrecognized node type: %s", d.GetType())
 		}
 
-		return &Object{
+		return &StatOutput{
 			Hash:           c.String(),
 			Blocks:         len(nd.Links()),
 			Size:           d.GetFilesize(),
@@ -204,7 +242,7 @@ func statNode(fsn mfs.FSNode) (*Object, error) {
 			Type:           ndtype,
 		}, nil
 	case *dag.RawNode:
-		return &Object{
+		return &StatOutput{
 			Hash:           c.String(),
 			Blocks:         0,
 			Size:           cumulsize,
@@ -214,6 +252,38 @@ func statNode(fsn mfs.FSNode) (*Object, error) {
 	default:
 		return nil, fmt.Errorf("not unixfs node (proto or raw)")
 	}
+}
+
+func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool, uint64, error) {
+	// Start with the block data size
+	sizeLocal := uint64(len(nd.RawData()))
+
+	local := true
+
+	for _, link := range nd.Links() {
+		child, err := dagserv.Get(ctx, link.Cid)
+
+		if err == ipld.ErrNotFound {
+			local = false
+			continue
+		}
+
+		if err != nil {
+			return local, sizeLocal, err
+		}
+
+		childLocal, childLocalSize, err := walkBlock(ctx, dagserv, child)
+
+		if err != nil {
+			return local, sizeLocal, err
+		}
+
+		// Recursively add the child size
+		local = local && childLocal
+		sizeLocal += childLocalSize
+	}
+
+	return local, sizeLocal, nil
 }
 
 var filesCpCmd = &oldcmds.Command{
@@ -296,14 +366,6 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (ipld.N
 
 		return fsn.GetNode()
 	}
-}
-
-type Object struct {
-	Hash           string
-	Size           uint64
-	CumulativeSize uint64
-	Blocks         int
-	Type           string
 }
 
 type filesLsOutput struct {
