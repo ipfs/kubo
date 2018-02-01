@@ -21,6 +21,7 @@ If you can't run `ipfs version --all` or that command fails, include as much inf
 <!--
 
 - "bug": If what you are filing is a bug.
+- "panic": If you'd like to report an application panic, segfault, crash, etc.
 - "feature": If you'd like to suggest a feature.
 - "enhancement ": If you'd like to suggest an improvement on to existing feature.
 - "test failure": If the tests are failing
