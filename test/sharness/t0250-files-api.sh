@@ -154,6 +154,15 @@ test_files_api() {
     ipfs files stat --hash / > roothash
   '
 
+  test_expect_success "stat works outside of MFS" '
+    ipfs files stat /ipfs/$DIR1
+  '
+
+  test_expect_success "stat compute the locality of a dag" '
+    ipfs files stat --with-local /ipfs/$DIR1 > output
+    grep -q "(100.00%)" output
+  '
+
   test_expect_success "cannot mkdir / $EXTRA" '
     test_expect_code 1 ipfs files mkdir $ARGS /
   '
