@@ -11,7 +11,7 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 
 	measure "gx/ipfs/QmRhjB5Mnha4k6VH6qRFNabAVkxpbqC7bVw2daMKLHPXXN/go-ds-measure"
-	flatfs "gx/ipfs/QmZrg75SRPcecedozjmtQTPv8iVqx3b5ExHNVdKW3EU7w5/go-ds-flatfs"
+	flatfs "gx/ipfs/QmbHGPnENTUvxBsidRZasYYTFT2DJWYHLpAzcpssSxZupj/go-ds-flatfs"
 
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	mount "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/syncmount"
