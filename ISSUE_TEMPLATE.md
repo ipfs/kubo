@@ -1,5 +1,7 @@
 <!-- 🔥❓If you have a *QUESTION* about IPFS, please ask on our forum at https://discuss.ipfs.io 🔥❓
 
+If you're unfamiliar with how GitHub issues work, consider reading [GitHub's issues guide](https://guides.github.com/features/issues/).
+
 If you haven't yet searched the issue tracker for an existing report concerning your issue, please do so now.
 
 The go-ipfs issues are *only* for bug reports and directly actionable feature requests. Read https://github.com/ipfs/community/blob/master/contributing.md#reporting-issues if your issue doesn't fit either of those categories.
