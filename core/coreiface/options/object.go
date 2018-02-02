@@ -105,9 +105,9 @@ func (objectOpts) DataType(t string) ObjectPutOption {
 	}
 }
 
-// WithPin is an option for Object.Put which specifies whether to pin the added
+// Pin is an option for Object.Put which specifies whether to pin the added
 // objects, default is false
-func (objectOpts) WithPin(pin bool) ObjectPutOption {
+func (objectOpts) Pin(pin bool) ObjectPutOption {
 	return func(settings *ObjectPutSettings) error {
 		settings.Pin = pin
 		return nil
