@@ -206,7 +206,7 @@ func TestCatDir(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p := coreapi.ParseCid(edir.Cid())
+	p := api.ParseCid(edir.Cid())
 
 	if p.String() != emptyDir.String() {
 		t.Fatalf("expected path %s, got: %s", emptyDir, p)
@@ -231,7 +231,7 @@ func TestCatNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = api.Unixfs().Cat(ctx, coreapi.ParseCid(nd.Cid()))
+	_, err = api.Unixfs().Cat(ctx, api.ParseCid(nd.Cid()))
 	if !strings.Contains(err.Error(), "proto: required field") {
 		t.Fatalf("expected protobuf error, got: %s", err)
 	}
@@ -327,7 +327,7 @@ func TestLsNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	links, err := api.Unixfs().Ls(ctx, coreapi.ParseCid(nd.Cid()))
+	links, err := api.Unixfs().Ls(ctx, api.ParseCid(nd.Cid()))
 	if err != nil {
 		t.Error(err)
 	}

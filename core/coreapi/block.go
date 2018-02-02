@@ -65,7 +65,7 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		return nil, err
 	}
 
-	return ParseCid(b.Cid()), nil
+	return api.ParseCid(b.Cid()), nil
 }
 
 func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, error) {
@@ -117,7 +117,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.Bloc
 	}
 
 	return &BlockStat{
-		path: ParseCid(b.Cid()),
+		path: api.ParseCid(b.Cid()),
 		size: len(b.RawData()),
 	}, nil
 }

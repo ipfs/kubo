@@ -44,7 +44,7 @@ func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPut
 		return nil, err
 	}
 
-	return ParseCid(nds[0].Cid()), nil
+	return api.ParseCid(nds[0].Cid()), nil
 }
 
 // Get resolves `path` using Unixfs resolver, returns the resolved Node.
@@ -66,7 +66,7 @@ func (api *DagAPI) Tree(ctx context.Context, p coreiface.Path, opts ...caopts.Da
 	paths := n.Tree("", settings.Depth)
 	out := make([]coreiface.Path, len(paths))
 	for n, p2 := range paths {
-		out[n], err = ParsePath(gopath.Join(p.String(), p2))
+		out[n], err = api.ParsePath(ctx, gopath.Join(p.String(), p2))
 		if err != nil {
 			return nil, err
 		}

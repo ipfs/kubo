@@ -18,6 +18,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipfspath "github.com/ipfs/go-ipfs/path"
 	resolver "github.com/ipfs/go-ipfs/path/resolver"
@@ -29,11 +30,12 @@ import (
 
 type CoreAPI struct {
 	node *core.IpfsNode
+	*caopts.ApiOptions
 }
 
 // NewCoreAPI creates new instance of IPFS CoreAPI backed by go-ipfs Node.
 func NewCoreAPI(n *core.IpfsNode) coreiface.CoreAPI {
-	api := &CoreAPI{n}
+	api := &CoreAPI{n, nil}
 	return api
 }
 
@@ -132,16 +134,26 @@ type path struct {
 }
 
 // ParsePath parses path `p` using ipfspath parser, returns the parsed path.
-func ParsePath(p string) (coreiface.Path, error) {
+func (api *CoreAPI) ParsePath(ctx context.Context, p string, opts ...caopts.ParsePathOption) (coreiface.Path, error) {
+	options, err := caopts.ParsePathOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
 	pp, err := ipfspath.ParsePath(p)
 	if err != nil {
 		return nil, err
 	}
-	return &path{path: pp}, nil
+
+	res := &path{path: pp}
+	if options.Resolve {
+		return api.ResolvePath(ctx, res)
+	}
+	return res, nil
 }
 
 // ParseCid parses the path from `c`, returns the parsed path.
-func ParseCid(c *cid.Cid) coreiface.Path {
+func (api *CoreAPI) ParseCid(c *cid.Cid) coreiface.Path {
 	return &path{path: ipfspath.FromCid(c), cid: c, root: c}
 }
 
