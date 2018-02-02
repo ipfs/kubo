@@ -33,6 +33,7 @@ import (
 
 var flog = logging.Logger("cmds/files")
 
+// FilesCmd is the 'ipfs files' command
 var FilesCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Interact with unixfs files.",
@@ -70,7 +71,7 @@ operations.
 var cidVersionOption = cmdkit.IntOption("cid-version", "cid-ver", "Cid version to use. (experimental)")
 var hashOption = cmdkit.StringOption("hash", "Hash function to use. Will set Cid version to 1 if used. (experimental)")
 
-var formatError = errors.New("Format was set by multiple options. Only one format option is allowed")
+var errFormat = errors.New("format was set by multiple options. Only one format option is allowed")
 
 type statOutput struct {
 	Hash           string
@@ -196,7 +197,7 @@ func statGetFormatOptions(req *cmds.Request) (string, error) {
 	format, _ := req.Options["format"].(string)
 
 	if moreThanOne(hash, size, format != defaultStatFormat) {
-		return "", formatError
+		return "", errFormat
 	}
 
 	if hash {
@@ -531,7 +532,7 @@ Examples:
 
 		fi, ok := fsn.(*mfs.File)
 		if !ok {
-			res.SetError(fmt.Errorf("%s was not a file.", path), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("%s was not a file", path), cmdkit.ErrNormal)
 			return
 		}
 
@@ -549,7 +550,7 @@ Examples:
 			return
 		}
 		if offset < 0 {
-			res.SetError(fmt.Errorf("Cannot specify negative offset."), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("cannot specify negative offset"), cmdkit.ErrNormal)
 			return
 		}
 
@@ -560,7 +561,7 @@ Examples:
 		}
 
 		if int64(offset) > filen {
-			res.SetError(fmt.Errorf("Offset was past end of file (%d > %d).", offset, filen), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("offset was past end of file (%d > %d)", offset, filen), cmdkit.ErrNormal)
 			return
 		}
 
@@ -578,7 +579,7 @@ Examples:
 		}
 		if found {
 			if count < 0 {
-				res.SetError(fmt.Errorf("Cannot specify negative 'count'."), cmdkit.ErrNormal)
+				res.SetError(fmt.Errorf("cannot specify negative 'count'"), cmdkit.ErrNormal)
 				return
 			}
 			r = io.LimitReader(r, int64(count))
@@ -1013,7 +1014,7 @@ Remove files or directories.
 
 		pdir, ok := parent.(*mfs.Directory)
 		if !ok {
-			res.SetError(fmt.Errorf("No such file or directory: %s", path), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("no such file or directory: %s", path), cmdkit.ErrNormal)
 			return
 		}
 
@@ -1137,7 +1138,7 @@ func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*
 
 		fi, ok := fsn.(*mfs.File)
 		if !ok {
-			return nil, errors.New("Expected *mfs.File, didnt get it. This is likely a race condition.")
+			return nil, errors.New("expected *mfs.File, didnt get it. This is likely a race condition")
 		}
 		return fi, nil
 
@@ -1148,11 +1149,11 @@ func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*
 
 func checkPath(p string) (string, error) {
 	if len(p) == 0 {
-		return "", fmt.Errorf("Paths must not be empty.")
+		return "", fmt.Errorf("paths must not be empty")
 	}
 
 	if p[0] != '/' {
-		return "", fmt.Errorf("Paths must start with a leading slash.")
+		return "", fmt.Errorf("paths must start with a leading slash")
 	}
 
 	cleaned := gopath.Clean(p)
