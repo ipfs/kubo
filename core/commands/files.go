@@ -23,8 +23,8 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cmds "gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	cmds "gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
@@ -52,7 +52,7 @@ operations.
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption(	"f", "flush", "Flush target and ancestors after write.").WithDefault(true),
+		cmdkit.BoolOption("f", "flush", "Flush target and ancestors after write.").WithDefault(true),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  lgc.NewCommand(filesReadCmd),
@@ -79,7 +79,7 @@ type statOutput struct {
 	CumulativeSize uint64
 	Blocks         int
 	Type           string
-	WithLocality   bool
+	WithLocality   bool   `json:",omitempty"`
 	Local          bool   `json:",omitempty"`
 	SizeLocal      uint64 `json:",omitempty"`
 }
@@ -138,7 +138,7 @@ var filesStatCmd = &cmds.Command{
 
 		withLocal, _ := req.Options["with-local"].(bool)
 		if !withLocal {
-			cmds.EmitOnce(res, o)
+			res.Emit(o)
 			return
 		}
 
@@ -154,7 +154,7 @@ var filesStatCmd = &cmds.Command{
 		o.Local = local
 		o.SizeLocal = sizeLocal
 
-		cmds.EmitOnce(res, o)
+		res.Emit(o)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
