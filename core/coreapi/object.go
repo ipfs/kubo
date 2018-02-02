@@ -297,6 +297,35 @@ func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.R
 	return coreiface.IpfsPath(pbnd.Cid()), nil
 }
 
+func (api *ObjectAPI) Diff(ctx context.Context, before coreiface.Path, after coreiface.Path) ([]coreiface.ObjectChange, error) {
+	beforeNd, err := api.core().ResolveNode(ctx, before)
+	if err != nil {
+		return nil, err
+	}
+
+	afterNd, err := api.core().ResolveNode(ctx, after)
+	if err != nil {
+		return nil, err
+	}
+
+	changes, err := dagutils.Diff(ctx, api.node.DAG, beforeNd, afterNd)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]coreiface.ObjectChange, len(changes))
+	for i, change := range changes {
+		out[i] = coreiface.ObjectChange{
+			Type:   change.Type,
+			Path:   change.Path,
+			Before: coreiface.IpfsPath(change.Before),
+			After:  coreiface.IpfsPath(change.After),
+		}
+	}
+
+	return out, nil
+}
+
 func (api *ObjectAPI) core() coreiface.CoreAPI {
 	return (*CoreAPI)(api)
 }
