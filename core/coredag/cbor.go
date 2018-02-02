@@ -4,20 +4,20 @@ import (
 	"io"
 	"io/ioutil"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
-	ipldcbor "gx/ipfs/QmeZv9VXw2SfVbX55LV6kGTWASKBc9ZxAVqGBeJcDGdoXy/go-ipld-cbor"
+	ipldcbor "gx/ipfs/QmNRz7BDWfdFNVLt7AVvmRefkrURD25EeoipcXqo6yoXU1/go-ipld-cbor"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func cborJSONParser(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) {
+func cborJSONParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
 	nd, err := ipldcbor.FromJson(r, mhType, mhLen)
 	if err != nil {
 		return nil, err
 	}
 
-	return []node.Node{nd}, nil
+	return []ipld.Node{nd}, nil
 }
 
-func cborRawParser(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) {
+func cborRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -28,5 +28,5 @@ func cborRawParser(r io.Reader, mhType uint64, mhLen int) ([]node.Node, error) {
 		return nil, err
 	}
 
-	return []node.Node{nd}, nil
+	return []ipld.Node{nd}, nil
 }

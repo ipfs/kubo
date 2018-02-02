@@ -20,14 +20,14 @@ import (
 	cfg "github.com/ipfs/go-ipfs/repo/config"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
+	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
+	dsync "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/sync"
 	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	goprocessctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
-	retry "gx/ipfs/QmTLGdJpFxjNTGqBkwTyhN3WeJteSjQPACmyxDjJ49V5NM/retry-datastore"
-	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
-	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
-	dsync "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore/sync"
+	retry "gx/ipfs/Qmc74pRHvndTDAB5nXztWAV7vs5j1obvCb9ejfQzXp9USX/retry-datastore"
+	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
 )
 
 type BuildCfg struct {
@@ -37,9 +37,9 @@ type BuildCfg struct {
 	// ExtraOpts is a map of extra options used to configure the ipfs nodes creation
 	ExtraOpts map[string]bool
 
-	// If permament then node should run more expensive processes
+	// If permanent then node should run more expensive processes
 	// that will improve performance in long run
-	Permament bool
+	Permanent bool
 
 	// If NilRepo is set, a repo backed by a nil datastore will be constructed
 	NilRepo bool
@@ -115,6 +115,7 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 	}, nil
 }
 
+// NewNode constructs and returns an IpfsNode using the given cfg.
 func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	if cfg == nil {
 		cfg = new(BuildCfg)
@@ -181,7 +182,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	uio.UseHAMTSharding = conf.Experimental.ShardingEnabled
 
 	opts.HasBloomFilterSize = conf.Datastore.BloomFilterSize
-	if !cfg.Permament {
+	if !cfg.Permanent {
 		opts.HasBloomFilterSize = 0
 	}
 

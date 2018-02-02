@@ -18,12 +18,12 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	cmdkit "gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var log = logging.Logger("cmds/files")
@@ -67,6 +67,12 @@ var hashOption = cmdkit.StringOption("hash", "Hash function to use. Will set Cid
 
 var formatError = errors.New("Format was set by multiple options. Only one format option is allowed")
 
+const defaultStatFormat = `<hash>
+Size: <size>
+CumulativeSize: <cumulsize>
+ChildBlocks: <childs>
+Type: <type>`
+
 var FilesStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Display file status.",
@@ -77,12 +83,7 @@ var FilesStatCmd = &cmds.Command{
 	},
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("format", "Print statistics in given format. Allowed tokens: "+
-			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").WithDefault(
-			`<hash>
-Size: <size>
-CumulativeSize: <cumulsize>
-ChildBlocks: <childs>
-Type: <type>`),
+			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").WithDefault(defaultStatFormat),
 		cmdkit.BoolOption("hash", "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
 		cmdkit.BoolOption("size", "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
 	},
@@ -154,9 +155,9 @@ func statGetFormatOptions(req cmds.Request) (string, error) {
 
 	hash, _, _ := req.Option("hash").Bool()
 	size, _, _ := req.Option("size").Bool()
-	format, found, _ := req.Option("format").String()
+	format, _, _ := req.Option("format").String()
 
-	if moreThanOne(hash, size, found) {
+	if moreThanOne(hash, size, format != defaultStatFormat) {
 		return "", formatError
 	}
 
@@ -169,7 +170,7 @@ func statGetFormatOptions(req cmds.Request) (string, error) {
 	}
 }
 
-func statNode(ds dag.DAGService, fsn mfs.FSNode) (*Object, error) {
+func statNode(ds ipld.DAGService, fsn mfs.FSNode) (*Object, error) {
 	nd, err := fsn.GetNode()
 	if err != nil {
 		return nil, err
@@ -277,7 +278,7 @@ var FilesCpCmd = &cmds.Command{
 	},
 }
 
-func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (node.Node, error) {
+func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (ipld.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
 		np, err := path.ParsePath(p)
@@ -636,7 +637,7 @@ stat' on the file or any of its ancestors.
 		hashOption,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		path, err := checkPath(req.Arguments()[0])
+		path, err := checkPath(req.StringArguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -749,8 +750,8 @@ NOTE: All paths must be absolute.
 
 Examples:
 
-    $ ipfs mfs mkdir /test/newdir
-    $ ipfs mfs mkdir -p /test/does/not/exist/yet
+    $ ipfs files mkdir /test/newdir
+    $ ipfs files mkdir -p /test/does/not/exist/yet
 `,
 	},
 

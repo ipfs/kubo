@@ -7,7 +7,7 @@ import (
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/repo/config"
 
-	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
 var errTODO = errors.New("TODO: mock repo")
@@ -28,6 +28,10 @@ func (m *Mock) SetConfig(updated *config.Config) error {
 	return nil
 }
 
+func (m *Mock) BackupConfig(prefix string) (string, error) {
+	return "", errTODO
+}
+
 func (m *Mock) SetConfigKey(key string, value interface{}) error {
 	return errTODO
 }
@@ -44,7 +48,7 @@ func (m *Mock) Close() error { return errTODO }
 
 func (m *Mock) SetAPIAddr(addr ma.Multiaddr) error { return errTODO }
 
-func (m *Mock) Keystore() keystore.Keystore { return nil }
+func (m *Mock) Keystore() keystore.Keystore { return m.K }
 
 func (m *Mock) SwarmKey() ([]byte, error) {
 	return nil, nil

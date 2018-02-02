@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 )
 
 func randBuf(t *testing.T, size int) []byte {
@@ -20,6 +20,20 @@ func copyBuf(buf []byte) []byte {
 	cpy := make([]byte, len(buf))
 	copy(cpy, buf)
 	return cpy
+}
+
+func TestSizeSplitterOverAllocate(t *testing.T) {
+	max := 1000
+	r := bytes.NewReader(randBuf(t, max))
+	chunksize := int64(1024 * 256)
+	splitter := NewSizeSplitter(r, chunksize)
+	chunk, err := splitter.NextBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cap(chunk) > len(chunk) {
+		t.Fatal("chunk capacity too large")
+	}
 }
 
 func TestSizeSplitterIsDeterministic(t *testing.T) {

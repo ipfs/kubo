@@ -23,11 +23,11 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
-	routing "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	multibase "gx/ipfs/QmafgXF3u3QSWErQoZ2URmQp5PFG384htoE7J338nS2H7T/go-multibase"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	routing "gx/ipfs/QmRijoA6zGS98ELTDbGsLWPZbVotYsGbjp3RbXcKCYBeon/go-libp2p-routing"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	multibase "gx/ipfs/QmexBtiTTEwwn42Yi6ouKt6VqzpA6wjJgiW1oh9VfaRrup/go-multibase"
 )
 
 const (
@@ -53,7 +53,7 @@ func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.CoreAPI)
 }
 
 // TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (node.Node, error) {
+func (i *gatewayHandler) newDagFromReader(r io.Reader) (ipld.Node, error) {
 	// TODO(cryptix): change and remove this helper once PR1136 is merged
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
@@ -316,7 +316,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	// storage for directory listing
 	var dirListing []directoryItem
-	dirr.ForEachLink(ctx, func(link *node.Link) error {
+	dirr.ForEachLink(ctx, func(link *ipld.Link) error {
 		// See comment above where originalUrlPath is declared.
 		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalUrlPath, link.Name)}
 		dirListing = append(dirListing, di)
@@ -425,7 +425,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newnode node.Node
+	var newnode ipld.Node
 	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
 		newnode = ft.EmptyDirNode()
 	} else {
@@ -474,7 +474,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		nnode, err := e.Finalize(i.node.DAG)
+		nnode, err := e.Finalize(ctx, i.node.DAG)
 		if err != nil {
 			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
 			return
@@ -498,11 +498,11 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		// object set-data case
 		pbnd.SetData(pbnewnode.Data())
 
-		newcid, err = i.node.DAG.Add(pbnd)
+		newcid = pbnd.Cid()
+		err = i.node.DAG.Add(ctx, pbnd)
 		if err != nil {
 			nnk := newnode.Cid()
-			rk := pbnd.Cid()
-			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), rk.String()), err, http.StatusInternalServerError)
+			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), newcid.String()), err, http.StatusInternalServerError)
 			return
 		}
 	default:
@@ -561,7 +561,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newnode *dag.ProtoNode = pbnd
 	for j := len(pathNodes) - 2; j >= 0; j-- {
-		if _, err := i.node.DAG.Add(newnode); err != nil {
+		if err := i.node.DAG.Add(ctx, newnode); err != nil {
 			webError(w, "Could not add node", err, http.StatusInternalServerError)
 			return
 		}
@@ -579,7 +579,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if _, err := i.node.DAG.Add(newnode); err != nil {
+	if err := i.node.DAG.Add(ctx, newnode); err != nil {
 		webError(w, "Could not add root node", err, http.StatusInternalServerError)
 		return
 	}

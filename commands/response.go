@@ -9,7 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmPq2D7Yoyev7yeMuMnkEYBqmQuUu5kb91UXPPoiik1Xyp/go-ipfs-cmds"
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 // ErrorType signfies a category of errors
@@ -148,7 +149,7 @@ func (r *response) Marshal() (io.Reader, error) {
 		return bytes.NewReader([]byte{}), nil
 	}
 
-	enc, found, err := r.req.Option(cmdkit.EncShort).String()
+	enc, found, err := r.req.Option(cmds.EncLong).String()
 	if err != nil {
 		return nil, err
 	}

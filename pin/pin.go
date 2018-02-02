@@ -12,10 +12,10 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	dutils "github.com/ipfs/go-ipfs/merkledag/utils"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
+	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var log = logging.Logger("pin")
@@ -46,11 +46,22 @@ const (
 type PinMode int
 
 const (
+	// Recursive pins pin the target cids along with any reachable children.
 	Recursive PinMode = iota
+
+	// Direct pins pin just the target cid.
 	Direct
+
+	// Indirect pins are cids who have some ancestor pinned recursively.
 	Indirect
+
+	// Internal pins are cids used to keep the internal state of the pinner.
 	Internal
+
+	// NotPinned
 	NotPinned
+
+	// Any refers to any pinned cid
 	Any
 )
 
@@ -82,10 +93,20 @@ func StringToPinMode(s string) (PinMode, bool) {
 }
 
 type Pinner interface {
+	// IsPinned returns whether or not the given cid is pinned
+	// and an explanation of why its pinned
 	IsPinned(*cid.Cid) (string, bool, error)
+
+	// IsPinnedWithType returns whether or not the given cid is pinned with the
+	// given pin type, as well as returning the type of pin its pinned with.
 	IsPinnedWithType(*cid.Cid, PinMode) (string, bool, error)
-	Pin(context.Context, node.Node, bool) error
-	Unpin(context.Context, *cid.Cid, bool) error
+
+	// Pin the given node, optionally recursively.
+	Pin(ctx context.Context, node ipld.Node, recursive bool) error
+
+	// Unpin the given cid. If recursive is true, removes either a recursive or
+	// a direct pin. If recursive is false, only removes a direct pin.
+	Unpin(ctx context.Context, cid *cid.Cid, recursive bool) error
 
 	// Update updates a recursive pin from one cid to another
 	// this is more efficient than simply pinning the new one and unpinning the
@@ -106,9 +127,17 @@ type Pinner interface {
 	// be successful.
 	RemovePinWithMode(*cid.Cid, PinMode)
 
+	// Flush writes the pin state to the backing datastore
 	Flush() error
+
+	// DirectKeys returns all directly pinned cids
 	DirectKeys() []*cid.Cid
+
+	// DirectKeys returns all recursively pinned cids
 	RecursiveKeys() []*cid.Cid
+
+	// InternalPins returns all cids kept pinned for the internal state of the
+	// pinner
 	InternalPins() []*cid.Cid
 }
 
@@ -118,6 +147,7 @@ type Pinned struct {
 	Via  *cid.Cid
 }
 
+// Pinned returns whether or not the given cid is pinned
 func (p Pinned) Pinned() bool {
 	if p.Mode == NotPinned {
 		return false
@@ -126,6 +156,7 @@ func (p Pinned) Pinned() bool {
 	}
 }
 
+// String Returns pin status as string
 func (p Pinned) String() string {
 	switch p.Mode {
 	case NotPinned:
@@ -147,13 +178,13 @@ type pinner struct {
 	// Track the keys used for storing the pinning state, so gc does
 	// not delete them.
 	internalPin *cid.Set
-	dserv       mdag.DAGService
-	internal    mdag.DAGService // dagservice used to store internal objects
+	dserv       ipld.DAGService
+	internal    ipld.DAGService // dagservice used to store internal objects
 	dstore      ds.Datastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
-func NewPinner(dstore ds.Datastore, serv, internal mdag.DAGService) Pinner {
+func NewPinner(dstore ds.Datastore, serv, internal ipld.DAGService) Pinner {
 
 	rcset := cid.NewSet()
 	dirset := cid.NewSet()
@@ -169,13 +200,15 @@ func NewPinner(dstore ds.Datastore, serv, internal mdag.DAGService) Pinner {
 }
 
 // Pin the given node, optionally recursive
-func (p *pinner) Pin(ctx context.Context, node node.Node, recurse bool) error {
+func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	c, err := p.dserv.Add(node)
+	err := p.dserv.Add(ctx, node)
 	if err != nil {
 		return err
 	}
+
+	c := node.Cid()
 
 	if recurse {
 		if p.recursePin.Has(c) {
@@ -248,6 +281,8 @@ func (p *pinner) IsPinned(c *cid.Cid) (string, bool, error) {
 	return p.isPinnedWithType(c, Any)
 }
 
+// IsPinnedWithType returns whether or not the given cid is pinned with the
+// given pin type, as well as returning the type of pin its pinned with.
 func (p *pinner) IsPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
@@ -299,6 +334,8 @@ func (p *pinner) isPinnedWithType(c *cid.Cid, mode PinMode) (string, bool, error
 	return "", false, nil
 }
 
+// CheckIfPinned Checks if a set of keys are pinned, more efficient than
+// calling IsPinned for each key, returns the pinned status of cid(s)
 func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
@@ -321,7 +358,7 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	// Now walk all recursive pins to check for indirect pins
 	var checkChildren func(*cid.Cid, *cid.Cid) error
 	checkChildren = func(rk, parentKey *cid.Cid) error {
-		links, err := p.dserv.GetLinks(context.Background(), parentKey)
+		links, err := ipld.GetLinks(context.TODO(), p.dserv, parentKey)
 		if err != nil {
 			return err
 		}
@@ -364,6 +401,9 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	return pinned, nil
 }
 
+// RemovePinWithMode is for manually editing the pin structure.
+// Use with care! If used improperly, garbage collection may not
+// be successful.
 func (p *pinner) RemovePinWithMode(c *cid.Cid, mode PinMode) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -387,7 +427,7 @@ func cidSetWithValues(cids []*cid.Cid) *cid.Set {
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(d ds.Datastore, dserv, internal mdag.DAGService) (Pinner, error) {
+func LoadPinner(d ds.Datastore, dserv, internal ipld.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	rootKeyI, err := d.Get(pinDatastoreKey)
@@ -457,6 +497,9 @@ func (p *pinner) RecursiveKeys() []*cid.Cid {
 	return p.recursePin.Keys()
 }
 
+// Update updates a recursive pin from one cid to another
+// this is more efficient than simply pinning the new one and unpinning the
+// old one
 func (p *pinner) Update(ctx context.Context, from, to *cid.Cid, unpin bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -509,15 +552,17 @@ func (p *pinner) Flush() error {
 	}
 
 	// add the empty node, its referenced by the pin sets but never created
-	_, err := p.internal.Add(new(mdag.ProtoNode))
+	err := p.internal.Add(ctx, new(mdag.ProtoNode))
 	if err != nil {
 		return err
 	}
 
-	k, err := p.internal.Add(root)
+	err = p.internal.Add(ctx, root)
 	if err != nil {
 		return err
 	}
+
+	k := root.Cid()
 
 	internalset.Add(k)
 	if err := p.dstore.Put(pinDatastoreKey, k.Bytes()); err != nil {
@@ -527,6 +572,8 @@ func (p *pinner) Flush() error {
 	return nil
 }
 
+// InternalPins returns all cids kept pinned for the internal state of the
+// pinner
 func (p *pinner) InternalPins() []*cid.Cid {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -550,8 +597,8 @@ func (p *pinner) PinWithMode(c *cid.Cid, mode PinMode) {
 
 // hasChild recursively looks for a Cid among the children of a root Cid.
 // The visit function can be used to shortcut already-visited branches.
-func hasChild(ds mdag.LinkService, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
-	links, err := ds.GetLinks(context.Background(), root)
+func hasChild(ng ipld.NodeGetter, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
+	links, err := ipld.GetLinks(context.TODO(), ng, root)
 	if err != nil {
 		return false, err
 	}
@@ -561,7 +608,7 @@ func hasChild(ds mdag.LinkService, root *cid.Cid, child *cid.Cid, visit func(*ci
 			return true, nil
 		}
 		if visit(c) {
-			has, err := hasChild(ds, c, child, visit)
+			has, err := hasChild(ng, c, child, visit)
 			if err != nil {
 				return false, err
 			}

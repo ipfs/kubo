@@ -58,7 +58,7 @@ test_sharding() {
     printf "" > list_exp_raw
     for i in `seq 100`
     do
-      echo $i | ipfs files write --create /foo/file$i
+      echo $i | ipfs files write --create /foo/file$i || return 1
       echo file$i >> list_exp_raw
     done
   '

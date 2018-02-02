@@ -13,7 +13,7 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 var MountCmd = &cmds.Command{
@@ -33,7 +33,7 @@ You may have to create /ipfs and /ipns before using 'ipfs mount':
 `,
 		LongDescription: `
 Mount IPFS at a read-only mountpoint on the OS. The default, /ipfs and /ipns,
-are set in the configutation file, but can be overriden by the options.
+are set in the configuration file, but can be overriden by the options.
 All IPFS objects will be accessible under this directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 

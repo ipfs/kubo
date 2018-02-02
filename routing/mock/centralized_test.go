@@ -6,11 +6,11 @@ import (
 	"time"
 
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	"gx/ipfs/QmeDA8gNhvRTsbrjEieay5wezupJDiky8xvCzDABbsGzmp/go-testutil"
 
-	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
-	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
+	testutil "gx/ipfs/QmfB65MYJqaKzBiMvW47fquCRhmEeXW6AhrJSGM7TeY5eG/go-testutil"
 )
 
 func TestKeyNotFound(t *testing.T) {
@@ -164,6 +164,8 @@ func TestValidAfter(t *testing.T) {
 	}
 
 	conf.ValueVisibility.Set(0)
+	time.Sleep(100 * time.Millisecond)
+
 	providersChan = rs.Client(pi).FindProvidersAsync(ctx, key, max)
 	t.Log("providers", providers)
 	for p := range providersChan {

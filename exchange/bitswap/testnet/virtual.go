@@ -3,18 +3,19 @@ package bitswap
 import (
 	"context"
 	"errors"
+	"sync"
 
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 
-	routing "gx/ipfs/QmPCGUjMRuBcPybZFpjhzpifwPP9wPRoiy5geTQKU4vqWA/go-libp2p-routing"
-	ifconnmgr "gx/ipfs/QmSAJm4QdTJ3EGF2cvgNcQyXTEbxqWSW1x4kCVV1aJQUQr/go-libp2p-interface-connmgr"
+	routing "gx/ipfs/QmRijoA6zGS98ELTDbGsLWPZbVotYsGbjp3RbXcKCYBeon/go-libp2p-routing"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
-	testutil "gx/ipfs/QmeDA8gNhvRTsbrjEieay5wezupJDiky8xvCzDABbsGzmp/go-testutil"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	ifconnmgr "gx/ipfs/QmZdqgq4h6AdodSmPwb5FZzhwnmhchu1hhJgv8tnFdod1o/go-libp2p-interface-connmgr"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	testutil "gx/ipfs/QmfB65MYJqaKzBiMvW47fquCRhmEeXW6AhrJSGM7TeY5eG/go-testutil"
 )
 
 var log = logging.Logger("bstestnet")
@@ -29,6 +30,7 @@ func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
 }
 
 type network struct {
+	mu            sync.Mutex
 	clients       map[peer.ID]bsnet.Receiver
 	routingserver mockrouting.Server
 	delay         delay.D
@@ -36,6 +38,9 @@ type network struct {
 }
 
 func (n *network) Adapter(p testutil.Identity) bsnet.BitSwapNetwork {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	client := &networkClient{
 		local:   p.ID(),
 		network: n,
@@ -46,6 +51,9 @@ func (n *network) Adapter(p testutil.Identity) bsnet.BitSwapNetwork {
 }
 
 func (n *network) HasPeer(p peer.ID) bool {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	_, found := n.clients[p]
 	return found
 }
@@ -57,6 +65,9 @@ func (n *network) SendMessage(
 	from peer.ID,
 	to peer.ID,
 	message bsmsg.BitSwapMessage) error {
+
+	n.mu.Lock()
+	defer n.mu.Unlock()
 
 	receiver, ok := n.clients[to]
 	if !ok {
@@ -161,18 +172,26 @@ func (nc *networkClient) SetDelegate(r bsnet.Receiver) {
 }
 
 func (nc *networkClient) ConnectTo(_ context.Context, p peer.ID) error {
-	if !nc.network.HasPeer(p) {
+	nc.network.mu.Lock()
+
+	otherClient, ok := nc.network.clients[p]
+	if !ok {
+		nc.network.mu.Unlock()
 		return errors.New("no such peer in network")
 	}
+
 	tag := tagForPeers(nc.local, p)
 	if _, ok := nc.network.conns[tag]; ok {
+		nc.network.mu.Unlock()
 		log.Warning("ALREADY CONNECTED TO PEER (is this a reconnect? test lib needs fixing)")
 		return nil
 	}
 	nc.network.conns[tag] = struct{}{}
+	nc.network.mu.Unlock()
+
 	// TODO: add handling for disconnects
 
-	nc.network.clients[p].PeerConnected(nc.local)
+	otherClient.PeerConnected(nc.local)
 	nc.Receiver.PeerConnected(p)
 	return nil
 }

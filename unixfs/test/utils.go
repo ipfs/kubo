@@ -15,10 +15,10 @@ import (
 	mdagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
-	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
-	mh "gx/ipfs/QmYeKnKpubCMRiq3PGZcTREErthbb5Q9cXsCoSkD9bjEBd/go-multihash"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func SizeSplitterGen(size int64) chunk.SplitterGen {
@@ -27,7 +27,8 @@ func SizeSplitterGen(size int64) chunk.SplitterGen {
 	}
 }
 
-func GetDAGServ() mdag.DAGService {
+// GetDAGServ returns a mock DAGService.
+func GetDAGServ() ipld.DAGService {
 	return mdagmock.Mock()
 }
 
@@ -51,7 +52,8 @@ func init() {
 	UseBlake2b256.Prefix.MhLength = -1
 }
 
-func GetNode(t testing.TB, dserv mdag.DAGService, data []byte, opts NodeOpts) node.Node {
+// GetNode returns a unixfs file node with the specified data.
+func GetNode(t testing.TB, dserv ipld.DAGService, data []byte, opts NodeOpts) ipld.Node {
 	in := bytes.NewReader(data)
 
 	dbp := h.DagBuilderParams{
@@ -69,11 +71,13 @@ func GetNode(t testing.TB, dserv mdag.DAGService, data []byte, opts NodeOpts) no
 	return node
 }
 
-func GetEmptyNode(t testing.TB, dserv mdag.DAGService, opts NodeOpts) node.Node {
+// GetEmptyNode returns an empty unixfs file node.
+func GetEmptyNode(t testing.TB, dserv ipld.DAGService, opts NodeOpts) ipld.Node {
 	return GetNode(t, dserv, []byte{}, opts)
 }
 
-func GetRandomNode(t testing.TB, dserv mdag.DAGService, size int64, opts NodeOpts) ([]byte, node.Node) {
+// GetRandomNode returns a random unixfs file node.
+func GetRandomNode(t testing.TB, dserv ipld.DAGService, size int64, opts NodeOpts) ([]byte, ipld.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {
@@ -96,7 +100,8 @@ func ArrComp(a, b []byte) error {
 	return nil
 }
 
-func PrintDag(nd *mdag.ProtoNode, ds mdag.DAGService, indent int) {
+// PrintDag pretty-prints the given dag to stdout.
+func PrintDag(nd *mdag.ProtoNode, ds ipld.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		panic(err)

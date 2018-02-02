@@ -5,14 +5,18 @@ import (
 	bsrv "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	ds "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore"
-	dssync "gx/ipfs/QmdHG8MAuARdGHxx4rPQASLcvhz24fzjSQq7AJRAQEorq5/go-datastore/sync"
+
+	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
+	dssync "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/sync"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func Mock() dag.DAGService {
+// Mock returns a new thread-safe, mock DAGService.
+func Mock() ipld.DAGService {
 	return dag.NewDAGService(Bserv())
 }
 
+// Bserv returns a new, thread-safe, mock BlockService.
 func Bserv() bsrv.BlockService {
 	bstore := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
 	return bsrv.New(bstore, offline.Exchange(bstore))

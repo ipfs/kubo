@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // Order is an identifier for traversal algorithm orders
@@ -19,7 +19,7 @@ const (
 
 // Options specifies a series of traversal options
 type Options struct {
-	DAG     node.NodeGetter // the dagservice to fetch nodes
+	DAG     ipld.NodeGetter // the dagservice to fetch nodes
 	Order   Order           // what order to traverse in
 	Func    Func            // the function to perform at each step
 	ErrFunc ErrFunc         // see ErrFunc. Optional
@@ -29,7 +29,7 @@ type Options struct {
 
 // State is a current traversal state
 type State struct {
-	Node  node.Node
+	Node  ipld.Node
 	Depth int
 }
 
@@ -38,7 +38,7 @@ type traversal struct {
 	seen map[string]struct{}
 }
 
-func (t *traversal) shouldSkip(n node.Node) (bool, error) {
+func (t *traversal) shouldSkip(n ipld.Node) (bool, error) {
 	if t.opts.SkipDuplicates {
 		k := n.Cid()
 		if _, found := t.seen[k.KeyString()]; found {
@@ -58,9 +58,9 @@ func (t *traversal) callFunc(next State) error {
 // stop processing. if it returns a nil node, just skip it.
 //
 // the error handling is a little complicated.
-func (t *traversal) getNode(link *node.Link) (node.Node, error) {
+func (t *traversal) getNode(link *ipld.Link) (ipld.Node, error) {
 
-	getNode := func(l *node.Link) (node.Node, error) {
+	getNode := func(l *ipld.Link) (ipld.Node, error) {
 		next, err := l.GetNode(context.TODO(), t.opts.DAG)
 		if err != nil {
 			return nil, err
@@ -98,7 +98,7 @@ type Func func(current State) error
 //
 type ErrFunc func(err error) error
 
-func Traverse(root node.Node, o Options) error {
+func Traverse(root ipld.Node, o Options) error {
 	t := traversal{
 		opts: o,
 		seen: map[string]struct{}{},

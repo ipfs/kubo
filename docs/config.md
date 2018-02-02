@@ -4,6 +4,46 @@ The go-ipfs config file is a json document. It is read once at node instantiatio
 either for an offline command, or when starting the daemon. Commands that execute
 on a running daemon do not read the config file at runtime.
 
+#### Profiles
+Configuration profiles allow to tweak configuration quickly. Profiles can be
+applied with `--profile` flag to `ipfs init` or with `ipfs config profile apply`
+command. When a profile is applied a backup of the configuration file will
+be created in $IPFS_PATH
+
+Available profiles:
+- `server`
+
+  Recommended for nodes with public IPv4 address (servers, VPSes, etc.),
+  disables host and content discovery in local networks.
+
+- `local-discovery`
+
+  Sets default values to fields affected by `server` profile, enables
+  discovery in local networks.
+
+- `test`
+
+  Reduces external interference, useful for running ipfs in test environments.
+  Note that with these settings node won't be able to talk to the rest of the
+  network without manual bootstrap.
+
+- `default-networking`
+
+  Restores default network settings. Inverse profile of the `test` profile.
+
+- `badgerds`
+
+  Replaces default datastore configuration with experimental badger datastore.
+  If you apply this profile after `ipfs init`, you will need to convert your
+  datastore to the new configuration. You can do this using [ipfs-ds-convert](https://github.com/ipfs/ipfs-ds-convert)
+
+  WARNING: badger datastore is experimental. Make sure to backup your data
+  frequently.
+
+- `default-datastore`
+
+  Restores default datastore configuration.
+
 ## Table of Contents
 
 - [`Addresses`](#addresses)

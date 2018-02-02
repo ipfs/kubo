@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -11,11 +12,11 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 
-	u "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
-	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
-	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
-	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
 )
 
 const kPingTimeout = 10 * time.Second
@@ -25,6 +26,9 @@ type PingResult struct {
 	Time    time.Duration
 	Text    string
 }
+
+// ErrPingSelf is returned when the user attempts to ping themself.
+var ErrPingSelf = errors.New("error: can't ping self")
 
 var PingCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -80,7 +84,12 @@ trip latency information.
 
 		addr, peerID, err := ParsePeerParam(req.Arguments()[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("failed to parse peer address '%s': %s", req.Arguments()[0], err), cmdkit.ErrNormal)
+			return
+		}
+
+		if peerID == n.Identity {
+			res.SetError(ErrPingSelf, cmdkit.ErrNormal)
 			return
 		}
 
@@ -92,6 +101,10 @@ trip latency information.
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
+		}
+
+		if numPings <= 0 {
+			res.SetError(fmt.Errorf("error: ping count must be greater than 0, was %d", numPings), cmdkit.ErrNormal)
 		}
 
 		outChan := pingPeer(ctx, n, peerID, numPings)

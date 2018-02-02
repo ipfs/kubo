@@ -4,7 +4,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error) {
@@ -29,12 +29,12 @@ func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error
 		return "", err
 	}
 
-	nk, err := n.DAG.Add(mdnode)
+	err = n.DAG.Add(n.Context(), mdnode)
 	if err != nil {
 		return "", err
 	}
 
-	return nk.String(), nil
+	return mdnode.Cid().String(), nil
 }
 
 func Metadata(n *core.IpfsNode, skey string) (*ft.Metadata, error) {

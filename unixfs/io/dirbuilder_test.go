@@ -22,7 +22,7 @@ func TestDirectoryGrowth(t *testing.T) {
 	ctx := context.Background()
 
 	d := ft.EmptyDirNode()
-	ds.Add(d)
+	ds.Add(ctx, d)
 
 	nelems := 10000
 
@@ -102,7 +102,7 @@ func TestDirBuilder(t *testing.T) {
 	ctx := context.Background()
 
 	child := ft.EmptyDirNode()
-	_, err := ds.Add(child)
+	err := ds.Add(ctx, child)
 	if err != nil {
 		t.Fatal(err)
 	}

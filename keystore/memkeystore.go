@@ -2,6 +2,8 @@ package keystore
 
 import ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
+// MemKeystore is an in memory keystore implementation that is not persisted to
+// any backing storage.
 type MemKeystore struct {
 	keys map[string]ci.PrivKey
 }
@@ -58,7 +60,7 @@ func (mk *MemKeystore) Delete(name string) error {
 // List return a list of key identifier
 func (mk *MemKeystore) List() ([]string, error) {
 	out := make([]string, 0, len(mk.keys))
-	for k, _ := range mk.keys {
+	for k := range mk.keys {
 		out = append(out, k)
 	}
 	return out, nil

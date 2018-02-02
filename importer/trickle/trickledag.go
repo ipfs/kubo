@@ -9,8 +9,8 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // layerRepeat specifies how many times to append a child tree of a
@@ -18,7 +18,7 @@ import (
 // improves seek speeds.
 const layerRepeat = 4
 
-func TrickleLayout(db *h.DagBuilderHelper) (node.Node, error) {
+func TrickleLayout(db *h.DagBuilderHelper) (ipld.Node, error) {
 	root := db.NewUnixfsNode()
 	if err := db.FillNodeLayer(root); err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error
 }
 
 // TrickleAppend appends the data in `db` to the dag, using the Trickledag format
-func TrickleAppend(ctx context.Context, basen node.Node, db *h.DagBuilderHelper) (out node.Node, err_out error) {
+func TrickleAppend(ctx context.Context, basen ipld.Node, db *h.DagBuilderHelper) (out ipld.Node, err_out error) {
 	base, ok := basen.(*dag.ProtoNode)
 	if !ok {
 		return nil, dag.ErrNotProtobuf
@@ -237,7 +237,7 @@ func trickleDepthInfo(node *h.UnixfsNode, maxlinks int) (int, int) {
 
 // VerifyParams is used by VerifyTrickleDagStructure
 type VerifyParams struct {
-	Getter      node.NodeGetter
+	Getter      ipld.NodeGetter
 	Direct      int
 	LayerRepeat int
 	Prefix      *cid.Prefix
@@ -246,12 +246,12 @@ type VerifyParams struct {
 
 // VerifyTrickleDagStructure checks that the given dag matches exactly the trickle dag datastructure
 // layout
-func VerifyTrickleDagStructure(nd node.Node, p VerifyParams) error {
+func VerifyTrickleDagStructure(nd ipld.Node, p VerifyParams) error {
 	return verifyTDagRec(nd, -1, p)
 }
 
 // Recursive call for verifying the structure of a trickledag
-func verifyTDagRec(n node.Node, depth int, p VerifyParams) error {
+func verifyTDagRec(n ipld.Node, depth int, p VerifyParams) error {
 	codec := cid.DagProtobuf
 	if depth == 0 {
 		if len(n.Links()) > 0 {

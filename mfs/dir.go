@@ -15,8 +15,8 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	node "gx/ipfs/QmNwUEK7QbwSqyKBu3mMtToo8SUc6wQJ7gdZq4gGGJqfnf/go-ipld-format"
-	cid "gx/ipfs/QmeSrf6pzut73u6zLQkRFQ3ygt3k6XFT2kjdYP8Tnkwwyg/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
@@ -24,7 +24,7 @@ var ErrInvalidChild = errors.New("invalid child node")
 var ErrDirExists = errors.New("directory already has entry by that name")
 
 type Directory struct {
-	dserv  dag.DAGService
+	dserv  ipld.DAGService
 	parent childCloser
 
 	childDirs map[string]*Directory
@@ -40,7 +40,11 @@ type Directory struct {
 	name string
 }
 
-func NewDirectory(ctx context.Context, name string, node node.Node, parent childCloser, dserv dag.DAGService) (*Directory, error) {
+// NewDirectory constructs a new MFS directory.
+//
+// You probably don't want to call this directly. Instead, construct a new root
+// using NewRoot.
+func NewDirectory(ctx context.Context, name string, node ipld.Node, parent childCloser, dserv ipld.DAGService) (*Directory, error) {
 	db, err := uio.NewDirectoryFromNode(dserv, node)
 	if err != nil {
 		return nil, err
@@ -70,7 +74,7 @@ func (d *Directory) SetPrefix(prefix *cid.Prefix) {
 
 // closeChild updates the child by the given name to the dag node 'nd'
 // and changes its own dag node
-func (d *Directory) closeChild(name string, nd node.Node, sync bool) error {
+func (d *Directory) closeChild(name string, nd ipld.Node, sync bool) error {
 	mynd, err := d.closeChildUpdate(name, nd, sync)
 	if err != nil {
 		return err
@@ -83,7 +87,7 @@ func (d *Directory) closeChild(name string, nd node.Node, sync bool) error {
 }
 
 // closeChildUpdate is the portion of closeChild that needs to be locked around
-func (d *Directory) closeChildUpdate(name string, nd node.Node, sync bool) (*dag.ProtoNode, error) {
+func (d *Directory) closeChildUpdate(name string, nd ipld.Node, sync bool) (*dag.ProtoNode, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -104,7 +108,7 @@ func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
 		return nil, err
 	}
 
-	_, err = d.dserv.Add(nd)
+	err = d.dserv.Add(d.ctx, nd)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +121,7 @@ func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
 	return pbnd.Copy().(*dag.ProtoNode), nil
 }
 
-func (d *Directory) updateChild(name string, nd node.Node) error {
+func (d *Directory) updateChild(name string, nd ipld.Node) error {
 	err := d.dirbuilder.AddChild(d.ctx, name, nd)
 	if err != nil {
 		return err
@@ -144,7 +148,7 @@ func (d *Directory) childNode(name string) (FSNode, error) {
 }
 
 // cacheNode caches a node into d.childDirs or d.files and returns the FSNode.
-func (d *Directory) cacheNode(name string, nd node.Node) (FSNode, error) {
+func (d *Directory) cacheNode(name string, nd ipld.Node) (FSNode, error) {
 	switch nd := nd.(type) {
 	case *dag.ProtoNode:
 		i, err := ft.FromBytes(nd.Data())
@@ -201,7 +205,7 @@ func (d *Directory) Uncache(name string) {
 
 // childFromDag searches through this directories dag node for a child link
 // with the given name
-func (d *Directory) childFromDag(name string) (node.Node, error) {
+func (d *Directory) childFromDag(name string) (ipld.Node, error) {
 	return d.dirbuilder.Find(d.ctx, name)
 }
 
@@ -233,7 +237,7 @@ func (d *Directory) ListNames(ctx context.Context) ([]string, error) {
 	defer d.lock.Unlock()
 
 	var out []string
-	err := d.dirbuilder.ForEachLink(ctx, func(l *node.Link) error {
+	err := d.dirbuilder.ForEachLink(ctx, func(l *ipld.Link) error {
 		out = append(out, l.Name)
 		return nil
 	})
@@ -258,7 +262,7 @@ func (d *Directory) List(ctx context.Context) ([]NodeListing, error) {
 func (d *Directory) ForEachEntry(ctx context.Context, f func(NodeListing) error) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	return d.dirbuilder.ForEachLink(ctx, func(l *node.Link) error {
+	return d.dirbuilder.ForEachLink(ctx, func(l *ipld.Link) error {
 		c, err := d.childUnsync(l.Name)
 		if err != nil {
 			return err
@@ -306,7 +310,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	ndir := ft.EmptyDirNode()
 	ndir.SetPrefix(d.GetPrefix())
 
-	_, err = d.dserv.Add(ndir)
+	err = d.dserv.Add(d.ctx, ndir)
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +349,7 @@ func (d *Directory) Flush() error {
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
-func (d *Directory) AddChild(name string, nd node.Node) error {
+func (d *Directory) AddChild(name string, nd ipld.Node) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -354,7 +358,7 @@ func (d *Directory) AddChild(name string, nd node.Node) error {
 		return ErrDirExists
 	}
 
-	_, err = d.dserv.Add(nd)
+	err = d.dserv.Add(d.ctx, nd)
 	if err != nil {
 		return err
 	}
@@ -406,7 +410,7 @@ func (d *Directory) Path() string {
 	return out
 }
 
-func (d *Directory) GetNode() (node.Node, error) {
+func (d *Directory) GetNode() (ipld.Node, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -420,7 +424,7 @@ func (d *Directory) GetNode() (node.Node, error) {
 		return nil, err
 	}
 
-	_, err = d.dserv.Add(nd)
+	err = d.dserv.Add(d.ctx, nd)
 	if err != nil {
 		return nil, err
 	}

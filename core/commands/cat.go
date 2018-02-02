@@ -2,14 +2,15 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 
-	cmds "gx/ipfs/QmP9vZfc5WSjfGTXmwX2EcicMFzmZ6fXn7HTdKYat6ccmH/go-ipfs-cmds"
-	"gx/ipfs/QmQp2a2Hhb7F6eK2A5hN8f9aJy4mtkEikL9Zj4cgB7d1dD/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmPq2D7Yoyev7yeMuMnkEYBqmQuUu5kb91UXPPoiik1Xyp/go-ipfs-cmds"
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
@@ -23,8 +24,12 @@ var CatCmd = &cmds.Command{
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
-	Run: func(req cmds.Request, res cmds.ResponseEmitter) {
-		node, err := req.InvocContext().GetNode()
+	Options: []cmdkit.Option{
+		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
+		cmdkit.IntOption("length", "l", "Maximum number of bytes to read."),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		node, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -37,14 +42,39 @@ var CatCmd = &cmds.Command{
 			}
 		}
 
-		readers, length, err := cat(req.Context(), node, req.Arguments())
+		offset, _ := req.Options["offset"].(int)
+		if offset < 0 {
+			res.SetError(fmt.Errorf("Cannot specify negative offset."), cmdkit.ErrNormal)
+			return
+		}
+
+		max, found := req.Options["length"].(int)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+		if max < 0 {
+			res.SetError(fmt.Errorf("Cannot specify negative length."), cmdkit.ErrNormal)
+			return
+		}
+		if !found {
+			max = -1
+		}
+
+		err = req.ParseBodyArgs()
+		if err != nil && !cmds.IsAllArgsAlreadyCovered(err) {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		readers, length, err := cat(req.Context, node, req.Arguments, int64(offset), int64(max))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		/*
-			if err := corerepo.ConditionalGC(req.Context(), node, length); err != nil {
+			if err := corerepo.ConditionalGC(req.Context, node, length); err != nil {
 				re.SetError(err, cmdkit.ErrNormal)
 				return
 			}
@@ -62,8 +92,8 @@ var CatCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrNormal)
 		}
 	},
-	PostRun: map[cmds.EncodingType]func(cmds.Request, cmds.ResponseEmitter) cmds.ResponseEmitter{
-		cmds.CLI: func(req cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
 			reNext, res := cmds.NewChanResponsePair(req)
 
 			go func() {
@@ -103,16 +133,39 @@ var CatCmd = &cmds.Command{
 	},
 }
 
-func cat(ctx context.Context, node *core.IpfsNode, paths []string) ([]io.Reader, uint64, error) {
+func cat(ctx context.Context, node *core.IpfsNode, paths []string, offset int64, max int64) ([]io.Reader, uint64, error) {
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
+	if max == 0 {
+		return nil, 0, nil
+	}
 	for _, fpath := range paths {
 		read, err := coreunix.Cat(ctx, node, fpath)
 		if err != nil {
 			return nil, 0, err
 		}
+		if offset > int64(read.Size()) {
+			offset = offset - int64(read.Size())
+			continue
+		}
+		count, err := read.Seek(offset, io.SeekStart)
+		if err != nil {
+			return nil, 0, err
+		}
+		offset = 0
+
+		size := uint64(read.Size() - uint64(count))
+		length += size
+		if max > 0 && length >= uint64(max) {
+			var r io.Reader = read
+			if overshoot := int64(length - uint64(max)); overshoot != 0 {
+				r = io.LimitReader(read, int64(size)-overshoot)
+				length = uint64(max)
+			}
+			readers = append(readers, r)
+			break
+		}
 		readers = append(readers, read)
-		length += uint64(read.Size())
 	}
 	return readers, length, nil
 }

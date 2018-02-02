@@ -23,10 +23,10 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 
-	util "gx/ipfs/QmPsAfmDBnZN3kZGSuNwvCNDZiHneERSKmRcFyG3UkvcT3/go-ipfs-util"
+	util "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	measure "gx/ipfs/QmRhjB5Mnha4k6VH6qRFNabAVkxpbqC7bVw2daMKLHPXXN/go-ds-measure"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	measure "gx/ipfs/QmU7tt6mHJ5Wocjy2omBxpDfN8g9pkRimzJae7EXdrs96k/go-ds-measure"
-	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
 var log = logging.Logger("fsrepo")
@@ -478,6 +478,32 @@ func (r *FSRepo) Config() (*config.Config, error) {
 
 func (r *FSRepo) FileManager() *filestore.FileManager {
 	return r.filemgr
+}
+
+func (r *FSRepo) BackupConfig(prefix string) (string, error) {
+	temp, err := ioutil.TempFile(r.path, "config-"+prefix)
+	if err != nil {
+		return "", err
+	}
+	defer temp.Close()
+
+	configFilename, err := config.Filename(r.path)
+	if err != nil {
+		return "", err
+	}
+
+	orig, err := os.OpenFile(configFilename, os.O_RDONLY, 0600)
+	if err != nil {
+		return "", err
+	}
+	defer orig.Close()
+
+	_, err = io.Copy(temp, orig)
+	if err != nil {
+		return "", err
+	}
+
+	return orig.Name(), nil
 }
 
 // setConfigUnsynced is for private use.
