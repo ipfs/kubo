@@ -31,7 +31,6 @@ type ObjectStat struct {
 	CumulativeSize int
 }
 
-
 const (
 	// DiffAdd is a Type of ObjectChange where a link was added to the graph
 	DiffAdd = iota
@@ -57,11 +56,11 @@ type ObjectChange struct {
 
 	// Before holds the link path before the change. Note that when a link is
 	// added, this will be nil.
-	Before Path
+	Before ResolvedPath
 
 	// After holds the link path after the change. Note that when a link is
 	// removed, this will be nil.
-	After Path
+	After ResolvedPath
 }
 
 // ObjectAPI specifies the interface to MerkleDAG and contains useful utilities
