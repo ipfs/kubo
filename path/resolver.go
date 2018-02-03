@@ -35,9 +35,9 @@ func (e ErrNoLink) Error() string {
 // TODO: now that this is more modular, try to unify this code with the
 //       the resolvers in namesys
 type Resolver struct {
-	DAG ipld.DAGService
+	DAG ipld.NodeGetter
 
-	ResolveOnce func(ctx context.Context, ds ipld.DAGService, nd ipld.Node, names []string) (*ipld.Link, []string, error)
+	ResolveOnce func(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error)
 }
 
 // NewBasicResolver constructs a new basic resolver.
@@ -124,7 +124,7 @@ func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (ipld.Node, erro
 
 // ResolveSingle simply resolves one hop of a path through a graph with no
 // extra context (does not opaquely resolve through sharded nodes)
-func ResolveSingle(ctx context.Context, ds ipld.DAGService, nd ipld.Node, names []string) (*ipld.Link, []string, error) {
+func ResolveSingle(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error) {
 	return nd.ResolveLink(names)
 }
 
