@@ -146,6 +146,7 @@ func (sg *sesGetter) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *ipld.
 	return getNodesFromBG(ctx, sg.bs, keys)
 }
 
+// Session returns a NodeGetter using a new session for block fetches.
 func (ds *dagService) Session(ctx context.Context) ipld.NodeGetter {
 	return &sesGetter{bserv.NewSession(ctx, ds.Blocks)}
 }
