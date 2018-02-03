@@ -362,7 +362,7 @@ func (dm *DagModifier) appendData(nd ipld.Node, spl chunk.Splitter) (ipld.Node, 
 			Prefix:    &dm.Prefix,
 			RawLeaves: dm.RawLeaves,
 		}
-		return trickle.TrickleAppend(dm.ctx, nd, dbp.New(spl))
+		return trickle.Append(dm.ctx, nd, dbp.New(spl))
 	default:
 		return nil, ErrNotUnixfs
 	}

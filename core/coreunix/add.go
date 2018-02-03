@@ -148,10 +148,10 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	}
 
 	if adder.Trickle {
-		return trickle.TrickleLayout(params.New(chnk))
+		return trickle.Layout(params.New(chnk))
 	}
 
-	return balanced.BalancedLayout(params.New(chnk))
+	return balanced.Layout(params.New(chnk))
 }
 
 // RootNode returns the root node of the Added.

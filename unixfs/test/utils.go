@@ -63,7 +63,7 @@ func GetNode(t testing.TB, dserv ipld.DAGService, data []byte, opts NodeOpts) ip
 		RawLeaves: opts.RawLeavesUsed,
 	}
 
-	node, err := trickle.TrickleLayout(dbp.New(SizeSplitterGen(500)(in)))
+	node, err := trickle.Layout(dbp.New(SizeSplitterGen(500)(in)))
 	if err != nil {
 		t.Fatal(err)
 	}
