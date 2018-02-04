@@ -2,7 +2,6 @@ package namesys
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -14,8 +13,8 @@ import (
 	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
@@ -131,58 +130,39 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		return "", err
 	}
 
-	// use the routing system to get the name.
-	// /ipns/<name>
-	h := []byte("/ipns/" + string(hash))
-
-	var entry *pb.IpnsEntry
-	var pubkey ci.PubKey
-
-	resp := make(chan error, 2)
-	go func() {
-		ipnsKey := string(h)
-		val, err := r.routing.GetValue(ctx, ipnsKey)
-		if err != nil {
-			log.Debugf("RoutingResolver: dht get failed: %s", err)
-			resp <- err
-			return
-		}
-
-		entry = new(pb.IpnsEntry)
-		err = proto.Unmarshal(val, entry)
-		if err != nil {
-			resp <- err
-			return
-		}
-
-		resp <- nil
-	}()
-
-	go func() {
-		// name should be a public key retrievable from ipfs
-		pubk, err := routing.GetPublicKey(r.routing, ctx, hash)
-		if err != nil {
-			resp <- err
-			return
-		}
-
-		pubkey = pubk
-		resp <- nil
-	}()
-
-	for i := 0; i < 2; i++ {
-		err = <-resp
-		if err != nil {
-			return "", err
-		}
+	// Name should be the hash of a public key retrievable from ipfs.
+	// We retrieve the public key here to make certain that it's in the peer
+	// store before calling GetValue() on the DHT - the DHT will call the
+	// ipns validator, which in turn will get the public key from the peer
+	// store to verify the record signature
+	_, err = routing.GetPublicKey(r.routing, ctx, hash)
+	if err != nil {
+		log.Debugf("RoutingResolver: could not retrieve public key %s: %s\n", name, err)
+		return "", err
 	}
 
-	// check sig with pk
-	if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
-		return "", fmt.Errorf("ipns entry for %s has invalid signature", h)
+	pid, err := peer.IDFromBytes(hash)
+	if err != nil {
+		log.Debugf("RoutingResolver: could not convert public key hash %s to peer ID: %s\n", name, err)
+		return "", err
 	}
 
-	// ok sig checks out. this is a valid name.
+	// Use the routing system to get the name.
+	// Note that the DHT will call the ipns validator when retrieving
+	// the value, which in turn verifies the ipns record signature
+	_, ipnsKey := IpnsKeysForID(pid)
+	val, err := r.routing.GetValue(ctx, ipnsKey)
+	if err != nil {
+		log.Debugf("RoutingResolver: dht get for name %s failed: %s", name, err)
+		return "", err
+	}
+
+	entry := new(pb.IpnsEntry)
+	err = proto.Unmarshal(val, entry)
+	if err != nil {
+		log.Debugf("RoutingResolver: could not unmarshal value for name %s: %s", name, err)
+		return "", err
+	}
 
 	// check for old style record:
 	valh, err := mh.Cast(entry.GetValue())
@@ -197,7 +177,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		return p, nil
 	} else {
 		// Its an old style multihash record
-		log.Debugf("encountered CIDv0 ipns entry: %s", h)
+		log.Debugf("encountered CIDv0 ipns entry: %s", valh)
 		p := path.FromCid(cid.NewCidV0(valh))
 		r.cacheSet(name, p, entry)
 		return p, nil
