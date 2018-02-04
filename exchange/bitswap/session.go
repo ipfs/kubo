@@ -83,6 +83,7 @@ func (bs *Bitswap) NewSession(ctx context.Context) *Session {
 }
 
 func (bs *Bitswap) removeSession(s *Session) {
+	s.notif.Shutdown()
 	bs.sessLk.Lock()
 	defer bs.sessLk.Unlock()
 	for i := 0; i < len(bs.sessions); i++ {
