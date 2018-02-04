@@ -150,7 +150,6 @@ help:
 	@echo '  test_go_megacheck       - Run the `megacheck` vetting tool'
 	@echo '  test_sharness_short     - Run short sharness tests'
 	@echo '  test_sharness_expensive - Run all sharness tests'
-	@echo '  test_sharness_race'
 	@echo '  coverage     - Collects coverage info from unit tests and sharness'
 	@echo
 .PHONY: help
