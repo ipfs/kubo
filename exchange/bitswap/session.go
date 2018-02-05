@@ -163,8 +163,11 @@ func (s *Session) resetTick() {
 }
 
 func (s *Session) run(ctx context.Context) {
+	defer s.notif.Shutdown()
+
 	s.tick = time.NewTimer(provSearchDelay)
 	newpeers := make(chan peer.ID, 16)
+
 	for {
 		select {
 		case blk := <-s.incoming:
