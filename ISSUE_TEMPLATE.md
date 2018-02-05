@@ -23,7 +23,7 @@ and re-check if the problem persists.
 
 #### Description:
 <!--
-This is where you get to tell us what went wrong or what feature you need. When doing so, please make sure to include *all* relavent information.
+This is where you get to tell us what went wrong or what feature you need. When doing so, please make sure to include *all* relevant information.
 
 When requesting a feature, please be sure to include:
 
