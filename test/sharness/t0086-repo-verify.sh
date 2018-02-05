@@ -12,7 +12,7 @@ test_init_ipfs
 
 sort_rand() {
   case `uname` in
-    Linux)
+    Linux|FreeBSD)
       sort -R
       ;;
     Darwin)
@@ -32,7 +32,7 @@ check_random_corruption() {
   '
 
   test_expect_success "repo verify detects failure" '
-    test_expect_code 1 ipfs repo verify 
+    test_expect_code 1 ipfs repo verify
   '
 
   test_expect_success "replace the object" '
