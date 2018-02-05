@@ -84,6 +84,14 @@ func (bs *Bitswap) NewSession(ctx context.Context) *Session {
 
 func (bs *Bitswap) removeSession(s *Session) {
 	s.notif.Shutdown()
+
+	live := make([]*cid.Cid, 0, len(s.liveWants))
+	for c := range s.liveWants {
+		cs, _ := cid.Cast([]byte(c))
+		live = append(live, cs)
+	}
+	bs.CancelWants(live, s.id)
+
 	bs.sessLk.Lock()
 	defer bs.sessLk.Unlock()
 	for i := 0; i < len(bs.sessions); i++ {
