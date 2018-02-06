@@ -102,7 +102,7 @@ func (n *ProtoNode) EncodeProtobuf(force bool) ([]byte, error) {
 	return n.encoded, nil
 }
 
-// Decoded decodes raw data and returns a new Node instance.
+// DecodeProtobuf decodes raw data and returns a new Node instance.
 func DecodeProtobuf(encoded []byte) (*ProtoNode, error) {
 	n := new(ProtoNode)
 	err := n.unmarshal(encoded)

@@ -10,10 +10,13 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-var ErrNotProtobuf = fmt.Errorf("expected protobuf dag node")
-var ErrLinkNotFound = fmt.Errorf("no link by that name")
+// Common errors
+var (
+	ErrNotProtobuf  = fmt.Errorf("expected protobuf dag node")
+	ErrLinkNotFound = fmt.Errorf("no link by that name")
+)
 
-// Node represents a node in the IPFS Merkle DAG.
+// ProtoNode represents a node in the IPFS Merkle DAG.
 // nodes have opaque data and a set of navigable links.
 type ProtoNode struct {
 	links []*ipld.Link
@@ -73,12 +76,14 @@ func (n *ProtoNode) SetPrefix(prefix *cid.Prefix) {
 	}
 }
 
+// LinkSlice is a slice of ipld.Links
 type LinkSlice []*ipld.Link
 
 func (ls LinkSlice) Len() int           { return len(ls) }
 func (ls LinkSlice) Swap(a, b int)      { ls[a], ls[b] = ls[b], ls[a] }
 func (ls LinkSlice) Less(a, b int) bool { return ls[a].Name < ls[b].Name }
 
+// NodeWithData builds a new Protonode with the given data.
 func NodeWithData(d []byte) *ProtoNode {
 	return &ProtoNode{data: d}
 }
@@ -204,15 +209,18 @@ func (n *ProtoNode) Copy() ipld.Node {
 	return nnode
 }
 
+// RawData returns the protobuf-encoded version of the node.
 func (n *ProtoNode) RawData() []byte {
 	out, _ := n.EncodeProtobuf(false)
 	return out
 }
 
+// Data returns the data stored by this node.
 func (n *ProtoNode) Data() []byte {
 	return n.data
 }
 
+// SetData stores data in this nodes.
 func (n *ProtoNode) SetData(d []byte) {
 	n.encoded = nil
 	n.cached = nil
@@ -265,12 +273,14 @@ func (n *ProtoNode) Stat() (*ipld.NodeStat, error) {
 	}, nil
 }
 
+// Loggable implements the ipfs/go-log.Loggable interface.
 func (n *ProtoNode) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"node": n.String(),
 	}
 }
 
+// UnmarshalJSON reads the node fields from a JSON-encoded byte slice.
 func (n *ProtoNode) UnmarshalJSON(b []byte) error {
 	s := struct {
 		Data  []byte       `json:"data"`
@@ -287,6 +297,7 @@ func (n *ProtoNode) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// MarshalJSON returns a JSON representation of the node.
 func (n *ProtoNode) MarshalJSON() ([]byte, error) {
 	out := map[string]interface{}{
 		"data":  n.data,
@@ -296,6 +307,8 @@ func (n *ProtoNode) MarshalJSON() ([]byte, error) {
 	return json.Marshal(out)
 }
 
+// Cid returns the node's Cid, calculated according to its prefix
+// and raw data contents.
 func (n *ProtoNode) Cid() *cid.Cid {
 	if n.encoded != nil && n.cached != nil {
 		return n.cached
@@ -316,6 +329,7 @@ func (n *ProtoNode) Cid() *cid.Cid {
 	return c
 }
 
+// String prints the node's Cid.
 func (n *ProtoNode) String() string {
 	return n.Cid().String()
 }
@@ -332,18 +346,24 @@ func (n *ProtoNode) Multihash() mh.Multihash {
 	return n.cached.Hash()
 }
 
+// Links returns the node links.
 func (n *ProtoNode) Links() []*ipld.Link {
 	return n.links
 }
 
+// SetLinks replaces the node links with the given ones.
 func (n *ProtoNode) SetLinks(links []*ipld.Link) {
 	n.links = links
 }
 
+// Resolve is an alias for ResolveLink.
 func (n *ProtoNode) Resolve(path []string) (interface{}, []string, error) {
 	return n.ResolveLink(path)
 }
 
+// ResolveLink consumes the first element of the path and obtains the link
+// corresponding to it from the node. It returns the link
+// and the path without the consumed element.
 func (n *ProtoNode) ResolveLink(path []string) (*ipld.Link, []string, error) {
 	if len(path) == 0 {
 		return nil, nil, fmt.Errorf("end of path, no more links to resolve")
@@ -357,9 +377,10 @@ func (n *ProtoNode) ResolveLink(path []string) (*ipld.Link, []string, error) {
 	return lnk, path[1:], nil
 }
 
+// Tree returns the link names of the ProtoNode.
+// ProtoNodes are only ever one path deep, so anything different than an empty
+// string for p results in nothing. The depth parameter is ignored.
 func (n *ProtoNode) Tree(p string, depth int) []string {
-	// ProtoNodes are only ever one path deep, anything below that results in
-	// nothing
 	if p != "" {
 		return nil
 	}
