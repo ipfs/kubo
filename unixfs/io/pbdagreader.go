@@ -57,7 +57,7 @@ func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv
 	return &PBDagReader{
 		node:     n,
 		serv:     serv,
-		buf:      newBufDagReader(pb.GetData()),
+		buf:      NewBufDagReader(pb.GetData()),
 		promises: make([]*ipld.NodePromise, len(curLinks)),
 		links:    curLinks,
 		ctx:      fctx,
@@ -119,7 +119,7 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 			dr.buf = NewPBFileReader(dr.ctx, nxt, pb, dr.serv)
 			return nil
 		case ftpb.Data_Raw:
-			dr.buf = newBufDagReader(pb.GetData())
+			dr.buf = NewBufDagReader(pb.GetData())
 			return nil
 		case ftpb.Data_Metadata:
 			return errors.New("shouldnt have had metadata object inside file")
@@ -256,7 +256,7 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 			if dr.buf != nil {
 				dr.buf.Close()
 			}
-			dr.buf = newBufDagReader(pb.GetData()[offset:])
+			dr.buf = NewBufDagReader(pb.GetData()[offset:])
 
 			// start reading links from the beginning
 			dr.linkPosition = 0

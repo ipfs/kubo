@@ -43,7 +43,7 @@ type ReadSeekCloser interface {
 func NewDagReader(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) (DagReader, error) {
 	switch n := n.(type) {
 	case *mdag.RawNode:
-		return newBufDagReader(n.RawData()), nil
+		return NewBufDagReader(n.RawData()), nil
 	case *mdag.ProtoNode:
 		pb := new(ftpb.Data)
 		if err := proto.Unmarshal(n.Data(), pb); err != nil {
