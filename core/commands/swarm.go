@@ -80,7 +80,7 @@ var swarmPeersCmd = &cmds.Command{
 
 		conns := n.PeerHost.Network().Conns()
 
-		var out connInfos
+		var out ConnInfos
 		for _, c := range conns {
 			pid := c.RemotePeer()
 			addr := c.RemoteMultiaddr()
@@ -128,7 +128,7 @@ var swarmPeersCmd = &cmds.Command{
 				return nil, err
 			}
 
-			ci, ok := v.(*connInfos)
+			ci, ok := v.(*ConnInfos)
 			if !ok {
 				return nil, e.TypeErr(ci, v)
 			}
@@ -159,7 +159,7 @@ var swarmPeersCmd = &cmds.Command{
 			return buf, nil
 		},
 	},
-	Type: connInfos{},
+	Type: ConnInfos{},
 }
 
 type streamInfo struct {
@@ -186,19 +186,19 @@ func (ci *connInfo) Swap(i, j int) {
 	ci.Streams[i], ci.Streams[j] = ci.Streams[j], ci.Streams[i]
 }
 
-type connInfos struct {
+type ConnInfos struct {
 	Peers []connInfo
 }
 
-func (ci connInfos) Less(i, j int) bool {
+func (ci ConnInfos) Less(i, j int) bool {
 	return ci.Peers[i].Addr < ci.Peers[j].Addr
 }
 
-func (ci connInfos) Len() int {
+func (ci ConnInfos) Len() int {
 	return len(ci.Peers)
 }
 
-func (ci connInfos) Swap(i, j int) {
+func (ci ConnInfos) Swap(i, j int) {
 	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
 }
 
