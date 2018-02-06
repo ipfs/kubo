@@ -21,6 +21,7 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
+// SizeSplitterGen creates a generator.
 func SizeSplitterGen(size int64) chunk.SplitterGen {
 	return func(r io.Reader) chunk.Splitter {
 		return chunk.NewSizeSplitter(r, size)
@@ -41,10 +42,13 @@ type NodeOpts struct {
 	RawLeavesUsed bool
 }
 
-var UseProtoBufLeaves = NodeOpts{Prefix: mdag.V0CidPrefix()}
-var UseRawLeaves = NodeOpts{Prefix: mdag.V0CidPrefix(), ForceRawLeaves: true, RawLeavesUsed: true}
-var UseCidV1 = NodeOpts{Prefix: mdag.V1CidPrefix(), RawLeavesUsed: true}
-var UseBlake2b256 NodeOpts
+// Some shorthands for NodeOpts.
+var (
+	UseProtoBufLeaves = NodeOpts{Prefix: mdag.V0CidPrefix()}
+	UseRawLeaves      = NodeOpts{Prefix: mdag.V0CidPrefix(), ForceRawLeaves: true, RawLeavesUsed: true}
+	UseCidV1          = NodeOpts{Prefix: mdag.V1CidPrefix(), RawLeavesUsed: true}
+	UseBlake2b256     NodeOpts
+)
 
 func init() {
 	UseBlake2b256 = UseCidV1
@@ -88,6 +92,7 @@ func GetRandomNode(t testing.TB, dserv ipld.DAGService, size int64, opts NodeOpt
 	return buf, node
 }
 
+// ArrComp checks if two byte slices are the same.
 func ArrComp(a, b []byte) error {
 	if len(a) != len(b) {
 		return fmt.Errorf("Arrays differ in length. %d != %d", len(a), len(b))
