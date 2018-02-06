@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -25,7 +24,7 @@ import (
 var (
 	ErrSeekFail           = errors.New("failed to seek properly")
 	ErrUnrecognizedWhence = errors.New("unrecognized whence")
-	ErrNotUnixfs          = fmt.Errorf("dagmodifier only supports unixfs nodes (proto or raw)")
+	ErrNotUnixfs          = errors.New("dagmodifier only supports unixfs nodes (proto or raw)")
 )
 
 // 2MB
