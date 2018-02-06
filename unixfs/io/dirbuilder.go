@@ -162,9 +162,8 @@ func (d *Directory) Links(ctx context.Context) ([]*ipld.Link, error) {
 	return d.shard.EnumLinks(ctx)
 }
 
-// Find returns the ipld.Node with the given name, if it is contained in this
-// directory. Find only searches in the most inmediate links, and not
-// recursively in the tree.
+// Find returns the root node of the file named 'name' within this directory.
+// In the case of HAMT-directories, it will traverse the tree.
 func (d *Directory) Find(ctx context.Context, name string) (ipld.Node, error) {
 	if d.shard == nil {
 		lnk, err := d.dirnode.GetNodeLink(name)
