@@ -10,7 +10,9 @@ type bufDagReader struct {
 	*bytes.Reader
 }
 
-func NewBufDagReader(b []byte) *bufDagReader {
+// newBufDagReader returns a DAG reader for the given byte slice.
+// BufDagReader is used to read RawNodes.
+func newBufDagReader(b []byte) *bufDagReader {
 	return &bufDagReader{bytes.NewReader(b)}
 }
 

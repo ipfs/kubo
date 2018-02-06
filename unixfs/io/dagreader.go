@@ -14,10 +14,15 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-var ErrIsDir = errors.New("this dag node is a directory")
+// Common errors
+var (
+	ErrIsDir            = errors.New("this dag node is a directory")
+	ErrCantReadSymlinks = errors.New("cannot currently read symlinks")
+)
 
-var ErrCantReadSymlinks = errors.New("cannot currently read symlinks")
-
+// A DagReader represents a ReadSeekCloser which offers additional methods
+// like Size. Different implementations of readers are used for the different
+// types of unixfs/protobuf-encoded nodes.
 type DagReader interface {
 	ReadSeekCloser
 	Size() uint64
@@ -25,6 +30,7 @@ type DagReader interface {
 	Offset() int64
 }
 
+// A ReadSeekCloser implements interfaces to read, write, seek and close.
 type ReadSeekCloser interface {
 	io.Reader
 	io.Seeker
@@ -37,7 +43,7 @@ type ReadSeekCloser interface {
 func NewDagReader(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) (DagReader, error) {
 	switch n := n.(type) {
 	case *mdag.RawNode:
-		return NewBufDagReader(n.RawData()), nil
+		return newBufDagReader(n.RawData()), nil
 	case *mdag.ProtoNode:
 		pb := new(ftpb.Data)
 		if err := proto.Unmarshal(n.Data(), pb); err != nil {
