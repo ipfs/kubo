@@ -242,8 +242,7 @@ func TestFetchGraph(t *testing.T) {
 	// create an offline dagstore and ensure all blocks were fetched
 	bs := bserv.New(bsis[1].Blockstore(), offline.Exchange(bsis[1].Blockstore()))
 
-	// we know the default dagService implements LinkGetter
-	offlineDS := NewDAGService(bs).(ipld.LinkGetter)
+	offlineDS := NewDAGService(bs)
 
 	err = EnumerateChildren(context.Background(), offlineDS.GetLinks, root.Cid(), func(_ *cid.Cid) bool { return true })
 	if err != nil {
@@ -262,9 +261,8 @@ func TestEnumerateChildren(t *testing.T) {
 	}
 
 	set := cid.NewSet()
-	lg := ds.(ipld.LinkGetter)
 
-	err = EnumerateChildren(context.Background(), lg.GetLinks, root.Cid(), set.Visit)
+	err = EnumerateChildren(context.Background(), ds.GetLinks, root.Cid(), set.Visit)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -495,7 +493,7 @@ func TestCidRetention(t *testing.T) {
 }
 
 func TestCidRawDoesnNeedData(t *testing.T) {
-	srv := NewDAGService(dstest.Bserv()).(ipld.LinkGetter)
+	srv := NewDAGService(dstest.Bserv())
 	nd := NewRawNode([]byte("somedata"))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

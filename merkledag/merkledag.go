@@ -30,7 +30,7 @@ const progressContextKey contextKey = "progress"
 
 // NewDAGService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
-func NewDAGService(bs bserv.BlockService) ipld.DAGService {
+func NewDAGService(bs bserv.BlockService) *dagService {
 	return &dagService{Blocks: bs}
 }
 
