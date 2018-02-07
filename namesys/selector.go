@@ -35,23 +35,17 @@ func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
 		if r == nil || r.GetSequence() < bestSeq {
 			continue
 		}
+		rt, err := u.ParseRFC3339(string(r.GetValidity()))
+		if err != nil {
+			log.Errorf("failed to parse ipns record EOL %s", r.GetValidity())
+			continue
+		}
 
 		if besti == -1 || r.GetSequence() > bestSeq {
 			bestSeq = r.GetSequence()
 			besti = i
 		} else if r.GetSequence() == bestSeq {
-			rt, err := u.ParseRFC3339(string(r.GetValidity()))
-			if err != nil {
-				log.Errorf("failed to parse ipns record EOL %s", r.GetValidity())
-				continue
-			}
-
-			bestt, err := u.ParseRFC3339(string(recs[besti].GetValidity()))
-			if err != nil {
-				log.Errorf("failed to parse ipns record EOL %s", recs[besti].GetValidity())
-				continue
-			}
-
+			bestt, _ := u.ParseRFC3339(string(recs[besti].GetValidity()))
 			if rt.After(bestt) {
 				besti = i
 			} else if rt == bestt {
