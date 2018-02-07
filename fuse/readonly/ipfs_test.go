@@ -19,8 +19,8 @@ import (
 	importer "github.com/ipfs/go-ipfs/importer"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	chunk "gx/ipfs/QmQXcAyrC4VBu9ZBqxoCthPot9PNhb4Uiw6iBDfQXudZJd/go-ipfs-chunker"
 	ci "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil/ci"
+	chunk "gx/ipfs/QmcYFMP9mfpJ2swedZCBskeAoxGKGBGY7LaS6VZ1jEWqUs/go-ipfs-chunker"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	fstest "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs/fstestutil"

@@ -13,7 +13,7 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	chunk "gx/ipfs/QmQXcAyrC4VBu9ZBqxoCthPot9PNhb4Uiw6iBDfQXudZJd/go-ipfs-chunker"
+	chunk "gx/ipfs/QmcYFMP9mfpJ2swedZCBskeAoxGKGBGY7LaS6VZ1jEWqUs/go-ipfs-chunker"
 
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"

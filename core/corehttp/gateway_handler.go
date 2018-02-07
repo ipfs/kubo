@@ -21,7 +21,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	chunk "gx/ipfs/QmQXcAyrC4VBu9ZBqxoCthPot9PNhb4Uiw6iBDfQXudZJd/go-ipfs-chunker"
+	chunk "gx/ipfs/QmcYFMP9mfpJ2swedZCBskeAoxGKGBGY7LaS6VZ1jEWqUs/go-ipfs-chunker"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"

@@ -24,6 +24,7 @@ import (
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	chunk "gx/ipfs/QmQXcAyrC4VBu9ZBqxoCthPot9PNhb4Uiw6iBDfQXudZJd/go-ipfs-chunker"
+	chunk "gx/ipfs/QmcYFMP9mfpJ2swedZCBskeAoxGKGBGY7LaS6VZ1jEWqUs/go-ipfs-chunker"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
