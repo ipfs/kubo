@@ -38,10 +38,12 @@ import (
 )
 
 const (
+	// HashMurmur3 is the multiformats identifier for Murmur3
 	HashMurmur3 uint64 = 0x22
 )
 
-type HamtShard struct {
+// A Shard represents the HAMT. It should be initialized with NewShard().
+type Shard struct {
 	nd *dag.ProtoNode
 
 	bitfield *big.Int
@@ -66,9 +68,9 @@ type child interface {
 	Label() string
 }
 
-// NewHamtShard creates a new, empty HAMT shard with the given size.
-func NewHamtShard(dserv ipld.DAGService, size int) (*HamtShard, error) {
-	ds, err := makeHamtShard(dserv, size)
+// NewShard creates a new, empty HAMT shard with the given size.
+func NewShard(dserv ipld.DAGService, size int) (*Shard, error) {
+	ds, err := makeShard(dserv, size)
 	if err != nil {
 		return nil, err
 	}
@@ -79,13 +81,13 @@ func NewHamtShard(dserv ipld.DAGService, size int) (*HamtShard, error) {
 	return ds, nil
 }
 
-func makeHamtShard(ds ipld.DAGService, size int) (*HamtShard, error) {
+func makeShard(ds ipld.DAGService, size int) (*Shard, error) {
 	lg2s := int(math.Log2(float64(size)))
 	if 1<<uint(lg2s) != size {
 		return nil, fmt.Errorf("hamt size should be a power of two")
 	}
 	maxpadding := fmt.Sprintf("%X", size-1)
-	return &HamtShard{
+	return &Shard{
 		tableSizeLg2: lg2s,
 		prefixPadStr: fmt.Sprintf("%%0%dX", len(maxpadding)),
 		maxpadlen:    len(maxpadding),
@@ -95,7 +97,7 @@ func makeHamtShard(ds ipld.DAGService, size int) (*HamtShard, error) {
 }
 
 // NewHamtFromDag creates new a HAMT shard from the given DAG.
-func NewHamtFromDag(dserv ipld.DAGService, nd ipld.Node) (*HamtShard, error) {
+func NewHamtFromDag(dserv ipld.DAGService, nd ipld.Node) (*Shard, error) {
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {
 		return nil, dag.ErrLinkNotFound
@@ -114,7 +116,7 @@ func NewHamtFromDag(dserv ipld.DAGService, nd ipld.Node) (*HamtShard, error) {
 		return nil, fmt.Errorf("only murmur3 supported as hash function")
 	}
 
-	ds, err := makeHamtShard(dserv, int(pbd.GetFanout()))
+	ds, err := makeShard(dserv, int(pbd.GetFanout()))
 	if err != nil {
 		return nil, err
 	}
@@ -129,17 +131,17 @@ func NewHamtFromDag(dserv ipld.DAGService, nd ipld.Node) (*HamtShard, error) {
 }
 
 // SetPrefix sets the CID Prefix
-func (ds *HamtShard) SetPrefix(prefix *cid.Prefix) {
+func (ds *Shard) SetPrefix(prefix *cid.Prefix) {
 	ds.prefix = prefix
 }
 
 // Prefix gets the CID Prefix, may be nil if unset
-func (ds *HamtShard) Prefix() *cid.Prefix {
+func (ds *Shard) Prefix() *cid.Prefix {
 	return ds.prefix
 }
 
 // Node serializes the HAMT structure into a merkledag node with unixfs formatting
-func (ds *HamtShard) Node() (ipld.Node, error) {
+func (ds *Shard) Node() (ipld.Node, error) {
 	out := new(dag.ProtoNode)
 	out.SetPrefix(ds.prefix)
 
@@ -214,14 +216,14 @@ func hash(val []byte) []byte {
 	return h.Sum(nil)
 }
 
-// Label for HamtShards is the empty string, this is used to differentiate them from
+// Label for Shards is the empty string, this is used to differentiate them from
 // value entries
-func (ds *HamtShard) Label() string {
+func (ds *Shard) Label() string {
 	return ""
 }
 
 // Set sets 'name' = nd in the HAMT
-func (ds *HamtShard) Set(ctx context.Context, name string, nd ipld.Node) error {
+func (ds *Shard) Set(ctx context.Context, name string, nd ipld.Node) error {
 	hv := &hashBits{b: hash([]byte(name))}
 	err := ds.dserv.Add(ctx, nd)
 	if err != nil {
@@ -238,13 +240,13 @@ func (ds *HamtShard) Set(ctx context.Context, name string, nd ipld.Node) error {
 }
 
 // Remove deletes the named entry if it exists, this operation is idempotent.
-func (ds *HamtShard) Remove(ctx context.Context, name string) error {
+func (ds *Shard) Remove(ctx context.Context, name string) error {
 	hv := &hashBits{b: hash([]byte(name))}
 	return ds.modifyValue(ctx, hv, name, nil)
 }
 
 // Find searches for a child node by 'name' within this hamt
-func (ds *HamtShard) Find(ctx context.Context, name string) (*ipld.Link, error) {
+func (ds *Shard) Find(ctx context.Context, name string) (*ipld.Link, error) {
 	hv := &hashBits{b: hash([]byte(name))}
 
 	var out *ipld.Link
@@ -262,7 +264,7 @@ func (ds *HamtShard) Find(ctx context.Context, name string) (*ipld.Link, error) 
 // getChild returns the i'th child of this shard. If it is cached in the
 // children array, it will return it from there. Otherwise, it loads the child
 // node from disk.
-func (ds *HamtShard) getChild(ctx context.Context, i int) (child, error) {
+func (ds *Shard) getChild(ctx context.Context, i int) (child, error) {
 	if i >= len(ds.children) || i < 0 {
 		return nil, fmt.Errorf("invalid index passed to getChild (likely corrupt bitfield)")
 	}
@@ -281,7 +283,7 @@ func (ds *HamtShard) getChild(ctx context.Context, i int) (child, error) {
 
 // loadChild reads the i'th child node of this shard from disk and returns it
 // as a 'child' interface
-func (ds *HamtShard) loadChild(ctx context.Context, i int) (child, error) {
+func (ds *Shard) loadChild(ctx context.Context, i int) (child, error) {
 	lnk := ds.nd.Links()[i]
 	if len(lnk.Name) < ds.maxpadlen {
 		return nil, fmt.Errorf("invalid link name '%s'", lnk.Name)
@@ -326,12 +328,12 @@ func (ds *HamtShard) loadChild(ctx context.Context, i int) (child, error) {
 	return c, nil
 }
 
-func (ds *HamtShard) setChild(i int, c child) {
+func (ds *Shard) setChild(i int, c child) {
 	ds.children[i] = c
 }
 
 // Link returns a merklelink to this shard node
-func (ds *HamtShard) Link() (*ipld.Link, error) {
+func (ds *Shard) Link() (*ipld.Link, error) {
 	nd, err := ds.Node()
 	if err != nil {
 		return nil, err
@@ -345,7 +347,7 @@ func (ds *HamtShard) Link() (*ipld.Link, error) {
 	return ipld.MakeLink(nd)
 }
 
-func (ds *HamtShard) insertChild(idx int, key string, lnk *ipld.Link) error {
+func (ds *Shard) insertChild(idx int, key string, lnk *ipld.Link) error {
 	if lnk == nil {
 		return os.ErrNotExist
 	}
@@ -364,7 +366,7 @@ func (ds *HamtShard) insertChild(idx int, key string, lnk *ipld.Link) error {
 	return nil
 }
 
-func (ds *HamtShard) rmChild(i int) error {
+func (ds *Shard) rmChild(i int) error {
 	if i < 0 || i >= len(ds.children) || i >= len(ds.nd.Links()) {
 		return fmt.Errorf("hamt: attempted to remove child with out of range index")
 	}
@@ -378,7 +380,7 @@ func (ds *HamtShard) rmChild(i int) error {
 	return nil
 }
 
-func (ds *HamtShard) getValue(ctx context.Context, hv *hashBits, key string, cb func(*shardValue) error) error {
+func (ds *Shard) getValue(ctx context.Context, hv *hashBits, key string, cb func(*shardValue) error) error {
 	idx := hv.Next(ds.tableSizeLg2)
 	if ds.bitfield.Bit(int(idx)) == 1 {
 		cindex := ds.indexForBitPos(idx)
@@ -389,7 +391,7 @@ func (ds *HamtShard) getValue(ctx context.Context, hv *hashBits, key string, cb 
 		}
 
 		switch child := child.(type) {
-		case *HamtShard:
+		case *Shard:
 			return child.getValue(ctx, hv, key, cb)
 		case *shardValue:
 			if child.key == key {
@@ -401,7 +403,8 @@ func (ds *HamtShard) getValue(ctx context.Context, hv *hashBits, key string, cb 
 	return os.ErrNotExist
 }
 
-func (ds *HamtShard) EnumLinks(ctx context.Context) ([]*ipld.Link, error) {
+// EnumLinks collects all links in the Shard.
+func (ds *Shard) EnumLinks(ctx context.Context) ([]*ipld.Link, error) {
 	var links []*ipld.Link
 	err := ds.ForEachLink(ctx, func(l *ipld.Link) error {
 		links = append(links, l)
@@ -410,7 +413,8 @@ func (ds *HamtShard) EnumLinks(ctx context.Context) ([]*ipld.Link, error) {
 	return links, err
 }
 
-func (ds *HamtShard) ForEachLink(ctx context.Context, f func(*ipld.Link) error) error {
+// ForEachLink walks the Shard and calls the given function.
+func (ds *Shard) ForEachLink(ctx context.Context, f func(*ipld.Link) error) error {
 	return ds.walkTrie(ctx, func(sv *shardValue) error {
 		lnk := sv.val
 		lnk.Name = sv.key
@@ -419,7 +423,7 @@ func (ds *HamtShard) ForEachLink(ctx context.Context, f func(*ipld.Link) error) 
 	})
 }
 
-func (ds *HamtShard) walkTrie(ctx context.Context, cb func(*shardValue) error) error {
+func (ds *Shard) walkTrie(ctx context.Context, cb func(*shardValue) error) error {
 	for i := 0; i < ds.tableSize; i++ {
 		if ds.bitfield.Bit(i) == 0 {
 			continue
@@ -440,7 +444,7 @@ func (ds *HamtShard) walkTrie(ctx context.Context, cb func(*shardValue) error) e
 				return err
 			}
 
-		case *HamtShard:
+		case *Shard:
 			err := c.walkTrie(ctx, cb)
 			if err != nil {
 				return err
@@ -452,7 +456,7 @@ func (ds *HamtShard) walkTrie(ctx context.Context, cb func(*shardValue) error) e
 	return nil
 }
 
-func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, val *ipld.Link) error {
+func (ds *Shard) modifyValue(ctx context.Context, hv *hashBits, key string, val *ipld.Link) error {
 	idx := hv.Next(ds.tableSizeLg2)
 
 	if ds.bitfield.Bit(idx) != 1 {
@@ -467,7 +471,7 @@ func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, 
 	}
 
 	switch child := child.(type) {
-	case *HamtShard:
+	case *Shard:
 		err := child.modifyValue(ctx, hv, key, val)
 		if err != nil {
 			return err
@@ -510,7 +514,7 @@ func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, 
 		}
 
 		// replace value with another shard, one level deeper
-		ns, err := NewHamtShard(ds.dserv, ds.tableSize)
+		ns, err := NewShard(ds.dserv, ds.tableSize)
 		if err != nil {
 			return err
 		}
@@ -540,7 +544,7 @@ func (ds *HamtShard) modifyValue(ctx context.Context, hv *hashBits, key string, 
 // indexForBitPos returns the index within the collapsed array corresponding to
 // the given bit in the bitset.  The collapsed array contains only one entry
 // per bit set in the bitfield, and this function is used to map the indices.
-func (ds *HamtShard) indexForBitPos(bp int) int {
+func (ds *Shard) indexForBitPos(bp int) int {
 	// TODO: an optimization could reuse the same 'mask' here and change the size
 	//       as needed. This isnt yet done as the bitset package doesnt make it easy
 	//       to do.
@@ -553,6 +557,6 @@ func (ds *HamtShard) indexForBitPos(bp int) int {
 }
 
 // linkNamePrefix takes in the bitfield index of an entry and returns its hex prefix
-func (ds *HamtShard) linkNamePrefix(idx int) string {
+func (ds *Shard) linkNamePrefix(idx int) string {
 	return fmt.Sprintf(ds.prefixPadStr, idx)
 }

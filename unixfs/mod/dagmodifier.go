@@ -1,10 +1,11 @@
+// Package mod provides DAG modification utilities to, for example,
+// insert additional nodes in a unixfs DAG or truncate them.
 package mod
 
 import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -19,8 +20,12 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-var ErrSeekFail = errors.New("failed to seek properly")
-var ErrUnrecognizedWhence = errors.New("unrecognized whence")
+// Common errors
+var (
+	ErrSeekFail           = errors.New("failed to seek properly")
+	ErrUnrecognizedWhence = errors.New("unrecognized whence")
+	ErrNotUnixfs          = errors.New("dagmodifier only supports unixfs nodes (proto or raw)")
+)
 
 // 2MB
 var writebufferSize = 1 << 21
@@ -45,8 +50,6 @@ type DagModifier struct {
 
 	read uio.DagReader
 }
-
-var ErrNotUnixfs = fmt.Errorf("dagmodifier only supports unixfs nodes (proto or raw)")
 
 // NewDagModifier returns a new DagModifier, the Cid prefix for newly
 // created nodes will be inherted from the passed in node.  If the Cid
@@ -412,7 +415,7 @@ func (dm *DagModifier) readPrep() error {
 	return nil
 }
 
-// Read data from this dag starting at the current offset
+// CtxReadFull reads data from this dag starting at the current offset
 func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 	err := dm.readPrep()
 	if err != nil {
@@ -438,6 +441,8 @@ func (dm *DagModifier) HasChanges() bool {
 	return dm.wrBuf != nil
 }
 
+// Seek modifies the offset according to whence. See unixfs/io for valid whence
+// values.
 func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 	err := dm.Sync()
 	if err != nil {
@@ -479,6 +484,8 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 	return int64(dm.curWrOff), nil
 }
 
+// Truncate truncates the current Node to 'size' and replaces it with the
+// new one.
 func (dm *DagModifier) Truncate(size int64) error {
 	err := dm.Sync()
 	if err != nil {

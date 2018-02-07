@@ -94,7 +94,7 @@ func TestOrderConsistency(t *testing.T) {
 	}
 }
 
-func validateOpSetCompletion(t *testing.T, s *HamtShard, keep, temp []string) error {
+func validateOpSetCompletion(t *testing.T, s *Shard, keep, temp []string) error {
 	ctx := context.TODO()
 	for _, n := range keep {
 		_, err := s.Find(ctx, n)
@@ -113,9 +113,9 @@ func validateOpSetCompletion(t *testing.T, s *HamtShard, keep, temp []string) er
 	return nil
 }
 
-func executeOpSet(t *testing.T, ds ipld.DAGService, width int, ops []testOp) (*HamtShard, error) {
+func executeOpSet(t *testing.T, ds ipld.DAGService, width int, ops []testOp) (*Shard, error) {
 	ctx := context.TODO()
-	s, err := NewHamtShard(ds, width)
+	s, err := NewShard(ds, width)
 	if err != nil {
 		return nil, err
 	}
@@ -189,9 +189,9 @@ func genOpSet(seed int64, keep, temp []string) []testOp {
 }
 
 // executes the given op set with a repl to allow easier debugging
-/*func debugExecuteOpSet(ds node.DAGService, width int, ops []testOp) (*HamtShard, error) {
+/*func debugExecuteOpSet(ds node.DAGService, width int, ops []testOp) (*Shard, error) {
 
-	s, err := NewHamtShard(ds, width)
+	s, err := NewShard(ds, width)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +244,7 @@ mainloop:
 				}
 			case "restart":
 				var err error
-				s, err = NewHamtShard(ds, width)
+				s, err = NewShard(ds, width)
 				if err != nil {
 					panic(err)
 				}

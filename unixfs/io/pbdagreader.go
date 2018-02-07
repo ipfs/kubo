@@ -15,8 +15,8 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-// DagReader provides a way to easily read the data contained in a dag.
-type pbDagReader struct {
+// PBDagReader provides a way to easily read the data contained in a dag.
+type PBDagReader struct {
 	serv ipld.NodeGetter
 
 	// the node being read
@@ -48,13 +48,13 @@ type pbDagReader struct {
 	cancel func()
 }
 
-var _ DagReader = (*pbDagReader)(nil)
+var _ DagReader = (*PBDagReader)(nil)
 
 // NewPBFileReader constructs a new PBFileReader.
-func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv ipld.NodeGetter) *pbDagReader {
+func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv ipld.NodeGetter) *PBDagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	curLinks := getLinkCids(n)
-	return &pbDagReader{
+	return &PBDagReader{
 		node:     n,
 		serv:     serv,
 		buf:      NewBufDagReader(pb.GetData()),
@@ -68,7 +68,7 @@ func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv
 
 const preloadSize = 10
 
-func (dr *pbDagReader) preloadNextNodes(ctx context.Context) {
+func (dr *PBDagReader) preloadNextNodes(ctx context.Context) {
 	beg := dr.linkPosition
 	end := beg + preloadSize
 	if end >= len(dr.links) {
@@ -82,7 +82,7 @@ func (dr *pbDagReader) preloadNextNodes(ctx context.Context) {
 
 // precalcNextBuf follows the next link in line and loads it from the
 // DAGService, setting the next buffer to read from
-func (dr *pbDagReader) precalcNextBuf(ctx context.Context) error {
+func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 	if dr.buf != nil {
 		dr.buf.Close() // Just to make sure
 		dr.buf = nil
@@ -145,17 +145,17 @@ func getLinkCids(n ipld.Node) []*cid.Cid {
 }
 
 // Size return the total length of the data from the DAG structured file.
-func (dr *pbDagReader) Size() uint64 {
+func (dr *PBDagReader) Size() uint64 {
 	return dr.pbdata.GetFilesize()
 }
 
 // Read reads data from the DAG structured file
-func (dr *pbDagReader) Read(b []byte) (int, error) {
+func (dr *PBDagReader) Read(b []byte) (int, error) {
 	return dr.CtxReadFull(dr.ctx, b)
 }
 
 // CtxReadFull reads data from the DAG structured file
-func (dr *pbDagReader) CtxReadFull(ctx context.Context, b []byte) (int, error) {
+func (dr *PBDagReader) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 	if dr.buf == nil {
 		if err := dr.precalcNextBuf(ctx); err != nil {
 			return 0, err
@@ -189,7 +189,8 @@ func (dr *pbDagReader) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 	}
 }
 
-func (dr *pbDagReader) WriteTo(w io.Writer) (int64, error) {
+// WriteTo writes to the given writer.
+func (dr *PBDagReader) WriteTo(w io.Writer) (int64, error) {
 	if dr.buf == nil {
 		if err := dr.precalcNextBuf(dr.ctx); err != nil {
 			return 0, err
@@ -220,12 +221,14 @@ func (dr *pbDagReader) WriteTo(w io.Writer) (int64, error) {
 	}
 }
 
-func (dr *pbDagReader) Close() error {
+// Close closes the reader.
+func (dr *PBDagReader) Close() error {
 	dr.cancel()
 	return nil
 }
 
-func (dr *pbDagReader) Offset() int64 {
+// Offset returns the current reader offset
+func (dr *PBDagReader) Offset() int64 {
 	return dr.offset
 }
 
@@ -233,7 +236,7 @@ func (dr *pbDagReader) Offset() int64 {
 // interface matches standard unix seek
 // TODO: check if we can do relative seeks, to reduce the amount of dagreader
 // recreations that need to happen.
-func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
+func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 		if offset < 0 {
@@ -259,10 +262,10 @@ func (dr *pbDagReader) Seek(offset int64, whence int) (int64, error) {
 			dr.linkPosition = 0
 			dr.offset = offset
 			return offset, nil
-		} else {
-			// skip past root block data
-			left -= int64(len(pb.Data))
 		}
+
+		// skip past root block data
+		left -= int64(len(pb.Data))
 
 		// iterate through links and find where we need to be
 		for i := 0; i < len(pb.Blocksizes); i++ {

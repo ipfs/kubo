@@ -14,10 +14,15 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-var ErrIsDir = errors.New("this dag node is a directory")
+// Common errors
+var (
+	ErrIsDir            = errors.New("this dag node is a directory")
+	ErrCantReadSymlinks = errors.New("cannot currently read symlinks")
+)
 
-var ErrCantReadSymlinks = errors.New("cannot currently read symlinks")
-
+// A DagReader provides read-only read and seek acess to a unixfs file.
+// Different implementations of readers are used for the different
+// types of unixfs/protobuf-encoded nodes.
 type DagReader interface {
 	ReadSeekCloser
 	Size() uint64
@@ -25,6 +30,7 @@ type DagReader interface {
 	Offset() int64
 }
 
+// A ReadSeekCloser implements interfaces to read, copy, seek and close.
 type ReadSeekCloser interface {
 	io.Reader
 	io.Seeker
