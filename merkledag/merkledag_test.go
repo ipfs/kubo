@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
-
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	bstest "github.com/ipfs/go-ipfs/blockservice/test"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
@@ -28,6 +26,7 @@ import (
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
 func TestNode(t *testing.T) {
