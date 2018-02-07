@@ -11,10 +11,14 @@ import (
 // Order is an identifier for traversal algorithm orders
 type Order int
 
+// These constants define different traversing methods
 const (
-	DFSPre  Order = iota // depth-first pre-order
-	DFSPost              // depth-first post-order
-	BFS                  // breadth-first
+	// DFSPre defines depth-first pre-order
+	DFSPre Order = iota
+	// DFSPost defines depth-first post-order
+	DFSPost
+	// BFS defines breadth-first order
+	BFS
 )
 
 // Options specifies a series of traversal options
@@ -86,9 +90,9 @@ func (t *traversal) getNode(link *ipld.Link) (ipld.Node, error) {
 // If an error is returned, processing stops.
 type Func func(current State) error
 
-// If there is a problem walking to the Node, and ErrFunc is provided, Traverse
-// will call ErrFunc with the error encountered. ErrFunc can decide how to handle
-// that error, and return an error back to Traversal with how to proceed:
+// ErrFunc is provided to handle problems when walking to the Node. Traverse
+// will call ErrFunc with the error encountered. ErrFunc can decide how to
+// handle that error, and return an error back to Traversal with how to proceed:
 //   * nil - skip the Node and its children, but continue processing
 //   * all other errors halt processing immediately.
 //
@@ -98,6 +102,8 @@ type Func func(current State) error
 //
 type ErrFunc func(err error) error
 
+// Traverse initiates a DAG traversal with the given options starting at
+// the given root.
 func Traverse(root ipld.Node, o Options) error {
 	t := traversal{
 		opts: o,
@@ -127,20 +133,14 @@ func dfsPreTraverse(state State, t *traversal) error {
 	if err := t.callFunc(state); err != nil {
 		return err
 	}
-	if err := dfsDescend(dfsPreTraverse, state, t); err != nil {
-		return err
-	}
-	return nil
+	return dfsDescend(dfsPreTraverse, state, t)
 }
 
 func dfsPostTraverse(state State, t *traversal) error {
 	if err := dfsDescend(dfsPostTraverse, state, t); err != nil {
 		return err
 	}
-	if err := t.callFunc(state); err != nil {
-		return err
-	}
-	return nil
+	return t.callFunc(state)
 }
 
 func dfsDescend(df dfsFunc, curr State, t *traversal) error {

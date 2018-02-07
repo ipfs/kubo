@@ -1,4 +1,4 @@
-// package merkledag implements the IPFS Merkle DAG datastructures.
+// Package merkledag implements the IPFS Merkle DAG data structures.
 package merkledag
 
 import (
@@ -23,7 +23,13 @@ func init() {
 	ipld.Register(cid.DagCBOR, ipldcbor.DecodeBlock)
 }
 
+// contextKey is a type to use as value for the ProgressTracker contexts.
+type contextKey string
+
+const progressContextKey contextKey = "progress"
+
 // NewDAGService constructs a new DAGService (using the default implementation).
+// Note that the default implementation is also an ipld.LinkGetter.
 func NewDAGService(bs bserv.BlockService) *dagService {
 	return &dagService{Blocks: bs}
 }
@@ -147,8 +153,8 @@ func (sg *sesGetter) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *ipld.
 }
 
 // Session returns a NodeGetter using a new session for block fetches.
-func (ds *dagService) Session(ctx context.Context) ipld.NodeGetter {
-	return &sesGetter{bserv.NewSession(ctx, ds.Blocks)}
+func (n *dagService) Session(ctx context.Context) ipld.NodeGetter {
+	return &sesGetter{bserv.NewSession(ctx, n.Blocks)}
 }
 
 // FetchGraph fetches all nodes that are children of the given node
@@ -159,7 +165,7 @@ func FetchGraph(ctx context.Context, root *cid.Cid, serv ipld.DAGService) error 
 		ng = &sesGetter{bserv.NewSession(ctx, ds.Blocks)}
 	}
 
-	v, _ := ctx.Value("progress").(*ProgressTracker)
+	v, _ := ctx.Value(progressContextKey).(*ProgressTracker)
 	if v == nil {
 		return EnumerateChildrenAsync(ctx, GetLinksDirect(ng), root, cid.NewSet().Visit)
 	}
@@ -168,9 +174,8 @@ func FetchGraph(ctx context.Context, root *cid.Cid, serv ipld.DAGService) error 
 		if set.Visit(c) {
 			v.Increment()
 			return true
-		} else {
-			return false
 		}
+		return false
 	}
 	return EnumerateChildrenAsync(ctx, GetLinksDirect(ng), root, visit)
 }
@@ -179,8 +184,8 @@ func FetchGraph(ctx context.Context, root *cid.Cid, serv ipld.DAGService) error 
 // returns the indexes of any links pointing to it
 func FindLinks(links []*cid.Cid, c *cid.Cid, start int) []int {
 	var out []int
-	for i, lnk_c := range links[start:] {
-		if c.Equals(lnk_c) {
+	for i, lnkC := range links[start:] {
+		if c.Equals(lnkC) {
 			out = append(out, i+start)
 		}
 	}
@@ -265,21 +270,26 @@ func EnumerateChildren(ctx context.Context, getLinks GetLinks, root *cid.Cid, vi
 	return nil
 }
 
+// ProgressTracker is used to show progress when fetching nodes.
 type ProgressTracker struct {
 	Total int
 	lk    sync.Mutex
 }
 
+// DeriveContext returns a new context with value "progress" derived from
+// the given one.
 func (p *ProgressTracker) DeriveContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, "progress", p)
+	return context.WithValue(ctx, progressContextKey, p)
 }
 
+// Increment adds one to the total progress.
 func (p *ProgressTracker) Increment() {
 	p.lk.Lock()
 	defer p.lk.Unlock()
 	p.Total++
 }
 
+// Value returns the current progress.
 func (p *ProgressTracker) Value() int {
 	p.lk.Lock()
 	defer p.lk.Unlock()
