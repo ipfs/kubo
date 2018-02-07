@@ -11,7 +11,7 @@ import (
 	"context"
 
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
-	posinfo "github.com/ipfs/go-ipfs/thirdparty/posinfo"
+	posinfo "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 
 	dsq "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/query"

@@ -515,6 +515,12 @@
       "hash": "QmWFAMPqsEyUX7gDUsRVmMWz59FxSpJ1b2v6bJ1yYzo7jY",
       "name": "go-base58-fast",
       "version": "0.1.1"
+    },
+    {
+      "author": "hector",
+      "hash": "Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995",
+      "name": "go-ipfs-posinfo",
+      "version": "0.0.1"
     }
   ],
   "gxVersion": "0.10.0",
