@@ -20,8 +20,8 @@ var (
 	ErrCantReadSymlinks = errors.New("cannot currently read symlinks")
 )
 
-// A DagReader represents a ReadSeekCloser which offers additional methods
-// like Size. Different implementations of readers are used for the different
+// // A DagReader provides read-only read and seek acess to a unixfs file.
+// Different implementations of readers are used for the different
 // types of unixfs/protobuf-encoded nodes.
 type DagReader interface {
 	ReadSeekCloser
@@ -30,7 +30,7 @@ type DagReader interface {
 	Offset() int64
 }
 
-// A ReadSeekCloser implements interfaces to read, write, seek and close.
+// A ReadSeekCloser implements interfaces to read, copy, seek and close.
 type ReadSeekCloser interface {
 	io.Reader
 	io.Seeker
