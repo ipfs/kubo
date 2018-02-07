@@ -20,7 +20,7 @@ var (
 	ErrCantReadSymlinks = errors.New("cannot currently read symlinks")
 )
 
-// // A DagReader provides read-only read and seek acess to a unixfs file.
+// A DagReader provides read-only read and seek acess to a unixfs file.
 // Different implementations of readers are used for the different
 // types of unixfs/protobuf-encoded nodes.
 type DagReader interface {
