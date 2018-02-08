@@ -8,13 +8,13 @@ import (
 	"errors"
 	"io"
 
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -37,7 +37,7 @@ type DagModifier struct {
 	dagserv ipld.DAGService
 	curNode ipld.Node
 
-	splitter   chunk.SplitterGen
+	splitter   chunker.SplitterGen
 	ctx        context.Context
 	readCancel func()
 
@@ -55,7 +55,7 @@ type DagModifier struct {
 // created nodes will be inherted from the passed in node.  If the Cid
 // version if not 0 raw leaves will also be enabled.  The Prefix and
 // RawLeaves options can be overridden by changing them after the call.
-func NewDagModifier(ctx context.Context, from ipld.Node, serv ipld.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from ipld.Node, serv ipld.DAGService, spl chunker.SplitterGen) (*DagModifier, error) {
 	switch from.(type) {
 	case *mdag.ProtoNode, *mdag.RawNode:
 		// ok
@@ -126,7 +126,7 @@ func (zr zeroReader) Read(b []byte) (int, error) {
 // A small blocksize is chosen to aid in deduplication
 func (dm *DagModifier) expandSparse(size int64) error {
 	r := io.LimitReader(zeroReader{}, size)
-	spl := chunk.NewSizeSplitter(r, 4096)
+	spl := chunker.NewSizeSplitter(r, 4096)
 	nnode, err := dm.appendData(dm.curNode, spl)
 	if err != nil {
 		return err
@@ -356,7 +356,7 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*c
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(nd ipld.Node, spl chunk.Splitter) (ipld.Node, error) {
+func (dm *DagModifier) appendData(nd ipld.Node, spl chunker.Splitter) (ipld.Node, error) {
 	switch nd := nd.(type) {
 	case *mdag.ProtoNode, *mdag.RawNode:
 		dbp := &help.DagBuilderParams{

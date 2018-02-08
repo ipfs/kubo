@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
@@ -16,15 +15,16 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // SizeSplitterGen creates a generator.
-func SizeSplitterGen(size int64) chunk.SplitterGen {
-	return func(r io.Reader) chunk.Splitter {
-		return chunk.NewSizeSplitter(r, size)
+func SizeSplitterGen(size int64) chunker.SplitterGen {
+	return func(r io.Reader) chunker.Splitter {
+		return chunker.NewSizeSplitter(r, size)
 	}
 }
 

@@ -56,10 +56,6 @@
 		{
 			"ImportPath": "github.com/texttheater/golang-levenshtein/levenshtein",
 			"Rev": "dfd657628c58d3eeaa26391097853b2473c8b94e"
-		},
-		{
-			"ImportPath": "github.com/whyrusleeping/chunker",
-			"Rev": "537e901819164627ca4bb5ce4e3faa8ce7956564"
 		}
 	]
 }

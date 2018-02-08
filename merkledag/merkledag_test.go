@@ -17,13 +17,13 @@ import (
 	bstest "github.com/ipfs/go-ipfs/blockservice/test"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	imp "github.com/ipfs/go-ipfs/importer"
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	. "github.com/ipfs/go-ipfs/merkledag"
 	mdpb "github.com/ipfs/go-ipfs/merkledag/pb"
 	dstest "github.com/ipfs/go-ipfs/merkledag/test"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
@@ -136,7 +136,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 
-	spl := chunk.NewSizeSplitter(read, 512)
+	spl := chunker.NewSizeSplitter(read, 512)
 
 	root, err := imp.BuildDagFromReader(dagservs[0], spl)
 	if err != nil {
@@ -228,7 +228,7 @@ func TestFetchGraph(t *testing.T) {
 	}
 
 	read := io.LimitReader(u.NewTimeSeededRand(), 1024*32)
-	root, err := imp.BuildDagFromReader(dservs[0], chunk.NewSizeSplitter(read, 512))
+	root, err := imp.BuildDagFromReader(dservs[0], chunker.NewSizeSplitter(read, 512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestEnumerateChildren(t *testing.T) {
 	ds := NewDAGService(bsi[0])
 
 	read := io.LimitReader(u.NewTimeSeededRand(), 1024*1024)
-	root, err := imp.BuildDagFromReader(ds, chunk.NewSizeSplitter(read, 512))
+	root, err := imp.BuildDagFromReader(ds, chunker.NewSizeSplitter(read, 512))
 	if err != nil {
 		t.Fatal(err)
 	}

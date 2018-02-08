@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 
 	bal "github.com/ipfs/go-ipfs/importer/balanced"
-	"github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 )
@@ -33,12 +33,12 @@ func BuildDagFromFile(fpath string, ds ipld.DAGService) (ipld.Node, error) {
 	}
 	defer f.Close()
 
-	return BuildDagFromReader(ds, chunk.DefaultSplitter(f))
+	return BuildDagFromReader(ds, chunker.DefaultSplitter(f))
 }
 
 // BuildDagFromReader creates a DAG given a DAGService and a Splitter
 // implementation (Splitters are io.Readers), using a Balanced layout.
-func BuildDagFromReader(ds ipld.DAGService, spl chunk.Splitter) (ipld.Node, error) {
+func BuildDagFromReader(ds ipld.DAGService, spl chunker.Splitter) (ipld.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
@@ -49,7 +49,7 @@ func BuildDagFromReader(ds ipld.DAGService, spl chunk.Splitter) (ipld.Node, erro
 
 // BuildTrickleDagFromReader creates a DAG given a DAGService and a Splitter
 // implementation (Splitters are io.Readers), using a Trickle Layout.
-func BuildTrickleDagFromReader(ds ipld.DAGService, spl chunk.Splitter) (ipld.Node, error) {
+func BuildTrickleDagFromReader(ds ipld.DAGService, spl chunker.Splitter) (ipld.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,

@@ -5,10 +5,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -18,7 +18,7 @@ import (
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
 	dserv     ipld.DAGService
-	spl       chunk.Splitter
+	spl       chunker.Splitter
 	recvdErr  error
 	rawLeaves bool
 	nextData  []byte // the next item to return.
@@ -30,7 +30,7 @@ type DagBuilderHelper struct {
 }
 
 // DagBuilderParams wraps configuration options to create a DagBuilderHelper
-// from a chunk.Splitter.
+// from a chunker.Splitter.
 type DagBuilderParams struct {
 	// Maximum number of links per intermediate node
 	Maxlinks int
@@ -51,8 +51,8 @@ type DagBuilderParams struct {
 }
 
 // New generates a new DagBuilderHelper from the given params and a given
-// chunk.Splitter as data source.
-func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
+// chunker.Splitter as data source.
+func (dbp *DagBuilderParams) New(spl chunker.Splitter) *DagBuilderHelper {
 	db := &DagBuilderHelper{
 		dserv:     dbp.Dagserv,
 		spl:       spl,

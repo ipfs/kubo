@@ -15,7 +15,6 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	balanced "github.com/ipfs/go-ipfs/importer/balanced"
-	"github.com/ipfs/go-ipfs/importer/chunk"
 	ihelper "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -27,6 +26,7 @@ import (
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	syncds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/sync"
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -134,7 +134,7 @@ func (adder *Adder) SetMfsRoot(r *mfs.Root) {
 
 // Constructs a node from reader's data, and adds it. Doesn't pin.
 func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
-	chnk, err := chunk.FromString(reader, adder.Chunker)
+	chnk, err := chunker.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
 	}

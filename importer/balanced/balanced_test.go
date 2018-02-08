@@ -9,19 +9,19 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // TODO: extract these tests and more as a generic layout test suite
 
-func buildTestDag(ds ipld.DAGService, spl chunk.Splitter) (*dag.ProtoNode, error) {
+func buildTestDag(ds ipld.DAGService, spl chunker.Splitter) (*dag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
@@ -40,7 +40,7 @@ func getTestDag(t *testing.T, ds ipld.DAGService, size int64, blksize int64) (*d
 	u.NewTimeSeededRand().Read(data)
 	r := bytes.NewReader(data)
 
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(r, blksize))
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(r, blksize))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func testFileConsistency(t *testing.T, nbytes int64, blksize int64) {
 }
 
 func TestBuilderConsistency(t *testing.T) {
-	testFileConsistency(t, 100000, chunk.DefaultBlockSize)
+	testFileConsistency(t, 100000, chunker.DefaultBlockSize)
 }
 
 func TestNoChunking(t *testing.T) {

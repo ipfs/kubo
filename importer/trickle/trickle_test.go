@@ -9,7 +9,6 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
@@ -17,6 +16,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
@@ -32,7 +32,7 @@ func runBothSubtests(t *testing.T, tfunc func(*testing.T, UseRawLeaves)) {
 	t.Run("leaves=Raw", func(t *testing.T) { tfunc(t, RawLeaves) })
 }
 
-func buildTestDag(ds ipld.DAGService, spl chunk.Splitter, rawLeaves UseRawLeaves) (*merkledag.ProtoNode, error) {
+func buildTestDag(ds ipld.DAGService, spl chunker.Splitter, rawLeaves UseRawLeaves) (*merkledag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:   ds,
 		Maxlinks:  h.DefaultLinksPerBlock,
@@ -66,10 +66,10 @@ func testSizeBasedSplit(t *testing.T, rawLeaves UseRawLeaves) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	bs := chunk.SizeSplitterGen(512)
+	bs := chunker.SizeSplitterGen(512)
 	testFileConsistency(t, bs, 32*512, rawLeaves)
 
-	bs = chunk.SizeSplitterGen(4096)
+	bs = chunker.SizeSplitterGen(4096)
 	testFileConsistency(t, bs, 32*4096, rawLeaves)
 
 	// Uneven offset
@@ -82,7 +82,7 @@ func dup(b []byte) []byte {
 	return o
 }
 
-func testFileConsistency(t *testing.T, bs chunk.SplitterGen, nbytes int, rawLeaves UseRawLeaves) {
+func testFileConsistency(t *testing.T, bs chunker.SplitterGen, nbytes int, rawLeaves UseRawLeaves) {
 	should := make([]byte, nbytes)
 	u.NewTimeSeededRand().Read(should)
 
@@ -119,7 +119,7 @@ func testBuilderConsistency(t *testing.T, rawLeaves UseRawLeaves) {
 	io.CopyN(buf, u.NewTimeSeededRand(), int64(nbytes))
 	should := dup(buf.Bytes())
 	dagserv := mdtest.Mock()
-	nd, err := buildTestDag(dagserv, chunk.DefaultSplitter(buf), rawLeaves)
+	nd, err := buildTestDag(dagserv, chunker.DefaultSplitter(buf), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestIndirectBlocks(t *testing.T) {
 }
 
 func testIndirectBlocks(t *testing.T, rawLeaves UseRawLeaves) {
-	splitter := chunk.SizeSplitterGen(512)
+	splitter := chunker.SizeSplitterGen(512)
 	nbytes := 1024 * 1024
 	buf := make([]byte, nbytes)
 	u.NewTimeSeededRand().Read(buf)
@@ -195,7 +195,7 @@ func testSeekingBasic(t *testing.T, rawLeaves UseRawLeaves) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock()
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 512), rawLeaves)
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(read, 512), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +236,7 @@ func testSeekToBegin(t *testing.T, rawLeaves UseRawLeaves) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock()
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500), rawLeaves)
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(read, 500), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -284,7 +284,7 @@ func testSeekToAlmostBegin(t *testing.T, rawLeaves UseRawLeaves) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock()
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500), rawLeaves)
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(read, 500), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,7 +332,7 @@ func testSeekEnd(t *testing.T, rawLeaves UseRawLeaves) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock()
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500), rawLeaves)
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(read, 500), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -362,7 +362,7 @@ func testSeekEndSingleBlockFile(t *testing.T, rawLeaves UseRawLeaves) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock()
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 5000), rawLeaves)
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(read, 5000), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -392,7 +392,7 @@ func testSeekingStress(t *testing.T, rawLeaves UseRawLeaves) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock()
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 1000), rawLeaves)
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(read, 1000), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -441,7 +441,7 @@ func testSeekingConsistency(t *testing.T, rawLeaves UseRawLeaves) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock()
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500), rawLeaves)
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(read, 500), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -489,7 +489,7 @@ func testAppend(t *testing.T, rawLeaves UseRawLeaves) {
 	// Reader for half the bytes
 	read := bytes.NewReader(should[:nbytes/2])
 	ds := mdtest.Mock()
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500), rawLeaves)
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(read, 500), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -503,7 +503,7 @@ func testAppend(t *testing.T, rawLeaves UseRawLeaves) {
 	r := bytes.NewReader(should[nbytes/2:])
 
 	ctx := context.Background()
-	nnode, err := Append(ctx, nd, dbp.New(chunk.NewSizeSplitter(r, 500)))
+	nnode, err := Append(ctx, nd, dbp.New(chunker.NewSizeSplitter(r, 500)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -548,7 +548,7 @@ func testMultipleAppends(t *testing.T, rawLeaves UseRawLeaves) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(nil)
-	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500), rawLeaves)
+	nd, err := buildTestDag(ds, chunker.NewSizeSplitter(read, 500), rawLeaves)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -559,7 +559,7 @@ func testMultipleAppends(t *testing.T, rawLeaves UseRawLeaves) {
 		RawLeaves: bool(rawLeaves),
 	}
 
-	spl := chunk.SizeSplitterGen(500)
+	spl := chunker.SizeSplitterGen(500)
 
 	ctx := context.Background()
 	for i := 0; i < len(should); i++ {
@@ -609,7 +609,7 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 		Maxlinks: 4,
 	}
 
-	spl := chunk.SizeSplitterGen(500)
+	spl := chunker.SizeSplitterGen(500)
 
 	ctx := context.Background()
 	nnode, err := Append(ctx, nd, dbp.New(spl(bytes.NewReader(data[:1]))))
