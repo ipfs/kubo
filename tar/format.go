@@ -15,7 +15,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	chunk "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
@@ -63,7 +63,7 @@ func ImportTar(ctx context.Context, r io.Reader, ds ipld.DAGService) (*dag.Proto
 		header.SetData(headerBytes)
 
 		if h.Size > 0 {
-			spl := chunk.NewRabin(tr, uint64(chunk.DefaultBlockSize))
+			spl := chunker.NewRabin(tr, uint64(chunker.DefaultBlockSize))
 			nd, err := importer.BuildDagFromReader(ds, spl)
 			if err != nil {
 				return nil, err

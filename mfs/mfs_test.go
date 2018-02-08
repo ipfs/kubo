@@ -26,7 +26,7 @@ import (
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	dssync "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/sync"
-	chunk "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
@@ -48,7 +48,7 @@ func getRandFile(t *testing.T, ds ipld.DAGService, size int64) ipld.Node {
 }
 
 func fileNodeFromReader(t *testing.T, ds ipld.DAGService, r io.Reader) ipld.Node {
-	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r))
+	nd, err := importer.BuildDagFromReader(ds, chunker.DefaultSplitter(r))
 	if err != nil {
 		t.Fatal(err)
 	}
