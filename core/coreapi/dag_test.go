@@ -72,7 +72,7 @@ func TestPath(t *testing.T) {
 		t.Error(err)
 	}
 
-	p, err := api.ParsePath(ctx, path.Join(res.Cid().String(), "lnk"))
+	p, err := api.ParsePath(path.Join(res.Cid().String(), "lnk"))
 	if err != nil {
 		t.Error(err)
 	}

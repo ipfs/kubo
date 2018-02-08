@@ -5,10 +5,8 @@ package iface
 import (
 	"context"
 
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-
-	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
 )
 
 // CoreAPI defines an unified interface to IPFS for Go programs
@@ -35,19 +33,15 @@ type CoreAPI interface {
 	Object() ObjectAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
-	ResolvePath(context.Context, Path) (Path, error)
+	ResolvePath(context.Context, Path) (ResolvedPath, error)
 
 	// ResolveNode resolves the path (if not resolved already) using Unixfs
 	// resolver, gets and returns the resolved Node
 	ResolveNode(context.Context, Path) (ipld.Node, error)
 
 	// ParsePath parses string path to a Path
-	ParsePath(context.Context, string, ...options.ParsePathOption) (Path, error)
-
-	// WithResolve is an option for ParsePath which when set to true tells
-	// ParsePath to also resolve the path
-	WithResolve(bool) options.ParsePathOption
+	ParsePath(context.Context, string) (Path, error)
 
 	// ParseCid creates new path from the provided CID
-	ParseCid(*cid.Cid) Path
+	ParseCid(*cid.Cid) ResolvedPath
 }

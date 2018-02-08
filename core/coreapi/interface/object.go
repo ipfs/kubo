@@ -38,7 +38,7 @@ type ObjectAPI interface {
 	New(context.Context, ...options.ObjectNewOption) (ipld.Node, error)
 
 	// Put imports the data into merkledag
-	Put(context.Context, io.Reader, ...options.ObjectPutOption) (Path, error)
+	Put(context.Context, io.Reader, ...options.ObjectPutOption) (ResolvedPath, error)
 
 	// Get returns the node for the path
 	Get(context.Context, Path) (ipld.Node, error)
@@ -55,14 +55,14 @@ type ObjectAPI interface {
 	// AddLink adds a link under the specified path. child path can point to a
 	// subdirectory within the patent which must be present (can be overridden
 	// with WithCreate option).
-	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (Path, error)
+	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (ResolvedPath, error)
 
 	// RmLink removes a link from the node
-	RmLink(ctx context.Context, base Path, link string) (Path, error)
+	RmLink(ctx context.Context, base Path, link string) (ResolvedPath, error)
 
 	// AppendData appends data to the node
-	AppendData(context.Context, Path, io.Reader) (Path, error)
+	AppendData(context.Context, Path, io.Reader) (ResolvedPath, error)
 
 	// SetData sets the data contained in the node
-	SetData(context.Context, Path, io.Reader) (Path, error)
+	SetData(context.Context, Path, io.Reader) (ResolvedPath, error)
 }

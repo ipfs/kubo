@@ -20,11 +20,11 @@ import (
 type BlockAPI CoreAPI
 
 type BlockStat struct {
-	path coreiface.Path
+	path coreiface.ResolvedPath
 	size int
 }
 
-func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.BlockPutOption) (coreiface.Path, error) {
+func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.BlockPutOption) (coreiface.ResolvedPath, error) {
 	settings, err := caopts.BlockPutOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,12 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 }
 
 func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, error) {
-	b, err := api.node.Blocks.GetBlock(ctx, p.Cid())
+	rp, err := api.ResolvePath(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := api.node.Blocks.GetBlock(ctx, rp.Cid())
 	if err != nil {
 		return nil, err
 	}
@@ -78,11 +83,16 @@ func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, erro
 }
 
 func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.BlockRmOption) error {
+	rp, err := api.ResolvePath(ctx, p)
+	if err != nil {
+		return err
+	}
+
 	settings, err := caopts.BlockRmOptions(opts...)
 	if err != nil {
 		return err
 	}
-	cids := []*cid.Cid{p.Cid()}
+	cids := []*cid.Cid{rp.Cid()}
 	o := util.RmBlocksOpts{Force: settings.Force}
 
 	out, err := util.RmBlocks(api.node.Blockstore, api.node.Pinning, cids, o)
@@ -111,7 +121,12 @@ func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.Bl
 }
 
 func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.BlockStat, error) {
-	b, err := api.node.Blocks.GetBlock(ctx, p.Cid())
+	rp, err := api.ResolvePath(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := api.node.Blocks.GetBlock(ctx, rp.Cid())
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +141,6 @@ func (bs *BlockStat) Size() int {
 	return bs.size
 }
 
-func (bs *BlockStat) Path() coreiface.Path {
+func (bs *BlockStat) Path() coreiface.ResolvedPath {
 	return bs.path
 }

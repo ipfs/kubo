@@ -16,17 +16,15 @@ package coreapi
 import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
 type CoreAPI struct {
 	node *core.IpfsNode
-	*caopts.ApiOptions
 }
 
 // NewCoreAPI creates new instance of IPFS CoreAPI backed by go-ipfs Node.
 func NewCoreAPI(n *core.IpfsNode) coreiface.CoreAPI {
-	api := &CoreAPI{n, nil}
+	api := &CoreAPI{n}
 	return api
 }
 

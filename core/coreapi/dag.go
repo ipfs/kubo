@@ -20,7 +20,7 @@ type DagAPI CoreAPI
 // Put inserts data using specified format and input encoding. Unless used with
 // `WithCodes` or `WithHash`, the defaults "dag-cbor" and "sha256" are used.
 // Returns the path of the inserted data.
-func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.Path, error) {
+func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.ResolvedPath, error) {
 	settings, err := caopts.DagPutOptions(opts...)
 	if err != nil {
 		return nil, err

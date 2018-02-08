@@ -120,7 +120,7 @@ func ParsePath(txt string) (Path, error) {
 		if _, err := ParseCidToPath(parts[2]); err != nil {
 			return "", err
 		}
-	} else if parts[1] != "ipns" {
+	} else if parts[1] != "ipns" && parts[1] != "ipld" { //TODO: make this smarter
 		return "", ErrBadPath
 	}
 

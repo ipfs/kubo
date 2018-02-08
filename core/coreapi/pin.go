@@ -62,7 +62,17 @@ func (api *PinAPI) Update(ctx context.Context, from coreiface.Path, to coreiface
 		return err
 	}
 
-	return api.node.Pinning.Update(ctx, from.Cid(), to.Cid(), settings.Unpin)
+	fp, err := api.ResolvePath(ctx, from)
+	if err != nil {
+		return err
+	}
+
+	tp, err := api.ResolvePath(ctx, to)
+	if err != nil {
+		return err
+	}
+
+	return api.node.Pinning.Update(ctx, fp.Cid(), tp.Cid(), settings.Unpin)
 }
 
 type pinStatus struct {
@@ -73,7 +83,7 @@ type pinStatus struct {
 
 // BadNode is used in PinVerifyRes
 type badNode struct {
-	path coreiface.Path
+	path coreiface.ResolvedPath
 	err  error
 }
 
@@ -85,7 +95,7 @@ func (s *pinStatus) BadNodes() []coreiface.BadPinNode {
 	return s.badNodes
 }
 
-func (n *badNode) Path() coreiface.Path {
+func (n *badNode) Path() coreiface.ResolvedPath {
 	return n.path
 }
 
@@ -141,11 +151,11 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 
 type pinInfo struct {
 	pinType string
-	object  coreiface.Path
+	path    coreiface.ResolvedPath
 }
 
-func (p *pinInfo) Path() coreiface.Path {
-	return p.object
+func (p *pinInfo) Path() coreiface.ResolvedPath {
+	return p.path
 }
 
 func (p *pinInfo) Type() string {
@@ -160,7 +170,7 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) ([]coreiface.Pi
 		for _, c := range keyList {
 			keys[c.String()] = &pinInfo{
 				pinType: typeStr,
-				object:  api.ParseCid(c),
+				path:    api.ParseCid(c),
 			}
 		}
 	}
