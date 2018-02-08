@@ -522,10 +522,11 @@
       "name": "go-ipfs-posinfo",
       "version": "0.0.1"
     },
+    {
       "author": "hsanjuan",
-      "hash": "QmcYFMP9mfpJ2swedZCBskeAoxGKGBGY7LaS6VZ1jEWqUs",
+      "hash": "QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq",
       "name": "go-ipfs-chunker",
-      "version": "0.0.1"
+      "version": "0.0.2"
     }
   ],
   "gxVersion": "0.10.0",
