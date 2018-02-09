@@ -1,3 +1,5 @@
+// Package offline implements IpfsRouting with a client which
+// is only able to perform offline operations.
 package offline
 
 import (
@@ -18,8 +20,13 @@ import (
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
+// ErrOffline is returned when trying to perform operations that
+// require connectivity.
 var ErrOffline = errors.New("routing system in offline mode")
 
+// NewOfflineRouter returns an IpfsRouting implementation which only performs
+// offline operations. It allows to Put and Get signed dht
+// records to and from the local datastore.
 func NewOfflineRouter(dstore ds.Datastore, privkey ci.PrivKey) routing.IpfsRouting {
 	return &offlineRouting{
 		datastore: dstore,

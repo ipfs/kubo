@@ -1,3 +1,4 @@
+// Package nilrouting implements a routing client that does nothing.
 package nilrouting
 
 import (
@@ -21,11 +22,11 @@ func (c *nilclient) PutValue(_ context.Context, _ string, _ []byte) error {
 }
 
 func (c *nilclient) GetValue(_ context.Context, _ string) ([]byte, error) {
-	return nil, errors.New("Tried GetValue from nil routing.")
+	return nil, errors.New("tried GetValue from nil routing")
 }
 
 func (c *nilclient) GetValues(_ context.Context, _ string, _ int) ([]routing.RecvdVal, error) {
-	return nil, errors.New("Tried GetValues from nil routing.")
+	return nil, errors.New("tried GetValues from nil routing")
 }
 
 func (c *nilclient) FindPeer(_ context.Context, _ peer.ID) (pstore.PeerInfo, error) {
@@ -46,6 +47,7 @@ func (c *nilclient) Bootstrap(_ context.Context) error {
 	return nil
 }
 
+// ConstructNilRouting creates an IpfsRouting client which does nothing.
 func ConstructNilRouting(_ context.Context, _ p2phost.Host, _ repo.Datastore) (routing.IpfsRouting, error) {
 	return &nilclient{}, nil
 }
