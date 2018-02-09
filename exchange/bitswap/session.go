@@ -279,8 +279,9 @@ func (s *Session) receiveBlock(ctx context.Context, blk blocks.Block) {
 }
 
 func (s *Session) wantBlocks(ctx context.Context, ks []*cid.Cid) {
+	now := time.Now()
 	for _, c := range ks {
-		s.liveWants[c.KeyString()] = time.Now()
+		s.liveWants[c.KeyString()] = now
 	}
 	s.bs.wm.WantBlocks(ctx, ks, s.activePeersArr, s.id)
 }
