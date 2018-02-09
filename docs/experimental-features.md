@@ -343,3 +343,25 @@ See [Plugin docs](./plugins.md)
 
 - [ ] Needs more testing
 - [ ] Make sure there are no unknown major problems
+
+## Directory Sharding / HAMT
+
+### In Version
+0.4.8
+
+### State
+Experimental
+
+Allows to create directories with unlimited number of entries - currently
+size of unixfs directories is limited by the maximum block size
+
+### Basic Usage:
+
+```
+ipfs config --json Experimental.ShardingEnabled true
+```
+
+### Road to being a real feature
+
+- [ ] Make sure that objects that don't have to be sharded aren't
+- [ ] Generalize sharding and define a new layer between IPLD and IPFS
