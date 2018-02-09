@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"sync"
 
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 
@@ -18,18 +19,33 @@ type PubSub interface {
 }
 
 func New() PubSub {
-	return &impl{*pubsub.New(bufferSize)}
+	return &impl{
+		wrapped: *pubsub.New(bufferSize),
+		cancel:  make(chan struct{}),
+	}
 }
 
 type impl struct {
 	wrapped pubsub.PubSub
+
+	// These two fields make up a shutdown "lock".
+	// We need them as calling, e.g., `Unsubscribe` after calling `Shutdown`
+	// blocks forever and fixing this in pubsub would be rather invasive.
+	cancel chan struct{}
+	wg     sync.WaitGroup
 }
 
 func (ps *impl) Publish(block blocks.Block) {
 	ps.wrapped.Pub(block, block.Cid().KeyString())
 }
 
+// Not safe to call more than once.
 func (ps *impl) Shutdown() {
+	// Interrupt in-progress subscriptions.
+	close(ps.cancel)
+	// Wait for them to finish.
+	ps.wg.Wait()
+	// shutdown the pubsub.
 	ps.wrapped.Shutdown()
 }
 
@@ -44,12 +60,34 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...*cid.Cid) <-chan blocks.B
 		close(blocksCh)
 		return blocksCh
 	}
+
+	// prevent shutdown
+	ps.wg.Add(1)
+
+	// check if shutdown *after* preventing shutdowns.
+	select {
+	case <-ps.cancel:
+		// abort, allow shutdown to continue.
+		ps.wg.Done()
+		close(blocksCh)
+		return blocksCh
+	default:
+	}
+
 	ps.wrapped.AddSubOnceEach(valuesCh, toStrings(keys)...)
 	go func() {
-		defer close(blocksCh)
-		defer ps.wrapped.Unsub(valuesCh) // with a len(keys) buffer, this is an optimization
+		defer func() {
+			ps.wrapped.Unsub(valuesCh)
+			close(blocksCh)
+
+			// Unblock shutdown.
+			ps.wg.Done()
+		}()
+
 		for {
 			select {
+			case <-ps.cancel:
+				return
 			case <-ctx.Done():
 				return
 			case val, ok := <-valuesCh:
@@ -61,6 +99,8 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...*cid.Cid) <-chan blocks.B
 					return
 				}
 				select {
+				case <-ps.cancel:
+					return
 				case <-ctx.Done():
 					return
 				case blocksCh <- block: // continue
