@@ -100,6 +100,25 @@ func TestDuplicateSubscribe(t *testing.T) {
 	assertBlocksEqual(t, e1, r2)
 }
 
+func TestShutdownBeforeUnsubscribe(t *testing.T) {
+	e1 := blocks.NewBlock([]byte("1"))
+
+	n := New()
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := n.Subscribe(ctx, e1.Cid()) // no keys provided
+	n.Shutdown()
+	cancel()
+
+	select {
+	case _, ok := <-ch:
+		if ok {
+			t.Fatal("channel should have been closed")
+		}
+	default:
+		t.Fatal("channel should have been closed")
+	}
+}
+
 func TestSubscribeIsANoopWhenCalledWithNoKeys(t *testing.T) {
 	n := New()
 	defer n.Shutdown()
