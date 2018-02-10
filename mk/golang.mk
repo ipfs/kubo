@@ -1,6 +1,9 @@
 # golang utilities
 GO_MIN_VERSION = 1.9
 
+# match Go's default GOPATH behaviour
+GOPATH ?= $(HOME)/go
+
 # pre-definitions
 GOCC ?= go
 GOTAGS ?=
