@@ -7,10 +7,7 @@ if [ -z "$PWD" ]; then
 	exit 1
 fi
 
-if [ -z "$GOPATH" ]; then
-	echo "GOPATH not set, you must have go configured properly to install ipfs"
-	exit 1
-fi
+[ -z "$GOPATH" ] && GOPATH="$HOME/go"
 
 while [ ${#} -gt 1 ]; do
 	if [ "$PWD" = "$2" ]; then
