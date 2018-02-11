@@ -100,6 +100,7 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	blocksize := dr.pbdata.Blocksizes[dr.linkPosition]
 	dr.promises[dr.linkPosition] = nil
 	dr.linkPosition++
 
@@ -117,10 +118,8 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 			return ft.ErrInvalidDirLocation
 		case ftpb.Data_File:
 			dr.buf = NewPBFileReader(dr.ctx, nxt, pb, dr.serv)
-			return nil
 		case ftpb.Data_Raw:
 			dr.buf = NewBufDagReader(pb.GetData())
-			return nil
 		case ftpb.Data_Metadata:
 			return errors.New("shouldnt have had metadata object inside file")
 		case ftpb.Data_Symlink:
@@ -131,8 +130,12 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 	default:
 		var err error
 		dr.buf, err = NewDagReader(ctx, nxt, dr.serv)
-		return err
+		if err != nil {
+			return err
+		}
 	}
+	dr.buf = newSizeAdjReadSeekCloser(dr.buf, blocksize)
+	return nil
 }
 
 func getLinkCids(n ipld.Node) []*cid.Cid {
@@ -189,13 +192,13 @@ func (dr *PBDagReader) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 
 // WriteTo writes to the given writer.
 func (dr *PBDagReader) WriteTo(w io.Writer) (int64, error) {
+	// If no cached buffer, load one
 	if dr.buf == nil {
 		if err := dr.precalcNextBuf(dr.ctx); err != nil {
 			return 0, err
 		}
 	}
 
-	// If no cached buffer, load one
 	total := int64(0)
 	for {
 		// Attempt to write bytes from cached buffer

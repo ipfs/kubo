@@ -39,7 +39,7 @@ func (rd *BufDagReader) Offset() int64 {
 	return of
 }
 
-// Size returns the size of the buffer.
+// Size returns the original length of the underlying byte slice.
 func (rd *BufDagReader) Size() uint64 {
 	s := rd.Reader.Size()
 	if s < 0 {
