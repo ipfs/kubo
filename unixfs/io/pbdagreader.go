@@ -100,8 +100,8 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	blocksize := dr.pbdata.Blocksizes[dr.linkPosition]
 	dr.promises[dr.linkPosition] = nil
+	linkPos := dr.linkPosition
 	dr.linkPosition++
 
 	switch nxt := nxt.(type) {
@@ -134,7 +134,12 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 			return err
 		}
 	}
-	dr.buf = newSizeAdjReadSeekCloser(dr.buf, blocksize)
+	// fixme: a unixfs node with links but no Blocksizes is ill
+	//   defined and should be an error condation, but for now allow it
+	//   to avoid breaking things
+	if linkPos < len(dr.pbdata.Blocksizes) {
+		dr.buf = newSizeAdjReadSeekCloser(dr.buf, dr.pbdata.Blocksizes[linkPos])
+	}
 	return nil
 }
 
