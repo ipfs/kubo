@@ -36,6 +36,16 @@ type impl struct {
 }
 
 func (ps *impl) Publish(block blocks.Block) {
+	ps.wg.Add(1)
+	defer ps.wg.Done()
+
+	select {
+	case <-ps.cancel:
+		// Already shutdown, bail.
+		return
+	default:
+	}
+
 	ps.wrapped.Pub(block, block.Cid().KeyString())
 }
 
