@@ -57,6 +57,13 @@ unarchive() {
 	ua_infile="$2"
 	ua_outfile="$3"
 	ua_distname="$4"
+	ua_binpostfix=""
+	ua_os=$(uname -o)
+
+	if [ "$ua_os" = "Msys" ] || [ "$ua_os" = "Cygwin" ] ; then
+	    ua_binpostfix=".exe"
+	fi
+	ua_outfile="$ua_outfile$ua_binpostfix"
 
 	if ! check_writeable "$ua_outfile"; then
 		die "unarchive error: cannot write to $ua_outfile"
@@ -66,7 +73,7 @@ unarchive() {
 		tar.gz)
 			if have_binary tar; then
 				echo "==> using 'tar' to extract binary from archive"
-				< "$ua_infile" tar -Ozxf - "$ua_distname/$ua_distname" > "$ua_outfile" \
+				< "$ua_infile" tar -Ozxf - "$ua_distname/$ua_distname$ua_binpostfix" > "$ua_outfile" \
 					|| die "tar has failed"
 			else
 				die "no binary on system for extracting tar files"
@@ -75,7 +82,7 @@ unarchive() {
 		zip)
 			if have_binary unzip; then
 				echo "==> using 'unzip' to extract binary from archive"
-				unzip -p "$ua_infile" "$ua_distname/$ua_distname" > "$ua_outfile" \
+				unzip -p "$ua_infile" "$ua_distname/$ua_distname$ua_binpostfix" > "$ua_outfile" \
 					|| die "unzip has failed"
 			else
 				die "no installed method for extracting .zip archives"

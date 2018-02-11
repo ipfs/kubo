@@ -11,8 +11,12 @@ DISTCLEAN += $(wildcard $(d)/gx-v*) $(wildcard $(d)/gx-go-v*) $(d)/tmp
 PATH := $(realpath $(d)):$(PATH)
 
 $(TGTS_$(d)):
-	rm -f $@
+	rm -f $@$(?exe)
+ifeq ($(WINDOWS),1)
+	cp $^$(?exe) $@$(?exe)
+else
 	ln -s $(notdir $^) $@
+endif
 
 bin/gx-v%:
 	@echo "installing gx $(@:bin/gx-%=%)"
