@@ -1,17 +1,17 @@
-// Package mock provides a virtual routing server. To use it, create a virtual
-// routing server and use the Client() method to get a routing client
-// (IpfsRouting). The server quacks like a DHT but is really a local in-memory
-// hash table.
+// Package mockrouting provides a virtual routing server. To use it,
+// create a virtual routing server and use the Client() method to get a
+// routing client (IpfsRouting). The server quacks like a DHT but is
+// really a local in-memory hash table.
 package mockrouting
 
 import (
 	"context"
 
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	"gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
 
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	"gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
@@ -42,6 +42,8 @@ func NewServerWithDelay(conf DelayConfig) Server {
 	}
 }
 
+// DelayConfig can be used to configured the fake delays of a mock server.
+// Use with NewServerWithDelay().
 type DelayConfig struct {
 	// ValueVisibility is the time it takes for a value to be visible in the network
 	// FIXME there _must_ be a better term for this
