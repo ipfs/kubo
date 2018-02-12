@@ -1,3 +1,4 @@
+// Package path contains utilities to work with ipfs paths.
 package path
 
 import (
@@ -11,20 +12,29 @@ import (
 // ErrBadPath is returned when a given path is incorrectly formatted
 var ErrBadPath = errors.New("invalid 'ipfs ref' path")
 
-// TODO: debate making this a private struct wrapped in a public interface
-// would allow us to control creation, and cache segments.
+// A Path represents an ipfs content path:
+//   * /<cid>/path/to/file
+//   * /ipfs/<cid>
+//   * /ipns/<cid>/path/to/folder
+//   * etc
 type Path string
 
-// FromString safely converts a string type to a Path type
+// ^^^
+// TODO: debate making this a private struct wrapped in a public interface
+// would allow us to control creation, and cache segments.
+
+// FromString safely converts a string type to a Path type.
 func FromString(s string) Path {
 	return Path(s)
 }
 
-// FromCid safely converts a cid.Cid type to a Path type
+// FromCid safely converts a cid.Cid type to a Path type.
 func FromCid(c *cid.Cid) Path {
 	return Path("/ipfs/" + c.String())
 }
 
+// Segments returns the different elements of a path
+// (elements are delimited by a /).
 func (p Path) Segments() []string {
 	cleaned := path.Clean(string(p))
 	segments := strings.Split(cleaned, "/")
@@ -37,6 +47,7 @@ func (p Path) Segments() []string {
 	return segments
 }
 
+// String converts a path to string.
 func (p Path) String() string {
 	return string(p)
 }
@@ -65,10 +76,16 @@ func (p Path) PopLastSegment() (Path, string, error) {
 	return newPath, segs[len(segs)-1], nil
 }
 
+// FromSegments returns a path given its different segments.
 func FromSegments(prefix string, seg ...string) (Path, error) {
 	return ParsePath(prefix + strings.Join(seg, "/"))
 }
 
+// ParsePath returns a well-formed ipfs Path.
+// The returned path will always be prefixed with /ipfs/ or /ipns/.
+// The prefix will be added if not present in the given string.
+// This function will return an error when the given string is
+// not a valid ipfs path.
 func ParsePath(txt string) (Path, error) {
 	parts := strings.Split(txt, "/")
 	if len(parts) == 1 {
@@ -78,7 +95,7 @@ func ParsePath(txt string) (Path, error) {
 		}
 	}
 
-	// if the path doesnt being with a '/'
+	// if the path doesnt begin with a '/'
 	// we expect this to start with a hash, and be an 'ipfs' path
 	if parts[0] != "" {
 		if _, err := ParseCidToPath(parts[0]); err != nil {
@@ -103,6 +120,7 @@ func ParsePath(txt string) (Path, error) {
 	return Path(txt), nil
 }
 
+// ParseCidToPath takes a CID in string form and returns a valid ipfs Path.
 func ParseCidToPath(txt string) (Path, error) {
 	if txt == "" {
 		return "", ErrNoComponents
@@ -116,15 +134,18 @@ func ParseCidToPath(txt string) (Path, error) {
 	return FromCid(c), nil
 }
 
+// IsValid checks if a path is a valid ipfs Path.
 func (p *Path) IsValid() error {
 	_, err := ParsePath(p.String())
 	return err
 }
 
+// Join joins strings slices using /
 func Join(pths []string) string {
 	return strings.Join(pths, "/")
 }
 
+// SplitList splits strings usings /
 func SplitList(pth string) []string {
 	return strings.Split(pth, "/")
 }
