@@ -42,20 +42,26 @@ func (r *sizeAdjReadSeekCloser) Read(p []byte) (int, error) {
 
 // Seek implements the Seek method as defined by io.Seeker
 func (r *sizeAdjReadSeekCloser) Seek(offset int64, whence int) (int64, error) {
+	newOffset := r.offset
 	switch whence {
 	case io.SeekStart:
-		r.offset = offset
+		newOffset = offset
 	case io.SeekCurrent:
-		r.offset += offset
+		newOffset += offset
 	case io.SeekEnd:
-		r.offset = r.size + offset
+		newOffset = r.size + offset
 	}
-	if r.offset < 0 {
+	if newOffset < 0 {
 		return -1, errors.New("Seek will result in negative position")
 	}
 	// Its easier just to always use io.SeekStart rather than
 	// correctly adjust offset for io.SeekCurrent and io.SeekEnd.
-	return r.base.Seek(r.offset, io.SeekStart)
+	_, err := r.base.Seek(newOffset, io.SeekStart)
+	if err != nil {
+		return -1, err
+	}
+	r.offset = newOffset
+	return r.offset, nil
 }
 
 // Close implements the Close method as defined by io.Closer
