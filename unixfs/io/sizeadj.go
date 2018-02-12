@@ -29,9 +29,6 @@ func (r *sizeAdjReadSeekCloser) Read(p []byte) (int, error) {
 		p = p[:newsize]
 	}
 	n, err := r.base.Read(p)
-	if err == nil {
-		_, err = r.base.Read(nil)
-	}
 	if err != io.EOF { // only pad when we get an EOF
 		r.offset += int64(n)
 		return n, err

@@ -2,20 +2,19 @@ package io
 
 import (
 	"bytes"
-	"io"
+	"io/ioutil"
 	"testing"
 )
 
 func testSizeAdjRead(t *testing.T, gen func() (*sizeAdjReadSeekCloser, []byte)) {
 	r, expected := gen()
-	actual := make([]byte, len(expected)+1) // longer then necessary on purpose
-	n, err := r.Read(actual)
-	if err != nil && err != io.EOF {
+	actual, err := ioutil.ReadAll(r)
+	if err != nil {
 		t.Errorf("write failed: %v", err)
 		return
 	}
-	if n != len(expected) {
-		t.Errorf("n != len(expected); %d != %d", n, len(expected))
+	if len(actual) != len(expected) {
+		t.Errorf("len(actual) != len(expected); %d != %d", len(actual), len(expected))
 	}
 }
 
