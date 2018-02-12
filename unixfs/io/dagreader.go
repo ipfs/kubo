@@ -55,7 +55,7 @@ func NewDagReader(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) (DagRe
 			// Dont allow reading directories
 			return nil, ErrIsDir
 		case ftpb.Data_File, ftpb.Data_Raw:
-			return NewPBFileReader(ctx, n, pb, serv), nil
+			return NewPBFileReader(ctx, n, pb, serv)
 		case ftpb.Data_Metadata:
 			if len(n.Links()) == 0 {
 				return nil, errors.New("incorrectly formatted metadata object")

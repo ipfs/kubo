@@ -62,7 +62,10 @@ func (w *Writer) writeFile(nd *mdag.ProtoNode, pb *upb.Data, fpath string) error
 		return err
 	}
 
-	dagr := uio.NewPBFileReader(w.ctx, nd, pb, w.Dag)
+	dagr, err := uio.NewPBFileReader(w.ctx, nd, pb, w.Dag)
+	if err != nil {
+		return err
+	}
 	if _, err := dagr.WriteTo(w.TarW); err != nil {
 		return err
 	}

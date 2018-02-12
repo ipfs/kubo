@@ -51,19 +51,37 @@ type PBDagReader struct {
 var _ DagReader = (*PBDagReader)(nil)
 
 // NewPBFileReader constructs a new PBFileReader.
-func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv ipld.NodeGetter) *PBDagReader {
-	fctx, cancel := context.WithCancel(ctx)
+func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv ipld.NodeGetter) (*PBDagReader, error) {
 	curLinks := getLinkCids(n)
+	data := pb.GetData()
+
+	// validate
+	if len(curLinks) != len(pb.Blocksizes) {
+		return nil, errors.New("unixfs ill-formed, number of links does not batch blocksize count")
+	}
+	total := uint64(len(data))
+	for _, blocksize := range pb.Blocksizes {
+		total += blocksize
+	}
+	if pb.Filesize == nil {
+		return nil, errors.New("unixfs ill-formed, filesize field missing")
+	}
+	if total != *pb.Filesize {
+		return nil, fmt.Errorf("unixfs ill-formed, actual size of %d does not match size in filesize field (%d)",
+			total, *pb.Filesize)
+	}
+
+	fctx, cancel := context.WithCancel(ctx)
 	return &PBDagReader{
 		node:     n,
 		serv:     serv,
-		buf:      NewBufDagReader(pb.GetData()),
+		buf:      NewBufDagReader(data),
 		promises: make([]*ipld.NodePromise, len(curLinks)),
 		links:    curLinks,
 		ctx:      fctx,
 		cancel:   cancel,
 		pbdata:   pb,
-	}
+	}, nil
 }
 
 const preloadSize = 10
@@ -117,7 +135,11 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 			// A directory should not exist within a file
 			return ft.ErrInvalidDirLocation
 		case ftpb.Data_File:
-			dr.buf = NewPBFileReader(dr.ctx, nxt, pb, dr.serv)
+			buf, err := NewPBFileReader(dr.ctx, nxt, pb, dr.serv)
+			if err != nil {
+				return err
+			}
+			dr.buf = buf
 		case ftpb.Data_Raw:
 			dr.buf = NewBufDagReader(pb.GetData())
 		case ftpb.Data_Metadata:
@@ -134,12 +156,7 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 			return err
 		}
 	}
-	// fixme: a unixfs node with links but no Blocksizes is ill
-	//   defined and should be an error condation, but for now allow it
-	//   to avoid breaking things
-	if linkPos < len(dr.pbdata.Blocksizes) {
-		dr.buf = newSizeAdjReadSeekCloser(dr.buf, dr.pbdata.Blocksizes[linkPos])
-	}
+	dr.buf = newSizeAdjReadSeekCloser(dr.buf, dr.pbdata.Blocksizes[linkPos])
 	return nil
 }
 

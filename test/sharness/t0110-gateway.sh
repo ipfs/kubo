@@ -188,7 +188,7 @@ test_expect_success "Add compact blocks" '
   printf "foofoo" > expected
 '
 
-test_expect_success "GET compact blocks succeeds" '
+test_expect_failure "GET compact blocks succeeds" '
   curl -o actual "http://127.0.0.1:$port/ipfs/$FOO2_HASH" &&
   test_cmp expected actual
 '
