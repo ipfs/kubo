@@ -541,9 +541,15 @@
       "version": "0.0.1"
     },
     {
-      "author": "hector",
+      "author": "hsanjuan",
       "hash": "QmRMGdC6HKdLsPDABL9aXPDidrpmEHzJqFWSvshkbn9Hj8",
       "name": "go-ipfs-flags",
+      "version": "0.0.1"
+    },
+    {
+      "author": "hsanjuan",
+      "hash": "QmdQTPWduSeyveSxeCAte33M592isSW5Z979g81aJphrgn",
+      "name": "go-ipfs-ds-help",
       "version": "0.0.1"
     }
   ],
