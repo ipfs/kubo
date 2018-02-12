@@ -527,6 +527,12 @@
       "hash": "QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq",
       "name": "go-ipfs-chunker",
       "version": "0.0.2"
+    },
+    {
+      "author": "jbenet",
+      "hash": "Qmf7HqcW7LtCi1W8y2bdx2eJpze74jkbKqpByxgXikdbLF",
+      "name": "go-detect-race",
+      "version": "1.0.1"
     }
   ],
   "gxVersion": "0.10.0",
