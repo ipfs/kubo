@@ -1,3 +1,4 @@
+// Package gc provides garbage collection for go-ipfs.
 package gc
 
 import (
@@ -35,7 +36,6 @@ type Result struct {
 //
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
-//
 func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
 
 	elock := log.EventBegin(ctx, "GC.lockWait")
@@ -125,6 +125,9 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	return output
 }
 
+// Descendants recursively finds all the descendants of the given roots and
+// adds them to the given cid.Set, using the provided dag.GetLinks function
+// to walk the tree.
 func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []*cid.Cid) error {
 	for _, c := range roots {
 		set.Add(c)
@@ -191,24 +194,38 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 	return gcs, nil
 }
 
+// ErrCannotFetchAllLinks is returned as the last Result in the GC output
+// channel when there was a error creating the marked set because of a
+// problem when finding descendants.
 var ErrCannotFetchAllLinks = errors.New("garbage collection aborted: could not retrieve some links")
 
+// ErrCannotDeleteSomeBlocks is returned when removing blocks marked for
+// deletion fails as the last Result in GC output channel.
 var ErrCannotDeleteSomeBlocks = errors.New("garbage collection incomplete: could not delete some blocks")
 
+// CannotFetchLinksError provides detailed information about which links
+// could not be fetched and can appear as a Result in the GC output channel.
 type CannotFetchLinksError struct {
 	Key *cid.Cid
 	Err error
 }
 
+// Error implements the error interface for this type with a useful
+// message.
 func (e *CannotFetchLinksError) Error() string {
 	return fmt.Sprintf("could not retrieve links for %s: %s", e.Key, e.Err)
 }
 
+// CannotDeleteBlockError provides detailed information about which
+// blocks could not be deleted and can appear as a Result in the GC output
+// channel.
 type CannotDeleteBlockError struct {
 	Key *cid.Cid
 	Err error
 }
 
+// Error implements the error interface for this type with a
+// useful message.
 func (e *CannotDeleteBlockError) Error() string {
 	return fmt.Sprintf("could not remove %s: %s", e.Key, e.Err)
 }

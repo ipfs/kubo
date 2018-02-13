@@ -1,4 +1,4 @@
-// package pin implements structures and methods to keep track of
+// Package pin implements structures and methods to keep track of
 // which objects a user wants to keep stored locally.
 package pin
 
@@ -43,8 +43,11 @@ const (
 	linkAll       = "all"
 )
 
+// PinMode allows to specify different types of pin (recursive, direct etc.).
+// See the Pin Modes constants for a full list.
 type PinMode int
 
+// Pin Modes
 const (
 	// Recursive pins pin the target cids along with any reachable children.
 	Recursive PinMode = iota
@@ -65,6 +68,7 @@ const (
 	Any
 )
 
+// PinModeToString returns a human-readable name for the PinMode.
 func PinModeToString(mode PinMode) (string, bool) {
 	m := map[PinMode]string{
 		Recursive: linkRecursive,
@@ -78,6 +82,8 @@ func PinModeToString(mode PinMode) (string, bool) {
 	return s, ok
 }
 
+// StringToPinMode parses the result of PinModeToString() back to a PinMode.
+// It returns a boolean which is set to false if the mode is unknown.
 func StringToPinMode(s string) (PinMode, bool) {
 	m := map[string]PinMode{
 		linkRecursive: Recursive,
@@ -92,6 +98,10 @@ func StringToPinMode(s string) (PinMode, bool) {
 	return mode, ok
 }
 
+// A Pinner provides the necessary methods to keep track of Nodes which are
+// to be kept locally, according to a pin mode. In practice, a Pinner is in
+// in charge of keeping the list of items from the local storage that should
+// not be garbaged-collected.
 type Pinner interface {
 	// IsPinned returns whether or not the given cid is pinned
 	// and an explanation of why its pinned
@@ -141,6 +151,10 @@ type Pinner interface {
 	InternalPins() []*cid.Cid
 }
 
+// Pinned represents CID which has been pinned with a pinning strategy.
+// The Via field allows to identify the pinning parent of this CID, in the
+// case that the item is not pinned directly (but rather pinned recursively
+// by some ascendant).
 type Pinned struct {
 	Key  *cid.Cid
 	Mode PinMode
@@ -149,11 +163,7 @@ type Pinned struct {
 
 // Pinned returns whether or not the given cid is pinned
 func (p Pinned) Pinned() bool {
-	if p.Mode == NotPinned {
-		return false
-	} else {
-		return true
-	}
+	return p.Mode != NotPinned
 }
 
 // String Returns pin status as string
@@ -240,6 +250,7 @@ func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 	return nil
 }
 
+// ErrNotPinned is returned when trying to unpin items which are not pinned.
 var ErrNotPinned = fmt.Errorf("not pinned")
 
 // Unpin a given key
@@ -258,9 +269,8 @@ func (p *pinner) Unpin(ctx context.Context, c *cid.Cid, recursive bool) error {
 		if recursive {
 			p.recursePin.Remove(c)
 			return nil
-		} else {
-			return fmt.Errorf("%s is pinned recursively", c)
 		}
+		return fmt.Errorf("%s is pinned recursively", c)
 	case "direct":
 		p.directPin.Remove(c)
 		return nil
