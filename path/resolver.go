@@ -9,14 +9,15 @@ import (
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var log = logging.Logger("path")
 
-// Paths after a protocol must contain at least one component
+// ErrNoComponents is used when Paths after a protocol
+// do not contain at least one component
 var ErrNoComponents = errors.New(
 	"path must contain at least one component")
 
@@ -26,6 +27,8 @@ type ErrNoLink struct {
 	Node *cid.Cid
 }
 
+// Error implements the Error interface for ErrNoLink with a useful
+// human readable message.
 func (e ErrNoLink) Error() string {
 	return fmt.Sprintf("no link named %q under %s", e.Name, e.Node.String())
 }
@@ -35,9 +38,9 @@ func (e ErrNoLink) Error() string {
 // TODO: now that this is more modular, try to unify this code with the
 //       the resolvers in namesys
 type Resolver struct {
-	DAG ipld.DAGService
+	DAG ipld.NodeGetter
 
-	ResolveOnce func(ctx context.Context, ds ipld.DAGService, nd ipld.Node, names []string) (*ipld.Link, []string, error)
+	ResolveOnce func(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error)
 }
 
 // NewBasicResolver constructs a new basic resolver.
@@ -74,6 +77,8 @@ func SplitAbsPath(fpath Path) (*cid.Cid, []string, error) {
 	return c, parts[1:], nil
 }
 
+// ResolveToLastNode walks the given path and returns the ipld.Node
+// referenced by the last element in it.
 func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath Path) (ipld.Node, []string, error) {
 	c, p, err := SplitAbsPath(fpath)
 	if err != nil {
@@ -109,13 +114,13 @@ func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath Path) (ipld.Node
 
 // ResolvePath fetches the node for given path. It returns the last item
 // returned by ResolvePathComponents.
-func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (ipld.Node, error) {
+func (r *Resolver) ResolvePath(ctx context.Context, fpath Path) (ipld.Node, error) {
 	// validate path
 	if err := fpath.IsValid(); err != nil {
 		return nil, err
 	}
 
-	nodes, err := s.ResolvePathComponents(ctx, fpath)
+	nodes, err := r.ResolvePathComponents(ctx, fpath)
 	if err != nil || nodes == nil {
 		return nil, err
 	}
@@ -124,14 +129,14 @@ func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (ipld.Node, erro
 
 // ResolveSingle simply resolves one hop of a path through a graph with no
 // extra context (does not opaquely resolve through sharded nodes)
-func ResolveSingle(ctx context.Context, ds ipld.DAGService, nd ipld.Node, names []string) (*ipld.Link, []string, error) {
+func ResolveSingle(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error) {
 	return nd.ResolveLink(names)
 }
 
 // ResolvePathComponents fetches the nodes for each segment of the given path.
 // It uses the first path component as a hash (key) of the first node, then
 // resolves all other components walking the links, with ResolveLinks.
-func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]ipld.Node, error) {
+func (r *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]ipld.Node, error) {
 	evt := log.EventBegin(ctx, "resolvePathComponents", logging.LoggableMap{"fpath": fpath})
 	defer evt.Done()
 
@@ -142,13 +147,13 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]ipl
 	}
 
 	log.Debug("resolve dag get")
-	nd, err := s.DAG.Get(ctx, h)
+	nd, err := r.DAG.Get(ctx, h)
 	if err != nil {
 		evt.Append(logging.LoggableMap{"error": err.Error()})
 		return nil, err
 	}
 
-	return s.ResolveLinks(ctx, nd, parts)
+	return r.ResolveLinks(ctx, nd, parts)
 }
 
 // ResolveLinks iteratively resolves names by walking the link hierarchy.
@@ -158,7 +163,7 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]ipl
 //
 // ResolveLinks(nd, []string{"foo", "bar", "baz"})
 // would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
-func (s *Resolver) ResolveLinks(ctx context.Context, ndd ipld.Node, names []string) ([]ipld.Node, error) {
+func (r *Resolver) ResolveLinks(ctx context.Context, ndd ipld.Node, names []string) ([]ipld.Node, error) {
 
 	evt := log.EventBegin(ctx, "resolveLinks", logging.LoggableMap{"names": names})
 	defer evt.Done()
@@ -172,7 +177,7 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd ipld.Node, names []stri
 		ctx, cancel = context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 
-		lnk, rest, err := s.ResolveOnce(ctx, s.DAG, nd, names)
+		lnk, rest, err := r.ResolveOnce(ctx, r.DAG, nd, names)
 		if err == dag.ErrLinkNotFound {
 			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return result, ErrNoLink{Name: names[0], Node: nd.Cid()}
@@ -181,7 +186,7 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd ipld.Node, names []stri
 			return result, err
 		}
 
-		nextnode, err := lnk.GetNode(ctx, s.DAG)
+		nextnode, err := lnk.GetNode(ctx, r.DAG)
 		if err != nil {
 			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return result, err

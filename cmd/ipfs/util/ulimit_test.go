@@ -75,7 +75,7 @@ func TestManageFdLimitWithEnvSet(t *testing.T) {
 	}
 
 	setMaxFds()
-	if maxFds != value {
+	if maxFds != uint64(value) {
 		t.Errorf("The maxfds is not set from IPFS_FD_MAX")
 	}
 

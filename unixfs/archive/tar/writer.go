@@ -1,3 +1,5 @@
+// Package tar provides functionality to write a unixfs merkledag
+// as a tar archive.
 package tar
 
 import (
@@ -69,6 +71,7 @@ func (w *Writer) writeFile(nd *mdag.ProtoNode, pb *upb.Data, fpath string) error
 	return nil
 }
 
+// WriteNode adds a node to the archive.
 func (w *Writer) WriteNode(nd ipld.Node, fpath string) error {
 	switch nd := nd.(type) {
 	case *mdag.ProtoNode:
@@ -106,6 +109,7 @@ func (w *Writer) WriteNode(nd ipld.Node, fpath string) error {
 	}
 }
 
+// Close closes the tar writer.
 func (w *Writer) Close() error {
 	return w.TarW.Close()
 }

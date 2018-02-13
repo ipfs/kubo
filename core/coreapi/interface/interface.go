@@ -53,16 +53,55 @@ type Key interface {
 	Path() Path
 }
 
+type BlockStat interface {
+	Size() int
+	Path() Path
+}
+
+// Pin holds information about pinned resource
+type Pin interface {
+	// Path to the pinned object
+	Path() Path
+
+	// Type of the pin
+	Type() string
+}
+
+// PinStatus holds information about pin health
+type PinStatus interface {
+	// Ok indicates whether the pin has been verified to be correct
+	Ok() bool
+
+	// BadNodes returns any bad (usually missing) nodes from the pin
+	BadNodes() []BadPinNode
+}
+
+// BadPinNode is a node that has been marked as bad by Pin.Verify
+type BadPinNode interface {
+	// Path is the path of the node
+	Path() Path
+
+	// Err is the reason why the node has been marked as bad
+	Err() error
+}
+
 // CoreAPI defines an unified interface to IPFS for Go programs.
 type CoreAPI interface {
 	// Unixfs returns an implementation of Unixfs API.
 	Unixfs() UnixfsAPI
+
+	// Block returns an implementation of Block API.
+	Block() BlockAPI
+
 	// Dag returns an implementation of Dag API.
 	Dag() DagAPI
+
 	// Name returns an implementation of Name API.
 	Name() NameAPI
+
 	// Key returns an implementation of Key API.
 	Key() KeyAPI
+	Pin() PinAPI
 
 	// ObjectAPI returns an implementation of Object API
 	Object() ObjectAPI
@@ -85,6 +124,38 @@ type UnixfsAPI interface {
 
 	// Ls returns the list of links in a directory
 	Ls(context.Context, Path) ([]*Link, error)
+}
+
+// BlockAPI specifies the interface to the block layer
+type BlockAPI interface {
+	// Put imports raw block data, hashing it using specified settings.
+	Put(context.Context, io.Reader, ...options.BlockPutOption) (Path, error)
+
+	// WithFormat is an option for Put which specifies the multicodec to use to
+	// serialize the object. Default is "v0"
+	WithFormat(codec string) options.BlockPutOption
+
+	// WithHash is an option for Put which specifies the multihash settings to use
+	// when hashing the object. Default is mh.SHA2_256 (0x12).
+	// If mhLen is set to -1, default length for the hash will be used
+	WithHash(mhType uint64, mhLen int) options.BlockPutOption
+
+	// Get attempts to resolve the path and return a reader for data in the block
+	Get(context.Context, Path) (io.Reader, error)
+
+	// Rm removes the block specified by the path from local blockstore.
+	// By default an error will be returned if the block can't be found locally.
+	//
+	// NOTE: If the specified block is pinned it won't be removed and no error
+	// will be returned
+	Rm(context.Context, Path, ...options.BlockRmOption) error
+
+	// WithForce is an option for Rm which, when set to true, will ignore
+	// non-existing blocks
+	WithForce(force bool) options.BlockRmOption
+
+	// Stat returns information on
+	Stat(context.Context, Path) (BlockStat, error)
 }
 
 // DagAPI specifies the interface to IPLD
@@ -277,6 +348,41 @@ type ObjectStat struct {
 
 	// CumulativeSize is size of the tree (BlockSize + link sizes)
 	CumulativeSize int
+}
+
+// PinAPI specifies the interface to pining
+type PinAPI interface {
+	// Add creates new pin, be default recursive - pinning the whole referenced
+	// tree
+	Add(context.Context, Path, ...options.PinAddOption) error
+
+	// WithRecursive is an option for Add which specifies whether to pin an entire
+	// object tree or just one object. Default: true
+	WithRecursive(bool) options.PinAddOption
+
+	// Ls returns list of pinned objects on this node
+	Ls(context.Context, ...options.PinLsOption) ([]Pin, error)
+
+	// WithType is an option for Ls which allows to specify which pin types should
+	// be returned
+	//
+	// Supported values:
+	// * "direct" - directly pinned objects
+	// * "recursive" - roots of recursive pins
+	// * "indirect" - indirectly pinned objects (referenced by recursively pinned
+	//    objects)
+	// * "all" - all pinned objects (default)
+	WithType(string) options.PinLsOption
+
+	// Rm removes pin for object specified by the path
+	Rm(context.Context, Path) error
+
+	// Update changes one pin to another, skipping checks for matching paths in
+	// the old tree
+	Update(ctx context.Context, from Path, to Path, opts ...options.PinUpdateOption) error
+
+	// Verify verifies the integrity of pinned objects
+	Verify(context.Context) (<-chan PinStatus, error)
 }
 
 var ErrIsDir = errors.New("object is a directory")

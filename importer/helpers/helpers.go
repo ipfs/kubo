@@ -6,8 +6,8 @@ import (
 	"os"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	pi "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -70,7 +70,8 @@ func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
 
-// Set replaces this UnixfsNode with another UnixfsNode
+// Set replaces the current UnixfsNode with another one. It performs
+// a shallow copy.
 func (n *UnixfsNode) Set(other *UnixfsNode) {
 	n.node = other.node
 	n.raw = other.raw
@@ -97,7 +98,7 @@ func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds ipld.DAGService) (*
 
 // AddChild adds the given UnixfsNode as a child of the receiver.
 // The passed in DagBuilderHelper is used to store the child node an
-// pin it locally so it doesnt get lost
+// pin it locally so it doesnt get lost.
 func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	n.ufmt.AddBlockSize(child.FileSize())
 
@@ -118,16 +119,20 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	return err
 }
 
-// RemoveChild removes the child node at the given index
+// RemoveChild deletes the child node at the given index.
 func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 	n.ufmt.RemoveBlockSize(index)
 	n.node.SetLinks(append(n.node.Links()[:index], n.node.Links()[index+1:]...))
 }
 
+// SetData stores data in this node.
 func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
 }
 
+// FileSize returns the total file size of this tree (including children)
+// In the case of raw nodes, it returns the length of the
+// raw data.
 func (n *UnixfsNode) FileSize() uint64 {
 	if n.raw {
 		return uint64(len(n.rawnode.RawData()))
@@ -135,6 +140,8 @@ func (n *UnixfsNode) FileSize() uint64 {
 	return n.ufmt.FileSize()
 }
 
+// SetPosInfo sets information about the offset of the data of this node in a
+// filesystem file.
 func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
 	n.posInfo = &pi.PosInfo{
 		Offset:   offset,
@@ -144,7 +151,7 @@ func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo
 }
 
 // GetDagNode fills out the proper formatting for the unixfs node
-// inside of a DAG node and returns the dag node
+// inside of a DAG node and returns the dag node.
 func (n *UnixfsNode) GetDagNode() (ipld.Node, error) {
 	nd, err := n.getBaseDagNode()
 	if err != nil {

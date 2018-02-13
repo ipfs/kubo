@@ -28,16 +28,19 @@ define go-try-build
 $(GOCC) build $(go-flags-with-tags) -o /dev/null "$(call go-pkg-name,$<)"
 endef
 
+test_go_test: $$(DEPS_GO)
+	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) ./...
+.PHONY: test_go_test
+
 test_go_short: GOTFLAGS += -test.short
-test_go_short: test_go_expensive
+test_go_short: test_go_test
 .PHONY: test_go_short
 
 test_go_race: GOTFLAGS += -race
-test_go_race: test_go_expensive
+test_go_race: test_go_test
 .PHONY: test_go_race
 
-test_go_expensive: $$(TEST_GO_BUILD) $$(DEPS_GO)
-	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) ./...
+test_go_expensive: test_go_test $$(TEST_GO_BUILD)
 .PHONY: test_go_expensive
 TEST_GO += test_go_expensive
 

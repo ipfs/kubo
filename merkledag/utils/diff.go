@@ -11,12 +11,15 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
+// These constants define the changes that can be applied to a DAG.
 const (
 	Add = iota
 	Remove
 	Mod
 )
 
+// Change represents a change to a DAG and contains a reference to the old and
+// new CIDs.
 type Change struct {
 	Type   int
 	Path   string
@@ -24,6 +27,7 @@ type Change struct {
 	After  *cid.Cid
 }
 
+// String prints a human-friendly line about a change.
 func (c *Change) String() string {
 	switch c.Type {
 	case Add:
@@ -102,8 +106,8 @@ func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, e
 	}
 
 	var out []*Change
-	clean_a := a.Copy().(*dag.ProtoNode)
-	clean_b := b.Copy().(*dag.ProtoNode)
+	cleanA := a.Copy().(*dag.ProtoNode)
+	cleanB := b.Copy().(*dag.ProtoNode)
 
 	// strip out unchanged stuff
 	for _, lnk := range a.Links() {
@@ -142,19 +146,19 @@ func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, e
 					out = append(out, subc)
 				}
 			}
-			clean_a.RemoveNodeLink(l.Name)
-			clean_b.RemoveNodeLink(l.Name)
+			cleanA.RemoveNodeLink(l.Name)
+			cleanB.RemoveNodeLink(l.Name)
 		}
 	}
 
-	for _, lnk := range clean_a.Links() {
+	for _, lnk := range cleanA.Links() {
 		out = append(out, &Change{
 			Type:   Remove,
 			Path:   lnk.Name,
 			Before: lnk.Cid,
 		})
 	}
-	for _, lnk := range clean_b.Links() {
+	for _, lnk := range cleanB.Links() {
 		out = append(out, &Change{
 			Type:  Add,
 			Path:  lnk.Name,
@@ -165,11 +169,17 @@ func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, e
 	return out, nil
 }
 
+// Conflict represents two incompatible changes and is returned by MergeDiffs().
 type Conflict struct {
 	A *Change
 	B *Change
 }
 
+// MergeDiffs takes two slice of changes and adds them to a single slice.
+// When a Change from b happens to the same path of an existing change in a,
+// a conflict is created and b is not added to the merged slice.
+// A slice of Conflicts is returned and contains pointers to the
+// Changes involved (which share the same path).
 func MergeDiffs(a, b []*Change) ([]*Change, []Conflict) {
 	var out []*Change
 	var conflicts []Conflict

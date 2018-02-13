@@ -7,13 +7,12 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	dag "github.com/ipfs/go-ipfs/core/commands/dag"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	files "github.com/ipfs/go-ipfs/core/commands/files"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
-	"gx/ipfs/QmPq2D7Yoyev7yeMuMnkEYBqmQuUu5kb91UXPPoiik1Xyp/go-ipfs-cmds"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	"gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
@@ -109,6 +108,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"block":     BlockCmd,
 	"cat":       CatCmd,
 	"commands":  CommandsDaemonCmd,
+	"files":     FilesCmd,
 	"filestore": FileStoreCmd,
 	"get":       GetCmd,
 	"pubsub":    PubsubCmd,
@@ -120,7 +120,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"dht":       lgc.NewCommand(DhtCmd),
 	"diag":      lgc.NewCommand(DiagCmd),
 	"dns":       lgc.NewCommand(DNSCmd),
-	"files":     lgc.NewCommand(files.FilesCmd),
 	"id":        lgc.NewCommand(IDCmd),
 	"key":       lgc.NewCommand(KeyCmd),
 	"log":       lgc.NewCommand(LogCmd),

@@ -1,3 +1,4 @@
+// Package archive provides utilities to archive and compress a [Unixfs] DAG.
 package archive
 
 import (

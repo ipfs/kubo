@@ -8,8 +8,8 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
 	hamt "github.com/ipfs/go-ipfs/unixfs/hamt"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
@@ -25,11 +25,14 @@ var UseHAMTSharding = false
 // DefaultShardWidth is the default value used for hamt sharding width.
 var DefaultShardWidth = 256
 
+// Directory allows to work with UnixFS directory nodes, adding and removing
+// children. It allows to work with different directory schemes,
+// like the classic or the HAMT one.
 type Directory struct {
 	dserv   ipld.DAGService
 	dirnode *mdag.ProtoNode
 
-	shard *hamt.HamtShard
+	shard *hamt.Shard
 }
 
 // NewDirectory returns a Directory. It needs a DAGService to add the Children
@@ -37,7 +40,7 @@ func NewDirectory(dserv ipld.DAGService) *Directory {
 	db := new(Directory)
 	db.dserv = dserv
 	if UseHAMTSharding {
-		s, err := hamt.NewHamtShard(dserv, DefaultShardWidth)
+		s, err := hamt.NewShard(dserv, DefaultShardWidth)
 		if err != nil {
 			panic(err) // will only panic if DefaultShardWidth is a bad value
 		}
@@ -113,7 +116,7 @@ func (d *Directory) AddChild(ctx context.Context, name string, nd ipld.Node) err
 }
 
 func (d *Directory) switchToSharding(ctx context.Context) error {
-	s, err := hamt.NewHamtShard(d.dserv, DefaultShardWidth)
+	s, err := hamt.NewShard(d.dserv, DefaultShardWidth)
 	if err != nil {
 		return err
 	}
@@ -136,6 +139,7 @@ func (d *Directory) switchToSharding(ctx context.Context) error {
 	return nil
 }
 
+// ForEachLink applies the given function to Links in the directory.
 func (d *Directory) ForEachLink(ctx context.Context, f func(*ipld.Link) error) error {
 	if d.shard == nil {
 		for _, l := range d.dirnode.Links() {
@@ -149,6 +153,7 @@ func (d *Directory) ForEachLink(ctx context.Context, f func(*ipld.Link) error) e
 	return d.shard.ForEachLink(ctx, f)
 }
 
+// Links returns the all the links in the directory node.
 func (d *Directory) Links(ctx context.Context) ([]*ipld.Link, error) {
 	if d.shard == nil {
 		return d.dirnode.Links(), nil
@@ -157,6 +162,8 @@ func (d *Directory) Links(ctx context.Context) ([]*ipld.Link, error) {
 	return d.shard.EnumLinks(ctx)
 }
 
+// Find returns the root node of the file named 'name' within this directory.
+// In the case of HAMT-directories, it will traverse the tree.
 func (d *Directory) Find(ctx context.Context, name string) (ipld.Node, error) {
 	if d.shard == nil {
 		lnk, err := d.dirnode.GetNodeLink(name)
@@ -179,6 +186,7 @@ func (d *Directory) Find(ctx context.Context, name string) (ipld.Node, error) {
 	return lnk.GetNode(ctx, d.dserv)
 }
 
+// RemoveChild removes the child with the given name.
 func (d *Directory) RemoveChild(ctx context.Context, name string) error {
 	if d.shard == nil {
 		return d.dirnode.RemoveNodeLink(name)

@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
@@ -16,14 +15,16 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func SizeSplitterGen(size int64) chunk.SplitterGen {
-	return func(r io.Reader) chunk.Splitter {
-		return chunk.NewSizeSplitter(r, size)
+// SizeSplitterGen creates a generator.
+func SizeSplitterGen(size int64) chunker.SplitterGen {
+	return func(r io.Reader) chunker.Splitter {
+		return chunker.NewSizeSplitter(r, size)
 	}
 }
 
@@ -41,10 +42,13 @@ type NodeOpts struct {
 	RawLeavesUsed bool
 }
 
-var UseProtoBufLeaves = NodeOpts{Prefix: mdag.V0CidPrefix()}
-var UseRawLeaves = NodeOpts{Prefix: mdag.V0CidPrefix(), ForceRawLeaves: true, RawLeavesUsed: true}
-var UseCidV1 = NodeOpts{Prefix: mdag.V1CidPrefix(), RawLeavesUsed: true}
-var UseBlake2b256 NodeOpts
+// Some shorthands for NodeOpts.
+var (
+	UseProtoBufLeaves = NodeOpts{Prefix: mdag.V0CidPrefix()}
+	UseRawLeaves      = NodeOpts{Prefix: mdag.V0CidPrefix(), ForceRawLeaves: true, RawLeavesUsed: true}
+	UseCidV1          = NodeOpts{Prefix: mdag.V1CidPrefix(), RawLeavesUsed: true}
+	UseBlake2b256     NodeOpts
+)
 
 func init() {
 	UseBlake2b256 = UseCidV1
@@ -63,7 +67,7 @@ func GetNode(t testing.TB, dserv ipld.DAGService, data []byte, opts NodeOpts) ip
 		RawLeaves: opts.RawLeavesUsed,
 	}
 
-	node, err := trickle.TrickleLayout(dbp.New(SizeSplitterGen(500)(in)))
+	node, err := trickle.Layout(dbp.New(SizeSplitterGen(500)(in)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,6 +92,7 @@ func GetRandomNode(t testing.TB, dserv ipld.DAGService, size int64, opts NodeOpt
 	return buf, node
 }
 
+// ArrComp checks if two byte slices are the same.
 func ArrComp(a, b []byte) error {
 	if len(a) != len(b) {
 		return fmt.Errorf("Arrays differ in length. %d != %d", len(a), len(b))

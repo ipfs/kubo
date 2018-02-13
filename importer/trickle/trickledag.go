@@ -1,3 +1,18 @@
+// Package trickle allows to build trickle DAGs.
+// In this type of DAG, non-leave nodes are first filled
+// with data leaves, and then incorporate "layers" of subtrees
+// as additional links.
+//
+// Each layer is a trickle sub-tree and is limited by an increasing
+// maxinum depth. Thus, the nodes first layer
+// can only hold leaves (depth 1) but subsequent layers can grow deeper.
+// By default, this module places 4 nodes per layer (that is, 4 subtrees
+// of the same maxinum depth before increasing it).
+//
+// Trickle DAGs are very good for sequentially reading data, as the
+// first data leaves are directly reachable from the root and those
+// coming next are always nearby. They are
+// suited for things like streaming applications.
 package trickle
 
 import (
@@ -18,7 +33,10 @@ import (
 // improves seek speeds.
 const layerRepeat = 4
 
-func TrickleLayout(db *h.DagBuilderHelper) (ipld.Node, error) {
+// Layout builds a new DAG with the trickle format using the provided
+// DagBuilderHelper. See the module's description for a more detailed
+// explanation.
+func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
 	root := db.NewUnixfsNode()
 	if err := db.FillNodeLayer(root); err != nil {
 		return nil, err
@@ -68,17 +86,17 @@ func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error
 	return nil
 }
 
-// TrickleAppend appends the data in `db` to the dag, using the Trickledag format
-func TrickleAppend(ctx context.Context, basen ipld.Node, db *h.DagBuilderHelper) (out ipld.Node, err_out error) {
+// Append appends the data in `db` to the dag, using the Trickledag format
+func Append(ctx context.Context, basen ipld.Node, db *h.DagBuilderHelper) (out ipld.Node, errOut error) {
 	base, ok := basen.(*dag.ProtoNode)
 	if !ok {
 		return nil, dag.ErrNotProtobuf
 	}
 
 	defer func() {
-		if err_out == nil {
+		if errOut == nil {
 			if err := db.Close(); err != nil {
-				err_out = err
+				errOut = err
 			}
 		}
 	}()
@@ -148,7 +166,7 @@ func appendFillLastChild(ctx context.Context, ufsn *h.UnixfsNode, depth int, lay
 	}
 
 	// Fill out last child (may not be full tree)
-	nchild, err := trickleAppendRec(ctx, lastChild, db, depth-1)
+	nchild, err := appendRec(ctx, lastChild, db, depth-1)
 	if err != nil {
 		return err
 	}
@@ -179,8 +197,8 @@ func appendFillLastChild(ctx context.Context, ufsn *h.UnixfsNode, depth int, lay
 	return nil
 }
 
-// recursive call for TrickleAppend
-func trickleAppendRec(ctx context.Context, ufsn *h.UnixfsNode, db *h.DagBuilderHelper, depth int) (*h.UnixfsNode, error) {
+// recursive call for Append
+func appendRec(ctx context.Context, ufsn *h.UnixfsNode, db *h.DagBuilderHelper, depth int) (*h.UnixfsNode, error) {
 	if depth == 0 || db.Done() {
 		return ufsn, nil
 	}
@@ -337,7 +355,7 @@ func verifyTDagRec(n ipld.Node, depth int, p VerifyParams) error {
 			// Recursive trickle dags
 			rdepth := ((i - p.Direct) / p.LayerRepeat) + 1
 			if rdepth >= depth && depth > 0 {
-				return errors.New("Child dag was too deep!")
+				return errors.New("child dag was too deep")
 			}
 			err := verifyTDagRec(child, rdepth, p)
 			if err != nil {

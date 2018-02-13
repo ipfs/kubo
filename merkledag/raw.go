@@ -9,6 +9,7 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
+// RawNode represents a node which only contains data.
 type RawNode struct {
 	blocks.Block
 }
@@ -52,22 +53,27 @@ func NewRawNodeWPrefix(data []byte, prefix cid.Prefix) (*RawNode, error) {
 	return &RawNode{blk}, nil
 }
 
+// Links returns nil.
 func (rn *RawNode) Links() []*ipld.Link {
 	return nil
 }
 
+// ResolveLink returns an error.
 func (rn *RawNode) ResolveLink(path []string) (*ipld.Link, []string, error) {
 	return nil, nil, ErrLinkNotFound
 }
 
+// Resolve returns an error.
 func (rn *RawNode) Resolve(path []string) (interface{}, []string, error) {
 	return nil, nil, ErrLinkNotFound
 }
 
+// Tree returns nil.
 func (rn *RawNode) Tree(p string, depth int) []string {
 	return nil
 }
 
+// Copy performs a deep copy of this node and returns it as an ipld.Node
 func (rn *RawNode) Copy() ipld.Node {
 	copybuf := make([]byte, len(rn.RawData()))
 	copy(copybuf, rn.RawData())
@@ -80,10 +86,12 @@ func (rn *RawNode) Copy() ipld.Node {
 	return &RawNode{nblk}
 }
 
+// Size returns the size of this node
 func (rn *RawNode) Size() (uint64, error) {
 	return uint64(len(rn.RawData())), nil
 }
 
+// Stat returns some Stats about this node.
 func (rn *RawNode) Stat() (*ipld.NodeStat, error) {
 	return &ipld.NodeStat{
 		CumulativeSize: len(rn.RawData()),

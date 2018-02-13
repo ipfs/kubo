@@ -102,7 +102,7 @@ func TestSeekAndReadLarge(t *testing.T) {
 		t.Fatal("seeked read failed")
 	}
 
-	pbdr := reader.(*pbDagReader)
+	pbdr := reader.(*PBDagReader)
 	var count int
 	for i, p := range pbdr.promises {
 		if i > 20 && i < 30 {

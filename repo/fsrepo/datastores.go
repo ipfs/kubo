@@ -11,11 +11,12 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 
 	measure "gx/ipfs/QmRhjB5Mnha4k6VH6qRFNabAVkxpbqC7bVw2daMKLHPXXN/go-ds-measure"
-	flatfs "gx/ipfs/QmZrg75SRPcecedozjmtQTPv8iVqx3b5ExHNVdKW3EU7w5/go-ds-flatfs"
+	flatfs "gx/ipfs/QmbHGPnENTUvxBsidRZasYYTFT2DJWYHLpAzcpssSxZupj/go-ds-flatfs"
 
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
 	mount "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/syncmount"
 
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 	badgerds "gx/ipfs/Qmbjb3c2KRPVNZWSvQED8zAf12Brdbp3ksSnGdsJiytqUs/go-ds-badger"
 	levelds "gx/ipfs/Qmbkc8BMfEixGCeKRuGGbf34mAjTb9xPmJ8Pm5gHU7ohZ4/go-ds-leveldb"
@@ -342,6 +343,8 @@ func (c measureDatastoreConfig) Create(path string) (repo.Datastore, error) {
 type badgerdsDatastoreConfig struct {
 	path       string
 	syncWrites bool
+
+	vlogFileSize int64
 }
 
 // BadgerdsDatastoreConfig returns a configuration stub for a badger datastore
@@ -363,6 +366,22 @@ func BadgerdsDatastoreConfig(params map[string]interface{}) (DatastoreConfig, er
 			c.syncWrites = swb
 		} else {
 			return nil, fmt.Errorf("'syncWrites' field was not a boolean")
+		}
+	}
+
+	vls, ok := params["vlogFileSize"]
+	if !ok {
+		// default to 1GiB
+		c.vlogFileSize = badgerds.DefaultOptions.ValueLogFileSize
+	} else {
+		if vlogSize, ok := vls.(string); ok {
+			s, err := humanize.ParseBytes(vlogSize)
+			if err != nil {
+				return nil, err
+			}
+			c.vlogFileSize = int64(s)
+		} else {
+			return nil, fmt.Errorf("'vlogFileSize' field was not a string")
 		}
 	}
 
@@ -389,6 +408,7 @@ func (c *badgerdsDatastoreConfig) Create(path string) (repo.Datastore, error) {
 
 	defopts := badgerds.DefaultOptions
 	defopts.SyncWrites = c.syncWrites
+	defopts.ValueLogFileSize = c.vlogFileSize
 
 	return badgerds.NewDatastore(p, &defopts)
 }

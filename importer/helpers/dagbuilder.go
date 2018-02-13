@@ -5,10 +5,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -18,7 +18,7 @@ import (
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
 	dserv     ipld.DAGService
-	spl       chunk.Splitter
+	spl       chunker.Splitter
 	recvdErr  error
 	rawLeaves bool
 	nextData  []byte // the next item to return.
@@ -29,6 +29,8 @@ type DagBuilderHelper struct {
 	prefix    *cid.Prefix
 }
 
+// DagBuilderParams wraps configuration options to create a DagBuilderHelper
+// from a chunker.Splitter.
 type DagBuilderParams struct {
 	// Maximum number of links per intermediate node
 	Maxlinks int
@@ -48,9 +50,9 @@ type DagBuilderParams struct {
 	NoCopy bool
 }
 
-// Generate a new DagBuilderHelper from the given params, which data source comes
-// from chunks object
-func (dbp *DagBuilderParams) New(spl chunk.Splitter) *DagBuilderHelper {
+// New generates a new DagBuilderHelper from the given params and a given
+// chunker.Splitter as data source.
+func (dbp *DagBuilderParams) New(spl chunker.Splitter) *DagBuilderHelper {
 	db := &DagBuilderHelper{
 		dserv:     dbp.Dagserv,
 		spl:       spl,
@@ -94,16 +96,15 @@ func (db *DagBuilderHelper) Done() bool {
 
 // Next returns the next chunk of data to be inserted into the dag
 // if it returns nil, that signifies that the stream is at an end, and
-// that the current building operation should finish
+// that the current building operation should finish.
 func (db *DagBuilderHelper) Next() ([]byte, error) {
 	db.prepareNext() // idempotent
 	d := db.nextData
 	db.nextData = nil // signal we've consumed it
 	if db.recvdErr != nil {
 		return nil, db.recvdErr
-	} else {
-		return d, nil
 	}
+	return d, nil
 }
 
 // GetDagServ returns the dagservice object this Helper is using
@@ -132,8 +133,7 @@ func (db *DagBuilderHelper) newUnixfsBlock() *UnixfsNode {
 }
 
 // FillNodeLayer will add datanodes as children to the give node until
-// at most db.indirSize ndoes are added
-//
+// at most db.indirSize nodes are added.
 func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 
 	// while we have room AND we're not done
@@ -151,6 +151,9 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 	return nil
 }
 
+// GetNextDataNode builds a UnixFsNode with the data obtained from the
+// Splitter, given the constraints (BlockSizeLimit, RawLeaves) specified
+// when creating the DagBuilderHelper.
 func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 	data, err := db.Next()
 	if err != nil {
@@ -171,29 +174,31 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 				rawnode: dag.NewRawNode(data),
 				raw:     true,
 			}, nil
-		} else {
-			rawnode, err := dag.NewRawNodeWPrefix(data, *db.prefix)
-			if err != nil {
-				return nil, err
-			}
-			return &UnixfsNode{
-				rawnode: rawnode,
-				raw:     true,
-			}, nil
 		}
-	} else {
-		blk := db.newUnixfsBlock()
-		blk.SetData(data)
-		return blk, nil
+		rawnode, err := dag.NewRawNodeWPrefix(data, *db.prefix)
+		if err != nil {
+			return nil, err
+		}
+		return &UnixfsNode{
+			rawnode: rawnode,
+			raw:     true,
+		}, nil
 	}
+
+	blk := db.newUnixfsBlock()
+	blk.SetData(data)
+	return blk, nil
 }
 
+// SetPosInfo sets the offset information of a node using the fullpath and stat
+// from the DagBuilderHelper.
 func (db *DagBuilderHelper) SetPosInfo(node *UnixfsNode, offset uint64) {
 	if db.fullPath != "" {
 		node.SetPosInfo(offset, db.fullPath, db.stat)
 	}
 }
 
+// Add sends a node to the DAGService, and returns it.
 func (db *DagBuilderHelper) Add(node *UnixfsNode) (ipld.Node, error) {
 	dn, err := node.GetDagNode()
 	if err != nil {
@@ -208,10 +213,15 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (ipld.Node, error) {
 	return dn, nil
 }
 
+// Maxlinks returns the configured maximum number for links
+// for nodes built with this helper.
 func (db *DagBuilderHelper) Maxlinks() int {
 	return db.maxlinks
 }
 
+// Close has the DAGServce perform a batch Commit operation.
+// It should be called at the end of the building process to make
+// sure all data is persisted.
 func (db *DagBuilderHelper) Close() error {
 	return db.batch.Commit()
 }

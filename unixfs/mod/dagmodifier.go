@@ -1,26 +1,31 @@
+// Package mod provides DAG modification utilities to, for example,
+// insert additional nodes in a unixfs DAG or truncate them.
 package mod
 
 import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-var ErrSeekFail = errors.New("failed to seek properly")
-var ErrUnrecognizedWhence = errors.New("unrecognized whence")
+// Common errors
+var (
+	ErrSeekFail           = errors.New("failed to seek properly")
+	ErrUnrecognizedWhence = errors.New("unrecognized whence")
+	ErrNotUnixfs          = errors.New("dagmodifier only supports unixfs nodes (proto or raw)")
+)
 
 // 2MB
 var writebufferSize = 1 << 21
@@ -32,7 +37,7 @@ type DagModifier struct {
 	dagserv ipld.DAGService
 	curNode ipld.Node
 
-	splitter   chunk.SplitterGen
+	splitter   chunker.SplitterGen
 	ctx        context.Context
 	readCancel func()
 
@@ -46,13 +51,11 @@ type DagModifier struct {
 	read uio.DagReader
 }
 
-var ErrNotUnixfs = fmt.Errorf("dagmodifier only supports unixfs nodes (proto or raw)")
-
 // NewDagModifier returns a new DagModifier, the Cid prefix for newly
 // created nodes will be inherted from the passed in node.  If the Cid
 // version if not 0 raw leaves will also be enabled.  The Prefix and
 // RawLeaves options can be overridden by changing them after the call.
-func NewDagModifier(ctx context.Context, from ipld.Node, serv ipld.DAGService, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from ipld.Node, serv ipld.DAGService, spl chunker.SplitterGen) (*DagModifier, error) {
 	switch from.(type) {
 	case *mdag.ProtoNode, *mdag.RawNode:
 		// ok
@@ -123,7 +126,7 @@ func (zr zeroReader) Read(b []byte) (int, error) {
 // A small blocksize is chosen to aid in deduplication
 func (dm *DagModifier) expandSparse(size int64) error {
 	r := io.LimitReader(zeroReader{}, size)
-	spl := chunk.NewSizeSplitter(r, 4096)
+	spl := chunker.NewSizeSplitter(r, 4096)
 	nnode, err := dm.appendData(dm.curNode, spl)
 	if err != nil {
 		return err
@@ -353,7 +356,7 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*c
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(nd ipld.Node, spl chunk.Splitter) (ipld.Node, error) {
+func (dm *DagModifier) appendData(nd ipld.Node, spl chunker.Splitter) (ipld.Node, error) {
 	switch nd := nd.(type) {
 	case *mdag.ProtoNode, *mdag.RawNode:
 		dbp := &help.DagBuilderParams{
@@ -362,7 +365,7 @@ func (dm *DagModifier) appendData(nd ipld.Node, spl chunk.Splitter) (ipld.Node, 
 			Prefix:    &dm.Prefix,
 			RawLeaves: dm.RawLeaves,
 		}
-		return trickle.TrickleAppend(dm.ctx, nd, dbp.New(spl))
+		return trickle.Append(dm.ctx, nd, dbp.New(spl))
 	default:
 		return nil, ErrNotUnixfs
 	}
@@ -412,7 +415,7 @@ func (dm *DagModifier) readPrep() error {
 	return nil
 }
 
-// Read data from this dag starting at the current offset
+// CtxReadFull reads data from this dag starting at the current offset
 func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 	err := dm.readPrep()
 	if err != nil {
@@ -438,6 +441,8 @@ func (dm *DagModifier) HasChanges() bool {
 	return dm.wrBuf != nil
 }
 
+// Seek modifies the offset according to whence. See unixfs/io for valid whence
+// values.
 func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 	err := dm.Sync()
 	if err != nil {
@@ -479,6 +484,8 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 	return int64(dm.curWrOff), nil
 }
 
+// Truncate truncates the current Node to 'size' and replaces it with the
+// new one.
 func (dm *DagModifier) Truncate(size int64) error {
 	err := dm.Sync()
 	if err != nil {
