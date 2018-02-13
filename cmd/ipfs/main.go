@@ -452,7 +452,7 @@ func getApiClient(repoPath, apiAddrStr string) (http.Client, error) {
 			return nil, err
 		}
 		if len(addr.Protocols()) == 0 {
-			return nil, fmt.Errorf("mulitaddr doesn't provide any protocols")
+			return nil, fmt.Errorf("multiaddr doesn't provide any protocols")
 		}
 	} else {
 		addr, err = fsrepo.APIAddr(repoPath)
