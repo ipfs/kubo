@@ -36,7 +36,7 @@ var helloStr = "hello, world!"
 var emptyDir = coreapi.ResolvedPath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn", nil, nil)
 
 // `echo -n | ipfs add`
-var emptyFile = coreapi.ResolvedPath("/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH", nil, nil)
+var emptyFile = coreapi.ResolvedPath("/ipfs/Qmdsf68UUYTSSx3i4GtDJfxzpAEZt7Mp23m3qa36LYMSiW", nil, nil)
 
 func makeAPIIdent(ctx context.Context, fullIdentity bool) (*core.IpfsNode, coreiface.CoreAPI, error) {
 	var ident config.Identity

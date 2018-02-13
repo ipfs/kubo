@@ -14,7 +14,7 @@ test_launch_ipfs_daemon --writable
 test_expect_success "ipfs daemon --writable overrides config" '
   curl -v -X POST http://$GWAY_ADDR/ipfs/ 2> outfile &&
   grep "HTTP/1.1 201 Created" outfile &&
-  grep "Location: /ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH" outfile
+  grep "Location: /ipfs/Qmdsf68UUYTSSx3i4GtDJfxzpAEZt7Mp23m3qa36LYMSiW" outfile
 '
 test_kill_ipfs_daemon
 
