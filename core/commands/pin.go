@@ -494,7 +494,7 @@ type RefKeyList struct {
 
 func pinLsKeys(args []string, typeStr string, ctx context.Context, n *core.IpfsNode) (map[string]RefKeyObject, error) {
 
-	mode, ok := pin.StringToPinMode(typeStr)
+	mode, ok := pin.StringToMode(typeStr)
 	if !ok {
 		return nil, fmt.Errorf("invalid pin mode '%s'", typeStr)
 	}
