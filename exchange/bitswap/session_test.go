@@ -285,3 +285,36 @@ func TestMultipleSessions(t *testing.T) {
 	}
 	_ = blkch
 }
+
+func TestWantlistClearsOnCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	vnet := getVirtualNetwork()
+	sesgen := NewTestSessionGenerator(vnet)
+	defer sesgen.Close()
+	bgen := blocksutil.NewBlockGenerator()
+
+	blks := bgen.Blocks(10)
+	var cids []*cid.Cid
+	for _, blk := range blks {
+		cids = append(cids, blk.Cid())
+	}
+
+	inst := sesgen.Instances(1)
+
+	a := inst[0]
+
+	ctx1, cancel1 := context.WithCancel(ctx)
+	ses := a.Exchange.NewSession(ctx1)
+
+	_, err := ses.GetBlocks(ctx, cids)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel1()
+
+	if len(a.Exchange.GetWantlist()) > 0 {
+		t.Fatal("expected empty wantlist")
+	}
+}

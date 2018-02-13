@@ -50,7 +50,7 @@ type Exportable interface {
 
 type impl struct {
 	full     bool
-	wantlist map[string]Entry
+	wantlist map[string]*Entry
 	blocks   map[string]blocks.Block
 }
 
@@ -61,7 +61,7 @@ func New(full bool) BitSwapMessage {
 func newMsg(full bool) *impl {
 	return &impl{
 		blocks:   make(map[string]blocks.Block),
-		wantlist: make(map[string]Entry),
+		wantlist: make(map[string]*Entry),
 		full:     full,
 	}
 }
@@ -122,7 +122,7 @@ func (m *impl) Empty() bool {
 func (m *impl) Wantlist() []Entry {
 	out := make([]Entry, 0, len(m.wantlist))
 	for _, e := range m.wantlist {
-		out = append(out, e)
+		out = append(out, *e)
 	}
 	return out
 }
@@ -151,7 +151,7 @@ func (m *impl) addEntry(c *cid.Cid, priority int, cancel bool) {
 		e.Priority = priority
 		e.Cancel = cancel
 	} else {
-		m.wantlist[k] = Entry{
+		m.wantlist[k] = &Entry{
 			Entry: &wantlist.Entry{
 				Cid:      c,
 				Priority: priority,

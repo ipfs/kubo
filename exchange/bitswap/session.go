@@ -83,6 +83,15 @@ func (bs *Bitswap) NewSession(ctx context.Context) *Session {
 }
 
 func (bs *Bitswap) removeSession(s *Session) {
+	s.notif.Shutdown()
+
+	live := make([]*cid.Cid, 0, len(s.liveWants))
+	for c := range s.liveWants {
+		cs, _ := cid.Cast([]byte(c))
+		live = append(live, cs)
+	}
+	bs.CancelWants(live, s.id)
+
 	bs.sessLk.Lock()
 	defer bs.sessLk.Unlock()
 	for i := 0; i < len(bs.sessions); i++ {
@@ -270,8 +279,9 @@ func (s *Session) receiveBlock(ctx context.Context, blk blocks.Block) {
 }
 
 func (s *Session) wantBlocks(ctx context.Context, ks []*cid.Cid) {
+	now := time.Now()
 	for _, c := range ks {
-		s.liveWants[c.KeyString()] = time.Now()
+		s.liveWants[c.KeyString()] = now
 	}
 	s.bs.wm.WantBlocks(ctx, ks, s.activePeersArr, s.id)
 }
