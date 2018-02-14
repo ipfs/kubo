@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -150,6 +151,8 @@ func TestInvalidKeyFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	defer os.RemoveAll(tdir)
 
 	ks, err := NewFSKeystore(tdir)
 	if err != nil {
