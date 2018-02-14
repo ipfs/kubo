@@ -161,7 +161,7 @@ func (ks *FSKeystore) List() ([]string, error) {
 		return nil, err
 	}
 
-	list := make([]string, 0)
+	list := make([]string, 0, len(dirs))
 
 	for _, name := range dirs {
 		err := validateName(name)
