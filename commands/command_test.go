@@ -3,7 +3,7 @@ package commands
 import (
 	"testing"
 
-	cmds "gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
+	cmds "gx/ipfs/QmThbLnhFE44NPR4obRJyZH4ABS9JFdfZxvhopFEyeAwRU/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
