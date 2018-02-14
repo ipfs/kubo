@@ -77,6 +77,10 @@ func (ks *FSKeystore) Has(name string) (bool, error) {
 		return false, err
 	}
 
+	if err := validateName(name); err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
@@ -149,5 +153,19 @@ func (ks *FSKeystore) List() ([]string, error) {
 		return nil, err
 	}
 
-	return dir.Readdirnames(0)
+	dirs, err := dir.Readdirnames(0)
+	if err != nil {
+		return nil, err
+	}
+
+	var list []string
+
+	for _, name := range dirs {
+		err := validateName(name)
+		if err == nil {
+			list = append(list, name)
+		}
+	}
+
+	return list, err
 }
