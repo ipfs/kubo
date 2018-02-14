@@ -7,8 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
+
+var log = logging.Logger("keystore")
 
 // Keystore provides a key management interface
 type Keystore interface {
@@ -158,14 +161,16 @@ func (ks *FSKeystore) List() ([]string, error) {
 		return nil, err
 	}
 
-	var list []string
+	list := make([]string, 0)
 
 	for _, name := range dirs {
 		err := validateName(name)
 		if err == nil {
 			list = append(list, name)
+		} else {
+			log.Warningf("Ignoring the invalid keyfile: %s", name)
 		}
 	}
 
-	return list, err
+	return list, nil
 }
