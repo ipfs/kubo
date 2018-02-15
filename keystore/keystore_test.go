@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"sort"
 	"testing"
 
@@ -139,6 +141,64 @@ func TestKeystoreBasics(t *testing.T) {
 	}
 
 	if err := ks.Put(".foo", k1); err == nil {
+		t.Fatal("shouldnt be able to put a key with a 'hidden' name")
+	}
+}
+
+func TestInvalidKeyFiles(t *testing.T) {
+	tdir, err := ioutil.TempDir("", "keystore-test")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.RemoveAll(tdir)
+
+	ks, err := NewFSKeystore(tdir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	key := privKeyOrFatal(t)
+
+	bytes, err := key.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(ks.dir, "valid"), bytes, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(ks.dir, ".invalid"), bytes, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	l, err := ks.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sort.Strings(l)
+	if len(l) != 1 {
+		t.Fatal("wrong entry count")
+	}
+
+	if l[0] != "valid" {
+		t.Fatal("wrong entries listed")
+	}
+
+	exist, err := ks.Has("valid")
+	if !exist {
+		t.Fatal("should know it has a key named valid")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if exist, err = ks.Has(".invalid"); err == nil {
 		t.Fatal("shouldnt be able to put a key with a 'hidden' name")
 	}
 }
