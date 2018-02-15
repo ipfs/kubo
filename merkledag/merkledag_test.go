@@ -133,7 +133,7 @@ func TestBatchFetchDupBlock(t *testing.T) {
 func makeTestDAG(t *testing.T, read io.Reader, ds ipld.DAGService) ipld.Node {
 	p := make([]byte, 512)
 	nodes := []*ProtoNode{}
-	var err error = nil
+	var err error
 	_, err = read.Read(p)
 	for err == nil {
 		protoNode := NodeWithData(p)
