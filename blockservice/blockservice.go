@@ -10,7 +10,6 @@ import (
 	"io"
 
 	exchange "github.com/ipfs/go-ipfs/exchange"
-	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	blockstore "gx/ipfs/QmTVDM4LCSUMFNQzbDLL9zQwp8usE6QHymFdh3h8vL9v6b/go-ipfs-blockstore"
@@ -107,19 +106,22 @@ func (s *blockService) Exchange() exchange.Interface {
 	return s.exchange
 }
 
-// NewSession creates a bitswap session that allows for controlled exchange of
-// wantlists to decrease the bandwidth overhead.
+// NewSession creates a new session that allows for
+// controlled exchange of wantlists to decrease the bandwidth overhead.
+// If the current exchange is a SessionExchange, a new exchange
+// session will be created. Otherwise, the current exchange will be used
+// directly.
 func NewSession(ctx context.Context, bs BlockService) *Session {
-	exchange := bs.Exchange()
-	if bswap, ok := exchange.(*bitswap.Bitswap); ok {
-		ses := bswap.NewSession(ctx)
+	exch := bs.Exchange()
+	if sessEx, ok := exch.(exchange.SessionExchange); ok {
+		ses := sessEx.NewSession(ctx)
 		return &Session{
 			ses: ses,
 			bs:  bs.Blockstore(),
 		}
 	}
 	return &Session{
-		ses: exchange,
+		ses: exch,
 		bs:  bs.Blockstore(),
 	}
 }
