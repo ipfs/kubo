@@ -548,6 +548,12 @@
     },
     {
       "author": "hsanjuan",
+      "hash": "QmZUbTDJ39JpvtFCSubiWeUTQRvMA1tVE5RZCJrY4oeAsC",
+      "name": "go-ipfs-pq",
+      "version": "0.0.1"
+    },
+    {
+      "author": "hsanjuan",
       "hash": "QmdQTPWduSeyveSxeCAte33M592isSW5Z979g81aJphrgn",
       "name": "go-ipfs-ds-help",
       "version": "0.0.1"
