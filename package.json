@@ -563,6 +563,12 @@
       "hash": "QmTVDM4LCSUMFNQzbDLL9zQwp8usE6QHymFdh3h8vL9v6b",
       "name": "go-ipfs-blockstore",
       "version": "0.0.1"
+    },
+    {
+      "author": "why",
+      "hash": "QmdbxjQWogRCHRaxhhGnYdT1oQJzL9GdqSKzCdqWr85AP2",
+      "name": "pubsub",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.10.0",
