@@ -43,7 +43,7 @@ Follows an IPNS name by periodically resolving in the backround.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("pin", "Recursively pin the resolved pointer"),
-		cmdkit.StringOption("refresh-interval", "Follow refresh interval."),
+		cmdkit.StringOption("refresh-interval", "Follow refresh interval; defaults to 1hr."),
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -66,10 +66,8 @@ Follows an IPNS name by periodically resolving in the backround.
 			return
 		}
 
-		var refr time.Duration
-		if refrS == "" {
-			refr = nc.DefaultFollowInterval
-		} else {
+		refr := nc.DefaultFollowInterval
+		if refrS != "" {
 			refr, err = time.ParseDuration(refrS)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)

@@ -289,7 +289,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	ipnsps, _ := req.Options[enableIPNSPubSubKwd].(bool)
 	pubsub, _ := req.Options[enablePubSubKwd].(bool)
 	mplex, _ := req.Options[enableMultiplexKwd].(bool)
-	follow, _ := req.Option(enableFollowKwd).Bool()
+	follow, _ := req.Options[enableFollowKwd].(bool)
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{

@@ -29,8 +29,8 @@ var log = logging.Logger("namecache")
 
 // NameCache represents a following cache of names
 type NameCache interface {
-	// Follow starts following name, pinning it if pinit is true
-	Follow(name string, pinit bool, followInterval time.Duration) error
+	// Follow starts following name, pinning it if dopin is true
+	Follow(name string, dopin bool, followInterval time.Duration) error
 	// Unofollow cancels a follow
 	Unfollow(name string) error
 	// ListFollows returns a list of followed names
@@ -40,7 +40,7 @@ type NameCache interface {
 type nameCache struct {
 	nsys    namesys.NameSystem
 	pinning pin.Pinner
-	dag     ipld.DAGService
+	dag     ipld.NodeGetter
 	bstore  bstore.GCBlockstore
 
 	ctx     context.Context
@@ -48,7 +48,7 @@ type nameCache struct {
 	mx      sync.Mutex
 }
 
-func NewNameCache(ctx context.Context, nsys namesys.NameSystem, pinning pin.Pinner, dag ipld.DAGService, bstore bstore.GCBlockstore) NameCache {
+func NewNameCache(ctx context.Context, nsys namesys.NameSystem, pinning pin.Pinner, dag ipld.NodeGetter, bstore bstore.GCBlockstore) NameCache {
 	return &nameCache{
 		ctx:     ctx,
 		nsys:    nsys,
@@ -60,8 +60,8 @@ func NewNameCache(ctx context.Context, nsys namesys.NameSystem, pinning pin.Pinn
 }
 
 // Follow spawns a goroutine that periodically resolves a name
-// and (when pinit is true) pins it in the background
-func (nc *nameCache) Follow(name string, pinit bool, followInterval time.Duration) error {
+// and (when dopin is true) pins it in the background
+func (nc *nameCache) Follow(name string, dopin bool, followInterval time.Duration) error {
 	nc.mx.Lock()
 	defer nc.mx.Unlock()
 
@@ -74,7 +74,7 @@ func (nc *nameCache) Follow(name string, pinit bool, followInterval time.Duratio
 	}
 
 	ctx, cancel := context.WithCancel(nc.ctx)
-	go nc.followName(ctx, name, pinit, followInterval)
+	go nc.followName(ctx, name, dopin, followInterval)
 	nc.follows[name] = cancel
 
 	return nil
@@ -112,10 +112,10 @@ func (nc *nameCache) ListFollows() []string {
 	return follows
 }
 
-func (nc *nameCache) followName(ctx context.Context, name string, pinit bool, followInterval time.Duration) {
+func (nc *nameCache) followName(ctx context.Context, name string, dopin bool, followInterval time.Duration) {
 	// if cid != nil, we have created a new pin that is updated on changes and
 	// unpinned on cancel
-	c, err := nc.resolveAndPin(ctx, name, pinit)
+	c, err := nc.resolveAndPin(ctx, name, dopin)
 	if err != nil {
 		log.Errorf("Error following %s: %s", name, err.Error())
 	}
@@ -129,7 +129,7 @@ func (nc *nameCache) followName(ctx context.Context, name string, pinit bool, fo
 			if c != cid.Undef {
 				c, err = nc.resolveAndUpdate(ctx, name, c)
 			} else {
-				c, err = nc.resolveAndPin(ctx, name, pinit)
+				c, err = nc.resolveAndPin(ctx, name, dopin)
 			}
 
 			if err != nil {
@@ -148,13 +148,13 @@ func (nc *nameCache) followName(ctx context.Context, name string, pinit bool, fo
 	}
 }
 
-func (nc *nameCache) resolveAndPin(ctx context.Context, name string, pinit bool) (cid.Cid, error) {
+func (nc *nameCache) resolveAndPin(ctx context.Context, name string, dopin bool) (cid.Cid, error) {
 	ptr, err := nc.resolve(ctx, name)
 	if err != nil {
 		return cid.Undef, err
 	}
 
-	if !pinit {
+	if !dopin {
 		return cid.Undef, nil
 	}
 
@@ -187,34 +187,34 @@ func (nc *nameCache) resolveAndPin(ctx context.Context, name string, pinit bool)
 	return c, err
 }
 
-func (nc *nameCache) resolveAndUpdate(ctx context.Context, name string, c cid.Cid) (cid.Cid, error) {
+func (nc *nameCache) resolveAndUpdate(ctx context.Context, name string, oldcid cid.Cid) (cid.Cid, error) {
 
 	ptr, err := nc.resolve(ctx, name)
 	if err != nil {
 		return cid.Undef, err
 	}
 
-	ncid, err := pathToCid(ptr)
+	newcid, err := pathToCid(ptr)
 	if err != nil {
 		return cid.Undef, err
 	}
 
-	if ncid.Equals(c) {
-		return c, nil
+	if newcid.Equals(oldcid) {
+		return oldcid, nil
 	}
 
 	defer nc.bstore.PinLock().Unlock()
 
-	log.Debugf("Updating pin %s -> %s", c.String(), ncid.String())
+	log.Debugf("Updating pin %s -> %s", oldcid.String(), newcid.String())
 
-	err = nc.pinning.Update(ctx, c, ncid, true)
+	err = nc.pinning.Update(ctx, oldcid, newcid, true)
 	if err != nil {
-		return c, err
+		return oldcid, err
 	}
 
 	err = nc.pinning.Flush()
 
-	return ncid, err
+	return newcid, err
 }
 
 func (nc *nameCache) unpin(cid cid.Cid) error {

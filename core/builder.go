@@ -256,7 +256,11 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 
 	if cfg.Online {
 		do := setupDiscoveryOption(rcfg.Discovery)
-		if err := n.startOnlineServices(ctx, cfg.Routing, hostOption, do, cfg.getOpt("pubsub"), cfg.getOpt("ipnsps"), cfg.getOpt("mplex"), cfg.getOpt("follow")); err != nil {
+		pubsub := cfg.getOpt("pubsub")
+		ipnsps := cfg.getOpt("ipnsps")
+		mplex := cfg.getOpt("mplex")
+		follow := cfg.getOpt("follow")
+		if err := n.startOnlineServices(ctx, cfg.Routing, hostOption, do, pubsub, ipnsps, mplex, follow); err != nil {
 			return err
 		}
 	} else {
