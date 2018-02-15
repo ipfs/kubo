@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	util "github.com/ipfs/go-ipfs/blocks/blockstore/util"
+	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	"gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
