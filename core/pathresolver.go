@@ -7,6 +7,7 @@ import (
 
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -21,7 +22,7 @@ var ErrNoNamesys = errors.New(
 // Resolve resolves the given path by parsing out protocol-specific
 // entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
 // entries and returning the final node.
-func Resolve(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p path.Path) (ipld.Node, error) {
+func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (ipld.Node, error) {
 	if strings.HasPrefix(p.String(), "/ipns/") {
 		evt := log.EventBegin(ctx, "resolveIpnsPath")
 		defer evt.Done()
@@ -70,7 +71,7 @@ func Resolve(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p p
 // It first checks if the path is already in the form of just a cid (<cid> or
 // /ipfs/<cid>) and returns immediately if so. Otherwise, it falls back onto
 // Resolve to perform resolution of the dagnode being referenced.
-func ResolveToCid(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p path.Path) (*cid.Cid, error) {
+func ResolveToCid(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (*cid.Cid, error) {
 
 	// If the path is simply a cid, parse and return it. Parsed paths are already
 	// normalized (read: prepended with /ipfs/ if needed), so segment[1] should

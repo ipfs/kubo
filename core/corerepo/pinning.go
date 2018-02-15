@@ -19,6 +19,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -27,7 +28,7 @@ import (
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
 	out := make([]*cid.Cid, len(paths))
 
-	r := &path.Resolver{
+	r := &resolver.Resolver{
 		DAG:         n.DAG,
 		ResolveOnce: uio.ResolveUnixfsOnce,
 	}
@@ -60,7 +61,7 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
 	unpinned := make([]*cid.Cid, len(paths))
 
-	r := &path.Resolver{
+	r := &resolver.Resolver{
 		DAG:         n.DAG,
 		ResolveOnce: uio.ResolveUnixfsOnce,
 	}

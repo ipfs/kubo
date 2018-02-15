@@ -13,7 +13,7 @@ import (
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
@@ -230,7 +230,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		// this is kinda sketchy and could cause data loss
 		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG, internalDag)
 	}
-	n.Resolver = path.NewBasicResolver(n.DAG)
+	n.Resolver = resolver.NewBasicResolver(n.DAG)
 
 	if cfg.Online {
 		if err := n.startLateOnlineServices(ctx); err != nil {

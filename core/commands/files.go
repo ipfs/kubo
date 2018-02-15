@@ -19,6 +19,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -352,7 +353,7 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, p string) (ipld.N
 			return nil, err
 		}
 
-		resolver := &path.Resolver{
+		resolver := &resolver.Resolver{
 			DAG:         node.DAG,
 			ResolveOnce: uio.ResolveUnixfsOnce,
 		}

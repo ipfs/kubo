@@ -9,8 +9,15 @@ import (
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
-// ErrBadPath is returned when a given path is incorrectly formatted
-var ErrBadPath = errors.New("invalid 'ipfs ref' path")
+var (
+	// ErrBadPath is returned when a given path is incorrectly formatted
+	ErrBadPath = errors.New("invalid 'ipfs ref' path")
+
+	// ErrNoComponents is used when Paths after a protocol
+	// do not contain at least one component
+	ErrNoComponents = errors.New(
+		"path must contain at least one component")
+)
 
 // A Path represents an ipfs content path:
 //   * /<cid>/path/to/file
@@ -148,4 +155,26 @@ func Join(pths []string) string {
 // SplitList splits strings usings /
 func SplitList(pth string) []string {
 	return strings.Split(pth, "/")
+}
+
+// SplitAbsPath clean up and split fpath. It extracts the first component (which
+// must be a Multihash) and return it separately.
+func SplitAbsPath(fpath Path) (*cid.Cid, []string, error) {
+	parts := fpath.Segments()
+	if parts[0] == "ipfs" {
+		parts = parts[1:]
+	}
+
+	// if nothing, bail.
+	if len(parts) == 0 {
+		return nil, nil, ErrNoComponents
+	}
+
+	c, err := cid.Decode(parts[0])
+	// first element in the path is a cid
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return c, parts[1:], nil
 }
