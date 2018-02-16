@@ -5,6 +5,7 @@ package unixfs
 
 import (
 	"errors"
+	"fmt"
 
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 
@@ -257,4 +258,21 @@ func BytesForMetadata(m *Metadata) ([]byte, error) {
 // EmptyDirNode creates an empty folder Protonode.
 func EmptyDirNode() *dag.ProtoNode {
 	return dag.NodeWithData(FolderPBData())
+}
+
+// ValidatePB validates a unixfs protonode.
+func ValidatePB(n *dag.ProtoNode, pb *pb.Data) error {
+	if len(n.Links()) != len(pb.Blocksizes) {
+		return errors.New("unixfs ill-formed, number of links does not batch blocksize count")
+	}
+	total := uint64(len(pb.GetData()))
+	for _, blocksize := range pb.Blocksizes {
+		total += blocksize
+	}
+	if total != pb.GetFilesize() {
+		return fmt.Errorf("unixfs ill-formed, actual size of %d does not match size in filesize field with value %d",
+			total, pb.GetFilesize())
+	}
+
+	return nil
 }

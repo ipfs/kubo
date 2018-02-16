@@ -52,24 +52,13 @@ var _ DagReader = (*PBDagReader)(nil)
 
 // NewPBFileReader constructs a new PBFileReader.
 func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv ipld.NodeGetter) (*PBDagReader, error) {
+	err := ft.ValidatePB(n, pb)
+	if err != nil {
+		return nil, err
+	}
+
 	curLinks := getLinkCids(n)
 	data := pb.GetData()
-
-	// validate
-	if len(curLinks) != len(pb.Blocksizes) {
-		return nil, errors.New("unixfs ill-formed, number of links does not batch blocksize count")
-	}
-	total := uint64(len(data))
-	for _, blocksize := range pb.Blocksizes {
-		total += blocksize
-	}
-	if pb.Filesize == nil {
-		return nil, errors.New("unixfs ill-formed, filesize field missing")
-	}
-	if total != *pb.Filesize {
-		return nil, fmt.Errorf("unixfs ill-formed, actual size of %d does not match size in filesize field (%d)",
-			total, *pb.Filesize)
-	}
 
 	fctx, cancel := context.WithCancel(ctx)
 	return &PBDagReader{

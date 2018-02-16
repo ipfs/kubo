@@ -2,10 +2,12 @@ package unixfs
 
 import (
 	"bytes"
+	"encoding/hex"
 	"testing"
 
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	pb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
@@ -158,4 +160,41 @@ func TestMetadata(t *testing.T) {
 		t.Fatal("Metadata does not Marshal and Unmarshal properly!")
 	}
 
+}
+
+// originally from test/sharness/t0110-gateway-data/foofoo.block, does not have blocksize defined
+// contents: {"data":"CAIYBg==","links":[{"Cid":{"/":"QmcJw6x4bQr7oFnVnF6i8SLcJvhXjaxWvj54FYXmZ4Ct6p"},"Name":"","Size":0},{"Cid":{"/":"QmcJw6x4bQr7oFnVnF6i8SLcJvhXjaxWvj54FYXmZ4Ct6p"},"Name":"","Size":0}]}
+const noBlocksizeHex = "0A040802180612240A221220CF92FDEFCDC34CAC009C8B05EB662BE0618DB9DE55ECD42785E9EC6712F8DF6512240A221220CF92FDEFCDC34CAC009C8B05EB662BE0618DB9DE55ECD42785E9EC6712F8DF65"
+
+func TestValidatePB(t *testing.T) {
+	noBlocksize, err := hex.DecodeString(noBlocksizeHex)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nd, err := dag.DecodeProtobuf(noBlocksize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd, err := FromBytes(nd.Data())
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ValidatePB(nd, fd)
+	if err == nil {
+		t.Fatal("invalid unixfs node (with no blocksizes) validated")
+	}
+	// give node blocksizes
+	fd.Blocksizes = []uint64{3, 3}
+	// should be ok
+	err = ValidatePB(nd, fd)
+	if err != nil {
+		t.Fatalf("valid node failed to validate: %v", err)
+	}
+	// give node incorrect filesize
+	var filesize uint64 = 8
+	fd.Filesize = &filesize
+	err = ValidatePB(nd, fd)
+	if err == nil {
+		t.Fatal("invalid unixfs node (with incorrect filesize) validated")
+	}
 }
