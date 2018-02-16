@@ -6,7 +6,6 @@ import (
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -31,14 +30,14 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.Path, err
 
 // Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.
 func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Reader, error) {
-	ses := dag.NewSession(ctx, api.node.DAG)
+	dget := api.node.DAG // TODO: use a session here once routing perf issues are resolved
 
-	dagnode, err := resolveNode(ctx, ses, api.node.Namesys, p)
+	dagnode, err := resolveNode(ctx, dget, api.node.Namesys, p)
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := uio.NewDagReader(ctx, dagnode, ses)
+	r, err := uio.NewDagReader(ctx, dagnode, dget)
 	if err == uio.ErrIsDir {
 		return nil, coreiface.ErrIsDir
 	} else if err != nil {
