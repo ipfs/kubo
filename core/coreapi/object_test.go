@@ -237,11 +237,11 @@ func TestObjectAddLink(t *testing.T) {
 		t.Errorf("unexpected number of links: %d", len(links))
 	}
 
-	if links[0].Name != "abc" {
+	if links[0].Name != "bar" {
 		t.Errorf("unexpected link 0 name: %s", links[0].Name)
 	}
 
-	if links[1].Name != "bar" {
+	if links[1].Name != "abc" {
 		t.Errorf("unexpected link 1 name: %s", links[1].Name)
 	}
 }
@@ -285,11 +285,11 @@ func TestObjectAddLinkCreate(t *testing.T) {
 		t.Errorf("unexpected number of links: %d", len(links))
 	}
 
-	if links[0].Name != "abc" {
+	if links[0].Name != "bar" {
 		t.Errorf("unexpected link 0 name: %s", links[0].Name)
 	}
 
-	if links[1].Name != "bar" {
+	if links[1].Name != "abc" {
 		t.Errorf("unexpected link 1 name: %s", links[1].Name)
 	}
 }

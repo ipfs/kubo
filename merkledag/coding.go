@@ -34,8 +34,8 @@ func (n *ProtoNode) unmarshal(encoded []byte) error {
 		}
 		n.links[i].Cid = c
 	}
-	sort.Stable(LinkSlice(n.links)) // keep links sorted
 
+	n.NoSort = true
 	n.data = pbn.GetData()
 	n.encoded = encoded
 	return nil
@@ -58,7 +58,9 @@ func (n *ProtoNode) getPBNode() *pb.PBNode {
 		pbn.Links = make([]*pb.PBLink, len(n.links))
 	}
 
-	sort.Stable(LinkSlice(n.links)) // keep links sorted
+	if n.NoSort == false {
+		sort.Stable(LinkSlice(n.links)) // keep links sorted
+	}
 	for i, l := range n.links {
 		pbn.Links[i] = &pb.PBLink{}
 		pbn.Links[i].Name = &l.Name
@@ -77,7 +79,9 @@ func (n *ProtoNode) getPBNode() *pb.PBNode {
 // EncodeProtobuf returns the encoded raw data version of a Node instance.
 // It may use a cached encoded version, unless the force flag is given.
 func (n *ProtoNode) EncodeProtobuf(force bool) ([]byte, error) {
-	sort.Stable(LinkSlice(n.links)) // keep links sorted
+	if n.NoSort == false {
+		sort.Stable(LinkSlice(n.links)) // keep links sorted
+	}
 	if n.encoded == nil || force {
 		n.cached = nil
 		var err error

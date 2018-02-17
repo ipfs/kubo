@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -21,6 +22,9 @@ var (
 type ProtoNode struct {
 	links []*ipld.Link
 	data  []byte
+
+	// disable links sort
+	NoSort bool
 
 	// cache encoded/marshaled value
 	encoded []byte
@@ -204,6 +208,7 @@ func (n *ProtoNode) Copy() ipld.Node {
 		copy(nnode.links, n.links)
 	}
 
+	nnode.NoSort = n.NoSort
 	nnode.Prefix = n.Prefix
 
 	return nnode
@@ -292,6 +297,7 @@ func (n *ProtoNode) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	n.NoSort = true
 	n.data = s.Data
 	n.links = s.Links
 	return nil
@@ -299,6 +305,10 @@ func (n *ProtoNode) UnmarshalJSON(b []byte) error {
 
 // MarshalJSON returns a JSON representation of the node.
 func (n *ProtoNode) MarshalJSON() ([]byte, error) {
+	if n.NoSort == false {
+		sort.Stable(LinkSlice(n.links)) // keep links sorted
+	}
+
 	out := map[string]interface{}{
 		"data":  n.data,
 		"links": n.links,
