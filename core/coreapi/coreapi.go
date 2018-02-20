@@ -7,6 +7,7 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipfspath "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -87,7 +88,7 @@ func resolvePath(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSyste
 		return p, nil
 	}
 
-	r := &ipfspath.Resolver{
+	r := &resolver.Resolver{
 		DAG:         ng,
 		ResolveOnce: uio.ResolveUnixfsOnce,
 	}

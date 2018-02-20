@@ -7,15 +7,17 @@ import (
 	"sort"
 	"text/tabwriter"
 
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
-	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 type LsLink struct {
@@ -91,7 +93,7 @@ possible, please use 'ipfs ls' instead.
 		for _, fpath := range paths {
 			ctx := req.Context()
 
-			resolver := &path.Resolver{
+			resolver := &resolver.Resolver{
 				DAG:         node.DAG,
 				ResolveOnce: uio.ResolveUnixfsOnce,
 			}

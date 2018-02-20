@@ -13,6 +13,7 @@ import (
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
@@ -92,7 +93,7 @@ The JSON output contains type information.
 				return
 			}
 
-			r := &path.Resolver{
+			r := &resolver.Resolver{
 				DAG:         nd.DAG,
 				ResolveOnce: uio.ResolveUnixfsOnce,
 			}

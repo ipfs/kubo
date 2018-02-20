@@ -1,5 +1,5 @@
-// Package path implements utilities for resolving paths within ipfs.
-package path
+// Package resolver implements utilities for resolving paths within ipfs.
+package resolver
 
 import (
 	"context"
@@ -8,13 +8,14 @@ import (
 	"time"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	path "github.com/ipfs/go-ipfs/path"
 
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-var log = logging.Logger("path")
+var log = logging.Logger("pathresolv")
 
 // ErrNoComponents is used when Paths after a protocol
 // do not contain at least one component
@@ -51,36 +52,10 @@ func NewBasicResolver(ds ipld.DAGService) *Resolver {
 	}
 }
 
-// SplitAbsPath clean up and split fpath. It extracts the first component (which
-// must be a Multihash) and return it separately.
-func SplitAbsPath(fpath Path) (*cid.Cid, []string, error) {
-
-	log.Debugf("Resolve: '%s'", fpath)
-
-	parts := fpath.Segments()
-	if parts[0] == "ipfs" {
-		parts = parts[1:]
-	}
-
-	// if nothing, bail.
-	if len(parts) == 0 {
-		return nil, nil, ErrNoComponents
-	}
-
-	c, err := cid.Decode(parts[0])
-	// first element in the path is a cid
-	if err != nil {
-		log.Debug("given path element is not a cid.\n")
-		return nil, nil, err
-	}
-
-	return c, parts[1:], nil
-}
-
 // ResolveToLastNode walks the given path and returns the ipld.Node
 // referenced by the last element in it.
-func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath Path) (ipld.Node, []string, error) {
-	c, p, err := SplitAbsPath(fpath)
+func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath path.Path) (ipld.Node, []string, error) {
+	c, p, err := path.SplitAbsPath(fpath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -114,7 +89,7 @@ func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath Path) (ipld.Node
 
 // ResolvePath fetches the node for given path. It returns the last item
 // returned by ResolvePathComponents.
-func (r *Resolver) ResolvePath(ctx context.Context, fpath Path) (ipld.Node, error) {
+func (r *Resolver) ResolvePath(ctx context.Context, fpath path.Path) (ipld.Node, error) {
 	// validate path
 	if err := fpath.IsValid(); err != nil {
 		return nil, err
@@ -136,11 +111,11 @@ func ResolveSingle(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names 
 // ResolvePathComponents fetches the nodes for each segment of the given path.
 // It uses the first path component as a hash (key) of the first node, then
 // resolves all other components walking the links, with ResolveLinks.
-func (r *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]ipld.Node, error) {
+func (r *Resolver) ResolvePathComponents(ctx context.Context, fpath path.Path) ([]ipld.Node, error) {
 	evt := log.EventBegin(ctx, "resolvePathComponents", logging.LoggableMap{"fpath": fpath})
 	defer evt.Done()
 
-	h, parts, err := SplitAbsPath(fpath)
+	h, parts, err := path.SplitAbsPath(fpath)
 	if err != nil {
 		evt.Append(logging.LoggableMap{"error": err.Error()})
 		return nil, err

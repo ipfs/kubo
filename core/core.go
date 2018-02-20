@@ -33,7 +33,7 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	p2p "github.com/ipfs/go-ipfs/p2p"
-	path "github.com/ipfs/go-ipfs/path"
+	"github.com/ipfs/go-ipfs/path/resolver"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -119,7 +119,7 @@ type IpfsNode struct {
 	GCLocker   bstore.GCLocker      // the locker used to protect the blockstore during gc
 	Blocks     bserv.BlockService   // the block service, get/add blocks.
 	DAG        ipld.DAGService      // the merkle dag service, get/add objects.
-	Resolver   *path.Resolver       // the path resolution system
+	Resolver   *resolver.Resolver   // the path resolution system
 	Reporter   metrics.Reporter
 	Discovery  discovery.Service
 	FilesRoot  *mfs.Root
