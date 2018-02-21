@@ -120,7 +120,6 @@ type Request interface {
 	Files() files.File
 	SetFiles(files.File)
 	Context() context.Context
-	SetRootContext(context.Context) error
 	InvocContext() *Context
 	SetInvocContext(Context)
 	Command() *Command
@@ -183,16 +182,6 @@ func (r *request) Options() cmdkit.OptMap {
 		output[k] = v
 	}
 	return output
-}
-
-func (r *request) SetRootContext(ctx context.Context) error {
-	ctx, err := getContext(ctx, r)
-	if err != nil {
-		return err
-	}
-
-	r.rctx = ctx
-	return nil
 }
 
 // SetOption sets the value of the option for given name.
@@ -306,28 +295,6 @@ func (r *request) VarArgs(f func(string) error) error {
 	}
 
 	return nil
-}
-
-func getContext(base context.Context, req Request) (context.Context, error) {
-	tout, found, err := req.Option("timeout").String()
-	if err != nil {
-		return nil, fmt.Errorf("error parsing timeout option: %s", err)
-	}
-
-	var ctx context.Context
-	if found {
-		duration, err := time.ParseDuration(tout)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing timeout option: %s", err)
-		}
-
-		tctx, _ := context.WithTimeout(base, duration)
-		ctx = tctx
-	} else {
-		cctx, _ := context.WithCancel(base)
-		ctx = cctx
-	}
-	return ctx, nil
 }
 
 func (r *request) InvocContext() *Context {

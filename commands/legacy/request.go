@@ -135,11 +135,6 @@ func (r *requestWrapper) SetOptions(om cmdkit.OptMap) error {
 	return convertOptions(r.req)
 }
 
-func (r *requestWrapper) SetRootContext(ctx context.Context) error {
-	r.req.Context = ctx
-	return nil
-}
-
 func (r *requestWrapper) Stdin() io.Reader {
 	return os.Stdin
 }
