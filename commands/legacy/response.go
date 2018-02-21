@@ -155,7 +155,7 @@ func (r *fakeResponse) SetOutput(v interface{}) {
 	_, isReader := v.(io.Reader)
 
 	if t != nil && t.Kind() != reflect.Chan && !isReader {
-		v = cmds.Single{v}
+		v = cmds.Single{Value: v}
 	}
 
 	r.out = v

@@ -161,11 +161,19 @@ func (r *request) Option(name string) *cmdkit.OptionValue {
 	for _, n := range option.Names() {
 		val, found := r.options[n]
 		if found {
-			return &cmdkit.OptionValue{val, found, option}
+			return &cmdkit.OptionValue{
+				Value:      val,
+				ValueFound: found,
+				Def:        option,
+			}
 		}
 	}
 
-	return &cmdkit.OptionValue{option.Default(), false, option}
+	return &cmdkit.OptionValue{
+		Value:      option.Default(),
+		ValueFound: false,
+		Def:        option,
+	}
 }
 
 // Options returns a copy of the option map

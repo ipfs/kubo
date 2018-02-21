@@ -268,7 +268,7 @@ func TestObjectAddLinkCreate(t *testing.T) {
 		t.Fatal("expected an error")
 	}
 	if err.Error() != "no link by that name" {
-		t.Fatal("unexpected error: %s", err.Error())
+		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
 	p3, err = api.Object().AddLink(ctx, p2, "abc/d", p2, api.Object().WithCreate(true))

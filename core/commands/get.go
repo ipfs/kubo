@@ -247,7 +247,7 @@ func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	defer bar.Finish()
 	defer bar.Set64(gw.Size)
 
-	extractor := &tar.Extractor{fpath, bar.Add64}
+	extractor := &tar.Extractor{Path: fpath, Progress: bar.Add64}
 	return extractor.Extract(r)
 }
 

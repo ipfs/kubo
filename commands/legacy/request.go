@@ -77,7 +77,7 @@ func (r *requestWrapper) Option(name string) *cmdkit.OptionValue {
 
 	optDefs, err := r.req.Root.GetOptions(r.req.Path)
 	if err != nil {
-		return &cmdkit.OptionValue{nil, false, nil}
+		return &cmdkit.OptionValue{}
 	}
 	for _, def := range optDefs {
 		for _, optName := range def.Names() {
@@ -95,11 +95,19 @@ func (r *requestWrapper) Option(name string) *cmdkit.OptionValue {
 	for _, n := range option.Names() {
 		val, found := r.req.Options[n]
 		if found {
-			return &cmdkit.OptionValue{val, found, option}
+			return &cmdkit.OptionValue{
+				Value:      val,
+				ValueFound: found,
+				Def:        option,
+			}
 		}
 	}
 
-	return &cmdkit.OptionValue{option.Default(), false, option}
+	return &cmdkit.OptionValue{
+		Value:      option.Default(),
+		ValueFound: false,
+		Def:        option,
+	}
 }
 
 func (r *requestWrapper) Options() cmdkit.OptMap {
