@@ -78,10 +78,7 @@ func TestNewCommand(t *testing.T) {
 
 	var env oldcmds.Context
 
-	err = root.Call(req, re, &env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	root.Call(req, re, &env)
 
 	expected := `{"Value":"Test."}
 `
