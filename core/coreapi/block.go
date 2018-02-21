@@ -111,8 +111,6 @@ func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.Bl
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-
-	return nil
 }
 
 func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.BlockStat, error) {

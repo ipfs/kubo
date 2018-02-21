@@ -16,7 +16,7 @@ import (
 	tar "github.com/ipfs/go-ipfs/thirdparty/tar"
 	uarchive "github.com/ipfs/go-ipfs/unixfs/archive"
 
-	"gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
+	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 )
@@ -247,7 +247,7 @@ func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	defer bar.Finish()
 	defer bar.Set64(gw.Size)
 
-	extractor := &tar.Extractor{fpath, bar.Add64}
+	extractor := &tar.Extractor{Path: fpath, Progress: bar.Add64}
 	return extractor.Extract(r)
 }
 

@@ -16,7 +16,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/config"
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 
-	"gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
+	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 )
@@ -120,7 +120,6 @@ type Request interface {
 	Files() files.File
 	SetFiles(files.File)
 	Context() context.Context
-	SetRootContext(context.Context) error
 	InvocContext() *Context
 	SetInvocContext(Context)
 	Command() *Command
@@ -161,11 +160,19 @@ func (r *request) Option(name string) *cmdkit.OptionValue {
 	for _, n := range option.Names() {
 		val, found := r.options[n]
 		if found {
-			return &cmdkit.OptionValue{val, found, option}
+			return &cmdkit.OptionValue{
+				Value:      val,
+				ValueFound: found,
+				Def:        option,
+			}
 		}
 	}
 
-	return &cmdkit.OptionValue{option.Default(), false, option}
+	return &cmdkit.OptionValue{
+		Value:      option.Default(),
+		ValueFound: false,
+		Def:        option,
+	}
 }
 
 // Options returns a copy of the option map
@@ -175,16 +182,6 @@ func (r *request) Options() cmdkit.OptMap {
 		output[k] = v
 	}
 	return output
-}
-
-func (r *request) SetRootContext(ctx context.Context) error {
-	ctx, err := getContext(ctx, r)
-	if err != nil {
-		return err
-	}
-
-	r.rctx = ctx
-	return nil
 }
 
 // SetOption sets the value of the option for given name.
@@ -298,28 +295,6 @@ func (r *request) VarArgs(f func(string) error) error {
 	}
 
 	return nil
-}
-
-func getContext(base context.Context, req Request) (context.Context, error) {
-	tout, found, err := req.Option("timeout").String()
-	if err != nil {
-		return nil, fmt.Errorf("error parsing timeout option: %s", err)
-	}
-
-	var ctx context.Context
-	if found {
-		duration, err := time.ParseDuration(tout)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing timeout option: %s", err)
-		}
-
-		tctx, _ := context.WithTimeout(base, duration)
-		ctx = tctx
-	} else {
-		cctx, _ := context.WithCancel(base)
-		ctx = cctx
-	}
-	return ctx, nil
 }
 
 func (r *request) InvocContext() *Context {

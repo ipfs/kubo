@@ -45,6 +45,6 @@ func TestPeersTotal(t *testing.T) {
 		t.Fatalf("expected 1 peers transport, got %d", len(actual))
 	}
 	if actual["/ip4/tcp"] != float64(3) {
-		t.Fatalf("expected 3 peers, got %s", actual["/ip4/tcp"])
+		t.Fatalf("expected 3 peers, got %f", actual["/ip4/tcp"])
 	}
 }

@@ -71,7 +71,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*coreiface.Li
 
 	links := make([]*coreiface.Link, len(ndlinks))
 	for i, l := range ndlinks {
-		links[i] = &coreiface.Link{l.Name, l.Size, l.Cid}
+		links[i] = &coreiface.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}
 	}
 	return links, nil
 }

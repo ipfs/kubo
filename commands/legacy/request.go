@@ -7,7 +7,7 @@ import (
 	"os"
 	"reflect"
 
-	"gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
+	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 
@@ -77,7 +77,7 @@ func (r *requestWrapper) Option(name string) *cmdkit.OptionValue {
 
 	optDefs, err := r.req.Root.GetOptions(r.req.Path)
 	if err != nil {
-		return &cmdkit.OptionValue{nil, false, nil}
+		return &cmdkit.OptionValue{}
 	}
 	for _, def := range optDefs {
 		for _, optName := range def.Names() {
@@ -95,11 +95,19 @@ func (r *requestWrapper) Option(name string) *cmdkit.OptionValue {
 	for _, n := range option.Names() {
 		val, found := r.req.Options[n]
 		if found {
-			return &cmdkit.OptionValue{val, found, option}
+			return &cmdkit.OptionValue{
+				Value:      val,
+				ValueFound: found,
+				Def:        option,
+			}
 		}
 	}
 
-	return &cmdkit.OptionValue{option.Default(), false, option}
+	return &cmdkit.OptionValue{
+		Value:      option.Default(),
+		ValueFound: false,
+		Def:        option,
+	}
 }
 
 func (r *requestWrapper) Options() cmdkit.OptMap {
@@ -125,11 +133,6 @@ func (r *requestWrapper) SetOption(name string, v interface{}) {
 func (r *requestWrapper) SetOptions(om cmdkit.OptMap) error {
 	r.req.Options = om
 	return convertOptions(r.req)
-}
-
-func (r *requestWrapper) SetRootContext(ctx context.Context) error {
-	r.req.Context = ctx
-	return nil
 }
 
 func (r *requestWrapper) Stdin() io.Reader {

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
-	cmds "gx/ipfs/QmZ9hww8R3FKrDRCYPxhN13m6XgjPDpaSvdUfisPvERzXz/go-ipfs-cmds"
+	cmds "gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
@@ -78,10 +78,7 @@ func TestNewCommand(t *testing.T) {
 
 	var env oldcmds.Context
 
-	err = root.Call(req, re, &env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	root.Call(req, re, &env)
 
 	expected := `{"Value":"Test."}
 `
