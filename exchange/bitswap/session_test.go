@@ -8,6 +8,7 @@ import (
 
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 
+	tu "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
@@ -287,7 +288,7 @@ func TestMultipleSessions(t *testing.T) {
 }
 
 func TestWantlistClearsOnCancel(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	vnet := getVirtualNetwork()
@@ -314,7 +315,12 @@ func TestWantlistClearsOnCancel(t *testing.T) {
 	}
 	cancel1()
 
-	if len(a.Exchange.GetWantlist()) > 0 {
-		t.Fatal("expected empty wantlist")
+	if err := tu.WaitFor(ctx, func() error {
+		if len(a.Exchange.GetWantlist()) > 0 {
+			return fmt.Errorf("expected empty wantlist")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 }
