@@ -38,19 +38,8 @@ const layerRepeat = 4
 // explanation.
 func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
 	root := db.NewUnixfsNode()
-	if err := db.FillNodeLayer(root); err != nil {
+	if err := fillTrickleRec(db, root, -1); err != nil {
 		return nil, err
-	}
-	for level := 1; !db.Done(); level++ {
-		for i := 0; i < layerRepeat && !db.Done(); i++ {
-			next := db.NewUnixfsNode()
-			if err := fillTrickleRec(db, next, level); err != nil {
-				return nil, err
-			}
-			if err := root.AddChild(next, db); err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	out, err := db.Add(root)
@@ -65,25 +54,35 @@ func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
 	return out, nil
 }
 
-func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error {
+// fillTrickleRec creates a trickle (sub-)tree with an optional maximum specified depth
+// in the case maxDepth is greater than zero, or with unlimited depth otherwise
+// (where the DAG builder will signal the end of data to end the function).
+func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, maxDepth int) error {
 	// Always do this, even in the base case
 	if err := db.FillNodeLayer(node); err != nil {
 		return err
 	}
 
-	for i := 1; i < depth && !db.Done(); i++ {
-		for j := 0; j < layerRepeat && !db.Done(); j++ {
-			next := db.NewUnixfsNode()
-			if err := fillTrickleRec(db, next, i); err != nil {
+	for depth := 1; ; depth++ {
+		// Apply depth limit only if the parameter is set (> 0).
+		if maxDepth > 0 && depth == maxDepth {
+			return nil
+		}
+		for layer := 0; layer < layerRepeat; layer++ {
+			if db.Done() {
+				return nil
+			}
+
+			nextChild := db.NewUnixfsNode()
+			if err := fillTrickleRec(db, nextChild, depth); err != nil {
 				return err
 			}
 
-			if err := node.AddChild(next, db); err != nil {
+			if err := node.AddChild(nextChild, db); err != nil {
 				return err
 			}
 		}
 	}
-	return nil
 }
 
 // Append appends the data in `db` to the dag, using the Trickledag format
