@@ -104,22 +104,24 @@ func NewRoutingResolver(route routing.ValueStore, cachesize int) *routingResolve
 }
 
 // Resolve implements Resolver.
-func (r *routingResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
-	return r.ResolveN(ctx, name, DefaultDepthLimit)
-}
-
-// ResolveN implements Resolver.
-func (r *routingResolver) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
-	return resolve(ctx, r, name, depth, "/ipns/")
+func (r *routingResolver) Resolve(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
+	return resolve(ctx, r, name, opts, "/ipns/")
 }
 
 // resolveOnce implements resolver. Uses the IPFS routing system to
 // resolve SFS-like names.
-func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
+func (r *routingResolver) resolveOnce(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
 	log.Debugf("RoutingResolver resolving %s", name)
 	cached, ok := r.cacheGet(name)
 	if ok {
 		return cached, nil
+	}
+
+	if opts.DhtTimeout != 0 {
+		// Resolution must complete within the timeout
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, opts.DhtTimeout)
+		defer cancel()
 	}
 
 	name = strings.TrimPrefix(name, "/ipns/")
@@ -151,7 +153,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 	// Note that the DHT will call the ipns validator when retrieving
 	// the value, which in turn verifies the ipns record signature
 	_, ipnsKey := IpnsKeysForID(pid)
-	val, err := r.routing.GetValue(ctx, ipnsKey)
+	val, err := r.getValue(ctx, ipnsKey, opts)
 	if err != nil {
 		log.Debugf("RoutingResolver: dht get for name %s failed: %s", name, err)
 		return "", err
@@ -182,6 +184,35 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		r.cacheSet(name, p, entry)
 		return p, nil
 	}
+}
+
+func (r *routingResolver) getValue(ctx context.Context, ipnsKey string, opts *ResolveOpts) ([]byte, error) {
+	// Get specified number of values from the DHT
+	vals, err := r.routing.GetValues(ctx, ipnsKey, int(opts.DhtRecordCount))
+	if err != nil {
+		return nil, err
+	}
+
+	// Select the best value
+	recs := make([][]byte, 0, len(vals))
+	for _, v := range vals {
+		if v.Val != nil {
+			recs = append(recs, v.Val)
+		}
+	}
+
+	i, err := IpnsSelectorFunc(ipnsKey, recs)
+	if err != nil {
+		return nil, err
+	}
+
+	best := recs[i]
+	if best == nil {
+		log.Errorf("GetValues %s yielded record with nil value", ipnsKey)
+		return nil, routing.ErrNotFound
+	}
+
+	return best, nil
 }
 
 func checkEOL(e *pb.IpnsEntry) (time.Time, bool) {

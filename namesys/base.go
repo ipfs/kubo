@@ -10,13 +10,14 @@ import (
 
 type resolver interface {
 	// resolveOnce looks up a name once (without recursion).
-	resolveOnce(ctx context.Context, name string) (value path.Path, err error)
+	resolveOnce(ctx context.Context, name string, opts *ResolveOpts) (value path.Path, err error)
 }
 
 // resolve is a helper for implementing Resolver.ResolveN using resolveOnce.
-func resolve(ctx context.Context, r resolver, name string, depth int, prefixes ...string) (path.Path, error) {
+func resolve(ctx context.Context, r resolver, name string, opts *ResolveOpts, prefixes ...string) (path.Path, error) {
+	depth := opts.Depth
 	for {
-		p, err := r.resolveOnce(ctx, name)
+		p, err := r.resolveOnce(ctx, name, opts)
 		if err != nil {
 			return "", err
 		}

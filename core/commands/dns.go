@@ -57,11 +57,11 @@ The resolver can recursively resolve:
 		name := req.Arguments()[0]
 		resolver := namesys.NewDNSResolver()
 
-		depth := 1
-		if recursive {
-			depth = namesys.DefaultDepthLimit
+		opts := namesys.DefaultResolveOpts()
+		if !recursive {
+			opts.Depth = 1
 		}
-		output, err := resolver.ResolveN(req.Context(), name, depth)
+		output, err := resolver.Resolve(req.Context(), name, opts)
 		if err == namesys.ErrResolveFailed {
 			res.SetError(err, cmdkit.ErrNotFound)
 			return

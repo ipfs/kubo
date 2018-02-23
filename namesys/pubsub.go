@@ -185,16 +185,11 @@ func (p *PubsubPublisher) publishRecord(ctx context.Context, k ci.PrivKey, value
 }
 
 // Resolve resolves a name through pubsub and default depth limit
-func (r *PubsubResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
-	return r.ResolveN(ctx, name, DefaultDepthLimit)
+func (r *PubsubResolver) Resolve(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
+	return resolve(ctx, r, name, opts, "/ipns/")
 }
 
-// ResolveN resolves a name through pubsub with the specified depth limit
-func (r *PubsubResolver) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
-	return resolve(ctx, r, name, depth, "/ipns/")
-}
-
-func (r *PubsubResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
+func (r *PubsubResolver) resolveOnce(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
 	log.Debugf("PubsubResolve: resolve '%s'", name)
 
 	// retrieve the public key once (for verifying messages)

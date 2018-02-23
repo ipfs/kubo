@@ -31,13 +31,8 @@ func newDNSResolver() resolver {
 }
 
 // Resolve implements Resolver.
-func (r *DNSResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
-	return r.ResolveN(ctx, name, DefaultDepthLimit)
-}
-
-// ResolveN implements Resolver.
-func (r *DNSResolver) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
-	return resolve(ctx, r, name, depth, "/ipns/")
+func (r *DNSResolver) Resolve(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
+	return resolve(ctx, r, name, opts, "/ipns/")
 }
 
 type lookupRes struct {
@@ -48,7 +43,7 @@ type lookupRes struct {
 // resolveOnce implements resolver.
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
-func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
+func (r *DNSResolver) resolveOnce(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
 	segments := strings.SplitN(name, "/", 2)
 	domain := segments[0]
 

@@ -19,8 +19,10 @@ type mockResolver struct {
 	entries map[string]string
 }
 
-func testResolution(t *testing.T, resolver Resolver, name string, depth int, expected string, expError error) {
-	p, err := resolver.ResolveN(context.Background(), name, depth)
+func testResolution(t *testing.T, resolver Resolver, name string, depth uint, expected string, expError error) {
+	opts := DefaultResolveOpts()
+	opts.Depth = depth
+	p, err := resolver.Resolve(context.Background(), name, opts)
 	if err != expError {
 		t.Fatal(fmt.Errorf(
 			"Expected %s with a depth of %d to have a '%s' error, but got '%s'",
@@ -33,7 +35,7 @@ func testResolution(t *testing.T, resolver Resolver, name string, depth int, exp
 	}
 }
 
-func (r *mockResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
+func (r *mockResolver) resolveOnce(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
 	return path.ParsePath(r.entries[name])
 }
 
