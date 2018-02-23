@@ -89,17 +89,8 @@ type Resolver interface {
 	//
 	// There is a default depth-limit to avoid infinite recursion.  Most
 	// users will be fine with this default limit, but if you need to
-	// adjust the limit you can use ResolveN.
-	Resolve(ctx context.Context, name string) (value path.Path, err error)
-
-	// ResolveN performs a recursive lookup, returning the dereferenced
-	// path.  The only difference from Resolve is that the depth limit
-	// is configurable.  You can use DefaultDepthLimit, UnlimitedDepth,
-	// or a depth limit of your own choosing.
-	//
-	// Most users should use Resolve, since the default limit works well
-	// in most real-world situations.
-	ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error)
+	// adjust the limit you can specify it as an option.
+	Resolve(ctx context.Context, name string, opts *ResolveOpts) (value path.Path, err error)
 }
 
 // Publisher is an object capable of publishing particular names.

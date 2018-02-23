@@ -117,16 +117,16 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		resolver = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), 0)
 	}
 
-	depth := 1
-	if options.Recursive {
-		depth = namesys.DefaultDepthLimit
+	ropts := namesys.DefaultResolveOpts()
+	if !options.Recursive {
+		ropts.Depth = 1
 	}
 
 	if !strings.HasPrefix(name, "/ipns/") {
 		name = "/ipns/" + name
 	}
 
-	output, err := resolver.ResolveN(ctx, name, depth)
+	output, err := resolver.Resolve(ctx, name, ropts)
 	if err != nil {
 		return nil, err
 	}

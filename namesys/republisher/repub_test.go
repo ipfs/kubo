@@ -98,7 +98,7 @@ func verifyResolution(nodes []*core.IpfsNode, key string, exp path.Path) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	for _, n := range nodes {
-		val, err := n.Namesys.Resolve(ctx, key)
+		val, err := n.Namesys.Resolve(ctx, key, namesys.DefaultResolveOpts())
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func verifyResolutionFails(nodes []*core.IpfsNode, key string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	for _, n := range nodes {
-		_, err := n.Namesys.Resolve(ctx, key)
+		_, err := n.Namesys.Resolve(ctx, key, namesys.DefaultResolveOpts())
 		if err == nil {
 			return errors.New("expected resolution to fail")
 		}

@@ -40,7 +40,7 @@ func TestRoutingResolve(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := resolver.Resolve(context.Background(), pid.Pretty())
+	res, err := resolver.Resolve(context.Background(), pid.Pretty(), DefaultResolveOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestPrexistingRecord(t *testing.T) {
 }
 
 func verifyCanResolve(r Resolver, name string, exp path.Path) error {
-	res, err := r.Resolve(context.Background(), name)
+	res, err := r.Resolve(context.Background(), name, DefaultResolveOpts())
 	if err != nil {
 		return err
 	}

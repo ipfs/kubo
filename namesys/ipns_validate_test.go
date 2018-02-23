@@ -115,7 +115,7 @@ func TestResolverValidation(t *testing.T) {
 	}
 
 	// Resolve entry
-	resp, err := resolver.resolveOnce(ctx, id.Pretty())
+	resp, err := resolver.resolveOnce(ctx, id.Pretty(), DefaultResolveOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,9 +136,9 @@ func TestResolverValidation(t *testing.T) {
 	}
 
 	// Record should fail validation because entry is expired
-	_, err = resolver.resolveOnce(ctx, id.Pretty())
-	if err != ErrExpiredRecord {
-		t.Fatal("ValidateIpnsRecord should have returned ErrExpiredRecord")
+	_, err = resolver.resolveOnce(ctx, id.Pretty(), DefaultResolveOpts())
+	if err == nil {
+		t.Fatal("ValidateIpnsRecord should have returned error")
 	}
 
 	// Create IPNS record path with a different private key
@@ -158,8 +158,8 @@ func TestResolverValidation(t *testing.T) {
 
 	// Record should fail validation because public key defined by
 	// ipns path doesn't match record signature
-	_, err = resolver.resolveOnce(ctx, id2.Pretty())
-	if err != ErrSignature {
+	_, err = resolver.resolveOnce(ctx, id2.Pretty(), DefaultResolveOpts())
+	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have failed signature verification")
 	}
 
@@ -176,7 +176,7 @@ func TestResolverValidation(t *testing.T) {
 
 	// Record should fail validation because public key is not available
 	// in peer store or on network
-	_, err = resolver.resolveOnce(ctx, id3.Pretty())
+	_, err = resolver.resolveOnce(ctx, id3.Pretty(), DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have failed because public key was not found")
 	}
@@ -191,7 +191,7 @@ func TestResolverValidation(t *testing.T) {
 	// public key is available in the peer store by looking it up in
 	// the DHT, which causes the DHT to fetch it and cache it in the
 	// peer store
-	_, err = resolver.resolveOnce(ctx, id3.Pretty())
+	_, err = resolver.resolveOnce(ctx, id3.Pretty(), DefaultResolveOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,20 @@ func (m *mockValueStore) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey
 }
 
 func (m *mockValueStore) GetValues(ctx context.Context, k string, count int) ([]routing.RecvdVal, error) {
-	return m.r.GetValues(ctx, k, count)
+	vals, err := m.r.GetValues(ctx, k, count)
+	if err != nil {
+		return nil, err
+	}
+	valid := make([]routing.RecvdVal, 0, len(vals))
+	for _, v := range vals {
+		rec := new(recordpb.Record)
+		rec.Key = proto.String(k)
+		rec.Value = v.Val
+		if err = m.Validator.VerifyRecord(rec); err == nil {
+			valid = append(valid, v)
+		}
+	}
+	return valid, nil
 }
 
 func (m *mockValueStore) PutValue(ctx context.Context, k string, d []byte) error {
