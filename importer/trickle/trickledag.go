@@ -38,6 +38,8 @@ const layerRepeat = 4
 // explanation.
 func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
 	root := db.NewUnixfsNode()
+	db.SetPosInfo(root, 0)
+
 	if err := fillTrickleRec(db, root, -1); err != nil {
 		return nil, err
 	}
@@ -57,9 +59,11 @@ func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
 // fillTrickleRec creates a trickle (sub-)tree with an optional maximum specified depth
 // in the case maxDepth is greater than zero, or with unlimited depth otherwise
 // (where the DAG builder will signal the end of data to end the function).
-func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, maxDepth int) error {
+// The parameter offset is used to support Filestore and applies only to
+// nodes stored using this feature.
+func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, maxDepth int, offset uint64) error {
 	// Always do this, even in the base case
-	if err := db.FillNodeLayer(node); err != nil {
+	if err := db.FillNodeLayer(node, &offset); err != nil {
 		return err
 	}
 
@@ -74,13 +78,16 @@ func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, maxDepth int) er
 			}
 
 			nextChild := db.NewUnixfsNode()
-			if err := fillTrickleRec(db, nextChild, depth); err != nil {
+			db.SetPosInfo(nextChild, offset)
+
+			if err := fillTrickleRec(db, nextChild, depth, offset); err != nil {
 				return err
 			}
 
 			if err := node.AddChild(nextChild, db); err != nil {
 				return err
 			}
+			offset += nextChild.FileSize()
 		}
 	}
 }

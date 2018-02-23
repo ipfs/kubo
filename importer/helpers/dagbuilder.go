@@ -134,7 +134,10 @@ func (db *DagBuilderHelper) newUnixfsBlock() *UnixfsNode {
 
 // FillNodeLayer will add datanodes as children to the give node until
 // at most db.indirSize nodes are added.
-func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
+// The parameter offset is used to support Filestore and applies only to
+// nodes stored using this feature, it is adjusted with the sizes of the
+// added nodes.
+func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode, offset *uint64) error {
 
 	// while we have room AND we're not done
 	for node.NumChildren() < db.maxlinks && !db.Done() {
@@ -142,10 +145,12 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 		if err != nil {
 			return err
 		}
+		db.SetPosInfo(child, *offset)
 
 		if err := node.AddChild(child, db); err != nil {
 			return err
 		}
+		*offset += child.FileSize()
 	}
 
 	return nil
