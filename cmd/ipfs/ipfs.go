@@ -5,7 +5,6 @@ import (
 
 	commands "github.com/ipfs/go-ipfs/core/commands"
 
-	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	cmds "gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 )
 
@@ -24,7 +23,7 @@ var commandsClientCmd = commands.CommandsCmd(Root)
 // They can override subcommands in commands.Root by defining a subcommand with the same name.
 var localCommands = map[string]*cmds.Command{
 	"daemon":   daemonCmd,
-	"init":     lgc.NewCommand(initCmd),
+	"init":     initCmd,
 	"commands": commandsClientCmd,
 }
 var localMap = make(map[*cmds.Command]bool)
