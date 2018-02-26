@@ -138,7 +138,6 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 	eol := time.Now().Add(rp.RecordLifetime)
 	err = namesys.PutRecordToRouting(ctx, priv, p, seq, eol, rp.r, id)
 	if err != nil {
-		println("put record to routing error: " + err.Error())
 		return err
 	}
 
