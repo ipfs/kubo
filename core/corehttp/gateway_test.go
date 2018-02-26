@@ -28,11 +28,7 @@ var emptyDir = "/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
 
 type mockNamesys map[string]path.Path
 
-func (m mockNamesys) Resolve(ctx context.Context, name string) (value path.Path, err error) {
-	return m.ResolveN(ctx, name, namesys.DefaultDepthLimit)
-}
-
-func (m mockNamesys) ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error) {
+func (m mockNamesys) Resolve(ctx context.Context, name string, opts *namesys.ResolveOpts) (value path.Path, err error) {
 	p, ok := m[name]
 	if !ok {
 		return "", namesys.ErrResolveFailed
