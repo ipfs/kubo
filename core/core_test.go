@@ -7,7 +7,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
+
+	datastore "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	syncds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
 )
 
 func TestInitialization(t *testing.T) {
@@ -39,7 +41,7 @@ func TestInitialization(t *testing.T) {
 	for i, c := range good {
 		r := &repo.Mock{
 			C: *c,
-			D: ds2.ThreadSafeCloserMapDatastore(),
+			D: syncds.MutexWrap(datastore.NewMapDatastore()),
 		}
 		n, err := NewNode(ctx, &BuildCfg{Repo: r})
 		if n == nil || err != nil {
@@ -50,7 +52,7 @@ func TestInitialization(t *testing.T) {
 	for i, c := range bad {
 		r := &repo.Mock{
 			C: *c,
-			D: ds2.ThreadSafeCloserMapDatastore(),
+			D: syncds.MutexWrap(datastore.NewMapDatastore()),
 		}
 		n, err := NewNode(ctx, &BuildCfg{Repo: r})
 		if n != nil || err == nil {
