@@ -5,11 +5,11 @@ import (
 	"time"
 
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
-	datastore2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 
 	delay "gx/ipfs/QmRJVNatYJwTAHgdSM1Xef9QVQ1Ch3XHdmcrykjP5Y4soL/go-ipfs-delay"
 	testutil "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	delayed "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/delayed"
 	ds_sync "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
 	p2ptestutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -90,7 +90,7 @@ func MkSession(ctx context.Context, net tn.Network, p testutil.Identity) Instanc
 	bsdelay := delay.Fixed(0)
 
 	adapter := net.Adapter(p)
-	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
+	dstore := ds_sync.MutexWrap(delayed.New(ds.NewMapDatastore(), bsdelay))
 
 	bstore, err := blockstore.CachedBlockstore(ctx,
 		blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)),
