@@ -134,7 +134,7 @@ func makeTestDAG(t *testing.T, read io.Reader, ds ipld.DAGService) ipld.Node {
 	p := make([]byte, 512)
 	nodes := []*ProtoNode{}
 	var err error
-	_, err = read.Read(p)
+	_, err = io.ReadFull(read, p)
 	for err == nil {
 		protoNode := NodeWithData(p)
 		nodes = append(nodes, protoNode)
@@ -225,8 +225,6 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 			if !ok {
 				errs <- ErrNotProtobuf
 			}
-			_ = firstpb
-			_ = expected
 			read := makeTestDAGReader(t, firstpb, dagservs[i])
 			datagot, err := ioutil.ReadAll(read)
 			if err != nil {
