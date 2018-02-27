@@ -134,7 +134,10 @@ func makeTestDAG(t *testing.T, read io.Reader, ds ipld.DAGService) ipld.Node {
 	p := make([]byte, 512)
 	nodes := []*ProtoNode{}
 	var err error
-	_, err = io.ReadFull(read, p)
+	n, err = io.ReadFull(read, p)
+	if n != len(p) {
+		t.Fatal("should have read 512 bytes from the reader")
+	}
 	for err == nil {
 		protoNode := NodeWithData(p)
 		nodes = append(nodes, protoNode)
