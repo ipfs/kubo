@@ -10,21 +10,21 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
-	dssync "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/sync"
+	mockrouting "gx/ipfs/QmT51m6og9tmYo8FdaYin3zk1R7vA6ek5WYoHYEiMorfon/go-ipfs-routing/mock"
 	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	record "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record"
-	recordpb "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record/pb"
 	testutil "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	dssync "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	mockrouting "gx/ipfs/QmZRcGYvxdauCd7hHnMYLYqcZRaDjv24c7eUNyJojAcdBb/go-ipfs-routing/mock"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	record "gx/ipfs/QmcBSi3Zxa6ytDQxig2iMv4VMfiKKy7v4tibi1Sq6Z5u2x/go-libp2p-record"
+	recordpb "gx/ipfs/QmcBSi3Zxa6ytDQxig2iMv4VMfiKKy7v4tibi1Sq6Z5u2x/go-libp2p-record/pb"
 )
 
 func testValidatorCase(t *testing.T, priv ci.PrivKey, kbook pstore.KeyBook, ns string, key string, val []byte, eol time.Time, exp error) {
-	validChecker := NewIpnsRecordValidator(kbook)
+	validFunc := NewIpnsRecordValidator(kbook)
 
 	p := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
 	entry, err := CreateRoutingEntryData(priv, p, 1, eol)
@@ -45,7 +45,7 @@ func testValidatorCase(t *testing.T, priv ci.PrivKey, kbook pstore.KeyBook, ns s
 		Value:     data,
 	}
 
-	err = validChecker.Func(rec)
+	err = validFunc(rec)
 	if err != exp {
 		params := fmt.Sprintf("namespace: %s\nkey: %s\neol: %s\n", ns, key, eol)
 		if exp == nil {
@@ -86,11 +86,8 @@ func TestResolverValidation(t *testing.T) {
 
 	vstore := newMockValueStore(rid, dstore, peerstore)
 	vstore.Validator["ipns"] = NewIpnsRecordValidator(peerstore)
-	vstore.Validator["pk"] = &record.ValidChecker{
-		Func: func(r *record.ValidationRecord) error {
-			return nil
-		},
-		Sign: false,
+	vstore.Validator["pk"] = func(r *record.ValidationRecord) error {
+		return nil
 	}
 	resolver := NewRoutingResolver(vstore, 0)
 
