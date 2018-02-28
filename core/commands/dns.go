@@ -7,6 +7,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	namesys "github.com/ipfs/go-ipfs/namesys"
+	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
@@ -57,11 +58,12 @@ The resolver can recursively resolve:
 		name := req.Arguments()[0]
 		resolver := namesys.NewDNSResolver()
 
-		opts := namesys.DefaultResolveOpts()
+		ropts := []nsopts.ResolveOpt{}
 		if !recursive {
-			opts.Depth = 1
+			ropts = append(ropts, nsopts.Depth(1))
 		}
-		output, err := resolver.Resolve(req.Context(), name, opts)
+
+		output, err := resolver.Resolve(req.Context(), name, ropts...)
 		if err == namesys.ErrResolveFailed {
 			res.SetError(err, cmdkit.ErrNotFound)
 			return

@@ -12,6 +12,7 @@ import (
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	namesys "github.com/ipfs/go-ipfs/namesys"
+	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	ipath "github.com/ipfs/go-ipfs/path"
 
 	offline "gx/ipfs/QmZRcGYvxdauCd7hHnMYLYqcZRaDjv24c7eUNyJojAcdBb/go-ipfs-routing/offline"
@@ -117,16 +118,16 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		resolver = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), 0)
 	}
 
-	ropts := namesys.DefaultResolveOpts()
-	if !options.Recursive {
-		ropts.Depth = 1
-	}
-
 	if !strings.HasPrefix(name, "/ipns/") {
 		name = "/ipns/" + name
 	}
 
-	output, err := resolver.Resolve(ctx, name, ropts)
+	ropts := []nsopts.ResolveOpt{}
+	if !options.Recursive {
+		ropts = append(ropts, nsopts.Depth(1))
+	}
+
+	output, err := resolver.Resolve(ctx, name, ropts...)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
@@ -115,7 +116,7 @@ func TestResolverValidation(t *testing.T) {
 	}
 
 	// Resolve entry
-	resp, err := resolver.resolveOnce(ctx, id.Pretty(), DefaultResolveOpts())
+	resp, err := resolver.resolveOnce(ctx, id.Pretty(), opts.DefaultResolveOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +137,7 @@ func TestResolverValidation(t *testing.T) {
 	}
 
 	// Record should fail validation because entry is expired
-	_, err = resolver.resolveOnce(ctx, id.Pretty(), DefaultResolveOpts())
+	_, err = resolver.resolveOnce(ctx, id.Pretty(), opts.DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have returned error")
 	}
@@ -158,7 +159,7 @@ func TestResolverValidation(t *testing.T) {
 
 	// Record should fail validation because public key defined by
 	// ipns path doesn't match record signature
-	_, err = resolver.resolveOnce(ctx, id2.Pretty(), DefaultResolveOpts())
+	_, err = resolver.resolveOnce(ctx, id2.Pretty(), opts.DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have failed signature verification")
 	}
@@ -176,7 +177,7 @@ func TestResolverValidation(t *testing.T) {
 
 	// Record should fail validation because public key is not available
 	// in peer store or on network
-	_, err = resolver.resolveOnce(ctx, id3.Pretty(), DefaultResolveOpts())
+	_, err = resolver.resolveOnce(ctx, id3.Pretty(), opts.DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have failed because public key was not found")
 	}
@@ -191,7 +192,7 @@ func TestResolverValidation(t *testing.T) {
 	// public key is available in the peer store by looking it up in
 	// the DHT, which causes the DHT to fetch it and cache it in the
 	// peer store
-	_, err = resolver.resolveOnce(ctx, id3.Pretty(), DefaultResolveOpts())
+	_, err = resolver.resolveOnce(ctx, id3.Pretty(), opts.DefaultResolveOpts())
 	if err != nil {
 		t.Fatal(err)
 	}

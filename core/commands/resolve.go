@@ -9,6 +9,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	ns "github.com/ipfs/go-ipfs/namesys"
+	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
@@ -89,15 +90,14 @@ Resolve the value of an IPFS DAG path:
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
 			rc, rcok, _ := req.Option("dht-record-count").Int()
 			dhtt, dhttok, _ := req.Option("dht-timeout").Int()
-			opts := ns.DefaultResolveOpts()
-			opts.Depth = 1
+			ropts := []nsopts.ResolveOpt{nsopts.Depth(1)}
 			if rcok {
-				opts.DhtRecordCount = uint(rc)
+				ropts = append(ropts, nsopts.DhtRecordCount(uint(rc)))
 			}
 			if dhttok {
-				opts.DhtTimeout = time.Duration(dhtt) * time.Second
+				ropts = append(ropts, nsopts.DhtTimeout(time.Duration(dhtt)*time.Second))
 			}
-			p, err := n.Namesys.Resolve(req.Context(), name, opts)
+			p, err := n.Namesys.Resolve(req.Context(), name, ropts...)
 			// ErrResolveRecursion is fine
 			if err != nil && err != ns.ErrResolveRecursion {
 				res.SetError(err, cmdkit.ErrNormal)

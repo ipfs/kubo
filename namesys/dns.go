@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 	isd "gx/ipfs/QmZmmuAXgX73UQmX1jRKjTGmjzq24Jinqkq8vzkBtno4uX/go-is-domain"
 )
@@ -31,8 +32,8 @@ func newDNSResolver() resolver {
 }
 
 // Resolve implements Resolver.
-func (r *DNSResolver) Resolve(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
-	return resolve(ctx, r, name, opts, "/ipns/")
+func (r *DNSResolver) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
+	return resolve(ctx, r, name, opts.ProcessOpts(options), "/ipns/")
 }
 
 type lookupRes struct {
@@ -43,7 +44,7 @@ type lookupRes struct {
 // resolveOnce implements resolver.
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
-func (r *DNSResolver) resolveOnce(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
+func (r *DNSResolver) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, error) {
 	segments := strings.SplitN(name, "/", 2)
 	domain := segments[0]
 

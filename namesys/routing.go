@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 
@@ -104,23 +105,23 @@ func NewRoutingResolver(route routing.ValueStore, cachesize int) *routingResolve
 }
 
 // Resolve implements Resolver.
-func (r *routingResolver) Resolve(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
-	return resolve(ctx, r, name, opts, "/ipns/")
+func (r *routingResolver) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
+	return resolve(ctx, r, name, opts.ProcessOpts(options), "/ipns/")
 }
 
 // resolveOnce implements resolver. Uses the IPFS routing system to
 // resolve SFS-like names.
-func (r *routingResolver) resolveOnce(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
+func (r *routingResolver) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, error) {
 	log.Debugf("RoutingResolver resolving %s", name)
 	cached, ok := r.cacheGet(name)
 	if ok {
 		return cached, nil
 	}
 
-	if opts.DhtTimeout != 0 {
+	if options.DhtTimeout != 0 {
 		// Resolution must complete within the timeout
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, opts.DhtTimeout)
+		ctx, cancel = context.WithTimeout(ctx, options.DhtTimeout)
 		defer cancel()
 	}
 
@@ -153,7 +154,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string, opts *Re
 	// Note that the DHT will call the ipns validator when retrieving
 	// the value, which in turn verifies the ipns record signature
 	_, ipnsKey := IpnsKeysForID(pid)
-	val, err := r.getValue(ctx, ipnsKey, opts)
+	val, err := r.getValue(ctx, ipnsKey, options)
 	if err != nil {
 		log.Debugf("RoutingResolver: dht get for name %s failed: %s", name, err)
 		return "", err
@@ -186,9 +187,9 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string, opts *Re
 	}
 }
 
-func (r *routingResolver) getValue(ctx context.Context, ipnsKey string, opts *ResolveOpts) ([]byte, error) {
+func (r *routingResolver) getValue(ctx context.Context, ipnsKey string, options *opts.ResolveOpts) ([]byte, error) {
 	// Get specified number of values from the DHT
-	vals, err := r.routing.GetValues(ctx, ipnsKey, int(opts.DhtRecordCount))
+	vals, err := r.routing.GetValues(ctx, ipnsKey, int(options.DhtRecordCount))
 	if err != nil {
 		return nil, err
 	}
