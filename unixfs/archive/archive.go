@@ -33,7 +33,8 @@ func (i *identityWriteCloser) Close() error {
 // DagArchive is equivalent to `ipfs getdag $hash | maybe_tar | maybe_gzip`
 func DagArchive(ctx context.Context, nd ipld.Node, name string, dag ipld.DAGService, archive bool, compression int) (io.Reader, error) {
 
-	_, filename := path.Split(name)
+	cleaned := path.Clean(name)
+	_, filename := path.Split(cleaned)
 
 	// need to connect a writer to a reader
 	piper, pipew := io.Pipe()
