@@ -1,4 +1,4 @@
-package namesys_opts
+package nsopts
 
 import (
 	"time"
