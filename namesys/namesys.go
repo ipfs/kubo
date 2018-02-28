@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 
 	p2phost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
@@ -67,7 +68,7 @@ func AddPubsubNameSystem(ctx context.Context, ns NameSystem, host p2phost.Host, 
 const DefaultResolverCacheTTL = time.Minute
 
 // Resolve implements Resolver.
-func (ns *mpns) Resolve(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
+func (ns *mpns) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
 	if strings.HasPrefix(name, "/ipfs/") {
 		return path.ParsePath(name)
 	}
@@ -76,11 +77,11 @@ func (ns *mpns) Resolve(ctx context.Context, name string, opts *ResolveOpts) (pa
 		return path.ParsePath("/ipfs/" + name)
 	}
 
-	return resolve(ctx, ns, name, opts, "/ipns/")
+	return resolve(ctx, ns, name, opts.ProcessOpts(options), "/ipns/")
 }
 
 // resolveOnce implements resolver.
-func (ns *mpns) resolveOnce(ctx context.Context, name string, opts *ResolveOpts) (path.Path, error) {
+func (ns *mpns) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, error) {
 	if !strings.HasPrefix(name, "/ipns/") {
 		name = "/ipns/" + name
 	}
@@ -109,7 +110,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string, opts *ResolveOpts)
 	if err == nil {
 		res, ok := ns.resolvers["pubsub"]
 		if ok {
-			p, err := res.resolveOnce(ctx, key, opts)
+			p, err := res.resolveOnce(ctx, key, options)
 			if err == nil {
 				return makePath(p)
 			}
@@ -117,7 +118,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string, opts *ResolveOpts)
 
 		res, ok = ns.resolvers["dht"]
 		if ok {
-			p, err := res.resolveOnce(ctx, key, opts)
+			p, err := res.resolveOnce(ctx, key, options)
 			if err == nil {
 				return makePath(p)
 			}
@@ -129,7 +130,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string, opts *ResolveOpts)
 	if isd.IsDomain(key) {
 		res, ok := ns.resolvers["dns"]
 		if ok {
-			p, err := res.resolveOnce(ctx, key, opts)
+			p, err := res.resolveOnce(ctx, key, options)
 			if err == nil {
 				return makePath(p)
 			}
@@ -140,7 +141,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string, opts *ResolveOpts)
 
 	res, ok := ns.resolvers["proquint"]
 	if ok {
-		p, err := res.resolveOnce(ctx, key, opts)
+		p, err := res.resolveOnce(ctx, key, options)
 		if err == nil {
 			return makePath(p)
 		}

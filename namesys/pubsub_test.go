@@ -180,14 +180,14 @@ func TestPubsubPublishSubscribe(t *testing.T) {
 }
 
 func checkResolveNotFound(ctx context.Context, t *testing.T, i int, resolver Resolver, name string) {
-	_, err := resolver.Resolve(ctx, name, DefaultResolveOpts())
+	_, err := resolver.Resolve(ctx, name)
 	if err != ErrResolveFailed {
 		t.Fatalf("[resolver %d] unexpected error: %s", i, err.Error())
 	}
 }
 
 func checkResolve(ctx context.Context, t *testing.T, i int, resolver Resolver, name string, val path.Path) {
-	xval, err := resolver.Resolve(ctx, name, DefaultResolveOpts())
+	xval, err := resolver.Resolve(ctx, name)
 	if err != nil {
 		t.Fatalf("[resolver %d] resolve failed: %s", i, err.Error())
 	}

@@ -5,19 +5,20 @@ import (
 
 	context "context"
 
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 )
 
 type resolver interface {
 	// resolveOnce looks up a name once (without recursion).
-	resolveOnce(ctx context.Context, name string, opts *ResolveOpts) (value path.Path, err error)
+	resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (value path.Path, err error)
 }
 
 // resolve is a helper for implementing Resolver.ResolveN using resolveOnce.
-func resolve(ctx context.Context, r resolver, name string, opts *ResolveOpts, prefixes ...string) (path.Path, error) {
-	depth := opts.Depth
+func resolve(ctx context.Context, r resolver, name string, options *opts.ResolveOpts, prefixes ...string) (path.Path, error) {
+	depth := options.Depth
 	for {
-		p, err := r.resolveOnce(ctx, name, opts)
+		p, err := r.resolveOnce(ctx, name, options)
 		if err != nil {
 			return "", err
 		}

@@ -48,7 +48,7 @@ func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver,
 			return nil, err
 		}
 
-		respath, err := nsys.Resolve(ctx, resolvable.String(), namesys.DefaultResolveOpts())
+		respath, err := nsys.Resolve(ctx, resolvable.String())
 		if err != nil {
 			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
