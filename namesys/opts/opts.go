@@ -39,26 +39,32 @@ func DefaultResolveOpts() *ResolveOpts {
 	}
 }
 
+// ResolveOpt is used to set an option
 type ResolveOpt func(*ResolveOpts)
 
+// Depth is the recursion depth limit
 func Depth(depth uint) ResolveOpt {
 	return func(o *ResolveOpts) {
 		o.Depth = depth
 	}
 }
 
+// DhtRecordCount is the number of IPNS records to retrieve from the DHT
 func DhtRecordCount(count uint) ResolveOpt {
 	return func(o *ResolveOpts) {
 		o.DhtRecordCount = count
 	}
 }
 
+// DhtTimeout is the amount of time to wait for DHT records to be fetched
+// and verified. A zero value indicates that there is no explicit timeout
 func DhtTimeout(timeout time.Duration) ResolveOpt {
 	return func(o *ResolveOpts) {
 		o.DhtTimeout = timeout
 	}
 }
 
+// ProcessOpts converts an array of ResolveOpt into a ResolveOpts object
 func ProcessOpts(opts []ResolveOpt) *ResolveOpts {
 	rsopts := DefaultResolveOpts()
 	for _, option := range opts {
