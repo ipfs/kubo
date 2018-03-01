@@ -155,7 +155,7 @@ func (s *blockService) AddBlock(o blocks.Block) error {
 }
 
 func (s *blockService) AddBlocks(bs []blocks.Block) error {
-	//hash security
+	// hash security
 	for _, b := range bs {
 		err := verifcid.ValidateCid(b.Cid())
 		if err != nil {
@@ -202,7 +202,7 @@ func (s *blockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, 
 		f = s.exchange
 	}
 
-	return getBlock(ctx, c, s.blockstore, f) //hash security
+	return getBlock(ctx, c, s.blockstore, f) // hash security
 }
 
 func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f exchange.Fetcher) (blocks.Block, error) {
@@ -242,7 +242,7 @@ func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f excha
 // the returned channel.
 // NB: No guarantees are made about order.
 func (s *blockService) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
-	return getBlocks(ctx, ks, s.blockstore, s.exchange) //hash security
+	return getBlocks(ctx, ks, s.blockstore, s.exchange) // hash security
 }
 
 func getBlocks(ctx context.Context, ks []*cid.Cid, bs blockstore.Blockstore, f exchange.Fetcher) <-chan blocks.Block {
