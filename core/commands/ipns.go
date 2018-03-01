@@ -112,7 +112,7 @@ Resolve the value of a dnslink:
 		recursive, _, _ := req.Option("recursive").Bool()
 		rc, rcok, _ := req.Option("dht-record-count").Int()
 		dhtt, dhttok, _ := req.Option("dht-timeout").Int()
-		ropts := []nsopts.ResolveOpt{}
+		var ropts []nsopts.ResolveOpt
 		if !recursive {
 			ropts = append(ropts, nsopts.Depth(1))
 		}

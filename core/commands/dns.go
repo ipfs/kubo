@@ -58,7 +58,7 @@ The resolver can recursively resolve:
 		name := req.Arguments()[0]
 		resolver := namesys.NewDNSResolver()
 
-		ropts := []nsopts.ResolveOpt{}
+		var ropts []nsopts.ResolveOpt
 		if !recursive {
 			ropts = append(ropts, nsopts.Depth(1))
 		}
