@@ -10,7 +10,7 @@ import (
 	"io"
 
 	exchange "github.com/ipfs/go-ipfs/exchange"
-	"github.com/ipfs/go-ipfs/removeme/verifcid"
+	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
 
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	blockstore "gx/ipfs/QmTVDM4LCSUMFNQzbDLL9zQwp8usE6QHymFdh3h8vL9v6b/go-ipfs-blockstore"
