@@ -106,10 +106,10 @@ type IpfsNode struct {
 	Repo repo.Repo
 
 	// Local node
-	Pinning        pin.Pinner // the pinning manager
-	Mounts         Mounts     // current mount state, if any.
-	PrivateKey     ic.PrivKey // the local node's private Key
-	PNetFingerpint []byte     // fingerprint of private network
+	Pinning         pin.Pinner // the pinning manager
+	Mounts          Mounts     // current mount state, if any.
+	PrivateKey      ic.PrivKey // the local node's private Key
+	PNetFingerprint []byte     // fingerprint of private network
 
 	// Services
 	Peerstore  pstore.Peerstore     // storage for other Peer instances
@@ -195,7 +195,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		if err != nil {
 			return err
 		}
-		n.PNetFingerpint = protec.Fingerprint()
+		n.PNetFingerprint = protec.Fingerprint()
 		go func() {
 			t := time.NewTicker(30 * time.Second)
 			<-t.C // swallow one tick
