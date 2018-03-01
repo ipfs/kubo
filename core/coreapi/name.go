@@ -122,7 +122,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		name = "/ipns/" + name
 	}
 
-	ropts := []nsopts.ResolveOpt{}
+	var ropts []nsopts.ResolveOpt
 	if !options.Recursive {
 		ropts = append(ropts, nsopts.Depth(1))
 	}
