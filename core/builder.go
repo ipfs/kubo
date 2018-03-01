@@ -15,7 +15,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	pin "github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/removeme/verifbs"
+	"github.com/ipfs/go-ipfs/thirdparty/verifbs"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"

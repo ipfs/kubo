@@ -8,7 +8,7 @@ import (
 )
 
 var ErrPossiblyInsecureHashFunction = fmt.Errorf("potentially insecure hash functions not allowed")
-var ErrBelowMinimumHashLength = fmt.Errorf("hashes must be at least bytes long")
+var ErrBelowMinimumHashLength = fmt.Errorf("hashes must be at %d least bytes long", minimumHashLength)
 
 const minimumHashLength = 20
 
