@@ -125,10 +125,10 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 	log.Debugf("republishing ipns entry for %s", id)
 
 	// Look for it locally only
-	_, ipnskey := namesys.IpnsKeysForID(id)
-	p, seq, err := rp.getLastVal(ipnskey)
+	p, seq, err := rp.getLastVal(id)
 	if err != nil {
 		if err == errNoEntry {
+			log.Debugf("ipns entry for %s not found", id)
 			return nil
 		}
 		return err
@@ -138,14 +138,15 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 	eol := time.Now().Add(rp.RecordLifetime)
 	err = namesys.PutRecordToRouting(ctx, priv, p, seq, eol, rp.r, id)
 	if err != nil {
-		println("put record to routing error: " + err.Error())
+		log.Errorf("put record to routing error %v" + err)
 		return err
 	}
 
 	return nil
 }
 
-func (rp *Republisher) getLastVal(k string) (path.Path, uint64, error) {
+func (rp *Republisher) getLastVal(id peer.ID) (path.Path, uint64, error) {
+	k := namesys.RepubKeyForID(id)
 	ival, err := rp.ds.Get(dshelp.NewKeyFromBinary([]byte(k)))
 	if err != nil {
 		// not found means we dont have a previously published entry

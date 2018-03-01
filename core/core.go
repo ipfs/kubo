@@ -462,7 +462,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	}
 
 	// setup name system
-	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), size)
+	n.Namesys = namesys.NewRepublishingNameSystem(n.Routing, n.Repo.Datastore(), size)
 
 	// setup ipns republishing
 	return n.setupIpnsRepublisher()
@@ -798,7 +798,7 @@ func (n *IpfsNode) SetupOfflineRouting() error {
 		return err
 	}
 
-	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), size)
+	n.Namesys = namesys.NewRepublishingNameSystem(n.Routing, n.Repo.Datastore(), size)
 
 	return nil
 }
