@@ -133,19 +133,23 @@ func TestBatchFetchDupBlock(t *testing.T) {
 func makeTestDAG(t *testing.T, read io.Reader, ds ipld.DAGService) ipld.Node {
 	p := make([]byte, 512)
 	nodes := []*ProtoNode{}
-	var err error
-	n, err = io.ReadFull(read, p)
-	if n != len(p) {
-		t.Fatal("should have read 512 bytes from the reader")
-	}
-	for err == nil {
+
+	for {
+		n, err := io.ReadFull(read, p)
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if n != len(p) {
+			t.Fatal("should have read 512 bytes from the reader")
+		}
+
 		protoNode := NodeWithData(p)
 		nodes = append(nodes, protoNode)
-		_, err = read.Read(p)
-	}
-
-	if err != io.EOF {
-		t.Fatal(err)
 	}
 
 	ctx := context.Background()
@@ -158,7 +162,7 @@ func makeTestDAG(t *testing.T, read io.Reader, ds ipld.DAGService) ipld.Node {
 			t.Fatal(err)
 		}
 	}
-	err = ds.Add(ctx, root)
+	err := ds.Add(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
