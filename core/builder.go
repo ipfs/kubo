@@ -15,6 +15,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	pin "github.com/ipfs/go-ipfs/pin"
+	"github.com/ipfs/go-ipfs/removeme/verifbs"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
@@ -170,7 +171,9 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		TempErrFunc: isTooManyFDError,
 	}
 
+	//hash security
 	bs := bstore.NewBlockstore(rds)
+	bs = &verifbs.VerifBS{bs}
 
 	opts := bstore.DefaultCacheOpts()
 	conf, err := n.Repo.Config()
@@ -196,8 +199,10 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	n.Blockstore = bstore.NewGCBlockstore(cbs, n.GCLocker)
 
 	if conf.Experimental.FilestoreEnabled {
+		// hash security
 		n.Filestore = filestore.NewFilestore(bs, n.Repo.FileManager())
 		n.Blockstore = bstore.NewGCBlockstore(n.Filestore, n.GCLocker)
+		n.Blockstore = &verifbs.VerifBSGC{n.Blockstore}
 	}
 
 	rcfg, err := n.Repo.Config()

@@ -10,6 +10,7 @@ import (
 	"io"
 
 	exchange "github.com/ipfs/go-ipfs/exchange"
+	"github.com/ipfs/go-ipfs/removeme/verifcid"
 
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	blockstore "gx/ipfs/QmTVDM4LCSUMFNQzbDLL9zQwp8usE6QHymFdh3h8vL9v6b/go-ipfs-blockstore"
@@ -130,6 +131,11 @@ func NewSession(ctx context.Context, bs BlockService) *Session {
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
 func (s *blockService) AddBlock(o blocks.Block) error {
 	c := o.Cid()
+	// hash security
+	err := verifcid.ValidateCid(c)
+	if err != nil {
+		return err
+	}
 	if s.checkFirst {
 		if has, err := s.blockstore.Has(c); has || err != nil {
 			return err
@@ -149,6 +155,13 @@ func (s *blockService) AddBlock(o blocks.Block) error {
 }
 
 func (s *blockService) AddBlocks(bs []blocks.Block) error {
+	//hash security
+	for _, b := range bs {
+		err := verifcid.ValidateCid(b.Cid())
+		if err != nil {
+			return err
+		}
+	}
 	var toput []blocks.Block
 	if s.checkFirst {
 		toput = make([]blocks.Block, 0, len(bs))
@@ -189,10 +202,15 @@ func (s *blockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, 
 		f = s.exchange
 	}
 
-	return getBlock(ctx, c, s.blockstore, f)
+	return getBlock(ctx, c, s.blockstore, f) //hash security
 }
 
 func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f exchange.Fetcher) (blocks.Block, error) {
+	err := verifcid.ValidateCid(c)
+	if err != nil {
+		return nil, err
+	}
+
 	block, err := bs.Get(c)
 	if err == nil {
 		return block, nil
@@ -224,11 +242,18 @@ func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f excha
 // the returned channel.
 // NB: No guarantees are made about order.
 func (s *blockService) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
-	return getBlocks(ctx, ks, s.blockstore, s.exchange)
+	return getBlocks(ctx, ks, s.blockstore, s.exchange) //hash security
 }
 
 func getBlocks(ctx context.Context, ks []*cid.Cid, bs blockstore.Blockstore, f exchange.Fetcher) <-chan blocks.Block {
 	out := make(chan blocks.Block)
+	for _, c := range ks {
+		// hash security
+		if err := verifcid.ValidateCid(c); err != nil {
+			log.Errorf("unsafe CID (%s) passed to blockService.GetBlocks: %s", c, err)
+		}
+	}
+
 	go func() {
 		defer close(out)
 		var misses []*cid.Cid
@@ -285,12 +310,12 @@ type Session struct {
 
 // GetBlock gets a block in the context of a request session
 func (s *Session) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, error) {
-	return getBlock(ctx, c, s.bs, s.ses)
+	return getBlock(ctx, c, s.bs, s.ses) // hash security
 }
 
 // GetBlocks gets blocks in the context of a request session
 func (s *Session) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan blocks.Block {
-	return getBlocks(ctx, ks, s.bs, s.ses)
+	return getBlocks(ctx, ks, s.bs, s.ses) // hash security
 }
 
 var _ BlockGetter = (*Session)(nil)
