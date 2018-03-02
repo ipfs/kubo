@@ -10,9 +10,9 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/unixfs"
 
-	offroute "gx/ipfs/QmT51m6og9tmYo8FdaYin3zk1R7vA6ek5WYoHYEiMorfon/go-ipfs-routing/offline"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 	dssync "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
+	offroute "gx/ipfs/QmXtoXbu9ReyV6Q4kDQ5CF9wXQNDY1PdHc4HhfxRR5AHB3/go-ipfs-routing/offline"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
