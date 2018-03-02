@@ -283,7 +283,10 @@ You can now check what blocks have been created by:
 
 		if hash {
 			md := dagtest.Mock()
-			mr, err := mfs.NewRoot(req.Context, md, ft.EmptyDirNode(), nil)
+			emptyDirNode := ft.EmptyDirNode()
+			// Use the same prefix for the "empty" MFS root as for the file adder.
+			emptyDirNode.Prefix = *fileAdder.Prefix
+			mr, err := mfs.NewRoot(req.Context, md, emptyDirNode, nil)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
