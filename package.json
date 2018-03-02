@@ -225,9 +225,9 @@
       "version": "0.1.2"
     },
     {
-      "hash": "QmPRvmyxE33XBQ7MSGg7u4qYgErBA8pMdWCnysShEcGpmG",
+      "hash": "QmY1y2M1aCcVhy8UuTbZJBvuFbegZm47f9cDAdgxiehQfx",
       "name": "go-libp2p-kad-dht",
-      "version": "3.0.17"
+      "version": "3.0.18"
     },
     {
       "author": "whyrusleeping",
@@ -412,9 +412,9 @@
       "version": "1.2.7"
     },
     {
-      "hash": "QmcBSi3Zxa6ytDQxig2iMv4VMfiKKy7v4tibi1Sq6Z5u2x",
+      "hash": "QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ",
       "name": "go-libp2p-record",
-      "version": "4.0.0"
+      "version": "3.0.2"
     },
     {
       "author": "whyrusleeping",
@@ -548,9 +548,9 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "QmT51m6og9tmYo8FdaYin3zk1R7vA6ek5WYoHYEiMorfon",
+      "hash": "QmXtoXbu9ReyV6Q4kDQ5CF9wXQNDY1PdHc4HhfxRR5AHB3",
       "name": "go-ipfs-routing",
-      "version": "0.0.4"
+      "version": "0.0.2"
     },
     {
       "author": "hsanjuan",

@@ -17,6 +17,8 @@ import (
 	floodsub "gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
 	dshelp "gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
+	record "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record"
+	dhtpb "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record/pb"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 	dssync "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
@@ -24,8 +26,6 @@ import (
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	record "gx/ipfs/QmcBSi3Zxa6ytDQxig2iMv4VMfiKKy7v4tibi1Sq6Z5u2x/go-libp2p-record"
-	dhtpb "gx/ipfs/QmcBSi3Zxa6ytDQxig2iMv4VMfiKKy7v4tibi1Sq6Z5u2x/go-libp2p-record/pb"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
@@ -151,7 +151,10 @@ func (p *PubsubPublisher) publishRecord(ctx context.Context, k ci.PrivKey, value
 
 	// the datastore is shared with the routing publisher to properly increment and persist
 	// ipns record sequence numbers; so we need to Record our new entry in the datastore
-	dsrec := record.MakePutRecord(ipnskey, data)
+	dsrec, err := record.MakePutRecord(k, ipnskey, data, true)
+	if err != nil {
+		return err
+	}
 
 	dsdata, err := proto.Marshal(dsrec)
 	if err != nil {
