@@ -149,6 +149,15 @@ test_add_w() {
     echo "$add_w_d1_v1" >expected &&
     test_sort_cmp expected actual
   '
+
+  test_expect_success "ipfs add -w -r -n (dir) --cid-version=1 succeeds" '
+    ipfs add -r -w -n --cid-version=1 m/t_1wp-8a2/_jo7 >actual
+  '
+
+  test_expect_success "ipfs add -w -r -n (dir) --cid-version=1 is correct" '
+    echo "$add_w_d1_v1" > expected &&
+    test_sort_cmp expected actual
+  '
 }
 
 test_init_ipfs
