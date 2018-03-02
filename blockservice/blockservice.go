@@ -206,7 +206,7 @@ func (s *blockService) GetBlock(ctx context.Context, c *cid.Cid) (blocks.Block, 
 }
 
 func getBlock(ctx context.Context, c *cid.Cid, bs blockstore.Blockstore, f exchange.Fetcher) (blocks.Block, error) {
-	err := verifcid.ValidateCid(c)
+	err := verifcid.ValidateCid(c) // hash security
 	if err != nil {
 		return nil, err
 	}
