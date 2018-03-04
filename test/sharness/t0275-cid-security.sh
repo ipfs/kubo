@@ -50,12 +50,27 @@ test_cat_get() {
 }
 
 
+test_gc() {
+  test_expect_success "injecting insecure block" '
+    mkdir -p "$IPFS_PATH/blocks/JZ" &&
+    cp -f ../t0275-cid-security-data/AFKSEBCGPUJZE.data "$IPFS_PATH/blocks/JZ"
+  '
+
+  test_expect_success "gc works" 'ipfs repo gc > gc_out'
+  test_expect_success "gc removed bad block" '
+    grep zDvnoGUyhEq gc_out
+  '
+}
+
+
 # should work offline
 test_cat_get
+test_gc
 
 # should work online
 test_launch_ipfs_daemon
 test_cat_get
+test_gc
 test_kill_ipfs_daemon
 
 test_done
