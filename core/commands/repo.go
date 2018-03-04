@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/tabwriter"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
@@ -40,7 +39,7 @@ var RepoCmd = &cmds.Command{
 		"gc":      lgc.NewCommand(repoGcCmd),
 		"fsck":    lgc.NewCommand(RepoFsckCmd),
 		"version": lgc.NewCommand(repoVersionCmd),
-		"verify":  lgc.NewCommand(repoVerifyCmd),
+		"verify":  repoVerifyCmd,
 	},
 }
 
@@ -269,25 +268,19 @@ type VerifyProgress struct {
 	Progress int
 }
 
-var repoVerifyCmd = &oldcmds.Command{
+var repoVerifyCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Verify all blocks in repo are not corrupted.",
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		nd, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
-			return
 		}
-
-		out := make(chan interface{})
-		res.SetOutput((<-chan interface{})(out))
-		defer close(out)
-
 		bs := bstore.NewBlockstore(nd.Repo.Datastore())
 		bs.HashOnRead(true)
 
-		keys, err := bs.AllKeysChan(req.Context())
+		keys, err := bs.AllKeysChan(req.Context)
 		if err != nil {
 			log.Error(err)
 			return
@@ -298,63 +291,35 @@ var repoVerifyCmd = &oldcmds.Command{
 		for k := range keys {
 			_, err := bs.Get(k)
 			if err != nil {
-				select {
-				case out <- &VerifyProgress{
+				if res.Emit(&VerifyProgress{
 					Msg: fmt.Sprintf("block %s was corrupt (%s)", k, err),
-				}:
-				case <-req.Context().Done():
+				}) != nil {
 					return
 				}
 				fails++
 			}
 			i++
-			select {
-			case out <- &VerifyProgress{Progress: i}:
-			case <-req.Context().Done():
+			if res.Emit(&VerifyProgress{Progress: i}) != nil {
 				return
 			}
 		}
 
 		if fails == 0 {
-			select {
-			case out <- &VerifyProgress{Msg: "verify complete, all blocks validated."}:
-			case <-req.Context().Done():
-				return
-			}
+			res.Emit(&VerifyProgress{Msg: "verify complete, all blocks validated."})
 		} else {
 			res.SetError(fmt.Errorf("verify complete, some blocks were corrupt"), cmdkit.ErrNormal)
 		}
 	},
 	Type: &VerifyProgress{},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			obj, ok := v.(*VerifyProgress)
-			if !ok {
-				return nil, e.TypeErr(obj, v)
-			}
-
-			buf := new(bytes.Buffer)
-			if strings.Contains(obj.Msg, "was corrupt") {
-				fmt.Fprintln(os.Stdout, obj.Msg)
-				return buf, nil
-			}
-
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, obj *VerifyProgress) error {
 			if obj.Msg != "" {
-				if len(obj.Msg) < 20 {
-					obj.Msg += "             "
-				}
-				fmt.Fprintln(buf, obj.Msg)
-				return buf, nil
+				fmt.Fprintf(w, "%-30s\n", obj.Msg)
+			} else {
+				fmt.Fprintf(w, "%d blocks processed.\r", obj.Progress)
 			}
-
-			fmt.Fprintf(buf, "%d blocks processed.\r", obj.Progress)
-			return buf, nil
-		},
+			return nil
+		}),
 	},
 }
 
