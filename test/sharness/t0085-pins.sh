@@ -36,6 +36,15 @@ test_pins() {
     cat hashes | ipfs pin add $EXTRA_ARGS
   '
 
+  test_expect_success "see if verify works" '
+    ipfs pin verify
+  '
+
+  test_expect_success "see if verify --verbose works" '
+    ipfs pin verify --verbose > verify_out &&
+    test $(cat verify_out | wc -l) > 8
+  '
+
   test_expect_success "unpin those hashes" '
     cat hashes | ipfs pin rm
   '
