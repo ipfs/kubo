@@ -462,25 +462,23 @@ var verifyPinCmd = &cmds.Command{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			quiet, _, _ := res.Request().Option("quiet").Bool()
 
-			outChan, ok := res.Output().(<-chan interface{})
+			out, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+			r, ok := out.(*PinVerifyRes)
 			if !ok {
-				return nil, u.ErrCast()
+				return nil, e.TypeErr(r, out)
 			}
 
-			rdr, wtr := io.Pipe()
-			go func() {
-				defer wtr.Close()
-				for r0 := range outChan {
-					r := r0.(*PinVerifyRes)
-					if quiet && !r.Ok {
-						fmt.Fprintf(wtr, "%s\n", r.Cid)
-					} else if !quiet {
-						r.Format(wtr)
-					}
-				}
-			}()
+			buf := &bytes.Buffer{}
+			if quiet && !r.Ok {
+				fmt.Fprintf(buf, "%s\n", r.Cid)
+			} else if !quiet {
+				r.Format(buf)
+			}
 
-			return rdr, nil
+			return buf, nil
 		},
 	},
 }
