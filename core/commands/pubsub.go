@@ -223,6 +223,12 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 
 		topic := req.Arguments[0]
 
+		err = req.ParseBodyArgs()
+		if err != nil && !cmds.IsAllArgsAlreadyCovered(err) {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		for _, data := range req.Arguments[1:] {
 			if err := n.Floodsub.Publish(topic, []byte(data)); err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
