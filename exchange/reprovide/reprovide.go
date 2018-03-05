@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
+
 	backoff "gx/ipfs/QmPJUtEJsm5YLUWhF6imvyCH8KZXRJa9Wup7FDMwTy5Ufz/backoff"
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
@@ -83,6 +85,11 @@ func (rp *Reprovider) Reprovide() error {
 		return fmt.Errorf("Failed to get key chan: %s", err)
 	}
 	for c := range keychan {
+		// hash security
+		if err := verifcid.ValidateCid(c); err != nil {
+			log.Errorf("insecure hash in reprovider, %s (%s)", c, err)
+			continue
+		}
 		op := func() error {
 			err := rp.rsys.Provide(rp.ctx, c, true)
 			if err != nil {
