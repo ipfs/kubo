@@ -447,8 +447,8 @@ var findPeerDhtCmd = &cmds.Command{
 				select {
 				case outChan <- v:
 				case <-req.Context().Done():
+					return
 				}
-
 			}
 		}()
 
@@ -553,6 +553,7 @@ Different key types can specify other 'best' rules.
 				select {
 				case outChan <- e:
 				case <-req.Context().Done():
+					return
 				}
 			}
 		}()
