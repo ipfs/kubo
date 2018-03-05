@@ -77,7 +77,7 @@ test_expect_success 'prepare test files' '
 test_expect_success 'add test objects' '
   HASH_FOO=$(ipfsi 0 add -q --local --pin=false f1) &&
   HASH_BAR=$(ipfsi 0 add -q --local --pin=false f2) &&
-  HASH_BAR_DIR=$(ipfsi 0 add -q --local -w f2)
+  HASH_BAR_DIR=$(ipfsi 0 add -q --local -w f2 | tail -1)
 '
 
 findprovs_empty '$HASH_FOO'
