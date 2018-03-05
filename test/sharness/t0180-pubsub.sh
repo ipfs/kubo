@@ -35,7 +35,7 @@ test_expect_success 'pubsub' '
 '
 
 test_expect_success "wait until ipfs pubsub sub is ready to do work" '
-  sleep 1
+  go-sleep 500ms
 '
 
 test_expect_success "can see peer subscribed to testTopic" '
@@ -53,6 +53,36 @@ test_expect_success "publish something" '
 
 test_expect_success "wait until echo > wait executed" '
   cat wait &&
+  test_cmp pubErr empty &&
+  test_cmp expected actual
+'
+
+test_expect_success "wait for another pubsub message" '
+  echo "testOK2" > expected &&
+  mkfifo wait2 ||
+  test_fsh echo init fail
+
+  # ipfs pubsub sub is long-running so we need to start it in the background and
+  # wait put its output somewhere where we can access it
+  (
+    ipfsi 2 pubsub sub --enc=ndpayload testTopic | if read line; then
+        echo $line > actual &&
+        echo > wait2
+      fi
+  ) &
+'
+
+test_expect_success "wait until ipfs pubsub sub is ready to do work" '
+  go-sleep 500ms
+'
+
+test_expect_success "publish something" '
+  echo "testOK2" | ipfsi 1 pubsub pub testTopic &> pubErr
+'
+
+test_expect_success "wait until echo > wait executed" '
+  echo "testOK2" > expected &&
+  cat wait2 &&
   test_cmp pubErr empty &&
   test_cmp expected actual
 '
