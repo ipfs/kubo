@@ -95,7 +95,12 @@ func ApplyChange(ctx context.Context, ds ipld.DAGService, nd *dag.ProtoNode, cs 
 
 // Diff returns a set of changes that transform node 'a' into node 'b'
 func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, error) {
+	// Base case where both nodes are leaves, just compare
+	// their CIDs.
 	if len(a.Links()) == 0 && len(b.Links()) == 0 {
+		if a.Cid().Equals(b.Cid()) {
+			return []*Change{}, nil
+		}
 		return []*Change{
 			&Change{
 				Type:   Mod,
