@@ -17,7 +17,7 @@ import (
 )
 
 var ErrIsDir = errors.New("object is a directory")
-var ErrOffline = errors.New("can't resolve, ipfs node is offline")
+var ErrOffline = errors.New("this action must be run in online mode, try running 'ipfs daemon' first")
 
 // Path is a generic wrapper for paths used in the API. A path can be resolved
 // to a CID using one of Resolve functions in the API.
@@ -96,8 +96,8 @@ type BadPinNode interface {
 type PubSubSubscription interface {
 	io.Closer
 
-	// Chan return incoming message channel
-	Chan(context.Context) <-chan PubSubMessage
+	// Next return the next incoming message
+	Next(context.Context) (PubSubMessage, error)
 }
 
 // PubSubMessage is a single PubSub message
@@ -150,6 +150,9 @@ type CoreAPI interface {
 
 	// Dht returns an implementation of Dht API
 	Dht() DhtAPI
+
+	// PubSub returns an implementation of PubSub API
+	PubSub() PubSubAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, Path) (Path, error)
@@ -469,7 +472,7 @@ type PubSubAPI interface {
 	Publish(context.Context, string, []byte) error
 
 	// Subscribe to messages on a given topic
-	Subscribe(context.Context, string) (PubSubSubscription, error)
+	Subscribe(context.Context, string, ...options.PubSubSubscribeOption) (PubSubSubscription, error)
 
 	// WithDiscover is an option for Subscribe which specifies whether to try to
 	// discover other peers subscribed to the same topic

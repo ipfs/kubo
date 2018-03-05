@@ -64,6 +64,11 @@ func (api *CoreAPI) Dht() coreiface.DhtAPI {
 	return &DhtAPI{api, nil}
 }
 
+// Dht returns the DhtAPI interface implementation backed by the go-ipfs node
+func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
+	return &PubSubAPI{api, nil}
+}
+
 // ResolveNode resolves the path `p` using Unixfx resolver, gets and returns the
 // resolved Node.
 func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (coreiface.Node, error) {
