@@ -118,11 +118,11 @@ type PeerInfo interface {
 	Address() Addr
 
 	// Latency returns last known round trip time to the peer
-	Latency() time.Duration
+	Latency(context.Context) (time.Duration, error)
 
 	// Streams returns list of streams established with the peer
 	// TODO: should this return multicodecs?
-	Streams() []string
+	Streams(context.Context) ([]string, error)
 }
 
 // CoreAPI defines an unified interface to IPFS for Go programs
@@ -153,6 +153,9 @@ type CoreAPI interface {
 
 	// PubSub returns an implementation of PubSub API
 	PubSub() PubSubAPI
+
+	// Swarm returns an implementation of Swarm API
+	Swarm() SwarmAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, Path) (Path, error)

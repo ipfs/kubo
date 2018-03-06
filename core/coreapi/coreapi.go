@@ -64,9 +64,14 @@ func (api *CoreAPI) Dht() coreiface.DhtAPI {
 	return &DhtAPI{api, nil}
 }
 
-// Dht returns the DhtAPI interface implementation backed by the go-ipfs node
+// PubSub returns the DhtAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
 	return &PubSubAPI{api, nil}
+}
+
+// PubSub returns the DhtAPI interface implementation backed by the go-ipfs node
+func (api *CoreAPI) Swarm() coreiface.SwarmAPI {
+	return &SwarmAPI{api}
 }
 
 // ResolveNode resolves the path `p` using Unixfx resolver, gets and returns the
