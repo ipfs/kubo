@@ -330,7 +330,15 @@ var repoVerifyCmd = &oldcmds.Command{
 		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
 			v, err := unwrapOutput(res.Output())
 			if err != nil {
-				return nil, err
+				// If the command was canceled do not return an error,
+				// as it is expected that there won't be output available.
+				select {
+				case <-res.Request().Context().Done():
+					fmt.Fprintln(os.Stderr, "Command canceled.")
+					return nil, nil
+				default:
+					return nil, err
+				}
 			}
 
 			obj, ok := v.(*VerifyProgress)
