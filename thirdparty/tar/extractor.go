@@ -114,16 +114,17 @@ func copyWithProgress(to io.Writer, from io.Reader, cb func(int64) int64) error 
 	buf := make([]byte, 4096)
 	for {
 		n, err := from.Read(buf)
+		if n != 0 {
+			cb(int64(n))
+			_, err2 := to.Write(buf[:n])
+			if err2 != nil {
+				return err2
+			}
+		}
 		if err != nil {
 			if err == io.EOF {
 				return nil
 			}
-			return err
-		}
-
-		cb(int64(n))
-		_, err = to.Write(buf[:n])
-		if err != nil {
 			return err
 		}
 	}
