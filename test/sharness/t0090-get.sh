@@ -125,6 +125,26 @@ test_get_cmd() {
     test_must_fail ipfs get ../.. 2>actual &&
     test_cmp expected actual
   '
+
+  test_expect_success "create small file" '
+    echo "foo" > small &&
+    ipfs add -q small > hash_small
+  '
+
+  test_expect_success "get small file" '
+    ipfs get -o out_small $(cat hash_small) &&
+    test_cmp small out_small
+  '
+
+  test_expect_success "create medium file" '
+    head -c 16000 > medium &&
+    ipfs add -q medium > hash_medium
+  '
+
+  test_expect_success "get medium file" '
+    ipfs get -o out_medium $(cat hash_medium) &&
+    test_cmp medium out_medium
+  '
 }
 
 test_get_fail() {
