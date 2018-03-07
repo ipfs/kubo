@@ -44,7 +44,7 @@ full list (almost 100 PRs!) is below.
 
 Finally, I'd like to thank everyone who contributed to this release, whether
 you're just contributing a typo fix or driving new features. We are really
-grateful to everyone who has spent their their time pushing ipfs forward.
+grateful to everyone who has spent their time pushing ipfs forward.
 
 SECURITY NOTE:
 
