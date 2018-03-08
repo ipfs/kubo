@@ -36,7 +36,7 @@ type Path interface {
 //       if we didn't, godoc would generate nice links straight to go-ipld-format
 type Node ipld.Node
 type Link ipld.Link
-type PeerID peer.ID
+type PeerID = peer.ID
 type Addr ma.Multiaddr
 
 type Reader interface {
