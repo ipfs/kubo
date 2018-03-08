@@ -166,27 +166,20 @@ func (dr *PBDagReader) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 	total := 0
 	for {
 		// Attempt to fill bytes from cached buffer
-		n, err := dr.buf.Read(b[total:])
+		n, err := io.ReadFull(dr.buf, b[total:])
 		total += n
 		dr.offset += int64(n)
-		if err != nil {
-			// EOF is expected
-			if err != io.EOF {
-				return total, err
-			}
-		}
-
-		// If weve read enough bytes, return
-		if total == len(b) {
+		switch err {
+		// io.EOF will happen is dr.buf had noting more to read (n == 0)
+		case io.EOF, io.ErrUnexpectedEOF:
+			// do nothing
+		case nil:
 			return total, nil
+		default:
+			return total, err
 		}
 
-		// We haven't hit the end yet.
-		if err != io.EOF {
-			continue
-		}
-
-		// Otherwise, load up the next block
+		// if we are not done with the output buffer load next block
 		err = dr.precalcNextBuf(ctx)
 		if err != nil {
 			return total, err
