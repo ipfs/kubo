@@ -90,10 +90,13 @@ var swarmPeersCmd = &cmds.Command{
 				Peer: pid.Pretty(),
 			}
 
-			swcon, ok := c.(*swarm.Conn)
-			if ok {
-				ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
-			}
+			/*
+				// FIXME(steb):
+							swcon, ok := c.(*swarm.Conn)
+							if ok {
+								ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
+							}
+			*/
 
 			if verbose || latency {
 				lat := n.Peerstore.LatencyEWMA(pid)
@@ -104,11 +107,7 @@ var swarmPeersCmd = &cmds.Command{
 				}
 			}
 			if verbose || streams {
-				strs, err := c.GetStreams()
-				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
-				}
+				strs := c.GetStreams()
 
 				for _, s := range strs {
 					ci.Streams = append(ci.Streams, streamInfo{Protocol: string(s.Protocol())})
@@ -384,13 +383,12 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 			return
 		}
 
-		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		// FIXME(steb): Nasty
+		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
 		if !ok {
 			res.SetError(fmt.Errorf("peerhost network was not swarm"), cmdkit.ErrNormal)
 			return
 		}
-
-		swrm := snet.Swarm()
 
 		pis, err := peersWithAddresses(addrs)
 		if err != nil {
@@ -574,14 +572,15 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 			return
 		}
 
-		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		// FIXME(steb)
+		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
 		if !ok {
 			res.SetError(errors.New("failed to cast network to swarm network"), cmdkit.ErrNormal)
 			return
 		}
 
 		var output []string
-		for _, f := range snet.Filters.Filters() {
+		for _, f := range swrm.Filters.Filters() {
 			s, err := mafilter.ConvertIPNet(f)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
@@ -621,7 +620,8 @@ add your filters to the ipfs config file.
 			return
 		}
 
-		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		// FIXME(steb)
+		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
 		if !ok {
 			res.SetError(errors.New("failed to cast network to swarm network"), cmdkit.ErrNormal)
 			return
@@ -651,7 +651,7 @@ add your filters to the ipfs config file.
 				return
 			}
 
-			snet.Filters.AddDialFilter(mask)
+			swrm.Filters.AddDialFilter(mask)
 		}
 
 		added, err := filtersAdd(r, cfg, req.Arguments())
@@ -693,7 +693,7 @@ remove your filters from the ipfs config file.
 			return
 		}
 
-		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
 		if !ok {
 			res.SetError(errors.New("failed to cast network to swarm network"), cmdkit.ErrNormal)
 			return
@@ -712,9 +712,9 @@ remove your filters from the ipfs config file.
 		}
 
 		if req.Arguments()[0] == "all" || req.Arguments()[0] == "*" {
-			fs := snet.Filters.Filters()
+			fs := swrm.Filters.Filters()
 			for _, f := range fs {
-				snet.Filters.Remove(f)
+				swrm.Filters.Remove(f)
 			}
 
 			removed, err := filtersRemoveAll(r, cfg)
@@ -735,7 +735,7 @@ remove your filters from the ipfs config file.
 				return
 			}
 
-			snet.Filters.Remove(mask)
+			swrm.Filters.Remove(mask)
 		}
 
 		removed, err := filtersRemove(r, cfg, req.Arguments())

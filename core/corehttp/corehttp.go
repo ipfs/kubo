@@ -61,7 +61,7 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 	addr = list.Multiaddr()
 	fmt.Printf("API server listening on %s\n", addr)
 
-	return Serve(n, list.NetListener(), options...)
+	return Serve(n, manet.NetListener(list), options...)
 }
 
 func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error {

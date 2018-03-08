@@ -54,7 +54,7 @@ type streamMessageSender struct {
 }
 
 func (s *streamMessageSender) Close() error {
-	return s.s.Close()
+	return inet.FullClose(s.s)
 }
 
 func (s *streamMessageSender) Reset() error {
@@ -119,13 +119,13 @@ func (bsnet *impl) SendMessage(
 		return err
 	}
 
-	err = msgToStream(ctx, s, outgoing)
-	if err != nil {
+	if err = msgToStream(ctx, s, outgoing); err != nil {
 		s.Reset()
-	} else {
-		s.Close()
+		return err
 	}
-	return err
+	// Yes, return this error. We have no reason to believe that the block
+	// was actually *sent* unless we see the EOF.
+	return inet.FullClose(s)
 }
 
 func (bsnet *impl) SetDelegate(r Receiver) {

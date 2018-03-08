@@ -152,17 +152,20 @@ func connect(args args) error {
 	}
 
 	// log everything that goes through conn
-	rwc := &logRW{n: "conn", rw: conn}
+	rwc := &logConn{n: "conn", Conn: conn}
 
 	// OK, let's setup the channel.
 	sk := ps.PrivKey(p)
-	sg := secio.SessionGenerator{LocalID: p, PrivateKey: sk}
-	sess, err := sg.NewSession(context.TODO(), rwc)
+	sg, err := secio.New(sk)
 	if err != nil {
 		return err
 	}
-	out("remote peer id: %s", sess.RemotePeer())
-	netcat(sess.ReadWriter().(io.ReadWriteCloser))
+	sconn, err := sg.SecureInbound(context.TODO(), rwc)
+	if err != nil {
+		return err
+	}
+	out("remote peer id: %s", sconn.RemotePeer())
+	netcat(sconn)
 	return nil
 }
 

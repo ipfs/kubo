@@ -312,12 +312,6 @@
       "version": "0.2.6"
     },
     {
-      "author": "whyrusleeping",
-      "hash": "QmYDNqBAMWVMHKndYR35Sd8PfEVWBiDmpHYkuRJTunJDeJ",
-      "name": "go-libp2p-interface-conn",
-      "version": "0.4.13"
-    },
-    {
       "author": "multiformats",
       "hash": "QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb",
       "name": "go-multiaddr",
