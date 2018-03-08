@@ -181,6 +181,11 @@ func (dr *PBDagReader) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 			return total, nil
 		}
 
+		// We haven't hit the end yet.
+		if err != io.EOF {
+			continue
+		}
+
 		// Otherwise, load up the next block
 		err = dr.precalcNextBuf(ctx)
 		if err != nil {
