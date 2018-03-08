@@ -31,7 +31,7 @@ type logRW struct {
 
 func (r *logRW) Read(buf []byte) (int, error) {
 	n, err := r.rw.Read(buf)
-	if err == nil {
+	if n > 0 {
 		log.Debugf("%s read: %v", r.n, buf)
 	}
 	return n, err
