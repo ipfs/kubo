@@ -202,7 +202,7 @@ func (dm *DagModifier) Sync() error {
 	buflen := dm.wrBuf.Len()
 
 	// overwrite existing dag nodes
-	thisc, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
+	thisc, err := dm.modifyDag(dm.curNode, dm.writeStart)
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (dm *DagModifier) Sync() error {
 	}
 
 	// need to write past end of current dag
-	if !done {
+	if dm.wrBuf.Len() > 0 {
 		dm.curNode, err = dm.appendData(dm.curNode, dm.splitter(dm.wrBuf))
 		if err != nil {
 			return err
@@ -231,28 +231,27 @@ func (dm *DagModifier) Sync() error {
 	return nil
 }
 
-// modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
-// returns the new key of the passed in node and whether or not all the data in the reader
-// has been consumed.
-func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*cid.Cid, bool, error) {
+// modifyDag writes the data in 'dm.wrBuf' over the data in 'node' starting at 'offset'
+// returns the new key of the passed in node.
+func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64) (*cid.Cid, error) {
 	// If we've reached a leaf node.
 	if len(n.Links()) == 0 {
 		switch nd0 := n.(type) {
 		case *mdag.ProtoNode:
 			f, err := ft.FromBytes(nd0.Data())
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 
-			n, err := data.Read(f.Data[offset:])
+			_, err = dm.wrBuf.Read(f.Data[offset:])
 			if err != nil && err != io.EOF {
-				return nil, false, err
+				return nil, err
 			}
 
 			// Update newly written node..
 			b, err := proto.Marshal(f)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 
 			nd := new(mdag.ProtoNode)
@@ -260,16 +259,10 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*c
 			nd.SetPrefix(&nd0.Prefix)
 			err = dm.dagserv.Add(dm.ctx, nd)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 
-			// Hey look! we're done!
-			var done bool
-			if n < len(f.Data[offset:]) {
-				done = true
-			}
-
-			return nd.Cid(), done, nil
+			return nd.Cid(), nil
 		case *mdag.RawNode:
 			origData := nd0.RawData()
 			bytes := make([]byte, len(origData))
@@ -278,9 +271,9 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*c
 			copy(bytes, origData[:offset])
 
 			// copy in new data
-			n, err := data.Read(bytes[offset:])
+			n, err := dm.wrBuf.Read(bytes[offset:])
 			if err != nil && err != io.EOF {
-				return nil, false, err
+				return nil, err
 			}
 
 			// copy remaining data
@@ -291,46 +284,39 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*c
 
 			nd, err := mdag.NewRawNodeWPrefix(bytes, nd0.Cid().Prefix())
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			err = dm.dagserv.Add(dm.ctx, nd)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 
-			// Hey look! we're done!
-			var done bool
-			if n < len(bytes[offset:]) {
-				done = true
-			}
-
-			return nd.Cid(), done, nil
+			return nd.Cid(), nil
 		}
 	}
 
 	node, ok := n.(*mdag.ProtoNode)
 	if !ok {
-		return nil, false, ErrNotUnixfs
+		return nil, ErrNotUnixfs
 	}
 
 	f, err := ft.FromBytes(node.Data())
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	var cur uint64
-	var done bool
 	for i, bs := range f.GetBlocksizes() {
 		// We found the correct child to write into
 		if cur+bs > offset {
 			child, err := node.Links()[i].GetNode(dm.ctx, dm.dagserv)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 
-			k, sdone, err := dm.modifyDag(child, offset-cur, data)
+			k, err := dm.modifyDag(child, offset-cur)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 
 			node.Links()[i].Cid = k
@@ -338,12 +324,11 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*c
 			// Recache serialized node
 			_, err = node.EncodeProtobuf(true)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 
-			if sdone {
+			if dm.wrBuf.Len() == 0 {
 				// No more bytes to write!
-				done = true
 				break
 			}
 			offset = cur + bs
@@ -352,7 +337,7 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*c
 	}
 
 	err = dm.dagserv.Add(dm.ctx, node)
-	return node.Cid(), done, err
+	return node.Cid(), err
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
