@@ -13,6 +13,7 @@ exclusions=(
 	'master'
 	'release'
 	'feat/zcash'
+	'feat/ai-mirror'
 )
 
 gh_api_next() {
