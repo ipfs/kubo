@@ -7,8 +7,6 @@ if [ -z "$PWD" ]; then
 	exit 1
 fi
 
-[ -z "$GOPATH" ] && GOPATH="$HOME/go"
-
 while [ ${#} -gt 1 ]; do
 	if [ "$PWD" = "$2" ]; then
 		exit 0
