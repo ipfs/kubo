@@ -62,3 +62,8 @@ func (api *CoreAPI) Object() coreiface.ObjectAPI {
 func (api *CoreAPI) Pin() coreiface.PinAPI {
 	return (*PinAPI)(api)
 }
+
+// Dht returns the DhtAPI interface implementation backed by the go-ipfs node
+func (api *CoreAPI) Dht() coreiface.DhtAPI {
+	return &DhtAPI{api, nil}
+}
