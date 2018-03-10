@@ -10,9 +10,14 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
+
+var ErrIsDir = errors.New("object is a directory")
+var ErrOffline = errors.New("this action must be run in online mode, try running 'ipfs daemon' first")
 
 // Path is a generic wrapper for paths used in the API. A path can be resolved
 // to a CID using one of Resolve functions in the API.
@@ -29,8 +34,10 @@ type Path interface {
 
 // TODO: should we really copy these?
 //       if we didn't, godoc would generate nice links straight to go-ipld-format
-type Node ipld.Node
-type Link ipld.Link
+type Node = ipld.Node
+type Link = ipld.Link
+type PeerID = peer.ID
+type Addr = ma.Multiaddr
 
 type Reader interface {
 	io.ReadSeeker
@@ -85,26 +92,70 @@ type BadPinNode interface {
 	Err() error
 }
 
-// CoreAPI defines an unified interface to IPFS for Go programs.
+// PubSubSubscription is an active PubSub subscription
+type PubSubSubscription interface {
+	io.Closer
+
+	// Next return the next incoming message
+	Next(context.Context) (PubSubMessage, error)
+}
+
+// PubSubMessage is a single PubSub message
+type PubSubMessage interface {
+	// From returns id of a peer from which the message has arrived
+	From() PeerID
+
+	// Data returns the message body
+	Data() []byte
+}
+
+// PeerInfo contains information about a peer
+type PeerInfo interface {
+	// ID returns PeerID
+	ID() PeerID
+
+	// Address returns the multiaddress via which we are connected with the peer
+	Address() Addr
+
+	// Latency returns last known round trip time to the peer
+	Latency(context.Context) (time.Duration, error)
+
+	// Streams returns list of streams established with the peer
+	// TODO: should this return multicodecs?
+	Streams(context.Context) ([]string, error)
+}
+
+// CoreAPI defines an unified interface to IPFS for Go programs
 type CoreAPI interface {
-	// Unixfs returns an implementation of Unixfs API.
+	// Unixfs returns an implementation of Unixfs API
 	Unixfs() UnixfsAPI
 
-	// Block returns an implementation of Block API.
+	// Block returns an implementation of Block API
 	Block() BlockAPI
 
-	// Dag returns an implementation of Dag API.
+	// Dag returns an implementation of Dag API
 	Dag() DagAPI
 
-	// Name returns an implementation of Name API.
+	// Name returns an implementation of Name API
 	Name() NameAPI
 
-	// Key returns an implementation of Key API.
+	// Key returns an implementation of Key API
 	Key() KeyAPI
+
+	// Pin returns an implementation of Pin API
 	Pin() PinAPI
 
 	// ObjectAPI returns an implementation of Object API
 	Object() ObjectAPI
+
+	// Dht returns an implementation of Dht API
+	Dht() DhtAPI
+
+	// PubSub returns an implementation of PubSub API
+	PubSub() PubSubAPI
+
+	// Swarm returns an implementation of Swarm API
+	Swarm() SwarmAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, Path) (Path, error)
@@ -385,5 +436,60 @@ type PinAPI interface {
 	Verify(context.Context) (<-chan PinStatus, error)
 }
 
-var ErrIsDir = errors.New("object is a directory")
-var ErrOffline = errors.New("can't resolve, ipfs node is offline")
+// DhtAPI specifies the interface to the DHT
+type DhtAPI interface {
+	// FindPeer queries the DHT for all of the multiaddresses associated with a
+	// Peer ID
+	FindPeer(context.Context, PeerID) (<-chan Addr, error)
+
+	// FindProviders finds peers in the DHT who can provide a specific value
+	// given a key.
+	FindProviders(context.Context, Path, ...options.DhtFindProvidersOption) (<-chan PeerID, error) //TODO: is path the right choice here?
+
+	// WithNumProviders is an option for FindProviders which specifies the
+	// number of peers to look for. Default is 20
+	WithNumProviders(numProviders int) options.DhtFindProvidersOption
+
+	// Provide announces to the network that you are providing given values
+	Provide(context.Context, Path, ...options.DhtProvideOption) error
+
+	// WithRecursive is an option for Provide which specifies whether to provide
+	// the given path recursively
+	WithRecursive(recursive bool) options.DhtProvideOption
+}
+
+// PubSubAPI specifies the interface to PubSub
+type PubSubAPI interface {
+	// Ls lists subscribed topics by name
+	Ls(context.Context) ([]string, error)
+
+	// Peers list peers we are currently pubsubbing with
+	// TODO: WithTopic
+	Peers(context.Context, ...options.PubSubPeersOption) ([]PeerID, error)
+
+	// WithTopic is an option for peers which specifies a topic filter for the
+	// function
+	WithTopic(topic string) options.PubSubPeersOption
+
+	// Publish a message to a given pubsub topic
+	Publish(context.Context, string, []byte) error
+
+	// Subscribe to messages on a given topic
+	Subscribe(context.Context, string, ...options.PubSubSubscribeOption) (PubSubSubscription, error)
+
+	// WithDiscover is an option for Subscribe which specifies whether to try to
+	// discover other peers subscribed to the same topic
+	WithDiscover(discover bool) options.PubSubSubscribeOption
+}
+
+// SwarmAPI specifies the interface to libp2p swarm
+type SwarmAPI interface {
+	// Connect to a given address
+	Connect(context.Context, Addr) error
+
+	// Disconnect from a given address
+	Disconnect(context.Context, Addr) error
+
+	// Peers returns the list of peers we are connected to
+	Peers(context.Context) ([]PeerInfo, error)
+}
