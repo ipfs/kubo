@@ -59,11 +59,11 @@ func (api *CoreAPI) Pin() coreiface.PinAPI {
 
 // ResolveNode resolves the path `p` using Unixfx resolver, gets and returns the
 // resolved Node.
-func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (coreiface.Node, error) {
+func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (ipld.Node, error) {
 	return resolveNode(ctx, api.node.DAG, api.node.Namesys, p)
 }
 
-func resolveNode(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSystem, p coreiface.Path) (coreiface.Node, error) {
+func resolveNode(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSystem, p coreiface.Path) (ipld.Node, error) {
 	p, err := resolvePath(ctx, ng, nsys, p)
 	if err != nil {
 		return nil, err
