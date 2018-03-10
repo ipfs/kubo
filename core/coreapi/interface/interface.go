@@ -30,11 +30,6 @@ type Path interface {
 	Resolved() bool
 }
 
-// TODO: should we really copy these?
-//       if we didn't, godoc would generate nice links straight to go-ipld-format
-type Node ipld.Node
-type Link ipld.Link
-
 type Reader interface {
 	io.ReadSeeker
 	io.Closer
@@ -114,7 +109,7 @@ type CoreAPI interface {
 
 	// ResolveNode resolves the path (if not resolved already) using Unixfs
 	// resolver, gets and returns the resolved Node
-	ResolveNode(context.Context, Path) (Node, error)
+	ResolveNode(context.Context, Path) (ipld.Node, error)
 }
 
 // UnixfsAPI is the basic interface to immutable files in IPFS
@@ -126,7 +121,7 @@ type UnixfsAPI interface {
 	Cat(context.Context, Path) (Reader, error)
 
 	// Ls returns the list of links in a directory
-	Ls(context.Context, Path) ([]*Link, error)
+	Ls(context.Context, Path) ([]*ipld.Link, error)
 }
 
 // BlockAPI specifies the interface to the block layer
@@ -183,7 +178,7 @@ type DagAPI interface {
 	WithHash(mhType uint64, mhLen int) options.DagPutOption
 
 	// Get attempts to resolve and get the node specified by the path
-	Get(ctx context.Context, path Path) (Node, error)
+	Get(ctx context.Context, path Path) (ipld.Node, error)
 
 	// Tree returns list of paths within a node specified by the path.
 	Tree(ctx context.Context, path Path, opts ...options.DagTreeOption) ([]Path, error)
@@ -272,7 +267,7 @@ type KeyAPI interface {
 // for manipulating MerkleDAG data structures.
 type ObjectAPI interface {
 	// New creates new, empty (by default) dag-node.
-	New(context.Context, ...options.ObjectNewOption) (Node, error)
+	New(context.Context, ...options.ObjectNewOption) (ipld.Node, error)
 
 	// WithType is an option for New which allows to change the type of created
 	// dag node.
@@ -302,13 +297,13 @@ type ObjectAPI interface {
 	WithDataType(t string) options.ObjectPutOption
 
 	// Get returns the node for the path
-	Get(context.Context, Path) (Node, error)
+	Get(context.Context, Path) (ipld.Node, error)
 
 	// Data returns reader for data of the node
 	Data(context.Context, Path) (io.Reader, error)
 
 	// Links returns lint or links the node contains
-	Links(context.Context, Path) ([]*Link, error)
+	Links(context.Context, Path) ([]*ipld.Link, error)
 
 	// Stat returns information about the node
 	Stat(context.Context, Path) (*ObjectStat, error)
