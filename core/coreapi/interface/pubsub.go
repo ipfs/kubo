@@ -6,15 +6,15 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 )
 
 // PubSubSubscription is an active PubSub subscription
 type PubSubSubscription interface {
 	io.Closer
 
-	// Chan return incoming message channel
-	Chan(context.Context) <-chan PubSubMessage
+	// Next return the next incoming message
+	Next(context.Context) (PubSubMessage, error)
 }
 
 // PubSubMessage is a single PubSub message
@@ -35,17 +35,9 @@ type PubSubAPI interface {
 	// TODO: WithTopic
 	Peers(context.Context, ...options.PubSubPeersOption) ([]peer.ID, error)
 
-	// WithTopic is an option for peers which specifies a topic filter for the
-	// function
-	WithTopic(topic string) options.PubSubPeersOption
-
 	// Publish a message to a given pubsub topic
 	Publish(context.Context, string, []byte) error
 
 	// Subscribe to messages on a given topic
-	Subscribe(context.Context, string) (PubSubSubscription, error)
-
-	// WithDiscover is an option for Subscribe which specifies whether to try to
-	// discover other peers subscribed to the same topic
-	WithDiscover(discover bool) options.PubSubSubscribeOption
+	Subscribe(context.Context, string, ...options.PubSubSubscribeOption) (PubSubSubscription, error)
 }

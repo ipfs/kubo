@@ -39,16 +39,18 @@ func PubSubSubscribeOptions(opts ...PubSubSubscribeOption) (*PubSubSubscribeSett
 	return options, nil
 }
 
-type PubSubOptions struct{}
+type pubsubOpts struct{}
 
-func (api *PubSubOptions) WithTopic(topic string) PubSubPeersOption {
+var PubBub nameOpts
+
+func (pubsubOpts) Topic(topic string) PubSubPeersOption {
 	return func(settings *PubSubPeersSettings) error {
 		settings.Topic = topic
 		return nil
 	}
 }
 
-func (api *PubSubOptions) WithDiscover(discover bool) PubSubSubscribeOption {
+func (pubsubOpts) Discover(discover bool) PubSubSubscribeOption {
 	return func(settings *PubSubSubscribeSettings) error {
 		settings.Discover = discover
 		return nil
