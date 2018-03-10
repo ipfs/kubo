@@ -34,6 +34,9 @@ type CoreAPI interface {
 	// Dht returns an implementation of Dht API
 	Dht() DhtAPI
 
+	// Swarm returns an implementation of Swarm API
+	Swarm() SwarmAPI
+
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, Path) (ResolvedPath, error)
 
