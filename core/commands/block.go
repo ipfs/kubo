@@ -132,7 +132,7 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		cmdkit.FileArg("data", true, false, "The data to be stored as an IPFS block.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "f", "cid format for blocks to be created with.").WithDefault(""),
+		cmdkit.StringOption("format", "f", "cid format for blocks to be created with."),
 		cmdkit.StringOption("mhtype", "multihash hash function").WithDefault("sha2-256"),
 		cmdkit.IntOption("mhlen", "multihash hash length").WithDefault(-1),
 	},
@@ -172,8 +172,8 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		var pref cid.Prefix
 		pref.Version = 1
 
-		format := req.Options["format"].(string)
-		if format == "" {
+		format, formatSet := req.Options["format"].(string)
+		if !formatSet {
 			if mhtval == mh.SHA2_256 {
 				format = "v0"
 			} else {
@@ -186,7 +186,7 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		}
 		formatval, ok := cid.Codecs[format]
 		if !ok {
-			res.SetError(fmt.Errorf("unrecognized format: %s", format), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("unrecognized format: '%s'", format), cmdkit.ErrNormal)
 			return
 		}
 		if mhtval != mh.SHA2_256 && pref.Version == 0 {
