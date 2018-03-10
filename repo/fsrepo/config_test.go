@@ -75,7 +75,19 @@ var measureConfig = []byte(`{
 }`)
 
 func TestDefaultDatastoreConfig(t *testing.T) {
-	loader.LoadPlugins("")
+	loader, err := loader.NewPluginLoader("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = loader.Initialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = loader.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
 	if err != nil {
