@@ -109,6 +109,22 @@ type PubSubMessage interface {
 	Data() []byte
 }
 
+// PeerInfo contains information about a peer
+type PeerInfo interface {
+	// ID returns PeerID
+	ID() PeerID
+
+	// Address returns the multiaddress via which we are connected with the peer
+	Address() Addr
+
+	// Latency returns last known round trip time to the peer
+	Latency() time.Duration
+
+	// Streams returns list of streams established with the peer
+	// TODO: should this return multicodecs?
+	Streams() []string
+}
+
 // CoreAPI defines an unified interface to IPFS for Go programs.
 type CoreAPI interface {
 	// Unixfs returns an implementation of Unixfs API.
@@ -431,4 +447,16 @@ type PubSubAPI interface {
 	// WithDiscover is an option for Subscribe which specifies whether to try to
 	// discover other peers subscribed to the same topic
 	WithDiscover(discover bool) options.PubSubSubscribeOption
+}
+
+// SwarmAPI specifies the interface to libp2p swarm
+type SwarmAPI interface {
+	// Connect to a given address
+	Connect(context.Context, Addr) error
+
+	// Disconnect from a given address
+	Disconnect(context.Context, Addr) error
+
+	// Peers returns the list of peers we are connected to
+	Peers(context.Context) ([]PeerInfo, error)
 }
