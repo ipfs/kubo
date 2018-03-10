@@ -425,6 +425,24 @@ type PinAPI interface {
 	Verify(context.Context) (<-chan PinStatus, error)
 }
 
+// DhtAPI specifies the interface to the DHT
+type DhtAPI interface {
+	// FindPeer queries the DHT for all of the multiaddresses associated with a
+	// Peer ID
+	FindPeer(context.Context, PeerID) (<-chan Addr, error)
+
+	// FindProviders finds peers in the DHT who can provide a specific value
+	// given a key.
+	FindProviders(context.Context, Path) (<-chan PeerID, error) //TODO: is path the right choice here?
+
+	// Provide announces to the network that you are providing given values
+	Provide(context.Context, Path, ...options.DhtProvideOption) error
+
+	// WithRecursive is an option for Provide which specifies whether to provide
+	// the given path recursively
+	WithRecursive(recursive bool) options.DhtProvideOption
+}
+
 // PubSubAPI specifies the interface to PubSub
 type PubSubAPI interface {
 	// Ls lists subscribed topics by name
