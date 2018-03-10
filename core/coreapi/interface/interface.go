@@ -10,6 +10,8 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
@@ -34,6 +36,8 @@ type Path interface {
 //       if we didn't, godoc would generate nice links straight to go-ipld-format
 type Node ipld.Node
 type Link ipld.Link
+type PeerID peer.ID
+type Addr ma.Multiaddr
 
 type Reader interface {
 	io.ReadSeeker
