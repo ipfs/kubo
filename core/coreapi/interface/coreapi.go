@@ -8,22 +8,24 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-// CoreAPI defines an unified interface to IPFS for Go programs.
+// CoreAPI defines an unified interface to IPFS for Go programs
 type CoreAPI interface {
-	// Unixfs returns an implementation of Unixfs API.
+	// Unixfs returns an implementation of Unixfs API
 	Unixfs() UnixfsAPI
 
-	// Block returns an implementation of Block API.
+	// Block returns an implementation of Block API
 	Block() BlockAPI
 
-	// Dag returns an implementation of Dag API.
+	// Dag returns an implementation of Dag API
 	Dag() DagAPI
 
-	// Name returns an implementation of Name API.
+	// Name returns an implementation of Name API
 	Name() NameAPI
 
-	// Key returns an implementation of Key API.
+	// Key returns an implementation of Key API
 	Key() KeyAPI
+
+	// Pin returns an implementation of Pin API
 	Pin() PinAPI
 
 	// ObjectAPI returns an implementation of Object API
