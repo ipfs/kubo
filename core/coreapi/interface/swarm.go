@@ -1,9 +1,9 @@
 package iface
 
 import (
+	"context"
 	"time"
 
-	"context"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
@@ -17,11 +17,11 @@ type PeerInfo interface {
 	Address() ma.Multiaddr
 
 	// Latency returns last known round trip time to the peer
-	Latency() time.Duration
+	Latency(context.Context) (time.Duration, error)
 
 	// Streams returns list of streams established with the peer
 	// TODO: should this return multicodecs?
-	Streams() []string
+	Streams(context.Context) ([]string, error)
 }
 
 // SwarmAPI specifies the interface to libp2p swarm
