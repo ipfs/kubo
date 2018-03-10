@@ -17,7 +17,11 @@ type DhtAPI interface {
 
 	// FindProviders finds peers in the DHT who can provide a specific value
 	// given a key.
-	FindProviders(context.Context, Path) (<-chan peer.ID, error) //TODO: is path the right choice here?
+	FindProviders(context.Context, Path, ...options.DhtFindProvidersOption) (<-chan peer.ID, error) //TODO: is path the right choice here?
+
+	// WithNumProviders is an option for FindProviders which specifies the
+	// number of peers to look for. Default is 20
+	WithNumProviders(numProviders int) options.DhtFindProvidersOption
 
 	// Provide announces to the network that you are providing given values
 	Provide(context.Context, Path, ...options.DhtProvideOption) error

@@ -31,6 +31,9 @@ type CoreAPI interface {
 	// ObjectAPI returns an implementation of Object API
 	Object() ObjectAPI
 
+	// Dht returns an implementation of Dht API
+	Dht() DhtAPI
+
 	// ResolvePath resolves the path using Unixfs resolver
 	ResolvePath(context.Context, Path) (ResolvedPath, error)
 
