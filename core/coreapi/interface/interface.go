@@ -14,6 +14,9 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
+var ErrIsDir = errors.New("object is a directory")
+var ErrOffline = errors.New("can't resolve, ipfs node is offline")
+
 // Path is a generic wrapper for paths used in the API. A path can be resolved
 // to a CID using one of Resolve functions in the API.
 type Path interface {
@@ -384,6 +387,3 @@ type PinAPI interface {
 	// Verify verifies the integrity of pinned objects
 	Verify(context.Context) (<-chan PinStatus, error)
 }
-
-var ErrIsDir = errors.New("object is a directory")
-var ErrOffline = errors.New("can't resolve, ipfs node is offline")
