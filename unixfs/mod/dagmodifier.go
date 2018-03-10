@@ -132,7 +132,11 @@ func (dm *DagModifier) expandSparse(size int64) error {
 		return err
 	}
 	err = dm.dagserv.Add(dm.ctx, nnode)
-	return err
+	if err != nil {
+		return err
+	}
+	dm.curNode = nnode
+	return nil
 }
 
 // Write continues writing to the dag at the current offset
