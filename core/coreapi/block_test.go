@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
@@ -33,7 +35,7 @@ func TestBlockPutFormat(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), api.Block().WithFormat("cbor"))
+	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Format("cbor"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -50,7 +52,7 @@ func TestBlockPutHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), api.Block().WithHash(mh.KECCAK_512, -1))
+	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Hash(mh.KECCAK_512, -1))
 	if err != nil {
 		t.Error(err)
 	}
@@ -67,7 +69,7 @@ func TestBlockGet(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), api.Block().WithHash(mh.KECCAK_512, -1))
+	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Hash(mh.KECCAK_512, -1))
 	if err != nil {
 		t.Error(err)
 	}
@@ -134,7 +136,7 @@ func TestBlockRm(t *testing.T) {
 		t.Errorf("unexpected error; %s", err.Error())
 	}
 
-	err = api.Block().Rm(ctx, res, api.Block().WithForce(true))
+	err = api.Block().Rm(ctx, res, opt.Block.Force(true))
 	if err != nil {
 		t.Error(err)
 	}
