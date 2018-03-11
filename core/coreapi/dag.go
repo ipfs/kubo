@@ -15,10 +15,7 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-type DagAPI struct {
-	*CoreAPI
-	*caopts.DagOptions
-}
+type DagAPI CoreAPI
 
 // Put inserts data using specified format and input encoding. Unless used with
 // `WithCodes` or `WithHash`, the defaults "dag-cbor" and "sha256" are used.
@@ -79,5 +76,5 @@ func (api *DagAPI) Tree(ctx context.Context, p coreiface.Path, opts ...caopts.Da
 }
 
 func (api *DagAPI) core() coreiface.CoreAPI {
-	return api.CoreAPI
+	return (*CoreAPI)(api)
 }

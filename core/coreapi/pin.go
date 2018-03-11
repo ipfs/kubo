@@ -16,10 +16,7 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-type PinAPI struct {
-	*CoreAPI
-	*caopts.PinOptions
-}
+type PinAPI CoreAPI
 
 func (api *PinAPI) Add(ctx context.Context, p coreiface.Path, opts ...caopts.PinAddOption) error {
 	settings, err := caopts.PinAddOptions(opts...)

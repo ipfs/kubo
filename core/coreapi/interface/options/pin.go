@@ -61,23 +61,38 @@ func PinUpdateOptions(opts ...PinUpdateOption) (*PinUpdateSettings, error) {
 	return options, nil
 }
 
-type PinOptions struct{}
+type pinOpts struct{}
 
-func (api *PinOptions) WithRecursive(recucsive bool) PinAddOption {
+var Pin pinOpts
+
+// Recursive is an option for Pin.Add which specifies whether to pin an entire
+// object tree or just one object. Default: true
+func (_ pinOpts) Recursive(recucsive bool) PinAddOption {
 	return func(settings *PinAddSettings) error {
 		settings.Recursive = recucsive
 		return nil
 	}
 }
 
-func (api *PinOptions) WithType(t string) PinLsOption {
+// Type is an option for Pin.Ls which allows to specify which pin types should
+// be returned
+//
+// Supported values:
+// * "direct" - directly pinned objects
+// * "recursive" - roots of recursive pins
+// * "indirect" - indirectly pinned objects (referenced by recursively pinned
+//    objects)
+// * "all" - all pinned objects (default)
+func (_ pinOpts) Type(t string) PinLsOption {
 	return func(settings *PinLsSettings) error {
 		settings.Type = t
 		return nil
 	}
 }
 
-func (api *PinOptions) WithUnpin(unpin bool) PinUpdateOption {
+// Unpin is an option for Pin.Update which specifies whether to remove the old pin.
+// Default is true.
+func (_ pinOpts) Unpin(unpin bool) PinUpdateOption {
 	return func(settings *PinUpdateSettings) error {
 		settings.Unpin = unpin
 		return nil

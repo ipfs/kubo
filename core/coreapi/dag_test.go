@@ -9,6 +9,8 @@ import (
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+
+	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
 var (
@@ -45,7 +47,7 @@ func TestPutWithHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`), api.Dag().WithHash(mh.ID, -1))
+	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`), opt.Dag.Hash(mh.ID, -1))
 	if err != nil {
 		t.Error(err)
 	}
