@@ -19,14 +19,6 @@ import (
 
 var log = logging.Logger("ipns-repub")
 
-// ErrMsgNoRecordsGiven is the error message returned from
-// Selector.BestRecord() when there are no records passed to it
-// https://github.com/libp2p/go-libp2p-record/blob/master/selection.go#L15
-// Unfortunately it is returned by routing.ValueStore.GetValue() instead of
-// routing.ErrNotFound so this is the only way we can test for it
-// TODO: Fix this
-var ErrMsgNoRecordsGiven = "no records given"
-
 // DefaultRebroadcastInterval is the default interval at which we rebroadcast IPNS records
 var DefaultRebroadcastInterval = time.Hour * 4
 
@@ -138,7 +130,7 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 	// Get the existing IPNS record for the given key from the DHT
 	_, ipnskey := namesys.IpnsKeysForID(id)
 	existing, err := namesys.GetExistingEntry(ctx, rp.r, ipnskey)
-	if err != nil && err != routing.ErrNotFound && err.Error() != ErrMsgNoRecordsGiven {
+	if err != nil && err != routing.ErrNotFound {
 		log.Debugf("failed to get existing entry for %s: %v", id, err)
 		return err
 	}

@@ -22,6 +22,14 @@ import (
 const PublishPutValTimeout = time.Minute
 const DefaultRecordTTL = 24 * time.Hour
 
+// ErrMsgNoRecordsGiven is the error message returned from
+// Selector.BestRecord() when there are no records passed to it
+// https://github.com/libp2p/go-libp2p-record/blob/master/selection.go#L15
+// Unfortunately it is returned by routing.ValueStore.GetValue() instead of
+// routing.ErrNotFound so this is the only way we can test for it
+// TODO: Fix this
+var ErrMsgNoRecordsGiven = "no records given"
+
 // ipnsPublisher is capable of publishing and resolving names to the IPFS
 // routing system.
 type ipnsPublisher struct {
@@ -118,7 +126,8 @@ func GetExistingEntry(ctx context.Context, vstore routing.ValueStore, ipnskey st
 
 	val, err := vstore.GetValue(ctx, ipnskey)
 	if err != nil {
-		if err == ds.ErrNotFound {
+		// TODO: Fix this string comparison
+		if err == ds.ErrNotFound || err.Error() == ErrMsgNoRecordsGiven {
 			return nil, routing.ErrNotFound
 		}
 		return nil, err
