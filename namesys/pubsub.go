@@ -3,7 +3,6 @@ package namesys
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -18,8 +17,6 @@ import (
 	dssync "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore/sync"
 	floodsub "gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	record "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record"
-	dhtpb "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record/pb"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -34,7 +31,7 @@ type PubsubPublisher struct {
 	ctx  context.Context
 	ds   ds.Datastore
 	host p2phost.Host
-	cr   routing.ContentRouting
+	cr   routing.IpfsRouting
 	ps   *floodsub.PubSub
 
 	mx   sync.Mutex
@@ -57,7 +54,7 @@ type PubsubResolver struct {
 // NewPubsubPublisher constructs a new Publisher that publishes IPNS records through pubsub.
 // The constructor interface is complicated by the need to bootstrap the pubsub topic.
 // This could be greatly simplified if the pubsub implementation handled bootstrap itself
-func NewPubsubPublisher(ctx context.Context, host p2phost.Host, ds ds.Datastore, cr routing.ContentRouting, ps *floodsub.PubSub) *PubsubPublisher {
+func NewPubsubPublisher(ctx context.Context, host p2phost.Host, ds ds.Datastore, cr routing.IpfsRouting, ps *floodsub.PubSub) *PubsubPublisher {
 	return &PubsubPublisher{
 		ctx:  ctx,
 		ds:   ds,
@@ -89,85 +86,24 @@ func (p *PubsubPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.
 
 // PublishWithEOL publishes an IPNS record through pubsub
 func (p *PubsubPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time) error {
-	id, err := peer.IDFromPrivateKey(k)
+	// First publish to the DHT
+	entry, err := dhtPublishWithEOL(ctx, p.ds, p.cr, k, value, eol)
 	if err != nil {
 		return err
 	}
 
-	_, ipnskey := IpnsKeysForID(id)
-
-	seqno, err := p.getPreviousSeqNo(ctx, ipnskey)
-	if err != nil {
-		return err
-	}
-
-	seqno++
-
-	return p.publishRecord(ctx, k, value, seqno, eol, ipnskey, id)
-}
-
-func (p *PubsubPublisher) getPreviousSeqNo(ctx context.Context, ipnskey string) (uint64, error) {
-	// the datastore is shared with the routing publisher to properly increment and persist
-	// ipns record sequence numbers.
-	prevrec, err := p.ds.Get(dshelp.NewKeyFromBinary([]byte(ipnskey)))
-	if err != nil {
-		if err == ds.ErrNotFound {
-			// None found, lets start at zero!
-			return 0, nil
-		}
-		return 0, err
-	}
-
-	prbytes, ok := prevrec.([]byte)
-	if !ok {
-		return 0, fmt.Errorf("unexpected type returned from datastore: %#v", prevrec)
-	}
-
-	var dsrec dhtpb.Record
-	err = proto.Unmarshal(prbytes, &dsrec)
-	if err != nil {
-		return 0, err
-	}
-
-	var entry pb.IpnsEntry
-	err = proto.Unmarshal(dsrec.GetValue(), &entry)
-	if err != nil {
-		return 0, err
-	}
-
-	return entry.GetSequence(), nil
-}
-
-func (p *PubsubPublisher) publishRecord(ctx context.Context, k ci.PrivKey, value path.Path, seqno uint64, eol time.Time, ipnskey string, ID peer.ID) error {
-	entry, err := CreateRoutingEntryData(k, value, seqno, eol)
-	if err != nil {
-		return err
-	}
-
+	// now we publish to pubsub, but we also need to bootstrap pubsub for our messages to propagate
 	data, err := proto.Marshal(entry)
 	if err != nil {
 		return err
 	}
 
-	// the datastore is shared with the routing publisher to properly increment and persist
-	// ipns record sequence numbers; so we need to Record our new entry in the datastore
-	dsrec, err := record.MakePutRecord(k, ipnskey, data, true)
+	id, err := peer.IDFromPrivateKey(k)
 	if err != nil {
 		return err
 	}
 
-	dsdata, err := proto.Marshal(dsrec)
-	if err != nil {
-		return err
-	}
-
-	err = p.ds.Put(dshelp.NewKeyFromBinary([]byte(ipnskey)), dsdata)
-	if err != nil {
-		return err
-	}
-
-	// now we publish, but we also need to bootstrap pubsub for our messages to propagate
-	topic := "/ipns/" + ID.Pretty()
+	topic := "/ipns/" + id.Pretty()
 
 	p.mx.Lock()
 	_, ok := p.subs[topic]
@@ -181,7 +117,7 @@ func (p *PubsubPublisher) publishRecord(ctx context.Context, k ci.PrivKey, value
 		p.mx.Unlock()
 	}
 
-	log.Debugf("PubsubPublish: publish IPNS record for %s (%d)", topic, seqno)
+	log.Debugf("PubsubPublish: publish IPNS record for %s (%d)", topic, entry.GetSequence())
 	return p.ps.Publish(topic, data)
 }
 
@@ -315,7 +251,7 @@ func (r *PubsubResolver) handleSubscription(sub *floodsub.Subscription, name str
 
 		err = r.receive(msg, name, pubk)
 		if err != nil {
-			log.Warningf("PubsubResolve: error proessing update for %s: %s", name, err.Error())
+			log.Warningf("PubsubResolve: error processing update for %s: %s", name, err.Error())
 		}
 	}
 }

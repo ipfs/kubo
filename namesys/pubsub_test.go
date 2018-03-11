@@ -71,7 +71,7 @@ func newMockKeyStore() *mockKeyStore {
 }
 
 // ConentRouting mock
-func newMockRouting(ms mockrouting.Server, ks *mockKeyStore, host p2phost.Host) routing.ContentRouting {
+func newMockRouting(ms mockrouting.Server, ks *mockKeyStore, host p2phost.Host) routing.IpfsRouting {
 	id := host.ID()
 
 	privk := host.Peerstore().PrivKey(id)

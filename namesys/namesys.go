@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"sync"
 	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
@@ -159,32 +158,21 @@ func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) e
 }
 
 func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error {
-	var dhtErr error
-
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		dhtErr = ns.publishers["dht"].PublishWithEOL(ctx, name, value, eol)
-		if dhtErr == nil {
-			ns.addToDHTCache(name, value, eol)
-		}
-		wg.Done()
-	}()
-
 	pub, ok := ns.publishers["pubsub"]
 	if ok {
-		wg.Add(1)
-		go func() {
-			err := pub.PublishWithEOL(ctx, name, value, eol)
-			if err != nil {
-				log.Warningf("error publishing %s with pubsub: %s", name, err.Error())
-			}
-			wg.Done()
-		}()
+		// Note that pubsub publisher first publishes to the DHT
+		err := pub.PublishWithEOL(ctx, name, value, eol)
+		if err != nil {
+			log.Warningf("error publishing %s with pubsub: %s", name, err.Error())
+		}
+		return err
 	}
 
-	wg.Wait()
-	return dhtErr
+	err := ns.publishers["dht"].PublishWithEOL(ctx, name, value, eol)
+	if err == nil {
+		ns.addToDHTCache(name, value, eol)
+	}
+	return err
 }
 
 func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {

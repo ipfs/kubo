@@ -6,6 +6,14 @@ five weeks for code of any type (features, bugfixes, etc) to be added. After
 the five weeks is up, a release canidate is tagged and only important bugfixes
 will be allowed up to release day.
 
+## Release Candidate Checklist
+- [ ] CHANGELOG.md has been updated
+  - use `./bin/mkreleaselog` to generate a nice starter list
+- [ ] version string in `repo/config/version.go` has been updated
+- [ ] tag commit with vX.Y.Z-rcN
+- [ ] publish gx version with `gx publish`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
+  - you will have to manually adjust the gx version to 'rc'
+
 ## Pre-Release Checklist
 - [ ] before release, tag 'release canidate' for users to test against
   - if bugs are found/fixed, do another release canidate
@@ -13,16 +21,16 @@ will be allowed up to release day.
 - [ ] run interop tests https://github.com/ipfs/interop#test-with-a-non-yet-released-version-of-go-ipfs
 - [ ] webui works (for most definitions of 'works') - Test the multiple pages and verify that no visible errors are shown.
 - [ ] CHANGELOG.md has been updated
-  - use `LAST=v0.4.2 ; for n in $(git log --oneline --merges --reverse -n-1 $LAST...master | cut -d'#' -f2 | cut -d' ' -f1); do echo https://github.com/ipfs/go-ipfs/pull/$n; done`
+  - use `./bin/mkreleaselog` to generate a nice starter list
 - [ ] version string in `repo/config/version.go` has been updated
 - [ ] tag commit with vX.Y.Z
-- [ ] bump version string in `repo/config/version.go` to `vX.Y.Z-dev`
 - [ ] update release branch to point to release commit
 - [ ] publish dist.ipfs.io
 - [ ] publish next version to https://github.com/ipfs/npm-go-ipfs
 - [ ] publish gx version with `gx release`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
 
 ## Post-Release
+- [ ] bump version string in `repo/config/version.go` to `vX.Y.Z-dev`
 - Communication
   - [ ] Create the release issue
   - [ ] Announcements (both pre-release and post-release)

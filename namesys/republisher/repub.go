@@ -2,12 +2,10 @@ package republisher
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 
 	ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
@@ -15,16 +13,19 @@ import (
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	gpctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	recpb "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record/pb"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	dshelp "gx/ipfs/QmdQTPWduSeyveSxeCAte33M592isSW5Z979g81aJphrgn/go-ipfs-ds-help"
 )
 
-var errNoEntry = errors.New("no previous entry")
-
 var log = logging.Logger("ipns-repub")
+
+// ErrMsgNoRecordsGiven is the error message returned from
+// Selector.BestRecord() when there are no records passed to it
+// https://github.com/libp2p/go-libp2p-record/blob/master/selection.go#L15
+// Unfortunately it is returned by routing.ValueStore.GetValue() instead of
+// routing.ErrNotFound so this is the only way we can test for it
+// TODO: Fix this
+var ErrMsgNoRecordsGiven = "no records given"
 
 // DefaultRebroadcastInterval is the default interval at which we rebroadcast IPNS records
 var DefaultRebroadcastInterval = time.Hour * 4
@@ -124,47 +125,43 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 
 	log.Debugf("republishing ipns entry for %s", id)
 
-	// Look for it locally only
-	p, seq, err := rp.getLastVal(id)
+	// Check to see if we have previously published an IPNS record for this key
+	seqnum, p, err := namesys.RepubCacheGet(rp.ds, id)
 	if err != nil {
-		if err == errNoEntry {
+		if err == ds.ErrNotFound {
 			log.Debugf("ipns entry for %s not found", id)
 			return nil
 		}
 		return err
 	}
 
-	// update record with same sequence number
-	eol := time.Now().Add(rp.RecordLifetime)
-	err = namesys.PutRecordToRouting(ctx, priv, p, seq, eol, rp.r, id)
-	if err != nil {
-		log.Errorf("put record to routing error %v" + err)
+	// Get the existing IPNS record for the given key from the DHT
+	_, ipnskey := namesys.IpnsKeysForID(id)
+	existing, err := namesys.GetExistingEntry(ctx, rp.r, ipnskey)
+	if err != nil && err != routing.ErrNotFound && err.Error() != ErrMsgNoRecordsGiven {
+		log.Debugf("failed to get existing entry for %s: %v", id, err)
 		return err
 	}
 
-	return nil
-}
-
-func (rp *Republisher) getLastVal(id peer.ID) (path.Path, uint64, error) {
-	k := namesys.RepubKeyForID(id)
-	ival, err := rp.ds.Get(dshelp.NewKeyFromBinary([]byte(k)))
-	if err != nil {
-		// not found means we dont have a previously published entry
-		return "", 0, errNoEntry
+	// If the existing IPNS record in the DHT has a higher sequence number than
+	// the one in our cache, then update the cache
+	if existing != nil && existing.Sequence != nil && seqnum < *existing.Sequence {
+		log.Debugf("cached ipns entry for %s out of date, updating", id)
+		ep, err := path.ParsePath(string(existing.GetValue()))
+		if err == nil {
+			p = ep
+			seqnum = *existing.Sequence
+			// Ignore any errors if this fails, the cache will get updated eventually anyway
+			namesys.RepubCachePut(rp.ds, id, seqnum, p)
+		} else {
+			// Couldn't parse entry. Not a big deal, we'll just overwrite it
+			log.Warningf("could not parse path from existing ipns entry for %s, ignoring", id)
+		}
 	}
 
-	val := ival.([]byte)
-	dhtrec := new(recpb.Record)
-	err = proto.Unmarshal(val, dhtrec)
-	if err != nil {
-		return "", 0, err
-	}
-
-	// extract published data from record
-	e := new(pb.IpnsEntry)
-	err = proto.Unmarshal(dhtrec.GetValue(), e)
-	if err != nil {
-		return "", 0, err
-	}
-	return path.Path(e.Value), e.GetSequence(), nil
+	// Update record with same sequence number. Note that this will also update
+	// the republisher cache.
+	eol := time.Now().Add(rp.RecordLifetime)
+	_, err = namesys.PublishRecordWithSeqNum(ctx, rp.ds, rp.r, priv, id, p, seqnum, eol)
+	return err
 }
