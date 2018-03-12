@@ -326,7 +326,7 @@ func (pm *WantManager) Run() {
 				for _, t := range ws.targets {
 					p, ok := pm.peers[t]
 					if !ok {
-						// No longer connected.
+						log.Infof("tried sending wantlist change to non-partner peer: %s", t)
 						continue
 					}
 					p.addMessage(ws.entries, ws.from)
