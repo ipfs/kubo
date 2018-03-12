@@ -61,33 +61,33 @@ func (te *Extractor) Extract(reader io.Reader) error {
 	return nil
 }
 
-// outputPath returns the path at whicht o place tarPath
-func (te *Extractor) outputPath(tarPath string) string {
-	elems := strings.Split(tarPath, "/") // break into elems
-	elems = elems[1:]                    // remove original root
-
-	path := fp.Join(elems...)     // join elems
-	path = fp.Join(te.Path, path) // rebase on extractor root
-	return path
+// outputPath returns the path at which to place tarPath
+func (te *Extractor) outputPath(header *tar.Header) string {
+	elems := strings.Split(header.Name, "/") // break into elems
+	elems = elems[1:]                        // remove IPFS root
+	safePath := platformSanitize(elems)      // assure that our output path is platform legal
+	fmt.Printf("DBG: %q -> %q\n", header.Name, safePath)
+	safePath = fp.Join(te.Path, safePath) // rebase on to extraction target root
+	return safePath
 }
 
 func (te *Extractor) extractDir(h *tar.Header, depth int) error {
-	path := te.outputPath(h.Name)
-
+	path := te.outputPath(h)
 	if depth == 0 {
-		// if this is the root root directory, use it as the output path for remaining files
+		// if this is the root directory, use it as the output path for remaining files
 		te.Path = path
 	}
 
+	//path := platformSanitizeDir(h.Name)
 	return os.MkdirAll(path, 0755)
 }
 
 func (te *Extractor) extractSymlink(h *tar.Header) error {
-	return os.Symlink(h.Linkname, te.outputPath(h.Name))
+	return os.Symlink(h.Linkname, te.outputPath(h))
 }
 
 func (te *Extractor) extractFile(h *tar.Header, r *tar.Reader, depth int, rootExists bool, rootIsDir bool) error {
-	path := te.outputPath(h.Name)
+	path := te.outputPath(h)
 
 	if depth == 0 { // if depth is 0, this is the only file (we aren't 'ipfs get'ing a directory)
 		if rootExists && rootIsDir {

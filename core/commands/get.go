@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	gopath "path"
+	"path/filepath"
 	"strings"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -183,8 +183,8 @@ func getOutPath(req *cmds.Request) string {
 	outPath, _ := req.Options["output"].(string)
 	if outPath == "" {
 		trimmed := strings.TrimRight(req.Arguments[0], "/")
-		_, outPath = gopath.Split(trimmed)
-		outPath = gopath.Clean(outPath)
+		_, outPath = filepath.Split(trimmed)
+		outPath = filepath.Clean(outPath)
 	}
 	return outPath
 }
