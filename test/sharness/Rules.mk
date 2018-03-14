@@ -44,7 +44,7 @@ $(d)/aggregate: $(T_$(d))
 $(d)/test-results/sharness.xml: export TEST_GENERATE_JUNIT=1
 $(d)/test-results/sharness.xml: test_sharness_expensive
 	@echo "*** $@ ***"
-	@(cd $(@D) && ./lib/gen-junit-report.sh)
+	@(cd $(@D)/.. && ./lib/gen-junit-report.sh)
 
 $(d)/clean-test-results:
 	rm -rf $(@D)/test-results
