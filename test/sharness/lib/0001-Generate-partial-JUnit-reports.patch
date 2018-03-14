@@ -1,14 +1,14 @@
-From 0e2a489651e8e2b1aa4abf1cb2587fc3d0f78ce6 Mon Sep 17 00:00:00 2001
+From 8b4a5cd6ebf9dfa462d869559b85b17d2b277d06 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?=C5=81ukasz=20Magiera?= <magik6k@gmail.com>
-Date: Thu, 28 Dec 2017 19:24:55 +0100
+Date: Wed, 14 Mar 2018 21:26:35 +0100
 Subject: [PATCH] Generate partial JUnit reports
 
 ---
- sharness.sh | 79 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----
- 1 file changed, 73 insertions(+), 6 deletions(-)
+ sharness.sh | 99 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 93 insertions(+), 6 deletions(-)
 
 diff --git a/sharness.sh b/sharness.sh
-index 6750ff7..55e10ac 100644
+index 6750ff7..dc99ef9 100644
 --- a/sharness.sh
 +++ b/sharness.sh
 @@ -1,4 +1,4 @@
@@ -17,25 +17,29 @@ index 6750ff7..55e10ac 100644
  #
  # Copyright (c) 2011-2012 Mathias Lafeldt
  # Copyright (c) 2005-2012 Git project
-@@ -106,6 +106,8 @@ if test -n "$color"; then
+@@ -106,6 +106,10 @@ if test -n "$color"; then
  			test -n "$quiet" && return;;
  		esac
  		shift
 +
-+		echo "$*" >> .junit/tout
++		if test -n "$TEST_GENERATE_JUNIT"; then
++			echo "$*" >> .junit/tout
++		fi
  		printf "%s" "$*"
  		tput sgr0
  		echo
-@@ -115,6 +117,8 @@ else
+@@ -115,6 +119,10 @@ else
  	say_color() {
  		test -z "$1" && test -n "$quiet" && return
  		shift
 +
-+		echo "$*" >> .junit/tout
++		if test -n "$TEST_GENERATE_JUNIT"; then
++			echo "$*" >> .junit/tout
++		fi
  		printf "%s\n" "$*"
  	}
  fi
-@@ -129,6 +133,12 @@ say() {
+@@ -129,6 +137,12 @@ say() {
  	say_color info "$*"
  }
  
@@ -48,11 +52,17 @@ index 6750ff7..55e10ac 100644
  test -n "$test_description" || error "Test script did not set test_description."
  
  if test "$help" = "t"; then
-@@ -251,30 +261,69 @@ test_have_prereq() {
+@@ -251,30 +265,75 @@ test_have_prereq() {
  	test $total_prereq = $ok_prereq
  }
  
++# junit_testcase generates a testcase xml file after each test
++
 +junit_testcase() {
++	if test -z "$TEST_GENERATE_JUNIT"; then
++		return
++	fi
++
 +	test_name=$1
 +	tc_file=".junit/case-$(printf "%04d" $test_count)"
 +
@@ -118,16 +128,20 @@ index 6750ff7..55e10ac 100644
  }
  
  # Public: Execute commands in debug mode.
-@@ -310,7 +359,7 @@ test_pause() {
+@@ -310,7 +369,11 @@ test_pause() {
  test_eval_() {
  	# This is a separate function because some tests use
  	# "return" to end a test_expect_success block early.
 -	eval </dev/null >&3 2>&4 "$*"
-+	eval </dev/null > >(tee -a .junit/tout >&3) 2> >(tee -a .junit/terr >&4) "$*"
++	if test -n "$TEST_GENERATE_JUNIT"; then
++		eval </dev/null > >(tee -a .junit/tout >&3) 2> >(tee -a .junit/terr >&4) "$*"
++	else
++		eval </dev/null >&3 2>&4 "$*"
++	fi
  }
  
  test_run_() {
-@@ -355,8 +404,16 @@ test_skip_() {
+@@ -355,8 +418,18 @@ test_skip_() {
  			of_prereq=" of $test_prereq"
  		fi
  
@@ -136,17 +150,19 @@ index 6750ff7..55e10ac 100644
 +		say_color skip >&3 "skipping test: $1"
 +		say_color skip "ok $test_count # skip $1 (missing $missing_prereqm${of_prereq})"
 +
-+		cat > ".junit/case-$(printf "%04d" $test_count)" <<-EOF
-+		<testcase name="$test_count - $(echo $2 | esc_xml)">
-+			<skipped>
-+				skip $(echo $1 | esc_xml) (missing $missing_prereq${of_prereq})
-+			</skipped>
-+		</testcase>
-+		EOF
++		if test -n "$TEST_GENERATE_JUNIT"; then
++			cat > ".junit/case-$(printf "%04d" $test_count)" <<-EOF
++			<testcase name="$test_count - $(echo $2 | esc_xml)">
++				<skipped>
++					skip $(echo $1 | esc_xml) (missing $missing_prereq${of_prereq})
++				</skipped>
++			</testcase>
++			EOF
++		fi
  		: true
  		;;
  	*)
-@@ -403,7 +460,7 @@ test_expect_success() {
+@@ -403,7 +476,7 @@ test_expect_success() {
  	test "$#" = 3 && { test_prereq=$1; shift; } || test_prereq=
  	test "$#" = 2 || error "bug in the test script: not 2 or 3 parameters to test_expect_success"
  	export test_prereq
@@ -155,7 +171,7 @@ index 6750ff7..55e10ac 100644
  		say >&3 "expecting success: $2"
  		if test_run_ "$2"; then
  			test_ok_ "$1"
-@@ -442,7 +499,7 @@ test_expect_failure() {
+@@ -442,7 +515,7 @@ test_expect_failure() {
  	test "$#" = 3 && { test_prereq=$1; shift; } || test_prereq=
  	test "$#" = 2 || error "bug in the test script: not 2 or 3 parameters to test_expect_failure"
  	export test_prereq
@@ -164,7 +180,7 @@ index 6750ff7..55e10ac 100644
  		say >&3 "checking known breakage: $2"
  		if test_run_ "$2" expecting_failure; then
  			test_known_broken_ok_ "$1"
-@@ -675,6 +732,7 @@ test_done() {
+@@ -675,6 +748,7 @@ test_done() {
  		test_results_dir="$SHARNESS_TEST_DIRECTORY/test-results"
  		mkdir -p "$test_results_dir"
  		test_results_path="$test_results_dir/${SHARNESS_TEST_FILE%.$SHARNESS_TEST_EXTENSION}.$$.counts"
@@ -172,29 +188,33 @@ index 6750ff7..55e10ac 100644
  
  		cat >>"$test_results_path" <<-EOF
  		total $test_count
-@@ -684,6 +742,12 @@ test_done() {
+@@ -684,6 +758,14 @@ test_done() {
  		failed $test_failure
  
  		EOF
 +
-+		cat >>"$junit_results_path" <<-EOF
-+		<testsuite errors="$test_broken" failures="$((test_failure+test_fixed))" tests="$test_count" name="$SHARNESS_TEST_FILE">
-+			$(find .junit -name 'case-*' | sort | xargs -i cat "{}")
-+		</testsuite>
-+		EOF
++		if test -n "$TEST_GENERATE_JUNIT"; then
++			cat >>"$junit_results_path" <<-EOF
++			<testsuite errors="$test_broken" failures="$((test_failure+test_fixed))" tests="$test_count" name="$SHARNESS_TEST_FILE">
++				$(find .junit -name 'case-*' | sort | xargs -i cat "{}")
++			</testsuite>
++			EOF
++		fi
  	fi
  
  	if test "$test_fixed" != 0; then
-@@ -771,6 +835,9 @@ mkdir -p "$test_dir" || exit 1
+@@ -771,6 +853,11 @@ mkdir -p "$test_dir" || exit 1
  # in subprocesses like git equals our $PWD (for pathname comparisons).
  cd -P "$test_dir" || exit 1
  
 +# Prepare JUnit report dir
-+mkdir -p .junit
++if test -n "$TEST_GENERATE_JUNIT"; then
++	mkdir -p .junit
++fi
 +
  this_test=${SHARNESS_TEST_FILE##*/}
  this_test=${this_test%.$SHARNESS_TEST_EXTENSION}
  for skp in $SKIP_TESTS; do
 -- 
-2.15.1
+2.16.2
 
