@@ -196,7 +196,7 @@ index 6750ff7..dc99ef9 100644
 +		if test -n "$TEST_GENERATE_JUNIT"; then
 +			cat >>"$junit_results_path" <<-EOF
 +			<testsuite errors="$test_broken" failures="$((test_failure+test_fixed))" tests="$test_count" name="$SHARNESS_TEST_FILE">
-+				$(find .junit -name 'case-*' | sort | xargs -i cat "{}")
++				$(find .junit -name 'case-*' | sort | xargs cat)
 +			</testsuite>
 +			EOF
 +		fi
