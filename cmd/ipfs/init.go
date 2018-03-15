@@ -134,8 +134,13 @@ var errRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 `)
 
-func initWithDefaults(out io.Writer, repoRoot string) error {
-	return doInit(out, repoRoot, false, nBitsForKeypairDefault, nil, nil)
+func initWithDefaults(out io.Writer, repoRoot string, profile string) error {
+	var profiles []string
+	if profile != "" {
+		profiles = strings.Split(profile, ",")
+	}
+
+	return doInit(out, repoRoot, false, nBitsForKeypairDefault, profiles, nil)
 }
 
 func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, confProfiles []string, conf *config.Config) error {
