@@ -151,7 +151,7 @@ var filesStatCmd = &cmds.Command{
 		}
 
 		if !withLocal {
-			res.Emit(o)
+			cmds.EmitOnce(res, o)
 			return
 		}
 
@@ -161,7 +161,7 @@ var filesStatCmd = &cmds.Command{
 		o.Local = local
 		o.SizeLocal = sizeLocal
 
-		res.Emit(o)
+		cmds.EmitOnce(res, o)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {

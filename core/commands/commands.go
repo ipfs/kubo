@@ -71,7 +71,7 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 			rootCmd := cmd2outputCmd("ipfs", root)
 			rootCmd.showOpts, _ = req.Options[flagsOptionName].(bool)
-			err := res.Emit(&rootCmd)
+			err := cmds.EmitOnce(res, &rootCmd)
 			if err != nil {
 				log.Error(err)
 			}
