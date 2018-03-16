@@ -268,11 +268,9 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 			return
 		}
 
-		for _, topic := range n.Floodsub.GetTopics() {
-			res.Emit(topic)
-		}
+		cmds.EmitOnce(res, stringList{n.Floodsub.GetTopics()})
 	},
-	Type: "",
+	Type: stringList{},
 }
 
 var PubsubPeersCmd = &cmds.Command{
