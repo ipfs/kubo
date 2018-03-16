@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	floodsub "gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
@@ -271,6 +273,23 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		cmds.EmitOnce(res, stringList{n.Floodsub.GetTopics()})
 	},
 	Type: stringList{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(stringListEncoder),
+	},
+}
+
+func stringListEncoder(req *cmds.Request, w io.Writer, v interface{}) error {
+	list, ok := v.(*stringList)
+	if !ok {
+		return e.TypeErr(list, v)
+	}
+	for _, str := range list.Strings {
+		_, err := fmt.Fprintf(w, "%s\n", str)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 var PubsubPeersCmd = &cmds.Command{
@@ -313,12 +332,17 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 			topic = req.Arguments[0]
 		}
 
-		for _, peer := range n.Floodsub.ListPeers(topic) {
-			res.Emit(peer.Pretty())
+		peers := n.Floodsub.ListPeers(topic)
+		list := &stringList{make([]string, 0, len(peers))}
+
+		for _, peer := range peers {
+			list.Strings = append(list.Strings, peer.Pretty())
 		}
+		sort.Strings(list.Strings)
+		cmds.EmitOnce(res, list)
 	},
-	Type: "",
+	Type: stringList{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.Encoders[cmds.TextNewline],
+		cmds.Text: cmds.MakeEncoder(stringListEncoder),
 	},
 }
