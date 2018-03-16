@@ -147,32 +147,6 @@ func (r *requestWrapper) Values() map[string]interface{} {
 	return nil
 }
 
-func (r *requestWrapper) VarArgs(f func(string) error) error {
-	if len(r.req.Arguments) >= len(r.req.Command.Arguments) {
-		for _, arg := range r.req.Arguments {
-			err := f(arg)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	s, err := r.req.BodyArgs()
-	if err != nil {
-		return err
-	}
-
-	for s.Scan() {
-		err = f(s.Text())
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // copied from go-ipfs-cmds/request.go
 func convertOptions(req *cmds.Request) error {
 	optDefSlice := req.Command.Options
