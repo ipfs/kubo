@@ -57,7 +57,7 @@ operations.
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  lgc.NewCommand(filesReadCmd),
-		"write": lgc.NewCommand(filesWriteCmd),
+		"write": filesWriteCmd,
 		"mv":    lgc.NewCommand(filesMvCmd),
 		"cp":    lgc.NewCommand(filesCpCmd),
 		"ls":    lgc.NewCommand(filesLsCmd),
@@ -654,7 +654,7 @@ Example:
 	},
 }
 
-var filesWriteCmd = &oldcmds.Command{
+var filesWriteCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Write to a mutable file in a given filesystem.",
 		ShortDescription: `
@@ -701,43 +701,39 @@ stat' on the file or any of its ancestors.
 		cidVersionOption,
 		hashOption,
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		path, err := checkPath(req.StringArguments()[0])
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
+		path, err := checkPath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		create, _, _ := req.Option("create").Bool()
-		trunc, _, _ := req.Option("truncate").Bool()
-		flush, _, _ := req.Option("flush").Bool()
-		rawLeaves, rawLeavesDef, _ := req.Option("raw-leaves").Bool()
+		create, _ := req.Options["create"].(bool)
+		trunc, _ := req.Options["truncate"].(bool)
+		flush, _ := req.Options["flush"].(bool)
+		rawLeaves, rawLeavesDef := req.Options["raw-leaves"].(bool)
 
-		prefix, err := getPrefix(req)
+		prefix, err := getPrefixNew(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		nd, err := req.InvocContext().GetNode()
+		nd, err := GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		offset, _, err := req.Option("offset").Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		offset, _ := req.Options["offset"].(int)
 		if offset < 0 {
-			res.SetError(fmt.Errorf("cannot have negative write offset"), cmdkit.ErrNormal)
+			re.SetError(fmt.Errorf("cannot have negative write offset"), cmdkit.ErrNormal)
 			return
 		}
 
 		fi, err := getFileHandle(nd.FilesRoot, path, create, prefix)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 		if rawLeavesDef {
@@ -746,44 +742,40 @@ stat' on the file or any of its ancestors.
 
 		wfd, err := fi.Open(mfs.OpenWriteOnly, flush)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		defer func() {
 			err := wfd.Close()
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
+				re.SetError(err, cmdkit.ErrNormal)
 			}
 		}()
 
 		if trunc {
 			if err := wfd.Truncate(0); err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
+				re.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 		}
 
-		count, countfound, err := req.Option("count").Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		count, countfound := req.Options["count"].(int)
 		if countfound && count < 0 {
-			res.SetError(fmt.Errorf("cannot have negative byte count"), cmdkit.ErrNormal)
+			re.SetError(fmt.Errorf("cannot have negative byte count"), cmdkit.ErrNormal)
 			return
 		}
 
 		_, err = wfd.Seek(int64(offset), io.SeekStart)
 		if err != nil {
 			flog.Error("seekfail: ", err)
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		input, err := req.Files().NextFile()
+		input, err := req.Files.NextFile()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -794,11 +786,9 @@ stat' on the file or any of its ancestors.
 
 		_, err = io.Copy(wfd, r)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-
-		res.SetOutput(nil)
 	},
 }
 
@@ -1070,6 +1060,35 @@ Remove files or directories.
 			success = true
 		}
 	},
+}
+
+func getPrefixNew(req *cmds.Request) (*cid.Prefix, error) {
+	cidVer, cidVerSet := req.Options["cid-version"].(int)
+	hashFunStr, hashFunSet := req.Options["hash"].(string)
+
+	if !cidVerSet && !hashFunSet {
+		return nil, nil
+	}
+
+	if hashFunSet && cidVer == 0 {
+		cidVer = 1
+	}
+
+	prefix, err := dag.PrefixForCidVersion(cidVer)
+	if err != nil {
+		return nil, err
+	}
+
+	if hashFunSet {
+		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
+		if !ok {
+			return nil, fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
+		}
+		prefix.MhType = hashFunCode
+		prefix.MhLength = -1
+	}
+
+	return &prefix, nil
 }
 
 func getPrefix(req oldcmds.Request) (*cid.Prefix, error) {

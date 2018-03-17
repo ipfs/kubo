@@ -1,11 +1,13 @@
 package objectcmd
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
+	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -14,6 +16,7 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	cmds "gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
@@ -31,13 +34,13 @@ result. This is the Merkle-DAG version of modifying an object.
 	Arguments: []cmdkit.Argument{},
 	Subcommands: map[string]*cmds.Command{
 		"append-data": patchAppendDataCmd,
-		"add-link":    patchAddLinkCmd,
-		"rm-link":     patchRmLinkCmd,
-		"set-data":    patchSetDataCmd,
+		"add-link":    lgc.NewCommand(patchAddLinkCmd),
+		"rm-link":     lgc.NewCommand(patchRmLinkCmd),
+		"set-data":    lgc.NewCommand(patchSetDataCmd),
 	},
 }
 
-func objectMarshaler(res cmds.Response) (io.Reader, error) {
+func objectMarshaler(res oldcmds.Response) (io.Reader, error) {
 	v, err := unwrapOutput(res.Output())
 	if err != nil {
 		return nil, err
@@ -70,60 +73,63 @@ the limit will not be respected by the network.
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
 		cmdkit.FileArg("data", true, false, "Data to append.").EnableStdin(),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
+		nd, err := GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		root, err := path.ParsePath(req.StringArguments()[0])
+		root, err := path.ParsePath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		rootnd, err := core.Resolve(req.Context(), nd.Namesys, nd.Resolver, root)
+		rootnd, err := core.Resolve(req.Context, nd.Namesys, nd.Resolver, root)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		rtpb, ok := rootnd.(*dag.ProtoNode)
 		if !ok {
-			res.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
+			re.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
 			return
 		}
 
-		fi, err := req.Files().NextFile()
+		fi, err := req.Files.NextFile()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		data, err := ioutil.ReadAll(fi)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		rtpb.SetData(append(rtpb.Data(), data...))
 
-		err = nd.DAG.Add(req.Context(), rtpb)
+		err = nd.DAG.Add(req.Context, rtpb)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			re.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		res.SetOutput(&Object{Hash: rtpb.Cid().String()})
+		cmds.EmitOnce(re, &Object{Hash: rtpb.Cid().String()})
 	},
 	Type: Object{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: objectMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, obj *Object) error {
+			_, err := fmt.Fprintln(w, obj.Hash)
+			return err
+		}),
 	},
 }
 
-var patchSetDataCmd = &cmds.Command{
+var patchSetDataCmd = &oldcmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Set the data field of an IPFS object.",
 		ShortDescription: `
@@ -138,7 +144,7 @@ Example:
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
 		cmdkit.FileArg("data", true, false, "The data to set the object to.").EnableStdin(),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
+	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -186,12 +192,12 @@ Example:
 		res.SetOutput(&Object{Hash: rtpb.Cid().String()})
 	},
 	Type: Object{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: objectMarshaler,
+	Marshalers: oldcmds.MarshalerMap{
+		oldcmds.Text: objectMarshaler,
 	},
 }
 
-var patchRmLinkCmd = &cmds.Command{
+var patchRmLinkCmd = &oldcmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Remove a link from an object.",
 		ShortDescription: `
@@ -202,7 +208,7 @@ Removes a link by the given name from root.
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
 		cmdkit.StringArg("link", true, false, "Name of the link to remove."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
+	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -248,12 +254,12 @@ Removes a link by the given name from root.
 		res.SetOutput(&Object{Hash: nc.String()})
 	},
 	Type: Object{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: objectMarshaler,
+	Marshalers: oldcmds.MarshalerMap{
+		oldcmds.Text: objectMarshaler,
 	},
 }
 
-var patchAddLinkCmd = &cmds.Command{
+var patchAddLinkCmd = &oldcmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Add a link to a given object.",
 		ShortDescription: `
@@ -277,7 +283,7 @@ to a file containing 'bar', and returns the hash of the new object.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("create", "p", "Create intermediary nodes."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
+	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -345,7 +351,18 @@ to a file containing 'bar', and returns the hash of the new object.
 		res.SetOutput(&Object{Hash: nc.String()})
 	},
 	Type: Object{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: objectMarshaler,
+	Marshalers: oldcmds.MarshalerMap{
+		oldcmds.Text: objectMarshaler,
 	},
+}
+
+// COPIED FROM ONE LEVEL UP
+// GetNode extracts the node from the environment.
+func GetNode(env interface{}) (*core.IpfsNode, error) {
+	ctx, ok := env.(*oldcmds.Context)
+	if !ok {
+		return nil, fmt.Errorf("expected env to be of type %T, got %T", ctx, env)
+	}
+
+	return ctx.GetNode()
 }
