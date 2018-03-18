@@ -95,11 +95,11 @@ func GetRandomNode(t testing.TB, dserv ipld.DAGService, size int64, opts NodeOpt
 // ArrComp checks if two byte slices are the same.
 func ArrComp(a, b []byte) error {
 	if len(a) != len(b) {
-		return fmt.Errorf("Arrays differ in length. %d != %d", len(a), len(b))
+		return fmt.Errorf("arrays differ in length. %d != %d", len(a), len(b))
 	}
 	for i, v := range a {
 		if v != b[i] {
-			return fmt.Errorf("Arrays differ at index: %d", i)
+			return fmt.Errorf("arrays differ at index: %d", i)
 		}
 	}
 	return nil

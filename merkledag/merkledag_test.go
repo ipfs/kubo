@@ -239,7 +239,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 			}
 
 			if !bytes.Equal(datagot, expected) {
-				errs <- errors.New("Got bad data back!")
+				errs <- errors.New("got bad data back")
 			}
 		}(i)
 	}

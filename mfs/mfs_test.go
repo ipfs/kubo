@@ -108,7 +108,7 @@ func assertDirAtPath(root *Directory, pth string, children []string) error {
 	sort.Strings(children)
 	sort.Strings(names)
 	if !compStrArrs(children, names) {
-		return errors.New("directories children did not match!")
+		return errors.New("directories children did not match")
 	}
 
 	return nil
@@ -158,7 +158,7 @@ func assertFileAtPath(ds ipld.DAGService, root *Directory, expn ipld.Node, pth s
 
 	file, ok := finaln.(*File)
 	if !ok {
-		return fmt.Errorf("%s was not a file!", pth)
+		return fmt.Errorf("%s was not a file", pth)
 	}
 
 	rfd, err := file.Open(OpenReadOnly, false)
@@ -177,7 +177,7 @@ func assertFileAtPath(ds ipld.DAGService, root *Directory, expn ipld.Node, pth s
 	}
 
 	if !bytes.Equal(out, expbytes) {
-		return fmt.Errorf("Incorrect data at path!")
+		return fmt.Errorf("incorrect data at path")
 	}
 	return nil
 }
@@ -616,7 +616,7 @@ func randomFile(d *Directory) (*File, error) {
 
 	fi, ok := fsn.(*File)
 	if !ok {
-		return nil, errors.New("file wasnt a file, race?")
+		return nil, errors.New("file wasn't a file, race?")
 	}
 
 	return fi, nil
@@ -889,7 +889,7 @@ func readFile(rt *Root, path string, offset int64, buf []byte) error {
 		return err
 	}
 	if nread != len(buf) {
-		return fmt.Errorf("didnt read enough!")
+		return fmt.Errorf("didn't read enough")
 	}
 
 	return fd.Close()

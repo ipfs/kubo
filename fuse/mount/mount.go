@@ -82,7 +82,7 @@ func ForceUnmountManyTimes(m Mount, attempts int) error {
 
 		<-time.After(time.Millisecond * 500)
 	}
-	return fmt.Errorf("Unmount %s failed after 10 seconds of trying.", m.MountPoint())
+	return fmt.Errorf("unmount %s failed after 10 seconds of trying", m.MountPoint())
 }
 
 type closer struct {

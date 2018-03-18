@@ -203,7 +203,7 @@ func (r *PubsubResolver) resolveOnce(ctx context.Context, name string, options *
 
 	id := peer.ID(hash)
 	if r.host.Peerstore().PrivKey(id) != nil {
-		return "", errors.New("Cannot resolve own name through pubsub")
+		return "", errors.New("cannot resolve own name through pubsub")
 	}
 
 	pubk := id.ExtractPublicKey()

@@ -297,7 +297,7 @@ Example:
 		switch typeStr {
 		case "all", "direct", "indirect", "recursive":
 		default:
-			err = fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+			err = fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
 			res.SetError(err, cmdkit.ErrClient)
 			return
 		}
@@ -447,7 +447,7 @@ var verifyPinCmd = &cmds.Command{
 		quiet, _, _ := res.Request().Option("quiet").Bool()
 
 		if verbose && quiet {
-			res.SetError(fmt.Errorf("The --verbose and --quiet options can not be used at the same time"), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("the --verbose and --quiet options can not be used at the same time"), cmdkit.ErrNormal)
 		}
 
 		opts := pinVerifyOpts{

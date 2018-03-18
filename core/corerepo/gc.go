@@ -18,7 +18,7 @@ import (
 
 var log = logging.Logger("corerepo")
 
-var ErrMaxStorageExceeded = errors.New("Maximum storage limit exceeded. Maybe unpin some files?")
+var ErrMaxStorageExceeded = errors.New("maximum storage limit exceeded. Try to unpin some files")
 
 type GC struct {
 	Node       *core.IpfsNode

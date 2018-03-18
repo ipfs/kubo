@@ -129,13 +129,13 @@ func DataSize(data []byte) (uint64, error) {
 
 	switch pbdata.GetType() {
 	case pb.Data_Directory:
-		return 0, errors.New("Cant get data size of directory")
+		return 0, errors.New("can't get data size of directory")
 	case pb.Data_File:
 		return pbdata.GetFilesize(), nil
 	case pb.Data_Raw:
 		return uint64(len(pbdata.GetData())), nil
 	default:
-		return 0, errors.New("Unrecognized node data type")
+		return 0, errors.New("unrecognized node data type")
 	}
 }
 
