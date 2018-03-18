@@ -354,7 +354,7 @@ func transformConfig(configRoot string, configName string, transformer config.Tr
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 	value, err := r.GetConfigKey(key)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get config value: %q", err)
+		return nil, fmt.Errorf("failed to get config value: %q", err)
 	}
 	return &ConfigField{
 		Key:   key,
@@ -392,7 +392,7 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 
 	keyF, err := getConfig(r, config.PrivKeySelector)
 	if err != nil {
-		return fmt.Errorf("Failed to get PrivKey")
+		return fmt.Errorf("failed to get PrivKey")
 	}
 
 	pkstr, ok := keyF.Value.(string)

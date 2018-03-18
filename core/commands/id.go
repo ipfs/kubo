@@ -156,7 +156,7 @@ EXAMPLE:
 
 func printPeer(ps pstore.Peerstore, p peer.ID) (interface{}, error) {
 	if p == "" {
-		return nil, errors.New("Attempted to print nil peer!")
+		return nil, errors.New("attempted to print nil peer")
 	}
 
 	info := new(IdOutput)

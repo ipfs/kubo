@@ -250,7 +250,7 @@ func assertDirContents(dir string, exp []string) error {
 	}
 
 	if len(finfos) != len(exp) {
-		return fmt.Errorf("Expected %d directory entries", len(exp))
+		return fmt.Errorf("expected %d directory entries", len(exp))
 	}
 
 	var names []string

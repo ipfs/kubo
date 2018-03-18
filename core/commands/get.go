@@ -21,7 +21,7 @@ import (
 	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 )
 
-var ErrInvalidCompressionLevel = errors.New("Compression level must be between 1 and 9")
+var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")
 
 var GetCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{

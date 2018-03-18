@@ -74,7 +74,7 @@ func (n *dagService) Get(ctx context.Context, c *cid.Cid) (ipld.Node, error) {
 		if err == bserv.ErrNotFound {
 			return nil, ipld.ErrNotFound
 		}
-		return nil, fmt.Errorf("Failed to get block for %s: %v", c, err)
+		return nil, fmt.Errorf("failed to get block for %s: %v", c, err)
 	}
 
 	return ipld.Decode(b)

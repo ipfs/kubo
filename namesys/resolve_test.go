@@ -131,7 +131,7 @@ func verifyCanResolve(r Resolver, name string, exp path.Path) error {
 	}
 
 	if res != exp {
-		return errors.New("got back wrong record!")
+		return errors.New("got back wrong record")
 	}
 
 	return nil

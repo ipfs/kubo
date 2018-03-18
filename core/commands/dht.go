@@ -170,7 +170,7 @@ var findProvidersDhtCmd = &cmds.Command{
 			return
 		}
 		if numProviders < 1 {
-			res.SetError(fmt.Errorf("Number of providers must be greater than 0"), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("number of providers must be greater than 0"), cmdkit.ErrNormal)
 			return
 		}
 

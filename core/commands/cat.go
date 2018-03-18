@@ -44,7 +44,7 @@ var CatCmd = &cmds.Command{
 
 		offset, _ := req.Options["offset"].(int)
 		if offset < 0 {
-			res.SetError(fmt.Errorf("Cannot specify negative offset."), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("cannot specify negative offset"), cmdkit.ErrNormal)
 			return
 		}
 
@@ -54,7 +54,7 @@ var CatCmd = &cmds.Command{
 			return
 		}
 		if max < 0 {
-			res.SetError(fmt.Errorf("Cannot specify negative length."), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("cannot specify negative length"), cmdkit.ErrNormal)
 			return
 		}
 		if !found {

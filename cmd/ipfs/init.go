@@ -82,7 +82,7 @@ environment variable:
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		cctx := env.(*oldcmds.Context)
 		if cctx.Online {
-			res.SetError(errors.New("init must be run offline only!"), cmdkit.ErrNormal)
+			res.SetError(errors.New("init must be run offline only"), cmdkit.ErrNormal)
 			return
 		}
 
