@@ -90,4 +90,27 @@ test_expect_success "publish an explicit node ID as key name looks good" '
   test_cmp expected_node_id_publish actual_node_id_publish
 '
 
+
+# test publishing nothing
+
+test_expect_success "'ipfs name publish' fails" '
+  PEERID=`ipfs id --format="<id>"` &&
+  test_check_peerid "${PEERID}" &&
+  printf '' | test_expect_code 1 ipfs name publish >publish_out 2>&1
+'
+
+test_expect_success "publish output has the correct error" '
+  grep "argument \"ipfs-path\" is required" publish_out
+'
+
+test_launch_ipfs_daemon
+
+test_expect_success "empty request to name publish doesn't panic and returns error" '
+  curl "http://$API_ADDR/api/v0/name/publish" > curl_out || true &&
+    grep "argument \"ipfs-path\" is required" curl_out
+'
+
+test_kill_ipfs_daemon
+
+
 test_done
