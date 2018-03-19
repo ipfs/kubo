@@ -271,7 +271,7 @@ var blockRmCmd = &cmds.Command{
 		Tagline: "Remove IPFS block(s).",
 		ShortDescription: `
 'ipfs block rm' is a plumbing command for removing raw ipfs blocks.
-It takes a list of base58 encoded multihashs to remove.
+It takes a list of base58 encoded multihashes to remove.
 `,
 	},
 	Arguments: []cmdkit.Argument{

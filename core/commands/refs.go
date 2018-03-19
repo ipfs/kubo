@@ -98,7 +98,7 @@ NOTE: List all references recursively by using the flag '-r'.
 		}
 		if edges {
 			if format != "<dst>" {
-				res.SetError(errors.New("using format arguement with edges is not allowed"),
+				res.SetError(errors.New("using format argument with edges is not allowed"),
 					cmdkit.ErrClient)
 				return
 			}

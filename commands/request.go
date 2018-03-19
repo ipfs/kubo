@@ -26,8 +26,8 @@ type Context struct {
 	ConstructNode func() (*core.IpfsNode, error)
 }
 
-// GetConfig returns the config of the current Command exection
-// context. It may load it with the providied function.
+// GetConfig returns the config of the current Command execution
+// context. It may load it with the provided function.
 func (c *Context) GetConfig() (*config.Config, error) {
 	var err error
 	if c.config == nil {
@@ -39,7 +39,7 @@ func (c *Context) GetConfig() (*config.Config, error) {
 	return c.config, err
 }
 
-// GetNode returns the node of the current Command exection
+// GetNode returns the node of the current Command execution
 // context. It may construct it with the provided function.
 func (c *Context) GetNode() (*core.IpfsNode, error) {
 	var err error

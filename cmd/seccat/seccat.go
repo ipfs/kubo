@@ -29,7 +29,7 @@ import (
 var verbose = false
 
 // Usage prints out the usage of this module.
-// Assumes flags use go stdlib flag pacakage.
+// Assumes flags use go stdlib flag package.
 var Usage = func() {
 	text := `seccat - secure netcat in Go
 

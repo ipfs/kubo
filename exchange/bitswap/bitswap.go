@@ -295,7 +295,7 @@ func (bs *Bitswap) CancelWants(cids []*cid.Cid, ses uint64) {
 	bs.wm.CancelWants(context.Background(), cids, nil, ses)
 }
 
-// HasBlock announces the existance of a block to this bitswap service. The
+// HasBlock announces the existence of a block to this bitswap service. The
 // service will potentially notify its peers.
 func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	return bs.receiveBlockFrom(blk, "")

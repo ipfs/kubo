@@ -24,7 +24,7 @@ type ledger struct {
 	// Partner is the remote Peer.
 	Partner peer.ID
 
-	// Accounting tracks bytes sent and recieved.
+	// Accounting tracks bytes sent and received.
 	Accounting debtRatio
 
 	// lastExchange is the time of the last data exchange.

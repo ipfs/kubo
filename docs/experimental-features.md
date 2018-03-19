@@ -47,7 +47,7 @@ run your daemon with the `--enable-pubsub-experiment` flag. Then use the
 ---
 
 ## Client mode DHT routing
-Allows the dht to be run in a mode that doesnt serve requests to the network,
+Allows the dht to be run in a mode that doesn't serve requests to the network,
 saving bandwidth.
 
 ### State
@@ -183,7 +183,7 @@ and save it to `~/.ipfs/swarm.key` (If you are using a custom `$IPFS_PATH`, put
 it in there instead).
 
 When using this feature, you will not be able to connect to the default bootstrap
-nodes (Since we arent part of your private network) so you will need to set up
+nodes (Since we aren't part of your private network) so you will need to set up
 your own bootstrap nodes.
 
 First, to prevent your node from even trying to connect to the default bootstrap nodes, run:
@@ -215,7 +215,7 @@ configured, the daemon will fail to start.
 ---
 
 ## ipfs p2p
-Allows to tunnel TCP connections through Libp2p sterams
+Allows to tunnel TCP connections through Libp2p streams
 
 ### State
 Experimental
@@ -277,7 +277,7 @@ In order to connect peers QmA and QmB through a relay node QmRelay:
 - Both peers should connect to the relay:
 `ipfs swarm connect /transport/address/ipfs/QmRelay`
 - Peer QmA can then connect to peer QmB using the relay:
-`ipfs swarm connect /ipfs/QmRelay/p2p-cricuit/ipfs/QmB`
+`ipfs swarm connect /ipfs/QmRelay/p2p-circuit/ipfs/QmB`
 
 Peers can also connect with an unspecific relay address, which will
 try to dial through known relays:

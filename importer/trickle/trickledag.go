@@ -4,10 +4,10 @@
 // as additional links.
 //
 // Each layer is a trickle sub-tree and is limited by an increasing
-// maxinum depth. Thus, the nodes first layer
+// maximum depth. Thus, the nodes first layer
 // can only hold leaves (depth 1) but subsequent layers can grow deeper.
 // By default, this module places 4 nodes per layer (that is, 4 subtrees
-// of the same maxinum depth before increasing it).
+// of the same maximum depth before increasing it).
 //
 // Trickle DAGs are very good for sequentially reading data, as the
 // first data leaves are directly reachable from the root and those

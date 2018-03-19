@@ -127,7 +127,7 @@ func ParsePath(p string) (coreiface.Path, error) {
 	return &path{path: pp}, nil
 }
 
-// ParseCid parses the path from `c`, retruns the parsed path.
+// ParseCid parses the path from `c`, returns the parsed path.
 func ParseCid(c *cid.Cid) coreiface.Path {
 	return &path{path: ipfspath.FromCid(c), cid: c, root: c}
 }

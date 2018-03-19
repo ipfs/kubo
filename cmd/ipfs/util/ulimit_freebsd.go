@@ -9,7 +9,7 @@ import (
 func init() {
 	supportsFDManagement = true
 	getLimit = freebsdGetLimit
-	setLimit = freebdsSetLimit
+	setLimit = freebsdSetLimit
 }
 
 func freebsdGetLimit() (int64, int64, error) {
@@ -18,7 +18,7 @@ func freebsdGetLimit() (int64, int64, error) {
 	return rlimit.Cur, rlimit.Max, err
 }
 
-func freebdsSetLimit(soft int64, max int64) error {
+func freebsdSetLimit(soft int64, max int64) error {
 	rlimit := unix.Rlimit{
 		Cur: soft,
 		Max: max,

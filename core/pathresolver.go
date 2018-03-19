@@ -28,7 +28,7 @@ func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver,
 		defer evt.Done()
 		// resolve ipns paths
 
-		// TODO(cryptix): we sould be able to query the local cache for the path
+		// TODO(cryptix): we should be able to query the local cache for the path
 		if nsys == nil {
 			evt.Append(logging.LoggableMap{"error": ErrNoNamesys.Error()})
 			return nil, ErrNoNamesys

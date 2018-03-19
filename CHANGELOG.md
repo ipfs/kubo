@@ -130,7 +130,7 @@ remove them before updating.
   - Update badgerds to fix i386 windows build ([ipfs/go-ipfs#4464](https://github.com/ipfs/go-ipfs/pull/4464))
   - Only construct bitswap event loggable if necessary ([ipfs/go-ipfs#4533](https://github.com/ipfs/go-ipfs/pull/4533))
   - Ensure that flush on the mfs root flushes its directory ([ipfs/go-ipfs#4509](https://github.com/ipfs/go-ipfs/pull/4509))
-  - Fix defered unlock of pin lock in AddR ([ipfs/go-ipfs#4562](https://github.com/ipfs/go-ipfs/pull/4562))
+  - Fix deferred unlock of pin lock in AddR ([ipfs/go-ipfs#4562](https://github.com/ipfs/go-ipfs/pull/4562))
   - Fix iOS builds ([ipfs/go-ipfs#4610](https://github.com/ipfs/go-ipfs/pull/4610))
   - Calling repo gc now frees up space with badgerds ([ipfs/go-ipfs#4578](https://github.com/ipfs/go-ipfs/pull/4578))
   - Fix leak in bitswap sessions shutdown ([ipfs/go-ipfs#4658](https://github.com/ipfs/go-ipfs/pull/4658))
@@ -282,7 +282,7 @@ wantlist updates to every connected bitswap partner, as well as searching the
 DHT for providers less frequently. In future releases we will migrate over more
 ipfs commands to take advantage of bitswap sessions. As nodes update to this
 and future versions, expect to see idle bandwidth usage on the ipfs network
-go down noticably.
+go down noticeably.
 
 The never ending effort to reduce resource consumption had a few important
 updates this release. First, the bitswap sessions changes discussed above will
@@ -332,7 +332,7 @@ You can read more on this topic in [Plugin docs](docs/plugins.md)
 
 In order to simplify its integration with fs-repo-migrations, we've switched
 the ipfs/go-ipfs docker image from a musl base to a glibc base. For most users
-this will not be noticable, but if you've been building your own images based
+this will not be noticeable, but if you've been building your own images based
 off this image, you'll have to update your dockerfile. We recommend a
 multi-stage dockerfile, where the build stage is based off of a regular Debian or
 other glibc-based image, and the assembly stage is based off of the ipfs/go-ipfs
@@ -1010,14 +1010,14 @@ This is the first Release Candidate. Unless there are vulnerabilities or regress
 
 ### 0.4.2 - 2016-05-17
 
-This is a patch release which fixes perfomance and networking bugs in go-libp2p,
+This is a patch release which fixes performance and networking bugs in go-libp2p,
 You should see improvements in CPU and RAM usage, as well as speed of object lookups.
 There are also a few other nice improvements.
 
 * Notable Fixes
   * Set a deadline for dialing attempts. This prevents a node from accumulating
     failed connections. (@whyrusleeping)
-  * Avoid unneccessary string/byte conversions in go-multihash. (@whyrusleeping)
+  * Avoid unnecessary string/byte conversions in go-multihash. (@whyrusleeping)
   * Fix a deadlock around the yamux stream muxer. (@whyrusleeping)
   * Fix a bug that left channels open, causing hangs. (@whyrusleeping)
   * Fix a bug around yamux which caused connection hangs. (@whyrusleeping)
@@ -1077,7 +1077,7 @@ insignificant) features. The primary reason for this release is the listener
 hang bugfix that was shipped in the 0.4.0 release.
 
 * Features
-  * implementated ipfs object diff (@whyrusleeping)
+  * implemented ipfs object diff (@whyrusleeping)
   * allow promises (used in get, refs) to fail (@whyrusleeping)
 
 * Tool changes
@@ -1166,7 +1166,7 @@ on the networking layer.
   * General
     * Add support for HTTP OPTIONS requests. (@lidel)
     * Add `ipfs diag cmds` to view active API requests (@whyrusleeping)
-    * Add an `IPFS_LOW_MEM` environment veriable which relaxes Bitswap's memory usage. (@whyrusleeping)
+    * Add an `IPFS_LOW_MEM` environment variable which relaxes Bitswap's memory usage. (@whyrusleeping)
     * The Docker image now lives at `ipfs/go-ipfs` and has been completely reworked. (@lgierth)
 * Security fixes
   * The gateway path prefix added in v0.3.10 was vulnerable to cross-site
@@ -1351,7 +1351,7 @@ in the future, it will be enabled by default.
 
 This patch update includes a good number of bugfixes, notably, it fixes
 builds on windows, and puts newlines between streaming json objects for a
-proper nsjon format.
+proper ndjson format.
 
 * Features
   * Writable gateway enabled again (@cryptix)
@@ -1359,7 +1359,7 @@ proper nsjon format.
 * Bugfixes
   * fix windows builds (@whyrusleeping)
   * content type on command responses default to text (@whyrusleeping)
-  * add check to makefile to ensure windows builds dont fail silently (@whyrusleeping)
+  * add check to makefile to ensure windows builds don't fail silently (@whyrusleeping)
   * put newlines between streaming json output objects (@whyrusleeping)
   * fix streaming output to flush per write (@whyrusleeping)
   * purposely fail builds pre go1.5 (@whyrusleeping)
@@ -1603,13 +1603,13 @@ This patch update fixes various issues, in particular:
 * ipns resolution timeout bug fix by @whyrusleeping
 * new cluster tests with iptb by @whyrusleeping
 * fix log callstack printing bug by @whyrusleeping
-* document bash completiong by @dylanPowers
+* document bash completion by @dylanPowers
 
 ### 0.3.2 - 2015-04-22
 
 This patch update implements multicast dns as well as fxing a few test issues.
 
-* implment mdns peer discovery @whyrusleeping
+* implement mdns peer discovery @whyrusleeping
 * fix mounting issues in sharness tests @chriscool
 
 ### 0.3.1 - 2015-04-21

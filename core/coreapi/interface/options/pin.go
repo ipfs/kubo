@@ -95,9 +95,9 @@ func (pinType) Indirect() PinLsOption {
 
 // Recursive is an option for Pin.Add which specifies whether to pin an entire
 // object tree or just one object. Default: true
-func (pinOpts) Recursive(recucsive bool) PinAddOption {
+func (pinOpts) Recursive(recursive bool) PinAddOption {
 	return func(settings *PinAddSettings) error {
-		settings.Recursive = recucsive
+		settings.Recursive = recursive
 		return nil
 	}
 }

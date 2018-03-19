@@ -53,7 +53,7 @@ addresses (like the example below), then your nodes are online.
 }
 ```
 
-Next, check to see if the nodes have a connection to eachother. You can do this
+Next, check to see if the nodes have a connection to each other. You can do this
 by running `ipfs swarm peers` on one node, and checking for the other nodes
 peer ID in the output. If the two nodes *are* connected, and the `ipfs get`
 command is still hanging, then something unexpected is going on, and I
@@ -84,7 +84,7 @@ knowing that it needs to, the likely culprit is a bad NAT. When node B learns
 that it needs to connect to node A, it checks the DHT for addresses for node A,
 and then starts trying to connect to them. We can check those addresses by
 running `ipfs dht findpeer <node A peerID>` on node B. This command should
-return a list of addresses for node A. If it doesnt return any addresses, then
+return a list of addresses for node A. If it doesn't return any addresses, then
 you should try running the manual providing command from the previous steps. 
 Example output of addresses might look something like this:
 
@@ -98,7 +98,7 @@ In this case, we can see a localhost (127.0.0.1) address, a LAN address (the
 192.168.*.* one) and another address. If this third address matches your
 external IP, then the network knows a valid external address for your node. At
 this point, its safe to assume that your node has a difficult to traverse NAT
-situation. If this is the case, you can try to enable upnp or NAT-PMP on the
+situation. If this is the case, you can try to enable UPnP or NAT-PMP on the
 router of node A and retry the process. Otherwise, you can try manually
 connecting node A to node B.
 

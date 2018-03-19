@@ -317,7 +317,7 @@ Please direct general questions and help requests to our
 [forum](https://discuss.ipfs.io) or our IRC channel (freenode #ipfs).
 
 If you believe you've found a bug, check the [issues list](https://github.com/ipfs/go-ipfs/issues)
-and, if you dont see your problem there, either come talk to us on IRC (freenode #ipfs) or
+and, if you don't see your problem there, either come talk to us on IRC (freenode #ipfs) or
 file an issue of your own!
 
 ## Contributing
