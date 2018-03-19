@@ -364,7 +364,7 @@ func bootstrapWritePeers(w io.Writer, prefix string, peers []string) error {
 
 	sort.Stable(sort.StringSlice(peers))
 	for _, peer := range peers {
-		_, err := w.Write([]byte(peer + "\n"))
+		_, err := w.Write([]byte(prefix + peer + "\n"))
 		if err != nil {
 			return err
 		}
