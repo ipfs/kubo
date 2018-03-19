@@ -94,19 +94,15 @@ test_expect_success "publish an explicit node ID as key name looks good" '
 # test publishing nothing
 
 test_expect_success "'ipfs name publish' fails" '
-  PEERID=`ipfs id --format="<id>"` &&
-  test_check_peerid "${PEERID}" &&
   printf '' | test_expect_code 1 ipfs name publish >publish_out 2>&1
-'
-
-test_expect_success "'ipfs name publish --help' succeeds" '
-  PEERID=`ipfs id --format="<id>"` &&
-  test_check_peerid "${PEERID}" &&
-  ipfs name publish --help
 '
 
 test_expect_success "publish output has the correct error" '
   grep "argument \"ipfs-path\" is required" publish_out
+'
+
+test_expect_success "'ipfs name publish --help' succeeds" '
+  ipfs name publish --help
 '
 
 test_launch_ipfs_daemon
