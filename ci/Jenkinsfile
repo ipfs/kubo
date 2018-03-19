@@ -1,0 +1,1 @@
+golang([env: ["TEST_NO_FUSE=1"]])
