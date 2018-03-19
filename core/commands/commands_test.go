@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	cmds "gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
+	cmds "gx/ipfs/QmSBXjZJCTmRSLXzXr4duHKzWfgDX8aJ6XuPXCQZuVU1LP/go-ipfs-cmds"
 )
 
 func collectPaths(prefix string, cmd *cmds.Command, out map[string]struct{}) {
