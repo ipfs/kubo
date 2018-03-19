@@ -245,7 +245,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	// Ok, now we're ready to listen.
-	if err := startListening(ctx, n.PeerHost, cfg); err != nil {
+	if err := startListening(n.PeerHost, cfg); err != nil {
 		return err
 	}
 
@@ -452,9 +452,8 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	n.PeerHost = rhost.Wrap(host, n.Routing)
 
 	// setup exchange service
-	const alwaysSendToPeer = true // use YesManStrategy
 	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
-	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
+	n.Exchange = bitswap.New(ctx, bitswapNetwork, n.Blockstore)
 
 	size, err := n.getCacheSize()
 	if err != nil {
@@ -919,7 +918,7 @@ func composeAddrsFactory(f, g p2pbhost.AddrsFactory) p2pbhost.AddrsFactory {
 }
 
 // startListening on the network addresses
-func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) error {
+func startListening(host p2phost.Host, cfg *config.Config) error {
 	listenAddrs, err := listenAddresses(cfg)
 	if err != nil {
 		return err

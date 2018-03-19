@@ -99,9 +99,7 @@ func MkSession(ctx context.Context, net tn.Network, p testutil.Identity) Instanc
 		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}
 
-	const alwaysSendToPeer = true
-
-	bs := New(ctx, p.ID(), adapter, bstore, alwaysSendToPeer).(*Bitswap)
+	bs := New(ctx, adapter, bstore).(*Bitswap)
 
 	return Instance{
 		Peer:            p.ID(),

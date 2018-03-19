@@ -686,7 +686,7 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 }
 
 func NodeEmpty(node *Node) bool {
-	return (node.Data == "" && len(node.Links) == 0)
+	return node.Data == "" && len(node.Links) == 0
 }
 
 // copy+pasted from ../commands.go
