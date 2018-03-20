@@ -404,8 +404,15 @@ func (d *Directory) Path() string {
 	cur := d
 	var out string
 	for cur != nil {
-		out = path.Join(cur.name, out)
-		cur = cur.parent.(*Directory)
+		switch parent := cur.parent.(type) {
+		case *Directory:
+			out = path.Join(cur.name, out)
+			cur = parent
+		case *Root:
+			return "/" + out
+		default:
+			panic("directory parent neither a directory nor a root")
+		}
 	}
 	return out
 }
