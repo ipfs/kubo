@@ -102,6 +102,19 @@ test_expect_failure "All ipfs commands docs are 80 columns or less" '
   fi
 '
 
+test_expect_success "All ipfs commands fail when passed a bad flag" '
+  echo 0 > fail
+  while read -r cmd
+  do
+    test_must_fail $cmd --badflag >/dev/null ||
+      { echo $cmd exit with code 0 when passed --badflag; echo 1 > fail; }
+  done <commands.txt
+
+  if [ $(cat fail) = 1 ]; then
+    return 1
+  fi
+'
+
 test_expect_success "'ipfs commands --flags' succeeds" '
   ipfs commands --flags >commands.txt
 '
