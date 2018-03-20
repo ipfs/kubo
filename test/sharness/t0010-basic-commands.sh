@@ -65,7 +65,7 @@ test_expect_success "All commands accept --help" '
   echo 0 > fail
   while read -r cmd
   do
-    $cmd --help </dev/null >/dev/null ||
+    $cmd --help >/dev/null ||
       { echo "$cmd doesnt accept --help"; echo 1 > fail; }
   done <commands.txt
 
