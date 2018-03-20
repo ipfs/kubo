@@ -405,7 +405,7 @@ func (d *Directory) Path() string {
 	var out string
 	for cur != nil {
 		out = path.Join(cur.name, out)
-		cur = cur.parent.(*Directory)
+		cur, _ = cur.parent.(*Directory)
 	}
 	return out
 }
