@@ -67,6 +67,8 @@ test_expect_success "All commands accept --help" '
   do
     $cmd --help >/dev/null ||
       { echo "$cmd doesnt accept --help"; echo 1 > fail; }
+    echo stuff | $cmd --help >/dev/null ||
+      { echo "$cmd doesnt accept --help when using stdin"; echo 1 > fail; }
   done <commands.txt
 
   if [ $(cat fail) = 1 ]; then
