@@ -4,10 +4,12 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	namesys "github.com/ipfs/go-ipfs/namesys"
+	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	offline "gx/ipfs/QmZRcGYvxdauCd7hHnMYLYqcZRaDjv24c7eUNyJojAcdBb/go-ipfs-routing/offline"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
@@ -57,9 +59,10 @@ Resolve the value of a dnslink:
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name."),
 		cmdkit.BoolOption("nocache", "n", "Do not use cached entries."),
+		cmdkit.UintOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
+		cmdkit.UintOption("dht-timeout", "dhtt", "Timeout in seconds for DHT resolution. Pass 0 for no timeout."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -107,16 +110,24 @@ Resolve the value of a dnslink:
 		}
 
 		recursive, _, _ := req.Option("recursive").Bool()
-		depth := 1
-		if recursive {
-			depth = namesys.DefaultDepthLimit
+		rc, rcok, _ := req.Option("dht-record-count").Int()
+		dhtt, dhttok, _ := req.Option("dht-timeout").Int()
+		var ropts []nsopts.ResolveOpt
+		if !recursive {
+			ropts = append(ropts, nsopts.Depth(1))
+		}
+		if rcok {
+			ropts = append(ropts, nsopts.DhtRecordCount(uint(rc)))
+		}
+		if dhttok {
+			ropts = append(ropts, nsopts.DhtTimeout(time.Duration(dhtt)*time.Second))
 		}
 
 		if !strings.HasPrefix(name, "/ipns/") {
 			name = "/ipns/" + name
 		}
 
-		output, err := resolver.ResolveN(req.Context(), name, depth)
+		output, err := resolver.Resolve(req.Context(), name, ropts...)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

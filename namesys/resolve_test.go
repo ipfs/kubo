@@ -70,7 +70,7 @@ func TestPrexistingExpiredRecord(t *testing.T) {
 	// Make an expired record and put it in the datastore
 	h := path.FromString("/ipfs/QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN")
 	eol := time.Now().Add(time.Hour * -1)
-	err = PutRecordToRouting(context.Background(), privk, h, 0, eol, d, id)
+	_, err = PutRecordToRouting(context.Background(), privk, h, 0, eol, d, id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestPrexistingRecord(t *testing.T) {
 	// Make a good record and put it in the datastore
 	h := path.FromString("/ipfs/QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN")
 	eol := time.Now().Add(time.Hour)
-	err = PutRecordToRouting(context.Background(), privk, h, 0, eol, d, id)
+	_, err = PutRecordToRouting(context.Background(), privk, h, 0, eol, d, id)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -35,19 +35,9 @@ import (
 
 	context "context"
 
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-)
-
-const (
-	// DefaultDepthLimit is the default depth limit used by Resolve.
-	DefaultDepthLimit = 32
-
-	// UnlimitedDepth allows infinite recursion in ResolveN.  You
-	// probably don't want to use this, but it's here if you absolutely
-	// trust resolution to eventually complete and can't put an upper
-	// limit on how many steps it will take.
-	UnlimitedDepth = 0
 )
 
 // ErrResolveFailed signals an error when attempting to resolve.
@@ -89,17 +79,8 @@ type Resolver interface {
 	//
 	// There is a default depth-limit to avoid infinite recursion.  Most
 	// users will be fine with this default limit, but if you need to
-	// adjust the limit you can use ResolveN.
-	Resolve(ctx context.Context, name string) (value path.Path, err error)
-
-	// ResolveN performs a recursive lookup, returning the dereferenced
-	// path.  The only difference from Resolve is that the depth limit
-	// is configurable.  You can use DefaultDepthLimit, UnlimitedDepth,
-	// or a depth limit of your own choosing.
-	//
-	// Most users should use Resolve, since the default limit works well
-	// in most real-world situations.
-	ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error)
+	// adjust the limit you can specify it as an option.
+	Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (value path.Path, err error)
 }
 
 // Publisher is an object capable of publishing particular names.

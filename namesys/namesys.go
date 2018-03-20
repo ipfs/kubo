@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"sync"
 	"time"
 
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 
 	p2phost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
@@ -67,12 +67,7 @@ func AddPubsubNameSystem(ctx context.Context, ns NameSystem, host p2phost.Host, 
 const DefaultResolverCacheTTL = time.Minute
 
 // Resolve implements Resolver.
-func (ns *mpns) Resolve(ctx context.Context, name string) (path.Path, error) {
-	return ns.ResolveN(ctx, name, DefaultDepthLimit)
-}
-
-// ResolveN implements Resolver.
-func (ns *mpns) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
+func (ns *mpns) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
 	if strings.HasPrefix(name, "/ipfs/") {
 		return path.ParsePath(name)
 	}
@@ -81,11 +76,11 @@ func (ns *mpns) ResolveN(ctx context.Context, name string, depth int) (path.Path
 		return path.ParsePath("/ipfs/" + name)
 	}
 
-	return resolve(ctx, ns, name, depth, "/ipns/")
+	return resolve(ctx, ns, name, opts.ProcessOpts(options), "/ipns/")
 }
 
 // resolveOnce implements resolver.
-func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error) {
+func (ns *mpns) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, error) {
 	if !strings.HasPrefix(name, "/ipns/") {
 		name = "/ipns/" + name
 	}
@@ -114,7 +109,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error)
 	if err == nil {
 		res, ok := ns.resolvers["pubsub"]
 		if ok {
-			p, err := res.resolveOnce(ctx, key)
+			p, err := res.resolveOnce(ctx, key, options)
 			if err == nil {
 				return makePath(p)
 			}
@@ -122,7 +117,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error)
 
 		res, ok = ns.resolvers["dht"]
 		if ok {
-			p, err := res.resolveOnce(ctx, key)
+			p, err := res.resolveOnce(ctx, key, options)
 			if err == nil {
 				return makePath(p)
 			}
@@ -134,7 +129,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error)
 	if isd.IsDomain(key) {
 		res, ok := ns.resolvers["dns"]
 		if ok {
-			p, err := res.resolveOnce(ctx, key)
+			p, err := res.resolveOnce(ctx, key, options)
 			if err == nil {
 				return makePath(p)
 			}
@@ -145,7 +140,7 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error)
 
 	res, ok := ns.resolvers["proquint"]
 	if ok {
-		p, err := res.resolveOnce(ctx, key)
+		p, err := res.resolveOnce(ctx, key, options)
 		if err == nil {
 			return makePath(p)
 		}
@@ -163,32 +158,21 @@ func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) e
 }
 
 func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error {
-	var dhtErr error
-
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		dhtErr = ns.publishers["dht"].PublishWithEOL(ctx, name, value, eol)
-		if dhtErr == nil {
-			ns.addToDHTCache(name, value, eol)
-		}
-		wg.Done()
-	}()
-
 	pub, ok := ns.publishers["pubsub"]
 	if ok {
-		wg.Add(1)
-		go func() {
-			err := pub.PublishWithEOL(ctx, name, value, eol)
-			if err != nil {
-				log.Warningf("error publishing %s with pubsub: %s", name, err.Error())
-			}
-			wg.Done()
-		}()
+		// Note that pubsub publisher first publishes to the DHT
+		err := pub.PublishWithEOL(ctx, name, value, eol)
+		if err != nil {
+			log.Warningf("error publishing %s with pubsub: %s", name, err.Error())
+		}
+		return err
 	}
 
-	wg.Wait()
-	return dhtErr
+	err := ns.publishers["dht"].PublishWithEOL(ctx, name, value, eol)
+	if err == nil {
+		ns.addToDHTCache(name, value, eol)
+	}
+	return err
 }
 
 func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {
