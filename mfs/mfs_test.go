@@ -324,6 +324,11 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 
 	topd := topi.(*Directory)
 
+	path := topd.Path()
+	if path != "/foo" {
+		t.Fatalf("Expected path '/foo', got '%s'", path)
+	}
+
 	// mkdir over existing but unloaded child file should fail
 	_, err = topd.Mkdir("a")
 	if err == nil {
