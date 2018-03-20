@@ -54,6 +54,13 @@ did allow manually creating them and fetching them from other peers. If you
 currently have objects using insecure hashes in your local ipfs repo, please
 remove them before updating.
 
+#### Changes from rc2 to rc3
+- Fix bug in stdin argument parsing ([ipfs/go-ipfs#4827](https://github.com/ipfs/go-ipfs/pull/4827))
+- Revert commands back to sending a single response ([ipfs/go-ipfs#4822](https://github.com/ipfs/go-ipfs/pull/4822))
+
+#### Changes from rc1 to rc2
+- Fix issue in ipfs get caused by go1.10 changes ([ipfs/go-ipfs#4790](https://github.com/ipfs/go-ipfs/pull/4790))
+
 - Features
   - Pubsub IPNS Publisher and Resolver (experimental) ([ipfs/go-ipfs#4047](https://github.com/ipfs/go-ipfs/pull/4047))
   - Implement coreapi Dag interface ([ipfs/go-ipfs#4471](https://github.com/ipfs/go-ipfs/pull/4471))
