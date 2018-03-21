@@ -575,6 +575,12 @@
       "hash": "QmdbxjQWogRCHRaxhhGnYdT1oQJzL9GdqSKzCdqWr85AP2",
       "name": "pubsub",
       "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmWeQHAnxPZkRDUez5ANmexbHWhzfNMKN8NXimvAUZeAbZ",
+      "name": "tar-utils",
+      "version": "0.0.1"
     }
   ],
   "gxVersion": "0.10.0",
