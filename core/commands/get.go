@@ -15,7 +15,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	uarchive "github.com/ipfs/go-ipfs/unixfs/archive"
 
-	tar "gx/ipfs/QmWeQHAnxPZkRDUez5ANmexbHWhzfNMKN8NXimvAUZeAbZ/tar-utils"
+	tar "gx/ipfs/QmYk64JEF4QWPB9Kqib63g8vfYfv78AmSUyeFaMaX6F9vQ/tar-utils"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
 	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
