@@ -154,7 +154,9 @@ Example:
 				defer re.Close()
 
 				polling, _ := res.Request().Options["poll"].(bool)
-				fmt.Fprintln(os.Stdout, "Total Up    Total Down  Rate Up     Rate Down")
+				if polling {
+					fmt.Fprintln(os.Stdout, "Total Up    Total Down  Rate Up     Rate Down")
+				}
 				for {
 					v, err := res.Next()
 					if !cmds.HandleError(err, res, re) {
