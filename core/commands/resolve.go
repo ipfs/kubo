@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"io"
 	"strings"
 	"time"
@@ -65,7 +66,7 @@ Resolve the value of an IPFS DAG path:
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("recursive", "r", "Resolve until the result is an IPFS name."),
 		cmdkit.UintOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
-		cmdkit.UintOption("dht-timeout", "dhtt", "Timeout in seconds for DHT resolution. Pass 0 for no timeout."),
+		cmdkit.StringOption("dht-timeout", "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -89,13 +90,22 @@ Resolve the value of an IPFS DAG path:
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
 			rc, rcok, _ := req.Option("dht-record-count").Int()
-			dhtt, dhttok, _ := req.Option("dht-timeout").Int()
+			dhtt, dhttok, _ := req.Option("dht-timeout").String()
 			ropts := []nsopts.ResolveOpt{nsopts.Depth(1)}
 			if rcok {
 				ropts = append(ropts, nsopts.DhtRecordCount(uint(rc)))
 			}
 			if dhttok {
-				ropts = append(ropts, nsopts.DhtTimeout(time.Duration(dhtt)*time.Second))
+				d, err := time.ParseDuration(dhtt)
+				if err != nil {
+					res.SetError(err, cmdkit.ErrNormal)
+					return
+				}
+				if d < 0 {
+					res.SetError(errors.New("DHT timeout value must be >= 0"), cmdkit.ErrNormal)
+					return
+				}
+				ropts = append(ropts, nsopts.DhtTimeout(d))
 			}
 			p, err := n.Namesys.Resolve(req.Context(), name, ropts...)
 			// ErrResolveRecursion is fine
