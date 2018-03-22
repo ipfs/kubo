@@ -263,7 +263,7 @@ This command outputs data in the following encodings:
 				return nil, err
 			}
 
-			marshaled, err := object.Marshal()
+			marshaled, err := object.EncodeProtobuf(false)
 			if err != nil {
 				return nil, err
 			}

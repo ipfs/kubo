@@ -22,10 +22,12 @@ type ProtoNode struct {
 	links []*ipld.Link
 	data  []byte
 
-	// cache encoded/marshaled value
-	encoded []byte
-
-	cached *cid.Cid
+	cache struct {
+		// Cached encoded/marshaled value.
+		encodedValue []byte
+		// Cached CID value.
+		cid *cid.Cid
+	}
 
 	// Prefix specifies cid version and hashing function
 	Prefix cid.Prefix
@@ -71,8 +73,7 @@ func (n *ProtoNode) SetPrefix(prefix *cid.Prefix) {
 	} else {
 		n.Prefix = *prefix
 		n.Prefix.Codec = cid.DagProtobuf
-		n.encoded = nil
-		n.cached = nil
+		n.invalidateCache()
 	}
 }
 
@@ -90,7 +91,7 @@ func NodeWithData(d []byte) *ProtoNode {
 
 // AddNodeLink adds a link to another node.
 func (n *ProtoNode) AddNodeLink(name string, that ipld.Node) error {
-	n.encoded = nil
+	n.invalidateCache()
 
 	lnk, err := ipld.MakeLink(that)
 	if err != nil {
@@ -107,7 +108,7 @@ func (n *ProtoNode) AddNodeLink(name string, that ipld.Node) error {
 // AddNodeLinkClean adds a link to another node. without keeping a reference to
 // the child node
 func (n *ProtoNode) AddNodeLinkClean(name string, that ipld.Node) error {
-	n.encoded = nil
+	n.invalidateCache()
 	lnk, err := ipld.MakeLink(that)
 	if err != nil {
 		return err
@@ -119,7 +120,7 @@ func (n *ProtoNode) AddNodeLinkClean(name string, that ipld.Node) error {
 
 // AddRawLink adds a copy of a link to this node
 func (n *ProtoNode) AddRawLink(name string, l *ipld.Link) error {
-	n.encoded = nil
+	n.invalidateCache()
 	n.links = append(n.links, &ipld.Link{
 		Name: name,
 		Size: l.Size,
@@ -131,7 +132,7 @@ func (n *ProtoNode) AddRawLink(name string, l *ipld.Link) error {
 
 // RemoveNodeLink removes a link on this node by the given name.
 func (n *ProtoNode) RemoveNodeLink(name string) error {
-	n.encoded = nil
+	n.invalidateCache()
 	good := make([]*ipld.Link, 0, len(n.links))
 	var found bool
 
@@ -222,8 +223,7 @@ func (n *ProtoNode) Data() []byte {
 
 // SetData stores data in this nodes.
 func (n *ProtoNode) SetData(d []byte) {
-	n.encoded = nil
-	n.cached = nil
+	n.invalidateCache()
 	n.data = d
 }
 
@@ -310,23 +310,30 @@ func (n *ProtoNode) MarshalJSON() ([]byte, error) {
 // Cid returns the node's Cid, calculated according to its prefix
 // and raw data contents.
 func (n *ProtoNode) Cid() *cid.Cid {
-	if n.encoded != nil && n.cached != nil {
-		return n.cached
+	if n.cache.encodedValue != nil && n.cache.cid != nil {
+		return n.cache.cid
 	}
 
 	if n.Prefix.Codec == 0 {
 		n.SetPrefix(nil)
 	}
 
-	c, err := n.Prefix.Sum(n.RawData())
+	// The node should normally have its value encoded before
+	// calling Cid(), but just in case.
+	if n.cache.encodedValue == nil {
+		n.EncodeProtobuf(false)
+	}
+
+	cid, err := n.Prefix.Sum(n.cache.encodedValue)
 	if err != nil {
 		// programmer error
 		err = fmt.Errorf("invalid CID of length %d: %x: %v", len(n.RawData()), n.RawData(), err)
 		panic(err)
+		// TODO: Why does this function not return an error?
 	}
+	n.cache.cid = cid
 
-	n.cached = c
-	return c
+	return n.cache.cid
 }
 
 // String prints the node's Cid.
@@ -336,14 +343,14 @@ func (n *ProtoNode) String() string {
 
 // Multihash hashes the encoded data of this node.
 func (n *ProtoNode) Multihash() mh.Multihash {
-	// NOTE: EncodeProtobuf generates the hash and puts it in n.cached.
+	// NOTE: EncodeProtobuf generates the hash and puts it in `n.cache.cid`.
 	_, err := n.EncodeProtobuf(false)
 	if err != nil {
 		// Note: no possibility exists for an error to be returned through here
 		panic(err)
 	}
 
-	return n.cached.Hash()
+	return n.Cid().Hash()
 }
 
 // Links returns the node links.

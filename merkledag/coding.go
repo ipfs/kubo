@@ -37,13 +37,13 @@ func (n *ProtoNode) unmarshal(encoded []byte) error {
 	sort.Stable(LinkSlice(n.links)) // keep links sorted
 
 	n.data = pbn.GetData()
-	n.encoded = encoded
+	n.setEncodedValue(encoded)
 	return nil
 }
 
-// Marshal encodes a *Node instance into a new byte slice.
+// marshal encodes a *Node instance into a new byte slice.
 // The conversion uses an intermediate PBNode.
-func (n *ProtoNode) Marshal() ([]byte, error) {
+func (n *ProtoNode) marshal() ([]byte, error) {
 	pbn := n.getPBNode()
 	data, err := pbn.Marshal()
 	if err != nil {
@@ -74,32 +74,33 @@ func (n *ProtoNode) getPBNode() *pb.PBNode {
 	return pbn
 }
 
+// setEncodedValue is the single gateway to modify the encoded node.
+func (n *ProtoNode) setEncodedValue(value []byte) {
+	n.cache.encodedValue = value
+
+	// The encoding has changed so the cached CID is invalid.
+	n.cache.cid = nil
+}
+
+// invalidateCache sets the encoding to nil (invalidating
+// also the cached CID).
+func (n *ProtoNode) invalidateCache() {
+	n.setEncodedValue(nil)
+}
+
 // EncodeProtobuf returns the encoded raw data version of a Node instance.
 // It may use a cached encoded version, unless the force flag is given.
 func (n *ProtoNode) EncodeProtobuf(force bool) ([]byte, error) {
 	sort.Stable(LinkSlice(n.links)) // keep links sorted
-	if n.encoded == nil || force {
-		n.cached = nil
-		var err error
-		n.encoded, err = n.Marshal()
+	if n.cache.encodedValue == nil || force {
+		marshaledNode, err := n.marshal()
 		if err != nil {
 			return nil, err
 		}
+		n.setEncodedValue(marshaledNode)
 	}
 
-	if n.cached == nil {
-		if n.Prefix.Codec == 0 { // unset
-			n.Prefix = v0CidPrefix
-		}
-		c, err := n.Prefix.Sum(n.encoded)
-		if err != nil {
-			return nil, err
-		}
-
-		n.cached = c
-	}
-
-	return n.encoded, nil
+	return n.cache.encodedValue, nil
 }
 
 // DecodeProtobuf decodes raw data and returns a new Node instance.
@@ -128,7 +129,7 @@ func DecodeProtobufBlock(b blocks.Block) (ipld.Node, error) {
 		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
 	}
 
-	decnd.cached = c
+	decnd.cache.cid = c
 	decnd.Prefix = c.Prefix()
 	return decnd, nil
 }

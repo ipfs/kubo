@@ -351,7 +351,7 @@ func TestUnmarshalFailure(t *testing.T) {
 	}
 
 	n := &ProtoNode{}
-	n.Marshal()
+	n.EncodeProtobuf(false)
 }
 
 func TestBasicAddGet(t *testing.T) {
