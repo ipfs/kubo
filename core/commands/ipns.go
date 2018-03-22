@@ -60,7 +60,7 @@ Resolve the value of a dnslink:
 		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name."),
 		cmdkit.BoolOption("nocache", "n", "Do not use cached entries."),
 		cmdkit.UintOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
-		cmdkit.UintOption("dht-timeout", "dhtt", "Timeout in seconds for DHT resolution. Pass 0 for no timeout."),
+		cmdkit.StringOption("dht-timeout", "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -111,7 +111,7 @@ Resolve the value of a dnslink:
 
 		recursive, _, _ := req.Option("recursive").Bool()
 		rc, rcok, _ := req.Option("dht-record-count").Int()
-		dhtt, dhttok, _ := req.Option("dht-timeout").Int()
+		dhtt, dhttok, _ := req.Option("dht-timeout").String()
 		var ropts []nsopts.ResolveOpt
 		if !recursive {
 			ropts = append(ropts, nsopts.Depth(1))
@@ -120,7 +120,16 @@ Resolve the value of a dnslink:
 			ropts = append(ropts, nsopts.DhtRecordCount(uint(rc)))
 		}
 		if dhttok {
-			ropts = append(ropts, nsopts.DhtTimeout(time.Duration(dhtt)*time.Second))
+			d, err := time.ParseDuration(dhtt)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+			if d < 0 {
+				res.SetError(errors.New("DHT timeout value must be >= 0"), cmdkit.ErrNormal)
+				return
+			}
+			ropts = append(ropts, nsopts.DhtTimeout(d))
 		}
 
 		if !strings.HasPrefix(name, "/ipns/") {
