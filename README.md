@@ -41,7 +41,6 @@ Please put all issues regarding the Go IPFS _implementation_ in [this repo](http
   - [Some things to try](#some-things-to-try)
   - [Docker usage](#docker-usage)
   - [Troubleshooting](#troubleshooting-1)
-- [Todo](#todo)
 - [Contributing](#contributing)
   - [Want to hack on IPFS?](#want-to-hack-on-ipfs)
   - [Want to read our code?](#want-to-read-our-code)
