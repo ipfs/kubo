@@ -202,6 +202,10 @@ func (r *routingResolver) getValue(ctx context.Context, ipnsKey string, options 
 		}
 	}
 
+	if len(recs) == 0 {
+		return nil, routing.ErrNotFound
+	}
+
 	i, err := IpnsSelectorFunc(ipnsKey, recs)
 	if err != nil {
 		return nil, err
