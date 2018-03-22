@@ -1,5 +1,7 @@
 import groovy.transform.Field
 
+/* SETTINGS */
+
 def test = 'go test -v ./...'
 
 def fast_build_platforms = [
@@ -19,6 +21,8 @@ def build_platforms = [
 
   ['freebsd', 'amd64']
 ]
+
+/* PIPELINE UTILS */
 
 def setupStep(nodeLabel, f) {
   node(label: nodeLabel) {
@@ -58,12 +62,19 @@ def gobuild_step(list) {
   }
 }
 
+/* PIPELINE */
+
 ansiColor('xterm') { withEnv(['TERM=xterm-color']) { timeout(time: 30, unit: 'MINUTES') {
   stage('Checks') {
     parallel(
       'go fmt': {
         setupStep('linux') { run ->
           run 'make test_go_fmt'
+        }
+      },
+      'go vet': {
+        setupStep('linux') { run ->
+          run 'go vet ./...'
         }
       },
       'go build': {
@@ -113,7 +124,7 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) { timeout(time: 30, unit: 'MI
           run "make gx-deps"
 
           try {
-            run "make -j12 -Otarget test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_NO_FUSE=1"
+            run "make -j12 -Otarget test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_NO_FUSE=1 TEST_NO_DOCKER=1"
           } catch (err) {
             throw err
           } finally {
