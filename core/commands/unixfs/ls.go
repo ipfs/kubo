@@ -131,7 +131,12 @@ possible, please use 'ipfs ls' instead.
 			output.Objects[hash] = &LsObject{
 				Hash: c.String(),
 				Type: t.String(),
-				Size: unixFSNode.GetFilesize(),
+			}
+
+			if t == unixfspb.Data_Directory {
+				output.Objects[hash].Size = uint64(len(ndpb.RawData()))
+			} else {
+				output.Objects[hash].Size = unixFSNode.GetFilesize()
 			}
 
 			switch t {
@@ -165,6 +170,8 @@ possible, please use 'ipfs ls' instead.
 					}
 					if t == unixfspb.Data_File {
 						lsLink.Size = d.GetFilesize()
+					} else if t == unixfspb.Data_Directory {
+						lsLink.Size = uint64(len(lnpb.RawData()))
 					} else {
 						lsLink.Size = link.Size
 					}
