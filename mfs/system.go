@@ -75,7 +75,7 @@ func NewRoot(parent context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf
 	var repub *Republisher
 	if pf != nil {
 		repub = NewRepublisher(parent, pf, time.Millisecond*300, time.Second*3)
-		repub.setVal(node.Cid())
+		repub.Set(node.Cid())
 		go repub.Run()
 	}
 
@@ -246,7 +246,7 @@ func (p *Republisher) Close() error {
 	return err
 }
 
-// Touch signals that an update has occurred since the last publish.
+// Update signals that an update has occurred since the last publish.
 // Multiple consecutive touches may extend the time period before
 // the next Publish occurs in order to more efficiently batch updates.
 func (np *Republisher) Update(c *cid.Cid) {
@@ -255,6 +255,15 @@ func (np *Republisher) Update(c *cid.Cid) {
 	case np.Publish <- struct{}{}:
 	default:
 	}
+}
+
+// Set sets the currently published value without actually publishing. Useful
+// when initializing or publishing out-of-band.
+func (p *Republisher) Set(c *cid.Cid) {
+	p.lk.Lock()
+	defer p.lk.Unlock()
+	p.val = c
+	p.lastpub = c
 }
 
 // Run is the main republisher loop.
