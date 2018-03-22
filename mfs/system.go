@@ -229,9 +229,12 @@ func (p *Republisher) setVal(c *cid.Cid) {
 // current value `val`, else will block until `val` has been published.
 func (p *Republisher) WaitPub() {
 	p.lk.Lock()
-	consistent := p.lastpub == p.val
+	lastpub := p.lastpub
+	val := p.val
 	p.lk.Unlock()
-	if consistent {
+
+	// TODO: Simplify this once Cid.Equals handles nil.
+	if lastpub == val || lastpub != nil && val != nil && lastpub.Equals(val) {
 		return
 	}
 
