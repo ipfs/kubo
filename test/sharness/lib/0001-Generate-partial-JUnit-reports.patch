@@ -46,7 +46,7 @@ index 6750ff7..7d9915a 100644
 +esc=$(printf '\033')
 +
 +esc_xml() {
-+	sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"$esc"'/\&#39;/g; s///g;'
++	sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s///g;'
 +}
 +
  test -n "$test_description" || error "Test script did not set test_description."
