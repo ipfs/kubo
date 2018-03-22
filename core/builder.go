@@ -173,7 +173,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 
 	// hash security
 	bs := bstore.NewBlockstore(rds)
-	bs = &verifbs.VerifBS{bs}
+	bs = &verifbs.VerifBS{Blockstore: bs}
 
 	opts := bstore.DefaultCacheOpts()
 	conf, err := n.Repo.Config()
@@ -202,7 +202,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		// hash security
 		n.Filestore = filestore.NewFilestore(bs, n.Repo.FileManager())
 		n.Blockstore = bstore.NewGCBlockstore(n.Filestore, n.GCLocker)
-		n.Blockstore = &verifbs.VerifBSGC{n.Blockstore}
+		n.Blockstore = &verifbs.VerifBSGC{GCBlockstore: n.Blockstore}
 	}
 
 	rcfg, err := n.Repo.Config()

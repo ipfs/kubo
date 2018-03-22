@@ -619,7 +619,6 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		case string:
 			value, ok = value.(string)
 		default:
-			value = value
 		}
 		if !ok {
 			return fmt.Errorf("Wrong config type, expected %T", oldValue)

@@ -77,7 +77,7 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 			k := ds.RawKey(v.Key)
 			c, err := dshelp.DsKeyToCid(k)
 			if err != nil {
-				log.Error("decoding cid from filestore: %s", err)
+				log.Errorf("decoding cid from filestore: %s", err)
 				continue
 			}
 
