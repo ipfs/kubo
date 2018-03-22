@@ -228,16 +228,6 @@ func (p *Republisher) setVal(c *cid.Cid) {
 // WaitPub Returns immediately if `lastpub` value is consistent with the
 // current value `val`, else will block until `val` has been published.
 func (p *Republisher) WaitPub() {
-	p.lk.Lock()
-	lastpub := p.lastpub
-	val := p.val
-	p.lk.Unlock()
-
-	// TODO: Simplify this once Cid.Equals handles nil.
-	if lastpub == val || lastpub != nil && val != nil && lastpub.Equals(val) {
-		return
-	}
-
 	wait := make(chan struct{})
 	p.pubnowch <- wait
 	<-wait
@@ -314,7 +304,17 @@ func (np *Republisher) Run() {
 			if err != nil {
 				log.Errorf("republishRoot error: %s", err)
 			}
-
+		case pubnowresp := <-np.pubnowch:
+			// We're going to publish so eat any publish signals.
+			select {
+			case <-np.Publish:
+			default:
+			}
+			err := np.publish(np.ctx)
+			pubnowresp <- struct{}{}
+			if err != nil {
+				log.Errorf("republishRoot error: %s", err)
+			}
 		case <-np.ctx.Done():
 			return
 		}
