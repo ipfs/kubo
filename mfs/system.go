@@ -325,7 +325,16 @@ func (np *Republisher) Run() {
 func (np *Republisher) publish(ctx context.Context) error {
 	np.lk.Lock()
 	topub := np.val
+	lastpub := np.lastpub
 	np.lk.Unlock()
+
+	// Short circuit. This can happen if we flip-flop.
+	if topub == nil {
+		return fmt.Errorf("tried to publish nil")
+	}
+	if topub == lastpub || lastpub != nil && topub.Equals(lastpub) {
+		return nil
+	}
 
 	err := np.pubfunc(ctx, topub)
 	if err != nil {
