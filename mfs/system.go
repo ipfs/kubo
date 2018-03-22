@@ -271,24 +271,40 @@ func (p *Republisher) Set(c *cid.Cid) {
 
 // Run is the main republisher loop.
 func (np *Republisher) Run() {
+	timer := time.NewTimer(0)
+	defer timer.Stop()
+
 	for {
 		select {
 		case <-np.Publish:
-			quick := time.After(np.TimeoutShort)
-			longer := time.After(np.TimeoutLong)
-
-		wait:
+			end := time.Now().Add(np.TimeoutLong)
 			var pubnowresp chan struct{}
 
-			select {
-			case <-np.ctx.Done():
-				return
-			case <-np.Publish:
-				quick = time.After(np.TimeoutShort)
-				goto wait
-			case <-quick:
-			case <-longer:
-			case pubnowresp = <-np.pubnowch:
+			for {
+				timeout := np.TimeoutShort
+				if remaining := time.Until(end); remaining < timeout {
+					timeout = remaining
+				}
+				if timeout <= 0 {
+					break
+				}
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
+				timer.Reset(timeout)
+
+				select {
+				case <-np.ctx.Done():
+					return
+				case <-np.Publish:
+					continue
+				case <-timer.C:
+				case pubnowresp = <-np.pubnowch:
+				}
+				break
 			}
 
 			err := np.publish(np.ctx)
