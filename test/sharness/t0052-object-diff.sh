@@ -20,7 +20,11 @@ test_expect_success "create some objects for testing diffs" '
   echo "nested" > foo/baz/dog &&
   C=$(ipfs add -r -q foo | tail -n1)
   echo "changed" > foo/bar &&
-  D=$(ipfs add -r -q foo | tail -n1)
+  D=$(ipfs add -r -q foo | tail -n1) &&
+  echo "" > single_file &&
+  SINGLE_FILE=$(ipfs add -r -q single_file | tail -n1) &&
+  mkdir empty_dir
+  EMPTY_DIR=$(ipfs add -r -q empty_dir | tail -n1)
 '
 
 test_expect_success "diff against self is empty" '
@@ -28,6 +32,18 @@ test_expect_success "diff against self is empty" '
 '
 
 test_expect_success "identity diff output looks good" '
+  printf "" > diff_exp &&
+  test_cmp diff_exp diff_out
+'
+
+test_expect_success "diff against self (single file) is empty" '
+  ipfs object diff $SINGLE_FILE $SINGLE_FILE > diff_out
+  printf "" > diff_exp &&
+  test_cmp diff_exp diff_out
+'
+
+test_expect_success "diff against self (empty dir) is empty" '
+  ipfs object diff $EMPTY_DIR $EMPTY_DIR > diff_out
   printf "" > diff_exp &&
   test_cmp diff_exp diff_out
 '
