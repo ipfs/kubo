@@ -12,6 +12,7 @@ import (
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 type DagAPI struct {
@@ -50,7 +51,7 @@ func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPut
 }
 
 // Get resolves `path` using Unixfs resolver, returns the resolved Node.
-func (api *DagAPI) Get(ctx context.Context, path coreiface.Path) (coreiface.Node, error) {
+func (api *DagAPI) Get(ctx context.Context, path coreiface.Path) (ipld.Node, error) {
 	return api.core().ResolveNode(ctx, path)
 }
 
