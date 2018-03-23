@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.14 2018-03-02
+## 0.4.14 2018-03-22
 
 Ipfs 0.4.14 is a big release with a large number of improvements and bugfixes.
 It is also the first release of 2018, and our first release in over three
