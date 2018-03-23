@@ -39,7 +39,7 @@ type ReadSeekCloser interface {
 }
 
 // NewDagReader creates a new reader object that reads the data represented by
-// the given node, using the passed in DAGService for data retreival
+// the given node, using the passed in DAGService for data retrieval
 func NewDagReader(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) (DagReader, error) {
 	switch n := n.(type) {
 	case *mdag.RawNode:
