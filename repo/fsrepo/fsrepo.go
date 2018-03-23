@@ -324,13 +324,21 @@ func APIAddr(repoPath string) (ma.Multiaddr, error) {
 
 	// read up to 2048 bytes. io.ReadAll is a vulnerability, as
 	// someone could hose the process by putting a massive file there.
-	buf := make([]byte, 2048)
-	n, err := f.Read(buf)
-	if err != nil && err != io.EOF {
+	//
+	// NOTE(@stebalien): @jbenet probably wasn't thinking straight when he
+	// wrote that comment but I'm leaving the limit here in case there was
+	// some hidden wisdom. However, I'm fixing it such that:
+	// 1. We don't read too little.
+	// 2. We don't truncate and succeed.
+	buf, err := ioutil.ReadAll(io.LimitReader(f, 2048))
+	if err != nil {
 		return nil, err
 	}
+	if len(buf) == 2048 {
+		return nil, fmt.Errorf("API file too large, must be <2048 bytes long: %s", apiFilePath)
+	}
 
-	s := string(buf[:n])
+	s := string(buf)
 	s = strings.TrimSpace(s)
 	return ma.NewMultiaddr(s)
 }
