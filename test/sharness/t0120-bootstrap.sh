@@ -28,6 +28,7 @@ test_init_ipfs
 # we use a function so that we can run it both offline + online
 test_bootstrap_list_cmd() {
   printf "" >list_expected
+
   for BP in "$@"
   do
     echo "$BP" >>list_expected
@@ -64,9 +65,9 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap add' output looks good" '
-    echo $BP1 >add_expected &&
-    echo $BP2 >>add_expected &&
-    echo $BP3 >>add_expected &&
+    echo "added $BP1" >add_expected &&
+    echo "added $BP2" >>add_expected &&
+    echo "added $BP3" >>add_expected &&
     test_cmp add_expected add_actual
   '
 
@@ -77,8 +78,8 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap rm' output looks good" '
-    echo $BP1 >rm_expected &&
-    echo $BP3 >>rm_expected &&
+    echo "removed $BP1" >rm_expected &&
+    echo "removed $BP3" >>rm_expected &&
     test_cmp rm_expected rm_actual
   '
 
@@ -89,19 +90,19 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap add --default' output has default BP" '
-    echo $BP1 >add2_expected &&
-    echo $BP2 >>add2_expected &&
-    echo $BP3 >>add2_expected &&
-    echo $BP4 >>add2_expected &&
-    echo $BP5 >>add2_expected &&
-    echo $BP6 >>add2_expected &&
-    echo $BP7 >>add2_expected &&
-    echo $BP8 >>add2_expected &&
-    echo $BP9 >>add2_expected &&
-    echo $BP10 >>add2_expected &&
-    echo $BP11 >>add2_expected &&
-    echo $BP12 >>add2_expected &&
-    echo $BP13 >>add2_expected &&
+    echo "added $BP1" >add2_expected &&
+    echo "added $BP2" >>add2_expected &&
+    echo "added $BP3" >>add2_expected &&
+    echo "added $BP4" >>add2_expected &&
+    echo "added $BP5" >>add2_expected &&
+    echo "added $BP6" >>add2_expected &&
+    echo "added $BP7" >>add2_expected &&
+    echo "added $BP8" >>add2_expected &&
+    echo "added $BP9" >>add2_expected &&
+    echo "added $BP10" >>add2_expected &&
+    echo "added $BP11" >>add2_expected &&
+    echo "added $BP12" >>add2_expected &&
+    echo "added $BP13" >>add2_expected &&
     test_cmp add2_expected add2_actual
   '
 
@@ -112,19 +113,19 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "'ipfs bootstrap rm' output looks good" '
-    echo $BP1 >rm2_expected &&
-    echo $BP2 >>rm2_expected &&
-    echo $BP3 >>rm2_expected &&
-    echo $BP4 >>rm2_expected &&
-    echo $BP5 >>rm2_expected &&
-    echo $BP6 >>rm2_expected &&
-    echo $BP7 >>rm2_expected &&
-    echo $BP8 >>rm2_expected &&
-    echo $BP9 >>rm2_expected &&
-    echo $BP10 >>rm2_expected &&
-    echo $BP11 >>rm2_expected &&
-    echo $BP12 >>rm2_expected &&
-    echo $BP13 >>rm2_expected &&
+    echo "removed $BP1" >rm2_expected &&
+    echo "removed $BP2" >>rm2_expected &&
+    echo "removed $BP3" >>rm2_expected &&
+    echo "removed $BP4" >>rm2_expected &&
+    echo "removed $BP5" >>rm2_expected &&
+    echo "removed $BP6" >>rm2_expected &&
+    echo "removed $BP7" >>rm2_expected &&
+    echo "removed $BP8" >>rm2_expected &&
+    echo "removed $BP9" >>rm2_expected &&
+    echo "removed $BP10" >>rm2_expected &&
+    echo "removed $BP11" >>rm2_expected &&
+    echo "removed $BP12" >>rm2_expected &&
+    echo "removed $BP13" >>rm2_expected &&
     test_cmp rm2_expected rm2_actual
   '
 
@@ -139,7 +140,11 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "output looks good" '
-  test_cmp add_stdin_actual bpeers
+  echo "added $BP1" > bpeers_add_exp &&
+  echo "added $BP2" >> bpeers_add_exp &&
+  echo "added $BP3" >> bpeers_add_exp &&
+  echo "added $BP4" >> bpeers_add_exp &&
+  test_cmp add_stdin_actual bpeers_add_exp
   '
 
   test_bootstrap_list_cmd $BP1 $BP2 $BP3 $BP4
@@ -149,7 +154,11 @@ test_bootstrap_cmd() {
   '
 
   test_expect_success "output looks good" '
-  test_cmp rm_stdin_actual bpeers
+  echo "removed $BP1" > bpeers_rm_exp &&
+  echo "removed $BP2" >> bpeers_rm_exp &&
+  echo "removed $BP3" >> bpeers_rm_exp &&
+  echo "removed $BP4" >> bpeers_rm_exp &&
+  test_cmp rm_stdin_actual bpeers_rm_exp
   '
 
   test_bootstrap_list_cmd
