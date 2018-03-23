@@ -578,9 +578,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYk64JEF4QWPB9Kqib63g8vfYfv78AmSUyeFaMaX6F9vQ",
+      "hash": "QmQine7gvHncNevKtG9QXxf3nXcwSj6aDDmMm52mHofEEp",
       "name": "tar-utils",
-      "version": "0.0.2"
+      "version": "0.0.3"
     }
   ],
   "gxVersion": "0.10.0",
