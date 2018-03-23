@@ -104,6 +104,14 @@ test_get_cmd() {
     rm -r "$HASH2"
   '
 
+  # Test issue #4720: problems when path contains a trailing slash.
+  test_expect_success "ipfs get with slash (directory)" '
+    ipfs get "$HASH2/" &&
+    test_cmp dir/a "$HASH2"/a &&
+    test_cmp dir/b/c "$HASH2"/b/c &&
+    rm -r "$HASH2"
+  '
+
   test_expect_success "ipfs get -a -C succeeds (directory)" '
     ipfs get "$HASH2" -a -C >actual
   '
