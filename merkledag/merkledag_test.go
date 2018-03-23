@@ -16,14 +16,11 @@ import (
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	bstest "github.com/ipfs/go-ipfs/blockservice/test"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
-	imp "github.com/ipfs/go-ipfs/importer"
 	. "github.com/ipfs/go-ipfs/merkledag"
 	mdpb "github.com/ipfs/go-ipfs/merkledag/pb"
 	dstest "github.com/ipfs/go-ipfs/merkledag/test"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
@@ -129,6 +126,68 @@ func TestBatchFetchDupBlock(t *testing.T) {
 	runBatchFetchTest(t, read)
 }
 
+// makeTestDAG creates a simple DAG from the data in a reader.
+// First, a node is created from each 512 bytes of data from the reader
+// (like a the Size chunker would do). Then all nodes are added as children
+// to a root node, which is returned.
+func makeTestDAG(t *testing.T, read io.Reader, ds ipld.DAGService) ipld.Node {
+	p := make([]byte, 512)
+	nodes := []*ProtoNode{}
+
+	for {
+		n, err := io.ReadFull(read, p)
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if n != len(p) {
+			t.Fatal("should have read 512 bytes from the reader")
+		}
+
+		protoNode := NodeWithData(p)
+		nodes = append(nodes, protoNode)
+	}
+
+	ctx := context.Background()
+	// Add a root referencing all created nodes
+	root := NodeWithData(nil)
+	for _, n := range nodes {
+		root.AddNodeLink(n.Cid().String(), n)
+		err := ds.Add(ctx, n)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := ds.Add(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+// makeTestDAGReader takes the root node as returned by makeTestDAG and
+// provides a reader that reads all the RawData from that node and its children.
+func makeTestDAGReader(t *testing.T, root ipld.Node, ds ipld.DAGService) io.Reader {
+	ctx := context.Background()
+	buf := new(bytes.Buffer)
+	buf.Write(root.RawData())
+	for _, l := range root.Links() {
+		n, err := ds.Get(ctx, l.Cid)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = buf.Write(n.RawData())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return buf
+}
+
 func runBatchFetchTest(t *testing.T, read io.Reader) {
 	ctx := context.Background()
 	var dagservs []ipld.DAGService
@@ -136,19 +195,11 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 
-	spl := chunker.NewSizeSplitter(read, 512)
-
-	root, err := imp.BuildDagFromReader(dagservs[0], spl)
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := makeTestDAG(t, read, dagservs[0])
 
 	t.Log("finished setup.")
 
-	dagr, err := uio.NewDagReader(ctx, root, dagservs[0])
-	if err != nil {
-		t.Fatal(err)
-	}
+	dagr := makeTestDAGReader(t, root, dagservs[0])
 
 	expected, err := ioutil.ReadAll(dagr)
 	if err != nil {
@@ -181,11 +232,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 			if !ok {
 				errs <- ErrNotProtobuf
 			}
-
-			read, err := uio.NewDagReader(ctx, firstpb, dagservs[i])
-			if err != nil {
-				errs <- err
-			}
+			read := makeTestDAGReader(t, firstpb, dagservs[i])
 			datagot, err := ioutil.ReadAll(read)
 			if err != nil {
 				errs <- err
@@ -228,12 +275,9 @@ func TestFetchGraph(t *testing.T) {
 	}
 
 	read := io.LimitReader(u.NewTimeSeededRand(), 1024*32)
-	root, err := imp.BuildDagFromReader(dservs[0], chunker.NewSizeSplitter(read, 512))
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := makeTestDAG(t, read, dservs[0])
 
-	err = FetchGraph(context.TODO(), root.Cid(), dservs[1])
+	err := FetchGraph(context.TODO(), root.Cid(), dservs[1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,14 +298,11 @@ func TestEnumerateChildren(t *testing.T) {
 	ds := NewDAGService(bsi[0])
 
 	read := io.LimitReader(u.NewTimeSeededRand(), 1024*1024)
-	root, err := imp.BuildDagFromReader(ds, chunker.NewSizeSplitter(read, 512))
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := makeTestDAG(t, read, ds)
 
 	set := cid.NewSet()
 
-	err = EnumerateChildren(context.Background(), ds.GetLinks, root.Cid(), set.Visit)
+	err := EnumerateChildren(context.Background(), ds.GetLinks, root.Cid(), set.Visit)
 	if err != nil {
 		t.Fatal(err)
 	}
