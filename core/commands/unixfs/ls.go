@@ -137,6 +137,10 @@ possible, please use 'ipfs ls' instead.
 			switch t {
 			case unixfspb.Data_File:
 				break
+			case unixfspb.Data_HAMTShard:
+				// We need a streaming ls API for this.
+				res.SetError(fmt.Errorf("cannot list large directories yet"), cmdkit.ErrNormal)
+				return
 			case unixfspb.Data_Directory:
 				links := make([]LsLink, len(merkleNode.Links()))
 				output.Objects[hash].Links = links
