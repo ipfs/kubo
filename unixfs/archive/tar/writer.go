@@ -53,10 +53,7 @@ func (w *Writer) writeDir(nd *mdag.ProtoNode, fpath string) error {
 			return err
 		}
 		npath := path.Join(fpath, l.Name)
-		if err := w.WriteNode(child, npath); err != nil {
-			return err
-		}
-		return nil
+		return w.WriteNode(child, npath)
 	})
 }
 
