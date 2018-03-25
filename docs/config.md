@@ -197,6 +197,12 @@ Default: `true`
   -  `Interval`
 A number of seconds to wait between discovery checks.
 
+- `Routing`
+Content routing mode. Can be overridden with daemon `--routing` flag.
+Valid modes are:
+  - `dht` (default)
+  - `dhtclient`
+  - `none`
 
 ## `Gateway`
 Options for the HTTP gateway.

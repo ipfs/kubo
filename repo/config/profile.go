@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 // Transformer is a function which takes configuration and applies some filter to it
 type Transformer func(c *Config) error
 
@@ -71,6 +73,15 @@ var Profiles = map[string]Transformer{
 	},
 	"default-datastore": func(c *Config) error {
 		c.Datastore.Spec = DefaultDatastoreConfig().Spec
+		return nil
+	},
+	"lowpower": func(c *Config) error {
+		c.Routing.Type = "dhtclient"
+		c.Reprovider.Interval = "0"
+
+		c.Swarm.ConnMgr.LowWater = 20
+		c.Swarm.ConnMgr.HighWater = 40
+		c.Swarm.ConnMgr.GracePeriod = time.Minute.String()
 		return nil
 	},
 }

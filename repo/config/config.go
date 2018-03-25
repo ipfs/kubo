@@ -19,6 +19,7 @@ type Config struct {
 	Addresses Addresses // local node's addresses
 	Mounts    Mounts    // local node's mount points
 	Discovery Discovery // local node's discovery mechanisms
+	Routing   Routing   // local node's routing settings
 	Ipns      Ipns      // Ipns settings
 	Bootstrap []string  // local nodes's bootstrap peer addresses
 	Gateway   Gateway   // local node's gateway server options
