@@ -61,9 +61,37 @@ func PinUpdateOptions(opts ...PinUpdateOption) (*PinUpdateSettings, error) {
 	return options, nil
 }
 
-type pinOpts struct{}
+type pinType struct{}
+
+type pinOpts struct {
+	Type pinType
+}
 
 var Pin pinOpts
+
+// All is an option for Pin.Ls which will make it return all pins. It is
+// the default
+func (_ pinType) All() PinLsOption {
+	return Pin.pinType("all")
+}
+
+// Recursive is an option for Pin.Ls which will make it only return recursive
+// pins
+func (_ pinType) Recursive() PinLsOption {
+	return Pin.pinType("recursive")
+}
+
+// Direct is an option for Pin.Ls which will make it only return direct (non
+// recursive) pins
+func (_ pinType) Direct() PinLsOption {
+	return Pin.pinType("direct")
+}
+
+// Indirect is an option for Pin.Ls which will make it only return indirect pins
+// (objects referenced by other recursively pinned objects)
+func (_ pinType) Indirect() PinLsOption {
+	return Pin.pinType("indirect")
+}
 
 // Recursive is an option for Pin.Add which specifies whether to pin an entire
 // object tree or just one object. Default: true
@@ -83,7 +111,7 @@ func (_ pinOpts) Recursive(recucsive bool) PinAddOption {
 // * "indirect" - indirectly pinned objects (referenced by recursively pinned
 //    objects)
 // * "all" - all pinned objects (default)
-func (_ pinOpts) Type(t string) PinLsOption {
+func (_ pinOpts) pinType(t string) PinLsOption {
 	return func(settings *PinLsSettings) error {
 		settings.Type = t
 		return nil
