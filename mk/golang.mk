@@ -1,11 +1,15 @@
 # golang utilities
 GO_MIN_VERSION = 1.9
 
+
 # pre-definitions
 GOCC ?= go
 GOTAGS ?=
 GOFLAGS ?=
 GOTFLAGS ?=
+
+# match Go's default GOPATH behaviour
+export GOPATH ?= $(shell $(GOCC) env GOPATH)
 
 DEPS_GO :=
 TEST_GO :=
