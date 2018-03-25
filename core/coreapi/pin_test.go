@@ -121,7 +121,7 @@ func TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	list, err = api.Pin().Ls(ctx, opt.Pin.Type("direct"))
+	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Direct())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestPinRecursive(t *testing.T) {
 		t.Error("unexpected path")
 	}
 
-	list, err = api.Pin().Ls(ctx, opt.Pin.Type("recursive"))
+	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Recursive())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestPinRecursive(t *testing.T) {
 		t.Error("unexpected path")
 	}
 
-	list, err = api.Pin().Ls(ctx, opt.Pin.Type("indirect"))
+	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Indirect())
 	if err != nil {
 		t.Fatal(err)
 	}
