@@ -57,7 +57,7 @@ var Dag dagOpts
 
 // InputEnc is an option for Dag.Put which specifies the input encoding of the
 // data. Default is "json", most formats/codecs support "raw"
-func (_ dagOpts) InputEnc(enc string) DagPutOption {
+func (dagOpts) InputEnc(enc string) DagPutOption {
 	return func(settings *DagPutSettings) error {
 		settings.InputEnc = enc
 		return nil
@@ -66,7 +66,7 @@ func (_ dagOpts) InputEnc(enc string) DagPutOption {
 
 // Codec is an option for Dag.Put which specifies the multicodec to use to
 // serialize the object. Default is cid.DagCBOR (0x71)
-func (_ dagOpts) Codec(codec uint64) DagPutOption {
+func (dagOpts) Codec(codec uint64) DagPutOption {
 	return func(settings *DagPutSettings) error {
 		settings.Codec = codec
 		return nil
@@ -77,7 +77,7 @@ func (_ dagOpts) Codec(codec uint64) DagPutOption {
 // when hashing the object. Default is based on the codec used
 // (mh.SHA2_256 (0x12) for DagCBOR). If mhLen is set to -1, default length for
 // the hash will be used
-func (_ dagOpts) Hash(mhType uint64, mhLen int) DagPutOption {
+func (dagOpts) Hash(mhType uint64, mhLen int) DagPutOption {
 	return func(settings *DagPutSettings) error {
 		settings.MhType = mhType
 		settings.MhLength = mhLen
@@ -87,7 +87,7 @@ func (_ dagOpts) Hash(mhType uint64, mhLen int) DagPutOption {
 
 // Depth is an option for Dag.Tree which specifies maximum depth of the
 // returned tree. Default is -1 (no depth limit)
-func (_ dagOpts) Depth(depth int) DagTreeOption {
+func (dagOpts) Depth(depth int) DagTreeOption {
 	return func(settings *DagTreeSettings) error {
 		settings.Depth = depth
 		return nil

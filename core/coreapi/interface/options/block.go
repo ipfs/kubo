@@ -53,7 +53,7 @@ var Block blockOpts
 
 // Format is an option for Block.Put which specifies the multicodec to use to
 // serialize the object. Default is "v0"
-func (_ blockOpts) Format(codec string) BlockPutOption {
+func (blockOpts) Format(codec string) BlockPutOption {
 	return func(settings *BlockPutSettings) error {
 		settings.Codec = codec
 		return nil
@@ -63,7 +63,7 @@ func (_ blockOpts) Format(codec string) BlockPutOption {
 // Hash is an option for Block.Put which specifies the multihash settings to use
 // when hashing the object. Default is mh.SHA2_256 (0x12).
 // If mhLen is set to -1, default length for the hash will be used
-func (_ blockOpts) Hash(mhType uint64, mhLen int) BlockPutOption {
+func (blockOpts) Hash(mhType uint64, mhLen int) BlockPutOption {
 	return func(settings *BlockPutSettings) error {
 		settings.MhType = mhType
 		settings.MhLength = mhLen
@@ -73,7 +73,7 @@ func (_ blockOpts) Hash(mhType uint64, mhLen int) BlockPutOption {
 
 // Force is an option for Block.Rm which, when set to true, will ignore
 // non-existing blocks
-func (_ blockOpts) Force(force bool) BlockRmOption {
+func (blockOpts) Force(force bool) BlockRmOption {
 	return func(settings *BlockRmSettings) error {
 		settings.Force = force
 		return nil
