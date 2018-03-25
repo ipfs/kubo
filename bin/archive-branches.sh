@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 IFS=$'\n\t'
-set -x
 
 auth=""
 #auth="-u kubuxu:$GH_TOKEN"
@@ -14,6 +13,7 @@ exclusions=(
 	'master'
 	'release'
 	'feat/zcash'
+	'feat/ai-mirror'
 )
 
 gh_api_next() {
@@ -48,9 +48,23 @@ active_branches() {
 
 git remote add archived "git@github.com:$org/$arch_repo.git" || true
 
-cat <(active_branches) <(pr_branches) <((IFS=$'\n'; echo "${exclusions[*]}")) \
-	| sort -u | comm - <(origin_refs | sort) -13 |\
-	while read -r ref; do
+branches_to_move="$(cat <(active_branches) <(pr_branches) <((IFS=$'\n'; echo "${exclusions[*]}")) | sort -u | comm - <(origin_refs | sort) -13)"
+
+echo "================"
+printf "%s\n" "$branches_to_move"
+echo "================"
+
+echo "Please confirm move of above branches [y/N]:"
+
+read line
+case $line in
+  [Yy]|[Yy][Ee][Ss]) ;;
+  *) exit 1 ;;
+esac
+
+
+printf "%s\n" "$branches_to_move" | \
+while read -r ref; do
 		git push archived "origin/$ref:refs/heads/$ref/$(date --rfc-3339=date)"
 		git push origin --delete "$ref"
 	done
