@@ -4,7 +4,7 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-test_description="Test global enable sharding flag"
+test_description="Test directory sharding"
 
 . lib/test-lib.sh
 
@@ -22,6 +22,10 @@ test_add_large_dir() {
     ipfs add -r -q testdata | tail -n1 > sharddir_out &&
     echo "$exphash" > sharddir_exp &&
     test_cmp sharddir_exp sharddir_out
+  '
+  test_expect_success "ipfs get on very large directory succeeds" '
+    ipfs get -o testdata-out "$exphash" &&
+    test_cmp testdata testdata-out
   '
 }
 

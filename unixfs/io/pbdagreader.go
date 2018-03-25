@@ -112,7 +112,7 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 		}
 
 		switch pb.GetType() {
-		case ftpb.Data_Directory:
+		case ftpb.Data_Directory, ftpb.Data_HAMTShard:
 			// A directory should not exist within a file
 			return ft.ErrInvalidDirLocation
 		case ftpb.Data_File:
