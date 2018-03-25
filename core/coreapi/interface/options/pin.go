@@ -71,31 +71,31 @@ var Pin pinOpts
 
 // All is an option for Pin.Ls which will make it return all pins. It is
 // the default
-func (_ pinType) All() PinLsOption {
+func (pinType) All() PinLsOption {
 	return Pin.pinType("all")
 }
 
 // Recursive is an option for Pin.Ls which will make it only return recursive
 // pins
-func (_ pinType) Recursive() PinLsOption {
+func (pinType) Recursive() PinLsOption {
 	return Pin.pinType("recursive")
 }
 
 // Direct is an option for Pin.Ls which will make it only return direct (non
 // recursive) pins
-func (_ pinType) Direct() PinLsOption {
+func (pinType) Direct() PinLsOption {
 	return Pin.pinType("direct")
 }
 
 // Indirect is an option for Pin.Ls which will make it only return indirect pins
 // (objects referenced by other recursively pinned objects)
-func (_ pinType) Indirect() PinLsOption {
+func (pinType) Indirect() PinLsOption {
 	return Pin.pinType("indirect")
 }
 
 // Recursive is an option for Pin.Add which specifies whether to pin an entire
 // object tree or just one object. Default: true
-func (_ pinOpts) Recursive(recucsive bool) PinAddOption {
+func (pinOpts) Recursive(recucsive bool) PinAddOption {
 	return func(settings *PinAddSettings) error {
 		settings.Recursive = recucsive
 		return nil
@@ -111,7 +111,7 @@ func (_ pinOpts) Recursive(recucsive bool) PinAddOption {
 // * "indirect" - indirectly pinned objects (referenced by recursively pinned
 //    objects)
 // * "all" - all pinned objects (default)
-func (_ pinOpts) pinType(t string) PinLsOption {
+func (pinOpts) pinType(t string) PinLsOption {
 	return func(settings *PinLsSettings) error {
 		settings.Type = t
 		return nil
@@ -120,7 +120,7 @@ func (_ pinOpts) pinType(t string) PinLsOption {
 
 // Unpin is an option for Pin.Update which specifies whether to remove the old pin.
 // Default is true.
-func (_ pinOpts) Unpin(unpin bool) PinUpdateOption {
+func (pinOpts) Unpin(unpin bool) PinUpdateOption {
 	return func(settings *PinUpdateSettings) error {
 		settings.Unpin = unpin
 		return nil
