@@ -70,7 +70,7 @@ var Object objectOpts
 // Supported types:
 // * 'empty' - Empty node
 // * 'unixfs-dir' - Empty UnixFS directory
-func (_ objectOpts) Type(t string) ObjectNewOption {
+func (objectOpts) Type(t string) ObjectNewOption {
 	return func(settings *ObjectNewSettings) error {
 		settings.Type = t
 		return nil
@@ -83,7 +83,7 @@ func (_ objectOpts) Type(t string) ObjectNewOption {
 // Supported encodings:
 // * "protobuf"
 // * "json"
-func (_ objectOpts) InputEnc(e string) ObjectPutOption {
+func (objectOpts) InputEnc(e string) ObjectPutOption {
 	return func(settings *ObjectPutSettings) error {
 		settings.InputEnc = e
 		return nil
@@ -96,7 +96,7 @@ func (_ objectOpts) InputEnc(e string) ObjectPutOption {
 // Supported types:
 // * "text" (default)
 // * "base64"
-func (_ objectOpts) DataType(t string) ObjectPutOption {
+func (objectOpts) DataType(t string) ObjectPutOption {
 	return func(settings *ObjectPutSettings) error {
 		settings.DataType = t
 		return nil
@@ -105,7 +105,7 @@ func (_ objectOpts) DataType(t string) ObjectPutOption {
 
 // Create is an option for Object.AddLink which specifies whether create required
 // directories for the child
-func (_ objectOpts) Create(create bool) ObjectAddLinkOption {
+func (objectOpts) Create(create bool) ObjectAddLinkOption {
 	return func(settings *ObjectAddLinkSettings) error {
 		settings.Create = create
 		return nil

@@ -61,7 +61,7 @@ var Name nameOpts
 
 // ValidTime is an option for Name.Publish which specifies for how long the
 // entry will remain valid. Default value is 24h
-func (_ nameOpts) ValidTime(validTime time.Duration) NamePublishOption {
+func (nameOpts) ValidTime(validTime time.Duration) NamePublishOption {
 	return func(settings *NamePublishSettings) error {
 		settings.ValidTime = validTime
 		return nil
@@ -73,7 +73,7 @@ func (_ nameOpts) ValidTime(validTime time.Duration) NamePublishOption {
 // The key parameter must be either PeerID or keystore key alias.
 //
 // You can use KeyAPI to list and generate more names and their respective keys.
-func (_ nameOpts) Key(key string) NamePublishOption {
+func (nameOpts) Key(key string) NamePublishOption {
 	return func(settings *NamePublishSettings) error {
 		settings.Key = key
 		return nil
@@ -82,7 +82,7 @@ func (_ nameOpts) Key(key string) NamePublishOption {
 
 // Recursive is an option for Name.Resolve which specifies whether to perform a
 // recursive lookup. Default value is false
-func (_ nameOpts) Recursive(recursive bool) NameResolveOption {
+func (nameOpts) Recursive(recursive bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.Recursive = recursive
 		return nil
@@ -91,7 +91,7 @@ func (_ nameOpts) Recursive(recursive bool) NameResolveOption {
 
 // Local is an option for Name.Resolve which specifies if the lookup should be
 // offline. Default value is false
-func (_ nameOpts) Local(local bool) NameResolveOption {
+func (nameOpts) Local(local bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.Local = local
 		return nil
@@ -100,7 +100,7 @@ func (_ nameOpts) Local(local bool) NameResolveOption {
 
 // Cache is an option for Name.Resolve which specifies if cache should be used.
 // Default value is true
-func (_ nameOpts) Cache(cache bool) NameResolveOption {
+func (nameOpts) Cache(cache bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.Cache = cache
 		return nil

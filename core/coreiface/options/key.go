@@ -58,7 +58,7 @@ var Key keyOpts
 // Supported key types:
 // * options.RSAKey
 // * options.Ed25519Key
-func (_ keyOpts) Type(algorithm string) KeyGenerateOption {
+func (keyOpts) Type(algorithm string) KeyGenerateOption {
 	return func(settings *KeyGenerateSettings) error {
 		settings.Algorithm = algorithm
 		return nil
@@ -70,7 +70,7 @@ func (_ keyOpts) Type(algorithm string) KeyGenerateOption {
 //
 // value of -1 means 'use default size for key type':
 //  * 2048 for RSA
-func (_ keyOpts) Size(size int) KeyGenerateOption {
+func (keyOpts) Size(size int) KeyGenerateOption {
 	return func(settings *KeyGenerateSettings) error {
 		settings.Size = size
 		return nil
@@ -79,7 +79,7 @@ func (_ keyOpts) Size(size int) KeyGenerateOption {
 
 // Force is an option for Key.Rename which specifies whether to allow to
 // replace existing keys.
-func (_ keyOpts) Force(force bool) KeyRenameOption {
+func (keyOpts) Force(force bool) KeyRenameOption {
 	return func(settings *KeyRenameSettings) error {
 		settings.Force = force
 		return nil
