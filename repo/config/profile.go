@@ -44,6 +44,7 @@ running IPFS on machines with public IPv4 addresses.`,
 			c.Addresses.NoAnnounce = appendSingle(c.Addresses.NoAnnounce, defaultServerFilters)
 			c.Swarm.AddrFilters = appendSingle(c.Swarm.AddrFilters, defaultServerFilters)
 			c.Discovery.MDNS.Enabled = false
+			c.Swarm.DisableNatPortMap = true
 			return nil
 		},
 	},
@@ -56,6 +57,7 @@ profile, enables discovery in local networks.`,
 			c.Addresses.NoAnnounce = deleteEntries(c.Addresses.NoAnnounce, defaultServerFilters)
 			c.Swarm.AddrFilters = deleteEntries(c.Swarm.AddrFilters, defaultServerFilters)
 			c.Discovery.MDNS.Enabled = true
+			c.Swarm.DisableNatPortMap = false
 			return nil
 		},
 	},
@@ -97,6 +99,11 @@ If you apply this profile after ipfs init, you will need
 to convert your datastore to the new configuration.
 You can do this using ipfs-ds-convert.
 
+For more on ipfs-ds-convert see
+$ ipfs-ds-convert --help
+and
+$ ipfs-ds-convert convert --help
+
 WARNING: badger datastore is experimental.
 Make sure to backup your data frequently.`,
 
@@ -119,6 +126,11 @@ Make sure to backup your data frequently.`,
 If you apply this profile after ipfs init, you will need
 to convert your datastore to the new configuration.
 You can do this using ipfs-ds-convert.
+
+For more on ipfs-ds-convert see
+$ ipfs-ds-convert --help
+and
+$ ipfs-ds-convert convert --help
 `,
 
 		Transform: func(c *Config) error {
