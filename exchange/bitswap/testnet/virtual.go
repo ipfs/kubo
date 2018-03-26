@@ -8,6 +8,7 @@ import (
 
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
+	providers "github.com/ipfs/go-ipfs/providers"
 
 	testutil "gx/ipfs/QmPdxCaVp4jZ9RbxqZADvKH6kiCR5jHvdR5f2ycjAY6T2a/go-testutil"
 	delay "gx/ipfs/QmRJVNatYJwTAHgdSM1Xef9QVQ1Ch3XHdmcrykjP5Y4soL/go-ipfs-delay"
@@ -150,6 +151,11 @@ func (nc *networkClient) FindProvidersAsync(ctx context.Context, k *cid.Cid, max
 		}
 	}()
 	return out
+}
+
+func (nc *networkClient) FindProviders(ctx context.Context, k *cid.Cid) error {
+	nc.FindProvidersAsync(ctx, k, providers.MaxProvidersPerRequest)
+	return nil
 }
 
 func (nc *networkClient) ConnectionManager() ifconnmgr.ConnManager {

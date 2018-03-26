@@ -16,7 +16,6 @@ import (
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
 
 	delay "gx/ipfs/QmRJVNatYJwTAHgdSM1Xef9QVQ1Ch3XHdmcrykjP5Y4soL/go-ipfs-delay"
-	flags "gx/ipfs/QmRMGdC6HKdLsPDABL9aXPDidrpmEHzJqFWSvshkbn9Hj8/go-ipfs-flags"
 	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
@@ -31,34 +30,14 @@ import (
 var log = logging.Logger("bitswap")
 
 const (
-	// maxProvidersPerRequest specifies the maximum number of providers desired
-	// from the network. This value is specified because the network streams
-	// results.
-	// TODO: if a 'non-nice' strategy is implemented, consider increasing this value
-	maxProvidersPerRequest = 3
-	providerRequestTimeout = time.Second * 10
-	provideTimeout         = time.Second * 15
-	sizeBatchRequestChan   = 32
 	// kMaxPriority is the max priority as defined by the bitswap protocol
 	kMaxPriority = math.MaxInt32
 )
 
 var (
-	HasBlockBufferSize    = 256
-	provideKeysBufferSize = 2048
-	provideWorkerMax      = 512
-
 	// the 1<<18+15 is to observe old file chunks that are 1<<18 + 14 in size
 	metricsBuckets = []float64{1 << 6, 1 << 10, 1 << 14, 1 << 18, 1<<18 + 15, 1 << 22}
 )
-
-func init() {
-	if flags.LowMemMode {
-		HasBlockBufferSize = 64
-		provideKeysBufferSize = 512
-		provideWorkerMax = 16
-	}
-}
 
 var rebroadcastDelay = delay.Fixed(time.Minute)
 
@@ -94,10 +73,7 @@ func New(parent context.Context, network bsnet.BitSwapNetwork,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
 		network:       network,
-		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
-		newBlocks:     make(chan *cid.Cid, HasBlockBufferSize),
-		provideKeys:   make(chan *cid.Cid, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
 		counters:      new(counters),
 
@@ -141,15 +117,6 @@ type Bitswap struct {
 	// appropriate user requests
 	notifications notifications.PubSub
 
-	// findKeys sends keys to a worker to find and connect to providers for them
-	findKeys chan *blockRequest
-	// newBlocks is a channel for newly added blocks to be provided to the
-	// network.  blocks pushed down this channel get buffered and fed to the
-	// provideKeys channel later on to avoid too much network activity
-	newBlocks chan *cid.Cid
-	// provideKeys directly feeds provide workers
-	provideKeys chan *cid.Cid
-
 	process process.Process
 
 	// Counters for various statistics
@@ -176,11 +143,6 @@ type counters struct {
 	dataSent       uint64
 	dataRecvd      uint64
 	messagesRecvd  uint64
-}
-
-type blockRequest struct {
-	Cid *cid.Cid
-	Ctx context.Context
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
@@ -230,14 +192,6 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 
 	bs.wm.WantBlocks(ctx, keys, nil, mses)
 
-	// NB: Optimization. Assumes that providers of key[0] are likely to
-	// be able to provide for all keys. This currently holds true in most
-	// every situation. Later, this assumption may not hold as true.
-	req := &blockRequest{
-		Cid: keys[0],
-		Ctx: ctx,
-	}
-
 	remaining := cid.NewSet()
 	for _, k := range keys {
 		remaining.Add(k)
@@ -272,12 +226,13 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []*cid.Cid) (<-chan block
 		}
 	}()
 
-	select {
-	case bs.findKeys <- req:
-		return out, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	// NB: Optimization. Assumes that providers of key[0] are likely to
+	// be able to provide for all keys. This currently holds true in most
+	// every situation. Later, this assumption may not hold as true.
+	if err := bs.network.FindProviders(ctx, keys[0]); err != nil {
+		return nil, err
 	}
+	return out, nil
 }
 
 func (bs *Bitswap) getNextSessionID() uint64 {
@@ -298,6 +253,7 @@ func (bs *Bitswap) CancelWants(cids []*cid.Cid, ses uint64) {
 // HasBlock announces the existence of a block to this bitswap service. The
 // service will potentially notify its peers.
 func (bs *Bitswap) HasBlock(blk blocks.Block) error {
+	//TODO: call provide here?
 	return bs.receiveBlockFrom(blk, "")
 }
 
@@ -333,13 +289,6 @@ func (bs *Bitswap) receiveBlockFrom(blk blocks.Block, from peer.ID) error {
 	}
 
 	bs.engine.AddBlock(blk)
-
-	select {
-	case bs.newBlocks <- blk.Cid():
-		// send block off to be reprovided
-	case <-bs.process.Closing():
-		return bs.process.Close()
-	}
 	return nil
 }
 
@@ -384,6 +333,9 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 
 			if err := bs.receiveBlockFrom(b, p); err != nil {
 				log.Warningf("ReceiveMessage recvBlockFrom error: %s", err)
+			}
+			if err := bs.network.Provide(ctx, b.Cid()); err != nil {
+				log.Warningf("ReceiveMessage Provide error: %s", err)
 			}
 			log.Event(ctx, "Bitswap.GetBlockRequest.End", b.Cid())
 		}(block)

@@ -17,8 +17,7 @@ import (
 )
 
 // WARNING: this uses RandTestBogusIdentity DO NOT USE for NON TESTS!
-func NewTestSessionGenerator(
-	net tn.Network) SessionGenerator {
+func NewTestSessionGenerator(net tn.Network) SessionGenerator {
 	ctx, cancel := context.WithCancel(context.Background())
 	return SessionGenerator{
 		net:    net,

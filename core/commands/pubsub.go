@@ -107,6 +107,10 @@ This command outputs data in the following encodings:
 					log.Error("pubsub discovery: ", err)
 					return
 				}
+				if err := n.Providers.Provide(blk.Cid()); err != nil {
+					log.Error("pubsub discovery: ", err)
+					return
+				}
 
 				connectToPubSubPeers(req.Context, n, blk.Cid())
 			}()

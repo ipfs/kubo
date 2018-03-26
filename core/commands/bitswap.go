@@ -173,7 +173,6 @@ var bitswapStatCmd = &cmds.Command{
 			}
 
 			fmt.Fprintln(w, "bitswap status")
-			fmt.Fprintf(w, "\tprovides buffer: %d / %d\n", out.ProvideBufLen, bitswap.HasBlockBufferSize)
 			fmt.Fprintf(w, "\tblocks received: %d\n", out.BlocksReceived)
 			fmt.Fprintf(w, "\tblocks sent: %d\n", out.BlocksSent)
 			fmt.Fprintf(w, "\tdata received: %d\n", out.DataReceived)

@@ -222,6 +222,11 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 			return
 		}
 
+		if err := n.Providers.Provide(b.Cid()); err != nil {
+			log.Error("BlockPut key: '%q'", err)
+			return
+		}
+
 		err = cmds.EmitOnce(res, &BlockStat{
 			Key:  b.Cid().String(),
 			Size: len(data),

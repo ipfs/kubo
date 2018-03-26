@@ -154,7 +154,9 @@ into an object of the specified format.
 				}
 			}
 
-			return nil
+			return cids.ForEach(func(c *cid.Cid) error {
+				return n.Providers.Provide(c)
+			})
 		}
 
 		go func() {

@@ -65,6 +65,9 @@ type Routing interface {
 	// FindProvidersAsync returns a channel of providers for the given key
 	FindProvidersAsync(context.Context, *cid.Cid, int) <-chan peer.ID
 
+	// FindProvidersfinds providers for the given key and connects to them
+	FindProviders(ctx context.Context, c *cid.Cid) error
+
 	// Provide provides the key to the network
 	Provide(context.Context, *cid.Cid) error
 }

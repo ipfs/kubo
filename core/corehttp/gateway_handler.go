@@ -504,6 +504,11 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := i.node.Providers.Provide(newcid); err != nil {
+		webError(w, "putHandler: Could not provide newnode: ", err, http.StatusInternalServerError)
+		return
+	}
+
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", newcid.String())
 	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newcid.String(), newPath), http.StatusCreated)
@@ -560,6 +565,11 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if err := i.node.Providers.Provide(c); err != nil {
+			webError(w, "Could not provide node", err, http.StatusInternalServerError)
+			return
+		}
+
 		pathpb, ok := pathNodes[j].(*dag.ProtoNode)
 		if !ok {
 			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
@@ -580,6 +590,11 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Redirect to new path
 	ncid := newnode.Cid()
+
+	if err := i.node.Providers.Provide(ncid); err != nil {
+		webError(w, "Could not provide node", err, http.StatusInternalServerError)
+		return
+	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", ncid.String())

@@ -512,6 +512,12 @@ Available templates:
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		if err = n.Providers.Provide(node.Cid()); err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		res.SetOutput(&Object{Hash: node.Cid().String()})
 	},
 	Marshalers: oldcmds.MarshalerMap{
@@ -606,6 +612,11 @@ func objectPut(ctx context.Context, n *core.IpfsNode, input io.Reader, encoding 
 	}
 
 	err = n.DAG.Add(ctx, dagnode)
+	if err != nil {
+		return nil, err
+	}
+
+	err = n.Providers.Provide(dagnode.Cid())
 	if err != nil {
 		return nil, err
 	}

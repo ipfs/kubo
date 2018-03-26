@@ -118,6 +118,12 @@ the limit will not be respected by the network.
 			return
 		}
 
+		err = nd.Providers.Provide(rtpb.Cid())
+		if err != nil {
+			re.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		cmds.EmitOnce(re, &Object{Hash: rtpb.Cid().String()})
 	},
 	Type: Object{},
@@ -189,6 +195,12 @@ Example:
 			return
 		}
 
+		err = nd.Providers.Provide(rtpb.Cid())
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		res.SetOutput(&Object{Hash: rtpb.Cid().String()})
 	},
 	Type: Object{},
@@ -250,6 +262,12 @@ Removes a link by the given name from root.
 		}
 
 		nc := nnode.Cid()
+
+		err = nd.Providers.Provide(nc)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		res.SetOutput(&Object{Hash: nc.String()})
 	},
@@ -347,6 +365,12 @@ to a file containing 'bar', and returns the hash of the new object.
 		}
 
 		nc := nnode.Cid()
+
+		err = nd.Providers.Provide(nc)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		res.SetOutput(&Object{Hash: nc.String()})
 	},
