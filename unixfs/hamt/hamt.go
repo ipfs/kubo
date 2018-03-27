@@ -289,13 +289,13 @@ func (ds *Shard) loadChild(ctx context.Context, i int) (child, error) {
 		return nil, fmt.Errorf("invalid link name '%s'", lnk.Name)
 	}
 
-	nd, err := lnk.GetNode(ctx, ds.dserv)
-	if err != nil {
-		return nil, err
-	}
-
 	var c child
 	if len(lnk.Name) == ds.maxpadlen {
+		nd, err := lnk.GetNode(ctx, ds.dserv)
+		if err != nil {
+			return nil, err
+		}
+
 		pbnd, ok := nd.(*dag.ProtoNode)
 		if !ok {
 			return nil, dag.ErrNotProtobuf
