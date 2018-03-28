@@ -100,7 +100,7 @@ func makeShard(ds ipld.DAGService, size int) (*Shard, error) {
 func NewHamtFromDag(dserv ipld.DAGService, nd ipld.Node) (*Shard, error) {
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {
-		return nil, dag.ErrLinkNotFound
+		return nil, dag.ErrNotProtobuf
 	}
 
 	pbd, err := format.FromBytes(pbnd.Data())
