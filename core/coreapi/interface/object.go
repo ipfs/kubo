@@ -37,32 +37,8 @@ type ObjectAPI interface {
 	// New creates new, empty (by default) dag-node.
 	New(context.Context, ...options.ObjectNewOption) (ipld.Node, error)
 
-	// WithType is an option for New which allows to change the type of created
-	// dag node.
-	//
-	// Supported types:
-	// * 'empty' - Empty node
-	// * 'unixfs-dir' - Empty UnixFS directory
-	WithType(string) options.ObjectNewOption
-
 	// Put imports the data into merkledag
 	Put(context.Context, io.Reader, ...options.ObjectPutOption) (Path, error)
-
-	// WithInputEnc is an option for Put which specifies the input encoding of the
-	// data. Default is "json".
-	//
-	// Supported encodings:
-	// * "protobuf"
-	// * "json"
-	WithInputEnc(e string) options.ObjectPutOption
-
-	// WithDataType specifies the encoding of data field when using Josn or XML
-	// input encoding.
-	//
-	// Supported types:
-	// * "text" (default)
-	// * "base64"
-	WithDataType(t string) options.ObjectPutOption
 
 	// Get returns the node for the path
 	Get(context.Context, Path) (ipld.Node, error)
@@ -80,10 +56,6 @@ type ObjectAPI interface {
 	// subdirectory within the patent which must be present (can be overridden
 	// with WithCreate option).
 	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (Path, error)
-
-	// WithCreate is an option for AddLink which specifies whether create required
-	// directories for the child
-	WithCreate(create bool) options.ObjectAddLinkOption
 
 	// RmLink removes a link from the node
 	RmLink(ctx context.Context, base Path, link string) (Path, error)

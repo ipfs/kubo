@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	opts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
 func TestListSelf(t *testing.T) {
@@ -53,7 +53,7 @@ func TestRenameSelf(t *testing.T) {
 		}
 	}
 
-	_, _, err = api.Key().Rename(ctx, "self", "foo", api.Key().WithForce(true))
+	_, _, err = api.Key().Rename(ctx, "self", "foo", opt.Key.Force(true))
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
@@ -110,7 +110,7 @@ func TestGenerateSize(t *testing.T) {
 		t.Error(err)
 	}
 
-	k, err := api.Key().Generate(ctx, "foo", api.Key().WithSize(1024))
+	k, err := api.Key().Generate(ctx, "foo", opt.Key.Size(1024))
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -132,7 +132,7 @@ func TestGenerateType(t *testing.T) {
 		t.Error(err)
 	}
 
-	k, err := api.Key().Generate(ctx, "bar", api.Key().WithType(opts.Ed25519Key))
+	k, err := api.Key().Generate(ctx, "bar", opt.Key.Type(opt.Ed25519Key))
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -288,7 +288,7 @@ func TestRenameToSelfForce(t *testing.T) {
 		return
 	}
 
-	_, _, err = api.Key().Rename(ctx, "foo", "self", api.Key().WithForce(true))
+	_, _, err = api.Key().Rename(ctx, "foo", "self", opt.Key.Force(true))
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
@@ -346,7 +346,7 @@ func TestRenameOverwrite(t *testing.T) {
 		return
 	}
 
-	k, overwrote, err := api.Key().Rename(ctx, "foo", "bar", api.Key().WithForce(true))
+	k, overwrote, err := api.Key().Rename(ctx, "foo", "bar", opt.Key.Force(true))
 	if err != nil {
 		t.Fatal(err)
 		return

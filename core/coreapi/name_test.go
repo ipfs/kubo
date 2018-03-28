@@ -10,6 +10,7 @@ import (
 	ipath "github.com/ipfs/go-ipfs/path"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
 var rnd = rand.New(rand.NewSource(0x62796532303137))
@@ -77,7 +78,7 @@ func TestBasicPublishResolveKey(t *testing.T) {
 		return
 	}
 
-	e, err := api.Name().Publish(ctx, p, api.Name().WithKey(k.Name()))
+	e, err := api.Name().Publish(ctx, p, opt.Name.Key(k.Name()))
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -118,7 +119,7 @@ func TestBasicPublishResolveTimeout(t *testing.T) {
 		return
 	}
 
-	e, err := api.Name().Publish(ctx, p, api.Name().WithValidTime(time.Millisecond*100))
+	e, err := api.Name().Publish(ctx, p, opt.Name.ValidTime(time.Millisecond*100))
 	if err != nil {
 		t.Fatal(err)
 		return

@@ -55,37 +55,52 @@ func NameResolveOptions(opts ...NameResolveOption) (*NameResolveSettings, error)
 	return options, nil
 }
 
-type NameOptions struct{}
+type nameOpts struct{}
 
-func (api *NameOptions) WithValidTime(validTime time.Duration) NamePublishOption {
+var Name nameOpts
+
+// ValidTime is an option for Name.Publish which specifies for how long the
+// entry will remain valid. Default value is 24h
+func (nameOpts) ValidTime(validTime time.Duration) NamePublishOption {
 	return func(settings *NamePublishSettings) error {
 		settings.ValidTime = validTime
 		return nil
 	}
 }
 
-func (api *NameOptions) WithKey(key string) NamePublishOption {
+// Key is an option for Name.Publish which specifies the key to use for
+// publishing. Default value is "self" which is the node's own PeerID.
+// The key parameter must be either PeerID or keystore key alias.
+//
+// You can use KeyAPI to list and generate more names and their respective keys.
+func (nameOpts) Key(key string) NamePublishOption {
 	return func(settings *NamePublishSettings) error {
 		settings.Key = key
 		return nil
 	}
 }
 
-func (api *NameOptions) WithRecursive(recursive bool) NameResolveOption {
+// Recursive is an option for Name.Resolve which specifies whether to perform a
+// recursive lookup. Default value is false
+func (nameOpts) Recursive(recursive bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.Recursive = recursive
 		return nil
 	}
 }
 
-func (api *NameOptions) WithLocal(local bool) NameResolveOption {
+// Local is an option for Name.Resolve which specifies if the lookup should be
+// offline. Default value is false
+func (nameOpts) Local(local bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.Local = local
 		return nil
 	}
 }
 
-func (api *NameOptions) WithCache(cache bool) NameResolveOption {
+// Cache is an option for Name.Resolve which specifies if cache should be used.
+// Default value is true
+func (nameOpts) Cache(cache bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.Cache = cache
 		return nil

@@ -60,30 +60,52 @@ func ObjectAddLinkOptions(opts ...ObjectAddLinkOption) (*ObjectAddLinkSettings, 
 	return options, nil
 }
 
-type ObjectOptions struct{}
+type objectOpts struct{}
 
-func (api *ObjectOptions) WithType(t string) ObjectNewOption {
+var Object objectOpts
+
+// Type is an option for Object.New which allows to change the type of created
+// dag node.
+//
+// Supported types:
+// * 'empty' - Empty node
+// * 'unixfs-dir' - Empty UnixFS directory
+func (objectOpts) Type(t string) ObjectNewOption {
 	return func(settings *ObjectNewSettings) error {
 		settings.Type = t
 		return nil
 	}
 }
 
-func (api *ObjectOptions) WithInputEnc(e string) ObjectPutOption {
+// InputEnc is an option for Object.Put which specifies the input encoding of the
+// data. Default is "json".
+//
+// Supported encodings:
+// * "protobuf"
+// * "json"
+func (objectOpts) InputEnc(e string) ObjectPutOption {
 	return func(settings *ObjectPutSettings) error {
 		settings.InputEnc = e
 		return nil
 	}
 }
 
-func (api *ObjectOptions) WithDataType(t string) ObjectPutOption {
+// DataType is an option for Object.Put which specifies the encoding of data
+// field when using Json or XML input encoding.
+//
+// Supported types:
+// * "text" (default)
+// * "base64"
+func (objectOpts) DataType(t string) ObjectPutOption {
 	return func(settings *ObjectPutSettings) error {
 		settings.DataType = t
 		return nil
 	}
 }
 
-func (api *ObjectOptions) WithCreate(create bool) ObjectAddLinkOption {
+// Create is an option for Object.AddLink which specifies whether create required
+// directories for the child
+func (objectOpts) Create(create bool) ObjectAddLinkOption {
 	return func(settings *ObjectAddLinkSettings) error {
 		settings.Create = create
 		return nil

@@ -23,10 +23,7 @@ import (
 
 const inputLimit = 2 << 20
 
-type ObjectAPI struct {
-	*CoreAPI
-	*caopts.ObjectOptions
-}
+type ObjectAPI CoreAPI
 
 type Link struct {
 	Name, Hash string
@@ -288,7 +285,7 @@ func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.R
 }
 
 func (api *ObjectAPI) core() coreiface.CoreAPI {
-	return api.CoreAPI
+	return (*CoreAPI)(api)
 }
 
 func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error) {
