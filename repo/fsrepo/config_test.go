@@ -99,8 +99,8 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if typ := reflect.TypeOf(ds).String(); typ != "*syncmount.Datastore" {
-		t.Errorf("expected '*syncmount.Datastore' got '%s'", typ)
+	if typ := reflect.TypeOf(ds).String(); typ != "*mount.Datastore" {
+		t.Errorf("expected '*mount.Datastore' got '%s'", typ)
 	}
 }
 

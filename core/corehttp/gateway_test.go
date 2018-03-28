@@ -18,9 +18,10 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 
 	id "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/protocol/identify"
+	datastore "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	syncds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -57,7 +58,7 @@ func newNodeWithMockNamesys(ns mockNamesys) (*core.IpfsNode, error) {
 	}
 	r := &repo.Mock{
 		C: c,
-		D: ds2.ThreadSafeCloserMapDatastore(),
+		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
 	n, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 	if err != nil {
