@@ -295,21 +295,6 @@ func (ds *Shard) loadChild(ctx context.Context, i int) (child, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		pbnd, ok := nd.(*dag.ProtoNode)
-		if !ok {
-			return nil, dag.ErrNotProtobuf
-		}
-
-		pbd, err := format.FromBytes(pbnd.Data())
-		if err != nil {
-			return nil, err
-		}
-
-		if pbd.GetType() != format.THAMTShard {
-			return nil, fmt.Errorf("HAMT entries must have non-zero length name")
-		}
-
 		cds, err := NewHamtFromDag(ds.dserv, nd)
 		if err != nil {
 			return nil, err
