@@ -523,6 +523,49 @@ func printDiff(ds ipld.DAGService, a, b *dag.ProtoNode) {
 	}
 }
 
+func BenchmarkHAMTWalk(b *testing.B) {
+	ctx := context.Background()
+
+	ds := mdtest.Mock()
+	sh, _ := NewShard(ds, 256)
+	nd, err := sh.Node()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	err = ds.Add(ctx, nd)
+	if err != nil {
+		b.Fatal(err)
+	}
+	ds.Add(ctx, ft.EmptyDirNode())
+
+	s, err := NewHamtFromDag(ds, nd)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for j := 0; j < 1000; j++ {
+		err = s.Set(ctx, fmt.Sprintf("%d", j), ft.EmptyDirNode())
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+
+	for i := 0; i < b.N; i++ {
+		cnt := 0
+		err = s.ForEachLink(ctx, func(l *ipld.Link) error {
+			cnt++
+			return nil
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		if cnt < 1000 {
+			b.Fatal("expected 100 children")
+		}
+	}
+}
+
 func BenchmarkHAMTSet(b *testing.B) {
 	ctx := context.Background()
 
