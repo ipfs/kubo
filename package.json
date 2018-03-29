@@ -581,6 +581,12 @@
       "hash": "QmPdqSMmiwtQCBC515gFtMW2mP14HsfgnyQ2k5xPQVxMge",
       "name": "go-fs-lock",
       "version": "0.1.2"
+    },
+    {
+      "author": "Stebalien",
+      "hash": "QmTbBs3Y3u5F69XNJzdnnc6SP5GKgcXxCDzx6w8m6piVRT",
+      "name": "go-bitfield",
+      "version": "0.1.1"
     }
   ],
   "gxVersion": "0.10.0",

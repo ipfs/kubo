@@ -433,7 +433,7 @@ func TestBitfieldIndexing(t *testing.T) {
 	s, _ := NewShard(ds, 256)
 
 	set := func(i int) {
-		s.bitfield.SetBit(s.bitfield, i, 1)
+		s.bitfield.SetBit(i)
 	}
 
 	assert := func(i int, val int) {
