@@ -250,36 +250,68 @@ configured, the daemon will fail to start.
 ---
 
 ## ipfs p2p
-Allows to tunnel TCP connections through Libp2p streams
+
+Allows tunneling of TCP connections through Libp2p streams. If you've ever used
+port forwarding with SSH (the `-L` option in openssh), this feature is quite
+similar.
 
 ### State
+
 Experimental
 
 ### In Version
+
 master, 0.4.10
 
 ### How to enable
-P2P command needs to be enabled in config
 
-`ipfs config --json Experimental.Libp2pStreamMounting true`
+The `p2p` command needs to be enabled in config:
+
+```sh
+> ipfs config --json Experimental.Libp2pStreamMounting true
+```
 
 ### How to use
 
-Basic usage:
+First, pick a protocol name for your application. Think of the protocol name as
+a port number, just significantly more user-friendly. In this example, we're
+going to use `/p2p/kickass/1.0`.
 
-- Open a listener on one node (node A)
-`ipfs p2p listener open p2p-test /ip4/127.0.0.1/tcp/10101`
-- Where `/ip4/127.0.0.1/tcp/10101` put address of application you want to pass
-  p2p connections to
-- On the other node, connect to the listener on node A
-`ipfs p2p stream dial $NODE_A_PEERID p2p-test /ip4/127.0.0.1/tcp/10102`
-- Node B is now listening for a connection on TCP at 127.0.0.1:10102, connect
-  your application there to complete the connection
+**Setup:**
+
+1. A "server" node with peer ID `$SERVER_ID`
+2. A "client" node.
+
+**On the "server" node:**
+
+First, start your application and have it listen on `$APP_PORT`.
+
+Then, configure the p2p listener by running:
+
+```sh
+> ipfs p2p listener open /p2p/kickass/1.0 /ip4/127.0.0.1/tcp/$APP_PORT
+```
+
+This will configure IPFS to forward all incoming `/p2p/kickass/1.0` streams to
+`127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per
+incoming stream.
+
+**On the "client" node:**
+
+First, configure the p2p dialer to forward all inbound connections on
+`127.0.0.1:SOME_PORT` to the listener behind `/p2p/kickass/1.0` on the server
+node.
+
+```sh
+> ipfs p2p stream dial $SERVER_ID /p2p/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT
+```
+
+Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on the remote machine.
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works / fits use cases
 - [ ] More documentation
-- [ ] Support other protocols
+- [ ] Support other protocols (e.g, unix domain sockets)
 
 ---
 
