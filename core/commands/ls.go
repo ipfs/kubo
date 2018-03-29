@@ -18,6 +18,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
@@ -134,23 +135,28 @@ The JSON output contains type information.
 			for j, link := range links {
 				t := unixfspb.Data_DataType(-1)
 
-				linkNode, err := link.GetNode(req.Context(), dserv)
-				if err == ipld.ErrNotFound && !resolve {
-					// not an error
-					linkNode = nil
-				} else if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
-				}
-
-				if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
-					d, err := unixfs.FromBytes(pn.Data())
-					if err != nil {
+				switch link.Cid.Type() {
+				case cid.Raw:
+					// No need to check with raw leaves
+					t = unixfspb.Data_File
+				case cid.DagProtobuf:
+					linkNode, err := link.GetNode(req.Context(), dserv)
+					if err == ipld.ErrNotFound && !resolve {
+						// not an error
+						linkNode = nil
+					} else if err != nil {
 						res.SetError(err, cmdkit.ErrNormal)
 						return
 					}
 
-					t = d.GetType()
+					if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
+						d, err := unixfs.FromBytes(pn.Data())
+						if err != nil {
+							res.SetError(err, cmdkit.ErrNormal)
+							return
+						}
+						t = d.GetType()
+					}
 				}
 				output[i].Links[j] = LsLink{
 					Name: link.Name,
