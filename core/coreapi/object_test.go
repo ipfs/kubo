@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
+
+	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
 func TestNew(t *testing.T) {
@@ -21,7 +23,7 @@ func TestNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dirNode, err := api.Object().New(ctx, api.Object().WithType("unixfs-dir"))
+	dirNode, err := api.Object().New(ctx, opt.Object.Type("unixfs-dir"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +49,7 @@ func TestObjectPut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"YmFy"}`), api.Object().WithDataType("base64")) //bar
+	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"YmFy"}`), opt.Object.DataType("base64")) //bar
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +59,7 @@ func TestObjectPut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p3, err := api.Object().Put(ctx, bytes.NewReader(pbBytes), api.Object().WithInputEnc("protobuf"))
+	p3, err := api.Object().Put(ctx, bytes.NewReader(pbBytes), opt.Object.InputEnc("protobuf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +273,7 @@ func TestObjectAddLinkCreate(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	p3, err = api.Object().AddLink(ctx, p2, "abc/d", p2, api.Object().WithCreate(true))
+	p3, err = api.Object().AddLink(ctx, p2, "abc/d", p2, opt.Object.Create(true))
 	if err != nil {
 		t.Fatal(err)
 	}

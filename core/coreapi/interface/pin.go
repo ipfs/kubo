@@ -39,23 +39,8 @@ type PinAPI interface {
 	// tree
 	Add(context.Context, Path, ...options.PinAddOption) error
 
-	// WithRecursive is an option for Add which specifies whether to pin an entire
-	// object tree or just one object. Default: true
-	WithRecursive(bool) options.PinAddOption
-
 	// Ls returns list of pinned objects on this node
 	Ls(context.Context, ...options.PinLsOption) ([]Pin, error)
-
-	// WithType is an option for Ls which allows to specify which pin types should
-	// be returned
-	//
-	// Supported values:
-	// * "direct" - directly pinned objects
-	// * "recursive" - roots of recursive pins
-	// * "indirect" - indirectly pinned objects (referenced by recursively pinned
-	//    objects)
-	// * "all" - all pinned objects (default)
-	WithType(string) options.PinLsOption
 
 	// Rm removes pin for object specified by the path
 	Rm(context.Context, Path) error

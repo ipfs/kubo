@@ -61,23 +61,66 @@ func PinUpdateOptions(opts ...PinUpdateOption) (*PinUpdateSettings, error) {
 	return options, nil
 }
 
-type PinOptions struct{}
+type pinType struct{}
 
-func (api *PinOptions) WithRecursive(recucsive bool) PinAddOption {
+type pinOpts struct {
+	Type pinType
+}
+
+var Pin pinOpts
+
+// All is an option for Pin.Ls which will make it return all pins. It is
+// the default
+func (pinType) All() PinLsOption {
+	return Pin.pinType("all")
+}
+
+// Recursive is an option for Pin.Ls which will make it only return recursive
+// pins
+func (pinType) Recursive() PinLsOption {
+	return Pin.pinType("recursive")
+}
+
+// Direct is an option for Pin.Ls which will make it only return direct (non
+// recursive) pins
+func (pinType) Direct() PinLsOption {
+	return Pin.pinType("direct")
+}
+
+// Indirect is an option for Pin.Ls which will make it only return indirect pins
+// (objects referenced by other recursively pinned objects)
+func (pinType) Indirect() PinLsOption {
+	return Pin.pinType("indirect")
+}
+
+// Recursive is an option for Pin.Add which specifies whether to pin an entire
+// object tree or just one object. Default: true
+func (pinOpts) Recursive(recucsive bool) PinAddOption {
 	return func(settings *PinAddSettings) error {
 		settings.Recursive = recucsive
 		return nil
 	}
 }
 
-func (api *PinOptions) WithType(t string) PinLsOption {
+// Type is an option for Pin.Ls which allows to specify which pin types should
+// be returned
+//
+// Supported values:
+// * "direct" - directly pinned objects
+// * "recursive" - roots of recursive pins
+// * "indirect" - indirectly pinned objects (referenced by recursively pinned
+//    objects)
+// * "all" - all pinned objects (default)
+func (pinOpts) pinType(t string) PinLsOption {
 	return func(settings *PinLsSettings) error {
 		settings.Type = t
 		return nil
 	}
 }
 
-func (api *PinOptions) WithUnpin(unpin bool) PinUpdateOption {
+// Unpin is an option for Pin.Update which specifies whether to remove the old pin.
+// Default is true.
+func (pinOpts) Unpin(unpin bool) PinUpdateOption {
 	return func(settings *PinUpdateSettings) error {
 		settings.Unpin = unpin
 		return nil

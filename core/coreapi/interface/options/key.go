@@ -48,23 +48,38 @@ func KeyRenameOptions(opts ...KeyRenameOption) (*KeyRenameSettings, error) {
 	return options, nil
 }
 
-type KeyOptions struct{}
+type keyOpts struct{}
 
-func (api *KeyOptions) WithType(algorithm string) KeyGenerateOption {
+var Key keyOpts
+
+// Type is an option for Key.Generate which specifies which algorithm
+// should be used for the key. Default is options.RSAKey
+//
+// Supported key types:
+// * options.RSAKey
+// * options.Ed25519Key
+func (keyOpts) Type(algorithm string) KeyGenerateOption {
 	return func(settings *KeyGenerateSettings) error {
 		settings.Algorithm = algorithm
 		return nil
 	}
 }
 
-func (api *KeyOptions) WithSize(size int) KeyGenerateOption {
+// Size is an option for Key.Generate which specifies the size of the key to
+// generated. Default is -1
+//
+// value of -1 means 'use default size for key type':
+//  * 2048 for RSA
+func (keyOpts) Size(size int) KeyGenerateOption {
 	return func(settings *KeyGenerateSettings) error {
 		settings.Size = size
 		return nil
 	}
 }
 
-func (api *KeyOptions) WithForce(force bool) KeyRenameOption {
+// Force is an option for Key.Rename which specifies whether to allow to
+// replace existing keys.
+func (keyOpts) Force(force bool) KeyRenameOption {
 	return func(settings *KeyRenameSettings) error {
 		settings.Force = force
 		return nil

@@ -31,32 +31,32 @@ func (api *CoreAPI) Unixfs() coreiface.UnixfsAPI {
 
 // Block returns the BlockAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Block() coreiface.BlockAPI {
-	return &BlockAPI{api, nil}
+	return (*BlockAPI)(api)
 }
 
 // Dag returns the DagAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Dag() coreiface.DagAPI {
-	return &DagAPI{api, nil}
+	return (*DagAPI)(api)
 }
 
 // Name returns the NameAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Name() coreiface.NameAPI {
-	return &NameAPI{api, nil}
+	return (*NameAPI)(api)
 }
 
 // Key returns the KeyAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Key() coreiface.KeyAPI {
-	return &KeyAPI{api, nil}
+	return (*KeyAPI)(api)
 }
 
 //Object returns the ObjectAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Object() coreiface.ObjectAPI {
-	return &ObjectAPI{api, nil}
+	return (*ObjectAPI)(api)
 }
 
 // Pin returns the PinAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Pin() coreiface.PinAPI {
-	return &PinAPI{api, nil}
+	return (*PinAPI)(api)
 }
 
 // ResolveNode resolves the path `p` using Unixfx resolver, gets and returns the

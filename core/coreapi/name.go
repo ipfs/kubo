@@ -20,10 +20,7 @@ import (
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-type NameAPI struct {
-	*CoreAPI
-	*caopts.NameOptions
-}
+type NameAPI CoreAPI
 
 type ipnsEntry struct {
 	name  string
@@ -133,10 +130,6 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 	}
 
 	return &path{path: output}, nil
-}
-
-func (api *NameAPI) core() coreiface.CoreAPI {
-	return api.CoreAPI
 }
 
 func keylookup(n *core.IpfsNode, k string) (crypto.PrivKey, error) {
