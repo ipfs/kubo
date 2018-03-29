@@ -121,7 +121,7 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 }
 
 func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
-	if !*d.URL {
+	if !d.GetURL() {
 		return f.readFileDataObj(c, d)
 	} else {
 		return f.readURLDataObj(c, d)
