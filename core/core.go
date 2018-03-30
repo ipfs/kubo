@@ -182,7 +182,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		n.Reporter = metrics.NewBandwidthCounter()
 	}
 
-	tpt := makeSmuxTransport(mplex)
+	tpt := makeSmuxTransport(cfg.Swarm.Multiplexers, mplex)
 
 	swarmkey, err := n.Repo.SwarmKey()
 	if err != nil {
@@ -382,25 +382,46 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 	}, nil
 }
 
-func makeSmuxTransport(mplexExp bool) smux.Transport {
+func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 	mstpt := mssmux.NewBlankTransport()
 
-	ymxtpt := &yamux.Transport{
-		AcceptBacklog:          512,
-		ConnectionWriteTimeout: time.Second * 10,
-		KeepAliveInterval:      time.Second * 30,
-		EnableKeepAlive:        true,
-		MaxStreamWindowSize:    uint32(1024 * 512),
-		LogOutput:              ioutil.Discard,
+	var isYamex, isMplex bool
+
+	for _, multiplexer := range multiplexers {
+		if multiplexer == "yamex" {
+			isYamex = true
+		} else if multiplexer == "mplex" {
+			isMplex = true
+		}
 	}
 
-	if os.Getenv("YAMUX_DEBUG") != "" {
-		ymxtpt.LogOutput = os.Stderr
+	if !isMplex && !isYamex {
+		isYamex = true
 	}
 
-	mstpt.AddTransport("/yamux/1.0.0", ymxtpt)
+	// If there are any multiplexers defined in the config, ignore mplexExp.
+	if len(multiplexers) > 0 {
+		mplexExp = false
+	}
 
-	if mplexExp {
+	if isYamex {
+		ymxtpt := &yamux.Transport{
+			AcceptBacklog:          512,
+			ConnectionWriteTimeout: time.Second * 10,
+			KeepAliveInterval:      time.Second * 30,
+			EnableKeepAlive:        true,
+			MaxStreamWindowSize:    uint32(1024 * 512),
+			LogOutput:              ioutil.Discard,
+		}
+
+		if os.Getenv("YAMUX_DEBUG") != "" {
+			ymxtpt.LogOutput = os.Stderr
+		}
+
+		mstpt.AddTransport("/yamux/1.0.0", ymxtpt)
+	}
+
+	if isMplex || mplexExp {
 		mstpt.AddTransport("/mplex/6.7.0", mplex.DefaultTransport)
 	}
 
