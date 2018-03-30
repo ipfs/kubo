@@ -97,7 +97,10 @@ func (api *CoreAPI) ParsePath(p string) (coreiface.Path, error) {
 	return &path{path: pp}, nil
 }
 
-func (p *path) String() string { return p.path.String() }
+func (p *path) String() string {
+	return p.path.String()
+}
+
 func (p *path) Namespace() string {
 	if len(p.path.Segments()) < 1 {
 		return ""
@@ -105,5 +108,15 @@ func (p *path) Namespace() string {
 	return p.path.Segments()[0]
 }
 
-func (p *resolvedPath) Cid() *cid.Cid  { return p.cid }
-func (p *resolvedPath) Root() *cid.Cid { return p.root }
+func (p *path) Mutable() bool {
+	//TODO: MFS: check for /local
+	return p.Namespace() == "ipns"
+}
+
+func (p *resolvedPath) Cid() *cid.Cid {
+	return p.cid
+}
+
+func (p *resolvedPath) Root() *cid.Cid {
+	return p.root
+}
