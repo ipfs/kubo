@@ -564,7 +564,7 @@ func (dir *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDi
 		return fuse.EPERM
 	default:
 		log.Error("Unknown node type for rename target dir!")
-		return errors.New("Unknown fs node type!")
+		return errors.New("unknown fs node type")
 	}
 	return nil
 }

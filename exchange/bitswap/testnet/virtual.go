@@ -88,7 +88,7 @@ func (n *network) SendMessage(
 
 	receiver, ok := n.clients[to]
 	if !ok {
-		return errors.New("Cannot locate peer on network")
+		return errors.New("cannot locate peer on network")
 	}
 
 	// nb: terminate the context since the context wouldn't actually be passed
@@ -107,7 +107,7 @@ func (n *network) SendMessage(
 func (n *network) deliver(
 	r bsnet.Receiver, from peer.ID, message bsmsg.BitSwapMessage) error {
 	if message == nil || from == "" {
-		return errors.New("Invalid input")
+		return errors.New("invalid input")
 	}
 
 	n.delay.Wait()

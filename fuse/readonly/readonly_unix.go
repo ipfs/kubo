@@ -135,7 +135,7 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 		a.Mode = 0777 | os.ModeSymlink
 		a.Size = uint64(len(s.cached.GetData()))
 	default:
-		return fmt.Errorf("Invalid data type - %s", s.cached.GetType())
+		return fmt.Errorf("invalid data type - %s", s.cached.GetType())
 	}
 	return nil
 }

@@ -81,7 +81,7 @@ func (m *mount) mount() error {
 	// wait for the mount process to be done, or timed out.
 	select {
 	case <-time.After(MountTimeout):
-		return fmt.Errorf("Mounting %s timed out.", m.MountPoint())
+		return fmt.Errorf("mounting %s timed out", m.MountPoint())
 	case err := <-errs:
 		return err
 	case <-m.fuseConn.Ready:

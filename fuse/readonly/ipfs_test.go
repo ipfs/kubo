@@ -183,7 +183,7 @@ func TestIpfsStressRead(t *testing.T) {
 				}
 
 				if !bytes.Equal(rbuf, data) {
-					errs <- errors.New("Incorrect Read!")
+					errs <- errors.New("incorrect read")
 				}
 			}
 		}()

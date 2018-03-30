@@ -696,7 +696,7 @@ func (n *IpfsNode) GetKey(name string) (ic.PrivKey, error) {
 
 func (n *IpfsNode) LoadPrivateKey() error {
 	if n.Identity == "" || n.Peerstore == nil {
-		return errors.New("loaded private key out of order.")
+		return errors.New("loaded private key out of order")
 	}
 
 	if n.PrivateKey != nil {
@@ -826,7 +826,7 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 	for _, addr := range cfg.Addresses.Swarm {
 		maddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
-			return nil, fmt.Errorf("Failure to parse config.Addresses.Swarm: %s", cfg.Addresses.Swarm)
+			return nil, fmt.Errorf("failure to parse config.Addresses.Swarm: %s", cfg.Addresses.Swarm)
 		}
 		listen = append(listen, maddr)
 	}

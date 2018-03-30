@@ -82,7 +82,7 @@ func checkOK(resp *http.Response, err error) error {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "pollEndpoint: ioutil.ReadAll() Error: %s", err)
 		}
-		return fmt.Errorf("Response not OK. %d %s %q", resp.StatusCode, resp.Status, string(body))
+		return fmt.Errorf("response not OK. %d %s %q", resp.StatusCode, resp.Status, string(body))
 	}
 	return err
 }

@@ -283,7 +283,7 @@ func verifyTDagRec(n ipld.Node, depth int, p VerifyParams) error {
 			}
 
 			if pbn.GetType() != ft.TRaw {
-				return errors.New("Expected raw block")
+				return errors.New("expected raw block")
 			}
 
 			if p.RawLeaves {

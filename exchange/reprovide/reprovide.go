@@ -82,7 +82,7 @@ func (rp *Reprovider) Run(tick time.Duration) {
 func (rp *Reprovider) Reprovide() error {
 	keychan, err := rp.keyProvider(rp.ctx)
 	if err != nil {
-		return fmt.Errorf("Failed to get key chan: %s", err)
+		return fmt.Errorf("failed to get key chan: %s", err)
 	}
 	for c := range keychan {
 		// hash security

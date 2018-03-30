@@ -305,7 +305,7 @@ func (p *pinner) isPinnedWithType(c *cid.Cid, mode Mode) (string, bool, error) {
 	switch mode {
 	case Any, Direct, Indirect, Recursive, Internal:
 	default:
-		err := fmt.Errorf("Invalid Pin Mode '%d', must be one of {%d, %d, %d, %d, %d}",
+		err := fmt.Errorf("invalid Pin Mode '%d', must be one of {%d, %d, %d, %d, %d}",
 			mode, Direct, Indirect, Recursive, Internal, Any)
 		return "", false, err
 	}
