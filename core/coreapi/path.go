@@ -26,12 +26,17 @@ type resolvedPath struct {
 	root *cid.Cid
 }
 
-// ParseCid parses the path from `c`, retruns the parsed path.
-func (api *CoreAPI) ParseCid(c *cid.Cid) coreiface.ResolvedPath {
-	return &resolvedPath{path: path{ipfspath.FromCid(c)}, cid: c, root: c}
+// IpfsPath parses the path from `c`, reruns the parsed path.
+func (api *CoreAPI) IpfsPath(c *cid.Cid) coreiface.ResolvedPath {
+	return &resolvedPath{path: path{ipfspath.Path("/ipfs/" + c.String())}, cid: c, root: c}
 }
 
-// ResolveNode resolves the path `p` using Unixfx resolver, gets and returns the
+// IpldPath parses the path from `c`, reruns the parsed path.
+func (api *CoreAPI) IpldPath(c *cid.Cid) coreiface.ResolvedPath {
+	return &resolvedPath{path: path{ipfspath.Path("/ipld/" + c.String())}, cid: c, root: c}
+}
+
+// ResolveNode resolves the path `p` using Unixfs resolver, gets and returns the
 // resolved Node.
 func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (ipld.Node, error) {
 	return resolveNode(ctx, api.node.DAG, api.node.Namesys, p)
@@ -83,7 +88,7 @@ func resolvePath(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSyste
 }
 
 // ParsePath parses path `p` using ipfspath parser, returns the parsed path.
-func (api *CoreAPI) ParsePath(ctx context.Context, p string) (coreiface.Path, error) {
+func (api *CoreAPI) ParsePath(p string) (coreiface.Path, error) {
 	pp, err := ipfspath.ParsePath(p)
 	if err != nil {
 		return nil, err

@@ -12,6 +12,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
@@ -213,18 +214,18 @@ func TestCatDir(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p := api.ParseCid(edir.Cid())
+	p := api.IpfsPath(edir.Cid())
 
-	emptyDir, err := api.Object().New(ctx, api.Object().WithType("unixfs-dir"))
+	emptyDir, err := api.Object().New(ctx, options.Object.Type("unixfs-dir"))
 	if err != nil {
 		t.Error(err)
 	}
 
-	if p.String() != api.ParseCid(emptyDir.Cid()).String() {
+	if p.String() != api.IpfsPath(emptyDir.Cid()).String() {
 		t.Fatalf("expected path %s, got: %s", emptyDir.Cid(), p.String())
 	}
 
-	_, err = api.Unixfs().Cat(ctx, api.ParseCid(emptyDir.Cid()))
+	_, err = api.Unixfs().Cat(ctx, api.IpfsPath(emptyDir.Cid()))
 	if err != coreiface.ErrIsDir {
 		t.Fatalf("expected ErrIsDir, got: %s", err)
 	}
@@ -243,7 +244,7 @@ func TestCatNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = api.Unixfs().Cat(ctx, api.ParseCid(nd.Cid()))
+	_, err = api.Unixfs().Cat(ctx, api.IpfsPath(nd.Cid()))
 	if !strings.Contains(err.Error(), "proto: required field") {
 		t.Fatalf("expected protobuf error, got: %s", err)
 	}
@@ -318,12 +319,12 @@ func TestLsEmptyDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	emptyDir, err := api.Object().New(ctx, api.Object().WithType("unixfs-dir"))
+	emptyDir, err := api.Object().New(ctx, options.Object.Type("unixfs-dir"))
 	if err != nil {
 		t.Error(err)
 	}
 
-	links, err := api.Unixfs().Ls(ctx, api.ParseCid(emptyDir.Cid()))
+	links, err := api.Unixfs().Ls(ctx, api.IpfsPath(emptyDir.Cid()))
 	if err != nil {
 		t.Error(err)
 	}
@@ -351,7 +352,7 @@ func TestLsNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	links, err := api.Unixfs().Ls(ctx, api.ParseCid(nd.Cid()))
+	links, err := api.Unixfs().Ls(ctx, api.IpfsPath(nd.Cid()))
 	if err != nil {
 		t.Error(err)
 	}

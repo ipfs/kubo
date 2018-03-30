@@ -65,11 +65,11 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		return nil, err
 	}
 
-	return api.ParseCid(b.Cid()), nil
+	return api.core().IpldPath(b.Cid()), nil
 }
 
 func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, error) {
-	rp, err := api.ResolvePath(ctx, p)
+	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, erro
 }
 
 func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.BlockRmOption) error {
-	rp, err := api.ResolvePath(ctx, p)
+	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.Bl
 }
 
 func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.BlockStat, error) {
-	rp, err := api.ResolvePath(ctx, p)
+	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.Bloc
 	}
 
 	return &BlockStat{
-		path: api.ParseCid(b.Cid()),
+		path: api.core().IpldPath(b.Cid()),
 		size: len(b.RawData()),
 	}, nil
 }
@@ -143,4 +143,8 @@ func (bs *BlockStat) Size() int {
 
 func (bs *BlockStat) Path() coreiface.ResolvedPath {
 	return bs.path
+}
+
+func (api *BlockAPI) core() coreiface.CoreAPI {
+	return (*CoreAPI)(api)
 }

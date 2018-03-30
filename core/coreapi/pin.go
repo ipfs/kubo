@@ -24,7 +24,12 @@ func (api *PinAPI) Add(ctx context.Context, p coreiface.Path, opts ...caopts.Pin
 
 	defer api.node.Blockstore.PinLock().Unlock()
 
-	_, err = corerepo.Pin(api.node, ctx, []string{p.String()}, settings.Recursive)
+	rp, err := api.core().ResolvePath(ctx, p)
+	if err != nil {
+		return err
+	}
+
+	_, err = corerepo.Pin(api.node, ctx, []string{rp.Cid().String()}, settings.Recursive)
 	if err != nil {
 		return err
 	}
@@ -62,12 +67,12 @@ func (api *PinAPI) Update(ctx context.Context, from coreiface.Path, to coreiface
 		return err
 	}
 
-	fp, err := api.ResolvePath(ctx, from)
+	fp, err := api.core().ResolvePath(ctx, from)
 	if err != nil {
 		return err
 	}
 
-	tp, err := api.ResolvePath(ctx, to)
+	tp, err := api.core().ResolvePath(ctx, to)
 	if err != nil {
 		return err
 	}
@@ -120,7 +125,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 		links, err := getLinks(ctx, root)
 		if err != nil {
 			status := &pinStatus{ok: false, cid: root}
-			status.badNodes = []coreiface.BadPinNode{&badNode{path: api.ParseCid(root), err: err}}
+			status.badNodes = []coreiface.BadPinNode{&badNode{path: api.core().IpldPath(root), err: err}}
 			visited[key] = status
 			return status
 		}
@@ -170,7 +175,7 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) ([]coreiface.Pi
 		for _, c := range keyList {
 			keys[c.String()] = &pinInfo{
 				pinType: typeStr,
-				path:    api.ParseCid(c),
+				path:    api.core().IpldPath(c),
 			}
 		}
 	}
@@ -198,4 +203,8 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) ([]coreiface.Pi
 	}
 
 	return out, nil
+}
+
+func (api *PinAPI) core() coreiface.CoreAPI {
+	return (*CoreAPI)(api)
 }

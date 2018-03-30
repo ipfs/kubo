@@ -25,7 +25,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.ResolvedP
 	if err != nil {
 		return nil, err
 	}
-	return api.core().ParseCid(c), nil
+	return api.core().IpfsPath(c), nil
 }
 
 // Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.
