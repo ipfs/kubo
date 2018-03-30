@@ -380,6 +380,9 @@ Experimental, default-disabled.
 
 Utilizes pubsub for publishing ipns records in real time.
 
+Note: both the publisher and the resolver nodes need to have the feature
+enabled for it to work effectively.
+
 ### How to enable
 
 run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
