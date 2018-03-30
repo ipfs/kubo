@@ -6,6 +6,7 @@ type SwarmConfig struct {
 	DisableNatPortMap       bool
 	DisableRelay            bool
 	EnableRelayHop          bool
+	Multiplexers            []string
 
 	ConnMgr ConnMgr
 }
