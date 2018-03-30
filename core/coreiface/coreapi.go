@@ -40,8 +40,11 @@ type CoreAPI interface {
 	ResolveNode(context.Context, Path) (ipld.Node, error)
 
 	// ParsePath parses string path to a Path
-	ParsePath(context.Context, string) (Path, error)
+	ParsePath(string) (Path, error)
 
-	// ParseCid creates new path from the provided CID
-	ParseCid(*cid.Cid) ResolvedPath
+	// IpfsPath creates new /ipfs path from the provided CID
+	IpfsPath(*cid.Cid) ResolvedPath
+
+	// IpldPath creates new /ipld path from the provided CID
+	IpldPath(*cid.Cid) ResolvedPath
 }
