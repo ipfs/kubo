@@ -6,13 +6,25 @@ import (
 
 // Path is a generic wrapper for paths used in the API. A path can be resolved
 // to a CID using one of Resolve functions in the API.
-// TODO: figure out/explain namespaces
+//
+// Paths must be prefixed with a valid prefix:
+//
+// * /ipfs - Immutable unixfs path (files)
+// * /ipld - Immutable ipld path (data)
+// * /ipns - Mutable names. Usually resolves to one of the immutable paths
+//TODO: /local (MFS)
 type Path interface {
 	// String returns the path as a string.
 	String() string
 
 	// Namespace returns the first component of the path
 	Namespace() string
+
+	// Mutable returns false if the data pointed to by this path in guaranteed
+	// to not change.
+	//
+	// Note that resolved mutable path can be immutable.
+	Mutable() bool
 }
 
 // ResolvedPath is a resolved Path
