@@ -372,7 +372,7 @@ ipfs config --json Experimental.ShardingEnabled true
 
 ### In Version
 
-0.4.13
+0.4.14
 
 ### State
 
@@ -380,8 +380,15 @@ Experimental, default-disabled.
 
 Utilizes pubsub for publishing ipns records in real time.
 
-Note: both the publisher and the resolver nodes need to have the feature
-enabled for it to work effectively.
+When it is enabled:
+- IPNS publishers push records to a name-specific pubsub topic,
+  in addition to publishing to the DHT.
+- IPNS resolvers subscribe to the name-specific topic and receive newly
+  published records through pubsub in real time. Note that the initial resolution
+  still goes through the DHT, as there is no message history in pubsub.
+
+Both the publisher and the resolver nodes need to have the feature enabled for it
+to work effectively.
 
 ### How to enable
 
@@ -391,4 +398,5 @@ run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
 
 - [ ] Needs more people to use and report on how well it works
 - [ ] Add a mechanism for last record distribution on subscription,
-      so that we don't have to hit the DHT for name resolution at all.
+      so that we don't have to hit the DHT for the initial resolution.
+      Alternatively, we could republish the last record periodically.
