@@ -385,6 +385,11 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 	mstpt := mssmux.NewBlankTransport()
 
+	multiplexerProtocolNames := map[string]string{
+		"yamex": "/yamux/1.0.0",
+		"mplex": "/mplex/6.7.0",
+	}
+
 	var isYamex, isMplex bool
 
 	for _, multiplexer := range multiplexers {
@@ -392,6 +397,12 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 			isYamex = true
 		} else if multiplexer == "mplex" {
 			isMplex = true
+			if mplexExp {
+				log.Warning("--enable-mplex-experiment is set to false, " +
+					"but mplex is given as a multiplexer in the config.")
+			}
+		} else {
+			log.Warningf("Unknown multiplexer specified in config: %s", multiplexer)
 		}
 	}
 
@@ -402,6 +413,22 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 	// If there are any multiplexers defined in the config, ignore mplexExp.
 	if len(multiplexers) > 0 {
 		mplexExp = false
+
+		// set order preference to match the order specified in the config
+		multiplexerProtocols := make([]string, len(multiplexers))
+		for i, multiplexer := range multiplexers {
+			if multiplexer == "yamex" || multiplexer == "mplex" {
+				multiplexerProtocols[i] = multiplexerProtocolNames[multiplexer]
+			}
+		}
+
+		mstpt.OrderPreference = multiplexerProtocols
+	}
+
+	// Allow muxer preference order overriding.  If set, LIBP2P_MUX_PREFS will
+	// overwrite the order specified in the config.
+	if prefs := os.Getenv("LIBP2P_MUX_PREFS"); prefs != "" {
+		mstpt.OrderPreference = strings.Fields(prefs)
 	}
 
 	if isYamex {
@@ -418,16 +445,11 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 			ymxtpt.LogOutput = os.Stderr
 		}
 
-		mstpt.AddTransport("/yamux/1.0.0", ymxtpt)
+		mstpt.AddTransport(multiplexerProtocolNames["yamex"], ymxtpt)
 	}
 
 	if isMplex || mplexExp {
-		mstpt.AddTransport("/mplex/6.7.0", mplex.DefaultTransport)
-	}
-
-	// Allow muxer preference order overriding
-	if prefs := os.Getenv("LIBP2P_MUX_PREFS"); prefs != "" {
-		mstpt.OrderPreference = strings.Fields(prefs)
+		mstpt.AddTransport(multiplexerProtocolNames["mplex"], mplex.DefaultTransport)
 	}
 
 	return mstpt
