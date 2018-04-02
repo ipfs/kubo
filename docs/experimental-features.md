@@ -384,7 +384,7 @@ When it is enabled:
 - IPNS publishers push records to a name-specific pubsub topic,
   in addition to publishing to the DHT.
 - IPNS resolvers subscribe to the name-specific topic on first
-  resoltion and receive subsequently published records through pubsub
+  resolution and receive subsequently published records through pubsub
   in real time. This makes subsequent resolutions instant, as they
   are resolved through the local cache. Note that the initial
   resolution still goes through the DHT, as there is no message
