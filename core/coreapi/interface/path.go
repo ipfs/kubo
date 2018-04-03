@@ -29,13 +29,14 @@ type Path interface {
 
 // ResolvedPath is a resolved Path
 type ResolvedPath interface {
-	// Cid returns cid referred to by path
+	// Cid returns the CID referred to by path
 	Cid() *cid.Cid
 
-	// Root returns cid of root path
+	// Root returns the CID of root path
 	Root() *cid.Cid
 
-	//TODO: Path remainder
+	// Remainder returns unresolved part of the path
+	Remainder() string
 
 	Path
 }

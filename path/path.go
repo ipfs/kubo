@@ -161,7 +161,7 @@ func SplitList(pth string) []string {
 // must be a Multihash) and return it separately.
 func SplitAbsPath(fpath Path) (*cid.Cid, []string, error) {
 	parts := fpath.Segments()
-	if parts[0] == "ipfs" {
+	if parts[0] == "ipfs" || parts[0] == "ipld" {
 		parts = parts[1:]
 	}
 

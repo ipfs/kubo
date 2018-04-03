@@ -1,7 +1,9 @@
 package coreapi
 
 import (
-	"context"
+	context "context"
+	gopath "path"
+	strings "strings"
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
@@ -22,18 +24,29 @@ type path struct {
 // resolvedPath implements coreiface.resolvedPath
 type resolvedPath struct {
 	path
-	cid  *cid.Cid
-	root *cid.Cid
+	cid       *cid.Cid
+	root      *cid.Cid
+	remainder string
 }
 
 // IpfsPath parses the path from `c`, reruns the parsed path.
 func (api *CoreAPI) IpfsPath(c *cid.Cid) coreiface.ResolvedPath {
-	return &resolvedPath{path: path{ipfspath.Path("/ipfs/" + c.String())}, cid: c, root: c}
+	return &resolvedPath{
+		path:      path{ipfspath.Path("/ipfs/" + c.String())},
+		cid:       c,
+		root:      c,
+		remainder: "",
+	}
 }
 
 // IpldPath parses the path from `c`, reruns the parsed path.
 func (api *CoreAPI) IpldPath(c *cid.Cid) coreiface.ResolvedPath {
-	return &resolvedPath{path: path{ipfspath.Path("/ipld/" + c.String())}, cid: c, root: c}
+	return &resolvedPath{
+		path:      path{ipfspath.Path("/ipld/" + c.String())},
+		cid:       c,
+		root:      c,
+		remainder: "",
+	}
 }
 
 // ResolveNode resolves the path `p` using Unixfs resolver, gets and returns the
@@ -66,25 +79,40 @@ func resolvePath(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSyste
 		return p.(coreiface.ResolvedPath), nil
 	}
 
-	r := &resolver.Resolver{
-		DAG:         ng,
-		ResolveOnce: uio.ResolveUnixfsOnce,
-	}
-
-	p2 := ipfspath.FromString(p.String())
-	node, err := core.Resolve(ctx, nsys, r, p2)
+	ipath := p.(*path).path
+	ipath, err := core.ResolveIPNS(ctx, nsys, ipath)
 	if err == core.ErrNoNamesys {
 		return nil, coreiface.ErrOffline
 	} else if err != nil {
 		return nil, err
 	}
 
+	resolveOnce := uio.ResolveUnixfsOnce
+	if strings.HasPrefix(ipath.String(), "/ipld") {
+		resolveOnce = resolver.ResolveSingle
+	}
+
+	r := &resolver.Resolver{
+		DAG:         ng,
+		ResolveOnce: resolveOnce,
+	}
+
+	node, rest, err := r.ResolveToLastNode(ctx, ipath)
+	if err != nil {
+		return nil, err
+	}
+
 	var root *cid.Cid
-	if p2.IsJustAKey() {
+	if ipath.IsJustAKey() {
 		root = node.Cid()
 	}
 
-	return &resolvedPath{path: path{p2}, cid: node.Cid(), root: root}, nil
+	return &resolvedPath{
+		path:      path{ipath},
+		cid:       node.Cid(),
+		root:      root,
+		remainder: gopath.Join(rest...),
+	}, nil
 }
 
 // ParsePath parses path `p` using ipfspath parser, returns the parsed path.
@@ -119,4 +147,8 @@ func (p *resolvedPath) Cid() *cid.Cid {
 
 func (p *resolvedPath) Root() *cid.Cid {
 	return p.root
+}
+
+func (p *resolvedPath) Remainder() string {
+	return p.remainder
 }
