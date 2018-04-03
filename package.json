@@ -587,6 +587,12 @@
       "hash": "QmTbBs3Y3u5F69XNJzdnnc6SP5GKgcXxCDzx6w8m6piVRT",
       "name": "go-bitfield",
       "version": "0.1.1"
+    },
+    {
+      "author": "hsanjuan",
+      "hash": "QmdcAXgEHUueP4A7b5hjabKn2EooeHgMreMvFC249dGCgc",
+      "name": "go-ipfs-exchange-interface",
+      "version": "0.0.1"
     }
   ],
   "gxVersion": "0.10.0",
