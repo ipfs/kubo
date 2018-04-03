@@ -17,6 +17,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/thirdparty/idstore"
 	"github.com/ipfs/go-ipfs/thirdparty/verifbs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -189,14 +190,16 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		opts.HasBloomFilterSize = 0
 	}
 
-	cbs, err := bstore.CachedBlockstore(ctx, bs, opts)
+	wbs, err := bstore.CachedBlockstore(ctx, bs, opts)
 	if err != nil {
 		return err
 	}
 
-	n.BaseBlocks = cbs
+	wbs = idstore.IdStore(wbs)
+
+	n.BaseBlocks = wbs
 	n.GCLocker = bstore.NewGCLocker()
-	n.Blockstore = bstore.NewGCBlockstore(cbs, n.GCLocker)
+	n.Blockstore = bstore.NewGCBlockstore(wbs, n.GCLocker)
 
 	if conf.Experimental.FilestoreEnabled {
 		// hash security
