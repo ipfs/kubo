@@ -27,4 +27,5 @@ bin/gx-go-v%:
 	@bin/dist_get $(dist_root_bin) gx-go $@ $(@:bin/gx-go-%=%)
 
 CLEAN += $(TGTS_$(d))
+
 include mk/footer.mk
