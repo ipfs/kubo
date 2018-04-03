@@ -6,11 +6,10 @@ import (
 	"testing"
 	"time"
 
-	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
-
 	tu "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
+	blocksutil "gx/ipfs/Qmf951DP11mCoctpyF3ZppPZdo2oAxuNi2vnkVDgHJ8Fqk/go-ipfs-blocksutil"
 )
 
 func TestBasicSessions(t *testing.T) {

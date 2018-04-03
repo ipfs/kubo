@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 
@@ -21,6 +20,7 @@ import (
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 	detectrace "gx/ipfs/Qmf7HqcW7LtCi1W8y2bdx2eJpze74jkbKqpByxgXikdbLF/go-detect-race"
+	blocksutil "gx/ipfs/Qmf951DP11mCoctpyF3ZppPZdo2oAxuNi2vnkVDgHJ8Fqk/go-ipfs-blocksutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work

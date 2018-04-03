@@ -593,6 +593,12 @@
       "hash": "QmdcAXgEHUueP4A7b5hjabKn2EooeHgMreMvFC249dGCgc",
       "name": "go-ipfs-exchange-interface",
       "version": "0.0.1"
+    },
+    {
+      "author": "hsanjuan",
+      "hash": "Qmf951DP11mCoctpyF3ZppPZdo2oAxuNi2vnkVDgHJ8Fqk",
+      "name": "go-ipfs-blocksutil",
+      "version": "0.0.1"
     }
   ],
   "gxVersion": "0.10.0",
