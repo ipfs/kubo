@@ -365,3 +365,41 @@ ipfs config --json Experimental.ShardingEnabled true
 
 - [ ] Make sure that objects that don't have to be sharded aren't
 - [ ] Generalize sharding and define a new layer between IPLD and IPFS
+
+---
+
+## IPNS pubsub
+
+### In Version
+
+0.4.14
+
+### State
+
+Experimental, default-disabled.
+
+Utilizes pubsub for publishing ipns records in real time.
+
+When it is enabled:
+- IPNS publishers push records to a name-specific pubsub topic,
+  in addition to publishing to the DHT.
+- IPNS resolvers subscribe to the name-specific topic on first
+  resolution and receive subsequently published records through pubsub
+  in real time. This makes subsequent resolutions instant, as they
+  are resolved through the local cache. Note that the initial
+  resolution still goes through the DHT, as there is no message
+  history in pubsub.
+
+Both the publisher and the resolver nodes need to have the feature enabled for it
+to work effectively.
+
+### How to enable
+
+run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
+
+### Road to being a real feature
+
+- [ ] Needs more people to use and report on how well it works
+- [ ] Add a mechanism for last record distribution on subscription,
+      so that we don't have to hit the DHT for the initial resolution.
+      Alternatively, we could republish the last record periodically.

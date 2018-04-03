@@ -5,7 +5,8 @@ DISTCLEAN :=
 TEST :=
 TEST_SHORT :=
 
-all: help    # all has to be first defined target
+# all has to be first defined target
+all: help
 .PHONY: all
 
 include mk/util.mk
@@ -24,6 +25,7 @@ export IPFS_REUSEPORT=false
 # -------------------- #
 #       sub-files      #
 # -------------------- #
+
 dir := bin
 include $(dir)/Rules.mk
 
