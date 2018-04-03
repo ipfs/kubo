@@ -397,38 +397,17 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 			isYamex = true
 		} else if multiplexer == "mplex" {
 			isMplex = true
-			if mplexExp {
-				log.Warning("--enable-mplex-experiment is set to false, " +
-					"but mplex is given as a multiplexer in the config.")
+			if !mplexExp {
+				log.Error("--enable-mplex-experiment is set to false, but mplex " +
+					"is given as a multiplexer in Swarm.Multiplexers in the config.")
 			}
 		} else {
-			log.Warningf("Unknown multiplexer specified in config: %s", multiplexer)
+			log.Errorf("Unknown multiplexer specified in config: %s", multiplexer)
 		}
 	}
 
 	if !isMplex && !isYamex {
 		isYamex = true
-	}
-
-	// If there are any multiplexers defined in the config, ignore mplexExp.
-	if len(multiplexers) > 0 {
-		mplexExp = false
-
-		// set order preference to match the order specified in the config
-		multiplexerProtocols := make([]string, len(multiplexers))
-		for i, multiplexer := range multiplexers {
-			if multiplexer == "yamex" || multiplexer == "mplex" {
-				multiplexerProtocols[i] = multiplexerProtocolNames[multiplexer]
-			}
-		}
-
-		mstpt.OrderPreference = multiplexerProtocols
-	}
-
-	// Allow muxer preference order overriding.  If set, LIBP2P_MUX_PREFS will
-	// overwrite the order specified in the config.
-	if prefs := os.Getenv("LIBP2P_MUX_PREFS"); prefs != "" {
-		mstpt.OrderPreference = strings.Fields(prefs)
 	}
 
 	if isYamex {
@@ -450,6 +429,29 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 
 	if isMplex || mplexExp {
 		mstpt.AddTransport(multiplexerProtocolNames["mplex"], mplex.DefaultTransport)
+	}
+
+	// If there are any multiplexers defined in the config, ignore mplexExp.
+	if len(multiplexers) > 0 {
+		mplexExp = false
+
+		// set order preference to match the order specified in the config
+		multiplexerProtocols := make([]string, len(multiplexers))
+		for i, multiplexer := range multiplexers {
+			if multiplexer == "yamex" || multiplexer == "mplex" {
+				multiplexerProtocols[i] = multiplexerProtocolNames[multiplexer]
+			}
+		}
+
+		mstpt.OrderPreference = multiplexerProtocols
+	}
+
+	// Allow muxer preference order overriding.  If set, LIBP2P_MUX_PREFS will
+	// overwrite the order specified in the config.
+	if prefs := os.Getenv("LIBP2P_MUX_PREFS"); prefs != "" {
+		mstpt.OrderPreference = strings.Fields(prefs)
+		log.Error("LIBP2P_MUX_PREFS is deprecated.  Please use the " +
+			"Swarm.Multiplexers field in the config file instead.")
 	}
 
 	return mstpt
