@@ -8,6 +8,7 @@ import (
 	"os"
 	gopath "path"
 	"strconv"
+	"strings"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	core "github.com/ipfs/go-ipfs/core"
@@ -336,7 +337,10 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	f, err := files.NewSerialFile(root, root, false, stat)
+	segs := strings.Split(root, "/")
+	name := segs[len(segs)-1]
+
+	f, err := files.NewSerialFile(name, root, false, stat)
 	if err != nil {
 		return "", err
 	}
