@@ -386,15 +386,15 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 	mstpt := mssmux.NewBlankTransport()
 
 	multiplexerProtocolNames := map[string]string{
-		"yamex": "/yamux/1.0.0",
+		"yamux": "/yamux/1.0.0",
 		"mplex": "/mplex/6.7.0",
 	}
 
-	var isYamex, isMplex bool
+	var isYamux, isMplex bool
 
 	for _, multiplexer := range multiplexers {
-		if multiplexer == "yamex" {
-			isYamex = true
+		if multiplexer == "yamux" {
+			isYamux = true
 		} else if multiplexer == "mplex" {
 			isMplex = true
 			if !mplexExp {
@@ -406,11 +406,11 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 		}
 	}
 
-	if !isMplex && !isYamex {
-		isYamex = true
+	if !isMplex && !isYamux {
+		isYamux = true
 	}
 
-	if isYamex {
+	if isYamux {
 		ymxtpt := &yamux.Transport{
 			AcceptBacklog:          512,
 			ConnectionWriteTimeout: time.Second * 10,
@@ -424,7 +424,7 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 			ymxtpt.LogOutput = os.Stderr
 		}
 
-		mstpt.AddTransport(multiplexerProtocolNames["yamex"], ymxtpt)
+		mstpt.AddTransport(multiplexerProtocolNames["yamux"], ymxtpt)
 	}
 
 	if isMplex || mplexExp {
@@ -438,7 +438,7 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 		// set order preference to match the order specified in the config
 		multiplexerProtocols := make([]string, len(multiplexers))
 		for i, multiplexer := range multiplexers {
-			if multiplexer == "yamex" || multiplexer == "mplex" {
+			if multiplexer == "yamux" || multiplexer == "mplex" {
 				multiplexerProtocols[i] = multiplexerProtocolNames[multiplexer]
 			}
 		}
