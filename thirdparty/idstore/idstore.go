@@ -2,12 +2,15 @@ package idstore
 
 import (
 	"context"
+	"fmt"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	bls "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
+
+var MaxIdHashLen = 64
 
 // idstore wraps a BlockStore to add support for identity hashes
 type idstore struct {
@@ -18,19 +21,26 @@ func IdStore(bs bls.Blockstore) bls.Blockstore {
 	return &idstore{bs}
 }
 
-func extractContents(k *cid.Cid) (bool, []byte) {
+func extractContents(k *cid.Cid) (bool, []byte, error) {
 	dmh, err := mh.Decode(k.Hash())
 	if err != nil || dmh.Code != mh.ID {
-		return false, nil
+		return false, nil, nil
 	}
-	return true, dmh.Digest
+	if len(dmh.Digest) > MaxIdHashLen {
+		return true, nil, fmt.Errorf("identity hash of %d bytes is longer than maximum size of %d bytes",
+			len(dmh.Digest), MaxIdHashLen)
+	}
+	return true, dmh.Digest, nil
 }
 
 func (b *idstore) DeleteBlock(k *cid.Cid) error {
-	isId, _ := extractContents(k)
+	isId, _, err := extractContents(k)
+	if err != nil {
+		return err
+	}
 	// always try to delete the block in case it was added to the
 	// blockstore without this wrapper
-	err := b.bs.DeleteBlock(k)
+	err = b.bs.DeleteBlock(k)
 	if isId && err == bls.ErrNotFound {
 		return nil
 	}
@@ -38,7 +48,10 @@ func (b *idstore) DeleteBlock(k *cid.Cid) error {
 }
 
 func (b *idstore) Has(k *cid.Cid) (bool, error) {
-	isId, _ := extractContents(k)
+	isId, _, err := extractContents(k)
+	if err != nil {
+		return false, err
+	}
 	if isId {
 		return true, nil
 	}
@@ -46,7 +59,10 @@ func (b *idstore) Has(k *cid.Cid) (bool, error) {
 }
 
 func (b *idstore) Get(k *cid.Cid) (blocks.Block, error) {
-	isId, bdata := extractContents(k)
+	isId, bdata, err := extractContents(k)
+	if err != nil {
+		return nil, err
+	}
 	if isId {
 		return blocks.NewBlockWithCid(bdata, k)
 	}
@@ -54,7 +70,10 @@ func (b *idstore) Get(k *cid.Cid) (blocks.Block, error) {
 }
 
 func (b *idstore) Put(bl blocks.Block) error {
-	isId, _ := extractContents(bl.Cid())
+	isId, _, err := extractContents(bl.Cid())
+	if err != nil {
+		return err
+	}
 	if isId {
 		return nil
 	}
@@ -64,10 +83,14 @@ func (b *idstore) Put(bl blocks.Block) error {
 func (b *idstore) PutMany(bs []blocks.Block) error {
 	toPut := make([]blocks.Block, 0, len(bs))
 	for _, bl := range bs {
-		isId, _ := extractContents(bl.Cid())
-		if !isId {
-			toPut = append(toPut, bl)
+		isId, _, err := extractContents(bl.Cid())
+		if err != nil {
+			return err
 		}
+		if isId {
+			continue
+		}
+		toPut = append(toPut, bl)
 	}
 	err := b.bs.PutMany(toPut)
 	if err != nil {
