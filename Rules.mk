@@ -8,6 +8,8 @@ TEST_SHORT :=
 all: help    # all has to be first defined target
 .PHONY: all
 
+include mk/git.mk # has to be before tarball.mk
+include mk/tarball.mk
 include mk/util.mk
 include mk/golang.mk
 include mk/gx.mk
