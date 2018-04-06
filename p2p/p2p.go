@@ -16,23 +16,6 @@ type P2P struct {
 	peerstore pstore.Peerstore
 }
 
-type Listener interface {
-	Protocol() string
-	Address() string
-
-	// Close closes the listener. Does not affect child streams
-	Close() error
-}
-
-// NewP2P creates new P2P struct
-func NewP2P(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore) *P2P {
-	return &P2P{
-		identity:  identity,
-		peerHost:  peerHost,
-		peerstore: peerstore,
-	}
-}
-
 // CheckProtoExists checks whether a proto handler is registered to
 // mux handler
 func (p2p *P2P) CheckProtoExists(proto string) bool {

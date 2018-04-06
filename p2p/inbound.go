@@ -32,7 +32,7 @@ func (p2p *P2P) NewListener(ctx context.Context, proto string, addr ma.Multiaddr
 			return
 		}
 
-		stream := StreamInfo{
+		stream := Stream{
 			Protocol: proto,
 
 			LocalPeer: p2p.identity,
@@ -66,5 +66,6 @@ func (l *inboundListener) Address() string {
 
 func (l *inboundListener) Close() error {
 	l.p2p.peerHost.RemoveStreamHandler(protocol.ID(l.proto))
-	return l.p2p.Listeners.Deregister(l.proto)
+	l.p2p.Listeners.Deregister(l.proto)
+	return nil
 }

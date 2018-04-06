@@ -91,7 +91,7 @@ var p2pListenerLsCmd = &cmds.Command{
 		Tagline: "List active p2p listeners.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (HandlerID, Protocol, Local, Remote)."),
+		cmdkit.BoolOption("headers", "v", "Print table headers (Id, Protocol, Local, Remote)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -156,7 +156,7 @@ var p2pStreamLsCmd = &cmds.Command{
 
 		for _, s := range n.P2P.Streams.Streams {
 			output.Streams = append(output.Streams, P2PStreamInfoOutput{
-				HandlerID: strconv.FormatUint(s.HandlerID, 10),
+				HandlerID: strconv.FormatUint(s.Id, 10),
 
 				Protocol: s.Protocol,
 
@@ -184,7 +184,7 @@ var p2pStreamLsCmd = &cmds.Command{
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, stream := range list.Streams {
 				if headers {
-					fmt.Fprintln(w, "HandlerID\tProtocol\tLocal\tRemote")
+					fmt.Fprintln(w, "Id\tProtocol\tLocal\tRemote")
 				}
 
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.HandlerID, stream.Protocol, stream.LocalAddress, stream.RemotePeer)
@@ -347,7 +347,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 		Tagline: "Close active p2p stream.",
 	},
 	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("HandlerID", false, false, "Stream HandlerID"),
+		cmdkit.StringArg("Id", false, false, "Stream Id"),
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("all", "a", "Close all streams."),
@@ -366,7 +366,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 
 		if !closeAll {
 			if len(req.Arguments()) == 0 {
-				res.SetError(errors.New("no HandlerID specified"), cmdkit.ErrNormal)
+				res.SetError(errors.New("no Id specified"), cmdkit.ErrNormal)
 				return
 			}
 
@@ -378,7 +378,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 		}
 
 		for _, stream := range n.P2P.Streams.Streams {
-			if !closeAll && handlerID != stream.HandlerID {
+			if !closeAll && handlerID != stream.Id {
 				continue
 			}
 			stream.Close()

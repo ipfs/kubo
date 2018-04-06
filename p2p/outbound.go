@@ -84,7 +84,7 @@ func (l *outboundListener) acceptConns() {
 			return
 		}
 
-		stream := StreamInfo{
+		stream := Stream{
 			Protocol: l.proto,
 
 			LocalPeer: l.id,
@@ -106,8 +106,8 @@ func (l *outboundListener) acceptConns() {
 
 func (l *outboundListener) Close() error {
 	l.listener.Close()
-	err := l.p2p.Listeners.Deregister(l.proto)
-	return err
+	l.p2p.Listeners.Deregister(l.proto)
+	return nil
 }
 
 func (l *outboundListener) Protocol() string {
