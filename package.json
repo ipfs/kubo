@@ -575,6 +575,12 @@
       "hash": "QmdbxjQWogRCHRaxhhGnYdT1oQJzL9GdqSKzCdqWr85AP2",
       "name": "pubsub",
       "version": "1.0.0"
+    },
+    {
+      "author": "elgris",
+      "hash": "QmfKcSTyzeAvas97dY3BQwvnAPYesEZMR4J1JvRHvuek3y",
+      "name": "jsondiff",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.10.0",

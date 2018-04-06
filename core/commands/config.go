@@ -17,6 +17,7 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
+	"gx/ipfs/QmWVHA7MFeRE96ecy9Ww7SzdrLW7brCH99KDJpiC1jwSQD/jsondiff"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
@@ -310,6 +311,9 @@ var configProfileApplyCmd = &cmds.Command{
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("dry-run", "Show difference between current config and config that will be generated"),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		profile, ok := config.Profiles[req.Arguments()[0]]
 		if !ok {
@@ -317,7 +321,9 @@ var configProfileApplyCmd = &cmds.Command{
 			return
 		}
 
-		err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile)
+		dryRun, _, _ := req.Option("dry-run").Bool()
+
+		err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile, dryRun)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -326,7 +332,7 @@ var configProfileApplyCmd = &cmds.Command{
 	},
 }
 
-func transformConfig(configRoot string, configName string, transformer config.Transformer) error {
+func transformConfig(configRoot string, configName string, transformer config.Transformer, dryRun bool) error {
 	r, err := fsrepo.Open(configRoot)
 	if err != nil {
 		return err
@@ -338,9 +344,21 @@ func transformConfig(configRoot string, configName string, transformer config.Tr
 		return err
 	}
 
+	initCfg := *cfg
+
 	err = transformer(cfg)
 	if err != nil {
 		return err
+	}
+
+	if dryRun {
+		// no error handling is required as both are valid json configs
+		byteDiff := jsondiff.Format(jsondiff.Compare(initCfg, cfg))
+		strDiff := string(byteDiff[:])
+
+		fmt.Println("Defference between current config and config that will be generated :\n ")
+		fmt.Println(strDiff)
+		return nil
 	}
 
 	_, err = r.BackupConfig("pre-" + configName + "-")
