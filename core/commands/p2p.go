@@ -105,8 +105,8 @@ var p2pListenerLsCmd = &cmds.Command{
 
 		for _, listener := range n.P2P.Listeners.Listeners {
 			output.Listeners = append(output.Listeners, P2PListenerInfoOutput{
-				Protocol: listener.Protocol,
-				Address:  listener.Address.String(),
+				Protocol: listener.Protocol(),
+				Address:  listener.Address(),
 			})
 		}
 
@@ -267,7 +267,7 @@ can transparently connect to a p2p service.
 			return
 		}
 
-		addr, peer, err := ParsePeerParam(req.Arguments()[0])
+		_, peer, err := ParsePeerParam(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -284,15 +284,15 @@ can transparently connect to a p2p service.
 			}
 		}
 
-		listenerInfo, err := n.P2P.Dial(n.Context(), addr, peer, proto, bindAddr)
+		listenerInfo, err := n.P2P.Dial(n.Context(), peer, proto, bindAddr)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		output := P2PListenerInfoOutput{
-			Protocol: listenerInfo.Protocol,
-			Address:  listenerInfo.Address.String(),
+			Protocol: listenerInfo.Protocol(),
+			Address:  listenerInfo.Address(),
 		}
 
 		res.SetOutput(&output)
@@ -331,7 +331,7 @@ var p2pListenerCloseCmd = &cmds.Command{
 		}
 
 		for _, listener := range n.P2P.Listeners.Listeners {
-			if !closeAll && listener.Protocol != proto {
+			if !closeAll && listener.Protocol() != proto {
 				continue
 			}
 			listener.Close()
