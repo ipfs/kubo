@@ -550,6 +550,36 @@ func TestCidRawDoesnNeedData(t *testing.T) {
 	}
 }
 
+func TestGetManyDuplicate(t *testing.T) {
+	ctx := context.Background()
+
+	srv := NewDAGService(dstest.Bserv())
+
+	nd := NodeWithData([]byte("foo"))
+	if err := srv.Add(ctx, nd); err != nil {
+		t.Fatal(err)
+	}
+	nds := srv.GetMany(ctx, []*cid.Cid{nd.Cid(), nd.Cid(), nd.Cid()})
+	out, ok := <-nds
+	if !ok {
+		t.Fatal("expecting node foo")
+	}
+	if out.Err != nil {
+		t.Fatal(out.Err)
+	}
+	if !out.Node.Cid().Equals(nd.Cid()) {
+		t.Fatal("got wrong node")
+	}
+	out, ok = <-nds
+	if ok {
+		if out.Err != nil {
+			t.Fatal(out.Err)
+		} else {
+			t.Fatal("expecting no more nodes")
+		}
+	}
+}
+
 func TestEnumerateAsyncFailsNotFound(t *testing.T) {
 	ctx := context.Background()
 

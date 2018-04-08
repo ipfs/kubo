@@ -201,7 +201,20 @@ func (n *dagService) GetMany(ctx context.Context, keys []*cid.Cid) <-chan *ipld.
 	return getNodesFromBG(ctx, n.Blocks, keys)
 }
 
+func dedupKeys(keys []*cid.Cid) []*cid.Cid {
+	set := cid.NewSet()
+	for _, c := range keys {
+		set.Add(c)
+	}
+	if set.Len() == len(keys) {
+		return keys
+	}
+	return set.Keys()
+}
+
 func getNodesFromBG(ctx context.Context, bs bserv.BlockGetter, keys []*cid.Cid) <-chan *ipld.NodeOption {
+	keys = dedupKeys(keys)
+
 	out := make(chan *ipld.NodeOption, len(keys))
 	blocks := bs.GetBlocks(ctx, keys)
 	var count int
