@@ -23,14 +23,13 @@ package hamt
 import (
 	"context"
 	"fmt"
-	"math"
-	"math/big"
 	"os"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
 
+	bitfield "gx/ipfs/QmTbBs3Y3u5F69XNJzdnnc6SP5GKgcXxCDzx6w8m6piVRT/go-bitfield"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -46,7 +45,7 @@ const (
 type Shard struct {
 	nd *dag.ProtoNode
 
-	bitfield *big.Int
+	bitfield bitfield.Bitfield
 
 	children []child
 
@@ -75,22 +74,22 @@ func NewShard(dserv ipld.DAGService, size int) (*Shard, error) {
 		return nil, err
 	}
 
-	ds.bitfield = big.NewInt(0)
 	ds.nd = new(dag.ProtoNode)
 	ds.hashFunc = HashMurmur3
 	return ds, nil
 }
 
 func makeShard(ds ipld.DAGService, size int) (*Shard, error) {
-	lg2s := int(math.Log2(float64(size)))
-	if 1<<uint(lg2s) != size {
-		return nil, fmt.Errorf("hamt size should be a power of two")
+	lg2s, err := logtwo(size)
+	if err != nil {
+		return nil, err
 	}
 	maxpadding := fmt.Sprintf("%X", size-1)
 	return &Shard{
 		tableSizeLg2: lg2s,
 		prefixPadStr: fmt.Sprintf("%%0%dX", len(maxpadding)),
 		maxpadlen:    len(maxpadding),
+		bitfield:     bitfield.NewBitfield(size),
 		tableSize:    size,
 		dserv:        ds,
 	}, nil
@@ -100,7 +99,7 @@ func makeShard(ds ipld.DAGService, size int) (*Shard, error) {
 func NewHamtFromDag(dserv ipld.DAGService, nd ipld.Node) (*Shard, error) {
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {
-		return nil, dag.ErrLinkNotFound
+		return nil, dag.ErrNotProtobuf
 	}
 
 	pbd, err := format.FromBytes(pbnd.Data())
@@ -123,7 +122,7 @@ func NewHamtFromDag(dserv ipld.DAGService, nd ipld.Node) (*Shard, error) {
 
 	ds.nd = pbnd.Copy().(*dag.ProtoNode)
 	ds.children = make([]child, len(pbnd.Links()))
-	ds.bitfield = new(big.Int).SetBytes(pbd.GetData())
+	ds.bitfield.SetBytes(pbd.GetData())
 	ds.hashFunc = pbd.GetHashType()
 	ds.prefix = &ds.nd.Prefix
 
@@ -145,13 +144,13 @@ func (ds *Shard) Node() (ipld.Node, error) {
 	out := new(dag.ProtoNode)
 	out.SetPrefix(ds.prefix)
 
+	cindex := 0
 	// TODO: optimized 'for each set bit'
 	for i := 0; i < ds.tableSize; i++ {
-		if ds.bitfield.Bit(i) == 0 {
+		if !ds.bitfield.Bit(i) {
 			continue
 		}
 
-		cindex := ds.indexForBitPos(i)
 		ch := ds.children[cindex]
 		if ch != nil {
 			clnk, err := ch.Link()
@@ -173,6 +172,7 @@ func (ds *Shard) Node() (ipld.Node, error) {
 				return nil, err
 			}
 		}
+		cindex++
 	}
 
 	typ := upb.Data_HAMTShard
@@ -295,21 +295,6 @@ func (ds *Shard) loadChild(ctx context.Context, i int) (child, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		pbnd, ok := nd.(*dag.ProtoNode)
-		if !ok {
-			return nil, dag.ErrNotProtobuf
-		}
-
-		pbd, err := format.FromBytes(pbnd.Data())
-		if err != nil {
-			return nil, err
-		}
-
-		if pbd.GetType() != format.THAMTShard {
-			return nil, fmt.Errorf("HAMT entries must have non-zero length name")
-		}
-
 		cds, err := NewHamtFromDag(ds.dserv, nd)
 		if err != nil {
 			return nil, err
@@ -353,7 +338,7 @@ func (ds *Shard) insertChild(idx int, key string, lnk *ipld.Link) error {
 	}
 
 	i := ds.indexForBitPos(idx)
-	ds.bitfield.SetBit(ds.bitfield, idx, 1)
+	ds.bitfield.SetBit(idx)
 
 	lnk.Name = ds.linkNamePrefix(idx) + key
 	sv := &shardValue{
@@ -382,7 +367,7 @@ func (ds *Shard) rmChild(i int) error {
 
 func (ds *Shard) getValue(ctx context.Context, hv *hashBits, key string, cb func(*shardValue) error) error {
 	idx := hv.Next(ds.tableSizeLg2)
-	if ds.bitfield.Bit(int(idx)) == 1 {
+	if ds.bitfield.Bit(int(idx)) {
 		cindex := ds.indexForBitPos(idx)
 
 		child, err := ds.getChild(ctx, cindex)
@@ -424,14 +409,7 @@ func (ds *Shard) ForEachLink(ctx context.Context, f func(*ipld.Link) error) erro
 }
 
 func (ds *Shard) walkTrie(ctx context.Context, cb func(*shardValue) error) error {
-	for i := 0; i < ds.tableSize; i++ {
-		if ds.bitfield.Bit(i) == 0 {
-			continue
-		}
-
-		idx := ds.indexForBitPos(i)
-		// NOTE: an optimized version could simply iterate over each
-		//       element in the 'children' array.
+	for idx := range ds.children {
 		c, err := ds.getChild(ctx, idx)
 		if err != nil {
 			return err
@@ -439,14 +417,12 @@ func (ds *Shard) walkTrie(ctx context.Context, cb func(*shardValue) error) error
 
 		switch c := c.(type) {
 		case *shardValue:
-			err := cb(c)
-			if err != nil {
+			if err := cb(c); err != nil {
 				return err
 			}
 
 		case *Shard:
-			err := c.walkTrie(ctx, cb)
-			if err != nil {
+			if err := c.walkTrie(ctx, cb); err != nil {
 				return err
 			}
 		default:
@@ -459,7 +435,7 @@ func (ds *Shard) walkTrie(ctx context.Context, cb func(*shardValue) error) error
 func (ds *Shard) modifyValue(ctx context.Context, hv *hashBits, key string, val *ipld.Link) error {
 	idx := hv.Next(ds.tableSizeLg2)
 
-	if ds.bitfield.Bit(idx) != 1 {
+	if !ds.bitfield.Bit(idx) {
 		return ds.insertChild(idx, key, val)
 	}
 
@@ -484,7 +460,7 @@ func (ds *Shard) modifyValue(ctx context.Context, hv *hashBits, key string, val 
 				// Note: this shouldnt normally ever happen
 				//       in the event of another implementation creates flawed
 				//       structures, this will help to normalize them.
-				ds.bitfield.SetBit(ds.bitfield, idx, 0)
+				ds.bitfield.UnsetBit(idx)
 				return ds.rmChild(cindex)
 			case 1:
 				nchild, ok := child.children[0].(*shardValue)
@@ -501,7 +477,7 @@ func (ds *Shard) modifyValue(ctx context.Context, hv *hashBits, key string, val 
 		if child.key == key {
 			// value modification
 			if val == nil {
-				ds.bitfield.SetBit(ds.bitfield, idx, 0)
+				ds.bitfield.UnsetBit(idx)
 				return ds.rmChild(cindex)
 			}
 
@@ -545,15 +521,7 @@ func (ds *Shard) modifyValue(ctx context.Context, hv *hashBits, key string, val 
 // the given bit in the bitset.  The collapsed array contains only one entry
 // per bit set in the bitfield, and this function is used to map the indices.
 func (ds *Shard) indexForBitPos(bp int) int {
-	// TODO: an optimization could reuse the same 'mask' here and change the size
-	//       as needed. This isnt yet done as the bitset package doesnt make it easy
-	//       to do.
-
-	// make a bitmask (all bits set) 'bp' bits long
-	mask := new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(bp)), nil), big.NewInt(1))
-	mask.And(mask, ds.bitfield)
-
-	return popCount(mask)
+	return ds.bitfield.OnesBefore(bp)
 }
 
 // linkNamePrefix takes in the bitfield index of an entry and returns its hex prefix
