@@ -296,6 +296,10 @@ can't be undone.
 var configProfileCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Apply profiles to config.",
+		ShortDescription: fmt.Sprintf(`
+Available profiles:
+%s
+`, buildProfileHelp()),
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -317,13 +321,28 @@ var configProfileApplyCmd = &cmds.Command{
 			return
 		}
 
-		err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile)
+		err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile.Transform)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 		res.SetOutput(nil)
 	},
+}
+
+func buildProfileHelp() string {
+	var out string
+
+	for name, profile := range config.Profiles {
+		dlines := strings.Split(profile.Description, "\n")
+		for i := range dlines {
+			dlines[i] = "    " + dlines[i]
+		}
+
+		out = out + fmt.Sprintf("  '%s':\n%s\n", name, strings.Join(dlines, "\n"))
+	}
+
+	return out
 }
 
 func transformConfig(configRoot string, configName string, transformer config.Transformer) error {

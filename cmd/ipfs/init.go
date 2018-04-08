@@ -34,14 +34,7 @@ Initializes ipfs configuration files and generates a new keypair.
 If you are going to run IPFS in server environment, you may want to
 initialize it using 'server' profile.
 
-Available profiles:
-    'server' - Disables local host discovery, recommended when
-        running IPFS on machines with public IPv4 addresses.
-    'test' - Reduces external interference of IPFS daemon, this
-        is useful when using the daemon in test environments.
-    'lowpower' - Reduces daemon overhead on the system. May affect node
-        functionality - performance of content discovery and data fetching
-        may be degraded.
+For the list of available profiles see 'ipfs config profile --help'
 
 ipfs uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
@@ -160,7 +153,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 			return fmt.Errorf("invalid configuration profile: %s", profile)
 		}
 
-		if err := transformer(conf); err != nil {
+		if err := transformer.Transform(conf); err != nil {
 			return err
 		}
 	}
