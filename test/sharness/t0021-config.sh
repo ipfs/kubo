@@ -212,8 +212,13 @@ test_config_cmd() {
 
   test_profile_apply_revert server local-discovery
 
-  # won't work as we already have this profile applied
-  # test_profile_apply_revert test
+  # tests above mess with values this profile changes, need to do that before testing test profile
+  test_expect_success "ensure test profile is applied fully" '
+    ipfs config profile apply test
+  '
+
+  # need to do this in reverse as the test profile is already applied in sharness
+  test_profile_apply_revert default-networking test
 
   # won't work as it changes datastore definition, which makes ipfs not launch
   # without converting first

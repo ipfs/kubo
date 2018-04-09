@@ -86,6 +86,12 @@ Inverse profile of the test profile.`,
 		Transform: func(c *Config) error {
 			c.Addresses = addressesConfig()
 
+			bootstrapPeers, err := DefaultBootstrapPeers()
+			if err != nil {
+				return err
+			}
+			c.Bootstrap = appendSingle(c.Bootstrap, BootstrapPeerStrings(bootstrapPeers))
+
 			c.Swarm.DisableNatPortMap = false
 			c.Discovery.MDNS.Enabled = true
 			return nil
@@ -156,14 +162,21 @@ fetching may be degraded.
 }
 
 func appendSingle(a []string, b []string) []string {
-	m := map[string]struct{}{}
+	out := make([]string, 0, len(a)+len(b))
+	m := map[string]bool{}
 	for _, f := range a {
-		m[f] = struct{}{}
+		if !m[f] {
+			out = append(out, f)
+		}
+		m[f] = true
 	}
 	for _, f := range b {
-		m[f] = struct{}{}
+		if !m[f] {
+			out = append(out, f)
+		}
+		m[f] = true
 	}
-	return mapKeys(m)
+	return out
 }
 
 func deleteEntries(arr []string, del []string) []string {
