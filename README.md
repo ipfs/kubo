@@ -155,7 +155,7 @@ dependencies as well.
   (See https://github.com/ipfs/go-ipfs/issues/177)
 * For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder.
 * Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
-* See the [init examples](https://github.com/ipfs/examples/tree/master/examples/init) for how to connect IPFS to systemd or whatever init system your distro uses.
+* See the [init examples](https://github.com/ipfs/website/tree/master/static/docs/examples/init) for how to connect IPFS to systemd or whatever init system your distro uses.
 
 ### Development Dependencies
 
