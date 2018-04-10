@@ -68,6 +68,9 @@ def gobuild_step(list) {
   }
 }
 
+def benchNodeAddr
+def benchJsonHash
+
 /* PIPELINE */
 
 ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
@@ -92,7 +95,7 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
         timeout(time: check_timeout, unit: 'MINUTES') {
           gobuild_step(fast_build_platforms)
         }
-      }
+      },
     )
   }
 
@@ -187,6 +190,13 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
               /* junit allowEmptyResults: true, testResults: 'test/sharness/test-results/sharness.xml' */
             }
           }
+        }
+      },
+      'benchmark': {
+        setupStep('linux') { run ->
+          run 'make test/bench/bench-results.json'
+
+          benchmark altInputSchema: '', altInputSchemaLocation: '', inputLocation: 'test/bench/bench-results.json', schemaSelection: 'defaultSchema', truncateStrings: false
         }
       },
     )

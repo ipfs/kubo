@@ -1,0 +1,11 @@
+{
+  "description": "Schema for gobench-to-json output",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "Name": { "type": "name" },
+      ""
+    }
+  }
+}

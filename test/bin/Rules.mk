@@ -26,6 +26,10 @@ $(d)/ma-pipe-unidir: test/dependencies/ma-pipe-unidir
 	$(go-build)
 TGTS_$(d) += $(d)/ma-pipe-unidir
 
+$(d)/gobench-to-json: test/dependencies/gobench-to-json
+	$(go-build)
+TGTS_$(d) += $(d)/gobench-to-json
+
 TGTS_GX_$(d) := hang-fds iptb
 TGTS_GX_$(d) := $(addprefix $(d)/,$(TGTS_GX_$(d)))
 

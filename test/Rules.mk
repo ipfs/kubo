@@ -1,5 +1,8 @@
 include mk/header.mk
 
+dir := $(d)/bench
+include $(dir)/Rules.mk
+
 dir := $(d)/bin
 include $(dir)/Rules.mk
 
