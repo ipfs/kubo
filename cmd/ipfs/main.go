@@ -52,7 +52,6 @@ const (
 type cmdInvocation struct {
 	req  *cmds.Request
 	node *core.IpfsNode
-	ctx  *oldcmds.Context
 }
 
 type exitErr int
@@ -181,7 +180,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		exctr = client.(cmds.Executor)
 	} else {
 		cctx := env.(*oldcmds.Context)
-		pluginpath := filepath.Join(cctx.ConfigRoot, "plugins")
+		pluginPath := filepath.Join(cctx.ConfigRoot, "plugins")
 
 		// check if repo is accessible before loading plugins
 		ok, err := checkPermissions(cctx.ConfigRoot)
@@ -189,8 +188,14 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 			return nil, err
 		}
 		if ok {
-			if _, err := loader.LoadPlugins(pluginpath); err != nil {
+			if _, err := loader.LoadPlugins(pluginPath); err != nil {
 				log.Warning("error loading plugins: ", err)
+			}
+		}
+
+		if config.SystemPluginPath != "" {
+			if _, err := loader.LoadPlugins(config.SystemPluginPath); err != nil {
+				return nil, err
 			}
 		}
 

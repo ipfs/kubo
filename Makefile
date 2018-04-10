@@ -7,4 +7,5 @@ PROTOC = protoc --gogo_out=. --proto_path=.:/usr/local/opt/protobuf/include:$(di
 # enable second expansion
 .SECONDEXPANSION:
 
+include config.mk
 include Rules.mk
