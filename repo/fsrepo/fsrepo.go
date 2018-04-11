@@ -398,7 +398,7 @@ func (r *FSRepo) openDatastore() error {
 	if r.config.Datastore.Type != "" || r.config.Datastore.Path != "" {
 		return fmt.Errorf("old style datatstore config detected")
 	} else if r.config.Datastore.Spec == nil {
-		return fmt.Errorf("required Datastore.Spec entry missing form config file")
+		return fmt.Errorf("required Datastore.Spec entry missing from config file")
 	}
 
 	dsc, err := AnyDatastoreConfig(r.config.Datastore.Spec)
