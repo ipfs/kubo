@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
+
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	bls "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
-
-var MaxIdHashLen = 64
 
 // idstore wraps a BlockStore to add support for identity hashes
 type idstore struct {
@@ -26,9 +26,9 @@ func extractContents(k *cid.Cid) (bool, []byte, error) {
 	if err != nil || dmh.Code != mh.ID {
 		return false, nil, nil
 	}
-	if len(dmh.Digest) > MaxIdHashLen {
+	if len(dmh.Digest) > cide.MaxIdHashLen {
 		return true, nil, fmt.Errorf("identity hash of %d bytes is longer than maximum size of %d bytes",
-			len(dmh.Digest), MaxIdHashLen)
+			len(dmh.Digest), cide.MaxIdHashLen)
 	}
 	return true, dmh.Digest, nil
 }

@@ -14,8 +14,8 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
 	mfs "github.com/ipfs/go-ipfs/mfs"
-	ft "github.com/ipfs/go-ipfs/unixfs"
 	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	bstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
@@ -44,6 +44,7 @@ const (
 	fstoreCacheOptionName = "fscache"
 	cidVersionOptionName  = "cid-version"
 	hashOptionName        = "hash"
+	idHashLimitOptionName = "id-hash-limit"
 )
 
 const adderOutChanSize = 8
@@ -120,6 +121,7 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmdkit.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. (experimental)"),
 		cmdkit.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
+		cmdkit.IntOption(idHashLimitOptionName, "Id hash maxium size. -1 disables. (experimental)").WithDefault(-1),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -173,6 +175,7 @@ You can now check what blocks have been created by:
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
 		hashFunStr, _ := req.Options[hashOptionName].(string)
+		idHashLimit, _ := req.Options[idHashLimitOptionName].(int)
 
 		// The arguments are subject to the following constraints.
 		//
@@ -281,6 +284,12 @@ You can now check what blocks have been created by:
 		fileAdder.RawLeaves = rawblks
 		fileAdder.NoCopy = nocopy
 		fileAdder.CidOpts = &cide.Opts{Prefix: prefix}
+
+		err = fileAdder.CidOpts.SetIdHashLimit(idHashLimit)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		if hash {
 			md := dagtest.Mock()
