@@ -18,6 +18,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	"github.com/ipfs/go-ipfs/pin"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
@@ -108,7 +109,7 @@ type Adder struct {
 	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
 	tempRoot   *cid.Cid
-	Prefix     *cid.Prefix
+	CidOpts    *cide.Opts
 	liveNodes  uint64
 }
 
@@ -117,7 +118,7 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 		return adder.mroot, nil
 	}
 	rnode := unixfs.EmptyDirNode()
-	rnode.SetPrefix(adder.Prefix)
+	rnode.SetCidOpts(adder.CidOpts)
 	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil)
 	if err != nil {
 		return nil, err
@@ -143,7 +144,7 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 		RawLeaves: adder.RawLeaves,
 		Maxlinks:  ihelper.DefaultLinksPerBlock,
 		NoCopy:    adder.NoCopy,
-		Prefix:    adder.Prefix,
+		CidOpts:   adder.CidOpts,
 	}
 
 	if adder.Trickle {
@@ -407,7 +408,7 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 		opts := mfs.MkdirOpts{
 			Mkparents: true,
 			Flush:     false,
-			Prefix:    adder.Prefix,
+			CidOpts:   adder.CidOpts,
 		}
 		if err := mfs.Mkdir(mr, dir, opts); err != nil {
 			return err
@@ -470,7 +471,7 @@ func (adder *Adder) addFile(file files.File) error {
 		}
 
 		dagnode := dag.NodeWithData(sdata)
-		dagnode.SetPrefix(adder.Prefix)
+		dagnode.SetCidOpts(adder.CidOpts)
 		err = adder.dagService.Add(adder.ctx, dagnode)
 		if err != nil {
 			return err
@@ -511,7 +512,7 @@ func (adder *Adder) addDir(dir files.File) error {
 	err = mfs.Mkdir(mr, dir.FileName(), mfs.MkdirOpts{
 		Mkparents: true,
 		Flush:     false,
-		Prefix:    adder.Prefix,
+		CidOpts:   adder.CidOpts,
 	})
 	if err != nil {
 		return err

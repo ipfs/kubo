@@ -15,6 +15,7 @@ import (
 	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	bstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
@@ -279,13 +280,13 @@ You can now check what blocks have been created by:
 		fileAdder.Silent = silent
 		fileAdder.RawLeaves = rawblks
 		fileAdder.NoCopy = nocopy
-		fileAdder.Prefix = &prefix
+		fileAdder.CidOpts = &cide.Opts{Prefix: prefix}
 
 		if hash {
 			md := dagtest.Mock()
 			emptyDirNode := ft.EmptyDirNode()
 			// Use the same prefix for the "empty" MFS root as for the file adder.
-			emptyDirNode.Prefix = *fileAdder.Prefix
+			emptyDirNode.CidOpts = *fileAdder.CidOpts
 			mr, err := mfs.NewRoot(req.Context, md, emptyDirNode, nil)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)

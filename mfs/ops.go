@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	path "github.com/ipfs/go-ipfs/path"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
@@ -102,7 +102,7 @@ func PutNode(r *Root, path string, nd ipld.Node) error {
 type MkdirOpts struct {
 	Mkparents bool
 	Flush     bool
-	Prefix    *cid.Prefix
+	CidOpts   *cide.Opts
 }
 
 // Mkdir creates a directory at 'path' under the directory 'd', creating
@@ -137,8 +137,8 @@ func Mkdir(r *Root, pth string, opts MkdirOpts) error {
 			if err != nil {
 				return err
 			}
-			if opts.Prefix != nil {
-				mkd.SetPrefix(opts.Prefix)
+			if opts.CidOpts != nil {
+				mkd.SetCidOpts(opts.CidOpts)
 			}
 			fsn = mkd
 		} else if err != nil {
@@ -158,8 +158,8 @@ func Mkdir(r *Root, pth string, opts MkdirOpts) error {
 			return err
 		}
 	}
-	if opts.Prefix != nil {
-		final.SetPrefix(opts.Prefix)
+	if opts.CidOpts != nil {
+		final.SetCidOpts(opts.CidOpts)
 	}
 
 	if opts.Flush {

@@ -28,11 +28,11 @@ import (
 	"os"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	format "github.com/ipfs/go-ipfs/unixfs"
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
 
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 	"gx/ipfs/QmfJHywXQu98UeZtGJBQrPAR6AtmDjjbe3qjTo9piXHPnx/murmur3"
 )
@@ -53,7 +53,7 @@ type Shard struct {
 	tableSize    int
 	tableSizeLg2 int
 
-	prefix   *cid.Prefix
+	cidOpts  *cide.Opts
 	hashFunc uint64
 
 	prefixPadStr string
@@ -125,25 +125,25 @@ func NewHamtFromDag(dserv ipld.DAGService, nd ipld.Node) (*Shard, error) {
 	ds.children = make([]child, len(pbnd.Links()))
 	ds.bitfield = new(big.Int).SetBytes(pbd.GetData())
 	ds.hashFunc = pbd.GetHashType()
-	ds.prefix = &ds.nd.Prefix
+	ds.cidOpts = &ds.nd.CidOpts
 
 	return ds, nil
 }
 
-// SetPrefix sets the CID Prefix
-func (ds *Shard) SetPrefix(prefix *cid.Prefix) {
-	ds.prefix = prefix
+// SetCidOpts sets the CID Options
+func (ds *Shard) SetCidOpts(opts *cide.Opts) {
+	ds.cidOpts = opts
 }
 
-// Prefix gets the CID Prefix, may be nil if unset
-func (ds *Shard) Prefix() *cid.Prefix {
-	return ds.prefix
+// CidOpts gets the CID Options, may be nil if unset
+func (ds *Shard) CidOpts() *cide.Opts {
+	return ds.cidOpts
 }
 
 // Node serializes the HAMT structure into a merkledag node with unixfs formatting
 func (ds *Shard) Node() (ipld.Node, error) {
 	out := new(dag.ProtoNode)
-	out.SetPrefix(ds.prefix)
+	out.SetCidOpts(ds.cidOpts)
 
 	// TODO: optimized 'for each set bit'
 	for i := 0; i < ds.tableSize; i++ {
@@ -518,7 +518,7 @@ func (ds *Shard) modifyValue(ctx context.Context, hv *hashBits, key string, val 
 		if err != nil {
 			return err
 		}
-		ns.prefix = ds.prefix
+		ns.cidOpts = ds.cidOpts
 		chhv := &hashBits{
 			b:        hash([]byte(child.key)),
 			consumed: hv.consumed,

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
+
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -37,12 +39,12 @@ var _ ipld.DecodeBlockFunc = DecodeRawBlock
 
 // NewRawNodeWPrefix creates a RawNode with the hash function
 // specified in prefix.
-func NewRawNodeWPrefix(data []byte, prefix cid.Prefix) (*RawNode, error) {
-	prefix.Codec = cid.Raw
-	if prefix.Version == 0 {
-		prefix.Version = 1
+func NewRawNodeWOpts(data []byte, opts cide.Opts) (*RawNode, error) {
+	opts.Codec = cid.Raw
+	if opts.Version == 0 {
+		opts.Version = 1
 	}
-	c, err := prefix.Sum(data)
+	c, err := opts.Sum(data)
 	if err != nil {
 		return nil, err
 	}

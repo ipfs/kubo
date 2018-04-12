@@ -11,11 +11,11 @@ import (
 	"time"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
@@ -63,13 +63,13 @@ func NewDirectory(ctx context.Context, name string, node ipld.Node, parent child
 }
 
 // GetPrefix gets the CID prefix of the root node
-func (d *Directory) GetPrefix() *cid.Prefix {
-	return d.dirbuilder.GetPrefix()
+func (d *Directory) GetCidOpts() *cide.Opts {
+	return d.dirbuilder.GetCidOpts()
 }
 
 // SetPrefix sets the CID prefix
-func (d *Directory) SetPrefix(prefix *cid.Prefix) {
-	d.dirbuilder.SetPrefix(prefix)
+func (d *Directory) SetCidOpts(opts *cide.Opts) {
+	d.dirbuilder.SetCidOpts(opts)
 }
 
 // closeChild updates the child by the given name to the dag node 'nd'
@@ -308,7 +308,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	}
 
 	ndir := ft.EmptyDirNode()
-	ndir.SetPrefix(d.GetPrefix())
+	ndir.SetCidOpts(d.GetCidOpts())
 
 	err = d.dserv.Add(d.ctx, ndir)
 	if err != nil {

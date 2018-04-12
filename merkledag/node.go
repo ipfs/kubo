@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
+
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -28,7 +30,7 @@ type ProtoNode struct {
 	cached *cid.Cid
 
 	// Prefix specifies cid version and hashing function
-	Prefix cid.Prefix
+	CidOpts cide.Opts
 }
 
 var v0CidPrefix = cid.Prefix{
@@ -63,14 +65,14 @@ func PrefixForCidVersion(version int) (cid.Prefix, error) {
 	}
 }
 
-// SetPrefix sets the CID prefix if it is non nil, if prefix is nil then
+// SetPrefix sets the CID options if it is non nil, if prefix is nil then
 // it resets it the default value
-func (n *ProtoNode) SetPrefix(prefix *cid.Prefix) {
-	if prefix == nil {
-		n.Prefix = v0CidPrefix
+func (n *ProtoNode) SetCidOpts(opts *cide.Opts) {
+	if opts == nil {
+		n.CidOpts = cide.Opts{Prefix: v0CidPrefix}
 	} else {
-		n.Prefix = *prefix
-		n.Prefix.Codec = cid.DagProtobuf
+		n.CidOpts = *opts
+		n.CidOpts.Codec = cid.DagProtobuf
 		n.encoded = nil
 		n.cached = nil
 	}
@@ -204,7 +206,7 @@ func (n *ProtoNode) Copy() ipld.Node {
 		copy(nnode.links, n.links)
 	}
 
-	nnode.Prefix = n.Prefix
+	nnode.CidOpts = n.CidOpts
 
 	return nnode
 }
@@ -314,11 +316,11 @@ func (n *ProtoNode) Cid() *cid.Cid {
 		return n.cached
 	}
 
-	if n.Prefix.Codec == 0 {
-		n.SetPrefix(nil)
+	if n.CidOpts.Codec == 0 {
+		n.SetCidOpts(nil)
 	}
 
-	c, err := n.Prefix.Sum(n.RawData())
+	c, err := n.CidOpts.Sum(n.RawData())
 	if err != nil {
 		// programmer error
 		err = fmt.Errorf("invalid CID of length %d: %x: %v", len(n.RawData()), n.RawData(), err)

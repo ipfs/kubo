@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/ipfs/go-ipfs/merkledag"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -25,7 +26,7 @@ func dagpbJSONParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error)
 		return nil, err
 	}
 
-	nd.SetPrefix(cidPrefix(mhType, mhLen))
+	nd.SetCidOpts(cidOpts(mhType, mhLen))
 
 	return []ipld.Node{nd}, nil
 }
@@ -41,26 +42,26 @@ func dagpbRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) 
 		return nil, err
 	}
 
-	nd.SetPrefix(cidPrefix(mhType, mhLen))
+	nd.SetCidOpts(cidOpts(mhType, mhLen))
 
 	return []ipld.Node{nd}, nil
 }
 
-func cidPrefix(mhType uint64, mhLen int) *cid.Prefix {
+func cidOpts(mhType uint64, mhLen int) *cide.Opts {
 	if mhType == math.MaxUint64 {
 		mhType = mh.SHA2_256
 	}
 
-	prefix := &cid.Prefix{
+	opts := &cide.Opts{Prefix: cid.Prefix{
 		MhType:   mhType,
 		MhLength: mhLen,
 		Version:  1,
 		Codec:    cid.DagProtobuf,
-	}
+	}}
 
 	if mhType == mh.SHA2_256 {
-		prefix.Version = 0
+		opts.Version = 0
 	}
 
-	return prefix
+	return opts
 }

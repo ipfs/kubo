@@ -6,10 +6,10 @@ import (
 	"os"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	pi "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	pi "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
@@ -60,9 +60,9 @@ func NewUnixfsNodeFromDag(nd *dag.ProtoNode) (*UnixfsNode, error) {
 	}, nil
 }
 
-// SetPrefix sets the CID Prefix
-func (n *UnixfsNode) SetPrefix(prefix *cid.Prefix) {
-	n.node.SetPrefix(prefix)
+// SetCidOpts sets the CID Prefix
+func (n *UnixfsNode) SetCidOpts(opts *cide.Opts) {
+	n.node.SetCidOpts(opts)
 }
 
 // NumChildren returns the number of children referenced by this UnixfsNode.

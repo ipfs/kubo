@@ -6,10 +6,10 @@ import (
 	"os"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	format "github.com/ipfs/go-ipfs/unixfs"
 	hamt "github.com/ipfs/go-ipfs/unixfs/hamt"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
@@ -89,12 +89,12 @@ func NewDirectoryFromNode(dserv ipld.DAGService, nd ipld.Node) (*Directory, erro
 }
 
 // SetPrefix sets the prefix of the root node
-func (d *Directory) SetPrefix(prefix *cid.Prefix) {
+func (d *Directory) SetCidOpts(opts *cide.Opts) {
 	if d.dirnode != nil {
-		d.dirnode.SetPrefix(prefix)
+		d.dirnode.SetCidOpts(opts)
 	}
 	if d.shard != nil {
-		d.shard.SetPrefix(prefix)
+		d.shard.SetCidOpts(opts)
 	}
 }
 
@@ -120,7 +120,7 @@ func (d *Directory) switchToSharding(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	s.SetPrefix(&d.dirnode.Prefix)
+	s.SetCidOpts(&d.dirnode.CidOpts)
 
 	d.shard = s
 	for _, lnk := range d.dirnode.Links() {
@@ -205,10 +205,10 @@ func (d *Directory) GetNode() (ipld.Node, error) {
 }
 
 // GetPrefix returns the CID Prefix used
-func (d *Directory) GetPrefix() *cid.Prefix {
+func (d *Directory) GetCidOpts() *cide.Opts {
 	if d.shard == nil {
-		return &d.dirnode.Prefix
+		return &d.dirnode.CidOpts
 	}
 
-	return d.shard.Prefix()
+	return d.shard.CidOpts()
 }
