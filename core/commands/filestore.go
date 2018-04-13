@@ -14,8 +14,8 @@ import (
 	"github.com/ipfs/go-ipfs/filestore"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmZVPuwGNz2s9THwLS4psrJGam6NSEQMvDTaaZgNfqQBCE/go-ipfs-cmds"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -49,11 +49,10 @@ The output is:
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("file-order", "sort the results based on the path of the backing file"),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		_, fs, err := getFilestore(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		args := req.Arguments
 		if len(args) > 0 {
@@ -61,59 +60,50 @@ The output is:
 				return filestore.List(fs, c)
 			})
 
-			err = res.Emit(out)
-			if err != nil {
-				log.Error(err)
-			}
-		} else {
-			fileOrder, _ := req.Options["file-order"].(bool)
-			next, err := filestore.ListAll(fs, fileOrder)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-
-			out := listResToChan(req.Context, next)
-			err = res.Emit(out)
-			if err != nil {
-				log.Error(err)
-			}
+			return res.Emit(out)
 		}
+
+		fileOrder, _ := req.Options["file-order"].(bool)
+		next, err := filestore.ListAll(fs, fileOrder)
+		if err != nil {
+			return err
+		}
+
+		out := listResToChan(req.Context, next)
+		return res.Emit(out)
 	},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
-			reNext, res := cmds.NewChanResponsePair(req)
-
-			go func() {
-				defer re.Close()
-
-				var errors bool
-				for {
-					v, err := res.Next()
-					if !cmds.HandleError(err, res, re) {
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			var errors bool
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
 						break
 					}
-
-					r, ok := v.(*filestore.ListRes)
-					if !ok {
-						log.Error(e.New(e.TypeErr(r, v)))
-						return
-					}
-
-					if r.ErrorMsg != "" {
-						errors = true
-						fmt.Fprintf(os.Stderr, "%s\n", r.ErrorMsg)
-					} else {
-						fmt.Fprintf(os.Stdout, "%s\n", r.FormatLong())
-					}
+					return err
 				}
 
-				if errors {
-					re.SetError("errors while displaying some entries", cmdkit.ErrNormal)
+				r, ok := v.(*filestore.ListRes)
+				if !ok {
+					// TODO or just return that error? why didn't we do that before?
+					log.Error(e.New(e.TypeErr(r, v)))
+					break
 				}
-			}()
 
-			return reNext
+				if r.ErrorMsg != "" {
+					errors = true
+					fmt.Fprintf(os.Stderr, "%s\n", r.ErrorMsg)
+				} else {
+					fmt.Fprintf(os.Stdout, "%s\n", r.FormatLong())
+				}
+			}
+
+			if errors {
+				return fmt.Errorf("errors while displaying some entries")
+			}
+
+			return nil
 		},
 	},
 	Type: filestore.ListRes{},

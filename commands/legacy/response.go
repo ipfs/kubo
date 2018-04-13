@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"sync"
 
-	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	"gx/ipfs/QmZVPuwGNz2s9THwLS4psrJGam6NSEQMvDTaaZgNfqQBCE/go-ipfs-cmds"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 )
@@ -34,7 +34,10 @@ func (rw *responseWrapper) Output() interface{} {
 		// get first emitted value
 		x, err := rw.Next()
 		if err != nil {
-			return nil
+			ch := make(chan interface{})
+			log.Error(err)
+			close(ch)
+			return (<-chan interface{})(ch)
 		}
 		if e, ok := x.(*cmdkit.Error); ok {
 			ch := make(chan interface{})
@@ -120,16 +123,13 @@ func (r *fakeResponse) Send(errCh chan<- error) {
 	defer close(errCh)
 
 	out := r.Output()
-	if out == nil {
+
+	// don't emit nil or Single{nil}
+	if out == nil || out == (cmds.Single{Value: nil}) {
 		return
 	}
 
-	if ch, ok := out.(chan interface{}); ok {
-		out = (<-chan interface{})(ch)
-	}
-
-	err := r.re.Emit(out)
-	errCh <- err
+	errCh <- r.re.Emit(out)
 	return
 }
 
@@ -141,7 +141,7 @@ func (r *fakeResponse) Request() oldcmds.Request {
 // SetError forwards the call to the underlying ResponseEmitter
 func (r *fakeResponse) SetError(err error, code cmdkit.ErrorType) {
 	defer r.once.Do(func() { close(r.wait) })
-	r.re.SetError(err, code)
+	r.re.CloseWithError(cmdkit.Errorf(code, err.Error()))
 }
 
 // Error is an empty stub

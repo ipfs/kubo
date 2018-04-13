@@ -26,6 +26,7 @@ fi
 # it's too late to pass in --verbose, and --verbose is harder
 # to pass through in some cases.
 test "$TEST_VERBOSE" = 1 && verbose=t
+test "$TEST_IMMEDIATE" = 1 && immediate=t
 # source the common hashes first.
 . lib/test-lib-hashes.sh
 

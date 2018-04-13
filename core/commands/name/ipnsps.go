@@ -1,7 +1,6 @@
 package name
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -9,9 +8,9 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/e"
 
-	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	"gx/ipfs/QmZVPuwGNz2s9THwLS4psrJGam6NSEQMvDTaaZgNfqQBCE/go-ipfs-cmds"
 	"gx/ipfs/QmdHb9aBELnQKTVhvvA3hsQbRgUAwsWUzBP2vZ6Y5FBYvE/go-libp2p-record"
 )
 
@@ -48,14 +47,13 @@ var ipnspsStateCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Query the state of IPNS pubsub",
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		cmds.EmitOnce(res, &ipnsPubsubState{n.PSRouter != nil})
+		return cmds.EmitOnce(res, &ipnsPubsubState{n.PSRouter != nil})
 	},
 	Type: ipnsPubsubState{},
 	Encoders: cmds.EncoderMap{
@@ -82,16 +80,14 @@ var ipnspsSubsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Show current name subscriptions",
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if n.PSRouter == nil {
-			res.SetError(errors.New("IPNS pubsub subsystem is not enabled"), cmdkit.ErrClient)
-			return
+			return cmdkit.Errorf(cmdkit.ErrClient, "IPNS pubsub subsystem is not enabled")
 		}
 		var paths []string
 		for _, key := range n.PSRouter.GetSubscriptions() {
@@ -108,7 +104,7 @@ var ipnspsSubsCmd = &cmds.Command{
 			paths = append(paths, "/ipns/"+peer.IDB58Encode(pid))
 		}
 
-		cmds.EmitOnce(res, &stringList{paths})
+		return cmds.EmitOnce(res, &stringList{paths})
 	},
 	Type: stringList{},
 	Encoders: cmds.EncoderMap{
@@ -120,28 +116,25 @@ var ipnspsCancelCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Cancel a name subscription",
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if n.PSRouter == nil {
-			res.SetError(errors.New("IPNS pubsub subsystem is not enabled"), cmdkit.ErrClient)
-			return
+			return cmdkit.Errorf(cmdkit.ErrClient, "IPNS pubsub subsystem is not enabled")
 		}
 
 		name := req.Arguments[0]
 		name = strings.TrimPrefix(name, "/ipns/")
 		pid, err := peer.IDB58Decode(name)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrClient)
-			return
+			return cmdkit.Errorf(cmdkit.ErrClient, err.Error())
 		}
 
 		ok := n.PSRouter.Cancel("/ipns/" + string(pid))
-		cmds.EmitOnce(res, &ipnsPubsubCancel{ok})
+		return cmds.EmitOnce(res, &ipnsPubsubCancel{ok})
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("name", true, false, "Name to cancel the subscription for."),

@@ -17,9 +17,9 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	config "gx/ipfs/QmYVqYJTVjetcf1guieEgWpK1PZtHPytP624vKzTF1P3r2/go-ipfs-config"
+	cmds "gx/ipfs/QmZVPuwGNz2s9THwLS4psrJGam6NSEQMvDTaaZgNfqQBCE/go-ipfs-cmds"
 	bstore "gx/ipfs/QmegPGspn3RpTMQ23Fd3GVVMopo1zsEMurudbFMZ5UXBLH/go-ipfs-blockstore"
 )
 
@@ -99,7 +99,7 @@ order to reclaim hard disk space.
 					}
 				}
 				if errs {
-					res.SetError(fmt.Errorf("encountered errors during gc run"), cmdkit.ErrNormal)
+					outChan <- &GcResult{Error: "encountered errors during gc run"}
 				}
 			} else {
 				err := corerepo.CollectResult(req.Context(), gcOutChan, func(k cid.Cid) {
@@ -165,33 +165,30 @@ Version         string The repo version.
 		cmdkit.BoolOption("size-only", "Only report RepoSize and StorageMax."),
 		cmdkit.BoolOption("human", "Output sizes in MiB."),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		sizeOnly, _ := req.Options["size-only"].(bool)
 		if sizeOnly {
 			sizeStat, err := corerepo.RepoSize(req.Context, n)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 			cmds.EmitOnce(res, &corerepo.Stat{
 				SizeStat: sizeStat,
 			})
-			return
+			return nil
 		}
 
 		stat, err := corerepo.RepoStat(req.Context, n)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		cmds.EmitOnce(res, &stat)
+		return cmds.EmitOnce(res, &stat)
 	},
 	Type: &corerepo.Stat{},
 	Encoders: cmds.EncoderMap{

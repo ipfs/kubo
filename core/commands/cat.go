@@ -10,8 +10,8 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 
-	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmZVPuwGNz2s9THwLS4psrJGam6NSEQMvDTaaZgNfqQBCE/go-ipfs-cmds"
 )
 
 const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
@@ -29,34 +29,29 @@ var CatCmd = &cmds.Command{
 		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
 		cmdkit.IntOption("length", "l", "Maximum number of bytes to read."),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !node.OnlineMode() {
 			if err := node.SetupOfflineRouting(); err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 		}
 
 		offset, _ := req.Options["offset"].(int)
 		if offset < 0 {
-			res.SetError(fmt.Errorf("cannot specify negative offset"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot specify negative offset")
 		}
 
 		max, found := req.Options["length"].(int)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		if max < 0 {
-			res.SetError(fmt.Errorf("cannot specify negative length"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot specify negative length")
 		}
 		if !found {
 			max = -1
@@ -64,14 +59,12 @@ var CatCmd = &cmds.Command{
 
 		err = req.ParseBodyArgs()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		readers, length, err := cat(req.Context, node, req.Arguments, int64(offset), int64(max))
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		/*
@@ -88,48 +81,36 @@ var CatCmd = &cmds.Command{
 		// returned from io.Copy inside Emit, we need to take Emit errors and send
 		// them to the client. Usually we don't do that because it means the connection
 		// is broken or we supplied an illegal argument etc.
-		err = res.Emit(reader)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-		}
+		return res.Emit(reader)
 	},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
-			reNext, res := cmds.NewChanResponsePair(req)
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			if res.Length() > 0 && res.Length() < progressBarMinSize {
+				return cmds.Copy(re, res)
+			}
 
-			go func() {
-				if res.Length() > 0 && res.Length() < progressBarMinSize {
-					if err := cmds.Copy(re, res); err != nil {
-						re.SetError(err, cmdkit.ErrNormal)
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
+						return nil
 					}
-
-					return
+					return err
 				}
 
-				// Copy closes by itself, so we must not do this before
-				defer re.Close()
-				for {
-					v, err := res.Next()
-					if !cmds.HandleError(err, res, re) {
-						break
-					}
+				switch val := v.(type) {
+				case io.Reader:
+					bar, reader := progressBarForReader(os.Stderr, val, int64(res.Length()))
+					bar.Start()
 
-					switch val := v.(type) {
-					case io.Reader:
-						bar, reader := progressBarForReader(os.Stderr, val, int64(res.Length()))
-						bar.Start()
-
-						err = re.Emit(reader)
-						if err != nil {
-							log.Error(err)
-						}
-					default:
-						log.Warningf("cat postrun: received unexpected type %T", val)
+					err = re.Emit(reader)
+					if err != nil {
+						return err
 					}
+				default:
+					log.Warningf("cat postrun: received unexpected type %T", val)
 				}
-			}()
-
-			return reNext
+			}
 		},
 	},
 }
