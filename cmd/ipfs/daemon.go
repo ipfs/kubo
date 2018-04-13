@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	_ "expvar"
 	"fmt"
 	"net"
@@ -20,6 +19,7 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	"github.com/pkg/errors"
 
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	mprome "gx/ipfs/QmSTf3wJXBQk2fxdmXtodvyczrCPgJaK1B1maY78qeebNX/go-metrics-prometheus"
@@ -185,11 +185,11 @@ func defaultMux(path string) corehttp.ServeOption {
 	}
 }
 
-func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
+func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
 	// Inject metrics before we do anything
 	err := mprome.Inject()
 	if err != nil {
-		log.Errorf("Injecting prometheus handler for metrics failed with message: %s\n", err.Error())
+		return errors.Wrap(err, "Injecting prometheus handler for metrics failed with message")
 	}
 
 	// let the user know we're going.
@@ -229,8 +229,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 			err := initWithDefaults(os.Stdout, cfg, profiles)
 			if err != nil {
-				re.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 		}
 	}
@@ -240,8 +239,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	repo, err := fsrepo.Open(cctx.ConfigRoot)
 	switch err {
 	default:
-		re.SetError(err, cmdkit.ErrNormal)
-		return
+		return err
 	case fsrepo.ErrNeedMigration:
 		domigrate, found := req.Options[migrateKwd].(bool)
 		fmt.Println("Found outdated fs-repo, migrations need to be run.")
@@ -253,8 +251,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		if !domigrate {
 			fmt.Println("Not running migrations of fs-repo now.")
 			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.io")
-			re.SetError(fmt.Errorf("fs-repo requires migration"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("fs-repo requires migration")
 		}
 
 		err = migrate.RunMigration(fsrepo.RepoVersion)
@@ -263,14 +260,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			fmt.Printf("  %s\n", err)
 			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
 			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		repo, err = fsrepo.Open(cctx.ConfigRoot)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 	case nil:
 		break
@@ -278,8 +273,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	cfg, err := cctx.GetConfig()
 	if err != nil {
-		re.SetError(err, cmdkit.ErrNormal)
-		return
+		return err
 	}
 
 	offline, _ := req.Options[offlineKwd].(bool)
@@ -302,14 +296,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if err != nil {
-		re.SetError(err, cmdkit.ErrNormal)
-		return
+		return err
 	}
 	if routingOption == routingOptionDefaultKwd {
 		cfg, err := repo.Config()
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		routingOption = cfg.Routing.Type
@@ -319,8 +311,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:
-		re.SetError(errors.New("supernode routing was never fully implemented and has been removed"), cmdkit.ErrNormal)
-		return
+		return errors.New("supernode routing was never fully implemented and has been removed")
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = core.DHTClientOption
 	case routingOptionDHTKwd:
@@ -328,15 +319,13 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	case routingOptionNoneKwd:
 		ncfg.Routing = core.NilRouterOption
 	default:
-		re.SetError(fmt.Errorf("unrecognized routing option: %s", routingOption), cmdkit.ErrNormal)
-		return
+		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}
 
 	node, err := core.NewNode(req.Context, ncfg)
 	if err != nil {
 		log.Error("error from node construction: ", err)
-		re.SetError(err, cmdkit.ErrNormal)
-		return
+		return err
 	}
 	node.SetLocal(false)
 
@@ -366,29 +355,24 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// construct api endpoint - every time
 	apiErrc, err := serveHTTPApi(req, cctx)
 	if err != nil {
-		re.SetError(err, cmdkit.ErrNormal)
-		return
+		return err
 	}
 
 	// construct fuse mountpoints - if the user provided the --mount flag
 	mount, _ := req.Options[mountKwd].(bool)
 	if mount && offline {
-		re.SetError(errors.New("mount is not currently supported in offline mode"),
-			cmdkit.ErrClient)
-		return
+		return cmdkit.Errorf(cmdkit.ErrClient, "mount is not currently supported in offline mode")
 	}
 	if mount {
 		if err := mountFuse(req, cctx); err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 	}
 
 	// repo blockstore GC - if --enable-gc flag is present
 	gcErrc, err := maybeRunGC(req, node)
 	if err != nil {
-		re.SetError(err, cmdkit.ErrNormal)
-		return
+		return err
 	}
 
 	// construct http gateway - if it is set in the config
@@ -397,8 +381,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		var err error
 		gwErrc, err = serveHTTPGateway(req, cctx)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 	}
 
@@ -410,10 +393,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
 	for err := range merge(apiErrc, gwErrc, gcErrc) {
 		if err != nil {
-			log.Error(err)
-			re.SetError(err, cmdkit.ErrNormal)
+			return err
 		}
 	}
+
+	return nil
 }
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests

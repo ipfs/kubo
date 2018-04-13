@@ -29,17 +29,15 @@ func NewCommand(oldcmd *oldcmds.Command) *cmds.Command {
 	}
 
 	if oldcmd.Run != nil {
-		cmd.Run = func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
+		cmd.Run = func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
 			oldReq := &requestWrapper{req, OldContext(env)}
 			res := &fakeResponse{req: oldReq, re: re, wait: make(chan struct{})}
 
 			errCh := make(chan error)
 			go res.Send(errCh)
+
 			oldcmd.Run(oldReq, res)
-			err := <-errCh
-			if err != nil {
-				log.Error(err)
-			}
+			return <-errCh
 		}
 	}
 

@@ -52,50 +52,44 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		_, err := getCompressOptions(req)
 		return err
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cmplvl, err := getCompressOptions(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		node, err := GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		p := path.Path(req.Arguments[0])
 		ctx := req.Context
 		dn, err := core.Resolve(ctx, node.Namesys, node.Resolver, p)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		switch dn := dn.(type) {
 		case *dag.ProtoNode:
 			size, err := dn.Size()
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 
 			res.SetLength(size)
 		case *dag.RawNode:
 			res.SetLength(uint64(len(dn.RawData())))
 		default:
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		archive, _ := req.Options["archive"].(bool)
 		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.Emit(reader)
+		return res.Emit(reader)
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {

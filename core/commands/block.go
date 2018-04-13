@@ -62,20 +62,16 @@ on raw IPFS blocks. It outputs the following to stdout:
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to stat.").EnableStdin(),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		b, err := getBlockForKey(req.Context, env, req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = cmds.EmitOnce(res, &BlockStat{
+		return cmds.EmitOnce(res, &BlockStat{
 			Key:  b.Cid().String(),
 			Size: len(b.RawData()),
 		})
-		if err != nil {
-			log.Error(err)
-		}
 	},
 	Type: BlockStat{},
 	Encoders: cmds.EncoderMap{
@@ -102,17 +98,13 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		b, err := getBlockForKey(req.Context, env, req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = res.Emit(bytes.NewReader(b.RawData()))
-		if err != nil {
-			log.Error(err)
-		}
+		return res.Emit(bytes.NewReader(b.RawData()))
 	},
 }
 
@@ -136,37 +128,31 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		cmdkit.StringOption("mhtype", "multihash hash function").WithDefault("sha2-256"),
 		cmdkit.IntOption("mhlen", "multihash hash length").WithDefault(-1),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		file, err := req.Files.NextFile()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		data, err := ioutil.ReadAll(file)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		err = file.Close()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		mhtype, _ := req.Options["mhtype"].(string)
 		mhtval, ok := mh.Names[mhtype]
 		if !ok {
-			err := fmt.Errorf("unrecognized multihash function: %s", mhtype)
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("unrecognized multihash function: %s", mhtype)
 		}
 
 		var pref cid.Prefix
@@ -186,12 +172,10 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		}
 		formatval, ok := cid.Codecs[format]
 		if !ok {
-			res.SetError(fmt.Errorf("unrecognized format: '%s'", format), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("unrecognized format: '%s'", format)
 		}
 		if mhtval != mh.SHA2_256 && pref.Version == 0 {
-			res.SetError(errors.New("cannot generate CIDv0 with non-sha256 hash function"), cmdkit.ErrNormal)
-			return
+			return errors.New("cannot generate CIDv0 with non-sha256 hash function")
 		}
 
 		pref.Codec = formatval
@@ -199,36 +183,29 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 
 		mhlen, ok := req.Options["mhlen"].(int)
 		if !ok {
-			res.SetError("missing option \"mhlen\"", cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("missing option %q", "mhlen")
 		}
 		pref.MhLength = mhlen
 
 		bcid, err := pref.Sum(data)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		b, err := blocks.NewBlockWithCid(data, bcid)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		err = n.Blocks.AddBlock(b)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = cmds.EmitOnce(res, &BlockStat{
+		return cmds.EmitOnce(res, &BlockStat{
 			Key:  b.Cid().String(),
 			Size: len(data),
 		})
-		if err != nil {
-			log.Error(err)
-		}
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
@@ -281,11 +258,10 @@ It takes a list of base58 encoded multihashs to remove.
 		cmdkit.BoolOption("force", "f", "Ignore nonexistent blocks."),
 		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		hashes := req.Arguments
 		force, _ := req.Options["force"].(bool)
@@ -294,9 +270,7 @@ It takes a list of base58 encoded multihashs to remove.
 		for _, hash := range hashes {
 			c, err := cid.Decode(hash)
 			if err != nil {
-				err = fmt.Errorf("invalid content id: %s (%s)", hash, err)
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return fmt.Errorf("invalid content id: %s (%s)", hash, err)
 			}
 
 			cids = append(cids, c)
@@ -307,14 +281,10 @@ It takes a list of base58 encoded multihashs to remove.
 		})
 
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = res.Emit(ch)
-		if err != nil {
-			log.Error(err)
-		}
+		return res.Emit(ch)
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {

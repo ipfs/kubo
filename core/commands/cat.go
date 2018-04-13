@@ -28,34 +28,29 @@ var CatCmd = &cmds.Command{
 		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
 		cmdkit.IntOption("length", "l", "Maximum number of bytes to read."),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !node.OnlineMode() {
 			if err := node.SetupOfflineRouting(); err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 		}
 
 		offset, _ := req.Options["offset"].(int)
 		if offset < 0 {
-			res.SetError(fmt.Errorf("cannot specify negative offset"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot specify negative offset")
 		}
 
 		max, found := req.Options["length"].(int)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		if max < 0 {
-			res.SetError(fmt.Errorf("cannot specify negative length"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot specify negative length")
 		}
 		if !found {
 			max = -1
@@ -63,14 +58,12 @@ var CatCmd = &cmds.Command{
 
 		err = req.ParseBodyArgs()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		readers, length, err := cat(req.Context, node, req.Arguments, int64(offset), int64(max))
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		/*
@@ -87,10 +80,7 @@ var CatCmd = &cmds.Command{
 		// returned from io.Copy inside Emit, we need to take Emit errors and send
 		// them to the client. Usually we don't do that because it means the connection
 		// is broken or we supplied an illegal argument etc.
-		err = res.Emit(reader)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-		}
+		return res.Emit(reader)
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {

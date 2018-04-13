@@ -106,23 +106,22 @@ var filesStatCmd = &cmds.Command{
 		cmdkit.BoolOption("size", "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
 		cmdkit.BoolOption("with-local", "Compute the amount of the dag that is local, and if possible the total size"),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 
 		_, err := statGetFormatOptions(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrClient)
+			// REVIEW NOTE: We didn't return here before, was that correct?
+			return cmdkit.Errorf(cmdkit.ErrClient, err.Error())
 		}
 
 		node, err := GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		path, err := checkPath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		withLocal, _ := req.Options["with-local"].(bool)
@@ -140,19 +139,16 @@ var filesStatCmd = &cmds.Command{
 
 		nd, err := getNodeFromPath(req.Context, node, dagserv, path)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		o, err := statNode(nd)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !withLocal {
-			cmds.EmitOnce(res, o)
-			return
+			return cmds.EmitOnce(res, o)
 		}
 
 		local, sizeLocal, err := walkBlock(req.Context, dagserv, nd)
@@ -161,7 +157,7 @@ var filesStatCmd = &cmds.Command{
 		o.Local = local
 		o.SizeLocal = sizeLocal
 
-		cmds.EmitOnce(res, o)
+		return cmds.EmitOnce(res, o)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
@@ -701,11 +697,10 @@ stat' on the file or any of its ancestors.
 		cidVersionOption,
 		hashOption,
 	},
-	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
 		path, err := checkPath(req.Arguments[0])
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		create, _ := req.Options["create"].(bool)
@@ -715,26 +710,22 @@ stat' on the file or any of its ancestors.
 
 		prefix, err := getPrefixNew(req)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		nd, err := GetNode(env)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		offset, _ := req.Options["offset"].(int)
 		if offset < 0 {
-			re.SetError(fmt.Errorf("cannot have negative write offset"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot have negative write offset")
 		}
 
 		fi, err := getFileHandle(nd.FilesRoot, path, create, prefix)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		if rawLeavesDef {
 			fi.RawLeaves = rawLeaves
@@ -742,8 +733,7 @@ stat' on the file or any of its ancestors.
 
 		wfd, err := fi.Open(mfs.OpenWriteOnly, flush)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		defer func() {
@@ -755,28 +745,24 @@ stat' on the file or any of its ancestors.
 
 		if trunc {
 			if err := wfd.Truncate(0); err != nil {
-				re.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 		}
 
 		count, countfound := req.Options["count"].(int)
 		if countfound && count < 0 {
-			re.SetError(fmt.Errorf("cannot have negative byte count"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot have negative byte count")
 		}
 
 		_, err = wfd.Seek(int64(offset), io.SeekStart)
 		if err != nil {
 			flog.Error("seekfail: ", err)
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		input, err := req.Files.NextFile()
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		var r io.Reader = input
@@ -785,10 +771,7 @@ stat' on the file or any of its ancestors.
 		}
 
 		_, err = io.Copy(wfd, r)
-		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		return err
 	},
 }
 

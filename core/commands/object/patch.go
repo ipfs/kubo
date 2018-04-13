@@ -73,52 +73,45 @@ the limit will not be respected by the network.
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
 		cmdkit.FileArg("data", true, false, "Data to append.").EnableStdin(),
 	},
-	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := GetNode(env)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		root, err := path.ParsePath(req.Arguments[0])
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		rootnd, err := core.Resolve(req.Context, nd.Namesys, nd.Resolver, root)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		rtpb, ok := rootnd.(*dag.ProtoNode)
 		if !ok {
-			re.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
-			return
+			return dag.ErrNotProtobuf
 		}
 
 		fi, err := req.Files.NextFile()
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		data, err := ioutil.ReadAll(fi)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		rtpb.SetData(append(rtpb.Data(), data...))
 
 		err = nd.DAG.Add(req.Context, rtpb)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		cmds.EmitOnce(re, &Object{Hash: rtpb.Cid().String()})
+		return cmds.EmitOnce(re, &Object{Hash: rtpb.Cid().String()})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{

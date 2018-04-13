@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -79,37 +78,32 @@ Example:
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("1s"),
 	},
 
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		// Must be online!
 		if !nd.OnlineMode() {
-			res.SetError(errNotOnline, cmdkit.ErrClient)
-			return
+			return cmdkit.Errorf(cmdkit.ErrClient, errNotOnline.Error())
 		}
 
 		if nd.Reporter == nil {
-			res.SetError(fmt.Errorf("bandwidth reporter disabled in config"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("bandwidth reporter disabled in config")
 		}
 
 		pstr, pfound := req.Options["peer"].(string)
 		tstr, tfound := req.Options["proto"].(string)
 		if pfound && tfound {
-			res.SetError(errors.New("please only specify peer OR protocol"), cmdkit.ErrClient)
-			return
+			return cmdkit.Errorf(cmdkit.ErrClient, "please only specify peer OR protocol")
 		}
 
 		var pid peer.ID
 		if pfound {
 			checkpid, err := peer.IDB58Decode(pstr)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 			pid = checkpid
 		}
@@ -117,8 +111,7 @@ Example:
 		timeS, _ := req.Options["interval"].(string)
 		interval, err := time.ParseDuration(timeS)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		doPoll, _ := req.Options["poll"].(bool)
@@ -135,13 +128,14 @@ Example:
 				res.Emit(&totals)
 			}
 			if !doPoll {
-				return
+				return nil
 			}
 			select {
 			case <-time.After(interval):
 			case <-req.Context.Done():
-				return
 			}
+
+			return nil
 		}
 
 	},
