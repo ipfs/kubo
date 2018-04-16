@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -27,6 +28,11 @@ type ProtoNode struct {
 		encodedValue []byte
 		// Cached CID value.
 		cid *cid.Cid
+		// Lock to initialize cache (just once).
+		initialize sync.Once
+		// If the initialization failed the error needs to be saved
+		// because the marshaling is done only once.
+		initializationError error
 	}
 
 	// Prefix specifies cid version and hashing function

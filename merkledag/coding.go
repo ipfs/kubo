@@ -11,6 +11,7 @@ import (
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	"sync"
 )
 
 // for now, we use a PBNode intermediate thing.
@@ -86,20 +87,25 @@ func (n *ProtoNode) setEncodedValue(value []byte) {
 // also the cached CID).
 func (n *ProtoNode) invalidateCache() {
 	n.setEncodedValue(nil)
+	// Recreate the lock allowing the cache to be (re)initialized
+	// in the next call to `EncodeProtobuf`.
+	n.cache.initialize = sync.Once{}
 }
 
 // EncodeProtobuf returns the encoded raw data version of a Node instance.
 func (n *ProtoNode) EncodeProtobuf() ([]byte, error) {
-	sort.Stable(LinkSlice(n.links)) // keep links sorted
-	if n.cache.encodedValue == nil {
+	n.cache.initialize.Do(func() {
+		sort.Stable(LinkSlice(n.links)) // keep links sorted
 		marshaledNode, err := n.marshal()
 		if err != nil {
-			return nil, err
+			n.invalidateCache()
+			n.cache.initializationError = err
+		} else {
+			n.setEncodedValue(marshaledNode)
 		}
-		n.setEncodedValue(marshaledNode)
-	}
+	})
 
-	return n.cache.encodedValue, nil
+	return n.cache.encodedValue, n.cache.initializationError
 }
 
 // DecodeProtobuf decodes raw data and returns a new Node instance.
