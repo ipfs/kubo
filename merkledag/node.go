@@ -207,12 +207,16 @@ func (n *ProtoNode) Copy() ipld.Node {
 
 	nnode.Prefix = n.Prefix
 
+	// Invalidate the cache for the copy, which may be modified.
+	// (The cache values are initialized to `nil` but still make it explicit.)
+	nnode.invalidateCache()
+
 	return nnode
 }
 
 // RawData returns the protobuf-encoded version of the node.
 func (n *ProtoNode) RawData() []byte {
-	out, _ := n.EncodeProtobuf(false)
+	out, _ := n.EncodeProtobuf()
 	return out
 }
 
@@ -239,7 +243,7 @@ func (n *ProtoNode) UpdateNodeLink(name string, that *ProtoNode) (*ProtoNode, er
 // Size returns the total size of the data addressed by node,
 // including the total sizes of references.
 func (n *ProtoNode) Size() (uint64, error) {
-	b, err := n.EncodeProtobuf(false)
+	b, err := n.EncodeProtobuf()
 	if err != nil {
 		return 0, err
 	}
@@ -253,7 +257,7 @@ func (n *ProtoNode) Size() (uint64, error) {
 
 // Stat returns statistics on the node.
 func (n *ProtoNode) Stat() (*ipld.NodeStat, error) {
-	enc, err := n.EncodeProtobuf(false)
+	enc, err := n.EncodeProtobuf()
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +325,7 @@ func (n *ProtoNode) Cid() *cid.Cid {
 	// The node should normally have its value encoded before
 	// calling Cid(), but just in case.
 	if n.cache.encodedValue == nil {
-		n.EncodeProtobuf(false)
+		n.EncodeProtobuf()
 	}
 
 	cid, err := n.Prefix.Sum(n.cache.encodedValue)
@@ -344,7 +348,7 @@ func (n *ProtoNode) String() string {
 // Multihash hashes the encoded data of this node.
 func (n *ProtoNode) Multihash() mh.Multihash {
 	// NOTE: EncodeProtobuf generates the hash and puts it in `n.cache.cid`.
-	_, err := n.EncodeProtobuf(false)
+	_, err := n.EncodeProtobuf()
 	if err != nil {
 		// Note: no possibility exists for an error to be returned through here
 		panic(err)

@@ -333,10 +333,13 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64, data io.Reader) (*c
 				return nil, false, err
 			}
 
+			// Make a copy of the node before modifying it.
+			node = node.Copy().(*mdag.ProtoNode)
+
 			node.Links()[i].Cid = k
 
 			// Recache serialized node
-			_, err = node.EncodeProtobuf(true)
+			_, err = node.EncodeProtobuf()
 			if err != nil {
 				return nil, false, err
 			}
@@ -575,6 +578,9 @@ func dagTruncate(ctx context.Context, n ipld.Node, size uint64, ds ipld.DAGServi
 		return nil, err
 	}
 
+	// Make a copy of the node before modifying it.
+	nd = nd.Copy().(*mdag.ProtoNode)
+
 	nd.SetLinks(nd.Links()[:end])
 	err = nd.AddNodeLinkClean("", modified)
 	if err != nil {
@@ -589,7 +595,7 @@ func dagTruncate(ctx context.Context, n ipld.Node, size uint64, ds ipld.DAGServi
 	nd.SetData(d)
 
 	// invalidate cache and recompute serialized data
-	_, err = nd.EncodeProtobuf(true)
+	_, err = nd.EncodeProtobuf()
 	if err != nil {
 		return nil, err
 	}

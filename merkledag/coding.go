@@ -89,10 +89,9 @@ func (n *ProtoNode) invalidateCache() {
 }
 
 // EncodeProtobuf returns the encoded raw data version of a Node instance.
-// It may use a cached encoded version, unless the force flag is given.
-func (n *ProtoNode) EncodeProtobuf(force bool) ([]byte, error) {
+func (n *ProtoNode) EncodeProtobuf() ([]byte, error) {
 	sort.Stable(LinkSlice(n.links)) // keep links sorted
-	if n.cache.encodedValue == nil || force {
+	if n.cache.encodedValue == nil {
 		marshaledNode, err := n.marshal()
 		if err != nil {
 			return nil, err

@@ -50,7 +50,7 @@ func TestNode(t *testing.T) {
 			fmt.Println("-", l.Name, l.Size, l.Cid)
 		}
 
-		e, err := n.EncodeProtobuf(false)
+		e, err := n.EncodeProtobuf()
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -74,7 +74,7 @@ func TestNode(t *testing.T) {
 }
 
 func SubtestNodeStat(t *testing.T, n *ProtoNode) {
-	enc, err := n.EncodeProtobuf(true)
+	enc, err := n.EncodeProtobuf()
 	if err != nil {
 		t.Error("n.EncodeProtobuf(true) failed")
 		return
@@ -351,7 +351,7 @@ func TestUnmarshalFailure(t *testing.T) {
 	}
 
 	n := &ProtoNode{}
-	n.EncodeProtobuf(false)
+	n.EncodeProtobuf()
 }
 
 func TestBasicAddGet(t *testing.T) {
