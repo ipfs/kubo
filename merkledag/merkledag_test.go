@@ -340,7 +340,7 @@ func TestFetchFailure(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = top.AddNodeLinkClean(fmt.Sprintf("AA%d", i), nd)
+		err = top.AddNodeLink(fmt.Sprintf("AA%d", i), nd)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -353,7 +353,7 @@ func TestFetchFailure(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = top.AddNodeLinkClean(fmt.Sprintf("BB%d", i), nd)
+		err = top.AddNodeLink(fmt.Sprintf("BB%d", i), nd)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -597,19 +597,19 @@ func TestEnumerateAsyncFailsNotFound(t *testing.T) {
 	}
 
 	parent := new(ProtoNode)
-	if err := parent.AddNodeLinkClean("a", a); err != nil {
+	if err := parent.AddNodeLink("a", a); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := parent.AddNodeLinkClean("b", b); err != nil {
+	if err := parent.AddNodeLink("b", b); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := parent.AddNodeLinkClean("c", c); err != nil {
+	if err := parent.AddNodeLink("c", c); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := parent.AddNodeLinkClean("d", d); err != nil {
+	if err := parent.AddNodeLink("d", d); err != nil {
 		t.Fatal(err)
 	}
 
@@ -696,7 +696,7 @@ func mkNodeWithChildren(getChild func() *ProtoNode, width int) *ProtoNode {
 
 	for i := 0; i < width; i++ {
 		c := getChild()
-		if err := cur.AddNodeLinkClean(fmt.Sprint(i), c); err != nil {
+		if err := cur.AddNodeLink(fmt.Sprint(i), c); err != nil {
 			panic(err)
 		}
 	}

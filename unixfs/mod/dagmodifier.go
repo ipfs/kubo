@@ -561,7 +561,7 @@ func dagTruncate(ctx context.Context, n ipld.Node, size uint64, ds ipld.DAGServi
 	}
 
 	nd.SetLinks(nd.Links()[:end])
-	err = nd.AddNodeLinkClean("", modified)
+	err = nd.AddNodeLink("", modified)
 	if err != nil {
 		return nil, err
 	}

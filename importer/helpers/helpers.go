@@ -109,7 +109,7 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 
 	// Add a link to this node without storing a reference to the memory
 	// This way, we avoid nodes building up and consuming all of our RAM
-	err = n.node.AddNodeLinkClean("", childnode)
+	err = n.node.AddNodeLink("", childnode)
 	if err != nil {
 		return err
 	}
