@@ -14,6 +14,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
 	mfs "github.com/ipfs/go-ipfs/mfs"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
@@ -43,6 +44,8 @@ const (
 	fstoreCacheOptionName = "fscache"
 	cidVersionOptionName  = "cid-version"
 	hashOptionName        = "hash"
+	idHashLimitOptionName = "id-hash-limit"
+	inlineOptionName      = "inline"
 )
 
 const adderOutChanSize = 8
@@ -119,6 +122,8 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmdkit.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. (experimental)"),
 		cmdkit.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
+		cmdkit.BoolOption(inlineOptionName, "Inline small objects using identity hash. (experimental)"),
+		cmdkit.IntOption(idHashLimitOptionName, "Identity hash maxium size. (experimental)").WithDefault(64),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -172,6 +177,8 @@ You can now check what blocks have been created by:
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
 		hashFunStr, _ := req.Options[hashOptionName].(string)
+		inline, _ := req.Options[inlineOptionName].(bool)
+		idHashLimit, _ := req.Options[idHashLimitOptionName].(int)
 
 		// The arguments are subject to the following constraints.
 		//
@@ -279,13 +286,21 @@ You can now check what blocks have been created by:
 		fileAdder.Silent = silent
 		fileAdder.RawLeaves = rawblks
 		fileAdder.NoCopy = nocopy
-		fileAdder.Prefix = &prefix
+		fileAdder.CidOpts = &cide.Opts{Prefix: prefix}
+
+		if inline {
+			err = fileAdder.CidOpts.SetIdHashLimit(idHashLimit)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+		}
 
 		if hash {
 			md := dagtest.Mock()
 			emptyDirNode := ft.EmptyDirNode()
 			// Use the same prefix for the "empty" MFS root as for the file adder.
-			emptyDirNode.Prefix = *fileAdder.Prefix
+			emptyDirNode.CidOpts = *fileAdder.CidOpts
 			mr, err := mfs.NewRoot(req.Context, md, emptyDirNode, nil)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)

@@ -12,6 +12,7 @@ import (
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	mdagmock "github.com/ipfs/go-ipfs/merkledag/test"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
@@ -63,7 +64,7 @@ func GetNode(t testing.TB, dserv ipld.DAGService, data []byte, opts NodeOpts) ip
 	dbp := h.DagBuilderParams{
 		Dagserv:   dserv,
 		Maxlinks:  h.DefaultLinksPerBlock,
-		Prefix:    &opts.Prefix,
+		CidOpts:   &cide.Opts{Prefix: opts.Prefix},
 		RawLeaves: opts.RawLeavesUsed,
 	}
 

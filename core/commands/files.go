@@ -20,6 +20,7 @@ import (
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
 	resolver "github.com/ipfs/go-ipfs/path/resolver"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -834,7 +835,7 @@ Examples:
 
 		flush, _, _ := req.Option("flush").Bool()
 
-		prefix, err := getPrefix(req)
+		opts, err := getCidOpts(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -844,7 +845,7 @@ Examples:
 		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
 			Mkparents: dashp,
 			Flush:     flush,
-			Prefix:    prefix,
+			CidOpts:   opts,
 		})
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -916,13 +917,13 @@ Change the cid version or hash function of the root node of a given path.
 
 		flush, _, _ := req.Option("flush").Bool()
 
-		prefix, err := getPrefix(req)
+		opts, err := getCidOpts(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		err = updatePath(nd.FilesRoot, path, prefix, flush)
+		err = updatePath(nd.FilesRoot, path, opts, flush)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -932,8 +933,8 @@ Change the cid version or hash function of the root node of a given path.
 	},
 }
 
-func updatePath(rt *mfs.Root, pth string, prefix *cid.Prefix, flush bool) error {
-	if prefix == nil {
+func updatePath(rt *mfs.Root, pth string, opts *cide.Opts, flush bool) error {
+	if opts == nil {
 		return nil
 	}
 
@@ -944,7 +945,7 @@ func updatePath(rt *mfs.Root, pth string, prefix *cid.Prefix, flush bool) error 
 
 	switch n := nd.(type) {
 	case *mfs.Directory:
-		n.SetPrefix(prefix)
+		n.SetCidOpts(opts)
 	default:
 		return fmt.Errorf("can only update directories")
 	}
@@ -1091,7 +1092,7 @@ func getPrefixNew(req *cmds.Request) (*cid.Prefix, error) {
 	return &prefix, nil
 }
 
-func getPrefix(req oldcmds.Request) (*cid.Prefix, error) {
+func getCidOpts(req oldcmds.Request) (*cide.Opts, error) {
 	cidVer, cidVerSet, _ := req.Option("cid-version").Int()
 	hashFunStr, hashFunSet, _ := req.Option("hash").String()
 
@@ -1117,7 +1118,7 @@ func getPrefix(req oldcmds.Request) (*cid.Prefix, error) {
 		prefix.MhLength = -1
 	}
 
-	return &prefix, nil
+	return &cide.Opts{Prefix: prefix}, nil
 }
 
 func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*mfs.File, error) {
@@ -1146,12 +1147,16 @@ func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*
 		if !ok {
 			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
+
+		var opts *cide.Opts
 		if prefix == nil {
-			prefix = pdir.GetPrefix()
+			opts = pdir.GetCidOpts()
+		} else {
+			opts = &cide.Opts{Prefix: *prefix}
 		}
 
 		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
-		nd.SetPrefix(prefix)
+		nd.SetCidOpts(opts)
 		err = pdir.AddChild(fname, nd)
 		if err != nil {
 			return nil, err

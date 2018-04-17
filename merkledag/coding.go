@@ -8,6 +8,7 @@ import (
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 
 	pb "github.com/ipfs/go-ipfs/merkledag/pb"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -88,10 +89,10 @@ func (n *ProtoNode) EncodeProtobuf(force bool) ([]byte, error) {
 	}
 
 	if n.cached == nil {
-		if n.Prefix.Codec == 0 { // unset
-			n.Prefix = v0CidPrefix
+		if n.CidOpts.Codec == 0 { // unset
+			n.CidOpts = cide.Opts{Prefix: v0CidPrefix}
 		}
-		c, err := n.Prefix.Sum(n.encoded)
+		c, err := n.CidOpts.Sum(n.encoded)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +130,7 @@ func DecodeProtobufBlock(b blocks.Block) (ipld.Node, error) {
 	}
 
 	decnd.cached = c
-	decnd.Prefix = c.Prefix()
+	decnd.CidOpts.Prefix = c.Prefix()
 	return decnd, nil
 }
 

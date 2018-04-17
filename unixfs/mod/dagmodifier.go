@@ -11,6 +11,7 @@ import (
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -45,7 +46,7 @@ type DagModifier struct {
 	curWrOff   uint64
 	wrBuf      *bytes.Buffer
 
-	Prefix    cid.Prefix
+	CidOpts   cide.Opts
 	RawLeaves bool
 
 	read uio.DagReader
@@ -75,7 +76,7 @@ func NewDagModifier(ctx context.Context, from ipld.Node, serv ipld.DAGService, s
 		dagserv:   serv,
 		splitter:  spl,
 		ctx:       ctx,
-		Prefix:    prefix,
+		CidOpts:   cide.Opts{Prefix: prefix},
 		RawLeaves: rawLeaves,
 	}, nil
 }
@@ -256,7 +257,7 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64) (*cid.Cid, error) {
 
 			nd := new(mdag.ProtoNode)
 			nd.SetData(b)
-			nd.SetPrefix(&nd0.Prefix)
+			nd.SetCidOpts(&nd0.CidOpts)
 			err = dm.dagserv.Add(dm.ctx, nd)
 			if err != nil {
 				return nil, err
@@ -282,7 +283,7 @@ func (dm *DagModifier) modifyDag(n ipld.Node, offset uint64) (*cid.Cid, error) {
 				copy(bytes[offsetPlusN:], origData[offsetPlusN:])
 			}
 
-			nd, err := mdag.NewRawNodeWPrefix(bytes, nd0.Cid().Prefix())
+			nd, err := mdag.NewRawNodeWOpts(bytes, cide.Opts{Prefix: nd0.Cid().Prefix()})
 			if err != nil {
 				return nil, err
 			}
@@ -347,7 +348,7 @@ func (dm *DagModifier) appendData(nd ipld.Node, spl chunker.Splitter) (ipld.Node
 		dbp := &help.DagBuilderParams{
 			Dagserv:   dm.dagserv,
 			Maxlinks:  help.DefaultLinksPerBlock,
-			Prefix:    &dm.Prefix,
+			CidOpts:   &dm.CidOpts,
 			RawLeaves: dm.RawLeaves,
 		}
 		return trickle.Append(dm.ctx, nd, dbp.New(spl))
@@ -514,7 +515,7 @@ func dagTruncate(ctx context.Context, n ipld.Node, size uint64, ds ipld.DAGServi
 			nd.SetData(ft.WrapData(pbn.Data[:size]))
 			return nd, nil
 		case *mdag.RawNode:
-			return mdag.NewRawNodeWPrefix(nd.RawData()[:size], nd.Cid().Prefix())
+			return mdag.NewRawNodeWOpts(nd.RawData()[:size], cide.Opts{Prefix: nd.Cid().Prefix()})
 		}
 	}
 

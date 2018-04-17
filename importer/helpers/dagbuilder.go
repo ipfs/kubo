@@ -6,10 +6,10 @@ import (
 	"os"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	cide "github.com/ipfs/go-ipfs/thirdparty/cidextra"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
@@ -26,7 +26,7 @@ type DagBuilderHelper struct {
 	batch     *ipld.Batch
 	fullPath  string
 	stat      os.FileInfo
-	prefix    *cid.Prefix
+	cidOpts   *cide.Opts
 }
 
 // DagBuilderParams wraps configuration options to create a DagBuilderHelper
@@ -39,8 +39,8 @@ type DagBuilderParams struct {
 	// instead of using the unixfs TRaw type
 	RawLeaves bool
 
-	// CID Prefix to use if set
-	Prefix *cid.Prefix
+	// CID Options
+	CidOpts *cide.Opts
 
 	// DAGService to write blocks to (required)
 	Dagserv ipld.DAGService
@@ -57,7 +57,7 @@ func (dbp *DagBuilderParams) New(spl chunker.Splitter) *DagBuilderHelper {
 		dserv:     dbp.Dagserv,
 		spl:       spl,
 		rawLeaves: dbp.RawLeaves,
-		prefix:    dbp.Prefix,
+		cidOpts:   dbp.CidOpts,
 		maxlinks:  dbp.Maxlinks,
 		batch:     ipld.NewBatch(context.TODO(), dbp.Dagserv),
 	}
@@ -118,7 +118,7 @@ func (db *DagBuilderHelper) NewUnixfsNode() *UnixfsNode {
 		node: new(dag.ProtoNode),
 		ufmt: &ft.FSNode{Type: ft.TFile},
 	}
-	n.SetPrefix(db.prefix)
+	n.SetCidOpts(db.cidOpts)
 	return n
 }
 
@@ -128,7 +128,7 @@ func (db *DagBuilderHelper) newUnixfsBlock() *UnixfsNode {
 		node: new(dag.ProtoNode),
 		ufmt: &ft.FSNode{Type: ft.TRaw},
 	}
-	n.SetPrefix(db.prefix)
+	n.SetCidOpts(db.cidOpts)
 	return n
 }
 
@@ -169,13 +169,13 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 	}
 
 	if db.rawLeaves {
-		if db.prefix == nil {
+		if db.cidOpts == nil {
 			return &UnixfsNode{
 				rawnode: dag.NewRawNode(data),
 				raw:     true,
 			}, nil
 		}
-		rawnode, err := dag.NewRawNodeWPrefix(data, *db.prefix)
+		rawnode, err := dag.NewRawNodeWOpts(data, *db.cidOpts)
 		if err != nil {
 			return nil, err
 		}
