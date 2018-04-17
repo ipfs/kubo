@@ -69,7 +69,7 @@ func ImportTar(ctx context.Context, r io.Reader, ds ipld.DAGService) (*dag.Proto
 				return nil, err
 			}
 
-			err = header.AddNodeLinkClean("data", nd)
+			err = header.AddNodeLink("data", nd)
 			if err != nil {
 				return nil, err
 			}
