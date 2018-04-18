@@ -401,9 +401,9 @@
       "version": "1.0.12"
     },
     {
-      "hash": "QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM",
+      "hash": "QmVViZcg6N29WMrbfbzuYXFAGVoCvcR5oqadxfnMcLMnmx",
       "name": "go-ipfs-cmdkit",
-      "version": "1.0.0-dev"
+      "version": "1.1.0"
     },
     {
       "author": "whyrusleeping",
