@@ -251,15 +251,22 @@ func (s *blockService) GetBlocks(ctx context.Context, ks []*cid.Cid) <-chan bloc
 
 func getBlocks(ctx context.Context, ks []*cid.Cid, bs blockstore.Blockstore, f exchange.Fetcher) <-chan blocks.Block {
 	out := make(chan blocks.Block)
-	for _, c := range ks {
-		// hash security
-		if err := verifcid.ValidateCid(c); err != nil {
-			log.Errorf("unsafe CID (%s) passed to blockService.GetBlocks: %s", c, err)
-		}
-	}
 
 	go func() {
 		defer close(out)
+
+		k := 0
+		for _, c := range ks {
+			// hash security
+			if err := verifcid.ValidateCid(c); err == nil {
+				ks[k] = c
+				k++
+			} else {
+				log.Errorf("unsafe CID (%s) passed to blockService.GetBlocks: %s", c, err)
+			}
+		}
+		ks = ks[:k]
+
 		var misses []*cid.Cid
 		for _, c := range ks {
 			hit, err := bs.Get(c)
