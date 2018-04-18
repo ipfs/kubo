@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	gopath "path"
 	"path/filepath"
 	"strings"
 
@@ -17,12 +18,16 @@ import (
 
 	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 	"gx/ipfs/QmPtj12fdwuAqj9sBSTNUxBNu8kCGNp8b3o8yUzMm5GHpq/pb"
-	tar "gx/ipfs/QmQine7gvHncNevKtG9QXxf3nXcwSj6aDDmMm52mHofEEp/tar-utils"
+	tar "gx/ipfs/QmTkC7aeyDyjfdMTCVcG9P485TMJd6foLaLbf11DZ5WrnV/tar-utils"
+	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 
-var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")
-
+var (
+	ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")
+	haveLinkCreatePriviledge   bool
+	platformLinker             func(l tar.Link) error
+)
 var GetCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Download IPFS objects.",
@@ -238,13 +243,47 @@ func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
 
 func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	fmt.Fprintf(gw.Out, "Saving file(s) to %s\n", fpath)
+	var modified bool
+	defer func() { //NOTE: defer order important; we want this to display after the progressbar finishes
+		if modified {
+			fmt.Fprintf(gw.Out, "WARNING: Extraction output had to be modified in order to be stored successfully\n")
+		}
+	}()
+
 	bar := makeProgressBar(gw.Err, gw.Size)
 	bar.Start()
 	defer bar.Finish()
 	defer bar.Set64(gw.Size)
 
 	extractor := &tar.Extractor{Path: fpath, Progress: bar.Add64}
+	sanitizeExtractor(extractor, &modified, gw.Out)
+
 	return extractor.Extract(r)
+}
+
+func sanitizeExtractor(ex *tar.Extractor, modified *bool, logOut io.Writer) {
+	if osh.IsWindows() {
+		ex.SanitizePathFunc = wrapSanitize(ex, modified, logOut)
+		ex.LinkFunc = platformLinker
+	}
+}
+
+// wrapSanitize wraps the built in sanitizer, adding logging on discrepancies
+func wrapSanitize(ex *tar.Extractor, modified *bool, logOut io.Writer) func(string) (string, error) {
+	ex.Sanitize(true)
+	if logOut == nil {
+		return ex.SanitizePathFunc
+	}
+	builtinSanitizer := ex.SanitizePathFunc
+	return func(path string) (string, error) {
+		sanitizedPath, err := builtinSanitizer(path)
+		inBase, outBase := gopath.Base(path), filepath.Base(sanitizedPath)
+		if inBase != outBase {
+			*modified = true
+			fmt.Fprintf(logOut, "%q extracted as %q\n", inBase, outBase)
+		}
+		return sanitizedPath, err
+	}
 }
 
 func getCompressOptions(req *cmds.Request) (int, error) {
