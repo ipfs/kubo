@@ -14,8 +14,8 @@ Read https://github.com/ipfs/go-ipfs/blob/master/docs/github-issue-guide.md if y
 <!--
 Output From `ipfs version --all`
 
-If your version is older than *0.4.11* please update
-and re-check if the problem persists.
+Please check dist.ipfs.io for a newer version of go-ipfs
+and update if neccessary, then check again if the problem persists.
 -->
 
 #### Type:
