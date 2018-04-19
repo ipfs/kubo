@@ -104,19 +104,6 @@ func (n *ProtoNode) AddNodeLink(name string, that ipld.Node) error {
 	return nil
 }
 
-// AddNodeLinkClean adds a link to another node. without keeping a reference to
-// the child node
-func (n *ProtoNode) AddNodeLinkClean(name string, that ipld.Node) error {
-	n.encoded = nil
-	lnk, err := ipld.MakeLink(that)
-	if err != nil {
-		return err
-	}
-	n.AddRawLink(name, lnk)
-
-	return nil
-}
-
 // AddRawLink adds a copy of a link to this node
 func (n *ProtoNode) AddRawLink(name string, l *ipld.Link) error {
 	n.encoded = nil
