@@ -219,7 +219,7 @@ func (db *DagBuilderHelper) Maxlinks() int {
 	return db.maxlinks
 }
 
-// Close has the DAGServce perform a batch Commit operation.
+// Close has the DAGService perform a batch Commit operation.
 // It should be called at the end of the building process to make
 // sure all data is persisted.
 func (db *DagBuilderHelper) Close() error {

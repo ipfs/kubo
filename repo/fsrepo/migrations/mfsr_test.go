@@ -37,7 +37,7 @@ func TestVersion(t *testing.T) {
 
 	assert.Nil(rp.WriteVersion(fsrepoV), t, "Trouble writing version")
 
-	assert.Nil(rp.CheckVersion(fsrepoV), t, "Trouble checking the verion")
+	assert.Nil(rp.CheckVersion(fsrepoV), t, "Trouble checking the version")
 
 	assert.Err(rp.CheckVersion(1), t, "Should throw an error for the wrong version.")
 }

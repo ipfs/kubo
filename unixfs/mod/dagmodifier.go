@@ -52,7 +52,7 @@ type DagModifier struct {
 }
 
 // NewDagModifier returns a new DagModifier, the Cid prefix for newly
-// created nodes will be inherted from the passed in node.  If the Cid
+// created nodes will be inhered from the passed in node.  If the Cid
 // version if not 0 raw leaves will also be enabled.  The Prefix and
 // RawLeaves options can be overridden by changing them after the call.
 func NewDagModifier(ctx context.Context, from ipld.Node, serv ipld.DAGService, spl chunker.SplitterGen) (*DagModifier, error) {
@@ -82,7 +82,7 @@ func NewDagModifier(ctx context.Context, from ipld.Node, serv ipld.DAGService, s
 
 // WriteAt will modify a dag file in place
 func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
-	// TODO: this is currently VERY inneficient
+	// TODO: this is currently VERY inefficient
 	// each write that happens at an offset other than the current one causes a
 	// flush to disk, and dag rewrite
 	if offset == int64(dm.writeStart) && dm.wrBuf != nil {

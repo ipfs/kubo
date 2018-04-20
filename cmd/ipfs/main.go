@@ -101,7 +101,7 @@ func mainRet() int {
 		}
 	}
 
-	// output depends on excecutable name passed in os.Args
+	// output depends on executable name passed in os.Args
 	// so we need to make sure it's stable
 	os.Args[0] = "ipfs"
 
@@ -235,7 +235,7 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 	return &details, nil
 }
 
-// commandShouldRunOnDaemon determines, from commmand details, whether a
+// commandShouldRunOnDaemon determines, from command details, whether a
 // command ought to be executed on an ipfs daemon.
 //
 // It returns a client if the command should be executed on a daemon and nil if
@@ -257,7 +257,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, root *cmds.
 	}
 
 	// at this point need to know whether api is running. we defer
-	// to this point so that we dont check unnecessarily
+	// to this point so that we don't check unnecessarily
 
 	// did user specify an api to use for this command?
 	apiAddrStr, _ := req.Options[coreCmds.ApiOption].(string)

@@ -315,7 +315,7 @@ func (r *PubsubResolver) handleSubscription(sub *floodsub.Subscription, name str
 
 		err = r.receive(msg, name, pubk)
 		if err != nil {
-			log.Warningf("PubsubResolve: error proessing update for %s: %s", name, err.Error())
+			log.Warningf("PubsubResolve: error processing update for %s: %s", name, err.Error())
 		}
 	}
 }
@@ -369,7 +369,7 @@ func (r *PubsubResolver) receive(msg *floodsub.Message, name string, pubk ci.Pub
 }
 
 // rendezvous with peers in the name topic through provider records
-// Note: rendezbous/boostrap should really be handled by the pubsub implementation itself!
+// Note: rendezvous/boostrap should really be handled by the pubsub implementation itself!
 func bootstrapPubsub(ctx context.Context, cr routing.ContentRouting, host p2phost.Host, name string) {
 	topic := "floodsub:" + name
 	hash := u.Hash([]byte(topic))

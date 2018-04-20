@@ -131,7 +131,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 		return err
 	}
 
-	if err := checkWriteable(repoRoot); err != nil {
+	if err := checkWritable(repoRoot); err != nil {
 		return err
 	}
 
@@ -171,7 +171,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 	return initializeIpnsKeyspace(repoRoot)
 }
 
-func checkWriteable(dir string) error {
+func checkWritable(dir string) error {
 	_, err := os.Stat(dir)
 	if err == nil {
 		// dir exists, make sure we can write to it
@@ -188,7 +188,7 @@ func checkWriteable(dir string) error {
 	}
 
 	if os.IsNotExist(err) {
-		// dir doesnt exist, check that we can create it
+		// dir doesn't exist, check that we can create it
 		return os.Mkdir(dir, 0775)
 	}
 

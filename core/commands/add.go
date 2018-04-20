@@ -24,7 +24,7 @@ import (
 	cmds "gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 )
 
-// ErrDepthLimitExceeded indicates that the max depth has been exceded.
+// ErrDepthLimitExceeded indicates that the max depth has been exceeded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 const (

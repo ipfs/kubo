@@ -476,7 +476,7 @@ func (r *FSRepo) Config() (*config.Config, error) {
 
 	// It is not necessary to hold the package lock since the repo is in an
 	// opened state. The package lock is _not_ meant to ensure that the repo is
-	// thread-safe. The package lock is only meant to guard againt removal and
+	// thread-safe. The package lock is only meant to guard against removal and
 	// coordinate the lockfile. However, we provide thread-safety to keep
 	// things simple.
 	packageLock.Lock()

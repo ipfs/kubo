@@ -229,7 +229,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	internalDag := dag.NewDAGService(bserv.New(n.Blockstore, offline.Exchange(n.Blockstore)))
 	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG, internalDag)
 	if err != nil {
-		// TODO: we should move towards only running 'NewPinner' explicity on
+		// TODO: we should move towards only running 'NewPinner' explicitly on
 		// node init instead of implicitly here as a result of the pinner keys
 		// not being found in the datastore.
 		// this is kinda sketchy and could cause data loss
