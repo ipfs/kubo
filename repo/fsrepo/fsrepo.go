@@ -701,15 +701,11 @@ func (r *FSRepo) SwarmKey() ([]byte, error) {
 	f, err := os.Open(spath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
-		} else {
-			return nil, err
+			err = nil
 		}
-	}
-	defer f.Close()
-	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	return ioutil.ReadAll(f)
 }
