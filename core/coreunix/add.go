@@ -9,7 +9,6 @@ import (
 	gopath "path"
 	"strconv"
 
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	core "github.com/ipfs/go-ipfs/core"
 	balanced "github.com/ipfs/go-ipfs/importer/balanced"
 	ihelper "github.com/ipfs/go-ipfs/importer/helpers"
@@ -47,22 +46,6 @@ type Object struct {
 	Hash  string
 	Links []Link
 	Size  string
-}
-
-type hiddenFileError struct {
-	fileName string
-}
-
-func (e *hiddenFileError) Error() string {
-	return fmt.Sprintf("%s is a hidden file", e.fileName)
-}
-
-type ignoreFileError struct {
-	fileName string
-}
-
-func (e *ignoreFileError) Error() string {
-	return fmt.Sprintf("%s is an ignored file", e.fileName)
 }
 
 type AddedObject struct {
@@ -571,14 +554,6 @@ func outputDagnode(out chan interface{}, name string, dn ipld.Node) error {
 	}
 
 	return nil
-}
-
-// NewMemoryDagService builds and returns a new mem-datastore.
-func NewMemoryDagService() ipld.DAGService {
-	// build mem-datastore for editor's intermediary nodes
-	bs := bstore.NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
-	bsrv := bserv.New(bs, offline.Exchange(bs))
-	return dag.NewDAGService(bsrv)
 }
 
 // from core/commands/object.go

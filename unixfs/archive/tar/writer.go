@@ -30,7 +30,7 @@ type Writer struct {
 }
 
 // NewWriter wraps given io.Writer.
-func NewWriter(ctx context.Context, dag ipld.DAGService, archive bool, compression int, w io.Writer) (*Writer, error) {
+func NewWriter(ctx context.Context, dag ipld.DAGService, w io.Writer) (*Writer, error) {
 	return &Writer{
 		Dag:  dag,
 		TarW: tar.NewWriter(w),

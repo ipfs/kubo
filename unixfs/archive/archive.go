@@ -82,7 +82,7 @@ func DagArchive(ctx context.Context, nd ipld.Node, name string, dag ipld.DAGServ
 		// the case for 1. archive, and 2. not archived and not compressed, in which tar is used anyway as a transport format
 
 		// construct the tar writer
-		w, err := tar.NewWriter(ctx, dag, archive, compression, maybeGzw)
+		w, err := tar.NewWriter(ctx, dag, maybeGzw)
 		if checkErrAndClosePipe(err) {
 			return nil, err
 		}

@@ -180,18 +180,6 @@ func FetchGraph(ctx context.Context, root *cid.Cid, serv ipld.DAGService) error 
 	return EnumerateChildrenAsync(ctx, GetLinksDirect(ng), root, visit)
 }
 
-// FindLinks searches this nodes links for the given key,
-// returns the indexes of any links pointing to it
-func FindLinks(links []*cid.Cid, c *cid.Cid, start int) []int {
-	var out []int
-	for i, lnkC := range links[start:] {
-		if c.Equals(lnkC) {
-			out = append(out, i+start)
-		}
-	}
-	return out
-}
-
 // GetMany gets many nodes from the DAG at once.
 //
 // This method may not return all requested nodes (and may or may not return an
