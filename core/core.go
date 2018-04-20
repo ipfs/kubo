@@ -432,10 +432,7 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 		mstpt.AddTransport(multiplexerProtocolNames["mplex"], mplex.DefaultTransport)
 	}
 
-	// If there are any multiplexers defined in the config, ignore mplexExp.
 	if len(multiplexers) > 0 {
-		mplexExp = false
-
 		// set order preference to match the order specified in the config
 		multiplexerProtocols := make([]string, len(multiplexers))
 		for i, multiplexer := range multiplexers {
