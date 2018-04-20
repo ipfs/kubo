@@ -393,15 +393,16 @@ func makeSmuxTransport(multiplexers []string, mplexExp bool) smux.Transport {
 	var isYamux, isMplex bool
 
 	for _, multiplexer := range multiplexers {
-		if multiplexer == "yamux" {
+		switch multiplexer {
+		case "yamux":
 			isYamux = true
-		} else if multiplexer == "mplex" {
+		case "mplex":
 			isMplex = true
 			if !mplexExp {
 				log.Error("--enable-mplex-experiment is set to false, but mplex " +
-					"is given as a multiplexer in Swarm.Multiplexers in the config.")
+					"is given as a multiplexer the config (Swarm.Multiplexers).")
 			}
-		} else {
+		default:
 			log.Errorf("Unknown multiplexer specified in config: %s", multiplexer)
 		}
 	}
