@@ -19,7 +19,6 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	"github.com/pkg/errors"
 
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	mprome "gx/ipfs/QmSTf3wJXBQk2fxdmXtodvyczrCPgJaK1B1maY78qeebNX/go-metrics-prometheus"
@@ -189,7 +188,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// Inject metrics before we do anything
 	err := mprome.Inject()
 	if err != nil {
-		return errors.Wrap(err, "Injecting prometheus handler for metrics failed with message")
+		return fmt.Errorf("Injecting prometheus handler for metrics failed with message %s", err.Error())
 	}
 
 	// let the user know we're going.
