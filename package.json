@@ -583,6 +583,24 @@
       "version": "0.1.2"
     },
     {
+      "author": "hsanjuan",
+      "hash": "QmdcAXgEHUueP4A7b5hjabKn2EooeHgMreMvFC249dGCgc",
+      "name": "go-ipfs-exchange-interface",
+      "version": "0.0.1"
+    },
+    {
+      "author": "hsanjuan",
+      "hash": "Qmf951DP11mCoctpyF3ZppPZdo2oAxuNi2vnkVDgHJ8Fqk",
+      "name": "go-ipfs-blocksutil",
+      "version": "0.0.1"
+    },
+    {
+      "author": "hsanjuan",
+      "hash": "QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc",
+      "name": "go-ipfs-exchange-offline",
+      "version": "0.0.1"
+    },
+    {
       "author": "Stebalien",
       "hash": "QmTbBs3Y3u5F69XNJzdnnc6SP5GKgcXxCDzx6w8m6piVRT",
       "name": "go-bitfield",
