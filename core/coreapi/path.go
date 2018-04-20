@@ -2,8 +2,8 @@ package coreapi
 
 import (
 	context "context"
+	fmt "fmt"
 	gopath "path"
-	strings "strings"
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
@@ -87,9 +87,15 @@ func resolvePath(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSyste
 		return nil, err
 	}
 
-	resolveOnce := uio.ResolveUnixfsOnce
-	if strings.HasPrefix(ipath.String(), "/ipld") {
+	var resolveOnce resolver.ResolveOnce
+
+	switch p.Namespace() {
+	case "ipfs":
+		resolveOnce = uio.ResolveUnixfsOnce
+	case "ipld":
 		resolveOnce = resolver.ResolveSingle
+	default:
+		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
 	r := &resolver.Resolver{
@@ -131,7 +137,7 @@ func (p *path) String() string {
 
 func (p *path) Namespace() string {
 	if len(p.path.Segments()) < 1 {
-		return ""
+		panic("path without namespace") //this shouldn't happen under any scenario
 	}
 	return p.path.Segments()[0]
 }

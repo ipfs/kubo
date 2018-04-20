@@ -34,6 +34,9 @@ func (e ErrNoLink) Error() string {
 	return fmt.Sprintf("no link named %q under %s", e.Name, e.Node.String())
 }
 
+// ResolveOnce resolves path through a single node
+type ResolveOnce func(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error)
+
 // Resolver provides path resolution to IPFS
 // It has a pointer to a DAGService, which is uses to resolve nodes.
 // TODO: now that this is more modular, try to unify this code with the
@@ -41,7 +44,7 @@ func (e ErrNoLink) Error() string {
 type Resolver struct {
 	DAG ipld.NodeGetter
 
-	ResolveOnce func(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error)
+	ResolveOnce ResolveOnce
 }
 
 // NewBasicResolver constructs a new basic resolver.
