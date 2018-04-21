@@ -17,9 +17,9 @@ import (
 	"context"
 	"fmt"
 
+	path "github.com/ipfs/go-ipfs-path"
 	resolver "github.com/ipfs/go-ipfs-path-resolver"
 	"github.com/ipfs/go-ipfs/core"
-	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"

@@ -3,9 +3,9 @@ package core_test
 import (
 	"testing"
 
+	path "github.com/ipfs/go-ipfs-path"
 	core "github.com/ipfs/go-ipfs/core"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
-	path "github.com/ipfs/go-ipfs/path"
 )
 
 func TestResolveNoComponents(t *testing.T) {

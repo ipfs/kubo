@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/go-ipfs-path"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	importer "github.com/ipfs/go-ipfs/importer"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	"github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
