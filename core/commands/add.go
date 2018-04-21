@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
+	blockservice "github.com/ipfs/go-ipfs-blockservice"
 	dag "github.com/ipfs/go-ipfs-merkledag"
 	dagtest "github.com/ipfs/go-ipfs-merkledag/test"
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	mfs "github.com/ipfs/go-ipfs/mfs"

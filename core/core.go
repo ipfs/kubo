@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
+	bserv "github.com/ipfs/go-ipfs-blockservice"
 	merkledag "github.com/ipfs/go-ipfs-merkledag"
 	"github.com/ipfs/go-ipfs-path-resolver"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"

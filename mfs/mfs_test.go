@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	bserv "github.com/ipfs/go-ipfs-blockservice"
 	dag "github.com/ipfs/go-ipfs-merkledag"
 	"github.com/ipfs/go-ipfs-path"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	importer "github.com/ipfs/go-ipfs/importer"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"

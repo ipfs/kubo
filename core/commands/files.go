@@ -10,10 +10,10 @@ import (
 	gopath "path"
 	"strings"
 
+	bservice "github.com/ipfs/go-ipfs-blockservice"
 	dag "github.com/ipfs/go-ipfs-merkledag"
 	path "github.com/ipfs/go-ipfs-path"
 	resolver "github.com/ipfs/go-ipfs-path-resolver"
-	bservice "github.com/ipfs/go-ipfs/blockservice"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	core "github.com/ipfs/go-ipfs/core"

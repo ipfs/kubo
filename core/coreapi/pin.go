@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	bserv "github.com/ipfs/go-ipfs-blockservice"
 	merkledag "github.com/ipfs/go-ipfs-merkledag"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"

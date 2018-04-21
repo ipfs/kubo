@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	bserv "github.com/ipfs/go-ipfs-blockservice"
 	dag "github.com/ipfs/go-ipfs-merkledag"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	pin "github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
 

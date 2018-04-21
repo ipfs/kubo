@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	bserv "github.com/ipfs/go-ipfs-blockservice"
 	merkledag "github.com/ipfs/go-ipfs-merkledag"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	core "github.com/ipfs/go-ipfs/core"
 	importer "github.com/ipfs/go-ipfs/importer"
 	ft "github.com/ipfs/go-ipfs/unixfs"

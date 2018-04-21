@@ -6,10 +6,10 @@ import (
 	"io"
 	"text/tabwriter"
 
+	blockservice "github.com/ipfs/go-ipfs-blockservice"
 	merkledag "github.com/ipfs/go-ipfs-merkledag"
 	path "github.com/ipfs/go-ipfs-path"
 	resolver "github.com/ipfs/go-ipfs-path-resolver"
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"

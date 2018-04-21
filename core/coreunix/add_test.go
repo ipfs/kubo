@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/go-ipfs-blockservice"
 	dag "github.com/ipfs/go-ipfs-merkledag"
-	"github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/pin/gc"
 	"github.com/ipfs/go-ipfs/repo"
