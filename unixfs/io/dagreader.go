@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	mdag "github.com/ipfs/go-ipfs-merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 

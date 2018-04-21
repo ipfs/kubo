@@ -3,7 +3,7 @@ package io
 import (
 	"context"
 
-	dag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs-merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	hamt "github.com/ipfs/go-ipfs/unixfs/hamt"
 

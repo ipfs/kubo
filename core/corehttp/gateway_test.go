@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	dag "github.com/ipfs/go-ipfs-merkledag"
 	path "github.com/ipfs/go-ipfs-path"
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	repo "github.com/ipfs/go-ipfs/repo"

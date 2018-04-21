@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	dag "github.com/ipfs/go-ipfs-merkledag"
 	path "github.com/ipfs/go-ipfs-path"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	uarchive "github.com/ipfs/go-ipfs/unixfs/archive"
 
 	tar "gx/ipfs/QmQine7gvHncNevKtG9QXxf3nXcwSj6aDDmMm52mHofEEp/tar-utils"

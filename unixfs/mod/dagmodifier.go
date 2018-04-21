@@ -8,9 +8,9 @@ import (
 	"errors"
 	"io"
 
+	mdag "github.com/ipfs/go-ipfs-merkledag"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 

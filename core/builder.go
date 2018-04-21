@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	dag "github.com/ipfs/go-ipfs-merkledag"
 	resolver "github.com/ipfs/go-ipfs-path-resolver"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	filestore "github.com/ipfs/go-ipfs/filestore"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"

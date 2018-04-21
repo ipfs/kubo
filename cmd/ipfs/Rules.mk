@@ -10,7 +10,7 @@ PATH := $(realpath $(d)):$(PATH)
 # disabled for now
 # depend on *.pb.go files in the repo as Order Only (as they shouldn't be rebuilt if exist)
 # DPES_OO_$(d) := diagnostics/pb/diagnostics.pb.go exchange/bitswap/message/pb/message.pb.go
-# DEPS_OO_$(d) += merkledag/pb/merkledag.pb.go namesys/pb/namesys.pb.go
+# DEPS_OO_$(d) += namesys/pb/namesys.pb.go
 # DEPS_OO_$(d) += pin/internal/pb/header.pb.go unixfs/pb/unixfs.pb.go
 
 $(d)_flags =-ldflags="-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=$(git-hash)"
@@ -33,7 +33,7 @@ $(TRY_BUILD_$(d)): $(d) $$(DEPS_GO) ALWAYS
 .PHONY: $(TRY_BUILD_$(d))
 
 $(d)-install: GOFLAGS += $(cmd/ipfs_flags)
-$(d)-install: $(d) $$(DEPS_GO) ALWAYS 
+$(d)-install: $(d) $$(DEPS_GO) ALWAYS
 	$(GOCC) install $(go-flags-with-tags) ./cmd/ipfs
 .PHONY: $(d)-install
 

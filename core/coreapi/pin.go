@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	merkledag "github.com/ipfs/go-ipfs-merkledag"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
 
 	offline "gx/ipfs/QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc/go-ipfs-exchange-offline"

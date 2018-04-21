@@ -11,9 +11,9 @@ import (
 	"io"
 	"os"
 
+	dag "github.com/ipfs/go-ipfs-merkledag"
 	path "github.com/ipfs/go-ipfs-path"
 	core "github.com/ipfs/go-ipfs/core"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ft "github.com/ipfs/go-ipfs/unixfs"

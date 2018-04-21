@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	mdag "github.com/ipfs/go-ipfs-merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
 	hamt "github.com/ipfs/go-ipfs/unixfs/hamt"
 

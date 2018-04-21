@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"math"
 
-	"github.com/ipfs/go-ipfs/merkledag"
+	"github.com/ipfs/go-ipfs-merkledag"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"

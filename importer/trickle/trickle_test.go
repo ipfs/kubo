@@ -9,9 +9,9 @@ import (
 	mrand "math/rand"
 	"testing"
 
+	merkledag "github.com/ipfs/go-ipfs-merkledag"
+	mdtest "github.com/ipfs/go-ipfs-merkledag/test"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
-	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 

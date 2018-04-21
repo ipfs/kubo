@@ -9,11 +9,11 @@ import (
 	gopath "path"
 	"strconv"
 
+	dag "github.com/ipfs/go-ipfs-merkledag"
 	core "github.com/ipfs/go-ipfs/core"
 	balanced "github.com/ipfs/go-ipfs/importer/balanced"
 	ihelper "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	"github.com/ipfs/go-ipfs/pin"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"

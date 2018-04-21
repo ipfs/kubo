@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	merkledag "github.com/ipfs/go-ipfs-merkledag"
 	"github.com/ipfs/go-ipfs-path-resolver"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
@@ -28,7 +29,6 @@ import (
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
