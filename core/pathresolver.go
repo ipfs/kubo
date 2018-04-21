@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
+	resolver "github.com/ipfs/go-ipfs-path-resolver"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
-	resolver "github.com/ipfs/go-ipfs/path/resolver"
 
 	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"

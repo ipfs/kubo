@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ipfs/go-ipfs-path-resolver"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
@@ -32,7 +33,6 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	p2p "github.com/ipfs/go-ipfs/p2p"
-	"github.com/ipfs/go-ipfs/path/resolver"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"

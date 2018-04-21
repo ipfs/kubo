@@ -7,6 +7,7 @@ import (
 	"io"
 	"time"
 
+	resolver "github.com/ipfs/go-ipfs-path-resolver"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
@@ -14,7 +15,6 @@ import (
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	pin "github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"

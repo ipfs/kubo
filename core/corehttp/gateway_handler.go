@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	resolver "github.com/ipfs/go-ipfs-path-resolver"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
@@ -19,7 +20,6 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
-	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 

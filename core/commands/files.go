@@ -10,6 +10,7 @@ import (
 	gopath "path"
 	"strings"
 
+	resolver "github.com/ipfs/go-ipfs-path-resolver"
 	bservice "github.com/ipfs/go-ipfs/blockservice"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
@@ -18,7 +19,6 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
-	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
