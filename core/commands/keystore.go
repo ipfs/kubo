@@ -306,7 +306,11 @@ var keyRenameCmd = &cmds.Command{
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			k, ok := res.Output().(*KeyRenameOutput)
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+			k, ok := v.(*KeyRenameOutput)
 			if !ok {
 				return nil, fmt.Errorf("expected a KeyRenameOutput as command result")
 			}
