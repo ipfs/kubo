@@ -46,7 +46,7 @@ run_single_file_test() {
 
 run_random_dir_test() {
   test_expect_success "create a bunch of random files" '
-    random-files -depth=4 -dirs=5 -files=8 foobar > /dev/null
+    random-files -depth=4 -dirs=3 -files=6 foobar > /dev/null
   '
 
   test_expect_success "add those on node 2" '
