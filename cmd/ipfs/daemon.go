@@ -268,10 +268,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return err
 		}
 
-		repo, err = fsrepo.Open(cctx.ConfigRoot)
-		if err != nil {
-			return err
-		}
 	case nil:
 		break
 	}
@@ -287,7 +283,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	mplex, _ := req.Options[enableMultiplexKwd].(bool)
 
 	// Start assembling node config
-	ncfg := &core.BuildCfg{
+	ncfg := core.BuildCfg{
 		Repo:                        repo,
 		Permanent:                   true, // It is temporary way to signify that node is permanent
 		Online:                      !offline,
@@ -325,24 +321,24 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}
 
-	node, err := core.NewNode(req.Context, ncfg)
+	cctx.Node, err = cctx.ConstructNode(ncfg, false)
+
 	if err != nil {
 		log.Error("error from node construction: ", err)
 		return err
 	}
-	node.SetLocal(false)
 
-	if node.PNetFingerprint != nil {
+	if cctx.Node.PNetFingerprint != nil {
 		fmt.Println("Swarm is limited to private network of peers with the swarm key")
-		fmt.Printf("Swarm key fingerprint: %x\n", node.PNetFingerprint)
+		fmt.Printf("Swarm key fingerprint: %x\n", cctx.Node.PNetFingerprint)
 	}
 
-	printSwarmAddrs(node)
+	printSwarmAddrs(cctx.Node)
 
 	defer func() {
 		// We wait for the node to close first, as the node has children
 		// that it will wait for before closing, such as the API server.
-		node.Close()
+		cctx.Node.Close()
 
 		select {
 		case <-req.Context.Done():
@@ -350,10 +346,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		default:
 		}
 	}()
-
-	cctx.ConstructNode = func() (*core.IpfsNode, error) {
-		return node, nil
-	}
 
 	// construct api endpoint - every time
 	apiErrc, err := serveHTTPApi(req, cctx)
@@ -373,7 +365,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	// repo blockstore GC - if --enable-gc flag is present
-	gcErrc, err := maybeRunGC(req, node)
+	gcErrc, err := maybeRunGC(req, cctx.Node)
 	if err != nil {
 		return err
 	}
@@ -389,7 +381,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	// initialize metrics collector
-	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
+	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: cctx.Node})
 
 	fmt.Printf("Daemon is ready\n")
 
@@ -473,12 +465,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
 	}
 
-	node, err := cctx.ConstructNode()
-	if err != nil {
-		return nil, fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err)
-	}
-
-	if err := node.Repo.SetAPIAddr(listeners[0].Multiaddr()); err != nil {
+	if err := cctx.Node.Repo.SetAPIAddr(listeners[0].Multiaddr()); err != nil {
 		return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %s", err)
 	}
 
@@ -488,7 +475,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		wg.Add(1)
 		go func(lis manet.Listener) {
 			defer wg.Done()
-			errc <- corehttp.Serve(node, manet.NetListener(lis), opts...)
+			errc <- corehttp.Serve(cctx.Node, manet.NetListener(lis), opts...)
 		}(apiLis)
 	}
 
@@ -587,18 +574,13 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
 	}
 
-	node, err := cctx.ConstructNode()
-	if err != nil {
-		return nil, fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err)
-	}
-
 	errc := make(chan error)
 	var wg sync.WaitGroup
 	for _, lis := range listeners {
 		wg.Add(1)
 		go func(lis manet.Listener) {
 			defer wg.Done()
-			errc <- corehttp.Serve(node, manet.NetListener(lis), opts...)
+			errc <- corehttp.Serve(cctx.Node, manet.NetListener(lis), opts...)
 		}(lis)
 	}
 
@@ -627,12 +609,7 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 		nsdir = cfg.Mounts.IPNS
 	}
 
-	node, err := cctx.ConstructNode()
-	if err != nil {
-		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
-	}
-
-	err = nodeMount.Mount(node, fsdir, nsdir)
+	err = nodeMount.Mount(cctx.Node, fsdir, nsdir)
 	if err != nil {
 		return err
 	}

@@ -32,8 +32,8 @@ type Context struct {
 
 	Gateway       bool
 	api           coreiface.CoreAPI
-	node          *core.IpfsNode
-	ConstructNode func() (*core.IpfsNode, error)
+	Node          *core.IpfsNode
+	ConstructNode func(cfg core.BuildCfg, local bool) (*core.IpfsNode, error)
 }
 
 // GetConfig returns the config of the current Command execution
@@ -53,13 +53,13 @@ func (c *Context) GetConfig() (*config.Config, error) {
 // context. It may construct it with the provided function.
 func (c *Context) GetNode() (*core.IpfsNode, error) {
 	var err error
-	if c.node == nil {
+	if c.Node == nil {
 		if c.ConstructNode == nil {
 			return nil, errors.New("nil ConstructNode function")
 		}
-		c.node, err = c.ConstructNode()
+		c.Node, err = c.ConstructNode(core.BuildCfg{}, true)
 	}
-	return c.node, err
+	return c.Node, err
 }
 
 // GetAPI returns CoreAPI instance backed by ipfs node.
@@ -123,8 +123,8 @@ func (c *Context) Close() {
 	// let's not forget teardown. If a node was initialized, we must close it.
 	// Note that this means the underlying req.Context().Node variable is exposed.
 	// this is gross, and should be changed when we extract out the exec Context.
-	if c.node != nil {
+	if c.Node != nil {
 		log.Info("Shutting down node...")
-		c.node.Close()
+		c.Node.Close()
 	}
 }

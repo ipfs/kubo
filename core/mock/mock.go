@@ -67,7 +67,7 @@ func MockCmdsCtx() (commands.Context, error) {
 		LoadConfig: func(path string) (*config.Config, error) {
 			return &conf, nil
 		},
-		ConstructNode: func() (*core.IpfsNode, error) {
+		ConstructNode: func(cfg core.BuildCfg, local bool) (*core.IpfsNode, error) {
 			return node, nil
 		},
 	}, nil
