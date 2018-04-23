@@ -58,6 +58,13 @@ test_key_cmd() {
     test_cmp list_exp list_out
   '
 
+  test_expect_success "key rename rename key output succeeds" '
+    key_content=$(ipfs key gen key1 --type=rsa --size=2048) &&
+    ipfs key rename key1 key2 >rs &&
+    echo "Key $key_content renamed to key2" >expect &&
+    test_cmp rs expect
+  '
+
   test_expect_success "key rename can't rename self" '
     test_must_fail ipfs key rename self bar 2>&1 | tee key_rename_out &&
     grep -q "Error: cannot rename key with name" key_rename_out
