@@ -3,7 +3,6 @@ import groovy.transform.Field
 /* SETTINGS */
 
 // in minutes
-def global_timeout = 30
 def sharness_timeout = 15
 def gotest_timeout = 10
 def build_timeout = 20
@@ -71,7 +70,7 @@ def gobuild_step(list) {
 
 /* PIPELINE */
 
-ansiColor('xterm') { withEnv(['TERM=xterm-color']) { timeout(time: global_timeout, unit: 'MINUTES') {
+ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
   stage('Checks') {
     parallel(
       'go fmt': {
@@ -191,4 +190,4 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) { timeout(time: global_timeou
       },
     )
   }
-}}}
+}}
