@@ -59,10 +59,11 @@ func (p Path) String() string {
 	return string(p)
 }
 
-// IsJustAKey returns true if the path is of the form <key> or /ipfs/<key>.
+// IsJustAKey returns true if the path is of the form <key> or /ipfs/<key>, or
+// /ipld/<key>
 func (p Path) IsJustAKey() bool {
 	parts := p.Segments()
-	return len(parts) == 2 && parts[0] == "ipfs"
+	return len(parts) == 2 && (parts[0] == "ipfs" || parts[0] == "ipld")
 }
 
 // PopLastSegment returns a new Path without its final segment, and the final
