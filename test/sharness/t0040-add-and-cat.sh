@@ -347,6 +347,19 @@ test_add_cat_raw() {
   '
 }
 
+test_add_cat_derefargs() {
+  test_expect_success "create and hash zero length file" '
+    touch zero-length-file &&
+    ZEROHASH=$(ipfs add -q -n zero-length-file)
+  '
+
+  test_expect_success "create symlink and add with dereferenced arguments" '
+    ln -s zero-length-file symlink-to-zero &&
+    HASH=$(ipfs add -q -n --dereference-args symlink-to-zero) &&
+    test $HASH = $ZEROHASH
+  '
+}
+
 test_add_cat_expensive() {
   ADD_FLAGS="$1"
   HASH="$2"
@@ -719,6 +732,8 @@ test_add_cat_raw
 test_expect_success "ipfs add --only-hash succeeds" '
   echo "unknown content for only-hash" | ipfs add --only-hash -q > oh_hash
 '
+
+test_add_cat_derefargs
 
 #TODO: this doesn't work when online hence separated out from test_add_cat_file
 test_expect_success "ipfs cat file fails" '
