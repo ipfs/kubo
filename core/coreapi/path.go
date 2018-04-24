@@ -89,7 +89,7 @@ func resolvePath(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSyste
 
 	var resolveOnce resolver.ResolveOnce
 
-	switch p.Namespace() {
+	switch ipath.Segments()[0] {
 	case "ipfs":
 		resolveOnce = uio.ResolveUnixfsOnce
 	case "ipld":
