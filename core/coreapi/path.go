@@ -108,9 +108,9 @@ func resolvePath(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSyste
 		return nil, err
 	}
 
-	var root *cid.Cid
-	if ipath.IsJustAKey() {
-		root = node.Cid()
+	root, err := cid.Parse(ipath.Segments()[1])
+	if err != nil {
+		return nil, err
 	}
 
 	return &resolvedPath{
