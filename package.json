@@ -148,12 +148,6 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmVUAoR89E6KDBJmsfRVkAoBMEfgVfy8rRmvzf4y9rWp1d",
-      "name": "lock",
-      "version": "0.0.2"
-    },
-    {
-      "author": "whyrusleeping",
       "hash": "QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH",
       "name": "go-libp2p-peerstore",
       "version": "1.4.15"
