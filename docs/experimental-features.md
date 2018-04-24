@@ -21,6 +21,9 @@ the above issue.
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
 - [Circuit Relay](#circuit-relay)
+- [Plugins](#plugins)
+- [Directory Sharding / HAMT](#directory-sharding-hamt)
+- [IPNS PubSub](#ipns-pubsub)
 
 ---
 
