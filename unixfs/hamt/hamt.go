@@ -330,6 +330,53 @@ func (ds *Shard) loadChildValue(i int) (child, error) {
 	return c, nil
 }
 
+// preloadChildren populates the 'children' array if some child shards
+// are not already loaded they are fetched in parallel using GetMany
+func (ds *Shard) preloadChildren(ctx context.Context) error {
+	if len(ds.children) != len(ds.nd.Links()) {
+		return fmt.Errorf("inconsistent lengths between children array and Links array")
+	}
+
+	toFetch := make([]*cid.Cid, 0, len(ds.children))
+	for i, c0 := range ds.children {
+		if c0 != nil {
+			continue
+		}
+		c, err := ds.loadChildValue(i)
+		if err != nil {
+			return err
+		}
+		if c != nil {
+			continue
+		}
+		lnk := ds.nd.Links()[i]
+		toFetch = append(toFetch, lnk.Cid)
+	}
+
+	ch := ds.dserv.GetMany(ctx, toFetch)
+
+	fetched := make(map[string]*Shard)
+	for no := range ch {
+		if no.Err != nil {
+			return no.Err
+		}
+		c, err := NewHamtFromDag(ds.dserv, no.Node)
+		if err != nil {
+			return err
+		}
+		fetched[string(no.Node.Cid().Bytes())] = c
+	}
+
+	for i, c0 := range ds.children {
+		if c0 != nil {
+			continue
+		}
+		lnk := ds.nd.Links()[i]
+		ds.children[i] = fetched[string(lnk.Cid.Bytes())]
+	}
+	return nil
+}
+
 func (ds *Shard) setChild(i int, c child) {
 	ds.children[i] = c
 }
@@ -426,12 +473,11 @@ func (ds *Shard) ForEachLink(ctx context.Context, f func(*ipld.Link) error) erro
 }
 
 func (ds *Shard) walkTrie(ctx context.Context, cb func(*shardValue) error) error {
-	for idx := range ds.children {
-		c, err := ds.getChild(ctx, idx)
-		if err != nil {
-			return err
-		}
-
+	err := ds.preloadChildren(ctx)
+	if err != nil {
+		return err
+	}
+	for _, c := range ds.children {
 		switch c := c.(type) {
 		case *shardValue:
 			if err := cb(c); err != nil {
