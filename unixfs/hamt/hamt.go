@@ -284,6 +284,32 @@ func (ds *Shard) getChild(ctx context.Context, i int) (child, error) {
 // loadChild reads the i'th child node of this shard from disk and returns it
 // as a 'child' interface
 func (ds *Shard) loadChild(ctx context.Context, i int) (child, error) {
+	c, err := ds.loadChildValue(i)
+	if err != nil {
+		return nil, err
+	}
+	if c != nil {
+		return c, nil
+	}
+
+	lnk := ds.nd.Links()[i]
+	nd, err := lnk.GetNode(ctx, ds.dserv)
+	if err != nil {
+		return nil, err
+	}
+	c, err = NewHamtFromDag(ds.dserv, nd)
+	if err != nil {
+		return nil, err
+	}
+
+	ds.children[i] = c
+	return c, nil
+}
+
+// loadChild returns i'th child node if it is a 'shardValue' otherwise
+// returns nil.  If neither a child or an error is returned it is safe
+// to assume the child is also a hamt shard.
+func (ds *Shard) loadChildValue(i int) (child, error) {
 	lnk := ds.nd.Links()[i]
 	if len(lnk.Name) < ds.maxpadlen {
 		return nil, fmt.Errorf("invalid link name '%s'", lnk.Name)
@@ -291,16 +317,7 @@ func (ds *Shard) loadChild(ctx context.Context, i int) (child, error) {
 
 	var c child
 	if len(lnk.Name) == ds.maxpadlen {
-		nd, err := lnk.GetNode(ctx, ds.dserv)
-		if err != nil {
-			return nil, err
-		}
-		cds, err := NewHamtFromDag(ds.dserv, nd)
-		if err != nil {
-			return nil, err
-		}
-
-		c = cds
+		return nil, nil
 	} else {
 		lnk2 := *lnk
 		c = &shardValue{
