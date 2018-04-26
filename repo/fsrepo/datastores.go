@@ -12,10 +12,10 @@ import (
 
 	badgerds "gx/ipfs/QmPAiAmc3qhTFwzWnKpxr6WCXGZ5mqpaQ2YEwSTnwyduHo/go-ds-badger"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	flatfs "gx/ipfs/QmPiYdqnkkiPEffrWq2M3Phb3NT8r49kqUXMev2hkkM7uV/go-ds-flatfs"
 	levelds "gx/ipfs/QmVVhwMHaGHPgZY6pi8hbWGLSgMcZUSdEhJBChjxhBMCoy/go-ds-leveldb"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 	mount "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/mount"
+	flatfs "gx/ipfs/QmaCTqBCt1aKaGfHfSVzsprqWRXCjHthK8xXrPbUZYCWga/go-ds-flatfs"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 	measure "gx/ipfs/QmbJgZGRtkFeSdCxBCPaMKWRDYbqMxHyFfvjQGcWzpqsDe/go-ds-measure"
 )
