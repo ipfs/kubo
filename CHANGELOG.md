@@ -1,5 +1,83 @@
 # go-ipfs changelog
 
+## 0.4.15-rc1 2018-04-24
+
+
+- Features:
+  - Add options for record count and timeout for resolving DHT paths ([ipfs/go-ipfs#4733](https://github.com/ipfs/go-ipfs/pull/4733))
+  - Add low power init profile ([ipfs/go-ipfs#4154](https://github.com/ipfs/go-ipfs/pull/4154))
+  - Add Opentracing plugin support ([ipfs/go-ipfs#4506](https://github.com/ipfs/go-ipfs/pull/4506))
+  - Add make target to build source tarballs ([ipfs/go-ipfs#4920](https://github.com/ipfs/go-ipfs/pull/4920))
+
+- Improvements
+  - Add BlockedFetched/Added/Removed events to Blockservice ([ipfs/go-ipfs#4649](https://github.com/ipfs/go-ipfs/pull/4649))
+  - Improve performance of HAMT code ([ipfs/go-ipfs#4889](https://github.com/ipfs/go-ipfs/pull/4889))
+  - Avoid unnecessarily resolving child nodes when listing a sharded directory ([ipfs/go-ipfs#4884](https://github.com/ipfs/go-ipfs/pull/4884))
+  - Tar writer now supports sharded ipfs directories ([ipfs/go-ipfs#4873](https://github.com/ipfs/go-ipfs/pull/4873))
+  - Infer type from CID when possible in `ipfs ls` ([ipfs/go-ipfs#4890](https://github.com/ipfs/go-ipfs/pull/4890))
+  - Deduplicate keys in GetMany ([ipfs/go-ipfs#4888](https://github.com/ipfs/go-ipfs/pull/4888))
+
+- Documentation
+  - Fix spelling of retrieval ([ipfs/go-ipfs#4819](https://github.com/ipfs/go-ipfs/pull/4819))
+  - Update broken links ([ipfs/go-ipfs#4798](https://github.com/ipfs/go-ipfs/pull/4798))
+  - Remove roadmap.md ([ipfs/go-ipfs#4834](https://github.com/ipfs/go-ipfs/pull/4834))
+  - Remove link to IPFS paper in contribute.md ([ipfs/go-ipfs#4812](https://github.com/ipfs/go-ipfs/pull/4812))
+  - Fix broken todo link in readme.md ([ipfs/go-ipfs#4865](https://github.com/ipfs/go-ipfs/pull/4865))
+  - Document ipns pubsub ([ipfs/go-ipfs#4903](https://github.com/ipfs/go-ipfs/pull/4903))
+  - Fix missing profile docs ([ipfs/go-ipfs#4846](https://github.com/ipfs/go-ipfs/pull/4846))
+  - Fix a few typos ([ipfs/go-ipfs#4835](https://github.com/ipfs/go-ipfs/pull/4835))
+  - Fix typo in fsrepo error message ([ipfs/go-ipfs#4933](https://github.com/ipfs/go-ipfs/pull/4933))
+  - Remove go-ipfs version from issue template ([ipfs/go-ipfs#4943](https://github.com/ipfs/go-ipfs/pull/4943))
+  - Add docs for --profile=lowpower ([ipfs/go-ipfs#4970](https://github.com/ipfs/go-ipfs/pull/4970))
+  - Improve Windows build documentation ([ipfs/go-ipfs#4691](https://github.com/ipfs/go-ipfs/pull/4691))
+
+- Bugfixes
+  - Check CIDs in base case when diffing nodes ([ipfs/go-ipfs#4767](https://github.com/ipfs/go-ipfs/pull/4767))
+  - Support for CIDv1 with custom mhtype in `ipfs block put` ([ipfs/go-ipfs#4563](https://github.com/ipfs/go-ipfs/pull/4563))
+  - Clean path in DagArchive ([ipfs/go-ipfs#4743](https://github.com/ipfs/go-ipfs/pull/4743))
+  - Set the prefix for MFS root in `ipfs add --hash-only` ([ipfs/go-ipfs#4755](https://github.com/ipfs/go-ipfs/pull/4755))
+  - Fix get output path ([ipfs/go-ipfs#4809](https://github.com/ipfs/go-ipfs/pull/4809))
+  - Fix incorrect Read calls ([ipfs/go-ipfs#4792](https://github.com/ipfs/go-ipfs/pull/4792))
+  - Use prefix in bootstrapWritePeers ([ipfs/go-ipfs#4832](https://github.com/ipfs/go-ipfs/pull/4832))
+  - Fix mfs Directory.Path not working ([ipfs/go-ipfs#4844](https://github.com/ipfs/go-ipfs/pull/4844))
+  - Remove header in `ipfs stats bw` if not polling ([ipfs/go-ipfs#4856](https://github.com/ipfs/go-ipfs/pull/4856))
+  - Match Go's GOPATH defaults behaviour in build scripts ([ipfs/go-ipfs#4678](https://github.com/ipfs/go-ipfs/pull/4678))
+  - Fix default-net profile not reverting bootstrap config ([ipfs/go-ipfs#4845](https://github.com/ipfs/go-ipfs/pull/4845))
+  - Fix excess goroutines in bitswap caused by insecure CIDs ([ipfs/go-ipfs#4946](https://github.com/ipfs/go-ipfs/pull/4946))
+
+- General Changes and Refactorings
+  - Refactor trickle DAG builder ([ipfs/go-ipfs#4730](https://github.com/ipfs/go-ipfs/pull/4730))
+  - Split the coreapi interface into multiple files ([ipfs/go-ipfs#4802](https://github.com/ipfs/go-ipfs/pull/4802))
+  - Make `ipfs init` command use new cmds lib ([ipfs/go-ipfs#4732](https://github.com/ipfs/go-ipfs/pull/4732))
+  - Extract thirdparty/tar package ([ipfs/go-ipfs#4857](https://github.com/ipfs/go-ipfs/pull/4857))
+  - Reduce log level when for disconnected peers to info ([ipfs/go-ipfs#4811](https://github.com/ipfs/go-ipfs/pull/4811))
+  - Only visit nodes in EnumerateChildrenAsync when asked ([ipfs/go-ipfs#4885](https://github.com/ipfs/go-ipfs/pull/4885))
+  - Refactor coreapi options ([ipfs/go-ipfs#4807](https://github.com/ipfs/go-ipfs/pull/4807))
+  - Fix error style for most errors ([ipfs/go-ipfs#4829](https://github.com/ipfs/go-ipfs/pull/4829))
+  - Ensure `--help` always works, even with /dev/null stdin ([ipfs/go-ipfs#4849](https://github.com/ipfs/go-ipfs/pull/4849))
+  - Deduplicate AddNodeLinkClean into AddNodeLink ([ipfs/go-ipfs#4940](https://github.com/ipfs/go-ipfs/pull/4940))
+  - Remove some dead code ([ipfs/go-ipfs#4833](https://github.com/ipfs/go-ipfs/pull/4833))
+  - Remove unused imports ([ipfs/go-ipfs#4955](https://github.com/ipfs/go-ipfs/pull/4955))
+  - Fix go vet warnings ([ipfs/go-ipfs#4859](https://github.com/ipfs/go-ipfs/pull/4859))
+
+- Testing
+  - Generate JUnit test reports for sharness tests ([ipfs/go-ipfs#4530](https://github.com/ipfs/go-ipfs/pull/4530))
+  - Fix t0063-daemon-init.sh by adding test profile to daemon ([ipfs/go-ipfs#4816](https://github.com/ipfs/go-ipfs/pull/4816))
+  - Remove circular dependencies in merkledag package tests ([ipfs/go-ipfs#4704](https://github.com/ipfs/go-ipfs/pull/4704))
+  - Check that all the commands fail when passed a bad flag ([ipfs/go-ipfs#4848](https://github.com/ipfs/go-ipfs/pull/4848))
+  - Allow for some small margin of code coverage dropping on commit ([ipfs/go-ipfs#4867](https://github.com/ipfs/go-ipfs/pull/4867))
+  - Add confirmation to archive-branches script ([ipfs/go-ipfs#4797](https://github.com/ipfs/go-ipfs/pull/4797))
+
+- Dependencies
+  - Update lock package ([ipfs/go-ipfs#4855](https://github.com/ipfs/go-ipfs/pull/4855))
+  - Update to latest go-datastore. Remove thirdparty/datastore2 ([ipfs/go-ipfs#4742](https://github.com/ipfs/go-ipfs/pull/4742))
+  - Extract fs lock into go-fs-lock ([ipfs/go-ipfs#4631](https://github.com/ipfs/go-ipfs/pull/4631))
+  - Extract: exchange/interface.go, blocks/blocksutil, exchange/offline ([ipfs/go-ipfs#4912](https://github.com/ipfs/go-ipfs/pull/4912))
+  - Remove unused lock dep ([ipfs/go-ipfs#4971](https://github.com/ipfs/go-ipfs/pull/4971))
+  - Update iptb ([ipfs/go-ipfs#4965](https://github.com/ipfs/go-ipfs/pull/4965))
+  - Update go-ipfs-cmds to fix stdin on windows ([ipfs/go-ipfs#4975](https://github.com/ipfs/go-ipfs/pull/4975))
+  - Update go-ds-flatfs to fix windows corruption issue ([ipfs/go-ipfs#4872](https://github.com/ipfs/go-ipfs/pull/4872))
+
 ## 0.4.14 2018-03-22
 
 Ipfs 0.4.14 is a big release with a large number of improvements and bugfixes.
