@@ -306,6 +306,23 @@ func (ds *Shard) loadChild(ctx context.Context, i int) (child, error) {
 	return c, nil
 }
 
+func (ds *Shard) missingChildShards() []*cid.Cid {
+	if len(ds.children) != len(ds.nd.Links()) {
+		panic("inconsistent lengths between children array and Links array")
+	}
+	res := make([]*cid.Cid, 0, len(ds.children))
+	for i, c := range ds.children {
+		if c != nil {
+			continue
+		}
+		lnk := ds.nd.Links()[i]
+		if len(lnk.Name) == ds.maxpadlen {
+			res = append(res, lnk.Cid)
+		}
+	}
+	return res
+}
+
 // loadChild returns i'th child node if it is a 'shardValue' otherwise
 // returns nil.  If neither a child or an error is returned it is safe
 // to assume the child is also a hamt shard.
@@ -318,12 +335,11 @@ func (ds *Shard) loadChildValue(i int) (child, error) {
 	var c child
 	if len(lnk.Name) == ds.maxpadlen {
 		return nil, nil
-	} else {
-		lnk2 := *lnk
-		c = &shardValue{
-			key: lnk.Name[ds.maxpadlen:],
-			val: &lnk2,
-		}
+	}
+	lnk2 := *lnk
+	c = &shardValue{
+		key: lnk.Name[ds.maxpadlen:],
+		val: &lnk2,
 	}
 
 	ds.children[i] = c
@@ -332,7 +348,7 @@ func (ds *Shard) loadChildValue(i int) (child, error) {
 
 // preloadChildren populates the 'children' array if some child shards
 // are not already loaded they are fetched in parallel using GetMany
-func (ds *Shard) preloadChildren(ctx context.Context) error {
+func (ds *Shard) preloadChildren(ctx context.Context, f *fetcher) error {
 	if len(ds.children) != len(ds.nd.Links()) {
 		return fmt.Errorf("inconsistent lengths between children array and Links array")
 	}
@@ -353,18 +369,29 @@ func (ds *Shard) preloadChildren(ctx context.Context) error {
 		toFetch = append(toFetch, lnk.Cid)
 	}
 
-	ch := ds.dserv.GetMany(ctx, toFetch)
+	if len(toFetch) == 0 {
+		return nil
+	}
 
 	fetched := make(map[string]*Shard)
-	for no := range ch {
-		if no.Err != nil {
-			return no.Err
+	if f == nil {
+		ch := ds.dserv.GetMany(ctx, toFetch)
+		for no := range ch {
+			if no.Err != nil {
+				return no.Err
+			}
+			c, err := NewHamtFromDag(ds.dserv, no.Node)
+			if err != nil {
+				return err
+			}
+			fetched[string(no.Node.Cid().Bytes())] = c
 		}
-		c, err := NewHamtFromDag(ds.dserv, no.Node)
-		if err != nil {
-			return err
+	} else {
+		res := f.getResult(ds)
+		if len(res.errs) > 0 {
+			return res.errs[0]
 		}
-		fetched[string(no.Node.Cid().Bytes())] = c
+		fetched = res.vals
 	}
 
 	for i, c0 := range ds.children {
@@ -463,17 +490,22 @@ func (ds *Shard) EnumLinks(ctx context.Context) ([]*ipld.Link, error) {
 }
 
 // ForEachLink walks the Shard and calls the given function.
-func (ds *Shard) ForEachLink(ctx context.Context, f func(*ipld.Link) error) error {
-	return ds.walkTrie(ctx, func(sv *shardValue) error {
+func (ds *Shard) ForEachLink(ctx0 context.Context, f func(*ipld.Link) error) error {
+	ctx, cancel := context.WithCancel(ctx0)
+	fetcher := startFetcher(ctx, ds.dserv)
+	fetcher.addJob(ds)
+	err := ds.walkTrie(ctx, func(sv *shardValue) error {
 		lnk := sv.val
 		lnk.Name = sv.key
 
 		return f(lnk)
-	})
+	}, fetcher)
+	cancel()
+	return err
 }
 
-func (ds *Shard) walkTrie(ctx context.Context, cb func(*shardValue) error) error {
-	err := ds.preloadChildren(ctx)
+func (ds *Shard) walkTrie(ctx context.Context, cb func(*shardValue) error, f *fetcher) error {
+	err := ds.preloadChildren(ctx, f)
 	if err != nil {
 		return err
 	}
@@ -485,7 +517,7 @@ func (ds *Shard) walkTrie(ctx context.Context, cb func(*shardValue) error) error
 			}
 
 		case *Shard:
-			if err := c.walkTrie(ctx, cb); err != nil {
+			if err := c.walkTrie(ctx, cb, f); err != nil {
 				return err
 			}
 		default:
