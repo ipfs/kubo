@@ -387,7 +387,7 @@ func (ds *Shard) preloadChildren(ctx context.Context, f *fetcher) error {
 			fetched[string(no.Node.Cid().Bytes())] = c
 		}
 	} else {
-		res := f.getResult(ds)
+		res := f.get(ds)
 		if len(res.errs) > 0 {
 			return res.errs[0]
 		}
@@ -493,7 +493,6 @@ func (ds *Shard) EnumLinks(ctx context.Context) ([]*ipld.Link, error) {
 func (ds *Shard) ForEachLink(ctx0 context.Context, f func(*ipld.Link) error) error {
 	ctx, cancel := context.WithCancel(ctx0)
 	fetcher := startFetcher(ctx, ds.dserv)
-	fetcher.addJob(ds)
 	err := ds.walkTrie(ctx, func(sv *shardValue) error {
 		lnk := sv.val
 		lnk.Name = sv.key

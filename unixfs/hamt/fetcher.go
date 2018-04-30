@@ -24,28 +24,33 @@ type fetcher struct {
 	ctx   context.Context
 	dserv ipld.DAGService
 
-	newJob chan *job
+	newJob chan *Shard
 	reqRes chan *Shard
 	result chan result
 
 	idle bool
 
-	done chan struct{}
+	done chan int
 
 	todoFirst *job            // do this job first since we are waiting for its results
 	todo      jobStack        // stack of jobs that still need to be done
 	jobs      map[*Shard]*job // map of all jobs in which the results have not been collected yet
 
 	// stats relevent for streaming the complete hamt directory
+	doneCnt    int // job's done but results not yet retrieved
 	hits       int // job's result already ready, no delay
 	nearMisses int // job currently being worked on, small delay
 	misses     int // job on todo stack but will be done in the next batch, larger delay
+
+	// other useful stats
+	cidCnt int
 }
 
 // batchSize must be at least as large as the largest number of cids
 // requested in a single job.  For best perforamce it should likely be
 // sligtly larger as jobs are poped from the todo stack in order and a
-// job close to the batchSize could forse a very small batch to run.
+// job close to the batchSize could force a very small batch to run.
+// Recommend minimum size: 256 + 64 = 320
 const batchSize = 320
 
 //
@@ -58,27 +63,15 @@ func startFetcher(ctx context.Context, dserv ipld.DAGService) *fetcher {
 	f := &fetcher{
 		ctx:    ctx,
 		dserv:  dserv,
-		newJob: make(chan *job),
+		newJob: make(chan *Shard, 16),
 		reqRes: make(chan *Shard),
 		result: make(chan result),
 		idle:   true,
-		done:   make(chan struct{}),
+		done:   make(chan int),
 		jobs:   make(map[*Shard]*job),
 	}
 	go f.mainLoop()
 	return f
-}
-
-// addJob adds a job to retrive the missing child shards for the
-// provided shard
-func (f *fetcher) addJob(hamt *Shard) bool {
-	children := hamt.missingChildShards()
-	if children == nil {
-		return false
-	}
-	j := &job{id: hamt, cids: children}
-	f.newJob <- j
-	return true
 }
 
 // result contains the result of a job, see getResult
@@ -87,12 +80,15 @@ type result struct {
 	errs []error
 }
 
-// getResult gets the result of the job, the result is the result of
-// the batch request and not just the single job.  In particular, if
-// the 'errs' field is empty the 'vals' of the result is guaranteed to
-// contain the all the missing child shards, but the map may also
-// contain child shards of other jobs in the batch
-func (f *fetcher) getResult(hamt *Shard) result {
+// get recursively gets the missing child shards for the hamt object.
+// The missing children for the passed in shard is returned.  The
+// children of the children are recursively retrieved in the
+// background.  The result is the result of the batch request and not
+// just the single job.  In particular, if the 'errs' field is empty
+// the 'vals' of the result is guaranteed to contain the all the
+// missing child shards, but the map may also contain child shards of
+// other jobs in the batch
+func (f *fetcher) get(hamt *Shard) result {
 	f.reqRes <- hamt
 	res := <-f.result
 	return res
@@ -103,8 +99,9 @@ func (f *fetcher) getResult(hamt *Shard) result {
 //
 
 type job struct {
-	id   *Shard
-	idx  int
+	id  *Shard
+	idx int /* index in the todo stack, an index of -1 means the job
+	   is already done or being worked on now */
 	cids []*cid.Cid
 	res  result
 }
@@ -118,19 +115,24 @@ func (f *fetcher) mainLoop() {
 	for {
 		select {
 		case j := <-f.newJob:
-			if len(j.cids) > batchSize {
-				panic("job size larger than batchSize")
-			}
-			f.todo.push(j)
-			f.jobs[j.id] = j
-			if f.idle {
-				f.launch()
-			}
+			f.mainLoopAddJob(j)
 		case id := <-f.reqRes:
-			j := f.jobs[id]
+			if want != nil {
+				// programmer error
+				panic("fetcher: can not request more than one result at a time")
+			}
+			j, ok := f.jobs[id]
+			if !ok {
+				j = f.mainLoopAddJob(id)
+				if j == nil {
+					// no children that need to be retrieved
+					f.result <- result{vals: make(map[string]*Shard)}
+				}
+			}
 			if j.res.vals != nil {
 				f.hits++
 				delete(f.jobs, id)
+				f.doneCnt--
 				f.result <- j.res
 			} else {
 				if j.idx != -1 {
@@ -144,24 +146,48 @@ func (f *fetcher) mainLoop() {
 				}
 				want = id
 			}
-		case <-f.done:
+		case cnt := <-f.done:
+			f.doneCnt += cnt
 			f.launch()
 			log.Infof("fetcher: batch job done")
-			log.Infof("fetcher stats (hits, nearMisses, misses): %d %d %d", f.hits, f.nearMisses, f.misses)
+			log.Infof("fetcher stats (done, hits, nearMisses, misses): %d %d %d %d", f.doneCnt, f.hits, f.nearMisses, f.misses)
 			if want != nil {
 				j := f.jobs[want]
 				if j.res.vals != nil {
 					delete(f.jobs, want)
+					f.doneCnt--
 					f.result <- j.res
 					want = nil
 				}
 			}
 		case <-f.ctx.Done():
 			log.Infof("fetcher: exiting")
-			log.Infof("fetcher stats (hits, nearMisses, misses): %d %d %d", f.hits, f.nearMisses, f.misses)
+			log.Infof("fetcher stats (done, hits, nearMisses, misses): %d %d %d %d", f.doneCnt, f.hits, f.nearMisses, f.misses)
+			log.Infof("fetcher total number of CIDs retrieved: %d", f.cidCnt)
 			return
 		}
 	}
+}
+
+// addJob adds a job to retrive the missing child shards for the
+// provided shard
+func (f *fetcher) mainLoopAddJob(hamt *Shard) *job {
+	children := hamt.missingChildShards()
+	if len(children) == 0 {
+		return nil
+	}
+	j := &job{id: hamt, cids: children}
+	if len(j.cids) > batchSize {
+		// programmer error
+		panic("job size larger than batchSize")
+	}
+	f.cidCnt += len(j.cids)
+	f.todo.push(j)
+	f.jobs[j.id] = j
+	if f.idle {
+		f.launch()
+	}
+	return j
 }
 
 type batchJob struct {
@@ -212,13 +238,13 @@ func (f *fetcher) launch() {
 				fetched.errs = append(fetched.errs, err)
 				continue
 			}
-			f.addJob(hamt)
+			f.newJob <- hamt
 			fetched.vals[string(no.Node.Cid().Bytes())] = hamt
 		}
 		for _, job := range bj.jobs {
 			job.res = fetched
 		}
-		f.done <- struct{}{}
+		f.done <- len(bj.jobs)
 	}()
 }
 
