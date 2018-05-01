@@ -17,11 +17,6 @@ fi
 
 test_init_ipfs
 
-test_expect_success "copy plugin" '
-  mkdir -p "$IPFS_PATH/plugins" &&
-  cp ../plugins/git.so "$IPFS_PATH/plugins/"
-'
-
 # from https://github.com/ipfs/go-ipld-git/blob/master/make-test-repo.sh
 test_expect_success "prepare test data" '
   tar xzf ../t0280-plugin-git-data/git.tar.gz
