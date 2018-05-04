@@ -142,7 +142,7 @@ func PutRecordToRouting(ctx context.Context, k ci.PrivKey, value path.Path, seqn
 	errs := make(chan error, 2) // At most two errors (IPNS, and public key)
 
 	// Attempt to extract the public key from the ID
-	extractedPublicKey := id.ExtractPublicKey()
+	extractedPublicKey, _ := id.ExtractPublicKey()
 
 	go func() {
 		errs <- PublishEntry(ctx, r, ipnskey, entry)

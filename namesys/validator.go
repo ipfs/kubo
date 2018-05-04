@@ -1,6 +1,7 @@
 package namesys
 
 import (
+	"bytes"
 	"errors"
 	"time"
 
@@ -41,64 +42,106 @@ var ErrKeyFormat = errors.New("record key could not be parsed into peer ID")
 // from the peer store
 var ErrPublicKeyNotFound = errors.New("public key not found in peer store")
 
-// NewIpnsRecordValidator returns a ValidChecker for IPNS records.
-// The validator function will get a public key from the KeyBook
-// to verify the record's signature. Note that the public key must
-// already have been fetched from the network and put into the KeyBook
-// by the caller.
-func NewIpnsRecordValidator(kbook pstore.KeyBook) *record.ValidChecker {
-	// ValidateIpnsRecord implements ValidatorFunc and verifies that the
-	// given record's value is an IpnsEntry, that the entry has been correctly
-	// signed, and that the entry has not expired
-	ValidateIpnsRecord := func(r *record.ValidationRecord) error {
-		if r.Namespace != "ipns" {
-			return ErrInvalidPath
-		}
+type IpnsValidator struct {
+	KeyBook pstore.KeyBook
+}
 
-		// Parse the value into an IpnsEntry
-		entry := new(pb.IpnsEntry)
-		err := proto.Unmarshal(r.Value, entry)
-		if err != nil {
-			return ErrBadRecord
-		}
-
-		// Get the public key defined by the ipns path
-		pid, err := peer.IDFromString(r.Key)
-		if err != nil {
-			log.Debugf("failed to parse ipns record key %s into peer ID", r.Key)
-			return ErrKeyFormat
-		}
-		pubk := kbook.PubKey(pid)
-		if pubk == nil {
-			log.Debugf("public key with hash %s not found in peer store", pid)
-			return ErrPublicKeyNotFound
-		}
-
-		// Check the ipns record signature with the public key
-		if ok, err := pubk.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
-			log.Debugf("failed to verify signature for ipns record %s", r.Key)
-			return ErrSignature
-		}
-
-		// Check that record has not expired
-		switch entry.GetValidityType() {
-		case pb.IpnsEntry_EOL:
-			t, err := u.ParseRFC3339(string(entry.GetValidity()))
-			if err != nil {
-				log.Debugf("failed parsing time for ipns record EOL in record %s", r.Key)
-				return err
-			}
-			if time.Now().After(t) {
-				return ErrExpiredRecord
-			}
-		default:
-			return ErrUnrecognizedValidity
-		}
-		return nil
+func (v IpnsValidator) Validate(key string, value []byte) error {
+	ns, pidString, err := record.SplitKey(key)
+	if err != nil || ns != "ipns" {
+		return ErrInvalidPath
 	}
 
-	return &record.ValidChecker{
-		Func: ValidateIpnsRecord,
-		Sign: false,
+	// Parse the value into an IpnsEntry
+	entry := new(pb.IpnsEntry)
+	err = proto.Unmarshal(value, entry)
+	if err != nil {
+		return ErrBadRecord
 	}
+
+	// Get the public key defined by the ipns path
+	pid, err := peer.IDFromString(pidString)
+	if err != nil {
+		log.Debugf("failed to parse ipns record key %s into peer ID", pidString)
+		return ErrKeyFormat
+	}
+	pubk := v.KeyBook.PubKey(pid)
+	if pubk == nil {
+		log.Debugf("public key with hash %s not found in peer store", pid)
+		return ErrPublicKeyNotFound
+	}
+
+	// Check the ipns record signature with the public key
+	if ok, err := pubk.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
+		log.Debugf("failed to verify signature for ipns record %s", pidString)
+		return ErrSignature
+	}
+
+	// Check that record has not expired
+	switch entry.GetValidityType() {
+	case pb.IpnsEntry_EOL:
+		t, err := u.ParseRFC3339(string(entry.GetValidity()))
+		if err != nil {
+			log.Debugf("failed parsing time for ipns record EOL in record %s", pidString)
+			return err
+		}
+		if time.Now().After(t) {
+			return ErrExpiredRecord
+		}
+	default:
+		return ErrUnrecognizedValidity
+	}
+	return nil
+}
+
+// IpnsSelectorFunc selects the best record by checking which has the highest
+// sequence number and latest EOL
+func (v IpnsValidator) Select(k string, vals [][]byte) (int, error) {
+	var recs []*pb.IpnsEntry
+	for _, v := range vals {
+		e := new(pb.IpnsEntry)
+		err := proto.Unmarshal(v, e)
+		if err == nil {
+			recs = append(recs, e)
+		} else {
+			recs = append(recs, nil)
+		}
+	}
+
+	return selectRecord(recs, vals)
+}
+
+func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
+	var bestSeq uint64
+	besti := -1
+
+	for i, r := range recs {
+		if r == nil || r.GetSequence() < bestSeq {
+			continue
+		}
+		rt, err := u.ParseRFC3339(string(r.GetValidity()))
+		if err != nil {
+			log.Errorf("failed to parse ipns record EOL %s", r.GetValidity())
+			continue
+		}
+
+		if besti == -1 || r.GetSequence() > bestSeq {
+			bestSeq = r.GetSequence()
+			besti = i
+		} else if r.GetSequence() == bestSeq {
+			bestt, _ := u.ParseRFC3339(string(recs[besti].GetValidity()))
+			if rt.After(bestt) {
+				besti = i
+			} else if rt == bestt {
+				if bytes.Compare(vals[i], vals[besti]) > 0 {
+					besti = i
+				}
+			}
+		}
+	}
+	if besti == -1 {
+		return 0, errors.New("no usable records in given set")
+	}
+
+	return besti, nil
 }

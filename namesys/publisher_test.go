@@ -49,14 +49,7 @@ func testNamekeyPublisher(t *testing.T, keyType int, expectedErr error, expected
 	}
 
 	// ID
-	var id peer.ID
-	switch keyType {
-	case ci.Ed25519:
-		id, err = peer.IDFromEd25519PublicKey(pubKey)
-	default:
-		id, err = peer.IDFromPublicKey(pubKey)
-	}
-
+	id, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
 		t.Fatal(err)
 	}

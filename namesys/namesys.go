@@ -2,7 +2,6 @@ package namesys
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -11,13 +10,11 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	routing "gx/ipfs/QmUHRKTeaoASDvDj7cTAXsmjAY7KQ13ErtzkQHZQq6uFUz/go-libp2p-routing"
-	floodsub "gx/ipfs/QmVKrsEgixRtMWcMd6WQzuwqCUC3jfLf7Q7xcjnKoMMikS/go-libp2p-floodsub"
 	isd "gx/ipfs/QmZmmuAXgX73UQmX1jRKjTGmjzq24Jinqkq8vzkBtno4uX/go-is-domain"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ci "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
-	p2phost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
 // mpns (a multi-protocol NameSystem) implements generic IPFS naming.
@@ -46,23 +43,6 @@ func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSys
 			"dht": NewRoutingPublisher(r, ds),
 		},
 	}
-}
-
-// AddPubsubNameSystem adds the pubsub publisher and resolver to the namesystem
-func AddPubsubNameSystem(ctx context.Context, ns NameSystem, host p2phost.Host, r routing.IpfsRouting, ds ds.Datastore, ps *floodsub.PubSub) error {
-	mpns, ok := ns.(*mpns)
-	if !ok {
-		return errors.New("unexpected NameSystem; not an mpns instance")
-	}
-
-	pkf, ok := r.(routing.PubKeyFetcher)
-	if !ok {
-		return errors.New("unexpected IpfsRouting; not a PubKeyFetcher instance")
-	}
-
-	mpns.resolvers["pubsub"] = NewPubsubResolver(ctx, host, r, pkf, ps)
-	mpns.publishers["pubsub"] = NewPubsubPublisher(ctx, host, ds, r, ps)
-	return nil
 }
 
 const DefaultResolverCacheTTL = time.Minute
@@ -218,17 +198,4 @@ func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {
 		val: value,
 		eol: eol,
 	})
-}
-
-// GetResolver implements ResolverLookup
-func (ns *mpns) GetResolver(subs string) (Resolver, bool) {
-	res, ok := ns.resolvers[subs]
-	if ok {
-		ires, ok := res.(Resolver)
-		if ok {
-			return ires, true
-		}
-	}
-
-	return nil, false
 }

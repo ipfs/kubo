@@ -17,6 +17,7 @@ import (
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	dht "gx/ipfs/Qmd3jqhBQFvhfBNTSJMQL15GgyVMpdxKTta69Napvx6Myd/go-libp2p-kad-dht"
 )
 
 var log = logging.Logger("namesys")
@@ -133,20 +134,20 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string, options 
 		return "", err
 	}
 
+	pid, err := peer.IDFromBytes(hash)
+	if err != nil {
+		log.Debugf("RoutingResolver: could not convert public key hash %s to peer ID: %s\n", name, err)
+		return "", err
+	}
+
 	// Name should be the hash of a public key retrievable from ipfs.
 	// We retrieve the public key here to make certain that it's in the peer
 	// store before calling GetValue() on the DHT - the DHT will call the
 	// ipns validator, which in turn will get the public key from the peer
 	// store to verify the record signature
-	_, err = routing.GetPublicKey(r.routing, ctx, hash)
+	_, err = routing.GetPublicKey(r.routing, ctx, pid)
 	if err != nil {
 		log.Debugf("RoutingResolver: could not retrieve public key %s: %s\n", name, err)
-		return "", err
-	}
-
-	pid, err := peer.IDFromBytes(hash)
-	if err != nil {
-		log.Debugf("RoutingResolver: could not convert public key hash %s to peer ID: %s\n", name, err)
 		return "", err
 	}
 
@@ -154,7 +155,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string, options 
 	// Note that the DHT will call the ipns validator when retrieving
 	// the value, which in turn verifies the ipns record signature
 	_, ipnsKey := IpnsKeysForID(pid)
-	val, err := r.getValue(ctx, ipnsKey, options)
+	val, err := r.routing.GetValue(ctx, ipnsKey, dht.Quorum(int(options.DhtRecordCount)))
 	if err != nil {
 		log.Debugf("RoutingResolver: dht get for name %s failed: %s", name, err)
 		return "", err
@@ -185,39 +186,6 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string, options 
 		r.cacheSet(name, p, entry)
 		return p, nil
 	}
-}
-
-func (r *routingResolver) getValue(ctx context.Context, ipnsKey string, options *opts.ResolveOpts) ([]byte, error) {
-	// Get specified number of values from the DHT
-	vals, err := r.routing.GetValues(ctx, ipnsKey, int(options.DhtRecordCount))
-	if err != nil {
-		return nil, err
-	}
-
-	// Select the best value
-	recs := make([][]byte, 0, len(vals))
-	for _, v := range vals {
-		if v.Val != nil {
-			recs = append(recs, v.Val)
-		}
-	}
-
-	if len(recs) == 0 {
-		return nil, routing.ErrNotFound
-	}
-
-	i, err := IpnsSelectorFunc(ipnsKey, recs)
-	if err != nil {
-		return nil, err
-	}
-
-	best := recs[i]
-	if best == nil {
-		log.Errorf("GetValues %s yielded record with nil value", ipnsKey)
-		return nil, routing.ErrNotFound
-	}
-
-	return best, nil
 }
 
 func checkEOL(e *pb.IpnsEntry) (time.Time, bool) {

@@ -599,6 +599,18 @@
       "hash": "QmTbBs3Y3u5F69XNJzdnnc6SP5GKgcXxCDzx6w8m6piVRT",
       "name": "go-bitfield",
       "version": "0.1.1"
+    },
+    {
+      "author": "stebalien",
+      "hash": "QmdSX2uedxXdsfNSqbkfSxcYi7pXBBdvp1Km2ZsjPWfydt",
+      "name": "go-libp2p-pubsub-router",
+      "version": "0.2.1"
+    },
+    {
+      "author": "Stebalien",
+      "hash": "QmeoG1seQ8a9b2vS3XJ8HPz9tXr6dzpS5NizjuDDSntQEk",
+      "name": "go-libp2p-routing-helpers",
+      "version": "0.1.0"
     }
   ],
   "gxVersion": "0.10.0",
