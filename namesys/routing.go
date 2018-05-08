@@ -168,24 +168,22 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string, options 
 		return "", err
 	}
 
+	var p path.Path
 	// check for old style record:
-	valh, err := mh.Cast(entry.GetValue())
-	if err != nil {
+	if valh, err := mh.Cast(entry.GetValue()); err == nil {
+		// Its an old style multihash record
+		log.Debugf("encountered CIDv0 ipns entry: %s", valh)
+		p = path.FromCid(cid.NewCidV0(valh))
+	} else {
 		// Not a multihash, probably a new record
-		p, err := path.ParsePath(string(entry.GetValue()))
+		p, err = path.ParsePath(string(entry.GetValue()))
 		if err != nil {
 			return "", err
 		}
-
-		r.cacheSet(name, p, entry)
-		return p, nil
-	} else {
-		// Its an old style multihash record
-		log.Debugf("encountered CIDv0 ipns entry: %s", valh)
-		p := path.FromCid(cid.NewCidV0(valh))
-		r.cacheSet(name, p, entry)
-		return p, nil
 	}
+
+	r.cacheSet(name, p, entry)
+	return p, nil
 }
 
 func checkEOL(e *pb.IpnsEntry) (time.Time, bool) {
