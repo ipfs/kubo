@@ -1,7 +1,36 @@
 # go-ipfs changelog
 
-## 0.4.15-rc1 2018-04-24
+## 0.4.15 2018-05-09
 
+This release is significantly smaller than the last as much of the work on
+improving our datastores, and other libraries libp2p has yet to be merged.
+However, it still includes many welcome improvements.
+
+As with 0.4.12 and 0.4.14 (0.4.13 was a patch), this release has a negative
+diff-stat. Unfortunately, much of this code isn't actually going away but at
+least it's being moved out into separate repositories.
+
+Much of the work that made it into this release is under the hood. We've cleaned
+up some code, extracted several packages into their own repositories, and made
+some long neglected optimizations (e.g., handling of sharded directories).
+Additionally, this release includes a bunch of tests for our CLI commands that
+should help us avoid some of the issues we've seen in the past few releases.
+
+More visibly, thanks to @djdv's efforts, this release includes some significant
+Windows improvements (with more on the way). Specifically, this release includes
+better handling of repo lockfiles (no more `ipfs repo fsck`), stdin command-line
+support, and, last but not least, IPFS no longer writes random files with scary
+garbage in the drive root. To read more about future windows improvements, take
+a look at this [blog post](https://blog.ipfs.io/36-a-look-at-windows/).
+
+To better support low-power devices, we've added a low-power config profile.
+This can be enabled when initializing a repo by running `ipfs init` with the
+`--profile=lowpower` flag or later by running `ipfs config profile apply lowpower`.
+
+Finally, with this release we have begun distributing self-contained source
+archives of go-ipfs and its dependencies. This should be a welcome improvement
+for both packagers and those living in countries with harmonized internet
+access.
 
 - Features:
   - Add options for record count and timeout for resolving DHT paths ([ipfs/go-ipfs#4733](https://github.com/ipfs/go-ipfs/pull/4733))
