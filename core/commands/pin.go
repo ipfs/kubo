@@ -300,35 +300,29 @@ Example:
 			return
 		}
 
-		var keys map[string]RefKeyObject
-
 		if len(req.Arguments) > 0 {
-			keys, err = pinLsKeys(req.Context, req.Arguments, typeStr, n)
+			err = pinLsKeys(req.Context, req.Arguments, typeStr, n, res.Emit)
 		} else {
-			keys, err = pinLsAll(req.Context, typeStr, n)
+			err = pinLsAll(req.Context, typeStr, n, res.Emit)
 		}
 
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
-		} else {
-			res.Emit(&RefKeyList{Keys: keys})
 		}
 	},
-	Type: RefKeyList{},
+	Type: RefKeyObject{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			quiet, _ := req.Options["quiet"].(bool)
 
-			keys, ok := v.(*RefKeyList)
+			obj, ok := v.(*RefKeyObject)
 			if !ok {
-				return e.TypeErr(keys, v)
+				return e.TypeErr(obj, v)
 			}
-			for k, v := range keys.Keys {
-				if quiet {
-					fmt.Fprintf(w, "%s\n", k)
-				} else {
-					fmt.Fprintf(w, "%s %s\n", k, v.Type)
-				}
+			if quiet {
+				fmt.Fprintf(w, "%s\n", obj.Cid)
+			} else {
+				fmt.Fprintf(w, "%s %s\n", obj.Cid, obj.Type)
 			}
 			return nil
 		}),
@@ -474,21 +468,18 @@ var verifyPinCmd = &oldcmds.Command{
 }
 
 type RefKeyObject struct {
+	Cid  string
 	Type string
 }
 
-type RefKeyList struct {
-	Keys map[string]RefKeyObject
-}
-
-func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode, emit func(value interface{}) error) error {
 
 	mode, ok := pin.StringToMode(typeStr)
 	if !ok {
-		return nil, fmt.Errorf("invalid pin mode '%s'", typeStr)
+		return fmt.Errorf("invalid pin mode '%s'", typeStr)
 	}
 
-	keys := make(map[string]RefKeyObject)
+	keys := make(map[string]struct{})
 
 	r := &resolver.Resolver{
 		DAG:         n.DAG,
@@ -498,21 +489,21 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 	for _, p := range args {
 		pth, err := path.ParsePath(p)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		c, err := core.ResolveToCid(ctx, n.Namesys, r, pth)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		pinType, pinned, err := n.Pinning.IsPinnedWithType(c, mode)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		if !pinned {
-			return nil, fmt.Errorf("path '%s' is not pinned", p)
+			return fmt.Errorf("path '%s' is not pinned", p)
 		}
 
 		switch pinType {
@@ -520,22 +511,28 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 		default:
 			pinType = "indirect through " + pinType
 		}
-		keys[c.String()] = RefKeyObject{
+		keys[c.String()] = struct{}{}
+
+		emit(&RefKeyObject{
 			Type: pinType,
-		}
+			Cid:  c.String(),
+		})
 	}
 
-	return keys, nil
+	return nil
 }
 
-func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode, emit func(value interface{}) error) error {
 
-	keys := make(map[string]RefKeyObject)
+	keys := cid.NewSet()
 
 	AddToResultKeys := func(keyList []*cid.Cid, typeStr string) {
 		for _, c := range keyList {
-			keys[c.String()] = RefKeyObject{
-				Type: typeStr,
+			if keys.Visit(c) {
+				emit(&RefKeyObject{
+					Type: typeStr,
+					Cid:  c.String(),
+				})
 			}
 		}
 	}
@@ -544,20 +541,27 @@ func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string
 		AddToResultKeys(n.Pinning.DirectKeys(), "direct")
 	}
 	if typeStr == "indirect" || typeStr == "all" {
-		set := cid.NewSet()
 		for _, k := range n.Pinning.RecursiveKeys() {
-			err := dag.EnumerateChildren(ctx, dag.GetLinksWithDAG(n.DAG), k, set.Visit)
+			err := dag.EnumerateChildren(ctx, dag.GetLinksWithDAG(n.DAG), k, func(c *cid.Cid) bool {
+				r := keys.Visit(c)
+				if r {
+					emit(&RefKeyObject{
+						Type: "indirect",
+						Cid:  c.String(),
+					})
+				}
+				return r
+			})
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
-		AddToResultKeys(set.Keys(), "indirect")
 	}
 	if typeStr == "recursive" || typeStr == "all" {
 		AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
 	}
 
-	return keys, nil
+	return nil
 }
 
 // PinVerifyRes is the result returned for each pin checked in "pin verify"
