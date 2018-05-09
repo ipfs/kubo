@@ -245,6 +245,18 @@ test_expect_success "repo stats are updated correctly" '
   test $(get_field_num "RepoSize" repo-stats-2) -ge $(get_field_num "RepoSize" repo-stats)
 '
 
+test_expect_success "'ipfs repo stat --size-only' succeeds" '
+  ipfs repo stat --size-only > repo-stats-size-only
+'
+
+test_expect_success "repo stats came out correct for --size-only" '
+  grep "RepoSize" repo-stats-size-only &&
+  grep "StorageMax" repo-stats-size-only &&
+  grep -v "RepoPath" repo-stats-size-only &&
+  grep -v "NumObjects" repo-stats-size-only &&
+  grep -v "Version" repo-stats-size-only
+'
+
 test_expect_success "'ipfs repo version' succeeds" '
   ipfs repo version > repo-version
 '
