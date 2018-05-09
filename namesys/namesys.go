@@ -9,6 +9,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	routing "gx/ipfs/QmUHRKTeaoASDvDj7cTAXsmjAY7KQ13ErtzkQHZQq6uFUz/go-libp2p-routing"
+	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
 	isd "gx/ipfs/QmZmmuAXgX73UQmX1jRKjTGmjzq24Jinqkq8vzkBtno4uX/go-is-domain"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -26,21 +27,25 @@ import (
 // It can only publish to: (a) IPFS routing naming.
 //
 type mpns struct {
-	resolvers  map[string]resolver
-	publishers map[string]Publisher
+	dnsResolver, proquintResolver, ipnsResolver resolver
+	ipnsPublisher                               Publisher
+
+	cache *lru.Cache
 }
 
 // NewNameSystem will construct the IPFS naming system based on Routing
 func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSystem {
+	var cache *lru.Cache
+	if cachesize > 0 {
+		cache, _ = lru.New(cachesize)
+	}
+
 	return &mpns{
-		resolvers: map[string]resolver{
-			"dns":      NewDNSResolver(),
-			"proquint": new(ProquintResolver),
-			"ipns":     NewRoutingResolver(r, cachesize),
-		},
-		publishers: map[string]Publisher{
-			"ipns": NewRoutingPublisher(r, ds),
-		},
+		dnsResolver:      NewDNSResolver(),
+		proquintResolver: new(ProquintResolver),
+		ipnsResolver:     NewIpnsResolver(r),
+		ipnsPublisher:    NewIpnsPublisher(r, ds),
+		cache:            cache,
 	}
 }
 
@@ -60,42 +65,46 @@ func (ns *mpns) Resolve(ctx context.Context, name string, options ...opts.Resolv
 }
 
 // resolveOnce implements resolver.
-func (ns *mpns) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, error) {
+func (ns *mpns) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, time.Duration, error) {
 	if !strings.HasPrefix(name, "/ipns/") {
 		name = "/ipns/" + name
 	}
 	segments := strings.SplitN(name, "/", 4)
 	if len(segments) < 3 || segments[0] != "" {
 		log.Debugf("invalid name syntax for %s", name)
-		return "", ErrResolveFailed
+		return "", 0, ErrResolveFailed
 	}
 
-	// Resolver selection:
-	// 1. if it is a multihash resolve through "ipns".
-	// 2. if it is a domain name, resolve through "dns"
-	// 3. otherwise resolve through the "proquint" resolver
 	key := segments[2]
-	resName := "proquint"
-	if _, err := mh.FromB58String(key); err == nil {
-		resName = "ipns"
-	} else if isd.IsDomain(key) {
-		resName = "dns"
-	}
 
-	res, ok := ns.resolvers[resName]
+	p, ok := ns.cacheGet(key)
+	var err error
 	if !ok {
-		log.Debugf("no resolver found for %s", name)
-		return "", ErrResolveFailed
-	}
-	p, err := res.resolveOnce(ctx, key, options)
-	if err != nil {
-		return "", ErrResolveFailed
+		// Resolver selection:
+		// 1. if it is a multihash resolve through "ipns".
+		// 2. if it is a domain name, resolve through "dns"
+		// 3. otherwise resolve through the "proquint" resolver
+		var res resolver
+		if _, err := mh.FromB58String(key); err == nil {
+			res = ns.ipnsResolver
+		} else if isd.IsDomain(key) {
+			res = ns.dnsResolver
+		} else {
+			res = ns.proquintResolver
+		}
+
+		var ttl time.Duration
+		p, ttl, err = res.resolveOnce(ctx, key, options)
+		if err != nil {
+			return "", 0, ErrResolveFailed
+		}
+		ns.cacheSet(key, p, ttl)
 	}
 
 	if len(segments) > 3 {
-		return path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
+		p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
 	}
-	return p, nil
+	return p, 0, err
 }
 
 // Publish implements Publisher
@@ -104,47 +113,17 @@ func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) e
 }
 
 func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error {
-	pub, ok := ns.publishers["ipns"]
-	if !ok {
-		return ErrPublishFailed
-	}
-	if err := pub.PublishWithEOL(ctx, name, value, eol); err != nil {
+	id, err := peer.IDFromPrivateKey(name)
+	if err != nil {
 		return err
 	}
-	ns.addToIpnsCache(name, value, eol)
+	if err := ns.ipnsPublisher.PublishWithEOL(ctx, name, value, eol); err != nil {
+		return err
+	}
+	ttl := DefaultResolverCacheTTL
+	if ttEol := eol.Sub(time.Now()); ttEol < ttl {
+		ttl = ttEol
+	}
+	ns.cacheSet(peer.IDB58Encode(id), value, ttl)
 	return nil
-
-}
-
-func (ns *mpns) addToIpnsCache(key ci.PrivKey, value path.Path, eol time.Time) {
-	rr, ok := ns.resolvers["ipns"].(*routingResolver)
-	if !ok {
-		// should never happen, purely for sanity
-		log.Panicf("unexpected type %T as DHT resolver.", ns.resolvers["ipns"])
-	}
-	if rr.cache == nil {
-		// resolver has no caching
-		return
-	}
-
-	var err error
-	value, err = path.ParsePath(value.String())
-	if err != nil {
-		log.Error("could not parse path")
-		return
-	}
-
-	name, err := peer.IDFromPrivateKey(key)
-	if err != nil {
-		log.Error("while adding to cache, could not get peerid from private key")
-		return
-	}
-
-	if time.Now().Add(DefaultResolverCacheTTL).Before(eol) {
-		eol = time.Now().Add(DefaultResolverCacheTTL)
-	}
-	rr.cache.Add(name.Pretty(), cacheEntry{
-		val: value,
-		eol: eol,
-	})
 }

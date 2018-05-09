@@ -108,7 +108,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 
 	if options.Local {
 		offroute := offline.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
-		resolver = namesys.NewRoutingResolver(offroute, 0)
+		resolver = namesys.NewIpnsResolver(offroute)
 	}
 
 	if !options.Cache {

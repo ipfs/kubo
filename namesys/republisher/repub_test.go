@@ -58,7 +58,7 @@ func TestRepublish(t *testing.T) {
 	// have one node publish a record that is valid for 1 second
 	publisher := nodes[3]
 	p := path.FromString("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn") // does not need to be valid
-	rp := namesys.NewRoutingPublisher(publisher.Routing, publisher.Repo.Datastore())
+	rp := namesys.NewIpnsPublisher(publisher.Routing, publisher.Repo.Datastore())
 	err := rp.PublishWithEOL(ctx, publisher.PrivateKey, p, time.Now().Add(time.Second))
 	if err != nil {
 		t.Fatal(err)

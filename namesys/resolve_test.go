@@ -21,8 +21,8 @@ func TestRoutingResolve(t *testing.T) {
 	id := testutil.RandIdentityOrFatal(t)
 	d := serv.ClientWithDatastore(context.Background(), id, dstore)
 
-	resolver := NewRoutingResolver(d, 0)
-	publisher := NewRoutingPublisher(d, dstore)
+	resolver := NewIpnsResolver(d)
+	publisher := NewIpnsPublisher(d, dstore)
 
 	privk, pubk, err := testutil.RandTestKeyPair(512)
 	if err != nil {
@@ -54,8 +54,8 @@ func TestPrexistingExpiredRecord(t *testing.T) {
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	d := mockrouting.NewServer().ClientWithDatastore(context.Background(), testutil.RandIdentityOrFatal(t), dstore)
 
-	resolver := NewRoutingResolver(d, 0)
-	publisher := NewRoutingPublisher(d, dstore)
+	resolver := NewIpnsResolver(d)
+	publisher := NewIpnsPublisher(d, dstore)
 
 	privk, pubk, err := testutil.RandTestKeyPair(512)
 	if err != nil {
@@ -96,8 +96,8 @@ func TestPrexistingRecord(t *testing.T) {
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	d := mockrouting.NewServer().ClientWithDatastore(context.Background(), testutil.RandIdentityOrFatal(t), dstore)
 
-	resolver := NewRoutingResolver(d, 0)
-	publisher := NewRoutingPublisher(d, dstore)
+	resolver := NewIpnsResolver(d)
+	publisher := NewIpnsPublisher(d, dstore)
 
 	privk, pubk, err := testutil.RandTestKeyPair(512)
 	if err != nil {

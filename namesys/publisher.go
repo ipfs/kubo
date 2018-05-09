@@ -28,9 +28,9 @@ const ipnsPrefix = "/ipns/"
 const PublishPutValTimeout = time.Minute
 const DefaultRecordTTL = 24 * time.Hour
 
-// ipnsPublisher is capable of publishing and resolving names to the IPFS
+// IpnsPublisher is capable of publishing and resolving names to the IPFS
 // routing system.
-type ipnsPublisher struct {
+type IpnsPublisher struct {
 	routing routing.ValueStore
 	ds      ds.Datastore
 
@@ -38,17 +38,17 @@ type ipnsPublisher struct {
 	mu sync.Mutex
 }
 
-// NewRoutingPublisher constructs a publisher for the IPFS Routing name system.
-func NewRoutingPublisher(route routing.ValueStore, ds ds.Datastore) *ipnsPublisher {
+// NewIpnsPublisher constructs a publisher for the IPFS Routing name system.
+func NewIpnsPublisher(route routing.ValueStore, ds ds.Datastore) *IpnsPublisher {
 	if ds == nil {
 		panic("nil datastore")
 	}
-	return &ipnsPublisher{routing: route, ds: ds}
+	return &IpnsPublisher{routing: route, ds: ds}
 }
 
 // Publish implements Publisher. Accepts a keypair and a value,
 // and publishes it out to the routing system
-func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Path) error {
+func (p *IpnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Path) error {
 	log.Debugf("Publish %s", value)
 	return p.PublishWithEOL(ctx, k, value, time.Now().Add(DefaultRecordTTL))
 }
@@ -62,7 +62,7 @@ func IpnsDsKey(id peer.ID) ds.Key {
 //
 // This method will not search the routing system for records published by other
 // nodes.
-func (p *ipnsPublisher) ListPublished(ctx context.Context) (map[peer.ID]*pb.IpnsEntry, error) {
+func (p *IpnsPublisher) ListPublished(ctx context.Context) (map[peer.ID]*pb.IpnsEntry, error) {
 	query, err := p.ds.Query(dsquery.Query{
 		Prefix: ipnsPrefix,
 	})
@@ -114,7 +114,7 @@ func (p *ipnsPublisher) ListPublished(ctx context.Context) (map[peer.ID]*pb.Ipns
 //
 // If `checkRouting` is true and we have no existing record, this method will
 // check the routing system for any existing records.
-func (p *ipnsPublisher) GetPublished(ctx context.Context, id peer.ID, checkRouting bool) (*pb.IpnsEntry, error) {
+func (p *IpnsPublisher) GetPublished(ctx context.Context, id peer.ID, checkRouting bool) (*pb.IpnsEntry, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
@@ -148,7 +148,7 @@ func (p *ipnsPublisher) GetPublished(ctx context.Context, id peer.ID, checkRouti
 	return e, nil
 }
 
-func (p *ipnsPublisher) updateRecord(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time) (*pb.IpnsEntry, error) {
+func (p *IpnsPublisher) updateRecord(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time) (*pb.IpnsEntry, error) {
 	id, err := peer.IDFromPrivateKey(k)
 	if err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ func (p *ipnsPublisher) updateRecord(ctx context.Context, k ci.PrivKey, value pa
 
 // PublishWithEOL is a temporary stand in for the ipns records implementation
 // see here for more details: https://github.com/ipfs/specs/tree/master/records
-func (p *ipnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time) error {
+func (p *IpnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time) error {
 	record, err := p.updateRecord(ctx, k, value, eol)
 	if err != nil {
 		return err

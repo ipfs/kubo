@@ -1,10 +1,10 @@
 package namesys
 
 import (
+	"context"
 	"fmt"
 	"testing"
-
-	context "context"
+	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
@@ -21,6 +21,7 @@ type mockResolver struct {
 }
 
 func testResolution(t *testing.T, resolver Resolver, name string, depth uint, expected string, expError error) {
+	t.Helper()
 	p, err := resolver.Resolve(context.Background(), name, opts.Depth(depth))
 	if err != expError {
 		t.Fatal(fmt.Errorf(
@@ -34,8 +35,9 @@ func testResolution(t *testing.T, resolver Resolver, name string, depth uint, ex
 	}
 }
 
-func (r *mockResolver) resolveOnce(ctx context.Context, name string, opts *opts.ResolveOpts) (path.Path, error) {
-	return path.ParsePath(r.entries[name])
+func (r *mockResolver) resolveOnce(ctx context.Context, name string, opts *opts.ResolveOpts) (path.Path, time.Duration, error) {
+	p, err := path.ParsePath(r.entries[name])
+	return p, 0, err
 }
 
 func mockResolverOne() *mockResolver {
@@ -58,10 +60,8 @@ func mockResolverTwo() *mockResolver {
 
 func TestNamesysResolution(t *testing.T) {
 	r := &mpns{
-		resolvers: map[string]resolver{
-			"ipns": mockResolverOne(),
-			"dns":  mockResolverTwo(),
-		},
+		ipnsResolver: mockResolverOne(),
+		dnsResolver:  mockResolverTwo(),
 	}
 
 	testResolution(t, r, "Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj", opts.DefaultDepthLimit, "/ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj", nil)

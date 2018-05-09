@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"strings"
+	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
@@ -38,12 +39,12 @@ type lookupRes struct {
 // resolveOnce implements resolver.
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
-func (r *DNSResolver) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, error) {
+func (r *DNSResolver) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, time.Duration, error) {
 	segments := strings.SplitN(name, "/", 2)
 	domain := segments[0]
 
 	if !isd.IsDomain(domain) {
-		return "", errors.New("not a valid domain name")
+		return "", 0, errors.New("not a valid domain name")
 	}
 	log.Debugf("DNSResolver resolving %s", domain)
 
@@ -57,7 +58,7 @@ func (r *DNSResolver) resolveOnce(ctx context.Context, name string, options *opt
 	select {
 	case subRes = <-subChan:
 	case <-ctx.Done():
-		return "", ctx.Err()
+		return "", 0, ctx.Err()
 	}
 
 	var p path.Path
@@ -68,19 +69,19 @@ func (r *DNSResolver) resolveOnce(ctx context.Context, name string, options *opt
 		select {
 		case rootRes = <-rootChan:
 		case <-ctx.Done():
-			return "", ctx.Err()
+			return "", 0, ctx.Err()
 		}
 		if rootRes.error == nil {
 			p = rootRes.path
 		} else {
-			return "", ErrResolveFailed
+			return "", 0, ErrResolveFailed
 		}
 	}
+	var err error
 	if len(segments) > 1 {
-		return path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[1])
-	} else {
-		return p, nil
+		p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[1])
 	}
+	return p, 0, err
 }
 
 func workDomain(r *DNSResolver, name string, res chan lookupRes) {
