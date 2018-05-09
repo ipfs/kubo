@@ -513,7 +513,7 @@ func (n *IpfsNode) setupIpnsRepublisher() error {
 		return err
 	}
 
-	n.IpnsRepub = ipnsrp.NewRepublisher(n.Routing, n.Repo.Datastore(), n.PrivateKey, n.Repo.Keystore())
+	n.IpnsRepub = ipnsrp.NewRepublisher(n.Namesys, n.Repo.Datastore(), n.PrivateKey, n.Repo.Keystore())
 
 	if cfg.Ipns.RepublishPeriod != "" {
 		d, err := time.ParseDuration(cfg.Ipns.RepublishPeriod)

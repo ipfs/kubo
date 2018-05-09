@@ -13,9 +13,6 @@ import (
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	gpctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	logging "gx/ipfs/QmTG23dvpBCBjqQwyDxV8CQT6jmS4PSftNr1VqHhE3MLy7/go-log"
-	recpb "gx/ipfs/QmTUyK82BVPA6LmSzEJpfEunk9uBaQzWtMsNP917tVj4sT/go-libp2p-record/pb"
-	routing "gx/ipfs/QmUHRKTeaoASDvDj7cTAXsmjAY7KQ13ErtzkQHZQq6uFUz/go-libp2p-routing"
-	dshelp "gx/ipfs/QmYJgz1Z5PbBGP7n2XA8uv5sF1EKLfYUjL7kFemVAjMNqC/go-ipfs-ds-help"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -39,7 +36,7 @@ var FailureRetryInterval = time.Minute * 5
 const DefaultRecordLifetime = time.Hour * 24
 
 type Republisher struct {
-	r    routing.ValueStore
+	ns   namesys.Publisher
 	ds   ds.Datastore
 	self ic.PrivKey
 	ks   keystore.Keystore
@@ -51,9 +48,9 @@ type Republisher struct {
 }
 
 // NewRepublisher creates a new Republisher
-func NewRepublisher(r routing.ValueStore, ds ds.Datastore, self ic.PrivKey, ks keystore.Keystore) *Republisher {
+func NewRepublisher(ns namesys.Publisher, ds ds.Datastore, self ic.PrivKey, ks keystore.Keystore) *Republisher {
 	return &Republisher{
-		r:              r,
+		ns:             ns,
 		ds:             ds,
 		self:           self,
 		ks:             ks,
@@ -90,6 +87,10 @@ func (rp *Republisher) republishEntries(p goprocess.Process) error {
 	ctx, cancel := context.WithCancel(gpctx.OnClosingContext(p))
 	defer cancel()
 
+	// TODO: Use rp.ipns.ListPublished(). We can't currently *do* that
+	// because:
+	// 1. There's no way to get keys from the keystore by ID.
+	// 2. We don't actually have access to the IPNS publisher.
 	err := rp.republishEntry(ctx, rp.self)
 	if err != nil {
 		return err
@@ -125,8 +126,7 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 	log.Debugf("republishing ipns entry for %s", id)
 
 	// Look for it locally only
-	_, ipnskey := namesys.IpnsKeysForID(id)
-	p, seq, err := rp.getLastVal(ipnskey)
+	p, err := rp.getLastVal(id)
 	if err != nil {
 		if err == errNoEntry {
 			return nil
@@ -136,33 +136,25 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 
 	// update record with same sequence number
 	eol := time.Now().Add(rp.RecordLifetime)
-	err = namesys.PutRecordToRouting(ctx, priv, p, seq, eol, rp.r, id)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return rp.ns.PublishWithEOL(ctx, priv, p, eol)
 }
 
-func (rp *Republisher) getLastVal(k string) (path.Path, uint64, error) {
-	ival, err := rp.ds.Get(dshelp.NewKeyFromBinary([]byte(k)))
-	if err != nil {
-		// not found means we dont have a previously published entry
-		return "", 0, errNoEntry
+func (rp *Republisher) getLastVal(id peer.ID) (path.Path, error) {
+	// Look for it locally only
+	vali, err := rp.ds.Get(namesys.IpnsDsKey(id))
+	switch err {
+	case nil:
+	case ds.ErrNotFound:
+		return "", errNoEntry
+	default:
+		return "", err
 	}
 
-	val := ival.([]byte)
-	dhtrec := new(recpb.Record)
-	err = proto.Unmarshal(val, dhtrec)
-	if err != nil {
-		return "", 0, err
-	}
+	val := vali.([]byte)
 
-	// extract published data from record
 	e := new(pb.IpnsEntry)
-	err = proto.Unmarshal(dhtrec.GetValue(), e)
-	if err != nil {
-		return "", 0, err
+	if err := proto.Unmarshal(val, e); err != nil {
+		return "", err
 	}
-	return path.Path(e.Value), e.GetSequence(), nil
+	return path.Path(e.Value), nil
 }

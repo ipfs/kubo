@@ -75,7 +75,12 @@ func testNamekeyPublisher(t *testing.T, keyType int, expectedErr error, expected
 	serv := mockrouting.NewServer()
 	r := serv.ClientWithDatastore(context.Background(), &identity{p}, dstore)
 
-	err = PutRecordToRouting(ctx, privKey, value, seqnum, eol, r, id)
+	entry, err := CreateRoutingEntryData(privKey, value, seqnum, eol)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = PutRecordToRouting(ctx, r, pubKey, entry)
 	if err != nil {
 		t.Fatal(err)
 	}

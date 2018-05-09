@@ -78,7 +78,7 @@ func TestRepublish(t *testing.T) {
 	// The republishers that are contained within the nodes have their timeout set
 	// to 12 hours. Instead of trying to tweak those, we're just going to pretend
 	// they dont exist and make our own.
-	repub := NewRepublisher(publisher.Routing, publisher.Repo.Datastore(), publisher.PrivateKey, publisher.Repo.Keystore())
+	repub := NewRepublisher(rp, publisher.Repo.Datastore(), publisher.PrivateKey, publisher.Repo.Keystore())
 	repub.Interval = time.Second
 	repub.RecordLifetime = time.Second * 5
 
