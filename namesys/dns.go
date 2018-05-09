@@ -21,13 +21,7 @@ type DNSResolver struct {
 }
 
 // NewDNSResolver constructs a name resolver using DNS TXT records.
-func NewDNSResolver() Resolver {
-	return &DNSResolver{lookupTXT: net.LookupTXT}
-}
-
-// newDNSResolver constructs a name resolver using DNS TXT records,
-// returning a resolver instead of NewDNSResolver's Resolver.
-func newDNSResolver() resolver {
+func NewDNSResolver() *DNSResolver {
 	return &DNSResolver{lookupTXT: net.LookupTXT}
 }
 

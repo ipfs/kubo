@@ -35,7 +35,7 @@ type mpns struct {
 func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSystem {
 	return &mpns{
 		resolvers: map[string]resolver{
-			"dns":      newDNSResolver(),
+			"dns":      NewDNSResolver(),
 			"proquint": new(ProquintResolver),
 			"dht":      NewRoutingResolver(r, cachesize),
 		},
