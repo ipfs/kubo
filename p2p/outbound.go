@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -29,34 +28,24 @@ type outboundListener struct {
 
 // Dial creates new P2P stream to a remote listener
 func (p2p *P2P) Dial(ctx context.Context, peer peer.ID, proto string, bindAddr ma.Multiaddr) (Listener, error) {
-	lnet, _, err := manet.DialArgs(bindAddr)
+	maListener, err := manet.Listen(bindAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	switch lnet {
-	case "tcp", "tcp4", "tcp6":
-		maListener, err := manet.Listen(bindAddr)
-		if err != nil {
-			return nil, err
-		}
+	listener := &outboundListener{
+		p2p: p2p,
+		id:  p2p.identity,
 
-		listener := &outboundListener{
-			p2p: p2p,
-			id:  p2p.identity,
+		proto: proto,
+		peer:  peer,
 
-			proto: proto,
-			peer:  peer,
-
-			listener: maListener,
-		}
-
-		go listener.acceptConns()
-
-		return listener, nil
-	default:
-		return nil, errors.New("unsupported proto: " + lnet)
+		listener: maListener,
 	}
+
+	go listener.acceptConns()
+
+	return listener, nil
 }
 
 func (l *outboundListener) dial() (net.Stream, error) {
