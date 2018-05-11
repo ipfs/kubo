@@ -3,7 +3,7 @@
 set -e
 
 if ! [ -f merkledag.proto ] ; then
-	echo 1>&2 "You must run the regenerator wihile in the directory containing merkledag.proto"
+	echo 1>&2 "You must run the regenerator while in the directory containing merkledag.proto"
 	exit 1
 fi
 
