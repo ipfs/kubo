@@ -10,7 +10,7 @@ To install it, move the binary somewhere in your `$PATH`:
 sudo mv ipfs /usr/local/bin/ipfs
 ```
 
-Or run `sudo install.sh` which does this for you.
+Or run `sudo ./install.sh` which does this for you.
 
 ## Usage
 
