@@ -647,7 +647,11 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		for _, cid := range recPins {
 			pinStatus := checkPin(cid)
 			if !pinStatus.Ok || opts.includeOk {
-				out <- &PinVerifyRes{cid.String(), pinStatus}
+				select {
+				case out <- &PinVerifyRes{cid.String(), pinStatus}:
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
 	}()
