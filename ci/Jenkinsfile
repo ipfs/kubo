@@ -2,6 +2,12 @@ import groovy.transform.Field
 
 /* SETTINGS */
 
+// in minutes
+def sharness_timeout = 15
+def gotest_timeout = 10
+def build_timeout = 20
+def check_timeout = 4
+
 def test = 'go test -v ./...'
 
 def fast_build_platforms = [
@@ -64,21 +70,27 @@ def gobuild_step(list) {
 
 /* PIPELINE */
 
-ansiColor('xterm') { withEnv(['TERM=xterm-color']) { timeout(time: 30, unit: 'MINUTES') {
+ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
   stage('Checks') {
     parallel(
       'go fmt': {
         setupStep('linux') { run ->
-          run 'make test_go_fmt'
+          timeout(time: check_timeout, unit: 'MINUTES') {
+            run 'make test_go_fmt'
+          }
         }
       },
       'go vet': {
         setupStep('linux') { run ->
-          run 'go vet ./...'
+          timeout(time: check_timeout, unit: 'MINUTES') {
+            run 'go vet ./...'
+          }
         }
       },
       'go build': {
-        gobuild_step(fast_build_platforms)
+        timeout(time: check_timeout, unit: 'MINUTES') {
+          gobuild_step(fast_build_platforms)
+        }
       }
     )
   }
@@ -86,84 +98,96 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) { timeout(time: 30, unit: 'MI
   stage('Tests') {
     parallel(
       'go build (other platforms)': {
-        gobuild_step(build_platforms)
+        timeout(time: build_timeout, unit: 'MINUTES') {
+          gobuild_step(build_platforms)
+        }
       },
       windows: {
         setupStep('windows') { run ->
-          run 'go get -v github.com/jstemmer/go-junit-report github.com/whyrusleeping/gx github.com/whyrusleeping/gx-go'
-          run "gx install --global"
+          timeout(time: gotest_timeout, unit: 'MINUTES') {
+            run 'go get -v github.com/jstemmer/go-junit-report github.com/whyrusleeping/gx github.com/whyrusleeping/gx-go'
+            run "gx install --global"
 
-          try {
-            run test + ' -tags="nofuse" > output & type output'
-            run 'type output | go-junit-report > junit-report-windows.xml'
-          } catch (err) {
-            throw err
-          } finally {
-            /* IGNORE TEST FAILS */
-            /* junit allowEmptyResults: true, testResults: 'junit-report-*.xml' */
+            try {
+              run test + ' -tags="nofuse" > output & type output'
+              run 'type output | go-junit-report > junit-report-windows.xml'
+            } catch (err) {
+              throw err
+            } finally {
+              /* IGNORE TEST FAILS */
+              /* junit allowEmptyResults: true, testResults: 'junit-report-*.xml' */
+            }
           }
         }
       },
       linux: {
         setupStep('linux') { run ->
-          run 'go get -v github.com/jstemmer/go-junit-report'
-          run "make gx-deps"
+          timeout(time: gotest_timeout, unit: 'MINUTES') {
+            run 'go get -v github.com/jstemmer/go-junit-report'
+            run "make gx-deps"
 
-          try {
-            run test + ' -tags="nofuse" 2>&1 | tee output'
-            run 'cat output | go-junit-report > junit-report-linux.xml'
-          } catch (err) {
-            throw err
-          } finally {
-            junit allowEmptyResults: true, testResults: 'junit-report-*.xml'
+            try {
+              run test + ' -tags="nofuse" 2>&1 | tee output'
+              run 'cat output | go-junit-report > junit-report-linux.xml'
+            } catch (err) {
+              throw err
+            } finally {
+              junit allowEmptyResults: true, testResults: 'junit-report-*.xml'
+            }
           }
         }
       },
       linuxSharness: {
        setupStep('linux') { run ->
-          run 'go get -v github.com/jstemmer/go-junit-report'
-          run "make gx-deps"
+         timeout(time: sharness_timeout, unit: 'MINUTES') {
+            run 'go get -v github.com/jstemmer/go-junit-report'
+            run "make gx-deps"
 
-          try {
-            run "make -j12 -Otarget test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_NO_FUSE=1 TEST_NO_DOCKER=1"
-          } catch (err) {
-            throw err
-          } finally {
-            junit allowEmptyResults: true, testResults: 'test/sharness/test-results/sharness.xml'
+            try {
+              run "make -j12 -Otarget test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_NO_FUSE=1 TEST_NO_DOCKER=1"
+            } catch (err) {
+              throw err
+            } finally {
+              junit allowEmptyResults: true, testResults: 'test/sharness/test-results/sharness.xml'
+            }
           }
         }
       },
       macOS: {
         setupStep('macos') { run ->
-          run 'go get -v github.com/jstemmer/go-junit-report'
-          run "make gx-deps"
+          timeout(time: gotest_timeout, unit: 'MINUTES') {
+            run 'go get -v github.com/jstemmer/go-junit-report'
+            run "make gx-deps"
 
-          try {
-            run test + ' -tags="nofuse" 2>&1 | tee output'
-            run 'cat output | go-junit-report > junit-report-macos.xml'
-          } catch (err) {
-            throw err
-          } finally {
-            /* IGNORE TEST FAILS */
-            /* junit 'junit-report-*.xml' */
+            try {
+              run test + ' -tags="nofuse" 2>&1 | tee output'
+              run 'cat output | go-junit-report > junit-report-macos.xml'
+            } catch (err) {
+              throw err
+            } finally {
+              /* IGNORE TEST FAILS */
+              /* junit 'junit-report-*.xml' */
+            }
           }
         }
       },
       macSharness: {
         setupStep('macos') { run ->
-          run 'go get -v github.com/jstemmer/go-junit-report'
-          run "make gx-deps"
+          timeout(time: sharness_timeout, unit: 'MINUTES') {
+            run 'go get -v github.com/jstemmer/go-junit-report'
+            run "make gx-deps"
 
-          try {
-            run "make -j12 test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_NO_FUSE=1"
-          } catch (err) {
-            throw err
-          } finally {
-            /* IGNORE TEST FAILS */
-            /* junit allowEmptyResults: true, testResults: 'test/sharness/test-results/sharness.xml' */
+            try {
+              run "make -j12 test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_NO_FUSE=1"
+            } catch (err) {
+              throw err
+            } finally {
+              /* IGNORE TEST FAILS */
+              /* junit allowEmptyResults: true, testResults: 'test/sharness/test-results/sharness.xml' */
+            }
           }
         }
       },
     )
   }
-}}}
+}}
