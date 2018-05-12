@@ -128,7 +128,12 @@ into an object of the specified format.
 
 				cid := nds[0].Cid()
 				cids.Add(cid)
-				outChan <- &OutputObject{Cid: cid}
+
+				select {
+				case outChan <- &OutputObject{Cid: cid}:
+				case <-req.Context().Done():
+					return nil
+				}
 			}
 
 			if err := b.Commit(); err != nil {
