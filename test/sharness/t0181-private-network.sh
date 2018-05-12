@@ -61,7 +61,7 @@ test_expect_success "start nodes" '
 '
 
 test_expect_success "try connecting node in public network with priv networks" '
-  iptb connect [1-4] 0
+  iptb connect --timeout=2s [1-4] 0
 '
 
 test_expect_success "node 0 (public network) swarm is empty" '
