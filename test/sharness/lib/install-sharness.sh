@@ -7,7 +7,7 @@
 
 # settings
 version=5eee9b51b5621cec95a64018f0cc779963b230d2
-patch_version=8
+patch_version=17
 
 urlprefix=https://github.com/mlafeldt/sharness.git
 if test ! -n "$clonedir" ; then
