@@ -129,7 +129,10 @@ NOTE: List all references recursively by using the flag '-r'.
 
 			for _, o := range objs {
 				if _, err := rw.WriteRefs(o); err != nil {
-					out <- &RefWrapper{Err: err.Error()}
+					select {
+					case out <- &RefWrapper{Err: err.Error()}:
+					case <-ctx.Done():
+					}
 					return
 				}
 			}
@@ -169,7 +172,11 @@ Displays the hashes of all local objects.
 			defer close(out)
 
 			for k := range allKeys {
-				out <- &RefWrapper{Ref: k.String()}
+				select {
+				case out <- &RefWrapper{Ref: k.String()}:
+				case <-req.Context().Done():
+					return
+				}
 			}
 		}()
 	},
