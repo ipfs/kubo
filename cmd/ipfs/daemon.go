@@ -301,10 +301,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
-	if err != nil {
-		re.SetError(err, cmdkit.ErrNormal)
-		return
-	}
 	if routingOption == routingOptionDefaultKwd {
 		cfg, err := repo.Config()
 		if err != nil {

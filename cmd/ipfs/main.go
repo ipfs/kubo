@@ -92,6 +92,7 @@ func mainRet() int {
 	os.Args[0] = "ipfs"
 
 	buildEnv := func(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
+		checkDebug(req)
 		repoPath, err := getRepoPath(req)
 		if err != nil {
 			return nil, err
@@ -151,12 +152,7 @@ func checkDebug(req *cmds.Request) {
 }
 
 func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
-	checkDebug(req)
-	details, err := commandDetails(req.Path, Root)
-	if err != nil {
-		return nil, err
-	}
-
+	details := commandDetails(req.Path)
 	client, err := commandShouldRunOnDaemon(*details, req, env.(*oldcmds.Context))
 	if err != nil {
 		return nil, err
@@ -200,25 +196,16 @@ func checkPermissions(path string) (bool, error) {
 	return true, nil
 }
 
-// commandDetails returns a command's details for the command given by |path|
-// within the |root| command tree.
-//
-// Returns an error if the command is not found in the Command tree.
-func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
+// commandDetails returns a command's details for the command given by |path|.
+func commandDetails(path []string) *cmdDetails {
 	var details cmdDetails
 	// find the last command in path that has a cmdDetailsMap entry
-	cmd := root
-	for _, cmp := range path {
-		cmd = cmd.Subcommands[cmp]
-		if cmd == nil {
-			return nil, fmt.Errorf("subcommand %s should be in root", cmp)
-		}
-
-		if cmdDetails, found := cmdDetailsMap[strings.Join(path, "/")]; found {
+	for i := range path {
+		if cmdDetails, found := cmdDetailsMap[strings.Join(path[:i+1], "/")]; found {
 			details = cmdDetails
 		}
 	}
-	return &details, nil
+	return &details
 }
 
 // commandShouldRunOnDaemon determines, from command details, whether a
@@ -318,7 +305,7 @@ func startProfiling() (func(), error) {
 
 	stopProfiling := func() {
 		pprof.StopCPUProfile()
-		defer ofi.Close() // captured by the closure
+		ofi.Close() // captured by the closure
 	}
 	return stopProfiling, nil
 }

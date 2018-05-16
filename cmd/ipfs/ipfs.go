@@ -26,7 +26,6 @@ var localCommands = map[string]*cmds.Command{
 	"init":     initCmd,
 	"commands": commandsClientCmd,
 }
-var localMap = make(map[*cmds.Command]bool)
 
 func init() {
 	// setting here instead of in literal to prevent initialization loop
@@ -37,10 +36,6 @@ func init() {
 		if _, found := Root.Subcommands[k]; !found {
 			Root.Subcommands[k] = v
 		}
-	}
-
-	for _, v := range localCommands {
-		localMap[v] = true
 	}
 }
 
