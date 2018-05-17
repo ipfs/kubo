@@ -103,7 +103,7 @@ With snap, in any of the [supported Linux distributions](https://snapcraft.io/do
 
 #### Install Go
 
-The build process for ipfs requires Go 1.9 or higher. If you don't have it: [Download Go 1.9+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.10 or higher. If you don't have it: [Download Go 1.10+](https://golang.org/dl/).
 
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
@@ -147,7 +147,7 @@ mismatched APIs.
 * Also, [instructions for OpenBSD](docs/openbsd.md).
 * `git` is required in order for `go get` to fetch all dependencies.
 * Package managers often contain out-of-date `golang` packages.
-  Ensure that `go version` reports at least 1.9. See above for how to install go.
+  Ensure that `go version` reports at least 1.10. See above for how to install go.
 * If you are interested in development, please install the development
 dependencies as well.
 * *WARNING: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*

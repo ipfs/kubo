@@ -4,7 +4,7 @@
   },
   "gx": {
     "dvcsimport": "github.com/ipfs/go-ipfs",
-    "goversion": "1.9"
+    "goversion": "1.10"
   },
   "gxDependencies": [
     {
