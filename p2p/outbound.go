@@ -44,6 +44,7 @@ func (p2p *P2P) Dial(ctx context.Context, peer peer.ID, proto string, bindAddr m
 		listener: maListener,
 	}
 
+	p2p.Listeners.Register(listener)
 	go listener.acceptConns()
 
 	return listener, nil

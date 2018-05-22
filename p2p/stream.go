@@ -27,7 +27,15 @@ type Stream struct {
 	Registry *StreamRegistry
 }
 
-// Reset closes stream endpoints and deregisters it
+// Close closes stream endpoints and deregisters it
+func (s *Stream) Close() error {
+	s.Local.Close()
+	s.Remote.Close()
+	s.Registry.Deregister(s.Id)
+	return nil
+}
+
+// Rest closes stream endpoints and deregisters it
 func (s *Stream) Reset() error {
 	s.Local.Close()
 	s.Remote.Reset()
@@ -42,8 +50,12 @@ func (s *Stream) startStreaming() {
 	}()
 
 	go func() {
-		io.Copy(s.Remote, s.Local)
-		s.Reset()
+		_, err := io.Copy(s.Remote, s.Local)
+		if err != nil {
+			s.Reset()
+		} else {
+			s.Close()
+		}
 	}()
 }
 
