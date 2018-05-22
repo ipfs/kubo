@@ -386,7 +386,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 			if !closeAll && handlerID != stream.Id {
 				continue
 			}
-			stream.Close()
+			stream.Reset()
 			if !closeAll {
 				break
 			}
