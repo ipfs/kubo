@@ -12,10 +12,9 @@ import (
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
-// inboundListener accepts libp2p streams and proxies them to a manet host
+// outboundListener accepts libp2p streams and proxies them to a manet host
 type outboundListener struct {
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx context.Context
 
 	p2p *P2P
 	id  peer.ID
@@ -34,6 +33,8 @@ func (p2p *P2P) Dial(ctx context.Context, peer peer.ID, proto string, bindAddr m
 	}
 
 	listener := &outboundListener{
+		ctx: ctx,
+
 		p2p: p2p,
 		id:  p2p.identity,
 

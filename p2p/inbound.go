@@ -16,13 +16,17 @@ type inboundListener struct {
 	// Application proto identifier.
 	proto string
 
+	// Address to proxy the incoming connections to
 	addr ma.Multiaddr
 }
 
 // NewListener creates new p2p listener
 func (p2p *P2P) NewListener(ctx context.Context, proto string, addr ma.Multiaddr) (Listener, error) {
 	listenerInfo := &inboundListener{
+		p2p: p2p,
+
 		proto: proto,
+		addr:  addr,
 	}
 
 	p2p.peerHost.SetStreamHandler(protocol.ID(proto), func(remote net.Stream) {
