@@ -58,9 +58,10 @@ are refined`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"listener": p2pListenerCmd,
-		"stream":   p2pStreamCmd,
-		"forward":  p2pForwardCmd,
+		"stream": p2pStreamCmd,
+
+		"forward": p2pForwardCmd,
+		"ls":      p2pLsCmd,
 	},
 }
 
@@ -156,45 +157,12 @@ func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto st
 	return err
 }
 
-////
-// LEGACY
-//
-//
-
-// p2pListenerCmd is the 'ipfs p2p listener' command
-var p2pListenerCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
-		Tagline:          "P2P listener management.",
-		ShortDescription: "Create and manage listener p2p endpoints",
-	},
-
-	Subcommands: map[string]*cmds.Command{
-		"ls":    p2pListenerLsCmd,
-		"open":  p2pListenerListenCmd,
-		"close": p2pListenerCloseCmd,
-	},
-}
-
-// p2pStreamCmd is the 'ipfs p2p stream' command
-var p2pStreamCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
-		Tagline:          "P2P stream management.",
-		ShortDescription: "Create and manage p2p streams",
-	},
-
-	Subcommands: map[string]*cmds.Command{
-		"ls":    p2pStreamLsCmd,
-		"dial":  p2pStreamDialCmd,
-		"close": p2pStreamCloseCmd,
-	},
-}
-
-var p2pListenerLsCmd = &cmds.Command{
+var p2pLsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List active p2p listeners.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (Id, Protocol, Local, Remote)."),
+		cmdkit.BoolOption("headers", "v", "Print table headers (Protocol, Listen, Target)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := getNode(req)
@@ -238,6 +206,24 @@ var p2pListenerLsCmd = &cmds.Command{
 
 			return buf, nil
 		},
+	},
+}
+
+///////
+// Listener
+//
+
+// p2pStreamCmd is the 'ipfs p2p stream' command
+var p2pStreamCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline:          "P2P stream management.",
+		ShortDescription: "Create and manage p2p streams",
+	},
+
+	Subcommands: map[string]*cmds.Command{
+		"ls":    p2pStreamLsCmd,
+		"dial":  p2pStreamDialCmd,
+		"close": p2pStreamCloseCmd,
 	},
 }
 
