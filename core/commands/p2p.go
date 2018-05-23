@@ -2,14 +2,17 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	p2p "github.com/ipfs/go-ipfs/p2p"
 
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
@@ -56,8 +59,106 @@ are refined`,
 	Subcommands: map[string]*cmds.Command{
 		"listener": p2pListenerCmd,
 		"stream":   p2pStreamCmd,
+		"forward":  p2pForwardCmd,
 	},
 }
+
+var p2pForwardCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Forward connections to or from libp2p services",
+		ShortDescription: `
+Forward connections to <listen-address> to <target-address>. Protocol specifies
+the libp2p protocol to use.
+
+To create libp2p service listener, specify '/ipfs' as <listen-address>
+
+Examples:
+  ipfs p2p forward myproto /ipfs /ip4/127.0.0.1/tcp/1234
+    - Forward connections to 'myproto' libp2p service to 127.0.0.1:1234
+
+  ipfs p2p forward myproto /ip4/127.0.0.1/tcp/4567 /ipfs/QmPeer
+    - Forward connections to 127.0.0.1:4567 to 'myproto' service on /ipfs/QmPeer
+
+`,
+	},
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("protocol", true, false, "Protocol identifier."),
+		cmdkit.StringArg("listen-address", true, false, "Listening endpoint"),
+		cmdkit.StringArg("target-address", true, false, "Target endpoint."),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := getNode(req)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		//TODO: Do we really want/need implicit prefix?
+		proto := "/p2p/" + req.Arguments()[0]
+		listen := req.Arguments()[1]
+		target := req.Arguments()[2]
+
+		if strings.HasPrefix(listen, "/ipfs") {
+			if listen != "/ipfs" {
+				res.SetError(errors.New("only '/ipfs' is allowed as libp2p listen address"), cmdkit.ErrNormal)
+				return
+			}
+
+			if err := forwardRemote(n.Context(), n.P2P, proto, target); err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+		} else {
+			if err := forwardLocal(n.Context(), n.P2P, n.Peerstore, proto, listen, target); err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+		}
+		res.SetOutput(nil)
+	},
+}
+
+// forwardRemote forwards libp2p service connections to a manet address
+func forwardRemote(ctx context.Context, p *p2p.P2P, proto string, target string) error {
+	if strings.HasPrefix(target, "/ipfs") {
+		return errors.New("cannot forward libp2p service connections to another libp2p service")
+	}
+
+	addr, err := ma.NewMultiaddr(target)
+	if err != nil {
+		return err
+	}
+
+	// TODO: return some info
+	_, err = p.NewListener(ctx, proto, addr)
+	return err
+}
+
+// forwardLocal forwards local connections to a libp2p service
+func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto string, listen string, target string) error {
+	bindAddr, err := ma.NewMultiaddr(listen)
+	if err != nil {
+		return err
+	}
+
+	addr, peer, err := ParsePeerParam(target)
+	if err != nil {
+		return err
+	}
+
+	if addr != nil {
+		ps.AddAddr(peer, addr, pstore.TempAddrTTL)
+	}
+
+	// TODO: return some info
+	_, err = p.Dial(ctx, peer, proto, bindAddr)
+	return err
+}
+
+////
+// LEGACY
+//
+//
 
 // p2pListenerCmd is the 'ipfs p2p listener' command
 var p2pListenerCmd = &cmds.Command{
@@ -95,7 +196,6 @@ var p2pListenerLsCmd = &cmds.Command{
 		cmdkit.BoolOption("headers", "v", "Print table headers (Id, Protocol, Local, Remote)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-
 		n, err := getNode(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
