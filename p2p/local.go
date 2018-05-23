@@ -12,8 +12,8 @@ import (
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
-// outboundListener accepts libp2p streams and proxies them to a manet host
-type outboundListener struct {
+// localListener manet streams and proxies them to libp2p services
+type localListener struct {
 	ctx context.Context
 
 	p2p *P2P
@@ -25,14 +25,14 @@ type outboundListener struct {
 	listener manet.Listener
 }
 
-// Dial creates new P2P stream to a remote listener
-func (p2p *P2P) Dial(ctx context.Context, peer peer.ID, proto string, bindAddr ma.Multiaddr) (Listener, error) {
+// ForwardLocal creates new P2P stream to a remote listener
+func (p2p *P2P) ForwardLocal(ctx context.Context, peer peer.ID, proto string, bindAddr ma.Multiaddr) (Listener, error) {
 	maListener, err := manet.Listen(bindAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	listener := &outboundListener{
+	listener := &localListener{
 		ctx: ctx,
 
 		p2p: p2p,
@@ -50,7 +50,7 @@ func (p2p *P2P) Dial(ctx context.Context, peer peer.ID, proto string, bindAddr m
 	return listener, nil
 }
 
-func (l *outboundListener) dial() (net.Stream, error) {
+func (l *localListener) dial() (net.Stream, error) {
 	ctx, cancel := context.WithTimeout(l.ctx, time.Second*30) //TODO: configurable?
 	defer cancel()
 
@@ -62,7 +62,7 @@ func (l *outboundListener) dial() (net.Stream, error) {
 	return l.p2p.peerHost.NewStream(l.ctx, l.peer, protocol.ID(l.proto))
 }
 
-func (l *outboundListener) acceptConns() {
+func (l *localListener) acceptConns() {
 	for {
 		local, err := l.listener.Accept()
 		if err != nil {
@@ -95,16 +95,20 @@ func (l *outboundListener) acceptConns() {
 	}
 }
 
-func (l *outboundListener) Close() error {
+func (l *localListener) Close() error {
 	l.listener.Close()
 	l.p2p.Listeners.Deregister(l.proto)
 	return nil
 }
 
-func (l *outboundListener) Protocol() string {
+func (l *localListener) Protocol() string {
 	return l.proto
 }
 
-func (l *outboundListener) Address() string {
-	return "/ipfs/" + l.peer.String()
+func (l *localListener) ListenAddress() string {
+	return l.listener.Multiaddr().String()
+}
+
+func (l *localListener) TargetAddress() string {
+	return "/ipfs/" + l.peer.Pretty()
 }

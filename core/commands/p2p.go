@@ -21,8 +21,9 @@ import (
 
 // P2PListenerInfoOutput is output type of ls command
 type P2PListenerInfoOutput struct {
-	Protocol string
-	Address  string
+	Protocol      string
+	ListenAddress string
+	TargetAddress string
 }
 
 // P2PStreamInfoOutput is output type of streams command
@@ -130,7 +131,7 @@ func forwardRemote(ctx context.Context, p *p2p.P2P, proto string, target string)
 	}
 
 	// TODO: return some info
-	_, err = p.NewListener(ctx, proto, addr)
+	_, err = p.ForwardRemote(ctx, proto, addr)
 	return err
 }
 
@@ -151,7 +152,7 @@ func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto st
 	}
 
 	// TODO: return some info
-	_, err = p.Dial(ctx, peer, proto, bindAddr)
+	_, err = p.ForwardLocal(ctx, peer, proto, bindAddr)
 	return err
 }
 
@@ -206,8 +207,9 @@ var p2pListenerLsCmd = &cmds.Command{
 
 		for _, listener := range n.P2P.Listeners.Listeners {
 			output.Listeners = append(output.Listeners, P2PListenerInfoOutput{
-				Protocol: listener.Protocol(),
-				Address:  listener.Address(),
+				Protocol:      listener.Protocol(),
+				ListenAddress: listener.ListenAddress(),
+				TargetAddress: listener.TargetAddress(),
 			})
 		}
 
@@ -227,10 +229,10 @@ var p2pListenerLsCmd = &cmds.Command{
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, listener := range list.Listeners {
 				if headers {
-					fmt.Fprintln(w, "Address\tProtocol")
+					fmt.Fprintln(w, "Protocol\tListen Address\tTarget Address")
 				}
 
-				fmt.Fprintf(w, "%s\t%s\n", listener.Address, listener.Protocol)
+				fmt.Fprintf(w, "%s\t%s\t%s\n", listener.Protocol, listener.ListenAddress, listener.TargetAddress)
 			}
 			w.Flush()
 
@@ -330,7 +332,7 @@ Note that the connections originate from the ipfs daemon process.
 			return
 		}
 
-		_, err = n.P2P.NewListener(n.Context(), proto, addr)
+		_, err = n.P2P.ForwardRemote(n.Context(), proto, addr)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -338,8 +340,8 @@ Note that the connections originate from the ipfs daemon process.
 
 		// Successful response.
 		res.SetOutput(&P2PListenerInfoOutput{
-			Protocol: proto,
-			Address:  addr.String(),
+			Protocol:      proto,
+			TargetAddress: addr.String(),
 		})
 	},
 }
@@ -389,15 +391,15 @@ can transparently connect to a p2p service.
 			}
 		}
 
-		listenerInfo, err := n.P2P.Dial(n.Context(), peer, proto, bindAddr)
+		listenerInfo, err := n.P2P.ForwardLocal(n.Context(), peer, proto, bindAddr)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		output := P2PListenerInfoOutput{
-			Protocol: listenerInfo.Protocol(),
-			Address:  listenerInfo.Address(),
+			Protocol:      listenerInfo.Protocol(),
+			ListenAddress: listenerInfo.ListenAddress(),
 		}
 
 		res.SetOutput(&output)

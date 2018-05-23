@@ -2,7 +2,8 @@ package p2p
 
 type Listener interface {
 	Protocol() string
-	Address() string
+	ListenAddress() string
+	TargetAddress() string
 
 	// Close closes the listener. Does not affect child streams
 	Close() error

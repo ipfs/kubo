@@ -9,8 +9,8 @@ import (
 	manet "gx/ipfs/QmcGXGdw9BWDysPJQHxJinjGHha3eEg4vzFETre4woNwcX/go-multiaddr-net"
 )
 
-// inboundListener accepts libp2p streams and proxies them to a manet host
-type inboundListener struct {
+// remoteListener accepts libp2p streams and proxies them to a manet host
+type remoteListener struct {
 	p2p *P2P
 
 	// Application proto identifier.
@@ -20,14 +20,16 @@ type inboundListener struct {
 	addr ma.Multiaddr
 }
 
-// NewListener creates new p2p listener
-func (p2p *P2P) NewListener(ctx context.Context, proto string, addr ma.Multiaddr) (Listener, error) {
-	listenerInfo := &inboundListener{
+// ForwardRemote creates new p2p listener
+func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiaddr) (Listener, error) {
+	listenerInfo := &remoteListener{
 		p2p: p2p,
 
 		proto: proto,
 		addr:  addr,
 	}
+
+	p2p.Listeners.Register(listenerInfo)
 
 	p2p.peerHost.SetStreamHandler(protocol.ID(proto), func(remote net.Stream) {
 		local, err := manet.Dial(addr)
@@ -55,20 +57,22 @@ func (p2p *P2P) NewListener(ctx context.Context, proto string, addr ma.Multiaddr
 		stream.startStreaming()
 	})
 
-	p2p.Listeners.Register(listenerInfo)
-
 	return listenerInfo, nil
 }
 
-func (l *inboundListener) Protocol() string {
+func (l *remoteListener) Protocol() string {
 	return l.proto
 }
 
-func (l *inboundListener) Address() string {
+func (l *remoteListener) ListenAddress() string {
+	return "/ipfs"
+}
+
+func (l *remoteListener) TargetAddress() string {
 	return l.addr.String()
 }
 
-func (l *inboundListener) Close() error {
+func (l *remoteListener) Close() error {
 	l.p2p.peerHost.RemoveStreamHandler(protocol.ID(l.proto))
 	l.p2p.Listeners.Deregister(l.proto)
 	return nil
