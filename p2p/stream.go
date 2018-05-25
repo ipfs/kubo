@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"io"
+	"sync"
 
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	net "gx/ipfs/QmYj8wdn5sZEHX2XMDWGBvcXJNdzVbaVpHmXvhHBVZepen/go-libp2p-net"
@@ -58,18 +59,25 @@ func (s *Stream) startStreaming() {
 // StreamRegistry is a collection of active incoming and outgoing proto app streams.
 type StreamRegistry struct {
 	Streams map[uint64]*Stream
+	lk      *sync.Mutex
 
 	nextId uint64
 }
 
 // Register registers a stream to the registry
-func (c *StreamRegistry) Register(streamInfo *Stream) {
-	streamInfo.Id = c.nextId
-	c.Streams[c.nextId] = streamInfo
-	c.nextId++
+func (r *StreamRegistry) Register(streamInfo *Stream) {
+	r.lk.Lock()
+	defer r.lk.Unlock()
+
+	streamInfo.Id = r.nextId
+	r.Streams[r.nextId] = streamInfo
+	r.nextId++
 }
 
 // Deregister deregisters stream from the registry
-func (c *StreamRegistry) Deregister(streamId uint64) {
-	delete(c.Streams, streamId)
+func (r *StreamRegistry) Deregister(streamId uint64) {
+	r.lk.Lock()
+	defer r.lk.Unlock()
+
+	delete(r.Streams, streamId)
 }

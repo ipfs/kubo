@@ -38,7 +38,7 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 			return
 		}
 
-		stream := Stream{
+		stream := &Stream{
 			Protocol: proto,
 
 			OriginAddr: remote.Conn().RemoteMultiaddr(),
@@ -50,7 +50,7 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 			Registry: p2p.Streams,
 		}
 
-		p2p.Streams.Register(&stream)
+		p2p.Streams.Register(stream)
 		stream.startStreaming()
 	})
 
