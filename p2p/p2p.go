@@ -8,8 +8,8 @@ import (
 
 // P2P structure holds information on currently running streams/listeners
 type P2P struct {
-	Listeners ListenerRegistry
-	Streams   StreamRegistry
+	Listeners *ListenerRegistry
+	Streams   *StreamRegistry
 
 	identity  peer.ID
 	peerHost  p2phost.Host
@@ -23,10 +23,10 @@ func NewP2P(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore)
 		peerHost:  peerHost,
 		peerstore: peerstore,
 
-		Listeners: ListenerRegistry{
-			Listeners: map[string]Listener{},
+		Listeners: &ListenerRegistry{
+			Listeners: map[listenerKey]Listener{},
 		},
-		Streams: StreamRegistry{
+		Streams: &StreamRegistry{
 			Streams: map[uint64]*Stream{},
 		},
 	}

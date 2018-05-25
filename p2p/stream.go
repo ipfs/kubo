@@ -6,7 +6,6 @@ import (
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	net "gx/ipfs/QmYj8wdn5sZEHX2XMDWGBvcXJNdzVbaVpHmXvhHBVZepen/go-libp2p-net"
 	manet "gx/ipfs/QmcGXGdw9BWDysPJQHxJinjGHha3eEg4vzFETre4woNwcX/go-multiaddr-net"
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
 // Stream holds information on active incoming and outgoing p2p streams.
@@ -15,11 +14,8 @@ type Stream struct {
 
 	Protocol string
 
-	LocalPeer peer.ID
-	LocalAddr ma.Multiaddr
-
-	RemotePeer peer.ID
-	RemoteAddr ma.Multiaddr
+	OriginAddr ma.Multiaddr
+	TargetAddr ma.Multiaddr
 
 	Local  manet.Conn
 	Remote net.Stream

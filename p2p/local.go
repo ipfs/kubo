@@ -75,29 +75,32 @@ func (l *localListener) acceptConns() {
 			return
 		}
 
-		stream := Stream{
+		tgt, err := ma.NewMultiaddr(l.TargetAddress())
+		if err != nil {
+			local.Close()
+			return
+		}
+
+		stream := &Stream{
 			Protocol: l.proto,
 
-			LocalPeer: l.id,
-			LocalAddr: l.listener.Multiaddr(),
-
-			RemotePeer: remote.Conn().RemotePeer(),
-			RemoteAddr: remote.Conn().RemoteMultiaddr(),
+			OriginAddr: local.RemoteMultiaddr(),
+			TargetAddr: tgt,
 
 			Local:  local,
 			Remote: remote,
 
-			Registry: &l.p2p.Streams,
+			Registry: l.p2p.Streams,
 		}
 
-		l.p2p.Streams.Register(&stream)
+		l.p2p.Streams.Register(stream)
 		stream.startStreaming()
 	}
 }
 
 func (l *localListener) Close() error {
 	l.listener.Close()
-	l.p2p.Listeners.Deregister(l.proto)
+	l.p2p.Listeners.Deregister(getListenerKey(l))
 	return nil
 }
 

@@ -9,17 +9,31 @@ type Listener interface {
 	Close() error
 }
 
-// ListenerRegistry is a collection of local application proto listeners.
-type ListenerRegistry struct {
-	Listeners map[string]Listener
+type listenerKey struct {
+	proto  string
+	listen string
+	target string
 }
 
-// Register registers listenerInfo2 in this registry
-func (c *ListenerRegistry) Register(listenerInfo Listener) {
-	c.Listeners[listenerInfo.Protocol()] = listenerInfo
+// ListenerRegistry is a collection of local application proto listeners.
+type ListenerRegistry struct {
+	Listeners map[listenerKey]Listener
+}
+
+// Register registers listenerInfo in this registry
+func (c *ListenerRegistry) Register(l Listener) {
+	c.Listeners[getListenerKey(l)] = l
 }
 
 // Deregister removes p2p listener from this registry
-func (c *ListenerRegistry) Deregister(proto string) {
-	delete(c.Listeners, proto)
+func (c *ListenerRegistry) Deregister(k listenerKey) {
+	delete(c.Listeners, k)
+}
+
+func getListenerKey(l Listener) listenerKey {
+	return listenerKey{
+		proto:  l.Protocol(),
+		listen: l.ListenAddress(),
+		target: l.TargetAddress(),
+	}
 }

@@ -41,16 +41,13 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 		stream := Stream{
 			Protocol: proto,
 
-			LocalPeer: p2p.identity,
-			LocalAddr: addr,
-
-			RemotePeer: remote.Conn().RemotePeer(),
-			RemoteAddr: remote.Conn().RemoteMultiaddr(),
+			OriginAddr: remote.Conn().RemoteMultiaddr(),
+			TargetAddr: addr,
 
 			Local:  local,
 			Remote: remote,
 
-			Registry: &p2p.Streams,
+			Registry: p2p.Streams,
 		}
 
 		p2p.Streams.Register(&stream)
@@ -74,6 +71,6 @@ func (l *remoteListener) TargetAddress() string {
 
 func (l *remoteListener) Close() error {
 	l.p2p.peerHost.RemoveStreamHandler(protocol.ID(l.proto))
-	l.p2p.Listeners.Deregister(l.proto)
+	l.p2p.Listeners.Deregister(getListenerKey(l))
 	return nil
 }
