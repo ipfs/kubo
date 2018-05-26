@@ -22,14 +22,16 @@ type remoteListener struct {
 
 // ForwardRemote creates new p2p listener
 func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiaddr) (Listener, error) {
-	listenerInfo := &remoteListener{
+	listener := &remoteListener{
 		p2p: p2p,
 
 		proto: proto,
 		addr:  addr,
 	}
 
-	p2p.Listeners.Register(listenerInfo)
+	if err := p2p.Listeners.Lock(listener); err != nil {
+		return nil, err
+	}
 
 	p2p.peerHost.SetStreamHandler(protocol.ID(proto), func(remote net.Stream) {
 		local, err := manet.Dial(addr)
@@ -38,10 +40,17 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 			return
 		}
 
+		//TODO: review: is there a better way to do this?
+		peerMa, err := ma.NewMultiaddr("/ipfs/" + remote.Conn().RemotePeer().Pretty())
+		if err != nil {
+			remote.Reset()
+			return
+		}
+
 		stream := &Stream{
 			Protocol: proto,
 
-			OriginAddr: remote.Conn().RemoteMultiaddr(),
+			OriginAddr: peerMa,
 			TargetAddr: addr,
 
 			Local:  local,
@@ -54,7 +63,9 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 		stream.startStreaming()
 	})
 
-	return listenerInfo, nil
+	p2p.Listeners.Register(listener)
+
+	return listener, nil
 }
 
 func (l *remoteListener) Protocol() string {

@@ -2,6 +2,8 @@ package p2p
 
 import (
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 type Listener interface {
@@ -25,9 +27,22 @@ type ListenerRegistry struct {
 	lk        *sync.Mutex
 }
 
+func (r *ListenerRegistry) Lock(l Listener) error {
+	r.lk.Lock()
+
+	if _, ok := r.Listeners[getListenerKey(l)]; ok {
+		r.lk.Unlock()
+		return errors.New("listener already registered")
+	}
+	return nil
+}
+
+func (r *ListenerRegistry) Unlock() {
+	r.lk.Unlock()
+}
+
 // Register registers listenerInfo in this registry
 func (r *ListenerRegistry) Register(l Listener) {
-	r.lk.Lock()
 	defer r.lk.Unlock()
 
 	r.Listeners[getListenerKey(l)] = l

@@ -88,7 +88,7 @@ Examples:
 		cmdkit.StringArg("target-address", true, false, "Target endpoint."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := getNode(req)
+		n, err := p2pGetNode(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -164,7 +164,7 @@ var p2pLsCmd = &cmds.Command{
 		cmdkit.BoolOption("headers", "v", "Print table headers (Protocol, Listen, Target)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := getNode(req)
+		n, err := p2pGetNode(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -221,7 +221,7 @@ var p2pCloseCmd = &cmds.Command{
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(nil)
 
-		n, err := getNode(req)
+		n, err := p2pGetNode(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -244,6 +244,10 @@ var p2pCloseCmd = &cmds.Command{
 
 		match := func(listener p2p.Listener) bool {
 			out := true
+			if p || !strings.HasPrefix(proto, "/p2p/") {
+				proto = "/p2p/" + proto
+			}
+
 			if p {
 				out = out && (proto == listener.Protocol())
 			}
@@ -258,12 +262,30 @@ var p2pCloseCmd = &cmds.Command{
 			return out
 		}
 
+		var closed int
 		for _, listener := range n.P2P.Listeners.Listeners {
 			if !match(listener) {
 				continue
 			}
 			listener.Close()
+			closed++
 		}
+		res.SetOutput(closed)
+	},
+	Type: int(0),
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			closed := v.(int)
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "Closed %d stream(s)\n", closed)
+
+			return buf, nil
+		},
 	},
 }
 
@@ -292,7 +314,7 @@ var p2pStreamLsCmd = &cmds.Command{
 		cmdkit.BoolOption("headers", "v", "Print table headers (HagndlerID, Protocol, Local, Remote)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := getNode(req)
+		n, err := p2pGetNode(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -352,7 +374,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(nil)
 
-		n, err := getNode(req)
+		n, err := p2pGetNode(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -386,7 +408,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 	},
 }
 
-func getNode(req cmds.Request) (*core.IpfsNode, error) {
+func p2pGetNode(req cmds.Request) (*core.IpfsNode, error) {
 	n, err := req.InvocContext().GetNode()
 	if err != nil {
 		return nil, err
