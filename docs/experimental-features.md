@@ -275,7 +275,7 @@ The `p2p` command needs to be enabled in config:
 
 First, pick a protocol name for your application. Think of the protocol name as
 a port number, just significantly more user-friendly. In this example, we're
-going to use `/p2p/kickass/1.0`.
+going to use `/kickass/1.0`.
 
 **Setup:**
 
@@ -289,7 +289,7 @@ First, start your application and have it listen on `$APP_PORT`.
 Then, configure the p2p listener by running:
 
 ```sh
-> ipfs p2p listener open /p2p/kickass/1.0 /ip4/127.0.0.1/tcp/$APP_PORT
+> ipfs p2p forward /kickass/1.0 /ipfs /ip4/127.0.0.1/tcp/$APP_PORT
 ```
 
 This will configure IPFS to forward all incoming `/p2p/kickass/1.0` streams to
@@ -303,10 +303,28 @@ First, configure the p2p dialer to forward all inbound connections on
 node.
 
 ```sh
-> ipfs p2p stream dial $SERVER_ID /p2p/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT
+> ipfs p2p forward /kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /ipfs/$SERVER_ID
 ```
 
-Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on the remote machine.
+Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This
+connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
+the remote machine. You can test it with netcat:
+
+**On "server" node:**
+```sh
+> nc -v -l -p $APP_PORT
+```
+
+**On "client" node:**
+```sh
+> nc -v 127.0.0.1 $SOME_PORT
+```
+
+You should now see that a connection has been established and be able to
+exchange messages between netcat instances.
+
+(note that depending on your netcat version you may need to drop the `-v` flag)
+
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works / fits use cases
