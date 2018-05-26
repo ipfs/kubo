@@ -1,9 +1,8 @@
 package p2p
 
 import (
+	"errors"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 type Listener interface {
