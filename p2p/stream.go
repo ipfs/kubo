@@ -11,7 +11,7 @@ import (
 
 // Stream holds information on active incoming and outgoing p2p streams.
 type Stream struct {
-	Id uint64
+	id uint64
 
 	Protocol string
 
@@ -28,15 +28,15 @@ type Stream struct {
 func (s *Stream) Close() error {
 	s.Local.Close()
 	s.Remote.Close()
-	s.Registry.Deregister(s.Id)
+	s.Registry.Deregister(s.id)
 	return nil
 }
 
-// Rest closes stream endpoints and deregisters it
+// Reset closes stream endpoints and deregisters it
 func (s *Stream) Reset() error {
 	s.Local.Close()
 	s.Remote.Reset()
-	s.Registry.Deregister(s.Id)
+	s.Registry.Deregister(s.id)
 	return nil
 }
 
@@ -61,7 +61,7 @@ type StreamRegistry struct {
 	Streams map[uint64]*Stream
 	lk      *sync.Mutex
 
-	nextId uint64
+	nextID uint64
 }
 
 // Register registers a stream to the registry
@@ -69,15 +69,15 @@ func (r *StreamRegistry) Register(streamInfo *Stream) {
 	r.lk.Lock()
 	defer r.lk.Unlock()
 
-	streamInfo.Id = r.nextId
-	r.Streams[r.nextId] = streamInfo
-	r.nextId++
+	streamInfo.id = r.nextID
+	r.Streams[r.nextID] = streamInfo
+	r.nextID++
 }
 
 // Deregister deregisters stream from the registry
-func (r *StreamRegistry) Deregister(streamId uint64) {
+func (r *StreamRegistry) Deregister(streamID uint64) {
 	r.lk.Lock()
 	defer r.lk.Unlock()
 
-	delete(r.Streams, streamId)
+	delete(r.Streams, streamID)
 }

@@ -39,13 +39,13 @@ func (p2p *P2P) ForwardLocal(ctx context.Context, peer peer.ID, proto string, bi
 		peer:  peer,
 	}
 
-	if err := p2p.Listeners.Lock(listener); err != nil {
+	if err := p2p.Listeners.lock(listener); err != nil {
 		return nil, err
 	}
 
 	maListener, err := manet.Listen(bindAddr)
 	if err != nil {
-		p2p.Listeners.Unlock()
+		p2p.Listeners.unlock()
 		return nil, err
 	}
 

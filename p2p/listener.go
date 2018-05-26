@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// Listener listens for connections and proxies them to a target
 type Listener interface {
 	Protocol() string
 	ListenAddress() string
@@ -26,7 +27,7 @@ type ListenerRegistry struct {
 	lk        *sync.Mutex
 }
 
-func (r *ListenerRegistry) Lock(l Listener) error {
+func (r *ListenerRegistry) lock(l Listener) error {
 	r.lk.Lock()
 
 	if _, ok := r.Listeners[getListenerKey(l)]; ok {
@@ -36,7 +37,7 @@ func (r *ListenerRegistry) Lock(l Listener) error {
 	return nil
 }
 
-func (r *ListenerRegistry) Unlock() {
+func (r *ListenerRegistry) unlock() {
 	r.lk.Unlock()
 }
 

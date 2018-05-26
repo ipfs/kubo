@@ -29,7 +29,7 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 		addr:  addr,
 	}
 
-	if err := p2p.Listeners.Lock(listener); err != nil {
+	if err := p2p.Listeners.lock(listener); err != nil {
 		return nil, err
 	}
 

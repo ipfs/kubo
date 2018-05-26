@@ -322,9 +322,9 @@ var p2pStreamLsCmd = &cmds.Command{
 
 		output := &P2PStreamsOutput{}
 
-		for _, s := range n.P2P.Streams.Streams {
+		for id, s := range n.P2P.Streams.Streams {
 			output.Streams = append(output.Streams, P2PStreamInfoOutput{
-				HandlerID: strconv.FormatUint(s.Id, 10),
+				HandlerID: strconv.FormatUint(id, 10),
 
 				Protocol: s.Protocol,
 
@@ -366,7 +366,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 		Tagline: "Close active p2p stream.",
 	},
 	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("Id", false, false, "Stream Id"),
+		cmdkit.StringArg("id", false, false, "Stream identifier"),
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("all", "a", "Close all streams."),
@@ -385,7 +385,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 
 		if !closeAll {
 			if len(req.Arguments()) == 0 {
-				res.SetError(errors.New("no Id specified"), cmdkit.ErrNormal)
+				res.SetError(errors.New("no id specified"), cmdkit.ErrNormal)
 				return
 			}
 
@@ -396,8 +396,8 @@ var p2pStreamCloseCmd = &cmds.Command{
 			}
 		}
 
-		for _, stream := range n.P2P.Streams.Streams {
-			if !closeAll && handlerID != stream.Id {
+		for id, stream := range n.P2P.Streams.Streams {
+			if !closeAll && handlerID != id {
 				continue
 			}
 			stream.Reset()
