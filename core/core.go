@@ -597,12 +597,7 @@ func (n *IpfsNode) teardown() error {
 
 // OnlineMode returns whether or not the IpfsNode is in OnlineMode.
 func (n *IpfsNode) OnlineMode() bool {
-	switch n.mode {
-	case onlineMode:
-		return true
-	default:
-		return false
-	}
+	return n.mode == onlineMode
 }
 
 // SetLocal will set the IpfsNode to local mode
@@ -619,17 +614,11 @@ func (n *IpfsNode) LocalMode() bool {
 		// programmer error should not happen
 		panic("local mode not set")
 	}
-	switch n.mode {
-	case localMode:
-		return true
-	default:
-		return false
-	}
+	return n.mode == localMode
 }
 
 // Bootstrap will set and call the IpfsNodes bootstrap function.
 func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
-
 	// TODO what should return value be when in offlineMode?
 	if n.Routing == nil {
 		return nil
