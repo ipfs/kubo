@@ -71,8 +71,8 @@ func mainErr() error {
 				results = append(results, Result{
 					Name:        "time/op",
 					Description: "time per operation",
-					Unit:        "ns",
-					DblValue:    bench.NsPerOp,
+					Unit:        "ms",
+					DblValue:    bench.NsPerOp / 1e6,
 				})
 			}
 
@@ -90,16 +90,16 @@ func mainErr() error {
 					Name:        "allocs/op",
 					Description: "number of allocations per operation",
 					Unit:        "",
-					DblValue:    float64(bench.AllocsPerOp), //TODO: figure out a better way
+					DblValue:    float64(bench.AllocsPerOp),
 				})
 			}
 
 			if bench.Measured&parse.AllocedBytesPerOp != 0 {
 				results = append(results, Result{
-					Name:        "alloc B/op",
+					Name:        "alloc mem/op",
 					Description: "bytes allocated per operation",
-					Unit:        "B",
-					DblValue:    float64(bench.AllocedBytesPerOp), //TODO: figure out a better way
+					Unit:        "MB",
+					DblValue:    float64(bench.AllocedBytesPerOp) / (1 << 20),
 				})
 			}
 

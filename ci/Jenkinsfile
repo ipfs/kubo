@@ -194,9 +194,11 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
       },
       'benchmark': {
         setupStep('linux') { run ->
-          run 'make test/bench/bench-results.json'
+          timeout(time: sharness_timeout, unit: 'MINUTES') {
+            run 'make test/bench/bench-results.json'
 
-          benchmark altInputSchema: '', altInputSchemaLocation: '', inputLocation: 'test/bench/bench-results.json', schemaSelection: 'defaultSchema', truncateStrings: false
+            benchmark altInputSchema: '', altInputSchemaLocation: '', inputLocation: 'test/bench/bench-results.json', schemaSelection: 'defaultSchema', truncateStrings: false
+          }
         }
       },
     )
