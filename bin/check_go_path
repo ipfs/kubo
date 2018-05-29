@@ -7,11 +7,6 @@ if [ -z "$PWD" ]; then
 	exit 1
 fi
 
-if [ -z "$GOPATH" ]; then
-	echo "GOPATH not set, you must have go configured properly to install ipfs"
-	exit 1
-fi
-
 while [ ${#} -gt 1 ]; do
 	if [ "$PWD" = "$2" ]; then
 		exit 0
@@ -20,5 +15,5 @@ while [ ${#} -gt 1 ]; do
 done
 
 echo "go-ipfs must be built from within your \$GOPATH directory."
-echo "expected within '$GOPATH' but got '$PWD'"
+echo "expected within '$(go env GOPATH)' but got '$PWD'"
 exit 1

@@ -17,6 +17,7 @@ the above issue.
 - [go-multiplex stream muxer](#go-multiplex-stream-muxer)
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
 - [ipfs filestore](#ipfs-filestore)
+- [BadgerDB datastore](#badger-datastore)
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
 - [Circuit Relay](#circuit-relay)
@@ -46,7 +47,7 @@ run your daemon with the `--enable-pubsub-experiment` flag. Then use the
 ---
 
 ## Client mode DHT routing
-Allows the dht to be run in a mode that doesnt serve requests to the network,
+Allows the dht to be run in a mode that doesn't serve requests to the network,
 saving bandwidth.
 
 ### State
@@ -182,7 +183,7 @@ and save it to `~/.ipfs/swarm.key` (If you are using a custom `$IPFS_PATH`, put
 it in there instead).
 
 When using this feature, you will not be able to connect to the default bootstrap
-nodes (Since we arent part of your private network) so you will need to set up
+nodes (Since we aren't part of your private network) so you will need to set up
 your own bootstrap nodes.
 
 First, to prevent your node from even trying to connect to the default bootstrap nodes, run:
@@ -214,7 +215,7 @@ configured, the daemon will fail to start.
 ---
 
 ## ipfs p2p
-Allows to tunnel TCP connections through Libp2p sterams
+Allows to tunnel TCP connections through Libp2p streams
 
 ### State
 Experimental
@@ -276,7 +277,7 @@ In order to connect peers QmA and QmB through a relay node QmRelay:
 - Both peers should connect to the relay:
 `ipfs swarm connect /transport/address/ipfs/QmRelay`
 - Peer QmA can then connect to peer QmB using the relay:
-`ipfs swarm connect /ipfs/QmRelay/p2p-cricuit/ipfs/QmB`
+`ipfs swarm connect /ipfs/QmRelay/p2p-circuit/ipfs/QmB`
 
 Peers can also connect with an unspecific relay address, which will
 try to dial through known relays:
@@ -342,3 +343,63 @@ See [Plugin docs](./plugins.md)
 
 - [ ] Needs more testing
 - [ ] Make sure there are no unknown major problems
+
+## Directory Sharding / HAMT
+
+### In Version
+0.4.8
+
+### State
+Experimental
+
+Allows to create directories with unlimited number of entries - currently
+size of unixfs directories is limited by the maximum block size
+
+### Basic Usage:
+
+```
+ipfs config --json Experimental.ShardingEnabled true
+```
+
+### Road to being a real feature
+
+- [ ] Make sure that objects that don't have to be sharded aren't
+- [ ] Generalize sharding and define a new layer between IPLD and IPFS
+
+---
+
+## IPNS pubsub
+
+### In Version
+
+0.4.14
+
+### State
+
+Experimental, default-disabled.
+
+Utilizes pubsub for publishing ipns records in real time.
+
+When it is enabled:
+- IPNS publishers push records to a name-specific pubsub topic,
+  in addition to publishing to the DHT.
+- IPNS resolvers subscribe to the name-specific topic on first
+  resolution and receive subsequently published records through pubsub
+  in real time. This makes subsequent resolutions instant, as they
+  are resolved through the local cache. Note that the initial
+  resolution still goes through the DHT, as there is no message
+  history in pubsub.
+
+Both the publisher and the resolver nodes need to have the feature enabled for it
+to work effectively.
+
+### How to enable
+
+run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
+
+### Road to being a real feature
+
+- [ ] Needs more people to use and report on how well it works
+- [ ] Add a mechanism for last record distribution on subscription,
+      so that we don't have to hit the DHT for the initial resolution.
+      Alternatively, we could republish the last record periodically.

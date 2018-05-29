@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 type ThreadSafe struct {
@@ -126,7 +126,7 @@ func (w *ThreadSafe) Contains(k *cid.Cid) (*Entry, bool) {
 func (w *ThreadSafe) Entries() []*Entry {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
-	var es entrySlice
+	es := make([]*Entry, 0, len(w.set))
 	for _, e := range w.set {
 		es = append(es, e)
 	}
@@ -134,13 +134,8 @@ func (w *ThreadSafe) Entries() []*Entry {
 }
 
 func (w *ThreadSafe) SortedEntries() []*Entry {
-	w.lk.RLock()
-	defer w.lk.RUnlock()
-	var es entrySlice
-	for _, e := range w.set {
-		es = append(es, e)
-	}
-	sort.Sort(es)
+	es := w.Entries()
+	sort.Sort(entrySlice(es))
 	return es
 }
 
@@ -194,7 +189,7 @@ func (w *Wantlist) Contains(k *cid.Cid) (*Entry, bool) {
 }
 
 func (w *Wantlist) Entries() []*Entry {
-	var es entrySlice
+	es := make([]*Entry, 0, len(w.set))
 	for _, e := range w.set {
 		es = append(es, e)
 	}
@@ -202,10 +197,7 @@ func (w *Wantlist) Entries() []*Entry {
 }
 
 func (w *Wantlist) SortedEntries() []*Entry {
-	var es entrySlice
-	for _, e := range w.set {
-		es = append(es, e)
-	}
-	sort.Sort(es)
+	es := w.Entries()
+	sort.Sort(entrySlice(es))
 	return es
 }

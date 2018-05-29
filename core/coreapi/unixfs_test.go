@@ -3,6 +3,7 @@ package coreapi_test
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"io"
 	"math"
 	"strings"
@@ -12,13 +13,20 @@ import (
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	keystore "github.com/ipfs/go-ipfs/keystore"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
-	cbor "gx/ipfs/QmWCs8kMecJwCPK8JThue8TjgM2ieJ2HjTLDu7Cv2NEmZi/go-ipld-cbor"
+
+	cbor "gx/ipfs/QmNRz7BDWfdFNVLt7AVvmRefkrURD25EeoipcXqo6yoXU1/go-ipld-cbor"
+	datastore "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	syncds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
+
+const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 // `echo -n 'hello, world!' | ipfs add`
 var hello = coreapi.ResolvedPath("/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", nil, nil)
@@ -30,21 +38,51 @@ var emptyDir = coreapi.ResolvedPath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbs
 // `echo -n | ipfs add`
 var emptyFile = coreapi.ResolvedPath("/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH", nil, nil)
 
-func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.UnixfsAPI, error) {
+func makeAPIIdent(ctx context.Context, fullIdentity bool) (*core.IpfsNode, coreiface.CoreAPI, error) {
+	var ident config.Identity
+	if fullIdentity {
+		sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		id, err := peer.IDFromPublicKey(pk)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		kbytes, err := sk.Bytes()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		ident = config.Identity{
+			PeerID:  id.Pretty(),
+			PrivKey: base64.StdEncoding.EncodeToString(kbytes),
+		}
+	} else {
+		ident = config.Identity{
+			PeerID: testPeerID,
+		}
+	}
+
 	r := &repo.Mock{
 		C: config.Config{
-			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
-			},
+			Identity: ident,
 		},
-		D: ds2.ThreadSafeCloserMapDatastore(),
+		D: syncds.MutexWrap(datastore.NewMapDatastore()),
+		K: keystore.NewMemKeystore(),
 	}
 	node, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
 	if err != nil {
 		return nil, nil, err
 	}
-	api := coreapi.NewCoreAPI(node).Unixfs()
+	api := coreapi.NewCoreAPI(node)
 	return node, api, nil
+}
+
+func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
+	return makeAPIIdent(ctx, false)
 }
 
 func TestAdd(t *testing.T) {
@@ -55,7 +93,7 @@ func TestAdd(t *testing.T) {
 	}
 
 	str := strings.NewReader(helloStr)
-	p, err := api.Add(ctx, str)
+	p, err := api.Unixfs().Add(ctx, str)
 	if err != nil {
 		t.Error(err)
 	}
@@ -64,7 +102,7 @@ func TestAdd(t *testing.T) {
 		t.Fatalf("expected path %s, got: %s", hello, p)
 	}
 
-	r, err := api.Cat(ctx, hello)
+	r, err := api.Unixfs().Cat(ctx, hello)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +125,7 @@ func TestAddEmptyFile(t *testing.T) {
 	}
 
 	str := strings.NewReader("")
-	p, err := api.Add(ctx, str)
+	p, err := api.Unixfs().Add(ctx, str)
 	if err != nil {
 		t.Error(err)
 	}
@@ -115,7 +153,7 @@ func TestCatBasic(t *testing.T) {
 		t.Fatalf("expected CID %s, got: %s", hello, p)
 	}
 
-	r, err := api.Cat(ctx, hello)
+	r, err := api.Unixfs().Cat(ctx, hello)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +180,7 @@ func TestCatEmptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := api.Cat(ctx, emptyFile)
+	r, err := api.Unixfs().Cat(ctx, emptyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,18 +201,18 @@ func TestCatDir(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
-	c, err := node.DAG.Add(unixfs.EmptyDirNode())
+	edir := unixfs.EmptyDirNode()
+	err = node.DAG.Add(ctx, edir)
 	if err != nil {
 		t.Error(err)
 	}
-	p := coreapi.ParseCid(c)
+	p := coreapi.ParseCid(edir.Cid())
 
 	if p.String() != emptyDir.String() {
 		t.Fatalf("expected path %s, got: %s", emptyDir, p)
 	}
 
-	_, err = api.Cat(ctx, emptyDir)
+	_, err = api.Unixfs().Cat(ctx, emptyDir)
 	if err != coreiface.ErrIsDir {
 		t.Fatalf("expected ErrIsDir, got: %s", err)
 	}
@@ -187,12 +225,13 @@ func TestCatNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	c, err := node.DAG.Add(new(mdag.ProtoNode))
+	nd := new(mdag.ProtoNode)
+	err = node.DAG.Add(ctx, nd)
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = api.Cat(ctx, coreapi.ParseCid(c))
+	_, err = api.Unixfs().Cat(ctx, coreapi.ParseCid(nd.Cid()))
 	if !strings.Contains(err.Error(), "proto: required field") {
 		t.Fatalf("expected protobuf error, got: %s", err)
 	}
@@ -205,7 +244,7 @@ func TestCatOffline(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = api.Cat(ctx, coreapi.ResolvedPath("/ipns/Qmfoobar", nil, nil))
+	_, err = api.Unixfs().Cat(ctx, coreapi.ResolvedPath("/ipns/Qmfoobar", nil, nil))
 	if err != coreiface.ErrOffline {
 		t.Fatalf("expected ErrOffline, got: %s", err)
 	}
@@ -229,7 +268,7 @@ func TestLs(t *testing.T) {
 	}
 	p := coreapi.ResolvedPath("/ipfs/"+parts[0], nil, nil)
 
-	links, err := api.Ls(ctx, p)
+	links, err := api.Unixfs().Ls(ctx, p)
 	if err != nil {
 		t.Error(err)
 	}
@@ -255,12 +294,12 @@ func TestLsEmptyDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = node.DAG.Add(unixfs.EmptyDirNode())
+	err = node.DAG.Add(ctx, unixfs.EmptyDirNode())
 	if err != nil {
 		t.Error(err)
 	}
 
-	links, err := api.Ls(ctx, emptyDir)
+	links, err := api.Unixfs().Ls(ctx, emptyDir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -283,12 +322,12 @@ func TestLsNonUnixfs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c, err := node.DAG.Add(nd)
+	err = node.DAG.Add(ctx, nd)
 	if err != nil {
 		t.Error(err)
 	}
 
-	links, err := api.Ls(ctx, coreapi.ParseCid(c))
+	links, err := api.Unixfs().Ls(ctx, coreapi.ParseCid(nd.Cid()))
 	if err != nil {
 		t.Error(err)
 	}

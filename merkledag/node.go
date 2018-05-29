@@ -5,18 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-var ErrNotProtobuf = fmt.Errorf("expected protobuf dag node")
-var ErrLinkNotFound = fmt.Errorf("no link by that name")
+// Common errors
+var (
+	ErrNotProtobuf  = fmt.Errorf("expected protobuf dag node")
+	ErrLinkNotFound = fmt.Errorf("no link by that name")
+)
 
-// Node represents a node in the IPFS Merkle DAG.
+// ProtoNode represents a node in the IPFS Merkle DAG.
 // nodes have opaque data and a set of navigable links.
 type ProtoNode struct {
-	links []*node.Link
+	links []*ipld.Link
 	data  []byte
 
 	// cache encoded/marshaled value
@@ -73,21 +76,23 @@ func (n *ProtoNode) SetPrefix(prefix *cid.Prefix) {
 	}
 }
 
-type LinkSlice []*node.Link
+// LinkSlice is a slice of ipld.Links
+type LinkSlice []*ipld.Link
 
 func (ls LinkSlice) Len() int           { return len(ls) }
 func (ls LinkSlice) Swap(a, b int)      { ls[a], ls[b] = ls[b], ls[a] }
 func (ls LinkSlice) Less(a, b int) bool { return ls[a].Name < ls[b].Name }
 
+// NodeWithData builds a new Protonode with the given data.
 func NodeWithData(d []byte) *ProtoNode {
 	return &ProtoNode{data: d}
 }
 
 // AddNodeLink adds a link to another node.
-func (n *ProtoNode) AddNodeLink(name string, that node.Node) error {
+func (n *ProtoNode) AddNodeLink(name string, that ipld.Node) error {
 	n.encoded = nil
 
-	lnk, err := node.MakeLink(that)
+	lnk, err := ipld.MakeLink(that)
 	if err != nil {
 		return err
 	}
@@ -99,23 +104,10 @@ func (n *ProtoNode) AddNodeLink(name string, that node.Node) error {
 	return nil
 }
 
-// AddNodeLinkClean adds a link to another node. without keeping a reference to
-// the child node
-func (n *ProtoNode) AddNodeLinkClean(name string, that node.Node) error {
-	n.encoded = nil
-	lnk, err := node.MakeLink(that)
-	if err != nil {
-		return err
-	}
-	n.AddRawLink(name, lnk)
-
-	return nil
-}
-
 // AddRawLink adds a copy of a link to this node
-func (n *ProtoNode) AddRawLink(name string, l *node.Link) error {
+func (n *ProtoNode) AddRawLink(name string, l *ipld.Link) error {
 	n.encoded = nil
-	n.links = append(n.links, &node.Link{
+	n.links = append(n.links, &ipld.Link{
 		Name: name,
 		Size: l.Size,
 		Cid:  l.Cid,
@@ -124,10 +116,10 @@ func (n *ProtoNode) AddRawLink(name string, l *node.Link) error {
 	return nil
 }
 
-// Remove a link on this node by the given name
+// RemoveNodeLink removes a link on this node by the given name.
 func (n *ProtoNode) RemoveNodeLink(name string) error {
 	n.encoded = nil
-	good := make([]*node.Link, 0, len(n.links))
+	good := make([]*ipld.Link, 0, len(n.links))
 	var found bool
 
 	for _, l := range n.links {
@@ -140,17 +132,17 @@ func (n *ProtoNode) RemoveNodeLink(name string) error {
 	n.links = good
 
 	if !found {
-		return ErrNotFound
+		return ipld.ErrNotFound
 	}
 
 	return nil
 }
 
-// Return a copy of the link with given name
-func (n *ProtoNode) GetNodeLink(name string) (*node.Link, error) {
+// GetNodeLink returns a copy of the link with the given name.
+func (n *ProtoNode) GetNodeLink(name string) (*ipld.Link, error) {
 	for _, l := range n.links {
 		if l.Name == name {
-			return &node.Link{
+			return &ipld.Link{
 				Name: l.Name,
 				Size: l.Size,
 				Cid:  l.Cid,
@@ -160,7 +152,8 @@ func (n *ProtoNode) GetNodeLink(name string) (*node.Link, error) {
 	return nil, ErrLinkNotFound
 }
 
-func (n *ProtoNode) GetLinkedProtoNode(ctx context.Context, ds DAGService, name string) (*ProtoNode, error) {
+// GetLinkedProtoNode returns a copy of the ProtoNode with the given name.
+func (n *ProtoNode) GetLinkedProtoNode(ctx context.Context, ds ipld.DAGService, name string) (*ProtoNode, error) {
 	nd, err := n.GetLinkedNode(ctx, ds, name)
 	if err != nil {
 		return nil, err
@@ -174,7 +167,8 @@ func (n *ProtoNode) GetLinkedProtoNode(ctx context.Context, ds DAGService, name 
 	return pbnd, nil
 }
 
-func (n *ProtoNode) GetLinkedNode(ctx context.Context, ds DAGService, name string) (node.Node, error) {
+// GetLinkedNode returns a copy of the IPLD Node with the given name.
+func (n *ProtoNode) GetLinkedNode(ctx context.Context, ds ipld.DAGService, name string) (ipld.Node, error) {
 	lnk, err := n.GetNodeLink(name)
 	if err != nil {
 		return nil, err
@@ -185,7 +179,7 @@ func (n *ProtoNode) GetLinkedNode(ctx context.Context, ds DAGService, name strin
 
 // Copy returns a copy of the node.
 // NOTE: Does not make copies of Node objects in the links.
-func (n *ProtoNode) Copy() node.Node {
+func (n *ProtoNode) Copy() ipld.Node {
 	nnode := new(ProtoNode)
 	if len(n.data) > 0 {
 		nnode.data = make([]byte, len(n.data))
@@ -193,7 +187,7 @@ func (n *ProtoNode) Copy() node.Node {
 	}
 
 	if len(n.links) > 0 {
-		nnode.links = make([]*node.Link, len(n.links))
+		nnode.links = make([]*ipld.Link, len(n.links))
 		copy(nnode.links, n.links)
 	}
 
@@ -202,15 +196,18 @@ func (n *ProtoNode) Copy() node.Node {
 	return nnode
 }
 
+// RawData returns the protobuf-encoded version of the node.
 func (n *ProtoNode) RawData() []byte {
 	out, _ := n.EncodeProtobuf(false)
 	return out
 }
 
+// Data returns the data stored by this node.
 func (n *ProtoNode) Data() []byte {
 	return n.data
 }
 
+// SetData stores data in this nodes.
 func (n *ProtoNode) SetData(d []byte) {
 	n.encoded = nil
 	n.cached = nil
@@ -242,7 +239,7 @@ func (n *ProtoNode) Size() (uint64, error) {
 }
 
 // Stat returns statistics on the node.
-func (n *ProtoNode) Stat() (*node.NodeStat, error) {
+func (n *ProtoNode) Stat() (*ipld.NodeStat, error) {
 	enc, err := n.EncodeProtobuf(false)
 	if err != nil {
 		return nil, err
@@ -253,7 +250,7 @@ func (n *ProtoNode) Stat() (*node.NodeStat, error) {
 		return nil, err
 	}
 
-	return &node.NodeStat{
+	return &ipld.NodeStat{
 		Hash:           n.Cid().String(),
 		NumLinks:       len(n.links),
 		BlockSize:      len(enc),
@@ -263,16 +260,18 @@ func (n *ProtoNode) Stat() (*node.NodeStat, error) {
 	}, nil
 }
 
+// Loggable implements the ipfs/go-log.Loggable interface.
 func (n *ProtoNode) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"node": n.String(),
 	}
 }
 
+// UnmarshalJSON reads the node fields from a JSON-encoded byte slice.
 func (n *ProtoNode) UnmarshalJSON(b []byte) error {
 	s := struct {
 		Data  []byte       `json:"data"`
-		Links []*node.Link `json:"links"`
+		Links []*ipld.Link `json:"links"`
 	}{}
 
 	err := json.Unmarshal(b, &s)
@@ -285,6 +284,7 @@ func (n *ProtoNode) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// MarshalJSON returns a JSON representation of the node.
 func (n *ProtoNode) MarshalJSON() ([]byte, error) {
 	out := map[string]interface{}{
 		"data":  n.data,
@@ -294,6 +294,8 @@ func (n *ProtoNode) MarshalJSON() ([]byte, error) {
 	return json.Marshal(out)
 }
 
+// Cid returns the node's Cid, calculated according to its prefix
+// and raw data contents.
 func (n *ProtoNode) Cid() *cid.Cid {
 	if n.encoded != nil && n.cached != nil {
 		return n.cached
@@ -314,6 +316,7 @@ func (n *ProtoNode) Cid() *cid.Cid {
 	return c
 }
 
+// String prints the node's Cid.
 func (n *ProtoNode) String() string {
 	return n.Cid().String()
 }
@@ -330,19 +333,25 @@ func (n *ProtoNode) Multihash() mh.Multihash {
 	return n.cached.Hash()
 }
 
-func (n *ProtoNode) Links() []*node.Link {
+// Links returns the node links.
+func (n *ProtoNode) Links() []*ipld.Link {
 	return n.links
 }
 
-func (n *ProtoNode) SetLinks(links []*node.Link) {
+// SetLinks replaces the node links with the given ones.
+func (n *ProtoNode) SetLinks(links []*ipld.Link) {
 	n.links = links
 }
 
+// Resolve is an alias for ResolveLink.
 func (n *ProtoNode) Resolve(path []string) (interface{}, []string, error) {
 	return n.ResolveLink(path)
 }
 
-func (n *ProtoNode) ResolveLink(path []string) (*node.Link, []string, error) {
+// ResolveLink consumes the first element of the path and obtains the link
+// corresponding to it from the node. It returns the link
+// and the path without the consumed element.
+func (n *ProtoNode) ResolveLink(path []string) (*ipld.Link, []string, error) {
 	if len(path) == 0 {
 		return nil, nil, fmt.Errorf("end of path, no more links to resolve")
 	}
@@ -355,9 +364,10 @@ func (n *ProtoNode) ResolveLink(path []string) (*node.Link, []string, error) {
 	return lnk, path[1:], nil
 }
 
+// Tree returns the link names of the ProtoNode.
+// ProtoNodes are only ever one path deep, so anything different than an empty
+// string for p results in nothing. The depth parameter is ignored.
 func (n *ProtoNode) Tree(p string, depth int) []string {
-	// ProtoNodes are only ever one path deep, anything below that results in
-	// nothing
 	if p != "" {
 		return nil
 	}

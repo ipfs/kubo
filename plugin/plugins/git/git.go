@@ -9,10 +9,10 @@ import (
 	"github.com/ipfs/go-ipfs/core/coredag"
 	"github.com/ipfs/go-ipfs/plugin"
 
-	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	"gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
-	git "gx/ipfs/QmaWPGUJJFb75PvWwnkXAxYXUtsRFCRQiCZhpr5ks4F9K9/go-ipld-git"
+	git "gx/ipfs/QmX5GwZzNJ2PhFDPW12MjQWtmE21i4UnHQ2uKtYkp4Ad7a/go-ipld-git"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // Plugins is exported list of plugins that will be loaded
@@ -53,7 +53,7 @@ func parseRawGit(r io.Reader, mhType uint64, mhLen int) ([]format.Node, error) {
 	}
 
 	if mhLen != -1 && mhLen != mh.DefaultLengths[mh.SHA1] {
-		return nil, fmt.Errorf("invalid mhLen %d", mhType)
+		return nil, fmt.Errorf("invalid mhLen %d", mhLen)
 	}
 
 	nd, err := git.ParseObject(r)

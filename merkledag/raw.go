@@ -2,19 +2,19 @@ package merkledag
 
 import (
 	"fmt"
-	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
+// RawNode represents a node which only contains data.
 type RawNode struct {
 	blocks.Block
 }
 
-// NewRawNode creates a RawNode using the default sha2-256 hash
-// funcition.
+// NewRawNode creates a RawNode using the default sha2-256 hash function.
 func NewRawNode(data []byte) *RawNode {
 	h := u.Hash(data)
 	c := cid.NewCidV1(cid.Raw, h)
@@ -24,7 +24,7 @@ func NewRawNode(data []byte) *RawNode {
 }
 
 // DecodeRawBlock is a block decoder for raw IPLD nodes conforming to `node.DecodeBlockFunc`.
-func DecodeRawBlock(block blocks.Block) (node.Node, error) {
+func DecodeRawBlock(block blocks.Block) (ipld.Node, error) {
 	if block.Cid().Type() != cid.Raw {
 		return nil, fmt.Errorf("raw nodes cannot be decoded from non-raw blocks: %d", block.Cid().Type())
 	}
@@ -32,7 +32,7 @@ func DecodeRawBlock(block blocks.Block) (node.Node, error) {
 	return &RawNode{block}, nil
 }
 
-var _ node.DecodeBlockFunc = DecodeRawBlock
+var _ ipld.DecodeBlockFunc = DecodeRawBlock
 
 // NewRawNodeWPrefix creates a RawNode with the hash function
 // specified in prefix.
@@ -52,23 +52,28 @@ func NewRawNodeWPrefix(data []byte, prefix cid.Prefix) (*RawNode, error) {
 	return &RawNode{blk}, nil
 }
 
-func (rn *RawNode) Links() []*node.Link {
+// Links returns nil.
+func (rn *RawNode) Links() []*ipld.Link {
 	return nil
 }
 
-func (rn *RawNode) ResolveLink(path []string) (*node.Link, []string, error) {
+// ResolveLink returns an error.
+func (rn *RawNode) ResolveLink(path []string) (*ipld.Link, []string, error) {
 	return nil, nil, ErrLinkNotFound
 }
 
+// Resolve returns an error.
 func (rn *RawNode) Resolve(path []string) (interface{}, []string, error) {
 	return nil, nil, ErrLinkNotFound
 }
 
+// Tree returns nil.
 func (rn *RawNode) Tree(p string, depth int) []string {
 	return nil
 }
 
-func (rn *RawNode) Copy() node.Node {
+// Copy performs a deep copy of this node and returns it as an ipld.Node
+func (rn *RawNode) Copy() ipld.Node {
 	copybuf := make([]byte, len(rn.RawData()))
 	copy(copybuf, rn.RawData())
 	nblk, err := blocks.NewBlockWithCid(rn.RawData(), rn.Cid())
@@ -80,15 +85,17 @@ func (rn *RawNode) Copy() node.Node {
 	return &RawNode{nblk}
 }
 
+// Size returns the size of this node
 func (rn *RawNode) Size() (uint64, error) {
 	return uint64(len(rn.RawData())), nil
 }
 
-func (rn *RawNode) Stat() (*node.NodeStat, error) {
-	return &node.NodeStat{
+// Stat returns some Stats about this node.
+func (rn *RawNode) Stat() (*ipld.NodeStat, error) {
+	return &ipld.NodeStat{
 		CumulativeSize: len(rn.RawData()),
 		DataSize:       len(rn.RawData()),
 	}, nil
 }
 
-var _ node.Node = (*RawNode)(nil)
+var _ ipld.Node = (*RawNode)(nil)

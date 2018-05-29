@@ -3,7 +3,9 @@
 # Installation script for ipfs. It tries to move $bin in one of the
 # directories stored in $binpaths.
 
-bin=ipfs
+INSTALL_DIR=$(dirname $0)
+
+bin="$INSTALL_DIR/ipfs"
 binpaths="/usr/local/bin /usr/bin"
 
 # This variable contains a nonzero length string in case the script fails

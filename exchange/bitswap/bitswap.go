@@ -10,22 +10,22 @@ import (
 	"sync/atomic"
 	"time"
 
-	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	exchange "github.com/ipfs/go-ipfs/exchange"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
-	flags "github.com/ipfs/go-ipfs/flags"
-	"github.com/ipfs/go-ipfs/thirdparty/delay"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	delay "gx/ipfs/QmRJVNatYJwTAHgdSM1Xef9QVQ1Ch3XHdmcrykjP5Y4soL/go-ipfs-delay"
+	flags "gx/ipfs/QmRMGdC6HKdLsPDABL9aXPDidrpmEHzJqFWSvshkbn9Hj8/go-ipfs-flags"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	blockstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	exchange "gx/ipfs/QmdcAXgEHUueP4A7b5hjabKn2EooeHgMreMvFC249dGCgc/go-ipfs-exchange-interface"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
 var log = logging.Logger("bitswap")
@@ -66,8 +66,8 @@ var rebroadcastDelay = delay.Fixed(time.Minute)
 // BitSwapNetwork. This function registers the returned instance as the network
 // delegate.
 // Runs until context is cancelled.
-func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
-	bstore blockstore.Blockstore, nice bool) exchange.Interface {
+func New(parent context.Context, network bsnet.BitSwapNetwork,
+	bstore blockstore.Blockstore) exchange.Interface {
 
 	// important to use provided parent context (since it may include important
 	// loggable data). It's probably not a good idea to allow bitswap to be
@@ -295,7 +295,7 @@ func (bs *Bitswap) CancelWants(cids []*cid.Cid, ses uint64) {
 	bs.wm.CancelWants(context.Background(), cids, nil, ses)
 }
 
-// HasBlock announces the existance of a block to this bitswap service. The
+// HasBlock announces the existence of a block to this bitswap service. The
 // service will potentially notify its peers.
 func (bs *Bitswap) HasBlock(blk blocks.Block) error {
 	return bs.receiveBlockFrom(blk, "")
@@ -372,16 +372,6 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		return
 	}
 
-	// quickly send out cancels, reduces chances of duplicate block receives
-	var keys []*cid.Cid
-	for _, block := range iblocks {
-		if _, found := bs.wm.wl.Contains(block.Cid()); !found {
-			log.Infof("received un-asked-for %s from %s", block, p)
-			continue
-		}
-		keys = append(keys, block.Cid())
-	}
-
 	wg := sync.WaitGroup{}
 	for _, block := range iblocks {
 		wg.Add(1)
@@ -451,8 +441,9 @@ func (bs *Bitswap) Close() error {
 }
 
 func (bs *Bitswap) GetWantlist() []*cid.Cid {
-	var out []*cid.Cid
-	for _, e := range bs.wm.wl.Entries() {
+	entries := bs.wm.wl.Entries()
+	out := make([]*cid.Cid, 0, len(entries))
+	for _, e := range entries {
 		out = append(out, e.Cid)
 	}
 	return out

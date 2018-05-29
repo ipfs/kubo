@@ -1,17 +1,26 @@
 package corehttp
 
 import (
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
-	commands "github.com/ipfs/go-ipfs/commands"
-	cmdsHttp "github.com/ipfs/go-ipfs/commands/http"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	corecommands "github.com/ipfs/go-ipfs/core/commands"
+	path "github.com/ipfs/go-ipfs/path"
 	config "github.com/ipfs/go-ipfs/repo/config"
+
+	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
+	cmdsHttp "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds/http"
+)
+
+var (
+	errAPIVersionMismatch = errors.New("api version mismatch")
 )
 
 const originEnvKey = "API_ORIGIN"
@@ -28,6 +37,9 @@ or
 	ipfs daemon --api-http-header 'Access-Control-Allow-Origin: *'
 `
 
+// APIPath is the path at which the API is mounted.
+const APIPath = "/api/v0"
+
 var defaultLocalhostOrigins = []string{
 	"http://127.0.0.1:<port>",
 	"https://127.0.0.1:<port>",
@@ -39,9 +51,6 @@ func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
 	origin := os.Getenv(originEnvKey)
 	if origin != "" {
 		log.Warning(originEnvKeyDeprecate)
-		if len(c.AllowedOrigins()) == 0 {
-			c.SetAllowedOrigins([]string{origin}...)
-		}
 		c.AppendAllowedOrigins(origin)
 	}
 }
@@ -61,7 +70,14 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 		}
 	}
 
-	c.Headers = nc.API.HTTPHeaders
+	c.Headers = make(map[string][]string, len(nc.API.HTTPHeaders))
+
+	// Copy these because the config is shared and this function is called
+	// in multiple places concurrently. Updating these in-place *is* racy.
+	for h, v := range nc.API.HTTPHeaders {
+		c.Headers[h] = v
+	}
+	c.Headers["Server"] = []string{"go-ipfs/" + config.CurrentVersionNumber}
 }
 
 func addCORSDefaults(c *cmdsHttp.ServerConfig) {
@@ -88,22 +104,24 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	}
 
 	// we're listening on tcp/udp with ports. ("udp!?" you say? yeah... it happens...)
-	origins := c.AllowedOrigins()
-	for i, o := range origins {
+	oldOrigins := c.AllowedOrigins()
+	newOrigins := make([]string, len(oldOrigins))
+	for i, o := range oldOrigins {
 		// TODO: allow replacing <host>. tricky, ip4 and ip6 and hostnames...
 		if port != "" {
 			o = strings.Replace(o, "<port>", port, -1)
 		}
-		origins[i] = o
+		newOrigins[i] = o
 	}
-	c.SetAllowedOrigins(origins...)
+	c.SetAllowedOrigins(newOrigins...)
 }
 
-func commandsOption(cctx commands.Context, command *commands.Command) ServeOption {
+func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 
 		cfg := cmdsHttp.NewServerConfig()
 		cfg.SetAllowedMethods("GET", "POST", "PUT")
+		cfg.APIPath = APIPath
 		rcfg, err := n.Repo.Config()
 		if err != nil {
 			return nil, err
@@ -114,16 +132,49 @@ func commandsOption(cctx commands.Context, command *commands.Command) ServeOptio
 		addCORSDefaults(cfg)
 		patchCORSVars(cfg, l.Addr())
 
-		cmdHandler := cmdsHttp.NewHandler(cctx, command, cfg)
-		mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
+		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
+		mux.Handle(APIPath+"/", cmdHandler)
 		return mux, nil
 	}
 }
 
-func CommandsOption(cctx commands.Context) ServeOption {
+// CommandsOption constructs a ServerOption for hooking the commands into the
+// HTTP server.
+func CommandsOption(cctx oldcmds.Context) ServeOption {
 	return commandsOption(cctx, corecommands.Root)
 }
 
-func CommandsROOption(cctx commands.Context) ServeOption {
+// CommandsROOption constructs a ServerOption for hooking the read-only commands
+// into the HTTP server.
+func CommandsROOption(cctx oldcmds.Context) ServeOption {
 	return commandsOption(cctx, corecommands.RootRO)
+}
+
+// CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/go-ipfs/`
+func CheckVersionOption() ServeOption {
+	daemonVersion := config.ApiVersion
+
+	return ServeOption(func(n *core.IpfsNode, l net.Listener, parent *http.ServeMux) (*http.ServeMux, error) {
+		mux := http.NewServeMux()
+		parent.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, APIPath) {
+				cmdqry := r.URL.Path[len(APIPath):]
+				pth := path.SplitList(cmdqry)
+
+				// backwards compatibility to previous version check
+				if pth[1] != "version" {
+					clientVersion := r.UserAgent()
+					// skips check if client is not go-ipfs
+					if clientVersion != "" && strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
+						http.Error(w, fmt.Sprintf("%s (%s != %s)", errAPIVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
+						return
+					}
+				}
+			}
+
+			mux.ServeHTTP(w, r)
+		})
+
+		return mux, nil
+	})
 }

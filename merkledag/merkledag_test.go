@@ -15,18 +15,15 @@ import (
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	bstest "github.com/ipfs/go-ipfs/blockservice/test"
-	offline "github.com/ipfs/go-ipfs/exchange/offline"
-	imp "github.com/ipfs/go-ipfs/importer"
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	. "github.com/ipfs/go-ipfs/merkledag"
 	mdpb "github.com/ipfs/go-ipfs/merkledag/pb"
 	dstest "github.com/ipfs/go-ipfs/merkledag/test"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	offline "gx/ipfs/QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc/go-ipfs-exchange-offline"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
 func TestNode(t *testing.T) {
@@ -88,7 +85,7 @@ func SubtestNodeStat(t *testing.T, n *ProtoNode) {
 
 	k := n.Cid()
 
-	expected := node.NodeStat{
+	expected := ipld.NodeStat{
 		NumLinks:       len(n.Links()),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.Data()), // includes framing.
@@ -129,33 +126,87 @@ func TestBatchFetchDupBlock(t *testing.T) {
 	runBatchFetchTest(t, read)
 }
 
+// makeTestDAG creates a simple DAG from the data in a reader.
+// First, a node is created from each 512 bytes of data from the reader
+// (like a the Size chunker would do). Then all nodes are added as children
+// to a root node, which is returned.
+func makeTestDAG(t *testing.T, read io.Reader, ds ipld.DAGService) ipld.Node {
+	p := make([]byte, 512)
+	nodes := []*ProtoNode{}
+
+	for {
+		n, err := io.ReadFull(read, p)
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if n != len(p) {
+			t.Fatal("should have read 512 bytes from the reader")
+		}
+
+		protoNode := NodeWithData(p)
+		nodes = append(nodes, protoNode)
+	}
+
+	ctx := context.Background()
+	// Add a root referencing all created nodes
+	root := NodeWithData(nil)
+	for _, n := range nodes {
+		root.AddNodeLink(n.Cid().String(), n)
+		err := ds.Add(ctx, n)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := ds.Add(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+// makeTestDAGReader takes the root node as returned by makeTestDAG and
+// provides a reader that reads all the RawData from that node and its children.
+func makeTestDAGReader(t *testing.T, root ipld.Node, ds ipld.DAGService) io.Reader {
+	ctx := context.Background()
+	buf := new(bytes.Buffer)
+	buf.Write(root.RawData())
+	for _, l := range root.Links() {
+		n, err := ds.Get(ctx, l.Cid)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = buf.Write(n.RawData())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return buf
+}
+
 func runBatchFetchTest(t *testing.T, read io.Reader) {
 	ctx := context.Background()
-	var dagservs []DAGService
+	var dagservs []ipld.DAGService
 	for _, bsi := range bstest.Mocks(5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 
-	spl := chunk.NewSizeSplitter(read, 512)
-
-	root, err := imp.BuildDagFromReader(dagservs[0], spl)
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := makeTestDAG(t, read, dagservs[0])
 
 	t.Log("finished setup.")
 
-	dagr, err := uio.NewDagReader(ctx, root, dagservs[0])
-	if err != nil {
-		t.Fatal(err)
-	}
+	dagr := makeTestDAGReader(t, root, dagservs[0])
 
 	expected, err := ioutil.ReadAll(dagr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dagservs[0].Add(root)
+	err = dagservs[0].Add(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,18 +232,14 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 			if !ok {
 				errs <- ErrNotProtobuf
 			}
-
-			read, err := uio.NewDagReader(ctx, firstpb, dagservs[i])
-			if err != nil {
-				errs <- err
-			}
+			read := makeTestDAGReader(t, firstpb, dagservs[i])
 			datagot, err := ioutil.ReadAll(read)
 			if err != nil {
 				errs <- err
 			}
 
 			if !bytes.Equal(datagot, expected) {
-				errs <- errors.New("Got bad data back!")
+				errs <- errors.New("got bad data back")
 			}
 		}(i)
 	}
@@ -221,19 +268,16 @@ func TestCantGet(t *testing.T) {
 }
 
 func TestFetchGraph(t *testing.T) {
-	var dservs []DAGService
+	var dservs []ipld.DAGService
 	bsis := bstest.Mocks(2)
 	for _, bsi := range bsis {
 		dservs = append(dservs, NewDAGService(bsi))
 	}
 
 	read := io.LimitReader(u.NewTimeSeededRand(), 1024*32)
-	root, err := imp.BuildDagFromReader(dservs[0], chunk.NewSizeSplitter(read, 512))
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := makeTestDAG(t, read, dservs[0])
 
-	err = FetchGraph(context.TODO(), root.Cid(), dservs[1])
+	err := FetchGraph(context.TODO(), root.Cid(), dservs[1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,9 +285,9 @@ func TestFetchGraph(t *testing.T) {
 	// create an offline dagstore and ensure all blocks were fetched
 	bs := bserv.New(bsis[1].Blockstore(), offline.Exchange(bsis[1].Blockstore()))
 
-	offline_ds := NewDAGService(bs)
+	offlineDS := NewDAGService(bs)
 
-	err = EnumerateChildren(context.Background(), offline_ds.GetLinks, root.Cid(), func(_ *cid.Cid) bool { return true })
+	err = EnumerateChildren(context.Background(), offlineDS.GetLinks, root.Cid(), func(_ *cid.Cid) bool { return true })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,19 +298,17 @@ func TestEnumerateChildren(t *testing.T) {
 	ds := NewDAGService(bsi[0])
 
 	read := io.LimitReader(u.NewTimeSeededRand(), 1024*1024)
-	root, err := imp.BuildDagFromReader(ds, chunk.NewSizeSplitter(read, 512))
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := makeTestDAG(t, read, ds)
 
 	set := cid.NewSet()
-	err = EnumerateChildren(context.Background(), ds.GetLinks, root.Cid(), set.Visit)
+
+	err := EnumerateChildren(context.Background(), ds.GetLinks, root.Cid(), set.Visit)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var traverse func(n node.Node)
-	traverse = func(n node.Node) {
+	var traverse func(n ipld.Node)
+	traverse = func(n ipld.Node) {
 		// traverse dag and check
 		for _, lnk := range n.Links() {
 			c := lnk.Cid
@@ -285,18 +327,20 @@ func TestEnumerateChildren(t *testing.T) {
 }
 
 func TestFetchFailure(t *testing.T) {
+	ctx := context.Background()
+
 	ds := dstest.Mock()
 	ds_bad := dstest.Mock()
 
 	top := new(ProtoNode)
 	for i := 0; i < 10; i++ {
 		nd := NodeWithData([]byte{byte('a' + i)})
-		_, err := ds.Add(nd)
+		err := ds.Add(ctx, nd)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		err = top.AddNodeLinkClean(fmt.Sprintf("AA%d", i), nd)
+		err = top.AddNodeLink(fmt.Sprintf("AA%d", i), nd)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -304,20 +348,20 @@ func TestFetchFailure(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		nd := NodeWithData([]byte{'f', 'a' + byte(i)})
-		_, err := ds_bad.Add(nd)
+		err := ds_bad.Add(ctx, nd)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		err = top.AddNodeLinkClean(fmt.Sprintf("BB%d", i), nd)
+		err = top.AddNodeLink(fmt.Sprintf("BB%d", i), nd)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	getters := GetDAG(context.Background(), ds, top)
+	getters := ipld.GetDAG(ctx, ds, top)
 	for i, getter := range getters {
-		_, err := getter.Get(context.Background())
+		_, err := getter.Get(ctx)
 		if err != nil && i < 10 {
 			t.Fatal(err)
 		}
@@ -352,15 +396,17 @@ func TestUnmarshalFailure(t *testing.T) {
 }
 
 func TestBasicAddGet(t *testing.T) {
+	ctx := context.Background()
+
 	ds := dstest.Mock()
 	nd := new(ProtoNode)
 
-	c, err := ds.Add(nd)
+	err := ds.Add(ctx, nd)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	out, err := ds.Get(context.Background(), c)
+	out, err := ds.Get(ctx, nd.Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,20 +417,22 @@ func TestBasicAddGet(t *testing.T) {
 }
 
 func TestGetRawNodes(t *testing.T) {
+	ctx := context.Background()
+
 	rn := NewRawNode([]byte("test"))
 
 	ds := dstest.Mock()
 
-	c, err := ds.Add(rn)
+	err := ds.Add(ctx, rn)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !c.Equals(rn.Cid()) {
+	if !rn.Cid().Equals(rn.Cid()) {
 		t.Fatal("output cids didnt match")
 	}
 
-	out, err := ds.Get(context.TODO(), c)
+	out, err := ds.Get(ctx, rn.Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,7 +475,7 @@ func TestGetRawNodes(t *testing.T) {
 func TestProtoNodeResolve(t *testing.T) {
 
 	nd := new(ProtoNode)
-	nd.SetLinks([]*node.Link{{Name: "foo"}})
+	nd.SetLinks([]*ipld.Link{{Name: "foo"}})
 
 	lnk, left, err := nd.ResolveLink([]string{"foo", "bar"})
 	if err != nil {
@@ -449,6 +497,8 @@ func TestProtoNodeResolve(t *testing.T) {
 }
 
 func TestCidRetention(t *testing.T) {
+	ctx := context.Background()
+
 	nd := new(ProtoNode)
 	nd.SetData([]byte("fooooo"))
 
@@ -466,13 +516,13 @@ func TestCidRetention(t *testing.T) {
 	}
 
 	bs := dstest.Bserv()
-	_, err = bs.AddBlock(blk)
+	err = bs.AddBlock(blk)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ds := NewDAGService(bs)
-	out, err := ds.Get(context.Background(), c2)
+	out, err := ds.Get(ctx, c2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -500,44 +550,76 @@ func TestCidRawDoesnNeedData(t *testing.T) {
 	}
 }
 
+func TestGetManyDuplicate(t *testing.T) {
+	ctx := context.Background()
+
+	srv := NewDAGService(dstest.Bserv())
+
+	nd := NodeWithData([]byte("foo"))
+	if err := srv.Add(ctx, nd); err != nil {
+		t.Fatal(err)
+	}
+	nds := srv.GetMany(ctx, []*cid.Cid{nd.Cid(), nd.Cid(), nd.Cid()})
+	out, ok := <-nds
+	if !ok {
+		t.Fatal("expecting node foo")
+	}
+	if out.Err != nil {
+		t.Fatal(out.Err)
+	}
+	if !out.Node.Cid().Equals(nd.Cid()) {
+		t.Fatal("got wrong node")
+	}
+	out, ok = <-nds
+	if ok {
+		if out.Err != nil {
+			t.Fatal(out.Err)
+		} else {
+			t.Fatal("expecting no more nodes")
+		}
+	}
+}
+
 func TestEnumerateAsyncFailsNotFound(t *testing.T) {
+	ctx := context.Background()
+
 	a := NodeWithData([]byte("foo1"))
 	b := NodeWithData([]byte("foo2"))
 	c := NodeWithData([]byte("foo3"))
 	d := NodeWithData([]byte("foo4"))
 
 	ds := dstest.Mock()
-	for _, n := range []node.Node{a, b, c} {
-		_, err := ds.Add(n)
+	for _, n := range []ipld.Node{a, b, c} {
+		err := ds.Add(ctx, n)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	parent := new(ProtoNode)
-	if err := parent.AddNodeLinkClean("a", a); err != nil {
+	if err := parent.AddNodeLink("a", a); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := parent.AddNodeLinkClean("b", b); err != nil {
+	if err := parent.AddNodeLink("b", b); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := parent.AddNodeLinkClean("c", c); err != nil {
+	if err := parent.AddNodeLink("c", c); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := parent.AddNodeLinkClean("d", d); err != nil {
+	if err := parent.AddNodeLink("d", d); err != nil {
 		t.Fatal(err)
 	}
 
-	pcid, err := ds.Add(parent)
+	err := ds.Add(ctx, parent)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	cset := cid.NewSet()
-	err = EnumerateChildrenAsync(context.Background(), GetLinksDirect(ds), pcid, cset.Visit)
+	err = EnumerateChildrenAsync(ctx, GetLinksDirect(ds), parent.Cid(), cset.Visit)
 	if err == nil {
 		t.Fatal("this should have failed")
 	}
@@ -570,7 +652,9 @@ func testProgressIndicator(t *testing.T, depth int) {
 	}
 }
 
-func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
+func mkDag(ds ipld.DAGService, depth int) (*cid.Cid, int) {
+	ctx := context.Background()
+
 	totalChildren := 0
 	f := func() *ProtoNode {
 		p := new(ProtoNode)
@@ -578,7 +662,7 @@ func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
 		rand.Read(buf)
 
 		p.SetData(buf)
-		_, err := ds.Add(p)
+		err := ds.Add(ctx, p)
 		if err != nil {
 			panic(err)
 		}
@@ -589,7 +673,7 @@ func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
 		thisf := f
 		f = func() *ProtoNode {
 			pn := mkNodeWithChildren(thisf, 10)
-			_, err := ds.Add(pn)
+			err := ds.Add(ctx, pn)
 			if err != nil {
 				panic(err)
 			}
@@ -599,12 +683,12 @@ func mkDag(ds DAGService, depth int) (*cid.Cid, int) {
 	}
 
 	nd := f()
-	c, err := ds.Add(nd)
+	err := ds.Add(ctx, nd)
 	if err != nil {
 		panic(err)
 	}
 
-	return c, totalChildren
+	return nd.Cid(), totalChildren
 }
 
 func mkNodeWithChildren(getChild func() *ProtoNode, width int) *ProtoNode {
@@ -612,7 +696,7 @@ func mkNodeWithChildren(getChild func() *ProtoNode, width int) *ProtoNode {
 
 	for i := 0; i < width; i++ {
 		c := getChild()
-		if err := cur.AddNodeLinkClean(fmt.Sprint(i), c); err != nil {
+		if err := cur.AddNodeLink(fmt.Sprint(i), c); err != nil {
 			panic(err)
 		}
 	}

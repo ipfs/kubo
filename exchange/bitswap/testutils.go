@@ -4,16 +4,16 @@ import (
 	"context"
 	"time"
 
-	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
-	datastore2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
-	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	testutil "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil"
 
-	p2ptestutil "gx/ipfs/QmQGX417WoxKxDJeHqouMEmmH4G1RCENNSzkZYHrXy3Xb3/go-libp2p-netutil"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	ds_sync "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	delay "gx/ipfs/QmRJVNatYJwTAHgdSM1Xef9QVQ1Ch3XHdmcrykjP5Y4soL/go-ipfs-delay"
+	testutil "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	delayed "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/delayed"
+	ds_sync "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
+	p2ptestutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	blockstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
 )
 
 // WARNING: this uses RandTestBogusIdentity DO NOT USE for NON TESTS!
@@ -90,7 +90,7 @@ func MkSession(ctx context.Context, net tn.Network, p testutil.Identity) Instanc
 	bsdelay := delay.Fixed(0)
 
 	adapter := net.Adapter(p)
-	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
+	dstore := ds_sync.MutexWrap(delayed.New(ds.NewMapDatastore(), bsdelay))
 
 	bstore, err := blockstore.CachedBlockstore(ctx,
 		blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)),
@@ -99,9 +99,7 @@ func MkSession(ctx context.Context, net tn.Network, p testutil.Identity) Instanc
 		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}
 
-	const alwaysSendToPeer = true
-
-	bs := New(ctx, p.ID(), adapter, bstore, alwaysSendToPeer).(*Bitswap)
+	bs := New(ctx, adapter, bstore).(*Bitswap)
 
 	return Instance{
 		Peer:            p.ID(),

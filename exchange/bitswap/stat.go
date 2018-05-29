@@ -3,7 +3,7 @@ package bitswap
 import (
 	"sort"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 type Stat struct {
@@ -32,7 +32,10 @@ func (bs *Bitswap) Stat() (*Stat, error) {
 	st.DataReceived = c.dataRecvd
 	bs.counterLk.Unlock()
 
-	for _, p := range bs.engine.Peers() {
+	peers := bs.engine.Peers()
+	st.Peers = make([]string, 0, len(peers))
+
+	for _, p := range peers {
 		st.Peers = append(st.Peers, p.Pretty())
 	}
 	sort.Strings(st.Peers)

@@ -10,9 +10,9 @@ import (
 	"os"
 	"time"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
 var (
@@ -54,7 +54,7 @@ func main() {
 
 	// show what we got
 	start := time.Now()
-	log.Debug("starting at %s, tries: %d, timeout: %s, url: %s", start, *tries, *timeout, u)
+	log.Debugf("starting at %s, tries: %d, timeout: %s, url: %s", start, *tries, *timeout, u)
 
 	for *tries > 0 {
 
@@ -82,7 +82,7 @@ func checkOK(resp *http.Response, err error) error {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "pollEndpoint: ioutil.ReadAll() Error: %s", err)
 		}
-		return fmt.Errorf("Response not OK. %d %s %q", resp.StatusCode, resp.Status, string(body))
+		return fmt.Errorf("response not OK. %d %s %q", resp.StatusCode, resp.Status, string(body))
 	}
 	return err
 }

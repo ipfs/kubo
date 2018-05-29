@@ -19,9 +19,9 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var ErrNotExist = errors.New("no such rootfs")
@@ -31,7 +31,7 @@ var log = logging.Logger("mfs")
 var ErrIsDirectory = errors.New("error: is a directory")
 
 type childCloser interface {
-	closeChild(string, node.Node, bool) error
+	closeChild(string, ipld.Node, bool) error
 }
 
 type NodeType int
@@ -41,32 +41,33 @@ const (
 	TDir
 )
 
-// FSNode represents any node (directory, root, or file) in the mfs filesystem
+// FSNode represents any node (directory, root, or file) in the mfs filesystem.
 type FSNode interface {
-	GetNode() (node.Node, error)
+	GetNode() (ipld.Node, error)
 	Flush() error
 	Type() NodeType
 }
 
-// Root represents the root of a filesystem tree
+// Root represents the root of a filesystem tree.
 type Root struct {
-	// node is the merkledag root
+	// node is the merkledag root.
 	node *dag.ProtoNode
 
-	// val represents the node. It can either be a File or a Directory
+	// val represents the node. It can either be a File or a Directory.
 	val FSNode
 
 	repub *Republisher
 
-	dserv dag.DAGService
+	dserv ipld.DAGService
 
 	Type string
 }
 
+// PubFunc is the function used by the `publish()` method.
 type PubFunc func(context.Context, *cid.Cid) error
 
-// newRoot creates a new Root and starts up a republisher routine for it
-func NewRoot(parent context.Context, ds dag.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
+// NewRoot creates a new Root and starts up a republisher routine for it.
+func NewRoot(parent context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
 
 	var repub *Republisher
 	if pf != nil {
@@ -107,10 +108,13 @@ func NewRoot(parent context.Context, ds dag.DAGService, node *dag.ProtoNode, pf 
 	return root, nil
 }
 
+// GetValue returns the value of Root.
 func (kr *Root) GetValue() FSNode {
 	return kr.val
 }
 
+// Flush signals that an update has occurred since the last publish,
+// and updates the Root republisher.
 func (kr *Root) Flush() error {
 	nd, err := kr.GetValue().GetNode()
 	if err != nil {
@@ -123,16 +127,46 @@ func (kr *Root) Flush() error {
 	return nil
 }
 
+// FlushMemFree flushes the root directory and then uncaches all of its links.
+// This has the effect of clearing out potentially stale references and allows
+// them to be garbage collected.
+// CAUTION: Take care not to ever call this while holding a reference to any
+// child directories. Those directories will be bad references and using them
+// may have unintended racy side effects.
+// A better implemented mfs system (one that does smarter internal caching and
+// refcounting) shouldnt need this method.
+func (kr *Root) FlushMemFree(ctx context.Context) error {
+	dir, ok := kr.GetValue().(*Directory)
+	if !ok {
+		return fmt.Errorf("invalid mfs structure, root should be a directory")
+	}
+
+	if err := dir.Flush(); err != nil {
+		return err
+	}
+
+	dir.lock.Lock()
+	defer dir.lock.Unlock()
+	for name := range dir.files {
+		delete(dir.files, name)
+	}
+	for name := range dir.childDirs {
+		delete(dir.childDirs, name)
+	}
+
+	return nil
+}
+
 // closeChild implements the childCloser interface, and signals to the publisher that
-// there are changes ready to be published
-func (kr *Root) closeChild(name string, nd node.Node, sync bool) error {
-	c, err := kr.dserv.Add(nd)
+// there are changes ready to be published.
+func (kr *Root) closeChild(name string, nd ipld.Node, sync bool) error {
+	err := kr.dserv.Add(context.TODO(), nd)
 	if err != nil {
 		return err
 	}
 
 	if kr.repub != nil {
-		kr.repub.Update(c)
+		kr.repub.Update(nd.Cid())
 	}
 	return nil
 }
@@ -151,7 +185,7 @@ func (kr *Root) Close() error {
 	return nil
 }
 
-// Republisher manages when to publish a given entry
+// Republisher manages when to publish a given entry.
 type Republisher struct {
 	TimeoutLong  time.Duration
 	TimeoutShort time.Duration
@@ -168,7 +202,7 @@ type Republisher struct {
 }
 
 // NewRepublisher creates a new Republisher object to republish the given root
-// using the given short and long time intervals
+// using the given short and long time intervals.
 func NewRepublisher(ctx context.Context, pf PubFunc, tshort, tlong time.Duration) *Republisher {
 	ctx, cancel := context.WithCancel(ctx)
 	return &Republisher{
@@ -188,6 +222,8 @@ func (p *Republisher) setVal(c *cid.Cid) {
 	p.val = c
 }
 
+// WaitPub Returns immediately if `lastpub` value is consistent with the
+// current value `val`, else will block until `val` has been published.
 func (p *Republisher) WaitPub() {
 	p.lk.Lock()
 	consistent := p.lastpub == p.val
@@ -209,7 +245,7 @@ func (p *Republisher) Close() error {
 
 // Touch signals that an update has occurred since the last publish.
 // Multiple consecutive touches may extend the time period before
-// the next Publish occurs in order to more efficiently batch updates
+// the next Publish occurs in order to more efficiently batch updates.
 func (np *Republisher) Update(c *cid.Cid) {
 	np.setVal(c)
 	select {
@@ -218,7 +254,7 @@ func (np *Republisher) Update(c *cid.Cid) {
 	}
 }
 
-// Run is the main republisher loop
+// Run is the main republisher loop.
 func (np *Republisher) Run() {
 	for {
 		select {
@@ -254,6 +290,7 @@ func (np *Republisher) Run() {
 	}
 }
 
+// publish calls the `PubFunc`.
 func (np *Republisher) publish(ctx context.Context) error {
 	np.lk.Lock()
 	topub := np.val

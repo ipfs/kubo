@@ -4,6 +4,51 @@ The go-ipfs config file is a json document. It is read once at node instantiatio
 either for an offline command, or when starting the daemon. Commands that execute
 on a running daemon do not read the config file at runtime.
 
+#### Profiles
+Configuration profiles allow to tweak configuration quickly. Profiles can be
+applied with `--profile` flag to `ipfs init` or with `ipfs config profile apply`
+command. When a profile is applied a backup of the configuration file will
+be created in $IPFS_PATH
+
+Available profiles:
+- `server`
+
+  Recommended for nodes with public IPv4 address (servers, VPSes, etc.),
+  disables host and content discovery in local networks.
+
+- `local-discovery`
+
+  Sets default values to fields affected by `server` profile, enables
+  discovery in local networks.
+
+- `test`
+
+  Reduces external interference, useful for running ipfs in test environments.
+  Note that with these settings node won't be able to talk to the rest of the
+  network without manual bootstrap.
+
+- `default-networking`
+
+  Restores default network settings. Inverse profile of the `test` profile.
+
+- `badgerds`
+
+  Replaces default datastore configuration with experimental badger datastore.
+  If you apply this profile after `ipfs init`, you will need to convert your
+  datastore to the new configuration. You can do this using [ipfs-ds-convert](https://github.com/ipfs/ipfs-ds-convert)
+
+  WARNING: badger datastore is experimental. Make sure to backup your data
+  frequently.
+
+- `default-datastore`
+
+  Restores default datastore configuration.
+
+- `lowpower`
+
+  Reduces daemon overhead on the system. May affect node functionality,
+  performance of content discovery and data fetching may be degraded.
+
 ## Table of Contents
 
 - [`Addresses`](#addresses)
@@ -24,7 +69,7 @@ Contains information about various listener addresses to be used by this node.
 - `API`
 Multiaddr describing the address to serve the local HTTP API on.
 
-Default: `/ip4/127.0.0.1/tcp/4001`
+Default: `/ip4/127.0.0.1/tcp/5001`
 
 - `Gateway`
 Multiaddr describing the address to serve the local gateway on.
@@ -41,6 +86,16 @@ Default:
   "/ip6/::/tcp/4001"
 ]
 ```
+
+- `Announce`
+If non-empty, this array specifies the swarm addresses to announce to the network. If empty, the daemon will announce inferred swarm addresses.
+
+Default: `[]`
+
+- `NoAnnounce`
+Array of swarm addresses not to announce to the network.
+
+Default: `[]`
 
 ## `API`
 Contains information used by the API gateway.
@@ -68,8 +123,8 @@ Contains information related to the construction and operation of the on-disk
 storage system.
 
 - `StorageMax`
-An upper limit on the total size of the ipfs repository's datastore. Writes to
-the datastore will begin to fail once this limit is reached.
+A soft upper limit for the size of the ipfs repository's datastore. With `StorageGCWatermark`,
+is used to calculate whether to trigger a gc run (only if `--enable-gc` flag is set).
 
 Default: `10GB`
 
@@ -147,6 +202,12 @@ Default: `true`
   -  `Interval`
 A number of seconds to wait between discovery checks.
 
+- `Routing`
+Content routing mode. Can be overridden with daemon `--routing` flag.
+Valid modes are:
+  - `dht` (default)
+  - `dhtclient`
+  - `none`
 
 ## `Gateway`
 Options for the HTTP gateway.
@@ -198,7 +259,7 @@ The base64 encoded protobuf describing (and containing) the nodes private key.
 
 - `RepublishPeriod`
 A time duration specifying how frequently to republish ipns records to ensure
-they stay fresh on the network. If unset, we default to 12 hours.
+they stay fresh on the network. If unset, we default to 4 hours.
 
 - `RecordLifetime`
 A time duration specifying the value to set on ipns records for their validity

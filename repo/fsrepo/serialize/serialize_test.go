@@ -2,6 +2,7 @@ package fsrepo
 
 import (
 	"os"
+	"runtime"
 	"testing"
 
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -27,7 +28,10 @@ func TestConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot stat config file: %v", err)
 	}
-	if g := st.Mode().Perm(); g&0117 != 0 {
-		t.Fatalf("config file should not be executable or accessible to world: %v", g)
+
+	if runtime.GOOS != "windows" { // see https://golang.org/src/os/types_windows.go
+		if g := st.Mode().Perm(); g&0117 != 0 {
+			t.Fatalf("config file should not be executable or accessible to world: %v", g)
+		}
 	}
 }

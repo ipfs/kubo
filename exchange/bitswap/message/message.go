@@ -6,12 +6,12 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 
-	inet "gx/ipfs/QmNa31VPzC561NWwRsJLE7nGYZYuuD2QfpK2b1q9BK54J1/go-libp2p-net"
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	inet "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 // TODO move message.go into the bitswap package
@@ -50,7 +50,7 @@ type Exportable interface {
 
 type impl struct {
 	full     bool
-	wantlist map[string]Entry
+	wantlist map[string]*Entry
 	blocks   map[string]blocks.Block
 }
 
@@ -61,7 +61,7 @@ func New(full bool) BitSwapMessage {
 func newMsg(full bool) *impl {
 	return &impl{
 		blocks:   make(map[string]blocks.Block),
-		wantlist: make(map[string]Entry),
+		wantlist: make(map[string]*Entry),
 		full:     full,
 	}
 }
@@ -120,9 +120,9 @@ func (m *impl) Empty() bool {
 }
 
 func (m *impl) Wantlist() []Entry {
-	var out []Entry
+	out := make([]Entry, 0, len(m.wantlist))
 	for _, e := range m.wantlist {
-		out = append(out, e)
+		out = append(out, *e)
 	}
 	return out
 }
@@ -151,7 +151,7 @@ func (m *impl) addEntry(c *cid.Cid, priority int, cancel bool) {
 		e.Priority = priority
 		e.Cancel = cancel
 	} else {
-		m.wantlist[k] = Entry{
+		m.wantlist[k] = &Entry{
 			Entry: &wantlist.Entry{
 				Cid:      c,
 				Priority: priority,
@@ -182,6 +182,7 @@ func FromPBReader(pbr ggio.Reader) (BitSwapMessage, error) {
 func (m *impl) ToProtoV0() *pb.Message {
 	pbm := new(pb.Message)
 	pbm.Wantlist = new(pb.Message_Wantlist)
+	pbm.Wantlist.Entries = make([]*pb.Message_Wantlist_Entry, 0, len(m.wantlist))
 	for _, e := range m.wantlist {
 		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
 			Block:    proto.String(e.Cid.KeyString()),
@@ -190,7 +191,10 @@ func (m *impl) ToProtoV0() *pb.Message {
 		})
 	}
 	pbm.Wantlist.Full = proto.Bool(m.full)
-	for _, b := range m.Blocks() {
+
+	blocks := m.Blocks()
+	pbm.Blocks = make([][]byte, 0, len(blocks))
+	for _, b := range blocks {
 		pbm.Blocks = append(pbm.Blocks, b.RawData())
 	}
 	return pbm
@@ -199,6 +203,7 @@ func (m *impl) ToProtoV0() *pb.Message {
 func (m *impl) ToProtoV1() *pb.Message {
 	pbm := new(pb.Message)
 	pbm.Wantlist = new(pb.Message_Wantlist)
+	pbm.Wantlist.Entries = make([]*pb.Message_Wantlist_Entry, 0, len(m.wantlist))
 	for _, e := range m.wantlist {
 		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
 			Block:    proto.String(e.Cid.KeyString()),
@@ -207,7 +212,10 @@ func (m *impl) ToProtoV1() *pb.Message {
 		})
 	}
 	pbm.Wantlist.Full = proto.Bool(m.full)
-	for _, b := range m.Blocks() {
+
+	blocks := m.Blocks()
+	pbm.Payload = make([]*pb.Message_Block, 0, len(blocks))
+	for _, b := range blocks {
 		blk := &pb.Message_Block{
 			Data:   b.RawData(),
 			Prefix: b.Cid().Prefix().Bytes(),
@@ -230,7 +238,7 @@ func (m *impl) ToNetV1(w io.Writer) error {
 }
 
 func (m *impl) Loggable() map[string]interface{} {
-	var blocks []string
+	blocks := make([]string, 0, len(m.blocks))
 	for _, v := range m.blocks {
 		blocks = append(blocks, v.Cid().String())
 	}

@@ -2,13 +2,14 @@ package traverse
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	mdagtest "github.com/ipfs/go-ipfs/merkledag/test"
 
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func TestDFSPreNoSkip(t *testing.T) {
@@ -323,7 +324,7 @@ func TestBFSSkip(t *testing.T) {
 `))
 }
 
-func testWalkOutputs(t *testing.T, root node.Node, opts Options, expect []byte) {
+func testWalkOutputs(t *testing.T, root ipld.Node, opts Options, expect []byte) {
 	expect = bytes.TrimLeft(expect, "\n")
 
 	buf := new(bytes.Buffer)
@@ -350,7 +351,7 @@ func testWalkOutputs(t *testing.T, root node.Node, opts Options, expect []byte) 
 	}
 }
 
-func newFan(t *testing.T, ds mdag.DAGService) node.Node {
+func newFan(t *testing.T, ds ipld.DAGService) ipld.Node {
 	a := mdag.NodeWithData([]byte("/a"))
 	addLink(t, ds, a, child(t, ds, a, "aa"))
 	addLink(t, ds, a, child(t, ds, a, "ab"))
@@ -359,7 +360,7 @@ func newFan(t *testing.T, ds mdag.DAGService) node.Node {
 	return a
 }
 
-func newLinkedList(t *testing.T, ds mdag.DAGService) node.Node {
+func newLinkedList(t *testing.T, ds ipld.DAGService) ipld.Node {
 	a := mdag.NodeWithData([]byte("/a"))
 	aa := child(t, ds, a, "aa")
 	aaa := child(t, ds, aa, "aaa")
@@ -372,7 +373,7 @@ func newLinkedList(t *testing.T, ds mdag.DAGService) node.Node {
 	return a
 }
 
-func newBinaryTree(t *testing.T, ds mdag.DAGService) node.Node {
+func newBinaryTree(t *testing.T, ds ipld.DAGService) ipld.Node {
 	a := mdag.NodeWithData([]byte("/a"))
 	aa := child(t, ds, a, "aa")
 	ab := child(t, ds, a, "ab")
@@ -385,7 +386,7 @@ func newBinaryTree(t *testing.T, ds mdag.DAGService) node.Node {
 	return a
 }
 
-func newBinaryDAG(t *testing.T, ds mdag.DAGService) node.Node {
+func newBinaryDAG(t *testing.T, ds ipld.DAGService) ipld.Node {
 	a := mdag.NodeWithData([]byte("/a"))
 	aa := child(t, ds, a, "aa")
 	aaa := child(t, ds, aa, "aaa")
@@ -402,9 +403,9 @@ func newBinaryDAG(t *testing.T, ds mdag.DAGService) node.Node {
 	return a
 }
 
-func addLink(t *testing.T, ds mdag.DAGService, a, b node.Node) {
+func addLink(t *testing.T, ds ipld.DAGService, a, b ipld.Node) {
 	to := string(a.(*mdag.ProtoNode).Data()) + "2" + string(b.(*mdag.ProtoNode).Data())
-	if _, err := ds.Add(b); err != nil {
+	if err := ds.Add(context.Background(), b); err != nil {
 		t.Error(err)
 	}
 	if err := a.(*mdag.ProtoNode).AddNodeLink(to, b.(*mdag.ProtoNode)); err != nil {
@@ -412,6 +413,6 @@ func addLink(t *testing.T, ds mdag.DAGService, a, b node.Node) {
 	}
 }
 
-func child(t *testing.T, ds mdag.DAGService, a node.Node, name string) node.Node {
+func child(t *testing.T, ds ipld.DAGService, a ipld.Node, name string) ipld.Node {
 	return mdag.NodeWithData([]byte(string(a.(*mdag.ProtoNode).Data()) + "/" + name))
 }

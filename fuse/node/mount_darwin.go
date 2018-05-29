@@ -8,10 +8,10 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"syscall"
 
 	core "github.com/ipfs/go-ipfs/core"
 
+	unix "gx/ipfs/QmPXvegq26x982cQjSfbTvSzZXn7GiaMwhhVPHkeTEhrPT/sys/unix"
 	"gx/ipfs/QmYRGECuvQnRX73fcvPnGbYijBcGN2HbKZQ7jh26qmLiHG/semver"
 )
 
@@ -165,7 +165,7 @@ func tryGFV() (string, error) {
 }
 
 func trySysctl() (string, error) {
-	v, err := syscall.Sysctl("osxfuse.version.number")
+	v, err := unix.Sysctl("osxfuse.version.number")
 	if err != nil {
 		log.Debug("mount: sysctl osxfuse.version.number:", "failed")
 		return "", err

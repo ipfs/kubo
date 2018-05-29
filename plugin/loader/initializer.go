@@ -3,8 +3,9 @@ package loader
 import (
 	"github.com/ipfs/go-ipfs/core/coredag"
 	"github.com/ipfs/go-ipfs/plugin"
+	"gx/ipfs/QmWLWmRVSiagqP15jczsGME1qpob6HDbtbHAY2he9W5iUo/opentracing-go"
 
-	format "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func initialize(plugins []plugin.Plugin) error {
@@ -20,24 +21,37 @@ func initialize(plugins []plugin.Plugin) error {
 
 func run(plugins []plugin.Plugin) error {
 	for _, pl := range plugins {
-		err := runIPLDPlugin(pl)
-		if err != nil {
-			return err
+		switch pl := pl.(type) {
+		case plugin.PluginIPLD:
+			err := runIPLDPlugin(pl)
+			if err != nil {
+				return err
+			}
+		case plugin.PluginTracer:
+			err := runTracerPlugin(pl)
+			if err != nil {
+				return err
+			}
+		default:
+			panic(pl)
 		}
 	}
 	return nil
 }
 
-func runIPLDPlugin(pl plugin.Plugin) error {
-	ipldpl, ok := pl.(plugin.PluginIPLD)
-	if !ok {
-		return nil
-	}
-
-	err := ipldpl.RegisterBlockDecoders(format.DefaultBlockDecoder)
+func runIPLDPlugin(pl plugin.PluginIPLD) error {
+	err := pl.RegisterBlockDecoders(ipld.DefaultBlockDecoder)
 	if err != nil {
 		return err
 	}
+	return pl.RegisterInputEncParsers(coredag.DefaultInputEncParsers)
+}
 
-	return ipldpl.RegisterInputEncParsers(coredag.DefaultInputEncParsers)
+func runTracerPlugin(pl plugin.PluginTracer) error {
+	tracer, err := pl.InitTracer()
+	if err != nil {
+		return err
+	}
+	opentracing.SetGlobalTracer(tracer)
+	return nil
 }

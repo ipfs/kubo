@@ -4,7 +4,7 @@ IPFS block services.
 
 IPFS nodes will keep local copies of any object that have either been
 added or requested locally.  Not all of these objects are worth
-preserving forever though, so the node adminstrator can pin objects
+preserving forever though, so the node administrator can pin objects
 they want to keep and unpin objects that they don't care about.
 
 Garbage collection sweeps iterate through the local block store
@@ -19,21 +19,21 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
-	dagnodes := make([]node.Node, 0)
+	out := make([]*cid.Cid, len(paths))
 
-	r := &path.Resolver{
+	r := &resolver.Resolver{
 		DAG:         n.DAG,
 		ResolveOnce: uio.ResolveUnixfsOnce,
 	}
 
-	for _, fpath := range paths {
+	for i, fpath := range paths {
 		p, err := path.ParsePath(fpath)
 		if err != nil {
 			return nil, err
@@ -43,20 +43,11 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
-		dagnodes = append(dagnodes, dagnode)
-	}
-
-	var out []*cid.Cid
-	for _, dagnode := range dagnodes {
-		c := dagnode.Cid()
-
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-		err := n.Pinning.Pin(ctx, dagnode, recursive)
+		err = n.Pinning.Pin(ctx, dagnode, recursive)
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
-		out = append(out, c)
+		out[i] = dagnode.Cid()
 	}
 
 	err := n.Pinning.Flush()
@@ -68,14 +59,14 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 }
 
 func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
-	var unpinned []*cid.Cid
+	unpinned := make([]*cid.Cid, len(paths))
 
-	r := &path.Resolver{
+	r := &resolver.Resolver{
 		DAG:         n.DAG,
 		ResolveOnce: uio.ResolveUnixfsOnce,
 	}
 
-	for _, p := range paths {
+	for i, p := range paths {
 		p, err := path.ParsePath(p)
 		if err != nil {
 			return nil, err
@@ -86,13 +77,11 @@ func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool
 			return nil, err
 		}
 
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
 		err = n.Pinning.Unpin(ctx, k, recursive)
 		if err != nil {
 			return nil, err
 		}
-		unpinned = append(unpinned, k)
+		unpinned[i] = k
 	}
 
 	err := n.Pinning.Flush()

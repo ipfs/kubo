@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
-
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+	tu "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
+	blocksutil "gx/ipfs/Qmf951DP11mCoctpyF3ZppPZdo2oAxuNi2vnkVDgHJ8Fqk/go-ipfs-blocksutil"
 )
 
 func TestBasicSessions(t *testing.T) {
@@ -284,4 +284,42 @@ func TestMultipleSessions(t *testing.T) {
 		t.Fatal("bad juju")
 	}
 	_ = blkch
+}
+
+func TestWantlistClearsOnCancel(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	vnet := getVirtualNetwork()
+	sesgen := NewTestSessionGenerator(vnet)
+	defer sesgen.Close()
+	bgen := blocksutil.NewBlockGenerator()
+
+	blks := bgen.Blocks(10)
+	var cids []*cid.Cid
+	for _, blk := range blks {
+		cids = append(cids, blk.Cid())
+	}
+
+	inst := sesgen.Instances(1)
+
+	a := inst[0]
+
+	ctx1, cancel1 := context.WithCancel(ctx)
+	ses := a.Exchange.NewSession(ctx1)
+
+	_, err := ses.GetBlocks(ctx, cids)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel1()
+
+	if err := tu.WaitFor(ctx, func() error {
+		if len(a.Exchange.GetWantlist()) > 0 {
+			return fmt.Errorf("expected empty wantlist")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 }

@@ -10,9 +10,9 @@ import (
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	metrics "gx/ipfs/QmRg1gKTHzc3CZXSKzem8aR4E3TubFhbgXwfVuWnSK5CC5/go-metrics-interface"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 type WantManager struct {
@@ -94,7 +94,7 @@ type wantSet struct {
 }
 
 func (pm *WantManager) addEntries(ctx context.Context, ks []*cid.Cid, targets []peer.ID, cancel bool, ses uint64) {
-	var entries []*bsmsg.Entry
+	entries := make([]*bsmsg.Entry, 0, len(ks))
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{
 			Cancel: cancel,
@@ -234,7 +234,7 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 
 		err = mq.openSender(ctx)
 		if err != nil {
-			log.Errorf("couldnt open sender again after SendMsg(%s) failed: %s", mq.p, err)
+			log.Infof("couldnt open sender again after SendMsg(%s) failed: %s", mq.p, err)
 			// TODO(why): what do we do now?
 			// I think the *right* answer is to probably put the message we're
 			// trying to send back, and then return to waiting for new work or
@@ -326,7 +326,7 @@ func (pm *WantManager) Run() {
 				for _, t := range ws.targets {
 					p, ok := pm.peers[t]
 					if !ok {
-						log.Warning("tried sending wantlist change to non-partner peer")
+						log.Infof("tried sending wantlist change to non-partner peer: %s", t)
 						continue
 					}
 					p.addMessage(ws.entries, ws.from)
@@ -340,7 +340,7 @@ func (pm *WantManager) Run() {
 				pm.stopPeerHandler(p.peer)
 			}
 		case req := <-pm.peerReqs:
-			var peers []peer.ID
+			peers := make([]peer.ID, 0, len(pm.peers))
 			for p := range pm.peers {
 				peers = append(peers, p)
 			}

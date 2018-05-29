@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2015 Matt Bell
 # MIT Licensed; see the LICENSE file in this repository.
@@ -104,6 +104,14 @@ test_get_cmd() {
     rm -r "$HASH2"
   '
 
+  # Test issue #4720: problems when path contains a trailing slash.
+  test_expect_success "ipfs get with slash (directory)" '
+    ipfs get "$HASH2/" &&
+    test_cmp dir/a "$HASH2"/a &&
+    test_cmp dir/b/c "$HASH2"/b/c &&
+    rm -r "$HASH2"
+  '
+
   test_expect_success "ipfs get -a -C succeeds (directory)" '
     ipfs get "$HASH2" -a -C >actual
   '
@@ -124,6 +132,26 @@ test_get_cmd() {
     echo "Error: invalid 'ipfs ref' path" >expected &&
     test_must_fail ipfs get ../.. 2>actual &&
     test_cmp expected actual
+  '
+
+  test_expect_success "create small file" '
+    echo "foo" > small &&
+    ipfs add -q small > hash_small
+  '
+
+  test_expect_success "get small file" '
+    ipfs get -o out_small $(cat hash_small) &&
+    test_cmp small out_small
+  '
+
+  test_expect_success "create medium file" '
+    head -c 16000 > medium &&
+    ipfs add -q medium > hash_medium
+  '
+
+  test_expect_success "get medium file" '
+    ipfs get -o out_medium $(cat hash_medium) &&
+    test_cmp medium out_medium
   '
 }
 
@@ -157,9 +185,7 @@ test_get_cmd
 
 test_expect_success "empty request to get doesn't panic and returns error" '
   curl "http://$API_ADDR/api/v0/get" > curl_out || true &&
-    grep "not enough arugments provided" curl_out
-
-
+    grep "argument \"ipfs-path\" is required" curl_out
 '
 test_kill_ipfs_daemon
 

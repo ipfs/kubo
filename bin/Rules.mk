@@ -1,9 +1,9 @@
 include mk/header.mk
 
-dist_root_$(d)=/ipfs/QmR27Do9gqx9VmuQTEX1UGXETSWYJTQzPzxS5FNUnySCv1
+dist_root_$(d)=/ipfs/QmT3CLJKJzWPuN4NAN4LLy69UpKskMF3AuYhXstKdn8V43
 
-$(d)/gx: $(d)/gx-v0.12.0
-$(d)/gx-go: $(d)/gx-go-v1.5.0
+$(d)/gx: $(d)/gx-v0.12.1
+$(d)/gx-go: $(d)/gx-go-v1.6.0
 
 TGTS_$(d) := $(d)/gx $(d)/gx-go
 DISTCLEAN += $(wildcard $(d)/gx-v*) $(wildcard $(d)/gx-go-v*) $(d)/tmp
@@ -11,8 +11,12 @@ DISTCLEAN += $(wildcard $(d)/gx-v*) $(wildcard $(d)/gx-go-v*) $(d)/tmp
 PATH := $(realpath $(d)):$(PATH)
 
 $(TGTS_$(d)):
-	rm -f $@
+	rm -f $@$(?exe)
+ifeq ($(WINDOWS),1)
+	cp $^$(?exe) $@$(?exe)
+else
 	ln -s $(notdir $^) $@
+endif
 
 bin/gx-v%:
 	@echo "installing gx $(@:bin/gx-%=%)"

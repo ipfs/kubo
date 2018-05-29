@@ -2,11 +2,11 @@ package notifications
 
 import (
 	"context"
+	"sync"
 
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
-
-	pubsub "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/briantigerchow/pubsub"
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	pubsub "gx/ipfs/QmdbxjQWogRCHRaxhhGnYdT1oQJzL9GdqSKzCdqWr85AP2/pubsub"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
 const bufferSize = 16
@@ -18,18 +18,43 @@ type PubSub interface {
 }
 
 func New() PubSub {
-	return &impl{*pubsub.New(bufferSize)}
+	return &impl{
+		wrapped: *pubsub.New(bufferSize),
+		cancel:  make(chan struct{}),
+	}
 }
 
 type impl struct {
 	wrapped pubsub.PubSub
+
+	// These two fields make up a shutdown "lock".
+	// We need them as calling, e.g., `Unsubscribe` after calling `Shutdown`
+	// blocks forever and fixing this in pubsub would be rather invasive.
+	cancel chan struct{}
+	wg     sync.WaitGroup
 }
 
 func (ps *impl) Publish(block blocks.Block) {
+	ps.wg.Add(1)
+	defer ps.wg.Done()
+
+	select {
+	case <-ps.cancel:
+		// Already shutdown, bail.
+		return
+	default:
+	}
+
 	ps.wrapped.Pub(block, block.Cid().KeyString())
 }
 
+// Not safe to call more than once.
 func (ps *impl) Shutdown() {
+	// Interrupt in-progress subscriptions.
+	close(ps.cancel)
+	// Wait for them to finish.
+	ps.wg.Wait()
+	// shutdown the pubsub.
 	ps.wrapped.Shutdown()
 }
 
@@ -44,12 +69,34 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...*cid.Cid) <-chan blocks.B
 		close(blocksCh)
 		return blocksCh
 	}
+
+	// prevent shutdown
+	ps.wg.Add(1)
+
+	// check if shutdown *after* preventing shutdowns.
+	select {
+	case <-ps.cancel:
+		// abort, allow shutdown to continue.
+		ps.wg.Done()
+		close(blocksCh)
+		return blocksCh
+	default:
+	}
+
 	ps.wrapped.AddSubOnceEach(valuesCh, toStrings(keys)...)
 	go func() {
-		defer close(blocksCh)
-		defer ps.wrapped.Unsub(valuesCh) // with a len(keys) buffer, this is an optimization
+		defer func() {
+			ps.wrapped.Unsub(valuesCh)
+			close(blocksCh)
+
+			// Unblock shutdown.
+			ps.wg.Done()
+		}()
+
 		for {
 			select {
+			case <-ps.cancel:
+				return
 			case <-ctx.Done():
 				return
 			case val, ok := <-valuesCh:
@@ -61,6 +108,8 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...*cid.Cid) <-chan blocks.B
 					return
 				}
 				select {
+				case <-ps.cancel:
+					return
 				case <-ctx.Done():
 					return
 				case blocksCh <- block: // continue
@@ -73,7 +122,7 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...*cid.Cid) <-chan blocks.B
 }
 
 func toStrings(keys []*cid.Cid) []string {
-	strs := make([]string, 0)
+	strs := make([]string, 0, len(keys))
 	for _, key := range keys {
 		strs = append(strs, key.KeyString())
 	}

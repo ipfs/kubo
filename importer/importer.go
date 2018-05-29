@@ -1,56 +1,34 @@
-// package importer implements utilities used to create IPFS DAGs from files
-// and readers
+// Package importer implements utilities used to create IPFS DAGs from files
+// and readers.
 package importer
 
 import (
-	"fmt"
-	"os"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 
-	"github.com/ipfs/go-ipfs/commands/files"
 	bal "github.com/ipfs/go-ipfs/importer/balanced"
-	"github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 )
 
-// Builds a DAG from the given file, writing created blocks to disk as they are
-// created
-func BuildDagFromFile(fpath string, ds dag.DAGService) (node.Node, error) {
-	stat, err := os.Lstat(fpath)
-	if err != nil {
-		return nil, err
-	}
-
-	if stat.IsDir() {
-		return nil, fmt.Errorf("`%s` is a directory", fpath)
-	}
-
-	f, err := files.NewSerialFile(fpath, fpath, false, stat)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	return BuildDagFromReader(ds, chunk.NewSizeSplitter(f, chunk.DefaultBlockSize))
-}
-
-func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter) (node.Node, error) {
+// BuildDagFromReader creates a DAG given a DAGService and a Splitter
+// implementation (Splitters are io.Readers), using a Balanced layout.
+func BuildDagFromReader(ds ipld.DAGService, spl chunker.Splitter) (ipld.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return bal.BalancedLayout(dbp.New(spl))
+	return bal.Layout(dbp.New(spl))
 }
 
-func BuildTrickleDagFromReader(ds dag.DAGService, spl chunk.Splitter) (node.Node, error) {
+// BuildTrickleDagFromReader creates a DAG given a DAGService and a Splitter
+// implementation (Splitters are io.Readers), using a Trickle Layout.
+func BuildTrickleDagFromReader(ds ipld.DAGService, spl chunker.Splitter) (ipld.Node, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return trickle.TrickleLayout(dbp.New(spl))
+	return trickle.Layout(dbp.New(spl))
 }

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
@@ -185,11 +185,11 @@ test_expect_success "block get output looks right" '
 '
 
 test_expect_success "can set multihash type and length on block put" '
-  HASH=$(echo "foooo" | ipfs block put --format=raw --mhtype=sha3 --mhlen=16)
+  HASH=$(echo "foooo" | ipfs block put --format=raw --mhtype=sha3 --mhlen=20)
 '
 
 test_expect_success "output looks good" '
-  test "z25ScPysKoxJBcPxczn9NvuHiZU5" = "$HASH"
+  test "z83bYcqyBkbx5fuNAcvbdv4pr5RYQiEpK" = "$HASH"
 '
 
 test_expect_success "can read block with different hash" '
@@ -207,6 +207,18 @@ test_expect_success "'ipfs block stat' with nothing from stdin doesnt crash" '
 
 test_expect_success "no panic in output" '
   test_expect_code 1 grep "panic" stat_out
+'
+
+test_expect_success "can set multihash type and length on block put without format" '
+  HASH=$(echo "foooo" | ipfs block put --mhtype=sha3 --mhlen=20)
+'
+
+test_expect_success "output looks good" '
+  test "z8bwYCvQPhyDY7VUTsUdGdE8Evm1ktSPV" = "$HASH"
+'
+
+test_expect_success "put with sha3 and cidv0 fails" '
+  echo "foooo" | test_must_fail ipfs block put --mhtype=sha3 --mhlen=20 --format=v0
 '
 
 test_done

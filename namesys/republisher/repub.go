@@ -9,25 +9,33 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
-	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 
-	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	gpctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	dshelp "gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
+	recpb "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record/pb"
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
 )
 
 var errNoEntry = errors.New("no previous entry")
 
 var log = logging.Logger("ipns-repub")
 
+// DefaultRebroadcastInterval is the default interval at which we rebroadcast IPNS records
 var DefaultRebroadcastInterval = time.Hour * 4
 
+// InitialRebroadcastDelay is the delay before first broadcasting IPNS records on start
+var InitialRebroadcastDelay = time.Minute * 1
+
+// FailureRetryInterval is the interval at which we retry IPNS records broadcasts (when they fail)
+var FailureRetryInterval = time.Minute * 5
+
+// DefaultRecordLifetime is the default lifetime for IPNS records
 const DefaultRecordLifetime = time.Hour * 24
 
 type Republisher struct {
@@ -55,15 +63,22 @@ func NewRepublisher(r routing.ValueStore, ds ds.Datastore, self ic.PrivKey, ks k
 }
 
 func (rp *Republisher) Run(proc goprocess.Process) {
-	tick := time.NewTicker(rp.Interval)
-	defer tick.Stop()
+	timer := time.NewTimer(InitialRebroadcastDelay)
+	defer timer.Stop()
+	if rp.Interval < InitialRebroadcastDelay {
+		timer.Reset(rp.Interval)
+	}
 
 	for {
 		select {
-		case <-tick.C:
+		case <-timer.C:
+			timer.Reset(rp.Interval)
 			err := rp.republishEntries(proc)
 			if err != nil {
 				log.Error("Republisher failed to republish: ", err)
+				if FailureRetryInterval < rp.Interval {
+					timer.Reset(FailureRetryInterval)
+				}
 			}
 		case <-proc.Closing():
 			return
@@ -123,7 +138,6 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 	eol := time.Now().Add(rp.RecordLifetime)
 	err = namesys.PutRecordToRouting(ctx, priv, p, seq, eol, rp.r, id)
 	if err != nil {
-		println("put record to routing error: " + err.Error())
 		return err
 	}
 

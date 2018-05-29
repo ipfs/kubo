@@ -1,7 +1,7 @@
 package ipns
 
 import (
-	context "context"
+	"context"
 
 	"github.com/ipfs/go-ipfs/core"
 	nsys "github.com/ipfs/go-ipfs/namesys"
@@ -13,16 +13,12 @@ import (
 // InitializeKeyspace sets the ipns record for the given key to
 // point to an empty directory.
 func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
-	emptyDir := ft.EmptyDirNode()
-	nodek, err := n.DAG.Add(emptyDir)
-	if err != nil {
-		return err
-	}
-
 	ctx, cancel := context.WithCancel(n.Context())
 	defer cancel()
 
-	err = n.Pinning.Pin(ctx, emptyDir, false)
+	emptyDir := ft.EmptyDirNode()
+
+	err := n.Pinning.Pin(ctx, emptyDir, false)
 	if err != nil {
 		return err
 	}
@@ -34,5 +30,5 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 
 	pub := nsys.NewRoutingPublisher(n.Routing, n.Repo.Datastore())
 
-	return pub.Publish(ctx, key, path.FromCid(nodek))
+	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
 }

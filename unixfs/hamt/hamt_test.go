@@ -13,6 +13,8 @@ import (
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func shuffle(seed int64, arr []string) {
@@ -24,12 +26,14 @@ func shuffle(seed int64, arr []string) {
 	}
 }
 
-func makeDir(ds dag.DAGService, size int) ([]string, *HamtShard, error) {
+func makeDir(ds ipld.DAGService, size int) ([]string, *Shard, error) {
 	return makeDirWidth(ds, size, 256)
 }
 
-func makeDirWidth(ds dag.DAGService, size, width int) ([]string, *HamtShard, error) {
-	s, _ := NewHamtShard(ds, width)
+func makeDirWidth(ds ipld.DAGService, size, width int) ([]string, *Shard, error) {
+	ctx := context.Background()
+
+	s, _ := NewShard(ds, width)
 
 	var dirs []string
 	for i := 0; i < size; i++ {
@@ -40,8 +44,8 @@ func makeDirWidth(ds dag.DAGService, size, width int) ([]string, *HamtShard, err
 
 	for i := 0; i < len(dirs); i++ {
 		nd := ft.EmptyDirNode()
-		ds.Add(nd)
-		err := s.Set(context.Background(), dirs[i], nd)
+		ds.Add(ctx, nd)
+		err := s.Set(ctx, dirs[i], nd)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -50,7 +54,7 @@ func makeDirWidth(ds dag.DAGService, size, width int) ([]string, *HamtShard, err
 	return dirs, s, nil
 }
 
-func assertLink(s *HamtShard, name string, found bool) error {
+func assertLink(s *Shard, name string, found bool) error {
 	_, err := s.Find(context.Background(), name)
 	switch err {
 	case os.ErrNotExist:
@@ -70,7 +74,7 @@ func assertLink(s *HamtShard, name string, found bool) error {
 	}
 }
 
-func assertSerializationWorks(ds dag.DAGService, s *HamtShard) error {
+func assertSerializationWorks(ds ipld.DAGService, s *Shard) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	nd, err := s.Node()
@@ -137,7 +141,7 @@ func TestBasicSet(t *testing.T) {
 
 func TestDirBuilding(t *testing.T) {
 	ds := mdtest.Mock()
-	_, _ = NewHamtShard(ds, 256)
+	_, _ = NewShard(ds, 256)
 
 	_, s, err := makeDir(ds, 200)
 	if err != nil {
@@ -160,7 +164,7 @@ func TestDirBuilding(t *testing.T) {
 
 func TestShardReload(t *testing.T) {
 	ds := mdtest.Mock()
-	_, _ = NewHamtShard(ds, 256)
+	_, _ = NewShard(ds, 256)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -221,6 +225,20 @@ func TestRemoveElems(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
+
+	for i := 0; i < 100; i++ {
+		err := s.Remove(ctx, fmt.Sprintf("NOTEXIST%d", rand.Int()))
+		if err != os.ErrNotExist {
+			t.Fatal("shouldnt be able to remove things that don't exist")
+		}
+	}
+
+	for _, d := range dirs {
+		_, err := s.Find(ctx, d)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	shuffle(time.Now().UnixNano(), dirs)
 
@@ -289,7 +307,7 @@ func TestSetAfterMarshal(t *testing.T) {
 
 func TestDuplicateAddShard(t *testing.T) {
 	ds := mdtest.Mock()
-	dir, _ := NewHamtShard(ds, 256)
+	dir, _ := NewShard(ds, 256)
 	nd := new(dag.ProtoNode)
 	ctx := context.Background()
 
@@ -412,10 +430,10 @@ func TestRemoveElemsAfterMarshal(t *testing.T) {
 
 func TestBitfieldIndexing(t *testing.T) {
 	ds := mdtest.Mock()
-	s, _ := NewHamtShard(ds, 256)
+	s, _ := NewShard(ds, 256)
 
 	set := func(i int) {
-		s.bitfield.SetBit(s.bitfield, i, 1)
+		s.bitfield.SetBit(i)
 	}
 
 	assert := func(i int, val int) {
@@ -445,12 +463,13 @@ func TestBitfieldIndexing(t *testing.T) {
 // if improperly implemented, the parent hamt may assume the child is a part of
 // itself.
 func TestSetHamtChild(t *testing.T) {
-	ds := mdtest.Mock()
-	s, _ := NewHamtShard(ds, 256)
 	ctx := context.Background()
 
+	ds := mdtest.Mock()
+	s, _ := NewShard(ds, 256)
+
 	e := ft.EmptyDirNode()
-	ds.Add(e)
+	ds.Add(ctx, e)
 
 	err := s.Set(ctx, "bar", e)
 	if err != nil {
@@ -493,7 +512,7 @@ func TestSetHamtChild(t *testing.T) {
 	}
 }
 
-func printDiff(ds dag.DAGService, a, b *dag.ProtoNode) {
+func printDiff(ds ipld.DAGService, a, b *dag.ProtoNode) {
 	diff, err := dagutils.Diff(context.TODO(), ds, a, b)
 	if err != nil {
 		panic(err)
@@ -504,19 +523,64 @@ func printDiff(ds dag.DAGService, a, b *dag.ProtoNode) {
 	}
 }
 
-func BenchmarkHAMTSet(b *testing.B) {
+func BenchmarkHAMTWalk(b *testing.B) {
+	ctx := context.Background()
+
 	ds := mdtest.Mock()
-	sh, _ := NewHamtShard(ds, 256)
+	sh, _ := NewShard(ds, 256)
 	nd, err := sh.Node()
 	if err != nil {
 		b.Fatal(err)
 	}
 
-	_, err = ds.Add(nd)
+	err = ds.Add(ctx, nd)
 	if err != nil {
 		b.Fatal(err)
 	}
-	ds.Add(ft.EmptyDirNode())
+	ds.Add(ctx, ft.EmptyDirNode())
+
+	s, err := NewHamtFromDag(ds, nd)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for j := 0; j < 1000; j++ {
+		err = s.Set(ctx, fmt.Sprintf("%d", j), ft.EmptyDirNode())
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+
+	for i := 0; i < b.N; i++ {
+		cnt := 0
+		err = s.ForEachLink(ctx, func(l *ipld.Link) error {
+			cnt++
+			return nil
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		if cnt < 1000 {
+			b.Fatal("expected 100 children")
+		}
+	}
+}
+
+func BenchmarkHAMTSet(b *testing.B) {
+	ctx := context.Background()
+
+	ds := mdtest.Mock()
+	sh, _ := NewShard(ds, 256)
+	nd, err := sh.Node()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	err = ds.Add(ctx, nd)
+	if err != nil {
+		b.Fatal(err)
+	}
+	ds.Add(ctx, ft.EmptyDirNode())
 
 	for i := 0; i < b.N; i++ {
 		s, err := NewHamtFromDag(ds, nd)
@@ -539,7 +603,7 @@ func BenchmarkHAMTSet(b *testing.B) {
 }
 
 func TestHamtBadSize(t *testing.T) {
-	_, err := NewHamtShard(nil, 7)
+	_, err := NewShard(nil, 7)
 	if err == nil {
 		t.Fatal("should have failed to construct hamt with bad size")
 	}

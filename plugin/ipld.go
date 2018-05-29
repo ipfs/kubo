@@ -3,7 +3,7 @@ package plugin
 import (
 	"github.com/ipfs/go-ipfs/core/coredag"
 
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // PluginIPLD is an interface that can be implemented to add handlers for
@@ -11,6 +11,6 @@ import (
 type PluginIPLD interface {
 	Plugin
 
-	RegisterBlockDecoders(dec node.BlockDecoder) error
+	RegisterBlockDecoders(dec ipld.BlockDecoder) error
 	RegisterInputEncParsers(iec coredag.InputEncParsers) error
 }

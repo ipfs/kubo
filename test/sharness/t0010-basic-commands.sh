@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
@@ -65,8 +65,10 @@ test_expect_success "All commands accept --help" '
   echo 0 > fail
   while read -r cmd
   do
-    $cmd --help </dev/null >/dev/null ||
-      { echo $cmd doesnt accept --help; echo 1 > fail; }
+    $cmd --help >/dev/null ||
+      { echo "$cmd doesnt accept --help"; echo 1 > fail; }
+    echo stuff | $cmd --help >/dev/null ||
+      { echo "$cmd doesnt accept --help when using stdin"; echo 1 > fail; }
   done <commands.txt
 
   if [ $(cat fail) = 1 ]; then
@@ -80,7 +82,7 @@ test_expect_failure "All ipfs root commands are mentioned in base helptext" '
   while read cmd
   do
     grep "  $cmd" help.txt > /dev/null ||
-      { echo missing $cmd from helptext; echo 1 > fail; }
+      { echo "missing $cmd from helptext"; echo 1 > fail; }
   done
 
   if [ $(cat fail) = 1 ]; then
@@ -94,7 +96,20 @@ test_expect_failure "All ipfs commands docs are 80 columns or less" '
   do
     LENGTH="$($cmd --help | awk "{ print length }" | sort -nr | head -1)"
     [ $LENGTH -gt 80 ] &&
-      { echo "$cmd" help text is longer than 79 chars "($LENGTH)"; echo 1 > fail; }
+      { echo "$cmd help text is longer than 79 chars ($LENGTH)"; echo 1 > fail; }
+  done <commands.txt
+
+  if [ $(cat fail) = 1 ]; then
+    return 1
+  fi
+'
+
+test_expect_success "All ipfs commands fail when passed a bad flag" '
+  echo 0 > fail
+  while read -r cmd
+  do
+    test_must_fail $cmd --badflag >/dev/null ||
+      { echo "$cmd exit with code 0 when passed --badflag"; echo 1 > fail; }
   done <commands.txt
 
   if [ $(cat fail) = 1 ]; then

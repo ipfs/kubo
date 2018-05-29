@@ -40,6 +40,12 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 
 # Please put go-ipfs specific shell functions below
 
+# Make sure the ipfs path is set, also set in test_init_ipfs but that
+# is not always used.
+export IPFS_PATH="$(pwd)/.ipfs"
+# Ask programs to please not print ANSI codes
+export TERM=dumb
+
 TEST_OS="$(uname -s | tr '[a-z]' '[A-Z]')"
 
 # grab + output options
@@ -208,18 +214,18 @@ test_launch_ipfs_daemon() {
 
   test_expect_success "'ipfs daemon' succeeds" '
     ipfs daemon $args >actual_daemon 2>daemon_err &
+    IPFS_PID=$!
   '
 
   # wait for api file to show up
   test_expect_success "api file shows up" '
-    test_wait_for_file 20 100ms "$IPFS_PATH/api"
+    test_wait_for_file 50 100ms "$IPFS_PATH/api"
   '
 
   test_set_address_vars actual_daemon
 
   # we say the daemon is ready when the API server is ready.
   test_expect_success "'ipfs daemon' is ready" '
-    IPFS_PID=$! &&
     pollEndpoint -ep=/version -host=$API_MADDR -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
     test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
   '
@@ -363,8 +369,29 @@ generic_stat() {
     FreeBSD | Darwin | DragonFly)
       _STAT="stat -f %Sp"
       ;;
+    *)
+        echo "unsupported OS" >&2
+        exit 1
+        ;;
   esac
   $_STAT "$1" || echo "failed" # Avoid returning nothing.
+}
+
+# output a file's permission in human readable format
+file_size() {
+    case $(uname -s) in
+        Linux)
+            _STAT="stat --format=%s"
+            ;;
+        FreeBSD | Darwin | DragonFly)
+            _STAT="stat -f%z"
+            ;;
+        *)
+            echo "unsupported OS" >&2
+            exit 1
+            ;;
+    esac
+    $_STAT "$1"
 }
 
 test_check_peerid() {

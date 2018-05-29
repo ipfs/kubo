@@ -6,11 +6,11 @@ import (
 	"os"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	pi "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -32,7 +32,7 @@ var roughLinkSize = 34 + 8 + 5   // sha256 multihash + size + no name + protobuf
 //   var DefaultLinksPerBlock = (roughLinkBlockSize / roughLinkSize)
 //
 // See calc_test.go
-var DefaultLinksPerBlock = (roughLinkBlockSize / roughLinkSize)
+var DefaultLinksPerBlock = roughLinkBlockSize / roughLinkSize
 
 // ErrSizeLimitExceeded signals that a block is larger than BlockSizeLimit.
 var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
@@ -65,10 +65,13 @@ func (n *UnixfsNode) SetPrefix(prefix *cid.Prefix) {
 	n.node.SetPrefix(prefix)
 }
 
+// NumChildren returns the number of children referenced by this UnixfsNode.
 func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
 
+// Set replaces the current UnixfsNode with another one. It performs
+// a shallow copy.
 func (n *UnixfsNode) Set(other *UnixfsNode) {
 	n.node = other.node
 	n.raw = other.raw
@@ -78,7 +81,8 @@ func (n *UnixfsNode) Set(other *UnixfsNode) {
 	}
 }
 
-func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*UnixfsNode, error) {
+// GetChild gets the ith child of this node from the given DAGService.
+func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds ipld.DAGService) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
 	if err != nil {
 		return nil, err
@@ -92,9 +96,9 @@ func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds dag.DAGService) (*U
 	return NewUnixfsNodeFromDag(pbn)
 }
 
-// addChild will add the given UnixfsNode as a child of the receiver.
-// the passed in DagBuilderHelper is used to store the child node an
-// pin it locally so it doesnt get lost
+// AddChild adds the given UnixfsNode as a child of the receiver.
+// The passed in DagBuilderHelper is used to store the child node an
+// pin it locally so it doesnt get lost.
 func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	n.ufmt.AddBlockSize(child.FileSize())
 
@@ -105,26 +109,30 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 
 	// Add a link to this node without storing a reference to the memory
 	// This way, we avoid nodes building up and consuming all of our RAM
-	err = n.node.AddNodeLinkClean("", childnode)
+	err = n.node.AddNodeLink("", childnode)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.batch.Add(childnode)
+	err = db.batch.Add(childnode)
 
 	return err
 }
 
-// Removes the child node at the given index
+// RemoveChild deletes the child node at the given index.
 func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 	n.ufmt.RemoveBlockSize(index)
 	n.node.SetLinks(append(n.node.Links()[:index], n.node.Links()[index+1:]...))
 }
 
+// SetData stores data in this node.
 func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
 }
 
+// FileSize returns the total file size of this tree (including children)
+// In the case of raw nodes, it returns the length of the
+// raw data.
 func (n *UnixfsNode) FileSize() uint64 {
 	if n.raw {
 		return uint64(len(n.rawnode.RawData()))
@@ -132,13 +140,19 @@ func (n *UnixfsNode) FileSize() uint64 {
 	return n.ufmt.FileSize()
 }
 
+// SetPosInfo sets information about the offset of the data of this node in a
+// filesystem file.
 func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
-	n.posInfo = &pi.PosInfo{offset, fullPath, stat}
+	n.posInfo = &pi.PosInfo{
+		Offset:   offset,
+		FullPath: fullPath,
+		Stat:     stat,
+	}
 }
 
-// getDagNode fills out the proper formatting for the unixfs node
-// inside of a DAG node and returns the dag node
-func (n *UnixfsNode) GetDagNode() (node.Node, error) {
+// GetDagNode fills out the proper formatting for the unixfs node
+// inside of a DAG node and returns the dag node.
+func (n *UnixfsNode) GetDagNode() (ipld.Node, error) {
 	nd, err := n.getBaseDagNode()
 	if err != nil {
 		return nil, err
@@ -156,7 +170,7 @@ func (n *UnixfsNode) GetDagNode() (node.Node, error) {
 	return nd, nil
 }
 
-func (n *UnixfsNode) getBaseDagNode() (node.Node, error) {
+func (n *UnixfsNode) getBaseDagNode() (ipld.Node, error) {
 	if n.raw {
 		return n.rawnode, nil
 	}

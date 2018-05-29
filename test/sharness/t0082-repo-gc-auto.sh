@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # MIT Licensed; see the LICENSE file in this repository.
 #
@@ -65,7 +65,7 @@ test_gc() {
 test_expect_success "periodic auto gc stress test" '
   for i in $(test_seq 1 20)
   do
-    test_gc
+    test_gc || return 1
   done
 '
 

@@ -41,7 +41,6 @@ Please put all issues regarding the Go IPFS _implementation_ in [this repo](http
   - [Some things to try](#some-things-to-try)
   - [Docker usage](#docker-usage)
   - [Troubleshooting](#troubleshooting-1)
-- [Todo](#todo)
 - [Contributing](#contributing)
   - [Want to hack on IPFS?](#want-to-hack-on-ipfs)
   - [Want to read our code?](#want-to-read-our-code)
@@ -104,7 +103,7 @@ With snap, in any of the [supported Linux distributions](https://snapcraft.io/do
 
 #### Install Go
 
-The build process for ipfs requires Go 1.8 or higher. If you don't have it: [Download Go 1.8+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.9 or higher. If you don't have it: [Download Go 1.9+](https://golang.org/dl/).
 
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
@@ -148,7 +147,7 @@ mismatched APIs.
 * Also, [instructions for OpenBSD](docs/openbsd.md).
 * `git` is required in order for `go get` to fetch all dependencies.
 * Package managers often contain out-of-date `golang` packages.
-  Ensure that `go version` reports at least 1.8. See above for how to install go.
+  Ensure that `go version` reports at least 1.9. See above for how to install go.
 * If you are interested in development, please install the development
 dependencies as well.
 * *WARNING: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
@@ -164,9 +163,32 @@ If you make changes to the protocol buffers, you will need to install the [proto
 
 ### Updating
 
+#### Updating using ipfs-update
 IPFS has an updating tool that can be accessed through `ipfs update`. The tool is
 not installed alongside IPFS in order to keep that logic independent of the main
 codebase. To install `ipfs update`, [download it here](https://ipfs.io/ipns/dist.ipfs.io/#ipfs-update).
+
+#### Downloading IPFS builds using IPFS
+List the available versions of go-ipfs:
+```
+$ ipfs cat /ipns/dist.ipfs.io/go-ipfs/versions
+```
+
+Then, to view available builds for a version from the previous command ($VERSION):
+```
+$ ipfs ls /ipns/dist.ipfs.io/go-ipfs/$VERSION
+```
+
+To download a given build of a version:
+```
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_darwin-386.tar.gz # darwin 32-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_darwin-amd64.tar.gz # darwin 64-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_freebsd-amd64.tar.gz # freebsd 64-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-386.tar.gz # linux 32-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-amd64.tar.gz # linux 64-bit build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-arm.tar.gz # linux arm build
+$ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_windows-amd64.zip # windows 64-bit build
+```
 
 ## Usage
 
@@ -295,7 +317,7 @@ Please direct general questions and help requests to our
 [forum](https://discuss.ipfs.io) or our IRC channel (freenode #ipfs).
 
 If you believe you've found a bug, check the [issues list](https://github.com/ipfs/go-ipfs/issues)
-and, if you dont see your problem there, either come talk to us on IRC (freenode #ipfs) or
+and, if you don't see your problem there, either come talk to us on IRC (freenode #ipfs) or
 file an issue of your own!
 
 ## Contributing

@@ -34,30 +34,22 @@ import (
 	"time"
 
 	context "context"
+
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
+
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-const (
-	// DefaultDepthLimit is the default depth limit used by Resolve.
-	DefaultDepthLimit = 32
-
-	// UnlimitedDepth allows infinite recursion in ResolveN.  You
-	// probably don't want to use this, but it's here if you absolutely
-	// trust resolution to eventually complete and can't put an upper
-	// limit on how many steps it will take.
-	UnlimitedDepth = 0
-)
-
 // ErrResolveFailed signals an error when attempting to resolve.
-var ErrResolveFailed = errors.New("Could not resolve name.")
+var ErrResolveFailed = errors.New("could not resolve name")
 
 // ErrResolveRecursion signals a recursion-depth limit.
 var ErrResolveRecursion = errors.New(
-	"Could not resolve name (recursion limit exceeded).")
+	"could not resolve name (recursion limit exceeded)")
 
 // ErrPublishFailed signals an error when attempting to publish.
-var ErrPublishFailed = errors.New("Could not publish name.")
+var ErrPublishFailed = errors.New("could not publish name")
 
 // Namesys represents a cohesive name publishing and resolving system.
 //
@@ -69,6 +61,7 @@ var ErrPublishFailed = errors.New("Could not publish name.")
 type NameSystem interface {
 	Resolver
 	Publisher
+	ResolverLookup
 }
 
 // Resolver is an object capable of resolving names.
@@ -87,17 +80,8 @@ type Resolver interface {
 	//
 	// There is a default depth-limit to avoid infinite recursion.  Most
 	// users will be fine with this default limit, but if you need to
-	// adjust the limit you can use ResolveN.
-	Resolve(ctx context.Context, name string) (value path.Path, err error)
-
-	// ResolveN performs a recursive lookup, returning the dereferenced
-	// path.  The only difference from Resolve is that the depth limit
-	// is configurable.  You can use DefaultDepthLimit, UnlimitedDepth,
-	// or a depth limit of your own choosing.
-	//
-	// Most users should use Resolve, since the default limit works well
-	// in most real-world situations.
-	ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error)
+	// adjust the limit you can specify it as an option.
+	Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (value path.Path, err error)
 }
 
 // Publisher is an object capable of publishing particular names.
@@ -110,4 +94,11 @@ type Publisher interface {
 	// TODO: to be replaced by a more generic 'PublishWithValidity' type
 	// call once the records spec is implemented
 	PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error
+}
+
+// ResolverLookup is an object capable of finding resolvers for a subsystem
+type ResolverLookup interface {
+
+	// GetResolver retrieves a resolver associated with a subsystem
+	GetResolver(subs string) (Resolver, bool)
 }

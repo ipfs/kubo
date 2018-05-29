@@ -6,12 +6,13 @@ import (
 	"sync"
 	"time"
 
-	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	bstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
 // TODO consider taking responsibility for other types of requests. For
@@ -201,7 +202,8 @@ func (e *Engine) Peers() []peer.ID {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	response := make([]peer.ID, 0)
+	response := make([]peer.ID, 0, len(e.ledgerMap))
+
 	for _, ledger := range e.ledgerMap {
 		response = append(response, ledger.Partner)
 	}
@@ -297,15 +299,15 @@ func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 func (e *Engine) PeerConnected(p peer.ID) {
 	e.lock.Lock()
+	defer e.lock.Unlock()
 	l, ok := e.ledgerMap[p]
 	if !ok {
 		l = newLedger(p)
 		e.ledgerMap[p] = l
 	}
 	l.lk.Lock()
+	defer l.lk.Unlock()
 	l.ref++
-	l.lk.Unlock()
-	e.lock.Unlock()
 }
 
 func (e *Engine) PeerDisconnected(p peer.ID) {
@@ -316,11 +318,11 @@ func (e *Engine) PeerDisconnected(p peer.ID) {
 		return
 	}
 	l.lk.Lock()
+	defer l.lk.Unlock()
 	l.ref--
 	if l.ref <= 0 {
 		delete(e.ledgerMap, p)
 	}
-	l.lk.Unlock()
 }
 
 func (e *Engine) numBytesSentTo(p peer.ID) uint64 {
@@ -336,12 +338,12 @@ func (e *Engine) numBytesReceivedFrom(p peer.ID) uint64 {
 // ledger lazily instantiates a ledger
 func (e *Engine) findOrCreate(p peer.ID) *ledger {
 	e.lock.Lock()
+	defer e.lock.Unlock()
 	l, ok := e.ledgerMap[p]
 	if !ok {
 		l = newLedger(p)
 		e.ledgerMap[p] = l
 	}
-	e.lock.Unlock()
 	return l
 }
 

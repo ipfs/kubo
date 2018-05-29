@@ -7,9 +7,11 @@ import (
 
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // ErrNoNamesys is an explicit error for when an IPFS node doesn't
@@ -20,35 +22,42 @@ var ErrNoNamesys = errors.New(
 // Resolve resolves the given path by parsing out protocol-specific
 // entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
 // entries and returning the final node.
-func Resolve(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p path.Path) (node.Node, error) {
+func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (ipld.Node, error) {
 	if strings.HasPrefix(p.String(), "/ipns/") {
+		evt := log.EventBegin(ctx, "resolveIpnsPath")
+		defer evt.Done()
 		// resolve ipns paths
 
-		// TODO(cryptix): we sould be able to query the local cache for the path
+		// TODO(cryptix): we should be able to query the local cache for the path
 		if nsys == nil {
+			evt.Append(logging.LoggableMap{"error": ErrNoNamesys.Error()})
 			return nil, ErrNoNamesys
 		}
 
 		seg := p.Segments()
 
 		if len(seg) < 2 || seg[1] == "" { // just "/<protocol/>" without further segments
+			evt.Append(logging.LoggableMap{"error": path.ErrNoComponents.Error()})
 			return nil, path.ErrNoComponents
 		}
 
 		extensions := seg[2:]
 		resolvable, err := path.FromSegments("/", seg[0], seg[1])
 		if err != nil {
+			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
 		}
 
 		respath, err := nsys.Resolve(ctx, resolvable.String())
 		if err != nil {
+			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
 		}
 
 		segments := append(respath.Segments(), extensions...)
 		p, err = path.FromSegments("/", segments...)
 		if err != nil {
+			evt.Append(logging.LoggableMap{"error": err.Error()})
 			return nil, err
 		}
 	}
@@ -62,7 +71,7 @@ func Resolve(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p p
 // It first checks if the path is already in the form of just a cid (<cid> or
 // /ipfs/<cid>) and returns immediately if so. Otherwise, it falls back onto
 // Resolve to perform resolution of the dagnode being referenced.
-func ResolveToCid(ctx context.Context, nsys namesys.NameSystem, r *path.Resolver, p path.Path) (*cid.Cid, error) {
+func ResolveToCid(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (*cid.Cid, error) {
 
 	// If the path is simply a cid, parse and return it. Parsed paths are already
 	// normalized (read: prepended with /ipfs/ if needed), so segment[1] should

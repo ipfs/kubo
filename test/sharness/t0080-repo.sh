@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2014 Jeromy Johnson
 # MIT Licensed; see the LICENSE file in this repository.
@@ -169,14 +169,13 @@ test_expect_success "'ipfs pin ls --type=all --quiet' is correct" '
 
 test_expect_success "'ipfs refs --unique' is correct" '
   mkdir -p uniques &&
-  cd uniques &&
-  echo "content1" > file1 &&
-  echo "content1" > file2 &&
-  ipfs add -r -q . > ../add_output &&
-  ROOT=$(tail -n1 ../add_output) &&
+  echo "content1" > uniques/file1 &&
+  echo "content1" > uniques/file2 &&
+  ipfs add -r -q uniques > add_output &&
+  ROOT=$(tail -n1 add_output) &&
   ipfs refs --unique $ROOT >expected &&
-  ipfs add -q file1 >unique_hash &&
-  test_cmp expected unique_hash || test_fsh cat ../add_output
+  ipfs add -q uniques/file1 >unique_hash &&
+  test_cmp expected unique_hash || test_fsh cat add_output
 '
 
 test_expect_success "'ipfs refs --unique --recursive' is correct" '

@@ -14,13 +14,15 @@ import (
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
+	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
 
+	id "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/protocol/identify"
+	datastore "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	syncds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	id "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/protocol/identify"
 )
 
 // `ipfs object new unixfs-dir`
@@ -28,11 +30,7 @@ var emptyDir = "/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
 
 type mockNamesys map[string]path.Path
 
-func (m mockNamesys) Resolve(ctx context.Context, name string) (value path.Path, err error) {
-	return m.ResolveN(ctx, name, namesys.DefaultDepthLimit)
-}
-
-func (m mockNamesys) ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error) {
+func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.ResolveOpt) (value path.Path, err error) {
 	p, ok := m[name]
 	if !ok {
 		return "", namesys.ErrResolveFailed
@@ -48,15 +46,19 @@ func (m mockNamesys) PublishWithEOL(ctx context.Context, name ci.PrivKey, value 
 	return errors.New("not implemented for mockNamesys")
 }
 
+func (m mockNamesys) GetResolver(subs string) (namesys.Resolver, bool) {
+	return nil, false
+}
+
 func newNodeWithMockNamesys(ns mockNamesys) (*core.IpfsNode, error) {
 	c := config.Config{
 		Identity: config.Identity{
-			PeerID: "Qmfoo", // required by offline node
+			PeerID: "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe", // required by offline node
 		},
 	}
 	r := &repo.Mock{
 		C: c,
-		D: ds2.ThreadSafeCloserMapDatastore(),
+		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
 	n, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 	if err != nil {
@@ -174,6 +176,9 @@ func TestGatewayGet(t *testing.T) {
 }
 
 func TestIPNSHostnameRedirect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ns := mockNamesys{}
 	ts, n := newTestServerAndNode(t, ns)
 	t.Logf("test server url: %s", ts.URL)
@@ -195,12 +200,12 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = n.DAG.Add(dagn2)
+	err = n.DAG.Add(ctx, dagn2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = n.DAG.Add(dagn1)
+	err = n.DAG.Add(ctx, dagn1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,6 +263,9 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 }
 
 func TestIPNSHostnameBacklinks(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ns := mockNamesys{}
 	ts, n := newTestServerAndNode(t, ns)
 	t.Logf("test server url: %s", ts.URL)
@@ -282,15 +290,15 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = n.DAG.Add(dagn3)
+	err = n.DAG.Add(ctx, dagn3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = n.DAG.Add(dagn2)
+	err = n.DAG.Add(ctx, dagn2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = n.DAG.Add(dagn1)
+	err = n.DAG.Add(ctx, dagn1)
 	if err != nil {
 		t.Fatal(err)
 	}

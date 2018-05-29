@@ -1,5 +1,9 @@
 # Generic test functions for go-ipfs
 
+ansi_strip() {
+    sed 's/\x1b\[[0-9;]*m//g'
+}
+
 # Quote arguments for sh eval
 shellquote() {
 	_space=''
@@ -48,7 +52,7 @@ test_path_cmp() {
 
 # This takes a Dockerfile, and a build context directory
 docker_build() {
-    docker build --rm -f "$1" "$2"
+    docker build --rm -f "$1" "$2" | ansi_strip
 }
 
 # This takes an image as argument and writes a docker ID on stdout
@@ -104,4 +108,14 @@ test_seq() {
 		echo "$i"
 		i=$(expr "$i" + 1)
 	done
+}
+
+b64decode() {
+    case `uname` in
+        Linux|FreeBSD) base64 -d ;;
+        Darwin) base64 -D ;;
+        *)
+            echo "no compatible base64 command found" >&2
+            return 1
+    esac
 }

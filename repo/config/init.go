@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -25,28 +25,29 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	datastore := DefaultDatastoreConfig()
 
 	conf := &Config{
+		API: API{
+			HTTPHeaders: map[string][]string{
+				"Server": {"go-ipfs/" + CurrentVersionNumber},
+			},
+		},
 
 		// setup the node's default addresses.
 		// NOTE: two swarm listen addrs, one tcp, one utp.
-		Addresses: Addresses{
-			Swarm: []string{
-				"/ip4/0.0.0.0/tcp/4001",
-				// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-				"/ip6/::/tcp/4001",
-			},
-			Announce:   []string{},
-			NoAnnounce: []string{},
-			API:        "/ip4/127.0.0.1/tcp/5001",
-			Gateway:    "/ip4/127.0.0.1/tcp/8080",
-		},
+		Addresses: addressesConfig(),
 
 		Datastore: datastore,
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
 		Identity:  identity,
-		Discovery: Discovery{MDNS{
-			Enabled:  true,
-			Interval: 10,
-		}},
+		Discovery: Discovery{
+			MDNS: MDNS{
+				Enabled:  true,
+				Interval: 10,
+			},
+		},
+
+		Routing: Routing{
+			Type: "dht",
+		},
 
 		// setup the node mount points.
 		Mounts: Mounts{
@@ -97,6 +98,20 @@ const DefaultConnMgrLowWater = 600
 // grace period
 const DefaultConnMgrGracePeriod = time.Second * 20
 
+func addressesConfig() Addresses {
+	return Addresses{
+		Swarm: []string{
+			"/ip4/0.0.0.0/tcp/4001",
+			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
+			"/ip6/::/tcp/4001",
+		},
+		Announce:   []string{},
+		NoAnnounce: []string{},
+		API:        "/ip4/127.0.0.1/tcp/5001",
+		Gateway:    "/ip4/127.0.0.1/tcp/8080",
+	}
+}
+
 // DefaultDatastoreConfig is an internal function exported to aid in testing.
 func DefaultDatastoreConfig() Datastore {
 	return Datastore{
@@ -138,7 +153,7 @@ func identityConfig(out io.Writer, nbits int) (Identity, error) {
 	// TODO guard higher up
 	ident := Identity{}
 	if nbits < 1024 {
-		return ident, errors.New("Bitsize less than 1024 is considered unsafe.")
+		return ident, errors.New("bitsize less than 1024 is considered unsafe")
 	}
 
 	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)

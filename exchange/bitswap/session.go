@@ -7,12 +7,12 @@ import (
 
 	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	loggables "gx/ipfs/QmT4PgCNdv73hnFAqzHqwW44q7M9PWpykSswHDxndquZbc/go-libp2p-loggables"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	lru "gx/ipfs/QmVYxfoJQiZijTgPNHCHgHELvQpbsJNTg6Crmc3dQkj3yy/golang-lru"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
+	loggables "gx/ipfs/Qmf9JgVLz46pxPXwG2eWSJpkqVCcjD4rp7zCRi2KP6GTNB/go-libp2p-loggables"
 )
 
 const activeWantsLimit = 16
@@ -83,6 +83,15 @@ func (bs *Bitswap) NewSession(ctx context.Context) *Session {
 }
 
 func (bs *Bitswap) removeSession(s *Session) {
+	s.notif.Shutdown()
+
+	live := make([]*cid.Cid, 0, len(s.liveWants))
+	for c := range s.liveWants {
+		cs, _ := cid.Cast([]byte(c))
+		live = append(live, cs)
+	}
+	bs.CancelWants(live, s.id)
+
 	bs.sessLk.Lock()
 	defer bs.sessLk.Unlock()
 	for i := 0; i < len(bs.sessions); i++ {
@@ -120,9 +129,13 @@ type interestReq struct {
 // still be in the interest cache.
 func (s *Session) isLiveWant(c *cid.Cid) bool {
 	resp := make(chan bool, 1)
-	s.interestReqs <- interestReq{
+	select {
+	case s.interestReqs <- interestReq{
 		c:    c,
 		resp: resp,
+	}:
+	case <-s.ctx.Done():
+		return false
 	}
 
 	select {
@@ -195,11 +208,12 @@ func (s *Session) run(ctx context.Context) {
 			s.cancel(keys)
 
 		case <-s.tick.C:
-			var live []*cid.Cid
+			live := make([]*cid.Cid, 0, len(s.liveWants))
+			now := time.Now()
 			for c := range s.liveWants {
 				cs, _ := cid.Cast([]byte(c))
 				live = append(live, cs)
-				s.liveWants[c] = time.Now()
+				s.liveWants[c] = now
 			}
 
 			// Broadcast these keys to everyone we're connected to
@@ -265,8 +279,9 @@ func (s *Session) receiveBlock(ctx context.Context, blk blocks.Block) {
 }
 
 func (s *Session) wantBlocks(ctx context.Context, ks []*cid.Cid) {
+	now := time.Now()
 	for _, c := range ks {
-		s.liveWants[c.KeyString()] = time.Now()
+		s.liveWants[c.KeyString()] = now
 	}
 	s.bs.wm.WantBlocks(ctx, ks, s.activePeersArr, s.id)
 }
@@ -278,13 +293,17 @@ func (s *Session) cancel(keys []*cid.Cid) {
 }
 
 func (s *Session) cancelWants(keys []*cid.Cid) {
-	s.cancelKeys <- keys
+	select {
+	case s.cancelKeys <- keys:
+	case <-s.ctx.Done():
+	}
 }
 
 func (s *Session) fetch(ctx context.Context, keys []*cid.Cid) {
 	select {
 	case s.newReqs <- keys:
 	case <-ctx.Done():
+	case <-s.ctx.Done():
 	}
 }
 

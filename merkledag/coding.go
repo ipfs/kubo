@@ -5,12 +5,12 @@ import (
 	"sort"
 	"strings"
 
-	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 
 	pb "github.com/ipfs/go-ipfs/merkledag/pb"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // for now, we use a PBNode intermediate thing.
@@ -21,16 +21,16 @@ import (
 func (n *ProtoNode) unmarshal(encoded []byte) error {
 	var pbn pb.PBNode
 	if err := pbn.Unmarshal(encoded); err != nil {
-		return fmt.Errorf("Unmarshal failed. %v", err)
+		return fmt.Errorf("unmarshal failed. %v", err)
 	}
 
 	pbnl := pbn.GetLinks()
-	n.links = make([]*node.Link, len(pbnl))
+	n.links = make([]*ipld.Link, len(pbnl))
 	for i, l := range pbnl {
-		n.links[i] = &node.Link{Name: l.GetName(), Size: l.GetTsize()}
+		n.links[i] = &ipld.Link{Name: l.GetName(), Size: l.GetTsize()}
 		c, err := cid.Cast(l.GetHash())
 		if err != nil {
-			return fmt.Errorf("Link hash #%d is not valid multihash. %v", i, err)
+			return fmt.Errorf("link hash #%d is not valid multihash. %v", i, err)
 		}
 		n.links[i].Cid = c
 	}
@@ -47,7 +47,7 @@ func (n *ProtoNode) Marshal() ([]byte, error) {
 	pbn := n.getPBNode()
 	data, err := pbn.Marshal()
 	if err != nil {
-		return data, fmt.Errorf("Marshal failed. %v", err)
+		return data, fmt.Errorf("marshal failed. %v", err)
 	}
 	return data, nil
 }
@@ -102,7 +102,7 @@ func (n *ProtoNode) EncodeProtobuf(force bool) ([]byte, error) {
 	return n.encoded, nil
 }
 
-// Decoded decodes raw data and returns a new Node instance.
+// DecodeProtobuf decodes raw data and returns a new Node instance.
 func DecodeProtobuf(encoded []byte) (*ProtoNode, error) {
 	n := new(ProtoNode)
 	err := n.unmarshal(encoded)
@@ -114,7 +114,7 @@ func DecodeProtobuf(encoded []byte) (*ProtoNode, error) {
 
 // DecodeProtobufBlock is a block decoder for protobuf IPLD nodes conforming to
 // node.DecodeBlockFunc
-func DecodeProtobufBlock(b blocks.Block) (node.Node, error) {
+func DecodeProtobufBlock(b blocks.Block) (ipld.Node, error) {
 	c := b.Cid()
 	if c.Type() != cid.DagProtobuf {
 		return nil, fmt.Errorf("this function can only decode protobuf nodes")
@@ -123,9 +123,9 @@ func DecodeProtobufBlock(b blocks.Block) (node.Node, error) {
 	decnd, err := DecodeProtobuf(b.RawData())
 	if err != nil {
 		if strings.Contains(err.Error(), "Unmarshal failed") {
-			return nil, fmt.Errorf("The block referred to by '%s' was not a valid merkledag node", c)
+			return nil, fmt.Errorf("the block referred to by '%s' was not a valid merkledag node", c)
 		}
-		return nil, fmt.Errorf("Failed to decode Protocol Buffers: %v", err)
+		return nil, fmt.Errorf("failed to decode Protocol Buffers: %v", err)
 	}
 
 	decnd.cached = c
@@ -134,4 +134,4 @@ func DecodeProtobufBlock(b blocks.Block) (node.Node, error) {
 }
 
 // Type assertion
-var _ node.DecodeBlockFunc = DecodeProtobufBlock
+var _ ipld.DecodeBlockFunc = DecodeProtobufBlock

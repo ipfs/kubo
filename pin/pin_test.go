@@ -5,21 +5,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	bs "github.com/ipfs/go-ipfs/blockservice"
-	"github.com/ipfs/go-ipfs/exchange/offline"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	"gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	dssync "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
+	util "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	offline "gx/ipfs/QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc/go-ipfs-exchange-offline"
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	dssync "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
+	blockstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
+
+var rand = util.NewTimeSeededRand()
 
 func randNode() (*mdag.ProtoNode, *cid.Cid) {
 	nd := new(mdag.ProtoNode)
 	nd.SetData(make([]byte, 32))
-	util.NewTimeSeededRand().Read(nd.Data())
+	rand.Read(nd.Data())
 	k := nd.Cid()
 	return nd, k
 }
@@ -59,7 +61,7 @@ func TestPinnerBasic(t *testing.T) {
 	p := NewPinner(dstore, dserv, dserv)
 
 	a, ak := randNode()
-	_, err := dserv.Add(a)
+	err := dserv.Add(ctx, a)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,10 +76,11 @@ func TestPinnerBasic(t *testing.T) {
 
 	// create new node c, to be indirectly pinned through b
 	c, _ := randNode()
-	ck, err := dserv.Add(c)
+	err = dserv.Add(ctx, c)
 	if err != nil {
 		t.Fatal(err)
 	}
+	ck := c.Cid()
 
 	// Create new node b, to be parent to a and c
 	b, _ := randNode()
@@ -91,10 +94,11 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = dserv.Add(b)
+	err = dserv.Add(ctx, b)
 	if err != nil {
 		t.Fatal(err)
 	}
+	bk := b.Cid()
 
 	// recursively pin B{A,C}
 	err = p.Pin(ctx, b, true)
@@ -104,7 +108,6 @@ func TestPinnerBasic(t *testing.T) {
 
 	assertPinned(t, p, ck, "child of recursively pinned node not found")
 
-	bk := b.Cid()
 	assertPinned(t, p, bk, "Recursively pinned node not found..")
 
 	d, _ := randNode()
@@ -115,11 +118,11 @@ func TestPinnerBasic(t *testing.T) {
 	d.AddNodeLink("e", e)
 
 	// Must be in dagserv for unpin to work
-	_, err = dserv.Add(e)
+	err = dserv.Add(ctx, e)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = dserv.Add(d)
+	err = dserv.Add(ctx, d)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,13 +197,13 @@ func TestIsPinnedLookup(t *testing.T) {
 			}
 		}
 
-		ak, err := dserv.Add(a)
+		err := dserv.Add(ctx, a)
 		if err != nil {
 			t.Fatal(err)
 		}
 		//t.Logf("a[%d] is %s", i, ak)
 		aNodes[i] = a
-		aKeys[i] = ak
+		aKeys[i] = a.Cid()
 	}
 
 	// Pin A5 recursively
@@ -222,20 +225,22 @@ func TestIsPinnedLookup(t *testing.T) {
 	}
 
 	// Add C
-	ck, err := dserv.Add(c)
+	err := dserv.Add(ctx, c)
 	if err != nil {
 		t.Fatal(err)
 	}
+	ck := c.Cid()
 	//t.Logf("C is %s", ck)
 
 	// Add C to B and Add B
 	if err := b.AddNodeLink("myotherchild", c); err != nil {
 		t.Fatal(err)
 	}
-	bk, err := dserv.Add(b)
+	err = dserv.Add(ctx, b)
 	if err != nil {
 		t.Fatal(err)
 	}
+	bk := b.Cid()
 	//t.Logf("B is %s", bk)
 
 	// Pin C recursively
@@ -284,7 +289,7 @@ func TestDuplicateSemantics(t *testing.T) {
 	p := NewPinner(dstore, dserv, dserv)
 
 	a, _ := randNode()
-	_, err := dserv.Add(a)
+	err := dserv.Add(ctx, a)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -335,7 +340,7 @@ func TestPinRecursiveFail(t *testing.T) {
 
 	a, _ := randNode()
 	b, _ := randNode()
-	err := a.AddNodeLinkClean("child", b)
+	err := a.AddNodeLink("child", b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,12 +354,12 @@ func TestPinRecursiveFail(t *testing.T) {
 		t.Fatal("should have failed to pin here")
 	}
 
-	_, err = dserv.Add(b)
+	err = dserv.Add(ctx, b)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dserv.Add(a)
+	err = dserv.Add(ctx, a)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -369,6 +374,8 @@ func TestPinRecursiveFail(t *testing.T) {
 }
 
 func TestPinUpdate(t *testing.T) {
+	ctx := context.Background()
+
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
@@ -378,10 +385,9 @@ func TestPinUpdate(t *testing.T) {
 	n1, c1 := randNode()
 	n2, c2 := randNode()
 
-	dserv.Add(n1)
-	dserv.Add(n2)
+	dserv.Add(ctx, n1)
+	dserv.Add(ctx, n2)
 
-	ctx := context.Background()
 	if err := p.Pin(ctx, n1, true); err != nil {
 		t.Fatal(err)
 	}

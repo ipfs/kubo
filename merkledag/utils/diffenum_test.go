@@ -8,11 +8,11 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func buildNode(name string, desc map[string]ndesc, out map[string]node.Node) node.Node {
+func buildNode(name string, desc map[string]ndesc, out map[string]ipld.Node) ipld.Node {
 	this := desc[name]
 	nd := new(dag.ProtoNode)
 	nd.SetData([]byte(name))
@@ -33,8 +33,8 @@ func buildNode(name string, desc map[string]ndesc, out map[string]node.Node) nod
 
 type ndesc map[string]string
 
-func mkGraph(desc map[string]ndesc) map[string]node.Node {
-	out := make(map[string]node.Node)
+func mkGraph(desc map[string]ndesc) map[string]ipld.Node {
+	out := make(map[string]ipld.Node)
 	for name := range desc {
 		if _, ok := out[name]; ok {
 			continue
@@ -136,7 +136,7 @@ func TestDiffEnumBasic(t *testing.T) {
 	lgds := &getLogger{ds: ds}
 
 	for _, nd := range nds {
-		_, err := ds.Add(nd)
+		err := ds.Add(ctx, nd)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -154,17 +154,33 @@ func TestDiffEnumBasic(t *testing.T) {
 }
 
 type getLogger struct {
-	ds  node.NodeGetter
+	ds  ipld.NodeGetter
 	log []*cid.Cid
 }
 
-func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (node.Node, error) {
+func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (ipld.Node, error) {
 	nd, err := gl.ds.Get(ctx, c)
 	if err != nil {
 		return nil, err
 	}
 	gl.log = append(gl.log, c)
 	return nd, nil
+}
+
+func (gl *getLogger) GetMany(ctx context.Context, cids []*cid.Cid) <-chan *ipld.NodeOption {
+	outCh := make(chan *ipld.NodeOption, len(cids))
+	nds := gl.ds.GetMany(ctx, cids)
+	for no := range nds {
+		if no.Err == nil {
+			gl.log = append(gl.log, no.Node.Cid())
+		}
+		select {
+		case outCh <- no:
+		default:
+			panic("too many responses")
+		}
+	}
+	return nds
 }
 
 func assertCidList(a, b []*cid.Cid) error {
@@ -188,14 +204,14 @@ func TestDiffEnumFail(t *testing.T) {
 	lgds := &getLogger{ds: ds}
 
 	for _, s := range []string{"a1", "a2", "b", "c"} {
-		_, err := ds.Add(nds[s])
+		err := ds.Add(ctx, nds[s])
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	err := DiffEnumerate(ctx, lgds, nds["a1"].Cid(), nds["a2"].Cid())
-	if err != dag.ErrNotFound {
+	if err != ipld.ErrNotFound {
 		t.Fatal("expected err not found")
 	}
 
@@ -215,7 +231,7 @@ func TestDiffEnumRecurse(t *testing.T) {
 	lgds := &getLogger{ds: ds}
 
 	for _, s := range []string{"a1", "a2", "b", "c", "d"} {
-		_, err := ds.Add(nds[s])
+		err := ds.Add(ctx, nds[s])
 		if err != nil {
 			t.Fatal(err)
 		}

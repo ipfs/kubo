@@ -4,15 +4,19 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	offline "github.com/ipfs/go-ipfs/routing/offline"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
+
+	offline "gx/ipfs/QmXtoXbu9ReyV6Q4kDQ5CF9wXQNDY1PdHc4HhfxRR5AHB3/go-ipfs-routing/offline"
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 var IpnsCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Resolve IPNS names.",
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
@@ -49,25 +53,26 @@ Resolve the value of a dnslink:
 `,
 	},
 
-	Arguments: []cmds.Argument{
-		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID."),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID."),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name.").Default(false),
-		cmds.BoolOption("nocache", "n", "Do not use cached entries.").Default(false),
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name."),
+		cmdkit.BoolOption("nocache", "n", "Do not use cached entries."),
+		cmdkit.UintOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
+		cmdkit.StringOption("dht-timeout", "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		if !n.OnlineMode() {
 			err := n.SetupOfflineRouting()
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 		}
@@ -79,7 +84,7 @@ Resolve the value of a dnslink:
 		var resolver namesys.Resolver = n.Namesys
 
 		if local && nocache {
-			res.SetError(errors.New("cannot specify both local and nocache"), cmds.ErrNormal)
+			res.SetError(errors.New("cannot specify both local and nocache"), cmdkit.ErrNormal)
 			return
 		}
 
@@ -95,7 +100,7 @@ Resolve the value of a dnslink:
 		var name string
 		if len(req.Arguments()) == 0 {
 			if n.Identity == "" {
-				res.SetError(errors.New("identity not loaded"), cmds.ErrNormal)
+				res.SetError(errors.New("identity not loaded"), cmdkit.ErrNormal)
 				return
 			}
 			name = n.Identity.Pretty()
@@ -105,18 +110,35 @@ Resolve the value of a dnslink:
 		}
 
 		recursive, _, _ := req.Option("recursive").Bool()
-		depth := 1
-		if recursive {
-			depth = namesys.DefaultDepthLimit
+		rc, rcok, _ := req.Option("dht-record-count").Int()
+		dhtt, dhttok, _ := req.Option("dht-timeout").String()
+		var ropts []nsopts.ResolveOpt
+		if !recursive {
+			ropts = append(ropts, nsopts.Depth(1))
+		}
+		if rcok {
+			ropts = append(ropts, nsopts.DhtRecordCount(uint(rc)))
+		}
+		if dhttok {
+			d, err := time.ParseDuration(dhtt)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+			if d < 0 {
+				res.SetError(errors.New("DHT timeout value must be >= 0"), cmdkit.ErrNormal)
+				return
+			}
+			ropts = append(ropts, nsopts.DhtTimeout(d))
 		}
 
 		if !strings.HasPrefix(name, "/ipns/") {
 			name = "/ipns/" + name
 		}
 
-		output, err := resolver.ResolveN(req.Context(), name, depth)
+		output, err := resolver.Resolve(req.Context(), name, ropts...)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -126,9 +148,14 @@ Resolve the value of a dnslink:
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			output, ok := res.Output().(*ResolvedPath)
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			output, ok := v.(*ResolvedPath)
 			if !ok {
-				return nil, u.ErrCast()
+				return nil, e.TypeErr(output, v)
 			}
 			return strings.NewReader(output.Path.String() + "\n"), nil
 		},

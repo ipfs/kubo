@@ -8,18 +8,20 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	files "github.com/ipfs/go-ipfs/commands/files"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
-	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 var DagCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Interact with ipld dag objects.",
 		ShortDescription: `
 'ipfs dag' is used for creating and manipulating dag objects.
@@ -47,26 +49,26 @@ type ResolveOutput struct {
 }
 
 var DagPutCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Add a dag node to ipfs.",
 		ShortDescription: `
 'ipfs dag put' accepts input from a file or stdin and parses it
 into an object of the specified format.
 `,
 	},
-	Arguments: []cmds.Argument{
-		cmds.FileArg("object data", true, true, "The object to put").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.FileArg("object data", true, true, "The object to put").EnableStdin(),
 	},
-	Options: []cmds.Option{
-		cmds.StringOption("format", "f", "Format that the object will be added as.").Default("cbor"),
-		cmds.StringOption("input-enc", "Format that the input object will be.").Default("json"),
-		cmds.BoolOption("pin", "Pin this object when adding.").Default(false),
-		cmds.StringOption("hash", "Hash function to use").Default(""),
+	Options: []cmdkit.Option{
+		cmdkit.StringOption("format", "f", "Format that the object will be added as.").WithDefault("cbor"),
+		cmdkit.StringOption("input-enc", "Format that the input object will be.").WithDefault("json"),
+		cmdkit.BoolOption("pin", "Pin this object when adding."),
+		cmdkit.StringOption("hash", "Hash function to use").WithDefault(""),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -75,7 +77,7 @@ into an object of the specified format.
 		hash, _, err := req.Option("hash").String()
 		dopin, _, err := req.Option("pin").Bool()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -87,7 +89,8 @@ into an object of the specified format.
 			var ok bool
 			mhType, ok = mh.Names[hash]
 			if !ok {
-				res.SetError(fmt.Errorf("%s in not a valid multihash name", hash), cmds.ErrNormal)
+				res.SetError(fmt.Errorf("%s in not a valid multihash name", hash), cmdkit.ErrNormal)
+
 				return
 			}
 		}
@@ -97,7 +100,7 @@ into an object of the specified format.
 
 		addAllAndPin := func(f files.File) error {
 			cids := cid.NewSet()
-			b := n.DAG.Batch()
+			b := ipld.NewBatch(req.Context(), n.DAG)
 
 			for {
 				file, err := f.NextFile()
@@ -117,7 +120,7 @@ into an object of the specified format.
 				}
 
 				for _, nd := range nds {
-					_, err := b.Add(nd)
+					err := b.Add(nd)
 					if err != nil {
 						return err
 					}
@@ -152,7 +155,7 @@ into an object of the specified format.
 		go func() {
 			defer close(outChan)
 			if err := addAllAndPin(req.Files()); err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 		}()
@@ -160,56 +163,48 @@ into an object of the specified format.
 	Type: OutputObject{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(<-chan interface{})
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			oobj, ok := v.(*OutputObject)
 			if !ok {
-				return nil, u.ErrCast()
+				return nil, e.TypeErr(oobj, v)
 			}
 
-			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*OutputObject)
-				if !ok {
-					return nil, u.ErrCast()
-				}
-
-				return strings.NewReader(obj.Cid.String() + "\n"), nil
-			}
-
-			return &cmds.ChannelMarshaler{
-				Channel:   outChan,
-				Marshaler: marshal,
-				Res:       res,
-			}, nil
+			return strings.NewReader(oobj.Cid.String() + "\n"), nil
 		},
 	},
 }
 
 var DagGetCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Get a dag node from ipfs.",
 		ShortDescription: `
-'ipfs dag get' fetches a dag node from ipfs and prints it out in the specifed
+'ipfs dag get' fetches a dag node from ipfs and prints it out in the specified
 format.
 `,
 	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("ref", true, false, "The object to get").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("ref", true, false, "The object to get").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		p, err := path.ParsePath(req.Arguments()[0])
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -217,7 +212,7 @@ format.
 		if len(rem) > 0 {
 			final, _, err := obj.Resolve(rem)
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 			out = final
@@ -229,31 +224,31 @@ format.
 
 // DagResolveCmd returns address of highest block within a path and a path remainder
 var DagResolveCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Resolve ipld block",
 		ShortDescription: `
 'ipfs dag resolve' fetches a dag node from ipfs, prints it's address and remaining path.
 `,
 	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("ref", true, false, "The path to resolve").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("ref", true, false, "The path to resolve").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		p, err := path.ParsePath(req.Arguments()[0])
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -264,7 +259,12 @@ var DagResolveCmd = &cmds.Command{
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			output := res.Output().(*ResolveOutput)
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			output := v.(*ResolveOutput)
 			buf := new(bytes.Buffer)
 			p := output.Cid.String()
 			if output.RemPath != "" {
@@ -277,4 +277,18 @@ var DagResolveCmd = &cmds.Command{
 		},
 	},
 	Type: ResolveOutput{},
+}
+
+// copy+pasted from ../commands.go
+func unwrapOutput(i interface{}) (interface{}, error) {
+	var (
+		ch <-chan interface{}
+		ok bool
+	)
+
+	if ch, ok = i.(<-chan interface{}); !ok {
+		return nil, e.TypeErr(ch, i)
+	}
+
+	return <-ch, nil
 }

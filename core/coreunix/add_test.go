@@ -10,29 +10,32 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	"github.com/ipfs/go-ipfs/blockservice"
-	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin/gc"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/config"
-	ds2 "github.com/ipfs/go-ipfs/thirdparty/datastore2"
-	pi "github.com/ipfs/go-ipfs/thirdparty/posinfo"
-	"gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	datastore "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	syncds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
+	blockstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
+	pi "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
+
+const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 func TestAddRecursive(t *testing.T) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
+				PeerID: testPeerID, // required by offline node
 			},
 		},
-		D: ds2.ThreadSafeCloserMapDatastore(),
+		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
 	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 	if err != nil {
@@ -49,10 +52,10 @@ func TestAddGCLive(t *testing.T) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
+				PeerID: testPeerID, // required by offline node
 			},
 		},
-		D: ds2.ThreadSafeCloserMapDatastore(),
+		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
 	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 	if err != nil {
@@ -102,7 +105,7 @@ func TestAddGCLive(t *testing.T) {
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcout = gc.GC(context.Background(), node.Blockstore, node.DAG, node.Pinning, nil)
+		gcout = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
 	}()
 
 	// gc shouldnt start until we let the add finish its current file.
@@ -148,7 +151,7 @@ func TestAddGCLive(t *testing.T) {
 	defer cancel()
 
 	set := cid.NewSet()
-	err = dag.EnumerateChildren(ctx, node.DAG.GetLinks, last, set.Visit)
+	err = dag.EnumerateChildren(ctx, dag.GetLinksWithDAG(node.DAG), last, set.Visit)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,10 +161,10 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
+				PeerID: testPeerID, // required by offline node
 			},
 		},
-		D: ds2.ThreadSafeCloserMapDatastore(),
+		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
 	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
 	if err != nil {

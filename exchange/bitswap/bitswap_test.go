@@ -8,20 +8,19 @@ import (
 	"testing"
 	"time"
 
-	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
-	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
-	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
-	travis "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil/ci/travis"
 
-	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
-
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	p2ptestutil "gx/ipfs/QmQGX417WoxKxDJeHqouMEmmH4G1RCENNSzkZYHrXy3Xb3/go-libp2p-netutil"
-	tu "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil"
+	delay "gx/ipfs/QmRJVNatYJwTAHgdSM1Xef9QVQ1Ch3XHdmcrykjP5Y4soL/go-ipfs-delay"
+	tu "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
+	travis "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil/ci/travis"
+	mockrouting "gx/ipfs/QmXtoXbu9ReyV6Q4kDQ5CF9wXQNDY1PdHc4HhfxRR5AHB3/go-ipfs-routing/mock"
+	p2ptestutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
+	blockstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
+	detectrace "gx/ipfs/Qmf7HqcW7LtCi1W8y2bdx2eJpze74jkbKqpByxgXikdbLF/go-detect-race"
+	blocksutil "gx/ipfs/Qmf951DP11mCoctpyF3ZppPZdo2oAxuNi2vnkVDgHJ8Fqk/go-ipfs-blocksutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -108,7 +107,7 @@ func TestLargeSwarm(t *testing.T) {
 	if detectrace.WithRace() {
 		// when running with the race detector, 500 instances launches
 		// well over 8k goroutines. This hits a race detector limit.
-		numInstances = 100
+		numInstances = 75
 	} else if travis.IsRunning() {
 		numInstances = 200
 	} else {
@@ -292,23 +291,22 @@ func TestEmptyKey(t *testing.T) {
 	}
 }
 
-func assertStat(st *Stat, sblks, rblks, sdata, rdata uint64) error {
+func assertStat(t *testing.T, st *Stat, sblks, rblks, sdata, rdata uint64) {
 	if sblks != st.BlocksSent {
-		return fmt.Errorf("mismatch in blocks sent: %d vs %d", sblks, st.BlocksSent)
+		t.Errorf("mismatch in blocks sent: %d vs %d", sblks, st.BlocksSent)
 	}
 
 	if rblks != st.BlocksReceived {
-		return fmt.Errorf("mismatch in blocks recvd: %d vs %d", rblks, st.BlocksReceived)
+		t.Errorf("mismatch in blocks recvd: %d vs %d", rblks, st.BlocksReceived)
 	}
 
 	if sdata != st.DataSent {
-		return fmt.Errorf("mismatch in data sent: %d vs %d", sdata, st.DataSent)
+		t.Errorf("mismatch in data sent: %d vs %d", sdata, st.DataSent)
 	}
 
 	if rdata != st.DataReceived {
-		return fmt.Errorf("mismatch in data recvd: %d vs %d", rdata, st.DataReceived)
+		t.Errorf("mismatch in data recvd: %d vs %d", rdata, st.DataReceived)
 	}
-	return nil
 }
 
 func TestBasicBitswap(t *testing.T) {
@@ -355,12 +353,20 @@ func TestBasicBitswap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := assertStat(st0, 1, 0, 1, 0); err != nil {
+	st2, err := instances[2].Exchange.Stat()
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := assertStat(st1, 0, 1, 0, 1); err != nil {
-		t.Fatal(err)
+	t.Log("stat node 0")
+	assertStat(t, st0, 1, 0, uint64(len(blk.RawData())), 0)
+	t.Log("stat node 1")
+	assertStat(t, st1, 0, 1, 0, uint64(len(blk.RawData())))
+	t.Log("stat node 2")
+	assertStat(t, st2, 0, 0, 0, 0)
+
+	if !bytes.Equal(blk.RawData(), blocks[0].RawData()) {
+		t.Errorf("blocks aren't equal: expected %v, actual %v", blocks[0].RawData(), blk.RawData())
 	}
 
 	t.Log(blk)

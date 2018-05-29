@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 
 	// this import keeps gx from thinking the dep isn't used
 	_ "gx/ipfs/QmdZ4PvPHFQVLLEve7DgoKDcSY19wwpGBB1GKjjKi2rEL1/dir-index-html"
@@ -80,11 +80,6 @@ func addAssetList(nd *core.IpfsNode, l []string) (*cid.Cid, error) {
 		return nil, err
 	}
 
-	dcid, err := nd.DAG.Add(dir)
-	if err != nil {
-		return nil, fmt.Errorf("assets: DAG.Add(dir) failed: %s", err)
-	}
-
 	if err := nd.Pinning.Pin(nd.Context(), dir, true); err != nil {
 		return nil, fmt.Errorf("assets: Pinning on init-docu failed: %s", err)
 	}
@@ -93,5 +88,5 @@ func addAssetList(nd *core.IpfsNode, l []string) (*cid.Cid, error) {
 		return nil, fmt.Errorf("assets: Pinning flush failed: %s", err)
 	}
 
-	return dcid, nil
+	return dir.Cid(), nil
 }

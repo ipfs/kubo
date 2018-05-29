@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2014 Juan Batiz-Benet
 # MIT Licensed; see the LICENSE file in this repository.
@@ -26,7 +26,7 @@ test_ipfs_daemon_init() {
   # server.
 
   test_expect_success "'ipfs daemon --init' succeeds" '
-    ipfs daemon --init >actual_daemon 2>daemon_err &
+    ipfs daemon --init --init-profile=test >actual_daemon 2>daemon_err &
     IPFS_PID=$!
     sleep 2 &&
     if ! kill -0 $IPFS_PID; then cat daemon_err; return 1; fi

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,13 +10,15 @@ import (
 	"path"
 	"strings"
 
-	context "context"
 	assets "github.com/ipfs/go-ipfs/assets"
-	cmds "github.com/ipfs/go-ipfs/commands"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+
+	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 const (
@@ -23,7 +26,7 @@ const (
 )
 
 var initCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Initializes ipfs config file.",
 		ShortDescription: `
 Initializes ipfs configuration files and generates a new keypair.
@@ -31,11 +34,7 @@ Initializes ipfs configuration files and generates a new keypair.
 If you are going to run IPFS in server environment, you may want to
 initialize it using 'server' profile.
 
-Available profiles:
-    'server' - Disables local host discovery, recommended when
-        running IPFS on machines with public IPv4 addresses.
-    'test' - Reduces external interference of IPFS daemon, this
-        is useful when using the daemon in test environments.
+For the list of available profiles see 'ipfs config profile --help'
 
 ipfs uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
@@ -44,21 +43,22 @@ environment variable:
     export IPFS_PATH=/path/to/ipfsrepo
 `,
 	},
-	Arguments: []cmds.Argument{
-		cmds.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
 	},
-	Options: []cmds.Option{
-		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").Default(nBitsForKeypairDefault),
-		cmds.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage.").Default(false),
-		cmds.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
+	Options: []cmdkit.Option{
+		cmdkit.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").WithDefault(nBitsForKeypairDefault),
+		cmdkit.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage."),
+		cmdkit.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
 		// name of the file?
-		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs."),
+		// TODO cmdkit.StringOption("event-logs", "l", "Location for machine-readable event logs."),
 	},
-	PreRun: func(req cmds.Request) error {
-		daemonLocked, err := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot)
+	PreRun: func(req *cmds.Request, env cmds.Environment) error {
+		cctx := env.(*oldcmds.Context)
+		daemonLocked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
 		if err != nil {
 			return err
 		}
@@ -72,54 +72,42 @@ environment variable:
 
 		return nil
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		if req.InvocContext().Online {
-			res.SetError(errors.New("init must be run offline only!"), cmds.ErrNormal)
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		cctx := env.(*oldcmds.Context)
+		if cctx.Online {
+			res.SetError(errors.New("init must be run offline only"), cmdkit.ErrNormal)
 			return
 		}
 
-		empty, _, err := req.Option("e").Bool()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		nBitsForKeypair, _, err := req.Option("b").Int()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		empty, _ := req.Options["empty-repo"].(bool)
+		nBitsForKeypair, _ := req.Options["bits"].(int)
 
 		var conf *config.Config
 
-		f := req.Files()
+		f := req.Files
 		if f != nil {
 			confFile, err := f.NextFile()
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
 			conf = &config.Config{}
 			if err := json.NewDecoder(confFile).Decode(conf); err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 		}
 
-		profile, _, err := req.Option("profile").String()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		profile, _ := req.Options["profile"].(string)
 
 		var profiles []string
 		if profile != "" {
 			profiles = strings.Split(profile, ",")
 		}
 
-		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, empty, nBitsForKeypair, profiles, conf); err != nil {
-			res.SetError(err, cmds.ErrNormal)
+		if err := doInit(os.Stdout, cctx.ConfigRoot, empty, nBitsForKeypair, profiles, conf); err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 	},
@@ -129,8 +117,13 @@ var errRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 `)
 
-func initWithDefaults(out io.Writer, repoRoot string) error {
-	return doInit(out, repoRoot, false, nBitsForKeypairDefault, nil, nil)
+func initWithDefaults(out io.Writer, repoRoot string, profile string) error {
+	var profiles []string
+	if profile != "" {
+		profiles = strings.Split(profile, ",")
+	}
+
+	return doInit(out, repoRoot, false, nBitsForKeypairDefault, profiles, nil)
 }
 
 func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, confProfiles []string, conf *config.Config) error {
@@ -138,7 +131,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 		return err
 	}
 
-	if err := checkWriteable(repoRoot); err != nil {
+	if err := checkWritable(repoRoot); err != nil {
 		return err
 	}
 
@@ -155,12 +148,12 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 	}
 
 	for _, profile := range confProfiles {
-		transformer, ok := config.ConfigProfiles[profile]
+		transformer, ok := config.Profiles[profile]
 		if !ok {
 			return fmt.Errorf("invalid configuration profile: %s", profile)
 		}
 
-		if err := transformer(conf); err != nil {
+		if err := transformer.Transform(conf); err != nil {
 			return err
 		}
 	}
@@ -178,7 +171,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 	return initializeIpnsKeyspace(repoRoot)
 }
 
-func checkWriteable(dir string) error {
+func checkWritable(dir string) error {
 	_, err := os.Stat(dir)
 	if err == nil {
 		// dir exists, make sure we can write to it
@@ -195,7 +188,7 @@ func checkWriteable(dir string) error {
 	}
 
 	if os.IsNotExist(err) {
-		// dir doesnt exist, check that we can create it
+		// dir doesn't exist, check that we can create it
 		return os.Mkdir(dir, 0775)
 	}
 
@@ -255,5 +248,5 @@ func initializeIpnsKeyspace(repoRoot string) error {
 		return err
 	}
 
-	return namesys.InitializeKeyspace(ctx, nd.DAG, nd.Namesys, nd.Pinning, nd.PrivateKey)
+	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
 }

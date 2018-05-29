@@ -1,3 +1,18 @@
+// Package balanced provides methods to build balanced DAGs.
+// In a balanced DAG, nodes are added to a single root
+// until the maximum number of links is reached (with leaves
+// being at depth 0). Then, a new root is created, and points to the
+// old root, and incorporates a new child, which proceeds to be
+// filled up (link) to more leaves. In all cases, the Data (chunks)
+// is stored only at the leaves, with the rest of nodes only
+// storing links to their children.
+//
+// In a balanced DAG, nodes fill their link capacity before
+// creating new ones, thus depth only increases when the
+// current tree is completely full.
+//
+// Balanced DAGs are generalistic DAGs in which all leaves
+// are at the same distance from the root.
 package balanced
 
 import (
@@ -5,11 +20,14 @@ import (
 
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func BalancedLayout(db *h.DagBuilderHelper) (node.Node, error) {
-	var offset uint64 = 0
+// Layout builds a balanced DAG. Data is stored at the leaves
+// and depth only increases when the tree is full, that is, when
+// the root node has reached the maximum number of links.
+func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
+	var offset uint64
 	var root *h.UnixfsNode
 	for level := 0; !db.Done(); level++ {
 

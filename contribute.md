@@ -12,12 +12,12 @@ try picking up an issue from there.
 
 ## Go Guidelines:
 
-Please look and conform to our [Go Contribution Guidelines](https://github.com/ipfs/community/blob/master/go-contribution-guidelines.md).
+Please look and conform to our [Go Contribution Guidelines](https://github.com/ipfs/community/blob/master/go-code-guidelines.md).
 
 ## General Guidelines:
 
 - See the [dev pseudo-roadmap](dev.md).
-- Please adhere to the protocol described in [the main ipfs repo](https://github.com/ipfs/ipfs), [paper](http://static.benet.ai/t/ipfs.pdf), and [specs](https://github.com/ipfs/specs) (WIP).
+- Please adhere to the protocol described in [the main ipfs repo](https://github.com/ipfs/ipfs) and [specs](https://github.com/ipfs/specs) (WIP).
 - Please make branches and pull-request, even if working on the main repository.
 - Ask questions or talk about things in [Issues](https://github.com/ipfs/go-ipfs/issues) or #ipfs on freenode.
 - Ensure you are able to contribute (no legal issues please-- we'll probably setup a CLA).
@@ -29,7 +29,7 @@ Please look and conform to our [Go Contribution Guidelines](https://github.com/i
 
 All commits in a PR must pass tests. If they don't, fix the commits and/or [squash them](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History#Squashing-Commits) so that they do pass the tests. This should be done so that we can use git-bisect easily.
 
-We use CI tests which run when you push to your branch. To run the tests locally, you can run any of these: `make build`, `make install`, `make test`, `go test ./...`, depending on what youre looking to do. Generally `go test ./...` is your best bet.
+We use CI tests which run when you push to your branch. To run the tests locally, you can run any of these: `make build`, `make install`, `make test`, `go test ./...`, depending on what you're looking to do. Generally `go test ./...` is your best bet.
 
 ### Branch Names
 

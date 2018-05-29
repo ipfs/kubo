@@ -1,14 +1,19 @@
 package commands
 
 import (
+	"errors"
 	"io"
 	"strings"
+	"time"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 	ns "github.com/ipfs/go-ipfs/namesys"
+	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
 type ResolvedPath struct {
@@ -16,7 +21,7 @@ type ResolvedPath struct {
 }
 
 var ResolveCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "Resolve the value of names to IPFS.",
 		ShortDescription: `
 There are a number of mutable name protocols that can link among
@@ -55,24 +60,26 @@ Resolve the value of an IPFS DAG path:
 `,
 	},
 
-	Arguments: []cmds.Argument{
-		cmds.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is an IPFS name.").Default(false),
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("recursive", "r", "Resolve until the result is an IPFS name."),
+		cmdkit.UintOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
+		cmdkit.StringOption("dht-timeout", "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		if !n.OnlineMode() {
 			err := n.SetupOfflineRouting()
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 		}
@@ -82,10 +89,28 @@ Resolve the value of an IPFS DAG path:
 
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
-			p, err := n.Namesys.ResolveN(req.Context(), name, 1)
+			rc, rcok, _ := req.Option("dht-record-count").Int()
+			dhtt, dhttok, _ := req.Option("dht-timeout").String()
+			ropts := []nsopts.ResolveOpt{nsopts.Depth(1)}
+			if rcok {
+				ropts = append(ropts, nsopts.DhtRecordCount(uint(rc)))
+			}
+			if dhttok {
+				d, err := time.ParseDuration(dhtt)
+				if err != nil {
+					res.SetError(err, cmdkit.ErrNormal)
+					return
+				}
+				if d < 0 {
+					res.SetError(errors.New("DHT timeout value must be >= 0"), cmdkit.ErrNormal)
+					return
+				}
+				ropts = append(ropts, nsopts.DhtTimeout(d))
+			}
+			p, err := n.Namesys.Resolve(req.Context(), name, ropts...)
 			// ErrResolveRecursion is fine
 			if err != nil && err != ns.ErrResolveRecursion {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 			res.SetOutput(&ResolvedPath{p})
@@ -95,13 +120,13 @@ Resolve the value of an IPFS DAG path:
 		// else, ipfs path or ipns with recursive flag
 		p, err := path.ParsePath(name)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		node, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, p)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -111,9 +136,14 @@ Resolve the value of an IPFS DAG path:
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			output, ok := res.Output().(*ResolvedPath)
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			output, ok := v.(*ResolvedPath)
 			if !ok {
-				return nil, u.ErrCast()
+				return nil, e.TypeErr(output, v)
 			}
 			return strings.NewReader(output.Path.String() + "\n"), nil
 		},

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
+
 	backoff "gx/ipfs/QmPJUtEJsm5YLUWhF6imvyCH8KZXRJa9Wup7FDMwTy5Ufz/backoff"
-	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 var log = logging.Logger("reprovider")
@@ -80,9 +82,14 @@ func (rp *Reprovider) Run(tick time.Duration) {
 func (rp *Reprovider) Reprovide() error {
 	keychan, err := rp.keyProvider(rp.ctx)
 	if err != nil {
-		return fmt.Errorf("Failed to get key chan: %s", err)
+		return fmt.Errorf("failed to get key chan: %s", err)
 	}
 	for c := range keychan {
+		// hash security
+		if err := verifcid.ValidateCid(c); err != nil {
+			log.Errorf("insecure hash in reprovider, %s (%s)", c, err)
+			continue
+		}
 		op := func() error {
 			err := rp.rsys.Provide(rp.ctx, c, true)
 			if err != nil {

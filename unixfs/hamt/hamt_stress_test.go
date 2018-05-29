@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func getNames(prefix string, count int) []string {
@@ -93,7 +94,7 @@ func TestOrderConsistency(t *testing.T) {
 	}
 }
 
-func validateOpSetCompletion(t *testing.T, s *HamtShard, keep, temp []string) error {
+func validateOpSetCompletion(t *testing.T, s *Shard, keep, temp []string) error {
 	ctx := context.TODO()
 	for _, n := range keep {
 		_, err := s.Find(ctx, n)
@@ -112,15 +113,15 @@ func validateOpSetCompletion(t *testing.T, s *HamtShard, keep, temp []string) er
 	return nil
 }
 
-func executeOpSet(t *testing.T, ds dag.DAGService, width int, ops []testOp) (*HamtShard, error) {
+func executeOpSet(t *testing.T, ds ipld.DAGService, width int, ops []testOp) (*Shard, error) {
 	ctx := context.TODO()
-	s, err := NewHamtShard(ds, width)
+	s, err := NewShard(ds, width)
 	if err != nil {
 		return nil, err
 	}
 
 	e := ft.EmptyDirNode()
-	ds.Add(e)
+	ds.Add(ctx, e)
 
 	for _, o := range ops {
 		switch o.Op {
@@ -188,9 +189,9 @@ func genOpSet(seed int64, keep, temp []string) []testOp {
 }
 
 // executes the given op set with a repl to allow easier debugging
-/*func debugExecuteOpSet(ds dag.DAGService, width int, ops []testOp) (*HamtShard, error) {
+/*func debugExecuteOpSet(ds node.DAGService, width int, ops []testOp) (*Shard, error) {
 
-	s, err := NewHamtShard(ds, width)
+	s, err := NewShard(ds, width)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +244,7 @@ mainloop:
 				}
 			case "restart":
 				var err error
-				s, err = NewHamtShard(ds, width)
+				s, err = NewShard(ds, width)
 				if err != nil {
 					panic(err)
 				}

@@ -14,41 +14,41 @@ import (
 	"testing"
 	"time"
 
-	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
-	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	importer "github.com/ipfs/go-ipfs/importer"
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	dssync "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/sync"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	offline "gx/ipfs/QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc/go-ipfs-exchange-offline"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	dssync "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
+	bstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 func emptyDirNode() *dag.ProtoNode {
 	return dag.NodeWithData(ft.FolderPBData())
 }
 
-func getDagserv(t *testing.T) dag.DAGService {
+func getDagserv(t *testing.T) ipld.DAGService {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
 	blockserv := bserv.New(bs, offline.Exchange(bs))
 	return dag.NewDAGService(blockserv)
 }
 
-func getRandFile(t *testing.T, ds dag.DAGService, size int64) node.Node {
+func getRandFile(t *testing.T, ds ipld.DAGService, size int64) ipld.Node {
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
 	return fileNodeFromReader(t, ds, r)
 }
 
-func fileNodeFromReader(t *testing.T, ds dag.DAGService, r io.Reader) node.Node {
-	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r))
+func fileNodeFromReader(t *testing.T, ds ipld.DAGService, r io.Reader) ipld.Node {
+	nd, err := importer.BuildDagFromReader(ds, chunker.DefaultSplitter(r))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func assertDirAtPath(root *Directory, pth string, children []string) error {
 	sort.Strings(children)
 	sort.Strings(names)
 	if !compStrArrs(children, names) {
-		return errors.New("directories children did not match!")
+		return errors.New("directories children did not match")
 	}
 
 	return nil
@@ -128,7 +128,7 @@ func compStrArrs(a, b []string) bool {
 	return true
 }
 
-func assertFileAtPath(ds dag.DAGService, root *Directory, expn node.Node, pth string) error {
+func assertFileAtPath(ds ipld.DAGService, root *Directory, expn ipld.Node, pth string) error {
 	exp, ok := expn.(*dag.ProtoNode)
 	if !ok {
 		return dag.ErrNotProtobuf
@@ -158,7 +158,7 @@ func assertFileAtPath(ds dag.DAGService, root *Directory, expn node.Node, pth st
 
 	file, ok := finaln.(*File)
 	if !ok {
-		return fmt.Errorf("%s was not a file!", pth)
+		return fmt.Errorf("%s was not a file", pth)
 	}
 
 	rfd, err := file.Open(OpenReadOnly, false)
@@ -177,12 +177,12 @@ func assertFileAtPath(ds dag.DAGService, root *Directory, expn node.Node, pth st
 	}
 
 	if !bytes.Equal(out, expbytes) {
-		return fmt.Errorf("Incorrect data at path!")
+		return fmt.Errorf("incorrect data at path")
 	}
 	return nil
 }
 
-func catNode(ds dag.DAGService, nd *dag.ProtoNode) ([]byte, error) {
+func catNode(ds ipld.DAGService, nd *dag.ProtoNode) ([]byte, error) {
 	r, err := uio.NewDagReader(context.TODO(), nd, ds)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func catNode(ds dag.DAGService, nd *dag.ProtoNode) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func setupRoot(ctx context.Context, t *testing.T) (dag.DAGService, *Root) {
+func setupRoot(ctx context.Context, t *testing.T) (ipld.DAGService, *Root) {
 	ds := getDagserv(t)
 
 	root := emptyDirNode()
@@ -284,7 +284,7 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 	rootdir := rt.GetValue().(*Directory)
 
 	nd := getRandFile(t, ds, 1000)
-	_, err := ds.Add(nd)
+	err := ds.Add(ctx, nd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +292,7 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 	fihash := nd.Cid()
 
 	dir := emptyDirNode()
-	_, err = ds.Add(dir)
+	err = ds.Add(ctx, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +300,7 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 	dirhash := dir.Cid()
 
 	top := emptyDirNode()
-	top.SetLinks([]*node.Link{
+	top.SetLinks([]*ipld.Link{
 		{
 			Name: "a",
 			Cid:  fihash,
@@ -323,6 +323,11 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 	}
 
 	topd := topi.(*Directory)
+
+	path := topd.Path()
+	if path != "/foo" {
+		t.Fatalf("Expected path '/foo', got '%s'", path)
+	}
 
 	// mkdir over existing but unloaded child file should fail
 	_, err = topd.Mkdir("a")
@@ -611,7 +616,7 @@ func randomFile(d *Directory) (*File, error) {
 
 	fi, ok := fsn.(*File)
 	if !ok {
-		return nil, errors.New("file wasnt a file, race?")
+		return nil, errors.New("file wasn't a file, race?")
 	}
 
 	return fi, nil
@@ -884,7 +889,7 @@ func readFile(rt *Root, path string, offset int64, buf []byte) error {
 		return err
 	}
 	if nread != len(buf) {
-		return fmt.Errorf("didnt read enough!")
+		return fmt.Errorf("didn't read enough")
 	}
 
 	return fd.Close()

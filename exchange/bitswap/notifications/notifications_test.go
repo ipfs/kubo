@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
+	blocksutil "gx/ipfs/Qmf951DP11mCoctpyF3ZppPZdo2oAxuNi2vnkVDgHJ8Fqk/go-ipfs-blocksutil"
 )
 
 func TestDuplicates(t *testing.T) {
@@ -98,6 +98,25 @@ func TestDuplicateSubscribe(t *testing.T) {
 		t.Fatal("didn't receive second expected block")
 	}
 	assertBlocksEqual(t, e1, r2)
+}
+
+func TestShutdownBeforeUnsubscribe(t *testing.T) {
+	e1 := blocks.NewBlock([]byte("1"))
+
+	n := New()
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := n.Subscribe(ctx, e1.Cid()) // no keys provided
+	n.Shutdown()
+	cancel()
+
+	select {
+	case _, ok := <-ch:
+		if ok {
+			t.Fatal("channel should have been closed")
+		}
+	default:
+		t.Fatal("channel should have been closed")
+	}
 }
 
 func TestSubscribeIsANoopWhenCalledWithNoKeys(t *testing.T) {

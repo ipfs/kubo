@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2015 Jeromy Johnson
 # MIT Licensed; see the LICENSE file in this repository.
@@ -58,7 +58,7 @@ test_sharding() {
     printf "" > list_exp_raw
     for i in `seq 100`
     do
-      echo $i | ipfs files write --create /foo/file$i
+      echo $i | ipfs files write --create /foo/file$i || return 1
       echo file$i >> list_exp_raw
     done
   '
@@ -152,6 +152,15 @@ test_files_api() {
 
   test_expect_success "check root hash $EXTRA" '
     ipfs files stat --hash / > roothash
+  '
+
+  test_expect_success "stat works outside of MFS" '
+    ipfs files stat /ipfs/$DIR1
+  '
+
+  test_expect_success "stat compute the locality of a dag" '
+    ipfs files stat --with-local /ipfs/$DIR1 > output
+    grep -q "(100.00%)" output
   '
 
   test_expect_success "cannot mkdir / $EXTRA" '

@@ -16,18 +16,19 @@ import (
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/importer"
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	multibase "gx/ipfs/QmafgXF3u3QSWErQoZ2URmQp5PFG384htoE7J338nS2H7T/go-multibase"
+	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	multibase "gx/ipfs/QmexBtiTTEwwn42Yi6ouKt6VqzpA6wjJgiW1oh9VfaRrup/go-multibase"
 )
 
 const (
@@ -53,12 +54,12 @@ func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.CoreAPI)
 }
 
 // TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (node.Node, error) {
+func (i *gatewayHandler) newDagFromReader(r io.Reader) (ipld.Node, error) {
 	// TODO(cryptix): change and remove this helper once PR1136 is merged
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
 		i.node.DAG,
-		chunk.DefaultSplitter(r))
+		chunker.DefaultSplitter(r))
 }
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
@@ -119,7 +120,6 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		errmsg = errmsg + "bad request for " + r.URL.Path
 	}
 	fmt.Fprint(w, errmsg)
-	log.Error(errmsg) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
 }
 
 func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -198,7 +198,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	// Check etag send back to us
 	etag := "\"" + resolvedPath.Cid().String() + "\""
-	if r.Header.Get("If-None-Match") == etag {
+	if r.Header.Get("If-None-Match") == etag || r.Header.Get("If-None-Match") == "W/"+etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -287,14 +287,11 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	ixnd, err := dirr.Find(ctx, "index.html")
 	switch {
 	case err == nil:
-		log.Debugf("found index.html link for %s", escapedURLPath)
-
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
 		goget := r.URL.Query().Get("go-get") == "1"
 		if dirwithoutslash && !goget {
 			// See comment above where originalUrlPath is declared.
 			http.Redirect(w, r, originalUrlPath+"/", 302)
-			log.Debugf("redirect to %s", originalUrlPath+"/")
 			return
 		}
 
@@ -320,7 +317,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	// storage for directory listing
 	var dirListing []directoryItem
-	dirr.ForEachLink(ctx, func(link *node.Link) error {
+	dirr.ForEachLink(ctx, func(link *ipld.Link) error {
 		// See comment above where originalUrlPath is declared.
 		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalUrlPath, link.Name)}
 		dirListing = append(dirListing, di)
@@ -429,7 +426,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newnode node.Node
+	var newnode ipld.Node
 	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
 		newnode = ft.EmptyDirNode()
 	} else {
@@ -449,7 +446,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	var newcid *cid.Cid
 	rnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
 	switch ev := err.(type) {
-	case path.ErrNoLink:
+	case resolver.ErrNoLink:
 		// ev.Node < node where resolve failed
 		// ev.Name < new link
 		// but we need to patch from the root
@@ -478,7 +475,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		nnode, err := e.Finalize(i.node.DAG)
+		nnode, err := e.Finalize(ctx, i.node.DAG)
 		if err != nil {
 			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
 			return
@@ -502,15 +499,14 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		// object set-data case
 		pbnd.SetData(pbnewnode.Data())
 
-		newcid, err = i.node.DAG.Add(pbnd)
+		newcid = pbnd.Cid()
+		err = i.node.DAG.Add(ctx, pbnd)
 		if err != nil {
 			nnk := newnode.Cid()
-			rk := pbnd.Cid()
-			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), rk.String()), err, http.StatusInternalServerError)
+			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), newcid.String()), err, http.StatusInternalServerError)
 			return
 		}
 	default:
-		log.Warningf("putHandler: unhandled resolve error %T", ev)
 		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
 		return
 	}
@@ -566,7 +562,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newnode *dag.ProtoNode = pbnd
 	for j := len(pathNodes) - 2; j >= 0; j-- {
-		if _, err := i.node.DAG.Add(newnode); err != nil {
+		if err := i.node.DAG.Add(ctx, newnode); err != nil {
 			webError(w, "Could not add node", err, http.StatusInternalServerError)
 			return
 		}
@@ -584,7 +580,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if _, err := i.node.DAG.Add(newnode); err != nil {
+	if err := i.node.DAG.Add(ctx, newnode); err != nil {
 		webError(w, "Could not add root node", err, http.StatusInternalServerError)
 		return
 	}
@@ -604,7 +600,7 @@ func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
 }
 
 func webError(w http.ResponseWriter, message string, err error, defaultCode int) {
-	if _, ok := err.(path.ErrNoLink); ok {
+	if _, ok := err.(resolver.ErrNoLink); ok {
 		webErrorWithCode(w, message, err, http.StatusNotFound)
 	} else if err == routing.ErrNotFound {
 		webErrorWithCode(w, message, err, http.StatusNotFound)
@@ -618,8 +614,10 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
 	w.WriteHeader(code)
 
-	log.Errorf("%s: %s", message, err) // TODO(cryptix): log until we have a better way to expose these (counter metrics maybe)
 	fmt.Fprintf(w, "%s: %s\n", message, err)
+	if code >= 500 {
+		log.Warningf("server error: %s: %s", err)
+	}
 }
 
 // return a 500 error and log

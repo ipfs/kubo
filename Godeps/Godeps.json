@@ -10,10 +10,6 @@
 			"Rev": "e4fcc9a2c7567d1c42861deebeb483315d222262"
 		},
 		{
-			"ImportPath": "github.com/briantigerchow/pubsub",
-			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
-		},
-		{
 			"ImportPath": "github.com/camlistore/lock",
 			"Rev": "ae27720f340952636b826119b58130b9c1a847a0"
 		},
@@ -28,10 +24,6 @@
 		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-detect-race",
-			"Rev": "3463798d9574bd0b7eca275dccc530804ff5216f"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-os-rename",
@@ -56,10 +48,6 @@
 		{
 			"ImportPath": "github.com/texttheater/golang-levenshtein/levenshtein",
 			"Rev": "dfd657628c58d3eeaa26391097853b2473c8b94e"
-		},
-		{
-			"ImportPath": "github.com/whyrusleeping/chunker",
-			"Rev": "537e901819164627ca4bb5ce4e3faa8ce7956564"
 		}
 	]
 }

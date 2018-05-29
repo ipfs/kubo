@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2015 Henry Bubert
 # MIT Licensed; see the LICENSE file in this repository.
@@ -67,6 +67,16 @@ test_object_cmd() {
   test_expect_success "'ipfs object put file.json' output looks good" '
     HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
     printf "added $HASH\n" > expected_putOut &&
+    test_cmp expected_putOut actual_putOut
+  '
+
+  test_expect_success "'ipfs object put --quiet file.json' succeeds" '
+    ipfs object put --quiet ../t0051-object-data/testPut.json > actual_putOut
+  '
+
+  test_expect_success "'ipfs object put --quiet file.json' output looks good" '
+    HASH="QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD" &&
+    printf "$HASH\n" > expected_putOut &&
     test_cmp expected_putOut actual_putOut
   '
 
@@ -205,6 +215,20 @@ test_object_cmd() {
     ipfs object stat $N3/foo > /dev/null &&
     ipfs object stat /ipfs/$N3/foo/baz > /dev/null
   '
+
+  test_expect_success "'ipfs object patch add-link' allow linking IPLD objects" '
+    EMPTY_DIR=$(ipfs object new unixfs-dir) &&
+    OBJ=$(echo "123" | ipfs dag put) &&
+    N1=$(ipfs object patch $EMPTY_DIR add-link foo $OBJ) &&
+
+    ipfs object stat /ipfs/$N1 > /dev/null &&
+    ipfs resolve /ipfs/$N1/foo > actual  &&
+    echo /ipfs/$OBJ > expected &&
+
+    test_cmp expected actual
+  '
+
+
 
   test_expect_success "object patch creation looks right" '
     echo "QmPc73aWK9dgFBXe86P4PvQizHo9e5Qt7n7DAMXWuigFuG" > hash_exp &&

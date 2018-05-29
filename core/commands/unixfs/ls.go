@@ -7,10 +7,14 @@ import (
 	"sort"
 	"text/tabwriter"
 
+	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
@@ -35,7 +39,7 @@ type LsOutput struct {
 }
 
 var LsCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
+	Helptext: cmdkit.HelpText{
 		Tagline: "List directory contents for Unix filesystem objects.",
 		ShortDescription: `
 Displays the contents of an IPFS or IPNS object(s) at the given path.
@@ -69,13 +73,13 @@ possible, please use 'ipfs ls' instead.
 `,
 	},
 
-	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
@@ -89,14 +93,14 @@ possible, please use 'ipfs ls' instead.
 		for _, fpath := range paths {
 			ctx := req.Context()
 
-			resolver := &path.Resolver{
+			resolver := &resolver.Resolver{
 				DAG:         node.DAG,
 				ResolveOnce: uio.ResolveUnixfsOnce,
 			}
 
 			merkleNode, err := core.Resolve(ctx, node.Namesys, resolver, path.Path(fpath))
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
@@ -112,13 +116,13 @@ possible, please use 'ipfs ls' instead.
 
 			ndpb, ok := merkleNode.(*merkledag.ProtoNode)
 			if !ok {
-				res.SetError(merkledag.ErrNotProtobuf, cmds.ErrNormal)
+				res.SetError(merkledag.ErrNotProtobuf, cmdkit.ErrNormal)
 				return
 			}
 
 			unixFSNode, err := unixfs.FromBytes(ndpb.Data())
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
+				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
@@ -133,24 +137,28 @@ possible, please use 'ipfs ls' instead.
 			switch t {
 			case unixfspb.Data_File:
 				break
+			case unixfspb.Data_HAMTShard:
+				// We need a streaming ls API for this.
+				res.SetError(fmt.Errorf("cannot list large directories yet"), cmdkit.ErrNormal)
+				return
 			case unixfspb.Data_Directory:
 				links := make([]LsLink, len(merkleNode.Links()))
 				output.Objects[hash].Links = links
 				for i, link := range merkleNode.Links() {
 					linkNode, err := link.GetNode(ctx, node.DAG)
 					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
+						res.SetError(err, cmdkit.ErrNormal)
 						return
 					}
 					lnpb, ok := linkNode.(*merkledag.ProtoNode)
 					if !ok {
-						res.SetError(merkledag.ErrNotProtobuf, cmds.ErrNormal)
+						res.SetError(merkledag.ErrNotProtobuf, cmdkit.ErrNormal)
 						return
 					}
 
 					d, err := unixfs.FromBytes(lnpb.Data())
 					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
+						res.SetError(err, cmdkit.ErrNormal)
 						return
 					}
 					t := d.GetType()
@@ -167,10 +175,10 @@ possible, please use 'ipfs ls' instead.
 					links[i] = lsLink
 				}
 			case unixfspb.Data_Symlink:
-				res.SetError(fmt.Errorf("cannot list symlinks yet"), cmds.ErrNormal)
+				res.SetError(fmt.Errorf("cannot list symlinks yet"), cmdkit.ErrNormal)
 				return
 			default:
-				res.SetError(fmt.Errorf("unrecognized type: %s", t), cmds.ErrImplementation)
+				res.SetError(fmt.Errorf("unrecognized type: %s", t), cmdkit.ErrImplementation)
 				return
 			}
 		}
@@ -179,8 +187,15 @@ possible, please use 'ipfs ls' instead.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
 
-			output := res.Output().(*LsOutput)
+			output, ok := v.(*LsOutput)
+			if !ok {
+				return nil, e.TypeErr(output, v)
+			}
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 

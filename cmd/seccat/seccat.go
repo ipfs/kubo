@@ -9,6 +9,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -18,18 +19,17 @@ import (
 	"os/signal"
 	"syscall"
 
-	context "context"
-	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
-	secio "gx/ipfs/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/go-libp2p-secio"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	secio "gx/ipfs/QmT8TkDNBDyBsnZ4JJ2ecHU7qN184jkw1tY8y4chFfeWsy/go-libp2p-secio"
+	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 var verbose = false
 
 // Usage prints out the usage of this module.
-// Assumes flags use go stdlib flag pacakage.
+// Assumes flags use go stdlib flag package.
 var Usage = func() {
 	text := `seccat - secure netcat in Go
 
@@ -113,7 +113,7 @@ func main() {
 
 func setupPeer(a args) (peer.ID, pstore.Peerstore, error) {
 	if a.keybits < 1024 {
-		return "", nil, errors.New("Bitsize less than 1024 is considered unsafe.")
+		return "", nil, errors.New("bitsize less than 1024 is considered unsafe")
 	}
 
 	out("generating key pair...")

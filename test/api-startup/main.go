@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	when := make(chan (time.Time), 2)
+	when := make(chan time.Time, 2)
 	var wg sync.WaitGroup
 	wg.Add(2)
 	for _, port := range []string{"5001", "8080"} {

@@ -3,34 +3,23 @@ package namesys
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
-	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	dshelp "gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
+	dhtpb "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record/pb"
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	record "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record"
-	dhtpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
 )
-
-// ErrExpiredRecord should be returned when an ipns record is
-// invalid due to being too old
-var ErrExpiredRecord = errors.New("expired record")
-
-// ErrUnrecognizedValidity is returned when an IpnsRecord has an
-// unknown validity type.
-var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
 
 const PublishPutValTimeout = time.Minute
 const DefaultRecordTTL = 24 * time.Hour
@@ -205,7 +194,7 @@ func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec
 	}
 
 	log.Debugf("Storing ipns entry at: %s", ipnskey)
-	// Store ipns entry at "/ipns/"+b58(h(pubkey))
+	// Store ipns entry at "/ipns/"+h(pubkey)
 	return r.PutValue(timectx, ipnskey, data)
 }
 
@@ -235,102 +224,15 @@ func ipnsEntryDataForSig(e *pb.IpnsEntry) []byte {
 		[]byte{})
 }
 
-var IpnsRecordValidator = &record.ValidChecker{
-	Func: ValidateIpnsRecord,
-	Sign: true,
-}
-
-func IpnsSelectorFunc(k string, vals [][]byte) (int, error) {
-	var recs []*pb.IpnsEntry
-	for _, v := range vals {
-		e := new(pb.IpnsEntry)
-		err := proto.Unmarshal(v, e)
-		if err == nil {
-			recs = append(recs, e)
-		} else {
-			recs = append(recs, nil)
-		}
-	}
-
-	return selectRecord(recs, vals)
-}
-
-func selectRecord(recs []*pb.IpnsEntry, vals [][]byte) (int, error) {
-	var best_seq uint64
-	best_i := -1
-
-	for i, r := range recs {
-		if r == nil || r.GetSequence() < best_seq {
-			continue
-		}
-
-		if best_i == -1 || r.GetSequence() > best_seq {
-			best_seq = r.GetSequence()
-			best_i = i
-		} else if r.GetSequence() == best_seq {
-			rt, err := u.ParseRFC3339(string(r.GetValidity()))
-			if err != nil {
-				continue
-			}
-
-			bestt, err := u.ParseRFC3339(string(recs[best_i].GetValidity()))
-			if err != nil {
-				continue
-			}
-
-			if rt.After(bestt) {
-				best_i = i
-			} else if rt == bestt {
-				if bytes.Compare(vals[i], vals[best_i]) > 0 {
-					best_i = i
-				}
-			}
-		}
-	}
-	if best_i == -1 {
-		return 0, errors.New("no usable records in given set")
-	}
-
-	return best_i, nil
-}
-
-// ValidateIpnsRecord implements ValidatorFunc and verifies that the
-// given 'val' is an IpnsEntry and that that entry is valid.
-func ValidateIpnsRecord(k string, val []byte) error {
-	entry := new(pb.IpnsEntry)
-	err := proto.Unmarshal(val, entry)
-	if err != nil {
-		return err
-	}
-	switch entry.GetValidityType() {
-	case pb.IpnsEntry_EOL:
-		t, err := u.ParseRFC3339(string(entry.GetValidity()))
-		if err != nil {
-			log.Debug("failed parsing time for ipns record EOL")
-			return err
-		}
-		if time.Now().After(t) {
-			return ErrExpiredRecord
-		}
-	default:
-		return ErrUnrecognizedValidity
-	}
-	return nil
-}
-
 // InitializeKeyspace sets the ipns record for the given key to
 // point to an empty directory.
 // TODO: this doesnt feel like it belongs here
-func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
+func InitializeKeyspace(ctx context.Context, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
 	emptyDir := ft.EmptyDirNode()
-	nodek, err := ds.Add(emptyDir)
-	if err != nil {
-		return err
-	}
 
 	// pin recursively because this might already be pinned
 	// and doing a direct pin would throw an error in that case
-	err = pins.Pin(ctx, emptyDir, true)
+	err := pins.Pin(ctx, emptyDir, true)
 	if err != nil {
 		return err
 	}
@@ -340,7 +242,7 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 		return err
 	}
 
-	return pub.Publish(ctx, key, path.FromCid(nodek))
+	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
 }
 
 func IpnsKeysForID(id peer.ID) (name, ipns string) {

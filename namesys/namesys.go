@@ -2,14 +2,21 @@ package namesys
 
 import (
 	"context"
+	"errors"
 	"strings"
+	"sync"
 	"time"
 
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 
-	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	p2phost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
+	floodsub "gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
+	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	isd "gx/ipfs/QmZmmuAXgX73UQmX1jRKjTGmjzq24Jinqkq8vzkBtno4uX/go-is-domain"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -36,20 +43,32 @@ func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSys
 			"dht":      NewRoutingResolver(r, cachesize),
 		},
 		publishers: map[string]Publisher{
-			"/ipns/": NewRoutingPublisher(r, ds),
+			"dht": NewRoutingPublisher(r, ds),
 		},
 	}
+}
+
+// AddPubsubNameSystem adds the pubsub publisher and resolver to the namesystem
+func AddPubsubNameSystem(ctx context.Context, ns NameSystem, host p2phost.Host, r routing.IpfsRouting, ds ds.Datastore, ps *floodsub.PubSub) error {
+	mpns, ok := ns.(*mpns)
+	if !ok {
+		return errors.New("unexpected NameSystem; not an mpns instance")
+	}
+
+	pkf, ok := r.(routing.PubKeyFetcher)
+	if !ok {
+		return errors.New("unexpected IpfsRouting; not a PubKeyFetcher instance")
+	}
+
+	mpns.resolvers["pubsub"] = NewPubsubResolver(ctx, host, r, pkf, ps)
+	mpns.publishers["pubsub"] = NewPubsubPublisher(ctx, host, ds, r, ps)
+	return nil
 }
 
 const DefaultResolverCacheTTL = time.Minute
 
 // Resolve implements Resolver.
-func (ns *mpns) Resolve(ctx context.Context, name string) (path.Path, error) {
-	return ns.ResolveN(ctx, name, DefaultDepthLimit)
-}
-
-// ResolveN implements Resolver.
-func (ns *mpns) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
+func (ns *mpns) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
 	if strings.HasPrefix(name, "/ipfs/") {
 		return path.ParsePath(name)
 	}
@@ -58,52 +77,114 @@ func (ns *mpns) ResolveN(ctx context.Context, name string, depth int) (path.Path
 		return path.ParsePath("/ipfs/" + name)
 	}
 
-	return resolve(ctx, ns, name, depth, "/ipns/")
+	return resolve(ctx, ns, name, opts.ProcessOpts(options), "/ipns/")
 }
 
 // resolveOnce implements resolver.
-func (ns *mpns) resolveOnce(ctx context.Context, name string) (path.Path, error) {
+func (ns *mpns) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, error) {
 	if !strings.HasPrefix(name, "/ipns/") {
 		name = "/ipns/" + name
 	}
 	segments := strings.SplitN(name, "/", 4)
 	if len(segments) < 3 || segments[0] != "" {
-		log.Warningf("Invalid name syntax for %s", name)
+		log.Debugf("invalid name syntax for %s", name)
 		return "", ErrResolveFailed
 	}
 
-	for protocol, resolver := range ns.resolvers {
-		log.Debugf("Attempting to resolve %s with %s", segments[2], protocol)
-		p, err := resolver.resolveOnce(ctx, segments[2])
-		if err == nil {
-			if len(segments) > 3 {
-				return path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
-			} else {
-				return p, err
-			}
+	makePath := func(p path.Path) (path.Path, error) {
+		if len(segments) > 3 {
+			return path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
+		} else {
+			return p, nil
 		}
 	}
-	log.Warningf("No resolver found for %s", name)
+
+	// Resolver selection:
+	// 1. if it is a multihash resolve through "pubsub" (if available),
+	//    with fallback to "dht"
+	// 2. if it is a domain name, resolve through "dns"
+	// 3. otherwise resolve through the "proquint" resolver
+	key := segments[2]
+
+	_, err := mh.FromB58String(key)
+	if err == nil {
+		res, ok := ns.resolvers["pubsub"]
+		if ok {
+			p, err := res.resolveOnce(ctx, key, options)
+			if err == nil {
+				return makePath(p)
+			}
+		}
+
+		res, ok = ns.resolvers["dht"]
+		if ok {
+			p, err := res.resolveOnce(ctx, key, options)
+			if err == nil {
+				return makePath(p)
+			}
+		}
+
+		return "", ErrResolveFailed
+	}
+
+	if isd.IsDomain(key) {
+		res, ok := ns.resolvers["dns"]
+		if ok {
+			p, err := res.resolveOnce(ctx, key, options)
+			if err == nil {
+				return makePath(p)
+			}
+		}
+
+		return "", ErrResolveFailed
+	}
+
+	res, ok := ns.resolvers["proquint"]
+	if ok {
+		p, err := res.resolveOnce(ctx, key, options)
+		if err == nil {
+			return makePath(p)
+		}
+
+		return "", ErrResolveFailed
+	}
+
+	log.Debugf("no resolver found for %s", name)
 	return "", ErrResolveFailed
 }
 
 // Publish implements Publisher
 func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
-	err := ns.publishers["/ipns/"].Publish(ctx, name, value)
-	if err != nil {
-		return err
-	}
-	ns.addToDHTCache(name, value, time.Now().Add(DefaultRecordTTL))
-	return nil
+	return ns.PublishWithEOL(ctx, name, value, time.Now().Add(DefaultRecordTTL))
 }
 
 func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error {
-	err := ns.publishers["/ipns/"].PublishWithEOL(ctx, name, value, eol)
-	if err != nil {
-		return err
+	var dhtErr error
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		dhtErr = ns.publishers["dht"].PublishWithEOL(ctx, name, value, eol)
+		if dhtErr == nil {
+			ns.addToDHTCache(name, value, eol)
+		}
+		wg.Done()
+	}()
+
+	pub, ok := ns.publishers["pubsub"]
+	if ok {
+		wg.Add(1)
+		go func() {
+			err := pub.PublishWithEOL(ctx, name, value, eol)
+			if err != nil {
+				log.Warningf("error publishing %s with pubsub: %s", name, err.Error())
+			}
+			wg.Done()
+		}()
 	}
-	ns.addToDHTCache(name, value, eol)
-	return nil
+
+	wg.Wait()
+	return dhtErr
 }
 
 func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {
@@ -137,4 +218,17 @@ func (ns *mpns) addToDHTCache(key ci.PrivKey, value path.Path, eol time.Time) {
 		val: value,
 		eol: eol,
 	})
+}
+
+// GetResolver implements ResolverLookup
+func (ns *mpns) GetResolver(subs string) (Resolver, bool) {
+	res, ok := ns.resolvers[subs]
+	if ok {
+		ires, ok := res.(Resolver)
+		if ok {
+			return ires, true
+		}
+	}
+
+	return nil, false
 }

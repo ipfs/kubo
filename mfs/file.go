@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sync"
 
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	mod "github.com/ipfs/go-ipfs/unixfs/mod"
 
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 type File struct {
@@ -20,8 +20,8 @@ type File struct {
 
 	desclock sync.RWMutex
 
-	dserv  dag.DAGService
-	node   node.Node
+	dserv  ipld.DAGService
+	node   ipld.Node
 	nodelk sync.Mutex
 
 	RawLeaves bool
@@ -29,7 +29,7 @@ type File struct {
 
 // NewFile returns a NewFile object with the given parameters.  If the
 // Cid version is non-zero RawLeaves will be enabled.
-func NewFile(name string, node node.Node, parent childCloser, dserv dag.DAGService) (*File, error) {
+func NewFile(name string, node ipld.Node, parent childCloser, dserv ipld.DAGService) (*File, error) {
 	fi := &File{
 		dserv:  dserv,
 		parent: parent,
@@ -82,7 +82,7 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 		return nil, fmt.Errorf("mode not supported")
 	}
 
-	dmod, err := mod.NewDagModifier(context.TODO(), node, fi.dserv, chunk.DefaultSplitter)
+	dmod, err := mod.NewDagModifier(context.TODO(), node, fi.dserv, chunker.DefaultSplitter)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (fi *File) Size() (int64, error) {
 }
 
 // GetNode returns the dag node associated with this file
-func (fi *File) GetNode() (node.Node, error) {
+func (fi *File) GetNode() (ipld.Node, error) {
 	fi.nodelk.Lock()
 	defer fi.nodelk.Unlock()
 	return fi.node, nil

@@ -1,3 +1,4 @@
+// Package archive provides utilities to archive and compress a [Unixfs] DAG.
 package archive
 
 import (
@@ -7,11 +8,10 @@ import (
 	"io"
 	"path"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
 	tar "github.com/ipfs/go-ipfs/unixfs/archive/tar"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
 // DefaultBufSize is the buffer size for gets. for now, 1MB, which is ~4 blocks.
@@ -31,9 +31,10 @@ func (i *identityWriteCloser) Close() error {
 }
 
 // DagArchive is equivalent to `ipfs getdag $hash | maybe_tar | maybe_gzip`
-func DagArchive(ctx context.Context, nd node.Node, name string, dag mdag.DAGService, archive bool, compression int) (io.Reader, error) {
+func DagArchive(ctx context.Context, nd ipld.Node, name string, dag ipld.DAGService, archive bool, compression int) (io.Reader, error) {
 
-	_, filename := path.Split(name)
+	cleaned := path.Clean(name)
+	_, filename := path.Split(cleaned)
 
 	// need to connect a writer to a reader
 	piper, pipew := io.Pipe()
@@ -81,7 +82,7 @@ func DagArchive(ctx context.Context, nd node.Node, name string, dag mdag.DAGServ
 		// the case for 1. archive, and 2. not archived and not compressed, in which tar is used anyway as a transport format
 
 		// construct the tar writer
-		w, err := tar.NewWriter(ctx, dag, archive, compression, maybeGzw)
+		w, err := tar.NewWriter(ctx, dag, maybeGzw)
 		if checkErrAndClosePipe(err) {
 			return nil, err
 		}

@@ -9,7 +9,8 @@ import (
 	"path/filepath"
 
 	"github.com/ipfs/go-ipfs/repo/config"
-	"gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
+
+	"gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	"gx/ipfs/QmdYwCmx8pZRkzdcd8MhmLJqYVoVTC1aGsy5Q4reMGLNLg/atomicfile"
 )
 
@@ -21,7 +22,7 @@ func ReadConfigFile(filename string, cfg interface{}) error {
 	}
 	defer f.Close()
 	if err := json.NewDecoder(f).Decode(cfg); err != nil {
-		return fmt.Errorf("Failure to decode config: %s", err)
+		return fmt.Errorf("failure to decode config: %s", err)
 	}
 	return nil
 }

@@ -8,26 +8,28 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	mdagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	node "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
-	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
+	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-func SizeSplitterGen(size int64) chunk.SplitterGen {
-	return func(r io.Reader) chunk.Splitter {
-		return chunk.NewSizeSplitter(r, size)
+// SizeSplitterGen creates a generator.
+func SizeSplitterGen(size int64) chunker.SplitterGen {
+	return func(r io.Reader) chunker.Splitter {
+		return chunker.NewSizeSplitter(r, size)
 	}
 }
 
-func GetDAGServ() mdag.DAGService {
+// GetDAGServ returns a mock DAGService.
+func GetDAGServ() ipld.DAGService {
 	return mdagmock.Mock()
 }
 
@@ -40,10 +42,13 @@ type NodeOpts struct {
 	RawLeavesUsed bool
 }
 
-var UseProtoBufLeaves = NodeOpts{Prefix: mdag.V0CidPrefix()}
-var UseRawLeaves = NodeOpts{Prefix: mdag.V0CidPrefix(), ForceRawLeaves: true, RawLeavesUsed: true}
-var UseCidV1 = NodeOpts{Prefix: mdag.V1CidPrefix(), RawLeavesUsed: true}
-var UseBlake2b256 NodeOpts
+// Some shorthands for NodeOpts.
+var (
+	UseProtoBufLeaves = NodeOpts{Prefix: mdag.V0CidPrefix()}
+	UseRawLeaves      = NodeOpts{Prefix: mdag.V0CidPrefix(), ForceRawLeaves: true, RawLeavesUsed: true}
+	UseCidV1          = NodeOpts{Prefix: mdag.V1CidPrefix(), RawLeavesUsed: true}
+	UseBlake2b256     NodeOpts
+)
 
 func init() {
 	UseBlake2b256 = UseCidV1
@@ -51,7 +56,8 @@ func init() {
 	UseBlake2b256.Prefix.MhLength = -1
 }
 
-func GetNode(t testing.TB, dserv mdag.DAGService, data []byte, opts NodeOpts) node.Node {
+// GetNode returns a unixfs file node with the specified data.
+func GetNode(t testing.TB, dserv ipld.DAGService, data []byte, opts NodeOpts) ipld.Node {
 	in := bytes.NewReader(data)
 
 	dbp := h.DagBuilderParams{
@@ -61,7 +67,7 @@ func GetNode(t testing.TB, dserv mdag.DAGService, data []byte, opts NodeOpts) no
 		RawLeaves: opts.RawLeavesUsed,
 	}
 
-	node, err := trickle.TrickleLayout(dbp.New(SizeSplitterGen(500)(in)))
+	node, err := trickle.Layout(dbp.New(SizeSplitterGen(500)(in)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,11 +75,13 @@ func GetNode(t testing.TB, dserv mdag.DAGService, data []byte, opts NodeOpts) no
 	return node
 }
 
-func GetEmptyNode(t testing.TB, dserv mdag.DAGService, opts NodeOpts) node.Node {
+// GetEmptyNode returns an empty unixfs file node.
+func GetEmptyNode(t testing.TB, dserv ipld.DAGService, opts NodeOpts) ipld.Node {
 	return GetNode(t, dserv, []byte{}, opts)
 }
 
-func GetRandomNode(t testing.TB, dserv mdag.DAGService, size int64, opts NodeOpts) ([]byte, node.Node) {
+// GetRandomNode returns a random unixfs file node.
+func GetRandomNode(t testing.TB, dserv ipld.DAGService, size int64, opts NodeOpts) ([]byte, ipld.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {
@@ -84,19 +92,21 @@ func GetRandomNode(t testing.TB, dserv mdag.DAGService, size int64, opts NodeOpt
 	return buf, node
 }
 
+// ArrComp checks if two byte slices are the same.
 func ArrComp(a, b []byte) error {
 	if len(a) != len(b) {
-		return fmt.Errorf("Arrays differ in length. %d != %d", len(a), len(b))
+		return fmt.Errorf("arrays differ in length. %d != %d", len(a), len(b))
 	}
 	for i, v := range a {
 		if v != b[i] {
-			return fmt.Errorf("Arrays differ at index: %d", i)
+			return fmt.Errorf("arrays differ at index: %d", i)
 		}
 	}
 	return nil
 }
 
-func PrintDag(nd *mdag.ProtoNode, ds mdag.DAGService, indent int) {
+// PrintDag pretty-prints the given dag to stdout.
+func PrintDag(nd *mdag.ProtoNode, ds ipld.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		panic(err)

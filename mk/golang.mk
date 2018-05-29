@@ -1,5 +1,6 @@
 # golang utilities
-GO_MIN_VERSION = 1.8
+GO_MIN_VERSION = 1.9
+
 
 # pre-definitions
 GOCC ?= go
@@ -7,8 +8,12 @@ GOTAGS ?=
 GOFLAGS ?=
 GOTFLAGS ?=
 
+# match Go's default GOPATH behaviour
+export GOPATH ?= $(shell $(GOCC) env GOPATH)
+
 DEPS_GO :=
 TEST_GO :=
+TEST_GO_BUILD :=
 CHECK_GO :=
 
 go-pkg-name=$(shell $(GOCC) list $(go-tags) github.com/ipfs/go-ipfs/$(1))
@@ -23,16 +28,23 @@ define go-build
 $(GOCC) build -i $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
 endef
 
+define go-try-build
+$(GOCC) build $(go-flags-with-tags) -o /dev/null "$(call go-pkg-name,$<)"
+endef
+
+test_go_test: $$(DEPS_GO)
+	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) ./...
+.PHONY: test_go_test
+
 test_go_short: GOTFLAGS += -test.short
-test_go_short: test_go_expensive
+test_go_short: test_go_test
 .PHONY: test_go_short
 
 test_go_race: GOTFLAGS += -race
-test_go_race: test_go_expensive
+test_go_race: test_go_test
 .PHONY: test_go_race
 
-test_go_expensive: $$(DEPS_GO)
-	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) ./...
+test_go_expensive: test_go_test $$(TEST_GO_BUILD)
 .PHONY: test_go_expensive
 TEST_GO += test_go_expensive
 

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
@@ -147,6 +147,15 @@ test_add_w() {
 
   test_expect_success "ipfs add -w -r (dir) --cid-version=1 is correct" '
     echo "$add_w_d1_v1" >expected &&
+    test_sort_cmp expected actual
+  '
+
+  test_expect_success "ipfs add -w -r -n (dir) --cid-version=1 succeeds" '
+    ipfs add -r -w -n --cid-version=1 m/t_1wp-8a2/_jo7 >actual
+  '
+
+  test_expect_success "ipfs add -w -r -n (dir) --cid-version=1 is correct" '
+    echo "$add_w_d1_v1" > expected &&
     test_sort_cmp expected actual
   '
 }

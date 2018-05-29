@@ -19,6 +19,7 @@ type Config struct {
 	Addresses Addresses // local node's addresses
 	Mounts    Mounts    // local node's mount points
 	Discovery Discovery // local node's discovery mechanisms
+	Routing   Routing   // local node's routing settings
 	Ipns      Ipns      // Ipns settings
 	Bootstrap []string  // local nodes's bootstrap peer addresses
 	Gateway   Gateway   // local node's gateway server options
@@ -92,7 +93,7 @@ func FromMap(v map[string]interface{}) (*Config, error) {
 	}
 	var conf Config
 	if err := json.NewDecoder(buf).Decode(&conf); err != nil {
-		return nil, fmt.Errorf("Failure to decode config: %s", err)
+		return nil, fmt.Errorf("failure to decode config: %s", err)
 	}
 	return &conf, nil
 }
@@ -104,7 +105,7 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	}
 	var m map[string]interface{}
 	if err := json.NewDecoder(buf).Decode(&m); err != nil {
-		return nil, fmt.Errorf("Failure to decode config: %s", err)
+		return nil, fmt.Errorf("failure to decode config: %s", err)
 	}
 	return m, nil
 }

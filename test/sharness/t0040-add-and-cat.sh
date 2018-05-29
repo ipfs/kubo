@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
@@ -46,11 +46,93 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
+  test_expect_success "ipfs cat with offset succeeds" '
+    ipfs cat --offset 10 "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat from offset output looks good" '
+    echo "ds!" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat multiple hashes with offset succeeds" '
+    ipfs cat --offset 10 "$HASH" "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat from offset output looks good" '
+    echo "ds!" >expected &&
+    echo "Hello Worlds!" >>expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat multiple hashes with offset succeeds" '
+    ipfs cat --offset 16 "$HASH" "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat from offset output looks good" '
+    echo "llo Worlds!" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat from negitive offset should fail" '
+    test_expect_code 1 ipfs cat --offset -102 "$HASH" > actual
+  '
+
+  test_expect_success "ipfs cat with length succeeds" '
+    ipfs cat --length 8 "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat with length output looks good" '
+    printf "Hello Wo" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat multiple hashes with offset and length succeeds" '
+    ipfs cat --offset 5 --length 15 "$HASH" "$HASH" "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat multiple hashes with offset and length looks good" '
+    printf " Worlds!\nHello " >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with exact length succeeds" '
+    ipfs cat --length $(ipfs cat "$HASH" | wc -c) "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat with exact length looks good" '
+    echo "Hello Worlds!" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with 0 length succeeds" '
+    ipfs cat --length 0 "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat with 0 length looks good" '
+    : >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with oversized length succeeds" '
+    ipfs cat --length 100 "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat with oversized length looks good" '
+    echo "Hello Worlds!" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with negitive length should fail" '
+    test_expect_code 1 ipfs cat --length -102 "$HASH" > actual
+  '
+
   test_expect_success "ipfs cat /ipfs/file succeeds" '
     ipfs cat /ipfs/$HASH >actual
   '
 
   test_expect_success "output looks good" '
+    echo "Hello Worlds!" >expected &&
     test_cmp expected actual
   '
 
@@ -472,7 +554,7 @@ test_add_cat_expensive "--cid-version=1" "zdj7WcatQrtuE4WMkS4XsfsMixuQN2po4irkYh
 # encoded with the blake2b-256 hash funtion
 test_add_cat_expensive '--hash=blake2b-256' "zDMZof1kwndounDzQCANUHjiE3zt1mPEgx7RE3JTHoZrRRa79xcv"
 
-test_add_named_pipe " Post http://$API_ADDR/api/v0/add?encoding=json&progress=true&r=true&stream-channels=true:"
+test_add_named_pipe " Post http://$API_ADDR/api/v0/add?chunker=size-262144&encoding=json&hash=sha2-256&pin=true&progress=true&recursive=true&stream-channels=true:"
 
 test_add_pwd_is_symlink
 

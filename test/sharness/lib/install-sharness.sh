@@ -7,13 +7,15 @@
 
 # settings
 version=5eee9b51b5621cec95a64018f0cc779963b230d2
+patch_version=8
+
 urlprefix=https://github.com/mlafeldt/sharness.git
 if test ! -n "$clonedir" ; then
   clonedir=lib
 fi
 sharnessdir=sharness
 
-if test -f "$clonedir/$sharnessdir/SHARNESS_VERSION_$version"
+if test -f "$clonedir/$sharnessdir/SHARNESS_VERSION_${version}_p${patch_version}"
 then
   # There is the right version file. Great, we are done!
   exit 0
@@ -24,11 +26,20 @@ die() {
   exit 1
 }
 
+apply_patches() {
+  git config --local user.email "noone@nowhere"
+  git config --local user.name "No One"
+  git am ../0001-Generate-partial-JUnit-reports.patch
+
+  touch "SHARNESS_VERSION_${version}_p${patch_version}" || die "Could not create 'SHARNESS_VERSION_${version}_p${patch_version}'"
+}
+
 checkout_version() {
   git checkout "$version" || die "Could not checkout '$version'"
   rm -f SHARNESS_VERSION_* || die "Could not remove 'SHARNESS_VERSION_*'"
-  touch "SHARNESS_VERSION_$version" || die "Could not create 'SHARNESS_VERSION_$version'"
   echo "Sharness version $version is checked out!"
+
+  apply_patches
 }
 
 if test -d "$clonedir/$sharnessdir/.git"

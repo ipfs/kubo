@@ -16,12 +16,12 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	format "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	lgbl "gx/ipfs/QmT4PgCNdv73hnFAqzHqwW44q7M9PWpykSswHDxndquZbc/go-libp2p-loggables"
+	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	fuse "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse"
 	fs "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	lgbl "gx/ipfs/Qmf9JgVLz46pxPXwG2eWSJpkqVCcjD4rp7zCRi2KP6GTNB/go-libp2p-loggables"
 )
 
 var log = logging.Logger("fuse/ipfs")
@@ -92,7 +92,7 @@ func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 // Node is the core object representing a filesystem tree node.
 type Node struct {
 	Ipfs   *core.IpfsNode
-	Nd     format.Node
+	Nd     ipld.Node
 	cached *ftpb.Data
 }
 
@@ -135,7 +135,7 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 		a.Mode = 0777 | os.ModeSymlink
 		a.Size = uint64(len(s.cached.GetData()))
 	default:
-		return fmt.Errorf("Invalid data type - %s", s.cached.GetType())
+		return fmt.Errorf("invalid data type - %s", s.cached.GetType())
 	}
 	return nil
 }
@@ -157,7 +157,7 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 	nd, err := s.Ipfs.DAG.Get(ctx, link.Cid)
 	switch err {
-	case mdag.ErrNotFound:
+	case ipld.ErrNotFound:
 	default:
 		log.Errorf("fuse lookup %q: %s", name, err)
 		return nil, err
@@ -177,7 +177,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	}
 
 	var entries []fuse.Dirent
-	err = dir.ForEachLink(ctx, func(lnk *format.Link) error {
+	err = dir.ForEachLink(ctx, func(lnk *ipld.Link) error {
 		n := lnk.Name
 		if len(n) == 0 {
 			n = lnk.Cid.String()

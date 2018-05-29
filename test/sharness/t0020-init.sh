@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
@@ -22,7 +22,7 @@ test_expect_success "ipfs init fails" '
 # Under Windows/Cygwin the error message is different,
 # so we use the STD_ERR_MSG prereq.
 if test_have_prereq STD_ERR_MSG; then
-  init_err_msg="Error: failed to take lock at $IPFS_PATH: permission denied"
+  init_err_msg="Error: error opening repository at $IPFS_PATH: permission denied"
 else
   init_err_msg="Error: mkdir $IPFS_PATH: The system cannot find the path specified."
 fi
@@ -46,7 +46,7 @@ test_expect_success "ipfs cat fails" '
 
 test_expect_success "ipfs cat no repo message looks good" '
   echo "Error: no IPFS repo found in $IPFS_PATH." > cat_fail_exp &&
-  echo "please run: 'ipfs init'" >> cat_fail_exp &&
+  echo "please run: '"'"'ipfs init'"'"'" >> cat_fail_exp &&
   test_path_cmp cat_fail_exp cat_fail_out
 '
 
@@ -161,6 +161,20 @@ test_expect_success "'ipfs config Bootstrap' looks good" '
 test_expect_success "'ipfs config Addresses.API' looks good" '
   ipfs config Addresses.API > actual_config &&
   test $(cat actual_config) = "/ip4/127.0.0.1/tcp/0"
+'
+
+test_expect_success "clean up ipfs dir" '
+  rm -rf "$IPFS_PATH"
+'
+
+test_expect_success "'ipfs init --profile=lowpower' succeeds" '
+  BITS="1024" &&
+  ipfs init --bits="$BITS" --profile=lowpower
+'
+
+test_expect_success "'ipfs config Discovery.Routing' looks good" '
+  ipfs config Routing.Type > actual_config &&
+  test $(cat actual_config) = "dhtclient"
 '
 
 test_expect_success "clean up ipfs dir" '
