@@ -28,6 +28,15 @@ def build_platforms = [
   ['freebsd', 'amd64']
 ]
 
+// js-ipfs-api tests
+def js_api_commit = '7e78ee232bea8e5ea92bcfcff949b4ed671c2d50' // 22.0.1
+def js_api_platforms = ['linux', 'macos']
+def js_api_node_versions = ['8.11.1', '9.2.0']
+
+def yarn_version = '1.5.1'
+def yarn_path = './node_modules/.bin/yarn'
+
+
 /* PIPELINE UTILS */
 
 def setupStep(nodeLabel, f) {
@@ -69,6 +78,7 @@ def gobuild_step = { list ->
             run "go build -i -ldflags=\"-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=${env.SUBNAME}-${env.BUILD_NUMBER}\"  -o cmd/ipfs/ipfs github.com/ipfs/go-ipfs/cmd/ipfs"
             run "cp cmd/ipfs/ipfs cmd/ipfs/dist; cd cmd/ipfs/dist; tar -czvf ../go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz ."
             archiveArtifacts artifacts: "cmd/ipfs/go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz", fingerprint: true
+            stash name: "ipfs-${env.GOOS}-${env.GOARCH}", includes: "cmd/ipfs/ipfs"
           }
         }
       }
@@ -100,8 +110,23 @@ def sharness_step = { run, osname, makeargs, ignore ->
 
 /* PIPELINE */
 
+def reportedStage(name, fn) {
+  githubNotify description: "Running ${name}", status: 'PENDING', context: "continuous-integration/jenkins/${name}"
+
+  try {
+    stage(name.capitalize()) {
+      fn()
+    }
+    githubNotify description: "${name.capitalize()} passed", status: 'SUCCESS', context: "continuous-integration/jenkins/${name}"
+  } catch (err) {
+    githubNotify description: '${name.capitalize()} failed', status: 'FAILURE', context: "continuous-integration/jenkins/${name}"
+    throw err
+  }
+
+}
+
 ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
-  stage('Checks') {
+  reportedStage('checks') {
     parallel(
       'go fmt': {
         setupStep('linux') { run ->
@@ -132,7 +157,8 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
     )
   }
 
-  stage('Tests') {
+
+  reportedStage('tests') {
     parallel(
       'go build (other platforms)': {
         gobuild_step(build_platforms)
@@ -201,4 +227,61 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
       //},
     )
   }
+
+  reportedStage('apis') {
+    def jsApiStep = { os, nodeVer ->
+      return { ->
+        setupStep(os) {
+          switch (os) {
+            case "linux":
+              unstash("ipfs-linux-amd64")
+              break
+            case "macos":
+              unstash("ipfs-darwin-amd64")
+              break
+          }
+
+          withEnv(['IPFS_GO_EXEC=../cmd/ipfs/ipfs', 'CI=true']) {
+            dir('.js-ipfs-api') {
+              checkout changelog: false, scm: [$class: 'GitSCM', branches: [[name: "${js_api_commit}"]], userRemoteConfigs: [[url: 'https://github.com/ipfs/js-ipfs-api']]]
+
+              //todo: deduplicate with https://github.com/ipfs/jenkins-libs/blob/master/vars/javascript.groovy somehow
+
+              fileExists 'package.json'
+              nodejs(nodeVer) {
+                sh 'rm -rf node_modules/'
+                sh 'npm install yarn@' + yarn_version
+                sh yarn_path + ' --mutex network --no-lockfile'
+                def runTest = { ->
+                  try {
+                    sh yarn_path + ' test'
+                  } finally {
+                    junit allowEmptyResults: true, testResults: 'junit-report-*.xml'
+                  }
+                }
+
+                if (os == "linux") {
+                  wrap([$class: 'Xvfb', parallelBuild: true, autoDisplayName: true]) {
+                    runTest()
+                  }
+                } else {
+                  runTest()
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    def steps = [:]
+    js_api_platforms.each {os ->
+      js_api_node_versions.each { nodeVer ->
+        steps["js-api-${os}-${nodeVer}"] = jsApiStep(os, nodeVer)
+      }
+    }
+
+    parallel steps
+  }
+
 }}
