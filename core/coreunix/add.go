@@ -460,6 +460,8 @@ func (adder *Adder) addFile(file files.File) error {
 	}
 
 	// case for regular file
+	log.Infof("adding regular file: %s", file.FileName())
+
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
 	var reader io.Reader = file
