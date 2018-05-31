@@ -122,7 +122,10 @@ func (db *DagBuilderHelper) NewUnixfsNode() *UnixfsNode {
 	return n
 }
 
-// NewLeaf creates a leaf node filled with data
+// NewLeaf creates a leaf node filled with data.  If rawLeaves is
+// defined than a raw leaf will be returned.  Otherwise, if data is
+// nil the type field will be TRaw (for backwards compatibility), if
+// data is defined (but possibly empty) the type field will be TRaw.
 func (db *DagBuilderHelper) NewLeaf(data []byte) (*UnixfsNode, error) {
 	if len(data) > BlockSizeLimit {
 		return nil, ErrSizeLimitExceeded
@@ -143,6 +146,10 @@ func (db *DagBuilderHelper) NewLeaf(data []byte) (*UnixfsNode, error) {
 			rawnode: rawnode,
 			raw:     true,
 		}, nil
+	}
+
+	if data == nil {
+		return db.NewUnixfsNode(), nil
 	}
 
 	blk := db.newUnixfsBlock()

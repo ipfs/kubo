@@ -174,7 +174,7 @@ test_add_cat_file() {
   '
 
   test_expect_success "zero length file has correct hash" '
-    test "$ZEROHASH" = Qmdsf68UUYTSSx3i4GtDJfxzpAEZt7Mp23m3qa36LYMSiW
+    test "$ZEROHASH" = QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
   '
 
   test_expect_success "cat zero length file" '
