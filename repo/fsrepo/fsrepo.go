@@ -400,6 +400,9 @@ func (r *FSRepo) openDatastore() error {
 	} else if r.config.Datastore.Spec == nil {
 		return fmt.Errorf("required Datastore.Spec entry missing from config file")
 	}
+	if r.config.Datastore.NoSync {
+		log.Warning("NoSync is now deprecated in favor of datastore specific settings. If you want to disable fsync on flatfs set 'sync' to false. See https://github.com/ipfs/go-ipfs/blob/master/docs/datastores.md#flatfs.")
+	}
 
 	dsc, err := AnyDatastoreConfig(r.config.Datastore.Spec)
 	if err != nil {
