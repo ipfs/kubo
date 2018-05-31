@@ -8,10 +8,10 @@ import (
 	"io/ioutil"
 	"testing"
 
+	mdag "github.com/ipfs/go-ipfs-merkledag"
+	mdagmock "github.com/ipfs/go-ipfs-merkledag/test"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
-	mdagmock "github.com/ipfs/go-ipfs/merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"

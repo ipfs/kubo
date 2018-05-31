@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	dag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs-merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"

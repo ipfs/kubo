@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	dag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs-merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	mod "github.com/ipfs/go-ipfs/unixfs/mod"
 

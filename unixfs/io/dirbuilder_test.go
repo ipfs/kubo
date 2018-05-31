@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
+	mdtest "github.com/ipfs/go-ipfs-merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 

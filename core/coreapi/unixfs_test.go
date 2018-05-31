@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
+	mdag "github.com/ipfs/go-ipfs-merkledag"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	keystore "github.com/ipfs/go-ipfs/keystore"
-	mdag "github.com/ipfs/go-ipfs/merkledag"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"

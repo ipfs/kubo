@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
+	mdtest "github.com/ipfs/go-ipfs-merkledag/test"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"

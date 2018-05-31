@@ -5,9 +5,10 @@ import (
 
 	context "context"
 
-	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "github.com/ipfs/go-ipfs/path"
 	proquint "gx/ipfs/QmYnf27kzqR2cxt6LFZdrAFJuQd6785fTkBvMuEj9EeRxM/proquint"
+
+	path "github.com/ipfs/go-ipfs-path"
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 )
 
 type ProquintResolver struct{}

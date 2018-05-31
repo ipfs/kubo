@@ -10,7 +10,7 @@ import (
 	"path"
 	"time"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
+	mdag "github.com/ipfs/go-ipfs-merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"

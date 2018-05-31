@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 
+	dag "github.com/ipfs/go-ipfs-merkledag"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"

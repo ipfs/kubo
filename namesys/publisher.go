@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	path "github.com/ipfs/go-ipfs-path"
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
-	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
