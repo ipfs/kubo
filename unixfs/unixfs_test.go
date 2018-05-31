@@ -180,8 +180,8 @@ func TestValidatePB(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = ValidatePB(nd, fd)
-	if err == nil {
-		t.Fatal("invalid unixfs node (with no blocksizes) validated")
+	if err != nil {
+		t.Fatalf("valid node (with no blocksizes) failed to validate: %v", err)
 	}
 	// give node blocksizes
 	fd.Blocksizes = []uint64{3, 3}

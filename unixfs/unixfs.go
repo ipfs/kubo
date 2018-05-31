@@ -262,8 +262,11 @@ func EmptyDirNode() *dag.ProtoNode {
 
 // ValidatePB validates a unixfs protonode.
 func ValidatePB(n *dag.ProtoNode, pb *pb.Data) error {
+	if len(pb.Blocksizes) == 0 { // special case
+		return nil
+	}
 	if len(n.Links()) != len(pb.Blocksizes) {
-		return errors.New("unixfs ill-formed, number of links does not batch blocksize count")
+		return errors.New("unixfs ill-formed, number of links does not match blocksize count")
 	}
 	total := uint64(len(pb.GetData()))
 	for _, blocksize := range pb.Blocksizes {

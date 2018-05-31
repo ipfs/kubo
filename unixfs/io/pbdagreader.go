@@ -145,7 +145,9 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 			return err
 		}
 	}
-	dr.buf = newSizeAdjReadSeekCloser(dr.buf, dr.pbdata.Blocksizes[linkPos])
+	if len(dr.pbdata.Blocksizes) > 0 {
+		dr.buf = newSizeAdjReadSeekCloser(dr.buf, dr.pbdata.Blocksizes[linkPos])
+	}
 	return nil
 }
 
@@ -274,6 +276,11 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 			dr.linkPosition = 0
 			dr.offset = offset
 			return offset, nil
+		}
+
+		// error out if we have links but not blocksizes
+		if len(pb.Blocksizes) == 0 && len(dr.node.Links()) > 0 {
+			return -1, errors.New("unseekable node (no blocksizes defined)")
 		}
 
 		// skip past root block data
