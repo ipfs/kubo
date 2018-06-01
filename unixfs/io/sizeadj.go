@@ -79,13 +79,30 @@ func (r *sizeAdjReadSeekCloser) WriteTo(w io.Writer) (int64, error) {
 		return n, err
 	}
 	if r.offset+n < r.size {
-		zeros := make([]byte, r.size-(r.offset+n))
-		n0, err0 := w.Write(zeros)
-		n += int64(n0)
+		n0, err0 := writeZeros(w, r.size-(r.offset+n))
+		n += n0
 		err = err0
 	}
 	r.offset += n
 	return n, err
+}
+
+func writeZeros(w io.Writer, numZeros int64) (int64, error) {
+	n := int64(0)
+	for numZeros > 0 {
+		l := int64(4 * 1024)
+		if l > numZeros {
+			l = numZeros
+		}
+		zeros := make([]byte, l)
+		n0, err := w.Write(zeros)
+		n += int64(n0)
+		if err != nil {
+			return n, err
+		}
+		numZeros -= l
+	}
+	return n, nil
 }
 
 // truncWriter accepts all bytes written to it, but discards the tail

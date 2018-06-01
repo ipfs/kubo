@@ -105,3 +105,26 @@ func TestTruncWriter(t *testing.T) {
 		t.Fatalf("truncWriter wrote incorrect number of bytes (expected 45): %d", len(res))
 	}
 }
+
+func TestWriteZeros(t *testing.T) {
+	buf := new(bytes.Buffer)
+
+	n, err := writeZeros(buf, 1000)
+	if err != nil {
+		t.Fatalf("writeZeros failed: %v", err)
+	}
+	res := buf.Bytes()
+	if n != 1000 || len(res) != 1000 {
+		t.Fatalf("writeZeros wrote incorrect number of bytes (expected 1000): %d %d", n, len(res))
+	}
+
+	buf.Reset()
+	n, err = writeZeros(buf, 10000)
+	if err != nil {
+		t.Fatalf("writeZeros failed: %v", err)
+	}
+	res = buf.Bytes()
+	if n != 10000 || len(res) != 10000 {
+		t.Fatalf("writeZeros wrote incorrect number of bytes (expected 10000): %d %d", n, len(res))
+	}
+}
