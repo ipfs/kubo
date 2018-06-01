@@ -100,8 +100,8 @@ type truncWriter struct {
 func (w *truncWriter) Write(p []byte) (int, error) {
 	truncC := 0
 	if int64(len(p)) > w.size-w.offset {
-		truncC = int(int64(len(p)) - w.size - w.offset)
-		p = p[:w.size]
+		truncC = int(int64(len(p)) - (w.size - w.offset))
+		p = p[:w.size-w.offset]
 	}
 	if len(p) == 0 {
 		return truncC, nil

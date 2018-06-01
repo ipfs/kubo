@@ -76,3 +76,32 @@ func TestSizeAdj(t *testing.T) {
 	t.Run("WriteTo/Trunc", func(t *testing.T) { testSizeAdjWriteTo(t, truncSizeAdj) })
 	t.Run("WriteTo/Pad", func(t *testing.T) { testSizeAdjWriteTo(t, padSizeAdj) })
 }
+
+func TestTruncWriter(t *testing.T) {
+	b := testBytes() // 128 bytes
+	buf := new(bytes.Buffer)
+	// note: to correctly test truncWriter size should not be a
+	//   multiple of writeLen
+	tw := truncWriter{base: buf, size: 45}
+	writeLen := 25
+	inCount := 0
+	for len(b) > 0 {
+		j := writeLen
+		if j > len(b) {
+			j = len(b)
+		}
+		n, err := tw.Write(b[:j])
+		if err != nil {
+			t.Fatalf("write failed: %v", err)
+		}
+		b = b[j:]
+		inCount += n
+	}
+	res := buf.Bytes()
+	if inCount != 128 {
+		t.Fatalf("truncWriter accepted incorrect number of bytes (expected 128): %d", len(res))
+	}
+	if len(res) != 45 {
+		t.Fatalf("truncWriter wrote incorrect number of bytes (expected 45): %d", len(res))
+	}
+}
