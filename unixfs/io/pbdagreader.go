@@ -146,7 +146,11 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 		}
 	}
 	if len(dr.pbdata.Blocksizes) > 0 {
-		dr.buf = newSizeAdjReadSeekCloser(dr.buf, dr.pbdata.Blocksizes[linkPos])
+		// if blocksizes are set, ensure that we read exactly that amount of data
+		dr.buf, err = newSizeAdjReadSeekCloser(dr.buf, dr.pbdata.Blocksizes[linkPos])
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -50,19 +50,22 @@ func (byteReader) Close() error { return nil }
 func simpleSizeAdj() (*sizeAdjReadSeekCloser, []byte) {
 	b := testBytes()
 	buf := byteReader{bytes.NewReader(b)}
-	return newSizeAdjReadSeekCloser(buf, uint64(len(b))), b
+	r, _ := newSizeAdjReadSeekCloser(buf, uint64(len(b)))
+	return r, b
 }
 
 func truncSizeAdj() (*sizeAdjReadSeekCloser, []byte) {
 	b := testBytes()
 	buf := byteReader{bytes.NewReader(b)}
-	return newSizeAdjReadSeekCloser(buf, 100), b[:100]
+	r, _ := newSizeAdjReadSeekCloser(buf, 100)
+	return r, b[:100]
 }
 
 func padSizeAdj() (*sizeAdjReadSeekCloser, []byte) {
 	b := testBytes()
 	buf := byteReader{bytes.NewReader(b[:100])}
-	return newSizeAdjReadSeekCloser(buf, uint64(len(b))), b
+	r, _ := newSizeAdjReadSeekCloser(buf, uint64(len(b)))
+	return r, b
 }
 
 func TestSizeAdj(t *testing.T) {
