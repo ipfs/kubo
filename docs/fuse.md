@@ -17,7 +17,8 @@ Install `fuse` with your favorite package manager:
 sudo apt-get install fuse
 ```
 
-Add the user which will be running IPFS daemon to the `fuse` group:
+Add the user which will be running IPFS daemon to the `fuse` group:  
+_You can skip this in Debian Stretch_
 ```sh
 sudo usermod -a -G fuse <username>
 ```
