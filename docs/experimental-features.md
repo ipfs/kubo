@@ -282,9 +282,12 @@ going to use `/kickass/1.0`.
 1. A "server" node with peer ID `$SERVER_ID`
 2. A "client" node.
 
-**On the "server" node:**
+**Netcat example:**
 
-First, start your application and have it listen on `$APP_PORT`.
+***On the "server" node:***
+
+First, start your application and have it listen for TCP connections on
+port `$APP_PORT`.
 
 Then, configure the p2p listener by running:
 
@@ -296,11 +299,11 @@ This will configure IPFS to forward all incoming `/p2p/kickass/1.0` streams to
 `127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per
 incoming stream.
 
-**On the "client" node:**
+***On the "client" node:***
 
-First, configure the p2p dialer to forward all inbound connections on
-`127.0.0.1:SOME_PORT` to the listener behind `/p2p/kickass/1.0` on the server
-node.
+First, configure the client p2p dialer, so that it forwards all inbound
+connections on `127.0.0.1:SOME_PORT` to the server node listening
+on `/p2p/kickass/1.0`.
 
 ```sh
 > ipfs p2p forward /kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /ipfs/$SERVER_ID
@@ -310,12 +313,12 @@ Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This
 connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
 the remote machine. You can test it with netcat:
 
-**On "server" node:**
+***On "server" node:***
 ```sh
 > nc -v -l -p $APP_PORT
 ```
 
-**On "client" node:**
+***On "client" node:***
 ```sh
 > nc -v 127.0.0.1 $SOME_PORT
 ```

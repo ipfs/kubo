@@ -68,10 +68,12 @@ var p2pForwardCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Forward connections to or from libp2p services",
 		ShortDescription: `
-Forward connections to <listen-address> to <target-address>. Protocol specifies
-the libp2p protocol to use.
+Forward connections made to <listen-address> to <target-address>.
 
-To create libp2p service listener, specify '/ipfs' as <listen-address>
+<protocol> specifies the libp2p protocol name to use for libp2p
+connections and/or handlers.
+
+To create a libp2p service listener, specify '/ipfs' as <listen-address>
 
 Examples:
   ipfs p2p forward myproto /ipfs /ip4/127.0.0.1/tcp/1234
@@ -83,8 +85,8 @@ Examples:
 `,
 	},
 	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("protocol", true, false, "Protocol identifier."),
-		cmdkit.StringArg("listen-address", true, false, "Listening endpoint"),
+		cmdkit.StringArg("protocol", true, false, "Protocol name."),
+		cmdkit.StringArg("listen-address", true, false, "Listening endpoint."),
 		cmdkit.StringArg("target-address", true, false, "Target endpoint."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -311,7 +313,7 @@ var p2pStreamLsCmd = &cmds.Command{
 		Tagline: "List active p2p streams.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (HagndlerID, Protocol, Local, Remote)."),
+		cmdkit.BoolOption("headers", "v", "Print table headers (ID, Protocol, Local, Remote)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -326,7 +328,7 @@ var p2pStreamLsCmd = &cmds.Command{
 			output.Streams = append(output.Streams, P2PStreamInfoOutput{
 				HandlerID: strconv.FormatUint(id, 10),
 
-				Protocol: s.Protocol,
+				Protocol: string(s.Protocol),
 
 				OriginAddress: s.OriginAddr.String(),
 				TargetAddress: s.TargetAddr.String(),
@@ -349,7 +351,7 @@ var p2pStreamLsCmd = &cmds.Command{
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, stream := range list.Streams {
 				if headers {
-					fmt.Fprintln(w, "Id\tProtocol\tOrigin\tTarget")
+					fmt.Fprintln(w, "ID\tProtocol\tOrigin\tTarget")
 				}
 
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.HandlerID, stream.Protocol, stream.OriginAddress, stream.TargetAddress)

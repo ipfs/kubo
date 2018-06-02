@@ -24,7 +24,7 @@ type listenerKey struct {
 // ListenerRegistry is a collection of local application proto listeners.
 type ListenerRegistry struct {
 	Listeners map[listenerKey]Listener
-	lk        *sync.Mutex
+	lk        sync.Mutex
 }
 
 func (r *ListenerRegistry) lock(l Listener) error {

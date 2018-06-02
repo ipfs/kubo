@@ -19,7 +19,7 @@ type localListener struct {
 	p2p *P2P
 	id  peer.ID
 
-	proto string
+	proto protocol.ID
 	laddr ma.Multiaddr
 	peer  peer.ID
 
@@ -34,7 +34,7 @@ func (p2p *P2P) ForwardLocal(ctx context.Context, peer peer.ID, proto string, bi
 		p2p: p2p,
 		id:  p2p.identity,
 
-		proto: proto,
+		proto: protocol.ID(proto),
 		laddr: bindAddr,
 		peer:  peer,
 	}
@@ -66,7 +66,7 @@ func (l *localListener) dial() (net.Stream, error) {
 		return nil, err
 	}
 
-	return l.p2p.peerHost.NewStream(l.ctx, l.peer, protocol.ID(l.proto))
+	return l.p2p.peerHost.NewStream(l.ctx, l.peer, l.proto)
 }
 
 func (l *localListener) acceptConns() {
@@ -112,7 +112,7 @@ func (l *localListener) Close() error {
 }
 
 func (l *localListener) Protocol() string {
-	return l.proto
+	return string(l.proto)
 }
 
 func (l *localListener) ListenAddress() string {

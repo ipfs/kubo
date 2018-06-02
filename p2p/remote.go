@@ -14,7 +14,7 @@ type remoteListener struct {
 	p2p *P2P
 
 	// Application proto identifier.
-	proto string
+	proto protocol.ID
 
 	// Address to proxy the incoming connections to
 	addr ma.Multiaddr
@@ -25,7 +25,7 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 	listener := &remoteListener{
 		p2p: p2p,
 
-		proto: proto,
+		proto: protocol.ID(proto),
 		addr:  addr,
 	}
 
@@ -33,7 +33,7 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 		return nil, err
 	}
 
-	p2p.peerHost.SetStreamHandler(protocol.ID(proto), func(remote net.Stream) {
+	p2p.peerHost.SetStreamHandler(listener.proto, func(remote net.Stream) {
 		local, err := manet.Dial(addr)
 		if err != nil {
 			remote.Reset()
@@ -48,7 +48,7 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 		}
 
 		stream := &Stream{
-			Protocol: proto,
+			Protocol: listener.proto,
 
 			OriginAddr: peerMa,
 			TargetAddr: addr,
@@ -69,7 +69,7 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiad
 }
 
 func (l *remoteListener) Protocol() string {
-	return l.proto
+	return string(l.proto)
 }
 
 func (l *remoteListener) ListenAddress() string {
