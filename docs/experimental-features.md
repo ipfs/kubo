@@ -273,16 +273,16 @@ The `p2p` command needs to be enabled in config:
 
 ### How to use
 
+**Netcat example:**
+
 First, pick a protocol name for your application. Think of the protocol name as
 a port number, just significantly more user-friendly. In this example, we're
 going to use `/kickass/1.0`.
 
-**Setup:**
+***Setup:***
 
 1. A "server" node with peer ID `$SERVER_ID`
 2. A "client" node.
-
-**Netcat example:**
 
 ***On the "server" node:***
 
@@ -327,6 +327,31 @@ You should now see that a connection has been established and be able to
 exchange messages between netcat instances.
 
 (note that depending on your netcat version you may need to drop the `-v` flag)
+
+**SSH example**
+
+**Setup:**
+
+1. A "server" node with peer ID `$SERVER_ID` and running ssh server on the
+   default port.
+2. A "client" node.
+
+_you can get `$SERVER_ID` by running `ipfs id -f "<id>\n"`_
+
+***First, on the "server" node:***
+
+```sh
+ipfs p2p forward ssh /ipfs /ip4/127.0.0.1/tcp/22
+```
+
+***Then, on "client" node:***
+
+```sh
+ipfs p2p forward ssh /ip4/127.0.0.1/tcp/2222 /ipfs/$SERVER_ID
+```
+
+You should now be able to connect to your ssh server through a libp2p connection
+with `ssh [user]@127.0.0.1 -p 2222`.
 
 
 ### Road to being a real feature
