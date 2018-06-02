@@ -136,6 +136,10 @@ func (p *IpnsPublisher) GetPublished(ctx context.Context, id peer.ID, checkRouti
 		if err != nil {
 			// Not found or other network issue. Can't really do
 			// anything about this case.
+			if err != routing.ErrNotFound {
+				log.Debugf("error when determining the last published IPNS record for %s: %s", id, err)
+			}
+
 			return nil, nil
 		}
 	default:
