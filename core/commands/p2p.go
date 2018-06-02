@@ -96,10 +96,14 @@ Examples:
 			return
 		}
 
-		//TODO: Do we really want/need implicit prefix?
-		proto := "/p2p/" + req.Arguments()[0]
+		proto := req.Arguments()[0]
 		listen := req.Arguments()[1]
 		target := req.Arguments()[2]
+
+		if !strings.HasPrefix(proto, "/p2p/") {
+			res.SetError(errors.New("protocol name must be within '/p2p/' namespace"), cmdkit.ErrNormal)
+			return
+		}
 
 		if strings.HasPrefix(listen, "/ipfs") {
 			if listen != "/ipfs" {
@@ -246,9 +250,6 @@ var p2pCloseCmd = &cmds.Command{
 
 		match := func(listener p2p.Listener) bool {
 			out := true
-			if p || !strings.HasPrefix(proto, "/p2p/") {
-				proto = "/p2p/" + proto
-			}
 
 			if p {
 				out = out && (proto == listener.Protocol())

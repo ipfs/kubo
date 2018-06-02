@@ -38,7 +38,7 @@ test_expect_success "enable filestore config setting" '
 '
 
 test_expect_success 'start p2p listener' '
-  ipfsi 0 p2p forward p2p-test /ipfs /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log
+  ipfsi 0 p2p forward /p2p/p2p-test /ipfs /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log
 '
 
 # Server to client communications
@@ -69,7 +69,7 @@ test_server_to_client() {
 spawn_sending_server
 
 test_expect_success 'S->C Setup client side' '
-  ipfsi 1 p2p forward p2p-test /ip4/127.0.0.1/tcp/10102 /ipfs/${PEERID_0} 2>&1 > dialer-stdouterr.log
+  ipfsi 1 p2p forward /p2p/p2p-test /ip4/127.0.0.1/tcp/10102 /ipfs/${PEERID_0} 2>&1 > dialer-stdouterr.log
 '
 
 test_server_to_client
@@ -87,7 +87,7 @@ spawn_sending_server
 test_server_to_client
 
 test_expect_success 'S->C Close local listener' '
-  ipfsi 1 p2p close -p p2p-test
+  ipfsi 1 p2p close -p /p2p/p2p-test
 '
 
 check_test_ports
@@ -102,7 +102,7 @@ test_expect_success 'C->S Spawn receiving server' '
 '
 
 test_expect_success 'C->S Setup client side' '
-  ipfsi 1 p2p forward p2p-test /ip4/127.0.0.1/tcp/10102 /ipfs/${PEERID_0} 2>&1 > dialer-stdouterr.log
+  ipfsi 1 p2p forward /p2p/p2p-test /ip4/127.0.0.1/tcp/10102 /ipfs/${PEERID_0} 2>&1 > dialer-stdouterr.log
 '
 
 test_expect_success 'C->S Connect and receive data' '
@@ -119,7 +119,7 @@ test_expect_success 'C->S Output looks good' '
 '
 
 test_expect_success 'C->S Close local listener' '
-  ipfsi 1 p2p close -p p2p-test
+  ipfsi 1 p2p close -p /p2p/p2p-test
 '
 
 check_test_ports
@@ -136,7 +136,7 @@ test_expect_success "'ipfs p2p ls' output looks good" '
 '
 
 test_expect_success "Cannot re-register app handler" '
-  test_must_fail ipfsi 0 p2p forward p2p-test /ipfs /ip4/127.0.0.1/tcp/10101
+  test_must_fail ipfsi 0 p2p forward /p2p/p2p-test /ipfs /ip4/127.0.0.1/tcp/10101
 '
 
 test_expect_success "'ipfs p2p stream ls' output is empty" '
@@ -147,7 +147,7 @@ test_expect_success "'ipfs p2p stream ls' output is empty" '
 test_expect_success "Setup: Idle stream" '
   ma-pipe-unidir --listen --pidFile=listener.pid recv /ip4/127.0.0.1/tcp/10101 &
 
-  ipfsi 1 p2p forward p2p-test /ip4/127.0.0.1/tcp/10102  /ipfs/$PEERID_0 2>&1 > dialer-stdouterr.log &&
+  ipfsi 1 p2p forward /p2p/p2p-test /ip4/127.0.0.1/tcp/10102  /ipfs/$PEERID_0 2>&1 > dialer-stdouterr.log &&
   ma-pipe-unidir --pidFile=client.pid recv /ip4/127.0.0.1/tcp/10102 &
 
   test_wait_for_file 30 100ms listener.pid &&
@@ -172,13 +172,13 @@ test_expect_success "'ipfs p2p stream close' closes stream" '
 '
 
 test_expect_success "'ipfs p2p close' closes remote handler" '
-  ipfsi 0 p2p close -p p2p-test &&
+  ipfsi 0 p2p close -p /p2p/p2p-test &&
   ipfsi 0 p2p ls > actual &&
   test_must_be_empty actual
 '
 
 test_expect_success "'ipfs p2p close' closes local handler" '
-  ipfsi 1 p2p close -p p2p-test &&
+  ipfsi 1 p2p close -p /p2p/p2p-test &&
   ipfsi 1 p2p ls > actual &&
   test_must_be_empty actual
 '
@@ -188,8 +188,8 @@ check_test_ports
 test_expect_success "Setup: Idle stream(2)" '
   ma-pipe-unidir --listen --pidFile=listener.pid recv /ip4/127.0.0.1/tcp/10101 &
 
-  ipfsi 0 p2p forward p2p-test2 /ipfs /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log &&
-  ipfsi 1 p2p forward p2p-test2 /ip4/127.0.0.1/tcp/10102 /ipfs/$PEERID_0 2>&1 > dialer-stdouterr.log &&
+  ipfsi 0 p2p forward /p2p/p2p-test2 /ipfs /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log &&
+  ipfsi 1 p2p forward /p2p/p2p-test2 /ip4/127.0.0.1/tcp/10102 /ipfs/$PEERID_0 2>&1 > dialer-stdouterr.log &&
   ma-pipe-unidir --pidFile=client.pid recv /ip4/127.0.0.1/tcp/10102 &
 
   test_wait_for_file 30 100ms listener.pid &&
@@ -225,10 +225,16 @@ test_expect_success "'ipfs p2p stream close -a' closes streams" '
 check_test_ports
 
 test_expect_success "'ipfs p2p close' closes app numeric handlers" '
-  ipfsi 0 p2p forward 1234 /ipfs /ip4/127.0.0.1/tcp/10101 &&
-  ipfsi 0 p2p close -p 1234 &&
+  ipfsi 0 p2p forward /p2p/1234 /ipfs /ip4/127.0.0.1/tcp/10101 &&
+  ipfsi 0 p2p close -p /p2p/1234 &&
   ipfsi 0 p2p ls > actual &&
   test_must_be_empty actual
+'
+
+test_expect_success "non /p2p/ scoped protocols are not allowed" '
+  test_must_fail ipfsi 0 p2p forward /its/not/a/p2p/path /ipfs /ip4/127.0.0.1/tcp/10101 2> actual &&
+  echo "Error: protocol name must be within '"'"'/p2p/'"'"' namespace" > expected
+  test_cmp expected actual
 '
 
 check_test_ports
