@@ -162,10 +162,10 @@ func CheckVersionOption() ServeOption {
 				pth := path.SplitList(cmdqry)
 
 				// backwards compatibility to previous version check
-				if pth[1] != "version" {
+				if len(pth) >= 2 && pth[1] != "version" {
 					clientVersion := r.UserAgent()
 					// skips check if client is not go-ipfs
-					if clientVersion != "" && strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
+					if strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
 						http.Error(w, fmt.Sprintf("%s (%s != %s)", errAPIVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
 						return
 					}
