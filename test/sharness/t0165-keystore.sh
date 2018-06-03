@@ -34,7 +34,7 @@ test_key_cmd() {
 
   test_expect_success "key list -l contains self key with peerID" '
     PeerID="$(ipfs config Identity.PeerID)"
-    ipfs key list -l | grep "$PeerID self"
+    ipfs key list -l | grep "$PeerID\s\+self"
   '
 
   test_expect_success "key rm remove a key" '

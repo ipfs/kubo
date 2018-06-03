@@ -142,8 +142,9 @@ func TestGenerateType(t *testing.T) {
 		t.Errorf("expected the key to be called 'foo', got '%s'", k.Name())
 	}
 
-	if !strings.HasPrefix(k.Path().String(), "/ipns/Qm") {
-		t.Errorf("expected the key to be prefixed with '/ipns/Qm', got '%s'", k.Path().String())
+	// Expected to be an inlined identity hash.
+	if !strings.HasPrefix(k.Path().String(), "/ipns/12") {
+		t.Errorf("expected the key to be prefixed with '/ipns/12', got '%s'", k.Path().String())
 	}
 }
 

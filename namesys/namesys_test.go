@@ -1,19 +1,19 @@
 package namesys
 
 import (
+	"context"
 	"fmt"
 	"testing"
-
-	context "context"
+	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/unixfs"
 
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	dssync "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
-	offroute "gx/ipfs/QmXtoXbu9ReyV6Q4kDQ5CF9wXQNDY1PdHc4HhfxRR5AHB3/go-ipfs-routing/offline"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	offroute "gx/ipfs/QmPuPdzoG4b5uyYSQCjLEHB8NM593m3BW19UHX2jZ6Wzfm/go-ipfs-routing/offline"
+	ci "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
+	dssync "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"
 )
 
 type mockResolver struct {
@@ -21,6 +21,7 @@ type mockResolver struct {
 }
 
 func testResolution(t *testing.T, resolver Resolver, name string, depth uint, expected string, expError error) {
+	t.Helper()
 	p, err := resolver.Resolve(context.Background(), name, opts.Depth(depth))
 	if err != expError {
 		t.Fatal(fmt.Errorf(
@@ -34,8 +35,9 @@ func testResolution(t *testing.T, resolver Resolver, name string, depth uint, ex
 	}
 }
 
-func (r *mockResolver) resolveOnce(ctx context.Context, name string, opts *opts.ResolveOpts) (path.Path, error) {
-	return path.ParsePath(r.entries[name])
+func (r *mockResolver) resolveOnce(ctx context.Context, name string, opts *opts.ResolveOpts) (path.Path, time.Duration, error) {
+	p, err := path.ParsePath(r.entries[name])
+	return p, 0, err
 }
 
 func mockResolverOne() *mockResolver {
@@ -58,10 +60,8 @@ func mockResolverTwo() *mockResolver {
 
 func TestNamesysResolution(t *testing.T) {
 	r := &mpns{
-		resolvers: map[string]resolver{
-			"dht": mockResolverOne(),
-			"dns": mockResolverTwo(),
-		},
+		ipnsResolver: mockResolverOne(),
+		dnsResolver:  mockResolverTwo(),
 	}
 
 	testResolution(t, r, "Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj", opts.DefaultDepthLimit, "/ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj", nil)
