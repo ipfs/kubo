@@ -123,12 +123,6 @@
       "version": "0.0.0"
     },
     {
-      "author": "kubuxu",
-      "hash": "QmczzCMvJ3HV57WBKDy8b4ucp7quT325JjDbixYRS5Pwvv",
-      "name": "fsnotify.v1",
-      "version": "1.3.0"
-    },
-    {
       "author": "jbenet",
       "hash": "QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i",
       "name": "go-datastore",
@@ -278,9 +272,9 @@
     },
     {
       "author": "kubuxu",
-      "hash": "QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9",
+      "hash": "QmexRhMPjQUc8LcMYfjZWVdqRDtCKUkW1YAFQbJ1fjfAxX",
       "name": "fuse",
-      "version": "0.1.3"
+      "version": "0.2.2"
     },
     {
       "author": "whyrusleeping",
@@ -397,7 +391,7 @@
     {
       "hash": "QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM",
       "name": "go-ipfs-cmdkit",
-      "version": "1.0.0-dev"
+      "version": "1.0.0"
     },
     {
       "author": "whyrusleeping",
@@ -610,6 +604,12 @@
       "author": "Stebalien",
       "hash": "QmeoG1seQ8a9b2vS3XJ8HPz9tXr6dzpS5NizjuDDSntQEk",
       "name": "go-libp2p-routing-helpers",
+      "version": "0.1.0"
+    },
+    {
+      "author": "fsnotify",
+      "hash": "QmX5vvbSSpL6opbTFrE2JiNJTRoMTY3c2F7ozbpsUcAKyj",
+      "name": "fsnotify",
       "version": "0.1.0"
     }
   ],
