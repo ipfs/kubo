@@ -1,0 +1,28 @@
+#!/bin/sh
+
+BINS='["hang-fds", "iptb", "semver"]'
+
+{
+  cat package.json
+  go list -json "./..."
+} | jq -e --argjson bins "$BINS" --slurp -r '{
+  "package": .[0],
+  "golist": [.[1:][]]
+} | {
+  "imported": [.package.gxDependencies[].hash],
+  "used": ([
+    .package.gxDependencies[]
+    | select(.name as $name | $bins | any(. == $name))
+    | .hash
+  ] + [
+    .golist[]
+    | (.Imports//[]) + (.TestImports//[]) + (.XTestImports//[])
+    | .[]
+    | capture("^gx/ipfs/(?<hash>[^/]+)/")
+    | .hash
+  ]) | unique
+} | {
+  "bins": $bins,
+  "missing": (.used - .imported),
+  "orphan": (.imported - .used)
+} | (., (.missing + .orphan | length) == 0)'

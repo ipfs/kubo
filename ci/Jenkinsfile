@@ -92,6 +92,13 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
         timeout(time: check_timeout, unit: 'MINUTES') {
           gobuild_step(fast_build_platforms)
         }
+      },
+      'gx imports': {
+        setupStep('linux') { run ->
+          timeout(time: check_timeout, units: 'MINUTES') {
+            run './bin/check_gx_imports'
+          }
+        }
       }
     )
   }
