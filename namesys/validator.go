@@ -44,6 +44,8 @@ var ErrKeyFormat = errors.New("record key could not be parsed into peer ID")
 // from the peer store
 var ErrPublicKeyNotFound = errors.New("public key not found in peer store")
 
+var ErrPublicKeyMismatch = errors.New("public key in record did not match expected pubkey")
+
 type IpnsValidator struct {
 	KeyBook pstore.KeyBook
 }
@@ -104,13 +106,14 @@ func (v IpnsValidator) getPublicKey(pid peer.ID, entry *pb.IpnsEntry) (ic.PubKey
 			log.Debugf("public key in ipns record failed to parse: ", err)
 			return nil, fmt.Errorf("unmarshaling pubkey in record: %s", err)
 		}
+
 		expPid, err := peer.IDFromPublicKey(pk)
 		if err != nil {
 			return nil, fmt.Errorf("could not regenerate peerID from pubkey: %s", err)
 		}
 
 		if pid != expPid {
-			return nil, fmt.Errorf("pubkey in record did not match expected pubkey")
+			return nil, ErrPublicKeyMismatch
 		}
 
 		return pk, nil
