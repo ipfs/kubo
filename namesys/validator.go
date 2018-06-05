@@ -3,11 +3,13 @@ package namesys
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"time"
 
 	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	pstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	record "gx/ipfs/QmTUyK82BVPA6LmSzEJpfEunk9uBaQzWtMsNP917tVj4sT/go-libp2p-record"
@@ -65,10 +67,10 @@ func (v IpnsValidator) Validate(key string, value []byte) error {
 		log.Debugf("failed to parse ipns record key %s into peer ID", pidString)
 		return ErrKeyFormat
 	}
-	pubk := v.KeyBook.PubKey(pid)
-	if pubk == nil {
-		log.Debugf("public key with hash %s not found in peer store", pid)
-		return ErrPublicKeyNotFound
+
+	pubk, err := v.getPublicKey(pid, entry)
+	if err != nil {
+		return fmt.Errorf("getting public key failed: %s", err)
 	}
 
 	// Check the ipns record signature with the public key
@@ -92,6 +94,34 @@ func (v IpnsValidator) Validate(key string, value []byte) error {
 		return ErrUnrecognizedValidity
 	}
 	return nil
+}
+
+func (v IpnsValidator) getPublicKey(pid peer.ID, entry *pb.IpnsEntry) (ic.PubKey, error) {
+	if entry.PubKey != nil {
+		pk, err := ic.UnmarshalPublicKey(entry.PubKey)
+		if err != nil {
+			// TODO: i think this counts as a 'malformed record' and should be discarded
+			log.Debugf("public key in ipns record failed to parse: ", err)
+			return nil, err
+		}
+		expPid, err := peer.IDFromPublicKey(pk)
+		if err != nil {
+			return nil, fmt.Errorf("could not regenerate peerID from pubkey: %s", err)
+		}
+
+		if pid != expPid {
+			return nil, fmt.Errorf("pubkey in record did not match expected pubkey")
+		}
+
+		return pk, nil
+	}
+
+	pubk := v.KeyBook.PubKey(pid)
+	if pubk == nil {
+		log.Debugf("public key with hash %s not found in peer store", pid)
+		return nil, ErrPublicKeyNotFound
+	}
+	return pubk, nil
 }
 
 // IpnsSelectorFunc selects the best record by checking which has the highest
