@@ -102,7 +102,6 @@ func (v IpnsValidator) getPublicKey(pid peer.ID, entry *pb.IpnsEntry) (ic.PubKey
 	if entry.PubKey != nil {
 		pk, err := ic.UnmarshalPublicKey(entry.PubKey)
 		if err != nil {
-			// TODO: i think this counts as a 'malformed record' and should be discarded
 			log.Debugf("public key in ipns record failed to parse: ", err)
 			return nil, fmt.Errorf("unmarshaling pubkey in record: %s", err)
 		}
