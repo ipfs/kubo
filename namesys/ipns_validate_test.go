@@ -3,6 +3,7 @@ package namesys
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -28,20 +29,21 @@ func testValidatorCase(t *testing.T, priv ci.PrivKey, kbook pstore.KeyBook, key 
 
 	validator := IpnsValidator{kbook}
 
-	p := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
-	entry, err := CreateRoutingEntryData(priv, p, 1, eol)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	data := val
 	if data == nil {
+		p := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
+		entry, err := CreateRoutingEntryData(priv, p, 1, eol)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		data, err = proto.Marshal(entry)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
-	err = validator.Validate(key, data)
+
+	err := validator.Validate(key, data)
 	if err != exp {
 		params := fmt.Sprintf("key: %s\neol: %s\n", key, eol)
 		if exp == nil {
@@ -72,6 +74,72 @@ func TestValidator(t *testing.T) {
 	testValidatorCase(t, priv2, kbook, "/ipns/"+string(id), nil, ts.Add(time.Hour), ErrSignature)
 	testValidatorCase(t, priv, kbook, "//"+string(id), nil, ts.Add(time.Hour), ErrInvalidPath)
 	testValidatorCase(t, priv, kbook, "/wrong/"+string(id), nil, ts.Add(time.Hour), ErrInvalidPath)
+}
+
+func TestEmbeddedPubKeyValidate(t *testing.T) {
+	goodeol := time.Now().Add(time.Hour)
+	kbook := pstore.NewPeerstore()
+
+	pth := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
+
+	priv, _, _, ipnsk := genKeys(t)
+
+	entry, err := CreateRoutingEntryData(priv, pth, 1, goodeol)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dataNoKey, err := proto.Marshal(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testValidatorCase(t, priv, kbook, ipnsk, dataNoKey, goodeol, ErrPublicKeyNotFound)
+
+	pubkb, err := priv.GetPublic().Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entry.PubKey = pubkb
+
+	dataWithKey, err := proto.Marshal(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testValidatorCase(t, priv, kbook, ipnsk, dataWithKey, goodeol, nil)
+}
+
+func TestPeerIDPubKeyValidate(t *testing.T) {
+	goodeol := time.Now().Add(time.Hour)
+	kbook := pstore.NewPeerstore()
+
+	pth := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
+
+	sk, pk, err := ci.GenerateEd25519Key(rand.New(rand.NewSource(42)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pid, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ipnsk := "/ipns/" + string(pid)
+
+	entry, err := CreateRoutingEntryData(sk, pth, 1, goodeol)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dataNoKey, err := proto.Marshal(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testValidatorCase(t, sk, kbook, ipnsk, dataNoKey, goodeol, nil)
 }
 
 func TestResolverValidation(t *testing.T) {

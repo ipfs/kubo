@@ -70,7 +70,7 @@ func (v IpnsValidator) Validate(key string, value []byte) error {
 
 	pubk, err := v.getPublicKey(pid, entry)
 	if err != nil {
-		return fmt.Errorf("getting public key failed: %s", err)
+		return err
 	}
 
 	// Check the ipns record signature with the public key
@@ -102,7 +102,7 @@ func (v IpnsValidator) getPublicKey(pid peer.ID, entry *pb.IpnsEntry) (ic.PubKey
 		if err != nil {
 			// TODO: i think this counts as a 'malformed record' and should be discarded
 			log.Debugf("public key in ipns record failed to parse: ", err)
-			return nil, err
+			return nil, fmt.Errorf("unmarshaling pubkey in record: %s", err)
 		}
 		expPid, err := peer.IDFromPublicKey(pk)
 		if err != nil {
