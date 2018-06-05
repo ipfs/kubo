@@ -240,6 +240,17 @@ func PutRecordToRouting(ctx context.Context, r routing.ValueStore, k ci.PubKey, 
 		return err
 	}
 
+	// if we can't derive the public key from the peerID, embed the entire pubkey in
+	// the record to make the verifiers job easier
+	if extractedPublicKey == nil {
+		pubkeyBytes, err := k.Bytes()
+		if err != nil {
+			return err
+		}
+
+		entry.PubKey = pubkeyBytes
+	}
+
 	namekey, ipnskey := IpnsKeysForID(id)
 
 	go func() {
@@ -247,6 +258,8 @@ func PutRecordToRouting(ctx context.Context, r routing.ValueStore, k ci.PubKey, 
 	}()
 
 	// Publish the public key if a public key cannot be extracted from the ID
+	// TODO: once v0.4.16 is widespread enough, we can stop doing this
+	// and at that point we can even deprecate the /pk/ namespace in the dht
 	if extractedPublicKey == nil {
 		go func() {
 			errs <- PublishPublicKey(ctx, r, namekey, k)

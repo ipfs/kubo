@@ -3,10 +3,13 @@ package namesys
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
+	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
@@ -26,32 +29,42 @@ import (
 func testValidatorCase(t *testing.T, priv ci.PrivKey, kbook pstore.KeyBook, key string, val []byte, eol time.Time, exp error) {
 	t.Helper()
 
-	validator := IpnsValidator{kbook}
-
-	p := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
-	entry, err := CreateRoutingEntryData(priv, p, 1, eol)
-	if err != nil {
-		t.Fatal(err)
+	match := func(t *testing.T, err error) {
+		t.Helper()
+		if err != exp {
+			params := fmt.Sprintf("key: %s\neol: %s\n", key, eol)
+			if exp == nil {
+				t.Fatalf("Unexpected error %s for params %s", err, params)
+			} else if err == nil {
+				t.Fatalf("Expected error %s but there was no error for params %s", exp, params)
+			} else {
+				t.Fatalf("Expected error %s but got %s for params %s", exp, err, params)
+			}
+		}
 	}
+
+	testValidatorCaseMatchFunc(t, priv, kbook, key, val, eol, match)
+}
+
+func testValidatorCaseMatchFunc(t *testing.T, priv ci.PrivKey, kbook pstore.KeyBook, key string, val []byte, eol time.Time, matchf func(*testing.T, error)) {
+	t.Helper()
+	validator := IpnsValidator{kbook}
 
 	data := val
 	if data == nil {
+		p := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
+		entry, err := CreateRoutingEntryData(priv, p, 1, eol)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		data, err = proto.Marshal(entry)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
-	err = validator.Validate(key, data)
-	if err != exp {
-		params := fmt.Sprintf("key: %s\neol: %s\n", key, eol)
-		if exp == nil {
-			t.Fatalf("Unexpected error %s for params %s", err, params)
-		} else if err == nil {
-			t.Fatalf("Expected error %s but there was no error for params %s", exp, params)
-		} else {
-			t.Fatalf("Expected error %s but got %s for params %s", exp, err, params)
-		}
-	}
+
+	matchf(t, validator.Validate(key, data))
 }
 
 func TestValidator(t *testing.T) {
@@ -72,6 +85,86 @@ func TestValidator(t *testing.T) {
 	testValidatorCase(t, priv2, kbook, "/ipns/"+string(id), nil, ts.Add(time.Hour), ErrSignature)
 	testValidatorCase(t, priv, kbook, "//"+string(id), nil, ts.Add(time.Hour), ErrInvalidPath)
 	testValidatorCase(t, priv, kbook, "/wrong/"+string(id), nil, ts.Add(time.Hour), ErrInvalidPath)
+}
+
+func mustMarshal(t *testing.T, entry *pb.IpnsEntry) []byte {
+	t.Helper()
+	data, err := proto.Marshal(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func TestEmbeddedPubKeyValidate(t *testing.T) {
+	goodeol := time.Now().Add(time.Hour)
+	kbook := pstore.NewPeerstore()
+
+	pth := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
+
+	priv, _, _, ipnsk := genKeys(t)
+
+	entry, err := CreateRoutingEntryData(priv, pth, 1, goodeol)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testValidatorCase(t, priv, kbook, ipnsk, mustMarshal(t, entry), goodeol, ErrPublicKeyNotFound)
+
+	pubkb, err := priv.GetPublic().Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entry.PubKey = pubkb
+	testValidatorCase(t, priv, kbook, ipnsk, mustMarshal(t, entry), goodeol, nil)
+
+	entry.PubKey = []byte("probably not a public key")
+	testValidatorCaseMatchFunc(t, priv, kbook, ipnsk, mustMarshal(t, entry), goodeol, func(t *testing.T, err error) {
+		if !strings.Contains(err.Error(), "unmarshaling pubkey in record:") {
+			t.Fatal("expected pubkey unmarshaling to fail")
+		}
+	})
+
+	opriv, _, _, _ := genKeys(t)
+	wrongkeydata, err := opriv.GetPublic().Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entry.PubKey = wrongkeydata
+	testValidatorCase(t, priv, kbook, ipnsk, mustMarshal(t, entry), goodeol, ErrPublicKeyMismatch)
+}
+
+func TestPeerIDPubKeyValidate(t *testing.T) {
+	goodeol := time.Now().Add(time.Hour)
+	kbook := pstore.NewPeerstore()
+
+	pth := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
+
+	sk, pk, err := ci.GenerateEd25519Key(rand.New(rand.NewSource(42)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pid, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ipnsk := "/ipns/" + string(pid)
+
+	entry, err := CreateRoutingEntryData(sk, pth, 1, goodeol)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dataNoKey, err := proto.Marshal(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testValidatorCase(t, sk, kbook, ipnsk, dataNoKey, goodeol, nil)
 }
 
 func TestResolverValidation(t *testing.T) {
