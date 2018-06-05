@@ -4,7 +4,7 @@
 Bitswap is the data trading module for ipfs, it manages requesting and sending
 blocks to and from other peers in the network. Bitswap has two main jobs, the
 first is to acquire blocks requested by the client from the network. The second
-is to judiciously send blocks in its posession to other peers who want them.
+is to judiciously send blocks in its possession to other peers who want them.
 
 Bitswap is a message based protocol, as opposed to response-reply. All messages
 contain wantlists, or blocks. Upon receiving a wantlist, a node should consider
@@ -20,7 +20,7 @@ another peer has a task in the peer request queue created for it. The peer
 request queue is a priority queue that sorts available tasks by some metric,
 currently, that metric is very simple and aims to fairly address the tasks
 of each other peer. More advanced decision logic will be implemented in the
-future. Task workers pull tasks to be done off of the queue, retreive the block
+future. Task workers pull tasks to be done off of the queue, retrieve the block
 to be sent, and send it off. The number of task workers is limited by a constant
 factor.
 

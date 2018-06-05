@@ -17,8 +17,8 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
+	"gx/ipfs/QmSKYWC84fqkKB54Te5JMcov2MBVzucXaRGxFqByzzCbHe/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 )
 
 const (
@@ -34,14 +34,7 @@ Initializes ipfs configuration files and generates a new keypair.
 If you are going to run IPFS in server environment, you may want to
 initialize it using 'server' profile.
 
-Available profiles:
-    'server' - Disables local host discovery, recommended when
-        running IPFS on machines with public IPv4 addresses.
-    'test' - Reduces external interference of IPFS daemon, this
-        is useful when using the daemon in test environments.
-    'lowpower' - Reduces daemon overhead on the system. May affect node
-        functionality - performance of content discovery and data fetching
-        may be degraded.
+For the list of available profiles see 'ipfs config profile --help'
 
 ipfs uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
@@ -82,7 +75,7 @@ environment variable:
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		cctx := env.(*oldcmds.Context)
 		if cctx.Online {
-			res.SetError(errors.New("init must be run offline only!"), cmdkit.ErrNormal)
+			res.SetError(errors.New("init must be run offline only"), cmdkit.ErrNormal)
 			return
 		}
 
@@ -138,7 +131,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 		return err
 	}
 
-	if err := checkWriteable(repoRoot); err != nil {
+	if err := checkWritable(repoRoot); err != nil {
 		return err
 	}
 
@@ -160,7 +153,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 			return fmt.Errorf("invalid configuration profile: %s", profile)
 		}
 
-		if err := transformer(conf); err != nil {
+		if err := transformer.Transform(conf); err != nil {
 			return err
 		}
 	}
@@ -178,7 +171,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 	return initializeIpnsKeyspace(repoRoot)
 }
 
-func checkWriteable(dir string) error {
+func checkWritable(dir string) error {
 	_, err := os.Stat(dir)
 	if err == nil {
 		// dir exists, make sure we can write to it
@@ -195,7 +188,7 @@ func checkWriteable(dir string) error {
 	}
 
 	if os.IsNotExist(err) {
-		// dir doesnt exist, check that we can create it
+		// dir doesn't exist, check that we can create it
 		return os.Mkdir(dir, 0775)
 	}
 

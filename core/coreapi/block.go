@@ -17,10 +17,7 @@ import (
 	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
-type BlockAPI struct {
-	*CoreAPI
-	*caopts.BlockOptions
-}
+type BlockAPI CoreAPI
 
 type BlockStat struct {
 	path coreiface.Path

@@ -214,6 +214,7 @@ test_launch_ipfs_daemon() {
 
   test_expect_success "'ipfs daemon' succeeds" '
     ipfs daemon $args >actual_daemon 2>daemon_err &
+    IPFS_PID=$!
   '
 
   # wait for api file to show up
@@ -225,7 +226,6 @@ test_launch_ipfs_daemon() {
 
   # we say the daemon is ready when the API server is ready.
   test_expect_success "'ipfs daemon' is ready" '
-    IPFS_PID=$! &&
     pollEndpoint -ep=/version -host=$API_MADDR -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
     test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
   '

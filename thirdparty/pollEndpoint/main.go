@@ -11,7 +11,7 @@ import (
 	"time"
 
 	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	logging "gx/ipfs/QmTG23dvpBCBjqQwyDxV8CQT6jmS4PSftNr1VqHhE3MLy7/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
@@ -82,7 +82,7 @@ func checkOK(resp *http.Response, err error) error {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "pollEndpoint: ioutil.ReadAll() Error: %s", err)
 		}
-		return fmt.Errorf("Response not OK. %d %s %q", resp.StatusCode, resp.Status, string(body))
+		return fmt.Errorf("response not OK. %d %s %q", resp.StatusCode, resp.Status, string(body))
 	}
 	return err
 }

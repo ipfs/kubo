@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"net"
-	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -28,14 +26,14 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	loggables "gx/ipfs/QmPDZJxtWGfcwLPazJxD4h3v3aDs43V7UNAVs3Jz1Wo7o4/go-libp2p-loggables"
 	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	"gx/ipfs/QmSKYWC84fqkKB54Te5JMcov2MBVzucXaRGxFqByzzCbHe/go-ipfs-cmds"
+	"gx/ipfs/QmSKYWC84fqkKB54Te5JMcov2MBVzucXaRGxFqByzzCbHe/go-ipfs-cmds/cli"
+	"gx/ipfs/QmSKYWC84fqkKB54Te5JMcov2MBVzucXaRGxFqByzzCbHe/go-ipfs-cmds/http"
+	logging "gx/ipfs/QmTG23dvpBCBjqQwyDxV8CQT6jmS4PSftNr1VqHhE3MLy7/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
-	loggables "gx/ipfs/Qmf9JgVLz46pxPXwG2eWSJpkqVCcjD4rp7zCRi2KP6GTNB/go-libp2p-loggables"
-	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
-	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds/cli"
-	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds/http"
 )
 
 // log is the command logger
@@ -48,18 +46,6 @@ const (
 	cpuProfile         = "ipfs.cpuprof"
 	heapProfile        = "ipfs.memprof"
 )
-
-type cmdInvocation struct {
-	req  *cmds.Request
-	node *core.IpfsNode
-	ctx  *oldcmds.Context
-}
-
-type exitErr int
-
-func (e exitErr) Error() string {
-	return fmt.Sprint("exit code", int(e))
-}
 
 // main roadmap:
 // - parse the commandline to get a cmdInvocation
@@ -101,11 +87,12 @@ func mainRet() int {
 		}
 	}
 
-	// output depends on excecutable name passed in os.Args
+	// output depends on executable name passed in os.Args
 	// so we need to make sure it's stable
 	os.Args[0] = "ipfs"
 
 	buildEnv := func(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
+		checkDebug(req)
 		repoPath, err := getRepoPath(req)
 		if err != nil {
 			return nil, err
@@ -165,13 +152,8 @@ func checkDebug(req *cmds.Request) {
 }
 
 func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
-	checkDebug(req)
-	details, err := commandDetails(req.Path, Root)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := commandShouldRunOnDaemon(*details, req, Root, env.(*oldcmds.Context))
+	details := commandDetails(req.Path)
+	client, err := commandShouldRunOnDaemon(*details, req, env.(*oldcmds.Context))
 	if err != nil {
 		return nil, err
 	}
@@ -214,34 +196,25 @@ func checkPermissions(path string) (bool, error) {
 	return true, nil
 }
 
-// commandDetails returns a command's details for the command given by |path|
-// within the |root| command tree.
-//
-// Returns an error if the command is not found in the Command tree.
-func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
+// commandDetails returns a command's details for the command given by |path|.
+func commandDetails(path []string) *cmdDetails {
 	var details cmdDetails
 	// find the last command in path that has a cmdDetailsMap entry
-	cmd := root
-	for _, cmp := range path {
-		cmd = cmd.Subcommands[cmp]
-		if cmd == nil {
-			return nil, fmt.Errorf("subcommand %s should be in root", cmp)
-		}
-
-		if cmdDetails, found := cmdDetailsMap[strings.Join(path, "/")]; found {
+	for i := range path {
+		if cmdDetails, found := cmdDetailsMap[strings.Join(path[:i+1], "/")]; found {
 			details = cmdDetails
 		}
 	}
-	return &details, nil
+	return &details
 }
 
-// commandShouldRunOnDaemon determines, from commmand details, whether a
+// commandShouldRunOnDaemon determines, from command details, whether a
 // command ought to be executed on an ipfs daemon.
 //
 // It returns a client if the command should be executed on a daemon and nil if
 // it should be executed on a client. It returns an error if the command must
 // NOT be executed on either.
-func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, root *cmds.Command, cctx *oldcmds.Context) (http.Client, error) {
+func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, cctx *oldcmds.Context) (http.Client, error) {
 	path := req.Path
 	// root command.
 	if len(path) < 1 {
@@ -257,7 +230,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, root *cmds.
 	}
 
 	// at this point need to know whether api is running. we defer
-	// to this point so that we dont check unnecessarily
+	// to this point so that we don't check unnecessarily
 
 	// did user specify an api to use for this command?
 	apiAddrStr, _ := req.Options[coreCmds.ApiOption].(string)
@@ -332,7 +305,7 @@ func startProfiling() (func(), error) {
 
 	stopProfiling := func() {
 		pprof.StopCPUProfile()
-		defer ofi.Close() // captured by the closure
+		ofi.Close() // captured by the closure
 	}
 	return stopProfiling, nil
 }
@@ -477,25 +450,4 @@ func apiClientForAddr(addr ma.Multiaddr) (http.Client, error) {
 	}
 
 	return http.NewClient(host, http.ClientWithAPIPrefix(corehttp.APIPath)), nil
-}
-
-func isConnRefused(err error) bool {
-	// unwrap url errors from http calls
-	if urlerr, ok := err.(*url.Error); ok {
-		err = urlerr.Err
-	}
-
-	netoperr, ok := err.(*net.OpError)
-	if !ok {
-		return false
-	}
-
-	return netoperr.Op == "dial"
-}
-
-func wrapContextCanceled(err error) error {
-	if strings.Contains(err.Error(), "request canceled") {
-		err = errRequestCanceled
-	}
-	return err
 }

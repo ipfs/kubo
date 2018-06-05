@@ -1,5 +1,4 @@
-// +build linux darwin freebsd netbsd openbsd
-// +build !nofuse
+// +build !windows,!nofuse
 
 package commands
 
@@ -27,7 +26,7 @@ root will not be listable, as it is virtual. Access known paths directly.
 You may have to create /ipfs and /ipns before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
-> sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
+> sudo chown $(whoami) /ipfs /ipns
 > ipfs daemon &
 > ipfs mount
 `,
@@ -40,7 +39,7 @@ root will not be listable, as it is virtual. Access known paths directly.
 You may have to create /ipfs and /ipns before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
-> sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
+> sudo chown $(whoami) /ipfs /ipns
 > ipfs daemon &
 > ipfs mount
 

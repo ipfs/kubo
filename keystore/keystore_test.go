@@ -9,7 +9,7 @@ import (
 	"sort"
 	"testing"
 
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	ci "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 type rr struct{}
@@ -250,7 +250,7 @@ func assertDirContents(dir string, exp []string) error {
 	}
 
 	if len(finfos) != len(exp) {
-		return fmt.Errorf("Expected %d directory entries", len(exp))
+		return fmt.Errorf("expected %d directory entries", len(exp))
 	}
 
 	var names []string

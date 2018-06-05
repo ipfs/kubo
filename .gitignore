@@ -17,3 +17,8 @@ gx-workspace-update.json
 bin/gx
 bin/gx*
 bin/tmp
+
+
+vendor
+.tarball
+go-ipfs-source.tar.gz

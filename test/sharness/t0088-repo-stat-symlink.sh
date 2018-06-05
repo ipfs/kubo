@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2017 John Reed
 # MIT Licensed; see the LICENSE file in this repository.

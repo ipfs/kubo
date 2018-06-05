@@ -1,7 +1,7 @@
 package hamt
 
 import (
-	"math/big"
+	"fmt"
 	"math/bits"
 )
 
@@ -40,10 +40,13 @@ func (hb *hashBits) Next(i int) int {
 	}
 }
 
-func popCount(i *big.Int) int {
-	var n int
-	for _, v := range i.Bits() {
-		n += bits.OnesCount64(uint64(v))
+func logtwo(v int) (int, error) {
+	if v <= 0 {
+		return 0, fmt.Errorf("hamt size should be a power of two")
 	}
-	return n
+	lg2 := bits.TrailingZeros(uint(v))
+	if 1<<uint(lg2) != v {
+		return 0, fmt.Errorf("hamt size should be a power of two")
+	}
+	return lg2, nil
 }

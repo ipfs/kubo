@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2016 Tom O'Donnell
 # MIT Licensed; see the LICENSE file in this repository.

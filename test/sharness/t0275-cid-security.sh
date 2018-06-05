@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2017 Jakub Sztandera
 # MIT Licensed; see the LICENSE file in this repository.
@@ -71,6 +71,16 @@ test_gc
 test_launch_ipfs_daemon
 test_cat_get
 test_gc
+
+test_expect_success "add block linking to insecure" '
+  mkdir -p "$IPFS_PATH/blocks/5X" &&
+  cp -f "../t0275-cid-security-data/CIQG6PGTD2VV34S33BE4MNCQITBRFYUPYQLDXYARR3DQW37MOT7K5XI.data" "$IPFS_PATH/blocks/5X"
+'
+
+test_expect_success "ipfs cat fails with code 1 and not timeout" '
+  test_expect_code 1 go-timeout 1s ipfs cat QmVpsktzNeJdfWEpyeix93QJdQaBSgRNxebSbYSo9SQPGx
+'
+
 test_kill_ipfs_daemon
 
 test_done

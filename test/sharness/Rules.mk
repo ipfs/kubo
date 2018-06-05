@@ -29,13 +29,22 @@ export MAKE_SKIP_PATH=1
 
 $(T_$(d)): $$(DEPS_$(d)) # use second expansion so coverage can inject dependency
 	@echo "*** $@ ***"
+ifeq ($(CONTINUE_ON_S_FAILURE),1)
+	-@(cd $(@D) && ./$(@F)) 2>&1
+else
 	@(cd $(@D) && ./$(@F)) 2>&1
+endif
 .PHONY: $(T_$(d))
 
 $(d)/aggregate: $(T_$(d))
 	@echo "*** $@ ***"
 	@(cd $(@D) && ./lib/test-aggregate-results.sh)
 .PHONY: $(d)/aggregate
+
+$(d)/test-results/sharness.xml: export TEST_GENERATE_JUNIT=1
+$(d)/test-results/sharness.xml: test_sharness_expensive
+	@echo "*** $@ ***"
+	@(cd $(@D)/.. && ./lib/gen-junit-report.sh)
 
 $(d)/clean-test-results:
 	rm -rf $(@D)/test-results

@@ -9,8 +9,8 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 
+	cmds "gx/ipfs/QmSKYWC84fqkKB54Te5JMcov2MBVzucXaRGxFqByzzCbHe/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	cmds "gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 )
 
 const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
@@ -44,7 +44,7 @@ var CatCmd = &cmds.Command{
 
 		offset, _ := req.Options["offset"].(int)
 		if offset < 0 {
-			res.SetError(fmt.Errorf("Cannot specify negative offset."), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("cannot specify negative offset"), cmdkit.ErrNormal)
 			return
 		}
 
@@ -54,7 +54,7 @@ var CatCmd = &cmds.Command{
 			return
 		}
 		if max < 0 {
-			res.SetError(fmt.Errorf("Cannot specify negative length."), cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("cannot specify negative length"), cmdkit.ErrNormal)
 			return
 		}
 		if !found {

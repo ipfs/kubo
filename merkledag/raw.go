@@ -14,8 +14,7 @@ type RawNode struct {
 	blocks.Block
 }
 
-// NewRawNode creates a RawNode using the default sha2-256 hash
-// funcition.
+// NewRawNode creates a RawNode using the default sha2-256 hash function.
 func NewRawNode(data []byte) *RawNode {
 	h := u.Hash(data)
 	c := cid.NewCidV1(cid.Raw, h)

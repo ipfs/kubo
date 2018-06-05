@@ -1,0 +1,250 @@
+From bc6bf844ef4e4cd468bc1ec96f2d6af738eb8d2f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C5=81ukasz=20Magiera?= <magik6k@gmail.com>
+Date: Sat, 21 Apr 2018 22:01:45 +0200
+Subject: [PATCH] Generate partial JUnit reports
+
+---
+ sharness.sh | 114 +++++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 108 insertions(+), 6 deletions(-)
+
+diff --git a/sharness.sh b/sharness.sh
+index 6750ff7..336e426 100644
+--- a/sharness.sh
++++ b/sharness.sh
+@@ -1,4 +1,4 @@
+-#!/bin/sh
++#!/usr/bin/env bash
+ #
+ # Copyright (c) 2011-2012 Mathias Lafeldt
+ # Copyright (c) 2005-2012 Git project
+@@ -106,6 +106,10 @@ if test -n "$color"; then
+ 			test -n "$quiet" && return;;
+ 		esac
+ 		shift
++
++		if test -n "$TEST_GENERATE_JUNIT"; then
++			echo "$*" >> .junit/tout
++		fi
+ 		printf "%s" "$*"
+ 		tput sgr0
+ 		echo
+@@ -115,6 +119,10 @@ else
+ 	say_color() {
+ 		test -z "$1" && test -n "$quiet" && return
+ 		shift
++
++		if test -n "$TEST_GENERATE_JUNIT"; then
++			echo "$*" >> .junit/tout
++		fi
+ 		printf "%s\n" "$*"
+ 	}
+ fi
+@@ -129,6 +137,12 @@ say() {
+ 	say_color info "$*"
+ }
+ 
++esc=$(printf '\033')
++
++esc_xml() {
++	sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"$esc"'//g; s///g;'
++}
++
+ test -n "$test_description" || error "Test script did not set test_description."
+ 
+ if test "$help" = "t"; then
+@@ -251,30 +265,78 @@ test_have_prereq() {
+ 	test $total_prereq = $ok_prereq
+ }
+ 
++# junit_testcase generates a testcase xml file after each test
++
++junit_testcase() {
++	if test -z "$TEST_GENERATE_JUNIT"; then
++		return
++	fi
++
++	test_name=$1
++	tc_file=".junit/case-$(printf "%04d" $test_count)"
++	time_sec="$(cat .junit/time | xargs printf '%04d' | sed -e 's/\(...\)$/.\1/g')"
++
++	echo "$(expr $(cat .junit/time_total) + $(cat .junit/time) )" > .junit/time_total
++
++	shift
++	cat > "$tc_file" <<-EOF
++	<testcase name="$test_count - $(echo $test_name | esc_xml)" classname="sharness$(uname -s).${SHARNESS_TEST_NAME}" time="${time_sec}">
++	$@
++	EOF
++
++	if test -f .junit/tout; then
++		cat >> "$tc_file" <<-EOF
++		<system-out>
++			$(cat .junit/tout | esc_xml)
++		</system-out>
++		EOF
++	fi
++
++	if test -f .junit/terr; then
++		cat >> "$tc_file" <<-EOF
++		<system-err>
++			$(cat .junit/terr | esc_xml)
++		</system-err>
++		EOF
++	fi
++
++	echo "</testcase>" >> "$tc_file"
++	rm -f .junit/tout .junit/terr .junit/time
++}
++
+ # You are not expected to call test_ok_ and test_failure_ directly, use
+ # the text_expect_* functions instead.
+ 
+ test_ok_() {
+ 	test_success=$(($test_success + 1))
+ 	say_color "" "ok $test_count - $@"
++
++	junit_testcase "$@"
+ }
+ 
+ test_failure_() {
+ 	test_failure=$(($test_failure + 1))
+ 	say_color error "not ok $test_count - $1"
++	test_name=$1
+ 	shift
+ 	echo "$@" | sed -e 's/^/#	/'
++	junit_testcase "$test_name" '<failure type="">'$(echo $@ | esc_xml)'</failure>'
++
+ 	test "$immediate" = "" || { EXIT_OK=t; exit 1; }
+ }
+ 
+ test_known_broken_ok_() {
+ 	test_fixed=$(($test_fixed + 1))
+ 	say_color error "ok $test_count - $@ # TODO known breakage vanished"
++
++	junit_testcase "$@" '<failure type="known breakage vanished"/>'
+ }
+ 
+ test_known_broken_failure_() {
+ 	test_broken=$(($test_broken + 1))
+ 	say_color warn "not ok $test_count - $@ # TODO known breakage"
++
++	junit_testcase "$@"
+ }
+ 
+ # Public: Execute commands in debug mode.
+@@ -310,15 +372,25 @@ test_pause() {
+ test_eval_() {
+ 	# This is a separate function because some tests use
+ 	# "return" to end a test_expect_success block early.
+-	eval </dev/null >&3 2>&4 "$*"
++	if test -n "$TEST_GENERATE_JUNIT"; then
++		eval </dev/null > >(tee -a .junit/tout >&3) 2> >(tee -a .junit/terr >&4) "$*"
++	else
++		eval </dev/null >&3 2>&4 "$*"
++	fi
+ }
+ 
+ test_run_() {
+ 	test_cleanup=:
+ 	expecting_failure=$2
++
++	start_time_ms=$(date "+%s%3N");
+ 	test_eval_ "$1"
+ 	eval_ret=$?
+ 
++	if test -n "$TEST_GENERATE_JUNIT"; then
++		echo $(expr $(date "+%s%3N") - ${start_time_ms} ) > .junit/time;
++	fi
++
+ 	if test "$chain_lint" = "t"; then
+ 		test_eval_ "(exit 117) && $1"
+ 		if test "$?" != 117; then
+@@ -355,8 +427,18 @@ test_skip_() {
+ 			of_prereq=" of $test_prereq"
+ 		fi
+ 
+-		say_color skip >&3 "skipping test: $@"
+-		say_color skip "ok $test_count # skip $1 (missing $missing_prereq${of_prereq})"
++		say_color skip >&3 "skipping test: $1"
++		say_color skip "ok $test_count # skip $1 (missing $missing_prereqm${of_prereq})"
++
++		if test -n "$TEST_GENERATE_JUNIT"; then
++			cat > ".junit/case-$(printf "%04d" $test_count)" <<-EOF
++			<testcase name="$test_count - $(echo $2 | esc_xml)" classname="sharness$(uname -s).${SHARNESS_TEST_NAME}" time="0">
++				<skipped>
++					skip $(echo $1 | esc_xml) (missing $missing_prereq${of_prereq})
++				</skipped>
++			</testcase>
++			EOF
++		fi
+ 		: true
+ 		;;
+ 	*)
+@@ -403,7 +485,7 @@ test_expect_success() {
+ 	test "$#" = 3 && { test_prereq=$1; shift; } || test_prereq=
+ 	test "$#" = 2 || error "bug in the test script: not 2 or 3 parameters to test_expect_success"
+ 	export test_prereq
+-	if ! test_skip_ "$@"; then
++	if ! test_skip_ "$@" "$1"; then
+ 		say >&3 "expecting success: $2"
+ 		if test_run_ "$2"; then
+ 			test_ok_ "$1"
+@@ -442,7 +524,7 @@ test_expect_failure() {
+ 	test "$#" = 3 && { test_prereq=$1; shift; } || test_prereq=
+ 	test "$#" = 2 || error "bug in the test script: not 2 or 3 parameters to test_expect_failure"
+ 	export test_prereq
+-	if ! test_skip_ "$@"; then
++	if ! test_skip_ "$@" "$1"; then
+ 		say >&3 "checking known breakage: $2"
+ 		if test_run_ "$2" expecting_failure; then
+ 			test_known_broken_ok_ "$1"
+@@ -675,6 +757,7 @@ test_done() {
+ 		test_results_dir="$SHARNESS_TEST_DIRECTORY/test-results"
+ 		mkdir -p "$test_results_dir"
+ 		test_results_path="$test_results_dir/${SHARNESS_TEST_FILE%.$SHARNESS_TEST_EXTENSION}.$$.counts"
++		junit_results_path="$test_results_dir/${SHARNESS_TEST_FILE%.$SHARNESS_TEST_EXTENSION}.$$.xml.part"
+ 
+ 		cat >>"$test_results_path" <<-EOF
+ 		total $test_count
+@@ -684,6 +767,16 @@ test_done() {
+ 		failed $test_failure
+ 
+ 		EOF
++
++		if test -n "$TEST_GENERATE_JUNIT"; then
++			time_sec="$(cat .junit/time_total | xargs printf "%04d" | sed -e 's/\(...\)$/.\1/g')"
++
++			cat >>"$junit_results_path" <<-EOF
++			<testsuite errors="$test_broken" failures="$((test_failure+test_fixed))" tests="$test_count" package="sharness$(uname -s).${SHARNESS_TEST_NAME}" time="${time_sec}">
++				$(find .junit -name 'case-*' | sort | xargs cat)
++			</testsuite>
++			EOF
++		fi
+ 	fi
+ 
+ 	if test "$test_fixed" != 0; then
+@@ -745,6 +838,9 @@ export PATH SHARNESS_BUILD_DIRECTORY
+ SHARNESS_TEST_FILE="$0"
+ export SHARNESS_TEST_FILE
+ 
++SHARNESS_TEST_NAME=$(basename ${SHARNESS_TEST_FILE} ".sh")
++export SHARNESS_TEST_NAME
++
+ # Prepare test area.
+ test_dir="trash directory.$(basename "$SHARNESS_TEST_FILE" ".$SHARNESS_TEST_EXTENSION")"
+ test -n "$root" && test_dir="$root/$test_dir"
+@@ -771,6 +867,12 @@ mkdir -p "$test_dir" || exit 1
+ # in subprocesses like git equals our $PWD (for pathname comparisons).
+ cd -P "$test_dir" || exit 1
+ 
++# Prepare JUnit report dir
++if test -n "$TEST_GENERATE_JUNIT"; then
++	mkdir -p .junit
++	echo 0 > .junit/time_total
++fi
++
+ this_test=${SHARNESS_TEST_FILE##*/}
+ this_test=${this_test%.$SHARNESS_TEST_EXTENSION}
+ for skp in $SKIP_TESTS; do
+-- 
+2.17.0
+

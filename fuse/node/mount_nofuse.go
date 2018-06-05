@@ -1,5 +1,4 @@
-// +build linux darwin freebsd netbsd openbsd
-// +build nofuse
+// +build !windows,nofuse
 
 package node
 

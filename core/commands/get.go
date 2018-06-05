@@ -16,12 +16,12 @@ import (
 	uarchive "github.com/ipfs/go-ipfs/unixfs/archive"
 
 	tar "gx/ipfs/QmQine7gvHncNevKtG9QXxf3nXcwSj6aDDmMm52mHofEEp/tar-utils"
+	"gx/ipfs/QmSH5XGpsBH1WB77pjHnFAsVnedQLZz7VGSLDgprob9bUh/pb"
+	"gx/ipfs/QmSKYWC84fqkKB54Te5JMcov2MBVzucXaRGxFqByzzCbHe/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	"gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
-	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 )
 
-var ErrInvalidCompressionLevel = errors.New("Compression level must be between 1 and 9")
+var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")
 
 var GetCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{

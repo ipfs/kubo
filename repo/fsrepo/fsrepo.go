@@ -16,7 +16,6 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
@@ -24,15 +23,20 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 
 	util "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	logging "gx/ipfs/QmTG23dvpBCBjqQwyDxV8CQT6jmS4PSftNr1VqHhE3MLy7/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	measure "gx/ipfs/QmbJgZGRtkFeSdCxBCPaMKWRDYbqMxHyFfvjQGcWzpqsDe/go-ds-measure"
+	measure "gx/ipfs/QmXez8SABR95KKKgU9XFtTTQ79QRn2nWS9o5pa1EcHsLs5/go-ds-measure"
+	lockfile "gx/ipfs/QmXkNy1uAd5Tm3DQpDrQyjjQAdRYyhDpA1W7uiTrcEWHBV/go-fs-lock"
 )
+
+// LockFile is the filename of the repo lock, relative to config dir
+// TODO rename repo lock and hide name
+const LockFile = "repo.lock"
 
 var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
-var RepoVersion = 6
+var RepoVersion = 7
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -46,7 +50,7 @@ See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md for details.`
 var (
 	ErrNoVersion     = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
 	ErrOldRepo       = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
-	ErrNeedMigration = errors.New("ipfs repo needs migration.")
+	ErrNeedMigration = errors.New("ipfs repo needs migration")
 )
 
 type NoRepoError struct {
@@ -126,7 +130,7 @@ func open(repoPath string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	r.lockfile, err = lockfile.Lock(r.path)
+	r.lockfile, err = lockfile.Lock(r.path, LockFile)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +301,7 @@ func Init(repoPath string, conf *config.Config) error {
 // process. If true, then the repo cannot be opened by this process.
 func LockedByOtherProcess(repoPath string) (bool, error) {
 	repoPath = filepath.Clean(repoPath)
-	locked, err := lockfile.Locked(repoPath)
+	locked, err := lockfile.Locked(repoPath, LockFile)
 	if locked {
 		log.Debugf("(%t)<->Lock is held at %s", locked, repoPath)
 	}
@@ -394,7 +398,10 @@ func (r *FSRepo) openDatastore() error {
 	if r.config.Datastore.Type != "" || r.config.Datastore.Path != "" {
 		return fmt.Errorf("old style datatstore config detected")
 	} else if r.config.Datastore.Spec == nil {
-		return fmt.Errorf("required Datastore.Spec entry missing form config file")
+		return fmt.Errorf("required Datastore.Spec entry missing from config file")
+	}
+	if r.config.Datastore.NoSync {
+		log.Warning("NoSync is now deprecated in favor of datastore specific settings. If you want to disable fsync on flatfs set 'sync' to false. See https://github.com/ipfs/go-ipfs/blob/master/docs/datastores.md#flatfs.")
 	}
 
 	dsc, err := AnyDatastoreConfig(r.config.Datastore.Spec)
@@ -408,7 +415,7 @@ func (r *FSRepo) openDatastore() error {
 		return err
 	}
 	if oldSpec != spec.String() {
-		return fmt.Errorf("Datastore configuration of '%s' does not match what is on disk '%s'",
+		return fmt.Errorf("datastore configuration of '%s' does not match what is on disk '%s'",
 			oldSpec, spec.String())
 	}
 
@@ -472,7 +479,7 @@ func (r *FSRepo) Config() (*config.Config, error) {
 
 	// It is not necessary to hold the package lock since the repo is in an
 	// opened state. The package lock is _not_ meant to ensure that the repo is
-	// thread-safe. The package lock is only meant to guard againt removal and
+	// thread-safe. The package lock is only meant to guard against removal and
 	// coordinate the lockfile. However, we provide thread-safety to keep
 	// things simple.
 	packageLock.Lock()
@@ -629,7 +636,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		default:
 		}
 		if !ok {
-			return fmt.Errorf("Wrong config type, expected %T", oldValue)
+			return fmt.Errorf("wrong config type, expected %T", oldValue)
 		}
 	}
 
@@ -697,15 +704,11 @@ func (r *FSRepo) SwarmKey() ([]byte, error) {
 	f, err := os.Open(spath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
-		} else {
-			return nil, err
+			err = nil
 		}
-	}
-	defer f.Close()
-	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	return ioutil.ReadAll(f)
 }
