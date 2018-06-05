@@ -103,7 +103,7 @@ With snap, in any of the [supported Linux distributions](https://snapcraft.io/do
 
 #### Install Go
 
-The build process for ipfs requires Go 1.9 or higher. If you don't have it: [Download Go 1.9+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.10 or higher. If you don't have it: [Download Go 1.10+](https://golang.org/dl/).
 
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
@@ -147,7 +147,7 @@ mismatched APIs.
 * Also, [instructions for OpenBSD](docs/openbsd.md).
 * `git` is required in order for `go get` to fetch all dependencies.
 * Package managers often contain out-of-date `golang` packages.
-  Ensure that `go version` reports at least 1.9. See above for how to install go.
+  Ensure that `go version` reports at least 1.10. See above for how to install go.
 * If you are interested in development, please install the development
 dependencies as well.
 * *WARNING: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
@@ -155,7 +155,7 @@ dependencies as well.
   (See https://github.com/ipfs/go-ipfs/issues/177)
 * For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder.
 * Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
-* See the [init examples](https://github.com/ipfs/examples/tree/master/examples/init) for how to connect IPFS to systemd or whatever init system your distro uses.
+* See the [init examples](https://github.com/ipfs/website/tree/master/static/docs/examples/init) for how to connect IPFS to systemd or whatever init system your distro uses.
 
 ### Development Dependencies
 
@@ -317,7 +317,7 @@ Please direct general questions and help requests to our
 [forum](https://discuss.ipfs.io) or our IRC channel (freenode #ipfs).
 
 If you believe you've found a bug, check the [issues list](https://github.com/ipfs/go-ipfs/issues)
-and, if you dont see your problem there, either come talk to us on IRC (freenode #ipfs) or
+and, if you don't see your problem there, either come talk to us on IRC (freenode #ipfs) or
 file an issue of your own!
 
 ## Contributing

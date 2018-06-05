@@ -44,6 +44,11 @@ Available profiles:
 
   Restores default datastore configuration.
 
+- `lowpower`
+
+  Reduces daemon overhead on the system. May affect node functionality,
+  performance of content discovery and data fetching may be degraded.
+
 ## Table of Contents
 
 - [`Addresses`](#addresses)

@@ -238,7 +238,7 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 		if offset < 0 {
-			return -1, errors.New("Invalid offset")
+			return -1, errors.New("invalid offset")
 		}
 		if offset == dr.offset {
 			return offset, nil

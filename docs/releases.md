@@ -3,7 +3,7 @@
 ## Release Schedule
 go-ipfs is on a six week release schedule. Following a release, there will be
 five weeks for code of any type (features, bugfixes, etc) to be added. After
-the five weeks is up, a release canidate is tagged and only important bugfixes
+the five weeks is up, a release candidate is tagged and only important bugfixes
 will be allowed up to release day.
 
 ## Release Candidate Checklist
@@ -15,8 +15,8 @@ will be allowed up to release day.
   - you will have to manually adjust the gx version to 'rc'
 
 ## Pre-Release Checklist
-- [ ] before release, tag 'release canidate' for users to test against
-  - if bugs are found/fixed, do another release canidate
+- [ ] before release, tag 'release candidate' for users to test against
+  - if bugs are found/fixed, do another release candidate
 - [ ] all tests pass (no exceptions)
 - [ ] run interop tests https://github.com/ipfs/interop#test-with-a-non-yet-released-version-of-go-ipfs
 - [ ] webui works (for most definitions of 'works') - Test the multiple pages and verify that no visible errors are shown.

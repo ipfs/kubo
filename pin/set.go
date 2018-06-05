@@ -188,7 +188,7 @@ func writeHdr(n *merkledag.ProtoNode, hdr *pb.Set) error {
 		return err
 	}
 
-	// make enough space for the length prefix and the marshalled header data
+	// make enough space for the length prefix and the marshaled header data
 	data := make([]byte, binary.MaxVarintLen64, binary.MaxVarintLen64+len(hdrData))
 
 	// write the uvarint length of the header data

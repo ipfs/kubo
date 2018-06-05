@@ -7,9 +7,9 @@ import (
 	"os"
 	"reflect"
 
+	"gx/ipfs/QmSKYWC84fqkKB54Te5JMcov2MBVzucXaRGxFqByzzCbHe/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 )
@@ -173,20 +173,20 @@ func convertOptions(req *cmds.Request) error {
 					if len(str) == 0 {
 						value = "empty value"
 					}
-					return fmt.Errorf("Could not convert %q to type %q (for option %q)",
+					return fmt.Errorf("could not convert %q to type %q (for option %q)",
 						value, opt.Type().String(), "-"+k)
 				}
 				req.Options[k] = val
 
 			} else {
-				return fmt.Errorf("Option %q should be type %q, but got type %q",
+				return fmt.Errorf("option %q should be type %q, but got type %q",
 					k, opt.Type().String(), kind.String())
 			}
 		}
 
 		for _, name := range opt.Names() {
 			if _, ok := req.Options[name]; name != k && ok {
-				return fmt.Errorf("Duplicate command options were provided (%q and %q)",
+				return fmt.Errorf("duplicate command options were provided (%q and %q)",
 					k, name)
 			}
 		}

@@ -80,7 +80,7 @@ test_expect_success ".ipfs/ has been created" '
 
 The `|| ...` is a diagnostic run when the preceding command fails.
 test_fsh is a shell function that echoes the args, runs the cmd,
-and then also fails, making sure the test case fails. (wouldnt want
+and then also fails, making sure the test case fails. (wouldn't want
 the diagnostic accidentally returning true and making it _seem_ like
 the test case succeeded!).
 

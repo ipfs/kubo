@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2014 Christian Couder
 # MIT Licensed; see the LICENSE file in this repository.
@@ -64,6 +64,18 @@ test_expect_success "ipfs cat error output the same" '
   test_expect_code 1 ipfs cat "$UNSHARDED" 2> unsharded_err &&
   test_cmp sharded_err unsharded_err
 '
+
+test_expect_success "'ipfs ls --resolve-type=false' admits missing block" '
+  ipfs ls "$SHARDED" | head -1 > first_file &&
+  read -r HASH _ NAME <first_file &&
+  ipfs pin rm "$SHARDED" "$UNSHARDED" && # To allow us to remove the block
+  ipfs block rm "$HASH" &&
+  test_expect_code 1 ipfs cat "$SHARDED/$NAME" &&
+  test_expect_code 1 ipfs ls "$SHARDED" &&
+  ipfs ls --resolve-type=false "$SHARDED" | sort > missing_out &&
+  test_cmp sharded_out missing_out
+'
+
 
 test_add_large_dir_v1() {
   exphash="$1"

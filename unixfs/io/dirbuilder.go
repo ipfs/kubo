@@ -103,7 +103,7 @@ func (d *Directory) AddChild(ctx context.Context, name string, nd ipld.Node) err
 	if d.shard == nil {
 		if !UseHAMTSharding {
 			_ = d.dirnode.RemoveNodeLink(name)
-			return d.dirnode.AddNodeLinkClean(name, nd)
+			return d.dirnode.AddNodeLink(name, nd)
 		}
 
 		err := d.switchToSharding(ctx)

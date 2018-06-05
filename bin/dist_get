@@ -9,7 +9,7 @@ have_binary() {
 	type "$1" > /dev/null 2> /dev/null
 }
 
-check_writeable() {
+check_writable() {
 	printf "" > "$1" && rm "$1"
 }
 
@@ -39,7 +39,7 @@ download() {
 
 	test "$#" -eq "2" || die "download requires exactly two arguments, was given $@"
 
-	if ! check_writeable "$dl_output"; then
+	if ! check_writable "$dl_output"; then
 		die "download error: cannot write to $dl_output"
 	fi
 
@@ -65,7 +65,7 @@ unarchive() {
 	fi
 	ua_outfile="$ua_outfile$ua_binpostfix"
 
-	if ! check_writeable "$ua_outfile"; then
+	if ! check_writable "$ua_outfile"; then
 		die "unarchive error: cannot write to $ua_outfile"
 	fi
 

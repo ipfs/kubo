@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # MIT Licensed; see the LICENSE file in this repository.
 #

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Copyright (c) 2015 Jeromy Johnson
 # MIT Licensed; see the LICENSE file in this repository.
@@ -29,7 +29,7 @@ pnet_key() {
   random 16
 }
 
-pnet_key > $IPFS_PATH/swarm.key
+pnet_key > "${IPFS_PATH}/swarm.key"
 
 LIBP2P_FORCE_PNET=1 test_launch_ipfs_daemon
 
@@ -42,7 +42,7 @@ set_key() {
   node="$1"
   keyfile="$2"
 
-  cp "$keyfile" "$IPTB_ROOT/$node/swarm.key"
+  cp "$keyfile" "${IPTB_ROOT}/${node}/swarm.key"
 }
 
 pnet_key > key1
@@ -61,7 +61,7 @@ test_expect_success "start nodes" '
 '
 
 test_expect_success "try connecting node in public network with priv networks" '
-  iptb connect [1-4] 0
+  iptb connect --timeout=2s [1-4] 0
 '
 
 test_expect_success "node 0 (public network) swarm is empty" '

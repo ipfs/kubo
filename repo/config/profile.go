@@ -5,6 +5,15 @@ import "time"
 // Transformer is a function which takes configuration and applies some filter to it
 type Transformer func(c *Config) error
 
+// Profile contains the profile transformer the description of the profile
+type Profile struct {
+	// Description briefly describes the functionality of the profile
+	Description string
+
+	// Transform takes ipfs configuration and applies the profile to it
+	Transform Transformer
+}
+
 // defaultServerFilters has a list of non-routable IPv4 prefixes
 // according to http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
 var defaultServerFilters = []string{
@@ -26,75 +35,148 @@ var defaultServerFilters = []string{
 }
 
 // Profiles is a map holding configuration transformers. Docs are in docs/config.md
-var Profiles = map[string]Transformer{
-	"server": func(c *Config) error {
-		c.Addresses.NoAnnounce = appendSingle(c.Addresses.NoAnnounce, defaultServerFilters)
-		c.Swarm.AddrFilters = appendSingle(c.Swarm.AddrFilters, defaultServerFilters)
-		c.Discovery.MDNS.Enabled = false
-		return nil
-	},
-	"local-discovery": func(c *Config) error {
-		c.Addresses.NoAnnounce = deleteEntries(c.Addresses.NoAnnounce, defaultServerFilters)
-		c.Swarm.AddrFilters = deleteEntries(c.Swarm.AddrFilters, defaultServerFilters)
-		c.Discovery.MDNS.Enabled = true
-		return nil
-	},
-	"test": func(c *Config) error {
-		c.Addresses.API = "/ip4/127.0.0.1/tcp/0"
-		c.Addresses.Gateway = "/ip4/127.0.0.1/tcp/0"
-		c.Addresses.Swarm = []string{
-			"/ip4/127.0.0.1/tcp/0",
-		}
+var Profiles = map[string]Profile{
+	"server": {
+		Description: `Disables local host discovery, recommended when
+running IPFS on machines with public IPv4 addresses.`,
 
-		c.Swarm.DisableNatPortMap = true
+		Transform: func(c *Config) error {
+			c.Addresses.NoAnnounce = appendSingle(c.Addresses.NoAnnounce, defaultServerFilters)
+			c.Swarm.AddrFilters = appendSingle(c.Swarm.AddrFilters, defaultServerFilters)
+			c.Discovery.MDNS.Enabled = false
+			c.Swarm.DisableNatPortMap = true
+			return nil
+		},
+	},
 
-		c.Bootstrap = []string{}
-		c.Discovery.MDNS.Enabled = false
-		return nil
-	},
-	"default-networking": func(c *Config) error {
-		c.Addresses = addressesConfig()
+	"local-discovery": {
+		Description: `Sets default values to fields affected by the server
+profile, enables discovery in local networks.`,
 
-		c.Swarm.DisableNatPortMap = false
-		c.Discovery.MDNS.Enabled = true
-		return nil
+		Transform: func(c *Config) error {
+			c.Addresses.NoAnnounce = deleteEntries(c.Addresses.NoAnnounce, defaultServerFilters)
+			c.Swarm.AddrFilters = deleteEntries(c.Swarm.AddrFilters, defaultServerFilters)
+			c.Discovery.MDNS.Enabled = true
+			c.Swarm.DisableNatPortMap = false
+			return nil
+		},
 	},
-	"badgerds": func(c *Config) error {
-		c.Datastore.Spec = map[string]interface{}{
-			"type":   "measure",
-			"prefix": "badger.datastore",
-			"child": map[string]interface{}{
-				"type":       "badgerds",
-				"path":       "badgerds",
-				"syncWrites": true,
-			},
-		}
-		return nil
-	},
-	"default-datastore": func(c *Config) error {
-		c.Datastore.Spec = DefaultDatastoreConfig().Spec
-		return nil
-	},
-	"lowpower": func(c *Config) error {
-		c.Routing.Type = "dhtclient"
-		c.Reprovider.Interval = "0"
+	"test": {
+		Description: `Reduces external interference of IPFS daemon, this
+is useful when using the daemon in test environments.`,
 
-		c.Swarm.ConnMgr.LowWater = 20
-		c.Swarm.ConnMgr.HighWater = 40
-		c.Swarm.ConnMgr.GracePeriod = time.Minute.String()
-		return nil
+		Transform: func(c *Config) error {
+			c.Addresses.API = "/ip4/127.0.0.1/tcp/0"
+			c.Addresses.Gateway = "/ip4/127.0.0.1/tcp/0"
+			c.Addresses.Swarm = []string{
+				"/ip4/127.0.0.1/tcp/0",
+			}
+
+			c.Swarm.DisableNatPortMap = true
+
+			c.Bootstrap = []string{}
+			c.Discovery.MDNS.Enabled = false
+			return nil
+		},
+	},
+	"default-networking": {
+		Description: `Restores default network settings.
+Inverse profile of the test profile.`,
+
+		Transform: func(c *Config) error {
+			c.Addresses = addressesConfig()
+
+			bootstrapPeers, err := DefaultBootstrapPeers()
+			if err != nil {
+				return err
+			}
+			c.Bootstrap = appendSingle(c.Bootstrap, BootstrapPeerStrings(bootstrapPeers))
+
+			c.Swarm.DisableNatPortMap = false
+			c.Discovery.MDNS.Enabled = true
+			return nil
+		},
+	},
+	"badgerds": {
+		Description: `Replaces default datastore configuration with experimental
+badger datastore.
+
+If you apply this profile after ipfs init, you will need
+to convert your datastore to the new configuration.
+You can do this using ipfs-ds-convert.
+
+For more on ipfs-ds-convert see
+$ ipfs-ds-convert --help
+and
+$ ipfs-ds-convert convert --help
+
+WARNING: badger datastore is experimental.
+Make sure to backup your data frequently.`,
+
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = map[string]interface{}{
+				"type":   "measure",
+				"prefix": "badger.datastore",
+				"child": map[string]interface{}{
+					"type":       "badgerds",
+					"path":       "badgerds",
+					"syncWrites": true,
+				},
+			}
+			return nil
+		},
+	},
+	"default-datastore": {
+		Description: `Restores default datastore configuration.
+
+If you apply this profile after ipfs init, you will need
+to convert your datastore to the new configuration.
+You can do this using ipfs-ds-convert.
+
+For more on ipfs-ds-convert see
+$ ipfs-ds-convert --help
+and
+$ ipfs-ds-convert convert --help
+`,
+
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = DefaultDatastoreConfig().Spec
+			return nil
+		},
+	},
+	"lowpower": {
+		Description: `Reduces daemon overhead on the system. May affect node
+functionality - performance of content discovery and data
+fetching may be degraded.
+`,
+		Transform: func(c *Config) error {
+			c.Routing.Type = "dhtclient"
+			c.Reprovider.Interval = "0"
+
+			c.Swarm.ConnMgr.LowWater = 20
+			c.Swarm.ConnMgr.HighWater = 40
+			c.Swarm.ConnMgr.GracePeriod = time.Minute.String()
+			return nil
+		},
 	},
 }
 
 func appendSingle(a []string, b []string) []string {
-	m := map[string]struct{}{}
+	out := make([]string, 0, len(a)+len(b))
+	m := map[string]bool{}
 	for _, f := range a {
-		m[f] = struct{}{}
+		if !m[f] {
+			out = append(out, f)
+		}
+		m[f] = true
 	}
 	for _, f := range b {
-		m[f] = struct{}{}
+		if !m[f] {
+			out = append(out, f)
+		}
+		m[f] = true
 	}
-	return mapKeys(m)
+	return out
 }
 
 func deleteEntries(arr []string, del []string) []string {

@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var DistPath = "https://ipfs.io/ipfs/QmR6d2gePmBmsqkESwjpbLrHHJGLx2qDyWysqpuNcJgsnK"
+var DistPath = "https://ipfs.io/ipfs/QmZLYJBVBK8nqc5JTHp6CZU1v9Ja3MvGrkCe61PfCecc6E"
 
 func init() {
 	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
@@ -259,7 +259,7 @@ func osWithVariant() (string, error) {
 	// - on standard ubuntu: stdout
 	// - on alpine: stderr (it probably doesn't know the --version flag)
 	//
-	// we supress non-zero exit codes (see last point about alpine).
+	// we suppress non-zero exit codes (see last point about alpine).
 	out, err := exec.Command("sh", "-c", "ldd --version || true").CombinedOutput()
 	if err != nil {
 		return "", err

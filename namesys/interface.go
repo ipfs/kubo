@@ -37,18 +37,19 @@ import (
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+
+	ci "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // ErrResolveFailed signals an error when attempting to resolve.
-var ErrResolveFailed = errors.New("Could not resolve name.")
+var ErrResolveFailed = errors.New("could not resolve name")
 
 // ErrResolveRecursion signals a recursion-depth limit.
 var ErrResolveRecursion = errors.New(
-	"Could not resolve name (recursion limit exceeded).")
+	"could not resolve name (recursion limit exceeded)")
 
 // ErrPublishFailed signals an error when attempting to publish.
-var ErrPublishFailed = errors.New("Could not publish name.")
+var ErrPublishFailed = errors.New("could not publish name")
 
 // Namesys represents a cohesive name publishing and resolving system.
 //
@@ -60,7 +61,6 @@ var ErrPublishFailed = errors.New("Could not publish name.")
 type NameSystem interface {
 	Resolver
 	Publisher
-	ResolverLookup
 }
 
 // Resolver is an object capable of resolving names.
@@ -93,11 +93,4 @@ type Publisher interface {
 	// TODO: to be replaced by a more generic 'PublishWithValidity' type
 	// call once the records spec is implemented
 	PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error
-}
-
-// ResolverLookup is an object capable of finding resolvers for a subsystem
-type ResolverLookup interface {
-
-	// GetResolver retrieves a resolver associated with a subsystem
-	GetResolver(subs string) (Resolver, bool)
 }
