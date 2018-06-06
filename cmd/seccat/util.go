@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"net"
 	"os"
 
 	logging "gx/ipfs/QmTG23dvpBCBjqQwyDxV8CQT6jmS4PSftNr1VqHhE3MLy7/go-log"
@@ -24,28 +24,24 @@ func out(format string, vals ...interface{}) {
 	}
 }
 
-type logRW struct {
-	n  string
-	rw io.ReadWriter
+type logConn struct {
+	net.Conn
+	n string
 }
 
-func (r *logRW) Read(buf []byte) (int, error) {
-	n, err := r.rw.Read(buf)
+func (r *logConn) Read(buf []byte) (int, error) {
+	n, err := r.Conn.Read(buf)
 	if n > 0 {
 		log.Debugf("%s read: %v", r.n, buf)
 	}
 	return n, err
 }
 
-func (r *logRW) Write(buf []byte) (int, error) {
+func (r *logConn) Write(buf []byte) (int, error) {
 	log.Debugf("%s write: %v", r.n, buf)
-	return r.rw.Write(buf)
+	return r.Conn.Write(buf)
 }
 
-func (r *logRW) Close() error {
-	c, ok := r.rw.(io.Closer)
-	if ok {
-		return c.Close()
-	}
-	return nil
+func (r *logConn) Close() error {
+	return r.Conn.Close()
 }
