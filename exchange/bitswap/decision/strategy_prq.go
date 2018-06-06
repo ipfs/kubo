@@ -17,19 +17,8 @@ import (
 // Type and Constructor
 // --------------------
 
-// verify interface implementation
-var _ peerRequestQueue = &strategy_prq{}
-
-type strategy_prq struct {
-	lock     sync.Mutex
-	pQueue   pq.PQ
-	taskMap  map[string]*peerRequestTask
-	partners map[peer.ID]*activePartner
-	rrq      *RRQueue
-}
-
-func newStrategyPRQ(strategy Strategy) *strategy_prq {
-	return &strategy_prq{
+func newSPRQ(strategy Strategy) *sprq {
+	return &sprq{
 		taskMap:  make(map[string]*peerRequestTask),
 		partners: make(map[peer.ID]*activePartner),
 		pQueue:   pq.New(partnerCompare),
@@ -37,8 +26,8 @@ func newStrategyPRQ(strategy Strategy) *strategy_prq {
 	}
 }
 
-func newStrategyPRQCustom(strategy Strategy, burst int) *strategy_prq {
-	return &strategy_prq{
+func newSPRQCustom(strategy Strategy, burst int) *sprq {
+	return &sprq{
 		taskMap:  make(map[string]*peerRequestTask),
 		partners: make(map[peer.ID]*activePartner),
 		pQueue:   pq.New(partnerCompare),
@@ -46,11 +35,22 @@ func newStrategyPRQCustom(strategy Strategy, burst int) *strategy_prq {
 	}
 }
 
+// verify interface implementation
+var _ peerRequestQueue = &sprq{}
+
+type sprq struct {
+	lock     sync.Mutex
+	pQueue   pq.PQ
+	taskMap  map[string]*peerRequestTask
+	partners map[peer.ID]*activePartner
+	rrq      *RRQueue
+}
+
 // Push
 // ----
 
 // Push adds a new peerRequestTask to the end of the list
-func (tl *strategy_prq) Push(entry *wantlist.Entry, receipt *Receipt) {
+func (tl *sprq) Push(entry *wantlist.Entry, receipt *Receipt) {
 	to := peer.ID(receipt.Peer)
 	tl.lock.Lock()
 	defer tl.lock.Unlock()
@@ -100,7 +100,7 @@ func (tl *strategy_prq) Push(entry *wantlist.Entry, receipt *Receipt) {
 // ---
 
 // Pop 'pops' the next task to be performed. Returns nil if no task exists.
-func (tl *strategy_prq) Pop() *peerRequestTask {
+func (tl *sprq) Pop() *peerRequestTask {
 	tl.lock.Lock()
 	defer tl.lock.Unlock()
 
@@ -126,7 +126,7 @@ func (tl *strategy_prq) Pop() *peerRequestTask {
 
 // nextTask() uses the `RRQueue` and peer `taskQueue`s to determine the next
 // request to serve
-func (tl *strategy_prq) nextTask() (rrp *RRPeer, task *peerRequestTask) {
+func (tl *sprq) nextTask() (rrp *RRPeer, task *peerRequestTask) {
 	if tl.pQueue.Len() == 0 {
 		return nil, nil
 	}
@@ -164,7 +164,7 @@ func (tl *strategy_prq) nextTask() (rrp *RRPeer, task *peerRequestTask) {
 }
 
 // get first non-trash task
-func (tl *strategy_prq) partnerNextTask(partner *activePartner) *peerRequestTask {
+func (tl *sprq) partnerNextTask(partner *activePartner) *peerRequestTask {
 	for partner.taskQueue.Len() > 0 {
 		task := partner.taskQueue.Pop().(*peerRequestTask)
 		// return task if it's not trash
@@ -179,7 +179,7 @@ func (tl *strategy_prq) partnerNextTask(partner *activePartner) *peerRequestTask
 // ------
 
 // Remove removes a task from the queue
-func (tl *strategy_prq) Remove(k *cid.Cid, p peer.ID) {
+func (tl *sprq) Remove(k *cid.Cid, p peer.ID) {
 	tl.lock.Lock()
 	t, ok := tl.taskMap[taskKey(p, k)]
 	if ok {
@@ -210,10 +210,16 @@ func (tl *strategy_prq) Remove(k *cid.Cid, p peer.ID) {
 	tl.lock.Unlock()
 }
 
+// Unimplemented
+// -------------
+
+func (tl *sprq) thawRound() {
+}
+
 // Helpers
 // -------
 
-func (tl *strategy_prq) allocationForPeer(id peer.ID) int {
+func (tl *sprq) allocationForPeer(id peer.ID) int {
 	for _, rrp := range tl.rrq.allocations {
 		if rrp.id == id {
 			return rrp.allocation

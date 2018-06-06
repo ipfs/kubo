@@ -29,7 +29,7 @@ func newEngine(ctx context.Context, idStr string) peerAndEngine {
 		Peer: peer.ID(idStr),
 		//Strategy: New(true),
 		Engine: NewEngine(ctx,
-			blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))),
+			blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore())), nil),
 	}
 }
 
@@ -108,7 +108,7 @@ func peerIsPartner(p peer.ID, e *Engine) bool {
 
 func TestOutboxClosedWhenEngineClosed(t *testing.T) {
 	t.SkipNow() // TODO implement *Engine.Close
-	e := NewEngine(context.Background(), blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore())))
+	e := NewEngine(context.Background(), blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore())), nil)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -156,7 +156,7 @@ func TestPartnerWantsThenCancels(t *testing.T) {
 			cancels := testcase[1]
 			keeps := stringsComplement(set, cancels)
 
-			e := NewEngine(context.Background(), bs)
+			e := NewEngine(context.Background(), bs, nil)
 			partner := testutil.RandPeerIDFatal(t)
 
 			partnerWants(e, set, partner)

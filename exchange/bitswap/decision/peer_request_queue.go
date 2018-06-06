@@ -17,6 +17,7 @@ type peerRequestQueue interface {
 	Push(entry *wantlist.Entry, receipt *Receipt)
 	Remove(k *cid.Cid, p peer.ID)
 
+	thawRound()
 	// NB: cannot expose simply expose taskQueue.Len because trashed elements
 	// may exist. These trashed elements should not contribute to the count.
 }

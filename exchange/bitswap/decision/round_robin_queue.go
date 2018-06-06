@@ -85,7 +85,7 @@ func (rrq *RRQueue) Head() *RRPeer {
 }
 
 func (rrq *RRQueue) Shift() {
-	rrq.allocations[0], rrq.allocations[len(rrq.allocations)-1] = rrq.allocations[len(rrq.allocations)-1], rrq.allocations[0]
+	rrq.allocations = append(rrq.allocations[1:], rrq.allocations[0])
 }
 
 func (rrq *RRQueue) ResetAllocations() {
@@ -106,7 +106,7 @@ func (rrq *RRQueue) NumPeers() int {
 type Strategy func(r *Receipt) float64
 
 // simple weighting function based on peer's ledger Value
-func Simple(r *Receipt) float64 {
+func Identity(r *Receipt) float64 {
 	if r.Value <= 0 {
 		return 0
 	}

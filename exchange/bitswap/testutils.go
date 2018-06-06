@@ -99,7 +99,7 @@ func MkSession(ctx context.Context, net tn.Network, p testutil.Identity) Instanc
 		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}
 
-	bs := New(ctx, adapter, bstore).(*Bitswap)
+	bs := New(ctx, adapter, bstore, nil).(*Bitswap)
 
 	return Instance{
 		Peer:            p.ID(),

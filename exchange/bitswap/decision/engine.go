@@ -70,7 +70,7 @@ type Engine struct {
 	// peerRequestQueue is a priority queue of requests received from peers.
 	// Requests are popped from the queue, packaged up, and placed in the
 	// outbox.
-	peerRequestQueue *prq
+	peerRequestQueue peerRequestQueue
 
 	// FIXME it's a bit odd for the client and the worker to both share memory
 	// (both modify the peerRequestQueue) and also to communicate over the
@@ -92,17 +92,24 @@ type Engine struct {
 	ticker *time.Ticker
 }
 
-func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
+func NewEngine(ctx context.Context, bs bstore.Blockstore, strategy Strategy) *Engine {
 	e := &Engine{
 		ledgerMap:        make(map[peer.ID]*ledger),
 		bs:               bs,
-		peerRequestQueue: newPRQ(),
+		peerRequestQueue: newPeerRequestQueue(strategy),
 		outbox:           make(chan (<-chan *Envelope), outboxChanBuffer),
 		workSignal:       make(chan struct{}, 1),
 		ticker:           time.NewTicker(time.Millisecond * 100),
 	}
 	go e.taskWorker(ctx)
 	return e
+}
+
+func newPeerRequestQueue(strategy Strategy) peerRequestQueue {
+	if strategy == nil {
+		return newPRQ()
+	}
+	return newSPRQ(strategy)
 }
 
 func (e *Engine) WantlistForPeer(p peer.ID) (out []*wl.Entry) {

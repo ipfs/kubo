@@ -22,7 +22,7 @@ import (
 // -----------------
 
 func TestSPRQPushPopLegacy(t *testing.T) {
-	prq := newStrategyPRQ(Simple)
+	prq := newSPRQ(Simple)
 	partner := testutil.RandPeerIDFatal(t)
 	alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
 	vowels := strings.Split("aeiou", "")
@@ -79,7 +79,7 @@ func TestSPRQPushPopLegacy(t *testing.T) {
 
 func TestSPRQPushPopServeAll(t *testing.T) {
 	roundBurst := 100
-	prq := newStrategyPRQCustom(Simple, roundBurst)
+	prq := newSPRQCustom(Simple, roundBurst)
 	partner := testutil.RandPeerIDFatal(t)
 	alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
 
@@ -123,7 +123,7 @@ func TestSPRQPushPopServeAll(t *testing.T) {
 }
 
 func TestSPRQPushPop1Round(t *testing.T) {
-	prq := newStrategyPRQCustom(Simple, 100)
+	prq := newSPRQCustom(Simple, 100)
 	partner := testutil.RandPeerIDFatal(t)
 	alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
 	// the first 20 letters should be served by the end
@@ -182,7 +182,7 @@ func TestSPRQPushPop1Round(t *testing.T) {
 
 func TestSPRQPushPop5Peers(t *testing.T) {
 	roundBurst := 150
-	prq := newStrategyPRQCustom(Simple, roundBurst)
+	prq := newSPRQCustom(Simple, roundBurst)
 	partners := make([]peer.ID, 5)
 	expectedAllocations := make(map[peer.ID]int)
 	for i, _ := range partners {
@@ -246,7 +246,7 @@ func testStrategy(t *testing.T, strategy Strategy) {
 	}
 
 	roundBurst := int(totalWeight)
-	prq := newStrategyPRQCustom(strategy, roundBurst)
+	prq := newSPRQCustom(strategy, roundBurst)
 	// calculate expected allocation for each peer and add blocks to queues
 	for i, _ := range partners {
 		expectedAllocations[partners[i]] = int(strategy(ledgers[i]) / totalWeight * float64(roundBurst))

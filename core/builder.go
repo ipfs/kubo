@@ -10,6 +10,7 @@ import (
 	"time"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	bsengine "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	resolver "github.com/ipfs/go-ipfs/path/resolver"
@@ -214,9 +215,16 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		bs.HashOnRead(true)
 	}
 
+	// TODO: not sure if this goes here
+	// TODO: not sure whether `bitswapStrategy` should be stored in the BuildCfg
+	var bitswapStrategy bsengine.Strategy = nil
+	if conf.Experimental.BitswapStrategyEnabled {
+		bitswapStrategy = getStrategyFunc(conf.Experimental.BitswapStrategy)
+	}
+
 	if cfg.Online {
 		do := setupDiscoveryOption(rcfg.Discovery)
-		if err := n.startOnlineServices(ctx, cfg.Routing, cfg.Host, do, cfg.getOpt("pubsub"), cfg.getOpt("ipnsps"), cfg.getOpt("mplex")); err != nil {
+		if err := n.startOnlineServices(ctx, cfg.Routing, bitswapStrategy, cfg.Host, do, cfg.getOpt("pubsub"), cfg.getOpt("ipnsps"), cfg.getOpt("mplex")); err != nil {
 			return err
 		}
 	} else {
