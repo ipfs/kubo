@@ -15,7 +15,7 @@ import (
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	ipath "github.com/ipfs/go-ipfs/path"
 
-	offline "gx/ipfs/QmPuPdzoG4b5uyYSQCjLEHB8NM593m3BW19UHX2jZ6Wzfm/go-ipfs-routing/offline"
+	offline "gx/ipfs/QmcE3B6ittYBmctva8Q155LPa1YPcVqg8N7pPcgt9i7iAQ/go-ipfs-routing/offline"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )

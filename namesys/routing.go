@@ -16,7 +16,7 @@ import (
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	dht "gx/ipfs/Qmd3jqhBQFvhfBNTSJMQL15GgyVMpdxKTta69Napvx6Myd/go-libp2p-kad-dht"
+	dht "gx/ipfs/Qme6C1xZFKUQVxvj8Sb7afWiQxzkQt67gq5V2o85pivCjV/go-libp2p-kad-dht"
 )
 
 var log = logging.Logger("namesys")

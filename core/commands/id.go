@@ -13,7 +13,7 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	kb "gx/ipfs/QmVn1WR5woqFfydU7aUpjKeF514oAd1RvvBCcbuUiP8bm7/go-libp2p-kbucket"
-	identify "gx/ipfs/QmWsV6kzPaYGBDVyuUfWBvyQygEc9Qrv9vzo8vZ7X4mdLN/go-libp2p/p2p/protocol/identify"
+	identify "gx/ipfs/QmY6iAoG9DVgZwh5ZRcQEpa2uErAe1Hbei8qXPCjpDS9Ge/go-libp2p/p2p/protocol/identify"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	pstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
