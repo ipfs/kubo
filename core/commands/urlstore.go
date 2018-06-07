@@ -10,7 +10,7 @@ import (
 	balanced "github.com/ipfs/go-ipfs/importer/balanced"
 	ihelper "github.com/ipfs/go-ipfs/importer/helpers"
 
-	chunk "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
+        chunk "gx/ipfs/QmbGDSVKnYJZrtUnyxwsUpCeuigshNuVFxXCpv13jXecq1/go-ipfs-chunker"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
