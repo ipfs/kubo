@@ -122,6 +122,41 @@ func (db *DagBuilderHelper) NewUnixfsNode() *UnixfsNode {
 	return n
 }
 
+// NewLeaf creates a leaf node filled with data.  If rawLeaves is
+// defined than a raw leaf will be returned.  Otherwise, if data is
+// nil the type field will be TRaw (for backwards compatibility), if
+// data is defined (but possibly empty) the type field will be TRaw.
+func (db *DagBuilderHelper) NewLeaf(data []byte) (*UnixfsNode, error) {
+	if len(data) > BlockSizeLimit {
+		return nil, ErrSizeLimitExceeded
+	}
+
+	if db.rawLeaves {
+		if db.prefix == nil {
+			return &UnixfsNode{
+				rawnode: dag.NewRawNode(data),
+				raw:     true,
+			}, nil
+		}
+		rawnode, err := dag.NewRawNodeWPrefix(data, *db.prefix)
+		if err != nil {
+			return nil, err
+		}
+		return &UnixfsNode{
+			rawnode: rawnode,
+			raw:     true,
+		}, nil
+	}
+
+	if data == nil {
+		return db.NewUnixfsNode(), nil
+	}
+
+	blk := db.newUnixfsBlock()
+	blk.SetData(data)
+	return blk, nil
+}
+
 // newUnixfsBlock creates a new Unixfs node to represent a raw data block
 func (db *DagBuilderHelper) newUnixfsBlock() *UnixfsNode {
 	n := &UnixfsNode{
@@ -164,30 +199,7 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 		return nil, nil
 	}
 
-	if len(data) > BlockSizeLimit {
-		return nil, ErrSizeLimitExceeded
-	}
-
-	if db.rawLeaves {
-		if db.prefix == nil {
-			return &UnixfsNode{
-				rawnode: dag.NewRawNode(data),
-				raw:     true,
-			}, nil
-		}
-		rawnode, err := dag.NewRawNodeWPrefix(data, *db.prefix)
-		if err != nil {
-			return nil, err
-		}
-		return &UnixfsNode{
-			rawnode: rawnode,
-			raw:     true,
-		}, nil
-	}
-
-	blk := db.newUnixfsBlock()
-	blk.SetData(data)
-	return blk, nil
+	return db.NewLeaf(data)
 }
 
 // SetPosInfo sets the offset information of a node using the fullpath and stat

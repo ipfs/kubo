@@ -51,7 +51,12 @@ func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
 
 	}
 	if root == nil {
-		root = db.NewUnixfsNode()
+		// this should only happen with an empty node, so return a leaf
+		var err error
+		root, err = db.NewLeaf(nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	out, err := db.Add(root)
