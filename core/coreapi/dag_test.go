@@ -8,7 +8,7 @@ import (
 
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )

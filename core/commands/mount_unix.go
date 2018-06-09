@@ -12,7 +12,7 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 
 var MountCmd = &cmds.Command{
