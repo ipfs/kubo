@@ -14,9 +14,9 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	logging "gx/ipfs/QmTG23dvpBCBjqQwyDxV8CQT6jmS4PSftNr1VqHhE3MLy7/go-log"
-	chunker "gx/ipfs/QmbGDSVKnYJZrtUnyxwsUpCeuigshNuVFxXCpv13jXecq1/go-ipfs-chunker"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	chunker "gx/ipfs/QmR4G4WBNGA5S5pvjFiTkuehstC9769sLAHei8vZernhYR/go-ipfs-chunker"
+	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
+	logging "gx/ipfs/Qmbi1CTJsbnBZjCEgc2otwu8cUFPsGpzWXG7edVCLZ7Gvk/go-log"
 )
 
 var log = logging.Logger("tarfmt")

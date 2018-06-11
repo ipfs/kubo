@@ -11,7 +11,7 @@ import (
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
 )
 
 func getNames(prefix string, count int) []string {
