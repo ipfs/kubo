@@ -5,21 +5,33 @@ message Message {
   message Wantlist {
 
     message Entry {
-      optional string block = 1; 	// the block cid (cidV0 in bitswap 1.0.0, cidV1 in bitswap 1.1.0)
-      optional int32 priority = 2; 	// the priority (normalized). default to 1
-      optional bool cancel = 3;  	// whether this revokes an entry
+      optional string block = 1;    // the block cid (cidV0 in bitswap 1.0.0, cidV1 in bitswap 1.1.0)
+      optional int32 priority = 2;  // the priority (normalized). default to 1
+      optional bool cancel = 3;     // whether this revokes an entry
     }
 
-    repeated Entry entries = 1; 	// a list of wantlist entries
-    optional bool full = 2;     	// whether this is the full wantlist. default to false
+    repeated Entry entries = 1;     // a list of wantlist entries
+    optional bool full = 2;         // whether this is the full wantlist. default to false
+  }
+  
+  message NextBlock {                // (bitswap 1.2.0)
+    required bytes cid = 1;          // block CID
+    optional uint64 blockSize = 2;   // block size (required in haveBlocks)
+    optional uint64 offset = 3;      // offset in block 
+    optional uint64 length = 4;      // block part length (16k max as in BitTorrent)
   }
 
   message Block {
-    optional bytes prefix = 1;		// CID prefix (cid version, multicodec and multihash prefix (type + length)
+    optional NextBlock blockPart = 3; // data is part of this block (bitswap 1.2.0)
+    optional bytes prefix = 1;        // CID prefix (cid version, multicodec and multihash prefix (type + length)
     optional bytes data = 2;
   }
-
+  
+  optional uint64 version = 4;       // bitswap version in first Message (value 1 = bitswap 1.2.0)
+  repeated NextBlock haveBlocks = 5; // signal from seed that it ready to send this blocks from peer wantlist (bitswap 1.2.0)
+  optional NextBlock sendBlock = 6;  // signal seed to start send this block part (bitswap 1.2.0)
+  
   optional Wantlist wantlist = 1;
-  repeated bytes blocks = 2;		// used to send Blocks in bitswap 1.0.0
-  repeated Block payload = 3;		// used to send Blocks in bitswap 1.1.0
+  repeated bytes blocks = 2;        // used to send Blocks in bitswap 1.0.0
+  repeated Block payload = 3;       // used to send Blocks in bitswap 1.1.0
 }
