@@ -19,6 +19,7 @@ import (
 	swarm "gx/ipfs/QmSvhbgtjQJKdT5avEeb7cvjYs7YrhebJyM1K6GAnkKgfd/go-libp2p-swarm"
 	ma "gx/ipfs/QmUxSEGbv2nmYNnfXi7839wwQqTN3kwQeUxe8dTjZWZs7J/go-multiaddr"
 	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
+	inet "gx/ipfs/QmXdgNhVEgjLxjUoMs5ViQL7pboAt3Y7V7eGHRiE4qrmTE/go-libp2p-net"
 	pstore "gx/ipfs/QmZhsmorLpD9kmQ4ynbAu4vbKv2goMUnXazwGA4gnWHDjB/go-libp2p-peerstore"
 	iaddr "gx/ipfs/QmaKviZCLQrpuyFdSjteik7kJFcQpcyZgb1VuuwaCBBaEa/go-ipfs-addr"
 	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
@@ -458,26 +459,38 @@ it will reconnect.
 		output := make([]string, len(iaddrs))
 		for i, addr := range iaddrs {
 			taddr := addr.Transport()
-			output[i] = "disconnect " + addr.ID().Pretty()
+			id := addr.ID()
+			output[i] = "disconnect " + id.Pretty()
 
-			found := false
-			conns := n.PeerHost.Network().ConnsToPeer(addr.ID())
-			for _, conn := range conns {
-				if !conn.RemoteMultiaddr().Equal(taddr) {
-					continue
-				}
+			net := n.PeerHost.Network()
 
-				if err := conn.Close(); err != nil {
+			if taddr == nil {
+				if net.Connectedness(id) != inet.Connected {
+					output[i] += " failure: not connected"
+				} else if err := net.ClosePeer(id); err != nil {
 					output[i] += " failure: " + err.Error()
 				} else {
 					output[i] += " success"
 				}
-				found = true
-				break
-			}
+			} else {
+				found := false
+				for _, conn := range net.ConnsToPeer(id) {
+					if !conn.RemoteMultiaddr().Equal(taddr) {
+						continue
+					}
 
-			if !found {
-				output[i] += " failure: conn not found"
+					if err := conn.Close(); err != nil {
+						output[i] += " failure: " + err.Error()
+					} else {
+						output[i] += " success"
+					}
+					found = true
+					break
+				}
+
+				if !found {
+					output[i] += " failure: conn not found"
+				}
 			}
 		}
 		res.SetOutput(&stringList{output})
