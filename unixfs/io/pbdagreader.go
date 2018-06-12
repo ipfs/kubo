@@ -52,7 +52,7 @@ var _ DagReader = (*PBDagReader)(nil)
 
 // NewPBFileReader constructs a new PBFileReader.
 func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv ipld.NodeGetter) (*PBDagReader, error) {
-	err := ft.ValidatePB(n, pb)
+	err := ft.ValidatePB(n.Links(), pb)
 	if err != nil {
 		return nil, err
 	}

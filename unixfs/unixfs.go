@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -261,18 +262,21 @@ func EmptyDirNode() *dag.ProtoNode {
 }
 
 // ValidatePB validates a unixfs protonode.
-func ValidatePB(n *dag.ProtoNode, pb *pb.Data) error {
-	if len(pb.Blocksizes) == 0 { // special case
+func ValidatePB(links []*ipld.Link, pb *pb.Data) error {
+	if pb.Filesize == nil {
+		return errors.New("unixfs ill-formed, filesize is not defined")
+	}
+	if len(pb.Blocksizes) == 0 && len(links) > 0 { // special case links but no blocksize
 		return nil
 	}
-	if len(n.Links()) != len(pb.Blocksizes) {
+	if len(links) != len(pb.Blocksizes) {
 		return errors.New("unixfs ill-formed, number of links does not match blocksize count")
 	}
 	total := uint64(len(pb.GetData()))
 	for _, blocksize := range pb.Blocksizes {
 		total += blocksize
 	}
-	if total != pb.GetFilesize() {
+	if total != *pb.Filesize {
 		return fmt.Errorf("unixfs ill-formed, actual size of %d does not match size in filesize field with value %d",
 			total, pb.GetFilesize())
 	}

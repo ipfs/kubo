@@ -175,26 +175,54 @@ func TestValidatePB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	links := nd.Links()
 	fd, err := FromBytes(nd.Data())
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ValidatePB(nd, fd)
+	err = ValidatePB(links, fd)
 	if err != nil {
 		t.Fatalf("valid node (with no blocksizes) failed to validate: %v", err)
+	}
+	// create no with no blocksize of filesize
+	invalid := *fd
+	invalid.Filesize = nil
+	err = ValidatePB(links, &invalid)
+	if err == nil {
+		t.Fatalf("invalid node with no blocksize or filesize validated")
 	}
 	// give node blocksizes
 	fd.Blocksizes = []uint64{3, 3}
 	// should be ok
-	err = ValidatePB(nd, fd)
+	err = ValidatePB(links, fd)
 	if err != nil {
 		t.Fatalf("valid node failed to validate: %v", err)
 	}
 	// give node incorrect filesize
-	var filesize uint64 = 8
-	fd.Filesize = &filesize
-	err = ValidatePB(nd, fd)
+	invalid = *fd
+	invalid.Filesize = proto.Uint64(8)
+	err = ValidatePB(links, &invalid)
 	if err == nil {
 		t.Fatal("invalid unixfs node (with incorrect filesize) validated")
+	}
+
+	// construct a leaf node, copied from WrapData
+	leaf := new(pb.Data)
+	typ := pb.Data_Raw
+	leaf.Data = []byte("abc")
+	leaf.Type = &typ
+	leaf.Filesize = proto.Uint64(3)
+
+	err = ValidatePB(nil, leaf)
+	if err != nil {
+		t.Fatalf("valid leaf node failed to validate: %v", err)
+	}
+
+	// make filesize incorrect
+	invalid = *leaf
+	invalid.Filesize = proto.Uint64(8)
+	err = ValidatePB(nil, &invalid)
+	if err == nil {
+		t.Fatal("invalid leaf node (with incorrect filesize) validated")
 	}
 }
