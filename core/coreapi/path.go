@@ -16,39 +16,6 @@ import (
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
 )
 
-// path implements coreiface.Path
-type path struct {
-	path ipfspath.Path
-}
-
-// resolvedPath implements coreiface.resolvedPath
-type resolvedPath struct {
-	path
-	cid       *cid.Cid
-	root      *cid.Cid
-	remainder string
-}
-
-// IpfsPath parses the path from `c`, reruns the parsed path.
-func (api *CoreAPI) IpfsPath(c *cid.Cid) coreiface.ResolvedPath {
-	return &resolvedPath{
-		path:      path{ipfspath.Path("/ipfs/" + c.String())},
-		cid:       c,
-		root:      c,
-		remainder: "",
-	}
-}
-
-// IpldPath parses the path from `c`, reruns the parsed path.
-func (api *CoreAPI) IpldPath(c *cid.Cid) coreiface.ResolvedPath {
-	return &resolvedPath{
-		path:      path{ipfspath.Path("/ipld/" + c.String())},
-		cid:       c,
-		root:      c,
-		remainder: "",
-	}
-}
-
 // ResolveNode resolves the path `p` using Unixfs resolver, gets and returns the
 // resolved Node.
 func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (ipld.Node, error) {
@@ -79,7 +46,7 @@ func resolvePath(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSyste
 		return p.(coreiface.ResolvedPath), nil
 	}
 
-	ipath := p.(*path).path
+	ipath := ipfspath.Path(p.String())
 	ipath, err := core.ResolveIPNS(ctx, nsys, ipath)
 	if err == core.ErrNoNamesys {
 		return nil, coreiface.ErrOffline
@@ -113,48 +80,5 @@ func resolvePath(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSyste
 		return nil, err
 	}
 
-	return &resolvedPath{
-		path:      path{ipath},
-		cid:       node.Cid(),
-		root:      root,
-		remainder: gopath.Join(rest...),
-	}, nil
-}
-
-// ParsePath parses path `p` using ipfspath parser, returns the parsed path.
-func (api *CoreAPI) ParsePath(p string) (coreiface.Path, error) {
-	pp, err := ipfspath.ParsePath(p)
-	if err != nil {
-		return nil, err
-	}
-
-	return &path{path: pp}, nil
-}
-
-func (p *path) String() string {
-	return p.path.String()
-}
-
-func (p *path) Namespace() string {
-	if len(p.path.Segments()) < 1 {
-		panic("path without namespace") //this shouldn't happen under any scenario
-	}
-	return p.path.Segments()[0]
-}
-
-func (p *path) Mutable() bool {
-	//TODO: MFS: check for /local
-	return p.Namespace() == "ipns"
-}
-
-func (p *resolvedPath) Cid() *cid.Cid {
-	return p.cid
-}
-
-func (p *resolvedPath) Root() *cid.Cid {
-	return p.root
-}
-
-func (p *resolvedPath) Remainder() string {
-	return p.remainder
+	return coreiface.NewResolvedPath(ipath, node.Cid(), root, gopath.Join(rest...)), nil
 }

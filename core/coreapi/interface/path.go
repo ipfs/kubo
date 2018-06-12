@@ -1,8 +1,12 @@
 package iface
 
 import (
+	ipfspath "github.com/ipfs/go-ipfs/path"
+
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 )
+
+//TODO: merge with ipfspath so we don't depend on it
 
 // Path is a generic wrapper for paths used in the API. A path can be resolved
 // to a CID using one of Resolve functions in the API.
@@ -86,4 +90,87 @@ type ResolvedPath interface {
 	Remainder() string
 
 	Path
+}
+
+// path implements coreiface.Path
+type path struct {
+	path ipfspath.Path
+}
+
+// resolvedPath implements coreiface.resolvedPath
+type resolvedPath struct {
+	path
+	cid       *cid.Cid
+	root      *cid.Cid
+	remainder string
+}
+
+// IpfsPath creates new /ipfs path from the provided CID
+func IpfsPath(c *cid.Cid) ResolvedPath {
+	return &resolvedPath{
+		path:      path{ipfspath.Path("/ipfs/" + c.String())},
+		cid:       c,
+		root:      c,
+		remainder: "",
+	}
+}
+
+// IpldPath creates new /ipld path from the provided CID
+func IpldPath(c *cid.Cid) ResolvedPath {
+	return &resolvedPath{
+		path:      path{ipfspath.Path("/ipld/" + c.String())},
+		cid:       c,
+		root:      c,
+		remainder: "",
+	}
+}
+
+// ParsePath parses string path to a Path
+func ParsePath(p string) (Path, error) {
+	pp, err := ipfspath.ParsePath(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return &path{path: pp}, nil
+}
+
+// NewResolvedPath creates new ResolvedPath. This function performs no checks
+// and is intended to be used by resolver implementations. Incorrect inputs may
+// cause panics. Handle with care.
+func NewResolvedPath(ipath ipfspath.Path, c *cid.Cid, root *cid.Cid, remainder string) ResolvedPath {
+	return &resolvedPath{
+		path:      path{ipath},
+		cid:       c,
+		root:      root,
+		remainder: remainder,
+	}
+}
+
+func (p *path) String() string {
+	return p.path.String()
+}
+
+func (p *path) Namespace() string {
+	if len(p.path.Segments()) < 1 {
+		panic("path without namespace") //this shouldn't happen under any scenario
+	}
+	return p.path.Segments()[0]
+}
+
+func (p *path) Mutable() bool {
+	//TODO: MFS: check for /local
+	return p.Namespace() == "ipns"
+}
+
+func (p *resolvedPath) Cid() *cid.Cid {
+	return p.cid
+}
+
+func (p *resolvedPath) Root() *cid.Cid {
+	return p.root
+}
+
+func (p *resolvedPath) Remainder() string {
+	return p.remainder
 }

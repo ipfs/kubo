@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
@@ -47,7 +48,7 @@ func TestPathRemainder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := api.ParsePath(obj.String() + "/foo/bar")
+	p1, err := coreiface.ParsePath(obj.String() + "/foo/bar")
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,7 +79,7 @@ func TestEmptyPathRemainder(t *testing.T) {
 		t.Error("expected the resolved path to not have a remainder")
 	}
 
-	p1, err := api.ParsePath(obj.String())
+	p1, err := coreiface.ParsePath(obj.String())
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,7 +106,7 @@ func TestInvalidPathRemainder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := api.ParsePath(obj.String() + "/bar/baz")
+	p1, err := coreiface.ParsePath(obj.String() + "/bar/baz")
 	if err != nil {
 		t.Error(err)
 	}
@@ -133,7 +134,7 @@ func TestPathRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := api.ParsePath(obj.String() + "/foo")
+	p1, err := coreiface.ParsePath(obj.String() + "/foo")
 	if err != nil {
 		t.Error(err)
 	}

@@ -159,7 +159,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		ipnsHostname = true
 	}
 
-	parsedPath, err := i.api.ParsePath(urlPath)
+	parsedPath, err := coreiface.ParsePath(urlPath)
 	if err != nil {
 		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
 		return
@@ -287,7 +287,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 			return
 		}
 
-		dr, err := i.api.Unixfs().Cat(ctx, i.api.IpfsPath(ixnd.Cid()))
+		dr, err := i.api.Unixfs().Cat(ctx, coreiface.IpfsPath(ixnd.Cid()))
 		if err != nil {
 			internalWebError(w, err)
 			return
