@@ -29,13 +29,38 @@ type Path interface {
 	Mutable() bool
 }
 
-// ResolvedPath is a resolved Path
+// ResolvedPath is a path which was resolved to the last resolvable node
 type ResolvedPath interface {
-	// Cid returns the CID of the object referenced by the path.
+	// Cid returns the CID of the node referenced by the path. Remainder of the
+	// path is guaranteed to be within the node.
 	//
-	// Example:
-	// If you have 3 linked objects: QmRoot -> A -> B, and resolve path
-	// "/ipfs/QmRoot/A/B", the Cid method will return the CID of object B
+	// Examples:
+	// If you have 3 linked objects: QmRoot -> A -> B:
+	//
+	// cidB := {"foo": {"bar": 42 }}
+	// cidA := {"B": {"/": cidB }}
+	// cidRoot := {"A": {"/": cidA }}
+	//
+	// And resolve paths:
+	// * "/ipfs/${cidRoot}"
+	//   * Calling Cid() will return `cidRoot`
+	//   * Calling Root() will return `cidRoot`
+	//   * Calling Remainder() will return ``
+	//
+	// * "/ipfs/${cidRoot}/A"
+	//   * Calling Cid() will return `cidA`
+	//   * Calling Root() will return `cidRoot`
+	//   * Calling Remainder() will return ``
+	//
+	// * "/ipfs/${cidRoot}/A/B/foo"
+	//   * Calling Cid() will return `cidB`
+	//   * Calling Root() will return `cidRoot`
+	//   * Calling Remainder() will return `foo`
+	//
+	// * "/ipfs/${cidRoot}/A/B/foo/bar"
+	//   * Calling Cid() will return `cidB`
+	//   * Calling Root() will return `cidRoot`
+	//   * Calling Remainder() will return `foo/bar`
 	Cid() *cid.Cid
 
 	// Root returns the CID of the root object of the path
@@ -43,6 +68,8 @@ type ResolvedPath interface {
 	// Example:
 	// If you have 3 linked objects: QmRoot -> A -> B, and resolve path
 	// "/ipfs/QmRoot/A/B", the Root method will return the CID of object QmRoot
+	//
+	// For more examples see the documentation of Cid() method
 	Root() *cid.Cid
 
 	// Remainder returns unresolved part of the path
@@ -51,9 +78,11 @@ type ResolvedPath interface {
 	// If you have 2 linked objects: QmRoot -> A, where A is a CBOR node
 	// containing the following data:
 	//
-	// {"foo": {"bar": 42}}
+	// {"foo": {"bar": 42 }}
 	//
 	// When resolving "/ipld/QmRoot/A/foo/bar", Remainder will return "foo/bar"
+	//
+	// For more examples see the documentation of Cid() method
 	Remainder() string
 
 	Path
