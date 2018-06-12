@@ -18,8 +18,9 @@ import (
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	swarm "gx/ipfs/QmSvhbgtjQJKdT5avEeb7cvjYs7YrhebJyM1K6GAnkKgfd/go-libp2p-swarm"
 	ma "gx/ipfs/QmUxSEGbv2nmYNnfXi7839wwQqTN3kwQeUxe8dTjZWZs7J/go-multiaddr"
+	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
 	pstore "gx/ipfs/QmZhsmorLpD9kmQ4ynbAu4vbKv2goMUnXazwGA4gnWHDjB/go-libp2p-peerstore"
-	iaddr "gx/ipfs/QmckPUj15AbTcLh6MpDEsQpfVCx34tmP2Xg1aNwLb5fiRF/go-ipfs-addr"
+	iaddr "gx/ipfs/QmaKviZCLQrpuyFdSjteik7kJFcQpcyZgb1VuuwaCBBaEa/go-ipfs-addr"
 	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 
@@ -522,16 +523,27 @@ func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
 
 // peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
+func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
 	iaddrs, err := parseAddresses(addrs)
 	if err != nil {
 		return nil, err
 	}
 
+	peers := make(map[peer.ID][]ma.Multiaddr, len(iaddrs))
 	for _, iaddr := range iaddrs {
+		id := iaddr.ID()
+		current, ok := peers[id]
+		if tpt := iaddr.Transport(); tpt != nil {
+			peers[id] = append(current, tpt)
+		} else if !ok {
+			peers[id] = nil
+		}
+	}
+	pis := make([]pstore.PeerInfo, 0, len(peers))
+	for id, maddrs := range peers {
 		pis = append(pis, pstore.PeerInfo{
-			ID:    iaddr.ID(),
-			Addrs: []ma.Multiaddr{iaddr.Transport()},
+			ID:    id,
+			Addrs: maddrs,
 		})
 	}
 	return pis, nil
