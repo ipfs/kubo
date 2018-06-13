@@ -17,6 +17,17 @@ check_has_connection() {
   grep "ipfs" "swarm_peers_$node" >/dev/null
 }
 
+iptb() {
+    if ! command iptb "$@"; then
+        case "$1" in
+            start|stop|connect)
+                test_fsh command iptb logs '*'
+                ;;
+        esac
+        return 1
+    fi
+}
+
 startup_cluster() {
   num_nodes="$1"
   shift
