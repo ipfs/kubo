@@ -193,6 +193,12 @@ test_expect_success "GET compact blocks succeeds" '
   test_cmp expected actual
 '
 
+test_expect_failure "GET compact blocks succeeds with seek" '
+  curl -I "http://127.0.0.1:$port/ipfs/$FOO2_HASH" &&
+  curl -v -o actual -H "Range:bytes=3-" "http://127.0.0.1:$port/ipfs/$FOO2_HASH" &&
+  test_cmp expected actual
+'
+
 test_kill_ipfs_daemon
 
 test_done
