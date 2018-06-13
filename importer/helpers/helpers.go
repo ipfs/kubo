@@ -77,7 +77,7 @@ func (n *UnixfsNode) Set(other *UnixfsNode) {
 	n.raw = other.raw
 	n.rawnode = other.rawnode
 	if other.ufmt != nil {
-		n.ufmt.Data = other.ufmt.Data
+		n.ufmt.SetData(other.ufmt.GetData())
 	}
 }
 
@@ -127,7 +127,7 @@ func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 
 // SetData stores data in this node.
 func (n *UnixfsNode) SetData(data []byte) {
-	n.ufmt.Data = data
+	n.ufmt.SetData(data)
 }
 
 // FileSize returns the total file size of this tree (including children)

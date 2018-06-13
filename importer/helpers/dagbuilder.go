@@ -116,7 +116,7 @@ func (db *DagBuilderHelper) GetDagServ() ipld.DAGService {
 func (db *DagBuilderHelper) NewUnixfsNode() *UnixfsNode {
 	n := &UnixfsNode{
 		node: new(dag.ProtoNode),
-		ufmt: &ft.FSNode{Type: ft.TFile},
+		ufmt: ft.NewFSNode(ft.TFile),
 	}
 	n.SetPrefix(db.prefix)
 	return n
@@ -161,7 +161,7 @@ func (db *DagBuilderHelper) NewLeaf(data []byte) (*UnixfsNode, error) {
 func (db *DagBuilderHelper) newUnixfsBlock() *UnixfsNode {
 	n := &UnixfsNode{
 		node: new(dag.ProtoNode),
-		ufmt: &ft.FSNode{Type: ft.TRaw},
+		ufmt: ft.NewFSNode(ft.TRaw),
 	}
 	n.SetPrefix(db.prefix)
 	return n

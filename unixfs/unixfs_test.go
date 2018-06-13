@@ -10,14 +10,13 @@ import (
 )
 
 func TestFSNode(t *testing.T) {
-	fsn := new(FSNode)
-	fsn.Type = TFile
+	fsn := NewFSNode(TFile)
 	for i := 0; i < 16; i++ {
 		fsn.AddBlockSize(100)
 	}
 	fsn.RemoveBlockSize(15)
 
-	fsn.Data = make([]byte, 128)
+	fsn.SetData(make([]byte, 128))
 
 	b, err := fsn.GetBytes()
 	if err != nil {

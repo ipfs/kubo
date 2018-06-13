@@ -60,7 +60,7 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 			return nil, err
 		}
 
-		switch fsn.Type {
+		switch fsn.GetType() {
 		default:
 			return nil, fmt.Errorf("unsupported fsnode type for 'file'")
 		case ft.TSymlink:

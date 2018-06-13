@@ -526,7 +526,7 @@ func dagTruncate(ctx context.Context, n ipld.Node, size uint64, ds ipld.DAGServi
 	var cur uint64
 	end := 0
 	var modified ipld.Node
-	ndata := new(ft.FSNode)
+	ndata := ft.NewFSNode(ft.TRaw)
 	for i, lnk := range nd.Links() {
 		child, err := lnk.GetNode(ctx, ds)
 		if err != nil {
