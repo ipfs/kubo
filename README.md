@@ -322,7 +322,7 @@ file an issue of your own!
 
 ## Contributing
 
-Please see [Contribute.md](contribute.md)!
+We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what it is without you! If you want to help out, please see [Contribute.md](contribute.md).
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
