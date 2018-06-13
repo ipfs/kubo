@@ -172,7 +172,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		}
 		if ok {
 			if _, err := loader.LoadPlugins(pluginpath); err != nil {
-				log.Warning("error loading plugins: ", err)
+				log.Error("error loading plugins: ", err)
 			}
 		}
 
