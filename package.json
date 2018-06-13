@@ -404,9 +404,9 @@
     },
     {
       "author": "why",
-      "hash": "QmckPUj15AbTcLh6MpDEsQpfVCx34tmP2Xg1aNwLb5fiRF",
+      "hash": "QmaKviZCLQrpuyFdSjteik7kJFcQpcyZgb1VuuwaCBBaEa",
       "name": "go-ipfs-addr",
-      "version": "0.1.12"
+      "version": "0.1.13"
     },
     {
       "author": "The Go Authors",
