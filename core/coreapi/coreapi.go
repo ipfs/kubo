@@ -1,3 +1,16 @@
+/*
+Package coreapi provides direct access to the core commands in IPFS. If you are
+embedding IPFS directly in your Go program, this package is the public
+interface you should use to read and write files or otherwise control IPFS.
+
+If you are running IPFS as a separate process, you should use `go-ipfs-api` to
+work with it via HTTP. As we finalize the interfaces here, `go-ipfs-api` will
+transparently adopt them so you can use the same code with either package.
+
+**NOTE: this package is experimental.** `go-ipfs` has mainly been developed
+as a standalone application and library-style use of this package is still new.
+Interfaces here aren't yet completely stable.
+*/
 package coreapi
 
 import (
@@ -49,7 +62,7 @@ func (api *CoreAPI) Key() coreiface.KeyAPI {
 	return (*KeyAPI)(api)
 }
 
-//Object returns the ObjectAPI interface implementation backed by the go-ipfs node
+// Object returns the ObjectAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Object() coreiface.ObjectAPI {
 	return (*ObjectAPI)(api)
 }
