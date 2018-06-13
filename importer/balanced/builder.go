@@ -27,39 +27,53 @@ import (
 // and depth only increases when the tree is full, that is, when
 // the root node has reached the maximum number of links.
 func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
-	var offset uint64
+	var rootFileSize uint64
 	var root *h.UnixfsNode
-	for level := 0; !db.Done(); level++ {
+	var level int
+	var err error
+	var filledRoot ipld.Node
+	for level = 0; !db.Done(); level++ {
 
 		nroot := db.NewUnixfsNode()
 		db.SetPosInfo(nroot, 0)
 
 		// add our old root as a child of the new root.
 		if root != nil { // nil if it's the first node.
-			if err := nroot.AddChild(root, db); err != nil {
+			if err := nroot.AddChildNode(filledRoot, db, rootFileSize); err != nil {
 				return nil, err
 			}
 		}
 
 		// fill it up.
-		if err := fillNodeRec(db, nroot, level, offset); err != nil {
+		if filledRoot, rootFileSize, err = fillNodeRec(db, *nroot, level, rootFileSize); err != nil {
 			return nil, err
 		}
 
-		offset = nroot.FileSize()
 		root = nroot
 
 	}
+
 	if root == nil {
 		// this should only happen with an empty node, so return a leaf
-		var err error
 		root, err = db.NewLeaf(nil)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	out, err := db.Add(root)
+	var rootDagNode ipld.Node
+	if level != 1 {
+		rootDagNode, err = root.GetDagNode()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// The loop ended (`db.Done()`) before the first `AddChildNode` was
+		// called, `root` doesn't contain the DAG, there is a single (leaf)
+		// node (with data) returned in `filledRoot`, so add that.
+		rootDagNode = filledRoot
+	}
+	out, err := db.AddDagNode(rootDagNode)
 	if err != nil {
 		return nil, err
 	}
@@ -74,23 +88,24 @@ func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
 
 // fillNodeRec will fill the given node with data from the dagBuilders input
 // source down to an indirection depth as specified by 'depth'
-// it returns the total dataSize of the node, and a potential error
+// it returns the input node now filled (`filledNode`), its total `fileSize`,
+// and a potential error
 //
 // warning: **children** pinned indirectly, but input node IS NOT pinned.
-func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int, offset uint64) error {
+func fillNodeRec(db *h.DagBuilderHelper, node h.UnixfsNode, depth int, offset uint64) (filledNode ipld.Node, fileSize uint64, err error) {
 	if depth < 0 {
-		return errors.New("attempt to fillNode at depth < 0")
+		return nil, 0, errors.New("attempt to fillNode at depth < 0")
 	}
 
 	// Base case
 	if depth <= 0 { // catch accidental -1's in case error above is removed.
 		child, err := db.GetNextDataNode()
 		if err != nil {
-			return err
+			return nil, 0, err
 		}
 
 		node.Set(child)
-		return nil
+		return node.GetDagNodeFileSize()
 	}
 
 	// while we have room AND we're not done
@@ -98,16 +113,16 @@ func fillNodeRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int, offset u
 		child := db.NewUnixfsNode()
 		db.SetPosInfo(child, offset)
 
-		err := fillNodeRec(db, child, depth-1, offset)
+		filledChild, childFileSize, err := fillNodeRec(db, *child, depth-1, offset)
 		if err != nil {
-			return err
+			return nil, 0, err
 		}
 
-		if err := node.AddChild(child, db); err != nil {
-			return err
+		if err = node.AddChildNode(filledChild, db, childFileSize); err != nil {
+			return nil, 0, err
 		}
-		offset += child.FileSize()
+		offset += childFileSize
 	}
 
-	return nil
+	return node.GetDagNodeFileSize()
 }

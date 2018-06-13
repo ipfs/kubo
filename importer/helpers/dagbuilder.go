@@ -225,6 +225,17 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (ipld.Node, error) {
 	return dn, nil
 }
 
+// AddDagNode is a variant of `Add` that sends an `ipld.Node`
+// (instead of the `UnixfsNode`) to the DAGService, and returns it.
+func (db *DagBuilderHelper) AddDagNode(node ipld.Node) (ipld.Node, error) {
+	err := db.dserv.Add(context.TODO(), node)
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
+}
+
 // Maxlinks returns the configured maximum number for links
 // for nodes built with this helper.
 func (db *DagBuilderHelper) Maxlinks() int {
