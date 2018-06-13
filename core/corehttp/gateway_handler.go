@@ -132,7 +132,6 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-
 	urlPath := r.URL.Path
 	escapedURLPath := r.URL.EscapedPath()
 
@@ -140,8 +139,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	// the prefix header can be set to signal this sub-path.
 	// It will be prepended to links in directory listings and the index.html redirect.
 	prefix := ""
-	if prefixHdr := r.Header["X-Ipfs-Gateway-Prefix"]; len(prefixHdr) > 0 {
-		prfx := prefixHdr[0]
+	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); len(prfx) > 0 {
 		for _, p := range i.config.PathPrefixes {
 			if prfx == p || strings.HasPrefix(prfx, p+"/") {
 				prefix = prfx
@@ -157,8 +155,8 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	// the redirects and links would end up as http://example.net/ipns/example.net
 	originalUrlPath := prefix + urlPath
 	ipnsHostname := false
-	if hdr := r.Header["X-Ipns-Original-Path"]; len(hdr) > 0 {
-		originalUrlPath = prefix + hdr[0]
+	if hdr := r.Header.Get("X-Ipns-Original-Path"); len(hdr) > 0 {
+		originalUrlPath = prefix + hdr
 		ipnsHostname = true
 	}
 
@@ -170,15 +168,10 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	// Resolve path to the final DAG node for the ETag
 	resolvedPath, err := i.api.ResolvePath(ctx, parsedPath)
-	switch err {
-	case nil:
-	case coreiface.ErrOffline:
-		if !i.node.OnlineMode() {
-			webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
-			return
-		}
-		fallthrough
-	default:
+	if err == coreiface.ErrOffline && !i.node.OnlineMode() {
+		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
+		return
+	} else if err != nil {
 		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}

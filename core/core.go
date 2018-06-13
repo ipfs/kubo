@@ -154,7 +154,6 @@ type Mounts struct {
 }
 
 func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub, ipnsps, mplex bool) error {
-
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
 	}

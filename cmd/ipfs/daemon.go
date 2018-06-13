@@ -150,7 +150,7 @@ Headers.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
 		cmdkit.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
-		cmdkit.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault("default"),
+		cmdkit.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmdkit.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
 		cmdkit.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmdkit.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
