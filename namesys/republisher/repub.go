@@ -72,7 +72,7 @@ func (rp *Republisher) Run(proc goprocess.Process) {
 			timer.Reset(rp.Interval)
 			err := rp.republishEntries(proc)
 			if err != nil {
-				log.Error("Republisher failed to republish: ", err)
+				log.Info("republisher failed to republish: ", err)
 				if FailureRetryInterval < rp.Interval {
 					timer.Reset(FailureRetryInterval)
 				}
