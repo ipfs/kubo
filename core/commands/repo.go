@@ -150,7 +150,7 @@ var repoStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Get stats for the currently used repo.",
 		ShortDescription: `
-'ipfs repo stat' provides information about the local set of 
+'ipfs repo stat' provides information about the local set of
 stored objects. It outputs:
 
 RepoSize        int Size in bytes that the repo is currently taking.
@@ -171,26 +171,33 @@ Version         string The repo version.
 			return
 		}
 
-		statF := corerepo.RepoStat
-
 		sizeOnly, _ := req.Options["size-only"].(bool)
 		if sizeOnly {
-			statF = corerepo.RepoSize
+			sizeStat, err := corerepo.RepoSize(req.Context, n)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+			cmds.EmitOnce(res, &corerepo.Stat{
+				SizeStat: sizeStat,
+			})
+			return
 		}
 
-		stat, err := statF(req.Context, n)
+		stat, err := corerepo.RepoStat(req.Context, n)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		cmds.EmitOnce(res, stat)
+		cmds.EmitOnce(res, &stat)
 	},
-	Type: corerepo.Stat{},
+	Type: &corerepo.Stat{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			stat, ok := v.(*corerepo.Stat)
 			if !ok {
+				fmt.Println("adios")
 				return e.TypeErr(stat, v)
 			}
 
@@ -200,32 +207,28 @@ Version         string The repo version.
 			human, _ := req.Options["human"].(bool)
 			sizeOnly, _ := req.Options["size-only"].(bool)
 
-			sizeInMiB := stat.RepoSize / (1024 * 1024)
-			if human && sizeInMiB > 0 {
-				fmt.Fprintf(wtr, "RepoSize (MiB):\t%d\n", sizeInMiB)
-			} else {
-				fmt.Fprintf(wtr, "RepoSize:\t%d\n", stat.RepoSize)
-			}
-
-			if stat.StorageMax != corerepo.NoLimit {
-				maxSizeInMiB := stat.StorageMax / (1024 * 1024)
-				if human && maxSizeInMiB > 0 {
-					fmt.Fprintf(wtr, "StorageMax (MiB):\t%d\n", maxSizeInMiB)
+			printSize := func(name string, size uint64) {
+				sizeInMiB := size / (1024 * 1024)
+				if human && sizeInMiB > 0 {
+					fmt.Fprintf(wtr, "%s (MiB):\t%d\n", name, sizeInMiB)
 				} else {
-					fmt.Fprintf(wtr, "StorageMax:\t%d\n", stat.StorageMax)
+					fmt.Fprintf(wtr, "%s:\t%d\n", name, size)
 				}
 			}
 
-			if sizeOnly {
-				return nil
+			if !sizeOnly {
+				fmt.Fprintf(wtr, "NumObjects:\t%d\n", stat.NumObjects)
 			}
 
-			fmt.Fprintf(wtr, "NumObjects:\t%d\n", stat.NumObjects)
-			fmt.Fprintf(wtr, "RepoPath:\t%s\n", stat.RepoPath)
-			fmt.Fprintf(wtr, "Version:\t%s\n", stat.Version)
+			printSize("RepoSize", stat.RepoSize)
+			printSize("StorageMax", stat.StorageMax)
+
+			if !sizeOnly {
+				fmt.Fprintf(wtr, "RepoPath:\t%s\n", stat.RepoPath)
+				fmt.Fprintf(wtr, "Version:\t%s\n", stat.Version)
+			}
 
 			return nil
-
 		}),
 	},
 }

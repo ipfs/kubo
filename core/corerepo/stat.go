@@ -12,10 +12,15 @@ import (
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 )
 
-// Stat wraps information about the objects stored on disk.
-type Stat struct {
+// SizeStat wraps information about the repository size and its limit.
+type SizeStat struct {
 	RepoSize   uint64 // size in bytes
 	StorageMax uint64 // size in bytes
+}
+
+// Stat wraps information about the objects stored on disk.
+type Stat struct {
+	SizeStat
 	NumObjects uint64
 	RepoPath   string
 	Version    string
@@ -25,15 +30,15 @@ type Stat struct {
 const NoLimit uint64 = math.MaxUint64
 
 // RepoStat returns a *Stat object with all the fields set.
-func RepoStat(ctx context.Context, n *core.IpfsNode) (*Stat, error) {
+func RepoStat(ctx context.Context, n *core.IpfsNode) (Stat, error) {
 	sizeStat, err := RepoSize(ctx, n)
 	if err != nil {
-		return nil, err
+		return Stat{}, err
 	}
 
 	allKeys, err := n.Blockstore.AllKeysChan(ctx)
 	if err != nil {
-		return nil, err
+		return Stat{}, err
 	}
 
 	count := uint64(0)
@@ -43,41 +48,43 @@ func RepoStat(ctx context.Context, n *core.IpfsNode) (*Stat, error) {
 
 	path, err := fsrepo.BestKnownPath()
 	if err != nil {
-		return nil, err
+		return Stat{}, err
 	}
 
-	return &Stat{
+	return Stat{
+		SizeStat: SizeStat{
+			RepoSize:   sizeStat.RepoSize,
+			StorageMax: sizeStat.StorageMax,
+		},
 		NumObjects: count,
-		RepoSize:   sizeStat.RepoSize,
-		StorageMax: sizeStat.StorageMax,
 		RepoPath:   path,
 		Version:    fmt.Sprintf("fs-repo@%d", fsrepo.RepoVersion),
 	}, nil
 }
 
 // RepoSize returns a *Stat object with the RepoSize and StorageMax fields set.
-func RepoSize(ctx context.Context, n *core.IpfsNode) (*Stat, error) {
+func RepoSize(ctx context.Context, n *core.IpfsNode) (SizeStat, error) {
 	r := n.Repo
 
 	cfg, err := r.Config()
 	if err != nil {
-		return nil, err
+		return SizeStat{}, err
 	}
 
 	usage, err := r.GetStorageUsage()
 	if err != nil {
-		return nil, err
+		return SizeStat{}, err
 	}
 
 	storageMax := NoLimit
 	if cfg.Datastore.StorageMax != "" {
 		storageMax, err = humanize.ParseBytes(cfg.Datastore.StorageMax)
 		if err != nil {
-			return nil, err
+			return SizeStat{}, err
 		}
 	}
 
-	return &Stat{
+	return SizeStat{
 		RepoSize:   usage,
 		StorageMax: storageMax,
 	}, nil
