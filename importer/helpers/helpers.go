@@ -119,6 +119,27 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	return err
 }
 
+// AddChildNode is a variant of `AddChild` that adds the given `ipld.Node`
+// (instead of the `UnixfsNode`) as a child of the receiver. The `fileSize`
+// argument is obtained from the `UnixfsNode` (that encapsulated the child)
+// `FileSize()` method.
+// The passed in DagBuilderHelper is used to store the child node an
+// pin it locally so it doesnt get lost.
+func (n *UnixfsNode) AddChildNode(childNode ipld.Node, db *DagBuilderHelper, fileSize uint64) error {
+	n.ufmt.AddBlockSize(fileSize)
+
+	// Add a link to this node without storing a reference to the memory
+	// This way, we avoid nodes building up and consuming all of our RAM
+	err := n.node.AddNodeLink("", childNode)
+	if err != nil {
+		return err
+	}
+
+	err = db.batch.Add(childNode)
+
+	return err
+}
+
 // RemoveChild deletes the child node at the given index.
 func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 	n.ufmt.RemoveBlockSize(index)
@@ -181,4 +202,16 @@ func (n *UnixfsNode) getBaseDagNode() (ipld.Node, error) {
 	}
 	n.node.SetData(data)
 	return n.node, nil
+}
+
+// GetDagNodeFileSize is an extension of `GetDagNode` that fills
+// out the proper formatting for the unixfs node inside of a DAG
+// node and returns the dag node with its `fileSize`.
+func (n *UnixfsNode) GetDagNodeFileSize() (dagNode ipld.Node, fileSize uint64, err error) {
+	dagNode, err = n.GetDagNode()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return dagNode, n.FileSize(), nil
 }
