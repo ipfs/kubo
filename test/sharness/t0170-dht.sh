@@ -4,8 +4,8 @@ test_description="Test dht command"
 
 . lib/test-lib.sh
 
-TEST_DHT_VALUE="CAASpgIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC8hSwYY1FXqjT5M36O/Q5fBeDhXE5ePvGAeN3MIibfChqQpgqBbXQi1gAp4TQypSTKl/AMy7hfzsKauieim7jHMgIYAB4pLoBQD1qGVn/n7CqzAR3gDg9umIGuAy15oT0uaqMDqSepfnyxEyPDqfDklgvmS/MAwfBHjH2IPcMIaFgZ6d6gVlhmwuH8WVQ/geumDqyKuU9Jy+SUozmxEu2Baylg4fuqxaxoqOiPFZeWKSCFAngFj3NPmLApE0Fy48/eEZ+t7iP6s/raupP4+Jk/AFNDJNos4VxUnLJpZ1g6W5vYkkt1kXbMTaqxFVryCdCW2UEOwEzjGPGkcIE4RJrHAgMBAAE="
-TEST_DHT_PATH="/pk/QmepgFW7BHEtU4pZJdxaNiv75mKLLRQnPi1KaaXmQN4V1a"
+TEST_DHT_VALUE="foobar"
+TEST_DHT_PATH="/pk/QmbWTwYGcmdyK9CYfNBcfs9nhZs17a6FQ4Y8oea278xx41"
 
 # start iptb + wait for peering
 NUM_NODES=5
@@ -29,7 +29,7 @@ test_expect_success 'findpeer' '
 
 # ipfs dht put <key> <value>
 test_expect_success 'put with good keys' '
-  echo "$TEST_DHT_VALUE" | b64decode | ipfsi 0 dht put "$TEST_DHT_PATH" | sort >putted &&
+  ipfsi 0 dht put "$TEST_DHT_PATH" "$TEST_DHT_VALUE" | sort >putted &&
   [ -s putted ] ||
   test_fsh cat putted
 '
@@ -70,9 +70,9 @@ test_expect_success 'findprovs' '
 ## turns out to be the closest to what a key hashes to.
 # TODO: flaky. tracked by https://github.com/ipfs/go-ipfs/issues/2620
 test_expect_success 'query' '
-  ipfsi 3 dht query banana >actual &&
-  ipfsi 3 dht query apple >>actual &&
-  ipfsi 3 dht query pear >>actual &&
+  ipfsi 3 dht query "$(echo banana | ipfsi 3 add -q)" >actual &&
+  ipfsi 3 dht query "$(echo apple | ipfsi 3 add -q)" >>actual &&
+  ipfsi 3 dht query "$(echo pear | ipfsi 3 add -q)"  >>actual &&
   PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
   [ -s actual ] ||
   test_might_fail test_fsh cat actual
