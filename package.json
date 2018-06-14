@@ -464,9 +464,9 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "Qmb1N7zdjG2FexpzWNj8T289u9QnQLEiSsTRadDGQxX32D",
+      "hash": "QmQUPmFYZBSWn4mtX1YwYkSaMoWVore7tCiSetr6k8JW21",
       "name": "go-ipfs-routing",
-      "version": "0.0.11"
+      "version": "0.0.12"
     },
     {
       "author": "hsanjuan",
@@ -542,9 +542,9 @@
     },
     {
       "author": "stebalien",
-      "hash": "QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt",
+      "hash": "Qmb7iqDPPNogT8fJeYoLavoKhnp41tpoMPJ9D5qZVYynNQ",
       "name": "go-ipns",
-      "version": "0.1.1"
+      "version": "0.1.2"
     }
   ],
   "gxVersion": "0.10.0",
