@@ -100,6 +100,12 @@ func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds ipld.DAGService) (*
 // The passed in DagBuilderHelper is used to store the child node an
 // pin it locally so it doesnt get lost.
 func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
+	if child.ufmt != nil {
+		if child.ufmt.GetType() == ft.TRaw {
+			panic("FOUND TRaw!")
+		}
+	}
+
 	n.ufmt.AddBlockSize(child.FileSize())
 
 	childnode, err := child.GetDagNode()
