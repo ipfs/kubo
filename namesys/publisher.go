@@ -1,19 +1,18 @@
 package namesys
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
-	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
+	ipns "gx/ipfs/QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt/go-ipns"
+	pb "gx/ipfs/QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt/go-ipns/pb"
 	routing "gx/ipfs/QmUV9hDAAyjeGbxbXkJ2sYqZ6dTd1DXJ2REhYEkRm178Tg/go-libp2p-routing"
 	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
@@ -131,7 +130,7 @@ func (p *IpnsPublisher) GetPublished(ctx context.Context, id peer.ID, checkRouti
 		if !checkRouting {
 			return nil, nil
 		}
-		_, ipnskey := IpnsKeysForID(id)
+		ipnskey := ipns.RecordKey(id)
 		value, err = p.routing.GetValue(ctx, ipnskey)
 		if err != nil {
 			// Not found or other network issue. Can't really do
@@ -175,7 +174,7 @@ func (p *IpnsPublisher) updateRecord(ctx context.Context, k ci.PrivKey, value pa
 	}
 
 	// Create record
-	entry, err := CreateRoutingEntryData(k, value, seqno, eol)
+	entry, err := ipns.Create(k, []byte(value), seqno, eol)
 	if err != nil {
 		return nil, err
 	}
@@ -229,40 +228,29 @@ func PutRecordToRouting(ctx context.Context, r routing.ValueStore, k ci.PubKey, 
 
 	errs := make(chan error, 2) // At most two errors (IPNS, and public key)
 
+	if err := ipns.EmbedPublicKey(k, entry); err != nil {
+		return err
+	}
+
 	id, err := peer.IDFromPublicKey(k)
 	if err != nil {
 		return err
 	}
 
-	// Attempt to extract the public key from the ID
-	extractedPublicKey, err := id.ExtractPublicKey()
-	if err != nil {
-		return err
-	}
-
-	// if we can't derive the public key from the peerID, embed the entire pubkey in
-	// the record to make the verifiers job easier
-	if extractedPublicKey == nil {
-		pubkeyBytes, err := k.Bytes()
-		if err != nil {
-			return err
-		}
-
-		entry.PubKey = pubkeyBytes
-	}
-
-	namekey, ipnskey := IpnsKeysForID(id)
-
 	go func() {
-		errs <- PublishEntry(ctx, r, ipnskey, entry)
+		errs <- PublishEntry(ctx, r, ipns.RecordKey(id), entry)
 	}()
 
 	// Publish the public key if a public key cannot be extracted from the ID
 	// TODO: once v0.4.16 is widespread enough, we can stop doing this
 	// and at that point we can even deprecate the /pk/ namespace in the dht
-	if extractedPublicKey == nil {
+	//
+	// NOTE: This check actually checks if the public key has been embedded
+	// in the IPNS entry. This check is sufficient because we embed the
+	// public key in the IPNS entry if it can't be extracted from the ID.
+	if entry.PubKey != nil {
 		go func() {
-			errs <- PublishPublicKey(ctx, r, namekey, k)
+			errs <- PublishPublicKey(ctx, r, PkKeyForID(id), k)
 		}()
 
 		if err := waitOnErrChan(ctx, errs); err != nil {
@@ -309,32 +297,6 @@ func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec
 	return r.PutValue(timectx, ipnskey, data)
 }
 
-func CreateRoutingEntryData(pk ci.PrivKey, val path.Path, seq uint64, eol time.Time) (*pb.IpnsEntry, error) {
-	entry := new(pb.IpnsEntry)
-
-	entry.Value = []byte(val)
-	typ := pb.IpnsEntry_EOL
-	entry.ValidityType = &typ
-	entry.Sequence = proto.Uint64(seq)
-	entry.Validity = []byte(u.FormatRFC3339(eol))
-
-	sig, err := pk.Sign(ipnsEntryDataForSig(entry))
-	if err != nil {
-		return nil, err
-	}
-	entry.Signature = sig
-	return entry, nil
-}
-
-func ipnsEntryDataForSig(e *pb.IpnsEntry) []byte {
-	return bytes.Join([][]byte{
-		e.Value,
-		e.Validity,
-		[]byte(fmt.Sprint(e.GetValidityType())),
-	},
-		[]byte{})
-}
-
 // InitializeKeyspace sets the ipns record for the given key to
 // point to an empty directory.
 // TODO: this doesnt feel like it belongs here
@@ -356,9 +318,7 @@ func InitializeKeyspace(ctx context.Context, pub Publisher, pins pin.Pinner, key
 	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
 }
 
-func IpnsKeysForID(id peer.ID) (name, ipns string) {
-	namekey := "/pk/" + string(id)
-	ipnskey := "/ipns/" + string(id)
-
-	return namekey, ipnskey
+// PkKeyForID returns the public key routing key for the given peer ID.
+func PkKeyForID(id peer.ID) string {
+	return "/pk/" + string(id)
 }

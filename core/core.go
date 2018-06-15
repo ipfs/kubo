@@ -42,6 +42,7 @@ import (
 	circuit "gx/ipfs/QmPavh4h3Edx5cv8GJQPC35AQAws7faXmzEZyru7k9b9Mn/go-libp2p-circuit"
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	p2phost "gx/ipfs/QmQQGtcp6nVUrQjNsnU53YWV1q8fK1Kd9S7FEkYbRZzxry/go-libp2p-host"
+	ipns "gx/ipfs/QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt/go-ipns"
 	floodsub "gx/ipfs/QmRFEBGcNjtWPupwHA7zGHeGVLuUyE4ZRFi2MgtrPM6pfb/go-libp2p-floodsub"
 	pnet "gx/ipfs/QmRGvSwDpN4eunxgDNfmQhayZ6Z9F5a2v31V2D7y77osLg/go-libp2p-pnet"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
@@ -459,7 +460,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 
 	validator := record.NamespacedValidator{
 		"pk":   record.PublicKeyValidator{},
-		"ipns": namesys.IpnsValidator{KeyBook: host.Peerstore()},
+		"ipns": ipns.Validator{KeyBook: host.Peerstore()},
 	}
 
 	// setup routing service

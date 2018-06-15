@@ -6,11 +6,11 @@ import (
 	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 
-	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	ipns "gx/ipfs/QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt/go-ipns"
+	pb "gx/ipfs/QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt/go-ipns/pb"
 	routing "gx/ipfs/QmUV9hDAAyjeGbxbXkJ2sYqZ6dTd1DXJ2REhYEkRm178Tg/go-libp2p-routing"
 	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
@@ -82,7 +82,7 @@ func (r *IpnsResolver) resolveOnce(ctx context.Context, name string, options *op
 	// Use the routing system to get the name.
 	// Note that the DHT will call the ipns validator when retrieving
 	// the value, which in turn verifies the ipns record signature
-	_, ipnsKey := IpnsKeysForID(pid)
+	ipnsKey := ipns.RecordKey(pid)
 	val, err := r.routing.GetValue(ctx, ipnsKey, dht.Quorum(int(options.DhtRecordCount)))
 	if err != nil {
 		log.Debugf("RoutingResolver: dht get for name %s failed: %s", name, err)
@@ -114,7 +114,10 @@ func (r *IpnsResolver) resolveOnce(ctx context.Context, name string, options *op
 	if entry.Ttl != nil {
 		ttl = time.Duration(*entry.Ttl)
 	}
-	if eol, ok := checkEOL(entry); ok {
+	switch eol, err := ipns.GetEOL(entry); err {
+	case ipns.ErrUnrecognizedValidity:
+		// No EOL.
+	case nil:
 		ttEol := eol.Sub(time.Now())
 		if ttEol < 0 {
 			// It *was* valid when we first resolved it.
@@ -122,18 +125,10 @@ func (r *IpnsResolver) resolveOnce(ctx context.Context, name string, options *op
 		} else if ttEol < ttl {
 			ttl = ttEol
 		}
+	default:
+		log.Errorf("encountered error when parsing EOL: %s", err)
+		return "", 0, err
 	}
 
 	return p, ttl, nil
-}
-
-func checkEOL(e *pb.IpnsEntry) (time.Time, bool) {
-	if e.GetValidityType() == pb.IpnsEntry_EOL {
-		eol, err := u.ParseRFC3339(string(e.GetValidity()))
-		if err != nil {
-			return time.Time{}, false
-		}
-		return eol, true
-	}
-	return time.Time{}, false
 }

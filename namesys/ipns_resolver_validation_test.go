@@ -2,170 +2,25 @@ package namesys
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
-	"strings"
 	"testing"
 	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 
 	record "gx/ipfs/QmPWjVzxHeJdrjp4Jr2R2sPxBrMbBgGPWQtKwCKHHCBF7x/go-libp2p-record"
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	testutil "gx/ipfs/QmPdxCaVp4jZ9RbxqZADvKH6kiCR5jHvdR5f2ycjAY6T2a/go-testutil"
+	ipns "gx/ipfs/QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt/go-ipns"
 	routing "gx/ipfs/QmUV9hDAAyjeGbxbXkJ2sYqZ6dTd1DXJ2REhYEkRm178Tg/go-libp2p-routing"
 	ropts "gx/ipfs/QmUV9hDAAyjeGbxbXkJ2sYqZ6dTd1DXJ2REhYEkRm178Tg/go-libp2p-routing/options"
 	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	pstore "gx/ipfs/QmZhsmorLpD9kmQ4ynbAu4vbKv2goMUnXazwGA4gnWHDjB/go-libp2p-peerstore"
 	mockrouting "gx/ipfs/Qmb1N7zdjG2FexpzWNj8T289u9QnQLEiSsTRadDGQxX32D/go-ipfs-routing/mock"
 	ci "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	dssync "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"
 )
-
-func testValidatorCase(t *testing.T, priv ci.PrivKey, kbook pstore.KeyBook, key string, val []byte, eol time.Time, exp error) {
-	t.Helper()
-
-	match := func(t *testing.T, err error) {
-		t.Helper()
-		if err != exp {
-			params := fmt.Sprintf("key: %s\neol: %s\n", key, eol)
-			if exp == nil {
-				t.Fatalf("Unexpected error %s for params %s", err, params)
-			} else if err == nil {
-				t.Fatalf("Expected error %s but there was no error for params %s", exp, params)
-			} else {
-				t.Fatalf("Expected error %s but got %s for params %s", exp, err, params)
-			}
-		}
-	}
-
-	testValidatorCaseMatchFunc(t, priv, kbook, key, val, eol, match)
-}
-
-func testValidatorCaseMatchFunc(t *testing.T, priv ci.PrivKey, kbook pstore.KeyBook, key string, val []byte, eol time.Time, matchf func(*testing.T, error)) {
-	t.Helper()
-	validator := IpnsValidator{kbook}
-
-	data := val
-	if data == nil {
-		p := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
-		entry, err := CreateRoutingEntryData(priv, p, 1, eol)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		data, err = proto.Marshal(entry)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	matchf(t, validator.Validate(key, data))
-}
-
-func TestValidator(t *testing.T) {
-	ts := time.Now()
-
-	priv, id, _, _ := genKeys(t)
-	priv2, id2, _, _ := genKeys(t)
-	kbook := pstore.NewPeerstore()
-	kbook.AddPubKey(id, priv.GetPublic())
-	emptyKbook := pstore.NewPeerstore()
-
-	testValidatorCase(t, priv, kbook, "/ipns/"+string(id), nil, ts.Add(time.Hour), nil)
-	testValidatorCase(t, priv, kbook, "/ipns/"+string(id), nil, ts.Add(time.Hour*-1), ErrExpiredRecord)
-	testValidatorCase(t, priv, kbook, "/ipns/"+string(id), []byte("bad data"), ts.Add(time.Hour), ErrBadRecord)
-	testValidatorCase(t, priv, kbook, "/ipns/"+"bad key", nil, ts.Add(time.Hour), ErrKeyFormat)
-	testValidatorCase(t, priv, emptyKbook, "/ipns/"+string(id), nil, ts.Add(time.Hour), ErrPublicKeyNotFound)
-	testValidatorCase(t, priv2, kbook, "/ipns/"+string(id2), nil, ts.Add(time.Hour), ErrPublicKeyNotFound)
-	testValidatorCase(t, priv2, kbook, "/ipns/"+string(id), nil, ts.Add(time.Hour), ErrSignature)
-	testValidatorCase(t, priv, kbook, "//"+string(id), nil, ts.Add(time.Hour), ErrInvalidPath)
-	testValidatorCase(t, priv, kbook, "/wrong/"+string(id), nil, ts.Add(time.Hour), ErrInvalidPath)
-}
-
-func mustMarshal(t *testing.T, entry *pb.IpnsEntry) []byte {
-	t.Helper()
-	data, err := proto.Marshal(entry)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return data
-}
-
-func TestEmbeddedPubKeyValidate(t *testing.T) {
-	goodeol := time.Now().Add(time.Hour)
-	kbook := pstore.NewPeerstore()
-
-	pth := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
-
-	priv, _, _, ipnsk := genKeys(t)
-
-	entry, err := CreateRoutingEntryData(priv, pth, 1, goodeol)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testValidatorCase(t, priv, kbook, ipnsk, mustMarshal(t, entry), goodeol, ErrPublicKeyNotFound)
-
-	pubkb, err := priv.GetPublic().Bytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	entry.PubKey = pubkb
-	testValidatorCase(t, priv, kbook, ipnsk, mustMarshal(t, entry), goodeol, nil)
-
-	entry.PubKey = []byte("probably not a public key")
-	testValidatorCaseMatchFunc(t, priv, kbook, ipnsk, mustMarshal(t, entry), goodeol, func(t *testing.T, err error) {
-		if !strings.Contains(err.Error(), "unmarshaling pubkey in record:") {
-			t.Fatal("expected pubkey unmarshaling to fail")
-		}
-	})
-
-	opriv, _, _, _ := genKeys(t)
-	wrongkeydata, err := opriv.GetPublic().Bytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	entry.PubKey = wrongkeydata
-	testValidatorCase(t, priv, kbook, ipnsk, mustMarshal(t, entry), goodeol, ErrPublicKeyMismatch)
-}
-
-func TestPeerIDPubKeyValidate(t *testing.T) {
-	goodeol := time.Now().Add(time.Hour)
-	kbook := pstore.NewPeerstore()
-
-	pth := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
-
-	sk, pk, err := ci.GenerateEd25519Key(rand.New(rand.NewSource(42)))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	pid, err := peer.IDFromPublicKey(pk)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ipnsk := "/ipns/" + string(pid)
-
-	entry, err := CreateRoutingEntryData(sk, pth, 1, goodeol)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dataNoKey, err := proto.Marshal(entry)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testValidatorCase(t, sk, kbook, ipnsk, dataNoKey, goodeol, nil)
-}
 
 func TestResolverValidation(t *testing.T) {
 	ctx := context.Background()
@@ -179,8 +34,8 @@ func TestResolverValidation(t *testing.T) {
 	// Create entry with expiry in one hour
 	priv, id, _, ipnsDHTPath := genKeys(t)
 	ts := time.Now()
-	p := path.Path("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
-	entry, err := CreateRoutingEntryData(priv, p, 1, ts.Add(time.Hour))
+	p := []byte("/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG")
+	entry, err := ipns.Create(priv, p, 1, ts.Add(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,12 +57,12 @@ func TestResolverValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp != p {
+	if resp != path.Path(p) {
 		t.Fatalf("Mismatch between published path %s and resolved path %s", p, resp)
 	}
 
 	// Create expired entry
-	expiredEntry, err := CreateRoutingEntryData(priv, p, 1, ts.Add(-1*time.Hour))
+	expiredEntry, err := ipns.Create(priv, p, 1, ts.Add(-1*time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +103,7 @@ func TestResolverValidation(t *testing.T) {
 
 	// Publish entry without making public key available in peer store
 	priv3, id3, pubkDHTPath3, ipnsDHTPath3 := genKeys(t)
-	entry3, err := CreateRoutingEntryData(priv3, p, 1, ts.Add(time.Hour))
+	entry3, err := ipns.Create(priv3, p, 1, ts.Add(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,9 +147,8 @@ func genKeys(t *testing.T) (ci.PrivKey, peer.ID, string, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pubkDHTPath, ipnsDHTPath := IpnsKeysForID(pid)
 
-	return priv, pid, pubkDHTPath, ipnsDHTPath
+	return priv, pid, PkKeyForID(pid), ipns.RecordKey(pid)
 }
 
 type mockValueStore struct {
@@ -307,7 +161,7 @@ func newMockValueStore(id testutil.Identity, dstore ds.Datastore, kbook pstore.K
 	serv := mockrouting.NewServer()
 	r := serv.ClientWithDatastore(context.Background(), id, dstore)
 	return &mockValueStore{r, kbook, record.NamespacedValidator{
-		"ipns": IpnsValidator{kbook},
+		"ipns": ipns.Validator{KeyBook: kbook},
 		"pk":   record.PublicKeyValidator{},
 	}}
 }
