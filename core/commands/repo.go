@@ -197,7 +197,6 @@ Version         string The repo version.
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			stat, ok := v.(*corerepo.Stat)
 			if !ok {
-				fmt.Println("adios")
 				return e.TypeErr(stat, v)
 			}
 
