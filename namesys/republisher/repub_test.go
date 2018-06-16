@@ -59,18 +59,33 @@ func TestRepublish(t *testing.T) {
 	publisher := nodes[3]
 	p := path.FromString("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn") // does not need to be valid
 	rp := namesys.NewIpnsPublisher(publisher.Routing, publisher.Repo.Datastore())
-	err := rp.PublishWithEOL(ctx, publisher.PrivateKey, p, time.Now().Add(time.Second))
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	name := "/ipns/" + publisher.Identity.Pretty()
-	if err := verifyResolution(nodes, name, p); err != nil {
+
+	// Retry in case the record expires before we can fetch it. This can
+	// happen when running the test on a slow machine.
+	var expiration time.Time
+	timeout := time.Second
+	for {
+		expiration = time.Now().Add(time.Second)
+		err := rp.PublishWithEOL(ctx, publisher.PrivateKey, p, expiration)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = verifyResolution(nodes, name, p)
+		if err == nil {
+			break
+		}
+
+		if time.Now().After(expiration) {
+			timeout *= 2
+			continue
+		}
 		t.Fatal(err)
 	}
 
 	// Now wait a second, the records will be invalid and we should fail to resolve
-	time.Sleep(time.Second)
+	time.Sleep(timeout)
 	if err := verifyResolutionFails(nodes, name); err != nil {
 		t.Fatal(err)
 	}
