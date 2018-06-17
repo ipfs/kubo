@@ -19,6 +19,8 @@ import (
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 
+const P2PProtoPrefix = "/x/"
+
 // P2PListenerInfoOutput is output type of ls command
 type P2PListenerInfoOutput struct {
 	Protocol      string
@@ -71,16 +73,16 @@ var p2pForwardCmd = &cmds.Command{
 Forward connections made to <listen-address> to <target-address>.
 
 <protocol> specifies the libp2p protocol name to use for libp2p
-connections and/or handlers.
+connections and/or handlers. It must be prefixed with '` + P2PProtoPrefix + `'.
 
 To create a libp2p service listener, specify '/ipfs' as <listen-address>
 
 Examples:
-  ipfs p2p forward myproto /ipfs /ip4/127.0.0.1/tcp/1234
+  ipfs p2p forward ` + P2PProtoPrefix + `myproto /ipfs /ip4/127.0.0.1/tcp/1234
     - Forward connections to 'myproto' libp2p service to 127.0.0.1:1234
 
-  ipfs p2p forward myproto /ip4/127.0.0.1/tcp/4567 /ipfs/QmPeer
-    - Forward connections to 127.0.0.1:4567 to 'myproto' service on /ipfs/QmPeer
+  ipfs p2p forward ` + P2PProtoPrefix + `myproto /ip4/127.0.0.1/tcp/4567 /ipfs/QmPeer
+    - Forward connections to 127.0.0.1:4567 to '` + P2PProtoPrefix + `myproto' service on /ipfs/QmPeer
 
 `,
 	},
@@ -100,8 +102,8 @@ Examples:
 		listen := req.Arguments()[1]
 		target := req.Arguments()[2]
 
-		if !strings.HasPrefix(proto, "/p2p/") {
-			res.SetError(errors.New("protocol name must be within '/p2p/' namespace"), cmdkit.ErrNormal)
+		if !strings.HasPrefix(proto, P2PProtoPrefix) {
+			res.SetError(errors.New("protocol name must be within '" + P2PProtoPrefix + "' namespace"), cmdkit.ErrNormal)
 			return
 		}
 

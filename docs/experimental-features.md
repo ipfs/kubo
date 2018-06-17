@@ -277,7 +277,7 @@ The `p2p` command needs to be enabled in config:
 
 First, pick a protocol name for your application. Think of the protocol name as
 a port number, just significantly more user-friendly. In this example, we're
-going to use `/p2p/kickass/1.0`.
+going to use `/x/kickass/1.0`.
 
 ***Setup:***
 
@@ -292,10 +292,10 @@ port `$APP_PORT`.
 Then, configure the p2p listener by running:
 
 ```sh
-> ipfs p2p forward /p2p/kickass/1.0 /ipfs /ip4/127.0.0.1/tcp/$APP_PORT
+> ipfs p2p forward /x/kickass/1.0 /ipfs /ip4/127.0.0.1/tcp/$APP_PORT
 ```
 
-This will configure IPFS to forward all incoming `/p2p/kickass/1.0` streams to
+This will configure IPFS to forward all incoming `/x/kickass/1.0` streams to
 `127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per
 incoming stream.
 
@@ -303,10 +303,10 @@ incoming stream.
 
 First, configure the client p2p dialer, so that it forwards all inbound
 connections on `127.0.0.1:SOME_PORT` to the server node listening
-on `/p2p/kickass/1.0`.
+on `/x/kickass/1.0`.
 
 ```sh
-> ipfs p2p forward /p2p/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /ipfs/$SERVER_ID
+> ipfs p2p forward /x/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /ipfs/$SERVER_ID
 ```
 
 Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This
@@ -341,13 +341,13 @@ _you can get `$SERVER_ID` by running `ipfs id -f "<id>\n"`_
 ***First, on the "server" node:***
 
 ```sh
-ipfs p2p forward /p2p/ssh /ipfs /ip4/127.0.0.1/tcp/22
+ipfs p2p forward /x/ssh /ipfs /ip4/127.0.0.1/tcp/22
 ```
 
 ***Then, on "client" node:***
 
 ```sh
-ipfs p2p forward /p2p/ssh /ip4/127.0.0.1/tcp/2222 /ipfs/$SERVER_ID
+ipfs p2p forward /x/ssh /ip4/127.0.0.1/tcp/2222 /ipfs/$SERVER_ID
 ```
 
 You should now be able to connect to your ssh server through a libp2p connection
