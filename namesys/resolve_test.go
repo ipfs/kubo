@@ -9,6 +9,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 
 	testutil "gx/ipfs/QmPdxCaVp4jZ9RbxqZADvKH6kiCR5jHvdR5f2ycjAY6T2a/go-testutil"
+	ipns "gx/ipfs/QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt/go-ipns"
 	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
 	mockrouting "gx/ipfs/Qmb1N7zdjG2FexpzWNj8T289u9QnQLEiSsTRadDGQxX32D/go-ipfs-routing/mock"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
@@ -71,7 +72,7 @@ func TestPrexistingExpiredRecord(t *testing.T) {
 	h := path.FromString("/ipfs/QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN")
 	eol := time.Now().Add(time.Hour * -1)
 
-	entry, err := CreateRoutingEntryData(privk, h, 0, eol)
+	entry, err := ipns.Create(privk, []byte(h), 0, eol)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +113,7 @@ func TestPrexistingRecord(t *testing.T) {
 	// Make a good record and put it in the datastore
 	h := path.FromString("/ipfs/QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN")
 	eol := time.Now().Add(time.Hour)
-	entry, err := CreateRoutingEntryData(privk, h, 0, eol)
+	entry, err := ipns.Create(privk, []byte(h), 0, eol)
 	if err != nil {
 		t.Fatal(err)
 	}

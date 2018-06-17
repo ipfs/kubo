@@ -539,6 +539,12 @@
       "hash": "QmfNjggF4Pt6erqg3NDafD3MdvDHk1qqCVr8pL5hnPucS8",
       "name": "fsnotify",
       "version": "0.1.1"
+    },
+    {
+      "author": "stebalien",
+      "hash": "QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt",
+      "name": "go-ipns",
+      "version": "0.1.1"
     }
   ],
   "gxVersion": "0.10.0",

@@ -7,9 +7,9 @@ import (
 
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	path "github.com/ipfs/go-ipfs/path"
 
+	pb "gx/ipfs/QmRAPFFaF7nrezCZQaLihyp2qbAXqSJU5WpvSpwroMv1Xt/go-ipns/pb"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	gpctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
