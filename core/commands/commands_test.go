@@ -163,6 +163,7 @@ func TestCommands(t *testing.T) {
 		"/p2p",
 		"/p2p/close",
 		"/p2p/forward",
+		"/p2p/listen",
 		"/p2p/ls",
 		"/p2p/stream",
 		"/p2p/stream/close",

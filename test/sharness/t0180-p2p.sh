@@ -38,7 +38,7 @@ test_expect_success "enable filestore config setting" '
 '
 
 test_expect_success 'start p2p listener' '
-  ipfsi 0 p2p forward /x/p2p-test /ipfs /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log
+  ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log
 '
 
 # Server to client communications
@@ -136,7 +136,7 @@ test_expect_success "'ipfs p2p ls' output looks good" '
 '
 
 test_expect_success "Cannot re-register app handler" '
-  test_must_fail ipfsi 0 p2p forward /x/p2p-test /ipfs /ip4/127.0.0.1/tcp/10101
+  test_must_fail ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10101
 '
 
 test_expect_success "'ipfs p2p stream ls' output is empty" '
@@ -188,7 +188,7 @@ check_test_ports
 test_expect_success "Setup: Idle stream(2)" '
   ma-pipe-unidir --listen --pidFile=listener.pid recv /ip4/127.0.0.1/tcp/10101 &
 
-  ipfsi 0 p2p forward /x/p2p-test2 /ipfs /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log &&
+  ipfsi 0 p2p listen /x/p2p-test2 /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log &&
   ipfsi 1 p2p forward /x/p2p-test2 /ip4/127.0.0.1/tcp/10102 /ipfs/$PEERID_0 2>&1 > dialer-stdouterr.log &&
   ma-pipe-unidir --pidFile=client.pid recv /ip4/127.0.0.1/tcp/10102 &
 
@@ -225,7 +225,7 @@ test_expect_success "'ipfs p2p stream close -a' closes streams" '
 check_test_ports
 
 test_expect_success "'ipfs p2p close' closes app numeric handlers" '
-  ipfsi 0 p2p forward /x/1234 /ipfs /ip4/127.0.0.1/tcp/10101 &&
+  ipfsi 0 p2p listen /x/1234 /ip4/127.0.0.1/tcp/10101 &&
   ipfsi 0 p2p close -p /x/1234 &&
   ipfsi 0 p2p ls > actual &&
   test_must_be_empty actual
@@ -240,7 +240,7 @@ test_expect_success "non /x/ scoped protocols are not allowed" '
 check_test_ports
 
 test_expect_success 'start p2p listener on custom proto' '
-  ipfsi 0 p2p forward --allow-custom-protocol /p2p-test /ipfs /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log &&
+  ipfsi 0 p2p listen --allow-custom-protocol /p2p-test /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log &&
   test_must_be_empty listener-stdouterr.log
 '
 

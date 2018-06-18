@@ -292,7 +292,7 @@ port `$APP_PORT`.
 Then, configure the p2p listener by running:
 
 ```sh
-> ipfs p2p forward /x/kickass/1.0 /ipfs /ip4/127.0.0.1/tcp/$APP_PORT
+> ipfs p2p listen /x/kickass/1.0 /ip4/127.0.0.1/tcp/$APP_PORT
 ```
 
 This will configure IPFS to forward all incoming `/x/kickass/1.0` streams to
@@ -341,7 +341,7 @@ _you can get `$SERVER_ID` by running `ipfs id -f "<id>\n"`_
 ***First, on the "server" node:***
 
 ```sh
-ipfs p2p forward /x/ssh /ipfs /ip4/127.0.0.1/tcp/22
+ipfs p2p listen /x/ssh /ip4/127.0.0.1/tcp/22
 ```
 
 ***Then, on "client" node:***

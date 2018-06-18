@@ -62,6 +62,7 @@ are refined`,
 		"stream": p2pStreamCmd,
 
 		"forward": p2pForwardCmd,
+		"listen":  p2pListenCmd,
 		"close":   p2pCloseCmd,
 		"ls":      p2pLsCmd,
 	},
@@ -69,19 +70,14 @@ are refined`,
 
 var p2pForwardCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Forward connections to or from libp2p services",
+		Tagline: "Forward connections to libp2p service",
 		ShortDescription: `
 Forward connections made to <listen-address> to <target-address>.
 
 <protocol> specifies the libp2p protocol name to use for libp2p
 connections and/or handlers. It must be prefixed with '` + P2PProtoPrefix + `'.
 
-To create a libp2p service listener, specify '/ipfs' as <listen-address>
-
-Examples:
-  ipfs p2p forward ` + P2PProtoPrefix + `myproto /ipfs /ip4/127.0.0.1/tcp/1234
-    - Forward connections to 'myproto' libp2p service to 127.0.0.1:1234
-
+Example:
   ipfs p2p forward ` + P2PProtoPrefix + `myproto /ip4/127.0.0.1/tcp/4567 /ipfs/QmPeer
     - Forward connections to 127.0.0.1:4567 to '` + P2PProtoPrefix + `myproto' service on /ipfs/QmPeer
 
@@ -117,22 +113,61 @@ Examples:
 			return
 		}
 
-		if strings.HasPrefix(listen, "/ipfs") {
-			if listen != "/ipfs" {
-				res.SetError(errors.New("only '/ipfs' is allowed as libp2p listen address"), cmdkit.ErrNormal)
-				return
-			}
-
-			if err := forwardRemote(n.Context(), n.P2P, proto, target); err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-		} else {
-			if err := forwardLocal(n.Context(), n.P2P, n.Peerstore, proto, listen, target); err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
+		if err := forwardLocal(n.Context(), n.P2P, n.Peerstore, proto, listen, target); err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
 		}
+		res.SetOutput(nil)
+	},
+}
+
+var p2pListenCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Create libp2p service",
+		ShortDescription: `
+Create libp2p service and forward connections made to <target-address>.
+
+<protocol> specifies the libp2p handler name. It must be prefixed with '` + P2PProtoPrefix + `'.
+
+Example:
+  ipfs p2p listen ` + P2PProtoPrefix + `myproto /ip4/127.0.0.1/tcp/1234
+    - Forward connections to 'myproto' libp2p service to 127.0.0.1:1234
+
+`,
+	},
+	Arguments: []cmdkit.Argument{
+		cmdkit.StringArg("protocol", true, false, "Protocol name."),
+		cmdkit.StringArg("target-address", true, false, "Target endpoint."),
+	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("allow-custom-protocol", "Don't require /x/ prefix"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := p2pGetNode(req)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		proto := req.Arguments()[0]
+		target := req.Arguments()[1]
+
+		allowCustom, _, err := req.Option("allow-custom-protocol").Bool()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		if !allowCustom && !strings.HasPrefix(proto, P2PProtoPrefix) {
+			res.SetError(errors.New("protocol name must be within '"+P2PProtoPrefix+"' namespace"), cmdkit.ErrNormal)
+			return
+		}
+
+		if err := forwardRemote(n.Context(), n.P2P, proto, target); err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		res.SetOutput(nil)
 	},
 }
