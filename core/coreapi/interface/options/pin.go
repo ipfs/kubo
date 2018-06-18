@@ -2,6 +2,7 @@ package options
 
 type PinAddSettings struct {
 	Recursive bool
+	MaxDepth  int
 }
 
 type PinLsSettings struct {
@@ -19,6 +20,7 @@ type PinUpdateOption func(*PinUpdateSettings) error
 func PinAddOptions(opts ...PinAddOption) (*PinAddSettings, error) {
 	options := &PinAddSettings{
 		Recursive: true,
+		MaxDepth:  -1,
 	}
 
 	for _, opt := range opts {

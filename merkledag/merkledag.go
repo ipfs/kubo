@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	"github.com/ipfs/go-ipfs/thirdparty/recpinset"
 
 	ipldcbor "gx/ipfs/QmSF1Ksgn5d7JCTBt4e1yp4wzs6tpYyweCZ4PcDYp3tNeK/go-ipld-cbor"
 	blocks "gx/ipfs/QmTRCUvZLiir12Qr6MV3HKfKMHX8Nf1Vddn6t2g5nsQSb9/go-block-format"
@@ -159,25 +160,32 @@ func (n *dagService) Session(ctx context.Context) ipld.NodeGetter {
 
 // FetchGraph fetches all nodes that are children of the given node
 func FetchGraph(ctx context.Context, root *cid.Cid, serv ipld.DAGService) error {
+	return FetchGraphMaxDepth(ctx, root, -1, serv)
+}
+
+// FetchGraphMaxDepth fetches all nodes that are children to the given node
+// down to the given depth. maxDetph=0 means "only fetch root", maxDepth=1 means
+// fetch root and its direct children and so on... maxDepth=-1 means unlimited.
+func FetchGraphMaxDepth(ctx context.Context, root *cid.Cid, maxDepth int, serv ipld.DAGService) error {
 	var ng ipld.NodeGetter = serv
 	ds, ok := serv.(*dagService)
 	if ok {
 		ng = &sesGetter{bserv.NewSession(ctx, ds.Blocks)}
 	}
 
+	set := recpinset.New()
 	v, _ := ctx.Value(progressContextKey).(*ProgressTracker)
 	if v == nil {
-		return EnumerateChildrenAsync(ctx, GetLinksDirect(ng), root, cid.NewSet().Visit)
+		return EnumerateChildrenAsyncMaxDepth(ctx, GetLinksDirect(ng), root, maxDepth, set.Visit)
 	}
-	set := cid.NewSet()
-	visit := func(c *cid.Cid) bool {
-		if set.Visit(c) {
+	visit := func(c *cid.Cid, maxDepth int) bool {
+		if set.Visit(c, maxDepth) {
 			v.Increment()
 			return true
 		}
 		return false
 	}
-	return EnumerateChildrenAsync(ctx, GetLinksDirect(ng), root, visit)
+	return EnumerateChildrenAsyncMaxDepth(ctx, GetLinksDirect(ng), root, maxDepth, visit)
 }
 
 // GetMany gets many nodes from the DAG at once.
@@ -255,14 +263,39 @@ func GetLinksWithDAG(ng ipld.NodeGetter) GetLinks {
 // unseen children to the passed in set.
 // TODO: parallelize to avoid disk latency perf hits?
 func EnumerateChildren(ctx context.Context, getLinks GetLinks, root *cid.Cid, visit func(*cid.Cid) bool) error {
+	visitDepth := func(c *cid.Cid, maxDepth int) bool {
+		return visit(c)
+	}
+	return EnumerateChildrenMaxDepth(ctx, getLinks, root, -1, visitDepth)
+}
+
+// EnumerateChildrenMaxDepth walks the dag below the given root to the given
+// depth. The root is at level 0, the children are at level 1 and so on.
+// Thus, setting depth to two, will walk the root, the children, and the
+// children of the children.
+// Setting depth to a negative number will walk the full tree.
+func EnumerateChildrenMaxDepth(ctx context.Context, getLinks GetLinks, root *cid.Cid, maxDepth int, visit func(*cid.Cid, int) bool) error {
+	if maxDepth == 0 {
+		// Root nodes are not marked as visited in this implementation
+		// (they are in the async version)
+		return nil
+	}
+
+	if maxDepth > 0 {
+		maxDepth--
+	}
+
 	links, err := getLinks(ctx, root)
 	if err != nil {
 		return err
 	}
 	for _, lnk := range links {
 		c := lnk.Cid
-		if visit(c) {
-			err = EnumerateChildren(ctx, getLinks, c, visit)
+		if visit(c, maxDepth) {
+			// Note, visit() returns true when maxDepth
+			// is > than existing value (meaning we have to
+			// go deeper than before.
+			err = EnumerateChildrenMaxDepth(ctx, getLinks, c, maxDepth, visit)
 			if err != nil {
 				return err
 			}
@@ -306,8 +339,24 @@ var FetchGraphConcurrency = 8
 //
 // NOTE: It *does not* make multiple concurrent calls to the passed `visit` function.
 func EnumerateChildrenAsync(ctx context.Context, getLinks GetLinks, c *cid.Cid, visit func(*cid.Cid) bool) error {
-	feed := make(chan *cid.Cid)
-	out := make(chan []*ipld.Link)
+	visitDepth := func(c *cid.Cid, maxDepth int) bool {
+		return visit(c)
+	}
+	return EnumerateChildrenAsyncMaxDepth(ctx, getLinks, c, -1, visitDepth)
+}
+
+// EnumerateChildrenAsyncMaxDepth is equivalent to EnumerateChildrenMaxDepth *except* that
+// it fetches children in parallel (down to a maximum depth in the graph).
+//
+// NOTE: It *does not* make multiple concurrent calls to the passed `visit` function.
+func EnumerateChildrenAsyncMaxDepth(ctx context.Context, getLinks GetLinks, c *cid.Cid, maxDepth int, visit func(*cid.Cid, int) bool) error {
+	type linksDepth struct {
+		links    []*ipld.Link
+		maxDepth int
+	}
+
+	feed := make(chan *recpinset.RecPin)
+	out := make(chan *linksDepth)
 	done := make(chan struct{})
 
 	var setlk sync.Mutex
@@ -319,20 +368,37 @@ func EnumerateChildrenAsync(ctx context.Context, getLinks GetLinks, c *cid.Cid, 
 
 	for i := 0; i < FetchGraphConcurrency; i++ {
 		go func() {
-			for ic := range feed {
+			for recPin := range feed {
+				maxDepth := recPin.MaxDepth
+
 				setlk.Lock()
-				shouldVisit := visit(ic)
+				// Note, visit returns true when depth
+				// is > than existing value (meaning we have to
+				// go deeper than before.
+				shouldVisit := visit(recPin.Cid, maxDepth)
 				setlk.Unlock()
 
-				if shouldVisit {
-					links, err := getLinks(ctx, ic)
+				switch {
+				case maxDepth == 0:
+					// done
+				case shouldVisit:
+					if maxDepth > 0 {
+						maxDepth--
+					}
+
+					links, err := getLinks(ctx, recPin.Cid)
 					if err != nil {
 						errChan <- err
 						return
 					}
 
+					outLinks := &linksDepth{
+						links:    links,
+						maxDepth: maxDepth,
+					}
+
 					select {
-					case out <- links:
+					case out <- outLinks:
 					case <-fetchersCtx.Done():
 						return
 					}
@@ -347,10 +413,13 @@ func EnumerateChildrenAsync(ctx context.Context, getLinks GetLinks, c *cid.Cid, 
 	defer close(feed)
 
 	send := feed
-	var todobuffer []*cid.Cid
+	var todobuffer []*recpinset.RecPin
 	var inProgress int
 
-	next := c
+	next := &recpinset.RecPin{
+		Cid:      c,
+		MaxDepth: maxDepth,
+	}
 	for {
 		select {
 		case send <- next:
@@ -367,13 +436,17 @@ func EnumerateChildrenAsync(ctx context.Context, getLinks GetLinks, c *cid.Cid, 
 			if inProgress == 0 && next == nil {
 				return nil
 			}
-		case links := <-out:
-			for _, lnk := range links {
+		case outLinks := <-out:
+			for _, lnk := range outLinks.links {
+				cd := &recpinset.RecPin{
+					Cid:      lnk.Cid,
+					MaxDepth: outLinks.maxDepth,
+				}
 				if next == nil {
-					next = lnk.Cid
+					next = cd
 					send = feed
 				} else {
-					todobuffer = append(todobuffer, lnk.Cid)
+					todobuffer = append(todobuffer, cd)
 				}
 			}
 		case err := <-errChan:
@@ -383,7 +456,6 @@ func EnumerateChildrenAsync(ctx context.Context, getLinks GetLinks, c *cid.Cid, 
 			return ctx.Err()
 		}
 	}
-
 }
 
 var _ ipld.LinkGetter = &dagService{}

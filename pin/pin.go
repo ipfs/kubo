@@ -6,11 +6,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	dutils "github.com/ipfs/go-ipfs/merkledag/utils"
+	"github.com/ipfs/go-ipfs/thirdparty/recpinset"
 
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
@@ -47,6 +51,8 @@ const (
 // See the Pin Modes constants for a full list.
 type Mode int
 
+var recursiveNRegexp *regexp.Regexp = regexp.MustCompile(fmt.Sprintf("%s([0-9]+)", linkRecursive))
+
 // Pin Modes
 const (
 	// Recursive pins pin the target cids along with any reachable children.
@@ -66,6 +72,10 @@ const (
 
 	// Any refers to any pinned cid
 	Any
+
+	// RecursiveN are pins pinned up to the Nth level down the tree.
+	// RecursiveN == Recursive0. Recursive1 == RecursiveN+1 etc.
+	RecursiveN Mode = iota + 100
 )
 
 // ModeToString returns a human-readable name for the Mode.
@@ -79,12 +89,49 @@ func ModeToString(mode Mode) (string, bool) {
 		Any:       linkAny,
 	}
 	s, ok := m[mode]
+	if !ok && mode >= RecursiveN {
+		s = fmt.Sprintf("%s%d", linkRecursive, ModeToMaxDepth(mode))
+		ok = true
+	}
+
 	return s, ok
+}
+
+// MaxDepthToMode converts a depth limit to the RecursiveN+depth mode.
+func MaxDepthToMode(d int) Mode {
+	if d < 0 {
+		return Recursive
+	}
+	return RecursiveN + Mode(d)
+}
+
+// ModeToMaxDepth converts a mode to the depth limit.
+// It is either -1 for recursive or mode - RecursiveN for
+// modes >= RecursiveN. For the rest, it's 0.
+func ModeToMaxDepth(mode Mode) int {
+	switch {
+	case mode == Recursive:
+		return -1
+	case mode >= RecursiveN:
+		return int(mode - RecursiveN)
+	default:
+		return 0
+	}
 }
 
 // StringToMode parses the result of ModeToString() back to a Mode.
 // It returns a boolean which is set to false if the mode is unknown.
 func StringToMode(s string) (Mode, bool) {
+	// if s is like "recursive33", return RecursiveN+33
+	recN := recursiveNRegexp.FindStringSubmatch(s)
+	if len(recN) == 2 {
+		m, err := strconv.Atoi(recN[1])
+		if err != nil {
+			return 0, false
+		}
+		return MaxDepthToMode(m), true
+	}
+
 	m := map[string]Mode{
 		linkRecursive: Recursive,
 		linkDirect:    Direct,
@@ -113,6 +160,9 @@ type Pinner interface {
 
 	// Pin the given node, optionally recursively.
 	Pin(ctx context.Context, node ipld.Node, recursive bool) error
+
+	// PinMaxDepth pins the given node recursively limiting the DAG depth
+	PinMaxDepth(ctx context.Context, node ipld.Node, maxDepth int) error
 
 	// Unpin the given cid. If recursive is true, removes either a recursive or
 	// a direct pin. If recursive is false, only removes a direct pin.
@@ -143,8 +193,8 @@ type Pinner interface {
 	// DirectKeys returns all directly pinned cids
 	DirectKeys() []*cid.Cid
 
-	// DirectKeys returns all recursively pinned cids
-	RecursiveKeys() []*cid.Cid
+	// DirectKeys returns all recursively pinned cids and their MaxDepths
+	RecursivePins() []*recpinset.RecPin
 
 	// InternalPins returns all cids kept pinned for the internal state of the
 	// pinner
@@ -182,7 +232,7 @@ func (p Pinned) String() string {
 // pinner implements the Pinner interface
 type pinner struct {
 	lock       sync.RWMutex
-	recursePin *cid.Set
+	recursePin *recpinset.Set
 	directPin  *cid.Set
 
 	// Track the keys used for storing the pinning state, so gc does
@@ -196,7 +246,7 @@ type pinner struct {
 // NewPinner creates a new pinner using the given datastore as a backend
 func NewPinner(dstore ds.Datastore, serv, internal ipld.DAGService) Pinner {
 
-	rcset := cid.NewSet()
+	rcset := recpinset.New()
 	dirset := cid.NewSet()
 
 	return &pinner{
@@ -211,6 +261,14 @@ func NewPinner(dstore ds.Datastore, serv, internal ipld.DAGService) Pinner {
 
 // Pin the given node, optionally recursive
 func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
+	depth := 0
+	if recurse {
+		depth = -1
+	}
+	return p.PinMaxDepth(ctx, node, depth)
+}
+
+func (p *pinner) PinMaxDepth(ctx context.Context, node ipld.Node, maxDepth int) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	err := p.dserv.Add(ctx, node)
@@ -220,8 +278,12 @@ func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 
 	c := node.Cid()
 
-	if recurse {
-		if p.recursePin.Has(c) {
+	// Pins with maxDepth == 0 are "direct"
+	if maxDepth < 0 || maxDepth > 0 {
+		curDepth, ok := p.recursePin.MaxDepth(c)
+
+		// only pin is something deeper isn't pinned already
+		if ok && !recpinset.IsDeeper(maxDepth, curDepth) {
 			return nil
 		}
 
@@ -229,13 +291,13 @@ func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 			p.directPin.Remove(c)
 		}
 
-		// fetch entire graph
-		err := mdag.FetchGraph(ctx, c, p.dserv)
+		// fetch graph to needed depth
+		err := mdag.FetchGraphMaxDepth(ctx, c, maxDepth, p.dserv)
 		if err != nil {
 			return err
 		}
 
-		p.recursePin.Add(c)
+		p.recursePin.Add(c, maxDepth)
 	} else {
 		if _, err := p.dserv.Get(ctx, c); err != nil {
 			return err
@@ -264,6 +326,11 @@ func (p *pinner) Unpin(ctx context.Context, c *cid.Cid, recursive bool) error {
 	if !pinned {
 		return ErrNotPinned
 	}
+
+	if strings.HasPrefix(reason, "recursive") {
+		reason = "recursive"
+	}
+
 	switch reason {
 	case "recursive":
 		if recursive {
@@ -302,17 +369,22 @@ func (p *pinner) IsPinnedWithType(c *cid.Cid, mode Mode) (string, bool, error) {
 // isPinnedWithType is the implementation of IsPinnedWithType that does not lock.
 // intended for use by other pinned methods that already take locks
 func (p *pinner) isPinnedWithType(c *cid.Cid, mode Mode) (string, bool, error) {
-	switch mode {
-	case Any, Direct, Indirect, Recursive, Internal:
-	default:
-		err := fmt.Errorf("invalid Pin Mode '%d', must be one of {%d, %d, %d, %d, %d}",
+	modeStr, ok := ModeToString(mode)
+	if !ok {
+		err := fmt.Errorf(
+			"invalid Pin Mode '%d', must be one of {%d, %d, %d, RecursiveN, %d, %d}",
 			mode, Direct, Indirect, Recursive, Internal, Any)
 		return "", false, err
 	}
-	if (mode == Recursive || mode == Any) && p.recursePin.Has(c) {
-		return linkRecursive, true, nil
+
+	maxDepth, ok := p.recursePin.MaxDepth(c)
+	isRecursive := mode == Recursive || mode > RecursiveN
+	if (mode == Any || isRecursive) && ok { // some sort of recursive pin
+		modeStr, _ = ModeToString(MaxDepthToMode(maxDepth))
+		return modeStr, true, nil
 	}
-	if mode == Recursive {
+
+	if isRecursive {
 		return "", false, nil
 	}
 
@@ -332,13 +404,20 @@ func (p *pinner) isPinnedWithType(c *cid.Cid, mode Mode) (string, bool, error) {
 
 	// Default is Indirect
 	visitedSet := cid.NewSet()
-	for _, rc := range p.recursePin.Keys() {
-		has, err := hasChild(p.dserv, rc, c, visitedSet.Visit)
+
+	for _, recPin := range p.recursePin.RecPins() {
+		has, err := hasChild(
+			p.dserv,
+			recPin.Cid, // root
+			c,          // child
+			recPin.MaxDepth,
+			visitedSet.Visit,
+		)
 		if err != nil {
 			return "", false, err
 		}
 		if has {
-			return rc.String(), true, nil
+			return recPin.Cid.String(), true, nil
 		}
 	}
 	return "", false, nil
@@ -354,8 +433,13 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 
 	// First check for non-Indirect pins directly
 	for _, c := range cids {
-		if p.recursePin.Has(c) {
-			pinned = append(pinned, Pinned{Key: c, Mode: Recursive})
+		maxDepth, ok := p.recursePin.MaxDepth(c)
+		if ok {
+			if maxDepth < 0 {
+				pinned = append(pinned, Pinned{Key: c, Mode: Recursive})
+			} else {
+				pinned = append(pinned, Pinned{Key: c, Mode: MaxDepthToMode(maxDepth)})
+			}
 		} else if p.directPin.Has(c) {
 			pinned = append(pinned, Pinned{Key: c, Mode: Direct})
 		} else if p.isInternalPin(c) {
@@ -366,8 +450,16 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 	}
 
 	// Now walk all recursive pins to check for indirect pins
-	var checkChildren func(*cid.Cid, *cid.Cid) error
-	checkChildren = func(rk, parentKey *cid.Cid) error {
+	var checkChildren func(*cid.Cid, *cid.Cid, int) error
+	checkChildren = func(rk, parentKey *cid.Cid, maxDepth int) error {
+		if maxDepth == 0 {
+			return nil
+		}
+
+		if maxDepth > 0 { // ignore depth limit -1
+			maxDepth--
+		}
+
 		links, err := ipld.GetLinks(context.TODO(), p.dserv, parentKey)
 		if err != nil {
 			return err
@@ -381,7 +473,7 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 				toCheck.Remove(c)
 			}
 
-			err := checkChildren(rk, c)
+			err := checkChildren(rk, c, maxDepth)
 			if err != nil {
 				return err
 			}
@@ -393,8 +485,8 @@ func (p *pinner) CheckIfPinned(cids ...*cid.Cid) ([]Pinned, error) {
 		return nil
 	}
 
-	for _, rk := range p.recursePin.Keys() {
-		err := checkChildren(rk, rk)
+	for _, recPin := range p.recursePin.RecPins() {
+		err := checkChildren(recPin.Cid, recPin.Cid, recPin.MaxDepth)
 		if err != nil {
 			return nil, err
 		}
@@ -471,20 +563,34 @@ func LoadPinner(d ds.Datastore, dserv, internal ipld.DAGService) (Pinner, error)
 	internalset.Add(rootCid)
 	recordInternal := internalset.Add
 
-	{ // load recursive set
-		recurseKeys, err := loadSet(ctx, internal, rootpb, linkRecursive, recordInternal)
-		if err != nil {
-			return nil, fmt.Errorf("cannot load recursive pins: %v", err)
-		}
-		p.recursePin = cidSetWithValues(recurseKeys)
-	}
+	p.recursePin = recpinset.New()
 
-	{ // load direct set
-		directKeys, err := loadSet(ctx, internal, rootpb, linkDirect, recordInternal)
-		if err != nil {
-			return nil, fmt.Errorf("cannot load direct pins: %v", err)
+	for _, link := range rootpb.Links() {
+		mode, ok := StringToMode(link.Name)
+		if !ok {
+			continue
 		}
-		p.directPin = cidSetWithValues(directKeys)
+
+		switch {
+		case mode == Recursive || mode >= RecursiveN:
+			depthLimit := -1 // Recursive
+			if mode >= RecursiveN {
+				depthLimit = ModeToMaxDepth(mode)
+			}
+			recurseKeys, err := loadSet(ctx, internal, rootpb, link.Name, recordInternal)
+			if err != nil {
+				return nil, fmt.Errorf("cannot load recursive pins: %v", err)
+			}
+			for _, c := range recurseKeys {
+				p.recursePin.Add(c, depthLimit)
+			}
+		case mode == Direct:
+			directKeys, err := loadSet(ctx, internal, rootpb, linkDirect, recordInternal)
+			if err != nil {
+				return nil, fmt.Errorf("cannot load direct pins: %v", err)
+			}
+			p.directPin = cidSetWithValues(directKeys)
+		}
 	}
 
 	p.internalPin = internalset
@@ -502,9 +608,15 @@ func (p *pinner) DirectKeys() []*cid.Cid {
 	return p.directPin.Keys()
 }
 
-// RecursiveKeys returns a slice containing the recursively pinned keys
-func (p *pinner) RecursiveKeys() []*cid.Cid {
-	return p.recursePin.Keys()
+// RecursivePins returns a slice containing the recursively pinned keys
+func (p *pinner) RecursivePins() []*recpinset.RecPin {
+	return p.recursePin.RecPins()
+}
+
+// RecursiveWithLimitKeys returns a slice containing the recursively
+// pinned keys along with their depth limit
+func (p *pinner) RecursiveWithLimitKeys() []*recpinset.RecPin {
+	return p.recursePin.RecPins()
 }
 
 // Update updates a recursive pin from one cid to another
@@ -523,7 +635,7 @@ func (p *pinner) Update(ctx context.Context, from, to *cid.Cid, unpin bool) erro
 		return err
 	}
 
-	p.recursePin.Add(to)
+	p.recursePin.Add(to, -1)
 	if unpin {
 		p.recursePin.Remove(from)
 	}
@@ -552,12 +664,25 @@ func (p *pinner) Flush() error {
 	}
 
 	{
-		n, err := storeSet(ctx, p.internal, p.recursePin.Keys(), recordInternal)
-		if err != nil {
-			return err
+		depthLimits := make(map[int][]*cid.Cid)
+		for _, recPin := range p.recursePin.RecPins() {
+			depth := recPin.MaxDepth
+			set := depthLimits[depth]
+			depthLimits[depth] = append(set, recPin.Cid)
 		}
-		if err := root.AddNodeLink(linkRecursive, n); err != nil {
-			return err
+
+		for depth, set := range depthLimits {
+			n, err := storeSet(ctx, p.internal, set, recordInternal)
+			if err != nil {
+				return err
+			}
+			linkName := linkRecursive
+			if depth >= 0 {
+				linkName, _ = ModeToString(MaxDepthToMode(depth))
+			}
+			if err := root.AddNodeLink(linkName, n); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -597,17 +722,27 @@ func (p *pinner) InternalPins() []*cid.Cid {
 func (p *pinner) PinWithMode(c *cid.Cid, mode Mode) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	switch mode {
-	case Recursive:
-		p.recursePin.Add(c)
-	case Direct:
+	switch {
+	case mode == Recursive:
+		p.recursePin.Add(c, -1)
+	case mode >= RecursiveN:
+		p.recursePin.Add(c, ModeToMaxDepth(mode))
+	case mode == Direct:
 		p.directPin.Add(c)
 	}
 }
 
 // hasChild recursively looks for a Cid among the children of a root Cid.
 // The visit function can be used to shortcut already-visited branches.
-func hasChild(ng ipld.NodeGetter, root *cid.Cid, child *cid.Cid, visit func(*cid.Cid) bool) (bool, error) {
+func hasChild(ng ipld.NodeGetter, root *cid.Cid, child *cid.Cid, depthLimit int, visit func(*cid.Cid) bool) (bool, error) {
+	if depthLimit == 0 {
+		return false, nil
+	}
+
+	if depthLimit > 0 { // ignore negative depthLimits
+		depthLimit--
+	}
+
 	links, err := ipld.GetLinks(context.TODO(), ng, root)
 	if err != nil {
 		return false, err
@@ -618,7 +753,7 @@ func hasChild(ng ipld.NodeGetter, root *cid.Cid, child *cid.Cid, visit func(*cid
 			return true, nil
 		}
 		if visit(c) {
-			has, err := hasChild(ng, c, child, visit)
+			has, err := hasChild(ng, c, child, depthLimit, visit)
 			if err != nil {
 				return false, err
 			}

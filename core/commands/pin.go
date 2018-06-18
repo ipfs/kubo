@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -16,6 +17,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	pin "github.com/ipfs/go-ipfs/pin"
+	"github.com/ipfs/go-ipfs/thirdparty/recpinset"
 	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -60,6 +62,7 @@ var addPinCmd = &cmds.Command{
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
 		cmdkit.BoolOption("progress", "Show progress"),
+		cmdkit.IntOption("max-depth", "Only for recursive pins, fetch and pin graph limiting the branch depth").WithDefault(-1),
 	},
 	Type: AddPinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -77,10 +80,31 @@ var addPinCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+		maxDepth, _, err := req.Option("max-depth").Int()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		if !recursive {
+			maxDepth = 0
+		}
+
+		if recursive && maxDepth == 0 {
+			res.SetError(
+				errors.New("invalid --max-depth=0. Use a direct pin instead"),
+				cmdkit.ErrNormal,
+			)
+		}
+
+		if recursive && maxDepth <= 0 {
+			maxDepth = -1
+		}
+
 		showProgress, _, _ := req.Option("progress").Bool()
 
 		if !showProgress {
-			added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
+			added, err := corerepo.Pin(n, req.Context(), req.Arguments(), maxDepth)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
@@ -100,7 +124,7 @@ var addPinCmd = &cmds.Command{
 		}
 		ch := make(chan pinResult, 1)
 		go func() {
-			added, err := corerepo.Pin(n, ctx, req.Arguments(), recursive)
+			added, err := corerepo.Pin(n, ctx, req.Arguments(), maxDepth)
 			ch <- pinResult{pins: added, err: err}
 		}()
 
@@ -526,10 +550,13 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 			return nil, fmt.Errorf("path '%s' is not pinned", p)
 		}
 
-		switch pinType {
-		case "direct", "indirect", "recursive", "internal":
-		default:
-			pinType = "indirect through " + pinType
+		mode, _ = pin.StringToMode(pinType)
+		if mode < pin.RecursiveN {
+			switch pinType {
+			case "direct", "indirect", "recursive", "internal":
+			default:
+				pinType = "indirect through " + pinType
+			}
 		}
 		keys[c.String()] = RefKeyObject{
 			Type: pinType,
@@ -555,9 +582,15 @@ func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string
 		AddToResultKeys(n.Pinning.DirectKeys(), "direct")
 	}
 	if typeStr == "indirect" || typeStr == "all" {
-		set := cid.NewSet()
-		for _, k := range n.Pinning.RecursiveKeys() {
-			err := dag.EnumerateChildren(ctx, dag.GetLinksWithDAG(n.DAG), k, set.Visit)
+		set := recpinset.New()
+		for _, recPin := range n.Pinning.RecursivePins() {
+			err := dag.EnumerateChildrenMaxDepth(
+				ctx,
+				dag.GetLinksWithDAG(n.DAG),
+				recPin.Cid,
+				recPin.MaxDepth,
+				set.Visit,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -565,7 +598,12 @@ func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string
 		AddToResultKeys(set.Keys(), "indirect")
 	}
 	if typeStr == "recursive" || typeStr == "all" {
-		AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
+		for _, recPin := range n.Pinning.RecursivePins() {
+			mode, _ := pin.ModeToString(pin.MaxDepthToMode(recPin.MaxDepth))
+			keys[recPin.Cid.String()] = RefKeyObject{
+				Type: mode,
+			}
+		}
 	}
 
 	return keys, nil
@@ -595,27 +633,41 @@ type pinVerifyOpts struct {
 }
 
 func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
-	visited := make(map[string]PinStatus)
+	statuses := make(map[string]PinStatus)
+	visited := recpinset.New()
 
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := dag.GetLinksWithDAG(DAG)
-	recPins := n.Pinning.RecursiveKeys()
+	recPins := n.Pinning.RecursivePins()
 
-	var checkPin func(root *cid.Cid) PinStatus
-	checkPin = func(root *cid.Cid) PinStatus {
+	validateCid := func(c *cid.Cid) PinStatus {
+		if err := verifcid.ValidateCid(c); err != nil {
+			status := PinStatus{Ok: false}
+			if opts.explain {
+				status.BadNodes = []BadNode{BadNode{Cid: c.String(), Err: err.Error()}}
+			}
+			return status
+		}
+		return PinStatus{Ok: true}
+	}
+
+	var checkPinMaxDepth func(root *cid.Cid, maxDepth int) PinStatus
+	checkPinMaxDepth = func(root *cid.Cid, maxDepth int) PinStatus {
 		key := root.String()
-		if status, ok := visited[key]; ok {
+		// it was visited already, return last status
+		if !visited.Visit(root, maxDepth) {
+			return statuses[key]
+		}
+
+		status := validateCid(root)
+		if maxDepth == 0 || !status.Ok {
+			statuses[key] = status
 			return status
 		}
 
-		if err := verifcid.ValidateCid(root); err != nil {
-			status := PinStatus{Ok: false}
-			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
-			}
-			visited[key] = status
-			return status
+		if maxDepth > 0 {
+			maxDepth--
 		}
 
 		links, err := getLinks(ctx, root)
@@ -624,31 +676,30 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 			if opts.explain {
 				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
 			}
-			visited[key] = status
+			statuses[key] = status
 			return status
 		}
 
-		status := PinStatus{Ok: true}
 		for _, lnk := range links {
-			res := checkPin(lnk.Cid)
+			res := checkPinMaxDepth(lnk.Cid, maxDepth)
 			if !res.Ok {
 				status.Ok = false
 				status.BadNodes = append(status.BadNodes, res.BadNodes...)
 			}
 		}
 
-		visited[key] = status
+		statuses[key] = status
 		return status
 	}
 
 	out := make(chan interface{})
 	go func() {
 		defer close(out)
-		for _, cid := range recPins {
-			pinStatus := checkPin(cid)
+		for _, recPin := range recPins {
+			pinStatus := checkPinMaxDepth(recPin.Cid, recPin.MaxDepth)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{cid.String(), pinStatus}:
+				case out <- &PinVerifyRes{recPin.Cid.String(), pinStatus}:
 				case <-ctx.Done():
 					return
 				}

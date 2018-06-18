@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -10,6 +11,7 @@ import (
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
+	"github.com/ipfs/go-ipfs/thirdparty/recpinset"
 
 	offline "gx/ipfs/QmPf114DXfa6TqGKYhBGR7EtXRho4rCJgwyA1xkuMY5vwF/go-ipfs-exchange-offline"
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
@@ -26,7 +28,19 @@ func (api *PinAPI) Add(ctx context.Context, p coreiface.Path, opts ...caopts.Pin
 
 	defer api.node.Blockstore.PinLock().Unlock()
 
-	_, err = corerepo.Pin(api.node, ctx, []string{p.String()}, settings.Recursive)
+	if !settings.Recursive {
+		settings.MaxDepth = 0
+	}
+
+	if settings.Recursive && settings.MaxDepth == 0 {
+		return errors.New("bad MaxDepth=0. Pin is Recursive. Use non-recursive pin")
+	}
+
+	if settings.MaxDepth < 0 {
+		settings.MaxDepth = -1
+	}
+
+	_, err = corerepo.Pin(api.node, ctx, []string{p.String()}, settings.MaxDepth)
 	if err != nil {
 		return err
 	}
@@ -96,37 +110,47 @@ func (n *badNode) Err() error {
 }
 
 func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, error) {
-	visited := make(map[string]*pinStatus)
+	statuses := make(map[string]*pinStatus)
+	visited := recpinset.New()
 	bs := api.node.Blocks.Blockstore()
 	DAG := merkledag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := merkledag.GetLinksWithDAG(DAG)
-	recPins := api.node.Pinning.RecursiveKeys()
+	recPins := api.node.Pinning.RecursivePins()
 
-	var checkPin func(root *cid.Cid) *pinStatus
-	checkPin = func(root *cid.Cid) *pinStatus {
+	var checkPinMaxDepth func(root *cid.Cid, maxDepth int) *pinStatus
+	checkPinMaxDepth = func(root *cid.Cid, maxDepth int) *pinStatus {
 		key := root.String()
-		if status, ok := visited[key]; ok {
-			return status
+		// it was visited already, return last status
+		if !visited.Visit(root, maxDepth) {
+			return statuses[key]
+		}
+
+		if maxDepth == 0 {
+			return &pinStatus{ok: true, cid: root}
+		}
+
+		if maxDepth > 0 {
+			maxDepth--
 		}
 
 		links, err := getLinks(ctx, root)
 		if err != nil {
 			status := &pinStatus{ok: false, cid: root}
 			status.badNodes = []coreiface.BadPinNode{&badNode{cid: root, err: err}}
-			visited[key] = status
+			statuses[key] = status
 			return status
 		}
 
 		status := &pinStatus{ok: true, cid: root}
 		for _, lnk := range links {
-			res := checkPin(lnk.Cid)
+			res := checkPinMaxDepth(lnk.Cid, maxDepth)
 			if !res.ok {
 				status.ok = false
 				status.badNodes = append(status.badNodes, res.badNodes...)
 			}
 		}
 
-		visited[key] = status
+		statuses[key] = status
 		return status
 	}
 
@@ -134,7 +158,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 	go func() {
 		defer close(out)
 		for _, c := range recPins {
-			out <- checkPin(c)
+			out <- checkPinMaxDepth(c.Cid, c.MaxDepth)
 		}
 	}()
 
@@ -171,9 +195,15 @@ func pinLsAll(typeStr string, ctx context.Context, pinning pin.Pinner, dag ipld.
 		AddToResultKeys(pinning.DirectKeys(), "direct")
 	}
 	if typeStr == "indirect" || typeStr == "all" {
-		set := cid.NewSet()
-		for _, k := range pinning.RecursiveKeys() {
-			err := merkledag.EnumerateChildren(ctx, merkledag.GetLinksWithDAG(dag), k, set.Visit)
+		set := recpinset.New()
+		for _, recPin := range pinning.RecursivePins() {
+			err := merkledag.EnumerateChildrenMaxDepth(
+				ctx,
+				merkledag.GetLinksWithDAG(dag),
+				recPin.Cid,
+				recPin.MaxDepth,
+				set.Visit,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -181,7 +211,13 @@ func pinLsAll(typeStr string, ctx context.Context, pinning pin.Pinner, dag ipld.
 		AddToResultKeys(set.Keys(), "indirect")
 	}
 	if typeStr == "recursive" || typeStr == "all" {
-		AddToResultKeys(pinning.RecursiveKeys(), "recursive")
+		for _, recPin := range pinning.RecursivePins() {
+			mode, _ := pin.ModeToString(pin.MaxDepthToMode(recPin.MaxDepth))
+			keys[recPin.Cid.String()] = &pinInfo{
+				pinType: mode,
+				object:  recPin.Cid,
+			}
+		}
 	}
 
 	out := make([]coreiface.Pin, 0, len(keys))

@@ -10,6 +10,7 @@ import (
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
+	"github.com/ipfs/go-ipfs/thirdparty/recpinset"
 	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
 
 	offline "gx/ipfs/QmPf114DXfa6TqGKYhBGR7EtXRho4rCJgwyA1xkuMY5vwF/go-ipfs-exchange-offline"
@@ -127,10 +128,23 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	return output
 }
 
-// Descendants recursively finds all the descendants of the given roots and
-// adds them to the given cid.Set, using the provided dag.GetLinks function
+// Descendants recursively finds all the descendants of the given roots
+// and adds them to the given cid.Set, using the provided dag.GetLinks function
 // to walk the tree.
 func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []*cid.Cid) error {
+	rootsRec := make([]*recpinset.RecPin, len(roots), len(roots))
+	for i, r := range roots {
+		rootsRec[i] = &recpinset.RecPin{Cid: r, MaxDepth: -1}
+	}
+
+	return DescendantsMaxDepth(ctx, getLinks, set, rootsRec)
+}
+
+// DescendantsMaxDepth recursively finds all the descendants of the given roots
+// and adds them to the given cid.Set, using the provided dag.GetLinks function
+// to walk the tree. Note recursion is limited by the MaxDepth associated to the
+// roots.
+func DescendantsMaxDepth(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []*recpinset.RecPin) error {
 	verifyGetLinks := func(ctx context.Context, c *cid.Cid) ([]*ipld.Link, error) {
 		err := verifcid.ValidateCid(c)
 		if err != nil {
@@ -151,16 +165,28 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 		return err
 	}
 
-	for _, c := range roots {
-		set.Add(c)
+	recSet := recpinset.New()
+
+	for _, recPin := range roots {
+		set.Add(recPin.Cid)
 
 		// EnumerateChildren recursively walks the dag and adds the keys to the given set
-		err := dag.EnumerateChildren(ctx, verifyGetLinks, c, set.Visit)
+		err := dag.EnumerateChildrenMaxDepth(
+			ctx,
+			verifyGetLinks,
+			recPin.Cid,
+			recPin.MaxDepth,
+			recSet.Visit,
+		)
 
 		if err != nil {
 			err = verboseCidError(err)
 			return err
 		}
+	}
+
+	for _, k := range recSet.Keys() {
+		set.Add(k)
 	}
 
 	return nil
@@ -181,7 +207,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 		return links, nil
 	}
-	err := Descendants(ctx, getLinks, gcs, pn.RecursiveKeys())
+	err := DescendantsMaxDepth(ctx, getLinks, gcs, pn.RecursivePins())
 	if err != nil {
 		errors = true
 		output <- Result{Error: err}

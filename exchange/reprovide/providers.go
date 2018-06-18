@@ -53,11 +53,20 @@ func pinSet(ctx context.Context, pinning pin.Pinner, dag ipld.DAGService, onlyRo
 			set.add(key)
 		}
 
-		for _, key := range pinning.RecursiveKeys() {
-			set.add(key)
+		for _, recPin := range pinning.RecursivePins() {
+			set.add(recPin.Cid)
 
 			if !onlyRoots {
-				err := merkledag.EnumerateChildren(ctx, merkledag.GetLinksWithDAG(dag), key, set.add)
+				addF := func(c *cid.Cid, d int) bool {
+					return set.add(c)
+				}
+				err := merkledag.EnumerateChildrenMaxDepth(
+					ctx,
+					merkledag.GetLinksWithDAG(dag),
+					recPin.Cid,
+					recPin.MaxDepth,
+					addF,
+				)
 				if err != nil {
 					log.Errorf("reprovide indirect pins: %s", err)
 					return

@@ -18,6 +18,7 @@ import (
 	. "github.com/ipfs/go-ipfs/merkledag"
 	mdpb "github.com/ipfs/go-ipfs/merkledag/pb"
 	dstest "github.com/ipfs/go-ipfs/merkledag/test"
+	"github.com/ipfs/go-ipfs/thirdparty/recpinset"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	offline "gx/ipfs/QmPf114DXfa6TqGKYhBGR7EtXRho4rCJgwyA1xkuMY5vwF/go-ipfs-exchange-offline"
@@ -124,6 +125,36 @@ func TestBatchFetch(t *testing.T) {
 func TestBatchFetchDupBlock(t *testing.T) {
 	read := io.LimitReader(devZero{}, 1024*32)
 	runBatchFetchTest(t, read)
+}
+
+// makeDepthTestingGraph makes a small DAG with two levels. The level-two
+// nodes are both children of the root and of one of the level 1 nodes.
+// This is meant to test the EnumerateChildren*MaxDepth functions.
+func makeDepthTestingGraph(t *testing.T, ds ipld.DAGService) ipld.Node {
+	root := NodeWithData(nil)
+	l11 := NodeWithData([]byte("leve1_node1"))
+	l12 := NodeWithData([]byte("leve1_node1"))
+	l21 := NodeWithData([]byte("leve2_node1"))
+	l22 := NodeWithData([]byte("leve2_node2"))
+	l23 := NodeWithData([]byte("leve2_node3"))
+
+	l11.AddNodeLink(l21.Cid().String(), l21)
+	l11.AddNodeLink(l23.Cid().String(), l22)
+	l11.AddNodeLink(l23.Cid().String(), l23)
+
+	root.AddNodeLink(l11.Cid().String(), l11)
+	root.AddNodeLink(l12.Cid().String(), l12)
+	root.AddNodeLink(l23.Cid().String(), l23)
+
+	ctx := context.Background()
+	for _, n := range []ipld.Node{l23, l22, l21, l12, l11, root} {
+		err := ds.Add(ctx, n)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	return root
 }
 
 // makeTestDAG creates a simple DAG from the data in a reader.
@@ -293,6 +324,22 @@ func TestFetchGraph(t *testing.T) {
 	}
 }
 
+// Check that all children of root are in the given set and in the datastore
+func traverseAndCheck(t *testing.T, root ipld.Node, ds ipld.DAGService, set *cid.Set) {
+	// traverse dag and check
+	for _, lnk := range root.Links() {
+		c := lnk.Cid
+		if !set.Has(c) {
+			t.Fatal("missing key in set! ", lnk.Cid.String())
+		}
+		child, err := ds.Get(context.Background(), c)
+		if err != nil {
+			t.Fatal(err)
+		}
+		traverseAndCheck(t, child, ds, set)
+	}
+}
+
 func TestEnumerateChildren(t *testing.T) {
 	bsi := bstest.Mocks(1)
 	ds := NewDAGService(bsi[0])
@@ -307,23 +354,100 @@ func TestEnumerateChildren(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var traverse func(n ipld.Node)
-	traverse = func(n ipld.Node) {
-		// traverse dag and check
-		for _, lnk := range n.Links() {
-			c := lnk.Cid
-			if !set.Has(c) {
-				t.Fatal("missing key in set! ", lnk.Cid.String())
-			}
-			child, err := ds.Get(context.Background(), c)
-			if err != nil {
-				t.Fatal(err)
-			}
-			traverse(child)
+	traverseAndCheck(t, root, ds, set)
+}
+
+func TestEnumerateChildrenMaxDepth(t *testing.T) {
+	bsi := bstest.Mocks(1)
+	ds := NewDAGService(bsi[0])
+	root := makeDepthTestingGraph(t, ds)
+
+	type testcase struct {
+		depth       int
+		expectedLen int
+	}
+
+	tests := []testcase{
+		testcase{1, 3},
+		testcase{0, 0},
+		testcase{-1, 5},
+	}
+
+	testF := func(t *testing.T, tc testcase) {
+		set := recpinset.New()
+		err := EnumerateChildrenMaxDepth(
+			context.Background(),
+			ds.GetLinks,
+			root.Cid(),
+			tc.depth,
+			set.Visit,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if l := len(set.Keys()); l != tc.expectedLen {
+			t.Errorf("expected %d keys and got %d", tc.expectedLen, l)
 		}
 	}
 
-	traverse(root)
+	for _, tc := range tests {
+		testF(t, tc)
+	}
+}
+
+func TestEnumerateChildrenAsync(t *testing.T) {
+	bsi := bstest.Mocks(1)
+	ds := NewDAGService(bsi[0])
+
+	read := io.LimitReader(u.NewTimeSeededRand(), 1024*1024)
+	root := makeTestDAG(t, read, ds)
+
+	set := cid.NewSet()
+
+	err := EnumerateChildrenAsync(context.Background(), ds.GetLinks, root.Cid(), set.Visit)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	traverseAndCheck(t, root, ds, set)
+}
+
+func TestEnumerateChildrenAsyncMaxDepth(t *testing.T) {
+	bsi := bstest.Mocks(1)
+	ds := NewDAGService(bsi[0])
+	root := makeDepthTestingGraph(t, ds)
+
+	type testcase struct {
+		depth       int
+		expectedLen int
+	}
+
+	tests := []testcase{
+		testcase{1, 4},
+		testcase{0, 1},
+		testcase{-1, 6},
+	}
+
+	testF := func(t *testing.T, tc testcase) {
+		set := recpinset.New()
+		err := EnumerateChildrenAsyncMaxDepth(
+			context.Background(),
+			ds.GetLinks,
+			root.Cid(),
+			tc.depth,
+			set.Visit,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if l := len(set.Keys()); l != tc.expectedLen {
+			t.Errorf("expected %d keys and got %d", tc.expectedLen, l)
+		}
+	}
+
+	for _, tc := range tests {
+		testF(t, tc)
+	}
 }
 
 func TestFetchFailure(t *testing.T) {

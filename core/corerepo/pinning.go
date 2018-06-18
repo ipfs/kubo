@@ -25,7 +25,10 @@ import (
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
 )
 
-func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
+// Pin pins the given paths (after resolving) with the given maxDepth. maxDepth=-1
+// means pin "recursively". maxDepth=0 means pin "direct". maxDepth > 0 means
+// pins recursively with a depth limit.
+func Pin(n *core.IpfsNode, ctx context.Context, paths []string, maxDepth int) ([]*cid.Cid, error) {
 	out := make([]*cid.Cid, len(paths))
 
 	r := &resolver.Resolver{
@@ -43,7 +46,7 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
-		err = n.Pinning.Pin(ctx, dagnode, recursive)
+		err = n.Pinning.PinMaxDepth(ctx, dagnode, maxDepth)
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
