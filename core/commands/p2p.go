@@ -19,6 +19,7 @@ import (
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 
+// P2PProtoPrefix is the default required prefix for protocol names
 const P2PProtoPrefix = "/x/"
 
 // P2PListenerInfoOutput is output type of ls command
@@ -91,6 +92,9 @@ Examples:
 		cmdkit.StringArg("listen-address", true, false, "Listening endpoint."),
 		cmdkit.StringArg("target-address", true, false, "Target endpoint."),
 	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("allow-custom-protocol", "Don't require /x/ prefix"),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
 		if err != nil {
@@ -102,8 +106,14 @@ Examples:
 		listen := req.Arguments()[1]
 		target := req.Arguments()[2]
 
-		if !strings.HasPrefix(proto, P2PProtoPrefix) {
-			res.SetError(errors.New("protocol name must be within '" + P2PProtoPrefix + "' namespace"), cmdkit.ErrNormal)
+		allowCustom, _, err := req.Option("allow-custom-protocol").Bool()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		if !allowCustom && !strings.HasPrefix(proto, P2PProtoPrefix) {
+			res.SetError(errors.New("protocol name must be within '"+P2PProtoPrefix+"' namespace"), cmdkit.ErrNormal)
 			return
 		}
 

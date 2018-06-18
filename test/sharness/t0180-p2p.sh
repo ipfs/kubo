@@ -239,6 +239,15 @@ test_expect_success "non /x/ scoped protocols are not allowed" '
 
 check_test_ports
 
+test_expect_success 'start p2p listener on custom proto' '
+  ipfsi 0 p2p forward --allow-custom-protocol /p2p-test /ipfs /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log &&
+  test_must_be_empty listener-stdouterr.log
+'
+
+test_expect_success 'C->S Close local listener' '
+  ipfsi 0 p2p close -p /p2p-test
+'
+
 test_expect_success 'stop iptb' '
   iptb stop
 '
