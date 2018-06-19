@@ -22,9 +22,9 @@ import (
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	offline "gx/ipfs/QmPf114DXfa6TqGKYhBGR7EtXRho4rCJgwyA1xkuMY5vwF/go-ipfs-exchange-offline"
+	cmds "gx/ipfs/QmaFrNcnXHp579hUixbcTH1TNtNwsMogtBCwUUUwzBwYoM/go-ipfs-cmds"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
-	cmds "gx/ipfs/QmaFrNcnXHp579hUixbcTH1TNtNwsMogtBCwUUUwzBwYoM/go-ipfs-cmds"
 )
 
 var PinCmd = &cmds.Command{
@@ -282,6 +282,7 @@ Example:
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
 		cmdkit.BoolOption("quiet", "q", "Write just hashes of objects."),
+		cmdkit.BoolOption("stream", "Don't buffer pins before sending."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := GetNode(env)
@@ -291,6 +292,7 @@ Example:
 		}
 
 		typeStr, _ := req.Options["type"].(string)
+		stream, _ := req.Options["stream"].(bool)
 
 		switch typeStr {
 		case "all", "direct", "indirect", "recursive":
@@ -300,30 +302,61 @@ Example:
 			return
 		}
 
+		emit := res.Emit
+		lgcList := map[string]RefObject{}
+		if !stream {
+			emit = func(v interface{}) error {
+				obj := v.(*RefKeyObject)
+				lgcList[obj.Cid] = RefObject{Type: obj.Type}
+				return nil
+			}
+		}
+
 		if len(req.Arguments) > 0 {
-			err = pinLsKeys(req.Context, req.Arguments, typeStr, n, res.Emit)
+			err = pinLsKeys(req.Context, req.Arguments, typeStr, n, emit)
 		} else {
-			err = pinLsAll(req.Context, typeStr, n, res.Emit)
+			err = pinLsAll(req.Context, typeStr, n, emit)
+		}
+
+		if !stream {
+			res.Emit(&RefKeyList{lgcList})
 		}
 
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 		}
 	},
-	Type: RefKeyObject{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			quiet, _ := req.Options["quiet"].(bool)
+			stream, _ := req.Options["stream"].(bool)
 
-			obj, ok := v.(*RefKeyObject)
+			if stream {
+				obj, ok := v.(*RefKeyObject)
+				if !ok {
+					return e.TypeErr(obj, v)
+				}
+				if quiet {
+					fmt.Fprintf(w, "%s\n", obj.Cid)
+				} else {
+					fmt.Fprintf(w, "%s %s\n", obj.Cid, obj.Type)
+				}
+				return nil
+			}
+
+			keys, ok := v.(*RefKeyList)
 			if !ok {
-				return e.TypeErr(obj, v)
+				return e.TypeErr(keys, v)
 			}
-			if quiet {
-				fmt.Fprintf(w, "%s\n", obj.Cid)
-			} else {
-				fmt.Fprintf(w, "%s %s\n", obj.Cid, obj.Type)
+
+			for k, v := range keys.Keys {
+				if quiet {
+					fmt.Fprintf(w, "%s\n", k)
+				} else {
+					fmt.Fprintf(w, "%s %s\n", k, v.Type)
+				}
 			}
+
 			return nil
 		}),
 	},
@@ -472,14 +505,20 @@ type RefKeyObject struct {
 	Type string
 }
 
+type RefObject struct {
+	Type string
+}
+
+type RefKeyList struct {
+	Keys map[string]RefObject
+}
+
 func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode, emit func(value interface{}) error) error {
 
 	mode, ok := pin.StringToMode(typeStr)
 	if !ok {
 		return fmt.Errorf("invalid pin mode '%s'", typeStr)
 	}
-
-	keys := make(map[string]struct{})
 
 	r := &resolver.Resolver{
 		DAG:         n.DAG,
@@ -511,7 +550,6 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 		default:
 			pinType = "indirect through " + pinType
 		}
-		keys[c.String()] = struct{}{}
 
 		emit(&RefKeyObject{
 			Type: pinType,
