@@ -1,12 +1,13 @@
 package p2p
 
 import (
-	"sync"
-
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 	p2phost "gx/ipfs/Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge/go-libp2p-host"
 	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
+
+var log = logging.Logger("p2p-mount")
 
 // P2P structure holds information on currently running streams/listeners
 type P2P struct {
@@ -27,11 +28,9 @@ func NewP2P(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore)
 
 		Listeners: &ListenerRegistry{
 			Listeners: map[listenerKey]Listener{},
-			lk:        sync.Mutex{},
 		},
 		Streams: &StreamRegistry{
 			Streams: map[uint64]*Stream{},
-			lk:      sync.Mutex{},
 		},
 	}
 }

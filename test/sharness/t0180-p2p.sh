@@ -127,7 +127,7 @@ check_test_ports
 # Listing streams
 
 test_expect_success "'ipfs p2p ls' succeeds" '
-  echo "/x/p2p-test /ipfs /ip4/127.0.0.1/tcp/10101" > expected &&
+  echo "/x/p2p-test /ipfs/$PEERID_0 /ip4/127.0.0.1/tcp/10101" > expected &&
   ipfsi 0 p2p ls > actual
 '
 
@@ -144,10 +144,12 @@ test_expect_success "'ipfs p2p stream ls' output is empty" '
   test_must_be_empty actual
 '
 
+check_test_ports
+
 test_expect_success "Setup: Idle stream" '
   ma-pipe-unidir --listen --pidFile=listener.pid recv /ip4/127.0.0.1/tcp/10101 &
 
-  ipfsi 1 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10102  /ipfs/$PEERID_0 2>&1 > dialer-stdouterr.log &&
+  ipfsi 1 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10102 /ipfs/$PEERID_0 &&
   ma-pipe-unidir --pidFile=client.pid recv /ip4/127.0.0.1/tcp/10102 &
 
   test_wait_for_file 30 100ms listener.pid &&
@@ -231,8 +233,22 @@ test_expect_success "'ipfs p2p close' closes app numeric handlers" '
   test_must_be_empty actual
 '
 
+test_expect_success "'ipfs p2p close' closes by listen addr" '
+  ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10101 &&
+  ipfsi 0 p2p close -l /ipfs/$PEERID_0 &&
+  ipfsi 0 p2p ls > actual &&
+  test_must_be_empty actual
+'
+
+test_expect_success "'ipfs p2p close' closes by target addr" '
+  ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10101 &&
+  ipfsi 0 p2p close -t /ip4/127.0.0.1/tcp/10101 &&
+  ipfsi 0 p2p ls > actual &&
+  test_must_be_empty actual
+'
+
 test_expect_success "non /x/ scoped protocols are not allowed" '
-  test_must_fail ipfsi 0 p2p forward /its/not/a/x/path /ipfs /ip4/127.0.0.1/tcp/10101 2> actual &&
+  test_must_fail ipfsi 0 p2p listen /its/not/a/x/path /ip4/127.0.0.1/tcp/10101 2> actual &&
   echo "Error: protocol name must be within '"'"'/x/'"'"' namespace" > expected
   test_cmp expected actual
 '
@@ -246,6 +262,8 @@ test_expect_success 'start p2p listener on custom proto' '
 
 test_expect_success 'C->S Close local listener' '
   ipfsi 0 p2p close -p /p2p-test
+  ipfsi 0 p2p ls > actual &&
+  test_must_be_empty actual
 '
 
 test_expect_success 'stop iptb' '

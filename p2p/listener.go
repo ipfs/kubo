@@ -3,13 +3,18 @@ package p2p
 import (
 	"errors"
 	"sync"
+
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
 // Listener listens for connections and proxies them to a target
 type Listener interface {
-	Protocol() string
-	ListenAddress() string
-	TargetAddress() string
+	Protocol() protocol.ID
+	ListenAddress() ma.Multiaddr
+	TargetAddress() ma.Multiaddr
+
+	start() error
 
 	// Close closes the listener. Does not affect child streams
 	Close() error
@@ -23,43 +28,49 @@ type listenerKey struct {
 
 // ListenerRegistry is a collection of local application proto listeners.
 type ListenerRegistry struct {
+	sync.Mutex
+
 	Listeners map[listenerKey]Listener
-	lk        sync.Mutex
 }
 
-func (r *ListenerRegistry) lock(l Listener) error {
-	r.lk.Lock()
+// Register registers listenerInfo into this registry and starts it
+func (r *ListenerRegistry) Register(l Listener) error {
+	r.Lock()
 
 	if _, ok := r.Listeners[getListenerKey(l)]; ok {
-		r.lk.Unlock()
+		r.Unlock()
 		return errors.New("listener already registered")
 	}
+
+	r.Listeners[getListenerKey(l)] = l
+
+	r.Unlock()
+
+	if err := l.start(); err != nil {
+		r.Lock()
+		defer r.Lock()
+
+		delete(r.Listeners, getListenerKey(l))
+		return err
+	}
+
 	return nil
 }
 
-func (r *ListenerRegistry) unlock() {
-	r.lk.Unlock()
-}
-
-// Register registers listenerInfo in this registry
-func (r *ListenerRegistry) Register(l Listener) {
-	defer r.lk.Unlock()
-
-	r.Listeners[getListenerKey(l)] = l
-}
-
 // Deregister removes p2p listener from this registry
-func (r *ListenerRegistry) Deregister(k listenerKey) {
-	r.lk.Lock()
-	defer r.lk.Unlock()
+func (r *ListenerRegistry) Deregister(k listenerKey) bool {
+	r.Lock()
+	defer r.Unlock()
 
+	_, ok := r.Listeners[k]
 	delete(r.Listeners, k)
+	return ok
 }
 
 func getListenerKey(l Listener) listenerKey {
 	return listenerKey{
-		proto:  l.Protocol(),
-		listen: l.ListenAddress(),
-		target: l.TargetAddress(),
+		proto:  string(l.Protocol()),
+		listen: l.ListenAddress().String(),
+		target: l.TargetAddress().String(),
 	}
 }

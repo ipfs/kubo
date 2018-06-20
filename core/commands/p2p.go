@@ -14,9 +14,11 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	p2p "github.com/ipfs/go-ipfs/p2p"
 
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	"gx/ipfs/Qme4QgoVPyQqxVc4G1c2L2wc9TDa6o294rtspGMnBNRujm/go-ipfs-addr"
 )
 
 // P2PProtoPrefix is the default required prefix for protocol names
@@ -98,9 +100,23 @@ Example:
 			return
 		}
 
-		proto := req.Arguments()[0]
-		listen := req.Arguments()[1]
-		target := req.Arguments()[2]
+		protoOpt := req.Arguments()[0]
+		listenOpt := req.Arguments()[1]
+		targetOpt := req.Arguments()[2]
+
+		proto := protocol.ID(protoOpt)
+
+		listen, err := ma.NewMultiaddr(listenOpt)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		target, err := ipfsaddr.ParseString(targetOpt)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		allowCustom, _, err := req.Option("allow-custom-protocol").Bool()
 		if err != nil {
@@ -108,7 +124,7 @@ Example:
 			return
 		}
 
-		if !allowCustom && !strings.HasPrefix(proto, P2PProtoPrefix) {
+		if !allowCustom && !strings.HasPrefix(string(proto), P2PProtoPrefix) {
 			res.SetError(errors.New("protocol name must be within '"+P2PProtoPrefix+"' namespace"), cmdkit.ErrNormal)
 			return
 		}
@@ -149,8 +165,16 @@ Example:
 			return
 		}
 
-		proto := req.Arguments()[0]
-		target := req.Arguments()[1]
+		protoOpt := req.Arguments()[0]
+		targetOpt := req.Arguments()[1]
+
+		proto := protocol.ID(protoOpt)
+
+		target, err := ma.NewMultiaddr(targetOpt)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		allowCustom, _, err := req.Option("allow-custom-protocol").Bool()
 		if err != nil {
@@ -158,7 +182,7 @@ Example:
 			return
 		}
 
-		if !allowCustom && !strings.HasPrefix(proto, P2PProtoPrefix) {
+		if !allowCustom && !strings.HasPrefix(string(proto), P2PProtoPrefix) {
 			res.SetError(errors.New("protocol name must be within '"+P2PProtoPrefix+"' namespace"), cmdkit.ErrNormal)
 			return
 		}
@@ -173,39 +197,20 @@ Example:
 }
 
 // forwardRemote forwards libp2p service connections to a manet address
-func forwardRemote(ctx context.Context, p *p2p.P2P, proto string, target string) error {
-	if strings.HasPrefix(target, "/ipfs") {
-		return errors.New("cannot forward libp2p service connections to another libp2p service")
-	}
-
-	addr, err := ma.NewMultiaddr(target)
-	if err != nil {
-		return err
-	}
-
+func forwardRemote(ctx context.Context, p *p2p.P2P, proto protocol.ID, target ma.Multiaddr) error {
 	// TODO: return some info
-	_, err = p.ForwardRemote(ctx, proto, addr)
+	_, err := p.ForwardRemote(ctx, proto, target)
 	return err
 }
 
 // forwardLocal forwards local connections to a libp2p service
-func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto string, listen string, target string) error {
-	bindAddr, err := ma.NewMultiaddr(listen)
-	if err != nil {
-		return err
-	}
-
-	addr, peer, err := ParsePeerParam(target)
-	if err != nil {
-		return err
-	}
-
+func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto protocol.ID, bindAddr ma.Multiaddr, addr ipfsaddr.IPFSAddr) error {
 	if addr != nil {
-		ps.AddAddr(peer, addr, pstore.TempAddrTTL)
+		ps.AddAddr(addr.ID(), addr.Multiaddr(), pstore.TempAddrTTL)
 	}
 
 	// TODO: return some info
-	_, err = p.ForwardLocal(ctx, peer, proto, bindAddr)
+	_, err := p.ForwardLocal(ctx, addr.ID(), proto, bindAddr)
 	return err
 }
 
@@ -227,9 +232,9 @@ var p2pLsCmd = &cmds.Command{
 
 		for _, listener := range n.P2P.Listeners.Listeners {
 			output.Listeners = append(output.Listeners, P2PListenerInfoOutput{
-				Protocol:      listener.Protocol(),
-				ListenAddress: listener.ListenAddress(),
-				TargetAddress: listener.TargetAddress(),
+				Protocol:      string(listener.Protocol()),
+				ListenAddress: listener.ListenAddress().String(),
+				TargetAddress: listener.TargetAddress().String(),
 			})
 		}
 
@@ -272,8 +277,6 @@ var p2pCloseCmd = &cmds.Command{
 		cmdkit.StringOption("target-address", "t", "Match target address"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		res.SetOutput(nil)
-
 		n, err := p2pGetNode(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -281,12 +284,26 @@ var p2pCloseCmd = &cmds.Command{
 		}
 
 		closeAll, _, _ := req.Option("all").Bool()
-		proto, p, _ := req.Option("protocol").String()
-		listen, l, _ := req.Option("listen-address").String()
-		target, t, _ := req.Option("target-address").String()
+		protoOpt, p, _ := req.Option("protocol").String()
+		listenOpt, l, _ := req.Option("listen-address").String()
+		targetOpt, t, _ := req.Option("target-address").String()
+
+		proto := protocol.ID(protoOpt)
+
+		listen, err := ma.NewMultiaddr(listenOpt)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		target, err := ma.NewMultiaddr(targetOpt)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		if !(closeAll || p || l || t) {
-			res.SetError(errors.New("no connection matching options given"), cmdkit.ErrNormal)
+			res.SetError(errors.New("no matching options given"), cmdkit.ErrNormal)
 			return
 		}
 
@@ -296,31 +313,36 @@ var p2pCloseCmd = &cmds.Command{
 		}
 
 		match := func(listener p2p.Listener) bool {
-			out := true
-
-			if p {
-				out = out && (proto == listener.Protocol())
+			if closeAll {
+				return true
 			}
-			if l {
-				out = out && (listen == listener.ListenAddress())
+			if p && proto != listener.Protocol() {
+				return false
 			}
-			if t {
-				out = out && (target == listener.TargetAddress())
+			if l && !listen.Equal(listener.ListenAddress()) {
+				return false
 			}
-
-			out = out || closeAll
-			return out
+			if t && !target.Equal(listener.TargetAddress()) {
+				return false
+			}
+			return true
 		}
 
-		var closed int
-		for _, listener := range n.P2P.Listeners.Listeners {
-			if !match(listener) {
+		todo := make([]p2p.Listener, 0)
+		n.P2P.Listeners.Lock()
+		for _, l := range n.P2P.Listeners.Listeners {
+			if !match(l) {
 				continue
 			}
-			listener.Close()
-			closed++
+			todo = append(todo, l)
 		}
-		res.SetOutput(closed)
+		n.P2P.Listeners.Unlock()
+
+		for _, l := range todo {
+			l.Close()
+		}
+
+		res.SetOutput(len(todo))
 	},
 	Type: int(0),
 	Marshalers: cmds.MarshalerMap{

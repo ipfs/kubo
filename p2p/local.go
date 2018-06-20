@@ -2,14 +2,15 @@ package p2p
 
 import (
 	"context"
+	"errors"
 	"time"
 
-	manet "gx/ipfs/QmNqRnejxJxjRroz7buhrjfU8i3yNBLa81hFtmf2pXEffN/go-multiaddr-net"
-	ma "gx/ipfs/QmUxSEGbv2nmYNnfXi7839wwQqTN3kwQeUxe8dTjZWZs7J/go-multiaddr"
-	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
-	net "gx/ipfs/QmXdgNhVEgjLxjUoMs5ViQL7pboAt3Y7V7eGHRiE4qrmTE/go-libp2p-net"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	pstore "gx/ipfs/QmZhsmorLpD9kmQ4ynbAu4vbKv2goMUnXazwGA4gnWHDjB/go-libp2p-peerstore"
+	"gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	tec "gx/ipfs/QmWHgLqrghM9zw77nF6gdvT9ExQ2RB9pLxkd8sDHZf1rWb/go-temp-err-catcher"
+	"gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
 // localListener manet streams and proxies them to libp2p services
@@ -27,98 +28,106 @@ type localListener struct {
 }
 
 // ForwardLocal creates new P2P stream to a remote listener
-func (p2p *P2P) ForwardLocal(ctx context.Context, peer peer.ID, proto string, bindAddr ma.Multiaddr) (Listener, error) {
+func (p2p *P2P) ForwardLocal(ctx context.Context, peer peer.ID, proto protocol.ID, bindAddr ma.Multiaddr) (Listener, error) {
 	listener := &localListener{
 		ctx: ctx,
 
 		p2p: p2p,
 		id:  p2p.identity,
 
-		proto: protocol.ID(proto),
+		proto: proto,
 		laddr: bindAddr,
 		peer:  peer,
 	}
 
-	if err := p2p.Listeners.lock(listener); err != nil {
+	if err := p2p.Listeners.Register(listener); err != nil {
 		return nil, err
 	}
 
-	maListener, err := manet.Listen(bindAddr)
-	if err != nil {
-		p2p.Listeners.unlock()
-		return nil, err
-	}
-
-	listener.listener = maListener
-
-	p2p.Listeners.Register(listener)
 	go listener.acceptConns()
 
 	return listener, nil
 }
 
-func (l *localListener) dial() (net.Stream, error) {
-	ctx, cancel := context.WithTimeout(l.ctx, time.Second*30) //TODO: configurable?
+func (l *localListener) dial(ctx context.Context) (net.Stream, error) {
+	cctx, cancel := context.WithTimeout(ctx, time.Second*30) //TODO: configurable?
 	defer cancel()
 
-	err := l.p2p.peerHost.Connect(ctx, pstore.PeerInfo{ID: l.peer})
-	if err != nil {
-		return nil, err
-	}
-
-	return l.p2p.peerHost.NewStream(l.ctx, l.peer, l.proto)
+	return l.p2p.peerHost.NewStream(cctx, l.peer, l.proto)
 }
 
 func (l *localListener) acceptConns() {
 	for {
 		local, err := l.listener.Accept()
 		if err != nil {
+			if tec.ErrIsTemporary(err) {
+				continue
+			}
 			return
 		}
 
-		remote, err := l.dial()
-		if err != nil {
-			local.Close()
-			return
-		}
-
-		tgt, err := ma.NewMultiaddr(l.TargetAddress())
-		if err != nil {
-			local.Close()
-			return
-		}
-
-		stream := &Stream{
-			Protocol: l.proto,
-
-			OriginAddr: local.RemoteMultiaddr(),
-			TargetAddr: tgt,
-
-			Local:  local,
-			Remote: remote,
-
-			Registry: l.p2p.Streams,
-		}
-
-		l.p2p.Streams.Register(stream)
-		stream.startStreaming()
+		go l.setupStream(local)
 	}
 }
 
-func (l *localListener) Close() error {
-	l.listener.Close()
-	l.p2p.Listeners.Deregister(getListenerKey(l))
+func (l *localListener) setupStream(local manet.Conn) {
+	remote, err := l.dial(l.ctx)
+	if err != nil {
+		local.Close()
+		log.Warningf("failed to dial to remote %s/%s", l.peer.Pretty(), l.proto)
+		return
+	}
+
+	stream := &Stream{
+		Protocol: l.proto,
+
+		OriginAddr: local.RemoteMultiaddr(),
+		TargetAddr: l.TargetAddress(),
+
+		Local:  local,
+		Remote: remote,
+
+		Registry: l.p2p.Streams,
+	}
+
+	l.p2p.Streams.Register(stream)
+	stream.startStreaming()
+}
+
+func (l *localListener) start() error {
+	maListener, err := manet.Listen(l.laddr)
+	if err != nil {
+		return err
+	}
+
+	l.listener = maListener
 	return nil
 }
 
-func (l *localListener) Protocol() string {
-	return string(l.proto)
+func (l *localListener) Close() error {
+	if l.listener == nil {
+		return errors.New("uninitialized")
+	}
+
+	if l.p2p.Listeners.Deregister(getListenerKey(l)) {
+		l.listener.Close()
+		l.listener = nil
+	}
+	return nil
 }
 
-func (l *localListener) ListenAddress() string {
-	return l.laddr.String()
+func (l *localListener) Protocol() protocol.ID {
+	return l.proto
 }
 
-func (l *localListener) TargetAddress() string {
-	return "/ipfs/" + l.peer.Pretty()
+func (l *localListener) ListenAddress() ma.Multiaddr {
+	return l.laddr
+}
+
+func (l *localListener) TargetAddress() ma.Multiaddr {
+	addr, err := ma.NewMultiaddr(maPrefix + l.peer.Pretty())
+	if err != nil {
+		panic(err)
+	}
+	return addr
 }

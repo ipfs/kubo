@@ -2,12 +2,15 @@ package p2p
 
 import (
 	"context"
+	"errors"
 
-	manet "gx/ipfs/QmNqRnejxJxjRroz7buhrjfU8i3yNBLa81hFtmf2pXEffN/go-multiaddr-net"
-	ma "gx/ipfs/QmUxSEGbv2nmYNnfXi7839wwQqTN3kwQeUxe8dTjZWZs7J/go-multiaddr"
-	net "gx/ipfs/QmXdgNhVEgjLxjUoMs5ViQL7pboAt3Y7V7eGHRiE4qrmTE/go-libp2p-net"
+	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	net "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
+
+var maPrefix = "/" + ma.ProtocolWithCode(ma.P_IPFS).Name + "/"
 
 // remoteListener accepts libp2p streams and proxies them to a manet host
 type remoteListener struct {
@@ -18,70 +21,85 @@ type remoteListener struct {
 
 	// Address to proxy the incoming connections to
 	addr ma.Multiaddr
+
+	initialized bool
 }
 
 // ForwardRemote creates new p2p listener
-func (p2p *P2P) ForwardRemote(ctx context.Context, proto string, addr ma.Multiaddr) (Listener, error) {
+func (p2p *P2P) ForwardRemote(ctx context.Context, proto protocol.ID, addr ma.Multiaddr) (Listener, error) {
 	listener := &remoteListener{
 		p2p: p2p,
 
-		proto: protocol.ID(proto),
+		proto: proto,
 		addr:  addr,
 	}
 
-	if err := p2p.Listeners.lock(listener); err != nil {
+	if err := p2p.Listeners.Register(listener); err != nil {
 		return nil, err
 	}
 
-	p2p.peerHost.SetStreamHandler(listener.proto, func(remote net.Stream) {
-		local, err := manet.Dial(addr)
+	return listener, nil
+}
+
+func (l *remoteListener) start() error {
+	// TODO: handle errors when https://github.com/libp2p/go-libp2p-host/issues/16 will be done
+	l.p2p.peerHost.SetStreamHandler(l.proto, func(remote net.Stream) {
+		local, err := manet.Dial(l.addr)
 		if err != nil {
 			remote.Reset()
 			return
 		}
 
-		//TODO: review: is there a better way to do this?
-		peerMa, err := ma.NewMultiaddr("/ipfs/" + remote.Conn().RemotePeer().Pretty())
+		peerMa, err := ma.NewMultiaddr(maPrefix + remote.Conn().RemotePeer().Pretty())
 		if err != nil {
 			remote.Reset()
 			return
 		}
 
 		stream := &Stream{
-			Protocol: listener.proto,
+			Protocol: l.proto,
 
 			OriginAddr: peerMa,
-			TargetAddr: addr,
+			TargetAddr: l.addr,
 
 			Local:  local,
 			Remote: remote,
 
-			Registry: p2p.Streams,
+			Registry: l.p2p.Streams,
 		}
 
-		p2p.Streams.Register(stream)
+		l.p2p.Streams.Register(stream)
 		stream.startStreaming()
 	})
 
-	p2p.Listeners.Register(listener)
-
-	return listener, nil
+	l.initialized = true
+	return nil
 }
 
-func (l *remoteListener) Protocol() string {
-	return string(l.proto)
+func (l *remoteListener) Protocol() protocol.ID {
+	return l.proto
 }
 
-func (l *remoteListener) ListenAddress() string {
-	return "/ipfs"
+func (l *remoteListener) ListenAddress() ma.Multiaddr {
+	addr, err := ma.NewMultiaddr(maPrefix + l.p2p.identity.Pretty())
+	if err != nil {
+		panic(err)
+	}
+	return addr
 }
 
-func (l *remoteListener) TargetAddress() string {
-	return l.addr.String()
+func (l *remoteListener) TargetAddress() ma.Multiaddr {
+	return l.addr
 }
 
 func (l *remoteListener) Close() error {
-	l.p2p.peerHost.RemoveStreamHandler(protocol.ID(l.proto))
-	l.p2p.Listeners.Deregister(getListenerKey(l))
+	if !l.initialized {
+		return errors.New("uninitialized")
+	}
+
+	if l.p2p.Listeners.Deregister(getListenerKey(l)) {
+		l.p2p.peerHost.RemoveStreamHandler(l.proto)
+		l.initialized = false
+	}
 	return nil
 }

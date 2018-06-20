@@ -357,7 +357,7 @@ with `ssh [user]@127.0.0.1 -p 2222`.
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works / fits use cases
 - [ ] More documentation
-- [ ] Support other protocols (e.g, unix domain sockets)
+- [ ] Support other protocols (e.g, unix domain sockets, websockets, etc.)
 
 ---
 
