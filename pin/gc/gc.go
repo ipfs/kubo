@@ -169,7 +169,6 @@ func DescendantsMaxDepth(ctx context.Context, getLinks dag.GetLinks, set *cid.Se
 
 	for _, recPin := range roots {
 		set.Add(recPin.Cid)
-
 		// EnumerateChildren recursively walks the dag and adds the keys to the given set
 		err := dag.EnumerateChildrenMaxDepth(
 			ctx,
@@ -231,10 +230,10 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		gcs.Add(k)
 	}
 
-	err = Descendants(ctx, getLinks, gcs, pn.InternalPins())
-	if err != nil {
-		errors = true
-		output <- Result{Error: err}
+	// Internal pins are direct + recursive + empty + root cid
+	// so we can treat them as direct.
+	for _, k := range pn.InternalPins() {
+		gcs.Add(k)
 	}
 
 	if errors {
