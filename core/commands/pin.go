@@ -86,18 +86,16 @@ var addPinCmd = &cmds.Command{
 			return
 		}
 
-		if !recursive {
+		switch {
+		case !recursive:
 			maxDepth = 0
-		}
-
-		if recursive && maxDepth == 0 {
+		case recursive && maxDepth == 0:
 			res.SetError(
 				errors.New("invalid --max-depth=0. Use a direct pin instead"),
 				cmdkit.ErrNormal,
 			)
-		}
-
-		if recursive && maxDepth <= 0 {
+			return
+		case !recursive && maxDepth < 0:
 			maxDepth = -1
 		}
 
