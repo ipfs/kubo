@@ -28,6 +28,7 @@ Please put all issues regarding the Go IPFS _implementation_ in [this repo](http
 
 - [Security Issues](#security-issues)
 - [Install](#install)
+  - [System Requirements](#system-requirements)
   - [Install prebuilt packages](#install-prebuilt-packages)
   - [From Linux package managers](#from-linux-package-managers)
   - [Build from Source](#build-from-source)
@@ -57,6 +58,10 @@ If the issue is a protocol weakness that cannot be immediately exploited or some
 ## Install
 
 The canonical download instructions for IPFS are over at: http://ipfs.io/docs/install/. It is **highly suggested** you follow those instructions if you are not interested in working on IPFS development.
+
+### System Requirements
+
+IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 2 GB of RAM (it’ll do fine with only one CPU core), but it should run fine with as little as 1 GB of RAM. On systems with less memory, it may not be completely stable.
 
 ### Install prebuilt packages
 
