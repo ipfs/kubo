@@ -29,8 +29,10 @@ var FilestorePrefix = ds.NewKey("filestore")
 // to the actual location of the block data in the filesystem
 // (a path and an offset).
 type FileManager struct {
-	ds   ds.Batching
-	root string
+	AllowFiles bool
+	AllowUrls  bool
+	ds         ds.Batching
+	root       string
 }
 
 // CorruptReferenceError implements the error interface.
@@ -52,7 +54,7 @@ func (c CorruptReferenceError) Error() string {
 // datastore and root. All FilestoreNodes paths are relative to the
 // root path given here, which is prepended for any operations.
 func NewFileManager(ds ds.Batching, root string) *FileManager {
-	return &FileManager{dsns.Wrap(ds, FilestorePrefix), root}
+	return &FileManager{ds: dsns.Wrap(ds, FilestorePrefix), root: root}
 }
 
 // AllKeysChan returns a channel from which to read the keys stored in
@@ -157,6 +159,10 @@ func unmarshalDataObj(o interface{}) (*pb.DataObj, error) {
 }
 
 func (f *FileManager) readFileDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+	if !f.AllowFiles {
+		return nil, fmt.Errorf("filestore not enabled")
+	}
+
 	p := filepath.FromSlash(d.GetFilePath())
 	abspath := filepath.Join(f.root, p)
 
@@ -196,6 +202,9 @@ func (f *FileManager) readFileDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error)
 
 // reads and verifies the block from URL
 func (f *FileManager) readURLDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+	if !f.AllowUrls {
+		return nil, fmt.Errorf("urlstore not enabled")
+	}
 
 	req, err := http.NewRequest("GET", d.GetFilePath(), nil)
 	if err != nil {
@@ -257,6 +266,9 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 	var dobj pb.DataObj
 
 	if !IsURL(b.PosInfo.FullPath) {
+		if !f.AllowFiles {
+			return fmt.Errorf("filestore not enabled")
+		}
 		if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
 			return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)
 		}
@@ -268,6 +280,9 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 
 		dobj.FilePath = proto.String(filepath.ToSlash(p))
 	} else {
+		if !f.AllowUrls {
+			return fmt.Errorf("urlstore not enabled")
+		}
 		dobj.FilePath = proto.String(b.PosInfo.FullPath)
 	}
 	dobj.Offset = proto.Uint64(b.PosInfo.Offset)
