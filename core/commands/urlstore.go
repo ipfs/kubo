@@ -77,7 +77,9 @@ var urlAdd = &cmds.Command{
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			bs := res.Output().(*BlockStat)
+			ch := res.Output().(<-chan interface{})
+			bs0 := <-ch
+			bs := bs0.(*BlockStat)
 			return strings.NewReader(bs.Key + "\n"), nil
 		},
 	},
