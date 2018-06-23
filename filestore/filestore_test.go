@@ -9,8 +9,8 @@ import (
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
 
+	posinfo "gx/ipfs/QmUWsXLvYYDAaoAt9TPZpFX4ffHHMg46AHrz1ZLTN5ABbe/go-ipfs-posinfo"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
-	posinfo "gx/ipfs/QmdGSfmN4wWNXVs2XiwHbpjnUikJ7HyrTJNHyYGdodyJDC/go-ipfs-posinfo"
 	blockstore "gx/ipfs/QmdpuJBPBZ6sLPj9BQpn3Rpi38BT2cF1QMiUfyzNWeySW4/go-ipfs-blockstore"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 )
@@ -160,5 +160,17 @@ func TestDeletes(t *testing.T) {
 		if deleted[c.KeyString()] {
 			t.Fatal("shouldnt have reference to this key anymore")
 		}
+	}
+}
+
+func TestIsURL(t *testing.T) {
+	if !IsURL("http://www.example.com") {
+		t.Fatal("IsURL failed: http://www.example.com")
+	}
+	if !IsURL("https://www.example.com") {
+		t.Fatal("IsURL failed: https://www.example.com")
+	}
+	if IsURL("adir/afile") {
+		t.Fatal("IsURL recognized non-url")
 	}
 }

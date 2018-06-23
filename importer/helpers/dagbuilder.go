@@ -25,7 +25,6 @@ type DagBuilderHelper struct {
 	maxlinks  int
 	batch     *ipld.Batch
 	fullPath  string
-	isUrl     bool
 	stat      os.FileInfo
 	prefix    *cid.Prefix
 }
@@ -71,7 +70,6 @@ func (dbp *DagBuilderParams) New(spl chunker.Splitter) *DagBuilderHelper {
 
 	if dbp.URL != "" {
 		db.fullPath = dbp.URL
-		db.isUrl = true
 	}
 	return db
 }
@@ -214,7 +212,7 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 // from the DagBuilderHelper.
 func (db *DagBuilderHelper) SetPosInfo(node *UnixfsNode, offset uint64) {
 	if db.fullPath != "" {
-		node.SetPosInfo(offset, db.fullPath, db.stat, db.isUrl)
+		node.SetPosInfo(offset, db.fullPath, db.stat)
 	}
 }
 

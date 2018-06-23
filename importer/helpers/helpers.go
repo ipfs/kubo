@@ -8,9 +8,9 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
+	pi "gx/ipfs/QmUWsXLvYYDAaoAt9TPZpFX4ffHHMg46AHrz1ZLTN5ABbe/go-ipfs-posinfo"
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
-	pi "gx/ipfs/QmdGSfmN4wWNXVs2XiwHbpjnUikJ7HyrTJNHyYGdodyJDC/go-ipfs-posinfo"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -142,12 +142,11 @@ func (n *UnixfsNode) FileSize() uint64 {
 
 // SetPosInfo sets information about the offset of the data of this node in a
 // filesystem file.
-func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo, isUrl bool) {
+func (n *UnixfsNode) SetPosInfo(offset uint64, fullPath string, stat os.FileInfo) {
 	n.posInfo = &pi.PosInfo{
 		Offset:   offset,
 		FullPath: fullPath,
 		Stat:     stat,
-		IsURL:    isUrl,
 	}
 }
 
