@@ -816,9 +816,11 @@ func (n *IpfsNode) SetupOfflineRouting() error {
 		// Routing was already set up
 		return nil
 	}
-	err := n.LoadPrivateKey()
-	if err != nil {
-		return err
+	if n.PrivateKey == nil {
+		err := n.LoadPrivateKey()
+		if err != nil {
+			return err
+		}
 	}
 
 	n.Routing = offroute.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
