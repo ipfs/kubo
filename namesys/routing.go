@@ -101,7 +101,8 @@ func (r *IpnsResolver) resolveOnce(ctx context.Context, name string, options *op
 	if valh, err := mh.Cast(entry.GetValue()); err == nil {
 		// Its an old style multihash record
 		log.Debugf("encountered CIDv0 ipns entry: %s", valh)
-		p = path.FromCid(cid.NewCidV0(valh))
+		c, _ := cid.NewCidV0(valh)
+		p = path.FromCid(c)
 	} else {
 		// Not a multihash, probably a new record
 		p, err = path.ParsePath(string(entry.GetValue()))

@@ -23,11 +23,11 @@ func rawRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
 		return nil, err
 	}
 
-	h, err := mh.Sum(data, mhType, mhLen)
+	prefix := cid.NewPrefixV1(cid.Raw, mhType, mhLen)
+	c, err := prefix.Sum(data)
 	if err != nil {
 		return nil, err
 	}
-	c := cid.NewCidV1(cid.Raw, h)
 	blk, err := block.NewBlockWithCid(data, c)
 	if err != nil {
 		return nil, err
