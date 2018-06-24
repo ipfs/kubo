@@ -258,7 +258,7 @@ You can now check what blocks have been created by:
 			exch = offline.Exchange(addblockstore)
 		}
 
-		bserv := blockservice.New(addblockstore, exch) // hash security 001
+		bserv := blockservice.New(addblockstore, exch)
 		dserv := dag.NewDAGService(bserv)
 
 		outChan := make(chan interface{}, adderOutChanSize)

@@ -5,12 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
 
 	offline "gx/ipfs/QmPf114DXfa6TqGKYhBGR7EtXRho4rCJgwyA1xkuMY5vwF/go-ipfs-exchange-offline"
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
@@ -131,34 +129,12 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 // adds them to the given cid.Set, using the provided dag.GetLinks function
 // to walk the tree.
 func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []*cid.Cid) error {
-	verifyGetLinks := func(ctx context.Context, c *cid.Cid) ([]*ipld.Link, error) {
-		err := verifcid.ValidateCid(c)
-		if err != nil {
-			return nil, err
-		}
-
-		return getLinks(ctx, c)
-	}
-
-	verboseCidError := func(err error) error {
-		if strings.Contains(err.Error(), verifcid.ErrBelowMinimumHashLength.Error()) ||
-			strings.Contains(err.Error(), verifcid.ErrPossiblyInsecureHashFunction.Error()) {
-			err = fmt.Errorf("\"%s\"\nPlease run 'ipfs pin verify'"+
-				" to list insecure hashes. If you want to read them,"+
-				" please downgrade your go-ipfs to 0.4.13\n", err)
-			log.Error(err)
-		}
-		return err
-	}
-
 	for _, c := range roots {
 		set.Add(c)
 
 		// EnumerateChildren recursively walks the dag and adds the keys to the given set
-		err := dag.EnumerateChildren(ctx, verifyGetLinks, c, set.Visit)
-
+		err := dag.EnumerateChildren(ctx, getLinks, c, set.Visit)
 		if err != nil {
-			err = verboseCidError(err)
 			return err
 		}
 	}

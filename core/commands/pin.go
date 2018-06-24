@@ -16,7 +16,6 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	resolver "github.com/ipfs/go-ipfs/path/resolver"
 	pin "github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
@@ -606,15 +605,6 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 	checkPin = func(root *cid.Cid) PinStatus {
 		key := root.String()
 		if status, ok := visited[key]; ok {
-			return status
-		}
-
-		if err := verifcid.ValidateCid(root); err != nil {
-			status := PinStatus{Ok: false}
-			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
-			}
-			visited[key] = status
 			return status
 		}
 
