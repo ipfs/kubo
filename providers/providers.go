@@ -46,9 +46,17 @@ type blockRequest struct {
 	Ctx context.Context
 }
 
-// Interface defines providers interface to libp2p routing system
+// Interface is an abstraction on top of the libp2p content routing which
+// optimizes common content routing tasks
 type Interface interface {
+	// Provide a block to the network. Calls to this method are usually
+	// non-blocking with back-pressure which might happen under load
 	Provide(k *cid.Cid) error
+
+	// ProvideRecursive provides graph to the network. Calls to this method are
+	// usually non-blocking with back-pressure which might happen under load
+	//
+	// Note: only call this method with offline NodeGetter.
 	ProvideRecursive(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) error
 
 	FindProviders(ctx context.Context, k *cid.Cid) error
