@@ -338,8 +338,15 @@ var p2pCloseCmd = &cmds.Command{
 		}
 		n.P2P.Listeners.Unlock()
 
+		var errs []string
 		for _, l := range todo {
-			l.Close()
+			if err := l.Close(); err != nil {
+				errs = append(errs, err.Error())
+			}
+		}
+		if len(errs) != 0 {
+			res.SetError(fmt.Errorf("errors when closing streams: %s", strings.Join(errs, "; ")), cmdkit.ErrNormal)
+			return
 		}
 
 		res.SetOutput(len(todo))

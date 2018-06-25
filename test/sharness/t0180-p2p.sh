@@ -233,16 +233,27 @@ test_expect_success "'ipfs p2p close' closes app numeric handlers" '
   test_must_be_empty actual
 '
 
-test_expect_success "'ipfs p2p close' closes by listen addr" '
+test_expect_success "'ipfs p2p close' closes by target addr" '
   ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10101 &&
-  ipfsi 0 p2p close -l /ipfs/$PEERID_0 &&
+  ipfsi 0 p2p close -t /ip4/127.0.0.1/tcp/10101 &&
   ipfsi 0 p2p ls > actual &&
   test_must_be_empty actual
 '
 
-test_expect_success "'ipfs p2p close' closes by target addr" '
+test_expect_success "'ipfs p2p close' closes right listeners" '
   ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10101 &&
-  ipfsi 0 p2p close -t /ip4/127.0.0.1/tcp/10101 &&
+  ipfsi 0 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10101 /ipfs/$PEERID_1 &&
+  echo "/x/p2p-test /ipfs/$PEERID_0 /ip4/127.0.0.1/tcp/10101" > expected &&
+
+  ipfsi 0 p2p close -l /ip4/127.0.0.1/tcp/10101 &&
+  ipfsi 0 p2p ls > actual &&
+  test_cmp expected actual
+'
+
+check_test_ports
+
+test_expect_success "'ipfs p2p close' closes by listen addr" '
+  ipfsi 0 p2p close -l /ipfs/$PEERID_0 &&
   ipfsi 0 p2p ls > actual &&
   test_must_be_empty actual
 '

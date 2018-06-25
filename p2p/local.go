@@ -109,8 +109,7 @@ func (l *localListener) Close() error {
 		return err
 	}
 	if ok {
-		l.listener.Close()
-		l.listener = nil
+		return l.listener.Close()
 	}
 	return nil
 }
