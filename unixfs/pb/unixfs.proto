@@ -1,24 +1,79 @@
 package unixfs.pb;
 
+/* FilePart represents a Unix file. */
+//
+// TODO: Rename. What name to use: `File`, `FilePart`, `FileChunk`?
+// `FilePart` makes it easier to understand the recursive nature of
+// this data structure, but the `Part` name throughout the code
+// base could confuse the reader thinking he's holding only a part
+// of the file when most of the time he actually has the root
+// representing the entire file.
+//
+// TODO: How much importance to give to the underlying DAG layer.
+// I like the File/FilePart/Fractal idea, it doesn't need to be backed
+// up by a DAG, but it does (and probably always will) so it may be
+// easier to describe it as part of the DAG (coupling both ideas).
+// The more I write docs in this file the more references I'm making
+// to nodes (i.e., DAG). It boils down to: is it easier to reason
+// about UnixFS with or without DAG (or something in between, e.g.,
+// using minor references as examples).
+//
+// TODO: Clearly indicate that we are talking about *any* file type (Unix style).
+// Files can be regular files, directories (what else?). That logic is being
+// disrupted with types like `Metadata` and `HAMTShard` which make me
+// rethink what is actually a file in the UnixFS specification.
+//
+// TODO: Following a question in `filesize`, the leaf and internal nodes
+// need to be differentiated, a leaf has no `blocksizes` and a internal
+// has no `Data` (is this correct?), there should even be different message
+// types for that (not happening, that will definitely break API).
 message Data {
+    // Type of file.
 	enum DataType {
+        // Intended to be used for leaf nodes, it is actually used
+        // only by the trickle importer, the balanced one doesn't
+        // use this type (bug, see https://github.com/ipfs/go-ipfs/pull/5120).
 		Raw = 0;
+
+		// Indicates that the file is a directory.
 		Directory = 1;
+
+		// Indicates that the file is a regular file, used for the intermediary
+		// nodes. Also used for the leaf nodes of the balanced builder (see `Raw`).
 		File = 2;
+
+		// TODO: Research and document these three.
 		Metadata = 3;
 		Symlink = 4;
 		HAMTShard = 5;
 	}
 
+	// Type of the file.
 	required DataType Type = 1;
-	optional bytes Data = 2;
-	optional uint64 filesize = 3;
-	repeated uint64 blocksizes = 4;
+	// TODO: Does the `DataType` enum need to be declared first?
+	// (I'm repeating the "Type of the file" description.)
 
+	// Content of the file part. Its interpretation depends on the file `Type`.
+	optional bytes Data = 2;
+
+	// Aggregate of the size of the `Data` of all leaf nodes stored under this one
+	// plus its own `Data`.
+	// (I think you either have the one or the other.)
+	// TODO: Is there a possibility that the `Data` of an internal node is not empty?
+	optional uint64 filesize = 3;
+	// TODO: Change name to `size`.
+
+	repeated uint64 blocksizes = 4;
+	// TODO: Change name to `childSizes` or similar, that explicitly
+	// refers to the child nodes, not "blocks".
+
+	// HAMT related attributes.
 	optional uint64 hashType = 5;
 	optional uint64 fanout = 6;
+	// TODO: Research and document these two.
 }
 
+// TODO: Comment this structure.
 message Metadata {
 	optional string MimeType = 1;
 }
