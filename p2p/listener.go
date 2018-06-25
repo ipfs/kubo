@@ -31,26 +31,33 @@ type ListenerRegistry struct {
 	sync.Mutex
 
 	Listeners map[listenerKey]Listener
+	starting  map[listenerKey]struct{}
 }
 
 // Register registers listenerInfo into this registry and starts it
 func (r *ListenerRegistry) Register(l Listener) error {
 	r.Lock()
+	k := getListenerKey(l)
 
-	if _, ok := r.Listeners[getListenerKey(l)]; ok {
+	if _, ok := r.Listeners[k]; ok {
 		r.Unlock()
 		return errors.New("listener already registered")
 	}
 
-	r.Listeners[getListenerKey(l)] = l
+	r.Listeners[k] = l
+	r.starting[k] = struct{}{}
 
 	r.Unlock()
 
-	if err := l.start(); err != nil {
-		r.Lock()
-		defer r.Lock()
+	err := l.start()
 
-		delete(r.Listeners, getListenerKey(l))
+	r.Lock()
+	defer r.Unlock()
+
+	delete(r.starting, k)
+
+	if err != nil {
+		delete(r.Listeners, k)
 		return err
 	}
 
@@ -58,13 +65,17 @@ func (r *ListenerRegistry) Register(l Listener) error {
 }
 
 // Deregister removes p2p listener from this registry
-func (r *ListenerRegistry) Deregister(k listenerKey) bool {
+func (r *ListenerRegistry) Deregister(k listenerKey) (bool, error) {
 	r.Lock()
 	defer r.Unlock()
 
+	if _, ok := r.starting[k]; ok {
+		return false, errors.New("listener didn't start yet")
+	}
+
 	_, ok := r.Listeners[k]
 	delete(r.Listeners, k)
-	return ok
+	return ok, nil
 }
 
 func getListenerKey(l Listener) listenerKey {

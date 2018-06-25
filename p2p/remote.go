@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"context"
-	"errors"
 
 	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
@@ -21,8 +20,6 @@ type remoteListener struct {
 
 	// Address to proxy the incoming connections to
 	addr ma.Multiaddr
-
-	initialized bool
 }
 
 // ForwardRemote creates new p2p listener
@@ -72,7 +69,6 @@ func (l *remoteListener) start() error {
 		stream.startStreaming()
 	})
 
-	l.initialized = true
 	return nil
 }
 
@@ -93,13 +89,12 @@ func (l *remoteListener) TargetAddress() ma.Multiaddr {
 }
 
 func (l *remoteListener) Close() error {
-	if !l.initialized {
-		return errors.New("uninitialized")
+	ok, err := l.p2p.Listeners.Deregister(getListenerKey(l))
+	if err != nil {
+		return err
 	}
-
-	if l.p2p.Listeners.Deregister(getListenerKey(l)) {
+	if ok {
 		l.p2p.peerHost.RemoveStreamHandler(l.proto)
-		l.initialized = false
 	}
 	return nil
 }
