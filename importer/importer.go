@@ -3,8 +3,8 @@
 package importer
 
 import (
-	chunker "gx/ipfs/QmR4G4WBNGA5S5pvjFiTkuehstC9769sLAHei8vZernhYR/go-ipfs-chunker"
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
+	chunker "gx/ipfs/QmXnzH7wowyLZy8XJxxaQCVTgLMcDXdMBznmsrmQWCyiQV/go-ipfs-chunker"
 
 	bal "github.com/ipfs/go-ipfs/importer/balanced"
 	h "github.com/ipfs/go-ipfs/importer/helpers"

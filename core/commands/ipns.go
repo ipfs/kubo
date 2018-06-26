@@ -11,7 +11,7 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
-	offline "gx/ipfs/QmQUPmFYZBSWn4mtX1YwYkSaMoWVore7tCiSetr6k8JW21/go-ipfs-routing/offline"
+	offline "gx/ipfs/QmWLQyLU7yopJnwMvpHM5VSMG4xmbKgcq6P246mDy9xy5E/go-ipfs-routing/offline"
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/plugin"
 
-	logging "gx/ipfs/Qmbi1CTJsbnBZjCEgc2otwu8cUFPsGpzWXG7edVCLZ7Gvk/go-log"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 )
 
 var log = logging.Logger("plugin/loader")

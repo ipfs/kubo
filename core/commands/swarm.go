@@ -15,14 +15,14 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
+	inet "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
-	swarm "gx/ipfs/QmSvhbgtjQJKdT5avEeb7cvjYs7YrhebJyM1K6GAnkKgfd/go-libp2p-swarm"
-	ma "gx/ipfs/QmUxSEGbv2nmYNnfXi7839wwQqTN3kwQeUxe8dTjZWZs7J/go-multiaddr"
-	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
-	inet "gx/ipfs/QmXdgNhVEgjLxjUoMs5ViQL7pboAt3Y7V7eGHRiE4qrmTE/go-libp2p-net"
-	pstore "gx/ipfs/QmZhsmorLpD9kmQ4ynbAu4vbKv2goMUnXazwGA4gnWHDjB/go-libp2p-peerstore"
-	iaddr "gx/ipfs/QmaKviZCLQrpuyFdSjteik7kJFcQpcyZgb1VuuwaCBBaEa/go-ipfs-addr"
+	swarm "gx/ipfs/QmVqCSwuzgDfhLMTmFfUePTGX78PBjzuHcbSWWNPrnrmKy/go-libp2p-swarm"
+	iaddr "gx/ipfs/QmWUtfQveCqT8cgNzN54at4sDMiFbANFRFCXuSDiTqJwC8/go-ipfs-addr"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 type stringList struct {

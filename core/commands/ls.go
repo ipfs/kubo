@@ -17,7 +17,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	offline "gx/ipfs/QmPf114DXfa6TqGKYhBGR7EtXRho4rCJgwyA1xkuMY5vwF/go-ipfs-exchange-offline"
+	offline "gx/ipfs/QmRCgkkCmf1nMrW2BLZZtjP3Xyw3GfZVYRLix9wrnW4NoR/go-ipfs-exchange-offline"
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"

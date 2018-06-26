@@ -16,8 +16,8 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	chunker "gx/ipfs/QmR4G4WBNGA5S5pvjFiTkuehstC9769sLAHei8vZernhYR/go-ipfs-chunker"
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
+	chunker "gx/ipfs/QmXnzH7wowyLZy8XJxxaQCVTgLMcDXdMBznmsrmQWCyiQV/go-ipfs-chunker"
 )
 
 type UseRawLeaves bool

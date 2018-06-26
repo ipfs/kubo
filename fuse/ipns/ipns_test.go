@@ -16,9 +16,9 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	ci "gx/ipfs/QmPdxCaVp4jZ9RbxqZADvKH6kiCR5jHvdR5f2ycjAY6T2a/go-testutil/ci"
-	offroute "gx/ipfs/QmQUPmFYZBSWn4mtX1YwYkSaMoWVore7tCiSetr6k8JW21/go-ipfs-routing/offline"
 	fstest "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs/fstestutil"
+	offroute "gx/ipfs/QmWLQyLU7yopJnwMvpHM5VSMG4xmbKgcq6P246mDy9xy5E/go-ipfs-routing/offline"
+	ci "gx/ipfs/QmcW4FGAt24fdK1jBgWQn3yP4R9ZLyWQqjozv9QK7epRhL/go-testutil/ci"
 	racedet "gx/ipfs/Qmf7HqcW7LtCi1W8y2bdx2eJpze74jkbKqpByxgXikdbLF/go-detect-race"
 )
 
