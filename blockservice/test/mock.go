@@ -5,8 +5,8 @@ import (
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 
+	mockrouting "gx/ipfs/QmQUPmFYZBSWn4mtX1YwYkSaMoWVore7tCiSetr6k8JW21/go-ipfs-routing/mock"
 	delay "gx/ipfs/QmRJVNatYJwTAHgdSM1Xef9QVQ1Ch3XHdmcrykjP5Y4soL/go-ipfs-delay"
-	mockrouting "gx/ipfs/Qmb1N7zdjG2FexpzWNj8T289u9QnQLEiSsTRadDGQxX32D/go-ipfs-routing/mock"
 )
 
 // Mocks returns |n| connected mock Blockservices

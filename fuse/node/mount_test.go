@@ -17,7 +17,7 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 
 	ci "gx/ipfs/QmPdxCaVp4jZ9RbxqZADvKH6kiCR5jHvdR5f2ycjAY6T2a/go-testutil/ci"
-	offroute "gx/ipfs/Qmb1N7zdjG2FexpzWNj8T289u9QnQLEiSsTRadDGQxX32D/go-ipfs-routing/offline"
+	offroute "gx/ipfs/QmQUPmFYZBSWn4mtX1YwYkSaMoWVore7tCiSetr6k8JW21/go-ipfs-routing/offline"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -52,7 +52,7 @@ func TestExternalUnmount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	node.Routing = offroute.NewOfflineRouter(node.Repo.Datastore(), node.PrivateKey)
+	node.Routing = offroute.NewOfflineRouter(node.Repo.Datastore(), node.RecordValidator)
 	node.Namesys = namesys.NewNameSystem(node.Routing, node.Repo.Datastore(), 0)
 
 	err = ipns.InitializeKeyspace(node, node.PrivateKey)

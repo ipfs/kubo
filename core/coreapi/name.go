@@ -15,8 +15,8 @@ import (
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	ipath "github.com/ipfs/go-ipfs/path"
 
+	offline "gx/ipfs/QmQUPmFYZBSWn4mtX1YwYkSaMoWVore7tCiSetr6k8JW21/go-ipfs-routing/offline"
 	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
-	offline "gx/ipfs/Qmb1N7zdjG2FexpzWNj8T289u9QnQLEiSsTRadDGQxX32D/go-ipfs-routing/offline"
 	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
@@ -107,7 +107,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 	}
 
 	if options.Local {
-		offroute := offline.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
+		offroute := offline.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
 		resolver = namesys.NewIpnsResolver(offroute)
 	}
 
