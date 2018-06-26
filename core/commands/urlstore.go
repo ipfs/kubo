@@ -16,7 +16,7 @@ import (
 	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 
-var UrlStoreCmd = &cmds.Command{
+var urlStoreCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"add": urlAdd,

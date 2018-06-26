@@ -123,11 +123,10 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 }
 
 func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
-	if !IsURL(d.GetFilePath()) {
-		return f.readFileDataObj(c, d)
-	} else {
+	if IsURL(d.GetFilePath()) {
 		return f.readURLDataObj(c, d)
 	}
+	return f.readFileDataObj(c, d)
 }
 
 func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
@@ -266,7 +265,12 @@ func (f *FileManager) Put(b *posinfo.FilestoreNode) error {
 func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 	var dobj pb.DataObj
 
-	if !IsURL(b.PosInfo.FullPath) {
+	if IsURL(b.PosInfo.FullPath) {
+		if !f.AllowUrls {
+			return fmt.Errorf("urlstore not enabled")
+		}
+		dobj.FilePath = proto.String(b.PosInfo.FullPath)
+	} else {
 		if !f.AllowFiles {
 			return fmt.Errorf("filestore not enabled")
 		}
@@ -280,11 +284,6 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 		}
 
 		dobj.FilePath = proto.String(filepath.ToSlash(p))
-	} else {
-		if !f.AllowUrls {
-			return fmt.Errorf("urlstore not enabled")
-		}
-		dobj.FilePath = proto.String(b.PosInfo.FullPath)
 	}
 	dobj.Offset = proto.Uint64(b.PosInfo.Offset)
 	dobj.Size_ = proto.Uint64(uint64(len(b.RawData())))
@@ -314,6 +313,8 @@ func (f *FileManager) PutMany(bs []*posinfo.FilestoreNode) error {
 	return batch.Commit()
 }
 
+// IsURL returns true if the string represents a valid URL that the
+// urlstore can handle.
 func IsURL(str string) bool {
 	return (len(str) > 7 && str[0] == 'h' && str[1] == 't' && str[2] == 't' && str[3] == 'p') &&
 		((len(str) > 8 && str[4] == 's' && str[5] == ':' && str[6] == '/' && str[7] == '/') ||
