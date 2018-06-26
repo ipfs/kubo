@@ -24,6 +24,25 @@ var UrlStoreCmd = &cmds.Command{
 }
 
 var urlAdd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Add URLs via urlstore.",
+		LongDescription: `
+Add URLs to ipfs without storing the data locally.
+
+The URL provided must be stable and ideally on a web server under your
+control.
+
+The file is added using raw-leaves but otherwise using the default
+settings for 'ipfs add'.
+
+The file is not pinned, so this command should be followed by an 'ipfs
+pin add'.
+
+This command is considered temporary until a better solution can be
+found.  It may disappear or the semantics can change at any
+time.
+`,
+	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("url", true, false, "URL to add to IPFS"),
 	},
