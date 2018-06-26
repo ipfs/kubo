@@ -43,8 +43,8 @@ test_expect_success "add files using gateway address via url store" '
 '
 
 test_expect_success "make sure hashes are different" '
-  echo $HASH1a $HASH1 ## FIXME
-  echo $HASH2a $HASH2 ## FIXME
+  test $HASH1a != $HASH1 &&
+  test $HASH2a != $HASH2
 '
 
 test_expect_success "get files via urlstore" '
@@ -97,13 +97,17 @@ test_expect_success "ipfs filestore verify is correct" '
   test_cmp verify_expect_2 verify_actual_2
 '
 
-test_expect_failure "files can not be retrieved via the urlstore" '
-  test_must_fail ipfs get $HASH1 &&
-  test_must_fail ipfs get $HASH2
+test_expect_success "files can not be retrieved via the urlstore" '
+  test_must_fail ipfs cat $HASH1 > /dev/null &&
+  test_must_fail ipfs cat $HASH2 > /dev/null
 '
 
 test_expect_success "add large file using gateway address via url store" '
   HASH3=$(ipfs urlstore add http://127.0.0.1:$GWAY_PORT/ipfs/$HASH3a)
+'
+
+test_expect_success "make sure hashes are different" '
+  test $HASH3a != $HASH3
 '
 
 test_expect_success "get large file via urlstore" '
@@ -114,9 +118,9 @@ test_expect_success "get large file via urlstore" '
 test_kill_ipfs_daemon
 
 test_expect_success "files can not be retrieved via the urlstore" '
-  test_must_fail ipfs get $HASH1 &&
-  test_must_fail ipfs get $HASH2 &&
-  test_must_fail ipfs get $HASH3
+  test_must_fail ipfs cat $HASH1 > /dev/null &&
+  test_must_fail ipfs cat $HASH2 > /dev/null &&
+  test_must_fail ipfs cat $HASH3 > /dev/null
 '
 
 test_done
