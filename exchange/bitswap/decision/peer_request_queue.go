@@ -6,9 +6,9 @@ import (
 
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 
-	peer "gx/ipfs/QmVf8hTAsLLFtn4WPCRNdnaF2Eag2qTBS6uR8AiHPZARXy/go-libp2p-peer"
 	pq "gx/ipfs/QmZUbTDJ39JpvtFCSubiWeUTQRvMA1tVE5RZCJrY4oeAsC/go-ipfs-pq"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
+	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 type peerRequestQueue interface {

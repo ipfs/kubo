@@ -23,10 +23,10 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 
 	util "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	lockfile "gx/ipfs/QmQ7rzxiZbjc9tnBag9g89cHAwditrS9FUicRYR55dUzd1/go-fs-lock"
-	ma "gx/ipfs/QmUxSEGbv2nmYNnfXi7839wwQqTN3kwQeUxe8dTjZWZs7J/go-multiaddr"
 	measure "gx/ipfs/QmXez8SABR95KKKgU9XFtTTQ79QRn2nWS9o5pa1EcHsLs5/go-ds-measure"
-	logging "gx/ipfs/Qmbi1CTJsbnBZjCEgc2otwu8cUFPsGpzWXG7edVCLZ7Gvk/go-log"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	lockfile "gx/ipfs/QmYzCZUe9CBDkyPNPcRNqXQK8KKhtUfXvc88PkFujAEJPe/go-fs-lock"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 )
 
 // LockFile is the filename of the repo lock, relative to config dir

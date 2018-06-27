@@ -11,15 +11,15 @@ import (
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 
-	tu "gx/ipfs/QmPdxCaVp4jZ9RbxqZADvKH6kiCR5jHvdR5f2ycjAY6T2a/go-testutil"
-	travis "gx/ipfs/QmPdxCaVp4jZ9RbxqZADvKH6kiCR5jHvdR5f2ycjAY6T2a/go-testutil/ci/travis"
-	mockrouting "gx/ipfs/QmQUPmFYZBSWn4mtX1YwYkSaMoWVore7tCiSetr6k8JW21/go-ipfs-routing/mock"
 	delay "gx/ipfs/QmRJVNatYJwTAHgdSM1Xef9QVQ1Ch3XHdmcrykjP5Y4soL/go-ipfs-delay"
 	blocks "gx/ipfs/QmTRCUvZLiir12Qr6MV3HKfKMHX8Nf1Vddn6t2g5nsQSb9/go-block-format"
+	mockrouting "gx/ipfs/QmWLQyLU7yopJnwMvpHM5VSMG4xmbKgcq6P246mDy9xy5E/go-ipfs-routing/mock"
 	blocksutil "gx/ipfs/QmYmE4kxv6uFGaWkeBAFYDuNcxzCn87pzwm6CkBkM9C8BM/go-ipfs-blocksutil"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
-	blockstore "gx/ipfs/QmbaPGg81pvQiC5vTXtC9Jo8rdrWUjRaugH71WYNsgi6Ev/go-ipfs-blockstore"
-	p2ptestutil "gx/ipfs/QmeBUY1BsMjkacVAJ2u76XBGNiRCHq6dkqT2VWG59N3d7b/go-libp2p-netutil"
+	tu "gx/ipfs/QmcW4FGAt24fdK1jBgWQn3yP4R9ZLyWQqjozv9QK7epRhL/go-testutil"
+	travis "gx/ipfs/QmcW4FGAt24fdK1jBgWQn3yP4R9ZLyWQqjozv9QK7epRhL/go-testutil/ci/travis"
+	p2ptestutil "gx/ipfs/QmcxUtMB5sJrXR3znSvkrDd2ghvwGM8rLRqwJiPUdgQwat/go-libp2p-netutil"
+	blockstore "gx/ipfs/QmdpuJBPBZ6sLPj9BQpn3Rpi38BT2cF1QMiUfyzNWeySW4/go-ipfs-blockstore"
 	detectrace "gx/ipfs/Qmf7HqcW7LtCi1W8y2bdx2eJpze74jkbKqpByxgXikdbLF/go-detect-race"
 )
 

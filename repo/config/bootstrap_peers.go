@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	iaddr "gx/ipfs/QmaKviZCLQrpuyFdSjteik7kJFcQpcyZgb1VuuwaCBBaEa/go-ipfs-addr"
+	iaddr "gx/ipfs/QmWUtfQveCqT8cgNzN54at4sDMiFbANFRFCXuSDiTqJwC8/go-ipfs-addr"
 	// Needs to be imported so that users can import this package directly
 	// and still parse the bootstrap addresses.
-	_ "gx/ipfs/QmT8461vVVyBPyHJHQ6mvm8UdQ8UZNA5n6Z7kBk7GRf1xu/go-multiaddr-dns"
+	_ "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
 )
 
 // DefaultBootstrapAddresses are the hardcoded bootstrap addresses

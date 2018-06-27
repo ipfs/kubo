@@ -21,11 +21,11 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
-	"gx/ipfs/QmNqRnejxJxjRroz7buhrjfU8i3yNBLa81hFtmf2pXEffN/go-multiaddr-net"
-	mprome "gx/ipfs/QmQ5vvq26w4U7JvyZQPpDePhJGVcBWzm7tdMwFejR7vsmw/go-metrics-prometheus"
-	ma "gx/ipfs/QmUxSEGbv2nmYNnfXi7839wwQqTN3kwQeUxe8dTjZWZs7J/go-multiaddr"
+	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
+	mprome "gx/ipfs/QmUGLYA38oUQstGTYfG3ECcu4G9QT8aHfy72bjHLyx7zzh/go-metrics-prometheus"
+	"gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	"gx/ipfs/QmX3QZ5jHEPidwUrymXV1iSCSUhdGxj15sm2gP4jKMef7B/client_golang/prometheus"
-	cmds "gx/ipfs/QmaFrNcnXHp579hUixbcTH1TNtNwsMogtBCwUUUwzBwYoM/go-ipfs-cmds"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 

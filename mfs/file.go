@@ -9,8 +9,8 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	mod "github.com/ipfs/go-ipfs/unixfs/mod"
 
-	chunker "gx/ipfs/QmR4G4WBNGA5S5pvjFiTkuehstC9769sLAHei8vZernhYR/go-ipfs-chunker"
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
+	chunker "gx/ipfs/QmXnzH7wowyLZy8XJxxaQCVTgLMcDXdMBznmsrmQWCyiQV/go-ipfs-chunker"
 )
 
 type File struct {
