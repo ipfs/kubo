@@ -75,9 +75,7 @@ func (dr *PBDagReader) preloadNextNodes(ctx context.Context) {
 		end = len(dr.links)
 	}
 
-	for i, p := range ipld.GetNodes(ctx, dr.serv, dr.links[beg:end]) {
-		dr.promises[beg+i] = p
-	}
+	copy(dr.promises[beg:], ipld.GetNodes(ctx, dr.serv, dr.links[beg:end]))
 }
 
 // precalcNextBuf follows the next link in line and loads it from the
