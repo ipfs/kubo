@@ -56,6 +56,17 @@ time.
 			return
 		}
 
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		if !cfg.Experimental.UrlstoreEnabled {
+			res.SetError(fmt.Errorf("URL store not enabled."), cmdkit.ErrNormal)
+			return
+		}
+
 		hreq, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)

@@ -10,10 +10,6 @@ test_description="Test out the urlstore functionality"
 
 test_init_ipfs
 
-test_expect_success "enable urlstore" '
-  ipfs config --json Experimental.UrlstoreEnabled true
-'
-
 test_expect_success "create some random files" '
   random 2222     7 > file1 &&
   random 500000   7 > file2 &&
@@ -35,6 +31,19 @@ test_expect_success "make sure files can be retrived via the gateway" '
   curl http://127.0.0.1:$GWAY_PORT/ipfs/$HASH3a -o file3.actual &&
   test_cmp file3 file3.actual 
 '
+
+test_expect_success "add files without enabling url store" '
+  test_must_fail ipfs urlstore add http://127.0.0.1:$GWAY_PORT/ipfs/$HASH1a &&
+  test_must_fail ipfs urlstore add http://127.0.0.1:$GWAY_PORT/ipfs/$HASH2a
+'
+
+test_kill_ipfs_daemon
+
+test_expect_success "enable urlstore" '
+  ipfs config --json Experimental.UrlstoreEnabled true
+'
+
+test_launch_ipfs_daemon --offline
 
 test_expect_success "add files using gateway address via url store" '
   HASH1=$(ipfs urlstore add http://127.0.0.1:$GWAY_PORT/ipfs/$HASH1a) &&
