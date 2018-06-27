@@ -115,6 +115,14 @@ test_expect_success "connect work without specifying a transport address" '
   [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ]
 '
 
+test_expect_success "/p2p addresses work" '
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ] &&
+  ipfsi 0 swarm disconnect "/p2p/$(iptb get id 1)" &&
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 0 ] &&
+  ipfsi 0 swarm connect "/p2p/$(iptb get id 1)" &&
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ]
+'
+
 test_expect_success "stopping cluster" '
   iptb stop
 '
