@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	filestore "github.com/ipfs/go-ipfs/filestore"
 	balanced "github.com/ipfs/go-ipfs/importer/balanced"
 	ihelper "github.com/ipfs/go-ipfs/importer/helpers"
 
@@ -63,7 +64,7 @@ time.
 		}
 
 		if !cfg.Experimental.UrlstoreEnabled {
-			res.SetError(fmt.Errorf("URL store not enabled."), cmdkit.ErrNormal)
+			res.SetError(filestore.ErrUrlstoreNotEnabled, cmdkit.ErrNormal)
 			return
 		}
 

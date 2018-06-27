@@ -159,7 +159,7 @@ func unmarshalDataObj(o interface{}) (*pb.DataObj, error) {
 
 func (f *FileManager) readFileDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	if !f.AllowFiles {
-		return nil, fmt.Errorf("filestore not enabled")
+		return nil, ErrFilestoreNotEnabled
 	}
 
 	p := filepath.FromSlash(d.GetFilePath())
@@ -202,7 +202,7 @@ func (f *FileManager) readFileDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error)
 // reads and verifies the block from URL
 func (f *FileManager) readURLDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	if !f.AllowUrls {
-		return nil, fmt.Errorf("urlstore not enabled")
+		return nil, ErrUrlstoreNotEnabled
 	}
 
 	req, err := http.NewRequest("GET", d.GetFilePath(), nil)
@@ -267,12 +267,12 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 
 	if IsURL(b.PosInfo.FullPath) {
 		if !f.AllowUrls {
-			return fmt.Errorf("urlstore not enabled")
+			return ErrUrlstoreNotEnabled
 		}
 		dobj.FilePath = proto.String(b.PosInfo.FullPath)
 	} else {
 		if !f.AllowFiles {
-			return fmt.Errorf("filestore not enabled")
+			return ErrFilestoreNotEnabled
 		}
 		if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
 			return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)

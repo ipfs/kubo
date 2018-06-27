@@ -237,7 +237,7 @@ func getFilestore(env interface{}) (*core.IpfsNode, *filestore.Filestore, error)
 	}
 	fs := n.Filestore
 	if fs == nil {
-		return n, nil, fmt.Errorf("filestore not enabled")
+		return n, nil, filestore.ErrFilestoreNotEnabled
 	}
 	return n, fs, err
 }
