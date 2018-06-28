@@ -41,7 +41,7 @@ func TestAddRecursive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if k, err := AddR(node, "test_data"); err != nil {
+	if k, err := AddR(node, "test/data"); err != nil {
 		t.Fatal(err)
 	} else if k != "QmWCCga8AbTyfAQ7pTnGT6JgmRMAB3Qp8ZmTEFi5q5o8jC" {
 		t.Fatal("keys do not match: ", k)
