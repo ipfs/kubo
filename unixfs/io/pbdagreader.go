@@ -68,8 +68,7 @@ func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv
 
 const preloadSize = 10
 
-func (dr *PBDagReader) preloadNextNodes(ctx context.Context) {
-	beg := dr.linkPosition
+func (dr *PBDagReader) preload(ctx context.Context, beg int) {
 	end := beg + preloadSize
 	if end >= len(dr.links) {
 		end = len(dr.links)
@@ -90,8 +89,13 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 		return io.EOF
 	}
 
-	if dr.promises[dr.linkPosition] == nil {
-		dr.preloadNextNodes(ctx)
+	// If we drop to <= preloadSize/2 preloading nodes, preload the next 10.
+	for i := dr.linkPosition; i < dr.linkPosition+preloadSize/2 && i < len(dr.promises); i++ {
+		// TODO: check if canceled.
+		if dr.promises[i] == nil {
+			dr.preload(ctx, i)
+			break
+		}
 	}
 
 	nxt, err := dr.promises[dr.linkPosition].Get(ctx)
