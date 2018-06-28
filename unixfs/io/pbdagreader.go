@@ -95,10 +95,27 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 	}
 
 	nxt, err := dr.promises[dr.linkPosition].Get(ctx)
-	if err != nil {
+	dr.promises[dr.linkPosition] = nil
+	switch err {
+	case nil:
+	case context.DeadlineExceeded, context.Canceled:
+		err = ctx.Err()
+		if err != nil {
+			return ctx.Err()
+		}
+		// In this case, the context used to *preload* the node has been canceled.
+		// We need to retry the load with our context and we might as
+		// well preload some extra nodes while we're at it.
+		dr.preload(ctx, dr.linkPosition)
+		nxt, err = dr.promises[dr.linkPosition].Get(ctx)
+		dr.promises[dr.linkPosition] = nil
+		if err != nil {
+			return err
+		}
+	default:
 		return err
 	}
-	dr.promises[dr.linkPosition] = nil
+
 	dr.linkPosition++
 
 	switch nxt := nxt.(type) {
