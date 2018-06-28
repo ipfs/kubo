@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	gopath "path"
+	"path/filepath"
 	"strconv"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -316,7 +317,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	f, err := files.NewSerialFile(root, root, false, stat)
+	f, err := files.NewSerialFile(filepath.Base(root), root, false, stat)
 	if err != nil {
 		return "", err
 	}
