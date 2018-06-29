@@ -71,7 +71,7 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 }
 
 func BestEffortRoots(filesRoot *mfs.Root) ([]*cid.Cid, error) {
-	rootDag, err := filesRoot.GetValue().GetNode()
+	rootDag, err := filesRoot.GetDirectory().GetNode()
 	if err != nil {
 		return nil, err
 	}

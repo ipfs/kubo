@@ -213,7 +213,7 @@ func TestBasic(t *testing.T) {
 	defer cancel()
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	// test making a basic dir
 	_, err := rootdir.Mkdir("a")
@@ -243,7 +243,7 @@ func TestMkdir(t *testing.T) {
 	defer cancel()
 	_, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	dirsToMake := []string{"a", "B", "foo", "bar", "cats", "fish"}
 	sort.Strings(dirsToMake) // sort for easy comparing later
@@ -281,7 +281,7 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 	defer cancel()
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	nd := getRandFile(t, ds, 1000)
 	err := ds.Add(ctx, nd)
@@ -373,7 +373,7 @@ func TestMfsFile(t *testing.T) {
 	defer cancel()
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	fisize := 1000
 	nd := getRandFile(t, ds, 1000)
@@ -686,7 +686,7 @@ func actorReadFile(d *Directory) error {
 }
 
 func testActor(rt *Root, iterations int, errs chan error) {
-	d := rt.GetValue().(*Directory)
+	d := rt.GetDirectory()
 	for i := 0; i < iterations; i++ {
 		switch rand.Intn(5) {
 		case 0:
@@ -763,7 +763,7 @@ func TestConcurrentWriteAndFlush(t *testing.T) {
 	defer cancel()
 	ds, rt := setupRoot(ctx, t)
 
-	d := mkdirP(t, rt.GetValue().(*Directory), "foo/bar/baz")
+	d := mkdirP(t, rt.GetDirectory(), "foo/bar/baz")
 	fn := fileNodeFromReader(t, ds, bytes.NewBuffer(nil))
 	err := d.AddChild("file", fn)
 	if err != nil {
@@ -786,7 +786,7 @@ func TestConcurrentWriteAndFlush(t *testing.T) {
 	}()
 
 	for i := 0; i < nloops; i++ {
-		_, err := rt.GetValue().GetNode()
+		_, err := rt.GetDirectory().GetNode()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -800,7 +800,7 @@ func TestFlushing(t *testing.T) {
 	defer cancel()
 	_, rt := setupRoot(ctx, t)
 
-	dir := rt.GetValue().(*Directory)
+	dir := rt.GetDirectory()
 	c := mkdirP(t, dir, "a/b/c")
 	d := mkdirP(t, dir, "a/b/d")
 	e := mkdirP(t, dir, "a/b/e")
@@ -901,7 +901,7 @@ func TestConcurrentReads(t *testing.T) {
 
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	path := "a/b/c"
 	d := mkdirP(t, rootdir, path)
@@ -976,7 +976,7 @@ func TestConcurrentWrites(t *testing.T) {
 
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	path := "a/b/c"
 	d := mkdirP(t, rootdir, path)
@@ -1011,7 +1011,7 @@ func TestFileDescriptors(t *testing.T) {
 	defer cancel()
 
 	ds, rt := setupRoot(ctx, t)
-	dir := rt.GetValue().(*Directory)
+	dir := rt.GetDirectory()
 
 	nd := dag.NodeWithData(ft.FilePBData(nil, 0))
 	fi, err := NewFile("test", nd, dir, ds)

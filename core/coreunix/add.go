@@ -144,7 +144,7 @@ func (adder *Adder) RootNode() (ipld.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	root, err := mr.GetValue().GetNode()
+	root, err := mr.GetDirectory().GetNode()
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,8 @@ func (adder *Adder) Finalize() (ipld.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	root := mr.GetValue()
+	var root mfs.FSNode
+	root = mr.GetDirectory()
 
 	err = root.Flush()
 	if err != nil {
@@ -224,10 +225,7 @@ func (adder *Adder) Finalize() (ipld.Node, error) {
 			return nil, err
 		}
 
-		dir, ok := mr.GetValue().(*mfs.Directory)
-		if !ok {
-			return nil, fmt.Errorf("root is not a directory")
-		}
+		dir := mr.GetDirectory()
 
 		root, err = dir.Child(name)
 		if err != nil {
