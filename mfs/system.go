@@ -55,8 +55,6 @@ type Root struct {
 	dir *Directory
 
 	repub *Republisher
-
-	dserv ipld.DAGService
 }
 
 // PubFunc is the function used by the `publish()` method.
@@ -74,7 +72,6 @@ func NewRoot(parent context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf
 
 	root := &Root{
 		repub: repub,
-		dserv: ds,
 	}
 
 	pbn, err := ft.FromBytes(node.Data())
@@ -148,7 +145,7 @@ func (kr *Root) FlushMemFree(ctx context.Context) error {
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published.
 func (kr *Root) closeChild(name string, nd ipld.Node, sync bool) error {
-	err := kr.dserv.Add(context.TODO(), nd)
+	err := kr.GetDirectory().dserv.Add(context.TODO(), nd)
 	if err != nil {
 		return err
 	}
