@@ -50,8 +50,6 @@ type FSNode interface {
 
 // Root represents the root of a filesystem tree.
 type Root struct {
-	// node is the merkledag root.
-	node *dag.ProtoNode
 
 	// Root directory of the MFS layout.
 	dir *Directory
@@ -59,8 +57,6 @@ type Root struct {
 	repub *Republisher
 
 	dserv ipld.DAGService
-
-	Type string
 }
 
 // PubFunc is the function used by the `publish()` method.
@@ -77,7 +73,6 @@ func NewRoot(parent context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf
 	}
 
 	root := &Root{
-		node:  node,
 		repub: repub,
 		dserv: ds,
 	}
