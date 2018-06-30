@@ -26,7 +26,7 @@ var urlStoreCmd = &cmds.Command{
 
 var urlAdd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Add URLs via urlstore.",
+		Tagline: "Add URL via urlstore.",
 		LongDescription: `
 Add URLs to ipfs without storing the data locally.
 
@@ -54,6 +54,11 @@ time.
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		if !filestore.IsURL(url) {
+			res.SetError(fmt.Errorf("unsupported url syntax: %s", url), cmdkit.ErrNormal)
 			return
 		}
 

@@ -314,7 +314,8 @@ func (f *FileManager) PutMany(bs []*posinfo.FilestoreNode) error {
 }
 
 // IsURL returns true if the string represents a valid URL that the
-// urlstore can handle.
+// urlstore can handle.  More specifically it returns true if a string
+// begins with 'http://' or 'https://'.
 func IsURL(str string) bool {
 	return (len(str) > 7 && str[0] == 'h' && str[1] == 't' && str[2] == 't' && str[3] == 'p') &&
 		((len(str) > 8 && str[4] == 's' && str[5] == ':' && str[6] == '/' && str[7] == '/') ||

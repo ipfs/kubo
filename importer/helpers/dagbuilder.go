@@ -49,6 +49,9 @@ type DagBuilderParams struct {
 	// filestore adds
 	NoCopy bool
 
+	// URL if non-empty (and NoCopy is also true) indicates that the
+	// file will not be stored in the datastore but instead retrieved
+	// from this location via the urlstore.
 	URL string
 }
 
@@ -68,7 +71,7 @@ func (dbp *DagBuilderParams) New(spl chunker.Splitter) *DagBuilderHelper {
 		db.stat = fi.Stat()
 	}
 
-	if dbp.URL != "" {
+	if dbp.URL != "" && dbp.NoCopy {
 		db.fullPath = dbp.URL
 	}
 	return db

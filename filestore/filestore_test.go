@@ -171,7 +171,7 @@ func TestIsURL(t *testing.T) {
 	if !IsURL("https://www.example.com") {
 		t.Fatal("IsURL failed: https://www.example.com")
 	}
-	if IsURL("adir/afile") {
+	if IsURL("adir/afile") || IsURL("http:/ /afile") || IsURL("http:/a/file") {
 		t.Fatal("IsURL recognized non-url")
 	}
 }
