@@ -102,7 +102,6 @@ type mountWrap struct {
 }
 
 func (m *mountWrap) Close() error {
-	m.Fs.Destroy()
 	m.Mount.Close()
 	return nil
 }

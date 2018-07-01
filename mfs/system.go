@@ -171,20 +171,6 @@ func (kr *Root) closeChild(name string, nd ipld.Node, sync bool) error {
 	return nil
 }
 
-func (kr *Root) Close() error {
-	nd, err := kr.GetValue().GetNode()
-	if err != nil {
-		return err
-	}
-
-	if kr.repub != nil {
-		kr.repub.Update(nd.Cid())
-		return kr.repub.Close()
-	}
-
-	return nil
-}
-
 // Republisher manages when to publish a given entry.
 type Republisher struct {
 	TimeoutLong  time.Duration

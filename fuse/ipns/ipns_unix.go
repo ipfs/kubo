@@ -62,13 +62,6 @@ func (f *FileSystem) Root() (fs.Node, error) {
 	return f.RootNode, nil
 }
 
-func (f *FileSystem) Destroy() {
-	err := f.RootNode.Close()
-	if err != nil {
-		log.Errorf("Error Shutting Down Filesystem: %s\n", err)
-	}
-}
-
 // Root is the root object of the filesystem tree.
 type Root struct {
 	Ipfs *core.IpfsNode
@@ -217,25 +210,6 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 	log.Error("Invalid path.Path: ", resolved)
 	return nil, errors.New("invalid path from ipns record")
-}
-
-func (r *Root) Close() error {
-	for _, mr := range r.Roots {
-		err := mr.root.Close()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Forget is called when the filesystem is unmounted. probably.
-// see comments here: http://godoc.org/bazil.org/fuse/fs#FSDestroyer
-func (r *Root) Forget() {
-	err := r.Close()
-	if err != nil {
-		log.Error(err)
-	}
 }
 
 // ReadDirAll reads a particular directory. Will show locally available keys
