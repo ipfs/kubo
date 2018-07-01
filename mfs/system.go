@@ -113,20 +113,6 @@ func (kr *Root) GetValue() FSNode {
 	return kr.val
 }
 
-// Flush signals that an update has occurred since the last publish,
-// and updates the Root republisher.
-func (kr *Root) Flush() error {
-	nd, err := kr.GetValue().GetNode()
-	if err != nil {
-		return err
-	}
-
-	if kr.repub != nil {
-		kr.repub.Update(nd.Cid())
-	}
-	return nil
-}
-
 // FlushMemFree flushes the root directory and then uncaches all of its links.
 // This has the effect of clearing out potentially stale references and allows
 // them to be garbage collected.
