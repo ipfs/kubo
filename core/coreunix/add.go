@@ -241,11 +241,6 @@ func (adder *Adder) Finalize() (ipld.Node, error) {
 		return nil, err
 	}
 
-	err = mr.Close()
-	if err != nil {
-		return nil, err
-	}
-
 	return root.GetNode()
 }
 
