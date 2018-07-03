@@ -71,26 +71,27 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds ipld
 
 // Adder holds the switches passed to the `add` command.
 type Adder struct {
-	ctx        context.Context
-	pinning    pin.Pinner
-	blockstore bstore.GCBlockstore
-	dagService ipld.DAGService
-	Out        chan interface{}
-	Progress   bool
-	Hidden     bool
-	Pin        bool
-	Trickle    bool
-	RawLeaves  bool
-	Silent     bool
-	Wrap       bool
-	NoCopy     bool
-	Chunker    string
-	root       ipld.Node
-	mroot      *mfs.Root
-	unlocker   bstore.Unlocker
-	tempRoot   *cid.Cid
-	Prefix     *cid.Prefix
-	liveNodes  uint64
+	ctx         context.Context
+	pinning     pin.Pinner
+	blockstore  bstore.GCBlockstore
+	dagService  ipld.DAGService
+	Out         chan interface{}
+	Progress    bool
+	Hidden      bool
+	Pin         bool
+	Trickle     bool
+	RawLeaves   bool
+	Silent      bool
+	Wrap        bool
+	NoCopy      bool
+	Chunker     string
+	FileWrapper func(io.Reader) (io.Reader, error)
+	root        ipld.Node
+	mroot       *mfs.Root
+	unlocker    bstore.Unlocker
+	tempRoot    *cid.Cid
+	Prefix      *cid.Prefix
+	liveNodes   uint64
 }
 
 func (adder *Adder) mfsRoot() (*mfs.Root, error) {
@@ -114,6 +115,14 @@ func (adder *Adder) SetMfsRoot(r *mfs.Root) {
 
 // Constructs a node from reader's data, and adds it. Doesn't pin.
 func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
+	if adder.FileWrapper != nil {
+		wr, err := adder.FileWrapper(reader)
+		if err != nil {
+			return nil, err
+		}
+		reader = wr
+	}
+
 	chnk, err := chunker.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
