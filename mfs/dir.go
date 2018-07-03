@@ -24,8 +24,7 @@ var ErrInvalidChild = errors.New("invalid child node")
 var ErrDirExists = errors.New("directory already has entry by that name")
 
 type Directory struct {
-	dserv  ipld.DAGService
-	parent childCloser
+	Inode
 
 	childDirs map[string]*Directory
 	files     map[string]*File
@@ -36,8 +35,6 @@ type Directory struct {
 	dirbuilder *uio.Directory
 
 	modTime time.Time
-
-	name string
 }
 
 // NewDirectory constructs a new MFS directory.
@@ -51,11 +48,9 @@ func NewDirectory(ctx context.Context, name string, node ipld.Node, parent child
 	}
 
 	return &Directory{
-		dserv:      dserv,
+		Inode:      NewInode(name, parent, dserv),
 		ctx:        ctx,
-		name:       name,
 		dirbuilder: db,
-		parent:     parent,
 		childDirs:  make(map[string]*Directory),
 		files:      make(map[string]*File),
 		modTime:    time.Now(),
@@ -81,7 +76,7 @@ func (d *Directory) closeChild(name string, nd ipld.Node, sync bool) error {
 	}
 
 	if sync {
-		return d.parent.closeChild(d.name, mynd, true)
+		return d.Parent().closeChild(d.Name(), mynd, true)
 	}
 	return nil
 }
@@ -108,7 +103,7 @@ func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
 		return nil, err
 	}
 
-	err = d.dserv.Add(d.ctx, nd)
+	err = d.DagService().Add(d.ctx, nd)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +153,7 @@ func (d *Directory) cacheNode(name string, nd ipld.Node) (FSNode, error) {
 
 		switch i.GetType() {
 		case ufspb.Data_Directory, ufspb.Data_HAMTShard:
-			ndir, err := NewDirectory(d.ctx, name, nd, d, d.dserv)
+			ndir, err := NewDirectory(d.ctx, name, nd, d, d.DagService())
 			if err != nil {
 				return nil, err
 			}
@@ -166,7 +161,7 @@ func (d *Directory) cacheNode(name string, nd ipld.Node) (FSNode, error) {
 			d.childDirs[name] = ndir
 			return ndir, nil
 		case ufspb.Data_File, ufspb.Data_Raw, ufspb.Data_Symlink:
-			nfi, err := NewFile(name, nd, d, d.dserv)
+			nfi, err := NewFile(name, nd, d, d.DagService())
 			if err != nil {
 				return nil, err
 			}
@@ -178,7 +173,7 @@ func (d *Directory) cacheNode(name string, nd ipld.Node) (FSNode, error) {
 			return nil, ErrInvalidChild
 		}
 	case *dag.RawNode:
-		nfi, err := NewFile(name, nd, d, d.dserv)
+		nfi, err := NewFile(name, nd, d, d.DagService())
 		if err != nil {
 			return nil, err
 		}
@@ -310,7 +305,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	ndir := ft.EmptyDirNode()
 	ndir.SetPrefix(d.GetPrefix())
 
-	err = d.dserv.Add(d.ctx, ndir)
+	err = d.DagService().Add(d.ctx, ndir)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +315,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 		return nil, err
 	}
 
-	dirobj, err := NewDirectory(d.ctx, name, ndir, d, d.dserv)
+	dirobj, err := NewDirectory(d.ctx, name, ndir, d, d.DagService())
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +340,7 @@ func (d *Directory) Flush() error {
 		return err
 	}
 
-	return d.parent.closeChild(d.name, nd, true)
+	return d.Parent().closeChild(d.Name(), nd, true)
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
@@ -358,7 +353,7 @@ func (d *Directory) AddChild(name string, nd ipld.Node) error {
 		return ErrDirExists
 	}
 
-	err = d.dserv.Add(d.ctx, nd)
+	err = d.DagService().Add(d.ctx, nd)
 	if err != nil {
 		return err
 	}
@@ -404,9 +399,9 @@ func (d *Directory) Path() string {
 	cur := d
 	var out string
 	for cur != nil {
-		switch parent := cur.parent.(type) {
+		switch parent := cur.Parent().(type) {
 		case *Directory:
-			out = path.Join(cur.name, out)
+			out = path.Join(cur.Name(), out)
 			cur = parent
 		case *Root:
 			return "/" + out
@@ -431,7 +426,7 @@ func (d *Directory) GetNode() (ipld.Node, error) {
 		return nil, err
 	}
 
-	err = d.dserv.Add(d.ctx, nd)
+	err = d.DagService().Add(d.ctx, nd)
 	if err != nil {
 		return nil, err
 	}

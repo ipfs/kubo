@@ -555,7 +555,7 @@ func actorMakeFile(d *Directory) error {
 	}
 
 	name := randomName()
-	f, err := NewFile(name, dag.NodeWithData(ft.FilePBData(nil, 0)), d, d.dserv)
+	f, err := NewFile(name, dag.NodeWithData(ft.FilePBData(nil, 0)), d, d.DagService())
 	if err != nil {
 		return err
 	}

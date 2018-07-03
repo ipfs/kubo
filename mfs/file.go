@@ -14,13 +14,10 @@ import (
 )
 
 type File struct {
-	parent childCloser
-
-	name string
+	Inode
 
 	desclock sync.RWMutex
 
-	dserv  ipld.DAGService
 	node   ipld.Node
 	nodelk sync.Mutex
 
@@ -31,10 +28,8 @@ type File struct {
 // Cid version is non-zero RawLeaves will be enabled.
 func NewFile(name string, node ipld.Node, parent childCloser, dserv ipld.DAGService) (*File, error) {
 	fi := &File{
-		dserv:  dserv,
-		parent: parent,
-		name:   name,
-		node:   node,
+		Inode: NewInode(name, parent, dserv),
+		node:  node,
 	}
 	if node.Cid().Prefix().Version > 0 {
 		fi.RawLeaves = true
@@ -82,7 +77,7 @@ func (fi *File) Open(flags int, sync bool) (FileDescriptor, error) {
 		return nil, fmt.Errorf("mode not supported")
 	}
 
-	dmod, err := mod.NewDagModifier(context.TODO(), node, fi.dserv, chunker.DefaultSplitter)
+	dmod, err := mod.NewDagModifier(context.TODO(), node, fi.DagService(), chunker.DefaultSplitter)
 	if err != nil {
 		return nil, err
 	}

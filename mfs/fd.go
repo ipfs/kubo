@@ -122,15 +122,15 @@ func (fi *fileDescriptor) flushUp(fullsync bool) error {
 		return err
 	}
 
-	err = fi.inode.dserv.Add(context.TODO(), nd)
+	err = fi.inode.DagService().Add(context.TODO(), nd)
 	if err != nil {
 		return err
 	}
 
 	fi.inode.nodelk.Lock()
 	fi.inode.node = nd
-	name := fi.inode.name
-	parent := fi.inode.parent
+	name := fi.inode.Name()
+	parent := fi.inode.Parent()
 	fi.inode.nodelk.Unlock()
 
 	return parent.closeChild(name, nd, fullsync)
