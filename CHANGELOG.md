@@ -142,6 +142,7 @@ below.
   - Fix panic, Don't handle errors with fallthrough ([ipfs/go-ipfs#5072](https://github.com/ipfs/go-ipfs/pull/5072))
   - Fix how filestore is hooked up with caching ([ipfs/go-ipfs#5122](https://github.com/ipfs/go-ipfs/pull/5122))
   - Add record validation to offline routing ([ipfs/go-ipfs#5116](https://github.com/ipfs/go-ipfs/pull/5116))
+  - Fix `ipfs update` working with migrations ([ipfs/go-ipfs#5194](https://github.com/ipfs/go-ipfs/pull/5194))
 - General Changes and Refactorings
   - Remove leftover bits of dead code ([ipfs/go-ipfs#5022](https://github.com/ipfs/go-ipfs/pull/5022))
   - Remove fuse platform build constraints ([ipfs/go-ipfs#5033](https://github.com/ipfs/go-ipfs/pull/5033))
