@@ -195,6 +195,12 @@ func (n *FSNode) RemoveBlockSize(i int) {
 	n.format.Blocksizes = append(n.format.Blocksizes[:i], n.format.Blocksizes[i+1:]...)
 }
 
+// BlockSize returns the block size indexed by `i`.
+// TODO: Evaluate if this function should be bounds checking.
+func (n *FSNode) BlockSize(i int) uint64 {
+	return n.format.Blocksizes[i]
+}
+
 // GetBytes marshals this node as a protobuf message.
 func (n *FSNode) GetBytes() ([]byte, error) {
 	return proto.Marshal(&n.format)

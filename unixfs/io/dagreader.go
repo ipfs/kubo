@@ -11,7 +11,6 @@ import (
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 )
 
 // Common errors
@@ -45,17 +44,17 @@ func NewDagReader(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) (DagRe
 	case *mdag.RawNode:
 		return NewBufDagReader(n.RawData()), nil
 	case *mdag.ProtoNode:
-		pb := new(ftpb.Data)
-		if err := proto.Unmarshal(n.Data(), pb); err != nil {
+		fsNode, err := ft.FSNodeFromBytes(n.Data())
+		if err != nil {
 			return nil, err
 		}
 
-		switch pb.GetType() {
+		switch fsNode.GetType() {
 		case ftpb.Data_Directory, ftpb.Data_HAMTShard:
 			// Dont allow reading directories
 			return nil, ErrIsDir
 		case ftpb.Data_File, ftpb.Data_Raw:
-			return NewPBFileReader(ctx, n, pb, serv), nil
+			return NewPBFileReader(ctx, n, fsNode, serv), nil
 		case ftpb.Data_Metadata:
 			if len(n.Links()) == 0 {
 				return nil, errors.New("incorrectly formatted metadata object")

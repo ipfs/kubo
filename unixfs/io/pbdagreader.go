@@ -11,7 +11,6 @@ import (
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 
 	ipld "gx/ipfs/QmWi2BYBL5gJ3CiAiQchg6rn1A8iBsrWy51EYxvHVjFvLb/go-ipld-format"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
 )
 
@@ -19,11 +18,8 @@ import (
 type PBDagReader struct {
 	serv ipld.NodeGetter
 
-	// the node being read
-	node *mdag.ProtoNode
-
-	// cached protobuf structure from node.Data
-	pbdata *ftpb.Data
+	// UnixFS file (it should be of type `Data_File` or `Data_Raw` only).
+	file *ft.FSNode
 
 	// the current data buffer to be read from
 	// will either be a bytes.Reader or a child DagReader
@@ -51,18 +47,17 @@ type PBDagReader struct {
 var _ DagReader = (*PBDagReader)(nil)
 
 // NewPBFileReader constructs a new PBFileReader.
-func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv ipld.NodeGetter) *PBDagReader {
+func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, file *ft.FSNode, serv ipld.NodeGetter) *PBDagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	curLinks := getLinkCids(n)
 	return &PBDagReader{
-		node:     n,
 		serv:     serv,
-		buf:      NewBufDagReader(pb.GetData()),
+		buf:      NewBufDagReader(file.GetData()),
 		promises: make([]*ipld.NodePromise, len(curLinks)),
 		links:    curLinks,
 		ctx:      fctx,
 		cancel:   cancel,
-		pbdata:   pb,
+		file:     file,
 	}
 }
 
@@ -105,21 +100,20 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 
 	switch nxt := nxt.(type) {
 	case *mdag.ProtoNode:
-		pb := new(ftpb.Data)
-		err = proto.Unmarshal(nxt.Data(), pb)
+		fsNode, err := ft.FSNodeFromBytes(nxt.Data())
 		if err != nil {
 			return fmt.Errorf("incorrectly formatted protobuf: %s", err)
 		}
 
-		switch pb.GetType() {
+		switch fsNode.GetType() {
 		case ftpb.Data_Directory, ftpb.Data_HAMTShard:
 			// A directory should not exist within a file
 			return ft.ErrInvalidDirLocation
 		case ftpb.Data_File:
-			dr.buf = NewPBFileReader(dr.ctx, nxt, pb, dr.serv)
+			dr.buf = NewPBFileReader(dr.ctx, nxt, fsNode, dr.serv)
 			return nil
 		case ftpb.Data_Raw:
-			dr.buf = NewBufDagReader(pb.GetData())
+			dr.buf = NewBufDagReader(fsNode.GetData())
 			return nil
 		case ftpb.Data_Metadata:
 			return errors.New("shouldnt have had metadata object inside file")
@@ -146,7 +140,7 @@ func getLinkCids(n ipld.Node) []*cid.Cid {
 
 // Size return the total length of the data from the DAG structured file.
 func (dr *PBDagReader) Size() uint64 {
-	return dr.pbdata.GetFilesize()
+	return dr.file.FileSize()
 }
 
 // Read reads data from the DAG structured file
@@ -244,17 +238,14 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 			return offset, nil
 		}
 
-		// Grab cached protobuf object (solely to make code look cleaner)
-		pb := dr.pbdata
-
 		// left represents the number of bytes remaining to seek to (from beginning)
 		left := offset
-		if int64(len(pb.Data)) >= offset {
+		if int64(len(dr.file.GetData())) >= offset {
 			// Close current buf to close potential child dagreader
 			if dr.buf != nil {
 				dr.buf.Close()
 			}
-			dr.buf = NewBufDagReader(pb.GetData()[offset:])
+			dr.buf = NewBufDagReader(dr.file.GetData()[offset:])
 
 			// start reading links from the beginning
 			dr.linkPosition = 0
@@ -263,15 +254,15 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 		}
 
 		// skip past root block data
-		left -= int64(len(pb.Data))
+		left -= int64(len(dr.file.GetData()))
 
 		// iterate through links and find where we need to be
-		for i := 0; i < len(pb.Blocksizes); i++ {
-			if pb.Blocksizes[i] > uint64(left) {
+		for i := 0; i < dr.file.NumChildren(); i++ {
+			if dr.file.BlockSize(i) > uint64(left) {
 				dr.linkPosition = i
 				break
 			} else {
-				left -= int64(pb.Blocksizes[i])
+				left -= int64(dr.file.BlockSize(i))
 			}
 		}
 
@@ -303,14 +294,14 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 		noffset := dr.offset + offset
 		return dr.Seek(noffset, io.SeekStart)
 	case io.SeekEnd:
-		noffset := int64(dr.pbdata.GetFilesize()) - offset
+		noffset := int64(dr.file.FileSize()) - offset
 		n, err := dr.Seek(noffset, io.SeekStart)
 
 		// Return negative number if we can't figure out the file size. Using io.EOF
 		// for this seems to be good(-enough) solution as it's only returned by
 		// precalcNextBuf when we step out of file range.
 		// This is needed for gateway to function properly
-		if err == io.EOF && *dr.pbdata.Type == ftpb.Data_File {
+		if err == io.EOF && dr.file.GetType() == ftpb.Data_File {
 			return -1, nil
 		}
 		return n, err
