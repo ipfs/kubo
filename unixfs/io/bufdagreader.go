@@ -3,7 +3,6 @@ package io
 import (
 	"bytes"
 	"context"
-	"io"
 )
 
 // BufDagReader implements a DagReader that reads from a byte slice
@@ -28,15 +27,6 @@ func (*BufDagReader) Close() error {
 // CtxReadFull reads the slice onto b.
 func (rd *BufDagReader) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 	return rd.Read(b)
-}
-
-// Offset returns the current offset.
-func (rd *BufDagReader) Offset() int64 {
-	of, err := rd.Seek(0, io.SeekCurrent)
-	if err != nil {
-		panic("this should never happen " + err.Error())
-	}
-	return of
 }
 
 // Size returns the size of the buffer.

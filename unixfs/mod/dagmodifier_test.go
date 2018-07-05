@@ -663,7 +663,7 @@ func testReadAndSeek(t *testing.T, opts testu.NodeOpts) {
 	// skip 4
 	_, err = dagmod.Seek(1, io.SeekCurrent)
 	if err != nil {
-		t.Fatalf("error: %s, offset %d, reader offset %d", err, dagmod.curWrOff, dagmod.read.Offset())
+		t.Fatalf("error: %s, offset %d, reader offset %d", err, dagmod.curWrOff, getOffset(dagmod.read))
 	}
 
 	//read 5,6,7
@@ -749,4 +749,12 @@ func BenchmarkDagmodWrite(b *testing.B) {
 			b.Fatal("Wrote bad size")
 		}
 	}
+}
+
+func getOffset(reader uio.DagReader) int64 {
+	offset, err := reader.Seek(0, io.SeekCurrent)
+	if err != nil {
+		panic("failed to retrieve offset: " + err.Error())
+	}
+	return offset
 }

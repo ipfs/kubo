@@ -57,7 +57,7 @@ func TestSeekAndRead(t *testing.T) {
 	for i := 255; i >= 0; i-- {
 		reader.Seek(int64(i), io.SeekStart)
 
-		if reader.Offset() != int64(i) {
+		if getOffset(reader) != int64(i) {
 			t.Fatal("expected offset to be increased by one after read")
 		}
 
@@ -67,7 +67,7 @@ func TestSeekAndRead(t *testing.T) {
 			t.Fatalf("read %d at index %d, expected %d", out, i, i)
 		}
 
-		if reader.Offset() != int64(i+1) {
+		if getOffset(reader) != int64(i+1) {
 			t.Fatal("expected offset to be increased by one after read")
 		}
 	}
@@ -142,12 +142,12 @@ func TestRelativeSeek(t *testing.T) {
 	}
 
 	for i := 0; i < 256; i++ {
-		if reader.Offset() != int64(i*4) {
-			t.Fatalf("offset should be %d, was %d", i*4, reader.Offset())
+		if getOffset(reader) != int64(i*4) {
+			t.Fatalf("offset should be %d, was %d", i*4, getOffset(reader))
 		}
 		out := readByte(t, reader)
 		if int(out) != i {
-			t.Fatalf("expected to read: %d at %d, read %d", i, reader.Offset()-1, out)
+			t.Fatalf("expected to read: %d at %d, read %d", i, getOffset(reader)-1, out)
 		}
 		if i != 255 {
 			_, err := reader.Seek(3, io.SeekCurrent)
@@ -163,12 +163,12 @@ func TestRelativeSeek(t *testing.T) {
 	}
 
 	for i := 0; i < 256; i++ {
-		if reader.Offset() != int64(1020-i*4) {
-			t.Fatalf("offset should be %d, was %d", 1020-i*4, reader.Offset())
+		if getOffset(reader) != int64(1020-i*4) {
+			t.Fatalf("offset should be %d, was %d", 1020-i*4, getOffset(reader))
 		}
 		out := readByte(t, reader)
 		if int(out) != 255-i {
-			t.Fatalf("expected to read: %d at %d, read %d", 255-i, reader.Offset()-1, out)
+			t.Fatalf("expected to read: %d at %d, read %d", 255-i, getOffset(reader)-1, out)
 		}
 		reader.Seek(-5, io.SeekCurrent) // seek 4 bytes but we read one byte every time so 5 bytes
 	}
@@ -301,4 +301,12 @@ func readByte(t testing.TB, reader DagReader) byte {
 	}
 
 	return out[0]
+}
+
+func getOffset(reader DagReader) int64 {
+	offset, err := reader.Seek(0, io.SeekCurrent)
+	if err != nil {
+		panic("failed to retrieve offset: " + err.Error())
+	}
+	return offset
 }
