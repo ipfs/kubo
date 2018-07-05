@@ -52,8 +52,16 @@ func ExternalBinary() *cmds.Command {
 			// setup env of child program
 			env := os.Environ()
 
-			nd, err := req.InvocContext().GetNode()
-			if err == nil {
+			// Get the node iff already defined.
+			if req.InvocContext().Online {
+				nd, err := req.InvocContext().GetNode()
+				if err != nil {
+					res.SetError(fmt.Errorf(
+						"failed to start ipfs node: %s",
+						err,
+					), cmdkit.ErrFatal)
+					return
+				}
 				env = append(env, fmt.Sprintf("IPFS_ONLINE=%t", nd.OnlineMode()))
 			}
 
