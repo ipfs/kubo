@@ -23,6 +23,7 @@
 .iso
 .java
 .jpg
+.jpeg
 .js
 .key
 .less
