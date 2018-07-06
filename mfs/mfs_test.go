@@ -852,7 +852,7 @@ func TestFlushing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if fsnode.GetType() != ft.TDirectory {
+	if fsnode.Type() != ft.TDirectory {
 		t.Fatal("root wasnt a directory")
 	}
 

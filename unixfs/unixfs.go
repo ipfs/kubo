@@ -217,15 +217,15 @@ func (n *FSNode) NumChildren() int {
 	return len(n.format.Blocksizes)
 }
 
-// GetData retrieves the `Data` field from the internal `format`.
-func (n *FSNode) GetData() []byte {
+// Data retrieves the `Data` field from the internal `format`.
+func (n *FSNode) Data() []byte {
 	return n.format.GetData()
 }
 
 // SetData sets the `Data` field from the internal `format`
 // updating its `Filesize`.
 func (n *FSNode) SetData(newData []byte) {
-	n.UpdateFilesize(int64(len(newData) - len(n.GetData())))
+	n.UpdateFilesize(int64(len(newData) - len(n.Data())))
 	n.format.Data = newData
 }
 
@@ -237,8 +237,8 @@ func (n *FSNode) UpdateFilesize(filesizeDiff int64) {
 		int64(n.format.GetFilesize()) + filesizeDiff))
 }
 
-// GetType retrieves the `Type` field from the internal `format`.
-func (n *FSNode) GetType() pb.Data_DataType {
+// Type retrieves the `Type` field from the internal `format`.
+func (n *FSNode) Type() pb.Data_DataType {
 	return n.format.GetType()
 }
 

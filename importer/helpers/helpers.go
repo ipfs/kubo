@@ -77,7 +77,7 @@ func (n *UnixfsNode) Set(other *UnixfsNode) {
 	n.raw = other.raw
 	n.rawnode = other.rawnode
 	if other.ufmt != nil {
-		n.ufmt.SetData(other.ufmt.GetData())
+		n.ufmt.SetData(other.ufmt.Data())
 	}
 }
 

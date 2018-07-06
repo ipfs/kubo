@@ -52,7 +52,7 @@ func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, file *ft.FSNode, se
 	curLinks := getLinkCids(n)
 	return &PBDagReader{
 		serv:     serv,
-		buf:      NewBufDagReader(file.GetData()),
+		buf:      NewBufDagReader(file.Data()),
 		promises: make([]*ipld.NodePromise, len(curLinks)),
 		links:    curLinks,
 		ctx:      fctx,
@@ -105,7 +105,7 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 			return fmt.Errorf("incorrectly formatted protobuf: %s", err)
 		}
 
-		switch fsNode.GetType() {
+		switch fsNode.Type() {
 		case ftpb.Data_Directory, ftpb.Data_HAMTShard:
 			// A directory should not exist within a file
 			return ft.ErrInvalidDirLocation
@@ -113,7 +113,7 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 			dr.buf = NewPBFileReader(dr.ctx, nxt, fsNode, dr.serv)
 			return nil
 		case ftpb.Data_Raw:
-			dr.buf = NewBufDagReader(fsNode.GetData())
+			dr.buf = NewBufDagReader(fsNode.Data())
 			return nil
 		case ftpb.Data_Metadata:
 			return errors.New("shouldnt have had metadata object inside file")
@@ -240,12 +240,12 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 
 		// left represents the number of bytes remaining to seek to (from beginning)
 		left := offset
-		if int64(len(dr.file.GetData())) >= offset {
+		if int64(len(dr.file.Data())) >= offset {
 			// Close current buf to close potential child dagreader
 			if dr.buf != nil {
 				dr.buf.Close()
 			}
-			dr.buf = NewBufDagReader(dr.file.GetData()[offset:])
+			dr.buf = NewBufDagReader(dr.file.Data()[offset:])
 
 			// start reading links from the beginning
 			dr.linkPosition = 0
@@ -254,7 +254,7 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 		}
 
 		// skip past root block data
-		left -= int64(len(dr.file.GetData()))
+		left -= int64(len(dr.file.Data()))
 
 		// iterate through links and find where we need to be
 		for i := 0; i < dr.file.NumChildren(); i++ {
@@ -301,7 +301,7 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 		// for this seems to be good(-enough) solution as it's only returned by
 		// precalcNextBuf when we step out of file range.
 		// This is needed for gateway to function properly
-		if err == io.EOF && dr.file.GetType() == ftpb.Data_File {
+		if err == io.EOF && dr.file.Type() == ftpb.Data_File {
 			return -1, nil
 		}
 		return n, err

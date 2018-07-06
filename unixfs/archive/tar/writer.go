@@ -78,7 +78,7 @@ func (w *Writer) WriteNode(nd ipld.Node, fpath string) error {
 			return err
 		}
 
-		switch fsNode.GetType() {
+		switch fsNode.Type() {
 		case upb.Data_Metadata:
 			fallthrough
 		case upb.Data_Directory, upb.Data_HAMTShard:
@@ -88,7 +88,7 @@ func (w *Writer) WriteNode(nd ipld.Node, fpath string) error {
 		case upb.Data_File:
 			return w.writeFile(nd, fsNode, fpath)
 		case upb.Data_Symlink:
-			return writeSymlinkHeader(w.TarW, string(fsNode.GetData()), fpath)
+			return writeSymlinkHeader(w.TarW, string(fsNode.Data()), fpath)
 		default:
 			return ft.ErrUnrecognizedType
 		}

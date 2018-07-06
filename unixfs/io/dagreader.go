@@ -49,7 +49,7 @@ func NewDagReader(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) (DagRe
 			return nil, err
 		}
 
-		switch fsNode.GetType() {
+		switch fsNode.Type() {
 		case ftpb.Data_Directory, ftpb.Data_HAMTShard:
 			// Dont allow reading directories
 			return nil, ErrIsDir
