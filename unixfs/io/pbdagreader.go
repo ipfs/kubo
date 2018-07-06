@@ -110,6 +110,11 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 		// In this case, the context used to *preload* the node has been canceled.
 		// We need to retry the load with our context and we might as
 		// well preload some extra nodes while we're at it.
+		//
+		// Note: When using `Read`, this code will never execute as
+		// `Read` will use the global context. It only runs if the user
+		// explicitly reads with a custom context (e.g., by calling
+		// `CtxReadFull`).
 		dr.preload(ctx, dr.linkPosition)
 		nxt, err = dr.promises[dr.linkPosition].Get(ctx)
 		dr.promises[dr.linkPosition] = nil
