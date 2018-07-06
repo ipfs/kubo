@@ -35,7 +35,7 @@ import (
 const (
 	ipfsPathPrefix = "/ipfs/"
 	ipnsPathPrefix = "/ipns/"
-	mfsPathPrefix  = "/~/"
+	mfsPathPrefix  = "/local/"
 )
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
