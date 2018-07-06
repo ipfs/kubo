@@ -3,60 +3,91 @@
 ## 0.4.16
 
 Ipfs 0.4.16 is a fairly small release in terms of changes to the ipfs codebase,
-but it contains a huge amount of changes and improvements from libraries we
-depend on, notably libp2p. This version of ipfs contains the changes for libp2p
-v6.0.5, In that release, we made significant changes to the codebase to allow
-for more easy integration of future transports and modules. We also improved
-some of our dialing logic, fixed a couple issues in the DHT, and added
-support for a new way to write ipfs multiaddrs.  The transport refactor now
-allows us to much more easily add in support for running libp2p (and by
-extension, ipfs) over QUIC, or using TLS instead of secio for encrypting
-connections. Our [QUIC
-transport](https://github.com/libp2p/go-libp2p-quic-transport) currently
-works, and can be plugged into libp2p manually (though note that it is
-still experimental, as the upstream spec is still in flux). Further work is
-needed to make enabling this inside ipfs easy and not require
-recompilation.  For more information on the refactor and libp2p v6.0.0, see
-the [release blog post](https://ipfs.io/blog/39-go-libp2p-6-0-0/).  Between
-libp2p v6.0.0 and v6.0.5, there have been some changes worth pointing out
-as well. The swarm dialer has been improved to have shortened timeouts when
-dialing peers in 'local' subnets. This prevents large dial timeouts from
-wasting dial time when the subnet you are dialing is not accessible. The
-TCP handshake timeout has also been dropped to 5 seconds, improving the
-performance of dials to non-existent addresses. In the DHT, we have fixed
-the query code to put records to the K closest peers we can actually
-connect to, which is a strict superset of the peers we previously put
-records to: The peers we could connect to out of the K closest we learned
-about.  Finally, we are changing the way that people write 'ipfs'
-multiaddrs.  Currently, ipfs multiaddrs look something like
+but it contains a huge amount of changes and improvements from the libraries we
+depend on, notably libp2p.
+
+### Libp2p
+
+This version of ipfs contains the changes made in libp2p from v5.0.14 through
+v6.0.5. In that time, we have made significant changes to the codebase to allow
+for easier integration of future transports and modules along with the usual
+performance and reliability improvements. You can find many of these
+improvements in the libp2p 6.0 [release blog
+post](https://ipfs.io/blog/39-go-libp2p-6-0-0/).
+
+The primary motivation for this refactor was adding support for network
+transports like QUIC that have built-in support for encryption, authentication,
+and stream multiplexing. It will also allow us to plug-in new security
+transports (like TLS) without hard-coding them.
+
+For example, our [QUIC
+transport](https://github.com/libp2p/go-libp2p-quic-transport) currently works,
+and can be plugged into libp2p manually (though note that it is still
+experimental, as the upstream spec is still in flux). Further work is needed to
+make enabling this inside ipfs easy and not require recompilation.
+
+On the user-visible side of things, we've improved our dialing logic and
+timeouts. We now abort dials to local subnets after 5 seconds and abort all
+dials if the TCP handshake takes longer than 5 seconds. This should
+significantly improve performance in some cases as we limit the number of
+concurrent dials and slow dials to non-responsive peers have been known to clog
+the dialer, blocking dials to reachable peers. Importantly, this should improve
+DHT performance as it tends to spend a disproportional amount of time connecting
+to peers.
+
+We have also made a few noticeable changes to the DHT: significantly improved
+the chances of finding a value on the DHT, we've tightened up some of our
+validation logic, and fixed some issues that should reduce traffic to nodes
+running in dhtclient mode over time.
+
+Of these, the first one will likely see the most impact. In the past, when
+putting a value (e.g., an IPNS entry) into the DHT, we'd try to put the value to
+K peers (where K for us is 20). However, we'd often fail to connect to many of
+these peers so we'd end up putting the value to significantly fewer than K
+peers. We now try to put the value to the K peers we can actually connect to.
+
+### Multiformats
+
+Finally, we are changing the way that people write 'ipfs' multiaddrs. Currently,
+ipfs multiaddrs look something like
 `/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ`.
-But caling them 'ipfs' multiaddrs is a bit misleading, as this is actually
-the multiaddr of a libp2p peer that runs ipfs. Other protocols using libp2p
-right now still have to use multiaddrs that say 'ipfs', without actually
-having anything to do with ipfs. Towards that, we are renaming them to
+However, calling them 'ipfs' multiaddrs is a bit misleading as this is actually
+the multiaddr of a libp2p peer that happens to run ipfs. Other protocols built
+on libp2p right now still have to use multiaddrs that say 'ipfs', without
+actually having anything to do with ipfs. Therefore, we are renaming them to
 'p2p' multiaddrs. Moving forward these addresses will be written as:
 `/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ`.
-This release adds support for *parsing* both types of addresses into the
-same binary format, and the binary format is remaining exactly the same. A
-future release will have the ipfs daemon switch to *printing* out addresses
-this way, once a large enough portion of the network has upgraded.
 
-On the ipfs side of things, we've added a few small features. The first of
-which is moving to embedding public keys inside IPNS records. This allows
-lookups to be faster, as we only need to fetch the record itself (and not the
-public key separately), and also fixes an issue where DHT peers wouldnt store a
-record for a peer if they didn't have their public key already. Combined with
-some of the DHT and dialing fixes, this should improve the performance of IPNS
-(once a majority of the network updates).
+This release adds support for *parsing* both types of addresses (`.../ipfs/...`
+and `.../p2p/...`) into the same network format, and the network format is
+remaining exactly the same. A future release will have the ipfs daemon switch to
+*printing* out addresses this way, once a large enough portion of the network
+has upgraded.
+
+N.B., these addresses are *not* related to IPFS *file* names (`/ipfs/Qm...`).
+Disambiguating the two was yet another motivation to switch the protocol name to
+`/p2p/`.
+
+### IPFS
+
+On the ipfs side of things, we've started embedding public keys inside IPNS
+records and have enabled the git plugin by default.
+
+Embedding public keys inside IPNS records allows lookups to be faster as we only
+need to fetch the record itself (and not the public key separately). It also
+fixes an issue where DHT peers wouldn't store a record for a peer if they didn't
+have their public key already. Combined with some of the DHT and dialing fixes,
+this should improve the performance of IPNS (once a majority of the network
+updates).
 
 The second feature added is the automatic inclusion of the git plugin in the
-default build. With this, ipfs can ingest git repositories and other data
-directly, and operate over it. For more information on this, see [the
-go-ipld-git repo](https://github.com/ipfs/go-ipld-git).
+default build. With this, ipfs can ingest and operate over git repositories
+and commit graphs directly. For more information on this, see [the go-ipld-git
+repo](https://github.com/ipfs/go-ipld-git).
 
-Various other changes were merged in this release, including great
-documentation, a good number of smaller bugfixes, refactoring and a good bit
-more. For the details, see the changelog below.
+Various other changes were merged in this release including great documentation,
+a good number of smaller bugfixes, refactoring, and a good bit more. For the
+full details, see the changelog below.
 
 ## 0.4.16-rc3 2018-07-09
 - Bugfixes
