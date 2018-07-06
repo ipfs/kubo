@@ -6,6 +6,16 @@ Ipfs 0.4.16 is a fairly small release in terms of changes to the ipfs codebase,
 but it contains a huge amount of changes and improvements from the libraries we
 depend on, notably libp2p.
 
+This release includes small a repo migration to account for some changes to the
+DHT. It should only take a second to run but, depending on your configuration,
+you may need to run it manually.
+
+You can run a migration by either:
+
+1. Selecting "Yes" when the daemon prompts you to migrate.
+2. Running the daemon with the `--migrate=true` flag.
+3. Manually [running](https://github.com/ipfs/fs-repo-migrations/blob/master/run.md#running-repo-migrations) the migration.
+
 ### Libp2p
 
 This version of ipfs contains the changes made in libp2p from v5.0.14 through
