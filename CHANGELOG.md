@@ -45,8 +45,8 @@ the dialer, blocking dials to reachable peers. Importantly, this should improve
 DHT performance as it tends to spend a disproportional amount of time connecting
 to peers.
 
-We have also made a few noticeable changes to the DHT: significantly improved
-the chances of finding a value on the DHT, we've tightened up some of our
+We have also made a few noticeable changes to the DHT: we've significantly
+improved the chances of finding a value on the DHT, tightened up some of our
 validation logic, and fixed some issues that should reduce traffic to nodes
 running in dhtclient mode over time.
 
@@ -58,20 +58,20 @@ peers. We now try to put the value to the K peers we can actually connect to.
 
 ### Multiformats
 
-Finally, we are changing the way that people write 'ipfs' multiaddrs. Currently,
+We are also changing the way that people write 'ipfs' multiaddrs. Currently,
 ipfs multiaddrs look something like
 `/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ`.
-However, calling them 'ipfs' multiaddrs is a bit misleading as this is actually
+However, calling them 'ipfs' multiaddrs is a bit misleading, as this is actually
 the multiaddr of a libp2p peer that happens to run ipfs. Other protocols built
-on libp2p right now still have to use multiaddrs that say 'ipfs', without
-actually having anything to do with ipfs. Therefore, we are renaming them to
-'p2p' multiaddrs. Moving forward these addresses will be written as:
+on libp2p right now still have to use multiaddrs that say 'ipfs', even if they
+have nothing to do with ipfs. Therefore, we are renaming them to 'p2p'
+multiaddrs. Moving forward, these addresses will be written as:
 `/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ`.
 
 This release adds support for *parsing* both types of addresses (`.../ipfs/...`
 and `.../p2p/...`) into the same network format, and the network format is
 remaining exactly the same. A future release will have the ipfs daemon switch to
-*printing* out addresses this way, once a large enough portion of the network
+*printing* out addresses this way once a large enough portion of the network
 has upgraded.
 
 N.B., these addresses are *not* related to IPFS *file* names (`/ipfs/Qm...`).
@@ -81,7 +81,7 @@ Disambiguating the two was yet another motivation to switch the protocol name to
 ### IPFS
 
 On the ipfs side of things, we've started embedding public keys inside IPNS
-records and have enabled the git plugin by default.
+records and have enabled the Git plugin by default.
 
 Embedding public keys inside IPNS records allows lookups to be faster as we only
 need to fetch the record itself (and not the public key separately). It also
@@ -90,14 +90,14 @@ have their public key already. Combined with some of the DHT and dialing fixes,
 this should improve the performance of IPNS (once a majority of the network
 updates).
 
-The second feature added is the automatic inclusion of the git plugin in the
-default build. With this, ipfs can ingest and operate over git repositories
-and commit graphs directly. For more information on this, see [the go-ipld-git
-repo](https://github.com/ipfs/go-ipld-git).
+Second, our public builds now include the Git plugin (in past builds, you could
+add it yourself, but doing so was not easy). With this, ipfs can ingest and
+operate over Git repositories and commit graphs directly. For more information
+on this, see [the go-ipld-git repo](https://github.com/ipfs/go-ipld-git).
 
-Various other changes were merged in this release including great documentation,
-a good number of smaller bugfixes, refactoring, and a good bit more. For the
-full details, see the changelog below.
+Finally, we've included many smaller bugfixes, refactorings, improved
+documentation, and a good bit more. For the full details, see the changelog
+below.
 
 ## 0.4.16-rc3 2018-07-09
 - Bugfixes
@@ -110,7 +110,7 @@ full details, see the changelog below.
   - Fix usage of file name vs path name in adder ([ipfs/go-ipfs#5167](https://github.com/ipfs/go-ipfs/pull/5167))
   - Fix `ipfs update` working with migrations ([ipfs/go-ipfs#5194](https://github.com/ipfs/go-ipfs/pull/5194))
 - Documentation
-  - Grammer fix in fuse docs ([ipfs/go-ipfs#5164](https://github.com/ipfs/go-ipfs/pull/5164))
+  - Grammar fix in fuse docs ([ipfs/go-ipfs#5164](https://github.com/ipfs/go-ipfs/pull/5164))
 
 ## 0.4.16-rc1 2018-06-27
 - Features
