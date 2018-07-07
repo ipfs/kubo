@@ -40,7 +40,10 @@ func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.Re
 	if depth == nsopts.UnlimitedDepth {
 		depth = math.MaxUint64
 	}
-	for depth > 0 && strings.HasPrefix(name, "/ipns/") {
+	for strings.HasPrefix(name, "/ipns/") {
+		if depth <= 0 {
+			return value, namesys.ErrResolveRecursion
+		}
 		depth--
 
 		var ok bool
