@@ -35,9 +35,9 @@ startup_cluster() {
   bound=$(expr "$num_nodes" - 1)
 
   if test -n "$other_args"; then
-    test_expect_success "start up nodes with additional args" '
-      iptb start --args $other_args
-    '
+    test_expect_success "start up nodes with additional args" "
+      iptb start --args \"${other_args[@]}\"
+    "
   else
     test_expect_success "start up nodes" '
       iptb start
