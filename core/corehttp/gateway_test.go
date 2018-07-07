@@ -169,8 +169,8 @@ func TestGatewayGet(t *testing.T) {
 		{"double.example.com", "/", http.StatusOK, "fnord"},
 		{"triple.example.com", "/", http.StatusOK, "fnord"},
 		{"working.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/working.example.com/ipfs/" + k + ": no link named \"ipfs\" under " + k + "\n"},
-		{"broken.example.com", "/", http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/: " + namesys.ErrResolveFailed.Error() + "\n"},
-		{"broken.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/ipfs/" + k + ": " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"broken.example.com", "/", http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"broken.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
 	} {
 		var c http.Client
 		r, err := http.NewRequest("GET", ts.URL+test.path, nil)
