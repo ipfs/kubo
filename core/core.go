@@ -137,6 +137,7 @@ type IpfsNode struct {
 
 	Floodsub *floodsub.PubSub
 	PSRouter *psrouter.PubsubValueStore
+	DHT      *dht.IpfsDHT
 	P2P      *p2p.P2P
 
 	proc goprocess.Process
@@ -465,6 +466,23 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	}
 	n.Routing = r
 
+	// TODO: I'm not a fan of type assertions like this but the
+	// `RoutingOption` system doesn't currently provide access to the
+	// IpfsNode.
+	//
+	// Ideally, we'd do something like:
+	//
+	// 1. Add some fancy method to introspect into tiered routers to extract
+	//    things like the pubsub router or the DHT (complicated, messy,
+	//    probably not worth it).
+	// 2. Pass the IpfsNode into the RoutingOption (would also remove the
+	//    PSRouter case below.
+	// 3. Introduce some kind of service manager? (my personal favorite but
+	//    that requires a fair amount of work).
+	if dht, ok := r.(*dht.IpfsDHT); ok {
+		n.DHT = dht
+	}
+
 	if ipnsps {
 		n.PSRouter = psrouter.NewPubsubValueStore(
 			ctx,
@@ -601,8 +619,8 @@ func (n *IpfsNode) teardown() error {
 		closers = append(closers, mount.Closer(n.Mounts.Ipns))
 	}
 
-	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
-		closers = append(closers, dht.Process())
+	if n.DHT != nil {
+		closers = append(closers, n.DHT.Process())
 	}
 
 	if n.Blocks != nil {
