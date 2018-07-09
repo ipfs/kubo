@@ -58,6 +58,11 @@ Various other changes were merged in this release, including great
 documentation, a good number of smaller bugfixes, refactoring and a good bit
 more. For the details, see the changelog below.
 
+## 0.4.16-rc3 2018-07-09
+- Bugfixes
+  - Fix dht commands when ipns over pubsub is enabled ([ipfs/go-ipfs#5200](https://github.com/ipfs/go-ipfs/pull/5200))
+  - Fix content routing when ipns over pubsub is enabled ([ipfs/go-ipfs#5200](https://github.com/ipfs/go-ipfs/pull/5200))
+  - Correctly handle multi-hop dnslink resolution ([ipfs/go-ipfs#5202](https://github.com/ipfs/go-ipfs/pull/5202))
 
 ## 0.4.16-rc2 2018-07-05
 - Bugfixes
