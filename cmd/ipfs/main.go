@@ -18,7 +18,7 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	coreCmds "github.com/ipfs/go-ipfs/core/commands"
+	corecmds "github.com/ipfs/go-ipfs/core/commands"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	repo "github.com/ipfs/go-ipfs/repo"
@@ -233,7 +233,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, cctx *oldcm
 	// to this point so that we don't check unnecessarily
 
 	// did user specify an api to use for this command?
-	apiAddrStr, _ := req.Options[coreCmds.ApiOption].(string)
+	apiAddrStr, _ := req.Options[corecmds.ApiOption].(string)
 
 	client, err := getApiClient(cctx.ConfigRoot, apiAddrStr)
 	if err == repo.ErrApiNotRunning {
