@@ -524,15 +524,15 @@
     },
     {
       "author": "stebalien",
-      "hash": "QmPxCZ99jTHMxD93qQV4pN3WJbBHrBLCQiumWDgfJjFQJy",
+      "hash": "QmR2hqcem4qjd4DkuyiwSFjfUiCP5eXHdPoM7o7dWKwct9",
       "name": "go-libp2p-pubsub-router",
-      "version": "0.3.5"
+      "version": "0.3.6"
     },
     {
       "author": "Stebalien",
-      "hash": "QmZw5m4ioaoNmATBtP3o7qC1UERubJgz84RzccT3UEHZKr",
+      "hash": "Qmafsgr3GSDKyGHW8SU9dbe6Vtv4rEgcgJ3WRnS72qtAzv",
       "name": "go-libp2p-routing-helpers",
-      "version": "0.2.4"
+      "version": "0.2.5"
     },
     {
       "author": "fsnotify",
