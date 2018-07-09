@@ -210,9 +210,7 @@ func NewPinner(dstore ds.Datastore, serv, internal ipld.DAGService) Pinner {
 }
 
 // Pin the given node, optionally recursive
-func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+func (p *pinner) Pin(ctx context.Context, node ipld.Node, recursive bool) error {
 	err := p.dserv.Add(ctx, node)
 	if err != nil {
 		return err
@@ -220,31 +218,49 @@ func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 
 	c := node.Cid()
 
-	if recurse {
-		if p.recursePin.Has(c) {
+	// fetch entire graph. this is a perf optimization to allow pinning
+	// multiple graphs at once. the expensive operation is the fetch,
+	// which can be done in parallel, without holding p.lock.
+	if recursive {
+		// do a check before fetching, to return early if we already have the pin.
+		// this is important for performance: if it's already pinned, don't fetch
+		// huge graphs.
+		p.lock.Lock()
+		rechas := p.recursePin.Has(c)
+		p.lock.Unlock()
+		if rechas {
 			return nil
 		}
 
-		if p.directPin.Has(c) {
-			p.directPin.Remove(c)
-		}
-
-		// fetch entire graph
 		err := mdag.FetchGraph(ctx, c, p.dserv)
 		if err != nil {
 			return err
 		}
+	}
+	// we do not need to fetch for direct pins because we added the node above.
 
+	// ok we have the data, actually do the pin now.
+	return p.doPin(ctx, c, recursive)
+}
+
+// doPin is the function that actually updates the pin sets.
+// It assumes that the data has already been fetched. this is a private
+// implementation method. users should call pinner.Pin
+func (p *pinner) doPin(ctx context.Context, c *cid.Cid, recursive bool) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if recursive {
 		p.recursePin.Add(c)
-	} else {
-		if _, err := p.dserv.Get(ctx, c); err != nil {
-			return err
+		if p.directPin.Has(c) {
+			// note: recursive pins trump direct pins. upgrade it.
+			p.directPin.Remove(c)
 		}
-
+	} else {
 		if p.recursePin.Has(c) {
+			// note: direct pins do not trump recursive pins.
 			return fmt.Errorf("%s already pinned recursively", c.String())
 		}
-
 		p.directPin.Add(c)
 	}
 	return nil
