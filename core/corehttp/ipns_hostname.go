@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	core "github.com/ipfs/go-ipfs/core"
+	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	isd "gx/ipfs/QmZmmuAXgX73UQmX1jRKjTGmjzq24Jinqkq8vzkBtno4uX/go-is-domain"
@@ -25,7 +26,8 @@ func IPNSHostnameOption() ServeOption {
 			host := strings.SplitN(r.Host, ":", 2)[0]
 			if len(host) > 0 && isd.IsDomain(host) {
 				name := "/ipns/" + host
-				if _, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1)); err == nil {
+				_, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1))
+				if err == nil || err == namesys.ErrResolveRecursion {
 					r.Header.Set("X-Ipns-Original-Path", r.URL.Path)
 					r.URL.Path = name + r.URL.Path
 				}
