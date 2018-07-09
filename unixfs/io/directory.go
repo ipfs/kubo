@@ -13,11 +13,6 @@ import (
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
 )
 
-// ShardSplitThreshold specifies how large of an unsharded directory
-// the Directory code will generate. Adding entries over this value will
-// result in the node being restructured into a sharded object.
-var ShardSplitThreshold = 1000
-
 // UseHAMTSharding is a global flag that signifies whether or not to use the
 // HAMT sharding scheme for directory creation
 var UseHAMTSharding = false
