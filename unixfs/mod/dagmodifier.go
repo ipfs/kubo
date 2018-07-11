@@ -529,7 +529,13 @@ func dagTruncate(ctx context.Context, n ipld.Node, size uint64, ds ipld.DAGServi
 	var cur uint64
 	end := 0
 	var modified ipld.Node
-	ndata := ft.NewFSNode(ft.TRaw)
+	ndata, err := ft.FSNodeFromBytes(nd.Data())
+	if err != nil {
+		return nil, err
+	}
+	// Reset the block sizes of the node to adjust them
+	// with the new values of the truncated children.
+	ndata.RemoveAllBlockSizes()
 	for i, lnk := range nd.Links() {
 		child, err := lnk.GetNode(ctx, ds)
 		if err != nil {
@@ -558,7 +564,7 @@ func dagTruncate(ctx context.Context, n ipld.Node, size uint64, ds ipld.DAGServi
 		ndata.AddBlockSize(childsize)
 	}
 
-	err := ds.Add(ctx, modified)
+	err = ds.Add(ctx, modified)
 	if err != nil {
 		return nil, err
 	}
@@ -573,7 +579,7 @@ func dagTruncate(ctx context.Context, n ipld.Node, size uint64, ds ipld.DAGServi
 	if err != nil {
 		return nil, err
 	}
-
+	// Save the new block sizes to the original node.
 	nd.SetData(d)
 
 	// invalidate cache and recompute serialized data
