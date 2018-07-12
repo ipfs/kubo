@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"sort"
 	"sync"
 	"time"
 
@@ -244,8 +243,6 @@ func (d *Directory) ListNames(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	sort.Strings(out)
 
 	return out, nil
 }
