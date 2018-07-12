@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	gopath "path"
+	"sort"
 	"strings"
 
 	bservice "github.com/ipfs/go-ipfs/blockservice"
@@ -405,6 +406,7 @@ Examples:
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("l", "Use long listing format."),
+		cmdkit.BoolOption("U", "Do not sort; list entries in directory order."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		var arg string
@@ -482,8 +484,15 @@ Examples:
 			}
 
 			buf := new(bytes.Buffer)
-			long, _, _ := res.Request().Option("l").Bool()
 
+			noSort, _, _ := res.Request().Option("U").Bool()
+			if !noSort {
+				sort.Slice(out.Entries, func(i, j int) bool {
+					return strings.Compare(out.Entries[i].Name, out.Entries[j].Name) < 0
+				})
+			}
+
+			long, _, _ := res.Request().Option("l").Bool()
 			for _, o := range out.Entries {
 				if long {
 					fmt.Fprintf(buf, "%s\t%s\t%d\n", o.Name, o.Hash, o.Size)
