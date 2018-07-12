@@ -329,13 +329,13 @@ var filesCpCmd = &oldcmds.Command{
 
 		nd, err := getNodeFromPath(req.Context(), node, node.DAG, src)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("cp: cannot get node from path %s: %s", src, err), cmdkit.ErrNormal)
 			return
 		}
 
 		err = mfs.PutNode(node.FilesRoot, dst, nd)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("cp: cannot put node in path %s: %s", dst, err), cmdkit.ErrNormal)
 			return
 		}
 
