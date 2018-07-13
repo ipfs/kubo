@@ -136,7 +136,8 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
       windows: {
         setupStep('windows') { run ->
           timeout(time: gotest_timeout, unit: 'MINUTES') {
-            run 'go get -v github.com/jstemmer/go-junit-report github.com/whyrusleeping/gx github.com/whyrusleeping/gx-go'
+            run 'go get -v github.com/jstemmer/go-junit-report'
+            run 'make gx-deps'
             run "gx install --global"
 
             try {
