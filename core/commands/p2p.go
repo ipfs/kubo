@@ -231,6 +231,7 @@ var p2pLsCmd = &cmds.Command{
 
 		output := &P2PLsOutput{}
 
+		n.P2P.Listeners.Lock()
 		for _, listener := range n.P2P.Listeners.Listeners {
 			output.Listeners = append(output.Listeners, P2PListenerInfoOutput{
 				Protocol:      string(listener.Protocol()),
@@ -238,6 +239,7 @@ var p2pLsCmd = &cmds.Command{
 				TargetAddress: listener.TargetAddress().String(),
 			})
 		}
+		n.P2P.Listeners.Unlock()
 
 		res.SetOutput(output)
 	},
@@ -402,6 +404,7 @@ var p2pStreamLsCmd = &cmds.Command{
 
 		output := &P2PStreamsOutput{}
 
+		n.P2P.Streams.Lock()
 		for id, s := range n.P2P.Streams.Streams {
 			output.Streams = append(output.Streams, P2PStreamInfoOutput{
 				HandlerID: strconv.FormatUint(id, 10),
@@ -412,6 +415,7 @@ var p2pStreamLsCmd = &cmds.Command{
 				TargetAddress: s.TargetAddr.String(),
 			})
 		}
+		n.P2P.Streams.Unlock()
 
 		res.SetOutput(output)
 	},
@@ -476,14 +480,21 @@ var p2pStreamCloseCmd = &cmds.Command{
 			}
 		}
 
+		toClose := make([]*p2p.Stream, 0, 1)
+		n.P2P.Streams.Lock()
 		for id, stream := range n.P2P.Streams.Streams {
 			if !closeAll && handlerID != id {
 				continue
 			}
-			stream.Reset()
+			toClose = append(toClose, stream)
 			if !closeAll {
 				break
 			}
+		}
+		n.P2P.Streams.Unlock()
+
+		for _, s := range toClose {
+			s.Reset()
 		}
 	},
 }

@@ -63,16 +63,16 @@ func (s *Stream) startStreaming() {
 
 // StreamRegistry is a collection of active incoming and outgoing proto app streams.
 type StreamRegistry struct {
-	Streams map[uint64]*Stream
-	lk      sync.Mutex
+	sync.Mutex
 
-	nextID uint64
+	Streams map[uint64]*Stream
+	nextID  uint64
 }
 
 // Register registers a stream to the registry
 func (r *StreamRegistry) Register(streamInfo *Stream) {
-	r.lk.Lock()
-	defer r.lk.Unlock()
+	r.Lock()
+	defer r.Unlock()
 
 	streamInfo.id = r.nextID
 	r.Streams[r.nextID] = streamInfo
@@ -81,8 +81,8 @@ func (r *StreamRegistry) Register(streamInfo *Stream) {
 
 // Deregister deregisters stream from the registry
 func (r *StreamRegistry) Deregister(streamID uint64) {
-	r.lk.Lock()
-	defer r.lk.Unlock()
+	r.Lock()
+	defer r.Unlock()
 
 	delete(r.Streams, streamID)
 }
