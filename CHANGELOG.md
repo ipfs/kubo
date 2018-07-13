@@ -56,6 +56,10 @@ K peers (where K for us is 20). However, we'd often fail to connect to many of
 these peers so we'd end up putting the value to significantly fewer than K
 peers. We now try to put the value to the K peers we can actually connect to.
 
+Finally, we've fixed JavaScript interoperability in go-multiplex, the one stream
+muxer that both go-libp2p and js-libp2p implement. This should significantly
+improve go-libp2p and js-libp2p interoperability.
+
 ### Multiformats
 
 We are also changing the way that people write 'ipfs' multiaddrs. Currently,
