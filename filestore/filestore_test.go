@@ -23,6 +23,7 @@ func newTestFilestore(t *testing.T) (string, *Filestore) {
 		t.Fatal(err)
 	}
 	fm := NewFileManager(mds, testdir)
+	fm.AllowFiles = true
 
 	bs := blockstore.NewBlockstore(mds)
 	fstore := NewFilestore(bs, fm)
@@ -160,5 +161,17 @@ func TestDeletes(t *testing.T) {
 		if deleted[c.KeyString()] {
 			t.Fatal("shouldnt have reference to this key anymore")
 		}
+	}
+}
+
+func TestIsURL(t *testing.T) {
+	if !IsURL("http://www.example.com") {
+		t.Fatal("IsURL failed: http://www.example.com")
+	}
+	if !IsURL("https://www.example.com") {
+		t.Fatal("IsURL failed: https://www.example.com")
+	}
+	if IsURL("adir/afile") || IsURL("http:/ /afile") || IsURL("http:/a/file") {
+		t.Fatal("IsURL recognized non-url")
 	}
 }

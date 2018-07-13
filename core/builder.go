@@ -213,7 +213,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	n.GCLocker = bstore.NewGCLocker()
 	n.Blockstore = bstore.NewGCBlockstore(cbs, n.GCLocker)
 
-	if conf.Experimental.FilestoreEnabled {
+	if conf.Experimental.FilestoreEnabled || conf.Experimental.UrlstoreEnabled {
 		// hash security
 		n.Filestore = filestore.NewFilestore(cbs, n.Repo.FileManager())
 		n.Blockstore = bstore.NewGCBlockstore(n.Filestore, n.GCLocker)

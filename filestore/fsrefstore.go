@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -28,8 +29,10 @@ var FilestorePrefix = ds.NewKey("filestore")
 // to the actual location of the block data in the filesystem
 // (a path and an offset).
 type FileManager struct {
-	ds   ds.Batching
-	root string
+	AllowFiles bool
+	AllowUrls  bool
+	ds         ds.Batching
+	root       string
 }
 
 // CorruptReferenceError implements the error interface.
@@ -51,7 +54,7 @@ func (c CorruptReferenceError) Error() string {
 // datastore and root. All FilestoreNodes paths are relative to the
 // root path given here, which is prepended for any operations.
 func NewFileManager(ds ds.Batching, root string) *FileManager {
-	return &FileManager{dsns.Wrap(ds, FilestorePrefix), root}
+	return &FileManager{ds: dsns.Wrap(ds, FilestorePrefix), root: root}
 }
 
 // AllKeysChan returns a channel from which to read the keys stored in
@@ -111,13 +114,19 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	out, err := f.readDataObj(c, dobj)
 	if err != nil {
 		return nil, err
 	}
 
 	return blocks.NewBlockWithCid(out, c)
+}
+
+func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+	if IsURL(d.GetFilePath()) {
+		return f.readURLDataObj(c, d)
+	}
+	return f.readFileDataObj(c, d)
 }
 
 func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
@@ -148,8 +157,11 @@ func unmarshalDataObj(o interface{}) (*pb.DataObj, error) {
 	return &dobj, nil
 }
 
-// reads and verifies the block
-func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+func (f *FileManager) readFileDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+	if !f.AllowFiles {
+		return nil, ErrFilestoreNotEnabled
+	}
+
 	p := filepath.FromSlash(d.GetFilePath())
 	abspath := filepath.Join(f.root, p)
 
@@ -187,6 +199,50 @@ func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	return outbuf, nil
 }
 
+// reads and verifies the block from URL
+func (f *FileManager) readURLDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+	if !f.AllowUrls {
+		return nil, ErrUrlstoreNotEnabled
+	}
+
+	req, err := http.NewRequest("GET", d.GetFilePath(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Range", fmt.Sprintf("bytes=%d-%d", d.GetOffset(), d.GetOffset()+d.GetSize_()-1))
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, &CorruptReferenceError{StatusFileError, err}
+	}
+	if res.StatusCode != http.StatusPartialContent {
+		return nil, &CorruptReferenceError{StatusFileError,
+			fmt.Errorf("expected HTTP 206 got %d", res.StatusCode)}
+	}
+
+	outbuf := make([]byte, d.GetSize_())
+	_, err = io.ReadFull(res.Body, outbuf)
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return nil, &CorruptReferenceError{StatusFileChanged, err}
+	} else if err != nil {
+		return nil, &CorruptReferenceError{StatusFileError, err}
+	}
+	res.Body.Close()
+
+	outcid, err := c.Prefix().Sum(outbuf)
+	if err != nil {
+		return nil, err
+	}
+
+	if !c.Equals(outcid) {
+		return nil, &CorruptReferenceError{StatusFileChanged,
+			fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
+	}
+
+	return outbuf, nil
+}
+
 // Has returns if the FileManager is storing a block reference. It does not
 // validate the data, nor checks if the reference is valid.
 func (f *FileManager) Has(c *cid.Cid) (bool, error) {
@@ -209,16 +265,26 @@ func (f *FileManager) Put(b *posinfo.FilestoreNode) error {
 func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 	var dobj pb.DataObj
 
-	if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
-		return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)
-	}
+	if IsURL(b.PosInfo.FullPath) {
+		if !f.AllowUrls {
+			return ErrUrlstoreNotEnabled
+		}
+		dobj.FilePath = proto.String(b.PosInfo.FullPath)
+	} else {
+		if !f.AllowFiles {
+			return ErrFilestoreNotEnabled
+		}
+		if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
+			return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)
+		}
 
-	p, err := filepath.Rel(f.root, b.PosInfo.FullPath)
-	if err != nil {
-		return err
-	}
+		p, err := filepath.Rel(f.root, b.PosInfo.FullPath)
+		if err != nil {
+			return err
+		}
 
-	dobj.FilePath = proto.String(filepath.ToSlash(p))
+		dobj.FilePath = proto.String(filepath.ToSlash(p))
+	}
 	dobj.Offset = proto.Uint64(b.PosInfo.Offset)
 	dobj.Size_ = proto.Uint64(uint64(len(b.RawData())))
 
@@ -245,4 +311,13 @@ func (f *FileManager) PutMany(bs []*posinfo.FilestoreNode) error {
 	}
 
 	return batch.Commit()
+}
+
+// IsURL returns true if the string represents a valid URL that the
+// urlstore can handle.  More specifically it returns true if a string
+// begins with 'http://' or 'https://'.
+func IsURL(str string) bool {
+	return (len(str) > 7 && str[0] == 'h' && str[1] == 't' && str[2] == 't' && str[3] == 'p') &&
+		((len(str) > 8 && str[4] == 's' && str[5] == ':' && str[6] == '/' && str[7] == '/') ||
+			(str[4] == ':' && str[5] == '/' && str[6] == '/'))
 }
