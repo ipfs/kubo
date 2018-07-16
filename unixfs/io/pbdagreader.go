@@ -98,16 +98,20 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 	dr.promises[dr.linkPosition] = nil
 	dr.linkPosition++
 
-	switch nxt := nxt.(type) {
+	return dr.loadBufNode(nxt)
+}
+
+func (dr *PBDagReader) loadBufNode(node ipld.Node) error {
+	switch node := node.(type) {
 	case *mdag.ProtoNode:
-		fsNode, err := ft.FSNodeFromBytes(nxt.Data())
+		fsNode, err := ft.FSNodeFromBytes(node.Data())
 		if err != nil {
 			return fmt.Errorf("incorrectly formatted protobuf: %s", err)
 		}
 
 		switch fsNode.Type() {
 		case ftpb.Data_File:
-			dr.buf = NewPBFileReader(dr.ctx, nxt, fsNode, dr.serv)
+			dr.buf = NewPBFileReader(dr.ctx, node, fsNode, dr.serv)
 			return nil
 		case ftpb.Data_Raw:
 			dr.buf = NewBufDagReader(fsNode.Data())
@@ -116,7 +120,7 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 			return fmt.Errorf("found %s node in unexpected place", fsNode.Type().String())
 		}
 	case *mdag.RawNode:
-		dr.buf = NewBufDagReader(nxt.RawData())
+		dr.buf = NewBufDagReader(node.RawData())
 		return nil
 	default:
 		return ErrUnkownNodeType
