@@ -118,14 +118,7 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 
 	rt.root = root
 
-	switch val := root.GetValue().(type) {
-	case *mfs.Directory:
-		return &Directory{dir: val}, nil
-	case *mfs.File:
-		return &FileNode{fi: val}, nil
-	default:
-		return nil, errors.New("unrecognized type")
-	}
+	return &Directory{dir: root.GetDirectory()}, nil
 }
 
 type keyRoot struct {
