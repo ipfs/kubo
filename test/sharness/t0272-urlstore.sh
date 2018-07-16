@@ -138,4 +138,13 @@ test_expect_success "files can not be retrieved via the urlstore" '
   test_must_fail ipfs cat $HASH3 > /dev/null
 '
 
+test_expect_success "check that the hashes were correct" '
+  HASH1e=$(ipfs add -q -n --cid-version=1 --raw-leaves=true file1) &&
+  HASH2e=$(ipfs add -q -n --cid-version=1 --raw-leaves=true file2) &&
+  HASH3e=$(ipfs add -q -n --cid-version=1 --raw-leaves=true file3) &&
+  test $HASH1e = $HASH1 &&
+  test $HASH2e = $HASH2 &&
+  test $HASH3e = $HASH3
+'
+
 test_done
