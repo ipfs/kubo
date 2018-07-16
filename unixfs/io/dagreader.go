@@ -27,7 +27,6 @@ type DagReader interface {
 	ReadSeekCloser
 	Size() uint64
 	CtxReadFull(context.Context, []byte) (int, error)
-	Offset() int64
 }
 
 // A ReadSeekCloser implements interfaces to read, copy, seek and close.
