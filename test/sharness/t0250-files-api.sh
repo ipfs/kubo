@@ -186,6 +186,18 @@ test_files_api() {
     test_cmp ls_l_expected ls_l_actual
   '
 
+  test_expect_success "file has correct hash and size listed with -l" '
+    echo "file1	$FILE1	4" > ls_l_expected &&
+    ipfs files ls -l /cats/file1 > ls_l_actual &&
+    test_cmp ls_l_expected ls_l_actual
+  '
+
+  test_expect_success "file shows up with the correct name" '
+    echo "file1" > ls_l_expected &&
+    ipfs files ls /cats/file1 > ls_l_actual &&
+    test_cmp ls_l_expected ls_l_actual
+  '
+
   test_expect_success "can stat file $EXTRA" '
     ipfs files stat /cats/file1 > file1stat_orig
   '

@@ -462,7 +462,24 @@ Examples:
 			return
 		case *mfs.File:
 			_, name := gopath.Split(path)
-			out := &filesLsOutput{[]mfs.NodeListing{mfs.NodeListing{Name: name, Type: 1}}}
+			out := &filesLsOutput{[]mfs.NodeListing{mfs.NodeListing{Name: name}}}
+			if long {
+				out.Entries[0].Type = int(fsn.Type())
+
+				size, err := fsn.Size()
+				if err != nil {
+					res.SetError(err, cmdkit.ErrNormal)
+					return
+				}
+				out.Entries[0].Size = size
+
+				nd, err := fsn.GetNode()
+				if err != nil {
+					res.SetError(err, cmdkit.ErrNormal)
+					return
+				}
+				out.Entries[0].Hash = nd.Cid().String()
+			}
 			res.SetOutput(out)
 			return
 		default:
