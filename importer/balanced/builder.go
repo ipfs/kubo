@@ -20,7 +20,7 @@ import (
 
 	h "github.com/ipfs/go-ipfs/importer/helpers"
 
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
 // Layout builds a balanced DAG. Data is stored at the leaves

@@ -1,6 +1,6 @@
 package keystore
 
-import ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+import ci "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 
 // MemKeystore is an in memory keystore implementation that is not persisted to
 // any backing storage.
