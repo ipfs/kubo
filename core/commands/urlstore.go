@@ -8,6 +8,7 @@ import (
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	balanced "github.com/ipfs/go-ipfs/importer/balanced"
 	ihelper "github.com/ipfs/go-ipfs/importer/helpers"
+	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 
 	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -42,6 +43,9 @@ found.  It may disappear or the semantics can change at any
 time.
 `,
 	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("url", true, false, "URL to add to IPFS"),
 	},
@@ -71,6 +75,8 @@ time.
 			return
 		}
 
+		useTrickledag, _ := req.Options[trickleOptionName].(bool)
+
 		hreq, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -98,14 +104,18 @@ time.
 			URL:       url,
 		}
 
-		blc, err := balanced.Layout(dbp.New(chk))
+		layout := balanced.Layout
+		if useTrickledag {
+			layout = trickle.Layout
+		}
+		root, err := layout(dbp.New(chk))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		cmds.EmitOnce(res, BlockStat{
-			Key:  blc.Cid().String(),
+			Key:  root.Cid().String(),
 			Size: int(hres.ContentLength),
 		})
 	},
