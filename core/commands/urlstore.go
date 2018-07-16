@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	balanced "github.com/ipfs/go-ipfs/importer/balanced"
 	ihelper "github.com/ipfs/go-ipfs/importer/helpers"
 
+	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	chunk "gx/ipfs/QmXnzH7wowyLZy8XJxxaQCVTgLMcDXdMBznmsrmQWCyiQV/go-ipfs-chunker"
 	cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
@@ -18,7 +17,6 @@ import (
 )
 
 var urlStoreCmd = &cmds.Command{
-
 	Subcommands: map[string]*cmds.Command{
 		"add": urlAdd,
 	},
@@ -49,9 +47,9 @@ time.
 	},
 	Type: BlockStat{},
 
-	Run: func(req cmds.Request, res cmds.Response) {
-		url := req.Arguments()[0]
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		url := req.Arguments[0]
+		n, err := GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -106,17 +104,15 @@ time.
 			return
 		}
 
-		res.SetOutput(BlockStat{
+		cmds.EmitOnce(res, BlockStat{
 			Key:  blc.Cid().String(),
 			Size: int(hres.ContentLength),
 		})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			ch := res.Output().(<-chan interface{})
-			bs0 := <-ch
-			bs := bs0.(*BlockStat)
-			return strings.NewReader(bs.Key + "\n"), nil
-		},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, bs *BlockStat) error {
+			_, err := fmt.Fprintln(w, bs.Key)
+			return err
+		}),
 	},
 }

@@ -136,7 +136,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"tar":       lgc.NewCommand(TarCmd),
 	"file":      lgc.NewCommand(unixfs.UnixFSCmd),
 	"update":    lgc.NewCommand(ExternalBinary()),
-	"urlstore":  lgc.NewCommand(urlStoreCmd),
+	"urlstore":  urlStoreCmd,
 	"version":   lgc.NewCommand(VersionCmd),
 	"shutdown":  lgc.NewCommand(daemonShutdownCmd),
 }
