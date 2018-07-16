@@ -70,17 +70,6 @@ func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
 
-// Set replaces the current UnixfsNode with another one. It performs
-// a shallow copy.
-func (n *UnixfsNode) Set(other *UnixfsNode) {
-	n.node = other.node
-	n.raw = other.raw
-	n.rawnode = other.rawnode
-	if other.ufmt != nil {
-		n.ufmt.SetData(other.ufmt.Data())
-	}
-}
-
 // GetChild gets the ith child of this node from the given DAGService.
 func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds ipld.DAGService) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
