@@ -25,7 +25,6 @@ const (
 // Common errors
 var (
 	ErrMalformedFileFormat = errors.New("malformed data in file format")
-	ErrInvalidDirLocation  = errors.New("found directory node in unexpected place")
 	ErrUnrecognizedType    = errors.New("unrecognized node type")
 )
 

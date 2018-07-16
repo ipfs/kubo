@@ -3,7 +3,6 @@ package io
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
@@ -17,6 +16,7 @@ import (
 var (
 	ErrIsDir            = errors.New("this dag node is a directory")
 	ErrCantReadSymlinks = errors.New("cannot currently read symlinks")
+	ErrUnkownNodeType   = errors.New("unknown node type")
 )
 
 // A DagReader provides read-only read and seek acess to a unixfs file.
@@ -74,6 +74,6 @@ func NewDagReader(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) (DagRe
 			return nil, ft.ErrUnrecognizedType
 		}
 	default:
-		return nil, fmt.Errorf("unrecognized node type")
+		return nil, ErrUnkownNodeType
 	}
 }
