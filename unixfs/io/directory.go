@@ -107,7 +107,7 @@ func NewDirectoryFromNode(dserv ipld.DAGService, node ipld.Node) (Directory, err
 		return nil, err
 	}
 
-	switch fsNode.GetType() {
+	switch fsNode.Type() {
 	case format.TDirectory:
 		return &BasicDirectory{
 			dserv: dserv,
