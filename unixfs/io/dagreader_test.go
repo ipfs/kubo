@@ -122,6 +122,41 @@ func TestSeekAndReadLarge(t *testing.T) {
 	}
 }
 
+func TestReadAndCancel(t *testing.T) {
+	dserv := testu.GetDAGServ()
+	inbuf := make([]byte, 20000)
+	rand.Read(inbuf)
+
+	node := testu.GetNode(t, dserv, inbuf, testu.UseProtoBufLeaves)
+	ctx, closer := context.WithCancel(context.Background())
+	defer closer()
+
+	reader, err := NewDagReader(ctx, node, dserv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	buf := make([]byte, 100)
+	_, err = reader.CtxReadFull(ctx, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(buf, inbuf[0:100]) {
+		t.Fatal("read failed")
+	}
+	cancel()
+
+	b, err := ioutil.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(inbuf[100:], b) {
+		t.Fatal("buffers not equal")
+	}
+}
+
 func TestRelativeSeek(t *testing.T) {
 	dserv := testu.GetDAGServ()
 	ctx, closer := context.WithCancel(context.Background())
