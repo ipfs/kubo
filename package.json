@@ -201,9 +201,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmSF1Ksgn5d7JCTBt4e1yp4wzs6tpYyweCZ4PcDYp3tNeK",
+      "hash": "QmTFrdeWRUR6ubMT71ngt1C5KwDbNYeGRWEPCDaZM66RD9",
       "name": "go-ipld-cbor",
-      "version": "1.2.13"
+      "version": "1.4.5"
     },
     {
       "author": "lgierth",
@@ -363,9 +363,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmazMphtdhiL37KJjfahQXjKvSNt6gjWqGpTs6KXQcAQ8w",
+      "hash": "QmarUgTjwokWN8NyEuvRP5gSsJQpDecpRJEKxAi31pM7XX",
       "name": "go-ipld-git",
-      "version": "0.2.1"
+      "version": "0.2.2"
     },
     {
       "hash": "QmSW4uNHbvQia8iZDXzbwjiyHQtnyo9aFqfQAMasj3TJ6Y",
