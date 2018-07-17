@@ -32,7 +32,7 @@ type CoreAPI interface {
 	Object() ObjectAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
-	ResolvePath(context.Context, Path) (Path, error)
+	ResolvePath(context.Context, Path) (ResolvedPath, error)
 
 	// ResolveNode resolves the path (if not resolved already) using Unixfs
 	// resolver, gets and returns the resolved Node

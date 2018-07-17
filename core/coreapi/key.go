@@ -28,7 +28,12 @@ func (k *key) Name() string {
 
 // Path returns the path of the key.
 func (k *key) Path() coreiface.Path {
-	return &path{path: ipfspath.FromString(ipfspath.Join([]string{"/ipns", k.peerId}))}
+	path, err := coreiface.ParsePath(ipfspath.Join([]string{"/ipns", k.peerId}))
+	if err != nil {
+		panic("error parsing path: " + err.Error())
+	}
+
+	return path
 }
 
 // Generate generates new key, stores it in the keystore under the specified

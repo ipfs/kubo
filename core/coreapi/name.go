@@ -129,7 +129,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		return nil, err
 	}
 
-	return &path{path: output}, nil
+	return coreiface.ParsePath(output.String())
 }
 
 func keylookup(n *core.IpfsNode, k string) (crypto.PrivKey, error) {
