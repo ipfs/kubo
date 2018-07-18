@@ -406,6 +406,44 @@ func testDagTruncate(t *testing.T, opts testu.NodeOpts) {
 	}
 }
 
+// TestDagTruncateSameSize tests that a DAG truncated
+// to the same size (i.e., doing nothing) doesn't modify
+// the DAG (its hash).
+func TestDagTruncateSameSize(t *testing.T) {
+	runAllSubtests(t, testDagTruncateSameSize)
+}
+func testDagTruncateSameSize(t *testing.T, opts testu.NodeOpts) {
+	dserv := testu.GetDAGServ()
+	_, n := testu.GetRandomNode(t, dserv, 50000, opts)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Copied from `TestDagTruncate`.
+
+	size, err := dagmod.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dagmod.Truncate(size)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	modifiedNode, err := dagmod.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if modifiedNode.Cid().Equals(n.Cid()) == false {
+		t.Fatal("the node has been modified!")
+	}
+}
+
 func TestSparseWrite(t *testing.T) {
 	runAllSubtests(t, testSparseWrite)
 }
