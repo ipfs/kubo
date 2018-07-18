@@ -122,34 +122,32 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 
 	dr.linkPosition++
 
-	switch nxt := nxt.(type) {
+	return dr.loadBufNode(nxt)
+}
+
+func (dr *PBDagReader) loadBufNode(node ipld.Node) error {
+	switch node := node.(type) {
 	case *mdag.ProtoNode:
-		fsNode, err := ft.FSNodeFromBytes(nxt.Data())
+		fsNode, err := ft.FSNodeFromBytes(node.Data())
 		if err != nil {
 			return fmt.Errorf("incorrectly formatted protobuf: %s", err)
 		}
 
 		switch fsNode.Type() {
-		case ftpb.Data_Directory, ftpb.Data_HAMTShard:
-			// A directory should not exist within a file
-			return ft.ErrInvalidDirLocation
 		case ftpb.Data_File:
-			dr.buf = NewPBFileReader(dr.ctx, nxt, fsNode, dr.serv)
+			dr.buf = NewPBFileReader(dr.ctx, node, fsNode, dr.serv)
 			return nil
 		case ftpb.Data_Raw:
 			dr.buf = NewBufDagReader(fsNode.Data())
 			return nil
-		case ftpb.Data_Metadata:
-			return errors.New("shouldnt have had metadata object inside file")
-		case ftpb.Data_Symlink:
-			return errors.New("shouldnt have had symlink inside file")
 		default:
-			return ft.ErrUnrecognizedType
+			return fmt.Errorf("found %s node in unexpected place", fsNode.Type().String())
 		}
+	case *mdag.RawNode:
+		dr.buf = NewBufDagReader(node.RawData())
+		return nil
 	default:
-		var err error
-		dr.buf, err = NewDagReader(ctx, nxt, dr.serv)
-		return err
+		return ErrUnkownNodeType
 	}
 }
 
