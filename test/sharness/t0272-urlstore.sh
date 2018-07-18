@@ -124,12 +124,27 @@ test_expect_success "get large file via urlstore" '
   test_cmp file3 file3.actual
 '
 
+test_expect_success "check that the trickle option works" '
+  HASHat=$(ipfs add -q --cid-version=1 --raw-leaves=true -n --trickle file3) &&
+  HASHut=$(ipfs urlstore add --trickle http://127.0.0.1:$GWAY_PORT/ipfs/$HASH3a) &&
+  test $HASHat = $HASHut
+'
+
 test_kill_ipfs_daemon
 
 test_expect_success "files can not be retrieved via the urlstore" '
   test_must_fail ipfs cat $HASH1 > /dev/null &&
   test_must_fail ipfs cat $HASH2 > /dev/null &&
   test_must_fail ipfs cat $HASH3 > /dev/null
+'
+
+test_expect_success "check that the hashes were correct" '
+  HASH1e=$(ipfs add -q -n --cid-version=1 --raw-leaves=true file1) &&
+  HASH2e=$(ipfs add -q -n --cid-version=1 --raw-leaves=true file2) &&
+  HASH3e=$(ipfs add -q -n --cid-version=1 --raw-leaves=true file3) &&
+  test $HASH1e = $HASH1 &&
+  test $HASH2e = $HASH2 &&
+  test $HASH3e = $HASH3
 '
 
 test_done
