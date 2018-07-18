@@ -123,9 +123,10 @@ func (bsnet *impl) SendMessage(
 		s.Reset()
 		return err
 	}
-	// Yes, return this error. We have no reason to believe that the block
-	// was actually *sent* unless we see the EOF.
-	return inet.FullClose(s)
+	// TODO(https://github.com/libp2p/go-libp2p-net/issues/28): Avoid this goroutine.
+	go inet.AwaitEOF(s)
+	return s.Close()
+
 }
 
 func (bsnet *impl) SetDelegate(r Receiver) {
