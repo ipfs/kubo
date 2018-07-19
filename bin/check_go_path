@@ -7,7 +7,14 @@ PKG="$1"
 DIR="$(pwd -P)"
 GOPATH="$(go env GOPATH)"
 
-while read -d ':' p; do
+# The path separator is ; on windows.
+if [ "$(go env GOOS)" = "windows" ]; then
+    PATHSEP=';'
+else
+    PATHSEP=':'
+fi
+
+while read -d "$PATHSEP" p; do
     if ! cd "$p/src/$PKG" 2>/dev/null; then
         continue
     fi
