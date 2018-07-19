@@ -1167,12 +1167,18 @@ func TestTruncateAndWrite(t *testing.T) {
 		if l != len("test") {
 			t.Fatal("incorrect write length")
 		}
+
+		_, err = fd.Seek(0, io.SeekStart)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		data, err := ioutil.ReadAll(fd)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if string(data) != "test" {
-			t.Errorf("read error at read %d, read: %v", i, data)
+			t.Fatalf("read error at read %d, read: %v", i, data)
 		}
 	}
 }
