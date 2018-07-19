@@ -18,10 +18,7 @@ import (
 	blockstore "gx/ipfs/Qmeg56ecxRnVv7VWViMrDeEMoBHaNFMs4vQnyQrJ79Zz7i/go-ipfs-blockstore"
 )
 
-type DhtAPI struct {
-	*CoreAPI
-	*caopts.DhtOptions
-}
+type DhtAPI CoreAPI
 
 func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (pstore.PeerInfo, error) {
 	pi, err := api.node.Routing.FindPeer(ctx, peer.ID(p))
@@ -38,7 +35,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p coreiface.Path, opts ...
 		return nil, err
 	}
 
-	rp, err := api.ResolvePath(ctx, p)
+	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +59,7 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 		return errors.New("cannot provide in offline mode")
 	}
 
-	rp, err := api.ResolvePath(ctx, path)
+	rp, err := api.core().ResolvePath(ctx, path)
 	if err != nil {
 		return err
 	}
@@ -126,4 +123,8 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, bs blockstore.Bl
 	}
 
 	return nil
+}
+
+func (api *DhtAPI) core() coreiface.CoreAPI {
+	return (*CoreAPI)(api)
 }
