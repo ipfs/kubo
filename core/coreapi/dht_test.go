@@ -6,10 +6,10 @@ import (
 	"io/ioutil"
 	"testing"
 
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
-	blocks "gx/ipfs/QmR54CzE4UcdFAZDehj6HFyy3eSHhVsJUpjfnhCmscuStS/go-block-format"
-	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	blocks "gx/ipfs/QmWAzSEoqZ6xU6pu8yL8e5WaMb7wtbfbhhN4p1DknUPtr3/go-block-format"
 )
 
 func TestDhtFindPeer(t *testing.T) {
@@ -19,26 +19,22 @@ func TestDhtFindPeer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, err := apis[2].Dht().FindPeer(ctx, peer.ID(nds[0].Identity))
+	pi, err := apis[2].Dht().FindPeer(ctx, peer.ID(nds[0].Identity))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	addr := <-out
-
-	if addr.String() != "/ip4/127.0.0.1/tcp/4001" {
-		t.Errorf("got unexpected address from FindPeer: %s", addr.String())
+	if pi.Addrs[0].String() != "/ip4/127.0.0.1/tcp/4001" {
+		t.Errorf("got unexpected address from FindPeer: %s", pi.Addrs[0].String())
 	}
 
-	out, err = apis[1].Dht().FindPeer(ctx, peer.ID(nds[2].Identity))
+	pi, err = apis[1].Dht().FindPeer(ctx, peer.ID(nds[2].Identity))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	addr = <-out
-
-	if addr.String() != "/ip4/127.0.2.1/tcp/4001" {
-		t.Errorf("got unexpected address from FindPeer: %s", addr.String())
+	if pi.Addrs[0].String() != "/ip4/127.0.2.1/tcp/4001" {
+		t.Errorf("got unexpected address from FindPeer: %s", pi.Addrs[0].String())
 	}
 }
 
@@ -61,8 +57,8 @@ func TestDhtFindProviders(t *testing.T) {
 
 	provider := <-out
 
-	if provider.String() != nds[0].Identity.String() {
-		t.Errorf("got wrong provider: %s != %s", provider.String(), nds[0].Identity.String())
+	if provider.ID.String() != nds[0].Identity.String() {
+		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), nds[0].Identity.String())
 	}
 }
 
@@ -81,7 +77,7 @@ func TestDhtProvide(t *testing.T) {
 
 	b := blocks.NewBlock(data)
 	nds[0].Blockstore.Put(b)
-	p := coreapi.ParseCid(b.Cid())
+	p := iface.IpfsPath(b.Cid())
 
 	out, err := apis[2].Dht().FindProviders(ctx, p, apis[2].Dht().WithNumProviders(1))
 	if err != nil {
@@ -90,8 +86,8 @@ func TestDhtProvide(t *testing.T) {
 
 	provider := <-out
 
-	if provider.String() != "<peer.ID >" {
-		t.Errorf("got wrong provider: %s != %s", provider.String(), nds[0].Identity.String())
+	if provider.ID.String() != "<peer.ID >" {
+		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), nds[0].Identity.String())
 	}
 
 	err = apis[0].Dht().Provide(ctx, p)
@@ -106,7 +102,7 @@ func TestDhtProvide(t *testing.T) {
 
 	provider = <-out
 
-	if provider.String() != nds[0].Identity.String() {
-		t.Errorf("got wrong provider: %s != %s", provider.String(), nds[0].Identity.String())
+	if provider.ID.String() != nds[0].Identity.String() {
+		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), nds[0].Identity.String())
 	}
 }
