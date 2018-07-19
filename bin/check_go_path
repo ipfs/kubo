@@ -4,15 +4,20 @@ set -e
 
 PKG="$1"
 
-PWD="$(realpath "$(pwd)")"
+DIR="$(pwd -P)"
 GOPATH="$(go env GOPATH)"
 
-for p in IFS=: "${GOPATH}"; do
-    if [ "$PWD" = "$(realpath "$p")/src/$PKG" ]; then
+while read -d ':' p; do
+    if ! cd "$p/src/$PKG" 2>/dev/null; then
+        continue
+    fi
+
+    if [ "$DIR" = "$(pwd -P)" ]; then
         exit 0
     fi
-done
+    cd "$DIR"
+done <<< "$GOPATH:"
 
 echo "go-ipfs must be built from within your \$GOPATH directory."
-echo "expected within '$GOPATH' but got '$PWD'"
+echo "expected within '$GOPATH' but got '$DIR'"
 exit 1
