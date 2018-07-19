@@ -56,17 +56,27 @@ test_sharding() {
 
   test_expect_success "can make 100 files in a directory $EXTRA" '
     printf "" > list_exp_raw
-    for i in `seq 100`
+    for i in `seq 100 -1 1`
     do
       echo $i | ipfs files write --create /foo/file$i || return 1
       echo file$i >> list_exp_raw
     done
   '
+  # Create the files in reverse (unsorted) order (`seq 100 -1 1`)
+  # to check the sort in the `ipfs files ls` command. `ProtoNode`
+  # links are always sorted at the DAG layer so the sorting feature
+  # is tested with sharded directories.
 
-  test_expect_success "listing works $EXTRA" '
-    ipfs files ls /foo |sort > list_out &&
+  test_expect_success "sorted listing works $EXTRA" '
+    ipfs files ls /foo > list_out &&
     sort list_exp_raw > list_exp &&
     test_cmp list_exp list_out
+  '
+
+  test_expect_success "unsorted listing works $EXTRA" '
+    ipfs files ls -U /foo > list_out &&
+    sort list_exp_raw > sort_list_not_exp &&
+    ! test_cmp sort_list_not_exp list_out
   '
 
   test_expect_success "can read a file from sharded directory $EXTRA" '
