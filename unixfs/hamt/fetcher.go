@@ -12,9 +12,9 @@ import (
 var log = logging.Logger("hamt")
 
 // fetcher implements a background fetcher to retrieve missing child
-// shards in large batches.  It attempts to retrieves the missing
-// shards in an order that allow streaming of the complete hamt
-// directory, assuming a depth first traversal.
+// shards in large batches.  To allow streaming, it attempts to
+// retrieve the missing shards in the order they will be read when
+// traversing the tree depth first.
 type fetcher struct {
 	// note: the fields in this structure should only be accesses by
 	// the 'mainLoop' go routine, all communication should be done via
@@ -23,8 +23,8 @@ type fetcher struct {
 	ctx   context.Context
 	dserv ipld.DAGService
 
-	reqRes chan *Shard
-	result chan result
+	reqRes chan *Shard // channel for requesting the children of a shard
+	result chan result // channel for retrieving the results of the request
 
 	idle bool
 
@@ -86,7 +86,7 @@ type result struct {
 // the result of the batch request and not just the single job.  In
 // particular, if the 'errs' field is empty the 'vals' of the result
 // is guaranteed to contain all the missing child shards, but the
-// map may also contain child shards of other jobs in the batch
+// map may also contain child shards of other jobs in the batch.
 func (f *fetcher) get(hamt *Shard) result {
 	f.reqRes <- hamt
 	res := <-f.result
