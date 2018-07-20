@@ -411,6 +411,12 @@ new pin and removing the old one.
 			return
 		}
 
+		err = n.Pinning.Flush()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		res.SetOutput(&PinOutput{Pins: []string{from.String(), to.String()}})
 	},
 	Marshalers: cmds.MarshalerMap{
