@@ -48,6 +48,18 @@ test_pins() {
   test_expect_success "unpin those hashes" '
     cat hashes | ipfs pin rm
   '
+
+  test_expect_success "test pin update" '
+    ipfs pin add "$HASH_A" &&
+    ipfs pin ls > before_update &&
+    test_should_contain "$HASH_A" before_update &&
+    test_must_fail grep -q "$HASH_B" before_update &&
+    ipfs pin update --unpin=true "$HASH_A" "$HASH_B" &&
+    ipfs pin ls > after_update &&
+    test_must_fail grep -q "$HASH_A" after_update &&
+    test_should_contain "$HASH_B" after_update &&
+    ipfs pin rm "$HASH_B"
+  '
 }
 
 RANDOM_HASH=Qme8uX5n9hn15pw9p6WcVKoziyyC9LXv4LEgvsmKMULjnV
