@@ -3,8 +3,6 @@ package hamt
 import (
 	"context"
 	"time"
-	//"fmt"
-	//"os"
 
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
@@ -13,7 +11,7 @@ import (
 
 var log = logging.Logger("hamt")
 
-// fetcher implements a background fether to retrieve missing child
+// fetcher implements a background fetcher to retrieve missing child
 // shards in large batches.  It attempts to retrieves the missing
 // shards in an order that allow streaming of the complete hamt
 // directory, assuming a depth first traversal.
@@ -36,7 +34,7 @@ type fetcher struct {
 	todo      jobStack        // stack of jobs that still need to be done
 	jobs      map[*Shard]*job // map of all jobs in which the results have not been collected yet
 
-	// stats relevent for streaming the complete hamt directory
+	// stats relevant for streaming the complete hamt directory
 	doneCnt    int // job's done but results not yet retrieved
 	hits       int // job's result already ready, no delay
 	nearMisses int // job currently being worked on, small delay
@@ -48,11 +46,12 @@ type fetcher struct {
 	start time.Time
 }
 
-// batchSize must be at least as large as the largest number of cids
-// requested in a single job.  For best perforamce it should likely be
-// sligtly larger as jobs are poped from the todo stack in order and a
+// batchSize must be at least as large as the largest number of CIDs
+// requested in a single job.  For best performance it should likely be
+// slightly larger as jobs are popped from the todo stack in order and a
 // job close to the batchSize could force a very small batch to run.
-// Recommend minimum size: 256 + 64 = 320
+// The recommend minimum size is a size slightly larger than the
+// maximum number children in a HAMT node or 256 + 64 = 320
 const batchSize = 320
 
 //
@@ -86,7 +85,7 @@ type result struct {
 // children are then also retrieved in the background.  The result is
 // the result of the batch request and not just the single job.  In
 // particular, if the 'errs' field is empty the 'vals' of the result
-// is guaranteed to contain the all the missing child shards, but the
+// is guaranteed to contain all the missing child shards, but the
 // map may also contain child shards of other jobs in the batch
 func (f *fetcher) get(hamt *Shard) result {
 	f.reqRes <- hamt
