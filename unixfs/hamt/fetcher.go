@@ -28,7 +28,7 @@ type fetcher struct {
 
 	idle bool
 
-	done chan batchJob
+	done chan batchJob // when a batch job completes results are sent to this channel
 
 	todoFirst *job            // do this job first since we are waiting for its results
 	todo      jobStack        // stack of jobs that still need to be done
@@ -47,11 +47,12 @@ type fetcher struct {
 }
 
 // batchSize must be at least as large as the largest number of CIDs
-// requested in a single job.  For best performance it should likely be
+// requested in a single job. For best performance it should likely be
 // slightly larger as jobs are popped from the todo stack in order and a
 // job close to the batchSize could force a very small batch to run.
-// The recommend minimum size is a size slightly larger than the
-// maximum number children in a HAMT node or 256 + 64 = 320
+// The recommend minimum size is thus a size slightly larger than the
+// maximum number children in a HAMT node (which is the largest number
+// of CIDs that could be requested in a single job) or 256 + 64 = 320
 const batchSize = 320
 
 //
@@ -110,7 +111,8 @@ type jobStack struct {
 }
 
 func (f *fetcher) mainLoop() {
-	var want *Shard
+	var want *Shard /* want is the job id (the parent shard) of the
+	   results we want next */
 	f.start = time.Now()
 	for {
 		select {
@@ -121,30 +123,35 @@ func (f *fetcher) mainLoop() {
 			}
 			j, ok := f.jobs[id]
 			if !ok {
+				// job does not exist yet so add it
 				j = f.mainLoopAddJob(id)
 				if j == nil {
 					// no children that need to be retrieved
 					f.result <- result{vals: make(map[string]*Shard)}
+					continue
 				}
 				if f.idle {
 					f.launch()
 				}
 			}
 			if j.res.vals != nil {
+				// job already completed so just send result
 				f.hits++
 				f.mainLoopSendResult(j)
-			} else {
-				if j.idx != -1 {
-					f.misses++
-					// move job to todoFirst so that it will be done on the
-					// next batch job
-					f.todo.remove(j)
-					f.todoFirst = j
-				} else {
-					f.nearMisses++
-				}
-				want = id
+				continue
 			}
+			if j.idx != -1 {
+				f.misses++
+				// job is not currently running so
+				// move job to todoFirst so that it will be done on the
+				// next batch job
+				f.todo.remove(j)
+				f.todoFirst = j
+			} else {
+				// job already running
+				f.nearMisses++
+			}
+			want = id
 		case bj := <-f.done:
 			f.doneCnt += len(bj.jobs)
 			f.cidCnt += len(bj.cids)
