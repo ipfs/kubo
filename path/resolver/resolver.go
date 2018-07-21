@@ -70,11 +70,11 @@ func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath path.Path) (ipld
 
 	for len(p) > 0 {
 		lnk, rest, err := r.ResolveOnce(ctx, r.DAG, nd, p)
-		if err != nil {
-			return nil, nil, err
-		}
-
 		if lnk != nil {
+			if err != nil {
+				return nil, nil, err
+			}
+
 			next, err := lnk.GetNode(ctx, r.DAG)
 			if err != nil {
 				return nil, nil, err
@@ -85,6 +85,9 @@ func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath path.Path) (ipld
 		}
 
 		val, rest, err := nd.Resolve(p)
+		if err != nil {
+			return nil, nil, err
+		}
 		switch val.(type) {
 		case *ipld.Link:
 			return nil, nil, errors.New("inconsistent ResolveOnce / nd.Resolve")
