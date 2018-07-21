@@ -10,9 +10,9 @@ import (
 
 	repo "github.com/ipfs/go-ipfs/repo"
 
+	measure "gx/ipfs/QmPMRquZA1WiRMQ5ZE2V1kHtnPaq2X5Qtz7Wgwwo2tjLyS/go-ds-measure"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	measure "gx/ipfs/QmXez8SABR95KKKgU9XFtTTQ79QRn2nWS9o5pa1EcHsLs5/go-ds-measure"
-	badgerds "gx/ipfs/QmaovxzXCm7NMURpC9U5M6QCyHcumPDYAFSq5Rkr8M8CW1/go-ds-badger"
+	badgerds "gx/ipfs/QmQoiqmV9gAKEQAELqeGACQwXyDeijE6fq7ARhirPMX2T2/go-ds-badger"
 	levelds "gx/ipfs/Qmb4NghN5y3uGjiZCQWU6g1ZWRVmFCykLmByqxEVi7px1d/go-ds-leveldb"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
 	flatfs "gx/ipfs/Qmc1ExJkrEUesbvRNHq6g3bJ2km7K4XffcC2bvwdpfGYDx/go-ds-flatfs"
