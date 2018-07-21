@@ -306,9 +306,9 @@ func (ds *Shard) loadChild(ctx context.Context, i int) (child, error) {
 	return c, nil
 }
 
-func (ds *Shard) missingChildShards() []*cid.Cid {
+func (ds *Shard) missingChildShards() ([]*cid.Cid, error) {
 	if len(ds.children) != len(ds.nd.Links()) {
-		panic("inconsistent lengths between children array and Links array")
+		return nil, fmt.Errorf("inconsistent lengths between children array and Links array")
 	}
 	res := make([]*cid.Cid, 0, len(ds.children))
 	for i, c := range ds.children {
@@ -320,7 +320,7 @@ func (ds *Shard) missingChildShards() []*cid.Cid {
 			res = append(res, lnk.Cid)
 		}
 	}
-	return res
+	return res, nil
 }
 
 // loadChild returns i'th child node if it is a 'shardValue' otherwise

@@ -122,9 +122,14 @@ func (f *fetcher) mainLoop() {
 				panic("fetcher: can not request more than one result at a time")
 			}
 			j, ok := f.jobs[id]
+			var err error
 			if !ok {
 				// job does not exist yet so add it
-				j = f.mainLoopAddJob(id)
+				j, err = f.mainLoopAddJob(id)
+				if err != nil {
+					f.result <- result{errs: []error{err}}
+					continue
+				}
 				if j == nil {
 					// no children that need to be retrieved
 					f.result <- result{vals: make(map[string]*Shard)}
@@ -173,10 +178,13 @@ func (f *fetcher) mainLoop() {
 	}
 }
 
-func (f *fetcher) mainLoopAddJob(hamt *Shard) *job {
-	children := hamt.missingChildShards()
+func (f *fetcher) mainLoopAddJob(hamt *Shard) (*job, error) {
+	children, err := hamt.missingChildShards()
+	if err != nil {
+		return nil, err
+	}
 	if len(children) == 0 {
-		return nil
+		return nil, nil
 	}
 	j := &job{id: hamt, cids: children}
 	if len(j.cids) > batchSize {
@@ -185,7 +193,7 @@ func (f *fetcher) mainLoopAddJob(hamt *Shard) *job {
 	}
 	f.todo.push(j)
 	f.jobs[j.id] = j
-	return j
+	return j, nil
 }
 
 func (f *fetcher) mainLoopSendResult(j *job) {
