@@ -106,10 +106,6 @@ type job struct {
 	res  result
 }
 
-type jobStack struct {
-	c []*job
-}
-
 func (f *fetcher) mainLoop() {
 	var want *Shard /* want is the job id (the parent shard) of the
 	   results we want next */
@@ -279,6 +275,13 @@ func (f *fetcher) launch() {
 	}()
 }
 
+// jobStack is a specialized stack implementation.  It has the
+// property that once an item is added to the stack its position will
+// never change so it can be referenced by index
+type jobStack struct {
+	c []*job
+}
+
 func (js *jobStack) empty() bool {
 	return len(js.c) == 0
 }
@@ -298,12 +301,15 @@ func (js *jobStack) pop() *job {
 	return j
 }
 
+// remove marks a job as empty and attempts to remove it if it is at
+// the top of a stack
 func (js *jobStack) remove(j *job) {
 	js.c[j.idx] = nil
 	j.idx = -1
 	js.popEmpty()
 }
 
+// popEmpty removes all empty jobs at the top of the stack
 func (js *jobStack) popEmpty() {
 	for len(js.c) > 0 && js.c[len(js.c)-1] == nil {
 		js.c = js.c[:len(js.c)-1]
