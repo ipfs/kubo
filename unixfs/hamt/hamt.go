@@ -346,8 +346,10 @@ func (ds *Shard) loadChildValue(i int) (child, error) {
 	return c, nil
 }
 
-// preloadChildren populates the 'children' array if some child shards
-// are not already loaded they are fetched in parallel using GetMany
+// preloadChildren populates the 'children' array.  If some child
+// shards are not already loaded they are fetched in parallel using
+// GetMany if the fetcher is nil, otherwise the passed in fetcher is
+// used.
 func (ds *Shard) preloadChildren(ctx context.Context, f *fetcher) error {
 	if len(ds.children) != len(ds.nd.Links()) {
 		return fmt.Errorf("inconsistent lengths between children array and Links array")
