@@ -167,6 +167,10 @@ func (f *fetcher) mainLoop() {
 			log.Infof("fetcher: batch job done")
 			f.mainLoopLogStats()
 		case <-f.ctx.Done():
+			if !f.idle {
+				// wait unit batch job finishes
+				<-f.done
+			}
 			log.Infof("fetcher: exiting")
 			f.mainLoopLogStats()
 			return
