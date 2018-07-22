@@ -17,7 +17,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
+	serialize "github.com/ipfs/go-ipfs/repo/config/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
