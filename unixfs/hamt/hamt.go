@@ -494,6 +494,7 @@ func (ds *Shard) EnumLinks(ctx context.Context) ([]*ipld.Link, error) {
 // ForEachLink walks the Shard and calls the given function.
 func (ds *Shard) ForEachLink(ctx0 context.Context, f func(*ipld.Link) error) error {
 	ctx, cancel := context.WithCancel(ctx0)
+	defer cancel()
 	fetcher := startFetcher(ctx, ds.dserv)
 	err := ds.walkTrie(ctx, func(sv *shardValue) error {
 		lnk := sv.val
@@ -501,7 +502,6 @@ func (ds *Shard) ForEachLink(ctx0 context.Context, f func(*ipld.Link) error) err
 
 		return f(lnk)
 	}, fetcher)
-	cancel()
 	return err
 }
 
