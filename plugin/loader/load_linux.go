@@ -1,3 +1,5 @@
+// +build !noplugin
+
 package loader
 
 import (
