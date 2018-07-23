@@ -70,33 +70,41 @@ func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath path.Path) (ipld
 
 	for len(p) > 0 {
 		lnk, rest, err := r.ResolveOnce(ctx, r.DAG, nd, p)
-		if lnk != nil {
-			if err != nil {
-				return nil, nil, err
-			}
-
-			next, err := lnk.GetNode(ctx, r.DAG)
-			if err != nil {
-				return nil, nil, err
-			}
-			nd = next
-			p = rest
-			continue
+		if lnk == nil {
+			break
 		}
 
-		val, rest, err := nd.Resolve(p)
 		if err != nil {
 			return nil, nil, err
 		}
-		switch val.(type) {
-		case *ipld.Link:
-			return nil, nil, errors.New("inconsistent ResolveOnce / nd.Resolve")
-		default:
-			return nd, p, nil
+
+		next, err := lnk.GetNode(ctx, r.DAG)
+		if err != nil {
+			return nil, nil, err
 		}
+		nd = next
+		p = rest
 	}
 
-	return nd, nil, nil
+	if len(p) == 0 {
+		return nd, nil, nil
+	}
+
+	// Confirm the path exists within the object
+	val, rest, err := nd.Resolve(p)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(rest) > 0 {
+		return nil, nil, errors.New("path failed to resolve fully")
+	}
+	switch val.(type) {
+	case *ipld.Link:
+		return nil, nil, errors.New("inconsistent ResolveOnce / nd.Resolve")
+	default:
+		return nd, p, nil
+	}
 }
 
 // ResolvePath fetches the node for given path. It returns the last item
