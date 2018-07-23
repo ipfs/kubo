@@ -23,8 +23,8 @@ type fetcher struct {
 	ctx   context.Context
 	dserv ipld.DAGService
 
-	reqRes chan *Shard // channel for requesting the children of a shard
-	result chan result // channel for retrieving the results of the request
+	requestCh chan *Shard // channel for requesting the children of a shard
+	resultCh  chan result // channel for retrieving the results of the request
 
 	idle bool
 
@@ -63,13 +63,13 @@ const batchSize = 320
 func startFetcher(ctx context.Context, dserv ipld.DAGService) *fetcher {
 	log.Infof("fetcher: starting...")
 	f := &fetcher{
-		ctx:    ctx,
-		dserv:  dserv,
-		reqRes: make(chan *Shard),
-		result: make(chan result),
-		idle:   true,
-		done:   make(chan batchJob),
-		jobs:   make(map[*Shard]*job),
+		ctx:       ctx,
+		dserv:     dserv,
+		requestCh: make(chan *Shard),
+		resultCh:  make(chan result),
+		idle:      true,
+		done:      make(chan batchJob),
+		jobs:      make(map[*Shard]*job),
 	}
 	go f.mainLoop()
 	return f
@@ -82,15 +82,15 @@ type result struct {
 }
 
 // get gets the missing child shards for the hamt object.
-// The missing children for the passed in shard is returned.  The
+// The missing children for the passed in shard are returned.  The
 // children are then also retrieved in the background.  The result is
 // the result of the batch request and not just the single job.  In
 // particular, if the 'errs' field is empty the 'vals' of the result
 // is guaranteed to contain all the missing child shards, but the
 // map may also contain child shards of other jobs in the batch.
 func (f *fetcher) get(hamt *Shard) result {
-	f.reqRes <- hamt
-	res := <-f.result
+	f.requestCh <- hamt
+	res := <-f.resultCh
 	return res
 }
 
@@ -112,7 +112,7 @@ func (f *fetcher) mainLoop() {
 	f.start = time.Now()
 	for {
 		select {
-		case id := <-f.reqRes:
+		case id := <-f.requestCh:
 			if want != nil {
 				// programmer error
 				panic("fetcher: can not request more than one result at a time")
@@ -123,12 +123,12 @@ func (f *fetcher) mainLoop() {
 				// job does not exist yet so add it
 				j, err = f.mainLoopAddJob(id)
 				if err != nil {
-					f.result <- result{errs: []error{err}}
+					f.resultCh <- result{errs: []error{err}}
 					continue
 				}
 				if j == nil {
 					// no children that need to be retrieved
-					f.result <- result{vals: make(map[string]*Shard)}
+					f.resultCh <- result{vals: make(map[string]*Shard)}
 					continue
 				}
 				if f.idle {
@@ -197,7 +197,7 @@ func (f *fetcher) mainLoopAddJob(hamt *Shard) (*job, error) {
 }
 
 func (f *fetcher) mainLoopSendResult(j *job) {
-	f.result <- j.res
+	f.resultCh <- j.res
 	delete(f.jobs, j.id)
 	f.doneCnt--
 	if len(j.res.errs) != 0 {
