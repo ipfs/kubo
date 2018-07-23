@@ -26,9 +26,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 
 	conf := &Config{
 		API: API{
-			HTTPHeaders: map[string][]string{
-				"Server": {"go-ipfs/" + CurrentVersionNumber},
-			},
+			HTTPHeaders: map[string][]string{},
 		},
 
 		// setup the node's default addresses.
