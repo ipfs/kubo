@@ -12,7 +12,6 @@ import (
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
-	cfg "github.com/ipfs/go-ipfs/repo/config"
 	cidv0v1 "github.com/ipfs/go-ipfs/thirdparty/cidv0v1"
 	"github.com/ipfs/go-ipfs/thirdparty/verifbs"
 	resolver "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path/resolver"
@@ -34,7 +33,8 @@ import (
 	retry "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/retrystore"
 	dsync "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"
 	metrics "gx/ipfs/QmekzFM3hPZjTjUFGTABdQkEnQ3PTiMstY198PwSFr5w1Q/go-metrics-interface"
-)
+	cfg "gx/ipfs/QmbfPqH4QFLQWdfXa111eBKgdTiLkZv2Pc4Qpm2byUeByU/go-ipfs-config"
+	)
 
 type BuildCfg struct {
 	// If online is set, the node will have networking enabled

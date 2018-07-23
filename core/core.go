@@ -29,14 +29,13 @@ import (
 	p2p "github.com/ipfs/go-ipfs/p2p"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
+
 	bitswap "gx/ipfs/QmNQQEYL3Vpj4beteqyeRpVpivuX1wBP6Q5GZMdBPPTV3S/go-bitswap"
 	bsnet "gx/ipfs/QmNQQEYL3Vpj4beteqyeRpVpivuX1wBP6Q5GZMdBPPTV3S/go-bitswap/network"
 	"gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path/resolver"
 	ft "gx/ipfs/QmWJRM6rLjXGEXb5JkKu17Y68eJtCFcKPyRhb8JH2ELZ2Q/go-unixfs"
 	merkledag "gx/ipfs/QmXkZeJmx4c3ddjw81DQMUpM1e5LjAack5idzZYWUb2qAJ/go-merkledag"
 	bserv "gx/ipfs/QmeZMtdkNG7u2CohGSL8mzAdZY2c3B1coYE91wvbzip1pF/go-blockservice"
-
 	circuit "gx/ipfs/QmPMRK5yTc2KhnaxQN4R7vRqEfZo5hW1aF5x6W97RKnXZq/go-libp2p-circuit"
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
@@ -75,7 +74,8 @@ import (
 	ifconnmgr "gx/ipfs/QmeJbAMK4cZc1RMChb68h9t2jqvK8miqE8oQiwGAf4EdQq/go-libp2p-interface-connmgr"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	routing "gx/ipfs/QmewrvpGvgK9qkCtXsGNwXiQzyux4jcHNjoyVrGdsgtNK5/go-libp2p-routing"
-)
+	config "gx/ipfs/QmbfPqH4QFLQWdfXa111eBKgdTiLkZv2Pc4Qpm2byUeByU/go-ipfs-config"
+	)
 
 const IpnsValidatorTag = "ipns"
 

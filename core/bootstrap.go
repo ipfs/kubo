@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	config "github.com/ipfs/go-ipfs/repo/config"
 	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
 	lgbl "gx/ipfs/QmcEC2rbyMxUMgpLwt16wquaZdG1aPXcpbKYf4Fedt7hkD/go-libp2p-loggables"
 
@@ -20,6 +19,7 @@ import (
 	inet "gx/ipfs/QmVwU7Mgwg6qaPn9XXz93ANfq1PTxcduGRzfe41Sygg4mR/go-libp2p-net"
 	pstore "gx/ipfs/QmYLXCWN2myozZpx8Wx4UjrRuQuhY3YtWoMi6SHaXii6aM/go-libp2p-peerstore"
 	peer "gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
+	config "gx/ipfs/QmbfPqH4QFLQWdfXa111eBKgdTiLkZv2Pc4Qpm2byUeByU/go-ipfs-config"
 )
 
 // ErrNotEnoughBootstrapPeers signals that we do not have enough bootstrap

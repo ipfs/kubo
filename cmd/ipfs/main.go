@@ -22,7 +22,6 @@ import (
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
@@ -34,6 +33,7 @@ import (
 	"gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds/cli"
 	"gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds/http"
 	loggables "gx/ipfs/QmcEC2rbyMxUMgpLwt16wquaZdG1aPXcpbKYf4Fedt7hkD/go-libp2p-loggables"
+	"gx/ipfs/QmbfPqH4QFLQWdfXa111eBKgdTiLkZv2Pc4Qpm2byUeByU/go-ipfs-config"
 )
 
 // log is the command logger
