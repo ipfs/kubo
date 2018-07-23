@@ -307,12 +307,6 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmT6n4mspWYEya864BhCUJEgyxiRfmiSY9ruQwTUNpRKaM",
-      "name": "protobuf",
-      "version": "0.0.0"
-    },
-    {
-      "author": "whyrusleeping",
       "hash": "Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge",
       "name": "go-libp2p-host",
       "version": "3.0.4"
