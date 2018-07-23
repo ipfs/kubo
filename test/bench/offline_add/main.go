@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
-	config "gx/ipfs/QmSzU7M24odFR3icDsAK8P8SQoaELzDFv3n3fTPy2grrEL/go-ipfs-config"
+	config "gx/ipfs/QmYyFh6g1C9uieTpH8CR8PpWBUQjvMDJTsRhJWx5qkXy39/go-ipfs-config"
 )
 
 func main() {

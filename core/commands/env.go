@@ -8,7 +8,7 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	cmds "gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds"
-	config "gx/ipfs/QmSzU7M24odFR3icDsAK8P8SQoaELzDFv3n3fTPy2grrEL/go-ipfs-config"
+	config "gx/ipfs/QmYyFh6g1C9uieTpH8CR8PpWBUQjvMDJTsRhJWx5qkXy39/go-ipfs-config"
 )
 
 // GetNode extracts the node from the environment.

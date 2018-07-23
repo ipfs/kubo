@@ -33,7 +33,7 @@ import (
 	"gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds/cli"
 	"gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds/http"
 	loggables "gx/ipfs/QmcEC2rbyMxUMgpLwt16wquaZdG1aPXcpbKYf4Fedt7hkD/go-libp2p-loggables"
-	"gx/ipfs/QmSzU7M24odFR3icDsAK8P8SQoaELzDFv3n3fTPy2grrEL/go-ipfs-config"
+	"gx/ipfs/QmYyFh6g1C9uieTpH8CR8PpWBUQjvMDJTsRhJWx5qkXy39/go-ipfs-config"
 )
 
 // log is the command logger
