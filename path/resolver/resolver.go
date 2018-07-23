@@ -70,6 +70,10 @@ func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath path.Path) (ipld
 
 	for len(p) > 0 {
 		lnk, rest, err := r.ResolveOnce(ctx, r.DAG, nd, p)
+
+		// Note: have to drop the error here as `ResolveOnce` doesn't handle 'leaf'
+		// paths (so e.g. for `echo '{"foo":123}' | ipfs dag put` we wouldn't be
+		// able to resolve `zdpu[...]/foo`)
 		if lnk == nil {
 			break
 		}
