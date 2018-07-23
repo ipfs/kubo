@@ -26,6 +26,8 @@ type fetcher struct {
 	requestCh chan *Shard // channel for requesting the children of a shard
 	resultCh  chan result // channel for retrieving the results of the request
 
+	want *Shard // want is the job id (the parent shard) of the results we want next
+
 	idle bool
 
 	done chan batchJob // when a batch job completes results are sent to this channel
@@ -107,61 +109,20 @@ type job struct {
 }
 
 func (f *fetcher) mainLoop() {
-	var want *Shard /* want is the job id (the parent shard) of the
-	   results we want next */
 	f.start = time.Now()
 	for {
 		select {
 		case id := <-f.requestCh:
-			if want != nil {
-				// programmer error
-				panic("fetcher: can not request more than one result at a time")
-			}
-			j, ok := f.jobs[id]
-			var err error
-			if !ok {
-				// job does not exist yet so add it
-				j, err = f.mainLoopAddJob(id)
-				if err != nil {
-					f.resultCh <- result{errs: []error{err}}
-					continue
-				}
-				if j == nil {
-					// no children that need to be retrieved
-					f.resultCh <- result{vals: make(map[string]*Shard)}
-					continue
-				}
-				if f.idle {
-					f.launch()
-				}
-			}
-			if j.res.vals != nil {
-				// job already completed so just send result
-				f.hits++
-				f.mainLoopSendResult(j)
-				continue
-			}
-			if j.idx != -1 {
-				f.misses++
-				// job is not currently running so
-				// move job to todoFirst so that it will be done on the
-				// next batch job
-				f.todo.remove(j)
-				f.todoFirst = j
-			} else {
-				// job already running
-				f.nearMisses++
-			}
-			want = id
+			f.mainLoopHandleRequest(id)
 		case bj := <-f.done:
 			f.doneCnt += len(bj.jobs)
 			f.cidCnt += len(bj.cids)
 			f.launch()
-			if want != nil {
-				j := f.jobs[want]
+			if f.want != nil {
+				j := f.jobs[f.want]
 				if j.res.vals != nil {
 					f.mainLoopSendResult(j)
-					want = nil
+					f.want = nil
 				}
 			}
 			log.Infof("fetcher: batch job done")
@@ -176,6 +137,49 @@ func (f *fetcher) mainLoop() {
 			return
 		}
 	}
+}
+
+func (f *fetcher) mainLoopHandleRequest(id *Shard) {
+	if f.want != nil {
+		// programmer error
+		panic("fetcher: can not request more than one result at a time")
+	}
+	j, ok := f.jobs[id]
+	var err error
+	if !ok {
+		// job does not exist yet so add it
+		j, err = f.mainLoopAddJob(id)
+		if err != nil {
+			f.resultCh <- result{errs: []error{err}}
+			return
+		}
+		if j == nil {
+			// no children that need to be retrieved
+			f.resultCh <- result{vals: make(map[string]*Shard)}
+			return
+		}
+		if f.idle {
+			f.launch()
+		}
+	}
+	if j.res.vals != nil {
+		// job already completed so just send result
+		f.hits++
+		f.mainLoopSendResult(j)
+		return
+	}
+	if j.idx != -1 {
+		f.misses++
+		// job is not currently running so
+		// move job to todoFirst so that it will be done on the
+		// next batch job
+		f.todo.remove(j)
+		f.todoFirst = j
+	} else {
+		// job already running
+		f.nearMisses++
+	}
+	f.want = id
 }
 
 func (f *fetcher) mainLoopAddJob(hamt *Shard) (*job, error) {
