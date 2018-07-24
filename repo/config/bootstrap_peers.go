@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	iaddr "gx/ipfs/QmWUtfQveCqT8cgNzN54at4sDMiFbANFRFCXuSDiTqJwC8/go-ipfs-addr"
+	iaddr "gx/ipfs/Qme4QgoVPyQqxVc4G1c2L2wc9TDa6o294rtspGMnBNRujm/go-ipfs-addr"
 	// Needs to be imported so that users can import this package directly
 	// and still parse the bootstrap addresses.
 	_ "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
