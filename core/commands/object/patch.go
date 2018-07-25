@@ -254,7 +254,7 @@ to a file containing 'bar', and returns the hash of the new object.
 // TODO: fix import loop with core/commands so we don't need that
 // COPIED FROM ONE LEVEL UP
 // GetApi extracts CoreAPI instance from the environment.
-func GetApi(env interface{}) (coreiface.CoreAPI, error) {
+func GetApi(env cmds.Environment) (coreiface.CoreAPI, error) {
 	ctx, ok := env.(*oldcmds.Context)
 	if !ok {
 		return nil, fmt.Errorf("expected env to be of type %T, got %T", ctx, env)

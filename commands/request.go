@@ -68,12 +68,6 @@ func (c *Context) GetApi() (coreiface.CoreAPI, error) {
 	return c.api, nil
 }
 
-// NodeWithoutConstructing returns the underlying node variable
-// so that clients may close it.
-func (c *Context) NodeWithoutConstructing() *core.IpfsNode {
-	return c.node
-}
-
 // Context returns the node's context.
 func (c *Context) Context() context.Context {
 	n, err := c.GetNode()
