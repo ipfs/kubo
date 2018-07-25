@@ -5,9 +5,9 @@ import (
 	"net"
 	"net/http"
 
+	version "github.com/ipfs/go-ipfs"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
-	repo "github.com/ipfs/go-ipfs/repo"
 
 	id "gx/ipfs/QmUDzeFgYrRmHL2hUB6NZmqcBVQtUzETwmFRUc9onfSSHr/go-libp2p/p2p/protocol/identify"
 )
@@ -41,7 +41,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 func VersionOption() ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Commit: %s\n", repo.CurrentCommit)
+			fmt.Fprintf(w, "Commit: %s\n", version.CurrentCommit)
 			fmt.Fprintf(w, "Client Version: %s\n", id.ClientVersion)
 			fmt.Fprintf(w, "Protocol Version: %s\n", id.LibP2PVersion)
 		})

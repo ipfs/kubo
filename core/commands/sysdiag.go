@@ -5,8 +5,8 @@ import (
 	"path"
 	"runtime"
 
+	version "github.com/ipfs/go-ipfs"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/repo"
 
 	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	sysi "gx/ipfs/QmZRjKbHa6DenStpQJFiaPcEwkZqrx7TH6xTf342LDU3qM/go-sysinfo"
@@ -57,8 +57,8 @@ Prints out information about your computer to aid in easier debugging.
 			return
 		}
 
-		info["ipfs_version"] = repo.CurrentVersionNumber
-		info["ipfs_commit"] = repo.CurrentCommit
+		info["ipfs_version"] = version.CurrentVersionNumber
+		info["ipfs_commit"] = version.CurrentCommit
 		res.SetOutput(info)
 	},
 }
