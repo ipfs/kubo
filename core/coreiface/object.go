@@ -31,25 +31,27 @@ type ObjectStat struct {
 	CumulativeSize int
 }
 
-const (
-	// DiffAdd is a Type of ObjectChange where a link was added to the graph
-	DiffAdd = iota
+// ChangeType denotes type of change in ObjectChange
+type ChangeType int
 
-	// DiffRemove is a Type of ObjectChange where a link was removed from the graph
+const (
+	// DiffAdd is set when a link was added to the graph
+	DiffAdd ChangeType = iota
+
+	// DiffRemove is set when a link was removed from the graph
 	DiffRemove
 
-	// DiffMod is a Type of ObjectChange where a link was changed in the graph
+	// DiffMod is set when a link was changed in the graph
 	DiffMod
 )
 
 // ObjectChange represents a change ia a graph
-// TODO: do we want this to be an interface?
 type ObjectChange struct {
 	// Type of the change, either:
 	// * DiffAdd - Added a link
 	// * DiffRemove - Removed a link
 	// * DiffMod - Modified a link
-	Type int
+	Type ChangeType
 
 	// Path to the changed link
 	Path string
