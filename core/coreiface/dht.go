@@ -10,6 +10,8 @@ import (
 )
 
 // DhtAPI specifies the interface to the DHT
+// Note: This API will likely get renamed in near future, see
+// https://github.com/ipfs/interface-ipfs-core/issues/249 for more context.
 type DhtAPI interface {
 	// FindPeer queries the DHT for all of the multiaddresses associated with a
 	// Peer ID
