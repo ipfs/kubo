@@ -134,7 +134,7 @@ func listAll(ctx context.Context, fs *Filestore, verify bool) (<-chan *ListRes, 
 		return nil, err
 	}
 
-	output := make(chan *ListRes)
+	output := make(chan *ListRes, 64)
 	var wg sync.WaitGroup
 	wg.Add(listWorkers)
 	qrCh := qr.Next()
