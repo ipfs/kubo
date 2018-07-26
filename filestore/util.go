@@ -1,8 +1,10 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
-	"sort"
+	"runtime"
+	"sync"
 
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 
@@ -12,6 +14,10 @@ import (
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	dsq "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/query"
 )
+
+// listWorkers is the number of workers uses when listing/verifying all objects
+// in the filestore.
+var listWorkers = runtime.NumCPU() * 2
 
 // Status is used to identify the state of the block data referenced
 // by a FilestoreNode. Among other places, it is used by CorruptReferenceError.
@@ -90,11 +96,8 @@ func List(fs *Filestore, key *cid.Cid) *ListRes {
 // one by one each block in the Filestore's FileManager.
 // ListAll does not verify that the references are valid or whether
 // the raw data is accessible. See VerifyAll().
-func ListAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
-	if fileOrder {
-		return listAllFileOrder(fs, false)
-	}
-	return listAll(fs, false)
+func ListAll(ctx context.Context, fs *Filestore) (<-chan *ListRes, error) {
+	return listAll(ctx, fs, false)
 }
 
 // Verify fetches the block with the given key from the Filemanager
@@ -109,11 +112,8 @@ func Verify(fs *Filestore, key *cid.Cid) *ListRes {
 // returns one by one each block in the Filestore's FileManager.
 // VerifyAll checks that the reference is valid and that the block data
 // can be read.
-func VerifyAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
-	if fileOrder {
-		return listAllFileOrder(fs, true)
-	}
-	return listAll(fs, true)
+func VerifyAll(ctx context.Context, fs *Filestore) (<-chan *ListRes, error) {
+	return listAll(ctx, fs, true)
 }
 
 func list(fs *Filestore, verify bool, key *cid.Cid) *ListRes {
@@ -127,30 +127,44 @@ func list(fs *Filestore, verify bool, key *cid.Cid) *ListRes {
 	return mkListRes(key, dobj, err)
 }
 
-func listAll(fs *Filestore, verify bool) (func() *ListRes, error) {
+func listAll(ctx context.Context, fs *Filestore, verify bool) (<-chan *ListRes, error) {
 	q := dsq.Query{}
 	qr, err := fs.fm.ds.Query(q)
 	if err != nil {
 		return nil, err
 	}
 
-	return func() *ListRes {
-		cid, dobj, err := next(qr)
-		if dobj == nil && err == nil {
-			return nil
-		} else if err == nil && verify {
-			_, err = fs.fm.readDataObj(cid, dobj)
-		}
-		return mkListRes(cid, dobj, err)
-	}, nil
+	output := make(chan *ListRes)
+	var wg sync.WaitGroup
+	wg.Add(listWorkers)
+	qrCh := qr.Next()
+	for i := 0; i < listWorkers; i++ {
+		go func() {
+			defer wg.Done()
+			for r := range qrCh {
+				cid, dobj, err := unmarshalQueryResult(r)
+				if err == nil && verify {
+					_, err = fs.fm.readDataObj(cid, dobj)
+				}
+				select {
+				case output <- mkListRes(cid, dobj, err):
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(output)
+	}()
+	return output, nil
 }
 
-func next(qr dsq.Results) (*cid.Cid, *pb.DataObj, error) {
-	v, ok := qr.NextSync()
-	if !ok {
-		return nil, nil, nil
+func unmarshalQueryResult(v dsq.Result) (*cid.Cid, *pb.DataObj, error) {
+	if v.Error != nil {
+		return nil, nil, v.Error
 	}
-
 	k := ds.RawKey(v.Key)
 	c, err := dshelp.DsKeyToCid(k)
 	if err != nil {
@@ -163,93 +177,6 @@ func next(qr dsq.Results) (*cid.Cid, *pb.DataObj, error) {
 	}
 
 	return c, dobj, nil
-}
-
-func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
-	q := dsq.Query{}
-	qr, err := fs.fm.ds.Query(q)
-	if err != nil {
-		return nil, err
-	}
-
-	var entries listEntries
-
-	for {
-		v, ok := qr.NextSync()
-		if !ok {
-			break
-		}
-		dobj, err := unmarshalDataObj(v.Value)
-		if err != nil {
-			entries = append(entries, &listEntry{
-				dsKey: v.Key,
-				err:   err,
-			})
-		} else {
-			entries = append(entries, &listEntry{
-				dsKey:    v.Key,
-				filePath: dobj.GetFilePath(),
-				offset:   dobj.GetOffset(),
-				size:     dobj.GetSize_(),
-			})
-		}
-	}
-	sort.Sort(entries)
-
-	i := 0
-	return func() *ListRes {
-		if i >= len(entries) {
-			return nil
-		}
-		v := entries[i]
-		i++
-		// attempt to convert the datastore key to a CID,
-		// store the error but don't use it yet
-		cid, keyErr := dshelp.DsKeyToCid(ds.RawKey(v.dsKey))
-		// first if they listRes already had an error return that error
-		if v.err != nil {
-			return mkListRes(cid, nil, v.err)
-		}
-		// now reconstruct the DataObj
-		dobj := pb.DataObj{
-			FilePath: &v.filePath,
-			Offset:   &v.offset,
-			Size_:    &v.size,
-		}
-		// now if we could not convert the datastore key return that
-		// error
-		if keyErr != nil {
-			return mkListRes(cid, &dobj, keyErr)
-		}
-		// finally verify the dataobj if requested
-		var err error
-		if verify {
-			_, err = fs.fm.readDataObj(cid, &dobj)
-		}
-		return mkListRes(cid, &dobj, err)
-	}, nil
-}
-
-type listEntry struct {
-	filePath string
-	offset   uint64
-	dsKey    string
-	size     uint64
-	err      error
-}
-
-type listEntries []*listEntry
-
-func (l listEntries) Len() int      { return len(l) }
-func (l listEntries) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
-func (l listEntries) Less(i, j int) bool {
-	if l[i].filePath == l[j].filePath {
-		if l[i].offset == l[j].offset {
-			return l[i].dsKey < l[j].dsKey
-		}
-		return l[i].offset < l[j].offset
-	}
-	return l[i].filePath < l[j].filePath
 }
 
 func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
