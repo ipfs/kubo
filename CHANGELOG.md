@@ -1,15 +1,10 @@
 # go-ipfs changelog
 
-## 0.4.17-rc1 2018-07-20
+## 0.4.17 2018-07-27
 
-Ipfs 0.4.17 is a quick release to fix two important bugs:
-
-1. A major performance regression in bitswap (mostly affecting go-ipfs ->
-   js-ipfs transfers).
-2. A bug resolving files in sharded directories with the gateway.
-
-However, while motivated by those fixes, it contains a few other goodies that
-will excite some users.
+Ipfs 0.4.17 is a quick release to fix a major performance regression in bitswap
+(mostly affecting go-ipfs -> js-ipfs transfers). However, while motivated by
+this fix, this release contains a few other goodies that will excite some users.
 
 The headline feature in this release is [urlstore][] support. Urlstore is a
 generalization of the filestore backend that can fetch file blocks from remote
