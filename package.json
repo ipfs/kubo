@@ -545,6 +545,12 @@
       "hash": "Qmdue1XShFNi3mpizGx9NR9hyNEj6U2wEW93yGhKqKCFGN",
       "name": "go-ipns",
       "version": "0.1.4"
+    },
+    {
+      "author": "why",
+      "hash": "QmSLYFS88MpPsszqWdhGSxvHyoTnmaU4A74SD6KGib6Z3m",
+      "name": "go-bitswap",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.10.0",
