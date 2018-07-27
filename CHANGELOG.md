@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.17-rc1 2018-07-20
+## 0.4.17 2018-07-27
 
 Ipfs 0.4.17 is a quick release to fix two important bugs:
 
