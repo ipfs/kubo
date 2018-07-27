@@ -8,9 +8,9 @@ import (
 	"io"
 	"strings"
 
+	"github.com/ipfs/go-ipfs/dagutils"
 	importer "github.com/ipfs/go-ipfs/importer"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	dagutil "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
@@ -42,7 +42,7 @@ func ImportTar(ctx context.Context, r io.Reader, ds ipld.DAGService) (*dag.Proto
 	root := new(dag.ProtoNode)
 	root.SetData([]byte("ipfs/tar"))
 
-	e := dagutil.NewDagEditor(root, ds)
+	e := dagutils.NewDagEditor(root, ds)
 
 	for {
 		h, err := tr.Next()
