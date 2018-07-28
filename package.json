@@ -551,6 +551,12 @@
       "hash": "QmSLYFS88MpPsszqWdhGSxvHyoTnmaU4A74SD6KGib6Z3m",
       "name": "go-bitswap",
       "version": "1.0.0"
+    },
+    {
+      "author": "why",
+      "hash": "QmNqRBAhovtf4jVd5cF7YvHaFSsQHHZBaUFwGQWPM2CV7R",
+      "name": "go-blockservice",
+      "version": "1.0.1"
     }
   ],
   "gxVersion": "0.10.0",
