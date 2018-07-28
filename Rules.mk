@@ -50,9 +50,6 @@ endif
 dir := unixfs/pb
 include $(dir)/Rules.mk
 
-dir := merkledag/pb
-include $(dir)/Rules.mk
-
 dir := pin/internal/pb
 include $(dir)/Rules.mk
 

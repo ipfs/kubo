@@ -557,6 +557,12 @@
       "hash": "QmNqRBAhovtf4jVd5cF7YvHaFSsQHHZBaUFwGQWPM2CV7R",
       "name": "go-blockservice",
       "version": "1.0.1"
+    },
+    {
+      "author": "why",
+      "hash": "QmRy4Qk9hbgFX9NGJRm8rBThrA8PZhNCitMgeRYyZ67s59",
+      "name": "go-merkledag",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.10.0",
