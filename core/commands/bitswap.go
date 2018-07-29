@@ -16,7 +16,6 @@ import (
 	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
 
 var BitswapCmd = &cmds.Command{
@@ -28,55 +27,8 @@ var BitswapCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"stat":      bitswapStatCmd,
 		"wantlist":  lgc.NewCommand(showWantlistCmd),
-		"unwant":    lgc.NewCommand(unwantCmd),
 		"ledger":    lgc.NewCommand(ledgerCmd),
 		"reprovide": lgc.NewCommand(reprovideCmd),
-	},
-}
-
-var unwantCmd = &oldcmds.Command{
-	Helptext: cmdkit.HelpText{
-		Tagline: "Remove a given block from your wantlist.",
-	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, true, "Key(s) to remove from your wantlist.").EnableStdin(),
-	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		if !nd.OnlineMode() {
-			res.SetError(ErrNotOnline, cmdkit.ErrClient)
-			return
-		}
-
-		bs, ok := nd.Exchange.(*bitswap.Bitswap)
-		if !ok {
-			res.SetError(e.TypeErr(bs, nd.Exchange), cmdkit.ErrNormal)
-			return
-		}
-
-		var ks []*cid.Cid
-		for _, arg := range req.Arguments() {
-			c, err := cid.Decode(arg)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-
-			ks = append(ks, c)
-		}
-
-		// TODO: This should maybe find *all* sessions for this request and cancel them?
-		// (why): in reality, i think this command should be removed. Its
-		// messing with the internal state of bitswap. You should cancel wants
-		// by killing the command that caused the want.
-		bs.CancelWants(ks, 0)
-
-		res.SetOutput(nil)
 	},
 }
 

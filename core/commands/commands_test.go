@@ -73,7 +73,6 @@ func TestCommands(t *testing.T) {
 		"/bitswap/ledger",
 		"/bitswap/reprovide",
 		"/bitswap/stat",
-		"/bitswap/unwant",
 		"/bitswap/wantlist",
 		"/block",
 		"/block/get",
