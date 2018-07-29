@@ -563,6 +563,12 @@
       "hash": "QmRy4Qk9hbgFX9NGJRm8rBThrA8PZhNCitMgeRYyZ67s59",
       "name": "go-merkledag",
       "version": "1.0.0"
+    },
+    {
+      "author": "why",
+      "hash": "QmYKNMEUK7nCVAefgXF1LVtZEZg3uRmBqiae4FJRXDNAyJ",
+      "name": "go-path",
+      "version": "1.0.1"
     }
   ],
   "gxVersion": "0.10.0",
