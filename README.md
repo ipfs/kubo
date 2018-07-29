@@ -72,6 +72,8 @@ From there:
 - Open/extract the archive.
 - Move `ipfs` to your path (`install.sh` can do it for you).
 
+You can also download go-ipfs from this project's GitHub releases page if you are unable to access ipfs.io.
+
 ### From Linux package managers
 
 - [Arch Linux](#arch-linux)

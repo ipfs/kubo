@@ -30,7 +30,8 @@ will be allowed up to release day.
 - [ ] publish gx version with `gx release`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
 
 ## Post-Release
-- [ ] bump version string in `repo/config/version.go` to `vX.Y.Z-dev`
+- [ ] Bump version string in `repo/config/version.go` to `vX.Y.Z-dev`
+- [ ] Upload the final release to the github releases page: https://github.com/ipfs/go-ipfs/releases
 - Communication
   - [ ] Create the release issue
   - [ ] Announcements (both pre-release and post-release)
