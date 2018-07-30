@@ -4,11 +4,13 @@ import (
 	"io"
 	"sync"
 
+	net "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	net "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
+
+const CMGR_TAG = "stream-fwd"
 
 // Stream holds information on active incoming and outgoing p2p streams.
 type Stream struct {
@@ -23,12 +25,15 @@ type Stream struct {
 	Remote net.Stream
 
 	Registry *StreamRegistry
+
+	cleanup func()
 }
 
 // Close closes stream endpoints and deregisters it
 func (s *Stream) Close() error {
 	s.Local.Close()
 	s.Remote.Close()
+	s.cleanup()
 	s.Registry.Deregister(s.id)
 	return nil
 }

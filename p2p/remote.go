@@ -3,9 +3,9 @@ package p2p
 import (
 	"context"
 
+	net "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	net "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
@@ -47,11 +47,16 @@ func (l *remoteListener) start() error {
 			return
 		}
 
-		peerMa, err := ma.NewMultiaddr(maPrefix + remote.Conn().RemotePeer().Pretty())
+		peer := remote.Conn().RemotePeer()
+
+		peerMa, err := ma.NewMultiaddr(maPrefix + peer.Pretty())
 		if err != nil {
 			remote.Reset()
 			return
 		}
+
+		cmgr := l.p2p.peerHost.ConnManager()
+		cmgr.TagPeer(peer, CMGR_TAG, 20)
 
 		stream := &Stream{
 			Protocol: l.proto,
@@ -63,6 +68,10 @@ func (l *remoteListener) start() error {
 			Remote: remote,
 
 			Registry: l.p2p.Streams,
+
+			cleanup: func() {
+				cmgr.UntagPeer(peer, CMGR_TAG)
+			},
 		}
 
 		l.p2p.Streams.Register(stream)
