@@ -311,7 +311,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	var dirListing []directoryItem
 	dirr.ForEachLink(ctx, func(link *ipld.Link) error {
 		// See comment above where originalUrlPath is declared.
-		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalUrlPath, link.Name)}
+		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(urlPath, link.Name)}
 		dirListing = append(dirListing, di)
 		return nil
 	})
