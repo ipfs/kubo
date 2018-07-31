@@ -56,3 +56,9 @@ startup_cluster() {
     '
   done
 }
+
+iptb_wait_stop() {
+    while ! iptb for-each sh -c '! { test -e "$IPFS_PATH/repo.lock" && fuser -f "$IPFS_PATH/repo.lock" >/dev/null; }'; do
+        go-sleep 10ms
+    done
+}

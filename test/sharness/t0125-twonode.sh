@@ -81,7 +81,7 @@ run_advanced_test() {
   '
 
   test_expect_success "shut down nodes" '
-    iptb stop
+    iptb stop && iptb_wait_stop
   '
 }
 

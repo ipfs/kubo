@@ -51,10 +51,6 @@ reprovide() {
   '
 }
 
-test_expect_success 'stop peer 1' '
-  iptb stop 1
-'
-
 # Test 'all' strategy
 init_strategy 'all'
 
