@@ -5,7 +5,7 @@
 // depth (and having more intermediary nodes).
 //
 // Internal nodes are always represented by UnixFS nodes (of type `File`) encoded
-// inside DAG nodes (see the `go-ipfs/unixfs` package for details of UnixFS). In
+// inside DAG nodes (see the `go-unixfs` package for details of UnixFS). In
 // contrast, leaf nodes with data have multiple possible representations: UnixFS
 // nodes as above, raw nodes with just the file data (no format) and Filestore
 // nodes (that directly link to the file on disk using a format stored on a raw
@@ -43,8 +43,8 @@ package balanced
 import (
 	"errors"
 
-	h "github.com/ipfs/go-ipfs/importer/helpers"
-	ft "github.com/ipfs/go-ipfs/unixfs"
+	ft "gx/ipfs/QmSaz8Qg77gGqvDvLKeSAY7ivDEnramSWF6T7TcRwFpHtP/go-unixfs"
+	h "gx/ipfs/QmSaz8Qg77gGqvDvLKeSAY7ivDEnramSWF6T7TcRwFpHtP/go-unixfs/importer/helpers"
 
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )

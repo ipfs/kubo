@@ -569,6 +569,12 @@
       "hash": "QmYKNMEUK7nCVAefgXF1LVtZEZg3uRmBqiae4FJRXDNAyJ",
       "name": "go-path",
       "version": "1.0.1"
+    },
+    {
+      "author": "why",
+      "hash": "QmSaz8Qg77gGqvDvLKeSAY7ivDEnramSWF6T7TcRwFpHtP",
+      "name": "go-unixfs",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.10.0",
