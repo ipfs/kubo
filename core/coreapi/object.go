@@ -14,9 +14,10 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/dagutils"
+	"github.com/ipfs/go-ipfs/pin"
+
 	dag "gx/ipfs/QmRy4Qk9hbgFX9NGJRm8rBThrA8PZhNCitMgeRYyZ67s59/go-merkledag"
 	ft "gx/ipfs/QmSaz8Qg77gGqvDvLKeSAY7ivDEnramSWF6T7TcRwFpHtP/go-unixfs"
-
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
@@ -116,9 +117,21 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		return nil, err
 	}
 
+	if options.Pin {
+		defer api.node.Blockstore.PinLock().Unlock()
+	}
+
 	err = api.node.DAG.Add(ctx, dagnode)
 	if err != nil {
 		return nil, err
+	}
+
+	if options.Pin {
+		api.node.Pinning.PinWithMode(dagnode.Cid(), pin.Recursive)
+		err = api.node.Pinning.Flush()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return coreiface.IpfsPath(dagnode.Cid()), nil
@@ -282,6 +295,41 @@ func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.R
 	}
 
 	return coreiface.IpfsPath(pbnd.Cid()), nil
+}
+
+func (api *ObjectAPI) Diff(ctx context.Context, before coreiface.Path, after coreiface.Path) ([]coreiface.ObjectChange, error) {
+	beforeNd, err := api.core().ResolveNode(ctx, before)
+	if err != nil {
+		return nil, err
+	}
+
+	afterNd, err := api.core().ResolveNode(ctx, after)
+	if err != nil {
+		return nil, err
+	}
+
+	changes, err := dagutils.Diff(ctx, api.node.DAG, beforeNd, afterNd)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]coreiface.ObjectChange, len(changes))
+	for i, change := range changes {
+		out[i] = coreiface.ObjectChange{
+			Type: change.Type,
+			Path: change.Path,
+		}
+
+		if change.Before != nil {
+			out[i].Before = coreiface.IpfsPath(change.Before)
+		}
+
+		if change.After != nil {
+			out[i].After = coreiface.IpfsPath(change.After)
+		}
+	}
+
+	return out, nil
 }
 
 func (api *ObjectAPI) core() coreiface.CoreAPI {
