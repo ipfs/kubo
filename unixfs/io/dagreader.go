@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -274,16 +273,6 @@ func (dr *dagReader) extractFSNode(node ipld.Node) (*ft.FSNode, error) {
 		return nil, err
 	}
 
-	if fsNode.NumChildren() != len(node.Links()) {
-		return nil, fmt.Errorf("incorrectly formatted UnixFS node, "+
-			"UnixFS NumChildren (%d) != DAG links (%d)",
-			fsNode.NumChildren(), len(node.Links()))
-		// TODO: Is this check being done at another layer?
-		// What can be expected of the UnixFS node format integrity?
-	}
-	// TODO: This is causing a test error, see
-	// https://github.com/ipfs/go-ipfs/issues/5312.
-
 	return fsNode, nil
 }
 
@@ -323,6 +312,13 @@ func (dr *dagReader) Seek(offset int64, whence int) (int64, error) {
 				fsNode, err := dr.extractFSNode(node)
 				if err != nil {
 					return err
+				}
+
+				if fsNode.NumChildren() != len(node.Links()) {
+					return io.EOF
+					// If there aren't enough size hints don't seek.
+					// https://github.com/ipfs/go-ipfs/pull/4320
+					// TODO: Review this.
 				}
 
 				// Internal nodes have no data (see the `balanced` package
@@ -371,6 +367,17 @@ func (dr *dagReader) Seek(offset int64, whence int) (int64, error) {
 		}
 
 		err := dr.dagTraversal.Search()
+
+		// TODO: Taken from https://github.com/ipfs/go-ipfs/pull/4320.
+		// Return negative number if we can't figure out the file size. Using io.EOF
+		// for this seems to be good(-enough) solution as it's only returned by
+		// precalcNextBuf when we step out of file range.
+		// This is needed for gateway to function properly
+		//if err == io.EOF && dr.file.Type() == ftpb.Data_File {
+		if err == io.EOF {
+			return -1, nil
+		}
+
 		if err != nil {
 			return 0, err
 		}
@@ -395,19 +402,6 @@ func (dr *dagReader) Seek(offset int64, whence int) (int64, error) {
 
 		noffset := int64(dr.Size()) - offset
 		n, err := dr.Seek(noffset, io.SeekStart)
-
-		// Return negative number if we can't figure out the file size. Using io.EOF
-		// for this seems to be good(-enough) solution as it's only returned by
-		// precalcNextBuf when we step out of file range.
-		// This is needed for gateway to function properly
-		//if err == io.EOF && dr.file.Type() == ftpb.Data_File {
-		if err == io.EOF {
-			// TODO: Assume `Data_File` (as we're no longer storing
-			// the UnixFS node, and due to a bug in the importer
-			// `Data_Raw` is almost never used).
-			return -1, nil
-		}
-		// TODO: Ask about this logic.
 
 		return n, err
 
