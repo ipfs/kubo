@@ -89,8 +89,6 @@ func NewDagReader(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) (DagRe
 // NewDagReaderWithSize constructs a new `dagReader` with the file `size`
 // specified.
 func NewDagReaderWithSize(ctx context.Context, n ipld.Node, serv ipld.NodeGetter, size uint64) (DagReader, error) {
-	//fctx, _ := context.WithCancel(ctx) // TODO: Remainder to add a cancel context.
-
 	return &dagReader{
 		ctx:          ctx,
 		size:         size,

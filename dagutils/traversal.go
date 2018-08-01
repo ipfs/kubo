@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
@@ -40,6 +41,12 @@ import (
 // TODO: Encapsulate the position (`path`, `level`, `childIndex`)? It's
 // a big part of the structure, and it should only be one of it, so it
 // would just create a proxy for every move call, e.g., `dt.pos.down()`.
+//
+// TODO: Consider adding methods that would retrieve an attribute indexed
+// by the current `level` to avoid including much indexing like
+// `dt.path[dt.level]` in the code. Maybe another more strong refactoring
+// that would allow to think of the current node in the `path` without
+// concerning at what `level` it's in.
 type Traversal struct {
 
 	// Each member of the slice is the parent of the following member, from
@@ -97,6 +104,19 @@ type Traversal struct {
 	// promises are implemented.
 	ctx  context.Context
 	serv ipld.NodeGetter
+
+	// The CID of each child of each node in the `path` (indexed by
+	// `level` and `childIndex`).
+	childCIDs [][]*cid.Cid
+
+	// NodePromises for child nodes requested for every node in the
+	// `path` (as `childCIDs`, indexed by `level` and `childIndex`).
+	promises [][]*ipld.NodePromise
+	// TODO: Consider encapsulating in a single structure along `childCIDs`.
+
+	// Cancel methods for every node in the `path` that had requested
+	// child nodes through the `promises`.
+	cancel []func()
 }
 
 // NewTraversal creates a new `Traversal` structure from a `root`
@@ -110,6 +130,12 @@ func NewTraversal(ctx context.Context, root ipld.Node, serv ipld.NodeGetter) *Tr
 
 		ctx:  ctx,
 		serv: serv,
+
+		childCIDs: make([][]*cid.Cid, 1),
+		promises:  make([][]*ipld.NodePromise, 1),
+		cancel:    make([]func(), 1),
+		// Initial capacity of 1 (needed for the doubling capacity algorithm
+		// of `extendPath`, it can't be zero).
 	}
 }
 
@@ -300,27 +326,50 @@ func (dt *Traversal) fetchChild() (ipld.Node, error) {
 	if dt.childIndex[dt.level] >= uint(len(childLinks)) {
 		return nil, ErrDownNoChild
 	}
+	// TODO: Can this check be included in `precalcNextBuf`?
 
-	return dt.serv.Get(dt.ctx, childLinks[dt.childIndex[dt.level]].Cid)
-	// TODO: Do not use `GetMany` or promises right now, fetch one at a time
-	// to simplify the algorithm. That part can be extracted from the reader later.
+	return dt.precalcNextBuf(dt.ctx)
 }
 
-// Increase the level and move down in the `path` to the fetched `child` node.
-// Allocate more space for the slices if needed.
+// Increase the level and move down in the `path` to the fetched `child` node
+// (which now becomes the current node). Fetch its links for future node
+// requests. Allocate more space for the slices if needed.
 func (dt *Traversal) extendPath(child ipld.Node) {
 
 	dt.level++
 
+	// Extend the slices if needed (doubling its capacity).
 	if dt.level >= len(dt.path) {
 		dt.path = append(dt.path, make([]ipld.Node, len(dt.path))...)
 		dt.childIndex = append(dt.childIndex, make([]uint, len(dt.childIndex))...)
+		dt.childCIDs = append(dt.childCIDs, make([][]*cid.Cid, len(dt.childCIDs))...)
+		dt.promises = append(dt.promises, make([][]*ipld.NodePromise, len(dt.promises))...)
+		dt.cancel = append(dt.cancel, make([]func(), len(dt.cancel))...)
 		// TODO: Check the performance of these calls.
+		// TODO: Could this be done in a generic function through reflection
+		// (to get the type to for `make`).
 	}
 
 	dt.path[dt.level] = child
 	dt.childIndex[dt.level] = 0
 	// Always (re)set the child index to zero to start from the left.
+
+	// If nodes were already requested at this `level` (but for
+	// another node) cancel those requests (`ipld.NodePromise`).
+	if dt.promises[dt.level] != nil {
+		// TODO: Is this the correct check?
+
+		dt.cancel[dt.level]()
+		dt.promises[dt.level] = nil
+	}
+
+	dt.childCIDs[dt.level] = getLinkCids(child)
+	dt.promises[dt.level] = make([]*ipld.NodePromise, len(dt.childCIDs[dt.level]))
+	_, dt.cancel[dt.level] = context.WithCancel(dt.ctx)
+	// TODO: Is this the correct context?
+	// TODO: There's a "cascading" context, in the sense that one cancel seems
+	// that should cancel all of the requests at all of the levels, check that.
+	// (see `fctx`).
 }
 
 // Go up one level in the DAG. The only possible error this function can return
@@ -382,3 +431,77 @@ func (dt *Traversal) ResetPosition() {
 func (dt *Traversal) ChildIndex() uint {
 	return dt.childIndex[dt.level]
 }
+
+// TODO: Give more visibility to this constant.
+const preloadSize = 10
+
+func (dt *Traversal) preload(ctx context.Context, beg uint) {
+	end := beg + preloadSize
+	if end >= uint(len(dt.childCIDs[dt.level])) {
+		end = uint(len(dt.childCIDs[dt.level]))
+	}
+
+	copy(dt.promises[dt.level][beg:], ipld.GetNodes(ctx, dt.serv, dt.childCIDs[dt.level][beg:end]))
+}
+
+// precalcNextBuf follows the next link in line and loads it from the
+// DAGService, setting the next buffer to read from
+//
+// TODO: Where is this `ctx` coming from?
+func (dt *Traversal) precalcNextBuf(ctx context.Context) (ipld.Node, error) {
+
+	// If we drop to <= preloadSize/2 preloading nodes, preload the next 10.
+	for i := dt.childIndex[dt.level]; i < dt.childIndex[dt.level]+preloadSize/2 && i < uint(len(dt.promises[dt.level])); i++ {
+		// TODO: check if canceled.
+		if dt.promises[dt.level][i] == nil {
+			dt.preload(ctx, i)
+			break
+		}
+	}
+
+	// Fetch the actual node (this is the blocking part of the mechanism)
+	// and invalidate the promise.
+	nxt, err := dt.promises[dt.level][dt.childIndex[dt.level]].Get(ctx)
+	dt.promises[dt.level][dt.childIndex[dt.level]] = nil
+	// TODO: Great example of why `level` should go.
+
+	switch err {
+	case nil:
+	case context.DeadlineExceeded, context.Canceled:
+		err = ctx.Err()
+		if err != nil {
+			return nil, ctx.Err()
+		}
+		// In this case, the context used to *preload* the node has been canceled.
+		// We need to retry the load with our context and we might as
+		// well preload some extra nodes while we're at it.
+		//
+		// Note: When using `Read`, this code will never execute as
+		// `Read` will use the global context. It only runs if the user
+		// explicitly reads with a custom context (e.g., by calling
+		// `CtxReadFull`).
+		dt.preload(ctx, dt.childIndex[dt.level])
+		nxt, err = dt.promises[dt.level][dt.childIndex[dt.level]].Get(ctx)
+		dt.promises[dt.level][dt.childIndex[dt.level]] = nil
+		// TODO: Same code as before.
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, err
+	}
+
+	return nxt, nil
+}
+
+func getLinkCids(node ipld.Node) []*cid.Cid {
+	links := node.Links()
+	out := make([]*cid.Cid, 0, len(links))
+
+	for _, l := range links {
+		out = append(out, l.Cid)
+	}
+	return out
+}
+
+// TODO: Move to another package in the `go-ipld-format` repository.
