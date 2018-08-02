@@ -265,9 +265,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmexBtiTTEwwn42Yi6ouKt6VqzpA6wjJgiW1oh9VfaRrup",
+      "hash": "QmSbvata2WqNkqGtZNg8MR3SKwnB8iQ7vTPJgWqB8bC5kR",
       "name": "go-multibase",
-      "version": "0.2.6"
+      "version": "0.2.7"
     },
     {
       "author": "multiformats",
