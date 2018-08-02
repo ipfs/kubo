@@ -54,15 +54,19 @@ def setupStep(nodeLabel, f) {
   }
 }
 
-def gobuild_step(list) {
+def gobuild_step = { list ->
   setupStep('linux') { run ->
-    run "make gx-deps"
+    timeout(time: build_timeout, unit: 'MINUTES') {
+      run "make gx-deps"
 
-    list.each { platform ->
-      withEnv(["GOOS=${platform[0]}", "GOARCH=${platform[1]}"]) {
-        run "go build -i -ldflags=\"-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=${env.SUBNAME}-${env.BUILD_NUMBER}\"  -o cmd/ipfs/ipfs github.com/ipfs/go-ipfs/cmd/ipfs"
-        run "cp cmd/ipfs/ipfs cmd/ipfs/dist; cd cmd/ipfs/dist; tar -czvf ../go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz ."
-        archiveArtifacts artifacts: "cmd/ipfs/go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz", fingerprint: true
+      list.each { platform ->
+        timeout(time: check_timeout, unit: 'MINUTES') {
+          withEnv(["GOOS=${platform[0]}", "GOARCH=${platform[1]}"]) {
+            run "go build -i -ldflags=\"-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=${env.SUBNAME}-${env.BUILD_NUMBER}\"  -o cmd/ipfs/ipfs github.com/ipfs/go-ipfs/cmd/ipfs"
+            run "cp cmd/ipfs/ipfs cmd/ipfs/dist; cd cmd/ipfs/dist; tar -czvf ../go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz ."
+            archiveArtifacts artifacts: "cmd/ipfs/go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz", fingerprint: true
+          }
+        }
       }
     }
   }
@@ -111,9 +115,7 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
         }
       },
       'go build': {
-        timeout(time: check_timeout, unit: 'MINUTES') {
-          gobuild_step(fast_build_platforms)
-        }
+        gobuild_step(fast_build_platforms)
       }
     )
   }
@@ -121,9 +123,7 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
   stage('Tests') {
     parallel(
       'go build (other platforms)': {
-        timeout(time: build_timeout, unit: 'MINUTES') {
-          gobuild_step(build_platforms)
-        }
+        gobuild_step(build_platforms)
       },
       windows: {
         setupStep('windows') { run ->
