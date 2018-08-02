@@ -31,11 +31,11 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	bserv "gx/ipfs/QmNqRBAhovtf4jVd5cF7YvHaFSsQHHZBaUFwGQWPM2CV7R/go-blockservice"
-	merkledag "gx/ipfs/QmRy4Qk9hbgFX9NGJRm8rBThrA8PZhNCitMgeRYyZ67s59/go-merkledag"
 	bitswap "gx/ipfs/QmSLYFS88MpPsszqWdhGSxvHyoTnmaU4A74SD6KGib6Z3m/go-bitswap"
 	bsnet "gx/ipfs/QmSLYFS88MpPsszqWdhGSxvHyoTnmaU4A74SD6KGib6Z3m/go-bitswap/network"
 	ft "gx/ipfs/QmSaz8Qg77gGqvDvLKeSAY7ivDEnramSWF6T7TcRwFpHtP/go-unixfs"
 	"gx/ipfs/QmYKNMEUK7nCVAefgXF1LVtZEZg3uRmBqiae4FJRXDNAyJ/go-path/resolver"
+	merkledag "gx/ipfs/QmfGzdovkTAhGni3Wfg2fTEtNxhpwWSyAJWW2cC1pWM9TS/go-merkledag"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	rhelpers "gx/ipfs/QmQpvpeXa8rBfDmt3bdh2ckw2867vsYN1ozf79X7U5rij9/go-libp2p-routing-helpers"
