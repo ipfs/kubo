@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -86,6 +87,19 @@ func TestBlockGet(t *testing.T) {
 
 	if string(d) != "Hello" {
 		t.Error("didn't get correct data back")
+	}
+
+	p, err := coreiface.ParsePath("/ipfs/" + res.Path().Cid().String())
+	if err != nil {
+		t.Error(err)
+	}
+
+	rp, err := api.ResolvePath(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rp.Cid().String() != res.Path().Cid().String() {
+		t.Error("paths didn't match")
 	}
 }
 
