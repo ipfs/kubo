@@ -77,6 +77,13 @@ The JSON output contains type information.
 			return
 		}
 
+		baseStr, _, _ := req.Option(MbaseOption).String()
+		base, err := GetMultibase(baseStr, "", "")
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		dserv := nd.DAG
 		if !resolve {
 			offlineexch := offline.Exchange(nd.Blockstore)
@@ -160,7 +167,7 @@ The JSON output contains type information.
 				}
 				output[i].Links[j] = LsLink{
 					Name: link.Name,
-					Hash: link.Cid.String(),
+					Hash: link.Cid.Encode(base),
 					Size: link.Size,
 					Type: t,
 				}

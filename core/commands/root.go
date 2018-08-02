@@ -10,6 +10,7 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
+	path "github.com/ipfs/go-ipfs/path"
 
 	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 	mbase "gx/ipfs/QmSbvata2WqNkqGtZNg8MR3SKwnB8iQ7vTPJgWqB8bC5kR/go-multibase"
@@ -20,7 +21,8 @@ import (
 var log = logging.Logger("core/commands")
 
 const (
-	ApiOption = "api"
+	ApiOption   = "api"
+	MbaseOption = "mbase"
 )
 
 var Root = &cmds.Command{
@@ -92,6 +94,7 @@ The CLI will exit with one of the following values:
 		cmdkit.BoolOption("h", "Show a short version of the command help text."),
 		cmdkit.BoolOption("local", "L", "Run the command locally, instead of using the daemon."),
 		cmdkit.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
+		cmdkit.StringOption(MbaseOption, "Multi-base to use to encode version 1 CIDs in output."),
 
 		// global options, added to every command
 		cmds.OptionEncodingType,
@@ -218,4 +221,24 @@ func MessageTextMarshaler(res oldcmds.Response) (io.Reader, error) {
 	}
 
 	return strings.NewReader(out.Message), nil
+}
+
+// GetMultibase extracts the multibase.  If the first argument is
+// defined that is used as the multibase.  It can be either a single
+// letter or a string.  If it is not defined attemt to use the same
+// base as any CIDs definded in the second path argument.  Finally use
+// the third argument as the default if it is defined.  As a last
+// restort use the default base (currently Base58BTC)
+func GetMultibase(mbaseStr string, path path.Path, def string) (mbase.Encoder, error) {
+	baseStr := mbaseStr
+	if baseStr == "" {
+		// FIXME: extract from path
+	}
+	if baseStr == "" {
+		baseStr = def
+	}
+	if baseStr == "" {
+		baseStr = "base58btc"
+	}
+	return mbase.EncoderByName(baseStr)
 }

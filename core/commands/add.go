@@ -269,6 +269,13 @@ You can now check what blocks have been created by:
 			return
 		}
 
+		baseStr := req.Options[MbaseOption].(string)
+		base, err := GetMultibase(baseStr, "", "")
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		fileAdder.Out = outChan
 		fileAdder.Chunker = chunker
 		fileAdder.Progress = progress
@@ -280,6 +287,7 @@ You can now check what blocks have been created by:
 		fileAdder.RawLeaves = rawblks
 		fileAdder.NoCopy = nocopy
 		fileAdder.Prefix = &prefix
+		fileAdder.Base = base
 
 		if hash {
 			md := dagtest.Mock()
