@@ -23,8 +23,8 @@ func TestBlockPut(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Cid().String() != "QmPyo15ynbVrSTVdJL9th7JysHaAbXt9dM9tXk1bMHbRtk" {
-		t.Errorf("got wrong cid: %s", res.Cid().String())
+	if res.Path().Cid().String() != "QmPyo15ynbVrSTVdJL9th7JysHaAbXt9dM9tXk1bMHbRtk" {
+		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
 	}
 }
 
@@ -40,8 +40,8 @@ func TestBlockPutFormat(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Cid().String() != "zdpuAn4amuLWo8Widi5v6VQpuo2dnpnwbVE3oB6qqs7mDSeoa" {
-		t.Errorf("got wrong cid: %s", res.Cid().String())
+	if res.Path().Cid().String() != "zdpuAn4amuLWo8Widi5v6VQpuo2dnpnwbVE3oB6qqs7mDSeoa" {
+		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
 	}
 }
 
@@ -57,8 +57,8 @@ func TestBlockPutHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Cid().String() != "zBurKB9YZkcDf6xa53WBE8CFX4ydVqAyf9KPXBFZt5stJzEstaS8Hukkhu4gwpMtc1xHNDbzP7sPtQKyWsP3C8fbhkmrZ" {
-		t.Errorf("got wrong cid: %s", res.Cid().String())
+	if res.Path().Cid().String() != "zBurKB9YZkcDf6xa53WBE8CFX4ydVqAyf9KPXBFZt5stJzEstaS8Hukkhu4gwpMtc1xHNDbzP7sPtQKyWsP3C8fbhkmrZ" {
+		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
 	}
 }
 
@@ -74,7 +74,7 @@ func TestBlockGet(t *testing.T) {
 		t.Error(err)
 	}
 
-	r, err := api.Block().Get(ctx, res)
+	r, err := api.Block().Get(ctx, res.Path())
 	if err != nil {
 		t.Error(err)
 	}
@@ -101,7 +101,7 @@ func TestBlockRm(t *testing.T) {
 		t.Error(err)
 	}
 
-	r, err := api.Block().Get(ctx, res)
+	r, err := api.Block().Get(ctx, res.Path())
 	if err != nil {
 		t.Error(err)
 	}
@@ -115,12 +115,12 @@ func TestBlockRm(t *testing.T) {
 		t.Error("didn't get correct data back")
 	}
 
-	err = api.Block().Rm(ctx, res)
+	err = api.Block().Rm(ctx, res.Path())
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = api.Block().Get(ctx, res)
+	_, err = api.Block().Get(ctx, res.Path())
 	if err == nil {
 		t.Error("expected err to exist")
 	}
@@ -128,7 +128,7 @@ func TestBlockRm(t *testing.T) {
 		t.Errorf("unexpected error; %s", err.Error())
 	}
 
-	err = api.Block().Rm(ctx, res)
+	err = api.Block().Rm(ctx, res.Path())
 	if err == nil {
 		t.Error("expected err to exist")
 	}
@@ -136,7 +136,7 @@ func TestBlockRm(t *testing.T) {
 		t.Errorf("unexpected error; %s", err.Error())
 	}
 
-	err = api.Block().Rm(ctx, res, opt.Block.Force(true))
+	err = api.Block().Rm(ctx, res.Path(), opt.Block.Force(true))
 	if err != nil {
 		t.Error(err)
 	}
@@ -154,12 +154,12 @@ func TestBlockStat(t *testing.T) {
 		t.Error(err)
 	}
 
-	stat, err := api.Block().Stat(ctx, res)
+	stat, err := api.Block().Stat(ctx, res.Path())
 	if err != nil {
 		t.Error(err)
 	}
 
-	if stat.Path().String() != res.String() {
+	if stat.Path().String() != res.Path().String() {
 		t.Error("paths don't match")
 	}
 

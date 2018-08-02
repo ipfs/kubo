@@ -24,7 +24,7 @@ type BlockStat struct {
 	size int
 }
 
-func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.BlockPutOption) (coreiface.ResolvedPath, error) {
+func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.BlockPutOption) (coreiface.BlockStat, error) {
 	settings, err := caopts.BlockPutOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		return nil, err
 	}
 
-	return coreiface.IpldPath(b.Cid()), nil
+	return &BlockStat{path: coreiface.IpldPath(b.Cid()), size: len(data)}, nil
 }
 
 func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, error) {
