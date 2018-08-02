@@ -176,8 +176,8 @@ var findProvidersDhtCmd = &cmds.Command{
 
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+		c, err := cid.Parse(req.Arguments()[0])
 
-		c, err := cid.Decode(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
