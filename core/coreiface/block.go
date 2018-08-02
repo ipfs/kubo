@@ -19,7 +19,7 @@ type BlockStat interface {
 // BlockAPI specifies the interface to the block layer
 type BlockAPI interface {
 	// Put imports raw block data, hashing it using specified settings.
-	Put(context.Context, io.Reader, ...options.BlockPutOption) (ResolvedPath, error)
+	Put(context.Context, io.Reader, ...options.BlockPutOption) (BlockStat, error)
 
 	// Get attempts to resolve the path and return a reader for data in the block
 	Get(context.Context, Path) (io.Reader, error)
