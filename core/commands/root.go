@@ -138,7 +138,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"update":    lgc.NewCommand(ExternalBinary()),
 	"urlstore":  urlStoreCmd,
 	"version":   lgc.NewCommand(VersionCmd),
-	"shutdown":  lgc.NewCommand(daemonShutdownCmd),
+	"shutdown":  daemonShutdownCmd,
 }
 
 // RootRO is the readonly version of Root
