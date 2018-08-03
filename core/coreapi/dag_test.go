@@ -136,7 +136,7 @@ func TestBatch(t *testing.T) {
 	}
 
 	_, err = api.Dag().Get(ctx, c)
-	if err == nil || err.Error() != "merkledag: not found"{
+	if err == nil || err.Error() != "merkledag: not found" {
 		t.Error(err)
 	}
 

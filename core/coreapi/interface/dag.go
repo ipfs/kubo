@@ -22,6 +22,7 @@ type DagOps interface {
 type DagBatch interface {
 	DagOps
 
+	// Commit commits nodes to the datastore and announces them to the network
 	Commit(ctx context.Context) error
 }
 
@@ -35,5 +36,6 @@ type DagAPI interface {
 	// Tree returns list of paths within a node specified by the path.
 	Tree(ctx context.Context, path Path, opts ...options.DagTreeOption) ([]Path, error)
 
+	// Batch creates new DagBatch
 	Batch(ctx context.Context) DagBatch
 }

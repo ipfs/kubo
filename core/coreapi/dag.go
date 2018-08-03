@@ -67,10 +67,14 @@ func (api *DagAPI) Tree(ctx context.Context, p coreiface.Path, opts ...caopts.Da
 	return out, nil
 }
 
+// Batch creates new DagBatch
 func (api *DagAPI) Batch(ctx context.Context) coreiface.DagBatch {
 	return &dagBatch{api: api}
 }
 
+// Put inserts data using specified format and input encoding. Unless used with
+// `WithCodes` or `WithHash`, the defaults "dag-cbor" and "sha256" are used.
+// Returns the path of the inserted data.
 func (b *dagBatch) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.ResolvedPath, error) {
 	nd, err := getNode(src, opts...)
 	if err != nil {
@@ -84,6 +88,7 @@ func (b *dagBatch) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPut
 	return coreiface.IpldPath(nd.Cid()), nil
 }
 
+// Commit commits nodes to the datastore and announces them to the network
 func (b *dagBatch) Commit(ctx context.Context) error {
 	b.lk.Lock()
 	defer b.lk.Unlock()
