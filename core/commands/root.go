@@ -242,9 +242,8 @@ func HandleCidBase(req *cmds.Request, env cmds.Environment) (mbase.Encoder, bool
 // HandleCidBaseFlagOld is like HandleCidBase but works with the old
 // commands interface.  Since it is not possible to change the context
 // using this interface and new context is returned instead.
-func HandleCidBaseOld(req oldcmds.Request) (mbase.Encoder, bool, context.Context, error) {
+func HandleCidBaseOld(req oldcmds.Request, ctx context.Context) (mbase.Encoder, bool, context.Context, error) {
 	baseStr, _, _ := req.Option("cid-base").String()
-	ctx := req.Context()
 	if baseStr != "" {
 		encoder, err := mbase.EncoderByName(baseStr)
 		if err != nil {

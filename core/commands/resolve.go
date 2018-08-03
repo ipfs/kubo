@@ -87,7 +87,7 @@ Resolve the value of an IPFS DAG path:
 		name := req.Arguments()[0]
 		recursive, _, _ := req.Option("recursive").Bool()
 
-		_, _, ctx, err := HandleCidBaseOld(req)
+		_, _, ctx, err := HandleCidBaseOld(req, req.Context())
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
