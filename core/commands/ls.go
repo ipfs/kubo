@@ -77,7 +77,7 @@ The JSON output contains type information.
 			return
 		}
 
-		base, _, _, err := HandleCidBaseOld(req)
+		_, _, ctx, err := HandleCidBaseOld(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -105,7 +105,7 @@ The JSON output contains type information.
 				ResolveOnce: uio.ResolveUnixfsOnce,
 			}
 
-			dagnode, err := core.Resolve(req.Context(), nd.Namesys, r, p)
+			dagnode, err := core.Resolve(ctx, nd.Namesys, r, p)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
@@ -126,7 +126,7 @@ The JSON output contains type information.
 			if dir == nil {
 				links = dagnode.Links()
 			} else {
-				links, err = dir.Links(req.Context())
+				links, err = dir.Links(ctx)
 				if err != nil {
 					res.SetError(err, cmdkit.ErrNormal)
 					return
@@ -146,7 +146,7 @@ The JSON output contains type information.
 					// No need to check with raw leaves
 					t = unixfspb.Data_File
 				case cid.DagProtobuf:
-					linkNode, err := link.GetNode(req.Context(), dserv)
+					linkNode, err := link.GetNode(ctx, dserv)
 					if err == ipld.ErrNotFound && !resolve {
 						// not an error
 						linkNode = nil
@@ -164,6 +164,7 @@ The JSON output contains type information.
 						t = d.GetType()
 					}
 				}
+				base := GetCidBase(ctx, paths[i])
 				output[i].Links[j] = LsLink{
 					Name: link.Name,
 					Hash: link.Cid.Encode(base),
