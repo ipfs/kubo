@@ -269,8 +269,7 @@ You can now check what blocks have been created by:
 			return
 		}
 
-		baseStr := req.Options[MbaseOption].(string)
-		base, err := GetMultibase(baseStr, "", "")
+		base, _, err := HandleCidBase(req, env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

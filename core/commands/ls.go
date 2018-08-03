@@ -77,8 +77,7 @@ The JSON output contains type information.
 			return
 		}
 
-		baseStr, _, _ := req.Option(MbaseOption).String()
-		base, err := GetMultibase(baseStr, "", "")
+		base, _, _, err := HandleCidBaseOld(req)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
