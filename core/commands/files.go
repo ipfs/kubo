@@ -27,6 +27,7 @@ import (
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	offline "gx/ipfs/QmS6mo1dPpHdYsVkm27BRZDLxpKBCiJKUH8fHX15XFfMez/go-ipfs-exchange-offline"
+	mbase "gx/ipfs/QmSbvata2WqNkqGtZNg8MR3SKwnB8iQ7vTPJgWqB8bC5kR/go-multibase"
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
@@ -128,6 +129,12 @@ var filesStatCmd = &cmds.Command{
 
 		withLocal, _ := req.Options["with-local"].(bool)
 
+		base, _, err := HandleCidBase(req, env)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		var dagserv ipld.DAGService
 		if withLocal {
 			// an offline DAGService will not fetch from the network
@@ -145,7 +152,7 @@ var filesStatCmd = &cmds.Command{
 			return
 		}
 
-		o, err := statNode(nd)
+		o, err := statNode(nd, base)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -217,7 +224,7 @@ func statGetFormatOptions(req *cmds.Request) (string, error) {
 	}
 }
 
-func statNode(nd ipld.Node) (*statOutput, error) {
+func statNode(nd ipld.Node, base mbase.Encoder) (*statOutput, error) {
 	c := nd.Cid()
 
 	cumulsize, err := nd.Size()
@@ -243,7 +250,7 @@ func statNode(nd ipld.Node) (*statOutput, error) {
 		}
 
 		return &statOutput{
-			Hash:           c.String(),
+			Hash:           c.Encode(base),
 			Blocks:         len(nd.Links()),
 			Size:           d.GetFilesize(),
 			CumulativeSize: cumulsize,
@@ -251,7 +258,7 @@ func statNode(nd ipld.Node) (*statOutput, error) {
 		}, nil
 	case *dag.RawNode:
 		return &statOutput{
-			Hash:           c.String(),
+			Hash:           c.Encode(base),
 			Blocks:         0,
 			Size:           cumulsize,
 			CumulativeSize: cumulsize,
@@ -437,11 +444,13 @@ Examples:
 
 		long, _, _ := req.Option("l").Bool()
 
+		base, _, ctx, err := HandleCidBaseOld(req, req.Context())
+
 		switch fsn := fsn.(type) {
 		case *mfs.Directory:
 			if !long {
 				var output []mfs.NodeListing
-				names, err := fsn.ListNames(req.Context())
+				names, err := fsn.ListNames(ctx)
 				if err != nil {
 					res.SetError(err, cmdkit.ErrNormal)
 					return
@@ -454,7 +463,7 @@ Examples:
 				}
 				res.SetOutput(&filesLsOutput{output})
 			} else {
-				listing, err := fsn.List(req.Context())
+				listing, err := fsn.List(ctx)
 				if err != nil {
 					res.SetError(err, cmdkit.ErrNormal)
 					return
@@ -480,7 +489,7 @@ Examples:
 					res.SetError(err, cmdkit.ErrNormal)
 					return
 				}
-				out.Entries[0].Hash = nd.Cid().String()
+				out.Entries[0].Hash = nd.Cid().Encode(base)
 			}
 			res.SetOutput(out)
 			return

@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 
+	misc "github.com/ipfs/go-ipfs/core/misc"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
@@ -335,7 +336,7 @@ func (rw *RefWriter) WriteEdge(from, to *cid.Cid, linkname string) error {
 		}
 	}
 
-	base := GetCidBase(rw.Ctx, "")
+	base := misc.GetCidBase(rw.Ctx, "")
 
 	var s string
 	switch {

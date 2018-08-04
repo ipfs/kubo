@@ -79,8 +79,14 @@ var addPinCmd = &cmds.Command{
 		}
 		showProgress, _, _ := req.Option("progress").Bool()
 
+		_, _, ctx, err := HandleCidBase(req, ctx)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		if !showProgress {
-			added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
+			added, err := corerepo.Pin(n, ctx, req.Arguments(), recursive)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
@@ -92,7 +98,7 @@ var addPinCmd = &cmds.Command{
 		out := make(chan interface{})
 		res.SetOutput((<-chan interface{})(out))
 		v := new(dag.ProgressTracker)
-		ctx := v.DeriveContext(req.Context())
+		ctx := v.DeriveContext(ctx)
 
 		type pinResult struct {
 			pins []*cid.Cid
@@ -201,7 +207,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return
 		}
 
-		removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive)
+		removed, err := corerepo.Unpin(n, ctx, req.Arguments(), recursive)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -305,9 +311,9 @@ Example:
 		var keys map[string]RefKeyObject
 
 		if len(req.Arguments()) > 0 {
-			keys, err = pinLsKeys(req.Context(), req.Arguments(), typeStr, n)
+			keys, err = pinLsKeys(ctx, req.Arguments(), typeStr, n)
 		} else {
-			keys, err = pinLsAll(req.Context(), typeStr, n)
+			keys, err = pinLsAll(ctx, typeStr, n)
 		}
 
 		if err != nil {
@@ -394,19 +400,19 @@ new pin and removing the old one.
 			ResolveOnce: uio.ResolveUnixfsOnce,
 		}
 
-		fromc, err := core.ResolveToCid(req.Context(), n.Namesys, r, from)
+		fromc, err := core.ResolveToCid(ctx, n.Namesys, r, from)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		toc, err := core.ResolveToCid(req.Context(), n.Namesys, r, to)
+		toc, err := core.ResolveToCid(ctx, n.Namesys, r, to)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		err = n.Pinning.Update(req.Context(), fromc, toc, unpin)
+		err = n.Pinning.Update(ctx, fromc, toc, unpin)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -454,7 +460,7 @@ var verifyPinCmd = &cmds.Command{
 			explain:   !quiet,
 			includeOk: verbose,
 		}
-		out := pinVerify(req.Context(), n, opts)
+		out := pinVerify(ctx, n, opts)
 
 		res.SetOutput(out)
 	},

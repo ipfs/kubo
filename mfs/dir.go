@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	misc "github.com/ipfs/go-ipfs/core/misc"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
@@ -261,6 +262,7 @@ func (d *Directory) List(ctx context.Context) ([]NodeListing, error) {
 func (d *Directory) ForEachEntry(ctx context.Context, f func(NodeListing) error) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
+	base := misc.GetCidBase(ctx, "")
 	return d.unixfsDir.ForEachLink(ctx, func(l *ipld.Link) error {
 		c, err := d.childUnsync(l.Name)
 		if err != nil {
@@ -275,7 +277,7 @@ func (d *Directory) ForEachEntry(ctx context.Context, f func(NodeListing) error)
 		child := NodeListing{
 			Name: l.Name,
 			Type: int(c.Type()),
-			Hash: nd.Cid().String(),
+			Hash: nd.Cid().Encode(base),
 		}
 
 		if c, ok := c.(*File); ok {

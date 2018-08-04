@@ -9,6 +9,7 @@ import (
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	misc "github.com/ipfs/go-ipfs/core/misc"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
@@ -164,7 +165,7 @@ The JSON output contains type information.
 						t = d.GetType()
 					}
 				}
-				base := GetCidBase(ctx, paths[i])
+				base := misc.GetCidBase(ctx, paths[i])
 				output[i].Links[j] = LsLink{
 					Name: link.Name,
 					Hash: link.Cid.Encode(base),

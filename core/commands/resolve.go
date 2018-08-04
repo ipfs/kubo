@@ -9,6 +9,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+	misc "github.com/ipfs/go-ipfs/core/misc"
 	ns "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "github.com/ipfs/go-ipfs/path"
@@ -137,7 +138,7 @@ Resolve the value of an IPFS DAG path:
 		}
 
 		c := node.Cid()
-		base := GetCidBase(ctx, name)
+		base := misc.GetCidBase(ctx, name)
 		pathStr := "/ipfs/" + c.Encode(base)
 
 		res.SetOutput(&ResolvedPath{path.FromString(pathStr)})

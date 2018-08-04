@@ -241,7 +241,7 @@ func HandleCidBase(req *cmds.Request, env cmds.Environment) (mbase.Encoder, bool
 
 // HandleCidBaseFlagOld is like HandleCidBase but works with the old
 // commands interface.  Since it is not possible to change the context
-// using this interface and new context is returned instead.
+// using this interface a new context is returned instead.
 func HandleCidBaseOld(req oldcmds.Request, ctx context.Context) (mbase.Encoder, bool, context.Context, error) {
 	baseStr, _, _ := req.Option("cid-base").String()
 	if baseStr != "" {
@@ -254,26 +254,4 @@ func HandleCidBaseOld(req oldcmds.Request, ctx context.Context) (mbase.Encoder, 
 	}
 	encoder, _ := mbase.NewEncoder(mbase.Base58BTC)
 	return encoder, false, ctx, nil
-}
-
-// GetCidBase gets the cid base to use from either the context or
-// another cid or path
-func GetCidBase(ctx context.Context, cidStr string) mbase.Encoder {
-	encoder, ok := ctx.Value("cid-base").(mbase.Encoder)
-	if ok {
-		return encoder
-	}
-	defaultEncoder, _ := mbase.NewEncoder(mbase.Base58BTC)
-	if cidStr != "" {
-		cidStr = strings.TrimPrefix(cidStr, "/ipfs/")
-		if cidStr == "" || strings.HasPrefix(cidStr, "Qm") {
-			return defaultEncoder
-		}
-		encoder, err := mbase.NewEncoder(mbase.Encoding(cidStr[0]))
-		if err != nil {
-			return defaultEncoder
-		}
-		return encoder
-	}
-	return defaultEncoder
 }
