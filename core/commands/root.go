@@ -3,6 +3,7 @@ package commands
 import (
 	"io"
 	"strings"
+	"context"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
@@ -12,6 +13,7 @@ import (
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 
 	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
+	mbase "gx/ipfs/QmSbvata2WqNkqGtZNg8MR3SKwnB8iQ7vTPJgWqB8bC5kR/go-multibase"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
@@ -19,7 +21,7 @@ import (
 var log = logging.Logger("core/commands")
 
 const (
-	ApiOption = "api"
+	ApiOption   = "api"
 )
 
 var Root = &cmds.Command{
@@ -91,6 +93,7 @@ The CLI will exit with one of the following values:
 		cmdkit.BoolOption("h", "Show a short version of the command help text."),
 		cmdkit.BoolOption("local", "L", "Run the command locally, instead of using the daemon."),
 		cmdkit.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
+		cmdkit.StringOption("cid-base", "mbase", "Multi-base to use to encode version 1 CIDs in output."),
 
 		// global options, added to every command
 		cmds.OptionEncodingType,
@@ -217,4 +220,60 @@ func MessageTextMarshaler(res oldcmds.Response) (io.Reader, error) {
 	}
 
 	return strings.NewReader(out.Message), nil
+}
+
+// HandleCidBase handles processing of the "cid-base" flag.  It
+// currently checks for the "cid-base" flag and replacesing the
+// requests context with a new one that adds a "cid-base" vaue.
+func HandleCidBase(req *cmds.Request, env cmds.Environment) (mbase.Encoder, bool, error) {
+	baseStr, _ := req.Options["cid-base"].(string)
+	if baseStr != "" {
+		encoder, err := mbase.EncoderByName(baseStr)
+		if err != nil {
+			return encoder, false, err
+		}
+		req.Context = context.WithValue(req.Context, "cid-base", encoder)
+		return encoder, true, err
+	}
+	encoder, _ := mbase.NewEncoder(mbase.Base58BTC)
+	return encoder, false, nil
+}
+
+// HandleCidBaseFlagOld is like HandleCidBase but works with the old
+// commands interface.  Since it is not possible to change the context
+// using this interface and new context is returned instead.
+func HandleCidBaseOld(req oldcmds.Request, ctx context.Context) (mbase.Encoder, bool, context.Context, error) {
+	baseStr, _, _ := req.Option("cid-base").String()
+	if baseStr != "" {
+		encoder, err := mbase.EncoderByName(baseStr)
+		if err != nil {
+			return encoder, false, ctx, err
+		}
+		ctx = context.WithValue(ctx, "cid-base", encoder)
+		return encoder, true, ctx, err
+	}
+	encoder, _ := mbase.NewEncoder(mbase.Base58BTC)
+	return encoder, false, ctx, nil
+}
+
+// GetCidBase gets the cid base to use from either the context or
+// another cid or path
+func GetCidBase(ctx context.Context, cidStr string) mbase.Encoder {
+	encoder, ok := ctx.Value("cid-base").(mbase.Encoder)
+	if ok {
+		return encoder
+	}
+	defaultEncoder, _ := mbase.NewEncoder(mbase.Base58BTC)
+	if cidStr != "" {
+		cidStr = strings.TrimPrefix(cidStr, "/ipfs/")
+		if cidStr == "" || strings.HasPrefix(cidStr, "Qm") {
+			return defaultEncoder
+		}
+		encoder, err := mbase.NewEncoder(mbase.Encoding(cidStr[0]))
+		if err != nil {
+			return defaultEncoder
+		}
+		return encoder
+	}
+	return defaultEncoder
 }

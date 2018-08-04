@@ -106,6 +106,12 @@ NOTE: List all references recursively by using the flag '-r'.
 			format = "<src> -> <dst>"
 		}
 
+		_, _, ctx, err = HandleCidBaseOld(req, ctx)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		objs, err := objectsForPaths(ctx, n, req.Arguments())
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -158,6 +164,12 @@ Displays the hashes of all local objects.
 			return
 		}
 
+		base, _, ctx, err := HandleCidBaseOld(req, req.Context())
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		// todo: make async
 		allKeys, err := n.Blockstore.AllKeysChan(ctx)
 		if err != nil {
@@ -173,7 +185,7 @@ Displays the hashes of all local objects.
 
 			for k := range allKeys {
 				select {
-				case out <- &RefWrapper{Ref: k.String()}:
+				case out <- &RefWrapper{Ref: k.Encode(base)}:
 				case <-req.Context().Done():
 					return
 				}
@@ -323,15 +335,17 @@ func (rw *RefWriter) WriteEdge(from, to *cid.Cid, linkname string) error {
 		}
 	}
 
+	base := GetCidBase(rw.Ctx, "")
+
 	var s string
 	switch {
 	case rw.PrintFmt != "":
 		s = rw.PrintFmt
-		s = strings.Replace(s, "<src>", from.String(), -1)
-		s = strings.Replace(s, "<dst>", to.String(), -1)
+		s = strings.Replace(s, "<src>", from.Encode(base), -1)
+		s = strings.Replace(s, "<dst>", to.Encode(base), -1)
 		s = strings.Replace(s, "<linkname>", linkname, -1)
 	default:
-		s += to.String()
+		s += to.Encode(base)
 	}
 
 	rw.out <- &RefWrapper{Ref: s}
