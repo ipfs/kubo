@@ -116,6 +116,14 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
       },
       'go build': {
         gobuild_step(fast_build_platforms)
+      },
+      'gx deps dupes': {
+        setupStep('linux') { run ->
+          timeout(time: check_timeout, unit: 'MINUTES') {
+            run 'make gx-deps'
+            run 'test -z "$(./bin/gx deps dupes)"'
+          }
+        }
       }
     )
   }
