@@ -548,33 +548,33 @@
     },
     {
       "author": "why",
-      "hash": "QmSLYFS88MpPsszqWdhGSxvHyoTnmaU4A74SD6KGib6Z3m",
+      "hash": "Qmci3cVjeSogPBpJQyUfqPC8mcz1JMdqNwq3LDhoEH4ehH",
       "name": "go-bitswap",
-      "version": "1.0.0"
+      "version": "1.0.2"
     },
     {
       "author": "why",
-      "hash": "QmNqRBAhovtf4jVd5cF7YvHaFSsQHHZBaUFwGQWPM2CV7R",
+      "hash": "QmfZ5oGGgsx71QcHb6junfFCMGhYWkK8VV61nkCFyt8e5Q",
       "name": "go-blockservice",
-      "version": "1.0.1"
+      "version": "1.0.3"
     },
     {
       "author": "why",
-      "hash": "QmRy4Qk9hbgFX9NGJRm8rBThrA8PZhNCitMgeRYyZ67s59",
+      "hash": "Qma2BR57Wqp8w9vPreK4dEzoXXk8DFFRL3LresMZg4QpzN",
       "name": "go-merkledag",
-      "version": "1.0.0"
+      "version": "1.0.2"
     },
     {
       "author": "why",
-      "hash": "QmYKNMEUK7nCVAefgXF1LVtZEZg3uRmBqiae4FJRXDNAyJ",
+      "hash": "Qme34dT9spiPgunbueNtziRX4SvfLHDFZQvmTBVK8p4qNT",
       "name": "go-path",
-      "version": "1.0.1"
+      "version": "1.0.3"
     },
     {
       "author": "why",
-      "hash": "QmSaz8Qg77gGqvDvLKeSAY7ivDEnramSWF6T7TcRwFpHtP",
+      "hash": "QmWdTRLi3H7ZJQ8s7NYo8oitz5JHEEPKLn1QPMsJVWg2Ew",
       "name": "go-unixfs",
-      "version": "1.0.0"
+      "version": "1.0.2"
     }
   ],
   "gxVersion": "0.10.0",
