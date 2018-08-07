@@ -1,20 +1,15 @@
 package commands
 
 import (
-	"bytes"
-	"crypto/rand"
 	"fmt"
 	"io"
-	"sort"
-	"strings"
 	"text/tabwriter"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
+	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
-	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	ci "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 var KeyCmd = &cmds.Command{
@@ -70,99 +65,54 @@ var keyGenCmd = &cmds.Command{
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("name", true, false, "name of key to create"),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		api, err := GetApi(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		typ, f, err := req.Option("type").String()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
+		typ, f := req.Options["type"].(string)
 		if !f {
 			res.SetError(fmt.Errorf("please specify a key type with --type"), cmdkit.ErrNormal)
 			return
 		}
 
-		size, sizefound, err := req.Option("size").Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		name := req.Arguments()[0]
+		name := req.Arguments[0]
 		if name == "self" {
 			res.SetError(fmt.Errorf("cannot create key with name 'self'"), cmdkit.ErrNormal)
 			return
 		}
 
-		var sk ci.PrivKey
-		var pk ci.PubKey
+		opts := []options.KeyGenerateOption{options.Key.Type(typ)}
 
-		switch typ {
-		case "rsa":
-			if !sizefound {
-				res.SetError(fmt.Errorf("please specify a key size with --size"), cmdkit.ErrNormal)
-				return
-			}
-
-			priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, size, rand.Reader)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-
-			sk = priv
-			pk = pub
-		case "ed25519":
-			priv, pub, err := ci.GenerateEd25519Key(rand.Reader)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-
-			sk = priv
-			pk = pub
-		default:
-			res.SetError(fmt.Errorf("unrecognized key type: %s", typ), cmdkit.ErrNormal)
-			return
+		size, sizefound := req.Options["size"].(int)
+		if sizefound {
+			opts = append(opts, options.Key.Size(size))
 		}
 
-		err = n.Repo.Keystore().Put(name, sk)
+		key, err := api.Key().Generate(req.Context, name, opts...)
+
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		pid, err := peer.IDFromPublicKey(pk)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&KeyOutput{
+		cmds.EmitOnce(res, &KeyOutput{
 			Name: name,
-			Id:   pid.Pretty(),
+			Id:   key.ID().Pretty(),
 		})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			k, ok := v.(*KeyOutput)
 			if !ok {
-				return nil, e.TypeErr(k, v)
+				return e.TypeErr(k, v)
 			}
 
-			return strings.NewReader(k.Id + "\n"), nil
-		},
+			_, err := w.Write([]byte(k.Id + "\n"))
+			return err
+		}),
 	},
 	Type: KeyOutput{},
 }
@@ -174,47 +124,29 @@ var keyListCmd = &cmds.Command{
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("l", "Show extra information about keys."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		api, err := GetApi(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		keys, err := n.Repo.Keystore().List()
+		keys, err := api.Key().List(req.Context)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		sort.Strings(keys)
-
-		list := make([]KeyOutput, 0, len(keys)+1)
-
-		list = append(list, KeyOutput{Name: "self", Id: n.Identity.Pretty()})
+		list := make([]KeyOutput, 0, len(keys))
 
 		for _, key := range keys {
-			privKey, err := n.Repo.Keystore().Get(key)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-
-			pubKey := privKey.GetPublic()
-
-			pid, err := peer.IDFromPublicKey(pubKey)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-
-			list = append(list, KeyOutput{Name: key, Id: pid.Pretty()})
+			list = append(list, KeyOutput{Name: key.Name(), Id: key.ID().Pretty()})
 		}
 
-		res.SetOutput(&KeyOutputList{list})
+		cmds.EmitOnce(res, &KeyOutputList{list})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: keyOutputListMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: keyOutputListMarshaler(),
 	},
 	Type: KeyOutputList{},
 }
@@ -230,100 +162,44 @@ var keyRenameCmd = &cmds.Command{
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("force", "f", "Allow to overwrite an existing key."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		api, err := GetApi(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		ks := n.Repo.Keystore()
+		name := req.Arguments[0]
+		newName := req.Arguments[1]
+		force, _ := req.Options["force"].(bool)
 
-		name := req.Arguments()[0]
-		newName := req.Arguments()[1]
-
-		if name == "self" {
-			res.SetError(fmt.Errorf("cannot rename key with name 'self'"), cmdkit.ErrNormal)
-			return
-		}
-
-		if newName == "self" {
-			res.SetError(fmt.Errorf("cannot overwrite key with name 'self'"), cmdkit.ErrNormal)
-			return
-		}
-
-		oldKey, err := ks.Get(name)
-		if err != nil {
-			res.SetError(fmt.Errorf("no key named %s was found", name), cmdkit.ErrNormal)
-			return
-		}
-
-		pubKey := oldKey.GetPublic()
-
-		pid, err := peer.IDFromPublicKey(pubKey)
+		key, overwritten, err := api.Key().Rename(req.Context, name, newName, options.Key.Force(force))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		overwrite := false
-		force, _, _ := res.Request().Option("f").Bool()
-		if force {
-			exist, err := ks.Has(newName)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-
-			if exist {
-				overwrite = true
-				err := ks.Delete(newName)
-				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
-				}
-			}
-		}
-
-		err = ks.Put(newName, oldKey)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		err = ks.Delete(name)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&KeyRenameOutput{
+		cmds.EmitOnce(res, &KeyRenameOutput{
 			Was:       name,
 			Now:       newName,
-			Id:        pid.Pretty(),
-			Overwrite: overwrite,
+			Id:        key.ID().Pretty(),
+			Overwrite: overwritten,
 		})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			k, ok := v.(*KeyRenameOutput)
 			if !ok {
-				return nil, fmt.Errorf("expected a KeyRenameOutput as command result")
+				return fmt.Errorf("expected a KeyRenameOutput as command result")
 			}
-
-			buf := new(bytes.Buffer)
 
 			if k.Overwrite {
-				fmt.Fprintf(buf, "Key %s renamed to %s with overwriting\n", k.Id, k.Now)
+				fmt.Fprintf(w, "Key %s renamed to %s with overwriting\n", k.Id, k.Now)
 			} else {
-				fmt.Fprintf(buf, "Key %s renamed to %s\n", k.Id, k.Now)
+				fmt.Fprintf(w, "Key %s renamed to %s\n", k.Id, k.Now)
 			}
-			return buf, nil
-		},
+			return nil
+		}),
 	},
 	Type: KeyRenameOutput{},
 }
@@ -338,76 +214,52 @@ var keyRmCmd = &cmds.Command{
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("l", "Show extra information about keys."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		api, err := GetApi(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		names := req.Arguments()
+		names := req.Arguments
 
 		list := make([]KeyOutput, 0, len(names))
 		for _, name := range names {
-			if name == "self" {
-				res.SetError(fmt.Errorf("cannot remove key with name 'self'"), cmdkit.ErrNormal)
-				return
-			}
-
-			removed, err := n.Repo.Keystore().Get(name)
-			if err != nil {
-				res.SetError(fmt.Errorf("no key named %s was found", name), cmdkit.ErrNormal)
-				return
-			}
-
-			pubKey := removed.GetPublic()
-
-			pid, err := peer.IDFromPublicKey(pubKey)
+			key, err := api.Key().Remove(req.Context, name)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
-			list = append(list, KeyOutput{Name: name, Id: pid.Pretty()})
+			list = append(list, KeyOutput{Name: name, Id: key.ID().Pretty()})
 		}
 
-		for _, name := range names {
-			err = n.Repo.Keystore().Delete(name)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-		}
-
-		res.SetOutput(&KeyOutputList{list})
+		cmds.EmitOnce(res, &KeyOutputList{list})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: keyOutputListMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: keyOutputListMarshaler(),
 	},
 	Type: KeyOutputList{},
 }
 
-func keyOutputListMarshaler(res cmds.Response) (io.Reader, error) {
-	withId, _, _ := res.Request().Option("l").Bool()
+func keyOutputListMarshaler() cmds.EncoderFunc {
+	return cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
+		withID, _ := req.Options["l"].(bool)
 
-	v, err := unwrapOutput(res.Output())
-	if err != nil {
-		return nil, err
-	}
-	list, ok := v.(*KeyOutputList)
-	if !ok {
-		return nil, e.TypeErr(list, v)
-	}
-
-	buf := new(bytes.Buffer)
-	w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
-	for _, s := range list.Keys {
-		if withId {
-			fmt.Fprintf(w, "%s\t%s\t\n", s.Id, s.Name)
-		} else {
-			fmt.Fprintf(w, "%s\n", s.Name)
+		list, ok := v.(*KeyOutputList)
+		if !ok {
+			return e.TypeErr(list, v)
 		}
-	}
-	w.Flush()
-	return buf, nil
+
+		tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
+		for _, s := range list.Keys {
+			if withID {
+				fmt.Fprintf(tw, "%s\t%s\t\n", s.Id, s.Name)
+			} else {
+				fmt.Fprintf(tw, "%s\n", s.Name)
+			}
+		}
+		tw.Flush()
+		return nil
+	})
 }

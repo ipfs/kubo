@@ -121,7 +121,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"diag":      lgc.NewCommand(DiagCmd),
 	"dns":       lgc.NewCommand(DNSCmd),
 	"id":        lgc.NewCommand(IDCmd),
-	"key":       lgc.NewCommand(KeyCmd),
+	"key":       KeyCmd,
 	"log":       lgc.NewCommand(LogCmd),
 	"ls":        lgc.NewCommand(LsCmd),
 	"mount":     lgc.NewCommand(MountCmd),
