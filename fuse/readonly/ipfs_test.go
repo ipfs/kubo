@@ -16,9 +16,9 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
-	importer "gx/ipfs/QmWdTRLi3H7ZJQ8s7NYo8oitz5JHEEPKLn1QPMsJVWg2Ew/go-unixfs/importer"
-	uio "gx/ipfs/QmWdTRLi3H7ZJQ8s7NYo8oitz5JHEEPKLn1QPMsJVWg2Ew/go-unixfs/io"
-	dag "gx/ipfs/Qma2BR57Wqp8w9vPreK4dEzoXXk8DFFRL3LresMZg4QpzN/go-merkledag"
+	importer "gx/ipfs/QmVxjT67BU1QZUPzSLNZT6DkDzVNfPfkzqNyJYFXxSH2hA/go-unixfs/importer"
+	uio "gx/ipfs/QmVxjT67BU1QZUPzSLNZT6DkDzVNfPfkzqNyJYFXxSH2hA/go-unixfs/io"
+	dag "gx/ipfs/QmfKKGzisaoP4oiHQSHz1zLbXDCTeXe7NVfX1FAMKzcHmt/go-merkledag"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	fstest "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs/fstestutil"

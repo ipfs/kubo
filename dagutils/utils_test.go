@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	dag "gx/ipfs/Qma2BR57Wqp8w9vPreK4dEzoXXk8DFFRL3LresMZg4QpzN/go-merkledag"
-	mdtest "gx/ipfs/Qma2BR57Wqp8w9vPreK4dEzoXXk8DFFRL3LresMZg4QpzN/go-merkledag/test"
-	path "gx/ipfs/Qme34dT9spiPgunbueNtziRX4SvfLHDFZQvmTBVK8p4qNT/go-path"
+	path "gx/ipfs/QmY2QaawxgJw2rn7WsFNkWEYph3z2azpyYdrhAc1JctDmE/go-path"
+	dag "gx/ipfs/QmfKKGzisaoP4oiHQSHz1zLbXDCTeXe7NVfX1FAMKzcHmt/go-merkledag"
+	mdtest "gx/ipfs/QmfKKGzisaoP4oiHQSHz1zLbXDCTeXe7NVfX1FAMKzcHmt/go-merkledag/test"
 
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
