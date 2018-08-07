@@ -154,6 +154,22 @@ func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
 	return f.fm.Get(c)
 }
 
+// GetSize returns the size of the requested block. It may return ErrNotFound
+// when the block is not stored.
+func (f *Filestore) GetSize(c *cid.Cid) (int, error) {
+	size, err := f.bs.GetSize(c)
+	switch err {
+	default:
+		return -1, err
+	case nil:
+		return size, nil
+	case blockstore.ErrNotFound:
+		// try filestore
+	}
+
+	return f.fm.GetSize(c)
+}
+
 // Has returns true if the block with the given Cid is
 // stored in the Filestore.
 func (f *Filestore) Has(c *cid.Cid) (bool, error) {

@@ -122,6 +122,18 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 	return blocks.NewBlockWithCid(out, c)
 }
 
+// GetSize gets the size of the block from the datastore.
+//
+// This method may successfully return the size even if returning the block
+// would fail because the associated file is no longer available.
+func (f *FileManager) GetSize(c *cid.Cid) (int, error) {
+	dobj, err := f.getDataObj(c)
+	if err != nil {
+		return -1, err
+	}
+	return int(dobj.GetSize_()), nil
+}
+
 func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
 	if IsURL(d.GetFilePath()) {
 		return f.readURLDataObj(c, d)
