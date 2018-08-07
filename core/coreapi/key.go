@@ -18,7 +18,7 @@ type KeyAPI CoreAPI
 
 type key struct {
 	name   string
-	peerId peer.ID
+	peerID peer.ID
 }
 
 // Name returns the key name
@@ -28,7 +28,7 @@ func (k *key) Name() string {
 
 // Path returns the path of the key.
 func (k *key) Path() coreiface.Path {
-	path, err := coreiface.ParsePath(ipfspath.Join([]string{"/ipns", k.peerId.Pretty()}))
+	path, err := coreiface.ParsePath(ipfspath.Join([]string{"/ipns", k.peerID.Pretty()}))
 	if err != nil {
 		panic("error parsing path: " + err.Error())
 	}
@@ -36,9 +36,9 @@ func (k *key) Path() coreiface.Path {
 	return path
 }
 
-// Id returns key PeerID
-func (k *key) Id() peer.ID {
-	return k.peerId
+// ID returns key PeerID
+func (k *key) ID() peer.ID {
+	return k.peerID
 }
 
 // Generate generates new key, stores it in the keystore under the specified

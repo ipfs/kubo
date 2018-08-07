@@ -100,7 +100,7 @@ var keyGenCmd = &cmds.Command{
 
 		cmds.EmitOnce(res, &KeyOutput{
 			Name: name,
-			Id:   key.Id().Pretty(),
+			Id:   key.ID().Pretty(),
 		})
 	},
 	Encoders: cmds.EncoderMap{
@@ -140,7 +140,7 @@ var keyListCmd = &cmds.Command{
 		list := make([]KeyOutput, 0, len(keys))
 
 		for _, key := range keys {
-			list = append(list, KeyOutput{Name: key.Name(), Id: key.Id().Pretty()})
+			list = append(list, KeyOutput{Name: key.Name(), Id: key.ID().Pretty()})
 		}
 
 		cmds.EmitOnce(res, &KeyOutputList{list})
@@ -182,7 +182,7 @@ var keyRenameCmd = &cmds.Command{
 		cmds.EmitOnce(res, &KeyRenameOutput{
 			Was:       name,
 			Now:       newName,
-			Id:        key.Id().Pretty(),
+			Id:        key.ID().Pretty(),
 			Overwrite: overwritten,
 		})
 	},
@@ -231,7 +231,7 @@ var keyRmCmd = &cmds.Command{
 				return
 			}
 
-			list = append(list, KeyOutput{Name: name, Id: key.Id().Pretty()})
+			list = append(list, KeyOutput{Name: name, Id: key.ID().Pretty()})
 		}
 
 		cmds.EmitOnce(res, &KeyOutputList{list})
@@ -244,7 +244,7 @@ var keyRmCmd = &cmds.Command{
 
 func keyOutputListMarshaler() cmds.EncoderFunc {
 	return cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-		withId, _ := req.Options["l"].(bool)
+		withID, _ := req.Options["l"].(bool)
 
 		list, ok := v.(*KeyOutputList)
 		if !ok {
@@ -253,7 +253,7 @@ func keyOutputListMarshaler() cmds.EncoderFunc {
 
 		tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 		for _, s := range list.Keys {
-			if withId {
+			if withID {
 				fmt.Fprintf(tw, "%s\t%s\t\n", s.Id, s.Name)
 			} else {
 				fmt.Fprintf(tw, "%s\n", s.Name)

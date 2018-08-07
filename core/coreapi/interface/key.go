@@ -16,8 +16,8 @@ type Key interface {
 	// Path returns key path
 	Path() Path
 
-	// Id returns key PeerID
-	Id() peer.ID
+	// ID returns key PeerID
+	ID() peer.ID
 }
 
 // KeyAPI specifies the interface to Keystore
