@@ -137,6 +137,12 @@ You can check that the ipfs output versions match with `go version` and `git rev
 If `ipfs.exe` executes and everything matches, then building was successful.
 
 ## Troubleshooting
+- **Symlinks**
+On Windows, a process must hold a special privilege(`SeCreateSymbolicLinkPrivilege`) in order to create [symlinks](<https://en.wikipedia.org/wiki/Symbolic_link>). The way symlinks are implemented on Windows and the default security policies around them have caused some compatibility difficulties.
+There are various ways to enable symlink creation, depending on your version of Windows. Currently we support users who hold the [`SeCreateSymbolicLinkPrivilege`](<https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links>), which covers Windows Vista+, as well users who have enabled "Developer Mode" in Windows 10(14972+).
+W10+, see this article: <https://blogs.windows.com/buildingapps/2016/12/02/symlinks-windows-10/>
+Vista+, see this article: <http://answers.perforce.com/articles/KB/3472>
+
 - **Git auth**
 If you get authentication problems with Git, you might want to take a look at https://help.github.com/articles/caching-your-github-password-in-git/ and use the suggested solution:  
 `git config --global credential.helper wincred`
