@@ -143,15 +143,13 @@ func (f *Filestore) DeleteBlock(c *cid.Cid) error {
 func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
 	blk, err := f.bs.Get(c)
 	switch err {
-	default:
-		return nil, err
 	case nil:
 		return blk, nil
 	case blockstore.ErrNotFound:
-		// try filestore
+		return f.fm.Get(c)
+	default:
+		return nil, err
 	}
-
-	return f.fm.Get(c)
 }
 
 // GetSize returns the size of the requested block. It may return ErrNotFound
@@ -159,15 +157,13 @@ func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
 func (f *Filestore) GetSize(c *cid.Cid) (int, error) {
 	size, err := f.bs.GetSize(c)
 	switch err {
-	default:
-		return -1, err
 	case nil:
 		return size, nil
 	case blockstore.ErrNotFound:
-		// try filestore
+		return f.fm.GetSize(c)
+	default:
+		return -1, err
 	}
-
-	return f.fm.GetSize(c)
 }
 
 // Has returns true if the block with the given Cid is
