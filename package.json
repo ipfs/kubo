@@ -47,9 +47,9 @@
       "version": "0.1.3"
     },
     {
-      "hash": "Qma3W91Bv19pWABzgjhdCM2PrTWcdS41bp52kp4Bd3xZYk",
+      "hash": "QmZfgNhC8E8ys86AeJb2QuRXbq5HK3gPott2df5PgsSsJh",
       "name": "iptb",
-      "version": "1.3.8"
+      "version": "1.3.9"
     },
     {
       "hash": "QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8",
@@ -545,6 +545,12 @@
       "hash": "QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt",
       "name": "go-multiaddr-dns",
       "version": "0.2.4"
+    },
+    {
+      "author": "marten-seemann",
+      "hash": "QmYfvQoJCUTCJ54Rog3zWSCDWAkwLWFTMKzcwaNMpXYSQT",
+      "name": "go-libp2p-quic-transport",
+      "version": "0.2.3"
     }
   ],
   "gxVersion": "0.10.0",

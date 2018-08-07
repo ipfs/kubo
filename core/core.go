@@ -59,6 +59,7 @@ import (
 	exchange "gx/ipfs/QmWw71Mz9PXKgYG8ZfTYN7Ax2Zm48Eurbne3wC2y7CKmLz/go-ipfs-exchange-interface"
 	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
+	quic "gx/ipfs/QmYfvQoJCUTCJ54Rog3zWSCDWAkwLWFTMKzcwaNMpXYSQT/go-libp2p-quic-transport"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 	pnet "gx/ipfs/QmZaQ3K9PRd5sYYoG1xbTGPtd3N7TYiKBRmcBUTsx8HVET/go-libp2p-pnet"
@@ -246,6 +247,10 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 			opts = append(opts, circuit.OptHop)
 		}
 		libp2pOpts = append(libp2pOpts, libp2p.EnableRelay(opts...))
+	}
+
+	if cfg.Experimental.QUIC {
+		libp2pOpts = append(libp2pOpts, libp2p.Transport(quic.NewTransport))
 	}
 
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, libp2pOpts...)
