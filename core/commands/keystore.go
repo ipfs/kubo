@@ -171,7 +171,7 @@ var keyRenameCmd = &cmds.Command{
 
 		name := req.Arguments[0]
 		newName := req.Arguments[1]
-		force := req.Options["force"].(bool)
+		force, _ := req.Options["force"].(bool)
 
 		key, overwritten, err := api.Key().Rename(req.Context, name, newName, options.Key.Force(force))
 		if err != nil {
