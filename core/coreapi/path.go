@@ -80,5 +80,5 @@ func resolvePath(ctx context.Context, ng ipld.NodeGetter, nsys namesys.NameSyste
 		return nil, err
 	}
 
-	return coreiface.NewResolvedPath(ipath, node.Cid(), root, gopath.Join(rest...)), nil
+	return coreiface.NewResolvedPath(ipath, node, root, gopath.Join(rest...)), nil
 }

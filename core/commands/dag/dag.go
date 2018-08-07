@@ -207,7 +207,12 @@ format.
 			return
 		}
 
-		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		lastCid, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+		obj, err := n.DAG.Get(req.Context(), lastCid)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -251,14 +256,14 @@ var DagResolveCmd = &cmds.Command{
 			return
 		}
 
-		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		lastCid, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		res.SetOutput(&ResolveOutput{
-			Cid:     obj.Cid(),
+			Cid:     lastCid,
 			RemPath: path.Join(rem),
 		})
 	},
