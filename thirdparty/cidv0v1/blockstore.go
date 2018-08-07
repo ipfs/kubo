@@ -1,6 +1,7 @@
 package cidv0v1
 
 import (
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	blocks "gx/ipfs/QmVzK524a2VWLqyvtBeiHKsUAWYgeAk4DBeZoY7vpNPNRx/go-block-format"
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	bs "gx/ipfs/QmadMhXJLHMFjpRmh85XjpmVDkEtQpNYEZNRpWRvYVLrvb/go-ipfs-blockstore"
@@ -58,7 +59,7 @@ func (b *blockstore) Get(c *cid.Cid) (blocks.Block, error) {
 
 func tryOtherCidVersion(c *cid.Cid) *cid.Cid {
 	prefix := c.Prefix()
-	if prefix.Codec != cid.DagProtobuf {
+	if prefix.Codec != cid.DagProtobuf || prefix.MhType != mh.SHA2_256 || prefix.MhLength != 32 {
 		return nil
 	}
 	var c1 *cid.Cid
