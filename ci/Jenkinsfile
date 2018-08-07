@@ -279,16 +279,16 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
     )
   }
 
-  reportedStage('interop') {
-    def steps = [:]
-    js_api_platforms.each {os ->
-      js_api_node_versions.each { nodeVer ->
-        steps["interop-${os}-${nodeVer}"] = jsTestStep(os, nodeVer, 'https://github.com/ipfs/interop', interop_commit)
-      }
-    }
-
-    parallel steps
-  }
+  //reportedStage('interop') {
+  //  def steps = [:]
+  //  js_api_platforms.each {os ->
+  //    js_api_node_versions.each { nodeVer ->
+  //      steps["interop-${os}-${nodeVer}"] = jsTestStep(os, nodeVer, 'https://github.com/ipfs/interop', interop_commit)
+  //    }
+  //  }
+  //
+  //  parallel steps
+  //}
 
   reportedStage('apis') {
     def steps = [:]
