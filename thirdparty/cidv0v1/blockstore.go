@@ -2,9 +2,9 @@ package cidv0v1
 
 import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	bs "gx/ipfs/QmTCHqj6s51pDu1GaPGyBW2VdmCUvtzLCF6nWykfX9ZYRt/go-ipfs-blockstore"
 	blocks "gx/ipfs/QmVzK524a2VWLqyvtBeiHKsUAWYgeAk4DBeZoY7vpNPNRx/go-block-format"
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	bs "gx/ipfs/QmadMhXJLHMFjpRmh85XjpmVDkEtQpNYEZNRpWRvYVLrvb/go-ipfs-blockstore"
 )
 
 type blockstore struct {
@@ -55,6 +55,21 @@ func (b *blockstore) Get(c *cid.Cid) (blocks.Block, error) {
 		return nil, err
 	}
 	return block, nil
+}
+
+func (b *blockstore) GetSize(c *cid.Cid) (int, error) {
+	size, err := b.Blockstore.GetSize(c)
+	if err == nil {
+		return size, nil
+	}
+	if err != bs.ErrNotFound {
+		return -1, err
+	}
+	c1 := tryOtherCidVersion(c)
+	if c1 == nil {
+		return -1, bs.ErrNotFound
+	}
+	return b.Blockstore.GetSize(c1)
 }
 
 func tryOtherCidVersion(c *cid.Cid) *cid.Cid {
