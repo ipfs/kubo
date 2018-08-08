@@ -41,7 +41,7 @@ include $(dir)/Rules.mk
 
 # include this file only if coverage target is executed
 # it is quite expensive
-ifneq ($(filter coverage% clean distclean,$(MAKECMDGOALS)),)
+ifneq ($(filter coverage% clean distclean test/unit/gotest.junit.xml,$(MAKECMDGOALS)),)
 	# has to be after cmd/ipfs due to PATH
 	dir := coverage
 	include $(dir)/Rules.mk
