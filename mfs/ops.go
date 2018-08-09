@@ -1,6 +1,7 @@
 package mfs
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	gopath "path"
@@ -12,60 +13,175 @@ import (
 	ipld "gx/ipfs/QmaA8GkXUYinkkndvg7T6Tx7gYXemhxjaxLisEPes7Rf1P/go-ipld-format"
 )
 
+var (
+	errInvalidNodeType = errors.New("invalid argument")
+	errMvDirToFile     = errors.New("can not move directory to file path")
+	errMvParentDir     = errors.New("can not move parent directory to sub directory")
+	errInvalidDirPath  = errors.New("path end with '/' is not a directory")
+)
+
 // Mv moves the file or directory at 'src' to 'dst'
 func Mv(r *Root, src, dst string) error {
-	srcDir, srcFname := gopath.Split(src)
-
-	var dstDirStr string
-	var filename string
-	if dst[len(dst)-1] == '/' {
-		dstDirStr = dst
-		filename = srcFname
-	} else {
-		dstDirStr, filename = gopath.Split(dst)
+	if src == "/" {
+		return errMvParentDir
 	}
 
-	// get parent directories of both src and dest first
-	dstDir, err := lookupDir(r, dstDirStr)
+	src = strings.TrimRight(src, "/")
+	if strings.HasPrefix(dst, src) {
+		return errMvParentDir
+	}
+
+	srcNode, err := DirLookup(r.GetDirectory(), src)
 	if err != nil {
 		return err
 	}
 
-	srcDirObj, err := lookupDir(r, srcDir)
-	if err != nil {
-		return err
-	}
-
-	srcObj, err := srcDirObj.Child(srcFname)
-	if err != nil {
-		return err
-	}
-
-	nd, err := srcObj.GetNode()
-	if err != nil {
-		return err
-	}
-
-	fsn, err := dstDir.Child(filename)
-	if err == nil {
-		switch n := fsn.(type) {
-		case *File:
-			_ = dstDir.Unlink(filename)
-		case *Directory:
-			dstDir = n
-		default:
-			return fmt.Errorf("unexpected type at path: %s", dst)
+	if srcNode.Type() == TDir {
+		return moveDir(r, src, dst)
+	} else if srcNode.Type() == TFile {
+		if src[len(src)-1] == '/' {
+			return errInvalidDirPath
 		}
-	} else if err != os.ErrNotExist {
-		return err
+		return moveFile(r, src, dst)
+	} else {
+		return ErrInvalidChild
 	}
+}
 
-	err = dstDir.AddChild(filename, nd)
+// moveDir moves the directory at 'src' to 'dst'
+func moveDir(r *Root, src, dst string) error {
+	src = strings.TrimRight(src, "/")
+	srcDirName, srcNode, srcParDir, err := getNodeAndParent(r, src)
 	if err != nil {
 		return err
 	}
 
-	return srcDirObj.Unlink(srcFname)
+	dstNode, err := DirLookup(r.GetDirectory(), dst)
+	if err != nil {
+		return err
+	}
+
+	if dstNode.Type() == TDir {
+		dstDir, _ := dstNode.(*Directory)
+		if n, err := dstDir.Child(srcDirName); err == nil { // contains srcDir
+			empty, err := isEmptyNode(n)
+			if err != nil {
+				return err
+			}
+			if empty {
+				if err = dstDir.Unlink(srcDirName); err != nil {
+					return err
+				}
+			} else {
+				return ErrDirExists
+			}
+		}
+
+		if err = dstDir.AddChild(srcDirName, srcNode); err != nil {
+			return err
+		}
+		return srcParDir.Unlink(srcDirName)
+	} else if dstNode.Type() == TFile {
+		if dst[len(dst)-1] == '/' {
+			return errInvalidDirPath
+		}
+		return errMvDirToFile
+	} else {
+		return errInvalidNodeType
+	}
+}
+
+// moveFile moves the file at 'src' to 'dst'
+func moveFile(r *Root, src, dst string) error {
+	srcFileName, srcNode, srcParDir, err := getNodeAndParent(r, src)
+	if err != nil {
+		return err
+	}
+
+	dstNode, err := DirLookup(r.GetDirectory(), dst)
+	if err != nil {
+		return err
+	}
+
+	if dstNode.Type() == TFile {
+		if dst[len(dst)-1] == '/' {
+			return errInvalidDirPath
+		}
+		// replace(src, dst)
+		dstFileName, _, dstParDir, err := getNodeAndParent(r, dst)
+		if err != nil {
+			return err
+		}
+
+		err = dstParDir.Unlink(dstFileName)
+		if err != nil {
+			return err
+		}
+
+		err = dstParDir.AddChild(srcFileName, srcNode)
+		if err != nil {
+			return err
+		}
+
+		return srcParDir.Unlink(srcFileName)
+	} else if dstNode.Type() == TDir {
+		dstDir, _ := dstNode.(*Directory)
+		if n, err := dstDir.Child(srcFileName); err == nil {
+			// contains child with srcFileName
+			empty, err := isEmptyNode(n)
+			if err != nil {
+				return err
+			}
+
+			if !empty && n.Type() == TDir {
+				return ErrDirExists
+			}
+
+			if err = dstDir.Unlink(srcFileName); err != nil {
+				return err
+			}
+		}
+
+		err := dstDir.AddChild(srcFileName, srcNode)
+		if err != nil {
+			return err
+		}
+
+		return srcParDir.Unlink(srcFileName)
+	} else {
+		return errInvalidNodeType
+	}
+}
+
+//getNodeAndParent find node and it's parent dir with path like: "/x/y/filename"
+func getNodeAndParent(r *Root, path string) (string, ipld.Node, *Directory, error) {
+	parentDirStr, filename := gopath.Split(path)
+
+	parentDirObj, err := lookupDir(r, parentDirStr)
+	if err != nil {
+		return filename, nil, nil, err
+	}
+
+	fileObj, err := parentDirObj.Child(filename)
+	if err != nil {
+		return filename, nil, nil, err
+	}
+
+	nd, err := fileObj.GetNode()
+	if err != nil {
+		return filename, nil, nil, err
+	}
+
+	return filename, nd, parentDirObj, nil
+}
+
+func isEmptyNode(n FSNode) (bool, error) {
+	in, err := n.GetNode()
+	if err != nil {
+		return false, err
+	}
+
+	return len(in.Links()) == 0, nil
 }
 
 func lookupDir(r *Root, path string) (*Directory, error) {
