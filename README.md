@@ -315,6 +315,48 @@ Stop the running container:
 
     docker stop ipfs_host
 
+### Building Docker images
+
+For other platforms such as ARM, you may need to build a docker image to run.
+
+The main Dockerfile takes the following args:
+- `base`: The base go image for the target platform
+- `busybox_base`: The busybox base image for the target platform
+- `tini_executable`: The tini executable path for the target platform
+- `glibc_shared_lib_arch`: The target platform shared lib for glibc supplementing busybox
+
+#### `base`
+Possible values:
+- `golang:1.10-stretch` (default)
+- `arm32v7/golang:1.10-stretch`
+
+#### `busybox_base`
+Possible values:
+- `busybox:1-glibc` (default)
+- `arm32v7/golang:1.10-stretch`
+
+#### `tini_executable`
+Possible values:
+- `tini` (default)
+- `tini-armhf`
+
+#### `glibc_shared_lib_arch`
+Possible values:
+- `x86_64-linux-gnu` (default)
+- `arm-linux-gnueabihf`
+
+#### Example Docker image build
+
+Building for x86 linux:
+```sh
+docker build . -f Dockerfile
+```
+
+Building for Raspberry Pi (arm32v7):
+```sh
+docker build . -f Dockerfile --build-arg base=arm32v7/golang:1.10-stretch --build-arg tini_executable=tini-armhf --build-arg 'busybox_base=arm32v7/busybox:1-glibc' --build-arg glibc_shared_lib_arch=arm-linux-gnueabihf
+```
+
 ### Troubleshooting
 
 If you have previously installed IPFS before and you are running into

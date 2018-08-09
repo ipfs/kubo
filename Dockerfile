@@ -1,4 +1,8 @@
-FROM golang:1.10-stretch
+# Go base image
+ARG base=golang:1.10-stretch
+# Busybox base image
+ARG busybox_base=busybox:1-glibc
+FROM $base
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # There is a copy of this Dockerfile called Dockerfile.fast,
@@ -22,6 +26,8 @@ RUN cd $SRC_DIR \
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
+# Tini executable filename
+ARG tini_executable=tini
 ENV TINI_VERSION v0.16.1
 RUN set -x \
   && cd /tmp \
@@ -30,14 +36,16 @@ RUN set -x \
   && git checkout -q $SUEXEC_VERSION \
   && make \
   && cd /tmp \
-  && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
+  && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/$tini_executable \
   && chmod +x tini
 
 # Get the TLS CA certificates, they're not provided by busybox.
 RUN apt-get update && apt-get install -y ca-certificates
 
 # Now comes the actual target image, which aims to be as small as possible.
-FROM busybox:1-glibc
+ARG busybox_base
+FROM ${busybox_base}
+#FROM arm32v7/busybox:1-glibc
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
@@ -49,7 +57,8 @@ COPY --from=0 /tmp/tini /sbin/tini
 COPY --from=0 /etc/ssl/certs /etc/ssl/certs
 
 # This shared lib (part of glibc) doesn't seem to be included with busybox.
-COPY --from=0 /lib/x86_64-linux-gnu/libdl-2.24.so /lib/libdl.so.2
+ARG glibc_shared_lib_arch=x86_64-linux-gnu
+COPY --from=0 /lib/${glibc_shared_lib_arch}/libdl-2.24.so /lib/libdl.so.2
 
 # Ports for Swarm TCP, Swarm uTP, API, Gateway, Swarm Websockets
 EXPOSE 4001

@@ -1,4 +1,7 @@
-FROM golang:1.10-stretch
+# Go base image
+ARG base=golang:1.10-stretch
+FROM $base
+FROM $base
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # This is a copy of /Dockerfile,
@@ -34,6 +37,8 @@ RUN set -x \
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
+# Tini executable filename
+ARG tini_executable=tini
 ENV TINI_VERSION v0.16.1
 RUN set -x \
   && cd /tmp \
@@ -42,7 +47,7 @@ RUN set -x \
   && git checkout -q $SUEXEC_VERSION \
   && make \
   && cd /tmp \
-  && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
+  && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/$tini_executable \
   && chmod +x tini \
   && mv su-exec/su-exec tini /sbin/ # Install them
 
