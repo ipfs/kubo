@@ -29,7 +29,7 @@ def build_platforms = [
 ]
 
 /* js-* tests */
-def js_api_commit = '80452eb62903bf405a9085cd14a233da8a5e31a4' // 22.3.0
+def js_api_commit = 'e61155ae8edaee902cb3a1dcd8ba3d3afb093d1c' // 24.0.1
 def interop_commit = '6593ccdca5d7b4c747787f71f7ac4b5f6f1ab10b'
 
 def js_api_platforms = ['linux', 'macos']
