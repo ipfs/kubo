@@ -13,7 +13,7 @@ It has these top-level messages:
 */
 package datastore_pb
 
-import proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+import proto "gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
 import fmt "fmt"
 import math "math"
 
