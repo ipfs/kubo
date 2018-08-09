@@ -25,15 +25,15 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
-	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds/cli"
-	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds/http"
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	loggables "gx/ipfs/QmRPkGkHLB72caXgdDYnoaWigXNWx95BcYDKV1n3KTEpaG/go-libp2p-loggables"
+	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
 	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+	"gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds"
+	"gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds/cli"
+	"gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds/http"
+	loggables "gx/ipfs/QmcEC2rbyMxUMgpLwt16wquaZdG1aPXcpbKYf4Fedt7hkD/go-libp2p-loggables"
 )
 
 // log is the command logger

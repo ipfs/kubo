@@ -16,9 +16,9 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
-	bstore "gx/ipfs/QmTCHqj6s51pDu1GaPGyBW2VdmCUvtzLCF6nWykfX9ZYRt/go-ipfs-blockstore"
+	bstore "gx/ipfs/QmRNFh4wm6FgTDrtsWmnvEP9NTuEa3Ykf72y1LXCyevbGW/go-ipfs-blockstore"
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	cmds "gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 

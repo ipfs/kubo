@@ -13,9 +13,9 @@ import (
 	measure "gx/ipfs/QmPMRquZA1WiRMQ5ZE2V1kHtnPaq2X5Qtz7Wgwwo2tjLyS/go-ds-measure"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	badgerds "gx/ipfs/QmQoiqmV9gAKEQAELqeGACQwXyDeijE6fq7ARhirPMX2T2/go-ds-badger"
+	flatfs "gx/ipfs/QmRogGwHVEuYgirWvnjVxYXVMsBoJb74QHXT2rTA2Z7vFb/go-ds-flatfs"
 	levelds "gx/ipfs/Qmb4NghN5y3uGjiZCQWU6g1ZWRVmFCykLmByqxEVi7px1d/go-ds-leveldb"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
-	flatfs "gx/ipfs/Qmc1ExJkrEUesbvRNHq6g3bJ2km7K4XffcC2bvwdpfGYDx/go-ds-flatfs"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	mount "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/mount"
 )

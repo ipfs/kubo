@@ -8,14 +8,14 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	bitswap "gx/ipfs/QmaYxvpkdEd5anuSzWiivJdeZV1W1NYW52xJQB1khSqH1b/go-bitswap"
-	decision "gx/ipfs/QmaYxvpkdEd5anuSzWiivJdeZV1W1NYW52xJQB1khSqH1b/go-bitswap/decision"
+	bitswap "gx/ipfs/QmNQQEYL3Vpj4beteqyeRpVpivuX1wBP6Q5GZMdBPPTV3S/go-bitswap"
+	decision "gx/ipfs/QmNQQEYL3Vpj4beteqyeRpVpivuX1wBP6Q5GZMdBPPTV3S/go-bitswap/decision"
 
-	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	cmds "gx/ipfs/QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb/go-ipfs-cmds"
+	peer "gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
 	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
-	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 var BitswapCmd = &cmds.Command{

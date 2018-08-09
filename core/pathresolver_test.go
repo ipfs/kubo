@@ -5,7 +5,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
-	path "gx/ipfs/QmY2QaawxgJw2rn7WsFNkWEYph3z2azpyYdrhAc1JctDmE/go-path"
+	path "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path"
 )
 
 func TestResolveNoComponents(t *testing.T) {

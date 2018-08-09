@@ -2,7 +2,7 @@ package verifbs
 
 import (
 	"gx/ipfs/QmQwgv79RHrRnoXmhnpC1BPtY55HHeneGMpPwmmBU1fUAG/go-verifcid"
-	bstore "gx/ipfs/QmTCHqj6s51pDu1GaPGyBW2VdmCUvtzLCF6nWykfX9ZYRt/go-ipfs-blockstore"
+	bstore "gx/ipfs/QmRNFh4wm6FgTDrtsWmnvEP9NTuEa3Ykf72y1LXCyevbGW/go-ipfs-blockstore"
 	blocks "gx/ipfs/QmVzK524a2VWLqyvtBeiHKsUAWYgeAk4DBeZoY7vpNPNRx/go-block-format"
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 )

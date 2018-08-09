@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	bs "gx/ipfs/QmPkMDBc7pSitAf2uixsNyZ53uheBjcwFTGLtXKpgdNcP4/go-blockservice"
-	mdag "gx/ipfs/QmfKKGzisaoP4oiHQSHz1zLbXDCTeXe7NVfX1FAMKzcHmt/go-merkledag"
+	mdag "gx/ipfs/QmXkZeJmx4c3ddjw81DQMUpM1e5LjAack5idzZYWUb2qAJ/go-merkledag"
+	bs "gx/ipfs/QmeZMtdkNG7u2CohGSL8mzAdZY2c3B1coYE91wvbzip1pF/go-blockservice"
 
-	offline "gx/ipfs/QmP9jV1GQzpEhLScrYZ1YWHnZMfdc7x13TwybM73FcuN8k/go-ipfs-exchange-offline"
 	util "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	blockstore "gx/ipfs/QmTCHqj6s51pDu1GaPGyBW2VdmCUvtzLCF6nWykfX9ZYRt/go-ipfs-blockstore"
+	blockstore "gx/ipfs/QmRNFh4wm6FgTDrtsWmnvEP9NTuEa3Ykf72y1LXCyevbGW/go-ipfs-blockstore"
+	offline "gx/ipfs/QmWURzU3XRY4wYBsu2LHukKKHp5skkYB1K357nzpbEvRY4/go-ipfs-exchange-offline"
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	dssync "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"

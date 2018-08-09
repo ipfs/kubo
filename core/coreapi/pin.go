@@ -7,10 +7,10 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	bserv "gx/ipfs/QmPkMDBc7pSitAf2uixsNyZ53uheBjcwFTGLtXKpgdNcP4/go-blockservice"
-	merkledag "gx/ipfs/QmfKKGzisaoP4oiHQSHz1zLbXDCTeXe7NVfX1FAMKzcHmt/go-merkledag"
+	merkledag "gx/ipfs/QmXkZeJmx4c3ddjw81DQMUpM1e5LjAack5idzZYWUb2qAJ/go-merkledag"
+	bserv "gx/ipfs/QmeZMtdkNG7u2CohGSL8mzAdZY2c3B1coYE91wvbzip1pF/go-blockservice"
 
-	offline "gx/ipfs/QmP9jV1GQzpEhLScrYZ1YWHnZMfdc7x13TwybM73FcuN8k/go-ipfs-exchange-offline"
+	offline "gx/ipfs/QmWURzU3XRY4wYBsu2LHukKKHp5skkYB1K357nzpbEvRY4/go-ipfs-exchange-offline"
 	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 )
 
