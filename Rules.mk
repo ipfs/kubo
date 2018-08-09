@@ -50,6 +50,9 @@ endif
 dir := pin/internal/pb
 include $(dir)/Rules.mk
 
+dir := filestore/pb
+include $(dir)/Rules.mk
+
 
 # -------------------- #
 #   universal rules    #

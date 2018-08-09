@@ -67,9 +67,9 @@ func storeItems(ctx context.Context, dag ipld.DAGService, estimatedLen uint64, d
 	internalKeys(emptyKey)
 
 	hdr := &pb.Set{
-		Version: proto.Uint32(1),
-		Fanout:  proto.Uint32(defaultFanout),
-		Seed:    proto.Uint32(depth),
+		Version: 1,
+		Fanout:  defaultFanout,
+		Seed:    depth,
 	}
 	if err := writeHdr(n, hdr); err != nil {
 		return nil, err

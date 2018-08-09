@@ -17,8 +17,8 @@ import (
 	dsq "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/query"
 	blockstore "gx/ipfs/QmYBEfMSquSGnuxBthUoBJNs3F6p4VAPPvAgxq6XXGvTPh/go-ipfs-blockstore"
 	cid "gx/ipfs/QmYjnkEL7i731PirfVH1sis89evN7jt4otSHw5D2xXXwUV/go-cid"
-	proto "gx/ipfs/QmZHU2gx42NPTYXzw6pJkuX6xCE7bKECp6e8QcPdoLx8sx/protobuf/proto"
 	posinfo "gx/ipfs/QmdBpJ5VTfL79VwKDU93z7fyZJ3mm4UaBHrE73CWRw2Bjd/go-ipfs-posinfo"
+	proto "gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
 )
 
 // FilestorePrefix identifies the key prefix for FileManager blocks.
@@ -276,7 +276,7 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 		if !f.AllowUrls {
 			return ErrUrlstoreNotEnabled
 		}
-		dobj.FilePath = proto.String(b.PosInfo.FullPath)
+		dobj.FilePath = b.PosInfo.FullPath
 	} else {
 		if !f.AllowFiles {
 			return ErrFilestoreNotEnabled
@@ -290,10 +290,10 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 			return err
 		}
 
-		dobj.FilePath = proto.String(filepath.ToSlash(p))
+		dobj.FilePath = filepath.ToSlash(p)
 	}
-	dobj.Offset = proto.Uint64(b.PosInfo.Offset)
-	dobj.Size_ = proto.Uint64(uint64(len(b.RawData())))
+	dobj.Offset = b.PosInfo.Offset
+	dobj.Size_ = uint64(len(b.RawData()))
 
 	data, err := proto.Marshal(&dobj)
 	if err != nil {
