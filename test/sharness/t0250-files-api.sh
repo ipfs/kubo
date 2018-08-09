@@ -597,9 +597,29 @@ test_files_api() {
     ipfs files ls /adir | grep foobar
   '
 
+  test_expect_success "should fail to write file and create intermediate directories with no --parents flag set $EXTRA" '
+    echo "ipfs rocks" | test_must_fail ipfs files write --create /parents/foo/ipfs.txt
+  '
+
+  test_expect_success "can write file and create intermediate directories $EXTRA" '
+    echo "ipfs rocks" | ipfs files write --create --parents /parents/foo/bar/baz/ipfs.txt &&
+    ipfs files stat "/parents/foo/bar/baz/ipfs.txt" | grep -q "^Type: file"
+  '
+
+  test_expect_success "can write file and create intermediate directories with short flags $EXTRA" '
+    echo "ipfs rocks" | ipfs files write -e -p /parents/foo/bar/baz/qux/quux/garply/ipfs.txt &&
+    ipfs files stat "/parents/foo/bar/baz/qux/quux/garply/ipfs.txt" | grep -q "^Type: file"
+  '
+
+  test_expect_success "can write another file in the same directory with -e -p $EXTRA" '
+    echo "ipfs rocks" | ipfs files write -e -p /parents/foo/bar/baz/qux/quux/garply/ipfs2.txt &&
+    ipfs files stat "/parents/foo/bar/baz/qux/quux/garply/ipfs2.txt" | grep -q "^Type: file"
+  '
+
   test_expect_success "clean up $EXTRA" '
     ipfs files rm -r /foobar &&
-    ipfs files rm -r /adir
+    ipfs files rm -r /adir &&
+    ipfs files rm -r /parents
   '
 
   test_expect_success "root mfs entry is empty $EXTRA" '
