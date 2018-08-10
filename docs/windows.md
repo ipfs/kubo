@@ -130,7 +130,7 @@ We need the `git` commit hash to be included in our build so that in the extreme
 
 Finally, we'll build and test `ipfs` itself.
 ```
-go install -ldflags="-X "github.com/ipfs/go-ipfs/repo/config".CurrentCommit=%SHA%"
+go install -ldflags="-X "github.com/ipfs/go-ipfs".CurrentCommit=%SHA%"
 %GOPATH%\bin\ipfs.exe version --all
 ```
 You can check that the ipfs output versions match with `go version` and `git rev-parse --short HEAD`.  

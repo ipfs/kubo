@@ -9,7 +9,7 @@ will be allowed up to release day.
 ## Release Candidate Checklist
 - [ ] CHANGELOG.md has been updated
   - use `./bin/mkreleaselog` to generate a nice starter list
-- [ ] version string in `repo/config/version.go` has been updated
+- [ ] version string in `repo/version.go` has been updated
 - [ ] tag commit with vX.Y.Z-rcN
 - [ ] publish gx version with `gx publish`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
   - you will have to manually adjust the gx version to 'rc'
@@ -22,7 +22,7 @@ will be allowed up to release day.
 - [ ] webui works (for most definitions of 'works') - Test the multiple pages and verify that no visible errors are shown.
 - [ ] CHANGELOG.md has been updated
   - use `./bin/mkreleaselog` to generate a nice starter list
-- [ ] version string in `repo/config/version.go` has been updated
+- [ ] version string in `repo/version.go` has been updated
 - [ ] tag commit with vX.Y.Z
 - [ ] update release branch to point to release commit
 - [ ] publish dist.ipfs.io
@@ -30,7 +30,7 @@ will be allowed up to release day.
 - [ ] publish gx version with `gx release`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
 
 ## Post-Release
-- [ ] Bump version string in `repo/config/version.go` to `vX.Y.Z-dev`
+- [ ] Bump version string in `repo/version.go` to `vX.Y.Z-dev`
 - [ ] Upload the final release to the github releases page: https://github.com/ipfs/go-ipfs/releases
 - Communication
   - [ ] Create the release issue
