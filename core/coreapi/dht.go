@@ -100,26 +100,20 @@ func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []*cid.Cid) er
 func provideKeysRec(ctx context.Context, r routing.IpfsRouting, bs blockstore.Blockstore, cids []*cid.Cid) error {
 	provided := cid.NewSet()
 	for _, c := range cids {
-		kset := cid.NewSet()
-
 		dserv := dag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
 
-		err := dag.EnumerateChildrenAsync(ctx, dag.GetLinksDirect(dserv), c, kset.Visit)
+		err := dag.EnumerateChildrenAsync(ctx, dag.GetLinksDirect(dserv), c, provided.Visit)
 		if err != nil {
 			return err
 		}
+	}
 
-		for _, k := range kset.Keys() {
-			if provided.Has(k) {
-				continue
-			}
-
-			err = r.Provide(ctx, k, true)
-			if err != nil {
-				return err
-			}
-			provided.Add(k)
+	for _, k := range provided.Keys() {
+		err := r.Provide(ctx, k, true)
+		if err != nil {
+			return err
 		}
+		provided.Add(k)
 	}
 
 	return nil
