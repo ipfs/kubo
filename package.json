@@ -324,14 +324,14 @@
       "version": "3.0.7"
     },
     {
-      "hash": "QmbWGdyATxHpmbDC2z7zMNnmPmiHCRXS5f2vyxBfgz8bVb",
+      "hash": "QmUQb3xtNzkQCgTj2NjaqcJZNv2nfSSub2QAdy9DtQMRBT",
       "name": "go-ipfs-cmds",
-      "version": "1.0.20"
+      "version": "1.0.21"
     },
     {
-      "hash": "QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f",
+      "hash": "QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta",
       "name": "go-ipfs-cmdkit",
-      "version": "1.1.1"
+      "version": "1.1.2"
     },
     {
       "author": "whyrusleeping",
@@ -572,9 +572,9 @@
     },
     {
       "author": "why",
-      "hash": "QmWJRM6rLjXGEXb5JkKu17Y68eJtCFcKPyRhb8JH2ELZ2Q",
+      "hash": "Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ",
       "name": "go-unixfs",
-      "version": "1.0.6"
+      "version": "1.0.7"
     },
     {
       "author": "magik6k",
