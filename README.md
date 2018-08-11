@@ -9,20 +9,23 @@
 [![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs)
 [![Build Status](https://travis-ci.org/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs)
 
-[![Throughput Graph](https://graphs.waffle.io/ipfs/go-ipfs/throughput.svg)](https://waffle.io/ipfs/go-ipfs/metrics/throughput)
-
 > IPFS implementation in Go
 
-IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from
-Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm,
-exchanging git objects. IPFS provides an interface as simple as the HTTP web, but
-with permanence built in. You can also mount the world at /ipfs.
+## Project Status
+
+[![Throughput Graph](https://graphs.waffle.io/ipfs/go-ipfs/throughput.svg)](https://waffle.io/ipfs/go-ipfs/metrics/throughput)
+
+[**`Weekly Core Dev Calls`**](https://github.com/ipfs/pm/issues/674)
+
+## What is IPFS?
+
+IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm, exchanging git objects. IPFS provides an interface as simple as the HTTP web, but with permanence built in. You can also mount the world at /ipfs.
 
 For more info see: https://github.com/ipfs/ipfs.
 
-Please put all issues regarding IPFS _design_ in the
-[ipfs repo issues](https://github.com/ipfs/ipfs/issues).
-Please put all issues regarding the Go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
+Please put all issues regarding:
+  - IPFS _design_ in the [ipfs repo issues](https://github.com/ipfs/ipfs/issues).
+  - Go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
 
 ## Table of Contents
 
