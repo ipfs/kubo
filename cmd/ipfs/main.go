@@ -34,13 +34,16 @@ import (
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	loggables "gx/ipfs/QmZ4zF1mBrt8C2mSCM4ZYE4aAnv78f7GvrzufJC4G5tecK/go-libp2p-loggables"
-	mdns "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
+	madns "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
 )
 
 // log is the command logger
 var log = logging.Logger("cmd/ipfs")
 
 var errRequestCanceled = errors.New("request canceled")
+
+// declared as a var for testing purposes
+var dnsResolver = madns.DefaultResolver
 
 const (
 	EnvEnableProfiling = "IPFS_PROF"
@@ -445,30 +448,31 @@ func getApiClient(ctx context.Context, repoPath, apiAddrStr string) (http.Client
 }
 
 func apiClientForAddr(ctx context.Context, addr ma.Multiaddr) (http.Client, error) {
-	addrs, err := mdns.Resolve(ctx, addr)
+	addr, err := resolveAddr(ctx, addr)
 	if err != nil {
 		return nil, err
 	}
 
-	dialer := &manet.Dialer{}
-	for _, addr := range addrs {
-		ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
-		defer cancelFunc()
-
-		conn, err := dialer.DialContext(ctx, addr)
-		if err != nil {
-			log.Errorf("connection to %s failed, error: %s", addr, err)
-			continue
-		}
-		conn.Close()
-
-		_, host, err := manet.DialArgs(addr)
-		if err != nil {
-			continue
-		}
-
-		return http.NewClient(host, http.ClientWithAPIPrefix(corehttp.APIPath)), nil
+	_, host, err := manet.DialArgs(addr)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, errors.New("non-resolvable API endpoint")
+	return http.NewClient(host, http.ClientWithAPIPrefix(corehttp.APIPath)), nil
+}
+
+func resolveAddr(ctx context.Context, addr ma.Multiaddr) (ma.Multiaddr, error) {
+	ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+	defer cancelFunc()
+
+	addrs, err := dnsResolver.Resolve(ctx, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(addrs) == 0 {
+		return nil, errors.New("non-resolvable API endpoint")
+	}
+
+	return addrs[0], nil
 }
