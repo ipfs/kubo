@@ -539,6 +539,12 @@
       "hash": "QmPyxJ2QS7L5FhGkNYkNcXHGjDhvGHueJ4auqAstFHYxy5",
       "name": "go-cidutil",
       "version": "0.0.2"
+    },
+    {
+      "author": "lgierth",
+      "hash": "QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt",
+      "name": "go-multiaddr-dns",
+      "version": "0.2.4"
     }
   ],
   "gxVersion": "0.10.0",
