@@ -239,7 +239,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, cctx *oldcm
 	// did user specify an api to use for this command?
 	apiAddrStr, _ := req.Options[corecmds.ApiOption].(string)
 
-	client, err := getApiClient(req.Context, cctx.ConfigRoot, apiAddrStr)
+	client, err := getAPIClient(req.Context, cctx.ConfigRoot, apiAddrStr)
 	if err == repo.ErrApiNotRunning {
 		if apiAddrStr != "" && req.Command != daemonCmd {
 			// if user SPECIFIED an api, and this cmd is not daemon
@@ -407,10 +407,10 @@ If you're sure go-ipfs isn't running, you can just delete it.
 var checkIPFSUnixFmt = "Otherwise check:\n\tps aux | grep ipfs"
 var checkIPFSWinFmt = "Otherwise check:\n\ttasklist | findstr ipfs"
 
-// getApiClient checks the repo, and the given options, checking for
+// getAPIClient checks the repo, and the given options, checking for
 // a running API service. if there is one, it returns a client.
 // otherwise, it returns errApiNotRunning, or another error.
-func getApiClient(ctx context.Context, repoPath, apiAddrStr string) (http.Client, error) {
+func getAPIClient(ctx context.Context, repoPath, apiAddrStr string) (http.Client, error) {
 	var apiErrorFmt string
 	switch {
 	case osh.IsUnix():
