@@ -25,6 +25,7 @@ type Config struct {
 	Gateway   Gateway   // local node's gateway server options
 	API       API       // local node's API settings
 	Swarm     SwarmConfig
+	Pubsub    PubsubConfig
 
 	Reprovider   Reprovider
 	Experimental Experiments
