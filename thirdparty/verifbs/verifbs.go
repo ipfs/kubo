@@ -1,10 +1,10 @@
 package verifbs
 
 import (
-	"gx/ipfs/QmQwgv79RHrRnoXmhnpC1BPtY55HHeneGMpPwmmBU1fUAG/go-verifcid"
-	bstore "gx/ipfs/QmRNFh4wm6FgTDrtsWmnvEP9NTuEa3Ykf72y1LXCyevbGW/go-ipfs-blockstore"
-	blocks "gx/ipfs/QmVzK524a2VWLqyvtBeiHKsUAWYgeAk4DBeZoY7vpNPNRx/go-block-format"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	"gx/ipfs/QmV1pEFHk8ijeessqG52SjHuxuehahbeHrxXk4QEkgfPHj/go-verifcid"
+	bstore "gx/ipfs/QmYir8arYJK1RMzDBZU1dqscLorWvthWU8aStL4xhxdYeT/go-ipfs-blockstore"
+	blocks "gx/ipfs/QmZXvzTJTiN6p469osBUtEwm4WwhXXoWcHC8aTS1cAJkjy/go-block-format"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
 )
 
 type VerifBSGC struct {

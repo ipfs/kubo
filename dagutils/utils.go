@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
-	path "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path"
-	dag "gx/ipfs/QmXkZeJmx4c3ddjw81DQMUpM1e5LjAack5idzZYWUb2qAJ/go-merkledag"
-	bserv "gx/ipfs/QmeZMtdkNG7u2CohGSL8mzAdZY2c3B1coYE91wvbzip1pF/go-blockservice"
+	bserv "gx/ipfs/QmSQDddUJRZCBEcEKp3icdiRUrVofvMSWmGyMXSysqjNCL/go-blockservice"
+	path "gx/ipfs/QmTG5WFmAM4uAnqGskeAPijdpTmmNDLJNCQ71NqfdvC6hV/go-path"
+	dag "gx/ipfs/QmXhrNaxjxNLwAHnWQScc6GxvpJMyn8wfdRmGDbUQwpfth/go-merkledag"
 
-	bstore "gx/ipfs/QmRNFh4wm6FgTDrtsWmnvEP9NTuEa3Ykf72y1LXCyevbGW/go-ipfs-blockstore"
-	offline "gx/ipfs/QmWURzU3XRY4wYBsu2LHukKKHp5skkYB1K357nzpbEvRY4/go-ipfs-exchange-offline"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	offline "gx/ipfs/QmNxamk8jB6saNF5G37Tiipf2JEnxt7qvesbngPMe24wMS/go-ipfs-exchange-offline"
+	ipld "gx/ipfs/QmUSyMZ8Vt4vTZr5HdDEgEfpwAXfQRuDdfCFTt7XBzhxpQ/go-ipld-format"
+	bstore "gx/ipfs/QmYir8arYJK1RMzDBZU1dqscLorWvthWU8aStL4xhxdYeT/go-ipfs-blockstore"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	syncds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"
 )

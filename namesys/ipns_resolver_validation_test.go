@@ -6,21 +6,21 @@ import (
 	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path"
+	path "gx/ipfs/QmTG5WFmAM4uAnqGskeAPijdpTmmNDLJNCQ71NqfdvC6hV/go-path"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	record "gx/ipfs/QmUTQSGgjs8CHm9yBcUHicpRs7C9abhyZiBwjzCUp1pNgX/go-libp2p-record"
 	ipns "gx/ipfs/QmVHij7PuWUFeLcmRbD1ykDwB1WZMYP8yixo9bprUb3QHG/go-ipns"
 	testutil "gx/ipfs/QmXG74iiKQnDstVQq9fPFQEB6JTNSWBbAWE1qsq6L4E5sR/go-testutil"
+	mockrouting "gx/ipfs/QmYAC1wnzfs7LwgrNU5K5MK2rnisjF7kAxWrwzZTLNNjVe/go-ipfs-routing/mock"
+	offline "gx/ipfs/QmYAC1wnzfs7LwgrNU5K5MK2rnisjF7kAxWrwzZTLNNjVe/go-ipfs-routing/offline"
 	pstore "gx/ipfs/QmYLXCWN2myozZpx8Wx4UjrRuQuhY3YtWoMi6SHaXii6aM/go-libp2p-peerstore"
-	mockrouting "gx/ipfs/Qma19TdQ7W26jbfuPgdo9Zi4qtjks1zeXzX86mtEYWYCiw/go-ipfs-routing/mock"
-	offline "gx/ipfs/Qma19TdQ7W26jbfuPgdo9Zi4qtjks1zeXzX86mtEYWYCiw/go-ipfs-routing/offline"
 	peer "gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	dssync "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"
-	routing "gx/ipfs/QmewrvpGvgK9qkCtXsGNwXiQzyux4jcHNjoyVrGdsgtNK5/go-libp2p-routing"
-	ropts "gx/ipfs/QmewrvpGvgK9qkCtXsGNwXiQzyux4jcHNjoyVrGdsgtNK5/go-libp2p-routing/options"
+	routing "gx/ipfs/QmfGeECX7CxJAFXwGKx2cn7csnxAtwJw8e3XtoNVf6bqcv/go-libp2p-routing"
+	ropts "gx/ipfs/QmfGeECX7CxJAFXwGKx2cn7csnxAtwJw8e3XtoNVf6bqcv/go-libp2p-routing/options"
 )
 
 func TestResolverValidation(t *testing.T) {

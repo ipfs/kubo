@@ -12,7 +12,7 @@ import (
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	"gx/ipfs/QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta/go-ipfs-cmdkit"
-	offline "gx/ipfs/Qma19TdQ7W26jbfuPgdo9Zi4qtjks1zeXzX86mtEYWYCiw/go-ipfs-routing/offline"
+	offline "gx/ipfs/QmYAC1wnzfs7LwgrNU5K5MK2rnisjF7kAxWrwzZTLNNjVe/go-ipfs-routing/offline"
 )
 
 var IpnsCmd = &cmds.Command{

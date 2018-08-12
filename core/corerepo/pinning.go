@@ -18,11 +18,11 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-ipfs/core"
-	path "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path"
-	resolver "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path/resolver"
-	uio "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/io"
+	path "gx/ipfs/QmTG5WFmAM4uAnqGskeAPijdpTmmNDLJNCQ71NqfdvC6hV/go-path"
+	resolver "gx/ipfs/QmTG5WFmAM4uAnqGskeAPijdpTmmNDLJNCQ71NqfdvC6hV/go-path/resolver"
+	uio "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/io"
 
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
 )
 
 func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {

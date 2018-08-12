@@ -7,10 +7,10 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/mock"
-	"gx/ipfs/QmVzK524a2VWLqyvtBeiHKsUAWYgeAk4DBeZoY7vpNPNRx/go-block-format"
+	"gx/ipfs/QmZXvzTJTiN6p469osBUtEwm4WwhXXoWcHC8aTS1cAJkjy/go-block-format"
 
 	mocknet "gx/ipfs/QmUDzeFgYrRmHL2hUB6NZmqcBVQtUzETwmFRUc9onfSSHr/go-libp2p/p2p/net/mock"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
 )
 
 func TestBitswapWithoutRouting(t *testing.T) {

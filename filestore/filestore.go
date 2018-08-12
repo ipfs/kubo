@@ -11,11 +11,11 @@ import (
 	"context"
 	"errors"
 
-	blockstore "gx/ipfs/QmRNFh4wm6FgTDrtsWmnvEP9NTuEa3Ykf72y1LXCyevbGW/go-ipfs-blockstore"
 	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
-	posinfo "gx/ipfs/QmSHjPDw8yNgLZ7cBfX7w3Smn7PHwYhNEpd4LHQQxUg35L/go-ipfs-posinfo"
-	blocks "gx/ipfs/QmVzK524a2VWLqyvtBeiHKsUAWYgeAk4DBeZoY7vpNPNRx/go-block-format"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	posinfo "gx/ipfs/QmWjvVuzD3Dqf3VznGAXUs1VqpG4dd35ounVCnLam8v7Xt/go-ipfs-posinfo"
+	blockstore "gx/ipfs/QmYir8arYJK1RMzDBZU1dqscLorWvthWU8aStL4xhxdYeT/go-ipfs-blockstore"
+	blocks "gx/ipfs/QmZXvzTJTiN6p469osBUtEwm4WwhXXoWcHC8aTS1cAJkjy/go-block-format"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
 	dsq "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/query"
 )
 

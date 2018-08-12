@@ -13,19 +13,19 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	mfs "github.com/ipfs/go-ipfs/mfs"
 	"github.com/ipfs/go-ipfs/pin"
-	dag "gx/ipfs/QmXkZeJmx4c3ddjw81DQMUpM1e5LjAack5idzZYWUb2qAJ/go-merkledag"
-	unixfs "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs"
-	balanced "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/importer/balanced"
-	ihelper "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/importer/helpers"
-	trickle "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/importer/trickle"
+	unixfs "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs"
+	balanced "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/importer/balanced"
+	ihelper "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/importer/helpers"
+	trickle "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/importer/trickle"
+	dag "gx/ipfs/QmXhrNaxjxNLwAHnWQScc6GxvpJMyn8wfdRmGDbUQwpfth/go-merkledag"
 
 	files "gx/ipfs/QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta/go-ipfs-cmdkit/files"
-	bstore "gx/ipfs/QmRNFh4wm6FgTDrtsWmnvEP9NTuEa3Ykf72y1LXCyevbGW/go-ipfs-blockstore"
 	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
-	posinfo "gx/ipfs/QmSHjPDw8yNgLZ7cBfX7w3Smn7PHwYhNEpd4LHQQxUg35L/go-ipfs-posinfo"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	chunker "gx/ipfs/Qmc3UwSvJkntxu2gKDPCqJEzmhqVeJtTbrVxJm6tsdmMF1/go-ipfs-chunker"
+	ipld "gx/ipfs/QmUSyMZ8Vt4vTZr5HdDEgEfpwAXfQRuDdfCFTt7XBzhxpQ/go-ipld-format"
+	posinfo "gx/ipfs/QmWjvVuzD3Dqf3VznGAXUs1VqpG4dd35ounVCnLam8v7Xt/go-ipfs-posinfo"
+	bstore "gx/ipfs/QmYir8arYJK1RMzDBZU1dqscLorWvthWU8aStL4xhxdYeT/go-ipfs-blockstore"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
+	chunker "gx/ipfs/Qme4ThG6LN6EMrMYyf2AMywAZaGbTYxQu4njfcSSkcisLi/go-ipfs-chunker"
 )
 
 var log = logging.Logger("coreunix")
@@ -89,7 +89,7 @@ type Adder struct {
 	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
 	tempRoot   *cid.Cid
-	Prefix     *cid.Prefix
+	Prefix     cid.Builder
 	liveNodes  uint64
 }
 
@@ -98,7 +98,7 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 		return adder.mroot, nil
 	}
 	rnode := unixfs.EmptyDirNode()
-	rnode.SetPrefix(adder.Prefix)
+	rnode.SetCidBuilder(adder.Prefix)
 	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil)
 	if err != nil {
 		return nil, err
@@ -120,11 +120,11 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	}
 
 	params := ihelper.DagBuilderParams{
-		Dagserv:   adder.dagService,
-		RawLeaves: adder.RawLeaves,
-		Maxlinks:  ihelper.DefaultLinksPerBlock,
-		NoCopy:    adder.NoCopy,
-		Prefix:    adder.Prefix,
+		Dagserv:    adder.dagService,
+		RawLeaves:  adder.RawLeaves,
+		Maxlinks:   ihelper.DefaultLinksPerBlock,
+		NoCopy:     adder.NoCopy,
+		CidBuilder: adder.Prefix,
 	}
 
 	if adder.Trickle {
@@ -449,7 +449,7 @@ func (adder *Adder) addFile(file files.File) error {
 		}
 
 		dagnode := dag.NodeWithData(sdata)
-		dagnode.SetPrefix(adder.Prefix)
+		dagnode.SetCidBuilder(adder.Prefix)
 		err = adder.dagService.Add(adder.ctx, dagnode)
 		if err != nil {
 			return err

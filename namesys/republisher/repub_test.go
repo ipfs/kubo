@@ -10,7 +10,7 @@ import (
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
-	path "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path"
+	path "gx/ipfs/QmTG5WFmAM4uAnqGskeAPijdpTmmNDLJNCQ71NqfdvC6hV/go-path"
 
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mocknet "gx/ipfs/QmUDzeFgYrRmHL2hUB6NZmqcBVQtUzETwmFRUc9onfSSHr/go-libp2p/p2p/net/mock"

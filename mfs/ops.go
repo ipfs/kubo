@@ -6,10 +6,10 @@ import (
 	gopath "path"
 	"strings"
 
-	path "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path"
+	path "gx/ipfs/QmTG5WFmAM4uAnqGskeAPijdpTmmNDLJNCQ71NqfdvC6hV/go-path"
 
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	ipld "gx/ipfs/QmUSyMZ8Vt4vTZr5HdDEgEfpwAXfQRuDdfCFTt7XBzhxpQ/go-ipld-format"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
 )
 
 // Mv moves the file or directory at 'src' to 'dst'
@@ -101,7 +101,7 @@ func PutNode(r *Root, path string, nd ipld.Node) error {
 type MkdirOpts struct {
 	Mkparents bool
 	Flush     bool
-	Prefix    *cid.Prefix
+	Prefix    cid.Builder
 }
 
 // Mkdir creates a directory at 'path' under the directory 'd', creating

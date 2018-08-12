@@ -8,11 +8,11 @@ import (
 
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	ipns "gx/ipfs/QmVHij7PuWUFeLcmRbD1ykDwB1WZMYP8yixo9bprUb3QHG/go-ipns"
+	dshelp "gx/ipfs/QmWf5idGZ55KWUUo2EKM3BTeunjSiSgWbo4bLpYafENBgp/go-ipfs-ds-help"
 	testutil "gx/ipfs/QmXG74iiKQnDstVQq9fPFQEB6JTNSWBbAWE1qsq6L4E5sR/go-testutil"
+	mockrouting "gx/ipfs/QmYAC1wnzfs7LwgrNU5K5MK2rnisjF7kAxWrwzZTLNNjVe/go-ipfs-routing/mock"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	mockrouting "gx/ipfs/Qma19TdQ7W26jbfuPgdo9Zi4qtjks1zeXzX86mtEYWYCiw/go-ipfs-routing/mock"
 	peer "gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
-	dshelp "gx/ipfs/Qmd8UZEDddMaCnQ1G5eSrUhN3coX19V7SyXNQGWnAvUsnT/go-ipfs-ds-help"
 	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	dssync "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"
 )
