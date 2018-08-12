@@ -43,6 +43,11 @@ experimental, default-disabled.
 run your daemon with the `--enable-pubsub-experiment` flag. Then use the
 `ipfs pubsub` commands.
 
+### gossipsub
+
+You can enable the new experimental gossipsub protocol via configuration:
+`ipfs config Pubsub.Router gossipsub`
+
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works
 - [ ] Needs authenticated modes to be implemented
