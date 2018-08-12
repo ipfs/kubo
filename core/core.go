@@ -453,7 +453,26 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	n.Ping = ping.NewPingService(host)
 
 	if pubsub || ipnsps {
-		service, err := floodsub.NewFloodSub(ctx, host)
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			return err
+		}
+
+		var service *floodsub.PubSub
+
+		switch cfg.Pubsub.Router {
+		case "":
+			fallthrough
+		case "floodsub":
+			service, err = floodsub.NewFloodSub(ctx, host)
+
+		case "gossipsub":
+			service, err = floodsub.NewGossipSub(ctx, host)
+
+		default:
+			err = fmt.Errorf("Unknown pubsub router %s", cfg.Pubsub.Router)
+		}
+
 		if err != nil {
 			return err
 		}
