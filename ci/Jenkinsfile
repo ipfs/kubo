@@ -48,7 +48,11 @@ def setupStep(nodeLabel, f) {
 
         def run = nodeLabel != 'windows' ? this.&sh : this.&bat
 
-        f(run)
+        try {
+          f(run)
+        } finally {
+          cleanWs()
+        }
       }
     }
   }
