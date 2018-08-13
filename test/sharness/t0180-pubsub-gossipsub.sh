@@ -12,7 +12,7 @@ test_expect_success 'init iptb' '
 
 test_expect_success "enable gossipsub" '
   for x in $(seq 0 4); do
-    ipfsi 0 config Pubsub.Router gossipsub
+    ipfsi $x config Pubsub.Router gossipsub
   done
 '
 
