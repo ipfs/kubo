@@ -394,6 +394,27 @@ file_size() {
     $_STAT "$1"
 }
 
+directory_size() {
+    local total=0
+    local fsize=0
+    local res=0
+    find "$1" -type f | ( while read fname; do
+        fsize=$(file_size "$fname")
+        res=$?
+        if ! test $? -eq 0; then
+            echo "failed to get filesize" >&2
+            return $res
+        fi
+        total=$(expr "$total" + "$fsize")
+        res=$?
+        if ! test $? -eq 0; then
+            echo "filesize not a number: $fsize" >&2
+            return $res
+        fi
+    done
+    echo "$total" ) # do not remove this subshell
+}
+
 test_check_peerid() {
   peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
   test "$peeridlen" = "46" || {
