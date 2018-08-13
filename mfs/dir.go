@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	dag "gx/ipfs/QmXkZeJmx4c3ddjw81DQMUpM1e5LjAack5idzZYWUb2qAJ/go-merkledag"
-	ft "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs"
-	uio "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/io"
-	ufspb "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/pb"
+	ft "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs"
+	uio "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/io"
+	ufspb "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/pb"
+	dag "gx/ipfs/QmXhrNaxjxNLwAHnWQScc6GxvpJMyn8wfdRmGDbUQwpfth/go-merkledag"
 
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	ipld "gx/ipfs/QmUSyMZ8Vt4vTZr5HdDEgEfpwAXfQRuDdfCFTt7XBzhxpQ/go-ipld-format"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
@@ -63,14 +63,14 @@ func NewDirectory(ctx context.Context, name string, node ipld.Node, parent child
 	}, nil
 }
 
-// GetPrefix gets the CID prefix of the root node
-func (d *Directory) GetPrefix() *cid.Prefix {
-	return d.unixfsDir.GetPrefix()
+// GetCidBuilder gets the CID builder of the root node
+func (d *Directory) GetCidBuilder() cid.Builder {
+	return d.unixfsDir.GetCidBuilder()
 }
 
-// SetPrefix sets the CID prefix
-func (d *Directory) SetPrefix(prefix *cid.Prefix) {
-	d.unixfsDir.SetPrefix(prefix)
+// SetCidBuilder sets the CID builder
+func (d *Directory) SetCidBuilder(b cid.Builder) {
+	d.unixfsDir.SetCidBuilder(b)
 }
 
 // closeChild updates the child by the given name to the dag node 'nd'
@@ -307,7 +307,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	}
 
 	ndir := ft.EmptyDirNode()
-	ndir.SetPrefix(d.GetPrefix())
+	ndir.SetCidBuilder(d.GetCidBuilder())
 
 	err = d.dserv.Add(d.ctx, ndir)
 	if err != nil {

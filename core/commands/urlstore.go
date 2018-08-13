@@ -6,15 +6,15 @@ import (
 	"net/http"
 
 	filestore "github.com/ipfs/go-ipfs/filestore"
-	balanced "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/importer/balanced"
-	ihelper "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/importer/helpers"
-	trickle "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/importer/trickle"
+	balanced "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/importer/balanced"
+	ihelper "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/importer/helpers"
+	trickle "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/importer/trickle"
 
 	cmdkit "gx/ipfs/QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta/go-ipfs-cmdkit"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	cmds "gx/ipfs/QmUQb3xtNzkQCgTj2NjaqcJZNv2nfSSub2QAdy9DtQMRBT/go-ipfs-cmds"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	chunk "gx/ipfs/Qmc3UwSvJkntxu2gKDPCqJEzmhqVeJtTbrVxJm6tsdmMF1/go-ipfs-chunker"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
+	chunk "gx/ipfs/Qme4ThG6LN6EMrMYyf2AMywAZaGbTYxQu4njfcSSkcisLi/go-ipfs-chunker"
 )
 
 var urlStoreCmd = &cmds.Command{
@@ -96,12 +96,12 @@ time.
 		chk := chunk.NewSizeSplitter(hres.Body, chunk.DefaultBlockSize)
 		prefix := cid.NewPrefixV1(cid.DagProtobuf, mh.SHA2_256)
 		dbp := &ihelper.DagBuilderParams{
-			Dagserv:   n.DAG,
-			RawLeaves: true,
-			Maxlinks:  ihelper.DefaultLinksPerBlock,
-			NoCopy:    true,
-			Prefix:    &prefix,
-			URL:       url,
+			Dagserv:    n.DAG,
+			RawLeaves:  true,
+			Maxlinks:   ihelper.DefaultLinksPerBlock,
+			NoCopy:     true,
+			CidBuilder: &prefix,
+			URL:        url,
 		}
 
 		layout := balanced.Layout

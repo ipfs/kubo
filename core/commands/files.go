@@ -16,21 +16,21 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	mfs "github.com/ipfs/go-ipfs/mfs"
-	path "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path"
-	resolver "gx/ipfs/QmPqCBrmkm7jNfYi7xFS7mUZsrN6DEumBMrxLnL7axNJx1/go-path/resolver"
-	dag "gx/ipfs/QmXkZeJmx4c3ddjw81DQMUpM1e5LjAack5idzZYWUb2qAJ/go-merkledag"
-	ft "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs"
-	uio "gx/ipfs/Qmdqe1sKBpz6W8xFDptGfmzgCPQ5CXNuQPhZeELqMowgsQ/go-unixfs/io"
-	bservice "gx/ipfs/QmeZMtdkNG7u2CohGSL8mzAdZY2c3B1coYE91wvbzip1pF/go-blockservice"
+	bservice "gx/ipfs/QmSQDddUJRZCBEcEKp3icdiRUrVofvMSWmGyMXSysqjNCL/go-blockservice"
+	path "gx/ipfs/QmTG5WFmAM4uAnqGskeAPijdpTmmNDLJNCQ71NqfdvC6hV/go-path"
+	resolver "gx/ipfs/QmTG5WFmAM4uAnqGskeAPijdpTmmNDLJNCQ71NqfdvC6hV/go-path/resolver"
+	ft "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs"
+	uio "gx/ipfs/QmTbas51oodp3ZJrqsWYs1yqSxcD7LEJBv4djRV2VrY8wv/go-unixfs/io"
+	dag "gx/ipfs/QmXhrNaxjxNLwAHnWQScc6GxvpJMyn8wfdRmGDbUQwpfth/go-merkledag"
 
+	offline "gx/ipfs/QmNxamk8jB6saNF5G37Tiipf2JEnxt7qvesbngPMe24wMS/go-ipfs-exchange-offline"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cmdkit "gx/ipfs/QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta/go-ipfs-cmdkit"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
 	cmds "gx/ipfs/QmUQb3xtNzkQCgTj2NjaqcJZNv2nfSSub2QAdy9DtQMRBT/go-ipfs-cmds"
-	offline "gx/ipfs/QmWURzU3XRY4wYBsu2LHukKKHp5skkYB1K357nzpbEvRY4/go-ipfs-exchange-offline"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	ipld "gx/ipfs/QmUSyMZ8Vt4vTZr5HdDEgEfpwAXfQRuDdfCFTt7XBzhxpQ/go-ipld-format"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
 )
 
 var flog = logging.Logger("cmds/files")
@@ -868,9 +868,9 @@ Examples:
 		root := n.FilesRoot
 
 		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
-			Mkparents: dashp,
-			Flush:     flush,
-			Prefix:    prefix,
+			Mkparents:  dashp,
+			Flush:      flush,
+			CidBuilder: prefix,
 		})
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -958,8 +958,8 @@ Change the cid version or hash function of the root node of a given path.
 	},
 }
 
-func updatePath(rt *mfs.Root, pth string, prefix *cid.Prefix, flush bool) error {
-	if prefix == nil {
+func updatePath(rt *mfs.Root, pth string, builder cid.Builder, flush bool) error {
+	if builder == nil {
 		return nil
 	}
 
@@ -970,7 +970,7 @@ func updatePath(rt *mfs.Root, pth string, prefix *cid.Prefix, flush bool) error 
 
 	switch n := nd.(type) {
 	case *mfs.Directory:
-		n.SetPrefix(prefix)
+		n.SetCidBuilder(builder)
 	default:
 		return fmt.Errorf("can only update directories")
 	}
@@ -1088,7 +1088,7 @@ Remove files or directories.
 	},
 }
 
-func getPrefixNew(req *cmds.Request) (*cid.Prefix, error) {
+func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
 	cidVer, cidVerSet := req.Options["cid-version"].(int)
 	hashFunStr, hashFunSet := req.Options["hash"].(string)
 
@@ -1117,7 +1117,7 @@ func getPrefixNew(req *cmds.Request) (*cid.Prefix, error) {
 	return &prefix, nil
 }
 
-func getPrefix(req oldcmds.Request) (*cid.Prefix, error) {
+func getPrefix(req oldcmds.Request) (cid.Builder, error) {
 	cidVer, cidVerSet, _ := req.Option("cid-version").Int()
 	hashFunStr, hashFunSet, _ := req.Option("hash").String()
 
@@ -1146,7 +1146,7 @@ func getPrefix(req oldcmds.Request) (*cid.Prefix, error) {
 	return &prefix, nil
 }
 
-func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*mfs.File, error) {
+func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (*mfs.File, error) {
 	target, err := mfs.Lookup(r, path)
 	switch err {
 	case nil:
@@ -1172,12 +1172,12 @@ func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*
 		if !ok {
 			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
-		if prefix == nil {
-			prefix = pdir.GetPrefix()
+		if builder == nil {
+			builder = pdir.GetCidBuilder()
 		}
 
 		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
-		nd.SetPrefix(prefix)
+		nd.SetCidBuilder(builder)
 		err = pdir.AddChild(fname, nd)
 		if err != nil {
 			return nil, err

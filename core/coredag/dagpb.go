@@ -5,11 +5,11 @@ import (
 	"io/ioutil"
 	"math"
 
-	"gx/ipfs/QmXkZeJmx4c3ddjw81DQMUpM1e5LjAack5idzZYWUb2qAJ/go-merkledag"
+	"gx/ipfs/QmXhrNaxjxNLwAHnWQScc6GxvpJMyn8wfdRmGDbUQwpfth/go-merkledag"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	ipld "gx/ipfs/QmUSyMZ8Vt4vTZr5HdDEgEfpwAXfQRuDdfCFTt7XBzhxpQ/go-ipld-format"
+	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
 )
 
 func dagpbJSONParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
@@ -25,7 +25,7 @@ func dagpbJSONParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error)
 		return nil, err
 	}
 
-	nd.SetPrefix(cidPrefix(mhType, mhLen))
+	nd.SetCidBuilder(cidPrefix(mhType, mhLen))
 
 	return []ipld.Node{nd}, nil
 }
@@ -41,7 +41,7 @@ func dagpbRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) 
 		return nil, err
 	}
 
-	nd.SetPrefix(cidPrefix(mhType, mhLen))
+	nd.SetCidBuilder(cidPrefix(mhType, mhLen))
 
 	return []ipld.Node{nd}, nil
 }
