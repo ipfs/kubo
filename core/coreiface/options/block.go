@@ -19,7 +19,7 @@ type BlockRmOption func(*BlockRmSettings) error
 
 func BlockPutOptions(opts ...BlockPutOption) (*BlockPutSettings, error) {
 	options := &BlockPutSettings{
-		Codec:    "v0",
+		Codec:    "",
 		MhType:   multihash.SHA2_256,
 		MhLength: -1,
 	}
