@@ -38,13 +38,29 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 	var pref cid.Prefix
 	pref.Version = 1
 
+	if settings.Codec == "" {
+		if settings.MhType != mh.SHA2_256 || (settings.MhLength != -1 && settings.MhLength != 32) {
+			settings.Codec = "protobuf"
+		} else {
+			settings.Codec = "v0"
+		}
+	}
+
 	formatval, ok := cid.Codecs[settings.Codec]
 	if !ok {
 		return nil, fmt.Errorf("unrecognized format: %s", settings.Codec)
 	}
+
 	if settings.Codec == "v0" && settings.MhType == mh.SHA2_256 {
 		pref.Version = 0
 	}
+
+	if settings.Codec == "v0" {
+		if settings.MhType != mh.SHA2_256 || (settings.MhLength != -1 && settings.MhLength != 32) {
+			return nil, fmt.Errorf("only sha2-255-32 is allowed with CIDv0")
+		}
+	}
+
 	pref.Codec = formatval
 
 	pref.MhType = settings.MhType

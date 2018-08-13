@@ -186,10 +186,10 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 
 		format, formatSet := req.Options["format"].(string)
 		if !formatSet {
-			if mhtval == mh.SHA2_256 {
-				format = "v0"
-			} else {
+			if mhtval != mh.SHA2_256 || (mhlen != -1 && mhlen != 32) {
 				format = "protobuf"
+			} else {
+				format = "v0"
 			}
 		}
 
@@ -260,16 +260,18 @@ It takes a list of base58 encoded multihashes to remove.
 			}
 
 			err = api.Block().Rm(req.Context, rp, options.Block.Force(force))
-			if err != nil && !quiet {
+			if err != nil {
 				res.Emit(&util.RemovedBlock{
 					Hash:  rp.Cid().String(),
 					Error: err.Error(),
 				})
 			}
 
-			res.Emit(&util.RemovedBlock{
-				Hash: rp.Cid().String(),
-			})
+			if !quiet {
+				res.Emit(&util.RemovedBlock{
+					Hash: rp.Cid().String(),
+				})
+			}
 		}
 	},
 	PostRun: cmds.PostRunMap{

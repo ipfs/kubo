@@ -55,7 +55,7 @@ func TestBlockPutHash(t *testing.T) {
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Hash(mh.KECCAK_512, -1))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if res.Path().Cid().String() != "zBurKB9YZkcDf6xa53WBE8CFX4ydVqAyf9KPXBFZt5stJzEstaS8Hukkhu4gwpMtc1xHNDbzP7sPtQKyWsP3C8fbhkmrZ" {
