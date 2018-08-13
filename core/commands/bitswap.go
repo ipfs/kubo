@@ -8,8 +8,8 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	bitswap "gx/ipfs/QmSvKH3nHWu3p4E8e1WcZbcFcoJAgEgFaRPCj51LjNP3b3/go-bitswap"
-	decision "gx/ipfs/QmSvKH3nHWu3p4E8e1WcZbcFcoJAgEgFaRPCj51LjNP3b3/go-bitswap/decision"
+	bitswap "gx/ipfs/QmPj4asYJCjuwmynxmsj1h18zvSViQs9TxRZiUBWwdzkVP/go-bitswap"
+	decision "gx/ipfs/QmPj4asYJCjuwmynxmsj1h18zvSViQs9TxRZiUBWwdzkVP/go-bitswap/decision"
 
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cmdkit "gx/ipfs/QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta/go-ipfs-cmdkit"
