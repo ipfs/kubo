@@ -99,9 +99,9 @@ func PutNode(r *Root, path string, nd ipld.Node) error {
 
 // MkdirOpts is used by Mkdir
 type MkdirOpts struct {
-	Mkparents bool
-	Flush     bool
-	Prefix    cid.Builder
+	Mkparents  bool
+	Flush      bool
+	CidBuilder cid.Builder
 }
 
 // Mkdir creates a directory at 'path' under the directory 'd', creating
@@ -136,8 +136,8 @@ func Mkdir(r *Root, pth string, opts MkdirOpts) error {
 			if err != nil {
 				return err
 			}
-			if opts.Prefix != nil {
-				mkd.SetPrefix(opts.Prefix)
+			if opts.CidBuilder != nil {
+				mkd.SetCidBuilder(opts.CidBuilder)
 			}
 			fsn = mkd
 		} else if err != nil {
@@ -157,8 +157,8 @@ func Mkdir(r *Root, pth string, opts MkdirOpts) error {
 			return err
 		}
 	}
-	if opts.Prefix != nil {
-		final.SetPrefix(opts.Prefix)
+	if opts.CidBuilder != nil {
+		final.SetCidBuilder(opts.CidBuilder)
 	}
 
 	if opts.Flush {

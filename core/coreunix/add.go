@@ -89,7 +89,7 @@ type Adder struct {
 	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
 	tempRoot   *cid.Cid
-	Prefix     cid.Builder
+	CidBuilder cid.Builder
 	liveNodes  uint64
 }
 
@@ -98,7 +98,7 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 		return adder.mroot, nil
 	}
 	rnode := unixfs.EmptyDirNode()
-	rnode.SetCidBuilder(adder.Prefix)
+	rnode.SetCidBuilder(adder.CidBuilder)
 	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil)
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 		RawLeaves:  adder.RawLeaves,
 		Maxlinks:   ihelper.DefaultLinksPerBlock,
 		NoCopy:     adder.NoCopy,
-		CidBuilder: adder.Prefix,
+		CidBuilder: adder.CidBuilder,
 	}
 
 	if adder.Trickle {
@@ -384,9 +384,9 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 	dir := gopath.Dir(path)
 	if dir != "." {
 		opts := mfs.MkdirOpts{
-			Mkparents: true,
-			Flush:     false,
-			Prefix:    adder.Prefix,
+			Mkparents:  true,
+			Flush:      false,
+			CidBuilder: adder.CidBuilder,
 		}
 		if err := mfs.Mkdir(mr, dir, opts); err != nil {
 			return err
@@ -449,7 +449,7 @@ func (adder *Adder) addFile(file files.File) error {
 		}
 
 		dagnode := dag.NodeWithData(sdata)
-		dagnode.SetCidBuilder(adder.Prefix)
+		dagnode.SetCidBuilder(adder.CidBuilder)
 		err = adder.dagService.Add(adder.ctx, dagnode)
 		if err != nil {
 			return err
@@ -488,9 +488,9 @@ func (adder *Adder) addDir(dir files.File) error {
 		return err
 	}
 	err = mfs.Mkdir(mr, dir.FileName(), mfs.MkdirOpts{
-		Mkparents: true,
-		Flush:     false,
-		Prefix:    adder.Prefix,
+		Mkparents:  true,
+		Flush:      false,
+		CidBuilder: adder.CidBuilder,
 	})
 	if err != nil {
 		return err

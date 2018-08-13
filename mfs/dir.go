@@ -63,14 +63,14 @@ func NewDirectory(ctx context.Context, name string, node ipld.Node, parent child
 	}, nil
 }
 
-// GetPrefix gets the CID prefix of the root node
-func (d *Directory) GetPrefix() cid.Builder {
+// GetCidBuilder gets the CID builder of the root node
+func (d *Directory) GetCidBuilder() cid.Builder {
 	return d.unixfsDir.GetCidBuilder()
 }
 
-// SetPrefix sets the CID prefix
-func (d *Directory) SetPrefix(prefix cid.Builder) {
-	d.unixfsDir.SetCidBuilder(prefix)
+// SetCidBuilder sets the CID builder
+func (d *Directory) SetCidBuilder(b cid.Builder) {
+	d.unixfsDir.SetCidBuilder(b)
 }
 
 // closeChild updates the child by the given name to the dag node 'nd'
@@ -307,7 +307,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 	}
 
 	ndir := ft.EmptyDirNode()
-	ndir.SetCidBuilder(d.GetPrefix())
+	ndir.SetCidBuilder(d.GetCidBuilder())
 
 	err = d.dserv.Add(d.ctx, ndir)
 	if err != nil {

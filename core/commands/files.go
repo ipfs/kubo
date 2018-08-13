@@ -868,9 +868,9 @@ Examples:
 		root := n.FilesRoot
 
 		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
-			Mkparents: dashp,
-			Flush:     flush,
-			Prefix:    prefix,
+			Mkparents:  dashp,
+			Flush:      flush,
+			CidBuilder: prefix,
 		})
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -958,8 +958,8 @@ Change the cid version or hash function of the root node of a given path.
 	},
 }
 
-func updatePath(rt *mfs.Root, pth string, prefix cid.Builder, flush bool) error {
-	if prefix == nil {
+func updatePath(rt *mfs.Root, pth string, builder cid.Builder, flush bool) error {
+	if builder == nil {
 		return nil
 	}
 
@@ -970,7 +970,7 @@ func updatePath(rt *mfs.Root, pth string, prefix cid.Builder, flush bool) error 
 
 	switch n := nd.(type) {
 	case *mfs.Directory:
-		n.SetPrefix(prefix)
+		n.SetCidBuilder(builder)
 	default:
 		return fmt.Errorf("can only update directories")
 	}
@@ -1146,7 +1146,7 @@ func getPrefix(req oldcmds.Request) (cid.Builder, error) {
 	return &prefix, nil
 }
 
-func getFileHandle(r *mfs.Root, path string, create bool, prefix cid.Builder) (*mfs.File, error) {
+func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (*mfs.File, error) {
 	target, err := mfs.Lookup(r, path)
 	switch err {
 	case nil:
@@ -1172,12 +1172,12 @@ func getFileHandle(r *mfs.Root, path string, create bool, prefix cid.Builder) (*
 		if !ok {
 			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
-		if prefix == nil {
-			prefix = pdir.GetPrefix()
+		if builder == nil {
+			builder = pdir.GetCidBuilder()
 		}
 
 		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
-		nd.SetCidBuilder(prefix)
+		nd.SetCidBuilder(builder)
 		err = pdir.AddChild(fname, nd)
 		if err != nil {
 			return nil, err
