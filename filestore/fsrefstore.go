@@ -10,15 +10,15 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 
-	dshelp "gx/ipfs/QmWf5idGZ55KWUUo2EKM3BTeunjSiSgWbo4bLpYafENBgp/go-ipfs-ds-help"
+	ds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
+	dsns "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/namespace"
+	dsq "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/query"
 	posinfo "gx/ipfs/QmWjvVuzD3Dqf3VznGAXUs1VqpG4dd35ounVCnLam8v7Xt/go-ipfs-posinfo"
-	blockstore "gx/ipfs/QmYir8arYJK1RMzDBZU1dqscLorWvthWU8aStL4xhxdYeT/go-ipfs-blockstore"
 	proto "gx/ipfs/QmZHU2gx42NPTYXzw6pJkuX6xCE7bKECp6e8QcPdoLx8sx/protobuf/proto"
 	blocks "gx/ipfs/QmZXvzTJTiN6p469osBUtEwm4WwhXXoWcHC8aTS1cAJkjy/go-block-format"
 	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
-	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
-	dsns "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/namespace"
-	dsq "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/query"
+	blockstore "gx/ipfs/QmeFZ47hGe5T8nSUjwd6zf6ikzFWYEzWsb1e4Q2r6n1w9z/go-ipfs-blockstore"
+	dshelp "gx/ipfs/Qmeuoyt6qXqqaPeuZJwExzQzFTLC6epTAz3wFUK6jGbJjP/go-ipfs-ds-help"
 )
 
 // FilestorePrefix identifies the key prefix for FileManager blocks.
@@ -155,12 +155,7 @@ func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
 	return unmarshalDataObj(o)
 }
 
-func unmarshalDataObj(o interface{}) (*pb.DataObj, error) {
-	data, ok := o.([]byte)
-	if !ok {
-		return nil, fmt.Errorf("stored filestore dataobj was not a []byte")
-	}
-
+func unmarshalDataObj(data []byte) (*pb.DataObj, error) {
 	var dobj pb.DataObj
 	if err := proto.Unmarshal(data, &dobj); err != nil {
 		return nil, err
@@ -265,7 +260,7 @@ func (f *FileManager) Has(c *cid.Cid) (bool, error) {
 }
 
 type putter interface {
-	Put(ds.Key, interface{}) error
+	Put(ds.Key, []byte) error
 }
 
 // Put adds a new reference block to the FileManager. It does not check

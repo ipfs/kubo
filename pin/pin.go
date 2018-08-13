@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/dagutils"
-	mdag "gx/ipfs/QmXhrNaxjxNLwAHnWQScc6GxvpJMyn8wfdRmGDbUQwpfth/go-merkledag"
+	mdag "gx/ipfs/QmYxX4VfVcxmfsj8U6T5kVtFvHsSidy9tmPyPTW5fy7H3q/go-merkledag"
 
 	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
 	ipld "gx/ipfs/QmUSyMZ8Vt4vTZr5HdDEgEfpwAXfQRuDdfCFTt7XBzhxpQ/go-ipld-format"
+	ds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
 	cid "gx/ipfs/Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y/go-cid"
-	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 )
 
 var log = logging.Logger("pin")
@@ -440,16 +440,11 @@ func cidSetWithValues(cids []*cid.Cid) *cid.Set {
 func LoadPinner(d ds.Datastore, dserv, internal ipld.DAGService) (Pinner, error) {
 	p := new(pinner)
 
-	rootKeyI, err := d.Get(pinDatastoreKey)
+	rootKey, err := d.Get(pinDatastoreKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load pin state: %v", err)
 	}
-	rootKeyBytes, ok := rootKeyI.([]byte)
-	if !ok {
-		return nil, fmt.Errorf("cannot load pin state: %s was not bytes", pinDatastoreKey)
-	}
-
-	rootCid, err := cid.Cast(rootKeyBytes)
+	rootCid, err := cid.Cast(rootKey)
 	if err != nil {
 		return nil, err
 	}
