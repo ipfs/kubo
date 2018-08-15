@@ -7,14 +7,14 @@ import (
 	"time"
 
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	mockrouting "gx/ipfs/QmRr8DpNhQMzsoqAitUrw43D82pyPXZkyUqarhSAfkrdaQ/go-ipfs-routing/mock"
+	dshelp "gx/ipfs/QmSLS8mMWsm54vdQuwgde9wBgLg5usVQY4i9r8kXhfje8g/go-ipfs-ds-help"
 	ds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
 	dssync "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/sync"
 	ipns "gx/ipfs/QmVHij7PuWUFeLcmRbD1ykDwB1WZMYP8yixo9bprUb3QHG/go-ipns"
 	testutil "gx/ipfs/QmXG74iiKQnDstVQq9fPFQEB6JTNSWBbAWE1qsq6L4E5sR/go-testutil"
-	mockrouting "gx/ipfs/QmYey7kzAAqmXXbr38qH4oGGkB5m5swJeJCQfHgt8nrDES/go-ipfs-routing/mock"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	peer "gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
-	dshelp "gx/ipfs/Qmeuoyt6qXqqaPeuZJwExzQzFTLC6epTAz3wFUK6jGbJjP/go-ipfs-ds-help"
 )
 
 type identity struct {

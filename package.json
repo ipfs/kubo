@@ -136,9 +136,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmdu2AYUV7yMoVBQPxXNfe7FJcdx16kYtsx6jAPKWQYF1y",
+      "hash": "QmYjnkEL7i731PirfVH1sis89evN7jt4otSHw5D2xXXwUV",
       "name": "go-cid",
-      "version": "0.7.24"
+      "version": "0.7.25"
     },
     {
       "author": "whyrusleeping",
@@ -177,9 +177,9 @@
       "version": "0.2.0"
     },
     {
-      "hash": "QmRcGfNWgt1tEbRosuQZ5DXkgG4UPSZGuE5ZiohEW47TFU",
+      "hash": "QmdP3wKxB6x6vJ57tDrewAJF2qv4ULejCZ6dspJRnk3993",
       "name": "go-libp2p-kad-dht",
-      "version": "4.3.3"
+      "version": "4.3.4"
     },
     {
       "author": "whyrusleeping",
@@ -195,15 +195,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUSyMZ8Vt4vTZr5HdDEgEfpwAXfQRuDdfCFTt7XBzhxpQ",
+      "hash": "QmaA8GkXUYinkkndvg7T6Tx7gYXemhxjaxLisEPes7Rf1P",
       "name": "go-ipld-format",
-      "version": "0.5.6"
+      "version": "0.5.7"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmPWP23qkSx6TvFtf2whkTL5sYjbLghWZMCtMQ7cp1MCJL",
+      "hash": "QmVhWKoxHMJNbTMEPhqLAjKg1Y65j9tvWNecYWAHwyguAZ",
       "name": "go-ipld-cbor",
-      "version": "1.2.15"
+      "version": "1.2.16"
     },
     {
       "author": "lgierth",
@@ -352,20 +352,20 @@
     },
     {
       "author": "stebalien",
-      "hash": "QmZXvzTJTiN6p469osBUtEwm4WwhXXoWcHC8aTS1cAJkjy",
+      "hash": "QmR54CzE4UcdFAZDehj6HFyy3eSHhVsJUpjfnhCmscuStS",
       "name": "go-block-format",
-      "version": "0.1.9"
+      "version": "0.1.10"
     },
     {
-      "hash": "QmfGeECX7CxJAFXwGKx2cn7csnxAtwJw8e3XtoNVf6bqcv",
+      "hash": "QmSD6bSPcXaaR7LpQHjytLWQD7DrCsb415CWfpbd9Szemb",
       "name": "go-libp2p-routing",
-      "version": "2.4.7"
+      "version": "2.4.8"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmP9DkuJDoiY4QS9wHv3RS4Yc8LDRK5yyUUj3LK7UbmyJb",
+      "hash": "QmUduKfgAT3gNK3S9FfnxyN7mUSQpL6Z6wUb5cDEJ66oiF",
       "name": "go-ipld-git",
-      "version": "0.2.3"
+      "version": "0.2.4"
     },
     {
       "hash": "QmSW4uNHbvQia8iZDXzbwjiyHQtnyo9aFqfQAMasj3TJ6Y",
@@ -422,15 +422,15 @@
     },
     {
       "author": "hector",
-      "hash": "QmWjvVuzD3Dqf3VznGAXUs1VqpG4dd35ounVCnLam8v7Xt",
+      "hash": "QmdBpJ5VTfL79VwKDU93z7fyZJ3mm4UaBHrE73CWRw2Bjd",
       "name": "go-ipfs-posinfo",
-      "version": "0.0.4"
+      "version": "0.0.5"
     },
     {
       "author": "hsanjuan",
-      "hash": "Qme4ThG6LN6EMrMYyf2AMywAZaGbTYxQu4njfcSSkcisLi",
+      "hash": "QmWbCAB5f3LDumj4ncz1UCHSiyXrXxkMxZB6Wv35xi4P8z",
       "name": "go-ipfs-chunker",
-      "version": "0.0.9"
+      "version": "0.0.10"
     },
     {
       "author": "jbenet",
@@ -458,21 +458,21 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "Qmeuoyt6qXqqaPeuZJwExzQzFTLC6epTAz3wFUK6jGbJjP",
+      "hash": "QmSLS8mMWsm54vdQuwgde9wBgLg5usVQY4i9r8kXhfje8g",
       "name": "go-ipfs-ds-help",
-      "version": "0.0.7"
+      "version": "0.0.8"
     },
     {
       "author": "hsanjuan",
-      "hash": "QmYey7kzAAqmXXbr38qH4oGGkB5m5swJeJCQfHgt8nrDES",
+      "hash": "QmRr8DpNhQMzsoqAitUrw43D82pyPXZkyUqarhSAfkrdaQ",
       "name": "go-ipfs-routing",
-      "version": "0.0.19"
+      "version": "0.0.20"
     },
     {
       "author": "hsanjuan",
-      "hash": "QmeFZ47hGe5T8nSUjwd6zf6ikzFWYEzWsb1e4Q2r6n1w9z",
+      "hash": "QmYBEfMSquSGnuxBthUoBJNs3F6p4VAPPvAgxq6XXGvTPh",
       "name": "go-ipfs-blockstore",
-      "version": "0.0.16"
+      "version": "0.0.17"
     },
     {
       "author": "why",
@@ -500,21 +500,21 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "QmP7gXvwCi5j8sCC3mcuUqvMU2PBMiw2jwQS22Cuxzgov5",
+      "hash": "QmY2oJagiH65QDZqW4wMHcQAvAF3kbz6WtXvB1k9r4jQvP",
       "name": "go-ipfs-exchange-interface",
-      "version": "0.0.4"
+      "version": "0.0.5"
     },
     {
       "author": "hsanjuan",
-      "hash": "QmdhiCdTZvbeAFvo9XGZfJKZTxwqJCxGwvcaNM5MbPSh15",
+      "hash": "QmULGpFvsz5K8PtpdHt88vRwQAQhSdEAUoKYQP6ntpyvTG",
       "name": "go-ipfs-blocksutil",
-      "version": "0.0.4"
+      "version": "0.0.5"
     },
     {
       "author": "hsanjuan",
-      "hash": "QmTMhpt5sH5yup2RU5qeFDMZcDf4RaHqba4ztEp7yrzese",
+      "hash": "QmVozMmsgK2PYyaHQsrcWLBYigb1m6mW8YhCBG2Cb4Uxq9",
       "name": "go-ipfs-exchange-offline",
-      "version": "0.0.14"
+      "version": "0.0.15"
     },
     {
       "author": "Stebalien",
@@ -524,15 +524,15 @@
     },
     {
       "author": "stebalien",
-      "hash": "QmR9vKaTQtZUgLUJwEEHVCZnjuHjEhcWNBGyPd5Xs4xbsR",
+      "hash": "QmRXZNuxRue83mzP3tFafw1xa6sT9no5o3oN6WbwrKNFHe",
       "name": "go-libp2p-pubsub-router",
-      "version": "0.3.12"
+      "version": "0.3.13"
     },
     {
       "author": "Stebalien",
-      "hash": "QmSJy8UGqdDU2QaKRYt73MDNqAByYrv1x7G45Qmnmq6zSX",
+      "hash": "QmRe3KBUdY6dBCqGd5Fri5TC4jX9pxGFLigKvgxmLVwzFH",
       "name": "go-libp2p-routing-helpers",
-      "version": "0.2.8"
+      "version": "0.2.9"
     },
     {
       "author": "fsnotify",
@@ -548,33 +548,33 @@
     },
     {
       "author": "why",
-      "hash": "QmPj4asYJCjuwmynxmsj1h18zvSViQs9TxRZiUBWwdzkVP",
+      "hash": "QmQk1Rqy5XSBzXykMSsgiXfnhivCSnFpykx4M2j6DD1nBH",
       "name": "go-bitswap",
-      "version": "1.0.8"
-    },
-    {
-      "author": "why",
-      "hash": "QmQrLuAVriwcPQpqn15GU7gjZGKKa45Hmdj9JCG3Cc45CC",
-      "name": "go-blockservice",
-      "version": "1.0.8"
-    },
-    {
-      "author": "why",
-      "hash": "QmYxX4VfVcxmfsj8U6T5kVtFvHsSidy9tmPyPTW5fy7H3q",
-      "name": "go-merkledag",
-      "version": "1.0.8"
-    },
-    {
-      "author": "why",
-      "hash": "QmV1W98rBAovVJGkeYHfqJ19JdT9dQbbWsCq9zPaMyrxYx",
-      "name": "go-path",
-      "version": "1.0.8"
-    },
-    {
-      "author": "why",
-      "hash": "QmagwbbPqiN1oa3SDMZvpTFE5tNuegF1ULtuJvA9EVzsJv",
-      "name": "go-unixfs",
       "version": "1.0.9"
+    },
+    {
+      "author": "why",
+      "hash": "QmTZZrpd9o4vpYr9TEADW2EoJ9fzUtAgpXqjxZHbKR2T15",
+      "name": "go-blockservice",
+      "version": "1.0.9"
+    },
+    {
+      "author": "why",
+      "hash": "QmQzSpSjkdGHW6WFBhUG6P3t9K8yv7iucucT1cQaqJ6tgd",
+      "name": "go-merkledag",
+      "version": "1.0.9"
+    },
+    {
+      "author": "why",
+      "hash": "QmWMcvZbNvk5codeqbm7L89C9kqSwka4KaHnDb8HRnxsSL",
+      "name": "go-path",
+      "version": "1.0.9"
+    },
+    {
+      "author": "why",
+      "hash": "QmWv8MYwgPK4zXYv1et1snWJ6FWGqaL6xY2y9X1bRSKBxk",
+      "name": "go-unixfs",
+      "version": "1.0.10"
     },
     {
       "author": "magik6k",
@@ -584,9 +584,9 @@
     },
     {
       "author": "why",
-      "hash": "QmV1pEFHk8ijeessqG52SjHuxuehahbeHrxXk4QEkgfPHj",
+      "hash": "QmfMirfpEKQFctVpBYTvETxxLoU5q4ZJWsAMrtwSSE2bkn",
       "name": "go-verifcid",
-      "version": "0.0.2"
+      "version": "0.0.3"
     }
   ],
   "gxVersion": "0.10.0",
