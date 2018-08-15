@@ -168,13 +168,23 @@ func TestIpnsBasicIO(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	_, mnt := setupIpnsTest(t, nil)
+	nd, mnt := setupIpnsTest(t, nil)
 	defer closeMount(mnt)
 
 	fname := mnt.Dir + "/local/testfile"
 	data := writeFile(t, 10, fname)
 
 	rbuf, err := ioutil.ReadFile(fname)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(rbuf, data) {
+		t.Fatal("Incorrect Read!")
+	}
+
+	fname2 := mnt.Dir + "/" + nd.Identity.Pretty() + "/testfile"
+	rbuf, err = ioutil.ReadFile(fname2)
 	if err != nil {
 		t.Fatal(err)
 	}
