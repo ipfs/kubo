@@ -2,7 +2,7 @@
 
 SHELL=PATH='$(PATH)' /bin/sh
 
-PROTOC = protoc --gogo_out=. --proto_path=.:/usr/local/opt/protobuf/include:$(dir $@) $<
+PROTOC = protoc --gogofaster_out=. --proto_path=.:$(GOPATH)/src:$(dir $@) $<
 
 # enable second expansion
 .SECONDEXPANSION:

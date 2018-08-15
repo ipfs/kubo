@@ -212,9 +212,9 @@ func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
 		}
 		// now reconstruct the DataObj
 		dobj := pb.DataObj{
-			FilePath: &v.filePath,
-			Offset:   &v.offset,
-			Size_:    &v.size,
+			FilePath: v.filePath,
+			Offset:   v.offset,
+			Size_:    v.size,
 		}
 		// now if we could not convert the datastore key return that
 		// error
@@ -277,8 +277,8 @@ func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
 		Status:   status,
 		ErrorMsg: errorMsg,
 		Key:      c,
-		FilePath: *d.FilePath,
-		Size:     *d.Size_,
-		Offset:   *d.Offset,
+		FilePath: d.FilePath,
+		Size:     d.Size_,
+		Offset:   d.Offset,
 	}
 }
