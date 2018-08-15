@@ -43,6 +43,16 @@ experimental, default-disabled.
 run your daemon with the `--enable-pubsub-experiment` flag. Then use the
 `ipfs pubsub` commands.
 
+### gossipsub
+
+Gossipsub is a new, experimental routing protocol for pubsub that
+should waste less bandwidth than floodsub, the current pubsub
+protocol. It's backwards compatible with floodsub so enabling this
+feature shouldn't break compatibility with existing IPFS nodes.
+
+You can enable gossipsub via configuration:
+`ipfs config Pubsub.Router gossipsub`
+
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works
 - [ ] Needs authenticated modes to be implemented

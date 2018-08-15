@@ -47,9 +47,9 @@
       "version": "0.1.3"
     },
     {
-      "hash": "QmXvpgbBYLrjLu6K2vj3mAyuDLw9FwKTmkXVCcrqBHCSmK",
+      "hash": "QmVzDM9EmED1FUUcPULSUHLhJ3jLdaWDn2bf25z5v3GpkY",
       "name": "iptb",
-      "version": "1.3.6"
+      "version": "1.3.7"
     },
     {
       "hash": "QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8",
@@ -578,9 +578,9 @@
     },
     {
       "author": "magik6k",
-      "hash": "QmRwCaRYotCqXsVZAXwWhEJ8A74iAaKnY7MUe6sDgFjrE5",
+      "hash": "QmQSG7YCizeUH2bWatzp6uK9Vm3m7LA5jpxGa9QqgpNKw4",
       "name": "go-ipfs-config",
-      "version": "0.2.2"
+      "version": "0.2.3"
     },
     {
       "author": "why",
@@ -595,4 +595,3 @@
   "name": "go-ipfs",
   "version": "0.4.18-dev"
 }
-

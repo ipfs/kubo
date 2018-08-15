@@ -35,6 +35,7 @@ import (
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	p2phost "gx/ipfs/QmQ1hwb95uSSZR8jSPJysnfHxBDQAykSXsmz5TwTzxjq2Z/go-libp2p-host"
+	config "gx/ipfs/QmQSG7YCizeUH2bWatzp6uK9Vm3m7LA5jpxGa9QqgpNKw4/go-ipfs-config"
 	bitswap "gx/ipfs/QmQk1Rqy5XSBzXykMSsgiXfnhivCSnFpykx4M2j6DD1nBH/go-bitswap"
 	bsnet "gx/ipfs/QmQk1Rqy5XSBzXykMSsgiXfnhivCSnFpykx4M2j6DD1nBH/go-bitswap/network"
 	merkledag "gx/ipfs/QmQzSpSjkdGHW6WFBhUG6P3t9K8yv7iucucT1cQaqJ6tgd/go-merkledag"
@@ -43,7 +44,6 @@ import (
 	rhelpers "gx/ipfs/QmRe3KBUdY6dBCqGd5Fri5TC4jX9pxGFLigKvgxmLVwzFH/go-libp2p-routing-helpers"
 	nilrouting "gx/ipfs/QmRr8DpNhQMzsoqAitUrw43D82pyPXZkyUqarhSAfkrdaQ/go-ipfs-routing/none"
 	offroute "gx/ipfs/QmRr8DpNhQMzsoqAitUrw43D82pyPXZkyUqarhSAfkrdaQ/go-ipfs-routing/offline"
-	config "gx/ipfs/QmRwCaRYotCqXsVZAXwWhEJ8A74iAaKnY7MUe6sDgFjrE5/go-ipfs-config"
 	routing "gx/ipfs/QmSD6bSPcXaaR7LpQHjytLWQD7DrCsb415CWfpbd9Szemb/go-libp2p-routing"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
@@ -453,7 +453,26 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	n.Ping = ping.NewPingService(host)
 
 	if pubsub || ipnsps {
-		service, err := floodsub.NewFloodSub(ctx, host)
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			return err
+		}
+
+		var service *floodsub.PubSub
+
+		switch cfg.Pubsub.Router {
+		case "":
+			fallthrough
+		case "floodsub":
+			service, err = floodsub.NewFloodSub(ctx, host)
+
+		case "gossipsub":
+			service, err = floodsub.NewGossipSub(ctx, host)
+
+		default:
+			err = fmt.Errorf("Unknown pubsub router %s", cfg.Pubsub.Router)
+		}
+
 		if err != nil {
 			return err
 		}
