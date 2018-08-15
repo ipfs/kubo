@@ -1,7 +1,9 @@
 package options
 
 import (
-	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"fmt"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
 
 type BlockPutSettings struct {
@@ -17,20 +19,52 @@ type BlockRmSettings struct {
 type BlockPutOption func(*BlockPutSettings) error
 type BlockRmOption func(*BlockRmSettings) error
 
-func BlockPutOptions(opts ...BlockPutOption) (*BlockPutSettings, error) {
+func BlockPutOptions(opts ...BlockPutOption) (*BlockPutSettings, cid.Prefix, error) {
 	options := &BlockPutSettings{
 		Codec:    "",
-		MhType:   multihash.SHA2_256,
+		MhType:   mh.SHA2_256,
 		MhLength: -1,
 	}
 
 	for _, opt := range opts {
 		err := opt(options)
 		if err != nil {
-			return nil, err
+			return nil, cid.Prefix{}, err
 		}
 	}
-	return options, nil
+
+	var pref cid.Prefix
+	pref.Version = 1
+
+	if options.Codec == "" {
+		if options.MhType != mh.SHA2_256 || (options.MhLength != -1 && options.MhLength != 32) {
+			options.Codec = "protobuf"
+		} else {
+			options.Codec = "v0"
+		}
+	}
+
+	if options.Codec == "v0" && options.MhType == mh.SHA2_256 {
+		pref.Version = 0
+	}
+
+	formatval, ok := cid.Codecs[options.Codec]
+	if !ok {
+		return nil, cid.Prefix{}, fmt.Errorf("unrecognized format: %s", options.Codec)
+	}
+
+	if options.Codec == "v0" {
+		if options.MhType != mh.SHA2_256 || (options.MhLength != -1 && options.MhLength != 32) {
+			return nil, cid.Prefix{}, fmt.Errorf("only sha2-255-32 is allowed with CIDv0")
+		}
+	}
+
+	pref.Codec = formatval
+
+	pref.MhType = options.MhType
+	pref.MhLength = options.MhLength
+
+	return options, pref, nil
 }
 
 func BlockRmOptions(opts ...BlockRmOption) (*BlockRmSettings, error) {
