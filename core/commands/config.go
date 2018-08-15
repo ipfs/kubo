@@ -153,7 +153,7 @@ var configShowCmd = &cmds.Command{
 NOTE: For security reasons, this command will omit your private key. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
 `,
 	},
-
+	Type: map[string]interface{}{},
 	Run: func(req cmds.Request, res cmds.Response) {
 		cfgPath := req.InvocContext().ConfigRoot
 		fname, err := config.Filename(cfgPath)
@@ -180,14 +180,31 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+		res.SetOutput(&cfg)
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			if res.Error() != nil {
+				return nil, res.Error()
+			}
 
-		output, err := config.HumanOutput(cfg)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
 
-		res.SetOutput(bytes.NewReader(output))
+			cfg, ok := v.(*map[string]interface{})
+			if !ok {
+				return nil, e.TypeErr(cfg, v)
+			}
+
+			buf, err := config.HumanOutput(cfg)
+			if err != nil {
+				return nil, err
+			}
+			buf = append(buf, byte('\n'))
+			return bytes.NewReader(buf), nil
+		},
 	},
 }
 
