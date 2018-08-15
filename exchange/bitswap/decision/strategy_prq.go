@@ -17,21 +17,12 @@ import (
 // Type and Constructor
 // --------------------
 
-func newSPRQ(strategy Strategy) *sprq {
+func newSPRQ(rrqCfg *RRQConfig) *sprq {
 	return &sprq{
 		taskMap:  make(map[string]*peerRequestTask),
 		partners: make(map[peer.ID]*activePartner),
 		pQueue:   pq.New(partnerCompare),
-		rrq:      newRRQueue(strategy),
-	}
-}
-
-func newSPRQCustom(strategy Strategy, burst int) *sprq {
-	return &sprq{
-		taskMap:  make(map[string]*peerRequestTask),
-		partners: make(map[peer.ID]*activePartner),
-		pQueue:   pq.New(partnerCompare),
-		rrq:      newRRQueueCustom(strategy, burst),
+		rrq:      newRRQueue(rrqCfg),
 	}
 }
 

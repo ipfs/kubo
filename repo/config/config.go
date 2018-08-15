@@ -25,6 +25,7 @@ type Config struct {
 	Gateway         Gateway   // local node's gateway server options
 	API             API       // local node's API settings
 	Swarm           SwarmConfig
+	// TODO: not sure whether `bitswapStrategy` should be stored in the BuildCfg
 	BitswapStrategy string
 
 	Reprovider   Reprovider

@@ -22,7 +22,7 @@ import (
 // -----------------
 
 func TestSPRQPushPopLegacy(t *testing.T) {
-	prq := newSPRQ(Simple)
+	prq := newSPRQ(&RRQConfig{RoundBurst: 5000, Strategy: Identity})
 	partner := testutil.RandPeerIDFatal(t)
 	alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
 	vowels := strings.Split("aeiou", "")
@@ -79,7 +79,7 @@ func TestSPRQPushPopLegacy(t *testing.T) {
 
 func TestSPRQPushPopServeAll(t *testing.T) {
 	roundBurst := 100
-	prq := newSPRQCustom(Simple, roundBurst)
+	prq := newSPRQ(&RRQConfig{RoundBurst: roundBurst, Strategy: Identity})
 	partner := testutil.RandPeerIDFatal(t)
 	alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
 
@@ -123,7 +123,7 @@ func TestSPRQPushPopServeAll(t *testing.T) {
 }
 
 func TestSPRQPushPop1Round(t *testing.T) {
-	prq := newSPRQCustom(Simple, 100)
+	prq := newSPRQ(&RRQConfig{RoundBurst: 100, Strategy: Identity})
 	partner := testutil.RandPeerIDFatal(t)
 	alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
 	// the first 20 letters should be served by the end
@@ -182,7 +182,7 @@ func TestSPRQPushPop1Round(t *testing.T) {
 
 func TestSPRQPushPop5Peers(t *testing.T) {
 	roundBurst := 150
-	prq := newSPRQCustom(Simple, roundBurst)
+	prq := newSPRQ(&RRQConfig{RoundBurst: roundBurst, Strategy: Identity})
 	partners := make([]peer.ID, 5)
 	expectedAllocations := make(map[peer.ID]int)
 	for i, _ := range partners {
@@ -221,7 +221,7 @@ func TestSPRQPushPop5Peers(t *testing.T) {
 }
 
 func TestSPRQSimpleStrategy(t *testing.T) {
-	testStrategy(t, Simple)
+	testStrategy(t, Identity)
 }
 
 func TestSPRQExpStrategy(t *testing.T) {
@@ -246,7 +246,7 @@ func testStrategy(t *testing.T, strategy Strategy) {
 	}
 
 	roundBurst := int(totalWeight)
-	prq := newSPRQCustom(strategy, roundBurst)
+	prq := newSPRQ(&RRQConfig{RoundBurst: roundBurst, Strategy: strategy})
 	// calculate expected allocation for each peer and add blocks to queues
 	for i, _ := range partners {
 		expectedAllocations[partners[i]] = int(strategy(ledgers[i]) / totalWeight * float64(roundBurst))

@@ -6,4 +6,5 @@ type Experiments struct {
 	Libp2pStreamMounting   bool
 	BitswapStrategyEnabled bool
 	BitswapStrategy        string
+	BitswapRRQRoundBurst   int
 }

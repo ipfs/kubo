@@ -12,6 +12,11 @@ import (
 // Types and Constructors
 // ----------------------
 
+type RRQConfig struct {
+	RoundBurst int
+	Strategy   Strategy
+}
+
 type RRPeer struct {
 	id         peer.ID
 	allocation int
@@ -25,20 +30,10 @@ type RRQueue struct {
 	allocations []*RRPeer
 }
 
-func newRRQueue(s Strategy) *RRQueue {
+func newRRQueue(cfg *RRQConfig) *RRQueue {
 	return &RRQueue{
-		roundBurst:  1000,
-		strategy:    s,
-		weights:     make(map[peer.ID]float64),
-		allocations: []*RRPeer{},
-	}
-}
-
-// TODO: accept config object
-func newRRQueueCustom(s Strategy, burst int) *RRQueue {
-	return &RRQueue{
-		roundBurst:  burst,
-		strategy:    s,
+		roundBurst:  cfg.RoundBurst,
+		strategy:    cfg.Strategy,
 		weights:     make(map[peer.ID]float64),
 		allocations: []*RRPeer{},
 	}

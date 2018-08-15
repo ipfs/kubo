@@ -216,15 +216,17 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	// TODO: not sure if this goes here
-	// TODO: not sure whether `bitswapStrategy` should be stored in the BuildCfg
-	var bitswapStrategy bsengine.Strategy = nil
+	var bsRRQCfg *bsengine.RRQConfig = nil
 	if conf.Experimental.BitswapStrategyEnabled {
-		bitswapStrategy = getStrategyFunc(conf.Experimental.BitswapStrategy)
+		bsRRQCfg = &bsengine.RRQConfig{
+			RoundBurst: conf.Experimental.BitswapRRQRoundBurst,
+			Strategy:   getStrategyFunc(conf.Experimental.BitswapStrategy),
+		}
 	}
 
 	if cfg.Online {
 		do := setupDiscoveryOption(rcfg.Discovery)
-		if err := n.startOnlineServices(ctx, cfg.Routing, bitswapStrategy, cfg.Host, do, cfg.getOpt("pubsub"), cfg.getOpt("ipnsps"), cfg.getOpt("mplex")); err != nil {
+		if err := n.startOnlineServices(ctx, cfg.Routing, bsRRQCfg, cfg.Host, do, cfg.getOpt("pubsub"), cfg.getOpt("ipnsps"), cfg.getOpt("mplex")); err != nil {
 			return err
 		}
 	} else {

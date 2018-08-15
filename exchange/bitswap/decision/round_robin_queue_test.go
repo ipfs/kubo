@@ -16,7 +16,7 @@ import (
 func TestRRQWeightAllocationsConstant(t *testing.T) {
 
 	roundBurst := 50
-	rrq := newRRQueueCustom(Simple, roundBurst)
+	rrq := newRRQueue(&RRQConfig{RoundBurst: roundBurst, Strategy: Identity})
 	numPeers := 5
 
 	expected := int(float64(roundBurst) / float64(numPeers))
@@ -59,7 +59,7 @@ func TestRRQWeightAllocationsConstant(t *testing.T) {
 
 func TestRRQWeightAllocationsVarying(t *testing.T) {
 	roundBurst := 50
-	rrq := newRRQueueCustom(Simple, roundBurst)
+	rrq := newRRQueue(&RRQConfig{RoundBurst: roundBurst, Strategy: Identity})
 	numPeers := 5
 	expected := make(map[peer.ID]int)
 
@@ -95,7 +95,7 @@ func TestRRQWeightAllocationsVarying(t *testing.T) {
 
 func TestRRQPopHeadShift(t *testing.T) {
 	roundBurst := 50
-	rrq := newRRQueueCustom(Simple, roundBurst)
+	rrq := newRRQueue(&RRQConfig{RoundBurst: roundBurst, Strategy: Identity})
 	numPeers := 5
 
 	for i := 0; i < numPeers; i++ {
