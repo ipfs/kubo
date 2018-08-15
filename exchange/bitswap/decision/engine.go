@@ -92,11 +92,11 @@ type Engine struct {
 	ticker *time.Ticker
 }
 
-func NewEngine(ctx context.Context, bs bstore.Blockstore, strategy Strategy) *Engine {
+func NewEngine(ctx context.Context, bs bstore.Blockstore, rrqCfg *RRQConfig) *Engine {
 	e := &Engine{
 		ledgerMap:        make(map[peer.ID]*ledger),
 		bs:               bs,
-		peerRequestQueue: newPeerRequestQueue(strategy),
+		peerRequestQueue: newPeerRequestQueue(rrqCfg),
 		outbox:           make(chan (<-chan *Envelope), outboxChanBuffer),
 		workSignal:       make(chan struct{}, 1),
 		ticker:           time.NewTicker(time.Millisecond * 100),
@@ -105,11 +105,11 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore, strategy Strategy) *En
 	return e
 }
 
-func newPeerRequestQueue(strategy Strategy) peerRequestQueue {
-	if strategy == nil {
+func newPeerRequestQueue(rrqCfg *RRQConfig) peerRequestQueue {
+	if rrqCfg == nil {
 		return newPRQ()
 	}
-	return newSPRQ(strategy)
+	return newSPRQ(rrqCfg)
 }
 
 func (e *Engine) WantlistForPeer(p peer.ID) (out []*wl.Entry) {

@@ -153,7 +153,7 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, bitswapStrategy bsengine.Strategy, hostOption HostOption, do DiscoveryOption, pubsub, ipnsps, mplex bool) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, bsRRQCfg *bsengine.RRQConfig, hostOption HostOption, do DiscoveryOption, pubsub, ipnsps, mplex bool) error {
 
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
@@ -241,7 +241,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return err
 	}
 
-	if err := n.startOnlineServicesWithHost(ctx, peerhost, routingOption, bitswapStrategy); err != nil {
+	if err := n.startOnlineServicesWithHost(ctx, peerhost, routingOption, bsRRQCfg); err != nil {
 		return err
 	}
 
@@ -438,7 +438,7 @@ func (n *IpfsNode) HandlePeerFound(p pstore.PeerInfo) {
 
 // startOnlineServicesWithHost  is the set of services which need to be
 // initialized with the host and _before_ we start listening.
-func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption, bitswapStrategy bsengine.Strategy) error {
+func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption, bitswapStrategy *bsengine.RRQConfig) error {
 	// setup diagnostics service
 	n.Ping = ping.NewPingService(host)
 
