@@ -15,7 +15,7 @@ import (
 
 func TestDhtFindPeer(t *testing.T) {
 	ctx := context.Background()
-	nds, apis, err := makeAPISwarm(ctx, true, 3)
+	nds, apis, err := makeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestDhtFindPeer(t *testing.T) {
 
 func TestDhtFindProviders(t *testing.T) {
 	ctx := context.Background()
-	nds, apis, err := makeAPISwarm(ctx, true, 3)
+	nds, apis, err := makeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestDhtFindProviders(t *testing.T) {
 
 func TestDhtProvide(t *testing.T) {
 	ctx := context.Background()
-	nds, apis, err := makeAPISwarm(ctx, true, 3)
+	nds, apis, err := makeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
