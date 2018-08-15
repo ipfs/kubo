@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -12,7 +11,6 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	blocks "gx/ipfs/QmWAzSEoqZ6xU6pu8yL8e5WaMb7wtbfbhhN4p1DknUPtr3/go-block-format"
 	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
@@ -25,7 +23,7 @@ type BlockStat struct {
 }
 
 func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.BlockPutOption) (coreiface.BlockStat, error) {
-	settings, err := caopts.BlockPutOptions(opts...)
+	_, pref, err := caopts.BlockPutOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -34,37 +32,6 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 	if err != nil {
 		return nil, err
 	}
-
-	var pref cid.Prefix
-	pref.Version = 1
-
-	if settings.Codec == "" {
-		if settings.MhType != mh.SHA2_256 || (settings.MhLength != -1 && settings.MhLength != 32) {
-			settings.Codec = "protobuf"
-		} else {
-			settings.Codec = "v0"
-		}
-	}
-
-	formatval, ok := cid.Codecs[settings.Codec]
-	if !ok {
-		return nil, fmt.Errorf("unrecognized format: %s", settings.Codec)
-	}
-
-	if settings.Codec == "v0" && settings.MhType == mh.SHA2_256 {
-		pref.Version = 0
-	}
-
-	if settings.Codec == "v0" {
-		if settings.MhType != mh.SHA2_256 || (settings.MhLength != -1 && settings.MhLength != 32) {
-			return nil, fmt.Errorf("only sha2-255-32 is allowed with CIDv0")
-		}
-	}
-
-	pref.Codec = formatval
-
-	pref.MhType = settings.MhType
-	pref.MhLength = settings.MhLength
 
 	bcid, err := pref.Sum(data)
 	if err != nil {
