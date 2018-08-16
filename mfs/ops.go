@@ -14,10 +14,11 @@ import (
 )
 
 var (
-	errInvalidNodeType = errors.New("invalid argument")
-	errMvDirToFile     = errors.New("can not move directory to file path")
-	errMvParentDir     = errors.New("can not move parent directory to sub directory")
-	errInvalidDirPath  = errors.New("path end with '/' is not a directory")
+	errInvalidNodeType            = errors.New("invalid argument")
+	errMvDirToFile                = errors.New("can not move directory to file path")
+	errMvParentDir                = errors.New("can not move parent directory to sub directory")
+	errInvalidDirPath             = errors.New("path end with '/' is not a directory")
+	errUnableCreateNonExistedFile = errors.New("unable to create un-existed file")
 )
 
 // Mv moves the file or directory at 'src' to 'dst'
@@ -26,12 +27,12 @@ func Mv(r *Root, src, dst string) error {
 		return errMvParentDir
 	}
 
-	src = strings.TrimRight(src, "/")
-	if strings.HasPrefix(dst, src) {
+	trimmedSrc := strings.TrimRight(src, "/")
+	if strings.HasPrefix(dst, trimmedSrc) {
 		return errMvParentDir
 	}
 
-	srcNode, err := DirLookup(r.GetDirectory(), src)
+	srcNode, err := DirLookup(r.GetDirectory(), trimmedSrc)
 	if err != nil {
 		return err
 	}
@@ -58,6 +59,9 @@ func moveDir(r *Root, src, dst string) error {
 
 	dstNode, err := DirLookup(r.GetDirectory(), dst)
 	if err != nil {
+		if err == os.ErrNotExist {
+			return handleDstFileUnExisted(r, src, dst)
+		}
 		return err
 	}
 
@@ -100,6 +104,9 @@ func moveFile(r *Root, src, dst string) error {
 
 	dstNode, err := DirLookup(r.GetDirectory(), dst)
 	if err != nil {
+		if err == os.ErrNotExist {
+			return handleDstFileUnExisted(r, src, dst)
+		}
 		return err
 	}
 
@@ -151,6 +158,31 @@ func moveFile(r *Root, src, dst string) error {
 	} else {
 		return errInvalidNodeType
 	}
+}
+
+func handleDstFileUnExisted(r *Root, src, dst string) error {
+	err := Mkdir(r, dst, MkdirOpts{Mkparents: true, Flush: true})
+	if err != nil {
+		return errUnableCreateNonExistedFile
+	}
+	dstFileName, _, dstParDir, err := getNodeAndParent(r, dst)
+	if err != nil {
+		return err
+	}
+	if err := dstParDir.Unlink(dstFileName); err != nil {
+		return err
+	}
+
+	srcFileName, srcNode, srcParDir, err := getNodeAndParent(r, src)
+	if err != nil {
+		return err
+	}
+
+	if err := dstParDir.AddChild(dstFileName, srcNode); err != nil {
+		return err
+	}
+
+	return srcParDir.Unlink(srcFileName)
 }
 
 //getNodeAndParent find node and it's parent dir with path like: "/x/y/filename"

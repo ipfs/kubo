@@ -9,7 +9,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/thirdparty/assert"
 
-	ipld "gx/ipfs/QmUSyMZ8Vt4vTZr5HdDEgEfpwAXfQRuDdfCFTt7XBzhxpQ/go-ipld-format"
+	ipld "gx/ipfs/QmaA8GkXUYinkkndvg7T6Tx7gYXemhxjaxLisEPes7Rf1P/go-ipld-format"
 )
 
 func TestGetNodeAndParent(t *testing.T) {
@@ -70,7 +70,7 @@ func TestMvDir(t *testing.T) {
 	defer cancel()
 	ds, rt := setupRoot(ctx, t)
 
-	dirs := []string{"/a", "/b", "/b/a", "/c", "/b/c/d", "/y", "/z"}
+	dirs := []string{"/a", "/b", "/b/a", "/c", "/b/c/d", "/y", "/z", "/m"}
 	for _, dir := range dirs {
 		err := Mkdir(rt, dir, MkdirOpts{Mkparents: true, Flush: true})
 		assert.Nil(err, t)
@@ -104,6 +104,14 @@ func TestMvDir(t *testing.T) {
 	err = Mv(rt, "/z/", "/b")
 	assert.Nil(err, t)
 	checkDirExisted(rt.GetDirectory(), "/b/z", t)
+
+	err = Mv(rt, "/m", "/n/x")
+	assert.Nil(err, t)
+	checkDirExisted(rt.GetDirectory(), "/n/x", t)
+
+	addFile("/", "foo", rt, ds, t)
+	err = Mv(rt, "/foo/", "/b")
+	assert.True(err == errInvalidDirPath, t)
 }
 
 func TestMvFile(t *testing.T) {
@@ -122,6 +130,7 @@ func TestMvFile(t *testing.T) {
 	addFile("/", "n", rt, ds, t)
 	addFile("/a", "y", rt, ds, t)
 	addFile("/", "z", rt, ds, t)
+	addFile("/", "z1", rt, ds, t)
 
 	err := Mv(rt, "/x", "/a/y")
 	assert.Nil(err, t)
@@ -144,6 +153,10 @@ func TestMvFile(t *testing.T) {
 	_, err = DirLookup(rt.GetDirectory(), "/n")
 	assert.True(reflect.DeepEqual(err, os.ErrNotExist), t)
 	checkFileExisted(rt.GetDirectory(), "/b/n", t)
+
+	err = Mv(rt, "/z1", "/z2/z3")
+	assert.Nil(err, t)
+	checkFileExisted(rt.GetDirectory(), "/z2/z3", t)
 }
 
 func checkFileExisted(dir *Directory, path string, t *testing.T) {
