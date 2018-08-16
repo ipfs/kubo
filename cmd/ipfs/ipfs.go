@@ -92,4 +92,5 @@ var cmdDetailsMap = map[string]cmdDetails{
 	"diag/cmds":   {cannotRunOnClient: true},
 	"repo/fsck":   {cannotRunOnDaemon: true},
 	"config/edit": {cannotRunOnDaemon: true, doesNotUseRepo: true},
+	"cid":         {doesNotUseRepo: true},
 }
