@@ -503,6 +503,27 @@ test_files_api() {
     verify_dir_contents /cats/this
   '
 
+  test_expect_success "can mv dir to dir target $EXTRA" '
+    ipfs files mkdir /f1 &&
+    ipfs files mkdir /f2 &&
+    ipfs files mv /f1 /f2 &&
+    verify_path_exists /f2/f1
+  '
+
+  test_expect_success "mv dir to existed dir should fail $EXTRA" '
+    echo "Error: directory already has entry by that name" >expected_err &&
+    ipfs files mkdir /f1 &&
+    verify_path_exists /f2/f1 &&
+    ipfs files mkdir /f2/f1/f3 &&
+    test_must_fail ipfs files mv /f1 /f2/ 2>actual_err &&
+    test_cmp expected_err actual_err
+  '
+
+  test_expect_success "cleanup, remove 'f1 && f2' $EXTRA" '
+    ipfs files rm -r /f2 &&
+    ipfs files rm -r /f1
+  '
+
   test_expect_success "cleanup, remove 'cats' $EXTRA" '
     ipfs files rm -r /cats
   '
