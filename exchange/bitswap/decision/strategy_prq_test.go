@@ -224,8 +224,12 @@ func TestSPRQSimpleStrategy(t *testing.T) {
 	testStrategy(t, Identity)
 }
 
-func TestSPRQExpStrategy(t *testing.T) {
-	testStrategy(t, Exp)
+func TestSPRQSigmoidStrategy(t *testing.T) {
+	testStrategy(t, Sigmoid)
+}
+
+func TestSPRQTanhStrategy(t *testing.T) {
+	testStrategy(t, Tanh)
 }
 
 func testStrategy(t *testing.T, strategy Strategy) {

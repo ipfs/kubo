@@ -108,6 +108,10 @@ func Identity(r *Receipt) float64 {
 	return r.Value
 }
 
-func Exp(r *Receipt) float64 {
-	return 100 / (1 + math.Exp(2-r.Value))
+func Sigmoid(r *Receipt) float64 {
+	return 1 / (1 + math.Exp(2-r.Value))
+}
+
+func Tanh(r *Receipt) float64 {
+	return math.Tanh(r.Value)
 }
