@@ -527,6 +527,12 @@
       "hash": "QmfMirfpEKQFctVpBYTvETxxLoU5q4ZJWsAMrtwSSE2bkn",
       "name": "go-verifcid",
       "version": "0.0.3"
+    },
+    {
+      "author": "hsanjuan",
+      "hash": "QmQeLRo7dHKpmREWkAUXRAri4Bro3BqrDVJJHjHHmKSHMc",
+      "name": "go-mfs",
+      "version": "0.0.1"
     }
   ],
   "gxVersion": "0.10.0",
@@ -535,3 +541,4 @@
   "name": "go-ipfs",
   "version": "0.4.18-dev"
 }
+
