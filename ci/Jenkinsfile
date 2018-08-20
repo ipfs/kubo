@@ -93,6 +93,7 @@ def sharness_step = { run, osname, makeargs, ignore ->
     } finally {
       if (!ignore) {
         junit allowEmptyResults: true, testResults: 'test/sharness/test-results/sharness.xml'
+        run 'bash -c "bash <(curl -s https://codecov.io/bash) -f coverage/sharness_tests.coverprofile"'
       }
     }
   }
@@ -167,6 +168,7 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
               throw err
             } finally {
               junit allowEmptyResults: true, testResults: 'test/unit/gotest.junit.xml'
+              run 'bash -c "bash <(curl -s https://codecov.io/bash) -f coverage/unit_tests.coverprofile"'
             }
           }
         }
