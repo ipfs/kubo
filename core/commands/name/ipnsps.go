@@ -1,16 +1,18 @@
-package commands
+package name
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/e"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	record "gx/ipfs/QmdHb9aBELnQKTVhvvA3hsQbRgUAwsWUzBP2vZ6Y5FBYvE/go-libp2p-record"
+	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	"gx/ipfs/QmdHb9aBELnQKTVhvvA3hsQbRgUAwsWUzBP2vZ6Y5FBYvE/go-libp2p-record"
 )
 
 type ipnsPubsubState struct {
@@ -19,6 +21,10 @@ type ipnsPubsubState struct {
 
 type ipnsPubsubCancel struct {
 	Canceled bool
+}
+
+type stringList struct {
+	Strings []string
 }
 
 // IpnsPubsubCmd is the subcommand that allows us to manage the IPNS pubsub system
@@ -42,26 +48,21 @@ var ipnspsStateCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Query the state of IPNS pubsub",
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		res.SetOutput(&ipnsPubsubState{n.PSRouter != nil})
+		cmds.EmitOnce(res, &ipnsPubsubState{n.PSRouter != nil})
 	},
 	Type: ipnsPubsubState{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			output, ok := v.(*ipnsPubsubState)
 			if !ok {
-				return nil, e.TypeErr(output, v)
+				return e.TypeErr(output, v)
 			}
 
 			var state string
@@ -71,8 +72,9 @@ var ipnspsStateCmd = &cmds.Command{
 				state = "disabled"
 			}
 
-			return strings.NewReader(state + "\n"), nil
-		},
+			_, err := fmt.Fprintln(w, state)
+			return err
+		}),
 	},
 }
 
@@ -80,8 +82,8 @@ var ipnspsSubsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Show current name subscriptions",
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -106,11 +108,11 @@ var ipnspsSubsCmd = &cmds.Command{
 			paths = append(paths, "/ipns/"+peer.IDB58Encode(pid))
 		}
 
-		res.SetOutput(&stringList{paths})
+		cmds.EmitOnce(res, &stringList{paths})
 	},
 	Type: stringList{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: stringListMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: stringListMarshaler(),
 	},
 }
 
@@ -118,8 +120,8 @@ var ipnspsCancelCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Cancel a name subscription",
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -130,7 +132,7 @@ var ipnspsCancelCmd = &cmds.Command{
 			return
 		}
 
-		name := req.Arguments()[0]
+		name := req.Arguments[0]
 		name = strings.TrimPrefix(name, "/ipns/")
 		pid, err := peer.IDB58Decode(name)
 		if err != nil {
@@ -139,22 +141,17 @@ var ipnspsCancelCmd = &cmds.Command{
 		}
 
 		ok := n.PSRouter.Cancel("/ipns/" + string(pid))
-		res.SetOutput(&ipnsPubsubCancel{ok})
+		cmds.EmitOnce(res, &ipnsPubsubCancel{ok})
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("name", true, false, "Name to cancel the subscription for."),
 	},
 	Type: ipnsPubsubCancel{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			output, ok := v.(*ipnsPubsubCancel)
 			if !ok {
-				return nil, e.TypeErr(output, v)
+				return e.TypeErr(output, v)
 			}
 
 			var state string
@@ -164,7 +161,26 @@ var ipnspsCancelCmd = &cmds.Command{
 				state = "no subscription"
 			}
 
-			return strings.NewReader(state + "\n"), nil
-		},
+			_, err := fmt.Fprintln(w, state)
+			return err
+		}),
 	},
+}
+
+func stringListMarshaler() cmds.EncoderFunc {
+	return cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
+		list, ok := v.(*stringList)
+		if !ok {
+			return e.TypeErr(list, v)
+		}
+
+		for _, s := range list.Strings {
+			_, err := fmt.Fprintln(w, s)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

@@ -405,7 +405,7 @@ func getNode(req cmds.Request) (*core.IpfsNode, error) {
 	}
 
 	if !n.OnlineMode() {
-		return nil, errNotOnline
+		return nil, ErrNotOnline
 	}
 
 	return n, nil

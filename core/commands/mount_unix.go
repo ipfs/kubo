@@ -91,7 +91,7 @@ baz
 
 		// error if we aren't running node in online mode
 		if node.LocalMode() {
-			res.SetError(errNotOnline, cmdkit.ErrClient)
+			res.SetError(ErrNotOnline, cmdkit.ErrClient)
 			return
 		}
 
