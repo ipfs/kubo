@@ -1,0 +1,76 @@
+{
+  "columns": [
+    "Name",
+    "CI/Travis",
+    "CI/Jenkins",
+    "Coverage"
+  ],
+  "rows": [
+    "Files",
+    ["ipfs/go-unixfs", "go-unixfs"],
+
+    "Exchange",
+    ["ipfs/go-bitswap", "go-bitswap"],
+    ["ipfs/go-blockservice", "go-blockservice"],
+
+    "Datastores",
+    ["ipfs/go-ds-flatfs", "go-ds-flatfs"],
+    ["ipfs/go-ds-measure", "go-ds-measure"],
+    ["ipfs/go-ds-leveldb", "go-ds-leveldb"],
+    ["ipfs/go-ds-badger", "go-ds-badger"],
+
+    "Data Types",
+    ["ipfs/go-ipfs-blockstore", "go-ipfs-blockstore"],
+    ["ipfs/go-block-format", "go-block-format"],
+    ["ipfs/go-datastore", "go-datastore"],
+    ["ipfs/go-cid", "go-cid"],
+    ["libp2p/go-libp2p-peer", "go-libp2p-peer"],
+    ["libp2p/go-libp2p-peerstore", "go-libp2p-peerstore"],
+    ["multiformats/go-multihash", "go-multihash"],
+    ["multiformats/go-multibase", "go-multibase"],
+    ["multiformats/go-multiaddr", "go-multiaddr"],
+
+    "Network",
+    ["ipfs/go-ipfs-exchange-interface", "go-ipfs-exchange-interface"],
+    ["ipfs/go-ipfs-exchange-offline", "go-ipfs-exchange-offline"],
+    ["ipfs/go-ipfs-routing", "go-ipfs-routing"],
+    
+    "libp2p",
+    ["libp2p/go-libp2p-secio", "go-libp2p-secio"],
+    ["libp2p/go-libp2p", "go-libp2p"],
+    ["libp2p/go-libp2p-loggables", "go-libp2p-loggables"],
+    ["libp2p/go-libp2p-kad-dht", "go-libp2p-kad-dht"],
+    ["libp2p/go-libp2p-floodsub", "go-libp2p-floodsub"],
+    ["libp2p/go-libp2p-pnet", "go-libp2p-pnet"],
+    ["libp2p/go-libp2p-kbucket", "go-libp2p-kbucket"],
+    ["libp2p/go-libp2p-metrics", "go-libp2p-metrics"],
+    ["libp2p/go-libp2p-net", "go-libp2p-net"],
+    ["libp2p/go-libp2p-host", "go-libp2p-host"],
+    ["libp2p/go-libp2p-swarm", "go-libp2p-swarm"],
+    ["libp2p/go-libp2p-record", "go-libp2p-record"],
+    ["libp2p/go-libp2p-protocol", "go-libp2p-protocol"],
+    ["libp2p/go-libp2p-routing", "go-libp2p-routing"],
+    ["libp2p/go-libp2p-circuit", "go-libp2p-circuit"],
+    ["libp2p/go-libp2p-connmgr", "go-libp2p-connmgr"],
+    ["libp2p/go-libp2p-interface-connmgr", "go-libp2p-interface-connmgr"],
+    ["libp2p/go-libp2p-pubsub-router", "go-libp2p-pubsub-router"],
+    ["libp2p/go-libp2p-routing-helpers", "go-libp2p-routing-helpers"],
+    ["libp2p/go-libp2p-crypto", "go-libp2p-crypto"],
+
+    "Extensions",
+    ["ipfs/go-metrics-prometheus", "go-metrics-prometheus"],
+    ["ipfs/go-metrics-interface", "go-metrics-interface"],
+
+    "Generics/Utils",
+    ["ipfs/iptb", "iptb", "go"],
+    ["ipfs/go-ipfs-util", "go-ipfs-util"],
+    ["ipfs/go-ipfs-config", "go-ipfs-config"],
+    ["ipfs/go-verifcid", "go-verifcid"],
+    ["ipfs/go-mfs", "go-mfs"],
+    ["ipfs/go-cidutil", "go-cidutil"],
+    ["ipfs/go-ipfs-addr", "go-ipfs-addr"],
+    ["ipfs/go-ipfs-posinfo", "go-ipfs-posinfo"],
+    ["ipfs/go-ipfs-chunker", "go-ipfs-chunker"],
+    ["ipfs/go-ipfs-ds-help", "go-ipfs-ds-help"]
+  ]
+}
