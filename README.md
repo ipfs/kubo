@@ -326,29 +326,11 @@ If you believe you've found a bug, check the [issues list](https://github.com/ip
 
 ## Development
 
-This is a simple description of where the codebase stands. There are multiple subpackages:
-
-- `bitswap` - the block exchange
-- `blocks` - handles dealing with individual blocks and sharding files
-- `blockservice` - handles getting and storing blocks
-- `cmd/ipfs` - cli ipfs tool - the main **entrypoint** atm
-- `config` - load/edit configuration
-- `core` - the core node, joins all the pieces
-- `fuse/readonly` - mount `/ipfs` as a readonly fuse fs
-- `importer` - import files into ipfs
-- `merkledag` - merkle dag data structure
-- `path` - path resolution over merkledag data structure
-- `peer` - identity + addresses of local and remote peers
-- `routing` - the routing system
-- `routing/dht` - the DHT default routing system implementation
-- `swarm` - connection multiplexing, many peers and many transports
-- `util` - various utilities
-
 Some places to get you started on the codebase:
 
 - Main file: [cmd/ipfs/main.go](https://github.com/ipfs/go-ipfs/blob/master/cmd/ipfs/main.go)
 - CLI Commands: [core/commands/](https://github.com/ipfs/go-ipfs/tree/master/core/commands)
-- Bitswap (the data trading engine): [exchange/bitswap/](https://github.com/ipfs/go-ipfs/tree/master/exchange/bitswap)
+- Bitswap (the data trading engine): [exchange/bitswap/](hhttps://github.com/ipfs/go-bitswap)
 - libp2p
   - libp2p: https://github.com/libp2p/go-libp2p
   - DHT: https://github.com/libp2p/go-libp2p-kad-dht
