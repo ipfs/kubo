@@ -461,6 +461,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		corehttp.MutexFractionOption("/debug/pprof-mutex/"),
 		corehttp.MetricsScrapingOption("/debug/metrics/prometheus"),
 		corehttp.LogOption(),
+		corehttp.ProxyOption(),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

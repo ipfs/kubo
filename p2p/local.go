@@ -55,7 +55,7 @@ func (l *localListener) dial(ctx context.Context) (net.Stream, error) {
 	cctx, cancel := context.WithTimeout(ctx, time.Second*30) //TODO: configurable?
 	defer cancel()
 
-	return l.p2p.peerHost.NewStream(cctx, l.peer, l.proto)
+	return l.p2p.PeerHost.NewStream(cctx, l.peer, l.proto)
 }
 
 func (l *localListener) acceptConns() {
