@@ -7,6 +7,7 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	bitswap "gx/ipfs/QmTtmrK4iiM3MxWNA3pvbM9ekQiGZAiFyo57GP8B9FFgtz/go-bitswap"
 	decision "gx/ipfs/QmTtmrK4iiM3MxWNA3pvbM9ekQiGZAiFyo57GP8B9FFgtz/go-bitswap/decision"
@@ -48,7 +49,7 @@ var unwantCmd = &oldcmds.Command{
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(errNotOnline, cmdkit.ErrClient)
+			res.SetError(ErrNotOnline, cmdkit.ErrClient)
 			return
 		}
 
@@ -97,7 +98,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(errNotOnline, cmdkit.ErrClient)
+			res.SetError(ErrNotOnline, cmdkit.ErrClient)
 			return
 		}
 
@@ -140,14 +141,14 @@ var bitswapStatCmd = &cmds.Command{
 	},
 	Type: bitswap.Stat{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		nd, err := GetNode(env)
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(errNotOnline, cmdkit.ErrClient)
+			res.SetError(ErrNotOnline, cmdkit.ErrClient)
 			return
 		}
 
@@ -215,7 +216,7 @@ prints the ledger associated with a given peer.
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(errNotOnline, cmdkit.ErrClient)
+			res.SetError(ErrNotOnline, cmdkit.ErrClient)
 			return
 		}
 
@@ -272,7 +273,7 @@ Trigger reprovider to announce our data to network.
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(errNotOnline, cmdkit.ErrClient)
+			res.SetError(ErrNotOnline, cmdkit.ErrClient)
 			return
 		}
 

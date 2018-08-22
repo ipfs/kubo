@@ -10,6 +10,7 @@ import (
 	"os"
 
 	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
@@ -137,7 +138,7 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		cmdkit.IntOption("mhlen", "multihash hash length").WithDefault(-1),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		n, err := GetNode(env)
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -248,7 +249,7 @@ func getBlockForKey(ctx context.Context, env cmds.Environment, skey string) (blo
 		return nil, fmt.Errorf("zero length cid invalid")
 	}
 
-	n, err := GetNode(env)
+	n, err := cmdenv.GetNode(env)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +283,7 @@ It takes a list of base58 encoded multihashes to remove.
 		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		n, err := GetNode(env)
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

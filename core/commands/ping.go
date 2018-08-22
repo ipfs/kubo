@@ -78,7 +78,7 @@ trip latency information.
 
 		// Must be online!
 		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmdkit.ErrClient)
+			res.SetError(ErrNotOnline, cmdkit.ErrClient)
 			return
 		}
 
