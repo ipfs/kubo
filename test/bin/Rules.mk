@@ -41,7 +41,7 @@ TGTS_$(d) += $(d)/multihash
 
 # cid-fmt is also special
 $(d)/cid-fmt:
-	go build -i $(go-flags-with-tags) -o "$@" "gx/ipfs/$(shell gx deps find go-cid)/go-cid/cid-fmt"
+	go build -i $(go-flags-with-tags) -o "$@" "gx/ipfs/$(shell gx deps find go-cidutil)/go-cidutil/cid-fmt"
 TGTS_$(d) += $(d)/cid-fmt
 
 

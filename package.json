@@ -533,6 +533,12 @@
       "hash": "QmdghKsSDa2AD1kC4qYRnVYWqZecdSBRZjeXRdhMYYhafj",
       "name": "go-mfs",
       "version": "0.0.3"
+    },
+    {
+      "author": "kevina",
+      "hash": "QmPyxJ2QS7L5FhGkNYkNcXHGjDhvGHueJ4auqAstFHYxy5",
+      "name": "go-cidutil",
+      "version": "0.0.2"
     }
   ],
   "gxVersion": "0.10.0",
