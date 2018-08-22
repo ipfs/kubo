@@ -2,6 +2,7 @@ package name
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -16,7 +17,6 @@ import (
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	offline "gx/ipfs/Qmd45r5jHr1PKMNQqifnbZy1ZQwHdtXUDJFamUEvUJE544/go-ipfs-routing/offline"
 	path "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
-	"fmt"
 )
 
 var log = logging.Logger("core/commands/ipns")
@@ -162,7 +162,7 @@ Resolve the value of a dnslink:
 			if !ok {
 				return e.TypeErr(output, v)
 			}
-			_, err := fmt.Fprintln(w, []byte(output.Path.String()))
+			_, err := fmt.Fprintln(w, output.Path)
 			return err
 		}),
 	},

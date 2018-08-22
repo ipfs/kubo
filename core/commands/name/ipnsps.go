@@ -2,6 +2,7 @@ package name
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -12,7 +13,6 @@ import (
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	"gx/ipfs/QmdHb9aBELnQKTVhvvA3hsQbRgUAwsWUzBP2vZ6Y5FBYvE/go-libp2p-record"
-	"fmt"
 )
 
 type ipnsPubsubState struct {
@@ -72,7 +72,7 @@ var ipnspsStateCmd = &cmds.Command{
 				state = "disabled"
 			}
 
-			_, err := fmt.Fprintln(w, []byte(state))
+			_, err := fmt.Fprintln(w, state)
 			return err
 		}),
 	},
@@ -161,7 +161,7 @@ var ipnspsCancelCmd = &cmds.Command{
 				state = "no subscription"
 			}
 
-			_, err := fmt.Fprintln(w, []byte(state))
+			_, err := fmt.Fprintln(w, state)
 			return err
 		}),
 	},
@@ -175,7 +175,7 @@ func stringListMarshaler() cmds.EncoderFunc {
 		}
 
 		for _, s := range list.Strings {
-			_, err := fmt.Fprintln(w, []byte(s))
+			_, err := fmt.Fprintln(w, s)
 			if err != nil {
 				return err
 			}
