@@ -328,9 +328,9 @@ If you believe you've found a bug, check the [issues list](https://github.com/ip
 
 Some places to get you started on the codebase:
 
-- Main file: [cmd/ipfs/main.go](https://github.com/ipfs/go-ipfs/blob/master/cmd/ipfs/main.go)
-- CLI Commands: [core/commands/](https://github.com/ipfs/go-ipfs/tree/master/core/commands)
-- Bitswap (the data trading engine): [exchange/bitswap/](hhttps://github.com/ipfs/go-bitswap)
+- Main file: [./cmd/ipfs/main.go](https://github.com/ipfs/go-ipfs/blob/master/cmd/ipfs/main.go)
+- CLI Commands: [./core/commands/](https://github.com/ipfs/go-ipfs/tree/master/core/commands)
+- Bitswap (the data trading engine): [go-bitswap](https://github.com/ipfs/go-bitswap)
 - libp2p
   - libp2p: https://github.com/libp2p/go-libp2p
   - DHT: https://github.com/libp2p/go-libp2p-kad-dht
