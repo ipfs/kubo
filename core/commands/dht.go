@@ -160,7 +160,7 @@ var findProvidersDhtCmd = &cmds.Command{
 		}
 
 		if n.Routing == nil {
-			res.SetError(errNotOnline, cmdkit.ErrNormal)
+			res.SetError(ErrNotOnline, cmdkit.ErrNormal)
 			return
 		}
 
@@ -272,7 +272,7 @@ var provideRefDhtCmd = &cmds.Command{
 		}
 
 		if n.Routing == nil {
-			res.SetError(errNotOnline, cmdkit.ErrNormal)
+			res.SetError(ErrNotOnline, cmdkit.ErrNormal)
 			return
 		}
 
@@ -424,7 +424,7 @@ var findPeerDhtCmd = &cmds.Command{
 		}
 
 		if n.Routing == nil {
-			res.SetError(errNotOnline, cmdkit.ErrNormal)
+			res.SetError(ErrNotOnline, cmdkit.ErrNormal)
 			return
 		}
 
@@ -529,7 +529,7 @@ Different key types can specify other 'best' rules.
 		}
 
 		if n.Routing == nil {
-			res.SetError(errNotOnline, cmdkit.ErrNormal)
+			res.SetError(ErrNotOnline, cmdkit.ErrNormal)
 			return
 		}
 
@@ -643,7 +643,7 @@ NOTE: A value may not exceed 2048 bytes.
 		}
 
 		if n.Routing == nil {
-			res.SetError(errNotOnline, cmdkit.ErrNormal)
+			res.SetError(ErrNotOnline, cmdkit.ErrNormal)
 			return
 		}
 

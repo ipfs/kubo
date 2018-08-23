@@ -9,16 +9,13 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
 	ns "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
 
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 )
-
-type ResolvedPath struct {
-	Path path.Path
-}
 
 var ResolveCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -113,7 +110,7 @@ Resolve the value of an IPFS DAG path:
 				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
-			res.SetOutput(&ResolvedPath{p})
+			res.SetOutput(&ncmd.ResolvedPath{Path: p})
 			return
 		}
 
@@ -132,7 +129,7 @@ Resolve the value of an IPFS DAG path:
 
 		c := node.Cid()
 
-		res.SetOutput(&ResolvedPath{path.FromCid(c)})
+		res.SetOutput(&ncmd.ResolvedPath{Path: path.FromCid(c)})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -141,12 +138,12 @@ Resolve the value of an IPFS DAG path:
 				return nil, err
 			}
 
-			output, ok := v.(*ResolvedPath)
+			output, ok := v.(*ncmd.ResolvedPath)
 			if !ok {
 				return nil, e.TypeErr(output, v)
 			}
 			return strings.NewReader(output.Path.String() + "\n"), nil
 		},
 	},
-	Type: ResolvedPath{},
+	Type: ncmd.ResolvedPath{},
 }

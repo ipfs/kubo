@@ -14,6 +14,7 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	ft "gx/ipfs/QmQjEpRiwVvtowhq69dAtB4jhioPVFXiCcWZm9Sfgn7eqc/go-unixfs"
 	uio "gx/ipfs/QmQjEpRiwVvtowhq69dAtB4jhioPVFXiCcWZm9Sfgn7eqc/go-unixfs/io"
@@ -114,7 +115,7 @@ var filesStatCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrClient)
 		}
 
-		node, err := GetNode(env)
+		node, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -721,6 +722,7 @@ stat' on the file or any of its ancestors.
 	Options: []cmdkit.Option{
 		cmdkit.IntOption("offset", "o", "Byte offset to begin writing at."),
 		cmdkit.BoolOption("create", "e", "Create the file if it does not exist."),
+		cmdkit.BoolOption("parents", "p", "Make parent directories as needed."),
 		cmdkit.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
 		cmdkit.IntOption("count", "n", "Maximum number of bytes to read."),
 		cmdkit.BoolOption("raw-leaves", "Use raw blocks for newly created leaf nodes. (experimental)"),
@@ -735,6 +737,7 @@ stat' on the file or any of its ancestors.
 		}
 
 		create, _ := req.Options["create"].(bool)
+		mkParents, _ := req.Options["parents"].(bool)
 		trunc, _ := req.Options["truncate"].(bool)
 		flush, _ := req.Options["flush"].(bool)
 		rawLeaves, rawLeavesDef := req.Options["raw-leaves"].(bool)
@@ -745,7 +748,7 @@ stat' on the file or any of its ancestors.
 			return
 		}
 
-		nd, err := GetNode(env)
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return
@@ -755,6 +758,14 @@ stat' on the file or any of its ancestors.
 		if offset < 0 {
 			re.SetError(fmt.Errorf("cannot have negative write offset"), cmdkit.ErrNormal)
 			return
+		}
+
+		if mkParents {
+			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix)
+			if err != nil {
+				re.SetError(err, cmdkit.ErrNormal)
+				return
+			}
 		}
 
 		fi, err := getFileHandle(nd.FilesRoot, path, create, prefix)
@@ -1144,6 +1155,19 @@ func getPrefix(req oldcmds.Request) (cid.Builder, error) {
 	}
 
 	return &prefix, nil
+}
+
+func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Builder) error {
+	dirtomake := gopath.Dir(path)
+
+	if dirtomake == "/" {
+		return nil
+	}
+
+	return mfs.Mkdir(r, dirtomake, mfs.MkdirOpts{
+		Mkparents:  true,
+		CidBuilder: builder,
+	})
 }
 
 func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (*mfs.File, error) {

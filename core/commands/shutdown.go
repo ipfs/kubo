@@ -3,6 +3,8 @@ package commands
 import (
 	"fmt"
 
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+
 	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 )
@@ -12,7 +14,7 @@ var daemonShutdownCmd = &cmds.Command{
 		Tagline: "Shut down the ipfs daemon",
 	},
 	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
-		nd, err := GetNode(env)
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return
