@@ -9,8 +9,6 @@
 [![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs)
 [![Build Status](https://travis-ci.org/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs)
 
-> IPFS implementation in Go
-
 ## Project Status
 
 [![Throughput Graph](https://graphs.waffle.io/ipfs/go-ipfs/throughput.svg)](https://waffle.io/ipfs/go-ipfs/metrics/throughput)
@@ -39,15 +37,14 @@ Please put all issues regarding:
     - [Download and Compile IPFS](#download-and-compile-ipfs)
     - [Troubleshooting](#troubleshooting)
   - [Development Dependencies](#development-dependencies)
-  - [Updating](#updating)
+  - [Updating](#updating-go-ipfs)
 - [Usage](#usage)
 - [Getting Started](#getting-started)
   - [Some things to try](#some-things-to-try)
   - [Docker usage](#docker-usage)
   - [Troubleshooting](#troubleshooting-1)
+- [Development](#development)
 - [Contributing](#contributing)
-  - [Want to hack on IPFS?](#want-to-hack-on-ipfs)
-  - [Want to read our code?](#want-to-read-our-code)
 - [License](#license)
 
 ## Security Issues
@@ -88,13 +85,15 @@ You can also download go-ipfs from this project's GitHub releases page if you ar
 In Arch Linux go-ipfs is available as
 [go-ipfs](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) package.
 
-	$ sudo pacman -S go-ipfs
+```
+$ sudo pacman -S go-ipfs
+```
 
 Development version of go-ipfs is also on AUR under
 [go-ipfs-git](https://aur.archlinux.org/packages/go-ipfs-git/).
 You can install it using your favourite AUR Helper or manually from AUR.
 
-### Nix
+#### Nix
 
 For Linux and MacOSX you can use the purely functional package manager [Nix](https://nixos.org/nix/):
 
@@ -107,14 +106,15 @@ You can also install the Package by using it's attribute name, which is also `ip
 
 With snap, in any of the [supported Linux distributions](https://snapcraft.io/docs/core/install):
 
-    $ sudo snap install ipfs
+```
+$ sudo snap install ipfs
+```
 
 ### Build from Source
 
 #### Install Go
 
 The build process for ipfs requires Go 1.10 or higher. If you don't have it: [Download Go 1.10+](https://golang.org/dl/).
-
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
@@ -153,43 +153,44 @@ mismatched APIs.
 
 #### Troubleshooting
 
-* Separate [instructions are available for building on Windows](docs/windows.md).
-* Also, [instructions for OpenBSD](docs/openbsd.md).
-* `git` is required in order for `go get` to fetch all dependencies.
-* Package managers often contain out-of-date `golang` packages.
+- Separate [instructions are available for building on Windows](docs/windows.md).
+- Also, [instructions for OpenBSD](docs/openbsd.md).
+- `git` is required in order for `go get` to fetch all dependencies.
+- Package managers often contain out-of-date `golang` packages.
   Ensure that `go version` reports at least 1.10. See above for how to install go.
-* If you are interested in development, please install the development
+- If you are interested in development, please install the development
 dependencies as well.
-* *WARNING: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
+- _WARNING_: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!-
   We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
   (See https://github.com/ipfs/go-ipfs/issues/177)
-* For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder.
-* Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
-* See the [init examples](https://github.com/ipfs/website/tree/master/static/docs/examples/init) for how to connect IPFS to systemd or whatever init system your distro uses.
+- For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder.
+- Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
+- See the [init examples](https://github.com/ipfs/website/tree/master/static/docs/examples/init) for how to connect IPFS to systemd or whatever init system your distro uses.
 
-### Development Dependencies
+### Updating go-ipfs
 
-If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
+#### Using ipfs-update
 
-### Updating
-
-#### Updating using ipfs-update
 IPFS has an updating tool that can be accessed through `ipfs update`. The tool is
 not installed alongside IPFS in order to keep that logic independent of the main
 codebase. To install `ipfs update`, [download it here](https://ipfs.io/ipns/dist.ipfs.io/#ipfs-update).
 
 #### Downloading IPFS builds using IPFS
+
 List the available versions of go-ipfs:
+
 ```
 $ ipfs cat /ipns/dist.ipfs.io/go-ipfs/versions
 ```
 
 Then, to view available builds for a version from the previous command ($VERSION):
+
 ```
 $ ipfs ls /ipns/dist.ipfs.io/go-ipfs/$VERSION
 ```
 
 To download a given build of a version:
+
 ```
 $ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_darwin-386.tar.gz # darwin 32-bit build
 $ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_darwin-amd64.tar.gz # darwin 64-bit build
@@ -317,41 +318,54 @@ Stop the running container:
 
 ### Troubleshooting
 
-If you have previously installed IPFS before and you are running into
-problems getting a newer version to work, try deleting (or backing up somewhere
-else) your IPFS config directory (~/.ipfs by default) and rerunning `ipfs init`.
-This will reinitialize the config file to its defaults and clear out the local
-datastore of any bad entries.
+If you have previously installed IPFS before and you are running into problems getting a newer version to work, try deleting (or backing up somewhere else) your IPFS config directory (~/.ipfs by default) and rerunning `ipfs init`. This will reinitialize the config file to its defaults and clear out the local datastore of any bad entries.
 
-Please direct general questions and help requests to our
-[forum](https://discuss.ipfs.io) or our IRC channel (freenode #ipfs).
+Please direct general questions and help requests to our [forum](https://discuss.ipfs.io) or our IRC channel (freenode #ipfs).
 
-If you believe you've found a bug, check the [issues list](https://github.com/ipfs/go-ipfs/issues)
-and, if you don't see your problem there, either come talk to us on IRC (freenode #ipfs) or
-file an issue of your own!
+If you believe you've found a bug, check the [issues list](https://github.com/ipfs/go-ipfs/issues) and, if you don't see your problem there, either come talk to us on IRC (freenode #ipfs) or file an issue of your own!
+
+## Development
+
+Some places to get you started on the codebase:
+
+- Main file: [./cmd/ipfs/main.go](https://github.com/ipfs/go-ipfs/blob/master/cmd/ipfs/main.go)
+- CLI Commands: [./core/commands/](https://github.com/ipfs/go-ipfs/tree/master/core/commands)
+- Bitswap (the data trading engine): [go-bitswap](https://github.com/ipfs/go-bitswap)
+- libp2p
+  - libp2p: https://github.com/libp2p/go-libp2p
+  - DHT: https://github.com/libp2p/go-libp2p-kad-dht
+  - PubSub: https://github.com/libp2p/go-floodsub
+
+### CLI, HTTP-API, Architecture Diagram
+
+![](./docs/cli-http-api-core-diagram.png)
+
+> [Origin](https://github.com/ipfs/pm/pull/678#discussion_r210410924)
+
+Description: Dotted means "likely going away". The "Legacy" parts are thin wrappers around some commands to translate between the new system and the old system. The grayed-out parts on the "daemon" diagram are there to show that the code is all the same, it's just that we turn some pieces on and some pieces off depending on whether we're running on the client or the server.
+
+### Testing
+
+```
+make test
+```
+
+### Development Dependencies
+
+If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
+
+### Developer Notes
+
+Find more documentation for developers on [docs](./docs)
 
 ## Contributing
+
+[![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/contributing.md)
 
 We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what it is without you! If you want to help out, please see [Contribute.md](contribute.md).
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
-### Want to hack on IPFS?
-
-[![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/contributing.md)
-
-### Want to read our code?
-
-Some places to get you started. (WIP)
-
-Main file: [cmd/ipfs/main.go](https://github.com/ipfs/go-ipfs/blob/master/cmd/ipfs/main.go) <br>
-CLI Commands: [core/commands/](https://github.com/ipfs/go-ipfs/tree/master/core/commands) <br>
-Bitswap (the data trading engine): [exchange/bitswap/](https://github.com/ipfs/go-ipfs/tree/master/exchange/bitswap)
-
-DHT: https://github.com/libp2p/go-libp2p-kad-dht <br>
-PubSub: https://github.com/libp2p/go-floodsub <br>
-libp2p: https://github.com/libp2p/go-libp2p
-
 ## License
 
-MIT
+[MIT](./LICENSE)
