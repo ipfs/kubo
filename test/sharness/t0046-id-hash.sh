@@ -43,6 +43,41 @@ test_expect_success "can still fetch it" '
   test_cmp junk.txt actual
 '
 
+test_expect_success "ipfs add --inline works as expected" '
+  echo $ID_HASH0_CONTENTS > afile &&
+  HASH=$(ipfs add -q --inline afile)
+'
+
+test_expect_success "ipfs add --inline uses id multihash" '
+  MHTYPE=`cid-fmt %h $HASH`
+  echo "mhtype is $MHTYPE"
+  test "$MHTYPE" = id
+'
+
+test_expect_success "ipfs add --inline --raw-leaves works as expected" '
+  echo $ID_HASH0_CONTENTS > afile &&
+  HASH=$(ipfs add -q --inline --raw-leaves afile)
+'
+
+test_expect_success "ipfs add --inline --raw-leaves outputs the correct hash" '
+  echo "$ID_HASH0" = "$HASH" &&
+  test "$ID_HASH0" = "$HASH"
+'
+
+test_expect_success "create 1000 bytes file and get its hash" '
+  random 1000 2 > 1000bytes &&
+  HASH0=$(ipfs add -q --raw-leaves --only-hash 1000bytes)
+'
+
+test_expect_success "ipfs add --inline --raw-leaves works as expected on large file" '
+  HASH=$(ipfs add -q --inline --raw-leaves 1000bytes)
+'
+
+test_expect_success "ipfs add --inline --raw-leaves outputs the correct hash on large file" '
+  echo "$HASH0" = "$HASH" &&
+  test "$HASH0" = "$HASH"
+'
+
 test_expect_success "enable filestore" '
   ipfs config --json Experimental.FilestoreEnabled true
 '
