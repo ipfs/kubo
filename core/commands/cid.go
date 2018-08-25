@@ -36,14 +36,14 @@ var cidFmtCmd = &cmds.Command{
 		LongDescription: `
 Format and converts <cid>'s in various useful ways.
 
-The optional format string either "prefix" or or a printf style format string:
+The optional format string is a printf style format string:
 ` + cidutil.FormatRef,
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("cid", true, true, "Cids to format."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("f", "Format string."),
+		cmdkit.StringOption("f", "Printf style format string.").WithDefault("%s"),
 		cmdkit.StringOption("v", "CID version to convert to."),
 		cmdkit.StringOption("b", "Multibase to display CID in."),
 	},
@@ -54,17 +54,10 @@ The optional format string either "prefix" or or a printf style format string:
 
 		opts := cidFormatOpts{}
 
-		switch fmtStr {
-		case "":
-			opts.fmtStr = "%s"
-		case "prefix":
-			opts.fmtStr = "%P"
-		default:
-			if strings.IndexByte(fmtStr, '%') == -1 {
-				return fmt.Errorf("invalid format string: %s", fmtStr)
-			}
-			opts.fmtStr = fmtStr
+		if strings.IndexByte(fmtStr, '%') == -1 {
+			return fmt.Errorf("invalid format string: %s", fmtStr)
 		}
+		opts.fmtStr = fmtStr
 
 		switch verStr {
 		case "":
