@@ -23,11 +23,11 @@ import (
 	util "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
 	measure "gx/ipfs/QmRa2HJZNKkkkbNVPkZu9VCzst4B3JmxoaR97EUFhWcK6m/go-ds-measure"
-	config "gx/ipfs/QmTyiSs9VgdVb4pnzdjtKhcfdTkHFEaNn6xnCbZq4DTFRt/go-ipfs-config"
-	serialize "gx/ipfs/QmTyiSs9VgdVb4pnzdjtKhcfdTkHFEaNn6xnCbZq4DTFRt/go-ipfs-config/serialize"
 	ds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	lockfile "gx/ipfs/QmZzgxSj8QpR58KmdeNj97eD66X6xeDAFNjpP2xTY9oKeQ/go-fs-lock"
+	config "gx/ipfs/Qmdpmn9dQFSFeCfwpaZdbeYSFxJmbtSTArU4kMZByjmPAJ/go-ipfs-config"
+	serialize "gx/ipfs/Qmdpmn9dQFSFeCfwpaZdbeYSFxJmbtSTArU4kMZByjmPAJ/go-ipfs-config/serialize"
 )
 
 // LockFile is the filename of the repo lock, relative to config dir

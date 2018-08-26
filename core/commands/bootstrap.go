@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	config "gx/ipfs/QmTyiSs9VgdVb4pnzdjtKhcfdTkHFEaNn6xnCbZq4DTFRt/go-ipfs-config"
+	config "gx/ipfs/Qmdpmn9dQFSFeCfwpaZdbeYSFxJmbtSTArU4kMZByjmPAJ/go-ipfs-config"
 )
 
 type BootstrapOutput struct {

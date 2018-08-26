@@ -14,7 +14,7 @@ import (
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	config "gx/ipfs/QmTyiSs9VgdVb4pnzdjtKhcfdTkHFEaNn6xnCbZq4DTFRt/go-ipfs-config"
+	config "gx/ipfs/Qmdpmn9dQFSFeCfwpaZdbeYSFxJmbtSTArU4kMZByjmPAJ/go-ipfs-config"
 
 	homedir "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 
