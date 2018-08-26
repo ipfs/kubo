@@ -5,4 +5,5 @@ type Experiments struct {
 	UrlstoreEnabled      bool
 	ShardingEnabled      bool
 	Libp2pStreamMounting bool
+	QUIC                 bool
 }
