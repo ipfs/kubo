@@ -30,6 +30,7 @@ const (
 	nocacheOptionName        = "nocache"
 	dhtRecordCountOptionName = "dht-record-count"
 	dhtTimeoutOptionName     = "dht-timeout"
+	streamOptionName         = "stream"
 )
 
 var IpnsCmd = &cmds.Command{
@@ -78,6 +79,7 @@ Resolve the value of a dnslink:
 		cmdkit.BoolOption(nocacheOptionName, "n", "Do not use cached entries."),
 		cmdkit.UintOption(dhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
 		cmdkit.StringOption(dhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
+		cmdkit.BoolOption(streamOptionName, "s", "Stream entries as they are found."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)

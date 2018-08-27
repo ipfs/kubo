@@ -64,8 +64,25 @@ func (ns *mpns) Resolve(ctx context.Context, name string, options ...opts.Resolv
 	return resolve(ctx, ns, name, opts.ProcessOpts(options), "/ipns/")
 }
 
+func (ns *mpns) ResolveAsync(ctx context.Context, name string, options ...opts.ResolveOpt) <-chan Result {
+	res := make(chan Result, 1)
+	if strings.HasPrefix(name, "/ipfs/") {
+		p, err := path.ParsePath(name)
+		res <- Result{p, err}
+		return res
+	}
+
+	if !strings.HasPrefix(name, "/") {
+		p, err := path.ParsePath("/ipfs/" + name)
+		res <- Result{p, err}
+		return res
+	}
+
+	return resolveAsync(ctx, ns, name, opts.ProcessOpts(options), "/ipns/")
+}
+
 // resolveOnce implements resolver.
-func (ns *mpns) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, time.Duration, error) {
+func (ns *mpns) resolveOnce(ctx context.Context, name string, options opts.ResolveOpts) (path.Path, time.Duration, error) {
 	if !strings.HasPrefix(name, "/ipns/") {
 		name = "/ipns/" + name
 	}
@@ -105,6 +122,75 @@ func (ns *mpns) resolveOnce(ctx context.Context, name string, options *opts.Reso
 		p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
 	}
 	return p, 0, err
+}
+
+func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
+	out := make(chan onceResult, 1)
+
+	if !strings.HasPrefix(name, "/ipns/") {
+		name = "/ipns/" + name
+	}
+	segments := strings.SplitN(name, "/", 4)
+	if len(segments) < 3 || segments[0] != "" {
+		log.Debugf("invalid name syntax for %s", name)
+		out <- onceResult{err: ErrResolveFailed}
+		close(out)
+		return out
+	}
+
+	key := segments[2]
+
+	if p, ok := ns.cacheGet(key); ok {
+		out <- onceResult{value: p}
+		close(out)
+		return out
+	}
+
+	// Resolver selection:
+	// 1. if it is a multihash resolve through "ipns".
+	// 2. if it is a domain name, resolve through "dns"
+	// 3. otherwise resolve through the "proquint" resolver
+
+	var res resolver
+	if _, err := mh.FromB58String(key); err == nil {
+		res = ns.ipnsResolver
+	} else if isd.IsDomain(key) {
+		res = ns.dnsResolver
+	} else {
+		res = ns.proquintResolver
+	}
+
+	resCh := res.resolveOnceAsync(ctx, key, options)
+	var best onceResult
+	go func() {
+		defer close(out)
+		for {
+			select {
+			case res, ok := <-resCh:
+				if !ok {
+					if best != (onceResult{}) {
+						ns.cacheSet(key, best.value, best.ttl)
+					}
+					return
+				}
+				if res.err == nil {
+					best = res
+				}
+				p := res.value
+
+				// Attach rest of the path
+				if len(segments) > 3 {
+					p, _ = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
+				}
+
+				out <- onceResult{value: p, err: res.err}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return out
 }
 
 // Publish implements Publisher

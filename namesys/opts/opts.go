@@ -31,8 +31,8 @@ type ResolveOpts struct {
 
 // DefaultResolveOpts returns the default options for resolving
 // an IPNS path
-func DefaultResolveOpts() *ResolveOpts {
-	return &ResolveOpts{
+func DefaultResolveOpts() ResolveOpts {
+	return ResolveOpts{
 		Depth:          DefaultDepthLimit,
 		DhtRecordCount: 16,
 		DhtTimeout:     time.Minute,
@@ -65,10 +65,10 @@ func DhtTimeout(timeout time.Duration) ResolveOpt {
 }
 
 // ProcessOpts converts an array of ResolveOpt into a ResolveOpts object
-func ProcessOpts(opts []ResolveOpt) *ResolveOpts {
+func ProcessOpts(opts []ResolveOpt) ResolveOpts {
 	rsopts := DefaultResolveOpts()
 	for _, option := range opts {
-		option(rsopts)
+		option(&rsopts)
 	}
 	return rsopts
 }

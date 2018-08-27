@@ -39,7 +39,7 @@ type lookupRes struct {
 // resolveOnce implements resolver.
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
-func (r *DNSResolver) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, time.Duration, error) {
+func (r *DNSResolver) resolveOnce(ctx context.Context, name string, options opts.ResolveOpts) (path.Path, time.Duration, error) {
 	segments := strings.SplitN(name, "/", 2)
 	domain := segments[0]
 
@@ -82,6 +82,61 @@ func (r *DNSResolver) resolveOnce(ctx context.Context, name string, options *opt
 		p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[1])
 	}
 	return p, 0, err
+}
+
+func (r *DNSResolver) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
+	out := make(chan onceResult, 1)
+	segments := strings.SplitN(name, "/", 2)
+	domain := segments[0]
+
+	if !isd.IsDomain(domain) {
+		out <- onceResult{err: errors.New("not a valid domain name")}
+		close(out)
+		return out
+	}
+	log.Debugf("DNSResolver resolving %s", domain)
+
+	rootChan := make(chan lookupRes, 1)
+	go workDomain(r, domain, rootChan)
+
+	subChan := make(chan lookupRes, 1)
+	go workDomain(r, "_dnslink."+domain, subChan)
+
+	go func() {
+		defer close(out)
+		for {
+			select {
+			case subRes, ok := <-subChan:
+				if !ok {
+					subChan = nil
+				}
+				if subRes.error == nil {
+					select {
+						case out <- onceResult{value: subRes.path}:
+						case <-ctx.Done():
+					}
+					return
+				}
+			case rootRes, ok := <-rootChan:
+				if !ok {
+					subChan = nil
+				}
+				if rootRes.error == nil {
+					select {
+					case out <- onceResult{value: rootRes.path}:
+					case <-ctx.Done():
+					}
+				}
+			case <-ctx.Done():
+				return
+			}
+			if subChan == nil && rootChan == nil {
+				return
+			}
+		}
+	}()
+
+	return out
 }
 
 func workDomain(r *DNSResolver, name string, res chan lookupRes) {
