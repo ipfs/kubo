@@ -143,7 +143,7 @@ Example:
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			polling, _ := res.Request().Options["poll"].(bool)
-			log.Debug("postrun polling:", polling)
+
 			if polling {
 				fmt.Fprintln(os.Stdout, "Total Up    Total Down  Rate Up     Rate Down")
 			}
