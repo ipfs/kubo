@@ -68,23 +68,24 @@ func resolveAsyncDo(ctx context.Context, r resolver, name string, options opts.R
 		for {
 			select {
 			case res, ok := <-resCh:
-				if res.err != nil {
-					outCh <- Result{err: res.err}
-					return
-				}
 				if !ok {
 					resCh = nil
 					continue
 				}
+
+				if res.err != nil {
+					outCh <- Result{Err: res.err}
+					return
+				}
 				log.Debugf("resolved %s to %s", name, res.value.String())
 				if strings.HasPrefix(res.value.String(), "/ipfs/") {
-					outCh <- Result{err: res.err}
+					outCh <- Result{Err: res.err}
 					continue
 				}
 				p := strings.TrimPrefix(res.value.String(), prefix)
 
 				if depth == 1 {
-					outCh <- Result{err: ErrResolveRecursion}
+					outCh <- Result{Err: ErrResolveRecursion}
 					continue
 				}
 
@@ -99,17 +100,20 @@ func resolveAsyncDo(ctx context.Context, r resolver, name string, options opts.R
 					cancelSub()
 				}
 				subCtx, cancelSub = context.WithCancel(ctx)
+				defer cancelSub()
 
 				subCh = resolveAsyncDo(subCtx, r, p, subopts, prefix)
 			case res, ok := <-subCh:
-				if res.err != nil {
-					outCh <- Result{err: res.err}
-					return
-				}
 				if !ok {
 					subCh = nil
 					continue
 				}
+
+				if res.Err != nil {
+					outCh <- Result{Err: res.Err}
+					return
+				}
+
 				outCh <- res
 			case <-ctx.Done():
 			}

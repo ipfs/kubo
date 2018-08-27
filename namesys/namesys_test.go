@@ -38,9 +38,13 @@ func testResolution(t *testing.T, resolver Resolver, name string, depth uint, ex
 	}
 }
 
-func (r *mockResolver) resolveOnce(ctx context.Context, name string, opts *opts.ResolveOpts) (path.Path, time.Duration, error) {
+func (r *mockResolver) resolveOnce(ctx context.Context, name string, opts opts.ResolveOpts) (path.Path, time.Duration, error) {
 	p, err := path.ParsePath(r.entries[name])
 	return p, 0, err
+}
+
+func (r *mockResolver) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
+	panic("stub")
 }
 
 func mockResolverOne() *mockResolver {

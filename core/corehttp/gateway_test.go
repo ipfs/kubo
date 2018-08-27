@@ -35,7 +35,7 @@ type mockNamesys map[string]path.Path
 func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.ResolveOpt) (value path.Path, err error) {
 	cfg := nsopts.DefaultResolveOpts()
 	for _, o := range opts {
-		o(cfg)
+		o(&cfg)
 	}
 	depth := cfg.Depth
 	if depth == nsopts.UnlimitedDepth {
@@ -55,6 +55,14 @@ func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.Re
 		name = value.String()
 	}
 	return value, nil
+}
+
+func (m mockNamesys) ResolveAsync(ctx context.Context, name string, opts ...nsopts.ResolveOpt) <-chan namesys.Result {
+	out := make(chan namesys.Result, 1)
+	v, err := m.Resolve(ctx, name, opts...)
+	out <- namesys.Result{Path: v, Err: err}
+	close(out)
+	return nil
 }
 
 func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {

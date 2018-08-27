@@ -65,8 +65,8 @@ type NameSystem interface {
 
 // Result is the return type for Resolver.ResolveAsync.
 type Result struct {
-	path path.Path
-	err  error
+	Path path.Path
+	Err  error
 }
 
 // Resolver is an object capable of resolving names.
