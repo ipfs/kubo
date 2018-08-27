@@ -5,7 +5,6 @@ import (
 	"io"
 	"sort"
 	"strings"
-	"text/tabwriter"
 	"unicode"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
@@ -195,26 +194,28 @@ var basesCmd = &cmds.Command{
 		return nil
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w0 io.Writer, val0 interface{}) error {
-			w := tabwriter.NewWriter(w0, 0, 0, 2, ' ', 0)
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, val0 interface{}) error {
 			prefixes, _ := req.Options["prefix"].(bool)
 			numeric, _ := req.Options["numeric"].(bool)
 			val := val0.([]CodeAndName)
 			sort.Sort(multibaseSorter{val})
 			for _, v := range val {
-				if prefixes && v.Code >= 32 && v.Code < 127 {
-					fmt.Fprintf(w, "%c\t", v.Code)
-				} else if prefixes {
+				code := v.Code
+				if code < 32 || code >= 127 {
 					// don't display non-printable prefixes
-					fmt.Fprintf(w, "\t")
+					code = ' '
 				}
-				if numeric {
-					fmt.Fprintf(w, "%d\t%s\n", v.Code, v.Name)
-				} else {
+				switch {
+				case prefixes && numeric:
+					fmt.Fprintf(w, "%c %5d  %s\n", code, v.Code, v.Name)
+				case prefixes:
+					fmt.Fprintf(w, "%c  %s\n", code, v.Name)
+				case numeric:
+					fmt.Fprintf(w, "%5d  %s\n", v.Code, v.Name)
+				default:
 					fmt.Fprintf(w, "%s\n", v.Name)
 				}
 			}
-			w.Flush()
 			return nil
 		}),
 	},
@@ -238,19 +239,17 @@ var codecsCmd = &cmds.Command{
 		return nil
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w0 io.Writer, val0 interface{}) error {
-			w := tabwriter.NewWriter(w0, 0, 0, 2, ' ', 0)
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, val0 interface{}) error {
 			numeric, _ := req.Options["numeric"].(bool)
 			val := val0.([]CodeAndName)
 			sort.Sort(codeAndNameSorter{val})
 			for _, v := range val {
 				if numeric {
-					fmt.Fprintf(w, "%d\t%s\n", v.Code, v.Name)
+					fmt.Fprintf(w, "%5d  %s\n", v.Code, v.Name)
 				} else {
 					fmt.Fprintf(w, "%s\n", v.Name)
 				}
 			}
-			w.Flush()
 			return nil
 		}),
 	},
