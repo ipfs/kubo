@@ -39,7 +39,7 @@ The optional format string is a printf style format string:
 ` + cidutil.FormatRef,
 	},
 	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("cid", true, true, "Cids to format."),
+		cmdkit.StringArg("cid", true, true, "Cids to format.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("f", "Printf style format string.").WithDefault("%s"),
@@ -125,8 +125,37 @@ type cidFormatOpts struct {
 	verConv func(cid cid.Cid) (cid.Cid, error)
 }
 
+type argumentIterator struct {
+	args []string
+	body cmds.StdinArguments
+}
+
+func (i *argumentIterator) next() (string, bool) {
+	if len(i.args) > 0 {
+		arg := i.args[0]
+		i.args = i.args[1:]
+		return arg, true
+	}
+	if i.body == nil || !i.body.Scan() {
+		return "", false
+	}
+	return strings.TrimSpace(i.body.Argument()), true
+}
+
+func (i *argumentIterator) err() error {
+	if i.body == nil {
+		return nil
+	}
+	return i.body.Err()
+}
+
 func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) error {
-	for _, cidStr := range req.Arguments {
+	itr := argumentIterator{req.Arguments, req.BodyArgs()}
+	for {
+		cidStr, ok := itr.next()
+		if !ok {
+			break
+		}
 		emit := func(fmtd string, err error) {
 			res := &CidFormatRes{CidStr: cidStr, Formatted: fmtd}
 			if err != nil {
@@ -156,6 +185,10 @@ func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) 
 			return err
 		}
 		emit(str, err)
+	}
+	err := itr.err()
+	if err != nil {
+		return err
 	}
 	return nil
 }
