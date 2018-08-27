@@ -80,22 +80,25 @@ The optional format string is a printf style format string:
 			opts.newBase = mbase.Encoding(-1)
 		}
 
-		res, err := formatCids(req.Arguments, opts)
-		if err != nil {
-			return err
-		}
-		cmds.EmitOnce(resp, res)
-		return nil
+		return emitCids(req, resp, opts)
 	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, val interface{}) error {
-			for _, v := range val.([]string) {
-				fmt.Fprintf(w, "%s\n", v)
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: streamRes(func(v interface{}, out io.Writer) nonFatalError {
+			r := v.(*CidFormatRes)
+			if r.ErrorMsg != "" {
+				return nonFatalError(fmt.Sprintf("%s: %s", r.CidStr, r.ErrorMsg))
 			}
-			return nil
+			fmt.Fprintf(out, "%s\n", r.Formatted)
+			return ""
 		}),
 	},
-	Type: []string{},
+	Type: CidFormatRes{},
+}
+
+type CidFormatRes struct {
+	CidStr    string // Original Cid String passed in
+	Formatted string // Formated Result
+	ErrorMsg  string // Error
 }
 
 var base32Cmd = &cmds.Command{
@@ -103,7 +106,7 @@ var base32Cmd = &cmds.Command{
 		Tagline: "Convert CIDs to Base32 CID version 1.",
 	},
 	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("cid", true, true, "Cids to convert."),
+		cmdkit.StringArg("cid", true, true, "Cids to convert.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
 		opts := cidFormatOpts{
@@ -111,16 +114,10 @@ var base32Cmd = &cmds.Command{
 			newBase: mbase.Encoding(mbase.Base32),
 			verConv: toCidV1,
 		}
-		res, err := formatCids(req.Arguments, opts)
-		if err != nil {
-			return err
-		}
-
-		cmds.EmitOnce(resp, res)
-		return nil
+		return emitCids(req, resp, opts)
 	},
-	Encoders: cidFmtCmd.Encoders,
-	Type:     cidFmtCmd.Type,
+	PostRun: cidFmtCmd.PostRun,
+	Type:    cidFmtCmd.Type,
 }
 
 type cidFormatOpts struct {
@@ -129,12 +126,19 @@ type cidFormatOpts struct {
 	verConv func(cid cid.Cid) (cid.Cid, error)
 }
 
-func formatCids(args []string, opts cidFormatOpts) ([]string, error) {
-	var res []string
-	for _, cidStr := range args {
+func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) error {
+	for _, cidStr := range req.Arguments {
+		emit := func(fmtd string, err error) {
+			res := &CidFormatRes{CidStr: cidStr, Formatted: fmtd}
+			if err != nil {
+				res.ErrorMsg = err.Error()
+			}
+			resp.Emit(res)
+		}
 		c, err := cid.Decode(cidStr)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %v", cidStr, err)
+			emit("", err)
+			continue
 		}
 		base := opts.newBase
 		if base == -1 {
@@ -143,18 +147,18 @@ func formatCids(args []string, opts cidFormatOpts) ([]string, error) {
 		if opts.verConv != nil {
 			c, err = opts.verConv(c)
 			if err != nil {
-				return nil, fmt.Errorf("%s: %v", cidStr, err)
+				emit("", err)
+				continue
 			}
 		}
 		str, err := cidutil.Format(opts.fmtStr, base, c)
 		if _, ok := err.(cidutil.FormatStringError); ok {
-			return nil, err
-		} else if err != nil {
-			return nil, fmt.Errorf("%s: %v", cidStr, err)
+			// no point in continuing if there is a problem with the format string
+			return err
 		}
-		res = append(res, str)
+		emit(str, err)
 	}
-	return res, nil
+	return nil
 }
 
 func toCidV0(c cid.Cid) (cid.Cid, error) {
