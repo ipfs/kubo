@@ -22,3 +22,5 @@ bin/tmp
 vendor
 .tarball
 go-ipfs-source.tar.gz
+
+.idea
